@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {prepareNativeLocalRuntime, inspectLocalLibrary} from './native-cli-local-runtime.mjs';
 import {admitNativeArtifact} from './native-cli-release.mjs';
-import {admitInstalledLocalRuntime, admitLocalRuntimePlatform, validateLocalRuntimeManifest, LOCAL_RUNTIME_MAX_BYTES} from '../packages/native-cli/lib/local-runtime.mjs';
+import {admitInstalledLocalRuntime, admitLocalRuntimePlatform, validateLocalRuntimeManifest, installedLocalRuntimeEnvironment, LOCAL_RUNTIME_MAX_BYTES} from '../packages/native-cli/lib/local-runtime.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const sourceSha = 'a'.repeat(40), platform = 'darwin-arm64';
@@ -194,6 +194,42 @@ test('physical loader observations reject undeclared dependencies and ambient se
     args[0] === '-d' ? '' : 'GLIBC_2.34 GLIBCXX_3.4.30'));
 });
 
+test('Darwin admits the exact OS zlib install name through producer and launcher only', async t => {
+  const f = await fixture(t), output = join(f.root, 'os-zlib'); await mkdir(output);
+  const dependencies = ['/usr/lib/libSystem.B.dylib', '/usr/lib/libz.1.dylib'];
+  const observe = (tool, args) => args[0] === '-L'
+    ? `${inspectFixture(tool, args)} /usr/lib/libz.1.dylib (compatibility version 1.0.0, current version 1.2.12)\n`
+    : inspectFixture(tool, args);
+  assert.deepEqual(inspectLocalLibrary('fixture', platform, new Set(), observe),
+    {dependencies, abi: {minimumMacOS: '14.0'}});
+  const options = structuredClone(f.options);
+  for (const library of options.libraries) library.dependencies = dependencies;
+  const metadata = await prepareNativeLocalRuntime(output, options, observe);
+  const expected = {...f.expected, localRuntimeSha256: metadata.sha256};
+  const selected = admitInstalledLocalRuntime({root: output, expected, metadata});
+  assert.deepEqual(selected.libraries[0].dependencies, dependencies);
+  const launched = installedLocalRuntimeEnvironment({root: output, expected, metadata,
+    platformFacts: {macOS: '14.0'}, environment: {PATH: '/usr/bin'}});
+  assert.deepEqual(JSON.parse(launched.ACTQL_NATIVE_LOCAL_RUNTIME), {
+    root: output, sourceSha, platform, manifestSha256: metadata.sha256,
+  });
+  for (const dependency of ['/usr/lib/libz.dylib', '/usr/lib/libz.2.dylib',
+    '/usr/local/lib/libz.1.dylib', '/opt/homebrew/lib/libz.1.dylib',
+    '@rpath/libz.1.dylib', '@loader_path/libz.1.dylib', 'libz.1.dylib']) {
+    const changed = structuredClone(selected);
+    changed.libraries[0].dependencies = [dependency];
+    assert.throws(() => validateLocalRuntimeManifest(changed, expected));
+    assert.throws(() => inspectLocalLibrary('fixture', platform, new Set(), (tool, args) =>
+      observe(tool, args).replaceAll('/usr/lib/libz.1.dylib', dependency)));
+  }
+  const missing = structuredClone(options); missing.libraries[0].dependencies = [];
+  const refused = join(f.root, 'undeclared-zlib'); await mkdir(refused);
+  await assert.rejects(prepareNativeLocalRuntime(refused, missing, observe));
+  const linux = structuredClone(selected); linux.platform = 'linux-x64-gnu';
+  for (const library of linux.libraries) library.abi = {minimumGlibc: '2.34'};
+  assert.throws(() => validateLocalRuntimeManifest(linux, {...expected, platform: 'linux-x64-gnu'}));
+});
+
 test('declared dependency list cannot hide the physically observed loader requirement', async t => {
   const f = await fixture(t), destination = join(f.root, 'missing-physical-dependency'); await mkdir(destination);
   const options = structuredClone(f.options); options.libraries[0].dependencies = [];
@@ -222,4 +258,26 @@ test('existing artifact admission consumes the optional fixed Local profile and 
   assert.deepEqual(await admitNativeArtifact(f.output, sourceSha), metadata);
   await writeFile(join(f.output, 'data/result-policy.json'), Buffer.from('{"changed":true}'));
   await assert.rejects(admitNativeArtifact(f.output, sourceSha), e => e.exitCode === 65);
+});
+
+
+test('Native launch context binds only the verified runtime and preserves explicit mode selection', async t => {
+  const f = await fixture(t);
+  const environment = {PATH: '/finite', ACTQL_NATIVE_LOCAL_RUNTIME: 'foreign', SENTINEL: 'preserved'};
+  const result = installedLocalRuntimeEnvironment({root: f.output, expected: f.expected, metadata: f.metadata,
+    platformFacts: {macOS: '14.0'}, environment});
+  assert.deepEqual(JSON.parse(result.ACTQL_NATIVE_LOCAL_RUNTIME), {
+    root: f.output, sourceSha, platform, manifestSha256: f.metadata.sha256,
+  });
+  assert.equal(result.PATH, '/finite'); assert.equal(result.SENTINEL, 'preserved');
+  assert.equal(environment.ACTQL_NATIVE_LOCAL_RUNTIME, 'foreign');
+  assert.deepEqual(Object.keys(result).sort(), ['ACTQL_NATIVE_LOCAL_RUNTIME', 'PATH', 'SENTINEL']);
+});
+
+test('Native launch context does not accept foreign runtime or unsupported actual ABI', async t => {
+  const f = await fixture(t);
+  for (const overrides of [{expected: {...f.expected, sourceSha: 'b'.repeat(40)}}, {platformFacts: {macOS: '13.0'}}]) {
+    assert.throws(() => installedLocalRuntimeEnvironment({root: f.output, expected: f.expected,
+      metadata: f.metadata, platformFacts: {macOS: '14.0'}, environment: {}, ...overrides}));
+  }
 });

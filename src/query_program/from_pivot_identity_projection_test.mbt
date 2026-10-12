@@ -9,11 +9,16 @@ test "empty derived FROM PIVOT retains checked global count output" {
     { ..values_context(), inputs: [], },
     construction_limits(),
   ).unwrap()
+  let wire = semantic(program)
+  assert_eq(@program.stage_count(program), 1)
+  assert_true(wire.contains("\"filter\":{\"literal\":false}"))
   assert_true(
-    semantic(program).contains(
-      "\"from\":\"aql_query_source_1\",\"select\":[\"A\"]",
+    wire.contains(
+      "\"pivot\":{\"aggregate\":\"count\",\"column\":\"axis\",\"index\":[],\"value\":\"sales\",\"values\":[\"A\"]}",
     ),
   )
+  assert_true(wire.contains("\"select\":[\"A\"]"))
+  assert_true(wire.contains("\"fields\":[\"A\"]"))
   match
     @check.check_parsed(
       program,

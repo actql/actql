@@ -5,7 +5,7 @@ test "single JOIN GROUP public input retains one captured shared source" {
     let lowered = lower(
       "SELECT l.id, COUNT(*) AS n FROM records AS l JOIN records AS r ON l.id = r.id MAX_OUTPUT_ROWS 20 WHERE l.id > 0 GROUP BY l.id HAVING n > 1 ORDER BY id",
       format,
-      Some(test_context()),
+      Some(registered_test_context()),
     ).unwrap()
     guard lowered.program is Some(program) else {
       fail("the public source route must produce an ordinary Program")
@@ -24,7 +24,7 @@ test "single JOIN GROUP public input preserves raw source with derived right inp
   let lowered = lower(
     "SELECT COUNT(*) AS n FROM records CROSS JOIN (SELECT 1 AS k) AS s MAX_OUTPUT_ROWS 10 WHERE records.id > 0 HAVING COUNT(*) > 1",
     Sql,
-    Some(test_context()),
+    Some(registered_test_context()),
   ).unwrap()
   assert_true(lowered.program is Some(_))
   assert_true(lowered.document.contains("\"max_output_rows\":10"))

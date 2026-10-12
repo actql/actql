@@ -1063,6 +1063,8 @@ pub fn client_program_model_capture(@model_execution.ModelObservation) -> @model
 
 pub fn client_program_model_capture_json(@model_execution.ModelCaptureBundle) -> String?
 
+pub fn client_program_model_original_resource_origin_field(@run_publication.ModelOriginalResourceDocument, String) -> String?
+
 pub fn client_program_model_physical_call(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet, () -> @model_execution.ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> @model_execution.ModelPhysicalCall?
 
 pub fn client_program_model_physical_call_for_request(@model_execution.ModelCallEntry, @model_execution.ModelRequest, () -> @model_execution.ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> @model_execution.ModelPhysicalCall?
@@ -1234,6 +1236,8 @@ pub fn client_program_read_infer_model_dependencies(@check_environment.ModelExec
 pub fn client_program_read_infer_model_execution(@run_publication_host.PreparedClientProgram, Int, String, String) -> Result[@check_environment.ModelExecutionContract, @run_publication_host.ClientInferPlanGraphIssue]
 
 pub fn client_program_read_infer_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[@model_execution.ModelSlotReplayRead, @model_execution.ModelExecutionIssue]
+
+pub fn client_program_read_model_original_resource_document(String, Int, Int, Int) -> Result[@run_publication.ModelOriginalResourceDocument, @run_publication.PublicationContractIssue]
 
 pub fn client_program_read_model_response_profile(String, String, Int, Int, Int, Int, Int) -> Result[@check_environment.ModelResponseProfile, @check_environment.ModelTaskIssue]
 

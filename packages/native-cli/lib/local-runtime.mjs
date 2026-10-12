@@ -11,7 +11,7 @@ const DATA_MAX_BYTES = 65536;
 const LICENSE_MAX_BYTES = 1024 * 1024;
 const roles = ['environment', 'registry', 'values', 'fragment', 'ordered', 'result-policy'];
 const systems = {
-  'darwin-arm64': new Set(['/usr/lib/libSystem.B.dylib']),
+  'darwin-arm64': new Set(['/usr/lib/libSystem.B.dylib', '/usr/lib/libz.1.dylib']),
   'linux-x64-gnu': new Set(['libc.so.6', 'libm.so.6', 'libdl.so.2', 'libpthread.so.0', 'librt.so.1', 'ld-linux-x86-64.so.2']),
 };
 export const localRuntimeHash = bytes => createHash('sha256').update(bytes).digest('hex');
@@ -177,4 +177,17 @@ export function admitInstalledLocalRuntime({root, expected, metadata}) {
   } catch {
     throw Object.assign(Error('Native Local runtime identity or dependency mismatch; reinstall the fixed package cohort.'), {exitCode: 65});
   }
+}
+
+// Launcher metadata is not permission. Native rechecks exact physical members
+// and binds the manifest to the existing explicit adoption originals.
+export function installedLocalRuntimeEnvironment({root, expected, metadata, platformFacts, environment}) {
+  const manifest = admitInstalledLocalRuntime({root, expected, metadata});
+  admitLocalRuntimePlatform(manifest, platformFacts);
+  const result = {...environment};
+  result.ACTQL_NATIVE_LOCAL_RUNTIME = JSON.stringify({
+    root, sourceSha: manifest.sourceSha, platform: manifest.platform,
+    manifestSha256: metadata.sha256,
+  });
+  return result;
 }
