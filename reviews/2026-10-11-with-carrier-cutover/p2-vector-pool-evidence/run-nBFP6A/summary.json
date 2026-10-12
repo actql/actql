@@ -1,0 +1,47 @@
+{
+  "startedAt": "2026-10-12T01:17:46.653Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Format only vector pooling source adapter and controls",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_syntax/sga_call.mbt",
+        "src/query_syntax/sga_argument_roles.mbt",
+        "src/query_program/query_script_carriers.mbt",
+        "src/query_syntax/vector_pool_role_test.mbt",
+        "src/query_program/vector_pool_source_test.mbt"
+      ],
+      "startedAt": "2026-10-12T01:17:46.717Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T01:17:46.911Z",
+      "endedAt": "2026-10-12T01:17:46.913Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "ed398830-2708-4285-826e-48140b7d37f8",
+    "pid": 99881,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T01:17:46.714Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-nBFP6A"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T01:17:46.966Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
