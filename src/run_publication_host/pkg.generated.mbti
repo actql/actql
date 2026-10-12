@@ -778,6 +778,8 @@ pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanF
 
 pub fn enter_client_model_read_consumer(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[Unit, ClientModelReadPreparationIssue]
 
+pub fn finish_client_model_original_preparation_base(ClientNodeModelStateWriter, ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[String, ClientModelOriginalPreparationBaseIssue]
+
 pub fn finish_client_model_read_inventory(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Bool) -> Result[Bool, ClientModelReadPreparationIssue]
 
 pub fn finish_client_model_read_scope(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Bool) -> Result[Bool, ClientModelReadPreparationIssue]
@@ -1977,6 +1979,13 @@ pub(all) enum ClientModelOriginalOriginIssue {
   ForeignRun
   OriginMismatch(String)
   Layout(ClientModelPreparationLayoutIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientModelOriginalPreparationBaseIssue {
+  Origin(ClientModelOriginalOriginIssue)
+  State(ClientNodeModelStateIssue)
+  InvalidBounds
+  Encoding
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ClientModelPreparationLayoutIssue {
