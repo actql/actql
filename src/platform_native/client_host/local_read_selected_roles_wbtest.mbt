@@ -143,7 +143,7 @@ test "Native custom role groups restore each original read independently after r
       "2026-10-13T00:00:00.001Z",
     ).unwrap()
     policy
-    .accept_issued_submitted_run(
+    .accept_issued_submitted_run_policy(
       reference, preparation, request, compiled, definition, retention, "2026-10-13T00:00:00.001Z",
       1002.0,
     )
