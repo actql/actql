@@ -21,6 +21,11 @@ const envelope = (version, field, value) => ({
 
 export function modelDependencySchemas() {
   return {
+    openai_chat_prompt: {type: 'object', additionalProperties: false,
+      required: ['format', 'instructions'], properties: {
+        format: {const: 'actql.openai_chat_prompt/0.1'},
+        instructions: {type: 'string'},
+      }},
     model_prompt: envelope('actql-model-prompt/0.1', 'payload', {}),
     model_retry_policy: envelope('actql-model-retry-policy/0.1',
       'retryable_failures', {type: 'array', uniqueItems: true, maxItems: 3,

@@ -1389,7 +1389,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:4fa4cd2c2441c43538d875777d57ff595968d1f30f91ba576a45b85d320f866b -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:980d64508f4011a133ff0ab65ef129f6a0f4a431d51330bcc7d7bb37625d5607 -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:84f8c82ffb7476f57a3c4e1bef0e0dd8aa891e2ab0f1d79c203e907e91291b9b -->
 
 <a id="parameter-value-projection"></a>
@@ -1608,6 +1608,28 @@ checked ModelTask. Canonical JSON integrity alone is not executability.
 Payload interpretation belongs to that provider, not a new Frontend syntax.
 This validation neither grants authority nor replaces current account,
 classification, region, attachment and physical-capacity admission.
+
+<!-- requirement-block: model-dependencies.openai-chat-presence model-dependencies.openai-chat-instructions model-dependencies.openai-chat-original-text model-dependencies.openai-chat-mapped-input model-dependencies.openai-chat-binding -->
+The initial OpenAI Chat provider profile uses the closed payload
+`{"format":"actql.openai_chat_prompt/0.1","instructions":""}` inside that
+unchanged Model prompt envelope. Both fields MUST be present. Instructions
+MUST be a String (empty is permitted); NULL, omitted and additional fields
+are invalid. Original Unicode and line endings MUST be preserved. The mapped
+admitted input MUST be one separate data-text message from the bounded Common
+value-wire emitter, not a lossy JavaScript reconstruction or an interpreted
+template. The original Task, selector, prompt CID and output schema CID MUST
+match the installed preparation and intercepted final SDK request.
+
+<!-- requirement-block: model-dependencies.openai-chat-required model-dependencies.openai-chat-closed model-dependencies.openai-chat-constraints model-dependencies.openai-chat-unsupported -->
+This finite profile projects the admitted nonnullable Object output contract
+to strict JSON Schema. Plain Text, Number, Boolean, unconstrained Array and
+closed Object are supported recursively, including explicit nested nullability.
+Every object field MUST be required and every object MUST disallow additional
+properties. Constraints MUST NOT be dropped: constrained Text/Array, nullable
+root, Decimal, date/time, Vector, Json and reference variants without an exact
+registered endpoint projection MUST be refused before send. These are provider
+profile limits, not common language prohibitions. Projection does not replace
+Common returned-value validation or create capacity or dispatch authority.
 
 <!-- requirement-block: model-dependencies.retry-order -->
 `retryable_failures` MUST contain a duplicate-free subset of `rate_limit`,
@@ -2087,6 +2109,7 @@ These exact schema/law references are owned here. Their identities do not includ
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_input_artifact sha256:86e9e2c7b59634e8235b80a12b241a26f4f32f913dd30064aed36dfaecaf318c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_input_key sha256:103b8c1515bb65f7ccd9f6963d798fcd20ce598cb7b266e09f2b32fac5831af0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_call_slot sha256:a83e0af3e07986b5655463e0d39da3eb6c74cbefb327e65525de4be0035eac2b
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/openai_chat_prompt sha256:c785e9b1efaefbf6a0c74c52bc103dd2e67eb774a9c2f860642007bce1e81a9a
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_attachment_admission sha256:2ff7c3d1a1480c83a0887c55b22a513ce6e5f9c40df2f961fd968015ba2cbca0
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_media_input sha256:91f477f7af3bcf35e6d040b1d36e68476c6e06f480e36391ecd0ef903131bca7
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_prompt sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204
