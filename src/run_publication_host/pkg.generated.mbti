@@ -1065,6 +1065,8 @@ pub fn handoff_client_model_read_input_capacity(ClientModelReadPreparation, Clie
 
 pub fn[E] inspect_client_empty_cancellation_inventory(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], E, E) -> Result[Unit, E]
 
+pub fn inspect_client_native_local_scalar_values_profile(PreparedClientProgram, Int) -> Result[ClientNativeLocalScalarValuesProfile, ClientNativeLocalScalarValuesProfileIssue]
+
 pub fn inspect_client_remote_effect_task_progress(ClientEffectAllowedRun, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteEffectTaskProgress, ClientRemoteEffectTaskProgressIssue]
 
 pub fn inspect_client_remote_task_progress(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteTaskProgress, ClientRemoteTaskProgressIssue]
@@ -1666,6 +1668,8 @@ pub fn validate_client_local_run_policy_original_run(Bytes, ClientRequestIdentit
 pub fn validate_client_native_local_runtime_compute_components(ClientNativeLocalRuntime, ClientNativeLocalRuntime) -> Result[Unit, ClientNativeLocalRuntimeIssue]
 
 pub fn validate_client_native_local_runtime_library_components(ClientNativeLocalRuntime, ClientNativeLocalRuntime) -> Result[Unit, ClientNativeLocalRuntimeIssue]
+
+pub fn validate_client_native_local_scalar_values_preparation(ClientNativeLocalScalarValuesProfile, PreparedClientProgram) -> Result[Unit, ClientNativeLocalScalarValuesProfileIssue]
 
 pub fn validate_client_retained_input_intent(ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
@@ -2633,6 +2637,22 @@ pub(all) struct ClientNativeLocalRuntimeMember {
   bytes : Int64
   sha256 : String
 }
+
+pub struct ClientNativeLocalScalarValuesProfile {
+  preparation : PreparedClientProgram
+  operations : Array[String]
+  expressions : Array[String]
+  inspected : Int
+}
+
+pub(all) enum ClientNativeLocalScalarValuesProfileIssue {
+  InvalidLimit
+  UnsupportedProfile
+  NonScalar
+  UnprovenExpression
+  BudgetExceeded
+  ForeignPreparation
+} derive(Eq, @debug.Debug)
 
 pub(all) struct ClientNodeModelPreparationLayout {
   response_profile : @check_environment.ModelResponseProfile
