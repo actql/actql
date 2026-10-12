@@ -2,7 +2,7 @@
 // The retained acquisition-complete-facts corpus supplies this real Catalog.
 // Its canonical preimage/CID is independently reproduced with Python hashlib;
 // neither the expected capture placement nor request form comes from lowering.
-fn chain_right_catalog() -> @environment.SourceRequestContracts raise {
+fn chain_right_catalog() -> @environment.SourceRequestContracts {
   let wire = @environment.read(
     @utf8.encode(
       (
@@ -79,49 +79,65 @@ fn chain_right_context(direct~ : Bool, captured~ : Bool) -> Context raise {
 fn chain_right_queries() -> Array[String] {
   [
     "FROM (SELECT 1 AS id) AS l |> JOIN remote AS r ON l.id = r.id MAX_OUTPUT_ROWS 4 |> JOIN (SELECT 1 AS id) AS s ON r.id = s.id MAX_OUTPUT_ROWS 4 |> SELECT l.id AS id",
-    "WITH lefts AS (SELECT 1 AS id) FROM lefts AS l |> JOIN remote AS r ON l.id = r.id MAX_OUTPUT_ROWS 4 |> SELECT l.id AS id",
+    "WITH lefts AS (FROM UNNEST([STRUCT(1 AS id, [1] AS items)]) AS p |> SELECT id, items) FROM lefts AS l |> JOIN remote AS r ON l.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(l.items) AS n |> SELECT l.id AS id",
   ]
 }
 
 ///|
-test "keyed right Source retains its JOIN occurrence in chain and preserved scope" {
-  for query in chain_right_queries() {
-    for captured in [false, true] {
-      let program = compile_query_script(
-        @query.parse_query_script(query, syntax_limits()).unwrap(),
-        chain_right_context(direct=false, captured~),
-        construction_limits(),
-      ).unwrap()
-      // A keyed template omits id deliberately; Direct Select/Result use is
-      // forbidden by the existing Common request/consumer classification.
-      assert_eq(@program.stage_count(program), 1, msg=query)
-      assert_false(semantic(program).contains("\"id\":\"capture\""))
-      assert_true(semantic(program).contains("\"with\":\"remote\""))
-    }
+fn check_keyed_chain_right(query : String) -> Unit raise {
+  for captured in [false, true] {
+    let program = compile_query_script(
+      @query.parse_query_script(query, syntax_limits()).unwrap(),
+      chain_right_context(direct=false, captured~),
+      construction_limits(),
+    ).unwrap()
+    // A keyed template omits id deliberately; Direct Select/Result use is
+    // forbidden by the existing Common request/consumer classification.
+    assert_eq(@program.stage_count(program), 1, msg=query)
+    assert_false(semantic(program).contains("\"id\":\"capture\""))
+    assert_true(semantic(program).contains("\"with\":\"remote\""))
   }
 }
 
 ///|
-test "fully supplied right Source keeps requested capture in the same shapes" {
-  for query in chain_right_queries() {
-    for captured in [false, true] {
-      let program = compile_query_script(
-        @query.parse_query_script(query, syntax_limits()).unwrap(),
-        chain_right_context(direct=true, captured~),
-        construction_limits(),
-      ).unwrap()
-      assert_eq(
-        @program.stage_count(program),
-        if captured {
-          2
-        } else {
-          1
-        },
-        msg=query,
-      )
-      assert_true(
-        semantic(program).contains("\"request\":{\"id\":1,\"tenant\":null}"),
-      )
-    }
+fn check_direct_chain_right(query : String) -> Unit raise {
+  for captured in [false, true] {
+    let program = compile_query_script(
+      @query.parse_query_script(query, syntax_limits()).unwrap(),
+      chain_right_context(direct=true, captured~),
+      construction_limits(),
+    ).unwrap()
+    assert_eq(
+      @program.stage_count(program),
+      if captured {
+        2
+      } else {
+        1
+      },
+      msg=query,
+    )
+    assert_true(
+      semantic(program).contains("\"request\":{\"id\":1,\"tenant\":null}"),
+    )
   }
+}
+
+///|
+test "keyed right Source stays at the two-JOIN consumer" {
+  check_keyed_chain_right(chain_right_queries()[0])
+}
+
+///|
+test "fully supplied right Source keeps two-JOIN requested capture" {
+  check_direct_chain_right(chain_right_queries()[0])
+}
+
+///|
+test "keyed right Source stays at the preserved object scope consumer" {
+  check_keyed_chain_right(chain_right_queries()[1])
+}
+
+///|
+test "fully supplied right Source keeps preserved object scope capture" {
+  check_direct_chain_right(chain_right_queries()[1])
 }
