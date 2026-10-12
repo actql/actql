@@ -80,7 +80,7 @@
   "expression_text_rules_sha256": "26f95e951b1fe07f2cf99df314c326930249332058cb20835b833f096cb53709",
   "structural_text_grammar_sha256": "0f6a0337a350348efbe20e23fe658ce1e56297d407ba9dac3ec2eaf008849a56",
   "structural_text_rules_sha256": "209cde18dff4cc5b8b7cdd6749a3329b0bcf6a8fe6c7243977c0c5f169e49762",
-  "query_text_grammar_sha256": "54f9af793cc1811b39ef0eec8f4abf5a58ac980892d89414155a4872b08dcfc3",
-  "query_text_rules_sha256": "62147b432302c2fe374df7354892553635b4b0ff22673773675aca2e1c79d16f",
-  "grammar_manifest_cid": "sha256:223455c08c26719aa886db3bbe673a62e53a061d22edaefceaac86ce805af5a0"
+  "query_text_grammar_sha256": "21242226037802370a9a0df63f558245961709340add06e1499d938ce335a1f3",
+  "query_text_rules_sha256": "452ae7194cc1de41f55b13200fe4411222bedddef7f0e24e8de355e8f0d3f88a",
+  "grammar_manifest_cid": "sha256:6e3b729048e4ca2a986ed9ef2dd50c6a691a2d0cf502109d1ecf9a7493e44c2e"
 }
