@@ -4,6 +4,7 @@
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {retainInferOriginalReadInstallation} from './infer-original-installation.mjs';
+import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
 import {openSync, readSync, closeSync} from 'node:fs';
 
 // Physical observation only: the common account reader/evaluator decides
@@ -115,7 +116,7 @@ export function installModelProviders(moon, register) {
         Object.keys(entry).some(key => !['invoke', 'providerId', 'validatePrompt',
           'physicalPreflight', 'quantityCapacity', 'observeEgress',
           'bindingOriginals', 'reconcileResponse', 'entryPersistence',
-          'originalReadInstallation'].includes(key)) ||
+          'originalReadInstallation', 'rawCaptureSelection'].includes(key)) ||
         entry.entryPersistence !== undefined && entry.entryPersistence !== 'async' ||
         entry.reconcileResponse !== undefined && typeof entry.reconcileResponse !== 'function' ||
         typeof entry.providerId !== 'string' ||
@@ -127,6 +128,13 @@ export function installModelProviders(moon, register) {
     // Installation-time snapshot precedes any provider or original Run start.
     // No default numerical profile is supplied when this declaration is absent.
     const originalReadInstallation = retainInferOriginalReadInstallation(entry.originalReadInstallation);
+    const rawCaptureSelection = snapshotModelRawCaptureSelection(entry.rawCaptureSelection);
+    // This installation profile connects raw custody only to the existing
+    // durable asynchronous caller. It grants no raw capture or send authority.
+    if (rawCaptureSelection !== undefined &&
+        (entry.entryPersistence !== 'async' || typeof entry.physicalPreflight !== 'function')) {
+      throw new TypeError('InstalledInferRawCaptureRequiresAsyncPhysicalPreflight');
+    }
     const provider = moon.clientProgramInstallModelProvider(entry.providerId,
       entry.invoke);
     if (provider === undefined) {
@@ -152,7 +160,7 @@ export function installModelProviders(moon, register) {
         perAttempt: Object.freeze({...capacity.perAttempt}),
       });
     }
-    result.set(entry.providerId, Object.freeze({provider, originalReadInstallation,
+    result.set(entry.providerId, Object.freeze({provider, originalReadInstallation, rawCaptureSelection,
       bindingOriginals: retainProviderBindingOriginals(entry.bindingOriginals),
       physicalPreflight: entry.physicalPreflight,
       entryPersistence: entry.entryPersistence,
