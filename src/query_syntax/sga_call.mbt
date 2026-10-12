@@ -42,6 +42,7 @@ fn sga_operation(name : String) -> Bool {
     | "asof_join"
     | "interval_join"
     | "time_series"
+    | "merge_rankings"
     | "dedupe_events"
     | "session"
     | "events"
@@ -106,6 +107,7 @@ fn carrier_call_head(token : Token) -> Bool {
         "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
         "to_events", "row_window", "window_events", "watermark_events", "session",
         "events", "dedupe_events", "watermark_rows", "lag", "asof_join", "interval_join",
+        "merge_rankings",
       ].contains(ascii_upper(name).to_lower())
     _ => false
   }
@@ -188,6 +190,7 @@ pub fn after_graph_row_calls(
 fn sga_producer_argument(operation : String, path : Array[String]) -> Bool {
   match operation {
     "asof_join" | "interval_join" => path == ["with"]
+    "merge_rankings" => path == ["with"]
     "reach" | "traverse" => path == ["start", "from"]
     "shortest_path" => path == ["source", "from"] || path == ["target", "from"]
     "subgraph" => path == ["nodes", "from"]
@@ -207,6 +210,11 @@ fn sga_selector_object(operation : String, path : Array[String]) -> Bool {
   match operation {
     "asof_join" => path == ["by"]
     "interval_join" => path == ["on"] || path == ["left"] || path == ["right"]
+    "merge_rankings" =>
+      path == ["score_contract"] ||
+      path == ["score_policy"] ||
+      path == ["score_policy", "weighted_sum"] ||
+      path == ["score_policy", "rrf"]
     "reach" => path == ["start"]
     "traverse" => path == ["start"] || path == ["hops"]
     "shortest_path" => path == ["source"] || path == ["target"]

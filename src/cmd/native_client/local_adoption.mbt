@@ -16,6 +16,7 @@ priv struct LocalHostSettings {
   source_file : String?
   run_file : String?
   read_file : String?
+  run_policy_profile_file : String?
   reviewer_file : String?
 }
 
@@ -56,7 +57,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     "account_id", "principal", "connection", "state_parent", "state_name", "managed_root",
     "sqlite_library", "signature_library", "submission_ttl_ms", "journal_record_limit",
     "journal_snapshot_bytes", "installation_files", "source_file", "run_file", "read_file",
-    "reviewer_file",
+    "reviewer_file", "run_policy_profile_file",
   ]).unwrap_or_else(() => stop("InvalidLocalHostConfiguration"))
   let number = fn(key : String) -> Int64 raise ClientStop {
     guard @decode.lookup(fields, key) is Some(value) &&
@@ -105,6 +106,11 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     record_limit: records.to_int(),
     snapshot_bytes: snapshot,
     installation_files,
+    run_policy_profile_file: match
+      @decode.lookup(fields, "run_policy_profile_file") {
+      None => None
+      Some(_) => Some(local_settings_text(fields, "run_policy_profile_file"))
+    },
     reviewer_file: match @decode.lookup(fields, "reviewer_file") {
       None => None
       Some(_) => Some(local_settings_text(fields, "reviewer_file"))
@@ -128,6 +134,10 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
   if settings.reviewer_file is Some(file) &&
     !settings.installation_files.contains(file) {
     stop("LocalReviewerOriginalNotSelected")
+  }
+  if settings.run_policy_profile_file is Some(file) &&
+    !settings.installation_files.contains(file) {
+    stop("LocalRunPolicyProfileNotSelected")
   }
   if @decode.lookup(root, "state_dir") is Some(value) {
     guard @decode.text(value) is Ok(path) &&

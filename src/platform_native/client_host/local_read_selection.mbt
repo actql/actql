@@ -11,7 +11,22 @@ struct NativeLocalReadSelection {
   data_policy_cids : Array[String]
   max_bytes : Int
   max_uses : Int
-  expires_at : String
+  expiry : NativeLocalReadExpiry
+}
+
+///|
+priv enum NativeLocalReadExpiry {
+  Absolute(String)
+  AcceptedRunProfile(NativeLocalReadRunRoles)
+}
+
+///|
+// Literal selectors for the original adopted files, never authorization.
+priv struct NativeLocalReadRunRoles {
+  profile_cid : String
+  run_file : String
+  retention_file : String
+  store_file : String
 }
 
 ///|
@@ -125,6 +140,18 @@ fn read_policy_timestamp(value : String) -> Bool {
 }
 
 ///|
+fn read_policy_configuration_name(
+  fields : @decode.ObjectView,
+  key : String,
+) -> String raise LocalReadPolicyStop {
+  let name = read_policy_text(fields, key, 128)
+  if !local_adoption_name(name) {
+    raise LocalReadPolicyStop(InvalidOriginal)
+  }
+  name
+}
+
+///|
 pub fn admit_native_local_read_selection(
   text : String,
 ) -> Result[NativeLocalReadSelection, NativeLocalReadPolicyIssue] {
@@ -158,7 +185,8 @@ pub fn admit_native_local_read_selection(
     let fields = read_policy_decoded(
       @decode.closed_object(read_policy_field(native, "result_read"), [
         "enabled", "principal", "connection", "result_names", "formats", "purpose",
-        "sink", "data_policy_cids", "max_bytes", "max_uses", "expires_at",
+        "sink", "data_policy_cids", "max_bytes", "max_uses", "expires_at", "run_policy_profile_cid",
+        "run_file", "retention_file", "store_file",
       ]),
     )
     let enabled = read_policy_decoded(
@@ -179,9 +207,36 @@ pub fn admit_native_local_read_selection(
         return Err(InvalidPolicyReference)
       }
     }
-    let expires_at = read_policy_text(fields, "expires_at", 24)
-    if !read_policy_timestamp(expires_at) {
-      return Err(InvalidOriginal)
+    let expiry = match
+      (
+        @decode.lookup(fields, "expires_at"),
+        @decode.lookup(fields, "run_policy_profile_cid"),
+        @decode.lookup(fields, "run_file"),
+        @decode.lookup(fields, "retention_file"),
+        @decode.lookup(fields, "store_file"),
+      ) {
+      (Some(_), None, None, None, None) => {
+        let expires_at = read_policy_text(fields, "expires_at", 24)
+        if !read_policy_timestamp(expires_at) {
+          return Err(InvalidOriginal)
+        }
+        Absolute(expires_at)
+      }
+      (None, Some(_), Some(_), Some(_), Some(_)) => {
+        let cid = read_policy_text(fields, "run_policy_profile_cid", 71)
+        if !read_policy_cid(cid) {
+          return Err(InvalidPolicyReference)
+        }
+        AcceptedRunProfile({
+          profile_cid: cid,
+          run_file: read_policy_configuration_name(fields, "run_file"),
+          retention_file: read_policy_configuration_name(
+            fields, "retention_file",
+          ),
+          store_file: read_policy_configuration_name(fields, "store_file"),
+        })
+      }
+      _ => return Err(InvalidOriginal)
     }
     Ok({
       enabled,
@@ -193,7 +248,7 @@ pub fn admit_native_local_read_selection(
       data_policy_cids,
       max_bytes: read_policy_quantity(fields, "max_bytes", 536870912L),
       max_uses: read_policy_quantity(fields, "max_uses", 1024L),
-      expires_at,
+      expiry,
     })
   } catch {
     LocalReadPolicyStop(issue) => Err(issue)

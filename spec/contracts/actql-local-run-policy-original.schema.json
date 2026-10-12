@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:actql:local-run-policy-original:0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "host_adoption_cid",
+    "issued_at",
+    "profile_wire",
+    "read_selection_cid",
+    "request_wire",
+    "retention_policy_wire",
+    "run_definition_cid",
+    "submission_reference_wire",
+    "version"
+  ],
+  "properties": {
+    "host_adoption_cid": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "issued_at": {
+      "type": "string",
+      "maxLength": 4096
+    },
+    "profile_wire": {
+      "type": "string",
+      "maxLength": 4096
+    },
+    "read_selection_cid": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "request_wire": {
+      "type": "string",
+      "maxLength": 4096
+    },
+    "retention_policy_wire": {
+      "type": "string",
+      "maxLength": 4096
+    },
+    "run_definition_cid": {
+      "type": "string",
+      "maxLength": 4096,
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "submission_reference_wire": {
+      "type": "string",
+      "maxLength": 4096
+    },
+    "version": {
+      "const": "actql-local-run-policy-original/0.1"
+    }
+  }
+}

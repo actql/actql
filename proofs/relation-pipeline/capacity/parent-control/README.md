@@ -130,6 +130,35 @@ can remain live: clearing this root is not physical GC destruction.
 installed observational scratch witness and common reservation return boundary.
 It rejects changes rather than automatically rebinding hashes.
 
+The snapshot callback adds a separate driver correspondence premise. Both
+`release_owned_scratch` and the observational `scratch_released` witness must
+refuse a held callback. Cancellation that returns `false` keeps the same callback;
+`cleanup_refresh` retries it after input stop and provider cleanup, before root
+retirement. The final physical snapshot-storage predicate and common Owner
+cleanup result remain independent: an unreleased file or common cleanup failure
+cannot be reported as success after detaching the callback. The registered importer remains in the input-stop cursor even when
+snapshot cancellation has begun. Snapshot references are detached only after
+bounded reference cleanup and the original physical storage-release predicate.
+Successful finalization requires the live/restored state, absent stored/stream/
+receipt references and the original restored value, transfers that value to
+`ordinary`, and then clears the callback. Saving bytes alone is not this success.
+
+| Existing proposition | Effect of the stronger driver guard |
+| --- | --- |
+| `phase_bound` / `growth_overlap` | Numeric hypotheses and bounds are unchanged. Driver snapshot callback/referents are not silently charged to this retained chain-core component. |
+| `retired_owner_witness` | The constant 560 remains a model witness, not a statement that driver callback or physical storage has been reclaimed. |
+| Provider construction and preparation-array propositions | Existing two plus two statements and union/identity assumptions remain unchanged. |
+
+`DriverSnapshotCorrespondence` separately makes the callback-detachment and
+finalization applicability predicates explicit. The checker uses 13 independent
+Boolean reductions (including every missing finalization condition), alongside
+the original seven typed capacity consumers and their complete axiom audit.
+These reductions are not a proof of the MoonBit state machine or a new byte
+allowance. Exact source checks and negative source substitutions bind the
+predicates to the current closures; runtime refinement, physical cleanup and
+whole-lifetime capacity remain separate obligations. No numeric theorem is
+weakened by adding an unused callback assumption.
+
 The bounded Native-only diagnostic reuses the existing MATCH nodes and edges
 Host helper, including its independent rows, acquired-input two-consumer
 holding checks and false/error/retry provider. It adds synchronous borrowed
@@ -142,11 +171,12 @@ and repeated cleanup must not issue another provider call or return more credit.
 The existing Host assertions are retained verbatim.
 
 ```sh
+node scripts/local-checks.mjs test node -- proofs/relation-pipeline/capacity/parent-control/snapshot-custody.test.mjs
 node scripts/local-checks.mjs test node -- proofs/relation-pipeline/capacity/parent-control/driver-retirement.test.mjs
 node proofs/relation-pipeline/capacity/parent-control/driver-retirement-diagnostic.mjs
 ```
 
-Run the second command on a clean fixed HEAD, in the pinned Native environment,
+Run the Native diagnostic command on a clean fixed HEAD, in the pinned Native environment,
 through the existing bounded local guard. It selects one Native test containing
 two existing Host cases; it does not run the full Core or packed acceptance.
 In an isolated diagnostic copy, `driver-retirement-compilation.mjs` blanks
@@ -156,6 +186,14 @@ comments, literals and interpolation also extend that closure. Fixture enums are
 retained by their named type; common constructor spellings such as `Complete`
 are not treated as references to unrelated fixture types. Actual compilation
 must resolve selected constructor bindings under the retained signatures.
+Immutable constants in the explicitly typed `let name : String =` form may
+contain one or more non-interpolated `#|` raw-string lines. Their entire literal
+range is retained verbatim when referenced, or blanked with offsets/newlines
+preserved when outside the selected closure. Inferred/mutable declarations,
+initializer calls, other types, interpolation and trailing expressions remain
+rejected. This is a narrow diagnostic projection form, not a restriction on
+valid MoonBit source or new execution permission. Identifiers inside raw literal
+text continue to extend the conservative declaration closure.
 Retained helper declarations and their assertions remain unchanged. Imports are
 limited to aliases referenced by the same retained text. Unknown declarations,
 attributes, interpolated raw lines, ambiguous names and malformed input reject
@@ -220,3 +258,17 @@ marker, source restoration, immutable original and actual executable/log checks
 remain mandatory. Success establishes only this finite holding-token/retirement
 correspondence. Whole-parent physical bounds, arbitrary retention generations,
 other execution paths, Hosted originals and CI reuse/savings remain separate.
+
+## Content-boundary construction correspondence
+
+The source review retains the previous selected digest and recipe digest.
+Current `InferBoundary` / `SerializationBoundary` step dispatch is admitted only
+when removing the two exact alternatives recovers the entire reviewed selected
+source. Likewise, removing the two new exclusions in the generated row-kernel
+predicate must recover its entire previous reviewed source. The recipe may
+change only the corresponding selected-source identity: normalizing that one
+digest must reproduce the previous recipe bytes. Unknown, duplicate or altered
+branches remain rejected. This is historical comparison, never a runtime alias.
+The factory, state, capacity and capture bodies and all numeric model premises
+are unchanged. Execution of these boundaries, output/cancellation custody and
+physical lifetime remain independent obligations.
