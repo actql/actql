@@ -3,18 +3,83 @@
 `npm install -g actql` installs the small npm launcher and its platform Native
 executable. Protocol operations run in Native. Current release candidates are
 macOS arm64 and Linux x64/glibc; support depends on acceptance of the exact
-platform artifact. Installation does not install a Host or confer execution
-permission. See the [package guide](../packages/native-cli/README.md).
+platform artifact. Installation alone does not adopt a Local Host or confer
+execution permission. See the [package guide](../packages/native-cli/README.md).
 
-The distributed CLI's established profile is Remote Client transport. Standard
-embedded Local installation and initialization are being completed separately;
-the current source's Local connections do not establish an empty-environment
-Local `SELECT 1` acceptance. Remote connection settings below apply to Remote,
-not to the planned standard Local entry.
+Remote Client transport remains the default. A fixed Darwin arm64 cohort from
+source `109564ef9a4f8241096292843b875d4c81fbb6f3` also completed the
+source-free embedded Local baseline below in an empty external consumer.
+The tested minimum is macOS 26.0, using Node 22.22.0 for the npm launcher.
+This fixed-package acceptance does not publish npm packages or claim registry
+availability. Remote connection settings apply only to Remote mode.
 
 The [target CLI experience](design/cli-target-experience.md) preserves the
 adopted future workflow. Its `run`, `explain`, `approve`, `reject`, `result`,
 `op` and other command proposals are not current executable instructions.
+
+## Accepted source-free Local baseline
+
+Use the installed `actql` command from the matching CLI/platform cohort.
+No source build, separate Host, token, mTLS, internal configuration JSON or
+absolute SQLite/crypto library path is required. Explicit adoption is a trust
+operation; neither installation nor `connect` grants adoption implicitly.
+The product defaults cover only source-free computation and the private Result
+Store. They do not install Sources, grant external I/O or authorize Effects.
+
+The following Native commands match the accepted eleven-case consumer:
+
+```sh
+actql --mode local adopt --json
+actql --mode local connect --json
+printf 'SELECT 1 AS n\n' > query.sql
+actql --mode local check --format sql --program-file query.sql --json
+actql --mode local new-submission --request-id installed-select-1 > submission.json
+actql --mode local aql --format sql --program-file query.sql \
+  --submission-ref-file submission.json --request-id installed-select-1 \
+  --operation-attempt-id original-submit > admission.json
+```
+
+`check` returns `kind: prepared`. A successful publication reply has
+`kind: local_run_published` and an exact `ref` object. Save that object as
+`run.json`, rather than using the whole reply as a Run reference. The Node
+runtime already used by the launcher can save the returned JSON field:
+
+```sh
+node --input-type=module -e '
+  import {readFileSync, writeFileSync} from "node:fs";
+  const reply = JSON.parse(readFileSync("admission.json", "utf8"));
+  writeFileSync("run.json", JSON.stringify(reply.ref) + "\n", {flag: "wx"});
+'
+actql --mode local lookup-submission --submission-ref-file submission.json
+actql --mode local read --ref-file run.json --submission-ref-file submission.json \
+  --result-name answer --purpose cli-read --format json \
+  --max-output-bytes 65536 --attempt-id original-read
+```
+
+The read returns `[{"n":1}]`, with a JSON number and sole column `n`. Lookup
+uses the original immutable Submission and same Run, without needing the source
+document or recompiling it. A reference is not read authority: current Account,
+original Result Policy and the adopted stdout purpose are checked separately.
+
+Inspect the original delivery without reopening payloads:
+
+```sh
+actql --mode local delivery-attempt \
+  --ref-file run.json --submission-ref-file submission.json \
+  --result-name answer --purpose cli-read --attempt-id original-read
+```
+
+The accepted attempt has a durable succeeded record, the payload digest/byte
+count and a matching Host release receipt. Repeating `read` with
+`original-read` is refused with `LocalReadAttemptAlreadyStarted`. Only an
+explicit new operation such as `--attempt-id explicit-new-read` can read the
+retained Result again after current authorization. A lost or incomplete reply
+does not authorize a new attempt or resubmission automatically.
+
+The fixed consumer completed all eleven cases, including absent-adoption and
+same-attempt refusal, with no skipped cases. Source/Effect/approval/cancel/Debug
+profiles, other Local platforms and their failure matrices remain unaccepted.
+This baseline does not certify all temporary holders or final Run deletion.
 
 ## Remote prerequisites
 
@@ -122,10 +187,11 @@ existing Host/journal/Store owners. Its `check --program-file <file> --format
 <format> --json` returns `kind: prepared`, not a public diagnostic report or
 Run admission. The Source execution/read/recovery connections and selected
 Reviewer registration remain separate from fixed-package acceptance.
-`checkpoint-state` reads metadata and is not approval. Standard Local bootstrap,
-Source-free execution, automatic dependency detection and external-install
-acceptance remain unfinished; no compiler build or internal Host assembly is
-presented here as the finished installation procedure.
+`checkpoint-state` reads metadata and is not approval. Source-free bootstrap,
+bundled dependencies, execution, original Run lookup and retained Result delivery
+are covered by the accepted Local baseline above. Source and Effect execution,
+approval, cancellation and Debug remain separate unaccepted profiles; an
+internal compiler or fixture pass does not establish their product acceptance.
 
 ## Failures and retained evidence
 
