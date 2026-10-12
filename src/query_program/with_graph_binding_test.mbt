@@ -45,7 +45,8 @@ test "WITH Graph binding keeps nearest Carrier and constructor origin" {
       { ..fixture_context(), inputs: [], },
       construction_limits(),
     )
-    is Err(UnsupportedGraph),
+    is Err(GraphExpected(_)),
   )
-  // A nearer Relation cannot be repaired by searching the outer Graph.
+  // The marked nearest Relation violates the Graph expectation; it is not
+  // missing Graph support and cannot be repaired by finding an outer Graph.
 }
