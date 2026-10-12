@@ -114,7 +114,7 @@ test('public wire accepts the exact connected request shapes', () => {
   // Run, request, submission-intent, read-only Plan, check and discovery.
   assert.deepEqual([...clientHostOperations].sort(), [
     'connect', 'submit', 'submit-intent', 'restart-intent', 'lookup-submission',
-    'check', 'plan', 'inspect-run', 'attach', 'lookup-request', 'status', 'wait', 'cancel',
+    'check', 'plan', 'inspect-run', 'run-plan', 'attach', 'lookup-request', 'status', 'wait', 'cancel',
     'lookup-cancellation', 'reconcile', 'read', 'result-describe',
     'delivery-attempt', 'checkpoints', 'checkpoint-review', 'resolve',
     'cancel-request', 'resources', 'resource-inspect', 'resource-peek',
@@ -131,10 +131,12 @@ test('public wire accepts the exact connected request shapes', () => {
   assert.equal(validClientBody('plan', staticPlan), true);
   assert.equal(validClientBody('plan', {...staticPlan, requestId: 'not-a-submission'}), false);
   const inspectRun = {connection, ref, maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64};
-  assert.equal(validClientBody('inspect-run', inspectRun), true);
-  for (const change of [{requestId: 'not-a-submission'}, {maxWireBytes: 0},
-    {maxDepth: 65}, {maxNodes: 10001}]) {
-    assert.equal(validClientBody('inspect-run', {...inspectRun, ...change}), false);
+  for (const operation of ['inspect-run', 'run-plan']) {
+    assert.equal(validClientBody(operation, inspectRun), true);
+    for (const change of [{requestId: 'not-a-submission'}, {maxWireBytes: 0},
+      {maxDepth: 65}, {maxNodes: 10001}]) {
+      assert.equal(validClientBody(operation, {...inspectRun, ...change}), false);
+    }
   }
   const submissionRef = {epoch: {version: 'actql-submission-epoch/0.1',
     authorityScopeCid: ref.authorityScopeCid, epochNonce: 'c'.repeat(64),
