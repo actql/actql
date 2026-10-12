@@ -146,7 +146,11 @@ pub fn after_graph_calls(query : Query) -> Query {
 ///|
 /// Keep the untouched tail after a checked Graph-to-Relation bridge. The
 /// caller supplies its actual consumed prefix, not all adjacent named calls.
-pub fn after_graph_row_calls(query : Query, consumed : Int) -> Query? {
+pub fn after_graph_row_calls(
+  query : Query,
+  consumed : Int,
+  current_source? : NamePart? = None,
+) -> Query? {
   if consumed <= 0 ||
     consumed > query.operations.length() ||
     query.operations[:consumed].any(operation => !(operation is GraphCall(_))) {
@@ -155,6 +159,11 @@ pub fn after_graph_row_calls(query : Query, consumed : Int) -> Query? {
   Some({
     ..query,
     graph: None,
+    bound_source: if query.relation.is_empty() && current_source is Some(_) {
+      current_source
+    } else {
+      query.bound_source
+    },
     operations: query.operations[consumed:].to_owned(),
   })
 }
