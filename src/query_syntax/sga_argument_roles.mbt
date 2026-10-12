@@ -3,6 +3,7 @@
 // They never infer a reference from the contents of a String value.
 fn sga_field_argument(operation : String, path : Array[String]) -> Bool {
   let direct = match operation {
+    "sequence" => path == ["by"] || path == ["id"] || path == ["time"]
     "reach" | "traverse" => path == ["start", "id"]
     "shortest_path" =>
       path == ["source", "id"] || path == ["target", "id"] || path == ["weight"]
@@ -24,6 +25,7 @@ fn sga_field_argument(operation : String, path : Array[String]) -> Bool {
 
 ///|
 fn sga_output_argument(operation : String, path : Array[String]) -> Bool {
+  (operation == "sequence" && path == ["pattern", "as"]) ||
   (operation == "pool_vectors" && path == ["output_id"]) ||
   (operation == "lag" && path == ["output"]) ||
   (

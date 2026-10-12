@@ -5,6 +5,7 @@ pub(all) enum SgaArgument {
   Producer(NamePart)
   FieldReference(Array[NamePart])
   OutputName(NamePart)
+  ExpressionValue(SgaPredicate)
   TextValue(String)
   NumberValue(String)
   BooleanValue(Bool)
@@ -39,6 +40,7 @@ fn sga_operation(name : String) -> Bool {
     | "watermark_events"
     | "watermark_rows"
     | "lag"
+    | "sequence"
     | "dedupe_events"
     | "session"
     | "events"
@@ -102,7 +104,7 @@ fn carrier_call_head(token : Token) -> Bool {
       [
         "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
         "to_events", "row_window", "window_events", "watermark_events", "session",
-        "events", "dedupe_events", "watermark_rows", "lag",
+        "events", "dedupe_events", "watermark_rows", "lag", "sequence",
       ].contains(ascii_upper(name).to_lower())
     _ => false
   }
@@ -201,6 +203,7 @@ fn sga_producer_argument(operation : String, path : Array[String]) -> Bool {
 ///|
 fn sga_selector_object(operation : String, path : Array[String]) -> Bool {
   match operation {
+    "sequence" => path == ["pattern"]
     "reach" => path == ["start"]
     "traverse" => path == ["start"] || path == ["hops"]
     "shortest_path" => path == ["source"] || path == ["target"]
@@ -225,6 +228,11 @@ fn QueryParser::sga_argument(
   }
   self.node()
   let token = self.peek()
+  if operation == "sequence" && path == ["pattern", "where"] {
+    // Parse the original bounded query tokens once. Preserve its Expression
+    // owner, source spans and charged work; no String/JSON predicate adapter.
+    return ExpressionValue({ expression: self.expression(), })
+  }
   if token.value == Symbol(91) {
     self.symbol(91)
     let items : Array[SgaArgument] = []
