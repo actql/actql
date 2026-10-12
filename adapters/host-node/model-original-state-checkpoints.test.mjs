@@ -23,6 +23,7 @@ const identity = value => digest(canonicalText(value));
 const limits = {maxWireBytes: 8192, maxNodes: 512, maxDepth: 64};
 const keys = generateKeyPairSync('ed25519');
 const pem = key => key.export({type: key.type === 'private' ? 'pkcs8' : 'spki', format: 'pem'});
+const preparedOriginals = new WeakMap();
 
 function original(control, runId = 'original') {
   const environment = moon.clientProgramCheckEnvironment(input('infer_fixture_environment'),
@@ -46,8 +47,10 @@ function original(control, runId = 'original') {
   const compiled = control.prepareCheckedClientCompiledRun(prepared, 'infer',
     {executionContextCid: cid('d'), hostPolicyCid: cid('d'), expiresAt: '2099-01-01T00:00:00.000Z',
       resultDataPolicy: {kind: 'data_policy', cid: identity(data), wire: canonicalText(data)}}, graph);
-  return control.defineCheckedClientCompiledRun(compiled,
+  const definition = control.defineCheckedClientCompiledRun(compiled,
     {namespaceId: 'scope', runId, createdAt: '2026-10-02T00:00:00.000Z', validUntil: '2099-01-01T00:00:00.000Z'});
+  preparedOriginals.set(definition, compiled.preparedEvidence.identity);
+  return definition;
 }
 
 async function fixture(t) {
@@ -75,6 +78,39 @@ function wireFor(definition, binding, changes = {}) {
     run_id: 'original', run_definition_cid: definition.identity, storage_binding_cid: binding.identity,
     ...changes.origin}});
 }
+
+test('original state saved observation verifies same actual Store and refuses copied foreign restart authority', async t => {
+  const f = await fixture(t), port = await f.open();
+  const binding = await port.observeModelOriginalStorageBinding();
+  const state = structuredClone(resource.resource_state); state[7][6] = 'parked';
+  const prepared = preparedOriginals.get(f.definition);
+  const identity = {runId: 'original', runDefinitionCid: f.definition.identity,
+    preparedInvocationCid: prepared, scopeCid: cid('8'), inputArtifactCid: cid('7'),
+    providerBindingCid: cid('6'), taskIndex: 0, strategyRevision: 0};
+  const cut = {scope_cid: identity.scopeCid, input_artifact_cid: identity.inputArtifactCid,
+    fixed_input_receipt_cid: cid('5'), run_version: 1, continuation: null, slots: []};
+  const bodyWire = wireFor(f.definition, binding, {resource_state: state,
+    resource_state_cid: digest(canonicalText(state)), resource_phase: 'parked', cut,
+    origin: {prepared_invocation_cid: prepared}});
+  const receipt = await port.retainOriginalModelState({runDefinition: f.definition, storageBinding: binding, bodyWire});
+  const args = {runDefinition: f.definition, storageBinding: binding, receipt, identity};
+  const observation = await port.confirmOriginalModelStateSaved(args);
+  const facts = port.originalModelStateSavedFacts(observation);
+  assert.equal(facts.documentWire, bodyWire); assert.equal(facts.documentCid, receipt.cid);
+  assert.equal(facts.storageBindingCid, binding.identity); assert.equal(facts.phase, 'parked');
+  assert.deepEqual(facts.cut, cut); assert.ok(Object.isFrozen(facts.cut.slots));
+  assert.strictEqual(await port.confirmOriginalModelStateSaved(args), observation);
+  assert.strictEqual(port.originalModelStateSavedObservationCurrent(observation), observation);
+  assert.throws(() => port.originalModelStateSavedFacts({...observation}), {code: 'ForeignOriginalModelStateSavedObservation'});
+  const other = await f.open();
+  assert.throws(() => other.originalModelStateSavedFacts(observation), {code: 'ForeignOriginalModelStateSavedObservation'});
+  await f.close(port);
+  assert.throws(() => port.originalModelStateSavedObservationCurrent(observation), {code: 'OriginalModelStateHostStopped'});
+  const fresh = await other.observeModelOriginalStorageBinding();
+  const reopened = await other.confirmOriginalModelStateSaved({...args, storageBinding: fresh});
+  assert.notStrictEqual(reopened, observation);
+  assert.equal(other.originalModelStateSavedFacts(reopened).documentCid, receipt.cid);
+});
 
 test('original state Checkpoint facade saves exact Common document separately from Model input', async t => {
   const f = await fixture(t), port = await f.open();

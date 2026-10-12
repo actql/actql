@@ -16,7 +16,7 @@ MoonBit formatter. Complete the MoonBit setup below before running `check:spec`.
 ### Checkpoint Effect settlement layout
 
 The Node Checkpoint journal uses the private layout
-`actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1`.
+`actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1;model-current-cut-link=1`.
 The [settlement design](design/effect-refusal-settlement.md) explains the
 observation-only claim and its authority boundary. Existing journals with the
 preceding `actql-checkpoint-journal/0.1;model-call-provenance=1` layout are
@@ -36,7 +36,7 @@ the operator can retain it. `--offline` explicitly confirms that all users of
 the journal have stopped. A SQLite writer lock cannot revoke an already-open
 old connection, so it does not replace that shutdown requirement.
 
-The tool checks the exact old marker and SQLite integrity, checkpoints WAL,
+The Effect tool checks the exact old marker and SQLite integrity, checkpoints WAL,
 acquires an exclusive writer transaction, and refuses concurrent WAL changes.
 It creates and synchronizes a private standalone backup before adding the
 empty settlement table and changing the marker in one transaction. It prints
@@ -45,6 +45,22 @@ admission, Model, and Effect evidence records are retained without rewriting.
 An existing backup, missing journal, unknown layout, or active writer is a
 refusal. A failed transaction leaves the old layout and any completed backup
 available for inspection.
+
+The Effect tool deliberately ends at its historical `;effect-settlement=1`
+marker. That layout is also refused by current startup. With **every** Host
+still stopped, explicitly perform the second offline update with another new
+backup path:
+
+```sh
+node scripts/upgrade-checkpoint-model-current-cut.mjs --offline --root JOURNAL_DIRECTORY --backup NEW_MODEL_CUT_BACKUP_FILE
+```
+
+This second operation adds only the nullable `current_cut_link_json` column to
+the existing Model scope table and changes the private marker atomically. All
+original Run, scope, Entry, signed evidence and cleanup records remain unchanged;
+the new field starts null. Startup never performs either operation or repairs
+missing columns. Null/current-cut absence is unavailable, not park, restore or
+send authority. The layout enables no numeric profile or public INFER capability.
 
 Restart only binaries supporting the new marker. Reverting the marker or
 dropping the settlement table is unsafe: it would discard persisted refusal
