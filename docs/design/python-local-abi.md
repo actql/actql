@@ -1492,6 +1492,18 @@ actual current publisher Owner bound to that original policy/target and Store;
 this bridge supplies no portable settings issuer or authorization registry.
 Source or Run access cannot implement publisher authority.
 
+The Local supplier retains the original admitted Account configuration body;
+its configuration CID must equal the original request's publication policy CID.
+The request's target must equal the original private Store authority. Core
+evaluates the original Run principal and connection with resource `run` and
+operation `publish`, independently of its submission tuple. Both the retained
+Account and the current Account must allow publication. The current Account is
+reevaluated before and after every callback. A newer Account never replaces the
+original policy CID or fills missing original custody. The physical callbacks
+remain Host fences and six-field observations, not SDK-supplied grants. A
+previously committed index with a different attempt remains eligible for the
+existing full-chain validator and `return_committed` scope check.
+
 The six-field transfer is bounded to 8,192 UTF-8 bytes using the existing
 encoder. Ordered scalar bytes avoid interpreting MoonBit object pointers.
 The existing buffer pool reserves overlapping encoder text/bytes and the
@@ -1501,7 +1513,8 @@ measured descriptors and container overhead. Independent callback resources
 still require their own reservations; this is not aggregate memory accounting.
 Budget refusal is unknown, never publisher permission. Callback true, false,
 and exception/unknown remain distinct: success is 0, denied permission -35,
-unavailable original authority -32, and physical callback failure -36.
+revoked current authority -32, and missing original custody or physical callback
+failure -36. Original policy/target mismatch is invalid material (-31).
 No completed grant is cached between stages.
 
 Parent close waits for the child. Child close blocks new checks immediately,

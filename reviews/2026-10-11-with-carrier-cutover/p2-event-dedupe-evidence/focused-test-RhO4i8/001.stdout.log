@@ -1,0 +1,23 @@
+[actql/actql] test query_program/event_dedupe_source_test.mbt:44 ("P2 dedupe source retains every partition occurrence and explicit OrderKey") failed: Error
+    at $panic (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/js/debug/test/query_program/query_program.blackbox_test.js:23:9)
+    at @moonbitlang/core/abort.abort (/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/lib/core/abort/abort.mbt:29:3)
+    at Result::unwrap (/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/lib/core/builtin/result.mbt:263:15)
+    at with_carrier_program (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/with_vectors_events_test.mbt:52:5)
+    at f (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/event_dedupe_source_test.mbt:46:18)
+    at moonbit_test_driver_internal_js_catch (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:399:11)
+    at _M0FP35actql5actql30query__program__blackbox__test42moonbit__test__driver__internal__js__catch (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/js/debug/test/query_program/query_program.blackbox_test.js:32199:6)
+    at moonbit_test_driver_internal_catch_error (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:396:3)
+    at MoonBit_Test_Driver::run_test (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:2722:5)
+    at _M0FP35actql5actql30query__program__blackbox__test44moonbit__test__driver__internal__do__execute (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:2895:10)
+[actql/actql] test query_program/event_dedupe_source_test.mbt:57 ("P2 shorthand dedupe order keeps typed field names and omitted null placement") failed: Error
+    at $panic (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/js/debug/test/query_program/query_program.blackbox_test.js:23:9)
+    at @moonbitlang/core/abort.abort (/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/lib/core/abort/abort.mbt:29:3)
+    at Result::unwrap (/Users/t14i/workspace/20260822/actql/.toolchains/moonbit-0.10.12+1634b282e/lib/core/builtin/result.mbt:263:15)
+    at with_carrier_program (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/with_vectors_events_test.mbt:52:5)
+    at f (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/event_dedupe_source_test.mbt:58:16)
+    at moonbit_test_driver_internal_js_catch (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:399:11)
+    at _M0FP35actql5actql30query__program__blackbox__test42moonbit__test__driver__internal__js__catch (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/js/debug/test/query_program/query_program.blackbox_test.js:32199:6)
+    at moonbit_test_driver_internal_catch_error (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:396:3)
+    at MoonBit_Test_Driver::run_test (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:2722:5)
+    at _M0FP35actql5actql30query__program__blackbox__test44moonbit__test__driver__internal__do__execute (/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/__generated_driver_for_blackbox_test.mbt:2895:10)
+Total tests: 3, passed: 1, failed: 2.

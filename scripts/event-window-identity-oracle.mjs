@@ -4,9 +4,10 @@ import assert from 'node:assert/strict';
 import {writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {signatureRoleIdentityOracle} from './sga-signature-role-identity-oracle.mjs';
-export const eventWindowIdentityOracle = () => signatureRoleIdentityOracle({
+export const eventWindowIdentityOracle = (options = {}) => signatureRoleIdentityOracle({
   beforePath: 'scripts/fixtures/pre-event-window-values-identities.json',
   sourceRevision: 'authored-event-window-source',
+  ...options,
 });
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   assert.deepEqual(process.argv.slice(2), ['--write']);

@@ -946,6 +946,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           currentProvider: () => modelProviders.get(providerId) === physical,
           physicalPreflight: physical.physicalPreflight,
           originalReadInstallation: physical.originalReadInstallation,
+          rawCaptureSelection: physical.rawCaptureSelection,
           entryPersistence: physical.entryPersistence,
           reconcileResponse: physical.reconcileResponse,
           quantityCapacity: physical.quantityCapacity});

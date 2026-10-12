@@ -21,6 +21,47 @@ const originalInstallation = () => ({
       program_definition_cid: 'program', parameter_values_cid: 'parameters',
       barrier_cid: 'barrier', prepared_rows: 3n, retained_bytes: 7n, execution_bytes: 5n}}});
 
+const rawSelection = () => ({profile: {}, probability: undefined,
+  installation: {sdk: null, endpoint: 'original'}, retention: {}, metadata: {}, clock: {}, data: {},
+  selectedAt: 'original', availableUntil: 'availability', deleteBy: 'deletion',
+  extensionCeilingAt: 'ceiling', metadataDeleteBy: 'metadata', selectionAvailable: () => true});
+
+test('trusted raw selection is snapshotted before provider installation without authority or I/O', () => {
+  const {moon, entry, counts} = fixture();
+  const raw = rawSelection();
+  entry.entryPersistence = 'async'; entry.physicalPreflight = () => assert.fail('not invoked');
+  entry.rawCaptureSelection = raw;
+  const physical = installModelProviders(moon, () => [entry]).get(entry.providerId);
+  raw.installation.endpoint = 'changed'; raw.deleteBy = 'extended';
+  assert.equal(physical.rawCaptureSelection.installation.endpoint, 'original');
+  assert.equal(physical.rawCaptureSelection.installation.sdk, null);
+  assert.equal(physical.rawCaptureSelection.deleteBy, 'deletion');
+  assert.equal(physical.rawCaptureSelection.data, raw.data);
+  assert.equal(physical.rawCaptureSelection.profile, raw.profile);
+  assert.equal(physical.originalReadInstallation, undefined);
+  assert.equal(physical.quantityCapacity, undefined);
+  assert.deepEqual(counts(), {installations: 1, sends: 0, lookups: 0});
+});
+
+test('raw installation refuses missing durable physical caller before provider installation', () => {
+  for (const hooks of [{}, {entryPersistence: 'async'}, {physicalPreflight() {}}]) {
+    const {moon, entry, counts} = fixture();
+    assert.throws(() => installModelProviders(moon, () =>
+      [{...entry, ...hooks, rawCaptureSelection: rawSelection()}]),
+    /InstalledInferRawCaptureRequiresAsyncPhysicalPreflight/u);
+    assert.deepEqual(counts(), {installations: 0, sends: 0, lookups: 0});
+  }
+});
+
+test('raw selection omission and malformed input do not opt in or invoke providers', () => {
+  const {moon, entry, counts} = fixture();
+  const selected = installModelProviders(moon, () => [entry]).get(entry.providerId);
+  assert.equal(selected.rawCaptureSelection, undefined);
+  assert.throws(() => installModelProviders(moon, () => [{...entry, rawCaptureSelection: {}}]),
+    /InvalidInferRawCaptureSelection/u);
+  assert.deepEqual(counts(), {installations: 1, sends: 0, lookups: 0});
+});
+
 test('trusted original read installation preserves exact quantities and snapshots selection', () => {
   const {moon, entry, counts} = fixture();
   const declaration = originalInstallation();
