@@ -31,6 +31,26 @@ priv struct HolderEffectHostSetupScope {
 }
 
 ///|
+/// Capacity/binding fence only, never Account/read/publication authorization.
+/// Capture the immutable original selection and actual current verifiers, not
+/// the caller's resources cells or a cached current answer.
+fn holder_effect_host_setup_binding(
+  site : @site.ExecutionSite,
+  expected_key : String,
+  expected_generation : Int,
+  expected_runtime : String,
+  current_site : () -> Bool,
+  current_runtime : () -> Bool,
+) -> () -> Bool {
+  () => {
+    current_site() &&
+    @site.site_key(site) == expected_key &&
+    @site.site_binding_current(site, expected_generation, expected_runtime) &&
+    current_runtime()
+  }
+}
+
+///|
 fn holder_effect_host_setup_profile_valid(
   profile : HolderEffectHostSetupProfile,
 ) -> Bool {
@@ -202,8 +222,16 @@ fn holder_effect_host_snapshot_extent(
   profile : HolderEffectHostSetupProfile,
   root : String,
   snapshot : Array[(String, String)],
+  control_text_bytes? : Int64 = 0L,
 ) -> Int64? {
-  let mut total = profile.retained_controls_bytes
+  guard holder_effect_host_extent_add(
+      profile.retained_controls_bytes,
+      control_text_bytes,
+    )
+    is Some(initial) else {
+    return None
+  }
+  let mut total = initial
   for fixed in [profile.array_bytes, profile.string_bytes] {
     guard holder_effect_host_extent_add(total, fixed) is Some(value) else {
       return None
@@ -249,12 +277,18 @@ fn retain_holder_effect_host_snapshot(
   scope : HolderEffectHostSetupScope,
   root : String,
   snapshot : Array[(String, String)],
+  control_text_bytes? : Int64 = 0L,
 ) -> Bool {
   guard holder_effect_host_read_scope_current(scope) &&
     scope.depth == 1 &&
     scope.holding is None &&
     scope.operation is Some(operation) &&
-    holder_effect_host_snapshot_extent(scope.profile, root, snapshot)
+    holder_effect_host_snapshot_extent(
+      scope.profile,
+      root,
+      snapshot,
+      control_text_bytes~,
+    )
     is Some(bytes) &&
     @site.retain_site_operation_holding(operation, bytes) is Some(holding) else {
     return false
@@ -351,8 +385,8 @@ priv enum HolderEffectHostSetupClose {
 
 ///|
 /// Exactly one close pass. A pending result owns the original resources and
-/// opaque failure; it must be retained by a caller's cleanup boundary. The CLI
-/// has no such receiver yet and therefore selects no funded setup profile.
+/// opaque failure; the holder's cleanup boundary retains that same custody.
+/// This receiver does not install a funded production setup profile.
 fn close_holder_effect_host_setup(
   resources : HolderOutputResources,
 ) -> HolderEffectHostSetupClose {

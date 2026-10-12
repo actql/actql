@@ -5,6 +5,7 @@ import {parameterPrograms} from './parameter-schema.mjs';
 import {checkLocalInputSchemas} from './local-input-schema.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 import {scoreContractSchema, vectorSchemas} from './vector-schema.mjs';
+import {verifyIdentity} from './check-canonical-json.mjs';
 
 test('Local input score assertions and fusion use the same closed contract', () => {
   const snapshot = JSON.parse(readFileSync('spec/contracts/actql-local-relation-snapshot.json','utf8'));
@@ -41,6 +42,23 @@ test('Local interpretation roots match pinned snapshot dependencies', () => {
 });
 
 const registry = JSON.parse(readFileSync('spec/contracts/actql-protocol-schemas.json', 'utf8'));
+test('current Local snapshot interpretation binds ContentRef without accepting former contract identities', () => {
+  const snapshot = JSON.parse(readFileSync('spec/contracts/actql-local-relation-snapshot.json', 'utf8'));
+  // Independently hashed normative bodies; these are not runtime outputs.
+  verifyIdentity(snapshot, 'sha256:b6757d1d2978133784f3b3cd464fa966e432dc0caa99b6cb05d618249ef1076c');
+  assert.equal(snapshot.dependencies.checked_type.cid,
+    'sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947');
+  for (const former of [
+    'sha256:9cac11de7a617035c56e06a5a6cb28dbbefd0b6ba6ca613a5c700b90d6968200',
+    'sha256:0d1b824004f4e26bf3cadbfc437d000cd1d7cc6c218c0f0fc4276b483ba46701',
+  ]) assert.throws(() => verifyIdentity(snapshot, former));
+  const oldDependency = structuredClone(snapshot);
+  oldDependency.dependencies.checked_type.cid =
+    'sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551';
+  verifyIdentity(oldDependency, 'sha256:9cac11de7a617035c56e06a5a6cb28dbbefd0b6ba6ca613a5c700b90d6968200');
+  assert.throws(() => verifyIdentity(oldDependency,
+    'sha256:b6757d1d2978133784f3b3cd464fa966e432dc0caa99b6cb05d618249ef1076c'));
+});
 test('both embedded Program input contracts exclude schema_ref', () => {
   checkLocalInputSchemas(registry);
   assert.equal(parameterPrograms(registry).length, 2);

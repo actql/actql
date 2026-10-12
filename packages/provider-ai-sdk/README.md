@@ -117,5 +117,45 @@ all remain part of C's full funding before public adoption.
 The package lock freezes the actual dependency closure. Preparation and
 transport tests use the real pinned SDK with synthetic responses and explicitly
 installed fixture fetches, with no ambient or live network.
+
+The private native `prepareTypeSafeDecisionRequest` reuses that same interceptor
+and fixed transport with the selected TypeSafe v4 `doDecide` operation. It sends
+all mapped questions against one state without generation settings, high-level
+retries, default-provider mutation or SDK workflow restoration. Its input must
+come from the original bounded Common Decision projection and funded caller;
+the private builder itself does not admit a Task or validate native answers.
+Exact SDK key mapping, Common native raw decode/completeness, registered physical
+profile/precision, original Store receipt and installed caller remain unconnected.
+SDK model fallbacks and reported rounding are not provider observations or
+profile authority. Prototype-key SDK response refusal keeps original raw bytes
+and no repair call; it does not prohibit legal Common IDs. This preparation adds
+no public/native capability or numerical profile. The generation SDK closure and
+the native SDK's separately pinned dependency closure remain distinguishable.
+
 Formal packaging, external consumer, public Local/HTTPS, real model acceptance,
 four parallel calls, Decision and Cloud are unfinished M0–M5 work.
+
+### Private native Decision request projection
+
+The Common `start_native_decision_projection` child projects an original
+admitted Decision request without dispatching it. The Node consumer exposes
+the same opaque cursor and escaped request view; neither is an installation,
+capacity, approval, response-completion or send grant. This preparation is not
+part of the initial Node generation gate.
+
+Questions remain borrowed from the original admitted prompt. Fixed-width
+position aliases preserve ordered question/option correspondence without
+banning legal IDs such as `__proto__`. The escaped view retains the original
+IDs and exact Task/prompt/schema/selector binding for a later response codec.
+Retiring the emitting child does not retire an escaped view. The original
+parent must fund and retire both lifetimes, including retained empty backing
+arrays, writers and request strings. No physical numeric profile is supplied.
+
+The initial physical subset accepts text and JSON-compatible state, preserving
+empty text, null, numbers, booleans, arrays and Unicode/newlines. The typed JSON
+carrier is unwrapped before its original value is emitted by Common; JS must
+not reconstruct the value. Unsupported typed state and the selected SDK's
+question-count limits are physical refusals, not common language restrictions.
+Native answer decoding, original raw Store binding and public Decision
+execution remain unconnected; do not route this view through the generation
+`SavedChat` completion codec.

@@ -300,7 +300,7 @@ fn native_observation_oracle(
       "}",
     )
   }
-  let observation = "{\"version\":\"actql-query-two-receipt-observation/0.1\",\"evidence_contract_cid\":\"sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8\",\"requirement_cid\":" +
+  let observation = "{\"version\":\"actql-query-two-receipt-observation/0.1\",\"evidence_contract_cid\":\"sha256:d3d2737da6d73801f85208a2cdfe50c412e9f7b24e8bf9807e6f804e11757dd7\",\"requirement_cid\":" +
     query_oracle_quote(requirement_cid) +
     ",\"owner\":" +
     req.get("owner").unwrap().stringify() +
