@@ -29,10 +29,24 @@ fn join_implicit_property_context() -> Context {
 // Authored from the existing JOIN, property, projection and sort contracts.
 // Allocation starts after the five reserved output/input names, then advances.
 // The public leaf name never replaces the nullable receiver's private slot.
-fn join_implicit_property_expected() -> @program.Program {
+fn staged_join_implicit_property_expected() -> @program.Program {
   @program.parse(
     (
       #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"aql_join_left","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":false}}}},"rows":[{"id":2,"payload":{"score":20}},{"id":1,"payload":null}]},"as":"objects"}],"results":{"aql_join_left":{"from":"objects","fields":["id","payload"]}}},{"id":"aql_join_right","inputs":{},"steps":[{"values":{"schema":{"k":{"type":"number","nullable":false}},"rows":[{"k":2},{"k":1}]},"as":"keys"}],"results":{"aql_join_right":{"from":"keys","fields":["k"]}}},{"id":"main","inputs":{"l":{"result":{"stage":"aql_join_left","result":"aql_join_left"}},"r":{"result":{"stage":"aql_join_right","result":"aql_join_right"}}},"steps":[{"from":"l","join":{"with":"r","kind":"inner","on":[{"left":"id","right":"k"}],"max_output_rows":4,"select":{"aql_join_input_5":"left.payload","aql_join_input_6":"left.id"}},"as":"aql_join_raw"},{"from":"aql_join_raw","derive":{"score":{"property":{"value":{"field":"aql_join_input_5"},"name":"score"}}},"as":"aql_join_derived"},{"from":"aql_join_derived","select":["score",{"id":"aql_join_input_6"}],"as":"aql_join_output"},{"from":"aql_join_output","sort":[{"field":"score","dir":"asc","nulls":"last"},{"field":"id","dir":"asc","nulls":"first"}],"as":"aql_join_sorted"}],"results":{"rows":{"from":"aql_join_sorted","fields":["score","id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+}
+
+///|
+// Complete current topology from the original typed Values/property contracts.
+// Receiver fields, nullable payloads, guards and public projection are unchanged.
+fn join_implicit_property_expected() -> @program.Program raise {
+  check_join_property(staged_join_implicit_property_expected())
+  @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":false}}}},"rows":[{"id":2,"payload":{"score":20}},{"id":1,"payload":null}]},"as":"aql_script_seed_2"},{"values":{"schema":{"k":{"type":"number","nullable":false}},"rows":[{"k":2},{"k":1}]},"as":"aql_script_seed_3"},{"from":"aql_script_seed_2","join":{"with":"aql_script_seed_3","kind":"inner","on":[{"left":"id","right":"k"}],"max_output_rows":4,"select":{"aql_join_input_5":"left.payload","aql_join_input_6":"left.id"}},"as":"aql_join_raw_6"},{"from":"aql_join_raw_6","derive":{"score":{"property":{"value":{"field":"aql_join_input_5"},"name":"score"}}},"as":"aql_join_derived_8"},{"from":"aql_join_derived_8","select":["score",{"id":"aql_join_input_6"}],"as":"aql_join_output_5"},{"from":"aql_join_output_5","sort":[{"field":"score","dir":"asc","nulls":"last"},{"field":"id","dir":"asc","nulls":"first"}],"as":"aql_join_sorted_11"}],"results":{"rows":{"from":"aql_join_sorted_11","fields":["score","id"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
