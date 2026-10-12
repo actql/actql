@@ -1920,3 +1920,19 @@ and the existing Core full-chain/publisher validation. COMMIT-after-ACK-loss
 remains Unknown with the same Store; its exact successor can be inspected
 without repeating the original CAS. Rollback failure keeps that original
 connection pending and prevents a new frame until explicit physical cleanup.
+
+Initial trusted assembly can acquire the empty DB through the existing File
+Owner, bind its actual device/inode into the original journal custody, and
+persist the initializing marker before opening SQLite. The physical Store's
+`initialize_owned_file` consumes that exact exclusive empty-file handle once
+while retaining the same root lock and writer for cleanup. It does not accept
+a boolean, copied handle, renamed file, another directory or a later pathname
+as a creation claim. SQL failure does not restore the consumed acquisition.
+
+This entry creates only the existing physical schema. Epoch keys, settings,
+adoption and original Core validation remain separate assembly obligations.
+A reopened empty DB without that original acquisition cannot create a schema
+or recreate lost keys. After successful SQL setup, the original writer cannot
+resume payload operations and is stopped explicitly; uncertain stop retains
+the same descriptor/root capacity. Neither physical schema setup nor the
+one-time creation claim is Host adoption, Run admission or public acceptance.
