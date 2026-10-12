@@ -116,6 +116,6 @@ test "existing JOIN range refusals retain exact current invalid-input causes" {
       ).unwrap(),
       join_order_context(),
       construction_limits(),
-    ) is Err(AmbiguousColumn),
+    ) is Err(UnknownColumn),
   )
 }
