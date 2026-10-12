@@ -5,6 +5,7 @@ import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {claimInferIoNotification} from './infer-io-notification.mjs';
 import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits} from './infer-original-installation.mjs';
+import {originalModelRawTransportPersistenceMatches} from './infer-raw-capture.mjs';
 
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
@@ -718,12 +719,16 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // Private installation seam of this original physical operation only.
     // Common registration supplies the nominal raw authority; this callback
     // creates neither a send claim nor an alternate cleanup owner.
-    bindModelRawCapture(registration) {
+    bindModelRawCapture(registration, persistence) {
       if (closing || reclaimed || rawCaptureBound || rawCaptureBinder === undefined) {
         throw new TypeError('InferRawCaptureBindingUnavailable');
       }
+      if (persistence !== undefined &&
+          !originalModelRawTransportPersistenceMatches(persistence, operation, registration)) {
+        throw new TypeError('ForeignInferRawCapturePersistence');
+      }
       rawCaptureBound = true;
-      if (rawCaptureBinder(registration) !== undefined) {
+      if (rawCaptureBinder(registration, persistence) !== undefined) {
         throw new TypeError('InvalidInferRawCaptureBinderResult');
       }
     },
