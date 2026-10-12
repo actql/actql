@@ -2713,6 +2713,35 @@ fn QueryParser::pipe_tail(
       }
       return self.pipe_tail(self.bind_query(producer), context~)
     }
+    // A typed Carrier call consumes the current relational prefix. Reuse the
+    // checked producer continuation rather than sending a later GraphCall to
+    // the ordinary Relation lowerer or discarding that prefix's operations.
+    if carrier_call_head(next) &&
+      operations.any(operation => !(operation is GraphCall(_))) {
+      let producer : Query = {
+        source: self.source,
+        primary: input.primary,
+        implicit_source_alias: input.implicit_source_alias,
+        positional_output: input.positional_output,
+        bound_source: input.bound_source,
+        bindings,
+        relation,
+        source_alias,
+        graph,
+        joins,
+        operations,
+        sets,
+        final_operations,
+        effect: None,
+        table_effect: None,
+        work: self.work,
+      }
+      self.spend(operations.length())
+      return self.pipe_tail(
+        self.bind_query(producer, carry_ranges=pipe_join_range_input(producer)),
+        context~,
+      )
+    }
     if pipe_join_head(next) &&
       !self.starts_correlated_unnest(lookahead_offset=1) &&
       !(keyword(next, "INNER") &&

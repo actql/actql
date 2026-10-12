@@ -710,3 +710,44 @@ All checks use 60-second/grace-5/non-Heavy limits. Actual Owners/groups/own
 locks were confirmed absent after termination. No package producer, Heavy,
 Hosted CI, full Core or new semantic Owner was started. Remaining current
 callers, P2 adapters and full four-Carrier public cutover remain incomplete.
+
+
+## P2-V: pool_vectors source connection
+
+The submitted SGA role unit (#1572) is merged. This separate finite unit connects
+the adopted `pool_vectors(by, method, vector?, output_id?)` surface to the existing
+Relation/Vectors checker and Carrier lowerer. Relation member-key proof remains
+owned by the existing assertion/checker; the frontend introduces no member-id
+option, fold algorithm, identity encoding, execution Owner or fallback.
+
+The authored source also exposed a continuation defect: a SELECT/WHERE prefix
+before a typed Carrier call reached the Relation lowerer as UnsupportedGraph.
+The parser now reuses its existing producer continuation, and FieldRef resolution
+uses the ordinary retained continuation scope. Qualified fields and the exact
+`label = 'first'` predicate survive; removed fields remain refused.
+
+[The fixed-source execution record](p2-vector-pool-execution.json) preserves
+original source-refusal JS5/8, the test-helper compile failure (zero executed),
+projection continuation JS11/12 and qualified-scope JS12/13 failures. At clean
+`849cce220da85ff951c289e2cddf14f1f08147d6`, the final guard `run-9vQjiE`
+passes JS13/13, the changed canonical consumer JS1/1, Node81/81 and four read-only
+freshness checks. Actual Owner22891/group/own-lock absence was observed.
+The prior successful sources remain separate records, not new-HEAD evidence.
+
+Existing generators update grammar/metadata/family/canonical. Frozen authored
+SGA grammar/rules and full preimages retain the preceding Run
+`sha256:12bf2b06808781ed3ee15ce8fd7e9ad229401a075bfc69f00960899fb9ff912c`.
+The independent pool oracle reseals the same Program/Values/dependency/limit
+bodies under the new authored grammar and obtains Run
+`sha256:663b66b4834fbd848ec592e8b06cbbf01773015bc0720b610ac70a0894be0884`.
+Neither identity was copied from runtime output or substituted for old data.
+
+The public fixture `scripts/fixtures/vector-pool-source-input.mjs` contains
+11 normal and 5 refusal cases, with independent JSON controls, two members per
+group, sum/max [1,1], mean [0.5,0.5], member_count 2 and typed empty output.
+Use the existing `exercisePublicQueryInput` consumer with these arrays and the
+ordinary typed `candidates` installation already specified by NEAREST's JSON
+control. Its existing description/rows, attach/resend/lookup, counter and close
+checks remain required. This is preparation only: no fresh package producer,
+Local/HTTPS Host, VecA runtime rows, Provider, Heavy or Hosted CI was executed.
+Full P2-V/P2-T and the four-Carrier public cutover remain incomplete.

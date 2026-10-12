@@ -1,0 +1,7 @@
+Error: [4018]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/vector_pool_source_test.mbt:85:46 ]
+    │
+ 85 │       fail("Unexpected refusal boundary: " + @debug.to_string(issue))
+    │                                              ────────┬───────  
+    │                                                      ╰───────── Type @actql/actql/query_program.Issue does not implement trait @moonbitlang/core/debug.Debug: no `impl` is defined
+────╯
