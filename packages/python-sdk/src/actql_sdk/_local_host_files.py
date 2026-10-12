@@ -1,0 +1,140 @@
+"""Original Host file/Store physical pins; Core decides adoption and authority."""
+from dataclasses import dataclass
+from threading import RLock
+
+from ._local_files import (
+    LocalFileRoot, LocalOriginalAcquisitionError, PhysicalFileSnapshot, _OriginalFileReader,
+)
+from ._local_storage import LocalByteStore
+
+
+@dataclass(frozen=True, slots=True, eq=False)
+class _HostFile:
+    owner: object
+    name: str
+    body: bytes
+    snapshot: PhysicalFileSnapshot
+    reader: _OriginalFileReader
+
+
+class LocalHostFilesCleanupPending(RuntimeError):
+    def __init__(self, cleanup_files: 'LocalHostFiles') -> None:
+        super().__init__('Original Local Host file cleanup is pending')
+        self.cleanup_files = cleanup_files
+
+
+class LocalHostFiles:
+    """Retain original saved descriptors and exact Store generation.
+
+    The trusted installed assembly reserves simultaneous Python/Core transfer
+    and retained-byte workspace before using this port. Limits below bound raw
+    holding only; they are not a global memory guarantee. This object performs
+    no initialization, JSON interpretation, CID construction, adoption, scope
+    issuance, Account decision, Run execution or recovery transition.
+    """
+
+    def __init__(self, root: LocalFileRoot, store: LocalByteStore, *,
+                 max_files: int, max_bytes: int) -> None:
+        if (type(root) is not LocalFileRoot or type(store) is not LocalByteStore
+                or type(max_files) is not int or not 1 <= max_files <= 9
+                or type(max_bytes) is not int or not 1 <= max_bytes <= 2097152):
+            raise ValueError('Invalid original Local Host physical pins')
+        root._open()
+        self._lock = RLock()
+        self._original = self
+        self._identity = object()
+        self._root = root
+        self._store = store
+        self._generation = store.observe_generation()
+        self._max_files = max_files
+        self._max_bytes = max_bytes
+        self._bytes = 0
+        self._files: dict[str, _HostFile] = {}
+        self._pending: dict[int, _OriginalFileReader] = {}
+        self._closing = False
+
+    def _nominal(self) -> None:
+        if self._original is not self:
+            raise ValueError('Copied or foreign original Local Host file pins')
+
+    def read_original(self, name: str, *, max_bytes: int) -> _HostFile:
+        """Pin one Core-selected saved name without replacing or repairing it."""
+        with self._lock:
+            self._nominal()
+            if (self._closing or self._pending or name in self._files
+                    or len(self._files) >= self._max_files):
+                raise ValueError('Original Local Host pins are pending, closing or exhausted')
+            if (type(max_bytes) is not int or not 0 <= max_bytes <= 1048576
+                    or max_bytes > self._max_bytes - self._bytes):
+                raise ValueError('Original Local Host holding exceeds its reserved bound')
+            try:
+                reader = self._root.open_original(name, max_bytes=max_bytes)
+            except LocalOriginalAcquisitionError as failure:
+                self._pending[id(failure.original_reader)] = failure.original_reader
+                raise LocalHostFilesCleanupPending(self) from failure
+            self._pending[id(reader)] = reader
+            try:
+                # Reserve one finite destination before any chunk copy. The
+                # Host's workspace includes this and the resulting exact bytes.
+                destination = bytearray(max_bytes)
+                offset = 0
+                while True:
+                    chunk = self._root.read_original(reader)
+                    if offset + len(chunk.data) > max_bytes:
+                        raise ValueError('Original Local Host read exceeds its bound')
+                    destination[offset:offset + len(chunk.data)] = chunk.data
+                    offset += len(chunk.data)
+                    eof = chunk.eof
+                    self._root.release_original_chunk(reader, chunk)
+                    if eof:
+                        break
+                observed = self._root.observe_original(reader)
+                body = bytes(memoryview(destination)[:offset])
+                value = _HostFile(self._identity, name, body, observed, reader)
+                self._files[name] = value
+                self._bytes += len(body)
+                del self._pending[id(reader)]
+                self.current()
+                return value
+            except BaseException as failure:
+                # Both pre-transfer failures and post-transfer current failures
+                # retain the original descriptor/bytes for explicit cleanup.
+                raise LocalHostFilesCleanupPending(self) from failure
+
+    def original_bytes(self, value: _HostFile) -> bytes:
+        with self._lock:
+            self._nominal()
+            if (type(value) is not _HostFile or value.owner is not self._identity
+                    or self._files.get(value.name) is not value):
+                raise ValueError('Copied, foreign or retired original Local Host file')
+            self.current()
+            return value.body
+
+    def current(self) -> None:
+        """Observe physical originals only, never return a permission boolean."""
+        with self._lock:
+            self._nominal()
+            if self._closing or self._pending:
+                raise ValueError('Original Local Host physical current is unavailable')
+            self._root._open()
+            if self._store.observe_generation() != self._generation:
+                raise ValueError('Original Local Host Store generation changed')
+            for value in self._files.values():
+                if self._root.observe_original(value.reader) != value.snapshot:
+                    raise ValueError('Original Local Host saved file changed')
+
+    def close(self) -> bool:
+        """Retire file pins only; preserve Store, named originals and Run custody."""
+        with self._lock:
+            self._nominal()
+            self._closing = True
+            for key, reader in tuple(self._pending.items()):
+                if not self._root.close_original(reader):
+                    return False
+                del self._pending[key]
+            for name, value in tuple(self._files.items()):
+                if not self._root.close_original(value.reader):
+                    return False
+                self._bytes -= len(value.body)
+                del self._files[name]
+            return True

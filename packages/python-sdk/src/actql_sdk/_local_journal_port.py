@@ -1,0 +1,146 @@
+"""Bounded physical query transport; original Core Owners decide inventory facts."""
+from dataclasses import dataclass
+from collections.abc import Callable
+from ._local_storage import _NamespaceReader, StoredBytes, LocalByteStore
+
+_QUERY_BYTES = 8192
+_KEY_BYTES = 4096
+_ROW_BYTES = 262144
+
+
+@dataclass(slots=True)
+class _JournalCallbacks:
+    # Registered under an original Core buffer ticket before any callback I/O.
+    # This is a transient physical loan, never Run/recovery/authorization state.
+    current: Callable[[], object]
+    store: LocalByteStore
+    reader: _NamespaceReader | None = None
+    failure: BaseException | None = None
+    request: bytearray | None = None
+    received: int = 0
+    namespace_length: int = 0
+    mode: int = -1
+    row: tuple[bytes, StoredBytes] | None = None
+    queried: bool = False
+
+    def _fail(self, error: BaseException) -> int:
+        if self.failure is None:
+            self.failure = error
+        return -41
+
+    def check_current(self) -> int:
+        if self.failure is not None:
+            return -41
+        try:
+            if (self.reader is None or self.reader.owner is not self.store
+                    or self.failure is not None):
+                raise ValueError('Original Local journal snapshot is unavailable')
+            self.reader.current()
+            if self.current() is not None:
+                raise ValueError('Local journal current port cannot return a permission boolean')
+            return 0
+        except BaseException as error:
+            return self._fail(error)
+
+    def begin(self, mode: int, namespace_length: int, key_length: int) -> int:
+        try:
+            if (self.request is not None or self.queried or self.row is not None
+                    or type(mode) is not int or mode not in (0, 1)
+                    or type(namespace_length) is not int or not 0 < namespace_length <= _KEY_BYTES
+                    or type(key_length) is not int or not 0 <= key_length <= _KEY_BYTES
+                    or (mode == 1 and key_length == 0)
+                    or namespace_length + key_length > _QUERY_BYTES):
+                raise ValueError('Invalid original Local journal physical query')
+            if self.check_current() != 0:
+                return -41
+            # The Core buffer's prior reservation covers request/row copies.
+            self.request = bytearray(namespace_length + key_length)
+            self.received = 0
+            self.namespace_length = namespace_length
+            self.mode = mode
+            return 0
+        except BaseException as error:
+            return self._fail(error)
+
+    def byte(self, index: int, byte: int) -> int:
+        try:
+            if (self.request is None or self.failure is not None or self.queried
+                    or type(index) is not int or index != self.received
+                    or not 0 <= index < len(self.request)
+                    or type(byte) is not int or not 0 <= byte <= 255):
+                raise ValueError('Invalid original Local journal query byte')
+            self.request[index] = byte
+            self.received += 1
+            return 0
+        except BaseException as error:
+            return self._fail(error)
+
+    def query(self) -> int:
+        try:
+            if (self.request is None or self.received != len(self.request)
+                    or self.queried):
+                raise ValueError('Incomplete original Local journal physical query')
+            if self.check_current() != 0:
+                return -41
+            self.queried = True
+            namespace = self.request[:self.namespace_length].decode('utf-8')
+            key = self.request[self.namespace_length:].decode('utf-8')
+            self.request = None
+            reader = self.reader
+            if reader is None:
+                raise ValueError('Original Local journal transaction loan expired')
+
+            def consume(row: tuple[str, StoredBytes] | None) -> None:
+                if row is None:
+                    return
+                name, body = row
+                encoded = name.encode('utf-8')
+                if (not 0 < len(encoded) <= _KEY_BYTES or type(body) is not StoredBytes
+                        or type(body.payload) is not bytes or len(body.payload) > _ROW_BYTES
+                        or type(body.generation) is not int or not 0 <= body.generation < 2**63):
+                    raise ValueError('Invalid original Local journal physical row')
+                # The exact borrowed immutable payload stays under this reserved
+                # ticket until Core finishes copying/consuming and releases it.
+                self.row = (encoded, body)
+
+            if self.mode == 0:
+                reader.scan_after(namespace, key, consume)
+            else:
+                reader.read(namespace, key, consume)
+            if self.check_current() != 0:
+                return -41
+            # Only the actual physical reader's confirmed miss/end yields 1.
+            return 1 if self.row is None else 0
+        except BaseException as error:
+            return self._fail(error)
+
+    def length(self, field: int) -> int:
+        if self.failure is not None or not self.queried or self.row is None:
+            return -41
+        if field == 0:
+            return len(self.row[0])
+        if field == 1:
+            return len(self.row[1].payload)
+        return -41
+
+    def row_byte(self, field: int, index: int) -> int:
+        if (type(index) is not int or self.failure is not None
+                or self.row is None or not self.queried):
+            return -41
+        payload = self.row[0] if field == 0 else self.row[1].payload if field == 1 else b''
+        return payload[index] if 0 <= index < len(payload) else -41
+
+    def revision(self) -> int:
+        return (-1 if self.failure is not None or not self.queried or self.row is None
+                else self.row[1].generation)
+
+    def release(self) -> int:
+        # Release only the transient query copy. This is not transaction
+        # cleanup, COMMIT, acknowledgement, Run completion or buffer retirement.
+        self.row = None
+        self.request = None
+        self.received = 0
+        self.namespace_length = 0
+        self.mode = -1
+        self.queried = False
+        return 0 if self.failure is None else -41

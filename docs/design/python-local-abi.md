@@ -1699,3 +1699,182 @@ preparation cannot acquire that relationship. This returns only a relation
 check: nested originals, complete same-Store inventories, current authority,
 authenticated epoch and physical COMMIT still require their existing Owners.
 The returned Unit is not an acknowledgement, start permit or public Run state.
+
+## Original saved-journal physical port
+
+Private ABI 48 connects the original complete journal inspection to a trusted
+same-Store physical port. The Core sends a bounded namespace/key request for
+`scan_after` or exact `read`; the Host returns the actual raw key, Int64 revision
+and bytes, confirmed end/NotFound, or a query failure. It does not choose the
+inspection scope, interpret authored rows, compare Run identity, or manufacture
+an accepted/committed result. The original Reference, checked preparation, Plan
+and row projection remain nominally bound through the existing Owners.
+
+The installed Host holds Core before Store and calls inspection inside the
+original fenced SQLite transaction. Epoch authentication, original configuration
+and count fences, and the trusted current port remain Host obligations. Current
+Account authorization is evaluated by the existing Core Owner before/after the
+inspection and before reading the observation. A callback shape alone cannot
+authenticate a malicious physical supplier. The port is private Host assembly,
+not a public Client permission option.
+
+The buffer Owner reserves the query collector and bounded row-copy allowance
+before callbacks allocate it. An original material and its input borrow remain
+live until this child closes; parent material/configuration and pool close are
+refused while the observation owns them. Query exceptions, Wasm traps and failed
+cleanup retain the same ticket/handle/reservation. Cleanup is explicit and
+retried through that owner; no transaction, Submission or computation is resent.
+SQLite/parser workspace and other concurrently retained inputs still require
+their existing separate reservations. This port's finite collector allowance
+is not a claim of complete global memory accounting.
+
+The first connected profile validates Effect-free, checkpoint-free saved rows
+and a completely observed empty cancellation inventory. Missing custody is not
+initialized. Nonempty cancellation, checkpoint or Effect-original paths are
+explicitly unsupported until their original validators are connected; their
+obligations are never omitted to report success. Full Run, Effect-response,
+Receipt and submitted-intent inventories remain mandatory. The observation
+keeps the original immutable admission revision separate from the observed Run
+and Submission revisions. Preparing and unresolved history remain distinct.
+
+Successful private inspection is neither a COMMIT acknowledgement nor dispatch,
+physical-start, retry, publication, Result-read or resource-release authority.
+Store ACK, the public Local Client, restoration and externally installed wheel
+acceptance remain separate required product connections. Default 100M fuel and
+existing capacity bounds are unchanged. Earlier private ABI modules are refused
+by the loader and installed manifest; no repository/Node/CLI fallback exists.
+
+## First-adoption bootstrap metadata
+
+The private ABI49 `actql_bootstrap_*` output calls the existing Common product
+factory with its packaged source-free assets. Its closed input contains only
+`configuration_root` and `observed_at`. The bounded output carries the five
+original Account/retention/Store/Result Policy bodies plus the original checking
+environment and the existing Compute configuration. It contains no authority
+scope, permission, adopted state, Run admission or durable acknowledgement.
+
+Reserve accounts the existing 1MiB collector and both physical copy allowances
+before the factory copies anything. The original input stays borrowed through
+producer refusal, interruption and cleanup. Raw buffer/parent close and pool
+close refuse a live bootstrap child. Output cleanup succeeds before its input
+borrow is returned; failure keeps the same handle for explicit cleanup retry.
+
+The trusted installed Host uses this metadata only for explicit first adoption.
+Reopen, attach and resume restore the saved originals and never regenerate their
+policy, expiry or identity from current defaults. Installed component selection
+remains lazy, exact-cohort and exact-ABI. Default 100M fuel, existing capacity
+bounds and independent public Local/wheel/Store-ACK acceptance are unchanged.
+
+Saved originals are read through the existing `LocalFileRoot` physical Owner.
+`open_original` retains a nominal descriptor and the observed device, inode,
+size and timestamp generation of the private, owned regular file. Reads use
+one explicitly released chunk at a time, at the root's existing chunk limit,
+with a maximum original size of 1MiB. Descriptor and original-name observations
+are rechecked before and after each read and before a cached chunk is reused.
+Unicode, line endings, JSON values and absent fields are not interpreted or
+normalized by this port. The Host reserves transfer and retained-byte workspace
+before opening; file size and descriptor limits alone are not global memory
+accounting.
+
+Short reads, changed generations and acquisition failures retain the original
+handle for cleanup and supply no completed observation. Closing after input
+cleanup stops that descriptor without deleting or rewriting originals. An
+uncertain stop retains its chunk and root capacity; retry observes the same
+descriptor without another close or open. Physical EOF/digest is neither
+adoption nor current authority. The existing Common adopted/current material
+must still validate the original Account and actual same-Store adoption row,
+and publication requires its independent current publisher and durable ACK.
+
+The same `LocalByteStore` retains its original database and parent-directory
+device/inode observations. `observe_generation` rechecks private ownership and
+those original generations without SQL, writes, adoption or replacement. It
+can supply physical facts during the original namespace-reader transaction;
+it neither validates that transaction nor bypasses the reader's thread, fence
+and lifetime checks. Normal SQLite writes preserve file identity. Changed,
+missing, public or symlink names fail without opening a replacement Store.
+The trusted Host must hold the original exclusive root custody throughout;
+this path observation is not an independent proof of a SQLite descriptor's
+identity against an adversary controlling that root. The Common current port
+still requires the actual original adoption row, saved settings/intent and
+Account bytes and independently checks current authority. File/query failure
+does not prove absence or authorize resending an unknown operation.
+
+The Common original-material codec delegates the existing Native ordered
+custody record encoder/closed decoder and configuration-selection encoder.
+It preserves the original domains, field order, raw UTF-8, unsigned device/inode
+values and 8KiB/64-node record and 8KiB/128-node selection limits. Native keeps
+selection, current checks, locking, physical persistence and digest issuance;
+its original wrappers retain their existing failure classification. Neither
+encoded metadata nor a matching body/CID is a Host adoption or permission.
+Python supplies physical observations to these codecs rather than defining
+another scope/preimage or repairing saved originals with current defaults.
+
+## Original adopted/current transaction frames
+
+Private ABI50 `actql_current_*` retains one original metadata input and one
+physical query/cleanup ticket. Core chooses the `client_local_adoption`
+singleton scan and validates its exact key, revision, original body and unsigned
+device/inode through the existing Common adopted/current material. The physical
+port must retain the actual same Store and original filesystem, settings, epoch
+and transaction fences; neither JSON nor a callback shape authenticates a
+malicious Host. This connection does not initialize or repair adoption.
+
+The Host supplies its namespace reader only during `host_current_frame` under
+the original transaction/thread. Every bind, scope production, length and cached
+copy revalidates current, and the reader is detached even after failure. Current
+scope metadata contains the original Account bytes and Core-issued Account and
+authority-scope CIDs. It is neither Account Allow nor execution, Result read,
+publication, durable ACK or retry permission. Reuse outside a live frame, through
+another Store, copied loan, closing instance or retired buffer is refused.
+
+The existing Store supplies this reader with `inspect_namespaces`, using a
+read-only transaction and the existing bounded/failure-latched reader and
+physical fence validator. It performs no write or COMMIT. Failed transaction
+cleanup keeps the same connection pending; no partial observation escapes and
+cleanup is not automatically repeated. Query failure remains distinct from
+confirmed scan end and cannot prove absence or nonexecution.
+
+The existing buffer Owner reserves output and raw query copies before I/O.
+Output repeats the account string already present in the immutable input plus
+two fixed CIDs, bounded by that serialized input's size plus 256 bytes. Separate
+holding covers both 262KiB raw-row copies. Full close succeeds at output cleanup
+before returning the original input borrow; failure retains the same ticket and
+parent. No global memory, full Host adoption, public Local, runtime/wheel or
+Store-ACK completion follows from this component connection. The default 100M
+fuel and original Root limits are unchanged.
+
+Private ABI51 adds `actql_run_install_current_configuration` for product
+assembly. It uses the original live `actql_current_*` material and only the
+retained namespace and original Result Policy setup input. The existing Common
+Owner supplies Account and authority scope; its original Account CID is the
+policy CID and its scope is the authorization context, matching the Native
+product setup. Python cannot supply replacements for those CIDs or the Account.
+The existing Result Policy Owner still admits the exact original body/CID.
+
+The typed configuration retains its current parent and input. Parent close
+rejects while configurations use it. Preparation, restoration, submission
+projection, dispatch/start, Source-free Compute and publisher callbacks recheck
+the same current material before protected work. Cleanup retains its existing
+paths when current is unavailable. This configuration is not a Run acceptance,
+publisher grant or Store ACK. The low-level trusted configuration entry remains
+for existing private component/Host uses; product Local assembly does not use
+it as a fallback. Public assembly and real runtime/wheel acceptance are separate
+remaining connections.
+
+Private ABI52 adds `actql_original_*` for the existing initialization,
+configuration custody, journal custody and selected-settings preimages. Core
+admits original Account bytes and emits original bodies/CIDs; Python supplies
+bounded raw bytes and physical generations. Native delegates only the ordered
+record encoding, retaining its original nonce, crypto errors, IO and current
+checks. No original is repaired or reissued during restoration.
+
+One output reservation retains its original input borrow. Output cleanup must
+succeed before that borrow returns; failed cleanup retains the same handle.
+`LocalHostFiles` pins exact saved descriptors and the original Store generation,
+rechecking them before returning retained bytes. Acquisition or stop failures
+retain the same physical handle for explicit cleanup. It preserves saved names,
+Store and Run custody and does not parse JSON or issue a permission boolean.
+Its raw-byte limits require the assembly's simultaneous workspace reservation;
+they do not establish global memory accounting. Full saved intent/settings and
+adoption validation, the public Client assembly and actual Store ACK remain
+required beyond these metadata and physical ports.

@@ -258,9 +258,16 @@ fn stored_preflight_original_current(
   }
   // Parent close seals new work before it waits for retained children. Only
   // confirmation of an already-begun original write may use that custody.
-  if !pending_confirmation &&
-    (record.closing || source.closing || compute.closing) {
-    return false
+  if !pending_confirmation {
+    if record.closing || source.closing || compute.closing {
+      return false
+    }
+    if compute.current_configuration is Some(handle) {
+      guard value.run_configurations.get(handle) is Some(current) &&
+        run_configuration_current(value, current) is Ok(_) else {
+        return false
+      }
+    }
   }
   @local_run.validate_local_publication_preflight_current(preflight, account)
   is Ok(_)

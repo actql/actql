@@ -1,7 +1,8 @@
 """Private physical Wasm bridge. Run decisions remain in MoonBit Core."""
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass
 import hashlib
 import json
@@ -11,7 +12,10 @@ import sys
 from threading import RLock
 from typing import Any, Literal
 
-LOCAL_CORE_ABI = 47
+from ._local_journal_port import _JournalCallbacks
+from ._local_storage import _NamespaceReader, LocalByteStore
+
+LOCAL_CORE_ABI = 52
 
 
 class LocalCoreError(RuntimeError):
@@ -163,6 +167,7 @@ class _PhysicalInput:
     cleanup: Callable[[], bool]
     stopped: Callable[[int], bool]
     publisher: _PublisherCallbacks | None = None
+    journal: _JournalCallbacks | None = None
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -201,6 +206,7 @@ _PROGRAM_SIGNATURES = {
 _RUN_SIGNATURES = {
     'dispatch_action': ('i64 i32 i32 i32', 'i32'),
     'install_configuration': ('i64 i32', 'i32'),
+    'install_current_configuration': ('i64 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32 i32', 'i32'),
     'prepare': ('i64 i32', 'i32'),
     'restore': ('i64 i32 i32', 'i32'),
@@ -214,6 +220,13 @@ _RUN_SIGNATURES = {
 }
 _SUBMISSION_SIGNATURES = {
     'reserve': ('i64 i32 i32 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
+
+_BOOTSTRAP_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i64', 'i32'),
     'produce': ('i64 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
@@ -441,6 +454,34 @@ _IMPORT_SIGNATURES = {
     'publisher_begin': ('i32 i32', 'i32'),
     'publisher_byte': ('i32 i32 i32', 'i32'),
     'publisher_finish': ('i32', 'i32'),
+    'journal_current': ('i32', 'i32'),
+    'journal_begin': ('i32 i32 i32 i32', 'i32'),
+    'journal_query_byte': ('i32 i32 i32', 'i32'),
+    'journal_query': ('i32', 'i32'),
+    'journal_length': ('i32 i32', 'i32'),
+    'journal_byte': ('i32 i32 i32', 'i32'),
+    'journal_revision': ('i32', 'i64'),
+    'journal_release': ('i32', 'i32'),
+}
+_JOURNAL_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
+    'inspect': ('i64 i32', 'i32'),
+    'revision': ('i64 i32 i32', 'i64'),
+    'close': ('i64 i32', 'i32'),
+}
+_CURRENT_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i64', 'i32'),
+    'bind': ('i64 i32', 'i32'),
+    'validate': ('i64 i32', 'i32'),
+    'produce': ('i64 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
+}
+_ORIGINAL_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
+    'produce': ('i64 i32', 'i32'),
+    'length': ('i64 i32', 'i32'),
+    'close': ('i64 i32', 'i32'),
 }
 _MEMORY_LIMIT = 16 * 1024 * 1024
 
@@ -517,6 +558,8 @@ class LocalCore:
                              for name, value in _RUN_SIGNATURES.items()})
             expected.update({'actql_submission_' + name: value
                              for name, value in _SUBMISSION_SIGNATURES.items()})
+            expected.update({'actql_bootstrap_' + name: value
+                             for name, value in _BOOTSTRAP_SIGNATURES.items()})
             expected.update({'actql_source_publication_' + name: value
                              for name, value in _SOURCE_PUBLICATION_SIGNATURES.items()})
             expected.update({'actql_run_invocation_' + name: value
@@ -559,6 +602,12 @@ class LocalCore:
                              for name, value in _RESULT_SIGNATURES.items()})
             expected.update({'actql_publisher_' + name: value
                              for name, value in _PUBLISHER_SIGNATURES.items()})
+            expected.update({'actql_journal_' + name: value
+                             for name, value in _JOURNAL_SIGNATURES.items()})
+            expected.update({'actql_current_' + name: value
+                             for name, value in _CURRENT_SIGNATURES.items()})
+            expected.update({'actql_original_' + name: value
+                             for name, value in _ORIGINAL_SIGNATURES.items()})
             expected['actql_host_abi_version'] = ('', 'i32')
             exports = {item.name: item.type for item in self._module.exports}
             if (any(name not in exports or
@@ -583,11 +632,20 @@ class LocalCore:
                                    ('publisher_current', self._publisher_current),
                                    ('publisher_begin', self._publisher_begin),
                                    ('publisher_byte', self._publisher_byte),
-                                   ('publisher_finish', self._publisher_finish)]:
+                                   ('publisher_finish', self._publisher_finish),
+                                   ('journal_current', self._journal_current),
+                                   ('journal_begin', self._journal_begin),
+                                   ('journal_query_byte', self._journal_query_byte),
+                                   ('journal_query', self._journal_query),
+                                   ('journal_length', self._journal_length),
+                                   ('journal_byte', self._journal_byte),
+                                   ('journal_revision', self._journal_revision),
+                                   ('journal_release', self._journal_release)]:
                 params = [wasmtime.ValType.i32()
                           for _ in _IMPORT_SIGNATURES[name][0].split()]
                 self._linker.define_func('actql_host', name,
-                    wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
+                    wasmtime.FuncType(params, [wasmtime.ValType.i64() if
+                        _IMPORT_SIGNATURES[name][1] == 'i64' else wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
             if self._exports['actql_host_abi_version'](self._store) != LOCAL_CORE_ABI:
@@ -655,6 +713,234 @@ class LocalCore:
             return 0 if observers[fact]() is True else 1
         except BaseException:
             return 1
+
+    def _journal_callbacks(self, ticket: int) -> _JournalCallbacks | None:
+        value = self._inputs.get(ticket)
+        return None if value is None else value.journal
+
+    def _journal_current(self, ticket: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.check_current()
+
+    def _journal_begin(self, ticket: int, mode: int, namespace_bytes: int, key_bytes: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.begin(mode, namespace_bytes, key_bytes)
+
+    def _journal_query_byte(self, ticket: int, index: int, byte: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.byte(index, byte)
+
+    def _journal_query(self, ticket: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.query()
+
+    def _journal_length(self, ticket: int, field: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.length(field)
+
+    def _journal_byte(self, ticket: int, field: int, index: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.row_byte(field, index)
+
+    def _journal_revision(self, ticket: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -1 if callbacks is None else callbacks.revision()
+
+    def _journal_release(self, ticket: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.release()
+
+    def reserve_host_current(self, source: _Input, *, store: LocalByteStore,
+                             current: Callable[[], object], cleanup: Callable[[], bool]) -> _Output:
+        """Retain actual original bytes and one same-Store physical callback ticket.
+
+        Only Core inspects adoption and issues original current scope metadata.
+        The trusted Host current port checks retained filesystem/settings/epoch
+        and generation facts; it cannot return a caller permission boolean.
+        """
+        with self._lock:
+            self._owned_input(source)
+            if (self._closing or type(store) is not LocalByteStore
+                    or not callable(current) or not callable(cleanup)):
+                raise ValueError('Invalid original Local current reservation')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            callbacks = _JournalCallbacks(current, store)
+
+            def retire() -> bool:
+                if callbacks.reader is not None or cleanup() is not True:
+                    return False
+                callbacks.release()
+                return True
+
+            self._inputs[ticket] = _PhysicalInput(b'', retire, lambda _: True, journal=callbacks)
+            limit = source.length + 256
+            allowance = (2 * limit + 2 * 262144 + 4096 + sys.getsizeof(callbacks)
+                         + sys.getsizeof(self._inputs[ticket]))
+            handle = self._call('current', 'reserve', source.handle, ticket, allowance)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_host_current', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'current')
+            self._loans[ticket] = value
+            return value
+
+    @contextmanager
+    def host_current_frame(self, value: _Output, reader: _NamespaceReader) -> Iterator[None]:
+        """Use this ticket only inside the original transaction/thread loan.
+
+        No reader survives the frame. Failure retains its original callback
+        cause and query copies for explicit cleanup. The frame does not begin,
+        commit, rollback, adopt, authorize or repair the physical transaction.
+        """
+        with self._lock:
+            self._owned_output(value, 'current')
+            callbacks = self._journal_callbacks(value.ticket)
+            if (self._closing or type(reader) is not _NamespaceReader or callbacks is None
+                    or reader.owner is not callbacks.store or callbacks.reader is not None
+                    or callbacks.failure is not None):
+                raise ValueError('Invalid original Local current transaction loan')
+            callbacks.reader = reader
+            try:
+                if callbacks.check_current() != 0:
+                    assert callbacks.failure is not None
+                    raise callbacks.failure
+                yield
+                if callbacks.failure is not None:
+                    raise callbacks.failure
+            finally:
+                callbacks.reader = None
+
+    def _host_current_ready(self, value: _Output) -> _JournalCallbacks:
+        self._owned_output(value, 'current')
+        callbacks = self._journal_callbacks(value.ticket)
+        if callbacks is None or callbacks.reader is None or self._closing:
+            raise ValueError('Original Local current frame is unavailable')
+        if callbacks.check_current() != 0:
+            assert callbacks.failure is not None
+            raise callbacks.failure
+        return callbacks
+
+    def _host_current_call(self, value: _Output, operation: str) -> None:
+        with self._lock:
+            callbacks = self._host_current_ready(value)
+            code = self._call('current', operation, value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('host_current_' + operation, code)
+
+    def bind_host_current(self, value: _Output) -> None:
+        self._host_current_call(value, 'bind')
+
+    def produce_host_current(self, value: _Output) -> None:
+        self._host_current_call(value, 'produce')
+
+    def validate_host_current(self, value: _Output) -> None:
+        self._host_current_call(value, 'validate')
+
+    def read_host_current(self, value: _Output) -> bytes:
+        with self._lock:
+            self.validate_host_current(value)
+            result = self._read_output(value, 'current', 'length')
+            self.validate_host_current(value)
+            return result
+
+    def close_host_current(self, value: _Output) -> bool:
+        return self._close_output(value, 'current', 'close')
+
+    def reserve_journal_observation(self, material: _Output, current_configuration: int, *,
+                                    store: LocalByteStore, current: Callable[[], object],
+                                    cleanup: Callable[[], bool]) -> _Output:
+        """Retain one original same-Store callback loan; no admission/ACK is issued.
+
+        Call inspect_journal_observation inside the original fenced SQLite
+        callback while holding Core before Store. SQLite/Core parser workspace
+        and original retained inputs need their existing separate reservations.
+        """
+        with self._lock:
+            self._owned_output(material, 'material')
+            if (self._closing or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31
+                    or type(store) is not LocalByteStore
+                    or not callable(current) or not callable(cleanup)):
+                raise ValueError('Invalid original Local journal observation')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            callbacks = _JournalCallbacks(current, store)
+
+            def retire() -> bool:
+                if cleanup() is not True:
+                    return False
+                callbacks.release()
+                callbacks.reader = None
+                return True
+
+            self._inputs[ticket] = _PhysicalInput(b'', retire, lambda _: True,
+                                                 journal=callbacks)
+            limit = 1_048_576
+            # Concurrent raw row/key and request/decode copies, bounded before
+            # the physical query; this is not a global Python/SQLite memory claim.
+            allowance = (2 * limit + 4096 + sys.getsizeof(callbacks)
+                         + sys.getsizeof(self._inputs[ticket]))
+            handle = self._call('journal', 'reserve', material.handle,
+                                current_configuration, ticket, allowance)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_journal_observation', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'journal')
+            self._loans[ticket] = value
+            return value
+
+    def inspect_journal_observation(self, value: _Output, reader: _NamespaceReader) -> None:
+        """Invoke the original Core inspection within the same physical snapshot."""
+        with self._lock:
+            self._owned_output(value, 'journal')
+            callbacks = self._journal_callbacks(value.ticket)
+            if (self._closing or type(reader) is not _NamespaceReader or callbacks is None
+                    or reader.owner is not callbacks.store
+                    or callbacks.reader is not None or callbacks.failure is not None):
+                raise ValueError('Invalid original Local journal transaction loan')
+            callbacks.reader = reader
+            try:
+                code = self._call('journal', 'inspect', value.handle)
+                if callbacks.failure is not None:
+                    raise callbacks.failure
+                self._check('inspect_journal_observation', code)
+            finally:
+                # No reader survives its transaction. Failed query copies stay
+                # under the same buffer ticket until explicit successful cleanup.
+                callbacks.reader = None
+
+    def journal_observation_revisions(self, value: _Output, reader: _NamespaceReader) -> tuple[int, int, int]:
+        """Read Core-observed revisions under a newly checked original snapshot.
+
+        The Host rechecks original current/epoch/configuration fences. These
+        revisions are not a COMMIT acknowledgement or permission to dispatch.
+        """
+        with self._lock:
+            self._owned_output(value, 'journal')
+            callbacks = self._journal_callbacks(value.ticket)
+            if (self._closing or type(reader) is not _NamespaceReader or callbacks is None
+                    or reader.owner is not callbacks.store
+                    or callbacks.reader is not None or callbacks.failure is not None):
+                raise ValueError('Invalid original Local journal transaction loan')
+            callbacks.reader = reader
+            try:
+                result = tuple(self._call('journal', 'revision', value.handle, field) for field in range(3))
+                if callbacks.failure is not None:
+                    raise callbacks.failure
+                if any(value < 0 for value in result):
+                    raise LocalCoreError('journal_observation_revisions', -31)
+                return result[0], result[1], result[2]
+            finally:
+                callbacks.reader = None
+
+    def close_journal_observation(self, value: _Output) -> bool:
+        return self._close_output(value, 'journal', 'close')
 
     def _publisher_callbacks(self, ticket: int) -> _PublisherCallbacks | None:
         value = self._inputs.get(ticket)
@@ -920,6 +1206,78 @@ class LocalCore:
             value = _Output(self._identity, ticket, handle, limit, 'submission')
             self._loans[ticket] = value
             return value
+
+    def reserve_bootstrap(self, source: _Input, *, cleanup: Callable[[], bool]) -> _Output:
+        """Borrow original root/clock bytes for first-adoption metadata only.
+
+        The existing Common factory supplies policy/engine originals. This
+        performs no adoption, writes, authority, Run admission or execution.
+        The Host must restore saved originals instead of calling this again.
+        """
+        with self._lock:
+            self._owned_input(source)
+            if self._closing or not callable(cleanup):
+                raise ValueError('Invalid Local bootstrap reservation')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 1_048_576
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'bootstrap')))
+            handle = self._call('bootstrap', 'reserve', source.handle, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_bootstrap', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'bootstrap')
+            self._loans[ticket] = value
+            return value
+
+    def reserve_original_metadata(self, source: _Input, kind: int, *, cleanup: Callable[[], bool]) -> _Output:
+        """Retain original physical observations before the existing Core codec.
+
+        Kind selects initialization/configuration custody/journal custody/selected
+        settings metadata. Core emits their exact original bodies and CIDs. No
+        method initializes a Host, commits, authorizes or begins a Run.
+        """
+        with self._lock:
+            self._owned_input(source)
+            if self._closing or type(kind) is not int or kind not in (1, 2, 3, 4) or not callable(cleanup):
+                raise ValueError('Invalid Local original metadata reservation')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            limit = 65536
+            self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
+            physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'original')))
+            handle = self._call('original', 'reserve', source.handle, kind, ticket, physical_bytes)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_original_metadata', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'original')
+            self._loans[ticket] = value
+            return value
+
+    def produce_original_metadata(self, value: _Output) -> None:
+        self._produce_output(value, 'original', 'produce')
+
+    def read_original_metadata(self, value: _Output) -> bytes:
+        return self._read_output(value, 'original', 'length')
+
+    def close_original_metadata(self, value: _Output) -> bool:
+        return self._close_output(value, 'original', 'close')
+
+    def produce_bootstrap(self, value: _Output) -> None:
+        self._produce_output(value, 'bootstrap', 'produce')
+
+    def read_bootstrap(self, value: _Output) -> bytes:
+        return self._read_output(value, 'bootstrap', 'length')
+
+    def close_bootstrap(self, value: _Output) -> bool:
+        return self._close_output(value, 'bootstrap', 'close')
 
     def produce_submission_projection(self, value: _Output) -> None:
         self._produce_output(value, 'submission', 'produce')
