@@ -1,11 +1,26 @@
 ///|
-fn join_range_property_expected() -> @program.Program {
+fn staged_join_range_property_expected() -> @program.Program {
   // Complete expectation written from the shared JOIN and ordinary property
   // contracts: carry each input once, derive score from the left object, and
   // publish only score. This is never generated from compiler output.
   @program.parse(
     (
       #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"aql_chain_source_0","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":false}}}},"rows":[{"id":2,"payload":{"score":10}},{"id":1,"payload":{"score":20}},{"id":3,"payload":null}]},"as":"objects"}],"results":{"aql_chain_source_0":{"from":"objects","fields":["id","payload"]}}},{"id":"aql_chain_source_1","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"other":{"type":"object","nullable":false,"fields":{"score":{"type":"number","nullable":false}}}},"rows":[{"id":1,"other":{"score":5}},{"id":2,"other":{"score":30}},{"id":3,"other":{"score":15}}]},"as":"others"}],"results":{"aql_chain_source_1":{"from":"others","fields":["id","other"]}}},{"id":"main","inputs":{"aql_chain_input_0":{"result":{"stage":"aql_chain_source_0","result":"aql_chain_source_0"}},"aql_chain_input_1":{"result":{"stage":"aql_chain_source_1","result":"aql_chain_source_1"}}},"steps":[{"from":"aql_chain_input_0","join":{"with":"aql_chain_input_1","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":9,"select":{"aql_chain_column_2":"left.id","aql_chain_column_3":"left.payload","aql_chain_column_4":"right.id","aql_chain_column_5":"right.other"}},"as":"aql_chain_join_2"},{"from":"aql_chain_join_2","derive":{"aql_pipe_expr_4":{"property":{"value":{"field":"aql_chain_column_3"},"name":"score"}}}},{"select":[{"score":"aql_pipe_expr_4"}],"as":"aql_chain_result_3"}],"results":{"rows":{"from":"aql_chain_result_3","fields":["score"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+}
+
+
+///|
+// Complete current topology from the original typed Values/property contracts.
+// Receiver fields, nullable payloads, guards and public projection are unchanged.
+fn join_range_property_expected() -> @program.Program raise {
+  check_join_property(staged_join_range_property_expected())
+  @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":false}}}},"rows":[{"id":2,"payload":{"score":10}},{"id":1,"payload":{"score":20}},{"id":3,"payload":null}]},"as":"aql_script_seed_2"},{"values":{"schema":{"id":{"type":"number","nullable":false},"other":{"type":"object","nullable":false,"fields":{"score":{"type":"number","nullable":false}}}},"rows":[{"id":1,"other":{"score":5}},{"id":2,"other":{"score":30}},{"id":3,"other":{"score":15}}]},"as":"aql_script_seed_3"},{"from":"aql_script_seed_2","join":{"with":"aql_script_seed_3","kind":"inner","on":[{"left":"id","right":"id"}],"max_output_rows":9,"select":{"aql_chain_column_2":"left.id","aql_chain_column_3":"left.payload","aql_chain_column_4":"right.id","aql_chain_column_5":"right.other"}},"as":"aql_chain_join_4"},{"from":"aql_chain_join_4","derive":{"aql_pipe_expr_4":{"property":{"value":{"field":"aql_chain_column_3"},"name":"score"}}}},{"select":[{"score":"aql_pipe_expr_4"}],"as":"aql_chain_result_5"}],"results":{"rows":{"from":"aql_chain_result_5","fields":["score"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
