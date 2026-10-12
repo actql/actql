@@ -39,6 +39,30 @@ fn scalar_profile_prepared(
 }
 
 ///|
+fn scalar_profile_operations(
+  profile : ClientNativeLocalScalarValuesProfile,
+) -> Array[String] {
+  Array::makei(
+    client_native_local_scalar_values_profile_operation_count(profile),
+    i => {
+      client_native_local_scalar_values_profile_operation_at(profile, i).unwrap()
+    },
+  )
+}
+
+///|
+fn scalar_profile_expressions(
+  profile : ClientNativeLocalScalarValuesProfile,
+) -> Array[String] {
+  Array::makei(
+    client_native_local_scalar_values_profile_expression_count(profile),
+    i => {
+      client_native_local_scalar_values_profile_expression_at(profile, i).unwrap()
+    },
+  )
+}
+
+///|
 test "scalar profile reads original scalar cells and every ordinary arithmetic root" {
   let document = run_materials_document.replace(
     old="\"as\":\"selected\"}],",
@@ -48,8 +72,10 @@ test "scalar profile reads original scalar cells and every ordinary arithmetic r
   let profile = inspect_client_native_local_scalar_values_profile(
     prepared, 1000,
   ).unwrap()
-  assert_eq(profile.operations, ["REL.values", "REL.derive", "REL.filter"])
-  assert_eq(profile.expressions, [
+  assert_eq(scalar_profile_operations(profile), [
+    "REL.values", "REL.derive", "REL.where",
+  ])
+  assert_eq(scalar_profile_expressions(profile), [
     "add", "field", "literal", "gt", "field", "literal",
   ])
   assert_eq(
@@ -243,8 +269,8 @@ test "scalar profile keeps bound scalar parameter types nullability and exact Un
   let profile = inspect_client_native_local_scalar_values_profile(
     prepared, 1000,
   ).unwrap()
-  assert_eq(profile.operations, ["REL.values", "REL.derive"])
-  assert_eq(profile.expressions, ["add", "field", "$param"])
+  assert_eq(scalar_profile_operations(profile), ["REL.values", "REL.derive"])
+  assert_eq(scalar_profile_expressions(profile), ["add", "field", "$param"])
   let owner = @strategy.graph_task_owner(prepared_client_graph(prepared), 0).unwrap()
   let cell = @lower.bound_values_cell(owner, 0, 0, 1).unwrap()
   guard cell.value is @values.Text(text) else { fail("original text cell") }
@@ -252,5 +278,64 @@ test "scalar profile keeps bound scalar parameter types nullability and exact Un
   assert_true(cell.contract.nullable)
   assert_true(
     @lower.bound_values_cell(owner, 0, 1, 1).unwrap().value is @values.Null,
+  )
+}
+
+///|
+test "scalar profile Rename and Drop facts use the original AoA Select operation" {
+  let document = run_materials_document.replace(
+    old="\"as\":\"selected\"}],",
+    new="\"as\":\"raw\"},{\"derive\":{\"scratch\":\"id + 1\"},\"as\":\"derived\"},{\"rename\":{\"scratch\":\"temporary\"},\"as\":\"renamed\"},{\"drop\":[\"temporary\"],\"as\":\"selected\"}],",
+  )
+  let profile = inspect_client_native_local_scalar_values_profile(
+    scalar_profile_prepared(document),
+    1000,
+  ).unwrap()
+  // Both source operations lower through the existing Select owner. These
+  // independent expected names are the registered AoA operations, not aliases.
+  assert_eq(scalar_profile_operations(profile), [
+    "REL.values", "REL.derive", "REL.select", "REL.select",
+  ])
+  assert_eq(scalar_profile_expressions(profile), ["add", "field", "literal"])
+}
+
+///|
+test "scalar profile indexed views preserve exact counts and refuse invalid indices" {
+  let prepared = scalar_profile_prepared(run_materials_document)
+  let profile = inspect_client_native_local_scalar_values_profile(
+    prepared, 1000,
+  ).unwrap()
+  assert_eq(
+    client_native_local_scalar_values_profile_operation_count(profile),
+    1,
+  )
+  assert_eq(
+    client_native_local_scalar_values_profile_operation_at(profile, 0),
+    Some("REL.values"),
+  )
+  assert_eq(
+    client_native_local_scalar_values_profile_expression_count(profile),
+    0,
+  )
+  for index in [-1, 1, 2147483647] {
+    assert_eq(
+      client_native_local_scalar_values_profile_operation_at(profile, index),
+      None,
+    )
+  }
+  for index in [-1, 0, 2147483647] {
+    assert_eq(
+      client_native_local_scalar_values_profile_expression_at(profile, index),
+      None,
+    )
+  }
+  let inspected = client_native_local_scalar_values_profile_inspected_entries(
+    profile,
+  )
+  assert_true(inspected > 0 && inspected <= 1000)
+  assert_eq(scalar_profile_operations(profile), ["REL.values"])
+  assert_eq(
+    validate_client_native_local_scalar_values_preparation(profile, prepared),
+    Ok(()),
   )
 }
