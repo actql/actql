@@ -580,3 +580,37 @@ and that original's roles, then rechecks current Host authority, selected file
 generations and the original accepted Run packet. Different read selections in
 one Host retain separate roles. The absolute `expires_at` alternative contains
 none of these fields and its historical bytes and grants remain unchanged.
+
+
+## Explicit legacy lifetime upgrade
+
+A legacy adoption keeps its absolute read and retention originals. The explicit
+policy-upgrade operation stores a closed authenticated append in the existing
+installation-original journal and increments its existing custody counter in the
+same transaction. The installation pool remains eight records and 65,536 bytes;
+the append reserves one 8,192-byte record before copying new material. A replay
+uses the same immutable operation and selected original bytes. Lookup does not
+issue a Policy, open a Result or create a Run. Missing originals or reservations
+are refusals; they are not an opportunity to initialize or backfill state.
+
+The append binds adoption, authority scope, operation ID, actual read/run/
+retention/store configuration roles and content identities, the finite profile,
+and the new read selection. Its accepted legacy set contains exact original
+request/Run/Submission/admission-revision correspondence. An accepted Run without
+a finite packet is eligible for the original absolute read only if that immutable
+set and the original Submission Owner agree. A later missing packet cannot be
+interpreted as a legacy Run. Fresh Submissions use the separately bound finite
+profile; old Run, Result and grant deadlines and bytes stay unchanged.
+
+Each read-history row resolves its own read-original CID. A selected-file read
+uses its original configuration roles; an upgraded read uses the exact closed
+append, authenticated through the original private epoch key, and its saved roles.
+Neither name lookup nor possession of a profile/CID supplies current authority.
+The existing current Account, Result Policy, grant issuer and delivery Owners
+remain responsible for their separate checks. The journal's private active-
+transaction fact permits only read-only custody verification to join its own
+transaction; nested mutating operations remain rejected.
+
+This metadata connection is not installed-product upgrade acceptance. Compatibility
+between the originally adopted runtime and a newly installed package must be
+admitted and retained separately before the packaged CLI can cross that boundary.

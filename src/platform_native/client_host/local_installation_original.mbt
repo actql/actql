@@ -239,7 +239,8 @@ fn NativeLocalHostConnection::installation_custody(
     }
     let count = @string.parse_int(text) catch { _ => return Err(CustodyLost) }
     if count < 0 ||
-      count > self.session.settings.files.length() ||
+      count > 8 ||
+      count > self.session.settings.files.length() + 1 ||
       count.to_string() != text ||
       witness.revision != count.to_int64() {
       return Err(CustodyLost)
@@ -251,13 +252,7 @@ fn NativeLocalHostConnection::installation_custody(
         .map_err(issue => NativeLocalAdoptionIssue::Physical(issue))
         .map_err(issue => LocalInstallationAdoptionStop(issue))
         .unwrap_or_error()
-      guard row.revision == 0L &&
-        self.session.settings.files
-        .iter()
-        .find_first(file => file.name == row.key)
-        is Some(file) else {
-        return Err(CustodyLost)
-      }
+      guard row.revision == 0L else { return Err(CustodyLost) }
       // A new reservation during lookup is custody loss; the enclosing journal
       // transaction rolls back instead of repairing the original budget.
       guard self.database
@@ -275,10 +270,26 @@ fn NativeLocalHostConnection::installation_custody(
         false else {
         return Err(CustodyLost)
       }
-      read_local_installation_projection(self, file, row.body)
-      .map_err(issue => LocalInstallationAdoptionStop(issue))
-      .unwrap_or_error()
-      |> ignore
+      if row.key == local_policy_upgrade_key {
+        read_local_policy_upgrade_original(self, {
+          body: row.body,
+          revision: row.revision,
+        })
+        .map_err(_ => LocalInstallationAdoptionStop(CustodyLost))
+        .unwrap_or_error()
+        |> ignore
+      } else {
+        guard self.session.settings.files
+          .iter()
+          .find_first(file => file.name == row.key)
+          is Some(file) else {
+          return Err(CustodyLost)
+        }
+        read_local_installation_projection(self, file, row.body)
+        .map_err(issue => LocalInstallationAdoptionStop(issue))
+        .unwrap_or_error()
+        |> ignore
+      }
       cursor = row.key
     }
     guard self.database.scan_after(
@@ -353,7 +364,7 @@ fn NativeLocalHostConnection::installation_original_locked(
         .unwrap_or_error()
       }
       Err(@sqlite.NotFound) => {
-        if !adopt || count >= self.session.settings.files.length() {
+        if !adopt || count >= 8 {
           return Err(CustodyLost)
         }
         // Reserve before exporting/copying descriptor material. This uses the
