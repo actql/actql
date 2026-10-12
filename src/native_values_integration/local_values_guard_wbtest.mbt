@@ -1,8 +1,6 @@
 ///|
-fn local_values_guard_setup() -> @builtin.ConfiguredComputeHost[
-  @strategy.RunIssue,
-] raise {
-  let environment = @publication_host.admit_client_check_environment(
+fn local_values_guard_environment() -> @program_check.CheckEnvironment {
+  @publication_host.admit_client_check_environment(
     (
       #|{"command_contracts":[],"connector_capabilities":[],"connector_catalogs":[],"contract_registry":[],"evidence_bundle_cid":"sha256:aa727ea3fb169143aa8b774d7ee16679166cdae133c990a128921eaad0c3d904","host_policy_profile":{"capacity":{"max_aggregate_array_items":1000,"max_artifact_bytes":1000,"max_artifact_rows":1000,"max_effect_items":1000,"max_graph_input_edges":1000,"max_graph_input_nodes":1000,"max_graph_output_rows":1000,"max_graph_paths":1000,"max_infer_items":1000,"max_model_input_tokens_per_item":1000,"max_model_request_bytes_per_item":1000,"max_model_total_duration_ms":1000,"max_nested_value_bytes":1000,"max_nested_value_depth":1000,"max_relation_output_rows":1000,"max_temporal_matches_per_key":1000,"max_temporal_output_rows":1000,"version":"actql-capacity-host-policy/0.1"}},"mapping_contracts":[],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
     ),
@@ -10,6 +8,11 @@ fn local_values_guard_setup() -> @builtin.ConfiguredComputeHost[
     { text_time: false, veca: false, },
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
+}
+
+///|
+fn local_values_guard_prepared() -> @publication_host.PreparedClientProgram {
+  let environment = local_values_guard_environment()
   let prepared = @publication_host.prepare_effect_free_client_program(
     (
       #|{"version":"actql/0.1","id":"local-guard-values","stages":[{"id":"seed","inputs":{},"steps":[{"values":{"schema":{"n":{"type":"number","nullable":false}},"rows":[{"n":1}]},"as":"selected"}],"results":{"rows":{"from":"selected","fields":["n"]}}}],"results":{"answer":{"from":{"stage":"seed","result":"rows"}}}}
@@ -19,6 +22,14 @@ fn local_values_guard_setup() -> @builtin.ConfiguredComputeHost[
     None,
     @publication_host.client_standard_program_preparation_limits(),
   ).unwrap()
+  prepared
+}
+
+///|
+fn local_values_guard_setup() -> @builtin.ConfiguredComputeHost[
+  @strategy.RunIssue,
+] raise {
+  let prepared = local_values_guard_prepared()
   @client_local_host.open_source_free_local_retained_host(
     prepared,
     @identity.stringify_value(registered_body(), 100000, 10000, 100),

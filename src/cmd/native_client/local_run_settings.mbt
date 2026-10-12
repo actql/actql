@@ -10,6 +10,7 @@ priv struct LocalRunInstallation {
   store_record_bytes : Int64
   result_payload_bytes : Int64
   retention : @publication.PublicationContract
+  source_free : LocalValuesInstallation?
 }
 
 ///|
@@ -70,6 +71,7 @@ fn local_run_installation(
   let run = @decode.closed_object(run_setting(native, "run"), [
     "namespace_id", "store_name", "store_authority_cid", "store_capacity_bytes",
     "store_objects", "store_record_bytes", "result_payload_bytes", "retention_policy_wire",
+    "source_free",
   ]).unwrap_or_else(() => stop("InvalidLocalRunInstallation"))
   let component = run_text(run, "store_name", maximum=128)
   if component == "." ||
@@ -113,5 +115,50 @@ fn local_run_installation(
     store_record_bytes: record,
     result_payload_bytes: result,
     retention,
+    source_free: @decode.lookup(run, "source_free").map(
+      local_values_installation,
+    ),
+  }
+}
+
+///|
+// Installed Compute contract bodies and Result Policy are configuration
+// originals selected by the adoption Owner. They confer no I/O or read grant.
+priv struct LocalValuesInstallation {
+  registry_body : String
+  values_body : String
+  fragment_body : String?
+  ordered_body : String?
+  result_policy_cid : String
+  result_policy_wire : String
+}
+
+///|
+fn local_values_installation(
+  cursor : @decode.Cursor,
+) -> LocalValuesInstallation raise ClientStop {
+  let settings = @decode.closed_object(cursor, [
+    "registry", "values", "fragment", "ordered", "result_policy_cid", "result_policy_wire",
+  ]).unwrap_or_else(() => stop("InvalidLocalValuesInstallation"))
+  let cid = run_text(settings, "result_policy_cid", maximum=71)
+  let wire = run_text(settings, "result_policy_wire", maximum=8192)
+  @run_host.admit_source_free_result_policy_body(cid, wire, 8192, 512, 8).unwrap_or_else(() => {
+      stop("InvalidLocalValuesResultPolicyOriginal")
+    },
+  )
+  |> ignore
+  {
+    registry_body: run_text(settings, "registry", maximum=65536),
+    values_body: run_text(settings, "values", maximum=65536),
+    fragment_body: match @decode.lookup(settings, "fragment") {
+      None => None
+      Some(_) => Some(run_text(settings, "fragment", maximum=65536))
+    },
+    ordered_body: match @decode.lookup(settings, "ordered") {
+      None => None
+      Some(_) => Some(run_text(settings, "ordered", maximum=65536))
+    },
+    result_policy_cid: cid,
+    result_policy_wire: wire,
   }
 }
