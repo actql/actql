@@ -3,11 +3,11 @@ test "P2 authored SGA output names require quoted reserved words" {
   for keyword in ["SELECT", "null", "WITH", "by", "RIGHT"] {
     for role in ["identity", "source", "target"] {
       let text = "match_edges(bindings: {" + role + ": " + keyword + "})"
-      assert_true(
-        parse_sga_call(text, query_limits())
-        is Err({ issue: Syntax("Reserved output name requires backticks"), .. }),
-        msg=text,
-      )
+      let refused = parse_sga_call(text, query_limits())
+      guard refused is Err({ issue: Syntax("Reserved output name requires backticks"), span: Some(span) }) else {
+        fail(text)
+      }
+      assert_eq(span.start_byte, ("match_edges(bindings: {" + role + ": ").length())
       assert_eq(
         parse_sga_call(
           "match_edges(bindings: {" + role + ": `" + keyword + "`})",
@@ -22,6 +22,18 @@ test "P2 authored SGA output names require quoted reserved words" {
       )
     }
   }
+}
+
+///|
+test "P2 selected output keywords keep ordinary omitted alias behavior" {
+  let accepted = parse_query("SELECT 1 `SELECT`", query_limits()).unwrap()
+  guard operation_at(accepted, 0) is Some(Select([projection], _)) else {
+    fail("Expected ordinary projection")
+  }
+  assert_eq(projection.name, Some({ value: "SELECT", quoted: true, }))
+  assert_true(parse_query("SELECT 1 SELECT", query_limits()) is Err(_))
+  assert_eq(parse_sga_call("reach(start: 'SELECT', direction: 'null')", query_limits()).unwrap().arguments,
+    [("start", TextValue("SELECT")), ("direction", TextValue("null"))])
 }
 
 ///|
