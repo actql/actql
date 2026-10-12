@@ -8,9 +8,13 @@ fn vector_pool_control(
   // Relation member-key evidence; Vectors retains its intrinsic identity role.
   let input = if cohort { "grouped" } else { "candidates" }
   let prefix = if relation {
-    "{\"from\":\"" + input + "\",\"assert_rows\":{\"unique_by\":[\"item_id\"]},\"as\":\"members\"}"
+    "{\"from\":\"" +
+    input +
+    "\",\"assert_rows\":{\"unique_by\":[\"item_id\"]},\"as\":\"members\"}"
   } else {
-    "{\"from\":\"" + input + "\",\"to_vectors\":{\"id\":\"item_id\",\"vector\":\"embedding\"},\"as\":\"members\"}"
+    "{\"from\":\"" +
+    input +
+    "\",\"to_vectors\":{\"id\":\"item_id\",\"vector\":\"embedding\"},\"as\":\"members\"}"
   }
   let grouping = if cohort { "cohort" } else { "label" }
   let body = "{\"by\":[\"" +
@@ -171,9 +175,11 @@ test "P2 prepared two-member public pool sources retain derived grouping and emp
         ")), rows AS (FROM pooled |> vectors()) SELECT cohort, pooled_id, embedding, member_count FROM rows ORDER BY cohort"
       let actual = match with_carrier_program(text, nearest_context()) {
         Ok(program) => program
-        Err(UnsupportedGraph) => fail("Carrier call follows Relation projection")
+        Err(UnsupportedGraph) =>
+          fail("Carrier call follows Relation projection")
         Err(UnknownColumn) => fail("Unknown derived group column")
-        Err(UnsupportedProjection) => fail("Unsupported derived group projection")
+        Err(UnsupportedProjection) =>
+          fail("Unsupported derived group projection")
         Err(BindingPreparation(LocalProgram(Pipeline(index, diagnostic)))) =>
           fail(index.to_string() + ": " + @debug.to_string(diagnostic.kind))
         Err(_) => fail("Other pool preparation failure")
