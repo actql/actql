@@ -286,6 +286,46 @@ async function acquireStoreOwnership(root) {
   }
 }
 
+// An opener can fail after acquiring the existing Store owner but before it
+// returns a Store. Keep that SAME ownership and any failed physical reader;
+// retry only cleanup, never reopen initialization or invent completed custody.
+async function retainStoreOpeningFailure(cause, ownership, key) {
+  let original = ownership;
+  const reader = cause?.cleanupHandle;
+  let flight, cleanupError;
+  const status = () => Object.freeze({pending: original !== undefined ||
+    reader?.status().pending === true});
+  const retry = () => {
+    if (flight !== undefined) return flight;
+    if (!status().pending) return Promise.resolve(status());
+    flight = Promise.resolve().then(async () => {
+      if (reader?.status().pending) {
+        await reader.retry();
+        if (reader.status().pending) fail('PublicationStoreCleanupPending');
+      }
+      if (original !== undefined) {
+        const released = await original.release();
+        // Absence/false is not proof of this opener's successful cleanup.
+        if (released !== true) fail('PublicationStoreOwnershipLost');
+        original = undefined;
+        key?.fill(0);
+      }
+      return status();
+    }).finally(() => { flight = undefined; });
+    return flight;
+  };
+  try { await retry(); }
+  catch (error) { cleanupError = error; }
+  if (!status().pending) return cause;
+  const failure = new Error('PublicationStoreOpeningCleanupPending', {cause});
+  failure.code = cause?.code ?? 'PublicationStoreOpeningCleanupPending';
+  failure.primaryFailure = cause?.primaryFailure ?? cause;
+  failure.cleanupPending = true;
+  failure.cleanupError = cleanupError;
+  failure.cleanupHandle = Object.freeze({status, retry});
+  return failure;
+}
+
 function validateConfiguration(options) {
   const fields = [
     'directory',
@@ -488,7 +528,7 @@ export async function openLocalPublicationStore(
   // A dead local owner can be reclaimed, but two live opens never maintain
   // independent counters for the same physical allocation scope.
   const ownership = await acquireStoreOwnership(root);
-
+  try {
   for (const name of await readdir(stagingDirectory)) {
     const path = resolve(stagingDirectory, name);
     if (!/^object-[0-9a-f-]{36}$/u.test(name) ||
@@ -5597,4 +5637,8 @@ export async function openLocalPublicationStore(
       });
     },
   });
+  } catch (cause) {
+    throw await retainStoreOpeningFailure(cause, ownership,
+      configuration.privateEvidenceKey);
+  }
 }
