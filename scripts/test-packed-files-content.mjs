@@ -11,11 +11,26 @@ import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {createOwnedScratch} from './owned-scratch.mjs';
 import {createCommandEvidence} from './packed-query-evidence.mjs';
 import {stagePackedContentFixtures} from './packed-files-content-fixtures.mjs';
-import {packedContentCases, verifyPackedContentScenario} from './packed-files-content-acceptance.mjs';
+import {packedContentSelection, verifyPackedContentProducerManifest,
+  verifyPackedContentScenario} from './packed-files-content-acceptance.mjs';
 
+const selected = packedContentSelection(process.argv.slice(2));
+const producerDirectory = process.env.ACTQL_PACKED_CLIENT_PACKAGES;
+if (selected.scope === 'pure' &&
+    (producerDirectory === undefined || producerDirectory === '')) {
+  throw new Error('PackedPureContentRequiresVerifiedProducer');
+}
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const initial = checkoutState(repository);
 assert.ok(initial.clean, 'Packed Content requires committed source, not a diagnostic overlay');
+// The existing package consumer verifies each actual tarball. Retain the exact
+// original producer manifest as a separate diagnostic identity as well; a
+// later manifest replacement cannot silently mix producer observations.
+const producerManifest = producerDirectory === undefined || producerDirectory === ''
+  ? undefined : await readFile(join(producerDirectory, 'packed-client-packages.json'));
+const producer = producerManifest === undefined ? undefined
+  : JSON.parse(producerManifest.toString('utf8'));
+if (producer !== undefined) verifyPackedContentProducerManifest(producer, initial.revision);
 const scratchParent = join(repository, '..', '.codex-scratch');
 const evidence = createCommandEvidence({scratch: scratchParent, revision: initial.revision,
   cwd: repository, prefix: 'packed-files-content-evidence-'});
@@ -39,7 +54,9 @@ function run(command, args, cwd = application, env = environment, timeout = 1200
   return result.stdout;
 }
 const nonsecretReceipt = {version: 'actql-packed-files-content-acceptance/0.1',
-  sourceRevision: initial.revision, complete: false, cases: [],
+  sourceRevision: initial.revision, scope: selected.scope, complete: false, cases: [],
+  ...(producerManifest === undefined ? {} : {producerManifestSha256:
+    createHash('sha256').update(producerManifest).digest('hex')}),
   limitations: ['not real GCS acceptance', 'not version-fixed keyed capture INFER acceptance',
     'not full Core or Hosted CI', 'unknown custody is retained, not declared cleaned']};
 try {
@@ -48,26 +65,34 @@ try {
       pack: () => run('npm', ['pack', '--pack-destination', scratch.path, '--json'],
         join(repository, 'packages', name), environment, 600000)});
   }
+  if (producerManifest !== undefined) assert.deepEqual(
+    await readFile(join(producerDirectory, 'packed-client-packages.json')), producerManifest,
+    'PackedContentProducerManifestChanged');
   assert.deepEqual(checkoutState(repository), initial, 'packing changed source identity');
+  nonsecretReceipt.packages = [];
+  const copiedTarballs = {};
+  // Bind the actual copied bytes before npm can install them. Checking only
+  // the producer path before copying does not establish destination identity.
+  for (const name of CLIENT_PACKAGES) {
+    const sha256 = createHash('sha256').update(await readFile(join(scratch.path,
+      `actql-${name}-0.0.0-development.tgz`))).digest('hex');
+    copiedTarballs[name] = sha256;
+    nonsecretReceipt.packages.push({name, sha256});
+    evidence.summary.tarballs.push({name: `actql-${name}-0.0.0-development.tgz`, sha256});
+  }
+  if (producer !== undefined) verifyPackedContentProducerManifest(
+    producer, initial.revision, copiedTarballs);
+  evidence.persist();
   await writeFile(join(application, 'package.json'), '{"private":true,"type":"module"}\n', {flag: 'wx'});
   run('npm', ['install', '--ignore-scripts', '--no-save', '--no-audit', '--no-fund',
     ...CLIENT_PACKAGES.map(name => join(scratch.path, `actql-${name}-0.0.0-development.tgz`))]);
   auditPackedPackages(application, CLIENT_PACKAGES);
   const staged = await stagePackedContentFixtures({repository, application});
   nonsecretReceipt.fixture = staged;
-  nonsecretReceipt.packages = [];
-  // Exact tarball digests, not registry versions, bind this installation.
-  for (const name of CLIENT_PACKAGES) {
-    const sha256 = createHash('sha256').update(await readFile(join(scratch.path,
-      `actql-${name}-0.0.0-development.tgz`))).digest('hex');
-    nonsecretReceipt.packages.push({name, sha256});
-    evidence.summary.tarballs.push({name: `actql-${name}-0.0.0-development.tgz`, sha256});
-  }
-  evidence.persist();
   const childEnvironment = {...environment,
     PATH: [dirname(process.execPath), '/usr/bin', '/bin'].join(':')};
   delete childEnvironment.ACTQL_PACKED_CLIENT_PACKAGES;
-  for (const scenario of packedContentCases) {
+  for (const scenario of selected.cases) {
     const root = join(evidence.directory, 'custody', scenario.id);
     await mkdir(root, {recursive: true, mode: 0o700});
     const keys = generateKeyPairSync('ed25519');
@@ -95,13 +120,16 @@ try {
     console.log(`PACKED_CONTENT_CASE ${scenario.id}: passed`);
   }
   assert.deepEqual(checkoutState(repository), initial, 'source changed during packed acceptance');
+  if (producerManifest !== undefined) assert.deepEqual(
+    await readFile(join(producerDirectory, 'packed-client-packages.json')), producerManifest,
+    'PackedContentProducerManifestChanged');
   nonsecretReceipt.complete = true;
   await writeFile(join(evidence.directory, 'content-acceptance.json'),
     JSON.stringify(nonsecretReceipt, null, 2) + '\n', {mode: 0o600});
   evidence.finish('passed');
   assert.equal(evidence.summary.complete, true);
   scratch.passed();
-  console.log(`Packed Content: ${packedContentCases.length} cases passed; evidence: ${evidence.directory}`);
+  console.log(`Packed Content (${selected.scope}): ${selected.cases.length} cases passed; evidence: ${evidence.directory}`);
 } catch (error) {
   try { evidence.finish('failed'); }
   catch (writeError) {

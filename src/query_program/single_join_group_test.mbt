@@ -1,14 +1,39 @@
 ///|
-test "single JOIN GROUP agrees with an independent complete Program" {
-  // This fixture uses existing join/group/filter/sort/select contracts. The
-  // authored ceiling is 10; physical names only bind the scoped input values.
-  let expected = @program.parse(
+fn staged_single_join_group_expected() -> @program.Program {
+  @program.parse(
     (
       #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"aql_chain_source_0","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"t"}],"results":{"aql_chain_source_0":{"from":"t","fields":["x","y"]}}},{"id":"aql_chain_source_1","inputs":{},"steps":[{"values":{"schema":{"k":{"type":"number","nullable":false}},"rows":[{"k":1},{"k":2}]},"as":"r"}],"results":{"aql_chain_source_1":{"from":"r","fields":["k"]}}},{"id":"main","inputs":{"aql_chain_input_0":{"result":{"stage":"aql_chain_source_0","result":"aql_chain_source_0"}},"aql_chain_input_1":{"result":{"stage":"aql_chain_source_1","result":"aql_chain_source_1"}}},"steps":[{"from":"aql_chain_input_0","join":{"with":"aql_chain_input_1","kind":"inner","on":[{"left":"x","right":"k"}],"max_output_rows":10,"select":{"aql_chain_column_2":"left.x","aql_chain_column_3":"left.y","aql_chain_column_4":"right.k"}},"as":"aql_chain_join_2"},{"from":"aql_chain_join_2","group":{"by":["aql_chain_column_2"],"aggregates":{"n":{"fn":"count"}}}},{"filter":{"gt":[{"field":"n"},{"literal":0}]}},{"sort":[{"field":"aql_chain_column_2","dir":"asc","nulls":"first"}]},{"select":[{"x":"aql_chain_column_2"},"n"],"as":"aql_chain_result_3"}],"results":{"rows":{"from":"aql_chain_result_3","fields":["x","n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
   ).unwrap()
+}
+
+///|
+// The adopted script binder installs each original named Values input once in
+// the current Unit. Keep both typed seeds and the original JOIN/GROUP/HAVING/
+// ORDER/SELECT bodies; only Stage references and private fresh names differ.
+fn current_single_join_group_expected() -> @program.Program {
+  @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"aql_script_seed_2"},{"values":{"schema":{"k":{"type":"number","nullable":false}},"rows":[{"k":1},{"k":2}]},"as":"aql_script_seed_3"},{"from":"aql_script_seed_2","join":{"with":"aql_script_seed_3","kind":"inner","on":[{"left":"x","right":"k"}],"max_output_rows":10,"select":{"aql_chain_column_2":"left.x","aql_chain_column_3":"left.y","aql_chain_column_4":"right.k"}},"as":"aql_chain_join_4"},{"from":"aql_chain_join_4","group":{"by":["aql_chain_column_2"],"aggregates":{"n":{"fn":"count"}}}},{"filter":{"gt":[{"field":"n"},{"literal":0}]}},{"sort":[{"field":"aql_chain_column_2","dir":"asc","nulls":"first"}]},{"select":[{"x":"aql_chain_column_2"},"n"],"as":"aql_chain_result_5"}],"results":{"rows":{"from":"aql_chain_result_5","fields":["x","n"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+}
+
+///|
+test "single JOIN GROUP agrees with an independent complete Program" {
+  // This fixture uses existing join/group/filter/sort/select contracts. The
+  // authored ceiling is 10; physical names only bind the scoped input values.
+  let staged = staged_single_join_group_expected()
+  match @check.check_parsed(staged, check_environment(), None, check_limits()) {
+    Checked(_) => ()
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    _ => fail("the original staged JOIN GROUP oracle must remain closed")
+  }
+  let expected = current_single_join_group_expected()
   match
     @check.check_parsed(expected, check_environment(), None, check_limits()) {
     Checked(_) => ()

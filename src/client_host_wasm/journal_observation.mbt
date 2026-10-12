@@ -38,6 +38,7 @@ priv struct StoredJournalObservation {
   mut invoked : Bool
   mut closing : Bool
   mut outcome : Result[@local_run.LocalSavedSubmissionObservation, Int]?
+  mut admission_produced : Bool
 }
 
 ///|
@@ -230,6 +231,7 @@ pub fn reserve_journal_observation(
     invoked: false,
     closing: false,
     outcome: None,
+    admission_produced: false,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -350,6 +352,47 @@ pub fn journal_observation_revision(
       }
     Err(_) => -1L
   }
+}
+
+///|
+/// Produce the saved Owner admission under the original current/snapshot
+/// frame. Cached output still requires current validation on every read.
+#export_name("actql_journal_admission_length")
+pub fn journal_admission_length(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.journal_observations.get(handle) is Some(child) &&
+    !child.closing &&
+    child.outcome is Some(Ok(observed)) &&
+    value.materials.get(child.material) is Some(material) &&
+    material.submission is Some({ rows: Some(rows), .. }) &&
+    value.runs.get(material.run) is Some(record) &&
+    record.outcome is Some(Ok(plan)) &&
+    value.preparations.get(record.preparation)
+    is Some({ submitted: Some(original), .. }) else {
+    return -2
+  }
+  match journal_current(value, child, plan) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
+  if !child.admission_produced {
+    let wire = match
+      @local_run.local_saved_submission_admission_wire(observed, rows, plan, original) {
+      Ok(wire) => wire
+      Err(UnrepresentableRevision) => return -45
+      Err(_) => return -31
+    }
+    let code = status(@buffers.supply_buffer_output(value.pool, child.slot, @utf8.encode(wire)))
+    if code != 0 {
+      return code
+    }
+    child.admission_produced = true
+  }
+  match journal_current(value, child, plan) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
+  @buffers.buffer_length(value.pool, child.slot).unwrap_or(-33)
 }
 
 ///|

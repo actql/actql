@@ -248,6 +248,16 @@ pub fn check_run_publication_program_binding(
 }
 
 ///|
+/// The original namespace in an admitted definition, never a current config
+/// default or a grant to attach, publish, read or dispatch that Run.
+pub fn run_definition_namespace(definition : PublicationContract) -> String? {
+  if definition.name != "run_definition" {
+    return None
+  }
+  contract_string(definition, "scope_id")
+}
+
+///|
 /// The original admitted Run lifetime, not a renewal or a current-time check.
 pub fn run_definition_lifetime(
   definition : PublicationContract,

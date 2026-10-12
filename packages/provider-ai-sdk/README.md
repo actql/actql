@@ -117,5 +117,20 @@ all remain part of C's full funding before public adoption.
 The package lock freezes the actual dependency closure. Preparation and
 transport tests use the real pinned SDK with synthetic responses and explicitly
 installed fixture fetches, with no ambient or live network.
+
+The private native `prepareTypeSafeDecisionRequest` reuses that same interceptor
+and fixed transport with the selected TypeSafe v4 `doDecide` operation. It sends
+all mapped questions against one state without generation settings, high-level
+retries, default-provider mutation or SDK workflow restoration. Its input must
+come from the original bounded Common Decision projection and funded caller;
+the private builder itself does not admit a Task or validate native answers.
+Exact SDK key mapping, Common native raw decode/completeness, registered physical
+profile/precision, original Store receipt and installed caller remain unconnected.
+SDK model fallbacks and reported rounding are not provider observations or
+profile authority. Prototype-key SDK response refusal keeps original raw bytes
+and no repair call; it does not prohibit legal Common IDs. This preparation adds
+no public/native capability or numerical profile. The generation SDK closure and
+the native SDK's separately pinned dependency closure remain distinguishable.
+
 Formal packaging, external consumer, public Local/HTTPS, real model acceptance,
 four parallel calls, Decision and Cloud are unfinished M0–M5 work.

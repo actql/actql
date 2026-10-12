@@ -93,6 +93,7 @@ function fixture(t) {
     join(checkout, '.github/workflows'), parent, bin]) mkdirSync(path, {recursive: true});
   for (const name of ['test-native-core.mjs', 'native-completed-restoration-fixture.mjs', 'owned-scratch.mjs',
     'native-client-checkpoint-fixture.mjs', 'native-private-host-fixture.mjs',
+    'native-runtime-reader-custody-fixture.mjs',
     'local-checks.mjs', 'local-checks-guard.mjs', 'local-checks-supervisor.mjs',
     'local-checks-policy.mjs', 'test-execution.mjs', 'packed-query-evidence.mjs']) {
     copyFileSync(new URL(name, import.meta.url), join(checkout, 'scripts', name));
@@ -100,6 +101,8 @@ function fixture(t) {
   mkdirSync(join(checkout, 'scripts/fixtures'));
   copyFileSync(new URL('fixtures/native-unclosed-sqlite.c', import.meta.url),
     join(checkout, 'scripts/fixtures/native-unclosed-sqlite.c'));
+  copyFileSync(new URL('fixtures/native-runtime-reader-custody.c', import.meta.url),
+    join(checkout, 'scripts/fixtures/native-runtime-reader-custody.c'));
   copyFileSync(new URL('fixtures/native-effect-resolution-fixture.mjs', import.meta.url),
     join(checkout, 'scripts/fixtures/native-effect-resolution-fixture.mjs'));
   symlinkSync(new URL('../node_modules', import.meta.url), join(checkout, 'node_modules'), 'dir');
@@ -118,6 +121,10 @@ assert.deepEqual(process.argv.slice(2, 5), ['test', '--target', 'native']);
 if (['src/platform_native/client_host/run_checkpoint_wbtest.mbt',
      'src/platform_native/client_host/run_effect_receipt_wbtest.mbt'].some(file => process.argv.includes(file)) &&
     process.argv.includes('--index')) {
+  assert.equal(process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT, undefined,
+    'checkpoint producers must not receive Reader injection');
+  assert.equal(process.env.DYLD_INSERT_LIBRARIES, undefined);
+  assert.equal(process.env.LD_PRELOAD, undefined);
   const fixed = digit => 'sha256:' + digit.repeat(64);
   console.log('ACTQL_CLIENT_CHECKPOINT ' + JSON.stringify({
     checkpoint_id: 'mock-checkpoint', checkpoint_cid: fixed('1'),
@@ -130,6 +137,15 @@ if (['src/platform_native/client_host/run_checkpoint_wbtest.mbt',
 }
 const root = process.env.ACTQL_TEST_NATIVE_SQLITE_ROOT;
 console.log('CHILD_ROOT=' + root);
+if (process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT) {
+  assert.equal(process.env.ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT, root);
+  for (const name of ['runtime-constructor-pending', 'runtime-constructor-acked']) {
+    assert.equal(statSync(join(root, name)).mode & 0o777, 0o700);
+  }
+  const injected = process.platform === 'darwin'
+    ? process.env.DYLD_INSERT_LIBRARIES : process.env.LD_PRELOAD;
+  assert.equal(existsSync(injected), true);
+}
 if (process.argv.some(arg => arg.includes('platform_native/filesystem'))) {
   assert.equal(process.env.ACTQL_TEST_NATIVE_PRIVATE_ROOT, join(root, 'private-host-root'));
   assert.equal(process.env.ACTQL_TEST_NATIVE_BROAD_ROOT, join(root, 'broad-host-root'));
