@@ -59,8 +59,10 @@ fn local_run_policy_common_originals(
   NativeClientRunJournalIssue,
 ] {
   try {
-    let cursor = @host.client_local_run_policy_metadata_cursor(run)
-      .unwrap_or_else(() => raise LocalReadPolicyStop(InvalidOriginal))
+    let cursor = @host.client_local_run_policy_metadata_cursor(run).unwrap_or_else(() => {
+        raise LocalReadPolicyStop(InvalidOriginal)
+      },
+    )
     let root = read_policy_decoded(
       @decode.closed_object(cursor, ["native", "version"]),
     )
