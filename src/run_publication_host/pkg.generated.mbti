@@ -476,6 +476,12 @@ pub fn client_local_authority_scope_body(@execution_authorization.AdmittedAccoun
 
 pub fn client_local_completion_free_catalog_cid() -> String
 
+pub fn client_local_configuration_selection_body(Array[ClientLocalOriginalConfigurationFile], ClientLocalOriginalManagedRoot?) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_original_record_body(Array[(String, String)]) -> Result[Bytes, ClientLocalOriginalCodecIssue]
+
+pub fn client_local_original_record_fields(Bytes, Array[String]) -> Result[Array[String], ClientLocalOriginalCodecIssue]
+
 pub fn client_local_product_assets() -> ClientLocalProductAssets
 
 pub fn client_local_product_bootstrap_originals(String, String) -> Result[ClientLocalProductBootstrapOriginals, ClientLocalProductConfigurationIssue]
@@ -2026,6 +2032,26 @@ pub(all) enum ClientLocalNormalizationIssue {
   ForeignCatalog
   SubstitutedJournal
   Evidence(@run_publication.RunEvidenceValueIssue)
+}
+
+pub(all) enum ClientLocalOriginalCodecIssue {
+  Encoding
+  InvalidOriginal
+  ConfigurationLimit
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientLocalOriginalConfigurationFile {
+  content_cid : String
+  device : UInt64
+  inode : UInt64
+  name : String
+  size : Int64
+}
+
+pub(all) struct ClientLocalOriginalManagedRoot {
+  device : UInt64
+  inode : UInt64
+  path : String
 }
 
 pub(all) struct ClientLocalProductAssets {

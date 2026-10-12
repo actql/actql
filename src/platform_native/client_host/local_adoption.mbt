@@ -52,18 +52,7 @@ pub(all) enum NativeLocalAdoptionIssue {
 fn local_adoption_record(
   fields : Array[(String, String)],
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
-  let writer = @encode.writer(8192, 64, 4) catch { _ => return Err(Encoding) }
-  try {
-    @encode.begin_object(writer)
-    for field in fields {
-      @encode.key(writer, field.0)
-      @encode.string_value(writer, field.1)
-    }
-    @encode.end_object(writer)
-    Ok(@utf8.encode(@encode.finish(writer)))
-  } catch {
-    _ => Err(Encoding)
-  }
+  @host.client_local_original_record_body(fields).map_err(_ => Encoding)
 }
 
 ///|
@@ -71,46 +60,12 @@ fn local_adoption_fields(
   body : Bytes,
   keys : Array[String],
 ) -> Result[Array[String], NativeLocalAdoptionIssue] {
-  let value = match
-    @source.parse_json_bytes_preserving(body, {
-      max_input_bytes: 8192,
-      max_nodes: 64,
-      max_depth: 4,
-    }) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
-  let cursor = match
-    @decode.admit(value, {
-      max_nodes: 64,
-      max_depth: 4,
-      max_string_bytes: 4096,
-      max_total_string_bytes: 8192,
-    }) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
-  let object = match @decode.closed_object(cursor, keys) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
-  let fields : Array[String] = []
-  for key in keys {
-    guard @decode.lookup(object, key) is Some(value) &&
-      @decode.text(value) is Ok(text) else {
-      return Err(CustodyLost)
+  @host.client_local_original_record_fields(body, keys).map_err(issue => {
+    match issue {
+      @host.Encoding => Encoding
+      @host.InvalidOriginal | @host.ConfigurationLimit => CustodyLost
     }
-    fields.push(text)
-  }
-  let encoded = match
-    local_adoption_record(keys.mapi((i, key) => (key, fields[i]))) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if encoded != body {
-    return Err(CustodyLost)
-  }
-  Ok(fields)
+  })
 }
 
 ///|

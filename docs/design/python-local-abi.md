@@ -1798,3 +1798,13 @@ identity against an adversary controlling that root. The Common current port
 still requires the actual original adoption row, saved settings/intent and
 Account bytes and independently checks current authority. File/query failure
 does not prove absence or authorize resending an unknown operation.
+
+The Common original-material codec delegates the existing Native ordered
+custody record encoder/closed decoder and configuration-selection encoder.
+It preserves the original domains, field order, raw UTF-8, unsigned device/inode
+values and 8KiB/64-node record and 8KiB/128-node selection limits. Native keeps
+selection, current checks, locking, physical persistence and digest issuance;
+its original wrappers retain their existing failure classification. Neither
+encoded metadata nor a matching body/CID is a Host adoption or permission.
+Python supplies physical observations to these codecs rather than defining
+another scope/preimage or repairing saved originals with current defaults.
