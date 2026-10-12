@@ -128,21 +128,36 @@ fn script_call_sources(call : @query.SgaCall) -> Array[Array[@query.NamePart]] {
   paths
 }
 
+////|
+fn script_source_is_shadowed(
+  path : Array[@query.NamePart],
+  bound : Array[@query.NamePart],
+) -> Bool {
+  path.length() == 1 && bound.any(name => @query.same_relation_name(path[0], name))
+}
+
 ///|
 fn unshared_script_sources(
   script : @query.QueryScript,
   inputs : Array[Input],
 ) -> Array[String] {
   let counts : Map[String, Int] = Map([])
-  let pending = [@query.script_query(script)]
-  while pending.pop() is Some(query) {
+  let pending = [(@query.script_query(script), [])]
+  while pending.pop() is Some((query, inherited)) {
+    // A binding sees earlier bindings; its own name enters scope only afterwards.
+    let bound = inherited.copy()
+    for index in 0..<@query.query_binding_count(query) {
+      let binding = @query.query_binding_at(query, index).unwrap()
+      pending.push((binding.query, bound.copy()))
+      bound.push(binding.name)
+    }
     match @query.producer_primary(query) {
       Some(GraphValue(mapping)) =>
         for
           path in mapping.nodes.map(node => node.producer) +
           mapping.edges.map(edge => edge.producer) {
           for input in inputs {
-            if input_relation_matches(path, input) {
+            if !script_source_is_shadowed(path, bound) && input_relation_matches(path, input) {
               counts[input.name] = counts.get(input.name).unwrap_or(0) + 1
             }
           }
@@ -153,11 +168,8 @@ fn unshared_script_sources(
         }
       None => ()
     }
-    for index in 0..<@query.query_binding_count(query) {
-      pending.push(@query.query_binding_at(query, index).unwrap().query)
-    }
     for index in 0..<@query.set_part_count(query) {
-      pending.push(@query.set_part_at(query, index).unwrap().right)
+      pending.push((@query.set_part_at(query, index).unwrap().right, bound.copy()))
     }
     let paths = [@query.relation(query)]
     for index in 0..<@query.join_part_count(query) {
@@ -175,7 +187,7 @@ fn unshared_script_sources(
     }
     for path in paths {
       for input in inputs {
-        if input_relation_matches(path, input) {
+        if !script_source_is_shadowed(path, bound) && input_relation_matches(path, input) {
           counts[input.name] = counts.get(input.name).unwrap_or(0) + 1
         }
       }
