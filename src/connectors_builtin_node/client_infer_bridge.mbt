@@ -775,6 +775,22 @@ pub fn client_program_finish_infer_original_read_scope(
 }
 
 ///|
+/// Settle the same stopped or unused read after its own physical cleanup.
+/// Physical read cleanup is not the final acknowledgement for all Run children.
+#export_name("clientProgramSettleInferOriginalReadPreparation")
+pub fn client_program_settle_infer_original_read_preparation(
+  read : @publication_host.ClientModelReadPreparation,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  physical_cleanup_complete : Bool,
+) -> Result[Unit, @publication_host.ClientModelReadPreparationIssue] {
+  @publication_host.settle_client_model_read_checked(
+    read, compiled, definition, graph, physical_cleanup_complete,
+  )
+}
+
+///|
 /// Claim the original funded read once before Node IO/control allocation.
 #export_name("clientProgramClaimInferOriginalPreparation")
 pub fn client_program_claim_infer_original_preparation(
