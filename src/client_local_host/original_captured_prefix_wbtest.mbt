@@ -25,7 +25,7 @@ fn original_captured_prefix_fixture(
     @publication.PublicationContract,
     @publication_host.ClientInferPlanGraph,
   )? = None,
-) -> OriginalCapturedPrefixFixture {
+) -> OriginalCapturedPrefixFixture raise {
   let (prepared, compiled, definition, plan) = match checked {
     Some(value) => value
     None => original_prefix_execution_fixture(source=true)
@@ -166,7 +166,7 @@ fn original_captured_prefix_start(
 ///|
 fn original_captured_prefix_close(
   value : OriginalCapturedPrefixFixture,
-) -> Unit {
+) -> Unit raise {
   @row_source_host.close_accounted_row_run(value.run).unwrap()
   assert_true(
     @publication_host.finish_client_model_read_scope(
@@ -331,8 +331,9 @@ test "original captured prefix rejects foreign capture wrong coordinates and des
 test "original Row prefix guard rechecks custody after the verifier synchronously starts cleanup" {
   let value = original_captured_prefix_fixture()
   let before = @resources.ledger_usage(value.ledger)
+  let cleanup_result : Ref[Bool?] = Ref(None)
   value.verify_hook.val = Some(fn() {
-    assert_false(
+    cleanup_result.val = Some(
       @publication_host.finish_client_model_read_scope(
         value.scope,
         value.compiled,
@@ -351,6 +352,7 @@ test "original Row prefix guard rechecks custody after the verifier synchronousl
     )
     is None,
   )
+  assert_eq(cleanup_result.val, Some(false))
   assert_eq(@resources.ledger_usage(value.ledger), before)
   assert_true(@resources.capacity_reservation_open(value.bootstrap))
   assert_true(
