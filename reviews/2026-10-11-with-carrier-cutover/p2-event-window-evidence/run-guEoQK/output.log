@@ -1,0 +1,6 @@
+[actql/actql] test query_program/event_window_source_test.mbt:143 ("P2 window source retains common invalid body duration and Carrier refusals") failed: src/query_program/event_window_source_test.mbt:184:5-184:59@actql/actql FAILED: `WrongCarrier(RelationKind) != Window(WrongCarrier)`
+diff:
+-WrongCarrier(RelationKind) +Window(WrongCarrier)
+Total tests: 19, passed: 18, failed: 1.
+["moon","test","--target","js","src/query_program/event_window_source_test.mbt","src/query_syntax/event_window_role_test.mbt","src/query_program/with_vectors_events_test.mbt","src/query_program/vector_pool_source_test.mbt","src/run_publication_host/client_values_run_materials_wbtest.mbt"]: process failed (2); counts={"tests":19,"passed":18,"failed":1,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-93Vgrl
