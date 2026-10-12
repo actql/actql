@@ -43,7 +43,9 @@ test "product originals retain exact values and original file generations on reo
   let restored_selection = restore_native_local_product_configuration(
     path, "product-reopen", crypto,
   ).unwrap()
-  assert_eq(restored_selection.originals, originals)
+  // The existing String comparison orders by length before code units;
+  // retained selection order is independent of caller insertion order.
+  assert_eq(restored_selection.originals, [originals[1], originals[0]])
   assert_eq(root.inspect_generation("config.json").unwrap(), original)
   assert_true(restored_selection.close())
 }
