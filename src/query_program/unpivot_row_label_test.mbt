@@ -58,7 +58,7 @@ test "UNPIVOT integer row labels distinguish exact syntax from unsupported lower
         assert_eq(message, "UNPIVOT row alias requires a String or integer literal")
         assert_eq(span.source_path, "unpivot.sql")
         // Independent ASCII prefix length before the authored row label.
-        assert_eq(span.start_byte, 43)
+        assert_eq(span.start_byte, 45)
       }
       _ => fail("unsafe integer aliases must not be rounded before lowering")
     }

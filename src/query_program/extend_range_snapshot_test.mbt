@@ -102,13 +102,20 @@ test "existing JOIN range refusals retain exact current invalid-input causes" {
     "FROM t |> AS l |> SET x = x + 10 |> AS fresh |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT l.x AS original",
     "WITH chosen AS (FROM t |> AS l |> SET x = x + 10) FROM chosen |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT l.x AS original",
   ] {
-    assert_true(
-      compile(
-        @query.parse_query(text, syntax_limits()).unwrap(),
-        join_order_context(),
-        construction_limits(),
-      ) is Err(Expression({ issue: UnknownReference, origin: Some(_), })),
-      msg=text,
-    )
+    match compile(
+      @query.parse_query(text, syntax_limits()).unwrap(),
+      join_order_context(),
+      construction_limits(),
+    ) {
+      Err(Expression({ issue: UnknownReference, origin: Some(_), })) => ()
+      Err(Expression(issue)) => fail("Expression " + @debug.to_string(issue.issue))
+      Err(UnsupportedJoin) => fail("UnsupportedJoin")
+      Err(AmbiguousColumn) => fail("AmbiguousColumn")
+      Err(UnknownColumn) => fail("UnknownColumn")
+      Err(UnknownRelation) => fail("UnknownRelation")
+      Err(BindingPreparation(_)) => fail("BindingPreparation")
+      Err(_) => fail("other issue")
+      Ok(program) => fail("unexpected success: " + semantic(program))
+    }
   }
 }
