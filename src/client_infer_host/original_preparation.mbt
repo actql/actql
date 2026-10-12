@@ -67,14 +67,13 @@ pub fn start_original_model_preparation(
     @publication_host.client_infer_occurrence_matches_compiled_run(occurrence, compiled) else {
     return Err(OriginalCapacity(@publication_host.ForeignInput))
   }
-  // The Node caller claimed once before IO/closures. Enter that same opaque
-  // ticket once before input/Execution allocation; aliases cannot start again.
-  // A refused input start leaves responsibility with the original read owner.
-  match @publication_host.enter_client_model_read_consumer(
-    consumer, compiled, definition, plan, read_retained_bytes, read_execution_bytes,
+  match enter_original_model_preparation(
+    occurrence, compiled, definition, plan, consumer,
+    read_retained_bytes, read_execution_bytes,
+    model_retained_bytes, model_execution_bytes,
   ) {
     Ok(_) => ()
-    Err(issue) => return Err(OriginalCapacity(@publication_host.Read(issue)))
+    Err(issue) => return Err(issue)
   }
   let active = match start(
     prepared, step, registry, values, provider,
@@ -84,14 +83,58 @@ pub fn start_original_model_preparation(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  // All original bindings were checked before start. Do not introduce a
-  // fallible post-start bind that could drop the newly owned input on refusal.
+  retain_original_model_preparation(
+    active, compiled, definition, consumer, model_retained_bytes, model_execution_bytes,
+  )
+  Ok(active)
+}
+
+///|
+// Shared only by checked input branches in this existing Owner. Serialization
+// suppliers validate their nominal producer/generation before calling; no input
+// allocation or caller callback belongs in this authentication/enter seam.
+fn enter_original_model_preparation(
+  occurrence : @publication_host.ClientInferOccurrence,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  consumer : @publication_host.ClientModelReadConsumer,
+  read_retained_bytes : Int64,
+  read_execution_bytes : Int64,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+) -> Result[Unit, Issue] {
+  if read_retained_bytes <= 0L || read_execution_bytes < 0L ||
+    model_retained_bytes <= 0L || model_execution_bytes < 0L {
+    return Err(Model(@model.InvalidLimits))
+  }
+  if !@publication_host.client_infer_occurrence_matches_compiled_run(occurrence, compiled) ||
+    !@publication_host.client_infer_occurrence_matches_plan(occurrence, plan) {
+    return Err(OriginalCapacity(@publication_host.ForeignInput))
+  }
+  // The same one-shot ticket enters before the first input/Execution allocation.
+  // A refused child start keeps original cleanup custody; there is no re-claim.
+  @publication_host.enter_client_model_read_consumer(
+    consumer, compiled, definition, plan, read_retained_bytes, read_execution_bytes,
+  ).map_err(issue => OriginalCapacity(@publication_host.Read(issue)))
+}
+
+///|
+// Nonfallible retention after that same checked branch starts its input child.
+// The Model startup seal still comes from actual Identity/current rows later.
+fn retain_original_model_preparation(
+  active : Execution,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  consumer : @publication_host.ClientModelReadConsumer,
+  model_retained_bytes : Int64,
+  model_execution_bytes : Int64,
+) -> Unit {
   active.run_binding = Some({ compiled, definition, })
   active.original_preparation = Some({
     read: Claimed(consumer), retained_bytes: model_retained_bytes,
     execution_bytes: model_execution_bytes, startup: None,
   })
-  Ok(active)
 }
 
 ///|
