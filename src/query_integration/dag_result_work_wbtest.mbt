@@ -55,13 +55,9 @@ test "original DAG spends obligation inventory without relying on expansion" {
       is Err(WorkLimit),
     )
   }
-  let graph = checkpoint_graph_issue(@strategy.prepare_checked_dag(
-    program,
-    owners,
-    1,
-    8,
-    source_free_root=true,
-  ))
+  let graph = checkpoint_graph_issue(
+    @strategy.prepare_checked_dag(program, owners, 1, 8, source_free_root=true),
+  )
   assert_eq(@strategy.graph_task_count(graph), 1)
   assert_eq(@strategy.graph_task_operation_count(graph, 0), Some(1))
   assert_eq(@strategy.graph_task_selected_step(graph, 0), None)
