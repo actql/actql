@@ -1,6 +1,6 @@
 ///|
 // Independently authored literal, not product output.
-let finite_read_selection_fixture = "{\"native\":{\"result_read\":{\"connection\":\"local\",\"data_policy_cids\":[\"sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563\"],\"enabled\":true,\"formats\":[\"csv\",\"json\",\"jsonl\"],\"max_bytes\":65536,\"max_uses\":1,\"principal\":\"local-cli\",\"purpose\":\"cli-read\",\"result_names\":[\"answer\"],\"run_policy_profile_cid\":\"sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243\",\"sink\":\"stdout\"}},\"version\":\"actql-config/0.1\"}"
+let finite_read_selection_fixture = "{\"native\":{\"result_read\":{\"connection\":\"local\",\"data_policy_cids\":[\"sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563\"],\"enabled\":true,\"formats\":[\"csv\",\"json\",\"jsonl\"],\"max_bytes\":65536,\"max_uses\":1,\"principal\":\"local-cli\",\"purpose\":\"cli-read\",\"result_names\":[\"answer\"],\"retention_file\":\"retention.json\",\"run_file\":\"run.json\",\"run_policy_profile_cid\":\"sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243\",\"sink\":\"stdout\",\"store_file\":\"store.json\"}},\"version\":\"actql-config/0.1\"}"
 
 ///|
 test "explicit finite install adds profile within existing selected limits" {
@@ -27,6 +27,14 @@ test "explicit finite install adds profile within existing selected limits" {
     "sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243",
   )
   assert_true(@canonical.object_field(fields, "expires_at") is None)
+  for
+    (role, original) in [
+      ("run_file", "run.json"),
+      ("retention_file", "retention.json"),
+      ("store_file", "store.json"),
+    ] {
+    assert_eq(product_test_text(product_test_field(fields, [role])), original)
+  }
   for
     (key, literal) in [
       ("principal", "local-cli"),

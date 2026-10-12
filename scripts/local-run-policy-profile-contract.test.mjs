@@ -13,10 +13,12 @@ const vector = JSON.parse(readFileSync(new URL(
 function valid(shape, value) {
   for (const keyword of Object.keys(shape)) assert.ok([
     '$schema', '$id', 'type', 'additionalProperties', 'required', 'properties', 'const', 'pattern', 'maxLength',
-    'minLength', 'enum', 'items', 'uniqueItems', 'minItems', 'maxItems', 'minimum', 'maximum', 'oneOf',
+    'minLength', 'not', 'anyOf', 'enum', 'items', 'uniqueItems', 'minItems', 'maxItems', 'minimum', 'maximum', 'oneOf',
   ].includes(keyword), keyword);
   if (shape.required && (value === null || typeof value !== 'object'
       || shape.required.some(key => !Object.hasOwn(value, key)))) return false;
+  if (shape.not && valid(shape.not, value)) return false;
+  if (shape.anyOf && !shape.anyOf.some(alternative => valid(alternative, value))) return false;
   if (shape.oneOf && shape.oneOf.filter(alternative => valid(alternative, value)).length !== 1) return false;
   if (shape.type === 'object') {
     if (value === null || typeof value !== 'object' || Array.isArray(value)) return false;
@@ -49,12 +51,13 @@ test('finite read mode is explicit and exclusive of the legacy absolute endpoint
   const shape = JSON.parse(readFileSync(new URL('../spec/contracts/actql-native-local-result-read.schema.json', import.meta.url)));
   const vector = JSON.parse(readFileSync(new URL('../reviews/2026-10-12-d-native-local-expiry-1701/finite-read-selection-vector.json', import.meta.url)));
   const body = JSON.parse(vector.body);
-  assert.equal(vector.cid, 'sha256:b96c3fb837026fc7f4e8442ffc2bc4551ecd49a935e0376b7c0b3884684a7706');
+  assert.equal(vector.cid, 'sha256:a9f3763dd497b71ef891cb741842cc5e608cfe522474b841b083550d962d385a');
   assert.equal('sha256:' + createHash('sha256').update(vector.body).digest('hex'), vector.cid);
   assert.equal(valid(shape, body), true);
   const read = body.native.result_read;
   const check = value => valid(shape, {...body, native: {result_read: value}});
-  const {run_policy_profile_cid: profile, ...withoutExpiry} = read;
+  const {run_policy_profile_cid: profile, run_file: run, retention_file: retention, store_file: store, ...withoutExpiry} = read;
+  assert.deepEqual([run, retention, store], ['run.json', 'retention.json', 'store.json']);
   assert.equal(profile, 'sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243');
   assert.equal(check(withoutExpiry), false);
   assert.equal(check({...read, expires_at: '2026-10-13T00:00:00.000Z'}), false);
@@ -64,6 +67,15 @@ test('finite read mode is explicit and exclusive of the legacy absolute endpoint
   assert.equal(check({...read, run_policy_profile_cid: null}), false);
   assert.equal(check({...read, sink: 'network'}), false);
   assert.equal(check({...read, extra: true}), false);
+  for (const role of ['run_file', 'retention_file', 'store_file']) {
+    const missing = {...read}; delete missing[role];
+    assert.equal(check(missing), false);
+    assert.equal(check({...withoutExpiry, expires_at: '2026-10-13T00:00:00.000Z', [role]: read[role]}), false);
+    for (const value of ['', '.', '..', 'a/b', 'a\\b', '\u0000', null, 'a'.repeat(129)])
+      assert.equal(check({...read, [role]: value}), false);
+  }
+  assert.equal(check({...read, run_file: 'custom-run.json', retention_file: 'custom-retention.json', store_file: 'custom-store.json'}), true);
+
 });
 
 test('profile schema refuses extended lifetimes missing bindings and extra fields', () => {
