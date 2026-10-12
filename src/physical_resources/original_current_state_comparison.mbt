@@ -11,6 +11,24 @@ struct OriginalCurrentStateComparison[T] {
 }
 
 ///|
+// The exact live cursor/park pairing, not another Owner or authority to
+// restore/send. This read-only guard spends no work and changes no borrow.
+pub fn[T] original_current_state_comparison_current(
+  value : OriginalCurrentStateComparison[T],
+  park : OriginalResourcePark[T],
+) -> OriginalCurrentStateComparison[T]? {
+  guard value.park is Some(original) &&
+    physical_equal(original, park) &&
+    value.document is Some(document) &&
+    document.source is Some(_) &&
+    park.origin is Some(origin) &&
+    original_resource_park_current(park, origin) is Some(_) else {
+    return None
+  }
+  Some(value)
+}
+
+///|
 pub fn[T] start_original_current_state_comparison(
   park : OriginalResourcePark[T],
   origin : T,
