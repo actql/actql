@@ -67,55 +67,25 @@ pub fn NativeClientSourceWork::install_publication_service(
   @native_publication.NativeRunPublicationService,
   NativeClientSourcePublicationIssue,
 ] {
-  match self.require_current() {
-    Ok(_) => ()
-    Err(issue) => return Err(Work(issue))
-  }
-  let observation = match
-    install_native_client_cancellation_publication(
-      store, namespace_id, max_wire_bytes, max_nodes, max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(Work(Journal(issue)))
-  }
-  let binding = observation.binding.unwrap()
-  match
-    self.journal.bind_publication(
-      self.request,
-      binding,
-      self.current_authorization,
-    ) {
-    Ok(_) => ()
-    Err(issue) => return Err(Work(Journal(issue)))
-  }
-  let authority = @native_publication.install_native_run_publication_authority(fact => {
-    if fact.namespace_id != namespace_id ||
-      fact.authority_scope_cid !=
-      @host.client_request_authority_scope_cid(self.request) ||
-      fact.run_definition_cid !=
-      @publication.publication_contract_identity(self.definition) ||
-      self.require_current() is Err(_) {
-      false
-    } else {
-      authorize(fact) && self.require_current() is Ok(_)
-    }
-  })
-  @native_publication.install_native_run_publication_service(
+  install_native_client_work_publication_service(
+    self.journal,
+    self.request,
+    self.definition,
+    self.current_authorization,
+    () => self.require_current(),
     store,
-    authority,
+    namespace_id,
+    authorize,
     max_wire_bytes,
     max_nodes,
     max_depth,
-    commit_guard=commit => {
-      self.journal.fence_publication(
-        self.request,
-        self.definition,
-        binding,
-        self.current_authorization,
-        commit,
-      )
-    },
-  ).map_err(issue => Service(issue))
+  ).map_err(issue => {
+    match issue {
+      Work(issue) => NativeClientSourcePublicationIssue::Work(issue)
+      Journal(issue) => NativeClientSourcePublicationIssue::Work(Journal(issue))
+      Service(issue) => NativeClientSourcePublicationIssue::Service(issue)
+    }
+  })
 }
 
 ///|
