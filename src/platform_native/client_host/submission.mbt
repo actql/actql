@@ -175,63 +175,38 @@ fn initialize_native_client_submitted_intents(
 fn NativeClientRunJournal::submitted_intent_custody(
   self : NativeClientRunJournal,
 ) -> Result[(Int, Int64, Int64), NativeClientRunJournalIssue] {
-  match self.database.scan_after("client_submitted_intent_custody", "") {
-    Ok(row) if row.key == "issued" => ()
-    _ => return Err(CustodyLost)
-  }
-  match self.database.scan_after("client_submitted_intent_custody", "issued") {
-    Err(@sqlite.NotFound) => ()
-    _ => return Err(CustodyLost)
-  }
-  let custody = match
-    self.database.read("client_submitted_intent_custody", "issued") {
-    Ok(value) => value
-    _ => return Err(CustodyLost)
-  }
-  let count = match
-    @host.client_journal_issuance_count(custody.body, self.max_records) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
-  let mut cursor = ""
-  let mut observed = 0
-  let mut retained_bytes = 0L
-  while true {
-    let row = match
-      self.database.scan_after("client_submitted_intents", cursor) {
-      Ok(value) => value
-      Err(@sqlite.NotFound) => break
-      Err(issue) => return Err(Physical(issue))
-    }
-    observed = observed + 1
-    if observed > count {
-      return Err(CustodyLost)
-    }
-    let record = match
-      read_submitted_intent({ body: row.body, revision: row.revision, }) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if record.reference.request_id != row.key {
-      return Err(CustodyLost)
-    }
-    match self.validate_submitted_run_admission(record) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    retained_bytes = retained_bytes +
-      @utf8.encode(@host.client_submitted_intent_wire(record.intent))
-      .length()
-      .to_int64()
-    if retained_bytes > 67108864L {
-      return Err(CustodyLost)
-    }
-    cursor = row.key
-  }
-  if observed != count {
-    return Err(CustodyLost)
-  }
-  Ok((count, retained_bytes, custody.revision))
+  @host.inspect_client_submitted_journal_inventory(
+    self.max_records,
+    (table_name, cursor) => {
+      client_journal_scan(self.database, table_name, cursor)
+    },
+    (table_name, key) => client_journal_read(self.database, table_name, key),
+    row => {
+      let original = match @host.decode_client_submitted_journal_row(row.body) {
+        Ok(value) => value
+        Err(_) => return Err(CustodyLost)
+      }
+      let record : NativeClientSubmittedIntentRecord = {
+        reference: native_submission_reference_record(original.reference),
+        intent: original.intent,
+        run_admission: original.run_admission.map(value => {
+          request: value.0,
+          run_definition_cid: value.1,
+          revision: value.2,
+        }),
+        revision: row.revision,
+      }
+      if record.reference.request_id != row.key {
+        return Err(CustodyLost)
+      }
+      match self.validate_submitted_run_admission(record) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      Ok(original)
+    },
+    CustodyLost,
+  )
 }
 
 ///|

@@ -198,159 +198,63 @@ fn initialize_native_client_run_journal(
 }
 
 ///|
+fn client_journal_scan(
+  database : @sqlite.Database,
+  table_name : String,
+  cursor : String,
+) -> Result[@host.ClientJournalPhysicalRow?, NativeClientRunJournalIssue] {
+  match database.scan_after(table_name, cursor) {
+    Ok(row) =>
+      Ok(Some({ key: row.key, body: row.body, revision: row.revision, }))
+    Err(@sqlite.NotFound) => Ok(None)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
+fn client_journal_read(
+  database : @sqlite.Database,
+  table_name : String,
+  key : String,
+) -> Result[@host.ClientJournalPhysicalRow?, NativeClientRunJournalIssue] {
+  match database.read(table_name, key) {
+    Ok(row) => Ok(Some({ key, body: row.body, revision: row.revision, }))
+    Err(@sqlite.NotFound) => Ok(None)
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 fn run_journal_custody(
   database : @sqlite.Database,
   max_records : Int,
 ) -> Result[(Int, Int64), NativeClientRunJournalIssue] {
-  match database.scan_after("client_run_custody", "") {
-    Ok(row) if row.key == "issued" => ()
-    _ => return Err(CustodyLost)
-  }
-  match database.scan_after("client_run_custody", "issued") {
-    Err(@sqlite.NotFound) => ()
-    _ => return Err(CustodyLost)
-  }
-  let retained = match database.read("client_run_custody", "issued") {
-    Ok(value) => value
-    _ => return Err(CustodyLost)
-  }
-  let count = match
-    @host.client_journal_issuance_count(retained.body, max_records) {
-    Ok(value) => value
-    Err(_) => return Err(CustodyLost)
-  }
-  let mut cursor = ""
-  let mut observed = 0
-  let definitions : Map[String, Bool] = Map([], capacity=max_records)
-  let checkpoint_scopes : Map[String, Bool] = Map([], capacity=max_records)
-  let responses : Map[String, Bool] = Map([], capacity=max_records)
-  let receipts : Map[String, Bool] = Map([], capacity=max_records)
-  while true {
-    let row = match database.scan_after("client_runs", cursor) {
-      Ok(value) => value
-      Err(@sqlite.NotFound) => break
-      Err(issue) => return Err(Physical(issue))
-    }
-    observed = observed + 1
-    if observed > count {
-      return Err(CustodyLost)
-    }
-    let record = match
-      read_run_record({ body: row.body, revision: row.revision, }) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if row.key != @host.client_request_scope_cid(record.request) {
-      return Err(CustodyLost)
-    }
-    match confirm_effect_ledger_custody(database, record) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
-    if record.checkpoint is Some(checkpoint) {
-      checkpoint_scopes[row.key] = true
-      for entry in checkpoint.effect_ledger {
-        let state = @effect.effect_ledger_entry_state_code(entry)
-        if state >= 2 && state <= 4 {
-          guard entry.outcome_receipt_cid is Some(cid) &&
-            !receipts.contains(cid) else {
-            return Err(CustodyLost)
-          }
-          receipts[cid] = true
-        }
-        if @effect.effect_ledger_entry_state_code(entry) != 1 {
-          continue
-        }
-        let cid = @effect.effect_ledger_entry_cid(entry)
-        match database.read("client_effect_response_meta", cid) {
-          Ok(_) => {
-            if responses.contains(cid) {
-              return Err(CustodyLost)
-            }
-            responses[cid] = true
-          }
-          Err(@sqlite.NotFound) => ()
-          Err(issue) => return Err(Physical(issue))
-        }
-      }
-    }
-    let definition = @publication.publication_contract_identity(
-      record.definition,
-    )
-    if definitions.contains(definition) {
-      return Err(CustodyLost)
-    }
-    definitions[definition] = true
-    cursor = row.key
-  }
-  if observed != count {
-    return Err(CustodyLost)
-  }
-  cursor = ""
-  let mut witnesses = 0
-  while true {
-    let row = match database.scan_after("client_effect_custody", cursor) {
-      Ok(value) => value
-      Err(@sqlite.NotFound) => break
-      Err(issue) => return Err(Physical(issue))
-    }
-    witnesses += 1
-    if witnesses > observed || !checkpoint_scopes.contains(row.key) {
-      return Err(CustodyLost)
-    }
-    cursor = row.key
-  }
-  if witnesses != checkpoint_scopes.length() {
-    return Err(CustodyLost)
-  }
-  // No unattached response is adopted, including a pair left behind without
-  // its original dispatch or Run. All expected pairs were authenticated above.
-  for table in ["client_effect_response_meta", "client_effect_response_bytes"] {
-    let mut cursor = ""
-    let mut response_count = 0
-    while true {
-      let row = match database.scan_after(table, cursor) {
+  @host.inspect_client_run_journal_inventory(
+    max_records,
+    (table_name, cursor) => client_journal_scan(database, table_name, cursor),
+    (table_name, key) => client_journal_read(database, table_name, key),
+    row => {
+      let record = match
+        read_run_record({ body: row.body, revision: row.revision, }) {
         Ok(value) => value
-        Err(@sqlite.NotFound) => break
-        Err(issue) => return Err(Physical(issue))
+        Err(issue) => return Err(issue)
       }
-      response_count += 1
-      if response_count > responses.length() ||
-        !responses.contains(row.key) ||
-        row.revision != 0L {
+      if row.key != @host.client_request_scope_cid(record.request) {
         return Err(CustodyLost)
       }
-      cursor = row.key
-    }
-    if response_count != responses.length() {
-      return Err(CustodyLost)
-    }
-  }
-  let mut receipt_cursor = ""
-  let mut receipt_count = 0
-  while true {
-    let row = match
-      database.scan_after("client_effect_row_receipt", receipt_cursor) {
-      Ok(value) => value
-      Err(@sqlite.NotFound) => break
-      Err(issue) => return Err(Physical(issue))
-    }
-    receipt_count += 1
-    if receipt_count > receipts.length() ||
-      !receipts.contains(row.key) ||
-      row.revision != 0L {
-      return Err(CustodyLost)
-    }
-    receipt_cursor = row.key
-  }
-  if receipt_count != receipts.length() {
-    return Err(CustodyLost)
-  }
-  match cancellation_custody(database, max_records) {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
-  }
-  Ok((count, retained.revision))
+      match confirm_effect_ledger_custody(database, record) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+      Ok({
+        request: record.request,
+        definition: record.definition,
+        checkpoint: record.checkpoint.map(value => value.effect_ledger),
+      })
+    },
+    () => cancellation_custody(database, max_records).map(_ => ()),
+    CustodyLost,
+  )
 }
 
 ///|

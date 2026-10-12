@@ -810,7 +810,11 @@ pub fn inspect_client_remote_effect_task_progress(ClientEffectAllowedRun, @run_p
 
 pub fn inspect_client_remote_task_progress(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteTaskProgress, ClientRemoteTaskProgressIssue]
 
+pub fn[E] inspect_client_run_journal_inventory(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], () -> Result[Unit, E], E) -> Result[(Int, Int64), E]
+
 pub fn inspect_client_run_materials_execution_family(String, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, ClientProgramPreparationLimits) -> Result[ClientRunExecutionFamily, ClientValuesRunMaterialsIssue]
+
+pub fn[E] inspect_client_submitted_journal_inventory(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientSubmittedJournalEncoding, E], E) -> Result[(Int, Int64, Int64), E]
 
 pub fn install_client_retained_input_current(() -> @execution_site.ExecutionSite, () -> String, () -> Int64, (ClientRetainedInputProducer, @remote_transfer.RemoteTransferRequest) -> Bool) -> ClientRetainedInputCurrent
 
@@ -1950,6 +1954,12 @@ pub(all) enum ClientJournalEncodingIssue {
   CapacityExceeded
 } derive(Eq, @debug.Debug)
 
+pub(all) struct ClientJournalPhysicalRow {
+  key : String
+  body : Bytes
+  revision : Int64
+}
+
 type ClientLocalNormalization
 
 pub(all) enum ClientLocalNormalizationIssue {
@@ -2470,6 +2480,12 @@ pub(all) struct ClientRunJournalEncoding {
   publication_policy_originals : String?
   effect_material_originals : String?
   checkpoint : String?
+}
+
+pub(all) struct ClientRunJournalInspection {
+  request : ClientRequestIdentity
+  definition : @run_publication.PublicationContract
+  checkpoint : Array[@effect_application.EffectLedgerEntry]?
 }
 
 pub(all) struct ClientRunMaterials {
