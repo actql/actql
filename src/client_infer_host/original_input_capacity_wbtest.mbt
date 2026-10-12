@@ -237,7 +237,7 @@ test "original input capacity rejects reclaimed rows and stopped read without re
     is Err(@publication_host.ForeignInput),
   )
   assert_eq(@resources.ledger_usage(ledger), before)
-  @publication_host.stop_client_model_read(read)
+  @publication_host.stop_client_model_read(read).unwrap()
   assert_false(
     @publication_host.client_model_read_available(
       read, compiled, definition, plan,
@@ -262,7 +262,7 @@ test "original input capacity cannot hand off a stopped read with otherwise live
   let (input, rows, scope) = original_input_capacity_fixture(prepared, plan)
   let (ledger, read) = original_input_capacity_read(compiled, definition, plan)
   let before = @resources.ledger_usage(ledger)
-  @publication_host.stop_client_model_read(read)
+  @publication_host.stop_client_model_read(read).unwrap()
   assert_true(
     @publication_host.handoff_client_model_read_input_capacity(
       read, compiled, definition, plan, scope, rows, 10L, 5L,

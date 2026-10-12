@@ -151,10 +151,19 @@ fn activate_resident_execution(
 }
 
 ///|
-fn abandon_resident_execution(resource : ResidentExecution) -> Unit {
+fn abandon_resident_execution(
+  resource : ResidentExecution,
+) -> Result[Unit, @resources.LedgerIssue] {
   if resource.pending is Some(pending) {
-    @resources.retire_shared_capacity(pending.allocation)
-    @resources.release_shared_capacity(pending.allocation) |> ignore
+    match @resources.retire_shared_capacity(pending.allocation) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
+    match @resources.release_shared_capacity(pending.allocation) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
     resource.pending = None
   }
+  Ok(())
 }

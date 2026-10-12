@@ -33,7 +33,7 @@ test "Pipe JOIN right input stays in its consumer instead of a standalone captur
     match
       @check.check_parsed(
         program,
-        data_acquisition_environment(),
+        with_acquisition_environment(),
         None,
         check_limits(),
       ) {

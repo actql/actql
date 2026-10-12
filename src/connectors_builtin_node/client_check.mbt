@@ -8,6 +8,8 @@
 priv enum CheckFinding {
   // A disclosable proven violation of the caller's own input.
   Violation(String)
+  // Location evidence for an already established authored query violation.
+  QueryOrigin(Int, Int)
   ProgramStructureViolation(String)
   SourceSelectorUnregistered(String, @sourceview_input.Declaration, String?)
   SyntaxViolation(Int, Int)
@@ -415,6 +417,12 @@ fn check_source_findings(
             is Some(failure) {
             return Failed(failure)
           }
+        QueryLowering(GraphExpected(origin)) => {
+          findings.push(Violation("query_invalid"))
+          if check_authored_range(origin) is Some((start, end)) {
+            findings.push(QueryOrigin(start, end))
+          }
+        }
         QueryLowering(
           InvalidQuery
           | RangeAliasRequiresRelation
@@ -1392,6 +1400,19 @@ fn write_check_report(
     @encode.begin_object(writer)
     @encode.key(writer, "code")
     @encode.string_value(writer, code)
+    if code == "query_invalid" {
+      for finding in findings {
+        if finding is QueryOrigin(start, end) {
+          write_check_text_location(
+            writer,
+            documents.source_revision,
+            start,
+            end,
+          )
+          break
+        }
+      }
+    }
     if code == "query_alias_absent" {
       write_check_query_alias_absence(writer, findings)
     }

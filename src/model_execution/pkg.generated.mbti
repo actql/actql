@@ -73,6 +73,8 @@ pub fn complete_model_output(ModelOutputPreparation) -> Result[@execution_relati
 
 pub fn finish_model_content_bytes(ModelContentByteCheck) -> Result[ModelContentAdmission, ModelContentIssue]
 
+pub fn install_async_model_provider(String) -> Result[ModelProvider, ModelExecutionIssue]
+
 pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelProvider, ModelExecutionIssue]
 
 pub fn model_async_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (ModelCallEntry) -> ModelPhysicalCall?, evidence? : ModelPhysicalRequestEvidence, attachments? : Array[ModelContentAdmission]) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
@@ -158,6 +160,8 @@ pub fn model_physical_call_for_request(ModelCallEntry, ModelRequest, () -> Model
 pub fn model_physical_observation_facts(ModelPhysicalObservation) -> (Int, String, String, String)
 
 pub fn model_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, () -> Result[ModelResponse, ModelProviderFailure], evidence? : ModelPhysicalRequestEvidence, attachments? : Array[ModelContentAdmission]) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
+
+pub fn model_provider_synchronous_invoke(ModelProvider) -> ((ModelRequest) -> Result[ModelResponse, ModelProviderFailure])?
 
 pub fn model_raw_capture_save_binding(ModelRawCaptureSave) -> @run_publication.BoundModelRawResponse
 
@@ -563,7 +567,7 @@ pub struct ModelPreparedCallSet {
 }
 
 pub(all) struct ModelProvider {
-  invoke : (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]
+  invocation : ModelProviderInvocation
   provider_id : String
 }
 
@@ -583,6 +587,11 @@ pub(all) enum ModelProviderFailure {
   Truncated
   Cancelled
 } derive(Eq, @debug.Debug)
+
+pub(all) enum ModelProviderInvocation {
+  SynchronousFixture((ModelRequest) -> Result[ModelResponse, ModelProviderFailure])
+  AsynchronousPhysical
+}
 
 pub(all) struct ModelQuantityCapacity {
   limits : @physical_resources.QuantityAmounts

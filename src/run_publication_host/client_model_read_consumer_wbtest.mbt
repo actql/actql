@@ -80,7 +80,7 @@ test "checked early model consumer rejects duplicate and foreign before allocati
     is Err(Resource(@resources.SpentClaim)),
   )
   assert_eq(@resources.ledger_usage(ledger), before)
-  stop_client_model_read_consumer(consumer)
+  stop_client_model_read_consumer(consumer).unwrap()
   assert_false(
     client_model_read_consumer_available(
       consumer, compiled, definition, plan, 7L, 5L,

@@ -2250,6 +2250,18 @@ pub fn client_program_install_model_provider(
 }
 
 ///|
+/// Exclusive async registration retains no synchronous fallback callback.
+#export_name("clientProgramInstallAsyncModelProvider")
+pub fn client_program_install_async_model_provider(
+  provider_id : String,
+) -> @model.ModelProvider? {
+  match @model.install_async_model_provider(provider_id) {
+    Ok(value) => Some(value)
+    Err(_) => None
+  }
+}
+
+///|
 #export_name("clientProgramModelRequestInput")
 pub fn client_program_model_request_input(
   request : @model.ModelRequest,

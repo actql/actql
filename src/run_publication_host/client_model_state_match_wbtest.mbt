@@ -241,7 +241,7 @@ test "checked original state matching preserves current serial and retired docum
   @resources.retire_original_state_document(changed)
   @resources.retire_original_state_document(allocation)
   @resources.retire_original_state_document(live_document)
-  stop_client_model_read_consumer(consumer)
+  stop_client_model_read_consumer(consumer).unwrap()
   settle_client_model_read_consumer(consumer, true).unwrap()
   assert_true(
     finish_client_model_read_scope(scope, compiled, definition, plan, true).unwrap(),

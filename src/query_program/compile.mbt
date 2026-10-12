@@ -66,6 +66,8 @@ pub(all) enum Issue {
   InvalidContext
   // A proven authored semantic violation, distinct from a lowering gap.
   InvalidQuery
+  // Actual resolved Carrier disagrees with the authored FROM GRAPH operand.
+  GraphExpected(@origin.Origin?)
   // Row range aliases require an actual Relation, independently of FROM spelling.
   RangeAliasRequiresRelation
   UnknownRelation

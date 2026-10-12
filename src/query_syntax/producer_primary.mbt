@@ -84,7 +84,7 @@ fn QueryParser::producer_query(
     relation: [],
     source_alias: None,
     file_listing: None,
-    graph: Some({ pattern: None, }),
+    graph: Some({ pattern: None, expectation: None, }),
     joins: [],
     operations: [],
     sets: [],

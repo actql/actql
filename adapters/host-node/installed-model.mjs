@@ -120,7 +120,8 @@ export function installModelProviders(moon, register) {
         entry.entryPersistence !== undefined && entry.entryPersistence !== 'async' ||
         entry.reconcileResponse !== undefined && typeof entry.reconcileResponse !== 'function' ||
         typeof entry.providerId !== 'string' ||
-        typeof entry.invoke !== 'function' ||
+        (entry.entryPersistence === 'async' ? Object.hasOwn(entry, 'invoke')
+          : typeof entry.invoke !== 'function') ||
         typeof entry.validatePrompt !== 'function' ||
         result.has(entry.providerId)) {
       throw new TypeError('InvalidInstalledModelProviderRegistration');
@@ -135,11 +136,7 @@ export function installModelProviders(moon, register) {
         (entry.entryPersistence !== 'async' || typeof entry.physicalPreflight !== 'function')) {
       throw new TypeError('InstalledInferRawCaptureRequiresAsyncPhysicalPreflight');
     }
-    const provider = moon.clientProgramInstallModelProvider(entry.providerId,
-      entry.invoke);
-    if (provider === undefined) {
-      throw new TypeError('InvalidInstalledModelProviderRegistration');
-    }
+    const bindingOriginals = retainProviderBindingOriginals(entry.bindingOriginals);
     const validatePrompt = entry.validatePrompt;
     let quantityCapacity;
     if (entry.quantityCapacity !== undefined) {
@@ -160,8 +157,23 @@ export function installModelProviders(moon, register) {
         perAttempt: Object.freeze({...capacity.perAttempt}),
       });
     }
+    if (entry.entryPersistence === 'async' &&
+        (typeof entry.physicalPreflight !== 'function' || quantityCapacity === undefined ||
+          bindingOriginals === undefined || rawCaptureSelection === undefined)) {
+      throw new TypeError('InvalidInstalledModelAsyncProviderRegistration');
+    }
+    if (entry.entryPersistence === 'async' &&
+        typeof moon.clientProgramInstallAsyncModelProvider !== 'function') {
+      throw new TypeError('InstalledModelAsyncProviderRuntimeUnavailable');
+    }
+    const provider = entry.entryPersistence === 'async'
+      ? moon.clientProgramInstallAsyncModelProvider(entry.providerId)
+      : moon.clientProgramInstallModelProvider(entry.providerId, entry.invoke);
+    if (provider === undefined) {
+      throw new TypeError('InvalidInstalledModelProviderRegistration');
+    }
     result.set(entry.providerId, Object.freeze({provider, originalReadInstallation, rawCaptureSelection,
-      bindingOriginals: retainProviderBindingOriginals(entry.bindingOriginals),
+      bindingOriginals,
       physicalPreflight: entry.physicalPreflight,
       entryPersistence: entry.entryPersistence,
       reconcileResponse: entry.reconcileResponse,

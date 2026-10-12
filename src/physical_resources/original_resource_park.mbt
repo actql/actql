@@ -1,0 +1,143 @@
+///|
+// The fence belongs to the existing original census. No serial/generation,
+// amount, saved wire or journal fact is created by freezing resource mutation.
+// Both reference directions belong to the same funded original lifetime.
+priv struct OriginalResourceParkFence {
+  identity : OriginalLedgerIdentity
+}
+
+///|
+// Opaque restriction, not a Store/journal receipt or permission to resume/send.
+// The same original consumer and origin are retained; a copied CID is not it.
+// Actual journal COMMIT receipt admission/resumption is not implemented here.
+// Until that closed bridge exists, a production caller cannot unpark this
+// token. Tests of private retirement are not durable invalidation evidence.
+struct OriginalResourcePark[T] {
+  mut consumer : FundedReadConsumer[T]?
+  mut origin : T?
+  mut fence : OriginalResourceParkFence?
+  mut previous : FundedReadPhase[T]?
+}
+
+///|
+// Every resource mutator calls this BEFORE changing the same Owner. Physical
+// observations refused here stay with the original producer/journal until
+// exact cut invalidation; they must not be discarded or turned into zero.
+fn check_original_resources_mutable(
+  ledger : Ledger,
+) -> Result[Unit, LedgerIssue] {
+  if ledger.original_inventory is Some(inventory) && inventory.park is Some(_) {
+    Err(ResourceParked)
+  } else {
+    Ok(())
+  }
+}
+
+///|
+// Restrict the actual same-Ledger consumer, including after handoff, rather
+// than comparing a historical admitted aggregate. The original installation
+// funds the census reference/fence/control and all concurrent snapshots before
+// entry. This does not adopt a byte coefficient or prove Model/Entry park.
+pub fn[T] park_original_resource_consumer(
+  consumer : FundedReadConsumer[T],
+  origin : T,
+) -> Result[OriginalResourcePark[T], OriginalReadIssue] {
+  guard consumer.claim is Some(claim) else { return Err(SpentClaim) }
+  if !physical_equal(origin, claim.descriptor.origin) {
+    return Err(ForeignOrigin)
+  }
+  let phase_matches = match claim.phase {
+    ConsumerStarted(current)
+    | ConsumerHandedOff(current)
+    | ConsumerStopping(current) => physical_equal(current, consumer)
+    _ => false
+  }
+  let ledger = claim.descriptor.ledger
+  guard phase_matches &&
+    ledger.original_inventory is Some(inventory) &&
+    !inventory.closing &&
+    inventory.read_claimed &&
+    physical_equal(inventory.bootstrap, claim.descriptor.bootstrap) &&
+    capacity_reservation_open(inventory.bootstrap) &&
+    capacity_reservation_open(claim.read) else {
+    return Err(ChangedOriginalState)
+  }
+  if inventory.park is Some(_) {
+    return Err(Resource(ResourceParked))
+  }
+  let fence : OriginalResourceParkFence = { identity: inventory.identity, }
+  let value : OriginalResourcePark[T] = {
+    consumer: Some(consumer),
+    origin: Some(origin),
+    fence: Some(fence),
+    previous: Some(claim.phase),
+  }
+  // No await or mutating callback between checks and this synchronous fence.
+  inventory.park = Some(fence)
+  claim.phase = ConsumerParked(consumer, value)
+  Ok(value)
+}
+
+///|
+pub fn[T] original_resource_park_current(
+  value : OriginalResourcePark[T],
+  origin : T,
+) -> OriginalResourcePark[T]? {
+  guard value.consumer is Some(consumer) &&
+    value.origin is Some(original) &&
+    value.fence is Some(fence) &&
+    value.previous is Some(_) &&
+    physical_equal(original, origin) &&
+    consumer.claim is Some(claim) &&
+    physical_equal(original, claim.descriptor.origin) &&
+    claim.descriptor.ledger.original_inventory is Some(inventory) &&
+    physical_equal(fence.identity, inventory.identity) &&
+    inventory.park is Some(current) &&
+    physical_equal(fence, current) &&
+    !inventory.closing &&
+    capacity_reservation_open(inventory.bootstrap) &&
+    capacity_reservation_open(claim.read) else {
+    return None
+  }
+  if claim.phase is ConsumerParked(current, park) &&
+    physical_equal(current, consumer) &&
+    physical_equal(park, value) {
+    Some(value)
+  } else {
+    None
+  }
+}
+
+///|
+// Borrow only the original opaque origin, never its Ledger/reservations. This
+// is not proof that A's Model/Entry or Store ACK is parked/authenticated.
+pub fn[T] original_resource_park_origin(value : OriginalResourcePark[T]) -> T? {
+  guard value.origin is Some(origin) &&
+    original_resource_park_current(value, origin) is Some(_) else {
+    return None
+  }
+  Some(origin)
+}
+
+///|
+// This retires only an escaped stale control AFTER actual original census and
+// bootstrap/read cleanup. It cannot unpark a live Owner, supply a COMMIT receipt
+// or treat a caller cleanup Bool as that evidence. The eventual exact journal
+// invalidation consumer will retire these same borrows as part of resumption.
+pub fn[T] retire_original_resource_park(
+  value : OriginalResourcePark[T],
+) -> Result[Unit, OriginalReadIssue] {
+  guard value.fence is Some(fence) && value.consumer is Some(consumer) else {
+    return Err(SpentClaim)
+  }
+  if fence.identity.ledger.original_inventory is Some(_) ||
+    capacity_reservation_open(fence.identity.bootstrap) ||
+    consumer.claim is Some(_) {
+    return Err(CleanupPending)
+  }
+  value.previous = None
+  value.fence = None
+  value.origin = None
+  value.consumer = None
+  Ok(())
+}

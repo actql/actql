@@ -125,7 +125,7 @@ test "funded capacity handoff rejects changed originals and stopping spent seria
   ledger.next_capacity_serial = Some(-3)
   assert_eq(ledger_usage(ledger), before)
   assert_true(funded_read_available(claim, origin))
-  stop_funded_read(claim)
+  stop_funded_read(claim).unwrap()
   assert_false(
     funded_read_preparation_available(claim, origin, 5L, retained_bytes=7L),
   )
