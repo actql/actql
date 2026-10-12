@@ -2412,6 +2412,17 @@ function publicationControl(moon) {
         value, token(definition), graph, layout, installation,
         runtimeArtifactCid, layoutArtifactCid, probability, evidenceToken(storage), field));
     },
+    checkCheckedClientInferOriginalParkedStorageOrigin(compiled, definition, graph, scope,
+      park, document, {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}, storage) {
+      const value = compiledRunTokens.get(compiled);
+      const original = modelOriginalDocumentTokens.get(document);
+      if (value === undefined || compiled.kind !== 'infer' || original === undefined) {
+        throw new TypeError('Foreign Client original Model document');
+      }
+      return checked(moon.clientProgramCheckInferOriginalParkedStorageOrigin(scope,
+        value, token(definition), graph, park, original, layout, installation,
+        runtimeArtifactCid, layoutArtifactCid, probability, evidenceToken(storage)));
+    },
     // Explicit alternative to the normal descriptor issuer, not a fallback.
     // Bootstrap must already cover the dedicated Writer and finish-text borrow.
     prepareCheckedClientInferNodeReadState(compiled, definition, graph, scope,

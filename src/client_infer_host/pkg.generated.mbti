@@ -6,12 +6,14 @@ import {
   "actql/actql/client_local_host",
   "actql/actql/connector_sdk",
   "actql/actql/connectors/local",
+  "actql/actql/decode_core",
   "actql/actql/encode_core",
   "actql/actql/execution_relation",
   "actql/actql/model_execution",
   "actql/actql/physical_resources",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
+  "actql/actql/source_value",
   "moonbitlang/core/debug",
 }
 
@@ -25,6 +27,10 @@ pub fn acquire_output(Execution) -> OutputUse?
 pub fn advance(Execution, Int) -> Result[Poll, Issue]
 
 pub fn advance_observation_issuance(ObservationIssuance, Int) -> Result[(Bool, Int64), Issue]
+
+pub fn advance_original_model_current_state_comparison(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateComparison[@run_publication_host.ClientModelReadOrigin], Int) -> Result[@physical_resources.OriginalStateComparisonPoll, @run_publication_host.ClientModelReadPreparationIssue]
+
+pub fn advance_original_model_current_state_decode(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], OriginalModelCurrentStateDecode, Int) -> OriginalModelCurrentStateDecodePoll
 
 pub fn advance_original_model_current_state_write(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateWrite[@run_publication_host.ClientModelReadOrigin], Int) -> @physical_resources.OriginalStateWritePoll
 
@@ -71,6 +77,8 @@ pub fn call_settlement(Execution) -> @model_execution.ModelCallSettlement?
 pub fn cancel(Execution) -> Bool
 
 pub fn cancel_observation_issuance(ObservationIssuance) -> Bool
+
+pub fn cancel_original_model_current_state_decode(OriginalModelCurrentStateDecode) -> Unit
 
 pub fn cancel_original_model_current_state_writer(OriginalModelCurrentStateWriter) -> Unit
 
@@ -177,6 +185,10 @@ pub fn start_complete_observation_issuance(Array[Execution], @physical_resources
 pub fn start_composed(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, Limits, sources? : @run_publication_host.ClientInferComposedSources?) -> Result[Execution, Issue]
 
 pub fn start_observation_issuance(Execution, @physical_resources.Ledger, ObservationIssuanceLimits) -> Result[ObservationIssuance, Issue]
+
+pub fn start_original_model_current_state_comparison(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateDocument, Int) -> Result[@physical_resources.OriginalCurrentStateComparison[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalStateComparisonIssue]
+
+pub fn start_original_model_current_state_decode(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], String, @source_value.ParseLimits, @decode_core.Limits, Int) -> Result[OriginalModelCurrentStateDecode, OriginalModelCurrentStateDecodeIssue]
 
 pub fn start_original_model_current_state_write(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @encode_core.Writer) -> Result[@physical_resources.OriginalCurrentStateWrite[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalStateWriteIssue]
 
@@ -307,6 +319,26 @@ pub(all) struct ObservationIssuanceLimits {
 }
 
 type ObservationIssuanceState
+
+type OriginalModelCurrentStateDecode
+
+pub(all) enum OriginalModelCurrentStateDecodeIssue {
+  Original(@physical_resources.OriginalReadIssue)
+  Parse(@source_value.ParseError)
+  Admission(@decode_core.Issue)
+  Read(@physical_resources.OriginalCurrentStateReadIssue)
+  InvalidBounds
+  InvalidQuantum
+  InvalidRecord
+  WorkLimit
+  Terminal
+} derive(Eq, @debug.Debug)
+
+pub enum OriginalModelCurrentStateDecodePoll {
+  CurrentDecodeContinue(work~ : Int)
+  CurrentDecodeComplete(@physical_resources.OriginalCurrentStateDocument, work~ : Int)
+  CurrentDecodeFailed(OriginalModelCurrentStateDecodeIssue, work~ : Int)
+}
 
 type OriginalModelCurrentStateWriter
 
