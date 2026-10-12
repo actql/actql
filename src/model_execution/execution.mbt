@@ -37,7 +37,9 @@ pub(all) enum ModelProviderFailure {
 /// A provider is physical I/O. It is installed by the Host and cannot be
 /// selected by a Program value or by a model selector string alone.
 pub(all) enum ModelProviderInvocation {
-  SynchronousFixture((ModelRequest) -> Result[ModelResponse, ModelProviderFailure])
+  SynchronousFixture(
+    (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]
+  )
   AsynchronousPhysical
 }
 
