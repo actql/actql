@@ -200,7 +200,7 @@ pub fn prepare_publication_preflight(
     }
   }
   let preflight = match
-    @local_run.check_local_source_publication_preflight(
+    @local_run.check_local_publication_preflight(
       intent,
       invocation,
       current.account,

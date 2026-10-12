@@ -7,7 +7,7 @@ priv struct StoredSourcePublication {
   slot : @buffers.BufferSlot
   mut preparation : @local_run.LocalSourcePublicationPreparation?
   mut publication : @local_run.LocalSourcePublication?
-  mut invocation : @local_run.LocalSourceInvocation?
+  mut invocation : @local_run.LocalRunInvocation?
   mut observed_at : String?
   mut capture_interval : (String, String)?
   mut invoked : Bool
@@ -277,10 +277,8 @@ pub fn finish_source_publication(
   guard record.publication is Some(publication) else { return -33 }
   let logical = @local_run.local_source_publication_logical(publication)
   let evidence = @local_run.local_source_publication_evidence(publication)
-  let observation = @local_run.local_source_invocation_observation(invocation)
-  let invocation_contract = @local_run.local_source_invocation_contract(
-    invocation,
-  )
+  let observation = @local_run.local_run_invocation_observation(invocation)
+  let invocation_contract = @local_run.local_run_invocation_contract(invocation)
   let writer = @encode.writer(65536, 5, 1) catch { _ => return -34 }
   let wire = try {
     @encode.begin_object(writer)
