@@ -1,7 +1,15 @@
 ///|
+// Independently canonical fixture; the original failing shared fixture is retained.
+// Account wire selectors use UTF-16 order, distinct from Core String comparison.
+let policy_reuse_account_original : Bytes = b"{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[{\"entry_id\":\"explicit-policy-operations\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"result/answer\",\"run\"]},\"operation\":{\"any_of\":[\"read\",\"submit\"]},\"exclusions\":[]}]}"
+
+///|
 // Definitions only until a matching Native fixture is allocated and executed.
 test "Native policy material is fresh per predicate and unavailable after original Host close" {
-  let host = policy_host_fixture("local-policy-reuse-closed")
+  let host = policy_host_fixture(
+    "local-policy-reuse-closed",
+    account_body=policy_reuse_account_original,
+  )
   let crypto = epoch_test_crypto()
   let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
   let (request, _, _, _) = journal_test_run("reuse", "reuse-run", scope~)
@@ -20,8 +28,14 @@ test "Native policy material is fresh per predicate and unavailable after origin
 
 ///|
 test "Native policy material cannot share another journal or authorize a different Result" {
-  let host = policy_host_fixture("local-policy-reuse-original")
-  let other = policy_host_fixture("local-policy-reuse-foreign")
+  let host = policy_host_fixture(
+    "local-policy-reuse-original",
+    account_body=policy_reuse_account_original,
+  )
+  let other = policy_host_fixture(
+    "local-policy-reuse-foreign",
+    account_body=policy_reuse_account_original,
+  )
   let crypto = epoch_test_crypto()
   let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
   let (request, _, _, _) = journal_test_run(
