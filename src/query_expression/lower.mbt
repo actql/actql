@@ -197,6 +197,11 @@ fn scalar_call(
     raise Abort(UnsupportedFunction)
   }
   match upper(path[0].value) {
+    "VECTOR_COSINE_SIMILARITY" =>
+      ("VECTOR_COSINE_SIMILARITY", "vector_score", 2, 2)
+    "VECTOR_INNER_PRODUCT" => ("VECTOR_INNER_PRODUCT", "vector_score", 2, 2)
+    "VECTOR_L2_DISTANCE" => ("VECTOR_L2_DISTANCE", "vector_score", 2, 2)
+    "VECTOR_CONCAT" => ("VECTOR_CONCAT", "vector_concat", 2, 2147483647)
     "BYTE_LENGTH" | "OCTET_LENGTH" => ("BYTE_LENGTH", "byte_length", 1, 1)
     "UNICODE" => ("UNICODE", "unicode", 1, 1)
     "CHR" => ("CHR", "chr", 1, 1)
@@ -651,11 +656,34 @@ fn append_resolved(
           match macro_calls[i] {
             Some(child) => nodes[child]
             None => {
-              let (_, name, minimum, maximum) = scalar_call(path)
+              let (public_name, name, minimum, maximum) = scalar_call(path)
               if args.length() < minimum || args.length() > maximum {
                 raise Abort(InvalidArguments)
               }
-              if name == "log" && args.length() == 1 {
+              if name == "vector_score" {
+                let metric = match public_name {
+                  "VECTOR_COSINE_SIMILARITY" => "cosine"
+                  "VECTOR_INNER_PRODUCT" => "dot"
+                  "VECTOR_L2_DISTANCE" => "l2"
+                  _ => raise Abort(UnsupportedFunction)
+                }
+                let score = lowering.form(
+                  "vector_score",
+                  lowering.object([
+                    ("left", nodes[args[0]]),
+                    ("right", nodes[args[1]]),
+                    ("metric", lowering.add(String(metric))),
+                  ]),
+                )
+                // The adopted L2 expression is a negative distance score.
+                // Preserve VecA typing, input precision, NULL and numeric law;
+                // this explicit surface changes only the score direction.
+                if public_name == "VECTOR_L2_DISTANCE" {
+                  lowering.form("negate", score)
+                } else {
+                  score
+                }
+              } else if name == "log" && args.length() == 1 {
                 lowering.form("ln", nodes[args[0]])
               } else if name == "ceil" {
                 // Finite-number ceiling uses one operand subtree. The numeric
