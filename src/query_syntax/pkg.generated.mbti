@@ -491,6 +491,7 @@ pub(all) enum SgaArgument {
   NullValue
   ParameterValue(String)
   ObjectValue(Array[(String, SgaArgument)])
+  FieldMapValue(Array[(Array[NamePart], SgaArgument)])
   ListValue(Array[SgaArgument])
 } derive(Eq, @debug.Debug)
 

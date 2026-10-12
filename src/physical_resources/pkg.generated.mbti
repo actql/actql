@@ -8,6 +8,8 @@ import {
 }
 
 // Values
+pub fn[T] advance_funded_read_state_write(FundedReadClaim[T], T, Int) -> OriginalStateWritePoll
+
 pub fn[T] advance_original_state_comparison(OriginalStateComparison[T], Int) -> OriginalStateComparisonPoll
 
 pub fn advance_original_state_document_read(OriginalStateDocumentRead, Int) -> OriginalStateDocumentPoll
