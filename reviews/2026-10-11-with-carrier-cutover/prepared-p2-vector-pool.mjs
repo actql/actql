@@ -19,7 +19,7 @@ const steps = process.argv.includes('--normative-write')
   focused('Independent current pool and retained SGA preimages', 'node', [
     'scripts/vector-pool-identity.test.mjs','scripts/sga-signature-role-identity.test.mjs',
     'scripts/client-values-run-materials-vector.test.mjs','scripts/compilation-manifests.test.mjs',
-    'scripts/frontend-profile.test.mjs']),
+    'scripts/frontend-profile.test.mjs','scripts/vector-pool-source.test.mjs']),
   ...generators.filter(name => name !== 'vector-pool-identity-oracle')
     .map(name => ({name:'Read-only '+name,command:'node',args:['scripts/'+name+'.mjs']}))];
 process.exitCode=await runLocalCheck({root:process.cwd(),heavy:false,timeoutSeconds:60,graceSeconds:5,steps});

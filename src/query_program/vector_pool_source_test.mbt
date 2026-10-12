@@ -1,5 +1,9 @@
 ///|
-fn vector_pool_control(reduction : String, relation : Bool) -> @program.Program {
+fn vector_pool_control(
+  reduction : String,
+  relation : Bool,
+  cohort? : Bool = false,
+) -> @program.Program {
   // Authored independently of source compilation. A dynamic assertion supplies
   // Relation member-key evidence; Vectors retains its intrinsic identity role.
   let prefix = if relation {
@@ -7,7 +11,8 @@ fn vector_pool_control(reduction : String, relation : Bool) -> @program.Program 
   } else {
     "{\"from\":\"candidates\",\"to_vectors\":{\"id\":\"item_id\",\"vector\":\"embedding\"},\"as\":\"members\"}"
   }
-  let body = "{\"by\":[\"label\"],\"method\":\"" +
+  let grouping = if cohort { "cohort" } else { "label" }
+  let body = "{\"by\":[\"" + grouping + "\"],\"method\":\"" +
     reduction +
     "\",\"output_id\":\"pooled_id\"" +
     (if relation { ",\"vector\":\"embedding\"" } else { "" }) +
@@ -15,10 +20,13 @@ fn vector_pool_control(reduction : String, relation : Bool) -> @program.Program 
   @program.parse(
     "{\"version\":\"actql/0.1\",\"id\":\"fixture.vector_pool\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[" +
     "{\"values\":{\"schema\":{\"item_id\":{\"type\":\"string\",\"nullable\":false},\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"label\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"item_id\":\"b\",\"embedding\":[0,1],\"label\":\"second\"},{\"item_id\":\"a\",\"embedding\":[1,0],\"label\":\"first\"}]},\"as\":\"candidates\"}," +
+    (if cohort {
+      "{\"from\":\"candidates\",\"derive\":{\"cohort\":{\"literal\":1}}},{\"select\":[\"item_id\",\"embedding\",\"cohort\"]},"
+    } else { "" }) +
     prefix +
     ",{\"from\":\"members\",\"pool_vectors\":" +
     body +
-    ",\"as\":\"pooled\"},{\"from\":\"pooled\",\"vectors\":true},{\"sort\":[{\"field\":\"label\",\"dir\":\"asc\",\"nulls\":\"first\"}]},{\"select\":[\"label\",\"pooled_id\",\"embedding\",\"member_count\"],\"as\":\"answer\"}],\"results\":{\"rows\":{\"from\":\"answer\",\"fields\":[\"label\",\"pooled_id\",\"embedding\",\"member_count\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+    ",\"as\":\"pooled\"},{\"from\":\"pooled\",\"vectors\":true},{\"sort\":[{\"field\":\"" + grouping + "\",\"dir\":\"asc\",\"nulls\":\"first\"}]},{\"select\":[\"" + grouping + "\",\"pooled_id\",\"embedding\",\"member_count\"],\"as\":\"answer\"}],\"results\":{\"rows\":{\"from\":\"answer\",\"fields\":[\"" + grouping + "\",\"pooled_id\",\"embedding\",\"member_count\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
     construction_limits().program,
     format=Json,
   ).unwrap()
@@ -130,5 +138,31 @@ test "P2 pooling keeps common member key role and collision refusals" {
       with_carrier_program(prefix + call + tail, nearest_context())
       is Err(InvalidQuery),
     )
+  }
+}
+
+///|
+test "P2 prepared two-member public pool sources retain derived grouping and empty schema" {
+  for relation in [false, true] {
+    for empty in [false, true] {
+      let prefix = "FROM candidates" +
+        (if empty { " |> WHERE FALSE" } else { "" }) +
+        " |> SELECT item_id, embedding, 1 AS cohort |> " +
+        (if relation {
+          "ASSERT UNIQUE BY (item_id)"
+        } else {
+          "to_vectors(id: item_id, vector: embedding)"
+        })
+      let text = "WITH members AS (" + prefix +
+        "), pooled AS (FROM members |> pool_vectors(by: [COHORT], method: \"mean\", output_id: pooled_id" +
+        (if relation { ", vector: EMBEDDING" } else { "" }) +
+        ")), rows AS (FROM pooled |> vectors()) SELECT cohort, pooled_id, embedding, member_count FROM rows ORDER BY cohort"
+      let actual = with_carrier_program(text, nearest_context()).unwrap()
+      let expected = vector_pool_control("mean", relation, cohort=true)
+      vector_pool_checked(expected)
+      vector_pool_checked(actual)
+      assert_eq(with_carrier_argument(actual, "pool_vectors"),
+        with_carrier_argument(expected, "pool_vectors"))
+    }
   }
 }
