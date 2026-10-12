@@ -68,9 +68,9 @@ test "Graph mapping resolves nearest producer without renaming definitions" {
 }
 
 ///|
-test "SGA producer roles resolve scope while ID and field values remain data" {
+test "SGA producer roles resolve scope while operand fields stay outside producer scope" {
   let parser = producer_scope_parser(
-    "reach(start: {from: `ROWS`, id: 'rows'}, direction: 'out', max_depth: 2)",
+    "reach(start: {from: `ROWS`, id: `rows`}, direction: 'out', max_depth: 2)",
   )
   let call = parser.sga_call()
   parser.end()
@@ -79,7 +79,7 @@ test "SGA producer roles resolve scope while ID and field values remain data" {
       "start",
       ObjectValue([
         ("from", Producer({ value: "inner_rows", quoted: false, })),
-        ("id", TextValue("rows")),
+        ("id", FieldReference([{ value: "rows", quoted: true, }])),
       ]),
     ),
     ("direction", TextValue("out")),

@@ -1,11 +1,11 @@
 ///|
 test "traverse hop vocabulary folds while predicate data retains its spelling" {
   let actual = parse_sga_call(
-    "TRAVERSE(START: {FROM: seeds, ID: 'element'}, HOPS: [{DIRECTION: 'out', EDGE_TYPES: [], NODE_WHERE: {eq: [{literal: {Direction: 'e\\u0301\\r', direction: 'x'}}, null]}}], EMIT: 'nodes')",
+    "TRAVERSE(START: {FROM: seeds, ID: `element`}, HOPS: [{DIRECTION: 'out', EDGE_TYPES: [], NODE_WHERE: {eq: [{literal: {Direction: 'e\\u0301\\r', direction: 'x'}}, null]}}], EMIT: 'nodes')",
     query_limits(),
   ).unwrap()
   let expected = parse_sga_call(
-    "traverse(start: {from: seeds, id: 'element'}, hops: [{direction: 'out', edge_types: [], node_where: {eq: [{literal: {Direction: 'e\\u0301\\r', direction: 'x'}}, null]}}], emit: 'nodes')",
+    "traverse(start: {from: seeds, id: `element`}, hops: [{direction: 'out', edge_types: [], node_where: {eq: [{literal: {Direction: 'e\\u0301\\r', direction: 'x'}}, null]}}], emit: 'nodes')",
     query_limits(),
   ).unwrap()
   assert_eq(actual.arguments, expected.arguments)
