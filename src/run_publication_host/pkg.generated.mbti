@@ -641,6 +641,8 @@ pub fn client_local_product_finite_originals(String, String, String, String, Cli
 
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
+pub fn client_local_run_policy_metadata_cursor(Bytes) -> Result[@decode_core.Cursor, ClientLocalProductConfigurationIssue]
+
 pub fn client_local_run_policy_original_body(ClientLocalRunPolicyOriginal) -> Bytes
 
 pub fn client_local_run_policy_original_issued_at(ClientLocalRunPolicyOriginal) -> String
