@@ -121,3 +121,56 @@ test "original codec fence rejects changed child snapshots with unchanged aggreg
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
   assert_eq(ledger.next_capacity_serial, serial)
 }
+
+///|
+test "original codec fence precharged work remains spent through same ledger handoff" {
+  for planning in [16, 17] {
+    let ledger = create_ledger({
+      planning_work: planning,
+      attempts: 2,
+      holdings: 3,
+      transfer_bytes: 11L,
+      retained_bytes: 20L,
+      execution_bytes: 12L,
+    }).unwrap()
+    let origin = original_read_test_origin()
+    let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
+    let identity = begin_original_ledger_inventory(ledger, bootstrap, 2, 0, 0).unwrap()
+    let before = ledger_usage(ledger)
+    let serial = ledger.next_capacity_serial
+    // Feasibility of existing Owner ordering only: this is not a codec permit
+    // or a public prepayment API. No descriptor/read exists before this charge.
+    if planning == 16 {
+      assert_true(charge_planning(ledger, 17) is Err(PlanningLimit))
+      assert_eq(ledger_usage(ledger), before)
+      assert_eq(ledger.next_capacity_serial, serial)
+      let inventory = ledger.original_inventory.unwrap()
+      assert_false(inventory.descriptor_issued)
+      assert_false(inventory.read_claimed)
+      assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
+      continue
+    }
+    charge_planning(ledger, 17).unwrap()
+    let descriptor = issue_recorded_original_ledger_descriptor(identity, origin).unwrap()
+    let claim = fund_original_read(ledger, origin, descriptor, 7L, 5L).unwrap()
+    assert_eq(claim.admitted.usage.planning_work, 17)
+    let consumer = claim_funded_read_preparation(claim, origin, 7L, 5L).unwrap()
+    enter_funded_read_consumer(consumer, origin, 7L, 5L).unwrap()
+    let (same, capacity) = handoff_funded_read_consumer_capacity(
+      consumer, origin, 10L, 5L,
+    ).unwrap()
+    assert_true(physical_equal(same, ledger))
+    assert_eq(ledger_usage(same).planning_work, 17)
+    assert_true(
+      settle_funded_read_consumer(consumer, false) is Err(CleanupPending),
+    )
+    assert_eq(ledger_usage(same).reserved_retention_bytes, 20L)
+    settle_funded_read_consumer(consumer, true).unwrap()
+    assert_false(finish_funded_read_inventory(claim, origin, true).unwrap())
+    settle_capacity(same, capacity).unwrap()
+    assert_true(finish_funded_read_inventory(claim, origin, true).unwrap())
+    assert_eq(ledger_usage(same).planning_work, 17)
+    assert_eq(ledger_usage(same).reserved_retention_bytes, 0L)
+    assert_eq(ledger_usage(same).reserved_execution_bytes, 0L)
+  }
+}
