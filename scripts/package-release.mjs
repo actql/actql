@@ -18,12 +18,14 @@ const run = (command, args, cwd) => execFileSync(command, args, {
 
 export function admitCohort(value) {
   exact(value, ['version', 'packageVersion', 'registry', 'access', 'tag', 'packages']);
-  assert.equal(value.version, 'actql-package-release-cohort/0.1');
+  assert(['actql-package-release-cohort/0.1', 'actql-explorer-release-cohort/0.1'].includes(value.version));
   assert.match(value.packageVersion, versionPattern);
   assert.equal(value.registry, 'https://registry.npmjs.org/');
   assert.equal(value.access, 'public');
   assert.match(value.tag, /^[a-z][a-z0-9-]*$/u);
-  assert.deepEqual(value.packages, ['client-wire', 'sdk', 'local-node', 'node']);
+  assert.deepEqual(value.packages, value.version === 'actql-explorer-release-cohort/0.1'
+    ? ['client-wire', 'sdk', 'local-node', 'node', 'explorer-ui', 'explorer']
+    : ['client-wire', 'sdk', 'local-node', 'node']);
   return structuredClone(value);
 }
 
@@ -36,11 +38,12 @@ export function releasePackageMetadata(original, name, cohort) {
   manifest.repository = {type: 'git', url: 'git+https://github.com/actql/actql.git', directory: `packages/${name}`};
   manifest.publishConfig = {registry: cohort.registry, access: cohort.access};
   manifest.files = [...new Set([...(manifest.files ?? []), 'LICENSE'])];
-  for (const [dependency, version] of Object.entries(manifest.dependencies ?? {})) {
+  for (const field of ['dependencies', 'peerDependencies', 'optionalDependencies'])
+    for (const [dependency, version] of Object.entries(manifest[field] ?? {})) {
     if (dependency.startsWith('@actql/')) {
       assert(cohort.packages.map(packageName).includes(dependency), `Missing release dependency: ${dependency}`);
       assert(cohort.packages.indexOf(dependency.slice(7)) < cohort.packages.indexOf(name), 'Cohort must be dependency ordered');
-      manifest.dependencies[dependency] = cohort.packageVersion;
+      manifest[field][dependency] = cohort.packageVersion;
     } else assert(!/^(?:file:|link:|workspace:)/u.test(version), 'Release dependency must be registry resolvable');
   }
   // Publication consumes the frozen payload, never a consumer checkout build.
@@ -204,10 +207,12 @@ export async function publicationPlan(manifest, fetchMetadata = fetch) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  const [command, directory] = process.argv.slice(2);
+  const [command, directory, cohortPath] = process.argv.slice(2);
   assert(directory && ['prepare', 'verify', 'plan'].includes(command),
-    'usage: package-release.mjs prepare|verify|plan <unique-directory>');
-  const manifest = command === 'prepare' ? await preparePackageRelease({destination: directory}) : await verifyPackageRelease(resolve(directory));
+    'usage: package-release.mjs prepare|verify|plan <unique-directory> [cohort-json]');
+  assert(process.argv.length <= 5 && (cohortPath === undefined || command === 'prepare'));
+  const manifest = command === 'prepare' ? await preparePackageRelease({destination: directory,
+    ...(cohortPath === undefined ? {} : {cohortPath: resolve(cohortPath)})}) : await verifyPackageRelease(resolve(directory));
   console.log(JSON.stringify(command === 'plan' ? await publicationPlan(manifest) : {
     sourceSha: manifest.sourceSha, manifest: join(resolve(directory), 'release.json'),
     packages: manifest.packages.map(({name, version, file, sha256, integrity}) => ({name, version, file, sha256, integrity}))}, null, 2));
