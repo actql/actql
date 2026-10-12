@@ -860,6 +860,7 @@
         "|> window_events(kind: string, size: value, step: value?, offset: value?)",
         "|> watermark_events(watermark_ms: number, policy: string)",
         "|> session(by: [fields], gap: string)",
+        "|> dedupe_events(by: [fields], order_by: [OrderKeys])",
         "|> events()"
       ],
       "canonical_lowering": "common checked producer topology, followed by demanded emission",
