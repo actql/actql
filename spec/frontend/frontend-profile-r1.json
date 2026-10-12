@@ -853,6 +853,7 @@
         "|> to_vectors(id: field, vector: field)",
         "|> normalize_vectors()",
         "|> score_vectors(query: value, metric: string)",
+        "|> pool_vectors(by: [fields], method: string, vector: field?, output_id: name?)",
         "|> vectors()",
         "|> to_events(id: field, time: field)",
         "|> session(by: [fields], gap: string)",

@@ -30,6 +30,7 @@ fn sga_operation(name : String) -> Bool {
     "to_vectors"
     | "normalize_vectors"
     | "score_vectors"
+    | "pool_vectors"
     | "vectors"
     | "to_events"
     | "session"
@@ -83,6 +84,18 @@ pub fn has_sga_relation_lowering(operation : String) -> Bool {
 fn sga_call_head(token : Token) -> Bool {
   match token.value {
     Word(name) => sga_operation(ascii_upper(name).to_lower())
+    _ => false
+  }
+}
+
+///|
+fn carrier_call_head(token : Token) -> Bool {
+  match token.value {
+    Word(name) =>
+      [
+        "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
+        "to_events", "session", "events",
+      ].contains(ascii_upper(name).to_lower())
     _ => false
   }
 }

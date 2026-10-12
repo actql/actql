@@ -1504,7 +1504,8 @@ WITH can retain Relation, Graph, Vectors or Events according to the admitted
 common contract. The installed constructor and Graph consumer connections
 are described below. Typed Pipe calls also connect `to_vectors(id: field,
 vector: field)`, `normalize_vectors()`, `score_vectors(query: value, metric:
-string)`, `vectors()`, `to_events(id: field, time: field)`, `session(by:
+string)`, `pool_vectors(by: [fields], method: string, vector: field,
+output_id: name)`, `vectors()`, `to_events(id: field, time: field)`, `session(by:
 [fields], gap: string)` and `events()` to their existing common operations.
 Relation-input session additionally requires its existing `id` and `time`
 roles. Field roles resolve visible columns; they are not String values or
@@ -1513,6 +1514,21 @@ Vectors/Events retain their Carrier across bindings; only an explicit common
 bridge supplies rows to ordinary Relation operators. Full four-Carrier public
 execution remains a separate acceptance obligation. A typed producer is not an
 invented external Source alias or a row schema inferred by the frontend.
+
+The `pool_vectors` call retains the existing [pooling contract](language.md#pool-vectors).
+`by` is an ordered nonempty FieldRef list and `method` is an exact String value
+(`'sum'`, `'mean'` or `'max'`), never an identifier lookup. Relation input requires
+`vector` and retained candidate-key evidence, for example from an authored
+`ASSERT UNIQUE BY (item_id)`; the assertion's ordinary owner validates actual
+uniqueness. Vectors input already owns member identity: `vector` may be omitted
+or restate its existing component role, but cannot override it. There is no
+separate member `id` option. Optional `output_id` is an OutputName, uses the
+ordinary reserved-word/backtick rule, and is allowed only with one grouping
+field. It adds the common identity alias without dropping the grouping field.
+The shared checker owns nullable/key eligibility, repeated grouping fields,
+output collisions, dimensions, profile and execution-resource obligations.
+The frontend does not duplicate grouping, numeric folds or identity encoding.
+An explicit `vectors()` bridge is required before Relation projection.
 
 `FROM p` preserves the resolved Carrier. `FROM GRAPH p` adds a Graph expectation;
 it does not search past a nearer Relation binding. MATCH accepts Graph with or
