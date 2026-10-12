@@ -1,7 +1,9 @@
 // The fixed installation key contract is a physical clamp, not a complete
 // original Run bootstrap profile, original-state admission or send authority.
 import assert from 'node:assert/strict';
-import {chmod, mkdtemp, open, readFile, rm, writeFile} from 'node:fs/promises';
+import fs from 'node:fs';
+import {chmod, mkdtemp, open, readFile, rename, rm, writeFile} from 'node:fs/promises';
+import {syncBuiltinESMExports} from 'node:module';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -28,6 +30,79 @@ test('private installation key preserves its exact independently authored 32 byt
     + 'f40579cc4f7da2b5061b7f9');
   key.key.fill(0);
   assert.deepEqual(await readFile(f.path), bytes);
+});
+
+test('private key rejects an exposed replacement after the real owner-only path observation', async t => {
+  const bytes = Buffer.from('0123456789abcdef0123456789abcdef', 'ascii');
+  const f = await fixture(t, bytes);
+  const replacement = join(f.directory, 'replacement.key');
+  await writeFile(replacement, bytes, {mode: 0o644});
+  const pathStat = fs.promises.stat, fdStat = f.prototype.stat;
+  let replacements = 0, original, reads = 0, closes = 0, accepted;
+  t.after(() => {
+    fs.promises.stat = pathStat;
+    syncBuiltinESMExports();
+    f.prototype.stat = fdStat;
+    accepted?.key.fill(0);
+  });
+  fs.promises.stat = async function(path, ...args) {
+    const observed = await Reflect.apply(pathStat, this, [path, ...args]);
+    if (path === f.path && replacements === 0) {
+      assert.equal(observed.mode & 0o077, 0);
+      await rename(replacement, f.path);
+      replacements++;
+    }
+    // This is the actual pre-replacement stat, not forged file metadata.
+    return observed;
+  };
+  syncBuiltinESMExports();
+  f.prototype.stat = async function(...args) {
+    if (original === undefined) {
+      original = this;
+      const read = this.read, close = this.close;
+      this.read = function(...args) { reads++; return Reflect.apply(read, this, args); };
+      this.close = function(...args) { closes++; return Reflect.apply(close, this, args); };
+    }
+    const actual = await Reflect.apply(fdStat, this, args);
+    assert.equal(actual.mode & 0o077n, 0o044n);
+    return actual;
+  };
+  await assert.rejects(loadPrivateEvidenceKey(f.directory).then(value => {
+    accepted = value;
+    return value;
+  }), {code: 'PrivateEvidenceKeyExposed'});
+  assert.equal(replacements, 1);
+  assert.equal(reads, 0);
+  assert.equal(closes, 1);
+  assert.equal(original.fd, -1);
+
+  // A later exposure of the same acquired FD must also refuse after real
+  // positive I/O. The original exact-byte and close/probe bounds still hold.
+  fs.promises.stat = pathStat;
+  syncBuiltinESMExports();
+  f.prototype.stat = fdStat;
+  await chmod(f.path, 0o600);
+  let reading, positiveReads = 0, finalCloses = 0;
+  f.prototype.stat = function(...args) {
+    if (reading === undefined) {
+      reading = this;
+      const read = this.read, close = this.close;
+      this.read = async function(...args) {
+        const result = await Reflect.apply(read, this, args);
+        if (result.bytesRead > 0) {
+          positiveReads++;
+          await chmod(f.path, 0o644);
+        }
+        return result;
+      };
+      this.close = function(...args) { finalCloses++; return Reflect.apply(close, this, args); };
+    }
+    return Reflect.apply(fdStat, this, args);
+  };
+  await assert.rejects(loadPrivateEvidenceKey(f.directory), {code: 'PrivateEvidenceKeyExposed'});
+  assert.equal(positiveReads, 1);
+  assert.equal(finalCloses, 1);
+  assert.equal(reading.fd, -1);
 });
 
 test('private key one-byte excess is rejected on the same FD before any content read', async t => {
