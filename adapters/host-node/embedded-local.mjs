@@ -1,3 +1,4 @@
+import {installClientRunPlan} from './client-run-plan.mjs';
 import {configureInferEvidence} from './infer-evaluation-evidence.mjs';
 // One installed Local Host for the current OS user. The Client talks to the
 // Host in process; the journal and publication Store own durable physical I/O.
@@ -89,7 +90,7 @@ import {assertEffectTargetReadBinding, effectTargetReadContinuation} from
 import {EFFECT_TARGET_CONTINUATION} from './effect-target-read-inventory.mjs';
 import {canonicalJson, contentCid, createLocalAuthorizationGate} from './local-account-config.mjs';
 import {localContractLimits, localOutputLimits,
-  sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreeTaskPlan,
+  sourceFreeValuesPlan, sourceFreeValuesAdmissionEvidence, sourceFreePlanOriginal, sourceFreeTaskPlan,
   sourceFreeEffectPublicationPlan, acquiredEffectPublicationAdmission,
   acquiredTaskRunAdmission, inferTaskRunAdmission} from
   './local-values-plan.mjs';
@@ -1151,11 +1152,13 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           runDefinition: held.plan.runDefinition,
           runAdmissionEvidence: {prepared: held.plan.preparedEvidence.wire,
             authorization: held.plan.authorization.wire,
-            sourceInventory: sourceInventory(held.preparedSources)}};
+            sourceInventory: sourceInventory(held.preparedSources)},
+          originalPlan: sourceFreePlanOriginal(held.plan)};
         const valuesEvidence = sourceFreeValuesAdmissionEvidence(held.plan);
         if (valuesEvidence !== undefined) return {
           runDefinition: held.plan.runDefinition,
-          runAdmissionEvidence: valuesEvidence};
+          runAdmissionEvidence: valuesEvidence,
+          originalPlan: sourceFreePlanOriginal(held.plan)};
         return held.plan.runDefinition;
       },
     }, moon, control).catch(cause => {
@@ -2587,6 +2590,8 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           ownerViews.sources(owned.requestIdentity,value))];
     },
   });
+  const runPlan = installClientRunPlan({authorize: authorizeObservation, control,
+    lookupOriginal: ref => journal.lookupRunDefinition(ref, moon, control)});
   const inspectRun = installClientRunInspect({
     authorize: authorizeObservation, observeOwners, control,
     lookupOriginal: ref => journal.lookupRunDefinition(ref, moon, control),
@@ -2600,7 +2605,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
       ? checkpointConnection(value)
       : hostConnection(value) || value.operation === 'connect' &&
         checkpointConnection(value),
-    negotiate, prepareSubmit, check, plan, inspectRun, attach,
+    negotiate, prepareSubmit, check, plan, inspectRun, runPlan, attach,
     // New execution requires the authenticated original intent. Historical
     // request/Run observation remains available without relabeling its identity.
     submit: async () => {throw clientOperationError('ClientSubmissionReferenceRequired');},

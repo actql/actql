@@ -3168,6 +3168,28 @@
           "$ref": "#/schemas/run_control_capabilities"
         }
       }
+    },
+    "run_plan_view": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-run-plan-view-0.1.json",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "run_ref",
+        "plan_view"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-run-plan-view/0.1"
+        },
+        "run_ref": {
+          "$ref": "actql-client-host.json#/schemas/run_ref"
+        },
+        "plan_view": {
+          "$ref": "#/schemas/plan_view"
+        }
+      }
     }
   },
   "schema_cids": {
@@ -3204,7 +3226,8 @@
     "sample_vectors": "sha256:aac6c7925d0d1530470025c220cd318ae05478e3e6a3fc549f3650e4347a412b",
     "sample_events": "sha256:b1f560c21d34be458106a6d9bba1beda6c0fae10c4495b2e719de752ae7aa067",
     "run_sample": "sha256:2dd54eb2b19fa3a2711de876dea2b965a3490c69482df328915415f8c24f1bf6",
-    "run_view": "sha256:080a02459f184f92fb956141c2105b3ea36d0ac7f2efd02f06dcc9ac4b08a293"
+    "run_view": "sha256:080a02459f184f92fb956141c2105b3ea36d0ac7f2efd02f06dcc9ac4b08a293",
+    "run_plan_view": "sha256:bc7d46d0fead62582cde82f78ce9467814640a8ccd293541ee30e31efba6ed77"
   },
   "identity_domains": {
     "control_profile": {
@@ -3296,5 +3319,5 @@
     "observation": "non_atomic_owner_local",
     "schema_registration": "does_not_advertise_runtime_capabilities"
   },
-  "registry_cid": "sha256:0ea08057000fa5eb37b20a358442fcaf933149d859ee8842e2a9bd4629a1494d"
+  "registry_cid": "sha256:3b8830bc1720c02340cc9977a092dc16395cc3ec525927ba0755cfca7615c5b9"
 }

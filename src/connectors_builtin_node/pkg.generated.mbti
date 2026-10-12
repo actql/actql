@@ -285,6 +285,8 @@ pub fn client_program_check_environment_with_graph_profile(String, String, Bool,
 
 pub fn client_program_check_environment_with_numeric_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String) -> @program_check.CheckEnvironment?
 
+pub fn client_program_check_logical_map_binding(@run_publication.RunEvidenceValue, @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
+
 pub fn client_program_check_plan_fact_manifest_identity(String, String) -> Result[String, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_check_program(String, @program_check.CheckEnvironment, String, String?, String, String, String?, String, String, ClientCheckSourceSelectorNamespace?) -> String
@@ -368,6 +370,8 @@ pub fn client_program_compiled_run_prepared(@run_publication_host.ClientCompiled
 pub fn client_program_compiled_run_result_transformation(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientProgram, Int) -> Result[@run_publication_host.ClientResultTransformation?, @run_publication_host.ClientCompiledRunIssue]
 
 pub fn client_program_compiled_run_source_free_result_policy(@run_publication_host.ClientCompiledRun) -> (String, String, String)?
+
+pub fn client_program_compiled_run_static_plan_view(@run_publication_host.ClientCompiledRun, @run_publication_host.PreparedClientProgram, Int, Int, Int) -> Result[String, @run_publication_host.ClientCompiledRunPlanIssue]
 
 pub fn client_program_compiled_run_template(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
 

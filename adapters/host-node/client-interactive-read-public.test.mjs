@@ -110,6 +110,19 @@ for (const entrance of ['local', 'https']) {
     assert.equal(before.physical, 1); assert.equal(before.compute, 1);
     assert.equal(before.source, 0); assert.equal(before.model, 0); assert.equal(before.effect, 0);
 
+    // Automatic first admission retained the original opaque compiler map.
+    // Public read/attach below must never compile a replacement for that Run.
+    const originalPlan = await run.plan();
+    assert.deepEqual(originalPlan.run_ref, run.ref);
+    assert.equal(originalPlan.plan_view.observation, 'static');
+    assert.equal(originalPlan.plan_view.provider_io, 0);
+    assert.equal(originalPlan.plan_view.logical_map.compiled_plan_cid,
+      originalPlan.plan_view.compiled_plan_cid);
+    assert.deepEqual(await run.plan(), originalPlan);
+    const attached = await client.attach(run.ref);
+    assert.deepEqual(await attached.plan(), originalPlan);
+    await assert.rejects(run.plan({maxNodes: 0}), {code: 'InvalidRunPlanRequest'});
+
     for (let i = 0; i < 2; i++) {
       const view = await run.inspect();
       assert.deepEqual(view.run_ref, run.ref);

@@ -1930,7 +1930,7 @@
         {
           "path": "spec/contracts/actql-interactive-run-control.json",
           "pointer": "",
-          "cid": "sha256:f4418a7ecfc20cede8ab00dbd961804e82ff96cbb78c20ff342fb6bcf504b6b3",
+          "cid": "sha256:4f7abcf6ad43eab7eb89fe21f9459f1b13081711d14c278c932fdc6bad4ad3f8",
           "version": "actql-interactive-run-control-registry/0.1"
         },
         {
@@ -1938,6 +1938,12 @@
           "pointer": "/artifact_schemas/model_original_resource_state",
           "cid": "sha256:6be8dc0eec799400cb68173ac39ee88c49d9af80cabc762a62a8bdceddf778df",
           "version": "actql-protocol-schema-registry/0.1"
+        },
+        {
+          "path": "spec/contracts/actql-interactive-run-control.json",
+          "pointer": "/schemas/run_plan_view",
+          "cid": "sha256:bc7d46d0fead62582cde82f78ce9467814640a8ccd293541ee30e31efba6ed77",
+          "version": "actql-interactive-run-control-registry/0.1"
         }
       ],
       "normative_imports": [
@@ -2355,7 +2361,7 @@
         {
           "owner": "actql.protocol.run",
           "version": "actql/0.1",
-          "document_cid": "sha256:85692fa0ea23f42cb59ae852cc3bdc2829a817e542d2bfe2acd45826d97c607a"
+          "document_cid": "sha256:3b500c8baa6a4f4bf1d070d9f1fdc6f91e3e333cb07c3e6ed3974e2cc68a10c1"
         },
         {
           "owner": "actql.protocol.discovery",
