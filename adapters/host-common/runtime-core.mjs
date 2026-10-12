@@ -2398,6 +2398,64 @@ function publicationControl(moon) {
         token(definition), graph, layout, installation,
         runtimeArtifactCid, layoutArtifactCid, probability));
     },
+    // Explicit alternative to the normal descriptor issuer, not a fallback.
+    // Bootstrap must already cover the dedicated Writer and finish-text borrow.
+    prepareCheckedClientInferNodeReadState(compiled, definition, graph, scope,
+      {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}, limits) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      issuanceLimits(limits, 'Original Model state Writer');
+      if (['maxWireBytes', 'maxNodes', 'maxDepth'].some(key =>
+        !Number.isSafeInteger(limits[key]) || limits[key] < 0 || limits[key] > 2147483647) ||
+        limits.maxNodes === 0) {
+        throw new TypeError('Invalid original Model state Writer limits');
+      }
+      return checked(moon.clientProgramPrepareInferNodeReadState(scope, value,
+        token(definition), graph, layout, installation, runtimeArtifactCid,
+        layoutArtifactCid, probability, limits.maxWireBytes, limits.maxNodes, limits.maxDepth));
+    },
+    originalClientInferNodeReadStateRead(writer) {
+      return checked(moon.clientProgramInferNodeReadStateRead(writer));
+    },
+    advanceCheckedClientInferNodeReadState(compiled, definition, graph, writer, quantum) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      if (!Number.isSafeInteger(quantum) || quantum < 1 || quantum > 2147483647) {
+        throw new TypeError('Invalid original Model state Writer quantum');
+      }
+      const poll = moon.clientProgramInferNodeReadStatePoll(
+        moon.clientProgramAdvanceInferNodeReadState(writer, value, token(definition), graph, quantum));
+      return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2});
+    },
+    finishCheckedClientInferNodeReadState(compiled, definition, graph, writer) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramFinishInferNodeReadState(writer, value, token(definition), graph));
+    },
+    stopCheckedClientInferNodeReadState(compiled, definition, graph, scope, writer) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      return checked(moon.clientProgramStopInferNodeReadState(writer, scope, value, token(definition), graph));
+    },
+    settleCheckedClientInferNodeReadState(compiled, definition, graph, writer, physicalCleanupComplete) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer') {
+        throw new TypeError('Foreign Client compiled Infer preparation');
+      }
+      if (typeof physicalCleanupComplete !== 'boolean') {
+        throw new TypeError('Invalid original read cleanup observation');
+      }
+      return checked(moon.clientProgramSettleInferNodeReadState(writer, value,
+        token(definition), graph, physicalCleanupComplete));
+    },
     // Do not derive whole-Run cleanup from read refusal, AbortSignal or a
     // saved response. The original census also checks every live child.
     finishCheckedClientInferOriginalReadScope(compiled, definition, graph,

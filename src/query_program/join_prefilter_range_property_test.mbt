@@ -87,7 +87,7 @@ test "prefilter quoted range parameter and authored JOIN ceiling are retained" {
 
 ///|
 test "prefilter value receiver wins its same-named range without inventing a peer" {
-  let text = "WITH lefts AS (SELECT id, payload, 90 AS score FROM objects), rights AS (SELECT id, other FROM others) FROM lefts AS payload |> WHERE (payload).score > 15 |> JOIN rights AS r ON payload.id = r.id MAX_OUTPUT_ROWS 12 |> SELECT payload.id, r.other.score"
+  let text = "WITH lefts AS (SELECT id, payload, 90 AS score FROM objects), rights AS (SELECT id, other FROM others) FROM lefts AS payload |> WHERE (payload.payload).score > 15 |> JOIN rights AS r ON payload.id = r.id MAX_OUTPUT_ROWS 12 |> SELECT payload.id, r.other.score"
   let actual = compile(
     @query.parse_query(text, syntax_limits()).unwrap(),
     join_property_context(),
