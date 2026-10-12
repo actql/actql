@@ -19,6 +19,7 @@
 #include <string.h>
 #include <sys/file.h>
 #include <sys/ioctl.h>
+#include <sys/select.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <time.h>
@@ -243,10 +244,14 @@ moonbit_bytes_t actql_executor_slot_current_executable(void) {
 // Process control for a resident Site parent: a termination request is only
 // recorded here; the resident loop decides what to stop.
 static volatile sig_atomic_t actql_executor_slot_terminate_flag = 0;
+// Transport wake only. Consuming it never clears the termination request and
+// never proves cleanup, process exit or descendant retirement.
+static volatile sig_atomic_t actql_executor_slot_cleanup_wake = 0;
 
 static void actql_executor_slot_on_terminate(int signal_number) {
   (void)signal_number;
   actql_executor_slot_terminate_flag = 1;
+  actql_executor_slot_cleanup_wake = 1;
 }
 
 int32_t actql_executor_slot_install_termination(void) {
@@ -264,6 +269,36 @@ int32_t actql_executor_slot_install_termination(void) {
 
 int32_t actql_executor_slot_termination_requested(void) {
   return actql_executor_slot_terminate_flag ? 1 : 0;
+}
+
+// A pending holder may lose its input channel. Keep the same process/custody
+// alive without rereading EOF or using the already-true termination flag as a
+// polling condition. Block watched signals before checking/consuming the wake;
+// sigsuspend atomically restores their delivery while waiting.
+int32_t actql_executor_slot_wait_cleanup_signal(void) {
+  sigset_t watched, previous, waiting;
+  sigemptyset(&watched);
+  sigaddset(&watched, SIGTERM);
+  sigaddset(&watched, SIGINT);
+  if (sigprocmask(SIG_BLOCK, &watched, &previous) != 0) return -1;
+  waiting = previous;
+  sigdelset(&waiting, SIGTERM);
+  sigdelset(&waiting, SIGINT);
+  while (!actql_executor_slot_cleanup_wake) {
+    if (sigsuspend(&waiting) != -1 || errno != EINTR) {
+      (void)sigprocmask(SIG_SETMASK, &previous, NULL);
+      return -1;
+    }
+  }
+  actql_executor_slot_cleanup_wake = 0;
+  if (sigprocmask(SIG_SETMASK, &previous, NULL) != 0) return -1;
+  return 0;
+}
+
+// Failure to establish the mask cannot be an ACK or an immediate retry loop.
+// Park without a flag test until a later signal; progress is unconfirmed here.
+int32_t actql_executor_slot_park_cleanup_unconfirmed(void) {
+  return pause();
 }
 
 void actql_executor_slot_sleep_ms(int32_t milliseconds) {
@@ -407,11 +442,39 @@ moonbit_bytes_t actql_executor_slot_read_input_line(int32_t max_bytes) {
   }
   int32_t length = 0;
   char status = 'L';
-  while (true) {
+  sigset_t watched, previous;
+  sigemptyset(&watched);
+  sigaddset(&watched, SIGTERM);
+  sigaddset(&watched, SIGINT);
+  bool masked = sigprocmask(SIG_BLOCK, &watched, &previous) == 0;
+  if (!masked) status = 'X';
+  while (masked) {
+    // A request delivered before read must also reach the pending lifetime;
+    // do not block waiting for a second signal merely to interrupt this read.
+    if (actql_executor_slot_terminate_flag) {
+      status = 'X';
+      break;
+    }
+    // Atomically enable the original signal mask while waiting for this same
+    // channel. A signal between the flag check and wait cannot be lost. This
+    // holder is the sole reader; no other thread drains a ready byte.
+    fd_set readable;
+    FD_ZERO(&readable);
+    FD_SET(STDIN_FILENO, &readable);
+    int ready = pselect(1, &readable, NULL, NULL, NULL, &previous);
+    if (ready < 0) {
+      if (errno == EINTR && !actql_executor_slot_terminate_flag) continue;
+      status = 'X';
+      break;
+    }
+    if (actql_executor_slot_terminate_flag) {
+      status = 'X';
+      break;
+    }
     char byte;
     ssize_t count = read(0, &byte, 1);
     if (count < 0) {
-      if (errno == EINTR) continue;
+      if (errno == EINTR && !actql_executor_slot_terminate_flag) continue;
       status = 'X';
       break;
     }
@@ -427,6 +490,7 @@ moonbit_bytes_t actql_executor_slot_read_input_line(int32_t max_bytes) {
     buffer[length] = byte;
     length += 1;
   }
+  if (masked && sigprocmask(SIG_SETMASK, &previous, NULL) != 0) status = 'X';
   int32_t returned = status == 'L' ? length : 0;
   moonbit_bytes_t result = moonbit_make_bytes_raw(returned + 1);
   result[0] = (uint8_t)status;

@@ -215,6 +215,8 @@ pub fn client_program_compiled_run_result_transformation(@run_publication_host.C
 
 pub fn client_program_compiled_run_template(@run_publication_host.ClientCompiledRun) -> @run_publication.RunEvidenceValue
 
+pub fn client_program_current_run_view(@run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, String, String, String, Int, Int, Int) -> Result[String, @run_publication.RunControlReadIssue]
+
 pub fn client_program_definition_cid(@run_publication_host.PreparedClientProgram) -> String
 
 pub fn client_program_definition_json(@run_publication_host.PreparedClientProgram) -> Result[String, @run_publication_host.ClientIdentityMaterialIssue]
@@ -825,6 +827,8 @@ pub fn client_program_request_identity(@run_publication_host.PreparedClientProgr
 
 pub fn client_program_request_value_policy_subjects(@run_publication_host.PreparedClientProgram) -> Array[String] raise @program_check.UnitBuildFailure
 
+pub fn client_program_requires_acquisition_result_publication(@run_publication_host.PreparedClientProgram) -> Bool
+
 pub fn client_program_resource_reference_issuer((String, String) -> Bool, (String) -> Bool) -> @value_admission.ReferenceIssuer
 
 pub fn client_program_restore_source_capture(@query_planning.QueryRequirement, String, String, String, String, Array[String], @physical_resources.Ledger?, @client_local_host.ClientInstalledCaptureCapacity, () -> Bool, @value_admission.ReferenceIssuer?, (String, String, Array[String])?) -> Result[@client_local_host.ClientAccountedSourceCapture, @client_local_host.ClientSourceCaptureIssue]
@@ -1017,11 +1021,15 @@ pub fn client_program_task_pipeline_wire(@run_publication_host.PreparedClientPro
 
 pub fn client_program_task_plan_graph_wire(@run_publication_host.ClientTaskPlanGraph) -> String
 
+pub fn client_program_task_static_plan_view(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, Int, Int, Int) -> Result[String, @run_publication_host.ClientInteractivePlanIssue]
+
 pub fn client_program_uses_graph_carrier(@run_publication_host.PreparedClientProgram) -> Bool
 
 pub fn client_program_values_fragment_logical_cid(@run_publication_host.ClientValuesFragmentNode) -> String
 
 pub fn client_program_values_max_rows(@run_publication_host.PreparedClientProgram) -> Int
+
+pub fn client_program_values_static_plan_view(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, Int, Int, Int) -> Result[String, @run_publication_host.ClientInteractivePlanIssue]
 
 pub fn client_program_with_values_row_limit(@run_publication_host.PreparedClientProgram, Int) -> @run_publication_host.PreparedClientProgram?
 

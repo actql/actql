@@ -1,0 +1,84 @@
+{
+  "baseline": "2577d95d0f92f3ac02d2725de52db0b996b8f73e",
+  "input": "original Git fixture bodies; no compiled output",
+  "controls": [
+    {
+      "file": "src/query_program/join_current_row_prefix_test.mbt",
+      "helper": "staged_join_current_row_expected",
+      "originalHelperSha256": "df551d1a78465f8154003476bc543a6611ddbe64b37171f04f3f657fa2319a93",
+      "originalName": "join_current_row_expected",
+      "originalLiteralPartsSha256": [
+        "f9266efd465ac77bd253642d6e89bc96d9a48ba9b19b7e52187e908638ffa1b0",
+        "d2afb4b7ef78540db3d2a06395a183fe53d4226c37f1d9f22839ab2b9087bbe3",
+        "8bcdc17fc580be7fd6bb67a9b16b569e5caadf0d8299f03b318acef3131ad2b4"
+      ],
+      "currentHelper": "join_current_row_expected",
+      "bindingProfile": "chain",
+      "originalTestStringsCount": 23,
+      "originalTestStringsSha256": "4e52babd81c0efd8f69cda3c63bd9f09acb8893e71f7b8d9df5a64b7760f9baa"
+    },
+    {
+      "file": "src/query_program/join_pipe_edits_test.mbt",
+      "helper": "staged_join_pipe_edit_expected",
+      "originalHelperSha256": "602bf7eff8d36b21656413a107faefade11699f471b3eff992c848c565764540",
+      "originalName": "join_pipe_edit_expected",
+      "originalLiteralPartsSha256": [
+        "f9266efd465ac77bd253642d6e89bc96d9a48ba9b19b7e52187e908638ffa1b0",
+        "d2afb4b7ef78540db3d2a06395a183fe53d4226c37f1d9f22839ab2b9087bbe3",
+        "8bcdc17fc580be7fd6bb67a9b16b569e5caadf0d8299f03b318acef3131ad2b4"
+      ],
+      "currentHelper": "join_pipe_edit_expected",
+      "bindingProfile": "chain",
+      "originalTestStringsCount": 18,
+      "originalTestStringsSha256": "85437d82d0d537f123e233eaf77941c97e4e7d686ab76e55fc46854d4ea4f59e"
+    },
+    {
+      "file": "src/query_program/join_pipe_limit_tail_test.mbt",
+      "helper": "staged_join_pipe_limit_tail_expected",
+      "originalHelperSha256": "86c3d9732f870d3e8e34eb0ff147cdd0ca8885c45b8f2619f70accdf22a46c19",
+      "originalName": "join_pipe_limit_tail_expected",
+      "originalLiteralPartsSha256": [
+        "2c9ae0f7edb60fdaf3f14540ec5dce6a98b30f432a2f325f99878efdb79ac292",
+        "5ed4888a8818db481c781bc64f03d371a5d23dd9924fb22ff4167ef9dee85004",
+        "8bcdc17fc580be7fd6bb67a9b16b569e5caadf0d8299f03b318acef3131ad2b4"
+      ],
+      "currentHelper": "join_pipe_limit_tail_expected",
+      "bindingProfile": "specialized",
+      "originalTestStringsCount": 22,
+      "originalTestStringsSha256": "efcab05ad7d0e59c51307857070960dd7ac9f674c5b2f775fefbdb3f39fdacaf"
+    },
+    {
+      "file": "src/query_program/join_pipe_distinct_test.mbt",
+      "helper": "staged_join_pipe_distinct_expected",
+      "originalHelperSha256": "66d254d4ea8580cbc5813e2ac48baf1b198974494aa8323841043e046d8da8aa",
+      "originalName": "join_pipe_distinct_expected",
+      "originalLiteralPartsSha256": [
+        "6f5f9b797db207d6cebe72a396d3c4624e9f2598b946d068a3ab3348069bce17"
+      ],
+      "currentHelper": "join_pipe_distinct_expected",
+      "bindingProfile": "chain",
+      "originalTestStringsCount": 9,
+      "originalTestStringsSha256": "51dd977110926cc02a44e8b2da876bac6dc7289c456e7fa217a8c69f2671a604"
+    },
+    {
+      "file": "src/query_program/pipe_set_target_scope_test.mbt",
+      "helper": "staged_set_current_range_expected",
+      "originalLiteralSha256": "75b7e1faa6a4d870c4110b3a96aacd1cb80e007061b0a378be8006d1846a4cf1",
+      "originalLiteralPartsSha256": [],
+      "currentHelper": "set_current_range_expected",
+      "bindingProfile": "chain",
+      "originalTestStringsCount": 33,
+      "originalTestStringsSha256": "1a7ba962d2a19e3e7e86d6200dc91a403ea70eab19d72f8588f49d5a3e591def"
+    },
+    {
+      "file": "src/query_program/pipe_rename_target_scope_test.mbt",
+      "helper": "staged_rename_current_ranges_expected",
+      "originalLiteralSha256": "34b34a8e9dcdfdd5874ea7cf43854b587dbee230a337f253f35b66f7a8ef8534",
+      "originalLiteralPartsSha256": [],
+      "currentHelper": "rename_current_ranges_expected",
+      "bindingProfile": "chain",
+      "originalTestStringsCount": 25,
+      "originalTestStringsSha256": "0106f74f3c4e977416d56b627cff4319d984477ec3e94184c6f13523f25a4e4a"
+    }
+  ]
+}
