@@ -17,10 +17,33 @@ try:
     physical_bytes = sys.getsizeof(payload)
     handle = left.copy(1, payload, physical_bytes)
     assert json.loads(payload) == {'e\u0301/~😀': 'e\u0301\r\n😀', 'nullable': None, 'n': 1}
+    # Allocation writes also require their original confirmed Writing parent.
+    assert left.exports['actql_payload_allocation_reserve'](
+        left.store, left.nonce, handle, 1, 65000, 131300) == -2
+    assert left.exports['actql_payload_allocation_produce'](
+        left.store, left.nonce, handle, handle, handle) == -2
+    assert left.exports['actql_payload_allocation_validate'](
+        left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_payload_allocation_begin'](
+        left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_payload_allocation_confirm'](
+        left.store, left.nonce, handle, handle, handle) == -2
+    assert left.exports['actql_payload_allocation_close'](
+        left.store, right.nonce, handle) == -2
     assert left.call('allocated') == 2 * len(payload) + physical_bytes
     assert left.call('reserved') == 256
     assert right.exports['actql_buffer_byte'](right.store, left.nonce, handle, 0) == -1
     assert right.reads == 0
+    # Sealed binding custody cannot be acquired from an arbitrary input loan.
+    assert left.exports['actql_payload_binding_reserve'](
+        left.store, left.nonce, handle, 3, 131300) == -2
+    for name in ('produce', 'validate'):
+        assert left.exports['actql_payload_binding_' + name](
+            left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_payload_binding_length'](
+        left.store, left.nonce, handle) == -2
+    assert left.exports['actql_payload_binding_close'](
+        left.store, right.nonce, handle) == -2
     # Completion cannot be synthesized from arbitrary transport handles.
     assert left.exports['actql_compute_reserve'](left.store, left.nonce, handle, handle) == -2
     assert left.exports['actql_compute_configure'](left.store, left.nonce, handle) == -2
@@ -45,6 +68,12 @@ try:
         left.store, left.nonce, handle, handle) == -2
     assert left.exports['actql_publication_commit_export_reserve'](
         left.store, left.nonce, handle, 2, 2097200) == -2
+    assert left.exports['actql_publication_commit_export_count'](
+        left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_publication_commit_export_produce_material'](
+        left.store, right.nonce, handle, handle, 0, 0) == -2
+    assert left.exports['actql_publication_commit_export_produce_index_key'](
+        left.store, right.nonce, handle, handle) == -2
     assert left.exports['actql_publication_commit_export_produce'](
         left.store, left.nonce, handle, handle) == -2
     assert left.exports['actql_publication_commit_export_length'](
@@ -61,6 +90,17 @@ try:
         left.store, left.nonce, handle) == -2
     assert left.exports['actql_result_binding_close'](
         left.store, left.nonce, handle) == -2
+    # Writing and physical ownership need the original confirmed Core record.
+    assert left.exports['actql_payload_writing_reserve'](
+        left.store, left.nonce, handle, 1, 65000, 131300) == -2
+    assert left.exports['actql_payload_writing_produce'](
+        left.store, left.nonce, handle, handle, handle) == -2
+    assert left.exports['actql_payload_writing_begin'](
+        left.store, left.nonce, handle, handle) == -2
+    assert left.exports['actql_payload_writing_confirm'](
+        left.store, left.nonce, handle, handle, handle) == -2
+    assert left.exports['actql_payload_writing_close'](
+        left.store, right.nonce, handle) == -2
     assert left.call('allocated') == 2 * len(payload) + physical_bytes
     # Individually valid reservations still exceed one aggregate allowance.
     assert left.call('reserve', 2, len(payload), 128) == -4

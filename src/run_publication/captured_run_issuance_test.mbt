@@ -5,6 +5,8 @@ priv struct CapturedRunTestChain {
   observation : RunEvidenceValue
   definition : PublicationContract
   artifact : PublicationContract
+  evidence : ResultOrderingEvidence
+  retention : PublicationContract
   manifest : PublicationContract
   receipt : PublicationContract
   authoring : RunEvidenceValue
@@ -34,6 +36,7 @@ fn captured_test_wire(value : @json.CanonicalValue) -> String {
 fn captured_run_test_chain(
   with_model? : Bool = false,
   logical_cid? : String? = None,
+  schema_cid? : String = ordering_test_cid("9"),
 ) -> CapturedRunTestChain {
   let program = ordering_test_cid("8")
   let template = receipt_test_template(program)
@@ -69,7 +72,7 @@ fn captured_run_test_chain(
   let evidence = issue_result_occurrence_evidence(
     definition,
     logical_cid.unwrap_or(logical),
-    ordering_test_cid("9"),
+    schema_cid,
     ordering_test_cid("a"),
     [],
     ordering_test_cid("b"),
@@ -131,6 +134,8 @@ fn captured_run_test_chain(
     observation,
     definition,
     artifact,
+    evidence,
+    retention,
     manifest,
     receipt,
     authoring,

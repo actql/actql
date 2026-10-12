@@ -1,0 +1,12 @@
+{
+  "description": "Independent prepared private ABI33 final-name physical stop before original Core Sealed preparation. Exact payload/digest matches the previously frozen Result storage preimage, not new product output. Actual module not executed. No Store installation or publication authority.",
+  "object_name": "payload-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "byte_count": 12,
+  "physical_digest": "sha256:eb9a6cfb7dc9e43152fefb085f2004515b205c9b084ac6fbc785958eb3d8138d",
+  "cases": [
+    "original_owned_names_and_complete_bounded_snapshot_precede_final_io",
+    "lost_stop_ack_retains_original_cursor_slot_without_final_acquisition",
+    "same_actual_stop_observation_and_current_context_continue_original_final_work",
+    "final_physical_facts_keep_original_writing_record_and_store_reservation"
+  ]
+}
