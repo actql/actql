@@ -39,7 +39,8 @@ test "P2 Lag text preserves scoped fields output order and optional offset" {
   for (suffix, expected) in [("", ""), (", offset: 2", ",\"offset\":2")] {
     let actual = with_carrier_program(lag_source_text(
       "lag(partition_by: [], order_by: [{field: r.AMOUNT, dir: 'desc', nulls: 'last'}], field: r.amount, output: previous" + suffix + ")",
-    ), { ..pair_context(), inputs: [], }).unwrap()
+    ), { ..pair_context(), inputs: [], })
+    let actual = match actual { Ok(p) => p; Err(issue) => raise issue }
     let control = lag_source_control(
       "{\"partition_by\":[],\"order_by\":[{\"field\":\"amount\",\"dir\":\"desc\",\"nulls\":\"last\"}],\"field\":\"amount\",\"output\":\"previous\"" + expected + "}",
     )
@@ -53,7 +54,8 @@ test "P2 Lag text preserves scoped fields output order and optional offset" {
 test "P2 Lag text preserves shorthand order duplicates and whole offset Parameter" {
   let actual = with_carrier_program(lag_source_text(
     "lag(partition_by: [r.ID, id], order_by: [{r.amount: 'desc'}], field: amount, output: previous, offset: @p)",
-  ), { ..pair_context(), inputs: [], parameter_declarations: Some(number_parameter_declarations()), }).unwrap()
+  ), { ..pair_context(), inputs: [], parameter_declarations: Some(number_parameter_declarations()), })
+  let actual = match actual { Ok(p) => p; Err(issue) => raise issue }
   let control = lag_source_control(
     "{\"partition_by\":[\"id\",\"id\"],\"order_by\":[{\"amount\":\"desc\"}],\"field\":\"amount\",\"output\":\"previous\",\"offset\":{\"$param\":\"p\"}}",
     parameters=true,
