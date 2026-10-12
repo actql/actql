@@ -55,6 +55,18 @@ test('generator preserves operation-specific array ceilings', () => {
   }));
 });
 
+test('generator preserves exact positional records without permissive tuple fallback', () => {
+  const exact = {type: 'array', prefixItems: [{type: 'string'}, {type: 'boolean'}],
+    items: false, minItems: 2, maxItems: 2};
+  assert.doesNotThrow(() => emitSchema(exact));
+  assert.doesNotThrow(() => emitSchema({type: 'array', prefixItems: [],
+    items: false, minItems: 0, maxItems: 0}));
+  for (const change of [{items: {}}, {minItems: 1}, {maxItems: 3},
+    {prefixItems: {}}, {uniqueItems: true}]) {
+    assert.throws(() => emitSchema({...exact, ...change}), /Unsupported tuple/);
+  }
+});
+
 test('generator keeps object-scoped Effect branch constraints', () => {
   assert.doesNotThrow(() => emitSchema({
     type: 'object',

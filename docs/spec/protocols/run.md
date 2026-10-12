@@ -999,3 +999,62 @@ Syntax alone does not certify a code or price. A future supported Guard must
 strictly match its currency to the selected revision-bound tariff and covered
 scope, including support and freshness. This registration creates neither a
 currency Catalog nor a price Owner; read-only P1 advertises cost unsupported.
+
+<a id="original-model-resource-state"></a>
+## Original Model resource state
+
+The private `original_model_state` Store role carries Model-bound original
+resource evidence. Its owned binding artifact is
+`actql-model-original-resource-state/0.1`; the role and wire version name
+different abstraction levels. It has no self-CID or self-holding field.
+The selected Store receipt content-addresses the complete bytes independently.
+Registration alone establishes no restored Ledger, physical profile or send grant.
+
+<!-- requirement-block: original-resource.closed-binding -->
+The original checked Run/Model resource Owner MUST issue and validate the closed
+origin against its original Run ID, RunDefinition CID, PreparedInvocation CID,
+Host policy, execution context, Program and parameter identities, inference
+barrier, selected immutable runtime/layout/response profile and actual private
+Store binding, without deriving these facts from the decoded packet or current
+configuration alone.
+
+<!-- requirement-block: original-resource.original-bytes -->
+The resource state CID MUST identify the existing Writer's exact UTF-8 bytes,
+including the original decimal integer strings and positional record order,
+without configuration normalization, reserialized aggregate usage or a self-CID cycle.
+
+<!-- requirement-block: original-resource.preparation-not-current -->
+A preparation-base document MUST remain original preparation evidence with a
+null cut, never a current post-startup Ledger or a usable restoration grant.
+
+<!-- requirement-block: original-resource.current-cut -->
+The same Core resource/Model Owner MUST hold current-cut custody in its opaque
+stable parked/stopping phase, bind a complete current census and the actual
+Run version, full ordered Slot/Entry/settlement vector and resume-intent fence,
+and invalidate the cut in the existing journal before unpark, entry or resource
+mutation can proceed; Run version alone cannot establish unchanged resources.
+
+<!-- requirement-block: original-resource.ack-and-admission -->
+Restoration admission MUST verify the original selected namespace, key generation,
+derived holding, actual Store acknowledgement, content CID and same-journal CAS,
+then recheck every current fence after awaits before the original resource Owner
+atomically admits exact reservation/holding/delegation/quantity/spent-serial state.
+
+<!-- requirement-block: original-resource.no-send -->
+Restored resource evidence MUST NOT grant Model send, change unknown attempts to
+unsent, reset or refund original usage, repair old records with new grants or
+replace the original current-authority and reconciliation checks.
+
+<!-- requirement-block: original-resource.custody -->
+Original Model state MUST retain its existing Store/cleanup custody while
+Retained Result, unknown reconciliation or pending cleanup requires it, including
+failed retirement/close and retry, rather than deriving safe disposal from a
+generic terminal flag alone.
+
+<!-- requirement-block: original-resource.bootstrap -->
+The trusted installed physical envelope MUST fund metadata bytes, holding-entry
+and directory acquisition, bounded codec and all simultaneous retained/workspace
+before acquisition or allocation, refusing unavailable or unjustified supply
+rather than substituting object-byte limits, guessed coefficients or spare limits.
+
+<!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_original_resource_state sha256:6be8dc0eec799400cb68173ac39ee88c49d9af80cabc762a62a8bdceddf778df -->
