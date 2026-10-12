@@ -250,3 +250,17 @@ marker, source restoration, immutable original and actual executable/log checks
 remain mandatory. Success establishes only this finite holding-token/retirement
 correspondence. Whole-parent physical bounds, arbitrary retention generations,
 other execution paths, Hosted originals and CI reuse/savings remain separate.
+
+## Content-boundary construction correspondence
+
+The source review retains the previous selected digest and recipe digest.
+Current `InferBoundary` / `SerializationBoundary` step dispatch is admitted only
+when removing the two exact alternatives recovers the entire reviewed selected
+source. Likewise, removing the two new exclusions in the generated row-kernel
+predicate must recover its entire previous reviewed source. The recipe may
+change only the corresponding selected-source identity: normalizing that one
+digest must reproduce the previous recipe bytes. Unknown, duplicate or altered
+branches remain rejected. This is historical comparison, never a runtime alias.
+The factory, state, capacity and capture bodies and all numeric model premises
+are unchanged. Execution of these boundaries, output/cancellation custody and
+physical lifetime remain independent obligations.
