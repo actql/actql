@@ -8,7 +8,7 @@ import secrets
 from typing import Any
 
 from . import _wire
-from ._local_storage import LocalByteStore, LocalStorageError
+from ._local_storage import ByteFence, LocalByteStore, LocalStorageError
 
 _KEY = 'submission-epoch-authority'
 _MAX_TTL = 7 * 24 * 60 * 60 * 1000
@@ -59,8 +59,13 @@ class LocalSubmissionAuthority:
 
     def __init__(self, store: LocalByteStore, project: Callable[[int, bytes], bytes], *,
                  now: Callable[[], int], ttl_ms: int = _MAX_TTL) -> None:
-        if type(ttl_ms) is not int or not 1 <= ttl_ms <= _MAX_TTL:
+        if (type(store) is not LocalByteStore or not callable(project) or not callable(now)
+                or type(ttl_ms) is not int or not 1 <= ttl_ms <= _MAX_TTL):
             raise ValueError('Invalid Local Submission epoch interval')
+        self._original = self
+        self._retained_key: bytes | None = None
+        self._observed_clock = 0
+        self._custody_fence: ByteFence | None = None
         self._store = store
         self._project = project
         self._now = now
@@ -78,9 +83,20 @@ class LocalSubmissionAuthority:
             except LocalStorageError as original:
                 raise LocalSubmissionIdentityError('Local Submission authority creation is unknown') from original
         # Validate retained custody before exposing any issued epoch.
-        self._clock(advance=False)
+        self._retained_key, self._observed_clock = self._clock(advance=False)
 
     def _clock(self, *, advance: bool = True) -> tuple[bytes, int]:
+        if self._original is not self:
+            raise LocalSubmissionIdentityError('Copied Local Submission authentication custody')
+        # Serialize only physical read/CAS and its retained observation. Core
+        # projection runs after this lock is released, keeping Core -> Store
+        # order and avoiding a separate authority/Run state machine.
+        with self._store._lock:
+            return self._clock_locked(advance=advance)
+
+    def _clock_locked(self, *, advance: bool) -> tuple[bytes, int]:
+        if self._original is not self:
+            raise LocalSubmissionIdentityError('Copied Local Submission authentication custody')
         row = self._store.read(_KEY)
         if row is None:
             raise LocalSubmissionIdentityError('Local Submission authentication custody is missing')
@@ -90,6 +106,11 @@ class LocalSubmissionAuthority:
                 type(body['observed_at']) is not int or not 0 <= body['observed_at'] <= _MAX_CLOCK):
             raise LocalSubmissionIdentityError('Local Submission authentication custody is corrupt')
         clock = body['observed_at']
+        key = bytes.fromhex(body['authentication_key'])
+        if ((self._retained_key is not None and key != self._retained_key)
+                or clock < self._observed_clock):
+            raise LocalSubmissionIdentityError('Original Local Submission authentication custody changed')
+        self._custody_fence = ByteFence(_KEY, row.generation, row.payload)
         if advance:
             now = self._now()
             if type(now) is not int or not 0 <= now <= _MAX_CLOCK:
@@ -103,7 +124,27 @@ class LocalSubmissionAuthority:
                         raise LocalSubmissionIdentityError('Local Submission clock persistence is unknown')
                 except LocalStorageError as original:
                     raise LocalSubmissionIdentityError('Local Submission clock persistence is unknown') from original
-        return bytes.fromhex(body['authentication_key']), clock
+        self._observed_clock = clock
+        return key, clock
+
+    def observe_custody(self) -> None:
+        """Observe the same key/clock without issuing, advancing or projecting.
+
+        This physical observation is not an epoch's validity, an Account grant
+        or permission to send an operation. It never repairs lost custody.
+        """
+        self._clock(advance=False)
+
+    def custody_fence(self) -> ByteFence:
+        """Pin the observed physical row for the same read-only Store snapshot.
+
+        A later explicit epoch issuance can advance the clock; its next frame
+        observes a new fence. This is not a reference-validity or Allow proof.
+        """
+        with self._store._lock:
+            self.observe_custody()
+            assert self._custody_fence is not None
+            return self._custody_fence
 
     def _projection(self, kind: int, body: dict[str, Any]) -> dict[str, Any]:
         result = _json(self._project(kind, json.dumps(body, ensure_ascii=False,

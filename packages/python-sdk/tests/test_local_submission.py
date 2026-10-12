@@ -113,3 +113,47 @@ class LocalSubmissionAuthenticationTests(unittest.TestCase):
                 authority._project = lambda kind, payload, raw=raw: raw
                 with self.assertRaises(LocalSubmissionIdentityError):
                     authority.identity(ref)
+
+    def test_retained_key_or_clock_replacement_refuses_before_projection(self):
+        for change in ('key', 'clock'):
+            with self.subTest(change=change), TemporaryDirectory() as directory:
+                with self.store(Path(directory) / 'core.sqlite') as store:
+                    projected = []
+                    authority = LocalSubmissionAuthority(store, lambda *args: projected.append(args), now=lambda: 10)
+                    authority._clock()
+                    row = store.read('submission-epoch-authority')
+                    body = json.loads(row.payload)
+                    body['authentication_key' if change == 'key' else 'observed_at'] = (
+                        ('0' if body['authentication_key'] != '0' * 64 else '1') * 64 if change == 'key' else 9)
+                    store.compare_exchange('submission-epoch-authority', row.generation, json.dumps(body).encode())
+                    with self.assertRaisesRegex(LocalSubmissionIdentityError, 'custody changed'):
+                        authority.observe_custody()
+                    with self.assertRaises(LocalSubmissionIdentityError):
+                        authority.issue_epoch(SCOPE)
+                    self.assertEqual(projected, [])
+
+    def test_custody_fence_is_read_only_and_follows_explicit_clock_progress(self):
+        with TemporaryDirectory() as directory, self.store(Path(directory) / 'core.sqlite') as store:
+            projected = []
+            authority = LocalSubmissionAuthority(store, lambda *args: projected.append(args), now=lambda: 10)
+            changes = store._connection.total_changes
+            first = authority.custody_fence()
+            self.assertIsNone(authority.observe_custody())
+            self.assertEqual(authority.custody_fence(), first)
+            self.assertEqual(store._connection.total_changes, changes)
+            self.assertEqual(projected, [])
+            authority._clock()
+            second = authority.custody_fence()
+            self.assertEqual(second.generation, first.generation + 1)
+            self.assertEqual(json.loads(second.payload)['observed_at'], 10)
+            self.assertEqual(json.loads(first.payload)['observed_at'], 0)
+
+    def test_copied_authentication_custody_cannot_read_or_issue(self):
+        with TemporaryDirectory() as directory, self.store(Path(directory) / 'core.sqlite') as store:
+            authority = LocalSubmissionAuthority(store, self.projector, now=lambda: 0)
+            copied = copy.copy(authority)
+            with patch.object(store, 'read', side_effect=AssertionError('copied authentication IO')):
+                for action in (copied.observe_custody, copied.custody_fence,
+                               lambda: copied.issue_epoch(SCOPE)):
+                    with self.assertRaises(LocalSubmissionIdentityError):
+                        action()
