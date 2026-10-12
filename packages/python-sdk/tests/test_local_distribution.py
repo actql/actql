@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import patch
 
 from actql_sdk._local_distribution import (
-    inspect_local_components, installed_local_components, LocalInstallationError,
+    inspect_local_components, installed_local_components, load_local_module, LocalInstallationError,
 )
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -51,6 +51,31 @@ class LocalDistributionTests(unittest.TestCase):
         self.assertEqual(result.duckdb, self.directory / 'libduckdb.dylib')
         self.assertEqual(result.source_sha, 'a' * 40)
         self.assertEqual(result.duckdb_version, 'v1.4.3')
+
+    def test_loaded_module_is_the_same_bounded_digest_checked_bytes(self):
+        components = self.inspect()
+        expected = b'fixture component client_host_wasm.wasm'
+        with patch('actql_sdk._local_core.import_module', side_effect=AssertionError('Engine imported')):
+            self.assertEqual(load_local_module(components), expected)
+        components.module.write_bytes(b'x' * len(expected))
+        with self.assertRaisesRegex(LocalInstallationError, 'digest mismatched'):
+            load_local_module(components)
+
+    def test_module_replacement_symlink_and_growth_reject_before_engine_import(self):
+        components = self.inspect()
+        original = components.module.read_bytes()
+        outside = self.directory / 'outside.wasm'
+        outside.write_bytes(original)
+        components.module.unlink()
+        components.module.symlink_to(outside)
+        with patch('actql_sdk._local_core.import_module', side_effect=AssertionError('Engine imported')):
+            with self.assertRaisesRegex(LocalInstallationError, 'unavailable'):
+                load_local_module(components)
+            components.module.unlink()
+            with components.module.open('wb') as source:
+                source.truncate(32 * 1024 * 1024 + 1)
+            with self.assertRaisesRegex(LocalInstallationError, 'size'):
+                load_local_module(components)
 
     def test_manifest_cohort_abi_and_closed_fields_reject(self):
         original = dict(self.body)

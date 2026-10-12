@@ -48,7 +48,7 @@ def _hex(value: object, length: int) -> bool:
 
 
 def _read_file(path: Path, *, maximum: int, expected: int | None = None,
-               digest: str | None = None) -> bytes:
+               digest: str | None = None, capture: bool = False) -> bytes:
     # Installed wheels are ordinary files. Never extract a zip, follow a
     # component symlink, or search a development/Node installation.
     with os.fdopen(os.open(path, os.O_RDONLY | os.O_NOFOLLOW), 'rb') as source:
@@ -57,7 +57,7 @@ def _read_file(path: Path, *, maximum: int, expected: int | None = None,
                 or expected is not None and before.st_size != expected):
             raise LocalInstallationError('Invalid installed Local component size')
         checksum = hashlib.sha256()
-        header = b''
+        captured = bytearray() if digest is None or capture else None
         remaining = before.st_size
         while remaining:
             block = source.read(min(65536, remaining))
@@ -65,15 +65,15 @@ def _read_file(path: Path, *, maximum: int, expected: int | None = None,
                 raise LocalInstallationError('Incomplete installed Local component')
             checksum.update(block)
             remaining -= len(block)
-            if digest is None:
-                header += block
+            if captured is not None:
+                captured.extend(block)
         after = os.fstat(source.fileno())
         if (source.read(1) or (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns,
                               before.st_ctime_ns) != (after.st_dev, after.st_ino, after.st_size,
                                                       after.st_mtime_ns, after.st_ctime_ns)
                 or digest is not None and checksum.hexdigest() != digest):
             raise LocalInstallationError('Installed Local component changed or digest mismatched')
-        return header
+        return bytes(captured) if captured is not None else b''
 
 
 def _component(root: Path, value: Any, filename: str, maximum: int) -> tuple[Path, str]:
@@ -146,3 +146,19 @@ def installed_local_components() -> LocalComponents:
         return inspect_local_components(root, package_version=version)
     except (metadata.PackageNotFoundError, ModuleNotFoundError) as original:
         raise LocalInstallationError('Python Local requires the actql-sdk[local] installation') from original
+
+
+def load_local_module(components: LocalComponents) -> bytes:
+    """Acquire bounded bytes and validate their digest on the same descriptor.
+
+    Prior component inspection does not authorize an unchecked later reread.
+    The trusted Host must account for the load/compile phase before calling
+    this function; a file-size cap is not a total Wasmtime memory guarantee.
+    """
+    if type(components) is not LocalComponents or not _hex(components.module_sha256, 64):
+        raise LocalInstallationError('Invalid installed Local module descriptor')
+    try:
+        return _read_file(components.module, maximum=32 * 1024 * 1024,
+                          digest=components.module_sha256, capture=True)
+    except OSError as original:
+        raise LocalInstallationError('Installed Local module is unavailable') from original
