@@ -624,10 +624,10 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         originalResourceReadCurrent(park);
         // Validate the installed runtime before Store I/O and use the original
         // envelope before even limit-snapshot/validation temporary allocation.
-        if (['clientProgramAdvanceInferOriginalCurrentStateComparisonWithMatch',
-          'clientProgramInferOriginalCurrentStateMatchPoll',
-          'clientProgramInferOriginalCurrentStateMatchCurrent',
-          'clientProgramRetireInferOriginalCurrentStateMatch'].some(name => typeof moon[name] !== 'function')) {
+        if (typeof moon.clientProgramAdvanceInferOriginalCurrentStateComparisonWithMatch !== 'function' ||
+            typeof moon.clientProgramInferOriginalCurrentStateMatchPoll !== 'function' ||
+            typeof moon.clientProgramInferOriginalCurrentStateMatchCurrent !== 'function' ||
+            typeof moon.clientProgramRetireInferOriginalCurrentStateMatch !== 'function') {
           fail('ModelOriginalCurrentCutUnavailable');
         }
         const acquisition = operation.originalMetadataAcquisition(park);
