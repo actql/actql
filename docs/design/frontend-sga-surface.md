@@ -207,7 +207,7 @@ The first operation changes the current Carrier to Relation.
 WITH reached AS (FROM g
   |> reach(start: "A", direction: "out", max_depth: 2)),
      neighborhood AS (FROM g
-  |> subgraph(nodes: {from: reached, id: "node_id"})),
+  |> subgraph(nodes: {from: reached, id: node_id})),
      rows AS (FROM neighborhood |> node_rows() |> SELECT id)
 FROM rows |> SELECT id |> RESULT nodes
 ```
