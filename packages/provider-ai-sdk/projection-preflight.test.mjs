@@ -7,7 +7,8 @@ const corpus=JSON.parse(readFileSync(new URL('../../portability/corpus/openai-ch
 
 // Actual pinned SDK and fixed transport; Core/persistence ports are doubles.
 // This exercises the consuming preparation shape, not public funding/admission.
-function fixture({abort,issueAt,retireFailure=false,foreignBinding=false}={}) {
+function fixture({abort,issueAt,retireFailure=false,foreignBinding=false,
+  projectionLimits={maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:10000}}={}) {
   const request={},provider={},cursor={},entry={};
   const counts={starts:0,advances:0,retire:0,fetch:0,plans:0,generation:0,saves:0};
   const projected={_0:corpus.prompt.payload.instructions,
@@ -16,7 +17,8 @@ function fixture({abort,issueAt,retireFailure=false,foreignBinding=false}={}) {
     _4:corpus.prompt.self_cid,_5:corpus.task.output_schema_cid,_6:'fixture-chat'};
   const checked=value=>{if(value.$tag===1)return value._0;throw Error('CoreRefused');};
   const moon={
-    clientProgramStartOpenAIChatProjection(p,r){assert.equal(p,provider);assert.equal(r,request);counts.starts++;return {$tag:1,_0:cursor};},
+    clientProgramStartOpenAIChatProjection(p,r,...bounds){assert.equal(p,provider);assert.equal(r,request);
+      assert.deepEqual(bounds,[10000,1000,40,100,10000]);counts.starts++;return {$tag:1,_0:cursor};},
     clientProgramAdvanceOpenAIChatProjection(c){assert.equal(c,cursor);counts.advances++;
       return counts.advances===issueAt?{$tag:0,_0:'limit'}:{$tag:1,_0:counts.advances<3?undefined:projected};},
     clientProgramRetireOpenAIChatProjection(c){assert.equal(c,cursor);counts.retire++;
@@ -34,7 +36,7 @@ function fixture({abort,issueAt,retireFailure=false,foreignBinding=false}={}) {
   const port=createAdmittedOpenAIChatPreflight({moon,request,admittedProvider:provider,
     taskCid:foreignBinding?'foreign':corpus.task.contract_cid,
     promptCid:corpus.prompt.self_cid,outputSchemaCid:corpus.task.output_schema_cid,
-    modelSelector:'fixture-chat',projectionLimits:{maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:10000},
+    modelSelector:'fixture-chat',projectionLimits,
     modelId:'gpt-4.1-nano',baseURL:'https://fixture.invalid/v1',apiKey:'fixture-only',
     maxRequestBytes:4096,maxHeaderBytes:4096,maxHeaders:16,signal:abort?.signal,
     notify(){},checked,profile:{},installation:{},quantities:{tokens:16n,costUnits:0n,durationMs:500n},
@@ -113,4 +115,13 @@ test('invalid physical installation refuses before allocating a Common child',()
     projectionLimits:{maxBytes:100,maxNodes:10,maxDepth:4,maxFrames:10,maxWork:100}}),
   {message:'InvalidSdkModelPort'});
   assert.equal(starts,0);
+});
+
+test('installation bounds are snapshotted before lazy child allocation',()=>{
+  const projectionLimits={maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:10000};
+  const f=fixture({projectionLimits});
+  projectionLimits.maxBytes=2_147_483_647;projectionLimits.maxWork=0;
+  assert.deepEqual(f.port.preflight.advance(),{_0:false,_1:undefined});
+  assert.equal(f.counts.starts,1);assert.equal(f.counts.generation,0);
+  assert.equal(f.port.preflight.cleanup(),true);
 });

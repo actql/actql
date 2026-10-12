@@ -98,6 +98,16 @@ export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
   request,taskCid,promptCid,outputSchemaCid,modelSelector,projectionLimits,
   modelId,baseURL,apiKey,maxRequestBytes,maxHeaderBytes,maxHeaders,signal,
   notify,...port}) {
+  const fields=['maxBytes','maxDepth','maxFrames','maxNodes','maxWork'];
+  if (projectionLimits===null || typeof projectionLimits!=='object' ||
+      Array.isArray(projectionLimits) ||
+      Object.keys(projectionLimits).sort().join(',')!==fields.join(',') ||
+      fields.some(name=>!Number.isSafeInteger(projectionLimits[name]) ||
+        projectionLimits[name]<(name==='maxWork'?0:1) ||
+        projectionLimits[name]>2_147_483_647)) {
+    throw new TypeError('InvalidOpenAIProjectionLimits');
+  }
+  const bounds=Object.freeze({...projectionLimits});
   if (typeof moon.clientProgramStartOpenAIChatProjection !== 'function' ||
       typeof moon.clientProgramAdvanceOpenAIChatProjection !== 'function' ||
       typeof moon.clientProgramRetireOpenAIChatProjection !== 'function') {
@@ -113,8 +123,8 @@ export function createAdmittedOpenAIChatPreflight({moon,admittedProvider,
       // allocated. A constructor refusal must not lose an issued cursor.
       if (cursor===undefined) {
         cursor=port.checked(moon.clientProgramStartOpenAIChatProjection(
-          admittedProvider,request,projectionLimits.maxBytes,projectionLimits.maxNodes,
-          projectionLimits.maxDepth,projectionLimits.maxFrames,projectionLimits.maxWork));
+          admittedProvider,request,bounds.maxBytes,bounds.maxNodes,
+          bounds.maxDepth,bounds.maxFrames,bounds.maxWork));
         return {kind:'pending'};
       }
       const value=port.checked(moon.clientProgramAdvanceOpenAIChatProjection(cursor));
