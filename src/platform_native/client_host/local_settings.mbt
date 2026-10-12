@@ -241,25 +241,16 @@ pub fn NativeLocalHostConnection::authority_scope_cid(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  if principal.is_empty() ||
-    principal.length() > 512 ||
-    connection.is_empty() ||
-    connection.length() > 512 {
-    return Err(InvalidInput)
-  }
   let body = match
-    local_adoption_record([
-      (
-        "account_configuration_cid",
-        self.session.configuration.configuration_cid(),
-      ),
-      ("adoption_cid", self.adoption_cid),
-      ("connection", connection),
-      ("principal", principal),
-      ("version", "actql-native-local-authority-scope/0.1"),
-    ]) {
+    @host.client_local_authority_scope_body(
+      self.session.configuration,
+      self.adoption_cid,
+      principal,
+      connection,
+    ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(@host.InvalidInput) => return Err(InvalidInput)
+    Err(@host.Encoding) => return Err(Encoding)
   }
   local_adoption_digest(crypto, body)
 }

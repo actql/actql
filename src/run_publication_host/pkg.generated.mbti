@@ -464,6 +464,8 @@ pub fn client_infer_saved_call_scope_matches_run(ClientInferSavedCallScope, Clie
 
 pub fn client_journal_issuance_count(Bytes, Int) -> Result[Int, ClientJournalDecodingIssue]
 
+pub fn client_local_authority_scope_body(@execution_authorization.AdmittedAccountConfiguration, String, String, String) -> Result[Bytes, ClientLocalAuthorityScopeIssue]
+
 pub fn client_local_completion_free_catalog_cid() -> String
 
 pub fn client_local_product_assets() -> ClientLocalProductAssets
@@ -1975,6 +1977,11 @@ pub(all) struct ClientJournalPhysicalRow {
   body : Bytes
   revision : Int64
 }
+
+pub(all) enum ClientLocalAuthorityScopeIssue {
+  InvalidInput
+  Encoding
+} derive(Eq, @debug.Debug)
 
 type ClientLocalNormalization
 
