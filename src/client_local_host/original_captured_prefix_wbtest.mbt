@@ -18,10 +18,18 @@ priv struct OriginalCapturedPrefixFixture {
 }
 
 ///|
-fn original_captured_prefix_fixture() -> OriginalCapturedPrefixFixture {
-  let (prepared, compiled, definition, plan) = original_prefix_execution_fixture(
-    source=true,
-  )
+fn original_captured_prefix_fixture(
+  checked? : (
+    @publication_host.PreparedClientProgram,
+    @publication_host.ClientCompiledRun,
+    @publication.PublicationContract,
+    @publication_host.ClientInferPlanGraph,
+  )? = None,
+) -> OriginalCapturedPrefixFixture {
+  let (prepared, compiled, definition, plan) = match checked {
+    Some(value) => value
+    None => original_prefix_execution_fixture(source=true)
+  }
   let execution : @execution.SequenceExecutionLimits = {
     rows: {
       max_rows: 2,
@@ -249,6 +257,9 @@ test "original captured Source executes the checked sorted prefix without reacqu
 test "original captured prefix rejects foreign capture wrong coordinates and descriptor issuance before a new reservation" {
   let value = original_captured_prefix_fixture()
   let foreign = original_captured_prefix_fixture()
+  let other_ledger = original_captured_prefix_fixture(
+    checked=Some((value.prepared, value.compiled, value.definition, value.plan)),
+  )
   let before = @resources.ledger_usage(value.ledger)
   assert_true(
     original_captured_prefix_start(value, step=2)
@@ -277,6 +288,29 @@ test "original captured prefix rejects foreign capture wrong coordinates and des
     )
     is Err(Original(@publication_host.ForeignRun)),
   )
+  // This capture belongs to the SAME checked Program/owner, but to a different
+  // actual Ledger/Scope holding. Nominal Program matching alone is insufficient.
+  assert_true(
+    start_client_original_captured_serialization_prefix(
+      value.scope,
+      value.compiled,
+      value.definition,
+      value.plan,
+      value.prepared,
+      1,
+      1,
+      other_ledger.capture,
+      source_query_original_registry,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      value.execution,
+      value.measurement,
+    )
+    is Err(
+      Original(@publication_host.Resource(@resources.ChangedOriginalState))
+    ),
+  )
   assert_eq(@resources.ledger_usage(value.ledger), before)
   let read = @publication_host.prepare_client_model_read(value.scope, 7L, 5L).unwrap()
   let issued = @resources.ledger_usage(value.ledger)
@@ -290,6 +324,7 @@ test "original captured prefix rejects foreign capture wrong coordinates and des
   @publication_host.settle_client_model_read(read, true).unwrap()
   original_captured_prefix_close(value)
   original_captured_prefix_close(foreign)
+  original_captured_prefix_close(other_ledger)
 }
 
 ///|
