@@ -4,7 +4,8 @@
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {claimInferIoNotification} from './infer-io-notification.mjs';
-import {selectedInferOriginalMetadataLimits} from './infer-original-installation.mjs';
+import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits} from './infer-original-installation.mjs';
+import {originalModelRawTransportPersistenceMatches} from './infer-raw-capture.mjs';
 
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
@@ -21,6 +22,14 @@ export function selectOriginalInferMetadataAcquisition(handle, ownerId, requestC
   if (original === undefined) metadataUnavailable();
   original.current(ownerId, requestCid);
   return original.selection;
+}
+
+// Reuse the SAME nominal handle and current/covers closure, not another issuer
+// or a capacity inferred from physical clamps. Missing separate role refuses.
+export function selectOriginalInferStoreBootstrapAcquisition(handle, ownerId, requestCid) {
+  const original = originalMetadataSources.get(handle)?.deref();
+  if (original === undefined) metadataUnavailable();
+  return original.current(ownerId, requestCid, 'store-bootstrap');
 }
 
 // Validate the Node-to-Int boundary before entering the existing codec. These
@@ -64,10 +73,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   // aggregate headroom or the later Model seal's distinct requirements.
   let originalConsumer;
   let originalScope = originalPreparation?.scope;
-  const metadataInstallation = originalPreparation?.metadataInstallation;
-  const metadataNodeInstallation = originalPreparation?.nodeInstallation;
-  const metadataControl = originalPreparation?.control;
-  const metadataDefinition = originalPreparation?.runDefinition;
+  let metadataInstallation = originalPreparation?.metadataInstallation;
+  let metadataNodeInstallation = originalPreparation?.nodeInstallation;
+  let metadataControl = originalPreparation?.control;
+  let metadataDefinition = originalPreparation?.runDefinition;
   let originalMetadata;
   if (originalPreparation !== undefined) {
     if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined || keyedInput !== undefined ||
@@ -280,6 +289,14 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (originalMetadata !== undefined) originalMetadataSources.delete(originalMetadata.handle);
       originalMetadata = undefined;
       originalScope = undefined;
+      // Escaped metadata methods must not keep the original installation/Run
+      // after this same Core Owner acknowledges cleanup. Pending/failed
+      // cleanup retains these aliases; independent immutable borrows and
+      // external Store/read custody are neither mutated nor settled here.
+      metadataInstallation = undefined;
+      metadataNodeInstallation = undefined;
+      metadataControl = undefined;
+      metadataDefinition = undefined;
       rawCaptureBinder = undefined;
       io?.close();
       io = undefined;
@@ -558,6 +575,23 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2});
     },
     cancelOriginalCurrentStateComparison: comparison => moon.clientProgramCancelInferOriginalCurrentStateComparison(comparison),
+    advanceOriginalCurrentStateComparisonWithMatch(park, comparison, quantum) {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramAdvanceInferOriginalCurrentStateComparisonWithMatch !== 'function') {
+        throw new Error('InferOriginalCurrentMatchUnavailable');
+      }
+      if (!codecInt(quantum, true)) throw new TypeError('InvalidInferOriginalCurrentComparisonQuantum');
+      const poll = moon.clientProgramInferOriginalCurrentStateMatchPoll(checked(
+        moon.clientProgramAdvanceInferOriginalCurrentStateComparisonWithMatch(active, originalScope,
+          park, comparison, quantum)));
+      return Object.freeze({kind: poll._0, work: poll._1, issue: poll._2, matched: poll._3});
+    },
+    originalCurrentStateMatchCurrent(park, matched) {
+      if (reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramInferOriginalCurrentStateMatchCurrent !== 'function') return undefined;
+      return moon.clientProgramInferOriginalCurrentStateMatchCurrent(active, originalScope, park, matched);
+    },
+    retireOriginalCurrentStateMatch: matched => moon.clientProgramRetireInferOriginalCurrentStateMatch(matched),
     originalResourceParkCurrent(park) {
       // A pending close is not a physical stop or invalidation. Preserve the
       // original observation while Core still owns this same parked scope.
@@ -587,7 +621,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         return originalMetadata.handle;
       }
       const selection = selectedInferOriginalMetadataLimits(metadataInstallation, metadataNodeInstallation);
-      const current = (ownerId, requestCid) => {
+      const current = (ownerId, requestCid, role) => {
         if (reclaimed || closing || signal?.aborted || originalScope === undefined ||
             typeof moon.clientProgramInferOriginalModelResourceParkCurrent !== 'function' ||
             typeof moon.clientProgramInferOriginalParkedReadCapacityAvailable !== 'function' ||
@@ -598,6 +632,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         if (ownerId !== undefined && (typeof metadataControl?.runDefinitionRunId !== 'function' ||
             ownerId !== `model-${metadataControl.runDefinitionRunId(metadataDefinition)}`) ||
             requestCid !== undefined && requestCid !== metadataDefinition?.identity) metadataUnavailable();
+        if (role === 'store-bootstrap') {
+          return selectedInferOriginalStoreBootstrapLimits(metadataInstallation, metadataNodeInstallation);
+        }
       };
       // Inspect the same token BEFORE allocating the retained record/handle or
       // permitting physical metadata I/O. No grant/reset/refund follows.
@@ -690,12 +727,16 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // Private installation seam of this original physical operation only.
     // Common registration supplies the nominal raw authority; this callback
     // creates neither a send claim nor an alternate cleanup owner.
-    bindModelRawCapture(registration) {
+    bindModelRawCapture(registration, persistence) {
       if (closing || reclaimed || rawCaptureBound || rawCaptureBinder === undefined) {
         throw new TypeError('InferRawCaptureBindingUnavailable');
       }
+      if (persistence !== undefined &&
+          !originalModelRawTransportPersistenceMatches(persistence, operation, registration)) {
+        throw new TypeError('ForeignInferRawCapturePersistence');
+      }
       rawCaptureBound = true;
-      if (rawCaptureBinder(registration) !== undefined) {
+      if (rawCaptureBinder(registration, persistence) !== undefined) {
         throw new TypeError('InvalidInferRawCaptureBinderResult');
       }
     },

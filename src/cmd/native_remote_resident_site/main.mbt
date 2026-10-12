@@ -2451,6 +2451,10 @@ fn output_code(issue : @resident_host.ResidentOutputIssue) -> String {
 /// before execution, so no fallible setup remains once the holder owns an
 /// output.
 priv struct HolderOutputResources {
+  effect_host_setup : Ref[HolderEffectHostSetupScope?]
+  effect_host_installation : Ref[HolderEffectHostOperatorInstallation?]
+  effect_host_holding : Ref[@site.SiteHolding?]
+  effect_host_cleanup : Ref[@site.SiteCleanup?]
   retained_delegation : @resident.ResidentRetainedInputDelegation?
   retained_root : @filesystem.Root?
   retained_max_bytes : Int64
@@ -2575,6 +2579,10 @@ fn open_holder_output_resources(
   }
   Ok({
     retained_delegation,
+    effect_host_setup: Ref(None),
+    effect_host_installation: Ref(None),
+    effect_host_holding: Ref(None),
+    effect_host_cleanup: Ref(None),
     retained_root,
     retained_max_bytes: max_bytes,
     retained_max_objects: max_transfers.to_int64(),
@@ -2616,6 +2624,8 @@ fn holder_checkpoint(resources : HolderOutputResources) -> (String) -> Unit {
 /// Closes output resources when no output was produced, so nothing can be
 /// owned by them.
 fn close_holder_output_resources(resources : HolderOutputResources) -> Unit {
+  // The CLI supplies no funded Host profile until it can retain a pending
+  // close carrier. Do not send such a carrier through Unit/CommandStop exit.
   ignore(resources.transfer_journal.close())
   ignore(resources.store.close())
   ignore(resources.transfer.close())
@@ -2648,7 +2658,7 @@ fn serve_holder_output(
   effect_catalog_review? : (HolderEffectOriginalPolicyContext) -> HolderEffectCatalogReviewCustody? = _ => {
     None
   },
-  effect_host_operator? : HolderEffectHostOperatorInstallation? = None,
+  effect_host_operator? : Ref[HolderEffectHostOperatorInstallation?] = Ref(None),
   effect_resume_installation? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectCloudResumeInstallation? = _ => {
     None
   },
@@ -2669,10 +2679,9 @@ fn serve_holder_output(
   let identity = @remote.dispatch_request_identity(request)
   // Explicit Host funding is independent of Account/Reviewer permissions. No
   // candidate dispatch, request body or grant supplies this private profile.
-  let effect_preparation = match effect_host_operator {
-    Some(installed) => installed.preparation
-    None => None
-  }
+  let effect_preparation = holder_effect_host_preparation(
+    effect_host_operator.val,
+  )
   store.observe_allocation(holder_checkpoint(resources))
   let tasks : Map[String, HolderTaskCustody] = Map([])
   let order : Array[String] = [identity]
@@ -2696,10 +2705,15 @@ fn serve_holder_output(
       is Some(context) else {
       return false
     }
-    holder_effect_evidence_allowed(context, resources, purpose, original => {
-      holder_effect_operator_admission(
-        original, resources, effect_host_operator,
-      )
+    guard effect_host_operator.val is Some(installed) else { return false }
+    with_holder_effect_host_read_scope(installed.scope, () => {
+      holder_effect_evidence_allowed(context, resources, purpose, original => {
+        holder_effect_operator_admission(
+          original,
+          resources,
+          effect_host_operator.val,
+        )
+      })
     })
   }
   if holder_effect_computation(original, environment.journal) is Some(_) {
@@ -4136,10 +4150,10 @@ fn run_holder(
       }
     _ => (false, false)
   }
-  let effect_host_operator = load_holder_effect_host_operator(
-    matches,
-    resources,
-    () => slot.verify_current_hold() == Ok(()),
+  ignore(
+    load_holder_effect_host_operator(matches, resources, environment, () => {
+      slot.verify_current_hold() == Ok(())
+    }),
   ) catch {
     CommandStop(issue) => {
       if proven_unstarted {
@@ -4154,9 +4168,10 @@ fn run_holder(
       report("effect-host-account-installation-failed", [
         ("reason", "operator-input"),
       ])
-      None
+      ()
     }
   }
+  let effect_host_operator = resources.effect_host_installation
   // A Provider grant binds the captured invocation, including actual Source
   // observation times. It is installed on the first exact Resume, not made a
   // prerequisite of the independently authorized Source start claim.
@@ -4250,10 +4265,7 @@ fn run_holder(
             resources,
             execution.limits.output.output_export,
             original,
-            preparation=match effect_host_operator {
-              Some(installed) => installed.preparation
-              None => None
-            },
+            preparation=holder_effect_host_preparation(effect_host_operator.val),
           ) catch {
             CommandStop(_) => {
               report("effect-review-pending", [

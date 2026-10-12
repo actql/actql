@@ -1,6 +1,7 @@
 // Independent assertions shared by the packed runner and its detector tests.
 // These constants are authored byte laws, not encoder-produced expectations.
 import assert from 'node:assert/strict';
+import {CLIENT_PACKAGES} from './packed-client-packages.mjs';
 
 export const packedContentBytes = Buffer.from('name\n"approved.csv"\n');
 export const packedContentCid = 'sha256:11af3859185fd4b8e2cef2ba824fdddf63b8a6fbfa26aea783660fefda5459de';
@@ -10,6 +11,42 @@ export const packedContentCases = Object.freeze([
   {id: 'https-intermediate-serialize', entrance: 'HTTPS', attachment: true},
   {id: 'local-unknown-command', entrance: 'Local', attachment: true, fault: 'lost_reply'},
 ]);
+
+// An independent finite product lane, not permission to omit Model acceptance
+// from the full objective. Every Pure case still uses a real generated Content
+// holding and three separate processes for capture, approval and reread.
+export const packedPureContentCases = Object.freeze([
+  {id: 'local-serialize-command', entrance: 'Local', attachment: true},
+  {id: 'https-serialize-command', entrance: 'HTTPS', attachment: true},
+  {id: 'local-serialize-unknown-command', entrance: 'Local', attachment: true, fault: 'lost_reply'},
+  {id: 'https-serialize-unknown-command', entrance: 'HTTPS', attachment: true, fault: 'lost_reply'},
+].map(value => Object.freeze(value)));
+
+// Reject typos and unsupported subsets before any producer, installation or
+// custody directory is created. The default full selection is unchanged.
+export function packedContentSelection(args = []) {
+  const scope = args.length === 0 ? 'full'
+    : args.length === 2 && args[0] === '--scope' ? args[1] : undefined;
+  if (scope !== 'full' && scope !== 'pure') {
+    throw new TypeError('PackedContentScope must be full or pure');
+  }
+  return Object.freeze({scope,
+    cases: scope === 'pure' ? packedPureContentCases : packedContentCases});
+}
+
+// Data/provenance check only. The package consumer must still read and compare
+// every actual tarball digest; this shape cannot issue admission or custody.
+export function verifyPackedContentProducerManifest(producer, revision, copiedTarballs) {
+  assert.equal(producer?.revision, revision, 'PackedContentProducerRevisionMismatch');
+  assert.ok(producer.tarballs !== null && typeof producer.tarballs === 'object' &&
+    !Array.isArray(producer.tarballs), 'PackedContentProducerRequiresFivePackages');
+  assert.deepEqual(Object.keys(producer.tarballs).sort(), [...CLIENT_PACKAGES].sort(),
+    'PackedContentProducerRequiresFivePackages');
+  assert.ok(CLIENT_PACKAGES.every(name => typeof producer.tarballs[name] === 'string' &&
+    /^[0-9a-f]{64}$/u.test(producer.tarballs[name])), 'PackedContentInvalidProducerDigest');
+  if (copiedTarballs !== undefined) assert.deepEqual(copiedTarballs, producer.tarballs,
+    'PackedContentCopiedTarballMismatch');
+}
 
 export function verifyPackedContentScenario({scenario, phases, bytes, receipt}) {
   const expectedPhases = scenario.model

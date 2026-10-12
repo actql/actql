@@ -80,11 +80,21 @@ test "verifier pins full acquisition and process evidence bodies, not digest cla
 test "verifier rejects altered acquisition dependency and schema-only evidence" {
   let (query, evidence) = query_evidence_test_bodies()
   let original = @identity.stringify_value(evidence, 100000, 10000, 100)
-  let changed = original.replace_all(
-    old="sha256:4bb69dfaade0a15952fe23a8202a9475ff450c9f0fab93f9dd5cef1b82045ab1",
-    new="sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  // Mutate the exact dependency slot, not a historical CID substring that can
+  // disappear after normal contract adoption and turn this into a no-op.
+  let changed = @json.parse(original)
+  guard changed is Json::Object(root) &&
+    root.get("dependencies") is Some(Json::Object(dependencies)) &&
+    dependencies.get("query_acquisition") is Some(Json::Object(acquisition)) else {
+    fail("the full evidence fixture must retain its acquisition dependency")
+  }
+  acquisition["cid"] = Json::string(
+    "sha256:0000000000000000000000000000000000000000000000000000000000000000",
   )
-  let changed = @identity.from_json(@json.parse(changed), 10000, 100, 100000)
+  let changed = @identity.from_json(changed, 10000, 100, 100000)
+  assert_true(
+    @identity.stringify_value(changed, 100000, 10000, 100) != original,
+  )
   assert_true(
     admit_query_evidence_contracts(query, changed, query_evidence_test_limits())
     is Err(UnsupportedEvidence),

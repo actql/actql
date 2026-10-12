@@ -10,7 +10,7 @@ import {openLocalPublicationStore} from './publication-store.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 
 const source = await readFile(new URL('./publication-store.mjs', import.meta.url), 'utf8');
-const start = source.indexOf('async function readBounded(path, maximum, closed, signal) {');
+const start = source.indexOf('async function readBounded(path, maximum, closed, signal, ownerOnly = false) {');
 const end = source.indexOf('\nasync function processIsAlive(', start);
 assert(start >= 0 && end > start);
 const body = source.slice(start, end);
@@ -186,7 +186,7 @@ test('actual original Store binding read retains Store ownership until the same 
 
 test('upper Evidence keeps the same Store and primary failure after a failed close', async () => {
   const source = await readFile(new URL('../host-node/local-continuation-evidence.mjs', import.meta.url), 'utf8');
-  const start = source.indexOf('  function withStore(work) {');
+  const start = source.indexOf('  function withStore(work, acquisition, ownerId, requestCid) {');
   const end = source.indexOf('\n  async function readLedger(', start);
   assert(start >= 0 && end > start);
   let opens = 0, closes = 0, pending = true;
@@ -203,6 +203,31 @@ test('upper Evidence keeps the same Store and primary failure after a failed clo
   assert.strictEqual(owner.retained(), actualStore);
   assert.equal(opens, 1);
   pending = false;
+  assert.equal(await owner.withStore(store => { assert.strictEqual(store, actualStore); return 'same'; }), 'same');
+  assert.equal(owner.retained(), undefined);
+  assert.equal(opens, 1);
+  assert.equal(closes, 2);
+});
+
+test('upper Evidence false close retains the same Store until confirmed retry', async () => {
+  const source = await readFile(new URL('../host-node/local-continuation-evidence.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('  function withStore(work, acquisition, ownerId, requestCid) {');
+  const end = source.indexOf('\n  async function readLedger(', start);
+  assert(start >= 0 && end > start);
+  let opens = 0, closes = 0, confirmed = false;
+  const actualStore = {
+    async recoverPhysicalHoldingDeletions() { return []; },
+    async close() { closes++; return confirmed; },
+  };
+  const owner = runInNewContext(`(() => { let retained; let queue=Promise.resolve(); ${source.slice(start, end)}
+    return {withStore, retained: () => retained}; })()`, {
+    fail,
+    async openStore() { opens++; return actualStore; },
+  });
+  await assert.rejects(owner.withStore(() => 'not released'), {code: 'ContinuationStoreCleanupPending'});
+  assert.strictEqual(owner.retained(), actualStore);
+  assert.equal(opens, 1);
+  confirmed = true;
   assert.equal(await owner.withStore(store => { assert.strictEqual(store, actualStore); return 'same'; }), 'same');
   assert.equal(owner.retained(), undefined);
   assert.equal(opens, 1);

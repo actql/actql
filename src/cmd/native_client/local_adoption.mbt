@@ -16,6 +16,7 @@ priv struct LocalHostSettings {
   source_file : String?
   run_file : String?
   read_file : String?
+  run_policy_profile_file : String?
   reviewer_file : String?
 }
 
@@ -56,7 +57,7 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     "account_id", "principal", "connection", "state_parent", "state_name", "managed_root",
     "sqlite_library", "signature_library", "submission_ttl_ms", "journal_record_limit",
     "journal_snapshot_bytes", "installation_files", "source_file", "run_file", "read_file",
-    "reviewer_file",
+    "reviewer_file", "run_policy_profile_file",
   ]).unwrap_or_else(() => stop("InvalidLocalHostConfiguration"))
   let number = fn(key : String) -> Int64 raise ClientStop {
     guard @decode.lookup(fields, key) is Some(value) &&
@@ -105,6 +106,11 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
     record_limit: records.to_int(),
     snapshot_bytes: snapshot,
     installation_files,
+    run_policy_profile_file: match
+      @decode.lookup(fields, "run_policy_profile_file") {
+      None => None
+      Some(_) => Some(local_settings_text(fields, "run_policy_profile_file"))
+    },
     reviewer_file: match @decode.lookup(fields, "reviewer_file") {
       None => None
       Some(_) => Some(local_settings_text(fields, "reviewer_file"))
@@ -128,6 +134,10 @@ fn local_host_settings(text : String) -> LocalHostSettings raise ClientStop {
   if settings.reviewer_file is Some(file) &&
     !settings.installation_files.contains(file) {
     stop("LocalReviewerOriginalNotSelected")
+  }
+  if settings.run_policy_profile_file is Some(file) &&
+    !settings.installation_files.contains(file) {
+    stop("LocalRunPolicyProfileNotSelected")
   }
   if @decode.lookup(root, "state_dir") is Some(value) {
     guard @decode.text(value) is Ok(path) &&
@@ -165,6 +175,7 @@ fn execute_native_local_adoption(
   matches : @argparse.Matches,
   operation : String,
   child : @argparse.Matches,
+  packaged_runtime? : @local_host.NativeLocalPackagedRuntime? = None,
 ) -> String raise ClientStop {
   let root = required(matches, "config-root")
   let name = required(matches, "config-file")
@@ -240,14 +251,22 @@ fn execute_native_local_adoption(
   let selected_reviewer = local_selected_effect_reviewer_original(
     root, settings,
   )
-  let crypto = @local_crypto.load_library(settings.signature_library).unwrap_or_else(() => {
-      stop("NativeLocalSignatureUnavailable")
-    },
-  )
-  let sqlite = @local_sqlite.load_library(settings.sqlite_library).unwrap_or_else(() => {
-      stop("NativeLocalJournalUnavailable")
-    },
-  )
+  let (sqlite_path, crypto_path) = match packaged_runtime {
+    None => (settings.sqlite_library, settings.signature_library)
+    Some(runtime) =>
+      runtime
+      .library_paths()
+      .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+  }
+  let crypto = @local_crypto.load_library(crypto_path).unwrap_or_else(() => {
+    stop("NativeLocalSignatureUnavailable")
+  })
+  let sqlite = @local_sqlite.load_library(sqlite_path).unwrap_or_else(() => {
+    stop("NativeLocalJournalUnavailable")
+  })
+  if packaged_runtime is Some(runtime) && runtime.check_current() is Err(_) {
+    stop("PackagedLocalRuntimeChanged")
+  }
   let session = local_host_result(
     @local_host.begin_native_local_host_adoption(
       settings.state_parent,
@@ -335,10 +354,37 @@ fn execute_native_local_adoption(
   // Produce the reply before closing, but never publish it before confirmed close.
   let cancellation_recovery : Ref[String?] = Ref(None)
   let reply = try {
+    if packaged_runtime is Some(runtime) {
+      let run_file = settings.run_file.unwrap_or_else(() => {
+        stop("LocalRunInstallationRequired")
+      })
+      host
+      .bind_packaged_runtime(
+        runtime,
+        settings.principal,
+        settings.connection,
+        environment_file,
+        run_file,
+        "runtime.json",
+      )
+      .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+      |> ignore
+      if operation != "upgrade-policy" && operation != "lookup-policy-upgrade" {
+        host
+        .require_packaged_runtime_upgrade()
+        .unwrap_or_else(() => stop("ExplicitLocalRuntimeUpgradeRequired"))
+        |> ignore
+      }
+    }
     if operation == "start" || operation == "aql" {
       local_submission_start(
         host, settings, crypto, sqlite, check_environment, input_root, operation,
         child,
+      )
+    } else if operation == "upgrade-policy" ||
+      operation == "lookup-policy-upgrade" {
+      local_run_policy_upgrade_operation(
+        host, settings, crypto, operation, child,
       )
     } else if operation == "lookup-submission" {
       local_submission_lookup(host, settings, crypto, input_root, child)

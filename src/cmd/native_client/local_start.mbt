@@ -244,13 +244,54 @@ fn local_submission_start(
   if source_free && run.source_free is None {
     stop("LocalValuesInstallationRequired")
   }
+  let run = match
+    host.packaged_runtime_assets_for_submission(reference, preparation, 1000) {
+    Ok(Accepted) =>
+      return local_submission_lookup(host, settings, crypto, input_root, child)
+    Ok(Pending(None)) => run
+    Ok(Pending(Some(assets))) => {
+      let installed = run.source_free.unwrap_or_else(() => {
+        stop("LocalValuesInstallationRequired")
+      })
+      {
+        ..run,
+        source_free: Some(local_current_values_installation(installed, assets)),
+      }
+    }
+    Err(_) => stop("LocalRuntimeSubmissionUnavailable")
+  }
   // The current installed profile must genuinely have zero semantic
   // completions. No test-side lowering or fabricated empty journal is used.
   @run_host.issue_prepared_client_local_normalization(prepared).unwrap_or_else(() => {
     stop("LocalOriginalNormalizationNotInstalled")
   })
   |> ignore
-  let now = local_utc_now()
+  let request = @run_host.prepare_source_free_client_request_identity(
+    prepared,
+    scope,
+    @local_host.native_client_submission_request_id(reference),
+  ).unwrap_or_else(() => stop("LocalRequestIdentityUnavailable"))
+  let policy_binding = local_run_policy_binding(host, settings, crypto)
+  let (run, now) = match policy_binding {
+    None => (run, local_utc_now())
+    Some(binding) =>
+      match
+        binding.prepare_submission_policy(
+          reference,
+          preparation,
+          request,
+          local_utc_now(),
+          @env.now().to_double(),
+        ) {
+        Ok(Accepted(_)) =>
+          return local_submission_lookup(
+            host, settings, crypto, input_root, child,
+          )
+        Ok(Pending(policy, issued_at)) =>
+          ({ ..run, retention: policy, }, issued_at)
+        Err(_) => stop("LocalRunPolicyPreparationUnavailable")
+      }
+  }
   if !@publication.result_retention_intervals_valid(run.retention) ||
     !(@publication.result_retention_interval_state(run.retention, now)
     is Ok("available")) {
@@ -301,25 +342,44 @@ fn local_submission_start(
     now,
     until,
   ).unwrap_or_else(() => stop("LocalRunDefinitionNotReady"))
-  let request = @run_host.prepare_source_free_client_request_identity(
-    prepared,
-    scope,
-    @local_host.native_client_submission_request_id(reference),
-  ).unwrap_or_else(() => stop("LocalRequestIdentityUnavailable"))
-  journal
-  .accept_submitted_run(
-    epoch,
-    reference,
-    preparation,
-    request,
-    compiled,
-    definition,
-    scope,
-    current(),
-    @env.now().to_double(),
-  )
-  .unwrap_or_else(() => stop("LocalRunAdmissionUnavailable"))
-  |> ignore
+  let accepted = match policy_binding {
+    None =>
+      journal.accept_submitted_run(
+        epoch,
+        reference,
+        preparation,
+        request,
+        compiled,
+        definition,
+        scope,
+        current(),
+        @env.now().to_double(),
+      )
+    Some(binding) =>
+      binding.accept_issued_submitted_run_policy(
+        reference,
+        preparation,
+        request,
+        compiled,
+        definition,
+        run.retention,
+        now,
+        @env.now().to_double(),
+      )
+  }
+  match accepted {
+    Ok(_) => ()
+    // Another accepted observer wins the same request. Its immutable original
+    // is the only result to return; this candidate never begins physical work.
+    Err(ForeignRun | ChangedIntent) if policy_binding is Some(binding) => {
+      binding
+      .lookup_submitted_run_policy(reference, request, @env.now().to_double())
+      .unwrap_or_else(() => stop("LocalRunAdmissionUnavailable"))
+      |> ignore
+      return local_submission_lookup(host, settings, crypto, input_root, child)
+    }
+    Err(_) => stop("LocalRunAdmissionUnavailable")
+  }
   if !current() {
     stop("LocalSubmissionAuthorizationDenied")
   }

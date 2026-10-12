@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {snapshotModelRawCaptureSelection} from './infer-raw-selection.mjs';
 import {openNodeInferOperation} from './infer-operation.mjs';
+import {createModelRawTransportPersistence, originalModelRawTransportPersistenceMatches}
+  from './infer-raw-capture.mjs';
 
 function selection() {
   return {profile: {}, installation: {endpoint: 'original', sdk: {version: '4.0.91'}},
@@ -97,4 +99,25 @@ test('physical raw binder must finish synchronously before original advance or E
   assert.throws(() => original.bindModelRawCapture({}), /InvalidInferRawCaptureBinderResult/u);
   assert.throws(() => original.bindModelRawCapture({}), /InferRawCaptureBindingUnavailable/u);
   await original.close();
+});
+
+test('private raw Store port must belong to this exact operation and registration before binding',async()=>{
+  const received=[];
+  const original=operation((registration,persistence)=>{received.push([registration,persistence]);});
+  const foreign=operation(()=>assert.fail('Foreign binder'));
+  const registration={}, other={};
+  const port=createModelRawTransportPersistence({store:{},moon:{},operation:original,
+    registration,retainHolding:()=>assert.fail('No physical save'),notify:()=>{}});
+  assert.equal(originalModelRawTransportPersistenceMatches(port,original,registration),true);
+  assert.throws(()=>foreign.bindModelRawCapture(registration,port),/ForeignInferRawCapturePersistence/u);
+  assert.throws(()=>original.bindModelRawCapture(other,port),/ForeignInferRawCapturePersistence/u);
+  const copied=Object.assign(()=>assert.fail('Copied port'),{cleanup:port.cleanup});
+  assert.throws(()=>original.bindModelRawCapture(registration,copied),/ForeignInferRawCapturePersistence/u);
+  assert.equal(received.length,0);
+  original.bindModelRawCapture(registration,port);
+  assert.deepEqual(received,[[registration,port]]);
+  assert.throws(()=>original.bindModelRawCapture(registration,port),/InferRawCaptureBindingUnavailable/u);
+  assert.equal(port.cleanup(undefined),true);
+  assert.equal(originalModelRawTransportPersistenceMatches(port,original,registration),false);
+  await original.close();await foreign.close();
 });
