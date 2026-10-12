@@ -27,6 +27,11 @@ function changedBlock(anchors, from, to) {
 }
 const snapshotAnchor='prepare_relation_snapshot: fn(storage_released)';
 for(const [name,anchors,from,to] of [
+  ['cleanup refresh ignores unreleased snapshot storage',['cleanup_refresh: fn()'],
+    'if !snapshot_storage_released.val.map(check => check()).unwrap_or(true) {','if false {'],
+  ['cleanup refresh accepts common Owner failure',['cleanup_refresh: fn()'],
+    '@strategy.refresh_task_execution_cleanup(setup.run, execution).unwrap_or(\n        false,',
+    '@strategy.refresh_task_execution_cleanup(setup.run, execution).unwrap_or(\n        true,'],
   ['scratch observation accepts pending snapshot callback',['scratch_released: fn()'],
     '&& relation_snapshot_cancel.val is None',''],
   ['root retirement ignores snapshot callback',['let release_owned_scratch = fn()'],
