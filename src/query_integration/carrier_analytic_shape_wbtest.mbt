@@ -76,14 +76,20 @@ fn check_carrier_analytic_shape(
   // Retain the exact former bound as a refusal, not a weaker graph oracle.
   assert_true(
     @strategy.prepare_checked_dag(
-      program, owners, 10, expected_work - expected_operations.length(),
-    ) is Err(WorkLimit),
+      program,
+      owners,
+      10,
+      expected_work - expected_operations.length(),
+    )
+    is Err(WorkLimit),
   )
   assert_true(
     @strategy.prepare_checked_dag(program, owners, 10, expected_work - 1)
     is Err(WorkLimit),
   )
-  let graph = checkpoint_graph_issue(@strategy.prepare_checked_dag(program, owners, 10, expected_work))
+  let graph = checkpoint_graph_issue(
+    @strategy.prepare_checked_dag(program, owners, 10, expected_work),
+  )
   assert_eq(@strategy.graph_task_count(graph), expected_operations.length() + 1)
   assert_eq(@strategy.graph_task_selected_step(graph, 0), None)
   assert_eq(@strategy.graph_task_operation_count(graph, 0), Some(0))
@@ -191,7 +197,9 @@ test "later analytic classification sees a Carrier output after the analytic" {
       @strategy.prepare_checked_dag(program, owners, 10, work) is Err(WorkLimit),
     )
   }
-  let graph = checkpoint_graph_issue(@strategy.prepare_checked_dag(program, owners, 10, 52))
+  let graph = checkpoint_graph_issue(
+    @strategy.prepare_checked_dag(program, owners, 10, 52),
+  )
   assert_eq(@strategy.graph_task_count(graph), 2)
   assert_eq(@strategy.graph_task_selected_step(graph, 1), None)
   assert_eq(@strategy.graph_task_prefix_end(graph, 1), None)
