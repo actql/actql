@@ -81,8 +81,7 @@ fn vector_pool_issue(text : String) -> @pipeline.IssueKind raise {
   match with_carrier_program(text, nearest_context()) {
     Err(BindingPreparation(LocalProgram(Pipeline(0, diagnostic)))) =>
       diagnostic.kind
-    Err(issue) =>
-      fail("Unexpected refusal boundary: " + @debug.to_string(issue))
+    Err(_) => fail("Unexpected refusal boundary")
     Ok(_) => fail("Invalid pool must not be admitted")
   }
 }
