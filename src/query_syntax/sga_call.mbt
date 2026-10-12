@@ -39,6 +39,8 @@ fn sga_operation(name : String) -> Bool {
     | "watermark_events"
     | "watermark_rows"
     | "lag"
+    | "asof_join"
+    | "interval_join"
     | "dedupe_events"
     | "session"
     | "events"
@@ -102,7 +104,7 @@ fn carrier_call_head(token : Token) -> Bool {
       [
         "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
         "to_events", "row_window", "window_events", "watermark_events", "session",
-        "events", "dedupe_events", "watermark_rows", "lag",
+        "events", "dedupe_events", "watermark_rows", "lag", "asof_join", "interval_join",
       ].contains(ascii_upper(name).to_lower())
     _ => false
   }
@@ -184,6 +186,7 @@ pub fn after_graph_row_calls(
 // reach.start.from is a Relation producer, while reach.start is an ID value.
 fn sga_producer_argument(operation : String, path : Array[String]) -> Bool {
   match operation {
+    "asof_join" | "interval_join" => path == ["with"]
     "reach" | "traverse" => path == ["start", "from"]
     "shortest_path" => path == ["source", "from"] || path == ["target", "from"]
     "subgraph" => path == ["nodes", "from"]
@@ -201,6 +204,8 @@ fn sga_producer_argument(operation : String, path : Array[String]) -> Bool {
 ///|
 fn sga_selector_object(operation : String, path : Array[String]) -> Bool {
   match operation {
+    "asof_join" => path == ["by"]
+    "interval_join" => path == ["on"] || path == ["left"] || path == ["right"]
     "reach" => path == ["start"]
     "traverse" => path == ["start"] || path == ["hops"]
     "shortest_path" => path == ["source"] || path == ["target"]
@@ -217,6 +222,7 @@ fn QueryParser::sga_argument(
   operation : String,
   path : Array[String],
   depth : Int,
+  current_alias? : NamePart? = None,
 ) -> SgaArgument raise QueryAbort {
   // Keep recursion bounded independently of the caller's configurable budget.
   // Work and syntax nodes are charged to the containing query parser.
@@ -229,7 +235,7 @@ fn QueryParser::sga_argument(
     self.symbol(91)
     let items : Array[SgaArgument] = []
     while self.peek().value != Symbol(93) {
-      items.push(self.sga_argument(operation, path, depth + 1))
+      items.push(self.sga_argument(operation, path, depth + 1, current_alias~))
       if self.peek().value != Symbol(44) {
         break
       }
@@ -243,6 +249,27 @@ fn QueryParser::sga_argument(
   }
   if sga_field_argument(operation, path) {
     let field = self.path()
+    if ["asof_join", "interval_join"].contains(operation) && field.length() == 2 {
+      // Fixed operand selectors are not lexical producers. Every other prefix
+      // retains the ordinary WITH resolution, including quoted source names.
+      if !field[0].quoted &&
+        ["LEFT", "RIGHT"].contains(ascii_upper(field[0].value)) {
+        return FieldReference(field)
+      }
+      let current_field = path == ["left_id"] ||
+        path == ["left_time"] ||
+        path == ["left", "time"] ||
+        path == ["left", "start"] ||
+        path == ["left", "end"] ||
+        path == ["by", "left"] ||
+        path == ["on", "left"]
+      if current_field &&
+        current_alias is Some(current_range) &&
+        same_binding_name(field[0], current_range) {
+        return FieldReference(field)
+      }
+      return FieldReference([self.resolve_producer([field[0]])[0], field[1]])
+    }
     if field.length() == 2 && sga_operand_field_argument(operation, path) {
       let operand = self.resolve_producer([field[0]])
       return FieldReference([operand[0], field[1]])
@@ -262,9 +289,51 @@ fn QueryParser::sga_argument(
     path == ["order_by"] {
     return self.sga_order_argument(operation, depth + 1)
   }
+  if token.value == Symbol(123) &&
+    ["asof_join", "interval_join"].contains(operation) &&
+    path == ["select"] {
+    self.symbol(123)
+    let fields : Array[(String, SgaArgument)] = []
+    while self.peek().value != Symbol(125) {
+      self.node()
+      let at = self.peek().start
+      let name = self.sga_output_name()
+      self.spend(fields.length())
+      if fields.any(field => field.0 == name.value) {
+        raise QueryAbort("Duplicate temporal output name", at)
+      }
+      self.symbol(58)
+      fields.push(
+        (
+          name.value,
+          self.sga_argument(
+            operation,
+            path + [name.value],
+            depth + 1,
+            current_alias~,
+          ),
+        ),
+      )
+      if self.peek().value != Symbol(44) {
+        break
+      }
+      self.symbol(44)
+      if self.peek().value == Symbol(125) {
+        raise QueryAbort("Expected temporal output name", self.peek().start)
+      }
+    }
+    self.symbol(125)
+    return ObjectValue(fields)
+  }
   if token.value == Symbol(123) {
     self.symbol(123)
-    let fields = self.sga_arguments(operation, path, depth + 1, 125)
+    let fields = self.sga_arguments(
+      operation,
+      path,
+      depth + 1,
+      125,
+      current_alias~,
+    )
     self.symbol(125)
     return ObjectValue(fields)
   }
@@ -367,6 +436,7 @@ fn QueryParser::sga_arguments(
   path : Array[String],
   depth : Int,
   closing : Int,
+  current_alias? : NamePart? = None,
 ) -> Array[(String, SgaArgument)] raise QueryAbort {
   let fields : Array[(String, SgaArgument)] = []
   while self.peek().value != Symbol(closing) {
@@ -388,7 +458,12 @@ fn QueryParser::sga_arguments(
       raise QueryAbort("Duplicate SGA argument", at)
     }
     self.symbol(58)
-    let value = self.sga_argument(operation, path + [key], depth)
+    let value = self.sga_argument(
+      operation,
+      path + [key],
+      depth,
+      current_alias~,
+    )
     fields.push((key, value))
     if self.peek().value != Symbol(44) {
       break
@@ -402,7 +477,10 @@ fn QueryParser::sga_arguments(
 }
 
 ///|
-fn QueryParser::sga_call(self : QueryParser) -> SgaCall raise QueryAbort {
+fn QueryParser::sga_call(
+  self : QueryParser,
+  current_alias? : NamePart? = None,
+) -> SgaCall raise QueryAbort {
   self.node()
   let token = self.advance()
   let operation = match token.value {
@@ -413,7 +491,7 @@ fn QueryParser::sga_call(self : QueryParser) -> SgaCall raise QueryAbort {
     raise QueryAbort("Unknown SGA operation", token.start)
   }
   self.symbol(40)
-  let arguments = self.sga_arguments(operation, [], 1, 41)
+  let arguments = self.sga_arguments(operation, [], 1, 41, current_alias~)
   let end = self.peek().end
   self.symbol(41)
   { operation, arguments, start: token.start, end, }

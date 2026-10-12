@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import {readFileSync} from 'node:fs';
+import {currentValuesPreimages} from './temporal-join-current-preimages-oracle.mjs';
+import {temporalJoinIdentityOracle} from './temporal-join-identity-oracle.mjs';
+const read=path=>JSON.parse(readFileSync(path,'utf8'));
+test('temporal query surface changes grammar-bound Runs without changing machine contracts or limits',()=>{
+  const before=read('scripts/fixtures/pre-temporal-join-values-identities.json');
+  assert.equal(before.source_revision,'cc456bfad7e8e6aec15b92ea32a3b460360f0db4');
+  assert.equal(before.run_preimages.run.run_definition_cid,'sha256:24f11dc7e2b779a04eba93a7318e112eb5716b4de15e2f5074e216a82b9f074b');
+  assert.deepEqual(currentValuesPreimages(before.grammar,before.source_revision),before);
+  const expected=temporalJoinIdentityOracle();
+  assert.deepEqual(expected,read('scripts/fixtures/submitted-temporal-join-values-identities.json'));
+  assert.deepEqual(expected.grammar,read('spec/manifests/actql-grammar-0.1.json'));
+  assert.deepEqual(expected.values_dependencies,before.values_dependencies);
+  assert.deepEqual(expected.program_identity,before.program_identity);
+  assert.deepEqual(expected.run_preimages.executable.resolved_limits,before.run_preimages.executable.resolved_limits);
+  assert.deepEqual(expected.run_preimages.executable.execution_material.program,before.run_preimages.executable.execution_material.program);
+  assert.notEqual(expected.run_preimages.run.run_definition_cid,before.run_preimages.run.run_definition_cid);
+});
