@@ -468,7 +468,15 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
         perAttempt.tokens, perAttempt.costUnits, perAttempt.durationMs));
     }
     if (computeSuffix !== undefined) checked(moon.clientProgramBindInferComputeSuffix(active, computeSuffix));
-    if (physicalPreflight !== undefined) checked(moon.clientProgramBindInferPhysicalPreflight(active, physicalPreflight));
+    if (physicalPreflight !== undefined) {
+      // Reuse this operation's nominal wake endpoint for SDK preparation and
+      // physical I/O. It carries no ACK, outcome, authority or send permission.
+      // The original preparation envelope funds this one callback closure and
+      // its overlap with Core's retained callback; no per-poll context is made.
+      checked(moon.clientProgramBindInferPhysicalPreflight(active,
+        ioNotification === undefined ? physicalPreflight
+          : request => physicalPreflight(request, ioNotification)));
+    }
     if (egressAdmission !== undefined) checked(moon.clientProgramBindInferEgress(active, egressAdmission));
   } catch (error) {
     // Preserve the admission failure even when stop/cleanup cannot finish.
