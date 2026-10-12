@@ -186,6 +186,14 @@ comments, literals and interpolation also extend that closure. Fixture enums are
 retained by their named type; common constructor spellings such as `Complete`
 are not treated as references to unrelated fixture types. Actual compilation
 must resolve selected constructor bindings under the retained signatures.
+Immutable constants in the explicitly typed `let name : String =` form may
+contain one or more non-interpolated `#|` raw-string lines. Their entire literal
+range is retained verbatim when referenced, or blanked with offsets/newlines
+preserved when outside the selected closure. Inferred/mutable declarations,
+initializer calls, other types, interpolation and trailing expressions remain
+rejected. This is a narrow diagnostic projection form, not a restriction on
+valid MoonBit source or new execution permission. Identifiers inside raw literal
+text continue to extend the conservative declaration closure.
 Retained helper declarations and their assertions remain unchanged. Imports are
 limited to aliases referenced by the same retained text. Unknown declarations,
 attributes, interpolated raw lines, ambiguous names and malformed input reject
@@ -250,3 +258,17 @@ marker, source restoration, immutable original and actual executable/log checks
 remain mandatory. Success establishes only this finite holding-token/retirement
 correspondence. Whole-parent physical bounds, arbitrary retention generations,
 other execution paths, Hosted originals and CI reuse/savings remain separate.
+
+## Content-boundary construction correspondence
+
+The source review retains the previous selected digest and recipe digest.
+Current `InferBoundary` / `SerializationBoundary` step dispatch is admitted only
+when removing the two exact alternatives recovers the entire reviewed selected
+source. Likewise, removing the two new exclusions in the generated row-kernel
+predicate must recover its entire previous reviewed source. The recipe may
+change only the corresponding selected-source identity: normalizing that one
+digest must reproduce the previous recipe bytes. Unknown, duplicate or altered
+branches remain rejected. This is historical comparison, never a runtime alias.
+The factory, state, capacity and capture bodies and all numeric model premises
+are unchanged. Execution of these boundaries, output/cancellation custody and
+physical lifetime remain independent obligations.
