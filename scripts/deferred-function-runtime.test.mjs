@@ -13,7 +13,7 @@ function fixture(t, source, options) {
   const output = join(directory, 'deferred.mjs');
   writeFileSync(input, source);
   writeFileSync(output, deferredFunctionRuntime(input, options));
-  return {input: pathToFileURL(input).href, output: pathToFileURL(output).href};
+  return {directory, input: pathToFileURL(input).href, output: pathToFileURL(output).href};
 }
 
 function entropy(t, callback) {
@@ -94,13 +94,42 @@ export function observedAttempts() { return attempts; }
   assert.equal(runtime.observedAttempts(), 1, 'Observation performs no retry');
 });
 
-test('the generator rejects an external module or a non-function ABI', async t => {
+test('generation rejects external imports; non-function exports fail only after first initialization', async t => {
   const directory = mkdtempSync(join(tmpdir(), 'deferred-function-runtime-invalid-'));
   t.after(() => rmSync(directory, {recursive: true, force: true}));
   const input = join(directory, 'external.mjs');
   writeFileSync(input, `import {readFileSync} from 'node:fs'; export function read() { return readFileSync; }`);
   assert.throws(() => deferredFunctionRuntime(input), /Could not resolve|closed synchronous/u);
-  const f = fixture(t, 'export const value = 7;');
+  let calls = 0;
+  entropy(t, bytes => { calls++; return bytes; });
+  const f = fixture(t, `crypto.getRandomValues(new Uint32Array(1)); export const value = 7;`);
   const runtime = await import(f.output);
+  assert.equal(calls, 0);
   assert.throws(() => runtime.value(), /synchronous function ABI/u);
+  assert.equal(calls, 1, 'This is a post-initialization guard, not a compile-time proof');
+  assert.throws(() => runtime.value(), /synchronous function ABI/u);
+  assert.equal(calls, 1, 'A refused ABI cannot trigger another initializer');
+});
+
+
+test('named facade and raw imports share the exact exported functions and opaque custody', async t => {
+  const f = fixture(t, `
+const original = new WeakMap();
+export function retain(value) { const token = Object.freeze({}); original.set(token, value); return token; }
+export function restore(token) { if (!original.has(token)) throw new TypeError('Foreign custody'); return original.get(token); }
+`);
+  const facade = join(f.directory, 'facade.mjs');
+  writeFileSync(facade, `export {retain, restore} from './deferred.mjs';`);
+  const raw = await import(f.output);
+  const named = await import(pathToFileURL(facade).href);
+  const again = await import(f.output);
+  assert.equal(named.retain, raw.retain);
+  assert.equal(named.restore, raw.restore);
+  assert.equal(again, raw);
+  const original = Object.freeze({run: 'original-run', attempt: 1});
+  const first = named.retain(original);
+  assert.equal(raw.restore(first), original);
+  const second = raw.retain(original);
+  assert.equal(named.restore(second), original);
+  assert.notEqual(first, second);
 });

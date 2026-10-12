@@ -82,6 +82,7 @@ function run(t, requested, {fail, stalePayload, wrapper, version, additionalProv
     'generated-owned-contracts',
     'local-node-package-inputs', 'connector-node-bundles', 'connector-compute-bundles',
     'connector-manifest-selection', 'connector-host-bundles', 'adapter-module-graph',
+    'deferred-function-runtime',
     ...Object.values(packages).map(item => item.builder)]) {
     copyFileSync(join(root, `scripts/${name}.mjs`), join(directory, `scripts/${name}.mjs`));
   }

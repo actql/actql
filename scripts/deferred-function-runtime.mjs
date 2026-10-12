@@ -3,6 +3,10 @@ import {buildSync, transformSync} from 'esbuild';
 // These generated ABI modules export synchronous functions only. Keep their
 // original compiled body and process-wide state together, but initialize it
 // on the first Owner call rather than during a Worker's global module load.
+// Export names/import closure are checked at generation time; value kinds
+// are checked after the original body initializes on the first call. A new
+// non-function export can therefore run initializer effects before refusal;
+// this guard is not a compile-time proof of a safe initializer.
 // In particular, the pinned runtime's random hash seed still uses its actual
 // entropy source; it is not replaced with a constant or a Host-side hash.
 export function deferredFunctionRuntime(source, {minify = false} = {}) {
@@ -31,10 +35,11 @@ function runtime() {
   if (!attempted) {
     attempted = true;
     try {
-      compiled = initialize();
-      if (${JSON.stringify(exports)}.some(name => typeof compiled[name] !== 'function')) {
+      const candidate = initialize();
+      if (${JSON.stringify(exports)}.some(name => typeof candidate[name] !== 'function')) {
         throw new TypeError('Expected a synchronous function ABI');
       }
+      compiled = candidate;
     } catch (error) {
       failed = true;
       failure = error;
