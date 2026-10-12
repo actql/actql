@@ -26,7 +26,8 @@ pub fn acknowledge_model_call_entry(
   if entry.acknowledgement is Some(original) {
     return Some(original)
   }
-  if check_model_original_resources_mutable(entry.prepared.owner.state) is Err(_) {
+  if check_model_original_resources_mutable(entry.prepared.owner.state)
+    is Err(_) {
     return None
   }
   let acknowledgement : ModelCallEntryAcknowledgement = { entry, }
