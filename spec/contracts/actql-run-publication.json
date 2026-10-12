@@ -1150,6 +1150,51 @@
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}\\.\\d{3}Z$"
         }
       }
+    },
+    "model_original_storage_binding": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-model-original-storage-binding-0.1.json",
+      "title": "actql-model-original-storage-binding-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "store_contract_wire",
+        "store_contract_cid",
+        "store_authority_cid",
+        "key_generation_cid",
+        "private_namespace",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-original-storage-binding/0.1"
+        },
+        "store_contract_wire": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "store_contract_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "store_authority_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "key_generation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "private_namespace": {
+          "const": "local-continuation-private"
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
     }
   },
   "schema_cids": {
@@ -1167,9 +1212,15 @@
     "delivery_record": "sha256:d4018bec28a046f7faf02d4f3d3eb06a7f9ce19f84f5dfa41ceb5155bd0a78a4",
     "public_index_entry": "sha256:6f4d64b352c4f039d4a010322cebe6a818e11716dd5ce844fa51fa1cb7228a4e",
     "model_raw_capture_policy": "sha256:f542a5957ce196eb56105b6b5a81aa4f51c38ccc24d335855b8df0dad3dcac21",
-    "model_raw_response": "sha256:07f7c91e32a97d3aaf58381b2fee15bed860021875b3cb2b0e5fc646aa5a5ca6"
+    "model_raw_response": "sha256:07f7c91e32a97d3aaf58381b2fee15bed860021875b3cb2b0e5fc646aa5a5ca6",
+    "model_original_storage_binding": "sha256:b3906487cb64d2c9a7c5a271358d971051e76884e0d795b1c6ad64c3f00d96f1"
   },
   "reference_roles": {
+    "model_original_storage_binding": {
+      "store_contract_cid": "external:selected-private-store-contract",
+      "store_authority_cid": "external:store-authority",
+      "key_generation_cid": "external:installation-key-generation"
+    },
     "model_raw_capture_policy": {
       "run_definition_cid": "external:run-definition",
       "scope_cid": "external:model-invocation-scope",
@@ -1286,6 +1337,24 @@
     }
   },
   "reference_graph": [
+    {
+      "source": "model_original_storage_binding",
+      "slot": "store_contract_cid",
+      "target": "external:selected-private-store-contract",
+      "role": "semantic"
+    },
+    {
+      "source": "model_original_storage_binding",
+      "slot": "store_authority_cid",
+      "target": "external:store-authority",
+      "role": "semantic"
+    },
+    {
+      "source": "model_original_storage_binding",
+      "slot": "key_generation_cid",
+      "target": "external:installation-key-generation",
+      "role": "semantic"
+    },
     {
       "source": "model_raw_capture_policy",
       "slot": "run_definition_cid",

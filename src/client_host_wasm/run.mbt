@@ -359,6 +359,12 @@ pub fn close_run_configuration(nonce : Int64, handle : Int) -> Int {
   if value.computes
     .values()
     .any(compute => compute.current_configuration == Some(handle)) ||
+    value.materials
+    .values()
+    .any(material => {
+      material.submission is Some(submission) &&
+      submission.current_configuration == handle
+    }) ||
     value.submissions.values().any(record => record.configuration == handle) ||
     value.publishers
     .values()
