@@ -275,6 +275,8 @@ fn lower_script_bindings(
           output,
           known=body_inputs,
           graphs=body_graphs,
+          continuation=Some((context, sources)),
+          allow_nonrelation=true,
         )
       }
     } else {

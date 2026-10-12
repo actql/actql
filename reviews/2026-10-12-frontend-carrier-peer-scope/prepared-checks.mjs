@@ -1,0 +1,3 @@
+import {runLocalCheck} from '../../scripts/local-checks-guard.mjs';
+const runner = 'import {runFocusedTests} from "./scripts/test-execution.mjs";process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});';
+process.exitCode=await runLocalCheck({root:process.cwd(),heavy:false,timeoutSeconds:60,graceSeconds:5,steps:[{name:'F03 resolved peer scope and affected Carrier/NEAREST callers',command:'node',args:['--input-type=module','-e',runner,'moon','--target','js','src/query_program/carrier_peer_scope_test.mbt','src/query_program/with_vectors_events_test.mbt','src/query_program/nearest_test.mbt']}]});
