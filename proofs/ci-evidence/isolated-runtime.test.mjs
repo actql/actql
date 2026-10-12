@@ -85,6 +85,8 @@ test('actual Git sources have the same keyed cohort, staged bytes/modes and orig
 });
 
 for (const manifest of ['src/native_values_integration/moon.pkg',
+  'src/platform_native/filesystem/moon.pkg', 'src/platform_native/http_client/moon.pkg',
+  'src/platform_native/result_access/moon.pkg', 'src/platform_native/sqlite/moon.pkg',
   'src/platform_native/publication_store/moon.pkg', 'src/platform_native/remote_client/moon.pkg',
   'src/platform_native/remote_journal/moon.pkg', 'src/platform_native/remote_transfer_client/moon.pkg',
   'src/platform_native/remote_transfer_journal/moon.pkg', 'src/platform_native/signature/moon.pkg',

@@ -1,26 +1,40 @@
-# Native Remote CLI
+# Native CLI
 
 `npm install -g actql` installs the npm launcher and an OS-specific Native
-Client transport executable. The executable uses HTTPS/mTLS and the existing
-Client–Host protocol. It does not embed a Local execution engine. Connecting to
-a Local Host over HTTPS is remote transport, not embedded Local execution.
+Client executable. Remote remains the default and uses HTTPS/mTLS and the
+existing Client–Host protocol. Explicit `--mode local` uses the existing Native
+Host, checker, journal and Store. Connecting to a Local Host over HTTPS is still
+Remote transport, not embedded Local execution.
 
-The current source candidate also has an explicit `--mode local` preparation
-entry. Its `check` response is `kind: prepared`, not a public diagnostic report
-or Run admission. Source execution, durable CLI recovery, Checkpoint resolution
-and installed Local runtime acceptance are still unfinished. The preparation
-entry does not make this Remote release a completed standard Local CLI.
+The fixed Darwin arm64 cohort from source
+`109564ef9a4f8241096292843b875d4c81fbb6f3` completed the source-free Local
+installed baseline on macOS 26.0 or newer: normal external installation,
+explicit trust adoption, SQL `SELECT 1 AS n`, the Named Result `[{"n":1}]`,
+fresh-process lookup of the same Submission/Run, delivery digest/release receipt,
+same-attempt reopen refusal and an explicitly new retained read. The eleven
+bounded cases passed, including two expected refusals. This is not full
+Source/Effect/approval/cancel/Debug or other-platform Local acceptance.
 
-This release uses `actql@0.0.2`; the existing `0.0.1` name placeholder is not
-overwritten. Package version and protocol version are independent. Node
-22.22.0 or newer starts the npm launcher; the Native executable itself is
+Local initialization requires `actql --mode local adopt --json`; `connect`
+cannot silently adopt. Product defaults and bundled dependencies do not require
+user-authored internal configuration, library paths, a Host, token or mTLS.
+The defaults authorize only the finite source-free private-Store profile, not
+external I/O. `check` still returns `kind: prepared`, not a public diagnostic
+report or Run admission. See the
+[Local command guide](../../docs/cli.md#accepted-source-free-local-baseline).
+
+The accepted fixed cohort uses `actql@0.0.2`; the existing `0.0.1` name
+placeholder is not overwritten. This acceptance does not publish npm packages
+or establish registry availability. Package and protocol versions are
+independent. Node 22.22.0 or newer starts the npm launcher; the Native executable itself is
 Node-free. There is no install-time download, compiler or fallback executable.
 Do not omit optional dependencies. Platform declarations and the exact binary
 digests accompany the fixed release manifest; candidate platforms are macOS
 arm64 and Linux x64/glibc. A candidate is supported only after its real external
 installation and Host acceptance succeeds.
 
-Supply a Host URL, connection file, scoped token file and mTLS credentials:
+For Remote mode, supply a Host URL, connection file, scoped token file and mTLS
+credentials:
 
 ```sh
 actql --endpoint https://host.example/ \
@@ -48,7 +62,7 @@ input. Save the exact admitted Run reference for subsequent operations.
 | Bounded complete Result read | `read` with saved attempt ID |
 | Delivery evidence lookup | `delivery-attempt` |
 | Checkpoint answer/approval | Not connected; use the public SDK |
-| Embedded Local execution | Not included; retained as a subsequent standard Local CLI requirement |
+| Embedded Local execution | Explicit `--mode local`; accepted source-free Darwin arm64 baseline only |
 | SDK streaming/automatic disposable-handle scope | Not provided by this bounded transport CLI |
 
 Transport errors exit nonzero. `SubmissionUnknown`, `CancellationUnknown` and
@@ -61,4 +75,4 @@ platform/libc), 65 (artifact mismatch), or 69 (missing package/start failure).
 
 The SDK/Node initial release is independent of this CLI. Unsupported Windows,
 other CPUs and musl do not receive another platform's binary. Browser, Cloud
-deployment and standard embedded Local CLI completion are not claimed.
+deployment and complete standard Local Source/Effect/Debug capability are not claimed.

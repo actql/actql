@@ -3,15 +3,27 @@
 `actql-native-client` is a Node-free native binary that uses the public
 Client–Host HTTP protocol over mTLS. Remote operations use the existing bounded
 native HTTPS adapter; the selected Host owns Run admission and retry. The source
-candidate also provides explicit embedded Local preparation through the common
-checker. Local execution and operations remain unfinished; preparation does not
-admit a Run or establish authorization.
+also provides explicit embedded Local operation through the common checker and
+existing Native Host/journal/Store. The source-free Darwin arm64 cohort at
+`109564ef9a4f8241096292843b875d4c81fbb6f3` passed normal external installation
+and eleven Local cases on macOS 26.0 or newer: explicit adoption, SQL execution,
+same-Run fresh-process lookup, bounded Named Result delivery/release and retained
+reread. Source/Effect/approval/cancel/Debug profiles and other Local platforms
+remain unaccepted. Preparation alone does not admit a Run or establish authority.
+
+For the installed source-free profile, use the product default configuration
+with `actql --mode local adopt --json`; no Host/token/mTLS, internal JSON or
+library path is required. Remote remains the default. See the [accepted Local
+command guide](../../../docs/cli.md#accepted-source-free-local-baseline).
+Fixed-cohort acceptance is separate from public npm availability.
 
 ## Embedded Local preparation
 
-Select `--mode local`, `--config-root` and `--config-file` explicitly. The
-configuration selects a bounded Check Environment original and its evidence
-bundle CID. `check --program-file <file> --format <format>` prepares the input
+Select `--mode local` explicitly. Advanced operator-supplied installations can
+also select `--config-root` and `--config-file`; these are not requirements for
+the installed source-free default. The configuration selects a bounded Check
+Environment original and its evidence bundle CID.
+`check --program-file <file> --format <format>` prepares the input
 through the existing Native frontend/checker. External parameter declarations
 are allowed only for `aql-text` and `sql`; parameter values remain separate.
 Remote endpoint and authentication flags are refused in this mode.
@@ -31,16 +43,18 @@ prefix using the fixed-artifact private registry. It reuses the Native ingress
 cases with the installed launcher, checks exact source/artifact identity, and
 retains command and nonzero-test evidence. It does not require an SDK RC or
 run the Remote acceptance campaign. Its scope is preparation, value preservation
-and refusal; Local Run, approval and process recovery remain separate unfinished
-requirements. Run this through the existing heavy guard after preparing a
-clean-source Native CLI RC with the existing artifact/release producers.
+and refusal; it does not establish the installed execution baseline described
+above or complete approval and other recovery profiles. Run this through the
+existing heavy guard after preparing a clean-source Native CLI RC with the
+existing artifact/release producers.
 
 ## Explicit Local Host adoption
 
-The source candidate adds `adopt`, `connect` and `new-submission` in explicit
-Local mode. These connect the existing account, adoption, journal and Submission
-epoch Owners; they do not yet execute or publish a Local Run. Installed-artifact
-acceptance for these commands is separate from the earlier preparation fixture.
+`adopt`, `connect` and `new-submission` in explicit Local mode connect the
+existing account, adoption, journal and Submission epoch Owners. These operations
+alone do not execute or publish a Run. The source-free installed baseline also
+uses `aql`, original Submission lookup and Result delivery; its evidence is
+separate from the earlier preparation-only fixture.
 
 `adopt --json` explicitly finalizes a private Host. `connect --json` opens only
 the same retained Host and refuses absent state or unfinished initialization;
@@ -54,7 +68,10 @@ in this first slice.
 
 `lookup-submission --submission-ref-file <file>` opens the retained Host and
 authenticates the saved original epoch/nonce through its existing journal. The
-reference file is read from the explicitly selected configuration root. Current
+reference file is read from the input root, separate from the private
+configuration root. Product defaults use the current working directory for
+input; an operator-supplied configuration defaults to its configuration root
+unless `--input-root` is selected explicitly. Current
 account permission for the same submit scope is required; the reference itself
 grants no authority. Lookup never prepares, acquires or executes a Program, and
 does not replace an expired epoch. Its Local CLI JSON has
@@ -62,16 +79,19 @@ does not replace an expired epoch. Its Local CLI JSON has
 unresolved` is not evidence of nonexecution or permission to resubmit. Retained
 records expose `preparing` or `ready` admission facts with exact decimal
 revisions. A ready admission is not an execution outcome or published Result.
-This source connection does not yet complete Local submit/attach execution or
-establish fixed-artifact process acceptance.
+The source-free installed baseline confirms original Submission lookup after
+execution and publication in a different process. This does not establish
+Source/Effect continuation or all attach/failure-recovery profiles.
 
-The next source candidate connects `start` and `aql` to the same original
+The current source connects `start` and `aql` to the same original
 Submission journal, ordinary frontend/compiler, Native Source/Compute Work,
 original Local normalization audit and Native Result publication Store. It is
-not yet verified using a fresh CLI artifact. This profile requires one
-explicitly installed Source, a supported linear Effect-free Program, explicit
-view/no semantic completions, and selected Run/retention originals. Effect
-execution, Result read and full process recovery remain unfinished.
+verified with the fresh installed cohort above for source-free SQL and its
+original Result. The separate Source-bearing profile requires an explicitly
+installed Source, a supported linear Effect-free Program, explicit view/no
+semantic completions and selected Run/retention originals; its product
+acceptance remains unfinished. Effect execution and its full process recovery
+remain unfinished as well.
 
 Input is durably recorded before preparation. A rejected preparation can be
 looked up as the same retained submission; it is never treated as absent or as
@@ -166,9 +186,9 @@ grant or reopen payload. `history: unresolved` supplies no replay permission.
 A retained reply contains the original `attempt`, optional latest `record` and
 optional `hostReleaseReceipt`; missing records/receipts are explicit NULL.
 These independently obtained facts are not an atomic Run snapshot. Store and
-Host close must succeed before the reply is published. Actual retained-attempt
-CLI acceptance and the new read admission path remain unfinished; the defined
-process fixtures are not fresh-artifact execution evidence.
+Host close must succeed before the reply is published. The installed source-free
+baseline verifies this lookup after a real read, including its digest and Host
+release receipt. Other process fixtures remain separate from this acceptance.
 
 Local `checkpoint-state --submission-ref-file <file> --ref-file <file>` reads
 only the original accepted Submission's retained Checkpoint metadata. Current
@@ -199,11 +219,13 @@ Read settings explicitly name `enabled`, `principal`, `connection`, literal
 `data_policy_cids`, and finite `max_bytes`, `max_uses`, `expires_at`. Missing,
 unknown, duplicate or excessive fields are refused. Admission of these settings
 is not current read permission, a grant or validation of the referenced Policy
-originals. The payload admission/issuer and original Policy connection remain
-unfinished. Missing read settings do not disable the independent metadata-only
+originals. Actual payload admission, issuer and original Policy checks are
+connected and accepted for the source-free installed profile. Missing read
+settings do not disable the independent metadata-only
 `delivery-attempt` lookup.
 
-In addition to the preparation settings, the selected `actql-config/0.1`
+For an advanced operator-supplied installation, in addition to the preparation
+settings, the selected `actql-config/0.1`
 document requires `account_config` (one file name in the selected private root)
 and `native.local`:
 
@@ -224,10 +246,12 @@ and `native.local`:
 }
 ```
 
-The configuration, state parent and managed root must be explicitly selected
-private directories. Physical library paths must name the installed platform
-runtimes; this candidate has not yet closed their standard Local distribution
-packaging. The CLI rejects an untrusted configuration root before loading these
+These operator-selected configuration, state parent and managed root locations
+must satisfy their respective filesystem trust checks. Physical library paths
+must name the selected platform runtimes. The installed source-free default
+uses bundled libraries and product-managed configuration instead; users do not
+create this JSON or supply these paths for that baseline. The CLI rejects an
+untrusted configuration root before loading these
 libraries. The three limits are explicit: TTL is at most one day, record count
 at most 1024, and snapshot bytes at most 512 MiB. `state_dir`, if supplied, must
 equal `state_parent + "/" + state_name` exactly.
@@ -241,9 +265,9 @@ stores their exact bytes and generations; reconnect cannot replace or repair
 them. Selecting an original is custody only: it does not install a Source or
 Policy, prove a normalization journal, or grant Provider access. Changing selected content, replacing a
 source file even with identical bytes, or losing custody refuses reconnection.
-No missing original is repaired from current source files. Source/Result,
-original Run recovery, typed Direct Local credentials and approval-backed
-Effect remain the following execution slices.
+No missing original is repaired from current source files. Source-bearing
+execution, typed Direct Local credentials and approval-backed Effect remain
+separate from the accepted source-free Run/Result recovery baseline.
 
 An optional `native.local.source_file` names one of the explicitly selected
 `installation_files`. Its bounded `actql-config/0.1` document contains only
@@ -347,8 +371,7 @@ Typed invocation replies distinguish `accepted`, `already_satisfied`,
 did not commit or consume cancellation identity. Another invocation may have
 been accepted. Generic HTTP errors carry no such certificate.
 
-This is a transport development artifact. The binary does not include
-embedded Local providers. The mTLS fixture in
+The Remote mTLS fixture in
 `scripts/test-native-client.mjs` uses a mock Host. The mock verifies request
 shape and response handling; it does not prove Host frontend admission or a
 native end-to-end Program Run. `scripts/test-native-sga-public-source.mjs`
@@ -356,7 +379,7 @@ separately exercises authored WITH / GRAPH queries through an installed
 public HTTPS Host and Named Results. Its machine-Program control remains distinct
 from source execution. Run the focused installed acceptance with
 `node scripts/test-packed-public-query.mjs --graph-native-only`; see the
-[fixed-source acceptance record](../../../docs/reviews/2026-10-03-native-graph-source-acceptance.md)
+[fixed-source acceptance record](../../../docs/reviews/2026-10-03-native-property-graph-source-acceptance.md)
 for independent rows, descriptions, refusal counters and its coverage limits.
 That historical record covers its fixed predecessor grammar; current WITH
 acceptance requires execution against the new source and package cohort.

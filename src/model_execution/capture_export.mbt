@@ -303,7 +303,8 @@ pub fn advance_model_capture_export(
   active : ModelCaptureExport,
   quantum : Int,
 ) -> Result[(Bool, String, Int64), ModelExecutionIssue] {
-  if check_model_original_resources_mutable(active.state.owner.state) is Err(issue) {
+  if check_model_original_resources_mutable(active.state.owner.state)
+    is Err(issue) {
     return Err(issue)
   }
   match @bounded.advance(active.session, active.token, quantum) {
@@ -361,7 +362,8 @@ pub fn cleanup_model_capture_export(
   if active.reclaimed {
     return Ok(true)
   }
-  if check_model_original_resources_mutable(active.state.owner.state) is Err(issue) {
+  if check_model_original_resources_mutable(active.state.owner.state)
+    is Err(issue) {
     return Err(issue)
   }
   if !@bounded.session_stopped(active.session) {

@@ -72,7 +72,7 @@ pub fn client_values_host_compile_effect(
     Err(issue) => return Err(Manifests(issue))
   }
   let normalization = if normalization_profile {
-    match @host.issue_prepared_client_effect_normalization(prepared) {
+    match @host.issue_prepared_client_effect_selected_normalization(prepared) {
       Ok(value) => Some(value)
       Err(issue) => return Err(Compilation(Normalization(issue)))
     }
@@ -222,7 +222,7 @@ pub fn client_values_host_issue_prepared_effect_run_materials(
     Err(issue) => return Err(Binding(issue))
   }
   let normalization = match
-    @host.issue_prepared_client_effect_normalization(prepared) {
+    @host.issue_prepared_client_effect_selected_normalization(prepared) {
     Ok(value) => value
     Err(issue) => return Err(Normalization(issue))
   }
