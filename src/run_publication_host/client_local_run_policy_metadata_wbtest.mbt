@@ -163,3 +163,93 @@ test "policy metadata projection preserves raw Unicode and CR LF values" {
   // The actual Policy Owner still admits CID/body, version and domain semantics;
   // projecting these strings does not grant their synthetic values authority.
 }
+
+///|
+test "policy projection leaves metadata type and Policy admission with their original owners" {
+  let original = @json.parse(local_policy_metadata_old109_run_wire())
+  guard original is Object(root) &&
+    root["native"] is Object(native) &&
+    native["run"] is Object(run) else {
+    fail("fixture")
+  }
+  run["retention_policy_wire"] = Json::number(1)
+  let projected = client_local_run_policy_metadata_cursor(
+    @utf8.encode(original.stringify()),
+  ).unwrap()
+  guard @decode.text(
+      local_policy_metadata_at(projected, [
+        "native", "run", "retention_policy_wire",
+      ]),
+    )
+    is Err(issue) else {
+    fail("same typed reader must reject the wrong type")
+  }
+  assert_eq(issue.kind, @decode.WrongType)
+  let policy = local_policy_metadata_at(projected, [
+    "native", "run", "source_free", "result_policy_wire",
+  ])
+  let wire = @decode.text(policy).unwrap()
+  assert_true(
+    admit_source_free_result_policy_body(
+      "sha256:" + "0".repeat(64),
+      wire,
+      8192,
+      512,
+      8,
+    )
+    is Err(_),
+  )
+}
+
+///|
+test "policy projection full Source intake still rejects deep omitted compute bodies" {
+  let original = @json.parse(local_policy_metadata_old109_run_wire())
+  guard original is Object(root) &&
+    root["native"] is Object(native) &&
+    native["run"] is Object(run) &&
+    run["source_free"] is Object(values) else {
+    fail("fixture")
+  }
+  let mut deep : Json = Json::number(1)
+  for _ in 0..<65 {
+    deep = Json::array([deep])
+  }
+  values["registry"] = deep
+  assert_eq(
+    client_local_run_policy_metadata_cursor(@utf8.encode(original.stringify())).map(_ => {
+        0
+      },
+    ),
+    Err(ConfigurationLimit),
+  )
+}
+
+///|
+test "successful policy metadata projection cannot substitute a foreign original Run packet" {
+  let bytes = @utf8.encode(local_policy_metadata_old109_run_wire())
+  assert_true(client_local_run_policy_metadata_cursor(bytes) is Ok(_))
+  let packet = @utf8.encode(local_run_policy_packet_fixture)
+  let request = local_run_policy_packet_request()
+  assert_eq(
+    validate_client_local_run_policy_original_run(
+      packet,
+      request,
+      local_run_policy_packet_definition(),
+    ),
+    Ok(()),
+  )
+  assert_true(
+    validate_client_local_run_policy_original_run(
+      packet,
+      request,
+      saved_submission_definition(),
+    )
+    is Err(_),
+  )
+  assert_eq(
+    @sha.hex(bytes),
+    "f4a9b5e68b66f4d0818431e49e070258ee6438676628e0126021c1e04e7e5b50",
+  )
+  // The actual Run/packet owner remains independent of this config view.
+  // No new packet, reference, expiry or authority is produced by projection.
+}
