@@ -12,7 +12,7 @@ fn sga_field_argument(operation : String, path : Array[String]) -> Bool {
     "to_vectors" => path == ["id"] || path == ["vector"]
     "pool_vectors" => path == ["by"] || path == ["vector"]
     "to_events" => path == ["id"] || path == ["time"]
-    "row_window" => path == ["time"]
+    "row_window" | "watermark_rows" => path == ["time"]
     "dedupe_events" => path == ["by"]
     "session" => path == ["id"] || path == ["time"] || path == ["by"]
     _ => false
