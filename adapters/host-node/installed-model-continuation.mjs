@@ -481,6 +481,38 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       ...(journalPort === undefined ? {} : {journalPort})};
     return Object.freeze({originals, inventory, token, scope, preparedCallSet,
       originalJournalInstallation,
+      async originalResourceOrigin(storageBinding) {
+        const originalScope = operation.originalResourceScope?.();
+        const installation = originalPreparation?.nodeInstallation;
+        if (originalScope === undefined || originalScope !== originalPreparation?.scope ||
+            installation === undefined || checkpoints() !== cp ||
+            typeof control.checkedClientInferOriginalResourceOriginField !== 'function') {
+          fail('ModelOriginalResourceOriginUnavailable');
+        }
+        // This port reopens/rechecks its actual selected encrypted Store. The
+        // returned evidence is data from that nominal binding, not a caller CID.
+        const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
+        if (checkpoints() !== cp || operation.originalResourceScope?.() !== originalScope) {
+          fail('ModelOriginalJournalInstallationChanged');
+        }
+        // Select these immutable originals BEFORE Resource park. Do not infer
+        // them from current census bytes, response data or saved document fields.
+        const origin = {};
+        for (const field of ['run_id', 'run_definition_cid', 'prepared_invocation_cid',
+          'host_policy_cid', 'execution_context_cid', 'program_definition_cid',
+          'parameter_values_cid', 'barrier_cid', 'runtime_artifact_cid',
+          'layout_artifact_cid', 'response_profile_cid', 'storage_binding_cid']) {
+          origin[field] = control.checkedClientInferOriginalResourceOriginField(
+            plan.compiled, plan.runDefinition, selected.graph, originalScope,
+            installation, storage, field);
+        }
+        if (checkpoints() !== cp || operation.originalResourceScope?.() !== originalScope) {
+          fail('ModelOriginalJournalInstallationChanged');
+        }
+        // This bounded data record/String overlap belongs to C's original
+        // bootstrap inventory; its existence does not prove a numeric profile.
+        return Object.freeze(origin);
+      },
       originalJournalInvalidationCurrent(receipt, reference, park, request) {
         const port = originalJournalInstallation();
         const observed = cp.journal.originalModelJournalPortInvalidationCurrent(
