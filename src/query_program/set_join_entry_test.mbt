@@ -1,4 +1,30 @@
 ///|
+// Read the checked JOIN guards, not a serialization spelling or match count.
+fn set_join_checked_ceilings(program : @program.Program) -> Array[Int64] raise {
+  let checked = match
+    @check.check_parsed(program, check_environment(), None, check_limits()) {
+    Checked(value) => value
+    Rejected(error) => raise @check.diagnostic_cause(error)
+    _ => fail("JOIN comparison must be closed")
+  }
+  let guards : Array[Int64] = []
+  for unit in 0..<@check.unit_count(checked) {
+    let pipeline = @check.unit_pipeline(checked, unit).unwrap()
+    for step in 0..<@pipeline.step_count(pipeline) {
+      match @pipeline.step_at(pipeline, step).unwrap().operation {
+        Join(checked=join, ..) =>
+          match @join_shape.output_guard(join) {
+            Some(Literal(value)) => guards.push(value)
+            _ => fail("literal JOIN ceiling must remain a typed literal guard")
+          }
+        _ => ()
+      }
+    }
+  }
+  guards
+}
+
+///|
 test "standalone JOIN set entry retains independently checked ordinary operations" {
   // Both branches read the same retained input values. Append preserves two
   // copies of id=1; the global sort runs after append, not on one operand.
@@ -76,7 +102,16 @@ test "JOIN set entry retains declared output ceilings and final output scope" {
     max_join_output_rows: 7L,
   }).unwrap()
   let wire = semantic(program)
-  assert_eq(wire.split("\"max_output_rows\":7").length(), 3)
+  // Two independent two-row Values inputs imply at most four pairs.
+  // The context ceiling admits that existing derivation; it is not authored SQL.
+  assert_eq(set_join_checked_ceilings(program), [4L, 4L])
+  let explicit = text.split("t.x = r.k").join("t.x = r.k MAX_OUTPUT_ROWS 7")
+  let explicit_program = compile(
+    @query.parse_query(explicit, syntax_limits()).unwrap(),
+    join_order_context(),
+    { ..construction_limits(), max_join_output_rows: 7L, },
+  ).unwrap()
+  assert_eq(set_join_checked_ceilings(explicit_program), [7L, 7L])
   assert_true(wire.contains("\"take\":{\"count\":2,\"offset\":1}"))
   assert_true(wire.contains("\"fields\":[\"id\"]"))
   for order in ["r.k", "t.x", "missing"] {
