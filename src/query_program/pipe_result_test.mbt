@@ -117,10 +117,11 @@ test "top level RESULT consumes evaluated CTE and JOIN output through the shared
 
 ///|
 test "RESULT inside a Pure body is refused at syntax admission" {
-  for (text, offset) in [
-    ("WITH chosen AS (FROM pair |> RESULT saved) SELECT x FROM chosen", 29),
-    ("SELECT x FROM (FROM pair |> RESULT saved) AS chosen", 28),
-  ] {
+  for
+    (text, offset) in [
+      ("WITH chosen AS (FROM pair |> RESULT saved) SELECT x FROM chosen", 29),
+      ("SELECT x FROM (FROM pair |> RESULT saved) AS chosen", 28),
+    ] {
     match @query.parse_query(text, syntax_limits(), source_path="result.sql") {
       Err({ issue: Syntax(message), span: Some(span), }) => {
         assert_eq(message, "RESULT is not allowed in a producer body")

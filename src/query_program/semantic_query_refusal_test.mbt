@@ -1,9 +1,10 @@
 ///|
 test "Pure WITH and derived bodies refuse Result at the authored token" {
-  for (text, offset) in [
-    ("WITH chosen AS (FROM t |> RESULT saved) SELECT x FROM chosen", 26),
-    ("SELECT x FROM (FROM t |> RESULT saved) AS chosen", 25),
-  ] {
+  for
+    (text, offset) in [
+      ("WITH chosen AS (FROM t |> RESULT saved) SELECT x FROM chosen", 26),
+      ("SELECT x FROM (FROM t |> RESULT saved) AS chosen", 25),
+    ] {
     match @query.parse_query(text, syntax_limits(), source_path="pure.sql") {
       Err({ issue: Syntax(message), span: Some(span), }) => {
         assert_eq(message, "RESULT is not allowed in a producer body")
