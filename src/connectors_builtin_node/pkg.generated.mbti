@@ -175,6 +175,8 @@ pub fn client_program_advance_infer_observation_verification(@model_execution.Mo
 
 pub fn client_program_advance_infer_original_current_state_comparison(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateComparison[@run_publication_host.ClientModelReadOrigin], Int) -> Result[@physical_resources.OriginalStateComparisonPoll, @run_publication_host.ClientModelReadPreparationIssue]
 
+pub fn client_program_advance_infer_original_current_state_comparison_with_match(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateComparison[@run_publication_host.ClientModelReadOrigin], Int) -> Result[@physical_resources.OriginalCurrentStateMatchPoll[@run_publication_host.ClientModelReadOrigin], @run_publication_host.ClientModelReadPreparationIssue]
+
 pub fn client_program_advance_infer_original_current_state_decode(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.OriginalModelCurrentStateDecode, Int) -> @client_infer_host.OriginalModelCurrentStateDecodePoll
 
 pub fn client_program_advance_infer_original_current_state_writer(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.OriginalModelCurrentStateWriter, Int) -> @physical_resources.OriginalStateWritePoll
@@ -876,6 +878,10 @@ pub fn client_program_infer_occurrence_target_name(@run_publication_host.ClientI
 pub fn client_program_infer_original_current_state_comparison_poll(@physical_resources.OriginalStateComparisonPoll) -> (String, Int, @physical_resources.OriginalStateComparisonIssue?)
 
 pub fn client_program_infer_original_current_state_decode_poll(@client_infer_host.OriginalModelCurrentStateDecodePoll) -> (String, Int, @client_infer_host.OriginalModelCurrentStateDecodeIssue?, @physical_resources.OriginalCurrentStateDocument?)
+
+pub fn client_program_infer_original_current_state_match_current(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]?
+
+pub fn client_program_infer_original_current_state_match_poll(@physical_resources.OriginalCurrentStateMatchPoll[@run_publication_host.ClientModelReadOrigin]) -> (String, Int, @physical_resources.OriginalStateComparisonIssue?, @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]?)
 
 pub fn client_program_infer_original_model_invalidation_current(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalResourceInvalidationRequest[@run_publication_host.ClientModelReadOrigin]?
 
@@ -1670,6 +1676,8 @@ pub fn client_program_result_row_contract_unit_cid(@run_publication_host.ClientR
 pub fn client_program_result_row_contract_wire(@run_publication_host.ClientResultRowContractIdentity) -> String
 
 pub fn client_program_retire_infer_original_current_state_document(@physical_resources.OriginalCurrentStateDocument) -> Unit
+
+pub fn client_program_retire_infer_original_current_state_match(@physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> Unit
 
 pub fn client_program_row_content_reference_issuer(@value_admission.ReferenceIssuer, @value_admission.ReferenceIssuer) -> @value_admission.ReferenceIssuer
 

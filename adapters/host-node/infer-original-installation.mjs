@@ -37,10 +37,20 @@ export function selectedInferOriginalMetadataLimits(original, nodeInstallation) 
   return original.metadataAcquisition;
 }
 
+// A distinct private physical acquisition role of the SAME installation.
+// Metadata/list clamps cannot stand in for the complete Store opening scan.
+/** @typedef {Readonly<{maxWireBytes: number, maxDirectoryEntries: number}>} OriginalStoreBootstrapLimits */
+/** @returns {OriginalStoreBootstrapLimits} */
+export function selectedInferOriginalStoreBootstrapLimits(original, nodeInstallation) {
+  if (!originals.has(original) || original.nodeInstallation !== nodeInstallation ||
+      original.storeBootstrap === undefined) unavailable();
+  return original.storeBootstrap;
+}
+
 export function retainInferOriginalReadInstallation(value) {
   if (value === undefined) return undefined;
   if (value === null || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).filter(name => name !== 'metadataAcquisition').sort().join(',') !==
+      Object.keys(value).filter(name => !['metadataAcquisition', 'storeBootstrap'].includes(name)).sort().join(',') !==
         'bootstrap,modelExecutionBytes,modelRetainedBytes,nodeInstallation' ||
       !keys(value.bootstrap,
         'bootstrapExecutionBytes,bootstrapRetainedBytes,maxDelegations,maxHoldings,maxReservations') ||
@@ -63,6 +73,12 @@ export function retainInferOriginalReadInstallation(value) {
   // still checks every original reference and all-R bound before read reserve
   // and again before one-shot claim. There is no permissive fallback.
   const metadataAcquisition = retainMetadata(value.metadataAcquisition);
+  const storeBootstrap = value.storeBootstrap;
+  if (storeBootstrap !== undefined &&
+      (!keys(storeBootstrap, 'maxDirectoryEntries,maxWireBytes') ||
+        !count(storeBootstrap.maxWireBytes, 1) || !count(storeBootstrap.maxDirectoryEntries))) {
+    throw new TypeError('InvalidInstalledInferStoreBootstrap');
+  }
   const retained = Object.freeze({bootstrap: Object.freeze({...value.bootstrap}),
     modelRetainedBytes: value.modelRetainedBytes,
     modelExecutionBytes: value.modelExecutionBytes,
@@ -73,7 +89,8 @@ export function retainInferOriginalReadInstallation(value) {
         })}),
       runtimeArtifactCid: node.runtimeArtifactCid, layoutArtifactCid: node.layoutArtifactCid,
       probability: node.probability}),
-    ...(metadataAcquisition === undefined ? {} : {metadataAcquisition})});
+    ...(metadataAcquisition === undefined ? {} : {metadataAcquisition}),
+    ...(storeBootstrap === undefined ? {} : {storeBootstrap: Object.freeze({...storeBootstrap})})});
   originals.add(retained);
   return retained;
 }

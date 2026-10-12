@@ -7,11 +7,24 @@ fn local_run_policy_binding(
   crypto : @local_crypto.Library,
 ) -> @local_host.NativeLocalRunPolicyBinding? raise ClientStop {
   match settings.run_policy_profile_file {
-    None => None
+    None =>
+      match (settings.read_file, settings.run_file) {
+        (Some(read), Some(run)) =>
+          host
+          .bind_upgraded_run_policy(
+            crypto,
+            settings.principal,
+            settings.connection,
+            read,
+            run,
+          )
+          .unwrap_or_else(() => stop("LocalRunPolicyOriginalUnavailable"))
+        _ => None
+      }
     Some(profile) =>
       Some(
         host
-        .bind_run_policy_profile(
+        .bind_run_policy_profile_for_read(
           crypto,
           settings.principal,
           settings.connection,
@@ -22,8 +35,6 @@ fn local_run_policy_binding(
           settings.run_file.unwrap_or_else(() => {
             stop("LocalRunOriginalNotSelected")
           }),
-          "retention.json",
-          "store.json",
         )
         .unwrap_or_else(() => stop("LocalRunPolicyOriginalUnavailable")),
       )

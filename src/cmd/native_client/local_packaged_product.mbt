@@ -14,9 +14,9 @@ priv struct LocalPackagedRuntime {
 ///|
 fn local_product_operation(operation : String) -> Bool {
   [
-    "adopt", "connect", "check", "new-submission", "lookup-submission", "checkpoint-state",
-    "lookup-preparation-grant", "lookup-preparation-raw", "lookup-cancellation",
-    "cancel", "delivery-attempt", "read", "start", "aql",
+    "adopt", "connect", "upgrade-policy", "lookup-policy-upgrade", "check", "new-submission",
+    "lookup-submission", "checkpoint-state", "lookup-preparation-grant", "lookup-preparation-raw",
+    "lookup-cancellation", "cancel", "delivery-attempt", "read", "start", "aql",
   ].contains(operation)
 }
 

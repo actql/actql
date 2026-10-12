@@ -31,6 +31,8 @@ pub fn advance_observation_issuance(ObservationIssuance, Int) -> Result[(Bool, I
 
 pub fn advance_original_model_current_state_comparison(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateComparison[@run_publication_host.ClientModelReadOrigin], Int) -> Result[@physical_resources.OriginalStateComparisonPoll, @run_publication_host.ClientModelReadPreparationIssue]
 
+pub fn advance_original_model_current_state_comparison_with_match(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateComparison[@run_publication_host.ClientModelReadOrigin], Int) -> Result[@physical_resources.OriginalCurrentStateMatchPoll[@run_publication_host.ClientModelReadOrigin], @run_publication_host.ClientModelReadPreparationIssue]
+
 pub fn advance_original_model_current_state_decode(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], OriginalModelCurrentStateDecode, Int) -> OriginalModelCurrentStateDecodePoll
 
 pub fn advance_original_model_current_state_write(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateWrite[@run_publication_host.ClientModelReadOrigin], Int) -> @physical_resources.OriginalStateWritePoll
@@ -136,6 +138,8 @@ pub fn matches(Execution, @run_publication_host.PreparedClientProgram) -> Bool
 pub fn model_cleanup_progress(Execution) -> Int
 
 pub fn observation_issuance_value(ObservationIssuance) -> (@run_publication.RunEvidenceValue, @run_publication.PublicationContract)?
+
+pub fn original_model_current_state_match_current(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> @physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]?
 
 pub fn original_model_parked_read_capacity_available(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], Int64, Int64) -> Bool
 
