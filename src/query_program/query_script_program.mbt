@@ -99,6 +99,7 @@ fn lower_script_relation(
         graphs~,
         retained~,
         positional_set_output~,
+        set_head~,
         continuation=Some((context, sources)),
         allow_nonrelation~,
       )
@@ -118,6 +119,7 @@ fn lower_script_relation(
       output,
       retained~,
       allow_nonrelation~,
+      set_head~,
     )
   }
   if single_term && @query.operation_at(query, 0) is Some(Nearest(_)) {
@@ -296,6 +298,9 @@ fn lower_script_relation_term(
   let nearest_inputs = bind_script_nearest_inputs(
     construction, query, known, selected, input, context, sources, steps, reserved,
   )
+  let nearest_vectors = script_nearest_vector_inputs(
+    construction, query, nearest_inputs, context, sources, limits, steps,
+  )
   let (body, output_fields) = compile_steps(
     construction,
     query,
@@ -309,6 +314,7 @@ fn lower_script_relation_term(
     false,
     output,
     nearest_inputs~,
+    nearest_vectors~,
     retained~,
     parameter_declarations=context.parameter_declarations,
     initial_scope=script_input_scope(

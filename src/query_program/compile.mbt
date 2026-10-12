@@ -2067,6 +2067,7 @@ fn compile_steps(
   final_alias : String,
   graph_bindings_only? : Bool = false,
   nearest_inputs? : Array[Input] = [],
+  nearest_vectors? : Array[(String, @carrier.Vectors)] = [],
   retained? : Array[RetainedResult]? = None,
   projected_input? : Bool = false,
   initial_scope? : JoinChainScope? = None,
@@ -2916,6 +2917,10 @@ fn compile_steps(
           i,
           nearest_inputs.map(input => input.name),
           max_work,
+          candidate_typed=nearest_vectors
+            .filter(pair => pair.0 == matches[0].name)
+            .get(0)
+            .map(pair => pair.1),
         )
         step_entries.append(steps)
         entries.clear()
