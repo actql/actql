@@ -1,0 +1,23 @@
+{
+  "source": "23cd814c78c08fbcd1c886bc5fd005ff79dceac3",
+  "tree": "a02840e30e0cdbb221c7ee9692bd3b039469ee55",
+  "run": "run-MZZzJw",
+  "mode": "JS interface compilation, no runtime test and no formatter execution",
+  "exit_code": 1,
+  "failure": "AuthoredWith tuple constructor requires three wildcard arguments; the two rest patterns were invalid. The compiler rejected these new emission-ownership patterns.",
+  "termination": {
+    "owner": 41272,
+    "direct_owner_and_group_absent": true,
+    "own_lock_absent": true
+  },
+  "evidence": [
+    {
+      "path": "_build/local-checks/attempts/run-MZZzJw/summary.json",
+      "sha256": "2f85791099a5820f5e1a794eccc685f178a06e4f2cdbe09dc7ea70708e1d370b"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-MZZzJw/output.log",
+      "sha256": "6c4f447472fb9f7f7b4ab5ae95a49f3115619cc27edb0fd44d24f4a00b94cb91"
+    }
+  ]
+}

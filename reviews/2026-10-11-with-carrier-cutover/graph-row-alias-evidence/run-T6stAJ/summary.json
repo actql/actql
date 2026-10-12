@@ -1,0 +1,74 @@
+{
+  "startedAt": "2026-10-11T18:56:47.784Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "with-alias-corrected-current-vector-assertions",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "--test-name-pattern",
+        "^(baseline preimages and changed normative pins independently determine the Run CID|current contract inputs independently determine the Values Run and consuming fixtures)$",
+        "scripts/client-values-run-materials-vector.test.mjs"
+      ],
+      "startedAt": "2026-10-11T18:56:47.902Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:56:49.661Z",
+      "endedAt": "2026-10-11T18:56:49.666Z"
+    },
+    {
+      "name": "with-alias-unreached-js-callers",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_syntax/with_graph_alias_test.mbt",
+        "src/query_program/with_graph_range_alias_test.mbt",
+        "src/query_program/graph_rows_test.mbt",
+        "src/query_program/graph_rows_positional_set_test.mbt",
+        "src/source_frontend/with_graph_binding_test.mbt",
+        "src/connectors_builtin_node/client_source_preparation_wbtest.mbt",
+        "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+      ],
+      "startedAt": "2026-10-11T18:56:49.739Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 1,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:57:09.615Z",
+      "endedAt": "2026-10-11T18:57:09.619Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "5b922025-f7bb-41f4-90a6-e8c7d49edebd",
+    "pid": 37311,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T18:56:47.897Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-T6stAJ"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T18:57:09.699Z",
+  "outputComplete": true,
+  "exitCode": 1,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

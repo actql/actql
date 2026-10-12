@@ -1,0 +1,3 @@
+Total tests: 9, passed: 9, failed: 0.
+["moon","test","--target","js","src/query_program/composition_controls_test.mbt","src/query_program/infer_input_field_test.mbt"]: executed; counts={"tests":9,"passed":9,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-DsPFU0

@@ -1,0 +1,9 @@
+{
+  "boundary": "authored source-offset metadata only",
+  "command": "independent source RESULT offset assertion",
+  "exit": 1,
+  "first_actual_offset": 34,
+  "incorrect_authored_offset": 32,
+  "product_execution": 0,
+  "correction": "Positions are counted from the unchanged authored UTF-8 source; no parser output supplies expected offsets."
+}

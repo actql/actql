@@ -1,0 +1,66 @@
+{
+  "startedAt": "2026-10-11T18:52:21.455Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "with-graph-early-alias-check-format",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_program/query_binding_program.mbt"
+      ],
+      "startedAt": "2026-10-11T18:52:21.544Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:52:21.690Z",
+      "endedAt": "2026-10-11T18:52:21.691Z"
+    },
+    {
+      "name": "with-graph-alias-source-diagnostic-regressions",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_syntax/with_graph_alias_test.mbt",
+        "src/query_program/with_graph_range_alias_test.mbt",
+        "src/query_program/graph_rows_test.mbt",
+        "src/query_program/graph_rows_positional_set_test.mbt"
+      ],
+      "startedAt": "2026-10-11T18:52:21.750Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:52:31.115Z",
+      "endedAt": "2026-10-11T18:52:31.116Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "b687259a-3829-4549-86b4-3f5dec3ae569",
+    "pid": 26989,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T18:52:21.533Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Eneeeh"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T18:52:31.181Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

@@ -1,0 +1,15 @@
+{
+  "source": "9231427063b4391dc843384d0741c6c9ff186a83",
+  "parent": "49d311d8a6f026270c7d5c7f872d883aa61841ab",
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-root-with-caller-closure",
+  "change": "Remove one obsolete PROPERTY keyword from the positive Graph row bridge whitebox fixture; preserve all independent type/Bridge/refusal assertions.",
+  "guard": "run-ioMqNt",
+  "focused": "focused-test-tFeXet",
+  "moonJsActual": 1,
+  "passed": 1,
+  "guardExit": 0,
+  "owner": 75544,
+  "sourceClean": true,
+  "nativeActual": 0,
+  "publicHostAcceptance": false
+}

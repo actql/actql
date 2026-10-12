@@ -1,0 +1,60 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-BGH8BQ",
+  "revision": "4884eb16affa1eaf19b1fd8e9fe4814801b32a1d",
+  "source": {
+    "revision": "4884eb16affa1eaf19b1fd8e9fe4814801b32a1d",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-11T23:33:47.561Z",
+  "endedAt": null,
+  "status": "running",
+  "complete": false,
+  "commands": [
+    {
+      "id": "001",
+      "command": "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+      "args": [
+        "--test",
+        "--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs",
+        "scripts/with-final-current-callers.test.mjs",
+        "scripts/graph-member-source-input.test.mjs",
+        "scripts/graph-mean-source-input.test.mjs",
+        "scripts/graph-subtraction-source-input.test.mjs",
+        "scripts/distinct-aggregate-order-source-input.test.mjs",
+        "scripts/nearest-member-source-input.test.mjs",
+        "scripts/two-source-optional-effect.test.mjs"
+      ],
+      "cwd": {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "device": "16777233",
+        "inode": "333786578"
+      },
+      "source": {
+        "revision": "4884eb16affa1eaf19b1fd8e9fe4814801b32a1d",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "dirty": false
+      },
+      "startedAt": "2026-10-11T23:33:47.738Z",
+      "endedAt": null,
+      "elapsedMs": null,
+      "status": null,
+      "signal": null,
+      "error": null,
+      "complete": false,
+      "verificationStatus": null,
+      "outputComplete": false
+    }
+  ],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}

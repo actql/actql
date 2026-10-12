@@ -40,11 +40,11 @@ export const limitParameterSuccesses = [
   success('offset-past-end', sql, {parameters: {count: 1, skip: 8}, expected: []}),
   success('typed-empty', sql, {sourceRows: [], expected: []}),
   success('cte-body', 'WITH chosen AS (SELECT amount, id FROM records WHERE id > 0 ORDER BY id LIMIT @count OFFSET @skip) SELECT amount, id FROM chosen ORDER BY id'),
-  success('set-final', 'DATA selected = SELECT amount, id FROM records WHERE id > 0; '
+  success('set-final', 'WITH selected AS (SELECT amount, id FROM records WHERE id > 0) '
     + 'SELECT amount, id FROM selected UNION ALL SELECT amount, id FROM selected ORDER BY id LIMIT @count OFFSET @skip',
     {format: 'aql-text', expected: [{amount: null, id: 1}, {amount: 20, id: 2}]}),
-  success('join-final', 'DATA selected = SELECT amount, id FROM records WHERE id > 0; '
-    + 'DATA keys = SELECT 1 AS id UNION ALL SELECT 2 AS id UNION ALL SELECT 3 AS id; '
+  success('join-final', 'WITH selected AS (SELECT amount, id FROM records WHERE id > 0) '
+    + ', keys AS (SELECT 1 AS id UNION ALL SELECT 2 AS id UNION ALL SELECT 3 AS id) '
     + 'SELECT l.amount AS amount, l.id AS id FROM selected AS l JOIN keys AS r ON l.id = r.id MAX_OUTPUT_ROWS 10 ORDER BY id LIMIT @count OFFSET @skip',
     {format: 'aql-text'}),
   success('case-insensitive-sql', sql.replace('@count', '@COUNT').replace('@skip', '@Skip')),

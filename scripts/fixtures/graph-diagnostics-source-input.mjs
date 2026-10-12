@@ -70,11 +70,11 @@ const componentRows = (domain, kind) => ['M', 'N'].map(name => ({
   component_id: identity(domain, kind === 'weak' ? 'M' : name),
 }));
 const results = (operation, rows) => ({diagnostics: {rows, columns: columns[operation]}});
-const graphText = 'PROPERTY GRAPH (NODE TABLES (' +
+const graphText = 'GRAPH (NODE TABLES (' +
   'n AS N KEY (node_key) LABEL Node NO PROPERTIES, n AS M KEY (node_key) LABEL Node NO PROPERTIES)' +
   ' EDGE TABLES (n AS E KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES M LABEL R NO PROPERTIES,' +
   ' n AS L KEY (edge_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R NO PROPERTIES))';
-const prefix = 'DATA n = SELECT 1 AS node_key, 11 AS edge_key; DATA g = ' + graphText + '; ';
+const prefix = 'WITH n AS (SELECT 1 AS node_key, 11 AS edge_key), g AS (' + graphText + ') ';
 const tail = operation => ' |> SELECT ' + columns[operation].map(column => column.name).join(', ') + ' |> RESULT diagnostics';
 const program = (operation, body) => JSON.stringify({version: 'actql/0.1',
   id: 'fixture.graph_diagnostics', stages: [{id: 'main', inputs: {}, steps: [
@@ -109,10 +109,10 @@ export const graphDiagnosticSourceSuccesses = [
     [{actual: 2, kind: 'nodes', node_id: null, max: 0}],
     {parameterDeclarations, parameters: {p: 0}}),
   {name: 'graph-diagnostics-quoted-data-normalized-suffix', format: 'aql-text',
-    text: prefix + 'DATA `stats` = FROM g |> normalize_graph() |> degree(direction: "out"); FROM `stats` |> WHERE degree > 0 |> SELECT degree, node |> ORDER BY degree DESC |> LIMIT 1 |> RESULT diagnostics',
+    text: prefix + ', `stats` AS (FROM g |> normalize_graph() |> degree(direction: "out")) FROM `stats` |> WHERE degree > 0 |> SELECT degree, node |> ORDER BY degree DESC |> LIMIT 1 |> RESULT diagnostics',
     results: results('degree', [degreeRows(sourceDomain, 'out')[1]]), sourceReadCount: 0},
   {name: 'graph-diagnostics-empty-typed-graph', format: 'aql-text',
-    text: prefix.replace('11 AS edge_key;', '11 AS edge_key WHERE FALSE;') +
+    text: prefix.replace('11 AS edge_key)', '11 AS edge_key WHERE FALSE)') +
       'FROM g |> graph_bounds(max_nodes: 0, max_edges: 0, max_degree: 0)' + tail('graph_bounds'),
     results: results('graph_bounds', []), sourceReadCount: 0},
 ];

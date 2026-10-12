@@ -8,7 +8,7 @@ pub fn star_column_projection(
 ) -> Projection {
   let name : NamePart = { value: column, quoted: true, }
   for value in projection.replacements {
-    if same_cte_name(value.name, name) {
+    if same_binding_name(value.name, name) {
       return {
         expression: value.expression,
         aggregate: value.aggregate,

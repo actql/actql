@@ -1,0 +1,4 @@
+Finished. moon: ran 1 task, now up to date
+Total tests: 31, passed: 31, failed: 0.
+["moon","test","--target","js","src/query_program/graph_union_source_test.mbt","src/query_program/graph_subtraction_source_test.mbt","src/query_program/graph_shortest_source_test.mbt","src/query_program/graph_mean_source_test.mbt","src/query_program/graph_graft_source_test.mbt","src/query_program/graph_reach_source_test.mbt","src/query_program/graph_match_binding_vocabulary_test.mbt","src/query_program/graph_merge_vocabulary_test.mbt","src/query_program/with_source_usage_wbtest.mbt"]: executed; counts={"tests":31,"passed":31,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-VBu4ph

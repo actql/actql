@@ -93,8 +93,8 @@ export const qualifySuccesses = [
     expected: [{records: 1, n: 2}, {records: 0.5, n: 3}, {records: 0.5, n: 4}],
   }),
   success('qualified-object-does-not-demand-alias',
-    'DATA objects = SELECT 2 AS id, @a AS payload UNION ALL SELECT 1 AS id, @b AS payload '
-    + 'UNION ALL SELECT 3 AS id, @c AS payload; '
+    'WITH objects AS (SELECT 2 AS id, @a AS payload UNION ALL SELECT 1 AS id, @b AS payload '
+    + 'UNION ALL SELECT 3 AS id, @c AS payload) '
     + 'SELECT 1 / (id - 1) AS objects, ROW_NUMBER() OVER (ORDER BY id) AS n FROM objects '
     + 'QUALIFY objects.id > 1 AND objects.payload.score > 5 ORDER BY n', {
     hostProfile: 'analytic-property', sourceReadCount: 0, sourceReadSessionCount: 0,

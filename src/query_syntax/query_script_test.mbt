@@ -1,64 +1,69 @@
 ///|
-test "DATA script shares original query and constructor source positions" {
-  let text = "--😀\r\nDATA `nodes input` = SELECT 1 AS id;\nDATA g = PROPERTY GRAPH (NODE TABLES (`nodes input` AS N KEY (id) LABEL Node NO PROPERTIES));\nFROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id"
+test "WITH script shares original query and constructor source positions" {
+  let text = "--😀\r\nWITH `nodes input` AS (SELECT 1 AS id),\ng AS (GRAPH (NODE TABLES (`nodes input` AS N KEY (id) LABEL Node NO PROPERTIES)))\nFROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.id"
   let script = parse_query_script(text, query_limits(), source_path="graph.aql").unwrap()
-  assert_eq(data_declaration_count(script), 2)
-  let nodes = data_declaration_at(script, 0).unwrap()
+  let query = script_query(script)
+  assert_eq(query_binding_count(query), 2)
+  let nodes = query_binding_at(query, 0).unwrap()
   assert_eq(nodes.name, { value: "nodes input", quoted: true, })
-  assert_eq(nodes.start, 8)
-  assert_true(nodes.value is RelationQuery(_))
-  let graph = data_declaration_at(script, 1).unwrap()
-  match graph.value {
-    Graph(mapping) => {
-      assert_eq(mapping.nodes[0].producer, [nodes.name])
-      let span = @origin.span(
-        @origin.range(script_document(script), mapping.start, mapping.end).unwrap(),
-      )
-      assert_eq(span.source_path, "graph.aql")
-      assert_eq(span.start_line, 3)
-      assert_eq(span.start_column, 10)
-    }
-    _ => fail("expected pure constructor")
+  assert_true(nodes.origin is AuthoredWith(_, 13, _))
+  let graph = query_binding_at(query, 1).unwrap()
+  guard producer_primary(graph.query) is Some(GraphValue(mapping)) else {
+    fail("expected pure constructor")
   }
-  assert_eq(relation(script_query(script)), [{ value: "g", quoted: false, }])
-  assert_true(graph_query(script_query(script)) is Some(_))
+  assert_eq(mapping.nodes[0].producer, [nodes.name])
+  let span = @origin.span(
+    @origin.range(script_document(script), mapping.start, mapping.end).unwrap(),
+  )
+  assert_eq(span.source_path, "graph.aql")
+  assert_eq(span.start_line, 3)
+  assert_eq(span.start_column, 7)
+  assert_eq(relation(query), [{ value: "g", quoted: false, }])
+  assert_true(graph_query(query) is Some(_))
 }
 
 ///|
-test "DATA query bodies reuse SQL Pipe CTE and set expression grammar" {
+test "WITH bodies reuse SQL Pipe CTE and set expression grammar" {
   for
     body in [
       "SELECT 1 AS id |> WHERE id > 0", "SELECT 1 AS id UNION ALL SELECT 2 AS id",
       "WITH seed AS (SELECT 1 AS id) FROM seed |> SELECT id", "(SELECT 1 AS id |> SELECT id)",
     ] {
     let script = parse_query_script(
-      "DATA nodes = " + body + "; FROM nodes |> SELECT id",
+      "WITH nodes AS (" + body + ") FROM nodes |> SELECT id",
       query_limits(),
     ).unwrap()
-    assert_true(
-      data_declaration_at(script, 0).unwrap().value is RelationQuery(_),
-    )
-    assert_eq(relation(script_query(script)), [
-      { value: "nodes", quoted: false, },
-    ])
+    let query = script_query(script)
+    let last = query_binding_at(query, query_binding_count(query) - 1).unwrap()
+    assert_eq(last.name, { value: "nodes", quoted: false, })
+    assert_true(producer_primary(last.query) is None)
+    assert_eq(relation(query), [{ value: "nodes", quoted: false, }])
   }
 }
 
 ///|
-test "DATA script rejects duplicate names malformed and legacy entry points" {
+test "WITH rejects duplicate names malformed and retired entry points" {
   for
     text in [
-      "DATA n = SELECT 1 AS id; DATA `N` = SELECT 2 AS id; SELECT 1 AS id", "DATA n = SELECT 1 AS id FROM n SELECT id",
-      "DATA n = SELECT 1 AS id;", "DATA n = SELECT 1 AS id; DATA g = graph(nodes: n); SELECT 1 AS id",
-      "PROGRAM p { STAGE s { STEP n OP values {} } }", "DATA n = SELECT 1 AS id; SELECT 2 AS id; SELECT 3 AS id",
+      "WITH n AS (SELECT 1 AS id), `N` AS (SELECT 2 AS id) SELECT 1 AS id", "WITH n AS (SELECT 1 AS id FROM n SELECT id) SELECT id FROM n",
+      "WITH n AS (SELECT 1 AS id)", "WITH g AS (PROPERTY GRAPH (NODE TABLES (n KEY (id)))) SELECT 1 AS id",
+      "PROGRAM p { STAGE s { STEP n OP values {} } }", "DATA n = SELECT 1 AS id; FROM n |> SELECT id",
+      "WITH n AS (SELECT 1 AS id) SELECT 2 AS id; SELECT 3 AS id",
     ] {
     assert_true(parse_query_script(text, query_limits()) is Err(_), msg=text)
   }
+  assert_true(
+    starts_query(
+      "DATA n = SELECT 1 AS id; SELECT id FROM n",
+      query_limits().lexical,
+    )
+    is Ok(false),
+  )
 }
 
 ///|
-test "DATA script applies one shared syntax lexical and work budget" {
-  let text = "DATA n = SELECT 1 AS id; DATA m = SELECT 2 AS id; SELECT 3 AS id"
+test "WITH applies one shared syntax lexical and work budget" {
+  let text = "WITH n AS (SELECT 1 AS id), m AS (SELECT 2 AS id) SELECT 3 AS id"
   let baseline = parse_query_script(text, query_limits()).unwrap()
   let work = script_work(baseline)
   assert_true(
@@ -76,11 +81,10 @@ test "DATA script applies one shared syntax lexical and work budget" {
     is Err(_),
   )
   let issue = parse_query_script(
-    "DATA n = SELECT 1 AS id;\nDATA m = ; SELECT 1 AS id",
+    "WITH n AS (SELECT 1 AS id),\nm AS () SELECT 1 AS id",
     query_limits(),
     source_path="bad.aql",
   ).unwrap_err()
-  let span = issue.span.unwrap()
-  assert_eq(span.source_path, "bad.aql")
-  assert_eq(span.start_line, 2)
+  assert_eq(issue.span.unwrap().source_path, "bad.aql")
+  assert_eq(issue.span.unwrap().start_line, 2)
 }

@@ -50,10 +50,10 @@ test "Effect accepts existing literal values and refuses computed or foreign Res
 }
 
 ///|
-test "unshared DATA retains its ordinary Source predicate exactly once" {
+test "unshared WITH retains its ordinary Source predicate exactly once" {
   let actual = compile_query_script(
     @query.parse_query_script(
-      "DATA kept = FROM orders |> WHERE id = id |> SELECT id; FROM kept |> SELECT id",
+      "WITH kept AS (FROM orders |> WHERE id = id |> SELECT id) FROM kept |> SELECT id",
       syntax_limits(),
     ).unwrap(),
     { ..fixture_context(), captured_stage: Some("capture"), },
@@ -69,8 +69,8 @@ test "unshared DATA retains its ordinary Source predicate exactly once" {
 }
 
 ///|
-test "DATA JOIN retains the authored output guard rather than the frontend default" {
-  let text = "DATA joined = SELECT l.x AS x FROM pair AS l JOIN pair AS r ON l.x = r.x MAX_OUTPUT_ROWS 10; FROM joined |> RESULT updates"
+test "WITH JOIN retains the authored output guard rather than the frontend default" {
+  let text = "WITH joined AS (SELECT l.x AS x FROM pair AS l JOIN pair AS r ON l.x = r.x MAX_OUTPUT_ROWS 10) FROM joined |> RESULT updates"
   let script = @query.parse_query_script(text, syntax_limits()).unwrap()
   let actual = compile_query_script(
     script,

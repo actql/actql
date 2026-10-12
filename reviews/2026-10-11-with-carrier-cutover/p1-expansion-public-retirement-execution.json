@@ -1,0 +1,1049 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "scope": "Six current UNNEST/UNPIVOT public fixture wrapper retirements, exact authored source admissions and independent full export preservation. No product change or Host execution.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "preimages": [
+    "with-expansion-public-original-fixtures.json",
+    "with-expansion-public-original-inventory.json"
+  ],
+  "independent_derivation": {
+    "wrapper": "Only frozen DATA binding wrappers become WITH; authored bodies, JSON controls, rows/schema, ceilings and lifecycle counts unchanged.",
+    "catalog_order": "pipeline_typing/contextual_orders.mbt requires existing operation input order; logical_order.mbt requires both CROSS/Append input orders and preserves only admitted UNNEST order. query_script_inputs.mbt creates capture stage 0 and expansion stage 1. Refusal oracle is Order(1,PipelineOrder(UnresolvedOrder)).",
+    "local_values": "Exact Source rows id=2/amount=NULL and id=1/amount=10 are an existing Values-owner typing control only. This does not replace the real public fixture acquisition."
+  },
+  "runs": [
+    {
+      "run": "run-l518WL",
+      "source": "3489e3b077aa0eaeb90a71512e37de5a7f19be15",
+      "tree": "f1d84fad53b39594821bf3cf097bebe5c2fbc0d3",
+      "status": "passed",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 39177,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "release_observation": "Observed after each terminal run in its original work turn; newest three verified again in this turn.",
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/with_expansion_public_fixture_test.mbt"
+        ]
+      ],
+      "focused": [],
+      "interpretation": "Pinned one-file formatter completed; following source contains whitespace only.",
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-l518WL/local-checks/summary.json",
+          "sha256": "b0f138708d361ccc66ef9282ce2c3c9b280d51ea0bbc084a76396e37c2773d90"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-l518WL/local-checks/output.log",
+          "sha256": "08dfb28aa47cadb52adbbe0e17f43b3527323993cdb1c310eea3ddaafceb5d46"
+        }
+      }
+    },
+    {
+      "run": "run-FBwwHB",
+      "source": "41f97a613376f01f0617fc3fc98a7fa57e2bda3c",
+      "tree": "a7ea8a409504e7b50f12c15b45af23ec7d79ad0b",
+      "status": "failed",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 39429,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "release_observation": "Observed after each terminal run in its original work turn; newest three verified again in this turn.",
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_expansion_public_fixture_test.mbt"
+        ]
+      ],
+      "focused": [
+        {
+          "id": "focused-test-Ke94Xa",
+          "source": {
+            "revision": "41f97a613376f01f0617fc3fc98a7fa57e2bda3c",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 15,
+              "passed": 14,
+              "failed": 1,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "interpretation": "14/15; acquired source failed in legacy schema-only Captured local context; Node not executed.",
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-FBwwHB/local-checks/summary.json",
+          "sha256": "5d0c8458527fdbe7230a0e3bfb964195bc6772aef561710699aa091c7e6753e3"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-FBwwHB/local-checks/output.log",
+          "sha256": "ae76fb6acea0eee2914662f5c399e72ac91260b11b418821afd2f7777c53e842"
+        },
+        "focused-test-Ke94Xa/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-FBwwHB/focused-test-Ke94Xa/0001.summary.json",
+          "sha256": "10d27a3632b1b3fd104e03e9e962e7a8d51131b08dd3ce85b1fe4427fdd6b70f"
+        },
+        "focused-test-Ke94Xa/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-FBwwHB/focused-test-Ke94Xa/summary.json",
+          "sha256": "8c348f2c9e8346b17b274146c141cf7f5c388f3b40ddbfed4121de0ded8dcb36"
+        },
+        "focused-test-Ke94Xa/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-FBwwHB/focused-test-Ke94Xa/001.stdout.log",
+          "sha256": "352adf549bb24f06505aea1922ac25e58b8a214729ca01d00984eca4d37e7b3c"
+        },
+        "focused-test-Ke94Xa/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-FBwwHB/focused-test-Ke94Xa/001.started.json",
+          "sha256": "b6a91d41e00f5edd7c370aee5418189b5df0a094565f07f71aa912941397740d"
+        },
+        "focused-test-Ke94Xa/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-FBwwHB/focused-test-Ke94Xa/001.result.json",
+          "sha256": "fbb4fabdc8531f3568c303aa622f348f85147647aa4bd48694a97fcb49806934"
+        },
+        "focused-test-Ke94Xa/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-FBwwHB/focused-test-Ke94Xa/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-Ke94Xa/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-FBwwHB/focused-test-Ke94Xa/0002.summary.json",
+          "sha256": "d4f92b6ebc7a772bdde90bd4f0e577135a45343f29a2c5c5efd4927532f866db"
+        },
+        "focused-test-Ke94Xa/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-FBwwHB/focused-test-Ke94Xa/0004.summary.json",
+          "sha256": "8c348f2c9e8346b17b274146c141cf7f5c388f3b40ddbfed4121de0ded8dcb36"
+        },
+        "focused-test-Ke94Xa/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-FBwwHB/focused-test-Ke94Xa/0003.summary.json",
+          "sha256": "0164f5d6a9ecebaedcf15b4015fa599710b841f6756526683eb009c0798b6be8"
+        }
+      }
+    },
+    {
+      "run": "run-bLetu4",
+      "source": "e0b1def20c6534a6f831c7312de1a9af0369443d",
+      "tree": "01616d7a78d2e5a93fcdd620db4aeb0d3f5d0eae",
+      "status": "failed",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 40805,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "release_observation": "Observed after each terminal run in its original work turn; newest three verified again in this turn.",
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_expansion_public_fixture_test.mbt"
+        ]
+      ],
+      "focused": [
+        {
+          "id": "focused-test-ZRSDyu",
+          "source": {
+            "revision": "e0b1def20c6534a6f831c7312de1a9af0369443d",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 15,
+              "passed": 14,
+              "failed": 1,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "interpretation": "14/15; local-context diagnostic retained; Node not executed.",
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-bLetu4/local-checks/summary.json",
+          "sha256": "0b37efa936965311476d824496e4bd81060eae0823bd9026ba3ad39a66450080"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-bLetu4/local-checks/output.log",
+          "sha256": "5ff6345aab1423162c6c3716b075985408ac4e3315ed2200f1e75971251fd837"
+        },
+        "focused-test-ZRSDyu/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-bLetu4/focused-test-ZRSDyu/0001.summary.json",
+          "sha256": "6682ec38bc93685b4b6b34ecee2b09dec06a5fb2ec5800aad430e12af7b32d67"
+        },
+        "focused-test-ZRSDyu/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-bLetu4/focused-test-ZRSDyu/summary.json",
+          "sha256": "8163efc7037066703bb2cee229e7e2602613f65e3249c6fa786d6a64c6c98841"
+        },
+        "focused-test-ZRSDyu/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-bLetu4/focused-test-ZRSDyu/001.stdout.log",
+          "sha256": "c3268d676e33d98c7bc846e66e2f7b78805ff8e9477ed6e213d843c0483d5d2f"
+        },
+        "focused-test-ZRSDyu/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-bLetu4/focused-test-ZRSDyu/001.started.json",
+          "sha256": "05c621ce08510accaaf6510ed46e271467b30c9a9a352ccef04e4929e54f17c2"
+        },
+        "focused-test-ZRSDyu/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-bLetu4/focused-test-ZRSDyu/001.result.json",
+          "sha256": "6af1ef8a220daf09456ebef9ea1ca909dce6aba82a262894ad4aa344365fd9ad"
+        },
+        "focused-test-ZRSDyu/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-bLetu4/focused-test-ZRSDyu/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-ZRSDyu/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-bLetu4/focused-test-ZRSDyu/0002.summary.json",
+          "sha256": "533508b37e478cd41e3dc1925f4051248cfbdd8302610539cdbde3552dd1b56b"
+        },
+        "focused-test-ZRSDyu/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-bLetu4/focused-test-ZRSDyu/0004.summary.json",
+          "sha256": "8163efc7037066703bb2cee229e7e2602613f65e3249c6fa786d6a64c6c98841"
+        },
+        "focused-test-ZRSDyu/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-bLetu4/focused-test-ZRSDyu/0003.summary.json",
+          "sha256": "ea53ba14d3081e8acb8eca40f3af0c87e771b07f256adbaf9199c32d871af781"
+        }
+      }
+    },
+    {
+      "run": "run-tZ1BHY",
+      "source": "309f1228686eb1c24cfcb8cc93871cb5535ae63b",
+      "tree": "a65338ad464f3c5f48d56e358d4dca51841aff45",
+      "status": "failed",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 41613,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "release_observation": "Observed after each terminal run in its original work turn; newest three verified again in this turn.",
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_expansion_public_fixture_test.mbt"
+        ]
+      ],
+      "focused": [
+        {
+          "id": "focused-test-mzRJuE",
+          "source": {
+            "revision": "309f1228686eb1c24cfcb8cc93871cb5535ae63b",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 15,
+              "passed": 14,
+              "failed": 1,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "interpretation": "14/15; legacy schema-only Captured local context returned UnsupportedProjection; Node not executed.",
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-tZ1BHY/local-checks/summary.json",
+          "sha256": "206913466da27b4b07e93c54f5b04e04a64ad72e1ec682b7cc4f4ec2c8addb7d"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-tZ1BHY/local-checks/output.log",
+          "sha256": "7667d9399f656c5c3797e46bb62c1f65a675b330fb5aab52830d93bfbeaeff48"
+        },
+        "focused-test-mzRJuE/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-tZ1BHY/focused-test-mzRJuE/0001.summary.json",
+          "sha256": "891e13e95310d4051b9388274aeb486dbcda6f5dc1eca3c06f052bc9a0c96b93"
+        },
+        "focused-test-mzRJuE/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-tZ1BHY/focused-test-mzRJuE/summary.json",
+          "sha256": "7252b35121226461cb5f5460dc5444719f09c72b82593c13fb2dbde57ab37fff"
+        },
+        "focused-test-mzRJuE/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-tZ1BHY/focused-test-mzRJuE/001.stdout.log",
+          "sha256": "9eb05b070e972939e33efcbaa3dc1346212e9afdf0227c8dc85515d0f456dafe"
+        },
+        "focused-test-mzRJuE/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-tZ1BHY/focused-test-mzRJuE/001.started.json",
+          "sha256": "018090bd68e98468aacd700aae7bb9fcfcdc0a87a433f158443d77b5a98db219"
+        },
+        "focused-test-mzRJuE/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-tZ1BHY/focused-test-mzRJuE/001.result.json",
+          "sha256": "cac72498faeaa981660690994a8ffb82cfbed005ed7ddf95b3f1bc255528ff81"
+        },
+        "focused-test-mzRJuE/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-tZ1BHY/focused-test-mzRJuE/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-mzRJuE/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-tZ1BHY/focused-test-mzRJuE/0002.summary.json",
+          "sha256": "6b3897b27d93c12ead19ec6f9f9b7c0fd7bd5a884ba80bfc36164e235fdece65"
+        },
+        "focused-test-mzRJuE/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-tZ1BHY/focused-test-mzRJuE/0004.summary.json",
+          "sha256": "7252b35121226461cb5f5460dc5444719f09c72b82593c13fb2dbde57ab37fff"
+        },
+        "focused-test-mzRJuE/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-tZ1BHY/focused-test-mzRJuE/0003.summary.json",
+          "sha256": "35eeb1808bbd2e9e3140e07c8ef739b45eb27e9cba496fe5653dc907c59e6841"
+        }
+      }
+    },
+    {
+      "run": "run-klc7hy",
+      "source": "09cb8e2aafb6cf356d2e4dab090b820b8033f59f",
+      "tree": "71a384bc3c63bc049f5977f4d975925bd790b90f",
+      "status": "failed",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 43134,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "release_observation": "Observed after each terminal run in its original work turn; newest three verified again in this turn.",
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_expansion_public_fixture_test.mbt"
+        ]
+      ],
+      "focused": [
+        {
+          "id": "focused-test-rHzwNs",
+          "source": {
+            "revision": "09cb8e2aafb6cf356d2e4dab090b820b8033f59f",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 15,
+              "passed": 14,
+              "failed": 1,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "interpretation": "14/15; admitted Catalog context reached BindingPreparation; Node not executed.",
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-klc7hy/local-checks/summary.json",
+          "sha256": "44469647078f8734aea4c58371b1dcd69ba16df1bcaba1494b131db037dc7e05"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-klc7hy/local-checks/output.log",
+          "sha256": "614b55a7ffacbc958ee4e8cccd0974dfe8ea4cc88f35203deb7d9c04230dcc11"
+        },
+        "focused-test-rHzwNs/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-klc7hy/focused-test-rHzwNs/0001.summary.json",
+          "sha256": "2490331fec691f7633af24e96dabb145b7b9b18b2357e52cefbc4a2f6cab7e94"
+        },
+        "focused-test-rHzwNs/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-klc7hy/focused-test-rHzwNs/summary.json",
+          "sha256": "c7f5e178f6f9af504aa89fdf5db72efbb4ee333d500531c1809e988deeb5076d"
+        },
+        "focused-test-rHzwNs/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-klc7hy/focused-test-rHzwNs/001.stdout.log",
+          "sha256": "d427947c5fcbbe771c6c6ba9ec554c969100e05cdc25a8368928c29dc98d7d6d"
+        },
+        "focused-test-rHzwNs/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-klc7hy/focused-test-rHzwNs/001.started.json",
+          "sha256": "7af6e0e847af26ae2ed9f8ac439abf3491978776d09450ef675b708e4fca4e71"
+        },
+        "focused-test-rHzwNs/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-klc7hy/focused-test-rHzwNs/001.result.json",
+          "sha256": "448218c4cc31ece0b43abe03401f02b0c56a24b63e01b05c4906f08dff5745bb"
+        },
+        "focused-test-rHzwNs/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-klc7hy/focused-test-rHzwNs/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-rHzwNs/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-klc7hy/focused-test-rHzwNs/0002.summary.json",
+          "sha256": "d798df4e41fac9acdad630ba90b4a0edb457b9a30de1984944f436c257a3b6d8"
+        },
+        "focused-test-rHzwNs/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-klc7hy/focused-test-rHzwNs/0004.summary.json",
+          "sha256": "c7f5e178f6f9af504aa89fdf5db72efbb4ee333d500531c1809e988deeb5076d"
+        },
+        "focused-test-rHzwNs/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-klc7hy/focused-test-rHzwNs/0003.summary.json",
+          "sha256": "89550483613c7f47acf6651a46383abacb607ff0768d228e925c468f4af1e626"
+        }
+      }
+    },
+    {
+      "run": "run-HizO40",
+      "source": "e2c7fc23b55605870c27cdef71f5826b172b9884",
+      "tree": "b1596af83840aaf225d917d11f735a3bd087a58b",
+      "status": "failed",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 43818,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "release_observation": "Observed after each terminal run in its original work turn; newest three verified again in this turn.",
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_expansion_public_fixture_test.mbt"
+        ]
+      ],
+      "focused": [
+        {
+          "id": "focused-test-CTLbCp",
+          "source": {
+            "revision": "e2c7fc23b55605870c27cdef71f5826b172b9884",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 15,
+              "passed": 14,
+              "failed": 1,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "interpretation": "14/15; admitted Catalog lacked order facts and reached SourceProgram/Order; Node not executed.",
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-HizO40/local-checks/summary.json",
+          "sha256": "33f9467c31cef7fb76f49ea5f5c0d60e469ccb89e77fd4537d644d0c2a91c117"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-HizO40/local-checks/output.log",
+          "sha256": "ead70055b4b5596548c196430819412b4c9f36342862f863a99002d51dca3755"
+        },
+        "focused-test-CTLbCp/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-HizO40/focused-test-CTLbCp/0001.summary.json",
+          "sha256": "485fcf608bb58b3a02d8456d3a42db7957881c8caa7a245f6015ddd34912ce58"
+        },
+        "focused-test-CTLbCp/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-HizO40/focused-test-CTLbCp/summary.json",
+          "sha256": "292e7822ac80dfbdd25a6325dc09b458bda7b22d3608d9cb5c104af4020bc60c"
+        },
+        "focused-test-CTLbCp/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-HizO40/focused-test-CTLbCp/001.stdout.log",
+          "sha256": "dd28d83be78c4c21b95e6b889625ef0b49824ed5f28f389afa638184c93fe6de"
+        },
+        "focused-test-CTLbCp/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-HizO40/focused-test-CTLbCp/001.started.json",
+          "sha256": "658af60a6882790e1e65a39df39975cf544afdf695aaee14fe4605a86b76bd05"
+        },
+        "focused-test-CTLbCp/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-HizO40/focused-test-CTLbCp/001.result.json",
+          "sha256": "ad9b3bf81da436145c6ed83b345dffe80a0cd8cc575fdcfbb7dfd2e61b8402c6"
+        },
+        "focused-test-CTLbCp/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-HizO40/focused-test-CTLbCp/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-CTLbCp/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-HizO40/focused-test-CTLbCp/0002.summary.json",
+          "sha256": "4e1bb6f3795ccd35ae1fab4b8b6140c5dbc7c5160a67bb9f6a18fc9952a22b19"
+        },
+        "focused-test-CTLbCp/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-HizO40/focused-test-CTLbCp/0004.summary.json",
+          "sha256": "292e7822ac80dfbdd25a6325dc09b458bda7b22d3608d9cb5c104af4020bc60c"
+        },
+        "focused-test-CTLbCp/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-HizO40/focused-test-CTLbCp/0003.summary.json",
+          "sha256": "8121044c4ab9cd8ac26153e127ac38b352336b48a40699a7a2bbf84a113dca0b"
+        }
+      }
+    },
+    {
+      "run": "run-z2mtke",
+      "source": "6f61bfc0813791bbdba49fe9d27fb82ac39a11dd",
+      "tree": "0d8b13737869a11ebd405d2a4ea42a79c691828b",
+      "status": "failed",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 45714,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "release_observation": "Observed after each terminal run in its original work turn; newest three verified again in this turn.",
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_expansion_public_fixture_test.mbt",
+          "--filter",
+          "*joined-unnest-star-acquired-data*"
+        ]
+      ],
+      "focused": [
+        {
+          "id": "focused-test-7ocbwE",
+          "source": {
+            "revision": "6f61bfc0813791bbdba49fe9d27fb82ac39a11dd",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 1,
+              "passed": 0,
+              "failed": 1,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "interpretation": "0/1; exposing only required id did not establish Catalog input order; not a Host defect reproduction.",
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-z2mtke/local-checks/summary.json",
+          "sha256": "cde30a31296ccfd9bb16b5540d90b8da208d355c6c29cb3e5507433331da7511"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-z2mtke/local-checks/output.log",
+          "sha256": "4ca19bb38542ddf8ff3aea764f0da24ebb7f6629036f4823dae26900048bba3f"
+        },
+        "focused-test-7ocbwE/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-z2mtke/focused-test-7ocbwE/0001.summary.json",
+          "sha256": "9335ea8944cee99ae91e68b5bff3f3f5d0b039ee66eb8d20879c44165dfec3c9"
+        },
+        "focused-test-7ocbwE/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-z2mtke/focused-test-7ocbwE/summary.json",
+          "sha256": "8407116af99621001365528a077ac834498af1596d706277419ec5e65776af7c"
+        },
+        "focused-test-7ocbwE/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-z2mtke/focused-test-7ocbwE/001.stdout.log",
+          "sha256": "b44c74baa150007196d2d1c5edbfafa826d3d3dd02d1a80a1502ca02fb655af3"
+        },
+        "focused-test-7ocbwE/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-z2mtke/focused-test-7ocbwE/001.started.json",
+          "sha256": "0d6efba159262ddc3da6e592ced17902bd382cc5fbaf593d25991ec94ed66613"
+        },
+        "focused-test-7ocbwE/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-z2mtke/focused-test-7ocbwE/001.result.json",
+          "sha256": "6d815589f63dbe03f172107a11303f9a5b547c5b62545e0e4b4ad0969e147dfd"
+        },
+        "focused-test-7ocbwE/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-z2mtke/focused-test-7ocbwE/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-7ocbwE/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-z2mtke/focused-test-7ocbwE/0002.summary.json",
+          "sha256": "70379a374648224de074cdb1bb638b5c0d4504a23afb5957ddb2c6706ce16066"
+        },
+        "focused-test-7ocbwE/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-z2mtke/focused-test-7ocbwE/0004.summary.json",
+          "sha256": "8407116af99621001365528a077ac834498af1596d706277419ec5e65776af7c"
+        },
+        "focused-test-7ocbwE/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-z2mtke/focused-test-7ocbwE/0003.summary.json",
+          "sha256": "610e5e3a7cd5c0e9cfd15c3f4f3c3d85caae0c25ccbf97b86fdbba850e9d0f2e"
+        }
+      }
+    },
+    {
+      "run": "run-izasxl",
+      "source": "57bbfc8c93caf182c7d90b38cfa059e719f7e6c7",
+      "tree": "79be150e88d324ea3073452d9eb7ec99016ca5bd",
+      "status": "passed",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 48358,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "release_observation": "Observed after each terminal run in its original work turn; newest three verified again in this turn.",
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/with_expansion_public_fixture_test.mbt"
+        ]
+      ],
+      "focused": [],
+      "interpretation": "Pinned one-file formatter completed; following source contains whitespace only.",
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-izasxl/local-checks/summary.json",
+          "sha256": "d51b31be3407f296d68aacb5d90112e3a82b6908bb6b7c4fa100c18aa6cb3ee7"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-izasxl/local-checks/output.log",
+          "sha256": "81a677771334385895bc0ebfef26a4af4d319fd300182f0918976f6e1f185489"
+        }
+      }
+    },
+    {
+      "run": "run-IhOUsF",
+      "source": "6c40cf430c348779e90802e1032dfa401767e88e",
+      "tree": "bb965ce354a398fbbd612ff40bf4d1e4d604a520",
+      "status": "failed",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 48673,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "release_observation": "Observed after each terminal run in its original work turn; newest three verified again in this turn.",
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_expansion_public_fixture_test.mbt"
+        ]
+      ],
+      "focused": [
+        {
+          "id": "focused-test-wfZAJz",
+          "source": {
+            "revision": "6c40cf430c348779e90802e1032dfa401767e88e",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 16,
+              "passed": 15,
+              "failed": 1,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "interpretation": "15/16; all fifteen positive source admissions passed, using exact-row Values for acquired local typing. Added Catalog negative oracle incorrectly expected stage-0 ResultOrder; Node not executed.",
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-IhOUsF/local-checks/summary.json",
+          "sha256": "b64c940b509af58e6f1252377de0635fcb5157bcb78fd8908ed2e3ceefb50729"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-IhOUsF/local-checks/output.log",
+          "sha256": "b24c4a219dc8925631e42c46a77c35ac0c14b3047f494d710aa7df69cccbc8ec"
+        },
+        "focused-test-wfZAJz/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-IhOUsF/focused-test-wfZAJz/0001.summary.json",
+          "sha256": "ccb9f405ac5e1244dfd0334490f2bbb5b6b59ad0f936da31d0d06685f97dabaf"
+        },
+        "focused-test-wfZAJz/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-IhOUsF/focused-test-wfZAJz/summary.json",
+          "sha256": "7c8b9bbcddd0b1206eafe454bd89677a6ac579736756de3644ceba8883ea0f04"
+        },
+        "focused-test-wfZAJz/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-IhOUsF/focused-test-wfZAJz/001.stdout.log",
+          "sha256": "d7c6a1bb32c3b305b06beddb4b0b7694e98e0e2c00502b6e0a9a125c0554c4a6"
+        },
+        "focused-test-wfZAJz/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-IhOUsF/focused-test-wfZAJz/001.started.json",
+          "sha256": "cbaa4de087fa8377ebbf3f88c8688dcba77ae8249e88a6915f47a1220c11032c"
+        },
+        "focused-test-wfZAJz/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-IhOUsF/focused-test-wfZAJz/001.result.json",
+          "sha256": "347fa51e3227b26c91b9877a2883315293aa169a059bb06f2f08206f9f05e823"
+        },
+        "focused-test-wfZAJz/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-IhOUsF/focused-test-wfZAJz/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-wfZAJz/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-IhOUsF/focused-test-wfZAJz/0002.summary.json",
+          "sha256": "39175c55818c69f05082af214907e173367ea9bd8a14e970583677ce68e6fd4f"
+        },
+        "focused-test-wfZAJz/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-IhOUsF/focused-test-wfZAJz/0004.summary.json",
+          "sha256": "7c8b9bbcddd0b1206eafe454bd89677a6ac579736756de3644ceba8883ea0f04"
+        },
+        "focused-test-wfZAJz/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-IhOUsF/focused-test-wfZAJz/0003.summary.json",
+          "sha256": "9faa1daddfe5f14800774eff7a70169fde9dfb08bf6f341370893e7b191f0aed"
+        }
+      }
+    },
+    {
+      "run": "run-t8XUbX",
+      "source": "6dce7ec573e50472e795b73bb1732e5932200a65",
+      "tree": "8f89ea12f011f65f38187911c9b5c2e029e1decc",
+      "status": "failed",
+      "complete": false,
+      "exit_code": 2,
+      "owner_pid": 51163,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "release_observation": "Observed after each terminal run in its original work turn; newest three verified again in this turn.",
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_expansion_public_fixture_test.mbt",
+          "--filter",
+          "*WITH captured expansion*"
+        ]
+      ],
+      "focused": [
+        {
+          "id": "focused-test-eEuQrg",
+          "source": {
+            "revision": "6dce7ec573e50472e795b73bb1732e5932200a65",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 1,
+              "passed": 0,
+              "failed": 1,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "interpretation": "0/1; diagnostic identified actual stage-1 PipelineOrder(UnresolvedOrder). Incorrect negative oracle remains a failure.",
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-t8XUbX/local-checks/summary.json",
+          "sha256": "1ef28c18322dff5fe5569da7f280e218a1750ff9cf2ecf20f5caa56c47104fd1"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-t8XUbX/local-checks/output.log",
+          "sha256": "2d3a96fc2ba040e460d8b76d2a3f77316c66b5f6e4e50c94c5f5989b474c7772"
+        },
+        "focused-test-eEuQrg/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-t8XUbX/focused-test-eEuQrg/0001.summary.json",
+          "sha256": "f0dec6f21d4cdf35369d549d13717199aebdf242427254f2c49cf33b518e134a"
+        },
+        "focused-test-eEuQrg/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-t8XUbX/focused-test-eEuQrg/summary.json",
+          "sha256": "433c324ef1ff1d5b55a23597d7e53a8338d6e935b461aeef8a1928e94b7747e6"
+        },
+        "focused-test-eEuQrg/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-t8XUbX/focused-test-eEuQrg/001.stdout.log",
+          "sha256": "ce32f4447f6ed00b03c73fb4453a9562b2450575126b756e384082868027b218"
+        },
+        "focused-test-eEuQrg/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-t8XUbX/focused-test-eEuQrg/001.started.json",
+          "sha256": "c261376ab65546451b9659ff53c5098d9e2cffb66fe1d144f7b0009e46d64f8c"
+        },
+        "focused-test-eEuQrg/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-t8XUbX/focused-test-eEuQrg/001.result.json",
+          "sha256": "ed6f8805d390ca5a18db167cbcb839bee39b753ea487aeeb789b907a34966d84"
+        },
+        "focused-test-eEuQrg/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-t8XUbX/focused-test-eEuQrg/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-eEuQrg/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-t8XUbX/focused-test-eEuQrg/0002.summary.json",
+          "sha256": "06ef4abb4eca6f901607b3dd98ef0c0a4a3f74fed647c7552f5d3730e6d89ae1"
+        },
+        "focused-test-eEuQrg/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-t8XUbX/focused-test-eEuQrg/0004.summary.json",
+          "sha256": "433c324ef1ff1d5b55a23597d7e53a8338d6e935b461aeef8a1928e94b7747e6"
+        },
+        "focused-test-eEuQrg/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-t8XUbX/focused-test-eEuQrg/0003.summary.json",
+          "sha256": "f0708464f7284945e8fdb52ae7ece3a967227e7c46ef2d06053fec0affc47830"
+        }
+      }
+    },
+    {
+      "run": "run-7QV5h0",
+      "source": "7ce656021078e3a5905f971baf218899afb8c742",
+      "tree": "4397c8becb4a0744e9b4be2e126691473bde53c0",
+      "status": "passed",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 54556,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "release_observation": "Observed after each terminal run in its original work turn; newest three verified again in this turn.",
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/with_expansion_public_fixture_test.mbt",
+          "--filter",
+          "*WITH captured expansion*"
+        ]
+      ],
+      "focused": [
+        {
+          "id": "focused-test-z86TRf",
+          "source": {
+            "revision": "7ce656021078e3a5905f971baf218899afb8c742",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 1,
+              "passed": 1,
+              "failed": 0,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "interpretation": "1/1; corrected independent Catalog negative asserts common required pipeline input order refusal.",
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-7QV5h0/local-checks/summary.json",
+          "sha256": "1de89aed428e87792d9e576bcce5f2cbf6ad6d9419b46836cd4f085debadd850"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-7QV5h0/local-checks/output.log",
+          "sha256": "1ebdb541f23700946ea2bd6a037632b9320818282a5123528dd3aa99c470f167"
+        },
+        "focused-test-z86TRf/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-7QV5h0/focused-test-z86TRf/0001.summary.json",
+          "sha256": "15890aa30eda6fe32524651b6a5dd39861e3ce0fb4819924530720172dc5c2b3"
+        },
+        "focused-test-z86TRf/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-7QV5h0/focused-test-z86TRf/summary.json",
+          "sha256": "cdfe22b378bcffb05b2c99f7e493905067407c26a7d7bbd31821dbed3b7b11fb"
+        },
+        "focused-test-z86TRf/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-7QV5h0/focused-test-z86TRf/001.stdout.log",
+          "sha256": "b136ac6dbfa8a737c1c47b4ab55287d32add1374feaea7f839a55b45a9685782"
+        },
+        "focused-test-z86TRf/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-7QV5h0/focused-test-z86TRf/001.started.json",
+          "sha256": "ad32e9bd1d4165c114b6bb4e662fc7f3963c37f6eb9ee1903f6b7d67a8637eb2"
+        },
+        "focused-test-z86TRf/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-7QV5h0/focused-test-z86TRf/001.result.json",
+          "sha256": "bfae1929a3915e1e28bec1ab4059dba9b4aaa9f1f8fa1df5c7feb6a2c1260498"
+        },
+        "focused-test-z86TRf/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-7QV5h0/focused-test-z86TRf/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-z86TRf/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-7QV5h0/focused-test-z86TRf/0002.summary.json",
+          "sha256": "65937f50395852b9938a921d4a5783607e979034ebc9e258c85edfd31457e6a8"
+        },
+        "focused-test-z86TRf/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-7QV5h0/focused-test-z86TRf/0004.summary.json",
+          "sha256": "cdfe22b378bcffb05b2c99f7e493905067407c26a7d7bbd31821dbed3b7b11fb"
+        },
+        "focused-test-z86TRf/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-7QV5h0/focused-test-z86TRf/0003.summary.json",
+          "sha256": "247fb3a1c11cc81a0bb6ce0517271c8ef0a7323b275e9ec834ec3f7678a8541b"
+        }
+      }
+    },
+    {
+      "run": "run-BaQnsp",
+      "source": "7ce656021078e3a5905f971baf218899afb8c742",
+      "tree": "4397c8becb4a0744e9b4be2e126691473bde53c0",
+      "status": "passed",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 54943,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "release_observation": "Observed after each terminal run in its original work turn; newest three verified again in this turn.",
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/with-expansion-public-fixtures.test.mjs",
+          "scripts/unpivot-multicolumn-source-input.test.mjs",
+          "scripts/unnest-source-input.test.mjs",
+          "scripts/unnest-join-source-input.test.mjs",
+          "scripts/correlated-unnest-source-input.test.mjs",
+          "scripts/joined-unnest-star-source-input.test.mjs",
+          "scripts/correlated-unnest-star-source-input.test.mjs"
+        ]
+      ],
+      "focused": [
+        {
+          "id": "focused-test-Uk2Eut",
+          "source": {
+            "revision": "7ce656021078e3a5905f971baf218899afb8c742",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 35,
+              "passed": 35,
+              "failed": 0,
+              "cancelled": 0,
+              "skipped": 0,
+              "todo": 0
+            }
+          ]
+        }
+      ],
+      "interpretation": "35/35; six complete authored fixture exports preserved apart from WITH wrappers, plus existing registration/obligation tests. No Host execution.",
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-BaQnsp/local-checks/summary.json",
+          "sha256": "3e4c2fe1aebfa780836d75f211afffbde502ea57b2e567e13d848125d071dd09"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-BaQnsp/local-checks/output.log",
+          "sha256": "d40850843c7ae944f953539eeefa0cd2be84a597804aa1ae44f11a087a283442"
+        },
+        "focused-test-Uk2Eut/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-BaQnsp/focused-test-Uk2Eut/0001.summary.json",
+          "sha256": "fd401db69b8dc8990bdce226503e5d5ad20b6110d57448748b583e1f0d3aad4e"
+        },
+        "focused-test-Uk2Eut/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-BaQnsp/focused-test-Uk2Eut/summary.json",
+          "sha256": "884ec5aaef47253c1e8ef48ae6d534e60008cc4c3baf6b70777aff18183b3fe3"
+        },
+        "focused-test-Uk2Eut/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-BaQnsp/focused-test-Uk2Eut/001.stdout.log",
+          "sha256": "4de4f8d6d36ff3b70c3746ffade39a2e33d1cf3635d468525ab744a56d0f85af"
+        },
+        "focused-test-Uk2Eut/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-BaQnsp/focused-test-Uk2Eut/001.started.json",
+          "sha256": "226d018e28eebd9e9c678d4128b98a81e73fe621e660b472d313921c9846116a"
+        },
+        "focused-test-Uk2Eut/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-BaQnsp/focused-test-Uk2Eut/001.result.json",
+          "sha256": "8288dff6d73d22212eaa3c16bc2b0a457d72e2aff0487ba0332a0960030331c0"
+        },
+        "focused-test-Uk2Eut/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-BaQnsp/focused-test-Uk2Eut/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-Uk2Eut/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-BaQnsp/focused-test-Uk2Eut/0002.summary.json",
+          "sha256": "81fa214e8df0c5bb79e159180fa85a792e7060895d9280991243ae404544d5bd"
+        },
+        "focused-test-Uk2Eut/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-BaQnsp/focused-test-Uk2Eut/0004.summary.json",
+          "sha256": "884ec5aaef47253c1e8ef48ae6d534e60008cc4c3baf6b70777aff18183b3fe3"
+        },
+        "focused-test-Uk2Eut/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-BaQnsp/focused-test-Uk2Eut/0003.summary.json",
+          "sha256": "9d2cc60e71290aa9e4b2578e59363645e0d53f27bbee18c87a3544ceae8d4903"
+        }
+      }
+    },
+    {
+      "run": "run-PuZQru",
+      "source": "7ce656021078e3a5905f971baf218899afb8c742",
+      "tree": "4397c8becb4a0744e9b4be2e126691473bde53c0",
+      "status": "passed",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 55180,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "release_observation": "Observed after each terminal run in its original work turn; newest three verified again in this turn.",
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/with_expansion_public_fixture_test.mbt"
+        ]
+      ],
+      "focused": [],
+      "interpretation": "Pinned one-file formatter completed; following a1b56767e changes only assertion whitespace.",
+      "evidence": {
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-PuZQru/local-checks/summary.json",
+          "sha256": "811297191aab3b917221e51cf3f6b997832d6f611f53e59cd4394082ff2764f3"
+        },
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/expansion-public-evidence/run-PuZQru/local-checks/output.log",
+          "sha256": "81a677771334385895bc0ebfef26a4af4d319fd300182f0918976f6e1f185489"
+        }
+      }
+    }
+  ],
+  "prelaunch_failure": {
+    "source": "7ce656021078e3a5905f971baf218899afb8c742",
+    "command": "node reviews/2026-10-11-with-carrier-cutover/prepared-with-expansion-public.mjs --order-gap-only",
+    "output": "Cannot inspect owned process group with ps",
+    "exit_code": 1,
+    "interpretation": "Sandbox process inspection unavailable before gate/test start; no test result. Normal escalated current WITH guard then ran with existing explicit Owner-check authorization. No auto-review rejection or guard modification."
+  },
+  "unexecuted": [
+    "standard Host Catalog acquisition",
+    "public Local/HTTPS values/schema/replay/cleanup",
+    "new five-package producer",
+    "Native/Wasm runtime",
+    "Hosted CI",
+    "full four-Carrier/P2 cutover"
+  ]
+}

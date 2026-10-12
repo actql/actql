@@ -59,7 +59,7 @@ export const arrayLiteralSuccesses = [
   success('expand-offsets', 'SELECT element, position FROM UNNEST([2, 1, 2]) AS element WITH OFFSET position ORDER BY position',
     [{element: 2, position: 0}, {element: 1, position: 1}, {element: 2, position: 2}],
     [{name: 'element', contract: scalar('number')}, {name: 'position', contract: scalar('number')}]),
-  success('pipe-data', 'DATA expanded = FROM UNNEST(ARRAY[2, 1, 2]) element WITH OFFSET position |> SELECT element, position; FROM expanded |> ORDER BY position |> RESULT answer',
+  success('pipe-data', 'WITH expanded AS (FROM UNNEST(ARRAY[2, 1, 2]) element WITH OFFSET position |> SELECT element, position) FROM expanded |> ORDER BY position |> RESULT answer',
     [{element: 2, position: 0}, {element: 1, position: 1}, {element: 2, position: 2}],
     [{name: 'element', contract: scalar('number')}, {name: 'position', contract: scalar('number')}], {format: 'aql-text'}),
 ];

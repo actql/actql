@@ -1,0 +1,49 @@
+{
+  "startedAt": "2026-10-11T21:41:43.106Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "WITH original Source predicate JOIN ceiling INFER input contract and unchanged Effect controls",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_program/composition_controls_test.mbt",
+        "src/query_program/infer_input_field_test.mbt"
+      ],
+      "startedAt": "2026-10-11T21:41:43.189Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T21:41:51.714Z",
+      "endedAt": "2026-10-11T21:41:51.717Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "c0d3a3ac-fadb-4a89-be0e-0d50925a04f7",
+    "pid": 91571,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T21:41:43.178Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-lZ640a"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T21:41:51.798Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

@@ -63,9 +63,8 @@ computed delimiter expressions. The ordinary aggregate's WHERE/ORDER and the
 window's OVER/frame keep their independent scope and bounds.
 
 Double quotes do not quote identifiers: `"id"` is a value, while `` `id` `` is
-a name. The explicit Graph `LABELS` annotation retains its separate historical
-double-quoted annotation profile; accepting double-quoted query literals does
-not expand that profile's escapes or admit raw control characters in it.
+a name. Graph labels come from the admitted Graph definition; no query-local
+property annotation changes their membership.
 Backtick identifiers use the same non-raw escape repertoire as STRING,
 including the `\\377` octal ceiling. They must be nonempty and may contain
 physical newlines and control scalars. Source CR and CRLF decode to LF;
@@ -319,7 +318,7 @@ After SET, DROP, RENAME or AS, exclusions use the same current Pipe slots as
 star. They do not restore a removed column or range alias. In SQL GROUP
 queries, the retained star columns must be grouped; excluded columns need not
 be grouped. A GROUP BY ordinal counts the expanded, excluded SELECT list in
-its final order. CTE and DATA relations use their current declared columns.
+its final order. WITH-bound Relations use their current declared columns.
 `alias.*`, including an EXCEPT list, expands an existing Relation range alias
 in its declared column order. The receiver is a source Reference with ordinary
 alias quotation/name resolution, not a string interpreted as a schema. SQL,
@@ -672,7 +671,7 @@ that SELECT's declarations and lower to the same ordinary analytic operation
 as an inline specification. Declarations can inherit only earlier declarations;
 name lookup is case-insensitive, including backtick names. Duplicates, unknown
 references, forward references and cycles are refused without falling back to
-a Relation or DATA producer. CTEs, derived tables and set operands each have
+a Relation producer. CTEs, derived tables and set operands each have
 their own window scope. The specifications do not create execution slots,
 acquire data, or add a storage boundary.
 
@@ -980,7 +979,7 @@ require the same ordered list and retain the first modifier's spelling. Each
 successive Pipe set operator can declare its own list against the current
 Relation. ORDER BY and downstream Pipe operators see only the combined output.
 Normal type compatibility, NULL, duplicate and equality contracts remain with
-the common checker and operations. DATA and CTE sets use the same rules without
+the common checker and operations. WITH-bound sets use the same rules without
 additional acquisition. FULL/LEFT name propagation remains a separate unimplemented surface; omitting those modes does not
 implicitly drop unlisted columns or add NULL-filled columns.
 The selected [GoogleSQL set modifier](https://docs.cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax#by_name_or_corresponding)
@@ -1023,14 +1022,15 @@ set semantics, not a new execution or acquisition mechanism. FULL/LEFT variants
 remain unsupported pending common nullable-padding evidence.
 
 Set operands containing ordinary JOINs use the same shared-input assembly as
-DATA queries. This applies to standalone SQL/Pipe, nested set operands and
+WITH bodies. This applies to standalone SQL/Pipe, nested set operands and
 CTE bodies. JOIN predicates, key mappings and declared output ceilings remain
 with the existing JOIN lowerer; final ORDER BY/LIMIT sees only the combined
 output. Input binding does not add another source read or materialization.
 
 WITH may precede either a SELECT query or a FROM-starting Pipe query. A CTE
-body, FROM/JOIN table subquery and parenthesized query operand use the same
-relational query composition: SELECT or FROM-starting Pipe, set expressions,
+body uses the common producer composition described below, including Graph
+primaries. A FROM/JOIN table subquery or set operand must return Relation.
+Existing Relation composition admits SELECT or FROM-starting Pipe, set expressions,
 optional ORDER BY/LIMIT, and a pure Pipe tail. Parentheses retain the inner
 query's scope and ORDER BY/LIMIT placement. A Pipe operator following a set
 consumes the combined output, not its left operand; input range variables and
@@ -1070,7 +1070,7 @@ invalid. Parsing shares the existing syntax-node, CTE-count and work budgets.
 Nonrecursive CTEs and noncorrelated FROM subqueries use checked producer
 references, so reusing a source does not imply another physical read.
 Standalone query assembly can retain a producer as a Stage Result. A CTE
-inside a DATA query body may instead reference an existing pipeline step;
+inside a WITH body may instead reference an existing pipeline step;
 the binding alone does not require another Stage, acquisition or saved Result.
 JOIN, grouping, sets, analytic and Pipe operations lower to existing Program
 operations and AoA meaning. No connector receives the original SQL as a raw
@@ -1476,60 +1476,95 @@ language restrictions. Object/property execution is a separate common-owner
 dependency; source construction and type checking do not claim packed Host
 execution or successful publication.
 
-## Logical DATA and pure Graph construction
+## WITH producers and pure Graph construction
 
-The AQL-text source grammar admits logical `DATA name = expression;`
-bindings followed by a query; SQL format retains its query-only entry.
-DATA names reference producers and do not create acquisition, storage,
-placement or physical task boundaries. Bodies resolve before the declared
-name becomes visible. Duplicate, recursive and forward references are
-rejected. A Graph producer is not a Relation alias. RESULT, INFER and EFFECT are
-not permitted in a DATA query body; final queries retain explicit Results.
+`WITH name AS (body), ... query` is the shared logical producer-binding surface
+for SQL and AQL-text. Both selectors lower accepted WITH/SELECT/CREATE input
+through the same ordinary frontend; SQL keeps its existing top-level head
+selection, while AQL-text also accepts a standalone FROM-headed Pipe. JSON/YAML
+remain supported machine Program inputs.
 
-A DATA body can bind an explicitly projected Graph MATCH Relation, for example:
+A binding does not acquire, copy, store, normalize or publish its value and does
+not request placement or a task boundary. Its body resolves before its name
+becomes visible. Earlier and outer bindings are visible; the nearest binding
+wins regardless of Carrier. Duplicate names in one scope, recursive and forward
+references are rejected. Source View paths, lexical producer names, row aliases,
+Graph element definitions and labels retain their different namespaces.
+
+Every authored WITH body and ordinary grouped body is Pure: INFER, RESULT and
+terminal Effects are excluded. The whole outer CTAS input wrapper is Compute;
+its grouped subqueries remain Pure. The final Statement retains explicit
+Results/Effects as demand roots. All bindings receive common static checking,
+including unused bindings. A valid unused body is not executed merely because
+it is named. Demand uses the original checked producer/import/projection edges;
+it does not waive input-required order, type, Catalog or profile obligations.
+Normal Host preparation and Result publication remain strict.
+
+WITH can retain Relation, Graph, Vectors or Events according to the admitted
+common contract. The installed constructor and Graph consumer connections
+are described below. Typed Pipe calls also connect `to_vectors(id: field,
+vector: field)`, `normalize_vectors()`, `score_vectors(query: value, metric:
+string)`, `vectors()`, `to_events(id: field, time: field)`, `session(by:
+[fields], gap: string)` and `events()` to their existing common operations.
+Relation-input session additionally requires its existing `id` and `time`
+roles. Field roles resolve visible columns; they are not String values or
+producer aliases. The common checker determines the output Carrier and schema.
+Vectors/Events retain their Carrier across bindings; only an explicit common
+bridge supplies rows to ordinary Relation operators. Full four-Carrier public
+execution remains a separate acceptance obligation. A typed producer is not an
+invented external Source alias or a row schema inferred by the frontend.
+
+`FROM p` preserves the resolved Carrier. `FROM GRAPH p` adds a Graph expectation;
+it does not search past a nearer Relation binding. MATCH accepts Graph with or
+without that marker. A scalar SELECT explicitly ends PatternScope and exports
+only its authored columns; pattern aliases and hidden identity/path slots do
+not reappear in an outer scope. A table subquery, JOIN or set operand requires
+Relation. An authored row alias requires Relation, independently of spelling.
+Both explicit/implicit FROM aliases and Pipe AS parse on a Graph input, then
+receive the static `RangeAliasRequiresRelation` reason before any execution.
+WITH producer aliasing retains the Graph; a Graph-to-Relation bridge or explicit
+MATCH SELECT permits the ordinary row alias on the resulting Relation.
 
 ~~~aql
-DATA selected = FROM GRAPH g |> MATCH WALK (a:Node) |> SELECT a.score AS score;
+WITH selected AS (
+  FROM g |> MATCH WALK (a:Node) |> SELECT a.score AS score
+)
+SELECT score FROM selected
 ~~~
 
-The projection defines its public columns; Graph pattern variables and internal
-identity/path slots are not visible through the DATA name. Normal Relation
-processing can then reuse that producer. The existing keyed MATCH/TRAIL checker
-and execution owner retain identity, label, predicate, path and capacity rules.
-This DATA connection does not expand Graph CTE or derived-table support.
-
-`DATA g = PROPERTY GRAPH (...)` is an ActQL pure-value extension using the
+The pure `GRAPH (...)` constructor is an ActQL value extension using the
 [selected GoogleSQL/SQL-PGQ mapping profile](../design/frontend-standard-profiles.md#graph-mapping-and-element-identity).
-It does not create a Catalog object or claim ISO GQL constructor syntax.
-Relation producers, element-definition names and labels are separate.
-REFERENCES resolves the element definition and its ordered KEY columns.
-Typed keys, independently keyed parallel edges, Graph-owned label sets,
-Graph-wide property types and same-label property sets belong to the
-common Graph contract. The Frontend cannot issue those checked facts,
-replace static labels with property predicates or discard edge identity.
+It creates no Catalog object and claims no ISO GQL constructor syntax.
 
-DATA query bodies use existing query-expression lowering, including supported
-CTE and set forms. An acquired Relation retains its original input declaration
-and the Host-selected capture boundary. Multiple references to that input use
-the same prepared producer; a DATA or CTE binding does not acquire it again.
-Constructor input paths follow the published source name rules before being
-bound to those producers. A schema declaration alone does not supply the
-admitted Source View provenance required by the common Graph checker.
+~~~aql
+WITH nodes AS (SELECT 1 AS id, 'one' AS name),
+     g AS (GRAPH (
+       NODE TABLES (nodes AS N KEY (id) LABEL Node PROPERTIES (id, name))
+     ))
+FROM g |> node_rows() |> SELECT id, name |> RESULT nodes
+~~~
 
-Frontend preparation passes the constructed Program to the common checker;
-it cannot substitute its own Graph admission or execution. Source construction
-and checking alone establish neither execution nor snapshot support. No
-conversion to the old simple-Graph contract is permitted. SQL, Pipe, DATA and
-CTE INNER/LEFT/CROSS JOIN chains retain each range's column scope while lowering
-to ordinary bounded JOIN operations. ON resolves only preceding ranges and
-the current right input; USING shares an unqualified key without discarding
-either qualified input column. Projection and ORDER BY reuse the normal output
-alias and evaluated-slot rules. FULL JOIN chains still require an adapted
-stable-row identity/coalescence path; they are explicitly unsupported rather
-than approximated. Unused CTE checking without scheduling acquisition and standalone Stage
-references without their producer definitions remain explicit implementation
-gaps. These are support limits, not permanent restrictions of the target
-language.
+REFERENCES resolves a Graph-local element definition and its ordered KEY
+columns. Typed keys, independently keyed parallel edges, Graph-owned label
+sets, Graph-wide property types and same-label property sets remain common
+Graph contracts. The frontend cannot fabricate those facts, replace static
+labels with property comparisons or collapse edge identity. A schema declaration
+alone cannot supply the Source View provenance required by the common checker.
+The retired declaration, old pure-constructor spelling and LABELS annotation
+have no parser, compatibility selector or fallback entry.
+
+An acquired input retains its original declaration, Source View/Catalog ownership
+and Host-selected capture boundary. Multiple references reuse that prepared
+producer; bindings do not acquire it again. Source construction and static
+checking alone establish neither public execution nor snapshot acceptance.
+Graph-preserving bodies keep the existing admitted definition domain; a binder
+rename does not reconstruct the constructor or add a projection. Actual
+constructor-definition changes retain their ordinary identity consequences.
+
+SQL/Pipe INNER/LEFT/CROSS JOIN chains use the existing bounded JOIN operations,
+range scopes, ON/USING conditions, evaluated projection slots and alias-priority
+ORDER rules. No legacy Graph conversion or alternate execution owner is allowed.
+Current profile refusals stay explicit rather than being approximated.
 
 ## Named logical SGA calls
 
@@ -1546,7 +1581,7 @@ than from the content of a String: `with: target` names a producer,
 `start: "A"` is a value and `field: "delta"` designates a column. Relation
 selectors in reach/traverse `start.from`, shortest_path `source.from` and
 `target.from`, and subgraph `nodes.from` use producer references. Bare and
-backtick producer names follow the existing DATA resolution rules; String
+backtick producer names follow the nearest WITH resolution rules; String
 values cannot name producers. A mean_graphs `with` list is explicit and does
 not silently acquire an additional current input. Duplicate input
 specification must be rejected rather than merged or ignored.
@@ -1554,28 +1589,28 @@ specification must be rejected rather than merged or ignored.
 Operation and selector vocabulary is case-insensitive. Object-valued data
 retains its own field names and decoded values. Numeric tokens retain their
 exact spelling until normal numeric admission. The same lexical, syntax,
-work and depth budgets apply to calls inside a query and a DATA body.
+work and depth budgets apply to calls inside a query and a WITH body.
 
-A Graph-preserving query can bind its producer through DATA or precede a
+A Graph-preserving query can bind its producer through WITH or precede a
 Graph MATCH. For example:
 
 ```aql
-DATA normalized = FROM g |> normalize_graph();
+WITH normalized AS (FROM g |> normalize_graph())
 FROM GRAPH normalized |> MATCH WALK (a:Node) |> SELECT a.id
 ```
 
 This lowers to the existing normalize_graph step on g and the existing
-definition-selected MATCH on its output. DATA does not copy the Graph,
+definition-selected MATCH on its output. WITH does not copy the Graph,
 reacquire its inputs, add a Result or request materialization/physical
 placement. The normalization has no named options; extra arguments are not
 discarded. Unconsumed Graph calls cannot pass through relational compilation.
 
 The Frontend also connects the existing `node_rows()` and `edge_rows()`
 Bridge operations to ordinary Relation processing. Use a constructor-bound
-DATA producer, for example:
+WITH producer, for example:
 
 ```aql
-DATA rows = FROM g |> node_rows() |> SELECT node_key, labels;
+WITH rows AS (FROM g |> node_rows() |> SELECT node_key, labels)
 FROM rows |> ORDER BY node_key |> RESULT nodes
 ```
 
@@ -1594,14 +1629,14 @@ nullable: an ordinary reference to a Conditional field is rejected by the
 common checker, even after `IS NOT NULL`. Project guaranteed columns before
 ordinary filtering if the selected schema still contains Conditional fields.
 The remaining Relation operations
-use normal scope, expression, order and Result lowering. DATA adds no copy,
+use normal scope, expression, order and Result lowering. WITH adds no copy,
 acquisition or execution owner. A Graph-preserving normalize call still needs
 an adapted common consumer; source lowering alone does not authorize it.
 
 The existing Graph diagnostic operations also enter ordinary Relation processing:
 
 ```aql
-DATA stats = FROM g |> degree(direction: "out");
+WITH stats AS (FROM g |> degree(direction: "out"))
 FROM stats |> WHERE degree > 0 |> SELECT node, degree |> RESULT active
 FROM g |> graph_bounds(max_nodes: 10, max_edges: @edge_limit)
   |> SELECT kind, node_id, actual, max |> RESULT violations
@@ -1617,7 +1652,7 @@ thresholds select violations, rather than raising execution-resource ceilings.
 The Relation scopes are exactly `node, degree`, `kind, node_id, actual, max`, and
 `node_id, component_id, component_size`, respectively. Graph identity types,
 nullable bounds `node_id`, component identity/order, selected capacity and
-atomic guard failures follow the existing machine contracts. DATA reuses the
+atomic guard failures follow the existing machine contracts. WITH reuses the
 producer; old Graph columns do not reappear after the Relation transition.
 These source connections do not establish support for other Graph operations
 or waive the common admission and execution obligations.
@@ -1625,7 +1660,7 @@ or waive the common admission and execution obligations.
 Both emissions of `traverse` enter ordinary Relation processing:
 
 ```aql
-DATA seeds = FROM g |> node_rows() |> SELECT id AS element;
+WITH seeds AS (FROM g |> node_rows() |> SELECT id AS element)
 FROM g
   |> traverse(start: {from: seeds, id: 'element'}, direction: 'out',
               min_hops: 0, max_hops: 2, path_mode: 'trail',
@@ -1633,8 +1668,8 @@ FROM g
   |> SELECT start_id, node_id, depth |> ORDER BY depth |> RESULT visited
 ```
 
-`start.from` resolves an earlier DATA Relation producer, including a
-backtick-quoted DATA name. Its `id` names a column containing the common
+`start.from` resolves an earlier WITH-bound Relation producer, including a
+backtick-quoted WITH name. Its `id` names a column containing the common
 typed Graph identity, not a raw key. The Frontend retains every authored
 argument, including an empty `edge_types` list and explicit output/hop bounds.
 Numeric arguments use the same literal admission as query expressions.
@@ -1647,7 +1682,7 @@ identities, including distinct parallel-edge keys. Path eligibility, exact-path
 deduplication and canonical enumeration remain common traversal contracts;
 the Frontend neither converts paths to minimum-depth nodes nor sorts them
 implicitly. No uniqueness or presence
-proof is manufactured by the Frontend. A DATA binding of that output can
+proof is manufactured by the Frontend. A WITH binding of that output can
 continue through ordinary Relation operations without expanding its producer.
 
 This connection requires explicit literal `emit: 'nodes'` or `emit: 'paths'`.
@@ -1669,24 +1704,24 @@ including structured Expression predicates, parameters, empty edge `types`
 and invalid options for the ordinary checker to refuse. Arguments are values
 in the adopted named SGA surface, not query aliases or SQL expression text.
 The Frontend does not reparse STRING contents as query expressions. A matched
-Relation can bind DATA and continue through normal WHERE, SELECT, ORDER and
+Relation can bind WITH and continue through normal WHERE, SELECT, ORDER and
 LIMIT; omitted Graph fields and further Graph calls are unavailable.
 
 `graphs_equal` also enters ordinary Relation processing:
 
 ```aql
-DATA same = FROM g |> graphs_equal(with: g);
+WITH same AS (FROM g |> graphs_equal(with: g))
 FROM same |> SELECT equal |> RESULT comparison
 ```
 
-The required `with:` argument resolves an earlier DATA Graph producer using
-the existing DATA naming rule, including backtick-quoted names and bindings
+The required `with:` argument resolves an earlier WITH-bound Graph producer using
+the nearest WITH naming rule, including backtick-quoted names and bindings
 that retain a producer. A string is not a producer reference. The left input
 is the current Graph, including a preceding `normalize_graph()` output;
 resolving the right input does not reconstruct, acquire or copy either Graph.
 Unknown/forward references, Relation inputs, missing or extra arguments and
 a second Graph call after the Relation transition are explicit preparation
-refusals. A DATA binding of the comparison can continue through the ordinary
+refusals. A WITH binding of the comparison can continue through the ordinary
 Relation scope, expression, order and Result paths.
 
 The existing common checker owns compatible closed definitions and key/type
@@ -1701,10 +1736,10 @@ does not derive total-order evidence for this output and rejects that path with
 `UnresolvedOrder` before Run admission. This is a common implementation gap,
 not a language restriction or permission to discard the authored order.
 
-`graph_diff(with: target)` uses the same earlier DATA Graph producer resolution
+`graph_diff(with: target)` uses the same earlier WITH-bound Graph producer resolution
 and transitions to an ordinary Relation with the single non-NULL JSON column
 `delta`. The left input is the current Graph; `target` is an explicit producer
-reference, not a STRING value. Only `delta` enters the new output scope. DATA
+reference, not a STRING value. Only `delta` enters the new output scope. WITH
 reuse does not reconstruct either Graph, and ordinary Relation projection and
 filtering keep their existing meaning. The common Delta checker requires the
 same complete Graph contract for both operands; the Frontend does not infer
@@ -1719,15 +1754,15 @@ The Frontend does not synthesize a sort, key, scalar encoding or fallback to
 publish the JSON value.
 
 `union_graphs` preserves the Graph Carrier and admits the existing scalar or
-nonempty-list `with:` form. Each bare/backtick name resolves an earlier DATA
+nonempty-list `with:` form. Each bare/backtick name resolves an earlier WITH-bound
 Graph producer; STRING values never resolve Graph names. The current Graph is
 the primary operand, followed by each peer in authored list order. Repeated
 peer references remain repeated fold occurrences; lowering does not deduplicate
 them, reorder them or reacquire their producers.
 
 ```aql
-DATA combined = FROM g |> union_graphs(
-  with: [peer, g], merge: {node_properties: {score: 'number_sum'}});
+WITH combined AS (FROM g |> union_graphs(
+  with: [peer, g], merge: {node_properties: {score: 'number_sum'}}))
 FROM combined |> node_rows() |> SELECT node_key, score |> RESULT nodes
 ```
 
@@ -1736,7 +1771,7 @@ and recursive property contracts. Authored merge strategies are passed unchanged
 no policy is inferred to make a conflict succeed. Sequential fold arithmetic,
 parallel-edge identity, atomic failures and operation-wide capacity remain common
 owner obligations. The output retains the checked compatible definition names
-and can continue into DATA, Graph calls and normal Relation processing after
+and can continue into WITH, Graph calls and normal Relation processing after
 node_rows/edge_rows. No legacy Graph conversion, implicit Relation conversion,
 sort, storage boundary or separate union evaluator is introduced. Empty lists,
 undeclared/forward/Relation references, extra arguments and invalid common
@@ -1745,7 +1780,7 @@ common compatibility are independent coverage obligations.
 
 `subtract_graphs(with: peer, merge: {...})` also preserves the Graph Carrier.
 Unlike union, the common subtraction contract is binary: `with:` is one earlier
-bare/backtick DATA Graph producer, not a list. The left operand and explicit
+bare/backtick WITH-bound Graph producer, not a list. The left operand and explicit
 merge arguments are retained unchanged. Missing/STRING/Relation/forward peers,
 list operands and extra arguments are preparation refusals, not implicit casts.
 Without a nonempty strategy map for an entity kind, equal shared payloads remove
@@ -1890,13 +1925,13 @@ existing `max_output_rows` author guard. The integer must be exactly representab
 in the safe integer range. Lowering rejects a guard above its admitted frontend
 ceiling; it does not clamp it or replace it with a Host resource limit. Omitting
 this suffix retains the existing frontend default. Each JOIN occurrence keeps
-its own guard, including a JOIN chain and a JOIN inside DATA or a CTE.
+its own guard, including a JOIN chain and a JOIN inside a WITH body.
 
-A leading ordinary WHERE on a single-use acquired DATA input is retained at the
+A leading ordinary WHERE on a single-use acquired WITH input is retained at the
 Host-selected capture boundary and removed from the downstream pipeline so that
 it runs once. This uses the same filter expression owner as standalone queries.
 If any other consumer refers to the installed input, its complete capture is
-shared and each WHERE remains downstream. Analysis is conservative across DATA,
+shared and each WHERE remains downstream. Analysis is conservative across WITH,
 CTE, set, constructor and query references; it cannot narrow another consumer's
 capture or silently reacquire a shared Source. Projection remains downstream.
 There is no separate scan-predicate language.
@@ -1911,7 +1946,7 @@ The terminal update spelling is:
 ```
 
 EFFECT is a declaration after the query's row operations, not another row
-operation. It must be terminal and is not admitted in DATA or CTE bodies. The
+operation. It must be terminal and is not admitted in WITH bodies. The
 explicit RESULT name resolves to its actual retained Stage Result port; a step
 alias or undeclared Result is rejected. A preceding terminal RESULT stays
 terminal and does not gain an implicit default export. This first update surface
@@ -1942,7 +1977,7 @@ A Table path resolves against an explicit Host-published write binding to the
 existing Connector Resource, Mapping and Capability. It is not a Source alias
 and confers no authority by itself. Unknown, ambiguous and action-incompatible
 targets are rejected by checking before acquisition or dispatch. Table writes
-are terminal and cannot occur in DATA, CTE or another Table write's input.
+are terminal and cannot occur in WITH bodies or another Table write's input.
 
 CREATE selects only a fixed create binding. CREATE OR REPLACE selects the
 single published create or replace operation; it does not observe the Catalog

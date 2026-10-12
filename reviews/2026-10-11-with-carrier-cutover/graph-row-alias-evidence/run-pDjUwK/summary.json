@@ -1,0 +1,64 @@
+{
+  "startedAt": "2026-10-11T18:49:59.496Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "with-graph-alias-controls-format",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_program/with_graph_range_alias_test.mbt"
+      ],
+      "startedAt": "2026-10-11T18:49:59.587Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:49:59.932Z",
+      "endedAt": "2026-10-11T18:49:59.933Z"
+    },
+    {
+      "name": "with-graph-alias-fixed-counterexamples",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_syntax/with_graph_alias_test.mbt",
+        "src/query_program/with_graph_range_alias_test.mbt"
+      ],
+      "startedAt": "2026-10-11T18:49:59.998Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 2,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:50:09.614Z",
+      "endedAt": "2026-10-11T18:50:09.616Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "f6df2762-a8ca-477b-8512-61c713a320da",
+    "pid": 23442,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T18:49:59.572Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-pDjUwK"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T18:50:09.684Z",
+  "outputComplete": true,
+  "exitCode": 2,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

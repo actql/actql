@@ -1,0 +1,235 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "scope": "WITH Graph node/property/edge predicate caller retirement; independent complete Programs retain original literals, NULLs, semantic edge/node identity, reached definitions, path directions/hop ceilings and work limit. Test extraction uses actual common static checking, no new checker.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "original": "with-graph-predicate-original-callers.json",
+  "independent_derivation": "with-graph-predicate-derivation.json",
+  "unexecuted": [
+    "Host Local/HTTPS values/schema/order",
+    "new packages",
+    "full four-Carrier/P2/current caller/docs completion",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ],
+  "runs": [
+    {
+      "run": "run-RqU4y0",
+      "source": "60d590f1eb735bef388e91c7244cb3ce3406c4e5",
+      "tree": "4efc5fcc8e4ae54fa452e931739ec4485a9471b0",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 6869,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/graph_property_predicate_test.mbt",
+          "src/query_program/graph_hop_node_predicate_test.mbt",
+          "src/query_program/graph_edge_predicate_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-RqU4y0/local-checks/output.log",
+          "sha256": "c79826b968ab80e4632fd7628b7c2b6b8300755d69c7d7c480e13ee010cac331"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-RqU4y0/local-checks/summary.json",
+          "sha256": "9648301f631557f3e639d8c176f44ea19d05e6e63b0304830a59c79558fc02a8"
+        }
+      },
+      "formatter": "completed with fixture whitespace only"
+    },
+    {
+      "run": "run-mNv9Fv",
+      "source": "b9ceddd7fc171ef52a2a1aa6ce9df7c1d47057be",
+      "tree": "e0dc8c4edc0cf6c19b8c31661284ca677d2d75ae",
+      "complete": false,
+      "exit_code": 1,
+      "owner_pid": 7146,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_property_predicate_test.mbt",
+          "src/query_program/graph_hop_node_predicate_test.mbt",
+          "src/query_program/graph_edge_predicate_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-mNv9Fv/local-checks/output.log",
+          "sha256": "5ce7017072e8c756de6a17929f25dff33565ab2b07b15a5c0cdfaad4d2ee67ed"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-mNv9Fv/local-checks/summary.json",
+          "sha256": "19d830b42e338f11f6e7a4a07459ccde050e60589ed8ddce6826316c21b0fe47"
+        },
+        "focused-test-bmDTkz/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-mNv9Fv/focused-test-bmDTkz/0001.summary.json",
+          "sha256": "df2d42d99141ad5bdfdafb2c564545dfe1335086d9195f7e62c01d6acba6316f"
+        },
+        "focused-test-bmDTkz/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-mNv9Fv/focused-test-bmDTkz/0002.summary.json",
+          "sha256": "af70ede394d9fb0e0829b9dc19822a368881a0c17b84764ceed5c9211d8d7691"
+        },
+        "focused-test-bmDTkz/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-mNv9Fv/focused-test-bmDTkz/0003.summary.json",
+          "sha256": "b78d00efb25c0ea31a85ce8ef5bb8bafa8437dd58dcb5760e264d64f997f1cf3"
+        },
+        "focused-test-bmDTkz/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-mNv9Fv/focused-test-bmDTkz/0004.summary.json",
+          "sha256": "62b1f447de26aed399cd5e9ecbe472d32c584585823d7df121ec2b9fb90834aa"
+        },
+        "focused-test-bmDTkz/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-mNv9Fv/focused-test-bmDTkz/001.result.json",
+          "sha256": "951f03a8194cd260849b8d1d9990c97eacb1f60e041478bfa284ad0b583e6bce"
+        },
+        "focused-test-bmDTkz/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-mNv9Fv/focused-test-bmDTkz/001.started.json",
+          "sha256": "a7a74a09630a3fc7b68f2f6d5141635a050f4ffe915ab10aa9bd7f4b2a3b83ca"
+        },
+        "focused-test-bmDTkz/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-mNv9Fv/focused-test-bmDTkz/001.stderr.log",
+          "sha256": "9e710814ab799257efa2eb3b0d5f80ece5248566fd29b24d5565911620588dfd"
+        },
+        "focused-test-bmDTkz/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-mNv9Fv/focused-test-bmDTkz/001.stdout.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-bmDTkz/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-mNv9Fv/focused-test-bmDTkz/summary.json",
+          "sha256": "62b1f447de26aed399cd5e9ecbe472d32c584585823d7df121ec2b9fb90834aa"
+        }
+      },
+      "actual_js_counts": null
+    },
+    {
+      "run": "run-dNSdHB",
+      "source": "0c8e429180b2737a79b749f1c5b74a193eaa5844",
+      "tree": "e66b4366e1d7d96a388c5484ead2896ecb1d1b88",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 7523,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_program/graph_property_predicate_test.mbt",
+          "src/query_program/graph_hop_node_predicate_test.mbt",
+          "src/query_program/graph_edge_predicate_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-dNSdHB/local-checks/output.log",
+          "sha256": "36050ee156d9fda179c02ab713040b28b395eb949a89baf46ea8a8883827d8a8"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-dNSdHB/local-checks/summary.json",
+          "sha256": "2d061bd4234c36d6bb9f0c89050cf7ec54589ba35ba8c30923343afdb06c344a"
+        },
+        "focused-test-xvP1Z4/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-dNSdHB/focused-test-xvP1Z4/0001.summary.json",
+          "sha256": "e5da3f76a1f8e065aeae451352b847fc734f4fb8e92c9dbdac0f35c35448b29d"
+        },
+        "focused-test-xvP1Z4/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-dNSdHB/focused-test-xvP1Z4/0002.summary.json",
+          "sha256": "361701b66588de5d25e3dc53b313ed3fd7b836abc09a37a55356890827c4e5a4"
+        },
+        "focused-test-xvP1Z4/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-dNSdHB/focused-test-xvP1Z4/0003.summary.json",
+          "sha256": "f5bdf06a5edd81846abe4c5fa5773020af5d11a26c4cb36ae0974685c0f37b52"
+        },
+        "focused-test-xvP1Z4/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-dNSdHB/focused-test-xvP1Z4/0004.summary.json",
+          "sha256": "1afa248237ac2d1b0108ca43e974e017af93cc63665015d7f7ea8bc251c8e41c"
+        },
+        "focused-test-xvP1Z4/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-dNSdHB/focused-test-xvP1Z4/001.result.json",
+          "sha256": "12a4585d3a8680c4822d365c01a20cac46bb114d7b27ba21cad47391e3c66703"
+        },
+        "focused-test-xvP1Z4/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-dNSdHB/focused-test-xvP1Z4/001.started.json",
+          "sha256": "fc91275668276113553835779445410d6c30964d91bebc3591ca77c8ade7e6e9"
+        },
+        "focused-test-xvP1Z4/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-dNSdHB/focused-test-xvP1Z4/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-xvP1Z4/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-dNSdHB/focused-test-xvP1Z4/001.stdout.log",
+          "sha256": "87401a4cbc4cddeb67eab1b97b48b8137260b9ed0411d731c7cb3ac2d95c7193"
+        },
+        "focused-test-xvP1Z4/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-dNSdHB/focused-test-xvP1Z4/summary.json",
+          "sha256": "1afa248237ac2d1b0108ca43e974e017af93cc63665015d7f7ea8bc251c8e41c"
+        }
+      },
+      "actual_js_counts": {
+        "tests": 26,
+        "passed": 26,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      }
+    },
+    {
+      "run": "run-uHVdL3",
+      "source": "0c8e429180b2737a79b749f1c5b74a193eaa5844",
+      "tree": "e66b4366e1d7d96a388c5484ead2896ecb1d1b88",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 8032,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_program/graph_property_predicate_test.mbt",
+          "src/query_program/graph_hop_node_predicate_test.mbt",
+          "src/query_program/graph_edge_predicate_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "local-checks/output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-uHVdL3/local-checks/output.log",
+          "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+        },
+        "local-checks/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-predicate-retirement-evidence/run-uHVdL3/local-checks/summary.json",
+          "sha256": "e3bc0fae57c7ad2b1333e044713b8e5935f7621c3c0b119a388c6188d8a01e6c"
+        }
+      },
+      "formatter": "completed with fixture whitespace only"
+    }
+  ],
+  "initial_compile_failure": {
+    "run": "run-mNv9Fv",
+    "tests_executed": 0,
+    "cause": "The new test-only refusal extractor tried to print Issue, which has no Debug implementation. Removed that unavailable formatting call; common checker, product and original sources remained unchanged."
+  }
+}

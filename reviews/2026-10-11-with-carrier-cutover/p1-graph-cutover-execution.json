@@ -1,0 +1,370 @@
+{
+  "version": "frontend-local-evidence/0.1",
+  "scope": "WITH P1 Graph annotation retirement and typed MATCH source composition",
+  "current_product_sha": "f01d05b7ee93364b804aeb0e934c2981da089ac8",
+  "current_product_tree": "1a4f4fca008bc29041adfa13c817fc5a79a918a6",
+  "entries": [
+    {
+      "run": "run-dRXfna",
+      "source_sha": "5dabb5b4086617b6f8596e9bbcc934dc514ff059",
+      "note": "pre-retirement: 12 executed, 9 passed, 3 failed",
+      "receipt": {
+        "startedAt": "2026-10-11T18:18:18.171Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "selected moon tests",
+            "command": [
+              "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode = runFocusedTests(process.argv[1], process.argv.slice(2), {cwd: process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/graph_test.mbt",
+              "src/source_frontend/with_graph_binding_test.mbt"
+            ],
+            "startedAt": "2026-10-11T18:18:18.258Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 2,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:18:23.534Z",
+            "endedAt": "2026-10-11T18:18:23.536Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "e1c56b2b-101b-40e5-b5b6-482faa441ac3",
+          "pid": 91124,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:18:18.254Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-dRXfna"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:18:23.616Z",
+        "outputComplete": true,
+        "exitCode": 2,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "preserved_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-cutover-evidence/run-dRXfna/summary.json",
+          "sha256": "730765f854ce7774a49fe4a8d366934718a5bdd92de933ad156a063d69db6b62"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-cutover-evidence/run-dRXfna/output.log",
+          "sha256": "701195ca6aab61a3a6502d3e8afd8dbc00604a508bdeca34da868c64968073e7"
+        }
+      ],
+      "actual_owner_and_group_observed_absent": true,
+      "own_lock_observed_absent": true
+    },
+    {
+      "run": "run-V13L1j",
+      "source_sha": null,
+      "note": "dirty source: actual moon info and formatter; no runtime claim",
+      "receipt": {
+        "startedAt": "2026-10-11T18:24:24.606Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "WITH Graph interface generation",
+            "command": [
+              "moon",
+              "info",
+              "--target",
+              "js",
+              "src/query_syntax",
+              "src/query_program",
+              "src/source_frontend"
+            ],
+            "startedAt": "2026-10-11T18:24:24.712Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:24:26.076Z",
+            "endedAt": "2026-10-11T18:24:26.078Z"
+          },
+          {
+            "name": "WITH Graph selected formatting",
+            "command": [
+              "moon",
+              "fmt",
+              "src/query_syntax/graph.mbt",
+              "src/query_syntax/query.mbt",
+              "src/query_syntax/producer_primary.mbt",
+              "src/query_syntax/lexer.mbt",
+              "src/query_syntax/graph_test.mbt",
+              "src/query_syntax/string_literals_test.mbt",
+              "src/query_syntax/literal_forms_test.mbt",
+              "src/query_program/keyed_graph_program.mbt",
+              "src/query_program/with_graph_binding_test.mbt",
+              "src/source_frontend/with_graph_binding_test.mbt"
+            ],
+            "startedAt": "2026-10-11T18:24:26.159Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:24:28.559Z",
+            "endedAt": "2026-10-11T18:24:28.561Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "5db5a0ba-aaf8-47fd-8e52-7670bdbd9981",
+          "pid": 96074,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:24:24.700Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-V13L1j"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:24:28.632Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "preserved_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-cutover-evidence/run-V13L1j/summary.json",
+          "sha256": "12c30cfadbd1aebd06338fbf18dd1affac7a453e43abe86012f43eba112b0e96"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-cutover-evidence/run-V13L1j/output.log",
+          "sha256": "be29ec03ab6c5ffcb194ae5d7dc1e952f4d953e230949aa81f006b007b08e013"
+        }
+      ],
+      "actual_owner_and_group_observed_absent": true,
+      "own_lock_observed_absent": true
+    },
+    {
+      "run": "run-YAFaxG",
+      "source_sha": "7de5fd69f9ee47841ccb8415964e57694e514764",
+      "note": "27 executed, 25 passed, 2 failed; stale annotation success fixture and SQL-head control",
+      "receipt": {
+        "startedAt": "2026-10-11T18:25:01.372Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "selected moon tests",
+            "command": [
+              "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode = runFocusedTests(process.argv[1], process.argv.slice(2), {cwd: process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/graph_test.mbt",
+              "src/query_syntax/string_literals_test.mbt",
+              "src/query_syntax/literal_forms_test.mbt",
+              "src/query_program/with_graph_binding_test.mbt",
+              "src/query_program/quoted_graph_macro_wbtest.mbt",
+              "src/source_frontend/with_graph_binding_test.mbt"
+            ],
+            "startedAt": "2026-10-11T18:25:01.455Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 2,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:25:15.246Z",
+            "endedAt": "2026-10-11T18:25:15.247Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "40afc1bf-dc96-4fa9-bc47-24de4e52f235",
+          "pid": 96968,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:25:01.446Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-YAFaxG"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:25:15.327Z",
+        "outputComplete": true,
+        "exitCode": 2,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "preserved_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-cutover-evidence/run-YAFaxG/summary.json",
+          "sha256": "3547a389841189770283d53e16ccd6ac408dc6aa05e9300b046b4ae462aeb86b"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-cutover-evidence/run-YAFaxG/output.log",
+          "sha256": "b1eb751ef2597c405636bf7b6d16013ed5f6042fbc461f4997ed7fb3e1e47415"
+        }
+      ],
+      "actual_owner_and_group_observed_absent": true,
+      "own_lock_observed_absent": true
+    },
+    {
+      "run": "run-2Va9Yb",
+      "source_sha": null,
+      "note": "dirty source: actual selected formatter",
+      "receipt": {
+        "startedAt": "2026-10-11T18:26:14.881Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "WITH retired annotation control formatting",
+            "command": [
+              "moon",
+              "fmt",
+              "src/query_syntax/graph_test.mbt",
+              "src/source_frontend/with_graph_binding_test.mbt"
+            ],
+            "startedAt": "2026-10-11T18:26:14.991Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:26:15.318Z",
+            "endedAt": "2026-10-11T18:26:15.322Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "b7f80d8f-3e99-4235-992d-86a201e16eaa",
+          "pid": 98161,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:26:14.979Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-2Va9Yb"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:26:15.397Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "preserved_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-cutover-evidence/run-2Va9Yb/summary.json",
+          "sha256": "5e98d740f011be7dcb8e4fa1ecdc6fd8d97c4ca315433bee2a4d6928e3e1aa39"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-cutover-evidence/run-2Va9Yb/output.log",
+          "sha256": "1efb63bf19504c385f6e39b93253c7a7f9475be0bf30c220dcf10da70eba7e6e"
+        }
+      ],
+      "actual_owner_and_group_observed_absent": true,
+      "own_lock_observed_absent": true
+    },
+    {
+      "run": "run-gVXHcI",
+      "source_sha": "f01d05b7ee93364b804aeb0e934c2981da089ac8",
+      "note": "27 executed, 27 passed; no public Host execution",
+      "receipt": {
+        "startedAt": "2026-10-11T18:26:38.403Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "selected moon tests",
+            "command": [
+              "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode = runFocusedTests(process.argv[1], process.argv.slice(2), {cwd: process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/graph_test.mbt",
+              "src/query_syntax/string_literals_test.mbt",
+              "src/query_syntax/literal_forms_test.mbt",
+              "src/query_program/with_graph_binding_test.mbt",
+              "src/query_program/quoted_graph_macro_wbtest.mbt",
+              "src/source_frontend/with_graph_binding_test.mbt"
+            ],
+            "startedAt": "2026-10-11T18:26:38.475Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:26:44.876Z",
+            "endedAt": "2026-10-11T18:26:44.878Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "c310bf7a-4f8f-46c9-91fa-efcc424eefea",
+          "pid": 98641,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:26:38.469Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-gVXHcI"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:26:44.946Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "preserved_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-cutover-evidence/run-gVXHcI/summary.json",
+          "sha256": "61d09e36dfe2b5a4f97aa51e998b2563a1a906bdf70a66657a0d64ad4e64b867"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/graph-cutover-evidence/run-gVXHcI/output.log",
+          "sha256": "c3c5a4517601e938d92af88e6fb00cccf13a2d927ba367660ada801ea7f5c50e"
+        }
+      ],
+      "actual_owner_and_group_observed_absent": true,
+      "own_lock_observed_absent": true
+    }
+  ],
+  "unverified": [
+    "packed Local/HTTPS",
+    "four Carrier public acceptance",
+    "Native/Wasm execution",
+    "whole cutover grammar/docs/pins/callers",
+    "P2 SGA/VecA/TEA roles"
+  ]
+}

@@ -1,0 +1,84 @@
+{
+  "startedAt": "2026-10-11T19:08:16.927Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "command": [
+        "node",
+        "scripts/compilation-manifests.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-11T19:08:17.043Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T19:08:17.311Z",
+      "endedAt": "2026-10-11T19:08:17.313Z"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/generate-aql-text-vocabulary.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-11T19:08:17.388Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T19:08:17.464Z",
+      "endedAt": "2026-10-11T19:08:17.468Z"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/update-document-metadata.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-11T19:08:17.540Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T19:08:19.259Z",
+      "endedAt": "2026-10-11T19:08:19.262Z"
+    },
+    {
+      "command": [
+        "node",
+        "scripts/check-canonical-json.mjs",
+        "--write"
+      ],
+      "startedAt": "2026-10-11T19:08:19.329Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T19:08:21.136Z",
+      "endedAt": "2026-10-11T19:08:21.137Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "1ed7b354-1fd9-4ba8-97c4-a9aed01bd176",
+    "pid": 57538,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T19:08:17.029Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-XNATG5"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T19:08:21.201Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

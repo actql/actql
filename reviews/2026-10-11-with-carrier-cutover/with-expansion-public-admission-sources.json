@@ -1,0 +1,523 @@
+{
+  "derivation": "Exact authored fixture source/declarations; no product-generated expectations. The acquired normal source has an exact-row Values-backed local typing control; its admitted Catalog counterpart lacks required pipeline input-order facts. Neither is Host/capture execution.",
+  "cases": [
+    {
+      "fixture": "unpivot-multicolumn",
+      "case": "unpivot-multicolumn-data-from-exclude",
+      "text": "WITH wide AS (SELECT item.id AS id,item.jan_amount AS jan_amount,item.jan_note AS jan_note,item.feb_amount AS feb_amount,item.feb_note AS feb_note FROM UNNEST(@rows) item) SELECT id,amount,note,month FROM wide UNPIVOT ((amount,note) FOR month IN ((jan_amount,jan_note) AS 'Jan',(feb_amount,feb_note) AS 'Feb')) ORDER BY id,month",
+      "format": "aql-text",
+      "declarations": {
+        "rows": {
+          "type": "array",
+          "nullable": false,
+          "max_items": 3,
+          "items": {
+            "type": "object",
+            "nullable": false,
+            "fields": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              },
+              "jan_amount": {
+                "type": "number",
+                "nullable": true
+              },
+              "jan_note": {
+                "type": "string",
+                "nullable": true
+              },
+              "feb_amount": {
+                "type": "number",
+                "nullable": true
+              },
+              "feb_note": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "acquired": false
+    },
+    {
+      "fixture": "unnest",
+      "case": "unnest-scalar-star-data-binding",
+      "text": "WITH expanded AS (FROM UNNEST(@items) element WITH OFFSET position |> SELECT *) FROM expanded |> ORDER BY position |> RESULT answer",
+      "format": "aql-text",
+      "declarations": {
+        "items": {
+          "type": "array",
+          "nullable": true,
+          "max_items": 3,
+          "items": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "acquired": false
+    },
+    {
+      "fixture": "unnest",
+      "case": "unnest-struct-data-binding",
+      "text": "WITH expanded AS (FROM UNNEST(@items) element WITH OFFSET position |> SELECT *) FROM expanded |> ORDER BY position |> RESULT answer",
+      "format": "aql-text",
+      "declarations": {
+        "items": {
+          "type": "array",
+          "nullable": true,
+          "max_items": 3,
+          "items": {
+            "type": "object",
+            "nullable": true,
+            "fields": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              },
+              "label": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "acquired": false
+    },
+    {
+      "fixture": "unnest-join",
+      "case": "unnest-join-full",
+      "text": "WITH keys AS (FROM (SELECT 2 AS key UNION ALL SELECT 3 AS key) keys_input |> ASSERT UNIQUE BY (key)) FROM UNNEST(@items) element WITH OFFSET position |> ASSERT UNIQUE BY (position) |> FULL JOIN keys k ON element = k.key MAX_OUTPUT_ROWS 10 |> SELECT element, position, k.key |> ORDER BY position NULLS LAST, k.key",
+      "format": "aql-text",
+      "declarations": {
+        "items": {
+          "type": "array",
+          "nullable": true,
+          "max_items": 3,
+          "items": {
+            "type": "number",
+            "nullable": true
+          }
+        }
+      },
+      "acquired": false
+    },
+    {
+      "fixture": "unnest-join",
+      "case": "unnest-join-data",
+      "text": "WITH joined AS (FROM UNNEST(@objects) e WITH OFFSET position |> JOIN (SELECT 2 AS key) k ON e.code = k.key MAX_OUTPUT_ROWS 10 |> SELECT e.*, position, k.key |> ORDER BY position) FROM joined |> RESULT answer",
+      "format": "aql-text",
+      "declarations": {
+        "objects": {
+          "type": "array",
+          "max_items": 4,
+          "items": {
+            "type": "object",
+            "nullable": true,
+            "fields": {
+              "code": {
+                "type": "number",
+                "nullable": false
+              },
+              "label": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          }
+        }
+      },
+      "acquired": false
+    },
+    {
+      "fixture": "correlated-unnest",
+      "case": "correlated-unnest-data",
+      "text": "WITH expanded AS (FROM UNNEST(@parents) p |> CROSS JOIN UNNEST(p.items) element WITH OFFSET position |> SELECT p.id, element, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer",
+      "format": "aql-text",
+      "declarations": {
+        "parents": {
+          "type": "array",
+          "max_items": 4,
+          "items": {
+            "type": "object",
+            "fields": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              },
+              "items": {
+                "type": "array",
+                "nullable": true,
+                "max_items": 3,
+                "items": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "acquired": false
+    },
+    {
+      "fixture": "correlated-unnest",
+      "case": "correlated-unnest-inner-data",
+      "text": "WITH expanded AS (FROM UNNEST(@parents) p |> JOIN UNNEST(p.items) element WITH OFFSET position ON element = p.id |> SELECT p.id, element, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer",
+      "format": "aql-text",
+      "declarations": {
+        "parents": {
+          "type": "array",
+          "max_items": 4,
+          "items": {
+            "type": "object",
+            "fields": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              },
+              "items": {
+                "type": "array",
+                "nullable": true,
+                "max_items": 3,
+                "items": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "acquired": false
+    },
+    {
+      "fixture": "correlated-unnest",
+      "case": "correlated-unnest-star-data",
+      "text": "WITH expanded AS (FROM UNNEST(@parents) p |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer",
+      "format": "aql-text",
+      "declarations": {
+        "parents": {
+          "type": "array",
+          "max_items": 4,
+          "items": {
+            "type": "object",
+            "fields": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              },
+              "items": {
+                "type": "array",
+                "nullable": true,
+                "max_items": 3,
+                "items": {
+                  "type": "object",
+                  "nullable": true,
+                  "fields": {
+                    "code": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "label": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "acquired": false
+    },
+    {
+      "fixture": "correlated-unnest",
+      "case": "joined-unnest-star-sql",
+      "text": "WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items) SELECT p.id, e.*, position FROM parents p JOIN (SELECT 1 AS key UNION ALL SELECT 2 AS key) k ON p.id = k.key MAX_OUTPUT_ROWS 4 CROSS JOIN UNNEST(p.items) e WITH OFFSET position ORDER BY p.id, position",
+      "format": "aql-text",
+      "declarations": {
+        "parents": {
+          "type": "array",
+          "max_items": 4,
+          "items": {
+            "type": "object",
+            "fields": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              },
+              "items": {
+                "type": "array",
+                "nullable": true,
+                "max_items": 3,
+                "items": {
+                  "type": "object",
+                  "nullable": true,
+                  "fields": {
+                    "code": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "label": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "acquired": false
+    },
+    {
+      "fixture": "correlated-unnest",
+      "case": "joined-unnest-star-pipe",
+      "text": "WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items) FROM parents p |> JOIN (SELECT 1 AS key UNION ALL SELECT 2 AS key) k ON p.id = k.key MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position",
+      "format": "aql-text",
+      "declarations": {
+        "parents": {
+          "type": "array",
+          "max_items": 4,
+          "items": {
+            "type": "object",
+            "fields": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              },
+              "items": {
+                "type": "array",
+                "nullable": true,
+                "max_items": 3,
+                "items": {
+                  "type": "object",
+                  "nullable": true,
+                  "fields": {
+                    "code": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "label": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "acquired": false
+    },
+    {
+      "fixture": "correlated-unnest",
+      "case": "joined-unnest-star-quoted-parenthesized",
+      "text": "WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items) SELECT `p`.id, e.*, position FROM parents `p` JOIN (SELECT 1 AS key UNION ALL SELECT 2 AS key) k ON `p`.id = k.key MAX_OUTPUT_ROWS 4 CROSS JOIN UNNEST((`p`).`ITEMS`) e WITH OFFSET position ORDER BY `p`.id, position",
+      "format": "aql-text",
+      "declarations": {
+        "parents": {
+          "type": "array",
+          "max_items": 4,
+          "items": {
+            "type": "object",
+            "fields": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              },
+              "items": {
+                "type": "array",
+                "nullable": true,
+                "max_items": 3,
+                "items": {
+                  "type": "object",
+                  "nullable": true,
+                  "fields": {
+                    "code": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "label": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "acquired": false
+    },
+    {
+      "fixture": "correlated-unnest",
+      "case": "joined-unnest-star-original-range",
+      "text": "WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items) FROM parents p |> JOIN (SELECT 1 AS key UNION ALL SELECT 2 AS key) k ON p.id = k.key MAX_OUTPUT_ROWS 4 |> SET items = [9] |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position",
+      "format": "aql-text",
+      "declarations": {
+        "parents": {
+          "type": "array",
+          "max_items": 4,
+          "items": {
+            "type": "object",
+            "fields": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              },
+              "items": {
+                "type": "array",
+                "nullable": true,
+                "max_items": 3,
+                "items": {
+                  "type": "object",
+                  "nullable": true,
+                  "fields": {
+                    "code": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "label": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "acquired": false
+    },
+    {
+      "fixture": "correlated-unnest",
+      "case": "joined-unnest-star-current-column",
+      "text": "WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items) FROM parents p |> JOIN (SELECT 1 AS key UNION ALL SELECT 2 AS key) k ON p.id = k.key MAX_OUTPUT_ROWS 4 |> SET items = [9] |> CROSS JOIN UNNEST(items) e WITH OFFSET position |> SELECT * |> ORDER BY id, position",
+      "format": "aql-text",
+      "declarations": {
+        "parents": {
+          "type": "array",
+          "max_items": 4,
+          "items": {
+            "type": "object",
+            "fields": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              },
+              "items": {
+                "type": "array",
+                "nullable": true,
+                "max_items": 3,
+                "items": {
+                  "type": "object",
+                  "nullable": true,
+                  "fields": {
+                    "code": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "label": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "acquired": false
+    },
+    {
+      "fixture": "correlated-unnest",
+      "case": "joined-unnest-star-acquired-data",
+      "text": "WITH parents AS (FROM UNNEST(@parents) p |> SELECT id, items), expanded AS (FROM parents p |> JOIN records r ON p.id = r.id MAX_OUTPUT_ROWS 4 |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id, e.*, position |> ORDER BY p.id, position) FROM expanded |> RESULT answer",
+      "format": "aql-text",
+      "declarations": {
+        "parents": {
+          "type": "array",
+          "max_items": 4,
+          "items": {
+            "type": "object",
+            "fields": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              },
+              "items": {
+                "type": "array",
+                "nullable": true,
+                "max_items": 3,
+                "items": {
+                  "type": "object",
+                  "nullable": true,
+                  "fields": {
+                    "code": {
+                      "type": "number",
+                      "nullable": false
+                    },
+                    "label": {
+                      "type": "string",
+                      "nullable": true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "acquired": true
+    },
+    {
+      "fixture": "correlated-unnest",
+      "case": "correlated-unnest-retained-data-set-star",
+      "text": "WITH expanded AS (FROM UNNEST(@parents) p |> SELECT id, items |> UNION ALL (FROM UNNEST(@parents) p |> SELECT id, items) |> CROSS JOIN UNNEST(items) element WITH OFFSET position |> SELECT * EXCEPT (items) |> ORDER BY id, position) FROM expanded |> RESULT answer",
+      "format": "aql-text",
+      "declarations": {
+        "parents": {
+          "type": "array",
+          "max_items": 4,
+          "items": {
+            "type": "object",
+            "fields": {
+              "id": {
+                "type": "number",
+                "nullable": false
+              },
+              "items": {
+                "type": "array",
+                "nullable": true,
+                "max_items": 3,
+                "items": {
+                  "type": "number",
+                  "nullable": true
+                }
+              }
+            }
+          }
+        }
+      },
+      "acquired": false
+    }
+  ],
+  "acquired_control_boundary": {
+    "text": "unchanged acquired-data public source",
+    "local_typing": "Exact authored Source rows id2/amountNULL and id1/amount10 via existing GeneratedValues; not capture/Host evidence",
+    "catalog_control": "Existing admitted source_member_context without capture input-order facts reaches Order(1, PipelineOrder(UnresolvedOrder)). Stage 0 captures the Catalog source; stage 1 executes the expansion. Required operation input order is preserved, not deferred away.",
+    "prior_failures": "Legacy schema-only Captured context returned UnsupportedProjection; real Catalog without order reached SourceProgram/Order; all raw attempts retained",
+    "host": "Actual standard Host Catalog and acquisition remain unexecuted; no product defect asserted from limited contexts"
+  }
+}

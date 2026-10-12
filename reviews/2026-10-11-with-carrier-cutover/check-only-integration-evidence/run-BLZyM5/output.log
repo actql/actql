@@ -1,0 +1,10 @@
+Total tests: 13, passed: 13, failed: 0.
+["moon","test","--target","js","src/query_program/with_binding_demand_test.mbt","src/query_program/with_binding_preparation_test.mbt","src/query_program/with_graph_binding_test.mbt","src/source_frontend/with_graph_binding_test.mbt","src/query_program/with_binding_static_order_gap_test.mbt"]: executed; counts={"tests":13,"passed":13,"failed":0,"cancelled":null,"skipped":null,"todo":null}
+Warning: [0029]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/moon.pkg:32:3 ]
+    │
+ 32 │   "actql/actql/relation_results",
+    │   ───────────────┬──────────────  
+    │                  ╰──────────────── Warning (unused_package): Unused package 'actql/actql/relation_results'
+────╯
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-cYY47g

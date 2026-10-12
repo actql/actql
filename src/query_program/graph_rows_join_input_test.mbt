@@ -24,8 +24,8 @@ test "Graph rows join prefix reuses the existing Relation join owner" {
     Rejected(diagnostic) => graph_rows_rejected(diagnostic)
     NeedsInputs(_) => fail("independent Graph row JOIN needs no acquisition")
   }
-  let source = "DATA n = SELECT 1 AS node_key, 7 AS p; DATA r = SELECT 2 AS tag; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p))); FROM g |> node_rows() |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT l.p AS value, rr.tag AS tag"
-  let actual = compile_data_set(source)
+  let source = "WITH n AS (SELECT 1 AS node_key, 7 AS p), r AS (SELECT 2 AS tag), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))) FROM g |> node_rows() |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT l.p AS value, rr.tag AS tag"
+  let actual = compile_with_set(source)
   match
     @check.check_parsed_with_evidence(
       actual,
@@ -52,13 +52,13 @@ test "Graph row bindings pass through authored CTE and edge JOIN prefixes" {
   for
     source in [
       graph_rows_prefix() +
-      "DATA r = SELECT 10 AS key; FROM g |> edge_rows(definition: 'E') |> SELECT edge_key |> AS l |> JOIN r AS rr ON l.edge_key = rr.key MAX_OUTPUT_ROWS 10 |> SELECT l.edge_key, rr.key |> ORDER BY edge_key",
+      ", r AS (SELECT 10 AS key) FROM g |> edge_rows(definition: 'E') |> SELECT edge_key |> AS l |> JOIN r AS rr ON l.edge_key = rr.key MAX_OUTPUT_ROWS 10 |> SELECT l.edge_key, rr.key |> ORDER BY edge_key",
       graph_rows_prefix() +
-      "DATA r = SELECT 1 AS key; WITH picked AS (FROM g |> node_rows(definition: 'N') |> SELECT node_key) SELECT l.node_key, rr.key FROM picked AS l JOIN r AS rr ON l.node_key = rr.key MAX_OUTPUT_ROWS 10 ORDER BY node_key",
+      ", r AS (SELECT 1 AS key), picked AS (FROM g |> node_rows(definition: 'N') |> SELECT node_key) SELECT l.node_key, rr.key FROM picked AS l JOIN r AS rr ON l.node_key = rr.key MAX_OUTPUT_ROWS 10 ORDER BY node_key",
       graph_rows_prefix() +
-      "DATA r = SELECT 1 AS key; DATA picked = FROM g |> node_rows() |> WHERE node_key > 0 |> AS l |> JOIN r AS rr ON l.node_key = rr.key MAX_OUTPUT_ROWS 10 |> SELECT l.node_key, rr.key; FROM picked |> ORDER BY node_key",
+      ", r AS (SELECT 1 AS key), picked AS (FROM g |> node_rows() |> WHERE node_key > 0 |> AS l |> JOIN r AS rr ON l.node_key = rr.key MAX_OUTPUT_ROWS 10 |> SELECT l.node_key, rr.key) FROM picked |> ORDER BY node_key",
     ] {
-    let actual = compile_data_set(source)
+    let actual = compile_with_set(source)
     match
       @check.check_parsed_with_evidence(
         actual,
@@ -77,15 +77,13 @@ test "Graph row bindings pass through authored CTE and edge JOIN prefixes" {
 
 ///|
 test "Graph row JOIN cannot revive removed fields or a shadowed Graph binding" {
-  let prefix = graph_rows_prefix() + "DATA r = SELECT 1 AS key; "
+  let prefix = graph_rows_prefix() + ", r AS (SELECT 1 AS key) "
   for
     source in [
       prefix +
       "FROM g |> node_rows() |> SELECT node_key |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT l.name",
       prefix +
       "FROM g |> node_rows() |> SELECT node_key |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT g.node_key",
-      prefix +
-      "WITH g AS (SELECT 1 AS id) FROM g |> node_rows() |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT l.node_key",
     ] {
     let script = @query.parse_query_script(source, syntax_limits()).unwrap()
     match
@@ -101,14 +99,22 @@ test "Graph row JOIN cannot revive removed fields or a shadowed Graph binding" {
         )
     }
   }
-  for operation in ["normalize_graph()", "reach(start: 'A', max_depth: 1)"] {
-    let source = prefix +
-      "FROM g |> " +
-      operation +
-      " |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT rr.key"
-    assert_true(
-      @query.parse_query_script(source, syntax_limits()) is Err(_),
-      msg=source,
+  // A nearer Relation binding cannot fall back to the outer Graph.
+  assert_true(
+    classified_graph_source(
+      prefix +
+      ", probe AS (WITH g AS (SELECT 1 AS id) FROM g |> node_rows() |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT l.node_key) FROM probe",
     )
-  }
+    is Err(InvalidQuery),
+  )
+  // Normalization retains Graph; Reach has a Relation output. This original
+  // Reach call omits its required direction, so its common checker refuses it.
+  let source = prefix +
+    "FROM g |> normalize_graph() |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT rr.key"
+  assert_true(@query.parse_query_script(source, syntax_limits()) is Err(_))
+  expect_with_graph_static_refusal(
+    prefix +
+    "FROM g |> reach(start: 'A', max_depth: 1) |> AS l |> CROSS JOIN r AS rr MAX_OUTPUT_ROWS 10 |> SELECT rr.key",
+    expected=Some(@pipeline.GraphMatch(Structure(Decode(MissingField)))),
+  )
 }

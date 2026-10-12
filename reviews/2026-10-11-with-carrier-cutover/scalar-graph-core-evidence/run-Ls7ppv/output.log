@@ -1,0 +1,54 @@
+TAP version 13
+# Subtest: baseline preimages and changed normative pins independently determine the Run CID
+ok 1 - baseline preimages and changed normative pins independently determine the Run CID
+  ---
+  duration_ms: 382.613125
+  type: 'test'
+  ...
+# Subtest: current contract inputs independently determine the Values Run and consuming fixtures
+ok 2 - current contract inputs independently determine the Values Run and consuming fixtures
+  ---
+  duration_ms: 271.447167
+  type: 'test'
+  ...
+# Subtest: WITH cutover preserves the old complete Values closure and independently pins the new Run
+not ok 3 - WITH cutover preserves the old complete Values closure and independently pins the new Run
+  ---
+  duration_ms: 73.019125
+  type: 'test'
+  location: '/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs:2986:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+    
+    + 'sha256:08826f64b2224dc908b42b6fbb94b1c1e989c6e8f64185d36c108028ff4e0b45'
+    - 'sha256:0e2e8ea3ecedc619afb85c479c2946abe320797e25360136bae91aab88be379d'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'sha256:0e2e8ea3ecedc619afb85c479c2946abe320797e25360136bae91aab88be379d'
+  actual: 'sha256:08826f64b2224dc908b42b6fbb94b1c1e989c6e8f64185d36c108028ff4e0b45'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs:3014:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 2
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 830.506583
+ACTQL_TEST_CASE {"name":"baseline preimages and changed normative pins independently determine the Run CID","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"current contract inputs independently determine the Values Run and consuming fixtures","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":true,"skipped":false,"todo":false}
+ACTQL_TEST_CASE {"name":"WITH cutover preserves the old complete Values closure and independently pins the new Run","file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs","passed":false,"skipped":false,"todo":false,"failureType":"testCodeFailure","errorCode":"ERR_ASSERTION","errorMessage":"Expected values to be strictly equal:\n+ actual - expected\n\n+ 'sha256:08826f64b2224dc908b42b6fbb94b1c1e989c6e8f64185d36c108028ff4e0b45'\n- 'sha256:0e2e8ea3ecedc619afb85c479c2946abe320797e25360136bae91aab88be379d'\n","operator":"strictEqual"}
+ACTQL_TEST_SUMMARY {"success":false,"counts":{"tests":3,"failed":1,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":739.957083,"file":"/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs"}
+ACTQL_TEST_SUMMARY {"success":false,"counts":{"tests":3,"failed":1,"passed":2,"cancelled":0,"skipped":0,"todo":0,"topLevel":3,"suites":0},"duration_ms":830.506583}
+["/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node","--test","--test-reporter=file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/test-execution-reporter.mjs","--test-name-pattern","^(baseline preimages and changed normative pins independently determine the Run CID|current contract inputs independently determine the Values Run and consuming fixtures|WITH cutover preserves the old complete Values closure and independently pins the new Run)$","scripts/client-values-run-materials-vector.test.mjs"]: process failed (1); counts={"tests":3,"passed":2,"failed":1,"cancelled":0,"skipped":0,"todo":0}
+Focused test evidence: /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/focused-evidence/focused-test-s1ocrD
