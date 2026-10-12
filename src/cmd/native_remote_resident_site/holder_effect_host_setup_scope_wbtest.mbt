@@ -207,3 +207,77 @@ test "Site stop and revoke do not acknowledge setup cleanup or return its reserv
   assert_eq(@site.site_status(site)[5], 1L)
   assert_eq(@site.site_status(site)[7], 120L)
 }
+
+///|
+test "setup binding retains the exact selection and rechecks each current verifier" {
+  let site = host_setup_test_site(2)
+  let calls = [0, 0]
+  let runtime_current = Ref(true)
+  let current = holder_effect_host_setup_binding(
+    site,
+    "test",
+    1,
+    "runtime",
+    () => {
+      calls[0] += 1
+      true
+    },
+    () => {
+      calls[1] += 1
+      runtime_current.val
+    },
+  )
+  assert_true(current())
+  runtime_current.val = false
+  assert_false(current())
+  assert_eq(calls, [2, 2])
+  @site.revoke_site(site)
+  assert_false(current())
+  assert_eq(calls, [3, 2])
+}
+
+///|
+test "foreign setup key generation or runtime refuses before runtime verification" {
+  let site = host_setup_test_site(2)
+  let calls = [0]
+  for
+    (key, generation, runtime) in [
+      ("foreign", 1, "runtime"),
+      ("test", 2, "runtime"),
+      ("test", 1, "foreign"),
+    ] {
+    let current = holder_effect_host_setup_binding(
+      site,
+      key,
+      generation,
+      runtime,
+      () => true,
+      () => {
+        calls[0] += 1
+        true
+      },
+    )
+    assert_false(current())
+  }
+  assert_eq(calls[0], 0)
+}
+
+///|
+test "lost current slot prevents the setup Site and runtime continuation" {
+  let site = host_setup_test_site(2)
+  let calls = [0]
+  let current = holder_effect_host_setup_binding(
+    site,
+    "test",
+    1,
+    "runtime",
+    () => false,
+    () => {
+      calls[0] += 1
+      true
+    },
+  )
+  assert_false(current())
+  assert_eq(calls[0], 0)
+  assert_eq(@site.site_status(site)[2], 0L)
+}
