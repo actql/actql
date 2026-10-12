@@ -1,0 +1,19 @@
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: registered fixture source graphMatchSourceSuccesses
+    at file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-inventory.mjs:67:12
+    at Array.flatMap (<anonymous>)
+    at resolveSpreads (file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-inventory.mjs:63:61)
+    at registeredPublicQueryInventory (file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/public-query-inventory.mjs:79:28)
+    at async file:///Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/[eval1]:1:249 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: undefined,
+  expected: undefined,
+  operator: 'notStrictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.22.0
