@@ -15382,6 +15382,68 @@ fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
       0,
       None,
     ),
+    protocol_string_rule(
+      Some("actql-model-original-storage-binding/0.1"),
+      [],
+      0,
+      0,
+    ),
+    StringCeilingRule(256),
+    protocol_string_rule(None, [], 0, 1),
+    AllOfRule([5751, 5752]),
+    protocol_string_rule(None, [], 1, 0),
+    protocol_string_rule(None, [], 1, 0),
+    protocol_string_rule(None, [], 1, 0),
+    protocol_string_rule(Some("local-continuation-private"), [], 0, 0),
+    protocol_object_rule(
+      [
+        ("version", 5750),
+        ("store_contract_wire", 5753),
+        ("store_contract_cid", 5754),
+        ("store_authority_cid", 5755),
+        ("key_generation_cid", 5756),
+        ("private_namespace", 5757),
+      ],
+      [
+        "version", "store_contract_wire", "store_contract_cid", "store_authority_cid",
+        "key_generation_cid", "private_namespace",
+      ],
+      -1,
+      0,
+      None,
+    ),
+    protocol_string_rule(
+      Some("actql-model-original-storage-binding/0.1"),
+      [],
+      0,
+      0,
+    ),
+    StringCeilingRule(256),
+    protocol_string_rule(None, [], 0, 1),
+    AllOfRule([5760, 5761]),
+    protocol_string_rule(None, [], 1, 0),
+    protocol_string_rule(None, [], 1, 0),
+    protocol_string_rule(None, [], 1, 0),
+    protocol_string_rule(Some("local-continuation-private"), [], 0, 0),
+    protocol_string_rule(None, [], 1, 0),
+    protocol_object_rule(
+      [
+        ("version", 5759),
+        ("store_contract_wire", 5762),
+        ("store_contract_cid", 5763),
+        ("store_authority_cid", 5764),
+        ("key_generation_cid", 5765),
+        ("private_namespace", 5766),
+        ("self_cid", 5767),
+      ],
+      [
+        "version", "store_contract_wire", "store_contract_cid", "store_authority_cid",
+        "key_generation_cid", "private_namespace", "self_cid",
+      ],
+      -1,
+      0,
+      None,
+    ),
   ]
 }
 
@@ -15510,6 +15572,8 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("model_raw_capture_policy", true) => Some(5714)
     ("model_raw_response", false) => Some(5731)
     ("model_raw_response", true) => Some(5749)
+    ("model_original_storage_binding", false) => Some(5758)
+    ("model_original_storage_binding", true) => Some(5768)
     _ => None
   }
 }

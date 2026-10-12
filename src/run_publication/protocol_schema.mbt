@@ -334,7 +334,11 @@ fn validate_generated_protocol_shape(
     max_wire_bytes,
     max_nodes,
     max_depth,
-  })
+  }) &&
+  (
+    name != "model_original_storage_binding" ||
+    model_original_storage_binding_shape(value)
+  )
 }
 
 ///|
