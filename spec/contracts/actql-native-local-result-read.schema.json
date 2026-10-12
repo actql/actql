@@ -107,18 +107,68 @@
             "run_policy_profile_cid": {
               "type": "string",
               "pattern": "^sha256:[a-f0-9]{64}$"
+            },
+            "run_file": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?!\\.\\.?$)[^/\\\\\\u0000]+$"
+            },
+            "retention_file": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?!\\.\\.?$)[^/\\\\\\u0000]+$"
+            },
+            "store_file": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^(?!\\.\\.?$)[^/\\\\\\u0000]+$"
             }
           },
           "oneOf": [
             {
               "required": [
                 "expires_at"
-              ]
+              ],
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "run_policy_profile_cid"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "run_file"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "retention_file"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "store_file"
+                    ]
+                  }
+                ]
+              }
             },
             {
               "required": [
-                "run_policy_profile_cid"
-              ]
+                "run_policy_profile_cid",
+                "run_file",
+                "retention_file",
+                "store_file"
+              ],
+              "not": {
+                "required": [
+                  "expires_at"
+                ]
+              }
             }
           ]
         }

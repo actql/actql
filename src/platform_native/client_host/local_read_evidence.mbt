@@ -194,10 +194,10 @@ fn NativeLocalHostConnection::validate_read_evidence(
   }
   let (expires_at, run_policy_original) = match selection.expiry {
     Absolute(expires_at) => (expires_at, None)
-    AcceptedRunProfile(profile_cid) => {
+    AcceptedRunProfile(roles) => {
       guard self.session.settings.files
         .iter()
-        .find_first(candidate => candidate.content_cid == profile_cid)
+        .find_first(candidate => candidate.content_cid == roles.profile_cid)
         is Some(profile_file) else {
         return Err(CustodyLost)
       }
@@ -208,9 +208,9 @@ fn NativeLocalHostConnection::validate_read_evidence(
           selection.connection,
           profile_file.name,
           file.name,
-          "run.json",
-          "retention.json",
-          "store.json",
+          roles.run_file,
+          roles.retention_file,
+          roles.store_file,
         ) {
         Ok(value) => value
         Err(issue) => return Err(issue)

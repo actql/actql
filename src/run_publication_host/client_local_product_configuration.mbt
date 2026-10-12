@@ -529,6 +529,9 @@ fn product_assemble_originals(
           read["run_policy_profile_cid"] = Json::string(
             client_local_run_policy_profile_cid(profile),
           )
+          read["run_file"] = Json::string("run.json")
+          read["retention_file"] = Json::string("retention.json")
+          read["store_file"] = Json::string("store.json")
         }
         originals[index] = (
           name,
