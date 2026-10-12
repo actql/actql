@@ -155,6 +155,9 @@ export function createModelResumeTables(database) {
 export function createModelResumeState(database, {
   verifier, transaction, alive, now, iso, fault, admissionLocked, confirmEntryGrant, checkpoint, run,
 }) {
+  // These tokens authenticate only this journal's read observation. They do
+  // not establish a resource park, durable cut, restoration or send grant.
+  const originalJournalObservations = new WeakMap();
   const q = {
     scope: database.prepare('SELECT * FROM resume_model_scopes WHERE checkpoint_cid = ?'),
     scopeByCid: database.prepare('SELECT * FROM resume_model_scopes WHERE scope_cid = ?'),
@@ -497,6 +500,39 @@ export function createModelResumeState(database, {
           settlement: attempt.settlement_json === '' ? null : JSON.parse(attempt.settlement_json)})),
     })),
   });
+  function originalJournalFacts(identity) {
+    const state = checked(identity);
+    const runId = state.inventory.runId;
+    // Run revision is not a substitute for any of these independently updated
+    // rows. Keep original bytes and complete ordered history, including other
+    // Model occurrences and original continuation/approval fences of this Run.
+    return freeze(copy({
+      identity: select(state.inventory, scopeKeys),
+      run: run(runId),
+      scopes: database.prepare('SELECT * FROM resume_model_scopes WHERE run_id = ? ORDER BY task_index, scope_cid').all(runId),
+      slots: database.prepare(`SELECT s.* FROM resume_model_slots s
+        JOIN resume_model_scopes m ON m.scope_cid = s.scope_cid
+        WHERE m.run_id = ? ORDER BY m.task_index, s.scope_cid, s.ordinal`).all(runId),
+      attempts: database.prepare(`SELECT a.* FROM resume_model_attempts a
+        JOIN resume_model_scopes m ON m.scope_cid = a.scope_cid
+        WHERE m.run_id = ? ORDER BY m.task_index, a.scope_cid, a.ordinal, a.attempt_index`).all(runId),
+      cancellation: q.cancelled.get(runId) ?? null,
+      checkpoints: database.prepare('SELECT * FROM checkpoints WHERE run_id = ? ORDER BY checkpoint_cid').all(runId),
+      resolutions: database.prepare(`SELECT r.* FROM resolutions r
+        JOIN checkpoints c ON c.checkpoint_cid = r.checkpoint_cid
+        WHERE c.run_id = ? ORDER BY r.resolution_cid`).all(runId),
+      intents: database.prepare('SELECT * FROM resume_intents WHERE run_id = ? ORDER BY intent_id').all(runId),
+      admissions: database.prepare(`SELECT a.* FROM resume_admissions a
+        JOIN resume_intents i ON i.intent_id = a.intent_id
+        WHERE i.run_id = ? ORDER BY a.intent_id, a.generation`).all(runId),
+    }));
+  }
+  function originalJournalObservation(observation) {
+    alive();
+    const facts = originalJournalObservations.get(observation);
+    if (facts === undefined) fail('ForeignModelOriginalJournalObservation');
+    return facts;
+  }
   return Object.freeze({prepare, prepareImmediate: prepareInventory, registerLocked, registerImmediateLocked,
     // Read under the parent transaction before a generic unsent transition.
     // Every entered attempt counts, including saved outcomes; this establishes
@@ -587,6 +623,28 @@ export function createModelResumeState(database, {
       readModelCalls(identity) {
         alive();
         return transaction.run(() => view(checked(identity)));
+      },
+      // Read-only first half of original resource cut selection. The opaque
+      // reference names this exact open journal, not a parked resource owner.
+      observeOriginalModelJournal(identity) {
+        alive();
+        const facts = transaction.run(() => originalJournalFacts(identity));
+        const observation = Object.freeze({kind: 'original-model-journal-observation'});
+        originalJournalObservations.set(observation, facts);
+        return observation;
+      },
+      originalModelJournalObservationFacts(observation) {
+        return originalJournalObservation(observation);
+      },
+      // After an await, compare all original storage facts, not Run.version
+      // alone. Even a match proves no resource freeze or committed cut link.
+      reconfirmOriginalModelJournal(observation) {
+        const before = originalJournalObservation(observation);
+        transaction.run(() => {
+          const after = originalJournalFacts(before.identity);
+          if (!same(before, after)) fail('ModelOriginalJournalObservationChanged');
+        });
+        return observation;
       },
       readModelAttemptOriginals(reference) {
         alive();

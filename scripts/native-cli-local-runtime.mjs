@@ -60,7 +60,8 @@ export function inspectLocalLibrary(path, platform, names, execute = execFileSyn
         const name = s.slice('@loader_path/'.length);
         assert(names.has(name), 'Missing loader-relative bundled library'); return name;
       }
-      assert.equal(s, '/usr/lib/libSystem.B.dylib', 'Unbundled non-system dylib'); return s;
+      assert(s === '/usr/lib/libSystem.B.dylib' || s === '/usr/lib/libz.1.dylib',
+        'Unbundled non-system dylib'); return s;
     });
     abi = {minimumMacOS: minimum};
   } else {
