@@ -1,0 +1,16 @@
+{
+  "source": "independent Python hashlib over explicit existing retention Policy preimage and literal new acceptance deadlines",
+  "body": {
+    "retention_contract_cid": "sha256:a8fb82bdb39b1eb3e6871a55d63f3cb554dcc1953e06501bb686fd8ca8f9646a",
+    "effective_data_policy_cid": "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563",
+    "metadata_retention_policy_cid": "sha256:dbf36e9f6f9b35881ac625290a1c93dbbe485ee8d954cdac3c55e345df4c3095",
+    "clock_contract_cid": "sha256:c2f7278baa9548283e904d1e8b9048efc0a206ecaca397527ec970776a2f2356",
+    "version": "actql-result-retention-policy/0.1",
+    "available_until": "2026-10-14T00:00:00.001Z",
+    "delete_by": "2026-10-15T00:00:00.001Z",
+    "extension_ceiling_at": "2026-10-15T00:00:00.001Z",
+    "metadata_delete_by": "2026-10-20T00:00:00.001Z",
+    "effective_retention_policy_cid": "sha256:3f5d2c8229efd0e4f5b5c641a1d4f0218edfc16b773efb5adab76fd89616420c"
+  },
+  "cid": "sha256:3f5d2c8229efd0e4f5b5c641a1d4f0218edfc16b773efb5adab76fd89616420c"
+}
