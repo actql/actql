@@ -24,7 +24,7 @@ test "independent common Graph match control is already checked" {
 ///|
 test "named Graph match has an independently authored complete Program" {
   let actual = compile_with_set(
-    "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))) FROM g |> match_nodes(definition: 'N', label: 'Person', where: {gt: [{field: 'p'}, {literal: 5}]}, fields: ['p']) |> SELECT p",
+    "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Person PROPERTIES (p)))) FROM g |> match_nodes(definition: 'N', label: 'Person', where: {gt: [{field: `p`}, {literal: 5}]}, fields: [`p`]) |> SELECT p",
   )
   let expected = @program.parse(
     (
@@ -52,8 +52,8 @@ test "named Graph match has an independently authored complete Program" {
 test "named Graph match carries projection order and identity roles to the common owner" {
   for
     suffix in [
-      "FROM g |> match_nodes(definition: 'n', bindings: {identity: 'element'}, where: {literal: true}, fields: ['name', 'element']) |> SELECT name, element |> ORDER BY name",
-      ", selected AS (FROM g |> normalize_graph() |> match_edges(definition: 'E', label: 'r', bindings: {identity: 'edge', source: 'source', target: 'target'}, fields: ['target', 'edge', 'source'])) FROM selected |> SELECT target, edge, source",
+      "FROM g |> match_nodes(definition: 'n', bindings: {identity: `element`}, where: {literal: true}, fields: [`name`, `element`]) |> SELECT name, element |> ORDER BY name",
+      ", selected AS (FROM g |> normalize_graph() |> match_edges(definition: 'E', label: 'r', bindings: {identity: `edge`, source: `source`, target: `target`}, fields: [`target`, `edge`, `source`])) FROM selected |> SELECT target, edge, source",
     ] {
     let actual = compile_with_set(graph_rows_prefix() + suffix)
     match
@@ -77,39 +77,39 @@ test "named Graph match retains precise common static refusals" {
   for
     (call, expected) in [
       (
-        "match_nodes(definition: 'N', where: {literal: true}, fields: ['missing'])",
+        "match_nodes(definition: 'N', where: {literal: true}, fields: [`missing`])",
         @pipeline.GraphMatch(Structure(UnknownMatchField("missing"))),
       ),
       (
-        "match_nodes(definition: 'missing', where: {literal: true}, fields: ['name'])",
+        "match_nodes(definition: 'missing', where: {literal: true}, fields: [`name`])",
         @pipeline.GraphMatch(Structure(InvalidName("missing"))),
       ),
       (
-        "match_nodes(definition: 'N', label: 'missing', where: {literal: true}, fields: ['name'])",
+        "match_nodes(definition: 'N', label: 'missing', where: {literal: true}, fields: [`name`])",
         @pipeline.GraphMatch(Structure(InvalidName("missing"))),
       ),
       (
-        "match_nodes(definition: 'N', fields: ['name'])",
+        "match_nodes(definition: 'N', fields: [`name`])",
         @pipeline.GraphMatch(Structure(InvalidBody)),
       ),
       (
-        "match_nodes(definition: 'N', where: {literal: 1}, fields: ['name'])",
+        "match_nodes(definition: 'N', where: {literal: 1}, fields: [`name`])",
         @pipeline.GraphMatch(ExpectedBoolean),
       ),
       (
-        "match_nodes(definition: 'N', where: {literal: true}, fields: ['name', 'name'])",
+        "match_nodes(definition: 'N', where: {literal: true}, fields: [`name`, `name`])",
         @pipeline.GraphMatch(Structure(DuplicateMatchField("name"))),
       ),
       (
-        "match_nodes(definition: 'N', bindings: {identity: 'name'}, where: {literal: true}, fields: ['name'])",
+        "match_nodes(definition: 'N', bindings: {identity: `name`}, where: {literal: true}, fields: [`name`])",
         @pipeline.GraphMatch(Structure(ScopeCollision("name"))),
       ),
       (
-        "match_nodes(definition: 'N', where: {literal: true}, fields: ['name'], extra: true)",
+        "match_nodes(definition: 'N', where: {literal: true}, fields: [`name`], extra: true)",
         @pipeline.GraphMatch(Structure(Decode(UnknownField))),
       ),
       (
-        "match_edges(definition: 'E', bindings: {source: 'src'}, fields: ['src'], types: [1])",
+        "match_edges(definition: 'E', bindings: {source: `src`}, fields: [`src`], types: [1])",
         @pipeline.GraphMatch(Structure(Decode(WrongType))),
       ),
     ] {
@@ -125,9 +125,8 @@ test "named Graph match refuses undefined output shape and subsequent Graph call
   for
     suffix in [
       "FROM g |> match_nodes(definition: 'N', where: {literal: true})", "FROM g |> match_nodes(definition: 'N', where: {literal: true}, fields: [])",
-      "FROM g |> match_nodes(definition: 'N', where: {literal: true}, fields: ['name', 1])",
-      "FROM g |> match_nodes(definition: 'N', where: {literal: true}, fields: ['name']) |> node_rows()",
-      "FROM n |> match_nodes(definition: 'N', where: {literal: true}, fields: ['name'])",
+      "FROM g |> match_nodes(definition: 'N', where: {literal: true}, fields: [`name`]) |> node_rows()",
+      "FROM n |> match_nodes(definition: 'N', where: {literal: true}, fields: [`name`])",
     ] {
     let parsed = @query.parse_query_script(
       graph_rows_prefix() + suffix,
@@ -144,4 +143,15 @@ test "named Graph match refuses undefined output shape and subsequent Graph call
       assert_true(actual is Err(UnsupportedGraph), msg=suffix)
     }
   }
+}
+
+///|
+test "Graph match field role rejects numeric entries before lowering" {
+  assert_true(
+    @query.parse_query_script(
+      graph_rows_prefix() +
+      "FROM g |> match_nodes(definition: 'N', where: {literal: true}, fields: [name, 1])",
+      syntax_limits(),
+    ) is Err(WrongQueryForm),
+  )
 }
