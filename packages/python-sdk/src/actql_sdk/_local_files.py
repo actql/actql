@@ -41,7 +41,7 @@ class LocalFileError(RuntimeError):
 class _PayloadFile:
     __slots__ = ('root', 'name', 'descriptor', 'identity', 'max_bytes', 'written',
                  'creation_synced', 'write_unknown', 'closing', 'close_pending',
-                 'write_stopped', 'snapshot', 'adoption', 'finalization')
+                 'write_stopped', 'snapshot', 'adoption', 'finalization', 'store_claimed')
 
     def __init__(self, root: 'LocalFileRoot', name: str, descriptor: int, max_bytes: int) -> None:
         self.root = root
@@ -58,6 +58,8 @@ class _PayloadFile:
         self.snapshot: _FileSnapshot | None = None
         self.adoption: _NameAdoption | None = None
         self.finalization: _FileFinalization | None = None
+        self.store_claimed = False
+
 
 
 class _NameAdoption:
@@ -471,6 +473,40 @@ class LocalFileRoot:
                 value.identity = identity
             return PhysicalFileObservation(identity, current.st_size)
 
+    def claim_empty_store_file(self, value: _PayloadFile, path: Path) -> PhysicalFileIdentity:
+        """Consume this exact exclusive empty-file acquisition once, before SQL.
+
+        Trusted Host assembly must already have persisted its original
+        initialization marker. This physical claim is not Host adoption, a key
+        regeneration permission or a Run grant. Failed SQL initialization keeps
+        the same consumed file/descriptor and cannot manufacture another claim.
+        """
+        with self._lock:
+            self._owned(value)
+            root = self._open()
+            parent = path.absolute().parent.lstat()
+            current_root = os.fstat(root)
+            if (not stat.S_ISDIR(parent.st_mode) or parent.st_uid != os.getuid()
+                    or parent.st_mode & 0o077
+                    or PhysicalFileIdentity(parent.st_dev, parent.st_ino) != self._identity
+                    or PhysicalFileIdentity(current_root.st_dev, current_root.st_ino) != self._identity
+                    or path.name != value.name or value.max_bytes != 0
+                    or value.store_claimed or value.written != 0
+                    or not value.creation_synced or value.closing or value.close_pending
+                    or value.write_unknown or value.write_stopped
+                    or value.snapshot is not None or value.adoption is not None
+                    or value.finalization is not None):
+                raise LocalFileError('Original empty Local Store file is unavailable')
+            observed = self.observe(value)
+            named = os.stat(value.name, dir_fd=root, follow_symlinks=False)
+            if (observed.size != 0 or not stat.S_ISREG(named.st_mode)
+                    or named.st_uid != os.getuid() or named.st_mode & 0o077
+                    or named.st_size != 0
+                    or PhysicalFileIdentity(named.st_dev, named.st_ino) != observed.identity):
+                raise LocalFileError('Original empty Local Store file changed')
+            value.store_claimed = True
+            return observed.identity
+
     def sync_creation(self, value: _PayloadFile) -> None:
         """Retry directory durability on the same acquired handle, without create."""
         with self._lock:
@@ -526,7 +562,7 @@ class LocalFileRoot:
             if target._capacity_root is not self._capacity_root or target._lock is not self._lock:
                 raise ValueError('Foreign Local adoption capacity family')
             target._open()
-            if (value.closing or value.adoption is not None or value.finalization is not None
+            if (value.closing or value.store_claimed or value.adoption is not None or value.finalization is not None
                     or value.write_unknown
                     or value.write_stopped or value.snapshot is not None
                     or not value.creation_synced or value.descriptor is None
@@ -646,7 +682,7 @@ class LocalFileRoot:
         with self._lock:
             self._owned(value)
             self._open()
-            if (value.closing or value.adoption is not None or value.finalization is not None
+            if (value.closing or value.store_claimed or value.adoption is not None or value.finalization is not None
                     or value.write_unknown
                     or value.write_stopped or not value.creation_synced
                     or value.descriptor is None):
@@ -684,7 +720,7 @@ class LocalFileRoot:
     def _snapshot_stamp(self, value: _PayloadFile) -> tuple[int, ...]:
         observed = self.observe(value)
         root = self._observation_root()
-        if value.closing or value.descriptor is None:
+        if value.closing or value.store_claimed or value.descriptor is None:
             raise LocalFileError('Original Local snapshot descriptor is closing')
         current = os.fstat(value.descriptor)
         named = os.stat(value.name, dir_fd=root, follow_symlinks=False)

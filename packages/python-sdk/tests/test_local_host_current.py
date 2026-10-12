@@ -103,7 +103,7 @@ class LocalHostCurrentTests(unittest.TestCase):
         original_count = len(calls)
         with self.assertRaises(ValueError):
             core.bind_host_current(copy.copy(loan))
-        foreign = _NamespaceReader(lambda *a: None, lambda *a: None, object(), lambda: None)
+        foreign = _NamespaceReader(lambda *a: None, lambda *a: None, object(), lambda: None, check_fences=lambda *_: None)
         with self.assertRaises(ValueError):
             with core.host_current_frame(loan, foreign):
                 pass
