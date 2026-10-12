@@ -5,9 +5,10 @@ import {writeFileSync} from 'node:fs';
 import {pathToFileURL} from 'node:url';
 import {signatureRoleIdentityOracle} from './sga-signature-role-identity-oracle.mjs';
 
-export const vectorPoolIdentityOracle = () => signatureRoleIdentityOracle({
+export const vectorPoolIdentityOracle = (options = {}) => signatureRoleIdentityOracle({
   beforePath: 'scripts/fixtures/pre-vector-pool-values-identities.json',
   sourceRevision: 'authored-vector-pool-source',
+  ...options,
 });
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {

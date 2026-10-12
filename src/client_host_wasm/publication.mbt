@@ -62,7 +62,7 @@ pub fn reserve_publication(
   physical_copy_bytes : Int64,
 ) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.source_publications.get(source)
+    value.run_invocations.get(source)
     is Some(
       { closing: false, produced: true, invocation: Some(_), compute, .. }
     ) &&
@@ -162,7 +162,7 @@ fn publication_current(
   account : @authorization.AdmittedAccountConfiguration,
   pending_confirmation? : Bool = false,
 ) -> Bool {
-  guard value.source_publications.get(record.source) is Some(source) &&
+  guard value.run_invocations.get(record.source) is Some(source) &&
     value.computes.get(source.compute) is Some(compute) &&
     value.publication_preflights.get(record.preflight) is Some(preflight) &&
     preflight.source == record.source &&
@@ -201,7 +201,7 @@ pub fn prepare_publication(
 ) -> Int {
   guard selected(nonce) is Some(value) &&
     value.publications.get(handle) is Some(record) &&
-    value.source_publications.get(record.source)
+    value.run_invocations.get(record.source)
     is Some({ closing: false, invocation: Some(_), compute, .. }) &&
     value.computes.get(compute) is Some({ closing: false, host: Some(_), .. }) &&
     value.publication_preflights.get(record.preflight)
@@ -356,13 +356,11 @@ fn advance_publication_owner(
     return Ok((false, work))
   }
   if record.capture is None {
-    guard value.source_publications.get(record.source)
+    guard value.run_invocations.get(record.source)
       is Some({ invocation: Some(invocation), compute, .. }) &&
-      value.computes.get(compute)
-      is Some({ host: Some(host), origin: Captured(attempt), .. }) &&
-      value.native_attempts.get(attempt) is Some(original) &&
-      value.native_sources.get(original.configuration) is Some(source) &&
-      value.runs.get(source.run)
+      value.computes.get(compute) is Some(compute) &&
+      compute.host is Some(host) &&
+      stored_compute_original_run(value, compute)
       is Some({ normalization: Some(normalization), .. }) else {
       return Err(())
     }
