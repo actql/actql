@@ -356,12 +356,14 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     let rawSelection = snapshotModelRawCaptureSelection(selected.rawCaptureSelection);
     const rawBinding = rawSelection === undefined ? undefined :
       {attempted: false, complete: false, issue: undefined,
-        persistence: undefined, holding: undefined};
+        persistence: undefined, holding: undefined, originalsFlight: undefined,
+        originalsPending: false, readCleanup: undefined, readCleanupFlight: undefined};
     // Reject a known missing installation before Approval/Entry, not after
     // consuming an attempt. Method checks are availability only: the actual
     // Store remains this controller's selected original, never caller data.
     if (rawBinding !== undefined &&
         (typeof operation.ioNotification?.notify !== 'function' ||
+          typeof control.installedModelRawSelectionOriginals !== 'function' ||
           ['confirmModelRawCaptureOriginals', 'confirmModelRawEvidence',
             'prepareModelRawEvidence', 'commitPhysicalHolding'].some(name =>
             typeof store?.[name] !== 'function'))) {
@@ -600,9 +602,58 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     }), limits);
     let gate, gateOpening;
     let gateCloseAttempted = false, gateReleased = false;
+    function rawOriginalsCurrent() {
+      checkpoints();
+      if (!owner.available || !token.available || !owner.currentProvider() ||
+          rawSelection?.selectionAvailable() !== true ||
+          originalPreparation !== undefined &&
+            operation.originalResourceScope?.() !== originalPreparation.scope) {
+        fail('InstalledModelRawOriginalsUnavailable');
+      }
+      signal?.throwIfAborted();
+    }
+    function confirmRawOriginals() {
+      if (rawBinding === undefined) return;
+      rawOriginalsCurrent();
+      if (rawBinding.originalsFlight !== undefined) return rawBinding.originalsFlight;
+      // The finite Common projection is captured before the first Store await.
+      // No copied packet/CID or this availability result issues a raw grant.
+      const originals = control.installedModelRawSelectionOriginals(rawSelection);
+      rawBinding.originalsPending = true;
+      rawBinding.originalsFlight = (async () => {
+        try {
+          await store.confirmModelRawCaptureOriginals(originals, storeAuthorityCid);
+          rawOriginalsCurrent();
+        } catch (error) {
+          const handle = error?.cleanupHandle;
+          // Only this actual selected Store's failed physical read supplies
+          // retry custody. Never lose its FD merely because approval failed.
+          if (typeof handle?.status === 'function' &&
+              typeof handle?.retry === 'function' && handle.status().pending === true) {
+            rawBinding.readCleanup = handle;
+          }
+          throw error;
+        } finally { rawBinding.originalsPending = false; }
+      })();
+      return rawBinding.originalsFlight;
+    }
     const cleanup = () => {
       owner.available = false;
-      if (gateOpening !== undefined || originalSave?.pending === true || originalDispatchCut?.pending === true) return false;
+      if (gateOpening !== undefined || originalSave?.pending === true || originalDispatchCut?.pending === true ||
+          rawBinding?.originalsPending === true || rawBinding?.readCleanupFlight !== undefined) return false;
+      if (rawBinding?.readCleanup !== undefined) {
+        if (rawBinding.readCleanup.status().pending === true) {
+          const handle = rawBinding.readCleanup;
+          rawBinding.readCleanupFlight = Promise.resolve().then(() => handle.retry())
+            .catch(() => { /* Retain the same original FD for cleanup retry. */ })
+            .finally(() => {
+              rawBinding.readCleanupFlight = undefined;
+              try { operation.ioNotification.notify(); } catch { /* Wake is not cleanup proof. */ }
+            });
+          return false;
+        }
+        rawBinding.readCleanup = undefined;
+      }
       if (gate !== undefined && !gateReleased) {
         const recover = gateCloseAttempted;
         gateCloseAttempted = true;
@@ -624,6 +675,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         // escaped saved receipts. A failed cleanup above retains both fields.
         rawBinding.persistence = undefined;
         rawBinding.holding = undefined;
+        rawBinding.originalsFlight = undefined;
       }
       installedJournalPort = undefined;
       originalInvalidation = undefined;
@@ -981,6 +1033,15 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         if (rawBinding?.attempted) {
           if (!rawBinding.complete) throw rawBinding.issue;
         }
+        // A known missing policy original must refuse before Approval/Entry.
+        // Persistence rechecks again after transport; an early observation is
+        // neither permanent Store custody nor permission for the final send.
+        if (rawBinding !== undefined) {
+          await confirmRawOriginals();
+          rawOriginalsCurrent();
+        }
+        if (!owner.available) fail('ModelContinuationClosed');
+        signal?.throwIfAborted();
         if (gate === undefined) {
           gateOpening ??= cp.modelAuthorization(gateOptions).then(value => { gate = value; })
             .finally(() => { gateOpening = undefined; });
