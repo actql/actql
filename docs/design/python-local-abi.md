@@ -1680,3 +1680,22 @@ before an accepted operation can be exposed. Neither a count match, a partial
 scan nor the physical callback's return value supplies that evidence. Cleanup
 failure retains the same Store transaction; attempted-COMMIT uncertainty keeps
 the original Store handle for lookup instead of creating a replacement Run.
+
+The shared submitted-row decoder preserves the original Native reference,
+unchecked intent, preparing/ready shape and exact Int64 admission revision. A
+decoded ready field is not an accepted public operation. The original retained
+relationship validator binds its Reference authority/caller, Request intent,
+Run Definition and admission revision to the actual retained Run. A later Run
+revision preserves the immutable earlier admission; an expired epoch can still
+identify retained history without granting a fresh admission or resend.
+Native keeps its actual Run reader, nested original validators, complete
+inventory scans, authenticated epoch and SQLite transaction around this shared
+validation. Its original codec test adapters are test-only.
+
+Local validation additionally binds observed physical keys/generations and
+saved rows to the exact nominal submitted preparation and checked Plan that
+issued the original candidates. A changed submitted intent or a merely equal
+preparation cannot acquire that relationship. This returns only a relation
+check: nested originals, complete same-Store inventories, current authority,
+authenticated epoch and physical COMMIT still require their existing Owners.
+The returned Unit is not an acknowledgement, start permit or public Run state.
