@@ -21,8 +21,8 @@ from typing import Any, TypeVar
 from . import _wire as wire
 from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _Workspace, _PublisherFact, _Task, _ResultExport, LocalTaskProgress, LocalResultProgress
 from ._local_distribution import installed_local_components, load_local_module
-from ._local_files import (LocalFileRoot, _AllocationArea, _PayloadFile, _NameAdoption,
-    LocalAreaAcquisitionError, LocalFileAcquisitionError)
+from ._local_files import (LocalFileRoot, _AllocationArea, _PayloadFile, _NameAdoption, _FileFinalization, _FileReader,
+    LocalAreaAcquisitionError, LocalFileAcquisitionError, LocalReaderAcquisitionError)
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
 from ._local_preparation import LocalPreparation, _Environment, _Preparation
 from ._local_run import LocalRunCustody, _RunConfiguration, _Run, _PhysicalStart, _SourceFreeCompute
@@ -62,6 +62,9 @@ class _PayloadCustody:
     chunk: _Output | None = None
     chunk_offset: int = 0
     chunk_file_offset: int = 0
+    finalization: _FileFinalization | None = None
+    binding: _Output | None = None
+    reader: _FileReader | None = None
 
 
 class LocalProductCleanupPending(RuntimeError):
@@ -1402,12 +1405,160 @@ class InstalledLocalHost:
                 if held.chunk_offset != len(data):
                     completed.append(False)
                     return
+                if final:
+                    # Keep the original typed EOF loan through physical seal,
+                    # including a post-I/O current refusal. No Python EOF flag
+                    # can replace this Core evidence or authorize publication.
+                    completed.append(True)
+                    return
                 if not self._core.close_payload_chunk(chunk):
                     raise LocalProductCleanupPending(self)
                 held.chunk = None
                 held.chunk_offset = 0
                 completed.append(final)
             installation.binding.inspect(copy)
+            return completed[0]
+
+    def _advance_original_payload_sealing(self, held: _PayloadCustody) -> bool:
+        """Bounded original snapshot/final-name work followed by Core Sealed CAS.
+
+        The original Core EOF loan, file identity and name cursor remain held
+        across flush/stop/link failures. Physical completion alone never seals
+        the Core record or supplies a Store commit/Run ACK. An uncertain CAS is
+        reconciled through the existing actual-row observation, not reissued.
+        """
+        with self._core._lock:
+            installation, configuration, record = self._payload_original(held)
+            physical, chunk, names = held.physical, held.chunk, held.names
+            if (physical is None or chunk is None or names is None
+                    or held.adoption is not None or held.row is None
+                    or held.writing is not None):
+                raise ValueError('Original payload sealing custody is unavailable')
+            ready: list[bool] = []
+            def advance(_: _Output) -> None:
+                data, final = self._core.read_payload_chunk(chunk, configuration.handle)
+                if not final or held.chunk_offset != len(data):
+                    raise ValueError('Original Core payload EOF has not been physically copied')
+                packet = _object(self._core.read_payload_names(names, configuration.handle), 65536)
+                if type(packet.get('object_name')) is not str:
+                    raise ValueError('Original Core final name is unavailable')
+                root = physical.root
+                if held.finalization is None:
+                    cursor = root.begin_snapshot(physical)
+                    snapshot = root.advance_snapshot(cursor)
+                    if snapshot is None:
+                        ready.append(False)
+                        return
+                    held.finalization = root.begin_finalization(physical, cursor, packet['object_name'])
+                # Existing File Owner resolves the original physical stop and
+                # known-name work; no replacement writer, link or digest exists.
+                snapshot = root.advance_finalization(held.finalization)
+                self._core.read_payload_chunk(chunk, configuration.handle)
+                self._core.read_payload_names(names, configuration.handle)
+                child = self._reserve(lambda:
+                    self._core.reserve_payload_writing(record, 3, cleanup=lambda: True))
+                held.writing = child
+                identity = snapshot.observation.identity
+                source = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
+                    'store_authority_cid': held.store_authority,
+                    'material_generation_cid': held.generation,
+                    'device': str(identity.device), 'inode': str(identity.inode),
+                    'size': str(snapshot.observation.size),
+                    'physical_digest': snapshot.physical_digest,
+                }))
+                self._core.produce_payload_writing(child, source, configuration.handle)
+                if not self._core.close_input(source):
+                    raise LocalProductCleanupPending(self)
+                self._inputs.remove(source)
+                ready.append(True)
+            installation.binding.inspect(advance)
+            if not ready[0]:
+                return False
+            child = held.writing
+            assert child is not None
+            # The name loan is revision-bound. Retire it before the Core record
+            # adopts the next original revision; it cannot authorize final read.
+            if not self._core.close_payload_names(names):
+                raise LocalProductCleanupPending(self)
+            held.names = None
+            self._save_original_payload_transition(held, child,
+                lambda: self._core.read_payload_writing(child, configuration.handle),
+                lambda: self._core.begin_payload_writing(child, configuration.handle))
+            self._observe_original_payload_writing(held)
+            return True
+
+    def _open_original_payload_reader(self, held: _PayloadCustody) -> None:
+        """Open the same final file only after fresh Core Sealed binding/names.
+
+        The actual reader/finalization, reservation and original record stay
+        retained for full-chain validation and physical commit. An acquisition
+        failure keeps its original reader; it never opens a replacement file.
+        """
+        with self._core._lock:
+            installation, configuration, record = self._payload_original(held)
+            physical, finalization = held.physical, held.finalization
+            if (physical is None or finalization is None or held.reader is not None
+                    or held.binding is not None or held.names is not None):
+                raise ValueError('Original Sealed reader custody is unavailable')
+            child = self._reserve(lambda:
+                self._core.reserve_payload_binding(record, cleanup=lambda: True))
+            held.binding = child
+            installation.binding.inspect(lambda _:
+                self._core.produce_payload_binding(child, configuration.handle))
+            names = self._reserve(lambda:
+                self._core.reserve_payload_names(record, cleanup=lambda: True))
+            held.names = names
+            installation.binding.inspect(lambda _:
+                self._core.produce_payload_names(names, configuration.handle))
+            def acquire(_: _Output) -> None:
+                self._core.read_payload_binding(child, configuration.handle)
+                packet = _object(self._core.read_payload_names(names, configuration.handle), 65536)
+                if packet.get('object_name') != finalization.name:
+                    raise ValueError('Original Core final name and actual file differ')
+                try:
+                    held.reader = physical.root.open_reader(finalization)
+                except LocalReaderAcquisitionError as failure:
+                    held.reader = failure.original_reader
+                    raise
+            installation.binding.inspect(acquire)
+            # Fresh nominal Sealed binding, not a physical completion flag,
+            # permits retirement of the old EOF/transition transport loans.
+            if held.writing is not None:
+                if not self._core.close_payload_writing(held.writing):
+                    raise LocalProductCleanupPending(self)
+                self._payload_transition_attempts.discard(held.writing.ticket)
+                held.writing = None
+            if held.chunk is not None:
+                if not self._core.close_payload_chunk(held.chunk):
+                    raise LocalProductCleanupPending(self)
+                held.chunk = None
+
+    def _advance_original_payload_reader(self, held: _PayloadCustody) -> bool:
+        """Hash one bounded original File chunk, retaining its completed reader.
+
+        No external borrower receives these bytes. The existing File Owner
+        retires its exact chunk after current Core binding/names revalidation;
+        its physical EOF/digest is separate from value/chain and publisher
+        validation. The same live descriptor is retained for Store fencing.
+        """
+        with self._core._lock:
+            installation, configuration, _ = self._payload_original(held)
+            reader, binding, names = held.reader, held.binding, held.names
+            if reader is None or binding is None or names is None:
+                raise ValueError('Original Sealed physical reader is unavailable')
+            completed: list[bool] = []
+            def advance(_: _Output) -> None:
+                self._core.read_payload_binding(binding, configuration.handle)
+                self._core.read_payload_names(names, configuration.handle)
+                if not reader.eof:
+                    chunk = reader.root.read_reader(reader)
+                    self._core.read_payload_binding(binding, configuration.handle)
+                    self._core.read_payload_names(names, configuration.handle)
+                    reader.root.release_reader_chunk(reader, chunk)
+                if reader.eof:
+                    reader.root.observe_completed_reader(reader)
+                completed.append(reader.eof)
+            installation.binding.inspect(advance)
             return completed[0]
 
     def _store_original_commit(self, projection: OriginalCommitProjection,
@@ -1493,6 +1644,10 @@ class InstalledLocalHost:
                     if not self._core.close_payload_chunk(held.chunk):
                         return False
                     held.chunk = None
+                if held.binding is not None:
+                    if not self._core.close_payload_binding(held.binding):
+                        return False
+                    held.binding = None
                 if held.names is not None:
                     if not self._core.close_payload_names(held.names):
                         return False
@@ -1523,6 +1678,17 @@ class InstalledLocalHost:
                     if held.origin is None or not held.origin.close_adoption(held.adoption):
                         return False
                     held.adoption = None
+                if held.reader is not None:
+                    if not held.reader.root.close_reader(held.reader):
+                        return False
+                    held.reader = None
+                if held.finalization is not None:
+                    if held.physical is None:
+                        return False
+                    held.physical.root.close_writer(held.physical)
+                    if not held.physical.root.close_finalization(held.finalization):
+                        return False
+                    held.finalization = None
                 if held.physical is not None:
                     if not held.physical.root.close_writer(held.physical):
                         return False

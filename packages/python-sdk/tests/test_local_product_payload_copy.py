@@ -71,7 +71,9 @@ class ProductPayloadCopyTests(unittest.TestCase):
             physical = held.physical
             self.assertEqual(physical.written, len(PAYLOAD))
             self.assertEqual((Path(directory) / 'source' / 'results' / physical.name).read_bytes(), PAYLOAD)
-            self.assertIsNone(held.chunk)
+            # The typed final chunk remains the original EOF evidence until
+            # sealing/cleanup; a Python completion flag cannot replace it.
+            self.assertIs(core._loans[held.chunk.ticket], held.chunk)
             self.assertEqual(sum(f == 'payload_chunk' and n == 'reserve' for f, n, _ in calls[before:]), 2)
             self.assertFalse(any(f in ('source', 'task', 'publication') for f, _, _ in calls[before:]))
             capacity = held.capacity
@@ -99,7 +101,7 @@ class ProductPayloadCopyTests(unittest.TestCase):
 
     def test_chunk_cleanup_failure_keeps_same_loan_and_never_repeats_completed_append(self):
         with TemporaryDirectory(prefix='actql-payload-copy-') as directory:
-            host, core, held, calls, faults = self.host(Path(directory), [PAYLOAD])
+            host, core, held, calls, faults = self.host(Path(directory), [PAYLOAD, b''])
             faults['close'] = -9
             with self.assertRaises(LocalProductCleanupPending): host._advance_original_payload_copy(held)
             chunk, physical, capacity = held.chunk, held.physical, held.capacity
