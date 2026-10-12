@@ -209,6 +209,8 @@ pub fn bind_transferred_client_effect_local_result_artifact(ClientEffectRunMater
 
 pub fn borrow_client_original_captured_prefix_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
+pub fn borrow_client_original_keyed_direct_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, @query_planning.QueryRequirement) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
+
 pub fn borrow_client_original_row_acquisition_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, @query_planning.QueryRequirement) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
 pub fn borrow_client_original_serialization_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, Int, Int) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
