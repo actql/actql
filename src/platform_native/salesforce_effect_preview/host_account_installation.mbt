@@ -34,6 +34,15 @@ pub(all) enum NativeEffectHostAccountInstallationIssue {
 /// Immutable installer selection, not a cached permission or a new Owner.
 struct NativeEffectHostAccountInstallation {
   selected : NativeEffectHostAccountFile
+  read_ceiling : Int
+}
+
+///|
+const HOST_ACCOUNT_READ_MAX_BYTES : Int = 1000000
+
+///|
+fn host_account_read_ceiling_valid(read_ceiling : Int) -> Bool {
+  read_ceiling > 0 && read_ceiling <= HOST_ACCOUNT_READ_MAX_BYTES
 }
 
 ///|
@@ -56,16 +65,20 @@ fn host_account_subject_valid(subject : NativeEffectHostAccountSubject) -> Bool 
 /// production permission callback. Production always reads the bounded file.
 fn host_account_configuration(
   selected : NativeEffectHostAccountFile,
-  read : () -> Result[String, @bounded_files.NativeBoundedTextIssue],
+  read : (Int) -> Result[String, @bounded_files.NativeBoundedTextIssue],
+  read_ceiling? : Int = 1000000,
 ) -> Result[
   @authorization.AdmittedAccountConfiguration,
   NativeEffectHostAccountInstallationIssue,
 ] {
-  let wire = match read() {
+  if !host_account_read_ceiling_valid(read_ceiling) {
+    return Err(InvalidSelection)
+  }
+  let wire = match read(read_ceiling) {
     Ok(value) => value
     Err(issue) => return Err(File(issue))
   }
-  if @utf8.encode(wire).length() > 1000000 {
+  if @utf8.encode(wire).length() > read_ceiling {
     return Err(File(@bounded_files.CapacityExceeded))
   }
   let configuration = match
@@ -83,21 +96,23 @@ fn host_account_configuration(
 ///|
 fn install_host_account_with_read(
   selection : NativeEffectHostAccountFile?,
-  read : () -> Result[String, @bounded_files.NativeBoundedTextIssue],
+  read : (Int) -> Result[String, @bounded_files.NativeBoundedTextIssue],
+  read_ceiling? : Int = 1000000,
 ) -> Result[
   NativeEffectHostAccountInstallation?,
   NativeEffectHostAccountInstallationIssue,
 ] {
   guard selection is Some(selected) else { return Ok(None) }
-  if selected.root.is_empty() ||
+  if !host_account_read_ceiling_valid(read_ceiling) ||
+    selected.root.is_empty() ||
     selected.name.is_empty() ||
     @utf8.encode(selected.root).length() > 4096 ||
     @utf8.encode(selected.name).length() > 4096 ||
     !host_account_subject_valid(selected.subject) {
     return Err(InvalidSelection)
   }
-  match host_account_configuration(selected, read) {
-    Ok(_) => Ok(Some({ selected, }))
+  match host_account_configuration(selected, read, read_ceiling~) {
+    Ok(_) => Ok(Some({ selected, read_ceiling, }))
     Err(issue) => Err(issue)
   }
 }
@@ -105,22 +120,30 @@ fn install_host_account_with_read(
 ///|
 /// Missing selection stays None. A selected missing, invalid or foreign file
 /// is an installation failure, not Missing and never an implicit Allow.
+/// The immutable operator ceiling bounds every later physical read before
+/// Common admission; omission preserves the original 1,000,000-byte maximum.
+/// It is not an authorization decision or a resource funding profile.
 pub fn install_native_effect_host_account(
   selection : NativeEffectHostAccountFile?,
+  read_ceiling? : Int = 1000000,
 ) -> Result[
   NativeEffectHostAccountInstallation?,
   NativeEffectHostAccountInstallationIssue,
 ] {
-  install_host_account_with_read(selection, () => {
-    guard selection is Some(selected) else {
-      return Err(@bounded_files.Missing)
-    }
-    @bounded_files.read_bounded_text_file(
-      selected.root,
-      selected.name,
-      1000000L,
-    )
-  })
+  install_host_account_with_read(
+    selection,
+    limit => {
+      guard selection is Some(selected) else {
+        return Err(@bounded_files.Missing)
+      }
+      @bounded_files.read_bounded_text_file(
+        selected.root,
+        selected.name,
+        limit.to_int64(),
+      )
+    },
+    read_ceiling~,
+  )
 }
 
 ///|
@@ -135,13 +158,17 @@ pub fn NativeEffectHostAccountInstallation::read_current_configuration(
   self : NativeEffectHostAccountInstallation,
 ) -> @authorization.AdmittedAccountConfiguration? {
   match
-    host_account_configuration(self.selected, () => {
-      @bounded_files.read_bounded_text_file(
-        self.selected.root,
-        self.selected.name,
-        1000000L,
-      )
-    }) {
+    host_account_configuration(
+      self.selected,
+      limit => {
+        @bounded_files.read_bounded_text_file(
+          self.selected.root,
+          self.selected.name,
+          limit.to_int64(),
+        )
+      },
+      read_ceiling=self.read_ceiling,
+    ) {
     Ok(value) => Some(value)
     Err(_) => None
   }
@@ -187,15 +214,16 @@ fn host_account_current_with_read(
   selected : NativeEffectHostAccountFile,
   dispatch_cid : String,
   publication : Bool,
-  read : () -> Result[String, @bounded_files.NativeBoundedTextIssue],
+  read : (Int) -> Result[String, @bounded_files.NativeBoundedTextIssue],
+  read_ceiling? : Int = 1000000,
 ) -> Bool {
-  guard host_account_configuration(selected, read) is Ok(first) &&
+  guard host_account_configuration(selected, read, read_ceiling~) is Ok(first) &&
     host_account_permission(selected, first, dispatch_cid, publication) else {
     return false
   }
   // Re-admit and decide again after the first Core decision. No cached Allow,
   // unchanged-file predicate or permanently true current callback is installed.
-  guard host_account_configuration(selected, read) is Ok(last) else {
+  guard host_account_configuration(selected, read, read_ceiling~) is Ok(last) else {
     return false
   }
   host_account_permission(selected, last, dispatch_cid, publication)
@@ -207,11 +235,17 @@ pub fn NativeEffectHostAccountInstallation::current_permission(
   dispatch_cid : String,
   publication : Bool,
 ) -> Bool {
-  host_account_current_with_read(self.selected, dispatch_cid, publication, () => {
-    @bounded_files.read_bounded_text_file(
-      self.selected.root,
-      self.selected.name,
-      1000000L,
-    )
-  })
+  host_account_current_with_read(
+    self.selected,
+    dispatch_cid,
+    publication,
+    limit => {
+      @bounded_files.read_bounded_text_file(
+        self.selected.root,
+        self.selected.name,
+        limit.to_int64(),
+      )
+    },
+    read_ceiling=self.read_ceiling,
+  )
 }
