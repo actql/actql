@@ -863,7 +863,8 @@
         "|> session(by: [fields], gap: string)",
         "|> dedupe_events(by: [fields], order_by: [OrderKeys])",
         "|> lag(partition_by: [fields], order_by: [OrderKeys], field: field, output: name, offset: value?)",
-        "|> events()"
+        "|> events()",
+        "WITH grid AS (time_series(start: value, end: value, step: value)) query"
       ],
       "canonical_lowering": "common checked producer topology, followed by demanded emission",
       "preconditions": [
@@ -871,7 +872,8 @@
         "all bindings statically checked; execution follows explicit demand",
         "table/set operands and authored row aliases require Relation",
         "typed field roles resolve through ordinary scope; Carrier/schema remain common-checker evidence",
-        "Vectors/Events require an explicit common bridge before Relation operations"
+        "Vectors/Events require an explicit common bridge before Relation operations",
+        "NONE-input Relation generator schema, range and bounds remain common-checker evidence"
       ],
       "spec_section": "7.8",
       "execution_evidence_ids": [],
