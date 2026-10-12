@@ -190,7 +190,7 @@ fn lower_script_relation_term(
 ) -> Input raise Abort {
   if script_has_graph_rows(query) {
     let graph = require_script_graph_input(
-      script_graph_input(query, graphs),
+      current_script_graph(None, query, graphs, known),
       query,
       known,
     )
