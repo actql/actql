@@ -163,7 +163,7 @@ fn original_keyed_run_fixture() -> (
     source=true,
     environment_override=Some(environment),
     document_override=Some(document),
-    serialization_coordinate=Some((1, 4)),
+    serialization_coordinate=Some((0, 4)),
     serialization_bounds=(3, 4096),
   )
   let keyed = @publication_host.select_client_single_keyed_acquisition(prepared)
