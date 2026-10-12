@@ -3,10 +3,12 @@
 // Common/compiled Node tests; these fixture sizes are not a numerical profile.
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {retainInferOriginalReadInstallation} from './infer-original-installation.mjs';
 const {installNodeInferRun} = await import(process.env.ACTQL_ORIGINAL_CLEANUP_MODULE ??
   './installed-infer-run.mjs');
 
-function fixture({startIssue, stopComplete = true, modelCleanupComplete = true} = {}) {
+function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
+  installation = false, readIssue, scopeIssue} = {}) {
   const calls = [], active = {}, read = {}, scope = {}, compiled = {}, consumer = {};
   const preparedProgram = {}, graph = {};
   const runDefinition = {wire: '{"run_id":"original-cleanup"}'};
@@ -38,6 +40,18 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true} 
     assert.equal(actualGraph, graph);
   };
   const control = {
+    beginCheckedClientInferOriginalReadScope(...args) {
+      exact(...args); assert.notEqual(custody, undefined);
+      assert.equal(args[3].quantityCapacity, selected.quantityCapacity);
+      calls.push('scopeBegin');
+      if (scopeIssue !== undefined) throw scopeIssue;
+      return scope;
+    },
+    prepareCheckedClientInferNodeReadLayout(...args) {
+      exact(...args); assert.equal(args[3], scope); calls.push('readPrepare');
+      if (readIssue !== undefined) throw readIssue;
+      return read;
+    },
     claimCheckedClientInferNodePreparationLayout(...args) {
       exact(...args); assert.equal(args[3], read); calls.push('claim'); return consumer;
     },
@@ -52,12 +66,15 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true} 
     },
     settleCheckedClientInferOriginalReadPreparation(...args) {
       exact(...args); assert.equal(args[3], read); assert.equal(args[4], true);
-      assert.equal(stoppedRead, true); assert.equal(physicalComplete, true);
-      assert.equal(physicalPending, false); calls.push('readSettle'); settledRead = true;
+      assert.equal(stoppedRead, true);
+      if (installation) assert.equal(modelCleanup, true);
+      else { assert.equal(physicalComplete, true); assert.equal(physicalPending, false); }
+      calls.push('readSettle'); settledRead = true;
     },
     finishCheckedClientInferOriginalReadScope(...args) {
       exact(...args); assert.equal(args[3], scope); assert.equal(args[4], true);
-      assert.equal(settledRead, true); calls.push('scopeFinish'); return allowScope;
+      assert.equal(settledRead || installation && readIssue !== undefined, true);
+      calls.push('scopeFinish'); return allowScope;
     },
   };
   function assertChecked(value) {
@@ -87,6 +104,14 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true} 
   const selected = {graph, step: 0, provider() { assert.fail('no physical send'); },
     quantityCapacity: {limits: {tokens: 1n, costUnits: 0n, durationMs: 1n},
       perAttempt: {tokens: 1n, costUnits: 0n, durationMs: 1n}}};
+  if (installation) selected.originalReadInstallation = retainInferOriginalReadInstallation({
+    bootstrap: {bootstrapRetainedBytes: 20n, bootstrapExecutionBytes: 20n,
+      maxReservations: 8, maxHoldings: 8, maxDelegations: 8},
+    modelRetainedBytes: 100n, modelExecutionBytes: 5n,
+    nodeInstallation: {...originalPreparation.nodeInstallation, layout: {
+      response_profile: {}, runtime_artifact_cid: 'runtime', layout_artifact_cid: 'layout',
+      program_definition_cid: 'program', parameter_values_cid: 'parameters',
+      barrier_cid: 'barrier', prepared_rows: 1n, retained_bytes: 7n, execution_bytes: 5n}}});
   let discovered = [];
   const modelController = {discover: () => discovered,
     prime() { assert.fail('fresh original preparation cannot prime restored input'); },
@@ -98,7 +123,8 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true} 
     signal: new AbortController().signal,
     retainExecution(value) { assert.equal(custody, undefined); custody = value; },
     beginPhysicalWork() { assert.fail('refused execution cannot begin physical work'); }};
-  return {run: () => runInfer(input), input, issue, calls, originalPreparation,
+  if (installation) delete input.originalPreparation;
+  return {run: () => runInfer(input), input, issue, calls, originalPreparation, selected, control,
     custody: () => custody,
     physical(complete, pending = !complete) { physicalComplete = complete; physicalPending = pending; },
     failPhysical(error) { physicalFailure = error; },
@@ -107,6 +133,86 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true} 
     modelClean(value) { modelCleanup = value; },
     existing(value) { discovered = value; }};
 }
+
+test('installed read supplier creates one original scope and read before one-shot Model start', async () => {
+  const f = fixture({installation: true});
+  await assert.rejects(f.run(), typed(f.issue));
+  assert.deepEqual(f.calls, ['scopeBegin', 'readPrepare', 'claim', 'originalStart', 'modelStopRequest']);
+  assert.equal(await f.custody().close(), true);
+  assert.equal(f.calls.includes('unownedStart'), false);
+  assert.equal(f.calls.filter(value => value === 'readStop').length, 1);
+  assert.equal(f.calls.filter(value => value === 'readSettle').length, 1);
+  assert.equal(f.calls.filter(value => value === 'scopeFinish').length, 1);
+  await f.custody().cleanup();
+  assert.equal(f.calls.filter(value => value === 'scopeBegin').length, 1);
+  assert.equal(f.calls.filter(value => value === 'originalStart').length, 1);
+});
+
+test('installed read supplier retains only the original scope after typed read refusal', async () => {
+  const readIssue = Object.assign(new Error('MoonBitHostFailure'),
+    {code: 'MoonBitHostFailure', cause: {kind: 'LayoutMismatch'}});
+  const f = fixture({installation: true, readIssue});
+  await assert.rejects(f.run(), error => error === readIssue);
+  assert.deepEqual(f.calls, ['scopeBegin', 'readPrepare']);
+  f.scopeAllowed(false);
+  assert.equal(await f.custody().close(), false);
+  assert.equal(f.custody().cleanupPending(), true);
+  f.scopeAllowed(true);
+  assert.equal(await f.custody().cleanup(), true);
+  assert.deepEqual(f.calls, ['scopeBegin', 'readPrepare', 'scopeFinish', 'scopeFinish']);
+});
+
+test('installed read supplier atomic scope refusal cannot leave fictitious read cleanup pending', async () => {
+  const scopeIssue = Object.assign(new Error('MoonBitHostFailure'),
+    {code: 'MoonBitHostFailure', cause: {kind: 'InvalidBootstrap'}});
+  const f = fixture({installation: true, scopeIssue});
+  await assert.rejects(f.run(), error => error === scopeIssue);
+  assert.equal(await f.custody().close(), true);
+  assert.equal(f.custody().cleanupPending(), false);
+  assert.deepEqual(f.calls, ['scopeBegin']);
+});
+
+test('installed read supplier never treats consumer stop as its actual child cleanup', async () => {
+  const f = fixture({installation: true, modelCleanupComplete: false});
+  await assert.rejects(f.run(), typed(f.issue));
+  await assert.rejects(f.custody().close(), {code: 'ClientDispatchCleanupPending'});
+  assert.equal(f.calls.includes('readStop'), false);
+  assert.equal(f.calls.includes('readSettle'), false);
+  f.modelClean(true);
+  assert.equal(await f.custody().cleanup(), true);
+  assert.equal(f.calls.filter(value => value === 'claim').length, 1);
+  assert.equal(f.calls.filter(value => value === 'originalStart').length, 1);
+});
+
+test('installed read supplier rejects restored, composed and competing original preparation', async () => {
+  for (const mutate of [
+    f => { f.input.replay = true; },
+    f => { f.input.acquiredInfer = {}; },
+    f => { f.selected.components = []; },
+    f => { f.input.originalPreparation = f.originalPreparation; },
+  ]) {
+    const f = fixture({installation: true}); mutate(f);
+    await assert.rejects(f.run(), /InstalledInferOriginalReadInstallationUnavailable/u);
+    assert.deepEqual(f.calls, []);
+  }
+  const f = fixture({installation: true}); f.existing([{inventory: {taskIndex: 0}}]);
+  await assert.rejects(f.run(), /RestoredInferOriginalPreparationUnavailable/u);
+  assert.deepEqual(f.calls, []);
+});
+
+test('installed read supplier refuses incomplete consumer API without an unowned fallback', async () => {
+  const f = fixture({installation: true});
+  f.control.prepareCheckedClientInferNodeReadLayout = undefined;
+  await assert.rejects(f.run(), /InstalledInferOriginalReadRuntimeUnavailable/u);
+  assert.deepEqual(f.calls, []);
+});
+
+test('installed read supplier retains no scope before the existing custody accepts ownership', async () => {
+  const f = fixture({installation: true});
+  f.input.retainExecution = () => { throw new Error('CustodyRefused'); };
+  await assert.rejects(f.run(), /CustodyRefused/u);
+  assert.deepEqual(f.calls, []);
+});
 
 const typed = cause => error => error.code === 'MoonBitHostFailure' && error.cause === cause;
 
