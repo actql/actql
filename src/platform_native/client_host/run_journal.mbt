@@ -75,61 +75,30 @@ pub fn native_client_run_record_revision(
 fn run_record_body(
   record : NativeClientRunRecord,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
-  let request = match
-    @host.client_request_identity_record_wire(record.request) {
-    Ok(value) => value
-    Err(_) => return Err(Encoding)
-  }
-  try {
-    let writer = @encode.writer(131072, 32, 4)
-    @encode.begin_object(writer)
-    @encode.key(writer, "cancellation_requested")
-    @encode.bool_value(writer, record.cancellation_requested)
-    @encode.key(writer, "checkpoint")
-    match record.checkpoint {
-      Some(value) => {
-        let body = match checkpoint_record_body(value) {
-          Ok(value) => value
-          Err(_) => return Err(Encoding)
-        }
-        @encode.string_value(writer, body)
+  let checkpoint = match record.checkpoint {
+    Some(value) =>
+      match checkpoint_record_body(value) {
+        Ok(body) => Some(body)
+        Err(_) => return Err(Encoding)
       }
-      None => @encode.null_value(writer)
-    }
-    @encode.key(writer, "dispatch_reserved")
-    @encode.bool_value(writer, record.dispatch_reserved)
-    // Optional private originals preserve absent-field bytes for older rows.
-    if record.effect_material_originals is Some(original) {
-      @encode.key(writer, "effect_material_originals")
-      @encode.string_value(writer, original)
-    }
-    @encode.key(writer, "physical_start_claimed")
-    @encode.bool_value(writer, record.physical_start_claimed)
-    @encode.key(writer, "publication_binding")
-    match record.publication_binding {
-      Some(value) => @encode.string_value(writer, value)
-      None => @encode.null_value(writer)
-    }
-    // Omit absent originals: old retained rows keep their exact original bytes.
-    if record.publication_policy_originals is Some(originals) {
-      @encode.key(writer, "publication_policy_originals")
-      @encode.string_value(writer, originals)
-    }
-    @encode.key(writer, "request")
-    @encode.string_value(writer, request)
-    @encode.key(writer, "run_definition")
-    @encode.string_value(
-      writer,
-      @publication.publication_contract_json(record.definition),
-    )
-    @encode.key(writer, "version")
-    @encode.string_value(writer, "actql-native-client-run-row/0.1")
-    @encode.end_object(writer)
-    Ok(@utf8.encode(@encode.finish(writer)))
-  } catch {
-    @encode.OutputLimit => Err(CapacityExceeded)
-    _ => Err(Encoding)
+    None => None
   }
+  @host.client_run_journal_row_body({
+    request: record.request,
+    definition: record.definition,
+    dispatch_reserved: record.dispatch_reserved,
+    physical_start_claimed: record.physical_start_claimed,
+    cancellation_requested: record.cancellation_requested,
+    publication_binding: record.publication_binding,
+    publication_policy_originals: record.publication_policy_originals,
+    effect_material_originals: record.effect_material_originals,
+    checkpoint,
+  }).map_err(issue => {
+    match issue {
+      Encoding => Encoding
+      CapacityExceeded => CapacityExceeded
+    }
+  })
 }
 
 ///|

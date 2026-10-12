@@ -1585,3 +1585,14 @@ request record and Run definition CID; decoding requires the same canonical
 bytes. The Native journal continues to check the original epoch, intent, Run
 record and current authority inside its existing transaction. Parsing these
 bytes alone does not establish that transaction's commit or a dispatch permit.
+
+
+The shared physical journal encoders preserve the existing Native Run row and
+submitted-intent row bodies, field omission, Unicode values and byte limits.
+The submission epoch Owner supplies the original reference wire, and the
+checkpoint and policy Owners supply their original serialized bodies. Encoding
+these fields is not admission, a transaction acknowledgement, current authority
+or a start permit. Native readmission still validates those original records,
+relationships and canonical bytes; its count, epoch and transaction fences are
+unchanged. The portable physical adapter must retain those same obligations
+before exposing any accepted Submission or Run.

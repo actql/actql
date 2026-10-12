@@ -596,6 +596,8 @@ pub fn client_retained_task_route_producer_dispatch(ClientRetainedTaskRoute) -> 
 
 pub fn client_retained_task_route_receipt(ClientRetainedTaskRoute) -> @remote_transfer.RemoteTransferDestinationReceipt
 
+pub fn client_run_journal_row_body(ClientRunJournalEncoding) -> Result[Bytes, ClientJournalEncodingIssue]
+
 pub fn client_standard_effect_computation_limits() -> ClientEffectComputationLimits
 
 pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationLimits
@@ -603,6 +605,8 @@ pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationL
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
 
 pub fn client_submitted_intent_cid(ClientSubmittedIntent) -> String
+
+pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, run_admission? : (ClientRequestIdentity, String, Int64)?) -> Result[Bytes, ClientJournalEncodingIssue]
 
 pub fn client_submitted_intent_transition(String, String) -> Bool
 
@@ -1891,6 +1895,11 @@ pub(all) enum ClientInteractivePlanIssue {
   Contract(@run_publication.PublicationContractIssue)
 } derive(Eq, @debug.Debug)
 
+pub(all) enum ClientJournalEncodingIssue {
+  Encoding
+  CapacityExceeded
+} derive(Eq, @debug.Debug)
+
 type ClientLocalNormalization
 
 pub(all) enum ClientLocalNormalizationIssue {
@@ -2344,6 +2353,18 @@ pub(all) enum ClientRunCompilation {
 pub(all) enum ClientRunExecutionFamily {
   EffectFreeComputation
   EffectComputation
+}
+
+pub(all) struct ClientRunJournalEncoding {
+  request : ClientRequestIdentity
+  definition : @run_publication.PublicationContract
+  dispatch_reserved : Bool
+  physical_start_claimed : Bool
+  cancellation_requested : Bool
+  publication_binding : String?
+  publication_policy_originals : String?
+  effect_material_originals : String?
+  checkpoint : String?
 }
 
 pub(all) struct ClientRunMaterials {
