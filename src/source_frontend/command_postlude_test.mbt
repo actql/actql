@@ -9,7 +9,18 @@ test "SQL and Pipe use the same checked COMMAND postlude without losing effects"
     let text = query +
       "; EFFECT upload COMMAND FROM RESULT selected AS t TARGET t.id CONTRACT c INPUT ();"
     assert_true(parse_query(text, format) is Ok(_))
-    let lowered = lower(text, format, Some(test_context())).unwrap()
+    let lowered = match lower(text, format, Some(test_context())) {
+      Ok(value) => value
+      Err(QueryLowering(UnknownColumn)) =>
+        fail("COMMAND UnknownColumn: " + text)
+      Err(QueryLowering(Expression({ issue: UnknownReference, .. }))) =>
+        fail("COMMAND UnknownReference: " + text)
+      Err(QueryLowering(UnresolvedRelation(_))) =>
+        fail("COMMAND UnresolvedRelation: " + text)
+      Err(QueryLowering(UnsupportedEffect)) =>
+        fail("COMMAND UnsupportedEffect: " + text)
+      Err(_) => fail("COMMAND lowering failed: " + text)
+    }
     assert_true(lowered.document.contains("\"command\""))
     assert_true(lowered.document.contains("\"target\":{\"field\":\"id\"}"))
     assert_true(lowered.document.contains("\"input\":{}"))
