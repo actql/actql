@@ -606,6 +606,19 @@ fn selected_input(
   limits : Limits,
 ) -> Input raise Abort {
   if @query.relation(query).is_empty() {
+    if @query.bound_source(query) is Some(current) {
+      // An inline Carrier bridge retains its actual current producer. Keep
+      // that private anchor out of authored peer and range-name resolution.
+      match
+        context.inputs
+        .filter(input => {
+          input.source is StepReference && input.name == current.value
+        })
+        .get(0) {
+        Some(input) => return input
+        None => raise Abort(UnknownRelation)
+      }
+    }
     source_free_input(query, limits)
   } else {
     selected_relation(@query.relation(query), context)

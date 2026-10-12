@@ -78,7 +78,7 @@ fn query_columns(
   query : @query.Query,
   input : Input,
 ) -> Array[String] raise Abort {
-  if @query.relation(query).is_empty() {
+  if @query.relation(query).is_empty() && @query.bound_source(query) is None {
     []
   } else {
     columns(input)

@@ -391,6 +391,29 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // selection supplied to a later continuation. Successful cleanup retires
     // the alias; its presence alone is not a park, grant or send permission.
     originalResourceScope: () => reclaimed ? undefined : originalScope,
+    beginOriginalResourceInvalidation(park) {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramBeginInferOriginalModelInvalidation !== 'function') {
+        throw new Error('InferOriginalModelInvalidationUnavailable');
+      }
+      return checked(moon.clientProgramBeginInferOriginalModelInvalidation(active, originalScope, park));
+    },
+    originalResourceInvalidationCurrent(park, request) {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramInferOriginalModelInvalidationCurrent !== 'function') return undefined;
+      return moon.clientProgramInferOriginalModelInvalidationCurrent(active, originalScope, park, request);
+    },
+    completeOriginalJournalInvalidation(port, receipt, reference, park, request) {
+      if (closing || reclaimed || originalScope === undefined ||
+          typeof moon.clientProgramCompleteInferOriginalJournalInvalidation !== 'function') {
+        throw new Error('InferOriginalModelInvalidationUnavailable');
+      }
+      // This compiled entry authenticates the actual journal module, not a
+      // supplied callback or a bare Core consume. Its arguments always borrow
+      // this operation's original active/Scope; the caller cannot replace them.
+      return checked(moon.clientProgramCompleteInferOriginalJournalInvalidation(
+        active, originalScope, port, receipt, reference, park, request));
+    },
     bindDispatch: (control, {compiled, runDefinition, ...observation}) =>
       control.bindCheckedClientInferDispatch(compiled, active, runDefinition,
         observation),
