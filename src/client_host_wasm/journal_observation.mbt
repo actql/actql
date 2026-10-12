@@ -274,25 +274,7 @@ pub fn inspect_journal_observation(nonce : Int64, handle : Int) -> Int {
     1024,
     scan,
     read,
-    row => {
-      let record = match @host.decode_client_run_journal_row(row.body) {
-        Ok(value) => value
-        Err(_) => return Err(-31)
-      }
-      if record.checkpoint is Some(_) ||
-        record.effect_material_originals is Some(_) {
-        return Err(-42)
-      }
-      if record.publication_policy_originals is Some(wire) &&
-        @host.read_client_run_policy_originals(wire) is Err(_) {
-        return Err(-31)
-      }
-      Ok({
-        request: record.request,
-        definition: record.definition,
-        checkpoint: None,
-      })
-    },
+    submission_append_run_inspection,
     () => {
       @host.inspect_client_empty_cancellation_inventory(
         1024, scan, read, -31, -42,
@@ -377,12 +359,16 @@ pub fn journal_admission_length(nonce : Int64, handle : Int) -> Int {
   }
   if !child.admission_produced {
     let wire = match
-      @local_run.local_saved_submission_admission_wire(observed, rows, plan, original) {
+      @local_run.local_saved_submission_admission_wire(
+        observed, rows, plan, original,
+      ) {
       Ok(wire) => wire
       Err(UnrepresentableRevision) => return -45
       Err(_) => return -31
     }
-    let code = status(@buffers.supply_buffer_output(value.pool, child.slot, @utf8.encode(wire)))
+    let code = status(
+      @buffers.supply_buffer_output(value.pool, child.slot, @utf8.encode(wire)),
+    )
     if code != 0 {
       return code
     }

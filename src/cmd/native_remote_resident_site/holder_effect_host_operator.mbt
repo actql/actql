@@ -110,8 +110,8 @@ fn load_holder_effect_host_operator(
   )
   guard begin_holder_effect_host_setup_scope(
       environment.site,
-      // A production profile and a receiver for the original pending cleanup
-      // carrier are both uninstalled. Refuse before reservation or physical I/O.
+      // The original pending cleanup receiver exists, but no reviewed production
+      // profile is installed. Refuse before reservation or physical I/O.
       None,
       binding,
     )
