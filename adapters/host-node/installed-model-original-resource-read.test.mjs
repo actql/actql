@@ -181,8 +181,14 @@ test('actual lost invalidation COMMIT preserves original park and matched custod
   const originalExec = DatabaseSync.prototype.exec;
   let commits = 0;
   DatabaseSync.prototype.exec = function(sql, ...args) {
+    // Installation/currentness performs earlier read-only transactions. Lose
+    // only the COMMIT of THIS exact scope's actual successful invalidation CAS,
+    // not a preceding observation's COMMIT or a foreign transaction.
+    const invalidating = sql === 'COMMIT' && this.prepare(
+      'SELECT current_cut_link_json FROM resume_model_scopes WHERE scope_cid = ?')
+      .get(opened.inventory.scopeCid)?.current_cut_link_json === null;
     const result = originalExec.call(this, sql, ...args);
-    if (sql === 'COMMIT') {commits++; throw Error('OriginalInvalidationCommitResponseLost');}
+    if (invalidating) {commits++; throw Error('OriginalInvalidationCommitResponseLost');}
     return result;
   };
   try {
