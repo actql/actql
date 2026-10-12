@@ -192,6 +192,45 @@ fn NativeLocalHostConnection::validate_read_evidence(
     ) else {
     return Err(CustodyLost)
   }
+  let (expires_at, run_policy_original) = match selection.expiry {
+    Absolute(expires_at) => (expires_at, None)
+    AcceptedRunProfile(profile_cid) => {
+      guard self.session.settings.files
+        .iter()
+        .find_first(candidate => candidate.content_cid == profile_cid)
+        is Some(profile_file) else {
+        return Err(CustodyLost)
+      }
+      let policy = match
+        self.bind_run_policy_profile(
+          crypto,
+          selection.principal,
+          selection.connection,
+          profile_file.name,
+          file.name,
+          "run.json",
+          "retention.json",
+          "store.json",
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      let (reference, saved) = match policy.restore_read_original(record) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      (
+        @host.client_local_run_policy_original_read_expires_at(saved),
+        Some(
+          (
+            reference,
+            original,
+            @host.client_local_run_policy_original_body(saved),
+          ),
+        ),
+      )
+    }
+  }
   let binding : NativeLocalReadPolicyBinding = {
     host: self,
     crypto,
@@ -200,6 +239,8 @@ fn NativeLocalHostConnection::validate_read_evidence(
     principal: selection.principal,
     connection: selection.connection,
     scope,
+    expires_at,
+    run_policy_original,
   }
   let facts : @result_access.NativeResultReadFacts = {
     request: {
@@ -456,7 +497,7 @@ fn NativeLocalReadPolicyBinding::retain_read_admission(
           authorization_context_cid: bodies.authorization.cid,
           data_ceiling_cid: bodies.ceiling.cid,
           egress_admission_cid: bodies.egress.cid,
-          expires_at: self.selection.expires_at,
+          expires_at: self.expires_at,
           max_bytes: self.selection.max_bytes,
           max_uses: self.selection.max_uses,
         }

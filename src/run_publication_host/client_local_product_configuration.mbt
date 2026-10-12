@@ -351,6 +351,7 @@ fn product_assemble_originals(
   signature_library : String,
   observed_at : String,
   assets : ClientLocalProductAssets,
+  finite_run_profile? : Bool = false,
 ) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] raise ProductConfigurationFailure {
   if !product_absolute_location(configuration_root) ||
     !product_absolute_location(sqlite_library) ||
@@ -361,6 +362,21 @@ fn product_assemble_originals(
   let common = product_require(
     product_assemble_common(configuration_root, observed_at, assets),
   )
+  let profile = if finite_run_profile {
+    match
+      client_local_run_policy_profile({
+        account: @utf8.encode(common.account),
+        retention_dependencies: @utf8.encode(common.retention_dependencies),
+        retention_policy: @utf8.encode(common.retention_policy),
+        store: @utf8.encode(common.store),
+        result_policy: @utf8.encode(common.result_policy),
+      }) {
+      Ok(value) => Some(value)
+      Err(_) => return Err(UnsupportedAsset)
+    }
+  } else {
+    None
+  }
   let principal = "local-cli"
   let connection = "local"
   let policy = product_cid(common.result_policy)
@@ -473,7 +489,7 @@ fn product_assemble_originals(
       ]),
     ),
   )
-  Ok([
+  let originals = [
     ("account.json", @utf8.encode(common.account)),
     ("config.json", @utf8.encode(configuration)),
     ("environment.json", @utf8.encode(assets.environment)),
@@ -481,7 +497,53 @@ fn product_assemble_originals(
     ("read.json", @utf8.encode(read)),
     ("retention.json", @utf8.encode(common.retention_dependencies)),
     ("store.json", @utf8.encode(common.store)),
-  ])
+  ]
+  if profile is Some(profile) {
+    // First explicit finite adoption only. The old factory and restored
+    // absolute originals never enter this branch and remain byte-identical.
+    for index, (name, bytes) in originals {
+      if name == "config.json" || name == "read.json" {
+        let text = @utf8.decode(bytes) catch {
+          _ => return Err(ConfigurationLimit)
+        }
+        let value = @json.parse(text) catch {
+          _ => return Err(ConfigurationLimit)
+        }
+        guard value is Object(root) &&
+          root.get("native") is Some(Object(native)) else {
+          return Err(ConfigurationLimit)
+        }
+        if name == "config.json" {
+          guard native.get("local") is Some(Object(settings)) else {
+            return Err(ConfigurationLimit)
+          }
+          settings["run_policy_profile_file"] = Json::string("profile.json")
+          settings["installation_files"] = product_texts([
+            "read.json", "run.json", "retention.json", "store.json", "profile.json",
+          ])
+        } else {
+          guard native.get("result_read") is Some(Object(read)) else {
+            return Err(ConfigurationLimit)
+          }
+          read.remove("expires_at") |> ignore
+          read["run_policy_profile_cid"] = Json::string(
+            client_local_run_policy_profile_cid(profile),
+          )
+        }
+        originals[index] = (
+          name,
+          @utf8.encode(product_require(product_wire(value))),
+        )
+      }
+    }
+    originals.push(
+      (
+        "profile.json",
+        @utf8.encode(client_local_run_policy_profile_wire(profile)),
+      ),
+    )
+  }
+  Ok(originals)
 }
 
 ///|
@@ -511,6 +573,28 @@ pub fn client_local_product_originals(
 ) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] {
   product_assemble_originals(
     configuration_root, sqlite_library, signature_library, observed_at, assets,
+  ) catch {
+    ProductConfigurationFailure(issue) => Err(issue)
+  }
+}
+
+///|
+/// Distinct first-install metadata for an explicitly selected finite profile.
+/// It does not adopt, renew old installations, accept work or authorize read.
+pub fn client_local_product_finite_originals(
+  configuration_root : String,
+  sqlite_library : String,
+  signature_library : String,
+  observed_at : String,
+  assets : ClientLocalProductAssets,
+) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue] {
+  product_assemble_originals(
+    configuration_root,
+    sqlite_library,
+    signature_library,
+    observed_at,
+    assets,
+    finite_run_profile=true,
   ) catch {
     ProductConfigurationFailure(issue) => Err(issue)
   }

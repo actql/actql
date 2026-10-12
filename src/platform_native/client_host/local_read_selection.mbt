@@ -11,7 +11,13 @@ struct NativeLocalReadSelection {
   data_policy_cids : Array[String]
   max_bytes : Int
   max_uses : Int
-  expires_at : String
+  expiry : NativeLocalReadExpiry
+}
+
+///|
+priv enum NativeLocalReadExpiry {
+  Absolute(String)
+  AcceptedRunProfile(String)
 }
 
 ///|
@@ -158,7 +164,7 @@ pub fn admit_native_local_read_selection(
     let fields = read_policy_decoded(
       @decode.closed_object(read_policy_field(native, "result_read"), [
         "enabled", "principal", "connection", "result_names", "formats", "purpose",
-        "sink", "data_policy_cids", "max_bytes", "max_uses", "expires_at",
+        "sink", "data_policy_cids", "max_bytes", "max_uses", "expires_at", "run_policy_profile_cid",
       ]),
     )
     let enabled = read_policy_decoded(
@@ -179,9 +185,26 @@ pub fn admit_native_local_read_selection(
         return Err(InvalidPolicyReference)
       }
     }
-    let expires_at = read_policy_text(fields, "expires_at", 24)
-    if !read_policy_timestamp(expires_at) {
-      return Err(InvalidOriginal)
+    let expiry = match
+      (
+        @decode.lookup(fields, "expires_at"),
+        @decode.lookup(fields, "run_policy_profile_cid"),
+      ) {
+      (Some(_), None) => {
+        let expires_at = read_policy_text(fields, "expires_at", 24)
+        if !read_policy_timestamp(expires_at) {
+          return Err(InvalidOriginal)
+        }
+        Absolute(expires_at)
+      }
+      (None, Some(_)) => {
+        let cid = read_policy_text(fields, "run_policy_profile_cid", 71)
+        if !read_policy_cid(cid) {
+          return Err(InvalidPolicyReference)
+        }
+        AcceptedRunProfile(cid)
+      }
+      _ => return Err(InvalidOriginal)
     }
     Ok({
       enabled,
@@ -193,7 +216,7 @@ pub fn admit_native_local_read_selection(
       data_policy_cids,
       max_bytes: read_policy_quantity(fields, "max_bytes", 536870912L),
       max_uses: read_policy_quantity(fields, "max_uses", 1024L),
-      expires_at,
+      expiry,
     })
   } catch {
     LocalReadPolicyStop(issue) => Err(issue)

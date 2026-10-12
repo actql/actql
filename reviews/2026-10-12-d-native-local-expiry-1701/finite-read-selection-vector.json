@@ -1,0 +1,5 @@
+{
+  "source": "Independent explicit finite read-selection literal; this metadata is not adopted custody, current permission or a grant. Existing qualification values and caps are unchanged.",
+  "body": "{\"native\":{\"result_read\":{\"connection\":\"local\",\"data_policy_cids\":[\"sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563\"],\"enabled\":true,\"formats\":[\"csv\",\"json\",\"jsonl\"],\"max_bytes\":65536,\"max_uses\":1,\"principal\":\"local-cli\",\"purpose\":\"cli-read\",\"result_names\":[\"answer\"],\"run_policy_profile_cid\":\"sha256:1f4fe66d15e3cb0b6e2515d6f3734202d404fabf980c4939e0b41faef5be2243\",\"sink\":\"stdout\"}},\"version\":\"actql-config/0.1\"}",
+  "cid": "sha256:b96c3fb837026fc7f4e8442ffc2bc4551ecd49a935e0376b7c0b3884684a7706"
+}
