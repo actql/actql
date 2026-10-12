@@ -55,7 +55,7 @@ test "Account extent counts compiled scopes values and exact original backing" {
     strings: 5L,
     text_utf16_units: 90L,
   })
-  let tuple = {
+  let tuple : AccessTuple = {
     principal: "alice",
     connection: "files",
     resource: "original",
