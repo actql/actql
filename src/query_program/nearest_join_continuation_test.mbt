@@ -38,3 +38,16 @@ test "JOIN tail preserves qualified query roles and intrinsic Vectors candidate 
   assert_true(body.contains("\"take\":{\"count\":1,\"offset\":0}"))
   assert_true(!body.contains("\"vectors\":true"))
 }
+
+///|
+test "SELECT before JOIN-tail NEAREST uses evaluated output roles" {
+  let actual = nearest_join_checked(
+    "WITH cv AS (FROM candidates |> to_vectors(id: item_id, vector: embedding)) FROM queries AS q |> JOIN candidates AS gate ON q.request_id = gate.item_id MAX_OUTPUT_ROWS 4 |> SELECT q.request_id AS qid, q.embedding AS v |> NEAREST cv AS c QUERY KEY (qid) VECTOR v METRIC dot K 2 AS hit |> SELECT hit.rank AS rank |> ORDER BY rank",
+  )
+  let body = semantic(actual)
+  assert_eq(body.split("\"values\":{").length(), 3)
+  assert_eq(body.split("\"nearest\":{").length(), 2)
+  assert_eq(body.split("\"to_vectors\":{").length(), 3)
+  assert_eq(body.split("\"join\":{").length(), 2)
+  assert_true(body.contains("\"query_key\":{\"object\":{\"qid\":{\"field\":"))
+}
