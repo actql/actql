@@ -12,11 +12,11 @@ import {createInferIoNotification} from './infer-io-notification.mjs';
 
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
   namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence,
-  checkpoints, prepareAcquisition, sourceAccessFor,
+  checkpoints, prepareAcquisition, sourceAccessFor, runContent, prepareKeyedRecovery,
   computeConfigurations = {}}) {
   const control = core.publicationControl;
-  return async ({preparedProgram, plan, store, principalId, signal,
-    retainExecution, acquiredInfer, replay = false, beginPhysicalWork = () => {},
+  const run = async ({preparedProgram, plan, store, principalId, signal,
+    retainExecution, acquiredInfer, acquiredContent, replay = false, beginPhysicalWork = () => {},
     submission, existingModel, modelClaim, assertCurrent, originalPreparation}) => {
     const selected = selections.get(preparedProgram);
     if (selected === undefined || selected.graph !== plan.inferGraph) {
@@ -39,7 +39,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     // inputs cannot mint a fresh read or replace its original scope/Ledger.
     if (originalPreparation !== undefined &&
         (originalPreparation === null || typeof originalPreparation !== 'object' ||
-          Object.keys(originalPreparation).sort().join(',') !==
+          Object.keys(originalPreparation).filter(name => name !== 'metadataInstallation').sort().join(',') !==
             'compiled,control,modelExecutionBytes,modelRetainedBytes,nodeInstallation,physicalCustody,read,readExecutionBytes,readRetainedBytes,runDefinition,scope' ||
           originalPreparation.control !== control ||
           originalPreparation.compiled !== plan.compiled ||
@@ -69,6 +69,14 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection,
         registry, values, fragment, ordered, computeConfigurations});
     }
+    const keyed = selected.occurrence !== undefined && selected.serializationGraph === undefined &&
+      checked(moon.clientProgramSelectSingleKeyedAcquisition(preparedProgram)) !== undefined;
+    // The current installed read/layout supplier has no adopted Content overlap.
+    // Refuse before generation/recovery or keyed input construction; support
+    // checks and a visible child Ledger are not original funding authority.
+    if (keyed || selected.serializationGraph !== undefined || acquiredContent !== undefined) {
+      throw new TypeError('InstalledInferContentOriginalPreparationUnavailable');
+    }
     if (modelController === undefined) throw new Error('InstalledModelJournalRequired');
     const runId = JSON.parse(plan.runDefinition.wire).run_id;
     const taskIndex = moon.clientProgramInferPlanBoundary(selected.graph)._0;
@@ -82,15 +90,19 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     let restoredInput, sources;
     try {
       restoredInput = token === undefined ? undefined : {token, snapshot: token.snapshot,
+        capturedContent: modelController.capturedContent(token, plan.runDefinition.identity),
+        capturedContentBinding: modelController.capturedContentBinding(token, plan.runDefinition.identity),
         sendMask: modelController.state(existingModel.inventory).slots.map(slot => slot.state === 'Unsent'),
         savedScope: modelController.savedScope(plan, preparedProgram, selected, token)};
       sources = restoredInput === undefined
-        ? acquiredInfer === undefined ? [] : [acquiredInfer.sourceEvidence]
+        ? keyed ? [acquiredContent?.sourceEvidence, acquiredContent?.keyedSourceEvidence]
+          : acquiredInfer === undefined ? [] : [acquiredInfer.sourceEvidence]
         : JSON.parse(token.snapshot.callScopeSnapshotWire).sources.map(source =>
           control.admitRunEvidence('source_evidence', source.source_evidence_wire,
             {maxWireBytes: 100000, maxNodes: 10000, maxDepth: 100}));
     } catch (error) { modelController.release(token); throw error; }
-    let operation, captureOwner, continuation, evidenceCopy;
+    let operation, captureOwner, continuation, evidenceCopy, contentChild, keyedContentChild,
+      serializedInput, restoredReferenceIssuer, keyedInput, receivingKeyed;
     let captureCloseAttempted = false, captureReleased = false;
     let continuationCloseAttempted = false, continuationReleased = false;
     // These are phases of the same existing retained custody, not another
@@ -101,8 +113,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     let originalScopeReleased = originalReadPhysicalReleased;
     let originalCleanupFlight;
     const cleanupPending = () => evidenceCopy?.cleanupPending() === true || !captureReleased ||
-      continuation !== undefined && !continuationReleased || !originalReadSettled ||
-      !originalScopeReleased;
+      continuation !== undefined && !continuationReleased ||
+      contentChild?.cleanupPending() === true || keyedContentChild?.cleanupPending() === true ||
+      !originalReadSettled || !originalScopeReleased;
     const cleanupOwned = async () => {
       // Optional projection is a child of this already-retained INFER custody.
       // Keep its originals alive until the copy handoff and release settle.
@@ -130,6 +143,18 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       }
       if (captureReleased && continuation === undefined) modelController.release(token);
       if (failure !== undefined) throw failure;
+      // Reclaim Model/input borrowers before their producer's prefix. The
+      // Content Store's committed private generation remains durable custody,
+      // independently of this temporary execution or a public Result index.
+      if (!captureReleased || continuation !== undefined && !continuationReleased) return false;
+      if (contentChild !== undefined) {
+        if (await contentChild.cleanup() === false || contentChild.cleanupPending() !== false) return false;
+        contentChild = undefined;
+      }
+      if (keyedContentChild !== undefined) {
+        if (await keyedContentChild.cleanup() === false || keyedContentChild.cleanupPending() !== false) return false;
+        keyedContentChild = undefined;
+      }
       if (originalPreparation !== undefined && captureReleased &&
           (continuation === undefined || continuationReleased)) {
         if (originalPreparation.read === undefined) {
@@ -173,7 +198,6 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       // Concurrent close/retry callers must not overlap physical close or
       // settle its read twice. The former route is otherwise unchanged.
       if (originalReadStopped && originalScopeReleased) return originalCleanupFlight;
-      if (originalPreparation === undefined) return cleanupOwned();
       if (originalCleanupFlight === undefined) {
         originalCleanupFlight = cleanupOwned();
         originalCleanupFlight.then(complete => {
@@ -213,6 +237,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       originalPreparation = {compiled: plan.compiled, runDefinition: plan.runDefinition,
         control, scope, read: undefined,
         nodeInstallation: originalInstallation.nodeInstallation,
+        metadataInstallation: originalInstallation,
         readRetainedBytes: originalInstallation.nodeInstallation.layout.retained_bytes,
         readExecutionBytes: originalInstallation.nodeInstallation.layout.execution_bytes,
         modelRetainedBytes: originalInstallation.modelRetainedBytes,
@@ -229,10 +254,62 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           originalInstallation.nodeInstallation);
       } finally { Object.freeze(originalPreparation); }
     }
+    if (restoredInput?.capturedContent !== undefined) {
+      if (typeof prepareKeyedRecovery !== 'function' || typeof runContent?.recoverKeyed !== 'function') {
+        throw new Error('InstalledCapturedContentRecoveryUnavailable');
+      }
+      receivingKeyed = await prepareKeyedRecovery({preparedProgram, plan, submission});
+      const frame = await runContent.recoverKeyed({...receivingKeyed, preparedProgram, plan, store,
+        principalId, signal, modelController, inputToken: token, retainExecution(child) {
+          if (keyedContentChild !== undefined) throw new TypeError('KeyedContentChildAlreadyRetained');
+          keyedContentChild = child;
+        }});
+      if (selected.serializationGraph === undefined) restoredReferenceIssuer = frame.referenceIssuer;
+    }
+    if (keyed) {
+      if (restoredInput !== undefined) {
+        receivingKeyed ??= await prepareKeyedRecovery({preparedProgram, plan, submission});
+        keyedInput = {occurrence: selected.occurrence, prefix: selected.computePrefix,
+          ledger: receivingKeyed.ledger};
+      } else {
+        if (acquiredContent?.keyedObservation === undefined || acquiredContent.keyedLookup === undefined ||
+            acquiredContent.ledger === undefined || acquiredInfer !== undefined) {
+          throw new Error('InstalledKeyedInferInputUnavailable');
+        }
+        const {captured, keyedObservation} = acquiredContent;
+        const sources = checked(moon.clientProgramAdmitComposedInferSources(selected.occurrence,
+          [captured.capture.source()], [captured.identity], [captured.requirement],
+          [moon.strategyRunEvidenceJson(captured.logicalInput)], [acquiredContent.sourceEvidenceWire],
+          acquiredContent.authorityScopeCid, acquiredContent.captureStartedAt,
+          acquiredContent.captureCompletedAt, keyedObservation.observation));
+        keyedInput = {occurrence: selected.occurrence, prefix: selected.computePrefix,
+          sources, ledger: acquiredContent.ledger,
+          capturedRecovery: acquiredContent.keyedContent?.recoveryInventory(),
+          capturedBinding: acquiredContent.keyedContent?.sourceBinding};
+      }
+    }
+    if (selected.serializationGraph !== undefined) {
+      const method = restoredInput === undefined ? 'generate' : 'recover';
+      if (typeof runContent?.[method] !== 'function' || acquiredInfer !== undefined) {
+        throw new Error('InstalledGeneratedContentInputUnavailable');
+      }
+      const generated = await runContent[method]({preparedProgram, plan, store,
+        principalId, signal, acquiredContent, restoredInput, retainExecution(child) {
+          if (contentChild !== undefined) throw new TypeError('ContentChildAlreadyRetained');
+          contentChild = child;
+        }});
+      if (restoredInput === undefined) sources = generated.sourceEvidence;
+      serializedInput = {control, compiled: plan.compiled, definition: plan.runDefinition,
+        generation: generated.generation,
+        capturedRecovery: generated.capturedContentRecovery,
+        capturedBinding: generated.capturedContentBinding,
+        recovery: generated.recovery};
+    }
     operation = openNodeInferOperation({moon, preparedProgram,
       step: selected.step, graph: selected.graph, registry, values, fragment, ordered, signal,
       acquiredInput: restoredInput === undefined ? acquiredInfer?.input : undefined,
-      restoredInput, durableCalls: true, computeSuffix: selected.computeSuffix,
+      restoredInput, serializedInput, restoredReferenceIssuer, keyedInput,
+      durableCalls: true, computeSuffix: selected.computeSuffix,
       observeProgress: () => faultInjection?.('infer_execution_advanced', {}),
       provider: selected.provider, quantityCapacity: selected.quantityCapacity,
       physicalPreflight: selected.physicalPreflight, egressAdmission: selected.egressAdmission,
@@ -300,4 +377,19 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         evidenceCopy = copy;
       }});
   };
+  run.prepareKeyedLedger = ({preparedProgram, plan, direct, acquisition, capacity, capturedContent = false}) => {
+    control.checkClientCompiledRunOwner(plan.compiled, preparedProgram);
+    const selected = selections.get(preparedProgram);
+    if (selected?.graph !== plan.inferGraph || selected.occurrence === undefined ||
+        selected.serializationGraph !== undefined || selected.components !== undefined) {
+      throw new TypeError('InstalledKeyedInferSelectionMissing');
+    }
+    const ledger = moon.clientProgramPrepareKeyedInferCapturedLedger(preparedProgram,
+      selected.occurrence, direct.capacity, acquisition, capacity.capacity,
+      [direct.transferBytes, capacity.transferBytes], [direct.executionBytes, capacity.executionBytes],
+      capacity.maxBytes, capacity.maxWork, registry, values, fragment, ordered, capturedContent);
+    if (ledger === undefined) throw new TypeError('InstalledKeyedInferCapacityUnavailable');
+    return ledger;
+  };
+  return run;
 }

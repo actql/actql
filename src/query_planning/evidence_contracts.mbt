@@ -25,7 +25,7 @@ pub(all) enum QueryEvidenceContractIssue {
 }
 
 ///|
-let query_evidence_contract_cid : String = "sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89"
+let query_evidence_contract_cid : String = "sha256:2fb477209d9149ec8fa6d103fb14af3c287e2d2bc331b237dadd281f9dbab916"
 
 ///|
 /// The admitted process-evidence contract's identity: the capability contract

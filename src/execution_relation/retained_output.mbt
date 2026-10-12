@@ -6,6 +6,7 @@ struct RetainedOutputMaterial {
   storage_bytes : Int64
   available : () -> Bool
   mut value_measurement : RetainedValueMeasurement?
+  mut references : CompletedExportReferences?
 }
 
 ///|
@@ -14,6 +15,16 @@ struct RetainedOutputMaterial {
 struct RetainedOutputHandle[T] {
   material : RetainedOutputMaterial
   payload : T
+}
+
+///|
+/// Existing cleanup owners may retire the exact installed material after its
+/// Store has become unavailable. This accessor grants no receiving/read right;
+/// reclamation itself refuses a live physical copy.
+pub fn completed_output_retained_material(
+  output : CompletedOutput,
+) -> RetainedOutputMaterial? {
+  output.representation
 }
 
 ///|
@@ -44,6 +55,7 @@ pub fn[T] retain_admitted_output_stream(
       storage_bytes: receipt.bytes.to_int64(),
       available,
       value_measurement: receipt.value_measurement,
+      references: None,
     },
     payload,
   }
@@ -75,6 +87,7 @@ pub fn[T] retain_admitted_output_representation(
       storage_bytes,
       available,
       value_measurement: receipt.value_measurement,
+      references: None,
     },
     payload,
   })
@@ -244,6 +257,7 @@ pub fn[P] complete_trusted_retained_output(
   let completion : CompletedSequence = {
     result_identity: Ref(()),
     readmitted: false,
+    serialization_output: port.generated.serialization_output,
     contracts: port.generated.contracts,
     sequence: port.generated.sequence,
     store: RetainedStore(

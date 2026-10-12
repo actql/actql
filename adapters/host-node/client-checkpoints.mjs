@@ -31,6 +31,7 @@ import {EFFECT_TARGET_CONTINUATION, effectTargetReadScope} from
   './effect-target-read-inventory.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';
+import {selectOriginalInferMetadataAcquisition} from './infer-operation.mjs';
 
 const IDENTIFIER = /^[A-Za-z0-9._:-]{1,128}$/u;
 const MAX_REVIEW_BYTES = 256 * 1024;
@@ -38,6 +39,9 @@ const MAX_PAGE = 100;
 const PAGE = 100;
 const LOOKUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const MULTI_SOURCE_SUBMISSION = 'actql-remote-multi-source-submission/0.1';
+const KEYED_SOURCE_SUBMISSION = 'actql-remote-keyed-source-submission/0.1';
+const pluralCapture = captured => [MULTI_SOURCE_SUBMISSION, KEYED_SOURCE_SUBMISSION]
+  .includes(captured.version);
 const MODEL_CHECKPOINT_STORAGE = 'actql-installed-model-checkpoint-storage/0.1';
 export const MAX_MODEL_INPUT_BYTES = 3 * 1024 * 1024;
 
@@ -63,26 +67,47 @@ const freezeSavedData = value => {
 // This is an installed Host-private bounded capture, not a new Run schema.
 // A plural capture is never inferred by reinterpreting the singular field.
 function acquisitionsOf(captured) {
-  if (captured.version !== MULTI_SOURCE_SUBMISSION) {
+  if (!pluralCapture(captured)) {
     if (captured.acquisitions !== undefined) fail('HeldAcquisitionChanged');
     return captured.acquisition === undefined ? [] : [captured.acquisition];
   }
+  // A keyed Source can share task 0 with its Direct prefix (Content) or
+  // occupy task 1. Retain that checked coordinate, never derive it from the
+  // acquisition's position in this two-Source inventory.
   if (captured.acquisition !== undefined ||
       !Array.isArray(captured.acquisitions) ||
       captured.acquisitions.length !== 2 ||
       captured.acquisitions.some((item, index) =>
-        item?.stage !== index || item.input !== 0 || item.task !== index ||
-        typeof item.checkedSource?.requirementCid !== 'string' ||
+        !(captured.version === KEYED_SOURCE_SUBMISSION
+          ? Number.isSafeInteger(item?.stage) && item.stage >= 0 &&
+            Number.isSafeInteger(item.input) && item.input >= 0 &&
+            (index === 0 ? item.task === 0 : item.task === 0 || item.task === 1) &&
+            (index === 0 ? typeof item.checkedSource?.requirementCid === 'string' &&
+              item.checkedSource.selectionCid === undefined
+              : typeof item.checkedSource?.selectionCid === 'string' &&
+                item.checkedSource.requirementCid === undefined &&
+                typeof item.checkedSource.programCid === 'string' &&
+                typeof item.checkedSource.parametersCid === 'string' &&
+                Number.isSafeInteger(item.checkedSource.step) && item.checkedSource.step >= 0)
+          : item?.stage === index && item.input === 0 && item.task === index &&
+            typeof item.checkedSource?.requirementCid === 'string') ||
         typeof item.checkedSource?.sourceRef !== 'string' ||
         item.readTuple?.operation !== 'read' ||
         item.physicalBinding === undefined)) {
+    fail('HeldAcquisitionChanged');
+  }
+  if (captured.version === KEYED_SOURCE_SUBMISSION &&
+      (captured.acquisitions[0].stage !== captured.acquisitions[1].stage ||
+       captured.acquisitions[0].input === captured.acquisitions[1].input)) {
     fail('HeldAcquisitionChanged');
   }
   return captured.acquisitions;
 }
 const occurrenceIdentity = occurrence => ({stage: occurrence.stage,
   input: occurrence.input, task: occurrence.task,
-  requirement_cid: occurrence.checkedSource.requirementCid});
+  ...(occurrence.checkedSource.selectionCid === undefined
+    ? {requirement_cid: occurrence.checkedSource.requirementCid}
+    : {selection_cid: occurrence.checkedSource.selectionCid})});
 const occurrenceKey = occurrence => occurrence.stage === undefined
   ? 'singular' : canonicalJson(occurrenceIdentity(occurrence));
 
@@ -300,7 +325,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
   }
   function captureInventory(captured) {
     const inventory = acquisitionsOf(captured);
-    if (captured.version === MULTI_SOURCE_SUBMISSION && sources === undefined &&
+    if (pluralCapture(captured) && sources === undefined &&
         source?.sourceRef === undefined) {
       fail('HeldAcquisitionChanged');
     }
@@ -591,12 +616,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
   // tuple. It is not a Prepared Invocation: the formal invocation depends on
   // the later source observation and is issued by its owner after it.
   const acquisitionIntent = (requestCid, captured, occurrence) => ({
-    version: captured.version === MULTI_SOURCE_SUBMISSION
+    version: pluralCapture(captured)
       ? 'actql-remote-multi-source-acquisition-intent/0.1'
       : 'actql-remote-acquisition-intent/0.1',
     request_cid: requestCid,
     captured_submission_cid: capturedValueCid(captured),
-    ...(captured.version === MULTI_SOURCE_SUBMISSION
+    ...(pluralCapture(captured)
       ? {occurrence: occurrenceIdentity(occurrence)} : {}),
     checked_source: occurrence.checkedSource,
     read_tuple: occurrence.readTuple,
@@ -617,7 +642,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       binding,
       async describe(view) {
         const intent = acquisitionIntent(requestCid, captured, occurrence);
-        const intentCid = contentCid(intent);
+        const intentCid = capturedValueCid(intent);
         const created = now();
         const expiresAt = new Date(created + checkpointTtlMs).toISOString();
         const projection = {
@@ -644,7 +669,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
             source: occurrence.checkedSource,
             read_tuple: occurrence.readTuple,
             physical_binding: occurrence.physicalBinding,
-            ...(captured.version === MULTI_SOURCE_SUBMISSION
+            ...(pluralCapture(captured)
               ? {occurrence: occurrenceIdentity(occurrence)} : {}),
           },
           displayed_authoring_context: [{principal: captured.principalId}],
@@ -660,7 +685,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           {name: 'invocation_request', wire: canonicalJson(request)},
           // The Store's prepared-invocation slot holds the acquisition
           // intent (a distinct version), never a fabricated invocation.
-          {name: 'prepared_invocation', wire: canonicalJson(intent)},
+          {name: 'prepared_invocation', wire: capturedValueWire(intent)},
           {name: 'review_projection', wire: reviewWire},
         ];
         const continuation = {
@@ -673,7 +698,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           delegated_subject: JSON.parse(JSON.stringify(view.subject)),
           answering_authorities: [...answering],
           earlier_approvals: [...earlier],
-          ...(captured.version === MULTI_SOURCE_SUBMISSION
+          ...(pluralCapture(captured)
             ? {acquisition_occurrence: occurrenceIdentity(occurrence)} : {}),
           evidence: items.map(({name, wire}) =>
             evidence.reference(prepareAttemptId, name, wire)),
@@ -688,7 +713,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           binding,
           body: {
             checkpoint_id: `${prepareAttemptId}-acquisition` +
-              (captured.version === MULTI_SOURCE_SUBMISSION
+              (pluralCapture(captured)
                 ? `-${hex(occurrenceKey(occurrence)).slice(0, 20)}` : ''),
             continuation_state_cid: continuationCid,
             subject: {kind: 'prepare_attempt',
@@ -715,7 +740,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     const {configuration} = installedSource(occurrence);
     const answering = answeringAuthorities ??
       authorities.map(item => item.reviewerId);
-    const intentCid = contentCid(acquisitionIntent(requestCid, captured,
+    const intentCid = capturedValueCid(acquisitionIntent(requestCid, captured,
       occurrence));
     const deferring = await createLocalAuthorizationGate({
       accountConfiguration: configuration.accountConfiguration,
@@ -735,7 +760,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
 
   function continuedOccurrence(captured, continuation) {
     const inventory = captureInventory(captured);
-    if (captured.version !== MULTI_SOURCE_SUBMISSION) return inventory[0];
+    if (!pluralCapture(captured)) return inventory[0];
     const identity = continuation.acquisition_occurrence;
     const occurrence = identity === undefined ? undefined : inventory.find(
       item => canonicalJson(occurrenceIdentity(item)) === canonicalJson(identity));
@@ -771,7 +796,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
       references.get('invocation_request'));
     const invocation = await opened.record('prepared_invocation',
       references.get('prepared_invocation'));
-    if (contentCid(invocation) !== continuation.invocation_cid ||
+    if ((continuation.boundary === 'acquisition' ? capturedValueCid(invocation)
+      : contentCid(invocation)) !== continuation.invocation_cid ||
         invocation.captured_submission_cid !== capturedValueCid(captured) ||
         invocation.request_cid !== opened.requestCid ||
         contentCid(request) !== opened.requestCid ||
@@ -781,8 +807,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
     captureInventory(captured);
     if (continuation.boundary === 'acquisition') {
       const occurrence = continuedOccurrence(captured, continuation);
-      if (occurrence === undefined || contentCid(acquisitionIntent(
-        opened.requestCid, captured, occurrence)) !== contentCid(invocation)) {
+      if (occurrence === undefined || capturedValueCid(acquisitionIntent(
+        opened.requestCid, captured, occurrence)) !== capturedValueCid(invocation)) {
         fail('HeldAcquisitionChanged');
       }
     }
@@ -883,6 +909,91 @@ export async function installRemoteCheckpoints({root, namespaceId,
     const selected = await evidence.originalModelStorageBindingEvidence(handle);
     if (closed) fail('OriginalModelStateHostStopped');
     return selected;
+  }
+  async function readOriginalModelStateBytes({runDefinition, storageBinding, receipt}, acquisition) {
+    const runId = contractControl.runDefinitionRunId(runDefinition);
+    const ownerId = `model-${runId}`;
+    const current = () => {
+      if (closed) fail('OriginalModelStateHostStopped');
+      if (acquisition !== undefined) {
+        selectOriginalInferMetadataAcquisition(acquisition, ownerId, runDefinition.identity);
+      }
+    };
+    current();
+    // The selected path never silently delegates to the ordinary Evidence
+    // reader. Its physical metadata/FD lifetime belongs to that same Owner.
+    if (acquisition !== undefined && typeof evidence.openOriginalModelState !== 'function') {
+      fail('InferOriginalMetadataAcquisitionUnavailable');
+    }
+    const selected = await originalModelStorageEvidence(storageBinding);
+    current();
+    if (receipt === null || typeof receipt !== 'object' || Array.isArray(receipt) ||
+        Object.keys(receipt).sort().join(',') !== 'cid,ownerId,runDefinitionCid,runId,storageBindingCid' ||
+        !IDENTIFIER.test(runId) || receipt.ownerId !== ownerId ||
+        receipt.runId !== runId || receipt.runDefinitionCid !== runDefinition.identity ||
+        receipt.storageBindingCid !== selected.identity ||
+        !/^sha256:[0-9a-f]{64}$/u.test(receipt.cid ?? '')) fail('InvalidOriginalModelStateCustody');
+    const held = await (acquisition === undefined ? evidence.open(ownerId)
+      : evidence.openOriginalModelState(ownerId, acquisition));
+    current();
+    if (held.requestCid !== runDefinition.identity) fail('ModelContinuationRunMismatch');
+    const bytes = await held.bytes('original_model_state', receipt.cid, {maxBytes: MAX_MODEL_INPUT_BYTES});
+    current();
+    const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
+    const document = contractControl.readModelOriginalResourceDocument(wire,
+      {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
+    if (contractControl.modelOriginalResourceOriginField(document, 'run_id') !== runId ||
+        contractControl.modelOriginalResourceOriginField(document, 'run_definition_cid') !== runDefinition.identity ||
+        contractControl.modelOriginalResourceOriginField(document, 'storage_binding_cid') !== selected.identity) {
+      fail('OriginalModelStateBindingMismatch');
+    }
+    await originalModelStorageEvidence(storageBinding);
+    current();
+    return {document, storage: selected};
+  }
+  async function confirmOriginalModelStateSavedBytes(args, acquisition) {
+    const {runDefinition, storageBinding, receipt, identity} = args;
+    const runId = contractControl.runDefinitionRunId(runDefinition);
+    if (identity === null || typeof identity !== 'object' || Array.isArray(identity) ||
+        Object.keys(identity).sort().join(',') !== 'inputArtifactCid,preparedInvocationCid,providerBindingCid,runDefinitionCid,runId,scopeCid,strategyRevision,taskIndex' ||
+        identity.runId !== runId || identity.runDefinitionCid !== runDefinition.identity) {
+      fail('InvalidOriginalModelStateCustody');
+    }
+    const {document, storage} = await readOriginalModelStateBytes(args, acquisition);
+    if (acquisition !== undefined) {
+      selectOriginalInferMetadataAcquisition(acquisition, `model-${runId}`, runDefinition.identity);
+    }
+    if (closed) fail('OriginalModelStateHostStopped');
+    if (contractControl.modelOriginalResourceOriginField(document, 'prepared_invocation_cid') !== identity.preparedInvocationCid) {
+      fail('OriginalModelStateBindingMismatch');
+    }
+    const documentWire = document.wire;
+    // Projection of the Common-admitted data only, not a Resource phase or
+    // current journal decision. Preserve the original saved evidence issuer.
+    const data = JSON.parse(documentWire);
+    if (data.cut?.scope_cid !== identity.scopeCid || data.cut.input_artifact_cid !== identity.inputArtifactCid) {
+      fail('OriginalModelStateBindingMismatch');
+    }
+    const reference = evidence.reference(receipt.ownerId, 'original_model_state', documentWire);
+    if (reference.semantic_cid !== receipt.cid) fail('OriginalModelStateBindingMismatch');
+    let originals = originalStateSavedByBinding.get(storageBinding);
+    if (originals === undefined) {
+      originals = new Map(); originalStateSavedByBinding.set(storageBinding, originals);
+    }
+    const prior = originals.get(reference.holding_cid);
+    if (prior !== undefined) {
+      if (prior.facts.documentWire !== documentWire ||
+          capturedValueWire(prior.facts.identity) !== capturedValueWire(identity)) fail('OriginalModelStateBindingMismatch');
+      return prior.observation;
+    }
+    const observation = Object.freeze({kind: 'saved-original-model-state'});
+    const facts = freezeSavedData({identity: {...identity}, documentCid: receipt.cid,
+      holdingCid: reference.holding_cid, storageBindingCid: storage.identity,
+      resourceStateCid: data.resource_state_cid, phase: data.resource_phase, cut: data.cut, documentWire});
+    const original = {observation, facts, storageBinding, runDefinition};
+    originalStateSavedObservations.set(observation, original);
+    originals.set(reference.holding_cid, original);
+    return observation;
   }
   // Errors that a later attempt may clear (a busy Store, a transient read);
   // anything else is permanent for this item and only observed.
@@ -1317,93 +1428,20 @@ export async function installRemoteCheckpoints({root, namespaceId,
       return Object.freeze({ownerId, cid, runId, runDefinitionCid,
         storageBindingCid: selected.identity});
     },
-    async readOriginalModelState({runDefinition, storageBinding, receipt}) {
-      const runId = contractControl.runDefinitionRunId(runDefinition);
-      const selected = await originalModelStorageEvidence(storageBinding);
-      if (receipt === null || typeof receipt !== 'object' || Array.isArray(receipt) ||
-          Object.keys(receipt).sort().join(',') !== 'cid,ownerId,runDefinitionCid,runId,storageBindingCid' ||
-          !IDENTIFIER.test(runId) || receipt.ownerId !== `model-${runId}` ||
-          receipt.runId !== runId || receipt.runDefinitionCid !== runDefinition.identity ||
-          receipt.storageBindingCid !== selected.identity ||
-          !/^sha256:[0-9a-f]{64}$/u.test(receipt.cid ?? '')) {
-        fail('InvalidOriginalModelStateCustody');
-      }
-      const held = await evidence.open(receipt.ownerId);
-      if (held.requestCid !== runDefinition.identity) fail('ModelContinuationRunMismatch');
-      const bytes = await held.bytes('original_model_state', receipt.cid,
-        {maxBytes: MAX_MODEL_INPUT_BYTES});
-      const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
-      const document = contractControl.readModelOriginalResourceDocument(wire,
-        {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
-      if (contractControl.modelOriginalResourceOriginField(document, 'run_id') !== runId ||
-          contractControl.modelOriginalResourceOriginField(document, 'run_definition_cid') !== runDefinition.identity ||
-          contractControl.modelOriginalResourceOriginField(document, 'storage_binding_cid') !== selected.identity) {
-        fail('OriginalModelStateBindingMismatch');
-      }
-      await originalModelStorageEvidence(storageBinding);
-      return document;
+    readOriginalModelState: async args => (await readOriginalModelStateBytes(args, undefined)).document,
+    async readOriginalModelStateSelected(args, acquisition) {
+      // Required nominal original; an omitted/forged handle cannot opt out to
+      // a legacy read. This is current-cut only, not a prime/general restriction.
+      selectOriginalInferMetadataAcquisition(acquisition);
+      return (await readOriginalModelStateBytes(args, acquisition)).document;
     },
     // A same-installation saved-byte observation, not a restore/read/send
     // grant. The existing Store is actually reopened and verified first;
     // an imported receipt or matching configuration alone cannot issue it.
-    async confirmOriginalModelStateSaved({runDefinition, storageBinding, receipt, identity}) {
-      const runId = contractControl.runDefinitionRunId(runDefinition);
-      const selected = await originalModelStorageEvidence(storageBinding);
-      if (receipt === null || typeof receipt !== 'object' || Array.isArray(receipt) ||
-          Object.keys(receipt).sort().join(',') !== 'cid,ownerId,runDefinitionCid,runId,storageBindingCid' ||
-          receipt.ownerId !== `model-${runId}` || receipt.runId !== runId ||
-          receipt.runDefinitionCid !== runDefinition.identity ||
-          receipt.storageBindingCid !== selected.identity ||
-          !/^sha256:[0-9a-f]{64}$/u.test(receipt.cid ?? '') ||
-          identity === null || typeof identity !== 'object' || Array.isArray(identity) ||
-          Object.keys(identity).sort().join(',') !== 'inputArtifactCid,preparedInvocationCid,providerBindingCid,runDefinitionCid,runId,scopeCid,strategyRevision,taskIndex' ||
-          identity?.runId !== runId || identity.runDefinitionCid !== runDefinition.identity) {
-        fail('InvalidOriginalModelStateCustody');
-      }
-      const held = await evidence.open(receipt.ownerId);
-      if (held.requestCid !== runDefinition.identity) fail('ModelContinuationRunMismatch');
-      const bytes = await held.bytes('original_model_state', receipt.cid,
-        {maxBytes: MAX_MODEL_INPUT_BYTES});
-      const documentWire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
-      const document = contractControl.readModelOriginalResourceDocument(documentWire,
-        {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
-      if (contractControl.modelOriginalResourceOriginField(document, 'run_id') !== runId ||
-          contractControl.modelOriginalResourceOriginField(document, 'run_definition_cid') !== runDefinition.identity ||
-          contractControl.modelOriginalResourceOriginField(document, 'storage_binding_cid') !== selected.identity ||
-          contractControl.modelOriginalResourceOriginField(document, 'prepared_invocation_cid') !== identity.preparedInvocationCid) {
-        fail('OriginalModelStateBindingMismatch');
-      }
-      // This is projection of a Common-admitted document, not another shape
-      // validator or a Resource phase decision. C's actual issuer is separate.
-      const data = JSON.parse(documentWire);
-      if (data.cut?.scope_cid !== identity.scopeCid ||
-          data.cut.input_artifact_cid !== identity.inputArtifactCid) {
-        fail('OriginalModelStateBindingMismatch');
-      }
-      await originalModelStorageEvidence(storageBinding);
-      const reference = evidence.reference(receipt.ownerId, 'original_model_state', documentWire);
-      if (reference.semantic_cid !== receipt.cid) fail('OriginalModelStateBindingMismatch');
-      let originals = originalStateSavedByBinding.get(storageBinding);
-      if (originals === undefined) {
-        originals = new Map(); originalStateSavedByBinding.set(storageBinding, originals);
-      }
-      const prior = originals.get(reference.holding_cid);
-      if (prior !== undefined) {
-        if (prior.facts.documentWire !== documentWire ||
-            capturedValueWire(prior.facts.identity) !== capturedValueWire(identity)) {
-          fail('OriginalModelStateBindingMismatch');
-        }
-        return prior.observation;
-      }
-      const observation = Object.freeze({kind: 'saved-original-model-state'});
-      const facts = freezeSavedData({identity: {...identity},
-        documentCid: receipt.cid, holdingCid: reference.holding_cid,
-        storageBindingCid: selected.identity, resourceStateCid: data.resource_state_cid,
-        phase: data.resource_phase, cut: data.cut, documentWire});
-      const original = {observation, facts, storageBinding, runDefinition};
-      originalStateSavedObservations.set(observation, original);
-      originals.set(reference.holding_cid, original);
-      return observation;
+    confirmOriginalModelStateSaved: args => confirmOriginalModelStateSavedBytes(args, undefined),
+    async confirmOriginalModelStateSavedSelected(args, acquisition) {
+      selectOriginalInferMetadataAcquisition(acquisition);
+      return confirmOriginalModelStateSavedBytes(args, acquisition);
     },
     originalModelStateSavedFacts(observation) {
       if (closed) fail('OriginalModelStateHostStopped');
@@ -1983,8 +2021,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           const captures = ledger.held('captured_input');
           if (captures.length !== 1) fail('HeldAcquisitionChanged');
           const original = await ledger.record('captured_input', captures[0]);
-          if ((captured.version === MULTI_SOURCE_SUBMISSION ||
-              original.version === MULTI_SOURCE_SUBMISSION) &&
+          if ((pluralCapture(captured) || pluralCapture(original)) &&
               capturedValueCid(acquisitionsOf(original)) !==
                 capturedValueCid(acquisitionsOf(captured))) {
             fail('HeldAcquisitionChanged');
@@ -2088,7 +2125,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       const admitted = admittedReads.get(requestId)?.get(occurrence === undefined
         ? 'singular' : occurrenceKey(occurrence));
       if (admitted === undefined || occurrence !== undefined &&
-          contentCid(occurrence) !== contentCid(admitted.acquisition)) return base;
+          capturedValueCid(occurrence) !== capturedValueCid(admitted.acquisition)) return base;
       const same = scope => ['connection', 'resource', 'operation'].every(
         key => scope?.[key] === admitted.readTuple[key]);
       const authorization = Object.freeze({

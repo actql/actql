@@ -46,6 +46,17 @@ pub fn issue_captured_source_input_logical(
   let rows = @query.captured_source_relation_logical_cid(identity)
   let schema = @query.captured_source_relation_schema_cid(identity)
   let source_contract = @planning.query_requirement_source(requirement).1
+  seal_client_source_input_logical(rows, schema, source_contract)
+}
+
+///|
+/// The callers prove their live capture tuple before sharing this wire codec.
+/// No row, Source, task completion or custody owner is reconstructed here.
+fn seal_client_source_input_logical(
+  rows : String,
+  schema : String,
+  source_contract : String,
+) -> Result[@publication.RunEvidenceValue, ClientCapturedSourceLogicalIssue] {
   let order = "{\"stable\":false,\"keys\":[]}"
   let writer = @encode.writer(4096, 128, 16) catch {
     issue => return Err(Encoding(issue))

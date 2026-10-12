@@ -53,6 +53,9 @@ fn lower_script_relation(
     construction, query, known, graphs, context, sources, limits, steps, reserved,
   )
   let query = @query.after_query_bindings(query)
+  let (query, known) = lower_script_relation_primary(
+    construction, query, known, context, sources, limits, steps, reserved,
+  )
   let current = lower_script_primary(
     construction, query, known, graphs, context, sources, limits, steps, reserved,
   )
@@ -99,6 +102,7 @@ fn lower_script_relation(
         graphs~,
         retained~,
         positional_set_output~,
+        set_head~,
         continuation=Some((context, sources)),
         allow_nonrelation~,
       )
@@ -118,6 +122,7 @@ fn lower_script_relation(
       output,
       retained~,
       allow_nonrelation~,
+      set_head~,
     )
   }
   if single_term && @query.operation_at(query, 0) is Some(Nearest(_)) {
@@ -296,6 +301,9 @@ fn lower_script_relation_term(
   let nearest_inputs = bind_script_nearest_inputs(
     construction, query, known, selected, input, context, sources, steps, reserved,
   )
+  let nearest_vectors = script_nearest_vector_inputs(
+    construction, query, nearest_inputs, context, sources, limits, steps,
+  )
   let (body, output_fields) = compile_steps(
     construction,
     query,
@@ -309,6 +317,7 @@ fn lower_script_relation_term(
     false,
     output,
     nearest_inputs~,
+    nearest_vectors~,
     retained~,
     parameter_declarations=context.parameter_declarations,
     initial_scope=script_input_scope(
@@ -431,6 +440,9 @@ pub fn compile_query_script(
       steps,
       reserved,
     )
+    let (root, known) = lower_script_relation_primary(
+      construction, root, known, context, sources, limits, steps, reserved,
+    )
     let primary_graph = lower_script_primary(
       construction, root, known, graphs, context, sources, limits, steps, reserved,
     )
@@ -452,10 +464,11 @@ pub fn compile_query_script(
       let input_name = pipe_physical_name(
         reserved, "aql_script_continuation_input_",
       )
-      let split = @query.effect_result_continuation(query, {
-        value: input_name,
-        quoted: true,
-      })
+      let split = @query.effect_result_continuation(
+        query,
+        { value: input_name, quoted: true, },
+        has_postlude=@query.terminal_command_effect_count(query) > 0,
+      )
       let current = split.map(pair => pair.0).unwrap_or(query)
       let resolved_graph = if stages.is_empty() {
         current_graph
@@ -603,6 +616,21 @@ pub fn compile_query_script(
             ),
           ),
         )
+      }
+      if split is None && @query.terminal_command_effect_count(current) > 0 {
+        let commands : Array[(String, @builder.Node)] = []
+        for index in 0..<@query.terminal_command_effect_count(current) {
+          commands.push(
+            lower_command_effect(
+              construction,
+              @query.terminal_command_effect_at(current, index).unwrap(),
+              stage_context.stage_result,
+              retained,
+              limits.max_expression_work,
+            ),
+          )
+        }
+        stage_entries.push(("effects", construction.object(commands)))
       }
       stages.push(construction.object(stage_entries))
       stage_arrays.push(stage_steps)

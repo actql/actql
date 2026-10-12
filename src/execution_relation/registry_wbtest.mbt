@@ -21,11 +21,11 @@ test "registry admission hashes complete immutable bodies and excludes historica
   ).unwrap()
   assert_eq(
     accepted.registry_cid,
-    "sha256:b79f24b0c777c4b9d533ef01289587e666caa7a6ba00159f6b45f3e57265f04e",
+    "sha256:a39ed49bed5ddd2dd6442a1dd92493a89fd47d563d36d255023e80ac10270041",
   )
   assert_eq(
     accepted.values_contract_cid,
-    "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b",
+    "sha256:6ba2e474f48d744fa3bd0c261af196467360fb8d8e3bb5e37751e32c06ade3e7",
   )
   assert_true(
     admit_relation_registry(
@@ -50,7 +50,7 @@ test "new constructor registration pins its complete execution contract" {
   // Independent Node canonical SHA-256 of the machine contract, not product output.
   assert_eq(
     @identity.cid_value(registered_graph(), 100000, 10000, 100),
-    "sha256:b6c5006e94c3c865672ab2478f4b1897aa567314502e55eb50f784a50a94d210",
+    "sha256:d567ede4e421b6aaa6df39bf9fe03dfaaff129fb85ab9489faa6ffb61a8fa282",
   )
 }
 

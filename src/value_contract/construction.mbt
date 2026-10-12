@@ -30,6 +30,27 @@ pub fn with_nullability(value : Contract, nullable : Bool) -> Contract {
 }
 
 ///|
+/// Construct only the checked reference type, never a reference value or
+/// issuer authority. Apply the same media text contract as schema admission.
+pub fn content_reference_contract(
+  media_type : String?,
+  nullable~ : Bool,
+  max_name_bytes~ : Int,
+) -> Contract? {
+  if max_name_bytes < 0 {
+    return None
+  }
+  if media_type is Some(media) {
+    if media.is_empty() ||
+      @scalar.admit_utf8_length(media, max_name_bytes) is Err(_) ||
+      @canonical.normalize_nfc_lf(media) != Ok(media) {
+      return None
+    }
+  }
+  Some({ nullable, shape: ContentRef(media_type~), })
+}
+
+///|
 /// Root nullability of an admitted contract. Nested field nullability is
 /// inspected through the corresponding nested contract instead.
 pub fn contract_nullable(value : Contract) -> Bool {

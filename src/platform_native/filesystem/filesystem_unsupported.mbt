@@ -11,6 +11,11 @@ type Writer
 type Reader
 
 ///|
+pub fn Root::close(_self : Root) -> Result[Unit, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn open_root(_path : String) -> Result[Root, NativeFilesystemIssue] {
   Err(UnsupportedTarget)
 }
@@ -189,6 +194,15 @@ pub fn Root::open_reader(
   ignore(name)
   ignore(generation)
   Err(UnsupportedTarget)
+}
+
+///|
+pub fn Root::open_reader_with_custody(
+  _self : Root,
+  _name : String,
+  _generation : NativeFileGeneration,
+) -> Result[Reader, NativeReaderOpenFailure] {
+  Err(reader_open_failure(UnsupportedTarget))
 }
 
 ///|

@@ -151,7 +151,7 @@
     "schema": {
       "file": "spec/contracts/actql-protocol-schemas.json",
       "pointer": "/schemas/canonical_value_contract",
-      "cid": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+      "cid": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
     },
     "admission": "all_supplied_bodies_including_unused_exact_checked_grammar_no_author_defaults_or_JSON_Schema_conversion",
     "ownership": "retain_exact_registry_envelope_and_environment_not_only_bare_body_cid",
@@ -1347,7 +1347,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -1488,7 +1488,7 @@
       "expression_contract": {
         "path": "spec/contracts/actql-expressions.json",
         "pointer": "",
-        "cid": "sha256:a49aba23a30514b63c9f7bcd05663dcacf2e5646c56073e7d00a34d6abe402b7"
+        "cid": "sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289"
       }
     }
   },
@@ -1920,6 +1920,152 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
+        "file_listing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "version",
+            "kind",
+            "selectable",
+            "allow_unfiltered_listing",
+            "admitted_scope_contract_cid",
+            "listing_schema_contract_cid"
+          ],
+          "properties": {
+            "version": {
+              "const": "actql-file-list/0.1"
+            },
+            "kind": {
+              "const": "file_listing"
+            },
+            "selectable": {
+              "type": "array",
+              "maxItems": 2,
+              "uniqueItems": true,
+              "items": {
+                "enum": [
+                  "paths",
+                  "glob"
+                ]
+              }
+            },
+            "allow_unfiltered_listing": {
+              "type": "boolean"
+            },
+            "admitted_scope_contract_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "listing_schema_contract_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "path_profile_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "version_capability": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "contract_cid",
+                "required_nonnull"
+              ],
+              "properties": {
+                "contract_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "required_nonnull": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "max_listing_items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "max_examined_items": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "max_listing_pages": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "max_request_attempts": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "max_listing_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "max_listing_duration_ms": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "maximum_path_length": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "file_content": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "version",
+            "kind",
+            "admitted_scope_contract_cid",
+            "content_schema_contract_cid",
+            "version_capability",
+            "representation"
+          ],
+          "properties": {
+            "version": {
+              "const": "actql-file-content/0.1"
+            },
+            "kind": {
+              "const": "file_content"
+            },
+            "admitted_scope_contract_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "content_schema_contract_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "version_capability": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "contract_cid",
+                "required_nonnull"
+              ],
+              "properties": {
+                "contract_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "required_nonnull": {
+                  "const": true
+                }
+              }
+            },
+            "representation": {
+              "const": "exact_stored_bytes"
+            }
+          }
+        },
         "lookup_capacity": {
           "type": "object",
           "additionalProperties": false,
@@ -2119,7 +2265,7 @@
       "contract": {
         "path": "spec/contracts/actql-capacity-host-policy.json",
         "pointer": "",
-        "cid": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+        "cid": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
       },
       "identity": "full_canonical_component_body_no_exclusions",
       "absent": "unresolved_no_implicit_defaults",

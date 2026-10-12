@@ -1,24 +1,24 @@
 {
   "version": "actql-protocol-schema-registry/0.1",
-  "registry_cid": "sha256:02a6f610740d2da04fe394feaec6c3c3bd5062ee3327d2a73af9d0eeeba5a08a",
+  "registry_cid": "sha256:65c3dff40737d9598f5d099a6f2daa4e5ac1f97f7cf2fbe6d6f96f06f06e8eb2",
   "schema_cids": {
-    "model_task": "sha256:19408a610dbc52552bff3a7f97f25a120a66688e7db4f41383c91c9298f02dd2",
+    "model_task": "sha256:2923ba31752ae8854198b0fc7848fb89b7ce537c6a67e45e1a46612780509da9",
     "contract_ref": "sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94",
     "contract_envelope": "sha256:12b59aa2fd993c1d540f8cc80f658760f17ee9f179d8d12cb5f037127b8ae6fe",
     "resource_ref": "sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac",
     "hydration_evidence": "sha256:3ec3d5b17ddd5464544349529d9a1590ebe4ad8922e8da3fd805e28cc1e78660",
-    "artifact_ref": "sha256:2143a7c6bd2e0b110822670a3cb146cddaa23bcade9de7c1ab8ed4e1ebf88a55",
-    "artifact_availability_evidence": "sha256:28b21024a3d5291871e346b8f646d13c606e217ddc81d9fe1756f32816bcd59e",
     "observation_facts": "sha256:bb63f5ddcba12a33225cc5fefc2ddf69ceed007524cb890d96004363b4ad0db4",
     "event_delivery_evidence": "sha256:e9e5f043206fdf00720bbd14f12a765796b3686a4485505f77ba0a2533767582",
     "source_view": "sha256:d6952a589192f22a335237629da2babd794b3b7f9a0c51d674d05146a5ea8d74",
-    "command_contract": "sha256:d0d694427bd1ca9fede3fca5f2c490ca024c7763b3caf4165d8d5ba130f8f1ba",
-    "connector_catalog": "sha256:1ff8228ce7e75a9493e201a8991845d42a989e55a2f6e536b15461610a6ffaec",
+    "command_contract": "sha256:f46da6b7252b64412366acd65068b36367ef02bf563a7fd28e4788f13e9018bb",
+    "connector_catalog": "sha256:b62f09f0356b4841b28f8b06dc37585967c3f7bbba311e65467c0885b50e25f7",
     "lock": "sha256:02e3693c855d6137ac1fee89705a2a11824cf6607ea593b3ee7786263f49bdd4",
     "effect_outcome": "sha256:e1c2f7c0f3b894c66c9fb205fdef574cba048873ecbc79f2981a0b8bf4450b0f",
-    "author_value_contract": "sha256:ad31b593c607142e6fce65b15ca12531c46d61f3bcf8cc55f34eef1b4dca6b6e",
-    "canonical_value_contract": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551",
-    "model_task_v02": "sha256:23ef51950192891ab9c18e6c7c779ce4cd4fe17456f810bcdcc0c8b11229b38d"
+    "author_value_contract": "sha256:7deb73a773cf91e861d73dfc7b7b5331d77ee19605934e0198eb608eac69144d",
+    "canonical_value_contract": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947",
+    "content_ref": "sha256:dab36fadb3ae6a4d7c65351d5bec6ddc1ca104601d9e936d2bbd4d69231288d2",
+    "content_availability_evidence": "sha256:784203dbc5f95925f83f57c0ff3230abef8bac867768bbe90b26f622fb2d867d",
+    "model_task_v02": "sha256:739d8b30bc5e11a5b7dc954e7b91bb4d2f107d235d53483782be56f94155ba1f"
   },
   "schemas": {
     "model_task": {
@@ -987,7 +987,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -1917,7 +1917,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -2936,7 +2936,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -3113,290 +3113,6 @@
           "pattern": "^sha256:[0-9a-f]{64}$"
         },
         "hydration_evidence_cid": {
-          "type": "string",
-          "pattern": "^sha256:[0-9a-f]{64}$"
-        }
-      }
-    },
-    "artifact_ref": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "$actql_ref",
-        "version",
-        "media_type",
-        "metadata",
-        "artifact_ref_cid"
-      ],
-      "properties": {
-        "$actql_ref": {
-          "const": "artifact"
-        },
-        "version": {
-          "const": "actql-artifact-ref/0.1"
-        },
-        "media_type": {
-          "type": "string",
-          "minLength": 1
-        },
-        "artifact_ref_cid": {
-          "type": "string",
-          "pattern": "^sha256:[0-9a-f]{64}$"
-        },
-        "metadata": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "artifact_store_id",
-            "content_cid",
-            "media_type",
-            "size_bytes",
-            "storage_scope",
-            "retention_class",
-            "availability_evidence_cid",
-            "truncated",
-            "capture_authority",
-            "data_classification",
-            "effective_data_policy_cid",
-            "issuer_evidence"
-          ],
-          "properties": {
-            "artifact_store_id": {
-              "type": "string",
-              "minLength": 1
-            },
-            "content_cid": {
-              "type": "string",
-              "pattern": "^sha256:[0-9a-f]{64}$"
-            },
-            "media_type": {
-              "type": "string",
-              "minLength": 1
-            },
-            "size_bytes": {
-              "type": "integer",
-              "minimum": 0
-            },
-            "storage_scope": {
-              "enum": [
-                "run",
-                "local",
-                "workspace"
-              ]
-            },
-            "retention_class": {
-              "type": "string",
-              "minLength": 1
-            },
-            "expires_at": {
-              "type": "string",
-              "format": "date-time"
-            },
-            "availability_evidence_cid": {
-              "type": "string",
-              "pattern": "^sha256:[0-9a-f]{64}$"
-            },
-            "source_resource_ref": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "$actql_ref",
-                "version",
-                "resource_kind",
-                "provider_namespace",
-                "provider_identity_cid",
-                "authority_scope_cid",
-                "boundary_cid",
-                "identity_cid"
-              ],
-              "properties": {
-                "$actql_ref": {
-                  "const": "resource"
-                },
-                "version": {
-                  "const": "actql-resource-ref/0.1"
-                },
-                "resource_kind": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "provider_namespace": {
-                  "type": "string",
-                  "minLength": 1
-                },
-                "provider_identity_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[0-9a-f]{64}$"
-                },
-                "authority_scope_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[0-9a-f]{64}$"
-                },
-                "boundary_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[0-9a-f]{64}$"
-                },
-                "identity_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[0-9a-f]{64}$"
-                }
-              }
-            },
-            "source_version": {
-              "type": "string"
-            },
-            "source_etag": {
-              "type": "string"
-            },
-            "byte_range": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "start",
-                "end_exclusive"
-              ],
-              "properties": {
-                "start": {
-                  "type": "integer",
-                  "minimum": 0
-                },
-                "end_exclusive": {
-                  "type": "integer",
-                  "minimum": 0
-                }
-              }
-            },
-            "truncated": {
-              "type": "boolean"
-            },
-            "data_classification": {
-              "enum": [
-                "public",
-                "internal",
-                "confidential",
-                "restricted",
-                "unknown"
-              ]
-            },
-            "effective_data_policy_cid": {
-              "type": "string",
-              "pattern": "^sha256:[0-9a-f]{64}$"
-            },
-            "capture_authority": {
-              "enum": [
-                "read_content",
-                "read_binary"
-              ]
-            },
-            "issuer_evidence": {
-              "type": "object",
-              "additionalProperties": false,
-              "required": [
-                "version",
-                "issuer_kind",
-                "issuer_contract_cid",
-                "artifact_store_cid",
-                "workspace_scope_cid",
-                "content_cid",
-                "effective_data_policy_cid",
-                "capture_authority_cid",
-                "evidence_cid"
-              ],
-              "properties": {
-                "version": {
-                  "const": "actql-artifact-issuer-evidence/0.1"
-                },
-                "issuer_kind": {
-                  "enum": [
-                    "connector_capture",
-                    "artifact_derivation"
-                  ]
-                },
-                "issuer_contract_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[0-9a-f]{64}$"
-                },
-                "artifact_store_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[0-9a-f]{64}$"
-                },
-                "workspace_scope_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[0-9a-f]{64}$"
-                },
-                "content_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[0-9a-f]{64}$"
-                },
-                "effective_data_policy_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[0-9a-f]{64}$"
-                },
-                "capture_authority_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[0-9a-f]{64}$"
-                },
-                "evidence_cid": {
-                  "type": "string",
-                  "pattern": "^sha256:[0-9a-f]{64}$"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "artifact_availability_evidence": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "version",
-        "artifact_ref_cid",
-        "artifact_store_cid",
-        "content_cid",
-        "size_bytes",
-        "issuance_availability_evidence_cid",
-        "state",
-        "checked_at",
-        "valid_until",
-        "evidence_cid"
-      ],
-      "properties": {
-        "version": {
-          "const": "actql-artifact-availability-evidence/0.1"
-        },
-        "artifact_ref_cid": {
-          "type": "string",
-          "pattern": "^sha256:[0-9a-f]{64}$"
-        },
-        "artifact_store_cid": {
-          "type": "string",
-          "pattern": "^sha256:[0-9a-f]{64}$"
-        },
-        "content_cid": {
-          "type": "string",
-          "pattern": "^sha256:[0-9a-f]{64}$"
-        },
-        "size_bytes": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "issuance_availability_evidence_cid": {
-          "type": "string",
-          "pattern": "^sha256:[0-9a-f]{64}$"
-        },
-        "state": {
-          "const": "available"
-        },
-        "checked_at": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "valid_until": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "evidence_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
         }
@@ -5414,7 +5130,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -6348,7 +6064,7 @@
                       "type": "boolean"
                     },
                     "type": {
-                      "const": "artifact_ref"
+                      "const": "content_ref"
                     }
                   },
                   "required": [
@@ -8361,7 +8077,7 @@
                   "type": "boolean"
                 },
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 }
               },
               "required": [
@@ -9710,7 +9426,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -10643,7 +10359,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -10655,6 +10371,290 @@
               }
             }
           ]
+        }
+      }
+    },
+    "content_ref": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "$actql_ref",
+        "version",
+        "media_type",
+        "metadata",
+        "content_ref_cid"
+      ],
+      "properties": {
+        "$actql_ref": {
+          "const": "content"
+        },
+        "version": {
+          "const": "actql-content-ref/0.1"
+        },
+        "media_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content_ref_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "content_store_id",
+            "content_cid",
+            "media_type",
+            "size_bytes",
+            "storage_scope",
+            "retention_class",
+            "availability_evidence_cid",
+            "truncated",
+            "capture_authority",
+            "data_classification",
+            "effective_data_policy_cid",
+            "issuer_evidence"
+          ],
+          "properties": {
+            "content_store_id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "content_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "media_type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "size_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "storage_scope": {
+              "enum": [
+                "run",
+                "local",
+                "workspace"
+              ]
+            },
+            "retention_class": {
+              "type": "string",
+              "minLength": 1
+            },
+            "expires_at": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "availability_evidence_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "source_resource_ref": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "$actql_ref",
+                "version",
+                "resource_kind",
+                "provider_namespace",
+                "provider_identity_cid",
+                "authority_scope_cid",
+                "boundary_cid",
+                "identity_cid"
+              ],
+              "properties": {
+                "$actql_ref": {
+                  "const": "resource"
+                },
+                "version": {
+                  "const": "actql-resource-ref/0.1"
+                },
+                "resource_kind": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "provider_namespace": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "provider_identity_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "authority_scope_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "boundary_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "identity_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            },
+            "source_version": {
+              "type": "string"
+            },
+            "source_etag": {
+              "type": "string"
+            },
+            "byte_range": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "start",
+                "end_exclusive"
+              ],
+              "properties": {
+                "start": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "end_exclusive": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "truncated": {
+              "type": "boolean"
+            },
+            "data_classification": {
+              "enum": [
+                "public",
+                "internal",
+                "confidential",
+                "restricted",
+                "unknown"
+              ]
+            },
+            "effective_data_policy_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            },
+            "capture_authority": {
+              "enum": [
+                "read_content",
+                "read_binary"
+              ]
+            },
+            "issuer_evidence": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "version",
+                "issuer_kind",
+                "issuer_contract_cid",
+                "content_store_cid",
+                "workspace_scope_cid",
+                "content_cid",
+                "effective_data_policy_cid",
+                "capture_authority_cid",
+                "evidence_cid"
+              ],
+              "properties": {
+                "version": {
+                  "const": "actql-content-issuer-evidence/0.1"
+                },
+                "issuer_kind": {
+                  "enum": [
+                    "connector_capture",
+                    "content_derivation"
+                  ]
+                },
+                "issuer_contract_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "content_store_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "workspace_scope_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "content_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "effective_data_policy_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "capture_authority_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "evidence_cid": {
+                  "type": "string",
+                  "pattern": "^sha256:[0-9a-f]{64}$"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "content_availability_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "content_ref_cid",
+        "content_store_cid",
+        "content_cid",
+        "size_bytes",
+        "issuance_availability_evidence_cid",
+        "state",
+        "checked_at",
+        "valid_until",
+        "evidence_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-content-availability-evidence/0.1"
+        },
+        "content_ref_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "content_store_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "content_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "issuance_availability_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "state": {
+          "const": "available"
+        },
+        "checked_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "valid_until": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
         }
       }
     },
@@ -11626,7 +11626,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -12556,7 +12556,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -13595,7 +13595,7 @@
               ],
               "properties": {
                 "type": {
-                  "const": "artifact_ref"
+                  "const": "content_ref"
                 },
                 "nullable": {
                   "type": "boolean"
@@ -13635,27 +13635,27 @@
       ]
     }
   },
-  "artifact_registry_cid": "sha256:c15a147e530a905ca0ac1e079b3c547fa926550e8205181d50b01db194f8ef56",
+  "artifact_registry_cid": "sha256:7895903e60340ba1bb02efdac260bc02cdbb2ddd681d2751ea0f3ddd6bc101a5",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
     "invocation_bindings": "sha256:6471878465e3cf6c4af4bd7d2c161d578ab861770ec6a893c7e0de116dadbd41",
     "bound_invocation_template": "sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7",
     "source_evidence": "sha256:434d2f1c97a9721e01d5eb614577d8620bc3662e2b5b3b05bdecb3029d2eafa6",
-    "observation_set": "sha256:627f88eeb134771cfa81e24419845fbe76bc4a61b4f9c81da3cff48aa3fc5719",
+    "observation_set": "sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
-    "executable_plan": "sha256:a01d7a60405f4a069d39e4197527ed617ff01e6ceecefdd54dcb9df4daaf4d10",
+    "executable_plan": "sha256:17dce64a7870981c6e3325c69baf3f6264f3089974074754924a1b7bad62a3b1",
     "result_plan": "sha256:d3648145cdf5de94730ce57ae3a35efa84812bdc67b5416137913550bee248c5",
     "plan_fact_manifest": "sha256:a1721f59df9a56e9d78c0e9722c9eab725e0a02bb015da620fe41491c7b578bb",
     "normalization_journal": "sha256:485ccc0d3215dfc0d9f13101dbc7bc0d4a72b8eb28a346ab8122cafd635ae6f0",
-    "effect_preview": "sha256:97d9ea83f6ad1abfa9eaf21c7c22c75652dba20f0a928ed568010162b471a8a5",
-    "review_projection": "sha256:7585ae7f6737a8a0a196df98e64f496fbca271c910840f1116f6d7990caf39fb",
+    "effect_preview": "sha256:821609c0cc04ef0ca1b0760a1864673e4fa70a3709af5d33e37e5177477d2f3a",
+    "review_projection": "sha256:454fb9ff461949542c38af133e210912e3e9e4260e53a2dc25ae3de7b42160d2",
     "approval_attestation": "sha256:482ee09bcbed57fd19edd49e01d81882a3bbeb398ea9176c09e1717883a21ba9",
     "effect_apply_receipt": "sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62",
     "effect_set_apply_receipt": "sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb",
     "effect_reconciliation_receipt": "sha256:abcfcc932af4c63ae91e9670d0cd41d2cd23a0e3bec25044cfa018cd2b5f3fb2",
-    "run_receipt": "sha256:15fc852a55288e801b64eccd756bb9d82a6cd0c3c65e6116505b27bbdc32523a",
+    "run_receipt": "sha256:98d9a727e977009817027e7e88aa510127d1275a24a0f4baec866b7e5ebb7847",
     "runtime_error": "sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d",
     "execution_context": "sha256:49bb0acf26e64ffc1d0802b03b251f27476732ad28c80f0c89b35c5cbf5734b2",
     "run_policy": "sha256:d1c763d2ba8357fd33fa41afd690eed8088a310e4640fa615907c4866a125db6",
@@ -13669,10 +13669,10 @@
     "verified_checkpoint_resolution": "sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76",
     "result_manifest": "sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02",
     "result_delivery_receipt": "sha256:d68ae5fbe6b23410b08b4419e5ebfa10eb61c38d61273360399e71ae2681de21",
-    "plan_document": "sha256:de6fd2435809739d7d234a882658f5dbbf2bd36f877bf30b18d1ec452db7ca1b",
-    "plan_result": "sha256:dd6343496e0673405ab47bcafe0cf38b2812601f6d84e95fd0232cc1f0320ec7",
+    "plan_document": "sha256:2637cd5d00773adb47009f785bf1d14e80193b6b26ba43685eb03802e2c9ef78",
+    "plan_result": "sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1",
     "run_state": "sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30",
-    "captured_run": "sha256:b46b747d9b40e7c3eaf4bc30806c7f048b96b9e957792e41453d3b66e67cb9e4",
+    "captured_run": "sha256:4d29468956029714f8d1cdab1f43f44ca682775f78b36ccda03b2b3fb908609a",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
@@ -13690,10 +13690,14 @@
     "model_prompt": "sha256:ce2b3c73852f55d01ccc9ed730c21ad6f3cb842fc6307e2dfa272fc2c3468204",
     "model_retry_policy": "sha256:e26acbe7a181ea10be4048fd38234c8cc024a92d88c3ca0d81b50a0a3648183c",
     "model_backoff": "sha256:412279763f2983707d5d3c9bc060dcfedb926044eedab39140aa385b6c93ab55",
-    "check_outcome": "sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f",
-    "check_reason": "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac",
+    "check_outcome": "sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a",
+    "check_reason": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742",
     "model_provider_binding": "sha256:a4a37e0016403b483aa267dca7aae6c682940d2b23343b95defbcac2a1ca92b3",
     "model_invocation_scope": "sha256:2ae55fd7143e29dc3468123dbea9979c65f0aeac9adc392098db87679ebf88c3",
+    "content_generation": "sha256:a8e96d9a2a9d9e721f69b30da117dc0cdeca4c864cb21747b5551a9853fe037c",
+    "content_input_artifact": "sha256:ed5b46909842901d4b9836e77d1d1c77caf65ef09b0f57ae44dc2668526b6775",
+    "model_media_input": "sha256:91f477f7af3bcf35e6d040b1d36e68476c6e06f480e36391ecd0ef903131bca7",
+    "model_attachment_admission": "sha256:2ff7c3d1a1480c83a0887c55b22a513ce6e5f9c40df2f961fd968015ba2cbca0",
     "decision_prompt": "sha256:dda24589bf95171a297fb7da656d4371b92a0db243065e77e4db160d975e4e38",
     "decision_answers": "sha256:9074415d38b503da958213551086f760cac638fecc5b422b6af591bfe3356ac2",
     "decision_probability_profile": "sha256:c1430ae14968435f40f7238506e9b603bf575ec462e5665bf3eac0fbc87523b3",
@@ -13704,7 +13708,8 @@
     "model_response_profile": "sha256:f44d7f923a662f2487ab1e87f8c5cf5872aa38c64e944e57470bb63dd819c7d7",
     "model_original_resource_state": "sha256:6be8dc0eec799400cb68173ac39ee88c49d9af80cabc762a62a8bdceddf778df",
     "model_journal_entry": "sha256:2be8611d08d277590783ff06299130c78170eb4de49b4d76d67a940d0e3fccb7",
-    "model_journal_settlement": "sha256:e5739efb68a1d6059c5d9c58cd74eabbc8ca28c071e81c2b1984d26e5125161b"
+    "model_journal_settlement": "sha256:e5739efb68a1d6059c5d9c58cd74eabbc8ca28c071e81c2b1984d26e5125161b",
+    "openai_chat_prompt": "sha256:c785e9b1efaefbf6a0c74c52bc103dd2e67eb774a9c2f860642007bce1e81a9a"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -15208,6 +15213,14 @@
             "type": "string",
             "pattern": "^sha256:[0-9a-f]{64}$"
           }
+        },
+        "content_generation_cids": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
         }
       }
     },
@@ -15615,7 +15628,7 @@
                   "kind": {
                     "enum": [
                       "acquisition_barrier",
-                      "artifact_barrier"
+                      "content_barrier"
                     ]
                   },
                   "node_id": {
@@ -29729,7 +29742,7 @@
                       ],
                       "properties": {
                         "type": {
-                          "const": "artifact_ref"
+                          "const": "content_ref"
                         },
                         "nullable": {
                           "type": "boolean"
@@ -32510,7 +32523,7 @@
                         ],
                         "properties": {
                           "type": {
-                            "const": "artifact_ref"
+                            "const": "content_ref"
                           },
                           "media_type": {
                             "type": "string",
@@ -42379,6 +42392,52 @@
                               "minimum": 0
                             }
                           }
+                        },
+                        {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "$actql_ref",
+                            "version",
+                            "resource_kind",
+                            "provider_namespace",
+                            "provider_identity_cid",
+                            "authority_scope_cid",
+                            "boundary_cid",
+                            "identity_cid"
+                          ],
+                          "properties": {
+                            "$actql_ref": {
+                              "const": "resource"
+                            },
+                            "version": {
+                              "const": "actql-resource-ref/0.1"
+                            },
+                            "resource_kind": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "provider_namespace": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "provider_identity_cid": {
+                              "type": "string",
+                              "pattern": "^sha256:[0-9a-f]{64}$"
+                            },
+                            "authority_scope_cid": {
+                              "type": "string",
+                              "pattern": "^sha256:[0-9a-f]{64}$"
+                            },
+                            "boundary_cid": {
+                              "type": "string",
+                              "pattern": "^sha256:[0-9a-f]{64}$"
+                            },
+                            "identity_cid": {
+                              "type": "string",
+                              "pattern": "^sha256:[0-9a-f]{64}$"
+                            }
+                          }
                         }
                       ]
                     },
@@ -42750,6 +42809,52 @@
                       "occurrence": {
                         "type": "integer",
                         "minimum": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "$actql_ref",
+                      "version",
+                      "resource_kind",
+                      "provider_namespace",
+                      "provider_identity_cid",
+                      "authority_scope_cid",
+                      "boundary_cid",
+                      "identity_cid"
+                    ],
+                    "properties": {
+                      "$actql_ref": {
+                        "const": "resource"
+                      },
+                      "version": {
+                        "const": "actql-resource-ref/0.1"
+                      },
+                      "resource_kind": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "provider_namespace": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "provider_identity_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "authority_scope_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "boundary_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "identity_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
                       }
                     }
                   }
@@ -44039,6 +44144,14 @@
                 "type": "string",
                 "pattern": "^sha256:[0-9a-f]{64}$"
               }
+            },
+            "content_generation_cids": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
             }
           }
         },
@@ -44450,7 +44563,8 @@
               "kind": {
                 "enum": [
                   "model_invocation",
-                  "source_lookup"
+                  "source_lookup",
+                  "content_generation"
                 ]
               },
               "evidence_cid": {
@@ -46690,7 +46804,7 @@
                       "kind": {
                         "enum": [
                           "acquisition_barrier",
-                          "artifact_barrier"
+                          "content_barrier"
                         ]
                       },
                       "node_id": {
@@ -60804,7 +60918,7 @@
                           ],
                           "properties": {
                             "type": {
-                              "const": "artifact_ref"
+                              "const": "content_ref"
                             },
                             "nullable": {
                               "type": "boolean"
@@ -63585,7 +63699,7 @@
                             ],
                             "properties": {
                               "type": {
-                                "const": "artifact_ref"
+                                "const": "content_ref"
                               },
                               "media_type": {
                                 "type": "string",
@@ -74502,7 +74616,7 @@
                             ],
                             "properties": {
                               "type": {
-                                "const": "artifact_ref"
+                                "const": "content_ref"
                               },
                               "media_type": {
                                 "type": "string",
@@ -75100,7 +75214,7 @@
                       "actql-infer/0.1",
                       "actql-text-time/0.1",
                       "actql-lookup/0.1",
-                      "actql-artifact/0.1"
+                      "actql-content/0.1"
                     ]
                   }
                 },
@@ -75117,7 +75231,7 @@
                       "actql-infer/0.1",
                       "actql-text-time/0.1",
                       "actql-lookup/0.1",
-                      "actql-artifact/0.1"
+                      "actql-content/0.1"
                     ]
                   }
                 },
@@ -75197,7 +75311,7 @@
                         "minLength": 1
                       }
                     },
-                    "actql-artifact/0.1": {
+                    "actql-content/0.1": {
                       "type": "array",
                       "minItems": 1,
                       "uniqueItems": true,
@@ -77252,7 +77366,7 @@
                             ],
                             "properties": {
                               "type": {
-                                "const": "artifact_ref"
+                                "const": "content_ref"
                               },
                               "media_type": {
                                 "type": "string",
@@ -77850,7 +77964,7 @@
                       "actql-infer/0.1",
                       "actql-text-time/0.1",
                       "actql-lookup/0.1",
-                      "actql-artifact/0.1"
+                      "actql-content/0.1"
                     ]
                   }
                 },
@@ -77867,7 +77981,7 @@
                       "actql-infer/0.1",
                       "actql-text-time/0.1",
                       "actql-lookup/0.1",
-                      "actql-artifact/0.1"
+                      "actql-content/0.1"
                     ]
                   }
                 },
@@ -77947,7 +78061,7 @@
                         "minLength": 1
                       }
                     },
-                    "actql-artifact/0.1": {
+                    "actql-content/0.1": {
                       "type": "array",
                       "minItems": 1,
                       "uniqueItems": true,
@@ -79230,6 +79344,14 @@
                     "type": "string",
                     "pattern": "^sha256:[0-9a-f]{64}$"
                   }
+                },
+                "content_generation_cids": {
+                  "type": "array",
+                  "uniqueItems": true,
+                  "items": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
                 }
               }
             },
@@ -79641,7 +79763,8 @@
                   "kind": {
                     "enum": [
                       "model_invocation",
-                      "source_lookup"
+                      "source_lookup",
+                      "content_generation"
                     ]
                   },
                   "evidence_cid": {
@@ -80460,6 +80583,534 @@
                   },
                   "body": {
                     "type": "object"
+                  }
+                }
+              }
+            },
+            "content_generations": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "content_evidence",
+                  "content_generation",
+                  "content_input_artifact",
+                  "content_reference",
+                  "invocation_template"
+                ],
+                "properties": {
+                  "content_evidence": {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "$id": "https://smooth.dev/schemas/actql-content-derivation-evidence-0.1.json",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "version",
+                      "barrier_cid",
+                      "barrier_input_artifact_cid",
+                      "content_cid",
+                      "content_ref_cid",
+                      "content_issuer_evidence_cid",
+                      "row_count",
+                      "byte_count",
+                      "media_type",
+                      "name",
+                      "effective_data_policy_cid",
+                      "evidence_cid"
+                    ],
+                    "properties": {
+                      "version": {
+                        "const": "actql-content-derivation-evidence/0.1"
+                      },
+                      "barrier_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$"
+                      },
+                      "barrier_input_artifact_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$"
+                      },
+                      "content_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$"
+                      },
+                      "content_ref_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$"
+                      },
+                      "content_issuer_evidence_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$"
+                      },
+                      "row_count": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "byte_count": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "media_type": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "effective_data_policy_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$"
+                      },
+                      "evidence_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[a-f0-9]{64}$"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    }
+                  },
+                  "content_generation": {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "$id": "https://smooth.dev/schemas/actql-content-generation-0.1.json",
+                    "title": "actql-content-generation-0.1",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "version",
+                      "bound_invocation_template_cid",
+                      "run_definition_cid",
+                      "node_id",
+                      "barrier_cid",
+                      "content_evidence_cid",
+                      "availability_evidence_cid",
+                      "content_store_cid",
+                      "workspace_scope_cid",
+                      "generation_cid"
+                    ],
+                    "properties": {
+                      "version": {
+                        "const": "actql-content-generation/0.1"
+                      },
+                      "bound_invocation_template_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "run_definition_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "node_id": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "barrier_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "content_evidence_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "availability_evidence_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "content_store_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "workspace_scope_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "generation_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    }
+                  },
+                  "content_input_artifact": {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "$id": "https://smooth.dev/schemas/actql-content-input-artifact-0.1.json",
+                    "title": "actql-content-input-artifact-0.1",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "version",
+                      "program_definition_cid",
+                      "parameter_values_cid",
+                      "invocation_bindings_cid",
+                      "task_ordinal",
+                      "step_ordinal",
+                      "input_fragment_cid",
+                      "logical_relation_cid",
+                      "relation_schema_cid",
+                      "ordered_rows_cid",
+                      "row_count",
+                      "effective_data_policy_cid",
+                      "input_artifact_cid"
+                    ],
+                    "properties": {
+                      "version": {
+                        "const": "actql-content-input-artifact/0.1"
+                      },
+                      "program_definition_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "parameter_values_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "invocation_bindings_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "task_ordinal": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 2147483647
+                      },
+                      "step_ordinal": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 2147483647
+                      },
+                      "input_fragment_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "logical_relation_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "relation_schema_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "ordered_rows_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "row_count": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 2147483647
+                      },
+                      "effective_data_policy_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "input_artifact_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    }
+                  },
+                  "content_reference": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "$actql_ref",
+                      "version",
+                      "media_type",
+                      "metadata",
+                      "content_ref_cid"
+                    ],
+                    "properties": {
+                      "$actql_ref": {
+                        "const": "content"
+                      },
+                      "version": {
+                        "const": "actql-content-ref/0.1"
+                      },
+                      "media_type": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "content_ref_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "metadata": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "content_store_id",
+                          "content_cid",
+                          "media_type",
+                          "size_bytes",
+                          "storage_scope",
+                          "retention_class",
+                          "availability_evidence_cid",
+                          "truncated",
+                          "capture_authority",
+                          "data_classification",
+                          "effective_data_policy_cid",
+                          "issuer_evidence"
+                        ],
+                        "properties": {
+                          "content_store_id": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "content_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "media_type": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "size_bytes": {
+                            "type": "integer",
+                            "minimum": 0
+                          },
+                          "storage_scope": {
+                            "enum": [
+                              "run",
+                              "local",
+                              "workspace"
+                            ]
+                          },
+                          "retention_class": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "expires_at": {
+                            "type": "string",
+                            "format": "date-time"
+                          },
+                          "availability_evidence_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "source_resource_ref": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "$actql_ref",
+                              "version",
+                              "resource_kind",
+                              "provider_namespace",
+                              "provider_identity_cid",
+                              "authority_scope_cid",
+                              "boundary_cid",
+                              "identity_cid"
+                            ],
+                            "properties": {
+                              "$actql_ref": {
+                                "const": "resource"
+                              },
+                              "version": {
+                                "const": "actql-resource-ref/0.1"
+                              },
+                              "resource_kind": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "provider_namespace": {
+                                "type": "string",
+                                "minLength": 1
+                              },
+                              "provider_identity_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "authority_scope_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "boundary_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "identity_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              }
+                            }
+                          },
+                          "source_version": {
+                            "type": "string"
+                          },
+                          "source_etag": {
+                            "type": "string"
+                          },
+                          "byte_range": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "start",
+                              "end_exclusive"
+                            ],
+                            "properties": {
+                              "start": {
+                                "type": "integer",
+                                "minimum": 0
+                              },
+                              "end_exclusive": {
+                                "type": "integer",
+                                "minimum": 0
+                              }
+                            }
+                          },
+                          "truncated": {
+                            "type": "boolean"
+                          },
+                          "data_classification": {
+                            "enum": [
+                              "public",
+                              "internal",
+                              "confidential",
+                              "restricted",
+                              "unknown"
+                            ]
+                          },
+                          "effective_data_policy_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "capture_authority": {
+                            "enum": [
+                              "read_content",
+                              "read_binary"
+                            ]
+                          },
+                          "issuer_evidence": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "version",
+                              "issuer_kind",
+                              "issuer_contract_cid",
+                              "content_store_cid",
+                              "workspace_scope_cid",
+                              "content_cid",
+                              "effective_data_policy_cid",
+                              "capture_authority_cid",
+                              "evidence_cid"
+                            ],
+                            "properties": {
+                              "version": {
+                                "const": "actql-content-issuer-evidence/0.1"
+                              },
+                              "issuer_kind": {
+                                "enum": [
+                                  "connector_capture",
+                                  "content_derivation"
+                                ]
+                              },
+                              "issuer_contract_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "content_store_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "workspace_scope_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "content_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "effective_data_policy_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "capture_authority_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "evidence_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "invocation_template": {
+                    "$schema": "https://json-schema.org/draft/2020-12/schema",
+                    "$id": "https://smooth.dev/schemas/actql-bound-invocation-template-0.1.json",
+                    "title": "actql-bound-invocation-template-0.1",
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "version",
+                      "program_definition_cid",
+                      "parameter_values_cid",
+                      "invocation_bindings_cid",
+                      "check_environment_cid",
+                      "grammar_manifest_cid",
+                      "required_profile_contracts",
+                      "barrier_contract_manifest_cid",
+                      "source_evidence",
+                      "bound_invocation_template_cid"
+                    ],
+                    "properties": {
+                      "version": {
+                        "const": "actql-bound-invocation-template/0.1"
+                      },
+                      "program_definition_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "parameter_values_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "invocation_bindings_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "check_environment_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "grammar_manifest_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "required_profile_contracts": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "profile_id",
+                            "contract_cid"
+                          ],
+                          "properties": {
+                            "profile_id": {
+                              "type": "string",
+                              "minLength": 1
+                            },
+                            "contract_cid": {
+                              "type": "string",
+                              "pattern": "^sha256:[0-9a-f]{64}$"
+                            }
+                          }
+                        }
+                      },
+                      "barrier_contract_manifest_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      },
+                      "source_evidence": {
+                        "const": "unbound"
+                      },
+                      "bound_invocation_template_cid": {
+                        "type": "string",
+                        "pattern": "^sha256:[0-9a-f]{64}$"
+                      }
+                    }
                   }
                 }
               }
@@ -82351,7 +83002,7 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "artifact_ref"
+                                  "content_ref"
                                 ]
                               },
                               "actual_type": {
@@ -82368,7 +83019,7 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "artifact_ref"
+                                  "content_ref"
                                 ]
                               }
                             }
@@ -82400,7 +83051,7 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "artifact_ref"
+                                  "content_ref"
                                 ]
                               },
                               "admission": {
@@ -82415,7 +83066,7 @@
                                 ],
                                 "properties": {
                                   "contract_schema_cid": {
-                                    "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                                    "const": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
                                   },
                                   "kind": {
                                     "const": "parameter_declaration"
@@ -82785,10 +83436,10 @@
                             ],
                             "properties": {
                               "contract_cid": {
-                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                                "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                               },
                               "schema_cid": {
-                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                                "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                               },
                               "schema_pointer": {
                                 "const": "/schema"
@@ -83041,10 +83692,10 @@
                               ],
                               "properties": {
                                 "contract_cid": {
-                                  "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                                  "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                                 },
                                 "schema_cid": {
-                                  "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                                  "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                                 },
                                 "schema_pointer": {
                                   "const": "/schema"
@@ -84239,7 +84890,7 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "artifact_ref"
+                                  "content_ref"
                                 ]
                               },
                               "actual_type": {
@@ -84256,7 +84907,7 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "artifact_ref"
+                                  "content_ref"
                                 ]
                               }
                             }
@@ -84288,7 +84939,7 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "artifact_ref"
+                                  "content_ref"
                                 ]
                               },
                               "admission": {
@@ -84303,7 +84954,7 @@
                                 ],
                                 "properties": {
                                   "contract_schema_cid": {
-                                    "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                                    "const": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
                                   },
                                   "kind": {
                                     "const": "parameter_declaration"
@@ -84673,10 +85324,10 @@
                             ],
                             "properties": {
                               "contract_cid": {
-                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                                "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                               },
                               "schema_cid": {
-                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                                "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                               },
                               "schema_pointer": {
                                 "const": "/schema"
@@ -84929,10 +85580,10 @@
                               ],
                               "properties": {
                                 "contract_cid": {
-                                  "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                                  "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                                 },
                                 "schema_cid": {
-                                  "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                                  "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                                 },
                                 "schema_pointer": {
                                   "const": "/schema"
@@ -85930,7 +86581,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac"
+              "const": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -86531,7 +87182,7 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "artifact_ref"
+                                  "content_ref"
                                 ]
                               },
                               "actual_type": {
@@ -86548,7 +87199,7 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "artifact_ref"
+                                  "content_ref"
                                 ]
                               }
                             }
@@ -86580,7 +87231,7 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "artifact_ref"
+                                  "content_ref"
                                 ]
                               },
                               "admission": {
@@ -86595,7 +87246,7 @@
                                 ],
                                 "properties": {
                                   "contract_schema_cid": {
-                                    "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                                    "const": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
                                   },
                                   "kind": {
                                     "const": "parameter_declaration"
@@ -86965,10 +87616,10 @@
                             ],
                             "properties": {
                               "contract_cid": {
-                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                                "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                               },
                               "schema_cid": {
-                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                                "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                               },
                               "schema_pointer": {
                                 "const": "/schema"
@@ -87221,10 +87872,10 @@
                               ],
                               "properties": {
                                 "contract_cid": {
-                                  "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                                  "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                                 },
                                 "schema_cid": {
-                                  "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                                  "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                                 },
                                 "schema_pointer": {
                                   "const": "/schema"
@@ -88419,7 +89070,7 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "artifact_ref"
+                                  "content_ref"
                                 ]
                               },
                               "actual_type": {
@@ -88436,7 +89087,7 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "artifact_ref"
+                                  "content_ref"
                                 ]
                               }
                             }
@@ -88468,7 +89119,7 @@
                                   "json",
                                   "vector",
                                   "resource_ref",
-                                  "artifact_ref"
+                                  "content_ref"
                                 ]
                               },
                               "admission": {
@@ -88483,7 +89134,7 @@
                                 ],
                                 "properties": {
                                   "contract_schema_cid": {
-                                    "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                                    "const": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
                                   },
                                   "kind": {
                                     "const": "parameter_declaration"
@@ -88853,10 +89504,10 @@
                             ],
                             "properties": {
                               "contract_cid": {
-                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                                "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                               },
                               "schema_cid": {
-                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                                "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                               },
                               "schema_pointer": {
                                 "const": "/schema"
@@ -89109,10 +89760,10 @@
                               ],
                               "properties": {
                                 "contract_cid": {
-                                  "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                                  "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                                 },
                                 "schema_cid": {
-                                  "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                                  "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                                 },
                                 "schema_pointer": {
                                   "const": "/schema"
@@ -90128,7 +90779,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac"
+              "const": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -90174,7 +90825,7 @@
               "pattern": "^sha256:[0-9a-f]{64}$"
             },
             "reason_schema_cid": {
-              "const": "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac"
+              "const": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
             },
             "version": {
               "const": "actql-check-outcome/0.1"
@@ -90389,7 +91040,7 @@
                     "json",
                     "vector",
                     "resource_ref",
-                    "artifact_ref"
+                    "content_ref"
                   ]
                 },
                 "actual_type": {
@@ -90406,7 +91057,7 @@
                     "json",
                     "vector",
                     "resource_ref",
-                    "artifact_ref"
+                    "content_ref"
                   ]
                 }
               }
@@ -90438,7 +91089,7 @@
                     "json",
                     "vector",
                     "resource_ref",
-                    "artifact_ref"
+                    "content_ref"
                   ]
                 },
                 "admission": {
@@ -90453,7 +91104,7 @@
                   ],
                   "properties": {
                     "contract_schema_cid": {
-                      "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                      "const": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
                     },
                     "kind": {
                       "const": "parameter_declaration"
@@ -90823,10 +91474,10 @@
               ],
               "properties": {
                 "contract_cid": {
-                  "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                  "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                 },
                 "schema_cid": {
-                  "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                  "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                 },
                 "schema_pointer": {
                   "const": "/schema"
@@ -91079,10 +91730,10 @@
                 ],
                 "properties": {
                   "contract_cid": {
-                    "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                    "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                   },
                   "schema_cid": {
-                    "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                    "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                   },
                   "schema_pointer": {
                     "const": "/schema"
@@ -92194,6 +92845,383 @@
             "context_cid": {
               "type": "string",
               "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "content_generation": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-content-generation-0.1.json",
+      "title": "actql-content-generation-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "bound_invocation_template_cid",
+        "run_definition_cid",
+        "node_id",
+        "barrier_cid",
+        "content_evidence_cid",
+        "availability_evidence_cid",
+        "content_store_cid",
+        "workspace_scope_cid",
+        "generation_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-content-generation/0.1"
+        },
+        "bound_invocation_template_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "run_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "node_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "barrier_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "content_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "availability_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "content_store_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "workspace_scope_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "generation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "content_input_artifact": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "$id": "https://smooth.dev/schemas/actql-content-input-artifact-0.1.json",
+      "title": "actql-content-input-artifact-0.1",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "program_definition_cid",
+        "parameter_values_cid",
+        "invocation_bindings_cid",
+        "task_ordinal",
+        "step_ordinal",
+        "input_fragment_cid",
+        "logical_relation_cid",
+        "relation_schema_cid",
+        "ordered_rows_cid",
+        "row_count",
+        "effective_data_policy_cid",
+        "input_artifact_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-content-input-artifact/0.1"
+        },
+        "program_definition_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "parameter_values_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "invocation_bindings_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "task_ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "step_ordinal": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "input_fragment_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "logical_relation_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "relation_schema_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "ordered_rows_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "row_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "effective_data_policy_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "input_artifact_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "model_media_input": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "payload",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-media-input/0.1"
+        },
+        "payload": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "media_type",
+            "max_bytes",
+            "max_pages",
+            "max_frames",
+            "complete",
+            "transfer_method",
+            "classifications",
+            "regions",
+            "egress_scope_cid"
+          ],
+          "properties": {
+            "media_type": {
+              "type": "string",
+              "minLength": 1
+            },
+            "max_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "max_pages": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "max_frames": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "complete": {
+              "const": true
+            },
+            "transfer_method": {
+              "const": "inline_bytes"
+            },
+            "classifications": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "regions": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "egress_scope_cid": {
+              "type": "string",
+              "pattern": "^sha256:[0-9a-f]{64}$"
+            }
+          }
+        },
+        "self_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    },
+    "model_attachment_admission": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "slot_cid",
+        "model_task_cid",
+        "fixed_request_cid",
+        "authority_evidence_cid",
+        "attachments",
+        "self_cid"
+      ],
+      "properties": {
+        "version": {
+          "const": "actql-model-attachment-admission/0.1"
+        },
+        "slot_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "model_task_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "fixed_request_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "authority_evidence_cid": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "attachments": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "item",
+              "content_ref_cid",
+              "content_cid",
+              "media_input_cid",
+              "policy_cid",
+              "media_type",
+              "size_bytes",
+              "classification",
+              "region",
+              "egress_scope_cid",
+              "pages",
+              "frames",
+              "complete",
+              "transfer_method"
+            ],
+            "properties": {
+              "role": {
+                "type": "string",
+                "minLength": 1
+              },
+              "item": {
+                "type": "integer",
+                "minimum": -1,
+                "maximum": 9007199254740991
+              },
+              "content_ref_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "content_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "media_input_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "policy_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "media_type": {
+                "type": "string",
+                "minLength": 1
+              },
+              "size_bytes": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9007199254740991
+              },
+              "classification": {
+                "type": "string",
+                "minLength": 1
+              },
+              "region": {
+                "type": "string",
+                "minLength": 1
+              },
+              "egress_scope_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "pages": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "frames": {
+                "anyOf": [
+                  {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 9007199254740991
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "complete": {
+                "const": true
+              },
+              "transfer_method": {
+                "const": "inline_bytes"
+              }
             }
           }
         },
@@ -96101,6 +97129,22 @@
           }
         }
       ]
+    },
+    "openai_chat_prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "instructions"
+      ],
+      "properties": {
+        "format": {
+          "const": "actql.openai_chat_prompt/0.1"
+        },
+        "instructions": {
+          "type": "string"
+        }
+      }
     }
   }
 }

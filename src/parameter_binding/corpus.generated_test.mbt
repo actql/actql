@@ -216,7 +216,7 @@ test "parameter corpus: nested-meta-forbidden" {
 
 ///|
 test "parameter corpus: ref-forbidden" {
-  let d = @parameter_binding.read_declarations(Some(cursor("{\"x\":{\"type\":\"artifact_ref\"}}")), limits())
+  let d = @parameter_binding.read_declarations(Some(cursor("{\"x\":{\"type\":\"content_ref\"}}")), limits())
   let result = match d { Ok(d) => @parameter_binding.bind(d, Some(cursor("{\"x\":{}}")), values_limit()); Err(e) => Err(e) }
   assert_eq(outcome(result), "UnknownType")
 }

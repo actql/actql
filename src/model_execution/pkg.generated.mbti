@@ -9,6 +9,7 @@ import {
   "actql/actql/physical_resources",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
+  "actql/actql/sha256",
   "actql/actql/value_admission",
   "moonbitlang/core/debug",
 }
@@ -42,6 +43,8 @@ pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@
 
 pub fn advance_model_reconciled_raw_usage(ModelPhysicalCall, ModelPhysicalChatResponse, Int) -> Result[(Bool, Int64), ModelExecutionIssue]
 
+pub fn advance_openai_chat_projection(OpenAIChatProjection) -> Result[(String, String, String, String, String, String, String)?, OpenAIChatProjectionIssue]
+
 pub fn bind_prepared_model_dispatch(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> Bool) -> Result[Unit, ModelExecutionIssue]
 
 pub fn bind_prepared_model_entry_persistence(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> ModelCallEntryPersistence?) -> Result[Unit, ModelExecutionIssue]
@@ -70,11 +73,13 @@ pub fn cleanup_original_model_startup(OriginalModelStartup) -> Result[Bool, Mode
 
 pub fn complete_model_output(ModelOutputPreparation) -> Result[@execution_relation.CompletedOutput, ModelExecutionIssue]
 
+pub fn finish_model_content_bytes(ModelContentByteCheck) -> Result[ModelContentAdmission, ModelContentIssue]
+
 pub fn install_async_model_provider(String) -> Result[ModelProvider, ModelExecutionIssue]
 
 pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelProvider, ModelExecutionIssue]
 
-pub fn model_async_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (ModelCallEntry) -> ModelPhysicalCall?, evidence? : ModelPhysicalRequestEvidence) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
+pub fn model_async_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (ModelCallEntry) -> ModelPhysicalCall?, evidence? : ModelPhysicalRequestEvidence, attachments? : Array[ModelContentAdmission]) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
 pub fn model_attempt_accounting(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue
 
@@ -104,6 +109,12 @@ pub fn model_capture_export_response_pending(ModelCaptureExport) -> Bool
 
 pub fn model_cleanup_progress(ModelExecution) -> Int
 
+pub fn model_content_admission_current(ModelContentAdmission) -> Bool
+
+pub fn model_content_input(AdmittedModelProvider, ModelRequest, String, Int) -> Result[ModelContentInput?, ModelContentIssue]
+
+pub fn model_content_input_description(ModelContentInput) -> (String, String, String, Int64, String)
+
 pub fn model_evaluation_request(ModelExecution, Int) -> (ModelRequest, ModelPhysicalRequestEvidence)?
 
 pub fn model_execution_attempt_evidence(ModelExecution, Int) -> Result[ModelAttemptEvidence, ModelExecutionIssue]
@@ -111,6 +122,8 @@ pub fn model_execution_attempt_evidence(ModelExecution, Int) -> Result[ModelAtte
 pub fn model_execution_has_adopted_evidence(ModelExecution) -> Bool
 
 pub fn model_execution_invocation_evidence(ModelExecution, Int) -> @run_publication.RunEvidenceValue?
+
+pub fn model_execution_issued_attachment_admission(ModelExecution, Int) -> Result[@run_publication.RunEvidenceValue?, ModelExecutionIssue]
 
 pub fn model_execution_issued_slot_capture(ModelExecution, Int) -> Result[@run_publication.RunEvidenceValue, ModelExecutionIssue]
 
@@ -154,7 +167,7 @@ pub fn model_physical_call_for_request(ModelCallEntry, ModelRequest, () -> Model
 
 pub fn model_physical_observation_facts(ModelPhysicalObservation) -> (Int, String, String, String)
 
-pub fn model_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, () -> Result[ModelResponse, ModelProviderFailure], evidence? : ModelPhysicalRequestEvidence) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
+pub fn model_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, () -> Result[ModelResponse, ModelProviderFailure], evidence? : ModelPhysicalRequestEvidence, attachments? : Array[ModelContentAdmission]) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
 pub fn model_provider_synchronous_invoke(ModelProvider) -> ((ModelRequest) -> Result[ModelResponse, ModelProviderFailure])?
 
@@ -171,6 +184,8 @@ pub fn model_saved_raw_receipt_matches(ModelSavedRawReceipt, ModelPhysicalCall, 
 pub fn model_slot_replay_count(ModelSlotReplayRead) -> Int?
 
 pub fn observe_model_raw_capture(ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, String, Int, Int, Bool, String) -> Result[ModelRawCaptureSave, ModelRawCaptureSaveIssue]
+
+pub fn openai_chat_projection_work(OpenAIChatProjection) -> Int
 
 pub fn poll_model_call_entry_persistence(ModelCallEntryPersistence, ModelCallEntry, ModelPreparedCallSet) -> Result[ModelEntryPersistenceObservation, ModelExecutionIssue]
 
@@ -202,6 +217,8 @@ pub fn prepared_model_request(ModelPreparedCallSet, Int) -> ModelRequest?
 
 pub fn prepared_model_scope(ModelPreparedCallSet) -> @run_publication.BoundModelInvocationScope?
 
+pub fn project_openai_chat_request(AdmittedModelProvider, ModelRequest, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String), OpenAIChatProjectionIssue]
+
 pub fn read_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
 
 pub fn read_verified_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Array[ModelAttemptRecords], @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
@@ -228,17 +245,23 @@ pub fn retain_model_slot_replay(ModelSlotReplayRead) -> ModelSlotReplayRead?
 
 pub fn retain_verified_model_capture(VerifiedModelCapture) -> VerifiedModelCapture?
 
+pub fn retire_openai_chat_projection(OpenAIChatProjection) -> Unit
+
 pub fn start_model_call_settlement_export(ModelCallSettlement, ModelCaptureExportLimits) -> Result[ModelCaptureExport, ModelExecutionIssue]
 
 pub fn start_model_capture_export(VerifiedModelCapture, ModelCaptureExportLimits) -> Result[ModelCaptureExport, ModelExecutionIssue]
 
 pub fn start_model_capture_replay(@execution_relation.PreparedInferRows, @run_publication_host.ClientInferCallScope, VerifiedModelCapture, ModelExecutionLimits) -> Result[ModelExecution, ModelExecutionIssue]
 
+pub fn start_model_content_byte_check(ModelContentInput, String, String, Int64?, Int64?, () -> Bool) -> Result[ModelContentByteCheck, ModelContentIssue]
+
 pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, call_scope? : @run_publication_host.ClientInferCallScope?, dispatch_admission? : @run_publication_host.ClientInferDispatchAdmission?, quantity_capacity? : ModelQuantityCapacity?, physical_preflight? : ((ModelRequest) -> Result[ModelRequestPreflight, ModelExecutionIssue])?, egress_admission? : @run_publication_host.ClientInferEgressAdmission?, durable_calls? : Bool, send_mask? : Array[Bool]?) -> Result[ModelExecution, ModelExecutionIssue]
 
 pub fn start_model_observation_verification(VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], ModelObservationVerificationLimits) -> Result[ModelObservationVerification, ModelExecutionIssue]
 
 pub fn start_model_output_preparation(ModelExecution, @execution_relation.CompletionPreparation, Int, @execution_relation.ValueLimits, Int, Int) -> Result[ModelOutputPreparation, ModelExecutionIssue]
+
+pub fn start_openai_chat_projection(AdmittedModelProvider, ModelRequest, Int, Int, Int, Int, Int) -> Result[OpenAIChatProjection, OpenAIChatProjectionIssue]
 
 pub fn start_original_model_execution(OriginalModelStartup, @execution_relation.PreparedInferRows, ModelProvider, String, ModelExecutionLimits, @run_publication_host.ClientInferCallScope, dispatch_admission? : @run_publication_host.ClientInferDispatchAdmission?, quantity_capacity? : ModelQuantityCapacity?, physical_preflight? : ((ModelRequest) -> Result[ModelRequestPreflight, ModelExecutionIssue])?, egress_admission? : @run_publication_host.ClientInferEgressAdmission?, durable_calls? : Bool, send_mask? : Array[Bool]?) -> Result[ModelExecution, ModelExecutionIssue]
 
@@ -249,6 +272,8 @@ pub fn start_restored_model_slot_replay(@execution_relation.PreparedInferRows, @
 pub fn stopped_model_attempt_count(ModelExecution) -> Int?
 
 pub fn stopped_model_attempt_slot(ModelExecution, Int) -> Int?
+
+pub fn update_model_content_bytes(ModelContentByteCheck, Bytes) -> Result[Int, ModelContentIssue]
 
 pub fn verified_model_capture_call_at(VerifiedModelCapture, Int) -> @run_publication.RunEvidenceValue?
 
@@ -338,6 +363,57 @@ pub(all) struct ModelCaptureExportLimits {
   max_work : Int
 }
 
+pub struct ModelContentAdmission {
+  input : ModelContentInput
+  current : () -> Bool
+  region : String
+  egress_scope_cid : String
+  pages : Int64?
+  frames : Int64?
+}
+
+pub struct ModelContentByteCheck {
+  input : ModelContentInput
+  hasher : @sha256.Hasher
+  current : () -> Bool
+  region : String
+  egress_scope_cid : String
+  pages : Int64?
+  frames : Int64?
+  mut bytes : Int64
+  mut closed : Bool
+}
+
+pub struct ModelContentInput {
+  request : ModelRequest
+  role : String
+  item : Int
+  reference : @value_admission.ReferenceValue
+  dependency : @check_environment.ModelDependency
+  media_type : String
+  content_cid : String
+  size_bytes : Int64
+  classification : String
+  policy_cid : String
+}
+
+pub(all) enum ModelContentIssue {
+  Request
+  Role
+  ReferenceUnavailable
+  Metadata
+  MediaType
+  ByteLimit
+  Classification
+  Region
+  EgressScope
+  PageLimit
+  FrameLimit
+  ChunkLimit
+  ContentIdentity
+  Closed
+} derive(Eq, @debug.Debug)
+
 pub(all) enum ModelEntryPersistenceObservation {
   Pending
   NotRecorded
@@ -360,6 +436,8 @@ pub(all) enum ModelExecutionIssue {
   InvalidProvider
   ItemLimit
   RequestIdentity
+  InputReferenceUnavailable
+  Content(ModelContentIssue)
   Provider(ModelProviderFailure)
   OutputValue
   OutputIdentity
@@ -483,6 +561,7 @@ pub struct ModelPhysicalRequestPlan {
   invocation : ModelPhysicalInvocation
   response_profile : @check_environment.ModelResponseProfile?
   evidence : ModelPhysicalRequestEvidence?
+  attachments : Array[ModelContentAdmission]
 }
 
 pub(all) struct ModelPhysicalResponse {
@@ -604,6 +683,14 @@ pub struct ModelSlotReplayRead {
 type ModelSlotReplayStorage
 
 type ModelState
+
+type OpenAIChatProjection
+
+pub(all) enum OpenAIChatProjectionIssue {
+  ForeignRequest
+  Unsupported
+  Limit
+} derive(Eq, @debug.Debug)
 
 type OriginalModelStartup
 

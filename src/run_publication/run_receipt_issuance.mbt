@@ -150,6 +150,7 @@ pub fn issue_effect_free_run_receipt(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  content_generations? : Array[BoundContentGeneration] = [],
 ) -> Result[PublicationContract, RunReceiptIssuanceIssue] {
   if run_definition.name != "run_definition" ||
     invocation.name != "run_invocation" ||
@@ -236,6 +237,16 @@ pub fn issue_effect_free_run_receipt(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
+  let content_cids = match
+    receipt_content_identities(
+      content_generations,
+      admission.template.identity,
+      run_definition.identity,
+      observation,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   let barriers = match
     receipt_sorted_cids(
       barrier_attempt_receipt_cids, "barrier_attempt_receipt_cids",
@@ -281,6 +292,14 @@ pub fn issue_effect_free_run_receipt(
     @encode.string_value(writer, cross_source_consistency)
     @encode.key(writer, "external_observation_evidence")
     @encode.begin_array(writer)
+    for identity in content_cids {
+      @encode.begin_object(writer)
+      @encode.key(writer, "evidence_cid")
+      @encode.string_value(writer, identity)
+      @encode.key(writer, "kind")
+      @encode.string_value(writer, "content_generation")
+      @encode.end_object(writer)
+    }
     for identity in model_cids {
       @encode.begin_object(writer)
       @encode.key(writer, "evidence_cid")

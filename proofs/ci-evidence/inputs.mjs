@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {encode} from '../bounded-session/action-inputs.mjs';
-import {reviewedPackageConfiguration, packageConfigurationReview} from './package-configurations.mjs';
+import {packageConfigurationReviewFor} from './package-configurations.mjs';
 
 export const inputVersion = 'actql-verification-action-inputs/0.1';
 export const hash = value => createHash('sha256').update(value).digest('hex');
@@ -186,8 +186,9 @@ export function packageSourceInputs({tree, packages, target}) {
     catch { unresolved.add(`unmodelled import syntax: ${manifest}`); return; }
     if (result.unknown) {
       const digest = hash(tree.read(manifest));
-      if (reviewedPackageConfiguration({path: manifest, digest, target, toolchainDigest}))
-        configurations.push({path: manifest, digest, target, toolchainDigest, review: packageConfigurationReview});
+      const review = packageConfigurationReviewFor({path: manifest, digest, target, toolchainDigest});
+      if (review)
+        configurations.push({path: manifest, digest, target, toolchainDigest, review});
       else unresolved.add(`${result.unknown}: ${manifest}`);
     }
     for (const dependency of result.imports) {

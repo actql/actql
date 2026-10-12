@@ -16,7 +16,8 @@ import {connect as connectRemote} from '../../packages/sdk/index.mjs';
 import {connectEmbeddedLocal, openInstalledRemoteHttpHost} from './embedded-local.mjs';
 const connect = options => options.mode === 'local'
   ? connectEmbeddedLocal(options) : connectRemote(options);
-import {snapshotHostCapacityPolicy, selectInstalledHostEnvironment} from './installed-host-policy.mjs';
+import {snapshotHostCapacityPolicy, snapshotHostLookupExecutionPolicy,
+  selectInstalledHostEnvironment} from './installed-host-policy.mjs';
 import {composeInstalledCheckEnvironment} from './installed-check-environment.mjs';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
@@ -48,6 +49,31 @@ const invalidPolicies = () => [null, [], {}, {...policy, version: 'future'},
     .map(value => ({...policy, max_effect_items: value})),
   {...policy, get max_effect_items() {throw new Error('private getter');}},
 ];
+test('Host lookup selection validates finite ceilings without adapter policy substitution', () => {
+  let reads = 0;
+  const lookup = {version: 'actql-lookup-execution-policy/0.1', max_network_attempts_per_request: 3,
+    max_request_bytes_per_attempt: 4096, max_total_request_bytes: 32768,
+    max_total_response_bytes: 32768, max_total_decoded_response_bytes: 32768,
+    get max_total_duration_ms() {reads++; return 30000;}};
+  const snapshot = snapshotHostLookupExecutionPolicy(lookup);
+  assert.equal(reads, 1);
+  assert.ok(Object.isFrozen(snapshot));
+  assert.equal(snapshotHostLookupExecutionPolicy(snapshot), snapshot);
+  assert.equal(snapshotHostLookupExecutionPolicy(undefined), undefined);
+  for (const invalid of [null, [], {}, {...snapshot, version: 'future'},
+    {...snapshot, extra: 1}, {...snapshot, max_total_request_bytes: undefined},
+    ...[0, -1, -0, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1]
+      .map(max_total_response_bytes => ({...snapshot, max_total_response_bytes}))]) {
+    assert.throws(() => snapshotHostLookupExecutionPolicy(invalid),
+      {code: 'InvalidInstalledHostLookupExecutionPolicy'});
+  }
+  const selected = selectInstalledHostEnvironment(moon, baseWire, undefined, snapshot);
+  assert.deepEqual(JSON.parse(selected).host_policy_profile.lookup_execution, snapshot);
+  assert.deepEqual(JSON.parse(selected).host_policy_profile.capacity, policy);
+  assert.equal(composeInstalledCheckEnvironment(moon, selected, selected, undefined), selected);
+  assert.throws(() => composeInstalledCheckEnvironment(moon, baseWire, selected, undefined),
+    {code: 'InstalledCheckEnvironmentConflict'});
+});
 test('Host capacity selection snapshots the complete registered contract once', () => {
   let reads = 0;
   const source = {...policy, get max_effect_items() {reads++; return 1234;}};

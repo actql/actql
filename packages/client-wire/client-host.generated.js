@@ -7979,7 +7979,7 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "artifact_ref"
+                                "content_ref"
                               ]
                             },
                             "actual_type": {
@@ -7996,7 +7996,7 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "artifact_ref"
+                                "content_ref"
                               ]
                             }
                           }
@@ -8028,7 +8028,7 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "artifact_ref"
+                                "content_ref"
                               ]
                             },
                             "admission": {
@@ -8043,7 +8043,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                                  "const": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -8413,10 +8413,10 @@ const schemas = {
                           "additionalProperties": false,
                           "properties": {
                             "contract_cid": {
-                              "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                              "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                             },
                             "schema_cid": {
-                              "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                              "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                             },
                             "schema_pointer": {
                               "const": "/schema"
@@ -8669,10 +8669,10 @@ const schemas = {
                             "additionalProperties": false,
                             "properties": {
                               "contract_cid": {
-                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                                "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                               },
                               "schema_cid": {
-                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                                "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                               },
                               "schema_pointer": {
                                 "const": "/schema"
@@ -9864,7 +9864,7 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "artifact_ref"
+                                "content_ref"
                               ]
                             },
                             "actual_type": {
@@ -9881,7 +9881,7 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "artifact_ref"
+                                "content_ref"
                               ]
                             }
                           }
@@ -9913,7 +9913,7 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "artifact_ref"
+                                "content_ref"
                               ]
                             },
                             "admission": {
@@ -9928,7 +9928,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                                  "const": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -10298,10 +10298,10 @@ const schemas = {
                           "additionalProperties": false,
                           "properties": {
                             "contract_cid": {
-                              "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                              "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                             },
                             "schema_cid": {
-                              "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                              "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                             },
                             "schema_pointer": {
                               "const": "/schema"
@@ -10554,10 +10554,10 @@ const schemas = {
                             "additionalProperties": false,
                             "properties": {
                               "contract_cid": {
-                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                                "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                               },
                               "schema_cid": {
-                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                                "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                               },
                               "schema_pointer": {
                                 "const": "/schema"
@@ -11696,7 +11696,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac"
+            "const": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -12153,7 +12153,7 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "artifact_ref"
+                                "content_ref"
                               ]
                             },
                             "actual_type": {
@@ -12170,7 +12170,7 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "artifact_ref"
+                                "content_ref"
                               ]
                             }
                           }
@@ -12202,7 +12202,7 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "artifact_ref"
+                                "content_ref"
                               ]
                             },
                             "admission": {
@@ -12217,7 +12217,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                                  "const": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -12587,10 +12587,10 @@ const schemas = {
                           "additionalProperties": false,
                           "properties": {
                             "contract_cid": {
-                              "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                              "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                             },
                             "schema_cid": {
-                              "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                              "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                             },
                             "schema_pointer": {
                               "const": "/schema"
@@ -12843,10 +12843,10 @@ const schemas = {
                             "additionalProperties": false,
                             "properties": {
                               "contract_cid": {
-                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                                "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                               },
                               "schema_cid": {
-                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                                "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                               },
                               "schema_pointer": {
                                 "const": "/schema"
@@ -14038,7 +14038,7 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "artifact_ref"
+                                "content_ref"
                               ]
                             },
                             "actual_type": {
@@ -14055,7 +14055,7 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "artifact_ref"
+                                "content_ref"
                               ]
                             }
                           }
@@ -14087,7 +14087,7 @@ const schemas = {
                                 "json",
                                 "vector",
                                 "resource_ref",
-                                "artifact_ref"
+                                "content_ref"
                               ]
                             },
                             "admission": {
@@ -14102,7 +14102,7 @@ const schemas = {
                               "additionalProperties": false,
                               "properties": {
                                 "contract_schema_cid": {
-                                  "const": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+                                  "const": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947"
                                 },
                                 "kind": {
                                   "const": "parameter_declaration"
@@ -14472,10 +14472,10 @@ const schemas = {
                           "additionalProperties": false,
                           "properties": {
                             "contract_cid": {
-                              "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                              "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                             },
                             "schema_cid": {
-                              "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                              "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                             },
                             "schema_pointer": {
                               "const": "/schema"
@@ -14728,10 +14728,10 @@ const schemas = {
                             "additionalProperties": false,
                             "properties": {
                               "contract_cid": {
-                                "const": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+                                "const": "sha256:6a419d77cad73380825177f80901a12e24eb742055e89bbb27ffa5a3cc9e7da9"
                               },
                               "schema_cid": {
-                                "const": "sha256:f23dbd7096c73975276d79dc163c8b3ae7dbae662ade242a3f1789cf07b854f3"
+                                "const": "sha256:3cc98bb9d2850a8070a6c9e66f6e3baf52e5f32e997488a3d91dd809fe95b265"
                               },
                               "schema_pointer": {
                                 "const": "/schema"
@@ -15888,7 +15888,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac"
+            "const": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -15934,7 +15934,7 @@ const schemas = {
             "pattern": "^sha256:[0-9a-f]{64}$"
           },
           "reason_schema_cid": {
-            "const": "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac"
+            "const": "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742"
           },
           "version": {
             "const": "actql-check-outcome/0.1"
@@ -16856,7 +16856,7 @@ const schemas = {
         "additionalProperties": false,
         "properties": {
           "type": {
-            "const": "artifact_ref"
+            "const": "content_ref"
           },
           "nullable": {
             "type": "boolean"
@@ -16868,6 +16868,545 @@ const schemas = {
         }
       }
     ]
+  },
+  "run_plan_view": {
+    "type": "object",
+    "required": [
+      "version",
+      "run_ref",
+      "plan_view"
+    ],
+    "additionalProperties": false,
+    "properties": {
+      "version": {
+        "const": "actql-run-plan-view/0.1"
+      },
+      "run_ref": {
+        "type": "object",
+        "required": [
+          "namespaceId",
+          "authorityScopeCid",
+          "runDefinitionCid"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "namespaceId": {
+            "type": "string",
+            "pattern": "^[^\\u0000-\\u001f\\u007f]+$",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "authorityScopeCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "runDefinitionCid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          }
+        }
+      },
+      "plan_view": {
+        "type": "object",
+        "required": [
+          "version",
+          "compiled_plan_cid",
+          "logical_map",
+          "observation",
+          "provider_io",
+          "quantities",
+          "capabilities"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "version": {
+            "const": "actql-plan-view/0.1"
+          },
+          "compiled_plan_cid": {
+            "type": "string",
+            "pattern": "^sha256:[0-9a-f]{64}$"
+          },
+          "logical_map": {
+            "type": "object",
+            "required": [
+              "version",
+              "compiled_plan_cid",
+              "program_definition_cid",
+              "steps",
+              "self_cid"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "version": {
+                "const": "actql-logical-map/0.1"
+              },
+              "compiled_plan_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "program_definition_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "steps": {
+                "type": "array",
+                "minItems": 0,
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "step_id",
+                    "key",
+                    "names",
+                    "operator",
+                    "ports",
+                    "can_stop_before",
+                    "can_stop_after",
+                    "stop_reason"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "step_id": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "key": {
+                      "type": "object",
+                      "required": [
+                        "version",
+                        "compiled_plan_cid",
+                        "stage_ordinal",
+                        "occurrence",
+                        "self_cid"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "version": {
+                          "const": "actql-logical-step-key/0.1"
+                        },
+                        "compiled_plan_cid": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "stage_ordinal": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "occurrence": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "operation_ordinal"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "operation"
+                                },
+                                "operation_ordinal": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 2147483647
+                                }
+                              }
+                            },
+                            {
+                              "type": "object",
+                              "required": [
+                                "kind",
+                                "input_port_ordinal"
+                              ],
+                              "additionalProperties": false,
+                              "properties": {
+                                "kind": {
+                                  "const": "input_output"
+                                },
+                                "input_port_ordinal": {
+                                  "type": "integer",
+                                  "minimum": 0,
+                                  "maximum": 2147483647
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        "self_cid": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        }
+                      }
+                    },
+                    "names": {
+                      "type": "array",
+                      "uniqueItems": true,
+                      "minItems": 0,
+                      "items": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "operator": {
+                      "oneOf": [
+                        {
+                          "const": null
+                        },
+                        {
+                          "type": "string",
+                          "enum": [
+                            "analytic",
+                            "append",
+                            "apply_graph_delta",
+                            "asof_join",
+                            "assert_rows",
+                            "calendar_bucket",
+                            "calendar_series",
+                            "components",
+                            "cross_join",
+                            "dedupe_events",
+                            "dedupe_rows",
+                            "degree",
+                            "derive",
+                            "distinct",
+                            "drop",
+                            "edge_rows",
+                            "events",
+                            "except",
+                            "filter",
+                            "graft_graph",
+                            "graph",
+                            "graph_bounds",
+                            "graph_diff",
+                            "graphs_equal",
+                            "group",
+                            "infer",
+                            "intersect",
+                            "interval_join",
+                            "join",
+                            "json_pick",
+                            "lag",
+                            "match_edges",
+                            "match_nodes",
+                            "mean_graphs",
+                            "merge_rankings",
+                            "nearest",
+                            "nest",
+                            "node_rows",
+                            "normalize_graph",
+                            "normalize_vectors",
+                            "pivot",
+                            "pool_vectors",
+                            "reach",
+                            "rename",
+                            "row_window",
+                            "score_vectors",
+                            "select",
+                            "sequence",
+                            "session",
+                            "shortest_path",
+                            "sort",
+                            "subgraph",
+                            "subtract_graphs",
+                            "take",
+                            "text_rank",
+                            "time_series",
+                            "to_events",
+                            "to_vectors",
+                            "top_k",
+                            "top_k_by",
+                            "traverse",
+                            "union_graphs",
+                            "unnest",
+                            "unpivot",
+                            "values",
+                            "vectors",
+                            "watermark_events",
+                            "watermark_rows",
+                            "window_events",
+                            "window_group"
+                          ]
+                        }
+                      ]
+                    },
+                    "ports": {
+                      "type": "array",
+                      "minItems": 1,
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "port_id",
+                          "role",
+                          "port_ordinal",
+                          "carrier",
+                          "carrier_contract_cid",
+                          "source",
+                          "can_sample",
+                          "sample_reason"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                          "port_id": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "role": {
+                            "type": "string",
+                            "enum": [
+                              "input",
+                              "output"
+                            ]
+                          },
+                          "port_ordinal": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "maximum": 2147483647
+                          },
+                          "carrier": {
+                            "type": "string",
+                            "enum": [
+                              "relation",
+                              "graph",
+                              "vectors",
+                              "events"
+                            ]
+                          },
+                          "carrier_contract_cid": {
+                            "type": "string",
+                            "pattern": "^sha256:[0-9a-f]{64}$"
+                          },
+                          "source": {
+                            "oneOf": [
+                              {
+                                "type": "object",
+                                "required": [
+                                  "kind",
+                                  "stage_ordinal",
+                                  "input_port_ordinal"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                  "kind": {
+                                    "const": "stage_input"
+                                  },
+                                  "stage_ordinal": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 2147483647
+                                  },
+                                  "input_port_ordinal": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 2147483647
+                                  }
+                                }
+                              },
+                              {
+                                "type": "object",
+                                "required": [
+                                  "kind",
+                                  "step_id",
+                                  "output_port_id"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                  "kind": {
+                                    "const": "logical_output"
+                                  },
+                                  "step_id": {
+                                    "type": "string",
+                                    "pattern": "^sha256:[0-9a-f]{64}$"
+                                  },
+                                  "output_port_id": {
+                                    "type": "string",
+                                    "pattern": "^sha256:[0-9a-f]{64}$"
+                                  }
+                                }
+                              }
+                            ]
+                          },
+                          "can_sample": {
+                            "type": "boolean"
+                          },
+                          "sample_reason": {
+                            "oneOf": [
+                              {
+                                "const": null
+                              },
+                              {
+                                "type": "string",
+                                "minLength": 1
+                              }
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "can_stop_before": {
+                      "type": "boolean"
+                    },
+                    "can_stop_after": {
+                      "type": "boolean"
+                    },
+                    "stop_reason": {
+                      "oneOf": [
+                        {
+                          "const": null
+                        },
+                        {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              "self_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          },
+          "observation": {
+            "const": "static"
+          },
+          "provider_io": {
+            "const": 0
+          },
+          "quantities": {
+            "type": "array",
+            "minItems": 0,
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "value",
+                    "unit",
+                    "scope_cid",
+                    "basis_cid"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "exact",
+                        "bound",
+                        "estimate"
+                      ]
+                    },
+                    "value": {
+                      "type": "string",
+                      "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
+                    },
+                    "unit": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "scope_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    },
+                    "basis_cid": {
+                      "type": "string",
+                      "pattern": "^sha256:[0-9a-f]{64}$"
+                    }
+                  }
+                },
+                {
+                  "type": "object",
+                  "required": [
+                    "kind",
+                    "unit",
+                    "reason"
+                  ],
+                  "additionalProperties": false,
+                  "properties": {
+                    "kind": {
+                      "const": "unknown"
+                    },
+                    "unit": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "reason": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "capabilities": {
+            "type": "object",
+            "required": [
+              "static_plan",
+              "inspect",
+              "durable_control",
+              "sample_capture",
+              "full_intermediate_retention",
+              "cost_guard",
+              "execution_batch",
+              "policy_revision_cid"
+            ],
+            "additionalProperties": false,
+            "properties": {
+              "static_plan": {
+                "type": "boolean"
+              },
+              "inspect": {
+                "type": "boolean"
+              },
+              "durable_control": {
+                "type": "boolean"
+              },
+              "sample_capture": {
+                "type": "array",
+                "uniqueItems": true,
+                "minItems": 0,
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "relation",
+                    "graph",
+                    "vectors",
+                    "events"
+                  ]
+                }
+              },
+              "full_intermediate_retention": {
+                "type": "array",
+                "uniqueItems": true,
+                "minItems": 0,
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "relation",
+                    "graph",
+                    "vectors",
+                    "events"
+                  ]
+                }
+              },
+              "cost_guard": {
+                "type": "boolean"
+              },
+              "execution_batch": {
+                "type": "boolean"
+              },
+              "policy_revision_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              }
+            }
+          }
+        }
+      }
+    }
   }
 };
 const operationKeys = {
@@ -17028,11 +17567,18 @@ const operationKeys = {
     "cursors",
     "maxEntries",
     "maxWireBytes"
+  ],
+  "run-plan": [
+    "connection",
+    "ref",
+    "maxWireBytes",
+    "maxNodes",
+    "maxDepth"
   ]
 };
 
-export const checkReasonSchemaCid = "sha256:0d677186f7f4c10c906372124a89eb0a5169fc9a4ecaf97535715ba1815778ac";
-export const checkOutcomeSchemaCid = "sha256:2cb5ef23a94213780dc377fa9260b9fcfde1e9f7341063bd37cd7a7676aab10f";
+export const checkReasonSchemaCid = "sha256:1aa2b591972a9cd816826b6500f62ea38f8a4f5282e016b0d1153f8bb68e0742";
+export const checkOutcomeSchemaCid = "sha256:8963bb2355a4bd563f01695dcc7fc2900b15a219d7afd56375e127322bf9e03a";
 export const checkOutcomeProtocol = Object.freeze({version: "actql-check-outcome/0.1", reasonSchemaCid: checkReasonSchemaCid, outcomeSchemaCid: checkOutcomeSchemaCid, outcomes: Object.freeze(["completed","failed","unavailable"])});
 export const runStateProtocol = Object.freeze({version: "actql-run-state/0.1", statuses: Object.freeze(["preparing","running","waiting_checkpoint","resuming","needs_reconciliation","succeeded","failed","cancelled"])});
 function valid(value, schema) {

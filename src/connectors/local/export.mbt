@@ -39,6 +39,9 @@ pub fn local_export_retention_capacity(limits : LocalExportLimits) -> Int64? {
     // cursor's eight roots do not overlap preparation after transfer.
     1024L +
     w.max_bytes.to_int64() +
+    // Exact row/column authority and reference roots survive the cell-to-file
+    // conversion. They are bounded independently of the canonical file bytes.
+    128L * v.max_nodes.to_int64() +
     8L * limits.max_batch_bytes.to_int64() +
     64L *
     (w.max_columns.to_int64() + w.max_depth.to_int64() + v.max_depth.to_int64()),

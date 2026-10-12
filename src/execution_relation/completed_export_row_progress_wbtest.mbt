@@ -15,6 +15,7 @@ test "row export preserves independent work bytes and ordered identity across qu
     for _ in 0..<100 {
       let poll = advance_completed_output_export(stream, quantum, 3).unwrap()
       assert_true(poll.steps <= quantum)
+      assert_eq(completed_output_export_poll_steps(stream), poll.steps)
       steps += poll.steps
       if poll.batch is Some(batch) {
         text.write_string(batch)
@@ -25,6 +26,8 @@ test "row export preserves independent work bytes and ordered identity across qu
       }
     }
     assert_true(complete)
+    assert_true(completed_output_export_rows_complete(stream).unwrap())
+    assert_eq(completed_output_export_poll_steps(stream), 0)
     // Each row: ten admission/measurement transitions, then six emission
     // transitions. Logical work is six nodes plus ten UTF-8 Text bytes.
     assert_eq(steps, 32)
@@ -63,6 +66,12 @@ test "row export rejects independent one short work and workspace without comple
     for _ in 0..<100 {
       match advance_completed_output_export(stream, 1, slots) {
         Err(Admission(CaptureLimit)) => {
+          // Both nested-workspace refusal and the one-short value budget
+          // occur inside an entered frame, even though cleanup clears it.
+          assert_eq(completed_output_export_poll_steps(stream), 1)
+          let failed_steps = completed_output_export_poll_steps(stream)
+          cancel_completed_output_export(stream)
+          assert_eq(completed_output_export_poll_steps(stream), failed_steps)
           rejected = true
           break
         }
@@ -72,8 +81,13 @@ test "row export rejects independent one short work and workspace without comple
     }
     assert_true(rejected)
     assert_true(stream.source is None && stream.pending_row is None)
+    assert_true(completed_output_export_rows_complete(stream) is Err(Closed))
     assert_true(finish_completed_output_export(stream) is Err(Closed))
     assert_true(completed_output_available(source))
+    assert_true(
+      advance_completed_output_export(stream, 1, slots) is Err(Closed),
+    )
+    assert_eq(completed_output_export_poll_steps(stream), 0)
   }
 }
 

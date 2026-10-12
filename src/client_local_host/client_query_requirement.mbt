@@ -59,37 +59,14 @@ fn prepare_local_query_requirement_owned(
   fragment_body : String?,
   ordered_body : String?,
 ) -> Result[@planning.QueryRequirement, ClientLocalQueryIssue] {
-  let sequences = match prepared {
-    Pure(value) =>
-      if stage == 0 &&
-        @publication_host.prepared_client_acquired_infer_step(value)
-        is Some(step) {
-        prepare_client_infer_acquisition_prefix(
-          value, stage, step, registry_body, values_body, fragment_body, ordered_body,
-        ).map(sequence => [sequence])
-      } else {
-        prepare_client_local_sequences(
-          value,
-          registry_body,
-          values_body,
-          fragment_body,
-          ordered_body,
-          task_count=Some(stage + 1),
-        )
-      }
-    Effect(value) =>
-      prepare_client_effect_local_sequences(
-        value,
-        registry_body,
-        values_body,
-        fragment_body,
-        ordered_body,
-        task_count=Some(stage + 1),
-      )
-  }
-  guard sequences is Some(sequences) else { return Err(Sequences) }
-  guard stage >= 0 && stage < sequences.length() else {
+  if stage < 0 {
     return Err(MissingStage)
+  }
+  guard prepare_client_query_acquisition_prefix(
+      prepared, stage, source_index, registry_body, values_body, fragment_body, ordered_body,
+    )
+    is Some(sequence) else {
+    return Err(Sequences)
   }
   let limits : @planning.QueryMaterialLimits = {
     max_work: 1000000,
@@ -106,21 +83,11 @@ fn prepare_local_query_requirement_owned(
   match prepared {
     Pure(value) =>
       @publication_host.prepare_client_query_requirement(
-        value,
-        sequences[stage],
-        stage,
-        source_index,
-        guards,
-        limits,
+        value, sequence, stage, source_index, guards, limits,
       ).map_err(issue => Requirement(issue))
     Effect(value) =>
       @publication_host.prepare_client_effect_query_requirement(
-        value,
-        sequences[stage],
-        stage,
-        source_index,
-        guards,
-        limits,
+        value, sequence, stage, source_index, guards, limits,
       ).map_err(issue => Requirement(issue))
   }
 }

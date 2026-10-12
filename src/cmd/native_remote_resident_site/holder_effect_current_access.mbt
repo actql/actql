@@ -192,11 +192,42 @@ priv struct HolderEffectPreparationCapacity {
 /// Explicit operator-installed Account file and authenticated Cloud identity
 /// reader. Absence preserves the production deny path. The caller installs
 /// neither a principal inferred from Site credentials nor a delegated answer.
-priv struct HolderEffectHostOperatorInstallation {
+priv struct HolderEffectHostOperatorPayload {
   account : @effect_review.NativeEffectHostAccountInstallation
   original_identity : @effect_review.NativeEffectCloudHostIdentityRead
   installation_current : () -> Bool
   preparation : HolderEffectPreparationCapacity?
+}
+
+///|
+/// Clearing payload retires the actual snapshot/current closures. The wrapper
+/// remains available to retry the same Site/physical cleanup responsibility.
+priv struct HolderEffectHostOperatorInstallation {
+  mut payload : HolderEffectHostOperatorPayload?
+  scope : HolderEffectHostSetupScope
+}
+
+///|
+fn holder_effect_host_preparation(
+  installation : HolderEffectHostOperatorInstallation?,
+) -> HolderEffectPreparationCapacity? {
+  match installation {
+    Some({ payload: Some(payload), .. }) => payload.preparation
+    _ => None
+  }
+}
+
+///|
+fn retire_holder_effect_host_installation(
+  installation : HolderEffectHostOperatorInstallation,
+) -> Bool {
+  installation.scope.retiring = true
+  if installation.scope.depth > 0 {
+    ignore(retire_holder_effect_host_scope(installation.scope))
+    return false
+  }
+  installation.payload = None
+  retire_holder_effect_host_scope(installation.scope) is HostSetupReadyToDetach
 }
 
 ///|
@@ -206,11 +237,13 @@ fn holder_effect_operator_admission(
   installation : HolderEffectHostOperatorInstallation?,
 ) -> HolderEffectHostAdmission? {
   guard installation is Some(installed) &&
-    (installed.installation_current)() &&
+    installed.payload is Some(payload) &&
+    holder_effect_host_read_scope_current(installed.scope) &&
+    (payload.installation_current)() &&
     original.current() else {
     return None
   }
-  let selected = installed.account.subject()
+  let selected = payload.account.subject()
   let context = @publication.run_publication_execution_context(
     @host.client_effect_allowed_run_admission(original.materials.allowed),
   )
@@ -235,11 +268,13 @@ fn holder_effect_operator_admission(
     observation_url: resources.observation_url,
     site_key: resources.site_key,
     site_generation: resources.site_generation,
-    original_identity: installed.original_identity,
+    original_identity: payload.original_identity,
     read_current: purpose => {
       guard original.current() &&
-        (installed.installation_current)() &&
-        installed.account.read_current_configuration() is Some(configuration) &&
+        installed.payload is Some(current_payload) &&
+        (current_payload.installation_current)() &&
+        current_payload.account.read_current_configuration()
+        is Some(configuration) &&
         original.current() else {
         return None
       }
@@ -248,15 +283,16 @@ fn holder_effect_operator_admission(
         delegated_action: None,
         current: () => {
           original.current() &&
-          (installed.installation_current)() &&
-          installed.account.current_permission(
+          installed.payload is Some(current_payload) &&
+          (current_payload.installation_current)() &&
+          current_payload.account.current_permission(
             dispatch_cid,
             match purpose {
               Publication => true
               Read => false
             },
           ) &&
-          (installed.installation_current)() &&
+          (current_payload.installation_current)() &&
           original.current()
         },
       })

@@ -107,6 +107,18 @@ function declarations(source) {
     const t=ts[i], prefix=source.slice(source.lastIndexOf('\n',t.begin-1)+1,t.begin);
     if (depth===0 && parens===0 && brackets===0 && /^\s*$/.test(prefix)) {
       const keyword=t.value==='priv'?ts[i+1]?.value:t.value;
+      if (keyword==='let') {
+        // The admitted fixture form has no initializer evaluation, calls or
+        // interpolation: only immutable, explicitly typed raw String lines.
+        // Raw lines are omitted by the brace lexer, so their complete range
+        // must be recorded explicitly rather than ending at the '=' token.
+        const literal=/^(?:priv[ \t]+)?let[ \t]+([A-Za-z_]\w*)[ \t]*:[ \t]*String[ \t]*=[ \t]*\r?\n(?:[ \t]*#\|[^\r\n]*(?:\r?\n|$))+/.exec(source.slice(t.begin));
+        assert(literal,'Unsupported helper constant initializer');
+        const end=t.begin+literal[0].length;
+        starts.push({index:i,begin:t.begin,end,name:literal[1]});
+        while(ts[i+1] && ts[i+1].begin<end) i++;
+        continue;
+      }
       assert(['fn','struct','enum','suberror'].includes(keyword), 'Unsupported helper declaration '+t.value);
       starts.push({index:i,begin:t.begin});
     }
@@ -118,8 +130,9 @@ function declarations(source) {
   assert.equal(depth+parens+brackets,0);
   return starts.map((s,i)=>{
     const last=ts[(starts[i+1]?.index ?? ts.length)-1];
-    const text=source.slice(s.begin,last.end);
-    const name=/^(?:priv\s+)?(?:fn(?:\[[^\]]+\])?|struct|enum|suberror)\s+([A-Za-z_]\w*)/.exec(text)?.[1];
+    const end=s.end??last.end;
+    const text=source.slice(s.begin,end);
+    const name=s.name??/^(?:priv\s+)?(?:fn(?:\[[^\]]+\])?|struct|enum|suberror)\s+([A-Za-z_]\w*)/.exec(text)?.[1];
     assert(name,'Unsupported helper header');
     // Count every textual identifier, including literals/comments. This can
     // over-include declarations but cannot hide a reference in interpolation.
@@ -128,7 +141,7 @@ function declarations(source) {
     // imported enums. Retain a fixture enum by its named type, not by confusing
     // those spellings with a reference to this type. Actual compilation must
     // still resolve every selected constructor under the retained signatures.
-    return {begin:s.begin,end:last.end,text,name,names,identifiers:new Set(text.match(/[A-Za-z_]\w*/g)??[])};
+    return {begin:s.begin,end,text,name,names,identifiers:new Set(text.match(/[A-Za-z_]\w*/g)??[])};
   });
 }
 

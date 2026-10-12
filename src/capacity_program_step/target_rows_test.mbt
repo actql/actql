@@ -20,7 +20,10 @@ test "row target binding preserves exact producer, target and work across stages
     )
     assert_eq(@capacity_program_step.target_rows_target(v), target)
     assert_true(
-      physical_equal(@capacity_program_step.target_rows_bound(v), bound),
+      physical_equal(
+        @capacity_program_step.target_rows_bound(v).unwrap(),
+        bound,
+      ),
     )
     assert_eq(@capacity_program_step.target_rows_value(v), 7L)
     assert_eq(@capacity_program_step.target_rows_work(v), work)

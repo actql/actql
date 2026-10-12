@@ -17,13 +17,13 @@ fn assert_carrier_dependencies(
   assert_eq(grammar.role, GoverningGrammar)
   assert_eq(
     grammar.cid,
-    "sha256:2edbaec105871702a061b1e21f0ff929cc7c76f4010bcd3f681e0d7ad89b43fb",
+    "sha256:ebc358ceb6d9c9042afeb1b713f1cd26b6d40e87ec785bdaf9ffc4ff03449935",
   )
   let value = catalog_body_dependency_at(dependencies, 1).unwrap()
   assert_eq(value.role, ValueGrammar)
   assert_eq(
     value.cid,
-    "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551",
+    "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947",
   )
   if kind == "graph" {
     let identity = catalog_body_dependency_at(dependencies, 2).unwrap()
@@ -83,7 +83,10 @@ test "Catalog dependency dispatch retains admitted owners and rejects uninterpre
             physical_equal(catalog_body_contract(dependencies), envelope),
           )
           match catalog_body_admission(dependencies) {
-            LookupFactsBody(_) | PushdownBody(_) =>
+            LookupFactsBody(_)
+            | ListingFactsBody(_, _)
+            | ContentFactsBody(_, _)
+            | PushdownBody(_) =>
               abort("lookup admission is a separate owned branch")
             ValueBody(value) => {
               assert_true(
@@ -106,7 +109,7 @@ test "Catalog dependency dispatch retains admitted owners and rejects uninterpre
               assert_eq(catalog_body_dependency_count(dependencies), 1)
               assert_eq(
                 catalog_body_dependency_at(dependencies, 0).unwrap().cid,
-                "sha256:2edbaec105871702a061b1e21f0ff929cc7c76f4010bcd3f681e0d7ad89b43fb",
+                "sha256:ebc358ceb6d9c9042afeb1b713f1cd26b6d40e87ec785bdaf9ffc4ff03449935",
               )
             }
           }

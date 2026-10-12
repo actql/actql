@@ -1,3 +1,7 @@
+import {temporalJoinSourceSuccesses, temporalJoinSourceRefusals} from './temporal-join-source-input.mjs';
+import {timeSeriesPrimarySuccesses, timeSeriesPrimaryRefusals} from './time-series-primary-source-input.mjs';
+import {rankingFusionSourceSuccesses, rankingFusionSourceRefusals} from './ranking-fusion-source-input.mjs';
+import {carrierContinuationSuccesses, carrierContinuationRefusals} from './carrier-continuation-source-input.mjs';
 import {lagSourceSuccesses, lagSourceRefusals} from './lag-source-input.mjs';
 import {rowWatermarkSourceSuccesses, rowWatermarkSourceRefusals} from './row-watermark-source-input.mjs';
 import {eventDedupeSourceSuccesses, eventDedupeSourceRefusals, eventDedupeSourceExecutionFailures} from './event-dedupe-source-input.mjs';
@@ -266,6 +270,10 @@ const concatReuseOnly = process.env.ACTQL_TEST_CONCAT_REUSE_ONLY === '1';
 const distinctOrderOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_ONLY === '1';
 const analyticPropertyOnly = process.env.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY === '1';
 const graphRemainingOperationsOnly = process.env.ACTQL_TEST_GRAPH_REMAINING_OPERATIONS_ONLY === '1';
+const timeSeriesPrimaryOnly = process.env.ACTQL_TEST_TIME_SERIES_PRIMARY_ONLY === '1';
+const carrierContinuationOnly = process.env.ACTQL_TEST_CARRIER_CONTINUATION_ONLY === '1';
+const temporalJoinOnly = process.env.ACTQL_TEST_TEMPORAL_JOIN_ONLY === '1';
+const rankingFusionOnly = process.env.ACTQL_TEST_RANKING_FUSION_ONLY === '1';
 const lagOnly = process.env.ACTQL_TEST_LAG_ONLY === '1';
 const rowWatermarkOnly = process.env.ACTQL_TEST_ROW_WATERMARK_ONLY === '1';
 const eventDedupeOnly = process.env.ACTQL_TEST_EVENT_DEDUPE_ONLY === '1';
@@ -352,7 +360,7 @@ const countifDistinctOnly = process.env.ACTQL_TEST_COUNTIF_DISTINCT_ONLY === '1'
 const analyticDistinctFrameOnly = process.env.ACTQL_TEST_ANALYTIC_DISTINCT_FRAME_ONLY === '1';
 const distinctAggregateOrderOnly = process.env.ACTQL_TEST_DISTINCT_AGGREGATE_ORDER_ONLY === '1';
 const distinctOrderReceiverOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_RECEIVER_ONLY === '1';
-const scopeOnly = lagOnly || rowWatermarkOnly || eventDedupeOnly || aggregateFilterOnly || distinctOrderReceiverOnly || groupOrderRangeAliasOnly || groupedRowsBoundaryOnly || positiveLimitOnly || hexIntegerOnly || unpivotMulticolumnOnly || unpivotRowLabelOnly || fromUnpivotOnly || pipePivotOnly || pipeUnpivotOnly || matchWithProducerOnly || betweenOnly || ifnullCoalesceReuseOnly || negatedPredicateReuseOnly || concatReuseOnly || absOnly || distinctAggregateOrderOnly || analyticDistinctFrameOnly || countifDistinctOnly || minMaxDistinctOnly || pipeDistinctOnly || setCorrespondingOnly || setInnerByNameOnly || groupByAllOnly || setByNameListOnly || lowerOnly || shortRowsOnly || orderWindowOnly || upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || graphGraftOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || cteValueTableOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly || membershipReuseOnly || graphRowsJoinOnly || traversalJoinOnly || graphRelationJoinOnly;
+const scopeOnly = rankingFusionOnly || temporalJoinOnly || timeSeriesPrimaryOnly || carrierContinuationOnly || lagOnly || rowWatermarkOnly || eventDedupeOnly || aggregateFilterOnly || distinctOrderReceiverOnly || groupOrderRangeAliasOnly || groupedRowsBoundaryOnly || positiveLimitOnly || hexIntegerOnly || unpivotMulticolumnOnly || unpivotRowLabelOnly || fromUnpivotOnly || pipePivotOnly || pipeUnpivotOnly || matchWithProducerOnly || betweenOnly || ifnullCoalesceReuseOnly || negatedPredicateReuseOnly || concatReuseOnly || absOnly || distinctAggregateOrderOnly || analyticDistinctFrameOnly || countifDistinctOnly || minMaxDistinctOnly || pipeDistinctOnly || setCorrespondingOnly || setInnerByNameOnly || groupByAllOnly || setByNameListOnly || lowerOnly || shortRowsOnly || orderWindowOnly || upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || graphGraftOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || cteValueTableOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly || membershipReuseOnly || graphRowsJoinOnly || traversalJoinOnly || graphRelationJoinOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -373,7 +381,9 @@ const dataSetStrategyInputs = {
 // expected Program. Both source and JSON use the same hand-authored rows/types.
 const analyticOrderInputs = [...analyticOrderSuccesses,
   analyticOrderObjectReproduction(await readFile('analytic-order-property-repro.program.json', 'utf8'))];
-const scopeInputs = distinctOrderReceiverOnly ? {successes: distinctOrderReceiverSuccesses, refusals: distinctOrderReceiverRefusals}
+const scopeInputs = timeSeriesPrimaryOnly ? {successes: timeSeriesPrimarySuccesses, refusals: timeSeriesPrimaryRefusals}
+: carrierContinuationOnly ? {successes: carrierContinuationSuccesses, refusals: carrierContinuationRefusals}
+  : distinctOrderReceiverOnly ? {successes: distinctOrderReceiverSuccesses, refusals: distinctOrderReceiverRefusals}
   : hexIntegerOnly ? {successes: hexIntegerSuccesses, refusals: hexIntegerRefusals}
   : inputStageResultOnly ? {successes: inputStageResultSuccesses, refusals: []}
   : typedSubscriptOnly ? {successes: typedSubscriptSuccesses, refusals: typedSubscriptRefusals,
@@ -483,6 +493,8 @@ const scopeInputs = distinctOrderReceiverOnly ? {successes: distinctOrderReceive
   : distinctOrderOnly ? {successes: [...distinctOrderSuccesses, ...distinctOrderMemberSuccesses], refusals: [...distinctOrderRefusals, ...distinctOrderMemberRefusals]}
   : graphTraversePathsOnly ? {successes: [...graphTraverseSourceSuccesses, ...graphTraversePathSuccesses],
     refusals: [...graphTraverseSourceRefusals, ...graphTraversePathRefusals]}
+  : temporalJoinOnly ? {successes: temporalJoinSourceSuccesses, refusals: temporalJoinSourceRefusals, executionFailures: []}
+  : rankingFusionOnly ? {successes: rankingFusionSourceSuccesses, refusals: rankingFusionSourceRefusals, executionFailures: []}
   : lagOnly ? {successes: lagSourceSuccesses, refusals: lagSourceRefusals, executionFailures: []}
   : rowWatermarkOnly ? {successes: rowWatermarkSourceSuccesses, refusals: rowWatermarkSourceRefusals, executionFailures: []}
   : eventDedupeOnly ? {successes: eventDedupeSourceSuccesses, refusals: eventDedupeSourceRefusals, executionFailures: eventDedupeSourceExecutionFailures}
@@ -518,6 +530,10 @@ const scopeInputs = distinctOrderReceiverOnly ? {successes: distinctOrderReceive
   refusals: [...queryRefusals, ...sourceFreeRefusals, ...queryCompositionRefusals, ...pipeResultRefusals, ...relationDataRefusals, ...acquiredDataRefusals, ...graphSourceRefusals, ...scope.refusals, ...inferRefusals, ...joinOrder.refusals, ...groupStarRefusals, ...groupOrdinalRefusals],
   executionFailures: [...pipeResultExecutionFailures, ...graphSourceExecutionFailures]};
 if (!scopeOnly) {
+  scopeInputs.successes.push(...timeSeriesPrimarySuccesses);
+  scopeInputs.refusals.push(...timeSeriesPrimaryRefusals);
+  scopeInputs.successes.push(...carrierContinuationSuccesses);
+  scopeInputs.refusals.push(...carrierContinuationRefusals);
   scopeInputs.successes.push(...hexIntegerSuccesses);
   scopeInputs.refusals.push(...hexIntegerRefusals);
   scopeInputs.successes.push(...cteValueTableSuccesses);
@@ -649,6 +665,10 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...graphReachSourceRefusals);
   scopeInputs.successes.push(...graphShortestSourceSuccesses);
   scopeInputs.refusals.push(...graphShortestSourceRefusals);
+  scopeInputs.successes.push(...temporalJoinSourceSuccesses);
+  scopeInputs.refusals.push(...temporalJoinSourceRefusals);
+  scopeInputs.successes.push(...rankingFusionSourceSuccesses);
+  scopeInputs.refusals.push(...rankingFusionSourceRefusals);
   scopeInputs.successes.push(...lagSourceSuccesses);
   scopeInputs.refusals.push(...lagSourceRefusals);
   scopeInputs.successes.push(...rowWatermarkSourceSuccesses);
@@ -861,7 +881,19 @@ function publicQueryCohorts(inputs) {
   return cohorts;
 }
 const retainedCohorts = [];
+const timeSeriesPrimaryReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
+  prefix: 'time-series-primary', version: 'actql-time-series-primary-acceptance/0.1',
+});
+const carrierContinuationReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
+  prefix: 'carrier-continuation', version: 'actql-carrier-continuation-acceptance/0.1',
+});
 const cteValueTableReceipts = createCteValueTableReceipts(transport ?? 'both', writeFile);
+const temporalJoinReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
+  prefix: 'temporal-join', version: 'actql-temporal-join-acceptance/0.1',
+});
+const rankingFusionReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
+  prefix: 'ranking-fusion', version: 'actql-ranking-fusion-acceptance/0.1',
+});
 const lagReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
   prefix: 'lag', version: 'actql-lag-acceptance/0.1',
 });
@@ -1189,6 +1221,10 @@ const recordCohort = (mode, directory, cohort, authorization) => {
   if (cohort.successes.length > 0) retainedCohorts.push(saved);
   return async item => {
     recordString(mode)(item);
+    if (item.name.startsWith('time-series-primary-')) await timeSeriesPrimaryReceipts.record(item, mode);
+    if (item.name.startsWith('carrier-continuation-')) await carrierContinuationReceipts.record(item, mode);
+    if (item.name.startsWith('temporal-')) await temporalJoinReceipts.record(item, mode);
+    if (item.name.startsWith('ranking-fusion-')) await rankingFusionReceipts.record(item, mode);
     if (item.name.startsWith('lag-')) await lagReceipts.record(item, mode);
     if (item.name.startsWith('unpivot-multicolumn-')) await unpivotMulticolumnReceipts.record(item, mode);
     if (item.name.startsWith('unpivot-row-label-')) await unpivotRowLabelReceipts.record(item, mode);
@@ -1302,6 +1338,10 @@ if ((transport === undefined && retainedStrings.local && retainedStrings.remote)
 }
 if (transport !== 'tail') {
   requireCompleteInventory(expectedInventory, completedInventory);
+  await timeSeriesPrimaryReceipts.complete();
+  await carrierContinuationReceipts.complete();
+  await temporalJoinReceipts.complete();
+  await rankingFusionReceipts.complete();
   await lagReceipts.complete();
   await cteValueTableReceipts.complete();
   await fromUnpivotReceipts.complete();

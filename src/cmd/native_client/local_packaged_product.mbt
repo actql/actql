@@ -14,9 +14,9 @@ priv struct LocalPackagedRuntime {
 ///|
 fn local_product_operation(operation : String) -> Bool {
   [
-    "adopt", "connect", "check", "new-submission", "lookup-submission", "checkpoint-state",
-    "lookup-preparation-grant", "lookup-preparation-raw", "lookup-cancellation",
-    "cancel", "delivery-attempt", "read", "start", "aql",
+    "adopt", "connect", "upgrade-policy", "lookup-policy-upgrade", "check", "new-submission",
+    "lookup-submission", "checkpoint-state", "lookup-preparation-grant", "lookup-preparation-raw",
+    "lookup-cancellation", "cancel", "delivery-attempt", "read", "start", "aql",
   ].contains(operation)
 }
 
@@ -260,7 +260,7 @@ fn execute_native_local_product(
       is Some(_) {
       stop("LocalProductCustodyLost")
     }
-    let originals = @run_host.client_native_local_product_originals(
+    let originals = @run_host.client_native_local_finite_product_originals(
       configuration_root,
       runtime.sqlite,
       runtime.crypto,

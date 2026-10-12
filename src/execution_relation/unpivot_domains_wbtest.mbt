@@ -59,7 +59,7 @@ fn unpivot_admitted_value(
         contract, "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
         live,
       ).value
-    "artifact" => issued_artifact_value(contract, live).value
+    "artifact" => issued_content_value(contract, live).value
     _ =>
       @admitted.admit(contract, input_cursor(wire), {
         max_nodes: 100,
@@ -114,7 +114,7 @@ test "unpivot expands every relation value domain into sealed columns" {
       "", "resource",
     ),
     (
-      "{\"type\":\"artifact_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
+      "{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"application/json\"}",
       "", "artifact",
     ),
   ]

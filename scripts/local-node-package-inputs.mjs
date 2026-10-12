@@ -42,6 +42,7 @@ const hostContracts = [
   'spec/contracts/actql-aoa.json',
   'spec/contracts/actql-numeric-reduction.json',
   'spec/contracts/actql-capacity-host-policy.json',
+  'spec/contracts/actql-check-environment.json',
   'spec/local-check-environment.json',
   'spec/contracts/actql-query-acquisition.json',
   'spec/contracts/actql-query-process-evidence.json',

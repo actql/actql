@@ -156,6 +156,18 @@ function prepareLocalSnapshot(operations, createLease, checked, signal, moon) {
         } finally { frames.cancel(); }
         await cleanupHandle.retry();
         if (!released) throw new Error('LocalSnapshotCleanupPending');
+        if (typeof operation.cleanup_references !== 'function') {
+          throw new Error('LocalRelationSnapshotCleanupRequired');
+        }
+        for (;;) {
+          signal?.throwIfAborted();
+          const complete = operation.cleanup_references(quantum);
+          if (typeof complete !== 'boolean') {
+            throw new Error('InvalidLocalRelationSnapshotCleanup');
+          }
+          if (complete) break;
+          await yieldToHost();
+        }
         signal?.throwIfAborted();
         checked(operation.finish());
         return Object.freeze({cid:content.cid,bytes:content.bytes,

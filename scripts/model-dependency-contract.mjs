@@ -9,6 +9,9 @@ export const modelRetryOrder = Object.freeze([
 const cid = {type: 'string', pattern: '^sha256:[0-9a-f]{64}$'};
 const nonnegative = {type: 'integer', minimum: 0,
   maximum: Number.MAX_SAFE_INTEGER};
+const positive = {...nonnegative, minimum: 1};
+const mediaNames = {type: 'array', minItems: 1, uniqueItems: true,
+  items: {type: 'string', minLength: 1}};
 const envelope = (version, field, value) => ({
   $schema: 'https://json-schema.org/draft/2020-12/schema',
   type: 'object', additionalProperties: false,
@@ -18,12 +21,30 @@ const envelope = (version, field, value) => ({
 
 export function modelDependencySchemas() {
   return {
+    openai_chat_prompt: {type: 'object', additionalProperties: false,
+      required: ['format', 'instructions'], properties: {
+        format: {const: 'actql.openai_chat_prompt/0.1'},
+        instructions: {type: 'string'},
+      }},
     model_prompt: envelope('actql-model-prompt/0.1', 'payload', {}),
     model_retry_policy: envelope('actql-model-retry-policy/0.1',
       'retryable_failures', {type: 'array', uniqueItems: true, maxItems: 3,
         items: {enum: [...modelRetryOrder]}}),
     model_backoff: envelope('actql-model-backoff/0.1', 'delays_ms',
       {type: 'array', items: nonnegative}),
+    model_media_input: envelope('actql-model-media-input/0.1', 'payload', {
+      type: 'object', additionalProperties: false,
+      required: ['media_type', 'max_bytes', 'max_pages', 'max_frames', 'complete',
+        'transfer_method', 'classifications', 'regions', 'egress_scope_cid'],
+      properties: {
+        media_type: {type: 'string', minLength: 1},
+        max_bytes: positive,
+        max_pages: {anyOf: [positive, {type: 'null'}]},
+        max_frames: {anyOf: [positive, {type: 'null'}]},
+        complete: {const: true}, transfer_method: {const: 'inline_bytes'},
+        classifications: mediaNames, regions: mediaNames, egress_scope_cid: cid,
+      },
+    }),
   };
 }
 

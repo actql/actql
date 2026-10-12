@@ -4,6 +4,7 @@ package "actql/actql/check_environment"
 import {
   "actql/actql/calendar_profile",
   "actql/actql/capacity_policy",
+  "actql/actql/capacity_witness",
   "actql/actql/carrier_contract",
   "actql/actql/decode_core",
   "actql/actql/encode_core",
@@ -108,7 +109,11 @@ pub fn check_catalog_references(CatalogContents, ReferenceLimits) -> Result[Cata
 
 pub fn check_connector_manifest(WireEnvironment, Limits) -> Result[ConnectorManifest, ConnectorManifestIssue]
 
+pub fn check_content_body_dependencies(SourceRequestContracts, SourceViewRequestContract, LookupCapacities, ContractEnvelope) -> Result[CatalogBodyDependencies, BodyDependencyIssue]
+
 pub fn check_contract_registry(WireEnvironment, Limits) -> Result[ContractRegistry, ContractIssue]
+
+pub fn check_listing_body_dependencies(SourceRequestContracts, SourceViewRequestContract, LookupCapacities, ContractEnvelope) -> Result[CatalogBodyDependencies, BodyDependencyIssue]
 
 pub fn check_lookup_body_dependencies(LookupCapacities, ContractEnvelope) -> Result[CatalogBodyDependencies, BodyDependencyIssue]
 
@@ -138,11 +143,15 @@ pub fn check_source_read_modes(SourceViewShapes, Int) -> Result[SourceReadModes,
 
 pub fn check_source_request_contracts(CarrierSchemas, SourceRequestLimits) -> Result[SourceRequestContracts, SourceRequestIssue]
 
+pub fn check_source_view_acquisition_shape(@decode_core.Cursor, Int) -> Result[Int, SourceViewShapeIssue]
+
 pub fn check_source_view_shapes(ProtocolValueContracts, SourceViewShapeLimits) -> Result[SourceViewShapes, SourceViewShapeIssue]
 
 pub fn cid(WireEnvironment) -> String
 
 pub fn command_target_catalog(CommandTarget) -> Catalog
+
+pub fn command_target_cid(CommandTarget) -> String
 
 pub fn command_target_id(CommandTarget) -> String
 
@@ -159,6 +168,10 @@ pub fn compiler_aoa_ir_version_token() -> String
 pub fn compiler_barrier_contract_manifest_cid() -> String
 
 pub fn compiler_barrier_contract_manifest_wire() -> String
+
+pub fn compiler_content_barrier_contract_cid() -> String
+
+pub fn compiler_content_serialization_contract_cid() -> String
 
 pub fn compiler_grammar_manifest_cid() -> String
 
@@ -233,6 +246,32 @@ pub fn expression_contract_body_cid(ExpressionContractBody) -> String
 pub fn expression_contract_dependency_at(ExpressionContractBody, Int) -> ExpressionContractDependency?
 
 pub fn expression_contract_dependency_count(ExpressionContractBody) -> Int
+
+pub fn file_content_facts_cid(FileContentProfile) -> String
+
+pub fn file_content_scope_cid(FileContentProfile) -> String
+
+pub fn file_content_source(FileContentProfile) -> @decode_core.Cursor
+
+pub fn file_content_version_capability_cid(FileContentProfile) -> String
+
+pub fn file_listing_accepts(FileListProfile, String) -> Bool
+
+pub fn file_listing_facts_cid(FileListProfile) -> String
+
+pub fn file_listing_limit_candidates(FileListProfile) -> Array[(String, Int64)]
+
+pub fn file_listing_rows_claim(FileListingRows) -> @capacity_witness.LimitClaim
+
+pub fn file_listing_rows_maximum(FileListingRows) -> Int64
+
+pub fn file_listing_rows_policy(FileListingRows) -> @capacity_policy.Policy?
+
+pub fn file_listing_rows_profile(FileListingRows) -> FileListProfile
+
+pub fn file_listing_rows_record_capacity(FileListingRows) -> Int64
+
+pub fn file_listing_source(FileListProfile) -> @decode_core.Cursor
 
 pub fn host_policy(WireEnvironment) -> @decode_core.Cursor
 
@@ -392,6 +431,8 @@ pub fn model_execution_task(ModelExecutionContract) -> ModelTaskContract
 
 pub fn model_execution_usage(ModelExecutionContract) -> (Int, Int, Int)
 
+pub fn model_openai_chat_instructions(ModelDependency) -> String?
+
 pub fn model_response_profile_completion_basis(ModelResponseProfile) -> String
 
 pub fn model_response_profile_identity(ModelResponseProfile) -> String
@@ -508,7 +549,7 @@ pub fn read_model_response_profile(Bytes, String, Limits, Int) -> Result[ModelRe
 
 pub fn read_relation_schema_fields(@decode_core.Cursor, Int, Int, Int, Int) -> Result[(@relation_schema.Schema, Int), CarrierSchemaIssue]
 
-pub fn read_single_attempt_model_dependencies(ModelExecutionContract, Bytes?, Bytes?, Bytes?, Limits, Int) -> Result[SingleAttemptModelDependencies, ModelDependencyIssue]
+pub fn read_single_attempt_model_dependencies(ModelExecutionContract, Bytes?, Bytes?, Bytes?, Limits, Int, media? : Array[(String, Bytes)]) -> Result[SingleAttemptModelDependencies, ModelDependencyIssue]
 
 pub fn read_text_rank_selection(WireEnvironment, Int) -> Result[TextRankSelection, TextRankSelectionIssue]
 
@@ -530,6 +571,8 @@ pub fn resolve_catalog_contract(Catalog, String, String, String, String) -> Resu
 
 pub fn resolve_contract(ContractRegistry, String, String, String, String) -> Result[ContractEnvelope, ContractIssue]
 
+pub fn resolve_file_listing_rows(FileListProfile, @capacity_policy.Policy?, String) -> Result[FileListingRows, FileListingRowsIssue]
+
 pub fn resolve_model_task(ModelTasks, String) -> Result[ModelTaskContract, ModelTaskIssue]
 
 pub fn select_command_target(CatalogContents, String, Int) -> Result[CommandTarget, CommandTargetIssue]
@@ -549,6 +592,8 @@ pub fn selected_text_rank_selection(SelectedTextRankProfile) -> TextRankSelectio
 pub fn single_attempt_model_decision(SingleAttemptModelDependencies) -> DecisionContract?
 
 pub fn single_attempt_model_dependencies_match(SingleAttemptModelDependencies, ModelExecutionContract) -> Bool
+
+pub fn single_attempt_model_media(SingleAttemptModelDependencies, String) -> ModelDependency?
 
 pub fn single_attempt_model_prompt(SingleAttemptModelDependencies) -> ModelDependency
 
@@ -587,6 +632,10 @@ pub fn source_request_batching(SourceViewRequestContract) -> SourceBatching?
 pub fn source_request_carriers(SourceRequestContracts) -> CarrierSchemas
 
 pub fn source_request_correlation(SourceViewRequestContract) -> SourceCorrelation?
+
+pub fn source_request_file_content(SourceViewRequestContract) -> FileContentProfile?
+
+pub fn source_request_file_listing(SourceViewRequestContract) -> FileListProfile?
 
 pub fn source_request_for(SourceRequestContracts, Member) -> SourceViewRequestContract?
 
@@ -700,6 +749,8 @@ pub(all) enum CatalogBodyAdmission {
   CarrierBody(CarrierSchema)
   DataPolicyBody(SourceDataPolicy)
   LookupFactsBody(LookupFacts)
+  ListingFactsBody(LookupFacts, FileListProfile)
+  ContentFactsBody(LookupFacts, FileContentProfile)
   PushdownBody(PushdownContract)
 }
 
@@ -758,6 +809,7 @@ pub struct CommandTarget {
   catalog : Catalog
   item : Member
   command_id : String
+  contract_cid : String
   resource_kind : String
   work : Int
 }
@@ -891,6 +943,16 @@ pub struct ExpressionContractDependency {
   pointer : String
   target : ExpressionContractBody
 }
+
+type FileContentProfile
+
+type FileListProfile
+
+type FileListingRows
+
+pub(all) enum FileListingRowsIssue {
+  Unresolved
+} derive(Eq, @debug.Debug)
 
 pub(all) enum InheritedTextTimeContract {
   Base
@@ -1095,12 +1157,14 @@ pub(all) enum ModelDependencyIssue {
   Missing(ModelDependencyKind)
   Body(ModelDependencyKind, ModelTaskIssue)
   UnsupportedPolicy(ModelDependencyKind)
+  MediaRole(String, ModelMediaRoleIssue)
 }
 
 pub(all) enum ModelDependencyKind {
   ModelPrompt
   ModelRetryPolicy
   ModelBackoff
+  ModelMediaInput(String)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ModelExecutionCeiling {
@@ -1120,6 +1184,12 @@ pub struct ModelGeneration {
   max_output_tokens : Int64
   seed_requested : Int64?
 }
+
+pub(all) enum ModelMediaRoleIssue {
+  UnknownRole
+  UnsupportedShape
+  MediaTypeMismatch
+} derive(Eq, @debug.Debug)
 
 type ModelResponseProfile
 
@@ -1267,6 +1337,7 @@ pub struct SingleAttemptModelDependencies {
   prompt : ModelDependency
   retry : ModelDependency
   backoff : ModelDependency
+  media : Array[ModelDependency]
   decision : DecisionContract?
 }
 
@@ -1343,6 +1414,8 @@ pub(all) enum SourceRequestIssueKind {
   RoleLimit
   InvalidRequestContract
   InvalidAcquisition
+  InvalidFileListProfile
+  InvalidFileContentProfile
   UnsupportedResponseCarrier
   MismatchedArity
   UnknownRequestField(String)

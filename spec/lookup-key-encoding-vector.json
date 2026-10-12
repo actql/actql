@@ -4,11 +4,10 @@
     [
       "10.00",
       {
-        "$actql_ref": "artifact",
-        "version": "actql-artifact-ref/0.1",
+        "$actql_ref": "content",
+        "version": "actql-content-ref/0.1",
         "media_type": "application/json",
         "metadata": {
-          "artifact_store_id": "fixture",
           "content_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
           "media_type": "application/json",
           "size_bytes": 3,
@@ -20,18 +19,19 @@
           "data_classification": "internal",
           "effective_data_policy_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
           "issuer_evidence": {
-            "version": "actql-artifact-issuer-evidence/0.1",
+            "version": "actql-content-issuer-evidence/0.1",
             "issuer_kind": "connector_capture",
             "issuer_contract_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
-            "artifact_store_cid": "sha256:0ed951bb755c025573662d4649d14d077363f7bfde1ba955fdd9c9848f9d8412",
             "workspace_scope_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
             "content_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
             "effective_data_policy_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
             "capture_authority_cid": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
-            "evidence_cid": "sha256:89b1f581eff33998ce6f4f4bbecd6d519320339bbc5e6b402ba664c3e8b3074d"
-          }
+            "evidence_cid": "sha256:26f9b679ec582bc4737618243a2d21098877e74db754918822241c70b37cad74",
+            "content_store_cid": "sha256:0ed951bb755c025573662d4649d14d077363f7bfde1ba955fdd9c9848f9d8412"
+          },
+          "content_store_id": "fixture"
         },
-        "artifact_ref_cid": "sha256:15e902418023a2de574d29d716f3b643825e19afa1fa3a5a46e049ffb1606eff"
+        "content_ref_cid": "sha256:6a3061840640f9359bdfee29c33e46f12594a5afa8293c6e1f9bcbb0883be3ed"
       },
       {
         "$actql_ref": "resource",
@@ -47,11 +47,10 @@
     [
       "2.00",
       {
-        "$actql_ref": "artifact",
-        "version": "actql-artifact-ref/0.1",
+        "$actql_ref": "content",
+        "version": "actql-content-ref/0.1",
         "media_type": "application/json",
         "metadata": {
-          "artifact_store_id": "fixture",
           "content_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
           "media_type": "application/json",
           "size_bytes": 3,
@@ -63,18 +62,19 @@
           "data_classification": "internal",
           "effective_data_policy_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
           "issuer_evidence": {
-            "version": "actql-artifact-issuer-evidence/0.1",
+            "version": "actql-content-issuer-evidence/0.1",
             "issuer_kind": "connector_capture",
             "issuer_contract_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
-            "artifact_store_cid": "sha256:0ed951bb755c025573662d4649d14d077363f7bfde1ba955fdd9c9848f9d8412",
             "workspace_scope_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
             "content_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
             "effective_data_policy_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
             "capture_authority_cid": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
-            "evidence_cid": "sha256:89b1f581eff33998ce6f4f4bbecd6d519320339bbc5e6b402ba664c3e8b3074d"
-          }
+            "evidence_cid": "sha256:26f9b679ec582bc4737618243a2d21098877e74db754918822241c70b37cad74",
+            "content_store_cid": "sha256:0ed951bb755c025573662d4649d14d077363f7bfde1ba955fdd9c9848f9d8412"
+          },
+          "content_store_id": "fixture"
         },
-        "artifact_ref_cid": "sha256:15e902418023a2de574d29d716f3b643825e19afa1fa3a5a46e049ffb1606eff"
+        "content_ref_cid": "sha256:6a3061840640f9359bdfee29c33e46f12594a5afa8293c6e1f9bcbb0883be3ed"
       },
       {
         "$actql_ref": "resource",
@@ -90,11 +90,10 @@
     [
       "2.00",
       {
-        "$actql_ref": "artifact",
-        "version": "actql-artifact-ref/0.1",
+        "$actql_ref": "content",
+        "version": "actql-content-ref/0.1",
         "media_type": "application/json",
         "metadata": {
-          "artifact_store_id": "fixture",
           "content_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
           "media_type": "application/json",
           "size_bytes": 3,
@@ -106,18 +105,19 @@
           "data_classification": "internal",
           "effective_data_policy_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
           "issuer_evidence": {
-            "version": "actql-artifact-issuer-evidence/0.1",
+            "version": "actql-content-issuer-evidence/0.1",
             "issuer_kind": "connector_capture",
             "issuer_contract_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
-            "artifact_store_cid": "sha256:0ed951bb755c025573662d4649d14d077363f7bfde1ba955fdd9c9848f9d8412",
             "workspace_scope_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
             "content_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
             "effective_data_policy_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
             "capture_authority_cid": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
-            "evidence_cid": "sha256:89b1f581eff33998ce6f4f4bbecd6d519320339bbc5e6b402ba664c3e8b3074d"
-          }
+            "evidence_cid": "sha256:26f9b679ec582bc4737618243a2d21098877e74db754918822241c70b37cad74",
+            "content_store_cid": "sha256:0ed951bb755c025573662d4649d14d077363f7bfde1ba955fdd9c9848f9d8412"
+          },
+          "content_store_id": "fixture"
         },
-        "artifact_ref_cid": "sha256:15e902418023a2de574d29d716f3b643825e19afa1fa3a5a46e049ffb1606eff"
+        "content_ref_cid": "sha256:6a3061840640f9359bdfee29c33e46f12594a5afa8293c6e1f9bcbb0883be3ed"
       },
       {
         "$actql_ref": "resource",
@@ -133,11 +133,10 @@
     [
       null,
       {
-        "$actql_ref": "artifact",
-        "version": "actql-artifact-ref/0.1",
+        "$actql_ref": "content",
+        "version": "actql-content-ref/0.1",
         "media_type": "application/json",
         "metadata": {
-          "artifact_store_id": "fixture",
           "content_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
           "media_type": "application/json",
           "size_bytes": 3,
@@ -149,18 +148,19 @@
           "data_classification": "internal",
           "effective_data_policy_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
           "issuer_evidence": {
-            "version": "actql-artifact-issuer-evidence/0.1",
+            "version": "actql-content-issuer-evidence/0.1",
             "issuer_kind": "connector_capture",
             "issuer_contract_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
-            "artifact_store_cid": "sha256:0ed951bb755c025573662d4649d14d077363f7bfde1ba955fdd9c9848f9d8412",
             "workspace_scope_cid": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
             "content_cid": "sha256:5555555555555555555555555555555555555555555555555555555555555555",
             "effective_data_policy_cid": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
             "capture_authority_cid": "sha256:7777777777777777777777777777777777777777777777777777777777777777",
-            "evidence_cid": "sha256:89b1f581eff33998ce6f4f4bbecd6d519320339bbc5e6b402ba664c3e8b3074d"
-          }
+            "evidence_cid": "sha256:26f9b679ec582bc4737618243a2d21098877e74db754918822241c70b37cad74",
+            "content_store_cid": "sha256:0ed951bb755c025573662d4649d14d077363f7bfde1ba955fdd9c9848f9d8412"
+          },
+          "content_store_id": "fixture"
         },
-        "artifact_ref_cid": "sha256:15e902418023a2de574d29d716f3b643825e19afa1fa3a5a46e049ffb1606eff"
+        "content_ref_cid": "sha256:6a3061840640f9359bdfee29c33e46f12594a5afa8293c6e1f9bcbb0883be3ed"
       },
       {
         "$actql_ref": "resource",
@@ -191,7 +191,7 @@
       {
         "request_role": "artifact",
         "value_contract": {
-          "type": "artifact_ref",
+          "type": "content_ref",
           "nullable": false
         }
       },
@@ -207,16 +207,16 @@
     "tuples": [
       [
         "2.00",
-        "sha256:15e902418023a2de574d29d716f3b643825e19afa1fa3a5a46e049ffb1606eff",
+        "sha256:6a3061840640f9359bdfee29c33e46f12594a5afa8293c6e1f9bcbb0883be3ed",
         "sha256:1ad7f20416a2a833f1d70f428a41485dde611a260807a6ec72ad1589e3159043"
       ],
       [
         "10.00",
-        "sha256:15e902418023a2de574d29d716f3b643825e19afa1fa3a5a46e049ffb1606eff",
+        "sha256:6a3061840640f9359bdfee29c33e46f12594a5afa8293c6e1f9bcbb0883be3ed",
         "sha256:1ad7f20416a2a833f1d70f428a41485dde611a260807a6ec72ad1589e3159043"
       ]
     ]
   },
-  "expected_canonical_bytes": "{\"key_roles\":[{\"request_role\":\"amount\",\"value_contract\":{\"nullable\":false,\"precision\":6,\"scale\":2,\"type\":\"decimal\"}},{\"request_role\":\"artifact\",\"value_contract\":{\"nullable\":false,\"type\":\"artifact_ref\"}},{\"request_role\":\"resource\",\"value_contract\":{\"nullable\":false,\"resource_kind\":\"files\",\"type\":\"resource_ref\"}}],\"request_schema_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"source_view_contract_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"tuples\":[[\"2.00\",\"sha256:15e902418023a2de574d29d716f3b643825e19afa1fa3a5a46e049ffb1606eff\",\"sha256:1ad7f20416a2a833f1d70f428a41485dde611a260807a6ec72ad1589e3159043\"],[\"10.00\",\"sha256:15e902418023a2de574d29d716f3b643825e19afa1fa3a5a46e049ffb1606eff\",\"sha256:1ad7f20416a2a833f1d70f428a41485dde611a260807a6ec72ad1589e3159043\"]],\"version\":\"actql-lookup-key-set/0.1\"}",
-  "expected_cid": "sha256:8bf8ef10683de366b0b2d9614c6cd808376e36dd1154605ecb0fddb21c15ec04"
+  "expected_canonical_bytes": "{\"key_roles\":[{\"request_role\":\"amount\",\"value_contract\":{\"nullable\":false,\"precision\":6,\"scale\":2,\"type\":\"decimal\"}},{\"request_role\":\"artifact\",\"value_contract\":{\"nullable\":false,\"type\":\"content_ref\"}},{\"request_role\":\"resource\",\"value_contract\":{\"nullable\":false,\"resource_kind\":\"files\",\"type\":\"resource_ref\"}}],\"request_schema_cid\":\"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"source_view_contract_cid\":\"sha256:9999999999999999999999999999999999999999999999999999999999999999\",\"tuples\":[[\"2.00\",\"sha256:6a3061840640f9359bdfee29c33e46f12594a5afa8293c6e1f9bcbb0883be3ed\",\"sha256:1ad7f20416a2a833f1d70f428a41485dde611a260807a6ec72ad1589e3159043\"],[\"10.00\",\"sha256:6a3061840640f9359bdfee29c33e46f12594a5afa8293c6e1f9bcbb0883be3ed\",\"sha256:1ad7f20416a2a833f1d70f428a41485dde611a260807a6ec72ad1589e3159043\"]],\"version\":\"actql-lookup-key-set/0.1\"}",
+  "expected_cid": "sha256:6169a0954828906a188a182921d010102502919b3af22089f9e38ec0383eb3df"
 }

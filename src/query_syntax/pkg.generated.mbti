@@ -10,15 +10,23 @@ import {
 // Values
 pub fn after_first_query_operation(Query) -> Query?
 
-pub fn after_graph_calls(Query) -> Query
+pub fn after_graph_calls(Query, current_source? : NamePart?) -> Query
 
-pub fn after_graph_row_calls(Query, Int) -> Query?
+pub fn after_graph_row_calls(Query, Int, current_source? : NamePart?) -> Query?
 
 pub fn after_producer_primary(Query) -> Query
 
 pub fn after_query_bindings(Query) -> Query
 
-pub fn effect_result_continuation(Query, NamePart) -> (Query, Query)?
+pub fn after_relation_generator(Query, NamePart) -> Query?
+
+pub fn bound_source(Query) -> NamePart?
+
+pub fn command_effect_at(QueryScript, Int) -> CommandEffectClause?
+
+pub fn command_effect_count(QueryScript) -> Int
+
+pub fn effect_result_continuation(Query, NamePart, has_postlude? : Bool) -> (Query, Query)?
 
 pub fn exact_integer_literal(String) -> Int64?
 
@@ -37,6 +45,8 @@ pub fn expression_root(Expression) -> Int
 pub fn expression_with_field_bindings(Expression, Array[(Int, NamePart)]) -> Expression?
 
 pub fn expression_work(Expression) -> Int
+
+pub fn file_list_selector(Query) -> FileListSelector?
 
 pub fn final_operation_at(Query, Int) -> QueryOperation?
 
@@ -106,6 +116,10 @@ pub fn starts_query(String, LexicalLimits, source_path? : String) -> Result[Bool
 
 pub fn starts_sql(String, LexicalLimits, source_path? : String) -> Result[Bool, Diagnostic]
 
+pub fn terminal_command_effect_at(Query, Int) -> CommandEffectClause?
+
+pub fn terminal_command_effect_count(Query) -> Int
+
 pub fn terminal_effect(Query) -> UpdateEffectClause?
 
 pub fn terminal_table_effect(Query) -> TableEffectClause?
@@ -168,6 +182,17 @@ pub(all) enum CastType {
   Decimal(Int, Int)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct CommandEffectClause {
+  name : NamePart
+  result : NamePart
+  result_alias : NamePart
+  target : Expression
+  contract : NamePart
+  input : Array[(NamePart, Expression)]
+  start : Int
+  end : Int
+}
+
 pub(all) struct Diagnostic {
   issue : Issue
   span : @source_span.Span?
@@ -205,6 +230,12 @@ pub struct ExpressionNode {
   kind : ExpressionKind
   start : Int
   end : Int
+}
+
+pub(all) enum FileListSelector {
+  AllFiles
+  ExactPaths(Expression)
+  Glob(Expression)
 }
 
 pub(all) enum FrameBoundary {
@@ -329,6 +360,7 @@ pub(all) struct JoinPart {
   kind : String
   relation : Array[NamePart]
   source_alias : NamePart?
+  file_listing : FileListSelector?
   on : Expression?
   using_columns : Array[NamePart]
   pre_join_filter : Expression?
@@ -405,6 +437,7 @@ pub(all) struct PivotClause {
 pub(all) enum ProducerPrimary {
   GraphValue(GraphConstructor)
   GraphGenerator(SgaCall)
+  RelationGenerator(SgaCall)
 }
 
 pub(all) struct Projection {
@@ -450,6 +483,7 @@ pub(all) enum QueryOperation {
   Unpivot(UnpivotClause)
   AssertUnique(Array[Array[NamePart]])
   Infer(InferClause)
+  Serialize(SerializeClause)
   Nearest(NearestClause)
   RetainResult(NamePart)
   Where(Expression)
@@ -478,6 +512,13 @@ pub(all) enum Resource {
   LiteralBytes
   Work
 } derive(Eq, @debug.Debug)
+
+pub(all) struct SerializeClause {
+  format : String
+  order_by : Array[SortTerm]
+  preserve_order : Bool
+  options : Array[(NamePart, Expression)]
+}
 
 pub(all) struct SetPart {
   kind : String
@@ -523,6 +564,11 @@ pub(all) struct StarReplacement {
   analytic : AnalyticCall?
 }
 
+pub struct StringLiteralOrigin {
+  raw : Bool
+  backslash : Bool
+} derive(Eq, @debug.Debug)
+
 pub(all) struct TableEffectClause {
   name : NamePart?
   target : Array[NamePart]
@@ -533,6 +579,8 @@ pub struct Token {
   value : Lexeme
   start : Int
   end : Int
+  annotation_compatible : Bool
+  string_origin : StringLiteralOrigin?
 } derive(Eq, @debug.Debug)
 
 type Tokens

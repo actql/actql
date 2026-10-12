@@ -113,7 +113,7 @@ pub fn check_values_recursive_resources(
             | Date
             | Decimal(..)
             | Vector(..) => ()
-            Json | ResourceRef(..) | ArtifactRef(..) => return Err(ForeignOwner)
+            Json | ResourceRef(..) | ContentRef(..) => return Err(ForeignOwner)
           }
         }
         Fields(fields, index, depth) =>

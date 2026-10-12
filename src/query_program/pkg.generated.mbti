@@ -2,8 +2,10 @@
 package "actql/actql/query_program"
 
 import {
+  "actql/actql/binding_declarations",
   "actql/actql/check_environment",
   "actql/actql/decode_core",
+  "actql/actql/encode_core",
   "actql/actql/expression_typing",
   "actql/actql/frontend_source_map",
   "actql/actql/parameter_binding",
@@ -12,7 +14,9 @@ import {
   "actql/actql/query_expression",
   "actql/actql/query_syntax",
   "actql/actql/relation_schema",
+  "actql/actql/source_request_slots",
   "actql/actql/sourceview_input",
+  "actql/actql/sourceview_resolution",
   "actql/actql/stage_parameters",
   "actql/actql/stage_results",
   "actql/actql/stage_syntax",
@@ -63,6 +67,22 @@ pub(all) struct Context {
   input_schemas : Array[(String, @relation_schema.Schema)]
   source_catalog : @check_environment.SourceRequestContracts?
   model_tasks : @check_environment.ModelTasks?
+}
+
+pub enum FileListingIssue {
+  InstalledSourceRequired
+  MissingCatalog
+  MissingProfile
+  UnsupportedSelector
+  InvalidSelector
+  FixedSelectorConflict
+  Source(@sourceview_input.Issue)
+  Resolution(@sourceview_resolution.Issue)
+  RequestSlots(@source_request_slots.Issue)
+  Request(@sourceview_resolution.RequestIssue)
+  ParameterDeclarations(@stage_parameters.Issue)
+  Bindings(@binding_declarations.Issue)
+  Identity(@encode_core.EncodeFailure)
 }
 
 pub(all) struct GraphBinding {
@@ -118,6 +138,7 @@ pub(all) enum Issue {
   UnsupportedGraph
   UnsupportedInfer
   UnsupportedNearest
+  FileListing(FileListingIssue)
   UnsupportedResult
   UnsupportedEffect
   TableWriteBinding(TableWriteBindingIssue)

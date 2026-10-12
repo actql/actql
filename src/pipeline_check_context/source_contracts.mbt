@@ -217,7 +217,25 @@ pub fn program_source_contract_body_at(
   guard requests.facts is Some(facts) else {
     return Err(@environment.MissingBodyAdmission)
   }
-  match @environment.check_lookup_body_dependencies(facts, envelope) {
+  let view = @sourceviews.selected_contract(selected)
+  let body = if @environment.source_request_file_listing(view) is Some(_) {
+    @environment.check_listing_body_dependencies(
+      @sourceviews.catalog_owner(selected),
+      view,
+      facts,
+      envelope,
+    )
+  } else if @environment.source_request_file_content(view) is Some(_) {
+    @environment.check_content_body_dependencies(
+      @sourceviews.catalog_owner(selected),
+      view,
+      facts,
+      envelope,
+    )
+  } else {
+    @environment.check_lookup_body_dependencies(facts, envelope)
+  }
+  match body {
     Ok(body) => Ok(Some(body))
     Err(issue) => Err(issue)
   }

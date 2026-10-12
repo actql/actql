@@ -250,7 +250,18 @@ fn lower_script_graph_rows(
     }
   }
   guard row_input is Some(input) else { raise Abort(UnsupportedGraph) }
-  let relation_query = @query.after_graph_row_calls(query, consumed).unwrap()
+  let relation_query = @query.after_graph_row_calls(
+    query,
+    consumed,
+    current_source=Some({ value: input.name, quoted: true, }),
+  ).unwrap()
+  // The row bridge has consumed the Graph. The closed Graph/NONE call heads
+  // cannot consume its Relation output; this is an authored Carrier violation,
+  // not missing Graph support. VecA/TEA continuations retain their common owner.
+  if @query.operation_at(relation_query, 0) is Some(GraphCall(call)) &&
+    !script_carrier_operation(call.operation) {
+    raise Abort(InvalidQuery)
+  }
   if continuation is Some((context, sources)) {
     let mut replaced = false
     let visible = known.map(peer => {

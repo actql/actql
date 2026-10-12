@@ -50,7 +50,7 @@ fn checked_client_publication_policy_bodies(
   max_depth : Int,
   retain_catalog? : Bool = false,
 ) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
-  let mut remaining = Int::min(max_bytes, 16777216)
+  let remaining = Int::min(max_bytes, 16777216)
   let mut work = Int::min(max_nodes, 4096)
   let count = @checked.unit_count(program)
   if count > work {
@@ -75,6 +75,33 @@ fn checked_client_publication_policy_bodies(
     }
   }
   guard selected is Some(policy) else { return Err(MissingDependency) }
+  checked_client_source_policy_bodies(
+    program,
+    policy,
+    remaining,
+    max_nodes,
+    max_depth,
+    work,
+    retain_catalog~,
+  )
+}
+
+///|
+/// Preserve the exact selected policy and its response-policy originals for
+/// both Result publication and an intermediate Content barrier. This neither
+/// selects the final Result's policy for bytes nor grants external I/O.
+fn checked_client_source_policy_bodies(
+  program : @checked.CheckedProgram,
+  policy : @checked.PublicationSourcePolicy,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  work : Int,
+  retain_catalog? : Bool = false,
+) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
+  let mut remaining_work = work
+  let cid = policy.cid
+  let mut remaining = Int::min(max_bytes, 16777216)
   let bodies : Array[(String, String, String)] = []
   let seen : Map[String, Bool] = Map([])
   fn retain(
@@ -108,11 +135,11 @@ fn checked_client_publication_policy_bodies(
     Err(issue) => return Err(issue)
   }
   let sources = @checked.publication_policy_source_count(policy)
-  if sources > work {
+  if sources > remaining_work {
     return Err(BudgetExceeded)
   }
   if retain_catalog {
-    work -= sources
+    remaining_work -= sources
   }
   for index in 0..<sources {
     let source = @checked.source_execution_subject(
@@ -144,10 +171,10 @@ fn checked_client_publication_policy_bodies(
           @acquisition.selected_cid(source.response_policy.source),
         ),
       ]
-      if references.length() > work {
+      if references.length() > remaining_work {
         return Err(BudgetExceeded)
       }
-      work -= references.length()
+      remaining_work -= references.length()
       for (kind, identity) in references {
         if seen.contains(identity) {
           guard bodies.iter().find_first(body => body.1 == identity)
@@ -213,7 +240,8 @@ fn checked_client_publication_policy_bodies(
         {
           max_entries: Int::min(max_nodes, 4096),
           max_total_bytes: Int::min(max_bytes, 16777216),
-          max_depth,
+          // The dependency graph keeps its own existing depth ceiling.
+          max_depth: Int::min(max_depth, 64),
           max_references: Int::min(max_nodes, 4096),
         },
       ) {

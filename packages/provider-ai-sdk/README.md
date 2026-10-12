@@ -20,6 +20,64 @@ prompt/schema, credentials and physical-profile compatibility; this projection
 does not establish any of them. The actual fixture verifies this mapping only
 for its selected non-reasoning chat profile, not every OpenAI model.
 
+The additional private admitted-request consumer reads the closed
+`actql.openai_chat_prompt/0.1` payload, mapped input wire and strict output
+schema from Common's original admitted Provider/Task. It binds the Task,
+prompt and output-schema CIDs plus the selector before SDK preparation. Empty
+instructions are explicit and valid; missing, NULL or extra payload fields
+refuse. One separate data-text message keeps Common's exact input wire,
+including Decimal strings, without parsing it back into JavaScript values.
+The actual intercepted SDK request must match those originals and authored
+generation settings. An SDK model-dependent rewrite refuses, with no fallback.
+
+The bounded schema emitter supports a nonnullable closed Object root, plain
+Text/Number/Boolean/Array/Object children and explicit nested nullability.
+All fields are required. Unsupported constraints and other value kinds refuse
+before send rather than being weakened. This is not a language-wide ban or
+Common output validation. The convenience private request consumer uses finite
+preparation work/byte/node/depth/frame limits; it is not evidence of cooperative
+SDK JSON parsing or a funded public physical-preflight installation.
+
+The additional private `createAdmittedOpenAIChatPreflight` consumes one Common
+projection-child transition per physical-preflight advance. It allocates that
+child only after the existing port validates its installation; projection
+completion retires its borrows before starting one SDK preparation. Cancellation,
+refusal and retirement failure preserve the original cleanup path without a new
+request. The resulting plan still uses the existing fixed transport/Entry/send
+gate and raw-save port. SDK initialization and JSON work remain external
+synchronous work, not a new cooperative guarantee. The child's nine fields,
+phase payloads, output tuple and Node progress reference/callback/context overlap
+must be funded before normal startup; this private integration supplies no
+numerical layout, public capability or execution permission.
+
+The private physical preflight can retain the original operation's raw binder
+before Approval. Its installed continuation supplies one actual Store persistence
+port after nominal raw registration, before returning dispatch and creating an
+Entry. Known missing Store/wake installation refuses before Approval. Registration
+pending is not a fabricated capture grant: the existing approval path must finish
+binding first. The port belongs to that exact operation and registration; copies,
+another operation and rebinding refuse. A missing binding observed after an Entry
+cannot start transport or regain the consumed attempt when a late binding arrives.
+It keeps the original Unknown/cleanup responsibility. This is the initial private
+one-Slot connection, not accepted public funding or multi-Slot raw persistence.
+
+The internal `createInstalledOpenAIChatRegistration` assembles the existing Host
+`registerModelProviders` entry from trusted, already retained installation
+selections. It does not load packages, derive a numerical profile or reconstruct
+opaque Owners from CIDs. Missing originals or a missing consuming runtime hook
+refuse before Provider installation. Exact Task/selector/payload selection is a
+byte/string comparison; Common retains schema interpretation and validation.
+Projection, request and response bounds are distinct immutable declarations.
+The selected SDK, endpoint, generation completion basis, original raw profile,
+quantity and read selections stay with their existing Host/Model Owners.
+
+This is private assembler preparation, not the public user installation API:
+the package still has no public exports. The Host must verify actual builder,
+codec, build/lock and validator originals and supply justified complete physical
+funding before public use. Frozen objects, matching declarations and fixture
+allowances do not establish those facts. The public entry and external-package
+example remain dependent on that original installation/funding acceptance.
+
 The existing Common Model Owner must admit the Task, original inputs, complete
 Slot inventory, profile and all simultaneous holdings before using this code.
 The existing original Entry, durable journal acknowledgement and one-shot final

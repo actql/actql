@@ -9,7 +9,7 @@ const read = path => JSON.parse(readFileSync(path, 'utf8'));
 export function executionContract(protocol) {
   const checked = protocol.schemas.canonical_value_contract;
   const type = structuredClone(checked.$defs.value_contract);
-  type.oneOf = type.oneOf.filter(b => !['resource_ref', 'artifact_ref'].includes(b.properties.type.const));
+  type.oneOf = type.oneOf.filter(b => !['resource_ref', 'content_ref'].includes(b.properties.type.const));
   for (const b of type.oneOf) {
     if (b.properties.type.enum) b.properties.type.enum = b.properties.type.enum.filter(t => t !== 'json');
     for (const key of ['min_length', 'max_codepoints', 'max_utf8_bytes', 'max_items']) {

@@ -34,6 +34,55 @@ test "contract nullability view follows the admitted root contract" {
 }
 
 ///|
+test "Content reference type construction follows admitted media descriptors not issuance" {
+  for nullable in [false, true] {
+    let expected = author(
+      "{\"type\":\"content_ref\",\"nullable\":" +
+      nullable.to_string() +
+      ",\"media_type\":\"text/csv\"}",
+    )
+    let actual = @value_contract.content_reference_contract(
+      Some("text/csv"),
+      nullable~,
+      max_name_bytes=8,
+    ).unwrap()
+    assert_true(@value_contract.type_equal(actual, expected, 1))
+    let broad = @value_contract.content_reference_contract(
+      None,
+      nullable~,
+      max_name_bytes=0,
+    ).unwrap()
+    assert_true(
+      @value_contract.type_equal(
+        broad,
+        author(
+          "{\"type\":\"content_ref\",\"nullable\":" + nullable.to_string() + "}",
+        ),
+        1,
+      ),
+    )
+  }
+  assert_true(
+    @value_contract.content_reference_contract(
+      Some("text/csv"),
+      nullable=false,
+      max_name_bytes=7,
+    )
+    is None,
+  )
+  for invalid in ["", "a\r", "e\u{0301}"] {
+    assert_true(
+      @value_contract.content_reference_contract(
+        Some(invalid),
+        nullable=false,
+        max_name_bytes=100,
+      )
+      is None,
+    )
+  }
+}
+
+///|
 test "ResourceRef kind view excludes nullable and non-reference values" {
   let reference = author(
     "{\"type\":\"resource_ref\",\"nullable\":false,\"resource_kind\":\"crm/account\"}",

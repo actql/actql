@@ -90,6 +90,7 @@ pub(all) enum Issue {
   UnsupportedGraph
   UnsupportedInfer
   UnsupportedNearest
+  FileListing(FileListingIssue)
   UnsupportedResult
   UnsupportedEffect
   TableWriteBinding(TableWriteBindingIssue)
@@ -606,9 +607,27 @@ fn selected_input(
   limits : Limits,
 ) -> Input raise Abort {
   if @query.relation(query).is_empty() {
+    if @query.bound_source(query) is Some(current) {
+      // An inline Carrier bridge retains its actual current producer. Keep
+      // that private anchor out of authored peer and range-name resolution.
+      match
+        context.inputs
+        .filter(input => {
+          input.source is StepReference && input.name == current.value
+        })
+        .get(0) {
+        Some(input) => return input
+        None => raise Abort(UnknownRelation)
+      }
+    }
     source_free_input(query, limits)
   } else {
-    selected_relation(@query.relation(query), context)
+    let input = selected_relation(@query.relation(query), context)
+    match @query.file_list_selector(query) {
+      None => input
+      Some(selector) =>
+        lower_file_listing_input(query, selector, input, context, limits)
+    }
   }
 }
 
@@ -2067,6 +2086,7 @@ fn compile_steps(
   final_alias : String,
   graph_bindings_only? : Bool = false,
   nearest_inputs? : Array[Input] = [],
+  nearest_vectors? : Array[(String, @carrier.Vectors)] = [],
   retained? : Array[RetainedResult]? = None,
   projected_input? : Bool = false,
   initial_scope? : JoinChainScope? = None,
@@ -2840,16 +2860,32 @@ fn compile_steps(
           }
           proposed
         }
-        entries.push(
-          (
-            "select",
-            construction.array(
-              active_fields.map(field => construction.text(field)),
+        // A terminal RESULT names this exact Content output; it does not
+        // introduce another computation after the byte barrier. Do not
+        // overwrite an existing alias or elide a nonterminal retained tap.
+        let names_content_output = terminal_result &&
+          !needs_view &&
+          entries.is_empty() &&
+          !step_entries.is_empty() &&
+          step_entries.last().unwrap().any(entry => entry.0 == "serialize") &&
+          !step_entries.last().unwrap().any(entry => entry.0 == "as")
+        if names_content_output {
+          step_entries
+          .last()
+          .unwrap()
+          .push(("as", construction.text(checkpoint)))
+        } else {
+          entries.push(
+            (
+              "select",
+              construction.array(
+                active_fields.map(field => construction.text(field)),
+              ),
             ),
-          ),
-        )
-        entries.push(("as", construction.text(checkpoint)))
-        step_entries.push(entries)
+          )
+          entries.push(("as", construction.text(checkpoint)))
+          step_entries.push(entries)
+        }
         input_from = checkpoint
         let from = if needs_view {
           let view = if terminal_result {
@@ -2916,6 +2952,10 @@ fn compile_steps(
           i,
           nearest_inputs.map(input => input.name),
           max_work,
+          candidate_typed=nearest_vectors
+            .filter(pair => pair.0 == matches[0].name)
+            .get(0)
+            .map(pair => pair.1),
         )
         step_entries.append(steps)
         entries.clear()
@@ -2925,6 +2965,36 @@ fn compile_steps(
         pipe_value_columns = []
         pipe_value_table = false
         pipe_visible = active_fields.map(field => (field, field))
+        pipe_columns = pipe_visible.copy()
+        pipe_ranges = []
+        pipe_star_ranges = []
+        scalar_value_table_ranges = []
+        pipe_rebound = true
+        pipe_changed = false
+        grouped = false
+        selected_expressions = []
+        deferred = true
+      }
+      Serialize(clause) => {
+        let (steps, fields) = lower_serialization_steps(
+          construction,
+          clause,
+          pipe_visible,
+          pipe_ranges,
+          active_fields,
+          entries,
+          i,
+          input.name,
+          max_work,
+        )
+        step_entries.append(steps)
+        entries.clear()
+        active_fields = fields.copy()
+        output = fields
+        value_table_receivers = []
+        pipe_value_columns = []
+        pipe_value_table = false
+        pipe_visible = fields.map(field => (field, field))
         pipe_columns = pipe_visible.copy()
         pipe_ranges = []
         pipe_star_ranges = []
@@ -6760,13 +6830,28 @@ pub fn compile(
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
 ) -> Result[@program.Program, Issue] {
-  if @query.terminal_effect(query) is Some(_) ||
+  // Binding and primary scopes must be installed before inspecting a JOIN
+  // input. The standalone probe sees only Context inputs, not authored WITH
+  // producers or transformed range inputs.
+  if @query.terminal_command_effect_count(query) > 0 ||
+    @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||
     has_pipe_range_input(query) ||
     has_cte_unnest_input(query) ||
     @query.query_binding_count(query) > 0 ||
     @query.producer_primary(query) is Some(_) ||
     @query.graph_query(query) is Some(_) {
+    return compile_query_script(
+      @query.single_query_script(query),
+      context,
+      limits,
+      table_writes~,
+    )
+  }
+  let needs_input_binding = join_requires_input_binding(query, context) catch {
+    Abort(issue) => return Err(issue)
+  }
+  if needs_input_binding {
     return compile_query_script(
       @query.single_query_script(query),
       context,
@@ -7048,6 +7133,8 @@ fn compile_join_steps(
   left_from? : String = "l",
   right_from? : String = "r",
   step_bindings? : Map[String, String] = Map([]),
+  capture_left? : Bool = false,
+  values_bound? : Int64? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if @query.operation_count(query) < 1 ||
     limits.max_join_output_rows < 1L ||
@@ -7055,7 +7142,11 @@ fn compile_join_steps(
     raise Abort(UnsupportedCte)
   }
   let part = @query.join_part_at(query, 0).unwrap()
-  let max_output_rows = authored_join_bound(part, limits)
+  let max_output_rows = if part.max_output_rows is Some(_) {
+    authored_join_bound(part, limits)
+  } else {
+    values_bound.unwrap_or_else(() => authored_join_bound(part, limits))
+  }
   let left_qualifier = @query.relation_alias(query).unwrap_or(left_name)
   let right_qualifier = part.source_alias.unwrap_or(right_name)
   if same_name(left_qualifier, right_qualifier) {
@@ -7102,6 +7193,41 @@ fn compile_join_steps(
       join_from = join_step_binding(step_bindings, "aql_join_prefiltered")
     }
     None => ()
+  }
+  if capture_left {
+    // The common Direct acquisition owns a filter/select capture prefix.
+    // Preserve an authored pre-JOIN predicate above; SQL's post-JOIN WHERE
+    // remains below the JOIN and must never become a content-read filter.
+    if part.pre_join_filter is None {
+      pre_steps.push(
+        construction.object([
+          ("from", construction.text(join_from)),
+          (
+            "filter",
+            construction.object([("literal", construction.add(Bool(true)))]),
+          ),
+          (
+            "as",
+            construction.text(
+              join_step_binding(step_bindings, "aql_join_prefiltered"),
+            ),
+          ),
+        ]),
+      )
+      join_from = join_step_binding(step_bindings, "aql_join_prefiltered")
+    }
+    let capture = join_step_binding(step_bindings, "aql_join_captured")
+    pre_steps.push(
+      construction.object([
+        ("from", construction.text(join_from)),
+        (
+          "select",
+          construction.array(left_fields.map(field => construction.text(field))),
+        ),
+        ("as", construction.text(capture)),
+      ]),
+    )
+    join_from = capture
   }
   let predicate = match @query.operation_at(query, 0) {
     Some(Where(expression)) => Some(expression)
@@ -8321,6 +8447,42 @@ fn join_values_rows(input : Input) -> Int raise Abort {
 }
 
 ///|
+// Preserve the existing Values-specific bound before the shared binder turns
+// the original input into a StepReference. Unknown sources retain their own
+// existing authored/default admission path.
+fn values_join_output_bound(
+  part : @query.JoinPart,
+  left : Input,
+  right : Input,
+  limits : Limits,
+) -> Int64 raise Abort {
+  if part.max_output_rows is Some(_) {
+    authored_join_bound(part, limits)
+  } else {
+    let left_rows = join_values_rows(left).to_int64()
+    let right_rows = join_values_rows(right).to_int64()
+    let factor = if part.kind == "inner" || part.kind == "cross" {
+      right_rows
+    } else if right_rows == 0L {
+      1L
+    } else {
+      right_rows
+    }
+    let extra = if part.kind == "full" { right_rows } else { 0L }
+    if extra > 9007199254740991L ||
+      (factor != 0L && left_rows > (9007199254740991L - extra) / factor) {
+      raise Abort(UnsupportedJoin)
+    }
+    let raw_bound = left_rows * factor + extra
+    let bound = if raw_bound == 0L { 1L } else { raw_bound }
+    if limits.max_join_output_rows < 1L || bound > limits.max_join_output_rows {
+      raise Abort(UnsupportedJoin)
+    }
+    bound
+  }
+}
+
+///|
 fn join_seed_stage(
   construction : Construction,
   input : Input,
@@ -9029,9 +9191,73 @@ fn compile_join_query(
       raise Abort(UnsupportedJoin)
     }
     let left = selected_input(query, context, limits)
-    let right = selected_relation(part.relation, context)
+    let right = selected_join_input(query, part, context, limits)
     let left_fields = columns(left)
     let right_fields = columns(right)
+    if context.captured_stage is Some(_) {
+      // Installed inputs stay in the original JOIN Stage. In particular a
+      // correlated right Source must not be turned into a Direct capture
+      // Stage before its checked resource/version keys exist. Common Program
+      // checking still resolves and admits both acquisition declarations.
+      guard left.source is Captured(left_declaration) &&
+        right.source is Captured(right_declaration) &&
+        left.name != right.name else {
+        raise Abort(UnsupportedJoin)
+      }
+      let retained : Array[RetainedResult] = []
+      let (steps, output, from) = compile_join_steps(
+        construction,
+        query,
+        @query.relation(query).last().unwrap(),
+        left_fields,
+        part.relation.last().unwrap(),
+        right_fields,
+        limits,
+        retained=Some(retained),
+        left_from=left.name,
+        right_from=right.name,
+        capture_left=true,
+      )
+      let stage = construction.object([
+        ("id", construction.text(context.stage_id)),
+        (
+          "inputs",
+          construction.object([
+            (left.name, import_query_cursor(construction, left_declaration)),
+            (right.name, import_query_cursor(construction, right_declaration)),
+          ]),
+        ),
+        ("steps", construction.array(steps)),
+        (
+          "results",
+          retained_stage_results(
+            construction,
+            context.stage_result,
+            construction.object([
+              ("from", construction.text(from)),
+              (
+                "fields",
+                construction.array(
+                  output.map(field => construction.text(field)),
+                ),
+              ),
+            ]),
+            retained,
+          ),
+        ),
+      ])
+      let root = program_root(
+        construction,
+        context,
+        [stage],
+        result_exports=retained_result_exports(context, retained),
+      )
+      let source = match @builder.finish(builder, root) {
+        Ok(value) => value
+        Err(issue) => raise Abort(Construction(issue))
+      }
+      return admit_query_source(source, document, context, limits)
+    }
     let left_qualifier = @query.relation_alias(query).unwrap_or(
       @query.relation(query).last().unwrap(),
     )
@@ -9097,30 +9323,7 @@ fn compile_join_query(
       next,
       result_tail=Some((limits, retained)),
     )
-    let bound = if part.max_output_rows is Some(_) {
-      authored_join_bound(part, limits)
-    } else {
-      let left_rows = join_values_rows(left).to_int64()
-      let right_rows = join_values_rows(right).to_int64()
-      let factor = if part.kind == "inner" || part.kind == "cross" {
-        right_rows
-      } else if right_rows == 0L {
-        1L
-      } else {
-        right_rows
-      }
-      let extra = if part.kind == "full" { right_rows } else { 0L }
-      if extra > 9007199254740991L ||
-        (factor != 0L && left_rows > (9007199254740991L - extra) / factor) {
-        raise Abort(UnsupportedJoin)
-      }
-      let raw_bound = left_rows * factor + extra
-      let bound = if raw_bound == 0L { 1L } else { raw_bound }
-      if limits.max_join_output_rows < 1L || bound > limits.max_join_output_rows {
-        raise Abort(UnsupportedJoin)
-      }
-      bound
-    }
+    let bound = values_join_output_bound(part, left, right, limits)
     let left_stage = "aql_join_left"
     let right_stage = "aql_join_right"
     let operation = if part.kind == "cross" {

@@ -115,9 +115,7 @@ fn assemble_nest_limits(
     let membership = @context.nest_item_candidate_at(selected, index).unwrap()
     let input = reidentify_step_graph(
       units,
-      @step_bounds.target_rows_bound(
-        @capacity.target_membership_rows(membership),
-      ),
+      require_step_target_rows(@capacity.target_membership_rows(membership)),
       budget,
       conversion~,
     )
@@ -193,9 +191,7 @@ fn assemble_nest_limits(
     let membership = @context.nest_parent_candidate_at(envelope, index).unwrap()
     let input = reidentify_step_graph(
       units,
-      @step_bounds.target_rows_bound(
-        @capacity.target_membership_rows(membership),
-      ),
+      require_step_target_rows(@capacity.target_membership_rows(membership)),
       budget,
       conversion~,
     )

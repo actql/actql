@@ -39,6 +39,22 @@ test "fixed input and result hashes retain different contents and owners" {
     "sha256:77e98e23cd26d76b7d4549460e2d627af92fbdabe8de4cb20c0106d26470d26d",
   )
   assert_eq(row_wire_usage(before), (28, 7, 3))
+  // Independent SHA-256 of the literal logical Relation preimage, not the
+  // bare physical row array and not another invocation of this implementation.
+  let logical = identify_captured_relation(receipt, row_wire_limits()).unwrap()
+  assert_eq(
+    logical_relation_cid(logical),
+    "sha256:c0e6c574d4865ec9641a3a03888e5accb534a6e0c1508701f0ded0bba49f101b",
+  )
+  assert_true(logical_relation_cid(logical) != row_wire_cid(before))
+  assert_true(
+    identify_captured_relation(receipt, { ..row_wire_limits(), max_bytes: 55, })
+    is Err(Encoding(_)),
+  )
+  assert_true(
+    identify_captured_relation(receipt, { ..row_wire_limits(), max_bytes: 56, })
+    is Ok(_),
+  )
   let result = execute_generated_sequence(
     prepared,
     [receipt],

@@ -8,6 +8,34 @@ the common checker. The grammar alone does not promise every form is
 currently executable. The [frontend design mapping](../design/frontend-r1.md)
 records implemented boundaries and intentional differences.
 
+## Content serialization
+
+`SERIALIZE FORMAT CSV` or `SERIALIZE FORMAT JSONL` consumes the current Relation
+through the ordinary Program Content barrier, not a Frontend encoder. It takes
+an internal `ORDER BY` or `PRESERVE ORDER`, followed by `OPTIONS (...)`:
+
+```sql
+SELECT 2 AS id, CAST(NULL AS FLOAT64) AS p
+|> SERIALIZE FORMAT CSV PRESERVE ORDER OPTIONS (
+     name = 'selected.csv', header = TRUE, null_marker = r'\N',
+     encoding = 'UTF-8', line_ending = 'CRLF', max_rows = 3, max_bytes = 128
+   )
+|> RESULT file;
+```
+
+The output columns are exactly `name`, `content`, `media_type`, `size_bytes`
+and `row_count`. A terminal RESULT binds this output without another computation
+after the barrier. Input fields and range aliases do not survive it.
+The common [Content profile](language.md#serialize) owns option domains and
+defaults, presence, ordering evidence, bounds and byte laws in every source
+format. Options are static scalar literals; the two bounds additionally accept
+declared parameters. Row expressions, duplicate or unknown options are refused.
+CSV requires explicit `header` and `null_marker`; the latter is either empty
+text or the exact `\N` value. Generating Content does not upload it or grant
+Model/Command access. Runtime support is established separately from parsing;
+acquired input, explicit ordering and downstream components require their real
+execution/custody connections.
+
 ## Decoding and expression rules
 
 Input must be strict UTF-8 scalar text. A leading BOM follows the existing
@@ -1172,6 +1200,52 @@ private range bindings. Pipe AS and SELECT retain their existing scope rules.
 INFER, retained RESULT and Graph carrier operations keep their own placement
 contracts and are not moved into a CTE to make a JOIN parse.
 
+## File listing Sources
+
+`LIST_FILES` is a table source in SQL and Pipe, including a JOIN input. Its
+first argument is a statically resolved installed Source name, not an expression,
+URI or WITH producer. The normal Source publication and Catalog determine
+its authority and file-list contract; a matching column shape alone is not a
+file-list capability.
+
+```sql
+SELECT resource, version, path
+FROM LIST_FILES(files, paths => ['reports/a.csv', 'reports/b.csv']);
+
+FROM LIST_FILES(files, glob => r'reports/*.csv')
+|> SELECT resource, version, path;
+```
+
+The selector is exclusive: `paths`, `glob`, or no selector. Unknown arguments,
+extra arguments and computed Source names are rejected. The initial lowering
+accepts literal arrays of strings for paths, string literals for glob, or a
+declared nonnullable parameter of the corresponding type. Computed selector
+expressions are not initially supported. `paths => ARRAY<STRING>[]` is an
+explicit empty selection, not selector-free listing. Selector-free listing
+requires the installed profile to permit it. A Host-fixed selector is not
+silently replaced by the query's selector.
+
+Lowering preserves the published Source declaration and its other Request
+fields. It supplies both Request alternatives, with explicit NULL for the
+inactive one, and validates them through the ordinary Request owner. The
+profile determines which selector is permitted. A nullable selector parameter
+does not prove that a selector will be present; it is rejected rather than
+allowing NULL to widen the selection. These rules also apply to structured
+Program Requests and do not introduce a second file-specific binding owner.
+
+Decoded paths and glob data retain case, Unicode normalization distinctions and
+literal object-key spelling. SQL string chunks retain their raw/nonraw origin:
+nonraw glob chunks containing a source backslash are rejected before decoding
+can hide an ambiguous escape. This source-origin restriction does not apply to
+already decoded parameter or structured Program data. Glob matching follows
+the common file-list contract, not the provider's native glob language.
+
+A file-list profile supplies finite physical-limit candidates, not a proof of
+actual item count, snapshot isolation or successful acquisition. The installed
+acquisition must enforce its resolved limits and complete the declared selection
+protocol before exposing the Relation. LIMIT, a page boundary or a continuation
+token cannot turn an unfinished listing into a complete one.
+
 ## Source-free SELECT
 
 A SELECT may omit FROM, following the adopted
@@ -1482,11 +1556,17 @@ row bridges and does not replace either Vectors identity. Composite Vectors use
 the common ordered identity components when constructing named output keys.
 
 Relation conversion currently supports singleton keys. Composite Relation keys
-remain an UnsupportedNearest gap in the scalar-id Program bridge. A typed
-candidate after an earlier ordinary Relation Pipe operation, or a typed set
-head, still needs its finite continuation connection; these are implementation
-gaps, not permanent language restrictions. Parser/lowering and checked output
-contracts do not establish installed Host execution or successful publication.
+remain an UnsupportedNearest gap in the scalar-id Program bridge. Ordinary
+Relation Pipe operations retain their scopes, predicates and limits
+before a typed candidate; the same admitted candidate metadata reaches the
+existing Relation lowerer. Typed set heads use the common script dispatcher
+with the existing outer set owner, and KEEP-free typed operands do not create
+unused row bridges. JOIN continuations bind their candidate through the same
+WITH input owner and pass its admitted Carrier to the existing Pipe compiler;
+qualified query roles continue to resolve through the actual JOIN row scope.
+Composite Relation conversion remains an implementation gap, not a permanent
+language restriction. Parser/lowering and checked output contracts do not
+establish installed Host execution or successful publication.
 
 ## WITH producers and pure Graph construction
 
@@ -1511,6 +1591,20 @@ including unused bindings. A valid unused body is not executed merely because
 it is named. Demand uses the original checked producer/import/projection edges;
 it does not waive input-required order, type, Catalog or profile obligations.
 Normal Host preparation and Result publication remain strict.
+
+The NONE-input `time_series(start: value, end: value, step: value)` primary
+produces a Relation through the existing common TEA generator. Use it in
+`WITH grid AS (time_series(...)) SELECT time FROM grid ORDER BY time`, or as
+an AQL-text primary followed by ordinary Pipe operators. SQL retains its
+WITH/SELECT query-head selection. The closed arguments are exactly start,
+end and step, using the endpoint and positive-step forms of the common
+`time_series` contract. A generator cannot consume a current Pipe input.
+The common checker determines the timestamp field, key, ascending generation
+order, range/arithmetic validity and resolved bounds; the frontend does not
+sample rows or substitute Parameter defaults. Unused bodies remain statically
+checked and only demanded generators remain in execution. Relation primaries
+are not Graph values or implicit Source reads. Installed public execution
+and the optional Calendar profile remain separate acceptance obligations.
 
 WITH can retain Relation, Graph, Vectors or Events according to the admitted
 common contract. The installed constructor and Graph consumer connections
@@ -2082,8 +2176,44 @@ Lowering emits the existing Stage update Effect with the authored target,
 MappingRef, Result, ID field and SET values. Existing checker, Mapping, planner,
 preview, approval, capture and cleanup owners remain authoritative. No approval
 policy is authored in this surface, and syntax admission does not authorize
-execution. Other Effect kinds and complete Effect-language coverage remain
-separate implementation obligations.
+execution. Complete Effect-language coverage remains a separate implementation
+obligation.
+
+### COMMAND postludes
+
+An explicit COMMAND declaration follows a semicolon-terminated query:
+
+```aql
+FROM files.transfers |> SELECT destination, name, content |> RESULT transfers;
+EFFECT upload COMMAND
+  FROM RESULT transfers AS t
+  TARGET t.destination
+  CONTRACT `command:files.upload.v1`
+  INPUT (name = t.name, content = t.content);
+```
+
+SQL uses the same postlude after its SELECT or WITH query; WITH and FROM-first
+Pipe statements use the public `aql-text` format (the frontend's `Text` form).
+The postlude refers to an explicit retained Result, not a Source alias or a
+pipeline step. Qualified
+fields use that declaration's Result alias. TARGET and INPUT use existing
+EffectValue fields or scalar literals; computed expressions are refused and
+belong in the preceding Relation pipeline. Unknown Result names, foreign
+aliases, unknown fields, duplicate Effect names and duplicate INPUT fields are
+rejected. An empty INPUT list remains subject to the declared Command schema.
+COMMAND postludes cannot be mixed with an existing terminal UPDATE or Table
+write in the same query. Both the query separator and each postlude terminator
+are required.
+
+Lowering emits the existing `command` Effect with its original Result port,
+ResourceRef target, CommandContractRef and typed input. The common checker
+validates the target kind and input schema; parser success does not issue a
+ResourceRef, grant write permission or approve a Command. Preview, current
+authority, approval, durable send entry, saved outcome, unknown non-resend and
+cleanup remain with their existing owners. ContentRefs are references to owned
+bytes, not arbitrary bytes authored in the postlude. Retained Model Results
+cross an ordinary Stage Result edge before a downstream COMMAND continuation;
+the continuation does not re-acquire or re-evaluate that Model producer.
 
 ## Table create and whole-table replace
 
@@ -2120,3 +2250,92 @@ Initial support is Relation create and same-schema whole-table replace using
 the installed writer's admitted types. Syntax does not authorize a write.
 Append/upsert, schema evolution, automatic Catalog observation and other Carrier
 writers are separate implementation units.
+
+
+### Named temporal correlations
+
+The adopted ActQL Pipe calls `asof_join` and `interval_join` lower to the
+existing two-input TEA operations. Their `with:` value is a bare or backtick
+lexical producer reference, never a String containing a producer name. The
+current producer is the left operand. It is resolved and retained through the
+ordinary binding/capture Owner; a shared input is not acquired again.
+
+```aql
+WITH ticks AS (SELECT 1 AS id, 10 AS at),
+  spans AS (SELECT 7 AS id, 5 AS begin, 15 AS finish)
+FROM ticks AS t
+  |> interval_join(with: spans, kind: 'left', mode: 'point_in_interval',
+       on: [], left: {time: t.at},
+       right: {start: spans.begin, end: spans.finish},
+       select: {id: left.id, value: right.id}, max_output_rows: 3)
+  |> SELECT id, value |> ORDER BY id;
+```
+
+`asof_join` accepts exactly `with`, `kind`, `by`, `left_time`, `right_time`,
+`direction`, `tolerance`, `select`, and optional `left_id`, `right_tie_break`.
+`interval_join` accepts exactly `with`, `kind`, `mode`, `on`, `left`, `right`,
+and optional `select`, `max_output_rows`. Required/optional membership follows
+[the common as-of contract](language.md#asof-join) and
+[the interval contract](language.md#interval-join), including kind restrictions.
+No default tolerance, identity, pair or output guard is inserted by this surface.
+
+The pair-list `left` and `right` fields, temporal-record fields, `left_id`,
+`left_time`, `right_time` and `right_tie_break` retain typed FieldRef roles.
+Unqualified references use the signature's operand. The corresponding fixed
+`left.field`/`right.field` qualifier is allowed; left fields may use the current
+row alias and right fields the resolved `with` producer qualifier. A current
+row alias takes priority over a same-name WITH producer. A qualifier for the
+other operand is rejected instead of looking up a coincidentally named column.
+`select` uses ordinary OutputNames, including the existing reserved/quoted-name
+rules, mapped to explicit `left.field` or `right.field` selectors.
+Repeated pairs and tie-break fields retain their authored order and occurrence.
+
+Whole Parameters for tolerance and output guards retain their existing common
+binding obligations. As-of admits Relation or Events on the left and Relation
+on the right, returning a Relation; interval joins require two Relations.
+The common checker owns Carrier/type/NULL contracts, identity/tie completion,
+endpoint validation, logical order, bounds and pending value/resource evidence.
+Text lowering does not establish backend execution or external coverage.
+
+### Named ranking fusion
+
+`merge_rankings` is the adopted ActQL logical Pipe call for the existing
+[common ranking-fusion contract](language.md#merge-rankings). It consumes the
+current Relation and names earlier lexical peers with `with:`. A bare/backtick
+name is a ProducerRef; a String containing that name is not a reference.
+
+```aql
+WITH first AS (SELECT 1 AS id, 1 AS position),
+  other AS (SELECT 2 AS id, 1 AS position)
+FROM first AS current
+  |> merge_rankings(with: [other, other], by: [], candidate: current.id,
+       rank: current.position, k: 3,
+       score_policy: {rrf: {rank_constant: 1, weights: [1, 2, 3], rank_window: 2}})
+  |> SELECT id, score, rank |> ORDER BY rank;
+```
+
+The closed argument keys are `with`, `by`, `candidate`, `score`, `rank`,
+`score_policy`, `score_contract`, `k` and `tie_break`. Common policy checking
+selects required/forbidden members. `by`, `candidate`, `score`, `rank` and
+`tie_break` use ordinary current-row FieldRefs, including the existing explicit
+row-alias and quoted-field rules. Closed policy/score-contract keys are signature
+vocabulary; their authored String values, numeric values and list order are data.
+Repeated group/tie fields are retained until common checking.
+
+Max and weighted_sum use one peer. RRF may use a nonempty flat list. The current
+input occurs first, followed by every authored peer occurrence in list order.
+Binding/capture storage is shared by the existing owner, while repeated
+references remain separate weighted inputs in the ordinary Program and Plan.
+The frontend never deduplicates the RRF list, reweights it, substitutes k for a
+rank window, or changes the floating-point fold. An empty list is not a default.
+The common owner checks complete ranks, keys, domains, weights and all work,
+value, ordering and retained-state bounds before publication.
+
+For max/weighted_sum, `score_contract` does not authenticate arbitrary raw
+number columns. The common retained score-declaration evidence is still
+required. Literal Values with only number fields are rejected with the existing
+MissingScoreContract condition. Score snapshot reconciliation and the frontend
+check-only Context must preserve that evidence before a positive public
+score-fusion claim is made. This is a remaining connection requirement, not a
+new language restriction or permission to invent a declaration. Pure RRF does
+not require score-scale comparability; its own complete-input obligations remain.

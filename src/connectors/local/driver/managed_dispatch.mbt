@@ -178,6 +178,7 @@ pub struct LocalManagedRelationSnapshot {
   begin_reload : () -> Result[Unit, LocalDispatchIssue]
   append_reload : (String) -> Result[Unit, LocalDispatchIssue]
   finish_reload : () -> Result[Unit, LocalDispatchIssue]
+  cleanup_references : (Int) -> Bool
   finish : () -> Result[Unit, LocalDispatchIssue]
 }
 
@@ -721,7 +722,7 @@ pub fn[T] start_local_managed_dispatch(
   let snapshot_attempted = Ref(false)
   let snapshot_ready = Ref(true)
   let snapshot_storage_released : Ref[(() -> Bool)?] = Ref(None)
-  let relation_snapshot_cancel : Ref[(() -> Unit)?] = Ref(None)
+  let relation_snapshot_cancel : Ref[(() -> Bool)?] = Ref(None)
   let execution_finished = Ref(false)
   let execution_failure : Ref[LocalDispatchIssue?] = Ref(None)
   let request = @connector.managed_fixed_compute_candidate_request(
@@ -787,8 +788,9 @@ pub fn[T] start_local_managed_dispatch(
   let cancel_finalization = fn() {
     finalization_cancelled.val = true
     if relation_snapshot_cancel.val is Some(cancel) {
-      cancel()
-      relation_snapshot_cancel.val = None
+      if cancel() {
+        relation_snapshot_cancel.val = None
+      }
     }
     if finalization_completed.val is Some(completed) && !finalization_ready.val {
       @execution.revoke_unpublished_managed_completed_output(completed)
@@ -840,6 +842,7 @@ pub fn[T] start_local_managed_dispatch(
       (settled.val && (finalization_ready.val || carrier.val is Some(_)))) ||
       scratch_uses.val != 0 ||
       provider_execution.val is Some(_) ||
+      relation_snapshot_cancel.val is Some(_) ||
       (!live.val && input_stop.phase != Stopped) {
       return
     }
@@ -961,7 +964,8 @@ pub fn[T] start_local_managed_dispatch(
             finalization_values.val is None &&
             finalization_retention.val is None &&
             finalization_stream.val is None &&
-            finalization_result_preparation.val is None
+            finalization_result_preparation.val is None &&
+            relation_snapshot_cancel.val is None
           },
           retention_released: fn() {
             let relation_released = retained.val is None ||
@@ -2181,6 +2185,40 @@ pub fn[T] start_local_managed_dispatch(
       snapshot_attempted.val = true
       snapshot_ready.val = false
       snapshot_storage_released.val = Some(storage_released)
+      // The same snapshot owner retains exact export authority until its
+      // physical file is gone. Reloading copies does not transfer cleanup of
+      // the old material to a hidden queue or discard its retained allowance.
+      let cleanup_references = fn(quantum : Int) -> Bool {
+        if quantum <= 0 {
+          return false
+        }
+        if stream.val is Some(value) {
+          if !@execution.advance_cancel_completed_output_export(value, quantum) {
+            return false
+          }
+          stream.val = None
+        }
+        if receipt.val is Some(value) {
+          if !@execution.advance_cancel_completed_export_receipt(value, quantum) {
+            return false
+          }
+          receipt.val = None
+        }
+        if stored.val is Some(value) {
+          if !storage_released() {
+            return false
+          }
+          if @execution.completed_output_retained_material(value)
+            is Some(material) &&
+            !@execution.advance_retained_output_reference_reclamation(
+              material, quantum,
+            ) {
+            return false
+          }
+          stored.val = None
+        }
+        true
+      }
       relation_snapshot_cancel.val = Some(fn() {
         if stream.val is Some(value) {
           @execution.cancel_completed_output_export(value)
@@ -2191,11 +2229,9 @@ pub fn[T] start_local_managed_dispatch(
         if importing.val is Some(value) {
           @execution.cancel_completed_output_import(value) |> ignore
         }
-        stream.val = None
-        receipt.val = None
-        stored.val = None
         restored.val = None
         phase.val = Failed
+        cleanup_references(64)
       })
       Ok(
         Some({
@@ -2313,14 +2349,20 @@ pub fn[T] start_local_managed_dispatch(
             }
             restored.val = Some(value)
             importing.val = None
-            stored.val = None
             phase.val = Restored
             Ok(())
+          },
+          cleanup_references: quantum => {
+            (phase.val == Restored || phase.val == Failed) &&
+            cleanup_references(quantum)
           },
           finish: () => {
             guard live.val &&
               phase.val == Restored &&
               storage_released() &&
+              stored.val is None &&
+              stream.val is None &&
+              receipt.val is None &&
               restored.val is Some(value) else {
               return Err(Configuration(InvalidLimits))
             }
@@ -2543,6 +2585,12 @@ pub fn[T] start_local_managed_dispatch(
       }
       if !release_provider_scratch() {
         return false
+      }
+      if relation_snapshot_cancel.val is Some(cancel) {
+        if !cancel() {
+          return false
+        }
+        relation_snapshot_cancel.val = None
       }
       release_owned_scratch()
       let carrier_reclaimed = match carrier.val {

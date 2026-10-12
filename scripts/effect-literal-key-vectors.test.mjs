@@ -1,13 +1,36 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {checkEffectLiteralKeyVectors, exactDataJson} from './effect-literal-key-vectors.mjs';
+import {checkEffectLiteralKeyVectors, currentEffectLiteralKeyVectors,
+  exactDataJson} from './effect-literal-key-vectors.mjs';
 
 const readCorpus = () => JSON.parse(readFileSync(new URL(
   '../portability/corpus/effect-literal-key-identities.json', import.meta.url), 'utf8'));
 
 test('fixed raw Effect literal Stage and Program preimages are independent and complete', () => {
   assert.equal(checkEffectLiteralKeyVectors(readCorpus()), 10);
+});
+
+test('current literal identities change only the reviewed expression dependency and its hashes', () => {
+  const original = readCorpus();
+  const saved = structuredClone(original);
+  const current = currentEffectLiteralKeyVectors(original);
+  assert.deepEqual(original, saved, 'historical envelopes and CIDs are not rewritten');
+  assert.equal(current[0].expected_definition_cid,
+    'sha256:fa57a54b8020ac4eafb2ec028c71e671abfd6a902b8a35fa6feb7df6f8e587a6');
+  for (const [i, vector] of current.entries()) {
+    assert.deepEqual(vector.payload, original.cases[i].payload);
+    assert.deepEqual(vector.stage_envelope.local_body, original.cases[i].stage_envelope.local_body);
+    assert.equal(vector.payload_preimage, original.cases[i].payload_preimage);
+    assert.notEqual(vector.expected_program_cid, original.cases[i].expected_program_cid);
+  }
+  assert.notEqual(current[1].expected_definition_cid, current[2].expected_definition_cid);
+  assert.equal(current[6].expected_definition_cid, current[7].expected_definition_cid);
+  const expression = JSON.parse(readFileSync(new URL(
+    '../spec/contracts/actql-expressions.json', import.meta.url), 'utf8'));
+  expression.version = 'unreviewed';
+  assert.throws(() => currentEffectLiteralKeyVectors(original, expression),
+    /review the current expression dependency/);
 });
 
 test('the fixture oracle sorts exact UTF-16 keys without JavaScript numeric-key reordering', () => {
