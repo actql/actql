@@ -40,6 +40,29 @@ function startImmediate(f) {
     declaredResults: f.registration.declaredResults});
 }
 
+test('original resource cut cannot use unchanged Run revision as Slot or cancellation currentness', async t => {
+  const f = fixture(t); startImmediate(f);
+  const before = f.journal.getRunState(immediateIdentity.runId);
+  const slotsBefore = f.journal.readModelCalls(immediateIdentity).slots;
+  const ref = immediateReference(0);
+  const entry = f.journal.enterImmediateModelCall(ref, f.issueImmediate(ref));
+  const entered = f.journal.getRunState(immediateIdentity.runId);
+  assert.equal(entered.version, before.version);
+  assert.equal(entered.status, before.status);
+  assert.equal(slotsBefore[0].state, 'Unsent');
+  assert.equal(f.journal.readModelCalls(immediateIdentity).slots[0].state, 'EnteredUnknown');
+  f.settlements.set(entry.attemptCid, saved(entry));
+  await f.journal.observeImmediateModelCall(entry);
+  assert.equal(f.journal.getRunState(immediateIdentity.runId).version, before.version);
+  assert.equal(f.journal.readModelCalls(immediateIdentity).slots[0].state, 'SavedSuccess');
+  assert.equal(f.journal.modelCancellationFenced(immediateIdentity.runId, immediateIdentity.runDefinitionCid), false);
+  f.journal.fenceRunCancellation({originalRunWire: f.registration.modelCallSet.originalRunWire});
+  assert.equal(f.journal.getRunState(immediateIdentity.runId).version, before.version);
+  assert.equal(f.journal.modelCancellationFenced(immediateIdentity.runId, immediateIdentity.runDefinitionCid), true);
+  // This real SQLite fact test uses explicit Model admission/Store doubles.
+  // It establishes the separate fence domains, not a restorable current cut.
+});
+
 test('Model cancellation fence readback binds the original Run across restart', t => {
   const f = fixture(t);
   const owner = f.registration.modelCallSet;
