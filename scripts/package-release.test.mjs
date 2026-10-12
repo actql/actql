@@ -12,6 +12,24 @@ import {publishPackageRelease} from './publish-package-release.mjs';
 const cohort = admitCohort(JSON.parse(await readFile(new URL('../release/client-cohort.json', import.meta.url))));
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 
+test('Explorer is a separate exact closure and internal peers receive the release version', async () => {
+  const explorer = admitCohort(JSON.parse(await readFile(new URL('../release/explorer-cohort.json', import.meta.url))));
+  assert.deepEqual(cohort.packages, ['client-wire', 'sdk', 'local-node', 'node']);
+  assert.deepEqual(explorer.packages, [...cohort.packages, 'explorer-ui', 'explorer']);
+  const original = JSON.parse(await readFile(new URL('../packages/explorer-ui/package.json', import.meta.url)));
+  const metadata = releasePackageMetadata(original, 'explorer-ui', explorer);
+  assert.equal(metadata.peerDependencies['@actql/sdk'], explorer.packageVersion);
+  assert.equal(metadata.peerDependencies.react, original.peerDependencies.react);
+  assert.equal(metadata.peerDependencies['react-dom'], original.peerDependencies['react-dom']);
+  assert.equal(metadata.exports['./styles.css'], './dist/plan-explorer.css');
+  assert.throws(() => admitCohort({...explorer, packages: cohort.packages}));
+  assert.throws(() => admitCohort({...cohort, packages: explorer.packages}));
+  assert.throws(() => releasePackageMetadata({name: '@actql/explorer-ui',
+    peerDependencies: {'@actql/missing': '0.0.0-development'}}, 'explorer-ui', explorer));
+  assert.throws(() => releasePackageMetadata({name: '@actql/explorer',
+    peerDependencies: {react: 'file:../../react'}}, 'explorer', explorer));
+});
+
 test('public metadata keeps the exact standard closure and optional peer capability', () => {
   const original = {name: '@actql/local-node', version: '0.0.0-development', private: true,
     exports: {'.': {types: './index.d.ts', default: './index.mjs'}},

@@ -71,7 +71,7 @@ fn python_native_plan(
   ).unwrap()
   let input = @local_input.prepare_local_input_material(
     Aql(
-      "DATA acquired = SELECT id FROM records WHERE id > 2; FROM acquired |> EXTEND id + 1 AS value |> SELECT value |> RESULT answer",
+      "WITH acquired AS (SELECT id FROM records WHERE id > 2) FROM acquired |> EXTEND id + 1 AS value |> SELECT value |> RESULT answer",
     ),
     environment,
     None,

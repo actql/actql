@@ -147,3 +147,33 @@ Native CLI distribution follows separately as **Native Remote CLI**. It does
 not block the SDK/Node release, and it does not complete the adopted future
 standard Local CLI requirements. `actql@0.0.1` is an occupied placeholder;
 the real CLI uses a new immutable version.
+
+
+## Optional standalone Explorer cohort
+
+Explorer is separately installed with `npm install @actql/explorer`; it is not
+added to the initial Node/SDK release gate. `release/explorer-cohort.json` fixes
+the existing four packages followed by `explorer-ui` and `explorer`. Select it
+explicitly while keeping the normal clean-HEAD prepack and immutable digest flow:
+
+```sh
+node scripts/package-release.mjs prepare <unique-explorer-RC-directory> release/explorer-cohort.json
+node scripts/package-release.mjs verify <unique-explorer-RC-directory>
+node scripts/test-explorer-release-install.mjs <unique-explorer-RC-directory>
+```
+
+The UI library keeps React/React DOM as peers and exports built CSS. The
+standalone package supplies one browser application/runtime and the
+`actql-explorer` binary, never another `actql` binary. Internal dependencies and
+peers receive the exact cohort release version; no consumer resolves development,
+file or workspace references. Normal prepack emits the actual SPA and a bounded
+SHA-256 asset inventory. Metadata/license staging preserves those runtime bytes
+and modes. Third-party UI/server dependencies use ordinary registry resolution;
+the private acceptance registry serves only the fixed ActQL archives.
+
+The finite installed profile reads a real static Plan, original existing Run
+and Named Result metadata through the public Client. It submits no business
+work, exposes no controls/Samples/payloads and grants no new authority. Empty
+consumer acceptance must verify actual built asset delivery, original refs/ports,
+unavailable capability states and closure without cancelling borrowed work.
+It does not complete the Cloud adapter, Full Explorer or formal npm publication.
