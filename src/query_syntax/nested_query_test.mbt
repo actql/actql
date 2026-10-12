@@ -81,7 +81,6 @@ test "nested relational query stops at its own boundary" {
     text in [
       "SELECT a FROM (FROM rows |> SELECT a;) AS selected", "SELECT a FROM (FROM rows |> SELECT a AS selected",
       "SELECT a FROM (FROM rows |> INFER task ITEM KEY (a) INPUT (n = a) AS outcome) AS selected",
-      "SELECT a FROM (FROM GRAPH g |> MATCH WALK (n) |> SELECT n.id) AS selected",
     ] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
@@ -117,4 +116,17 @@ test "parenthesized and set query bodies share bounded source classification" {
     ] {
     assert_true(parse_query(text, query_limits()) is Err(_), msg=text)
   }
+}
+
+///|
+test "Pure derived Graph to Relation retains the graph source and projection" {
+  let query = parse_query(
+    "SELECT id FROM (FROM GRAPH g |> MATCH WALK (n) |> SELECT n.id) AS selected",
+    query_limits(),
+  ).unwrap()
+  assert_eq(query_binding_count(query), 1)
+  let body = query_binding_at(query, 0).unwrap().query
+  assert_true(graph_query(body) is Some(_))
+  assert_eq(relation(body), [{ value: "g", quoted: false, }])
+  assert_eq(relation_alias(query), Some({ value: "selected", quoted: false, }))
 }

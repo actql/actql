@@ -98,6 +98,20 @@ fn check_original_inventory_open(
 }
 
 ///|
+// Read-only lifetime guard on the same opaque census/bootstrap. Issued read
+// state is allowed; closing/reclaimed custody is not. This neither freezes a
+// Ledger nor establishes a stable cut, byte adequacy or restoration authority.
+pub fn original_ledger_inventory_available(
+  identity : OriginalLedgerIdentity,
+) -> Bool {
+  guard identity.ledger.original_inventory is Some(value) else { return false }
+  physical_equal(identity, value.identity) &&
+  physical_equal(identity.bootstrap, value.bootstrap) &&
+  !value.closing &&
+  original_read_bootstrap_available(identity.ledger, identity.bootstrap)
+}
+
+///|
 fn check_original_reservation_slot(
   ledger : Ledger,
 ) -> Result[Unit, LedgerIssue] {

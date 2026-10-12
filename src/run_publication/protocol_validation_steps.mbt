@@ -3,6 +3,8 @@ priv enum ProtocolValidationFrame {
   Visit(@json.CanonicalValue, Int)
   ArrayNext(@json.FrozenArray[@json.CanonicalValue], Int, Int)
   ArrayResult(@json.FrozenArray[@json.CanonicalValue], Int, Int)
+  TupleNext(@json.FrozenArray[@json.CanonicalValue], Array[Int], Int)
+  TupleResult(@json.FrozenArray[@json.CanonicalValue], Array[Int], Int)
   Required(@json.FrozenArray[(String, @json.CanonicalValue)], Int, Int, Int)
   ObjectNext(@json.FrozenArray[(String, @json.CanonicalValue)], Int, Int)
   ObjectResult(@json.FrozenArray[(String, @json.CanonicalValue)], Int, Int)
@@ -115,6 +117,16 @@ fn ProtocolValidationCursor::step(self : ProtocolValidationCursor) -> Unit {
             }
             _ => self.result = false
           }
+        TupleRule(items) =>
+          match value {
+            @json.Array(values) =>
+              if @json.array_count(values) != items.length() {
+                self.result = false
+              } else {
+                pending.push(TupleNext(values, items, 0))
+              }
+            _ => self.result = false
+          }
         ObjectRule(_, _, _, min_properties, _, _) =>
           match value {
             @json.Object(fields) =>
@@ -153,6 +165,19 @@ fn ProtocolValidationCursor::step(self : ProtocolValidationCursor) -> Unit {
     ArrayResult(values, items, index) =>
       if self.result {
         pending.push(ArrayNext(values, items, index + 1))
+      }
+    TupleNext(values, items, index) =>
+      if index == items.length() {
+        self.result = true
+      } else {
+        pending.push(TupleResult(values, items, index))
+        pending.push(
+          Visit(@json.array_at(values, index).unwrap(), items[index]),
+        )
+      }
+    TupleResult(values, items, index) =>
+      if self.result {
+        pending.push(TupleNext(values, items, index + 1))
       }
     Required(fields, schema, required_index, search) => {
       guard self.nodes[schema] is ObjectRule(_, required, _, _, _, _) else {

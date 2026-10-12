@@ -59,6 +59,18 @@ class LocalStorageError(RuntimeError):
     """Physical storage failure; it grants no execution, retry or absence fact."""
 
 
+class LocalStorageCommitUnknown(LocalStorageError):
+    """COMMIT was attempted; retain the same Store and inspect original bytes.
+
+    This physical exception claims no Run outcome or retry permission. A
+    current-port refusal after COMMIT cannot become a pre-write refusal.
+    """
+
+    def __init__(self, cleanup_store: 'LocalByteStore') -> None:
+        super().__init__('Local physical COMMIT outcome is unknown')
+        self.cleanup_store = cleanup_store
+
+
 class LocalStorageInitializationError(LocalStorageError):
     def __init__(self, cleanup_store: 'LocalByteStore') -> None:
         super().__init__('Local storage initialization cleanup is pending')
@@ -432,6 +444,42 @@ class LocalByteStore:
             raise ValueError('Invalid original Local physical metadata batch')
         return self._compare_exchange_many(writes, capacity=None, originals=originals)
 
+    def compare_exchange_many_fenced(
+            self, writes: tuple[ByteWrite, ...], fences: tuple[ByteFence, ...], *,
+            current: Callable[[], object]) -> tuple[int, ...] | None:
+        """Persist original Core bytes under exact physical metadata fences.
+
+        The installed Host holds Core before Store, reserves retained bytes and
+        SQLite workspace, and checks its original typed current port. No caller
+        permission boolean, phase, scope comparison or Run decision is created
+        here. Fences bind the original epoch/configuration/count observations in
+        the same write transaction. A count row may also be a CAS target; its
+        old bytes and generation must match before replacement. No write or
+        lookup is repeated automatically after a conflict or lost COMMIT reply.
+        """
+        if not callable(current):
+            raise ValueError('Invalid Local physical current callback')
+        self._validate_fences(fences, writes)
+        return self._compare_exchange_many(writes, capacity=None,
+                                           fences=fences, current=current)
+
+    def read_exchange_many_fenced(
+            self, writes: tuple[ByteWrite, ...], fences: tuple[ByteFence, ...], *,
+            current: Callable[[], object]) -> tuple[StoredBytes, ...] | None:
+        """Observe exact successors and untouched metadata in one snapshot.
+
+        Overlapping count fences are checked against this original write's
+        exact successor bytes/generation. Read-only epoch/configuration fences
+        remain unchanged. This is a physical observation, never accepted Run
+        state, confirmed nonexecution or permission to replay the transaction.
+        The current typed port is checked before reads and before returning;
+        query and transaction-cleanup failures remain exceptions with custody.
+        """
+        if not callable(current):
+            raise ValueError('Invalid Local physical current callback')
+        self._validate_fences(fences, writes)
+        return self._read_exchange_many(writes, fences=fences, current=current)
+
     def read_exchange_many_attached(
             self, writes: tuple[ByteWrite, ...],
             originals: tuple[tuple[ByteFence, CapacityReservation], ...]) -> tuple[StoredBytes, ...] | None:
@@ -444,15 +492,28 @@ class LocalByteStore:
         A transaction cleanup failure keeps this Store handle pending and exposes
         no partial observation. The Host reserves input/output retention itself.
         """
+        self._validate_originals(originals, self._exchange_write_keys(writes))
+        return self._read_exchange_many(writes, originals=originals)
+
+    def _read_exchange_many(
+            self, writes: tuple[ByteWrite, ...], *,
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...] = (),
+            fences: tuple[ByteFence, ...] = (),
+            current: Callable[[], object] | None = None) -> tuple[StoredBytes, ...] | None:
         keys = self._exchange_write_keys(writes)
-        self._validate_originals(originals, keys)
+        if originals:
+            self._validate_originals(originals, keys)
+        if fences:
+            self._validate_fences(fences, writes)
         with self._lock:
             self._open()
             database = self._connection
             database.execute('BEGIN')
             try:
+                self._fenced_current(current)
                 result: tuple[StoredBytes, ...] | None = None
-                if self._originals_match_locked(originals):
+                if (self._originals_match_locked(originals)
+                        and self._fences_match_locked(fences, writes)):
                     observed: list[StoredBytes] = []
                     for write in writes:
                         row = self._read_bytes_locked(write.key)
@@ -462,6 +523,9 @@ class LocalByteStore:
                         observed.append(row)
                     if len(observed) == len(writes):
                         result = tuple(observed)
+                self._fenced_current(current)
+                if fences and not self._fences_match_locked(fences, writes):
+                    result = None
             except BaseException:
                 if database.in_transaction:
                     database.execute('ROLLBACK')
@@ -801,9 +865,55 @@ class LocalByteStore:
                 return False
         return True
 
+    def _validate_fences(self, fences: tuple[ByteFence, ...],
+                         writes: tuple[ByteWrite, ...]) -> None:
+        self._exchange_write_keys(writes)
+        if type(fences) is not tuple or not 1 <= len(fences) <= self._max_records:
+            raise ValueError('Invalid Local physical metadata fences')
+        keys: set[str] = set()
+        copied = 0
+        for fence in fences:
+            if type(fence) is not ByteFence:
+                raise ValueError('Invalid Local physical metadata fence')
+            self._key(fence.key)
+            if (type(fence.generation) is not int
+                    or not 0 <= fence.generation <= 2**63 - 1
+                    or type(fence.payload) is not bytes
+                    or len(fence.payload) > self._max_record_bytes
+                    or fence.key in keys):
+                raise ValueError('Invalid Local physical metadata fence')
+            keys.add(fence.key)
+            copied += len(fence.payload)
+            if copied > self._max_payload_bytes:
+                raise ValueError('Local physical metadata fences exceed their bound')
+            for write in writes:
+                if write.key == fence.key and write.expected_generation != fence.generation:
+                    raise ValueError('Local physical write has another metadata generation')
+
+    def _fences_match_locked(self, fences: tuple[ByteFence, ...],
+                             successors: tuple[ByteWrite, ...] = ()) -> bool:
+        for fence in fences:
+            generation, payload = fence.generation, fence.payload
+            for write in successors:
+                if write.key == fence.key:
+                    generation = fence.generation + 1
+                    payload = write.payload
+                    break
+            original = self._read_bytes_locked(fence.key)
+            if original != StoredBytes(generation, payload):
+                return False
+        return True
+
+    @staticmethod
+    def _fenced_current(current: Callable[[], object] | None) -> None:
+        if current is not None and current() is not None:
+            raise ValueError('Invalid Local physical current callback result')
+
     def _compare_exchange_many(self, writes: tuple[ByteWrite, ...], *,
                                capacity: CapacityReservation | None,
-                               originals: tuple[tuple[ByteFence, CapacityReservation], ...] = ()) -> tuple[int, ...] | None:
+                               originals: tuple[tuple[ByteFence, CapacityReservation], ...] = (),
+                               fences: tuple[ByteFence, ...] = (),
+                               current: Callable[[], object] | None = None) -> tuple[int, ...] | None:
         keys = self._exchange_write_keys(writes)
         if capacity is not None:
             if type(capacity) is not CapacityReservation:
@@ -816,11 +926,15 @@ class LocalByteStore:
                 raise ValueError('Local physical reservation names another record')
         if originals:
             self._validate_originals(originals, keys)
+        if fences:
+            self._validate_fences(fences, writes)
         with self._lock:
             self._open()
             database = self._connection
             database.execute('BEGIN IMMEDIATE')
+            commit_attempted = False
             try:
+                self._fenced_current(current)
                 if capacity is not None:
                     retained = database.execute('''SELECT reserved_bytes, reserved_objects
                         FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
@@ -828,7 +942,8 @@ class LocalByteStore:
                     if retained != (capacity.reserved_bytes, capacity.reserved_objects):
                         database.execute('ROLLBACK')
                         return None
-                if not self._originals_match_locked(originals):
+                if (not self._originals_match_locked(originals)
+                        or not self._fences_match_locked(fences)):
                     database.execute('ROLLBACK')
                     return None
                 generations: list[int] = []
@@ -861,13 +976,26 @@ class LocalByteStore:
                     else:
                         database.execute('UPDATE core_bytes SET generation = ?, payload = ? WHERE key = ?',
                                          (generation, write.payload, write.key))
+                self._fenced_current(current)
+                if fences and not self._fences_match_locked(fences, writes):
+                    database.execute('ROLLBACK')
+                    return None
+                commit_attempted = True
                 database.execute('COMMIT')
+                self._fenced_current(current)
                 return tuple(generations)
-            except BaseException:
+            except BaseException as failure:
                 # COMMIT failure is not a successful write or permission to
                 # resend. Preserve the exception and the original store handle.
-                if database.in_transaction:
-                    database.execute('ROLLBACK')
+                try:
+                    if database.in_transaction:
+                        database.execute('ROLLBACK')
+                except BaseException as cleanup_failure:
+                    if current is not None and commit_attempted:
+                        raise LocalStorageCommitUnknown(self) from cleanup_failure
+                    raise
+                if current is not None and commit_attempted:
+                    raise LocalStorageCommitUnknown(self) from failure
                 raise
 
     def close(self) -> None:
