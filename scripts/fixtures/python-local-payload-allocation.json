@@ -1,0 +1,19 @@
+{
+  "description": "Unexecuted private ABI31 allocation intent/identity CAS and actual exclusive directory port. No payload file, Store publication, durable Run, default fuel or aggregate memory claim.",
+  "max_record_bytes": 65536,
+  "physical_copy_bytes": 131300,
+  "capacity_namespace": "publication_payload",
+  "allocation_namespace": "publication_payload_allocation",
+  "allocation_name": "alloc-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb-1",
+  "envelope_fields": ["allocation_body", "expected_revision", "material_generation_cid", "namespace", "previous_body", "store_authority_cid"],
+  "cases": [
+    "original_writing_and_single_allocation_child_required",
+    "closed_actual_store_observation_keeps_null_and_missing_distinct",
+    "original_namespace_intent_cas_preserves_payload_and_capacity",
+    "exclusive_directory_identity_prepares_same_original_allocation",
+    "lost_ownership_cas_ack_keeps_original_handle_without_resend",
+    "exact_current_observation_resolves_original_pending_write",
+    "confirmed_directory_opens_under_original_identity",
+    "cleanup_failure_retains_allocation_child_and_source_borrow"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "description": "Private ABI30 original Writing/Owned CAS boundaries. Ownership observations are synthetic trusted-Host inputs for scalar precision tests, not a real file allocation or Store publication. These physical Wasm cases are unexecuted until separately authorized.",
+  "max_record_bytes": 65536,
+  "physical_copy_bytes": 131300,
+  "capacity_namespace": "publication_payload",
+  "writing_fields": {
+    "version": "actql-publication-payload-record/0.2",
+    "state": "writing",
+    "revision": "2",
+    "actual_bytes": "-1",
+    "device": "",
+    "inode": "",
+    "ownership_device": "",
+    "ownership_inode": "",
+    "physical_digest": ""
+  },
+  "ownership_device": "9007199254740993",
+  "ownership_inode": "18446744073709551615",
+  "cases": [
+    "original_reserved_record_and_single_child_are_required",
+    "writing_preparation_keeps_original_reserved_record_and_capacity",
+    "exact_writing_successor_advances_the_same_record_once",
+    "owned_observation_rejects_noncanonical_uint64_and_foreign_bindings",
+    "exact_wide_ownership_is_prepared_without_a_durable_commit",
+    "lost_owned_cas_acknowledgement_keeps_original_custody_without_resend",
+    "current_authority_and_exact_original_successor_resolve_pending_write",
+    "cleanup_retry_preserves_original_disk_capacity_and_input_until_retirement"
+  ]
+}

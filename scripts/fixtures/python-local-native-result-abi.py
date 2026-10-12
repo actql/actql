@@ -15,6 +15,7 @@ from python_local_publication_policy import publication_policy as frozen_publica
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'packages/python-sdk/src'))
 from actql_sdk._local_command import native_command
+from actql_sdk._local_core import LocalCore, _PhysicalInput, _PublisherCallbacks
 from actql_sdk._local_duckdb import DuckDBLibrary, DuckDBConnection, DuckDBTransferLimits
 
 
@@ -26,14 +27,44 @@ explicit_view = '--explicit-view' in sys.argv[4:]
 final_publication = '--final-publication' in sys.argv[4:]
 result_binding = '--result-binding' in sys.argv[4:]
 commit_candidate = '--commit-candidate' in sys.argv[4:]
+commit_materials = '--commit-materials' in sys.argv[4:]
+commit_index_key = '--commit-index-key' in sys.argv[4:]
 payload_request = '--payload-request' in sys.argv[4:]
+payload_replay = '--payload-replay' in sys.argv[4:]
+payload_record = '--payload-record' in sys.argv[4:]
+payload_reservation = '--payload-reservation' in sys.argv[4:]
+payload_parent_close = '--payload-parent-close' in sys.argv[4:]
+payload_writing = '--payload-writing' in sys.argv[4:]
+payload_allocation = '--payload-allocation' in sys.argv[4:]
+payload_sealed = '--payload-sealed' in sys.argv[4:]
+payload_names = '--payload-names' in sys.argv[4:]
+payload_staging = '--payload-staging' in sys.argv[4:]
+payload_finalization = '--payload-finalization' in sys.argv[4:]
+payload_reader = '--payload-reader' in sys.argv[4:]
+payload_binding = '--payload-binding' in sys.argv[4:]
+publisher_port = '--publisher-port' in sys.argv[4:]
 assert sys.argv[4:] in ([], ['--native-cleanup-only'], ['--bounded-inventory-root'],
                        ['--bounded-inventory-root', '--source-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding'],
                        ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate'],
-                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request'])
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--commit-materials'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--commit-materials', '--commit-index-key'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--publisher-port'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-parent-close'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names', '--payload-staging'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names', '--payload-staging', '--payload-finalization'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names', '--payload-staging', '--payload-finalization', '--payload-reader'],
+                       ['--bounded-inventory-root', '--source-publication', '--explicit-view', '--final-publication', '--result-binding', '--commit-candidate', '--payload-request', '--payload-replay', '--payload-record', '--payload-reservation', '--payload-writing', '--payload-allocation', '--payload-sealed', '--payload-names', '--payload-staging', '--payload-finalization', '--payload-reader', '--payload-binding'])
 source_cases = []
 publication_cases = []
 binding_cases = []
@@ -43,7 +74,22 @@ publication_retirement_cases = []
 preflight_inputs = {}
 preflight_output_tickets = {}
 commit_cases = []
+commit_material_cases = []
+commit_index_key_cases = []
 payload_request_cases = []
+payload_replay_cases = []
+payload_record_cases = []
+payload_reservation_cases = []
+payload_parent_close_cases = []
+payload_writing_cases = []
+payload_allocation_cases = []
+payload_sealed_cases = []
+payload_names_cases = []
+payload_staging_cases = []
+payload_finalization_cases = []
+payload_reader_cases = []
+payload_binding_cases = []
+publisher_cases = []
 root = Path(__file__).resolve().parents[2]
 module = Path(module_path).read_bytes()
 
@@ -57,6 +103,13 @@ class NativeFixture(PhysicalFixture):
         self.queries = 0
         self.native_stop_ready = True
         self.native_cleanup_ready = True
+        # Private independent authority fixture, not an installed product issuer.
+        self.publisher_bridge = LocalCore.__new__(LocalCore)
+        self.publisher_bridge._inputs = {}
+        self.publisher_fence_ready = True
+        self.publisher_answer = True
+        self.publisher_revoke_after_auth = False
+        self.publisher_seen = []
         super().__init__(module, 1001, capacity=8_388_608, slots=64,
                          fuel=None, execution_bytes=536_870_912,
                          retained_bytes=536_870_912 if inventory_root else 200_000_000)
@@ -72,6 +125,18 @@ class NativeFixture(PhysicalFixture):
     def native_cleaned(self, handle):
         assert handle == self.attempt and self.view is not None
         return 0 if self.native_cleanup_ready and self.view.close() else 1
+
+    def publisher_current(self, ticket):
+        return self.publisher_bridge._publisher_current(ticket)
+
+    def publisher_begin(self, ticket, length):
+        return self.publisher_bridge._publisher_begin(ticket, length)
+
+    def publisher_byte(self, ticket, index, byte):
+        return self.publisher_bridge._publisher_byte(ticket, index, byte)
+
+    def publisher_finish(self, ticket):
+        return self.publisher_bridge._publisher_finish(ticket)
 
     def stop(self, ticket, reader):
         if ticket == self.workspace_ticket:
@@ -191,7 +256,7 @@ def event(kind, **values):
 
 
 try:
-    assert fixture.exports['actql_host_abi_version'](fixture.store) == 26
+    assert fixture.exports['actql_host_abi_version'](fixture.store) == 42
     fixture.stop_ready = fixture.cleanup_ready = True
     workspace = fixture.exports['actql_workspace_reserve'](
         fixture.store, fixture.nonce, fixture.workspace_ticket, 67_108_864)
@@ -829,6 +894,13 @@ try:
                     assert fixture.call('close', input_handle) == 0
                     payload_request_cases.append('closed_request_preserves_absent_null_and_rejects_supplied_result_identity')
                     child, input_handle = payload_loan(payload_facts)
+                    if payload_record:
+                        assert_status('payload_record', 'reserve', -2, child, 65400, 131300)
+                        payload_record_cases.append('unfinished_request_cannot_export_initial_record')
+                    if payload_replay:
+                        assert_status('payload_request', 'start_replay', -33, child, configuration)
+                        assert_status('payload_chunk', 'reserve', -2, child, 65500, 131300)
+                        payload_replay_cases.append('unfinished_request_cannot_open_replay')
                     assert_status('payload_request', 'produce', -32, child, denied_configuration)
                     assert_status('payload_request', 'produce', 0, child, configuration)
                     size = call('payload_request', 'length', child)
@@ -851,6 +923,222 @@ try:
                     assert_status('payload_request', 'produce', 0, child, configuration)
                     assert bytes(fixture.call('byte', child, i) for i in range(size)) == payload_wire
                     payload_request_cases.append('current_authority_revalidated_after_cached_projection')
+                    if payload_record:
+                        import sqlite3
+                        from tempfile import TemporaryDirectory
+                        from unittest.mock import patch
+                        from actql_sdk._local_storage import ByteWrite, LocalByteStore, StoredBytes
+
+                        record_expected = json.loads((root / 'scripts/fixtures/python-local-payload-record.json').read_text())
+                        record_request, record_input = payload_loan(payload_facts)
+                        assert_status('payload_request', 'produce', 0, record_request, configuration)
+                        ticket += 1
+                        record_ticket = ticket
+                        fixture.inputs[ticket] = b''
+                        record_child = call('payload_record', 'reserve', record_request, ticket, record_expected['physical_copy_bytes'])
+                        assert record_child > 0, ('Original payload record reserve', record_child)
+                        assert_status('payload_record', 'produce', -32, record_child, denied_configuration)
+                        assert_status('payload_record', 'produce', 0, record_child, configuration)
+                        record_length = call('payload_record', 'length', record_child)
+                        assert 0 < record_length <= record_expected['max_record_bytes']
+                        record_wire = bytes(fixture.call('byte', record_child, i) for i in range(record_length))
+                        record_body = json.loads(record_wire)
+                        assert set(record_body) == set(record_expected['initial_fields']) | {'request_cid', 'request_json', 'version'}
+                        assert record_body['version'] == record_expected['record_version']
+                        for field, expected_value in record_expected['initial_fields'].items():
+                            assert record_body[field] == expected_value, (field, record_body[field])
+                        assert record_body['request_json'].encode() == payload_wire
+                        assert_status('payload_record', 'validate', -32, record_child, denied_configuration)
+                        assert_status('payload_record', 'validate', 0, record_child, configuration)
+                        payload_record_cases.append('original_intent_and_current_authority_preserved')
+
+                        observation = {'store_authority_cid': payload_facts['store_authority_cid'],
+                                       'material_generation_cid': payload_facts['material_generation_cid'],
+                                       'physical_revision': 0, 'record_json': record_wire.decode()}
+                        ack = copy(observation)
+                        assert_status('payload_record', 'confirm', -33, record_child, ack, configuration)
+                        fixture.cleanup_ready = True
+                        assert fixture.call('close', ack) == 0
+                        assert_status('payload_record', 'begin', 0, record_child, configuration)
+                        assert_status('payload_record', 'begin', -33, record_child, configuration)
+                        for bad in (
+                                {**observation, 'store_authority_cid': 'sha256:' + 'a' * 64},
+                                {**observation, 'material_generation_cid': 'sha256:' + 'a' * 64},
+                                {**observation, 'physical_revision': 1},
+                                {**observation, 'record_json': record_wire.decode().replace('"state":"intent"', '"state":"reserved"')}):
+                            bad_ack = copy(bad)
+                            assert_status('payload_record', 'confirm', -32, record_child, bad_ack, configuration)
+                            assert fixture.call('close', bad_ack) == 0
+                        payload_record_cases.append('foreign_store_key_revision_and_bytes_do_not_confirm')
+
+                        class LostRecordCommit(sqlite3.Connection):
+                            writes = 0
+                            lose = False
+
+                            def execute(self, sql, *args, **kwargs):
+                                if sql.startswith(('INSERT', 'UPDATE')):
+                                    self.writes += 1
+                                result = super().execute(sql, *args, **kwargs)
+                                if sql == 'COMMIT' and self.lose:
+                                    self.lose = False
+                                    raise OSError('Original initial record acknowledgement lost')
+                                return result
+
+                        physical_connect = sqlite3.connect
+                        with TemporaryDirectory(prefix='actql-abi28-initial-record-') as directory:
+                            with patch('actql_sdk._local_storage.sqlite3.connect',
+                                       side_effect=lambda *a, **k: physical_connect(*a, **k, factory=LostRecordCommit)):
+                                with LocalByteStore(Path(directory) / 'core.sqlite', max_records=4,
+                                                    max_record_bytes=65536, max_payload_bytes=262144) as store:
+                                    write = ByteWrite(payload_facts['material_generation_cid'], None, record_wire)
+                                    assert store.read_exchange(write) is None
+                                    store._connection.lose = True
+                                    try:
+                                        store.compare_exchange(write.key, None, write.payload)
+                                    except OSError as error:
+                                        assert str(error) == 'Original initial record acknowledgement lost'
+                                    else:
+                                        raise AssertionError('Missing original lost-ack counterexample')
+                                    assert store._connection.writes == 1
+                                    assert_status('payload_record', 'close', -9, record_child)
+                                    assert_status('payload_request', 'close', -9, record_request)
+                                    assert fixture.call('close', record_input) == -9
+                                    actual = store.read_exchange(write)
+                                    assert actual == StoredBytes(record_expected['physical_revision'], record_wire)
+                                    assert store._connection.writes == 1
+                                    payload_record_cases.append('lost_cas_acknowledgement_never_repeats_write')
+                                    actual_ack = copy({**observation, 'physical_revision': actual.generation,
+                                                      'record_json': actual.payload.decode()})
+                                    assert_status('payload_record', 'confirm', -32, record_child, actual_ack, denied_configuration)
+                                    assert_status('payload_record', 'confirm', 0, record_child, actual_ack, configuration)
+                                    assert_status('payload_record', 'confirm', 0, record_child, actual_ack, configuration)
+                                    assert fixture.call('close', actual_ack) == 0
+                                    assert store.read(write.key) == StoredBytes(0, record_wire)
+                                    payload_record_cases.append('same_initial_record_confirmed_without_capacity_or_publication')
+                        allocated = fixture.call('allocated')
+                        fixture.cleanup_ready = False
+                        assert_status('payload_record', 'close', -9, record_child)
+                        assert fixture.call('allocated') == allocated
+                        fixture.cleanup_ready = True
+                        assert_status('payload_record', 'close', 0, record_child)
+                        assert fixture.call('allocated') == allocated - (2 * 65536 + record_expected['physical_copy_bytes'])
+                        assert_status('payload_record', 'close', -2, record_child)
+                        assert_status('payload_request', 'close', 0, record_request)
+                        assert fixture.call('close', record_input) == 0
+                        assert fixture.queries == expected['source_queries']
+                        payload_record_cases.append('pending_close_and_cleanup_retain_original_request_and_input')
+                        assert payload_record_cases == record_expected['cases']
+                    if payload_reservation:
+                        from python_local_payload_reservation import check_payload_reservation
+
+                        def new_output_ticket():
+                            global ticket
+                            ticket += 1
+                            fixture.inputs[ticket] = b''
+                            return ticket
+
+                        payload_reservation_cases.extend(check_payload_reservation(
+                            fixture, payload_loan, payload_facts, configuration, denied_configuration,
+                            copy, call, assert_status, new_output_ticket))
+                        assert fixture.queries == expected['source_queries']
+                    if payload_writing:
+                        from python_local_payload_writing import check_payload_writing
+                        payload_writing_cases.extend(check_payload_writing(
+                            fixture, payload_loan, payload_facts, configuration, denied_configuration,
+                            copy, call, assert_status, new_output_ticket))
+                        assert fixture.queries == expected['source_queries']
+                    if payload_allocation:
+                        from python_local_payload_allocation import check_payload_allocation
+                        payload_allocation_cases.extend(check_payload_allocation(
+                            fixture, payload_loan, payload_facts, configuration, denied_configuration,
+                            copy, call, assert_status, new_output_ticket))
+                        assert fixture.queries == expected['source_queries']
+                    if payload_sealed:
+                        from python_local_payload_sealed import check_payload_sealed
+                        names_observer = None
+                        if payload_names:
+                            from python_local_payload_names import PayloadNameCases
+                            staging_observer = None
+                            if payload_staging:
+                                from python_local_payload_staging import PayloadStagingCases
+                                staging_observer = PayloadStagingCases()
+                            finalization_observer = None
+                            if payload_finalization:
+                                from python_local_payload_finalization import PayloadFinalizationCases
+                                reader_observer = None
+                                if payload_reader:
+                                    from python_local_payload_reader import PayloadReaderCases
+                                    reader_observer = PayloadReaderCases()
+                                finalization_observer = PayloadFinalizationCases(reader_observer)
+                            names_observer = PayloadNameCases(fixture, configuration, denied_configuration,
+                                                              call, assert_status, new_output_ticket, staging_observer,
+                                                              finalization_observer)
+                        payload_sealed_cases.extend(check_payload_sealed(
+                            fixture, payload_loan, payload_facts, configuration, denied_configuration,
+                            copy, call, assert_status, new_output_ticket, names_observer,
+                            payload_binding_cases if payload_binding else None))
+                        if names_observer is not None:
+                            payload_names_cases.extend(names_observer.finish())
+                            if names_observer.staging is not None:
+                                payload_staging_cases.extend(names_observer.staging.finish())
+                            if names_observer.finalization is not None:
+                                payload_finalization_cases.extend(names_observer.finalization.finish())
+                                if names_observer.finalization.reader is not None:
+                                    payload_reader_cases.extend(names_observer.finalization.reader.finish())
+                        assert fixture.queries == expected['source_queries']
+                    if payload_replay:
+                        replay_expected = json.loads((root / 'scripts/fixtures/python-local-payload-replay.json').read_text())
+                        assert_status('payload_request', 'start_replay', -32, child, denied_configuration)
+                        assert_status('payload_request', 'start_replay', 0, child, configuration)
+                        assert_status('payload_request', 'start_replay', 0, child, configuration)
+                        payload_replay_cases.append('original_request_and_result_open_once_under_current_custody')
+                        ticket += 1
+                        assert_status('payload_chunk', 'reserve', -4, child, ticket, 8388608)
+                        payload_replay_cases.append('capacity_refusal_before_replay_advance')
+                        payload_parts = []
+                        for _ in range(100):
+                            ticket += 1
+                            fixture.inputs[ticket] = b''
+                            chunk = call('payload_chunk', 'reserve', child, ticket, replay_expected['physical_copy_bytes'])
+                            assert chunk > 0
+                            assert_status('payload_chunk', 'reserve', -3, child, ticket + 1, replay_expected['physical_copy_bytes'])
+                            assert_status('payload_chunk', 'produce', -32, chunk, denied_configuration)
+                            assert_status('payload_chunk', 'produce', 0, chunk, configuration)
+                            assert_status('payload_chunk', 'produce', 0, chunk, configuration)
+                            assert_status('payload_chunk', 'validate', -32, chunk, denied_configuration)
+                            assert_status('payload_chunk', 'validate', 0, chunk, configuration)
+                            length = call('payload_chunk', 'length', chunk)
+                            assert 0 <= length <= replay_expected['max_chunk_bytes']
+                            wire = bytes(fixture.call('byte', chunk, index) for index in range(length))
+                            assert bytes(fixture.call('byte', chunk, index) for index in range(length)) == wire
+                            payload_parts.append(wire)
+                            final = call('payload_chunk', 'final', chunk)
+                            assert final in (0, 1)
+                            if final:
+                                assert_status('payload_request', 'close', -9, child)
+                                assert fixture.call('close', input_handle) == -9
+                            held = fixture.call('allocated')
+                            fixture.cleanup_ready = False
+                            assert_status('payload_chunk', 'close', -9, chunk)
+                            assert fixture.call('allocated') == held
+                            fixture.cleanup_ready = True
+                            assert_status('payload_chunk', 'close', 0, chunk)
+                            assert fixture.call('allocated') == held - (2 * 65536 + replay_expected['physical_copy_bytes'])
+                            assert_status('payload_chunk', 'produce', -2, chunk, configuration)
+                            assert_status('payload_chunk', 'validate', -2, chunk, configuration)
+                            if final:
+                                break
+                        else:
+                            raise AssertionError('No original payload replay terminator')
+                        assert b''.join(payload_parts) == replay_expected['exact_payload'].encode('utf-8')
+                        assert fixture.queries == expected['source_queries']
+                        payload_replay_cases.extend([
+                            'bounded_chunk_and_lost_ack_use_same_original_bytes',
+                            'current_authority_rechecked_for_production_and_cached_read',
+                            'failed_chunk_cleanup_retains_exact_allocation_for_retry',
+                            'live_final_chunk_keeps_parent_request_and_original_borrow',
+                            'exact_replay_eof_and_stale_chunk_refusal_without_source_compute_repeat'])
+                        assert payload_replay_cases == replay_expected['cases']
                     allocated = fixture.call('allocated')
                     fixture.cleanup_ready = False
                     assert_status('payload_request', 'close', -9, child)
@@ -995,6 +1283,10 @@ try:
                                              'committed_at': commit_expected['committed_at']})
                         assert_status('publication', 'prepare_commit', 0, value, commit_input, configuration)
                         assert_status('publication', 'finish_commit', -7, value, configuration)
+                        if commit_materials:
+                            material_expected = json.loads((root / 'scripts/fixtures/python-local-commit-material.json').read_text())
+                            assert_status('publication_commit_export', 'count', -32, value, configuration)
+                            commit_material_cases.append('unfinished_original_view_refuses_count')
                         assert_status('publication_commit_export', 'reserve', -2, value, ticket + 1, 2097200)
                         commit_start_work = call('publication', 'commit_progress', value, 2)
                         commit_work = 0
@@ -1021,6 +1313,115 @@ try:
                         assert fixture.call('close', commit_input) == -9
                         commit_cases.append('full_chain_validation_and_shared_work_budget')
 
+                        if commit_materials:
+                            assert_status('publication_commit_export', 'count', material_expected['count'], value, configuration)
+                            assert_status('publication_commit_export', 'count', -32, value, denied_configuration)
+                            assert_status('publication_commit_export', 'count', -2, value + 100000, configuration)
+                            commit_material_cases.append('original_count_and_current_authority_refusal')
+
+                            def material_child():
+                                global ticket
+                                ticket += 1
+                                fixture.inputs[ticket] = b''
+                                loan = call('publication_commit_export', 'reserve', value, ticket, 2097200)
+                                assert loan > 0
+                                return loan
+
+                            def material_bytes(loan):
+                                size = call('publication_commit_export', 'length', loan)
+                                assert 0 < size <= 1048576
+                                return bytes(fixture.call('byte', loan, i) for i in range(size))
+
+                            # Names, identity fields, count and order are independently
+                            # fixed. Comparing retained original wires proves byte
+                            # custody, not a generated semantic expectation.
+                            original_wires = {2: body['manifest'], 3: body['receipt'],
+                                              4: body['captured_run'], 5: preflight_body['request'],
+                                              6: preflight_body['attempt'], 13: binding_wire}
+                            for ordinal, (name, identity_field) in enumerate(material_expected['materials']):
+                                original_body = None
+                                for field in range(4):
+                                    loan = material_child()
+                                    assert_status('publication_commit_export', 'produce_material', -32,
+                                                  loan, denied_configuration, ordinal, field)
+                                    assert_status('publication_commit_export', 'produce_material', 0,
+                                                  loan, configuration, ordinal, field)
+                                    raw = material_bytes(loan)
+                                    if field == 0:
+                                        original_body = json.loads(raw)
+                                        assert original_body['version'].startswith('actql-')
+                                        if ordinal in original_wires:
+                                            assert raw == original_wires[ordinal].encode('utf-8')
+                                    elif field == 1:
+                                        assert raw == name.encode('utf-8')
+                                    elif field == 2:
+                                        assert raw == identity_field.encode('utf-8')
+                                    else:
+                                        assert original_body is not None
+                                        assert raw == original_body[identity_field].encode('utf-8')
+                                    assert_status('publication_commit_export', 'close', 0, loan)
+                                    assert_status('publication_commit_export', 'length', -2, loan)
+                            commit_material_cases.append('all_original_ordinals_and_four_raw_fields')
+                            commit_material_cases.append('original_root_and_binding_bytes_match_retained_custody')
+                            loan = material_child()
+                            assert_status('publication_commit_export', 'produce_material', 0, loan, configuration, 5, 0)
+                            assert_status('publication_commit_export', 'produce_material', 0, loan, configuration, 5, 0)
+                            assert_status('publication_commit_export', 'produce_material', -32, loan, denied_configuration, 5, 0)
+                            assert_status('publication_commit_export', 'produce_material', -33, loan, configuration, 6, 0)
+                            assert_status('publication_commit_export', 'produce_material', -33, loan, configuration, 5, 1)
+                            assert_status('publication_commit_export', 'produce', -33, loan, configuration)
+                            assert material_bytes(loan) == preflight_body['request'].encode('utf-8')
+                            commit_material_cases.append('immutable_child_projection_and_cached_current_access')
+                            assert_status('publication_commit_export', 'produce_material', -3, loan, configuration, -1, 0)
+                            assert_status('publication_commit_export', 'produce_material', -3, loan, configuration, 5, 4)
+                            assert_status('publication_commit_export', 'close', 0, loan)
+                            loan = material_child()
+                            assert_status('publication_commit_export', 'produce_material', -32, loan, configuration, 14, 0)
+                            assert_status('publication_commit_export', 'length', -33, loan)
+                            # Invalid selection made no production; a valid original
+                            # ordinal is still usable without a second execution.
+                            assert_status('publication_commit_export', 'produce_material', 0, loan, configuration, 5, 0)
+                            commit_material_cases.append('invalid_controls_and_out_of_range_refusal')
+                            allocated = fixture.call('allocated')
+                            fixture.cleanup_ready = False
+                            assert_status('publication_commit_export', 'close', -9, loan)
+                            assert fixture.call('allocated') == allocated
+                            assert_status('publication_commit_export', 'produce_material', -5, loan, configuration, 5, 0)
+                            assert_status('publication_commit_export', 'length', -33, loan)
+                            assert fixture.call('close', commit_input) == -9
+                            fixture.cleanup_ready = True
+                            assert_status('publication_commit_export', 'close', 0, loan)
+                            assert_status('publication_commit_export', 'length', -2, loan)
+                            assert_status('publication_commit_export', 'count', material_expected['count'], value, configuration)
+                            assert fixture.queries == expected['source_queries']
+                            assert call('publication', 'commit_progress', value, 2) == commit_start_work + commit_work
+                            commit_material_cases.append('same_material_cleanup_retry_and_retired_read_refusal')
+                        if commit_index_key:
+                            key_expected = json.loads((root / 'scripts/fixtures/python-local-commit-index-key.json').read_text())
+                            key_loan = material_child()
+                            assert_status('publication_commit_export', 'produce_index_key', -32, key_loan, denied_configuration)
+                            assert_status('publication_commit_export', 'produce_index_key', 0, key_loan, configuration)
+                            original_index_key = material_bytes(key_loan)
+                            assert len(original_index_key) == 64
+                            assert all(c in b'0123456789abcdef' for c in original_index_key)
+                            commit_index_key_cases.append('original_key_and_current_authority_refusal')
+                            assert_status('publication_commit_export', 'produce_index_key', 0, key_loan, configuration)
+                            assert_status('publication_commit_export', 'produce_index_key', -32, key_loan, denied_configuration)
+                            assert_status('publication_commit_export', 'produce_material', -33, key_loan, configuration, 7, 0)
+                            assert_status('publication_commit_export', 'produce', -33, key_loan, configuration)
+                            assert material_bytes(key_loan) == original_index_key
+                            commit_index_key_cases.append('immutable_projection_and_cached_current_access')
+                            allocated = fixture.call('allocated')
+                            fixture.cleanup_ready = False
+                            assert_status('publication_commit_export', 'close', -9, key_loan)
+                            assert fixture.call('allocated') == allocated
+                            assert_status('publication_commit_export', 'produce_index_key', -5, key_loan, configuration)
+                            assert_status('publication_commit_export', 'length', -33, key_loan)
+                            assert fixture.call('close', commit_input) == -9
+                            fixture.cleanup_ready = True
+                            assert_status('publication_commit_export', 'close', 0, key_loan)
+                            assert_status('publication_commit_export', 'length', -2, key_loan)
+                            commit_index_key_cases.append('same_key_cleanup_retry_and_retired_read_refusal')
                         ticket += 1
                         fixture.inputs[ticket] = b''
                         commit_export = call('publication_commit_export', 'reserve', value, ticket, 2097200)
@@ -1028,6 +1429,10 @@ try:
                         assert_status('publication_commit_export', 'length', -33, commit_export)
                         assert_status('publication_commit_export', 'produce', -32, commit_export, denied_configuration)
                         assert_status('publication_commit_export', 'produce', 0, commit_export, configuration)
+                        if commit_materials:
+                            assert_status('publication_commit_export', 'produce_material', -33, commit_export, configuration, 5, 0)
+                        if commit_index_key:
+                            assert_status('publication_commit_export', 'produce_index_key', -33, commit_export, configuration)
                         assert_status('publication_commit_export', 'produce', -32, commit_export, denied_configuration)
                         assert_status('publication_commit_export', 'produce', 0, commit_export, configuration)
                         size = call('publication_commit_export', 'length', commit_export)
@@ -1054,6 +1459,22 @@ try:
                             original_field = 'receipt_identity_cid' if field == 'run_receipt_cid' else field
                             assert index[field] == json.loads(original)[original_field]
                         assert index['run_definition_cid'] == original_request['run_definition_cid']
+                        if commit_index_key:
+                            # Independent addressing preimage from the retained original
+                            # intent/configuration/request, not from the projected key.
+                            # Fixed literal Unicode vectors test the algorithm separately.
+                            key_preimage = json.dumps({
+                                'authority_scope_cid': CONFIGURATION['authority_scope_cid'],
+                                'namespace_id': intent_facts['namespace_id'],
+                                'run_definition_cid': original_request['run_definition_cid'],
+                                'version': 'actql-public-index-key/0.1',
+                            }, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode('utf-8')
+                            assert original_index_key == hashlib.sha256(key_preimage).hexdigest().encode('ascii')
+                            commit_index_key_cases.append('key_matches_original_index_scope')
+                            assert fixture.queries == expected['source_queries']
+                            assert call('publication', 'commit_progress', value, 2) == commit_start_work + commit_work
+                            commit_index_key_cases.append('shared_work_and_source_queries_unchanged')
+
                         assert index['invocation_cid'] == json.loads(body['manifest'])['invocation_cid']
                         assert index['durable_result_binding_cids'] == [binding['durable_result_binding_cid']]
                         assert len(index['durable_result_binding_cids']) == commit_expected['binding_count']
@@ -1077,6 +1498,83 @@ try:
                         commit_cases.append('original_index_intent_and_current_authority')
                         preflight_retirement_cases.append('original_commit_candidate_uses_same_retired_output_preflight')
                         publication_retirement_cases.append('original_commit_candidate_and_children_use_retired_parent_output')
+                        if publisher_port:
+                            publisher_expected = json.loads((root / 'scripts/fixtures/python-local-publisher-port.json').read_text())
+                            store_input = copy({'store_authority_cid': facts['store_authority_cid']})
+                            ticket += 1
+                            publisher_ticket = ticket
+                            fixture.inputs[publisher_ticket] = b''
+
+                            def publisher_authority(fact):
+                                # Expect the exact original request context. This
+                                # fixture callback is not a product policy issuer.
+                                assert fact.namespace_id == intent_facts['namespace_id']
+                                assert fact.authority_scope_cid == CONFIGURATION['authority_scope_cid']
+                                assert fact.run_definition_cid == original_request['run_definition_cid']
+                                assert fact.publication_request_cid == original_request['publication_request_cid']
+                                assert fact.public_index_entry_cid == (None if fact.stage == 'request' else index['public_index_entry_cid'])
+                                fixture.publisher_seen.append(fact)
+                                if fixture.publisher_revoke_after_auth:
+                                    fixture.publisher_fence_ready = False
+                                return fixture.publisher_answer
+
+                            callbacks = _PublisherCallbacks(lambda: fixture.publisher_fence_ready,
+                                                            publisher_authority)
+                            fixture.publisher_bridge._inputs[publisher_ticket] = _PhysicalInput(
+                                b'', lambda: True, lambda _: True, callbacks)
+                            port = call('publisher', 'reserve', preflight, store_input, publisher_ticket,
+                                        128 * 8192 + 4096 + sys.getsizeof(callbacks) +
+                                        sys.getsizeof(fixture.publisher_bridge._inputs[publisher_ticket]))
+                            assert port > 0
+                            assert_status('publisher', 'install', 0, port, configuration)
+                            assert fixture.publisher_seen == []
+                            for stage in publisher_expected['stage_ordinals']:
+                                assert_status('publisher', 'authorize', 0, port, configuration, stage,
+                                              0 if stage == 0 else value)
+                            assert [fact.stage for fact in fixture.publisher_seen] == publisher_expected['stages']
+                            publisher_cases.append('original_six_facts_and_owner_generated_index_all_stages')
+                            before = len(fixture.publisher_seen)
+                            assert_status('publisher', 'authorize', -32, port, denied_configuration, 0, 0)
+                            assert_status('publisher', 'authorize', -2, port, configuration, 1, value + 100000)
+                            assert len(fixture.publisher_seen) == before
+                            publisher_cases.append('current_run_source_and_foreign_index_refuse_before_callback')
+                            fixture.publisher_answer = False
+                            assert_status('publisher', 'authorize', -35, port, configuration, 0, 0)
+                            fixture.publisher_answer = None
+                            assert_status('publisher', 'authorize', -36, port, configuration, 0, 0)
+                            fixture.publisher_answer = True
+                            publisher_cases.append('independent_denial_and_unknown_do_not_cache_or_resend')
+                            fixture.publisher_revoke_after_auth = True
+                            assert_status('publisher', 'authorize', -32, port, configuration, 0, 0)
+                            fixture.publisher_revoke_after_auth = False
+                            before = len(fixture.publisher_seen)
+                            assert_status('publisher', 'authorize', -32, port, configuration, 0, 0)
+                            assert len(fixture.publisher_seen) == before
+                            fixture.publisher_fence_ready = True
+                            publisher_cases.append('authority_revocation_during_callback_is_fenced_afterwards')
+                            assert fixture.call('close', store_input) == -9
+                            allocated = fixture.call('allocated')
+                            fixture.cleanup_ready = False
+                            assert_status('publisher', 'close', -9, port)
+                            assert fixture.call('allocated') == allocated
+                            assert_status('publisher', 'authorize', -5, port, configuration, 0, 0)
+                            assert fixture.call('close', store_input) == -9
+                            fixture.cleanup_ready = True
+                            fixture.stop_ready = False
+                            assert_status('publisher', 'close', -9, port)
+                            assert fixture.call('close', store_input) == -9
+                            fixture.stop_ready = True
+                            assert_status('publisher', 'close', 0, port)
+                            assert_status('publisher', 'close', -2, port)
+                            assert fixture.call('close', store_input) == 0
+                            del fixture.publisher_bridge._inputs[publisher_ticket]
+                            publisher_cases.append('same_transport_cleanup_then_original_input_borrow_stop_retry')
+                            assert fixture.queries == expected['source_queries']
+                            assert proposal['request'] == preflight_body['request']
+                            assert proposal['attempt'] == preflight_body['attempt']
+                            publisher_cases.append('no_source_compute_retry_or_store_commit_acknowledgement')
+                            assert publisher_cases == publisher_expected['cases'][:-1]
+
                     loan, input_handle = binding_loan(facts)
                     assert_status('result_binding', 'produce', 0, loan, configuration)
                     assert_status('publication', 'close', -9, value)
@@ -1095,6 +1593,17 @@ try:
                     binding_cases.append('parent_close_retains_child_without_source_compute_replay')
                     if commit_candidate:
                         assert_status('publication_commit_export', 'produce', -5, commit_export, configuration)
+                        if commit_index_key:
+                            assert_status('publication_commit_export', 'produce_index_key', -5, commit_export, configuration)
+                            assert fixture.queries == expected['source_queries']
+                            commit_index_key_cases.append('parent_close_refuses_key_without_reexecution')
+                            assert commit_index_key_cases == key_expected['cases']
+
+                        if commit_materials:
+                            assert_status('publication_commit_export', 'count', -5, value, configuration)
+                            assert fixture.queries == expected['source_queries']
+                            commit_material_cases.append('parent_close_refuses_count_without_reexecution')
+                            assert commit_material_cases == material_expected['cases']
                         reserved = fixture.call('reserved')
                         fixture.cleanup_ready = False
                         assert_status('publication_commit_export', 'close', -9, commit_export)
@@ -1104,6 +1613,20 @@ try:
                         assert_status('publication_commit_export', 'close', 0, commit_export)
                         commit_cases.append('candidate_parent_pin_and_same_cleanup_retry')
                 if quantum == 100:
+                    if payload_parent_close:
+                        from python_local_payload_parent_close import check_payload_parent_close
+
+                        def parent_close_output_ticket():
+                            global ticket
+                            ticket += 1
+                            fixture.inputs[ticket] = b''
+                            return ticket
+
+                        payload_parent_close_cases.extend(check_payload_parent_close(
+                            fixture, payload_facts, configuration, denied_configuration,
+                            value, preflight, result, source_pin, compute, copy, call,
+                            assert_status, parent_close_output_ticket))
+                        assert fixture.queries == expected['source_queries']
                     # Closing parents seals them but retains custody until the
                     # same child output and reader cleanup both succeed.
                     assert call('result', 'close', result) == -9
@@ -1141,10 +1664,28 @@ try:
         # Output is already retired. The original input reader's physical
         # stop, rather than former output cleanup, keeps this borrow pending.
         fixture.stop_ready = False
+        if publisher_port:
+            # Reserve a new transport before the original parent begins close.
+            # No permission can be installed once that original parent closes.
+            publisher_parent_input = copy({'store_authority_cid': facts['store_authority_cid']})
+            ticket += 1
+            fixture.inputs[ticket] = b''
+            publisher_parent_child = call('publisher', 'reserve', preflight, publisher_parent_input,
+                                          ticket, 128 * 8192 + 8192)
+            assert publisher_parent_child > 0
         reserved = fixture.call('reserved')
         assert_status('publication_preflight', 'close', -9, preflight)
         assert fixture.call('reserved') == reserved
         assert_status('source_publication', 'close', -9, source_pin)
+        if publisher_port:
+            assert_status('publisher', 'install', -2, publisher_parent_child, configuration)
+            assert fixture.call('close', publisher_parent_input) == -9
+            fixture.cleanup_ready = True
+            fixture.stop_ready = True
+            assert_status('publisher', 'close', 0, publisher_parent_child)
+            assert fixture.call('close', publisher_parent_input) == 0
+            publisher_cases.append('original_preflight_close_waits_for_same_transport_custody')
+            assert publisher_cases == publisher_expected['cases']
         fixture.cleanup_ready = True
         fixture.stop_ready = False
         assert_status('publication_preflight', 'close', -9, preflight)
@@ -1214,7 +1755,22 @@ print(json.dumps({'module_sha256': hashlib.sha256(module).hexdigest(),
                   'preflight_retirement_cases': preflight_retirement_cases,
                   'publication_retirement_cases': publication_retirement_cases,
                   'commit_candidate_cases': commit_cases,
+                  'commit_material_cases': commit_material_cases,
+                  'commit_index_key_cases': commit_index_key_cases,
                   'payload_request_cases': payload_request_cases,
+                  'payload_replay_cases': payload_replay_cases,
+                  'payload_record_cases': payload_record_cases,
+                  'payload_reservation_cases': payload_reservation_cases,
+                  'payload_parent_close_cases': payload_parent_close_cases,
+                  'payload_writing_cases': payload_writing_cases,
+                  'payload_allocation_cases': payload_allocation_cases,
+                  'payload_sealed_cases': payload_sealed_cases,
+                  'payload_names_cases': payload_names_cases,
+                  'payload_staging_cases': payload_staging_cases,
+                  'payload_finalization_cases': payload_finalization_cases,
+                  'payload_reader_cases': payload_reader_cases,
+                  'payload_binding_cases': payload_binding_cases,
+                  'publisher_port_cases': publisher_cases,
                   'cases': (['real_duckdb_owned_read_view', 'two_receipt_completion',
                              'pool_close_retains_native_custody', 'native_stop_and_cleanup_retry',
                              'native_capacity_retained_until_cleanup', 'formal_private_release']

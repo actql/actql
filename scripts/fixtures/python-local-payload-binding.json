@@ -1,0 +1,11 @@
+{
+  "description": "Independent Sealed binding transport cases; semantic byte/schema facts reuse the separately fixed original Result fixture, not product output.",
+  "max_bytes": 65536,
+  "physical_copy_bytes": 131300,
+  "cases": [
+    "original_confirmed_sealed_record_binds_exact_result_bytes_and_schema",
+    "cached_binding_revalidates_current_account_without_source_reexecution",
+    "closing_original_parent_and_failed_cleanup_keep_same_binding_allocation",
+    "successful_same_handle_cleanup_refuses_reuse_without_record_rewrite"
+  ]
+}

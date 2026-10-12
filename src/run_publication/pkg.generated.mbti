@@ -1402,8 +1402,20 @@ pub(all) enum PublicationCommitIssue {
 
 type PublicationCommitPreparation
 pub fn PublicationCommitPreparation::advance(Self, Int) -> Result[(Bool, Int), PublicationCommitIssue]
+pub fn PublicationCommitPreparation::advance_observed_commit(Self, PublicationCommitReadView, Int) -> Result[(Bool, Int), PublicationCommitIssue]
+pub fn PublicationCommitPreparation::begin_observed_commit(Self, PublicationCommitReadView, PublicationContract, PublicationContract, PublicationContract) -> Result[Unit, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::cancel(Self) -> Unit
 pub fn PublicationCommitPreparation::finish(Self) -> Result[Unit, PublicationCommitIssue]
+pub fn PublicationCommitPreparation::finish_observed_commit(Self, PublicationCommitReadView) -> Result[PublicationContract, PublicationCommitIssue]
+pub fn PublicationCommitPreparation::finish_view(Self) -> Result[PublicationCommitReadView, PublicationCommitIssue]
+pub fn PublicationCommitPreparation::release_observed_commit(Self, PublicationCommitReadView) -> Result[Unit, PublicationCommitIssue]
+pub fn PublicationCommitPreparation::release_view(Self, PublicationCommitReadView) -> Result[Unit, PublicationCommitIssue]
+pub fn PublicationCommitPreparation::view_binding(Self, PublicationCommitReadView, Int) -> Result[PublicationContract, PublicationCommitIssue]
+pub fn PublicationCommitPreparation::view_contract(Self, PublicationCommitReadView, Int) -> Result[PublicationContract, PublicationCommitIssue]
+pub fn PublicationCommitPreparation::view_count(Self, PublicationCommitReadView) -> Result[Int, PublicationCommitIssue]
+pub fn PublicationCommitPreparation::view_inspected_index_reference(Self, PublicationCommitReadView, String, PublicationContract, Int) -> Result[String, PublicationCommitIssue]
+
+type PublicationCommitReadView
 
 type PublicationContract
 

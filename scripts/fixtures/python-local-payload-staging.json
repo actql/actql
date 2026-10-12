@@ -1,0 +1,11 @@
+{
+  "description": "Independent prepared original Core/physical staging integration. Actual matching Wasm module not executed. No final payload install, Store commit or Run admission.",
+  "staging_name": "stage-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "cases": [
+    "original_owned_record_and_core_name_precede_physical_link",
+    "failed_directory_sync_retains_original_cursor_roots_and_slot",
+    "current_authority_rechecked_before_same_cursor_sync_retry",
+    "exact_original_descriptor_moves_without_source_or_compute_replay",
+    "physical_cursor_retirement_does_not_advance_core_record"
+  ]
+}
