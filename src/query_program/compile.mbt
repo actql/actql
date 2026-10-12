@@ -606,6 +606,19 @@ fn selected_input(
   limits : Limits,
 ) -> Input raise Abort {
   if @query.relation(query).is_empty() {
+    if @query.bound_source(query) is Some(current) {
+      // An inline Carrier bridge retains its actual current producer. Keep
+      // that private anchor out of authored peer and range-name resolution.
+      match
+        context.inputs
+        .filter(input => {
+          input.source is StepReference && input.name == current.value
+        })
+        .get(0) {
+        Some(input) => return input
+        None => raise Abort(UnknownRelation)
+      }
+    }
     source_free_input(query, limits)
   } else {
     selected_relation(@query.relation(query), context)
@@ -2067,6 +2080,7 @@ fn compile_steps(
   final_alias : String,
   graph_bindings_only? : Bool = false,
   nearest_inputs? : Array[Input] = [],
+  nearest_vectors? : Array[(String, @carrier.Vectors)] = [],
   retained? : Array[RetainedResult]? = None,
   projected_input? : Bool = false,
   initial_scope? : JoinChainScope? = None,
@@ -2916,6 +2930,10 @@ fn compile_steps(
           i,
           nearest_inputs.map(input => input.name),
           max_work,
+          candidate_typed=nearest_vectors
+            .filter(pair => pair.0 == matches[0].name)
+            .get(0)
+            .map(pair => pair.1),
         )
         step_entries.append(steps)
         entries.clear()

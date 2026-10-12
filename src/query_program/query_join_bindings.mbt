@@ -82,6 +82,12 @@ fn lower_script_join_relation(
       )
       inputs.push((selected, bound.name))
     }
+    let nearest_inputs = bind_script_nearest_inputs(
+      construction, query, known, selected, left, context, sources, steps, reserved,
+    )
+    let nearest_vectors = script_nearest_vector_inputs(
+      construction, query, nearest_inputs, context, sources, limits, steps,
+    )
     let (body, fields, from) = compile_join_chain_steps(
       construction,
       query,
@@ -95,6 +101,8 @@ fn lower_script_join_relation(
       parameter_declarations=context.parameter_declarations,
       prefix_steps=steps.copy(),
       prefix_context=Some(context),
+      nearest_inputs~,
+      nearest_vectors~,
       positional_set_output~,
     )
     steps.append(body)

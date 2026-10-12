@@ -1482,11 +1482,17 @@ row bridges and does not replace either Vectors identity. Composite Vectors use
 the common ordered identity components when constructing named output keys.
 
 Relation conversion currently supports singleton keys. Composite Relation keys
-remain an UnsupportedNearest gap in the scalar-id Program bridge. A typed
-candidate after an earlier ordinary Relation Pipe operation, or a typed set
-head, still needs its finite continuation connection; these are implementation
-gaps, not permanent language restrictions. Parser/lowering and checked output
-contracts do not establish installed Host execution or successful publication.
+remain an UnsupportedNearest gap in the scalar-id Program bridge. Ordinary
+Relation Pipe operations retain their scopes, predicates and limits
+before a typed candidate; the same admitted candidate metadata reaches the
+existing Relation lowerer. Typed set heads use the common script dispatcher
+with the existing outer set owner, and KEEP-free typed operands do not create
+unused row bridges. JOIN continuations bind their candidate through the same
+WITH input owner and pass its admitted Carrier to the existing Pipe compiler;
+qualified query roles continue to resolve through the actual JOIN row scope.
+Composite Relation conversion remains an implementation gap, not a permanent
+language restriction. Parser/lowering and checked output contracts do not
+establish installed Host execution or successful publication.
 
 ## WITH producers and pure Graph construction
 
