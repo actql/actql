@@ -26,6 +26,8 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     // inputs cannot mint a fresh read or replace its original scope/Ledger.
     if (originalPreparation !== undefined &&
         (originalPreparation === null || typeof originalPreparation !== 'object' ||
+          Object.keys(originalPreparation).sort().join(',') !==
+            'compiled,control,modelExecutionBytes,modelRetainedBytes,nodeInstallation,physicalCustody,read,readExecutionBytes,readRetainedBytes,runDefinition,scope' ||
           originalPreparation.control !== control ||
           originalPreparation.compiled !== plan.compiled ||
           originalPreparation.runDefinition !== plan.runDefinition ||
@@ -39,6 +41,12 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             typeof control[name] !== 'function') ||
           acquiredInfer !== undefined || replay || selected.components !== undefined)) {
       throw new TypeError('InvalidInstalledInferOriginalPreparation');
+    }
+    if (originalPreparation !== undefined) {
+      // Capture these already-owned references once before any await. The
+      // installation's full preparation envelope must fund this record and
+      // its overlap with the caller's input; no late grant is inferred here.
+      originalPreparation = Object.freeze({...originalPreparation});
     }
     if (selected.components !== undefined) {
       return runInstalledComposedInfers({moon, control, preparedProgram, plan, selected,

@@ -185,6 +185,7 @@ test('installed original preparation rejects foreign, incomplete and restored cu
     f => { delete f.originalPreparation.scope; },
     f => { delete f.originalPreparation.read; },
     f => { delete f.originalPreparation.nodeInstallation; },
+    f => { f.originalPreparation.extra = true; },
     f => { f.originalPreparation.physicalCustody.cleanupPending = undefined; },
     f => { f.input.acquiredInfer = {}; },
     f => { f.input.replay = true; },
@@ -230,6 +231,30 @@ test('installed original cleanup coalesces concurrent close and retry through th
   f.physical(true); complete(true);
   assert.equal(await first, true);
   assert.equal(f.custody().cleanup(), first);
+  assert.equal(f.calls.filter(call => call === 'readSettle').length, 1);
+  assert.equal(f.calls.filter(call => call === 'scopeFinish').length, 1);
+});
+
+test('installed original cleanup fixes the original record across an awaited physical close', async () => {
+  const f = fixture();
+  await assert.rejects(f.run(), typed(f.issue));
+  let reached, complete;
+  const entered = new Promise(resolve => { reached = resolve; });
+  const child = f.originalPreparation.physicalCustody;
+  child.close = () => {
+    f.calls.push('physicalClose'); reached();
+    return new Promise(resolve => { complete = resolve; });
+  };
+  const closed = f.custody().close();
+  await entered;
+  // Neither a later caller mutation nor a replacement physical Owner may
+  // redirect the already-retained cleanup acknowledgement to another read.
+  f.originalPreparation.read = {};
+  f.originalPreparation.scope = {};
+  f.originalPreparation.control = {};
+  f.originalPreparation.physicalCustody = {cleanup() { assert.fail('replacement physical custody'); }};
+  f.physical(true); complete(true);
+  assert.equal(await closed, true);
   assert.equal(f.calls.filter(call => call === 'readSettle').length, 1);
   assert.equal(f.calls.filter(call => call === 'scopeFinish').length, 1);
 });
