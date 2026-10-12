@@ -1,0 +1,66 @@
+{
+  "startedAt": "2026-10-12T01:47:36.112Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Independent public window fixtures",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "node",
+        "scripts/event-window-source.test.mjs"
+      ],
+      "startedAt": "2026-10-12T01:47:36.178Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T01:47:36.634Z",
+      "endedAt": "2026-10-12T01:47:36.635Z"
+    },
+    {
+      "name": "Read-only authored window formatting",
+      "command": [
+        "moon",
+        "fmt",
+        "--check",
+        "src/query_program/event_window_source_test.mbt",
+        "src/query_syntax/event_window_role_test.mbt",
+        "src/query_program/query_script_carriers.mbt",
+        "src/query_syntax/sga_call.mbt",
+        "src/query_syntax/sga_argument_roles.mbt"
+      ],
+      "startedAt": "2026-10-12T01:47:36.683Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-12T01:47:40.725Z",
+      "endedAt": "2026-10-12T01:47:40.728Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "5d0e15a8-2035-4d07-b565-81d489680bd4",
+    "pid": 57065,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T01:47:36.168Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-bin1bq"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T01:47:40.813Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
