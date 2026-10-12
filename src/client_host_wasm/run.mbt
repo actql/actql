@@ -267,15 +267,15 @@ pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
   if record.restoration is Some(_) {
     return -3
   }
+  match run_configuration_current(value, configuration) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
   if record.outcome is Some(_) {
     return 0
   }
   if record.invoked {
     return -33
-  }
-  match run_configuration_current(value, configuration) {
-    Ok(_) => ()
-    Err(code) => return code
   }
   record.invoked = true
   guard input_cursor(value, record.slot) is Some(cursor) &&
