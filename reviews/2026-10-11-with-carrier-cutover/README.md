@@ -1,6 +1,27 @@
 # WITH Carrier cutover: current implementation and evidence
 
-## Current finite source
+## P1 integrated; independent P2-A continues
+
+P1 #1506 is integrated in main `f763c7c30054cc0fbcb46bb822d29012923e87d2`.
+Root's subsequent ModelTask context registration is separate. The P1 branch is
+stable; private P2 changes are not part of that integration.
+
+[P2 caller and Delta operand evidence](p2-sga-caller-execution.json) records the
+ordinary adoption of main `ccded6fa15c799bd574ac71c6daf238de8e2c96b` and exact
+JS11/11 at `757916505098c8954b8dcb37dc19d7a0eeae4bbe`. Current MATCH, traversal
+and JSON Delta Core callers use declared FieldRef/OutputName roles. All original
+complete JSON Program bodies remain byte-identical. A case/qualified Delta
+column counterexample failed before the minimal operand-resolution repair and
+then passed; another operand or missing column still rejects `UnknownColumn`.
+Original migration failures and two incorrectly authored test compilation
+failures are preserved, not relabeled as product failures or successes.
+
+This is source lowering and actual common checking, not public Host/Named Result
+execution. Remaining SGA callers, normative grammar/profile/pins, the rest of P2
+and Local/HTTPS acceptance are incomplete. No Heavy, producer or hosted CI ran.
+
+## Earlier finite source
+
 
 The current private #1506 source normally adopts main
 `2e8fa9308f13de328a6e1eae43b9c16090f4c982`, including Root's #1522
