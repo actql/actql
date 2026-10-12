@@ -858,10 +858,10 @@ and checked by `check:local-resource-accounting`.
 | Executable production routes | 68 |
 | Typed pre-execution refusals (not execution success) | 0 |
 | Operation-specific boundary records | 68 |
-| Four-role lifecycle assurance | 64 |
-| Full route work/workspace assurance | 64 |
-| Path-scoped work/workspace assurance | 116 |
-| Selected-only assurance | 0 |
+| Four-role lifecycle assurance | 66 |
+| Full route work/workspace assurance | 66 |
+| Path-scoped work/workspace assurance | 120 |
+| Selected-only assurance | 2 |
 <!-- local-resource-accounting-summary:end -->
 
 ### Route evidence closure after the retained Store bounded lane

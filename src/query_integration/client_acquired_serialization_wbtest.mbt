@@ -1051,12 +1051,12 @@ fn acquired_serialization_model_scope_fixture(
   @infer_host.bind_physical_preflight(model_owner, _ => {
     preflights.val += 1
     Ok({
-      advance: _ => {
+      advance: () => {
         physical_work.val += 1
         if physical_work.val > 2 {
-          (Err(@model.InvalidProvider), 1)
+          Err(@model.InvalidProvider)
         } else {
-          (Ok(None), 1)
+          Ok(None)
         }
       },
       cleanup: () => true,
