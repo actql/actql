@@ -177,12 +177,9 @@ import {orderOrdinalSuccesses, orderOrdinalRefusals}
   from './order-ordinal-source-input.mjs';
 import {matchWithProducerSuccesses, matchWithProducerRefusals}
   from './match-with-producer-source-input.mjs';
-import {graphMatchSourceSuccesses as originalGraphMatchSourceSuccesses,
-  graphMatchSourceRefusals as originalGraphMatchSourceRefusals}
+import {graphMatchSourceSuccesses, graphMatchSourceRefusals}
   from './graph-match-source-input.mjs';
 import {sgaOutputNameSuccesses, sgaOutputNameRefusals} from './sga-output-name-source.mjs';
-const graphMatchSourceSuccesses = [...originalGraphMatchSourceSuccesses, ...sgaOutputNameSuccesses];
-const graphMatchSourceRefusals = [...originalGraphMatchSourceRefusals, ...sgaOutputNameRefusals];
 import {graphRowSourceSuccesses, graphRowSourceRefusals}
   from './graph-row-source-input.mjs';
 import {graphPropertyPredicateSuccesses, graphPropertyPredicateRefusals}
@@ -490,7 +487,7 @@ const scopeInputs = distinctOrderReceiverOnly ? {successes: distinctOrderReceive
     ? {successes: graphReachSourceSuccesses, refusals: graphReachSourceRefusals}
     : {successes: graphTraverseSourceSuccesses, refusals: graphTraverseSourceRefusals})
   : matchWithProducerOnly ? {successes: matchWithProducerSuccesses, refusals: matchWithProducerRefusals}
-  : graphMatchOnly ? {successes: graphMatchSourceSuccesses, refusals: graphMatchSourceRefusals}
+  : graphMatchOnly ? {successes: [...graphMatchSourceSuccesses, ...sgaOutputNameSuccesses], refusals: [...graphMatchSourceRefusals, ...sgaOutputNameRefusals]}
   : graphRowsOnly ? {successes: graphRowSourceSuccesses, refusals: graphRowSourceRefusals}
   : graphDifferenceOnly ? {successes: graphDifferenceSourceSuccesses, refusals: graphDifferenceSourceRefusals}
   : graphEqualityOnly ? {successes: graphEqualitySourceSuccesses, refusals: graphEqualitySourceRefusals}
@@ -761,6 +758,8 @@ if (!scopeOnly) {
   scopeInputs.successes.push(...matchWithProducerSuccesses);
   scopeInputs.refusals.push(...matchWithProducerRefusals);
   scopeInputs.successes.push(...graphMatchSourceSuccesses);
+  scopeInputs.successes.push(...sgaOutputNameSuccesses);
+  scopeInputs.refusals.push(...sgaOutputNameRefusals);
   scopeInputs.refusals.push(...graphMatchSourceRefusals);
   scopeInputs.successes.push(...graphDiagnosticSourceSuccesses);
   scopeInputs.refusals.push(...graphDiagnosticSourceRefusals);
