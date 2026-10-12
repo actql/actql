@@ -617,15 +617,26 @@ for (const [entrance, open] of Object.entries(entrances)) {
 
   test(`${entrance}: non-Boolean predicates retain the common checker's requirement`, async t => {
     const client = await open(t, configurations.allowed);
-    for (const text of ['SELECT id FROM records WHERE id', 'SELECT id FROM records WHERE 1']) {
+    for (const [text, start, end, token] of [
+      ['SELECT id FROM records WHERE id', 29, 31, 'id'],
+      ['SELECT id FROM records WHERE 1', 29, 30, '1'],
+      ['-- 😀\r\nSELECT id FROM records WHERE id', 38, 40, 'id'],
+    ]) {
       const result = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
       assert.equal(result.outcome, 'completed');
       assert.equal(result.report.verdict, 'invalid', '[check-mutation:predicate-verdict]');
+      const input = getCheckInput(result, 'source');
       assert.deepEqual(result.report.reasons, [{code: 'query_expression_invalid',
-        facts: {issue: 'expected_boolean'}}], '[check-mutation:predicate-reason]');
-      // The common issue retains a span without authored/generated provenance.
-      // Do not invent an exact SQL location or expose a lowered Program path.
-      assert.equal(result.report.reasons[0].location, undefined);
+        facts: {issue: 'expected_boolean'}, location: {document_id: 'source',
+          revision: input.revision, kind: 'text', start_byte: start, end_byte: end,
+          precision: 'exact'}}], '[check-mutation:predicate-reason]');
+      // Literal byte expectations distinguish the failed WHERE occurrence from
+      // SELECT and preserve the original emoji/CRLF bytes without normalization.
+      assert.equal(Buffer.from(text, 'utf8').subarray(start, end).toString(), token);
+      assert.equal(resolveCheckTextRange(result, result.report.reasons[0].location).text, token,
+        '[check-mutation:predicate-location]');
+      assert.equal(resolveCheckTextRange(result, result.report.reasons[0].location,
+        {...input, text: 'SELECT id FROM records WHERE id > 0'}), undefined);
       assert.deepEqual(explainCheckReason(result.report.reasons[0]), {kind: 'known',
         summary: 'A predicate must have Boolean type.',
         hint: 'Use a Boolean condition, such as a comparison, in the predicate.'},
@@ -637,6 +648,15 @@ for (const [entrance, open] of Object.entries(entrances)) {
     const corrected = await client.check('SELECT id FROM records WHERE id > 0', {kind: 'text', scope: 'bound_input', format: 'sql'});
     assert.equal(corrected.report.verdict, 'verified');
     assert.deepEqual(corrected.report.reasons, []);
+    for (const enabled of [true, false, null]) {
+      const nullable = await client.check('SELECT id FROM records WHERE @enabled', {
+        kind: 'text', scope: 'bound_input', format: 'sql',
+        parameterDeclarations: {enabled: {type: 'boolean', nullable: true}},
+        parameters: {enabled},
+      });
+      assert.equal(nullable.report.verdict, 'verified');
+      assert.deepEqual(nullable.report.reasons, []);
+    }
     const hidden = [];
     for (const configuration of [configurations.absent, configurations.denied]) {
       const protectedClient = await open(t, configuration);

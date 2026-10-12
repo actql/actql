@@ -307,3 +307,26 @@ pub fn diagnostic_undeclared_parameter(value : CheckDiagnostic) -> String? {
     _ => None
   }
 }
+
+///|
+/// Resolve the failed predicate through the submitted Program's original
+/// construction owner. A matching span/path is not evidence of cursor identity.
+/// Generated and unavailable origins remain unavailable to authored diagnostics.
+pub fn diagnostic_predicate_origin(
+  value : CheckDiagnostic,
+  program : @syntax.Program,
+  source : @builder.Source,
+) -> @frontend_origin.Origin? {
+  guard diagnostic_pipeline_issue(value) is Some(issue) &&
+    issue.kind is Operation(ExpectedBoolean) else {
+    return None
+  }
+  guard physical_equal(@syntax.program_body(program), @builder.cursor(source)) else {
+    return None
+  }
+  guard @builder.origin(source, issue.source) is Some(origin) &&
+    @frontend_origin.kind(origin) == Authored else {
+    return None
+  }
+  Some(origin)
+}

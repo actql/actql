@@ -309,8 +309,13 @@ fn check_source_findings(
   ) catch {
     _ => return Failed("check_context_invalid")
   }
-  let lowered = match
-    @source_frontend.lower(document, selected, Some(context), table_writes~) {
+  let (lowered, diagnostic_source) = match
+    @source_frontend.lower_with_source(
+      document,
+      selected,
+      Some(context),
+      table_writes~,
+    ) {
     Ok(value) => value
     Err(issue) => {
       match issue {
@@ -639,7 +644,13 @@ fn check_source_findings(
           } else {
             findings.push(
               check_program_finding(
-                diagnostic, explanation_bindings, supplied, parameters, declarations,
+                diagnostic,
+                explanation_bindings,
+                supplied,
+                parameters,
+                declarations,
+                program=Some(program),
+                diagnostic_source~,
               ),
             )
           }
@@ -1091,6 +1102,8 @@ fn check_program_finding(
   supplied : @decode.Cursor?,
   parameters : String?,
   declarations : String?,
+  program? : @stage_syntax.Program? = None,
+  diagnostic_source? : @source_frontend.DiagnosticSource? = None,
 ) -> CheckFinding {
   if check_operation_scalar_finding(
       diagnostic, bindings, supplied, parameters, declarations,
@@ -1130,8 +1143,13 @@ fn check_program_finding(
     is Source(SourceView(Program(Program(Pipeline(_, issue))))) &&
     issue.kind is Operation(ExpectedBoolean) {
     // The existing Relation checker proves the Boolean predicate requirement.
-    // Its span lacks authored/generated origin kind, so no SQL range is guessed.
-    return ExpressionViolation("expected_boolean", None)
+    // Only the original common construction owner can establish authored bytes.
+    let origin = match (program, diagnostic_source) {
+      (Some(program), Some(source)) =>
+        @program_check.diagnostic_predicate_origin(diagnostic, program, source)
+      _ => None
+    }
+    return ExpressionViolation("expected_boolean", check_authored_range(origin))
   }
   if @program_check.diagnostic_cause(diagnostic)
     is Source(SourceView(Program(Program(Pipeline(_, issue))))) &&

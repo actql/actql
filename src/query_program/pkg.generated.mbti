@@ -28,6 +28,8 @@ pub fn compile(@query_syntax.Query, Context, Limits, table_writes? : Array[Table
 
 pub fn compile_query_script(@query_syntax.QueryScript, Context, Limits, table_writes? : Array[TableWriteBinding]) -> Result[@stage_syntax.Program, Issue]
 
+pub fn compile_with_source(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding]) -> Result[(@stage_syntax.Program, @program_source_builder.Source), Issue]
+
 pub fn resolve_table_write_binding(Array[TableWriteBinding], Array[@query_syntax.NamePart], Bool, Int) -> Result[TableWriteBinding, TableWriteBindingIssue]
 
 pub fn same_relation_path(Array[@query_syntax.NamePart], Array[@query_syntax.NamePart]) -> Bool
