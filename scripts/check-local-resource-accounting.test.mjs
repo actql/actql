@@ -27,6 +27,34 @@ const gapsTemplate = readFileSync(join(
 const sourceTemplate = loadResourceAccountingSources({
   root, manifest: manifestTemplate, routes: routesTemplate,
 });
+const currentPartialGraphOperations = ['shortest_path', 'reach', 'graft_graph', 'mean_graphs'];
+const currentPartialGraphErrors = currentPartialGraphOperations.map(operation =>
+  `SGA ${operation}: resource layers are incomplete`);
+
+// Refusal counterfixtures are explicit synthetic source snapshots. The current
+// inventory has no blocked Graph operations and is never rewritten by a test.
+function graphRefusalCounterfixture() {
+  const file = join(root, manifestTemplate.inventories.families);
+  const coverage = structuredClone(sourceTemplate[file].json);
+  const routes = structuredClone(routesTemplate);
+  const checkFile = join(root, 'src/program_check/check.mbt');
+  let checkText = sourceTemplate[checkFile].text;
+  for (const operation of currentPartialGraphOperations) {
+    coverage.current_graph_profile.classification[operation] = 'blocked';
+    coverage.operations.find(entry => entry.operation === operation).status = 'blocked';
+    const route = routes.routes.find(entry => entry.operation === operation);
+    for (const key of Object.keys(route)) {
+      if (!['inventory', 'family', 'operation', 'profile'].includes(key)) delete route[key];
+    }
+    const key = `              | "${operation}"`;
+    assert.ok(checkText.includes(key), operation);
+    checkText = checkText.replace(key, '');
+  }
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({exists: true, text: JSON.stringify(coverage), json: deepFreeze(coverage)}),
+    [checkFile]: Object.freeze({...sourceTemplate[checkFile], text: checkText})});
+  return {root, manifest: manifestTemplate, routes, sources, requireBoundaryComplete: true};
+}
 
 function evaluate(mutator, routeMutator, args = [], gapsText) {
   const manifest = structuredClone(manifestTemplate);
@@ -1049,8 +1077,83 @@ test('resource audit fixtures are reclaimed on success, rejection, and setup fai
   for (const directory of directories) assert.equal(existsSync(directory), false);
 });
 
-test('resource gate accepts every normative Local operation', () => {
-  assert.match(run(), /68 operations, 5 implementation profiles, 64 production routes mapped, 4 typed pre-execution refusals \(not execution success\), 64 with operation-specific boundary records, 64 with four-role boundary evidence, 64 with full work\/workspace assurance, 116 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+test('resource gate preserves incomplete current Graph resource layers', () => {
+  const result = evaluate(undefined, undefined, ['--check-summary']);
+  assert.deepEqual(result.errors, currentPartialGraphErrors);
+  assert.match(result.output, /68 operations, 5 implementation profiles, 68 production routes mapped, 0 typed pre-execution refusals \(not execution success\), 68 with operation-specific boundary records, 64 with four-role boundary evidence, 64 with full work\/workspace assurance, 116 with path-scoped work\/workspace evidence, 0 with selected-only assurance; full boundary completion is not asserted/);
+  const coverage = sourceTemplate[join(root, manifestTemplate.inventories.families)].json;
+  for (const operation of currentPartialGraphOperations) {
+    const entry = coverage.operations.find(entry => entry.operation === operation);
+    assert.equal(entry.status, 'partial');
+    assert.deepEqual(entry.completed_layers, ['contract']);
+    const route = routesTemplate.routes.find(entry => entry.operation === operation);
+    assert.equal(route.path_assurance, undefined);
+    assert.equal(route.resource_assurance, undefined);
+  }
+});
+
+for (const operation of currentPartialGraphOperations) {
+  test(`current Graph ${operation} reports missing shape, key and source without crashing`, () => {
+    for (const field of ['dispatch', 'entrypoint']) {
+      for (const replacement of [undefined, null, {}, {path: 'src/absent-current-graph.mbt'}]) {
+        const result = evaluate(undefined, routes => {
+          routes.routes.find(route => route.operation === operation)[field] = replacement;
+        });
+        assert.ok(result.errors.some(error => error.startsWith(`SGA ${operation}:`) &&
+          (error.includes(`${field} must bind a production source`) ||
+            error.includes(`missing ${field} production source`))), `${operation}/${field}`);
+        assert.ok(result.errors.includes(`SGA ${operation}: resource layers are incomplete`));
+      }
+    }
+    assert.match(run(undefined, routes => {
+      routes.routes.find(route => route.operation === operation).dispatch.marker = '@sga.start_components(';
+    }), new RegExp(`SGA ${operation}: current operation must reach its shared bounded Owner`, 'u'));
+  });
+}
+
+test('current Graph route fixtures cannot borrow another operation or omit a role', () => {
+  for (const operation of currentPartialGraphOperations) {
+    const route = routesTemplate.routes.find(route => route.operation === operation);
+    const role = route.boundary_tests[0].role;
+    for (const detach of [
+      item => { item.role = 'unrelated_role'; },
+      item => { item.fixture = routesTemplate.routes.find(other =>
+        other.operation === (operation === 'reach' ? 'shortest_path' : 'reach')).boundary_tests[0].fixture; },
+    ]) {
+      assert.match(run(undefined, routes => {
+        detach(routes.routes.find(value => value.operation === operation).boundary_tests[0]);
+      }), new RegExp(`SGA ${operation}: current ${role} fixture is missing or detached`, 'u'));
+    }
+  }
+});
+
+test('current Graph traversal aliases retain typed dispatch and both shared budget inputs', () => {
+  const file = join(root, 'src/local_sga_provider/graph_pipeline.mbt');
+  const source = sourceTemplate[file];
+  for (const marker of [
+    'Some(@lower.GraphTraverseStep(traverse))',
+    'max_work: value.limits.max_work,',
+    'value.limits.max_workspace_slots,',
+  ]) {
+    assert.ok(source.text.includes(marker), marker);
+    const sources = Object.freeze({...sourceTemplate,
+      [file]: Object.freeze({...source, text: source.text.replaceAll(marker, 'removed_current_traversal_input')})});
+    const errors = validateResourceAccounting({root, manifest: manifestTemplate,
+      routes: routesTemplate, sources}).errors;
+    for (const operation of ['reach', 'shortest_path']) assert.ok(errors.includes(
+      `SGA ${operation}: current traversal provider loses its shared work/workspace inputs`), marker);
+  }
+});
+
+test('current Graph resource scope still rejects an inventory classification mismatch', () => {
+  const file = join(root, manifestTemplate.inventories.families);
+  const coverage = structuredClone(sourceTemplate[file].json);
+  coverage.operations.find(entry => entry.operation === 'reach').status = 'complete';
+  const sources = Object.freeze({...sourceTemplate,
+    [file]: Object.freeze({...sourceTemplate[file], json: deepFreeze(coverage)})});
+  const result = validateResourceAccounting({root, manifest: manifestTemplate,
+    routes: routesTemplate, sources});
+  assert.ok(result.errors.includes('current Graph resource scope must match the authoritative family classification'));
 });
 
 test('subtraction resource route requires its independent work boundary and actual shared dispatcher', () => {
@@ -1082,30 +1185,32 @@ test('union resource route retains independent work and actual Host cleanup cust
   }), /SGA union_graphs: dispatch marker does not reach production source/);
 });
 
-test('unsupported Graph routes require one shared public refusal boundary and cannot claim execution', () => {
-  const coverage = JSON.parse(readFileSync(join(root,
-    'docs/reviews/2026-09-19-sga-veca-tea-local-coverage.json'), 'utf8'));
-  const refused = Object.entries(coverage.current_graph_profile.classification)
-    .filter(([, status]) => status === 'blocked').map(([operation]) => operation);
-  assert.ok(refused.length > 0);
-  for (const operation of refused) {
+test('synthetic blocked Graph routes require public refusal and cannot claim execution', () => {
+  const fixture = graphRefusalCounterfixture();
+  assert.equal(validateResourceAccounting(fixture).errors.some(error =>
+    error.includes('current Graph refusals lack') || error.includes('refused consumer')), false);
+  for (const operation of currentPartialGraphOperations) {
     for (const field of ['entrypoint', 'resource_assurance', 'path_assurance']) {
-      assert.match(run(undefined, routes => {
-        routes.routes.find(route => route.operation === operation)[field] = {};
-      }, ['--require-boundary-complete']),
+      const routes = structuredClone(fixture.routes);
+      routes.routes.find(route => route.operation === operation)[field] = {};
+      assert.match(validateResourceAccounting({...fixture, routes}).errors.join('\n'),
       /refused consumer must not claim an executable or resource-assured route/u);
     }
   }
   for (const field of ['suite', 'path', 'fixture', 'targets']) {
-    assert.match(run(undefined, routes => { delete routes.refusal_boundary[field]; },
-      ['--require-boundary-complete']),
+    const routes = structuredClone(fixture.routes);
+    delete routes.refusal_boundary[field];
+    assert.match(validateResourceAccounting({...fixture, routes}).errors.join('\n'),
     /current Graph refusals lack the shared required public pre-execution boundary/u);
   }
 });
 
-test('Graph refusal evidence requires durable nonadmission and the unsupported profile code', () => {
+test('synthetic Graph refusal evidence requires durable nonadmission and its problem code', () => {
+  const fixture = graphRefusalCounterfixture();
+  assert.equal(validateResourceAccounting(fixture).errors.includes(
+    'current Graph refusals lack the shared required public pre-execution boundary'), false);
   const file = join(root, 'scripts/graph-public-host.test.mjs');
-  const source = sourceTemplate[file];
+  const source = fixture.sources[file];
   for (const marker of [
     "assertRejectedSubmission(client, canonicalText(rejected), submissionRef, 'ClientProgramImplementationLimit')",
     'assert.ok(error instanceof ClientError)',
@@ -1119,10 +1224,9 @@ test('Graph refusal evidence requires durable nonadmission and the unsupported p
     'for (const externalInput of [false,true])',
   ]) {
     assert.ok(source.text.includes(marker), marker);
-    const sources = Object.freeze({...sourceTemplate,
+    const sources = Object.freeze({...fixture.sources,
       [file]: Object.freeze({...source, text: source.text.replace(marker, 'removed_boundary_check')})});
-    const errors = validateResourceAccounting({root, manifest: manifestTemplate,
-      routes: routesTemplate, sources, requireBoundaryComplete: true}).errors;
+    const errors = validateResourceAccounting({...fixture, sources}).errors;
     assert.ok(errors.includes('current Graph refusals lack the shared required public pre-execution boundary'), marker);
   }
 });
