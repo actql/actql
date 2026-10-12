@@ -1,0 +1,49 @@
+Warning: [0035]
+   ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/vector_pool_source_test.mbt:2:24 ]
+   │
+ 2 │ fn vector_pool_control(method : String, relation : Bool) -> @program.Program {
+   │                        ───┬──  
+   │                           ╰──── Warning (reserved_keyword): The word `method` is reserved for possible future use. Please consider using another name.
+───╯
+Warning: [0035]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/vector_pool_source_test.mbt:10:52 ]
+    │
+ 10 │   let body = "{\"by\":[\"label\"],\"method\":\"" + method + "\",\"output_id\":\"pooled_id\"" +
+    │                                                    ───┬──  
+    │                                                       ╰──── Warning (reserved_keyword): The word `method` is reserved for possible future use. Please consider using another name.
+────╯
+Warning: [0035]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/vector_pool_source_test.mbt:33:9 ]
+    │
+ 33 │     for method in ["sum", "mean", "max"] {
+    │         ───┬──  
+    │            ╰──── Warning (reserved_keyword): The word `method` is reserved for possible future use. Please consider using another name.
+────╯
+Warning: [0035]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/vector_pool_source_test.mbt:34:47 ]
+    │
+ 34 │       vector_pool_checked(vector_pool_control(method, relation))
+    │                                               ───┬──  
+    │                                                  ╰──── Warning (reserved_keyword): The word `method` is reserved for possible future use. Please consider using another name.
+────╯
+Warning: [0035]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/vector_pool_source_test.mbt:42:9 ]
+    │
+ 42 │     for method in ["sum", "mean", "max"] {
+    │         ───┬──  
+    │            ╰──── Warning (reserved_keyword): The word `method` is reserved for possible future use. Please consider using another name.
+────╯
+Warning: [0035]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/vector_pool_source_test.mbt:48:119 ]
+    │
+ 48 │       let text = "WITH members AS (" + prefix + "), pooled AS (FROM members |> pool_vectors(by: [LABEL], method: '" + method + "', output_id: pooled_id" +
+    │                                                                                                                       ───┬──  
+    │                                                                                                                          ╰──── Warning (reserved_keyword): The word `method` is reserved for possible future use. Please consider using another name.
+────╯
+Warning: [0035]
+    ╭─[ /Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/src/query_program/vector_pool_source_test.mbt:51:42 ]
+    │
+ 51 │       let expected = vector_pool_control(method, relation)
+    │                                          ───┬──  
+    │                                             ╰──── Warning (reserved_keyword): The word `method` is reserved for possible future use. Please consider using another name.
+────╯

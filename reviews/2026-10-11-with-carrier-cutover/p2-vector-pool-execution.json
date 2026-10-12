@@ -1,0 +1,1837 @@
+{
+  "status": "frontend_pool_source_connected_public_execution_unverified",
+  "adopted_main": "40d317c62482a9f3a49246722da1f1b8a6d17c71",
+  "fixed_verification_source": "849cce220da85ff951c289e2cddf14f1f08147d6",
+  "fixed_verification_tree": "addf22939a72b71a67cf6c5c75cfe984c2cc30ba",
+  "scope": "Existing pool_vectors parser roles, ordinary producer continuation, retained FieldRef scope and existing Carrier lowering. No common Owner, kernel, numeric/identity law, provider, storage, execution limit or guard changes.",
+  "independent_expectations": "Complete Relation/Vectors Programs and pooling arguments are hand-authored. Public two-member sum/max [1,1] and mean [0.5,0.5], count2, empty schema and refusals are independent fixture data; no product output generated expectations.",
+  "identity_preservation": "Submitted SGA vector remains byte-identical; frozen authored grammar/rules reproduce it. New grammar-bound Run is independently resealed with the same Values/Program/dependency/limits bodies. Existing generators produce metadata/family/canonical.",
+  "attempts": [
+    {
+      "source": "674c91c48995bc8abffcfc9eadcc0b5c2ae21509",
+      "tree": "298d38c172f3b23e868b9f30292522cab96d6786",
+      "run": "run-x2aoR5",
+      "note": "pre-fix public source refused; independent common controls passed",
+      "exit_code": 2,
+      "complete": false,
+      "output_complete": true,
+      "owner_pid": 62853,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt",
+          "src/query_program/with_vectors_events_test.mbt"
+        ]
+      ],
+      "focused": [
+        {
+          "focused": "focused-test-YR0V0W",
+          "source": {
+            "revision": "674c91c48995bc8abffcfc9eadcc0b5c2ae21509",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 8,
+              "passed": 5,
+              "failed": 3,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-x2aoR5/summary.json",
+          "bytes": 1776,
+          "sha256": "8e71c33b46dcca18f281dbd086c24139cf752ec4b638d65745ab808872c111bd"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-x2aoR5/output.log",
+          "bytes": 10075,
+          "sha256": "0796be867727afe8bdcb0c15f9658de5c5915a697ba431d7efd426fb97f7d419"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-YR0V0W/0001.summary.json",
+          "bytes": 630,
+          "sha256": "dcee6e2d470eea994a6d399684ba88b0bf2d5c64c5509ee8d591c882e1abbc64"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-YR0V0W/summary.json",
+          "bytes": 1908,
+          "sha256": "9abebd6edc0436f646ee5af9b8d47b0d09f5fb342e54479615780a921fe6320f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-YR0V0W/001.stdout.log",
+          "bytes": 5970,
+          "sha256": "43e2ffc0eaf4c5ad500b355881ab96afb53fd8f0f7d0e82da53a3f95ca300ae5"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-YR0V0W/001.started.json",
+          "bytes": 909,
+          "sha256": "0581bc5a3d49f79803da208554eb5e7c24a8444c692c8d26097750590e08d5e7"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-YR0V0W/001.result.json",
+          "bytes": 1090,
+          "sha256": "a2748ad96b177ab5b989905d770a0418dd8406d7f2500d18934efdc8876bef9b"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-YR0V0W/001.stderr.log",
+          "bytes": 3681,
+          "sha256": "600d2062661c84a230575e7bc76aa4ae0caf95ef36e606bef6fccdbac8c66f85"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-YR0V0W/0002.summary.json",
+          "bytes": 1670,
+          "sha256": "9d09cf6dc936c70ebbbee77400ceb481f30fd755c360194abaa8750dcd72314e"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-YR0V0W/0004.summary.json",
+          "bytes": 1908,
+          "sha256": "9abebd6edc0436f646ee5af9b8d47b0d09f5fb342e54479615780a921fe6320f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-YR0V0W/0003.summary.json",
+          "bytes": 1887,
+          "sha256": "32f29b7f689ae35328ad69581ddc20672392ecb6622bf6ea1ad7d5a22c47c038"
+        }
+      ]
+    },
+    {
+      "source": "f52a4f57a056472c74843a58c3f2d1bd904f03e9",
+      "tree": "ef22ad7c0d10bf64d7455195a3a454257198def9",
+      "run": "run-Qy8jSi",
+      "note": "local formatter",
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 63500,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_syntax/sga_call.mbt",
+          "src/query_syntax/sga_argument_roles.mbt",
+          "src/query_program/query_script_carriers.mbt",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt"
+        ]
+      ],
+      "focused": [],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-Qy8jSi/summary.json",
+          "bytes": 1597,
+          "sha256": "e92ebc8eec62fee86470383b5bb31189df8b3af1f046391c3aad4d66fda2ff93"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-Qy8jSi/output.log",
+          "bytes": 44,
+          "sha256": "0abb3523caff609b623c0af0aaf90be88828c9e143feae1f415e43a38d1aec14"
+        }
+      ]
+    },
+    {
+      "source": "32827c4a48e2e29841bded3c66b0f9ad370f9846",
+      "tree": "46b0499e3c15c5771be76f61e69ce2fcf49a1a58",
+      "run": "run-jgc2X7",
+      "note": "initial source connection JS8/8",
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 63724,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt",
+          "src/query_program/with_vectors_events_test.mbt"
+        ]
+      ],
+      "focused": [
+        {
+          "focused": "focused-test-vQSJZD",
+          "source": {
+            "revision": "32827c4a48e2e29841bded3c66b0f9ad370f9846",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 8,
+              "passed": 8,
+              "failed": 0,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-jgc2X7/summary.json",
+          "bytes": 1775,
+          "sha256": "227c803e9f41550f28998f7c2a646e05ca4a9d9064e99c836a3dc3b2f73bcf8c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-jgc2X7/output.log",
+          "bytes": 452,
+          "sha256": "6175b7893cd31445a2cf1e55a7a47803fb1a7f017c49fd1c84a00d5179e08673"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-vQSJZD/0001.summary.json",
+          "bytes": 630,
+          "sha256": "5170b2f123672cabfd25116bf2bcc1b17027504dc70ac67e787860b66047ab6c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-vQSJZD/summary.json",
+          "bytes": 1910,
+          "sha256": "e70725aad0128815aab2674eb6575554c18c22e4723e0b2d3cc1cc4532737c40"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-vQSJZD/001.stdout.log",
+          "bytes": 38,
+          "sha256": "764157e72b2dd2e8e0a0545e7f821c609e694e542766a3c5c6666f28561c5f05"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-vQSJZD/001.started.json",
+          "bytes": 909,
+          "sha256": "95068671a30c78ec67b5780d7b72e34f7f3376b780acaea298806f4cda0a2024"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-vQSJZD/001.result.json",
+          "bytes": 1093,
+          "sha256": "c2d567f425af081368db7180ddd7a009e02eb026608fc87a453e9704945197bc"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-vQSJZD/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-vQSJZD/0002.summary.json",
+          "bytes": 1670,
+          "sha256": "dc33d9fd873dfa357af3b5a298776257c12b756c9dc282604d4b855d68d2d765"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-vQSJZD/0004.summary.json",
+          "bytes": 1910,
+          "sha256": "e70725aad0128815aab2674eb6575554c18c22e4723e0b2d3cc1cc4532737c40"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-vQSJZD/0003.summary.json",
+          "bytes": 1890,
+          "sha256": "52a4e90f73d8d22b5ea20073e734c5ce147243caf412f1a100530367aeffeb7d"
+        }
+      ]
+    },
+    {
+      "source": "58bbb9444a7d83cd8f9e78ed81ecd6d7a6b1e4b5",
+      "tree": "db2624f09f61c7766f05fed333a32b459c9c0ffd",
+      "run": "run-3bJiUM",
+      "note": "local formatter",
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 71187,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_syntax/sga_call.mbt",
+          "src/query_syntax/sga_argument_roles.mbt",
+          "src/query_program/query_script_carriers.mbt",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt"
+        ]
+      ],
+      "focused": [],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-3bJiUM/summary.json",
+          "bytes": 1597,
+          "sha256": "1c1541b918bf77a2acf7fc782d5ac5465e152f852643f7512ef7fd42ffc98f1d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-3bJiUM/output.log",
+          "bytes": 44,
+          "sha256": "1efb63bf19504c385f6e39b93253c7a7f9475be0bf30c220dcf10da70eba7e6e"
+        }
+      ]
+    },
+    {
+      "source": "581700d994e0c9ac5903954b5c45d935f646330a",
+      "tree": "90bdebdd26ecb7023360c5e2c2905e99ac186a36",
+      "run": "run-sCEabK",
+      "note": "test helper compile error; zero tests executed",
+      "exit_code": 1,
+      "complete": false,
+      "output_complete": true,
+      "owner_pid": 76462,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt",
+          "src/query_program/with_vectors_events_test.mbt"
+        ]
+      ],
+      "focused": [
+        {
+          "focused": "focused-test-qKgNyH",
+          "source": {
+            "revision": "581700d994e0c9ac5903954b5c45d935f646330a",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            null
+          ]
+        }
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-sCEabK/summary.json",
+          "bytes": 1776,
+          "sha256": "6a024e5d4eefc5a4cad181ad531c71d5a2f670f62982eef205cd1d1b9e563c33"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-sCEabK/output.log",
+          "bytes": 973,
+          "sha256": "2f6285f71079c2621c9e4d3fcd84199c0e5378b95bf6d02cb6adf120150c87da"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-qKgNyH/0001.summary.json",
+          "bytes": 630,
+          "sha256": "99256773236d1dc0a19ba18de9b8dfa4654292b1b0e7e83a2d8257c1cc129d3a"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-qKgNyH/summary.json",
+          "bytes": 1770,
+          "sha256": "a0dabebdee6ef7304030d2951791cf72bb1d652bed2da3f32442c4c57d04889a"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-qKgNyH/001.stdout.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-qKgNyH/001.started.json",
+          "bytes": 909,
+          "sha256": "7ed502441d42a3cf89b2bfe4876ea27c387aef55a24cc2b89629322305f2ad67"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-qKgNyH/001.result.json",
+          "bytes": 980,
+          "sha256": "d656c2a2bd4d2d72cfed9ed0ba407657e6c2cb46dfe51b8f917b2bddc1dbb4a0"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-qKgNyH/001.stderr.log",
+          "bytes": 570,
+          "sha256": "ab0ec0d76c4840f6ccd48202ecf97b1e094a5596e4bac187c86294d69256951a"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-qKgNyH/0002.summary.json",
+          "bytes": 1670,
+          "sha256": "6d7545a6dfcc3362d5d83e6c33cf18c79c976c5f2812ac01c8fea95b6cea5a15"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-qKgNyH/0004.summary.json",
+          "bytes": 1770,
+          "sha256": "a0dabebdee6ef7304030d2951791cf72bb1d652bed2da3f32442c4c57d04889a"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-qKgNyH/0003.summary.json",
+          "bytes": 1749,
+          "sha256": "dd80941d992c7114ac4b84b7b61b0070b897ce244a61333a5426a665b8c5ef22"
+        }
+      ]
+    },
+    {
+      "source": "60c9350332b9aec5b8847c932dcc382f66016c7e",
+      "tree": "d141adc770502c42edf084bd8ea112ebae05680f",
+      "run": "run-f0yXxU",
+      "note": "exact common refusal controls JS9/9",
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 84400,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt",
+          "src/query_program/with_vectors_events_test.mbt"
+        ]
+      ],
+      "focused": [
+        {
+          "focused": "focused-test-oQCD1G",
+          "source": {
+            "revision": "60c9350332b9aec5b8847c932dcc382f66016c7e",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 9,
+              "passed": 9,
+              "failed": 0,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-f0yXxU/summary.json",
+          "bytes": 1775,
+          "sha256": "a8dbe104d4d9d4296a38bdb651c8208cb326379161f7fe6d41ffc1049914649d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-f0yXxU/output.log",
+          "bytes": 452,
+          "sha256": "f42832cc9439bce19cc45cb40aa97d917343291d492ad8f681d47860ff5663d6"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-oQCD1G/0001.summary.json",
+          "bytes": 630,
+          "sha256": "a1774aeb15d8ff252fef43a1acc0b53b36f11af92a4975686c6414f450372629"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-oQCD1G/summary.json",
+          "bytes": 1915,
+          "sha256": "8d5319204af5aa7441e5d0d40644fd6cb32694075680bb433c38c24a1b489c76"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-oQCD1G/001.stdout.log",
+          "bytes": 38,
+          "sha256": "2bbf8d5bcbf8824a27ba86cfb25fbacbee7e78a130dab463b6c2354ad2f75540"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-oQCD1G/001.started.json",
+          "bytes": 909,
+          "sha256": "fd90e3bb40c55785275fb77938c1f9c2b860c6feb9550641a117774ec2e6a1ca"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-oQCD1G/001.result.json",
+          "bytes": 1098,
+          "sha256": "5e35962b8ff691a640b8e904d32f6eb8e43df4d781446e394df0c87eb2498564"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-oQCD1G/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-oQCD1G/0002.summary.json",
+          "bytes": 1670,
+          "sha256": "005257f235ffa82874f2576d3942b343867fe473054b5d3899d0578afa089dbf"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-oQCD1G/0004.summary.json",
+          "bytes": 1915,
+          "sha256": "8d5319204af5aa7441e5d0d40644fd6cb32694075680bb433c38c24a1b489c76"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-oQCD1G/0003.summary.json",
+          "bytes": 1895,
+          "sha256": "0fc6583c3817d2d0f768653250d5b7a9b003e046e50357cfaee91f225ab59716"
+        }
+      ]
+    },
+    {
+      "source": "1728ce3b6034fe605a1828d63d4c125d32b622f5",
+      "tree": "2929a8f215d9efd1aec1545200d7504e304276af",
+      "run": "run-5s3TSl",
+      "note": "existing generators and independent current vector",
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 86291,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "node",
+          "scripts/compilation-manifests.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/vector-pool-identity-oracle.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/update-document-metadata.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/check-actql-spec-family.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/check-canonical-json.mjs",
+          "--write"
+        ]
+      ],
+      "focused": [],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-5s3TSl/summary.json",
+          "bytes": 3148,
+          "sha256": "6b1c6c01647b85c8879fecf453e0ec242c6a5b95692de865ccf7a16d52daaced"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-5s3TSl/output.log",
+          "bytes": 2086,
+          "sha256": "86ba883a730c5a5e64bc456856b7141877e973917cf1162cc3c3059bb4602c7c"
+        }
+      ]
+    },
+    {
+      "source": "0542e1557ab4bee3e9df12244bfdc50e4c710f0c",
+      "tree": "c605d9da4bb45fac69ffb798fe258d60129d2f50",
+      "run": "run-f6SbRr",
+      "note": "JS11/11 plus canonical1/1, Node79/79, four read-only validators",
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 87123,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt",
+          "src/query_program/with_vectors_events_test.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/canonical_json/identity_vectors.generated_test.mbt",
+          "--filter",
+          "contract spec/manifests/actql-grammar-0.1.json#"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/vector-pool-identity.test.mjs",
+          "scripts/sga-signature-role-identity.test.mjs",
+          "scripts/client-values-run-materials-vector.test.mjs",
+          "scripts/compilation-manifests.test.mjs",
+          "scripts/frontend-profile.test.mjs"
+        ],
+        [
+          "node",
+          "scripts/compilation-manifests.mjs"
+        ],
+        [
+          "node",
+          "scripts/update-document-metadata.mjs"
+        ],
+        [
+          "node",
+          "scripts/check-actql-spec-family.mjs"
+        ],
+        [
+          "node",
+          "scripts/check-canonical-json.mjs"
+        ]
+      ],
+      "focused": [
+        {
+          "focused": "focused-test-0ccD4A",
+          "source": {
+            "revision": "0542e1557ab4bee3e9df12244bfdc50e4c710f0c",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 11,
+              "passed": 11,
+              "failed": 0,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        },
+        {
+          "focused": "focused-test-lH30xe",
+          "source": {
+            "revision": "0542e1557ab4bee3e9df12244bfdc50e4c710f0c",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 1,
+              "passed": 1,
+              "failed": 0,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        },
+        {
+          "focused": "focused-test-t1d1Qt",
+          "source": {
+            "revision": "0542e1557ab4bee3e9df12244bfdc50e4c710f0c",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 79,
+              "passed": 79,
+              "failed": 0,
+              "cancelled": 0,
+              "skipped": 0,
+              "todo": 0
+            }
+          ]
+        }
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-f6SbRr/summary.json",
+          "bytes": 4994,
+          "sha256": "112e43e515abc22b4d7ed8de67472013c7fcdeffe66072445b1e963f3853a39d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-f6SbRr/output.log",
+          "bytes": 43730,
+          "sha256": "85a4134684a0828920682c8d9bd9852a0022e3967172aec853980357e28f101a"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-0ccD4A/0001.summary.json",
+          "bytes": 630,
+          "sha256": "46bb49fdd4edddbe96bca648241748bcee4240b58c3eebede3f4902176f4d4c1"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-0ccD4A/summary.json",
+          "bytes": 1993,
+          "sha256": "6eed50df0f1980e9d0604924817748e37e317d94a2f82e5b1755c07182ca7fd8"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-0ccD4A/001.stdout.log",
+          "bytes": 40,
+          "sha256": "f3cce346a168da9127e82fa09504d0d8393441a20c0ef912e3cf2caaa80e2cfc"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-0ccD4A/001.started.json",
+          "bytes": 980,
+          "sha256": "301bf6f1265531e4270ad4716fc9a1b61e624a8c784a568eba58bd514ce56e4f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-0ccD4A/001.result.json",
+          "bytes": 1172,
+          "sha256": "a06e990d80d34e186cb99c10d85c8b7c9500a4b3e84f2e888e4bd434036cc74a"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-0ccD4A/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-0ccD4A/0002.summary.json",
+          "bytes": 1745,
+          "sha256": "8666f0e500d21649f9147bc227a4116c03f7a9dc80a02f6df15e686326dbe2bf"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-0ccD4A/0004.summary.json",
+          "bytes": 1993,
+          "sha256": "6eed50df0f1980e9d0604924817748e37e317d94a2f82e5b1755c07182ca7fd8"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-0ccD4A/0003.summary.json",
+          "bytes": 1973,
+          "sha256": "94440e54ec98a0852c636e002646e55717dbe69737de0582cece90d581d55c71"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lH30xe/0001.summary.json",
+          "bytes": 630,
+          "sha256": "e24173fd228ebe29f6edadf9bcaf203a062d180fcbf0fc74e11a5dad2599090d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lH30xe/summary.json",
+          "bytes": 1885,
+          "sha256": "703a71036c15cf97b6ee95bd2a864cc76e20caffee808c516d2669b93ac80d2d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lH30xe/001.stdout.log",
+          "bytes": 38,
+          "sha256": "b136ac6dbfa8a737c1c47b4ab55287d32add1374feaea7f839a55b45a9685782"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lH30xe/001.started.json",
+          "bytes": 885,
+          "sha256": "bb72a244996eb630c7a4cf38ff280524d2a6a16a2efa162522292c990810138e"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lH30xe/001.result.json",
+          "bytes": 1068,
+          "sha256": "754f4f6dde591eebed1b08c0fc4de9209bfe8f69991f669cf9aef4e56c2347c8"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lH30xe/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lH30xe/0002.summary.json",
+          "bytes": 1646,
+          "sha256": "dd8e2c61cb739826ea8845fc21e434481cfe98fae0727a7383bed9496c221fe2"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lH30xe/0004.summary.json",
+          "bytes": 1885,
+          "sha256": "703a71036c15cf97b6ee95bd2a864cc76e20caffee808c516d2669b93ac80d2d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lH30xe/0003.summary.json",
+          "bytes": 1865,
+          "sha256": "b6e26544d939f7b7e521ed0afe3011aa72581c01082fd90f23c236f9ae0e60d7"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-t1d1Qt/0001.summary.json",
+          "bytes": 630,
+          "sha256": "e0b0d388fc55e52ebd7d25f538538886145538a6324a499b7397702e0fcf8a34"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-t1d1Qt/summary.json",
+          "bytes": 2167,
+          "sha256": "8e67660c14453bd8fccb8914daef2c8f2423cb483346748f15400588af525191"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-t1d1Qt/001.stdout.log",
+          "bytes": 41668,
+          "sha256": "40cfc6dbfc78194aaf1bf513310781c8fd5e5369854132b2bc31943ffa7be013"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-t1d1Qt/001.started.json",
+          "bytes": 1170,
+          "sha256": "2ffb00aa2ea1195fe6684638e56df0602097c7419d0fd386006793aa2a8b12a0"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-t1d1Qt/001.result.json",
+          "bytes": 1346,
+          "sha256": "6206a48bbc42d78c2818cae9b40edd1ddc38c52e5edeeab89ebed8c1289a605f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-t1d1Qt/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-t1d1Qt/0002.summary.json",
+          "bytes": 1935,
+          "sha256": "18d5f402dcb1637e46167da7756c29b12afbd501c0673480aa4edcdf26dd1e76"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-t1d1Qt/0004.summary.json",
+          "bytes": 2167,
+          "sha256": "8e67660c14453bd8fccb8914daef2c8f2423cb483346748f15400588af525191"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-t1d1Qt/0003.summary.json",
+          "bytes": 2147,
+          "sha256": "82e911b3609df8a1d83820c617b5a122a15a1f3c33e62571146881fc5a6d27d9"
+        }
+      ]
+    },
+    {
+      "source": "cce29b14b187be17de6863828ed1016fd9885825",
+      "tree": "2082d287faa98bcadea26c15d1d0dcb519e50c01",
+      "run": "run-nBFP6A",
+      "note": "local formatter",
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 99881,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_syntax/sga_call.mbt",
+          "src/query_syntax/sga_argument_roles.mbt",
+          "src/query_program/query_script_carriers.mbt",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt"
+        ]
+      ],
+      "focused": [],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-nBFP6A/summary.json",
+          "bytes": 1597,
+          "sha256": "997e9987afe6dc73513b23a89b1af81474072e43f7f0d2205141356361453650"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-nBFP6A/output.log",
+          "bytes": 43,
+          "sha256": "81a677771334385895bc0ebfef26a4af4d319fd300182f0918976f6e1f185489"
+        }
+      ]
+    },
+    {
+      "source": "bd6cab65e16380323caa375d7265f40ba2cff69a",
+      "tree": "ccf0637cfe734b1e25b395681f4a6bc2698c92e4",
+      "run": "run-Jmc1Mc",
+      "note": "public multi-member source failure JS11/12",
+      "exit_code": 2,
+      "complete": false,
+      "output_complete": true,
+      "owner_pid": 3395,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt",
+          "src/query_program/with_vectors_events_test.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ]
+      ],
+      "focused": [
+        {
+          "focused": "focused-test-LT01hG",
+          "source": {
+            "revision": "bd6cab65e16380323caa375d7265f40ba2cff69a",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 12,
+              "passed": 11,
+              "failed": 1,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-Jmc1Mc/summary.json",
+          "bytes": 1850,
+          "sha256": "f1cb4edb520947f9290a5845a2898c2678121e7352acdce4efcbd5a27dd17464"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-Jmc1Mc/output.log",
+          "bytes": 2539,
+          "sha256": "fe19b443a391de39231837a148dda5c708c5620b6dacc3be1e01f6303fc8ad9b"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-LT01hG/0001.summary.json",
+          "bytes": 630,
+          "sha256": "21dc1eb1b82128b7d1a72da2f874a2d3a86d8c577c3ea22a76f824bacf846894"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-LT01hG/summary.json",
+          "bytes": 1987,
+          "sha256": "c3770ab4c98a90954fd680f700ddda33efb066fe9b24508697c59b0e22bd9c56"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-LT01hG/001.stdout.log",
+          "bytes": 2047,
+          "sha256": "6d2ba71b439f5c2a87a1e1a89976249792c0a41c07512ea47faca66929d172a3"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-LT01hG/001.started.json",
+          "bytes": 980,
+          "sha256": "95229bf1d28e69a2db3cb097e2ce39cee9cc4bef7ca139aecbb625981f0ba4e5"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-LT01hG/001.result.json",
+          "bytes": 1165,
+          "sha256": "1f164b36791d713ae5b1b1d5d851da7824a72d85a9dd8131f24424e62ffc9335"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-LT01hG/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-LT01hG/0002.summary.json",
+          "bytes": 1745,
+          "sha256": "73839d730eca50febc6b47f11f7b8b2f40fb9b46278be3a0bdabbc6bc2af1956"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-LT01hG/0004.summary.json",
+          "bytes": 1987,
+          "sha256": "c3770ab4c98a90954fd680f700ddda33efb066fe9b24508697c59b0e22bd9c56"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-LT01hG/0003.summary.json",
+          "bytes": 1966,
+          "sha256": "9a7a501adb5572a459be70048308150aff521d85feb916d52aab99ba06fd8c82"
+        }
+      ]
+    },
+    {
+      "source": "51b544522313cc7473b1c2a028008bfc2d20202a",
+      "tree": "89a421a6ca385c5ee0c9d2ea7ba699f82a0f9b05",
+      "run": "run-WPrfbG",
+      "note": "UnsupportedGraph after Relation projection confirmed JS11/12",
+      "exit_code": 2,
+      "complete": false,
+      "output_complete": true,
+      "owner_pid": 6616,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt",
+          "src/query_program/with_vectors_events_test.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ]
+      ],
+      "focused": [
+        {
+          "focused": "focused-test-bq3JJn",
+          "source": {
+            "revision": "51b544522313cc7473b1c2a028008bfc2d20202a",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 12,
+              "passed": 11,
+              "failed": 1,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-WPrfbG/summary.json",
+          "bytes": 1850,
+          "sha256": "f470fecf31d44b2d58b4c1b7f6fcc9f8f2fcb693184af6a82134dd25ce6e4035"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-WPrfbG/output.log",
+          "bytes": 814,
+          "sha256": "ef5ec9e82ee3948eba2f4994d23ee644335c41e89d42932100a09b7ff4539c26"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-bq3JJn/0001.summary.json",
+          "bytes": 630,
+          "sha256": "7662d8a502795d8e5773a456f1d121210678b0c081cb84a9a994fe8feb010709"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-bq3JJn/summary.json",
+          "bytes": 1993,
+          "sha256": "060fb3323a5996d5a3351b5b01a711f2fff3eb79381f01a47050e7e9ae51abde"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-bq3JJn/001.stdout.log",
+          "bytes": 322,
+          "sha256": "d1a404e4b31d3bae51630555c174e1f6735a4a3fb1dd094480998a7708687803"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-bq3JJn/001.started.json",
+          "bytes": 980,
+          "sha256": "941767defa92b2145c69f9df55c568fe467bbd0dbedeef5d19e0dde67d0ba9bc"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-bq3JJn/001.result.json",
+          "bytes": 1171,
+          "sha256": "2cfe51cc606a23567a999c3eabc3406ea35308a88a89d8c77892d2cfe1c966dc"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-bq3JJn/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-bq3JJn/0002.summary.json",
+          "bytes": 1745,
+          "sha256": "900bd20682d454dabc0fcb65036336db651f51955eb9590b5175806a57b989ba"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-bq3JJn/0004.summary.json",
+          "bytes": 1993,
+          "sha256": "060fb3323a5996d5a3351b5b01a711f2fff3eb79381f01a47050e7e9ae51abde"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-bq3JJn/0003.summary.json",
+          "bytes": 1972,
+          "sha256": "1abc944cfa06e30cea671cdcbd4a25d709c8b8b74786e51f7485cd18c5013f8d"
+        }
+      ]
+    },
+    {
+      "source": "54a8c1599e9cbcd7b61e4ac0e9e2ead6c7f2cad8",
+      "tree": "2f03f365368b69511b963974b2a2d787d42e282e",
+      "run": "run-wPpU8q",
+      "note": "local formatter",
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 9219,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_syntax/query.mbt",
+          "src/query_syntax/sga_call.mbt",
+          "src/query_syntax/sga_argument_roles.mbt",
+          "src/query_program/query_script_carriers.mbt",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt"
+        ]
+      ],
+      "focused": [],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-wPpU8q/summary.json",
+          "bytes": 1634,
+          "sha256": "73e1c198e88ad516c581ea509957afb9a99273ff06f4224ca557866554e526c5"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-wPpU8q/output.log",
+          "bytes": 44,
+          "sha256": "c79826b968ab80e4632fd7628b7c2b6b8300755d69c7d7c480e13ee010cac331"
+        }
+      ]
+    },
+    {
+      "source": "3fa865e7846cd35b14d652e0c626f5a23fec0b62",
+      "tree": "b85481051a4b65ca6e65eee535b1a1ee32fa52ad",
+      "run": "run-a1GKTB",
+      "note": "continuation repair JS12/12 plus canonical1/1, Node81/81",
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 9422,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt",
+          "src/query_program/with_vectors_events_test.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/canonical_json/identity_vectors.generated_test.mbt",
+          "--filter",
+          "contract spec/manifests/actql-grammar-0.1.json#"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/vector-pool-identity.test.mjs",
+          "scripts/sga-signature-role-identity.test.mjs",
+          "scripts/client-values-run-materials-vector.test.mjs",
+          "scripts/compilation-manifests.test.mjs",
+          "scripts/frontend-profile.test.mjs",
+          "scripts/vector-pool-source.test.mjs"
+        ],
+        [
+          "node",
+          "scripts/compilation-manifests.mjs"
+        ],
+        [
+          "node",
+          "scripts/update-document-metadata.mjs"
+        ],
+        [
+          "node",
+          "scripts/check-actql-spec-family.mjs"
+        ],
+        [
+          "node",
+          "scripts/check-canonical-json.mjs"
+        ]
+      ],
+      "focused": [
+        {
+          "focused": "focused-test-lYYg33",
+          "source": {
+            "revision": "3fa865e7846cd35b14d652e0c626f5a23fec0b62",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 12,
+              "passed": 12,
+              "failed": 0,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        },
+        {
+          "focused": "focused-test-ATMgPO",
+          "source": {
+            "revision": "3fa865e7846cd35b14d652e0c626f5a23fec0b62",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 1,
+              "passed": 1,
+              "failed": 0,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        },
+        {
+          "focused": "focused-test-iItwOu",
+          "source": {
+            "revision": "3fa865e7846cd35b14d652e0c626f5a23fec0b62",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 81,
+              "passed": 81,
+              "failed": 0,
+              "cancelled": 0,
+              "skipped": 0,
+              "todo": 0
+            }
+          ]
+        }
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-a1GKTB/summary.json",
+          "bytes": 5040,
+          "sha256": "a200a568c5d9e7fe5368274b478ffbbe62d575881c67f06aca6fdce85fe2931c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-a1GKTB/output.log",
+          "bytes": 45069,
+          "sha256": "59b8de8468a24cbedb43e3ee39e5a0dd192e86e8b92877ca4c1bf8939ae1c9fe"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lYYg33/0001.summary.json",
+          "bytes": 630,
+          "sha256": "b0199a19ce6dfdb104ac9d159528c581a0f73792de7ca2a20a6ea67eba557efb"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lYYg33/summary.json",
+          "bytes": 1986,
+          "sha256": "8bb88348e9e8eb82cafa98352e34d28c644b505e88bbbd5150b039bdf3117a04"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lYYg33/001.stdout.log",
+          "bytes": 40,
+          "sha256": "93c9e82a1dd3b474b47ec50aaa8d469426ac678830197ac3f32118be93f2c7ff"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lYYg33/001.started.json",
+          "bytes": 980,
+          "sha256": "5ecb63abde8ebefc5c3b48faf1d0034e891c6ab3afa457b5534c9a10192811c7"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lYYg33/001.result.json",
+          "bytes": 1165,
+          "sha256": "3e0ab8643e12247fa142cb314be71a7f40b2e617d6e105fec5f14d1583a89a40"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lYYg33/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lYYg33/0002.summary.json",
+          "bytes": 1745,
+          "sha256": "9c3817f65b9adc179d26b4ae0df177f5a2d8d503f38fb2709fc2413f53932c52"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lYYg33/0004.summary.json",
+          "bytes": 1986,
+          "sha256": "8bb88348e9e8eb82cafa98352e34d28c644b505e88bbbd5150b039bdf3117a04"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-lYYg33/0003.summary.json",
+          "bytes": 1966,
+          "sha256": "636aaad83c15a4553886bceaca83cf3bded8676b079f696964eb40929ab360c9"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-ATMgPO/0001.summary.json",
+          "bytes": 630,
+          "sha256": "aadf578cf4446d42d8a88942d24d0ed81464a09affda5ad0881c66cc27d30101"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-ATMgPO/summary.json",
+          "bytes": 1892,
+          "sha256": "25157ab09e143c183f4ef24288e1d4c6843a53a7afd31f7282f018f426800744"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-ATMgPO/001.stdout.log",
+          "bytes": 38,
+          "sha256": "b136ac6dbfa8a737c1c47b4ab55287d32add1374feaea7f839a55b45a9685782"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-ATMgPO/001.started.json",
+          "bytes": 885,
+          "sha256": "1ed3166185b1c57aa2eced350d74a44d9f280035b298923805a93e9257eecc3c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-ATMgPO/001.result.json",
+          "bytes": 1075,
+          "sha256": "c3efc03058c37650ee34b013f24404ff01650804ea0ad347757b13978862e907"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-ATMgPO/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-ATMgPO/0002.summary.json",
+          "bytes": 1646,
+          "sha256": "f38ffbf3de08901eb30dfe4d32d5d901e20af5a774a7ddbed9e656b5fb8e79fe"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-ATMgPO/0004.summary.json",
+          "bytes": 1892,
+          "sha256": "25157ab09e143c183f4ef24288e1d4c6843a53a7afd31f7282f018f426800744"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-ATMgPO/0003.summary.json",
+          "bytes": 1872,
+          "sha256": "a4c206318db228ed14e2b30ae9f18385d5d1d8b9275e9429c862dc8197aff810"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-iItwOu/0001.summary.json",
+          "bytes": 630,
+          "sha256": "16d72e0510a6af35ab902e3499d389461416e87ab544c1ee42c0f04d7d7be1fb"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-iItwOu/summary.json",
+          "bytes": 2221,
+          "sha256": "f14441a79734487b1062026938d1a35ba59a73a4d01424c5e8ee40bb88ae2422"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-iItwOu/001.stdout.log",
+          "bytes": 42969,
+          "sha256": "1b796d8c94a495afca1b86a701af24818e6315ba3529608b3eb075fca336c858"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-iItwOu/001.started.json",
+          "bytes": 1213,
+          "sha256": "a1b7d041d6fca0b0c257b68cba236705e282be590b7d9727e5f814ed1445195d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-iItwOu/001.result.json",
+          "bytes": 1396,
+          "sha256": "04d01586eff89a3f37c2229b132dd0c5fabe6c88936f2acd894d0be777fce975"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-iItwOu/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-iItwOu/0002.summary.json",
+          "bytes": 1982,
+          "sha256": "0b0c7daedebb8f3f926340f083a03a9bada44a9d1a7182eb3162d65146aabd9f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-iItwOu/0004.summary.json",
+          "bytes": 2221,
+          "sha256": "f14441a79734487b1062026938d1a35ba59a73a4d01424c5e8ee40bb88ae2422"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-iItwOu/0003.summary.json",
+          "bytes": 2201,
+          "sha256": "c2738c63f682d3e464584e8a1ddd7f0503a5100e23223f3ba3470038f631bde0"
+        }
+      ]
+    },
+    {
+      "source": "15de3421831acbbb96ba88467a047f7a065e268a",
+      "tree": "10e156d3dbbf4097f78c59a0c9cabe2d0c826283",
+      "run": "run-Xhkk61",
+      "note": "qualified receiver counterexample failed JS12/13",
+      "exit_code": 2,
+      "complete": false,
+      "output_complete": true,
+      "owner_pid": 11101,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt",
+          "src/query_program/with_vectors_events_test.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ]
+      ],
+      "focused": [
+        {
+          "focused": "focused-test-dXjnLa",
+          "source": {
+            "revision": "15de3421831acbbb96ba88467a047f7a065e268a",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 13,
+              "passed": 12,
+              "failed": 1,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        }
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-Xhkk61/summary.json",
+          "bytes": 1851,
+          "sha256": "2e0f44ade52100c07212fcf9ff24b6af7d4f4b697d0090f83aef9681c1cf3620"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-Xhkk61/output.log",
+          "bytes": 2542,
+          "sha256": "586fe179e14f6532d3887bd5ac92973cd3f2b980c3e4372b2c0abed6fbf27d71"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-dXjnLa/0001.summary.json",
+          "bytes": 630,
+          "sha256": "bcdd6f52416ea1c90e24697938669a791e7fc33a79a2a488da7fe8e3cc6ddd03"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-dXjnLa/summary.json",
+          "bytes": 1987,
+          "sha256": "5a43f2f1af742e91bec1281a6785634d4757f3d05dc40118004190892caa00ac"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-dXjnLa/001.stdout.log",
+          "bytes": 2050,
+          "sha256": "771ca939cd38f44a7e4ee425f81d31ab1485788e7db653fe8d4baffe840fb953"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-dXjnLa/001.started.json",
+          "bytes": 980,
+          "sha256": "a146ff4da46f2dd2323824afc0acb882cc2d1d0cd6f7afeae4b8f2dcc7b324a3"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-dXjnLa/001.result.json",
+          "bytes": 1165,
+          "sha256": "a17ce85af8290383cdab62872d04b3bb464bb4314928bc6f87fdcca80089526e"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-dXjnLa/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-dXjnLa/0002.summary.json",
+          "bytes": 1745,
+          "sha256": "5ba59904c2fc0c926ea425244982c4cc583ad93303e5942b717b4395e0da13c3"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-dXjnLa/0004.summary.json",
+          "bytes": 1987,
+          "sha256": "5a43f2f1af742e91bec1281a6785634d4757f3d05dc40118004190892caa00ac"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-dXjnLa/0003.summary.json",
+          "bytes": 1966,
+          "sha256": "3801034c3b4b136071d5e4d405d03ffbf66f822b721185a521a3b9552bca235e"
+        }
+      ]
+    },
+    {
+      "source": "96e80a86287c34040e93d44a4813b2437ebc2e6d",
+      "tree": "b6c658c750276583df06efba7612354a88bcacc3",
+      "run": "run-5CgpMD",
+      "note": "local formatter",
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 20411,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/query_syntax/query.mbt",
+          "src/query_syntax/sga_call.mbt",
+          "src/query_syntax/sga_argument_roles.mbt",
+          "src/query_program/query_script_carriers.mbt",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt"
+        ]
+      ],
+      "focused": [],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-5CgpMD/summary.json",
+          "bytes": 1635,
+          "sha256": "464c6d50d22e997c2867c87f19a7fc916ac4c00982f0340523f55eaf089560b6"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-5CgpMD/output.log",
+          "bytes": 44,
+          "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+        }
+      ]
+    },
+    {
+      "source": "849cce220da85ff951c289e2cddf14f1f08147d6",
+      "tree": "addf22939a72b71a67cf6c5c75cfe984c2cc30ba",
+      "run": "run-9vQjiE",
+      "note": "final source and scope controls JS13/13 plus canonical1/1, Node81/81",
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 22891,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "timeout_seconds": 60,
+      "grace_seconds": 5,
+      "heavy": false,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/vector_pool_role_test.mbt",
+          "src/query_program/vector_pool_source_test.mbt",
+          "src/query_program/with_vectors_events_test.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/canonical_json/identity_vectors.generated_test.mbt",
+          "--filter",
+          "contract spec/manifests/actql-grammar-0.1.json#"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/vector-pool-identity.test.mjs",
+          "scripts/sga-signature-role-identity.test.mjs",
+          "scripts/client-values-run-materials-vector.test.mjs",
+          "scripts/compilation-manifests.test.mjs",
+          "scripts/frontend-profile.test.mjs",
+          "scripts/vector-pool-source.test.mjs"
+        ],
+        [
+          "node",
+          "scripts/compilation-manifests.mjs"
+        ],
+        [
+          "node",
+          "scripts/update-document-metadata.mjs"
+        ],
+        [
+          "node",
+          "scripts/check-actql-spec-family.mjs"
+        ],
+        [
+          "node",
+          "scripts/check-canonical-json.mjs"
+        ]
+      ],
+      "focused": [
+        {
+          "focused": "focused-test-igj1TS",
+          "source": {
+            "revision": "849cce220da85ff951c289e2cddf14f1f08147d6",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 13,
+              "passed": 13,
+              "failed": 0,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        },
+        {
+          "focused": "focused-test-JBd0uO",
+          "source": {
+            "revision": "849cce220da85ff951c289e2cddf14f1f08147d6",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 1,
+              "passed": 1,
+              "failed": 0,
+              "cancelled": null,
+              "skipped": null,
+              "todo": null
+            }
+          ]
+        },
+        {
+          "focused": "focused-test-rlxfpt",
+          "source": {
+            "revision": "849cce220da85ff951c289e2cddf14f1f08147d6",
+            "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+            "dirty": false
+          },
+          "counts": [
+            {
+              "tests": 81,
+              "passed": 81,
+              "failed": 0,
+              "cancelled": 0,
+              "skipped": 0,
+              "todo": 0
+            }
+          ]
+        }
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-9vQjiE/summary.json",
+          "bytes": 5041,
+          "sha256": "74e6a9379e16f47f18593b1172cda48191922ae3a7a9e3a606f4b5a57453c5cf"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/run-9vQjiE/output.log",
+          "bytes": 45075,
+          "sha256": "fcdc71ed54a744344bd38a2bb81376515f74ece002500110469027f231ebfdb5"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-igj1TS/0001.summary.json",
+          "bytes": 630,
+          "sha256": "30cb1de5eb19b7cc929d6dea7fbd60180e712eb7ff1c031aca33517b61d4b19c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-igj1TS/summary.json",
+          "bytes": 1993,
+          "sha256": "598843b55dae24f3552066b0069becb6a78c41ae6fc29c523e60bd48e0831320"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-igj1TS/001.stdout.log",
+          "bytes": 40,
+          "sha256": "8a4e7a01c3f5026ef0c27a47b536bea8872fe1fab2d6d673da8ccd9aea407092"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-igj1TS/001.started.json",
+          "bytes": 980,
+          "sha256": "22901d8184648a0f358663efb7bae1e6f5fbde62e7c8ad3c0232975967096e39"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-igj1TS/001.result.json",
+          "bytes": 1172,
+          "sha256": "f37902ce238197cdcdbd8b9a3f4fda8e8e2e2ac2f61e720c7f794a8e61447663"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-igj1TS/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-igj1TS/0002.summary.json",
+          "bytes": 1745,
+          "sha256": "c5ca9a489be86914c24edc2488492a6b244e92b7aa6eb9db04806ef2c9f37043"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-igj1TS/0004.summary.json",
+          "bytes": 1993,
+          "sha256": "598843b55dae24f3552066b0069becb6a78c41ae6fc29c523e60bd48e0831320"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-igj1TS/0003.summary.json",
+          "bytes": 1973,
+          "sha256": "5c8e36c9caf578cdb1a8f772a4e631ef20723de3fd153254f6e0c245d65bcf6d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-JBd0uO/0001.summary.json",
+          "bytes": 630,
+          "sha256": "e29974d1fc97a73d49d28478cbc87d38ee1b532c61098f96b9884c41684fa766"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-JBd0uO/summary.json",
+          "bytes": 1892,
+          "sha256": "b79bd7cf4ae315886906f463b673d10afd3d82cf4967ee5f383bcf97cb5aa32f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-JBd0uO/001.stdout.log",
+          "bytes": 38,
+          "sha256": "b136ac6dbfa8a737c1c47b4ab55287d32add1374feaea7f839a55b45a9685782"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-JBd0uO/001.started.json",
+          "bytes": 885,
+          "sha256": "6fd10649b6d39ee75520f23d48c0d10211628924fc4c2f65acf5eb73cd0950cc"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-JBd0uO/001.result.json",
+          "bytes": 1075,
+          "sha256": "bec3a023ba72ab4d7ef76ac6f8f8bf7bbc5c70b2653459618327731d372f8007"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-JBd0uO/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-JBd0uO/0002.summary.json",
+          "bytes": 1646,
+          "sha256": "06350591cbf04117c446bb4ccf7672a2750669a36ed4e8135358ed1e529048a7"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-JBd0uO/0004.summary.json",
+          "bytes": 1892,
+          "sha256": "b79bd7cf4ae315886906f463b673d10afd3d82cf4967ee5f383bcf97cb5aa32f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-JBd0uO/0003.summary.json",
+          "bytes": 1872,
+          "sha256": "a732b5f272cdaef26c3ce215c48ad8bac2f4970f5061af9e42bae45d03c2cbd2"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-rlxfpt/0001.summary.json",
+          "bytes": 630,
+          "sha256": "32f7f1be6e56878c523fdde41a7987a977bd088fa4543743f5a87cd4fd976cc5"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-rlxfpt/summary.json",
+          "bytes": 2213,
+          "sha256": "030a9cfaf04e406405e77f184c3c5831c0194c4e71231331680e86a8ea78a6cc"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-rlxfpt/001.stdout.log",
+          "bytes": 42975,
+          "sha256": "0a9c4f6f03e0995a4cb2a49f07c6d11b4eefd6b5966dee7d52b2121f995bb060"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-rlxfpt/001.started.json",
+          "bytes": 1213,
+          "sha256": "b307d34418870625128732d0189414fa75ca3bc67fb23c5de7fff49dbe957d40"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-rlxfpt/001.result.json",
+          "bytes": 1388,
+          "sha256": "b7b8db9c54ba0baa9b685298837fbd579347850572be0c38a5654551d7cc4fd6"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-rlxfpt/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-rlxfpt/0002.summary.json",
+          "bytes": 1982,
+          "sha256": "9e091c3c6eca51304e9f2eb8563fa663a93a2ccb2864c7291aee9a71ecf25944"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-rlxfpt/0004.summary.json",
+          "bytes": 2213,
+          "sha256": "030a9cfaf04e406405e77f184c3c5831c0194c4e71231331680e86a8ea78a6cc"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-vector-pool-evidence/focused-test-rlxfpt/0003.summary.json",
+          "bytes": 2193,
+          "sha256": "1341a787a6313922a5a883c03e1b294352919136bc7a650275b14d5643b6f6aa"
+        }
+      ]
+    }
+  ],
+  "public_preparation": {
+    "fixture": "scripts/fixtures/vector-pool-source-input.mjs",
+    "normal": 11,
+    "refusal": 5,
+    "consumer": "scripts/fixtures/public-query-input.mjs::exercisePublicQueryInput",
+    "typed_source": "ordinary candidates installation matching spec/frontend/fixtures/nearest-keep/common-minimal.program.json",
+    "executed": false
+  },
+  "unverified": [
+    "public Local/HTTPS and normally generated five packages",
+    "pooling runtime rows/describe schema and no-reacquisition observations",
+    "remaining P2 VecA/TEA signatures and full four-Carrier public acceptance",
+    "Native/Wasm execution and hosted CI"
+  ],
+  "goal_complete": false
+}

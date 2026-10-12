@@ -1,0 +1,67 @@
+{
+  "version": "actql-command-evidence/0.1",
+  "invocationId": "focused-test-lYYg33",
+  "revision": "3fa865e7846cd35b14d652e0c626f5a23fec0b62",
+  "source": {
+    "revision": "3fa865e7846cd35b14d652e0c626f5a23fec0b62",
+    "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "dirty": false
+  },
+  "github": {
+    "runId": null,
+    "runAttempt": null,
+    "eventSha": null,
+    "job": null
+  },
+  "startedAt": "2026-10-12T01:22:18.237Z",
+  "endedAt": null,
+  "status": "running",
+  "complete": false,
+  "commands": [
+    {
+      "id": "001",
+      "command": "moon",
+      "args": [
+        "test",
+        "--target",
+        "js",
+        "src/query_syntax/vector_pool_role_test.mbt",
+        "src/query_program/vector_pool_source_test.mbt",
+        "src/query_program/with_vectors_events_test.mbt",
+        "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+      ],
+      "cwd": {
+        "path": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "realpath": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "device": "16777233",
+        "inode": "333786578"
+      },
+      "source": {
+        "revision": "3fa865e7846cd35b14d652e0c626f5a23fec0b62",
+        "root": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "dirty": false
+      },
+      "startedAt": "2026-10-12T01:22:18.361Z",
+      "endedAt": "2026-10-12T01:22:23.657Z",
+      "elapsedMs": 5292.872959,
+      "status": 0,
+      "signal": null,
+      "error": null,
+      "complete": true,
+      "verificationStatus": 0,
+      "outputComplete": true,
+      "outputLimitBytes": 67108864,
+      "counts": {
+        "tests": 12,
+        "passed": 12,
+        "failed": 0,
+        "cancelled": null,
+        "skipped": null,
+        "todo": null
+      }
+    }
+  ],
+  "tarballs": [],
+  "artifactsRemoved": false,
+  "evidenceErrors": []
+}
