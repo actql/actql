@@ -83,17 +83,21 @@ pub fn begin_native_local_product_configuration(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let parent = match @filesystem.open_private_root(parent_path) {
+  let parent = match @filesystem.open_root(parent_path) {
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
-  let parent_ownership = match parent.private_ownership() {
+  let parent_ownership = match parent.bootstrap_parent_ownership() {
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
   let lock = match parent.acquire_lock("local-adoption.lock") {
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
+  }
+  guard parent.bootstrap_parent_ownership() is Ok(current_parent) &&
+    current_parent == parent_ownership else {
+    return Err(CustodyLost)
   }
   let intent = match
     local_adoption_record([
@@ -143,6 +147,10 @@ pub fn begin_native_local_product_configuration(
         Ok(value) => value
         Err(issue) => return Err(issue)
       }
+      guard parent.bootstrap_parent_ownership() is Ok(current_parent) &&
+        current_parent == parent_ownership else {
+        return Err(CustodyLost)
+      }
       let ownership = match parent.create_directory(directory_name) {
         Ok(value) => value
         Err(issue) => return Err(Filesystem(issue))
@@ -150,6 +158,12 @@ pub fn begin_native_local_product_configuration(
       let root = match parent.open_child(directory_name) {
         Ok(value) => value
         Err(issue) => return Err(Filesystem(issue))
+      }
+      guard root.private_ownership() is Ok(current_child) &&
+        current_child == ownership &&
+        parent.bootstrap_parent_ownership() is Ok(current_parent) &&
+        current_parent == parent_ownership else {
+        return Err(CustodyLost)
       }
       let witness = match product_directory_witness(directory_name, ownership) {
         Ok(value) => value
@@ -235,7 +249,7 @@ fn NativeLocalProductConfigurationSession::check_original(
   if self.closed {
     return Err(Closed)
   }
-  guard self.parent.private_ownership() is Ok(parent) &&
+  guard self.parent.bootstrap_parent_ownership() is Ok(parent) &&
     parent == self.parent_ownership &&
     self.root.private_ownership() is Ok(root) &&
     root == self.root_ownership &&
@@ -405,7 +419,11 @@ pub fn restore_native_local_product_configuration(
   if !local_adoption_name(directory_name) || parent_path.length() > 4096 {
     return Err(InvalidInput)
   }
-  let parent = match @filesystem.open_private_root(parent_path) {
+  let parent = match @filesystem.open_root(parent_path) {
+    Ok(value) => value
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  let parent_ownership = match parent.bootstrap_parent_ownership() {
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))
   }
@@ -420,6 +438,16 @@ pub fn restore_native_local_product_configuration(
     ]) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  // The original retained parent is checked before opening child originals.
+  // A fresh metadata observation is never substituted for missing custody.
+  if fields[2] != parent_ownership.device.to_string() ||
+    fields[3] != parent_ownership.inode.to_string() {
+    return Err(CustodyLost)
+  }
+  guard parent.bootstrap_parent_ownership() is Ok(current_parent) &&
+    current_parent == parent_ownership else {
+    return Err(CustodyLost)
   }
   if fields[0] != directory_name {
     return Err(SourceChanged)
