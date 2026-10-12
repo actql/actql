@@ -1,24 +1,51 @@
-# Explorer Local Gateway: finite read-only transport
+# Standalone read-only Explorer
 
-This private development package attaches an **already-connected public SDK
-Client** to a loopback Hono server. It opens no Host, Store or execution Owner.
-The first transport unit supports static `plan`, original Run `attach`/`inspect`
-and Named Result `describe`. Result payloads, Sample, controls, submission and
-Effect operations are unavailable. The React/Flow SPA, built asset loader and
-Cloud route adapter are subsequent units; this is not the complete Explorer.
+Install the separate package with `npm install @actql/explorer`. It includes
+its built React SPA, Hono Gateway and standard Node runtime dependency closure.
+The normal SDK and CLI do not acquire Explorer/React/Flow/Hono dependencies.
+`@actql/explorer-ui` remains the shared Cloud library with React/React DOM peers
+and built CSS exports. No private Cloud package is needed.
+
+```sh
+npx actql-explorer --local --state-dir .actql
+```
+
+The nonconflicting `actql-explorer` launcher explicitly uses `@actql/node.open`
+in the same process. Open the printed loopback URL and paste its one-use
+bootstrap into the page within 60 seconds. Press Enter in the terminal to issue
+a new bootstrap; this invalidates the previous presentation session. The
+bootstrap is never put in a URL or long-lived browser storage. No Host token,
+certificate, absolute library path or Vite server is needed for this Local
+source-free profile. The launcher submits no Program or business operation.
+
+Use **Read Plan** for SQL/AQL-text or Program JSON. For an existing Run, paste
+its original complete Run reference JSON and optionally a Named Result name.
+The viewer calls public `plan`, `attach`/`inspect` and Result `describe` only.
+It preserves original logical occurrences/ports and non-atomic Run observations;
+missing source origins and unsupported controls are shown as unavailable.
+Result description is metadata, not payload delivery or success evidence.
+
+To attach a Client already owned by your application, use the launcher API:
 
 ```js
-import {startExplorerGateway} from '@actql/explorer';
-
-// `client` belongs to the embedding application and retains Host authority.
-const gateway = await startExplorerGateway({client});
-const bootstrap = gateway.issueBootstrap();
-// Supply bootstrap to the local browser once, without putting Host secrets
-// in a URL, storage or JavaScript. The browser adapter exchanges it by POST.
-// Explicitly invalidate presentation before changing authority/Workspace:
-gateway.invalidateScope();
-await gateway.close(); // closes this server, not the Client or any Run
+import {startExplorer} from '@actql/explorer/launcher';
+// client is your existing public @actql/sdk or @actql/node Client.
+const viewer = await startExplorer({client});
+const {origin, bootstrap} = viewer.issueBootstrap();
+console.log(origin, bootstrap); // supply once from this local operator context
+await viewer.close(); // closes only this Gateway, never the borrowed Client/Run
 ```
+
+`openLocalExplorer({local: {stateDir: '.actql'}})` is the explicit owning API.
+It loads the assets first, then opens the existing Node Host once. Store locks,
+shared connection leases and recovery remain with Node; failure is not retried
+through another Host. Closing releases that original Client lease using its
+awaited close contract. Close never cancels a Run or releases retained Results;
+retry a failed close on the same viewer. Browser disconnect only discards its
+presentation session. Closing the terminal viewer closes its server and lease.
+
+The low-level `startExplorerGateway` export is also available for embedding an
+already-connected Client with a caller-admitted asset Map; it opens no Host.
 
 `issueBootstrap()` is an explicit launcher action. Its one-use token expires
 after at most 60 seconds. The resulting session lasts at most five minutes,
@@ -41,11 +68,12 @@ presentation deadline does not cancel a Run, retry the request or free a still
 pending SDK slot. Slots remain held until the read actually settles. Closing
 the server closes its own HTTP connections, not the borrowed SDK Client.
 
-Only an explicitly preloaded asset Map is served: at most 32 assets and 2 MiB
-in total, with closed path/content-type sets. Assets are copied at admission;
-requests cannot traverse the workspace. The current tests use asset fixtures,
-not a Vite build. The next unit must supply actual built assets and their
-external package/peer/styles acceptance. No Vite development server is used.
+Only admitted built assets are served: at most 32 assets and 2 MiB in total.
+The launcher reads its own package-relative frozen inventory, checks every
+length and SHA-256, refuses symlinks/duplicate/traversing paths, and then lets
+the Gateway copy the finite Map at admission. No workspace path is served.
+Normal prepack builds the SPA and inventory; installation runs no compiler,
+Vite server, downloader or lifecycle hook.
 
 Hono 4.13.13 and its Node adapter 2.1.4 are exact MIT-licensed pins. The
 [official Node adapter documentation](https://hono.dev/docs/getting-started/nodejs)
@@ -53,6 +81,8 @@ defines the HTTP server/Fetch seam; it does not supply the application security
 or Host authorization contract. React/Query remain outside this transport and
 will be peers of the shared UI package, rather than a second bundled runtime.
 
-Finite Node tests cover refusal before SDK I/O, real loopback server closure,
-expiry, stale replies/errors, body/reply/concurrency limits and non-renewal.
-They are not current-main packed Host, Cloud, Native or full E1 acceptance.
+Controls, Samples, Result payloads, Timeline/physical observations, source-map
+origins and the Cloud route adapter remain outside this finite distribution.
+No full E1, Full Explorer, Cloud, Native or live Provider acceptance follows
+from the read-only installed profile. The optional Explorer cohort is separate
+from the initial four-package Node release; formal publication needs its own GO.
