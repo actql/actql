@@ -114,9 +114,7 @@ fn script_carrier_field(
         Some(scope) => pipe_slot(path, scope.visible, scope.ranges)
         None => resolve_column(path, query, input, columns(input))
       }
-      guard resolved is Some(name) else {
-        raise Abort(UnknownColumn)
-      }
+      guard resolved is Some(name) else { raise Abort(UnknownColumn) }
       construction.text(name)
     }
     ListValue(items) =>
@@ -222,7 +220,13 @@ fn lower_script_carrier_calls(
       construction.object(
         call.arguments.map(argument => {
           let value = if fields.contains(argument.0) {
-            script_carrier_field(construction, argument.1, query, input, sources)
+            script_carrier_field(
+              construction,
+              argument.1,
+              query,
+              input,
+              sources,
+            )
           } else {
             script_traversal_argument(construction, argument.1, known, limits)
           }
