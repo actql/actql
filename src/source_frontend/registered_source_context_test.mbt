@@ -32,3 +32,21 @@ fn registered_test_context() -> @query.Context raise {
     source_catalog: Some(@check.source_catalog_contracts(prepared)),
   }
 }
+
+///|
+test "derived JOIN input requires original Source Catalog metadata" {
+  let source = "SELECT COUNT(*) AS n FROM records CROSS JOIN (SELECT 1 AS k) AS s MAX_OUTPUT_ROWS 10 WHERE records.id > 0 HAVING COUNT(*) > 1"
+  guard lower(source, Sql, Some(test_context())) is Err(QueryLowering(@query.BindingPreparation(MissingSourceCatalog(_)))) else {
+    fail("missing Catalog must not acquire an invented schema or Source registration")
+  }
+  let context = registered_test_context()
+  assert_eq(context.inputs[0].name, "source")
+  assert_eq(context.inputs[0].relation, [{ value: "records", quoted: false, }])
+  assert_eq(context.inputs[0].visible_fields, ["id"])
+  guard context.inputs[0].source is @query.Captured(declaration) else {
+    fail("the original captured input must be retained")
+  }
+  let object = @wire.open_object(declaration).unwrap()
+  assert_eq(@wire.lookup(object, "view"), None)
+  assert_true(lower(source, Sql, Some(context)) is Ok(_))
+}

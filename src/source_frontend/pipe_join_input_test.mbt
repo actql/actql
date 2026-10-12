@@ -9,7 +9,7 @@ test "captured Pipe JOIN chain uses the existing shared source binding" {
         text.strip_prefix("FROM records AS l").unwrap().to_owned()
       _ => text
     }
-    let lowered = match lower(source, format, Some(registered_test_context())) {
+    let lowered = match lower(source, format, Some(test_context())) {
       Ok(value) => value
       Err(QueryLowering(@query.UnsupportedCte)) => fail("UnsupportedCte")
       Err(QueryLowering(@query.UnsupportedJoin)) => fail("UnsupportedJoin")
@@ -18,10 +18,6 @@ test "captured Pipe JOIN chain uses the existing shared source binding" {
         fail("UnsupportedOrdering")
       Err(QueryLowering(@query.Expression(_))) => fail("Expression")
       Err(QuerySyntax(_)) => fail("QuerySyntax")
-      Err(QueryLowering(@query.BindingPreparation(SourceProgram(Program(Order(stage, PipelineOrder(issue))))))) =>
-        fail("Source order stage \{stage}: " + @debug.to_string(issue.kind) + " at " + @debug.to_string(@wire.cursor_path(issue.source)))
-      Err(QueryLowering(@query.BindingPreparation(SourceProgram(Program(Order(stage, ResultOrder(issue))))))) =>
-        fail("Source Result order stage \{stage}: " + @debug.to_string(issue.kind) + " at " + @debug.to_string(@wire.cursor_path(issue.source)))
       Err(_) => fail("other frontend issue")
     }
     assert_true(lowered.program is Some(_))
