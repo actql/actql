@@ -46,16 +46,6 @@ fn local_result_stream(
   let file = settings.read_file.unwrap_or_else(() => {
     stop("LocalReadPolicyOriginalNotSelected")
   })
-  let binding = match
-    host.bind_result_read_policy(
-      crypto,
-      file,
-      settings.principal,
-      settings.connection,
-    ) {
-    Ok(value) => value
-    Err(issue) => stop(local_read_issue(issue))
-  }
   let scope = local_host_result(
     host.authority_scope_cid(settings.principal, settings.connection, crypto),
   )
@@ -80,6 +70,26 @@ fn local_result_stream(
   let selected = local_original_run_selection(
     host, input_root, child, scope, current,
   )
+  let binding_result = match local_run_policy_binding(host, settings, crypto) {
+    None =>
+      host.bind_result_read_policy(
+        crypto,
+        file,
+        settings.principal,
+        settings.connection,
+      )
+    Some(policy) =>
+      host.bind_result_read_policy_for_run(
+        policy,
+        selected.submission,
+        selected.request,
+        @env.now().to_double(),
+      )
+  }
+  let binding = match binding_result {
+    Ok(value) => value
+    Err(issue) => stop(local_read_issue(issue))
+  }
   let request : @local_result.NativeResultAccessRequest = {
     namespace_id: selected.namespace_id,
     authority_scope_cid: scope,

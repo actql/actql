@@ -10,7 +10,7 @@ import {openLocalPublicationStore} from './publication-store.mjs';
 import {createPublicationContractControlFixture} from '../host-common/publication-contract-control.fixture.mjs';
 
 const source = await readFile(new URL('./publication-store.mjs', import.meta.url), 'utf8');
-const start = source.indexOf('async function readBounded(path, maximum, closed, signal) {');
+const start = source.indexOf('async function readBounded(path, maximum, closed, signal, ownerOnly = false) {');
 const end = source.indexOf('\nasync function processIsAlive(', start);
 assert(start >= 0 && end > start);
 const body = source.slice(start, end);
