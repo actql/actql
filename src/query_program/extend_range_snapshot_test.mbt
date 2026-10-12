@@ -78,14 +78,14 @@ test "AS after EXTEND explicitly binds the derived column" {
 
 ///|
 test "existing JOIN range refusals retain exact current invalid-input causes" {
-  for prefix in ["DROP x", "RENAME x AS current", "SET x = x + 10 |> AS fresh"] {
+  for prefix in ["DROP x", "RENAME x AS current"] {
     assert_true(
       compile(
         @query.parse_query(
           "FROM t |> AS l |> " +
           prefix +
           " |> JOIN r AS rr ON " +
-          (if prefix == "SET x = x + 10 |> AS fresh" { "l.x" } else { "x" }) +
+          "x" +
           " = rr.k MAX_OUTPUT_ROWS 10 |> SELECT l.x AS original",
           syntax_limits(),
         ).unwrap(),
@@ -96,15 +96,19 @@ test "existing JOIN range refusals retain exact current invalid-input causes" {
       msg=prefix,
     )
   }
-  assert_true(
-    compile(
-      @query.parse_query(
-        "WITH chosen AS (FROM t |> AS l |> SET x = x + 10) FROM chosen |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT l.x AS original",
-        syntax_limits(),
-      ).unwrap(),
-      join_order_context(),
-      construction_limits(),
+  // AS replaces the old lexical range; a WITH body also does not export its
+  // internal range variable into the outer JOIN's relation scope.
+  for text in [
+    "FROM t |> AS l |> SET x = x + 10 |> AS fresh |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT l.x AS original",
+    "WITH chosen AS (FROM t |> AS l |> SET x = x + 10) FROM chosen |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT l.x AS original",
+  ] {
+    assert_true(
+      compile(
+        @query.parse_query(text, syntax_limits()).unwrap(),
+        join_order_context(),
+        construction_limits(),
+      ) is Err(Expression({ issue: UnknownReference, origin: Some(_), })),
+      msg=text,
     )
-    is Err(AmbiguousColumn),
-  )
+  }
 }

@@ -304,18 +304,29 @@ test "published query names bind one environment generation" {
 }
 
 ///|
-test "unified source dependency refuses legacy Graph inputs before Program preparation" {
+test "public Graph input retains the missing-producer witness and retired annotation refusal" {
   let context = test_context()
-  for
-    document in [
-      "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT *", "FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
-      "FROM GRAPH g LABELS {\"node\":{\"field\":\"name\"}} |> MATCH WALK (a:Person) |> SELECT a.id",
-    ] {
-    assert_true(
-      lower(document, Text, Some(context))
-      is Err(QueryLowering(@query.UnsupportedGraph)),
-      msg=document,
-    )
+  for document in [
+    "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT *",
+    "FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
+  ] {
+    guard lower(document, Text, Some(context)) is Err(QueryLowering(issue)) &&
+      issue is @query.UnresolvedRelation(_) else {
+      fail("an absent Graph must retain its existing resolution witness")
+    }
+    let path = @query.unresolved_relation_reference(issue).unwrap()
+    assert_eq(path.length(), 1)
+    assert_eq(path[0].value, "g")
+    assert_eq(path[0].quoted, false)
+  }
+  let retired = "FROM GRAPH g LABELS {\"node\":{\"field\":\"name\"}} |> MATCH WALK (a:Person) |> SELECT a.id"
+  match lower(retired, Text, Some(context), source_path="graph.sql") {
+    Err(QuerySyntax({ issue: Syntax(message), span: Some(span), })) => {
+      assert_eq(message, "Graph LABELS annotation is retired")
+      assert_eq(span.start_byte, 13)
+      assert_eq(span.source_path, "graph.sql")
+    }
+    _ => fail("retired property-to-label annotation must not reach lowering")
   }
 }
 
