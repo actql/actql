@@ -49,9 +49,11 @@ with_clause   = "WITH", with_binding, { ",", with_binding } ;
 with_binding  = identifier, "AS", "(", producer_body, ")" ;
 producer_body = [ with_clause ],
                 ( relational_sql | cte_pipe | producer_primary, { "|>", cte_pipe_item } ) ;
-producer_primary = graph_constructor | graph_generator ;
+producer_primary = graph_constructor | graph_generator | relation_generator ;
 graph_generator = "mean_graphs", "(", [ sga_argument, { ",", sga_argument } ], ")" ;
-(* Primaries construct Graph values. Existing Vectors/Events are reached
+relation_generator = "time_series", "(", [ sga_argument, { ",", sga_argument } ], ")" ;
+(* Graph and NONE-input Relation primaries retain distinct Carrier roles.
+   Existing Vectors/Events are reached
    through typed named Pipe calls, without changing the common value wire. *)
 relational_body = producer_body ;
 (* Derived tables and set operands require a Relation after static checking. *)
@@ -163,12 +165,18 @@ sga_operation = "reach" | "traverse" | "shortest_path" | "components"
               | "graph_diff" | "apply_graph_delta" | "mean_graphs"
               | "node_rows" | "edge_rows"
               | "to_vectors" | "normalize_vectors" | "score_vectors" | "pool_vectors" | "vectors"
-              | "to_events" | "row_window" | "window_events" | "watermark_events" | "watermark_rows" | "dedupe_events" | "session" | "events" | "lag" ;
+              | "to_events" | "row_window" | "window_events" | "watermark_events" | "watermark_rows" | "dedupe_events" | "session" | "events" | "lag" | "asof_join" | "interval_join" | "merge_rankings" ;
 (* Closed argument keys accept Word or backtick names, including reserved keys.
    Values are selected by the operation signature: ProducerRef, FieldRef,
    OutputName, Expression, Enum/Literal, ClosedRecord/List or WholeParameter.
    A literal subtree has no reference roles. Lists inherit their leaf role.
    String values cannot replace a producer, field reference or output name.
+   asof_join.with and interval_join.with are lexical ProducerRefs. Their pair
+   lists and temporal records have operand-specific FieldRefs. select is a
+   closed OutputName-to-left/right FieldRef map, not an arbitrary Expression.
+   merge_rankings.with accepts one ProducerRef or a flat finite ProducerRef list;
+   list order and repeated occurrences are retained, not dependency-deduplicated.
+   Its by/candidate/score/rank/tie_break positions use the current row FieldRefs.
    dedupe_events.order_by and lag.order_by accept a one-field OrderKey whose key is a FieldRef
    path, or a closed field/dir/nulls record with a FieldRef field value. *)
 sga_argument  = identifier, ":", sga_value ;

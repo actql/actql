@@ -57,6 +57,10 @@ pub fn admit_client_infer_occurrence_egress(ClientInferOccurrence, @check_enviro
 
 pub fn admit_client_keyed_serialization_captured_input(PreparedClientProgram, ClientSerializationPlanGraph, @execution_query.CapturedInputSource, @execution_query.CapturedSourceRelationIdentity, @query_planning.QueryRequirement, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, ClientKeyedLookupObservation, String, String, String) -> Result[ClientSerializationCapturedInput, @run_publication.RunEvidenceValueIssue]
 
+pub fn admit_client_local_run_policy_original(Bytes, ClientLocalRunPolicyProfile, ClientSubmissionReferenceRecord, ClientRequestIdentity, @run_publication.PublicationContract, String, String) -> Result[ClientLocalRunPolicyOriginal, ClientLocalRunPolicyProfileIssue]
+
+pub fn admit_client_local_run_policy_profile(String, ClientLocalProductCommonOriginals) -> Result[ClientLocalRunPolicyProfile, ClientLocalRunPolicyProfileIssue]
+
 pub fn admit_client_native_local_runtime(String, String, String, String) -> Result[ClientNativeLocalRuntime, ClientNativeLocalRuntimeIssue]
 
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
@@ -166,6 +170,8 @@ pub fn bind_client_effect_producer_artifact(PreparedClientEffectRun, @physical_s
 pub fn bind_client_effect_source_dispatch(ClientEffectRunMaterials, @remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteInputBinding) -> Result[PreparedClientEffectRun, ClientEffectSourceDispatchIssue]
 
 pub fn[Store, E] bind_client_local_adopted_host_material(Store, () -> Result[ClientLocalAdoptionCurrentObservation[Store], E]) -> Result[ClientLocalAdoptedHostMaterial[Store, E], ClientLocalAdoptedCurrentIssue[E]]
+
+pub fn bind_client_local_run_policy_original(ClientLocalRunPolicyProfile, ClientSubmissionReferenceRecord, ClientRequestIdentity, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String) -> Result[ClientLocalRunPolicyOriginal, ClientLocalRunPolicyProfileIssue]
 
 pub fn bind_client_model_invocation_scope(ClientCompiledRun, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @run_publication.RunEvidenceValueIssue]
 
@@ -621,6 +627,18 @@ pub fn client_local_product_common_originals(String, String, ClientLocalProductA
 
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
+pub fn client_local_run_policy_original_body(ClientLocalRunPolicyOriginal) -> Bytes
+
+pub fn client_local_run_policy_original_issued_at(ClientLocalRunPolicyOriginal) -> String
+
+pub fn client_local_run_policy_original_retention(ClientLocalRunPolicyOriginal) -> @run_publication.PublicationContract
+
+pub fn client_local_run_policy_profile(ClientLocalProductCommonOriginals) -> Result[ClientLocalRunPolicyProfile, ClientLocalRunPolicyProfileIssue]
+
+pub fn client_local_run_policy_profile_cid(ClientLocalRunPolicyProfile) -> String
+
+pub fn client_local_run_policy_profile_wire(ClientLocalRunPolicyProfile) -> String
+
 pub fn client_model_current_state_read_bounds(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[@physical_resources.OriginalCurrentStateReadBounds, ClientModelReadPreparationIssue]
 
 pub fn client_model_original_origin_field(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue, String) -> Result[String, ClientModelOriginalOriginIssue]
@@ -779,7 +797,7 @@ pub fn client_retained_task_route_producer_dispatch(ClientRetainedTaskRoute) -> 
 
 pub fn client_retained_task_route_receipt(ClientRetainedTaskRoute) -> @remote_transfer.RemoteTransferDestinationReceipt
 
-pub fn client_run_journal_row_body(ClientRunJournalEncoding) -> Result[Bytes, ClientJournalEncodingIssue]
+pub fn client_run_journal_row_body(ClientRunJournalEncoding, local_run_policy_originals? : String?) -> Result[Bytes, ClientJournalEncodingIssue]
 
 pub fn client_saved_submission_record(ClientSavedSubmissionSnapshot) -> ClientSubmittedJournalEncoding
 
@@ -973,6 +991,8 @@ pub fn consume_client_model_resource_invalidation(@physical_resources.OriginalRe
 
 pub fn decode_client_run_journal_row(Bytes) -> Result[ClientRunJournalEncoding, ClientJournalDecodingIssue]
 
+pub fn decode_client_run_journal_row_with_local_policy(Bytes) -> Result[(ClientRunJournalEncoding, String?), ClientJournalDecodingIssue]
+
 pub fn decode_client_submitted_journal_row(Bytes) -> Result[ClientSubmittedJournalEncoding, ClientJournalDecodingIssue]
 
 pub fn emit_prepared_client_program_definition(PreparedClientProgram, Int, Int, Int) -> Result[String, ClientIdentityMaterialIssue]
@@ -1106,6 +1126,8 @@ pub fn issue_client_infer_dispatch_admission(ClientCompiledRun, @run_publication
 pub fn issue_client_infer_occurrence_call_scope(ClientInferOccurrence, ClientInferPlanGraph, @execution_relation.CompletedOutput, @execution_relation.CompletedRelationExportReceipt, Int, Int, Int, captured? : ClientInferCapturedInput?, sources? : ClientInferComposedSources?, generation? : ClientSerializationGeneration?) -> Result[ClientInferCallScope, ClientInferCallScopeIssue]
 
 pub fn issue_client_keyed_lookup_observation(ClientKeyedLookupInput, String, String) -> Result[ClientKeyedLookupObservation, ClientKeyedRequestIssue]
+
+pub fn issue_client_local_run_retention_policy(ClientLocalRunPolicyProfile, String) -> Result[@run_publication.PublicationContract, ClientLocalRunPolicyProfileIssue]
 
 pub fn issue_client_model_provider_binding(String, String, String, String) -> Result[@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValueIssue]
 
@@ -1614,6 +1636,8 @@ pub fn submission_epoch_validity(@logical_request_scope.SubmissionEpoch, Double)
 pub fn submission_epoch_wire(@logical_request_scope.SubmissionEpoch) -> String
 
 pub fn submission_request_id(@logical_request_scope.SubmissionEpoch, String) -> Result[String, @logical_request_scope.SubmissionIdentityIssue]
+
+pub fn validate_client_local_run_policy_original_run(Bytes, ClientRequestIdentity, @run_publication.PublicationContract) -> Result[Unit, ClientLocalRunPolicyProfileIssue]
 
 pub fn validate_client_retained_input_intent(ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
@@ -2486,6 +2510,17 @@ pub(all) enum ClientLocalProductConfigurationIssue {
   UnsupportedAsset
   InvalidResultPolicy
   ConfigurationLimit
+} derive(Eq, @debug.Debug)
+
+type ClientLocalRunPolicyOriginal
+
+type ClientLocalRunPolicyProfile derive(Eq, @debug.Debug)
+
+pub(all) enum ClientLocalRunPolicyProfileIssue {
+  InvalidOriginal
+  ForeignProfile
+  InvalidObservationTime
+  Encoding
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ClientModelInputCapacityIssue {
