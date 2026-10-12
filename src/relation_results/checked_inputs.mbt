@@ -35,14 +35,14 @@ fn check_result_projection(
 ///|
 struct CheckedResultInputs {
   results : CheckedResults
-  inputs : Array[@pipeline.ProducedInput]
+  inputs : Array[@pipeline.PublicationPreparation]
   usage : Usage
 }
 
 ///|
-/// Project checked Result declarations without resolving publication order.
-/// The inputs retain their original producer and logical order, not a Result
-/// publication or runtime port. All Result order obligations remain pending.
+/// Project checked Result declarations with their available conditional order.
+/// The same publication policy serves strict ports and this check-only topology.
+/// Unavailable orders retain their cursor and original producer; no port is issued.
 pub fn prepare_checked_inputs(
   results : CheckedResults,
   limits : PortLimits,
@@ -80,10 +80,14 @@ pub fn prepare_checked_inputs(
     nodes -= used.nodes
     text -= used.text_bytes
     let projected = match
-      @pipeline.project_produced_input(
+      @pipeline.prepare_produced_publication(
         results.pipeline,
         results.definitions[i].target,
         projection,
+        @decode.lookup(
+          @decode.open_object(results.definitions[i].source).unwrap(),
+          "order_by",
+        ),
         {
           max_steps: 0,
           max_work: work,
@@ -96,11 +100,11 @@ pub fn prepare_checked_inputs(
       Err(e) => return Err(Transfer(i, e))
       Ok(v) => v
     }
-    let used = @pipeline.projected_input_usage(projected)
+    let used = @pipeline.prepared_publication_usage(projected)
     work -= used.work
     nodes -= used.nodes
     text -= used.text_bytes
-    inputs.push(@pipeline.projected_input(projected))
+    inputs.push(projected)
   }
   Ok({
     results,
@@ -128,7 +132,7 @@ pub fn checked_input_at(
   value : CheckedResultInputs,
   index : Int,
 ) -> @pipeline.ProducedInput? {
-  value.inputs.get(index)
+  value.inputs.get(index).map(@pipeline.prepared_publication_input)
 }
 
 ///|
@@ -136,5 +140,25 @@ pub fn lookup_checked_input(
   value : CheckedResultInputs,
   name : String,
 ) -> @pipeline.ProducedInput? {
-  value.results.names.get(name).map(i => value.inputs[i])
+  value.results.names
+  .get(name)
+  .map(i => @pipeline.prepared_publication_input(value.inputs[i]))
+}
+
+///|
+/// The conditional policy plan, never a Result port or execution certificate.
+pub fn checked_input_publication(
+  value : CheckedResultInputs,
+  index : Int,
+) -> @pipeline.ResultPublication? {
+  value.inputs.get(index).bind(@pipeline.prepared_publication_order)
+}
+
+///|
+/// Exact unresolved publication source retained by the common order owner.
+pub fn checked_input_order_pending(
+  value : CheckedResultInputs,
+  index : Int,
+) -> @decode.Cursor? {
+  value.inputs.get(index).bind(@pipeline.prepared_publication_pending)
 }

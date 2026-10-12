@@ -447,15 +447,23 @@ test('query comparison and canonical material have no concrete acquisition depen
 });
 
 test('physical resource ledger is independent of strategy and connector implementations', () => {
-  assert.deepEqual(imports('physical_resources'), []);
+  // Original resource snapshots reuse the existing bounded portable codecs.
+  // Keep the entire closure closed to strategy, Connector and algebra Owners.
+  assert.deepEqual(imports('physical_resources'), ['encode_core', 'decode_core', 'source_value']);
+  assert.deepEqual(dependencies('physical_resources').sort(), [
+    'canonical_value', 'decode_core', 'decode_scalar', 'decode_shape',
+    'encode_core', 'sha256', 'source_span', 'source_value',
+  ]);
   assert.ok(imports('physical_strategy').includes('physical_resources'));
   const api = readFileSync('src/physical_resources/pkg.generated.mbti', 'utf8');
   for (const handle of ['Ledger', 'Reservation', 'Holding', 'SharedCapacity', 'SharedAllocation', 'SharedBorrow']) {
     assert.match(api, new RegExp(`^type ${handle}$`, 'm'));
     assert.doesNotMatch(api, new RegExp(`(?:struct|enum) ${handle}\\b`));
   }
-  const dependencies = [...api.matchAll(/^import \{([\s\S]*?)^\}/gm)];
-  for (const [, block] of dependencies) assert.doesNotMatch(block, /actql\/actql\//);
+  const publicDependencies = [...api.matchAll(/^import \{([\s\S]*?)^\}/gm)]
+    .flatMap(([, block]) => [...block.matchAll(/"actql\/actql\/([^"]+)"/g)]
+      .map(match => match[1]));
+  assert.deepEqual(publicDependencies.sort(), ['decode_core', 'encode_core']);
 });
 
 test('DAG execution storage does not maintain a backend attempt lookup table', () => {

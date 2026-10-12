@@ -12,6 +12,8 @@ import {
 // Values
 pub fn[T] decide(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, Array[String], Array[AuthoredTerm]?, @relation_evidence.KeySet?, T?, max_work~ : Int, max_text_bytes~ : Int) -> Result[Decision[T], Issue]
 
+pub fn[T] resolve(@decode_core.Cursor, @relation_schema.Schema, @relation_schema.Schema, Array[String], Array[AuthoredTerm]?, @relation_evidence.KeySet?, T?, max_work~ : Int, max_text_bytes~ : Int) -> Result[Resolution[T], Issue]
+
 // Errors
 
 // Types and methods
@@ -42,6 +44,13 @@ pub(all) enum IssueKind {
   BudgetExceeded
   UnresolvedOrder
 } derive(Eq, @debug.Debug)
+
+pub struct Resolution[T] {
+  decision : Decision[T]?
+  pending : @decode_core.Cursor?
+  work : Int
+  text_bytes : Int
+}
 
 pub(all) enum Strategy {
   Authored

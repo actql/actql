@@ -243,7 +243,7 @@ fn runtime_assemble(
     runtime_refuse(InvalidClosure)
   }
   let systems = if platform == "darwin-arm64" {
-    ["/usr/lib/libSystem.B.dylib"]
+    ["/usr/lib/libSystem.B.dylib", "/usr/lib/libz.1.dylib"]
   } else {
     [
       "libc.so.6", "libm.so.6", "libdl.so.2", "libpthread.so.0", "librt.so.1", "ld-linux-x86-64.so.2",
