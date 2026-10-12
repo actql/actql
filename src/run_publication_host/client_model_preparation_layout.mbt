@@ -99,6 +99,42 @@ pub fn check_client_node_model_preparation_layout(
 }
 
 ///|
+// The original checked Run owner already funds/owns scope bootstrap. Validate
+// its exact original binding and the selected immutable installation BEFORE
+// constructing a read descriptor or reserving the complete read envelope.
+// This reuses prepare_client_model_read's same Ledger and opaque read; it does
+// not issue a second bootstrap, accept free-capacity aggregates, or establish
+// the numerical adequacy of the trusted installation declaration.
+pub fn prepare_client_node_model_read_layout(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  layout : ClientNodeModelPreparationLayout?,
+  installation : @environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @environment.DecisionProbabilityProfile?,
+) -> Result[ClientModelReadPreparation, ClientModelPreparationLayoutIssue] {
+  if !client_model_origin_matches(scope.origin, compiled, definition, plan) {
+    return Err(Read(ForeignRun))
+  }
+  match
+    check_client_node_model_preparation_layout(
+      layout, plan, installation, runtime_artifact_cid, layout_artifact_cid, probability,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard layout is Some(layout) else { return Err(Unavailable) }
+  prepare_client_model_read(
+    scope,
+    layout.retained_bytes,
+    layout.execution_bytes,
+  ).map_err(issue => Read(issue))
+}
+
+///|
 // Revalidate the selected installation before the first additional allocation,
 // then consume the original Owner's one-shot claim. A refusal leaves its read
 // token, quantity usage, spent serial and cleanup responsibility unchanged.
