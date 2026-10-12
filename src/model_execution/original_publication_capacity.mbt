@@ -73,6 +73,24 @@ pub fn reserve_original_model_publication_capacity(
 }
 
 ///|
+/// Match this live borrow to its actual original receiver without projecting
+/// its Ledger/token. Equal limits or equal Run CIDs cannot substitute for the
+/// nominal Model/Scope. A retired or parked borrow is not available for use.
+pub fn original_model_publication_capacity_current(
+  value : OriginalModelPublicationCapacity,
+  execution : ModelExecution,
+  scope : @publication_host.ClientInferCallScope,
+) -> Bool {
+  value.owner is Some(original) &&
+  physical_equal(original, execution) &&
+  original_model_publication_owner_current(execution, scope) &&
+  check_model_original_resources_mutable(execution.state) is Ok(_) &&
+  @resources.capacity_reservation_covers(
+    execution.state.ledger, value.capacity, 0L, 0L,
+  )
+}
+
+///|
 /// Invoke only after the existing publication/Store caller has retired its
 /// actual physical and alias custody. This function proves token ownership,
 /// not that external cleanup happened; cancellation, COMMIT or dropping a

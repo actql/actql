@@ -13,8 +13,17 @@ test "original publication capacity uses same Ledger and pins cleanup until rele
     model, scope, 7L, 5L,
   ).unwrap()
   let funded = @resources.ledger_usage(ledger)
-  assert_eq(funded.reserved_retention_bytes, before.reserved_retention_bytes + 7L)
-  assert_eq(funded.reserved_execution_bytes, before.reserved_execution_bytes + 5L)
+  assert_true(
+    @model.original_model_publication_capacity_current(capacity, model, scope),
+  )
+  assert_eq(
+    funded.reserved_retention_bytes,
+    before.reserved_retention_bytes + 7L,
+  )
+  assert_eq(
+    funded.reserved_execution_bytes,
+    before.reserved_execution_bytes + 5L,
+  )
   assert_eq(funded.attempts, before.attempts)
   assert_eq(funded.planning_work, before.planning_work)
   assert_eq(funded.transferred_bytes, before.transferred_bytes)
@@ -23,11 +32,18 @@ test "original publication capacity uses same Ledger and pins cleanup until rele
   assert_eq(@resources.quantity_usage(ledger), quantities)
   assert_false(cleanup(active).unwrap())
   assert_false(active.reclaimed)
-  assert_true(@model.release_original_model_publication_capacity(capacity).unwrap())
+  assert_true(
+    @model.release_original_model_publication_capacity(capacity).unwrap(),
+  )
+  assert_false(
+    @model.original_model_publication_capacity_current(capacity, model, scope),
+  )
   let released = @resources.ledger_usage(ledger)
   assert_eq(released.reserved_retention_bytes, before.reserved_retention_bytes)
   assert_eq(released.reserved_execution_bytes, before.reserved_execution_bytes)
-  assert_true(@model.release_original_model_publication_capacity(capacity).unwrap())
+  assert_true(
+    @model.release_original_model_publication_capacity(capacity).unwrap(),
+  )
   assert_eq(@resources.ledger_usage(ledger), released)
   assert_true(cleanup(active).unwrap())
   assert_true(
@@ -52,13 +68,18 @@ test "original publication capacity exact fit and one short preserve original us
     // a proposed normal physical profile. No resource limits are changed.
     let filler = @resources.reserve_capacity(
       ledger,
-      limits.retained_bytes - before.held_bytes -
-      before.reserved_retention_bytes - retained,
+      limits.retained_bytes -
+      before.held_bytes -
+      before.reserved_retention_bytes -
+      retained,
       limits.execution_bytes - before.reserved_execution_bytes - execution,
     ).unwrap()
     let before = @resources.ledger_usage(ledger)
     let result = @model.reserve_original_model_publication_capacity(
-      active.model.unwrap(), active.call_scope.unwrap(), 7L, 5L,
+      active.model.unwrap(),
+      active.call_scope.unwrap(),
+      7L,
+      5L,
     )
     if retained == 7L && execution == 5L {
       let capacity = result.unwrap()
@@ -70,7 +91,9 @@ test "original publication capacity exact fit and one short preserve original us
         @resources.ledger_usage(ledger).reserved_execution_bytes,
         before.reserved_execution_bytes + 5L,
       )
-      assert_true(@model.release_original_model_publication_capacity(capacity).unwrap())
+      assert_true(
+        @model.release_original_model_publication_capacity(capacity).unwrap(),
+      )
     } else {
       if retained == 6L {
         assert_true(result is Err(@model.Ledger(@resources.RetentionLimit)))
@@ -93,24 +116,44 @@ test "original publication capacity rejects foreign scope legacy Model and inval
   let before = @resources.ledger_usage(ledger)
   assert_true(
     @model.reserve_original_model_publication_capacity(
-      active.model.unwrap(), foreign.call_scope.unwrap(), 7L, 5L,
+      active.model.unwrap(),
+      foreign.call_scope.unwrap(),
+      7L,
+      5L,
     )
     is Err(@model.OutputIdentity),
   )
   for (retained, execution) in [(0L, 0L), (-1L, 0L), (7L, -1L)] {
     assert_true(
       @model.reserve_original_model_publication_capacity(
-        active.model.unwrap(), active.call_scope.unwrap(), retained, execution,
+        active.model.unwrap(),
+        active.call_scope.unwrap(),
+        retained,
+        execution,
       )
       is Err(@model.InvalidLimits),
     )
   }
   assert_eq(@resources.ledger_usage(ledger), before)
-  let legacy = fixture_start(fixture_prepared(), () => ())
+  let legacy_prepared = fixture_prepared()
+  let legacy_plan = call_identity_plan(legacy_prepared)
+  let legacy = start(
+    legacy_prepared,
+    2,
+    infer_fixture_registry,
+    infer_fixture_values,
+    original_funded_start_provider(Ref(0)),
+    @publication_host.client_infer_plan_graph_request_cid(legacy_plan),
+    standard_limits(),
+    plan=Some(legacy_plan),
+  ).unwrap()
   assert_true(fixture_finish(legacy) is Complete(_, ..))
   assert_true(
     @model.reserve_original_model_publication_capacity(
-      legacy.model.unwrap(), legacy.call_scope.unwrap(), 7L, 5L,
+      legacy.model.unwrap(),
+      legacy.call_scope.unwrap(),
+      7L,
+      5L,
     )
     is Err(@model.OutputIdentity),
   )
@@ -142,11 +185,15 @@ test "original publication capacity parked cleanup preserves exact borrow and us
       is Err(@model.Ledger(@resources.ResourceParked)),
     )
     assert_eq(@resources.ledger_usage(ledger), before)
+    assert_false(
+      @model.original_model_publication_capacity_current(capacity, model, scope),
+    )
     assert_true(
       @publication_host.client_model_resource_park_current(
         park, original_scope, compiled, definition, plan,
       )
-      is Some(same) && physical_equal(same, park),
+      is Some(same) &&
+      physical_equal(same, park),
     )
   }
   // No synthetic unpark or COMMIT ACK: retain the same pending borrow/custody.
