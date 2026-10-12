@@ -2614,14 +2614,21 @@ fn QueryParser::pipe(
       "GRAPH",
     ) {
     self.keyword("GRAPH")
+    let start = self.peek().start
     let relation = self.resolve_producer(self.path())
+    let end = self.source.tokens[self.index - 1].end
     if self.has("LABELS") {
       raise QueryAbort("Graph LABELS annotation is retired", self.peek().start)
     }
     // Preserve authored row aliases for Carrier-specific static checking,
     // just as marker-free FROM does. The marker grants no row scope.
     let source_alias = self.optional_source_alias()
-    graph = Some({ pattern: None, })
+    graph = Some({
+      pattern: None,
+      expectation: Some(
+        @origin.range(self.source.document, start, end).unwrap(),
+      ),
+    })
     (relation, source_alias, [], false)
   } else if self.has("UNNEST") {
     operations.push(self.unnest_source())
@@ -2804,14 +2811,15 @@ fn QueryParser::pipe_tail(
           let pattern = self.graph_match()
           // The resolved Graph owns label membership, independently of
           // ordinary property values and optional FROM GRAPH spelling.
-          graph = Some({ pattern: Some(pattern), })
+          graph = Some({ ..current, pattern: Some(pattern), })
         }
         Some(_) =>
           raise QueryAbort(
             "GRAPH_PATTERN_UNSUPPORTED_SHAPE: a second MATCH needs a separate Graph input",
             self.peek().start,
           )
-        None => graph = Some({ pattern: Some(self.graph_match()), })
+        None =>
+          graph = Some({ pattern: Some(self.graph_match()), expectation: None, })
       }
     } else if self.has("UNION") ||
       self.has("INTERSECT") ||
