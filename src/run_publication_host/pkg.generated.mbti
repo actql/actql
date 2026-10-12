@@ -1220,6 +1220,8 @@ pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes
 
 pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph, String, String, () -> Bool) -> Result[ClientInferSavedCallScope, ClientInferCallScopeIssue]
 
+pub fn read_client_model_original_preparation_base(ClientModelReadPreparation, ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @run_publication.ModelOriginalResourceDocument, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue, Int, Int, Int, Int, Int, Int, Int) -> Result[@physical_resources.OriginalStateDocumentRead, ClientModelOriginalPreparationReadIssue]
+
 pub fn read_client_run_policy_originals(String) -> Result[Array[@run_publication.CapturedEffectDependencyBody], ClientRunPolicyOriginalsIssue]
 
 pub fn read_prepared_client_infer_model_execution(PreparedClientProgram, Int, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
@@ -2002,6 +2004,13 @@ pub(all) enum ClientModelOriginalPreparationBaseIssue {
   State(ClientNodeModelStateIssue)
   InvalidBounds
   Encoding
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientModelOriginalPreparationReadIssue {
+  Origin(ClientModelOriginalOriginIssue)
+  Envelope(@run_publication.PublicationContractIssue)
+  Decode
+  State(@physical_resources.OriginalStateDocumentIssue)
 } derive(Eq, @debug.Debug)
 
 pub(all) enum ClientModelPreparationLayoutIssue {

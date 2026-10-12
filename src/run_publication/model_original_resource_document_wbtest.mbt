@@ -64,3 +64,44 @@ test "original resource document refuses CID mismatch lexical rewrite and open f
     Some("original-é\r\n"),
   )
 }
+
+///|
+test "original resource preparation payload extraction keeps exact independent body and refuses cut phases" {
+  let document = read_model_original_resource_document(
+    original_resource_document_vector(),
+    1667,
+    200,
+    16,
+  ).unwrap()
+  let expected = "[\"actql-original-ledger-state/0.1\",[\"17\",\"2\",\"3\",\"11\",\"10\",\"7\"],[\"17\",\"0\",\"0\",\"0\",\"0\",\"0\",\"0\",\"10\",\"7\",\"10\"],[\"0\",\"0\",\"0\"],null,[[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"],[\"0\",\"0\",\"0\"]],\"-3\",[\"1\",\"0\",\"0\",true,true,false,\"reading\",true],[\"-1\",\"0\",\"3\",\"2\",true,false,null,null,[false,false,false],null],[[\"-2\",\"0\",\"7\",\"5\",true,false,null,null,[false,false,false],null]],[],[]]"
+  assert_eq(expected.length(), 360)
+  assert_eq(
+    model_original_preparation_resource_wire(document, 360, 200, 6),
+    Ok(expected),
+  )
+  assert_true(
+    model_original_preparation_resource_wire(document, 359, 200, 6)
+    is Err(Encoding),
+  )
+  assert_true(
+    model_original_preparation_resource_wire(document, 360, 1, 6)
+    is Err(Encoding),
+  )
+  assert_true(
+    model_original_preparation_resource_wire(document, 360, 200, -1)
+    is Err(InvalidField("resource_state")),
+  )
+  // Direct private construction tests this narrow getter's own phase guard,
+  // not admission of a forged persisted cut or an actual parked Model Owner.
+  let changed : ModelOriginalResourceDocument = {
+    value: @json.object_with_string_field(
+      @json.object_without_field(document.value, "resource_phase").unwrap(),
+      "resource_phase",
+      "parked",
+    ).unwrap(),
+  }
+  assert_true(
+    model_original_preparation_resource_wire(changed, 360, 200, 6)
+    is Err(InvalidField("resource_phase")),
+  )
+}

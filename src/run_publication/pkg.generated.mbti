@@ -490,6 +490,8 @@ pub fn model_observation_slot_at(RunEvidenceValue, Int) -> String?
 
 pub fn model_observation_slot_count(RunEvidenceValue) -> Int?
 
+pub fn model_original_preparation_resource_wire(ModelOriginalResourceDocument, Int, Int, Int) -> Result[String, PublicationContractIssue]
+
 pub fn model_original_resource_origin_field(ModelOriginalResourceDocument, String) -> String?
 
 pub fn model_private_holding_cid(PublicationContract, String, String, Int) -> String?

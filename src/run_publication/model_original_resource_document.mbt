@@ -66,3 +66,32 @@ pub fn model_original_resource_origin_field(
   }
   contract_string_from_value(origin, field)
 }
+
+///|
+// Extract only the original preparation-base payload from the already checked
+// canonical envelope. The exact embedded bytes/CID were checked on admission;
+// this is data, not a current-cut, Store ACK or restoration capability.
+// The existing caller funds canonical traversal, output text and Reader overlap
+// before entry. These codec ceilings do not establish that physical budget.
+pub fn model_original_preparation_resource_wire(
+  document : ModelOriginalResourceDocument,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[String, PublicationContractIssue] {
+  if max_bytes < 0 || max_nodes < 1 || max_depth < 0 {
+    return Err(InvalidField("resource_state"))
+  }
+  if contract_string_from_value(document.value, "resource_phase") !=
+    Some("preparation_base") ||
+    !(@json.object_field(document.value, "cut") is Some(@json.Null)) {
+    return Err(InvalidField("resource_phase"))
+  }
+  guard @json.object_field(document.value, "resource_state") is Some(state) else {
+    return Err(InvalidField("resource_state"))
+  }
+  let wire = @json.stringify_value(state, max_bytes, max_nodes, max_depth) catch {
+    _ => return Err(Encoding)
+  }
+  Ok(wire)
+}
