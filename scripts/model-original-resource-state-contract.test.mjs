@@ -38,3 +38,24 @@ test('original resource record positions retain the independent existing bytes',
   assert.equal(schema.prefixItems[10].items.prefixItems.length, 4);
   assert.equal(schema.prefixItems[11].items.prefixItems.length, 3);
 });
+
+test('complete original resource binding has independent raw UTF-8 bytes and CID', () => {
+  const file = readFileSync('scripts/fixtures/model-original-resource-state-0.1.json', 'utf8');
+  assert.equal(file.endsWith('\n'), true);
+  const wire = file.slice(0, -1); // The fixture terminator is not artifact data.
+  assert.equal(Buffer.byteLength(wire), 1667);
+  assert.equal(createHash('sha256').update(wire).digest('hex'),
+    'd42f2ebf9c90fd7ef323e2d9ad33261dadf6801e44976559f00e12852f0a251b');
+  const body = JSON.parse(wire);
+  assert.equal(body.origin.run_id, 'original-e\u0301\r\n');
+  assert.equal(body.cut, null);
+  assert.equal(body.resource_phase, 'preparation_base');
+  assert.equal(new Set(Object.entries(body.origin).filter(([name]) => name !== 'run_id')
+    .map(([, value]) => value)).size, 11);
+  const stateWire = JSON.stringify(body.resource_state);
+  assert.equal(Buffer.byteLength(stateWire), 360);
+  assert.equal(`sha256:${createHash('sha256').update(stateWire).digest('hex')}`,
+    body.resource_state_cid);
+  const moon = readFileSync('src/run_publication/model_original_resource_document_wbtest.mbt', 'utf8');
+  assert.ok(moon.includes(`#|${wire}`), 'actual Core reader consumes the same independent fixed bytes');
+});
