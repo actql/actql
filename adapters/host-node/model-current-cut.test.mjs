@@ -9,6 +9,8 @@ import {DatabaseSync} from 'node:sqlite';
 import {C, input, open, immediateIdentity, immediateReference, seedApproval} from './model-resume-state.fixture.mjs';
 import {MODEL_CURRENT_CUT_JOURNAL_LAYOUT} from './sqlite-checkpoint-journal.mjs';
 import {upgradeCheckpointModelCurrentCut} from '../../scripts/upgrade-checkpoint-model-current-cut.mjs';
+import {assertOriginalModelJournalInvalidation} from './model-resume-state.mjs';
+import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
 const freeze = value => {
   if (value !== null && typeof value === 'object') {
@@ -62,6 +64,17 @@ function rows(path) {
   finally {db.close();}
 }
 
+test('compiled invalidation boundary rejects fabricated port before Core or caller callbacks', () => {
+  let called = 0;
+  const fake = {kind: 'original-model-journal-port', current() {called++; return true;}};
+  for (const port of [undefined, fake, true, () => {called++; return true;}, 'sha256:' + '0'.repeat(64)]) {
+    assert.throws(() => moon.clientProgramCompleteInferOriginalJournalInvalidation(
+      undefined, undefined, port, {}, {}, {}, {}), {code: 'ForeignModelOriginalJournalPort'});
+  }
+  assert.equal(called, 0);
+  assert.equal('clientProgramConsumeInferOriginalResourceInvalidation' in moon, false);
+});
+
 test('current cut exact same-journal link and committed invalidation preserve originals', t => {
   const f = fixture(t); const before = rows(f.journal.path); const op = f.prepare();
   assert.strictEqual(f.journal.commitOriginalModelCurrentCut(op), op);
@@ -100,13 +113,21 @@ test('installed journal port admits only its own current original observation an
     {code: 'ModelOriginalJournalObservationChanged'});
   const receipt = f.journal.invalidateOriginalModelCurrentCut(op, f.request);
   assert.strictEqual(f.journal.originalModelJournalPortInvalidationCurrent(port, receipt, op, f.park, f.request), receipt);
+  assert.equal(assertOriginalModelJournalInvalidation(port, receipt, op, f.park, f.request), undefined);
   for (const [received, operation, park, request] of [[{...receipt}, op, f.park, f.request],
     [receipt, {...op}, f.park, f.request], [receipt, op, {...f.park}, f.request],
     [receipt, op, f.park, {...f.request}]]) {
     assert.throws(() => f.journal.originalModelJournalPortInvalidationCurrent(port, received, operation, park, request));
+    assert.throws(() => assertOriginalModelJournalInvalidation(port, received, operation, park, request));
+  }
+  for (const forged of [undefined, {...port}, true, () => true, 'sha256:' + '0'.repeat(64)]) {
+    assert.throws(() => assertOriginalModelJournalInvalidation(forged, receipt, op, f.park, f.request),
+      {code: 'ForeignModelOriginalJournalPort'});
   }
   f.journal.fenceRunCancellation({originalRunWire: input(1).modelCallSet.originalRunWire});
   assert.throws(() => f.journal.originalModelJournalPortInvalidationCurrent(port, receipt, op, f.park, f.request),
+    {code: 'ModelOriginalCurrentCutFactsChanged'});
+  assert.throws(() => assertOriginalModelJournalInvalidation(port, receipt, op, f.park, f.request),
     {code: 'ModelOriginalCurrentCutFactsChanged'});
 });
 

@@ -256,3 +256,43 @@ test('original Model park has no unowned or missing-port fallback and preserves 
     error.code === 'MoonBitHostFailure' && error.cause === issue);
   await operation.close();
 });
+
+test('original invalidation adapter keeps original active scope and exact journal references', async () => {
+  const f = fundedFixture();
+  const scope = f.originalPreparation.scope;
+  const park = {}, request = {}, port = {}, receipt = {}, reference = {};
+  const moon = f.options.moon;
+  moon.clientProgramBeginInferOriginalModelInvalidation = (...args) => {
+    f.calls.push(['invalidation', ...args]); return {$tag: 1, _0: request};
+  };
+  moon.clientProgramInferOriginalModelInvalidationCurrent = (...args) => {
+    f.calls.push(['invalidationCurrent', ...args]); return request;
+  };
+  moon.clientProgramCompleteInferOriginalJournalInvalidation = (...args) => {
+    f.calls.push(['committedInvalidation', ...args]); return {$tag: 1, _0: undefined};
+  };
+  const operation = openNodeInferOperation(f.options);
+  f.originalPreparation.scope = {};
+  assert.strictEqual(operation.beginOriginalResourceInvalidation(park), request);
+  assert.deepEqual(f.calls.at(-1), ['invalidation', f.active, scope, park]);
+  assert.strictEqual(operation.originalResourceInvalidationCurrent(park, request), request);
+  assert.deepEqual(f.calls.at(-1), ['invalidationCurrent', f.active, scope, park, request]);
+  operation.completeOriginalJournalInvalidation(port, receipt, reference, park, request);
+  assert.deepEqual(f.calls.at(-1), ['committedInvalidation', f.active, scope, port, receipt, reference, park, request]);
+  await operation.close();
+  const before = f.calls.length;
+  assert.throws(() => operation.beginOriginalResourceInvalidation(park), /InferOriginalModelInvalidationUnavailable/u);
+  assert.equal(operation.originalResourceInvalidationCurrent(park, request), undefined);
+  assert.throws(() => operation.completeOriginalJournalInvalidation(port, receipt, reference, park, request),
+    /InferOriginalModelInvalidationUnavailable/u);
+  assert.equal(f.calls.length, before);
+});
+
+test('original invalidation adapter refuses missing guarded FFI without a bare consume fallback', async () => {
+  const f = fundedFixture(), operation = openNodeInferOperation(f.options);
+  assert.throws(() => operation.beginOriginalResourceInvalidation({}), /InferOriginalModelInvalidationUnavailable/u);
+  assert.throws(() => operation.completeOriginalJournalInvalidation({}, {}, {}, {}, {}),
+    /InferOriginalModelInvalidationUnavailable/u);
+  assert.equal(f.calls.length, 2);
+  await operation.close();
+});

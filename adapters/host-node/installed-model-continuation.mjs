@@ -369,6 +369,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       currentProvider: () => selected.currentProvider?.() !== false && binding.identity === inventory.providerBindingCid,
       entries: new Map()};
     let installedJournalPort;
+    let originalInvalidation;
     function originalJournalInstallation() {
       if (originalPreparation === undefined ||
           live.get(preparedCallSet) !== owner ||
@@ -464,6 +465,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       if (live.get(preparedCallSet) === owner) live.delete(preparedCallSet);
       rawSelection = undefined;
       installedJournalPort = undefined;
+      originalInvalidation = undefined;
       originalPreparation = undefined;
       release(token);
       return true;
@@ -481,6 +483,38 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       ...(journalPort === undefined ? {} : {journalPort})};
     return Object.freeze({originals, inventory, token, scope, preparedCallSet,
       originalJournalInstallation,
+      async originalResourceOrigin(storageBinding) {
+        const originalScope = operation.originalResourceScope?.();
+        const installation = originalPreparation?.nodeInstallation;
+        if (originalScope === undefined || originalScope !== originalPreparation?.scope ||
+            installation === undefined || checkpoints() !== cp ||
+            typeof control.checkedClientInferOriginalResourceOriginField !== 'function') {
+          fail('ModelOriginalResourceOriginUnavailable');
+        }
+        // This port reopens/rechecks its actual selected encrypted Store. The
+        // returned evidence is data from that nominal binding, not a caller CID.
+        const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
+        if (checkpoints() !== cp || operation.originalResourceScope?.() !== originalScope) {
+          fail('ModelOriginalJournalInstallationChanged');
+        }
+        // Select these immutable originals BEFORE Resource park. Do not infer
+        // them from current census bytes, response data or saved document fields.
+        const origin = {};
+        for (const field of ['run_id', 'run_definition_cid', 'prepared_invocation_cid',
+          'host_policy_cid', 'execution_context_cid', 'program_definition_cid',
+          'parameter_values_cid', 'barrier_cid', 'runtime_artifact_cid',
+          'layout_artifact_cid', 'response_profile_cid', 'storage_binding_cid']) {
+          origin[field] = control.checkedClientInferOriginalResourceOriginField(
+            plan.compiled, plan.runDefinition, selected.graph, originalScope,
+            installation, storage, field);
+        }
+        if (checkpoints() !== cp || operation.originalResourceScope?.() !== originalScope) {
+          fail('ModelOriginalJournalInstallationChanged');
+        }
+        // This bounded data record/String overlap belongs to C's original
+        // bootstrap inventory; its existence does not prove a numeric profile.
+        return Object.freeze(origin);
+      },
       originalJournalInvalidationCurrent(receipt, reference, park, request) {
         const port = originalJournalInstallation();
         const observed = cp.journal.originalModelJournalPortInvalidationCurrent(
@@ -493,6 +527,41 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         // before its once-only consume. This saved observation does not add an
         // INFER Allow prerequisite to cleanup/unpark or permit Model sending.
         return observed;
+      },
+      beginOriginalResourceInvalidation(reference, park) {
+        originalJournalInstallation();
+        if (originalInvalidation !== undefined || !owner.available ||
+            operation.originalResourceParkCurrent(park) !== park ||
+            cp.journal.originalModelCurrentCutOperationStatus(reference).state !== 'linked') {
+          fail('ModelOriginalResourceInvalidationUnavailable');
+        }
+        const observation = cp.journal.originalModelCurrentCutObservation(reference);
+        const facts = cp.journal.originalModelJournalObservationFacts(observation);
+        if (!same(select(facts.identity, scopeKeys), select(inventory, scopeKeys))) {
+          fail('ModelOriginalJournalInstallationChanged');
+        }
+        // Keep this exact outstanding request even when the following COMMIT
+        // fails or is unknown. No replacement intent or approval is issued.
+        const request = operation.beginOriginalResourceInvalidation(park);
+        originalInvalidation = {reference, park, request, receipt: undefined};
+        return request;
+      },
+      completeOriginalResourceInvalidation() {
+        const original = originalInvalidation;
+        const port = originalJournalInstallation();
+        if (original === undefined || !owner.available ||
+            operation.originalResourceInvalidationCurrent(original.park, original.request) !== original.request) {
+          fail('ModelOriginalResourceInvalidationUnavailable');
+        }
+        const receipt = original.receipt ??= cp.journal.invalidateOriginalModelCurrentCut(
+          original.reference, original.request);
+        // The fixed FFI authenticates this same actual port and all four refs,
+        // then synchronously rechecks Core lifecycle and consumes once. It does
+        // not demand dispatch=None become Allow or grant a subsequent send.
+        operation.completeOriginalJournalInvalidation(port, receipt,
+          original.reference, original.park, original.request);
+        originalInvalidation = undefined;
+        return receipt;
       },
       hasResponseReconciliation: unreconciled.size > 0,
       evaluationInventory() {
