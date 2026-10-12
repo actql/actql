@@ -127,3 +127,44 @@ test('original read scope control refuses absent cleanup without changing origin
     f.compiled, f.definition, f.graph, scope, true), true);
   assert.equal(f.calls.begin.length, 1);
 });
+
+test('original read scope maps installed quantities into the exact Common ABI', () => {
+  const f = original();
+  const capacity = {limits: {tokens: 10000n, costUnits: 10000n, durationMs: 10000n},
+    perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n}};
+  const scope = f.control.beginCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, {...bootstrap, quantityCapacity: capacity});
+  assert.deepEqual(f.calls.begin[0][3], {
+    limits: {tokens: 10000n, cost_units: 10000n, duration_ms: 10000n},
+    per_attempt: {tokens: 33n, cost_units: 0n, duration_ms: 500n},
+  });
+  assert.notEqual(f.calls.begin[0][3], capacity);
+  assert.equal(f.control.finishCheckedClientInferOriginalReadScope(
+    f.compiled, f.definition, f.graph, scope, true), true);
+  assert.deepEqual(capacity, {
+    limits: {tokens: 10000n, costUnits: 10000n, durationMs: 10000n},
+    perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n},
+  }, 'installed values are not mutated or replaced by the Common ceiling');
+});
+
+test('original read scope rejects invalid installed quantities before bootstrap', () => {
+  const f = original();
+  const valid = {limits: {tokens: 66n, costUnits: 0n, durationMs: 1000n},
+    perAttempt: {tokens: 33n, costUnits: 0n, durationMs: 500n}};
+  const malformed = [null, {}, {limits: valid.limits},
+    {...valid, extra: true},
+    {...valid, limits: {...valid.limits, tokens: 66}},
+    {...valid, limits: {...valid.limits, tokens: -1n}},
+    {...valid, limits: {...valid.limits, tokens: 9007199254740992n}},
+    {...valid, perAttempt: {...valid.perAttempt, costUnits: undefined}},
+    {...valid, perAttempt: {...valid.perAttempt, durationMs: null}},
+    {limits: {tokens: 66n, cost_units: 0n, duration_ms: 1000n},
+      per_attempt: {tokens: 33n, cost_units: 0n, duration_ms: 500n}},
+  ];
+  for (const quantityCapacity of malformed) {
+    assert.throws(() => f.control.beginCheckedClientInferOriginalReadScope(
+      f.compiled, f.definition, f.graph, {...bootstrap, quantityCapacity}),
+    /InvalidInstalledInferQuantityCapacity/u);
+  }
+  assert.equal(f.calls.begin.length, 0);
+});

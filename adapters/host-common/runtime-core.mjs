@@ -21,6 +21,28 @@ const effectApplicationControls = new WeakMap();
 const remoteBundleControls = new WeakMap();
 const publicationControls = new WeakMap();
 
+// Translate the installed Node envelope only; Common owns contract ceilings.
+function inferQuantityCapacity(value) {
+  if (value === undefined) return undefined;
+  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+      Object.keys(value).sort().join(',') !== 'limits,perAttempt' ||
+      ['limits', 'perAttempt'].some(scope => {
+        const amount = value[scope];
+        return amount === null || typeof amount !== 'object' || Array.isArray(amount) ||
+          Object.keys(amount).sort().join(',') !== 'costUnits,durationMs,tokens' ||
+          Object.values(amount).some(quantity => typeof quantity !== 'bigint' ||
+            quantity < 0n || quantity > BigInt(Number.MAX_SAFE_INTEGER));
+      })) {
+    throw new TypeError('InvalidInstalledInferQuantityCapacity');
+  }
+  return {
+    limits: {tokens: value.limits.tokens, cost_units: value.limits.costUnits,
+      duration_ms: value.limits.durationMs},
+    per_attempt: {tokens: value.perAttempt.tokens, cost_units: value.perAttempt.costUnits,
+      duration_ms: value.perAttempt.durationMs},
+  };
+}
+
 function effectApplicationControl(moon) {
   let control = effectApplicationControls.get(moon);
   if (control !== undefined) return control;
@@ -2363,7 +2385,7 @@ function publicationControl(moon) {
         throw new TypeError('Foreign Client compiled Infer preparation');
       }
       return checked(moon.clientProgramBeginInferOriginalReadScope(value,
-        token(definition), graph, quantityCapacity, bootstrapRetainedBytes,
+        token(definition), graph, inferQuantityCapacity(quantityCapacity), bootstrapRetainedBytes,
         bootstrapExecutionBytes, maxReservations, maxHoldings, maxDelegations));
     },
     prepareCheckedClientInferNodeReadLayout(compiled, definition, graph, scope,
