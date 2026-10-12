@@ -73,6 +73,117 @@ fn submitted_rows_prepare(
 }
 
 ///|
+test "actual saved row relationship stays bound to original nominal preparation" {
+  let value = submitted_rows_preparation("/*😀*/\r\nSELECT 1 AS n")
+  let plan = submitted_rows_plan(value)
+  let rows = submitted_rows_prepare(plan, value, submitted_rows_before(value)).unwrap()
+  let (run_key, submission_key, _, run, submitted) = local_submitted_run_rows(
+    rows, plan, value,
+  ).unwrap()
+  assert_true(
+    validate_local_saved_submitted_rows(
+      rows, plan, value, run_key, 0L, run, submission_key, 1L, submitted,
+    )
+    is Ok(_),
+  )
+  // Later retained state keeps the original immutable admission revision.
+  // These are Core relationship fixtures, not physical Store or start facts.
+  let run_wire = @utf8.decode(run) catch { _ => "" }
+  let later = @utf8.encode(
+    run_wire
+    .replace(
+      old="\"dispatch_reserved\":false",
+      new="\"dispatch_reserved\":true",
+    )
+    .replace(
+      old="\"physical_start_claimed\":false",
+      new="\"physical_start_claimed\":true",
+    ),
+  )
+  assert_true(
+    validate_local_saved_submitted_rows(
+      rows, plan, value, run_key, 9L, later, submission_key, 2L, submitted,
+    )
+    is Ok(_),
+  )
+}
+
+///|
+test "saved row relationship refuses preparing missing NULL and changed original intent" {
+  let value = submitted_rows_preparation("/*😀*/\r\nSELECT 1 AS n")
+  let plan = submitted_rows_plan(value)
+  let before = submitted_rows_before(value)
+  let rows = submitted_rows_prepare(plan, value, before).unwrap()
+  let (run_key, submission_key, _, run, submitted) = local_submitted_run_rows(
+    rows, plan, value,
+  ).unwrap()
+  let wire = @utf8.decode(submitted) catch { _ => "" }
+  for
+    body in [
+      before,
+      b"null",
+      b"{}",
+      @utf8.encode(wire.replace(old="SELECT 1 AS n", new="SELECT 2 AS n")),
+      @utf8.encode(wire.replace(old="original-submit", new="different-submit")),
+    ] {
+    assert_true(
+      validate_local_saved_submitted_rows(
+        rows, plan, value, run_key, 0L, run, submission_key, 1L, body,
+      )
+      is Err(CustodyLost),
+    )
+  }
+}
+
+///|
+test "saved row relationship rejects foreign keys and negative physical generations" {
+  let value = submitted_rows_preparation("SELECT 1 AS n")
+  let plan = submitted_rows_plan(value)
+  let rows = submitted_rows_prepare(plan, value, submitted_rows_before(value)).unwrap()
+  let (run_key, submission_key, _, run, submitted) = local_submitted_run_rows(
+    rows, plan, value,
+  ).unwrap()
+  for
+    (key, revision, reference, generation) in [
+      ("foreign-run", 0L, submission_key, 1L),
+      (run_key, -1L, submission_key, 1L),
+      (run_key, 0L, "foreign-submission", 1L),
+      (run_key, 0L, submission_key, -1L),
+    ] {
+    assert_true(
+      validate_local_saved_submitted_rows(
+        rows, plan, value, key, revision, run, reference, generation, submitted,
+      )
+      is Err(CustodyLost),
+    )
+  }
+}
+
+///|
+test "saved row relationship refuses equivalent preparations and copied Plan custody" {
+  let value = submitted_rows_preparation("SELECT 1 AS n")
+  let plan = submitted_rows_plan(value)
+  let rows = submitted_rows_prepare(plan, value, submitted_rows_before(value)).unwrap()
+  let (run_key, submission_key, _, run, submitted) = local_submitted_run_rows(
+    rows, plan, value,
+  ).unwrap()
+  let equivalent = submitted_rows_preparation("SELECT 1 AS n")
+  assert_true(
+    validate_local_saved_submitted_rows(
+      rows, plan, equivalent, run_key, 0L, run, submission_key, 1L, submitted,
+    )
+    is Err(ForeignPreparation),
+  )
+  let copied : LocalRunPlan = { ..plan, }
+  assert_true(
+    validate_local_saved_submitted_rows(
+      rows, copied, value, run_key, 0L, run, submission_key, 1L, submitted,
+    )
+    is Err(ForeignPreparation),
+  )
+}
+
+///|
 test "original submitted rows bind nominal checked input without starting or admitting" {
   let value = submitted_rows_preparation("/*😀*/\r\nSELECT 1 AS n")
   assert_eq(
