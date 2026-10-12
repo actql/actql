@@ -169,11 +169,12 @@ and repeated cleanup must not issue another provider call or return more credit.
 The existing Host assertions are retained verbatim.
 
 ```sh
+node scripts/local-checks.mjs test node -- proofs/relation-pipeline/capacity/parent-control/snapshot-custody.test.mjs
 node scripts/local-checks.mjs test node -- proofs/relation-pipeline/capacity/parent-control/driver-retirement.test.mjs
 node proofs/relation-pipeline/capacity/parent-control/driver-retirement-diagnostic.mjs
 ```
 
-Run the second command on a clean fixed HEAD, in the pinned Native environment,
+Run the Native diagnostic command on a clean fixed HEAD, in the pinned Native environment,
 through the existing bounded local guard. It selects one Native test containing
 two existing Host cases; it does not run the full Core or packed acceptance.
 In an isolated diagnostic copy, `driver-retirement-compilation.mjs` blanks
