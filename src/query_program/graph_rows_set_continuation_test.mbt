@@ -35,3 +35,31 @@ test "Graph row WITH continuation leaves exactly one append to the set owner" {
   assert_eq(semantic(program).split("\"append\":").length() - 1, 1)
   assert_eq(semantic(program).split("\"sort\":").length() - 1, 1)
 }
+
+///|
+test "Graph row Carrier continuation keeps the original set head ownership" {
+  let source = "WITH n AS (SELECT 1 AS node_key, 0 AS occurred_ms), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) PROPERTIES (occurred_ms)))) FROM g |> node_rows() |> to_events(id: node_key, time: occurred_ms) |> events() |> SELECT node_key, occurred_ms |> UNION ALL (FROM n |> SELECT node_key, occurred_ms) |> ORDER BY node_key"
+  let program = compile_query_script(
+    @query.parse_query_script(source, syntax_limits()).unwrap(),
+    { ..fixture_context(), inputs: [], },
+    construction_limits(),
+  ).unwrap()
+  let body = semantic(program)
+  assert_eq(body.split("\"append\":").length() - 1, 1)
+  assert_eq(body.split("\"sort\":").length() - 1, 1)
+  for operation in ["node_rows", "to_events", "events"] {
+    assert_eq(body.split("\"" + operation + "\":").length() - 1, 1)
+  }
+  match
+    @check.check_parsed_with_evidence(
+      program,
+      graph_event_environment(),
+      None,
+      [],
+      graph_rows_check_limits(),
+    ) {
+    Checked(_) => ()
+    Rejected(diagnostic) => graph_rows_rejected(diagnostic)
+    NeedsInputs(_) => fail("the original source-free set has no acquisition")
+  }
+}

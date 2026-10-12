@@ -278,6 +278,7 @@ fn lower_script_graph_rows(
       graphs~,
       positional_set_output~,
       allow_nonrelation~,
+      set_head~,
     )
   }
   let fields = query_columns(relation_query, input)
