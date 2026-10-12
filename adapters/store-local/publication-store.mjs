@@ -30,6 +30,12 @@ import {createResultDeletionOwner} from './result-deletion-owner.mjs';
 import {createMetadataDeletionOwner} from './metadata-deletion-owner.mjs';
 import {createPublicationCommitOwner} from './publication-commit-owner.mjs';
 
+// Internal physical adapter primitive, not a Client read/authority entry. Its
+// caller funds the complete metadata/decode lifetime before I/O and retains
+// any existing failed-close cleanupHandle until confirmed physical close.
+// Keep the actual implementation shared with ordinary Store metadata reads.
+export {readBounded as readBoundedLocalMetadata};
+
 const cidPattern = /^sha256:([0-9a-f]{64})$/u;
 // Physical holdings: Transfer material, Effect source/capture custody,
 // encrypted publication evidence, and Local continuation evidence.
