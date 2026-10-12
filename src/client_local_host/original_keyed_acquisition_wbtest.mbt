@@ -1,4 +1,24 @@
 ///|
+// The existing environment contract orders evidence sections by whole-member
+// canonical CID, as does rowSourceCheckEnvironment. This constructs inputs;
+// it supplies no expectation for a Source observation or Model result.
+fn original_keyed_environment_members(
+  bodies : Array[String],
+) -> @json.Json raise {
+  let ordered = bodies.map(body => {
+    let wire = @identity.stringify_value(
+      @identity.from_json(@json.parse(body), 100000, 100, 1000000),
+      1000000,
+      100000,
+      100,
+    )
+    (@sha.hex(@utf8.encode(wire)), wire)
+  })
+  ordered.sort_by((left, right) => left.0.compare(right.0))
+  @json.parse("[" + ordered.map(value => value.1).join(",") + "]")
+}
+
+///|
 // Inputs mirror the existing finite file-listing/content declaration fixtures.
 // Declaration generation builds test inputs, never expected output/custody.
 fn original_keyed_declaration_environment() -> (
@@ -85,15 +105,15 @@ fn original_keyed_declaration_environment() -> (
     declaration,
   )
   base["connector_catalogs"] = @json.parse("[" + declaration.catalog + "]")
-  base["contract_registry"] = @json.parse(
-    "[" + declaration.contracts.join(",") + "]",
+  base["contract_registry"] = original_keyed_environment_members(
+    declaration.contracts,
   )
-  base["source_views"] = @json.parse(
-    "[" + declaration.view_bodies.join(",") + "]",
+  base["source_views"] = original_keyed_environment_members(
+    declaration.view_bodies,
   )
-  base["schema_snapshots"] = @json.parse("[" + schemas.join(",") + "]")
-  base["connector_capabilities"] = @json.parse(
-    "[" + capabilities.join(",") + "]",
+  base["schema_snapshots"] = original_keyed_environment_members(schemas)
+  base["connector_capabilities"] = original_keyed_environment_members(
+    capabilities,
   )
   base["connector_manifest"] = @json.parse(
     "{\"connectors\":[" +
