@@ -1578,3 +1578,10 @@ The shared checked-binding validator is the original Native journal's pure
 request/prepared/compiled/definition check, reused by Local. Native still owns
 its original admission transaction and issuance count; this extraction neither
 acknowledges persistence nor grants publication authority.
+
+The original Native submitted Run admission codec is shared with the portable
+Host. It preserves the exact `admitted_revision` decimal Int64, original
+request record and Run definition CID; decoding requires the same canonical
+bytes. The Native journal continues to check the original epoch, intent, Run
+record and current authority inside its existing transaction. Parsing these
+bytes alone does not establish that transaction's commit or a dispatch permit.
