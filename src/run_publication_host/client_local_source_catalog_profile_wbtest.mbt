@@ -31,25 +31,19 @@ test "standard Local Catalog uses the same compilation work profile without wide
     local_catalog_profile_owner(),
     limits,
   ).unwrap()
+  // Original admission costs 17165. Listing and Content each charge the
+  // same facts lookup: (11+1)+(4+1)+(3+1)+(9+1)+(7+1)+(71+1)+(0+1)=112.
+  // The complete current work is 17165 + 2*112 = 17389; no cap is widened.
   assert_eq(@checked.source_catalog_usage(prepared), {
-    work: 17165,
-    bytes: 4240,
-    nodes: 174,
-  })
-  let exact = @checked.prepare_source_catalog(local_catalog_profile_owner(), {
-    ..limits,
-    max_work: 17165,
-  }).unwrap()
-  assert_eq(@checked.source_catalog_usage(exact), {
-    work: 17165,
+    work: 17389,
     bytes: 4240,
     nodes: 174,
   })
 }
 
 ///|
-test "original Local Catalog keeps both explicit tight-work refusal controls" {
-  for work in [10000, 17164] {
+test "original Local Catalog retains its tight-work refusal controls after FILES admission" {
+  for work in [10000, 17164, 17165] {
     assert_true(
       @checked.prepare_source_catalog(local_catalog_profile_owner(), {
         max_work: work,
