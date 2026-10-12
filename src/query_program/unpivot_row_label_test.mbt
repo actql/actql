@@ -38,18 +38,36 @@ test "UNPIVOT repeated input labels lower to independent occurrence slots" {
 }
 
 ///|
-test "UNPIVOT integer row labels refuse unsupported exact contracts" {
-  assert_true(
-    compile(
-      @query.parse_query(
-        "FROM pair |> UNPIVOT(value FOR label IN(x AS 9223372036854775807,y AS 1))",
-        syntax_limits(),
-      ).unwrap(),
-      pair_context(),
-      construction_limits(),
+test "UNPIVOT integer row labels distinguish exact syntax from unsupported lowering" {
+  for label in ["1", "9007199254740991", "0x1fffffffffffff"] {
+    assert_true(
+      compile(
+        @query.parse_query(
+          "FROM pair |> UNPIVOT(value FOR label IN(x AS " + label + ",y AS 1))",
+          syntax_limits(),
+        ).unwrap(),
+        pair_context(),
+        construction_limits(),
+      )
+      is Err(UnsupportedProjection),
     )
-    is Err(UnsupportedProjection),
-  )
+  }
+  for label in ["9223372036854775807", "9007199254740992", "0x20000000000000"] {
+    let text = "FROM pair |> UNPIVOT(value FOR label IN(x AS " +
+      label +
+      ",y AS 1))"
+    match @query.parse_query(text, syntax_limits(), source_path="unpivot.sql") {
+      Err({ issue: Syntax(message), span: Some(span), }) => {
+        assert_eq(
+          message, "UNPIVOT row alias requires a String or integer literal",
+        )
+        assert_eq(span.source_path, "unpivot.sql")
+        // Independent ASCII prefix length before the authored row label.
+        assert_eq(span.start_byte, 45)
+      }
+      _ => fail("unsafe integer aliases must not be rounded before lowering")
+    }
+  }
 }
 
 ///|
