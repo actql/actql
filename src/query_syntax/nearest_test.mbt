@@ -8,19 +8,22 @@ test "NEAREST parses two explicit key and vector roles and optional KEEP" {
     Some(Nearest(clause)) => {
       assert_eq(clause.relation.map(part => part.value), ["catalog", "items"])
       assert_true(clause.relation[0].quoted)
-      assert_eq(clause.query_keys.length(), 2)
-      assert_eq(clause.candidate_keys[1].map(part => part.value), ["c", "id"])
+      assert_eq(clause.query_roles.unwrap().keys.length(), 2)
+      assert_eq(
+        clause.candidate_roles.unwrap().keys[1].map(part => part.value),
+        ["c", "id"],
+      )
       assert_eq(clause.metric, "cosine")
       assert_eq(clause.k, 2L)
       assert_eq(clause.keep.length(), 3)
       assert_eq(clause.keep[0].name.unwrap().value, "request")
       assert_true(clause.keep[1].wildcard)
-      clause.query_keys.clear()
+      clause.query_roles.unwrap().keys.clear()
       clause.keep.clear()
       guard operation_at(query, 0) is Some(Nearest(fresh)) else {
         fail("nearest")
       }
-      assert_eq(fresh.query_keys.length(), 2)
+      assert_eq(fresh.query_roles.unwrap().keys.length(), 2)
       assert_eq(fresh.keep.length(), 3)
     }
     _ => fail("NEAREST has its own typed clause")

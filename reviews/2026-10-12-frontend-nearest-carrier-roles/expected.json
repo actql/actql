@@ -1,0 +1,70 @@
+{
+  "rows": [
+    {
+      "hit": {
+        "query_key": {
+          "request_id": "q1"
+        },
+        "candidate_key": {
+          "item_id": "a"
+        },
+        "score": 1,
+        "rank": 1
+      }
+    },
+    {
+      "hit": {
+        "query_key": {
+          "request_id": "q1"
+        },
+        "candidate_key": {
+          "item_id": "b"
+        },
+        "score": 0,
+        "rank": 2
+      }
+    }
+  ],
+  "columns": [
+    {
+      "name": "hit",
+      "contract": {
+        "type": "object",
+        "nullable": false,
+        "additional_properties": false,
+        "fields": {
+          "query_key": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "request_id": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "candidate_key": {
+            "type": "object",
+            "nullable": false,
+            "additional_properties": false,
+            "fields": {
+              "item_id": {
+                "type": "string",
+                "nullable": false
+              }
+            }
+          },
+          "score": {
+            "type": "number",
+            "nullable": false
+          },
+          "rank": {
+            "type": "number",
+            "nullable": false
+          }
+        }
+      }
+    }
+  ]
+}
