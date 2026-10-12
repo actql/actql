@@ -53,6 +53,10 @@ test "original finite policy packet binds exact Submission Run adoption and read
     "sha256:" + "f".repeat(64),
   ).unwrap()
   assert_eq(
+    client_local_run_policy_original_read_expires_at(restored),
+    "2026-10-14T00:00:00.001Z",
+  )
+  assert_eq(
     client_local_run_policy_original_body(restored),
     client_local_run_policy_original_body(original),
   )
