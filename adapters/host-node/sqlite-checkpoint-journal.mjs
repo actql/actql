@@ -30,7 +30,9 @@ export const PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT =
   'actql-checkpoint-journal/0.1;model-call-provenance=1';
 export const EFFECT_SETTLEMENT_JOURNAL_LAYOUT =
   'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1';
-const SCHEMA_VERSION = EFFECT_SETTLEMENT_JOURNAL_LAYOUT;
+export const MODEL_CURRENT_CUT_JOURNAL_LAYOUT =
+  EFFECT_SETTLEMENT_JOURNAL_LAYOUT + ';model-current-cut-link=1';
+const SCHEMA_VERSION = MODEL_CURRENT_CUT_JOURNAL_LAYOUT;
 export const EFFECT_SETTLEMENT_TABLE_SQL = `
   CREATE TABLE resume_effect_settlements (
     intent_id TEXT PRIMARY KEY NOT NULL REFERENCES resume_intents (intent_id),
@@ -213,6 +215,7 @@ export function openSqliteCheckpointJournal(root, {
   now = () => Date.now(),
   faults = {},
 } = {}) {
+  let modelCalls;
   if (!text(root) || !cid(expectedAuthorityScopeCid) ||
       runtime === null || typeof runtime !== 'object' ||
       typeof runtime.checkpointSealBody !== 'function' ||
@@ -230,7 +233,21 @@ export function openSqliteCheckpointJournal(root, {
     readOnly: false,
     enableForeignKeyConstraints: true,
   });
-  const transaction = createSqliteTransaction(database, 'CheckpointJournal');
+  const originalTransaction = createSqliteTransaction(database, 'CheckpointJournal');
+  const transaction = Object.freeze({
+    run(body) {
+      return originalTransaction.run(() => {
+        const value = body();
+        // Fixed existing-Owner guard, not a user callback. Cover every
+        // transaction (including lease updates without a diagnostic hook),
+        // after all body/fault work and immediately before the real COMMIT.
+        modelCalls?.assertOriginalCurrentCutsUnchangedLocked();
+        return value;
+      });
+    },
+    assertUsable: originalTransaction.assertUsable,
+    get connectionUsable() {return originalTransaction.connectionUsable;},
+  });
   let closed = false;
   let databaseClosed = false;
   try {
@@ -253,6 +270,7 @@ export function openSqliteCheckpointJournal(root, {
       // Never repair a recognized journal by recreating a missing refusal
       // marker table: it may have held a still-unsettled no-send decision.
       database.prepare('SELECT intent_id, generation, refusal_code FROM resume_effect_settlements LIMIT 0');
+      database.prepare('SELECT current_cut_link_json FROM resume_model_scopes LIMIT 0');
       return true;
     };
     const initialized = hasCurrentLayout();
@@ -520,7 +538,7 @@ export function openSqliteCheckpointJournal(root, {
   const transitionAllowed = (from, to) => {
     if (!runtime.runTransitionAllowed(from, to)) fail('RunTransitionRejected');
   };
-  const modelCalls = createModelResumeState(database, {
+  modelCalls = createModelResumeState(database, {
     verifier: modelResumeVerifier, transaction, alive, now, iso, fault,
     admissionLocked, confirmEntryGrant,
     checkpoint: reference => statements.checkpoint.get(reference),

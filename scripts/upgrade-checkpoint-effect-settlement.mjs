@@ -6,9 +6,18 @@ import {fileURLToPath} from 'node:url';
 import {DatabaseSync} from 'node:sqlite';
 import {createHash} from 'node:crypto';
 import {EFFECT_SETTLEMENT_JOURNAL_LAYOUT, PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT,
-  EFFECT_SETTLEMENT_TABLE_SQL} from '../adapters/host-node/sqlite-checkpoint-journal.mjs';
+  MODEL_CURRENT_CUT_JOURNAL_LAYOUT, EFFECT_SETTLEMENT_TABLE_SQL} from '../adapters/host-node/sqlite-checkpoint-journal.mjs';
 
 export function upgradeCheckpointEffectSettlement({root, backupPath, offline = false}) {
+  return upgradeCheckpointLayout({root, backupPath, offline, kind: 'effect'});
+}
+
+// Explicit second offline operation; ordinary startup never ALTERs old roots.
+export function upgradeCheckpointModelCurrentCut({root, backupPath, offline = false}) {
+  return upgradeCheckpointLayout({root, backupPath, offline, kind: 'model-cut'});
+}
+
+function upgradeCheckpointLayout({root, backupPath, offline, kind}) {
   if (offline !== true || typeof root !== 'string' || typeof backupPath !== 'string') {
     throw new Error('OfflineCheckpointUpgradeRequired');
   }
@@ -17,15 +26,20 @@ export function upgradeCheckpointEffectSettlement({root, backupPath, offline = f
   const backup = resolve(backupPath);
   if (path === backup) throw new Error('CheckpointBackupMustBeSeparate');
   const database = new DatabaseSync(path, {enableForeignKeyConstraints: true});
+  const sourceLayout = kind === 'effect' ? PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT : EFFECT_SETTLEMENT_JOURNAL_LAYOUT;
+  const targetLayout = kind === 'effect' ? EFFECT_SETTLEMENT_JOURNAL_LAYOUT : MODEL_CURRENT_CUT_JOURNAL_LAYOUT;
   let transaction = false;
   try {
     database.exec('PRAGMA busy_timeout = 0');
     const version = database.prepare('SELECT value FROM journal_metadata WHERE key = ?')
       .get('schema_version')?.value;
-    if (version !== PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT) throw new Error('UnsupportedCheckpointUpgradeSource');
-    if (database.prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger' OR name = 'resume_effect_settlements'").get()) {
+    if (version !== sourceLayout) throw new Error('UnsupportedCheckpointUpgradeSource');
+    if (database.prepare("SELECT name FROM sqlite_schema WHERE type = 'trigger'").get() ||
+        kind === 'effect' && database.prepare("SELECT name FROM sqlite_schema WHERE name = 'resume_effect_settlements'").get() ||
+        database.prepare('PRAGMA table_info(resume_model_scopes)').all().some(column => column.name === 'current_cut_link_json')) {
       throw new Error('UnexpectedCheckpointUpgradeSchema');
     }
+    if (kind === 'model-cut') database.prepare('SELECT intent_id, generation, refusal_code FROM resume_effect_settlements LIMIT 0');
     if (database.prepare('PRAGMA integrity_check').get().integrity_check !== 'ok' ||
         database.prepare('PRAGMA foreign_key_check').all().length !== 0) {
       throw new Error('CheckpointUpgradeIntegrityFailed');
@@ -41,7 +55,7 @@ export function upgradeCheckpointEffectSettlement({root, backupPath, offline = f
       throw new Error('CheckpointUpgradeBusy');
     }
     if (database.prepare('SELECT value FROM journal_metadata WHERE key = ?')
-      .get('schema_version')?.value !== PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT) {
+      .get('schema_version')?.value !== sourceLayout) {
       throw new Error('CheckpointUpgradeSourceChanged');
     }
     // The operator confirms every Host is stopped. Exclusive writing alone
@@ -69,14 +83,15 @@ export function upgradeCheckpointEffectSettlement({root, backupPath, offline = f
     const backupSha256 = digest.digest('hex');
     // No Run, claim, admission, resolution, Model, or Effect evidence row is
     // rewritten. The new durable observation mode starts empty.
-    database.exec(EFFECT_SETTLEMENT_TABLE_SQL);
+    database.exec(kind === 'effect' ? EFFECT_SETTLEMENT_TABLE_SQL :
+      'ALTER TABLE resume_model_scopes ADD COLUMN current_cut_link_json TEXT DEFAULT NULL');
     const result = database.prepare('UPDATE journal_metadata SET value = ? WHERE key = ? AND value = ?')
-      .run(EFFECT_SETTLEMENT_JOURNAL_LAYOUT, 'schema_version', PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT);
+      .run(targetLayout, 'schema_version', sourceLayout);
     if (result.changes !== 1) throw new Error('CheckpointUpgradeSourceChanged');
     database.exec('COMMIT');
     transaction = false;
     return Object.freeze({path, backup, backupSha256,
-      from: PRE_EFFECT_SETTLEMENT_JOURNAL_LAYOUT, to: EFFECT_SETTLEMENT_JOURNAL_LAYOUT});
+      from: sourceLayout, to: targetLayout});
   } finally {
     try { if (transaction) database.exec('ROLLBACK'); }
     finally { database.close(); }

@@ -234,7 +234,7 @@ export async function writeSyntheticHistoricalHeldSalesforce({directory, documen
     {enableForeignKeyConstraints: true});
   try {
     assert.equal(database.prepare("SELECT value FROM journal_metadata WHERE key = 'schema_version'").get().value,
-      'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1');
+      'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1;model-current-cut-link=1');
     for (const table of ['runs', 'resolutions', 'resume_intents', 'resume_admissions', 'preparations', 'checkpoints']) {
       assert.equal(database.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get().n, 0);
     }
