@@ -41,7 +41,7 @@ priv struct Instance {
   native_attempts : Map[Int, StoredNativeAttempt]
   native_commands : Map[Int, StoredNativeCommand]
   computes : Map[Int, StoredNativeCompute]
-  source_publications : Map[Int, StoredSourcePublication]
+  run_invocations : Map[Int, StoredRunInvocation]
   publication_preflights : Map[Int, StoredPublicationPreflight]
   publishers : Map[Int, StoredPublisher]
   publications : Map[Int, StoredPublication]
@@ -162,7 +162,7 @@ pub fn open(
         native_attempts: {},
         native_commands: {},
         computes: {},
-        source_publications: {},
+        run_invocations: {},
         publication_preflights: {},
         publishers: {},
         publications: {},
@@ -337,7 +337,7 @@ pub fn close_pool(nonce : Int64) -> Int {
   // their existing stop/cleanup boundary before the Root can be closed.
   if !value.native_attempts.is_empty() ||
     !value.computes.is_empty() ||
-    !value.source_publications.is_empty() ||
+    !value.run_invocations.is_empty() ||
     !value.publication_preflights.is_empty() ||
     !value.publishers.is_empty() ||
     !value.publications.is_empty() ||
@@ -384,7 +384,7 @@ pub fn close_pool(nonce : Int64) -> Int {
     value.native_attempts.clear()
     value.native_commands.clear()
     value.computes.clear()
-    value.source_publications.clear()
+    value.run_invocations.clear()
     value.publication_preflights.clear()
     value.publishers.clear()
     value.publications.clear()
