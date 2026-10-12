@@ -370,10 +370,17 @@ fn lower_script_carrier_calls(
   }
   // Only the explicit common bridge makes a Relation available to SELECT and
   // later relational operations. Its schema/order/key evidence is not invented.
+  let visible = known.map(peer => {
+    if input_relation_matches(@query.relation(tail), peer) {
+      { ..input, relation: peer.relation, }
+    } else {
+      peer
+    }
+  })
   lower_script_relation_term(
     construction,
     tail,
-    [{ ..input, relation: @query.relation(tail), }],
+    visible,
     context,
     sources,
     limits,
