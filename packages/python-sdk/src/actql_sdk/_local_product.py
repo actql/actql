@@ -133,6 +133,7 @@ class InstalledLocalHost:
         self._result_chunks: list[_Output] = []
         self._publications: list[_Output] = []
         self._commit_projections: list[OriginalCommitProjection] = []
+        self._commit_requests: dict[int, _Input] = {}
         self._reader_facts: list[OriginalReaderFacts] = []
         self._publication_write_attempts: set[int] = set()
         self._pending_publication_write: OriginalCommitProjection | None = None
@@ -1561,6 +1562,80 @@ class InstalledLocalHost:
             installation.binding.inspect(advance)
             return completed[0]
 
+    def _prepare_original_commit_candidate(self, publication: _Output, preflight: _Output) -> None:
+        """Pass the complete original Sealed binding inventory to Core once.
+
+        The retained input/time is physical request custody, not publication
+        permission or a Run state. Core checks the original Manifest, Receipt,
+        Captured Run, normalization and binding chain under its existing work
+        budget. A failed preparation never receives a replacement request.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        if (configuration is None or not configuration.sdk
+                or not any(value is publication for value in self._publications)
+                or not any(value is preflight for value in self._publication_preflights)):
+            raise ValueError('Foreign original commit candidate custody')
+        with self._core._lock:
+            request = self._commit_requests.get(publication.ticket)
+            if request is None:
+                bindings: list[str] = []
+                def project(_: _Output) -> None:
+                    count = self._core.publication_preflight_result_count(preflight, configuration.handle)
+                    selected = [held for held in self._payloads if held.publication is publication]
+                    if len(selected) != count:
+                        raise ValueError('Incomplete original Local payload binding inventory')
+                    for index in range(count):
+                        matches = [held for held in selected if held.index == index]
+                        if len(matches) != 1:
+                            raise ValueError('Ambiguous original Local payload binding ordinal')
+                        held = matches[0]
+                        self._payload_original(held)
+                        if held.binding is None or held.reader is None:
+                            raise ValueError('Original Sealed binding/reader is unavailable')
+                        held.reader.root.observe_completed_reader(held.reader)
+                        bindings.append(self._core.read_payload_binding(
+                            held.binding, configuration.handle).decode('utf-8'))
+                installation.binding.inspect(project)
+                seconds, milliseconds = divmod(self._now(), 1000)
+                committed_at = datetime.fromtimestamp(seconds, timezone.utc).replace(
+                    microsecond=milliseconds * 1000).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+                request = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
+                    'bindings': bindings, 'committed_at': committed_at,
+                }))
+                self._commit_requests[publication.ticket] = request
+            installation.binding.inspect(lambda _:
+                self._core.prepare_publication_commit(publication, request, configuration.handle))
+
+    def _advance_original_commit_candidate(self, publication: _Output) -> OriginalCommitProjection | None:
+        """Advance the original Core budget once; Done yields a readonly view.
+
+        A view/finish Unit is not Store installation, durable ACK or Run success.
+        It keeps the original preparation/index/cursor for the physical Store
+        and full-chain observed-index adoption, with independent publisher checks.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        if (configuration is None or not configuration.sdk
+                or not any(value is publication for value in self._publications)
+                or publication.ticket not in self._commit_requests):
+            raise ValueError('Original commit preparation is unavailable')
+        with self._core._lock:
+            for projection in self._commit_projections:
+                if projection._publication is publication:
+                    installation.binding.inspect(lambda _: projection.count())
+                    return projection
+            progress = []
+            installation.binding.inspect(lambda _:
+                progress.append(self._core.advance_publication_commit(publication, configuration.handle, 16)))
+            if not progress[0].ready:
+                return None
+            installation.binding.inspect(lambda _:
+                self._core.finish_publication_commit(publication, configuration.handle))
+            projection = OriginalCommitProjection(self._core, publication, configuration.handle, cleanup=lambda: True)
+            self._commit_projections.append(projection)
+            return projection
+
     def _store_original_commit(self, projection: OriginalCommitProjection,
                                facts: tuple[OriginalReaderFacts, ...],
                                originals: tuple[tuple[ByteFence, CapacityReservation], ...],
@@ -1722,6 +1797,7 @@ class InstalledLocalHost:
                 if not self._core.close_publication(publication):
                     return False
                 self._publications.remove(publication)
+                self._commit_requests.pop(publication.ticket, None)
                 self._publication_write_attempts.discard(publication.ticket)
                 if (self._pending_publication_write is not None
                         and self._pending_publication_write._publication is publication):
