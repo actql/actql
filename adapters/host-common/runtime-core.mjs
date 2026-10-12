@@ -1799,6 +1799,7 @@ function publicationControl(moon) {
   if (control !== undefined) return control;
   const tokens = new WeakMap();
   const evidenceTokens = new WeakMap();
+  const modelOriginalDocumentTokens = new WeakMap();
   const admissionTokens = new WeakMap();
   const compiledRunTokens = new WeakMap();
   const inferInvocationTokens = new WeakMap();
@@ -4260,6 +4261,24 @@ function publicationControl(moon) {
     },
     runDefinitionRunId(runDefinition) {
       return checked(moon.strategyRunDefinitionRunId(token(runDefinition)));
+    },
+    // The Common reader checks the exact canonical document and embedded
+    // resource CID. This private handle carries data, never restored custody.
+    readModelOriginalResourceDocument(wire, limits) {
+      if (typeof wire !== 'string') throw new TypeError('Invalid original Model document');
+      issuanceLimits(limits, 'Original Model document');
+      const {maxWireBytes, maxNodes, maxDepth} = limits;
+      const document = checked(moon.clientProgramReadModelOriginalResourceDocument(
+        wire, maxWireBytes, maxNodes, maxDepth));
+      const view = Object.freeze({kind: 'model-original-resource-document', wire});
+      modelOriginalDocumentTokens.set(view, document);
+      return view;
+    },
+    modelOriginalResourceOriginField(document, field) {
+      const original = modelOriginalDocumentTokens.get(document);
+      if (original === undefined) throw new TypeError('Foreign original Model document');
+      if (typeof field !== 'string') throw new TypeError('Invalid original Model origin field');
+      return moon.clientProgramModelOriginalResourceOriginField(original, field);
     },
     runCancellationConfirmed(facts) {
       const names = ['cancellationRequested', 'modelFenceRequired', 'modelFenced',
