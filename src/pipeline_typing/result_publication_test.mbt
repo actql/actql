@@ -163,7 +163,7 @@ test "conditional publication uses the strict ProjectedFields and Inherited plan
     } else {
       @pipeline_typing.check_carriers(cursor(body), [], None, None, limits()).unwrap()
     }
-    let target = if body == "[]" { Input(0) } else { Step(0) }
+    let target : @pipeline_typing.Target = if body == "[]" { Input(0) } else { Step(0) }
     let projection = producer_select(p, target, "[\"id\"]")
     let conditional = @pipeline_typing.prepare_produced_publication(
       p,
