@@ -418,31 +418,11 @@ fn start_occurrence(
   // a large caller envelope cannot silently widen the selected contract.
   // Replay consumes existing observations, not another physical allowance.
   let limits = if source is Physical(_) && plan is Some(graph) {
-    let execution = @publication_host.client_infer_plan_graph_execution_contract(
-      graph,
-    )
-    let ledger = limits.model.ledger
     {
       ..limits,
       model: {
         ..limits.model,
-        ledger: {
-          ..ledger,
-          attempts: Int64::min(
-            ledger.attempts.to_int64(),
-            @environment.model_execution_ceiling(
-              execution,
-              @environment.TotalAttempts,
-            ),
-          ).to_int(),
-          transfer_bytes: Int64::min(
-            ledger.transfer_bytes,
-            @environment.model_execution_ceiling(
-              execution,
-              @environment.TotalWireBytes,
-            ),
-          ),
-        },
+        ledger: original_model_ledger_limits(graph, limits.model),
       },
     }
   } else {
@@ -618,53 +598,73 @@ fn stopped(active : Execution) -> Poll {
 fn begin_model(active : Execution) -> Poll {
   guard active.rows is Some(rows) else { return fail(active, InvalidAdvance) }
   let started = match active.source {
-    Physical(provider) => if active.original_preparation is Some(original) {
-      guard active.run_binding is Some(bound) &&
-        active.plan is Some(plan) && active.call_scope is Some(scope) else {
-        return fail(active, InvalidAdvance)
-      }
-      // The seal is retained before attempting startup. A refused start must
-      // not lose its unconsumed original capacity or input cleanup custody.
-      let issued = match original.read {
-        Bound(read) => @model.prepare_original_model_startup(
-          read, bound.compiled, bound.definition, plan, scope, rows,
-          original.retained_bytes, original.execution_bytes,
+    Physical(provider) =>
+      if active.original_preparation is Some(original) {
+        guard active.run_binding is Some(bound) &&
+          active.plan is Some(plan) &&
+          active.call_scope is Some(scope) else {
+          return fail(active, InvalidAdvance)
+        }
+        // The seal is retained before attempting startup. A refused start must
+        // not lose its unconsumed original capacity or input cleanup custody.
+        let issued = match original.read {
+          Bound(read) =>
+            @model.prepare_original_model_startup(
+              read,
+              bound.compiled,
+              bound.definition,
+              plan,
+              scope,
+              rows,
+              original.retained_bytes,
+              original.execution_bytes,
+            )
+          Claimed(consumer) =>
+            @model.prepare_original_model_consumer_startup(
+              consumer,
+              bound.compiled,
+              bound.definition,
+              plan,
+              scope,
+              rows,
+              original.retained_bytes,
+              original.execution_bytes,
+            )
+        }
+        let startup = match issued {
+          Ok(value) => value
+          Err(issue) => return fail(active, OriginalCapacity(issue))
+        }
+        original.startup = Some(startup)
+        @model.start_original_model_execution(
+          startup,
+          rows,
+          provider,
+          active.fixed_request_cid,
+          active.limits.model,
+          scope,
+          dispatch_admission=active.dispatch_admission,
+          durable_calls=active.durable_calls,
+          send_mask=active.model_send_mask,
+          quantity_capacity=active.quantity_capacity,
+          physical_preflight=active.physical_preflight,
+          egress_admission=active.egress_admission,
         )
-        Claimed(consumer) => @model.prepare_original_model_consumer_startup(
-          consumer, bound.compiled, bound.definition, plan, scope, rows,
-          original.retained_bytes, original.execution_bytes,
+      } else {
+        @model.start_model_execution(
+          rows,
+          provider,
+          active.fixed_request_cid,
+          active.limits.model,
+          call_scope=active.call_scope,
+          dispatch_admission=active.dispatch_admission,
+          durable_calls=active.durable_calls,
+          send_mask=active.model_send_mask,
+          quantity_capacity=active.quantity_capacity,
+          physical_preflight=active.physical_preflight,
+          egress_admission=active.egress_admission,
         )
       }
-      let startup = match issued {
-        Ok(value) => value
-        Err(issue) => return fail(active, OriginalCapacity(issue))
-      }
-      original.startup = Some(startup)
-      @model.start_original_model_execution(
-        startup, rows, provider, active.fixed_request_cid, active.limits.model,
-        scope,
-        dispatch_admission=active.dispatch_admission,
-        durable_calls=active.durable_calls,
-        send_mask=active.model_send_mask,
-        quantity_capacity=active.quantity_capacity,
-        physical_preflight=active.physical_preflight,
-        egress_admission=active.egress_admission,
-      )
-    } else {
-      @model.start_model_execution(
-        rows,
-        provider,
-        active.fixed_request_cid,
-        active.limits.model,
-        call_scope=active.call_scope,
-        dispatch_admission=active.dispatch_admission,
-        durable_calls=active.durable_calls,
-        send_mask=active.model_send_mask,
-        quantity_capacity=active.quantity_capacity,
-        physical_preflight=active.physical_preflight,
-        egress_admission=active.egress_admission,
-      )
-    }
     Replay(capture) => {
       guard active.call_scope is Some(scope) else {
         return fail(active, Model(@model.OutputIdentity))

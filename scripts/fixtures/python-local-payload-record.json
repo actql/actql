@@ -1,0 +1,25 @@
+{
+  "description": "Independently authored initial Core Intent and original physical CAS observation; not a payload capacity reservation, Store install or Run publication.",
+  "record_version": "actql-publication-payload-record/0.2",
+  "initial_fields": {
+    "actual_bytes": "-1",
+    "device": "",
+    "inode": "",
+    "physical_digest": "",
+    "revision": "0",
+    "state": "intent",
+    "ownership_device": "",
+    "ownership_inode": ""
+  },
+  "physical_revision": 0,
+  "max_record_bytes": 65536,
+  "physical_copy_bytes": 131300,
+  "cases": [
+    "unfinished_request_cannot_export_initial_record",
+    "original_intent_and_current_authority_preserved",
+    "foreign_store_key_revision_and_bytes_do_not_confirm",
+    "lost_cas_acknowledgement_never_repeats_write",
+    "same_initial_record_confirmed_without_capacity_or_publication",
+    "pending_close_and_cleanup_retain_original_request_and_input"
+  ]
+}

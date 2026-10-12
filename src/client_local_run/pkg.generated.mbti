@@ -46,6 +46,8 @@ pub fn install_local_preflight_publisher_port(LocalPublicationPreflight, String,
 
 pub fn issue_local_preflight_result_publication(LocalPublicationPreflight, Int, @run_publication_host.PublicationOutputExport, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[LocalResultPublication, LocalPublicationIntentIssue]
 
+pub fn issue_local_preflight_sealed_result_binding(LocalPublicationPreflight, Int, LocalResultPublication, @publication_payload.PublicationPayloadRecord, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[@run_publication.PublicationContract, LocalPublicationPayloadIssue]
+
 pub fn issue_local_result_durable_binding(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, String, String, Int, String, Int, Int, Int) -> Result[@run_publication.PublicationContract, LocalResultPublicationIssue]
 
 pub fn issue_local_result_publication(LocalComputeHost, LocalSourceInvocation, @run_publication_host.PublicationOutputExport, @run_publication.PublicationContract, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[LocalResultPublication, LocalResultPublicationIssue]
@@ -65,6 +67,8 @@ pub fn local_compute_run(LocalComputeHost) -> @physical_strategy.CapturedDAG
 pub fn local_native_source_configuration(LocalNativeSourceConfiguration) -> @host.NativeHostConfiguration
 
 pub fn local_native_source_requirement(LocalNativeSourceConfiguration) -> @query_planning.QueryRequirement
+
+pub fn local_preflight_result_schema_field(LocalPublicationPreflight, Int, LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, LocalResultSchemaField) -> Result[String, LocalResultSchemaIssue]
 
 pub fn local_publication_intent_contracts(LocalPublicationIntent) -> (@run_publication.PublicationContract, @run_publication.PublicationContract)
 
@@ -143,6 +147,8 @@ pub fn start_local_publication_commit_check(LocalRunManifest, LocalRunNormalizat
 pub fn start_local_result_publication_snapshot(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[@run_publication_host.PublicationOutputSnapshotPreparation, LocalResultPublicationIssue]
 
 pub fn start_local_run_capture(LocalRunManifest, LocalRunNormalization, Array[@run_publication.CapturedResultSnapshot], @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int, Int) -> Result[(@run_publication.CapturedRunIssuancePreparation, @run_publication.PublicationContract), LocalResultPublicationIssue]
+
+pub fn validate_local_preflight_commit_binding(LocalPublicationPreflight, Int, LocalResultPublication, @publication_payload.PublicationPayloadRecord, @execution_authorization.AdmittedAccountConfiguration, @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, LocalResultCommitBindingIssue]
 
 pub fn validate_local_publication_preflight_current(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalPublicationIntentIssue]
 
@@ -223,6 +229,11 @@ pub(all) enum LocalPublicationPayloadIssue {
 
 type LocalPublicationPreflight
 
+pub(all) enum LocalResultCommitBindingIssue {
+  Payload(LocalPublicationPayloadIssue)
+  BindingMismatch
+}
+
 pub struct LocalResultPublication {
   host : LocalComputeHost
   invocation : LocalSourceInvocation
@@ -246,6 +257,16 @@ pub(all) enum LocalResultPublicationIssue {
   ForeignReceipt
   Invocation(@run_publication.RunEvidenceValueIssue)
   Authoring(@run_publication_host.ClientAuthoringContextIssue)
+  Output(@run_publication_host.PublicationOutputExportIssue)
+}
+
+pub(all) enum LocalResultSchemaField {
+  Identity
+  Wire
+}
+
+pub(all) enum LocalResultSchemaIssue {
+  Preflight(LocalPublicationIntentIssue)
   Output(@run_publication_host.PublicationOutputExportIssue)
 }
 

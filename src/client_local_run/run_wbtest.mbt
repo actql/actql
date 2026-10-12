@@ -103,7 +103,7 @@ fn plan(input : @input.LocalPreparedInput, id : String) -> LocalRunPlan {
 
 ///|
 test "structured and AQL materials restore the original admitted Run and request" {
-  let text = "/*😀*/\r\nDATA seed = SELECT 1 AS n; FROM seed |> EXTEND n + 1 AS value |> SELECT value |> RESULT answer"
+  let text = "/*😀*/\r\nWITH seed AS (SELECT 1 AS n) FROM seed |> EXTEND n + 1 AS value |> SELECT value |> RESULT answer"
   for
     (original, id) in [
       (@input.Program(program), "structured-run"),

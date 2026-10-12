@@ -12,6 +12,9 @@ priv struct StoredPayloadRequest {
   mut produced : Bool
   mut closing : Bool
   mut output_closed : Bool
+  mut replay : @host.PublicationOutputReplay?
+  mut replay_ended : Bool
+  mut replay_issue : StoredPayloadReplayIssue?
 }
 
 ///|
@@ -68,6 +71,9 @@ pub fn reserve_payload_request(
     produced: false,
     closing: false,
     output_closed: false,
+    replay: None,
+    replay_ended: false,
+    replay_issue: None,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -170,6 +176,13 @@ pub fn close_payload_request(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   record.closing = true
+  if value.payload_chunks.values().any(chunk => chunk.request == handle) ||
+    value.payload_records.values().any(record => record.request == handle) {
+    return -9
+  }
+  if record.replay is Some(replay) {
+    replay.cancel()
+  }
   if !record.output_closed {
     let code = status(@buffers.close_buffer(value.pool, record.slot))
     if code != 0 {

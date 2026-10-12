@@ -1,0 +1,20 @@
+{
+  "description": "Independent exact bytes and private replay boundaries; no product-output expectation generation.",
+  "exact_payload": "[{\"next\":5}]",
+  "max_chunk_bytes": 65536,
+  "physical_copy_bytes": 131300,
+  "capacity_refusal_status": -4,
+  "authorization_refusal_status": -32,
+  "unfinished_status": -33,
+  "cleanup_pending_status": -9,
+  "cases": [
+    "unfinished_request_cannot_open_replay",
+    "original_request_and_result_open_once_under_current_custody",
+    "capacity_refusal_before_replay_advance",
+    "bounded_chunk_and_lost_ack_use_same_original_bytes",
+    "current_authority_rechecked_for_production_and_cached_read",
+    "failed_chunk_cleanup_retains_exact_allocation_for_retry",
+    "live_final_chunk_keeps_parent_request_and_original_borrow",
+    "exact_replay_eof_and_stale_chunk_refusal_without_source_compute_repeat"
+  ]
+}

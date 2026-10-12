@@ -2034,6 +2034,8 @@ set. A profile claim by itself does not authorize provider access.
 
 <a id="machine-contracts"></a>
 
+<!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/compiled_plan sha256:090a83a3999ddc0ac740a1edb7c62b8b3804750d7f3dfcffb23b706cf338db39 -->
+
 ## Machine contracts
 
 These exact schema/law references are owned here. Their identities do not include this document or another owner's aggregate contract.

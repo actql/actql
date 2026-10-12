@@ -1,0 +1,39 @@
+{
+  "authority_scope_cid": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+  "run_definition_cid": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+  "vectors": [
+    {
+      "namespace": "local",
+      "preimage": "{\"authority_scope_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"namespace_id\":\"local\",\"run_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"version\":\"actql-public-index-key/0.1\"}",
+      "key": "1d1daf4340a0b94e94c40af7329fa6f3f99e139ed8a009ef4b7c4d76c0c85e33"
+    },
+    {
+      "namespace": "é/~😀",
+      "preimage": "{\"authority_scope_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"namespace_id\":\"é/~😀\",\"run_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"version\":\"actql-public-index-key/0.1\"}",
+      "key": "a3daec031e0d628b113f6545c2dcb943d909807652ef7cdb202693b0cdb63e38"
+    },
+    {
+      "namespace": "é/~😀",
+      "preimage": "{\"authority_scope_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"namespace_id\":\"é/~😀\",\"run_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"version\":\"actql-public-index-key/0.1\"}",
+      "key": "3388ea28f2524f0dfa70e50a329cb8446ecd3d4d6fbe3944705547ba0122fba9"
+    },
+    {
+      "namespace": "line\r\nend",
+      "preimage": "{\"authority_scope_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"namespace_id\":\"line\\r\\nend\",\"run_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"version\":\"actql-public-index-key/0.1\"}",
+      "key": "09c9e020c4130a43741cbafbce5117d32f09e3957754ebf421c190733b56715b"
+    },
+    {
+      "namespace": "namespace_id",
+      "preimage": "{\"authority_scope_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"namespace_id\":\"namespace_id\",\"run_definition_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"version\":\"actql-public-index-key/0.1\"}",
+      "key": "d167a9d157f68cfd462313a94337c5db45da403a5ad2f39e305e8abe5318bd47"
+    }
+  ],
+  "cases": [
+    "original_key_and_current_authority_refusal",
+    "immutable_projection_and_cached_current_access",
+    "same_key_cleanup_retry_and_retired_read_refusal",
+    "key_matches_original_index_scope",
+    "shared_work_and_source_queries_unchanged",
+    "parent_close_refuses_key_without_reexecution"
+  ]
+}

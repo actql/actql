@@ -1,0 +1,19 @@
+{
+  "description": "Independent private ABI33 name oracle. Prepared actual consumer, not executed. Request identity is compared to the original owned record, never replaced with an invented request.",
+  "max_bytes": 1024,
+  "physical_copy_bytes": 2304,
+  "staging_name": "stage-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "object_name": "payload-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "material_generation_cid": "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+  "store_authority_cid": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+  "record_revision": "3",
+  "cases": [
+    "unowned_record_cannot_project_filesystem_names",
+    "original_owned_names_are_closed_and_revision_bound",
+    "cached_names_require_current_authority_without_redispatch",
+    "duplicate_or_wrong_parent_cannot_acquire_another_projection",
+    "prepared_sealed_candidate_does_not_advance_original_names",
+    "failed_cleanup_keeps_original_names_handle_and_allocation",
+    "successful_same_handle_cleanup_rejects_reuse"
+  ]
+}

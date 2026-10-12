@@ -169,6 +169,8 @@ pub fn client_program_append_captured_source_identity_scan(@execution_query.Capt
 
 pub fn client_program_author_effect_preview(String, String, String, @logical_request_scope.LogicalRequestScope, Int, Int, Int, Int, Int, Int, Int, Int) -> Result[(String, Array[Array[@effect_application.EffectDispatchKey]]), ClientEffectPreviewAuthorIssue]
 
+pub fn client_program_begin_infer_original_read_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelQuantityCapacity?, Int64, Int64, Int, Int, Int) -> Result[@run_publication_host.ClientModelReadScope, @client_infer_host.Issue]
+
 pub fn client_program_bind_compiled_effect_run(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectAllowedRun, @run_publication.PublicationContract) -> Result[@run_publication_host.PreparedClientEffectRun, @run_publication_host.ClientEffectCompiledRunIssue]
 
 pub fn client_program_bind_compiled_infer_result_policy(@run_publication_host.ClientCompiledRun, String, String, Int, Int, Int) -> Result[@run_publication_host.ClientCompiledRun, @run_publication_host.ClientCompiledRunIssue]
@@ -642,6 +644,8 @@ pub fn client_program_export_infer_prepared_input(@client_infer_host.Execution, 
 pub fn client_program_export_source_capture(@execution_query.CapturedInputSource, @query_planning.QueryRequirement, String) -> Result[@client_local_host.ClientSourceCaptureExport, @client_local_host.ClientSourceCaptureIssue]
 
 pub fn client_program_finish_captured_source_identity_scan(@execution_query.CapturedSourceIdentityScan) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIdentityScanIssue]
+
+pub fn client_program_finish_infer_original_read_scope(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, Bool) -> Result[Bool, @run_publication_host.ClientModelReadPreparationIssue]
 
 pub fn client_program_identify_captured_effect_source_relation(@execution_query.CapturedInputSource) -> Result[@execution_query.CapturedSourceRelationIdentity, @execution_query.CapturedSourceIssue]
 
@@ -1144,6 +1148,8 @@ pub fn client_program_prepare_effect_free_with_parameters(String, String, @progr
 pub fn client_program_prepare_effect_infer_segments(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientInferOccurrence, String, String, String, String) -> Result[(@execution_relation.GeneratedSequence, @execution_relation.GeneratedSequence?), @client_infer_host.Issue]
 
 pub fn client_program_prepare_infer_compute_suffix(@run_publication_host.PreparedClientProgram, Int, String, String, String, String) -> Result[@execution_relation.GeneratedSequence?, @client_infer_host.Issue]
+
+pub fn client_program_prepare_infer_node_read_layout(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[@run_publication_host.ClientModelReadPreparation, @run_publication_host.ClientModelPreparationLayoutIssue]
 
 pub fn client_program_prepare_infer_response_reconciliation(@model_execution.ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@model_execution.ModelResponseReconciliation, @model_execution.ModelExecutionIssue]
 
