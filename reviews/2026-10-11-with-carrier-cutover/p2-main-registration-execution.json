@@ -1,0 +1,363 @@
+{
+  "status": "registered_generation_and_finite_source_checks_closed",
+  "adopted_main": "1133df9ae78831b95bd2163eb43481be30374fe4",
+  "submitted_ancestor": "b9959043800541de8c3fc581a544e4ee784a1951",
+  "normal_merge": "ac631909eea211e10847c6d8c85cdec54bf5d1b2",
+  "fixed_verification_source": "c906508d4354088ef0aaff27eb57149df21a0030",
+  "fixed_verification_tree": "4d8d8c1f4c3ec191bf66890525589a9d4992d927",
+  "conflict_resolution": [
+    "spec/requirements/artifacts.json: retained main exact-artifacts pending statement hash",
+    "spec/spec-family.json: retained main registered-owner metadata, then regenerated combined-source imports"
+  ],
+  "generator_changes": [
+    "four contracts document CIDs in spec-family.json",
+    "current grammar manifest canonical input and CID assertion"
+  ],
+  "unchanged_independent_grammar_cid": "sha256:7c9347a89c7a097c608edbbd162631a438cd49e7e6822ac4d2a5dc800bf625eb",
+  "unchanged_independent_values_run_cid": "sha256:12bf2b06808781ed3ee15ce8fd7e9ad229401a075bfc69f00960899fb9ff912c",
+  "attempts": [
+    {
+      "source": "ac631909eea211e10847c6d8c85cdec54bf5d1b2",
+      "tree": "0b777a6ec9e0c857aef47c5ad2f7f2bce329ebbd",
+      "run": "run-48lT2L",
+      "focused": [],
+      "counts": null,
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 49315,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "commands": [
+        [
+          "node",
+          "scripts/compilation-manifests.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/sga-signature-role-identity-oracle.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/update-document-metadata.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/check-actql-spec-family.mjs",
+          "--write"
+        ],
+        [
+          "node",
+          "scripts/check-canonical-json.mjs",
+          "--write"
+        ]
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/run-48lT2L/summary.json",
+          "bytes": 3093,
+          "sha256": "0908d70295ba7bccb6ad3c3aa94dcbd7e8ec10b6d86507a130636b7fe32bf648"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/run-48lT2L/output.log",
+          "bytes": 1817,
+          "sha256": "56979cee59612558093da064c984354f42c999b06200198bf4e11923be1f1c79"
+        }
+      ]
+    },
+    {
+      "source": "c906508d4354088ef0aaff27eb57149df21a0030",
+      "tree": "4d8d8c1f4c3ec191bf66890525589a9d4992d927",
+      "run": "run-cs1SA1",
+      "focused": [
+        "focused-test-ILOMVY",
+        "focused-test-70R5Y3"
+      ],
+      "counts": {
+        "js": 16,
+        "canonical_js": 1
+      },
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 50241,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/query_syntax/sga_role_contract_test.mbt",
+          "src/query_syntax/producer_scope_wbtest.mbt",
+          "src/query_program/sga_role_lowering_test.mbt",
+          "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+        ],
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/canonical_json/identity_vectors.generated_test.mbt",
+          "--filter",
+          "contract spec/manifests/actql-grammar-0.1.json#"
+        ]
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/run-cs1SA1/summary.json",
+          "bytes": 2615,
+          "sha256": "60d7e2c93e3c689dc7d23723a84d264ae79d32372ac46d83fbe7698dd0b2d7b6"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/run-cs1SA1/output.log",
+          "bytes": 946,
+          "sha256": "6bd92b7bbf9cfbc78dd82809bc20188894ca5a47f12abf221ba5cebeabcaf55a"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-ILOMVY/0001.summary.json",
+          "bytes": 630,
+          "sha256": "830f792ae4e240dcca5c35848c090516e22b2e12e41df0e867fbfbc71f26495d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-ILOMVY/summary.json",
+          "bytes": 1989,
+          "sha256": "2ea9d27185b269457d05614cccc077753e1a42b9dde843b2303561e2c192d05c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-ILOMVY/001.stdout.log",
+          "bytes": 40,
+          "sha256": "f50ce06797bc93504dd0ac75cc2d752711467886b159ce549d1def601b31b490"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-ILOMVY/001.started.json",
+          "bytes": 976,
+          "sha256": "63dc7a504a560326c2a49cd7b88c1c28a7c13d0db6685845c1b9ba4b2ace3529"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-ILOMVY/001.result.json",
+          "bytes": 1168,
+          "sha256": "830c4d1d8feceb84ece6d1ade6db45300ad4115c4432810ac30f0b4b4865e287"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-ILOMVY/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-ILOMVY/0002.summary.json",
+          "bytes": 1741,
+          "sha256": "18793a8bf1e01201716abe44536f33c35fa16ab4439dda0d053034028d37daca"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-ILOMVY/0004.summary.json",
+          "bytes": 1989,
+          "sha256": "2ea9d27185b269457d05614cccc077753e1a42b9dde843b2303561e2c192d05c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-ILOMVY/0003.summary.json",
+          "bytes": 1969,
+          "sha256": "21ee4791d1e2e68a52a83094d774a38c65594c0efd78887794d931dbad5a7044"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-70R5Y3/0001.summary.json",
+          "bytes": 630,
+          "sha256": "b85cde519c316b4ad8bd32022d34901ca569be0caf4c38b53d850182a04469c0"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-70R5Y3/summary.json",
+          "bytes": 1885,
+          "sha256": "183c6512d2c434914a2adf1dd2a6cdb013c0244834d55a98352de6a274bef98d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-70R5Y3/001.stdout.log",
+          "bytes": 38,
+          "sha256": "b136ac6dbfa8a737c1c47b4ab55287d32add1374feaea7f839a55b45a9685782"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-70R5Y3/001.started.json",
+          "bytes": 885,
+          "sha256": "6c6d28636ce70a34972fc60d68c6539cbe49d5e01742cc33e6b1a8b70197548d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-70R5Y3/001.result.json",
+          "bytes": 1068,
+          "sha256": "9dbe44500be137e1df8819230b2705ea80726e03f7d1b8678ec62435418b832c"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-70R5Y3/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-70R5Y3/0002.summary.json",
+          "bytes": 1646,
+          "sha256": "ff766d73dbe4f43a8ce594bcae563d0d6e1955f3f06c5e8fca0ecbc1a4eb7142"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-70R5Y3/0004.summary.json",
+          "bytes": 1885,
+          "sha256": "183c6512d2c434914a2adf1dd2a6cdb013c0244834d55a98352de6a274bef98d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-70R5Y3/0003.summary.json",
+          "bytes": 1865,
+          "sha256": "f285fd7d8cbaf05065b31cbc63de2618feb73e66d7ab1d5f511909f4d7be154d"
+        }
+      ]
+    },
+    {
+      "source": "c906508d4354088ef0aaff27eb57149df21a0030",
+      "tree": "4d8d8c1f4c3ec191bf66890525589a9d4992d927",
+      "run": "run-LINc58",
+      "focused": [
+        "focused-test-qw4jCq"
+      ],
+      "counts": {
+        "node": 89
+      },
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 50992,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "node",
+          "scripts/sga-signature-role-identity.test.mjs",
+          "scripts/sga-query-call-contract.test.mjs",
+          "scripts/compilation-manifests.test.mjs",
+          "scripts/client-values-run-materials-vector.test.mjs",
+          "scripts/frontend-profile.test.mjs"
+        ]
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/run-LINc58/summary.json",
+          "bytes": 1820,
+          "sha256": "acabc2314eafaec03d11397de477273280afb3ee3f62a3582c4cb105b3587dc4"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/run-LINc58/output.log",
+          "bytes": 47246,
+          "sha256": "3263854dcd1cbafb0b091558ed1544a19b100296efb3998d1041a5a6398681f4"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-qw4jCq/0001.summary.json",
+          "bytes": 630,
+          "sha256": "977d1521006120491e72bcb6d427fc23c85fa44f9f19facfcb46b65c36262f34"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-qw4jCq/summary.json",
+          "bytes": 2167,
+          "sha256": "6d83365f0dee01689b2d218d09465a23255d6c4b701ae204e79516f0f4cf10e0"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-qw4jCq/001.stdout.log",
+          "bytes": 46580,
+          "sha256": "5ebf749e4069b09171966961b22be5b66db6da79e9e215fe9acef9b67dc7c01d"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-qw4jCq/001.started.json",
+          "bytes": 1173,
+          "sha256": "e2091cfa2a8dd51d5fc3c09875c3a8ba26f3132b3ecabfafc804af10d7c2e6aa"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-qw4jCq/001.result.json",
+          "bytes": 1346,
+          "sha256": "e622b4198db9a7f3500ec3fb8eed174968f247c423bc4bff6514f22f3669d39f"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-qw4jCq/001.stderr.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-qw4jCq/0002.summary.json",
+          "bytes": 1938,
+          "sha256": "f302f91bb9973234d2a40fc67a358b34255af27e27540ff542ef8f76c56814a0"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-qw4jCq/0004.summary.json",
+          "bytes": 2167,
+          "sha256": "6d83365f0dee01689b2d218d09465a23255d6c4b701ae204e79516f0f4cf10e0"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/focused-test-qw4jCq/0003.summary.json",
+          "bytes": 2147,
+          "sha256": "ea92b850f80503ae61239bd124577eee8e595ca0ad7230d102ead34d6599f00a"
+        }
+      ]
+    },
+    {
+      "source": "c906508d4354088ef0aaff27eb57149df21a0030",
+      "tree": "4d8d8c1f4c3ec191bf66890525589a9d4992d927",
+      "run": "run-5YVShO",
+      "focused": [],
+      "counts": {
+        "readonly": 4
+      },
+      "exit_code": 0,
+      "complete": true,
+      "output_complete": true,
+      "owner_pid": 51222,
+      "locks_released": true,
+      "actual_owner_group_lock_absence_observed": true,
+      "commands": [
+        [
+          "node",
+          "scripts/compilation-manifests.mjs"
+        ],
+        [
+          "node",
+          "scripts/update-document-metadata.mjs"
+        ],
+        [
+          "node",
+          "scripts/check-actql-spec-family.mjs"
+        ],
+        [
+          "node",
+          "scripts/check-canonical-json.mjs"
+        ]
+      ],
+      "retained_files": [
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/run-5YVShO/summary.json",
+          "bytes": 2531,
+          "sha256": "78a1ad5a86dbe7eed9fbc3e48753dd1f0f5c6c09cbb0d9555e5e054b04512a92"
+        },
+        {
+          "path": "reviews/2026-10-11-with-carrier-cutover/p2-main-registration-evidence/run-5YVShO/output.log",
+          "bytes": 449,
+          "sha256": "b136f79bd7eb328bae32856451ffe3999edf7193a02c31c2a9e6872ca7469eba"
+        }
+      ]
+    }
+  ],
+  "retained_failures": [
+    "run-e18KwW: missing compiled_plan owner before Root #1575 repair",
+    "run-Vlguzf: Node86/89 at prior source; never relabeled as passing"
+  ],
+  "unverified": [
+    "public Local/HTTPS and new five-package distribution",
+    "remaining full P2 name admission and VecA/TEA adapter",
+    "Native/Wasm execution, full Frontend, hosted CI"
+  ],
+  "private_followup": "SGA reserved OutputName followup b65a0d943 remains separate and is not included in #1572"
+}
