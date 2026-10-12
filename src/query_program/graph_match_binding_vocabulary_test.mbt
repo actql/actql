@@ -8,12 +8,12 @@ test "uppercase Graph node binding matches an independent complete Program" {
     format=Json,
   ).unwrap()
   check_graph_union_source(expected)
-  for bindings in ["IDENTITY: 'Element'", "`Identity`: 'Element'"] {
+  for bindings in ["IDENTITY: `Element`", "`Identity`: `Element`"] {
     let actual = compile_with_set(
       graph_union_prefix() +
       "FROM g |> MATCH_NODES(DEFINITION: 'N', BINDINGS: {" +
       bindings +
-      "}, WHERE: {literal: true}, FIELDS: ['Element', 'p']) |> SELECT Element, p",
+      "}, WHERE: {literal: true}, FIELDS: [`Element`, `p`]) |> SELECT Element, p",
     )
     assert_eq(semantic(actual), semantic(expected))
     check_graph_union_source(actual)
@@ -24,7 +24,7 @@ test "uppercase Graph node binding matches an independent complete Program" {
 test "uppercase Graph edge roles retain distinct typed endpoints" {
   let actual = compile_with_set(
     "WITH n AS (SELECT 2 AS node_key, 'B' AS name UNION ALL SELECT 1 AS node_key, 'A' AS name), e AS (SELECT 11 AS edge_key, 1 AS src_key, 2 AS dst_key UNION ALL SELECT 10 AS edge_key, 1 AS src_key, 2 AS dst_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (name)) EDGE TABLES (e AS E KEY (edge_key) SOURCE KEY (src_key) REFERENCES N DESTINATION KEY (dst_key) REFERENCES N LABEL R NO PROPERTIES))) " +
-    "FROM g |> MATCH_EDGES(DEFINITION: 'E', BINDINGS: {IDENTITY: 'Edge', `Source`: 'Source', TARGET: 'Target'}, FIELDS: ['Target', 'Edge', 'Source']) |> SELECT Target, Edge, Source",
+    "FROM g |> MATCH_EDGES(DEFINITION: 'E', BINDINGS: {IDENTITY: `Edge`, `Source`: `Source`, TARGET: `Target`}, FIELDS: [`Target`, `Edge`, `Source`]) |> SELECT Target, Edge, Source",
   )
   let body = semantic(actual)
   assert_true(
