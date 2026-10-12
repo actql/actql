@@ -105,7 +105,8 @@ test "existing JOIN range refusals retain exact current invalid-input causes" {
       ).unwrap(),
       join_order_context(),
       construction_limits(),
-    ) is Err(UnknownColumn),
+    )
+    is Err(UnknownColumn),
   )
   // The WITH body does not export its internal range into the outer JOIN.
   assert_true(
@@ -116,6 +117,7 @@ test "existing JOIN range refusals retain exact current invalid-input causes" {
       ).unwrap(),
       join_order_context(),
       construction_limits(),
-    ) is Err(UnknownColumn),
+    )
+    is Err(UnknownColumn),
   )
 }

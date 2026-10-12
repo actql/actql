@@ -306,12 +306,13 @@ test "published query names bind one environment generation" {
 ///|
 test "public Graph input distinguishes missing producer from retired annotation" {
   let context = test_context()
-  for document in [
-    "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT *",
-    "FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
-  ] {
+  for
+    document in [
+      "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT *", "FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
+    ] {
     assert_true(
-      lower(document, Text, Some(context)) is Err(QueryLowering(@query.UnknownRelation)),
+      lower(document, Text, Some(context))
+      is Err(QueryLowering(@query.UnknownRelation)),
       msg=document,
     )
   }

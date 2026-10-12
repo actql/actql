@@ -231,7 +231,8 @@ test "CTE current-range property ORDER retains ordinary Relation scope" {
   for parameter in ["oa", "ob", "oc", "od"] {
     assert_false(body.contains("\"parameter\":\"" + parameter + "\""))
   }
-  match @check.check_parsed(with_unused, check_environment(), None, check_limits()) {
+  match
+    @check.check_parsed(with_unused, check_environment(), None, check_limits()) {
     NeedsInputs(_) => ()
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
     _ => fail("the original object parameters remain required")

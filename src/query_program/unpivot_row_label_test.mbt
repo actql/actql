@@ -48,14 +48,19 @@ test "UNPIVOT integer row labels distinguish exact syntax from unsupported lower
         ).unwrap(),
         pair_context(),
         construction_limits(),
-      ) is Err(UnsupportedProjection),
+      )
+      is Err(UnsupportedProjection),
     )
   }
   for label in ["9223372036854775807", "9007199254740992", "0x20000000000000"] {
-    let text = "FROM pair |> UNPIVOT(value FOR label IN(x AS " + label + ",y AS 1))"
+    let text = "FROM pair |> UNPIVOT(value FOR label IN(x AS " +
+      label +
+      ",y AS 1))"
     match @query.parse_query(text, syntax_limits(), source_path="unpivot.sql") {
       Err({ issue: Syntax(message), span: Some(span), }) => {
-        assert_eq(message, "UNPIVOT row alias requires a String or integer literal")
+        assert_eq(
+          message, "UNPIVOT row alias requires a String or integer literal",
+        )
         assert_eq(span.source_path, "unpivot.sql")
         // Independent ASCII prefix length before the authored row label.
         assert_eq(span.start_byte, 45)
