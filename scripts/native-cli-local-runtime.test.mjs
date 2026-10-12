@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {prepareNativeLocalRuntime, inspectLocalLibrary} from './native-cli-local-runtime.mjs';
 import {admitNativeArtifact} from './native-cli-release.mjs';
-import {admitInstalledLocalRuntime, admitLocalRuntimePlatform, validateLocalRuntimeManifest, LOCAL_RUNTIME_MAX_BYTES} from '../packages/native-cli/lib/local-runtime.mjs';
+import {admitInstalledLocalRuntime, admitLocalRuntimePlatform, validateLocalRuntimeManifest, installedLocalRuntimeEnvironment, LOCAL_RUNTIME_MAX_BYTES} from '../packages/native-cli/lib/local-runtime.mjs';
 
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const sourceSha = 'a'.repeat(40), platform = 'darwin-arm64';
@@ -222,4 +222,26 @@ test('existing artifact admission consumes the optional fixed Local profile and 
   assert.deepEqual(await admitNativeArtifact(f.output, sourceSha), metadata);
   await writeFile(join(f.output, 'data/result-policy.json'), Buffer.from('{"changed":true}'));
   await assert.rejects(admitNativeArtifact(f.output, sourceSha), e => e.exitCode === 65);
+});
+
+
+test('Native launch context binds only the verified runtime and preserves explicit mode selection', async t => {
+  const f = await fixture(t);
+  const environment = {PATH: '/finite', ACTQL_NATIVE_LOCAL_RUNTIME: 'foreign', SENTINEL: 'preserved'};
+  const result = installedLocalRuntimeEnvironment({root: f.output, expected: f.expected, metadata: f.metadata,
+    platformFacts: {macOS: '14.0'}, environment});
+  assert.deepEqual(JSON.parse(result.ACTQL_NATIVE_LOCAL_RUNTIME), {
+    root: f.output, sourceSha, platform, manifestSha256: f.metadata.sha256,
+  });
+  assert.equal(result.PATH, '/finite'); assert.equal(result.SENTINEL, 'preserved');
+  assert.equal(environment.ACTQL_NATIVE_LOCAL_RUNTIME, 'foreign');
+  assert.deepEqual(Object.keys(result).sort(), ['ACTQL_NATIVE_LOCAL_RUNTIME', 'PATH', 'SENTINEL']);
+});
+
+test('Native launch context does not accept foreign runtime or unsupported actual ABI', async t => {
+  const f = await fixture(t);
+  for (const overrides of [{expected: {...f.expected, sourceSha: 'b'.repeat(40)}}, {platformFacts: {macOS: '13.0'}}]) {
+    assert.throws(() => installedLocalRuntimeEnvironment({root: f.output, expected: f.expected,
+      metadata: f.metadata, platformFacts: {macOS: '14.0'}, environment: {}, ...overrides}));
+  }
 });

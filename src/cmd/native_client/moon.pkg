@@ -36,6 +36,7 @@ import {
   "moonbitlang/core/string",
   "moonbitlang/core/encoding/utf8",
   "moonbitlang/core/env",
+  "actql/actql/sha256" @sha,
 }
 
 options(
