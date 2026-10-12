@@ -50,7 +50,7 @@ test "Graph Delta source independent Program passes the ordinary checker" {
 test "Graph Delta source matches an independent complete Program" {
   let actual = graph_delta_source_compile(
     graph_delta_source_prefix() +
-    "FROM g |> apply_graph_delta(with: changes, field: 'delta') |> node_rows() |> SELECT p, node_key",
+    "FROM g |> apply_graph_delta(with: changes, field: `delta`) |> node_rows() |> SELECT p, node_key",
   )
   assert_eq(semantic(actual), semantic(graph_delta_source_expected()))
 }
@@ -59,8 +59,8 @@ test "Graph Delta source matches an independent complete Program" {
 test "Graph Delta source preserves quoted WITH bindings and MATCH continuation" {
   for
     tail in [
-      ", `saved changes` AS (FROM changes), applied AS (FROM g |> apply_graph_delta(field: 'delta', with: `saved changes`)) FROM applied |> node_rows() |> SELECT node_key, p",
-      "FROM GRAPH g |> normalize_graph() |> apply_graph_delta(with: changes, field: 'delta') |> MATCH WALK (a:Person) |> SELECT a.p AS p",
+      ", `saved changes` AS (FROM changes), applied AS (FROM g |> apply_graph_delta(field: `delta`, with: `saved changes`)) FROM applied |> node_rows() |> SELECT node_key, p",
+      "FROM GRAPH g |> normalize_graph() |> apply_graph_delta(with: changes, field: `delta`) |> MATCH WALK (a:Person) |> SELECT a.p AS p",
     ] {
     let actual = graph_delta_source_compile(graph_delta_source_prefix() + tail)
     let body = semantic(actual)
@@ -86,15 +86,15 @@ test "Graph Delta source preserves quoted WITH bindings and MATCH continuation" 
 test "Graph Delta source keeps invalid argument bodies at the common checker" {
   for
     call in [
-      "apply_graph_delta()", "apply_graph_delta(with: changes)", "apply_graph_delta(with: changes, field: 'missing')",
-      "apply_graph_delta(with: changes, field: 1)", "apply_graph_delta(with: changes, field: 'delta', extra: true)",
+      "apply_graph_delta()", "apply_graph_delta(with: changes)", "apply_graph_delta(with: changes, field: `missing`)",
+      "apply_graph_delta(with: changes, field: 1)", "apply_graph_delta(with: changes, field: `delta`, extra: true)",
     ] {
     let expected : @pipeline.IssueKind = match call {
       "apply_graph_delta()"
       | "apply_graph_delta(with: changes)"
-      | "apply_graph_delta(with: changes, field: 'delta', extra: true)" =>
+      | "apply_graph_delta(with: changes, field: `delta`, extra: true)" =>
         @pipeline.InvalidBody
-      "apply_graph_delta(with: changes, field: 'missing')" =>
+      "apply_graph_delta(with: changes, field: `missing`)" =>
         @pipeline.Graph(UnknownDeltaField("missing"))
       "apply_graph_delta(with: changes, field: 1)" => @pipeline.InvalidBody
       _ => fail("undeclared malformed Delta control")
@@ -116,14 +116,14 @@ test "Graph Delta source rejects foreign names and a second Carrier transition" 
   for
     (tail, reference) in [
       (
-        "FROM g |> apply_graph_delta(with: missing, field: 'delta') |> node_rows()",
+        "FROM g |> apply_graph_delta(with: missing, field: `delta`) |> node_rows()",
         "missing",
       ),
       (
-        "FROM g |> apply_graph_delta(with: g, field: 'delta') |> node_rows()", "g",
+        "FROM g |> apply_graph_delta(with: g, field: `delta`) |> node_rows()", "g",
       ),
       (
-        ", applied AS (FROM g |> apply_graph_delta(with: later, field: 'delta')), later AS (FROM changes) FROM applied |> node_rows()",
+        ", applied AS (FROM g |> apply_graph_delta(with: later, field: `delta`)), later AS (FROM changes) FROM applied |> node_rows()",
         "later",
       ),
     ] {
@@ -145,7 +145,7 @@ test "Graph Delta source rejects foreign names and a second Carrier transition" 
   }
   let script = @query.parse_query_script(
     graph_delta_source_prefix() +
-    "FROM g |> node_rows() |> apply_graph_delta(with: changes, field: 'delta')",
+    "FROM g |> node_rows() |> apply_graph_delta(with: changes, field: `delta`)",
     syntax_limits(),
   ).unwrap()
   assert_true(
@@ -159,7 +159,7 @@ test "Graph Delta source rejects foreign names and a second Carrier transition" 
   assert_true(
     @query.parse_query_script(
       graph_delta_source_prefix() +
-      "FROM g |> apply_graph_delta(with: 'changes', field: 'delta') |> node_rows()",
+      "FROM g |> apply_graph_delta(with: 'changes', field: `delta`) |> node_rows()",
       syntax_limits(),
     )
     is Err({ issue: Syntax("Expected identifier"), .. }),
