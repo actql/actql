@@ -14,13 +14,12 @@ test "P2 vector pooling separates fields output names and exact method data" {
 
 ///|
 test "P2 vector pooling does not reinterpret retired field Strings or reserved output names" {
-  for text in [
-    "pool_vectors(by: ['label'], method: 'sum')",
-    "pool_vectors(by: [label], vector: 'embedding', method: 'sum')",
-    "pool_vectors(by: [label], method: sum)",
-    "pool_vectors(by: [label], method: 'sum', output_id: SELECT)",
-    "pool_vectors(by: [label], method: 'sum', output_id: 'pooled')",
-  ] {
+  for
+    text in [
+      "pool_vectors(by: ['label'], method: 'sum')", "pool_vectors(by: [label], vector: 'embedding', method: 'sum')",
+      "pool_vectors(by: [label], method: sum)", "pool_vectors(by: [label], method: 'sum', output_id: SELECT)",
+      "pool_vectors(by: [label], method: 'sum', output_id: 'pooled')",
+    ] {
     assert_true(parse_sga_call(text, query_limits()) is Err(_), msg=text)
   }
   assert_eq(

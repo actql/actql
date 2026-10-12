@@ -22,12 +22,14 @@ fn sga_field_argument(operation : String, path : Array[String]) -> Bool {
 ///|
 fn sga_output_argument(operation : String, path : Array[String]) -> Bool {
   (operation == "pool_vectors" && path == ["output_id"]) ||
-  ((operation == "match_nodes" || operation == "match_edges") &&
   (
-    path == ["bindings", "identity"] ||
-    path == ["bindings", "source"] ||
-    path == ["bindings", "target"]
-  ))
+    (operation == "match_nodes" || operation == "match_edges") &&
+    (
+      path == ["bindings", "identity"] ||
+      path == ["bindings", "source"] ||
+      path == ["bindings", "target"]
+    )
+  )
 }
 
 ///|

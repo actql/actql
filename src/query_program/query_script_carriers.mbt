@@ -69,8 +69,8 @@ fn script_prefix_carrier(
 ///|
 fn script_carrier_operation(name : String) -> Bool {
   [
-    "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors", "to_events", "session",
-    "events",
+    "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
+    "to_events", "session", "events",
   ].contains(name)
 }
 
