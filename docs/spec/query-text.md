@@ -1509,6 +1509,7 @@ output_id: name)`, `vectors()`, `to_events(id: field, time: field)`,
 `row_window(time: field, kind: string, size: value, step: value?, offset: value?)`,
 `window_events(kind: string, size: value, step: value?, offset: value?)`,
 `watermark_events(watermark_ms: number, policy: string)`,
+`watermark_rows(time: field, late_policy: string, watermark_ms: value?, max_skew: value?)`,
 `dedupe_events(by: [fields], order_by: [OrderKeys])`, `session(by:
 [fields], gap: string)` and `events()` to their existing common operations.
 Relation-input session additionally requires its existing `id` and `time`
@@ -1518,6 +1519,17 @@ Vectors/Events retain their Carrier across bindings; only an explicit common
 bridge supplies rows to ordinary Relation operators. Full four-Carrier public
 execution remains a separate acceptance obligation. A typed producer is not an
 invented external Source alias or a row schema inferred by the frontend.
+
+The `watermark_rows` call preserves Relation input and the existing
+[relational watermark contract](language.md#relational-temporal). Its `time`
+is a FieldRef in the current row scope; policy is the exact `'mark'` or `'drop'`
+String. Exactly one of `watermark_ms` and `max_skew` is required by the common
+checker. The frontend preserves fractional/negative fixed thresholds, positive
+skew numbers/durations and permitted whole Parameters without evaluating them,
+choosing precedence, or inventing input order. Prefix skew retains its proven
+logical input-order obligation. Common generated-field collision, non-null clock,
+threshold arithmetic, type and resource checks remain unchanged. Text checking
+and lowering do not establish public Host execution.
 
 The `pool_vectors` call retains the existing [pooling contract](language.md#pool-vectors).
 `by` is an ordered nonempty FieldRef list and `method` is an exact String value

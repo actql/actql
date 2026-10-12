@@ -27,6 +27,7 @@ import {
   "actql/actql/canonical_json" @canonical,
   "actql/actql/canonical_value",
   "actql/actql/value_contract" @contract,
+  "actql/actql/value_admission" @values,
   "actql/actql/logical_request_scope" @request_scope,
   "actql/actql/effect_application" @effect,
   "actql/actql/relation_schema" @schema,
