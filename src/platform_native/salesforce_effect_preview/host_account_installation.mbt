@@ -35,6 +35,7 @@ pub(all) enum NativeEffectHostAccountInstallationIssue {
 struct NativeEffectHostAccountInstallation {
   selected : NativeEffectHostAccountFile
   read_ceiling : Int
+  on_read_failure : ((@bounded_files.NativeBoundedTextFailure) -> Unit)?
 }
 
 ///|
@@ -98,6 +99,7 @@ fn install_host_account_with_read(
   selection : NativeEffectHostAccountFile?,
   read : (Int) -> Result[String, @bounded_files.NativeBoundedTextIssue],
   read_ceiling? : Int = 1000000,
+  on_read_failure? : ((@bounded_files.NativeBoundedTextFailure) -> Unit)? = None,
 ) -> Result[
   NativeEffectHostAccountInstallation?,
   NativeEffectHostAccountInstallationIssue,
@@ -112,7 +114,7 @@ fn install_host_account_with_read(
     return Err(InvalidSelection)
   }
   match host_account_configuration(selected, read, read_ceiling~) {
-    Ok(_) => Ok(Some({ selected, read_ceiling, }))
+    Ok(_) => Ok(Some({ selected, read_ceiling, on_read_failure, }))
     Err(issue) => Err(issue)
   }
 }
@@ -126,6 +128,7 @@ fn install_host_account_with_read(
 pub fn install_native_effect_host_account(
   selection : NativeEffectHostAccountFile?,
   read_ceiling? : Int = 1000000,
+  on_read_failure? : ((@bounded_files.NativeBoundedTextFailure) -> Unit)? = None,
 ) -> Result[
   NativeEffectHostAccountInstallation?,
   NativeEffectHostAccountInstallationIssue,
@@ -136,14 +139,36 @@ pub fn install_native_effect_host_account(
       guard selection is Some(selected) else {
         return Err(@bounded_files.Missing)
       }
-      @bounded_files.read_bounded_text_file(
-        selected.root,
-        selected.name,
-        limit.to_int64(),
-      )
+      read_host_account_file_with_custody(selected, limit, on_read_failure)
     },
     read_ceiling~,
+    on_read_failure~,
   )
+}
+
+///|
+/// Failure observation cannot substitute bytes, acknowledge cleanup or grant
+/// permission. The bounded filesystem Owner still performs every actual read;
+/// this only lets the same funded Host caller retain its original failure.
+fn read_host_account_file_with_custody(
+  selected : NativeEffectHostAccountFile,
+  limit : Int,
+  on_failure : ((@bounded_files.NativeBoundedTextFailure) -> Unit)?,
+) -> Result[String, @bounded_files.NativeBoundedTextIssue] {
+  match
+    @bounded_files.read_bounded_text_file_with_custody(
+      selected.root,
+      selected.name,
+      limit.to_int64(),
+    ) {
+    Ok(wire) => Ok(wire)
+    Err(failure) => {
+      if on_failure is Some(observe) {
+        observe(failure)
+      }
+      Err(failure.issue())
+    }
+  }
 }
 
 ///|
@@ -161,10 +186,10 @@ pub fn NativeEffectHostAccountInstallation::read_current_configuration(
     host_account_configuration(
       self.selected,
       limit => {
-        @bounded_files.read_bounded_text_file(
-          self.selected.root,
-          self.selected.name,
-          limit.to_int64(),
+        read_host_account_file_with_custody(
+          self.selected,
+          limit,
+          self.on_read_failure,
         )
       },
       read_ceiling=self.read_ceiling,
@@ -240,10 +265,10 @@ pub fn NativeEffectHostAccountInstallation::current_permission(
     dispatch_cid,
     publication,
     limit => {
-      @bounded_files.read_bounded_text_file(
-        self.selected.root,
-        self.selected.name,
-        limit.to_int64(),
+      read_host_account_file_with_custody(
+        self.selected,
+        limit,
+        self.on_read_failure,
       )
     },
     read_ceiling=self.read_ceiling,
