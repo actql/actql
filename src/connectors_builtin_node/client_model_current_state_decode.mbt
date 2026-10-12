@@ -8,8 +8,13 @@ pub fn client_program_start_infer_original_current_state_decode(
   parse_limits : @source.ParseLimits,
   tree_limits : @decode.Limits,
   max_work : Int,
-) -> Result[@infer_host.OriginalModelCurrentStateDecode, @infer_host.OriginalModelCurrentStateDecodeIssue] {
-  @infer_host.start_original_model_current_state_decode(active, scope, park, wire, parse_limits, tree_limits, max_work)
+) -> Result[
+  @infer_host.OriginalModelCurrentStateDecode,
+  @infer_host.OriginalModelCurrentStateDecodeIssue,
+] {
+  @infer_host.start_original_model_current_state_decode(
+    active, scope, park, wire, parse_limits, tree_limits, max_work,
+  )
 }
 
 ///|
@@ -21,18 +26,27 @@ pub fn client_program_advance_infer_original_current_state_decode(
   value : @infer_host.OriginalModelCurrentStateDecode,
   quantum : Int,
 ) -> @infer_host.OriginalModelCurrentStateDecodePoll {
-  @infer_host.advance_original_model_current_state_decode(active, scope, park, value, quantum)
+  @infer_host.advance_original_model_current_state_decode(
+    active, scope, park, value, quantum,
+  )
 }
 
 ///|
 #export_name("clientProgramInferOriginalCurrentStateDecodePoll")
 pub fn client_program_infer_original_current_state_decode_poll(
   poll : @infer_host.OriginalModelCurrentStateDecodePoll,
-) -> (String, Int, @infer_host.OriginalModelCurrentStateDecodeIssue?, @resources.OriginalCurrentStateDocument?) {
+) -> (
+  String,
+  Int,
+  @infer_host.OriginalModelCurrentStateDecodeIssue?,
+  @resources.OriginalCurrentStateDocument?,
+) {
   match poll {
     @infer_host.CurrentDecodeContinue(work~) => ("continue", work, None, None)
-    @infer_host.CurrentDecodeComplete(document, work~) => ("complete", work, None, Some(document))
-    @infer_host.CurrentDecodeFailed(issue, work~) => ("failed", work, Some(issue), None)
+    @infer_host.CurrentDecodeComplete(document, work~) =>
+      ("complete", work, None, Some(document))
+    @infer_host.CurrentDecodeFailed(issue, work~) =>
+      ("failed", work, Some(issue), None)
   }
 }
 
@@ -60,8 +74,13 @@ pub fn client_program_start_infer_original_current_state_comparison(
   park : @publication_host.ClientModelResourcePark,
   document : @resources.OriginalCurrentStateDocument,
   max_work : Int,
-) -> Result[@publication_host.ClientModelCurrentStateComparison, @resources.OriginalStateComparisonIssue] {
-  @infer_host.start_original_model_current_state_comparison(active, scope, park, document, max_work)
+) -> Result[
+  @publication_host.ClientModelCurrentStateComparison,
+  @resources.OriginalStateComparisonIssue,
+] {
+  @infer_host.start_original_model_current_state_comparison(
+    active, scope, park, document, max_work,
+  )
 }
 
 ///|
@@ -72,8 +91,13 @@ pub fn client_program_advance_infer_original_current_state_comparison(
   park : @publication_host.ClientModelResourcePark,
   value : @publication_host.ClientModelCurrentStateComparison,
   quantum : Int,
-) -> Result[@resources.OriginalStateComparisonPoll, @publication_host.ClientModelReadPreparationIssue] {
-  @infer_host.advance_original_model_current_state_comparison(active, scope, park, value, quantum)
+) -> Result[
+  @resources.OriginalStateComparisonPoll,
+  @publication_host.ClientModelReadPreparationIssue,
+] {
+  @infer_host.advance_original_model_current_state_comparison(
+    active, scope, park, value, quantum,
+  )
 }
 
 ///|

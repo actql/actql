@@ -50,31 +50,48 @@ pub fn start_original_model_current_state_decode(
   parse_limits : @source.ParseLimits,
   tree_limits : @decode.Limits,
   max_work : Int,
-) -> Result[OriginalModelCurrentStateDecode, OriginalModelCurrentStateDecodeIssue] {
+) -> Result[
+  OriginalModelCurrentStateDecode,
+  OriginalModelCurrentStateDecodeIssue,
+] {
   guard original_model_resource_park_current(active, scope, park) is Some(_) &&
-    active.run_binding is Some(bound) && active.plan is Some(plan) else {
+    active.run_binding is Some(bound) &&
+    active.plan is Some(plan) else {
     return Err(Original(@resources.ChangedOriginalState))
   }
-  let bounds = match @publication_host.client_model_current_state_read_bounds(
-    park, scope, bound.compiled, bound.definition, plan,
-  ) {
+  let bounds = match
+    @publication_host.client_model_current_state_read_bounds(
+      park,
+      scope,
+      bound.compiled,
+      bound.definition,
+      plan,
+    ) {
     Ok(bounds) => bounds
     Err(_) => return Err(Original(@resources.ChangedOriginalState))
   }
-  if tree_limits.max_nodes < 0 || tree_limits.max_depth < 0 ||
-    tree_limits.max_string_bytes < 0 || tree_limits.max_total_string_bytes < 0 ||
+  if tree_limits.max_nodes < 0 ||
+    tree_limits.max_depth < 0 ||
+    tree_limits.max_string_bytes < 0 ||
+    tree_limits.max_total_string_bytes < 0 ||
     max_work < 0 {
     return Err(InvalidBounds)
   }
   if max_work < bounds.reader_work {
     return Err(WorkLimit)
   }
-  let parse = match @source.start_json_parse(wire, parse_limits, data_keys=true) {
+  let parse = match
+    @source.start_json_parse(wire, parse_limits, data_keys=true) {
     Ok(parse) => parse
     Err(issue) => return Err(Parse(issue))
   }
-  Ok({ park: Some(park), phase: Parsing(parse), remaining: max_work,
-    tree_limits, reader_work: bounds.reader_work, })
+  Ok({
+    park: Some(park),
+    phase: Parsing(parse),
+    remaining: max_work,
+    tree_limits,
+    reader_work: bounds.reader_work,
+  })
 }
 
 ///|
@@ -84,7 +101,8 @@ pub fn cancel_original_model_current_state_decode(
   match value.phase {
     Parsing(child) => @source.cancel_json_parse(child)
     Admitting(child) => @decode.cancel_admission(child)
-    Reading(child) => @resources.cancel_original_current_state_document_read(child)
+    Reading(child) =>
+      @resources.cancel_original_current_state_document_read(child)
     Retired => ()
   }
   value.phase = Retired
@@ -112,11 +130,16 @@ pub fn advance_original_model_current_state_decode(
   if quantum < 1 {
     return CurrentDecodeFailed(InvalidQuantum, work=0)
   }
-  guard value.park is Some(original) && physical_equal(original, park) &&
+  guard value.park is Some(original) &&
+    physical_equal(original, park) &&
     original_model_resource_park_current(active, scope, park) is Some(_) &&
-    active.run_binding is Some(bound) && active.plan is Some(plan) else {
+    active.run_binding is Some(bound) &&
+    active.plan is Some(plan) else {
     // A foreign observer cannot cancel or progress someone else's codec.
-    return CurrentDecodeFailed(Original(@resources.ChangedOriginalState), work=0)
+    return CurrentDecodeFailed(
+      Original(@resources.ChangedOriginalState),
+      work=0,
+    )
   }
   let mut work = 0
   while work < quantum {
@@ -128,25 +151,36 @@ pub fn advance_original_model_current_state_decode(
       Parsing(child) => {
         let poll = match @source.advance_json_parse(child, allowance) {
           Ok(poll) => poll
-          Err(_) => return fail_original_current_decode(value, InvalidRecord, work)
+          Err(_) =>
+            return fail_original_current_decode(value, InvalidRecord, work)
         }
         let spent = match poll {
-          @source.JsonParseContinue(work~) | @source.JsonParseComplete(_, work~) |
-          @source.JsonParseFailed(_, work~) => work
+          @source.JsonParseContinue(work~)
+          | @source.JsonParseComplete(_, work~)
+          | @source.JsonParseFailed(_, work~) => work
         }
         work += spent
         value.remaining -= spent
         match poll {
-          @source.JsonParseContinue(..) => {
-            if spent == 0 { return fail_original_current_decode(value, InvalidRecord, work) }
-          }
-          @source.JsonParseFailed(issue, ..) => return fail_original_current_decode(value, Parse(issue), work)
+          @source.JsonParseContinue(..) =>
+            if spent == 0 {
+              return fail_original_current_decode(value, InvalidRecord, work)
+            }
+          @source.JsonParseFailed(issue, ..) =>
+            return fail_original_current_decode(value, Parse(issue), work)
           @source.JsonParseComplete(parsed, ..) => {
-            if value.remaining == 0 { return fail_original_current_decode(value, WorkLimit, work) }
+            if value.remaining == 0 {
+              return fail_original_current_decode(value, WorkLimit, work)
+            }
             let next = @decode.start_admission(parsed.node, value.tree_limits)
             @source.cancel_json_parse(child)
             match next {
-              Err(issue) => return fail_original_current_decode(value, Admission(issue), work)
+              Err(issue) =>
+                return fail_original_current_decode(
+                  value,
+                  Admission(issue),
+                  work,
+                )
               Ok(next) => value.phase = Admitting(next)
             }
           }
@@ -155,55 +189,84 @@ pub fn advance_original_model_current_state_decode(
       Admitting(child) => {
         let poll = match @decode.advance_admission(child, allowance) {
           Ok(poll) => poll
-          Err(_) => return fail_original_current_decode(value, InvalidRecord, work)
+          Err(_) =>
+            return fail_original_current_decode(value, InvalidRecord, work)
         }
         let spent = match poll {
-          @decode.AdmissionContinue(work~) | @decode.AdmissionComplete(_, work~) |
-          @decode.AdmissionFailed(_, work~) => work
+          @decode.AdmissionContinue(work~)
+          | @decode.AdmissionComplete(_, work~)
+          | @decode.AdmissionFailed(_, work~) => work
         }
         work += spent
         value.remaining -= spent
         match poll {
-          @decode.AdmissionContinue(..) => {
-            if spent == 0 { return fail_original_current_decode(value, InvalidRecord, work) }
-          }
-          @decode.AdmissionFailed(issue, ..) => return fail_original_current_decode(value, Admission(issue), work)
+          @decode.AdmissionContinue(..) =>
+            if spent == 0 {
+              return fail_original_current_decode(value, InvalidRecord, work)
+            }
+          @decode.AdmissionFailed(issue, ..) =>
+            return fail_original_current_decode(value, Admission(issue), work)
           @decode.AdmissionComplete(root, ..) => {
             // Keep the ENTIRE owned envelope tree through this child borrow.
             // Common document/CID and Store custody are checked separately.
-            if value.remaining < value.reader_work { return fail_original_current_decode(value, WorkLimit, work) }
+            if value.remaining < value.reader_work {
+              return fail_original_current_decode(value, WorkLimit, work)
+            }
             let source = match @decode.open_object(root) {
-              Ok(object) => match @decode.field(object, "resource_state") {
-                @decode.Present(source) => source
-                _ => return fail_original_current_decode(value, InvalidRecord, work)
-              }
-              _ => return fail_original_current_decode(value, InvalidRecord, work)
+              Ok(object) =>
+                match @decode.field(object, "resource_state") {
+                  @decode.Present(source) => source
+                  _ =>
+                    return fail_original_current_decode(
+                      value,
+                      InvalidRecord,
+                      work,
+                    )
+                }
+              _ =>
+                return fail_original_current_decode(value, InvalidRecord, work)
             }
             let next = @publication_host.start_client_model_current_state_document_read(
-              park, scope, bound.compiled, bound.definition, plan, source,
-              value.reader_work, value.tree_limits,
+              park,
+              scope,
+              bound.compiled,
+              bound.definition,
+              plan,
+              source,
+              value.reader_work,
+              value.tree_limits,
             )
             @decode.cancel_admission(child)
             match next {
-              Err(issue) => return fail_original_current_decode(value, Read(issue), work)
+              Err(issue) =>
+                return fail_original_current_decode(value, Read(issue), work)
               Ok(next) => value.phase = Reading(next)
             }
           }
         }
       }
       Reading(child) => {
-        let poll = @resources.advance_original_current_state_document_read(child, allowance)
+        let poll = @resources.advance_original_current_state_document_read(
+          child, allowance,
+        )
         let spent = match poll {
-          @resources.CurrentDocumentContinue(work~) | @resources.CurrentDocumentComplete(_, work~) |
-          @resources.CurrentDocumentFailed(_, work~) => work
+          @resources.CurrentDocumentContinue(work~)
+          | @resources.CurrentDocumentComplete(_, work~)
+          | @resources.CurrentDocumentFailed(_, work~) => work
         }
         work += spent
         value.remaining -= spent
         match poll {
-          @resources.CurrentDocumentContinue(..) => {
-            if spent == 0 { return fail_original_current_decode(value, InvalidRecord, work) }
-          }
-          @resources.CurrentDocumentFailed(issue, ..) => return fail_original_current_decode(value, Read(@resources.Document(issue)), work)
+          @resources.CurrentDocumentContinue(..) =>
+            if spent == 0 {
+              return fail_original_current_decode(value, InvalidRecord, work)
+            }
+          @resources.CurrentDocumentFailed(issue, ..) =>
+            return fail_original_current_decode(
+              value,
+              Read(@resources.Document(issue)),
+              work,
+            )
           @resources.CurrentDocumentComplete(document, ..) => {
             value.phase = Retired
             value.park = None
@@ -224,13 +287,23 @@ pub fn start_original_model_current_state_comparison(
   park : @publication_host.ClientModelResourcePark,
   document : @resources.OriginalCurrentStateDocument,
   max_work : Int,
-) -> Result[@publication_host.ClientModelCurrentStateComparison, @resources.OriginalStateComparisonIssue] {
+) -> Result[
+  @publication_host.ClientModelCurrentStateComparison,
+  @resources.OriginalStateComparisonIssue,
+] {
   guard original_model_resource_park_current(active, scope, park) is Some(_) &&
-    active.run_binding is Some(bound) && active.plan is Some(plan) else {
+    active.run_binding is Some(bound) &&
+    active.plan is Some(plan) else {
     return Err(@resources.Original(@resources.ChangedOriginalState))
   }
   @publication_host.start_client_model_current_state_comparison(
-    park, scope, bound.compiled, bound.definition, plan, document, max_work,
+    park,
+    scope,
+    bound.compiled,
+    bound.definition,
+    plan,
+    document,
+    max_work,
   )
 }
 
@@ -241,12 +314,22 @@ pub fn advance_original_model_current_state_comparison(
   park : @publication_host.ClientModelResourcePark,
   value : @publication_host.ClientModelCurrentStateComparison,
   quantum : Int,
-) -> Result[@resources.OriginalStateComparisonPoll, @publication_host.ClientModelReadPreparationIssue] {
+) -> Result[
+  @resources.OriginalStateComparisonPoll,
+  @publication_host.ClientModelReadPreparationIssue,
+] {
   guard original_model_resource_park_current(active, scope, park) is Some(_) &&
-    active.run_binding is Some(bound) && active.plan is Some(plan) else {
+    active.run_binding is Some(bound) &&
+    active.plan is Some(plan) else {
     return Err(@publication_host.Resource(@resources.ChangedOriginalState))
   }
   @publication_host.advance_client_model_current_state_comparison(
-    value, park, scope, bound.compiled, bound.definition, plan, quantum,
+    value,
+    park,
+    scope,
+    bound.compiled,
+    bound.definition,
+    plan,
+    quantum,
   )
 }

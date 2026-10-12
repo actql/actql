@@ -62,7 +62,13 @@ pub fn prepare_original_model_current_state_writer(
       @encode.cancel_writer(writer)
       Err(issue)
     }
-    Ok(cursor) => Ok({ park: Some(park), cursor: Some(cursor), writer: Some(writer), complete: false, })
+    Ok(cursor) =>
+      Ok({
+        park: Some(park),
+        cursor: Some(cursor),
+        writer: Some(writer),
+        complete: false,
+      })
   }
 }
 
@@ -75,13 +81,19 @@ pub fn advance_original_model_current_state_writer(
   quantum : Int,
 ) -> @resources.OriginalStateWritePoll {
   guard value.park is Some(original) && physical_equal(original, park) else {
-    return @resources.StateWriteFailed(@resources.Original(@resources.ChangedOriginalState), work=0)
+    return @resources.StateWriteFailed(
+      @resources.Original(@resources.ChangedOriginalState),
+      work=0,
+    )
   }
-  guard value.cursor is Some(cursor) && value.writer is Some(_) &&
+  guard value.cursor is Some(cursor) &&
+    value.writer is Some(_) &&
     !value.complete else {
     return @resources.StateWriteFailed(@resources.Terminal, work=0)
   }
-  let poll = advance_original_model_current_state_write(active, scope, park, cursor, quantum)
+  let poll = advance_original_model_current_state_write(
+    active, scope, park, cursor, quantum,
+  )
   if poll is @resources.StateWriteComplete(..) {
     value.complete = true
   }
@@ -95,7 +107,8 @@ pub fn finish_original_model_current_state_writer(
   park : @publication_host.ClientModelResourcePark,
   value : OriginalModelCurrentStateWriter,
 ) -> Result[String, @resources.OriginalStateWriteIssue] {
-  guard value.park is Some(original) && physical_equal(original, park) &&
+  guard value.park is Some(original) &&
+    physical_equal(original, park) &&
     original_model_resource_park_current(active, scope, park) is Some(_) else {
     return Err(@resources.Original(@resources.ChangedOriginalState))
   }
