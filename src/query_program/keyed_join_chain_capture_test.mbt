@@ -179,3 +179,18 @@ test "keyed right Source stays at the preserved object scope consumer" {
 test "fully supplied right Source keeps preserved object scope capture" {
   check_direct_chain_right(chain_right_queries()[1])
 }
+
+///|
+test "near WITH producer shadows the same-named outer keyed Source" {
+  let query = "WITH remote AS (SELECT 1 AS id) FROM (SELECT 1 AS id) AS l |> JOIN remote AS r ON l.id = r.id MAX_OUTPUT_ROWS 4 |> JOIN (SELECT 1 AS id) AS s ON r.id = s.id MAX_OUTPUT_ROWS 4 |> SELECT l.id AS id"
+  let program = with_demand_program(
+    compile_query_script(
+      @query.parse_query_script(query, syntax_limits()).unwrap(),
+      chain_right_context(direct=false, captured=true, parameters=false),
+      construction_limits(),
+    ),
+  )
+  assert_eq(@program.stage_count(program), 1)
+  assert_false(semantic(program).contains("\"connector\":\"crm/main\""))
+  assert_false(semantic(program).contains("\"id\":\"capture\""))
+}
