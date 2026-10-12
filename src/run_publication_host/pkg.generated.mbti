@@ -433,6 +433,8 @@ pub fn client_effect_source_evidence_facts(ClientEffectCompilation, Int, Int) ->
 
 pub fn client_effect_source_payload_binding(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, Int, ClientEffectLocalResultArtifact, @run_publication.CapturedEffectSourceArtifact, @publication_payload.PublicationPayloadRequest) -> Result[(String, Int), ClientEffectSourceArtifactIssue]
 
+pub fn client_effect_static_computation_plan_view(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int) -> Result[String, ClientInteractivePlanIssue]
+
 pub fn client_effect_table_write_binding(PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, ClientEffectMemberDescriptorIssue]
 
 pub fn client_execution_material_template_cid(ClientExecutionMaterial) -> String
