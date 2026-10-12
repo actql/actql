@@ -161,6 +161,27 @@ pub fn with_client_infer_result_policy(
   if prepared_client_acquisition_count(value.owner) != 0 {
     return Ok(value)
   }
+  with_client_source_free_result_policy(
+    value, cid, wire, max_bytes, max_nodes, max_depth,
+  )
+}
+
+///|
+/// Add the installed Host's exact unknown-provenance Result policy original to
+/// an Effect-free source-free compilation. This pure admission is not publish,
+/// read or egress authority, and never replaces a contributing Source policy.
+pub fn with_client_source_free_result_policy(
+  value : ClientCompiledRun,
+  cid : String,
+  wire : String,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[ClientCompiledRun, ClientCompiledRunIssue] {
+  if value.compilation is Effects(_) ||
+    prepared_client_acquisition_count(value.owner) != 0 {
+    return Err(ForeignOwner)
+  }
   let original = match
     admit_source_free_result_policy_body(
       cid, wire, max_bytes, max_nodes, max_depth,

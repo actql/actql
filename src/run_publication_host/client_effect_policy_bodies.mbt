@@ -231,3 +231,38 @@ fn checked_client_publication_policy_bodies(
   }
   Ok(bodies)
 }
+
+///|
+/// Source-free outputs require the installed Host's admitted original. Source
+/// outputs keep their exact checked closure. Missing originals are refused,
+/// never synthesized from a CID or copied from unrelated installations.
+pub fn client_compiled_run_publication_policy_bodies(
+  value : ClientCompiledRun,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[Array[(String, String, String)], @checked.LocalDependencyBodyIssue] {
+  if value.compilation is Effects(_) {
+    return Err(ForeignBody)
+  }
+  if prepared_client_acquisition_count(value.owner) != 0 {
+    return prepared_client_publication_policy_bodies(
+      value.owner,
+      max_bytes,
+      max_nodes,
+      max_depth,
+    )
+  }
+  guard value.source_free_result_policy is Some(body) else {
+    return Err(MissingDependency)
+  }
+  let cid = @publication.captured_effect_dependency_body_cid(body)
+  let wire = @publication.captured_effect_dependency_body_json(body)
+  match
+    admit_source_free_result_policy_body(
+      cid, wire, max_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => Ok([("data_policy", cid, wire)])
+    Err(_) => Err(BudgetExceeded)
+  }
+}

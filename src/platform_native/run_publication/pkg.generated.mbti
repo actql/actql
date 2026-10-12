@@ -24,6 +24,8 @@ pub fn prepare_captured_effect_free_run_publication_native(NativeRunPublicationS
 
 pub fn prepare_effect_free_run_publication_native(NativeRunPublicationService, @actql/actql/run_publication.PublicationContract, Array[@actql/actql/run_publication.PublicationContract], NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationPreparation, NativeRunPublicationIssue]
 
+pub fn prepare_exported_effect_free_run_publication_native(NativeRunPublicationService, @physical_strategy.CapturedDAG, NativeEffectFreeRunContext, Array[@run_publication_host.PublicationOutputExport], Array[NativeCapturedResultPublicationContext], NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativePreparedCapturedRunPublication, NativeCapturedRunPublicationPreparationIssue]
+
 pub fn publish_effect_free_run_native(NativeRunPublicationService, NativeEffectFreePublicationEvidence, NativeRunPublicationIntent, NativeRunPublicationOccurrence) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
 
 // Errors
