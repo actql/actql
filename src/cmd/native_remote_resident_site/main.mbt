@@ -4921,11 +4921,13 @@ fn command() -> @argparse.Command {
 }
 
 ///|
-fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
+fn run_command(
+  matches : @argparse.Matches,
+) -> HolderTerminalFailure? raise CommandStop {
   match matches.subcommand {
     Some(("run", _)) => run_control(matches)
     Some(("execute", child)) =>
-      finish_holder_command(run_holder(matches, child))
+      return finish_holder_command(run_holder(matches, child))
     Some(("recover-output", child)) => recover_output_command(matches, child)
     Some(("recover-retained-input", child)) =>
       recover_retained_input_command(matches, child)
@@ -5010,12 +5012,17 @@ fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
     }
     _ => stop("missing operation")
   }
+  None
 }
 
 ///|
 fn main {
   let matches = command().parse() catch { error => abort(error.to_string()) }
-  run_command(matches) catch {
+  try {
+    if run_command(matches) is Some(terminal) {
+      consume_holder_terminal_failure(terminal.operation, terminal.failure)
+    }
+  } catch {
     CommandStop(issue) => abort("actql-native-remote-resident-site: " + issue)
   }
 }
