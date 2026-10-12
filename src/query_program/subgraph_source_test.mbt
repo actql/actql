@@ -156,6 +156,10 @@ test "Subgraph source retains malformed and unadapted bodies for common refusal"
       " |> node_rows() |> SELECT node_key"
     // The current WITH owner statically checks every authored binding and
     // continuation. Preserve the malformed body and its common typed cause.
+    if call == "subgraph(nodes: {from: selected, id: `missing`})" {
+      assert_true(classified_graph_source(source) is Err(UnknownColumn))
+      continue
+    }
     match classified_graph_source(source) {
       Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) =>
         match call {
@@ -164,11 +168,6 @@ test "Subgraph source retains malformed and unadapted bodies for common refusal"
             assert_eq(issue.kind, @pipeline.InvalidBody)
           "subgraph(nodes: {ids: []})" =>
             assert_eq(issue.kind, @pipeline.GraphMatch(Structure(InvalidBody)))
-          "subgraph(nodes: {from: selected, id: `missing`})" =>
-            assert_eq(
-              issue.kind,
-              @pipeline.GraphMatch(Structure(UnknownMatchField("missing"))),
-            )
           "subgraph(nodes: {from: selected, id: `node_key`})" =>
             assert_true(
               issue.kind is @pipeline.GraphMatch(Structure(ContractMismatch(_))),

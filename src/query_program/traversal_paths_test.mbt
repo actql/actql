@@ -137,12 +137,17 @@ test "Graph traversal path preserves precise common static refusals" {
       ("path_mode: 'trail'", "path_mode: 'invented'"),
       ("max_output_rows: 10", "max_output_rows: 10, extra: true"),
     ] {
+    if before == "id: `element`" {
+      assert_true(
+        classified_graph_source(traversal_paths_source().replace(old=before, new=after))
+        is Err(UnknownColumn),
+      )
+      continue
+    }
     expect_with_graph_static_refusal(
       traversal_paths_source().replace(old=before, new=after),
       expected=Some(
-        if before == "id: `element`" {
-          @pipeline.GraphMatch(Structure(UnknownMatchField("missing")))
-        } else if before == "max_hops: 1" {
+        if before == "max_hops: 1" {
           @pipeline.GraphMatch(Structure(InvalidCount))
         } else if before == "path_mode: 'trail'" {
           @pipeline.GraphMatch(Structure(InvalidBody))

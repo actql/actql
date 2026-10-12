@@ -86,17 +86,14 @@ test "Graph Delta source preserves quoted WITH bindings and MATCH continuation" 
 test "Graph Delta source keeps invalid argument bodies at the common checker" {
   for
     call in [
-      "apply_graph_delta()", "apply_graph_delta(with: changes)", "apply_graph_delta(with: changes, field: `missing`)",
-      "apply_graph_delta(with: changes, field: 1)", "apply_graph_delta(with: changes, field: `delta`, extra: true)",
+      "apply_graph_delta()", "apply_graph_delta(with: changes)",
+      "apply_graph_delta(with: changes, field: `delta`, extra: true)",
     ] {
     let expected : @pipeline.IssueKind = match call {
       "apply_graph_delta()"
       | "apply_graph_delta(with: changes)"
       | "apply_graph_delta(with: changes, field: `delta`, extra: true)" =>
         @pipeline.InvalidBody
-      "apply_graph_delta(with: changes, field: `missing`)" =>
-        @pipeline.Graph(UnknownDeltaField("missing"))
-      "apply_graph_delta(with: changes, field: 1)" => @pipeline.InvalidBody
       _ => fail("undeclared malformed Delta control")
     }
     // The unified WITH owner runs the ordinary common static checker before
@@ -163,5 +160,20 @@ test "Graph Delta source rejects foreign names and a second Carrier transition" 
       syntax_limits(),
     )
     is Err({ issue: Syntax("Expected identifier"), .. }),
+  )
+}
+
+///|
+test "Delta FieldRef keeps missing and numeric columns at their exact source boundaries" {
+  assert_true(
+    classified_graph_source(graph_delta_source_prefix() +
+      "FROM g |> apply_graph_delta(with: changes, field: missing) |> node_rows()")
+    is Err(UnknownColumn),
+  )
+  assert_true(
+    @query.parse_query_script(graph_delta_source_prefix() +
+      "FROM g |> apply_graph_delta(with: changes, field: 1) |> node_rows()",
+      syntax_limits(),
+    ) is Err({ issue: Syntax("Expected identifier"), .. }),
   )
 }
