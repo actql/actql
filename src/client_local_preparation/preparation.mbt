@@ -48,6 +48,8 @@ pub(all) enum LocalPreparationIssue {
   Frontend(@frontend.Issue)
   Preparation(@host.ClientProgramPreparationIssue)
   ArrayProfile(@frontend.ArrayProfileIssue)
+  SubmittedInput(@host.ClientSubmittedIntentIssue)
+  Declarations(@parameters.Issue)
 }
 
 ///|
@@ -101,13 +103,32 @@ pub fn prepare_local_input_material(
   context : LocalInputContext?,
   limits : @host.ClientProgramPreparationLimits,
 ) -> Result[LocalPreparedInput, LocalPreparationIssue] {
+  let format = match input {
+    Program(_) => @frontend.Json
+    Aql(_) => @frontend.Text
+  }
+  prepare_local_input_with_format(
+    input, format, environment, bindings, context, limits,
+  )
+}
+
+///|
+/// One existing frontend/Checker path for direct and submitted input. Only the
+/// original submitted format selects SQL; the adapter does not parse it.
+fn prepare_local_input_with_format(
+  input : LocalInput,
+  format : @frontend.Format,
+  environment : @checked.CheckEnvironment,
+  bindings : @decode.Cursor?,
+  context : LocalInputContext?,
+  limits : @host.ClientProgramPreparationLimits,
+) -> Result[LocalPreparedInput, LocalPreparationIssue] {
   if context is Some(context) &&
     context.environment_cid != @checked.checking_environment_cid(environment) {
     return Err(ForeignEnvironment)
   }
-  let (document, format) = match input {
-    Program(document) => (document, @frontend.Json)
-    Aql(document) => (document, @frontend.Text)
+  let document = match input {
+    Program(document) | Aql(document) => document
   }
   let lowered = match
     @frontend.lower(document, format, context.map(value => value.query)) {

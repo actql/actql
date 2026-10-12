@@ -442,6 +442,80 @@ static bool actql_private_root_namespace(
   return close(descriptor) == 0 && matches;
 }
 
+// A bootstrap parent is not private state: ordinary HOME mode bits and a
+// valid deny-only Darwin ACL may restrict access without granting other users
+// mutation rights. Any allow entry or failed ACL observation remains a refusal.
+static bool actql_bootstrap_parent_acl(int fd) {
+#ifdef __APPLE__
+  acl_t acl = acl_get_fd_np(fd, ACL_TYPE_EXTENDED);
+  if (acl == NULL) return errno == ENOENT;
+  bool trusted = acl_valid(acl) == 0;
+  acl_entry_t entry;
+  int selector = ACL_FIRST_ENTRY;
+  size_t count = 0;
+  while (trusted) {
+    int result = acl_get_entry(acl, selector, &entry);
+    if (result == -1 && errno == EINVAL) break;
+    acl_tag_t tag;
+    if (result != 0 || ++count > 128 ||
+        acl_get_tag_type(entry, &tag) != 0 || tag != ACL_EXTENDED_DENY) {
+      trusted = false;
+      break;
+    }
+    selector = ACL_NEXT_ENTRY;
+  }
+  return acl_free(acl) == 0 && trusted;
+#else
+  // POSIX ACLs are conservatively refused; the ordinary mode-only HOME works.
+  return actql_private_root_acl(fd);
+#endif
+}
+
+static bool actql_bootstrap_parent_status(const struct stat *status) {
+  return S_ISDIR(status->st_mode) && status->st_nlink > 0 &&
+    status->st_uid == geteuid() && (status->st_mode & 0700) == 0700 &&
+    (status->st_mode & 0022) == 0;
+}
+
+int32_t actql_native_filesystem_bootstrap_parent_identity(
+  actql_native_filesystem_root *root
+) {
+  if (root == NULL) return 0;
+  root->result_device = 0;
+  root->result_inode = 0;
+  if (root->fd < 0 || root->custody_path == NULL) return 0;
+  struct stat original;
+  if (fstat(root->fd, &original) != 0 ||
+      !actql_bootstrap_parent_status(&original) ||
+      !actql_bootstrap_parent_acl(root->fd)) {
+    actql_replace_error(&root->error, "Bootstrap parent is not trusted");
+    return 0;
+  }
+  char *copy = strdup(root->custody_path);
+  if (copy == NULL) {
+    actql_replace_error(&root->error, "Bootstrap parent custody allocation failed");
+    return 0;
+  }
+  int descriptor = actql_open_contained_directory(copy);
+  free(copy);
+  if (descriptor < 0) {
+    actql_replace_error(&root->error, "Bootstrap parent namespace is unavailable");
+    return 0;
+  }
+  struct stat current;
+  bool trusted = fstat(descriptor, &current) == 0 &&
+    current.st_dev == original.st_dev && current.st_ino == original.st_ino &&
+    actql_bootstrap_parent_status(&current) && actql_bootstrap_parent_acl(descriptor);
+  bool closed = close(descriptor) == 0;
+  if (!trusted || !closed) {
+    actql_replace_error(&root->error, "Bootstrap parent namespace changed");
+    return 0;
+  }
+  root->result_device = (uint64_t)original.st_dev;
+  root->result_inode = (uint64_t)original.st_ino;
+  return 1;
+}
+
 int32_t actql_native_filesystem_private_root_identity(
   actql_native_filesystem_root *root
 ) {
