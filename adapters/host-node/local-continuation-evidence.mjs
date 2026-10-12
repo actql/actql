@@ -22,7 +22,7 @@ import {createHash, randomBytes, randomUUID} from 'node:crypto';
 import {mkdir, open as openFile, readFile, readdir, rename, stat} from
   'node:fs/promises';
 import {dirname, join} from 'node:path';
-import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {openLocalPublicationStore, readBoundedLocalMetadata} from '../store-local/publication-store.mjs';
 import {selectOriginalInferMetadataAcquisition} from './infer-operation.mjs';
 import {readContinuationLedgerBounded} from './bounded-continuation-metadata.mjs';
 import {listContinuationLedgerNamesBounded} from './bounded-continuation-directory.mjs';
@@ -82,9 +82,18 @@ export async function loadPrivateEvidenceKey(stateDirectory) {
     if (!info.isFile() || (info.mode & 0o077) !== 0) {
       fail('PrivateEvidenceKeyExposed');
     }
-    key = await readFile(path);
+    // The installation key already has a fixed 32-byte contract. Enforce it
+    // on the original FD before allocation/read, not after an unbounded
+    // readFile. This clamp is not the original bootstrap's complete funding.
+    key = await readBoundedLocalMetadata(path, 32, undefined, undefined, true);
   } catch (error) {
+    // A failed original close still belongs to installed initialization;
+    // preserve its retry handle rather than replacing it with a shape error.
+    if (error?.cleanupHandle !== undefined) throw error;
     if (error?.code === 'ENOENT') fail('PrivateEvidenceKeyUnavailable');
+    if (error?.code === 'InvalidPublicationStoreObject') {
+      fail('InvalidPrivateEvidenceKey', error);
+    }
     throw error;
   }
   if (key.byteLength !== 32) {
