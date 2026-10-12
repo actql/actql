@@ -299,7 +299,7 @@ test('WITH cutover grammar and current guidance have one producer surface', () =
   const bindings = profile.features.find(f => f.feature_id === 'query.cte');
   assert.equal(bindings.implementation_status, 'partial');
   assert.deepEqual(bindings.execution_evidence_ids, []);
-  for (const operation of ['to_vectors', 'normalize_vectors', 'score_vectors',
+  for (const operation of ['to_vectors', 'normalize_vectors', 'score_vectors', 'pool_vectors',
     'vectors', 'to_events', 'session', 'events']) {
     assert.ok(bindings.surface_forms.some(form => form.startsWith(`|> ${operation}(`)));
     assert.ok(grammar.includes(`"${operation}"`));
