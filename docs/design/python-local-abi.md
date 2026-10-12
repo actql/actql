@@ -1699,3 +1699,47 @@ preparation cannot acquire that relationship. This returns only a relation
 check: nested originals, complete same-Store inventories, current authority,
 authenticated epoch and physical COMMIT still require their existing Owners.
 The returned Unit is not an acknowledgement, start permit or public Run state.
+
+## Original saved-journal physical port
+
+Private ABI 48 connects the original complete journal inspection to a trusted
+same-Store physical port. The Core sends a bounded namespace/key request for
+`scan_after` or exact `read`; the Host returns the actual raw key, Int64 revision
+and bytes, confirmed end/NotFound, or a query failure. It does not choose the
+inspection scope, interpret authored rows, compare Run identity, or manufacture
+an accepted/committed result. The original Reference, checked preparation, Plan
+and row projection remain nominally bound through the existing Owners.
+
+The installed Host holds Core before Store and calls inspection inside the
+original fenced SQLite transaction. Epoch authentication, original configuration
+and count fences, and the trusted current port remain Host obligations. Current
+Account authorization is evaluated by the existing Core Owner before/after the
+inspection and before reading the observation. A callback shape alone cannot
+authenticate a malicious physical supplier. The port is private Host assembly,
+not a public Client permission option.
+
+The buffer Owner reserves the query collector and bounded row-copy allowance
+before callbacks allocate it. An original material and its input borrow remain
+live until this child closes; parent material/configuration and pool close are
+refused while the observation owns them. Query exceptions, Wasm traps and failed
+cleanup retain the same ticket/handle/reservation. Cleanup is explicit and
+retried through that owner; no transaction, Submission or computation is resent.
+SQLite/parser workspace and other concurrently retained inputs still require
+their existing separate reservations. This port's finite collector allowance
+is not a claim of complete global memory accounting.
+
+The first connected profile validates Effect-free, checkpoint-free saved rows
+and a completely observed empty cancellation inventory. Missing custody is not
+initialized. Nonempty cancellation, checkpoint or Effect-original paths are
+explicitly unsupported until their original validators are connected; their
+obligations are never omitted to report success. Full Run, Effect-response,
+Receipt and submitted-intent inventories remain mandatory. The observation
+keeps the original immutable admission revision separate from the observed Run
+and Submission revisions. Preparing and unresolved history remain distinct.
+
+Successful private inspection is neither a COMMIT acknowledgement nor dispatch,
+physical-start, retry, publication, Result-read or resource-release authority.
+Store ACK, the public Local Client, restoration and externally installed wheel
+acceptance remain separate required product connections. Default 100M fuel and
+existing capacity bounds are unchanged. Earlier private ABI modules are refused
+by the loader and installed manifest; no repository/Node/CLI fallback exists.

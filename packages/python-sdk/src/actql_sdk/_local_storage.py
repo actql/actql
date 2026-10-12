@@ -33,6 +33,8 @@ class _NamespaceReader:
     # One physical transaction loan, not completeness or admission proof.
     scan_after: Callable[[str, str, _NamespaceConsumer], None]
     read: Callable[[str, str, _NamespaceConsumer], None]
+    owner: 'LocalByteStore'
+    current: Callable[[], None]
 
 
 _InventoryInspection = Callable[[_NamespaceReader], object]
@@ -615,6 +617,16 @@ class LocalByteStore:
             if not self._fences_match_locked(fences, successors):
                 raise LocalStorageError('Original Local inventory metadata changed')
 
+        def current_snapshot() -> None:
+            nonlocal failure
+            try:
+                if not active or reading or get_ident() != thread or failure is not None:
+                    raise ValueError('Local inventory reader is not active')
+                fence()
+            except BaseException as error:
+                failure = error
+                raise
+
         def observe(namespace: str, after: str, consume: _NamespaceConsumer, *,
                     scan: bool) -> None:
             nonlocal reading, reads, copied, failure
@@ -681,7 +693,8 @@ class LocalByteStore:
                 scan_after=lambda namespace, after, consume:
                     observe(namespace, after, consume, scan=True),
                 read=lambda namespace, key, consume:
-                    observe(namespace, key, consume, scan=False)))
+                    observe(namespace, key, consume, scan=False),
+                owner=self, current=current_snapshot))
             if failure is not None:
                 raise failure
             if result is not None or reads == 0:

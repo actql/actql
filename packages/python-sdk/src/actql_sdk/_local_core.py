@@ -11,7 +11,10 @@ import sys
 from threading import RLock
 from typing import Any, Literal
 
-LOCAL_CORE_ABI = 47
+from ._local_journal_port import _JournalCallbacks
+from ._local_storage import _NamespaceReader, LocalByteStore
+
+LOCAL_CORE_ABI = 48
 
 
 class LocalCoreError(RuntimeError):
@@ -163,6 +166,7 @@ class _PhysicalInput:
     cleanup: Callable[[], bool]
     stopped: Callable[[int], bool]
     publisher: _PublisherCallbacks | None = None
+    journal: _JournalCallbacks | None = None
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -441,6 +445,20 @@ _IMPORT_SIGNATURES = {
     'publisher_begin': ('i32 i32', 'i32'),
     'publisher_byte': ('i32 i32 i32', 'i32'),
     'publisher_finish': ('i32', 'i32'),
+    'journal_current': ('i32', 'i32'),
+    'journal_begin': ('i32 i32 i32 i32', 'i32'),
+    'journal_query_byte': ('i32 i32 i32', 'i32'),
+    'journal_query': ('i32', 'i32'),
+    'journal_length': ('i32 i32', 'i32'),
+    'journal_byte': ('i32 i32 i32', 'i32'),
+    'journal_revision': ('i32', 'i64'),
+    'journal_release': ('i32', 'i32'),
+}
+_JOURNAL_SIGNATURES = {
+    'reserve': ('i64 i32 i32 i32 i64', 'i32'),
+    'inspect': ('i64 i32', 'i32'),
+    'revision': ('i64 i32 i32', 'i64'),
+    'close': ('i64 i32', 'i32'),
 }
 _MEMORY_LIMIT = 16 * 1024 * 1024
 
@@ -559,6 +577,8 @@ class LocalCore:
                              for name, value in _RESULT_SIGNATURES.items()})
             expected.update({'actql_publisher_' + name: value
                              for name, value in _PUBLISHER_SIGNATURES.items()})
+            expected.update({'actql_journal_' + name: value
+                             for name, value in _JOURNAL_SIGNATURES.items()})
             expected['actql_host_abi_version'] = ('', 'i32')
             exports = {item.name: item.type for item in self._module.exports}
             if (any(name not in exports or
@@ -583,11 +603,20 @@ class LocalCore:
                                    ('publisher_current', self._publisher_current),
                                    ('publisher_begin', self._publisher_begin),
                                    ('publisher_byte', self._publisher_byte),
-                                   ('publisher_finish', self._publisher_finish)]:
+                                   ('publisher_finish', self._publisher_finish),
+                                   ('journal_current', self._journal_current),
+                                   ('journal_begin', self._journal_begin),
+                                   ('journal_query_byte', self._journal_query_byte),
+                                   ('journal_query', self._journal_query),
+                                   ('journal_length', self._journal_length),
+                                   ('journal_byte', self._journal_byte),
+                                   ('journal_revision', self._journal_revision),
+                                   ('journal_release', self._journal_release)]:
                 params = [wasmtime.ValType.i32()
                           for _ in _IMPORT_SIGNATURES[name][0].split()]
                 self._linker.define_func('actql_host', name,
-                    wasmtime.FuncType(params, [wasmtime.ValType.i32()]), callback)
+                    wasmtime.FuncType(params, [wasmtime.ValType.i64() if
+                        _IMPORT_SIGNATURES[name][1] == 'i64' else wasmtime.ValType.i32()]), callback)
             instance = self._linker.instantiate(self._store, self._module)
             self._exports = instance.exports(self._store)
             if self._exports['actql_host_abi_version'](self._store) != LOCAL_CORE_ABI:
@@ -655,6 +684,134 @@ class LocalCore:
             return 0 if observers[fact]() is True else 1
         except BaseException:
             return 1
+
+    def _journal_callbacks(self, ticket: int) -> _JournalCallbacks | None:
+        value = self._inputs.get(ticket)
+        return None if value is None else value.journal
+
+    def _journal_current(self, ticket: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.check_current()
+
+    def _journal_begin(self, ticket: int, mode: int, namespace_bytes: int, key_bytes: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.begin(mode, namespace_bytes, key_bytes)
+
+    def _journal_query_byte(self, ticket: int, index: int, byte: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.byte(index, byte)
+
+    def _journal_query(self, ticket: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.query()
+
+    def _journal_length(self, ticket: int, field: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.length(field)
+
+    def _journal_byte(self, ticket: int, field: int, index: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.row_byte(field, index)
+
+    def _journal_revision(self, ticket: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -1 if callbacks is None else callbacks.revision()
+
+    def _journal_release(self, ticket: int) -> int:
+        callbacks = self._journal_callbacks(ticket)
+        return -41 if callbacks is None else callbacks.release()
+
+    def reserve_journal_observation(self, material: _Output, current_configuration: int, *,
+                                    store: LocalByteStore, current: Callable[[], object],
+                                    cleanup: Callable[[], bool]) -> _Output:
+        """Retain one original same-Store callback loan; no admission/ACK is issued.
+
+        Call inspect_journal_observation inside the original fenced SQLite
+        callback while holding Core before Store. SQLite/Core parser workspace
+        and original retained inputs need their existing separate reservations.
+        """
+        with self._lock:
+            self._owned_output(material, 'material')
+            if (self._closing or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31
+                    or type(store) is not LocalByteStore
+                    or not callable(current) or not callable(cleanup)):
+                raise ValueError('Invalid original Local journal observation')
+            ticket = self._next_ticket
+            if ticket >= 2**31:
+                raise RuntimeError('Local Core input identity exhausted')
+            self._next_ticket += 1
+            callbacks = _JournalCallbacks(current, store)
+
+            def retire() -> bool:
+                if cleanup() is not True:
+                    return False
+                callbacks.release()
+                callbacks.reader = None
+                return True
+
+            self._inputs[ticket] = _PhysicalInput(b'', retire, lambda _: True,
+                                                 journal=callbacks)
+            limit = 1_048_576
+            # Concurrent raw row/key and request/decode copies, bounded before
+            # the physical query; this is not a global Python/SQLite memory claim.
+            allowance = (2 * limit + 4096 + sys.getsizeof(callbacks)
+                         + sys.getsizeof(self._inputs[ticket]))
+            handle = self._call('journal', 'reserve', material.handle,
+                                current_configuration, ticket, allowance)
+            if handle <= 0:
+                del self._inputs[ticket]
+                raise LocalCoreError('reserve_journal_observation', handle)
+            value = _Output(self._identity, ticket, handle, limit, 'journal')
+            self._loans[ticket] = value
+            return value
+
+    def inspect_journal_observation(self, value: _Output, reader: _NamespaceReader) -> None:
+        """Invoke the original Core inspection within the same physical snapshot."""
+        with self._lock:
+            self._owned_output(value, 'journal')
+            callbacks = self._journal_callbacks(value.ticket)
+            if (self._closing or type(reader) is not _NamespaceReader or callbacks is None
+                    or reader.owner is not callbacks.store
+                    or callbacks.reader is not None or callbacks.failure is not None):
+                raise ValueError('Invalid original Local journal transaction loan')
+            callbacks.reader = reader
+            try:
+                code = self._call('journal', 'inspect', value.handle)
+                if callbacks.failure is not None:
+                    raise callbacks.failure
+                self._check('inspect_journal_observation', code)
+            finally:
+                # No reader survives its transaction. Failed query copies stay
+                # under the same buffer ticket until explicit successful cleanup.
+                callbacks.reader = None
+
+    def journal_observation_revisions(self, value: _Output, reader: _NamespaceReader) -> tuple[int, int, int]:
+        """Read Core-observed revisions under a newly checked original snapshot.
+
+        The Host rechecks original current/epoch/configuration fences. These
+        revisions are not a COMMIT acknowledgement or permission to dispatch.
+        """
+        with self._lock:
+            self._owned_output(value, 'journal')
+            callbacks = self._journal_callbacks(value.ticket)
+            if (self._closing or type(reader) is not _NamespaceReader or callbacks is None
+                    or reader.owner is not callbacks.store
+                    or callbacks.reader is not None or callbacks.failure is not None):
+                raise ValueError('Invalid original Local journal transaction loan')
+            callbacks.reader = reader
+            try:
+                result = tuple(self._call('journal', 'revision', value.handle, field) for field in range(3))
+                if callbacks.failure is not None:
+                    raise callbacks.failure
+                if any(value < 0 for value in result):
+                    raise LocalCoreError('journal_observation_revisions', -31)
+                return result[0], result[1], result[2]
+            finally:
+                callbacks.reader = None
+
+    def close_journal_observation(self, value: _Output) -> bool:
+        return self._close_output(value, 'journal', 'close')
 
     def _publisher_callbacks(self, ticket: int) -> _PublisherCallbacks | None:
         value = self._inputs.get(ticket)

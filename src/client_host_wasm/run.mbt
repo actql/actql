@@ -356,7 +356,10 @@ pub fn close_run_configuration(nonce : Int64, handle : Int) -> Int {
     value.run_configurations.get(handle) is Some(record) else {
     return -2
   }
-  if value.computes
+  if value.journal_observations
+    .values()
+    .any(child => child.configuration == handle) ||
+    value.computes
     .values()
     .any(compute => compute.current_configuration == Some(handle)) ||
     value.materials
