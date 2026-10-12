@@ -60,7 +60,7 @@ class InstalledLocalHost:
     """
 
     def __init__(self, core: LocalCore, directory: Path, *,
-                 now: Callable[[], int], observed_at: str) -> None:
+                 now: Callable[[], int], observed_at: str, sdk_finite: bool = False) -> None:
         if type(core) is not LocalCore or not callable(now):
             raise ValueError('Installed Local Host requires its original Core')
         self._original = self
@@ -79,7 +79,7 @@ class InstalledLocalHost:
         self._closing = False
         try:
             self._installation = OriginalLocalInstallation(core, directory,
-                observed_at=observed_at, now=now, project_epoch=self._project_epoch)
+                observed_at=observed_at, now=now, project_epoch=self._project_epoch, sdk_finite=sdk_finite)
             # Exact original file bytes supply only a CID claim. Core validates
             # that claim and the policy body; it is not publisher authority.
             binding = self._installation.binding
@@ -108,7 +108,7 @@ class InstalledLocalHost:
             directory = _default_directory()
             now = lambda: time.time_ns() // 1_000_000
             observed_at = datetime.now(timezone.utc).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
-            return cls(core, directory, now=now, observed_at=observed_at)
+            return cls(core, directory, now=now, observed_at=observed_at, sdk_finite=True)
         except LocalProductCleanupPending:
             raise
         except BaseException:
