@@ -1,0 +1,36 @@
+{
+  "baseline": "aae45ea3817b67d4e4d7cae74e60e0ec6c3b76f5",
+  "rule": "compare original authored machine literal lines from Git, never compiled product output",
+  "files": [
+    {
+      "path": "src/query_integration/acquired_relation_branch_wbtest.mbt",
+      "literalLines": 3,
+      "literalSha256": "f3d3702b5d5267e9bef34293cc8d4e23b5fa2f5ffd6603314c855be64903f353",
+      "byteEqual": true
+    },
+    {
+      "path": "src/query_integration/carrier_analytic_shape_wbtest.mbt",
+      "literalLines": 5,
+      "literalSha256": "a2abf0f211c246b439ed91cb2ccb7e1deb95260196e6571887325457d9ce0bc5",
+      "byteEqual": true
+    },
+    {
+      "path": "src/query_integration/carrier_work_wbtest.mbt",
+      "literalLines": 1,
+      "literalSha256": "1ec8df2f58dfe9a85f532193bebb832d2ea3e565b82a1b2cc37bd7f84aa1de40",
+      "byteEqual": true
+    },
+    {
+      "path": "src/query_integration/dag_result_work_wbtest.mbt",
+      "literalLines": 2,
+      "literalSha256": "3f7cd982a161a757a9a31848e97fc0927d8607c57bf38ac699bd7a2ebcf73db3",
+      "byteEqual": true
+    },
+    {
+      "path": "src/query_integration/graph_plan_wbtest.mbt",
+      "literalLines": 7,
+      "literalSha256": "802bbb8e3afcacca7365eb30d073eadcc7fdcaa603310f8c35692ecf9630d120",
+      "byteEqual": true
+    }
+  ]
+}

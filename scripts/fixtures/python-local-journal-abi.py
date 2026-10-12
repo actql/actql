@@ -27,7 +27,7 @@ request_id = 'sha256:60829347a8a67a0290d02e6fc991daaec4bb8097d27c611bd9f6c572ba2
 core = LocalCore(module, digest=digest, transfer_capacity=12 * 1024 * 1024, slots=64,
                  resources=LocalCoreResources(100000, 64, 64, 32000000, 200000000,
                                               16 * 1024 * 1024 + 12 * 1024 * 1024))
-assert core._exports['actql_host_abi_version'](core._store) == 52
+assert core._exports['actql_host_abi_version'](core._store) == 54
 inputs = []
 children = []
 material = None
@@ -97,6 +97,15 @@ try:
             def observe(reader):
                 core.inspect_journal_observation(child, reader)
                 revisions.append(core.journal_observation_revisions(child, reader))
+                admission = json.loads(core.read_journal_admission(child, reader))
+                assert set(admission) == {'ref', 'durability', 'revision'}
+                assert admission['revision'] == 0 and admission['durability'] == 'durable'
+                assert admission['ref']['namespaceId'] == CONFIGURATION['namespace']
+                assert admission['ref']['authorityScopeCid'] == 'sha256:' + 'b' * 64
+                saved_definition = json.loads(json.loads(fields['run'])['run_definition'])
+                assert admission['ref']['runDefinitionCid'] == saved_definition['run_definition_cid']
+                assert core.read_journal_admission(child, reader) == json.dumps(
+                    admission, ensure_ascii=False, separators=(',', ':')).encode()
             assert store.compare_exchange_many_inspected(writes, fences,
                 inspect=observe, current=lambda: None) == (0,)
             assert revisions == [(0, 0, 0)]
