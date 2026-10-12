@@ -293,109 +293,23 @@ Preview and idempotency key, backed by a Connector's admitted idempotency or
 reconciliation guarantee. A durable ledger alone cannot make an ambiguous write
 safe to repeat. An intentional resend uses a new logical request identity.
 
-## Approve a change
+## Review a change
 
-The CLI workflow below illustrates the intended approval experience. Its
-`@smoothhq/actql` example and commands are not provided by the source-built
-`@actql/*` packages above. For their current executable Checkpoint API, see
-the [Client package](packages/sdk/README.md#historical-held-requests-and-run-checkpoints). The CLI example adds
-one Effect without a provider account and sets up a local approval key:
+Approval is available through the [public Client Checkpoint API](packages/sdk/README.md#historical-held-requests-and-run-checkpoints)
+on an installed Host with the required Effect and review capabilities. Listing
+Checkpoint metadata, reading the exact review body and answering it are separate
+current permissions. Use `checkpoints`, `reviewCheckpoint` and
+`resolveCheckpoints` with an application-managed signer trusted by that Host.
+A stored answer does not itself certify resumed execution; follow the same
+original Run. An unknown Effect is not permission to submit the work again.
 
-```bash
-cp -R node_modules/@smoothhq/actql/examples/actql/approval-quickstart .
-cd approval-quickstart
-node setup.mjs
-```
-
-The program publishes the requested record as its result and declares the
-update separately as an Effect:
-
-```yaml
-version: actql/0.1
-id: quickstart.approved_update
-stages:
-  - id: main
-    inputs:
-      desired:
-        carrier: relation
-        schema:
-          id: { type: string, nullable: false }
-          value: { type: number, nullable: false }
-        primary_key: [ id ]
-    from: desired
-    steps: []
-    results:
-      main:
-        from: desired
-        fields: [ id, value ]
-        order_by: [ { id: asc } ]
-    effects:
-      update_record:
-        update:
-          target: connector://quickstart/main/Records
-          mapping: mapping:quickstart.records.v1
-          from: { result: main }
-          id: id
-          set:
-            value: { field: value }
-results:
-  main:
-    from: { stage: main, result: main }
-```
-
-Optionally check the program, then start one durable Run:
-
-```bash
-npx actql check update-record.aql
-npx actql run update-record.aql \
-  --input desired=desired.jsonl \
-  --json
-```
-
-The Run stops before changing `records.jsonl` and returns
-`status: waiting_checkpoint` with its Run and Checkpoint IDs. Use those IDs to
-inspect the exact review view stored at the Checkpoint:
-
-```bash
-npx actql status '<run-id>'
-```
-
-```text
-Run run_...
-  Status      waiting_checkpoint
-  Checkpoint  checkpoint_...
-  Phase       commit
-  Reason      Review the complete 1-member Effect Set before commit.
-
-Review
-  Effect      update_record
-    Operation update
-    Target    connector://quickstart/main/Records
-    Items     1
-    Changes
-      r1
-        Before {"value":1}
-        After  {"value":42}
-  Permissions Records.write
-```
-
-Approve that Checkpoint and read the result:
-
-```bash
-npx actql approve '<checkpoint-id>' \
-  --signer quickstart-approver \
-  --wait \
-  --json
-npx actql result '<run-id>'
-```
-
-The final command prints:
-
-```jsonl
-{"id":"r1","value":42}
-```
-
-See the [CLI reference](docs/cli.md) for approval and recovery.
+The distributed Native CLI currently provides `aql`/`start`, `wait`, and bounded
+`read` through Remote transport. It has no Remote `run` or `approve` command.
+The [CLI guide](docs/cli.md) gives the actual required arguments and saved
+Submission/Run/read-attempt identities. Native Local installation and approval
+remain separate unfinished acceptance units; the
+[target CLI experience](docs/design/cli-target-experience.md) records the
+adopted future design without presenting it as a current runnable quickstart.
 
 ## Beyond tables
 

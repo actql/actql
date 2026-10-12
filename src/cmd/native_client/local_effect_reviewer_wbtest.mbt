@@ -1,0 +1,92 @@
+///|
+// Settings/caller definitions only until the matching Native fixture runs.
+// No Source, signature, Store, Checkpoint admission or Provider is exercised.
+let local_reviewer_cli_configuration : String =
+  #|{"version":"actql-config/0.1","account_config":"account.json","native":{"check_environment":{"file":"environment.json","evidence_bundle_cid":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},"local":{"account_id":"operator","principal":"original-client","connection":"original-cli","state_parent":"/private/local-state","state_name":"host","managed_root":"/private/local-results","sqlite_library":"/private/libsqlite3.dylib","signature_library":"/private/libcrypto.dylib","submission_ttl_ms":60000,"journal_record_limit":8,"journal_snapshot_bytes":8388608,"installation_files":["reviewer.json"]}}}
+
+///|
+test "CLI Reviewer selection defaults to none without changing original Client role" {
+  let settings = local_host_settings(local_reviewer_cli_configuration)
+  assert_eq(settings.reviewer_file, None)
+  assert_eq(settings.principal, "original-client")
+  assert_eq(settings.connection, "original-cli")
+  // None does not read this intentionally unavailable root or scan files.
+  assert_eq(
+    local_selected_effect_reviewer_original("/not-a-reviewer-root", settings),
+    None,
+  )
+}
+
+///|
+test "CLI explicitly selects Reviewer only within existing finite installation originals" {
+  let selected = local_reviewer_cli_configuration.replace_all(
+    old="\"installation_files\":",
+    new="\"reviewer_file\":\"reviewer.json\",\"installation_files\":",
+  )
+  let settings = local_host_settings(selected)
+  assert_eq(settings.reviewer_file, Some("reviewer.json"))
+  assert_eq(settings.installation_files, ["reviewer.json"])
+  assert_eq(settings.principal, "original-client")
+  assert_eq(settings.connection, "original-cli")
+  let six = selected.replace_all(
+    old="[\"reviewer.json\"]",
+    new="[\"reviewer.json\",\"source.json\",\"run.json\",\"read.json\",\"other-one.json\",\"other-two.json\"]",
+  )
+  assert_eq(local_host_settings(six).installation_files.length(), 6)
+  let seventh = six.replace_all(
+    old="\"other-two.json\"]",
+    new="\"other-two.json\",\"seventh.json\"]",
+  )
+  assert_true(
+    try {
+      local_host_settings(seventh) |> ignore
+      false
+    } catch {
+      ClientStop(message) => message == "InvalidLocalInstallationSelection"
+    },
+  )
+}
+
+///|
+test "CLI refuses unselected null or duplicate Reviewer field before original file read" {
+  for
+    (field, expected) in [
+      (
+        "\"reviewer_file\":\"unselected.json\",", "LocalReviewerOriginalNotSelected",
+      ),
+      ("\"reviewer_file\":null,", "InvalidLocalHostConfiguration"),
+      (
+        "\"reviewer_file\":\"reviewer.json\",\"reviewer_file\":\"other.json\",",
+        "LocalInputNotAdmitted",
+      ),
+    ] {
+    let wire = local_reviewer_cli_configuration.replace_all(
+      old="\"installation_files\":",
+      new=field + "\"installation_files\":",
+    )
+    assert_true(
+      try {
+        local_host_settings(wire) |> ignore
+        false
+      } catch {
+        ClientStop(message) => message == expected
+      },
+    )
+  }
+}
+
+///|
+test "CLI Reviewer binding compiles original caller roles and opaque custody scope without CID substitution" {
+  let caller : (
+    @local_host.NativeLocalHostConnection,
+    LocalHostSettings,
+    @local_crypto.Library,
+    @local_host.NativeClientSubmissionReference,
+    @run_host.ClientRequestIdentity,
+    @source_owner.ResidentOriginalEffectApprovalScope,
+  ) -> Result[
+    @local_host.NativeLocalEffectReviewerBinding,
+    @local_host.NativeLocalEffectReviewerBindingIssue,
+  ] = local_bind_effect_reviewer
+  caller |> ignore
+}

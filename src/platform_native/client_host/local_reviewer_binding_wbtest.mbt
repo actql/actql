@@ -9,6 +9,7 @@ fn local_reviewer_installation_fixture(
   name : String,
   wire? : String = local_reviewer_selection_wire,
   account? : String = local_reviewer_account,
+  extra_files? : Int = 0,
 ) -> (NativeLocalHostConnection, String) {
   let parent = @filesystem.open_private_root(
     @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap(),
@@ -25,10 +26,30 @@ fn local_reviewer_installation_fixture(
   )
   .unwrap()
   writer.seal(file).unwrap() |> ignore
-  (
-    policy_host_fixture(name, files=[file], account_body=@utf8.encode(account)),
-    file,
-  )
+  let files = [file]
+  for index in 0..<extra_files {
+    let extra = name + ".selected-" + index.to_string() + ".json"
+    let writer = parent.create_writer(extra + ".stage", 8192L).unwrap()
+    writer.append(b"{}").unwrap()
+    writer.seal(extra).unwrap() |> ignore
+    files.push(extra)
+  }
+  (policy_host_fixture(name, files~, account_body=@utf8.encode(account)), file)
+}
+
+///|
+test "Native Local Reviewer preserves existing seven and eight selected Host files" {
+  for count in [7, 8] {
+    let (host, file) = local_reviewer_installation_fixture(
+      "reviewer-host-bound-" + count.to_string(),
+      extra_files=count - 1,
+    )
+    assert_eq(host.session.settings.files.length(), count)
+    assert_true(
+      host.install_effect_reviewer(configuration_file=Some(file)) is Ok(_),
+    )
+    host.close().unwrap()
+  }
 }
 
 ///|
