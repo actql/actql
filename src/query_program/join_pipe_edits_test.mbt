@@ -1,5 +1,5 @@
 ///|
-fn join_pipe_edit_expected(tail : String, fields : String) -> @program.Program {
+fn staged_join_pipe_edit_expected(tail : String, fields : String) -> @program.Program {
   // Independent ordinary JOIN, evaluated-value edits and projection. The two
   // input definitions and all explicit key/ceiling premises are retained.
   @program.parse(
@@ -18,6 +18,30 @@ fn join_pipe_edit_expected(tail : String, fields : String) -> @program.Program {
     format=Json,
   ).unwrap()
 }
+
+
+///|
+// Build the complete current topology from the original named Values and
+// unchanged authored continuation. Binding names follow the installed seed
+// roles; no compiler output is used to generate this control.
+fn join_pipe_edit_expected(tail : String, fields : String) -> @program.Program raise {
+  check_staged_values_join_oracle(staged_join_pipe_edit_expected(tail, fields))
+  @program.parse(
+    (
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":1,"y":20},{"x":2,"y":10}]},"as":"aql_script_seed_2"},{"values":{"schema":{"k":{"type":"number","nullable":false}},"rows":[{"k":1},{"k":2}]},"as":"aql_script_seed_3"},{"from":"aql_script_seed_2","join":{"with":"aql_script_seed_3","kind":"inner","on":[{"left":"x","right":"k"}],"max_output_rows":10,"select":{"aql_chain_column_2":"left.x","aql_chain_column_3":"left.y","aql_chain_column_4":"right.k"}},"as":"aql_chain_join_4"},
+    ) +
+    shared_values_chain_tail_oracle(tail) +
+    (
+      #|],"results":{"rows":{"from":"aql_chain_result_5","fields":
+    ) + fields +
+    (
+      #|}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+    ),
+    construction_limits().program,
+    format=Json,
+  ).unwrap()
+}
+
 
 ///|
 fn check_join_pipe_edit(
