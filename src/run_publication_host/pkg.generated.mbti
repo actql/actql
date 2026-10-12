@@ -433,6 +433,8 @@ pub fn client_effect_source_payload_binding(ClientEffectRunMaterials, @physical_
 
 pub fn client_effect_static_computation_plan_view(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int) -> Result[String, ClientInteractivePlanIssue]
 
+pub fn client_effect_static_declarations(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int) -> Result[ClientEffectStaticDeclarationSet, ClientEffectStaticDeclarationIssue]
+
 pub fn client_effect_table_write_binding(PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, ClientEffectMemberDescriptorIssue]
 
 pub fn client_execution_material_template_cid(ClientExecutionMaterial) -> String
@@ -2029,6 +2031,50 @@ pub(all) enum ClientEffectSourceDispatchIssue {
   ForeignInput
   Protocol(@remote_site_protocol.DispatchIssue)
 }
+
+pub(all) enum ClientEffectStaticContractDeclaration {
+  MappingDeclaration(String, String, String)
+  CommandDeclaration(String, String, String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientEffectStaticDeclarationIssue {
+  ForeignCompilation
+  InvalidLimits
+  WorkLimit
+  IncompleteInventory
+  Member(ClientEffectMemberDescriptorIssue)
+} derive(@debug.Debug)
+
+pub(all) struct ClientEffectStaticDeclarationSet {
+  program : ClientProgramIdentity
+  compiled_plan_cid : String
+  check_environment_cid : String
+  unit_id : String
+  members : Array[ClientEffectStaticMemberDeclaration]
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientEffectStaticInputDeclaration {
+  ResultDeclaration(String)
+  TableInputDeclaration(String)
+  NoRowInputDeclaration
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientEffectStaticMemberDeclaration {
+  member_ordinal : Int
+  stage_ordinal : Int
+  effect_id : String
+  effect_kind : String
+  contract : ClientEffectStaticContractDeclaration
+  input : ClientEffectStaticInputDeclaration
+  failure_policy : String
+  minimum_approval : ClientEffectStaticMinimumApproval
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ClientEffectStaticMinimumApproval {
+  ContractMinimumNone
+  ContractMinimumRequired
+  ContractMinimumNotRepresented
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ClientEffectTransferredArtifactIssue {
   Unavailable
