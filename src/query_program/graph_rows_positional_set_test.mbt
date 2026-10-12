@@ -1,6 +1,6 @@
 ///|
 test "Graph row positional set operands retain the named expression control" {
-  let prefix = "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) EDGE TABLES (n AS E KEY (node_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R PROPERTIES (p))); "
+  let prefix = "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)) EDGE TABLES (n AS E KEY (node_key) SOURCE KEY (node_key) REFERENCES N DESTINATION KEY (node_key) REFERENCES N LABEL R PROPERTIES (p)))) "
   for operation in ["node_rows", "edge_rows"] {
     for output_alias in [" AS other", ""] {
       let source = prefix +
@@ -41,7 +41,7 @@ test "Graph row positional set operands retain the named expression control" {
 
 ///|
 test "Graph row anonymous fields do not satisfy BY NAME or later ORDER" {
-  let prefix = "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p))); "
+  let prefix = "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)))) "
   for
     (tail, by_name) in [
       (
@@ -69,13 +69,13 @@ test "Graph row anonymous fields do not satisfy BY NAME or later ORDER" {
 }
 
 ///|
-test "Graph row set heads reach the same ordinary set owner in root and DATA" {
-  let prefix = "DATA n = SELECT 1 AS node_key, 7 AS p; DATA g = PROPERTY GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p))); "
+test "Graph row set heads reach the same ordinary set owner in root and WITH" {
+  let prefix = "WITH n AS (SELECT 1 AS node_key, 7 AS p), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node PROPERTIES (p)))) "
   let body = "FROM g |> node_rows() |> SELECT p AS value |> UNION ALL (FROM n |> SELECT p + 1 AS other)"
   for
     suffix in [
       body + " |> ORDER BY value",
-      "DATA combined = " + body + "; FROM combined |> ORDER BY value",
+      ", combined AS (" + body + ") FROM combined |> ORDER BY value",
     ] {
     let program = match
       compile_query_script(

@@ -101,13 +101,13 @@ test "INFER INPUT binding preserves missing contract and field refusals" {
 }
 
 ///|
-test "INFER INPUT contract binding reaches source-free and DATA compilation" {
+test "INFER INPUT contract binding reaches source-free and WITH compilation" {
   let environment = infer_member_environment()
   let context = infer_member_context(environment)
   for
     source in [
       "SELECT DISTINCT 'a' AS id |> EXTEND 'urgent' AS text |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (TEXT = text) AS assessment",
-      "DATA seed = SELECT DISTINCT 'a' AS id |> EXTEND 'urgent' AS text; FROM seed |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (`TeXt` = text) AS assessment",
+      "WITH seed AS (SELECT DISTINCT 'a' AS id |> EXTEND 'urgent' AS text) FROM seed |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (`TeXt` = text) AS assessment",
     ] {
     let actual = compile_query_script(
       @query.parse_query_script(source, syntax_limits()).unwrap(),
@@ -121,7 +121,7 @@ test "INFER INPUT contract binding reaches source-free and DATA compilation" {
     match @check.check_parsed(actual, environment, None, check_limits()) {
       Checked(_) => ()
       Rejected(error) => raise @check.diagnostic_cause(error)
-      NeedsInputs(_) => fail("closed source-free and DATA controls")
+      NeedsInputs(_) => fail("closed source-free and WITH controls")
     }
   }
 }

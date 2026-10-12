@@ -1,0 +1,118 @@
+{
+  "owner": "B",
+  "pr": 1506,
+  "tested_source": "bb400e67f24425b7771d2a74ede42519e1baa86c",
+  "tested_tree": "751649f315458124cbf98ba7c2badb20e3f3dd89",
+  "scope": "Existing unified Graph Source callers now use WITH. Complete independent Program mapping, static Graph causes, retained Results and authored ASCII coordinates are preserved. Both public text selectors follow the already adopted WITH head.",
+  "limits": {
+    "heavy": false,
+    "timeout_seconds": 60,
+    "grace_seconds": 5
+  },
+  "original": "with-unified-source-original-caller.json",
+  "unexecuted": [
+    "Local/HTTPS Host execution",
+    "fresh packages",
+    "four-Carrier/P2 completion",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ],
+  "runs": [
+    {
+      "run": "run-PTnlig",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 55174,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "node",
+          "--input-type=module",
+          "-e",
+          "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+          "moon",
+          "--target",
+          "js",
+          "src/source_frontend/unified_dependency_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/unified-source-retirement-evidence/run-PTnlig/summary.json",
+          "sha256": "1053ff206a8dfab5329d90cf7243aa7ec673142fe0a74f2a98de94bff8fa1b84"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/unified-source-retirement-evidence/run-PTnlig/output.log",
+          "sha256": "8e9bee11ab5c43f091328fbcc4bc5e9cbd9cb4c5f67e3760e11690b60c878cef"
+        },
+        "focused-test-NgzCEA/0001.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/unified-source-retirement-evidence/run-PTnlig/focused-test-NgzCEA/0001.summary.json",
+          "sha256": "c9bbfea020cc9fb4d2bc2d9113f4563951e416593effe9baab6f3cbfbac22a47"
+        },
+        "focused-test-NgzCEA/0002.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/unified-source-retirement-evidence/run-PTnlig/focused-test-NgzCEA/0002.summary.json",
+          "sha256": "055143f7b2740876dcaf792f56f1d1abb522344a6ea1f2e18441ee9cf90b3f6c"
+        },
+        "focused-test-NgzCEA/0003.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/unified-source-retirement-evidence/run-PTnlig/focused-test-NgzCEA/0003.summary.json",
+          "sha256": "a8bfecca320eff76fb9b3f79d3604282a72840d6e65e8b8be3d8349308e4c217"
+        },
+        "focused-test-NgzCEA/0004.summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/unified-source-retirement-evidence/run-PTnlig/focused-test-NgzCEA/0004.summary.json",
+          "sha256": "ec1dd59b54a06798d229db3db1aaa6b484294a28fe6ab048442d688b80ccd3b2"
+        },
+        "focused-test-NgzCEA/001.result.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/unified-source-retirement-evidence/run-PTnlig/focused-test-NgzCEA/001.result.json",
+          "sha256": "71c6d0c4573f21ab5575c6ffe9cba9326b44bc270504a15f4b85e42f70ae3c06"
+        },
+        "focused-test-NgzCEA/001.started.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/unified-source-retirement-evidence/run-PTnlig/focused-test-NgzCEA/001.started.json",
+          "sha256": "d3db76d2045e951d2f230773fd20dd999fe6a6385f04520b0b9aca3d6125e5d9"
+        },
+        "focused-test-NgzCEA/001.stderr.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/unified-source-retirement-evidence/run-PTnlig/focused-test-NgzCEA/001.stderr.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "focused-test-NgzCEA/001.stdout.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/unified-source-retirement-evidence/run-PTnlig/focused-test-NgzCEA/001.stdout.log",
+          "sha256": "764157e72b2dd2e8e0a0545e7f821c609e694e542766a3c5c6666f28561c5f05"
+        },
+        "focused-test-NgzCEA/summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/unified-source-retirement-evidence/run-PTnlig/focused-test-NgzCEA/summary.json",
+          "sha256": "ec1dd59b54a06798d229db3db1aaa6b484294a28fe6ab048442d688b80ccd3b2"
+        }
+      },
+      "actual_js": {
+        "tests": 8,
+        "passed": 8,
+        "failed": 0
+      }
+    },
+    {
+      "run": "run-FlIOoB",
+      "complete": true,
+      "exit_code": 0,
+      "owner_pid": 55514,
+      "locks_released": true,
+      "actual_owner_group_and_own_lock_absent": true,
+      "commands": [
+        [
+          "moon",
+          "fmt",
+          "src/source_frontend/unified_dependency_test.mbt"
+        ]
+      ],
+      "evidence": {
+        "summary.json": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/unified-source-retirement-evidence/run-FlIOoB/summary.json",
+          "sha256": "af7e7976a32b8c93f3815579e09d7cec841abcef2b5f488fd47dbee294b7a031"
+        },
+        "output.log": {
+          "path": "reviews/2026-10-11-with-carrier-cutover/unified-source-retirement-evidence/run-FlIOoB/output.log",
+          "sha256": "6126828c8e86fe3c5be3be88c3825b1b5c2d1cbbde371534b119e8089013a720"
+        }
+      }
+    }
+  ]
+}

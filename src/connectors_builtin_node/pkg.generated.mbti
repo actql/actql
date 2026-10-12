@@ -1053,6 +1053,8 @@ pub fn client_program_model_capture_json(@model_execution.ModelCaptureBundle) ->
 
 pub fn client_program_model_physical_call(@model_execution.ModelCallEntry, @model_execution.ModelPreparedCallSet, () -> @model_execution.ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> @model_execution.ModelPhysicalCall?
 
+pub fn client_program_model_physical_call_for_request(@model_execution.ModelCallEntry, @model_execution.ModelRequest, () -> @model_execution.ModelPhysicalCallPoll, () -> Unit, (Bool) -> Bool) -> @model_execution.ModelPhysicalCall?
+
 pub fn client_program_model_physical_evidence_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, String, String, () -> @model_execution.ModelResponse?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_model_physical_pending() -> @model_execution.ModelPhysicalCallPoll

@@ -70,6 +70,15 @@ pub fn Library::verify_ed25519(
 }
 
 ///|
+pub fn Library::sign_ed25519(
+  _self : Library,
+  _private_key_pem : Bytes,
+  _message : Bytes,
+) -> Result[String, NativeSignatureIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 fn Library::private_cipher(
   _self : Library,
   _key : Bytes,

@@ -1,0 +1,71 @@
+{
+  "startedAt": "2026-10-11T18:24:24.606Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "WITH Graph interface generation",
+      "command": [
+        "moon",
+        "info",
+        "--target",
+        "js",
+        "src/query_syntax",
+        "src/query_program",
+        "src/source_frontend"
+      ],
+      "startedAt": "2026-10-11T18:24:24.712Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:24:26.076Z",
+      "endedAt": "2026-10-11T18:24:26.078Z"
+    },
+    {
+      "name": "WITH Graph selected formatting",
+      "command": [
+        "moon",
+        "fmt",
+        "src/query_syntax/graph.mbt",
+        "src/query_syntax/query.mbt",
+        "src/query_syntax/producer_primary.mbt",
+        "src/query_syntax/lexer.mbt",
+        "src/query_syntax/graph_test.mbt",
+        "src/query_syntax/string_literals_test.mbt",
+        "src/query_syntax/literal_forms_test.mbt",
+        "src/query_program/keyed_graph_program.mbt",
+        "src/query_program/with_graph_binding_test.mbt",
+        "src/source_frontend/with_graph_binding_test.mbt"
+      ],
+      "startedAt": "2026-10-11T18:24:26.159Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T18:24:28.559Z",
+      "endedAt": "2026-10-11T18:24:28.561Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "5db5a0ba-aaf8-47fd-8e52-7670bdbd9981",
+    "pid": 96074,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T18:24:24.700Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-V13L1j"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T18:24:28.632Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

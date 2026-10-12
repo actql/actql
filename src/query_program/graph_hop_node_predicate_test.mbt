@@ -31,7 +31,7 @@ fn graph_hop_node_context() -> Context {
 
 ///|
 fn graph_hop_node_source(pattern : String) -> String {
-  "DATA g = PROPERTY GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Node PROPERTIES ALL COLUMNS) EDGE TABLES (links AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES)); FROM GRAPH g |> MATCH p = WALK " +
+  "WITH g AS (GRAPH (NODE TABLES (objects AS N KEY (id) LABEL Node PROPERTIES ALL COLUMNS) EDGE TABLES (links AS E KEY (key) SOURCE KEY (src) REFERENCES N DESTINATION KEY (dst) REFERENCES N LABEL R NO PROPERTIES))) FROM GRAPH g |> MATCH p = WALK " +
   pattern +
   " |> SELECT PATH_LENGTH(p) AS depth"
 }
@@ -41,7 +41,7 @@ fn graph_hop_node_expected() -> @program.Program {
   // Authored from the existing per-hop predicate contract, without compiler output.
   @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}}},"rows":[{"id":1,"payload":{"score":0}},{"id":2,"payload":{"score":10}},{"id":3,"payload":{"score":20}},{"id":4,"payload":null}]},"as":"aql_script_seed_3"},{"values":{"schema":{"key":{"type":"number","nullable":false},"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false}},"rows":[{"key":10,"src":1,"dst":2},{"key":11,"src":1,"dst":3},{"key":12,"src":1,"dst":4},{"key":13,"src":3,"dst":2}]},"as":"aql_script_seed_4"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_seed_3","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"aql_script_seed_4","key":["key"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"R","properties":{"mode":"no_properties"}}]}]},"as":"aql_data_2"},{"from":"aql_data_2","match_nodes":{"definition":"N","label":"Node","where":{"eq":[{"field":"id"},{"literal":1}]},"bindings":{"identity":"aql_keyed_identity_2"},"fields":["aql_keyed_identity_2","id","payload"]},"as":"aql_keyed_seeds_5"},{"from":"aql_data_2","traverse":{"start":{"from":"aql_keyed_seeds_5","id":"aql_keyed_identity_2"},"path_mode":"walk","emit":"paths","hops":[{"direction":"out","edge_types":["R"],"node_where":{"gt":[{"property":{"name":"score","value":{"field":"payload"}}},{"literal":10}]}}]},"as":"aql_keyed_paths_6"},{"from":"aql_keyed_paths_6","derive":{"aql_query_expr_0":{"field":"hop_count"}}},{"select":[{"depth":"aql_query_expr_0"}],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["depth"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.query_pair","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"id":{"type":"number","nullable":false},"payload":{"type":"object","nullable":true,"fields":{"score":{"type":"number","nullable":true}}}},"rows":[{"id":1,"payload":{"score":0}},{"id":2,"payload":{"score":10}},{"id":3,"payload":{"score":20}},{"id":4,"payload":null}]},"as":"aql_script_seed_3"},{"values":{"schema":{"key":{"type":"number","nullable":false},"src":{"type":"number","nullable":false},"dst":{"type":"number","nullable":false}},"rows":[{"key":10,"src":1,"dst":2},{"key":11,"src":1,"dst":3},{"key":12,"src":1,"dst":4},{"key":13,"src":3,"dst":2}]},"as":"aql_script_seed_4"},{"graph":{"version":"actql-graph-constructor/0.1","nodes":[{"name":"N","from":"aql_script_seed_3","key":["id"],"labels":[{"name":"Node","properties":{"mode":"all_columns"}}]}],"edges":[{"name":"E","from":"aql_script_seed_4","key":["key"],"source":{"definition":"N","key":["src"]},"target":{"definition":"N","key":["dst"]},"labels":[{"name":"R","properties":{"mode":"no_properties"}}]}]},"as":"aql_with_graph_2"},{"from":"aql_with_graph_2","match_nodes":{"definition":"N","label":"Node","where":{"eq":[{"field":"id"},{"literal":1}]},"bindings":{"identity":"aql_keyed_identity_2"},"fields":["aql_keyed_identity_2","id","payload"]},"as":"aql_keyed_seeds_5"},{"from":"aql_with_graph_2","traverse":{"start":{"from":"aql_keyed_seeds_5","id":"aql_keyed_identity_2"},"path_mode":"walk","emit":"paths","hops":[{"direction":"out","edge_types":["R"],"node_where":{"gt":[{"property":{"name":"score","value":{"field":"payload"}}},{"literal":10}]}}]},"as":"aql_keyed_paths_6"},{"from":"aql_keyed_paths_6","derive":{"aql_query_expr_0":{"field":"hop_count"}}},{"select":[{"depth":"aql_query_expr_0"}],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["depth"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
@@ -175,19 +175,19 @@ test "Graph hop node constraints do not acquire another node variable scope" {
 ///|
 test "Graph hop member failures remain common checker obligations" {
   for predicate in ["payload.missing > 0", "id.score > 0"] {
-    let program = graph_hop_node_compile(
-      "(a:Node WHERE id = 1)-[:R]->(b:Node WHERE " + predicate + ")",
-    ).unwrap()
-    assert_true(
-      @check.check_parsed_with_evidence(
-        program,
-        graph_rows_environment(),
-        None,
-        [],
-        graph_rows_check_limits(),
-      )
-      is Rejected(_),
+    let kind = with_graph_predicate_refusal(
+      graph_hop_node_compile(
+        "(a:Node WHERE id = 1)-[:R]->(b:Node WHERE " + predicate + ")",
+      ),
     )
+    if predicate == "payload.missing > 0" {
+      assert_true(kind is @pipeline.GraphMatch(Typing(UnknownField("missing"))))
+    } else {
+      assert_true(
+        kind
+        is @pipeline.GraphMatch(Typing(TypeMismatch("closed object receiver"))),
+      )
+    }
   }
 }
 
@@ -203,7 +203,7 @@ test "quantified terminal conditions are not rewritten as every-hop conditions" 
 
 ///|
 fn graph_hop_definition_prefix(extra? : Bool = false) -> String {
-  let prefix = "DATA n = SELECT 1 AS id, 20 AS score; DATA e = SELECT 10 AS key, 1 AS src, 1 AS dst; DATA g = PROPERTY GRAPH (NODE TABLES (n AS S KEY (id) LABEL Start NO PROPERTIES, n AS T KEY (id) LABEL Target PROPERTIES (score)"
+  let prefix = "WITH n AS (SELECT 1 AS id, 20 AS score), e AS (SELECT 10 AS key, 1 AS src, 1 AS dst), g AS (GRAPH (NODE TABLES (n AS S KEY (id) LABEL Start NO PROPERTIES, n AS T KEY (id) LABEL Target PROPERTIES (score)"
   let nodes = if extra {
     ", n AS U KEY (id) LABEL Other NO PROPERTIES"
   } else {
@@ -218,12 +218,12 @@ fn graph_hop_definition_prefix(extra? : Bool = false) -> String {
   nodes +
   ") EDGE TABLES (e AS E KEY (key) SOURCE KEY (src) REFERENCES S DESTINATION KEY (dst) REFERENCES T LABEL R NO PROPERTIES" +
   edges +
-  ")); "
+  "))) "
 }
 
 ///|
 test "Graph hop scope uses reached definitions rather than the start schema" {
-  let program = compile_data_set(
+  let program = compile_with_set(
     graph_hop_definition_prefix() +
     "FROM GRAPH g |> MATCH p = WALK (:Start)-[:R]->(b:Target WHERE b.score > 10) |> SELECT PATH_LENGTH(p) AS depth",
   )
@@ -248,19 +248,10 @@ test "Graph hop scope uses reached definitions rather than the start schema" {
 
 ///|
 test "Graph hop scope does not invent property presence in other reached definitions" {
-  let program = compile_data_set(
+  expect_with_graph_static_refusal(
     graph_hop_definition_prefix(extra=true) +
     "FROM GRAPH g |> MATCH p = WALK (:Start)-[:R]->(b WHERE b.score > 10) |> SELECT PATH_LENGTH(p) AS depth",
-  )
-  assert_true(
-    @check.check_parsed_with_evidence(
-      program,
-      graph_rows_environment(),
-      None,
-      [],
-      graph_rows_check_limits(),
-    )
-    is Rejected(_),
+    expected=Some(@pipeline.GraphMatch(UnknownField("score"))),
   )
   let parsed = @query.parse_query_script(
     graph_hop_definition_prefix(extra=true) +

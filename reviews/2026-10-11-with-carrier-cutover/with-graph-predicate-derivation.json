@@ -1,0 +1,23 @@
+{
+  "source": "5f4dae6f2ed7ba1d81eb5e44cc5fdc37a99e40ec",
+  "independent_allocation": [
+    "Property MATCH context has one installed input, so Graph with_graph1/seed2/seeds3 keep original ordinals.",
+    "Node/edge hop contexts have two installed inputs, so Graph with_graph2/seeds3,4/MATCH seeds5/paths6 keep original ordinals. Only the Graph producer spelling changes."
+  ],
+  "preserved": [
+    "original independent complete JSON Programs and all predicate literals",
+    "nullable object receiver and nullable score",
+    "incoming/outgoing and zero/max/fixed hops",
+    "node and edge predicates on their original authored hop",
+    "static reached-definition intersection; no narrowing from actual rows or predicates",
+    "work limit1 and original origin expectations",
+    "quoted and anonymous receivers",
+    "foreign receiver and cross-variable rejection"
+  ],
+  "static_refusal_derivation": [
+    "graph_typing match_issue projects TypingIssue for missing object member and scalar receiver; existing expression contracts unchanged.",
+    "traverse_predicates.traversal_common_scope retains only properties common to reached definitions T/U; score absent from U yields UnknownPredicateField(score), projected to GraphMatch(UnknownField(score)).",
+    "Invalid predicate sources now reject during WITH static checking, before returning a complete Program. The helper only extracts the actual typed existing pipeline refusal."
+  ],
+  "public_execution": "not performed"
+}

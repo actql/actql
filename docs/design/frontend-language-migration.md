@@ -52,7 +52,7 @@ envelope withdraws its *text path*, not the common Graph operation.
 | --- | --- | --- | --- |
 | `client-values.structural.aql`: OP values | A source-free Relation with the same declared schema/rows; no fabricated external source | Source-free SELECT and UNION ALL lower to existing Values; named Results require explicit declarations | `SELECT 1 AS id UNION ALL SELECT 2 AS id ORDER BY id` versus independent `packages/sdk/fixtures/values.json`, then Local/HTTP Result |
 | `orders.structural.aql`: filter/group/sort | SQL/Pipe WHERE, AGGREGATE, ORDER BY; explicit RESULT where requested | Exact authored IDs, metadata and Result envelope are not represented automatically by query sugar | Preserve the independent machine Program; compare the complete modern source through Local/HTTP |
-| Named SGA examples: OP graph plus named calls | Existing producer references, named typed arguments and Graph-to-Graph or Graph-to-Relation operations | DATA/SGA syntax and lowering must connect to unified Graph admission, adapted consumers and explicit Results | All nodes, edges, types, order, multiplicity and Delta compared through public text Local/HTTP |
+| Named SGA examples: OP graph plus named calls | Existing producer references, named typed arguments and Graph-to-Graph or Graph-to-Relation operations | WITH/GRAPH/SGA syntax and lowering must connect to unified Graph admission, adapted consumers and explicit Results | All nodes, edges, types, order, multiplicity and Delta compared through public text Local/HTTP |
 | Metadata, bindings, unused steps and explicit no-ops | Program machine input retains these authored facts | No automatic equivalent text spelling is claimed; some facts belong to source context rather than query operators | Independent lossless machine input tests; any proposed text context must bind exact facts |
 | Old EFFECT maps and AFTER envelopes | Explicit terminal EFFECT, BRANCH, statement sequencing, AFTER ACCEPTED, RESULT(name)/RECEIPT(name) | Surface productions and owner bindings are separate; Effect-only export needs its explicitly adopted contract | Existing Effect owners and durable acceptance; no Effect-free recheck or second scheduler |
 | INFER/NEAREST KEEP and AS | KEEP plus one result STRUCT forms a new output scope | Source lowering and execution are separate; preserve common ModelTask and key/evidence ownership | Values/types/nullability, keys, replay and no-redispatch through packed Local/HTTP |
@@ -72,7 +72,7 @@ and a source-free constructed Graph are distinct input obligations.
 The following producer-level expressions record already-adopted operation names,
 argument roles and required connections; they do not establish runtime support.
 The complete examples also require the construction and Result surfaces above.
-DATA references existing producers; it must not force another
+WITH references existing producers; it must not force another
 acquisition, materialization, task or local placement.
 
 Current Script connections are listed in the
@@ -108,7 +108,7 @@ separate from this source mapping and from historical simple-Graph fixtures.
 References and literal/column values are chosen by argument role, never guessed
 from strings. `with: target` refers to a producer; `start: "A"` is an ID value;
 `field: "delta"` is a field designation. Named Results and order declarations
-are explicit; none is synthesized merely by adding DATA. Frontend placement
+are explicit; none is synthesized merely by adding a WITH binding. Frontend placement
 independence remains separate from actual provider pushdown support.
 
 ## Evidence classification

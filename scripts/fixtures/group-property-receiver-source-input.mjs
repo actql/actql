@@ -6,9 +6,9 @@ const parameterDeclarations = {a: object, b: object, c: object};
 const parameters = {a: {score: 20}, b: {score: 30}, c: null};
 const sourceRows = [{id: 2, amount: 10}, {id: 1, amount: 10},
   {id: 3, amount: 20}, {id: 1, amount: 10}, {id: 0, amount: 999}];
-const data = 'DATA objects = SELECT amount AS score, '
+const data = 'WITH objects AS (SELECT amount AS score, '
   + 'CASE WHEN id = 1 THEN @a WHEN id = 2 THEN @b ELSE @c END AS payload '
-  + 'FROM records WHERE id > 0; ';
+  + 'FROM records WHERE id > 0) ';
 const projections = 'payload.score AS input_score, (payload).score AS object_score, COUNT(*) AS n';
 const expected = [{input_score: 10, object_score: 20, n: 2},
   {input_score: 10, object_score: 30, n: 1}, {input_score: 20, object_score: null, n: 1}];

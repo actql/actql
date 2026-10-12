@@ -246,7 +246,7 @@ pipePivotSuccesses.push(
   success('count-star-prefix-range-axis', countStarInput + " |> AS r |> PIVOT(COUNT(*) AS total FOR r.axis IN('B' AS later,'A' AS first)) AS current "
     + '|> SELECT current.* |> ORDER BY n NULLS LAST', [{n: 1, total_later: 0, total_first: 1}, {n: null, total_later: 0, total_first: 2}],
     [number('n', true), number('total_later', false), number('total_first', false)]),
-  success('count-star-data', 'DATA counts = ' + countStarSource + '; FROM counts |> SELECT n, A |> ORDER BY n NULLS LAST',
+  success('count-star-data', 'WITH counts AS (' + countStarSource + ') FROM counts |> SELECT n, A |> ORDER BY n NULLS LAST',
     countStarRows, countStarColumns),
 );
 pipePivotRefusals.push(...[

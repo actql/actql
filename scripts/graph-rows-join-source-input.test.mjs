@@ -33,7 +33,7 @@ test('Graph row JOIN controls preserve keys, edge instances, multiplicity, expli
   }
   assert.ok(graphRowsJoinExecutionFailures[0].text.includes('MAX_OUTPUT_ROWS 2'));
   assert.equal(graphRowsJoinRefusals.find(input => input.name.endsWith('shadowed-graph')).expectedCode,
-    'ClientProgramImplementationLimit');
+    'ClientProgramInvalidInput');
   const all = [...graphRowsJoinSuccesses, ...graphRowsJoinRefusals, ...graphRowsJoinExecutionFailures];
   assert.equal(new Set(all.map(input => input.name)).size, all.length);
 });
@@ -51,4 +51,26 @@ test('Graph row JOIN fixtures enter ordinary packed acceptance and its bounded s
   assert.ok(driver.includes("['scripts/fixtures/graph-rows-join-source-input.mjs', 'graph-rows-join-source-input.mjs']"));
   assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--graph-rows-join-only'/u);
   assert.ok(driver.includes("if (process.argv.includes('--graph-rows-join-only')) return;"));
+});
+
+// Authored predecessor bytes are evidence, not product-derived expectations.
+test('WITH Graph row JOIN retirement preserves independent values, controls and custody counts', async () => {
+  const retained = JSON.parse(await readFile(new URL('../reviews/2026-10-11-with-carrier-cutover/with-graph-carrier-public-original-fixtures.json', import.meta.url), 'utf8'));
+  const original = retained.files['scripts/fixtures/graph-rows-join-source-input.mjs'].text;
+  const old = await import('data:text/javascript;base64,' + Buffer.from(original).toString('base64'));
+  assert.deepEqual(graphRowsJoinSuccesses.map(({text, ...item}) => item), old.graphRowsJoinSuccesses.map(({text, ...item}) => item));
+  for (let index = 0; index < graphRowsJoinSuccesses.length; index++) {
+    const item = graphRowsJoinSuccesses[index];
+    if (item.format === 'json') assert.equal(item.text, old.graphRowsJoinSuccesses[index].text);
+    else {
+      assert.match(item.text, /^WITH /);
+      assert.doesNotMatch(item.text, /\bDATA\b|PROPERTY GRAPH/);
+      assert.match(item.text, /MAX_OUTPUT_ROWS 10/);
+    }
+  }
+  assert.deepEqual(graphRowsJoinRefusals.map(({text, expectedCode, ...item}) => item), old.graphRowsJoinRefusals.map(({text, expectedCode, ...item}) => item));
+  assert.deepEqual(graphRowsJoinExecutionFailures.map(({text, ...item}) => item), old.graphRowsJoinExecutionFailures.map(({text, ...item}) => item));
+  assert.equal(graphRowsJoinSuccesses.length, 10);
+  assert.equal(graphRowsJoinRefusals.length, 5);
+  assert.equal(graphRowsJoinExecutionFailures.length, 1);
 });

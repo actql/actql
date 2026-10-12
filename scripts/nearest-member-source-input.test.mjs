@@ -45,7 +45,7 @@ test('nearest source keeps authored member spelling and explicit unknown-member 
     'nearest-source-omitted-keep', 'nearest-data-source-keep',
     'nearest-source-query-vector-expression']) assert.ok(successes.some(item => item.name === name));
   assert.match(successes.find(item => item.name === 'nearest-data-source-keep').text,
-    /DATA qs = FROM queries; DATA cs = FROM candidates;[\s\S]*NEAREST cs AS c/u);
+    /WITH qs AS \(FROM queries\) , cs AS \(FROM candidates\)[\s\S]*NEAREST cs AS c/u);
   assert.match(successes.find(item => item.name === 'nearest-source-query-vector-expression').text,
     /VECTOR IF\(TRUE, q\.embedding, q\.embedding\)/u);
   assert.ok(refusals.some(item => item.name === 'nearest-data-forward-candidate'));

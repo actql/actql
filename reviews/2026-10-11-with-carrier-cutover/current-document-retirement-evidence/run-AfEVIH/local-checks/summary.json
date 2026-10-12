@@ -1,0 +1,74 @@
+{
+  "startedAt": "2026-10-11T22:03:55.870Z",
+  "status": "passed",
+  "complete": true,
+  "steps": [
+    {
+      "name": "Read-only actual document metadata freshness",
+      "command": [
+        "node",
+        "scripts/update-document-metadata.mjs"
+      ],
+      "startedAt": "2026-10-11T22:03:55.945Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T22:03:57.527Z",
+      "endedAt": "2026-10-11T22:03:57.529Z"
+    },
+    {
+      "name": "Read-only actual normative imports and requirement family",
+      "command": [
+        "node",
+        "scripts/check-actql-spec-family.mjs"
+      ],
+      "startedAt": "2026-10-11T22:03:57.596Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T22:03:59.229Z",
+      "endedAt": "2026-10-11T22:03:59.232Z"
+    },
+    {
+      "name": "Independent normative import validation tests",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(\"node\",process.argv.slice(1),{cwd:process.cwd()});",
+        "--",
+        "scripts/spec-family-imports.test.mjs"
+      ],
+      "startedAt": "2026-10-11T22:03:59.299Z",
+      "status": "passed",
+      "streamsComplete": true,
+      "code": 0,
+      "signal": null,
+      "exitedAt": "2026-10-11T22:04:01.148Z",
+      "endedAt": "2026-10-11T22:04:01.149Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "49bfea9b-05a9-4f1e-a09b-348c3a7a43a1",
+    "pid": 9396,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-11T22:03:55.941Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-AfEVIH"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-11T22:04:01.213Z",
+  "outputComplete": true,
+  "exitCode": 0,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}

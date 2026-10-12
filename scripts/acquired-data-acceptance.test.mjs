@@ -56,7 +56,7 @@ async function exerciseReader(item, {rows, columns, sessions = 1,
   });
 }
 
-test('acquired DATA empty Result still checks nullable type and column order', async () => {
+test('acquired WITH empty Result still checks nullable type and column order', async () => {
   const empty = acquiredDataSuccesses.find(item => item.sourceRows?.length === 0);
   await exerciseReader(empty);
   await assert.rejects(exerciseReader(empty, {columns: [
@@ -68,7 +68,7 @@ test('acquired DATA empty Result still checks nullable type and column order', a
     /retained column order and contracts/u);
 });
 
-test('acquired DATA expectations detect lost duplicates and NULL values', async () => {
+test('acquired WITH expectations detect lost duplicates and NULL values', async () => {
   const copied = acquiredDataSuccesses[0];
   await assert.rejects(exerciseReader(copied, {rows: [
     {amount: null, id: 1}, {amount: 20, id: 2}, {amount: 30, id: 3},
@@ -78,7 +78,7 @@ test('acquired DATA expectations detect lost duplicates and NULL values', async 
   ]}), {code: 'ERR_ASSERTION'});
 });
 
-test('acquired DATA detects repeated capture and I/O during Result reads', async () => {
+test('acquired WITH detects repeated capture and I/O during Result reads', async () => {
   const shared = acquiredDataSuccesses[1];
   await assert.rejects(exerciseReader(shared, {sessions: 2}),
     /one acquisition session per authored source/u);
@@ -92,7 +92,7 @@ test('acquired Graph TRAIL expectations preserve parallel-edge multiplicity', as
     {code: 'ERR_ASSERTION'});
 });
 
-test('a late DATA rejection must still have zero provider I/O and Run admission', async () => {
+test('a late WITH rejection must still have zero provider I/O and Run admission', async () => {
   await exerciseReader(acquiredDataRefusals[0]);
   await assert.rejects(exerciseReader(acquiredDataRefusals[0], {refusalIo: true}),
     /rejected source must not accept a Run or perform source I\/O/u);

@@ -68,7 +68,7 @@ test "joined row scopes preserve outer JOIN, USING and quoted receivers" {
     source in [
       "SELECT l AS left_row,r AS right_row FROM (SELECT 1 AS id) l LEFT JOIN (SELECT 2 AS id) r ON l.id=r.id MAX_OUTPUT_ROWS 10 ORDER BY l.id",
       "SELECT l AS left_row,r AS right_row FROM (SELECT 1 AS id) l RIGHT JOIN (SELECT 2 AS id) r ON l.id=r.id MAX_OUTPUT_ROWS 10 ORDER BY r.id",
-      "DATA lefts = FROM (SELECT 1 AS id) |> ASSERT UNIQUE BY (id); DATA rights = FROM (SELECT 2 AS id) |> ASSERT UNIQUE BY (id); SELECT l AS left_row,r AS right_row FROM lefts l FULL JOIN rights r USING (id) MAX_OUTPUT_ROWS 10 ORDER BY id",
+      "WITH lefts AS (FROM (SELECT 1 AS id) |> ASSERT UNIQUE BY (id)), rights AS (FROM (SELECT 2 AS id) |> ASSERT UNIQUE BY (id)) SELECT l AS left_row,r AS right_row FROM lefts l FULL JOIN rights r USING (id) MAX_OUTPUT_ROWS 10 ORDER BY id",
       "SELECT `ORDER` AS left_row,r AS right_row FROM (SELECT 1 AS id) `ORDER` CROSS JOIN (SELECT 2 AS id) r MAX_OUTPUT_ROWS 10",
       "WITH a AS (SELECT 1 AS id),b AS (SELECT 2 AS id) SELECT a AS left_row,b AS right_row FROM a CROSS JOIN b MAX_OUTPUT_ROWS 10",
     ] {

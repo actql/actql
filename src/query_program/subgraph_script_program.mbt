@@ -1,6 +1,6 @@
 ///|
 // A Subgraph retains the admitted Graph contract. Only argument syntax and
-// DATA producer references are lowered here; selection, membership, induction,
+// WITH producer references are lowered here; selection, membership, induction,
 // edge predicates, identity and capacity remain with the common owner.
 fn lower_script_subgraph(
   construction : Construction,

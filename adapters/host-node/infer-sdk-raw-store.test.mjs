@@ -75,7 +75,6 @@ async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
     await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
   });
   const request = Object.freeze({original: Symbol('semantic request double')});
-  const prepared = Object.freeze({original: Symbol('prepared call set double')});
   const entry = Object.freeze({original: Symbol('consumed original Entry double')});
   const registration = Object.freeze({original: Symbol('raw grant double')});
   let originalCall;
@@ -96,9 +95,9 @@ async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
       assert.equal(duration, 500n);
       return {$tag: 1, _0: {start}};
     },
-    clientProgramModelPhysicalCall(actual, calls, poll, cancel, cleanup) {
+    clientProgramModelPhysicalCallForRequest(actual, original, poll, cancel, cleanup) {
       assert.equal(actual, entry);
-      assert.equal(calls, prepared);
+      assert.equal(original, request);
       assert.equal(originalCall, undefined);
       originalCall = Object.freeze({poll, cancel, cleanup});
       return originalCall;
@@ -132,7 +131,6 @@ async function joinedFixture(t, {bytes = Buffer.from(wire), storeFault = {},
       durationMs: 500n}, fetch(...args) { physicalStarts++; return fetch(...args); },
     responseLimits, persistRaw: persistence, cleanupRaw: persistence.cleanup,
     notify: io.notify, checked, observeAt: () => observedAt});
-  port.bindPrepared(prepared);
   const {_1: plan} = await wait(() => port.preflight.advance(), value => value._0);
   t.diagnostic('joined boundary: fixed SDK preflight prepared');
   assert.equal(serverState.requests, 0);

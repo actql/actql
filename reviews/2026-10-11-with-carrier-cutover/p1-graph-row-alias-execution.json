@@ -1,0 +1,1353 @@
+{
+  "product_source_sha": "dcd402f4a196cbc8f0d0bd3d1964a89deb1ffa57",
+  "product_tree": "1248b74577adb18d2a21d4ff3abbeefb9137b8ea",
+  "adopted_main": "ece026dda6a48a5a86259f048ca55e553dd87f4f",
+  "heavy": false,
+  "timeout_seconds": 60,
+  "grace_seconds": 5,
+  "graph_row_inventory": {
+    "normal": 23,
+    "refusal": 13,
+    "classification": "Declared public cohort; independent expectations and JSON controls unchanged. Not 36 executed Host cases."
+  },
+  "runs": [
+    {
+      "run": "run-c72u9a",
+      "source_sha": null,
+      "classification": "Selected caller formatter, dirty authored sources; no runtime tests.",
+      "raw_members": [
+        {
+          "path": "graph-row-alias-evidence/run-c72u9a/summary.json",
+          "bytes": 1429,
+          "sha256": "20658baad700e0b1068b0347b30dca4aa86d1db5466b916ae2cd2655fffb16e5"
+        },
+        {
+          "path": "graph-row-alias-evidence/run-c72u9a/output.log",
+          "bytes": 44,
+          "sha256": "c79826b968ab80e4632fd7628b7c2b6b8300755d69c7d7c480e13ee010cac331"
+        }
+      ],
+      "summary": {
+        "startedAt": "2026-10-11T18:47:25.834Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "with-graph-rows-selected-format",
+            "command": [
+              "moon",
+              "fmt",
+              "src/query_program/graph_rows_test.mbt",
+              "src/query_program/graph_rows_positional_set_test.mbt"
+            ],
+            "startedAt": "2026-10-11T18:47:25.922Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:47:26.222Z",
+            "endedAt": "2026-10-11T18:47:26.225Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "5fe3fdc2-970b-4a54-b853-3a804bd17269",
+          "pid": 16430,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:47:25.916Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-c72u9a"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:47:26.291Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "actual_node_summaries": [],
+      "actual_moon_summaries": [],
+      "observed_after_exit": {
+        "owner_pid": 16430,
+        "owner_absent": true,
+        "owner_group_absent": true,
+        "own_lock_absent": true
+      }
+    },
+    {
+      "run": "run-MVeI02",
+      "source_sha": "f3dd115f6e30dd19cab13a2afd4a0762b5d82fea",
+      "classification": "Graph row declared fixture obligations Node5/5 and representative lowerer/common checker JS7/7.",
+      "raw_members": [
+        {
+          "path": "graph-row-alias-evidence/run-MVeI02/summary.json",
+          "bytes": 2376,
+          "sha256": "f28cf38762bf99210375d0422b95d4ac75e80a86b3d96269f34ac4488e273784"
+        },
+        {
+          "path": "graph-row-alias-evidence/run-MVeI02/output.log",
+          "bytes": 4373,
+          "sha256": "fdc58a005ff383b21e5bec4f90e69e3b15a61084389a78fb659ac3afdab1fbf1"
+        }
+      ],
+      "summary": {
+        "startedAt": "2026-10-11T18:47:56.151Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "with-graph-rows-independent-node",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "node",
+              "scripts/graph-row-positional-set.test.mjs",
+              "scripts/graph-refusal-classification-source-input.test.mjs"
+            ],
+            "startedAt": "2026-10-11T18:47:56.251Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:47:57.182Z",
+            "endedAt": "2026-10-11T18:47:57.184Z"
+          },
+          {
+            "name": "with-graph-rows-lowering-common-checker",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_program/graph_rows_test.mbt",
+              "src/query_program/graph_rows_positional_set_test.mbt"
+            ],
+            "startedAt": "2026-10-11T18:47:57.268Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:48:06.989Z",
+            "endedAt": "2026-10-11T18:48:06.994Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "4fa9491b-4983-4910-af2a-e2023d401608",
+          "pid": 18185,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:47:56.238Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-MVeI02"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:48:07.074Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "actual_node_summaries": [
+        {
+          "success": true,
+          "counts": {
+            "tests": 2,
+            "failed": 0,
+            "passed": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0,
+            "topLevel": 2,
+            "suites": 0
+          },
+          "duration_ms": 12.427,
+          "file": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs"
+        },
+        {
+          "success": true,
+          "counts": {
+            "tests": 3,
+            "failed": 0,
+            "passed": 3,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0,
+            "topLevel": 3,
+            "suites": 0
+          },
+          "duration_ms": 29.56,
+          "file": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-row-positional-set.test.mjs"
+        },
+        {
+          "success": true,
+          "counts": {
+            "tests": 5,
+            "failed": 0,
+            "passed": 5,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0,
+            "topLevel": 5,
+            "suites": 0
+          },
+          "duration_ms": 197.746416
+        }
+      ],
+      "actual_moon_summaries": [
+        {
+          "tests": 7,
+          "passed": 7,
+          "failed": 0
+        }
+      ],
+      "observed_after_exit": {
+        "owner_pid": 18185,
+        "owner_absent": true,
+        "owner_group_absent": true,
+        "own_lock_absent": true
+      }
+    },
+    {
+      "run": "run-ULezKG",
+      "source_sha": null,
+      "classification": "Test authoring compile failure: Issue lacks Debug; zero executed MoonBit tests, not a product failure.",
+      "raw_members": [
+        {
+          "path": "graph-row-alias-evidence/run-ULezKG/summary.json",
+          "bytes": 2153,
+          "sha256": "0480682f80a4a6a00c2f15606cae3eb97decb6b61abc534d3002b04d053bcceb"
+        },
+        {
+          "path": "graph-row-alias-evidence/run-ULezKG/output.log",
+          "bytes": 871,
+          "sha256": "29229b5453e550362430b26c84a3072aeac8eb73b54445cc42de0872838f41fc"
+        }
+      ],
+      "summary": {
+        "startedAt": "2026-10-11T18:49:19.003Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "with-graph-alias-controls-format",
+            "command": [
+              "moon",
+              "fmt",
+              "src/query_syntax/with_graph_alias_test.mbt",
+              "src/query_program/with_graph_range_alias_test.mbt"
+            ],
+            "startedAt": "2026-10-11T18:49:19.075Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:49:19.242Z",
+            "endedAt": "2026-10-11T18:49:19.244Z"
+          },
+          {
+            "name": "with-graph-alias-before-product-fix",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/with_graph_alias_test.mbt",
+              "src/query_program/with_graph_range_alias_test.mbt"
+            ],
+            "startedAt": "2026-10-11T18:49:19.311Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 1,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:49:21.155Z",
+            "endedAt": "2026-10-11T18:49:21.158Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "a0705306-9320-42a9-ae22-157c3b011d67",
+          "pid": 22916,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:49:19.069Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-ULezKG"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:49:21.226Z",
+        "outputComplete": true,
+        "exitCode": 1,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "actual_node_summaries": [],
+      "actual_moon_summaries": [],
+      "observed_after_exit": {
+        "owner_pid": 22916,
+        "owner_absent": true,
+        "owner_group_absent": true,
+        "own_lock_absent": true
+      }
+    },
+    {
+      "run": "run-pDjUwK",
+      "source_sha": null,
+      "classification": "Before behavior fix, parent f3dd115 plus diagnostic declaration/controls: JS3, pass1/fail2. Marked Graph FROM aliases fail syntax.",
+      "raw_members": [
+        {
+          "path": "graph-row-alias-evidence/run-pDjUwK/summary.json",
+          "bytes": 2102,
+          "sha256": "40b6a0be44082f4ba80712ec9da5b7a7e0e680a1ad75d2e2e193caa7e8d2e516"
+        },
+        {
+          "path": "graph-row-alias-evidence/run-pDjUwK/output.log",
+          "bytes": 4430,
+          "sha256": "fdedcdfcc2a8708909229c308478c46e58006c1a989bc05dd1c40668ebfddfa3"
+        }
+      ],
+      "summary": {
+        "startedAt": "2026-10-11T18:49:59.496Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "with-graph-alias-controls-format",
+            "command": [
+              "moon",
+              "fmt",
+              "src/query_program/with_graph_range_alias_test.mbt"
+            ],
+            "startedAt": "2026-10-11T18:49:59.587Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:49:59.932Z",
+            "endedAt": "2026-10-11T18:49:59.933Z"
+          },
+          {
+            "name": "with-graph-alias-fixed-counterexamples",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/with_graph_alias_test.mbt",
+              "src/query_program/with_graph_range_alias_test.mbt"
+            ],
+            "startedAt": "2026-10-11T18:49:59.998Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 2,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:50:09.614Z",
+            "endedAt": "2026-10-11T18:50:09.616Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "f6df2762-a8ca-477b-8512-61c713a320da",
+          "pid": 23442,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:49:59.572Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-pDjUwK"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:50:09.684Z",
+        "outputComplete": true,
+        "exitCode": 2,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "actual_node_summaries": [],
+      "actual_moon_summaries": [
+        {
+          "tests": 3,
+          "passed": 1,
+          "failed": 2
+        }
+      ],
+      "observed_after_exit": {
+        "owner_pid": 23442,
+        "owner_absent": true,
+        "owner_group_absent": true,
+        "own_lock_absent": true
+      }
+    },
+    {
+      "run": "run-CB1EXH",
+      "source_sha": null,
+      "classification": "Selected formatter and actual pinned query_program interface generation.",
+      "raw_members": [
+        {
+          "path": "graph-row-alias-evidence/run-CB1EXH/summary.json",
+          "bytes": 2071,
+          "sha256": "14af194fdef80b2b19d9a699ed7394d57f414867813e1d22b3803df091653404"
+        },
+        {
+          "path": "graph-row-alias-evidence/run-CB1EXH/output.log",
+          "bytes": 89,
+          "sha256": "ed0f38cefcfb91d198feeb4b76e61352f4159f9b89e7d168821239d3af3209e5"
+        }
+      ],
+      "summary": {
+        "startedAt": "2026-10-11T18:50:51.315Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "with-graph-alias-selected-format",
+            "command": [
+              "moon",
+              "fmt",
+              "src/query_syntax/query.mbt",
+              "src/query_program/compile.mbt",
+              "src/query_program/sga_script_program.mbt",
+              "src/query_program/graph_rows_program.mbt",
+              "src/connectors_builtin_node/client_source_preparation.mbt",
+              "src/connectors_builtin_node_rela/client_source_preparation.mbt"
+            ],
+            "startedAt": "2026-10-11T18:50:51.395Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:50:51.856Z",
+            "endedAt": "2026-10-11T18:50:51.858Z"
+          },
+          {
+            "name": "with-graph-alias-real-interface-generation",
+            "command": [
+              "moon",
+              "info",
+              "--target",
+              "js",
+              "src/query_program"
+            ],
+            "startedAt": "2026-10-11T18:50:51.933Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:50:53.223Z",
+            "endedAt": "2026-10-11T18:50:53.226Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "0e4e0dfe-8d16-4621-b363-ac1ad3d5f2a3",
+          "pid": 25880,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:50:51.388Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-CB1EXH"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:50:53.300Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "actual_node_summaries": [],
+      "actual_moon_summaries": [],
+      "observed_after_exit": {
+        "owner_pid": 25880,
+        "owner_absent": true,
+        "owner_group_absent": true,
+        "own_lock_absent": true
+      }
+    },
+    {
+      "run": "run-CpZYFQ",
+      "source_sha": "002f258b19174539e6a4948e4c9b4db4d6f7cc88",
+      "classification": "JS10, pass9/fail1. AS before node_rows bypasses the early Graph range check.",
+      "raw_members": [
+        {
+          "path": "graph-row-alias-evidence/run-CpZYFQ/summary.json",
+          "bytes": 1841,
+          "sha256": "4f3ece44878bcadfcc362e0d7a0d7390d805f7febce3d75e820b343eae541fdc"
+        },
+        {
+          "path": "graph-row-alias-evidence/run-CpZYFQ/output.log",
+          "bytes": 792,
+          "sha256": "3e6e66459e6517568501344e10548b679d036bf85cc095783dc7ad575cc5643e"
+        }
+      ],
+      "summary": {
+        "startedAt": "2026-10-11T18:51:34.763Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "selected moon tests",
+            "command": [
+              "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from './scripts/test-execution.mjs'; process.exitCode = runFocusedTests(process.argv[1], process.argv.slice(2), {cwd: process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/with_graph_alias_test.mbt",
+              "src/query_program/with_graph_range_alias_test.mbt",
+              "src/query_program/graph_rows_test.mbt",
+              "src/query_program/graph_rows_positional_set_test.mbt"
+            ],
+            "startedAt": "2026-10-11T18:51:34.838Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 2,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:51:44.866Z",
+            "endedAt": "2026-10-11T18:51:44.868Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "a679cea7-5ce1-4bf0-b446-9d5e8546e3c7",
+          "pid": 26466,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:51:34.832Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-CpZYFQ"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:51:44.949Z",
+        "outputComplete": true,
+        "exitCode": 2,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "actual_node_summaries": [],
+      "actual_moon_summaries": [
+        {
+          "tests": 10,
+          "passed": 9,
+          "failed": 1
+        }
+      ],
+      "observed_after_exit": {
+        "owner_pid": 26466,
+        "owner_absent": true,
+        "owner_group_absent": true,
+        "own_lock_absent": true
+      }
+    },
+    {
+      "run": "run-Eneeeh",
+      "source_sha": null,
+      "classification": "Parent002f258 plus query_binding_program shared resolver fix; JS10/10. Dirty diagnostic only, not a clean-SHA claim.",
+      "raw_members": [
+        {
+          "path": "graph-row-alias-evidence/run-Eneeeh/summary.json",
+          "bytes": 2219,
+          "sha256": "881e1efb87e0598ac6f0d20a4b90352211d8915c0722e1391db959b2c09c8f12"
+        },
+        {
+          "path": "graph-row-alias-evidence/run-Eneeeh/output.log",
+          "bytes": 550,
+          "sha256": "bf55f41e2275e0723f70ee04f0c868840feb4f79b4edef2a5693f34a701f381e"
+        }
+      ],
+      "summary": {
+        "startedAt": "2026-10-11T18:52:21.455Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "with-graph-early-alias-check-format",
+            "command": [
+              "moon",
+              "fmt",
+              "src/query_program/query_binding_program.mbt"
+            ],
+            "startedAt": "2026-10-11T18:52:21.544Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:52:21.690Z",
+            "endedAt": "2026-10-11T18:52:21.691Z"
+          },
+          {
+            "name": "with-graph-alias-source-diagnostic-regressions",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/with_graph_alias_test.mbt",
+              "src/query_program/with_graph_range_alias_test.mbt",
+              "src/query_program/graph_rows_test.mbt",
+              "src/query_program/graph_rows_positional_set_test.mbt"
+            ],
+            "startedAt": "2026-10-11T18:52:21.750Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:52:31.115Z",
+            "endedAt": "2026-10-11T18:52:31.116Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "b687259a-3829-4549-86b4-3f5dec3ae569",
+          "pid": 26989,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:52:21.533Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Eneeeh"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:52:31.181Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "actual_node_summaries": [],
+      "actual_moon_summaries": [
+        {
+          "tests": 10,
+          "passed": 10,
+          "failed": 0
+        }
+      ],
+      "observed_after_exit": {
+        "owner_pid": 26989,
+        "owner_absent": true,
+        "owner_group_absent": true,
+        "own_lock_absent": true
+      }
+    },
+    {
+      "run": "run-Q6Wkzt",
+      "source_sha": null,
+      "classification": "Authoritative grammar/document/canonical generators, dirty current sources; no runtime claim.",
+      "raw_members": [
+        {
+          "path": "graph-row-alias-evidence/run-Q6Wkzt/summary.json",
+          "bytes": 2960,
+          "sha256": "4bfa938a060250a8b7ca628c41ab51582630da848afc8e66554aefff9285151a"
+        },
+        {
+          "path": "graph-row-alias-evidence/run-Q6Wkzt/output.log",
+          "bytes": 1663,
+          "sha256": "2e088b1de7101e9b35be2982c4771342582e51a5c50515d9dee5fa9d2dab14d4"
+        }
+      ],
+      "summary": {
+        "startedAt": "2026-10-11T18:53:14.981Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "with-alias-compilation-manifests",
+            "command": [
+              "node",
+              "scripts/compilation-manifests.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-11T18:53:15.071Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:53:15.299Z",
+            "endedAt": "2026-10-11T18:53:15.301Z"
+          },
+          {
+            "name": "with-alias-vocabulary",
+            "command": [
+              "node",
+              "scripts/generate-aql-text-vocabulary.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-11T18:53:15.379Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:53:15.435Z",
+            "endedAt": "2026-10-11T18:53:15.437Z"
+          },
+          {
+            "name": "with-alias-document-metadata",
+            "command": [
+              "node",
+              "scripts/update-document-metadata.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-11T18:53:15.512Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:53:17.408Z",
+            "endedAt": "2026-10-11T18:53:17.410Z"
+          },
+          {
+            "name": "with-alias-spec-family",
+            "command": [
+              "node",
+              "scripts/check-actql-spec-family.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-11T18:53:17.485Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:53:19.151Z",
+            "endedAt": "2026-10-11T18:53:19.153Z"
+          },
+          {
+            "name": "with-alias-canonical-fixture",
+            "command": [
+              "node",
+              "scripts/check-canonical-json.mjs",
+              "--write"
+            ],
+            "startedAt": "2026-10-11T18:53:19.225Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:53:21.422Z",
+            "endedAt": "2026-10-11T18:53:21.425Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "2f7c11d0-a1ab-4bf6-9400-4c6e367702ca",
+          "pid": 27596,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:53:15.065Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Q6Wkzt"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:53:21.508Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "actual_node_summaries": [],
+      "actual_moon_summaries": [],
+      "observed_after_exit": {
+        "owner_pid": 27596,
+        "owner_absent": true,
+        "owner_group_absent": true,
+        "own_lock_absent": true
+      }
+    },
+    {
+      "run": "run-fsoz0c",
+      "source_sha": null,
+      "classification": "Selected caller/source formatter; no runtime tests.",
+      "raw_members": [
+        {
+          "path": "graph-row-alias-evidence/run-fsoz0c/summary.json",
+          "bytes": 1583,
+          "sha256": "5784d0856b78cc3c31411f42bdc835978f382572ab1fc9ed8b7d642f95934158"
+        },
+        {
+          "path": "graph-row-alias-evidence/run-fsoz0c/output.log",
+          "bytes": 44,
+          "sha256": "c79826b968ab80e4632fd7628b7c2b6b8300755d69c7d7c480e13ee010cac331"
+        }
+      ],
+      "summary": {
+        "startedAt": "2026-10-11T18:54:50.986Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "with-alias-selected-caller-format",
+            "command": [
+              "moon",
+              "fmt",
+              "src/query_program/query_binding_program.mbt",
+              "src/run_publication_host/client_values_run_materials_wbtest.mbt",
+              "src/connectors_builtin_node/client_source_preparation_wbtest.mbt",
+              "src/source_frontend/with_graph_binding_test.mbt"
+            ],
+            "startedAt": "2026-10-11T18:54:51.103Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:54:51.483Z",
+            "endedAt": "2026-10-11T18:54:51.487Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "b4069f3c-1aab-4f90-81df-4372c7d36f43",
+          "pid": 32974,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:54:51.087Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-fsoz0c"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:54:51.598Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "actual_node_summaries": [],
+      "actual_moon_summaries": [],
+      "observed_after_exit": {
+        "owner_pid": 32974,
+        "owner_absent": true,
+        "owner_group_absent": true,
+        "own_lock_absent": true
+      }
+    },
+    {
+      "run": "run-UamMq8",
+      "source_sha": "aedb20368651a07767f68616f8d6958a47d95df4",
+      "classification": "Node93, pass91/fail2: two stale current vector literals. JS/freshness unexecuted.",
+      "raw_members": [
+        {
+          "path": "graph-row-alias-evidence/run-UamMq8/summary.json",
+          "bytes": 1884,
+          "sha256": "a1bd9b81b9169c475a316d916ab20900737bd61f62cafe36578e0b76a61e59a0"
+        },
+        {
+          "path": "graph-row-alias-evidence/run-UamMq8/output.log",
+          "bytes": 52780,
+          "sha256": "28e0645eec2d740342cec04a2282955abc1f907ac3f3169eb925d9dd0e41b255"
+        }
+      ],
+      "summary": {
+        "startedAt": "2026-10-11T18:55:27.963Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "with-graph-alias-caller-and-independent-vector-node",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "node",
+              "scripts/graph-row-positional-set.test.mjs",
+              "scripts/graph-refusal-classification-source-input.test.mjs",
+              "scripts/frontend-profile.test.mjs",
+              "scripts/sga-query-call-contract.test.mjs",
+              "scripts/client-values-run-materials-vector.test.mjs",
+              "scripts/compilation-manifests.test.mjs"
+            ],
+            "startedAt": "2026-10-11T18:55:28.066Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 1,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:55:38.054Z",
+            "endedAt": "2026-10-11T18:55:38.061Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "39d40402-471b-443c-aa7a-97727506f9dc",
+          "pid": 34993,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:55:28.055Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-UamMq8"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:55:38.150Z",
+        "outputComplete": true,
+        "exitCode": 1,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "actual_node_summaries": [
+        {
+          "success": false,
+          "counts": {
+            "tests": 61,
+            "failed": 2,
+            "passed": 59,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0,
+            "topLevel": 61,
+            "suites": 0
+          },
+          "duration_ms": 9184.233916,
+          "file": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs"
+        },
+        {
+          "success": true,
+          "counts": {
+            "tests": 6,
+            "failed": 0,
+            "passed": 6,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0,
+            "topLevel": 6,
+            "suites": 0
+          },
+          "duration_ms": 559.7665,
+          "file": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/compilation-manifests.test.mjs"
+        },
+        {
+          "success": true,
+          "counts": {
+            "tests": 10,
+            "failed": 0,
+            "passed": 10,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0,
+            "topLevel": 10,
+            "suites": 0
+          },
+          "duration_ms": 543.705458,
+          "file": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/frontend-profile.test.mjs"
+        },
+        {
+          "success": true,
+          "counts": {
+            "tests": 2,
+            "failed": 0,
+            "passed": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0,
+            "topLevel": 2,
+            "suites": 0
+          },
+          "duration_ms": 19.747459,
+          "file": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-refusal-classification-source-input.test.mjs"
+        },
+        {
+          "success": true,
+          "counts": {
+            "tests": 3,
+            "failed": 0,
+            "passed": 3,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0,
+            "topLevel": 3,
+            "suites": 0
+          },
+          "duration_ms": 47.184042,
+          "file": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/graph-row-positional-set.test.mjs"
+        },
+        {
+          "success": true,
+          "counts": {
+            "tests": 11,
+            "failed": 0,
+            "passed": 11,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0,
+            "topLevel": 11,
+            "suites": 0
+          },
+          "duration_ms": 351.368042,
+          "file": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/sga-query-call-contract.test.mjs"
+        },
+        {
+          "success": false,
+          "counts": {
+            "tests": 93,
+            "failed": 2,
+            "passed": 91,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0,
+            "topLevel": 93,
+            "suites": 0
+          },
+          "duration_ms": 9438.028792
+        }
+      ],
+      "actual_moon_summaries": [],
+      "observed_after_exit": {
+        "owner_pid": 34993,
+        "owner_absent": true,
+        "owner_group_absent": true,
+        "own_lock_absent": true
+      }
+    },
+    {
+      "run": "run-T6stAJ",
+      "source_sha": "dcd402f4a196cbc8f0d0bd3d1964a89deb1ffa57",
+      "classification": "Corrected two vector assertions Node2/2. JS compile failed in client_check partial match, runtime0; freshness unexecuted.",
+      "raw_members": [
+        {
+          "path": "graph-row-alias-evidence/run-T6stAJ/summary.json",
+          "bytes": 2862,
+          "sha256": "dcab6057a0eef8242fd7df403f7c292441810b232161177367a5edf7f8d23bf9"
+        },
+        {
+          "path": "graph-row-alias-evidence/run-T6stAJ/output.log",
+          "bytes": 3881,
+          "sha256": "0ec6260dd4b516352552feb85531c6be34d50ffe532c56a272aca6ab4e221ed2"
+        }
+      ],
+      "summary": {
+        "startedAt": "2026-10-11T18:56:47.784Z",
+        "status": "failed",
+        "complete": false,
+        "steps": [
+          {
+            "name": "with-alias-corrected-current-vector-assertions",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "node",
+              "--test-name-pattern",
+              "^(baseline preimages and changed normative pins independently determine the Run CID|current contract inputs independently determine the Values Run and consuming fixtures)$",
+              "scripts/client-values-run-materials-vector.test.mjs"
+            ],
+            "startedAt": "2026-10-11T18:56:47.902Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:56:49.661Z",
+            "endedAt": "2026-10-11T18:56:49.666Z"
+          },
+          {
+            "name": "with-alias-unreached-js-callers",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/with_graph_alias_test.mbt",
+              "src/query_program/with_graph_range_alias_test.mbt",
+              "src/query_program/graph_rows_test.mbt",
+              "src/query_program/graph_rows_positional_set_test.mbt",
+              "src/source_frontend/with_graph_binding_test.mbt",
+              "src/connectors_builtin_node/client_source_preparation_wbtest.mbt",
+              "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+            ],
+            "startedAt": "2026-10-11T18:56:49.739Z",
+            "status": "failed",
+            "streamsComplete": true,
+            "code": 1,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:57:09.615Z",
+            "endedAt": "2026-10-11T18:57:09.619Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "5b922025-f7bb-41f4-90a6-e8c7d49edebd",
+          "pid": 37311,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:56:47.897Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-T6stAJ"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:57:09.699Z",
+        "outputComplete": true,
+        "exitCode": 1,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "actual_node_summaries": [
+        {
+          "success": true,
+          "counts": {
+            "tests": 2,
+            "failed": 0,
+            "passed": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0,
+            "topLevel": 2,
+            "suites": 0
+          },
+          "duration_ms": 1056.798542,
+          "file": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/scripts/client-values-run-materials-vector.test.mjs"
+        },
+        {
+          "success": true,
+          "counts": {
+            "tests": 2,
+            "failed": 0,
+            "passed": 2,
+            "cancelled": 0,
+            "skipped": 0,
+            "todo": 0,
+            "topLevel": 2,
+            "suites": 0
+          },
+          "duration_ms": 1167.958875
+        }
+      ],
+      "actual_moon_summaries": [],
+      "observed_after_exit": {
+        "owner_pid": 37311,
+        "owner_absent": true,
+        "owner_group_absent": true,
+        "own_lock_absent": true
+      }
+    },
+    {
+      "run": "run-Ufj9hv",
+      "source_sha": "dcd402f4a196cbc8f0d0bd3d1964a89deb1ffa57",
+      "classification": "Independent Frontend/Values JS17/17 and five read-only freshness commands. Failed connector caller is not included or relabeled passed.",
+      "raw_members": [
+        {
+          "path": "graph-row-alias-evidence/run-Ufj9hv/summary.json",
+          "bytes": 3876,
+          "sha256": "4d49fb917528db4a43ef4e6e4b4db29fc219d294439a2daeb4ce060f5828b40c"
+        },
+        {
+          "path": "graph-row-alias-evidence/run-Ufj9hv/output.log",
+          "bytes": 1071,
+          "sha256": "da006f060ff7ac86f605ec77aa08ff07d9ceafdd4d149d99e6814fa895867962"
+        }
+      ],
+      "summary": {
+        "startedAt": "2026-10-11T18:59:18.144Z",
+        "status": "passed",
+        "complete": true,
+        "steps": [
+          {
+            "name": "with-alias-independent-frontend-js",
+            "command": [
+              "node",
+              "--input-type=module",
+              "-e",
+              "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+              "moon",
+              "--target",
+              "js",
+              "src/query_syntax/with_graph_alias_test.mbt",
+              "src/query_program/with_graph_range_alias_test.mbt",
+              "src/query_program/graph_rows_test.mbt",
+              "src/query_program/graph_rows_positional_set_test.mbt",
+              "src/source_frontend/with_graph_binding_test.mbt",
+              "src/run_publication_host/client_values_run_materials_wbtest.mbt"
+            ],
+            "startedAt": "2026-10-11T18:59:18.233Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:59:21.979Z",
+            "endedAt": "2026-10-11T18:59:21.982Z"
+          },
+          {
+            "name": "scripts/compilation-manifests.mjs",
+            "command": [
+              "node",
+              "scripts/compilation-manifests.mjs"
+            ],
+            "startedAt": "2026-10-11T18:59:22.063Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:59:22.306Z",
+            "endedAt": "2026-10-11T18:59:22.310Z"
+          },
+          {
+            "name": "scripts/generate-aql-text-vocabulary.mjs",
+            "command": [
+              "node",
+              "scripts/generate-aql-text-vocabulary.mjs"
+            ],
+            "startedAt": "2026-10-11T18:59:22.389Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:59:22.460Z",
+            "endedAt": "2026-10-11T18:59:22.462Z"
+          },
+          {
+            "name": "scripts/update-document-metadata.mjs",
+            "command": [
+              "node",
+              "scripts/update-document-metadata.mjs"
+            ],
+            "startedAt": "2026-10-11T18:59:22.596Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:59:24.430Z",
+            "endedAt": "2026-10-11T18:59:24.431Z"
+          },
+          {
+            "name": "scripts/check-actql-spec-family.mjs",
+            "command": [
+              "node",
+              "scripts/check-actql-spec-family.mjs"
+            ],
+            "startedAt": "2026-10-11T18:59:24.498Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:59:26.023Z",
+            "endedAt": "2026-10-11T18:59:26.025Z"
+          },
+          {
+            "name": "scripts/check-canonical-json.mjs",
+            "command": [
+              "node",
+              "scripts/check-canonical-json.mjs"
+            ],
+            "startedAt": "2026-10-11T18:59:26.093Z",
+            "status": "passed",
+            "streamsComplete": true,
+            "code": 0,
+            "signal": null,
+            "exitedAt": "2026-10-11T18:59:27.844Z",
+            "endedAt": "2026-10-11T18:59:27.846Z"
+          }
+        ],
+        "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+        "heavy": false,
+        "timeoutSeconds": 60,
+        "graceSeconds": 5,
+        "owner": {
+          "token": "e90f97a2-9e8f-432e-86c7-02ce62472302",
+          "pid": 38998,
+          "uid": 501,
+          "host": "dyson",
+          "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+          "startedAt": "2026-10-11T18:59:18.221Z",
+          "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-Ufj9hv"
+        },
+        "locks": [
+          "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+        ],
+        "endedAt": "2026-10-11T18:59:27.907Z",
+        "outputComplete": true,
+        "exitCode": 0,
+        "locksReleased": true,
+        "callerOutputComplete": true
+      },
+      "actual_node_summaries": [],
+      "actual_moon_summaries": [
+        {
+          "tests": 17,
+          "passed": 17,
+          "failed": 0
+        }
+      ],
+      "observed_after_exit": {
+        "owner_pid": 38998,
+        "owner_absent": true,
+        "owner_group_absent": true,
+        "own_lock_absent": true
+      }
+    }
+  ],
+  "remaining": [
+    "E/Root-owned client_check exhaustive typed diagnostic projection before connector caller/public execution.",
+    "Remaining current DATA callers/examples, four-Carrier and P2 role surfaces.",
+    "Allocated packed SQL/AQL-text/README Local/HTTPS acceptance; no new producer started."
+  ],
+  "public_execution": "not_started",
+  "native_wasm_execution": "not_started",
+  "hosted_ci": "not_started"
+}

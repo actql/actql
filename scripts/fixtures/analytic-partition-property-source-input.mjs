@@ -16,10 +16,10 @@ const columns = [column('id'), column('pos')];
 const expected = [{id: 1, pos: 1}, {id: 2, pos: 1}, {id: 3, pos: 1},
   {id: 4, pos: 2}, {id: 5, pos: 2}];
 const currentPositions = [1, 1, 2, 2, 3];
-const data = 'DATA objects = SELECT id, CASE WHEN id = 3 THEN @none '
+const data = 'WITH objects AS (SELECT id, CASE WHEN id = 3 THEN @none '
   + 'WHEN id = 5 THEN @empty WHEN id = 1 THEN @b ELSE @a END AS payload, '
   + 'CASE WHEN id = 2 OR id = 3 THEN @oa ELSE @ob END AS other '
-  + 'FROM records WHERE id > 0; ';
+  + 'FROM records WHERE id > 0) ';
 const payloadExpression = {case: {when: [
   {when: {eq: [{field: 'id'}, {literal: 3}]}, then: {$param: 'none'}},
   {when: {eq: [{field: 'id'}, {literal: 5}]}, then: {$param: 'empty'}},

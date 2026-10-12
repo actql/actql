@@ -100,17 +100,23 @@ test "quoted string errors preserve lexical rejection and original spans" {
 }
 
 ///|
-test "query escapes cannot widen the historical Graph annotation profile" {
-  let valid = tokenize("\"field\" \"\\u0069d\"", limits()).unwrap()
-  assert_true(token_at(valid, 0).unwrap().annotation_compatible)
-  assert_true(token_at(valid, 1).unwrap().annotation_compatible)
-  for source in ["\"\\x66ield\"", "\"\\146ield\"", "\"\\?\"", "\"\\a\""] {
+test "query string escape values do not carry a retired annotation profile" {
+  for
+    (source, expected) in [
+      ("\"\\x66ield\"", "field"),
+      ("\"\\146ield\"", "field"),
+      ("\"\\?\"", "?"),
+      ("\"\\a\"", "\u{07}"),
+      ("\"tab\there\"", "tab\there"),
+    ] {
     let tokens = tokenize(source, limits()).unwrap()
-    assert_true(!token_at(tokens, 0).unwrap().annotation_compatible)
-    assert_true(parse_expression(source, expression_limits()) is Ok(_))
+    assert_eq(token_at(tokens, 0).unwrap().value, Text(expected))
+    let expression = parse_expression(source, expression_limits()).unwrap()
+    assert_eq(
+      expression_node(expression, expression_root(expression)).unwrap().kind,
+      StringLiteral(expected),
+    )
   }
-  let controls = tokenize("\"tab\there\"", limits()).unwrap()
-  assert_true(!token_at(controls, 0).unwrap().annotation_compatible)
 }
 
 ///|

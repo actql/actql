@@ -1282,6 +1282,13 @@ async function boundedHostJson(response,
 const controlValue = (response, maxWireBytes) => response instanceof Response
   ? boundedHostJson(response, maxWireBytes) : response;
 
+const connectionObjectExample = "Use connect({mode: 'remote', endpoint: 'https://host.example/', token: getAccessToken}). For embedded Local, use open() from '@actql/node' without a Host or token.";
+const connectionStringExample = "Use connect('actql://host.example/workspace-id', {token: getAccessToken}), or provide a percent-encoded bearer credential in actql://token:<credential>@host.example/workspace-id.";
+// Fixed field names and examples only: never include options, URLs or causes.
+const connectionFailure = (code, hint) => {
+  throw ownedClientFailure(code, {hint});
+};
+
 function inProcessOptions(options) {
   if (options === null || typeof options !== 'object' ||
       Array.isArray(options) || options.mode !== 'local' ||
@@ -1312,38 +1319,45 @@ function inProcessOptions(options) {
 function connectionStringOptions(input, options = {}) {
   let keys, parsed, hasToken, token, durability, consentRefs, traceContext;
   if (options === null || typeof options !== 'object' || Array.isArray(options)) {
-    fail('InvalidConnectionOptions');
+    connectionFailure('InvalidConnectionOptions', connectionStringExample);
   }
   try { keys = Object.keys(options); }
-  catch { fail('InvalidConnectionOptions'); }
+  catch { connectionFailure('InvalidConnectionOptions', connectionStringExample); }
   if (keys.some(key => !['token', 'durability', 'consentRefs', 'traceContext'].includes(key))) {
-    fail('InvalidConnectionOptions');
+    connectionFailure('InvalidConnectionOptions',
+      'Connection-string options accept only token, durability, consentRefs and traceContext. ' + connectionStringExample);
   }
   try { parsed = parseConnectionString(input); }
-  catch { fail('InvalidConnectionString'); }
+  catch {
+    connectionFailure('InvalidConnectionString',
+      'Specify an actql:// Host and one workspace-id. Only ?transport=http is accepted, for an explicit loopback Host. ' + connectionStringExample);
+  }
   const embedded = connectionStringCredential(parsed);
   try { hasToken = 'token' in options; }
-  catch { fail('InvalidConnectionOptions'); }
-  if (embedded !== undefined && hasToken) fail('ConflictingConnectionCredentials');
+  catch { connectionFailure('InvalidConnectionOptions', connectionStringExample); }
+  if (embedded !== undefined && hasToken) {
+    connectionFailure('ConflictingConnectionCredentials',
+      'Choose either the connection-string credential or the separate token option, never both.');
+  }
   try {
     token = embedded ?? options.token;
     durability = options.durability;
     consentRefs = options.consentRefs;
     traceContext = options.traceContext;
-  } catch { fail('InvalidConnectionOptions'); }
+  } catch { connectionFailure('InvalidConnectionOptions', connectionStringExample); }
   return {mode: 'remote', endpoint: parsed.endpoint,
     workspaceId: parsed.workspaceId, token, durability, consentRefs, traceContext};
 }
 
 function connectionOptions(options, parsedConnectionString = false) {
   if (options === null || typeof options !== 'object' ||
-      Array.isArray(options)) fail('InvalidConnectionOptions');
+      Array.isArray(options)) connectionFailure('InvalidConnectionOptions', connectionObjectExample);
   const {mode, owner, endpoint, token, durability, consentRefs, runners, workspaceId,
     movementPolicyRef, cloudConnectionRef, traceContext} = options;
   if (endpoint === undefined && (mode === 'local' ||
       mode === 'hybrid' && owner === 'local')) {
-    throw new ClientError('LocalProviderNotInstalled', {
-      hint: 'Install a Local Host or provide its explicit endpoint.',
+    throw ownedClientFailure('LocalProviderNotInstalled', {
+      hint: "For embedded Local, install @actql/node and use open() without a Host or token. This SDK connects only to an existing Host with endpoint and token.",
     });
   }
   if (!(mode === 'remote' && owner === undefined ||
@@ -1363,7 +1377,13 @@ function connectionOptions(options, parsedConnectionString = false) {
         (typeof movementPolicyRef !== 'string' || !movementPolicyRef) ||
       cloudConnectionRef !== undefined &&
         (typeof cloudConnectionRef !== 'string' || !cloudConnectionRef)) {
-    fail('InvalidConnectionOptions');
+    const missing = [['mode', mode], ['endpoint', endpoint], ['token', token]]
+      .filter(([, value]) => value === undefined).map(([name]) => name);
+    if ((mode === 'local' || mode === 'hybrid') && owner === undefined) missing.push('owner');
+    connectionFailure('InvalidConnectionOptions',
+      (missing.length ? `Missing connection options: ${missing.join(', ')}. ` :
+        'Check mode/owner, endpoint, token and the optional connection fields. ') +
+      (parsedConnectionString ? connectionStringExample : connectionObjectExample));
   }
   if (mode !== 'hybrid' && (runners !== undefined ||
       movementPolicyRef !== undefined || cloudConnectionRef !== undefined) ||
@@ -1371,18 +1391,23 @@ function connectionOptions(options, parsedConnectionString = false) {
         owner === 'local' && cloudConnectionRef === undefined ||
         owner === 'cloud' && (cloudConnectionRef !== undefined ||
           runners === undefined || runners.length === 0))) {
-    fail('InvalidHybridConnection');
+    connectionFailure('InvalidHybridConnection',
+      'Hybrid needs movementPolicyRef; a Local owner also needs cloudConnectionRef, and a Cloud owner needs nonempty runners. Other modes omit these fields.');
   }
   let url;
   try { url = new URL(endpoint); }
-  catch { fail('InvalidConnectionEndpoint'); }
+  catch {
+    connectionFailure('InvalidConnectionEndpoint',
+      'Set endpoint to an HTTPS origin, such as https://host.example/, without userinfo, path, query or fragment.');
+  }
   const loopback = url.protocol === 'http:' &&
     (mode === 'local' && ['127.0.0.1', '[::1]'].includes(url.hostname) ||
       parsedConnectionString && mode === 'remote' && isLoopbackEndpointHostname(url.hostname));
   if (!(url.protocol === 'https:' || loopback) ||
       url.username || url.password ||
       url.search || url.hash || url.pathname !== '/') {
-    fail('InvalidConnectionEndpoint');
+    connectionFailure('InvalidConnectionEndpoint',
+      'Set endpoint to an HTTPS origin without userinfo, path, query or fragment. Connected Local also accepts explicit numeric loopback HTTP.');
   }
   const wire = Object.freeze({
     mode, owner: owner ?? 'remote',
@@ -1393,7 +1418,11 @@ function connectionOptions(options, parsedConnectionString = false) {
     ...(movementPolicyRef === undefined ? {} : {movementPolicyRef}),
     ...(cloudConnectionRef === undefined ? {} : {cloudConnectionRef}),
   });
-  if (!validClientConnection(wire)) fail('InvalidConnectionOptions');
+  if (!validClientConnection(wire)) {
+    connectionFailure('InvalidConnectionOptions',
+      'Check workspaceId and the selected connection profile. ' +
+      (parsedConnectionString ? connectionStringExample : connectionObjectExample));
+  }
   return Object.freeze({endpoint: url.href, token, wire,
     ...(traceContext === undefined ? {} : {traceContext}),
     ...(parsedConnectionString && loopback ? {directLoopbackHttp: true} : {})});
@@ -1423,13 +1452,20 @@ function retainedValueBytes(value) {
 
 export async function connect(options, stringOptions) {
   const connectionString = typeof options === 'string';
-  if (!connectionString && stringOptions !== undefined) fail('InvalidConnectionOptions');
+  if (!connectionString && stringOptions !== undefined) {
+    connectionFailure('InvalidConnectionOptions',
+      'Object connections take one options argument. ' + connectionObjectExample);
+  }
   let selected;
   try {
     selected = connectionOptions(connectionString
       ? connectionStringOptions(options, stringOptions) : options, connectionString);
   } catch (error) {
-    if (connectionString && !ownedClientFailures.has(error)) fail('InvalidConnectionOptions');
+    if (!ownedClientFailures.has(error)) {
+      connectionFailure('InvalidConnectionOptions',
+        'Connection options could not be read safely. ' +
+        (connectionString ? connectionStringExample : connectionObjectExample));
+    }
     throw error;
   }
   return connectSelected(connectionString
@@ -1534,7 +1570,10 @@ async function connectSelected(selected, port) {
       credential = typeof selected.token === 'function'
         ? await selected.token() : selected.token;
     } catch (cause) {
-      if (selected.redactCredentialErrors) fail('ClientCredentialUnavailable');
+      if (selected.redactCredentialErrors || operation === 'connect') {
+        connectionFailure('ClientCredentialUnavailable',
+          'The token provider could not supply a credential. Check the provider without logging its result or exception.');
+      }
       throw cause;
     }
     if (selected.redactCredentialErrors ? !validConnectionStringCredential(credential)
@@ -1581,7 +1620,7 @@ async function connectSelected(selected, port) {
           selected.redactCredentialErrors ? undefined : cause);
       }
       throw retainCancellationExplanation(ownedClientFailure('ClientTransportUnknown',
-        selected.redactCredentialErrors ? {} : {cause}),
+        selected.redactCredentialErrors || operation === 'connect' ? {} : {cause}),
           cancellationContext, 'outcome_unknown');
     }
     if (!response.ok) {

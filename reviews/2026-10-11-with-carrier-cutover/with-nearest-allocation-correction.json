@@ -1,0 +1,28 @@
+{
+  "failed_source": "3798a1681989d36af0b15455b6f1d539e40ed959",
+  "failed_run": "run-MzSry9",
+  "actual_tests": {
+    "passed": 2,
+    "failed": 2
+  },
+  "original_incorrect_rationale": "The existing complete Program fixes keys, dimensions, KEEP, correspondence, typed nested result and pair uniqueness. Unified WITH reserves binding0 then seed1, binding2 then seed3; only generated Values seed references change. All nearest args and capacities remain original.",
+  "correction": "The installed context contains queries and candidates. compile_query_script initializes reserved from both input names (length 2), then each Relation binding reserves its output before binding its generated Values input. qs reserves cte_2 and seed_3; cs reserves cte_4 and seed_5. The complete oracle is restored byte-for-byte from the original independently authored Program, not regenerated from actual output.",
+  "source_rules": [
+    "query_script_program.mbt: context.inputs.map(input => input.name)",
+    "query_binding_program.mbt: reserve Relation output before lower_script_relation",
+    "compile.mbt: pipe_physical_name starts at physical.length()"
+  ],
+  "unchanged": [
+    "complete Program operations",
+    "input rows and schemas",
+    "query/candidate keys",
+    "dimensions",
+    "k=2",
+    "metric=dot",
+    "nullable KEEP",
+    "nested typed keys",
+    "many_to_one correspondence",
+    "pair uniqueness"
+  ],
+  "public_execution": "unexecuted"
+}

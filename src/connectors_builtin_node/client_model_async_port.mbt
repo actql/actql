@@ -36,6 +36,19 @@ pub fn client_program_model_physical_call(
 }
 
 ///|
+/// Bind the fixed original request to the consumed Entry through Common.
+#export_name("clientProgramModelPhysicalCallForRequest")
+pub fn client_program_model_physical_call_for_request(
+  entry : @model.ModelCallEntry,
+  request : @model.ModelRequest,
+  poll : () -> @model.ModelPhysicalCallPoll,
+  cancel : () -> Unit,
+  cleanup : (Bool) -> Bool,
+) -> @model.ModelPhysicalCall? {
+  @model.model_physical_call_for_request(entry, request, poll, cancel, cleanup)
+}
+
+///|
 #export_name("clientProgramModelPhysicalPending")
 pub fn client_program_model_physical_pending() -> @model.ModelPhysicalCallPoll {
   @model.PhysicalPending

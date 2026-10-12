@@ -20,12 +20,12 @@ const parameters = {a: {score: 10}, b: {score: 20}, c: null,
   d: {score: 20}, e: {score: 30}, f: {score: null},
   oa: {score: 100}, ob: {score: 200}, oc: {score: 300},
   od: {score: 400}, oe: {score: 500}, of: {score: 600}};
-const data = 'DATA objects = SELECT 2 AS id, \'A\' AS bucket, @a AS payload, @oa AS other '
+const data = 'WITH objects AS (SELECT 2 AS id, \'A\' AS bucket, @a AS payload, @oa AS other '
   + 'UNION ALL SELECT 1 AS id, \'A\' AS bucket, @b AS payload, @ob AS other '
   + 'UNION ALL SELECT 3 AS id, \'A\' AS bucket, @c AS payload, @oc AS other '
   + 'UNION ALL SELECT 5 AS id, \'A\' AS bucket, @d AS payload, @od AS other '
   + 'UNION ALL SELECT 6 AS id, \'A\' AS bucket, @e AS payload, @oe AS other '
-  + 'UNION ALL SELECT 4 AS id, \'B\' AS bucket, @f AS payload, @of AS other; ';
+  + 'UNION ALL SELECT 4 AS id, \'B\' AS bucket, @f AS payload, @of AS other) ';
 const column = (name, contract = number) => ({name, contract});
 const names = ['bucket', 'n', 'd', 'h', 's', 'a', 'lo', 'hi'];
 // Both authored SQL bucket literals are one UTF-8 byte. The existing literal

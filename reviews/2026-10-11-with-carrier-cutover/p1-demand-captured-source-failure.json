@@ -1,0 +1,29 @@
+{
+  "source": "4a6442b9c1e0592684cb91f52a01c8940b15f828",
+  "run": "run-4xX8pR",
+  "focused": "focused-test-XJMeJC",
+  "tests": 4,
+  "passed": 2,
+  "failed": 2,
+  "exit_code": 2,
+  "finding": "The no-capture variant passed complete Program comparison after independently correcting reserved-name arithmetic. The captured/nested cases still refuse in lowering; exact typed diagnosis remains pending. Assertions/non-output evaluation and unused Graph controls pass. Do not claim the capture path is complete.",
+  "termination": {
+    "owner": 43995,
+    "direct_owner_and_group_absent": true,
+    "own_lock_absent": true
+  },
+  "evidence": [
+    {
+      "path": "_build/local-checks/attempts/run-4xX8pR/summary.json",
+      "sha256": "7dd74a225082c41a6fbb0c8a286023043dae26a297815d216b86ca5b11fbd740"
+    },
+    {
+      "path": "_build/local-checks/attempts/run-4xX8pR/output.log",
+      "sha256": "9b7d1d2e69185b8f2f92a4343bf478382785cfbeab55db7b12f1bdfacfdbf33c"
+    },
+    {
+      "path": "_build/focused-evidence/focused-test-XJMeJC/summary.json",
+      "sha256": "ef823e68aeec234ceab69be1ab140f0ac4fefbe435460226cd52bb757fd81bfd"
+    }
+  ]
+}

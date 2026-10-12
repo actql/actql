@@ -1,0 +1,196 @@
+{
+  "adopted_main": "ece026dda6a48a5a86259f048ca55e553dd87f4f",
+  "current_source": "4710de1543a1cdf14ac969daed526d64df342faf",
+  "current_tree": "96b129593668714d6ff0b273db942b0cea3d375e",
+  "actual_runtime": {
+    "run": "run-4G1dkk",
+    "focused": "focused-test-VBu4ph",
+    "js_tests": 31,
+    "passed": 31,
+    "failed": 0,
+    "timeout_seconds": 60,
+    "grace_seconds": 5,
+    "heavy": false,
+    "format_read_only": true
+  },
+  "earlier_control": {
+    "source": "cab64d142fba7e8b6daa825c08658cd186b13893",
+    "js_tests": 18,
+    "passed": 18,
+    "run": "run-daLOX6"
+  },
+  "pre_fix_counterexample": {
+    "source": "4d376d7808f748a1a8a890176c8ae6b7257b970d",
+    "run": "run-8UDn3i",
+    "js_tests": 3,
+    "passed": 2,
+    "failed": 1,
+    "cause": "SGA selector Producer occurrence absent from raw installed-input use census"
+  },
+  "original_source": "7305e3081e4649e5af3b8cc27f48cc08a5cda5cd",
+  "fixture_preimages": [
+    {
+      "path": "src/query_program/graph_union_source_test.mbt",
+      "original_sha256": "f9348ca0ccf2023e887cd435be8181049097362c98e73ac6ea81034e1574303b",
+      "replacement_sha256": "c7909d56a57fd0604411d6190d27a718f5060f854715775e5b8f05751cfa85d0"
+    },
+    {
+      "path": "src/query_program/graph_subtraction_source_test.mbt",
+      "original_sha256": "304ea90c5db6150d548845e47178ebc552205fe8255439fb4141b8a0df8fbebd",
+      "replacement_sha256": "e6bf77c70944c46ba2722fd5d2368581f443a57165c820b83540626db6087ee8"
+    },
+    {
+      "path": "src/query_program/graph_shortest_source_test.mbt",
+      "original_sha256": "a494c69fd4df1d3a2aa8b9d5056657c9f499e4bf24bb9736cc9e3d0bc7ebb936",
+      "replacement_sha256": "a6a8185e2a11f872593d70bbec2be5386084421f66d840a0848c136742c61c36"
+    },
+    {
+      "path": "src/query_program/graph_mean_source_test.mbt",
+      "original_sha256": "752546c17f4c828152f0fe47686dc8c100a84b89462da949d1ab9a9ea09766d8",
+      "replacement_sha256": "1e0de7470fe08e92e3674589a6430b1496049b6d3963a842d99fb36eb7d1a742"
+    },
+    {
+      "path": "src/query_program/graph_graft_source_test.mbt",
+      "original_sha256": "e1515c4ef84b348e8ddf61656258048fa3bbab6c496da67aa1d930f4feb66ad1",
+      "replacement_sha256": "d7257d2a671fbb5d3335c0e14cd4b98eb40a9284df017db7c2548660bc45bf49"
+    },
+    {
+      "path": "src/query_program/graph_reach_source_test.mbt",
+      "original_sha256": "9259ebd1885d37f10d292364d4b36779f0e77dd1575028482ff639510c257803",
+      "replacement_sha256": "dad49198c0d9f8554a2a4d6e40fc41e3066140d60decb0951146c90ef660d865"
+    },
+    {
+      "path": "src/query_program/graph_match_binding_vocabulary_test.mbt",
+      "original_sha256": "c986fa489593f906701b44d24502ea731cb26111903df4add14337db3fd9fca5",
+      "replacement_sha256": "080a51a98b3109143c70fc2f5e127b632110c511a699bc49e129ed2634d9c161"
+    },
+    {
+      "path": "src/query_program/graph_merge_vocabulary_test.mbt",
+      "original_sha256": "ac5bf9d9213a557df6adb0d3e820d8bca8911c4b8fb559e93050e6b390849657",
+      "replacement_sha256": "ac5bf9d9213a557df6adb0d3e820d8bca8911c4b8fb559e93050e6b390849657"
+    }
+  ],
+  "scope": "Source census only; parser-issued Producer leaves and lexical names reused. Existing common typed static admission/demand/publication owners unchanged. Inspected Graph source strings directly replaced; no shipped converter or runtime fallback.",
+  "oracle_changes": "Only independently derived producer allocation names for WITH Graph bindings and no-op Graph aliases. Data values, schemas, selectors, bounds, repeated operand occurrences, policy strings, projections and Results unchanged. Invalid Graph operands now asserted at the common pre-demand static boundary; Reach extra argument explicitly requires pipeline InvalidBody.",
+  "failures": [
+    {
+      "run": "run-2rwyB4",
+      "source": "d27ae618f0a192d0d2db9f34078afbb58f10d595",
+      "tests": 28,
+      "passed": 22,
+      "failed": 6,
+      "reason": "Four old post-Program refusal assertions, one old shared DATA source helper, one obsolete allocation name for no-op Graph alias."
+    },
+    {
+      "run": "run-TSqdiv",
+      "source": "a4d44c98e8de2fb832c175feee73f3e67280d96b",
+      "executed_tests": 0,
+      "reason": "Test helper omitted Unit return annotation."
+    },
+    {
+      "run": "run-xXSeT0",
+      "source": "a8885d35ca595bf9e517d1a36c7bcfb51477bdbf",
+      "tests": 28,
+      "passed": 27,
+      "failed": 1,
+      "reason": "Reach extra field is rejected by existing pipeline closed-body InvalidBody before Graph typing."
+    },
+    {
+      "run": "run-9MtXrL",
+      "source": "60202f5ebb5df947a9fe528eb57a689dbdac956e",
+      "executed_tests": 0,
+      "reason": "Nested-match formatter layout differed; runtime step did not execute."
+    }
+  ],
+  "receipts": [
+    {
+      "run": "run-8UDn3i",
+      "owner": 76585,
+      "exit_code": 2,
+      "complete": false,
+      "locks_released": true,
+      "actual_owner_group_absent": true,
+      "summary_sha256": "cd2801f0e30dbbf9015f77425b1228735ec00747626efd24a7a85fa8d251a245"
+    },
+    {
+      "run": "run-daLOX6",
+      "owner": 77761,
+      "exit_code": 0,
+      "complete": true,
+      "locks_released": true,
+      "actual_owner_group_absent": true,
+      "summary_sha256": "7988c3b715886dc6213adffd23c5c37fa3390e6c791bbcdeba01a373c1585ea3"
+    },
+    {
+      "run": "run-DJqEew",
+      "owner": 80157,
+      "exit_code": 0,
+      "complete": true,
+      "locks_released": true,
+      "actual_owner_group_absent": true,
+      "summary_sha256": "20996277e8a4502ce3f3f1bb49a059b05bb6782c998c88ad2f439fd8cd98e434"
+    },
+    {
+      "run": "run-2rwyB4",
+      "owner": 80499,
+      "exit_code": 2,
+      "complete": false,
+      "locks_released": true,
+      "actual_owner_group_absent": true,
+      "summary_sha256": "33a4769a0f7056759850501dd6743b35919f91f89ee6ba9aaf980934f920aa0e"
+    },
+    {
+      "run": "run-il9Gd2",
+      "owner": 83568,
+      "exit_code": 0,
+      "complete": true,
+      "locks_released": true,
+      "actual_owner_group_absent": true,
+      "summary_sha256": "e9d47f4d7aaec91cf5523c603b28ef302631c12707ba9e7de9ec213304882b27"
+    },
+    {
+      "run": "run-TSqdiv",
+      "owner": 83825,
+      "exit_code": 1,
+      "complete": false,
+      "locks_released": true,
+      "actual_owner_group_absent": true,
+      "summary_sha256": "864ad7f7df00375aff1abbd70ea75441b0445efbcbca34c90f6697b29790a8df"
+    },
+    {
+      "run": "run-xXSeT0",
+      "owner": 84307,
+      "exit_code": 2,
+      "complete": false,
+      "locks_released": true,
+      "actual_owner_group_absent": true,
+      "summary_sha256": "660951ece55cb71b88c8ed1692a7acd03445f19433c7096cdea2cd3dc555a7a2"
+    },
+    {
+      "run": "run-9MtXrL",
+      "owner": 85378,
+      "exit_code": 255,
+      "complete": false,
+      "locks_released": true,
+      "actual_owner_group_absent": true,
+      "summary_sha256": "cfecddedc65b82e4dadbfdc1e702ec7b63c34998f735e35e08d3072463b87fb5"
+    },
+    {
+      "run": "run-4G1dkk",
+      "owner": 86915,
+      "exit_code": 0,
+      "complete": true,
+      "locks_released": true,
+      "actual_owner_group_absent": true,
+      "summary_sha256": "4f5a88906d7c440a2a50834f4c55b17641c7db1c16450c7fb7508e991acb5c37"
+    }
+  ],
+  "unverified": [
+    "public Local/HTTPS and provider counts",
+    "P1/P2 full four-Carrier cutover",
+    "remaining old DATA current docs/examples/fixtures/API and LABELS retirement",
+    "grammar/spec pins and identities",
+    "Native/Wasm runtime",
+    "Hosted CI"
+  ]
+}

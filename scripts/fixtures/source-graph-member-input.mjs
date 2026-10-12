@@ -13,11 +13,11 @@ const sourceRows = [{id: 2, amount: 10}, {id: 1, amount: 20},
 const columns = [{name: 'id', contract: number}, {name: 'score', contract: score}];
 const expected = [{id: 1, score: 20}, {id: 2, score: 10},
   {id: 3, score: null}, {id: 4, score: null}];
-const data = 'DATA objects = SELECT id, CASE WHEN id = 1 THEN @p1 '
+const data = 'WITH objects AS (SELECT id, CASE WHEN id = 1 THEN @p1 '
   + 'WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload '
-  + 'FROM records WHERE id > @minimum; ';
-const graph = 'DATA g = PROPERTY GRAPH (NODE TABLES '
-  + '(objects AS N KEY (id) LABEL Person PROPERTIES (id, payload))); ';
+  + 'FROM records WHERE id > @minimum) ';
+const graph = ', g AS (GRAPH (NODE TABLES '
+  + '(objects AS N KEY (id) LABEL Person PROPERTIES (id, payload)))) ';
 const head = data + graph + 'FROM GRAPH g |> MATCH WALK (a:Person) |> ';
 const results = rows => ({matched: {rows, columns}});
 const sourceCase = (name, tail, rows = expected, extra = {}) => ({
