@@ -1,0 +1,50 @@
+{
+  "startedAt": "2026-10-12T00:37:51.797Z",
+  "status": "failed",
+  "complete": false,
+  "steps": [
+    {
+      "name": "SGA output name admission and unchanged common MATCH controls",
+      "command": [
+        "node",
+        "--input-type=module",
+        "-e",
+        "import {runFocusedTests} from \"./scripts/test-execution.mjs\"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});",
+        "moon",
+        "--target",
+        "js",
+        "src/query_syntax/sga_output_name_test.mbt",
+        "src/query_syntax/graph_match_binding_vocabulary_test.mbt",
+        "src/query_program/sga_output_name_lowering_test.mbt"
+      ],
+      "startedAt": "2026-10-12T00:37:51.851Z",
+      "status": "failed",
+      "streamsComplete": true,
+      "code": 2,
+      "signal": null,
+      "exitedAt": "2026-10-12T00:38:02.381Z",
+      "endedAt": "2026-10-12T00:38:02.383Z"
+    }
+  ],
+  "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+  "heavy": false,
+  "timeoutSeconds": 60,
+  "graceSeconds": 5,
+  "owner": {
+    "token": "e2746874-088e-4dbb-8194-7f586e8bd53c",
+    "pid": 40462,
+    "uid": 501,
+    "host": "dyson",
+    "worktree": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover",
+    "startedAt": "2026-10-12T00:37:51.848Z",
+    "evidence": "/Users/t14i/workspace/20260822/worktrees/actql-frontend-with-carrier-cutover/_build/local-checks/attempts/run-PFeRM0"
+  },
+  "locks": [
+    "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-4917b0f4fdf9c15175cf5a92e1066949b76be38d1c4127d62b098649aefa7003.lock"
+  ],
+  "endedAt": "2026-10-12T00:38:02.458Z",
+  "outputComplete": true,
+  "exitCode": 2,
+  "locksReleased": true,
+  "callerOutputComplete": true
+}
