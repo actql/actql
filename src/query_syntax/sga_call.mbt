@@ -39,6 +39,7 @@ fn sga_operation(name : String) -> Bool {
     | "watermark_events"
     | "watermark_rows"
     | "lag"
+    | "time_series"
     | "dedupe_events"
     | "session"
     | "events"
