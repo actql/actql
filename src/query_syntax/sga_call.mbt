@@ -144,6 +144,22 @@ pub fn after_graph_calls(query : Query) -> Query {
 }
 
 ///|
+/// Keep the untouched tail after a checked Graph-to-Relation bridge. The
+/// caller supplies its actual consumed prefix, not all adjacent named calls.
+pub fn after_graph_row_calls(query : Query, consumed : Int) -> Query? {
+  if consumed <= 0 ||
+    consumed > query.operations.length() ||
+    query.operations[:consumed].any(operation => !(operation is GraphCall(_))) {
+    return None
+  }
+  Some({
+    ..query,
+    graph: None,
+    operations: query.operations[consumed:].to_owned(),
+  })
+}
+
+///|
 // A role comes from the existing logical operation contract. For example,
 // reach.start.from is a Relation producer, while reach.start is an ID value.
 fn sga_producer_argument(operation : String, path : Array[String]) -> Bool {
