@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:actql:local-run-policy-profile:0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "available_for_ms",
+    "clock_contract_cid",
+    "delete_after_ms",
+    "effective_data_policy_cid",
+    "metadata_after_ms",
+    "metadata_retention_policy_cid",
+    "read_for_ms",
+    "retention_contract_cid",
+    "version"
+  ],
+  "properties": {
+    "version": {
+      "const": "actql-local-run-policy-profile/0.1"
+    },
+    "available_for_ms": {
+      "const": 86400000
+    },
+    "delete_after_ms": {
+      "const": 172800000
+    },
+    "metadata_after_ms": {
+      "const": 604800000
+    },
+    "read_for_ms": {
+      "const": 86400000
+    },
+    "effective_data_policy_cid": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "retention_contract_cid": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "metadata_retention_policy_cid": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "clock_contract_cid": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    }
+  }
+}

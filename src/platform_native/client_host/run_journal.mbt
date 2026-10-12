@@ -46,6 +46,7 @@ struct NativeClientRunRecord {
   publication_binding : String?
   publication_policy_originals : String?
   effect_material_originals : String?
+  local_run_policy_originals : String?
   revision : Int64
   checkpoint : NativeClientCheckpointRecord?
 }
@@ -83,17 +84,20 @@ fn run_record_body(
       }
     None => None
   }
-  @host.client_run_journal_row_body({
-    request: record.request,
-    definition: record.definition,
-    dispatch_reserved: record.dispatch_reserved,
-    physical_start_claimed: record.physical_start_claimed,
-    cancellation_requested: record.cancellation_requested,
-    publication_binding: record.publication_binding,
-    publication_policy_originals: record.publication_policy_originals,
-    effect_material_originals: record.effect_material_originals,
-    checkpoint,
-  }).map_err(issue => {
+  @host.client_run_journal_row_body(
+    {
+      request: record.request,
+      definition: record.definition,
+      dispatch_reserved: record.dispatch_reserved,
+      physical_start_claimed: record.physical_start_claimed,
+      cancellation_requested: record.cancellation_requested,
+      publication_binding: record.publication_binding,
+      publication_policy_originals: record.publication_policy_originals,
+      effect_material_originals: record.effect_material_originals,
+      checkpoint,
+    },
+    local_run_policy_originals=record.local_run_policy_originals,
+  ).map_err(issue => {
     match issue {
       Encoding => Encoding
       CapacityExceeded => CapacityExceeded
@@ -105,13 +109,23 @@ fn run_record_body(
 fn read_run_record(
   row : @sqlite.NativeJournalValue,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
-  let decoded = match @host.decode_client_run_journal_row(row.body) {
+  let (decoded, local_run_policy_originals) = match
+    @host.decode_client_run_journal_row_with_local_policy(row.body) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
   let request = decoded.request
   let definition = decoded.definition
   let physical_start_claimed = decoded.physical_start_claimed
+  if local_run_policy_originals is Some(wire) &&
+    @host.validate_client_local_run_policy_original_run(
+      @utf8.encode(wire),
+      request,
+      definition,
+    )
+    is Err(_) {
+    return Err(CustodyLost)
+  }
   if decoded.publication_policy_originals is Some(wire) &&
     read_run_policy_originals(wire) is Err(_) {
     return Err(CustodyLost)
@@ -137,6 +151,7 @@ fn read_run_record(
     publication_binding: decoded.publication_binding,
     publication_policy_originals: decoded.publication_policy_originals,
     effect_material_originals: decoded.effect_material_originals,
+    local_run_policy_originals,
     revision: row.revision,
     checkpoint,
   }
@@ -468,6 +483,7 @@ fn NativeClientRunJournal::bind_run_locked(
     publication_binding: None,
     publication_policy_originals: None,
     effect_material_originals: None,
+    local_run_policy_originals: None,
     revision: 0L,
     checkpoint: None,
   }
