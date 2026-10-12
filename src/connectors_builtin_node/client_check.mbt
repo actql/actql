@@ -1029,6 +1029,24 @@ fn check_binding_preparation_findings(
       )
     SourceRegistration(error) =>
       @program_check.source_registration_diagnostic(error)
+    SourceSelection(error) =>
+      @program_check.source_registration_diagnostic(
+        @context.source_selection_diagnostic_issue(error),
+      )
+    SourceRequestBindings(error) =>
+      @program_check.source_requests_diagnostic(
+        @context.source_request_bindings_diagnostic_issue(error),
+      )
+    SourceRequestSlots(error) =>
+      @program_check.source_requests_diagnostic(
+        @context.source_request_slots_diagnostic_issue(error),
+      )
+    SourceRequest(error) =>
+      @program_check.source_requests_diagnostic(
+        @context.source_request_context_diagnostic_issue(error),
+      )
+    SourceRequestForm(error) =>
+      @program_check.source_request_form_diagnostic(error)
     SourceProgram(error) =>
       @program_check.source_context_diagnostic(
         @context.source_program_diagnostic_issue(error),
