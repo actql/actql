@@ -382,25 +382,18 @@ pub fn native_client_submission_epoch_wire(
 pub fn admit_native_client_submission_epoch(
   wire : String,
 ) -> Result[NativeClientSubmissionEpoch, NativeClientEpochIssue] {
-  guard epoch_cursor(wire) is Some(cursor) &&
-    @decode.closed_object(cursor, [
-      "version", "authorityScopeCid", "epochNonce", "notBefore", "expiresAt", "authenticator",
-    ])
-    is Ok(object) &&
-    epoch_text(object, "version") == Some("actql-submission-epoch/0.1") &&
-    epoch_text(object, "authorityScopeCid") is Some(authority) &&
-    epoch_text(object, "epochNonce") is Some(nonce) &&
-    epoch_number(object, "notBefore") is Some(before) &&
-    epoch_number(object, "expiresAt") is Some(expires) &&
-    epoch_text(object, "authenticator").bind(epoch_hex_bytes) is Some(tag) else {
-    return Err(Unverifiable)
-  }
-  let body = match
-    @scope.prepare_submission_epoch(authority, nonce, before, expires) {
-    Ok(value) => value
-    Err(issue) => return Err(Identity(issue))
-  }
-  Ok({ body, tag, wire, })
+  @host.admit_client_submission_epoch_token(wire)
+  .map(value => {
+    body: @host.client_submission_epoch_token_body(value),
+    tag: @host.client_submission_epoch_token_tag(value),
+    wire: @host.client_submission_epoch_token_wire(value),
+  })
+  .map_err(issue => {
+    match issue {
+      @host.Unverifiable => Unverifiable
+      @host.Identity(issue) => Identity(issue)
+    }
+  })
 }
 
 ///|
