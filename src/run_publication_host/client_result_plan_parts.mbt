@@ -40,7 +40,7 @@ fn issue_client_result_plan_parts(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
-  infer_output? : (Int, Int)? = None,
+  infer_output? : (ClientInferOccurrence, Int)? = None,
   serialization_output? : @lower.PreparedSerialization? = None,
 ) -> Result[ClientResultPlanParts, ClientResultPlanPartsIssue] {
   match
@@ -102,10 +102,15 @@ fn issue_client_result_plan_parts(
           // A captured task has no single graph target. The Infer compiler must
           // supply its exact checked terminal, not merely a matching Result name.
           guard task == 0 &&
-            infer_output is Some((infer_step, terminal)) &&
-            client_acquired_infer_prefix_owner(owner, task, infer_step)
-            is Some(prepared) &&
-            terminal >= infer_step &&
+            infer_output is Some((inference, terminal)) &&
+            client_infer_occurrence_matches(inference, owner) &&
+            inference.task == task &&
+            @strategy.graph_task_owner(owner.graph, task) is Some(prepared) &&
+            physical_equal(prepared, inference.preparation) &&
+            @lower.node_at(@lower.bound_preparation(prepared), inference.step)
+            is Some(infer_node) &&
+            @lower.payload(infer_node) is @lower.Infer(_) &&
+            terminal >= inference.step &&
             @lower.preparation_output_target(@lower.bound_preparation(prepared)) ==
             Some(@pipeline.Step(terminal)) &&
             @lower.node_at(@lower.bound_preparation(prepared), terminal)

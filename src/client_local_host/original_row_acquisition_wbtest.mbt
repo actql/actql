@@ -22,13 +22,14 @@ fn original_row_scope(
   plan : @publication_host.ClientInferPlanGraph,
   retained_bytes? : Int64 = 20L,
   execution_bytes? : Int64 = 12L,
+  transfer_bytes? : Int64 = 0L,
 ) -> (@publication_host.ClientModelReadScope, @resources.Ledger) {
   // Independent small census/lifetime fixture, not a Node physical profile.
   let ledger = @resources.create_ledger({
     planning_work: 3,
     attempts: 2,
     holdings: 1,
-    transfer_bytes: 0L,
+    transfer_bytes,
     retained_bytes,
     execution_bytes,
   }).unwrap()
