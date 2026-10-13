@@ -74,7 +74,7 @@ diagnostic edit (`977afc0b5a3aa097db93732f2e44fa292582061b`) failed to compile
 because `inspect` required `Show`; it executed zero tests. These failures remain
 separate raw evidence, not successful product execution.
 
-[The existing value contract](../../docs/spec/language.md#value-types) separates
+[The existing value contract](../../docs/spec/language.md#closed-value-contracts) separates
 authored and checked grammars: the compiler expands the authored Vector to the
 sole checked `element_type: f32` meaning. The saved installed Source wire must
 use that checked grammar. The supplier now independently declares that member
