@@ -14,8 +14,11 @@ import {carrierContinuationRecordsRows, carrierContinuationRecordsSchema, select
 import {releaseCarrierContinuationFixturePaths} from './release-carrier-continuation-fixtures.mjs';
 import {createCarrierContinuationPageDriver, installCarrierContinuationFixture,
   carrierContinuationSchemaWire, carrierContinuationSchemaCid,
-  carrierContinuationFactsWire, carrierContinuationFactsCid}
+  carrierContinuationFactsWire, carrierContinuationFactsCid,
+  carrierContinuationViewSpecification}
   from './fixtures/carrier-continuation-installed-source.mjs';
+import {createInstalledConnectorTable, installedConnectorForTable,
+  loadInstalledConnectorModule} from '../adapters/host-node/installed-connectors.mjs';
 import {auditCarrierContinuationTransport} from '../reviews/2026-10-14-carrier-continuation-release-matrix/public-audit.mjs';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 
@@ -94,16 +97,39 @@ test('ordinary records alias retains declared Source/view/schema identity throug
   const declared = {catalog_cid: 'synthetic-catalog', views: [
     {resource: 'r', source_ref: 'connector://crm/main/r#records', view_cid: 'v-cid'}],
     view_bodies: [JSON.stringify({contract_cid: 'v-cid', output: {schema: {cid: 's-cid'}}})]};
+  let restores = 0;
+  const moon = {
+    clientProgramRowSourceRestoreRelationDeclaration(...args) {
+      // The common exported API fixes connector_id before registration.
+      // This expectation is independent of the supplier implementation.
+      assert.deepEqual(args, ['crm/main', 'carrier_fixture', 'carrier_fixture/0.1',
+        JSON.stringify(carrierContinuationViewSpecification),
+        restores === 0 ? undefined : declared.catalog_cid]);
+      restores++;
+      return declared;
+    },
+    clientProgramRowSourceDeclarationJson: value => JSON.stringify(value),
+  };
+  const stopAfterDeclaration = new Error('StopBeforeCatalogEnvironmentAdmission');
   try {
-    // Declaration projection mock only, not Catalog/Common or Host admission.
-    const installed = await installCarrierContinuationFixture({directory,
-      moon: {clientProgramRowSourceRestoreRelationDeclaration() {return {};},
-        clientProgramRowSourceDeclarationJson() {return JSON.stringify(declared);}},
-      helpers: {checked: value => value}, createInstalledConnectorTable: value => value});
+    // Declaration projection double only, not Catalog/Common admission.
+    // Connector-table/module validation uses the actual existing JS owner.
+    const installed = await installCarrierContinuationFixture({directory, moon,
+      helpers: {checked: value => value,
+        rowSourceCheckEnvironment() {throw stopAfterDeclaration;}}, createInstalledConnectorTable});
     const profile = JSON.parse(await readFile(installed.sourceProfilePath, 'utf8'));
     assert.equal(profile.connectorId, 'crm/main');
     assert.deepEqual(profile.queryAliases, [{name: 'records', sourceRef: declared.views[0].source_ref,
       sourceViewContractCid: 'v-cid', schemaContractCid: 's-cid'}]);
+    const entry = installedConnectorForTable(installed.connectorTable, 'source', profile);
+    assert.equal(entry.name, 'carrier_fixture');
+    assert.equal(entry.registration, 'carrier_fixture');
+    const module = await loadInstalledConnectorModule(entry);
+    const {queryAliases, ...providerProfile} = profile;
+    assert.equal(module.check(providerProfile), providerProfile);
+    await assert.rejects(module.load(providerProfile, {moon}),
+      error => error === stopAfterDeclaration);
+    assert.equal(restores, 2);
     assert.equal(installed.observations.sourceIo, 0);
   } finally {await rm(directory, {recursive: true});}
 });
