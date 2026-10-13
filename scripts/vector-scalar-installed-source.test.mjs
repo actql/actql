@@ -1,13 +1,18 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {mkdtemp, readFile, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import test from 'node:test';
-import {createVectorScalarPageDriver, vectorScalarSchemaCid,
+import {createVectorScalarPageDriver, installVectorScalarFixture, vectorScalarSchemaCid,
   vectorScalarSchemaWire, vectorScalarViewSpecification}
   from './fixtures/vector-scalar-installed-source.mjs';
 import {vectorScalarSourceSchema, vectorScalarSourceRows,
   vectorScalarSourceSuccesses, vectorScalarSourceRefusals}
   from './fixtures/vector-scalar-source-input.mjs';
+import {retainInstalledHostInitializationFailure} from
+  '../adapters/host-node/installed-host-cleanup.mjs';
 
 const observations = () => ({sourceIo: 0, sourceReads: 0, sourceReadSessions: 0,
   sourceReadCommands: [], acceptedPages: 0});
@@ -104,4 +109,53 @@ test('actual installed fixture import closure is delivered and detects a missing
     'vector-scalar-source-input.mjs']) assert.ok(actual.seen.has(name));
   const omitted = new Map(copies); omitted.delete('vector-scalar-installed-source.mjs');
   assert.deepEqual(closure(omitted).absent, ['vector-scalar-installed-source.mjs']);
+});
+
+
+test('fixture initialization failure retains original cause and the same pending Site cleanup owner', async t => {
+  // Fault injection at the installation boundary, not public runtime proof.
+  const directory = await mkdtemp(join(tmpdir(), 'actql-vector-init-control-'));
+  const primary = new Error('FixtureRowSourceConstructorFailure');
+  const closeFailure = new Error('FixtureSiteCloseFailure');
+  let closeCalls = 0, constructorCalls = 0, failure, entries;
+  const site = {connection: 'vector_fixture:vectors', close() {
+    closeCalls++;
+    if (closeCalls === 1) throw closeFailure;
+  }};
+  t.after(async () => {
+    if (failure?.cleanupHandle !== undefined) await failure.cleanupHandle.retry();
+    else if (closeCalls < 2) site.close();
+    await rm(directory, {recursive: true, force: true});
+  });
+  const declared = {catalog_cid: 'fixture-catalog', views: [{source_ref: 'fixture-source'}],
+    view_bodies: [JSON.stringify({contract_cid: 'fixture-view', output: {schema: {cid: 'fixture-schema'}}})]};
+  const moon = {clientProgramRowSourceRestoreRelationDeclaration: () => ({}),
+    clientProgramRowSourceDeclarationJson: () => JSON.stringify(declared)};
+  const helpers = {checked: value => value,
+    rowSourceCheckEnvironment: () => ({wire: '{}'}),
+    installRowSourceAuthorization: async () => ({context: {contextCid: 'fixture-context'}}),
+    openRowSourceCredentialSite: async () => site,
+    createInstalledRowSource: async () => { constructorCalls++; throw primary; },
+    retainInstalledHostInitializationFailure};
+  const installed = await installVectorScalarFixture({moon, helpers, directory,
+    createInstalledConnectorTable: value => { entries = value; return {}; }});
+  const module = await entries[0].source.load();
+  const {queryAliases: _, ...profile} = JSON.parse(await readFile(installed.sourceProfilePath, 'utf8'));
+  await assert.rejects(module.load(profile, {root: directory, principalId: 'fixture-principal',
+    moon, baseEnvironmentWire: '{}', runtimeBundleCid: 'fixture-runtime'}), error => {
+    failure = error;
+    assert.equal(error.code, 'InstalledHostInitializationFailed');
+    assert.equal(error.primaryFailure, primary);
+    assert.equal(error.cleanupPending, true);
+    assert.deepEqual(error.cleanupHandle.status().owners, ['source-profile']);
+    assert.equal(error.cleanupErrors[0].error, closeFailure);
+    return true;
+  });
+  assert.equal(closeCalls, 1); assert.equal(constructorCalls, 1);
+  await failure.cleanupHandle.retry();
+  assert.equal(failure.cleanupPending, false);
+  assert.equal(installed.observations.closedSites, 1);
+  assert.equal(closeCalls, 2); assert.equal(constructorCalls, 1);
+  await failure.cleanupHandle.retry();
+  assert.equal(closeCalls, 2, 'retry never closes an already completed Site twice');
 });
