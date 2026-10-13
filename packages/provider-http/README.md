@@ -72,3 +72,26 @@ conformance against two independent compatible fixtures and an authorized live
 public route. Unsupported settings or codec/endpoint capability must refuse
 before send rather than trigger fallback. Formal packing, external installation
 and all public/live acceptance remain incomplete M4a/M5 work.
+
+The private `createInstalledHttpChatRegistration` connects this SDK-free port
+to the existing Host `registerModelProviders` entry. It returns only the
+existing exclusive async form, with original read installation, raw capture
+selection, canonical binding originals and quantity selection borrowed from
+their existing Owners. Missing originals/runtime/context refuse before
+projection or sending. Installation SDK absence stays absent or explicit NULL;
+it is not a dummy SDK, provider metadata, completion or funding capability.
+
+Task/selector/prompt payload selection is exact, without normalization or a
+second evaluator. Endpoint, headers and bounds are selected and snapshotted
+before any operation; credentials come only from the trusted Host's secret
+supply, never Program URLs or input. The physical caller still needs its
+original admitted Provider, notification and deferred raw persistence binder.
+The same Common preflight/Entry/current gate, raw Store, cleanup and final
+typed output checks remain mandatory.
+
+This assembler supplies no nominal original admission or numerical supplier.
+Its immutable configuration/bounds/header tuples and closure borrows, plus
+each physical request/reader/save overlap, must be counted in the original
+Host/Run inventory. Normal package exports remain empty. The independent Node
+registration cases use Core/Entry/selection/receipt doubles; they are not an
+installed public Result or permission to use the selected fixture allowance.
