@@ -6,10 +6,29 @@ pub(all) enum ContentMediaTypeIssue {
 
 ///|
 fn content_media_token(unit : Int) -> Bool {
-  (unit >= 48 && unit <= 57) ||
-  (unit >= 65 && unit <= 90) ||
-  (unit >= 97 && unit <= 122) ||
-  [33, 35, 36, 37, 38, 39, 42, 43, 45, 46, 94, 95, 96, 124, 126].contains(unit)
+  if (unit >= 48 && unit <= 57) ||
+    (unit >= 65 && unit <= 90) ||
+    (unit >= 97 && unit <= 122) {
+    return true
+  }
+  match unit {
+    33
+    | 35
+    | 36
+    | 37
+    | 38
+    | 39
+    | 42
+    | 43
+    | 45
+    | 46
+    | 94
+    | 95
+    | 96
+    | 124
+    | 126 => true
+    _ => false
+  }
 }
 
 ///|
@@ -49,7 +68,12 @@ pub fn normalize_content_media_type_case(
   }
   let length = reported.length()
   let mut cursor = 0
+  let mut needs_fold = false
   while cursor < length && content_media_token(reported[cursor].to_int()) {
+    let unit = reported[cursor].to_int()
+    if unit >= 65 && unit <= 90 {
+      needs_fold = true
+    }
     cursor += 1
   }
   if cursor == 0 || cursor >= length || reported[cursor] != '/' {
@@ -58,6 +82,10 @@ pub fn normalize_content_media_type_case(
   cursor += 1
   let subtype = cursor
   while cursor < length && content_media_token(reported[cursor].to_int()) {
+    let unit = reported[cursor].to_int()
+    if unit >= 65 && unit <= 90 {
+      needs_fold = true
+    }
     cursor += 1
   }
   if cursor == subtype {
@@ -85,6 +113,10 @@ pub fn normalize_content_media_type_case(
     }
     let name = cursor
     while cursor < length && content_media_token(reported[cursor].to_int()) {
+      let unit = reported[cursor].to_int()
+      if unit >= 65 && unit <= 90 {
+        needs_fold = true
+      }
       cursor += 1
     }
     if cursor == name || cursor == length || reported[cursor] != '=' {
@@ -134,6 +166,9 @@ pub fn normalize_content_media_type_case(
       !content_media_ows(reported[cursor].to_int()) {
       return Err(InvalidSyntax)
     }
+  }
+  if !needs_fold {
+    return Ok(reported)
   }
   let output = StringBuilder()
   content_media_lower(reported, 0, head, output)
