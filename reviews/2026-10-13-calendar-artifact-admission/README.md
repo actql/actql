@@ -30,7 +30,7 @@ Effect authority, runnable Plan, physical operation support or successful Run.
 The installed Host must still select its actual capability and retain the exact
 artifact/selection in ordinary checking and semantic dependencies.
 
-## Prepared controls
+## Controls and current evidence
 
 Six WB controls cover exact owner/profile preservation, disabled capability,
 selection/artifact bounds and modified bytes, identical artifact bytes on distinct
@@ -41,8 +41,24 @@ are independently authored synthetic controls retained by the parent unit.
 The missing-selection envelope CID is independently calculated from that same
 synthetic envelope, without invoking the product serializer.
 
-These controls and the public interface are **uncompiled and unexecuted** while
-D's external installed consumer owns the compiler exclusion window. Existing
+After the coordinator explicitly released D's compiler exclusion window,
+`run-H9EQKF` executed the six common-admission controls and ten existing Calendar
+source controls: **16/16 JS**. That working-source run accidentally selected
+those tests through the prepared `--bridgegen` flag before its missing branch
+was repaired. It is test evidence, not generator success. The corrected branch
+then generated the RelA bridge in `run-MjufLR`; `run-pOOaXm` generated the actual
+checker/common-bridge/RelA public interfaces (89 compiler tasks). The only extra
+RelA package change was generator-controlled import order.
+
+A thin `clientProgramCheckEnvironmentWithCalendarArtifact` bridge passes the
+original checker, exact bytes and explicit limits to this common API; it does
+not enable Calendar, select a default table or suppress a preparation failure.
+Its independent controls check original owners/profile identity and the exact
+remaining `OperationNotImplemented` preparation refusal, disabled capability,
+modified bytes and bounds. These new bridge controls are pending execution at
+the next fixed source. The standard installed Host still disables unavailable
+Calendar execution, and a successful artifact admission is not a successful Run.
+
 Calendar/Sequence/window-group JS29 and Node12 results belong only to parent
 6c9283. No result is relabeled as evidence for this admission unit.
 
@@ -51,6 +67,7 @@ Node/MoonBit pins and the existing 60-second, TERM-grace-five, nonHeavy wrapper:
 
 ```sh
 node reviews/2026-10-13-calendar-artifact-admission/prepared-checks.mjs --format
+node reviews/2026-10-13-calendar-artifact-admission/prepared-checks.mjs --bridgegen
 node reviews/2026-10-13-calendar-artifact-admission/prepared-checks.mjs --info
 node reviews/2026-10-13-calendar-artifact-admission/prepared-checks.mjs
 ```
