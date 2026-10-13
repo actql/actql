@@ -152,6 +152,6 @@ fn listing_rows_fixture(
   @environment.resolve_file_listing_rows(
     profile, policy, "file-listing:fixture",
   )
-  .map(resolved => { resolved, })
+  .map(resolved => ResolvedListingRows(resolved))
   .to_option()
 }

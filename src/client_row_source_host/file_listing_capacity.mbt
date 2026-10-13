@@ -54,6 +54,9 @@ pub(all) fn start_accounted_listing_row_acquisition(
   guard row_acquisition_is_listing(value) else {
     return Err(Source(ForeignSource))
   }
+  guard value.configuration.listing_rows is Some(ResolvedListingRows(resolved)) else {
+    return Err(Source(ForeignSource))
+  }
   match row_acquisition_listing_report_bounds(value) {
     Ok(_) => ()
     Err(issue) => return Err(Source(issue))
@@ -72,7 +75,18 @@ pub(all) fn start_accounted_listing_row_acquisition(
     Ok(value) => value
     Err(issue) => return Err(Physical(issue))
   }
-  let run = match start_row_acquisition(value, nonce, verify) {
+  // The supplementary declaration includes this payload/backing, original
+  // scan reference and cleanup sentinel, plus the transition overlap. None
+  // of these listing-only allocations precedes the successful reservation.
+  let configuration : RowHostConfiguration = {
+    ..value.configuration,
+    listing_rows: Some(ReportListingRows(resolved, new_row_listing_reports())),
+  }
+  // This short-lived capsule copies only existing checked references. Include
+  // its three fields and the original/configuration overlap in the declared
+  // envelope; do not add a forwarding frame to ordinary acquisitions.
+  let selected : RowAcquisition = { ..value, configuration, }
+  let run = match start_row_acquisition(selected, nonce, verify) {
     Ok(value) => value
     Err(issue) => {
       // Registration failure closed its own issuer; no input or provider I/O

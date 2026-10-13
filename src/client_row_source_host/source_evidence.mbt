@@ -88,7 +88,7 @@ pub fn issue_row_source_evidence(
   let (schema_cid, capability_cid) = @environment.connector_source_evidence_member_cids(
     members,
   )
-  @publication.seal_completed_source_observation({
+  let fields : @publication.CompletedSourceObservationBody = {
     input: logical_input,
     source_ref: facts.source_ref,
     source_contract_cid: facts.source_contract_cid,
@@ -100,5 +100,27 @@ pub fn issue_row_source_evidence(
     source_view_contract_cid: facts.source_view_contract_cid,
     observed_at,
     snapshot_ref: row_observation_cid(capture.observation),
-  }).map_err(issue => SourceEvidence(Evidence(issue)))
+  }
+  if configuration.listing_rows is Some(_) {
+    guard !capture.run.closed &&
+      configuration.listing_rows is Some(ReportListingRows(resolved, reports)) &&
+      acquisition.configuration.listing_rows is Some(original) &&
+      physical_equal(resolved, listing_rows_resolution(original)) &&
+      reports.scan is Some(scan) && reports.rows is Some(rows) &&
+      capture.run.residual is Some(residual) &&
+      physical_equal(scan, @query.query_receipt_rows(residual.receipt)) &&
+      @execution.captured_row_count(scan) == rows.length() else {
+      return Err(SourceEvidence(ObservationMismatch))
+    }
+    // The existing Query observation snapshot commits its access scope's
+    // received_rows_cid, while input_logical_cid names the acquired output.
+    // These reports refer to that same original scan, not a residual Result.
+    // Borrow the original array synchronously; the codec never receives a
+    // copied/reconstructed correlation list or custody permission from data.
+    return @publication.seal_completed_file_listing_observation(
+      fields, rows.length(), rows,
+    ).map_err(issue => SourceEvidence(Evidence(issue)))
+  }
+  @publication.seal_completed_source_observation(fields)
+  .map_err(issue => SourceEvidence(Evidence(issue)))
 }
