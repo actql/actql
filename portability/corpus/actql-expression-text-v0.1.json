@@ -1639,13 +1639,25 @@
           }
         ]
       }
+    },
+    {
+      "source": "x IN items",
+      "tree": {
+        "in": [
+          {
+            "field": "x"
+          },
+          {
+            "field": "items"
+          }
+        ]
+      }
     }
   ],
   "negative": [
     "x IS NULL.c",
     "x IS TRUE[0]",
     "x IN (1).c",
-    "x IN items",
     "x IN (other)",
     "x IN (1 + 2)",
     "x LIKE pattern",

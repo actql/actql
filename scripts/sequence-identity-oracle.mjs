@@ -15,7 +15,15 @@ export const retainedSequenceIdentityOracle=()=>signatureRoleIdentityOracle({
 export function sequenceIdentityOracle() {
  const {grammar_manifest_cid:oldPin,...body}=read(pre+'pre-current-grammar-manifest.json');
  assert.equal(signatureRoleCid(body),oldPin);
- const updated={...body,query_text_grammar_sha256:sha('spec/grammar/actql-query-0.1.ebnf'),query_text_rules_sha256:sha('docs/spec/query-text.md')};
+ const expression=read('spec/contracts/actql-expressions.json');
+ const language=readFileSync('docs/spec/language.md','utf8');
+ const start=language.indexOf('<a id="expression-text"></a>');
+ const end=language.indexOf('<a id="predicates"></a>',start);
+ assert(start>=0&&end>start);
+ const updated={...body,expression_contract_cid:signatureRoleCid(expression),
+  expression_text_grammar_sha256:sha(expression.grammar),
+  expression_text_rules_sha256:createHash('sha256').update(language.slice(start,end)).digest('hex'),
+  query_text_grammar_sha256:sha('spec/grammar/actql-query-0.1.ebnf'),query_text_rules_sha256:sha('docs/spec/query-text.md')};
  const grammar={...updated,grammar_manifest_cid:signatureRoleCid(updated)};
  return currentValuesPreimages(grammar,'authored-sequence-current-main-adoption');
 }
