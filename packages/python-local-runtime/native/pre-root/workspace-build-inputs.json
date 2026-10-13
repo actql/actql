@@ -1,7 +1,7 @@
 {
   "status": "uncompiled-unadopted-source-preparation",
   "upstream_git_commit": "399f857f28ee8845d0cfd4ec71680912b5375831",
-  "parent": "e535f7d2211477b48243fbcf8a28596362f38037",
+  "parent": "8a9c87c6de4978d4c363848e9fc486dde23db68a",
   "target": "aarch64-apple-darwin",
   "deployment_target": "11.0",
   "source_workspace_inputs": [
@@ -88,7 +88,8 @@
     "all foreign native allocations and OS registrations still require declared coverage",
     "all native C API calls and reentry require original lease scopes",
     "image FD capture candidate uncompiled; SDK-to-native pointer/deserializer call unconnected",
-    "actual capacity profile/toolchain/SDK/build closure unadopted"
+    "actual capacity profile/toolchain/SDK/build closure unadopted",
+    "Original Python binding package captures WASI/WAT symbols at import; proposed minimal native features are incompatible with that whole surface"
   ],
   "source_decision": "Preparation for the existing precompiled pooling backend, not adoption of a fork or alternate backend",
   "source_archives": {
@@ -100,5 +101,12 @@
     "CommonCrypto/CommonDigest.h and CC_SHA256_Init/Update/Final",
     "Darwin fstat/pread/fcntl, including same-FD nanosecond metadata fields"
   ],
-  "scratch_coverage": "SHA256 context allocated from original lease; target compiler stack and CommonCrypto internal allocations remain unmeasured/unknown"
+  "scratch_coverage": "SHA256 context allocated from original lease; target compiler stack and CommonCrypto internal allocations remain unmeasured/unknown",
+  "python_binding_source": {
+    "version": "38.0.0",
+    "sdist_sha256": "75d38a075571756543266df782979fc2204cafd1fb7f3ebbb901e05df916dd34",
+    "namespace": "actql_local_runtime._wasmtime",
+    "required_dll_symbols": 529,
+    "staging_adopted": false
+  }
 }

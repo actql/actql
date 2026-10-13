@@ -107,6 +107,35 @@ deserialization has completed, use the original private C API pointer interface
 without a Python whole-file copy, and then retire it through the same LocalCore.
 Native code's separate deserialize copy remains a distinct simultaneous extent.
 
+## Python binding source and one-library requirement
+
+The official Wasmtime Python 38 source artifact is independently pinned to
+`75d38a075571756543266df782979fc2204cafd1fb7f3ebbb901e05df916dd34`.
+`prepare_binding_source.py` only stages its top-level high-level binding source
+and original license for review under `actql_local_runtime._wasmtime`. It
+rewrites absolute upstream self-imports into that private namespace, retaining
+relative imports and the same binding implementation. It stages no native DLL,
+does not import those modules, and changes no installed dependencies or SDK.
+The original lazy resolver must verify the adopted same-cohort native component
+and full bootstrap supplier before any future private binding import. Namespace
+staging does not provide that supplier or adopt the package recipe.
+
+Stock `_ffi.py` loads a DLL relative to its own installed package. Generated
+`_bindings.py` then captures 529 DLL functions at import. Setting `ffi.dll` to a
+different library afterward does not replace those captured functions and must
+not be used to redirect Engine/Store/module cleanup. A handle from the patched
+library must never reach a function captured from the stock library.
+
+The original generated bindings require WASI and WAT symbols even when the
+selected Guest profile does not invoke those APIs. Their upstream C API modules
+are feature-gated. Therefore the earlier minimal `proposed_features` list is
+not sufficient for that whole binding package and remains explicitly unadopted.
+The native build feature/export closure must be reviewed against the staged
+symbol inventory, or the original binding generator must generate a reviewed
+selected surface. Do not handwrite missing symbols, ignore AttributeError or
+fall back to a second library. Compiled C API availability is not an Account
+grant or permission to run WASI, Model or Effect operations.
+
 ## Required installed connection
 
 The final `InstalledLocalHost.installed` sequence must be:
