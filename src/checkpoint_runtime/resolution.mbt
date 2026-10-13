@@ -278,15 +278,9 @@ priv struct DecodedResolution {
 }
 
 ///|
-fn decode_resolution(
+fn resolution_decision_evidence(
   value : @json.CanonicalValue,
-  checkpoint : SealedCheckpoint,
-  limits : WireLimits,
-) -> DecodedResolution raise ResolutionFailure {
-  resolution_shape(value, resolution_fields(), resolution_optional_fields(), "")
-  if string_field(value, "version") != Some(RESOLUTION_VERSION) {
-    raise ResolutionFailed(ResolutionInvalidField("version"))
-  }
+) -> (ResolutionDecision, String?) raise ResolutionFailure {
   let decision = match string_field(value, "decision") {
     Some("approved") => Approved
     Some("rejected") => Rejected
@@ -301,10 +295,16 @@ fn decode_resolution(
     (Rejected, Some(_)) => raise ResolutionFailed(EvidenceForbidden)
     _ => ()
   }
-  let resolution_id = text_of(value, "resolution_id", "")
-  let actor = text_of(value, "actor", "")
-  let decided_at = time_field(value, "decided_at", "")
-  let key_id = proof_key(object_of(value, "proof", ""), "key_id", "proof.")
+  (decision, evidence_cid)
+}
+
+///|
+// Shared subject validation for signed admission and unsigned proof preparation.
+// This checks identity only; it is not Reviewer authentication or approval.
+fn check_resolution_subject(
+  value : @json.CanonicalValue,
+  checkpoint : SealedCheckpoint,
+) -> Unit raise ResolutionFailure {
   let (identity, forbidden) = subject_bindings(checkpoint)
   for field in forbidden {
     if @json.object_field(value, field) is Some(_) {
@@ -333,6 +333,24 @@ fn decode_resolution(
       raise ResolutionFailed(CheckpointBindingMismatch(field))
     }
   }
+}
+
+///|
+fn decode_resolution(
+  value : @json.CanonicalValue,
+  checkpoint : SealedCheckpoint,
+  limits : WireLimits,
+) -> DecodedResolution raise ResolutionFailure {
+  resolution_shape(value, resolution_fields(), resolution_optional_fields(), "")
+  if string_field(value, "version") != Some(RESOLUTION_VERSION) {
+    raise ResolutionFailed(ResolutionInvalidField("version"))
+  }
+  let (decision, evidence_cid) = resolution_decision_evidence(value)
+  let resolution_id = text_of(value, "resolution_id", "")
+  let actor = text_of(value, "actor", "")
+  let decided_at = time_field(value, "decided_at", "")
+  let key_id = proof_key(object_of(value, "proof", ""), "key_id", "proof.")
+  check_resolution_subject(value, checkpoint)
   if !self_cid(value, "resolution_cid", limits) {
     raise ResolutionFailed(ResolutionIdentityMismatch)
   }
