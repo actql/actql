@@ -34,10 +34,10 @@ try {
   if (mode === 'local') {
     connectClient = open;
     options = {stateDir: directory, durability: 'durable', installation: {
-      sourceProfilePaths: [], authorization, resolveSourceSecret: io.resolveSourceSecret}};
+      authorization, resolveSourceSecret: io.resolveSourceSecret}};
   } else {
     const {openInstalledRemoteHttpHost} = await import('@actql/local-node/http-host');
-    host = await openInstalledRemoteHttpHost({directory, sourceProfilePaths: [], authorization,
+    host = await openInstalledRemoteHttpHost({directory, authorization,
       resolveSourceSecret() {return io.resolveSourceSecret();},
       authenticate: header => header === 'Bearer sourcefree-test' ? userInfo().username : undefined});
     server = createServer({key: await readFile('remote.key'), cert: await readFile('remote.crt')}, host.handler);
