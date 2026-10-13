@@ -70,10 +70,32 @@ required independently of the producer manifest.
 For an unpublished fixed candidate, normal dependency resolution uses its complete
 wheelhouse, for example `uv pip install --no-index --find-links COHORT/wheels
 "actql==COHORT_VERSION"` in a new venv. This does not build source. The fixture
-`scripts/fixtures/python-product-installed.py --version COHORT_VERSION --mode
-local` requires the actual public Local factory, SELECT1, retained reread and
-original Run reattachment; it has no metadata-success fallback. Run `--mode
-sdk-only` in a separate SDK-only venv to reject any installed Local distribution.
-These fixtures are acceptance commands, not evidence that this candidate has
-passed them. Process termination/restart and async coverage remain additional
-original completion requirements.
+`scripts/fixtures/python-product-installed.py` requires the actual public Local
+factory, SELECT1, retained reread and original Run reattachment; it has no
+metadata-success fallback. Copy this exact fixed fixture to the external
+consumer. Run each of the following as a separate Python process in the same
+installed environment and user account:
+
+```sh
+python python-product-installed.py --version COHORT_VERSION --mode local --facade sync --phase initial --receipt sync-original.json
+python python-product-installed.py --version COHORT_VERSION --mode local --facade sync --phase resume --receipt sync-original.json
+python python-product-installed.py --version COHORT_VERSION --mode local --facade async --phase initial --receipt async-original.json
+python python-product-installed.py --version COHORT_VERSION --mode local --facade async --phase resume --receipt async-original.json
+```
+
+The private acceptance receipt contains only the original public Submission
+and Run references and its producer PID/cohort. It is not an internal Host,
+runtime, Store or credential configuration. Initial refuses an existing receipt;
+resume requires a different PID and only looks up/attaches the saved references.
+It never creates a Submission or resends a Program. Both phases read the exact
+expected integer row through the existing bounded `Result.all(max_rows=1)` and
+reread the same Named Result, then close through their usual context manager.
+A failed or unknown lookup is a refusal of this acceptance scenario, not
+permission to submit again. Missing components/capacity or cleanup errors fail
+the process rather than producing a success JSON.
+
+Run `--mode sdk-only` in a separate SDK-only venv to reject any installed Local
+distribution. These fixtures are acceptance commands, not evidence that this
+candidate has passed them. Actual engine termination across processes,
+original recovery, metered runtime and ordinary wheel execution remain the
+product gate; public-call spies and receipt-file tests only prepare that gate.
