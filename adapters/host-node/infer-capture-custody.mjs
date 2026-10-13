@@ -29,12 +29,14 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
   let modelEntryFor;
   let durableSettlements = new Map();
   let cleanupFlight;
+  let publicationCleanupFlight, publicationRetirementFlight;
+  let publicationCleaned = false, publicationRetired = false;
 
   // Retire only this adapter's aliases after its existing physical/Core
   // cleanup succeeds. Durable Store originals and previously transferred
   // immutable views retain their own custody; this does not erase them or
   // claim that GC has reclaimed their backing allocations.
-  function retireAliases() {
+  function retirePublicationAliases() {
     wire = '';
     modelEvidence = undefined;
     durableSettlements = undefined;
@@ -45,6 +47,10 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     sourceEvidence = undefined;
     publicationFor = undefined;
     faultInjection = undefined;
+    publicationRetired = true;
+  }
+  function retireAliases() {
+    retirePublicationAliases();
     operation = undefined;
     plan = undefined;
     control = undefined;
@@ -54,8 +60,8 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
 
   // A failed write retains its exact physical owner. Cleanup retries only
   // that write, never operation.run or the provider.
-  const cleanupOwned = async () => {
-    if (reclaimed) return true;
+  const cleanupPublicationOwned = async () => {
+    if (publicationCleaned) return true;
     if (!operation.physicalStopped()) return false;
     if (settling !== undefined) await persistSettlement();
     // Once a response has been accepted, reclamation cannot discard it
@@ -97,6 +103,36 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       moon.clientProgramReleaseInferOutput(captureOutput);
       captureOutput = undefined;
     }
+    publicationCleaned = true;
+    return true;
+  };
+  const cleanupPublication = () => {
+    // Both the normal parent cleanup and the private byte-borrow caller use
+    // this same physical child flight. A pending/failed write or exporter
+    // keeps its original responsibility and permits retry of only that child.
+    if (publicationCleanupFlight !== undefined) return publicationCleanupFlight;
+    publicationCleanupFlight = cleanupPublicationOwned().then(value => {
+      if (!value) publicationCleanupFlight = undefined;
+      return value;
+    }, error => { publicationCleanupFlight = undefined; throw error; });
+    return publicationCleanupFlight;
+  };
+  const retirePublication = () => {
+    // This is local alias retirement, not Model cleanup or a capacity grant.
+    // Its existing same-Ledger borrower is released separately, BEFORE the
+    // parent Model cleanup that waits for that borrow's output use. The parent
+    // operation/Store/Core originals remain retained for pending final cleanup.
+    if (publicationRetirementFlight !== undefined) return publicationRetirementFlight;
+    publicationRetirementFlight = cleanupPublication().then(value => {
+      if (value) retirePublicationAliases();
+      else publicationRetirementFlight = undefined;
+      return value;
+    }, error => { publicationRetirementFlight = undefined; throw error; });
+    return publicationRetirementFlight;
+  };
+  const cleanupOwned = async () => {
+    if (reclaimed) return true;
+    if (!await cleanupPublication()) return false;
     for (;;) {
       const before = operation.cleanupProgress?.();
       reclaimed = operation.cleanup();
@@ -119,7 +155,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     }, error => { cleanupFlight = undefined; throw error; });
     return cleanupFlight;
   };
-  const custody = Object.freeze({cleanup,
+  const custody = Object.freeze({cleanup, retirePublication,
     cleanupPending: () => !reclaimed,
     async close() {
       if (reclaimed) return;
@@ -129,8 +165,12 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       if (!await cleanup()) throw pending();
     }});
   function retainCompleted() {
-    if (reclaimed) throw new Error('InstalledInferCaptureUnavailable');
+    if (reclaimed || publicationCleaned) throw new Error('InstalledInferCaptureUnavailable');
     if (capture !== undefined) return true;
+    // The actual original operation selects and reserves terminal publication
+    // capacity before these additional captures/exporters/metadata are built.
+    // Its initial record and per-slot/raw phases require earlier startup funds.
+    operation.reserveOriginalPublicationCapacity?.();
     captureOutput ??= operation.acquireOutput();
     if (captureOutput === undefined) throw new Error('InstalledInferOutputUnavailable');
     capture = operation.acquireCapture();
@@ -167,7 +207,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     }
   }
   async function persistStoppedAttempts() {
-    if (reclaimed) return;
+    if (reclaimed || publicationCleaned) return;
     if (attemptsStored) return;
     await persistSourceObservation();
     const attempts = operation.stoppedAttemptCount();
@@ -316,10 +356,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       // A persistence retry must keep the original issuer, its reservations
       // and progress, including completion before the publication binding.
       if (issuance === undefined) {
-        const ledger = checked(moon.clientProgramInferPublicationLedger(
-          262144n + BigInt(count) * 128n + BigInt(operation.contentGenerationCount ?? 0) * 256n,
-          count + 2));
-        issuance = operation.startObservation({ledger, maxSlots: count,
+        issuance = operation.startObservation({maxSlots: count,
           maxWireBytes: 16384, maxWork: count + 2});
       }
       while (!issuanceComplete) {
@@ -339,11 +376,11 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     captureStored = true;
   };
   return Object.freeze({custody, retainCompleted, persistStoppedAttempts,
-    modelEvidence() {return !reclaimed && captureStored ? Object.freeze([...modelEvidence]) : undefined;},
+    modelEvidence() {return !publicationRetired && !reclaimed && captureStored ? Object.freeze([...modelEvidence]) : undefined;},
     // This immutable original is available only after the existing Store
     // commit. It conveys no read/capture permission and retains no new owner.
     evaluationBundle() {
-      if (!captureStored || !exportComplete || reclaimed) return undefined;
+      if (!captureStored || !exportComplete || reclaimed || publicationCleaned) return undefined;
       const calls = [];
       for (let slot = 0; slot < count; slot++) {
         const call = moon.clientProgramInferCaptureCall(capture, slot);
@@ -356,13 +393,14 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
         calls: Object.freeze(calls)});
     },
     configureModelJournal({observe, entry}) {
-      if (reclaimed || !durableCalls || typeof observe !== 'function' || observeModelEntry !== undefined) {
+      if (publicationCleaned || reclaimed || !durableCalls || typeof observe !== 'function' || observeModelEntry !== undefined) {
         throw new TypeError('InvalidInferModelJournal');
       }
       if (typeof entry !== 'function') throw new TypeError('InvalidInferModelEntryReader');
       observeModelEntry = observe;
       modelEntryFor = entry;
       operation.installSettlementCleanup(async settlement => {
+        if (publicationCleaned || reclaimed) throw new Error('ForeignInferSettlement');
         const receipt = entry(operation.settlementSlot(settlement));
         if (receipt === undefined) throw new Error('InferSettlementEntryMissing');
         settling ??= {settlement, entry: receipt, wire: '', complete: false};
@@ -370,7 +408,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       });
     },
     async persistSettlement(settlement, entry) {
-      if (reclaimed || !durableCalls || settling !== undefined &&
+      if (publicationCleaned || reclaimed || !durableCalls || settling !== undefined &&
           (operation.settlementSlot(settling.settlement) !== operation.settlementSlot(settlement) ||
             settling.entry.attemptCid !== entry.attemptCid)) {
         throw new Error('ForeignInferSettlement');

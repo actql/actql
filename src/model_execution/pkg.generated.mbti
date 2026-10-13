@@ -63,6 +63,8 @@ pub fn cancel_model_observation_verification(ModelObservationVerification) -> Bo
 
 pub fn cancel_model_output_preparation(ModelOutputPreparation) -> Bool
 
+pub fn charge_original_model_observation_step(OriginalModelPublicationCapacity) -> Result[Unit, ModelExecutionIssue]
+
 pub fn cleanup_model_capture_export(ModelCaptureExport) -> Result[Bool, ModelExecutionIssue]
 
 pub fn cleanup_model_execution(ModelExecution) -> Result[Bool, ModelExecutionIssue]
@@ -200,6 +202,8 @@ pub fn native_decision_request_wires(NativeDecisionRequest) -> (String, String)?
 pub fn observe_model_raw_capture(ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, String, Int, Int, Bool, String) -> Result[ModelRawCaptureSave, ModelRawCaptureSaveIssue]
 
 pub fn openai_chat_projection_work(OpenAIChatProjection) -> Int
+
+pub fn original_model_publication_capacity_covers(OriginalModelPublicationCapacity, Int64, Int64) -> Bool
 
 pub fn original_model_publication_capacity_current(OriginalModelPublicationCapacity, ModelExecution, @run_publication_host.ClientInferCallScope) -> Bool
 
