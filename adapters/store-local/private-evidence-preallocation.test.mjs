@@ -15,6 +15,11 @@ const digest = text => `sha256:${crypto.createHash('sha256')
   .update(text, 'utf8').digest('hex')}`;
 const control = createPublicationContractControlFixture();
 const name = 'model_invocation_evidence';
+const rawBinding = bytes => ({
+  semanticCid: digest('extent raw semantic'), holdingCid: digest('extent raw holding'),
+  wire: '', byteCount: bytes.byteLength,
+  contentCid: `sha256:${crypto.createHash('sha256').update(bytes).digest('hex')}`,
+});
 
 async function fixture(t, maxObjectBytes, withKey = true) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-c-evidence-extent-'));
@@ -73,9 +78,10 @@ test('private evidence: oversized encrypted extent refuses before crypto '
     for (const bytesEntry of [false, true]) {
       const {store} = await fixture(t, limit);
       const input = bytesEntry ? Buffer.from(wire, 'utf8') : wire;
+      const binding = bytesEntry ? rawBinding(input) : undefined;
       const counts = await countPreparation(wire, async () => {
         await assert.rejects(bytesEntry
-          ? store.preparePrivateEvidenceBytes(name, input, digest('extent'))
+          ? store.prepareModelRawEvidence(binding, input)
           : store.preparePrivateEvidence(name, input, digest('extent')),
         {code: 'PublicationObjectLimit'});
       });
@@ -93,11 +99,15 @@ test('private evidence: independent exact encrypted extents still prepare '
     [16384, 'x'.repeat(12192)]]) {
     for (const bytesEntry of [false, true]) {
       const {store} = await fixture(t, limit);
-      const prepared = await (bytesEntry
-        ? store.preparePrivateEvidenceBytes(name, Buffer.from(wire), digest('fit'))
-        : store.preparePrivateEvidence(name, wire, digest('fit')));
+      const input = bytesEntry ? Buffer.from(wire) : wire;
+      const preparedObjects = bytesEntry
+        ? await store.prepareModelRawEvidence(rawBinding(input), input)
+        : [await store.preparePrivateEvidence(name, wire, digest('fit'))];
+      const prepared = preparedObjects[preparedObjects.length - 1];
       assert.equal(prepared.bytes, limit);
-      assert.equal(await prepared.prepared.release(), true);
+      for (const object of preparedObjects) {
+        assert.equal(await object.prepared.release(), true);
+      }
       assert.equal(store.status().reservedBytes, 0);
     }
   }
@@ -134,6 +144,6 @@ test('private evidence: original validation and missing-key priority remain '
     {code: 'PublicationPrivateEvidenceKeyUnavailable'});
   await assert.rejects(store.preparePrivateEvidence('Invalid', 'abc', digest('key')),
     {code: 'InvalidPublicationPrivateEvidence'});
-  await assert.rejects(store.preparePrivateEvidence(name, 'x'.repeat(132),
+  assert.throws(() => store.preparePrivateEvidence(name, 'x'.repeat(132),
     digest('key')), {code: 'InvalidPublicationPrivateEvidence'});
 });
