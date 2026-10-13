@@ -61,6 +61,15 @@ class PublicRunObservationTests(unittest.IsolatedAsyncioTestCase):
         selected = patch.object(host, '_project_original_run_state', side_effect=project)
         selected.start()
         self.addCleanup(selected.stop)
+        # This public-wire fixture supplies opaque Core state only. The real
+        # same-Store lookup/custody path is exercised by the separate caller
+        # fixtures, rather than pretending this fabricated publication is Done.
+        def ensure(candidate):
+            self.assertIs(candidate, projection)
+            calls.append(('opaque_fixture', 'lookup', ()))
+        observation = patch.object(host, '_ensure_original_publication_observation', side_effect=ensure)
+        observation.start()
+        self.addCleanup(observation.stop)
         return run, projection, calls, supplied
 
     async def start(self, host):
@@ -81,6 +90,7 @@ class PublicRunObservationTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await execution.wait()).to_dict(), STATE)
             self.assertEqual(sum(name == 'inspect' for _, name in events[before:]), 2)
             self.assertEqual(sum(name == 'validate_run' for _, name, _ in calls), 4)
+            self.assertEqual(sum(name == 'lookup' for _, name, _ in calls), 2)
             self.assertIs(host._run_loans[0], run)
             self.assertFalse(host._response_streams)
             self.assertFalse(any(family in ('source', 'task', 'compute') for family, _ in events[before:]))
