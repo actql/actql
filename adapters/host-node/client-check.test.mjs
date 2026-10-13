@@ -33,6 +33,8 @@ import {createClientHttpHandler} from './client-http.mjs';
 import {createHostObservationConnection} from '../host-common/observation.mjs';
 
 const repository = fileURLToPath(new URL('../../', import.meta.url));
+const graphArgumentOriginCases = JSON.parse(await readFile(
+  new URL('../../scripts/fixtures/graph-argument-origin-literals.json', import.meta.url), 'utf8')).cases;
 const scratch = join(repository, '_build', 'client-check');
 await mkdir(scratch, {recursive: true});
 const tlsRoot = await mkdtemp(join(scratch, 'tls-'));
@@ -777,24 +779,26 @@ for (const [entrance, open] of Object.entries(entrances)) {
         assert.equal(outcome.report.verdict, 'verified', JSON.stringify(outcome.report));
         assert.deepEqual(outcome.report.reasons, []);
       }
-      for (const [arguments_, issue, summary, hint] of [
+      for (const [arguments_, issue, summary, hint, start, end] of [
         ["kind: 'private-kind-value'", 'invalid_kind',
-          'The components kind is invalid.', 'Choose weak or strong for components kind.'],
+          'The components kind is invalid.', 'Choose weak or strong for components kind.', 147, 167],
         ["kind: 'weak', max_output_rows: 0", 'invalid_output_rows',
           'The components output row limit is invalid.',
-          'Supply a positive safe integer for components max_output_rows.'],
+          'Supply a positive safe integer for components max_output_rows.', 172, 173],
         ["kind: 'weak', max_output_rows: 1.5", 'invalid_output_rows',
           'The components output row limit is invalid.',
-          'Supply a positive safe integer for components max_output_rows.'],
+          'Supply a positive safe integer for components max_output_rows.', 172, 175],
       ]) {
         const text = '/*😀*/\r\n' + prefix +
           `FROM g |> components(${arguments_}) |> SELECT component_size`;
         const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format});
         assert.equal(outcome.outcome, 'completed');
         assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:graph-argument-verdict]');
-        // Program paths and unproven argument precision are not input positions.
+        const original = getCheckInput(outcome, 'source');
         assert.deepEqual(outcome.report.reasons, [{code: 'graph_operation_invalid',
-          facts: {operation: 'components', issue}}], '[check-mutation:graph-argument-reason]');
+          facts: {operation: 'components', issue}, location: {document_id: 'source',
+            revision: original.revision, kind: 'text', start_byte: start, end_byte: end,
+            precision: 'exact'}}], '[check-mutation:graph-argument-reason]');
         assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
         assert.deepEqual(outcome.report.requirements, []);
         assert.equal(getCheckInput(outcome, 'source').text, text);
@@ -813,6 +817,30 @@ for (const [entrance, open] of Object.entries(entrances)) {
       assert.deepEqual(outcome.report.reasons, [], '[check-mutation:graph-protected]');
       assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: protectedSource});
       boundary.assertNoExecution();
+    }
+    client.assertNoExecution();
+  });
+
+  test(`${entrance}: Graph diagnostic locations retain original argument occurrences`, async t => {
+    const client = await open(t, configurations.denied);
+    for (const fixture of graphArgumentOriginCases) {
+      const outcome = await client.check(fixture.source,
+        {kind: 'text', scope: 'bound_input', format: 'aql-text'});
+      const issue = fixture.argument === 'kind' ? 'invalid_kind' :
+        fixture.argument === 'max_output_rows' ? 'invalid_output_rows' : 'invalid_node_selector';
+      assert.equal(outcome.outcome, 'completed', fixture.id);
+      assert.equal(outcome.report.verdict, 'invalid', fixture.id);
+      const original = getCheckInput(outcome, 'source');
+      assert.deepEqual(outcome.report.reasons, [{code: 'graph_operation_invalid',
+        facts: {operation: fixture.operation, issue}, location: {document_id: 'source',
+          revision: original.revision, kind: 'text', start_byte: fixture.startByte,
+          end_byte: fixture.endByte, precision: 'exact'}}], fixture.id);
+      assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
+      const location = outcome.report.reasons[0].location;
+      assert.equal(resolveCheckLocation(outcome, location).text, fixture.token, fixture.id);
+      assert.equal(resolveCheckLocation(outcome, location,
+        {...original, text: 'SELECT 1 AS replacement'}), undefined);
+      assert.equal(resolveCheckLocation(JSON.parse(JSON.stringify(outcome)), location), undefined);
     }
     client.assertNoExecution();
   });
@@ -2170,13 +2198,15 @@ for (const entrance of ['local', 'http']) {
     const client = await contextClient(t, entrance, absentEnvironment);
     const prefix = 'WITH n AS (SELECT 1 AS node_key), g AS (GRAPH ' +
       '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) ';
-    for (const selector of ['[1]', '{ids: []}', '{ids: [], unknown: true}']) {
+    for (const [selector, end] of [['[1]', 139], ['{ids: []}', 145], ['{ids: [], unknown: true}', 160]]) {
       const text = prefix + `FROM g |> subgraph(nodes: ${selector}) |> node_rows() |> SELECT node_key`;
       const outcome = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'aql-text'});
       assert.equal(outcome.outcome, 'completed');
       assert.equal(outcome.report.verdict, 'invalid', '[check-mutation:subgraph-verdict]');
       assert.deepEqual(outcome.report.reasons, [{code: 'graph_operation_invalid',
-        facts: {operation: 'subgraph', issue: 'invalid_node_selector'}}],
+        facts: {operation: 'subgraph', issue: 'invalid_node_selector'},
+        location: {document_id: 'source', revision: getCheckInput(outcome, 'source').revision,
+          kind: 'text', start_byte: 136, end_byte: end, precision: 'exact'}}],
       '[check-mutation:subgraph-reason]');
       assert.deepEqual(outcome.report.coverage, {limits: [], unresolved: []});
       assert.deepEqual(explainCheckReason(outcome.report.reasons[0]), {kind: 'known',
