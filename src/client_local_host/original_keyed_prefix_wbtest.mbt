@@ -199,9 +199,11 @@ test "original keyed left prefix executes unique sort take and binds the actual 
     before.transferred_bytes,
   )
   let admitted = @resources.ledger_usage(value.ledger)
-  // Closing revokes the actual Row capture before the later Scope loan.
   assert_true(
-    original_keyed_prefix_start(value) is Err(Capture(@query.Unavailable)),
+    original_keyed_prefix_start(value)
+    is Err(
+      Original(@publication_host.Resource(@resources.ChangedOriginalState))
+    ),
   )
   assert_eq(@resources.ledger_usage(value.ledger), admitted)
   let mut output : @execution.CompletedOutput? = None
@@ -312,7 +314,10 @@ test "original keyed left prefix refuses a foreign Scope and a closing original 
       false,
     ).unwrap(),
   )
-  assert_true(original_keyed_prefix_start(value) is Err(Original(_)))
+  // Closing revokes the actual Row capture before the later Scope loan.
+  assert_true(
+    original_keyed_prefix_start(value) is Err(Capture(@query.Unavailable)),
+  )
   assert_eq(@resources.ledger_usage(value.ledger), before)
   original_keyed_prefix_close(value)
   original_keyed_prefix_close(foreign)
