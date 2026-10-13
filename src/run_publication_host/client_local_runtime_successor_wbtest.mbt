@@ -6,17 +6,29 @@ let runtime_successor_metadata_fixture = "{\"account_configuration_cid\":\"sha25
 ///|
 fn successor_metadata_fixture_create(
   fields : Array[String],
-) -> Result[ClientLocalRuntimeSuccessorMetadata, ClientLocalRuntimeSuccessorIssue] {
+) -> Result[
+  ClientLocalRuntimeSuccessorMetadata,
+  ClientLocalRuntimeSuccessorIssue,
+] {
   client_local_runtime_successor_metadata(
-    fields[0], fields[1], fields[2], fields[3], fields[4], fields[5],
-    fields[6], fields[7], fields[8], fields[9],
+    fields[0],
+    fields[1],
+    fields[2],
+    fields[3],
+    fields[4],
+    fields[5],
+    fields[6],
+    fields[7],
+    fields[8],
+    fields[9],
   )
 }
 
 ///|
 fn successor_metadata_fixture_fields() -> Array[String] {
   client_local_original_record_fields(
-    @utf8.encode(runtime_successor_metadata_fixture), local_runtime_successor_keys(),
+    @utf8.encode(runtime_successor_metadata_fixture),
+    local_runtime_successor_keys(),
   ).unwrap()
 }
 
@@ -24,7 +36,7 @@ fn successor_metadata_fixture_fields() -> Array[String] {
 test "runtime successor metadata exact independent bytes and content identity" {
   let fields = successor_metadata_fixture_fields()
   let value = successor_metadata_fixture_create(fields).unwrap()
-  assert_eq(@utf8.decode(value.body).unwrap(), runtime_successor_metadata_fixture)
+  assert_eq(@utf8.decode(value.body), runtime_successor_metadata_fixture)
   assert_eq(value.body.length(), 4344)
   assert_eq(
     client_local_runtime_successor_metadata_cid(value),
@@ -33,7 +45,10 @@ test "runtime successor metadata exact independent bytes and content identity" {
   let saved = read_client_local_runtime_successor_metadata(value.body).unwrap()
   assert_eq(client_local_runtime_successor_metadata_body(saved), value.body)
   for index, key in local_runtime_successor_keys() {
-    assert_eq(client_local_runtime_successor_metadata_field(saved, key), Some(fields[index]))
+    assert_eq(
+      client_local_runtime_successor_metadata_field(saved, key),
+      Some(fields[index]),
+    )
   }
   assert_eq(client_local_runtime_successor_metadata_field(saved, "grant"), None)
 }
@@ -48,27 +63,30 @@ test "runtime successor metadata closed keys canonical bytes null duplicates" {
     assert_true(
       read_client_local_runtime_successor_metadata(
         client_local_original_record_body(pairs).unwrap(),
-      ) is Err(InvalidOriginal),
+      )
+      is Err(InvalidOriginal),
     )
   }
-  for wire in [
-    runtime_successor_metadata_fixture + " ",
-    runtime_successor_metadata_fixture.replace(
-      "\"operation_id\":\"explicit-runtime-successor-vector\"",
-      "\"operation_id\":null",
-    ),
-    runtime_successor_metadata_fixture.replace(
-      "\"operation_id\":\"explicit-runtime-successor-vector\"",
-      "\"operation_id\":\"a\",\"operation_id\":\"b\"",
-    ),
-    runtime_successor_metadata_fixture.replace(
-      "\"version\":\"actql-local-runtime-successor/0.1\"",
-      "\"version\":\"actql-local-runtime-policy-upgrade/0.1\"",
-    ),
-    runtime_successor_metadata_fixture.replace(
-      "\"version\":", "\"unknown\":\"copied\",\"version\":",
-    ),
-  ] {
+  for
+    wire in [
+      runtime_successor_metadata_fixture + " ",
+      runtime_successor_metadata_fixture.replace(
+        old="\"operation_id\":\"explicit-runtime-successor-vector\"",
+        new="\"operation_id\":null",
+      ),
+      runtime_successor_metadata_fixture.replace(
+        old="\"operation_id\":\"explicit-runtime-successor-vector\"",
+        new="\"operation_id\":\"a\",\"operation_id\":\"b\"",
+      ),
+      runtime_successor_metadata_fixture.replace(
+        old="\"version\":\"actql-local-runtime-successor/0.1\"",
+        new="\"version\":\"actql-local-runtime-policy-upgrade/0.1\"",
+      ),
+      runtime_successor_metadata_fixture.replace(
+        old="\"version\":",
+        new="\"unknown\":\"copied\",\"version\":",
+      ),
+    ] {
     assert_true(
       read_client_local_runtime_successor_metadata(@utf8.encode(wire))
       is Err(InvalidOriginal),
@@ -82,19 +100,27 @@ test "runtime successor metadata rejects changed syntax without normalizing iden
   for index in [0, 1, 2, 5, 6, 7] {
     let fields = original.copy()
     fields[index] = "copied"
-    assert_true(successor_metadata_fixture_create(fields) is Err(InvalidOriginal))
+    assert_true(
+      successor_metadata_fixture_create(fields) is Err(InvalidOriginal),
+    )
   }
   for invalid in ["", String::make(129, 'x'), "a\u{0000}b"] {
     let fields = original.copy()
     fields[4] = invalid
-    assert_true(successor_metadata_fixture_create(fields) is Err(InvalidOriginal))
+    assert_true(
+      successor_metadata_fixture_create(fields) is Err(InvalidOriginal),
+    )
   }
   for index in [3, 8, 9] {
     let fields = original.copy()
     fields[index] = ""
-    assert_true(successor_metadata_fixture_create(fields) is Err(InvalidOriginal))
+    assert_true(
+      successor_metadata_fixture_create(fields) is Err(InvalidOriginal),
+    )
     fields[index] = String::make(4097, 'x')
-    assert_true(successor_metadata_fixture_create(fields) is Err(InvalidOriginal))
+    assert_true(
+      successor_metadata_fixture_create(fields) is Err(InvalidOriginal),
+    )
   }
   // Another well-formed CID is metadata, not a proof of matching original
   // custody. Native must reject it against independently authenticated rows.
@@ -110,16 +136,22 @@ test "runtime successor metadata bounded escape and invalid utf16" {
   fields[4] = String::make(128, (1).unsafe_to_char())
   let escaped = successor_metadata_fixture_create(fields).unwrap()
   assert_eq(escaped.body.length(), 5079)
-  assert_true(read_client_local_runtime_successor_metadata(escaped.body) is Ok(_))
+  assert_true(
+    read_client_local_runtime_successor_metadata(escaped.body) is Ok(_),
+  )
   fields[4] = String::from_array([(0xd800).unsafe_to_char()])
   assert_true(successor_metadata_fixture_create(fields) is Err(Encoding))
   fields[4] = "bounded"
   fields[3] = String::make(2000, 'x')
   fields[8] = String::make(2000, 'x')
   fields[9] = String::make(2000, 'x')
-  assert_true(successor_metadata_fixture_create(fields) is Err(CapacityExceeded))
   assert_true(
-    read_client_local_runtime_successor_metadata(@utf8.encode(String::make(5633, 'x')))
+    successor_metadata_fixture_create(fields) is Err(CapacityExceeded),
+  )
+  assert_true(
+    read_client_local_runtime_successor_metadata(
+      @utf8.encode(String::make(5633, 'x')),
+    )
     is Err(CapacityExceeded),
   )
 }

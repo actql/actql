@@ -17,10 +17,9 @@ pub(all) enum ClientLocalRuntimeSuccessorIssue {
 ///|
 fn local_runtime_successor_keys() -> Array[String] {
   [
-    "account_configuration_cid", "adoption_cid", "authority_scope_cid",
-    "current_package_identity_wire", "operation_id", "original_upgrade_cid",
-    "original_upgrade_packet_sha256", "prior_pair_sha256", "prior_runtime_wire",
-    "successor_runtime_pair_wire", "version",
+    "account_configuration_cid", "adoption_cid", "authority_scope_cid", "current_package_identity_wire",
+    "operation_id", "original_upgrade_cid", "original_upgrade_packet_sha256", "prior_pair_sha256",
+    "prior_runtime_wire", "successor_runtime_pair_wire", "version",
   ]
 }
 
@@ -35,7 +34,7 @@ fn local_runtime_successor_fields_valid(fields : Array[String]) -> Bool {
   }
   for index in [0, 1, 2, 5] {
     if !fields[index].has_prefix("sha256:") ||
-      !runtime_hex(fields[index].substring(start=7), 64) {
+      !runtime_hex(fields[index][7:].to_owned(), 64) {
       return false
     }
   }
@@ -50,7 +49,10 @@ fn local_runtime_successor_fields_valid(fields : Array[String]) -> Bool {
 ///|
 fn local_runtime_successor_encode(
   fields : Array[String],
-) -> Result[ClientLocalRuntimeSuccessorMetadata, ClientLocalRuntimeSuccessorIssue] {
+) -> Result[
+  ClientLocalRuntimeSuccessorMetadata,
+  ClientLocalRuntimeSuccessorIssue,
+] {
   if !local_runtime_successor_fields_valid(fields) {
     return Err(InvalidOriginal)
   }
@@ -65,9 +67,9 @@ fn local_runtime_successor_encode(
     return Err(CapacityExceeded)
   }
   let body = match
-    client_local_original_record_body(keys.mapi((index, key) => {
-      (key, fields[index])
-    })) {
+    client_local_original_record_body(
+      keys.mapi((index, key) => (key, fields[index])),
+    ) {
     Ok(value) => value
     Err(_) => return Err(Encoding)
   }
@@ -98,12 +100,14 @@ pub fn client_local_runtime_successor_metadata(
   prior_pair_sha256 : String,
   prior_runtime_wire : String,
   successor_runtime_pair_wire : String,
-) -> Result[ClientLocalRuntimeSuccessorMetadata, ClientLocalRuntimeSuccessorIssue] {
+) -> Result[
+  ClientLocalRuntimeSuccessorMetadata,
+  ClientLocalRuntimeSuccessorIssue,
+] {
   local_runtime_successor_encode([
-    account_configuration_cid, adoption_cid, authority_scope_cid,
-    current_package_identity_wire, operation_id, original_upgrade_cid,
-    original_upgrade_packet_sha256, prior_pair_sha256, prior_runtime_wire,
-    successor_runtime_pair_wire, "actql-local-runtime-successor/0.1",
+    account_configuration_cid, adoption_cid, authority_scope_cid, current_package_identity_wire,
+    operation_id, original_upgrade_cid, original_upgrade_packet_sha256, prior_pair_sha256,
+    prior_runtime_wire, successor_runtime_pair_wire, "actql-local-runtime-successor/0.1",
   ])
 }
 
@@ -112,7 +116,10 @@ pub fn client_local_runtime_successor_metadata(
 /// deliberately does not turn copied metadata/CIDs into opaque physical facts.
 pub fn read_client_local_runtime_successor_metadata(
   body : Bytes,
-) -> Result[ClientLocalRuntimeSuccessorMetadata, ClientLocalRuntimeSuccessorIssue] {
+) -> Result[
+  ClientLocalRuntimeSuccessorMetadata,
+  ClientLocalRuntimeSuccessorIssue,
+] {
   if body.length() > 5632 {
     return Err(CapacityExceeded)
   }
