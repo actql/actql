@@ -3844,6 +3844,7 @@ fn query_checked_program_fixture(
 /// Fixture owner: query_integration/query_checked_program_wbtest.mbt
 fn query_checked_sequence(
   checked : @program_check.CheckedProgram,
+  prefix_end? : Int? = None,
 ) -> @query.QuerySequence raise {
   let identity = @program_check.source_identity(checked)
   let requests = @context.program_identity_stage_requests(identity, 0).unwrap()
@@ -3873,7 +3874,11 @@ fn query_checked_sequence(
     max_name_bytes=10000,
     expression_profiles=checked_expression_profile_admission(checked),
   ).unwrap()
-  @query.prepare_query_sequence(query, query_generated(bound), 10000).unwrap()
+  @query.prepare_query_sequence(
+    query,
+    query_generated(bound, prefix_end~),
+    10000,
+  ).unwrap()
 }
 
 ///|
