@@ -205,6 +205,7 @@ fn validate_captured_scores(
 
 ///|
 struct SuppliedScoreValidation {
+  state : InputScoreCursor
   session : @bounded.Session[InputScoreCursor, Int, InputScoreIssue]
   mut token : @bounded.Token
 }
@@ -260,7 +261,7 @@ pub fn start_supplied_score_validation(
     clear_input_score_cursor,
     _ => true,
   )
-  Ok(Some({ session, token, }))
+  Ok(Some({ state, session, token, }))
 }
 
 ///|
