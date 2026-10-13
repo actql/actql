@@ -38,6 +38,11 @@ pub fn prepare_client_captured_content(
     binding.data_classification != facts.data_classification {
     return Err(InvalidBinding("source_policy"))
   }
+  let observed_media_type = match
+    @publication.normalize_content_media_type_case(media_type, 256) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidBinding("reported_media_type"))
+  }
   let schema = match
     @query.keyed_response_input_schema(
       acquisition.owner,
@@ -52,7 +57,7 @@ pub fn prepare_client_captured_content(
   let mut contents = 0
   for field in @schema.fields(schema) {
     if field.contract.shape is @contract.ContentRef(media_type=Some(expected)) {
-      if expected != media_type {
+      if expected != observed_media_type {
         return Err(InvalidBinding("source_media_type"))
       }
       contents += 1
@@ -171,22 +176,14 @@ pub fn prepare_client_stored_run_captured_content(
     Ok(value) => value
     Err(_) => return Err(InvalidBinding("source_schema"))
   }
-  // Reconstruct the exact canonical envelope using the checked response MIME.
-  // Neither a saved MIME string nor provider metadata can narrow this type.
-  let (_, _, content_cid, size_bytes) = @publication.captured_content_reference_storage(
-    candidate,
-  )
+  // The candidate reconstructed its full original report and envelope. Check
+  // its projected MIME against the original checked response, without issuing
+  // a second candidate from that expected string and discarding the report.
+  let media_type = @publication.captured_content_reference_media_type(candidate)
   let mut contents = 0
   for field in @schema.fields(schema) {
     if field.contract.shape is @contract.ContentRef(media_type=Some(expected)) {
-      let typed = match
-        @publication.prepare_captured_content_reference(
-          binding, expected, content_cid, size_bytes, limits,
-        ) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      if @publication.captured_content_reference_wire(typed) != original_wire {
+      if media_type != expected {
         return Err(InvalidBinding("source_media_type"))
       }
       contents += 1
