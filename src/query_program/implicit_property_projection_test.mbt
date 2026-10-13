@@ -98,7 +98,7 @@ test "implicit property projection preserves authored output spelling" {
   )
   for
     text in [
-      "SELECT id FROM objects", "FROM objects |> AS current |> SELECT current.payload.score, id",
+      "SELECT id FROM objects", "FROM objects |> AS `current` |> SELECT current.payload.score, id",
     ] {
     let program = compile(
       @query.parse_query(text, syntax_limits()).unwrap(),

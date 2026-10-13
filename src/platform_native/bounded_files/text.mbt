@@ -142,6 +142,7 @@ pub fn read_bounded_text_file(
   name : String,
   max_bytes : Int64,
   trim_newline? : Bool = false,
+  diagnostic_ceiling? : Int? = None,
 ) -> Result[String, NativeBoundedTextIssue] {
   match
     read_bounded_text_file_with_custody(
@@ -149,6 +150,7 @@ pub fn read_bounded_text_file(
       name,
       max_bytes,
       trim_newline~,
+      diagnostic_ceiling~,
     ) {
     Ok(text) => Ok(text)
     Err(failure) => Err(failure.issue())
@@ -164,11 +166,12 @@ pub fn read_bounded_text_file_with_custody(
   name : String,
   max_bytes : Int64,
   trim_newline? : Bool = false,
+  diagnostic_ceiling? : Int? = None,
 ) -> Result[String, NativeBoundedTextFailure] {
-  if max_bytes <= 0L {
+  if max_bytes <= 0L || (diagnostic_ceiling is Some(limit) && limit <= 0) {
     return Err(bounded_text_failure(InvalidLimit))
   }
-  let root = match @filesystem.open_root(root_path) {
+  let root = match @filesystem.open_root(root_path, diagnostic_ceiling~) {
     Ok(value) => value
     Err(issue) => return Err(bounded_text_failure(Filesystem(issue)))
   }
