@@ -617,15 +617,26 @@ for (const [entrance, open] of Object.entries(entrances)) {
 
   test(`${entrance}: non-Boolean predicates retain the common checker's requirement`, async t => {
     const client = await open(t, configurations.allowed);
-    for (const text of ['SELECT id FROM records WHERE id', 'SELECT id FROM records WHERE 1']) {
+    for (const [text, start, end, token] of [
+      ['SELECT id FROM records WHERE id', 29, 31, 'id'],
+      ['SELECT id FROM records WHERE 1', 29, 30, '1'],
+      ['-- 😀\r\nSELECT id FROM records WHERE id', 38, 40, 'id'],
+    ]) {
       const result = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
       assert.equal(result.outcome, 'completed');
       assert.equal(result.report.verdict, 'invalid', '[check-mutation:predicate-verdict]');
+      const input = getCheckInput(result, 'source');
       assert.deepEqual(result.report.reasons, [{code: 'query_expression_invalid',
-        facts: {issue: 'expected_boolean'}}], '[check-mutation:predicate-reason]');
-      // The common issue retains a span without authored/generated provenance.
-      // Do not invent an exact SQL location or expose a lowered Program path.
-      assert.equal(result.report.reasons[0].location, undefined);
+        facts: {issue: 'expected_boolean'}, location: {document_id: 'source',
+          revision: input.revision, kind: 'text', start_byte: start, end_byte: end,
+          precision: 'exact'}}], '[check-mutation:predicate-reason]');
+      // Literal byte expectations distinguish the failed WHERE occurrence from
+      // SELECT and preserve the original emoji/CRLF bytes without normalization.
+      assert.equal(Buffer.from(text, 'utf8').subarray(start, end).toString(), token);
+      assert.equal(resolveCheckTextRange(result, result.report.reasons[0].location).text, token,
+        '[check-mutation:predicate-location]');
+      assert.equal(resolveCheckTextRange(result, result.report.reasons[0].location,
+        {...input, text: 'SELECT id FROM records WHERE id > 0'}), undefined);
       assert.deepEqual(explainCheckReason(result.report.reasons[0]), {kind: 'known',
         summary: 'A predicate must have Boolean type.',
         hint: 'Use a Boolean condition, such as a comparison, in the predicate.'},
@@ -637,6 +648,15 @@ for (const [entrance, open] of Object.entries(entrances)) {
     const corrected = await client.check('SELECT id FROM records WHERE id > 0', {kind: 'text', scope: 'bound_input', format: 'sql'});
     assert.equal(corrected.report.verdict, 'verified');
     assert.deepEqual(corrected.report.reasons, []);
+    for (const enabled of [true, false, null]) {
+      const nullable = await client.check('SELECT id FROM records WHERE @enabled', {
+        kind: 'text', scope: 'bound_input', format: 'sql',
+        parameterDeclarations: {enabled: {type: 'boolean', nullable: true}},
+        parameters: {enabled},
+      });
+      assert.equal(nullable.report.verdict, 'verified');
+      assert.deepEqual(nullable.report.reasons, []);
+    }
     const hidden = [];
     for (const configuration of [configurations.absent, configurations.denied]) {
       const protectedClient = await open(t, configuration);
@@ -650,6 +670,51 @@ for (const [entrance, open] of Object.entries(entrances)) {
     assert.deepEqual(hidden[0].report.coverage, {limits: [], unresolved: protectedSource});
     client.assertNoExecution();
   });
+
+  for (const [form, cases] of [
+    ['WITH', [
+      ['WITH q AS (SELECT id FROM records WHERE id) SELECT id FROM q', 40, 42],
+      ['-- 😀\r\nWITH q AS (SELECT id FROM records WHERE id) SELECT id FROM q', 49, 51],
+    ]],
+    ['derived', [
+      ['SELECT id FROM (SELECT id FROM records WHERE id) AS q', 45, 47],
+      ['-- 😀\r\nSELECT id FROM (SELECT id FROM records WHERE id) AS q', 54, 56],
+    ]],
+  ]) {
+    test(`${entrance}: nested ${form} predicates retain exact authored origins`, async t => {
+      const client = await open(t, configurations.allowed);
+      for (const [text, start, end] of cases) {
+        // These byte ranges count the independently authored original prefix,
+        // including the nine UTF-8 bytes of emoji and real CRLF.
+        assert.equal(Buffer.from(text, 'utf8').subarray(start, end).toString(), 'id');
+        const corrected = await client.check(text.replace(' WHERE id', ' WHERE id > 0'),
+          {kind: 'text', scope: 'bound_input', format: 'sql'});
+        assert.equal(corrected.report.verdict, 'verified', 'nested scope positive control');
+        const result = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
+        assert.equal(result.outcome, 'completed');
+        assert.equal(result.report.verdict, 'invalid');
+        const input = getCheckInput(result, 'source');
+        assert.deepEqual(result.report.reasons, [{code: 'query_expression_invalid',
+          facts: {issue: 'expected_boolean'}, location: {document_id: 'source',
+            revision: input.revision, kind: 'text', start_byte: start, end_byte: end,
+            precision: 'exact'}}], 'nested predicate owns its original failing occurrence');
+        assert.equal(resolveCheckTextRange(result, result.report.reasons[0].location).text, 'id');
+        assert.deepEqual(result.report.coverage, {limits: [], unresolved: []});
+        const hidden = [];
+        for (const configuration of [configurations.absent, configurations.denied]) {
+          const protectedClient = await open(t, configuration);
+          const protectedResult = await protectedClient.check(text,
+            {kind: 'text', scope: 'bound_input', format: 'sql'});
+          assert.deepEqual(protectedResult.report.reasons, []);
+          assert.equal(protectedResult.report.verdict, 'undetermined');
+          hidden.push(withoutContext(protectedResult));
+          protectedClient.assertNoExecution();
+        }
+        assert.deepEqual(hidden[0], hidden[1]);
+      }
+      client.assertNoExecution();
+    });
+  }
 
   test(`${entrance}: invalid declarations retain only their owned submitted locations`, async t => {
     const client = await open(t, configurations.denied);

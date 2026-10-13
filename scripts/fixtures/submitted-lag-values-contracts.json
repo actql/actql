@@ -1,0 +1,328 @@
+{
+  "source_revision": "9dfd3e8723b9dfa18f9463576b038db3a01d4183",
+  "provenance": "Independent canonical hashing of the exact historical normative bodies selected by the hand-authored Values fixture. No product compiler, issuer, generated output or submitted dependency list is used as hash input. The retained logical aoa-sga-identity role selects its then-owned Graph law, as in the unchanged original test oracle.",
+  "contract_cids": {
+    "spec/contracts/actql-stage-contracts.json#/source": "sha256:a55a1f56a5f19d0d118a6ff6d161f34c6d239d54f473ff84a95592a7c03e31eb",
+    "spec/contracts/actql-stage-contracts.json#/laws": "sha256:540d06456c7ddf166f5192dd1379b853e48791ca869a54abcc428b2210097325",
+    "spec/contracts/actql-stage-contracts.json#/schemas/local_contracts": "sha256:a1dcd5bf20a7d6dceedd4a298b684f439101d391063ae13bb61359bd10d30621",
+    "spec/contracts/actql-stage-contracts.json#/schemas/local_dependencies": "sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8",
+    "spec/contracts/actql-expressions.json#": "sha256:a49aba23a30514b63c9f7bcd05663dcacf2e5646c56073e7d00a34d6abe402b7",
+    "spec/contracts/actql-expressions.json#/schemas/fragment/properties/request/properties/text_time_policy": "sha256:0297fb74f0ff4e55b4ededfe5f0968a6d1f3f1231f84d7d4122f2cb7dfee077a",
+    "spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551",
+    "spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan/properties/execution_material/properties/program": "sha256:1e63d8fb2cdfb0a8b54811762a96091ce2b7bc107089fd1682a76b1dbd57919b",
+    "spec/contracts/actql-check-environment.json#": "sha256:2edbaec105871702a061b1e21f0ff929cc7c76f4010bcd3f681e0d7ad89b43fb",
+    "spec/contracts/actql-capacity-host-policy.json#": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164",
+    "spec/contracts/actql-consumer-capacity.json#": "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+    "spec/contracts/actql-bound-values-law.json#": "sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971",
+    "spec/contracts/actql-bound-values-wire-law.json#": "sha256:4c9bfcee52cbb204e8a00ca21e2e39b833cb298d517d498cc6002025cbf9156f",
+    "spec/contracts/actql-bound-transfer-laws.json#": "sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911",
+    "spec/contracts/actql-aoa.json#/execution_contracts/REL.values": "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b",
+    "spec/dependencies/aoa-kernel-laws.json#": "sha256:62c052d6afb178a08620019253b091c83fc54f7c6d0f32c05b269a06c194a264",
+    "spec/dependencies/aoa-rela-scalar-laws.json#": "sha256:17cd0ac4d8948b61f661772f76fcae31d64d84adc25167578e3a117b0a77d31f",
+    "spec/dependencies/aoa-rela-primitive-laws.json#": "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade",
+    "spec/dependencies/aoa-sga-identity-laws.json#": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34",
+    "spec/dependencies/actql-text-time-base.json#": "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc",
+    "spec/dependencies/actql-text-time-base.json#/barrier_schema": "sha256:e1f3e142a17b9ef081e76d7d038da645ce17a5a7fe37624fcc0ab4f60563de28",
+    "spec/dependencies/actql-text-time-base.json#/source_schema": "sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1",
+    "spec/dependencies/actql-text-time-base.json#/evaluation_envelope_schema": "sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9",
+    "spec/dependencies/actql-text-time-base-dependencies.json#/regex_grammar": "sha256:460873332aa4731fb4631a293e798ce089516ffc058c544253c1d5d3b9c6f6a1",
+    "spec/dependencies/actql-text-time-base-dependencies.json#/regex_ast_schema": "sha256:0591812d2909558b64c931e4336970a7cfe14667ad672a33e940839a7571c0a2",
+    "spec/dependencies/actql-text-time-base-dependencies.json#/timestamp_pattern_grammar": "sha256:0bf21470f9609e414e597a5cdc599764677bc92e479073f9d9924fdaba88ba72",
+    "spec/dependencies/actql-text-time-base-dependencies.json#/timestamp_pattern_ast_schema": "sha256:8483e1535239becdd53d31d361967e0e29a3f27234ad83d419b47535c858844c",
+    "spec/dependencies/actql-text-time-base-dependencies.json#/unicode_semantics": "sha256:8e4b432a6b975be3876db964d8c9cf2a623b1f08b914dc6f852912cad5325332",
+    "spec/dependencies/actql-text-time-unicode-data.json#": "sha256:4a84a6d133b6282a5d50ba743ef8cab3fc87d4ccc91612663c5fc0d02f705dd4",
+    "spec/contracts/actql-regex-ast.json#": "sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78",
+    "spec/grammar/actql-regex-ast-0.1.schema.json#": "sha256:cc114653eb3db3bdf94bf233f34c0baa5f4c5bc305aeb07ed66283706054d3d9",
+    "spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast": "sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed"
+  },
+  "normative_inputs": [
+    {
+      "role": "spec/contracts/actql-stage-contracts.json#/source",
+      "source_path": "spec/contracts/actql-stage-contracts.json",
+      "pointer": "/source",
+      "source_mode": "100644",
+      "source_blob": "283071d998e9ab9486dc85bef0ccc6ed42d5dae0",
+      "source_raw_sha256": "b8682e1a202b13d7af4bcc6f7e810d5cbc41fbb291f313ed0727f2528fcbb83c",
+      "selected_body_cid": "sha256:a55a1f56a5f19d0d118a6ff6d161f34c6d239d54f473ff84a95592a7c03e31eb"
+    },
+    {
+      "role": "spec/contracts/actql-stage-contracts.json#/laws",
+      "source_path": "spec/contracts/actql-stage-contracts.json",
+      "pointer": "/laws",
+      "source_mode": "100644",
+      "source_blob": "283071d998e9ab9486dc85bef0ccc6ed42d5dae0",
+      "source_raw_sha256": "b8682e1a202b13d7af4bcc6f7e810d5cbc41fbb291f313ed0727f2528fcbb83c",
+      "selected_body_cid": "sha256:540d06456c7ddf166f5192dd1379b853e48791ca869a54abcc428b2210097325"
+    },
+    {
+      "role": "spec/contracts/actql-stage-contracts.json#/schemas/local_contracts",
+      "source_path": "spec/contracts/actql-stage-contracts.json",
+      "pointer": "/schemas/local_contracts",
+      "source_mode": "100644",
+      "source_blob": "283071d998e9ab9486dc85bef0ccc6ed42d5dae0",
+      "source_raw_sha256": "b8682e1a202b13d7af4bcc6f7e810d5cbc41fbb291f313ed0727f2528fcbb83c",
+      "selected_body_cid": "sha256:a1dcd5bf20a7d6dceedd4a298b684f439101d391063ae13bb61359bd10d30621"
+    },
+    {
+      "role": "spec/contracts/actql-stage-contracts.json#/schemas/local_dependencies",
+      "source_path": "spec/contracts/actql-stage-contracts.json",
+      "pointer": "/schemas/local_dependencies",
+      "source_mode": "100644",
+      "source_blob": "283071d998e9ab9486dc85bef0ccc6ed42d5dae0",
+      "source_raw_sha256": "b8682e1a202b13d7af4bcc6f7e810d5cbc41fbb291f313ed0727f2528fcbb83c",
+      "selected_body_cid": "sha256:22a2636742d270464988e350adc168af898987e83f620cba893efb091d9f49e8"
+    },
+    {
+      "role": "spec/contracts/actql-expressions.json#",
+      "source_path": "spec/contracts/actql-expressions.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "04a55bdc3d6bbdc72ff658f9c44d750c60f89ed4",
+      "source_raw_sha256": "2983b5347eb2eefad356ed66b957ae328b6d9ef67ad8f2352072cc7a1afd5382",
+      "selected_body_cid": "sha256:a49aba23a30514b63c9f7bcd05663dcacf2e5646c56073e7d00a34d6abe402b7"
+    },
+    {
+      "role": "spec/contracts/actql-expressions.json#/schemas/fragment/properties/request/properties/text_time_policy",
+      "source_path": "spec/contracts/actql-expressions.json",
+      "pointer": "/schemas/fragment/properties/request/properties/text_time_policy",
+      "source_mode": "100644",
+      "source_blob": "04a55bdc3d6bbdc72ff658f9c44d750c60f89ed4",
+      "source_raw_sha256": "2983b5347eb2eefad356ed66b957ae328b6d9ef67ad8f2352072cc7a1afd5382",
+      "selected_body_cid": "sha256:0297fb74f0ff4e55b4ededfe5f0968a6d1f3f1231f84d7d4122f2cb7dfee077a"
+    },
+    {
+      "role": "spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract",
+      "source_path": "spec/contracts/actql-protocol-schemas.json",
+      "pointer": "/schemas/canonical_value_contract",
+      "source_mode": "100644",
+      "source_blob": "e4e191b206e656c9b80d44e1ff784b3b1bec8240",
+      "source_raw_sha256": "25ba427e2e52b60481fd8f44ed4dfc1a01ea9974dd1c57552cb79dea032600f5",
+      "selected_body_cid": "sha256:02859499357530af0ae58e4f2958d1c8fa48f957b86b0a2976dad43bed99b551"
+    },
+    {
+      "role": "spec/contracts/actql-protocol-schemas.json#/artifact_schemas/executable_plan/properties/execution_material/properties/program",
+      "source_path": "spec/contracts/actql-protocol-schemas.json",
+      "pointer": "/artifact_schemas/executable_plan/properties/execution_material/properties/program",
+      "source_mode": "100644",
+      "source_blob": "e4e191b206e656c9b80d44e1ff784b3b1bec8240",
+      "source_raw_sha256": "25ba427e2e52b60481fd8f44ed4dfc1a01ea9974dd1c57552cb79dea032600f5",
+      "selected_body_cid": "sha256:1e63d8fb2cdfb0a8b54811762a96091ce2b7bc107089fd1682a76b1dbd57919b"
+    },
+    {
+      "role": "spec/contracts/actql-check-environment.json#",
+      "source_path": "spec/contracts/actql-check-environment.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "565f5c91be5ff2bca6eb91b91e4ebe2fdb299d5c",
+      "source_raw_sha256": "93a791d387f42c4228df9b54bc88824710045c66388f42a2e0ab5c870fd02b9b",
+      "selected_body_cid": "sha256:2edbaec105871702a061b1e21f0ff929cc7c76f4010bcd3f681e0d7ad89b43fb"
+    },
+    {
+      "role": "spec/contracts/actql-capacity-host-policy.json#",
+      "source_path": "spec/contracts/actql-capacity-host-policy.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "4571bb579c6273a69c6953900cbad3ba6f9e9e18",
+      "source_raw_sha256": "e1b0bc17ed276ef61345d1d5e070fcc37fd8fabaf292ee3a8d222e618748ebbb",
+      "selected_body_cid": "sha256:5de69acac624586723a7efad500d0caf13c21ad2ed6e2252df0aaacf32dfc164"
+    },
+    {
+      "role": "spec/contracts/actql-consumer-capacity.json#",
+      "source_path": "spec/contracts/actql-consumer-capacity.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "2806722cff5a9b19c6044c6b6031818328d3b74f",
+      "source_raw_sha256": "5c258ec276b5f7cbadc9eddb6f0df8be38aea5f3de0b6a34193b6b031445867d",
+      "selected_body_cid": "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f"
+    },
+    {
+      "role": "spec/contracts/actql-bound-values-law.json#",
+      "source_path": "spec/contracts/actql-bound-values-law.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "fc4481372d3e3b660c315ce4417d1b35f090798d",
+      "source_raw_sha256": "a3c286d3a779637a7e163db1c1ceb3bdeb66dfcfabe0aaceb0da1c7c2cc6a564",
+      "selected_body_cid": "sha256:0e0f9b4b6585ab7b17bafe484e82f44cd8f3acc9eec5ef9329cea200237a7971"
+    },
+    {
+      "role": "spec/contracts/actql-bound-values-wire-law.json#",
+      "source_path": "spec/contracts/actql-bound-values-wire-law.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "79232aac7202647536bbc604f809dc28a86fbca6",
+      "source_raw_sha256": "d264de7d3f764e1cd21cad73ea52445fb37409d5135399566123ea67fcbe8d1a",
+      "selected_body_cid": "sha256:4c9bfcee52cbb204e8a00ca21e2e39b833cb298d517d498cc6002025cbf9156f"
+    },
+    {
+      "role": "spec/contracts/actql-bound-transfer-laws.json#",
+      "source_path": "spec/contracts/actql-bound-transfer-laws.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "1167802a23d3b80a37aadcf59c4d4d1286727320",
+      "source_raw_sha256": "6f7b6f98179b6495697f67458cf61a73448c167b884907162d2ddc8be4f3abf7",
+      "selected_body_cid": "sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911"
+    },
+    {
+      "role": "spec/contracts/actql-aoa.json#/execution_contracts/REL.values",
+      "source_path": "spec/contracts/actql-aoa.json",
+      "pointer": "/execution_contracts/REL.values",
+      "source_mode": "100644",
+      "source_blob": "2fa650484c8f1edfbc58aa1c21dfa09388c3dbab",
+      "source_raw_sha256": "0981d6e64dffcdde9b4c9e48da7eb1ae9047cea27a96d1c370edfcd5ec2db7d3",
+      "selected_body_cid": "sha256:9b716536b27d313e93deadae776d9abf21c3d06dcd653d2eb3b74e0c276a182b"
+    },
+    {
+      "role": "spec/dependencies/aoa-kernel-laws.json#",
+      "source_path": "spec/dependencies/aoa-kernel-laws.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "97f63e579a1d0048e3783449f3c0e716b00c30c1",
+      "source_raw_sha256": "4ad8f9f4c9e92fc2eac111b0bd58a6c0346a8be7c743467e8821a3372614bcf0",
+      "selected_body_cid": "sha256:62c052d6afb178a08620019253b091c83fc54f7c6d0f32c05b269a06c194a264"
+    },
+    {
+      "role": "spec/dependencies/aoa-rela-scalar-laws.json#",
+      "source_path": "spec/dependencies/aoa-rela-scalar-laws.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "dcd6d292183fa79c362f170e9ba47f6798744af7",
+      "source_raw_sha256": "971d75ff130755574b0dca2b9ff98b67680ae6d2a5719a25998289d19d0a869b",
+      "selected_body_cid": "sha256:17cd0ac4d8948b61f661772f76fcae31d64d84adc25167578e3a117b0a77d31f"
+    },
+    {
+      "role": "spec/dependencies/aoa-rela-primitive-laws.json#",
+      "source_path": "spec/dependencies/aoa-rela-primitive-laws.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "0ab6b52498639fb88999a9c9a0a7db4c75f8ed75",
+      "source_raw_sha256": "b4beb0d67ab0a4ef426e6614819a5b98fee61c1ea2ca8fa2e2923df654bbc070",
+      "selected_body_cid": "sha256:a4ab8487ef731512c3daefa5bed078703336dc52ca268ef4cb7127145f0f2ade"
+    },
+    {
+      "role": "spec/dependencies/aoa-sga-identity-laws.json#",
+      "source_path": "spec/dependencies/actql-graph-laws.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "dbcd38ff7fd51df270e978e6cd12d0b65e2f9421",
+      "source_raw_sha256": "1809f2ca5e5a649a98814628e712ce962a97cb65cd27366aec1890f3ba5ef4dc",
+      "selected_body_cid": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34"
+    },
+    {
+      "role": "spec/dependencies/actql-text-time-base.json#",
+      "source_path": "spec/dependencies/actql-text-time-base.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "482bf739a340aca4f580ecfcc7ceabe5d99eaaac",
+      "source_raw_sha256": "1d7f507c375c99b6848b72e3bcaea76b96a3376f7b5da28d13a117e6c55a31ea",
+      "selected_body_cid": "sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc"
+    },
+    {
+      "role": "spec/dependencies/actql-text-time-base.json#/barrier_schema",
+      "source_path": "spec/dependencies/actql-text-time-base.json",
+      "pointer": "/barrier_schema",
+      "source_mode": "100644",
+      "source_blob": "482bf739a340aca4f580ecfcc7ceabe5d99eaaac",
+      "source_raw_sha256": "1d7f507c375c99b6848b72e3bcaea76b96a3376f7b5da28d13a117e6c55a31ea",
+      "selected_body_cid": "sha256:e1f3e142a17b9ef081e76d7d038da645ce17a5a7fe37624fcc0ab4f60563de28"
+    },
+    {
+      "role": "spec/dependencies/actql-text-time-base.json#/source_schema",
+      "source_path": "spec/dependencies/actql-text-time-base.json",
+      "pointer": "/source_schema",
+      "source_mode": "100644",
+      "source_blob": "482bf739a340aca4f580ecfcc7ceabe5d99eaaac",
+      "source_raw_sha256": "1d7f507c375c99b6848b72e3bcaea76b96a3376f7b5da28d13a117e6c55a31ea",
+      "selected_body_cid": "sha256:a9fd34634569c0da417ca5a8770ab064ad8351bbd253c8fea1dae60c756c61c1"
+    },
+    {
+      "role": "spec/dependencies/actql-text-time-base.json#/evaluation_envelope_schema",
+      "source_path": "spec/dependencies/actql-text-time-base.json",
+      "pointer": "/evaluation_envelope_schema",
+      "source_mode": "100644",
+      "source_blob": "482bf739a340aca4f580ecfcc7ceabe5d99eaaac",
+      "source_raw_sha256": "1d7f507c375c99b6848b72e3bcaea76b96a3376f7b5da28d13a117e6c55a31ea",
+      "selected_body_cid": "sha256:168fa3b40dd267423f0cbf0b350e9fbab589f094afb400f9f83a2dad22171ba9"
+    },
+    {
+      "role": "spec/dependencies/actql-text-time-base-dependencies.json#/regex_grammar",
+      "source_path": "spec/dependencies/actql-text-time-base-dependencies.json",
+      "pointer": "/regex_grammar",
+      "source_mode": "100644",
+      "source_blob": "7bd4776c4a65f0e6ce33f52bf8725c2b8901f7b1",
+      "source_raw_sha256": "f8db8b02e5f16424da8f94ea635b04c554959a7a02481b597b7d489bbcccd90b",
+      "selected_body_cid": "sha256:460873332aa4731fb4631a293e798ce089516ffc058c544253c1d5d3b9c6f6a1"
+    },
+    {
+      "role": "spec/dependencies/actql-text-time-base-dependencies.json#/regex_ast_schema",
+      "source_path": "spec/dependencies/actql-text-time-base-dependencies.json",
+      "pointer": "/regex_ast_schema",
+      "source_mode": "100644",
+      "source_blob": "7bd4776c4a65f0e6ce33f52bf8725c2b8901f7b1",
+      "source_raw_sha256": "f8db8b02e5f16424da8f94ea635b04c554959a7a02481b597b7d489bbcccd90b",
+      "selected_body_cid": "sha256:0591812d2909558b64c931e4336970a7cfe14667ad672a33e940839a7571c0a2"
+    },
+    {
+      "role": "spec/dependencies/actql-text-time-base-dependencies.json#/timestamp_pattern_grammar",
+      "source_path": "spec/dependencies/actql-text-time-base-dependencies.json",
+      "pointer": "/timestamp_pattern_grammar",
+      "source_mode": "100644",
+      "source_blob": "7bd4776c4a65f0e6ce33f52bf8725c2b8901f7b1",
+      "source_raw_sha256": "f8db8b02e5f16424da8f94ea635b04c554959a7a02481b597b7d489bbcccd90b",
+      "selected_body_cid": "sha256:0bf21470f9609e414e597a5cdc599764677bc92e479073f9d9924fdaba88ba72"
+    },
+    {
+      "role": "spec/dependencies/actql-text-time-base-dependencies.json#/timestamp_pattern_ast_schema",
+      "source_path": "spec/dependencies/actql-text-time-base-dependencies.json",
+      "pointer": "/timestamp_pattern_ast_schema",
+      "source_mode": "100644",
+      "source_blob": "7bd4776c4a65f0e6ce33f52bf8725c2b8901f7b1",
+      "source_raw_sha256": "f8db8b02e5f16424da8f94ea635b04c554959a7a02481b597b7d489bbcccd90b",
+      "selected_body_cid": "sha256:8483e1535239becdd53d31d361967e0e29a3f27234ad83d419b47535c858844c"
+    },
+    {
+      "role": "spec/dependencies/actql-text-time-base-dependencies.json#/unicode_semantics",
+      "source_path": "spec/dependencies/actql-text-time-base-dependencies.json",
+      "pointer": "/unicode_semantics",
+      "source_mode": "100644",
+      "source_blob": "7bd4776c4a65f0e6ce33f52bf8725c2b8901f7b1",
+      "source_raw_sha256": "f8db8b02e5f16424da8f94ea635b04c554959a7a02481b597b7d489bbcccd90b",
+      "selected_body_cid": "sha256:8e4b432a6b975be3876db964d8c9cf2a623b1f08b914dc6f852912cad5325332"
+    },
+    {
+      "role": "spec/dependencies/actql-text-time-unicode-data.json#",
+      "source_path": "spec/dependencies/actql-text-time-unicode-data.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "d1c1e4a5e80a2d66b98255c398e27598ae30d59d",
+      "source_raw_sha256": "393835958aff4e6879148fa3964b6a7208309a18f7c7254b1d45ce0aca78d497",
+      "selected_body_cid": "sha256:4a84a6d133b6282a5d50ba743ef8cab3fc87d4ccc91612663c5fc0d02f705dd4"
+    },
+    {
+      "role": "spec/contracts/actql-regex-ast.json#",
+      "source_path": "spec/contracts/actql-regex-ast.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "27278082a3c8ea76e2c7b89f6cf47a5b384f357f",
+      "source_raw_sha256": "a9063828183d9b751d0ef7210b9a406d533a474958e5144dde07c678dac1f441",
+      "selected_body_cid": "sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78"
+    },
+    {
+      "role": "spec/grammar/actql-regex-ast-0.1.schema.json#",
+      "source_path": "spec/grammar/actql-regex-ast-0.1.schema.json",
+      "pointer": "",
+      "source_mode": "100644",
+      "source_blob": "5e0e02744a0e5f6962ab35db6a2da92aa445b6e0",
+      "source_raw_sha256": "e88e2284f982f2682c16b570814dc64a8f4c90efd7cf772d0e0f72329971ceef",
+      "selected_body_cid": "sha256:cc114653eb3db3bdf94bf233f34c0baa5f4c5bc305aeb07ed66283706054d3d9"
+    },
+    {
+      "role": "spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast",
+      "source_path": "spec/contracts/actql-production-profile-schemas.json",
+      "pointer": "/schemas/regex_replacement_ast",
+      "source_mode": "100644",
+      "source_blob": "4028756eb21dbfdfaa1594a81e38dff10997dfaa",
+      "source_raw_sha256": "383970926e19ce76659ec33fe8bc9caf5a64fb810d99092485b249a5000dcac5",
+      "selected_body_cid": "sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed"
+    }
+  ]
+}

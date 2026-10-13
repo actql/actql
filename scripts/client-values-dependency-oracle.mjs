@@ -127,11 +127,42 @@ export function relationFixtureContracts({legacy=false,beforeMembership=legacy,p
   return relationRoles.map(([file,pointer])=>contractCid(file,pointer,legacy,beforeMembership,preTypedJson));
 }
 
-export function valuesDependencyOracle({legacy=false,beforeMembership=legacy,preTypedJson=false,resultName='rows'}={}) {
-  const contracts = roles.map(([file,pointer])=>contractCid(file,pointer,legacy,beforeMembership,preTypedJson)).sort();
+function retainContractCidInputs(input) {
+  if (input === undefined) return undefined;
+  const invalid = () => {throw new TypeError('InvalidRetainedValuesContractCids');};
+  if (input === null || typeof input !== 'object' || Array.isArray(input)) invalid();
+  const descriptors = Object.getOwnPropertyDescriptors(input);
+  const keys = Reflect.ownKeys(descriptors);
+  const expected = roles.map(([file,pointer])=>file+'#'+(pointer??'')).sort();
+  if (keys.length !== expected.length || keys.some(key=>typeof key !== 'string') ||
+      keys.sort().some((key,index)=>key!==expected[index])) invalid();
+  const retained = {};
+  for (const key of expected) {
+    const descriptor = descriptors[key];
+    if (!Object.hasOwn(descriptor,'value') || typeof descriptor.value !== 'string' ||
+        !/^sha256:[0-9a-f]{64}$/u.test(descriptor.value)) invalid();
+    retained[key] = descriptor.value;
+  }
+  return retained;
+}
+
+// A closed independent historical Catalog supplies original normative role CIDs.
+// Default/legacy fixtures still read exactly their existing inputs; this option
+// does not admit product output or replace any retained identity fixture.
+export function valuesDependencyOracle({legacy=false,beforeMembership=legacy,preTypedJson=false,
+  resultName='rows',retainedContractCids}={}) {
+  const retained = retainContractCidInputs(retainedContractCids);
+  if (retained !== undefined && (legacy || beforeMembership || preTypedJson)) {
+    throw new TypeError('InvalidRetainedValuesContractCids');
+  }
+  const contracts = roles.map(([file,pointer])=>retained === undefined
+    ? contractCid(file,pointer,legacy,beforeMembership,preTypedJson)
+    : retained[file+'#'+(pointer??'')]).sort();
   const local = {version:'actql-stage-semantics/0.1',binding_references:[],
     bindings:{},parameter_references:[],parameters:{},
-    expression_contract_cid:legacy ? predecessor.contract_cids['spec/contracts/actql-expressions.json#'] : expressionCid(beforeMembership, preTypedJson),
+    expression_contract_cid:retained === undefined
+      ? legacy ? predecessor.contract_cids['spec/contracts/actql-expressions.json#'] : expressionCid(beforeMembership, preTypedJson)
+      : retained['spec/contracts/actql-expressions.json#'],
     local_body:{effects:{},inputs:{},results:{[resultName]:{fields:['id'],from:'selected'}},
       steps:[{as:'selected',values:{rows:[{id:1},{id:2}],schema:{id:{nullable:false,type:'number'}}}}]}};
   const unit = hash({version:'actql-local-unit-dependencies/0.1',
