@@ -32,6 +32,9 @@ function snapshotArray(value, maximum, code) {
   const names = Reflect.ownKeys(value);
   if (names.length !== count + 1 || names.some(name => typeof name !== 'string') ||
       !names.includes('length')) fail(code);
+  for (let index = 0; index < count; index++) {
+    if (!names.includes(String(index))) fail(code);
+  }
   const result = [];
   for (let index = 0; index < count; index++) {
     const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
