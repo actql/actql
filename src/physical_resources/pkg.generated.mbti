@@ -126,6 +126,8 @@ pub fn[T] original_current_state_read_bounds(OriginalResourcePark[T], T) -> Resu
 
 pub fn[T] original_current_state_write_current(OriginalCurrentStateWrite[T], OriginalResourcePark[T]) -> OriginalCurrentStateWrite[T]?
 
+pub fn original_ledger_captured_preparation_available(OriginalLedgerIdentity) -> Bool
+
 pub fn original_ledger_inventory_available(OriginalLedgerIdentity) -> Bool
 
 pub fn original_ledger_prefix_available(OriginalLedgerIdentity) -> Bool
