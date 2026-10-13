@@ -12,11 +12,14 @@ run('moon',['build','--target','js','--release','src/connectors_workers_bridge']
 run('moon',['build','--target','js','--release','src/connectors_workers_async_bridge']);
 run('moon',['build','--target','js','--release','src/workers_conformance']);
 prepareRuntimeModules();
+run('node',['scripts/build-runtime-packages.mjs', 'run-host-core']);
 run('node',['adapters/workers/build.mjs']);
-run('node',['--test',
+run('node',['--test', '--test-concurrency=1',
   'scripts/workers-composition.test.mjs',
   'adapters/workers/finite.test.mjs',
   'adapters/workers/finite-runtime.test.mjs',
+  'adapters/workers/finite-production.test.mjs',
+  'packages/run-host-core/workers-finite.test.mjs',
   'adapters/workers/shared-host.test.mjs',
   'adapters/workers/runtime.test.mjs',
   'adapters/workers/finalizer.test.mjs',
