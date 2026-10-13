@@ -39,7 +39,7 @@ fn row_listing_capacity_sum(
 // no standing field, auxiliary Ledger, reservation token or public grant is
 // introduced. The installation's existing preparation also owns the finite
 // supplier/count-result workspace before this entry.
-pub(all) fn start_accounted_listing_row_acquisition(
+pub fn start_accounted_listing_row_acquisition(
   value : RowAcquisition,
   declaration : @execution.ExecutionCapacity?,
   nonce : String,

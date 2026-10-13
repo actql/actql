@@ -486,7 +486,7 @@ fn finish_row_source_read(
   }
   read.open = false
   if read.listing is None ||
-    !(read.listing.unwrap().resolved_rows is Some(ReportListingRows(..))) {
+    !(read.listing.unwrap().resolved_rows is Some(ReportListingRows(_, _))) {
     // Preserve ordinary acquisition and protocol-only fixtures unchanged.
     return @execution.finish_admitted_input(read.input).map_err(issue => Capture(issue))
   }
