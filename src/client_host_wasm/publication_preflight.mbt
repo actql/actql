@@ -146,7 +146,8 @@ pub fn prepare_publication_preflight(
     Err(code) => return code
   }
   guard input_cursor(value, borrow.slot) is Some(cursor) else { return -31 }
-  let input = match publication_preflight_input(value, compute, original_run, plan, cursor) {
+  let input = match
+    publication_preflight_input(value, compute, original_run, plan, cursor) {
     Ok(input) => input
     Err(code) => return code
   }
