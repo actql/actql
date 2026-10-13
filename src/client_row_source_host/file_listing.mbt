@@ -89,13 +89,24 @@ fn row_listing_maximum(
   progress : RowListingProgress,
   quantity : String,
 ) -> Result[Int64, RowSourceIssue] {
+  row_listing_bound(progress.limits, progress.resolved_rows, quantity)
+}
+
+///|
+// Same admitted limits before a read/frame is constructed. This is only a
+// finite enforcement bound, not observation, capacity funding or authority.
+fn row_listing_bound(
+  limits : Array[(String, Int64)],
+  resolved_rows : RowListingRows?,
+  quantity : String,
+) -> Result[Int64, RowSourceIssue] {
   if quantity == "max_listing_items" {
-    return match progress.resolved_rows {
+    return match resolved_rows {
       Some(value) => Ok(listing_rows_maximum(value))
       None => Err(ListingLimitUnresolved(quantity))
     }
   }
-  for (name, bound) in progress.limits {
+  for (name, bound) in limits {
     if name == quantity && bound > 0L {
       return Ok(bound)
     }
