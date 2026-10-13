@@ -222,7 +222,11 @@ pub fn program_source_contract_body_at(
     @environment.source_request_carriers(@sourceviews.catalog_owner(selected)),
     @environment.source_request_member(view),
   ).unwrap()
-  let body = if @environment.source_view_relation_keys(carrier) is Some(_) {
+  let body = if @environment.source_view_relation_scores(carrier) is Some(_) {
+    @environment.check_relation_score_body_dependencies(
+      @sourceviews.catalog_owner(selected), view, facts, envelope,
+    )
+  } else if @environment.source_view_relation_keys(carrier) is Some(_) {
     @environment.check_relation_key_body_dependencies(
       @sourceviews.catalog_owner(selected),
       view,

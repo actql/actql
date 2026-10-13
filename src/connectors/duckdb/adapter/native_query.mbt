@@ -135,7 +135,9 @@ fn compile_native_filter_select_base(
   // common input validator; no native provider execution is authorized here.
   if @pipeline.input_contract_at(@lower.pipeline(preparation), 0)
     is Some(@pipeline.SourceViewInput(_, _, _, _)) &&
-    @lower.preparation_input_keys(preparation, 0) is Some(_) {
+    (@lower.preparation_input_keys(preparation, 0) is Some(_) ||
+      @lower.preparation_input_ranking(preparation, 0) is Some(scores) &&
+      @evidence.ranking_score_count(scores) > 0) {
     return Err(UnsupportedShape)
   }
   let filter = match
