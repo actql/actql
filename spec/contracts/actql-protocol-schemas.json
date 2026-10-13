@@ -13635,7 +13635,7 @@
       ]
     }
   },
-  "artifact_registry_cid": "sha256:6a9da2b305495cc6639a76c15b3c3f770fe0f7e5265941db259c4bd64ea10882",
+  "artifact_registry_cid": "sha256:7895903e60340ba1bb02efdac260bc02cdbb2ddd681d2751ea0f3ddd6bc101a5",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -13708,7 +13708,8 @@
     "model_response_profile": "sha256:f44d7f923a662f2487ab1e87f8c5cf5872aa38c64e944e57470bb63dd819c7d7",
     "model_original_resource_state": "sha256:6be8dc0eec799400cb68173ac39ee88c49d9af80cabc762a62a8bdceddf778df",
     "model_journal_entry": "sha256:2be8611d08d277590783ff06299130c78170eb4de49b4d76d67a940d0e3fccb7",
-    "model_journal_settlement": "sha256:e5739efb68a1d6059c5d9c58cd74eabbc8ca28c071e81c2b1984d26e5125161b"
+    "model_journal_settlement": "sha256:e5739efb68a1d6059c5d9c58cd74eabbc8ca28c071e81c2b1984d26e5125161b",
+    "openai_chat_prompt": "sha256:c785e9b1efaefbf6a0c74c52bc103dd2e67eb774a9c2f860642007bce1e81a9a"
   },
   "artifact_schemas": {
     "authoring_context": {
@@ -97128,6 +97129,22 @@
           }
         }
       ]
+    },
+    "openai_chat_prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "instructions"
+      ],
+      "properties": {
+        "format": {
+          "const": "actql.openai_chat_prompt/0.1"
+        },
+        "instructions": {
+          "type": "string"
+        }
+      }
     }
   }
 }

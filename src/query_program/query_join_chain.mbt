@@ -725,7 +725,7 @@ fn compile_join_chain_query(
   query : @query.Query,
   context : Context,
   limits : Limits,
-) -> Result[@program.Program, Issue] {
+) -> Result[(@program.Program, @builder.Source), Issue] {
   if context.captured_stage is Some(_) ||
     context.program_id == "" ||
     context.stage_id == "" ||

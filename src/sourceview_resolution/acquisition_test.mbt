@@ -105,6 +105,46 @@ fn check_acquisition_fixture(
       supplied_values(source_inputs, "{}"),
       1000000,
     ).unwrap()
+    let original_right = pipeline_input_source(prepared, 0, 1).unwrap()
+    let form = check_request_form(context, original_right, 1000000)
+    if variant == 7 && arity == 2 {
+      assert_eq(form.unwrap_err(), RequestFormIssue::PartialCorrelation)
+    } else {
+      let projected = form.unwrap()
+      assert_eq(
+        request_form(projected),
+        if variant == 1 || (variant == 7 && arity == 1) {
+          DirectForm
+        } else {
+          KeyedTemplate
+        },
+      )
+      assert_true(physical_equal(request_form_context(projected), context))
+      assert_true(physical_equal(request_form_input(projected), original_right))
+      let work = request_form_work(projected)
+      assert_true(check_request_form(context, original_right, work) is Ok(_))
+      assert_eq(
+        check_request_form(context, original_right, work - 1).unwrap_err(),
+        RequestFormIssue::WorkLimit,
+      )
+    }
+    assert_eq(
+      check_request_form(context, original_right, -1).unwrap_err(),
+      RequestFormIssue::InvalidLimits,
+    )
+    let foreign_resolved = resolve(source_inputs, catalog, caps()).unwrap()
+    assert_eq(
+      check_request_form(context, at(foreign_resolved, 1).unwrap(), 1000000).unwrap_err(),
+      RequestFormIssue::ForeignRequests,
+    )
+    let foreign_inputs = fixture_inputs(complete, stage_bodies=Some(body))
+    assert_true(
+      prepare_requests(resolved, request_slots(foreign_inputs), 1000000)
+      is Err(issue) &&
+      issue.kind == RequestIssueKind::ForeignSource,
+    )
+    // The projection above is only authored coverage. The original consumer,
+    // mode, request-value and missing-field refusals below remain mandatory.
     let outcome = check_pipeline_requests(uses, parameters, request_caps())
     match variant {
       2 | 4 => assert_true(outcome is Err(InvalidKeyedConsumer(1, _)))

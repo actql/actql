@@ -61,6 +61,10 @@ pub fn admit_client_local_run_policy_original(Bytes, ClientLocalRunPolicyProfile
 
 pub fn admit_client_local_run_policy_profile(String, ClientLocalProductCommonOriginals) -> Result[ClientLocalRunPolicyProfile, ClientLocalRunPolicyProfileIssue]
 
+pub fn admit_client_local_run_policy_upgrade(Bytes, ClientLocalRunPolicyProfile, String, String, String, String, Array[(String, String)]) -> Result[ClientLocalRunPolicyUpgrade, ClientLocalRunPolicyProfileIssue]
+
+pub fn admit_client_local_runtime_policy_upgrade(Bytes, ClientLocalRunPolicyProfile, String, String, String, String, Array[(String, String)], ClientNativeLocalScalarRuntimePair) -> Result[ClientLocalRuntimePolicyUpgrade, ClientLocalRunPolicyProfileIssue]
+
 pub fn admit_client_native_local_runtime(String, String, String, String) -> Result[ClientNativeLocalRuntime, ClientNativeLocalRuntimeIssue]
 
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
@@ -175,6 +179,10 @@ pub fn[Store, E] bind_client_local_adopted_host_material(Store, () -> Result[Cli
 
 pub fn bind_client_local_run_policy_original(ClientLocalRunPolicyProfile, ClientSubmissionReferenceRecord, ClientRequestIdentity, @run_publication.PublicationContract, @run_publication.PublicationContract, String, String, String) -> Result[ClientLocalRunPolicyOriginal, ClientLocalRunPolicyProfileIssue]
 
+pub fn bind_client_local_run_policy_upgrade(ClientLocalRunPolicyProfile, String, String, String, String, Array[(String, String)], Array[ClientLocalLegacyPolicyRun]) -> Result[ClientLocalRunPolicyUpgrade, ClientLocalRunPolicyProfileIssue]
+
+pub fn bind_client_local_runtime_policy_upgrade(ClientLocalRunPolicyUpgrade, ClientNativeLocalScalarRuntimePair) -> Result[ClientLocalRuntimePolicyUpgrade, ClientLocalRunPolicyProfileIssue]
+
 pub fn bind_client_model_invocation_scope(ClientCompiledRun, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @run_publication.RunEvidenceValueIssue]
 
 pub fn bind_client_model_raw_response(ClientModelRawCaptureRegistration, @run_publication.RunEvidenceValue, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelRawResponse, ClientModelRawCaptureIssue]
@@ -198,6 +206,12 @@ pub fn bind_recovered_client_table_preview(@run_publication.EffectPreviewIdentit
 pub fn bind_source_free_client_values_run(PreparedClientProgram, ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[ClientValuesRunBinding, ClientValuesRunBindingIssue]
 
 pub fn bind_transferred_client_effect_local_result_artifact(ClientEffectRunMaterials, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectResultImport, @physical_strategy.CapturedEffectLocalResultExport, @execution_relation.CompletedRelationExportReceipt, ClientEffectProducerArtifact, ClientRetainedTaskInput, ClientRetainedInputCurrent, () -> Bool) -> Result[ClientEffectLocalResultArtifact, ClientEffectTransferredArtifactIssue]
+
+pub fn borrow_client_original_captured_prefix_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
+
+pub fn borrow_client_original_row_acquisition_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, @query_planning.QueryRequirement) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
+
+pub fn borrow_client_original_serialization_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, Int, Int) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
 pub fn cancel_client_keyed_file_locator(ClientKeyedFileLocator) -> Unit
 
@@ -609,6 +623,8 @@ pub fn client_local_configuration_custody_record(String, (UInt64, UInt64, Int64)
 
 pub fn client_local_configuration_selection_body(Array[ClientLocalOriginalConfigurationFile], ClientLocalOriginalManagedRoot?) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
+pub fn client_local_finite_read_selection_wire(String, ClientLocalRunPolicyProfile, String, String, String) -> Result[String, ClientLocalRunPolicyProfileIssue]
+
 pub fn client_local_initialization_body(@execution_authorization.AdmittedAccountConfiguration, Bytes, Bytes, ClientLocalInitializationPhysical) -> Result[Bytes, ClientLocalOriginalCodecIssue]
 
 pub fn client_local_initialization_record_body(Array[String]) -> Result[Bytes, ClientLocalOriginalCodecIssue]
@@ -633,6 +649,8 @@ pub fn client_local_product_originals(String, String, String, String, ClientLoca
 
 pub fn client_local_product_sdk_bootstrap_originals(String, String) -> Result[ClientLocalProductSDKBootstrapOriginals, ClientLocalProductConfigurationIssue]
 
+pub fn client_local_run_policy_metadata_cursor(Bytes) -> Result[@decode_core.Cursor, ClientLocalProductConfigurationIssue]
+
 pub fn client_local_run_policy_original_body(ClientLocalRunPolicyOriginal) -> Bytes
 
 pub fn client_local_run_policy_original_issued_at(ClientLocalRunPolicyOriginal) -> String
@@ -646,6 +664,18 @@ pub fn client_local_run_policy_profile(ClientLocalProductCommonOriginals) -> Res
 pub fn client_local_run_policy_profile_cid(ClientLocalRunPolicyProfile) -> String
 
 pub fn client_local_run_policy_profile_wire(ClientLocalRunPolicyProfile) -> String
+
+pub fn client_local_run_policy_upgrade_body(ClientLocalRunPolicyUpgrade) -> Bytes
+
+pub fn client_local_run_policy_upgrade_legacy_runs(ClientLocalRunPolicyUpgrade) -> Array[ClientLocalLegacyPolicyRun]
+
+pub fn client_local_run_policy_upgrade_read_wire(ClientLocalRunPolicyUpgrade) -> String
+
+pub fn client_local_runtime_policy_upgrade_body(ClientLocalRuntimePolicyUpgrade) -> Bytes
+
+pub fn client_local_runtime_policy_upgrade_policy(ClientLocalRuntimePolicyUpgrade) -> ClientLocalRunPolicyUpgrade
+
+pub fn client_local_runtime_policy_upgrade_runtime(ClientLocalRuntimePolicyUpgrade) -> ClientNativeLocalScalarRuntimePair
 
 pub fn client_model_current_state_match_current(@physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin], @physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> @physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin]?
 
@@ -663,6 +693,8 @@ pub fn client_model_read_available(ClientModelReadPreparation, ClientCompiledRun
 
 pub fn client_model_read_consumer_available(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Bool
 
+pub fn client_model_read_consumer_handed_off_current(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Bool
+
 pub fn client_model_read_preparation_available(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, retained_bytes? : Int64) -> Bool
 
 pub fn client_model_read_state_block_matches(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @physical_resources.OriginalStateDocument, Int) -> Result[Bool, @physical_resources.OriginalReadIssue]
@@ -678,6 +710,18 @@ pub fn client_native_local_product_originals(String, String, String, String, Cli
 pub fn client_native_local_runtime_members(ClientNativeLocalRuntime) -> Array[ClientNativeLocalRuntimeMember]
 
 pub fn client_native_local_runtime_original(ClientNativeLocalRuntime) -> String
+
+pub fn client_native_local_scalar_runtime_pair_body(ClientNativeLocalScalarRuntimePair) -> Bytes
+
+pub fn client_native_local_scalar_values_profile_expression_at(ClientNativeLocalScalarValuesProfile, Int) -> String?
+
+pub fn client_native_local_scalar_values_profile_expression_count(ClientNativeLocalScalarValuesProfile) -> Int
+
+pub fn client_native_local_scalar_values_profile_inspected_entries(ClientNativeLocalScalarValuesProfile) -> Int
+
+pub fn client_native_local_scalar_values_profile_operation_at(ClientNativeLocalScalarValuesProfile, Int) -> String?
+
+pub fn client_native_local_scalar_values_profile_operation_count(ClientNativeLocalScalarValuesProfile) -> Int
 
 pub fn client_node_model_state_read(ClientNodeModelStateWriter) -> Result[ClientModelReadPreparation, ClientNodeModelStateIssue]
 
@@ -1064,6 +1108,10 @@ pub fn handoff_client_model_read_consumer_input_capacity(ClientModelReadConsumer
 pub fn handoff_client_model_read_input_capacity(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientInferCallScope, @execution_relation.PreparedInferRows, Int64, Int64) -> Result[(@physical_resources.Ledger, @physical_resources.CapacityReservation), ClientModelInputCapacityIssue]
 
 pub fn[E] inspect_client_empty_cancellation_inventory(Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], E, E) -> Result[Unit, E]
+
+pub fn inspect_client_native_local_scalar_runtime_pair(ClientNativeLocalRuntime, ClientNativeLocalRuntime, ClientLocalProductAssets, ClientLocalProductAssets) -> Result[ClientNativeLocalScalarRuntimePair, ClientNativeLocalScalarRuntimePairIssue]
+
+pub fn inspect_client_native_local_scalar_values_profile(PreparedClientProgram, Int) -> Result[ClientNativeLocalScalarValuesProfile, ClientNativeLocalScalarValuesProfileIssue]
 
 pub fn inspect_client_remote_effect_task_progress(ClientEffectAllowedRun, @run_publication.PublicationContract, String, Array[@remote_site_protocol.DurableCoordinatorDispatchRecord]) -> Result[ClientRemoteEffectTaskProgress, ClientRemoteEffectTaskProgressIssue]
 
@@ -1591,6 +1639,8 @@ pub fn restore_client_infer_call_scope(ClientInferSavedCallScope, @execution_rel
 
 pub fn restore_client_infer_captured_input(ClientInferCapturedInput, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ClientInferCapturedInput, ClientInferCallScopeIssue]
 
+pub fn restore_client_native_local_scalar_runtime_pair(Bytes, ClientNativeLocalRuntime, ClientNativeLocalRuntime, ClientLocalProductAssets, ClientLocalProductAssets) -> Result[ClientNativeLocalScalarRuntimePair, ClientNativeLocalScalarRuntimePairIssue]
+
 pub fn restore_client_retained_task_input(@remote_site_protocol.RemoteInputBinding, ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, ClientRetainedInputCurrent, Int, Int, Int, Int64) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue]
 
 pub fn restore_prepared_client_effect_normalization(PreparedClientEffectComputation, ClientEffectNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
@@ -1668,6 +1718,14 @@ pub fn submission_epoch_wire(@logical_request_scope.SubmissionEpoch) -> String
 pub fn submission_request_id(@logical_request_scope.SubmissionEpoch, String) -> Result[String, @logical_request_scope.SubmissionIdentityIssue]
 
 pub fn validate_client_local_run_policy_original_run(Bytes, ClientRequestIdentity, @run_publication.PublicationContract) -> Result[Unit, ClientLocalRunPolicyProfileIssue]
+
+pub fn validate_client_native_local_runtime_compute_components(ClientNativeLocalRuntime, ClientNativeLocalRuntime) -> Result[Unit, ClientNativeLocalRuntimeIssue]
+
+pub fn validate_client_native_local_runtime_library_components(ClientNativeLocalRuntime, ClientNativeLocalRuntime) -> Result[Unit, ClientNativeLocalRuntimeIssue]
+
+pub fn validate_client_native_local_scalar_runtime_pair_preparation(ClientNativeLocalScalarRuntimePair, ClientNativeLocalScalarValuesProfile, PreparedClientProgram) -> Result[Unit, ClientNativeLocalScalarRuntimePairIssue]
+
+pub fn validate_client_native_local_scalar_values_preparation(ClientNativeLocalScalarValuesProfile, PreparedClientProgram) -> Result[Unit, ClientNativeLocalScalarValuesProfileIssue]
 
 pub fn validate_client_retained_input_intent(ClientRetainedInputProducer, @remote_site_protocol.RemoteRetainedInputIntent) -> Result[Unit, ClientRetainedTaskInputIssue]
 
@@ -2480,6 +2538,13 @@ pub(all) struct ClientLocalInitializationPhysical {
   state_name : String
 }
 
+pub(all) struct ClientLocalLegacyPolicyRun {
+  request_scope_cid : String
+  run_definition_cid : String
+  submission_reference_cid : String
+  admitted_revision : Int64
+} derive(Eq, @debug.Debug)
+
 type ClientLocalNormalization
 
 pub(all) enum ClientLocalNormalizationIssue {
@@ -2559,6 +2624,10 @@ pub(all) enum ClientLocalRunPolicyProfileIssue {
   Encoding
 } derive(Eq, @debug.Debug)
 
+type ClientLocalRunPolicyUpgrade
+
+type ClientLocalRuntimePolicyUpgrade
+
 pub(all) enum ClientModelInputCapacityIssue {
   ForeignCallScope
   ForeignInput
@@ -2632,6 +2701,29 @@ pub(all) struct ClientNativeLocalRuntimeMember {
   bytes : Int64
   sha256 : String
 }
+
+type ClientNativeLocalScalarRuntimePair
+
+pub(all) enum ClientNativeLocalScalarRuntimePairIssue {
+  UnknownPredecessor
+  UnsupportedPlatform
+  LibraryChanged
+  AssetChanged
+  InvalidOriginal
+  ForeignPreparation
+  Encoding
+} derive(Eq, @debug.Debug)
+
+type ClientNativeLocalScalarValuesProfile
+
+pub(all) enum ClientNativeLocalScalarValuesProfileIssue {
+  InvalidLimit
+  UnsupportedProfile
+  NonScalar
+  UnprovenExpression
+  BudgetExceeded
+  ForeignPreparation
+} derive(Eq, @debug.Debug)
 
 pub(all) struct ClientNodeModelPreparationLayout {
   response_profile : @check_environment.ModelResponseProfile

@@ -101,7 +101,20 @@ pub(all) enum Issue {
   // Common metadata/pipeline preparation before selecting demanded bindings.
   // The original typed cause is retained; this is not execution admission.
   BindingPreparation(BindingPreparationIssue)
+  // Diagnostic-only snapshot from the exact failed preparation check. The
+  // snapshot is neither a completed Program nor checking/execution authority.
+  BindingPreparationSource(BindingPreparationIssue, @builder.Source)
   Admission(@program.SyntaxError)
+}
+
+///|
+/// Ordinary callers retain the original error contract without diagnostic
+/// construction annotations. No new admission or compilation occurs here.
+pub fn issue_without_source(issue : Issue) -> Issue {
+  match issue {
+    BindingPreparationSource(cause, _) => BindingPreparation(cause)
+    _ => issue
+  }
 }
 
 ///|
@@ -6824,17 +6837,20 @@ fn capture_source_boundary(
 ///|
 // Supplied source fragments are admitted projections of a compile context.
 // This frontend does not ask a provider for rows or infer schema during check.
-pub fn compile(
+
+///|
+/// Return the existing construction owner alongside its exact admitted Program
+/// for diagnostic projection only. This is the same lowering path as compile.
+pub fn compile_with_source(
   query : @query.Query,
   context : Context,
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
-) -> Result[@program.Program, Issue] {
-  let needs_input_binding = join_requires_input_binding(query, context) catch {
-    Abort(issue) => return Err(issue)
-  }
-  if needs_input_binding ||
-    @query.terminal_command_effect_count(query) > 0 ||
+) -> Result[(@program.Program, @builder.Source), Issue] {
+  // Binding and primary scopes must be installed before inspecting a JOIN
+  // input. The standalone probe sees only Context inputs, not authored WITH
+  // producers or transformed range inputs.
+  if @query.terminal_command_effect_count(query) > 0 ||
     @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||
     has_pipe_range_input(query) ||
@@ -6842,7 +6858,18 @@ pub fn compile(
     @query.query_binding_count(query) > 0 ||
     @query.producer_primary(query) is Some(_) ||
     @query.graph_query(query) is Some(_) {
-    return compile_query_script(
+    return compile_query_script_with_source(
+      @query.single_query_script(query),
+      context,
+      limits,
+      table_writes~,
+    )
+  }
+  let needs_input_binding = join_requires_input_binding(query, context) catch {
+    Abort(issue) => return Err(issue)
+  }
+  if needs_input_binding {
+    return compile_query_script_with_source(
       @query.single_query_script(query),
       context,
       limits,
@@ -6872,7 +6899,7 @@ pub fn compile(
     return Err(UnsupportedGraph)
   }
   if query_has_join_set_operand(query) || query_has_mixed_cte_join_input(query) {
-    return compile_query_script(
+    return compile_query_script_with_source(
       @query.single_query_script(query),
       context,
       limits,
@@ -6883,7 +6910,7 @@ pub fn compile(
     // The Host requested a capture boundary. Reuse the script's existing
     // producer binding for raw/shared sources and derived-table CTEs, including
     // a single projected JOIN. Captured inputs cannot use the Values-only path.
-    return compile_query_script(
+    return compile_query_script_with_source(
       @query.single_query_script(query),
       context,
       limits,
@@ -7124,6 +7151,7 @@ fn compile_join_steps(
   right_from? : String = "r",
   step_bindings? : Map[String, String] = Map([]),
   capture_left? : Bool = false,
+  values_bound? : Int64? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if @query.operation_count(query) < 1 ||
     limits.max_join_output_rows < 1L ||
@@ -7131,7 +7159,11 @@ fn compile_join_steps(
     raise Abort(UnsupportedCte)
   }
   let part = @query.join_part_at(query, 0).unwrap()
-  let max_output_rows = authored_join_bound(part, limits)
+  let max_output_rows = if part.max_output_rows is Some(_) {
+    authored_join_bound(part, limits)
+  } else {
+    values_bound.unwrap_or_else(() => authored_join_bound(part, limits))
+  }
   let left_qualifier = @query.relation_alias(query).unwrap_or(left_name)
   let right_qualifier = part.source_alias.unwrap_or(right_name)
   if same_name(left_qualifier, right_qualifier) {
@@ -7548,7 +7580,7 @@ fn compile_set_query(
   query : @query.Query,
   context : Context,
   limits : Limits,
-) -> Result[@program.Program, Issue] {
+) -> Result[(@program.Program, @builder.Source), Issue] {
   if limits.max_expression_work < 0 ||
     context.program_id == "" ||
     context.stage_id == "" ||
@@ -8432,6 +8464,42 @@ fn join_values_rows(input : Input) -> Int raise Abort {
 }
 
 ///|
+// Preserve the existing Values-specific bound before the shared binder turns
+// the original input into a StepReference. Unknown sources retain their own
+// existing authored/default admission path.
+fn values_join_output_bound(
+  part : @query.JoinPart,
+  left : Input,
+  right : Input,
+  limits : Limits,
+) -> Int64 raise Abort {
+  if part.max_output_rows is Some(_) {
+    authored_join_bound(part, limits)
+  } else {
+    let left_rows = join_values_rows(left).to_int64()
+    let right_rows = join_values_rows(right).to_int64()
+    let factor = if part.kind == "inner" || part.kind == "cross" {
+      right_rows
+    } else if right_rows == 0L {
+      1L
+    } else {
+      right_rows
+    }
+    let extra = if part.kind == "full" { right_rows } else { 0L }
+    if extra > 9007199254740991L ||
+      (factor != 0L && left_rows > (9007199254740991L - extra) / factor) {
+      raise Abort(UnsupportedJoin)
+    }
+    let raw_bound = left_rows * factor + extra
+    let bound = if raw_bound == 0L { 1L } else { raw_bound }
+    if limits.max_join_output_rows < 1L || bound > limits.max_join_output_rows {
+      raise Abort(UnsupportedJoin)
+    }
+    bound
+  }
+}
+
+///|
 fn join_seed_stage(
   construction : Construction,
   input : Input,
@@ -9096,7 +9164,7 @@ fn compile_join_query(
   query : @query.Query,
   context : Context,
   limits : Limits,
-) -> Result[@program.Program, Issue] {
+) -> Result[(@program.Program, @builder.Source), Issue] {
   if @query.join_part_count(query) == 1 {
     validate_join_using_names(@query.join_part_at(query, 0).unwrap()) catch {
       Abort(issue) => return Err(issue)
@@ -9272,30 +9340,7 @@ fn compile_join_query(
       next,
       result_tail=Some((limits, retained)),
     )
-    let bound = if part.max_output_rows is Some(_) {
-      authored_join_bound(part, limits)
-    } else {
-      let left_rows = join_values_rows(left).to_int64()
-      let right_rows = join_values_rows(right).to_int64()
-      let factor = if part.kind == "inner" || part.kind == "cross" {
-        right_rows
-      } else if right_rows == 0L {
-        1L
-      } else {
-        right_rows
-      }
-      let extra = if part.kind == "full" { right_rows } else { 0L }
-      if extra > 9007199254740991L ||
-        (factor != 0L && left_rows > (9007199254740991L - extra) / factor) {
-        raise Abort(UnsupportedJoin)
-      }
-      let raw_bound = left_rows * factor + extra
-      let bound = if raw_bound == 0L { 1L } else { raw_bound }
-      if limits.max_join_output_rows < 1L || bound > limits.max_join_output_rows {
-        raise Abort(UnsupportedJoin)
-      }
-      bound
-    }
+    let bound = values_join_output_bound(part, left, right, limits)
     let left_stage = "aql_join_left"
     let right_stage = "aql_join_right"
     let operation = if part.kind == "cross" {
@@ -9442,4 +9487,18 @@ fn authored_join_bound(
     raise Abort(UnsupportedJoin)
   }
   bound
+}
+
+///|
+/// Ordinary compilation retains only the admitted Program. Diagnostic source
+/// annotations do not become part of its runtime retention or identity.
+pub fn compile(
+  query : @query.Query,
+  context : Context,
+  limits : Limits,
+  table_writes? : Array[TableWriteBinding] = [],
+) -> Result[@program.Program, Issue] {
+  compile_with_source(query, context, limits, table_writes~)
+  .map(pair => pair.0)
+  .map_err(issue_without_source)
 }

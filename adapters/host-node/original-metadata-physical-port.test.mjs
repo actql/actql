@@ -2,7 +2,7 @@
 // Port. Explicit synthetic layout amounts are NOT a normal physical profile,
 // complete Store funding, StoreACK/journal proof or public INFER acceptance.
 import assert from 'node:assert/strict';
-import {mkdtemp, mkdir, open, rm, writeFile} from 'node:fs/promises';
+import {lstat, mkdtemp, mkdir, open, opendir, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -14,11 +14,12 @@ import {createPrivateEvidenceKey, loadPrivateEvidenceKey,
 
 const unavailable = {code: 'InferOriginalMetadataAcquisitionUnavailable'};
 const keyId = 'sha256:' + '2'.repeat(64);
-async function fixture(t, metadata = {maxWireBytes: 271, maxLedgerEntries: 0}) {
+async function fixture(t, metadata = {maxWireBytes: 271, maxLedgerEntries: 0},
+  roles = {storeBootstrap: {maxWireBytes: 4096, maxDirectoryEntries: 128}}) {
   const state = await mkdtemp(join(tmpdir(), 'actql-c-original-metadata-port-'));
   await mkdir(join(state, 'attempts'));
   const control = runtimeCore(moon).publicationControl;
-  const f = await currentResourceFixture(moon, control, 'meta', {metadataAcquisition: {
+  const f = await currentResourceFixture(moon, control, 'meta', {...roles, metadataAcquisition: {
     metadata, directory: {maxWireBytes: 512, maxDirectoryEntries: 4},
     retainedBytes: 7000n, workspaceBytes: 3000n,
   }});
@@ -59,6 +60,115 @@ test('original metadata Port connects actual nominal Scope to bounded read/list 
   // No foreign file is available: the actual original selector still rejects
   // this owner before filesystem lookup, not merely on a missing pathname.
   await assert.rejects(f.evidence.openOriginalModelState('model-foreign', f.acquisition), unavailable);
+  assert.equal(f.sends(), 0);
+});
+
+test('selected Model opening requires the separate trusted Store role before metadata I/O', async t => {
+  const f = await fixture(t, {maxWireBytes: 271, maxLedgerEntries: 0}, {});
+  const probe = await open(f.path, 'r');
+  const prototype = Object.getPrototypeOf(probe), stat = prototype.stat;
+  await probe.close();
+  let reads = 0;
+  t.after(() => { prototype.stat = stat; });
+  prototype.stat = function(...args) {
+    if (new Error().stack.includes('at readBounded ')) reads++;
+    return Reflect.apply(stat, this, args);
+  };
+  await assert.rejects(f.evidence.openOriginalModelState('model-meta', f.acquisition), unavailable);
+  assert.equal(reads, 0);
+  await assert.rejects(lstat(join(f.state, 'private-store')), {code: 'ENOENT'});
+  // The independent metadata role remains usable, not promoted to Store I/O.
+  assert.deepEqual(await f.evidence.listOriginalModelMetadata(f.acquisition), ['model-meta']);
+  assert.equal(f.sends(), 0);
+});
+
+test('selected Model bytes use the actual Store opening clamp without ordinary fallback', async t => {
+  const f = await fixture(t, {maxWireBytes: 1024, maxLedgerEntries: 8},
+    {storeBootstrap: {maxWireBytes: 4096, maxDirectoryEntries: 0}});
+  const wire = '{"value":null,"text":"e\\u0301"}';
+  const [cid] = await f.evidence.hold('model-meta', f.runDefinition.identity,
+    [{name: 'original_model_state', wire}]);
+  const selected = await f.evidence.openOriginalModelState('model-meta', f.acquisition);
+  await assert.rejects(selected.bytes('original_model_state', cid),
+    {code: 'PublicationStoreBootstrapEntriesLimit'});
+  await assert.rejects(lstat(join(f.state, 'private-store', 'owner')), {code: 'ENOENT'});
+  // A refused selected opening did not corrupt the existing encrypted holding.
+  const ordinary = await f.evidence.open('model-meta');
+  assert.equal((await ordinary.bytes('original_model_state', cid)).toString('utf8'), wire);
+  const g = await fixture(t, {maxWireBytes: 1024, maxLedgerEntries: 8});
+  const [expected] = await g.evidence.hold('model-meta', g.runDefinition.identity,
+    [{name: 'original_model_state', wire}]);
+  const opened = await g.evidence.openOriginalModelState('model-meta', g.acquisition);
+  assert.equal((await opened.bytes('original_model_state', expected)).toString('utf8'), wire);
+  assert.equal(f.sends() + g.sends(), 0);
+});
+
+test('selected Store opening rechecks original Scope after await and releases only its Store owner', async t => {
+  const f = await fixture(t, {maxWireBytes: 1024, maxLedgerEntries: 8});
+  const [cid] = await f.evidence.hold('model-meta', f.runDefinition.identity,
+    [{name: 'original_model_state', wire: 'null'}]);
+  const selected = await f.evidence.openOriginalModelState('model-meta', f.acquisition);
+  const path = join(f.state, 'private-store');
+  const probe = await opendir(path);
+  const prototype = Object.getPrototypeOf(probe), read = prototype.read;
+  await probe.close();
+  let original, closing;
+  t.after(() => { prototype.read = read; });
+  prototype.read = function(...args) {
+    if (this.path === path && original === undefined) {
+      original = this;
+      closing = f.operation.close().catch(error => error);
+    }
+    return Reflect.apply(read, this, args);
+  };
+  await assert.rejects(selected.bytes('original_model_state', cid), unavailable);
+  prototype.read = read;
+  await closing;
+  await assert.rejects(original.read(), {code: 'ERR_DIR_CLOSED'});
+  await assert.rejects(lstat(join(path, 'owner')), {code: 'ENOENT'});
+  assert.equal(f.operation.cleanupPending(), true);
+  assert.strictEqual(f.operation.originalResourceParkCurrent(f.park), f.park);
+  assert.equal(f.sends(), 0);
+});
+
+test('selected Store failed Dir close remains in the original queue until same-handle cleanup', async t => {
+  const f = await fixture(t, {maxWireBytes: 1024, maxLedgerEntries: 8});
+  const [cid] = await f.evidence.hold('model-meta', f.runDefinition.identity,
+    [{name: 'original_model_state', wire: 'null'}]);
+  const selected = await f.evidence.openOriginalModelState('model-meta', f.acquisition);
+  const path = join(f.state, 'private-store', 'physical-holdings');
+  const probe = await opendir(path);
+  const prototype = Object.getPrototypeOf(probe), close = prototype.close;
+  await probe.close();
+  let original, failure, deny = true, attempts = 0;
+  t.after(async () => {
+    prototype.close = close;
+    deny = false;
+    if (failure?.cleanupHandle?.status().pending) await failure.cleanupHandle.retry();
+  });
+  prototype.close = function(...args) {
+    if (typeof args[0] === 'function' || this.path !== path) return Reflect.apply(close, this, args);
+    original ??= this;
+    assert.strictEqual(this, original);
+    attempts++;
+    if (deny) return Promise.resolve(false);
+    return Reflect.apply(close, this, args);
+  };
+  await assert.rejects(selected.bytes('original_model_state', cid), error => {
+    failure = error;
+    return error.cleanupHandle?.status().pending === true;
+  });
+  assert.equal((await lstat(join(f.state, 'private-store', 'owner', 'owner.json'))).isFile(), true);
+  const before = attempts;
+  await assert.rejects(f.evidence.listOriginalModelMetadata(f.acquisition), error => error === failure);
+  assert.equal(attempts, before);
+  await assert.rejects(f.operation.close(), {code: 'MoonBitHostFailure'});
+  await assert.rejects(f.evidence.close(), error => error === failure);
+  deny = false;
+  await f.evidence.close();
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  await assert.rejects(original.read(), {code: 'ERR_DIR_CLOSED'});
+  await assert.rejects(lstat(join(f.state, 'private-store', 'owner')), {code: 'ENOENT'});
   assert.equal(f.sends(), 0);
 });
 
