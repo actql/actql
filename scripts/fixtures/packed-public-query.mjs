@@ -963,8 +963,10 @@ const environment = JSON.parse(await readFile('source-environment.json', 'utf8')
 const base = JSON.parse(await readFile('base-environment.json', 'utf8'));
 const hostCapacityPolicy = {...base.host_policy_profile.capacity, ...analyticCapacity};
 environment.host_policy_profile = {...base.host_policy_profile, capacity: hostCapacityPolicy};
-environment.connector_capabilities[0].capability_contract_cids.push(
-  'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89');
+environment.connector_capabilities[0].capability_contract_cids = [
+  'sha256:2fb477209d9149ec8fa6d103fb14af3c287e2d2bc331b237dadd281f9dbab916',
+  'sha256:d3d2737da6d73801f85208a2cdfe50c412e9f7b24e8bf9807e6f804e11757dd7',
+];
 environment.connector_capabilities[0].capability_contract_cids.sort();
 delete environment.evidence_bundle_cid;
 environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')
