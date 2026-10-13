@@ -1553,6 +1553,28 @@ or `primary_key` declarations. The pinned SourceView contract
 owns those facts. Such fields are invalid rather than drift assertions that
 could disagree with the authority-bearing contract.
 
+<!-- requirement-block: sourceviews.relation-key-facts-owner sourceviews.relation-key-facts-runtime sourceviews.relation-key-facts-projection-obligations sourceviews.relation-key-facts-complete-scope sourceviews.relation-key-facts-unsupported-runtime sourceviews.relation-key-facts-no-inferred-witness -->
+For a Relation SourceView, its referenced `carrier_facts` body MAY contain
+`relation_keys: {candidate_keys: [[field, ...], ...]}`. This component is closed:
+the collection and every tuple are nonempty, names in a tuple are distinct,
+and repeated identical tuples are invalid. Other carrier-facts components
+retain their existing grammar and admission; the enclosing facts object remains
+extensible. Each component name resolves exactly against the same SourceView's
+complete checked output schema, with required presence, non-nullability and
+the existing KeyComparable value-domain rules. A declaration is conditional
+input-admission evidence, not proof obtained from a schema or sampled rows.
+
+The checker MUST retain the exact SourceView, facts Envelope, Catalog and schema
+ownership and the ordinary key-validation obligations. Before a consumer relies
+on a declared key, the runtime MUST validate it across the complete resolved
+acquisition, including duplicates on different pages and fully identical
+repeated rows. Filtering or projection MUST NOT erase that pending obligation,
+and a filtered subset MUST NOT establish uniqueness of its original acquisition.
+NULL or missing components and duplicate tuples fail atomically without a
+published Result. Missing execution support MUST be rejected before provider
+access. Provider arrival order, delivery-order labels and old facts without
+this component MUST NOT be promoted to a key or total-order witness.
+
 <!-- requirement-block: sourceviews.a-sourceview-used-as-the-keyed-right-side-of-an -->
 A SourceView used as the keyed right side of an external join MUST NOT author
 `scan`, including an empty object. Its keyed access path and bounded default
