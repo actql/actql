@@ -7,7 +7,7 @@ import {
 }
 
 // Values
-pub fn load_library(String) -> Result[Library, NativeHttpIssue]
+pub fn load_library(String, diagnostic_ceiling? : Int?) -> Result[Library, NativeHttpIssue]
 
 // Errors
 

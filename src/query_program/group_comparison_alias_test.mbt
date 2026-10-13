@@ -41,7 +41,7 @@ test "GROUP operator alias reuse does not equate distinct receivers or polarity"
   for
     source in [
       "SELECT COUNT(*) + IF(x != 1, 1, 0) AS n FROM pair GROUP BY y <> 1", "SELECT COUNT(*) + IF(x != 1, 1, 0) AS n FROM pair GROUP BY x = 1",
-      "SELECT COUNT(*) + IF(x < 1, 1, 0) AS n FROM pair GROUP BY x <= 1", "SELECT COUNT(*) + IF(old.x != 1, 1, 0) AS n FROM pair AS current GROUP BY current.x <> 1",
+      "SELECT COUNT(*) + IF(x < 1, 1, 0) AS n FROM pair GROUP BY x <= 1", "SELECT COUNT(*) + IF(old.x != 1, 1, 0) AS n FROM pair AS `current` GROUP BY current.x <> 1",
     ] {
     assert_true(
       compile(
