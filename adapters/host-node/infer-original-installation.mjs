@@ -79,10 +79,40 @@ export function selectedInferOriginalStoreBootstrapLimits(original, nodeInstalla
   return original.storeBootstrap;
 }
 
+// Private declaration selection only. The same original Model owner must
+// separately reserve its complete, justified simultaneous publication bytes.
+// Neither positive amounts nor this nominal installation select a profile,
+// restore a Ledger, acknowledge cleanup or authorize Model/Result dispatch.
+export function selectedInferOriginalPublicationCapacity(original, nodeInstallation) {
+  if (!originals.has(original) || original.nodeInstallation !== nodeInstallation ||
+      original.publicationCapacity === undefined) {
+    throw Object.assign(new Error('InferOriginalPublicationCapacityUnavailable'),
+      {code: 'InferOriginalPublicationCapacityUnavailable'});
+  }
+  return original.publicationCapacity;
+}
+
+function retainPublicationCapacity(value) {
+  if (value === undefined) return undefined;
+  if (!keys(value, 'retainedBytes,workspaceBytes')) {
+    throw new TypeError('InvalidInstalledInferPublicationCapacity');
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const retainedBytes = descriptors.retainedBytes?.value;
+  const workspaceBytes = descriptors.workspaceBytes?.value;
+  if (Reflect.ownKeys(descriptors).length !== 2 ||
+      !Object.values(descriptors).every(d => 'value' in d) ||
+      !int64(retainedBytes, 1n) || !int64(workspaceBytes, 0n)) {
+    throw new TypeError('InvalidInstalledInferPublicationCapacity');
+  }
+  // Validate and retain the same descriptor DATA without another property read.
+  return Object.freeze({retainedBytes, workspaceBytes});
+}
+
 export function retainInferOriginalReadInstallation(value) {
   if (value === undefined) return undefined;
   if (value === null || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).filter(name => !['metadataAcquisition', 'storeBootstrap', 'currentStateCodec'].includes(name)).sort().join(',') !==
+      Object.keys(value).filter(name => !['metadataAcquisition', 'storeBootstrap', 'currentStateCodec', 'publicationCapacity'].includes(name)).sort().join(',') !==
         'bootstrap,modelExecutionBytes,modelRetainedBytes,nodeInstallation' ||
       !keys(value.bootstrap,
         'bootstrapExecutionBytes,bootstrapRetainedBytes,maxDelegations,maxHoldings,maxReservations') ||
@@ -105,6 +135,7 @@ export function retainInferOriginalReadInstallation(value) {
   // still checks every original reference and all-R bound before read reserve
   // and again before one-shot claim. There is no permissive fallback.
   const metadataAcquisition = retainMetadata(value.metadataAcquisition);
+  const publicationCapacity = retainPublicationCapacity(value.publicationCapacity);
   const currentStateCodec = value.currentStateCodec===undefined ? undefined
     : snapshotInferOriginalCurrentStateCodec(value.currentStateCodec);
   const storeBootstrap = value.storeBootstrap;
@@ -124,6 +155,7 @@ export function retainInferOriginalReadInstallation(value) {
       runtimeArtifactCid: node.runtimeArtifactCid, layoutArtifactCid: node.layoutArtifactCid,
       probability: node.probability}),
     ...(metadataAcquisition === undefined ? {} : {metadataAcquisition}),
+    ...(publicationCapacity === undefined ? {} : {publicationCapacity}),
     ...(currentStateCodec === undefined ? {} : {currentStateCodec}),
     ...(storeBootstrap === undefined ? {} : {storeBootstrap: Object.freeze({...storeBootstrap})})});
   originals.add(retained);
