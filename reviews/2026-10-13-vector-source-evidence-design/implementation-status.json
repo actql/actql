@@ -22,7 +22,8 @@
     "run-PGS2CP 9/11: required null component panic and Member wrapper identity assertion",
     "run-COGgSR: WB match-arm comma compilation failure; acquisition8 not reached",
     "run-ZiVUsg synthetic connector registration/version violates existing declaration contract; all8 runtime cases not reached",
-    "run-4f4Z70 select arithmetic fixture violates select input-field grammar; bounded duplicate raw input not rejected before filter completion"
+    "run-4f4Z70 select arithmetic fixture violates select input-field grammar; bounded duplicate raw input not rejected before filter completion",
+    "run-dgMiMo stopped bounded duplicate reader resumed during pending cleanup; original typed duplicate rejection reached, cleanup failed"
   ],
   "unexecuted": [
     "successful acquisition8 and installed bounded key-validation connection",
@@ -51,10 +52,14 @@
     "f68360c69bfc0992d53aad4150129b1d4ab83264": {
       "acquisition": "run-4f4Z70 actualJS8=6 passed/2 failed, exit2",
       "qualification": "same-owner runtime reached for six cases; bounded missing validator actually reproduced; public E2E0"
+    },
+    "92d946a16a1f0dbdb67a222c56cebe3ec5dbdd3f": {
+      "acquisition": "run-dgMiMo actualJS8=7 passed/1 failed, compile succeeded, exit2",
+      "qualification": "Installed component now produces exact InputKey duplicate refusal, but subsequent cleanup advance resumes a stopped wrapper and rejects; not public acceptance"
     }
   },
   "pendingRuntimeRepair": {
-    "status": "Prepared and formatted; no compile or runtime execution for this child",
+    "status": "92d compile/acquisition7/8 evidence retained; cleanup child prepared, not executed",
     "files": [
       "src/execution_relation/input_keys.mbt",
       "src/connectors/local/guarded_relation.mbt"
@@ -63,6 +68,7 @@
     "selectedCounterexamples": "Original acquisition8, including filter-excluded duplicate pages, plus existing input-key4 and cursor4",
     "remainingBudget": "Deduct key control work from the same execution allowance before starting the selected child; do not renew it",
     "cleanup": "Retire owned tuples/map entries before dropping borrowed input and original key references; cancellation remains pending until the existing cleanup confirms",
-    "format": "run-ur87ee, pinned formatter4 exit0; not compile/runtime evidence"
+    "format": "run-ur87ee, pinned formatter4 exit0; not compile/runtime evidence",
+    "followup": "capture_residual::advance_row_capture_cleanup observes existing stopped fact before deciding whether a child may resume; pending reclamation retries same cleanup without releasing reservation"
   }
 }

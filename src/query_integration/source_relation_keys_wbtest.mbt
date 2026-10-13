@@ -307,13 +307,22 @@ test "installed bounded Source capture cannot publish duplicates hidden by its f
     }
   }
   @row_host.close_row_run(run)
+  let reserved = @resources.ledger_usage(ledger).reserved_execution_bytes
+  assert_true(reserved > 0L)
   let mut closed = false
+  let mut pending = false
   for _ in 0..<10000 {
     if @row_host.advance_row_capture_cleanup(run, 1).unwrap() {
       closed = true
       break
     }
+    pending = true
+    assert_eq(
+      @resources.ledger_usage(ledger).reserved_execution_bytes,
+      reserved,
+    )
   }
+  assert_true(pending)
   assert_true(closed)
   row_page_assert_closed(run, ledger)
   let capture_detail = match unexpected_rows {

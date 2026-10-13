@@ -59,3 +59,22 @@ affected consuming API checks and final freshness remain pending. Native/Wasm
 execution, new packaging, installed Local/HTTPS and public adoption are zero.
 The original typed hash-map operations are retained; these selected checks do
 not claim a whole-engine/all-domain boundedness campaign.
+
+## First continuation execution and cleanup follow-up
+
+Fixed `92d946a16a1f0dbdb67a222c56cebe3ec5dbdd3f` compiled successfully at
+`run-dgMiMo`; acquisition was 7/8, exit 2. The installed duplicate reached the
+exact expected `InputKey(0, DuplicateKey(0, 1))` refusal. Its subsequent cleanup
+failed because `advance_row_capture_cleanup` resumed an already stopped wrapper
+after provider cleanup returned pending. Original raw logs, focused reports and
+that compiled module are preserved in workspace
+`reviews/2026-10-13-b-vector-release-consumer-evidence/source-key-run-dgMiMo`.
+Owner 17819, children/group, compiler and locks ended; that does not declare the
+failed in-process cleanup successful.
+
+The follow-up observes existing `managed_provider_stopped` before resuming.
+A stopped child remains owned and cleanup is retried through the same callback;
+running cancellation observation still advances under the original quantum.
+No refusal is caught, no terminal failure is replaced and no capacity is returned
+while reclamation remains pending. The original duplicate case now also checks
+that pending cleanup retains the exact execution reservation until complete.
