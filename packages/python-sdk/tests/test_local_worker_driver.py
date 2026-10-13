@@ -3,11 +3,13 @@ import asyncio
 import copy
 import unittest
 import httpx
+from actql_sdk import AsyncClient, ClientError
 
 from actql_sdk._local_worker_driver import (_OriginalWorkerChannel, OriginalWorkerDriver,
     LocalWorkerDriverPending)
 from actql_sdk._local_worker_funding import LocalWorkerFundingUnavailable
 import test_local_worker_funding as funding_fixture
+from fixtures import PROFILE
 
 PAYLOAD = b'{"connection":{"mode":"local","owner":"local","durability":"durable","consentRefs":[],"runners":[]}}'
 
@@ -126,3 +128,18 @@ class WorkerDriverTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError): await clone.start()
         with self.assertRaises(ValueError): OriginalWorkerDriver(self.funding, lambda original: self.channel)
         self.assertEqual(self.channel.calls, [])
+    async def test_existing_sdk_local_connection_consumes_same_wire_driver(self):
+        await self.driver.start()
+        profile = copy.deepcopy(PROFILE); profile.update(mode='local', owner='local')
+        self.channel.response = httpx.Response(200, json=profile)
+        client = await AsyncClient._connect_local(self.driver)
+        self.assertIs(client._local_host, self.driver)
+        self.assertEqual(sum(c[0] == 'exchange' for c in self.channel.calls), 1)
+        await client.aclose()
+        self.assertEqual(self.channel.calls.count(('close',)), 1)
+    async def test_existing_sdk_rejects_invalid_reply_instead_of_empty_success(self):
+        await self.driver.start()
+        self.channel.response = httpx.Response(200, json={'unexpected': True})
+        with self.assertRaises(ClientError): await AsyncClient._connect_local(self.driver)
+        self.assertTrue(self.driver._closed)
+        self.assertEqual(self.channel.calls.count(('close',)), 1)
