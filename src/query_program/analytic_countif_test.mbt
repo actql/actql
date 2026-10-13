@@ -83,7 +83,7 @@ test "analytic COUNTIF retains explicit frame and input snapshot scope" {
   for
     text in [
       "SELECT flag AS invented, COUNTIF(invented) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n FROM flags",
-      "FROM flags AS old |> AS current |> SELECT COUNTIF(old.flag) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n",
+      "FROM flags AS old |> AS `current` |> SELECT COUNTIF(old.flag) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n",
     ] {
     assert_true(
       compile(

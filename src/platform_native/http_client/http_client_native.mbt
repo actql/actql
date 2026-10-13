@@ -6,7 +6,11 @@ type Client
 
 ///|
 #borrow(path)
-extern "C" fn load_library_ffi(path : Bytes, length : Int) -> Library = "actql_native_http_load_library"
+extern "C" fn load_library_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+) -> Library = "actql_native_http_load_library"
 
 ///|
 #borrow(library)
@@ -141,21 +145,42 @@ fn decode_message(bytes : Bytes) -> String {
 }
 
 ///|
+fn decode_diagnostic(bytes : Bytes) -> String {
+  if bytes.is_empty() {
+    "HTTP diagnostic detail omitted"
+  } else {
+    @utf8.decode_lossy(bytes)
+  }
+}
+
+///|
 fn valid_path(path : String) -> Bool {
   !path.is_empty() && path.length() <= 4096 && !path.contains("\u{0}")
 }
 
 ///|
-pub fn load_library(path : String) -> Result[Library, NativeHttpIssue] {
+/// Select from trusted installer configuration bound to its source/ABI.
+/// Omission preserves legacy behavior; this bound issues no funding/authority.
+pub fn load_library(
+  path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Library, NativeHttpIssue] {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(InvalidConfiguration)
+  }
   if !valid_path(path) {
     return Err(InvalidConfiguration)
   }
   let encoded = @utf8.encode(path)
-  let library = load_library_ffi(encoded, encoded.length())
+  let library = load_library_ffi(
+    encoded,
+    encoded.length(),
+    diagnostic_ceiling.unwrap_or(0),
+  )
   if library_ready_ffi(library) {
     Ok(library)
   } else {
-    Err(LibraryLoad(decode_message(library_error_ffi(library))))
+    Err(LibraryLoad(decode_diagnostic(library_error_ffi(library))))
   }
 }
 
@@ -202,7 +227,7 @@ pub fn Library::create_client(
   if client_ready_ffi(client) {
     Ok(client)
   } else {
-    Err(ClientCreate(decode_message(client_error_ffi(client))))
+    Err(ClientCreate(decode_diagnostic(client_error_ffi(client))))
   }
 }
 
@@ -260,7 +285,7 @@ pub fn Library::create_authenticated_client(
   if client_ready_ffi(client) {
     Ok(client)
   } else {
-    Err(ClientCreate(decode_message(client_error_ffi(client))))
+    Err(ClientCreate(decode_diagnostic(client_error_ffi(client))))
   }
 }
 
@@ -287,7 +312,7 @@ pub fn Client::post_json(
     2 => Err(Cancelled)
     3 => Err(Closed)
     5 => Err(CredentialUnavailable)
-    _ => Err(Transport(decode_message(client_error_ffi(self))))
+    _ => Err(Transport(decode_diagnostic(client_error_ffi(self))))
   }
 }
 
@@ -382,7 +407,7 @@ pub fn Client::request(
     3 => Err(Closed)
     5 => Err(CredentialUnavailable)
     6 => Err(InvalidRequest)
-    _ => Err(Transport(decode_message(client_error_ffi(self))))
+    _ => Err(Transport(decode_diagnostic(client_error_ffi(self))))
   }
 }
 
@@ -455,7 +480,7 @@ pub fn Client::request_bearer_file(
     4 => Err(DeadlineExpired)
     5 => Err(CredentialUnavailable)
     6 => Err(InvalidRequest)
-    _ => Err(Transport(decode_message(client_error_ffi(self))))
+    _ => Err(Transport(decode_diagnostic(client_error_ffi(self))))
   }
 }
 

@@ -110,7 +110,7 @@ class OriginalMetadataTests(unittest.TestCase):
             self.assertEqual(core._inputs[value.ticket].payload, b'')
 
     def test_closed_export_shape_matches_current_private_abi(self):
-        self.assertEqual(LOCAL_CORE_ABI, 59)
+        self.assertEqual(LOCAL_CORE_ABI, 63)
         self.assertEqual(_ORIGINAL_SIGNATURES, {
             'reserve': ('i64 i32 i32 i32 i64', 'i32'),
             'produce': ('i64 i32', 'i32'),

@@ -1,6 +1,6 @@
 ///|
 fn ranking_fusion_source(call : String) -> String {
-  "WITH l AS (SELECT 1 AS id, 1 AS position UNION ALL SELECT 2, 2), r AS (SELECT 2 AS id, 1 AS position UNION ALL SELECT 3, 2), fused AS (FROM l AS current |> " +
+  "WITH l AS (SELECT 1 AS id, 1 AS position UNION ALL SELECT 2, 2), r AS (SELECT 2 AS id, 1 AS position UNION ALL SELECT 3, 2), fused AS (FROM l AS `current` |> " +
   call +
   ") SELECT id, score, rank FROM fused ORDER BY rank"
 }
@@ -69,7 +69,7 @@ fn ranking_fusion_program(text : String) -> @program.Program raise {
 
 ///|
 test "RRF producer list preserves quotation scope and repeated group roles" {
-  let text = "WITH l AS (SELECT 1 AS id, 1 AS position, 7 AS group_id), `ranking.right` AS (SELECT 2 AS id, 1 AS position, 7 AS group_id), fused AS (FROM l AS current |> merge_rankings(with: [`ranking.right`, `ranking.right`], by: [current.group_id, group_id], candidate: id, rank: position, k: 3, score_policy: {RRF: {RANK_CONSTANT: 1, WEIGHTS: [1, 0, 2], RANK_WINDOW: 2}})) SELECT group_id, id, score, rank FROM fused ORDER BY group_id, rank"
+  let text = "WITH l AS (SELECT 1 AS id, 1 AS position, 7 AS group_id), `ranking.right` AS (SELECT 2 AS id, 1 AS position, 7 AS group_id), fused AS (FROM l AS `current` |> merge_rankings(with: [`ranking.right`, `ranking.right`], by: [current.group_id, group_id], candidate: id, rank: position, k: 3, score_policy: {RRF: {RANK_CONSTANT: 1, WEIGHTS: [1, 0, 2], RANK_WINDOW: 2}})) SELECT group_id, id, score, rank FROM fused ORDER BY group_id, rank"
   let actual = ranking_fusion_program(text)
   let body = with_carrier_argument(actual, "merge_rankings")
   assert_true(body.contains("\"by\":[\"group_id\",\"group_id\"]"))
@@ -100,7 +100,7 @@ test "repeated RRF input references share the original installed Values once" {
 
 ///|
 test "ranking fields cannot restore a dropped column or old row range" {
-  let prefix = "WITH l AS (SELECT 1 AS id, 1 AS position), r AS (SELECT 2 AS id, 1 AS position), kept AS (SELECT id FROM l) FROM kept AS current |> "
+  let prefix = "WITH l AS (SELECT 1 AS id, 1 AS position), r AS (SELECT 2 AS id, 1 AS position), kept AS (SELECT id FROM l) FROM kept AS `current` |> "
   for field in ["position", "old.id"] {
     let source = prefix +
       "merge_rankings(with: r, by: [], candidate: current.id, rank: " +

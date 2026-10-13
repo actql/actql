@@ -30,6 +30,7 @@ class LocalArtifactProducerTests(unittest.TestCase):
         self.source = self.root / 'source'
         self.source.mkdir()
         paths = ['toolchain.json', 'vendor/duckdb/1.4.3/manifest.json',
+                 'packages/python-product/pyproject.toml',
                  'packages/python-sdk/pyproject.toml', 'packages/python-local-runtime/pyproject.toml',
                  'packages/python-local-runtime/setup.py',
                  'packages/python-local-runtime/src/actql_local_runtime/__init__.py']

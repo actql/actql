@@ -23,6 +23,9 @@ typedef EVP_PKEY *(*actql_pem_read_bio_pubkey_fn)(
 );
 typedef void (*actql_evp_pkey_free_fn)(EVP_PKEY *);
 typedef int (*actql_evp_pkey_get_base_id_fn)(const EVP_PKEY *);
+typedef int (*actql_evp_pkey_get_raw_public_key_fn)(
+  const EVP_PKEY *, unsigned char *, size_t *
+);
 typedef EVP_MD_CTX *(*actql_evp_md_ctx_new_fn)(void);
 typedef void (*actql_evp_md_ctx_free_fn)(EVP_MD_CTX *);
 typedef int (*actql_evp_digest_verify_init_fn)(
@@ -48,6 +51,7 @@ enum {
 typedef struct {
   void *dynamic_library;
   char *error;
+  int32_t diagnostic_ceiling;
   actql_bio_new_mem_buf_fn bio_new_mem_buf;
   actql_bio_free_fn bio_free;
   actql_pem_read_bio_pubkey_fn pem_read_bio_pubkey;
@@ -63,16 +67,34 @@ typedef struct {
   actql_evp_digest_final_ex_fn evp_digest_final_ex;
   actql_err_get_error_fn err_get_error;
   actql_err_error_string_n_fn err_error_string_n;
+  actql_evp_pkey_get_raw_public_key_fn evp_pkey_get_raw_public_key;
 } actql_native_signature_library;
 
-static void actql_replace_error(char **target, const char *message) {
+// An explicit installer ceiling is independent of row/response limits.
+// Zero preserves legacy callers, never evidence of a funded numeric profile.
+// Omitted detail is not a valid prefix and cannot erase the original failure.
+static bool actql_diagnostic_length(
+  const char *message, int32_t ceiling, size_t *length
+) {
+  if (message == NULL) return false;
+  if (ceiling <= 0) { *length = strlen(message); return true; }
+  for (size_t i = 0; i <= (size_t)ceiling; i++) {
+    if (message[i] == '\0') { *length = i; return true; }
+  }
+  return false;
+}
+
+static void actql_replace_error(
+  char **target, int32_t ceiling, const char *message
+) {
   free(*target);
   *target = NULL;
-  if (message == NULL) return;
-  size_t length = strlen(message);
+  size_t length;
+  if (!actql_diagnostic_length(message, ceiling, &length)) return;
   char *copy = malloc(length + 1);
   if (copy == NULL) return;
-  memcpy(copy, message, length + 1);
+  memcpy(copy, message, length);
+  copy[length] = '\0';
   *target = copy;
 }
 
@@ -85,9 +107,10 @@ static char *actql_copy_text(moonbit_bytes_t bytes, int32_t length) {
   return text;
 }
 
-static moonbit_bytes_t actql_copy_message(const char *text) {
-  size_t length = text == NULL ? 0 : strlen(text);
-  if (length > INT32_MAX) length = INT32_MAX;
+static moonbit_bytes_t actql_copy_diagnostic(const char *text, int32_t ceiling) {
+  size_t length;
+  if (!actql_diagnostic_length(text, ceiling, &length) || length > INT32_MAX)
+    length = 0;
   moonbit_bytes_t bytes = moonbit_make_bytes_raw((int32_t)length);
   if (length > 0) memcpy(bytes, text, length);
   return bytes;
@@ -102,7 +125,7 @@ static bool actql_load_symbol(
   *target = dlsym(library->dynamic_library, name);
   const char *error = dlerror();
   if (error == NULL && *target != NULL) return true;
-  actql_replace_error(&library->error, error == NULL ? name : error);
+  actql_replace_error(&library->error, library->diagnostic_ceiling, error == NULL ? name : error);
   return false;
 }
 
@@ -125,12 +148,12 @@ static void actql_openssl_error(
 ) {
   unsigned long code = library->err_get_error();
   if (code == 0) {
-    actql_replace_error(&library->error, fallback);
+    actql_replace_error(&library->error, library->diagnostic_ceiling, fallback);
     return;
   }
   char buffer[256];
   library->err_error_string_n(code, buffer, sizeof(buffer));
-  actql_replace_error(&library->error, buffer);
+  actql_replace_error(&library->error, library->diagnostic_ceiling, buffer);
 }
 
 static int actql_base64url_value(unsigned char character) {
@@ -170,22 +193,24 @@ static bool actql_decode_ed25519_signature(
 MOONBIT_FFI_EXPORT
 void *actql_native_signature_load_library(
   moonbit_bytes_t path,
-  int32_t length
+  int32_t length,
+  int32_t diagnostic_ceiling
 ) {
   actql_native_signature_library *library = moonbit_make_external_object(
     actql_native_signature_library_finalize,
     sizeof(actql_native_signature_library)
   );
   memset(library, 0, sizeof(*library));
+  library->diagnostic_ceiling = diagnostic_ceiling;
   char *name = actql_copy_text(path, length);
   if (name == NULL) {
-    actql_replace_error(&library->error, "invalid crypto library path");
+    actql_replace_error(&library->error, library->diagnostic_ceiling, "invalid crypto library path");
     return library;
   }
   library->dynamic_library = dlopen(name, RTLD_NOW | RTLD_LOCAL);
   free(name);
   if (library->dynamic_library == NULL) {
-    actql_replace_error(&library->error, dlerror());
+    actql_replace_error(&library->error, library->diagnostic_ceiling, dlerror());
     return library;
   }
   if (!ACTQL_LOAD(library, bio_new_mem_buf, "BIO_new_mem_buf") ||
@@ -356,7 +381,58 @@ MOONBIT_FFI_EXPORT
 moonbit_bytes_t actql_native_signature_library_error(
   actql_native_signature_library *library
 ) {
-  return actql_copy_message(library == NULL ? "invalid library" : library->error);
+  return library == NULL ? moonbit_make_bytes_raw(0) :
+    actql_copy_diagnostic(library->error, library->diagnostic_ceiling);
+}
+
+MOONBIT_FFI_EXPORT
+int32_t actql_native_signature_ed25519_public_key_raw32(
+  actql_native_signature_library *library,
+  moonbit_bytes_t public_key,
+  int32_t public_key_length,
+  moonbit_bytes_t output,
+  int32_t output_length
+) {
+  if (library == NULL || library->dynamic_library == NULL ||
+      library->diagnostic_ceiling <= 0 || public_key == NULL ||
+      public_key_length <= 0 || public_key_length > 16384 ||
+      memchr(public_key, 0, (size_t)public_key_length) != NULL ||
+      output == NULL || output_length != 32) return 2;
+  memset(output, 0, 32);
+  actql_replace_error(&library->error, library->diagnostic_ceiling, NULL);
+  // Optional comparison support does not expand legacy load requirements.
+  if (library->evp_pkey_get_raw_public_key == NULL &&
+      !ACTQL_LOAD(library, evp_pkey_get_raw_public_key,
+                  "EVP_PKEY_get_raw_public_key")) return 5;
+  BIO *bio = library->bio_new_mem_buf(public_key, public_key_length);
+  if (bio == NULL) {
+    actql_openssl_error(library, "public key buffer failed");
+    return 3;
+  }
+  EVP_PKEY *key = library->pem_read_bio_pubkey(bio, NULL, NULL, NULL);
+  library->bio_free(bio);
+  if (key == NULL) {
+    actql_openssl_error(library, "public key decode failed");
+    return 3;
+  }
+  if (library->evp_pkey_get_base_id(key) != ACTQL_NID_ED25519) {
+    library->evp_pkey_free(key);
+    actql_replace_error(&library->error, library->diagnostic_ceiling,
+                        "public key is not Ed25519");
+    return 4;
+  }
+  // https://docs.openssl.org/3.0/man3/EVP_PKEY_new/
+  // OpenSSL takes capacity on entry and returns the actual length on exit.
+  // This projection is comparison material, never a grant CID or permission.
+  size_t length = 32;
+  int result = library->evp_pkey_get_raw_public_key(key, output, &length);
+  library->evp_pkey_free(key);
+  if (result != 1 || length != 32) {
+    memset(output, 0, 32);
+    actql_openssl_error(library, "public key projection failed");
+    return 5;
+  }
+  return 0;
 }
 
 MOONBIT_FFI_EXPORT
@@ -379,7 +455,7 @@ int32_t actql_native_signature_verify_ed25519(
         signature, signature_length, decoded)) {
     return 2;
   }
-  actql_replace_error(&library->error, NULL);
+  actql_replace_error(&library->error, library->diagnostic_ceiling, NULL);
   BIO *bio = library->bio_new_mem_buf(public_key, public_key_length);
   if (bio == NULL) {
     actql_openssl_error(library, "public key buffer failed");
@@ -393,7 +469,7 @@ int32_t actql_native_signature_verify_ed25519(
   }
   if (library->evp_pkey_get_base_id(key) != ACTQL_NID_ED25519) {
     library->evp_pkey_free(key);
-    actql_replace_error(&library->error, "public key is not Ed25519");
+    actql_replace_error(&library->error, library->diagnostic_ceiling, "public key is not Ed25519");
     return 4;
   }
   EVP_MD_CTX *context = library->evp_md_ctx_new();

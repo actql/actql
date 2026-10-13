@@ -131,7 +131,7 @@ test "SELECT range lifetime keeps current output aliases and new AS ranges" {
       "FROM pair AS old |> SELECT * |> WHERE x = 7 |> SELECT x", "FROM pair AS old |> SELECT old.* |> WHERE x = 7 |> SELECT x",
       "FROM pair AS old |> SELECT x |> ORDER BY x |> WHERE x = 7 |> SELECT x", "FROM pair AS old |> SELECT x |> EXTEND x + 1 AS z |> SELECT z",
       "FROM pair AS old |> SELECT x |> AS old |> WHERE old.x = 7 |> SELECT old.x",
-      "FROM pair AS old |> SELECT x |> AS current |> WHERE current.x = 7 |> SELECT current.x",
+      "FROM pair AS old |> SELECT x |> AS `current` |> WHERE current.x = 7 |> SELECT current.x",
       "FROM pair AS old |> SELECT x |> RESULT prefix |> WHERE x = 7 |> RESULT answer",
       "FROM pair AS old |> SELECT x |> AGGREGATE COUNT(*) AS n GROUP BY x |> SELECT x, n",
     ] {

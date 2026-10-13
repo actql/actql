@@ -1,5 +1,6 @@
 """One original Core/File/Store inspection; no independent recovery decisions."""
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import ExitStack, contextmanager
 import sqlite3
 from typing import Literal, TypeVar
 
@@ -36,13 +37,17 @@ class OriginalStoreReconciliation:
     No Source, Compute, Run, write, automatic lookup retry or replay is started.
     """
 
-    def __init__(self, projection: OriginalCommitProjection, facts: OriginalReaderFacts,
+    def __init__(self, projection: OriginalCommitProjection, facts: tuple[OriginalReaderFacts, ...],
                  store: LocalByteStore,
                  originals: tuple[tuple[ByteFence, CapacityReservation], ...],
                  publisher: _Output, lookup: OriginalObservationTransfer,
                  response: OriginalObservationTransfer) -> None:
         if (type(projection) is not OriginalCommitProjection
-                or type(facts) is not OriginalReaderFacts or facts._projection is not projection
+                or type(facts) is not tuple or not facts
+                or any(type(fact) is not OriginalReaderFacts or fact._projection is not projection
+                       or fact._result != index
+                       for index, fact in enumerate(facts))
+                or len({id(fact) for fact in facts}) != len(facts)
                 or type(store) is not LocalByteStore
                 or type(lookup) is not OriginalObservationTransfer
                 or type(response) is not OriginalObservationTransfer or lookup is response
@@ -71,6 +76,29 @@ class OriginalStoreReconciliation:
         if self._original is not self:
             raise ValueError('Copied original Store reconciliation')
 
+    @contextmanager
+    def _serialized_facts(self) -> Iterator[None]:
+        # Every original descriptor remains locked/pinned through the same
+        # current Store snapshot and Owner adoption, including later ordinals.
+        with ExitStack() as loans:
+            for fact in self._facts:
+                loans.enter_context(fact.serialized())
+            yield
+
+    def _before_lookup(self) -> None:
+        if self._projection._core.publication_commit_result_count(
+                self._projection._publication, self._projection._configuration) != len(self._facts):
+            raise ValueError('Incomplete original Store reader inventory')
+        for fact in self._facts:
+            fact.before_lookup(self._publisher)
+        # A publisher callback for a later ordinal may change earlier facts.
+        # Revalidate the full retained inventory before any query/action escapes.
+        self._validate_facts()
+
+    def _validate_facts(self) -> None:
+        for fact in self._facts:
+            fact.validate()
+
     def _query(self, read: Callable[[str, Callable[[StoredBytes | None], object]], None],
                key: str, consume: Callable[[StoredBytes | None], object]) -> None:
         try:
@@ -78,7 +106,7 @@ class OriginalStoreReconciliation:
         except sqlite3.Error:
             # Run this while the original projection loan is still live. Do not
             # erase the physical failure or let the Store's latched reader pass.
-            self._facts.before_lookup(self._publisher)
+            self._before_lookup()
             self._response.transfer_query_failure()
             raise
 
@@ -100,11 +128,11 @@ class OriginalStoreReconciliation:
             self._binding = binding
             self._entered = self._active = True
             try:
-                with self._facts.serialized():
+                with self._serialized_facts():
                     if binding is None:
                         self._store.inspect_publication_projected_attached(
                             self._inspect, self._originals,
-                            current=lambda: self._facts.before_lookup(self._publisher))
+                            current=lambda: self._before_lookup())
                     else:
                         with binding.fenced() as fences:
                             self._store.inspect_publication_projected_inspected(
@@ -112,7 +140,7 @@ class OriginalStoreReconciliation:
                                 namespace=lambda reader, consume:
                                     binding.inspect_reader(reader, lambda _: consume()),
                                 current=binding.current,
-                                before_lookup=lambda: self._facts.before_lookup(self._publisher))
+                                before_lookup=lambda: self._before_lookup())
             finally:
                 self._active = False
 
@@ -145,7 +173,7 @@ class OriginalStoreReconciliation:
         self._query(read, index_key, index_row)
         if index is None:
             raise LocalStorageError('Original stored index transfer is incomplete')
-        self._facts.before_lookup(self._publisher)
+        self._before_lookup()
         self._lookup.transfer_lookup_inputs(reference, index)
         def retain_index(raw: bytes) -> None:
             self._response.retain_source(raw)
@@ -160,7 +188,7 @@ class OriginalStoreReconciliation:
             self._projection.project_stored_contract_lookup_key(
                 field, lambda key: self._query(read, key, contract_row))
         _, request, attempt = self._response.pending_sources
-        self._facts.before_lookup(self._publisher)
+        self._before_lookup()
         self._response.transfer_stored_inputs(request, attempt, actual_index)
 
     def advance(self, quantum: int) -> LocalResultProgress:
@@ -170,12 +198,12 @@ class OriginalStoreReconciliation:
             self._nominal()
             if self._active or not self._entered:
                 raise RuntimeError('Original Store observation transfer is not available')
-            with self._facts.serialized():
+            with self._serialized_facts():
                 def consume() -> LocalResultProgress:
-                    self._facts.before_lookup(self._publisher)
+                    self._before_lookup()
                     progress = core.advance_publication_observation(
                         self._projection._publication, self._projection._configuration, quantum)
-                    self._facts.validate()
+                    self._validate_facts()
                     return progress
                 return self._current_call(consume)
 
@@ -186,14 +214,95 @@ class OriginalStoreReconciliation:
             self._nominal()
             if self._active or not self._entered:
                 raise RuntimeError('Original Store observation transfer is not available')
-            with self._facts.serialized():
+            with self._serialized_facts():
                 def consume() -> Literal['append_unknown', 'confirm_uncommitted_failure', 'adopt_committed_index']:
-                    self._facts.before_lookup(self._publisher)
+                    self._before_lookup()
                     action = core.finish_publication_observation(
                         self._projection._publication, self._projection._configuration)
-                    self._facts.validate()
+                    self._validate_facts()
                     return action
                 return self._current_call(consume)
+
+    def project_observed_index(self, consume: Callable[[bytes, bytes], object]) -> None:
+        """Transport the actual admitted index under the same complete File/current frame.
+
+        The existing Core export refuses unfinished, absent, failed or retired
+        observations and independently rechecks the original publisher. No action
+        code or Python comparison is elevated to admission, ACK or Run success.
+        """
+        if not callable(consume):
+            raise ValueError('Invalid original observed index consumer')
+        core = self._projection._core
+        with core._lock:
+            self._nominal()
+            if self._active or not self._entered:
+                raise RuntimeError('Original Store observation transfer is not available')
+            with self._serialized_facts():
+                def project() -> None:
+                    self._before_lookup()
+                    def transfer(identity: bytes, body: bytes) -> None:
+                        self._validate_facts()
+                        if consume(identity, body) is not None:
+                            raise ValueError('Invalid synchronous observed index consumer result')
+                        # Failed consumers/current checks retain the same output
+                        # reservations until explicit original-loan cleanup.
+                        self._validate_facts()
+                    self._projection.project_observed_index(transfer)
+                self._current_call(project)
+
+    def project_run_state(self, observed_at: _Input,
+                          consume: Callable[[bytes], object]) -> None:
+        """Keep all original File facts/current Store through Core observation.
+
+        Core independently checks the completed stored chain and Account read.
+        No action, physical COMMIT return or Python comparison supplies status.
+        """
+        if not callable(consume):
+            raise ValueError('Invalid original Run observation consumer')
+        core = self._projection._core
+        with core._lock:
+            self._nominal()
+            core._owned_input(observed_at)
+            if self._active or not self._entered:
+                raise RuntimeError('Original Store observation transfer is not available')
+            with self._serialized_facts():
+                def project() -> None:
+                    self._before_lookup()
+                    def transfer(raw: bytes) -> None:
+                        self._validate_facts()
+                        if consume(raw) is not None:
+                            raise ValueError('Invalid synchronous Run observation consumer result')
+                        self._validate_facts()
+                    self._projection.project_run_state(observed_at, transfer)
+                self._current_call(project)
+
+    def project_sdk_read_original(self, request: _Input, original_run: int,
+                                  ordinal: int,
+                                  consume: Callable[[bytes, bytes], object]) -> None:
+        """Use the same original six File facts and actual current Store frame.
+
+        Core chooses the saved finite packet/selection and checks its current
+        independent publisher and Account permissions. This physical holder
+        creates no scope, Allow, grant, Run state or Store acknowledgement.
+        """
+        if not callable(consume):
+            raise ValueError('Invalid original SDK read consumer')
+        core = self._projection._core
+        with core._lock:
+            self._nominal()
+            core._owned_input(request)
+            if self._active or not self._entered:
+                raise RuntimeError('Original Store observation transfer is not available')
+            with self._serialized_facts():
+                def project() -> None:
+                    self._before_lookup()
+                    def transfer(identity: bytes, body: bytes) -> None:
+                        self._validate_facts()
+                        if consume(identity, body) is not None:
+                            raise ValueError('Invalid synchronous SDK original consumer result')
+                        self._validate_facts()
+                    self._projection.project_sdk_read_original(request, original_run, ordinal, transfer)
+                self._current_call(project)
 
     def _current_call(self, consume: Callable[[], _T]) -> _T:
         # File/Core locks are held by the caller before the fresh Store frame.

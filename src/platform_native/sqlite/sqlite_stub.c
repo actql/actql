@@ -52,6 +52,7 @@ typedef int (*actql_sqlite_get_autocommit_fn)(sqlite3 *);
 typedef struct {
   void *dynamic_library;
   char *error;
+  int32_t diagnostic_ceiling;
   actql_sqlite_libversion_fn libversion;
   actql_sqlite_libversion_number_fn libversion_number;
   actql_sqlite_open_v2_fn open_v2;
@@ -85,6 +86,7 @@ typedef struct {
   int64_t result_capacity_bytes;
   int64_t result_capacity_objects;
   int64_t max_body_bytes;
+  int32_t diagnostic_ceiling;
   bool opened;
   int test_close_failures;
   int test_commit_failures;
@@ -94,14 +96,32 @@ typedef struct {
   int test_checked_close_count;
 } actql_native_sqlite_database;
 
-static void actql_replace_error(char **target, const char *message) {
+// A positive ceiling is selected by the trusted installer, independently of
+// SQL row limits. Zero preserves legacy callers and is not funded-profile proof.
+// Never return a bounded prefix as a complete diagnostic. NULL also represents
+// allocation/diagnostic failure; the MoonBit boundary supplies fixed omitted text.
+static bool actql_diagnostic_length(
+  const char *message, int32_t ceiling, size_t *length
+) {
+  if (message == NULL) return false;
+  if (ceiling <= 0) { *length = strlen(message); return true; }
+  for (size_t i = 0; i <= (size_t)ceiling; i++) {
+    if (message[i] == '\0') { *length = i; return true; }
+  }
+  return false;
+}
+
+static void actql_replace_error(
+  char **target, int32_t ceiling, const char *message
+) {
   free(*target);
   *target = NULL;
-  if (message == NULL) return;
-  size_t length = strlen(message);
+  size_t length;
+  if (!actql_diagnostic_length(message, ceiling, &length)) return;
   char *copy = malloc(length + 1);
   if (copy == NULL) return;
-  memcpy(copy, message, length + 1);
+  memcpy(copy, message, length);
+  copy[length] = '\0';
   *target = copy;
 }
 
@@ -137,7 +157,7 @@ static void actql_clear_result(actql_native_sqlite_database *database) {
   database->result_revision = 0;
   database->result_capacity_bytes = 0;
   database->result_capacity_objects = 0;
-  actql_replace_error(&database->error, NULL);
+  actql_replace_error(&database->error, database->diagnostic_ceiling, NULL);
 }
 
 static void actql_database_error(
@@ -149,7 +169,7 @@ static void actql_database_error(
     const char *sqlite_message = database->library->errmsg(database->database);
     if (sqlite_message != NULL) message = sqlite_message;
   }
-  actql_replace_error(&database->error, message);
+  actql_replace_error(&database->error, database->diagnostic_ceiling, message);
 }
 
 static int32_t actql_operation_code(int sqlite_code) {
@@ -196,13 +216,14 @@ void *actql_native_sqlite_open_inspection_database(
   database->library = library;
   if (library != NULL) moonbit_incref(library);
   database->max_body_bytes = max_body_bytes;
+  database->diagnostic_ceiling = library == NULL ? 0 : library->diagnostic_ceiling;
   if (library == NULL || library->dynamic_library == NULL) {
-    actql_replace_error(&database->error, "SQLite library is unavailable");
+    actql_replace_error(&database->error, database->diagnostic_ceiling, "SQLite library is unavailable");
     return database;
   }
   char *text = actql_copy_text(path, length);
   if (text == NULL) {
-    actql_replace_error(&database->error, "inspection path allocation failed");
+    actql_replace_error(&database->error, database->diagnostic_ceiling, "inspection path allocation failed");
     return database;
   }
   int code = library->open_v2(text, &database->database,
@@ -221,7 +242,7 @@ int32_t actql_native_sqlite_close_checked(
   database->test_checked_close_count++;
   if (database->test_close_failures > 0) {
     database->test_close_failures--;
-    actql_replace_error(&database->error, "injected inspection close failure");
+    actql_replace_error(&database->error, database->diagnostic_ceiling, "injected inspection close failure");
     return 0;
   }
   int code = database->library->close_v2(database->database);
@@ -287,7 +308,7 @@ static bool actql_load_symbol(
   *target = dlsym(library->dynamic_library, name);
   const char *error = dlerror();
   if (error == NULL && *target != NULL) return true;
-  actql_replace_error(&library->error, error == NULL ? name : error);
+  actql_replace_error(&library->error, library->diagnostic_ceiling, error == NULL ? name : error);
   return false;
 }
 
@@ -308,7 +329,7 @@ static int actql_exec(
   );
   if (code != SQLITE_OK) {
     actql_replace_error(
-      &database->error,
+      &database->error, database->diagnostic_ceiling,
       message == NULL ? "SQLite execution failed" : message
     );
   }
@@ -364,7 +385,7 @@ int32_t actql_native_sqlite_inspection_schema(
   actql_native_sqlite_database *database
 ) {
   if (!database->opened || actql_user_version(database) != 3) {
-    actql_replace_error(&database->error, "unsupported inspection SQLite schema");
+    actql_replace_error(&database->error, database->diagnostic_ceiling, "unsupported inspection SQLite schema");
     return 0;
   }
   const char *names[] = {"actql_records", "actql_capacity", "actql_claims"};
@@ -391,7 +412,7 @@ int32_t actql_native_sqlite_inspection_schema(
     if (statement != NULL && database->library->finalize(statement) != SQLITE_OK)
       matches = 0;
     if (!matches) {
-      actql_replace_error(&database->error, "unknown inspection SQLite schema");
+      actql_replace_error(&database->error, database->diagnostic_ceiling, "unknown inspection SQLite schema");
       return 0;
     }
   }
@@ -409,7 +430,7 @@ static bool actql_initialize_schema(
   int version = actql_user_version(database);
   if (version < 0) return false;
   if (version > 3) {
-    actql_replace_error(&database->error, "unsupported SQLite schema version");
+    actql_replace_error(&database->error, database->diagnostic_ceiling, "unsupported SQLite schema version");
     return false;
   }
   const char *schema =
@@ -565,22 +586,24 @@ static int32_t actql_bind_key(
 
 void *actql_native_sqlite_load_library(
   moonbit_bytes_t path,
-  int32_t length
+  int32_t length,
+  int32_t diagnostic_ceiling
 ) {
   actql_native_sqlite_library *library = moonbit_make_external_object(
     actql_native_sqlite_library_finalize,
     sizeof(actql_native_sqlite_library)
   );
   memset(library, 0, sizeof(*library));
+  library->diagnostic_ceiling = diagnostic_ceiling;
   char *path_text = actql_copy_text(path, length);
   if (path_text == NULL) {
-    actql_replace_error(&library->error, "SQLite library path allocation failed");
+    actql_replace_error(&library->error, library->diagnostic_ceiling, "SQLite library path allocation failed");
     return library;
   }
   library->dynamic_library = dlopen(path_text, RTLD_NOW | RTLD_LOCAL);
   free(path_text);
   if (library->dynamic_library == NULL) {
-    actql_replace_error(&library->error, dlerror());
+    actql_replace_error(&library->error, library->diagnostic_ceiling, dlerror());
     return library;
   }
   if (!ACTQL_LOAD(library, libversion, "sqlite3_libversion") ||
@@ -607,7 +630,7 @@ void *actql_native_sqlite_load_library(
     return library;
   }
   if (library->libversion_number() < 3037000) {
-    actql_replace_error(&library->error, "SQLite 3.37.0 or later is required");
+    actql_replace_error(&library->error, library->diagnostic_ceiling, "SQLite 3.37.0 or later is required");
     dlclose(library->dynamic_library);
     library->dynamic_library = NULL;
   }
@@ -620,12 +643,18 @@ int32_t actql_native_sqlite_library_ready(
   return library != NULL && library->dynamic_library != NULL;
 }
 
+static moonbit_bytes_t actql_copy_diagnostic(const char *text, int32_t ceiling) {
+  size_t length;
+  if (!actql_diagnostic_length(text, ceiling, &length) || length > INT32_MAX)
+    return actql_copy_bytes(NULL, 0);
+  return actql_copy_bytes(text, (int32_t)length);
+}
+
 moonbit_bytes_t actql_native_sqlite_library_error(
   actql_native_sqlite_library *library
 ) {
-  return actql_copy_message(
-    library == NULL ? "invalid SQLite library" : library->error
-  );
+  return library == NULL ? actql_copy_bytes(NULL, 0) :
+    actql_copy_diagnostic(library->error, library->diagnostic_ceiling);
 }
 
 moonbit_bytes_t actql_native_sqlite_library_version(
@@ -654,20 +683,21 @@ static void *actql_open_database(
   database->library = library;
   if (library != NULL) moonbit_incref(library);
   database->max_body_bytes = max_body_bytes;
+  database->diagnostic_ceiling = library == NULL ? 0 : library->diagnostic_ceiling;
   if (library == NULL || library->dynamic_library == NULL) {
-    actql_replace_error(&database->error, "SQLite library is unavailable");
+    actql_replace_error(&database->error, database->diagnostic_ceiling, "SQLite library is unavailable");
     return database;
   }
   bool contained = mode != 0;
   bool existing = mode == 1;
   if (contained && (length < 2 || length > 4096 || path[0] != '/' ||
       memchr(path, 0, (size_t)length) != NULL)) {
-    actql_replace_error(&database->error, "invalid existing database path");
+    actql_replace_error(&database->error, database->diagnostic_ceiling, "invalid existing database path");
     return database;
   }
   char *path_text = actql_copy_text(path, length);
   if (path_text == NULL) {
-    actql_replace_error(&database->error, "database path allocation failed");
+    actql_replace_error(&database->error, database->diagnostic_ceiling, "database path allocation failed");
     return database;
   }
   int pinned = -1;
@@ -681,7 +711,7 @@ static void *actql_open_database(
           (uint64_t)original.st_ino != expected_inode))) {
       if (pinned >= 0) close(pinned);
       free(path_text);
-      actql_replace_error(&database->error, "existing database is unavailable");
+      actql_replace_error(&database->error, database->diagnostic_ceiling, "existing database is unavailable");
       return database;
     }
   }
@@ -781,9 +811,8 @@ int32_t actql_native_sqlite_database_ready(
 moonbit_bytes_t actql_native_sqlite_database_error(
   actql_native_sqlite_database *database
 ) {
-  return actql_copy_message(
-    database == NULL ? "invalid SQLite database" : database->error
-  );
+  return database == NULL ? actql_copy_bytes(NULL, 0) :
+    actql_copy_diagnostic(database->error, database->diagnostic_ceiling);
 }
 
 int32_t actql_native_sqlite_database_read(
@@ -831,12 +860,12 @@ int32_t actql_native_sqlite_database_read(
       sqlite3_int64 revision = database->library->column_int64(statement, 0);
       if (revision < 0 || length < 0 || length > database->max_body_bytes ||
           length > INT32_MAX) {
-        actql_replace_error(&database->error, "invalid stored journal record");
+        actql_replace_error(&database->error, database->diagnostic_ceiling, "invalid stored journal record");
         result = -1;
       } else {
         unsigned char *copy = length == 0 ? NULL : malloc((size_t)length);
         if (length > 0 && copy == NULL) {
-          actql_replace_error(&database->error, "journal body allocation failed");
+          actql_replace_error(&database->error, database->diagnostic_ceiling, "journal body allocation failed");
           result = -1;
         } else {
           if (length > 0) memcpy(copy, body, (size_t)length);
@@ -915,7 +944,7 @@ int32_t actql_native_sqlite_database_scan_after(
       if (key_length <= 0 || key_length > 512 || revision < 0 ||
           body_length < 0 || body_length > database->max_body_bytes ||
           body_length > INT32_MAX) {
-        actql_replace_error(&database->error, "invalid stored journal record");
+        actql_replace_error(&database->error, database->diagnostic_ceiling, "invalid stored journal record");
         result = -1;
       } else {
         unsigned char *key_copy = malloc((size_t)key_length);
@@ -925,7 +954,7 @@ int32_t actql_native_sqlite_database_scan_after(
         if (key_copy == NULL || (body_length > 0 && body_copy == NULL)) {
           free(key_copy);
           free(body_copy);
-          actql_replace_error(&database->error, "journal scan allocation failed");
+          actql_replace_error(&database->error, database->diagnostic_ceiling, "journal scan allocation failed");
           result = -1;
         } else {
           memcpy(key_copy, key, (size_t)key_length);
@@ -1108,7 +1137,7 @@ int32_t actql_native_sqlite_database_remove_exact(
   actql_clear_result(database);
   if (database->transaction_fenced ||
       database->library->get_autocommit(database->database)) {
-    actql_replace_error(&database->error, "exact retirement requires an unfenced transaction");
+    actql_replace_error(&database->error, database->diagnostic_ceiling, "exact retirement requires an unfenced transaction");
     return 4;
   }
   if (body_length < 0 || (int64_t)body_length > database->max_body_bytes) return 4;
@@ -1204,13 +1233,13 @@ int32_t actql_native_sqlite_database_commit(
   }
   if (database->test_commit_failures > 0) {
     database->test_commit_failures--;
-    actql_replace_error(&database->error, "injected transaction commit failure");
+    actql_replace_error(&database->error, database->diagnostic_ceiling, "injected transaction commit failure");
     return 4;
   }
   int code = actql_exec(database, "COMMIT");
   if (code == SQLITE_OK && database->test_commit_reply_failures > 0) {
     database->test_commit_reply_failures--;
-    actql_replace_error(&database->error, "injected lost transaction commit reply");
+    actql_replace_error(&database->error, database->diagnostic_ceiling, "injected lost transaction commit reply");
     return 4;
   }
   return code == SQLITE_OK ? 0 : actql_operation_code(code);
@@ -1374,7 +1403,7 @@ int32_t actql_native_sqlite_database_reserve_capacity(
   const bool owns_transaction = caller_transaction == 0;
   if (!owns_transaction &&
       database->library->get_autocommit(database->database) != 0) {
-    actql_replace_error(&database->error, "capacity reservation requires an active transaction");
+    actql_replace_error(&database->error, database->diagnostic_ceiling, "capacity reservation requires an active transaction");
     return -1;
   }
   int32_t result = owns_transaction ? actql_capacity_begin(database) : 0;
