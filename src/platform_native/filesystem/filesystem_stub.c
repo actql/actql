@@ -5,6 +5,7 @@
 #include "private_file_projection.h"
 
 #include <errno.h>
+#include <dirent.h>
 #include <fcntl.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -34,6 +35,10 @@ typedef struct {
   int32_t test_directory_inspect_failures;
   int32_t close_result;
   char *close_error;
+  DIR *census_stream;
+  bool census_cleanup_unconfirmed;
+  char *census_cleanup_error;
+  int32_t test_census_close_failures;
 } actql_native_filesystem_root;
 
 typedef struct {
@@ -241,6 +246,163 @@ static bool actql_valid_name(const char *name, size_t length) {
   return true;
 }
 
+// Expected names use a private borrowed FFI frame: kind byte, ASCII name, NUL.
+// It is not a persisted wire, identity domain or permission. The existing
+// formal inventory intake bounds apply before temporary state is allocated.
+static bool actql_census_frame_valid(
+  const unsigned char *frame, int32_t length, int32_t count
+) {
+  if (length < 0 || length > 65536 || count < 0 || count > (8192 - 5) / 5)
+    return false;
+  int32_t offset = 0;
+  const char *previous = NULL;
+  for (int32_t index = 0; index < count; index++) {
+    if (offset >= length || (frame[offset] != 'f' && frame[offset] != 'd'))
+      return false;
+    const char *name = (const char *)(frame + offset + 1);
+    const unsigned char *end = memchr(frame + offset + 1, 0,
+      (size_t)(length - offset - 1));
+    if (end == NULL || !actql_valid_name(name, (size_t)(end - (frame + offset + 1))) ||
+        (previous != NULL && strcmp(previous, name) >= 0)) return false;
+    previous = name;
+    offset = (int32_t)(end - frame) + 1;
+  }
+  return offset == length;
+}
+
+static void actql_census_unconfirmed(
+  actql_native_filesystem_root *root, const char *operation, int error_number
+) {
+  root->census_cleanup_unconfirmed = true;
+  actql_replace_bounded_errno_error(&root->census_cleanup_error,
+    root->diagnostic_ceiling, operation, error_number);
+  actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
+    root->census_cleanup_error);
+}
+
+// Compare only immediate names and kinds at the same opened directory. Named
+// namespace, member bytes/mode/hash and current authority are separate facts.
+int32_t actql_native_filesystem_directory_census(
+  actql_native_filesystem_root *root, moonbit_bytes_t frame,
+  int32_t length, int32_t count
+) {
+  if (!actql_census_frame_valid(frame, length, count)) return 4;
+  if (root == NULL || root->fd < 0 || root->census_stream != NULL) return -1;
+  if (root->census_cleanup_unconfirmed) {
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
+      root->census_cleanup_error);
+    return 3;
+  }
+  struct stat original;
+  if (fstat(root->fd, &original) != 0 || !S_ISDIR(original.st_mode)) {
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
+      "directory census Root is unavailable");
+    return -1;
+  }
+  unsigned char *seen = count == 0 ? NULL : calloc((size_t)count, 1);
+  if (count != 0 && seen == NULL) return 2;
+  // Opening dot relative to the pinned Root preserves its own directory
+  // position. It does not adopt another Root or follow a namespace symlink.
+  int descriptor = openat(root->fd, ".",
+    O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+  if (descriptor < 0) {
+    free(seen);
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling,
+      "open directory census", errno);
+    return -1;
+  }
+  DIR *stream = fdopendir(descriptor);
+  if (stream == NULL) {
+    int open_error = errno;
+    free(seen);
+    if (close(descriptor) != 0) {
+      actql_census_unconfirmed(root, "close rejected directory census", errno);
+      return 3;
+    }
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling,
+      "construct directory census", open_error);
+    return -1;
+  }
+  root->census_stream = stream;
+  int32_t result = 0, observed = 0;
+  while (true) {
+    errno = 0;
+    struct dirent *entry = readdir(stream);
+    if (entry == NULL) {
+      if (errno != 0) {
+        actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling,
+          "read directory census", errno);
+        result = -1;
+      }
+      break;
+    }
+    // Dot entries consume at most two additional observations. Unknown or
+    // repeated names never create a retained list or an unbounded scan.
+    if (++observed > count + 2) {result = 1; break;}
+    if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+      continue;
+    int32_t offset = 0, matched = -1;
+    unsigned char kind = 0;
+    for (int32_t index = 0; index < count; index++) {
+      const char *name = (const char *)(frame + offset + 1);
+      if (strcmp(name, entry->d_name) == 0) {
+        matched = index; kind = frame[offset]; break;
+      }
+      offset += (int32_t)strlen(name) + 2;
+    }
+    if (matched < 0 || seen[matched] != 0) {result = 1; break;}
+    struct stat member;
+    if (fstatat(root->fd, entry->d_name, &member, AT_SYMLINK_NOFOLLOW) != 0) {
+      int read_error = errno;
+      result = read_error == ENOENT ? 1 : -1;
+      actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling,
+        "inspect directory census member", read_error);
+      break;
+    }
+    if ((kind == 'f' && !S_ISREG(member.st_mode)) ||
+        (kind == 'd' && !S_ISDIR(member.st_mode))) {result = 1; break;}
+    seen[matched] = 1;
+  }
+  if (result == 0) {
+    for (int32_t index = 0; index < count; index++) {
+      if (seen[index] == 0) {result = 1; break;}
+    }
+    struct stat current;
+    if (fstat(root->fd, &current) != 0 ||
+        current.st_dev != original.st_dev || current.st_ino != original.st_ino ||
+        current.st_mode != original.st_mode || current.st_nlink == 0 ||
+        current.st_mtime != original.st_mtime || current.st_ctime != original.st_ctime)
+      result = 1;
+#ifdef __APPLE__
+    else if (current.st_mtimespec.tv_nsec != original.st_mtimespec.tv_nsec ||
+             current.st_ctimespec.tv_nsec != original.st_ctimespec.tv_nsec) result = 1;
+#elif defined(__linux__)
+    else if (current.st_mtim.tv_nsec != original.st_mtim.tv_nsec ||
+             current.st_ctim.tv_nsec != original.st_ctim.tv_nsec) result = 1;
+#endif
+  }
+  free(seen);
+  root->census_stream = NULL;
+  int closed = closedir(stream), close_error = errno;
+  if (root->test_census_close_failures > 0) {
+    root->test_census_close_failures--;
+    closed = -1; close_error = EIO;
+  }
+  if (closed != 0) {
+    // closedir may have consumed its stream; never retry through a potentially
+    // reused descriptor or freed DIR pointer. Keep Unknown on this same Root.
+    actql_census_unconfirmed(root, "close directory census", close_error);
+    return 3;
+  }
+  return result;
+}
+
+void actql_native_filesystem_test_fail_census_close(
+  actql_native_filesystem_root *root, int32_t failures
+) {
+  if (root != NULL) root->test_census_close_failures = failures;
+}
+
 static bool actql_stat_regular_at(
   actql_native_filesystem_root *root,
   const char *name,
@@ -332,14 +494,21 @@ static int actql_remove_owned_name(
 
 static void actql_native_filesystem_root_finalize(void *value) {
   actql_native_filesystem_root *root = value;
+  // Finalization is not an observable retirement acknowledgement.
+  if (root->census_stream != NULL) {
+    closedir(root->census_stream);
+    root->census_stream = NULL;
+  }
   if (root->fd >= 0) {
     close(root->fd);
     root->fd = -1;
   }
   free(root->error);
   free(root->close_error);
+  free(root->census_cleanup_error);
   root->error = NULL;
   root->close_error = NULL;
+  root->census_cleanup_error = NULL;
   free(root->custody_path);
   root->custody_path = NULL;
 }
@@ -351,12 +520,23 @@ int32_t actql_native_filesystem_root_close(
 ) {
   if (root == NULL) return -1;
   if (root->close_result != 0) return root->close_result == 1 ? 0 : -1;
+  if (root->census_stream != NULL) {
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
+      "directory census is still active");
+    return -1;
+  }
   if (root->fd < 0) return -1;
   int descriptor = root->fd;
   root->fd = -1;
   root->close_result = -1;
   if (close(descriptor) != 0) {
     actql_replace_bounded_errno_error(&root->close_error, root->diagnostic_ceiling, "close Store root", errno);
+    return -1;
+  }
+  if (root->census_cleanup_unconfirmed) {
+    // The Root fd close does not acknowledge a consumed census descriptor.
+    actql_replace_bounded_error(&root->close_error, root->diagnostic_ceiling,
+      root->census_cleanup_error);
     return -1;
   }
   root->close_result = 1;

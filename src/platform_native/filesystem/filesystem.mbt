@@ -42,6 +42,20 @@ pub(all) struct NativeFileChunk {
 }
 
 ///|
+/// Expected immediate member shape for a physical directory comparison only.
+/// It is not namespace custody, authority or an admitted package descriptor.
+pub(all) enum NativeDirectoryMemberKind {
+  File
+  Directory
+} derive(Eq, Debug)
+
+///|
+pub(all) struct NativeDirectoryMember {
+  name : String
+  kind : NativeDirectoryMemberKind
+}
+
+///|
 /// Refusal from the existing Reader constructor, with the same rejected Reader
 /// retained when its close result was not acknowledged. It never admits reads.
 struct NativeReaderOpenFailure {
