@@ -146,3 +146,24 @@ test "SDK payload encoder cannot substitute a different serialization for the or
   )
   assert_eq(reads.val, 0)
 }
+///|
+test "SDK payload empty outputs retain cumulative progress through independent 4 4 1 framing" {
+  let fixture = sdk_read_fixture()
+  defer (fixture.cleanup)()
+  let encoding = sdk_payload_encoding_fixture(fixture)
+  // Independent slices of the original nine-byte JSON literal, not a codec
+  // implementation in Python or an inferred sink acknowledgement.
+  assert_eq(encoding.feed(b"[{\"n", false), Ok(b""))
+  assert_eq(encoding.observe_empty_output(), Ok(0L))
+  assert_true(encoding.confirm_chunk() is Err(Sink(DeliverySinkNoOutstandingChunk)))
+  assert_eq(encoding.feed(b"\":1}", false), Ok(b"{\"n\":1}\n"))
+  assert_true(encoding.observe_empty_output() is Err(Sink(DeliverySinkChunkOutstanding)))
+  assert_eq(encoding.confirm_chunk(), Ok(8L))
+  assert_eq(encoding.feed(b"]", true), Ok(b""))
+  assert_eq(encoding.observe_empty_output(), Ok(8L))
+  assert_true(encoding.confirm_finished() is Ok(_))
+  assert_true(encoding.observe_empty_output() is Err(Sink(DeliverySinkClosed)))
+  encoding.cancel_frames()
+  assert_true(encoding.observe_empty_output() is Err(Frames(DurableRowFrameClosed)))
+}
+
