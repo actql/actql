@@ -148,6 +148,12 @@ pub fn cleanup_client_original_keyed_prefix_lookup(
   quantum : Int,
 ) -> Result[Bool, ClientKeyedRequestIssue] {
   guard value.lookup is Some(lookup) else { return Ok(true) }
+  if !@resources.original_keyed_lookup_dependents_retired(
+      lookup.ledger,
+      lookup.reservation,
+    ) {
+    return Ok(false)
+  }
   let complete = match cleanup_client_keyed_lookup_input(lookup, quantum) {
     Ok(value) => value
     Err(issue) => return Err(issue)

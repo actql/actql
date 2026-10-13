@@ -64,7 +64,8 @@ test('verified case receipts survive the case block and finish at transport comp
     complete: true, cases: [{mode: 'local', name: source.name, ref,
       results: {answer: {rows: source.expected, columns: source.columns}},
       beforeSubmit: {acceptedRuns: 0, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0},
-      beforeRead: {acceptedRuns: 1, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0}}]});
+      beforeRead: {acceptedRuns: 1, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0},
+      afterReplay: {acceptedRuns: 1, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0}}]});
   assert.deepEqual(saved.ref, ref);
   assert.deepEqual(saved.observedResults.answer, {rows: source.expected, columns: source.columns});
   assert.notEqual(saved.observedResults.answer.rows, source.expected,
