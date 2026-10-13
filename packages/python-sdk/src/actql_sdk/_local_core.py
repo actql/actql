@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 64
+LOCAL_CORE_ABI = 65
 
 
 class LocalCoreError(RuntimeError):
@@ -312,6 +312,7 @@ _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'produce_sdk_read_evidence': ('i64 i32 i32 i32 i32 i32', 'i32'),
     'produce_sdk_read_grant': ('i64 i32 i32 i32 i32 i32', 'i32'),
     'produce_sdk_read_evidence_decision': ('i64 i32 i32 i32 i32', 'i32'),
+    'produce_sdk_read_delivery_storage': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_lookup_reference': ('i64 i32 i32 i32', 'i32'),
     'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_index_key': ('i64 i32 i32', 'i32'),
@@ -2050,6 +2051,28 @@ class LocalCore:
                 raise ValueError('Invalid original SDK read evidence decision')
             self._check('produce_sdk_read_evidence_decision', self._call(
                 'publication_commit_export', 'produce_sdk_read_evidence_decision',
+                value.handle, request.handle, original_run, current_configuration))
+
+    def produce_publication_sdk_read_delivery_storage(self, value: _Output,
+                                                      request: _Input,
+                                                      original_run: int,
+                                                      current_configuration: int) -> None:
+        """Project the existing delivery/usage Owners' same-TX first CAS only.
+
+        This neither acknowledges physical COMMIT nor starts payload delivery.
+        Core chooses original keys/body/revisions; unknown attempts need lookup.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_input(request)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(original_run) is not int or not 0 < original_run < 2**31
+                    or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK delivery storage projection')
+            self._check('produce_sdk_read_delivery_storage', self._call(
+                'publication_commit_export', 'produce_sdk_read_delivery_storage',
                 value.handle, request.handle, original_run, current_configuration))
 
     def produce_publication_sdk_read_evidence(self, value: _Output, request: _Input,

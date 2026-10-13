@@ -43,6 +43,7 @@ class SDKReadEvidenceHostTests(unittest.TestCase):
         host._run_loans, host._commit_projections = [run], [observation._projection]
         host._store_observations = {observation._projection._publication.ticket: observation}
         host._sdk_read_evidence = {}
+        host._sdk_deliveries = {}
         host._physical_work, host._response_streams = [], set()
         host._uncertain_ticket = None
         return host, run, values
