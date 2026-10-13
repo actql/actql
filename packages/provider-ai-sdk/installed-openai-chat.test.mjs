@@ -170,3 +170,35 @@ test('each missing consuming runtime hook rejects registration rather than faili
     assert.equal(f.counts.installs,0);assert.equal(f.counts.starts,0);assert.equal(f.counts.fetch,0);
   }
 });
+
+test('facade retains inspected top-level DATA without Proxy property reads',()=>{
+  const config=configuration(),f=runtime(config);let reads=0;
+  const supplied=new Proxy(config,{get(target,name){reads++;return Reflect.get(target,name);}});
+  const entry=createInstalledOpenAIChatRegistration(supplied)(f.moon)[0];
+  assert.equal(reads,0,'validated descriptor DATA must not invoke later property callbacks');
+  assert.equal(entry.providerId,config.providerId);
+  assert.equal(entry.rawCaptureSelection,config.rawCaptureSelection);
+  assert.equal(f.counts.fetch,0);assert.equal(f.counts.starts,0);
+});
+
+test('facade snapshots original projection and request DATA before Proxy substitution',()=>{
+  const config=configuration(),f=runtime(config);let reads=0;
+  config.projectionLimits=new Proxy(config.projectionLimits,{get(){reads++;return -1;}});
+  config.requestLimits=new Proxy(config.requestLimits,{get(){reads++;return -1;}});
+  const entry=createInstalledOpenAIChatRegistration(config)(f.moon)[0];
+  const preflight=entry.physicalPreflight(f.request,createInferIoNotification(),()=>{},f.provider);
+  assert.deepEqual(preflight.advance(),{_0:false,_1:undefined});
+  assert.equal(reads,0,'the exact inspected values, not later get results, reach Common');
+  assert.equal(f.counts.starts,1);assert.equal(f.counts.fetch,0);
+  assert.equal(preflight.cleanup(),true);
+});
+
+test('facade refuses symbol and nonenumerable extra DATA before registration',()=>{
+  for(const add of [value=>{value[Symbol('extra')]='not-admitted';},
+    value=>{Object.defineProperty(value,'extra',{value:'not-admitted'});}]) {
+    const config=configuration(),f=runtime(config);add(config);
+    assert.throws(()=>createInstalledOpenAIChatRegistration(config),
+      {code:'InvalidInstalledOpenAIChatConfiguration'});
+    assert.equal(f.counts.installs,0);assert.equal(f.counts.fetch,0);
+  }
+});
