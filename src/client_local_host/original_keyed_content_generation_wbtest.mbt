@@ -226,7 +226,7 @@ fn original_keyed_version_content(
     @execution.completed_output_row_wire(output, 0, 16384, 1000, 100).unwrap(),
     "{\"content\":" +
     @publication.generated_content_reference_wire(candidate) +
-    ",\"name\":\"captured.jsonl\"}",
+    ",\"media_type\":\"application/x-ndjson\",\"name\":\"captured.jsonl\",\"row_count\":3,\"size_bytes\":4470}",
   )
   assert_true(
     @publication_host.client_serialization_generation_output_for(
