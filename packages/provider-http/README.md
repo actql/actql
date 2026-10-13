@@ -57,6 +57,16 @@ case uses two separately configured fixture endpoints and the existing bounded
 notification Owner, one physical request each. These are not public Named Result,
 actual nominal Store ACK, current-cut, numerical funding or live acceptance.
 
+The separate `infer-http-raw-store` cases connect this same private HTTP port
+to the existing encrypted Store/holding implementation. They check exact raw
+bytes after Store reopen, commit-reply loss with stable same-cell reconciliation
+and no second request, and cancellation with failed descriptor release while
+the distinct content handle remains owned. Only the failed original descriptor
+retries; retired cleanup releases neither handle again. These cases execute real
+loopback HTTP and Store I/O, but Common request/Entry/grant/receipt remain explicit
+doubles. They are not actual canonical admission, current-cut, original funding,
+public Named Result or fresh-process Run restoration.
+
 The initial profile needs explicit one-choice/no-stream/no-tools/no-retry
 conformance against two independent compatible fixtures and an authorized live
 public route. Unsupported settings or codec/endpoint capability must refuse
