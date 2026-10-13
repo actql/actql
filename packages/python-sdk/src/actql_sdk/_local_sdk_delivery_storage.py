@@ -91,6 +91,7 @@ class OriginalSDKDeliveryStore:
         self._payload_outputs: dict[int, _Output] = {}
         self._uncertain_payload: dict[int, int] = {}
         self._payload_facts: dict[int, OriginalReaderFacts] = {}
+        self._payload_reader_borrows: dict[int, object] = {}
         with self._core._lock:
             original._projection._ready()
             self._uncertain_ticket = self._core._next_ticket
@@ -126,6 +127,8 @@ class OriginalSDKDeliveryStore:
             self._nominal()
             self._core._owned_input(request)
             if self._active:
+                return False
+            if request.ticket in self._payload_reader_borrows:
                 return False
             if not self._close_payload_output(request.ticket):
                 return False
@@ -219,6 +222,19 @@ class OriginalSDKDeliveryStore:
         """Check original current/backpressure before advancing a file reader."""
         self._payload_observation(request, clock, lambda first, configuration:
             self._core.prepare_publication_sdk_payload_input(first, clock, configuration))
+
+    def read_original_chunk(self, request: _Input, chunk: _Input, clock: _Input,
+                            output: _Output, *, eof: bool) -> bytes:
+        """Recheck the cached original chunk in the same frame before disclosure."""
+        with self._core._lock:
+            self._nominal()
+            if self._payload_outputs.get(request.ticket) is not output:
+                raise ValueError('Foreign original SDK payload output')
+            def read(first: _Output, configuration: int) -> bytes:
+                self._core.produce_publication_sdk_payload_chunk(
+                    output, first, chunk, clock, configuration, eof=eof)
+                return self._core.read_publication_commit_material(output)
+            return self._payload_observation(request, clock, read)
 
     def _reserve_payload_output(self, request: _Input) -> _Output:
         if request.ticket in self._payload_outputs or request.ticket in self._uncertain_payload:
@@ -385,6 +401,8 @@ class OriginalSDKDeliveryStore:
             self._nominal()
             self._closing = True
             if self._active or self._observation._projection.pending_outputs:
+                return False
+            if self._payload_reader_borrows:
                 return False
             if self._uncertain_ticket is not None and not self._core._closed:
                 return False
