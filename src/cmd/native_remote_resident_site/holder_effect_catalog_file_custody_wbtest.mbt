@@ -122,3 +122,64 @@ test "Catalog cleanup lost reply retains original responsibility until same Owne
   assert_true(same_owner.val)
   assert_true(original.issue() is @bounded_files.InvalidLimit)
 }
+
+///|
+test "Catalog diagnostic selection rejects before current and physical read" {
+  let failure : Ref[@bounded_files.NativeBoundedTextFailure?] = Ref(None)
+  let reads = Ref(0)
+  let checks = Ref(0)
+  for ceiling in [-1, 0] {
+    assert_true(holder_catalog_file_read_with_ceiling(
+      failure,
+      () => { checks.val += 1; true },
+      ceiling,
+      _ => { reads.val += 1; Ok("unread") },
+    ) is None)
+  }
+  assert_eq(reads.val, 0)
+  assert_eq(checks.val, 0)
+  assert_true(failure.val is None)
+}
+
+///|
+test "Catalog physical callback receives exact independent diagnostic ceiling" {
+  let failure : Ref[@bounded_files.NativeBoundedTextFailure?] = Ref(None)
+  let selected = Ref(0)
+  let checks = Ref(0)
+  assert_eq(holder_catalog_file_read_with_ceiling(
+    failure,
+    () => { checks.val += 1; true },
+    7,
+    ceiling => { selected.val = ceiling; Ok("original bounded text") },
+  ), Some("original bounded text"))
+  assert_eq(selected.val, 7)
+  assert_eq(checks.val, 2)
+}
+
+///|
+test "Catalog bounded diagnostic refusal retains original failure without a second read" {
+  guard @bounded_files.read_bounded_text_file_with_custody(
+    "unopened", "unread", 0L, diagnostic_ceiling=Some(7),
+  ) is Err(original) else { fail("invalid limit admitted") }
+  let failure : Ref[@bounded_files.NativeBoundedTextFailure?] = Ref(None)
+  let reads = Ref(0)
+  let selected = Ref(0)
+  assert_true(holder_catalog_file_read_with_ceiling(
+    failure,
+    () => true,
+    7,
+    ceiling => { selected.val = ceiling; reads.val += 1; Err(original) },
+  ) is None)
+  assert_true(physical_equal(failure.val.unwrap(), original))
+  let checks = Ref(0)
+  assert_true(holder_catalog_file_read_with_ceiling(
+    failure,
+    () => { checks.val += 1; true },
+    7,
+    _ => { reads.val += 1; Ok("must not be read") },
+  ) is None)
+  assert_eq(reads.val, 1)
+  assert_eq(selected.val, 7)
+  assert_eq(checks.val, 0)
+  assert_true(original.issue() is @bounded_files.InvalidLimit)
+}

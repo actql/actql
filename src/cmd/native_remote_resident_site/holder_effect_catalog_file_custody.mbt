@@ -4,6 +4,7 @@
 priv struct HolderEffectCatalogFileCustody {
   original : HolderEffectOriginalPolicyContext
   preparation : @journal.NativeInitialCatalogUseEnvelope
+  diagnostic_ceiling : Int
   failure : Ref[@bounded_files.NativeBoundedTextFailure?]
   mut retiring : Bool
 }
@@ -26,6 +27,7 @@ fn holder_catalog_file_original_matches(
 fn HolderEffectCatalogFileCustody::current(
   self : HolderEffectCatalogFileCustody,
 ) -> Bool {
+  self.diagnostic_ceiling > 0 &&
   !self.retiring &&
   self.failure.val is None &&
   self.original.current() &&
@@ -45,9 +47,16 @@ fn prepare_holder_catalog_file_custody(
   resources : HolderOutputResources,
   original : HolderEffectOriginalPolicyContext,
   preparation : @journal.NativeInitialCatalogUseEnvelope,
+  diagnostic_ceiling : Int,
 ) -> HolderEffectCatalogFileCustody? {
+  // Selection is not permission or proof of complete numeric funding. Refuse
+  // before the original current/Journal query, never fall back to legacy detail.
+  if diagnostic_ceiling <= 0 {
+    return None
+  }
   if resources.effect_catalog_files.val is Some(retained) {
-    guard holder_catalog_file_original_matches(retained.original, original) &&
+    guard retained.diagnostic_ceiling == diagnostic_ceiling &&
+      holder_catalog_file_original_matches(retained.original, original) &&
       retained.preparation.record_bytes == preparation.record_bytes &&
       retained.preparation.control_bytes == preparation.control_bytes &&
       retained.preparation.workspace_bytes == preparation.workspace_bytes &&
@@ -69,6 +78,7 @@ fn prepare_holder_catalog_file_custody(
   let retained : HolderEffectCatalogFileCustody = {
     original,
     preparation,
+    diagnostic_ceiling,
     failure: Ref(None),
     retiring: false,
   }
@@ -95,15 +105,37 @@ fn holder_catalog_file_read(
 }
 
 ///|
+/// Forward the exact immutable installer selection to the original physical
+/// read. This binds a private diagnostic extent, never a Source/Provider grant.
+fn holder_catalog_file_read_with_ceiling(
+  failure : Ref[@bounded_files.NativeBoundedTextFailure?],
+  current : () -> Bool,
+  diagnostic_ceiling : Int,
+  read : (Int) -> Result[String, @bounded_files.NativeBoundedTextFailure],
+) -> String? {
+  if diagnostic_ceiling <= 0 {
+    return None
+  }
+  holder_catalog_file_read(failure, current, () => read(diagnostic_ceiling))
+}
+
+///|
 fn HolderEffectCatalogFileCustody::read(
   self : HolderEffectCatalogFileCustody,
   root : String,
   name : String,
   limit : Int64,
 ) -> String? {
-  holder_catalog_file_read(self.failure, () => self.current(), () => {
-    @bounded_files.read_bounded_text_file_with_custody(root, name, limit)
-  })
+  holder_catalog_file_read_with_ceiling(
+    self.failure,
+    () => self.current(),
+    self.diagnostic_ceiling,
+    ceiling => {
+      @bounded_files.read_bounded_text_file_with_custody(
+        root, name, limit, diagnostic_ceiling=Some(ceiling),
+      )
+    },
+  )
 }
 
 ///|
