@@ -12,12 +12,15 @@ import {verifyPackageRelease} from './package-release.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
-import {selectReleaseSourcefreeQueryCases} from './release-sourcefree-query-cases.mjs';
+import {selectInstalledSourcefreeQuerySuite, releaseSourcefreeFixturePaths}
+  from './release-sourcefree-query-cases.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const [input, receiptPath, ...extra] = process.argv.slice(2);
-assert(input && receiptPath && extra.length === 0 && isAbsolute(receiptPath),
-  'usage: test-package-release-sourcefree-query.mjs <fixed-RC> <new-absolute-receipt.json>');
+assert(input && receiptPath && (extra.length === 0 ||
+  extra.length === 1 && extra[0] === '--sequence-only') && isAbsolute(receiptPath),
+  'usage: test-package-release-sourcefree-query.mjs <fixed-RC> <new-absolute-receipt.json> [--sequence-only]');
+const suite = extra.length === 0 ? 'in-unnest' : 'sequence';
 const directory = resolve(input), manifest = await verifyPackageRelease(directory);
 assert.deepEqual(manifest.cohort.packages, ['client-wire', 'sdk', 'local-node', 'node']);
 assert.ok(!resolve(receiptPath).startsWith(directory + '/'), 'Keep the original RC unchanged');
@@ -30,11 +33,11 @@ const runtimeSourceDelta = execFileSync('git', ['--no-replace-objects', 'diff', 
   'moon.mod', 'moon.lock', 'toolchain.json', 'package.json', 'package-lock.json'],
 {cwd: repository, encoding: 'utf8'}).trim();
 assert.equal(runtimeSourceDelta, '', 'Retained RC runtime/package inputs differ from fixture source');
-const cases = selectReleaseSourcefreeQueryCases();
+const cases = selectInstalledSourcefreeQuerySuite(suite);
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-release-sourcefree-',
   label: 'Installed source-free query acceptance'});
 const registry = await openReleaseTestRegistry([{directory, manifest}]);
-const root = scratch.path, records = [], fixtureDigests = {};
+const root = scratch.path, records = [], fixtureDigests = {}, transports = [];
 const env = {...process.env, npm_config_registry: registry.url,
   npm_config_cache: join(root, 'npm-cache'), npm_config_userconfig: join(root, 'npmrc'),
   npm_config_globalconfig: join(root, 'npmrc-global'), npm_config_update_notifier: 'false',
@@ -60,6 +63,7 @@ async function run(command, args) {
   assert.equal(record.code, 0, JSON.stringify(record));
   console.log(record.stdout.trimEnd());
 }
+let primary;
 try {
   await writeFile(join(root, 'package.json'), '{"private":true,"type":"module"}\n');
   await writeFile(env.npm_config_userconfig, `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
@@ -68,9 +72,7 @@ try {
   auditPackedPackages(root, manifest.cohort.packages);
   // These are test code and independent input fixtures only. Nothing is
   // copied into node_modules, and no adapter/Store/runtime is supplied later.
-  for (const path of ['scripts/release-sourcefree-query-cases.mjs',
-    'scripts/fixtures/release-sourcefree-query.mjs', 'scripts/fixtures/release-sourcefree-io.mjs',
-    'scripts/fixtures/in-unnest-literal-array-source-input.mjs', 'scripts/fixtures/public-query-input.mjs']) {
+  for (const path of releaseSourcefreeFixturePaths) {
     const target = join(root, path); await mkdir(dirname(target), {recursive: true});
     await copyFile(join(repository, path), target);
     const bytes = await readFile(join(repository, path));
@@ -81,19 +83,32 @@ try {
     '-keyout', 'remote.key', '-out', 'remote.crt', '-days', '1', '-subj', '/CN=localhost',
     '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1']);
   env.NODE_EXTRA_CA_CERTS = join(root, 'remote.crt');
-  const transports = [];
   for (const mode of ['local', 'https']) {
-    await run(process.execPath, ['scripts/fixtures/release-sourcefree-query.mjs', mode]);
+    await run(process.execPath, ['scripts/fixtures/release-sourcefree-query.mjs', mode, suite]);
     const observed = JSON.parse(await readFile(join(root, `sourcefree-${mode}.json`), 'utf8'));
+    assert.equal(observed.suite, suite);
+    assert.equal(observed.complete, true);
     assert.deepEqual(observed.successNames, cases.successes.map(value => value.name));
     assert.deepEqual(observed.refusalNames, cases.refusals.map(value => value.name));
     transports.push(observed);
   }
   await verifyPackageRelease(directory);
   assert.deepEqual(checkoutState(repository), source, 'Fixture source changed');
-  await writeFile(receiptPath, JSON.stringify({artifactSourceSha: manifest.sourceSha,
+} catch (error) {
+  primary = error;
+} finally {
+  try {await registry.close();}
+  catch (error) {primary ??= error;}
+  for (const mode of ['local', 'https']) {
+    if (transports.some(value => value.mode === mode)) continue;
+    try {transports.push(JSON.parse(await readFile(join(root, `sourcefree-${mode}.json`), 'utf8')));}
+    catch (error) {if (error.code !== 'ENOENT') primary ??= error;}
+  }
+  await writeFile(receiptPath, JSON.stringify({suite, complete: primary === undefined,
+    artifactSourceSha: manifest.sourceSha,
     fixtureSourceSha: source.revision, runtimeSourceDelta: [], fixtureDigests,
     artifacts: manifest.packages.map(({name, version, sha256, integrity}) => ({name, version, sha256, integrity})),
-    transports, records, publicPublication: false}, null, 2) + '\n', {flag: 'wx'});
-  scratch.passed();
-} finally {await registry.close();}
+    transports, records, retainedConsumer: root, publicPublication: false}, null, 2) + '\n', {flag: 'wx'});
+  if (primary === undefined) scratch.passed();
+}
+if (primary !== undefined) throw primary;
