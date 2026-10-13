@@ -129,6 +129,8 @@ pub fn check_mapping_row_fields(MappingContractShape, Int) -> Result[MappingRowF
 
 pub fn check_model_response_profile_binding(ModelResponseProfile, ModelTaskContract, ModelResponseProfileInstallation, DecisionProbabilityProfile?) -> Result[Unit, ModelTaskIssueKind]
 
+pub fn check_model_response_profile_probability(ModelResponseProfile, ModelTaskContract, DecisionProbabilityProfile) -> Result[Unit, ModelTaskIssueKind]
+
 pub fn check_model_tasks(WireEnvironment, ModelTaskLimits) -> Result[ModelTasks, ModelTaskIssue]
 
 pub fn check_protocol_value_contracts(SourceDataPolicies, ValueContractLimits) -> Result[ProtocolValueContracts, ValueContractIssue]
