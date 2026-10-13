@@ -192,7 +192,7 @@ test "GROUP BY ALL retains unknown input and inference work refusals" {
   for
     source in [
       "SELECT missing FROM t GROUP BY ALL", "SELECT SUM(x) AS n, n + 1 AS later FROM t GROUP BY ALL",
-      "SELECT old.x FROM t AS current GROUP BY ALL",
+      "SELECT old.x FROM t AS `current` GROUP BY ALL",
     ] {
     assert_true(
       compile(

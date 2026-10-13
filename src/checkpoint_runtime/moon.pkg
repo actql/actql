@@ -5,6 +5,7 @@ import {
   "actql/actql/canonical_value" @canonical,
   "actql/actql/run_publication" @publication,
   "actql/actql/source_value" @source,
+  "moonbitlang/core/encoding/base64",
 }
 
 formatter(ignore: [ "signature_vectors.generated_test.mbt" ])

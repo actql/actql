@@ -105,6 +105,9 @@ export function installNodeContentRun({moon, core, registry, values, fragment, o
           if (writer.status().reservationHeld === true) return false;
         }
         if (physical?.prepared.status().pending === true) await physical.prepared.release();
+        // Release can decline while the same prepared object remains owned.
+        // Do not settle the prefix or forget this handle before its actual ACK.
+        if (physical?.prepared.status().pending === true) return false;
         // Confirm the exact original index before selecting lawful retirement.
         // A failed observation retains custody; it is not proof of no commit.
         const committed = await store.confirmCommittedIndex(key);
