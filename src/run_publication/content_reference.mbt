@@ -85,6 +85,7 @@ pub fn prepare_generated_content_reference(
     completion.content_cid,
     completion.size_bytes,
     "content_derivation",
+    None,
     limits,
   ).map(body => {
     owner,
@@ -170,9 +171,20 @@ fn stored_content_reference_parts(
     return Err(InvalidBinding("saved_reference"))
   }
   let size_bytes = size.to_int()
+  let reported_media_type = if issuer_kind == "connector_capture" {
+    guard @json.object_field(metadata, "issuer_evidence") is Some(evidence) &&
+      contract_string_from_value(evidence, "reported_media_type")
+      is Some(reported) else {
+      return Err(InvalidBinding("reported_media_type"))
+    }
+    Some(reported)
+  } else {
+    None
+  }
   let body = match
     prepare_content_reference_body(
-      binding, media_type, content_cid, size_bytes, issuer_kind, limits,
+      binding, media_type, content_cid, size_bytes, issuer_kind, reported_media_type,
+      limits,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -229,10 +241,23 @@ fn prepare_content_reference_body(
   content_cid : String,
   size_bytes : Int,
   issuer_kind : String,
+  reported_media_type : String?,
   limits : @admitted.ReferenceLimits,
 ) -> Result[ContentReferenceBody, GeneratedContentReferenceIssue] {
   if !valid_contract_cid(content_cid) || size_bytes < 0 {
     return Err(InvalidBinding("content_bytes"))
+  }
+  // This is original provider data, not configuration identity text. The
+  // same bounded case projection must reproduce the typed observed MIME;
+  // neither a missing report nor saved metadata can repair this evidence.
+  match (issuer_kind, reported_media_type) {
+    ("connector_capture", Some(reported)) =>
+      if @contract.normalize_content_media_type_case(reported, 256) !=
+        Ok(media_type) {
+        return Err(InvalidBinding("reported_media_type"))
+      }
+    ("content_derivation", None) => ()
+    _ => return Err(InvalidBinding("reported_media_type"))
   }
   if @contract.content_reference_contract(
       Some(media_type),
@@ -303,6 +328,10 @@ fn prepare_content_reference_body(
       ] {
       @encode.key(issuer_writer, key)
       @encode.string_value(issuer_writer, value)
+    }
+    if reported_media_type is Some(reported) {
+      @encode.key(issuer_writer, "reported_media_type")
+      @encode.string_value(issuer_writer, reported)
     }
     @encode.end_object(issuer_writer)
     @encode.finish(issuer_writer)
@@ -541,13 +570,27 @@ struct CapturedContentReference {
 ///|
 pub fn prepare_captured_content_reference(
   binding : GeneratedContentBinding,
-  media_type : String,
+  reported_media_type : String,
   content_cid : String,
   size_bytes : Int,
   limits : @admitted.ReferenceLimits,
 ) -> Result[CapturedContentReference, GeneratedContentReferenceIssue] {
+  if !valid_contract_cid(content_cid) || size_bytes < 0 {
+    return Err(InvalidBinding("content_bytes"))
+  }
+  let media_type = match
+    @contract.normalize_content_media_type_case(reported_media_type, 256) {
+    Ok(value) => value
+    Err(_) => return Err(InvalidBinding("reported_media_type"))
+  }
   prepare_content_reference_body(
-    binding, media_type, content_cid, size_bytes, "connector_capture", limits,
+    binding,
+    media_type,
+    content_cid,
+    size_bytes,
+    "connector_capture",
+    Some(reported_media_type),
+    limits,
   ).map(body => { body, binding, media_type, content_cid, size_bytes, })
 }
 
@@ -592,6 +635,15 @@ pub fn captured_content_reference_identity(
   candidate : CapturedContentReference,
 ) -> String {
   candidate.body.identity
+}
+
+///|
+/// A data-only projection from this same sealed candidate. It does not issue
+/// reference authority, renew custody or reconstruct provider observations.
+pub fn captured_content_reference_media_type(
+  candidate : CapturedContentReference,
+) -> String {
+  candidate.media_type
 }
 
 ///|

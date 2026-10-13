@@ -5,6 +5,14 @@
   "description": "Frozen legacy occurrences, not a list of approved version upgrades. Do not regenerate to pass the gate. New versions require an explicit reviewed decision.",
   "entries": [
     {
+      "path": "src/client_infer_host/native_original_call_fixture.generated_wbtest.mbt",
+      "token": "actql.model_task/0.2",
+      "contextSha256": "3fcc6dfd8c5c8a3ea611b0ac838848ba34e8320bab5792663d84dc558ea63419",
+      "line": 5,
+      "count": 1,
+      "reason": "Reviewed October 13 M3 actual checked-Program consumer of the already adopted M0a Task0.2 independent fixture. Original Task/prompt bytes and CIDs are unchanged; this exact one context grants no new version, writer, numerical profile or public capability."
+    },
+    {
       "path": "src/model_execution/native_decision_projection_fixture.generated_wbtest.mbt",
       "token": "actql.model_task/0.2",
       "contextSha256": "2b4c1ac2898754d7064544bf9a52d6441c5c0b44393f1d8f1bb57fe47cc0fbd1",

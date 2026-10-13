@@ -1,0 +1,80 @@
+{
+  "status": "Implementation checkpoint; not merge-ready or public acceptance",
+  "adoptedBase": "5f23eb5c0435d03a619958200334d32392e810fe",
+  "decision": "workspace reviews/2026-10-11-integration-owner/source-view-relation-keys-decision-20261013.md",
+  "implementedUncompiled": [
+    "bounded opaque SourceView key declaration admission",
+    "same-facts/schema/member key evidence projection",
+    "SourceViewInput candidate key retention and cumulative static work/text accounting",
+    "selected complete facts-body admission preserving existing lookup/file owners",
+    "native filter/select rejects pending Source key guarantees before provider access",
+    "original trusted Vector supplier declaration uses adopted facts without changing schema or oracle"
+  ],
+  "executedWorkingSource": {
+    "Node": "19/19 run-qY70YT",
+    "contractGenerator": "run-5nYYpK complete exit 0",
+    "metadata": "run-WyTarC complete exit 0 after explicit requirement-ID repair",
+    "canonical": "run-4VOZBF: ordinary Node generator and read-only freshness verified 590 declared canonical identities, not Moon590"
+  },
+  "retainedFailure": [
+    "run-2rIvbz metadata mismatch",
+    "run-QdPyzo private record ambiguity and callback arity; no runtime counts",
+    "run-PGS2CP 9/11: required null component panic and Member wrapper identity assertion",
+    "run-COGgSR: WB match-arm comma compilation failure; acquisition8 not reached",
+    "run-ZiVUsg synthetic connector registration/version violates existing declaration contract; all8 runtime cases not reached",
+    "run-4f4Z70 select arithmetic fixture violates select input-field grammar; bounded duplicate raw input not rejected before filter completion",
+    "run-dgMiMo stopped bounded duplicate reader resumed during pending cleanup; original typed duplicate rejection reached, cleanup failed",
+    "run-l1DXsQ ContinueWith token positional argument missing in new WB patterns; no runtime tests executed"
+  ],
+  "unexecuted": [
+    "successful acquisition8 and installed bounded key-validation connection",
+    "generated public interfaces and final post-compile freshness",
+    "complete RowSource capture multi-page/key/cancellation regression",
+    "new-SHA ordinary four-package Local/HTTPS original 12+8 matrix",
+    "Native/Wasm execution and Hosted CI"
+  ],
+  "preparedFirstMoonSelection": "node reviews/2026-10-13-vector-source-evidence-design/prepared-checks.mjs <clean complete SHA> declaration; 11 named JS cases, nonHeavy 60 seconds / TERM grace 5, only after integration-owner allocation and actual preflight; tracked jobs=2",
+  "publicE2E": 0,
+  "publicFixtureSha256": "9717e6a803428dadf392562f891687bad8ddbb88691cfbbe6e37137e0fff804f",
+  "preparedRuntimeSelection": "acquisition: original8 with formal field projection; keycursor: original synchronous4 + continuation4. Each separate nonHeavy60/TERM5, JS-j2, on the same clean fixed source, only as allocated.",
+  "runtimeBoundary": "runtime-boundary.json preserves the original read checkpoint and records actual f683 counterexample separately; pending cursor repair is uncompiled.",
+  "executedFixedSource": {
+    "99b11e9ae18ed3ebbd7ddfc9c0ed49f982cbad73": "declaration11 run-QdPyzo compile exit1; no test summary / executed0; acquisition8 not started",
+    "68f73459c71c6a6d68cd1292e832968ec8f00b81": {
+      "declaration": "run-PGS2CP: compile succeeded, JS11/9 passed/2 failed, exit2",
+      "acquisition": "run-COGgSR: compile failed on a WB match-arm comma, 0 tests executed, exit1",
+      "qualification": "both ended naturally, source clean and Owner/child/group/worktree lock absent; not installed acceptance"
+    },
+    "40302d12507c2cd32ef7ff60f1d46a54297924e2": {
+      "declaration": "run-e8qEv1 actualJS11/11 complete exit0",
+      "acquisition": "run-ZiVUsg actualJS8=0 passed/8 failed, exit2; setup rejected before page acquisition",
+      "qualification": "static component passed; whole-page/bounded runtime still unverified, Source clean and Owner/child/group/locks closed"
+    },
+    "f68360c69bfc0992d53aad4150129b1d4ab83264": {
+      "acquisition": "run-4f4Z70 actualJS8=6 passed/2 failed, exit2",
+      "qualification": "same-owner runtime reached for six cases; bounded missing validator actually reproduced; public E2E0"
+    },
+    "92d946a16a1f0dbdb67a222c56cebe3ec5dbdd3f": {
+      "acquisition": "run-dgMiMo actualJS8=7 passed/1 failed, compile succeeded, exit2",
+      "qualification": "Installed component now produces exact InputKey duplicate refusal, but subsequent cleanup advance resumes a stopped wrapper and rejects; not public acceptance"
+    },
+    "45f8a1d28ec0b7d4bac1a19ad3c3b40464ce1e33": {
+      "acquisition": "run-E2eFGW actualJS8/8 complete exit0",
+      "keycursor": "run-l1DXsQ test-only ContinueWith arity compile exit1; executed0",
+      "qualification": "Real component whole-page/key/filter/projection/reread/cancellation/custody assertions passed at this source; external installed matrix still0"
+    }
+  },
+  "pendingRuntimeRepair": {
+    "status": "45f8 acquisition8/8 passed; WB-pattern child prepared, new keycursor execution pending",
+    "files": [
+      "src/execution_relation/input_keys.mbt",
+      "src/connectors/local/guarded_relation.mbt"
+    ],
+    "owner": "Original conditional input-key validator, with existing bounded execution and RowWorkspace accounting",
+    "selectedCounterexamples": "Original acquisition8, including filter-excluded duplicate pages, plus existing input-key4 and cursor4",
+    "remainingBudget": "Deduct key control work from the same execution allowance before starting the selected child; do not renew it",
+    "cleanup": "Retire owned tuples/map entries before dropping borrowed input and original key references; cancellation remains pending until the existing cleanup confirms",
+    "format": "run-ur87ee, pinned formatter4 exit0; not compile/runtime evidence",
+    "followup": "capture_residual::advance_row_capture_cleanup observes existing stopped fact before deciding whether a child may resume; pending reclamation retries same cleanup without releasing reservation"
+  }
+}

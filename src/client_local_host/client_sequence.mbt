@@ -597,7 +597,8 @@ fn prepare_client_local_sequences_owned(
   let serialization_boundaries = match prepared {
     Effect(value) =>
       @publication_host.prepared_client_effect_serialization_occurrences(value)
-    Pure(_) => []
+    Pure(value) =>
+      @publication_host.prepared_client_serialization_occurrences(value)
   }
   // Each checked boundary still needs its installed provider. Retaining both
   // markers neither executes generation nor grants Model authorization.
