@@ -123,6 +123,7 @@ class OriginalWorkerFunding:
         self._closed = False
         self._closing = False
         self._close_inflight = False
+        self._driver_consumer: object | None = None
         supplier._bind_original(self)
         try:
             self._physical = supplier.acquire_pre_spawn(components)
@@ -162,6 +163,12 @@ class OriginalWorkerFunding:
     def _nominal(self) -> None:
         if self._original is not self or self._closed or self._close_inflight:
             raise ValueError('Foreign or retired original Local worker funding')
+
+    def _bind_driver(self, consumer: object) -> None:
+        self._nominal()
+        if self._closing or self._driver_consumer is not None:
+            raise ValueError('Original Local worker funding already has a driver')
+        self._driver_consumer = consumer
 
     def require_launch(self) -> None:
         self._nominal()
