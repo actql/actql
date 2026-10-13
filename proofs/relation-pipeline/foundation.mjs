@@ -5,7 +5,7 @@ import { lstatSync, readFileSync, readdirSync, existsSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { hash } from './inventory.mjs';
-import { foundationAncestorQuery, populateFoundationTrees, populateFoundationBlobs,
+import { foundationAncestorQuery, foundationMergeBaseQuery, populateFoundationTrees, populateFoundationBlobs,
   foundationBlobOutputLimit } from './foundation-trees.mjs';
 const sha = /^[0-9a-f]{40}$/;
 const digest = /^[0-9a-f]{64}$/;
@@ -126,6 +126,7 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
     assert(actualParents.every(parent => completeParents.has(parent)), 'Incomplete foundation parent ancestry');
   }
   const ancestor = foundationAncestorQuery(completeParents);
+  const parentMergeBases = foundationMergeBaseQuery(completeParents);
   assert(ancestor(checkpoint, head), 'Foundation checkpoint is not an ancestor of HEAD');
   const revisions = git(['rev-list', '--reverse', '--topo-order', `${checkpoint}..${head}`]).stdout.toString().trim().split('\n').filter(Boolean);
   const revisionSet = new Set(revisions), trees = new Map(), blobs = new Map(), verifiedObjects = new Map();
@@ -136,7 +137,9 @@ export function composeFoundation(root, { checkpoint, paths, directory = 'proofs
   const mergeBaseCache = new Map();
   function mergeBases(revision) {
     if (!mergeBaseCache.has(revision)) {
-      const bases = sorted(git(['merge-base', '--all', ...parents(revision)]).stdout.toString().trim().split('\n').filter(Boolean));
+      const actualParents = parents(revision);
+      assert.equal(actualParents.length, 2, 'Invalid foundation merge parent count');
+      const bases = parentMergeBases(...actualParents);
       assert(bases.length && bases.every(value => sha.test(value)) && new Set(bases).size === bases.length,
         'Invalid foundation merge bases');
       mergeBaseCache.set(revision, bases);

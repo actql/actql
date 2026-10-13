@@ -274,9 +274,6 @@ test "closed forms reject malformed arguments and never discover arbitrary data"
         #|{"in":["x",{"literal":[[1]]}]}
       ),
       (
-        #|{"in":["x","[1,2]"]}
-      ),
-      (
         #|{"like":["x",{"concat":[{"literal":"a"},{"literal":"%"}]}]}
       ),
       (
