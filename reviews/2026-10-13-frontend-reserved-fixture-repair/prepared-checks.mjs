@@ -15,7 +15,7 @@ const runner = 'import {runFocusedTests} from "./scripts/test-execution.mjs"; pr
 process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false,
   timeoutSeconds: 60, graceSeconds: 5, steps: [
     {name: 'Active ordinary-name fixtures and existing quoted/refusal controls',
-      command: 'node', args: ['--input-type=module', '-e', runner,
+      command: 'node', args: ['--input-type=module', '-e', runner, '--',
         '--target', 'js', ...selection.files]},
     {name: 'Whitespace', command: 'git', args: ['diff', '--check']},
   ]});
