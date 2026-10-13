@@ -158,6 +158,7 @@ fn original_keyed_run_fixture(
   selector_free? : Bool = false,
   relation_versions? : Bool = false,
   serialization_max_bytes? : Int = 4096,
+  typed_content_input? : Bool = false,
 ) -> (
   @row_source_host.RowDeclaration,
   @publication_host.PreparedClientProgram,
@@ -237,12 +238,30 @@ fn original_keyed_run_fixture(
       new="\"max_bytes\":" + serialization_max_bytes.to_string(),
     )
   }
+  let document = if typed_content_input {
+    document.replace(
+      old="\"input\":{\"text\":{\"field\":\"name\"}}",
+      new="\"input\":{\"document\":{\"field\":\"content\"}}",
+    )
+  } else {
+    document
+  }
   let (prepared, compiled, definition, plan) = original_prefix_execution_fixture(
     source=true,
     environment_override=Some(environment),
     document_override=Some(document),
     serialization_coordinate=Some((0, if relation_versions { 7 } else { 4 })),
     serialization_bounds=(3, serialization_max_bytes),
+    model_task_override=if typed_content_input {
+      Some(original_typed_content_task())
+    } else {
+      None
+    },
+    model_execution_override=if typed_content_input {
+      Some(original_typed_content_execution())
+    } else {
+      None
+    },
   )
   let keyed = @publication_host.select_client_single_keyed_acquisition(prepared)
     .unwrap()
