@@ -143,7 +143,7 @@ test "Reviewer proof snapshot preserves cancellation revision and uncertain Effe
         record.revision,
         run_record_body(changed).unwrap(),
       )
-      .map_err(issue => Physical(issue))
+      .map_err(issue => NativeClientRunJournalIssue::Physical(issue))
       is Ok(next) &&
       next == record.revision + 1L else {
       return Err(Checkpoint(StaleRevision))
