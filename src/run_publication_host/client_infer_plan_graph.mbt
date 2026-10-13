@@ -867,7 +867,7 @@ fn issue_client_infer_plan_graph_for_occurrence(
           max_wire_bytes,
           max_nodes,
           max_depth,
-          infer_output=Some((step, terminal)),
+          infer_output=Some((occurrence, terminal)),
         ) {
         Ok(parts) => parts
         Err(issue) => return Err(Result(issue))
