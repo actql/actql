@@ -148,7 +148,25 @@ test "native Site polls outbound and durably accepts before acknowledgement" {
     1048576L,
     @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1").unwrap(),
   ).unwrap()
-  let request = poll(client, origin + "/outbound/poll").unwrap().unwrap()
+  guard poll_operation(client, origin + "/outbound/poll").unwrap()
+    is Some(@remote.Dispatch(dispatch)) else {
+    fail("expected an outbound Dispatch operation")
+  }
+  let request = @remote.remote_poll_dispatch_request(dispatch)
+  // Status delivery remains typed; it cannot satisfy the Dispatch match above.
+  guard poll_operation(client, origin + "/outbound/query").unwrap()
+    is Some(@remote.Query(query_request)) else {
+    fail("query poll response lost its operation kind")
+  }
+  assert_eq(
+    @remote.dispatch_request_identity(query_request),
+    @remote.dispatch_request_identity(request),
+  )
+  // A foreign response cannot be reinterpreted as an executable dispatch.
+  guard poll_operation(client, origin + "/probe")
+    is Err(Protocol(@remote.InvalidDispatch)) else {
+    fail("foreign poll response was accepted")
+  }
   assert_eq(
     @remote.dispatch_request_identity(request),
     @remote.dispatch_request_identity(native_remote_request()),
