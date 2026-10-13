@@ -1,13 +1,13 @@
 ///|
 test "segment retention preserves readmitted status identity bindings and values and rejects a foreign receiver" {
   let owner = row_owner(
-    ",{\"from\":\"values_0\",\"select\":[\"a\"],\"as\":\"selected\"}",
+    ",{\"from\":\"seed\",\"select\":[\"a\"],\"as\":\"selected\"}",
   )
   let upstream = evaluate_sequence_components(
     registered_relation_contracts(),
     prepared_sequence(owner),
     [],
-    ["values_0", "selected"],
+    ["values_0", "select_1"],
     run_limits(),
     { remaining: 10000, max_frames: 100, },
   ).unwrap()
@@ -49,7 +49,7 @@ test "segment retention preserves readmitted status identity bindings and values
   ).unwrap()
   assert_false(completed_output_matches_segment_input(retained, rebound))
   let foreign = row_owner(
-    ",{\"from\":\"values_0\",\"select\":[\"a\"],\"as\":\"selected\"}",
+    ",{\"from\":\"seed\",\"select\":[\"a\"],\"as\":\"selected\"}",
   )
   assert_true(
     retain_completed_segment_input(
