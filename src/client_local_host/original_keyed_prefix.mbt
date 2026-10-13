@@ -22,7 +22,9 @@ fn original_keyed_left_prefix_provider(
     ) &&
     @publication_host.client_keyed_acquisition_coordinates(keyed)
     is Some((_, task, join)) &&
-    @publication_host.prepare_client_query_acquisition(prepared, task, 0)
+    @publication_host.client_keyed_direct_acquisition_coordinates(keyed)
+    is Some((_, input, _)) &&
+    @publication_host.prepare_client_query_acquisition(prepared, task, input)
     is Ok(query) &&
     @sourceviews.query_acquisition_capture(query) is @pipeline.Step(capture) &&
     @lower.node_at(
@@ -48,6 +50,7 @@ fn original_keyed_left_prefix_provider(
       task_count=Some(task + 1),
       selected_task=Some(task),
       infer_prefix=Some((task, left)),
+      acquisition_source=Some((task, input)),
     )
     .bind(sequences => sequences.get(0))
     .bind(sequence => {
