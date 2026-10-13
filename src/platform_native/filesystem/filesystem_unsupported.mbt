@@ -16,12 +16,24 @@ pub fn Root::close(_self : Root) -> Result[Unit, NativeFilesystemIssue] {
 }
 
 ///|
-pub fn open_root(_path : String) -> Result[Root, NativeFilesystemIssue] {
+pub fn open_root(
+  _path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Root, NativeFilesystemIssue] {
+  if diagnostic_ceiling is Some(limit) && limit <= 0 {
+    return Err(InvalidLimit)
+  }
   Err(UnsupportedTarget)
 }
 
 ///|
-pub fn open_private_root(_path : String) -> Result[Root, NativeFilesystemIssue] {
+pub fn open_private_root(
+  _path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Root, NativeFilesystemIssue] {
+  if diagnostic_ceiling is Some(limit) && limit <= 0 {
+    return Err(InvalidLimit)
+  }
   Err(UnsupportedTarget)
 }
 
