@@ -27,6 +27,13 @@ int actql_native_owned_transfer(actql_owned_capacity *lease, uint64_t generation
 int actql_native_owned_enter(actql_owned_capacity *lease);
 int actql_native_owned_leave(actql_owned_capacity *lease);
 actql_owned_capacity *actql_native_owned_current(void);
+/* Physical observations only, never a Core capacity grant. The full original
+ * region remains owned even after its child extents retire. */
+int actql_native_owned_capacity_bytes(actql_owned_capacity *lease, uint64_t *out);
+/* Requires original current/transferred lease and one live backing extent.
+ * It does not establish Guest VM identity or execution permission. */
+int actql_native_owned_contains_live_span(actql_owned_capacity *lease,
+                                         const void *address, size_t bytes);
 int actql_native_owned_allocate(actql_owned_capacity *lease, size_t bytes,
                          size_t alignment, void **out);
 int actql_native_owned_protect(actql_owned_capacity *lease, void *allocation,

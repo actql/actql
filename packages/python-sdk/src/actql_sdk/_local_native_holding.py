@@ -5,7 +5,7 @@ This adapter neither loads a DLL nor acquires/adopts an allocator or profile.
 """
 from __future__ import annotations
 
-from ctypes import byref, c_int, c_void_p, c_uint64, c_ubyte, POINTER
+from ctypes import byref, c_int, c_void_p, c_uint64, c_ubyte, c_size_t, POINTER
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
@@ -33,6 +33,14 @@ class NativeHoldingTransferError(RuntimeError):
     def __init__(self, code: int | None) -> None:
         self.code = code
         super().__init__('Original native holding transfer failed or is unconfirmed')
+
+
+class NativeHoldingObservationError(RuntimeError):
+    """Physical observation was denied or unknown; no capacity/Run conclusion."""
+
+    def __init__(self, operation: str, code: int | None) -> None:
+        self.operation, self.code = operation, code
+        super().__init__(f'Original native holding {operation} is unavailable or unconfirmed')
 
 
 class _NativeHoldingLease:
@@ -97,6 +105,31 @@ class _NativeHoldingLease:
     def _verify_library(self, library: Any) -> None:
         if library is not self._library:
             raise ValueError('Native Local holding and runtime library differ')
+
+    def _capacity_bytes(self) -> int:
+        if self._pointer.value is None:
+            raise ValueError('Original native holding is retired')
+        inspect = self._library.actql_owned_capacity_bytes
+        inspect.argtypes = [c_void_p, POINTER(c_uint64)]
+        inspect.restype = c_int
+        observed = c_uint64()
+        code = inspect(self._pointer, byref(observed))
+        if (type(code) is not int or code != 0
+                or not 0 < observed.value <= 2**63 - 1):
+            raise NativeHoldingObservationError('capacity', code if type(code) is int else None)
+        return observed.value
+
+    def _require_live_span(self, address: c_void_p, length: int) -> None:
+        if (type(address) is not c_void_p or address.value is None
+                or type(length) is not int or not 0 < length <= 2**63 - 1):
+            raise ValueError('Invalid original native span observation')
+        contains = self._library.actql_owned_contains_live_span
+        contains.argtypes = [c_void_p, c_void_p, c_size_t]
+        contains.restype = c_int
+        with self._scope():
+            code = contains(self._pointer, address, length)
+        if type(code) is not int or code != 0:
+            raise NativeHoldingObservationError('span', code if type(code) is int else None)
 
     @contextmanager
     def _scope(self) -> Iterator[None]:

@@ -31,6 +31,21 @@ handle order and Store-last cleanup. Engine wrapper release is not proof that a
 Store's Engine clone has been destroyed. The outer lease must remain held until
 all native handles and their retained children have actually retired.
 
+The private physical observation ports report the full original mapped byte
+capacity and whether a span lies within one live child extent. Span observation
+requires the same current/transferred lease and refuses closing, retired,
+foreign and adjacent-but-separate extents. Neither observation identifies a
+Guest VM, issues capacity, adopts a profile or proves outside Python/SQLite
+funding. A later caller must obtain the actual original VM reservation span
+from the same verified native instance before using membership for projection.
+Do not subtract a guessed VM span from the mapped total or double-charge a
+proved VM suballocation. Child retirement does not shrink the original mapping.
+
+fixtures/span.c prepares21 independent native cases, including retained full
+capacity through child retirement/pending close. It is not compiled or executed
+by the source checks. No actual native case is inferred from its source count,
+Python status doubles, patch applicability or the earlier Wasm artifacts.
+
 ## Pinned upstream contact points
 
 `source-inputs.json` binds the reviewed source to Wasmtime 38.0.0, upstream Git

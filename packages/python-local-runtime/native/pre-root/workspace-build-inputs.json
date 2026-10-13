@@ -45,12 +45,12 @@
     {
       "source": "owned_capacity.c",
       "target": "crates/c-api/src/actql_owned_capacity.c",
-      "sha256": "9e063067d1e6785a1d83612405a7ed8c954e0304236e300be4a8016bb17d7b9b"
+      "sha256": "440ee75583689d4b87ebe607ac977ef5c857a2f4dbc86219df59bca0b03752ca"
     },
     {
       "source": "owned_capacity.h",
       "target": "crates/c-api/src/owned_capacity.h",
-      "sha256": "3cca0924d4ddf3b582eb82d99bf634a09c60b18e2db87bc17cb939639f166753"
+      "sha256": "e57bce1f377b8e5a0172da263e59153c20fe97970fb8783cac5986eb78c9b448"
     },
     {
       "source": "owned_heap.rs",
@@ -60,7 +60,7 @@
     {
       "source": "owned_abi.rs",
       "target": "crates/c-api/artifact/src/actql_owned_abi.rs",
-      "sha256": "4766900298805d33ce5bbbd824d11bd5431435b9b276a26d77acbfa61d0d6ccb"
+      "sha256": "151b086629977f782c042cdfe166b36d1e84ee50be4f60d4faa2d2ea22126fa6"
     },
     {
       "source": "owned_image.c",

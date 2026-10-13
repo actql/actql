@@ -180,6 +180,45 @@ static bool allocation_start(actql_owned_capacity *lease, void *allocation,
            lease->extents[*start].pages != SIZE_MAX;
 }
 
+int actql_native_owned_capacity_bytes(actql_owned_capacity *lease, uint64_t *out) {
+    if (lease == NULL || out == NULL || *out != 0) return ACTQL_OWNED_INVALID;
+    lock_capacity(lease);
+    /* Closing is not released. A failed final unmap still owns the full region. */
+    *out = (uint64_t)lease->length;
+    unlock_capacity(lease);
+    return ACTQL_OWNED_OK;
+}
+
+int actql_native_owned_contains_live_span(actql_owned_capacity *lease,
+                                         const void *address, size_t bytes) {
+    if (lease == NULL || address == NULL || bytes == 0 ||
+        actql_native_owned_current() != lease) return ACTQL_OWNED_INVALID;
+    lock_capacity(lease);
+    int status = ACTQL_OWNED_INVALID;
+    uintptr_t value = (uintptr_t)address;
+    uintptr_t base = (uintptr_t)lease;
+    if (lease->closing || !lease->transferred) goto done;
+    if (value < base || value - base >= lease->length) goto done;
+    size_t offset = (size_t)(value - base);
+    if (bytes > lease->length - offset) goto done;
+    size_t start = offset / lease->page_size;
+    if (start < lease->control_pages) goto done;
+    /* Interior pages carry SIZE_MAX. Find this single backing extent, never
+     * merge adjacent allocations or read beyond the original control table. */
+    while (start > lease->control_pages && lease->extents[start].pages == SIZE_MAX)
+        start--;
+    size_t pages = lease->extents[start].pages;
+    if (pages == 0 || pages == SIZE_MAX || lease->extents[start].retired ||
+        pages > lease->page_count - start) goto done;
+    size_t begin = start * lease->page_size;
+    size_t length = pages * lease->page_size;
+    if (offset >= begin && offset - begin < length && bytes <= length - (offset - begin))
+        status = ACTQL_OWNED_OK;
+done:
+    unlock_capacity(lease);
+    return status;
+}
+
 int actql_native_owned_protect(actql_owned_capacity *lease, void *allocation,
                         size_t offset, size_t length, int protection) {
     if (lease == NULL || length == 0 || offset % lease->page_size != 0 ||

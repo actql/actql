@@ -11,6 +11,9 @@ unsafe extern "C" {
     fn actql_native_owned_enter(lease: *mut c_void) -> c_int;
     fn actql_native_owned_leave(lease: *mut c_void) -> c_int;
     fn actql_native_owned_current() -> *mut c_void;
+    fn actql_native_owned_capacity_bytes(lease: *mut c_void, out: *mut u64) -> c_int;
+    fn actql_native_owned_contains_live_span(lease: *mut c_void,
+                                             address: *const c_void, bytes: usize) -> c_int;
     fn actql_native_owned_allocate(lease: *mut c_void, bytes: usize,
                                    alignment: usize, out: *mut *mut c_void) -> c_int;
     fn actql_native_owned_protect(lease: *mut c_void, allocation: *mut c_void,
@@ -42,6 +45,10 @@ forward!(actql_owned_transfer, actql_native_owned_transfer,
 forward!(actql_owned_enter, actql_native_owned_enter, (lease: *mut c_void), c_int);
 forward!(actql_owned_leave, actql_native_owned_leave, (lease: *mut c_void), c_int);
 forward!(actql_owned_current, actql_native_owned_current, (), *mut c_void);
+forward!(actql_owned_capacity_bytes, actql_native_owned_capacity_bytes,
+         (lease: *mut c_void, out: *mut u64), c_int);
+forward!(actql_owned_contains_live_span, actql_native_owned_contains_live_span,
+         (lease: *mut c_void, address: *const c_void, bytes: usize), c_int);
 forward!(actql_owned_allocate, actql_native_owned_allocate,
          (lease: *mut c_void, bytes: usize, alignment: usize, out: *mut *mut c_void), c_int);
 forward!(actql_owned_protect, actql_native_owned_protect,
