@@ -8,6 +8,15 @@ const registry = JSON.parse(readFileSync(
   new URL('../../spec/contracts/actql-run-publication.json', import.meta.url),
   'utf8',
 ));
+const artifactSchemas = JSON.parse(readFileSync(
+  new URL('../../spec/contracts/actql-protocol-schemas.json', import.meta.url),
+  'utf8',
+)).artifact_schemas;
+const fixtureArtifactIdentities = Object.freeze({
+  result_manifest: 'result_manifest_cid',
+  run_receipt: 'receipt_identity_cid',
+  captured_run: 'captured_run_cid',
+});
 
 const identityFields = Object.freeze({
   result_definition: 'result_definition_cid',
@@ -220,8 +229,8 @@ export function publicationIdentityField(name) {
 
 export function createPublicationContractControlFixture() {
   const tokens = new WeakMap();
-  const inspect = (name, value) => {
-    const identityField = publicationIdentityField(name);
+  const inspect = (name, value,
+    identityField = publicationIdentityField(name)) => {
     const result = Object.freeze({
       name,
       identityField,
@@ -239,6 +248,22 @@ export function createPublicationContractControlFixture() {
     return result;
   };
   return Object.freeze({
+    // Shape/identity-only adapter fixture, not the Core commit-chain verdict.
+    // These closed artifact names deliberately do not extend publication APIs.
+    admitArtifactFixture(name, completeWire) {
+      if (!Object.hasOwn(fixtureArtifactIdentities, name)) {
+        fail('UnknownPublicationFixtureArtifact');
+      }
+      const identityField = fixtureArtifactIdentities[name];
+      const value = copy(JSON.parse(completeWire));
+      validateSchema(artifactSchemas[name], value, '$');
+      const body = {...value};
+      delete body[identityField];
+      if (value[identityField] !== canonicalCid(body)) {
+        fail('PublicationIdentityMismatch', `$.${identityField}`);
+      }
+      return inspect(name, freeze(value), identityField);
+    },
     seal(name, bodyWire) {
       return inspect(name, sealPublicationContract(name, JSON.parse(bodyWire)));
     },

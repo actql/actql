@@ -82,6 +82,67 @@ pub fn client_effect_content_local_provider(
     is Some(prefix) else {
     return None
   }
+  client_content_local_provider_owned(
+    barrier, prefix, task, execution, measurement, workspace, physical, retain, recovery,
+  )
+}
+
+///|
+// The checked Pure/Model path uses the same Content child, encoder, physical
+// piece ACK and cleanup Owner as Effect computation. This factory is not an
+// original-Scope admission or a normal physical profile supplier.
+pub fn client_content_local_provider(
+  prepared : @publication_host.PreparedClientProgram,
+  task : Int,
+  step : Int,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  workspace : ClientSerializationWorkspaceLimits,
+  physical : ClientLocalContentPhysicalPort,
+  retain : (ClientLocalContentStep) -> Bool,
+  recovery? : ClientRetainedContentOutput? = None,
+) -> @local.ManagedProvider? {
+  guard @publication_host.prepare_client_serialization(
+      prepared,
+      task,
+      step,
+      max_work=10000,
+    )
+    is Ok(barrier) &&
+    prepare_client_serialization_prefix_owned(
+      Pure(prepared),
+      task,
+      step,
+      registry_body,
+      values_body,
+      fragment_body,
+      ordered_body,
+    )
+    is Some(prefix) else {
+    return None
+  }
+  client_content_local_provider_owned(
+    barrier, prefix, task, execution, measurement, workspace, physical, retain, recovery,
+  )
+}
+
+///|
+fn client_content_local_provider_owned(
+  barrier : @lower.PreparedSerialization,
+  prefix : @execution.GeneratedSequence,
+  task : Int,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  workspace : ClientSerializationWorkspaceLimits,
+  physical : ClientLocalContentPhysicalPort,
+  retain : (ClientLocalContentStep) -> Bool,
+  recovery : ClientRetainedContentOutput?,
+) -> @local.ManagedProvider? {
+  let step = @lower.serialization_step(barrier)
   if recovery is Some(metadata) {
     guard client_content_completion_binding(
         metadata.generation,
@@ -679,6 +740,12 @@ fn cleanup_client_content_step(
   active.borrowed = None
   active.receipt = None
   active.piece = None
+  // The family must not retain completed output/proof/byte roots after its
+  // actual physical and sort cleanup. Independently escaped generation views
+  // still borrow their separate live byte holding; do not revoke that custody.
+  active.bytes = None
+  active.generation = None
+  active.output = None
   active.cleaned = true
   Ok(true)
 }

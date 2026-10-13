@@ -1477,7 +1477,10 @@ export async function openLocalPublicationStore(
         const release = () => {
           if (!holder.active) return Promise.resolve(false);
           if (holder.releasing !== undefined) return holder.releasing;
-          const operation = group.busy.then(async () => {
+          // A physical holding and its prepared release use the same existing
+          // material queue. An awaited directory ACK must not race reclamation.
+          const previous = group.busy;
+          const operation = materialRetentionBusy.then(() => previous).then(async () => {
             if (!holder.active) return false;
             await finishPendingUnlink();
             if (!holder.active) {
@@ -1514,6 +1517,11 @@ export async function openLocalPublicationStore(
               preparedObjects.delete(physical.cid);
               return true;
             }
+            // Physical holdings refer to bytes by CID, not inode hard links.
+            // A visible holding after a lost commit ACK is still responsibility,
+            // not permission to unlink. Keep this exact pending handle until
+            // the same commit is confirmed or its holding is lawfully retired.
+            if (await materialHasLiveReference(physical.cid)) return false;
             await unlink(path);
             group.removable = false;
             group.pendingUnlink = {
@@ -1529,6 +1537,7 @@ export async function openLocalPublicationStore(
             return true;
           });
           group.busy = operation.catch(() => {});
+          materialRetentionBusy = group.busy;
           holder.releasing = operation.catch(error => {
             errors.push(error);
             throw error;

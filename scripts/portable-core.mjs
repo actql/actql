@@ -143,12 +143,30 @@ export function inspectCore(root, roots = coreRoots) {
   if (existsSync(join(root, 'moon.mod.json'))) throw new Error('AmbiguousCoreModule');
   const module = tokens(readFileSync(join(root,'moon.mod'),'utf8'));
   const metadata = new Set(['name','version','license','source','preferred_target','supported_targets']);
-  for (let i = 0; i < module.length; i += 3) {
+  let reviewedEsm = false;
+  for (let i = 0; i < module.length;) {
+    if (module[i]?.kind === 'word' && module[i].value === 'options') {
+      // Review only the existing pinned linker's ESM format selection, not a
+      // general options object, extra flags, hooks or another module format.
+      const literal = [
+        ['word', 'options'], ['symbol', '('], ['string', 'link-flags'],
+        ['symbol', ':'], ['symbol', '['], ['string', '-js-format'],
+        ['symbol', ','], ['string', 'esm'], ['symbol', ']'], ['symbol', ')'],
+      ];
+      if (reviewedEsm || !literal.every(([kind, value], offset) =>
+        module[i + offset]?.kind === kind && module[i + offset].value === value)) {
+        throw new Error('UnauditedCoreModuleDirective');
+      }
+      reviewedEsm = true;
+      i += literal.length;
+      continue;
+    }
     const [key,equals,value] = module.slice(i,i+3);
     if (key?.kind !== 'word' || !metadata.has(key.value) || equals?.value !== '=' || value?.kind !== 'string') {
       throw new Error('UnauditedCoreModuleDirective');
     }
     if (key.value === 'source' && value.value !== 'src') throw new Error('UnsupportedCoreSourceRoot');
+    i += 3;
   }
   const packages = new Map(), external = new Map(), publicImports = [];
   const pending = [...roots];

@@ -19,6 +19,7 @@ import {canonicalJson} from './local-account-config.mjs';
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {composeInstalledEffects, validPluralEffectPaths}
   from './installed-effect-inventory.mjs';
+import {retainInstalledRowEffectAdapter} from './installed-row-effect.mjs';
 export {installedEffectFor} from './installed-effect-inventory.mjs';
 import {installedConnectors} from
   '../connectors-builtin/installations.generated.mjs';
@@ -170,7 +171,7 @@ async function loadEffect(path, {root, principalId, moon,
       typeof installed.close !== 'function') {
     refuse('InvalidInstalledEffectInstallation');
   }
-  return Object.freeze({environmentWire: installed.environmentWire,
+  return retainInstalledRowEffectAdapter(installed, Object.freeze({environmentWire: installed.environmentWire,
     connectorBindings: installed.connectorBindings,
     effectSelectors: installed.effectSelectors,
     queryTableBindings: installed.queryTableBindings,
@@ -180,7 +181,7 @@ async function loadEffect(path, {root, principalId, moon,
     targetReadAuthorization: installed.targetReadAuthorization,
     prepareCaptured: installed.prepareCaptured,
     prepareRecovered: installed.prepareRecovered,
-    close: () => installed.close()});
+    close: () => installed.close()}));
 }
 
 export async function loadInstalledEffect(path, options) {

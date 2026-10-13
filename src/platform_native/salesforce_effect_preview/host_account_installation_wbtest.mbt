@@ -504,3 +504,83 @@ test "Host bounded current failure foreign CID and revocation remain refusal" {
     }
   }
 }
+
+///|
+test "Host diagnostic selection is immutable and independent of Account body ceiling" {
+  let selected = host_account_test_file()
+  let read = _ => Ok(host_account_test_wire())
+  let legacy = install_host_account_with_read(Some(selected), read)
+    .unwrap()
+    .unwrap()
+  assert_true(legacy.diagnostic_ceiling is None)
+  let explicit = install_host_account_with_read(
+      Some(selected),
+      read,
+      read_ceiling=32768,
+      diagnostic_ceiling=Some(7),
+    )
+    .unwrap()
+    .unwrap()
+  assert_eq(explicit.read_ceiling, 32768)
+  assert_eq(explicit.diagnostic_ceiling, Some(7))
+  assert_eq(explicit.subject().principal, legacy.subject().principal)
+  assert_eq(
+    explicit.subject().configuration_cid,
+    legacy.subject().configuration_cid,
+  )
+}
+
+///|
+test "invalid selected Host diagnostic ceiling refuses before Account read" {
+  let reads = [0]
+  for ceiling in [-1, 0] {
+    assert_true(
+      install_host_account_with_read(
+        Some(host_account_test_file()),
+        _ => {
+          reads[0] += 1
+          Ok(host_account_test_wire())
+        },
+        diagnostic_ceiling=Some(ceiling),
+      )
+      is Err(InvalidSelection),
+    )
+    assert_true(
+      install_native_effect_host_account(
+        Some(host_account_test_file()),
+        diagnostic_ceiling=Some(ceiling),
+      )
+      is Err(InvalidSelection),
+    )
+  }
+  assert_eq(reads[0], 0)
+}
+
+///|
+test "unselected Host diagnostic ceiling creates no installation or failure" {
+  let reads = [0]
+  let failures = [0]
+  for ceiling in [-1, 0, 7] {
+    assert_true(
+      install_host_account_with_read(
+        None,
+        _ => {
+          reads[0] += 1
+          Ok(host_account_test_wire())
+        },
+        diagnostic_ceiling=Some(ceiling),
+      )
+      is Ok(None),
+    )
+    assert_true(
+      install_native_effect_host_account(
+        None,
+        diagnostic_ceiling=Some(ceiling),
+        on_read_failure=Some(_ => failures[0] += 1),
+      )
+      is Ok(None),
+    )
+  }
+  assert_eq(reads[0], 0)
+  assert_eq(failures[0], 0)
+}

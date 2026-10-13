@@ -13,7 +13,7 @@ test "saved captured Content retains its original identity and requires current 
   // Independent canonical preimage vector, shared with fresh capture tests.
   assert_eq(
     captured_content_reference_identity(restored),
-    "sha256:2dfff07c2e376252233bf4a15fa5c1277c255adc2ec6c946a6e70d9206c71716",
+    "sha256:48897d51c27c2e3379072119b778536557890fda8bfade70017f9274cbb2ea36",
   )
   assert_eq(captured_content_reference_wire(restored), wire)
   assert_eq(
@@ -93,7 +93,7 @@ test "saved captured Content refuses relabeling and provenance conversion" {
   )
   assert_true(
     prepare_stored_captured_content_reference(generated, binding, limits)
-    is Err(InvalidBinding("saved_reference")),
+    is Err(InvalidBinding("reported_media_type")),
   )
   for
     changed in [
@@ -103,10 +103,11 @@ test "saved captured Content refuses relabeling and provenance conversion" {
       wire.replace(old="\"metadata\":{", new="\"metadata\":{\"extra\":true,"),
       wire.replace(old="\"storage_scope\":\"workspace\",", new=""),
       wire.replace(
-        old="2dfff07c2e376252233bf4a15fa5c1277c255adc2ec6c946a6e70d9206c71716",
-        new="7dfff07c2e376252233bf4a15fa5c1277c255adc2ec6c946a6e70d9206c71716",
+        old="48897d51c27c2e3379072119b778536557890fda8bfade70017f9274cbb2ea36",
+        new="78897d51c27c2e3379072119b778536557890fda8bfade70017f9274cbb2ea36",
       ),
     ] {
+    assert_true(changed != wire)
     assert_true(
       prepare_stored_captured_content_reference(changed, binding, limits)
       is Err(_),
