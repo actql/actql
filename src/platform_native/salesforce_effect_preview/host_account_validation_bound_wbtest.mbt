@@ -33,25 +33,19 @@ test "Account root and name byte ceilings refuse before the private read" {
   let reads = [0]
   for root in ["x".repeat(4097), "é".repeat(2049)] {
     assert_true(
-      install_host_account_with_read(
-        Some({ ..selected, root, }),
-        _ => {
-          reads[0] += 1
-          Ok(host_account_test_wire())
-        },
-      )
+      install_host_account_with_read(Some({ ..selected, root, }), _ => {
+        reads[0] += 1
+        Ok(host_account_test_wire())
+      })
       is Err(InvalidSelection),
     )
   }
   for name in ["x".repeat(4097), "é".repeat(2049)] {
     assert_true(
-      install_host_account_with_read(
-        Some({ ..selected, name, }),
-        _ => {
-          reads[0] += 1
-          Ok(host_account_test_wire())
-        },
-      )
+      install_host_account_with_read(Some({ ..selected, name, }), _ => {
+        reads[0] += 1
+        Ok(host_account_test_wire())
+      })
       is Err(InvalidSelection),
     )
   }
