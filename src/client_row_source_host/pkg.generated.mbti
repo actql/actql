@@ -146,7 +146,7 @@ pub fn row_acquisition_requirement(RowAcquisition) -> @query_planning.QueryRequi
 
 pub fn row_acquisition_retained_capacity(RowAcquisition) -> Int64
 
-pub fn row_capture_original_prefix_requirement(RowSourceCapture, @physical_resources.Ledger) -> @query_planning.QueryRequirement?
+pub fn row_capture_original_prefix_requirement(RowSourceCapture, @physical_resources.Ledger, prefix? : @physical_resources.Reservation?) -> @query_planning.QueryRequirement?
 
 pub fn row_capture_original_read(RowSourceCapture) -> @execution_relation.SuppliedRelationRead?
 
@@ -179,6 +179,8 @@ pub fn start_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAt
 pub fn start_accounted_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[RowRun, RowHostIssue]
 
 pub fn start_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]
+
+pub fn start_original_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, Int64, Int64, (RowAttempt) -> Bool, prefix? : @physical_resources.Reservation?) -> Result[RowRun, RowHostIssue]
 
 pub fn start_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]
 

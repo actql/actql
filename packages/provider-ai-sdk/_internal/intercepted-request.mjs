@@ -310,6 +310,23 @@ export function takeSdkDecodedResult(handle) {
   return value;
 }
 
+// The Chat physical caller validates its answer/observations from original raw
+// custody, not this SDK-normalized projection. Retire that unused local alias
+// after SDK settlement even when raw Store cleanup is still pending. Reuse the
+// original one-time-transfer bit; do not mutate an escaped value or retire raw,
+// transport, request, reader, Promise or entered-call responsibility. This is
+// not physical GC, saved response, remote stop or capacity-release evidence.
+export function retireSdkDecodedResult(handle) {
+  const state = preparations.get(handle);
+  if (state === undefined) throw issue('ForeignSdkPreparation');
+  // Original preparation cleanup may finish before its parent Owner retires.
+  if (state.retired) return true;
+  if (!state.settled) return false;
+  state.taken = true;
+  state.decoded = undefined;
+  return true;
+}
+
 export function cancelSdkPreparation(handle) {
   const state = record(handle);
   state.abort();
