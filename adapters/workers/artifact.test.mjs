@@ -1,12 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {checkWorkersArtifact, conformanceModules, hostModules} from './artifact.mjs';
+import {checkWorkersArtifact, conformanceModules, hostModules,
+  finiteRuntimeModules} from './artifact.mjs';
 import {build} from 'esbuild';
 import {mkdtempSync,mkdirSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {buildHost} from './build.mjs';
+import {buildHost, buildFiniteRuntime} from './build.mjs';
 
 function graph(dependency, options = {}) {
   return {
@@ -118,4 +119,21 @@ test('product Local-only Host builds separately without conformance or test Conn
   assert.ok(modules.every(path => !/(?:^|\/)connectors\/duckdb(?:\/|$)|duckdb-node|@duckdb/.test(path)));
   assert.doesNotMatch(artifact.source, /(?:libduckdb|@duckdb\/node-api|native-addon-marker)/);
   t.diagnostic(JSON.stringify({profile:'host',bytes:artifact.bytes,gzipBytes:artifact.gzipBytes,modules:modules.length}));
+});
+
+test('finite package entry bundles only the explicitly seeded production runtime', async t => {
+  const artifact = await buildFiniteRuntime();
+  const modules = Object.keys(artifact.metafile.inputs);
+  assert.ok(modules.includes('_build/workers/modules/bridge.mjs'));
+  assert.ok(modules.includes('adapters/workers/finite-runtime.mjs'));
+  assert.ok(modules.includes('adapters/workers/finite.mjs'));
+  assert.ok(modules.every(path => !/conformance|reference|fixture|async_bridge/.test(path)));
+  assert.doesNotMatch(artifact.source, /workersFiniteFixture|actql-test-owner/);
+  assert.deepEqual(Object.values(artifact.metafile.outputs)[0].exports,
+    ['createWorkersFiniteRuntime']);
+  const fixture = '_build/workers/modules/fixture.mjs';
+  assert.throws(() => checkWorkersArtifact(graph(fixture), '',
+    ['worker.mjs', ...finiteRuntimeModules]), /WorkersDependencyRejected/);
+  t.diagnostic(JSON.stringify({profile: 'finite-runtime', bytes: artifact.bytes,
+    gzipBytes: artifact.gzipBytes, modules: modules.length}));
 });

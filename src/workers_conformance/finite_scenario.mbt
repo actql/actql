@@ -115,3 +115,34 @@ pub fn finite_fixture_output(
   let schema = @execution.completed_relation_export_schema_identity(receipt)
   [text.to_string(), @execution.relation_schema_wire(schema)]
 }
+
+///|
+/// The test request owner serializes its existing admission and definition.
+/// Product restoration must return this identity rather than issue a new Run.
+#export_name("workersFiniteFixtureMaterials")
+pub fn finite_fixture_materials(
+  prepared : @publication_host.PreparedClientProgram,
+  compilation : @publication_host.ClientValuesCompilation,
+  admission : @publication.RunPublicationAdmission,
+  definition : @publication.PublicationContract,
+  environment_wire : String,
+  environment_cid : String,
+  document : String,
+) -> String {
+  let environment = @publication_host.admit_client_check_environment(
+    environment_wire,
+    environment_cid,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  @publication_host.issue_client_values_run_materials(
+    prepared,
+    compilation,
+    admission,
+    definition,
+    environment,
+    environment_wire,
+    document,
+    None,
+  ).unwrap()
+}
