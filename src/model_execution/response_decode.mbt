@@ -5,8 +5,16 @@
 priv enum ModelResponseDecodePhase {
   ReadChat(ChatEnvelopeDecode)
   ReadNative(NativeEnvelopeDecode, ModelPhysicalNativeResponse)
-  ParseNativeAnswer(@source.JsonParse, NativeDecisionRequest, @environment.DecisionProbabilityProfile)
-  AdmitNativeAnswer(@decode.Admission, NativeDecisionRequest, @environment.DecisionProbabilityProfile)
+  ParseNativeAnswer(
+    @source.JsonParse,
+    NativeDecisionRequest,
+    @environment.DecisionProbabilityProfile
+  )
+  AdmitNativeAnswer(
+    @decode.Admission,
+    NativeDecisionRequest,
+    @environment.DecisionProbabilityProfile
+  )
   ParseAnswer(@source.JsonParse)
   AdmitAnswer(@decode.Admission)
   TypeAnswer(@admitted.TypedAdmission)
@@ -106,7 +114,8 @@ fn advance_encoded_model_response(
   // Recheck the same original tuple at every native child boundary. A retired
   // request or foreign terminal cannot acquire completion via a parsed answer.
   match cursor.phase {
-    ParseNativeAnswer(_, original, probability) | AdmitNativeAnswer(_, original, probability) => {
+    ParseNativeAnswer(_, original, probability)
+    | AdmitNativeAnswer(_, original, probability) => {
       guard state.pending_response is Some(call) &&
         call.terminal is Some(PhysicalNativeResponse(native)) &&
         physical_equal(original, native.original) &&
@@ -142,8 +151,10 @@ fn advance_encoded_model_response(
           { ..observation, response_complete: Some(true), }
         }
         (Some(PhysicalNativeResponse(native)), Some(raw)) if physical_equal(
-            native.raw, raw,
-          ) && model_native_response_original(native, call) => {
+            native.raw,
+            raw,
+          ) &&
+          model_native_response_original(native, call) => {
           guard cursor.observation is Some(observation) else {
             return @bounded.Failed(RequestIdentity, 1, 1)
           }
@@ -192,18 +203,22 @@ fn advance_model_response_decode(
       match @source.advance_json_parse(parse, 1) {
         Ok(@source.JsonParseContinue(..)) => ()
         Ok(@source.JsonParseComplete(source, ..)) => {
-          let admit = match @decode.start_admission(source.node, {
-            max_nodes: cursor.limits.parse_nodes,
-            max_depth: cursor.limits.parse_depth,
-            max_string_bytes: cursor.limits.response_bytes,
-            max_total_string_bytes: cursor.limits.response_bytes,
-          }) {
+          let admit = match
+            @decode.start_admission(source.node, {
+              max_nodes: cursor.limits.parse_nodes,
+              max_depth: cursor.limits.parse_depth,
+              max_string_bytes: cursor.limits.response_bytes,
+              max_total_string_bytes: cursor.limits.response_bytes,
+            }) {
             Ok(admit) => admit
             Err(_) => return Err(OutputValue)
           }
           cursor.phase = AdmitNativeAnswer(admit, original, probability)
         }
-        _ => { cancel_model_response_decode(cursor); return Err(OutputValue) }
+        _ => {
+          cancel_model_response_decode(cursor)
+          return Err(OutputValue)
+        }
       }
     AdmitNativeAnswer(admit, original, probability) =>
       match @decode.advance_admission(admit, 1) {
@@ -212,23 +227,29 @@ fn advance_model_response_decode(
           guard original.decision is Some(decision) else {
             return Err(RequestIdentity)
           }
-          let work = match @environment.validate_decision_answers(
-            decision, source, probability, cursor.remaining,
-          ) {
+          let work = match
+            @environment.validate_decision_answers(
+              decision,
+              source,
+              probability,
+              cursor.remaining,
+            ) {
             Ok(work) => work
             Err({ kind: WorkLimit, .. }) => return Err(WorkLimit)
             Err(_) => return Err(OutputValue)
           }
           cursor.remaining -= work
-          let typed = match @admitted.start_typed_admission(
-            output, source, value_limits,
-          ) {
+          let typed = match
+            @admitted.start_typed_admission(output, source, value_limits) {
             Ok(typed) => typed
             Err(_) => return Err(OutputValue)
           }
           cursor.phase = TypeAnswer(typed)
         }
-        _ => { cancel_model_response_decode(cursor); return Err(OutputValue) }
+        _ => {
+          cancel_model_response_decode(cursor)
+          return Err(OutputValue)
+        }
       }
     ParseAnswer(parse) =>
       match @source.advance_json_parse(parse, 1) {

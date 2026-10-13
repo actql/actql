@@ -542,7 +542,10 @@ pub fn check_model_response_profile_probability(
   probability : DecisionProbabilityProfile,
 ) -> Result[Unit, ModelTaskIssueKind] {
   check_model_response_profile_binding(
-    profile, task, profile.installation, Some(probability),
+    profile,
+    task,
+    profile.installation,
+    Some(probability),
   )
 }
 

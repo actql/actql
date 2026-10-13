@@ -165,8 +165,7 @@ fn cancel_model_physical_call(call : ModelPhysicalCall) -> Unit {
 // does not prove local cleanup, response persistence or remote cancellation.
 fn cleanup_model_physical_call(state : ModelState) -> Bool {
   guard state.pending_response is Some(call) else { return true }
-  if call.polling ||
-    (call.raw_capture is Some(raw) && raw.usage_advancing) {
+  if call.polling || (call.raw_capture is Some(raw) && raw.usage_advancing) {
     return false
   }
   if !call.retired {
@@ -248,7 +247,8 @@ fn observe_original_model_physical_usage(
         output_tokens: response.observation.output_tokens,
       }
     PhysicalRejected(_, usage) | PhysicalUnknown(usage) => usage
-    PhysicalPending | PhysicalChatResponse(_) | PhysicalNativeResponse(_) => return Ok(())
+    PhysicalPending | PhysicalChatResponse(_) | PhysicalNativeResponse(_) =>
+      return Ok(())
   }
   if !valid_model_optional_tokens(usage.input_tokens) ||
     !valid_model_optional_tokens(usage.output_tokens) {

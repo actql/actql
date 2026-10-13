@@ -113,8 +113,14 @@ pub fn prepare_model_raw_capture_save(
     }
   }
   let value : ModelRawCaptureSave = {
-    call, registration, response: bound, saved: None, usage_reader: None,
-    usage_result: None, usage_retired: false, usage_work: 0,
+    call,
+    registration,
+    response: bound,
+    saved: None,
+    usage_reader: None,
+    usage_result: None,
+    usage_retired: false,
+    usage_work: 0,
     usage_advancing: false,
   }
   call.raw_capture = Some(value)

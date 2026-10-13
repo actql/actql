@@ -27,9 +27,11 @@ fn advance_model_raw_usage_reader(
   match reader {
     ChatUsage(child) => advance_chat_envelope_decode(child)
     NativeUsage(child) =>
-      advance_native_envelope_decode(child).map(root => match root {
-        None => None
-        Some(_) => child.facts
+      advance_native_envelope_decode(child).map(root => {
+        match root {
+          None => None
+          Some(_) => child.facts
+        }
       })
   }
 }
@@ -50,10 +52,11 @@ fn retain_reconciled_raw_usage(
   if call.usage_result is Some(Err(issue)) {
     return Err(issue)
   }
-  for (old, actual) in [
-    (trace.input_tokens, facts.input_tokens),
-    (trace.output_tokens, facts.output_tokens),
-  ] {
+  for
+    (old, actual) in [
+      (trace.input_tokens, facts.input_tokens),
+      (trace.output_tokens, facts.output_tokens),
+    ] {
     if old is Some(old) && actual is Some(actual) && old != actual {
       return Err(OutputIdentity)
     }
@@ -84,7 +87,8 @@ fn retire_model_raw_usage_child(
   if raw.usage_retired {
     return raw.usage_result.unwrap_or(Ok(()))
   }
-  let result = if raw.usage_reader is Some(reader) && model_raw_usage_facts(reader) is Some(facts) {
+  let result = if raw.usage_reader is Some(reader) &&
+    model_raw_usage_facts(reader) is Some(facts) {
     retain_reconciled_raw_usage(call, facts)
   } else {
     Ok(())
@@ -127,17 +131,21 @@ pub fn advance_model_reconciled_raw_usage(
   // An incomplete/failed native decode may retain a nominal saved prefix.
   // Only its stopped original execution may reconcile usage; never run two
   // CPU readers concurrently or replace its immutable physical terminal.
-  if !stopped_original { return Err(RequestIdentity) }
+  if !stopped_original {
+    return Err(RequestIdentity)
+  }
   if raw.usage_retired {
-    return raw.usage_result.unwrap_or(Ok(())).map(_ => {
-      (true, raw.usage_work.to_int64())
-    })
+    return raw.usage_result
+      .unwrap_or(Ok(()))
+      .map(_ => (true, raw.usage_work.to_int64()))
   }
   if raw.usage_advancing {
     return Err(Session(@bounded.ConcurrentResume))
   }
   raw.usage_advancing = true
-  let result = advance_reconciled_raw_usage_owned(call, response, raw, entry, quantum)
+  let result = advance_reconciled_raw_usage_owned(
+    call, response, raw, entry, quantum,
+  )
   raw.usage_advancing = false
   result
 }
@@ -157,7 +165,8 @@ fn advance_reconciled_raw_usage_owned(
   for _ in 0..<quantum {
     // Keep scanned partials before a stop, permission/clock failure, work
     // exhaustion or codec error can retire the child.
-    if raw.usage_reader is Some(reader) && model_raw_usage_facts(reader) is Some(facts) {
+    if raw.usage_reader is Some(reader) &&
+      model_raw_usage_facts(reader) is Some(facts) {
       match retain_reconciled_raw_usage(call, facts) {
         Err(issue) => return finish_reconciled_raw_usage(call, raw, Err(issue))
         Ok(_) => ()
@@ -170,9 +179,12 @@ fn advance_reconciled_raw_usage_owned(
         return finish_reconciled_raw_usage(call, raw, Err(Deadline))
       Err(Capture(Authorization(issue))) =>
         return finish_reconciled_raw_usage(
-          call, raw, Err(Authorization(@publication_host.Authorization(issue))),
+          call,
+          raw,
+          Err(Authorization(@publication_host.Authorization(issue))),
         )
-      Err(_) => return finish_reconciled_raw_usage(call, raw, Err(RequestIdentity))
+      Err(_) =>
+        return finish_reconciled_raw_usage(call, raw, Err(RequestIdentity))
       Ok(_) => ()
     }
     if !model_chat_response_original(response, call) {
@@ -193,10 +205,17 @@ fn advance_reconciled_raw_usage_owned(
         return finish_reconciled_raw_usage(call, raw, Err(RequestIdentity))
       }
       let limits = @environment.model_response_profile_limits(profile)
-      let child = if @environment.model_response_profile_completion_basis(profile) == "native_decision" {
-        start_native_envelope_decode(response.body, limits).map(child => NativeUsage(child))
+      let child = if @environment.model_response_profile_completion_basis(
+          profile,
+        ) ==
+        "native_decision" {
+        start_native_envelope_decode(response.body, limits).map(child => {
+          NativeUsage(child)
+        })
       } else {
-        start_chat_envelope_decode(response.body, limits).map(child => ChatUsage(child))
+        start_chat_envelope_decode(response.body, limits).map(child => {
+          ChatUsage(child)
+        })
       }
       match child {
         Err(issue) => return finish_reconciled_raw_usage(call, raw, Err(issue))
@@ -228,5 +247,5 @@ fn finish_reconciled_raw_usage(
     Ok(_) => retained
   }
   raw.usage_result = Some(result)
-  result.map(_ => { (true, raw.usage_work.to_int64()) })
+  result.map(_ => (true, raw.usage_work.to_int64()))
 }
