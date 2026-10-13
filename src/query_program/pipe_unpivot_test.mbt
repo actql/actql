@@ -117,8 +117,8 @@ test "Pipe UNPIVOT has a complete independently authored lowering and output ord
   ).unwrap()
   for
     text in [
-      "FROM pair |> UNPIVOT INCLUDE NULLS (amount FOR column_name IN (x,y))", "FROM pair |> UNPIVOT INCLUDE NULLS (amount FOR column_name IN (`X`,`Y`)) AS current |> SELECT current.amount, current.column_name",
-      "FROM pair |> UNPIVOT INCLUDE NULLS (amount FOR column_name IN (x,y)) current |> SELECT *",
+      "FROM pair |> UNPIVOT INCLUDE NULLS (amount FOR column_name IN (x,y))", "FROM pair |> UNPIVOT INCLUDE NULLS (amount FOR column_name IN (`X`,`Y`)) AS `current` |> SELECT current.amount, current.column_name",
+      "FROM pair |> UNPIVOT INCLUDE NULLS (amount FOR column_name IN (x,y)) `current` |> SELECT *",
     ] {
     let actual = compile(
       @query.parse_query(text, syntax_limits()).unwrap(),

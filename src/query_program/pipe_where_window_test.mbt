@@ -74,7 +74,7 @@ test "Pipe WHERE window placeholders cannot revive hidden fields or removed rang
         "FROM orders |> SELECT id |> WHERE LAG(amount) OVER (ORDER BY id) > 0", "UnknownReference",
       ),
       (
-        "FROM orders AS old |> AS current |> WHERE LAG(old.amount) OVER (ORDER BY id) > 0",
+        "FROM orders AS old |> AS `current` |> WHERE LAG(old.amount) OVER (ORDER BY id) > 0",
         "UnknownReference",
       ),
       (

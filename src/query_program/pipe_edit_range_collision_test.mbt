@@ -24,8 +24,8 @@ fn pipe_edit_collision_expected(
 test "Pipe RENAME refuses a current column hidden by its range name" {
   for
     source in [
-      "FROM pair AS x |> RENAME x AS current |> SELECT current", "FROM pair AS `X` |> RENAME `x` AS current |> SELECT current",
-      "FROM pair |> AS x |> RENAME x AS current |> SELECT current",
+      "FROM pair AS x |> RENAME x AS `current` |> SELECT current", "FROM pair AS `X` |> RENAME `x` AS `current` |> SELECT current",
+      "FROM pair |> AS x |> RENAME x AS `current` |> SELECT current",
     ] {
     assert_true(
       compile(
@@ -61,7 +61,7 @@ test "Pipe SET replaces a same-named range with the current typed value" {
   for
     source in [
       "FROM pair AS x |> SET x = @replacement |> SELECT x.x AS value", "FROM pair AS `X` |> SET `x` = @replacement |> SELECT `X`.`x` AS value",
-      "FROM pair AS x |> SET x = @replacement |> RENAME x AS current |> SELECT current.x AS value",
+      "FROM pair AS x |> SET x = @replacement |> RENAME x AS `current` |> SELECT current.x AS value",
     ] {
     let actual = compile(
       @query.parse_query(source, syntax_limits()).unwrap(),
@@ -112,7 +112,7 @@ test "Pipe SET siblings use the range before the target removes its name" {
   )
   let actual = compile(
     @query.parse_query(
-      "FROM pair AS x |> SET x = 99, y = x.y |> SELECT x AS current, y AS original_y",
+      "FROM pair AS x |> SET x = 99, y = x.y |> SELECT x AS `current`, y AS original_y",
       syntax_limits(),
     ).unwrap(),
     pair_context(),

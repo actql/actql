@@ -26,7 +26,7 @@ class LocalDistributionTests(unittest.TestCase):
         self.enterContext(patch('actql_sdk._local_distribution.sys.platform', 'darwin'))
         self.enterContext(patch('actql_sdk._local_distribution.platform.machine', return_value='arm64'))
         self.body = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0',
-                     'platform': 'darwin-arm64', 'core_abi': 60, 'wasmtime_version': '38.0.0',
+                     'platform': 'darwin-arm64', 'core_abi': 65, 'wasmtime_version': '38.0.0',
                      'duckdb_version': 'v1.4.3', 'notices': {}}
         for name, key in [('client_host_wasm.wasm', 'module'), ('libduckdb.dylib', 'duckdb')]:
             value = b'fixture component ' + name.encode()
@@ -80,7 +80,7 @@ class LocalDistributionTests(unittest.TestCase):
     def test_manifest_cohort_abi_and_closed_fields_reject(self):
         original = dict(self.body)
         for field, value in [('source_sha', 'a' * 39), ('package_version', 'other'),
-                             ('core_abi', 43), ('core_abi', 44), ('core_abi', 45), ('core_abi', 46), ('core_abi', 47), ('core_abi', 48), ('core_abi', 49), ('core_abi', 50), ('core_abi', 51), ('core_abi', 52), ('core_abi', 53), ('core_abi', 54), ('core_abi', 55), ('core_abi', 56), ('core_abi', 57), ('core_abi', 58), ('core_abi', True), ('platform', 'linux-x64'),
+                             ('core_abi', 43), ('core_abi', 44), ('core_abi', 45), ('core_abi', 46), ('core_abi', 47), ('core_abi', 48), ('core_abi', 49), ('core_abi', 50), ('core_abi', 51), ('core_abi', 52), ('core_abi', 53), ('core_abi', 54), ('core_abi', 55), ('core_abi', 56), ('core_abi', 57), ('core_abi', 58), ('core_abi', 64), ('core_abi', True), ('platform', 'linux-x64'),
                              ('wasmtime_version', '37.0.0'), ('duckdb_version', 'unknown'),
                              ('extra', 'ignored')]:
             with self.subTest(field=field, value=value):
@@ -106,7 +106,7 @@ class LocalDistributionTests(unittest.TestCase):
 
     def test_duplicate_manifest_and_oversized_manifest_reject(self):
         path = self.directory / 'artifact.json'
-        path.write_text(json.dumps(self.body)[:-1] + ', "core_abi": 60}')
+        path.write_text(json.dumps(self.body)[:-1] + ', "core_abi": 65}')
         with self.assertRaisesRegex(LocalInstallationError, 'Duplicate'):
             self.inspect()
         path.write_bytes(b' ' * 65537)
@@ -151,27 +151,30 @@ class LocalDistributionTests(unittest.TestCase):
                 installed_local_components()
 
     def test_installed_resolver_uses_matching_cohort_and_optional_dependency(self):
-        versions = {'actql-sdk': '0.0.0.dev0', 'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
+        versions = {'actql': '0.0.0.dev0', 'actql-sdk': '0.0.0.dev0', 'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
         with patch('actql_sdk._local_distribution.metadata.version', side_effect=lambda name: versions[name]), \
                 patch('actql_sdk._local_distribution.resources.files', return_value=self.directory) as resource:
             self.assertEqual(installed_local_components().module, self.directory / 'client_host_wasm.wasm')
             resource.assert_called_once_with('actql_local_runtime')
-            for name in ('actql-local-runtime', 'wasmtime'):
+            for name in ('actql', 'actql-local-runtime', 'wasmtime'):
                 original = versions[name]
                 versions[name] = 'wrong'
                 with self.assertRaisesRegex(LocalInstallationError, 'incompatible'):
                     installed_local_components()
                 versions[name] = original
         with patch('actql_sdk._local_distribution.metadata.version', side_effect=metadata.PackageNotFoundError('runtime')):
-            with self.assertRaisesRegex(LocalInstallationError, r'actql-sdk\[local\]'):
+            with self.assertRaisesRegex(LocalInstallationError, 'standard actql'):
                 installed_local_components()
 
     def test_recipe_and_sdk_versions_dependencies_are_one_cohort(self):
         sdk = tomllib.loads((ROOT / 'packages/python-sdk/pyproject.toml').read_text())['project']
         runtime = tomllib.loads((ROOT / 'packages/python-local-runtime/pyproject.toml').read_text())['project']
+        product = tomllib.loads((ROOT / 'packages/python-product/pyproject.toml').read_text())['project']
         self.assertEqual(runtime['version'], sdk['version'])
-        self.assertEqual(sdk['optional-dependencies']['local'],
-                         ['actql-local-runtime==' + sdk['version'], 'wasmtime==38.0.0'])
+        self.assertEqual(product['version'], sdk['version'])
+        self.assertEqual(product['dependencies'],
+                         ['actql-sdk==' + sdk['version'], 'actql-local-runtime==' + sdk['version']])
+        self.assertNotIn('local', sdk['optional-dependencies'])
         self.assertEqual(runtime['dependencies'], ['wasmtime==38.0.0'])
         self.assertEqual(sdk['dependencies'], ['httpx==0.28.1', 'rfc8785==0.1.4'])
 

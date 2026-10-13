@@ -88,6 +88,12 @@ import {captureClaimedEffectResponse, snapshotEffectDispatchClaim} from
   './effect-physical-dispatch.mjs';
 import {recoverProjectedEffectResponse} from './effect-response-recovery.mjs';
 import {localContractLimits} from './local-values-plan.mjs';
+import {releaseInstalledRowCapture} from './installed-row-capture-cleanup.mjs';
+
+// Private provenance: copies of an adapter cannot introduce an installation.
+const rowInstallations = new WeakMap();
+const memberInstallations = new WeakMap();
+const ROUTING_VERSION = 'actql-installed-row-effect-routing/0.1';
 
 const CAPABILITY_VERSION = 'actql-installed-row-effect-capability/0.1';
 // The common identity profile of an installation that registers none.
@@ -311,13 +317,109 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   if (new Set(installedCommands.map(item => item.commandRef)).size !==
       installedCommands.length) fail('InvalidInstalledRowEffectCommand');
   await mkdir(ledgerRoot, {recursive: true, mode: 0o700});
+  return createRowEffectStage([Object.freeze({moon, limits, owned, profile,
+    installed, installedCommands, environmentWire, connectorId,
+    connectorRegistration, connectorRevision, connection, site, authorization,
+    runtimeBundleCid, bindingCid, ledgerRoot, continuationBinding})], environmentWire);
+}
+
+// Each physical occurrence retains its own admitted installation. Shared Run,
+// Preview, claims and publication remain the existing stage's responsibility.
+// This first profile admits source-free create members with common recovery.
+export function composeInstalledRowEffectOwners(effects, descriptors, environmentWire) {
+  if (!Array.isArray(effects) || !Array.isArray(descriptors) ||
+      effects.length !== descriptors.length || effects.length < 2 ||
+      descriptors.some(value => value.kind !== 'create') ||
+      new Set(descriptors.map(value => value.effectId)).size !== descriptors.length) {
+    fail('InstalledEffectSetOwnerMismatch');
+  }
+  const owners = effects.map(effect => rowInstallations.get(effect));
+  if (owners.some(owner => owner === undefined ||
+      owner.owned.recoverRequests !== undefined ||
+      owner.owned.recoveryEntry !== undefined)) fail('InstalledEffectSetOwnerMismatch');
+  const first = owners[0];
+  if (descriptors.length > first.limits.maxMembers || owners.some(owner => owner.moon !== first.moon ||
+      owner.ledgerRoot !== first.ledgerRoot ||
+      canonicalJson(owner.limits) !== canonicalJson(first.limits))) {
+    fail('InstalledEffectSetOwnerMismatch');
+  }
+  const routes = Object.freeze(descriptors.map((descriptor, index) =>
+    Object.freeze({descriptor: Object.freeze({...descriptor}), owner: owners[index]})));
+  const freeze = value => {
+    if (value !== null && typeof value === 'object') {
+      Object.values(value).forEach(freeze);
+      Object.freeze(value);
+    }
+    return value;
+  };
+  // Equal limits are data, not shared mutable bootstrap objects. Retain the
+  // same numeric ceilings for this stage even if a later table is configured.
+  const limits = freeze(JSON.parse(canonicalJson(first.limits)));
+  return createRowEffectStage(Object.freeze([...new Set(owners)]), environmentWire, routes, limits);
+}
+
+// The installed loader retains the original private port while exposing its
+// normal adapter projection. No descriptor or structural marker admits a port.
+export function retainInstalledRowEffectAdapter(original, projection) {
+  const owner = rowInstallations.get(original);
+  if (owner === undefined) return projection;
+  if (projection.prepareCaptured !== original.prepareCaptured ||
+      projection.prepareRecovered !== original.prepareRecovered ||
+      projection.environmentWire !== original.environmentWire ||
+      projection.effectSelectors !== original.effectSelectors) {
+    fail('ForeignInstalledEffectOccurrence');
+  }
+  rowInstallations.set(projection, owner);
+  return projection;
+}
+
+function createRowEffectStage(owners, environmentWire, routes, retainedLimits) {
+  // Common runtime, Ledger location and limits were independently compared for
+  // every retained owner before a composed stage can be constructed.
+  const {moon, ledgerRoot} = owners[0];
+  const limits = retainedLimits ?? owners[0].limits;
+  const singular = routes === undefined ? owners[0] : undefined;
+  const assertPrepared = ({moon: runMoon, compilation}) => {
+    if (singular !== undefined) return;
+    if (runMoon !== moon || compilation === undefined) fail('InstalledEffectSetOwnerMismatch');
+    const program = JSON.parse(moon.clientProgramEffectCompilationPlanWire(compilation))
+      .execution_material?.program;
+    const stage = program?.stages?.[0];
+    // An explicit implementation profile, not a language restriction. Imported
+    // sources, Model calls and guarded/command operations keep their refusal.
+    if (program?.stages?.length !== 1 || stage === undefined ||
+        Object.keys(stage.inputs ?? {}).length !== 0 ||
+        !Array.isArray(stage.steps) || stage.steps.length === 0 ||
+        stage.steps.some(step => !Object.hasOwn(step, 'values'))) {
+      fail('InstalledEffectSetOwnerMismatch');
+    }
+  };
+  const ownerOf = member => {
+    const owner = memberInstallations.get(member);
+    if (owner === undefined || !owners.includes(owner)) fail('ForeignInstalledEffectOccurrence');
+    return owner;
+  };
+  const retainMember = (owner, member) => {
+    const retained = Object.freeze(member);
+    memberInstallations.set(retained, owner);
+    return retained;
+  };
+  const selectOwner = descriptor => {
+    if (singular !== undefined) return singular;
+    const route = routes.find(value => value.descriptor.effectId === descriptor._1);
+    const expected = route?.descriptor;
+    if (expected === undefined || expected.kind !== descriptor._2 ||
+        expected.target !== descriptor._3 || expected.mappingRef !== descriptor._4 ||
+        expected.mappingCid !== descriptor._5) fail('InstalledEffectProgramMismatch');
+    return route.owner;
+  };
   const effect = runtimeCore(moon).effectApplicationControl;
   const openLedger = identity => openEffectLedger({moon, root: ledgerRoot,
     authorityScopeCid: moon.clientRequestAuthorityScopeCid(identity),
     callerRequestId: moon.clientRequestCallerId(identity),
     maxEntryBytes: 1_000_000});
   const scopes = members => Object.freeze(members.map(member =>
-    Object.freeze({connection, resource: member.resource})));
+    Object.freeze({connection: ownerOf(member).connection, resource: member.resource})));
   const permissionsOf = member => {
     if (member.kind === 'command') return [...member.command.permissions];
     const rule = member.mapping.rules.find(item =>
@@ -335,13 +437,15 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   const resolveMember = (prepared, {stageIndex, effectId}) => {
     const descriptor = checked(moon.clientProgramEffectMemberDescriptor(
       prepared, stageIndex, effectId, limits.planWork));
+    const owner = selectOwner(descriptor);
+    const {installed, installedCommands, owned} = owner;
     if (descriptor._2 === 'command') {
       const command = installedCommands.find(candidate =>
         candidate.commandCid === descriptor._5 &&
         candidate.commandRef === descriptor._4 && candidate.target === descriptor._3);
       if (command === undefined || !owned.kinds.includes('command') ||
           descriptor._6 === undefined) fail('InstalledRowEffectCommandNotInstalled');
-      return Object.freeze({stageIndex, effectId: descriptor._1,
+      return retainMember(owner, {stageIndex, effectId: descriptor._1,
         memberIndex: descriptor._0, kind: 'command', command,
         resource: command.resource});
     }
@@ -352,7 +456,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
         descriptor._6 === undefined) {
       fail('InstalledRowEffectMappingNotInstalled');
     }
-    const member = Object.freeze({stageIndex, effectId: descriptor._1,
+    const member = retainMember(owner, {stageIndex, effectId: descriptor._1,
       memberIndex: descriptor._0, kind: descriptor._2, mapping,
       resource: mapping.resource});
     permissionsOf(member);
@@ -373,14 +477,15 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     return Object.freeze(members);
   };
   const memberDispatch = (runInvocationCid, member) => cid({
-    version: profile.dispatch, run_invocation_cid: runInvocationCid,
+    version: ownerOf(member).profile.dispatch, run_invocation_cid: runInvocationCid,
     effect_id: member.effectId});
-  const recoveryCid = dispatch => cid({version: profile.recovery,
+  const recoveryCid = (member, dispatch) => cid({version: ownerOf(member).profile.recovery,
     dispatch_request_cid: dispatch});
 
   // One row's request with the facts the common owner holds it to: the
   // value it writes and, for an update, the target it selects.
   const entryOf = (member, request, requestCid) => {
+    const {owned} = ownerOf(member);
     const facts = owned.requestFacts(request);
     if (!request || !cidPattern.test(requestCid ?? '') ||
         facts === null || typeof facts !== 'object' ||
@@ -396,6 +501,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   // selectors. A request that writes another value, or selects another
   // target, than the Program's row is refused.
   const requestsOf = (member, rows, current) => Object.freeze(rows.map(row => {
+    const {owned} = ownerOf(member);
     const prepared = owned.prepareRequest({member, value: row.value,
       selector: row.selector, current});
     const entry = entryOf(member, prepared?.request, prepared?.requestCid);
@@ -408,7 +514,9 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
 
   // The common sealed capability of an installation whose driver issues
   // none: its runtime, connection and Mapping, and the exact requests.
-  const commonCapability = (member, entries) => Object.freeze({
+  const commonCapability = (member, entries) => {
+    const {connectorRegistration, connectorRevision, runtimeBundleCid, bindingCid, connection, owned} = ownerOf(member);
+    return Object.freeze({
     identity: cid({
       version: CAPABILITY_VERSION,
       connector_registration: connectorRegistration,
@@ -421,6 +529,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
       route: 'single_serial', idempotency: 'unavailable',
       request_cids: entries.map(entry => entry.requestCid)}),
     route: 'single_serial'});
+  };
 
   // Admit a member's capability. A provider-issued capability (its formal
   // issuer having checked its own evidence) is admitted only when its
@@ -432,6 +541,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   // inside the provider's identity.
   const admitCapability = (member, entries, current, runInvocationCid,
     dispatchRequestCid) => {
+    const {owned, connectorRegistration, connectorRevision, runtimeBundleCid} = ownerOf(member);
     if (owned.issueCapability === undefined) {
       return commonCapability(member, entries);
     }
@@ -454,7 +564,8 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
 
   // A current read decision of `resource` for `subjectCid`; a held or denied
   // read reads nothing.
-  const readDecision = async (resource, subjectCid, signal) => {
+  const readDecision = async (member, resource, subjectCid, signal) => {
+    const {authorization, connection} = ownerOf(member);
     const decision = await authorization.authorize('acquisition', {
       connection, resource, operation: 'read'}, {subjectCid, signal});
     if (decision?.action !== 'dispatch') {
@@ -465,17 +576,17 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     return decision;
   };
   const checkSubject = (runInvocationCid, member) => cid({
-    version: profile.targetCheck, run_invocation_cid: runInvocationCid,
+    version: ownerOf(member).profile.targetCheck, run_invocation_cid: runInvocationCid,
     effect_id: member.effectId});
 
   // Every create row's provider check, under a current read decision.
   const checkRows = async ({members, entries, runInvocationCid, dispatches,
     subjectOf, signal}) => {
-    if (owned.check === undefined) return;
     for (const [index, member] of members.entries()) {
-      if (member.kind !== 'create') continue;
+      const {owned, site} = ownerOf(member);
+      if (member.kind !== 'create' || owned.check === undefined) continue;
       const subjectCid = subjectOf(member);
-      const decision = await readDecision(owned.check.resource, subjectCid,
+      const decision = await readDecision(member, owned.check.resource, subjectCid,
         signal);
       for (const [rowIndex, entry] of entries[index].entries()) {
         signal?.throwIfAborted();
@@ -497,6 +608,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   // this member. A held or denied read reads nothing.
   const decideTargetRead = async ({member, runInvocationCid,
     dispatchRequestCid, subjectCid, signal, targetReads}) => {
+    const {connection, authorization, owned, site} = ownerOf(member);
     const tuple = {connection, resource: member.resource, operation: 'read'};
     const decision = targetReads === undefined
       ? await authorization.authorize('acquisition', tuple, {subjectCid, signal})
@@ -525,6 +637,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   // The observed target of every update row under its read decision. Each
   // observation must be of exactly the target the row's request selects.
   const observeRows = async ({member, entries, current, read, signal}) => {
+    const {owned} = ownerOf(member);
     const observed = await owned.observeTargets({member, entries, current,
       authorizationForRow: read.authorizationForRow, signal});
     if (!Array.isArray(observed) || observed.length !== entries.length ||
@@ -536,26 +649,21 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     return observed;
   };
 
-  // The whole-set commit decisions of one claim generation, by Resource.
+  const scopeKey = member => JSON.stringify([ownerOf(member).connection, member.resource]);
+  // A resource name alone cannot identify a decision across installations.
   const commitDecisions = (decisions, subjectCid, members) => {
-    const byResource = new Map();
+    const byScope = new Map();
+    const required = new Set(members.map(scopeKey));
     for (const decision of decisions ?? []) {
-      if (decision?.action !== 'dispatch' ||
-          decision.boundary !== 'effect_commit' ||
-          decision.subjectCid !== subjectCid ||
-          decision.tuple?.connection !== connection ||
-          decision.tuple?.operation !== 'effect' ||
-          byResource.has(decision.tuple.resource)) {
-        fail('InstalledRowEffectCommitNotAuthorized');
-      }
-      byResource.set(decision.tuple.resource, decision);
+      const tuple = decision?.tuple;
+      const key = JSON.stringify([tuple?.connection ?? null, tuple?.resource ?? null]);
+      if (decision?.action !== 'dispatch' || decision.boundary !== 'effect_commit' ||
+          decision.subjectCid !== subjectCid || tuple?.operation !== 'effect' ||
+          !required.has(key) || byScope.has(key)) fail('InstalledRowEffectCommitNotAuthorized');
+      byScope.set(key, decision);
     }
-    for (const member of members) {
-      if (!byResource.has(member.resource)) {
-        fail('InstalledRowEffectCommitNotAuthorized');
-      }
-    }
-    return byResource;
+    for (const key of required) if (!byScope.has(key)) fail('InstalledRowEffectCommitNotAuthorized');
+    return byScope;
   };
 
   // Settle one row from a typed provider outcome. Anything else leaves the
@@ -623,6 +731,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
         fail('InvalidInstalledRowEffectRoute');
       }
       for (const member of members) {
+        const {installed, installedCommands} = ownerOf(member);
         const available = member.kind === 'command'
           ? installedCommands.includes(member.command) : installed.includes(member.mapping);
         if (!available) {
@@ -639,6 +748,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
       }
       const fresh = [];
       for (const [index, member] of members.entries()) {
+        const {owned} = ownerOf(member);
         const description = owned.describe === undefined ? undefined :
           await owned.describe({member, runInvocationCid,
             dispatchRequestCid: dispatches[index], label: `apply-${index}`,
@@ -684,8 +794,9 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
               expected[field] !== claim[field])) {
           fail('InvalidInstalledRowEffectDispatch');
         }
+        const {owned, site} = ownerOf(member);
         signal?.throwIfAborted();
-        requireApproval(member, commits.get(member.resource));
+        requireApproval(member, commits.get(scopeKey(member)));
         const ownedClaim = admitRow({applyPreview, memberIndex, rowIndex,
           claim, member, entry,
           previewRow: previewRows[memberIndex][rowIndex]});
@@ -693,7 +804,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
           current: now[memberIndex]});
         const grant = site.issueEffectGrant({
           operation: owned.writeOperation(member),
-          decision: commits.get(member.resource), resource: member.resource,
+          decision: commits.get(scopeKey(member)), resource: member.resource,
           runInvocationCid, dispatchRequestCid: dispatches[memberIndex],
           subjectCid});
         const captured = await captureClaimedEffectResponse({ledger,
@@ -739,16 +850,26 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     maxFootprintWork: limits.maxRows, maxWork: limits.maxWork,
   });
 
+  const installationFacts = owner => ({
+    connector_registration: owner.connectorRegistration,
+    connector_revision: owner.connectorRevision,
+    runtime_bundle_cid: owner.runtimeBundleCid, binding_cid: owner.bindingCid,
+    connection: owner.connection, profile: owner.profile,
+    continuation_binding: owner.continuationBinding,
+  });
   const continuationOf = (plan, unit, members, dispatches) => canonicalJson({
-    version: profile.continuation,
-    [profile.continuationBinding]: continuationBinding,
+    ...(singular === undefined ? {version: ROUTING_VERSION} : {
+      version: singular.profile.continuation,
+      [singular.profile.continuationBinding]: singular.continuationBinding}),
     program_id: unit.programId, stage_id: unit.stageId,
     request: plan.request, attempt: plan.attempt,
     members: members.map((member, index) => ({
       effect_id: member.effectId,
       ...(member.kind === 'command'
         ? {command_cid: contractCidOf(member)} : {mapping_cid: contractCidOf(member)}),
-      dispatch_request_cid: dispatches[index]}))});
+      dispatch_request_cid: dispatches[index],
+      ...(singular === undefined ? {installation: installationFacts(ownerOf(member))} : {}),
+    }))});
 
   // A member's create rows in the common canonical create order, each with
   // its target row identity. This order is settled once, before any identity
@@ -771,6 +892,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   // A member's write footprint: the provider's complete footprint, or the
   // opaque footprint of its boundary.
   const footprintOf = (member, entries) => {
+    const {owned, connectorRegistration} = ownerOf(member);
     const footprint = owned.footprint({member, entries});
     if (footprint?.kind !== undefined) {
       if (!footprintKinds.includes(footprint.kind) ||
@@ -918,7 +1040,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
 
   // The Ledger claims of every row of the admitted Preview.
   const claimsOf = ({body, keys, entries, requestScope, unit, dispatches,
-    unitCid, retentionId}) => body.effects.map((member, memberIndex) => ({
+    unitCids, members, retentionId}) => body.effects.map((member, memberIndex) => ({
     claims: member.changes.map((change, rowIndex) => {
       const key = keys[memberIndex][rowIndex];
       const locator = effect.logicalItemLocator(requestScope,
@@ -926,9 +1048,9 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
         canonicalValueJson(change.target_row_identity), limits.locator.maxBytes,
         limits.key.maxBytes, limits.key.maxNodes, limits.key.maxDepth);
       const canonicalRequestCid = entries[memberIndex][rowIndex].requestCid;
-      const basis = effect.ledgerBasis(requestScope, locator, key, unitCid,
+      const basis = effect.ledgerBasis(requestScope, locator, key, unitCids[memberIndex],
         member.effect_member_preview_cid, change.row_preview_cid,
-        canonicalRequestCid, recoveryCid(dispatches[memberIndex]),
+        canonicalRequestCid, recoveryCid(members[memberIndex], dispatches[memberIndex]),
         // A write without a provider idempotency key.
         'unavailable', member.capability_evidence_cid, retentionId);
       return {scope: requestScope, locator, key, basis,
@@ -946,6 +1068,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     };
     ownInputs(releaseInputs);
     const proposals = members.map(() => []);
+    let proposalCount = 0;
     const sourceSet = await preparePinnedEffectSourceSet({moon,
       checkedOwner: prepared, execution, inputs,
       maxMembers: members.length,
@@ -954,9 +1077,11 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
         ...exportLimits(plan.outputLimits)),
       store, maxBytes: plan.outputLimits.maxWireBytes, control,
       invocation: plan.invocation, retention: plan.effectInputRetention,
-      sourceBindingCid: cid({version: profile.source,
-        run_invocation_cid: runInvocationCid,
-        store_authority_cid: store.storeAuthorityCid}),
+      ...(singular === undefined ? {memberSourceBindings: Object.freeze(members.map((member, memberIndex) =>
+        Object.freeze({memberIndex, sourceBindingCid: cid({version: ownerOf(member).profile.source,
+          run_invocation_cid: runInvocationCid, store_authority_cid: store.storeAuthorityCid})})))} : {
+        sourceBindingCid: cid({version: singular.profile.source,
+          run_invocation_cid: runInvocationCid, store_authority_cid: store.storeAuthorityCid})}),
       contractLimits: plan.contractLimits,
       localEvidenceContext: plan.localEvidenceContext,
       proposalLimits: {maxFields: limits.maxFields, maxWork: limits.maxWork,
@@ -965,9 +1090,10 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
         maxUtf16Units: limits.body.maxBytes},
       onProposalRow(memberIndex, rowIndex, proposal) {
         if (rowIndex !== proposals[memberIndex]?.length ||
-            rowIndex >= limits.maxRows) {
+            rowIndex >= limits.maxRows || proposalCount >= limits.maxRows) {
           fail('InstalledRowEffectRowLimit');
         }
+        proposalCount++;
         proposals[memberIndex].push(proposal);
       },
       signal});
@@ -986,6 +1112,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     const rowsOf = [];
     const observations = [];
     for (const [index, member] of members.entries()) {
+      const {owned} = ownerOf(member);
       if (proposals[index].length === 0) fail('InstalledRowEffectEmptyMember');
       const description = owned.describe === undefined ? undefined :
         await owned.describe({member, runInvocationCid,
@@ -1088,12 +1215,13 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
         ...(member.kind === 'command' ? {} : {wire: chunks.join('')}),
         proof: verified.proof});
     }
-    const connectorRecovery = owned.recoveryEntry === undefined ? [] :
-      members.map((member, index) => {
-        const entry = owned.recoveryEntry({member, current: currents[index]});
-        return {memberIndex: index, kind: entry?.kind,
-          observationCid: entry?.observationCid, wire: entry?.wire};
-      });
+    const connectorRecovery = members.flatMap((member, index) => {
+      const {owned} = ownerOf(member);
+      if (owned.recoveryEntry === undefined) return [];
+      const entry = owned.recoveryEntry({member, current: currents[index]});
+      return [{memberIndex: index, kind: entry?.kind,
+        observationCid: entry?.observationCid, wire: entry?.wire}];
+    });
     const computation = await issueCompletedEffectfulComputationEvidence({
       execution, store, storedResults, control, admission: plan.admission,
       runDefinition: plan.runDefinition, invocation: plan.invocation,
@@ -1116,9 +1244,8 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
         limits.preview.maxDepth);
       const claims = claimsOf({body, keys: preview.keys, entries,
         requestScope, unit, dispatches,
-        unitCid: cid({version: profile.unit,
-          run_definition_cid: plan.runDefinition.identity,
-          stage_index: members[0].stageIndex}),
+        members, unitCids: members.map(member => cid({version: ownerOf(member).profile.unit,
+          run_definition_cid: plan.runDefinition.identity, stage_index: member.stageIndex})),
         retentionId: plan.effectInputRetention.identity});
       const route = physicalRoute({members, entries,
         previewRows: body.effects.map(member => member.changes),
@@ -1133,7 +1260,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
         apply: {moon, capturedInputs: previewInputs, preflight, ledger,
           members: claims, maxFrontierWork: limits.maxFrontierWork,
           refreshPreflight: route.current, bindDispatch: route.bindDispatch,
-          authorization: {gate: authorization, scopes: scopes(members)}},
+          authorization: {gate: singular?.authorization, scopes: scopes(members)}},
         receipt: {ledger, preview: applyPreview, commonMoon: moon,
           publicationPreview: admittedPreview,
           authorizeEvidenceRead: async () => true,
@@ -1159,6 +1286,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   // `facts` are the Host's Effect Site facts, or an installation's own
   // capture inputs that already carry the Preview context and Effect Unit.
   async function prepareCaptured(facts) {
+    assertPrepared(facts ?? {});
     const {moon: runMoon, control, store, execution, checkedHost, prepared,
       identity, definition, compilation, signal, targetReads} = facts ?? {};
     const plan = facts?.publicationPlan ?? facts?.plan;
@@ -1195,25 +1323,10 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
         targetReads, own: value => { sourceSet = value; },
         ownInputs: release => { releaseInputs = release; }});
     } catch (error) {
-      try {
-        for (const payload of sourceSet?.payloads ?? []) {
-          if (payload.prepared.status().pending) {
-            await payload.prepared.release();
-          }
-        }
-        await releaseCompletedRunPreparedPayloads(storedResults, control);
-      } catch (cleanupError) {
-        if (error !== null && typeof error === 'object') {
-          error.cleanupFailure ??= cleanupError;
-        }
-      }
-      try { releaseInputs?.(); }
-      catch (cleanupError) {
-        if (error !== null && typeof error === 'object') {
-          error.cleanupFailure ??= cleanupError;
-        }
-      }
-      throw error;
+      await releaseInstalledRowCapture({payloads: sourceSet?.payloads,
+        // This owner's false means already released, not pending cleanup.
+        releaseResults: async () => { await releaseCompletedRunPreparedPayloads(storedResults, control); },
+        releaseInputs, control}, error);
     }
   }
 
@@ -1225,6 +1338,16 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     }
     return Object.freeze(body.effects.map((member, index) => {
       const saved = provider.members[index];
+      const owner = selectOwner({_1: member.effect_id, _2: member.effect_kind,
+        _3: member.target, _4: member.mapping, _5: member.resolved_mapping_contract_cid});
+      const {installed, installedCommands, owned} = owner;
+      // Initial composed-profile restriction: recovery requires every retained
+      // installation identity, not merely equivalent Mappings/capabilities. A
+      // republished revision or binding therefore refuses here even when the
+      // historical singular row profile could admit that replacement.
+      if (singular === undefined && !sameValue(saved?.installation, installationFacts(owner))) {
+        fail('InstalledRowEffectInstallationChanged');
+      }
       if (member.effect_kind === 'command') {
         const command = installedCommands.find(candidate =>
           candidate.commandCid === member.resolved_command_contract_cid &&
@@ -1235,7 +1358,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
         if (command === undefined || !owned.kinds.includes('command')) {
           fail('InstalledRowEffectCommandNotInstalled');
         }
-        return Object.freeze({effectId: member.effect_id, memberIndex: index,
+        return retainMember(owner, {effectId: member.effect_id, memberIndex: index,
           kind: 'command', command, resource: command.resource});
       }
       const mapping = installed.find(candidate =>
@@ -1247,7 +1370,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
       if (mapping === undefined || !owned.kinds.includes(member.effect_kind)) {
         fail('InstalledRowEffectMappingNotInstalled');
       }
-      return Object.freeze({effectId: member.effect_id, memberIndex: index,
+      return retainMember(owner, {effectId: member.effect_id, memberIndex: index,
         kind: member.effect_kind, mapping, resource: mapping.resource});
     }));
   };
@@ -1258,9 +1381,10 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
   // approved and, for an update, the Preview's target.
   const recoveredEntries = ({members, body, durable, recorded,
     previewWire}) => {
-    const rebuilt = owned.recoverRequests === undefined ? undefined :
-      owned.recoverRequests({durable, recorded, previewWire, body});
+    const rebuilt = singular?.owned.recoverRequests === undefined ? undefined :
+      singular.owned.recoverRequests({durable, recorded, previewWire, body});
     const entries = members.map((member, index) => {
+      const {owned} = ownerOf(member);
       const claims = recorded.members[index]?.claims ?? [];
       const changes = body.effects[index].changes;
       if (claims.length !== changes.length) {
@@ -1306,12 +1430,13 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     signal?.throwIfAborted();
     const contractLimits = localContractLimits;
     const provider = continuation.provider ?? continuation;
-    // The continuation's installation binding is recorded, not compared: a
-    // republished installation resumes only if every Mapping is still
-    // installed and it issues and admits the very capability the Preview
-    // carries (both checked below).
-    if (provider?.version !== profile.continuation ||
-        !text(provider[profile.continuationBinding]) ||
+    // The singular continuation records, but does not compare, its binding:
+    // a republished installation resumes only if every Mapping remains and
+    // it issues/adopts the Preview's capability (both checked below). The
+    // initial composed profile additionally checks exact installation facts
+    // in recoveredMembers; equivalent republishing is not admitted there.
+    if (provider?.version !== (singular?.profile.continuation ?? ROUTING_VERSION) ||
+        (singular !== undefined && !text(provider[singular.profile.continuationBinding])) ||
         !Array.isArray(provider.members) || !text(provider.program_id) ||
         !text(provider.stage_id)) {
       fail('InstalledEffectContinuationMismatch');
@@ -1395,7 +1520,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
               claims: ownedClaim, commonMoon: moon,
               expectedRequestCid: entry.requestCid,
               authorizeEvidenceRead: async () => true,
-              projectStored: stored => owned.project({
+              projectStored: stored => ownerOf(members[memberIndex]).owned.project({
                 member: members[memberIndex], memberIndex, rowIndex,
                 preview: ledgerPreview, request: entry.request,
                 current: currents[memberIndex],
@@ -1420,7 +1545,7 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
             signal: refreshSignal, preflight: basePreflight({
               effects: body.effects, members, requestScope})}),
           bindDispatch: route.bindDispatch,
-          authorization: {gate: authorization, scopes: scopes(members)}},
+          authorization: {gate: singular?.authorization, scopes: scopes(members)}},
         receipt: {ledger, preview: applyPreview, commonMoon: moon,
           publicationPreview: preview,
           authorizeEvidenceRead: async () => true,
@@ -1442,7 +1567,11 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     }
   }
 
-  return Object.freeze({
+  if (singular === undefined) return Object.freeze({environmentWire, assertPrepared,
+    prepareCaptured, prepareRecovered});
+  const {installed, installedCommands, owned, connectorId, bindingCid,
+    connectorRegistration, connectorRevision, connection, site} = singular;
+  const adapter = Object.freeze({
     environmentWire,
     connectorBindings: Object.freeze([Object.freeze({connectorId,
       bindingCid})]),
@@ -1464,4 +1593,6 @@ export async function createInstalledRowEffect({moon, mappings = [], commands = 
     prepareCaptured, prepareRecovered,
     close: () => site.close(),
   });
+  rowInstallations.set(adapter, singular);
+  return adapter;
 }
