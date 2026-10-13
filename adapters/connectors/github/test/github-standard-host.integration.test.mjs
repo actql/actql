@@ -1375,3 +1375,32 @@ test('a parser-refused GitHub raw response remains charged without a Result', as
   assertAcquisitionReleased(observations);
   assert.equal(listings(setup.api).length, 1);
 });
+
+test('GitHub acquisition-only Named Result refuses before physical start', async t => {
+  const observations = [];
+  const setup = await installation(t, {observe(name, detail) {
+    observations.push({name, detail});
+  }});
+  await setup.publish();
+  const {client} = await setup.open();
+  const before = setup.api.seen().length;
+  const input = JSON.parse(program);
+  input.id = 'github-acquisition-result';
+  input.stages = [input.stages[0]];
+  input.results.issues.from.stage = 'acquire';
+  const execution = await client.startSource(JSON.stringify(input), {format: 'json',
+    submissionRef: client.newSubmission({nonce: 'github-acquisition-result'})});
+  const state = await execution.wait();
+  assert.equal(state.status, 'failed');
+  assert.equal(state.terminal_error.code, 'ACTQL_E_UNPUBLISHED_RUN');
+  assert.equal(state.next_action.kind, 'none');
+  assert.equal(state.control.physical_stop, 'confirmed');
+  assert.equal(state.result_available, false);
+  assert.equal(setup.api.seen().length, before);
+  for (const name of ['physical_start_reserved', 'acquisition_started',
+    'acquisition_completed', 'computed']) {
+    assert.equal(observations.filter(value => value.name === name).length, 0, name);
+  }
+  assert.deepEqual(observations.filter(value => value.name === 'dispatch_failed')
+    .map(value => value.detail.code), ['InstalledAcquisitionResultPublicationUnsupported']);
+});
