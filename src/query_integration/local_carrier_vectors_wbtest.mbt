@@ -2865,10 +2865,12 @@ fn direct_vector_expression_source_owner() -> @lower.BoundPrepared {
 ///|
 fn direct_vector_expression_owner(
   source : @lower.BoundPrepared,
+  prefix? : Bool = false,
 ) -> @lower.BoundPrepared {
   let checked = @pipeline.check_with_evidence(
     input_cursor(
-      "[{\"derive\":{\"score\":{\"vector_score\":{" +
+      (if prefix { "[{\"select\":[\"id\",\"left\",\"right\"]}," } else { "[" }) +
+      "{\"derive\":{\"score\":{\"vector_score\":{" +
       "\"left\":{\"field\":\"left\"},\"right\":{" +
       "\"field\":\"right\"},\"metric\":\"dot\"}}," +
       "\"joined\":{\"vector_concat\":[{\"field\":\"right\"}," +

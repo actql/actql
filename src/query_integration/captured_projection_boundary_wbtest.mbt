@@ -84,6 +84,44 @@ test "captured projection consumes the acquisition port before publishing its la
   let input = @strategy.captured_task_input(run, 1, 100, 10000).unwrap()
   assert_eq(@execution.producer_read_row_count(input), 3)
   assert_true(@execution.producer_read_available(input))
+  assert_true(@execution.producer_read_has_cell_access(input))
+  assert_true(
+    @execution.producer_read_matches_operation_input(input, owners[0], 2, 0),
+  )
+  let generated = @execution.select_generated_sequence_step(
+    task_test_generated(owners[0]),
+    2,
+  ).unwrap()
+  let rows = @execution.start_bounded_binding_rows(
+    @bounded.control(),
+    generated,
+    input,
+    100,
+    limits.local_execution.rows.input_values,
+    limits.local_execution.rows.output_values,
+    limits.local_execution.max_work,
+    limits.local_execution.max_frames,
+    limits.local_execution.rows.operation_entries,
+    10000,
+  ).unwrap()
+  let mut projected = None
+  for _ in 0..<1000 {
+    if projected is Some(_) {
+      break
+    }
+    match @execution.advance_bounded_binding_rows(rows, 1).unwrap() {
+      @execution.BoundedBindingRowsComplete(output, ..) =>
+        projected = Some(output)
+      @execution.BoundedBindingRowsContinue(..) => ()
+      _ => fail("the selected captured projection did not complete")
+    }
+  }
+  let projected = projected.unwrap()
+  assert_eq(@execution.completed_row_count(projected), 3)
+  assert_true(@execution.completed_cell(projected, 0, 1) is Some(Number(13.0)))
+  assert_true(@execution.completed_cell(projected, 1, 1) is Some(Number(11.0)))
+  assert_true(@execution.completed_cell(projected, 2, 1) is Some(Number(12.0)))
+  assert_true(@execution.cleanup_bounded_binding_rows(rows).unwrap())
   live.val = false
   assert_false(@execution.producer_read_available(input))
   @strategy.stop_captured_dag(run)
