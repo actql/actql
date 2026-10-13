@@ -60,11 +60,11 @@ fn host_account_subject_valid(subject : NativeEffectHostAccountSubject) -> Bool 
     subject.read_resource,
     subject.publication_connection,
     subject.publication_resource,
-  ].all(value =>
+  ].all(value => {
     !value.is_empty() &&
     value.length() <= 512 &&
-    @utf8.encode(value).length() <= 512,
-  ) &&
+    @utf8.encode(value).length() <= 512
+  }) &&
   native_reviewer_cid(subject.configuration_cid) &&
   native_reviewer_cid(subject.authorization_context_cid)
 }
@@ -98,8 +98,7 @@ fn host_account_configuration(
   // Every valid UTF16 unit needs at least one UTF8 byte. Bound the private
   // seam's rejection copy before encoding; the existing byte check still
   // rejects multibyte overflow before Common admission.
-  if wire.length() > read_ceiling ||
-    @utf8.encode(wire).length() > read_ceiling {
+  if wire.length() > read_ceiling || @utf8.encode(wire).length() > read_ceiling {
     return Err(File(@bounded_files.CapacityExceeded))
   }
   let configuration = match
