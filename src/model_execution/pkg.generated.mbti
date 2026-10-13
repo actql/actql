@@ -84,6 +84,8 @@ pub fn install_async_model_provider(String) -> Result[ModelProvider, ModelExecut
 
 pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelProvider, ModelExecutionIssue]
 
+pub fn model_async_native_decision_request_plan(ModelRequest, NativeDecisionRequest, AdmittedModelProvider, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile, (ModelCallEntry) -> ModelPhysicalCall?) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
+
 pub fn model_async_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (ModelCallEntry) -> ModelPhysicalCall?, evidence? : ModelPhysicalRequestEvidence, attachments? : Array[ModelContentAdmission]) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
 pub fn model_attempt_accounting(ModelAttemptEvidence) -> @run_publication.RunEvidenceValue

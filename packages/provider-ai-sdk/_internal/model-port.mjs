@@ -7,9 +7,33 @@ import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
 // All records, SDK/request/response buffers and Promise overlaps must be funded
 // by the original Run Ledger before this port is installed. No budget, grant,
 // execution state or scheduler is inferred here. Common owns every transition.
-export function createSdkModelPreflight({moon, request, preparation, profile,
+export function createSdkModelPreflight(options) {
+  return createSdkPhysicalPreflight(options, generationPlan);
+}
+
+function generationPlan(moon, request, bytes, quantities, profile, installation, start) {
+  return moon.clientProgramModelAsyncPhysicalRequestPlan(request, bytes,
+    quantities.tokens, quantities.costUnits, quantities.durationMs, profile, installation, start);
+}
+
+// Native membership/profile checking belongs to Common's dedicated builder.
+// No generation settings, decoded SDK facts, startup funding or new Entry
+// issuer are introduced. This callback runs during preflight, never between
+// the existing final one-shot gate and its fixed physical transport.
+export function createSdkNativeDecisionPreflight(options, original, provider, probability) {
+  if (typeof options?.moon?.clientProgramModelAsyncNativeDecisionRequestPlan !== 'function' ||
+      original === undefined || provider === undefined || probability === undefined) {
+    throw new TypeError('NativeDecisionPhysicalRuntimeUnavailable');
+  }
+  return createSdkPhysicalPreflight(options, (moon, request, bytes, quantities, profile, installation, start) =>
+    moon.clientProgramModelAsyncNativeDecisionRequestPlan(request, original, provider,
+      bytes, quantities.tokens, quantities.costUnits, quantities.durationMs, profile,
+      installation, probability, start));
+}
+
+function createSdkPhysicalPreflight({moon, request, preparation, profile,
   installation, quantities, fetch, responseLimits, persistRaw, notify, checked,
-  observeAt, cleanupRaw, preparationProgress, rawCaptureBinder}) {
+  observeAt, cleanupRaw, preparationProgress, rawCaptureBinder}, preparePlan) {
   const deferredRaw = rawCaptureBinder !== undefined;
   if (typeof fetch !== 'function' ||
       (deferredRaw ? typeof rawCaptureBinder !== 'function' ||
@@ -113,6 +137,7 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     checked = undefined;
     observeAt = undefined;
     cleanupRaw = undefined;
+    preparePlan = undefined;
     retired = true;
     return true;
   };
@@ -159,9 +184,8 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     preparationTerminal = true;
     try {
       prepareSdkTransport(preparation, {fetch, responseLimits, observeAt});
-      plan = checked(moon.clientProgramModelAsyncPhysicalRequestPlan(request,
-        BigInt(original.requestBytes), quantities.tokens, quantities.costUnits,
-        quantities.durationMs, profile, installation, start));
+      plan = checked(preparePlan(moon, request, BigInt(original.requestBytes),
+        quantities, profile, installation, start));
     } catch { return [true, undefined]; }
     return [true, plan];
   };
