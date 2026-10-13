@@ -2719,7 +2719,7 @@ The following are the complete borrowed spellings and their tree meanings:
 | `a AND b`, `a OR b`, `NOT p` | `and`, `or`, `not` |
 | `e IS NULL`, `e IS NOT NULL` | `is_null`, `not_null` |
 | `e IN (a, b, ...)`, `e NOT IN (a, b, ...)` | `in`, `not_in` with `{literal: [...]}`; each item is a scalar literal or scalar parameter reference |
-| `e IN $items` (also `NOT IN`) | membership in an array parameter |
+| `e IN items`, `e IN if(p, xs, ys)` (also `NOT IN`) | membership in an ARRAY-valued expression at unary precedence, including fields, parameters and constructors |
 | `e BETWEEN lo AND hi` | `between` |
 | `e LIKE pattern` | `like`; pattern is a string literal or string parameter |
 | `e NOT BETWEEN lo AND hi`, `e NOT LIKE pattern` | `not` around the corresponding predicate |
@@ -2779,7 +2779,14 @@ parentheses around a literal or parameter are permitted, including
 `x IN ((1))` and `x LIKE ('a%')`. Validation examines the decoded node, so
 `x LIKE ('a' || '%')` remains invalid. Other literal payloads are opaque data,
 not locations for recursive parameter substitution.
-Row-dependent membership lists are not supported. Unary `-` on a nonliteral
+Literal-list templates cannot contain row-dependent expressions. An unparenthesized
+right operand at unary precedence may be any ARRAY-valued Expression, including a field,
+property, subscript, ARRAY constructor, `if`, searched `CASE`, or `coalesce`.
+The ordinary type checker rejects scalar right operands. Both membership operands
+remain strict and evaluated once; an operand's own conditional branches retain
+their existing lazy demand. A NULL ARRAY remains an empty membership set under
+the existing membership law.
+Unary `-` on a nonliteral
 numeric expression decodes to `negate`, preserving number or decimal type.
 
 The EBNF fixes precedence, highest first:
@@ -2875,8 +2882,12 @@ tree; strict concatenation prints as `concat_strict(...)`, never
 `concat(...)`. Casts print as `CAST(value AS TYPE)`; other functions use their
 named call spelling. Binary arithmetic and boolean expressions use
 the operator spellings in [Expression text](#expression-text); n-ary `and`/`or` print as a parenthesized chain.
-Membership prints a literal array as an `IN` list, or a parameter as its right
-operand. `not` prints
+Membership prints a literal array as an `IN` list. Other ARRAY-valued right
+operands use their postfix spelling without an enclosing pair of grouping
+parentheses, because an initial `(` after `IN` selects a literal list. Nested
+operators inside calls, ARRAY constructors, or searched `CASE` retain their
+ordinary parentheses. A tree without an unambiguous text spelling retains its
+structured source form. `not` prints
 as `NOT (p)` rather than rewriting the child predicate.
 
 <!-- requirement-block: expression-decoding.for-each-text-representable-canonical-tree-t-decoding-its-canonical-printed expression-decoding.a-printer-must-not-stringify-a-structured-constructor-or-change -->
@@ -10830,7 +10841,7 @@ through the pinned expression contract.
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../spec/contracts/actql-aoa.json# sha256:8af884906323059938ad32b129f7918f18d3c2e852f4ec36072c3b681c7423e4
+../../spec/contracts/actql-aoa.json# sha256:5fd1c3389aea2156a0cc35ae3bf02ea655e9899f21946fe20ff5e02baf44bb89
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:dab36fadb3ae6a4d7c65351d5bec6ddc1ca104601d9e936d2bbd4d69231288d2
@@ -10839,7 +10850,7 @@ through the pinned expression contract.
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/regex_replacement_ast sha256:92c3fc4fc790cdf8f985b634dfe513f85b6cd5c904bb673de7330d18f577aeed
 ../../spec/contracts/actql-regex-ast.json# sha256:9c4e0107ad1e6a1eb374e8365c07615c74773416b0b43f9a1e02db5e551efc78
-../../spec/contracts/actql-expressions.json# sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289
+../../spec/contracts/actql-expressions.json# sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e
 ../../spec/contracts/actql-expressions.json#/schemas/expression sha256:13d2c700aef09d7fd33d3eba9705f89541432b766b328ad394f9c2acd4686bc2
 ../../spec/contracts/actql-expressions.json#/schemas/expression_node sha256:d88c7ba0e4be6e1ea2519468f82303012dcdd8d8daf48af9e9a5889411659cb1
 ../../spec/contracts/actql-expressions.json#/schemas/evaluation_envelope sha256:68862bad556419047c4ded99896b14ad0993ffa453d4f67580a546aeeeb2fd9f
