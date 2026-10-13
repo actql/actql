@@ -448,6 +448,7 @@ pub fn LocalSDKPayloadEncoding::cancel_frames(Self) -> Unit
 pub fn LocalSDKPayloadEncoding::confirm_chunk(Self) -> Result[Int64, LocalSDKPayloadEncodingIssue]
 pub fn LocalSDKPayloadEncoding::confirm_finished(Self) -> Result[@run_publication.PublicationContract, LocalSDKPayloadEncodingIssue]
 pub fn LocalSDKPayloadEncoding::feed(Self, Bytes, Bool) -> Result[Bytes, LocalSDKPayloadEncodingIssue]
+pub fn LocalSDKPayloadEncoding::observe_empty_output(Self) -> Result[Int64, LocalSDKPayloadEncodingIssue]
 pub fn LocalSDKPayloadEncoding::prepare_input(Self) -> Result[Unit, LocalSDKPayloadEncodingIssue]
 
 pub(all) enum LocalSDKPayloadEncodingIssue {

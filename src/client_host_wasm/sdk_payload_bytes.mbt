@@ -304,7 +304,14 @@ pub fn confirm_publication_sdk_payload_chunk(
   if output.sdk_payload_confirmed is Some(original) {
     return original
   }
-  match encoding.confirm_chunk() {
+  // Only this actual owned produced slot proves an empty output. Do not
+  // convert a generic NoOutstandingChunk refusal into an acknowledgement.
+  let progress = match @buffers.buffer_length(value.pool, output.slot) {
+    Some(0) => encoding.observe_empty_output()
+    Some(_) => encoding.confirm_chunk()
+    None => return -33L
+  }
+  match progress {
     Err(issue) => sdk_payload_encoding_issue(issue).to_int64()
     Ok(confirmed) => {
       output.sdk_payload_confirmed = Some(confirmed)
