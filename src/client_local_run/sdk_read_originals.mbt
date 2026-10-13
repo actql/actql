@@ -3,6 +3,8 @@
 /// originals, current Host/Account checks, grant issuance and usage are distinct
 /// gates. A copied wire body cannot acquire the original read handle's custody.
 struct LocalSDKReadOriginals {
+  request : @host.ClientRequestIdentity
+  materials : @publication.ObservedResultReadMaterials
   authorization : (String, String)
   ceiling : (String, String)
   egress : (String, String)
@@ -218,7 +220,8 @@ pub fn prepare_local_sdk_read_originals(
       preflight, account, result_name,
     ) {
     Err(issue) => Err(Preflight(issue))
-    Ok(_) => Ok({ authorization, ceiling, egress, })
+    Ok(_) =>
+      Ok({ request: plan.request, materials, authorization, ceiling, egress, })
   }
 }
 

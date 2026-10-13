@@ -28,7 +28,7 @@ class ObservedRunStateTests(unittest.TestCase):
 
     def test_closed_signature_and_original_handles_are_forwarded(self):
         core, source, output, calls, _ = self.bridge()
-        self.assertEqual(LOCAL_CORE_ABI, 63)
+        self.assertEqual(LOCAL_CORE_ABI, 64)
         self.assertEqual(_PUBLICATION_COMMIT_EXPORT_SIGNATURES['produce_run_state'],
                          ('i64 i32 i32 i32', 'i32'))
         self.assertIsNone(core.produce_publication_observed_run_state(output, source, 23))
