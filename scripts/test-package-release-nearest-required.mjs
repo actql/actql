@@ -24,7 +24,7 @@ const directory = resolve(input), manifest = await verifyPackageRelease(director
 assert.deepEqual(manifest.cohort.packages, ['client-wire', 'sdk', 'local-node', 'node']);
 assert.ok(!resolve(receiptPath).startsWith(directory + '/'), 'Keep the original RC unchanged');
 const source = checkoutState(repository);
-assert(source.clean, 'Release ranking fixture requires clean committed source');
+assert(source.clean, 'Release NEAREST fixture requires clean committed source');
 assert.equal(manifest.sourceSha, source.revision, 'Use the exact same clean producer/consumer source');
 const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-release-nearest-required-',
   label: 'Installed NEAREST typed Carrier acceptance'});
