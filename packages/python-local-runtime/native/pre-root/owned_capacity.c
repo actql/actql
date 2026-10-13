@@ -46,7 +46,7 @@ static bool round_pages(size_t bytes, size_t page, size_t *pages) {
     return true;
 }
 
-int actql_owned_acquire(size_t capacity, uint64_t generation,
+int actql_native_owned_acquire(size_t capacity, uint64_t generation,
                         const unsigned char recipe[32],
                         actql_owned_capacity **out) {
     if (out == NULL || *out != NULL || recipe == NULL || generation == 0)
@@ -54,7 +54,8 @@ int actql_owned_acquire(size_t capacity, uint64_t generation,
     long selected_page = sysconf(_SC_PAGESIZE);
     if (selected_page <= 0) return ACTQL_OWNED_PHYSICAL_FAILURE;
     size_t page = (size_t)selected_page;
-    if (capacity == 0 || capacity % page != 0) return ACTQL_OWNED_INVALID;
+    if (capacity == 0 || capacity > PTRDIFF_MAX || capacity % page != 0)
+        return ACTQL_OWNED_INVALID;
     size_t count = capacity / page;
     if (count > (SIZE_MAX - sizeof(actql_owned_capacity)) / sizeof(struct extent))
         return ACTQL_OWNED_INVALID;
@@ -81,7 +82,7 @@ int actql_owned_acquire(size_t capacity, uint64_t generation,
     return ACTQL_OWNED_OK;
 }
 
-int actql_owned_transfer(actql_owned_capacity *lease, uint64_t generation,
+int actql_native_owned_transfer(actql_owned_capacity *lease, uint64_t generation,
                          const unsigned char recipe[32]) {
     if (lease == NULL || recipe == NULL) return ACTQL_OWNED_INVALID;
     lock_capacity(lease);
@@ -95,7 +96,7 @@ int actql_owned_transfer(actql_owned_capacity *lease, uint64_t generation,
     return status;
 }
 
-int actql_owned_enter(actql_owned_capacity *lease) {
+int actql_native_owned_enter(actql_owned_capacity *lease) {
     if (lease == NULL || (current_capacity != NULL && current_capacity != lease))
         return ACTQL_OWNED_INVALID;
     lock_capacity(lease);
@@ -110,7 +111,7 @@ int actql_owned_enter(actql_owned_capacity *lease) {
     return ACTQL_OWNED_OK;
 }
 
-int actql_owned_leave(actql_owned_capacity *lease) {
+int actql_native_owned_leave(actql_owned_capacity *lease) {
     if (lease == NULL || current_capacity != lease || current_depth == 0)
         return ACTQL_OWNED_INVALID;
     lock_capacity(lease);
@@ -120,11 +121,11 @@ int actql_owned_leave(actql_owned_capacity *lease) {
     return ACTQL_OWNED_OK;
 }
 
-actql_owned_capacity *actql_owned_current(void) {
+actql_owned_capacity *actql_native_owned_current(void) {
     return current_capacity;
 }
 
-int actql_owned_allocate(actql_owned_capacity *lease, size_t bytes,
+int actql_native_owned_allocate(actql_owned_capacity *lease, size_t bytes,
                          size_t alignment, void **out) {
     if (lease == NULL || out == NULL || *out != NULL || alignment == 0 ||
         (alignment & (alignment - 1)) != 0) return ACTQL_OWNED_INVALID;
@@ -179,7 +180,7 @@ static bool allocation_start(actql_owned_capacity *lease, void *allocation,
            lease->extents[*start].pages != SIZE_MAX;
 }
 
-int actql_owned_protect(actql_owned_capacity *lease, void *allocation,
+int actql_native_owned_protect(actql_owned_capacity *lease, void *allocation,
                         size_t offset, size_t length, int protection) {
     if (lease == NULL || length == 0 || offset % lease->page_size != 0 ||
         length % lease->page_size != 0 ||
@@ -208,7 +209,7 @@ static int clean_retired(actql_owned_capacity *lease, size_t start) {
     return ACTQL_OWNED_OK;
 }
 
-int actql_owned_retire(actql_owned_capacity *lease, void *allocation) {
+int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation) {
     if (lease == NULL) return ACTQL_OWNED_INVALID;
     lock_capacity(lease);
     size_t start;
@@ -221,7 +222,7 @@ int actql_owned_retire(actql_owned_capacity *lease, void *allocation) {
     return status;
 }
 
-int actql_owned_try_close(actql_owned_capacity **slot) {
+int actql_native_owned_try_close(actql_owned_capacity **slot) {
     if (slot == NULL) return ACTQL_OWNED_INVALID;
     actql_owned_capacity *lease = *slot;
     if (lease == NULL) return ACTQL_OWNED_OK;

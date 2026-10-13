@@ -1,0 +1,42 @@
+--- a/crates/c-api/Cargo.toml
++++ b/crates/c-api/Cargo.toml
+@@ -40,0 +41,3 @@
++[build-dependencies]
++cc = { workspace = true }
++
+@@ -41,0 +45 @@
++actql-owned-capacity = ["wasmtime/actql-owned-capacity"]
+--- a/crates/c-api/artifact/Cargo.toml
++++ b/crates/c-api/artifact/Cargo.toml
+@@ -23,0 +24 @@
++actql-owned-capacity = ["wasmtime-c-api/actql-owned-capacity"]
+--- a/crates/c-api/artifact/src/lib.rs
++++ b/crates/c-api/artifact/src/lib.rs
+@@ -1,0 +2,9 @@
++
++#[cfg(feature = "actql-owned-capacity")]
++mod actql_owned_heap;
++#[cfg(feature = "actql-owned-capacity")]
++mod actql_owned_abi;
++#[cfg(feature = "actql-owned-capacity")]
++#[global_allocator]
++static ACTQL_OWNED_ALLOCATOR: actql_owned_heap::OwnedAllocator =
++    actql_owned_heap::OwnedAllocator;
+--- a/crates/c-api/build.rs
++++ b/crates/c-api/build.rs
+@@ -32,0 +33,11 @@
++    #[cfg(feature = "actql-owned-capacity")]
++    {
++        assert_eq!(env::var("CARGO_CFG_TARGET_OS").as_deref(), Ok("macos"));
++        assert_eq!(env::var("CARGO_CFG_TARGET_ARCH").as_deref(), Ok("aarch64"));
++        println!("cargo:rerun-if-changed=src/actql_owned_capacity.c");
++        println!("cargo:rerun-if-changed=src/owned_capacity.h");
++        cc::Build::new()
++            .file("src/actql_owned_capacity.c")
++            .flag_if_supported("-std=c11")
++            .compile("actql-owned-capacity");
++    }
+--- a/crates/wasmtime/Cargo.toml
++++ b/crates/wasmtime/Cargo.toml
+@@ -132,0 +133 @@
++actql-owned-capacity = []

@@ -43,7 +43,7 @@ Mmap source. It is a proposed patch surface, not an adopted engine fork.
 | Pool linear-memory slab | `runtime/vm/instance/allocator/pooling/memory_pool.rs`, `MemoryPool::new` | `Mmap::accessible_reserved` reaches a slice of the original mapping | Same selected Engine entry scope; original guard/layout/current rules |
 | Table slab | `runtime/vm/instance/allocator/pooling/table_pool.rs`, `TablePool::new` | Same Mmap slice allocation | Selected target's element size and finite table counts |
 | Native code/image copy | `engine.rs`, `Engine::load_code_bytes`; `runtime/vm/mmap_vec.rs` | Same page-rounded original mapping; original code publication/cache coherence retained | Exact source image and native library recipe; image capture below |
-| Rust instance metadata and scratch | `pooling.rs`, Vec/Box/Arc and dependency allocations | **Not connected by the Mmap patch** | A real native heap allocation route into the same holding, including alignment, realloc overlap and destruction after call scopes |
+| Rust instance metadata and scratch | `pooling.rs`, Vec/Box/Arc and dependency allocations | Proposed `owned_heap.rs` in the final C API cdylib; **uncompiled and not adopted** | Exhaustion/fallible boundary, exact complete feature/allocation coverage and phase envelope |
 | Initial encoded image and ctypes copy | SDK `_local_engine.py`, Wasmtime Python `_module.py` | **Not connected** | Capture into an owned native slice before deserialize, no uncharged `bytes`/`from_buffer_copy` replacement |
 | Python, SQLite, dynamic loader and native registrations | Existing bootstrap/Store and runtime dependencies | **Unknown; not zero** | Exact declared allocation/scratch supplier and phase envelope |
 
@@ -52,6 +52,33 @@ selected feature path. It does not silently route those to the system allocator.
 Memory protection and code cache coherence keep the original Wasmtime methods.
 A failed Mmap retirement stays in the native lease for final cleanup retry.
 The patch does not intercept Rust heap allocations or prove their absence.
+
+The separate `wasmtime-owned-artifact-review.patch` proposes the actual final
+cdylib allocator hook, an explicit non-default feature relay to Wasmtime, and
+compilation of the C holding source. `owned_abi.rs` supplies Rust-exported private
+symbols, so the recipe does not assume that symbols from a linked C archive are
+automatically exported by a Rust cdylib. `workspace-build-inputs.json` binds seven
+upstream source inputs and four exact source copies. This is an additional
+source candidate; no final native library has been built or adopted.
+
+The heap candidate places the original lease/extent and layout in an allocation
+header inside the same holding. It checks padding, alignment and pointer-size
+limits. Realloc allocates the new extent before retiring the old extent, so both
+must fit concurrently. Deallocation retains the original lease even outside the
+original call scope; it never invokes System or acquires another holding.
+
+**Heap exhaustion is not closed by this preparation.** GlobalAlloc returning
+null can reach Rust's infallible allocation error path. That is not a typed
+capacity refusal, an Unknown Owner result or proof of cleanup. The original C
+API engine constructor also unwraps `Engine::new`. The candidate must not be
+adopted until this failure boundary and the finite declared scratch coverage
+are closed. Logging an abort as a passed capacity test would be incorrect.
+
+Precompiled loading does not remove all compiler initialization: pinned
+`Engine::new` calls `config.build_compiler` when the Cranelift feature is enabled
+(the source is in the original pinned crate). That retained domain needs
+coverage under the selected recipe. Do not silently disable or substitute the
+existing backend to report compiler scratch as zero.
 
 ## Required installed connection
 
@@ -83,6 +110,16 @@ complete Cargo.lock/dependency tree, Rust toolchain, macOS SDK/deployment target
 feature closure and allocator ABI must be fixed before a native build. The
 crate archives alone do not supply the full final artifact workspace. No
 toolchain version or heap allocation hook is inferred from their names.
+
+The final artifact `src/lib.rs`, Cargo manifests and original workspace lock
+have now been captured from that same upstream commit. Its minimum Rust
+version is 1.88.0, which is not a selected build toolchain. The proposed new
+`cc` build-dependency edge still requires the ordinary Cargo lock generation
+and locked-input review; the retained original lock is not advertised as a
+finished patched lock. The full workspace dependency source inventory, exact
+compiler/SDK, complete native feature closure and numeric profile remain
+unadopted. The missing upstream `rust-toolchain.toml` response is retained as
+a 404 lookup result, not replaced by an inferred compiler pin.
 
 The current stock Wasmtime 38 library digest cannot stand for a patched library.
 The reviewed image recipe must bind the changed library, allocator ABI/source,
