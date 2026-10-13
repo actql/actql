@@ -123,6 +123,18 @@ class WorkerProcessTests(unittest.TestCase):
         with self.assertRaises(ValueError): self.process.spawn()
         self.os_posix_spawn.assert_not_called(); self.assert_no_execution_ack()
 
+    def test_parent_close_reentry_keeps_unknown_end_without_repeating_close(self):
+        self.process.spawn()
+        def close(fd):
+            if fd == 12: self.process.close_parent_descriptors()
+        self.case.os_close.side_effect = close
+        with self.assertRaises(LocalWorkerProcessPending): self.process.close_parent_descriptors()
+        with self.assertRaises(LocalWorkerProcessPending): self.process.close_parent_descriptors()
+        self.assertEqual(sum(call.args == (12,) for call in self.case.os_close.call_args_list), 1)
+        self.assertFalse(self.process._parent_close_inflight)
+        self.assertTrue(all(fd.closed for fd in self.process._descriptors if fd.value != 12))
+        self.assert_no_execution_ack()
+
     def test_live_direct_child_has_no_exit_or_scoped_stop(self):
         self.process.spawn(); self.assertIsNone(self.process.observe_child_exit())
         self.os_waitpid.assert_called_once_with(4321, os.WNOHANG)

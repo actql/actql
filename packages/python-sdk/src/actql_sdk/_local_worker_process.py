@@ -82,6 +82,7 @@ class OriginalWorkerProcess:
         self._wait_unknown: BaseException | None = None
         self._closing = False
         self._parent_closed = False
+        self._parent_close_inflight = False
         slot._bind_process(self)
 
     def __copy__(self) -> OriginalWorkerProcess:
@@ -217,21 +218,27 @@ class OriginalWorkerProcess:
             self._nominal()
             if self._parent_closed:
                 return
+            if self._parent_close_inflight:
+                raise RuntimeError('Original worker parent close cannot reenter')
             self._closing = True
-            failure: BaseException | None = None
-            # Keep sticky Unknown descriptors, while retiring other original
-            # ends exactly once. A failed end must not strand the rest forever.
-            for value in reversed(self._descriptors):
+            self._parent_close_inflight = True
+            try:
+                failure: BaseException | None = None
+                # Keep sticky Unknown descriptors, while retiring other original
+                # ends exactly once. A failed end must not strand the rest forever.
+                for value in reversed(self._descriptors):
+                    try:
+                        value.close()
+                    except BaseException as caught:
+                        if failure is None:
+                            failure = caught
                 try:
-                    value.close()
+                    self._slot.close()
                 except BaseException as caught:
                     if failure is None:
                         failure = caught
-            try:
-                self._slot.close()
-            except BaseException as caught:
-                if failure is None:
-                    failure = caught
-            if failure is not None:
-                raise LocalWorkerProcessPending(self) from failure
-            self._parent_closed = True
+                if failure is not None:
+                    raise LocalWorkerProcessPending(self) from failure
+                self._parent_closed = True
+            finally:
+                self._parent_close_inflight = False
