@@ -1,24 +1,4 @@
 ///|
-// Keep selected report rows and examined observations in distinct domains.
-// Missing finite bounds never become zero, infinity, or an observed count.
-fn row_listing_report_bounds(
-  limits : Array[(String, Int64)],
-  resolved_rows : RowListingRows?,
-) -> Result[(Int64, Int64), RowSourceIssue] {
-  let selected = match
-    row_listing_bound(limits, resolved_rows, "max_listing_items") {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let examined = match
-    row_listing_bound(limits, resolved_rows, "max_examined_items") {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  Ok((selected, examined))
-}
-
-///|
 // Core-only count facts from the same checked acquisition. The trusted
 // preparation may inspect these before allocating listing/report control.
 // They do not construct that control, lend a Ledger, reserve bytes, authorize

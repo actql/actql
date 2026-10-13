@@ -2210,7 +2210,13 @@ export async function openLocalPublicationStore(
         const decipher = createDecipheriv('aes-256-gcm', key, nonce);
         decipher.setAAD(privateEvidenceAad(name, semanticCid));
         decipher.setAuthTag(tag);
-        return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+        const plaintext = decipher.update(ciphertext);
+        // Authentication must complete before any plaintext escapes. Reuse
+        // the owned block only after final succeeds with no additional bytes;
+        // otherwise preserve the complete authenticated concatenation.
+        const final = decipher.final();
+        return final.byteLength === 0 ? plaintext
+          : Buffer.concat([plaintext, final]);
       } catch (error) {
         if (error?.code === 'PublicationPrivateEvidenceCorrupt') throw error;
         fail('PublicationPrivateEvidenceCorrupt', error);
