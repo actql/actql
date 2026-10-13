@@ -201,3 +201,34 @@ test('HTTP facade refuses a combined request key before registration', () => {
   assert.throws(() => createInstalledHttpChatRegistration(config), /InvalidInstalledHTTPChatRequestLimits/u);
   assert.deepEqual(f.counts, {installs: 0, projections: 0, sends: 0});
 });
+
+
+test('HTTP facade refuses mismatched outer array keys before indexed descriptor reads', () => {
+  const config = configuration(), f = runtime(config);
+  let indexedReads = 0;
+  config.headers = new Proxy(config.headers, {
+    ownKeys() { return ['length', 'extra']; },
+    getOwnPropertyDescriptor(target, name) {
+      if (name !== 'length') indexedReads++;
+      return Reflect.getOwnPropertyDescriptor(target, name);
+    },
+  });
+  assert.throws(() => createInstalledHttpChatRegistration(config), /InvalidInstalledHTTPChatHeaders/u);
+  assert.equal(indexedReads, 0);
+  assert.deepEqual(f.counts, {installs: 0, projections: 0, sends: 0});
+});
+
+test('HTTP facade refuses mismatched pair array keys before indexed descriptor reads', () => {
+  const config = configuration(), f = runtime(config);
+  let indexedReads = 0;
+  config.headers = [new Proxy(config.headers[0], {
+    ownKeys() { return ['length', '0', 'extra']; },
+    getOwnPropertyDescriptor(target, name) {
+      if (name !== 'length') indexedReads++;
+      return Reflect.getOwnPropertyDescriptor(target, name);
+    },
+  })];
+  assert.throws(() => createInstalledHttpChatRegistration(config), /InvalidInstalledHTTPChatHeaders/u);
+  assert.equal(indexedReads, 0);
+  assert.deepEqual(f.counts, {installs: 0, projections: 0, sends: 0});
+});
