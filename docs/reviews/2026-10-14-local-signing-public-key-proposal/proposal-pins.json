@@ -1,0 +1,29 @@
+{
+  "status": "proposal only; not registered in active specification/inventory",
+  "sourceBase": "97828fc4d42b2fd7a30acaaff679df3ec1f95111",
+  "proposedOwnedDomain": "actql-local-signing-public-key/0.1",
+  "proposedSchemaURN": "urn:actql:local-signing-public-key:0.1",
+  "existingLegacyInventoryChanges": 0,
+  "pins": [
+    {
+      "path": "schema.json",
+      "sha256": "449bd068c7ec87cf3725d907a04873cc4734a8d6d112138d6b4a01e50d175352"
+    },
+    {
+      "path": "vectors.json",
+      "sha256": "e8a9128e28f43b7442f99b7c623da7ca77a599cee4bb961de862ad3062234b01"
+    },
+    {
+      "path": "local_signing_public_key.mbt",
+      "sha256": "81ae635fd78da47de09a0801f607897b79313d72140e8e8ec66baed7b5ba6de3"
+    },
+    {
+      "path": "local_signing_public_key_wbtest.mbt",
+      "sha256": "d7f60228a78e9a40ad1dc4b0494aa26f4d89832ec775a333abb5a74630d9db42"
+    },
+    {
+      "path": "unapplied-common-source.patch",
+      "sha256": "129b4534b34a8260f6776464ab8d86f139d37c6865df7042fa8a6fced8646746"
+    }
+  ]
+}
