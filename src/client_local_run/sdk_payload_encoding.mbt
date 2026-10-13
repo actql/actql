@@ -271,6 +271,18 @@ pub fn LocalSDKPayloadEncoding::feed(
 }
 
 ///|
+/// Reject outstanding sink custody before a physical supplier advances its
+/// descriptor. This is backpressure, not an enduring read permission.
+pub fn LocalSDKPayloadEncoding::prepare_input(
+  self : LocalSDKPayloadEncoding,
+) -> Result[Unit, LocalSDKPayloadEncodingIssue] {
+  if self.issue is Some(issue) {
+    return Err(issue)
+  }
+  self.sink.prepare_next().map_err(issue => Sink(issue))
+}
+
+///|
 /// Only the physical sink confirms this original outstanding output. Merely
 /// producing/copying bytes, EOF or a serializer finish cannot call this for it.
 pub fn LocalSDKPayloadEncoding::confirm_chunk(

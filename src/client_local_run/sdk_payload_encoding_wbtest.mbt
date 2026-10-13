@@ -41,11 +41,13 @@ test "SDK payload encoding separates physical EOF serialization and sink receipt
   let fixture = sdk_read_fixture()
   defer (fixture.cleanup)()
   let encoding = sdk_payload_encoding_fixture(fixture)
+  assert_true(encoding.prepare_input() is Ok(_))
   assert_eq(encoding.feed(b"[{\"n\":", false), Ok(b""))
   assert_true(
     encoding.confirm_finished() is Err(Sink(DeliverySinkSourceIncomplete)),
   )
   assert_eq(encoding.feed(b"1}]", true), Ok(b"{\"n\":1}\n"))
+  assert_true(encoding.prepare_input() is Err(Sink(DeliverySinkClosed)))
   assert_true(
     encoding.confirm_finished() is Err(Sink(DeliverySinkSourceIncomplete)),
   )
@@ -93,12 +95,17 @@ test "SDK payload encoding preserves outstanding sink progress before next input
   let encoding = sdk_payload_encoding_fixture(fixture)
   assert_eq(encoding.feed(b"[{\"n\":1}", false), Ok(b"{\"n\":1}\n"))
   assert_true(
+    encoding.prepare_input() is Err(Sink(DeliverySinkChunkOutstanding)),
+  )
+  assert_true(
     encoding.feed(b"]", true) is Err(Sink(DeliverySinkChunkOutstanding)),
   )
   assert_eq(encoding.confirm_chunk(), Ok(8L))
+  assert_true(encoding.prepare_input() is Ok(_))
   assert_eq(encoding.feed(b"]", true), Ok(b""))
   assert_true(encoding.confirm_finished() is Ok(_))
   encoding.cancel_frames()
+  assert_true(encoding.prepare_input() is Err(Frames(DurableRowFrameClosed)))
   assert_true(encoding.confirm_finished() is Err(Frames(DurableRowFrameClosed)))
 }
 

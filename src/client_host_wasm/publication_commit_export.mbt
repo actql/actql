@@ -12,6 +12,8 @@ priv enum PublicationCommitExportProjection {
   SDKReadEvidenceDecision(Int, Int)
   SDKReadDeliveryStorage(Int, Int)
   SDKReadDeliveryLookup(Int, Int)
+  SDKPayloadChunk(Int, Int, Int)
+  SDKPayloadReceipt(Int)
   InspectedReference(Int)
 } derive(Eq)
 
@@ -29,13 +31,12 @@ priv struct StoredPublicationCommitExport {
   mut output_closed : Bool
   mut state_borrow : @buffers.BufferBorrow?
   mut sdk_delivery_first : @local_run.LocalSDKReadDeliveryPreparation?
-  mut sdk_payload_outcome : Result[
-    (@publication.DurableResultRowFrames, @publication.ResultDeliverySerializer),
-    Int,
-  ]?
+  mut sdk_payload_outcome : Result[@local_run.LocalSDKPayloadEncoding, Int]?
   mut sdk_payload_tick_borrow : @buffers.BufferBorrow?
   mut sdk_payload_clock_input : Int?
   mut sdk_payload_invoked : Bool
+  mut sdk_payload_parent : Int?
+  mut sdk_payload_confirmed : Int64?
 }
 
 ///|
@@ -98,6 +99,8 @@ pub fn reserve_publication_commit_export(
     sdk_payload_tick_borrow: None,
     sdk_payload_clock_input: None,
     sdk_payload_invoked: false,
+    sdk_payload_parent: None,
+    sdk_payload_confirmed: None,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -668,6 +671,11 @@ pub fn close_publication_commit_export(nonce : Int64, handle : Int) -> Int {
   if record.pending {
     return -33
   }
+  if value.commit_exports
+    .values()
+    .any(child => child.sdk_payload_parent == Some(handle)) {
+    return -33
+  }
   if !record.output_closed {
     let result = status(@buffers.close_buffer(value.pool, record.slot))
     if result != 0 {
@@ -682,8 +690,8 @@ pub fn close_publication_commit_export(nonce : Int64, handle : Int) -> Int {
     }
     record.sdk_payload_tick_borrow = None
   }
-  if record.sdk_payload_outcome is Some(Ok((frames, _))) {
-    @publication.cancel_durable_result_row_frames(frames)
+  if record.sdk_payload_outcome is Some(Ok(encoding)) {
+    encoding.cancel_frames()
   }
   record.sdk_payload_outcome = None
   if record.state_borrow is Some(borrow) {

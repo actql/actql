@@ -23,10 +23,7 @@ fn original_sdk_payload_codecs(
   record : StoredPublicationCommitExport,
   context : OriginalSDKReadContext,
   clock : @buffers.BufferBorrow,
-) -> Result[
-  (@publication.DurableResultRowFrames, @publication.ResultDeliverySerializer),
-  Int,
-] {
+) -> Result[@local_run.LocalSDKPayloadEncoding, Int] {
   guard record.sdk_delivery_first is Some(first) &&
     record.state_borrow is Some(original_input) &&
     input_cursor(value, original_input.slot) is Some(request_cursor) &&
@@ -42,7 +39,7 @@ fn original_sdk_payload_codecs(
     required_text(clock_object, "observed_at") is Some(observed_at) else {
     return Err(-30)
   }
-  @local_run.prepare_local_sdk_read_payload_codecs(
+  @local_run.prepare_local_sdk_payload_encoding_from_store(
     context.preflight,
     context.current.account,
     context.finite,
@@ -60,7 +57,13 @@ fn original_sdk_payload_codecs(
     65536,
     (table, key) => sdk_run_journal_port(value, context.current, 1, table, key),
     context.check_current,
-  ).map_err(sdk_payload_codec_issue)
+  ).map_err(issue => {
+    match issue {
+      Codecs(issue) => sdk_payload_codec_issue(issue)
+      Encoding(CapacityExceeded) => -4
+      Encoding(_) => -32
+    }
+  })
 }
 
 ///|
