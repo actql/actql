@@ -200,7 +200,9 @@ pub fn reserve_journal_observation(
     value.run_configurations.contains(configuration) else {
     return -2
   }
-  if value.closing || value.runtime_closing || parent.output_closed {
+  // Explicit transport retirement leaves the nominal saved rows/input alive.
+  // A full-close attempt or missing parent cannot issue a new child.
+  if value.closing || value.runtime_closing || parent.closing {
     return -5
   }
   if physical_ticket <= 0 ||

@@ -67,7 +67,7 @@ test "first EXTEND cannot sort by a derived column through the old range" {
 test "AS after EXTEND explicitly binds the derived column" {
   let actual = compile(
     @query.parse_query(
-      "FROM pair AS old |> EXTEND x + 1 AS z |> AS current |> SELECT current.x AS original, current.z AS z",
+      "FROM pair AS old |> EXTEND x + 1 AS z |> AS `current` |> SELECT current.x AS original, current.z AS z",
       syntax_limits(),
     ).unwrap(),
     pair_context(),
@@ -78,7 +78,7 @@ test "AS after EXTEND explicitly binds the derived column" {
 
 ///|
 test "existing JOIN range refusals retain exact current invalid-input causes" {
-  for prefix in ["DROP x", "RENAME x AS current"] {
+  for prefix in ["DROP x", "RENAME x AS `current`"] {
     assert_true(
       compile(
         @query.parse_query(

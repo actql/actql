@@ -522,6 +522,8 @@ pub fn issue_succeeded_run_state_wire(String, String, Array[String], Array[Strin
 
 pub fn local_sdk_result_read_selection_cid(LocalSDKResultReadSelection) -> String
 
+pub fn local_sdk_result_read_selection_data_policy_cid(LocalSDKResultReadSelection) -> String
+
 pub fn local_sdk_result_read_selection_parameters(LocalSDKResultReadSelection) -> (String, String, String, String, String, Int, Int)
 
 pub fn local_sdk_result_read_selection_wire(LocalSDKResultReadSelection) -> String
@@ -1572,6 +1574,26 @@ pub struct ModelSourceObservation {
   completed_at : String
 }
 
+pub(all) enum ObservedPublicationRunStateIssue {
+  Commit(PublicationCommitIssue)
+  Projection(DeliveryIssuanceIssue)
+  State(RunStateIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ObservedResultReadIssue {
+  Commit(PublicationCommitIssue)
+  Projection(DeliveryIssuanceIssue)
+}
+
+pub(all) struct ObservedResultReadMaterials {
+  index : PublicationContract
+  manifest : PublicationContract
+  definition : PublicationContract
+  artifact : PublicationContract
+  retention : PublicationContract
+  read : CommittedResultRead
+}
+
 type PendingSourceStateAdvance
 
 pub(all) struct PublicIndexRead {
@@ -1646,6 +1668,8 @@ pub fn PublicationCommitPreparation::cancel(Self) -> Unit
 pub fn PublicationCommitPreparation::finish(Self) -> Result[Unit, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::finish_observed_commit(Self, PublicationCommitReadView) -> Result[PublicationContract, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::finish_view(Self) -> Result[PublicationCommitReadView, PublicationCommitIssue]
+pub fn PublicationCommitPreparation::observed_result_read_materials(Self, PublicationCommitReadView, String, Int) -> Result[ObservedResultReadMaterials, ObservedResultReadIssue]
+pub fn PublicationCommitPreparation::observed_run_state_wire(Self, PublicationCommitReadView, String, Int, Int, Int) -> Result[String, ObservedPublicationRunStateIssue]
 pub fn PublicationCommitPreparation::release_observed_commit(Self, PublicationCommitReadView) -> Result[Unit, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::release_view(Self, PublicationCommitReadView) -> Result[Unit, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::view_binding(Self, PublicationCommitReadView, Int) -> Result[PublicationContract, PublicationCommitIssue]
