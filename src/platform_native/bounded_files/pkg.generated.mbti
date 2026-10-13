@@ -6,9 +6,9 @@ import {
 }
 
 // Values
-pub fn read_bounded_text_file(String, String, Int64, trim_newline? : Bool) -> Result[String, NativeBoundedTextIssue]
+pub fn read_bounded_text_file(String, String, Int64, trim_newline? : Bool, diagnostic_ceiling? : Int?) -> Result[String, NativeBoundedTextIssue]
 
-pub fn read_bounded_text_file_with_custody(String, String, Int64, trim_newline? : Bool) -> Result[String, NativeBoundedTextFailure]
+pub fn read_bounded_text_file_with_custody(String, String, Int64, trim_newline? : Bool, diagnostic_ceiling? : Int?) -> Result[String, NativeBoundedTextFailure]
 
 // Errors
 

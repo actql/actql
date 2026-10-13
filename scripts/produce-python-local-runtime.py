@@ -106,8 +106,7 @@ def produce(core_receipt: Path, duckdb_receipt: Path, destination: Path) -> dict
     module, library = Path(core['module']), Path(duckdb['library'])
     require(module.is_absolute() and library.is_absolute(), 'Select absolute original component paths')
     sdk = tomllib.loads((ROOT / 'packages/python-sdk/pyproject.toml').read_text())['project']
-    runtime = tomllib.loads((ROOT / 'packages/python-local-runtime/pyproject.toml').read_text())['project']
-    require(sdk['version'] == runtime['version'], 'Python packages must form one fixed release cohort')
+    require(recipe.read_cohort(ROOT) == sdk['version'], 'Python packages must form one fixed release cohort')
     body = {'source_sha': source, 'package_version': sdk['version'], 'platform': 'darwin-arm64',
             'core_abi': LOCAL_CORE_ABI, 'wasmtime_version': WASMTIME_VERSION,
             'module': component(module, digest, 32 * 1024 * 1024, 'client_host_wasm.wasm'),
