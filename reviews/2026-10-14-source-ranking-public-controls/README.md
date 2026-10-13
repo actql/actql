@@ -47,8 +47,12 @@ executed 7/7 cases through the existing 60-second/TERM5 non-Heavy guard. The ali
 projection case uses a clearly marked mock declaration with reversed view bodies;
 it is not Catalog admission, Runtime or Host acceptance. Raw receipts are retained
 in the shared workspace `reviews/2026-10-14-b-source-ranking-score-evidence`.
-A subsequent immutable-view-spec change does not inherit this test result as a
-new-source pass; its same targeted check remains to be executed.
+The subsequent immutable-view-spec source
+`284304f66e7c7fc6ec15201900410ce796342ac2` was separately checked by
+`run-rkrzO2`: Node 7/7, complete exit 0, under the same 60-second/TERM5
+non-Heavy recipe. Its exact source/tree and Owner closure are retained in
+`fixture-preparation-handoff-284304.json`. Neither result proves Catalog
+admission or Host execution.
 
 Public worker/delivery and registry-installed Local/HTTPS execution remain
 pending the parent's focused admission/API checks and a separately allocated
@@ -104,3 +108,20 @@ recipe, with sourceclean and Owner86445/group/ownlock closure. The two-Source,
 three-Stage installed Host path still requires actual admission/runtime evidence;
 this shape correction and Node checks do not prove it. No Moon/pack/consumer or
 new public E2E ran. External raw handoff: `explicit-acquisition-fixture-handoff-360a83.json`.
+
+## Result projection boundary
+
+Read-only inspection of the authored three-Stage JSON control traced the
+existing transfer through `relation_results.prepare_ports` ->
+`pipeline_typing.publish_produced_input` -> `produced_projection` ->
+`relation_evidence.transfer_ranking_unary`. The checked Result projection maps
+current score aliases to the original `DeclaredScore`; `ProducedInput` retains
+the producer and ranking evidence. The original capture still owes range
+validation before its Filter/Select runs. A Result import is not a new Source
+assertion or a substitute for that validation.
+
+This is source inspection, not an executed three-Stage admission or runtime
+result. The parent's prepared two-page counterexample still requires the exact
+`Residual(Execution(InputScore(0, InvalidScore(1))))` for an invalid row removed
+by the filter, with custody retained until cleanup succeeds. Its allocated
+focused checks and the installed max/weighted cohort remain pending.
