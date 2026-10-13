@@ -3,7 +3,7 @@ import {execFileSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {capturedMediaEvidenceSchema} from './content-media-evidence-schema.mjs';
+import {capturedMediaEvidenceSchema, applyCapturedMediaEvidenceSchema} from './content-media-evidence-schema.mjs';
 
 const read = path => JSON.parse(readFileSync(path, 'utf8'));
 const canonical = value => value !== null && typeof value === 'object'
@@ -12,7 +12,11 @@ const canonical = value => value !== null && typeof value === 'object'
   : JSON.stringify(value);
 const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).digest('hex');
 const withoutIdentity = (value, key) => { const body = {...value}; delete body[key]; return cid(body); };
-const original = read('spec/contracts/actql-protocol-schemas.json').schemas
+const current = read('spec/contracts/actql-protocol-schemas.json');
+const predecessor = JSON.parse(execFileSync('git', ['show',
+  '389448adbcd33ffa8d5831d97a50529095a8cdb6:spec/contracts/actql-protocol-schemas.json'],
+{encoding: 'utf8', maxBuffer: 8 * 1024 * 1024}));
+const original = predecessor.schemas
   .content_ref.properties.metadata.properties.issuer_evidence;
 
 test('captured report schema contribution is closed, immutable and idempotent without repinning', () => {
@@ -30,7 +34,23 @@ test('captured report schema contribution is closed, immutable and idempotent wi
     else: {not: {required: ['reported_media_type']}},
   }]);
   assert.notEqual(cid(schema), cid(original));
+  assert.deepEqual(current.schemas.content_ref.properties.metadata.properties.issuer_evidence, schema);
   assert.throws(() => capturedMediaEvidenceSchema({...original, allOf: [{}]}));
+});
+
+test('current Ref and captured embedding use the same schema and independent current pins', () => {
+  assert.deepEqual(applyCapturedMediaEvidenceSchema(current), current);
+  assert.equal(current.schema_cids.content_ref, cid(current.schemas.content_ref));
+  assert.equal(current.registry_cid, cid(current.schemas));
+  assert.equal(current.artifact_registry_cid, cid(current.artifact_schemas));
+  for (const [name, body] of Object.entries(current.artifact_schemas)) {
+    assert.equal(current.artifact_schema_cids[name], cid(body));
+  }
+  assert.deepEqual(current.artifact_schemas.captured_run.properties.effect_context.properties
+    .content_generations.items.properties.content_reference, current.schemas.content_ref);
+  assert.notEqual(current.schema_cids.content_ref, predecessor.schema_cids.content_ref);
+  assert.deepEqual(current.schemas.resource_ref, predecessor.schemas.resource_ref);
+  assert.deepEqual(current.schemas.canonical_value_contract, predecessor.schemas.canonical_value_contract);
 });
 
 test('independent captured report vectors bind exact report while content byte identity stays unchanged', () => {

@@ -1,4 +1,8 @@
 import assert from 'node:assert/strict';
+import {readFileSync, writeFileSync} from 'node:fs';
+import {pathToFileURL} from 'node:url';
+import {machineCid} from './actql-spec-family.mjs';
+import {applyContentGenerationSchema} from './content-generation-contract.mjs';
 
 // Closed schema contribution for the existing Content issuer evidence. This
 // function does not write a registry, repin history, or grant Ref authority.
@@ -33,4 +37,26 @@ export function capturedMediaEvidenceSchema(original) {
   // This is a character bound only. Core separately enforces the existing
   // 256 UTF-8 byte MIME limit; neither bound is physical reservation evidence.
   return schema;
+}
+
+// Update only current normative schemas. The existing generation owner embeds
+// that exact same Ref body and refreshes its artifact identities. Fixed data
+// vectors, historical evidence and unrelated source bodies are not rewritten.
+export function applyCapturedMediaEvidenceSchema(original) {
+  let registry = structuredClone(original);
+  registry.schemas.content_ref.properties.metadata.properties.issuer_evidence =
+    capturedMediaEvidenceSchema(registry.schemas.content_ref.properties.metadata.properties.issuer_evidence);
+  registry.schema_cids.content_ref = machineCid(registry.schemas.content_ref);
+  registry.registry_cid = machineCid(registry.schemas);
+  registry = applyContentGenerationSchema(registry);
+  return registry;
+}
+
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  assert.ok(process.argv.length === 2 || process.argv.length === 3 && process.argv[2] === '--write');
+  const path = 'spec/contracts/actql-protocol-schemas.json';
+  const original = JSON.parse(readFileSync(path, 'utf8'));
+  const next = applyCapturedMediaEvidenceSchema(original);
+  if (process.argv[2] === '--write') writeFileSync(path, JSON.stringify(next, null, 2) + '\n');
+  else assert.deepEqual(original, next, 'Stale captured MIME evidence schema or embedding');
 }

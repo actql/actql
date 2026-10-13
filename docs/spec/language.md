@@ -1014,6 +1014,24 @@ retention, and policy; equal `content_cid` values establish byte identity only.
 SourceView and serialization output contracts may expose `content_cid` as a
 separate field.
 
+<!-- requirement-block: opaque-references.captured-media-report opaque-references.captured-media-value-spelling opaque-references.derived-media-not-report -->
+Connector-captured ContentRefs MUST retain the exact provider-reported MIME
+string in `metadata.issuer_evidence.reported_media_type`. The existing capture
+owner binds that report to the same checked Source request, scope, byte facts
+and issuer evidence before issuing the reference. The observed `media_type`
+uses case-insensitive MIME type/subtype and parameter names; parameter values
+MUST NOT be unconditionally lowercased or Unicode-normalized. MIME metadata
+does not prove that the bytes conform to that file format. Store derivation
+evidence MUST NOT claim a provider report.
+
+<!-- requirement-block: opaque-references.captured-media-report-recovery opaque-references.captured-media-report-refusal opaque-references.captured-media-report-not-authority -->
+Saved capture recovery MUST reproduce the exact original report, its projected
+media binding and complete issuer/Ref preimages, in addition to confirming the
+original Store custody and current authority. Missing, changed or mismatching
+reports MUST be refused without repair, new Source acquisition or relabeling
+prior evidence. A report or matching byte CID alone MUST NOT authorize issuance,
+extend retention, confirm cleanup or permit Model/Effect dispatch.
+
 <!-- requirement-block: opaque-references.reference-equality-must-be-consistent-across-predicates-joins-grouping-distinct -->
 Reference equality MUST be consistent across predicates, joins, grouping,
 distinct, and uniqueness checks, independently of acquisition or in-memory
@@ -10844,7 +10862,7 @@ through the pinned expression contract.
 ../../spec/contracts/actql-aoa.json# sha256:5fd1c3389aea2156a0cc35ae3bf02ea655e9899f21946fe20ff5e02baf44bb89
 ../../spec/contracts/actql-bound-transfer-laws.json# sha256:014682262d00c8435f300731e823e5b267ec66b78f980c765c4fd3772c68c911
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/resource_ref sha256:f88141c15be5ac040af593008fdca7c85214fcb4ba60ea7110160b8fe8ee25ac
-../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:dab36fadb3ae6a4d7c65351d5bec6ddc1ca104601d9e936d2bbd4d69231288d2
+../../spec/contracts/actql-protocol-schemas.json#/schemas/content_ref sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/author_value_contract sha256:7deb73a773cf91e861d73dfc7b7b5331d77ee19605934e0198eb608eac69144d
 ../../spec/contracts/actql-protocol-schemas.json#/schemas/canonical_value_contract sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947
 ../../spec/contracts/actql-production-profile-schemas.json#/schemas/text_time_expression sha256:798f8d7018ef0aa0acefa8bf2366ce0f0fcd42dcddea11bd1da11c310179bebd

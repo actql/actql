@@ -916,6 +916,72 @@
       }
     },
     {
+      "requirement_id": "actql.language/opaque-references.captured-media-report",
+      "statement_sha256": "81fb19fe82ef5f58fb4d9fb066244a98d5890ecff4729e0507c9684c5ab15941",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "opaque-references",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/opaque-references.captured-media-value-spelling",
+      "statement_sha256": "e7e2d58a468753bdd1eb4a004292cb4da76bccbcf54fd30ce66a87c01a8abd41",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "opaque-references",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/opaque-references.derived-media-not-report",
+      "statement_sha256": "3b834a6ac722ca35cba64d40942220d078a0abae61cd0c8f4e828a692497fcab",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "opaque-references",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/opaque-references.captured-media-report-recovery",
+      "statement_sha256": "f486cadddfd033645adb90dea1dfb6ce2ffaa86525511d277e7d6ef42ad3b71b",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "opaque-references",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/opaque-references.captured-media-report-refusal",
+      "statement_sha256": "f5b0919ce2ce63622704839c95bdd32c996b0bfe695697b9a970d990eba0b43d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "opaque-references",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/opaque-references.captured-media-report-not-authority",
+      "statement_sha256": "167a082cc2f7fbbd23b4a10ec83230b447b9443a99742cd6726d40755097569d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "opaque-references",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/opaque-references.reference-equality-must-be-consistent-across-predicates-joins-grouping-distinct",
       "statement_sha256": "c1f902f1c72080442e39682e8755d70685ed10cb940373767adfdc6cad94e7fa",
       "status": "pending",
@@ -9695,7 +9761,7 @@
     },
     {
       "requirement_id": "actql.language/machine-contracts.exact-artifacts",
-      "statement_sha256": "01b0f8c84c707d1071735e1f40810f6d15acd16fa9fae9fc1547df927abc04ae",
+      "statement_sha256": "40bc79149f2f9de666359b8b109365bea9f3c11304cc8fbd1c1d71f65fd64b64",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
@@ -16009,7 +16075,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "1a665822423f30c35abc2ff6b782abf5f20ae17d0c8bec92e60200f06015c915",
+      "statement_sha256": "c12ce8820cb033d730a51cb4752ad0672347491a6a12bac7bd835d2c0ccb1e7b",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
