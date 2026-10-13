@@ -183,11 +183,10 @@ fn original_keyed_version_history(
     plan,
     ledger,
     bootstrap,
-    if suffix {
-      6
-    } else {
-      5
-    },
+    (if suffix { 6 } else { 5 }) +
+    // The same finite census also records byte-only read and handoff tokens.
+    // These two actual roles do not change attempts/holding/byte limits.
+    (if same_ledger_consumer { 2 } else { 0 }),
     if content {
       5
     } else {
