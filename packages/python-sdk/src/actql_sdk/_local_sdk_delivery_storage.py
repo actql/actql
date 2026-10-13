@@ -1,7 +1,7 @@
 """Original Core delivery CAS to physical SQLite; not a Read/Run Owner."""
 from collections.abc import Callable
 import json
-from typing import Any
+from typing import Any, TypeVar
 
 from ._local_core import _Input, _Output, _Workspace, LocalCoreError
 from ._local_storage import ByteWrite, LocalByteStore, LocalStorageError, _NamespaceReader
@@ -11,6 +11,7 @@ _PLAN_BYTES = 1048576
 _PLAN_WORKSPACE = 16 * _PLAN_BYTES + 8192
 _TABLES = ('publication_contract', 'publication_contract', 'publication_contract',
            'delivery_attempt', 'result_read_grant_usage', 'delivery_record_head')
+_T = TypeVar('_T')
 
 
 def _physical_plan(raw: bytes) -> tuple[ByteWrite, ...]:
@@ -86,6 +87,8 @@ class OriginalSDKDeliveryStore:
         self._first_outputs: dict[int, _Output] = {}
         self._first_workspaces: dict[int, _Workspace] = {}
         self._uncertain_first: set[int] = set()
+        self._payload_outputs: dict[int, _Output] = {}
+        self._uncertain_payload: dict[int, int] = {}
         with self._core._lock:
             original._projection._ready()
             self._uncertain_ticket = self._core._next_ticket
@@ -121,6 +124,8 @@ class OriginalSDKDeliveryStore:
             self._nominal()
             self._core._owned_input(request)
             if self._active:
+                return False
+            if not self._close_payload_output(request.ticket):
                 return False
             output = self._first_outputs.get(request.ticket)
             if output is not None:
@@ -161,6 +166,107 @@ class OriginalSDKDeliveryStore:
                     observation._current_call(prepare)
             finally:
                 self._active = False
+
+    def _payload_observation(self, request: _Input, clock: _Input,
+                             action: Callable[[_Output, int], _T]) -> _T:
+        """Use the same Store/physical generation/current frame for byte ports."""
+        with self._core._lock:
+            self._nominal()
+            self._core._owned_input(clock)
+            first = self.original_first_output(request)
+            observation = self._observation
+            if self._active or observation._active or not observation._entered:
+                raise RuntimeError('Original SDK payload Store observation is unavailable')
+            self._active = True
+            try:
+                with observation._serialized_facts():
+                    def inspect() -> _T:
+                        observation._before_lookup()
+                        result = action(first, observation._projection._configuration)
+                        observation._validate_facts()
+                        self._core._owned_output(first, 'publication_commit_export')
+                        self._core._owned_input(clock)
+                        if self._closing:
+                            raise RuntimeError('Original SDK delivery storage is closing')
+                        return result
+                    return observation._current_call(inspect)
+            finally:
+                self._active = False
+
+    def prepare_original_input(self, request: _Input, clock: _Input) -> None:
+        """Check original current/backpressure before advancing a file reader."""
+        self._payload_observation(request, clock, lambda first, configuration:
+            self._core.prepare_publication_sdk_payload_input(first, clock, configuration))
+
+    def _reserve_payload_output(self, request: _Input) -> _Output:
+        if request.ticket in self._payload_outputs or request.ticket in self._uncertain_payload:
+            raise RuntimeError('Original SDK payload cleanup is pending')
+        ticket = self._core._next_ticket
+        self._uncertain_payload[request.ticket] = ticket
+        try:
+            output = self._core.reserve_publication_commit_export(
+                self._observation._projection._publication, cleanup=self._workspace_cleanup)
+        except BaseException:
+            if ticket not in self._core._inputs and ticket not in self._core._released:
+                del self._uncertain_payload[request.ticket]
+            raise
+        # Register immediately, before any current/Store/copy callback can fail.
+        self._payload_outputs[request.ticket] = output
+        del self._uncertain_payload[request.ticket]
+        return output
+
+    def produce_original_chunk(self, request: _Input, chunk: _Input, clock: _Input,
+                               *, eof: bool) -> _Output:
+        """Offer one bounded chunk; no sink confirmation or Store ACK occurs."""
+        with self._core._lock:
+            self._core._owned_input(chunk)
+            if type(eof) is not bool or chunk.length > 65536:
+                raise ValueError('Invalid original SDK payload chunk')
+            def produce(first: _Output, configuration: int) -> _Output:
+                output = self._reserve_payload_output(request)
+                self._core.produce_publication_sdk_payload_chunk(
+                    output, first, chunk, clock, configuration, eof=eof)
+                return output
+            return self._payload_observation(request, clock, produce)
+
+    def confirm_original_chunk(self, request: _Input, output: _Output) -> int:
+        """Record acceptance of the exact offered chunk, never authorize a read."""
+        with self._core._lock:
+            self._nominal()
+            self._core._owned_input(request)
+            if self._active or self._payload_outputs.get(request.ticket) is not output:
+                raise ValueError('Foreign or active original SDK payload output')
+            return self._core.confirm_publication_sdk_payload_chunk(output)
+
+    def produce_original_receipt(self, request: _Input, clock: _Input) -> _Output:
+        """Project the original sink receipt; its terminal CAS remains separate."""
+        def produce(first: _Output, configuration: int) -> _Output:
+            output = self._reserve_payload_output(request)
+            self._core.produce_publication_sdk_payload_receipt(output, first, clock,
+                                                              configuration)
+            return output
+        return self._payload_observation(request, clock, produce)
+
+    def _close_payload_output(self, ticket: int) -> bool:
+        if ticket in self._uncertain_payload:
+            if not self._core._closed:
+                return False
+            del self._uncertain_payload[ticket]
+        output = self._payload_outputs.get(ticket)
+        if output is not None:
+            if not self._core.close_publication_commit_export(output):
+                return False
+            del self._payload_outputs[ticket]
+        return True
+
+    def close_original_payload_output(self, request: _Input) -> bool:
+        """Return the same child loans before first preparation/workspace close."""
+        with self._core._lock:
+            self._nominal()
+            self._core._owned_input(request)
+            if self._active:
+                return False
+            return self._close_payload_output(request.ticket)
 
     def persist(self, request: _Input, original_run: int) -> tuple[int, ...]:
         with self._core._lock:
@@ -262,6 +368,9 @@ class OriginalSDKDeliveryStore:
                 return False
             if self._uncertain_first and not self._core._closed:
                 return False
+            for ticket in tuple(set(self._payload_outputs) | set(self._uncertain_payload)):
+                if not self._close_payload_output(ticket):
+                    return False
             for ticket, output in tuple(self._first_outputs.items())[::-1]:
                 if not self._core.close_publication_commit_export(output):
                     return False
