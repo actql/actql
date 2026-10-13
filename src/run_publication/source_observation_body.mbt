@@ -48,6 +48,13 @@ pub fn seal_completed_file_listing_observation(
   if row_count < 0 || row_count != rows.length() {
     return Err(RunEvidenceReferenceMismatch("file_listing_reports.row_count"))
   }
+  // Every report requires at least one node. This is a necessary preflight
+  // against the existing 256-node writer bound, not another count ceiling or
+  // a physical grant. Refuse before an unbounded projection walk; the writer
+  // still enforces the complete document's exact byte/node/depth limits.
+  if rows.length() > 256 {
+    return Err(RunEvidenceEncoding)
+  }
   for index, row in rows {
     if row.row_ordinal != index || !valid_contract_cid(row.resource_ref_cid) {
       return Err(RunEvidenceReferenceMismatch("file_listing_reports.row"))
@@ -129,18 +136,9 @@ fn seal_completed_source_observation_owned(
         @encode.number_value(writer, row.row_ordinal.to_double())
         @encode.key(writer, "resource_ref_cid")
         @encode.string_value(writer, row.resource_ref_cid)
-        for
-          (key, value) in [
-            ("version", row.version),
-            ("reported_media_type", row.reported_media_type),
-            ("media_type", row.media_type),
-          ] {
-          @encode.key(writer, key)
-          match value {
-            Some(value) => @encode.string_value(writer, value)
-            None => @encode.null_value(writer)
-          }
-        }
+        emit_source_listing_nullable(writer, "version", row.version)
+        emit_source_listing_nullable(writer, "reported_media_type", row.reported_media_type)
+        emit_source_listing_nullable(writer, "media_type", row.media_type)
         @encode.end_object(writer)
       }
       @encode.end_array(writer)
@@ -152,4 +150,19 @@ fn seal_completed_source_observation_owned(
     _ => return Err(RunEvidenceEncoding)
   }
   seal_run_evidence_value("source_evidence", body, 16384, 256, 16)
+}
+
+///|
+// Borrow each nullable scalar directly instead of allocating a three-entry
+// tuple array for every report. This encoder has no retention/issuer authority.
+fn emit_source_listing_nullable(
+  writer : @encode.Writer,
+  name : String,
+  value : String?,
+) -> Unit raise @encode.EncodeFailure {
+  @encode.key(writer, name)
+  match value {
+    Some(value) => @encode.string_value(writer, value)
+    None => @encode.null_value(writer)
+  }
 }
