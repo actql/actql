@@ -176,6 +176,8 @@ pub fn model_physical_observation_facts(ModelPhysicalObservation) -> (Int, Strin
 
 pub fn model_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, () -> Result[ModelResponse, ModelProviderFailure], evidence? : ModelPhysicalRequestEvidence, attachments? : Array[ModelContentAdmission]) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
+pub fn model_physical_saved_native_response(ModelPhysicalChatResponse, NativeDecisionRequest, AdmittedModelProvider, @check_environment.DecisionProbabilityProfile) -> Result[ModelPhysicalCallPoll, ModelExecutionIssue]
+
 pub fn model_provider_synchronous_invoke(ModelProvider) -> ((ModelRequest) -> Result[ModelResponse, ModelProviderFailure])?
 
 pub fn model_raw_capture_save_binding(ModelRawCaptureSave) -> @run_publication.BoundModelRawResponse
@@ -554,6 +556,7 @@ pub(all) enum ModelPhysicalCallPoll {
   PhysicalResponse(ModelPhysicalResponse)
   PhysicalEncodedResponse(ModelPhysicalEncodedResponse)
   PhysicalChatResponse(ModelPhysicalChatResponse)
+  PhysicalNativeResponse(ModelPhysicalNativeResponse)
   PhysicalRejected(ModelProviderFailure, ModelPhysicalUsage)
   PhysicalUnknown(ModelPhysicalUsage)
 }
@@ -579,6 +582,10 @@ pub enum ModelPhysicalEvent {
 }
 
 type ModelPhysicalInvocation
+
+pub struct ModelPhysicalNativeResponse {
+  // private fields
+}
 
 pub struct ModelPhysicalObservation {
   slot : Int

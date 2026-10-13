@@ -103,7 +103,7 @@ test "positional ORDER window cannot read private anonymous or ambiguous values"
     (source, expression_failure) in [
       (head + "x) |> LIMIT 1) ORDER BY a,b", false),
       (
-        "SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-x |> AS before |> AS current |> ORDER BY ROW_NUMBER() OVER (ORDER BY before.kept) |> LIMIT 1) ORDER BY a,b",
+        "SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-x |> AS before |> AS `current` |> ORDER BY ROW_NUMBER() OVER (ORDER BY before.kept) |> LIMIT 1) ORDER BY a,b",
         false,
       ),
       (

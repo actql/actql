@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createTestRuntime} from './runtime.mjs';
+import {createTestRuntime, runtimeProfile} from './runtime.mjs';
+
+test('local harness explicitly disables optional external Request.cf metadata', () => {
+  assert.equal(runtimeProfile.cf, false);
+  assert.ok(Object.isFrozen(runtimeProfile));
+});
 
 test('real workerd has Node compatibility disabled and rejects outbound traffic', async () => {
   let attempts = 0;

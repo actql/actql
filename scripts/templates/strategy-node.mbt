@@ -2626,7 +2626,8 @@ pub fn strategy_host_finished(
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(host),
   )
-  for task in 1..<strategy_host_count(host) {
+  let first = @strategy.captured_compute_first_task(run)
+  for task in first..<strategy_host_count(host) {
     if !@strategy.captured_task_completed(run, task) {
       return false
     }
@@ -2680,7 +2681,8 @@ pub fn strategy_host_close_outputs(
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(host),
   )
-  for task = strategy_host_count(host) - 1; task > 0; task = task - 1 {
+  let first = @strategy.captured_compute_first_task(run)
+  for task = strategy_host_count(host) - 1; task >= first; task = task - 1 {
     @strategy.close_captured_task_output(run, task)
   }
 }

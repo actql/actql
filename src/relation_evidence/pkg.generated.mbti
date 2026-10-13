@@ -444,6 +444,8 @@ pub fn sequence_keys(@relation_typing.CheckedSequence, TransferLimits) -> Result
 
 pub fn singleton_key(KeyedRelation) -> KeySet
 
+pub fn source_view_keys(@check_environment.SourceViewCarrier, TransferLimits) -> Result[KeySetTransfer?, Issue]
+
 pub fn text_rank_bm25(TextRankOptions) -> (Double, Double)
 
 pub fn text_rank_input(CheckedTextRank, TextRankSide) -> @carrier_contract.Carrier

@@ -23,7 +23,7 @@ class ReaderFactsTests(unittest.TestCase):
     file = file_fixture.LocalFileReaderTests.file
     consume = file_fixture.LocalFileReaderTests.consume
 
-    def bridge(self, root, reader):
+    def bridge(self, root, reader, *, result=2, binding_index=7):
         core, parent, publisher, projection, calls, state, _, _, _ = core_fixture.OriginalCommitStoreCallerTests.bridge(self)
         record = _Output(core._identity, 10, 71, 65536, 'payload_record')
         core._loans[10] = record
@@ -62,11 +62,11 @@ class ReaderFactsTests(unittest.TestCase):
                 return state['snapshot']
             if family == 'publication_commit_export' and name == 'validate_payload_binding':
                 calls.append((family, name, args))
-                self.assertEqual(args, (23, 71, 31, 2, 7))
+                self.assertEqual(args, (23, 71, 31, result, binding_index))
                 return state['binding']
             return original_call(family, name, *args)
         core._call = call
-        facts = OriginalReaderFacts(projection, record, root, reader, 2, 7,
+        facts = OriginalReaderFacts(projection, record, root, reader, result, binding_index,
                                     'sha256:' + '1' * 64, 'sha256:' + '3' * 64,
                                     cleanup=lambda: state['meta_cleanup'], stopped=lambda _: True)
         return core, record, publisher, projection, facts, calls, state, wires

@@ -136,7 +136,8 @@ def installed_local_components() -> LocalComponents:
         raise LocalInstallationError('Python Local is not available for this platform')
     try:
         version = metadata.version('actql-sdk')
-        if metadata.version('actql-local-runtime') != version:
+        if (metadata.version('actql') != version
+                or metadata.version('actql-local-runtime') != version):
             raise LocalInstallationError('Installed Local release cohort is incompatible')
         if metadata.version('wasmtime') != WASMTIME_VERSION:
             raise LocalInstallationError('Installed Local Wasmtime dependency is incompatible')
@@ -145,7 +146,7 @@ def installed_local_components() -> LocalComponents:
             raise LocalInstallationError('Python Local requires an installed runtime wheel')
         return inspect_local_components(root, package_version=version)
     except (metadata.PackageNotFoundError, ModuleNotFoundError) as original:
-        raise LocalInstallationError('Python Local requires the actql-sdk[local] installation') from original
+        raise LocalInstallationError('Python Local requires the standard actql installation') from original
 
 
 def load_local_module(components: LocalComponents) -> bytes:

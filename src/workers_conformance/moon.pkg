@@ -46,4 +46,6 @@ import {
   "actql/actql/connectors/reference_compute" @numeric_compute,
   "actql/actql/connectors/reference_compute/driver" @numeric_driver,
   "actql/actql/connectors/local/driver" @local_driver,
+  "actql/actql/execution_authorization" @authorization,
+  "moonbitlang/core/debug",
 }
