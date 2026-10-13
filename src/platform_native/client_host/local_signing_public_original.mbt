@@ -1,4 +1,27 @@
 ///|
+// Pure metadata encoding for the same private installation preimage. This
+// function cannot authenticate the packet, capture a file or adopt a key.
+fn local_signing_public_installation_body(
+  adoption : String,
+  scope : String,
+  configuration : String,
+  projection : Bytes,
+  purpose : @credential.LocalSigningPurpose,
+  public_key : @credential.LocalSigningPublicKey,
+) -> Result[Bytes, NativeLocalAdoptionIssue] {
+  local_adoption_record([
+    ("adoption_cid", adoption),
+    ("authority_scope_cid", scope),
+    ("installation_configuration_cid", configuration),
+    ("projection", @base64.encode(projection)),
+    ("public_key_cid", public_key.cid()),
+    ("public_key_original", public_key.json()),
+    ("purpose", local_signing_installation_purpose(purpose)),
+    ("version", "actql-native-local-installation-original/0.1"),
+  ])
+}
+
+///|
 // Private payload metadata only. The enclosing installation reader authenticates
 // the same original HMAC before these fields can become key custody.
 priv struct LocalSigningInstallationFields {

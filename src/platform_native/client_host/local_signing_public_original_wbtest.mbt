@@ -64,3 +64,43 @@ test "bounded signing metadata does not accept an oversized public original" {
   )
   assert_true(local_signing_installation_fields(@utf8.encode(wire)) is Err(CustodyLost))
 }
+
+///|
+test "signing public installation encoder matches the independent full preimage" {
+  let public_key = @credential.prepare_local_signing_public_key(
+    Bytes::from_array(Array::makei(32, i => i.to_byte())),
+  ).unwrap()
+  let body = local_signing_public_installation_body(
+    "sha256:" + "1".repeat(64),
+    "sha256:" + "2".repeat(64),
+    "sha256:" + "3".repeat(64),
+    Bytes::make(2, 0),
+    @credential.HostAttestation,
+    public_key,
+  ).unwrap()
+  assert_eq(body, @utf8.encode(signing_public_original_wire))
+}
+
+///|
+test "signing public installation stays inside the original payload and packet bounds" {
+  let public_key = @credential.prepare_local_signing_public_key(
+    Bytes::from_array(Array::makei(32, i => i.to_byte())),
+  ).unwrap()
+  let payload = local_signing_public_installation_body(
+    "sha256:" + "1".repeat(64),
+    "sha256:" + "2".repeat(64),
+    "sha256:" + "3".repeat(64),
+    Bytes::make(234, 0),
+    @credential.HostAttestation,
+    public_key,
+  ).unwrap()
+  // Independent compact JSON/base64 sizes for the maximum original export.
+  // The zero tag is a framing fixture, never a valid Host HMAC or permission.
+  assert_eq(payload.length(), 965)
+  let packet_shape = local_adoption_record([
+    ("payload", @base64.encode(payload)), ("tag", "0".repeat(64)),
+  ]).unwrap()
+  assert_eq(packet_shape.length(), 1375)
+  assert_true(payload.length() < 2048)
+  assert_true(packet_shape.length() < 8192)
+}

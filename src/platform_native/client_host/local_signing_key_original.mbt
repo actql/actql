@@ -63,16 +63,14 @@ fn local_signing_installation_payload(
   let (_, purpose, _, _, _, _, _, _) = @credential_resource.native_local_signing_key_selection_projection(
     account.selection,
   )
-  local_adoption_record([
-    ("adoption_cid", account.host.adoption_cid),
-    ("authority_scope_cid", account.scope),
-    ("installation_configuration_cid", account.file.content_cid),
-    ("projection", @base64.encode(projection)),
-    ("public_key_cid", public_key.cid()),
-    ("public_key_original", public_key.json()),
-    ("purpose", local_signing_installation_purpose(purpose)),
-    ("version", "actql-native-local-installation-original/0.1"),
-  ])
+  local_signing_public_installation_body(
+    account.host.adoption_cid,
+    account.scope,
+    account.file.content_cid,
+    projection,
+    purpose,
+    public_key,
+  )
 }
 
 ///|
