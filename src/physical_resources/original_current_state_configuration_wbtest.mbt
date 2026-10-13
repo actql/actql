@@ -32,7 +32,7 @@ test "current configuration DATA guard compares every independent limit without 
       check_original_current_state_document_configuration(document, wrong, None)
       is Err(InvalidRecord),
     )
-    assert_eq(document.state, original)
+    assert_true(document.state == original)
     assert_true(document.source is Some(_))
   }
   assert_true(
@@ -41,7 +41,7 @@ test "current configuration DATA guard compares every independent limit without 
     )
     is Err(InvalidRecord),
   )
-  assert_eq(document.state, original)
+  assert_true(document.state == original)
   retire_original_current_state_document(document)
 }
 
@@ -82,7 +82,7 @@ test "current configuration DATA guard does not refill unknown or consumed-overr
       is Err(InvalidRecord),
     )
   }
-  assert_eq(document.state, original)
+  assert_true(document.state == original)
   assert_eq(document.state.quantities.uncertain, expected)
   assert_eq(document.state.quantities.consumed.tokens, 23L)
   assert_eq(document.state.next_capacity_serial, Some(-3))
@@ -101,6 +101,6 @@ test "current configuration DATA guard rejects retired document without creating
     )
     is Err(Terminal),
   )
-  assert_eq(document.state, original)
+  assert_true(document.state == original)
   assert_true(document.source is None)
 }
