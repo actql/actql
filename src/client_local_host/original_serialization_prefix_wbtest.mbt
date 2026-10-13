@@ -126,7 +126,17 @@ fn original_prefix_execution_fixture(
     ).unwrap()
   } else {
     @publication_host.issue_prepared_client_serialization_plan_component(
-      prepared, 0, 1, policy, 2, 128, 10000, sequence, 1000000, 100000, 100,
+      prepared,
+      0,
+      1,
+      policy,
+      serialization_bounds.0,
+      serialization_bounds.1,
+      10000,
+      sequence,
+      1000000,
+      100000,
+      100,
     ).unwrap()
   }
   let occurrence = @publication_host.prepared_client_composed_infer_occurrence(
