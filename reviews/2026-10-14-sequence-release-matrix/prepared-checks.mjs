@@ -14,7 +14,7 @@ const runner = 'import {runFocusedTests} from "./scripts/test-execution.mjs";' +
 process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false,
   timeoutSeconds: 60, graceSeconds: 5, steps: [
     {name: 'Closed Sequence inventory and normal release delivery', command: 'node',
-      args: ['--input-type=module', '-e', runner, '--test',
+      args: ['--input-type=module', '-e', runner, '--', '--test',
         'scripts/release-sequence-query-cases.test.mjs',
         'scripts/release-sourcefree-query-cases.test.mjs']},
     {name: 'Whitespace', command: 'git', args: ['diff', '--check']},
