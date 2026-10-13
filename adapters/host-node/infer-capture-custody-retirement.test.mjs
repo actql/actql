@@ -5,14 +5,15 @@ const {openNodeInferCaptureCustody}=await import(process.env.ACTQL_CAPTURE_CUSTO
 
 // Actual Node custody/holding code with explicit Core, Model and Store port
 // doubles. This does not prove actual Store ACK, heap funding or public INFER.
-function fixture() {
+function fixture({stoppedRaw = false} = {}) {
   const capture={}, output={}, exporter={};
   const evidence={wire:'{"raw":"é\\r\\n"}'};
   const settlement={}, entry={ordinal:0,attemptCid:'original-attempt'};
   const bundleWire='{"capture":"original é\\r\\n"}';
   const stored=new Map();
-  const counters={stop:0,cleanup:0,acquire:0,ack:0,commit:0};
-  const flags={stopped:true,exportCleanup:true,modelCleanup:true};
+  const counters={stop:0,cleanup:0,acquire:0,ack:0,commit:0,usage:0,proof:0};
+  const flags={stopped:true,exportCleanup:true,modelCleanup:true,
+    usageRetired:false,usageRefusal:false};
   let cleanupCallback, beforeCommit;
   const ok=_0=>({$tag:1,_0});
   const moon={
@@ -38,13 +39,26 @@ function fixture() {
     acquireOutput(){counters.acquire++;return output;},
     acquireCapture:()=>capture,
     settlementSlot:value=>{assert.equal(value,settlement);return 0;},
-    attemptEvidence:()=>({}),
+    attemptEvidence:()=>{
+      counters.proof++;
+      if(stoppedRaw)assert.equal(flags.usageRetired,true,'original reader must retire before proof');
+      return {};
+    },
+    advanceStoppedAttemptUsage(slot,quantum){
+      assert.equal(slot,0);assert.equal(quantum,1);
+      assert.equal(counters.cleanup,0,'parent cleanup cannot erase unread observations');
+      counters.usage++;
+      if(flags.usageRefusal)throw Error('FixtureOriginalRawCurrentLost');
+      flags.usageRetired=counters.usage>=3;
+      return Object.freeze({complete:flags.usageRetired,work:BigInt(counters.usage),
+        issue:flags.usageRetired ? Object.freeze({original:'codec-stop'}) : undefined});
+    },
     issuedAttachmentAdmission:()=>undefined,
     issuedSlotCapture:()=>evidence,
     invocationEvidence:()=>evidence,
     acknowledgeSettlement(){counters.ack++;},
     installSettlementCleanup(value){cleanupCallback=value;},
-    stoppedAttemptCount:()=>0,
+    stoppedAttemptCount:()=>stoppedRaw ? 1 : 0,
   };
   moon.clientProgramInferAttemptLeaf=()=>evidence;
   const control={
@@ -245,4 +259,45 @@ test('terminal publication reservation precedes capture allocation and refusal c
   assert.equal(f.owner.retainCompleted(),true);assert.equal(reserves,2);
   await f.owner.persist();
   assert.equal(await f.owner.custody.cleanup(),true);
+});
+
+test('stopped raw usage drains original Common observation before immutable attempt persistence',async()=>{
+  const f=fixture({stoppedRaw:true});
+  await f.owner.persistStoppedAttempts();
+  assert.equal(f.counters.usage,3);
+  assert.equal(f.counters.proof,1);
+  assert.equal(f.counters.cleanup,0);
+  assert.equal(f.counters.commit,4);
+  const counts={...f.counters};
+  await f.owner.persistStoppedAttempts();
+  assert.deepEqual(f.counters,counts,'same persisted attempt is not reread or rewritten');
+  // The Common issue above is opaque diagnostic data. Node does not turn it
+  // into response success or create another Entry/physical operation.
+  assert.equal(await f.owner.custody.cleanup(),true);
+  assert.equal(f.counters.usage,3);
+  assert.equal(f.counters.proof,1);
+});
+
+test('stopped raw usage current refusal retains same custody and delays immutable evidence',async()=>{
+  const f=fixture({stoppedRaw:true});f.flags.usageRefusal=true;
+  await assert.rejects(f.owner.persistStoppedAttempts(),/FixtureOriginalRawCurrentLost/);
+  assert.equal(f.counters.proof,0);
+  assert.equal(f.counters.commit,0);
+  assert.equal(f.counters.cleanup,0);
+  assert.equal(f.owner.custody.cleanupPending(),true);
+  f.flags.usageRefusal=false;
+  await f.owner.persistStoppedAttempts();
+  assert.equal(f.counters.proof,1);
+  assert.equal(f.counters.commit,4);
+  assert.equal(await f.owner.custody.cleanup(),true);
+});
+
+test('stopped raw usage missing Common observation port refuses before proof and cleanup',async()=>{
+  const f=fixture({stoppedRaw:true});
+  delete f.operation.advanceStoppedAttemptUsage;
+  await assert.rejects(f.owner.persistStoppedAttempts(),/InstalledInferRawUsageUnavailable/);
+  assert.equal(f.counters.proof,0);
+  assert.equal(f.counters.commit,0);
+  assert.equal(f.counters.cleanup,0);
+  assert.equal(f.owner.custody.cleanupPending(),true);
 });

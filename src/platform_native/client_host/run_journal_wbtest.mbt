@@ -1,4 +1,11 @@
 ///|
+// Test-only phase/variant metadata. No original values or error payloads escape.
+struct JournalTestFixtureIssue {
+  phase : String
+  kind : String
+}
+
+///|
 fn journal_test_run(
   request_id : String,
   run_id : String,
@@ -9,14 +16,7 @@ fn journal_test_run(
   @host.ClientCompiledRun,
   @publication.PublicationContract,
 ) {
-  let prepared = @host.prepare_effect_free_client_program(
-    preparation_values_document(),
-    Json,
-    preparation_environment(),
-    None,
-    @host.client_standard_program_preparation_limits(),
-  ).unwrap()
-  journal_test_prepared_run(prepared, request_id, run_id, scope~)
+  journal_test_run_result(request_id, run_id, scope~).unwrap()
 }
 
 ///|
@@ -31,50 +31,224 @@ fn journal_test_prepared_run(
   @host.ClientCompiledRun,
   @publication.PublicationContract,
 ) {
-  let manifests = @host.admit_client_compilation_manifests(
-    @environment.compiler_grammar_manifest_wire(),
-    @environment.compiler_barrier_contract_manifest_wire(),
-    10000,
-    1000,
-    20,
-  ).unwrap()
-  let compilation = @host.issue_prepared_client_values_compilation(
-    prepared,
-    manifests,
-    {
-      max_steps: 10,
-      max_rows: 10,
-      max_cells: 10,
-      max_bindings: 10,
-      max_name_bytes: 1000,
-      expressions: {
-        max_nodes: 100,
-        max_work: 1000,
-        max_depth: 10,
-        max_literal_nodes: 100,
-        max_literal_text_bytes: 1000,
+  journal_test_prepared_run_result(prepared, request_id, run_id, scope~).unwrap()
+}
+
+///|
+fn[T] journal_test_fixture_require(
+  value : Result[T, JournalTestFixtureIssue],
+) -> T raise {
+  match value {
+    Ok(original) => original
+    Err(issue) => fail("fixture phase=" + issue.phase + " issue=" + issue.kind)
+  }
+}
+
+///|
+fn journal_test_run_result(
+  request_id : String,
+  run_id : String,
+  scope? : String = "sha256:" + "a".repeat(64),
+) -> Result[
+  (
+    @host.ClientRequestIdentity,
+    @host.PreparedClientProgram,
+    @host.ClientCompiledRun,
+    @publication.PublicationContract,
+  ),
+  JournalTestFixtureIssue,
+] {
+  let environment = match preparation_environment_original() {
+    Some(value) => value
+    None => return Err({ phase: "prepare_environment", kind: "Unavailable", })
+  }
+  let prepared = match
+    @host.prepare_effect_free_client_program(
+      preparation_values_document(),
+      Json,
+      environment,
+      None,
+      @host.client_standard_program_preparation_limits(),
+    ) {
+    Ok(value) => value
+    Err(issue) =>
+      return Err({
+        phase: "prepare",
+        kind: journal_test_preparation_issue(issue),
+      })
+  }
+  journal_test_prepared_run_result(prepared, request_id, run_id, scope~)
+}
+
+///|
+fn journal_test_prepared_run_result(
+  prepared : @host.PreparedClientProgram,
+  request_id : String,
+  run_id : String,
+  scope? : String = "sha256:" + "a".repeat(64),
+) -> Result[
+  (
+    @host.ClientRequestIdentity,
+    @host.PreparedClientProgram,
+    @host.ClientCompiledRun,
+    @publication.PublicationContract,
+  ),
+  JournalTestFixtureIssue,
+] {
+  let manifests = match
+    @host.admit_client_compilation_manifests(
+      @environment.compiler_grammar_manifest_wire(),
+      @environment.compiler_barrier_contract_manifest_wire(),
+      10000,
+      1000,
+      20,
+    ) {
+    Ok(value) => value
+    Err(issue) =>
+      return Err({
+        phase: "manifest",
+        kind: journal_test_manifest_issue(issue),
+      })
+  }
+  let compilation = match
+    @host.issue_prepared_client_values_compilation(
+      prepared,
+      manifests,
+      {
+        max_steps: 10,
+        max_rows: 10,
+        max_cells: 10,
+        max_bindings: 10,
+        max_name_bytes: 1000,
+        expressions: {
+          max_nodes: 100,
+          max_work: 1000,
+          max_depth: 10,
+          max_literal_nodes: 100,
+          max_literal_text_bytes: 1000,
+        },
       },
-    },
-    32,
-    64,
-    100000,
-    10000,
-    100,
-  ).unwrap()
-  let compiled = @host.issue_client_values_compiled_run(
-    prepared,
-    compilation,
-    scope,
-    "sha256:" + "b".repeat(64),
-    "2099-01-01T00:00:00.000Z",
-  ).unwrap()
-  let definition = @host.issue_client_compiled_run_definition(
-    compiled, "local-test", run_id, "2026-10-10T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
-  ).unwrap()
-  let request = @host.prepare_source_free_client_request_identity(
-    prepared, scope, request_id,
-  ).unwrap()
-  (request, prepared, compiled, definition)
+      32,
+      64,
+      100000,
+      10000,
+      100,
+    ) {
+    Ok(value) => value
+    Err(issue) =>
+      return Err({
+        phase: "compilation",
+        kind: journal_test_compilation_issue(issue),
+      })
+  }
+  let compiled = match
+    @host.issue_client_values_compiled_run(
+      prepared,
+      compilation,
+      scope,
+      "sha256:" + "b".repeat(64),
+      "2099-01-01T00:00:00.000Z",
+    ) {
+    Ok(value) => value
+    Err(issue) =>
+      return Err({
+        phase: "compiled_run",
+        kind: journal_test_compiled_issue(issue),
+      })
+  }
+  let definition = match
+    @host.issue_client_compiled_run_definition(
+      compiled, "local-test", run_id, "2026-10-10T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
+    ) {
+    Ok(value) => value
+    Err(issue) =>
+      return Err({
+        phase: "definition",
+        kind: journal_test_compiled_issue(issue),
+      })
+  }
+  let request = match
+    @host.prepare_source_free_client_request_identity(
+      prepared, scope, request_id,
+    ) {
+    Ok(value) => value
+    Err(issue) =>
+      return Err({ phase: "request", kind: journal_test_request_issue(issue), })
+  }
+  Ok((request, prepared, compiled, definition))
+}
+
+///|
+fn journal_test_preparation_issue(
+  issue : @host.ClientProgramPreparationIssue,
+) -> String {
+  match issue {
+    Syntax(_) => "Syntax"
+    EffectNotSupported(_) => "EffectNotSupported"
+    NeedsInputs(_) => "NeedsInputs"
+    Check(_) => "Check"
+    MissingCheckedStage(_) => "MissingCheckedStage"
+    MissingStageIdentity(_) => "MissingStageIdentity"
+    Lowering(_) => "Lowering"
+    Binding(_) => "Binding"
+    Graph(_) => "Graph"
+  }
+}
+
+///|
+fn journal_test_manifest_issue(
+  issue : @host.ClientCompilationManifestIssue,
+) -> String {
+  match issue {
+    InvalidBudget => "InvalidBudget"
+    InvalidGrammarManifest => "InvalidGrammarManifest"
+    InvalidBarrierManifest => "InvalidBarrierManifest"
+    GrammarManifestMismatch => "GrammarManifestMismatch"
+    BarrierManifestMismatch => "BarrierManifestMismatch"
+  }
+}
+
+///|
+fn journal_test_compilation_issue(
+  issue : @host.ClientValuesCompilationIssue,
+) -> String {
+  match issue {
+    Plan(_) => "Plan"
+    Material(_) => "Material"
+    AoA(_) => "AoA"
+    Fragment(_) => "Fragment"
+    Template(_) => "Template"
+    CompiledPlan(_) => "CompiledPlan"
+  }
+}
+
+///|
+fn journal_test_compiled_issue(issue : @host.ClientCompiledRunIssue) -> String {
+  match issue {
+    ForeignOwner => "ForeignOwner"
+    MissingResultPolicy => "MissingResultPolicy"
+    InvalidResultPolicy => "InvalidResultPolicy"
+    Policy(_) => "Policy"
+    Admission(_) => "Admission"
+    Contract(_) => "Contract"
+    ValuesBinding(_) => "ValuesBinding"
+    TaskBinding(_) => "TaskBinding"
+    EffectBinding(_) => "EffectBinding"
+  }
+}
+
+///|
+fn journal_test_request_issue(
+  issue : @host.ClientRequestIdentityIssue,
+) -> String {
+  match issue {
+    InvalidAuthorityScope => "InvalidAuthorityScope"
+    InvalidRequestId => "InvalidRequestId"
+    InvalidInputIntent => "InvalidInputIntent"
+    InvalidCheckedIdentity => "InvalidCheckedIdentity"
+    IdentityMismatch => "IdentityMismatch"
+    Encoding => "Encoding"
+  }
 }
 
 ///|

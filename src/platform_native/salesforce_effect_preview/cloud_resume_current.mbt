@@ -59,7 +59,12 @@ fn cloud_resume_integer(
 
 ///|
 fn cloud_resume_query_label(value : String) -> Bool {
-  if value.is_empty() || @utf8.encode(value).length() > 256 {
+  // Every valid UTF16 unit needs at least one UTF8 byte. Reject oversized
+  // labels before allocating their encoded validation copy; the byte check
+  // still governs multibyte labels within this existing ceiling.
+  if value.is_empty() ||
+    value.length() > 256 ||
+    @utf8.encode(value).length() > 256 {
     return false
   }
   for character in value {

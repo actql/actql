@@ -4,6 +4,7 @@ package "actql/actql/vector_typing"
 import {
   "actql/actql/calendar_typing",
   "actql/actql/carrier_contract",
+  "actql/actql/check_environment",
   "actql/actql/decode_core",
   "actql/actql/parameter_binding",
   "actql/actql/relation_evidence",
@@ -50,7 +51,7 @@ pub fn declare_ranking_score(@decode_core.Cursor, @carrier_contract.Carrier, @re
 
 pub fn declare_ranking_scores(@decode_core.Cursor, @carrier_contract.Carrier, @vector_checking.Limits) -> Result[@relation_evidence.RankingTransfer, @vector_checking.Issue]
 
-pub fn declared_score_contract(@relation_evidence.DeclaredScore) -> @relation_evidence.ScoreContract
+pub fn declared_score_contract(@relation_evidence.DeclaredScore) -> @vector_checking.ScoreContract
 
 pub fn declared_score_field(@relation_evidence.DeclaredScore) -> @relation_schema.FieldName
 
@@ -232,7 +233,7 @@ pub fn ranking_score(@relation_evidence.RankingOptions) -> @relation_schema.Fiel
 
 pub fn ranking_score_at(@relation_evidence.RankingInput, @relation_schema.FieldName) -> @relation_evidence.DeclaredScore?
 
-pub fn ranking_score_contract(@relation_evidence.RankingOptions) -> @relation_evidence.ScoreContract?
+pub fn ranking_score_contract(@relation_evidence.RankingOptions) -> @vector_checking.ScoreContract?
 
 pub fn ranking_score_declaration(@relation_evidence.RankingInput) -> @relation_evidence.DeclaredScore?
 
@@ -266,15 +267,17 @@ pub fn read_ranking_options(@decode_core.Cursor, @vector_checking.Limits) -> Res
 
 pub fn read_text_rank_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[@relation_evidence.TextRankOptions, @vector_checking.Issue]
 
-pub fn score_contract_domain(@relation_evidence.ScoreContract) -> String
+pub fn score_contract_domain(@vector_checking.ScoreContract) -> String
 
-pub fn score_contract_maximum(@relation_evidence.ScoreContract) -> Double
+pub fn score_contract_maximum(@vector_checking.ScoreContract) -> Double
 
-pub fn score_contract_minimum(@relation_evidence.ScoreContract) -> Double
+pub fn score_contract_minimum(@vector_checking.ScoreContract) -> Double
 
-pub fn score_contract_normalization(@relation_evidence.ScoreContract) -> String
+pub fn score_contract_normalization(@vector_checking.ScoreContract) -> String
 
 pub fn source(CheckedVector) -> @decode_core.Cursor
+
+pub fn source_view_scores(@check_environment.SourceViewCarrier, @vector_checking.Limits) -> Result[@relation_evidence.RankingTransfer?, @vector_checking.Issue]
 
 pub fn text_rank_bm25(@relation_evidence.TextRankOptions) -> (Double, Double)
 
@@ -413,7 +416,7 @@ pub using @relation_evidence {type RankingShape}
 
 pub using @relation_evidence {type RankingTransfer}
 
-pub using @relation_evidence {type ScoreContract}
+pub using @vector_checking {type ScoreContract}
 
 pub using @relation_evidence {type TextRankObligation}
 

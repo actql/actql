@@ -783,6 +783,8 @@ pub fn preparation_input_keys(Prepared, Int) -> @relation_evidence.KeySet?
 
 pub fn preparation_input_projection(Prepared, Int) -> PreparedProjection?
 
+pub fn preparation_input_ranking(Prepared, Int) -> @relation_evidence.RankingInput?
+
 pub fn preparation_input_schema(Prepared, Int) -> @relation_schema.Schema?
 
 pub fn preparation_output_target(Prepared) -> @pipeline_typing.Target?

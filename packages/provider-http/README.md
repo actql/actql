@@ -1,7 +1,26 @@
-# Private independent HTTP provider preparation
+# Optional independent HTTP Host installer (development)
 
-This unfinished optional package has no public exports, installation capability
-or permission to transmit. It has no AI SDK or Cloudflare dependency.
+This unfinished development package exports only
+`createInstalledHttpChatRegistration`, the existing Host registration assembler.
+Internal transport/send/raw-receipt functions are not exported. The package
+remains private; its entry is not an installed profile, numerical funding or
+permission to transmit. It has no AI SDK or Cloudflare dependency.
+
+```js
+import {createInstalledHttpChatRegistration} from '@actql/provider-http';
+// Host integration skeleton, not a runnable live-provider example.
+// trustedHostOptions retains the installed Host's actual original profile,
+// read/funding/raw policy/binding/quantity and secret selections.
+const registerModelProviders = createInstalledHttpChatRegistration(trustedHostOptions);
+// Supply this callback through @actql/node's existing
+// installation.registerModelProviders with its admitted modelInstallation.
+```
+
+The existing Host supplies the consuming runtime to this callback; an application
+does not assemble a Model Owner or dummy invoke. Missing original installation,
+runtime or physical context refuses before send. Program data, arbitrary URLs
+and matching CID strings cannot select an installation or grant. Registry
+publication and ordinary public Named Result acceptance remain unfinished.
 
 Its initial request codec consumes the original admitted Common Provider/Task,
 mapped input and strict structured schema. Common emits one nonstreaming choice,
@@ -72,3 +91,26 @@ conformance against two independent compatible fixtures and an authorized live
 public route. Unsupported settings or codec/endpoint capability must refuse
 before send rather than trigger fallback. Formal packing, external installation
 and all public/live acceptance remain incomplete M4a/M5 work.
+
+The private `createInstalledHttpChatRegistration` connects this SDK-free port
+to the existing Host `registerModelProviders` entry. It returns only the
+existing exclusive async form, with original read installation, raw capture
+selection, canonical binding originals and quantity selection borrowed from
+their existing Owners. Missing originals/runtime/context refuse before
+projection or sending. Installation SDK absence stays absent or explicit NULL;
+it is not a dummy SDK, provider metadata, completion or funding capability.
+
+Task/selector/prompt payload selection is exact, without normalization or a
+second evaluator. Endpoint, headers and bounds are selected and snapshotted
+before any operation; credentials come only from the trusted Host's secret
+supply, never Program URLs or input. The physical caller still needs its
+original admitted Provider, notification and deferred raw persistence binder.
+The same Common preflight/Entry/current gate, raw Store, cleanup and final
+typed output checks remain mandatory.
+
+This assembler supplies no nominal original admission or numerical supplier.
+Its immutable configuration/bounds/header tuples and closure borrows, plus
+each physical request/reader/save overlap, must be counted in the original
+Host/Run inventory. The package exports only this assembler. The independent Node
+registration cases use Core/Entry/selection/receipt doubles; they are not an
+installed public Result or permission to use the selected fixture allowance.

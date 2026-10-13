@@ -301,6 +301,14 @@ pub fn client_program_uses_graph_carrier(
 }
 
 ///|
+#export_name("clientProgramRequiresTaskCompilation")
+pub fn client_program_requires_task_compilation(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Bool {
+  @publication_host.prepared_client_requires_task_compilation(prepared)
+}
+
+///|
 #export_name("clientProgramSemanticsCid")
 pub fn client_program_semantics_cid(
   prepared : @publication_host.PreparedClientProgram,
