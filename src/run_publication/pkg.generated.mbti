@@ -134,6 +134,8 @@ pub fn captured_content_generation_storage(PublicationContract, PublicationContr
 
 pub fn captured_content_reference_identity(CapturedContentReference) -> String
 
+pub fn captured_content_reference_media_type(CapturedContentReference) -> String
+
 pub fn captured_content_reference_storage(CapturedContentReference) -> (String, String, String, Int)
 
 pub fn captured_content_reference_wire(CapturedContentReference) -> String
