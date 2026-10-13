@@ -102,3 +102,49 @@ export const canonicalQuotedIdentifierRefusals = [
 ].map((text, index) => ({name: 'quoted-identifier-canonical-invalid-' + index,
   format: index === 2 ? 'aql-text' : 'sql', text, expectedCode: 'ClientProgramInvalidInput'}));
 quotedIdentifierRefusals.push(...canonicalQuotedIdentifierRefusals);
+
+// Ordinary binding/alias admission is separate from quoted-name decoding.
+// These source-free values and schemas are independent Program expectations.
+const roleRows = [{id: 1}];
+const roleColumns = [number('id')];
+const roleSources = [
+  ['quoted-with', 'WITH `ROWS` AS (SELECT 1 AS id) SELECT id FROM `ROWS`', roleRows, roleColumns],
+  ['ordinary-with', 'WITH result_rows AS (SELECT 1 AS id) SELECT id FROM result_rows', roleRows, roleColumns],
+  ['quoted-range', 'SELECT `ROWS`.id FROM (SELECT 1 AS id) AS `ROWS`', roleRows, roleColumns],
+  ['quoted-output', 'SELECT 1 AS `ROWS`', [{ROWS: 1}], [number('ROWS')]],
+  ['quoted-element', 'SELECT `ROWS` AS id FROM UNNEST([1]) AS `ROWS`', roleRows, roleColumns],
+  ['quoted-offset', 'SELECT `ROWS` AS id FROM UNNEST([1]) AS item WITH OFFSET AS `ROWS`', [{id: 0}], roleColumns],
+  ['quoted-pipe-alias', 'WITH result_rows AS (SELECT 1 AS id) FROM result_rows |> AS `ROWS` |> SELECT `ROWS`.id', roleRows, roleColumns],
+  ['quoted-unpivot-alias', 'WITH result_rows AS (SELECT 1 AS x) FROM result_rows |> UNPIVOT(v FOR k IN(x)) AS `ROWS` |> SELECT `ROWS`.v AS id', roleRows, roleColumns],
+];
+const roleProgram = (name, value = 1) => ({version: 'actql/0.1', id: 'fixture.identifier_role_' + name,
+  stages: [{id: 'main', inputs: {}, steps: [{as: 'authored', values: {
+    schema: {[name]: {type: 'number', nullable: false}}, rows: [{[name]: value}]}}],
+    results: {rows: {from: 'authored', fields: [name]}}}],
+  results: {answer: {from: {stage: 'main', result: 'rows'}}}});
+export const bindingIdentifierSuccesses = [
+  ...['id', 'ROWS'].map(name => ({name: 'identifier-role-json-' + name, format: 'json',
+    text: JSON.stringify(roleProgram(name)), expected: [{[name]: 1}], columns: [number(name)],
+    sourceReadCount: 0, sourceReadSessionCount: 0})),
+  {name: 'identifier-role-json-offset', format: 'json', text: JSON.stringify(roleProgram('id', 0)),
+    expected: [{id: 0}], columns: roleColumns, sourceReadCount: 0, sourceReadSessionCount: 0},
+  ...roleSources.flatMap(([name, text, expected, columns]) => ['sql', 'aql-text'].map(format => ({
+    name: 'identifier-role-' + format + '-' + name, format, text, expected, columns,
+    sourceReadCount: 0, sourceReadSessionCount: 0,
+  }))),
+];
+export const bindingIdentifierRefusals = [
+  ['with', 'WITH ROWS AS (SELECT 1 AS id) SELECT id FROM ROWS'],
+  ['with-case', 'WITH rOwS AS (SELECT 1 AS id) SELECT id FROM rOwS'],
+  ['output', 'SELECT 1 AS ROWS'],
+  ['range', 'SELECT id FROM (SELECT 1 AS id) AS ROWS'],
+  ['element', 'SELECT 1 AS id FROM UNNEST([1]) AS ROWS'],
+  ['offset', 'SELECT 1 AS id FROM UNNEST([1]) AS item WITH OFFSET AS ROWS'],
+  ['pipe-alias', 'WITH result_rows AS (SELECT 1 AS id) FROM result_rows |> AS ROWS |> SELECT id'],
+  ['unpivot-alias', 'WITH result_rows AS (SELECT 1 AS x) FROM result_rows |> UNPIVOT(v FOR k IN(x)) AS ROWS |> SELECT v'],
+].flatMap(([name, text]) => ['sql', 'aql-text'].map(format => ({
+  name: 'identifier-role-' + format + '-invalid-' + name, format, text,
+  expectedCode: 'ClientProgramInvalidInput',
+})));
+quotedIdentifierSuccesses.push(...bindingIdentifierSuccesses);
+quotedIdentifierRefusals.push(...bindingIdentifierRefusals);
