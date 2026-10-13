@@ -202,16 +202,25 @@ fn submitted_rows_material_wire(
     if saved.key != fields.1 || saved.body != fields.2 || saved.revision != 0L {
       return Err(-35)
     }
-    let candidate = match sdk_run_append_candidate(value, current, plan, packet) {
+    let candidate = match
+      sdk_run_append_candidate(value, current, plan, packet) {
       Ok(value) => value
       Err(code) => return Err(code)
     }
-    let (key, body, revision, count) = @host.client_run_journal_append_rows(candidate)
-    if key != fields.0 || body != fields.3 { return Err(-31) }
+    let (key, body, revision, count) = @host.client_run_journal_append_rows(
+      candidate,
+    )
+    if key != fields.0 || body != fields.3 {
+      return Err(-31)
+    }
     Some((revision, count))
-  } else { None }
+  } else {
+    None
+  }
   // Preserve any existing nominal row Owner held by an observation child.
-  if submission.rows is None { submission.rows = Some(rows) }
+  if submission.rows is None {
+    submission.rows = Some(rows)
+  }
   try {
     let writer = @encode.writer(1048576, 10, 1)
     @encode.begin_object(writer)
@@ -246,7 +255,9 @@ fn submitted_rows_material_wire(
 pub fn validate_submitted_rows_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
-    !material.output_closed && material.produced && material.kind == 6 &&
+    !material.output_closed &&
+    material.produced &&
+    material.kind == 6 &&
     material.submission is Some(submission) &&
     submission.sdk_wire is Some(expected) &&
     value.runs.get(material.run) is Some(record) &&
@@ -254,11 +265,14 @@ pub fn validate_submitted_rows_material(nonce : Int64, handle : Int) -> Int {
     value.preparations.get(record.preparation) is Some(preparation) else {
     return -2
   }
-  let actual = match submitted_rows_material_wire(value, material, plan, preparation) {
+  let actual = match
+    submitted_rows_material_wire(value, material, plan, preparation) {
     Ok(wire) => wire
     Err(code) => return code
   }
-  if actual != expected { return -35 }
+  if actual != expected {
+    return -35
+  }
   0
 }
 
@@ -367,7 +381,9 @@ pub fn material_length(nonce : Int64, handle : Int) -> Int {
   }
   if material.submission is Some({ sdk_wire: Some(_), .. }) {
     let code = validate_submitted_rows_material(nonce, handle)
-    if code != 0 { return code }
+    if code != 0 {
+      return code
+    }
   }
   match @buffers.buffer_length(value.pool, material.slot) {
     Some(length) => length
