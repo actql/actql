@@ -160,7 +160,8 @@ test "STRUCT value-table receiver stays private and ends at AS or SELECT" {
   for
     text in [
       "FROM UNNEST(@items) element |> SELECT id |> WHERE element.label IS NULL",
-      "FROM UNNEST(@items) element |> AS `current` |> WHERE element.id IS NULL", "FROM UNNEST(@items) element |> SELECT * |> WHERE element.id IS NULL",
+      "FROM UNNEST(@items) element |> AS `current` |> WHERE element.id IS NULL",
+      "FROM UNNEST(@items) element |> SELECT * |> WHERE element.id IS NULL",
     ] {
     let result = compile(
       @query.parse_query(text, syntax_limits()).unwrap(),
