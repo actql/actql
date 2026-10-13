@@ -8,8 +8,10 @@ priv struct StoredMaterial {
   mut invoked : Bool
   mut produced : Bool
   mut output_closed : Bool
+  mut closing : Bool
   mut submission : StoredSubmittedMaterial?
   mut sdk_start : StoredSDKStartStep?
+  mut sdk_publication : StoredSDKPublicationBinding?
 }
 
 ///|
@@ -35,7 +37,7 @@ pub fn reserve_material(
     value.runs.get(run) is Some({ outcome: Some(Ok(_)), .. }) else {
     return -2
   }
-  if (kind < 1 || kind > 5) && kind != 7 && kind != 8 {
+  if (kind < 1 || kind > 5) && kind != 7 && kind != 8 && kind != 9 {
     return -3
   }
   reserve_material_record(
@@ -81,8 +83,10 @@ fn reserve_material_record(
     invoked: false,
     produced: false,
     output_closed: false,
+    closing: false,
     submission: None,
     sdk_start: None,
+    sdk_publication: None,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -258,6 +262,7 @@ pub fn validate_submitted_rows_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
     !material.output_closed &&
+    !material.closing &&
     material.produced &&
     material.kind == 6 &&
     material.submission is Some(submission) &&
@@ -292,10 +297,16 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
     value.environments.get(preparation.environment) is Some(environment) else {
     return -2
   }
-  if value.closing || value.runtime_closing || material.output_closed {
+  if value.closing ||
+    value.runtime_closing ||
+    material.output_closed ||
+    material.closing {
     return -5
   }
   if material.produced {
+    if material.sdk_publication is Some(_) {
+      return validate_sdk_publication_material(nonce, handle)
+    }
     if material.sdk_start is Some(_) {
       return validate_sdk_start_material(nonce, handle)
     }
@@ -367,6 +378,11 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
         Ok(wire) => wire
         Err(code) => return code
       }
+    9 =>
+      match sdk_publication_material_wire(value, material, plan) {
+        Ok(wire) => wire
+        Err(code) => return code
+      }
     _ => return -3
   }
   let result = status(
@@ -388,6 +404,12 @@ pub fn material_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) else {
     return -2
+  }
+  if material.sdk_publication is Some(_) {
+    let code = validate_sdk_publication_material(nonce, handle)
+    if code != 0 {
+      return code
+    }
   }
   if material.sdk_start is Some(_) {
     let code = validate_sdk_start_material(nonce, handle)
@@ -420,6 +442,23 @@ pub fn close_material(nonce : Int64, handle : Int) -> Int {
   if value.physical_starts.values().any(child => child.sdk_step == Some(handle)) {
     return -9
   }
+  if value.materials
+    .values()
+    .any(child => {
+      (
+        child.sdk_publication is Some({ rows_material, .. }) &&
+        rows_material == handle
+      ) ||
+      (
+        child.sdk_start is Some({ publication_material, .. }) &&
+        publication_material == handle
+      )
+    }) {
+    return -9
+  }
+  // Transport retirement preserves the original rows/input borrow. Full
+  // close does not: once its cleanup starts no new observation may borrow it.
+  material.closing = true
   if !material.output_closed {
     let result = status(@buffers.close_buffer(value.pool, material.slot))
     if result != 0 {
@@ -447,8 +486,16 @@ pub fn retire_material_output(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
     material.produced &&
-    (material.kind == 6 || material.kind == 7 || material.kind == 8) else {
+    (
+      material.kind == 6 ||
+      material.kind == 7 ||
+      material.kind == 8 ||
+      material.kind == 9
+    ) else {
     return -2
+  }
+  if material.closing {
+    return -5
   }
   if material.output_closed {
     return 0

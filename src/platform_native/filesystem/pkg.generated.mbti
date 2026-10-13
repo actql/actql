@@ -6,9 +6,9 @@ import {
 }
 
 // Values
-pub fn open_private_root(String) -> Result[Root, NativeFilesystemIssue]
+pub fn open_private_root(String, diagnostic_ceiling? : Int?) -> Result[Root, NativeFilesystemIssue]
 
-pub fn open_root(String) -> Result[Root, NativeFilesystemIssue]
+pub fn open_root(String, diagnostic_ceiling? : Int?) -> Result[Root, NativeFilesystemIssue]
 
 // Errors
 

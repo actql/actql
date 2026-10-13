@@ -6,8 +6,8 @@
 fn retain_native_fixture_imports() -> Unit {
   ignore(@json.stringify_value)
   ignore(@encode.writer)
-  ignore(@sqlite.load_library)
-  ignore(@filesystem.open_root)
+  ignore(path => @sqlite.load_library(path))
+  ignore(path => @filesystem.open_root(path))
   ignore(@payload.prepare_publication_payload_request)
   ignore(@sha.hex)
   ignore(

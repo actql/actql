@@ -209,11 +209,15 @@ pub fn bind_transferred_client_effect_local_result_artifact(ClientEffectRunMater
 
 pub fn borrow_client_original_captured_prefix_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, Int, Int, @execution_query.CapturedInputSource) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
-pub fn borrow_client_original_keyed_captured_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, @execution_query.CapturedInputSource) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
+pub fn borrow_client_original_keyed_captured_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, @execution_query.CapturedInputSource, prefix? : @physical_resources.Reservation?) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
-pub fn borrow_client_original_keyed_child(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, ClientKeyedLookupInput, ClientKeyedRequest) -> Result[(@physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, @sourceview_resolution.KeyedRowRequest), ClientKeyedRequestIssue]
+pub fn borrow_client_original_keyed_child(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, ClientKeyedLookupInput, ClientKeyedRequest, prefix? : @physical_resources.Reservation?) -> Result[(@physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, @sourceview_resolution.KeyedRowRequest), ClientKeyedRequestIssue]
 
 pub fn borrow_client_original_keyed_direct_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, @query_planning.QueryRequirement) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
+
+pub fn borrow_client_original_keyed_prefix_child(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, ClientOriginalKeyedPrefixLookup, ClientKeyedRequest) -> Result[(@physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, @sourceview_resolution.KeyedRowRequest, @physical_resources.Reservation), ClientKeyedRequestIssue]
+
+pub fn borrow_client_original_keyed_serialization_inputs(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientOriginalKeyedPrefixLookup, Int, Int, @execution_relation.GeneratedSequence) -> Result[(@physical_resources.Ledger, @execution_relation.ProducerRead, @execution_relation.SuppliedRelationRead), ClientKeyedRequestIssue]
 
 pub fn borrow_client_original_row_acquisition_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, @query_planning.QueryRequirement) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
@@ -260,6 +264,8 @@ pub fn claim_client_model_read_preparation(ClientModelReadPreparation, ClientCom
 pub fn claim_client_node_model_preparation_layout(ClientModelReadPreparation, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[ClientModelReadConsumer, ClientModelPreparationLayoutIssue]
 
 pub fn cleanup_client_keyed_lookup_input(ClientKeyedLookupInput, Int) -> Result[Bool, ClientKeyedRequestIssue]
+
+pub fn cleanup_client_original_keyed_prefix_lookup(ClientOriginalKeyedPrefixLookup, Int) -> Result[Bool, ClientKeyedRequestIssue]
 
 pub fn client_acquired_infer_prefix_owner(PreparedClientProgram, Int, Int) -> @lowering_relation.BoundPrepared?
 
@@ -734,6 +740,8 @@ pub fn client_node_model_state_read(ClientNodeModelStateWriter) -> Result[Client
 pub fn client_original_keyed_capture_available(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition) -> Bool
 
 pub fn client_original_keyed_lookup_available(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, ClientKeyedLookupInput) -> Bool
+
+pub fn client_original_keyed_prefix_lookup_input(ClientOriginalKeyedPrefixLookup) -> ClientKeyedLookupInput?
 
 pub fn client_publication_plan_fact_bindings(ClientPublicationPlanFacts) -> Array[String]
 
@@ -1700,6 +1708,8 @@ pub fn start_client_model_current_state_document_read(@physical_resources.Origin
 pub fn start_client_model_current_state_write(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @encode_core.Writer) -> Result[@physical_resources.OriginalCurrentStateWrite[ClientModelReadOrigin], @physical_resources.OriginalStateWriteIssue]
 
 pub fn start_client_original_keyed_lookup_input(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, ClientKeyedLeftRead, Int, Int) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue]
+
+pub fn start_client_original_keyed_prefix_lookup(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, @execution_query.CapturedInputSource, @execution_relation.CompletedOutput, @execution_relation.ProducerRead, @physical_resources.Reservation, Int, Int, Int, Int) -> Result[ClientOriginalKeyedPrefixLookup, ClientKeyedRequestIssue]
 
 pub fn start_client_result_transformation(ClientResultTransformation, @execution_relation.CompletedOutput, PublicationOutputExportLimits) -> Result[ClientResultTransformationPreparation, ClientResultTransformationIssue]
 
@@ -2757,6 +2767,8 @@ pub(all) enum ClientNodeModelStateIssue {
 } derive(Eq, @debug.Debug)
 
 type ClientNodeModelStateWriter
+
+type ClientOriginalKeyedPrefixLookup
 
 pub(all) struct ClientProgramIdentity {
   program_definition_cid : String

@@ -3,7 +3,7 @@ from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from typing import Literal
 
-from ._local_core import LocalCore, LocalCoreError, _Output
+from ._local_core import LocalCore, LocalCoreError, _Input, _Output
 from ._local_storage import ByteWrite, LocalByteStore
 
 
@@ -195,6 +195,72 @@ class OriginalCommitProjection:
         and current publisher/commit ACK remain separate Host/Owner obligations.
         """
         self._project(result, False, consume, expected_generation, schema=True)
+
+    def project_observed_index(self, consume: Callable[[bytes, bytes], object]) -> None:
+        """Borrow the actual Core-validated stored identity/body, never the candidate.
+
+        The original observation/publisher must remain live. The caller retains
+        all File/current facts around this synchronous transport. These bytes
+        are not a durable ACK or a completed Run/Result wire response.
+        """
+        if not callable(consume):
+            raise ValueError('Invalid original observed index consumer')
+        with self._core._lock:
+            self._ready()
+            self._projecting = True
+            try:
+                self._consume_observed_index(consume)
+                self._retire_outputs()
+                if self._outputs:
+                    raise LocalCoreError('original_observed_index_cleanup', -9)
+            finally:
+                self._projecting = False
+
+    def project_run_state(self, observed_at: _Input,
+                          consume: Callable[[bytes], object]) -> None:
+        """Borrow original Core RunState bytes under the caller's current frame.
+
+        The original clock input remains owned separately and is borrowed by
+        Core until output cleanup. The consumer must move bytes to its own
+        accounted response before returning; it cannot retain this loan.
+        """
+        if not callable(consume):
+            raise ValueError('Invalid original Run observation consumer')
+        with self._core._lock:
+            self._core._owned_input(observed_at)
+            self._ready()
+            self._projecting = True
+            try:
+                self._consume_run_state(observed_at, consume)
+                self._retire_outputs()
+                if self._outputs:
+                    raise LocalCoreError('original_run_state_cleanup', -9)
+            finally:
+                self._projecting = False
+
+    def _consume_run_state(self, observed_at: _Input,
+                           consume: Callable[[bytes], object]) -> None:
+        output = self._output()
+        self._core.produce_publication_observed_run_state(
+            output, observed_at, self._configuration)
+        raw = self._core.read_publication_commit_material(output)
+        if consume(raw) is not None:
+            raise ValueError('Invalid synchronous Run observation consumer result')
+
+    def _consume_observed_index(self, consume: Callable[[bytes, bytes], object]) -> None:
+        # Drop temporary field references before retiring their reservations,
+        # matching the existing synchronous original-material projection.
+        identity = self._output()
+        self._core.produce_publication_observed_index(
+            identity, self._configuration, field='identity')
+        raw_identity = self._core.read_publication_commit_material(identity)
+        self._address(raw_identity, index_key=False)
+        body = self._output()
+        self._core.produce_publication_observed_index(
+            body, self._configuration, field='wire')
+        raw_body = self._core.read_publication_commit_material(body)
+        if consume(raw_identity, raw_body) is not None:
+            raise ValueError('Invalid synchronous observed index consumer result')
 
     def _ready(self) -> None:
         self._current()
