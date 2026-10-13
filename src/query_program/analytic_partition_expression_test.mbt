@@ -55,7 +55,7 @@ test "partition expressions preserve input receiver and immutable Pipe range sna
   assert_false(wire.contains("\"value\":{\"field\":\"other\"}"))
   let current = semantic(
     checked_partition_expression(
-      "FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY COALESCE(original.payload.bucket, 'missing') ORDER BY id) AS before, ROW_NUMBER() OVER (PARTITION BY COALESCE(payload.bucket, 'missing') ORDER BY id) AS current |> ORDER BY id",
+      "FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY COALESCE(original.payload.bucket, 'missing') ORDER BY id) AS before, ROW_NUMBER() OVER (PARTITION BY COALESCE(payload.bucket, 'missing') ORDER BY id) AS `current` |> ORDER BY id",
     ),
   )
   assert_true(current.contains("\"value\":{\"field\":\"payload\"}"))

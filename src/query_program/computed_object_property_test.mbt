@@ -127,14 +127,14 @@ test "computed object properties retain referenced JOIN inputs through the recei
 test "computed object properties retain the current Pipe scope and removed-range refusal" {
   let wire = semantic(
     checked_computed_object(
-      "FROM objects AS original |> SET payload = other |> SELECT id, COALESCE(original.payload, original.other).score AS before, COALESCE(payload, other).score AS current |> ORDER BY id",
+      "FROM objects AS original |> SET payload = other |> SELECT id, COALESCE(original.payload, original.other).score AS before, COALESCE(payload, other).score AS `current` |> ORDER BY id",
     ),
   )
   assert_true(wire.contains("\"field\":\"aql_pipe_set_3\""))
   assert_true(
     compile(
       @query.parse_query(
-        "FROM objects AS old |> AS current |> SELECT COALESCE(old.payload, other).score AS score",
+        "FROM objects AS old |> AS `current` |> SELECT COALESCE(old.payload, other).score AS score",
         syntax_limits(),
       ).unwrap(),
       analytic_property_context(),
