@@ -200,7 +200,7 @@ export function installModelProviders(moon, register) {
       reconcileResponse,
       quantityCapacity,
       observeEgress: typeof observeEgress !== 'function' ? undefined : () => {
-        try { return observeEgress.call(entry); }
+        try { return Reflect.apply(observeEgress, entry, []); }
         catch { return undefined; }
       },
       validatePrompt: (...args) => validatePrompt(...args) === true}));
