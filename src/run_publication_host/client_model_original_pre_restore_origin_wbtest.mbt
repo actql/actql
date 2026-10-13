@@ -1,8 +1,12 @@
 ///|
 test "pre-restore origin DATA guard compares all eleven checked getters without a Scope argument" {
-  let (compiled, definition, plan, ledger, _) = client_model_state_test_scope(17)
+  let (compiled, definition, plan, ledger, _) = client_model_state_test_scope(
+    17,
+  )
   let layout = client_node_layout_test_declaration(plan)
-  let wire = client_original_origin_test_wire(compiled, definition, plan, layout)
+  let wire = client_original_origin_test_wire(
+    compiled, definition, plan, layout,
+  )
   let document = @publication.read_model_original_resource_document(
     wire, 10000, 1000, 16,
   ).unwrap()
@@ -46,7 +50,8 @@ test "pre-restore origin DATA guard compares all eleven checked getters without 
           changed, 10000, 1000, 16,
         ).unwrap(),
       )
-      is Err(OriginMismatch(actual)) && actual == field,
+      is Err(OriginMismatch(actual)) &&
+      actual == field,
     )
     assert_eq(@resources.ledger_usage(ledger), before)
   }
@@ -57,9 +62,11 @@ test "pre-restore origin DATA guard compares all eleven checked getters without 
     new="\"storage_binding_cid\":\"sha256:" + "c".repeat(64) + "\"",
   )
   assert_true(
-    check(@publication.read_model_original_resource_document(
-      changed, 10000, 1000, 16,
-    ).unwrap())
+    check(
+      @publication.read_model_original_resource_document(
+        changed, 10000, 1000, 16,
+      ).unwrap(),
+    )
     is Ok(_),
   )
   assert_eq(@resources.ledger_usage(ledger), before)
@@ -67,7 +74,9 @@ test "pre-restore origin DATA guard compares all eleven checked getters without 
 
 ///|
 test "pre-restore origin DATA guard refuses foreign checked Run and missing layout" {
-  let (compiled, definition, plan, ledger, _) = client_model_state_test_scope(17)
+  let (compiled, definition, plan, ledger, _) = client_model_state_test_scope(
+    17,
+  )
   let (other, _, _, _, _) = client_model_state_test_scope(17)
   let layout = client_node_layout_test_declaration(plan)
   let document = @publication.read_model_original_resource_document(
