@@ -1213,6 +1213,16 @@ pub fn client_program_infer_attempt_evidence(
 }
 
 ///|
+#export_name("clientProgramAdvanceInferStoppedRawUsage")
+pub fn client_program_advance_infer_stopped_raw_usage(
+  active : @infer_host.Execution,
+  slot : Int,
+  quantum : Int,
+) -> Result[(Bool, Int64, @model.ModelExecutionIssue?), @model.ModelExecutionIssue] {
+  @infer_host.advance_stopped_attempt_raw_usage(active, slot, quantum)
+}
+
+///|
 #export_name("clientProgramInferStoppedAttemptCount")
 pub fn client_program_infer_stopped_attempt_count(
   active : @infer_host.Execution,

@@ -122,6 +122,9 @@ pub fn advance_model_reconciled_raw_usage(
   }
   let stopped_original = match call.terminal {
     Some(PhysicalUnknown(_) | PhysicalRejected(_, _)) => true
+    Some(PhysicalChatResponse(original)) =>
+      physical_equal(original, response) &&
+      @bounded.session_stopped(entry.prepared.owner.session)
     Some(PhysicalNativeResponse(native)) =>
       model_native_response_original(native, call) &&
       physical_equal(native.raw, response) &&
@@ -254,4 +257,169 @@ fn finish_reconciled_raw_usage(
     call.usage_result = Some(result)
   }
   result.map(_ => (true, raw.usage_work.to_int64()))
+}
+
+///|
+/// Observe only this stopped execution's original raw accounting child before
+/// freezing its attempt proof. The optional issue is the retired reader's
+/// observation, not a replacement Model outcome or a cleanup/send grant.
+pub fn advance_model_stopped_raw_usage(
+  execution : ModelExecution,
+  slot : Int,
+  quantum : Int,
+) -> Result[(Bool, Int64, ModelExecutionIssue?), ModelExecutionIssue] {
+  if quantum < 1 {
+    return Err(InvalidLimits)
+  }
+  if execution.advancing {
+    return Err(Session(@bounded.ConcurrentResume))
+  }
+  if check_model_original_resources_mutable(execution.state) is Err(issue) {
+    return Err(issue)
+  }
+  guard !execution.state.reclaimed && !execution.state.accepted &&
+    @bounded.session_stopped(execution.session) &&
+    execution.state.attempts.get(slot) is Some(_) else {
+    return Err(OutputIdentity)
+  }
+  execution.advancing = true
+  let result = advance_model_stopped_raw_usage_owned(execution, slot, quantum)
+  execution.advancing = false
+  result
+}
+
+///|
+fn advance_model_stopped_raw_usage_owned(
+  execution : ModelExecution,
+  slot : Int,
+  quantum : Int,
+) -> Result[(Bool, Int64, ModelExecutionIssue?), ModelExecutionIssue] {
+  let state = execution.state
+  guard state.pending_response is Some(call) &&
+    call.entry is Some(entry) && entry.slot == slot else {
+    // A previous attempt has no pending raw child. This is zero additional
+    // reader work, never an observation of zero tokens or physical cleanup.
+    return Ok((true, 0L, None))
+  }
+  guard physical_equal(entry.prepared.owner, execution) else {
+    return Err(RequestIdentity)
+  }
+  guard state.attempts.get(slot) is Some(trace) &&
+    physical_equal(trace, entry.trace) else {
+    return Err(RequestIdentity)
+  }
+  guard call.raw_capture is Some(raw) else {
+    return match call.usage_result {
+      Some(Ok(_)) => Ok((true, 0L, None))
+      Some(Err(issue)) => Ok((true, 0L, Some(issue)))
+      None => Err(OutputIdentity)
+    }
+  }
+  if call.polling || raw.usage_advancing {
+    return Err(Session(@bounded.ConcurrentResume))
+  }
+  if raw.usage_retired {
+    // A later answer/projection failure can leave the ordinary decode alias
+    // retained even though envelope usage is already final. Retire that same
+    // stopped child before proof persistence, without reopening its parser.
+    if state.phase is DecodePhysicalResponse(_, _, cursor) &&
+      !(cursor.phase is DecodeReclaimed) {
+      let response = match call.terminal {
+        Some(PhysicalChatResponse(response)) => response
+        Some(PhysicalNativeResponse(native)) => {
+          if !model_native_response_original(native, call) {
+            return Err(RequestIdentity)
+          }
+          native.raw
+        }
+        _ => return Err(OutputIdentity)
+      }
+      guard cursor.raw_chat is Some(original) &&
+        physical_equal(original, response) &&
+        model_chat_response_original(response, call) &&
+        physical_equal(raw, response.saved_raw.original) else {
+        return Err(RequestIdentity)
+      }
+      cancel_model_response_decode(cursor)
+    }
+    return match raw.usage_result {
+      Some(Ok(_)) => Ok((true, raw.usage_work.to_int64(), None))
+      Some(Err(issue)) => Ok((true, raw.usage_work.to_int64(), Some(issue)))
+      None => Err(OutputIdentity)
+    }
+  }
+  if entry.trace.evidence is Some(_) {
+    return Err(OutputIdentity)
+  }
+  let response = match call.terminal {
+    Some(PhysicalChatResponse(response)) => response
+    Some(PhysicalNativeResponse(native)) => {
+      if !model_native_response_original(native, call) {
+        return Err(RequestIdentity)
+      }
+      native.raw
+    }
+    // Missing saved custody stays missing. Failed/unknown persistence uses
+    // its existing explicit reconciliation, not an automatic save retry.
+    _ => return Err(OutputIdentity)
+  }
+  guard model_chat_response_original(response, call) &&
+    physical_equal(raw, response.saved_raw.original) else {
+    return Err(RequestIdentity)
+  }
+  match transfer_model_stopped_raw_usage_child(state, call, response, raw) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  match advance_model_reconciled_raw_usage(call, response, quantum) {
+    Ok((complete, work)) => Ok((complete, work, None))
+    Err(issue) =>
+      if raw.usage_retired {
+        // Cancellation/exhaustion can retire a reader with partial usage.
+        // Preserve that issue and let the original immutable failure proof
+        // be saved; an outer binding/currentness refusal remains an error.
+        Ok((true, raw.usage_work.to_int64(), Some(issue)))
+      } else {
+        Err(issue)
+      }
+  }
+}
+
+///|
+fn transfer_model_stopped_raw_usage_child(
+  state : ModelState,
+  call : ModelPhysicalCall,
+  response : ModelPhysicalChatResponse,
+  raw : ModelRawCaptureSave,
+) -> Result[Unit, ModelExecutionIssue] {
+  guard state.phase is DecodePhysicalResponse(_, _, cursor) else {
+    return Ok(())
+  }
+  if cursor.phase is DecodeReclaimed {
+    return if raw.usage_reader is Some(_) { Ok(()) } else {
+      Err(OutputIdentity)
+    }
+  }
+  guard cursor.raw_chat is Some(original) &&
+    physical_equal(original, response) && raw.usage_reader is None else {
+    return Err(RequestIdentity)
+  }
+  let reader = match cursor.phase {
+    ReadChat(child) => ChatUsage(child)
+    ReadNative(child, native) => {
+      guard physical_equal(native.raw, response) &&
+        model_native_response_original(native, call) else {
+        return Err(RequestIdentity)
+      }
+      NativeUsage(child)
+    }
+    _ => return Err(OutputIdentity)
+  }
+  // Transfer the exact remaining parser/facts, not a copy or a fresh budget.
+  // Do not call cursor cancellation: that would erase the transferred facts.
+  raw.usage_reader = Some(reader)
+  cursor.phase = DecodeReclaimed
+  cursor.raw_chat = None
+  cursor.observation = None
+  Ok(())
 }
