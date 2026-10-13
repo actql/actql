@@ -42,18 +42,19 @@ export const reviewedPackageConfigurations = Object.freeze({
   'src/query_integration/moon.pkg': 'eeeb572afaf8f9b708362db6308b080cc715e65601d54f3ff53d8e1a01f65966',
 });
 
-// See docs/reviews/2026-10-13-session-js-foreign-library-configuration-review.md.
+// See docs/reviews/2026-10-13-session-js-foreign-library-configuration-review.md and
+// docs/reviews/2026-10-14-session-js-foreign-library-refresh-review.md.
 // This literal kind force-links a JS artifact; it contains no build hook or
 // external source resolver. Imports and every source member remain keyed.
 export const foreignLibraryConfigurationReview = Object.freeze({
-  revision: '9f2bfdb42dcfeac26104c160ed1c5b1770542f3f',
+  revision: '55ea9534de476e7e9308da349b8afd072bc8426d',
   target: 'js',
   toolchainDigest: packageConfigurationReview.toolchainDigest,
   moonRevision: packageConfigurationReview.moonRevision,
   rule: 'literal-js-foreign-library-with-bound-source-membership',
 });
 const foreignLibraryConfigurations = Object.freeze({
-  'src/connectors_builtin_node/moon.pkg': '9f8297db67163f7cdef315af82fe878048caea4586363ae5d9ef1f63455e8971',
+  'src/connectors_builtin_node/moon.pkg': '1e8b80ac31bd7af9eb61dd9b0dc1b1f40542083217ffea09be4a7e7cfcf4f43c',
 });
 
 export function packageConfigurationReviewFor({path, digest, target, toolchainDigest}) {
