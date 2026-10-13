@@ -614,3 +614,37 @@ transaction; nested mutating operations remain rejected.
 This metadata connection is not installed-product upgrade acceptance. Compatibility
 between the originally adopted runtime and a newly installed package must be
 admitted and retained separately before the packaged CLI can cross that boundary.
+
+## One explicit runtime successor
+
+The adopted finite successor is a separate `runtime-successor/0.1` revision-zero
+append in the same installation-originals journal. It never rewrites the old
+`policy-upgrade/0.1` packet, correspondence, signature, dates or read selections.
+Its `actql-local-runtime-successor/0.1` closed body binds the current Account
+configuration, original adoption/scope, exact operation, old upgrade CID/packet
+digest, prior pair digest and original a3b runtime wire, independent current
+complete-package identity and new finite pair. There is at most one successor;
+this does not introduce a general migration registry or compatibility alias.
+
+The Common metadata codec uses the existing 8,192-byte/64-node/depth-four record
+codec with a 5,632-byte payload ceiling. Metadata content identity is not an
+authenticated original or a physical/current witness. Nested package/runtime
+wires must be independently revalidated by their existing Owners. JSON Schema
+string length does not replace the Owner's UTF16 operation bound, UTF8 limits,
+current Account authorization or workspace admission.
+
+Native must verify the complete current product's opened members/generations,
+the authenticated old correspondence and exact finite scalar compatibility
+independently. It reserves the same 8,192 bytes/one object before copying and
+commits the append and issued-counter CAS together. Count remains at most eight
+and at most `settings.files.length + 1`; reservation ceilings do not increase.
+Missing/changed packets, dependencies, reservations or unknown physical profiles
+refuse. A saved successor cannot be repaired from current files or copied CIDs.
+
+Under that retained context, old operation lookup validates and returns the
+unchanged original bytes/CID against its original a3b pair, separately from the
+successor's current package. Response loss retains the same operation/Unknown
+and cleanup responsibility; lookup alone can confirm its original commit.
+Compatibility never renews an old grant/expiry or authorizes a resend, new Run,
+Source/Model/Effect, signing use or automatic append. Initial/final current
+authorization and every retained read-row's original policy checks remain.
