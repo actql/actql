@@ -42,11 +42,12 @@ node reviews/2026-10-13-vector-scalar-installed-source/prepared-public.mjs --pro
 node reviews/2026-10-13-vector-scalar-installed-source/prepared-public.mjs --consumer <same-clean-full-sha> <same-private-directory>
 ```
 
-These commands are prepared, not executed. Public Heavy allocation remains
+These producer/public commands are prepared, not executed. Public Heavy allocation remains
 with the integration owner; the current G consumer is protected. Vector
 Local/HTTPS/Named Result success remains zero until real same-cohort receipts
-are obtained. Node driver/closure checks do not establish common Vector
-admission, runtime dispatch, ProfileAdmission discharge or public execution.
+are obtained. Node driver/closure checks do not establish common Vector admission or public
+execution. The separate Common JS controls below establish declaration and row
+admission only, not Host dispatch or ProfileAdmission discharge.
 Calendar, authenticated max/weighted ranking, Sequence/window cohorts and
 identifier-role public acceptance remain separate pending work.
 
@@ -63,3 +64,36 @@ observed absent after exit. Driver tests use admission callbacks, not a running
 common evaluator. This is no compiler or public-runtime evidence. Raw summary,
 output and independent prepared inventory are retained in workspace reviews
 `2026-10-13-b-vector-scalar-installed-source-evidence`.
+
+
+The first Common diagnostic at `98d99e5e66e1f694caeef203a099c48800e8221d`
+was 2/3: direct row admission passed, while Source declaration generation
+rejected the authored schema map. The diagnostic at `08f0f7fa98a120c33bcbbfc1c6c9623f1663995d`
+entered the existing `RowHostIssue.InvalidContracts` branch. A separate first
+diagnostic edit (`977afc0b5a3aa097db93732f2e44fa292582061b`) failed to compile
+because `inspect` required `Show`; it executed zero tests. These failures remain
+separate raw evidence, not successful product execution.
+
+[The existing value contract](../../docs/spec/language.md#value-types) separates
+authored and checked grammars: the compiler expands the authored Vector to the
+sole checked `element_type: f32` meaning. The saved installed Source wire must
+use that checked grammar. The supplier now independently declares that member
+and schema CID `sha256:6d31ea776fe51f6447312c10f7f575b97d3c5a3fe88c27d4c1fe105a1d564849`.
+The old authored wire/CID `sha256:ef9fb503e0f3face25dec7348dfec4a772045dcb14d13fea2331b2d1cbbb1c83`
+is retained as a precise rejected control. No checker relaxation, type default
+invention, existing literal semantic change or reuse of an old CID occurred.
+The original public fixture remains byte-identical (`9717e6a803428dadf392562f891687bad8ddbb88691cfbbe6e37137e0fff804f`).
+
+Corrected clean source `e3a377b8bc296d43ba9022e9c1e788ead3f7c780`, tree
+`54586d69d52a27f516c7094ea17d4500df7605f5`, `run-NVQvHO`:
+
+```sh
+node reviews/2026-10-13-vector-scalar-installed-source/prepared-common.mjs
+```
+
+Common JS 3/3 (full declaration restore and exact schema preservation, original
+three typed Vector/NULL rows, dimension/nullability/presence refusals); targeted
+Node 8/8 (original controls, page driver and actual copied import closure).
+The pinned formatter changed only the new control file. The original 60/5
+nonHeavy guard completed exit zero. Public producer/Local/HTTPS remain zero;
+these controls do not prove actual charged page capture or dispatch on the Host.
