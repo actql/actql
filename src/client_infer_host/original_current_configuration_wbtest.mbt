@@ -103,7 +103,11 @@ test "cold Model configuration rejects foreign originals and invalid installed q
   let prepared = fixture_prepared()
   let plan = call_identity_plan(prepared)
   let (compiled, definition) = original_input_capacity_run(prepared, plan)
-  let (foreign, _) = original_input_capacity_run(prepared, plan)
+  let foreign_prepared = fixture_prepared()
+  let foreign_plan = call_identity_plan(foreign_prepared)
+  let (foreign, _) = original_input_capacity_run(
+    foreign_prepared, foreign_plan,
+  )
   let document = current_configuration_host_test_document(
     current_configuration_host_test_wire(),
   )
