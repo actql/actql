@@ -4,6 +4,7 @@
 // not a fabricated facts CID or a test-only resolver.
 fn listing_profile_fixture(
   maximum : Int64?,
+  examined? : Int64? = None,
 ) -> @environment.FileListProfile raise {
   let fields : Json = {
     "resource": {
@@ -54,6 +55,10 @@ fn listing_profile_fixture(
   if maximum is Some(maximum) {
     guard profile is Object(fields) else { abort("profile fixture") }
     fields["max_listing_items"] = Json::number(maximum.to_double())
+  }
+  if examined is Some(examined) {
+    guard profile is Object(fields) else { abort("profile fixture") }
+    fields["max_examined_items"] = Json::number(examined.to_double())
   }
   let declaration = generate_relation_row_declaration(
     "listing-fixture",
@@ -147,6 +152,6 @@ fn listing_rows_fixture(
   @environment.resolve_file_listing_rows(
     profile, policy, "file-listing:fixture",
   )
-  .map(resolved => { resolved, })
+  .map(resolved => ResolvedListingRows(resolved))
   .to_option()
 }
