@@ -70,9 +70,7 @@ pub fn LocalSigningPublicKey::cid(self : LocalSigningPublicKey) -> String {
 pub fn LocalSigningPublicKey::raw32(
   self : LocalSigningPublicKey,
 ) -> Result[Bytes, LocalSigningPublicKeyIssue] {
-  try {
-    Ok(@base64.decode(self.encoded[:]))
-  } catch {
+  Ok(@base64.decode(self.encoded[:])) catch {
     _ => Err(PublicKeyEncoding)
   }
 }

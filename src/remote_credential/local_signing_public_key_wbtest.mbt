@@ -47,30 +47,39 @@ test "Local signing public-key RFC8032 public vector and distinct bytes" {
   assert_true(value.cid() != public_key_identity_cid)
   assert_eq(
     admit_local_signing_public_key_json(value.json(), value.cid())
-      .unwrap().raw32().unwrap(),
+    .unwrap()
+    .raw32()
+    .unwrap(),
     raw,
   )
 }
 
 ///|
 test "Local signing public-key closed canonical body refuses altered framing" {
-  for body in [
-    "null",
-    "{",
-    " " + public_key_identity_wire,
-    public_key_identity_wire + "\n",
-    public_key_identity_wire.replace_all(old="ed25519", new="Ed25519"),
-    public_key_identity_wire.replace_all(old="ed25519", new="rsa"),
-    public_key_identity_wire.replace_all(old="{", new="{\"unknown\":null,"),
-    public_key_identity_wire.replace_all(old="{", new="{\"algorithm\":\"ed25519\","),
-    public_key_identity_wire.replace_all(old="\"algorithm\"", new="\"alg\\u006frithm\""),
-    public_key_identity_wire.replace_all(old=":", new=": "),
-    public_key_identity_wire.replace_all(
-      old="actql-local-signing-public-key/0.1",
-      new="actql-local-signing-public-key/" + "0.2",
-    ),
-    "{\"version\":\"actql-local-signing-public-key/0.1\",\"public_key\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=\",\"algorithm\":\"ed25519\"}",
-  ] {
+  for
+    body in [
+      "null",
+      "{",
+      " " + public_key_identity_wire,
+      public_key_identity_wire + "\n",
+      public_key_identity_wire.replace_all(old="ed25519", new="Ed25519"),
+      public_key_identity_wire.replace_all(old="ed25519", new="rsa"),
+      public_key_identity_wire.replace_all(old="{", new="{\"unknown\":null,"),
+      public_key_identity_wire.replace_all(
+        old="{",
+        new="{\"algorithm\":\"ed25519\",",
+      ),
+      public_key_identity_wire.replace_all(
+        old="\"algorithm\"",
+        new="\"alg\\u006frithm\"",
+      ),
+      public_key_identity_wire.replace_all(old=":", new=": "),
+      public_key_identity_wire.replace_all(
+        old="actql-local-signing-public-key/0.1",
+        new="actql-local-signing-public-key/" + "0.2",
+      ),
+      "{\"version\":\"actql-local-signing-public-key/0.1\",\"public_key\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=\",\"algorithm\":\"ed25519\"}",
+    ] {
     assert_true(
       admit_local_signing_public_key_json(body, public_key_identity_cid)
       is Err(_),
@@ -80,13 +89,14 @@ test "Local signing public-key closed canonical body refuses altered framing" {
 
 ///|
 test "Local signing public-key base64 admits only standard canonical padded bytes" {
-  for encoded in [
-    "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
-    "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh9=",
-    "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8_",
-    "!".repeat(44),
-    "A".repeat(42) + "==",
-  ] {
+  for
+    encoded in [
+      "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
+      "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh9=",
+      "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8_",
+      "!".repeat(44),
+      "A".repeat(42) + "==",
+    ] {
     let body = public_key_identity_wire.replace_all(
       old="AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
       new=encoded,
@@ -102,14 +112,16 @@ test "Local signing public-key base64 admits only standard canonical padded byte
 test "Local signing public-key independent body and expected CID must both match" {
   assert_eq(
     admit_local_signing_public_key_json(
-      public_key_identity_wire, "sha256:" + "f".repeat(64),
+      public_key_identity_wire,
+      "sha256:" + "f".repeat(64),
     ).map(_ => ()),
     Err(PublicKeyIdentityMismatch),
   )
   assert_eq(
-    admit_local_signing_public_key_json(
-      public_key_identity_wire, "copied-cid",
-    ).map(_ => ()),
+    admit_local_signing_public_key_json(public_key_identity_wire, "copied-cid").map(_ => {
+        ()
+      },
+    ),
     Err(InvalidPublicKey),
   )
 }
