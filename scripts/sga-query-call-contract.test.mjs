@@ -21,8 +21,9 @@ function canonical(value) {
 const cid = body => `sha256:${digest(Buffer.from(canonical(body), 'utf8'))}`;
 const fileDigest = path => digest(readFileSync(path));
 
-test('SGA query grammar pin matches an independent normative preimage', () => {
-  const language = readFileSync('docs/spec/language.md', 'utf8');
+// Reconstruct from normative bytes, independently of the manifest writer.
+function normativeGrammarBody(readBytes) {
+  const language = readBytes('docs/spec/language.md').toString('utf8');
   const inventory = language.split('<a id="operation-inventory"></a>')[1]
     .split('<a id="relation-operations"></a>')[0];
   const operations = inventory.split('\n').filter(line => line.startsWith('|'))
@@ -33,25 +34,34 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   // adding a second Graph representation to the current inventory.
   assert.equal(operations.length, 72);
   assert.ok(operations.includes('graph'));
-  const protocol = read('spec/contracts/actql-protocol-schemas.json');
+  const protocol = JSON.parse(readBytes('spec/contracts/actql-protocol-schemas.json'));
   const program = protocol.artifact_schemas.executable_plan.properties
     .execution_material.properties.program;
-  const expression = read('spec/contracts/actql-expressions.json');
+  const expression = JSON.parse(readBytes('spec/contracts/actql-expressions.json'));
   const expressionRules = '<a id="expression-text"></a>' + language
     .split('<a id="expression-text"></a>')[1]
     .split('<a id="predicates"></a>')[0];
-  const currentBody = {
+  return {
     version: 'actql-grammar-manifest/0.1',
     source_grammar_cid: cid(program),
     operations,
     expression_contract_cid: cid(expression),
-    expression_text_grammar_sha256: fileDigest(expression.grammar),
+    expression_text_grammar_sha256: digest(readBytes(expression.grammar)),
     expression_text_rules_sha256: digest(Buffer.from(expressionRules, 'utf8')),
-    structural_text_grammar_sha256: fileDigest('spec/grammar/actql-text-0.1.ebnf'),
-    structural_text_rules_sha256: fileDigest('docs/spec/structural-text.md'),
-    query_text_grammar_sha256: fileDigest('spec/grammar/actql-query-0.1.ebnf'),
-    query_text_rules_sha256: fileDigest('docs/spec/query-text.md'),
+    structural_text_grammar_sha256: digest(readBytes('spec/grammar/actql-text-0.1.ebnf')),
+    structural_text_rules_sha256: digest(readBytes('docs/spec/structural-text.md')),
+    query_text_grammar_sha256: digest(readBytes('spec/grammar/actql-query-0.1.ebnf')),
+    query_text_rules_sha256: digest(readBytes('docs/spec/query-text.md')),
   };
+}
+
+const sequenceSnapshotSource = 'c6aa9761c5fb941ef98279b8aa483cf4e8ca43b0';
+const sequenceSnapshotCid = 'sha256:2aa67a52bae3a27fec7397dfa40c0cdc63096cd988e7cfee480477386c53b2ec';
+const historicalSourceBytes = path => execFileSync('git',
+  ['show', `${sequenceSnapshotSource}:${path}`], {maxBuffer: 8 * 1024 * 1024});
+
+test('SGA query grammar pin matches an independent normative preimage', () => {
+  const currentBody = normativeGrammarBody(path => readFileSync(path));
   const manifest = read('spec/manifests/actql-grammar-0.1.json');
   const {grammar_manifest_cid: currentCid, ...currentPreimage} = manifest;
   assert.deepEqual(currentPreimage, currentBody);
@@ -475,7 +485,10 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   assert.equal(sequenceBody.query_text_rules_sha256, fileDigest('reviews/2026-10-12-frontend-sequence-predicate-ast/preimages/submitted-query-rules.md'));
   const {grammar_manifest_cid: currentSequenceCid, ...currentSequenceBody} = read('scripts/fixtures/current-sequence-values-identities.json').grammar;
   assert.equal(cid(currentSequenceBody), currentSequenceCid);
-  assert.deepEqual(currentBody, currentSequenceBody);
+  // This full snapshot belongs to its original merged normative closure.
+  // Current rules remain checked independently against currentBody above.
+  assert.equal(currentSequenceCid, sequenceSnapshotCid);
+  assert.deepEqual(currentSequenceBody, normativeGrammarBody(historicalSourceBytes));
   const {grammar_manifest_cid: seriesCid, ...seriesBody} = read('scripts/fixtures/submitted-time-series-primary-values-identities.json').grammar;
   assert.equal(cid(seriesBody), seriesCid);
   assert.deepEqual(seriesBody, {...joinBody,query_text_grammar_sha256:seriesBody.query_text_grammar_sha256,query_text_rules_sha256:seriesBody.query_text_rules_sha256});
@@ -684,4 +697,23 @@ test('WITH cutover changes query grammar/rules without changing machine contract
   assert.equal(cid({...beforeCommon, query_text_grammar_sha256: bg, query_text_rules_sha256: br}), bc);
   assert.equal(cid({...afterCommon, query_text_grammar_sha256: ag, query_text_rules_sha256: ar}), ac);
   assert.notEqual(ag, bg); assert.notEqual(ar, br); assert.notEqual(ac, bc);
+});
+
+
+test('retained Sequence closure rejects current-rule and partial historical mixtures', () => {
+  const historical = normativeGrammarBody(historicalSourceBytes);
+  assert.equal(cid(historical), sequenceSnapshotCid);
+  const current = normativeGrammarBody(path => readFileSync(path));
+  assert.notEqual(cid(current), sequenceSnapshotCid);
+  assert.notEqual(cid({...historical,
+    query_text_rules_sha256: current.query_text_rules_sha256}), sequenceSnapshotCid);
+  for (const field of ['source_grammar_cid', 'expression_contract_cid',
+    'expression_text_grammar_sha256', 'expression_text_rules_sha256',
+    'structural_text_grammar_sha256', 'structural_text_rules_sha256',
+    'query_text_grammar_sha256', 'query_text_rules_sha256']) {
+    assert.notEqual(cid({...historical, [field]: '0'.repeat(64)}), sequenceSnapshotCid);
+    const partial = {...historical};
+    delete partial[field];
+    assert.notEqual(cid(partial), sequenceSnapshotCid);
+  }
 });
