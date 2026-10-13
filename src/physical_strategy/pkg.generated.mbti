@@ -488,6 +488,8 @@ pub fn graph_program_definition_cid(CheckedDAG) -> String
 
 pub fn graph_program_has_effects(CheckedDAG) -> Bool
 
+pub fn graph_requires_acquisition_result_publication(CheckedDAG) -> Bool
+
 pub fn graph_result_count(CheckedDAG) -> Int
 
 pub fn graph_result_name(CheckedDAG, Int) -> String?

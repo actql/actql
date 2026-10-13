@@ -7,6 +7,11 @@ import {canonicalText, verifyIdentity} from './check-canonical-json.mjs';
 import {machineCid} from './actql-spec-family.mjs';
 import {checkModelDependencySchemas, modelRetryOrder} from
   './model-dependency-contract.mjs';
+import {checkOpenAIChatVectors} from './openai-chat-vectors.mjs';
+
+test('closed OpenAI generation payload independent vectors stay fresh', () => {
+  checkOpenAIChatVectors();
+});
 
 // Independent Node hashing and literal bodies, never values returned by the
 // product reader, provider, execution, or an evidence issuer.

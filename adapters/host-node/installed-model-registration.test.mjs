@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {installModelProviders} from './installed-model.mjs';
+import {selectedInferOriginalCurrentStateCodec} from './infer-original-installation.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import {selectedInferOriginalMetadataLimits} from './infer-original-installation.mjs';
 
@@ -154,6 +155,40 @@ test('trusted original read installation preserves exact quantities and snapshot
   assert.equal(selected.originalReadInstallation.nodeInstallation.probability, probability,
     'an opaque admitted probability profile is retained, not copied or reconstructed');
   assert.deepEqual(counts(), {installations: 1, sends: 0, lookups: 0});
+});
+
+test('original current codec is one immutable installation selection, not a copied amount grant',()=>{
+  const {moon,entry,counts}=fixture(),declaration=originalInstallation();
+  const codec={quantum:1,comparisonWork:5,decode:{maxWork:20000,
+    parse:{max_input_bytes:10000,max_nodes:1000,max_depth:20},
+    tree:{max_nodes:1000,max_depth:20,max_string_bytes:10000,max_total_string_bytes:10000}}};
+  declaration.currentStateCodec=codec;entry.originalReadInstallation=declaration;
+  const installed=installModelProviders(moon,()=>[entry]).get(entry.providerId).originalReadInstallation;
+  const chosen=selectedInferOriginalCurrentStateCodec(installed,installed.nodeInstallation);
+  assert.deepEqual(chosen,codec);
+  assert.ok(Object.isFrozen(chosen)&&Object.isFrozen(chosen.decode)&&Object.isFrozen(chosen.decode.parse));
+  codec.quantum=0;codec.decode.parse.max_input_bytes=0;
+  assert.equal(chosen.quantum,1);assert.equal(chosen.decode.parse.max_input_bytes,10000);
+  assert.strictEqual(selectedInferOriginalCurrentStateCodec(installed,installed.nodeInstallation),chosen);
+  for(const [original,node] of [[{...installed},installed.nodeInstallation],
+    [installed,{...installed.nodeInstallation}],[undefined,installed.nodeInstallation]]){
+    assert.throws(()=>selectedInferOriginalCurrentStateCodec(original,node),
+      {code:'InferOriginalStateCodecUnavailable'});
+  }
+  assert.deepEqual(counts(),{installations:1,sends:0,lookups:0});
+});
+
+test('invalid original current codec refuses before Provider installation with no default quantity',()=>{
+  for(const codec of [null,{}, {quantum:1,comparisonWork:5,decode:null},
+    {quantum:0,comparisonWork:5,decode:{}}, {quantum:1.5,comparisonWork:5,decode:{}},
+    {quantum:1,comparisonWork:5,decode:{maxWork:0,parse:{},tree:{}}},
+    {quantum:1,comparisonWork:5,decode:{maxWork:1,parse:{max_input_bytes:1,max_nodes:1,max_depth:1},
+      tree:{max_nodes:1,max_depth:1,max_string_bytes:1,max_total_string_bytes:1},extra:true}}]){
+    const {moon,entry,counts}=fixture(),declaration=originalInstallation();
+    declaration.currentStateCodec=codec;entry.originalReadInstallation=declaration;
+    assert.throws(()=>installModelProviders(moon,()=>[entry]),{code:'ModelOriginalCurrentCodecUnavailable'});
+    assert.deepEqual(counts(),{installations:0,sends:0,lookups:0});
+  }
 });
 
 test('malformed original read installation refuses before provider or scope construction', () => {

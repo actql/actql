@@ -11,11 +11,12 @@ const expressionContractCid =
   'sha256:bdfd03bfd57f9b3d65e0c53bc122fd86235809dc16be7cd7ec08616c18d7242d';
 const corpusUrl = new URL(
   '../portability/corpus/effect-literal-key-identities.json', import.meta.url);
-// ABS changed the governing expression contract on main. Keep the preceding
-// fixed corpus intact; current runtime checks derive new preimages below from
+// The adopted ContentRef and scalar contracts changed the governing expression
+// dependency. Keep the preceding fixed corpus intact; current checks derive
+// new preimages below from
 // the independently authored envelopes, never from runtime identities.
 const currentExpressionContractCid =
-  'sha256:9bb1823e6638e1aba9f57d94323ef2877ad02f391149d37920f138404f8ac842';
+  'sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289';
 
 // Test/oracle only. JSON keys sort by their exact UTF-16 code units. Writing
 // each field directly also avoids JavaScript's numeric-key re-enumeration.

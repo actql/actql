@@ -52,7 +52,10 @@ pub fn client_run_journal_append_rows(
 pub fn[E] read_client_retained_run_journal(
   request : ClientRequestIdentity,
   read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
-  validate_run : (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E],
+  validate_run : (ClientJournalPhysicalRow) -> Result[
+    ClientRunJournalInspection,
+    E,
+  ],
   custody_lost : E,
 ) -> Result[ClientRetainedRunJournalRow?, ClientRunJournalAppendIssue[E]] {
   let key = client_request_scope_cid(request)
@@ -83,14 +86,20 @@ pub fn[E] prepare_client_run_journal_append(
   max_records : Int,
   scan : (String, String) -> Result[ClientJournalPhysicalRow?, E],
   read : (String, String) -> Result[ClientJournalPhysicalRow?, E],
-  validate_run : (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E],
+  validate_run : (ClientJournalPhysicalRow) -> Result[
+    ClientRunJournalInspection,
+    E,
+  ],
   confirm_cancellation : () -> Result[Unit, E],
   custody_lost : E,
   local_policy_original? : ClientLocalRunPolicyOriginal? = None,
 ) -> Result[ClientRunJournalAppendPlan, ClientRunJournalAppendIssue[E]] {
-  match read_client_retained_run_journal(request, read, validate_run, custody_lost) {
+  match
+    read_client_retained_run_journal(request, read, validate_run, custody_lost) {
     Ok(Some(retained)) => {
-      if @publication.publication_contract_identity(retained.original.definition) !=
+      if @publication.publication_contract_identity(
+          retained.original.definition,
+        ) !=
         @publication.publication_contract_identity(definition) {
         return Err(ForeignRun)
       }
@@ -103,9 +112,10 @@ pub fn[E] prepare_client_run_journal_append(
   if @publication.publication_contract_name(definition) != "run_definition" {
     return Err(InvalidOriginal)
   }
-  let (count, revision) = match inspect_client_run_journal_inventory(
-    max_records, scan, read, validate_run, confirm_cancellation, custody_lost,
-  ) {
+  let (count, revision) = match
+    inspect_client_run_journal_inventory(
+      max_records, scan, read, validate_run, confirm_cancellation, custody_lost,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Observation(issue))
   }
@@ -147,7 +157,9 @@ pub fn[E] prepare_client_run_journal_append(
     None => None
     Some(original) => {
       let body = client_local_run_policy_original_body(original)
-      if validate_client_local_run_policy_original_run(body, request, definition)
+      if validate_client_local_run_policy_original_run(
+          body, request, definition,
+        )
         is Err(_) {
         return Err(InvalidOriginal)
       }
@@ -156,7 +168,8 @@ pub fn[E] prepare_client_run_journal_append(
     }
   }
   let record : ClientRunJournalEncoding = {
-    request, definition,
+    request,
+    definition,
     dispatch_reserved: false,
     physical_start_claimed: false,
     cancellation_requested: false,
@@ -165,13 +178,17 @@ pub fn[E] prepare_client_run_journal_append(
     effect_material_originals: None,
     checkpoint: None,
   }
-  let body = match client_run_journal_row_body(record, local_run_policy_originals=policy) {
+  let body = match
+    client_run_journal_row_body(record, local_run_policy_originals=policy) {
     Ok(value) => value
     Err(issue) => return Err(Encoding(issue))
   }
-  Ok(Append({
-    key: client_request_scope_cid(request), body,
-    issued_revision: revision,
-    issued_body: @utf8.encode((count + 1).to_string()),
-  }))
+  Ok(
+    Append({
+      key: client_request_scope_cid(request),
+      body,
+      issued_revision: revision,
+      issued_body: @utf8.encode((count + 1).to_string()),
+    }),
+  )
 }

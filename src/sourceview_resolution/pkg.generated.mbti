@@ -59,6 +59,8 @@ pub fn check_lookup_bounds(KeyedRowBounds, @check_environment.LookupExecution, I
 
 pub fn check_pipeline_requests(PipelineUses, RequestParameters, RequestLimits) -> Result[PipelineRequests, AcquisitionIssue]
 
+pub fn check_request_form(RequestContext, ResolvedInput, Int) -> Result[RequestFormCheck, RequestFormIssue]
+
 pub fn checkpoint_reference(ModeCheckpoint) -> @check_environment.CatalogReference
 
 pub fn checkpoint_value_contract(ModeCheckpoint) -> @check_environment.ProtocolValueContract
@@ -298,6 +300,14 @@ pub fn request_context_work(RequestContext) -> Int
 pub fn request_field_at(DirectRequest, Int) -> RequestField?
 
 pub fn request_field_count(DirectRequest) -> Int
+
+pub fn request_form(RequestFormCheck) -> RequestForm
+
+pub fn request_form_context(RequestFormCheck) -> RequestContext
+
+pub fn request_form_input(RequestFormCheck) -> ResolvedInput
+
+pub fn request_form_work(RequestFormCheck) -> Int
 
 pub fn request_input(DirectRequest) -> ResolvedInput
 
@@ -587,6 +597,20 @@ pub struct RequestField {
   contract : @value_contract.Contract
   value : RequestValue
 }
+
+pub(all) enum RequestForm {
+  DirectForm
+  KeyedTemplate
+} derive(Eq, @debug.Debug)
+
+type RequestFormCheck
+
+pub(all) enum RequestFormIssue {
+  InvalidLimits
+  ForeignRequests
+  WorkLimit
+  PartialCorrelation
+} derive(Eq, @debug.Debug)
 
 pub struct RequestIssue {
   kind : RequestIssueKind

@@ -8,7 +8,8 @@ const {installNodeInferRun} = await import(process.env.ACTQL_ORIGINAL_CLEANUP_MO
   './installed-infer-run.mjs');
 
 function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
-  installation = false, readIssue, scopeIssue} = {}) {
+  installation = false, readIssue, scopeIssue, waiting=false,
+  authorization='dispatch',cutIssue} = {}) {
   const calls = [], active = {}, read = {}, scope = {}, compiled = {}, consumer = {};
   const preparedProgram = {}, graph = {};
   const runDefinition = {wire: '{"run_id":"original-cleanup"}'};
@@ -16,6 +17,9 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
   let custody, physicalComplete = false, physicalPending = true, physicalFailure;
   let allowScope = true, stoppedRead = false, settledRead = false;
   let stop = stopComplete, modelCleanup = modelCleanupComplete;
+  let advances=0;
+  const nextIssue={kind:'NextModelAdvanceFixtureStop'};
+  const preparedCallSet={};
   const moon = {
     clientProgramInferPlanBoundary: () => ({_0: 0}),
     clientProgramStartOriginalInferExecution() {
@@ -26,10 +30,19 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
       calls.push('unownedStart'); return {$tag: 1, _0: active};
     },
     clientProgramRequireInferCallEntry: () => ({$tag: 1, _0: undefined}),
-    clientProgramBindInferQuantityCapacity: () => ({$tag: 0, _0: issue}),
+    clientProgramBindInferQuantityCapacity: () => waiting ? {$tag:1,_0:undefined}:({$tag: 0, _0: issue}),
     clientProgramCancelInferExecution() { calls.push('modelStopRequest'); },
     clientProgramInferExecutionStopped: () => stop,
-    clientProgramAdvanceInferExecution: () => ({$tag: 1, _0: stop ? 'stopped' : 'waiting'}),
+    clientProgramAdvanceInferExecution: () => {
+      if(!waiting)return {$tag: 1, _0: stop ? 'stopped' : 'waiting'};
+      calls.push('advance');advances++;
+      return advances===1?{$tag:1,_0:'waiting'}:{$tag:1,_0:'failed'};
+    },
+    clientProgramInferExecutionPollIssue:()=>nextIssue,
+    clientProgramInferPreparedCallSet:()=>preparedCallSet,
+    clientProgramInferCallSettlement:()=>undefined,
+    clientProgramResultCount:()=>1,
+    clientProgramResultName:()=> 'answer',
     clientProgramInferExecutionPollKind: value => value,
     clientProgramCleanupInferExecution() {
       calls.push('modelCleanup'); return {$tag: 1, _0: modelCleanup};
@@ -40,6 +53,9 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     assert.equal(actualGraph, graph);
   };
   const control = {
+    bindCheckedClientInferRun(actualCompiled,actualActive,definition){
+      assert.equal(actualCompiled,compiled);assert.equal(actualActive,active);assert.equal(definition,runDefinition);
+      calls.push('bindRun');},
     beginCheckedClientInferOriginalReadScope(...args) {
       exact(...args); assert.notEqual(custody, undefined);
       assert.equal(args[3].quantityCapacity, selected.quantityCapacity);
@@ -108,6 +124,11 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     bootstrap: {bootstrapRetainedBytes: 20n, bootstrapExecutionBytes: 20n,
       maxReservations: 8, maxHoldings: 8, maxDelegations: 8},
     modelRetainedBytes: 100n, modelExecutionBytes: 5n,
+    currentStateCodec:{quantum:1,comparisonWork:5,decode:{maxWork:20000,
+      parse:{max_input_bytes:10000,max_nodes:1000,max_depth:20},
+      tree:{max_nodes:1000,max_depth:20,max_string_bytes:10000,max_total_string_bytes:10000}}},
+    // Independent declaration DATA only; these tests allocate no publication.
+    publicationCapacity:{retainedBytes:1n,workspaceBytes:0n},
     nodeInstallation: {...originalPreparation.nodeInstallation, layout: {
       response_profile: {}, runtime_artifact_cid: 'runtime', layout_artifact_cid: 'layout',
       program_definition_cid: 'program', parameter_values_cid: 'parameters',
@@ -116,15 +137,21 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
   const modelController = {discover: () => discovered,
     prime() { assert.fail('fresh original preparation cannot prime restored input'); },
     release(token) { assert.equal(token, undefined); },
-    open() { assert.fail('a binding refusal cannot authorize a Model call'); }};
+    unresolved:()=>false,
+    async open(options) {
+      if(!waiting)assert.fail('a binding refusal cannot authorize a Model call');
+      assert.equal(options.preparedCallSet,preparedCallSet);calls.push('openContinuation');
+      return {observe(){},entry(){},async authorize(){calls.push('authorize');return {status:authorization};},
+        async prepareOriginalResourcesForDispatch(){calls.push('originalCut');if(cutIssue!==undefined)throw cutIssue;}};
+    }};
   const runInfer = installNodeInferRun({moon, core: {publicationControl: control},
     selections: new Map([[preparedProgram, selected]]), modelController});
   const input = {preparedProgram, plan, originalPreparation,
     signal: new AbortController().signal,
     retainExecution(value) { assert.equal(custody, undefined); custody = value; },
-    beginPhysicalWork() { assert.fail('refused execution cannot begin physical work'); }};
+    beginPhysicalWork() { if(!waiting)assert.fail('refused execution cannot begin physical work');calls.push('physicalBegin'); }};
   if (installation) delete input.originalPreparation;
-  return {run: () => runInfer(input), input, issue, calls, originalPreparation, selected, control,
+  return {run: () => runInfer(input), input, issue, nextIssue, calls, originalPreparation, selected, control,
     custody: () => custody,
     physical(complete, pending = !complete) { physicalComplete = complete; physicalPending = pending; },
     failPhysical(error) { physicalFailure = error; },
@@ -146,6 +173,48 @@ test('installed read supplier creates one original scope and read before one-sho
   await f.custody().cleanup();
   assert.equal(f.calls.filter(value => value === 'scopeBegin').length, 1);
   assert.equal(f.calls.filter(value => value === 'originalStart').length, 1);
+});
+
+test('missing original state codec is refused before child allocation or physical preparation', async () => {
+  const f=fixture({installation:true});
+  f.selected.originalReadInstallation=retainInferOriginalReadInstallation({
+    ...f.selected.originalReadInstallation,currentStateCodec:undefined});
+  await assert.rejects(f.run(),{code:'InferOriginalStateCodecUnavailable'});
+  assert.deepEqual(f.calls,[]);
+  assert.equal(f.custody(),undefined);
+});
+
+test('missing original publication supply is refused before creating a scope or sending',async()=>{
+  const f=fixture({installation:true});
+  f.selected.originalReadInstallation=retainInferOriginalReadInstallation({
+    ...f.selected.originalReadInstallation,publicationCapacity:undefined});
+  await assert.rejects(f.run(),{code:'InferOriginalPublicationCapacityUnavailable'});
+  assert.deepEqual(f.calls,[]);assert.equal(f.custody(),undefined);
+});
+
+test('installed original dispatch completes its cut after authorization and before the next Model advance',async()=>{
+  const f=fixture({installation:true,waiting:true,stopComplete:false});
+  await assert.rejects(f.run(),typed(f.nextIssue));
+  assert.deepEqual(f.calls,['scopeBegin','readPrepare','claim','originalStart',
+    'physicalBegin','bindRun','advance','openContinuation','authorize','originalCut','advance']);
+});
+
+test('installed original waiting approval does not run cut or another Model advance',async()=>{
+  const f=fixture({installation:true,waiting:true,stopComplete:false,authorization:'waiting_checkpoint'});
+  assert.deepEqual(await f.run(),{status:'waiting_checkpoint'});
+  assert.equal(f.calls.includes('originalCut'),false);
+  assert.equal(f.calls.filter(value=>value==='advance').length,1);
+});
+
+test('installed original failed cut cannot reach next Model advance or replace the original child',async()=>{
+  const cutIssue=Object.assign(new Error('CheckpointJournalCommitOutcomeUnknown'),
+    {code:'CheckpointJournalCommitOutcomeUnknown',outcome:'unknown'});
+  const f=fixture({installation:true,waiting:true,stopComplete:false,cutIssue});
+  await assert.rejects(f.run(),error=>error===cutIssue);
+  assert.equal(f.calls.filter(value=>value==='advance').length,1);
+  assert.equal(f.calls.filter(value=>value==='originalStart').length,1);
+  assert.equal(f.calls.filter(value=>value==='originalCut').length,1);
+  assert.equal(f.custody().cleanupPending(),true);
 });
 
 test('installed read supplier retains only the original scope after typed read refusal', async () => {

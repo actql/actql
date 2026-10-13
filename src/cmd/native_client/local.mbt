@@ -107,6 +107,8 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
   }
   if operation == "adopt" ||
     operation == "connect" ||
+    operation == "upgrade-policy" ||
+    operation == "lookup-policy-upgrade" ||
     operation == "new-submission" ||
     operation == "lookup-submission" ||
     operation == "checkpoint-state" ||
