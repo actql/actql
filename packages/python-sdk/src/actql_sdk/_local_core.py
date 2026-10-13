@@ -665,7 +665,8 @@ class LocalCore:
             _compiled_image.recipe.validate()
             if fuel != 100_000_000:
                 raise ValueError('Installed Local image requires the original instruction fuel')
-        if _physical_holding is not None and type(_physical_holding) is not _NativeHoldingLease:
+        if _physical_holding is not None and (type(_physical_holding) is not _NativeHoldingLease
+                                               or _compiled_image is None):
             raise ValueError('Invalid original native holding')
         self._lock = RLock()
         self._identity = object()
@@ -694,74 +695,77 @@ class LocalCore:
             _physical_holding._bind_core(self._identity)
         self._physical_holding = _physical_holding
         try:
-            # Keep an already supplied holding through optional import failure.
-            # Remote-only imports never initialize the optional engine.
-            try:
-                wasmtime = import_module('wasmtime')
-            except ImportError as error:
-                raise RuntimeError('Python Local requires the optional Wasmtime runtime') from error
-            if _compiled_image is not None:
-                _compiled_image.recipe.validate()
-                from ._local_engine import _configure_selected_engine, _verify_loaded_runtime
-                ffi = import_module('wasmtime._ffi')
-                _verify_loaded_runtime(_compiled_image, ffi)
-            self._engine_configuration = wasmtime.Config()
-            if _compiled_image is None:
-                # Original raw-Wasm physical diagnostics remain separately
-                # qualified. The installed product never selects this branch.
-                self._engine_configuration.consume_fuel = True
-            else:
-                self._pool_ffi = ffi
-                self._pool_configuration = ffi.wasmtime_pooling_allocation_config_new()
-                if not self._pool_configuration:
-                    raise RuntimeError('Selected Local pooling configuration is unavailable')
-                _configure_selected_engine(self._engine_configuration, self._pool_configuration,
-                                           ffi, wasmtime, _compiled_image.recipe)
-                # Pinned C API clones the pool settings; retire the temporary
-                # configuration only after that copy succeeds.
-                ffi.wasmtime_pooling_allocation_config_delete(self._pool_configuration)
-                self._pool_configuration = None
-            self._engine = wasmtime.Engine(self._engine_configuration)
-            self._engine_configuration = None
-            self._store = wasmtime.Store(self._engine)
-            self._store.set_fuel(fuel)
-            self._store.set_limits(memory_size=_MEMORY_LIMIT, memories=1)
-            self._module = (wasmtime.Module(self._engine, module) if _compiled_image is None
-                            else wasmtime.Module.deserialize(self._engine, _compiled_image.encoded))
-            _validate_core_module(wasmtime, self._module)
-            self._linker = wasmtime.Linker(self._engine)
-            for name, callback in [('input_byte', self._read),
-                                   ('input_cleanup', self._cleanup),
-                                   ('reader_stop', self._stopped),
-                                   ('native_settled', self._native_settled),
-                                   ('native_stopped', self._native_stopped),
-                                   ('native_cleaned', self._native_cleaned),
-                                   ('publisher_current', self._publisher_current),
-                                   ('publisher_begin', self._publisher_begin),
-                                   ('publisher_byte', self._publisher_byte),
-                                   ('publisher_finish', self._publisher_finish),
-                                   ('journal_current', self._journal_current),
-                                   ('journal_begin', self._journal_begin),
-                                   ('journal_query_byte', self._journal_query_byte),
-                                   ('journal_query', self._journal_query),
-                                   ('journal_length', self._journal_length),
-                                   ('journal_byte', self._journal_byte),
-                                   ('journal_revision', self._journal_revision),
-                                   ('journal_release', self._journal_release)]:
-                params = [wasmtime.ValType.i32()
-                          for _ in _IMPORT_SIGNATURES[name][0].split()]
-                self._linker.define_func('actql_host', name,
-                    wasmtime.FuncType(params, [wasmtime.ValType.i64() if
-                        _IMPORT_SIGNATURES[name][1] == 'i64' else wasmtime.ValType.i32()]), callback)
-            instance = self._linker.instantiate(self._store, self._module)
-            self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != LOCAL_CORE_ABI:
-                raise ValueError('Unsupported Local Core ABI version')
-            self._check('open', self._call('buffer', 'open', transfer_capacity,
-                                        slots, 1_048_576, resources.planning_work,
-                                        resources.attempts, resources.holdings,
-                                        resources.transfer_bytes, resources.retained_bytes,
-                                        resources.execution_bytes, _host_capacity_bytes))
+            with self._native_scope():
+                # Keep an already supplied holding through optional import failure.
+                # Remote-only imports never initialize the optional engine.
+                try:
+                    wasmtime = import_module('wasmtime')
+                except ImportError as error:
+                    raise RuntimeError('Python Local requires the optional Wasmtime runtime') from error
+                if _compiled_image is not None:
+                    _compiled_image.recipe.validate()
+                    from ._local_engine import _configure_selected_engine, _verify_loaded_runtime
+                    ffi = import_module('wasmtime._ffi')
+                    _verify_loaded_runtime(_compiled_image, ffi)
+                    if self._physical_holding is not None:
+                        self._physical_holding._verify_library(ffi.dll)
+                self._engine_configuration = wasmtime.Config()
+                if _compiled_image is None:
+                    # Original raw-Wasm physical diagnostics remain separately
+                    # qualified. The installed product never selects this branch.
+                    self._engine_configuration.consume_fuel = True
+                else:
+                    self._pool_ffi = ffi
+                    self._pool_configuration = ffi.wasmtime_pooling_allocation_config_new()
+                    if not self._pool_configuration:
+                        raise RuntimeError('Selected Local pooling configuration is unavailable')
+                    _configure_selected_engine(self._engine_configuration, self._pool_configuration,
+                                               ffi, wasmtime, _compiled_image.recipe)
+                    # Pinned C API clones the pool settings; retire the temporary
+                    # configuration only after that copy succeeds.
+                    ffi.wasmtime_pooling_allocation_config_delete(self._pool_configuration)
+                    self._pool_configuration = None
+                self._engine = wasmtime.Engine(self._engine_configuration)
+                self._engine_configuration = None
+                self._store = wasmtime.Store(self._engine)
+                self._store.set_fuel(fuel)
+                self._store.set_limits(memory_size=_MEMORY_LIMIT, memories=1)
+                self._module = (wasmtime.Module(self._engine, module) if _compiled_image is None
+                                else wasmtime.Module.deserialize(self._engine, _compiled_image.encoded))
+                _validate_core_module(wasmtime, self._module)
+                self._linker = wasmtime.Linker(self._engine)
+                for name, callback in [('input_byte', self._read),
+                                       ('input_cleanup', self._cleanup),
+                                       ('reader_stop', self._stopped),
+                                       ('native_settled', self._native_settled),
+                                       ('native_stopped', self._native_stopped),
+                                       ('native_cleaned', self._native_cleaned),
+                                       ('publisher_current', self._publisher_current),
+                                       ('publisher_begin', self._publisher_begin),
+                                       ('publisher_byte', self._publisher_byte),
+                                       ('publisher_finish', self._publisher_finish),
+                                       ('journal_current', self._journal_current),
+                                       ('journal_begin', self._journal_begin),
+                                       ('journal_query_byte', self._journal_query_byte),
+                                       ('journal_query', self._journal_query),
+                                       ('journal_length', self._journal_length),
+                                       ('journal_byte', self._journal_byte),
+                                       ('journal_revision', self._journal_revision),
+                                       ('journal_release', self._journal_release)]:
+                    params = [wasmtime.ValType.i32()
+                              for _ in _IMPORT_SIGNATURES[name][0].split()]
+                    self._linker.define_func('actql_host', name,
+                        wasmtime.FuncType(params, [wasmtime.ValType.i64() if
+                            _IMPORT_SIGNATURES[name][1] == 'i64' else wasmtime.ValType.i32()]), callback)
+                instance = self._linker.instantiate(self._store, self._module)
+                self._exports = instance.exports(self._store)
+                if self._exports['actql_host_abi_version'](self._store) != LOCAL_CORE_ABI:
+                    raise ValueError('Unsupported Local Core ABI version')
+                self._check('open', self._call('buffer', 'open', transfer_capacity,
+                                            slots, 1_048_576, resources.planning_work,
+                                            resources.attempts, resources.holdings,
+                                            resources.transfer_bytes, resources.retained_bytes,
+                                            resources.execution_bytes, _host_capacity_bytes))
         except BaseException as error:
             self._retired = True
             self._closing = True
@@ -771,6 +775,15 @@ class LocalCore:
                 raise LocalCoreInitializationError(self) from error
             raise
 
+    @contextmanager
+    def _native_scope(self) -> Iterator[None]:
+        holding: _NativeHoldingLease | None = getattr(self, '_physical_holding', None)
+        if holding is None:
+            yield
+        else:
+            with holding._scope():
+                yield
+
     def _call(self, family: str, name: str, *arguments: int) -> int:
         if self._closed or self._retired:
             raise RuntimeError('Local Core is closed')
@@ -778,8 +791,9 @@ class LocalCore:
             raise RuntimeError('Local Core callbacks cannot reenter the instance')
         self._invoking = True
         try:
-            result = self._exports[f'actql_{family}_{name}'](
-                self._store, self._nonce, *arguments)
+            with self._native_scope():
+                result = self._exports[f'actql_{family}_{name}'](
+                    self._store, self._nonce, *arguments)
         except BaseException:
             # The Core may already own the original invocation/ticket. Block
             # new work while retaining this instance for explicit retirement.
@@ -3632,17 +3646,21 @@ class LocalCore:
         # Keep the Store, and therefore the original Wasm Root, until every
         # other native handle has retired. A failed child/Engine cleanup must
         # not destroy that Root or drop its pending capacity first.
-        for name in ('_linker', '_module', '_engine', '_engine_configuration'):
-            value = getattr(self, name, None)
-            if value is not None:
-                value.close()
-                setattr(self, name, None)
-        if getattr(self, '_pool_configuration', None) is not None:
-            self._pool_ffi.wasmtime_pooling_allocation_config_delete(self._pool_configuration)
-            self._pool_configuration = None
-        if getattr(self, '_store', None) is not None:
-            self._store.close()
-            self._store = None
+        if any(getattr(self, name, None) is not None for name in
+               ('_linker', '_module', '_engine', '_engine_configuration',
+                '_pool_configuration', '_store')):
+            with self._native_scope():
+                for name in ('_linker', '_module', '_engine', '_engine_configuration'):
+                    value = getattr(self, name, None)
+                    if value is not None:
+                        value.close()
+                        setattr(self, name, None)
+                if getattr(self, '_pool_configuration', None) is not None:
+                    self._pool_ffi.wasmtime_pooling_allocation_config_delete(self._pool_configuration)
+                    self._pool_configuration = None
+                if getattr(self, '_store', None) is not None:
+                    self._store.close()
+                    self._store = None
         holding: _NativeHoldingLease | None = getattr(self, '_physical_holding', None)
         if holding is not None:
             # Store success retires the executable Wasm Root. A final native

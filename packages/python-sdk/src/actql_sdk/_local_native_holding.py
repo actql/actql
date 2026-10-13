@@ -6,6 +6,8 @@ This adapter neither loads a DLL nor acquires/adopts an allocator or profile.
 from __future__ import annotations
 
 from ctypes import byref, c_int, c_void_p, POINTER
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
 
 
@@ -15,6 +17,14 @@ class NativeHoldingRetirementError(RuntimeError):
     def __init__(self, code: int | None) -> None:
         self.code = code
         super().__init__('Native Local holding retirement failed or is unconfirmed')
+
+
+class NativeHoldingScopeError(RuntimeError):
+    """An unconfirmed native call scope; never successful cleanup or ACK."""
+
+    def __init__(self, operation: str, code: int | None) -> None:
+        self.operation, self.code = operation, code
+        super().__init__(f'Native Local holding {operation} failed or is unconfirmed')
 
 
 class _NativeHoldingLease:
@@ -53,6 +63,30 @@ class _NativeHoldingLease:
         if self._core_identity is not None or self._pointer.value is None:
             raise ValueError('Original native holding was already transferred or retired')
         self._core_identity = identity
+
+    def _verify_library(self, library: Any) -> None:
+        if library is not self._library:
+            raise ValueError('Native Local holding and runtime library differ')
+
+    @contextmanager
+    def _scope(self) -> Iterator[None]:
+        """Use native TLS ownership; do not infer or mirror native scope state."""
+        if self._pointer.value is None:
+            raise ValueError('Original native holding is retired')
+        enter = self._library.actql_owned_enter
+        leave = self._library.actql_owned_leave
+        for function in (enter, leave):
+            function.argtypes = [c_void_p]
+            function.restype = c_int
+        code = enter(self._pointer)
+        if type(code) is not int or code != 0:
+            raise NativeHoldingScopeError('enter', code if type(code) is int else None)
+        try:
+            yield
+        finally:
+            code = leave(self._pointer)
+            if type(code) is not int or code != 0:
+                raise NativeHoldingScopeError('leave', code if type(code) is int else None)
 
     def close(self) -> None:
         if self._pointer.value is None:

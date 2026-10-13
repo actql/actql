@@ -16,7 +16,8 @@ from actql_sdk._local_engine import (_InstalledImageInput, _checked_installed_im
     _configure_selected_engine, _verify_loaded_runtime)
 from actql_sdk._local_image_recipe import _recipe_from_original
 from actql_sdk._local_product import InstalledLocalHost
-from actql_sdk._local_native_holding import _NativeHoldingLease, NativeHoldingRetirementError
+from actql_sdk._local_native_holding import (_NativeHoldingLease,
+    NativeHoldingRetirementError, NativeHoldingScopeError)
 from image_fixture import ORIGINAL, IMAGE, ENGINE
 import test_local_distribution as distribution_fixture
 
@@ -71,6 +72,22 @@ class NativeRetirement:
         code, cleared = reply
         if cleared:
             pointer.contents.value = None
+        return code
+
+
+class NativeScope:
+    """Native TLS scope double, independent of production Python custody."""
+
+    def __init__(self, state, operation):
+        self.state, self.operation = state, operation
+
+    def __call__(self, pointer):
+        state = self.state
+        state.events.append((self.operation, pointer.value))
+        replies = state.enter_replies if self.operation == 'enter' else state.leave_replies
+        code = replies.pop(0) if replies else 0
+        if type(code) is int and code == 0:
+            state.depth += 1 if self.operation == 'enter' else -1
         return code
 
 
@@ -226,6 +243,8 @@ class InstalledImageTests(unittest.TestCase):
         self.wasmtime.Linker = lambda engine: linker
         self.wasmtime.ValType = SimpleNamespace(i32=lambda: 'i32', i64=lambda: 'i64')
         self.wasmtime.FuncType = lambda *args: args
+        if holding is not None:
+            self.ffi.dll = holding._library
         resources = replace(RESOURCES, execution_bytes=16777216 + 65536 + 4096)
         with patch('actql_sdk._local_core.import_module', side_effect=self.runtime), \
                 patch('actql_sdk._local_engine._verify_loaded_runtime'), \
@@ -270,7 +289,10 @@ class InstalledImageTests(unittest.TestCase):
 
     def _holding(self, replies):
         retire = NativeRetirement(self.events, replies)
-        library = SimpleNamespace(actql_owned_try_close=retire)
+        state = SimpleNamespace(depth=0, events=[], enter_replies=[], leave_replies=[])
+        library = SimpleNamespace(actql_owned_try_close=retire,
+            actql_owned_enter=NativeScope(state, 'enter'),
+            actql_owned_leave=NativeScope(state, 'leave'), scope=state)
         original = c_void_p(123)  # Independent pointer scalar, not an allocation.
         holding = _NativeHoldingLease(original, library)
         self.assertIsNone(original.value)
@@ -377,3 +399,84 @@ class InstalledImageTests(unittest.TestCase):
         with patch('actql_sdk._local_core.import_module', side_effect=AssertionError('Second engine')):
             with self.assertRaisesRegex(ValueError, 'already transferred'):
                 self.create(_physical_holding=holding)
+
+    def test_native_scope_covers_initialization_calls_and_store_retirement(self):
+        holding, library = self._holding([(0, True)])
+        state = library.scope
+        config = self.wasmtime.Config
+        self.wasmtime.Config = lambda: self._observe_scope(state, config)
+        close_store = self.store.close
+        self.store.close = lambda: self._observe_scope(state, close_store)
+        core, _ = self._construct_with_baseline(holding=holding)
+        self.assertEqual(state.depth, 0)
+        self.assertEqual(state.events,
+            [('enter', 123), ('enter', 123), ('leave', 123), ('leave', 123)])
+        self.assertTrue(core.close())
+        self.assertEqual(state.depth, 0)
+        self.assertEqual(state.events[-4:],
+            [('enter', 123), ('leave', 123), ('enter', 123), ('leave', 123)])
+
+    def _observe_scope(self, state, action):
+        self.assertGreater(state.depth, 0)
+        return action()
+
+    def test_foreign_runtime_library_refuses_before_config_or_engine(self):
+        holding, library = self._holding([(0, True)])
+        self.ffi.dll = object()
+        with patch('actql_sdk._local_core.import_module', side_effect=self.runtime), \
+                patch('actql_sdk._local_engine._verify_loaded_runtime'):
+            with self.assertRaisesRegex(ValueError, 'runtime library differ'):
+                self.create(_physical_holding=holding)
+        self.deserialize.assert_not_called()
+        self.assertEqual(self.events, [('retire', 123)])
+        self.assertEqual(library.scope.depth, 0)
+
+    def test_scope_enter_refusal_does_not_invoke_original_export(self):
+        holding, library = self._holding([(0, True)])
+        core, calls = self._construct_with_baseline(holding=holding)
+        library.scope.enter_replies = [-3]
+        with self.assertRaises(NativeHoldingScopeError) as failure:
+            core._call('buffer', 'close_pool')
+        self.assertEqual((failure.exception.operation, failure.exception.code), ('enter', -3))
+        self.assertEqual([name for name, _ in calls], ['open'])
+        self.assertFalse(core._closed)
+        self.assertIs(core._physical_holding, holding)
+        self.assertTrue(core.close())
+
+    def test_native_export_exception_leaves_scope_without_replaying_call(self):
+        holding, library = self._holding([(0, True)])
+        core, calls = self._construct_with_baseline(holding=holding)
+        unknown = OSError('Original native call outcome unknown')
+        core._exports['actql_buffer_unknown'] = Mock(side_effect=unknown)
+        with self.assertRaises(OSError) as failure:
+            core._call('buffer', 'unknown')
+        self.assertIs(failure.exception, unknown)
+        core._exports['actql_buffer_unknown'].assert_called_once()
+        self.assertEqual(library.scope.depth, 0)
+        self.assertTrue(core._closing)
+        self.assertTrue(core.close())
+        self.assertEqual([name for name, _ in calls], ['open', 'close'])
+
+    def test_final_holding_retry_does_not_reenter_a_retired_store_scope(self):
+        holding, library = self._holding([(-2, False), (0, True)])
+        core, _ = self._construct_with_baseline(holding=holding)
+        with self.assertRaises(NativeHoldingRetirementError): core.close()
+        scopes = list(library.scope.events)
+        self.assertIsNone(core._store)
+        self.assertTrue(core.close())
+        self.assertEqual(library.scope.events, scopes)
+
+    def test_scope_leave_failure_never_returns_success_or_releases_original_holding(self):
+        holding, library = self._holding([(-3, False)])
+        core, calls = self._construct_with_baseline(holding=holding)
+        library.scope.leave_replies = [-1]
+        with self.assertRaises(NativeHoldingScopeError) as failure:
+            core._call('buffer', 'close_pool')
+        self.assertEqual((failure.exception.operation, failure.exception.code), ('leave', -1))
+        self.assertEqual([name for name, _ in calls], ['open', 'close'])
+        self.assertFalse(core._closed)
+        self.assertIs(core._physical_holding, holding)
+        self.assertEqual(library.scope.depth, 1)
+        self.assertEqual([event for event in self.events if event[0] == 'retire'], [])
+        # This double deliberately leaves an unconfirmed native scope. It is not
+        # repaired/reentered here and does not establish physical cleanup.
