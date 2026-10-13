@@ -1,0 +1,119 @@
+{
+  "version": "actql-source-relation-key-vectors/0.1",
+  "qualification": "Independent initial-baseline declaration preimages; not runtime key proof or a second facts contract.",
+  "cases": [
+    {
+      "id": "historical_empty_facts",
+      "body": {},
+      "canonical_preimage": "{}",
+      "bare_body_cid": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "expected": "no key witness"
+    },
+    {
+      "id": "declared_original_id",
+      "body": {
+        "relation_keys": {
+          "candidate_keys": [
+            [
+              "id"
+            ]
+          ]
+        }
+      },
+      "canonical_preimage": "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]}}",
+      "bare_body_cid": "sha256:38ffc0cad6baa7699f2ed6b40426b522df5bc7dd9dc369024d278f70a1d29209",
+      "expected": "conditional Source key, runtime pending"
+    },
+    {
+      "id": "declared_composite",
+      "body": {
+        "relation_keys": {
+          "candidate_keys": [
+            [
+              "id",
+              "occurred_at"
+            ]
+          ]
+        }
+      },
+      "canonical_preimage": "{\"relation_keys\":{\"candidate_keys\":[[\"id\",\"occurred_at\"]]}}",
+      "bare_body_cid": "sha256:fcc075b67f901746012dd647abcf055d58e8c7bb677e89db8eba7a8c0feefa94",
+      "expected": "required exact typed tuple"
+    },
+    {
+      "id": "closed_component_empty",
+      "body": {
+        "relation_keys": {}
+      },
+      "canonical_preimage": "{\"relation_keys\":{}}",
+      "bare_body_cid": "sha256:26df6875084f7a595f3aeced1b4748600204e639603fa04bce427b8f47ff499d",
+      "expected": "InvalidBody"
+    },
+    {
+      "id": "closed_component_unknown",
+      "body": {
+        "relation_keys": {
+          "candidate_keys": [
+            [
+              "id"
+            ]
+          ],
+          "extra": true
+        }
+      },
+      "canonical_preimage": "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]],\"extra\":true}}",
+      "bare_body_cid": "sha256:e931ef389a4d3368598854f5c197299693c8bad83541ff7b1ed13411525632f4",
+      "expected": "InvalidBody"
+    },
+    {
+      "id": "repeated_tuple",
+      "body": {
+        "relation_keys": {
+          "candidate_keys": [
+            [
+              "id"
+            ],
+            [
+              "id"
+            ]
+          ]
+        }
+      },
+      "canonical_preimage": "{\"relation_keys\":{\"candidate_keys\":[[\"id\"],[\"id\"]]}}",
+      "bare_body_cid": "sha256:44eb57806713dcecff04579ece7a2eff065cbdcd4daa3b033fddb5f9f96ca397",
+      "expected": "InvalidBody"
+    },
+    {
+      "id": "repeated_component",
+      "body": {
+        "relation_keys": {
+          "candidate_keys": [
+            [
+              "id",
+              "id"
+            ]
+          ]
+        }
+      },
+      "canonical_preimage": "{\"relation_keys\":{\"candidate_keys\":[[\"id\",\"id\"]]}}",
+      "bare_body_cid": "sha256:5060971170892e83585f0c791ede4a8158f374e2d01dead4d0d2d5959c2f10b0",
+      "expected": "InvalidBody"
+    },
+    {
+      "id": "opaque_outer_retained",
+      "body": {
+        "opaque_extension": true,
+        "relation_keys": {
+          "candidate_keys": [
+            [
+              "id"
+            ]
+          ]
+        }
+      },
+      "canonical_preimage": "{\"opaque_extension\":true,\"relation_keys\":{\"candidate_keys\":[[\"id\"]]}}",
+      "bare_body_cid": "sha256:8580483557b5f80e9b4e02d08cd6e87bdb9cf31d02c02cb39c86114200c13e26",
+      "expected": "key declaration admitted; opaque extension still requires separate complete-body runtime support"
+    }
+  ]
+}

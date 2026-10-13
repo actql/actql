@@ -114,10 +114,10 @@ pub fn cancel(
 ///|
 /// Poll an outbound control endpoint. Dispatch delivery and status queries
 /// remain distinct operations after canonical admission.
-pub fn poll_operation(
+pub fn poll_site_operation(
   client : @http.Client,
   url : String,
-) -> Result[@remote.RemotePollOperation?, NativeRemoteClientIssue] {
+) -> Result[@remote.RemoteSitePollOperation?, NativeRemoteClientIssue] {
   let physical = match client.post_json(url, b"{}") {
     Ok(value) => value
     Err(issue) => return Err(Http(issue))
@@ -134,9 +134,24 @@ pub fn poll_operation(
   let response_text = @utf8.decode(physical.body) catch {
     _ => return Err(InvalidUtf8)
   }
-  match @remote.admit_remote_poll_operation_json(response_text) {
+  match @remote.admit_remote_site_poll_operation_json(response_text) {
     Ok(value) => Ok(Some(value))
     Err(issue) => Err(Protocol(issue))
+  }
+}
+
+///|
+/// Compatibility boundary for Run-only consumers. Pre-Run custody is never
+/// reinterpreted as a dispatch, status query or release.
+pub fn poll_operation(
+  client : @http.Client,
+  url : String,
+) -> Result[@remote.RemotePollOperation?, NativeRemoteClientIssue] {
+  match poll_site_operation(client, url) {
+    Ok(None) => Ok(None)
+    Ok(Some(@remote.Run(operation))) => Ok(Some(operation))
+    Ok(Some(@remote.BundleCustody(_))) => Err(Protocol(@remote.InvalidDispatch))
+    Err(issue) => Err(issue)
   }
 }
 
@@ -467,4 +482,31 @@ pub fn acknowledge_retained_effect_checkpoint(
     @remote.RemoteEffectCheckpointReply::Refused(reason) =>
       Err(EffectCheckpointRefused(reason))
   }
+}
+
+///|
+/// Send only the original Store response. A retry repeats these exact common
+/// bytes and member CAS revision; it never calls the Store again.
+pub fn report_bundle_custody(
+  client : @http.Client,
+  url : String,
+  delivery : @remote.RemotePollBundleCustody,
+  response : @bundle.RemoteBundleCustodyResponse,
+) -> Result[
+  @remote.RemoteBundleCustodyObservationReply,
+  NativeRemoteClientIssue,
+] {
+  let request = @remote.remote_poll_bundle_custody_request(delivery)
+  let revision = @remote.remote_poll_bundle_custody_delivery_revision(delivery)
+  let body = match
+    @remote.remote_bundle_custody_observation_json(request, response, revision) {
+    Ok(value) => @utf8.encode(value)
+    Err(issue) => return Err(Protocol(issue))
+  }
+  let physical = match client.post_json(url, body) {
+    Ok(value) => value
+    Err(issue) => return Err(Http(issue))
+  }
+  let text = @utf8.decode(physical.body) catch { _ => return Err(InvalidUtf8) }
+  admit_bundle_custody_report_reply(physical.status, text, delivery, response)
 }

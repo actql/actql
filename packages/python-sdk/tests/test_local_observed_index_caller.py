@@ -48,6 +48,8 @@ class ObservedIndexCallerTests(unittest.TestCase):
         # model the real Core's distinct observation/output borrow tickets.
         state['borrow'] = False
         host = InstalledLocalHost.__new__(InstalledLocalHost)
+        host._sdk_read_evidence = {}
+        host._sdk_deliveries = {}
         host._original, host._closing, host._core = host, False, core
         host._installation = SimpleNamespace()
         host._store_observations = {projection._publication.ticket: caller}

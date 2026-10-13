@@ -23,9 +23,15 @@ const version = 'actql-installed-vector-fixture/0.1';
 // Neither an observed declaration nor a product-generated expected schema.
 export const vectorScalarSchemaWire = '{"id":{"nullable":false,"type":"number"},"left_vector":{"dimensions":2,"element_type":"f32","nullable":false,"type":"vector"},"right_vector":{"dimensions":2,"element_type":"f32","nullable":true,"type":"vector"}}';
 export const vectorScalarSchemaCid = 'sha256:6d31ea776fe51f6447312c10f7f575b97d3c5a3fe88c27d4c1fe105a1d564849';
+// This trusted fixture owns the complete original three-row extent. Declare
+// its real id guarantee in the SourceView facts, then let the common capture
+// input validator check it; observed rows never grant key evidence themselves.
+export const vectorScalarFactsWire = '{"relation_keys":{"candidate_keys":[["id"]]}}';
+export const vectorScalarFactsCid = 'sha256:38ffc0cad6baa7699f2ed6b40426b522df5bc7dd9dc369024d278f70a1d29209';
 export const vectorScalarViewSpecification = Object.freeze({views: [{
   resource: 'vectors', resource_kind: 'table',
   schema_wire: vectorScalarSchemaWire, schema_cid: vectorScalarSchemaCid,
+  facts_wire: vectorScalarFactsWire,
 }]});
 
 export function createVectorScalarPageDriver(observations) {
