@@ -27,7 +27,7 @@ struct RowKeyedAcquisition {
   ]
   limits : RowKeyedLimits
   max_rows : Int
-  input_available : (() -> Bool)?
+  mut input_available : (() -> Bool)?
 }
 
 ///|
@@ -202,7 +202,11 @@ fn start_keyed_row_acquisition_owned(
     }
   }
   Ok({
-    configuration: KeyedConfiguration(acquisition),
+    configuration: if original is Some(_) {
+      OriginalKeyedConfiguration(acquisition)
+    } else {
+      KeyedConfiguration(acquisition)
+    },
     issuer: KeyedIssuer(issuer),
     attempt: {
       preparation: KeyedPreparation(acquisition),
@@ -311,7 +315,9 @@ pub fn begin_keyed_row_run(
 ) -> Result[Unit, RowHostIssue] {
   guard !run.closed &&
     run.attempt.state is Pending &&
-    run.configuration is KeyedConfiguration(acquisition) &&
+    run.configuration
+    is (KeyedConfiguration(acquisition)
+    | OriginalKeyedConfiguration(acquisition)) &&
     run.attempt.preparation is KeyedPreparation(original) &&
     physical_equal(original, acquisition) else {
     return Err(InvalidState)
@@ -369,7 +375,9 @@ pub fn begin_charged_row_run_keyed_page(
   charge : RowPageCharge,
   body : Bytes,
 ) -> Result[Unit, RowHostIssue] {
-  guard run.configuration is KeyedConfiguration(acquisition) &&
+  guard run.configuration
+    is (KeyedConfiguration(acquisition)
+    | OriginalKeyedConfiguration(acquisition)) &&
     keyed_acquisition_input_live(acquisition) else {
     abort_row_run(run)
     return Err(InvalidState)
@@ -425,7 +433,9 @@ pub fn advance_row_run_keyed_page(
   guard !run.closed && run.attempt.state is Reading(read) else {
     return Err(InvalidState)
   }
-  guard run.configuration is KeyedConfiguration(acquisition) &&
+  guard run.configuration
+    is (KeyedConfiguration(acquisition)
+    | OriginalKeyedConfiguration(acquisition)) &&
     keyed_acquisition_input_live(acquisition) else {
     abort_row_run(run)
     return Err(InvalidState)
@@ -442,7 +452,8 @@ pub fn advance_row_run_keyed_page(
 ///|
 fn keyed_retention_live(run : RowRun, retained : RowKeyedRetention) -> Bool {
   !run.closed &&
-  run.configuration is KeyedConfiguration(acquisition) &&
+  run.configuration
+  is (KeyedConfiguration(acquisition) | OriginalKeyedConfiguration(acquisition)) &&
   keyed_acquisition_input_live(acquisition) &&
   run.issuer is KeyedIssuer(issuer) &&
   run.attempt.authority is KeyedAuthority(authority) &&
@@ -481,7 +492,9 @@ pub fn retain_keyed_row_run(
     return Ok({ run, retention, })
   }
   guard !run.closed &&
-    run.configuration is KeyedConfiguration(acquisition) &&
+    run.configuration
+    is (KeyedConfiguration(acquisition)
+    | OriginalKeyedConfiguration(acquisition)) &&
     keyed_acquisition_input_live(acquisition) &&
     run.issuer is KeyedIssuer(issuer) &&
     run.attempt.authority is KeyedAuthority(authority) &&
