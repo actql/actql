@@ -39,6 +39,8 @@ pub fn advance_client_infer_input(ClientInferInputExecution, Int) -> Result[Clie
 
 pub fn advance_client_serialization_prefix(ClientSerializationPrefix, Int) -> Result[@local.ManagedProviderPoll, @connector_sdk.FixedComputeIssue]
 
+pub fn begin_client_original_keyed_lookup_response(@run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedRequest, @client_row_source_host.RowKeyedSourceCapture) -> Result[Unit, ClientOriginalKeyedChildIssue]
+
 pub fn cancel_client_infer_input(ClientInferInputExecution) -> Bool
 
 pub fn cancel_client_serialization_prefix(ClientSerializationPrefix) -> Bool
@@ -267,6 +269,8 @@ pub fn start_client_original_keyed_direct_row_acquisition(@run_publication_host.
 
 pub fn start_client_original_keyed_lookup(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientKeyedAcquisition, @client_row_source_host.RowSourceCapture, Int, Int, Int, Int) -> Result[@run_publication_host.ClientKeyedLookupInput, ClientOriginalKeyedLookupIssue]
 
+pub fn start_client_original_keyed_row_acquisition(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.PreparedClientProgram, @run_publication_host.ClientKeyedAcquisition, @run_publication_host.ClientKeyedLookupInput, @run_publication_host.ClientKeyedRequest, @client_row_source_host.RowDeclaration, @client_row_source_host.RowKeyedLimits, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64, (@client_row_source_host.RowAttempt) -> Bool) -> Result[@client_row_source_host.RowRun, ClientOriginalKeyedChildIssue]
+
 pub fn start_client_original_row_acquisition(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.PreparedClientProgram, @client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, Int64, Int64) -> Result[@client_row_source_host.RowRun, ClientOriginalRowAcquisitionIssue]
 
 pub fn start_client_original_serialization_prefix(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.PreparedClientProgram, Int, Int, String, String, String?, String?, @execution_relation.SequenceExecutionLimits, @execution_relation.FixedInputGuardMeasureLimits, workspace? : @execution_relation.ExecutionCapacity?) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue]
@@ -364,6 +368,11 @@ pub(all) enum ClientLocalQueryIssue {
   Sequences
   MissingStage
   Requirement(@run_publication_host.ClientQueryRequirementIssue)
+}
+
+pub(all) enum ClientOriginalKeyedChildIssue {
+  Lookup(@run_publication_host.ClientKeyedRequestIssue)
+  Acquisition(@client_row_source_host.RowHostIssue)
 }
 
 pub(all) enum ClientOriginalKeyedLookupIssue {

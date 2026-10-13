@@ -166,3 +166,93 @@ pub fn start_client_original_keyed_lookup_input(
     Some(scope.identity),
   )
 }
+
+///|
+// Loan only to Core Local's existing accounted keyed Row receiver. The cache
+// count comes from the actual assembly, not an external usage claim. Return
+// its exact request so the receiver does not re-extract data after this check.
+// No Node export/getter, another resource owner or durable grant is introduced.
+pub fn borrow_client_original_keyed_child(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  prepared : PreparedClientProgram,
+  keyed : ClientKeyedAcquisition,
+  lookup : ClientKeyedLookupInput,
+  request : ClientKeyedRequest,
+) -> Result[
+  (
+    @resources.Ledger,
+    @resources.OriginalLedgerIdentity,
+    @resources.Reservation,
+    Int,
+    @acquisition.KeyedRowRequest,
+  ),
+  ClientKeyedRequestIssue,
+] {
+  // The producer callback may synchronously retire, park or reenter. Every
+  // actual selected/phase/custody check below follows that callback.
+  if !client_keyed_request_matches_acquisition(request, keyed) {
+    return Err(ForeignLeft)
+  }
+  guard client_original_keyed_capture_available(
+      scope, compiled, definition, plan, prepared, keyed,
+    ) &&
+    physical_equal(lookup.ledger, scope.ledger) &&
+    physical_equal(lookup.left.acquisition, keyed) &&
+    physical_equal(request.left, lookup.left) &&
+    request.assembly_accounting is Some(accounting) &&
+    physical_equal(accounting, lookup) &&
+    !lookup.closed &&
+    lookup.completed is None &&
+    lookup.copying is None &&
+    lookup.preparation is None &&
+    lookup.left.lookup_issue is None &&
+    lookup.selected_request is Some(selected) &&
+    physical_equal(selected, request) &&
+    lookup.selected_index == Some(-1) &&
+    request.row == lookup.accepted &&
+    request.attempts == 0L &&
+    !request.io_complete &&
+    @resources.original_keyed_child_preparation_available(
+      scope.identity,
+      scope.ledger,
+      lookup.reservation,
+      lookup.known.length(),
+    ) else {
+    return Err(Assembly("original_child_custody_changed"))
+  }
+  Ok(
+    (
+      scope.ledger,
+      scope.identity,
+      lookup.reservation,
+      lookup.known.length(),
+      request.request,
+    ),
+  )
+}
+
+///|
+// Retained children depend on the original left/Scope, not the mutable selected
+// request slot (cleared after admission). Read/descriptor issuance is legal;
+// original closing/park/retirement and assembly stop revoke new borrowed use.
+pub fn client_original_keyed_lookup_available(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  prepared : PreparedClientProgram,
+  keyed : ClientKeyedAcquisition,
+  lookup : ClientKeyedLookupInput,
+) -> Bool {
+  @execution.producer_read_available(lookup.left.read) &&
+  !lookup.closed &&
+  lookup.left.lookup_issue is None &&
+  physical_equal(lookup.ledger, scope.ledger) &&
+  physical_equal(lookup.left.acquisition, keyed) &&
+  client_original_keyed_capture_available(
+    scope, compiled, definition, plan, prepared, keyed,
+  )
+}
