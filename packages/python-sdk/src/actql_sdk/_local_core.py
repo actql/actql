@@ -13,7 +13,8 @@ from threading import RLock
 from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
-    from ._local_engine import _InstalledImageInput
+    from ._local_engine import _InstalledImageInput, _InstalledImageFileInput
+    from ._local_native_image import _NativeImageHolding
     from ._local_distribution import LocalComponents
 
 from ._local_journal_port import _JournalCallbacks
@@ -635,29 +636,41 @@ class LocalCore:
     @classmethod
     def _from_installed_image(cls, components: LocalComponents, *, resources: LocalCoreResources,
                               transfer_capacity: int, slots: int = 64,
-                              _host_capacity_bytes: int = 0) -> LocalCore:
+                              _host_capacity_bytes: int = 0,
+                              _physical_holding: _NativeHoldingLease | None = None) -> LocalCore:
         if not _valid_core_limits(transfer_capacity, slots, 100_000_000, resources,
                                   _host_capacity_bytes):
             raise ValueError('Invalid installed Local Core artifact or capacity')
-        from ._local_engine import _checked_installed_image
-        image = _checked_installed_image(components)
+        from ._local_engine import _checked_installed_image, _checked_installed_image_file
+        image = (_checked_installed_image(components) if _physical_holding is None
+                 else _checked_installed_image_file(components))
         return cls(None, digest=components.module_sha256, transfer_capacity=transfer_capacity,
                    resources=resources, slots=slots, _compiled_image=image,
-                   _host_capacity_bytes=_host_capacity_bytes)
+                   _host_capacity_bytes=_host_capacity_bytes, _physical_holding=_physical_holding)
 
     def __init__(self, module: bytes | None, *, digest: str, transfer_capacity: int, resources: LocalCoreResources,
                  slots: int = 32, fuel: int = 100_000_000,
-                 _compiled_image: _InstalledImageInput | None = None,
+                 _compiled_image: _InstalledImageInput | _InstalledImageFileInput | None = None,
                  _host_capacity_bytes: int = 0,
                  _physical_holding: _NativeHoldingLease | None = None) -> None:
-        from ._local_engine import _InstalledImageInput
+        from ._local_engine import _InstalledImageInput, _InstalledImageFileInput
+    from ._local_native_image import _NativeImageHolding
         from ._local_image_recipe import _SelectedImageRecipe
-        original_valid = (type(module) is bytes and hashlib.sha256(module).hexdigest() == digest
-            if _compiled_image is None else type(_compiled_image) is _InstalledImageInput
-                and module is None and type(_compiled_image.recipe) is _SelectedImageRecipe
+        if type(_compiled_image) is _InstalledImageFileInput:
+            original_valid = (module is None and type(_compiled_image.recipe) is _SelectedImageRecipe
                 and _compiled_image.recipe.module_sha256 == digest
-                and type(_compiled_image.encoded) is bytes
-                and hashlib.sha256(_compiled_image.encoded).hexdigest() == _compiled_image.sha256)
+                and type(_compiled_image.length) is int
+                and 0 < _compiled_image.length <= _compiled_image.recipe.image_bytes_limit
+                and type(_compiled_image.sha256) is str and len(_compiled_image.sha256) == 64
+                and all(char in '0123456789abcdef' for char in _compiled_image.sha256)
+                and type(_physical_holding) is _NativeHoldingLease)
+        else:
+            original_valid = (type(module) is bytes and hashlib.sha256(module).hexdigest() == digest
+                if _compiled_image is None else type(_compiled_image) is _InstalledImageInput
+                    and module is None and type(_compiled_image.recipe) is _SelectedImageRecipe
+                    and _compiled_image.recipe.module_sha256 == digest
+                    and type(_compiled_image.encoded) is bytes
+                    and hashlib.sha256(_compiled_image.encoded).hexdigest() == _compiled_image.sha256)
         if not original_valid or not _valid_core_limits(transfer_capacity, slots, fuel, resources,
                                                        _host_capacity_bytes):
             raise ValueError('Invalid installed Local Core artifact or capacity')
@@ -694,6 +707,7 @@ class LocalCore:
         if _physical_holding is not None:
             _physical_holding._bind_core(self._identity)
         self._physical_holding = _physical_holding
+        self._physical_image: _NativeImageHolding | None = None
         try:
             with self._native_scope():
                 # Keep an already supplied holding through optional import failure.
@@ -730,8 +744,19 @@ class LocalCore:
                 self._store = wasmtime.Store(self._engine)
                 self._store.set_fuel(fuel)
                 self._store.set_limits(memory_size=_MEMORY_LIMIT, memories=1)
-                self._module = (wasmtime.Module(self._engine, module) if _compiled_image is None
-                                else wasmtime.Module.deserialize(self._engine, _compiled_image.encoded))
+                if type(_compiled_image) is _InstalledImageFileInput:
+                    assert self._physical_holding is not None
+                    self._physical_image = _NativeImageHolding(self._physical_holding, _compiled_image)
+                    self._physical_image.capture()
+                    # Retain the original high-level module before native output
+                    # can be produced, including scope-exit/exception failure.
+                    self._module = wasmtime.Module.__new__(wasmtime.Module)
+                    self._physical_image.deserialize_into(self._engine, self._module, wasmtime, ffi)
+                    self._physical_image.close()
+                    self._physical_image = None
+                else:
+                    self._module = (wasmtime.Module(self._engine, module) if _compiled_image is None
+                                    else wasmtime.Module.deserialize(self._engine, _compiled_image.encoded))
                 _validate_core_module(wasmtime, self._module)
                 self._linker = wasmtime.Linker(self._engine)
                 for name, callback in [('input_byte', self._read),
@@ -3646,6 +3671,10 @@ class LocalCore:
         # Keep the Store, and therefore the original Wasm Root, until every
         # other native handle has retired. A failed child/Engine cleanup must
         # not destroy that Root or drop its pending capacity first.
+        image: _NativeImageHolding | None = getattr(self, '_physical_image', None)
+        if image is not None:
+            image.close()
+            self._physical_image = None
         if any(getattr(self, name, None) is not None for name in
                ('_linker', '_module', '_engine', '_engine_configuration',
                 '_pool_configuration', '_store')):

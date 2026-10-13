@@ -47,6 +47,56 @@ class _InstalledImageInput:
     runtime_library: Path
 
 
+@dataclass(frozen=True, slots=True)
+class _InstalledImageFileInput:
+    """Installed descriptor only; capture requires the original native holding."""
+
+    path: Path
+    length: int
+    sha256: str
+    recipe: _SelectedImageRecipe
+    runtime_library: Path
+
+
+def _checked_installed_image_file(components: LocalComponents) -> _InstalledImageFileInput:
+    """Reuse original component/recipe checks without capturing whole image bytes.
+
+    This supplies no allocator, capacity, library adoption or execution authority.
+    The genuine original holding must already exist before native FD capture.
+    """
+    library = _installed_runtime_library(components)
+    recipe = components.image_recipe
+    body = json.loads(_read_file(components.image.parent / 'artifact.json', maximum=65536),
+                      object_pairs_hook=_pairs)
+    from ._local_image_recipe import _image_descriptor
+    item = _image_descriptor(body['compiled_image'], recipe)
+    if (components.image.name != item['file'] or components.image_bytes != item['bytes']
+            or components.image_sha256 != item['sha256']):
+        raise LocalInstallationError('Installed image original descriptor mismatch')
+    return _InstalledImageFileInput(components.image, item['bytes'], item['sha256'], recipe, library)
+
+
+def _installed_runtime_library(components: LocalComponents) -> Path:
+    if type(components) is not LocalComponents:
+        raise LocalInstallationError('Unavailable installed Local image components')
+    recipe = components.image_recipe
+    recipe.validate()
+    if (recipe.source_sha != components.source_sha
+            or recipe.package_version != components.package_version
+            or recipe.module_sha256 != components.module_sha256):
+        raise LocalInstallationError('Installed image original component binding mismatch')
+    _read_file(components.module, maximum=32 * 1024 * 1024, digest=components.module_sha256)
+    if metadata.version('wasmtime') != WASMTIME_VERSION:
+        raise LocalInstallationError('Installed image runtime version mismatch')
+    root = resources.files('wasmtime')
+    if not isinstance(root, Path):
+        raise LocalInstallationError('Installed image runtime requires ordinary wheel files')
+    library = root / 'darwin-aarch64/_libwasmtime.dylib'
+    _read_file(library, maximum=recipe.runtime_library_bytes,
+               expected=recipe.runtime_library_bytes, digest=recipe.runtime_library_sha256)
+    return library
+
+
 def _checked_installed_image(components: LocalComponents) -> _InstalledImageInput:
     """Resolve only the installed original. No arbitrary image or path argument."""
     if type(components) is not LocalComponents:
@@ -80,7 +130,7 @@ def _checked_installed_image(components: LocalComponents) -> _InstalledImageInpu
         raise LocalInstallationError('Installed image runtime is unavailable or inconsistent') from original
 
 
-def _verify_loaded_runtime(image: _InstalledImageInput, ffi: Any) -> None:
+def _verify_loaded_runtime(image: _InstalledImageInput | _InstalledImageFileInput, ffi: Any) -> None:
     """Fence the dependency native loader before any Config/Engine construction."""
     actual = Path(ffi.filename)
     if actual != image.runtime_library or Path(ffi.dll._name) != image.runtime_library:
