@@ -29,6 +29,7 @@ pub(all) enum SequenceFailureKind {
   InputRepresentationRequired(Int)
   InputLimit
   InputKey(Int)
+  InputScore(Int)
   Wiring
   Capture(Int)
   Rows(Int)
@@ -50,6 +51,7 @@ pub fn sequence_failure_kind(issue : SequenceRunIssue) -> SequenceFailureKind {
     InputRepresentationRequired(i) => InputRepresentationRequired(i)
     InputLimit => InputLimit
     InputKey(i, _) => InputKey(i)
+    InputScore(i, _) => InputScore(i)
     Wiring(_) => Wiring
     Capture(i, _) => Capture(i)
     Rows(i, _) => Rows(i)
