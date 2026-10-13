@@ -37,7 +37,9 @@ fn original_keyed_version_history(
   content? : Bool = false,
   typed_content? : Bool = false,
   same_ledger_consumer? : Bool = false,
+  one_short_census? : Bool = false,
 ) -> Unit raise {
+  let same_ledger_consumer = same_ledger_consumer || one_short_census
   let typed_content = typed_content || same_ledger_consumer
   let content = content || typed_content
   let suffix = suffix || content
@@ -186,7 +188,7 @@ fn original_keyed_version_history(
     (if suffix { 6 } else { 5 }) +
     // The same finite census also records byte-only read and handoff tokens.
     // These two actual roles do not change attempts/holding/byte limits.
-    (if same_ledger_consumer { 2 } else { 0 }),
+    (if one_short_census { 1 } else if same_ledger_consumer { 2 } else { 0 }),
     if content {
       5
     } else {
@@ -516,6 +518,7 @@ fn original_keyed_version_history(
       ledger,
       typed_content~,
       same_ledger_consumer~,
+      one_short_census~,
     )
   } else if suffix {
     original_keyed_version_serialize(
@@ -629,4 +632,9 @@ test "original keyed Content generation feeds the actual document reference into
 ///|
 test "original keyed Content input enters once and hands off through the same original Ledger" {
   original_keyed_version_history(same_ledger_consumer=true)
+}
+
+///|
+test "original keyed Content input keeps the original ticket when the handoff census is one slot short" {
+  original_keyed_version_history(one_short_census=true)
 }

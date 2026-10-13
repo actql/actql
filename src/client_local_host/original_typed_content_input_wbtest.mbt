@@ -31,6 +31,7 @@ fn original_keyed_typed_content_input(
     @publication.PublicationContract,
     @resources.Ledger,
   )? = None,
+  one_short_census? : Bool = false,
 ) -> Unit raise {
   let occurrence = @publication_host.client_serialization_generation_infer_occurrence(
     generation, compiled, plan,
@@ -157,25 +158,51 @@ fn original_keyed_typed_content_input(
         generation=Some(generation),
       ).unwrap()
       let quantities = @resources.quantity_usage(ledger)
-      let (same, token) = @publication_host.handoff_client_model_read_consumer_input_capacity(
-        consumer, compiled, definition, plan, call_scope, rows, 10L, 5L,
-      ).unwrap()
-      assert_true(physical_equal(same, ledger))
-      assert_true(@resources.capacity_reservation_matches(same, token, 10L, 5L))
-      assert_eq(@resources.quantity_usage(same), quantities)
-      let before = @resources.ledger_usage(same)
-      assert_true(
-        @publication_host.handoff_client_model_read_consumer_input_capacity(
-          consumer, compiled, definition, plan, call_scope, rows, 10L, 5L,
+      if one_short_census {
+        let before = @resources.ledger_usage(ledger)
+        for _ in 0..<2 {
+          assert_true(
+            @publication_host.handoff_client_model_read_consumer_input_capacity(
+              consumer, compiled, definition, plan, call_scope, rows, 10L, 5L,
+            )
+            is Err(
+              @publication_host.Read(
+                Resource(@resources.Resource(@resources.RetentionLimit))
+              )
+            ),
+          )
+          assert_eq(@resources.ledger_usage(ledger), before)
+          assert_eq(@resources.quantity_usage(ledger), quantities)
+        }
+        assert_true(
+          @publication_host.settle_client_model_read_consumer(consumer, false)
+          is Err(@publication_host.Resource(@resources.CleanupPending)),
         )
-        is Err(@publication_host.Read(Resource(@resources.SpentClaim))),
-      )
-      assert_true(
-        @publication_host.settle_client_model_read_consumer(consumer, false)
-        is Err(@publication_host.Resource(@resources.CleanupPending)),
-      )
-      assert_eq(@resources.ledger_usage(same), before)
-      Some((same, token))
+        assert_eq(@resources.ledger_usage(ledger), before)
+        None
+      } else {
+        let (same, token) = @publication_host.handoff_client_model_read_consumer_input_capacity(
+          consumer, compiled, definition, plan, call_scope, rows, 10L, 5L,
+        ).unwrap()
+        assert_true(physical_equal(same, ledger))
+        assert_true(
+          @resources.capacity_reservation_matches(same, token, 10L, 5L),
+        )
+        assert_eq(@resources.quantity_usage(same), quantities)
+        let before = @resources.ledger_usage(same)
+        assert_true(
+          @publication_host.handoff_client_model_read_consumer_input_capacity(
+            consumer, compiled, definition, plan, call_scope, rows, 10L, 5L,
+          )
+          is Err(@publication_host.Read(Resource(@resources.SpentClaim))),
+        )
+        assert_true(
+          @publication_host.settle_client_model_read_consumer(consumer, false)
+          is Err(@publication_host.Resource(@resources.CleanupPending)),
+        )
+        assert_eq(@resources.ledger_usage(same), before)
+        Some((same, token))
+      }
     }
     _ => None
   }
@@ -199,13 +226,13 @@ fn original_keyed_typed_content_input(
   assert_true(active.sequence is None)
   assert_true(cleanup_client_infer_input(active).unwrap())
   assert_true(@admitted.reference_available(reference))
-  match (consumer, handed) {
-    (Some(consumer), Some((same, token))) => {
-      // Only this API fixture's input has existed: its confirmed cleanup does
-      // not stand in for a Model, SDK, Store, Provider or durable ACK cleanup.
-      @publication_host.settle_client_model_read_consumer(consumer, true).unwrap()
-      @resources.settle_capacity(same, token).unwrap()
-    }
+  if consumer is Some(consumer) {
+    // Only this API fixture's input has existed: its confirmed cleanup does
+    // not stand in for a Model, SDK, Store, Provider or durable ACK cleanup.
+    @publication_host.settle_client_model_read_consumer(consumer, true).unwrap()
+  }
+  match handed {
+    Some((same, token)) => @resources.settle_capacity(same, token).unwrap()
     _ => ()
   }
 }

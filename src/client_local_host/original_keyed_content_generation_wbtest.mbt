@@ -18,6 +18,7 @@ fn original_keyed_version_content(
   ledger : @resources.Ledger,
   typed_content? : Bool = false,
   same_ledger_consumer? : Bool = false,
+  one_short_census? : Bool = false,
 ) -> Unit raise {
   let selected : Array[ClientLocalContentStep] = []
   let clean = Ref(false)
@@ -252,6 +253,7 @@ fn original_keyed_version_content(
       } else {
         None
       },
+      one_short_census~,
     )
   }
   let before = @resources.ledger_usage(ledger)
