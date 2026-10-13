@@ -5,6 +5,7 @@ priv enum PublicationCommitExportProjection {
   IndexKey
   Schema(Int, Int)
   ObservedIndex(Int)
+  ObservedRunState(Int)
   InspectedReference(Int)
 } derive(Eq)
 
@@ -19,6 +20,8 @@ priv struct StoredPublicationCommitExport {
   mut pending : Bool
   mut produced : Bool
   mut closing : Bool
+  mut output_closed : Bool
+  mut state_borrow : @buffers.BufferBorrow?
 }
 
 ///|
@@ -74,6 +77,8 @@ pub fn reserve_publication_commit_export(
     pending: false,
     produced: false,
     closing: false,
+    output_closed: false,
+    state_borrow: None,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -594,7 +599,7 @@ pub fn publication_commit_export_length(nonce : Int64, handle : Int) -> Int {
     value.commit_exports.get(handle) is Some(record) else {
     return -2
   }
-  if !record.produced || record.closing {
+  if !record.produced || record.closing || record.output_closed {
     return -33
   }
   match @buffers.buffer_length(value.pool, record.slot) {
@@ -614,10 +619,21 @@ pub fn close_publication_commit_export(nonce : Int64, handle : Int) -> Int {
   if record.pending {
     return -33
   }
-  let result = status(@buffers.close_buffer(value.pool, record.slot))
-  if result == 0 {
-    value.commit_exports.remove(handle) |> ignore
-    value.copies.remove(handle) |> ignore
+  if !record.output_closed {
+    let result = status(@buffers.close_buffer(value.pool, record.slot))
+    if result != 0 {
+      return result
+    }
+    record.output_closed = true
   }
-  result
+  if record.state_borrow is Some(borrow) {
+    let result = status(@buffers.return_buffer_borrow(value.pool, borrow))
+    if result != 0 {
+      return result
+    }
+    record.state_borrow = None
+  }
+  value.commit_exports.remove(handle) |> ignore
+  value.copies.remove(handle) |> ignore
+  0
 }
