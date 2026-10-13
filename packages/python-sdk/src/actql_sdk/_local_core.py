@@ -2217,7 +2217,9 @@ class LocalCore:
                 raise RuntimeError('Invalid Local Core confirmed byte count')
             if count < 0:
                 raise LocalCoreError('confirm_sdk_payload_chunk', count)
-            if count > 65536:
+            # Core returns cumulative confirmed bytes, not this input chunk's
+            # length. Its sink Owner enforces the original total byte limit.
+            if count >= 2**63:
                 raise RuntimeError('Invalid Local Core confirmed byte count')
             self._owned_output(value, 'publication_commit_export')
             return count
