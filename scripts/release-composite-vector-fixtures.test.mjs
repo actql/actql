@@ -39,10 +39,17 @@ test('consumer and bounded public recipe parse and resolve their direct imports 
     const absolute = resolve(root, path);
     execFileSync(process.execPath, ['--check', absolute], {timeout: 10000});
     for (const match of readFileSync(absolute, 'utf8').matchAll(
-      /(?:from\s*|import\s*\()(['"])(\.[^'"\n]+\.mjs)\1/gu)) {
+      /^import\b[^;]*?\bfrom\s*(['"])(\.[^'"\n]+\.mjs)\1/gmu)) {
       assert.ok(existsSync(resolve(dirname(absolute), match[2])), match[2]);
     }
   }
+  // The producer's -e source is a command string, executed from the checked
+  // repository root by runLocalCheck, not an import of the recipe module.
+  const recipe = readFileSync(resolve(root,
+    'reviews/2026-10-14-composite-vector-release-matrix/prepared-release-public.mjs'), 'utf8');
+  assert.match(recipe, /root: process\.cwd\(\)/u);
+  assert.match(recipe, /import \{preparePackageRelease\} from '\.\/scripts\/package-release\.mjs'/u);
+  assert.ok(existsSync(resolve(root, 'scripts/package-release.mjs')));
 });
 test('the existing release environment excludes checkout overlays and foreign selectors', () => {
   const env = releaseCompositeVectorEnvironment({NODE_PATH: '/checkout', NODE_OPTIONS: '--import=/overlay',
