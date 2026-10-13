@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from contextlib import ExitStack
+from image_fixture import IMAGE, ORIGINAL, RUNTIME_HASH, descriptor
 import hashlib
 import importlib.util
 import json
@@ -11,6 +12,7 @@ import struct
 import subprocess
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -39,6 +41,8 @@ class LocalArtifactProducerTests(unittest.TestCase):
             target = self.source / filename
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / filename, target)
+        selected = self.source / 'packages/python-local-runtime/selected-image-recipe.json'
+        selected.write_bytes(ORIGINAL)
         self.git('init', '-q')
         self.commit()
         self.module = self.root / 'original.wasm'
@@ -61,6 +65,14 @@ class LocalArtifactProducerTests(unittest.TestCase):
                        'python': 'synthetic fixture', 'platform': 'macOS-synthetic-fixture', 'machine': 'arm64',
                        'tests': 20, 'success': True, 'module_source': None, 'workspace_selection': False,
                        'public_local_acceptance': False, 'wheel_acceptance': False}
+        self.image_path = self.root / 'original.cwasm'
+        self.image_path.write_bytes(IMAGE)
+        self.image = {'source_sha': self.head, 'module_sha256': digest, 'core_abi': 72,
+            'wasmtime_version': '38.0.0', 'runtime_library_sha256': RUNTIME_HASH,
+            'engine_sha256': descriptor(self.head, '0.0.0.dev0', digest)['engine_sha256'],
+            'image': str(self.image_path), 'image_sha256': hash_bytes(IMAGE),
+            'compiled': True, 'runtime_executed': False, 'public_local_acceptance': False}
+        self.image_file = self.root / 'image.json'
         self.core_file = self.root / 'core.json'
         self.duckdb_file = self.root / 'duckdb.json'
         self.write_receipts()
@@ -86,9 +98,10 @@ class LocalArtifactProducerTests(unittest.TestCase):
     def write_receipts(self):
         self.core_file.write_text(json.dumps(self.core))
         self.duckdb_file.write_text(json.dumps(self.duckdb))
+        self.image_file.write_text(json.dumps(self.image))
 
     def run_producer(self):
-        return producer.produce(self.core_file, self.duckdb_file, self.output)
+        return producer.produce(self.core_file, self.duckdb_file, self.image_file, self.output)
 
     def test_fixed_originals_copy_and_stage_through_existing_recipe_without_engine_loading(self):
         result = self.run_producer()
@@ -100,6 +113,9 @@ class LocalArtifactProducerTests(unittest.TestCase):
         self.assertEqual((self.output / 'libduckdb.dylib').read_bytes(), self.library.read_bytes())
         for name, path in producer.recipe.notice_originals().items():
             self.assertEqual((self.output / name).read_bytes(), path.read_bytes())
+        self.assertEqual((self.output / 'client_host_wasm.cwasm').read_bytes(), IMAGE)
+        self.assertEqual((self.output / 'engine-recipe.json').read_bytes(), ORIGINAL)
+        self.assertEqual(result['image_receipt_sha256'], hash_bytes(self.image_file.read_bytes()))
         self.assertFalse(result['runtime_executed'])
         self.assertFalse(result['wheel_built'])
         self.assertFalse(result['public_local_accepted'])
@@ -107,6 +123,91 @@ class LocalArtifactProducerTests(unittest.TestCase):
         prepared = producer.recipe.prepare(self.output, stage)
         self.assertEqual(prepared['source_sha'], self.head)
         self.assertFalse(prepared['runtime_executed'])
+
+    def test_foreign_or_incomplete_image_provenance_is_not_copied(self):
+        for key, value in [('source_sha', '0' * 40), ('module_sha256', '0' * 64),
+                ('runtime_library_sha256', '0' * 64), ('engine_sha256', '0' * 64),
+                ('compiled', 1), ('runtime_executed', True)]:
+            original = self.image.copy(); self.image[key] = value; self.write_receipts()
+            with self.assertRaisesRegex(ValueError, 'selected original recipe'): self.run_producer()
+            self.assertFalse(self.output.exists()); self.image = original
+
+    def test_synthetic_wheel_component_inventory_includes_image_and_recipe(self):
+        self.run_producer()
+        spec = importlib.util.spec_from_file_location('image_wheel_inspector',
+            ROOT / 'scripts/build-python-product-wheels.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        wheel = self.root / 'synthetic.whl'
+        names = ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
+                 'client_host_wasm.wasm', 'libduckdb.dylib', 'LICENSE',
+                 'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE')
+        for missing, changed in ((None, None), ('client_host_wasm.cwasm', None),
+                                 (None, 'engine-recipe.json'), (None, 'client_host_wasm.cwasm')):
+            with self.subTest(missing=missing, changed=changed):
+                with zipfile.ZipFile(wheel, 'w') as archive:
+                    for name in names:
+                        if name == missing: continue
+                        value = (self.output / name).read_bytes()
+                        if name == changed: value = b'x' * len(value)
+                        archive.writestr('actql_local_runtime/' + name, value)
+                if missing or changed:
+                    with self.assertRaises((ValueError, KeyError)):
+                        module.runtime_wheel_components(wheel, self.output)
+                else:
+                    module.runtime_wheel_components(wheel, self.output)
+
+    def test_synthetic_sdk_wheel_binding_is_exact_and_contains_no_runtime(self):
+        spec = importlib.util.spec_from_file_location('sdk_image_binding_inspector',
+            ROOT / 'scripts/build-python-product-wheels.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        original = b'{"source_sha":"independent fixture only"}'
+        wheel = self.root / 'synthetic-sdk.whl'
+        for value in (original, original + b' ', b'foreign'):
+            with zipfile.ZipFile(wheel, 'w') as archive:
+                archive.writestr('actql_sdk/_local_release_binding.json', value)
+            if value == original: module.sdk_runtime_binding(wheel, original)
+            else:
+                with self.assertRaisesRegex(ValueError, 'binding mismatch'):
+                    module.sdk_runtime_binding(wheel, original)
+
+    def test_light_sdk_wheel_refuses_a_precompiled_native_image(self):
+        spec = importlib.util.spec_from_file_location('sdk_binary_image_inspector',
+            ROOT / 'scripts/build-python-product-wheels.py')
+        module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+        wheel = self.root / 'synthetic-sdk.whl'
+        for binary in (False, True):
+            with zipfile.ZipFile(wheel, 'w') as archive:
+                archive.writestr('sdk.dist-info/METADATA',
+                    'Name: actql-sdk\nVersion: 0.0.0.dev0\nRequires-Dist: httpx==0.28.1\nRequires-Dist: rfc8785==0.1.4\n')
+                archive.writestr('sdk.dist-info/WHEEL', 'Tag: py3-none-any\n')
+                if binary: archive.writestr('actql_sdk/foreign.cwasm', IMAGE)
+            if binary:
+                with self.assertRaisesRegex(ValueError, 'contains a native engine'):
+                    module.wheel_metadata(wheel, 'actql-sdk', '0.0.0.dev0')
+            else:
+                module.wheel_metadata(wheel, 'actql-sdk', '0.0.0.dev0')
+
+    def test_unadopted_missing_source_recipe_refuses_without_a_default(self):
+        self.git('rm', 'packages/python-local-runtime/selected-image-recipe.json')
+        self.commit()
+        for receipt in (self.core, self.duckdb, self.image): receipt['source_sha'] = self.head
+        self.write_receipts()
+        with self.assertRaisesRegex(ValueError, 'source-original image recipe is unavailable'):
+            self.run_producer()
+        self.assertFalse(self.output.exists())
+
+    def test_modified_selected_source_recipe_is_not_an_installer_original(self):
+        selected = self.source / 'packages/python-local-runtime/selected-image-recipe.json'
+        selected.write_bytes(ORIGINAL + b' ')
+        with self.assertRaisesRegex(ValueError, 'committed clean'): self.run_producer()
+        self.assertFalse(self.output.exists())
+
+    def test_foreign_image_header_cannot_be_relabelled_with_a_new_digest(self):
+        wrong = IMAGE[:18] + b'\x3e\0' + IMAGE[20:]
+        self.image_path.write_bytes(wrong)
+        self.image['image_sha256'] = hash_bytes(wrong); self.write_receipts()
+        with self.assertRaisesRegex(ValueError, 'binary target'): self.run_producer()
+        self.assertFalse(self.output.exists())
 
     def test_foreign_core_or_duckdb_source_rejected_before_destination_creation(self):
         for receipt in (self.core, self.duckdb):

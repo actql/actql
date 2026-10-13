@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 from actql_sdk._local_core import LOCAL_CORE_ABI
 from actql_sdk._local_distribution import LocalInstallationError
-from actql_sdk._local_image_recipe import _SelectedImageRecipe, _image_descriptor, _load_selected_image
+from actql_sdk._local_image_recipe import _SelectedImageRecipe, _image_descriptor, _load_selected_image, _recipe_from_original
 
 
 class LocalImageRecipeTests(unittest.TestCase):
@@ -81,6 +81,18 @@ class LocalImageRecipeTests(unittest.TestCase):
             with self.assertRaises(LocalInstallationError): _image_descriptor(self.body | {'bytes': value}, self.recipe)
         for value in (True, 0, None):
             with self.assertRaises(LocalInstallationError): replace(self.recipe, image_bytes_limit=value).validate()
+
+    def test_source_original_recipe_is_closed_and_not_a_runtime_allowance(self):
+        from image_fixture import ORIGINAL
+        recipe = _recipe_from_original(ORIGINAL, source_sha='a' * 40,
+            package_version='0.0.0.dev0', module_sha256='b' * 64)
+        self.assertEqual(recipe.source_sha, 'a' * 40)
+        for original in (ORIGINAL[:-1] + b', "extra": true}',
+                         ORIGINAL[:-1] + b', "wasmtime_version": "38.0.0"}',
+                         ORIGINAL.replace(b'38.0.0', b'37.0.0')):
+            with self.assertRaises(LocalInstallationError):
+                _recipe_from_original(original, source_sha='a' * 40,
+                    package_version='0.0.0.dev0', module_sha256='b' * 64)
 
     def test_changed_file_symlink_and_raw_wasm_do_not_trigger_fallback(self):
         path = self.root / 'client_host_wasm.cwasm'

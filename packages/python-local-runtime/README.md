@@ -23,7 +23,8 @@ an advertised Python profile.
 
 ## Fixed producer input
 
-The supplied directory contains `artifact.json`, `client_host_wasm.wasm`,
+The supplied directory contains `artifact.json`, `engine-recipe.json`, `client_host_wasm.cwasm`,
+`client_host_wasm.wasm`,
 `libduckdb.dylib`, `LICENSE`, `DUCKDB-LICENSE`, `MOONBIT-CORE-LICENSE`, and
 `MOONBIT-CORE-NOTICE`. The closed manifest contains these fields:
 
@@ -36,6 +37,28 @@ The supplied directory contains `artifact.json`, `client_host_wasm.wasm`,
 - `duckdb_version`: the actual library's `vMAJOR.MINOR.PATCH` string, independently
   checked by the existing library loader when loaded.
 - `notices`: exactly the four notice filenames and their SHA-256 hashes.
+- `engine_recipe`: `{file, bytes, sha256}` for `engine-recipe.json`, copied from
+  the same clean source's `packages/python-local-runtime/selected-image-recipe.json`.
+  That source-original must be explicitly selected before production. No
+  production profile is inferred from test scalars or Wasmtime defaults.
+- `compiled_image`: the original source/cohort/module/ABI/Wasmtime library,
+  platform, exact Engine body and its digest, plus `{file, bytes, sha256}` for
+  `client_host_wasm.cwasm`. The inspector requires the selected arm64 ELF object
+  architecture as well as the original recipe and component digests.
+
+The fixed cohort builder also places `_local_release_binding.json` in the
+lightweight SDK wheel, with the original source, cohort, ABI and artifact
+manifest digest. Local resolution checks this before accepting the runtime's
+manifest. A same-version changed runtime or missing SDK binding is rejected;
+Remote imports and their lightweight dependencies do not load this record.
+
+The closed installed format requires both new fields. An old raw-Wasm-only
+artifact is rejected. Raw Wasm remains an original producer input/evidence;
+there is no image-to-JIT fallback. Component inspection is not bootstrap
+capacity adoption or permission to deserialize native code. The trusted Host
+supplier must independently adopt the matching original before VM construction.
+The image compiler, installed image loading and capacity supplier remain
+separate unverified boundaries until their matching physical acceptance.
 
 Do not copy a historical success receipt onto a new module or derive execution
 success from this manifest. The final producer and wheel consumer evidence must
@@ -51,6 +74,11 @@ python scripts/prepare-python-local-runtime.py \
   --artifact-directory FIXED_PRODUCER_DIRECTORY \
   --destination NEW_PACKAGE_STAGE
 ```
+
+The assembly producer also requires `--image-receipt ORIGINAL_IMAGE_RECEIPT`,
+from the same clean source, raw module, selected Wasmtime library and Engine
+recipe. Its positive `compiled` fact does not assert Run or product success.
+Assembly and staging do not implicitly run the image compiler.
 
 The command only stages and verifies files. It does not compile, load a native
 library, execute Wasm, build a wheel, download dependencies, or publish. It

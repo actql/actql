@@ -104,3 +104,28 @@ def _load_selected_image(root: Path, body: Any, recipe: _SelectedImageRecipe) ->
                           expected=item['bytes'], digest=item['sha256'], capture=True)
     except (OSError, TypeError, ValueError, UnicodeError, RecursionError) as original:
         raise LocalInstallationError('Installed Local image is unavailable or invalid') from original
+
+
+def _recipe_from_original(original: bytes, *, source_sha: str,
+                          package_version: str, module_sha256: str) -> _SelectedImageRecipe:
+    """Decode an installed source-original recipe, not a capacity admission.
+
+    Producer checks this exact file against its clean Git blob. The runtime's
+    trusted bootstrap supplier must independently adopt the matching recipe;
+    reading an artifact manifest does not grant Host capacity or permission.
+    """
+    if type(original) is not bytes or not 0 < len(original) <= 65536:
+        raise LocalInstallationError('Unavailable original Local image recipe')
+    try:
+        body = _closed(json.loads(original, object_pairs_hook=_pairs), (
+            'wasmtime_version', 'runtime_library_sha256', 'engine_body', 'image_bytes_limit'))
+        if body['wasmtime_version'] != WASMTIME_VERSION:
+            raise LocalInstallationError('Incompatible original Local image recipe')
+        recipe = _SelectedImageRecipe(source_sha, package_version, module_sha256,
+            body['runtime_library_sha256'], json.dumps(body['engine_body'], sort_keys=True,
+                separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('ascii'),
+            body['image_bytes_limit'])
+        recipe.validate()
+        return recipe
+    except (ValueError, UnicodeError, RecursionError) as original_error:
+        raise LocalInstallationError('Invalid original Local image recipe') from original_error

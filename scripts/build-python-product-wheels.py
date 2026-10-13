@@ -53,14 +53,15 @@ def wheel_metadata(path: Path, name: str, version: str) -> None:
             raise ValueError('Python cohort wheel target mismatch')
         if name == 'actql' and not {'actql/__init__.py', 'actql/__init__.pyi', 'actql/py.typed'} <= set(names):
             raise ValueError('Standard product wheel has no typed facade')
-        if name != 'actql-local-runtime' and any(value.endswith(('.wasm', '.dylib', '.so', '.dll')) for value in names):
+        if name != 'actql-local-runtime' and any(value.endswith(('.wasm', '.cwasm', '.dylib', '.so', '.dll')) for value in names):
             raise ValueError('Python facade/SDK wheel contains a native engine')
 
 
 def runtime_wheel_components(wheel: Path, artifact: Path) -> None:
     """Match the shipped resource bytes to the same verified original artifact."""
     with zipfile.ZipFile(wheel) as archive:
-        for name in ('artifact.json', 'client_host_wasm.wasm', 'libduckdb.dylib',
+        for name in ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
+                     'client_host_wasm.wasm', 'libduckdb.dylib',
                      'LICENSE', 'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE'):
             original = artifact / name
             info = archive.getinfo('actql_local_runtime/' + name)
@@ -72,6 +73,15 @@ def runtime_wheel_components(wheel: Path, artifact: Path) -> None:
                     digest.update(block)
             if digest.hexdigest() != sha256(original):
                 raise ValueError('Python runtime wheel component digest mismatch')
+
+
+def sdk_runtime_binding(wheel: Path, original: bytes) -> None:
+    """Check the SDK's generated same-source binding, not an execution grant."""
+    with zipfile.ZipFile(wheel) as archive:
+        name = 'actql_sdk/_local_release_binding.json'
+        item = archive.getinfo(name)
+        if not 0 < item.file_size <= 65536 or archive.read(item) != original:
+            raise ValueError('SDK wheel Local release binding mismatch')
 
 
 def copy_source(source: str, original: Path, target: Path) -> None:
@@ -116,6 +126,10 @@ def build(artifact: Path, destination: Path) -> dict[str, object]:
         for name in tracked:
             path = ROOT / name
             copy_source(source, path, stage / path.relative_to(original))
+    binding = (json.dumps({'source_sha': source, 'package_version': version,
+        'core_abi': artifact_body['core_abi'], 'artifact_sha256': artifact_digest},
+        sort_keys=True, indent=2) + '\n').encode('ascii')
+    (stages / 'python-sdk/src/actql_sdk/_local_release_binding.json').write_bytes(binding)
     wheels = destination / 'wheels'
     wheels.mkdir()
     records = []
@@ -130,6 +144,8 @@ def build(artifact: Path, destination: Path) -> dict[str, object]:
             raise ValueError('Python cohort build did not create one wheel per package')
         wheel = created.pop()
         wheel_metadata(wheel, distribution, version)
+        if distribution == 'actql-sdk':
+            sdk_runtime_binding(wheel, binding)
         if distribution == 'actql-local-runtime':
             runtime_wheel_components(wheel, artifact)
         records.append({'distribution': distribution, 'file': wheel.name,
@@ -146,6 +162,7 @@ def build(artifact: Path, destination: Path) -> dict[str, object]:
         'artifact_sha256': artifact_digest,
         'platform': artifact_body['platform'], 'core_abi': artifact_body['core_abi'],
         'module_sha256': components.module_sha256, 'duckdb_sha256': components.duckdb_sha256,
+        'image_sha256': components.image_sha256, 'engine_recipe_sha256': components.engine_recipe_sha256,
         'wheels': records, 'runtime_executed': False, 'public_local_accepted': False,
         'recovery_accepted': False, 'published': False}
     (destination / 'cohort.json').write_text(json.dumps(result, indent=2) + '\n')

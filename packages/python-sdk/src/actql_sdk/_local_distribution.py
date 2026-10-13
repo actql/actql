@@ -11,7 +11,10 @@ import platform
 import re
 import stat
 import sys
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
+
+if TYPE_CHECKING:
+    from ._local_image_recipe import _SelectedImageRecipe
 
 from ._local_core import LOCAL_CORE_ABI
 
@@ -35,6 +38,12 @@ class LocalComponents:
     duckdb: Path
     duckdb_sha256: str
     duckdb_version: str
+    image: Path
+    image_sha256: str
+    image_bytes: int
+    image_recipe: _SelectedImageRecipe
+    engine_recipe: Path
+    engine_recipe_sha256: str
 
 
 def _closed(value: Any, fields: tuple[str, ...]) -> dict[str, Any]:
@@ -48,7 +57,9 @@ def _hex(value: object, length: int) -> bool:
 
 
 def _read_file(path: Path, *, maximum: int, expected: int | None = None,
-               digest: str | None = None, capture: bool = False) -> bytes:
+               digest: str | None = None, capture: bool = False, prefix: int = 0) -> bytes:
+    if type(prefix) is not int or prefix < 0 or prefix > maximum or capture and prefix:
+        raise LocalInstallationError('Invalid installed Local prefix read')
     # Installed wheels are ordinary files. Never extract a zip, follow a
     # component symlink, or search a development/Node installation.
     with os.fdopen(os.open(path, os.O_RDONLY | os.O_NOFOLLOW), 'rb') as source:
@@ -57,7 +68,7 @@ def _read_file(path: Path, *, maximum: int, expected: int | None = None,
                 or expected is not None and before.st_size != expected):
             raise LocalInstallationError('Invalid installed Local component size')
         checksum = hashlib.sha256()
-        captured = bytearray() if digest is None or capture else None
+        captured = bytearray() if digest is None or capture or prefix else None
         remaining = before.st_size
         while remaining:
             block = source.read(min(65536, remaining))
@@ -66,7 +77,7 @@ def _read_file(path: Path, *, maximum: int, expected: int | None = None,
             checksum.update(block)
             remaining -= len(block)
             if captured is not None:
-                captured.extend(block)
+                captured.extend(block[:max(0, prefix - len(captured))] if prefix else block)
         after = os.fstat(source.fileno())
         if (source.read(1) or (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns,
                               before.st_ctime_ns) != (after.st_dev, after.st_ino, after.st_size,
@@ -86,6 +97,14 @@ def _component(root: Path, value: Any, filename: str, maximum: int) -> tuple[Pat
     return path, item['sha256']
 
 
+def _valid_image_header(header: bytes, size: int) -> bool:
+    # Wasmtime serializes code as an ELF object even on the selected macOS
+    # host. This checks the binary architecture, not Engine compatibility.
+    return (size >= 64 and len(header) == 20
+            and header[:7] == b'\x7fELF\x02\x01\x01'
+            and header[18:20] == b'\xb7\x00')
+
+
 def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     value: dict[str, Any] = {}
     for key, item in pairs:
@@ -95,7 +114,8 @@ def _pairs(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return value
 
 
-def inspect_local_components(root: Path, *, package_version: str) -> LocalComponents:
+def inspect_local_components(root: Path, *, package_version: str,
+                             artifact_sha256: str | None = None) -> LocalComponents:
     """Inspect an installed supplier, before optional engines or foreign loading.
 
     These hashes are release integrity, not current Host publisher authority.
@@ -106,10 +126,12 @@ def inspect_local_components(root: Path, *, package_version: str) -> LocalCompon
     if sys.platform != 'darwin' or platform.machine() != 'arm64':
         raise LocalInstallationError('Python Local is not available for this platform')
     try:
-        raw = _read_file(root / 'artifact.json', maximum=65536)
+        if artifact_sha256 is not None and not _hex(artifact_sha256, 64):
+            raise LocalInstallationError('Invalid SDK-bound Local artifact digest')
+        raw = _read_file(root / 'artifact.json', maximum=65536, digest=artifact_sha256, capture=True)
         body = _closed(json.loads(raw, object_pairs_hook=_pairs), (
             'source_sha', 'package_version', 'platform', 'core_abi', 'wasmtime_version',
-            'module', 'duckdb', 'duckdb_version', 'notices'))
+            'module', 'duckdb', 'duckdb_version', 'notices', 'compiled_image', 'engine_recipe'))
         if (not _hex(body['source_sha'], 40) or type(package_version) is not str
                 or not package_version or body['package_version'] != package_version
                 or body['platform'] != 'darwin-arm64'
@@ -119,13 +141,28 @@ def inspect_local_components(root: Path, *, package_version: str) -> LocalCompon
             raise LocalInstallationError('Installed Local release cohort is incompatible')
         module, module_hash = _component(root, body['module'], 'client_host_wasm.wasm', 32 * 1024 * 1024)
         library, library_hash = _component(root, body['duckdb'], 'libduckdb.dylib', 128 * 1024 * 1024)
+        # These component checks establish correspondence only. The original
+        # Host capacity supplier still precedes VM construction and image capture.
+        from ._local_image_recipe import _image_descriptor, _recipe_from_original
+        recipe_path, recipe_hash = _component(root, body['engine_recipe'],
+                                               'engine-recipe.json', 65536)
+        original_recipe = _read_file(recipe_path, maximum=65536, digest=recipe_hash, capture=True)
+        recipe = _recipe_from_original(original_recipe, source_sha=body['source_sha'],
+            package_version=package_version, module_sha256=module_hash)
+        image = _image_descriptor(body['compiled_image'], recipe)
+        image_path = root / image['file']
+        header = _read_file(image_path, maximum=recipe.image_bytes_limit,
+                   expected=image['bytes'], digest=image['sha256'], prefix=20)
+        if not _valid_image_header(header, image['bytes']):
+            raise LocalInstallationError('Installed Local image has an incompatible binary target')
         notices = _closed(body['notices'], _NOTICES)
         for filename in _NOTICES:
             if not _hex(notices[filename], 64):
                 raise LocalInstallationError('Invalid installed Local license descriptor')
             _read_file(root / filename, maximum=1024 * 1024, digest=notices[filename])
         return LocalComponents(body['source_sha'], package_version, module, module_hash,
-                               library, library_hash, body['duckdb_version'])
+                               library, library_hash, body['duckdb_version'], image_path,
+                               image['sha256'], image['bytes'], recipe, recipe_path, recipe_hash)
     except (OSError, ValueError, UnicodeError, RecursionError) as original:
         raise LocalInstallationError('Installed Local components are unavailable or invalid') from original
 
@@ -144,7 +181,26 @@ def installed_local_components() -> LocalComponents:
         root = resources.files('actql_local_runtime')
         if not isinstance(root, Path):
             raise LocalInstallationError('Python Local requires an installed runtime wheel')
-        return inspect_local_components(root, package_version=version)
+        sdk_root = resources.files('actql_sdk')
+        if not isinstance(sdk_root, Path):
+            raise LocalInstallationError('Python Local requires an installed SDK wheel')
+        # The cohort builder writes this source-qualified binding into the SDK
+        # wheel. An independently changed runtime manifest cannot self-authorize
+        # its image by changing both the declared recipe and file checksums.
+        binding = _closed(json.loads(_read_file(sdk_root / '_local_release_binding.json',
+            maximum=65536), object_pairs_hook=_pairs),
+            ('source_sha', 'package_version', 'core_abi', 'artifact_sha256'))
+        if (not _hex(binding['source_sha'], 40) or binding['package_version'] != version
+                or type(binding['core_abi']) is not int or binding['core_abi'] != LOCAL_CORE_ABI
+                or not _hex(binding['artifact_sha256'], 64)):
+            raise LocalInstallationError('Installed SDK Local cohort binding is incompatible')
+        components = inspect_local_components(root, package_version=version,
+            artifact_sha256=binding['artifact_sha256'])
+        if components.source_sha != binding['source_sha']:
+            raise LocalInstallationError('Installed SDK and Local source do not match')
+        return components
+    except (OSError, ValueError, UnicodeError, RecursionError) as original:
+        raise LocalInstallationError('Installed SDK Local cohort binding is unavailable or invalid') from original
     except (metadata.PackageNotFoundError, ModuleNotFoundError) as original:
         raise LocalInstallationError('Python Local requires the standard actql installation') from original
 
