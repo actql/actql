@@ -21,7 +21,8 @@
     "run-QdPyzo private record ambiguity and callback arity; no runtime counts",
     "run-PGS2CP 9/11: required null component panic and Member wrapper identity assertion",
     "run-COGgSR: WB match-arm comma compilation failure; acquisition8 not reached",
-    "run-ZiVUsg synthetic connector registration/version violates existing declaration contract; all8 runtime cases not reached"
+    "run-ZiVUsg synthetic connector registration/version violates existing declaration contract; all8 runtime cases not reached",
+    "run-4f4Z70 select arithmetic fixture violates select input-field grammar; bounded duplicate raw input not rejected before filter completion"
   ],
   "unexecuted": [
     "successful acquisition8 and installed bounded key-validation connection",
@@ -33,8 +34,8 @@
   "preparedFirstMoonSelection": "node reviews/2026-10-13-vector-source-evidence-design/prepared-checks.mjs <clean complete SHA> declaration; 11 named JS cases, nonHeavy 60 seconds / TERM grace 5, only after integration-owner allocation and actual preflight; tracked jobs=2",
   "publicE2E": 0,
   "publicFixtureSha256": "9717e6a803428dadf392562f891687bad8ddbb88691cfbbe6e37137e0fff804f",
-  "preparedRuntimeSelection": "acquisition: 8 named tests in src/query_integration/source_relation_keys_wbtest.mbt; nonHeavy 60 seconds / TERM grace 5, not executed",
-  "runtimeBoundary": "runtime-boundary.json records the installed bounded key-validation gap from actual-source reading; this is not a runtime reproduction",
+  "preparedRuntimeSelection": "acquisition: original8 with formal field projection; keycursor: original synchronous4 + continuation4. Each separate nonHeavy60/TERM5, JS-j2, on the same clean fixed source, only as allocated.",
+  "runtimeBoundary": "runtime-boundary.json preserves the original read checkpoint and records actual f683 counterexample separately; pending cursor repair is uncompiled.",
   "executedFixedSource": {
     "99b11e9ae18ed3ebbd7ddfc9c0ed49f982cbad73": "declaration11 run-QdPyzo compile exit1; no test summary / executed0; acquisition8 not started",
     "68f73459c71c6a6d68cd1292e832968ec8f00b81": {
@@ -46,6 +47,22 @@
       "declaration": "run-e8qEv1 actualJS11/11 complete exit0",
       "acquisition": "run-ZiVUsg actualJS8=0 passed/8 failed, exit2; setup rejected before page acquisition",
       "qualification": "static component passed; whole-page/bounded runtime still unverified, Source clean and Owner/child/group/locks closed"
+    },
+    "f68360c69bfc0992d53aad4150129b1d4ab83264": {
+      "acquisition": "run-4f4Z70 actualJS8=6 passed/2 failed, exit2",
+      "qualification": "same-owner runtime reached for six cases; bounded missing validator actually reproduced; public E2E0"
     }
+  },
+  "pendingRuntimeRepair": {
+    "status": "Prepared and formatted; no compile or runtime execution for this child",
+    "files": [
+      "src/execution_relation/input_keys.mbt",
+      "src/connectors/local/guarded_relation.mbt"
+    ],
+    "owner": "Original conditional input-key validator, with existing bounded execution and RowWorkspace accounting",
+    "selectedCounterexamples": "Original acquisition8, including filter-excluded duplicate pages, plus existing input-key4 and cursor4",
+    "remainingBudget": "Deduct key control work from the same execution allowance before starting the selected child; do not renew it",
+    "cleanup": "Retire owned tuples/map entries before dropping borrowed input and original key references; cancellation remains pending until the existing cleanup confirms",
+    "format": "run-ur87ee, pinned formatter4 exit0; not compile/runtime evidence"
   }
 }

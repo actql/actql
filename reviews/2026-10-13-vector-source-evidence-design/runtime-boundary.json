@@ -39,5 +39,28 @@
     "refusal": 8,
     "newPublicE2E": 0
   },
-  "notStarted": ["Moon compile", "Native execution", "producer", "consumer", "Hosted CI", "provider service I/O"]
+  "notStarted": [
+    "Moon compile",
+    "Native execution",
+    "producer",
+    "consumer",
+    "Hosted CI",
+    "provider service I/O"
+  ],
+  "actualCounterexample": {
+    "source": "f68360c69bfc0992d53aad4150129b1d4ab83264",
+    "run": "run-4f4Z70",
+    "result": "acquisition8=6pass2fail, exit2; installed bounded filter completed without rejecting duplicate id0 pages",
+    "qualification": "Component execution, not external installed Named Result/public success",
+    "receipt": "/Users/t14i/workspace/20260822/reviews/2026-10-13-b-vector-release-consumer-evidence/source-key-run-4f4Z70",
+    "invalidSelectFixture": "Original arithmetic select violates normative output-to-field projection; retained in old source/raw failure, corrected to drop id while exposing different payload values"
+  },
+  "pendingRepair": {
+    "status": "Uncompiled child",
+    "common": "execution_relation/input_keys.mbt uses the same original KeyAtom equality and key witnesses for synchronous and continuation drivers",
+    "installed": "connectors/local/guarded_relation.mbt checks complete supplied input before starting the selected filter/projection child",
+    "budget": "Existing logical execution work, row-workspace entries and bounded control; no new budget or Source evidence",
+    "map": "Original typed hash-map equality/domain retained; this selection does not establish a whole-engine or all-domain boundedness campaign",
+    "publicAdoption": false
+  }
 }

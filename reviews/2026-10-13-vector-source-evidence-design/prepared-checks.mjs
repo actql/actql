@@ -11,6 +11,10 @@ const selections = {
     'src/query_program/vector_scalar_source_test.mbt',
   ],
   acquisition: ['src/query_integration/source_relation_keys_wbtest.mbt'],
+  keycursor: [
+    'src/execution_relation/input_keys_wbtest.mbt',
+    'src/execution_relation/supplied_key_validation_wbtest.mbt',
+  ],
 };
 assert.ok(Object.hasOwn(selections, selection), 'Select one allocated focused boundary');
 const git = (...args) => execFileSync('git', args, {encoding: 'utf8'}).trim();
