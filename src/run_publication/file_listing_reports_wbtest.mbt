@@ -65,6 +65,12 @@ test "completed listing report codec fixed nfd bytes and identity" {
   assert_eq(run_evidence_value_identity(value), "sha256:1d7f15a34edb53acc3d6593a44647c36f20e91de2f19a8eff3d2c883ccb4b033")
   let saved = admit_run_evidence_value("source_evidence", run_evidence_value_json(value), 16384, 256, 16).unwrap()
   assert_eq(run_evidence_value_identity(saved), "sha256:1d7f15a34edb53acc3d6593a44647c36f20e91de2f19a8eff3d2c883ccb4b033")
+  // Independent complete-wire size: fixed 1473-byte body plus the 96-byte
+  // identity member. These are encoder limits, never a physical byte grant.
+  let exact = seal_run_evidence_value("source_evidence", listing_report_codec_body(value), 1569, 256, 16).unwrap()
+  assert_eq(run_evidence_value_identity(exact), "sha256:1d7f15a34edb53acc3d6593a44647c36f20e91de2f19a8eff3d2c883ccb4b033")
+  assert_true(seal_run_evidence_value("source_evidence", listing_report_codec_body(value), 1568, 256, 16)
+    is Err(RunEvidenceEncoding))
 }
 
 ///|
@@ -110,4 +116,14 @@ test "listing report writer retains existing finite encoding bounds" {
   let row = listing_report_codec_row(None, None)
   let rows = Array::makei(100, i => { ..row, row_ordinal: i })
   assert_true(seal_completed_file_listing_observation(fields, 100, rows) is Err(_))
+  // The selected data cannot fit even the unchanged node bound. Refuse before
+  // validating each report, rather than pricing an arbitrarily long array.
+  let oversized = Array::makei(257, i => {
+    ..row,
+    row_ordinal: i,
+    reported_media_type: Some("malformed"),
+    media_type: Some("malformed"),
+  })
+  assert_true(seal_completed_file_listing_observation(fields, 257, oversized)
+    is Err(RunEvidenceEncoding))
 }
