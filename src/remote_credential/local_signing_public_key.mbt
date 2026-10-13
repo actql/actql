@@ -28,7 +28,7 @@ fn local_signing_public_key_body(
     @encode.ordered_key(writer, "version")
     @encode.string_value(writer, "actql-local-signing-public-key/0.1")
     @encode.end_object(writer)
-    Ok(@encode.finish(writer).text)
+    Ok(@encode.finish(writer))
   } catch {
     _ => Err(PublicKeyEncoding)
   }
@@ -90,13 +90,15 @@ pub fn admit_local_signing_public_key_json(
     return Err(InvalidPublicKey)
   }
   try {
-    let source = credential_decoded(
+    let source = match
       @source.parse_json_bytes_preserving(@utf8.encode(body), {
         max_input_bytes: 256,
         max_nodes: 8,
         max_depth: 2,
-      }),
-    )
+      }) {
+      Ok(value) => value
+      Err(_) => raise RemoteCredentialDecodeStop
+    }
     let cursor = credential_decoded(
       @decode.admit(source, {
         max_nodes: 8,
