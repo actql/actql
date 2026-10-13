@@ -494,6 +494,12 @@ pub fn start_accounted_row_acquisition(
   transfer_bytes : Int64,
   execution_scratch : Int64,
 ) -> Result[RowRun, RowHostIssue] {
+  // Report-enabled listing needs the selected trusted installation envelope.
+  // This ordinary entry cannot infer one from row-wire or Model allowances.
+  // Its non-listing capacity and allocation order remain unchanged.
+  if row_acquisition_is_listing(value) {
+    return Err(Physical(InvalidLimits))
+  }
   if transfer_bytes < 0L ||
     execution_scratch < 0L ||
     execution_scratch >
@@ -546,6 +552,19 @@ fn attach_row_reservation(
       return Err(Physical(issue))
     }
   }
+  install_row_reservation(run, ledger, reservation, execution_scratch)
+  Ok(run)
+}
+
+///|
+// Install only a reservation issued by the same caller's Source Ledger.
+// The listing entry has already reserved before allocating its attempt.
+fn install_row_reservation(
+  run : RowRun,
+  ledger : @resources.Ledger,
+  reservation : @resources.Reservation,
+  execution_scratch : Int64,
+) -> Unit {
   run.physical = Some({
     ledger,
     reservation,
@@ -554,7 +573,6 @@ fn attach_row_reservation(
     dag: None,
     cleanup_confirmed: None,
   })
-  Ok(run)
 }
 
 ///|
@@ -984,9 +1002,9 @@ pub fn capture_row_run(run : RowRun) -> Result[RowSourceCapture, RowHostIssue] {
       Err(issue) => return Err(Physical(issue))
     }
     physical.holding = Some(holding)
-    match @resources.settle_reservation(physical.ledger, physical.reservation) {
+    match settle_row_capture_capacity(configuration.listing_rows is Some(_), physical) {
       Ok(_) => ()
-      Err(issue) => return Err(Physical(issue))
+      Err(issue) => return Err(issue)
     }
   }
   Ok({ run, observation, source, })

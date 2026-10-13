@@ -1,0 +1,108 @@
+///|
+// Checked addition of the complete supplementary listing envelope to the
+// existing Source allowance. No value here is an allocation or a byte grant.
+fn row_listing_capacity_sum(
+  retained : Int64,
+  execution : Int64,
+  scratch : Int64,
+  declaration : @execution.ExecutionCapacity?,
+) -> Result[(Int64, Int64), RowHostIssue] {
+  guard declaration is Some(capacity) else {
+    return Err(Physical(InvalidLimits))
+  }
+  let report_retained = @execution.execution_capacity_retained_bytes(capacity)
+  let report_execution = @execution.execution_capacity_execution_bytes(capacity)
+  if retained < 0L ||
+    execution < 0L ||
+    scratch < 0L ||
+    report_retained <= 0L ||
+    report_execution < report_retained ||
+    report_retained > 9223372036854775807L - retained ||
+    report_execution > 9223372036854775807L - execution {
+    return Err(Physical(InvalidLimits))
+  }
+  let total_execution = execution + report_execution
+  if scratch > 9223372036854775807L - total_execution {
+    return Err(Physical(InvalidLimits))
+  }
+  Ok((retained + report_retained, total_execution + scratch))
+}
+
+///|
+// Trusted installation only: the supplier selects this declaration for this
+// exact opaque acquisition, implementation and target recipe. A syntactically
+// valid ExecutionCapacity alone proves neither that selection nor a physical
+// upper bound. An unavailable/unjustified supplier must provide None.
+//
+// Reserve before constructing additional attempt/control state or admitting
+// pages. The same immutable Source configuration enters the existing RowRun;
+// no standing field, auxiliary Ledger, reservation token or public grant is
+// introduced. The installation's existing preparation also owns the finite
+// supplier/count-result workspace before this entry.
+pub(all) fn start_accounted_listing_row_acquisition(
+  value : RowAcquisition,
+  declaration : @execution.ExecutionCapacity?,
+  nonce : String,
+  verify : (RowAttempt) -> Bool,
+  ledger : @resources.Ledger,
+  transfer_bytes : Int64,
+  execution_scratch : Int64,
+) -> Result[RowRun, RowHostIssue] {
+  if declaration is None || transfer_bytes < 0L {
+    return Err(Physical(InvalidLimits))
+  }
+  guard row_acquisition_is_listing(value) else {
+    return Err(Source(ForeignSource))
+  }
+  match row_acquisition_listing_report_bounds(value) {
+    Ok(_) => ()
+    Err(issue) => return Err(Source(issue))
+  }
+  let (retained, execution) = match row_listing_capacity_sum(
+    row_acquisition_retained_capacity(value),
+    row_acquisition_execution_capacity(value),
+    execution_scratch,
+    declaration,
+  ) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let reservation = match
+    @resources.reserve_attempt(ledger, transfer_bytes, retained, execution) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
+  let run = match start_row_acquisition(value, nonce, verify) {
+    Ok(value) => value
+    Err(issue) => {
+      // Registration failure closed its own issuer; no input or provider I/O
+      // exists. This same reservation is settled, never replaced or retried.
+      match @resources.settle_reservation(ledger, reservation) {
+        Ok(_) => return Err(issue)
+        Err(resource_issue) => return Err(Physical(resource_issue))
+      }
+    }
+  }
+  install_row_reservation(run, ledger, reservation, execution_scratch)
+  Ok(run)
+}
+
+///|
+// Capture does not retire listing report backing or later evidence encoding.
+// Keep its remaining retention and execution on the same reservation until
+// the existing Row cleanup really confirms physical retirement. Non-listing
+// capture preserves its existing immediate settlement exactly.
+fn settle_row_capture_capacity(
+  listing : Bool,
+  physical : RowPhysical,
+) -> Result[Unit, RowHostIssue] {
+  if listing {
+    if !@resources.reservation_open(physical.reservation) {
+      return Err(Physical(ClosedReservation))
+    }
+    Ok(())
+  } else {
+    @resources.settle_reservation(physical.ledger, physical.reservation)
+    .map_err(issue => Physical(issue))
+  }
+}
