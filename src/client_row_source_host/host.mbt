@@ -967,7 +967,17 @@ pub fn capture_row_run(run : RowRun) -> Result[RowSourceCapture, RowHostIssue] {
     Err(issue) => return Err(Consumer(issue))
   }
   if run.physical is Some(physical) {
-    let bytes = observation.records.retention.measured.retained_bytes.to_int64()
+    let measured = observation.records.retention.measured.retained_bytes.to_int64()
+    let (original, _) = row_original_input_capacity()
+    if measured < 0L ||
+      original < 0L ||
+      original > 9223372036854775807L - measured {
+      return Err(Physical(InvalidLimits))
+    }
+    // The same RowRun still owns its original read/export backing. Move its
+    // already reserved allowance beside the measured scan/output wire into
+    // the same holding; only confirmed Row/DAG cleanup may release it.
+    let bytes = measured + original
     let holding = match
       @resources.retain_allocation(physical.ledger, physical.reservation, bytes) {
       Ok(value) => value

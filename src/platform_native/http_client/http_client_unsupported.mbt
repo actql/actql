@@ -5,7 +5,13 @@ type Library
 type Client
 
 ///|
-pub fn load_library(_path : String) -> Result[Library, NativeHttpIssue] {
+pub fn load_library(
+  _path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Library, NativeHttpIssue] {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(InvalidConfiguration)
+  }
   ignore(@utf8.encode(""))
   Err(UnsupportedTarget)
 }

@@ -26,7 +26,11 @@ extern "C" fn sha256_finish_ffi(hash : Sha256Hasher) -> Bytes = "actql_native_si
 
 ///|
 #borrow(path)
-extern "C" fn load_library_ffi(path : Bytes, length : Int) -> Library = "actql_native_signature_load_library"
+extern "C" fn load_library_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+) -> Library = "actql_native_signature_load_library"
 
 ///|
 #borrow(library)
@@ -57,6 +61,44 @@ extern "C" fn sign_ed25519_ffi(
   message : Bytes,
   message_length : Int,
 ) -> Bytes = "actql_native_signature_sign_ed25519"
+
+///|
+#borrow(library, public_key, output)
+extern "C" fn ed25519_public_key_raw32_ffi(
+  library : Library,
+  public_key : Bytes,
+  public_key_length : Int,
+  output : Bytes,
+  output_length : Int,
+) -> Int = "actql_native_signature_ed25519_public_key_raw32"
+
+///|
+/// Comparison-only public key projection using the selected Library.
+/// Requires an explicit diagnostic ceiling. It creates no CID or authority.
+pub fn Library::ed25519_public_key_raw32(
+  self : Library,
+  public_key_pem : String,
+) -> Result[Bytes, NativeSignatureIssue] {
+  let public_key = @utf8.encode(public_key_pem)
+  if public_key.length() == 0 || public_key.length() > 16384 {
+    return Err(InvalidInput)
+  }
+  let output = Bytes::make(32, 0)
+  match
+    ed25519_public_key_raw32_ffi(
+      self,
+      public_key,
+      public_key.length(),
+      output,
+      output.length(),
+    ) {
+    0 => Ok(output)
+    2 => Err(InvalidInput)
+    3 => Err(InvalidPublicKey(library_message(self)))
+    4 => Err(UnsupportedKey(library_message(self)))
+    _ => Err(Verification(library_message(self)))
+  }
+}
 
 ///|
 /// Physical crypto only, over the exact bytes selected by the existing
@@ -101,7 +143,12 @@ pub fn Library::sign_ed25519(
 
 ///|
 fn library_message(library : Library) -> String {
-  @utf8.decode_lossy(library_error_ffi(library))
+  let bytes = library_error_ffi(library)
+  if bytes.is_empty() {
+    "Crypto diagnostic detail omitted"
+  } else {
+    @utf8.decode_lossy(bytes)
+  }
 }
 
 ///|
@@ -224,12 +271,24 @@ pub fn Sha256Hasher::finish_hex(
 }
 
 ///|
-pub fn load_library(path : String) -> Result[Library, NativeSignatureIssue] {
+/// Select from trusted installer configuration bound to its source/ABI.
+/// Omission preserves legacy behavior; this bound issues no funding/authority.
+pub fn load_library(
+  path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Library, NativeSignatureIssue] {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(InvalidInput)
+  }
   if path.is_empty() || path.length() > 4096 {
     return Err(InvalidInput)
   }
   let encoded = @utf8.encode(path)
-  let library = load_library_ffi(encoded, encoded.length())
+  let library = load_library_ffi(
+    encoded,
+    encoded.length(),
+    diagnostic_ceiling.unwrap_or(0),
+  )
   if library_ready_ffi(library) {
     Ok(library)
   } else {

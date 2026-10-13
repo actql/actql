@@ -14,6 +14,7 @@ test "original Source capture remains held beside the same Scope read until both
   let execution = @row_source_host.row_acquisition_execution_capacity(
     acquisition,
   )
+  assert_eq(retention, 26404096L)
   let page = @utf8.encode(
     "[{\"id\":2,\"amount\":null},{\"id\":1,\"amount\":7}]",
   )
@@ -88,7 +89,10 @@ test "original Source capture remains held beside the same Scope read until both
   let captured = @resources.ledger_usage(ledger)
   assert_eq(captured.attempts, 1)
   assert_eq(captured.holdings, 1)
-  assert_true(captured.held_bytes > 0L)
+  // Independently authored canonical scan and output are each the 44-byte
+  // [{"amount":null,"id":2},{"amount":7,"id":1}]. Keep both wires plus the
+  // existing 22404096-unit original read/export allowance, not only 88 bytes.
+  assert_eq(captured.held_bytes, 22404184L)
   assert_eq(captured.transferred_bytes, page.length().to_int64())
   assert_eq(captured.reserved_retention_bytes, 3L)
   let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
@@ -104,8 +108,29 @@ test "original Source capture remains held beside the same Scope read until both
     @publication_host.settle_client_model_read(read, false)
     is Err(@publication_host.Resource(@resources.CleanupPending)),
   )
+  let pending = @resources.ledger_usage(ledger)
+  assert_eq(pending.held_bytes, 22404184L)
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 10L)
+  // Total 26404106 minus the Source holding 22404184 and two live read
+  // reservations (3 + 7) leaves exactly 3999912. One more must fail without
+  // returning the original allowance or changing usage/serial/custody.
+  assert_true(
+    @resources.reserve_capacity(ledger, 3999913L, 0L)
+    is Err(@resources.RetentionLimit),
+  )
+  assert_eq(@resources.ledger_usage(ledger), pending)
+  assert_true(
+    @publication_host.settle_client_model_read(read, false)
+    is Err(@publication_host.Resource(@resources.CleanupPending)),
+  )
+  assert_eq(@resources.ledger_usage(ledger), pending)
+  assert_true(@execution.supplied_relation_read_available(original))
+  assert_true(
+    @execution.supplied_relation_read_cell(original, 0, amount)
+    is Some(@admitted.Null),
+  )
   assert_true(@resources.capacity_reservation_open(bootstrap))
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 22404184L)
   @publication_host.settle_client_model_read(read, true).unwrap()
   // A read child's successful cleanup cannot return the Source's holding or
   // the original bootstrap. The owning Run still waits for Source cleanup.

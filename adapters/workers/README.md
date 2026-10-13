@@ -21,6 +21,9 @@ Compatibility date `2026-09-11` explicitly disables both `nodejs_compat` and
 the absence of Node globals. See the [Cloudflare compatibility flag rules](https://developers.cloudflare.com/workers/configuration/compatibility-flags/#nodejs-compatibility-flag).
 An outbound service denies every external request, including unknown URLs;
 the host process does not forward failed requests to the real network.
+The Host harness explicitly sets Miniflare `cf: false`, disabling its optional
+external Request.cf metadata fetch before startup. These local tests use the
+built-in placeholder and do not establish production Request.cf behavior.
 Every runtime records outbound attempts and its common `dispose()` finalizer
 requires zero by default. Worker-side error handling cannot suppress this audit.
 Intentional network probes declare an exact `expectedOutbound` count; an observer
@@ -89,6 +92,36 @@ A recovery error retains an explicit `cleanupHandle`; it is not a successful
 response or permission to store handles for a later request. The generated
 composition supplies implementations, not caller-provided verifier callbacks.
 The test-only `conformance.mjs` prepares fixtures; product callers do not import it.
+
+### Finite source-free entry
+
+`bindWorkersFiniteHost(runtime, configuration)` is an explicit trusted assembly
+for one effect-free, source-free task and one Named Result. The installation
+supplies its checked environment, registry/manifests, capacity, execution/search
+bounds and a known finite duration estimate. Unknown or incompatible inputs
+refuse through the existing owners. These are installation limits, not language
+restrictions or a new placement policy.
+
+`prepare(document)` uses the common JSON Program checker/lowerer and returns its
+original compilation, template and Plan. The accepting request Owner supplies
+its original nominal `admission`, `definition` and `ledger` to `open`. They must
+belong to this same runtime/link unit; this entry neither issues authorization
+nor reconstructs a Run from serialized handles. The caller owns the association
+between its accepted request and Ledger and retains that original custody.
+
+`withExecution(setup, authorization, consume, signal)` requires the same protected
+Account gate as `open`, checks current activation through the common strategy,
+and uses its existing completion and scoped cleanup protocol. The gate must
+protect `in-process-default`. A definition can be opened once per binding and a
+setup executed once; a refusal never causes fallback, a new Run or a retry.
+The accepting Owner must enforce the same invariant across bindings and requests.
+Outputs remain borrowed only during `consume`. The caller remains responsible
+for the existing Named Result publication/Store protocol before releasing them;
+physical task completion alone is not durable publication or Cloud Run completion.
+
+This entry adds no Set candidate list, Worker/Native ranking, retained-input
+conversion, cross-request recovery or deployed Worker route. Connecting it to
+ordinary Cloud public Client placement remains a separate integration step.
 
 The reference-only asynchronous test profile is separate from the Local product
 profile. Its Connector waits at reservation and computation boundaries, then

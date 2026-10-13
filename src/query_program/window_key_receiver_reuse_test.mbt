@@ -40,7 +40,7 @@ test "OVER key reuse proves equivalent property receivers against a complete Pro
 test "OVER key reuse retains distinct current and original Pipe values" {
   let body = semantic(
     checked_partition_expression(
-      "FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY COALESCE((original.payload).bucket, 'missing') ORDER BY id) AS before, RANK() OVER (PARTITION BY COALESCE(payload.bucket, 'missing') ORDER BY id) AS current |> ORDER BY id",
+      "FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY COALESCE((original.payload).bucket, 'missing') ORDER BY id) AS before, RANK() OVER (PARTITION BY COALESCE(payload.bucket, 'missing') ORDER BY id) AS `current` |> ORDER BY id",
     ),
   )
   assert_eq(body.split("\"coalesce\":").length() - 1, 2)

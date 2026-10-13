@@ -65,7 +65,7 @@ test "Pipe SELECT local windows preserve star scalar frame and immutable input s
     source in [
       "FROM orders |> SELECT * REPLACE (ROW_NUMBER() OVER w AS amount) WINDOW w AS (ORDER BY id) |> ORDER BY id",
       "FROM orders |> SELECT id, COUNT(*) OVER framed AS n WINDOW ordered AS (ORDER BY id), framed AS (ordered ROWS BETWEEN CURRENT ROW AND CURRENT ROW) |> ORDER BY id",
-      "FROM orders AS before |> SET amount = -amount |> SELECT id, LAG(before.amount) OVER w AS original, LAG(amount) OVER w AS current WINDOW w AS (ORDER BY id) |> ORDER BY id",
+      "FROM orders AS before |> SET amount = -amount |> SELECT id, LAG(before.amount) OVER w AS original, LAG(amount) OVER w AS `current` WINDOW w AS (ORDER BY id) |> ORDER BY id",
       "FROM orders |> SELECT id, ROW_NUMBER() OVER w AS pos WINDOW w AS (ORDER BY id) |> SELECT id, pos, RANK() OVER w AS reverse_pos WINDOW w AS (ORDER BY id DESC) |> ORDER BY id",
       "FROM orders |> SELECT id WINDOW ignored AS (ORDER BY SUM(amount)) |> ORDER BY id",
     ] {
@@ -78,7 +78,7 @@ test "Pipe SELECT window arguments see input columns rather than sibling aliases
   for
     source in [
       "FROM orders |> SELECT amount AS invented, LAG(invented) OVER w AS pos WINDOW w AS (ORDER BY id)",
-      "FROM orders AS old |> AS current |> SELECT LAG(old.amount) OVER w AS pos WINDOW w AS (ORDER BY id)",
+      "FROM orders AS old |> AS `current` |> SELECT LAG(old.amount) OVER w AS pos WINDOW w AS (ORDER BY id)",
       "FROM orders |> SELECT id |> SELECT LAG(amount) OVER w AS pos WINDOW w AS (ORDER BY id)",
       "FROM orders |> SELECT ROW_NUMBER() OVER w + aql_select_window_0 AS pos WINDOW w AS (ORDER BY id)",
     ] {

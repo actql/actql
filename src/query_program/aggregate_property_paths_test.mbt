@@ -167,7 +167,7 @@ test "aggregate property paths retain scope and common field type refusals" {
   match
     compile(
       @query.parse_query(
-        "FROM objects AS old |> AS current |> AGGREGATE COUNT(old.payload.score) AS n",
+        "FROM objects AS old |> AS `current` |> AGGREGATE COUNT(old.payload.score) AS n",
         syntax_limits(),
       ).unwrap(),
       aggregate_property_context(),
