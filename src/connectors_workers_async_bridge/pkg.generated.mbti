@@ -62,13 +62,13 @@ pub fn strategy_admit_effect_saved_response_evidence(Array[String], String, Byte
 
 pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PendingSourceStateAdvance raise NodeHostFailure
 
-pub fn strategy_begin_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int, Int) -> @run_publication.CapturedRunIssuancePreparation
+pub fn strategy_begin_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.CapturedRunIssuancePreparation
 
 pub fn strategy_begin_effect_free_chain_check(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, Int) -> @run_publication.ComputationEvidenceCheck
 
 pub fn strategy_begin_effect_free_commit_check(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, Int) -> @run_publication.PublicationCommitPreparation
 
-pub fn strategy_begin_effectful_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int, Int, String?, Int) -> @run_publication.CapturedRunIssuancePreparation raise NodeHostFailure
+pub fn strategy_begin_effectful_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int, Int, String?, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.CapturedRunIssuancePreparation raise NodeHostFailure
 
 pub fn strategy_begin_result_access_progress() -> @run_publication.ResultAccessProgress
 
@@ -328,6 +328,8 @@ pub fn strategy_host_output(@connectors_workers_async.ConfiguredComputeHost[@phy
 
 pub fn strategy_host_output_export_admit_captured_result_snapshot(StrategyHostOutputExport, Int, Int, Int) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
 
+pub fn strategy_host_output_export_advance(StrategyHostOutputExport, Int) -> (String?, Bool, Int, @run_publication_host.PublicationOutputExportIssue?)
+
 pub fn strategy_host_output_export_begin(@execution_relation.CompletedOutput, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostOutputExport raise NodeHostFailure
 
 pub fn strategy_host_output_export_bytes(StrategyHostOutputExport) -> Int raise NodeHostFailure
@@ -361,6 +363,8 @@ pub fn strategy_host_output_export_result_schema_cid(StrategyHostOutputExport) -
 pub fn strategy_host_output_export_result_schema_wire(StrategyHostOutputExport) -> String raise NodeHostFailure
 
 pub fn strategy_host_output_export_rows(StrategyHostOutputExport) -> Int raise NodeHostFailure
+
+pub fn strategy_host_output_export_rows_complete(StrategyHostOutputExport) -> Bool raise NodeHostFailure
 
 pub fn strategy_host_output_export_schema_bytes(StrategyHostOutputExport) -> Int raise NodeHostFailure
 
@@ -518,7 +522,7 @@ pub fn strategy_issue_durable_result_binding(@run_publication.PublicationContrac
 
 pub fn strategy_issue_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
-pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_effect_member_receipt_from_row_partition(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 

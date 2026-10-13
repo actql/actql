@@ -118,6 +118,37 @@ test "value contract corpus: artifact-media" {
 }
 
 ///|
+test "value contract corpus: content-media-nfd" {
+  let value = @value_contract.read_author(cursor("{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"text/plain;label=\\\"e\u{301}\\\"\"}"), limits()).unwrap()
+  assert_eq(render(value), "{\"media_type\":\"text/plain;label=\\\"e\u{301}\\\"\",\"nullable\":false,\"type\":\"content_ref\"}")
+  let checked = @value_contract.read_checked(cursor("{\"media_type\":\"text/plain;label=\\\"e\u{301}\\\"\",\"nullable\":false,\"type\":\"content_ref\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}
+
+///|
+test "value contract corpus: content-media-nfc" {
+  let value = @value_contract.read_checked(cursor("{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"text/plain;label=\\\"\u{e9}\\\"\"}"), limits()).unwrap()
+  assert_eq(render(value), "{\"media_type\":\"text/plain;label=\\\"\u{e9}\\\"\",\"nullable\":false,\"type\":\"content_ref\"}")
+  let checked = @value_contract.read_checked(cursor("{\"media_type\":\"text/plain;label=\\\"\u{e9}\\\"\",\"nullable\":false,\"type\":\"content_ref\"}"), limits()).unwrap()
+  assert_true(@value_contract.type_equal(value, checked, 1000))
+}
+
+///|
+test "value contract corpus: content-media-case-author" {
+  assert_eq(error_name(@value_contract.read_author(cursor("{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"Application/PDF\"}"), limits())), "NonCanonicalText")
+}
+
+///|
+test "value contract corpus: content-media-case-checked" {
+  assert_eq(error_name(@value_contract.read_checked(cursor("{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"text/plain;LABEL=OpaqueValue\"}"), limits())), "NonCanonicalText")
+}
+
+///|
+test "value contract corpus: content-media-malformed" {
+  assert_eq(error_name(@value_contract.read_checked(cursor("{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"text/plain;name=\"}"), limits())), "InvalidRange")
+}
+
+///|
 test "value contract corpus: checked-string-bounds" {
   let value = @value_contract.read_checked(cursor("{\"type\":\"string\",\"nullable\":false,\"min_length\":0,\"max_codepoints\":4,\"max_utf8_bytes\":16}"), limits()).unwrap()
   assert_eq(render(value), "{\"max_codepoints\":4,\"max_utf8_bytes\":16,\"min_length\":0,\"nullable\":false,\"type\":\"string\"}")

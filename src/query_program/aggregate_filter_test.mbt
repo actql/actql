@@ -91,7 +91,7 @@ test "aggregate filters resolve the input scope and retain ordinary validation" 
   for
     text in [
       "SELECT COUNT(* WHERE missing > 0) AS n FROM orders", "SELECT COUNT(*) AS n, SUM(amount WHERE n > 0) AS total FROM orders",
-      "FROM orders |> AS old |> AS current |> AGGREGATE COUNT(* WHERE old.amount > 0) AS n",
+      "FROM orders |> AS old |> AS `current` |> AGGREGATE COUNT(* WHERE old.amount > 0) AS n",
     ] {
     assert_true(
       compile(

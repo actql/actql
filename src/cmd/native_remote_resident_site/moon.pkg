@@ -3,6 +3,7 @@ supported_targets = "native"
 pkgtype(kind: "executable")
 
 import {
+  "actql/actql/platform_native/remote_agent" @agent,
   "actql/actql/check_environment" @environment,
   "actql/actql/execution_relation" @execution,
   "actql/actql/execution_authorization" @authorization,

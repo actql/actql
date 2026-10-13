@@ -65,7 +65,7 @@ test "analytic property arguments use input scope rather than SELECT aliases" {
 test "analytic property arguments retain a Pipe range snapshot after SET" {
   let program = compile(
     @query.parse_query(
-      "FROM objects AS original |> SET payload = other |> SELECT id, LAG(original.payload.score) OVER (ORDER BY id) AS previous, LEAD(payload.score, 0) OVER (ORDER BY id) AS current",
+      "FROM objects AS original |> SET payload = other |> SELECT id, LAG(original.payload.score) OVER (ORDER BY id) AS previous, LEAD(payload.score, 0) OVER (ORDER BY id) AS `current`",
       syntax_limits(),
     ).unwrap(),
     analytic_property_context(),
@@ -127,7 +127,7 @@ test "analytic property arguments lower computed values within the common call" 
 test "analytic property arguments preserve exact scope and frame refusals" {
   for
     text in [
-      "SELECT LAG(missing.score) OVER (ORDER BY id) AS previous FROM objects", "FROM objects AS old |> AS current |> SELECT LAG(old.payload.score) OVER (ORDER BY id) AS previous",
+      "SELECT LAG(missing.score) OVER (ORDER BY id) AS previous FROM objects", "FROM objects AS old |> AS `current` |> SELECT LAG(old.payload.score) OVER (ORDER BY id) AS previous",
       "SELECT other AS invented, LAG(invented.score) OVER (ORDER BY id) AS previous FROM objects",
     ] {
     assert_true(

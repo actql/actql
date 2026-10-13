@@ -67,7 +67,7 @@ for (const c of corpus.cases) {
       `  let checked = @value_contract.read_checked(cursor(${literal(c.expected_json)}), limits()).unwrap()`,
       '  assert_true(@value_contract.type_equal(value, checked, 1000))');
   } else {
-    assert.ok(['MissingField','UnknownField','InvalidRange','InvalidFieldName'].includes(c.expected_error));
+    assert.ok(['MissingField','UnknownField','InvalidRange','InvalidFieldName','NonCanonicalText'].includes(c.expected_error));
     lines.push(`  assert_eq(error_name(${call}), ${literal(c.expected_error)})`);
   }
   lines.push('}');

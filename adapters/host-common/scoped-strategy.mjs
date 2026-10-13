@@ -7,9 +7,11 @@ import {runInstalledStrategy} from './strategy.mjs';
 // Trusted composition helper. Product entry points bind core/implementations;
 // request data does not choose these callbacks or replace a verifier.
 // Historical diagnostic text is retained; it is not an environment restriction.
-export async function withScopedStrategy(setup, core, contributions, consume, signal) {
+export async function withScopedStrategy(setup, core, contributions, consume, signal,
+  {authorization} = {}) {
   if (typeof consume !== 'function') throw new TypeError('A scoped consumer is required');
-  const report = await runInstalledStrategy(setup, core, contributions, signal);
+  const report = await runInstalledStrategy(setup, core, contributions, signal,
+    undefined, undefined, undefined, authorization);
   const errors = [];
   let value;
   try {
