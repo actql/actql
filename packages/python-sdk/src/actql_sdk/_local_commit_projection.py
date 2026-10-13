@@ -238,6 +238,46 @@ class OriginalCommitProjection:
             finally:
                 self._projecting = False
 
+    def project_sdk_read_original(self, request: _Input, original_run: int,
+                                  ordinal: int,
+                                  consume: Callable[[bytes, bytes], object]) -> None:
+        """Borrow one Core-issued SDK original pair, not a grant or ACK.
+
+        The caller holds the actual same File/Store/current observation and
+        original Run custody. Failed projection/consumer/cleanup keeps these
+        same output loans; the request remains borrowed by Core until cleanup.
+        """
+        if (not callable(consume) or type(original_run) is not int
+                or not 0 < original_run < 2**31
+                or type(ordinal) is not int or not 0 <= ordinal <= 2):
+            raise ValueError('Invalid original SDK read consumer')
+        with self._core._lock:
+            self._core._owned_input(request)
+            self._ready()
+            self._projecting = True
+            try:
+                self._consume_sdk_read_original(request, original_run, ordinal, consume)
+                self._retire_outputs()
+                if self._outputs:
+                    raise LocalCoreError('original_sdk_read_cleanup', -9)
+            finally:
+                self._projecting = False
+
+    def _consume_sdk_read_original(self, request: _Input, original_run: int,
+                                   ordinal: int,
+                                   consume: Callable[[bytes, bytes], object]) -> None:
+        identity = self._output()
+        self._core.produce_publication_sdk_read_original(
+            identity, request, original_run, self._configuration, ordinal, field='identity')
+        raw_identity = self._core.read_publication_commit_material(identity)
+        self._address(raw_identity, index_key=False)
+        body = self._output()
+        self._core.produce_publication_sdk_read_original(
+            body, request, original_run, self._configuration, ordinal, field='wire')
+        raw_body = self._core.read_publication_commit_material(body)
+        if consume(raw_identity, raw_body) is not None:
+            raise ValueError('Invalid synchronous SDK original consumer result')
+
     def _consume_run_state(self, observed_at: _Input,
                            consume: Callable[[bytes], object]) -> None:
         output = self._output()

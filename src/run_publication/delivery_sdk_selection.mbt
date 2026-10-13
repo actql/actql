@@ -4,6 +4,7 @@
 struct LocalSDKResultReadSelection {
   wire : String
   cid : String
+  data_policy_cid : String
 } derive(Eq, Debug)
 
 ///|
@@ -61,7 +62,7 @@ pub fn issue_local_sdk_result_read_selection(
   } catch {
     _ => return Err(Encoding)
   }
-  Ok({ wire, cid: "sha256:" + @sha.hex(@utf8.encode(wire)), })
+  Ok({ wire, cid: "sha256:" + @sha.hex(@utf8.encode(wire)), data_policy_cid, })
 }
 
 ///|
@@ -94,6 +95,15 @@ pub fn local_sdk_result_read_selection_cid(
   original : LocalSDKResultReadSelection,
 ) -> String {
   original.cid
+}
+
+///|
+/// The original issuer's selected Policy reference, not classification or
+/// current read authority. The actual retained compiled body remains required.
+pub fn local_sdk_result_read_selection_data_policy_cid(
+  original : LocalSDKResultReadSelection,
+) -> String {
+  original.data_policy_cid
 }
 
 ///|

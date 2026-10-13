@@ -6,6 +6,7 @@ priv enum PublicationCommitExportProjection {
   Schema(Int, Int)
   ObservedIndex(Int)
   ObservedRunState(Int)
+  SDKReadOriginal(Int, Int, Int, Int)
   InspectedReference(Int)
 } derive(Eq)
 
