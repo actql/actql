@@ -1,7 +1,7 @@
 # ActQL Python Local runtime recipe
 
-This package supplies installed component resources for `actql-sdk[local]`.
-It shares the SDK release version and pins Wasmtime 38.0.0. Importing either
+This package supplies installed component resources for `actql`.
+It shares the standard product and SDK release version and pins Wasmtime 38.0.0. Importing either
 `actql_sdk` or `actql_local_runtime` does not load Wasmtime or DuckDB. Remote-only
 installation keeps its existing dependencies.
 
@@ -60,8 +60,13 @@ or minimum OS, and refuses unbundled non-system library dependencies.
 runtime execution and public Local acceptance false.
 
 Wheel generation and a clean external installation require their separately
-coordinated validation lane. Normal users will install `actql-sdk[local]` and
+coordinated validation lane. Normal users will install `actql` and
 use the SDK's ordinary Local Client entrance; they will not run this recipe,
 provide component paths, build source, start another Host, or supply a token.
 The public Local Client and its copyable SELECT1 example are still being
 connected and must pass the actual installed-wheel consumer before delivery.
+
+The fixed three-wheel cohort is built by `scripts/build-python-product-wheels.py`
+from the same clean source and original artifact directory. Its `cohort.json`
+records all three wheel digests and keeps product/recovery acceptance false.
+SDK-only installation is `uv add actql-sdk`; it does not select this runtime.
