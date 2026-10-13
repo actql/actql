@@ -163,6 +163,7 @@ fn start_keyed_row_acquisition_owned(
     @resources.OriginalLedgerIdentity,
     @resources.Reservation,
     Int,
+    @resources.Reservation?,
   )?,
 ) -> Result[RowRun, RowHostIssue] {
   if !keyed_acquisition_input_live(acquisition) {
@@ -170,9 +171,13 @@ fn start_keyed_row_acquisition_owned(
   }
   // The existing liveness callback can alter original custody synchronously.
   // Reject that change before registration/RowRun allocation, not after I/O.
-  if original is Some((ledger, identity, assembly, children)) &&
+  if original is Some((ledger, identity, assembly, children, prefix)) &&
     !@resources.original_keyed_child_preparation_available(
-      identity, ledger, assembly, children,
+      identity,
+      ledger,
+      assembly,
+      children,
+      prefix~,
     ) {
     return Err(Physical(ForeignOwner))
   }
@@ -256,6 +261,7 @@ pub fn start_original_accounted_keyed_row_acquisition(
   transfer_bytes : Int64,
   execution_scratch : Int64,
   cleanup_confirmed : (RowAttempt) -> Bool,
+  prefix? : @resources.Reservation? = None,
 ) -> Result[RowRun, RowHostIssue] {
   start_accounted_keyed_row_acquisition_owned(
     acquisition,
@@ -265,7 +271,7 @@ pub fn start_original_accounted_keyed_row_acquisition(
     transfer_bytes,
     execution_scratch,
     cleanup_confirmed,
-    Some((ledger, identity, assembly, accepted_children)),
+    Some((ledger, identity, assembly, accepted_children, prefix)),
   )
 }
 
@@ -283,6 +289,7 @@ fn start_accounted_keyed_row_acquisition_owned(
     @resources.OriginalLedgerIdentity,
     @resources.Reservation,
     Int,
+    @resources.Reservation?,
   )?,
 ) -> Result[RowRun, RowHostIssue] {
   if transfer_bytes < 0L || execution_scratch < 0L {

@@ -23,6 +23,36 @@ pub fn client_program_model_async_physical_request_plan(
 }
 
 ///|
+// Private native Decision installation only; this preserves the exact original
+// projection membership and consumes no generation setting or dummy executor.
+#export_name("clientProgramModelAsyncNativeDecisionRequestPlan")
+pub fn client_program_model_async_native_decision_request_plan(
+  request : @model.ModelRequest,
+  original : @model.NativeDecisionRequest,
+  provider : @model.AdmittedModelProvider,
+  wire_bytes : Int64,
+  tokens : Int64,
+  cost_units : Int64,
+  duration_ms : Int64,
+  profile : @check_environment.ModelResponseProfile,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  probability : @check_environment.DecisionProbabilityProfile,
+  start : (@model.ModelCallEntry) -> @model.ModelPhysicalCall?,
+) -> Result[@model.ModelPhysicalRequestPlan, @model.ModelExecutionIssue] {
+  @model.model_async_native_decision_request_plan(
+    request,
+    original,
+    provider,
+    wire_bytes,
+    { tokens, cost_units, duration_ms, },
+    profile,
+    installation,
+    probability,
+    start,
+  )
+}
+
+///|
 /// Retain custody of the original consumed Entry before fixed transport start.
 #export_name("clientProgramModelPhysicalCall")
 pub fn client_program_model_physical_call(
