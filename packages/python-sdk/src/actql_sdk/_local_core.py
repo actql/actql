@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 71
+LOCAL_CORE_ABI = 72
 
 
 class LocalCoreError(RuntimeError):
@@ -316,6 +316,7 @@ _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'produce_sdk_delivery_lookup': ('i64 i32 i32 i32 i32', 'i32'),
     'retire_sdk_delivery_output': ('i64 i32', 'i32'),
     'prepare_sdk_payload_codecs': ('i64 i32 i32 i32', 'i32'),
+    'sdk_payload_ordinal': ('i64 i32 i32 i32', 'i32'),
     'bind_sdk_payload_record': ('i64 i32 i32 i32 i32 i32', 'i32'),
     'prepare_sdk_payload_input': ('i64 i32 i32 i32', 'i32'),
     'produce_sdk_payload_chunk': ('i64 i32 i32 i32 i32 i32 i32', 'i32'),
@@ -2112,6 +2113,31 @@ class LocalCore:
                 raise RuntimeError('Invalid Local Core codec status')
             if code != 0:
                 raise LocalCoreError('prepare_sdk_payload_codecs', code)
+
+    def publication_sdk_payload_ordinal(self, first: _Output,
+                                        current_configuration: int, *,
+                                        field: Literal['result', 'binding']) -> int:
+        """Read a Core routing coordinate, never a read grant or Store ACK."""
+        with self._lock:
+            self._owned_output(first, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31
+                    or type(field) is not str or field not in ('result', 'binding')):
+                raise ValueError('Invalid original SDK routing selector')
+            ordinal = self._call('publication_commit_export', 'sdk_payload_ordinal',
+                first.handle, current_configuration, 0 if field == 'result' else 1)
+            if type(ordinal) is not int:
+                raise RuntimeError('Invalid Local Core payload ordinal')
+            if ordinal < 0:
+                raise LocalCoreError('sdk_payload_ordinal', ordinal)
+            if ordinal >= 8:
+                raise RuntimeError('Invalid Local Core payload ordinal')
+            self._owned_output(first, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            return ordinal
 
     def bind_publication_sdk_payload_record(self, first: _Output, record: _Output,
                                            current_configuration: int,

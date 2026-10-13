@@ -36,6 +36,7 @@ from ._local_sdk_read_storage import OriginalSDKReadEvidenceStore, SDKReadEviden
 from ._local_sdk_delivery_storage import OriginalSDKDeliveryStore, SDKDeliveryStorageCleanupPending
 from ._local_response import OriginalLocalResponseStream
 from ._local_sdk_response import OriginalLocalSDKResponseStream
+from ._local_sdk_payload_reader import OriginalSDKPayloadReader, SDKPayloadReaderCleanupPending
 from ._local_work import OriginalLocalWork
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
 from ._values import content_cid, wire_bytes
@@ -269,6 +270,11 @@ class InstalledLocalHost:
                 run, _ = self._select_original_run(body['ref'])
                 projection = self._original_run_projection(run)
                 return self._original_run_response(run, projection)
+            elif operation == 'read':
+                run, _ = self._select_original_run(body['ref'])
+                projection = self._original_run_projection(run)
+                return self._original_sdk_read_response(run, projection,
+                    body['resultName'], body['format'], body['attemptId'])
             elif operation == 'delivery-attempt':
                 run, _ = self._select_original_run(body['ref'])
                 projection = self._original_run_projection(run)
@@ -379,6 +385,54 @@ class InstalledLocalHost:
             raise ValueError('Incomplete original Local Run observation')
         stream = streams[0]
         response = httpx.Response(200, headers={'content-type': 'application/json',
+            'content-encoding': 'identity'}, stream=stream)
+        stream._attached = True
+        return response
+
+    def _original_sdk_read_response(self, run: _Run,
+                                    projection: OriginalCommitProjection,
+                                    result_name: str, format: str,
+                                    attempt_id: str) -> httpx.Response:
+        """Connect the existing read/usage/codec/Store Owners to SDK transport.
+
+        Core chooses the original grant, attempt, Result/binding ordinals and
+        terminal evidence. No descriptor is selected from an SDK-supplied path,
+        JSON state or success boolean. First-write loss requires original lookup.
+        """
+        self._ensure_original_publication_observation(projection)
+        delivery = self._original_sdk_delivery_store(run, projection)
+        clock = self._original_sdk_delivery_clock()
+        # Reuse the physical clock projection only; its timestamp has no
+        # independent expiry or authorization meaning outside the Core Owner.
+        tick = _object(self._core._inputs[clock.ticket].payload, 256)
+        request = self._copy(wire_bytes({'result_name': result_name, 'format': format,  # type: ignore[no-untyped-call]
+            'attempt_id': attempt_id, 'observed_at': tick['observed_at']}))
+        streams: list[OriginalLocalSDKResponseStream] = []
+        try:
+            self._persist_original_sdk_read_evidence(run, projection, request)
+            delivery.persist(request, run.handle)
+            delivery.prepare_original_codecs(request, clock)
+            fact = delivery.selected_original_payload(request, clock)
+            try:
+                reader = OriginalSDKPayloadReader(delivery, request, clock, fact)
+            except SDKPayloadReaderCleanupPending as failure:
+                # Constructor custody precedes every fallible source callback.
+                # Keep it in the Host cleanup inventory before attempting close.
+                streams.append(OriginalLocalSDKResponseStream(self, failure.cleanup_reader))
+                raise
+            stream = OriginalLocalSDKResponseStream(self, reader)
+            streams.append(stream)
+            if not self._core.close_input(clock):
+                raise LocalProductCleanupPending(self)
+            self._inputs.remove(clock)
+        except BaseException:
+            for original in streams:
+                if not original._close():
+                    raise LocalProductCleanupPending(self) from None
+            # Unattached requests/first outputs remain under their original
+            # Host/Store custody; no new grant/write/reader is tried on failure.
+            raise
+        response = httpx.Response(200, headers={'content-type': 'application/x-ndjson',
             'content-encoding': 'identity'}, stream=stream)
         stream._attached = True
         return response
