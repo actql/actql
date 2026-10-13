@@ -26,7 +26,20 @@ const success = (name, text, expected, columns, extra = {}) => ({
   name: 'in-unnest-literal-array-' + name, format: 'sql', text, expected, columns,
   sourceReadCount: 0, sourceReadSessionCount: 0, ...extra,
 });
+const arrayParameters = {parameterDeclarations: {
+  xs: {type: 'array', nullable: false, max_items: 2, items: {type: 'number', nullable: false}},
+  ys: {type: 'array', nullable: false, max_items: 2, items: {type: 'number', nullable: false}},
+}, parameters: {xs: [2], ys: [7]}};
 export const inUnnestLiteralArraySuccesses = [
+  success('general-element', 'SELECT 2 IN UNNEST([1 + 1]) AS found',
+    [{found: true}], [boolean('found', false)]),
+  success('array-field',
+    'WITH records AS (SELECT @xs AS xs, @ys AS ys) SELECT 2 IN UNNEST(xs) AS included FROM records',
+    [{included: true}], [boolean('included', false)], arrayParameters),
+  success('conditional-array', 'SELECT 2 IN UNNEST(IF(TRUE, @xs, @ys)) AS included',
+    [{included: true}], [boolean('included', false)], arrayParameters),
+  success('lazy-array-branch', 'SELECT 2 IN UNNEST(IF(TRUE, [2], [1 / 0])) AS included',
+    [{included: true}], [boolean('included', false)]),
   success('json-control', JSON.stringify(control), truth, truthColumns,
     {format: 'json', parameters}),
   success('null-and-match', 'SELECT ' + projection(value => value), truth, truthColumns,
@@ -54,7 +67,6 @@ export const inUnnestLiteralArraySuccesses = [
       items: {type: 'number', nullable: true}}}, parameters: {xs: null}}),
 ];
 export const inUnnestLiteralArrayRefusals = [
-  {name: 'general-element', text: 'SELECT 2 IN UNNEST([1 + 1]) AS found'},
   {name: 'annotation-not-erased', text: 'SELECT 2 IN UNNEST(ARRAY<STRING>[1]) AS found'},
   {name: 'mixed-types', text: 'SELECT 2 IN UNNEST([1, TRUE]) AS found'},
   {name: 'undeclared', text: 'SELECT 2 IN UNNEST([@missing]) AS found'},

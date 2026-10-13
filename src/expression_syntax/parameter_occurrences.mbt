@@ -58,7 +58,9 @@ pub fn collect_parameter_occurrences(
                 if tag == "$param" {
                   entries.push({ name: @decode.text(body).unwrap(), cursor, })
                 } else {
-                  let child_role = if role is InRight && tag == "literal" {
+                  let child_role = if role is InRight &&
+                    tag == "literal" &&
+                    @decode.array_length(body) is Some(_) {
                     InList
                   } else {
                     expression_role(tag, cursor, Authored)
