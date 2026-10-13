@@ -210,6 +210,15 @@ pub fn local_signing_credential_grant_scope(
 }
 
 ///|
+/// Original finite metadata only. Reading these limits does not renew a grant,
+/// claim an ordinal or establish current signing permission.
+pub fn local_signing_credential_grant_limits(
+  grant : LocalSigningCredentialGrant,
+) -> (Int, Int64) {
+  (grant.max_uses, grant.expires_unix_ms)
+}
+
+///|
 pub fn admit_local_signing_credential_grant_json(
   body : String,
   claimed_grant_cid : String,

@@ -99,7 +99,7 @@ test "Pipe SET window arguments cannot revive private slots or removed ranges" {
   for
     source in [
       "FROM orders |> SET amount = LAG(missing) OVER (ORDER BY id)", "FROM orders |> SELECT id |> SET id = LAG(amount) OVER (ORDER BY id)",
-      "FROM orders AS old |> AS current |> SET amount = LAG(old.amount) OVER (ORDER BY id)",
+      "FROM orders AS old |> AS `current` |> SET amount = LAG(old.amount) OVER (ORDER BY id)",
       "FROM orders |> SET amount = ROW_NUMBER() OVER (ORDER BY id) + aql_pipe_set_window_0",
       "FROM orders |> SET amount = ROW_NUMBER() OVER (ORDER BY id) |> SELECT aql_pipe_set_window_0",
     ] {

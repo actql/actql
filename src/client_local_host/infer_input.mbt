@@ -3,9 +3,9 @@
 /// Local chain owns intermediate completions until the model consumer ends.
 /// No ModelTask provider is invoked by input preparation.
 struct ClientInferInputExecution {
-  prefix : @local.ManagedProviderExecution?
-  retained_input : ClientInferRetainedInput?
-  sequence : @execution.GeneratedSequence?
+  mut prefix : @local.ManagedProviderExecution?
+  mut retained_input : ClientInferRetainedInput?
+  mut sequence : @execution.GeneratedSequence?
   infer_step : Int
   owner : @lower.BoundPrepared
   target : @pipeline.Target
@@ -633,6 +633,13 @@ pub fn cleanup_client_infer_input(
   if active.retained_input is Some(retained) {
     close_client_infer_retained_input(retained) |> ignore
   }
+  // Detach the wrapper's borrowed roots only after every existing cleanup
+  // owner has confirmed settlement. A pending or failed cleanup keeps the
+  // same roots for retry; independently retained outputs keep their own uses.
+  active.mapping = None
+  active.prefix = None
+  active.retained_input = None
+  active.sequence = None
   active.reclaimed = true
   active.completed_input = None
   Ok(true)
