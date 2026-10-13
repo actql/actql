@@ -119,3 +119,43 @@ test('attempt lookup distinguishes absent evidence from a Store failure',
     await assert.rejects(inspectAuthorizedDeliveryAttempt(
       unavailable, request()), error => error === failure);
   });
+
+for (const answer of ['found', 'absent']) {
+  for (const revocation of ['deny', 'unavailable']) {
+    test(`attempt lookup withholds ${answer} after ${revocation} during Store await`,
+      async () => {
+        let release, started, allowed = true;
+        const entered = new Promise(resolve => { started = resolve; });
+        const gate = new Promise(resolve => { release = resolve; });
+        const authorized = [];
+        let lookedUp;
+        const installed = service({
+          async authorize(facts) {
+            authorized.push(facts);
+            if (!allowed && revocation === 'unavailable') {
+              throw new Error('private authority detail');
+            }
+            return allowed;
+          },
+          async lookup(facts) {
+            lookedUp = facts;
+            started();
+            await gate;
+            return answer === 'found' ? receipt : undefined;
+          },
+        });
+        const submitted = request();
+        const pending = inspectAuthorizedDeliveryAttempt(installed, submitted);
+        await entered;
+        submitted.indexKey.namespaceId = 'foreign';
+        submitted.attemptId = 'other';
+        allowed = false;
+        release();
+        await assert.rejects(pending, {code: 'ResultAccessDenied'});
+        assert.equal(authorized.length, 2);
+        assert.strictEqual(authorized[0], lookedUp);
+        assert.strictEqual(authorized[1], lookedUp);
+        assert.deepEqual(lookedUp, request());
+      });
+  }
+}

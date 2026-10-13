@@ -19,10 +19,10 @@ import {
   "actql/actql/connectors/duckdb/host" @acquisition_host,
   "actql/actql/connectors/duckdb/acquisition" @duckdb_acquisition,
   "actql/actql/physical_resources" @resources,
+  "moonbitlang/core/encoding/utf8",
 }
 
 import {
   "actql/actql/canonical_json" @identity,
   "moonbitlang/core/json",
-  "moonbitlang/core/encoding/utf8",
 } for "wbtest"
