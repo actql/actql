@@ -122,6 +122,11 @@ test('carrier normal release delivers its complete nine-module closure and bound
     'scripts/fixtures/packed-carrier-continuation.mjs',
     'reviews/2026-10-14-carrier-continuation-release-matrix/prepared-checks.mjs',
     'reviews/2026-10-14-carrier-continuation-release-matrix/prepared-release-public.mjs']) {
+    const file = resolve(root, path);
+    for (const match of readFileSync(file, 'utf8').matchAll(/^import\s+.*?\sfrom\s+(['"])(\.[^'"\r\n]+\.mjs)\1/gmu)) {
+      assert.doesNotThrow(() => readFileSync(resolve(dirname(file), match[2])),
+        `missing relative import: ${path} -> ${match[2]}`);
+    }
     execFileSync(process.execPath, ['--check', resolve(root, path)], {timeout: 10000});
   }
 });
