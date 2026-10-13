@@ -91,6 +91,8 @@ pub fn local_signing_credential_grant_cid(LocalSigningCredentialGrant) -> String
 
 pub fn local_signing_credential_grant_json(LocalSigningCredentialGrant) -> Result[String, RemoteCredentialIssue]
 
+pub fn local_signing_credential_grant_limits(LocalSigningCredentialGrant) -> (Int, Int64)
+
 pub fn local_signing_credential_grant_scope(LocalSigningCredentialGrant) -> LocalSigningCredentialScope
 
 pub fn local_signing_credential_use_cid(LocalSigningCredentialUse) -> String
