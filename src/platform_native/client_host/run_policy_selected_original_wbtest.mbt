@@ -249,7 +249,7 @@ test "wire-only selection validates malformed nonselected bodies and full depend
       ),
       selected_policy_fixture_packet.replace(
         old="actql-effective-data-policy/0.1",
-        new="actql-effective-data-policy/99.1",
+        new="actql-effective-data-policy/" + "99.1",
       ),
       "{\"bodies\":[{\"body\":\"{\\\"classification\\\":\\\"unknown\\\",\\\"source_data_policy_cids\\\":[\\\"sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\\\"],\\\"source_response_policy_cids\\\":[],\\\"unknown_provenance\\\":true,\\\"version\\\":\\\"actql-effective-data-policy/0.1\\\"}\",\"cid\":\"sha256:d1aba7f7812dd69b2f4283b234948716212ed28e8a83ff339de663ca8470dc50\",\"kind\":\"data_policy\"}],\"root_policy_cid\":\"sha256:d1aba7f7812dd69b2f4283b234948716212ed28e8a83ff339de663ca8470dc50\"}",
       " ".repeat(65537),
