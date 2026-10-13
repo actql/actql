@@ -209,6 +209,27 @@ test "original keyed version history keeps three left occurrences but acquires o
       prefix.input.unwrap(),
     ),
   )
+  // Same original rows/owner/port, but a freshly rebound read did NOT feed
+  // this execution. Equal data cannot replace its exact producer identity.
+  let owner = @publication_host.client_keyed_acquisition_owner(keyed)
+  let rebound = @execution.prepare_producer_read(
+    owner,
+    @query.bind_captured_source_operation(prefix.source.unwrap(), owner, 2, 0).unwrap(),
+    100,
+    4096,
+  ).unwrap()
+  assert_true(
+    @query.captured_source_matches_segment_input(
+      prefix.source.unwrap(),
+      rebound,
+    ),
+  )
+  assert_false(
+    @execution.completed_output_matches_segment_input(
+      prefix.output.unwrap(),
+      rebound,
+    ),
+  )
   let prefixed_lookup = match
     start_client_original_keyed_prefix_lookup_input(
       prefix, scope, compiled, definition, plan, prepared, keyed, capture, 100, 4096,
