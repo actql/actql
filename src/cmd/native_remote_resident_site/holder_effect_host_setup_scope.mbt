@@ -6,6 +6,9 @@ priv struct HolderEffectHostSetupProfile {
   read_ceiling : Int
   setup_retained_bytes : Int64
   current_retained_bytes : Int64
+  // Minimum remainder of the initial reservation after snapshot partition.
+  // Includes caller controls/current overlap; never a raw-record-only grant.
+  caller_retained_bytes : Int64
   execution_bytes : Int64
   string_bytes : Int64
   utf16_unit_bytes : Int64
@@ -21,13 +24,34 @@ priv struct HolderEffectHostSetupProfile {
 priv struct HolderEffectHostSetupScope {
   site : @site.ExecutionSite
   profile : HolderEffectHostSetupProfile
-  current_binding : () -> Bool
+  mut current_binding : (() -> Bool)?
+  mut caller_operation : @site.SiteOperation?
   mut operation : @site.SiteOperation?
   mut holding : @site.SiteHolding?
   mut depth : Int
   mut pending : @bounded_files.NativeBoundedTextFailure?
   mut cleanup : @site.SiteCleanup?
   mut retiring : Bool
+}
+
+///|
+/// Capacity/binding fence only, never Account/read/publication authorization.
+/// Capture the immutable original selection and actual current verifiers, not
+/// the caller's resources cells or a cached current answer.
+fn holder_effect_host_setup_binding(
+  site : @site.ExecutionSite,
+  expected_key : String,
+  expected_generation : Int,
+  expected_runtime : String,
+  current_site : () -> Bool,
+  current_runtime : () -> Bool,
+) -> () -> Bool {
+  () => {
+    current_site() &&
+    @site.site_key(site) == expected_key &&
+    @site.site_binding_current(site, expected_generation, expected_runtime) &&
+    current_runtime()
+  }
 }
 
 ///|
@@ -38,6 +62,8 @@ fn holder_effect_host_setup_profile_valid(
   profile.read_ceiling <= 1000000 &&
   profile.setup_retained_bytes > 0L &&
   profile.current_retained_bytes > 0L &&
+  profile.caller_retained_bytes >= profile.current_retained_bytes &&
+  profile.caller_retained_bytes < profile.setup_retained_bytes &&
   profile.execution_bytes > 0L &&
   profile.string_bytes > 0L &&
   profile.utf16_unit_bytes > 0L &&
@@ -70,7 +96,8 @@ fn begin_holder_effect_host_setup_scope(
   let scope : HolderEffectHostSetupScope = {
     site,
     profile: selected,
-    current_binding,
+    current_binding: Some(current_binding),
+    caller_operation: Some(operation),
     operation: Some(operation),
     holding: None,
     depth: 1,
@@ -93,8 +120,11 @@ fn holder_effect_host_read_scope_current(
   scope.pending is None &&
   scope.depth > 0 &&
   scope.operation is Some(operation) &&
+  scope.caller_operation is Some(caller) &&
+  physical_equal(operation, caller) &&
   @site.site_operation_available(operation) &&
-  (scope.current_binding)()
+  scope.current_binding is Some(current) &&
+  current()
 }
 
 ///|
@@ -124,20 +154,17 @@ fn enter_holder_effect_host_read_scope(
     scope.depth += 1
     return true
   }
+  // The initial operation keeps its remainder and workspace through the
+  // caller lifetime. Reuse that exact reservation, never acquire another one.
   guard scope.operation is None &&
-    @site.start_site_operation(
-      scope.site,
-      scope.profile.current_retained_bytes,
-      scope.profile.execution_bytes,
-    )
-    is Some(operation) else {
+    scope.caller_operation is Some(operation) &&
+    @site.site_operation_available(operation) else {
     return false
   }
   scope.operation = Some(operation)
   scope.depth = 1
-  if !(scope.current_binding)() {
+  if !holder_effect_host_read_scope_current(scope) {
     scope.depth = 0
-    ignore(@site.settle_site_operation(operation))
     scope.operation = None
     return false
   }
@@ -154,10 +181,13 @@ fn leave_holder_effect_host_read_scope(
   let current = holder_effect_host_read_scope_current(scope)
   scope.depth -= 1
   if scope.depth == 0 && scope.pending is None {
-    guard scope.operation is Some(operation) else { return false }
-    if !@site.settle_site_operation(operation) {
+    guard scope.operation is Some(operation) &&
+      scope.caller_operation is Some(caller) &&
+      physical_equal(operation, caller) else {
       return false
     }
+    // End this read's borrow. Its initial reservation is still owned by the
+    // upper caller and cannot be returned while callbacks/frames can run.
     scope.operation = None
   }
   current
@@ -202,8 +232,16 @@ fn holder_effect_host_snapshot_extent(
   profile : HolderEffectHostSetupProfile,
   root : String,
   snapshot : Array[(String, String)],
+  control_text_bytes? : Int64 = 0L,
 ) -> Int64? {
-  let mut total = profile.retained_controls_bytes
+  guard holder_effect_host_extent_add(
+      profile.retained_controls_bytes,
+      control_text_bytes,
+    )
+    is Some(initial) else {
+    return None
+  }
+  let mut total = initial
   for fixed in [profile.array_bytes, profile.string_bytes] {
     guard holder_effect_host_extent_add(total, fixed) is Some(value) else {
       return None
@@ -249,13 +287,22 @@ fn retain_holder_effect_host_snapshot(
   scope : HolderEffectHostSetupScope,
   root : String,
   snapshot : Array[(String, String)],
+  control_text_bytes? : Int64 = 0L,
 ) -> Bool {
   guard holder_effect_host_read_scope_current(scope) &&
     scope.depth == 1 &&
     scope.holding is None &&
     scope.operation is Some(operation) &&
-    holder_effect_host_snapshot_extent(scope.profile, root, snapshot)
+    holder_effect_host_snapshot_extent(
+      scope.profile,
+      root,
+      snapshot,
+      control_text_bytes~,
+    )
     is Some(bytes) &&
+    holder_effect_host_extent_add(bytes, scope.profile.caller_retained_bytes)
+    is Some(partition) &&
+    partition <= scope.profile.setup_retained_bytes &&
     @site.retain_site_operation_holding(operation, bytes) is Some(holding) else {
     return false
   }
@@ -279,7 +326,12 @@ fn prepare_holder_effect_host_scope_retirement(
     scope.pending = None
   }
   if scope.operation is Some(operation) {
-    guard @site.settle_site_operation(operation) else { return false }
+    guard scope.caller_operation is Some(caller) &&
+      physical_equal(operation, caller) else {
+      return false
+    }
+    // Physical retirement ends the read borrow, not the upper caller's
+    // control/workspace reservation. No second holding is issued.
     scope.operation = None
   }
   true
@@ -310,6 +362,19 @@ fn retire_holder_effect_host_scope(
 }
 
 ///|
+/// Move the original reservation/current context; this creates no permission
+/// or replacement operation. The old scope cannot retain a second alias.
+fn take_holder_effect_host_caller_reservation(
+  scope : HolderEffectHostSetupScope,
+) -> (@site.SiteOperation?, (() -> Bool)?) {
+  let operation = scope.caller_operation
+  let current = scope.current_binding
+  scope.caller_operation = None
+  scope.current_binding = None
+  (operation, current)
+}
+
+///|
 fn detach_holder_effect_host_setup(resources : HolderOutputResources) -> Bool {
   guard resources.effect_host_holding.val is None else { return true }
   let scope = match resources.effect_host_installation.val {
@@ -331,13 +396,23 @@ fn detach_holder_effect_host_setup(resources : HolderOutputResources) -> Bool {
       }
   }
   if scope is Some(original) {
+    guard resources.effect_host_caller_operation is None &&
+      resources.effect_host_caller_current is None else {
+      return false
+    }
+    let (operation, current) = take_holder_effect_host_caller_reservation(
+      original,
+    )
+    resources.effect_host_caller_operation = operation
+    resources.effect_host_caller_current = current
     resources.effect_host_holding.val = original.holding
     resources.effect_host_cleanup.val = original.cleanup
     original.holding = None
     original.cleanup = None
   }
   // Production callbacks retain these cells, not a payload/snapshot copy.
-  // No snapshot/current closure survives this helper's actual local scope.
+  // Snapshot/read callbacks are detached; only the forwarded capacity/current
+  // context remains until the separate upper caller frame ends.
   resources.effect_host_installation.val = None
   resources.effect_host_setup.val = None
   true
@@ -352,7 +427,8 @@ priv enum HolderEffectHostSetupClose {
 ///|
 /// Exactly one close pass. A pending result owns the original resources and
 /// opaque failure; it must be retained by a caller's cleanup boundary. The CLI
-/// has no such receiver yet and therefore selects no funded setup profile.
+/// still selects no numeric profile. This ACK returns snapshot holding only;
+/// the caller remainder/workspace stays reserved beyond this function.
 fn close_holder_effect_host_setup(
   resources : HolderOutputResources,
 ) -> HolderEffectHostSetupClose {

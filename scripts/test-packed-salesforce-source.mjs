@@ -12,6 +12,7 @@ import {userInfo} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createRequire} from 'node:module';
+import {DatabaseSync} from 'node:sqlite';
 import {loadTwoSourceFixtures, installTwoSourceFixtures, canonical} from
   './fixtures/two-source-public-query.mjs';
 import {compositionExpectations, databaseRows, expectedUpdates, expectedWrites, expectedModelInputs,
@@ -32,14 +33,18 @@ await mkdir(build, {recursive: true});
 const externalScratch = join(repository, '..', '.codex-scratch');
 await mkdir(externalScratch, {recursive: true});
 const root = await mkdtemp(join(externalScratch, 'actql-packed-salesforce-'));
+// Narrow the existing ordinary Source/Effect positive and admission cases;
+// do not construct another product route or weaken their prerequisites.
+const admissionHttpsOnly = process.argv.includes('--admission-https-only');
+const admissionOnly = admissionHttpsOnly || process.argv.includes('--admission-only');
 const twoSourceEffect = process.argv.includes('--two-source-effect');
 const twoSourceReadApproval = process.argv.includes('--two-source-read-approval');
 const targetReadOnly = process.argv.includes('--target-read-approval');
 const modelApprovalOnly = process.argv.includes('--model-approval-only');
-const targetReadApprovalEnabled = targetReadOnly || !(twoSourceEffect || twoSourceReadApproval ||
-  modelApprovalOnly || ['--optional-effect-only', '--composed-text', '--composed-infer'].some(flag => process.argv.includes(flag)));
-const optionalCases = twoSourceReadApproval || targetReadOnly || modelApprovalOnly ? [] : optionalEffectCases(process.argv);
-const compositionCases = targetReadOnly ? [] : twoSourceReadApproval ? ['read-approval']
+const targetReadApprovalEnabled = !admissionOnly && (targetReadOnly || !(twoSourceEffect || twoSourceReadApproval ||
+  modelApprovalOnly || ['--optional-effect-only', '--composed-text', '--composed-infer'].some(flag => process.argv.includes(flag))));
+const optionalCases = admissionOnly || twoSourceReadApproval || targetReadOnly || modelApprovalOnly ? [] : optionalEffectCases(process.argv);
+const compositionCases = admissionOnly ? ['source'] : targetReadOnly ? [] : twoSourceReadApproval ? ['read-approval']
   : modelApprovalOnly ? ['infer-model-approval']
   : process.argv.includes('--optional-effect-only') ? []
   : process.argv.includes('--composed-graph-node') ? ['infer-graph-node']
@@ -541,7 +546,7 @@ import {observeTwoSourceProvider} from './two-source-public-query.mjs';
 import {userInfo} from 'node:os';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {connect} from '@actql/node';
-import {getSubmissionOutcome} from '@actql/sdk';
+import {getSubmissionAttempt, getSubmissionOutcome} from '@actql/sdk';
 import {compositionProgram, compositionText, twoSourceEffectProgram, modelConfiguration, registerCompositionModel,
   compositionExpectations} from
   './composed-infer-effect-input.mjs';
@@ -566,6 +571,12 @@ const optionalEnabled = process.env.PACKED_OPTIONAL_EFFECT_ENABLED === '1';
 const authorization = JSON.parse(readFileSync(process.env.PACKED_TARGET_READ_APPROVAL === '1'
   ? 'target-read-authorization.json' : modelApproval
   ? 'model-approval-authorization.json' : 'authorization.json', 'utf8'));
+const foreignAdmissionActor = process.argv[2] === 'admission-foreign-actor';
+if (foreignAdmissionActor) {
+  // A recognized review reader can negotiate the real Host connection but
+  // has no access to the owner's Run. This is not an invalid transport token.
+  authorization.reviewReaders = [...authorization.reviewReaders, 'admission-review-reader'];
+}
 // The Host and credential Site must retain the same account configuration
 // identity. The read-only case installs no Model, but removing an unused
 // Model rule only here would invalidate the later Effect commit grant.
@@ -646,13 +657,14 @@ let connection = {mode: 'local', owner: 'local',
 if (process.env.PACKED_RCE_TRANSPORT === 'https') {
   remoteHost = await openInstalledRemoteHttpHost({...installation,
     authenticate: header => header === 'Bearer fixture-token'
-      ? userInfo().username : undefined});
+      ? userInfo().username : header === 'Bearer admission-review-token'
+      ? 'admission-review-reader' : undefined});
   remoteServer = createServer({key: readFileSync('org.key'),
     cert: readFileSync('org.crt')}, remoteHost.handler);
   await new Promise(resolve => remoteServer.listen(0, '127.0.0.1', resolve));
   connection = {mode: 'remote', durability: 'durable',
     endpoint: 'https://127.0.0.1:' + remoteServer.address().port + '/',
-    token: 'fixture-token'};
+    token: foreignAdmissionActor ? 'admission-review-token' : 'fixture-token'};
 }
 const client = await connect(connection);
 async function terminate(boundary, ref) {
@@ -898,6 +910,88 @@ try {
     assert.deepEqual(lookup, outcome);
     console.log(JSON.stringify({code: 'SubmissionNotAccepted', lookup,
       programSha256: process.argv[3]}));
+  } else if (step === 'admission-original') {
+    // Independently authored Source-only control for the same installed profile
+    // that refuses the positively executed Effect Program above.
+    const document = JSON.stringify({version: 'actql/0.1', id: 'admission-source',
+      stages: [{id: 'source',
+        inputs: {remote: {connector: 'crm-main', resource: 'Test_Record__c'}},
+        steps: [{filter: "Name <> 'record-2'", as: 'filtered'},
+          {select: ['Id', 'Name', 'External_Key__c'], as: 'selected'}],
+        results: {rows: {from: 'selected', fields: ['Id', 'Name', 'External_Key__c']}}},
+      {id: 'compute', inputs: {captured: {result: {stage: 'source', result: 'rows'}}},
+        steps: [{select: ['External_Key__c', 'Name'], as: 'selected'}],
+        results: {rows: {from: 'selected', fields: ['External_Key__c', 'Name']}}}],
+      results: {answer: {from: {stage: 'compute', result: 'rows'}}}});
+    const submissionRef = client.newSubmission({nonce: 'admission-original'});
+    const execution = await client.startSource(document, {format: 'json', submissionRef});
+    assert.equal((await execution.wait()).status, 'succeeded');
+    assert.deepEqual((await execution.result('answer').all()).map(row =>
+      [row.External_Key__c, row.Name]).sort(), [['key-1', 'record-1'], ['key-3', 'record-3']]);
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.admission.ref, execution.ref);
+    writeFileSync('admission-original.json', JSON.stringify({document, submissionRef,
+      ref: execution.ref, lookup}));
+    console.log('accepted');
+  } else if (['admission-replay', 'admission-without-source',
+    'admission-conflict', 'admission-unknown', 'admission-foreign-actor'].includes(step)) {
+    const original = JSON.parse(readFileSync('admission-original.json', 'utf8'));
+    const unsupported = JSON.parse(readFileSync('rce-submission.json', 'utf8'));
+    assert.equal(createHash('sha256').update(unsupported.document).digest('hex'),
+      process.argv[3], 'reuse the independently successful unsupported candidate');
+    if (step === 'admission-foreign-actor') {
+      assert.equal(process.env.PACKED_RCE_TRANSPORT, 'https');
+      await assert.rejects(client.lookupSubmission(original.submissionRef), {code: 'ClientConnectionDenied'});
+      await assert.rejects(client.attach(original.ref), {code: 'ClientConnectionDenied'});
+      await assert.rejects(client.attach({...original.ref,
+        runDefinitionCid: 'sha256:' + '0'.repeat(64)}), {code: 'ClientConnectionDenied'});
+      await assert.rejects(client.startSource(original.document, {format: 'json',
+        submissionRef: original.submissionRef}), error => {
+        assert.equal(getSubmissionOutcome(error), undefined);
+        assert.equal(error.code, 'SubmissionUnknown');
+        assert.equal(error.cause?.code, 'ClientConnectionDenied');
+        assert.equal(getSubmissionAttempt(error), undefined);
+        return true;
+      });
+    } else if (step === 'admission-replay' || step === 'admission-without-source') {
+      if (step === 'admission-without-source') {
+        assert.equal(installation.sourceProfilePath, undefined);
+        assert.deepEqual(await client.lookupSubmission(original.submissionRef), original.lookup,
+          'removing current execution support cannot erase original custody');
+      }
+      let replay;
+      await assert.doesNotReject(async () => {
+        replay = await client.startSource(original.document, {format: 'json',
+          submissionRef: original.submissionRef});
+      }, 'existing accepted intent resolves through its original Run before a new support refusal');
+      assert.deepEqual(replay.ref, original.ref);
+      assert.equal(getSubmissionAttempt(replay).kind, 'already_satisfied');
+      assert.deepEqual(await client.lookupSubmission(original.submissionRef), original.lookup);
+    } else {
+      const attemptId = step + '-invocation';
+      await assert.rejects(client.startSource(unsupported.document, {
+        format: unsupported.format, submissionRef: original.submissionRef, attemptId}), error => {
+        assert.equal(error.code, step === 'admission-conflict' ? 'SubmissionConflict' : 'SubmissionUnknown');
+        assert.equal(getSubmissionOutcome(error), undefined,
+          'unsupported preparation cannot replace original custody with NotAccepted');
+        if (step === 'admission-conflict') {
+          const attempt = getSubmissionAttempt(error);
+          assert.equal(attempt.kind, 'conflict');
+          assert.equal(attempt.reason, 'intent');
+          assert.deepEqual(attempt.submissionRef, original.submissionRef);
+          assert.deepEqual(attempt.attemptRef, {operation: 'submit', attemptId});
+        }
+        return true;
+      });
+      const lookup = await client.lookupSubmission(original.submissionRef);
+      if (step === 'admission-conflict') assert.deepEqual(lookup, original.lookup);
+      else {
+        assert.equal(lookup.kind, 'unresolvable');
+        assert.deepEqual(lookup.submissionRef, original.submissionRef);
+      }
+    }
+    console.log(step);
   } else if (step === 'policy-refusal') {
     assert.ok(graphFamily);
     assert.equal(installation.resultDataPolicy, undefined);
@@ -1214,7 +1308,7 @@ try {
     ? compositionKind.slice('infer-graph-'.length) : undefined;
   const expectations = graphFamily ? graphCompositionExpectations(graphFamily) : compositionExpectations;
   const {updates:expectedUpdates,writes:expectedWrites,modelInputs:expectedModelInputs} = expectations;
-  for (const transport of ['local', 'https']) {
+  for (const transport of admissionHttpsOnly ? ['https'] : ['local', 'https']) {
     server.target.name = 'prior-name';
     const rceEnvironment = {...effectEnvironment,
       PACKED_RCE_TRANSPORT: transport,
@@ -1589,6 +1683,80 @@ try {
         profile: 'installed Salesforce Source; no Effect execution profile',
         positive: 'same bytes completed Read→Compute→Effect with independent rows',
         ...refusal, providerRequests: 0, journalBefore, journalAfter}));
+      assert.equal((await runChild('effect-run.mjs', unsupportedEnvironment,
+        ['admission-original'])).trim(), 'accepted');
+      const readCustody = () => {
+        const database = new DatabaseSync(join(unsupportedEnvironment.ACTQL_LOCAL_STATE_DIR,
+          'requests/client-requests.sqlite3'), {readOnly: true});
+        try {
+          return {requests: database.prepare('SELECT * FROM client_requests ORDER BY caller_request_id').all(),
+            intents: database.prepare('SELECT * FROM client_submitted_intents ORDER BY submission_id').all(),
+            issued: database.prepare('SELECT * FROM client_submitted_intent_custody').all()};
+        } finally { database.close(); }
+      };
+      const originalCustody = readCustody();
+      const providerAtAcceptance = server.seen.slice();
+      const observeOriginal = async (step, environment = unsupportedEnvironment) => {
+        assert.equal((await runChild('effect-run.mjs', environment,
+          [step, programSha256])).trim(), step);
+        assert.deepEqual(server.seen, providerAtAcceptance,
+          step + ' cannot reacquire Source rows, refresh targets or dispatch an Effect');
+        await appendFile(join(root, 'admission-precedence-' + transport + '.jsonl'),
+          JSON.stringify({step, transport, sourceRevision, programSha256,
+            providerRequests: server.seen.length - providerAtAcceptance.length,
+            custody: readCustody()}) + '\n', {mode: 0o600});
+      };
+      for (const step of ['admission-replay', 'admission-conflict']) {
+        await observeOriginal(step);
+        assert.deepEqual(readCustody(), originalCustody,
+          step + ' cannot replace original intent or create Run/dispatch custody');
+      }
+      // Corrupt exactly one test-owned retained intent after the Host process
+      // has exited. Preserve the original before mutation and restore it even
+      // if the public assertion fails. Do not replace the journal Owner.
+      const originalIntent = originalCustody.intents.find(row => row.nonce === 'admission-original');
+      assert.ok(originalIntent);
+      const evidence = join(root, 'admission-custody-' + transport + '.json');
+      await writeFile(evidence, JSON.stringify(originalCustody), {mode: 0o600});
+      const replaceIntentCid = value => {
+        const database = new DatabaseSync(join(unsupportedEnvironment.ACTQL_LOCAL_STATE_DIR,
+          'requests/client-requests.sqlite3'));
+        try {
+          assert.equal(Number(database.prepare('UPDATE client_submitted_intents SET intent_cid = ? WHERE submission_id = ?')
+            .run(value, originalIntent.submission_id).changes), 1);
+        } finally { database.close(); }
+      };
+      assert.notEqual(originalIntent.intent_cid, 'sha256:' + '0'.repeat(64));
+      replaceIntentCid('sha256:' + '0'.repeat(64));
+      try {
+        const damagedCustody = readCustody();
+        await observeOriginal('admission-unknown');
+        assert.deepEqual(readCustody(), damagedCustody,
+          'unknown custody cannot be repaired or recorded as a fresh unsupported rejection');
+      } finally { replaceIntentCid(originalIntent.intent_cid); }
+      assert.deepEqual(readCustody(), originalCustody);
+      await observeOriginal('admission-replay');
+      assert.deepEqual(readCustody(), originalCustody);
+      if (transport === 'https') {
+        await observeOriginal('admission-foreign-actor');
+        assert.deepEqual(readCustody(), originalCustody,
+          'current principal refusal cannot consume or replace original custody');
+      }
+      // The earlier Host has exited; this is a fresh ordinary installation,
+      // not a second client bypassing the open-root configuration guard.
+      const withoutSource = {...unsupportedEnvironment};
+      delete withoutSource.ACTQL_LOCAL_SOURCE_PROFILE;
+      await observeOriginal('admission-without-source', withoutSource);
+      assert.deepEqual(readCustody(), originalCustody,
+        'new execution support cannot replace the existing accepted intent');
+      console.log('packed existing admission precedence ' + JSON.stringify({
+        transport, sourceRevision, programSha256,
+        profile: 'installed Salesforce Source; no Effect execution profile',
+        cases: ['same-intent replay', 'changed unsupported intent', 'corrupt original intent',
+          'restored original replay', ...(transport === 'https' ? ['current recognized principal refusal'] : []),
+          'same intent without current Source execution profile'],
+        providerRequests: 0, originalRuns: originalCustody.requests.length,
+        preservedIntent: originalIntent.submission_id}));
     }
     await rce(async () => {
       server.target.name = 'changed-after-preview';

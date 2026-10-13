@@ -1,0 +1,61 @@
+{
+  "version": "actql-public-query-fixture-inventory/0.1",
+  "sourceBaseline": "76916b2b57ca8e06d9e74099349b17c263ccb411",
+  "totalCases": 4160,
+  "inventorySha256": "41c5be10bd9568966f0baf0e65a75839f314aa8808e18ecb41d0899aa3189139",
+  "counts": {
+    "successes": 2603,
+    "executionFailures": 53,
+    "refusals": 1504
+  },
+  "profiles": [
+    {
+      "name": "standard",
+      "counts": {
+        "successes": 2549,
+        "executionFailures": 51,
+        "refusals": 1465
+      }
+    },
+    {
+      "name": "analytic-offset",
+      "counts": {
+        "successes": 6,
+        "executionFailures": 0,
+        "refusals": 13
+      }
+    },
+    {
+      "name": "analytic-property",
+      "counts": {
+        "successes": 13,
+        "executionFailures": 0,
+        "refusals": 7
+      }
+    },
+    {
+      "name": "analytic-order",
+      "counts": {
+        "successes": 35,
+        "executionFailures": 2,
+        "refusals": 19
+      }
+    }
+  ],
+  "repeatedFailures": [
+    {
+      "name": "graph-subtraction-null-is-not-zero",
+      "positions": [
+        28,
+        49
+      ]
+    },
+    {
+      "name": "graph-subtraction-conflict-needs-policy",
+      "positions": [
+        29,
+        50
+      ]
+    }
+  ]
+}

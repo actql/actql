@@ -5,6 +5,7 @@ import {
   "actql/actql/bounded_execution",
   "actql/actql/canonical_json",
   "actql/actql/check_environment",
+  "actql/actql/decode_core",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/run_publication",
@@ -43,6 +44,8 @@ pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@
 
 pub fn advance_model_reconciled_raw_usage(ModelPhysicalCall, ModelPhysicalChatResponse, Int) -> Result[(Bool, Int64), ModelExecutionIssue]
 
+pub fn advance_native_decision_projection(NativeDecisionProjection) -> Result[NativeDecisionRequest?, NativeDecisionProjectionIssue]
+
 pub fn advance_openai_chat_projection(OpenAIChatProjection) -> Result[(String, String, String, String, String, String, String)?, OpenAIChatProjectionIssue]
 
 pub fn bind_prepared_model_dispatch(ModelPreparedCallSet, @run_publication_host.ClientInferDispatchAdmission, (ModelCallEntry) -> Bool) -> Result[Unit, ModelExecutionIssue]
@@ -61,6 +64,8 @@ pub fn cancel_model_observation_verification(ModelObservationVerification) -> Bo
 
 pub fn cancel_model_output_preparation(ModelOutputPreparation) -> Bool
 
+pub fn charge_original_model_observation_step(OriginalModelPublicationCapacity) -> Result[Unit, ModelExecutionIssue]
+
 pub fn cleanup_model_capture_export(ModelCaptureExport) -> Result[Bool, ModelExecutionIssue]
 
 pub fn cleanup_model_execution(ModelExecution) -> Result[Bool, ModelExecutionIssue]
@@ -78,6 +83,8 @@ pub fn finish_model_content_bytes(ModelContentByteCheck) -> Result[ModelContentA
 pub fn install_async_model_provider(String) -> Result[ModelProvider, ModelExecutionIssue]
 
 pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelProvider, ModelExecutionIssue]
+
+pub fn model_async_native_decision_request_plan(ModelRequest, NativeDecisionRequest, AdmittedModelProvider, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile, (ModelCallEntry) -> ModelPhysicalCall?) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
 pub fn model_async_physical_request_plan(ModelRequest, Int64, @physical_resources.QuantityAmounts, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (ModelCallEntry) -> ModelPhysicalCall?, evidence? : ModelPhysicalRequestEvidence, attachments? : Array[ModelContentAdmission]) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue]
 
@@ -183,9 +190,25 @@ pub fn model_saved_raw_receipt_matches(ModelSavedRawReceipt, ModelPhysicalCall, 
 
 pub fn model_slot_replay_count(ModelSlotReplayRead) -> Int?
 
+pub fn native_decision_option_id(NativeDecisionRequest, Int, Int) -> String?
+
+pub fn native_decision_projection_work(NativeDecisionProjection) -> Int
+
+pub fn native_decision_question_id(NativeDecisionRequest, Int) -> String?
+
+pub fn native_decision_request_binding(NativeDecisionRequest) -> (String, String, String, String)?
+
+pub fn native_decision_request_matches(NativeDecisionRequest, AdmittedModelProvider, ModelRequest) -> Bool
+
+pub fn native_decision_request_wires(NativeDecisionRequest) -> (String, String)?
+
 pub fn observe_model_raw_capture(ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, String, Int, Int, Bool, String) -> Result[ModelRawCaptureSave, ModelRawCaptureSaveIssue]
 
 pub fn openai_chat_projection_work(OpenAIChatProjection) -> Int
+
+pub fn original_model_publication_capacity_covers(OriginalModelPublicationCapacity, Int64, Int64) -> Bool
+
+pub fn original_model_publication_capacity_current(OriginalModelPublicationCapacity, ModelExecution, @run_publication_host.ClientInferCallScope) -> Bool
 
 pub fn poll_model_call_entry_persistence(ModelCallEntryPersistence, ModelCallEntry, ModelPreparedCallSet) -> Result[ModelEntryPersistenceObservation, ModelExecutionIssue]
 
@@ -217,6 +240,10 @@ pub fn prepared_model_request(ModelPreparedCallSet, Int) -> ModelRequest?
 
 pub fn prepared_model_scope(ModelPreparedCallSet) -> @run_publication.BoundModelInvocationScope?
 
+pub fn project_http_chat_request(AdmittedModelProvider, ModelRequest, String, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String), OpenAIChatProjectionIssue]
+
+pub fn project_native_decision_answers(NativeDecisionRequest, AdmittedModelProvider, ModelRequest, @decode_core.Cursor, Int, Int, Int, Int) -> Result[(String, Int), NativeDecisionAnswerIssue]
+
 pub fn project_openai_chat_request(AdmittedModelProvider, ModelRequest, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String), OpenAIChatProjectionIssue]
 
 pub fn read_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
@@ -227,6 +254,8 @@ pub fn release_model_outcomes(ModelOutcomeRead) -> Bool
 
 pub fn release_model_slot_replay(ModelSlotReplayRead) -> Bool
 
+pub fn release_original_model_publication_capacity(OriginalModelPublicationCapacity) -> Result[Bool, ModelExecutionIssue]
+
 pub fn release_verified_model_capture(VerifiedModelCapture) -> Bool
 
 pub fn replay_model_capture(@check_environment.ModelTaskContract, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
@@ -234,6 +263,8 @@ pub fn replay_model_capture(@check_environment.ModelTaskContract, String, ModelC
 pub fn replay_model_capture_rows(@execution_relation.PreparedInferRows, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
 
 pub fn request_model_cancel(ModelExecution) -> Bool
+
+pub fn reserve_original_model_publication_capacity(ModelExecution, @run_publication_host.ClientInferCallScope, Int64, Int64) -> Result[OriginalModelPublicationCapacity, ModelExecutionIssue]
 
 pub fn restore_prepared_model_call(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, ModelAttemptRecords, @run_publication.ModelCaptureBundleRead?) -> Result[Unit, ModelExecutionIssue]
 
@@ -244,6 +275,10 @@ pub fn retain_model_outcomes(ModelOutcomeRead) -> ModelOutcomeRead?
 pub fn retain_model_slot_replay(ModelSlotReplayRead) -> ModelSlotReplayRead?
 
 pub fn retain_verified_model_capture(VerifiedModelCapture) -> VerifiedModelCapture?
+
+pub fn retire_native_decision_projection(NativeDecisionProjection) -> Unit
+
+pub fn retire_native_decision_request(NativeDecisionRequest) -> Unit
 
 pub fn retire_openai_chat_projection(OpenAIChatProjection) -> Unit
 
@@ -260,6 +295,8 @@ pub fn start_model_execution(@execution_relation.PreparedInferRows, ModelProvide
 pub fn start_model_observation_verification(VerifiedModelCapture, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], ModelObservationVerificationLimits) -> Result[ModelObservationVerification, ModelExecutionIssue]
 
 pub fn start_model_output_preparation(ModelExecution, @execution_relation.CompletionPreparation, Int, @execution_relation.ValueLimits, Int, Int) -> Result[ModelOutputPreparation, ModelExecutionIssue]
+
+pub fn start_native_decision_projection(AdmittedModelProvider, ModelRequest, Int, Int, Int, Int, Int) -> Result[NativeDecisionProjection, NativeDecisionProjectionIssue]
 
 pub fn start_openai_chat_projection(AdmittedModelProvider, ModelRequest, Int, Int, Int, Int, Int) -> Result[OpenAIChatProjection, OpenAIChatProjectionIssue]
 
@@ -684,6 +721,22 @@ type ModelSlotReplayStorage
 
 type ModelState
 
+pub(all) enum NativeDecisionAnswerIssue {
+  ForeignRequest
+  Malformed
+  Limit
+} derive(Eq, @debug.Debug)
+
+type NativeDecisionProjection
+
+pub(all) enum NativeDecisionProjectionIssue {
+  ForeignRequest
+  Unsupported
+  Limit
+} derive(Eq, @debug.Debug)
+
+type NativeDecisionRequest
+
 type OpenAIChatProjection
 
 pub(all) enum OpenAIChatProjectionIssue {
@@ -691,6 +744,8 @@ pub(all) enum OpenAIChatProjectionIssue {
   Unsupported
   Limit
 } derive(Eq, @debug.Debug)
+
+type OriginalModelPublicationCapacity
 
 type OriginalModelStartup
 
