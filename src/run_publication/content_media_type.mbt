@@ -190,7 +190,7 @@ pub fn normalize_content_media_type_case(
     if name == cursor {
       continue
     }
-    output.write_string(reported.substring(start=unchanged, end=name))
+    output.write_view(reported[unchanged:name])
     content_media_lower(reported, name, cursor, output)
     unchanged = cursor
     // Skip a value without interpreting semicolons, names or escapes in it.
@@ -210,6 +210,6 @@ pub fn normalize_content_media_type_case(
       }
     }
   }
-  output.write_string(reported.substring(start=unchanged, end=length))
+  output.write_view(reported[unchanged:length])
   Ok(output.to_string())
 }
