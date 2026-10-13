@@ -163,13 +163,28 @@ require the original full funding before use, not a grant from codec clamps.
 Selected Node tests use actual SDK execution with Common boundary doubles and
 synthetic responses. They are not actual Common-to-SDK or public Run acceptance.
 
-Common native raw decode/completeness, registered physical
-profile/precision, original Store receipt and installed caller remain unconnected.
+Common's native raw child is connected privately below; an installed physical
+profile/precision, original Store receipt and funded public caller remain required.
 SDK model fallbacks and reported rounding are not provider observations or
 profile authority. Prototype-key SDK response refusal keeps original raw bytes
 and no repair call; it does not prohibit legal Common IDs. This preparation adds
 no public/native capability or numerical profile. The generation SDK closure and
 the native SDK's separately pinned dependency closure remain distinguishable.
+
+The private `createProjectedTypeSafeDecisionPreflight` connects the original
+opaque projection to Common's dedicated native asynchronous Plan builder.
+Construction starts no SDK operation; its lazy preparation rechecks membership,
+then the existing fixed transport and raw port own the same Entry/call. The
+builder checks the Decision Task, installed async Provider, original view and
+native response/probability/installation binding. It creates no generation
+settings or output-token default. Generation keeps its authored token floor;
+synchronous Decision remains refused. Retired views cannot start that adapter.
+The temporary native tuple and original-view/provider/start callback borrows,
+SDK progress/context and plan callback overlap require funding. Cleanup clears
+those local callback aliases only after the same SDK/raw/progress owners settle;
+it cannot retire the caller-owned escaped projection or invent raw observations.
+This is private Plan/caller preparation, not installed native raw acceptance,
+startup funding, original Store ACK, public capability or a live Jev Result.
 
 Formal packaging, external consumer, public Local/HTTPS, real model acceptance,
 four parallel calls, Decision and Cloud are unfinished M0–M5 work.
@@ -195,8 +210,8 @@ empty text, null, numbers, booleans, arrays and Unicode/newlines. The typed JSON
 carrier is unwrapped before its original value is emitted by Common; JS must
 not reconstruct the value. Unsupported typed state and the selected SDK's
 question-count limits are physical refusals, not common language restrictions.
-Native answer decoding, original raw Store binding and public Decision
-execution remain unconnected; do not route this view through the generation
+Installed original raw Store binding and public Decision execution remain
+unaccepted; do not route this view through the generation
 `SavedChat` completion codec.
 
 The private answer projection now consumes an already admitted original raw
@@ -214,3 +229,31 @@ Its admitted tree, lookup maps, output writer and escaped wire overlap must be
 funded before installation. The Node wrapper delegates to Common without
 implementing a second answer mapper. No native installed capability, saved raw
 receipt, physical numerical profile or public execution is enabled by it.
+
+### Private native raw response continuation
+
+The native SDK preflight transfers a nominal saved raw view through Common's
+native-only physical poll variant, not generation's `SavedChat`. Common binds
+the four original borrows (saved raw, original request, admitted provider and
+probability profile) to the same Call/Entry/Slot/attempt, actual Plan and selected
+native profile. Matching profile DATA is not installation or completion authority.
+A missing runtime hook refuses before preparation; a late binding refusal retains
+the original Unknown/raw cleanup obligation without creating another Entry.
+
+The existing Model `DecodePhysicalResponse` phase parses and admits the original
+envelope, scans actual nullable usage/model/ID, maps original aliases, applies
+the existing probability validator, and type-admits the answer. No SDK CPU loop
+reports parse progress as physical I/O. Parser/scanner/type transitions yield;
+the pre-existing finite synchronous alias codec and distribution validator remain
+finite synchronous units, not a claim of instruction-level preemption. Their
+local work ceilings are not converted into Ledger planning charges or extra
+parent Model work. Unknown raw fields remain in the original Artifact; missing
+usage/finish/request ID are not filled from SDK defaults or reported rounding.
+
+Raw, decoded/admitted root, mapped wire/parser, typed child and callback borrows
+overlap until their actual retirement and must be covered by original funding.
+Cleanup-only usage reading selects the same native codec for a stopped original
+Unknown/failed response, without replacing that terminal or resending it.
+This internal seam's selected tests are isolated Common children and actual
+pinned SDK with synthetic fetch/Entry/profile/receipt doubles; they do not prove
+actual native Store ACK, complete numeric funding, live Jev or public Named Result.

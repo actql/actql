@@ -23,7 +23,7 @@ fn lag_source_control(
 
 ///|
 fn lag_source_text(call : String) -> String {
-  "WITH rows AS (SELECT 1 AS id, 10 AS amount UNION ALL SELECT 2, 30 UNION ALL SELECT 3, CAST(NULL AS FLOAT64)), " +
+  "WITH `rows` AS (SELECT 1 AS id, 10 AS amount UNION ALL SELECT 2, 30 UNION ALL SELECT 3, CAST(NULL AS FLOAT64)), " +
   "keyed AS (FROM rows |> ASSERT UNIQUE BY (id)), " +
   "lagged AS (FROM keyed AS r |> " +
   call +
@@ -33,7 +33,7 @@ fn lag_source_text(call : String) -> String {
 
 ///|
 test "P2 Lag source keeps exact common invalid count order and collision refusals" {
-  let prefix = "WITH rows AS (SELECT 1 AS id, 10 AS amount), keyed AS (FROM rows |> ASSERT UNIQUE BY (id)) FROM keyed |> "
+  let prefix = "WITH `rows` AS (SELECT 1 AS id, 10 AS amount), keyed AS (FROM rows |> ASSERT UNIQUE BY (id)) FROM keyed |> "
   let cases : Array[(String, @pipeline.IssueKind)] = [
     (
       "lag(partition_by: [], order_by: [], field: amount, output: previous)",
@@ -63,7 +63,7 @@ test "P2 Lag source keeps exact common invalid count order and collision refusal
 
 ///|
 test "P2 Lag source does not restore dropped columns or old range aliases" {
-  let prefix = "WITH rows AS (SELECT 1 AS id, 10 AS amount), kept AS (FROM rows AS old |> SELECT id |> AS current) FROM kept AS r |> "
+  let prefix = "WITH `rows` AS (SELECT 1 AS id, 10 AS amount), kept AS (FROM rows AS old |> SELECT id |> AS `current`) FROM kept AS r |> "
   for field in ["amount", "old.id", "current.id"] {
     assert_true(
       with_carrier_program(

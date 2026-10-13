@@ -128,7 +128,7 @@ test "Pipe ORDER windows consume current rows and remove temporary outputs" {
       "FROM orders |> ORDER BY ROW_NUMBER() OVER (ORDER BY id) DESC |> SELECT *",
       "FROM orders |> SELECT id, -amount AS amount |> ORDER BY ROW_NUMBER() OVER (ORDER BY amount, id) DESC |> SELECT *",
       "FROM orders |> SELECT DISTINCT amount |> ORDER BY ROW_NUMBER() OVER (ORDER BY amount) DESC |> SELECT *",
-      "FROM orders AS old |> AS current |> ORDER BY ROW_NUMBER() OVER (ORDER BY current.id) DESC |> SELECT *",
+      "FROM orders AS old |> AS `current` |> ORDER BY ROW_NUMBER() OVER (ORDER BY current.id) DESC |> SELECT *",
     ] {
     let text = checked_order_window(source)
     assert_true(!text.contains("\"fields\":[\"aql_order_window_"))

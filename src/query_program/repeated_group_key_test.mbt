@@ -83,7 +83,7 @@ test "repeated SQL direct and star ordinal keys keep an independent single key l
 ///|
 test "SQL GROUP reuse preserves different resolved receivers and Pipe output aliases" {
   let distinct = checked_group_property(
-    "SELECT payload.score AS current, other.score AS original, COUNT(*) AS n FROM objects GROUP BY payload.score, other.score, (objects.payload).score",
+    "SELECT payload.score AS `current`, other.score AS original, COUNT(*) AS n FROM objects GROUP BY payload.score, other.score, (objects.payload).score",
   )
   assert_eq(semantic(distinct).split("\"property\":").length(), 3)
   let joined = compile_query_script(

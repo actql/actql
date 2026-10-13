@@ -1,6 +1,6 @@
 {
   "version": "actql-protocol-schema-registry/0.1",
-  "registry_cid": "sha256:65c3dff40737d9598f5d099a6f2daa4e5ac1f97f7cf2fbe6d6f96f06f06e8eb2",
+  "registry_cid": "sha256:6a334eaf196d554671752bff02d2195c51bc76f0448aec51e63c2c5fd170a7c2",
   "schema_cids": {
     "model_task": "sha256:2923ba31752ae8854198b0fc7848fb89b7ce537c6a67e45e1a46612780509da9",
     "contract_ref": "sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94",
@@ -16,7 +16,7 @@
     "effect_outcome": "sha256:e1c2f7c0f3b894c66c9fb205fdef574cba048873ecbc79f2981a0b8bf4450b0f",
     "author_value_contract": "sha256:7deb73a773cf91e861d73dfc7b7b5331d77ee19605934e0198eb608eac69144d",
     "canonical_value_contract": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947",
-    "content_ref": "sha256:dab36fadb3ae6a4d7c65351d5bec6ddc1ca104601d9e936d2bbd4d69231288d2",
+    "content_ref": "sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d",
     "content_availability_evidence": "sha256:784203dbc5f95925f83f57c0ff3230abef8bac867768bbe90b26f622fb2d867d",
     "model_task_v02": "sha256:739d8b30bc5e11a5b7dc954e7b91bb4d2f107d235d53483782be56f94155ba1f"
   },
@@ -10595,8 +10595,39 @@
                 "evidence_cid": {
                   "type": "string",
                   "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "reported_media_type": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
                 }
-              }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "issuer_kind": {
+                        "const": "connector_capture"
+                      }
+                    },
+                    "required": [
+                      "issuer_kind"
+                    ]
+                  },
+                  "then": {
+                    "required": [
+                      "reported_media_type"
+                    ]
+                  },
+                  "else": {
+                    "not": {
+                      "required": [
+                        "reported_media_type"
+                      ]
+                    }
+                  }
+                }
+              ]
             }
           }
         }
@@ -13635,7 +13666,7 @@
       ]
     }
   },
-  "artifact_registry_cid": "sha256:7895903e60340ba1bb02efdac260bc02cdbb2ddd681d2751ea0f3ddd6bc101a5",
+  "artifact_registry_cid": "sha256:c4a19ad1ec9a77f4e4bc9b38ad92276ecce5d11520fc53d7935b39906e8b1c60",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
@@ -13672,7 +13703,7 @@
     "plan_document": "sha256:2637cd5d00773adb47009f785bf1d14e80193b6b26ba43685eb03802e2c9ef78",
     "plan_result": "sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1",
     "run_state": "sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30",
-    "captured_run": "sha256:4d29468956029714f8d1cdab1f43f44ca682775f78b36ccda03b2b3fb908609a",
+    "captured_run": "sha256:b3e0df2dca997b53950a1035ac64d334f128ed36840302a535c1ff56f13a064b",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
@@ -81029,8 +81060,39 @@
                               "evidence_cid": {
                                 "type": "string",
                                 "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "reported_media_type": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
                               }
-                            }
+                            },
+                            "allOf": [
+                              {
+                                "if": {
+                                  "properties": {
+                                    "issuer_kind": {
+                                      "const": "connector_capture"
+                                    }
+                                  },
+                                  "required": [
+                                    "issuer_kind"
+                                  ]
+                                },
+                                "then": {
+                                  "required": [
+                                    "reported_media_type"
+                                  ]
+                                },
+                                "else": {
+                                  "not": {
+                                    "required": [
+                                      "reported_media_type"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
                           }
                         }
                       }

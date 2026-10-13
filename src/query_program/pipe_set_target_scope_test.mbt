@@ -90,7 +90,7 @@ test "Pipe SET counts USING's one coalesced target instead of operand ranges" {
 
 ///|
 test "Pipe SET public scalar control lowers through the script entry" {
-  let source = "FROM t AS l |> RIGHT JOIN (SELECT 3 AS k) AS r ON l.x = r.k MAX_OUTPUT_ROWS 10 |> SET y = 99 |> SELECT y AS current, l.y AS original, r.k AS matched |> ORDER BY original"
+  let source = "FROM t AS l |> RIGHT JOIN (SELECT 3 AS k) AS r ON l.x = r.k MAX_OUTPUT_ROWS 10 |> SET y = 99 |> SELECT y AS `current`, l.y AS original, r.k AS matched |> ORDER BY original"
   let result = compile_query_script(
     @query.parse_query_script(source, syntax_limits()).unwrap(),
     join_order_context(),
