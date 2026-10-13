@@ -5,6 +5,8 @@ test "time series generators need no input and feed typed relation consumers" {
   )
   let p = @pipeline_typing.check_carriers(body, [], None, None, limits()).unwrap()
   assert_operation_profiles(p, [[TEA], [RelA]])
+  assert_false(@pipeline_typing.starts_with_values(p))
+  assert_true(@pipeline_typing.starts_with_selected_local_generator(p))
   let step = @pipeline_typing.step_at(p, 0).unwrap()
   assert_true(step.input is None)
   assert_true(step.operation is TimeSeries(_))

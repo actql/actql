@@ -447,6 +447,8 @@ pub fn sort_order_strategy(SortOrder) -> SortStrategy
 
 pub fn source(CheckedPipeline) -> @decode_core.Cursor
 
+pub fn starts_with_selected_local_generator(CheckedPipeline) -> Bool
+
 pub fn starts_with_values(CheckedPipeline) -> Bool
 
 pub fn step_at(CheckedPipeline, Int) -> CheckedStep?

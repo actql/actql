@@ -1,7 +1,37 @@
-# AI SDK private physical preparation and transport
+# Optional AI SDK Host installer (development)
 
-This private, unfinished optional package has no public exports or installed
-capability. It is not a published provider or permission to send model requests.
+This unfinished development package exports only
+`createInstalledOpenAIChatRegistration`, the existing Host registration
+assembler. Its internal send, receipt, raw-response and native Decision
+preparation functions are not package exports. The package remains private;
+the entry is not a published provider, installed profile, capacity or permission
+to send model requests.
+
+The entry produces the existing `registerModelProviders` callback; the installed
+Host supplies its consuming runtime. Applications do not import a MoonBit
+runtime, construct a second Model Owner or register a dummy synchronous invoke.
+Trusted Host options must retain the original selected profile, checked read
+installation, raw capture policies, canonical binding originals and finite
+quantities. Missing originals/runtime refuse before sending. Matching CIDs,
+configuration copies or positive byte declarations are not original admission.
+
+```js
+import {createInstalledOpenAIChatRegistration} from '@actql/provider-ai-sdk';
+// Host integration skeleton, not a runnable live-provider example.
+// trustedHostOptions comes from the installed Host's existing original
+// admission/funding/policy/secret supply, never from a Program or Run packet.
+const registerModelProviders = createInstalledOpenAIChatRegistration(trustedHostOptions);
+// Supply this callback through @actql/node's existing
+// installation.registerModelProviders alongside its admitted modelInstallation.
+```
+
+`npm-shrinkwrap.json` preserves the exact existing SDK dependency lock closure
+for an external installation. The package explicitly constrains its Zod peer to
+the original4.6.5; a newly resolved peer is not interchangeable with that lock.
+The original profile's lock artifact remains the
+unchanged `package-lock.json` bytes. No packages are fetched implicitly from a
+Program/URI. Registry publication, supported numerical installation, public
+Local/HTTPS Named Result and real OpenAI acceptance remain unfinished.
 
 The first physical preparation uses the pinned OpenAI SDK's v4 chat generation
 operation. It starts the SDK exactly once and intercepts the final request
@@ -78,14 +108,24 @@ It keeps the original Unknown/cleanup responsibility. This is the initial privat
 one-Slot connection, not accepted public funding or multi-Slot raw persistence.
 
 The private Chat port validates output and observations from the original saved
-raw response, not the SDK-normalized result. After that same SDK settles, it
-retires only its unused decoded-result alias, even if raw persistence or cleanup
-remains pending. Original raw bytes, request/transport/reader custody, the saved
-view, failure/Unknown and explicit same-call reconciliation remain unchanged.
-Native callers retain their existing explicit one-time decoded-result transfer;
-an already transferred immutable view is never mutated by alias retirement.
-This is not physical GC or capacity release. The parsing/normalization peak and
-all remaining Promise/Store/closure overlap still require complete funding.
+raw response, not the SDK-normalized result. Its installed preflight selects
+private raw-only response consumption: after bounded physical EOF, it ends the
+same intercepted SDK fetch wait without building an unused SDK `Response` copy
+or running the SDK response JSON/schema decoder. Only actual settlement of that
+SDK operation produces the private `retired` consumer observation. This intentional
+consumer retirement is not a Provider error, saved response, validated answer or
+physical cleanup acknowledgement. Malformed original bytes remain available for
+the existing Common decoder's own refusal and observed-usage handling.
+
+Raw persistence, incomplete reads and cleanup can remain pending independently.
+Original raw bytes, request/transport/reader custody, the saved view, failure/Unknown
+and explicit same-call reconciliation remain unchanged. Generic transport defaults
+and Native Decision preflight retain their existing SDK response copy/decoder mode
+and explicit one-time decoded-result transfer; an already transferred immutable
+view is never mutated by alias retirement. This is not physical GC or capacity
+release. SDK request normalization, all actual preparation records, mode/closure
+references and remaining Promise/Store/reader overlap still require complete
+funding. Missing normal numerical funding remains unavailable.
 
 The internal `createInstalledOpenAIChatRegistration` assembles the existing Host
 `registerModelProviders` entry from trusted, already retained installation
@@ -97,12 +137,12 @@ Projection, request and response bounds are distinct immutable declarations.
 The selected SDK, endpoint, generation completion basis, original raw profile,
 quantity and read selections stay with their existing Host/Model Owners.
 
-This is private assembler preparation, not the public user installation API:
-the package still has no public exports. The Host must verify actual builder,
+The exported assembler is a Host integration entry, not a supported numerical
+user installation. The Host must verify actual builder,
 codec, build/lock and validator originals and supply justified complete physical
 funding before public use. Frozen objects, matching declarations and fixture
-allowances do not establish those facts. The public entry and external-package
-example remain dependent on that original installation/funding acceptance.
+allowances do not establish those facts. The actual user execution example and
+external-package Result acceptance still require that original funding.
 
 The existing Common Model Owner must admit the Task, original inputs, complete
 Slot inventory, profile and all simultaneous holdings before using this code.
@@ -120,12 +160,14 @@ throw or lost response remains unknown responsibility, never proof of non-send.
 These private functions are not public capability or admission APIs.
 
 The response reader bounds bytes, individual chunks, chunk count and selected
-headers before feeding a separately funded Response copy to the original SDK.
-It preserves raw bytes and incomplete prefixes. HTTP EOF is not endpoint or
+headers. Generic and Native SDK mode then feeds a separately funded `Response`
+copy to the original SDK; the installed Chat raw-only mode does not. Both preserve
+raw bytes and incomplete prefixes. HTTP EOF is not endpoint or
 answer completion. A cancel-induced stream EOF is explicitly incomplete.
-No unbounded `text`, `json`, clone or tee precedes the byte check. The pinned
-SDK's subsequent synchronous JSON/schema work is not proven cooperative by
-this reader; Common's bounded codec and validation remain necessary.
+No unbounded `text`, `json`, clone or tee precedes the byte check. The pinned SDK's
+synchronous request normalization and, where selected, response JSON/schema work
+are not proven cooperative by this reader; Common's bounded codec and validation
+remain necessary.
 
 Cleanup retains the same pending transport, unread body or failed reader
 retirement and retries that responsibility, not the request. Local abort or

@@ -42,10 +42,13 @@ test('normal source-free delivery contains its full relative import closure', ()
   };
   const complete = closure(releaseSourcefreeFixturePaths);
   assert.deepEqual(complete.missing, []);
-  assert.equal(complete.seen.size, 11);
+  assert.equal(complete.seen.size, 13);
   const omitted = resolve(root, 'scripts/fixtures/sequence-source-input.mjs');
   assert.deepEqual(closure(releaseSourcefreeFixturePaths.filter(path =>
     !path.endsWith('/sequence-source-input.mjs'))).missing, [omitted]);
+  assert.deepEqual(closure(releaseSourcefreeFixturePaths.filter(path =>
+    !path.endsWith('/temporal-join-source-input.mjs'))).missing,
+  [resolve(root, 'scripts/fixtures/temporal-join-source-input.mjs')]);
 });
 
 test('installed source-free worker and consumer parse without starting a product', () => {

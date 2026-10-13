@@ -1,0 +1,19 @@
+{
+  "version": "actql-local-signing-public-key-pins/0.1",
+  "identity_domain": "actql-local-signing-public-key/0.1",
+  "schema_urn": "urn:actql:local-signing-public-key:0.1",
+  "files": [
+    {
+      "path": "spec/contracts/actql-local-signing-public-key.schema.json",
+      "sha256": "eeb180a75c0b944806c01edbbf4f815bcae56e257233690b348b883d92ec0039"
+    },
+    {
+      "path": "spec/contracts/local-signing-public-key.md",
+      "sha256": "b5dd243e257372435cf606c53117208eafb8373579ddd4ac1445f6b8e3e4226b"
+    },
+    {
+      "path": "spec/contracts/fixtures/local-signing-public-key-vectors.json",
+      "sha256": "0399adf87100bded04ad68ef3bf16ac92dcfb02dcc288e3b3336be78c21df499"
+    }
+  ]
+}
