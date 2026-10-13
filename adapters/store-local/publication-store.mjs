@@ -2246,9 +2246,13 @@ export async function openLocalPublicationStore(
     const nonce = randomBytes(12);
     const cipher = createCipheriv('aes-256-gcm', key, nonce);
     cipher.setAAD(privateEvidenceAad(name, semanticCid));
-    const ciphertext = Buffer.concat([
-      cipher.update(bytes), cipher.final(),
-    ]);
+    const encrypted = cipher.update(bytes);
+    const final = cipher.final();
+    // Reuse the complete owned block when final produced no additional bytes.
+    // Do not retain a second full ciphertext solely for concatenating empty
+    // output. Preserve the original concatenation for a nonempty final block.
+    const ciphertext = final.byteLength === 0 ? encrypted
+      : Buffer.concat([encrypted, final]);
     const envelope = Buffer.from(JSON.stringify({
       version: 'actql-private-publication-evidence/0.1',
       nonce: nonce.toString('base64'),
