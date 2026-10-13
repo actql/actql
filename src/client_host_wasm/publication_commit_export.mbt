@@ -29,6 +29,13 @@ priv struct StoredPublicationCommitExport {
   mut output_closed : Bool
   mut state_borrow : @buffers.BufferBorrow?
   mut sdk_delivery_first : @local_run.LocalSDKReadDeliveryPreparation?
+  mut sdk_payload_outcome : Result[
+    (@publication.DurableResultRowFrames, @publication.ResultDeliverySerializer),
+    Int,
+  ]?
+  mut sdk_payload_tick_borrow : @buffers.BufferBorrow?
+  mut sdk_payload_clock_input : Int?
+  mut sdk_payload_invoked : Bool
 }
 
 ///|
@@ -87,6 +94,10 @@ pub fn reserve_publication_commit_export(
     output_closed: false,
     state_borrow: None,
     sdk_delivery_first: None,
+    sdk_payload_outcome: None,
+    sdk_payload_tick_borrow: None,
+    sdk_payload_clock_input: None,
+    sdk_payload_invoked: false,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -664,6 +675,17 @@ pub fn close_publication_commit_export(nonce : Int64, handle : Int) -> Int {
     }
     record.output_closed = true
   }
+  if record.sdk_payload_tick_borrow is Some(borrow) {
+    let result = status(@buffers.return_buffer_borrow(value.pool, borrow))
+    if result != 0 {
+      return result
+    }
+    record.sdk_payload_tick_borrow = None
+  }
+  if record.sdk_payload_outcome is Some(Ok((frames, _))) {
+    @publication.cancel_durable_result_row_frames(frames)
+  }
+  record.sdk_payload_outcome = None
   if record.state_borrow is Some(borrow) {
     let result = status(@buffers.return_buffer_borrow(value.pool, borrow))
     if result != 0 {
