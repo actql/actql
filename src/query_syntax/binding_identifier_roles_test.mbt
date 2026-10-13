@@ -74,14 +74,14 @@ fn assert_reserved_row_alias(source : String, position : Int) -> Unit raise {
 
 ///|
 test "UNNEST element AS shares ordinary row alias admission" {
-  assert_reserved_row_alias("SELECT 1 AS id FROM UNNEST([1]) AS ROWS", 33)
+  assert_reserved_row_alias("SELECT 1 AS id FROM UNNEST([1]) AS ROWS", 35)
 }
 
 ///|
 test "UNNEST OFFSET AS shares ordinary row alias admission" {
   assert_reserved_row_alias(
     "SELECT 1 AS id FROM UNNEST([1]) AS item WITH OFFSET AS ROWS",
-    53,
+    55,
   )
 }
 
@@ -94,7 +94,7 @@ test "Pipe AS shares ordinary row alias admission" {
 test "Pipe UNPIVOT AS shares ordinary row alias admission" {
   assert_reserved_row_alias(
     "FROM records |> UNPIVOT(v FOR k IN(x)) AS ROWS |> SELECT v",
-    40,
+    42,
   )
 }
 
