@@ -23,4 +23,5 @@ import {
   "actql/actql/connectors/reference_compute" @binding16,
   "actql/actql/effect_application" @effect,
   "actql/actql/remote_transfer" @transfer,
+  "moonbitlang/core/encoding/utf8",
 }

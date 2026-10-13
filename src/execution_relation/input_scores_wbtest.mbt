@@ -198,3 +198,56 @@ test "supplied score validation refuses short work and space with no resource gr
   assert_true(cleanup_supplied_score_validation(validation) is Ok(true))
   assert_eq(validation.state.workspace.live, 0)
 }
+
+///|
+test "supplied score cleanup requires original state retirement after Session ACK" {
+  let input = score_test_read("0.5")
+  let control = @bounded.control()
+  let validation = start_supplied_score_validation(control, input, 1000, 100, 2)
+    .unwrap()
+    .unwrap()
+  let state = validation.state
+  assert_true(
+    advance_supplied_score_validation(validation, 1)
+    is Ok(@bounded.ContinueWith(_, work=1L, ..)),
+  )
+  let borrowed = state.input.unwrap()
+  let declarations = state.declarations.unwrap()
+  let declaration = state.declaration.unwrap()
+  @bounded.request_cancel(control) |> ignore
+  assert_true(
+    advance_supplied_score_validation(validation, 1)
+    is Ok(@bounded.StoppedWith(_, ..)),
+  )
+  assert_eq(state.workspace.live, 2)
+  // Reach the real original session's cleanup ACK, not a different cursor.
+  assert_true(@bounded.cleanup(validation.session) is Ok(true))
+  assert_false(@bounded.cleanup_pending(validation.session))
+  assert_eq(state.workspace.live, 0)
+  assert_true(state.input is None && state.supplied is None)
+  // Inject an unfinished retirement part into that same retained original
+  // state. These are white-box residue injections, not physical close faults.
+  for part in 0..<9 {
+    match part {
+      0 => state.phase = Row
+      1 => state.input = Some(borrowed)
+      2 => state.supplied = Some(input)
+      3 => state.declarations = Some(declarations)
+      4 => state.declaration = Some(declaration)
+      5 => assert_true(reserve_slots(state.workspace, 2))
+      6 => state.text_charge.offset = 1
+      7 => state.text_charge.next = 1
+      _ => state.text_charge.remaining = 1
+    }
+    assert_false(@bounded.cleanup_pending(validation.session))
+    assert_true(cleanup_supplied_score_validation(validation) is Ok(false))
+    // The existing same-state cleanup retires the injected part. Session ACK
+    // alone never releases a still-live borrow/workspace or text cursor.
+    assert_true(clear_input_score_cursor(state))
+    assert_true(cleanup_supplied_score_validation(validation) is Ok(true))
+    assert_eq(state.workspace.live, 0)
+    assert_true(physical_equal(state, validation.state))
+  }
+  assert_true(supplied_relation_read_available(input))
+  assert_eq(supplied_relation_read_row_count(input), 2)
+}

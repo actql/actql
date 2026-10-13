@@ -17,6 +17,7 @@ options(
     "sqlite_wbtest.mbt": [ "native" ],
     "diagnostic_ceiling_native_wbtest.mbt": [ "native" ],
     "readback_retirement_native_wbtest.mbt": [ "native" ],
+    "open_failure_custody_native_wbtest.mbt": [ "native" ],
     "exact_removal_native_wbtest.mbt": [ "native" ],
     "existing_database_wbtest.mbt": [ "native" ],
     "owned_database_wbtest.mbt": [ "native" ],

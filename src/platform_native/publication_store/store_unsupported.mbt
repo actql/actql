@@ -44,6 +44,38 @@ pub fn open_existing_store(
 }
 
 ///|
+pub fn open_store_with_custody(
+  _library : @sqlite.Library,
+  _root_path : String,
+  _authority_cid : String,
+  _capacity_bytes : Int64,
+  _max_objects : Int64,
+  _max_record_bytes : Int64,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Store, NativePublicationStoreOpenError] {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(RefusedBeforeAcquisition(Filesystem(@filesystem.InvalidLimit)))
+  }
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
+pub fn open_existing_store_with_custody(
+  _library : @sqlite.Library,
+  _root_path : String,
+  _authority_cid : String,
+  _capacity_bytes : Int64,
+  _max_objects : Int64,
+  _max_record_bytes : Int64,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Store, NativePublicationStoreOpenError] {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(RefusedBeforeAcquisition(Filesystem(@filesystem.InvalidLimit)))
+  }
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
 pub fn Store::begin_payload(
   _self : Store,
   _request : @payload.PublicationPayloadRequest,
