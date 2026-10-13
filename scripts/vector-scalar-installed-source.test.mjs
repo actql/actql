@@ -15,7 +15,11 @@ const options = overrides => ({resource: 'vectors', columns: ['id', 'left_vector
   requestWire: '{}', operation: 'vector_fixture:vectors:read', ...overrides});
 
 test('full Relation declaration retains the independent original Vector schema/CID', () => {
-  assert.deepEqual(JSON.parse(vectorScalarSchemaWire), vectorScalarSourceSchema);
+  assert.deepEqual(JSON.parse(vectorScalarSchemaWire), {
+    ...vectorScalarSourceSchema,
+    left_vector: {...vectorScalarSourceSchema.left_vector, element_type: 'f32'},
+    right_vector: {...vectorScalarSourceSchema.right_vector, element_type: 'f32'},
+  });
   assert.equal('sha256:' + createHash('sha256').update(vectorScalarSchemaWire).digest('hex'), vectorScalarSchemaCid);
   assert.deepEqual(vectorScalarViewSpecification.views[0], {resource: 'vectors', resource_kind: 'table',
     schema_wire: vectorScalarSchemaWire, schema_cid: vectorScalarSchemaCid});

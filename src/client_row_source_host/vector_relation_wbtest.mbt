@@ -4,10 +4,10 @@ fn vector_fixture_saved_view() -> RowRelationViewSpec {
     resource: "vectors",
     resource_kind: "table",
     schema_wire: (
-      #|{"id":{"nullable":false,"type":"number"},"left_vector":{"dimensions":2,"nullable":false,"type":"vector"},"right_vector":{"dimensions":2,"nullable":true,"type":"vector"}}
+      #|{"id":{"nullable":false,"type":"number"},"left_vector":{"dimensions":2,"element_type":"f32","nullable":false,"type":"vector"},"right_vector":{"dimensions":2,"element_type":"f32","nullable":true,"type":"vector"}}
     ),
     // SHA-256 of the independently authored canonical field-map bytes.
-    schema_cid: "sha256:ef9fb503e0f3face25dec7348dfec4a772045dcb14d13fea2331b2d1cbbb1c83",
+    schema_cid: "sha256:6d31ea776fe51f6447312c10f7f575b97d3c5a3fe88c27d4c1fe105a1d564849",
     request_schema_wire: None,
     facts_wire: None,
     acquisition_wire: None,
@@ -58,6 +58,17 @@ test "Vector fixture full declaration preserves dimension nullability and indepe
   assert_true(generate_relation_row_declaration(
     "vector_fixture", "vector_fixture", "vector_fixture/0.1",
     [{ ..view, schema_cid: "sha256:" + "0".repeat(64) }], declaration_limits,
+  ) is Err(InvalidContracts))
+  // The saved Source wire is checked, not the authored Values shorthand.
+  let authored = {
+    ..view,
+    schema_wire: (
+      #|{"id":{"nullable":false,"type":"number"},"left_vector":{"dimensions":2,"nullable":false,"type":"vector"},"right_vector":{"dimensions":2,"nullable":true,"type":"vector"}}
+    ),
+    schema_cid: "sha256:ef9fb503e0f3face25dec7348dfec4a772045dcb14d13fea2331b2d1cbbb1c83",
+  }
+  assert_true(generate_relation_row_declaration(
+    "vector_fixture", "vector_fixture", "vector_fixture/0.1", [authored], declaration_limits,
   ) is Err(InvalidContracts))
 }
 

@@ -18,10 +18,11 @@ const registration = 'vector_fixture';
 const revision = 'vector_fixture/0.1';
 const operation = 'vector_fixture:vectors:read';
 const version = 'actql-installed-vector-fixture/0.1';
-// Independent canonical preimage of the original fixture, not an observed
-// declaration or an expected schema regenerated from product output.
-export const vectorScalarSchemaWire = '{"id":{"nullable":false,"type":"number"},"left_vector":{"dimensions":2,"nullable":false,"type":"vector"},"right_vector":{"dimensions":2,"nullable":true,"type":"vector"}}';
-export const vectorScalarSchemaCid = 'sha256:ef9fb503e0f3face25dec7348dfec4a772045dcb14d13fea2331b2d1cbbb1c83';
+// Checked Source schema, independently encoded from the original authored
+// schema and its normative fixed f32 machine member (language.md, Value types).
+// Neither an observed declaration nor a product-generated expected schema.
+export const vectorScalarSchemaWire = '{"id":{"nullable":false,"type":"number"},"left_vector":{"dimensions":2,"element_type":"f32","nullable":false,"type":"vector"},"right_vector":{"dimensions":2,"element_type":"f32","nullable":true,"type":"vector"}}';
+export const vectorScalarSchemaCid = 'sha256:6d31ea776fe51f6447312c10f7f575b97d3c5a3fe88c27d4c1fe105a1d564849';
 export const vectorScalarViewSpecification = Object.freeze({views: [{
   resource: 'vectors', resource_kind: 'table',
   schema_wire: vectorScalarSchemaWire, schema_cid: vectorScalarSchemaCid,
@@ -58,7 +59,11 @@ export function createVectorScalarPageDriver(observations) {
 
 export async function installVectorScalarFixture({moon, helpers,
   createInstalledConnectorTable, directory}) {
-  assert.deepEqual(JSON.parse(vectorScalarSchemaWire), vectorScalarSourceSchema);
+  assert.deepEqual(JSON.parse(vectorScalarSchemaWire), {
+    ...vectorScalarSourceSchema,
+    left_vector: {...vectorScalarSourceSchema.left_vector, element_type: 'f32'},
+    right_vector: {...vectorScalarSourceSchema.right_vector, element_type: 'f32'},
+  });
   await mkdir(directory, {recursive: true});
   const declaration = helpers.checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
     registration, registration, revision, JSON.stringify(vectorScalarViewSpecification), undefined));
