@@ -1,0 +1,66 @@
+{
+  "proposalOnly": true,
+  "executedOwnerTests": 0,
+  "labelsAreNotAPIBooleans": true,
+  "cases": [
+    {
+      "name": "explicit one successor with exact old authenticated reference and whole current witness",
+      "requiredOwnerFacts": [
+        "old revision0 packet HMAC/canonical/CID/Scope verified",
+        "all ordinary rows and original reservations validated",
+        "prior a3b2289-byte manifest matches the authenticated old pair",
+        "finite library/ABI/license/closure/assets/reachability check succeeds",
+        "typed complete current package/current generations checked before and after",
+        "current existing Account submit/publish/read conjunction allows",
+        "issued1/revision1 and reservation8192/1 with N7",
+        "payload and envelope size checks before copy"
+      ],
+      "expectedFacts": [
+        "old packet/body/read/Policy/Run/date bytes unchanged",
+        "successor revision0 and issued2 CAS in same transaction",
+        "8192 additional reservation, not actual packet size substitution",
+        "new credential grant/ordinal/renewal0",
+        "no Source/Compute/Model/Effect/new Run from metadata append"
+      ]
+    },
+    {
+      "name": "old upgrade lookup under explicit successor",
+      "requiredOwnerFacts": [
+        "same original operation/scope",
+        "both linked packets fully authentic and current package still matches successor",
+        "shared original decoder uses reconstructed original a3b pair"
+      ],
+      "expectedFacts": [
+        "original CID sha256:8210e07a447b79db5057fcf92a7d39fa583519a1e52fc631360cf3f8e7a542f9 unchanged",
+        "exact internal original packet/body unchanged",
+        "no old body displayed with the new pair; no reservation/HMAC replay"
+      ]
+    },
+    {
+      "name": "lost successor ACK confirmed only by same operation lookup",
+      "requiredOwnerFacts": [
+        "saved operation ID/intent retained by caller",
+        "current read authorization and exact saved row/reservation/counter valid"
+      ],
+      "expectedFacts": [
+        "Unknown remains until original immutable commit fact recovered",
+        "lookup original packet/CID/operation only",
+        "no second accept attempt, no re-sign/reissue or deadline renewal",
+        "cleanup pending retains same Owner/retry carrier"
+      ]
+    },
+    {
+      "name": "metadata compatibility does not revive expired original Result",
+      "requiredOwnerFacts": [
+        "successor committed and actual current still verified",
+        "old saved read selection/Run original dates unchanged"
+      ],
+      "expectedFacts": [
+        "old read remains refused at exact24h endpoint and +1ms",
+        "48h deletion and7dmetadata unchanged",
+        "only new request first-accept may issue its existing finite policy",
+        "current grant/scope/use/expiry independent"
+      ]
+    }
+  ]
+}

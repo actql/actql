@@ -1220,8 +1220,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     return sourceProfile !== undefined &&
       moon.clientProgramAcquisitionCount(preparedProgram) > 0
       ? acquiredTaskRunAdmission(common)
-      : moon.clientProgramTaskCount(preparedProgram) > 1 ||
-          moon.clientProgramUsesGraphCarrier(preparedProgram)
+      : moon.clientProgramRequiresTaskCompilation(preparedProgram)
         ? sourceFreeTaskPlan(common)
         : sourceFreeValuesPlan(common);
   };
