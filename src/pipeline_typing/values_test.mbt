@@ -16,6 +16,8 @@ test "values establish current without consuming any input" {
       limits(),
     ).unwrap()
     let step = @pipeline_typing.step_at(p, 0).unwrap()
+    assert_true(@pipeline_typing.starts_with_values(p))
+    assert_true(@pipeline_typing.starts_with_selected_local_generator(p))
     assert_eq(step.input, None)
     assert_true(@pipeline_typing.input_occurrences(step).is_empty())
     assert_eq(@pipeline_typing.current(p), Some(Step(1)))

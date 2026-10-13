@@ -326,6 +326,17 @@ pub fn starts_with_values(value : CheckedPipeline) -> Bool {
 }
 
 ///|
+/// Closed roots of the selected Local profile, not execution authority.
+pub fn starts_with_selected_local_generator(value : CheckedPipeline) -> Bool {
+  value.steps.get(0).map(step => {
+    match step.operation {
+      Values(_) | TimeSeries(_) => true
+      _ => false
+    }
+  }).unwrap_or(false)
+}
+
+///|
 pub fn lookup(value : CheckedPipeline, name : String) -> Target? {
   value.names.get(name)
 }

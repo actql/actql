@@ -105,6 +105,26 @@ pub fn prepared_client_uses_graph_carrier(
 }
 
 ///|
+/// Select the compiler from the retained owner, without issuing a Run.
+pub fn prepared_client_requires_task_compilation(
+  value : PreparedClientProgram,
+) -> Bool {
+  if @strategy.graph_task_count(value.graph) > 1 ||
+    prepared_client_uses_graph_carrier(value) {
+    return true
+  }
+  if !@strategy.graph_source_free_inputs_complete(value.graph) {
+    return false
+  }
+  guard @strategy.graph_task_owner(value.graph, 0) is Some(owner) else {
+    return false
+  }
+  let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
+  @pipeline.starts_with_selected_local_generator(pipeline) &&
+    !@pipeline.starts_with_values(pipeline)
+}
+
+///|
 /// The same checked Stage lowering is used by Effect-free and Effectful
 /// computations. This does not admit an Effect or grant physical execution.
 pub(all) enum ClientStageOwnerIssue {
@@ -1396,7 +1416,7 @@ pub fn prepare_parsed_effect_free_client_program(
       limits.max_graph_work,
       captured_prefix=client_program_acquisition_prefix(checked),
       source_free_root=owners.length() > 0 &&
-        @pipeline.starts_with_values(
+        @pipeline.starts_with_selected_local_generator(
           @lower.pipeline(@lower.bound_preparation(owners[0])),
         ),
     ) {
