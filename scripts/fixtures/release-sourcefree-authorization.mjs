@@ -8,10 +8,11 @@ import {userInfo} from 'node:os';
 export async function sourcefreeFixtureAuthorization(mode, suite, {reopen = false,
   directory = process.cwd()} = {}) {
   assert.ok(['local', 'https'].includes(mode));
-  assert.ok(['in-unnest', 'sequence', 'time-series'].includes(suite));
-  const path = join(directory, `sourcefree-time-series-authorization-${mode}.json`);
+  assert.ok(['in-unnest', 'sequence', 'time-series', 'temporal-join'].includes(suite));
+  const retained = suite === 'time-series' || suite === 'temporal-join';
+  const path = join(directory, `sourcefree-${suite}-authorization-${mode}.json`);
   if (reopen) {
-    assert.equal(suite, 'time-series');
+    assert.equal(retained, true);
     return JSON.parse(await readFile(path, 'utf8'));
   }
   const reviewer = generateKeyPairSync('ed25519'), hostKey = generateKeyPairSync('ed25519');
@@ -24,7 +25,7 @@ export async function sourcefreeFixtureAuthorization(mode, suite, {reopen = fals
       publicKey: reviewer.publicKey.export({type: 'spki', format: 'pem'})}],
     hostKey: {keyId: 'host', privateKey: hostKey.privateKey.export({type: 'pkcs8', format: 'pem'})},
   };
-  if (suite === 'time-series') await writeFile(path, JSON.stringify(authorization) + '\n',
+  if (retained) await writeFile(path, JSON.stringify(authorization) + '\n',
     {flag: 'wx', mode: 0o600});
   return authorization;
 }
