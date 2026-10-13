@@ -5,6 +5,7 @@ import {
   "actql/actql/checkpoint_runtime",
   "actql/actql/execution_site",
   "actql/actql/publication_payload",
+  "actql/actql/remote_bundle",
   "actql/actql/remote_transfer",
   "actql/actql/run_publication",
   "moonbitlang/core/debug",
@@ -24,6 +25,12 @@ pub fn admit_durable_coordinator_dispatch_record(Bytes) -> Result[DurableCoordin
 pub fn admit_durable_coordinator_output_record(Bytes, DurableCoordinatorDispatchRecord, String, Int, Int, Int64) -> Result[DurableCoordinatorOutputRecord, DispatchIssue]
 
 pub fn admit_durable_dispatch_record(Bytes) -> Result[DurableDispatchRecord, DispatchIssue]
+
+pub fn admit_remote_bundle_custody_observation_ack_json(String, @remote_bundle.RemoteBundleCustodyRequest, @remote_bundle.RemoteBundleCustodyResponse, Int64) -> Result[Unit, DispatchIssue]
+
+pub fn admit_remote_bundle_custody_observation_json(String, @remote_bundle.RemoteBundleCustodyRequest, Int64) -> Result[@remote_bundle.RemoteBundleCustodyResponse, DispatchIssue]
+
+pub fn admit_remote_bundle_custody_observation_reply_json(String, @remote_bundle.RemoteBundleCustodyRequest, @remote_bundle.RemoteBundleCustodyResponse, Int64) -> Result[RemoteBundleCustodyObservationReply, DispatchIssue]
 
 pub fn admit_remote_dispatch_budget(Int64, Int64, String) -> Result[RemoteDispatchBudget, DispatchIssue]
 
@@ -67,6 +74,8 @@ pub fn admit_remote_output_report_retry_json(String) -> Result[String, DispatchI
 
 pub fn admit_remote_output_result_json(String, RemotePollOutput, @publication_payload.PublicationPayloadRequest, @remote_transfer.RemoteTransferRequest) -> Result[RemoteOutputResult, DispatchIssue]
 
+pub fn admit_remote_poll_bundle_custody_json(String) -> Result[RemotePollBundleCustody, DispatchIssue]
+
 pub fn admit_remote_poll_cancel_json(String) -> Result[DispatchRequest, DispatchIssue]
 
 pub fn admit_remote_poll_dispatch_json(String) -> Result[RemotePollDispatch, DispatchIssue]
@@ -96,6 +105,8 @@ pub fn admit_remote_retained_input_intent_json(String, String, DispatchRequest) 
 pub fn admit_remote_retained_input_plan_json(String, String, RemoteRetainedInputIntent, Int, Int, Int64) -> Result[RemoteRetainedInputPlan, DispatchIssue]
 
 pub fn admit_remote_retained_input_result_json(String, String, RemoteRetainedInputPlan) -> Result[RemoteRetainedInputResult, DispatchIssue]
+
+pub fn admit_remote_site_poll_operation_json(String) -> Result[RemoteSitePollOperation, DispatchIssue]
 
 pub fn admit_remote_source_observation_json(String, DispatchRequest) -> Result[RemoteSourceObservation, DispatchIssue]
 
@@ -435,6 +446,12 @@ pub fn register_remote_evidence_issuer(@execution_site.ExecutionSite, String, St
 
 pub fn register_remote_execution_capability(@execution_site.ExecutionSite, String, String, String, String, String) -> Result[RemoteExecutionCapability, DispatchIssue]
 
+pub fn remote_bundle_custody_observation_ack_json(@remote_bundle.RemoteBundleCustodyRequest, @remote_bundle.RemoteBundleCustodyResponse, Int64) -> Result[String, DispatchIssue]
+
+pub fn remote_bundle_custody_observation_json(@remote_bundle.RemoteBundleCustodyRequest, @remote_bundle.RemoteBundleCustodyResponse, Int64) -> Result[String, DispatchIssue]
+
+pub fn remote_bundle_custody_observation_obsolete_json(@remote_bundle.RemoteBundleCustodyRequest, @remote_bundle.RemoteBundleCustodyResponse, Int64) -> Result[String, DispatchIssue]
+
 pub fn remote_completion_evidence_available(DispatchRecord) -> Bool
 
 pub fn remote_dispatch_attempt_key(DispatchRequest) -> String
@@ -588,6 +605,12 @@ pub fn remote_output_result_payload_digest(RemoteOutputResult) -> String
 pub fn remote_output_result_projection(RemoteOutputResult, @remote_transfer.RemoteTransferRequest) -> Result[Array[String], DispatchIssue]
 
 pub fn remote_output_result_transfer_record(RemoteOutputResult, @remote_transfer.RemoteTransferRequest) -> Result[@remote_transfer.RemoteTransferRecord, DispatchIssue]
+
+pub fn remote_poll_bundle_custody_delivery_revision(RemotePollBundleCustody) -> Int64
+
+pub fn remote_poll_bundle_custody_json(@remote_bundle.RemoteBundleCustodyRequest, Int64) -> Result[String, DispatchIssue]
+
+pub fn remote_poll_bundle_custody_request(RemotePollBundleCustody) -> @remote_bundle.RemoteBundleCustodyRequest
 
 pub fn remote_poll_cancel_json(DispatchRequest) -> Result[String, DispatchIssue]
 
@@ -888,6 +911,11 @@ type DurableDispatchRecord
 
 type ForceLossTransition
 
+pub(all) enum RemoteBundleCustodyObservationReply {
+  Accepted
+  Obsolete
+}
+
 pub(all) enum RemoteCleanupState {
   CleanupActive
   CleanupReleasing
@@ -979,6 +1007,8 @@ pub(all) enum RemoteOutputReportReply {
 } derive(Eq, @debug.Debug)
 
 type RemoteOutputResult
+
+type RemotePollBundleCustody
 
 type RemotePollDispatch
 
@@ -1103,6 +1133,11 @@ pub(all) enum RemoteRuntimeSuccessAction {
   RuntimePersistEvidence
   RuntimeSuccessFinished
 } derive(Eq, @debug.Debug)
+
+pub(all) enum RemoteSitePollOperation {
+  Run(RemotePollOperation)
+  BundleCustody(RemotePollBundleCustody)
+}
 
 type RemoteSourceObservation
 

@@ -86,7 +86,7 @@ test "P2 pooling source retains argument roles and output columns across both Ca
         reduction +
         "', output_id: pooled_id" +
         (if relation { ", vector: EMBEDDING" } else { "" }) +
-        ")), rows AS (FROM pooled |> vectors()) SELECT label, pooled_id, embedding, member_count FROM rows ORDER BY label"
+        ")), `rows` AS (FROM pooled |> vectors()) SELECT label, pooled_id, embedding, member_count FROM rows ORDER BY label"
       let actual = with_carrier_program(text, nearest_context()).unwrap()
       let expected = vector_pool_control(reduction, relation)
       assert_eq(
@@ -172,7 +172,7 @@ test "P2 prepared two-member public pool sources retain derived grouping and emp
         prefix +
         "), pooled AS (FROM members |> pool_vectors(by: [COHORT], method: \"mean\", output_id: pooled_id" +
         (if relation { ", vector: EMBEDDING" } else { "" }) +
-        ")), rows AS (FROM pooled |> vectors()) SELECT cohort, pooled_id, embedding, member_count FROM rows ORDER BY cohort"
+        ")), `rows` AS (FROM pooled |> vectors()) SELECT cohort, pooled_id, embedding, member_count FROM rows ORDER BY cohort"
       let actual = match with_carrier_program(text, nearest_context()) {
         Ok(program) => program
         Err(UnsupportedGraph) =>

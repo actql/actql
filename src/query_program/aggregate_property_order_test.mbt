@@ -153,7 +153,7 @@ test "aggregate property ORDER shares total projections while retaining per-call
 test "aggregate property ORDER resolves SET current slots and immutable range snapshots" {
   let body = semantic(
     checked_aggregate_property_order(
-      "FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score, id) AS current, STRING_AGG(name, '|' ORDER BY before.payload.score NULLS LAST, id) AS previous",
+      "FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score, id) AS `current`, STRING_AGG(name, '|' ORDER BY before.payload.score NULLS LAST, id) AS previous",
     ),
   )
   assert_true(body.contains("\"value\":{\"field\":\"aql_pipe_set_4\"}"))
@@ -178,7 +178,7 @@ test "aggregate property ORDER uses input scope and does not hoist demanded argu
 test "aggregate property ORDER preserves exact scope refusals and common member typing" {
   for
     text in [
-      "FROM objects AS old |> AS current |> AGGREGATE STRING_AGG(name, '|' ORDER BY old.payload.score, id) AS names",
+      "FROM objects AS old |> AS `current` |> AGGREGATE STRING_AGG(name, '|' ORDER BY old.payload.score, id) AS names",
       "SELECT STRING_AGG(name, '|' ORDER BY names, id) AS names FROM objects",
     ] {
     assert_true(

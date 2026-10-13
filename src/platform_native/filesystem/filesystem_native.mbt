@@ -34,11 +34,19 @@ type Reader
 
 ///|
 #borrow(path)
-extern "C" fn open_root_ffi(path : Bytes, length : Int) -> Root = "actql_native_filesystem_open_root"
+extern "C" fn open_root_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+) -> Root = "actql_native_filesystem_open_root_with_diagnostics"
 
 ///|
 #borrow(path)
-extern "C" fn open_private_root_ffi(path : Bytes, length : Int) -> Root = "actql_native_filesystem_open_private_root"
+extern "C" fn open_private_root_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+) -> Root = "actql_native_filesystem_open_private_root_with_diagnostics"
 
 ///|
 #borrow(root)
@@ -204,6 +212,10 @@ extern "C" fn reader_open_error_ffi(reader : Reader) -> Bytes = "actql_native_fi
 
 ///|
 #borrow(reader)
+extern "C" fn reader_open_kind_ffi(reader : Reader) -> Int = "actql_native_filesystem_reader_open_failure_kind"
+
+///|
+#borrow(reader)
 extern "C" fn reader_next_ffi(reader : Reader, max_bytes : Int) -> Int = "actql_native_filesystem_reader_next"
 
 ///|
@@ -234,7 +246,7 @@ pub fn Root::close(self : Root) -> Result[Unit, NativeFilesystemIssue] {
   if root_close_ffi(self) == 0 {
     Ok(())
   } else {
-    Err(Cleanup(decode_message(root_error_ffi(self))))
+    Err(Cleanup(decode_diagnostic_message(root_error_ffi(self))))
   }
 }
 
@@ -244,31 +256,62 @@ fn decode_message(bytes : Bytes) -> String {
 }
 
 ///|
+fn decode_diagnostic_message(bytes : Bytes) -> String {
+  if bytes.length() == 0 {
+    "filesystem diagnostic detail omitted"
+  } else {
+    @utf8.decode_lossy(bytes)
+  }
+}
+
+///|
 fn writer_message(writer : Writer) -> String {
   decode_message(writer_error_ffi(writer))
 }
 
 ///|
-pub fn open_root(path : String) -> Result[Root, NativeFilesystemIssue] {
+/// An explicit positive diagnostic ceiling bounds only original Root/Reader
+/// detail. Omission preserves legacy behavior and does not establish funding.
+pub fn open_root(
+  path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Root, NativeFilesystemIssue] {
+  if diagnostic_ceiling is Some(limit) && limit <= 0 {
+    return Err(InvalidLimit)
+  }
   let encoded = @utf8.encode(path)
-  let root = open_root_ffi(encoded, encoded.length())
+  let root = open_root_ffi(
+    encoded,
+    encoded.length(),
+    diagnostic_ceiling.unwrap_or(0),
+  )
   if root_ready_ffi(root) {
     Ok(root)
   } else {
-    Err(RootOpen(decode_message(root_error_ffi(root))))
+    Err(RootOpen(decode_diagnostic_message(root_error_ffi(root))))
   }
 }
 
 ///|
 /// Open an explicitly selected user-owned private directory. This establishes
 /// physical containment, not adoption, freshness or execution authority.
-pub fn open_private_root(path : String) -> Result[Root, NativeFilesystemIssue] {
+pub fn open_private_root(
+  path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Root, NativeFilesystemIssue] {
+  if diagnostic_ceiling is Some(limit) && limit <= 0 {
+    return Err(InvalidLimit)
+  }
   let encoded = @utf8.encode(path)
-  let root = open_private_root_ffi(encoded, encoded.length())
+  let root = open_private_root_ffi(
+    encoded,
+    encoded.length(),
+    diagnostic_ceiling.unwrap_or(0),
+  )
   if root_ready_ffi(root) {
     Ok(root)
   } else {
-    Err(RootOpen(decode_message(root_error_ffi(root))))
+    Err(RootOpen(decode_diagnostic_message(root_error_ffi(root))))
   }
 }
 
@@ -284,7 +327,7 @@ pub fn Root::private_ownership(
       inode: root_result_inode_ffi(self),
     })
   } else {
-    Err(RootOpen(decode_message(root_error_ffi(self))))
+    Err(RootOpen(decode_diagnostic_message(root_error_ffi(self))))
   }
 }
 
@@ -301,7 +344,7 @@ pub fn Root::bootstrap_parent_ownership(
       inode: root_result_inode_ffi(self),
     })
   } else {
-    Err(RootOpen(decode_message(root_error_ffi(self))))
+    Err(RootOpen(decode_diagnostic_message(root_error_ffi(self))))
   }
 }
 
@@ -493,7 +536,7 @@ pub fn Root::inspect_generation(
       )
     1 => Ok(None)
     2 => Err(GenerationMismatch)
-    _ => Err(Read(decode_message(root_error_ffi(self))))
+    _ => Err(Read(decode_diagnostic_message(root_error_ffi(self))))
   }
 }
 
@@ -504,7 +547,7 @@ pub fn Root::sync_directory(self : Root) -> Result[Unit, NativeFilesystemIssue] 
   if sync_root_ffi(self) == 0 {
     Ok(())
   } else {
-    Err(Cleanup(decode_message(root_error_ffi(self))))
+    Err(Cleanup(decode_diagnostic_message(root_error_ffi(self))))
   }
 }
 
@@ -534,7 +577,7 @@ pub fn Root::reclaim_generation(
     ) {
     0 => Ok(())
     1 => Err(GenerationMismatch)
-    _ => Err(Cleanup(decode_message(root_error_ffi(self))))
+    _ => Err(Cleanup(decode_diagnostic_message(root_error_ffi(self))))
   }
 }
 
@@ -576,12 +619,11 @@ pub fn Root::open_reader_with_custody(
   if reader_ready_ffi(reader) {
     Ok(reader)
   } else {
-    let message = decode_message(reader_open_error_ffi(reader))
-    let issue = if message == "generation mismatch" {
-      GenerationMismatch
-    } else {
-      Read(message)
-    }
+    let message = decode_diagnostic_message(reader_open_error_ffi(reader))
+    let issue = reader_open_issue(
+      reader_open_kind(reader_open_kind_ffi(reader)),
+      message,
+    )
     let retained = match reader.close() {
       Ok(_) => None
       Err(_) => Some(reader)
@@ -602,7 +644,7 @@ pub fn Reader::next(
     0 => Ok({ bytes: reader_chunk_ffi(self), eof: reader_eof_ffi(self), })
     1 => Err(GenerationMismatch)
     2 => Err(ReaderClosed)
-    _ => Err(Read(decode_message(reader_error_ffi(self))))
+    _ => Err(Read(decode_diagnostic_message(reader_error_ffi(self))))
   }
 }
 
@@ -613,7 +655,7 @@ pub fn Reader::finish(self : Reader) -> Result[Unit, NativeFilesystemIssue] {
     1 => Err(GenerationMismatch)
     2 => Err(IncompleteRead)
     3 => Err(ReaderClosed)
-    _ => Err(Read(decode_message(reader_error_ffi(self))))
+    _ => Err(Read(decode_diagnostic_message(reader_error_ffi(self))))
   }
 }
 
@@ -622,7 +664,7 @@ pub fn Reader::close(self : Reader) -> Result[Unit, NativeFilesystemIssue] {
   if reader_close_ffi(self) == 0 {
     Ok(())
   } else {
-    Err(Read(decode_message(reader_error_ffi(self))))
+    Err(Read(decode_diagnostic_message(reader_error_ffi(self))))
   }
 }
 
@@ -678,7 +720,7 @@ pub fn Root::create_directory(
         inode: root_result_inode_ffi(self),
       })
     1 => Err(Conflict)
-    _ => Err(WriterCreate(decode_message(root_error_ffi(self))))
+    _ => Err(WriterCreate(decode_diagnostic_message(root_error_ffi(self))))
   }
 }
 
@@ -702,7 +744,7 @@ pub fn Root::inspect_directory(
       )
     1 => Ok(None)
     2 => Err(GenerationMismatch)
-    _ => Err(Read(decode_message(root_error_ffi(self))))
+    _ => Err(Read(decode_diagnostic_message(root_error_ffi(self))))
   }
 }
 
@@ -730,7 +772,7 @@ pub fn Root::remove_directory(
     0 => Ok(true)
     1 => Err(GenerationMismatch)
     3 => Ok(false)
-    _ => Err(Cleanup(decode_message(root_error_ffi(self))))
+    _ => Err(Cleanup(decode_diagnostic_message(root_error_ffi(self))))
   }
 }
 
@@ -748,6 +790,34 @@ pub fn Root::open_child(
   if root_ready_ffi(child) {
     Ok(child)
   } else {
-    Err(RootOpen(decode_message(root_error_ffi(child))))
+    Err(RootOpen(decode_diagnostic_message(root_error_ffi(child))))
+  }
+}
+
+///|
+/// Private mapping of the original C open disposition. Diagnostic bytes are
+/// not an authority for this kind and cannot turn omission into success.
+priv enum NativeReaderOpenIssueKind {
+  GenerationFailure
+  ReadFailure
+}
+
+///|
+fn reader_open_kind(code : Int) -> NativeReaderOpenIssueKind {
+  if code == 2 {
+    GenerationFailure
+  } else {
+    ReadFailure
+  }
+}
+
+///|
+fn reader_open_issue(
+  kind : NativeReaderOpenIssueKind,
+  detail : String,
+) -> NativeFilesystemIssue {
+  match kind {
+    GenerationFailure => GenerationMismatch
+    ReadFailure => Read(detail)
   }
 }

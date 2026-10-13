@@ -55,7 +55,7 @@ test "SQL grouped subexpressions keep ungrouped and sibling scope refusals" {
       "SELECT COUNT(*) + payload.score AS n FROM objects GROUP BY payload.score + 1",
       "SELECT COUNT(*) + (payload.score + 2) AS n FROM objects GROUP BY payload.score + 1",
       "SELECT payload.score + 1 AS bucket, COUNT(*) + bucket AS n FROM objects GROUP BY payload.score + 1",
-      "SELECT COUNT(*) + old.payload.score AS n FROM objects AS current GROUP BY current.payload.score",
+      "SELECT COUNT(*) + old.payload.score AS n FROM objects AS `current` GROUP BY current.payload.score",
       "SELECT COUNT(*) + aql_pipe_group_bound_0 AS n FROM objects GROUP BY payload.score",
     ] {
     assert_true(

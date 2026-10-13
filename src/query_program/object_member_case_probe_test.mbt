@@ -156,7 +156,7 @@ test "member case binding retains aliases qualified receivers and current Pipe s
     text in [
       "SELECT id, payload.SCORE AS original_score, other AS payload FROM objects ORDER BY payload.SCORE NULLS LAST, id",
       "SELECT id, payload.SCORE AS original_score, other AS payload FROM objects ORDER BY objects.payload.SCORE NULLS LAST, id",
-      "FROM objects AS original |> SET payload = other |> SELECT id, original.payload.SCORE AS before, payload.SCORE AS current |> ORDER BY id",
+      "FROM objects AS original |> SET payload = other |> SELECT id, original.payload.SCORE AS before, payload.SCORE AS `current` |> ORDER BY id",
       "WITH chosen AS (SELECT id, payload FROM objects) SELECT payload.SCORE AS score FROM chosen ORDER BY id",
       "SELECT o.payload.SCORE AS score FROM objects AS o JOIN pair AS p ON o.id = p.x ORDER BY score",
       "SELECT payload.SCORE AS score, COUNT(*) AS n FROM objects GROUP BY payload.SCORE ORDER BY score",

@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {checkEffectLiteralKeyVectors, currentEffectLiteralKeyVectors,
   exactDataJson} from './effect-literal-key-vectors.mjs';
@@ -17,7 +18,7 @@ test('current literal identities change only the reviewed expression dependency 
   const current = currentEffectLiteralKeyVectors(original);
   assert.deepEqual(original, saved, 'historical envelopes and CIDs are not rewritten');
   assert.equal(current[0].expected_definition_cid,
-    'sha256:8e6ed397c9bd75c7f617d3a2645e29bf944a7fa090d1a22a9b84541f1de96762');
+    'sha256:6c634c8ab36d9f66d8ad8c5e1fe2bd8b42a02e2948e8eca9ae50c5deeb0d7022');
   for (const [i, vector] of current.entries()) {
     assert.deepEqual(vector.payload, original.cases[i].payload);
     assert.deepEqual(vector.stage_envelope.local_body, original.cases[i].stage_envelope.local_body);
@@ -87,4 +88,27 @@ test('current literal references reject the pre-ContentRef text/time dependency'
     'sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc';
   assert.throws(() => currentEffectLiteralKeyVectors(readCorpus(), expression),
     /review the current expression dependency/);
+});
+
+// The adopted general-array grammar changes the containing Expression identity,
+// never these authored literal bytes. The prior reviewed body remains a
+// historical preimage and cannot authorize current fixture references.
+test('current literal references reject the preceding grammar while retaining its preimages', () => {
+  const expression = JSON.parse(readFileSync(new URL(
+    '../spec/contracts/actql-expressions.json', import.meta.url), 'utf8'));
+  const sha = value => 'sha256:' + createHash('sha256')
+    .update(exactDataJson(value)).digest('hex');
+  const previous = {...expression,
+    grammar_sha256: '02ac66c34edc5114f0b919e8c5a9e7b147f2154268e29b8e3b9b1ba1b8ed6222'};
+  const previousCID = 'sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289';
+  assert.equal(sha(previous), previousCID);
+  assert.throws(() => currentEffectLiteralKeyVectors(readCorpus(), previous),
+    /review the current expression dependency/);
+  const original = readCorpus().cases[0];
+  const stage = {...original.stage_envelope, expression_contract_cid: previousCID};
+  const program = structuredClone(original.program_envelope);
+  program.expression_contract_cid = previousCID;
+  program.program_template.stages[0].stage_semantics_cid = sha(stage);
+  assert.equal(sha({...original.definition_envelope, program_semantics_cid: sha(program)}),
+    'sha256:8e6ed397c9bd75c7f617d3a2645e29bf944a7fa090d1a22a9b84541f1de96762');
 });
