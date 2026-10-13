@@ -40,7 +40,7 @@ pub fn file_listing_limit_candidates(
 // Inspect an admitted Catalog candidate without copying its whole Array.
 // This is not a resolved selected-row ceiling, observed count, byte grant or
 // read authority. The receiving funded frame still owns result/control cost.
-pub(all) fn file_listing_declared_limit(
+pub fn file_listing_declared_limit(
   profile : FileListProfile,
   quantity : String,
 ) -> Int64? {
