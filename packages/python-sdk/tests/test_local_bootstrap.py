@@ -141,7 +141,7 @@ class BootstrapCustodyTests(unittest.TestCase):
             self.assertEqual(core._inputs[loan.ticket].payload, b'')
 
     def test_bootstrap_exports_use_the_closed_current_private_abi(self):
-        self.assertEqual(LOCAL_CORE_ABI, 68)
+        self.assertEqual(LOCAL_CORE_ABI, 69)
         self.assertEqual(_BOOTSTRAP_SIGNATURES, {
             'reserve': ('i64 i32 i32 i64', 'i32'),
             'produce': ('i64 i32', 'i32'),
