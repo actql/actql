@@ -18,7 +18,7 @@ import {join, resolve, sep} from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
-import {createPublicationContractControlFixture} from
+import {canonicalCid, createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
 import {openLocalPublicationStore as openActualLocalPublicationStore} from './publication-store.mjs';
 import {preparePrivatePublicationHolding} from
@@ -293,15 +293,16 @@ function deliveryRecord(attempt, sequence, state, prior, extra = {}) {
 }
 
 function indexEntry(request, attempt, invocationValue, values = {}) {
+  const artifacts = physicalCapturedArtifacts(invocationValue);
   return seal('public_index_entry', {
     version: 'actql-public-index-entry/0.1',
     namespace_id: 'namespace-a',
     authority_scope_cid: cids.scope,
     run_definition_cid: request.run_definition_cid,
     invocation_cid: invocationValue.invocation_cid,
-    result_manifest_cid: invocationValue.invocation_cid,
-    run_receipt_cid: invocationValue.invocation_cid,
-    captured_run_cid: invocationValue.invocation_cid,
+    result_manifest_cid: artifacts.manifest.identity,
+    run_receipt_cid: artifacts.receipt.identity,
+    captured_run_cid: artifacts.capturedRun.identity,
     durable_result_binding_cids: values.durable_result_binding_cids ??
       [invocationValue.invocation_cid],
     publication_request_cid: request.publication_request_cid,
@@ -323,6 +324,109 @@ const indexKeyFor = request => Object.freeze({
   runDefinitionCid: request.run_definition_cid,
 });
 
+function physicalCapturedArtifacts(invocationValue) {
+  // Independent normative shape and canonical identity, not a Core-issued
+  // authorization. The containing chain remains an explicit adapter double.
+  const identified = (field, body) => ({...body, [field]: canonicalCid(body)});
+  const prepared = identified('prepared_invocation_cid', {
+    version: 'actql-prepared-invocation/0.1',
+    invocation_template_cid: cids.template,
+    compiled_plan_cid: cids.run,
+    execution_context_cid: cids.scope,
+    host_policy_cid: cids.policy,
+    policy_decision: 'allow',
+    expires_at: '2026-09-19T00:00:00.000Z',
+  });
+  const authorization = identified('run_authorization_cid', {
+    version: 'actql-run-authorization/0.1',
+    prepared_invocation_cid: prepared.prepared_invocation_cid,
+    execution_context_cid: cids.scope,
+    host_policy_cid: cids.policy,
+    decision: 'allowed',
+  });
+  const observation = identified('observation_set_cid', {
+    version: 'actql-observation-set/0.1',
+    invocation_template_cid: cids.template,
+    source_evidence_cids: [],
+    captured_input_artifact_cids: [],
+    consistency: 'no_external_sources',
+    capture_started_at: null,
+    capture_completed_at: null,
+    replayability: {materialized: true, availability_evidence_cids: []},
+    data_policy_cid: cids.policy,
+  });
+  const artifact = identified('result_artifact_cid', {
+    version: 'actql-result-artifact/0.1',
+    result_definition_cid: resultDefinition().result_definition_cid,
+    invocation_cid: invocationValue.invocation_cid,
+    logical_result_cid: cids.result,
+    result_schema_cid: cids.schema,
+    ordering_evidence_cid: cids.receipt,
+    actual_row_count: 1,
+    actual_completeness: 'complete',
+    effective_data_policy_cid: cids.policy,
+    effective_retention_policy_cid: cids.policy,
+    provenance_evidence_cids: [],
+  });
+  const manifest = identified('result_manifest_cid', {
+    version: 'actql-result-manifest/0.1',
+    run_definition_cid: invocationValue.invocation_cid,
+    invocation_cid: invocationValue.invocation_cid,
+    results: {answer: artifact},
+  });
+  const receipt = identified('receipt_identity_cid', {
+    version: 'actql-run-receipt/0.1',
+    compiler_version: 'fixture-0.1',
+    aoa_ir_version: '0.1',
+    prepared_invocation: prepared,
+    run_authorization: authorization,
+    program_semantics_cid: cids.run,
+    program_definition_cid: cids.run,
+    invocation_cid: invocationValue.invocation_cid,
+    compiled_plan_cid: cids.run,
+    check_environment_cid: cids.scope,
+    observation_set: observation,
+    observation_set_cid: observation.observation_set_cid,
+    normalization_journal_cid: cids.receipt,
+    aoa_logical_cid: cids.result,
+    bindings: [],
+    result_manifest: manifest,
+    result_manifest_cid: manifest.result_manifest_cid,
+    result_artifacts: {answer: artifact},
+    source_evidence: [],
+    source_evidence_cids: [],
+    external_observation_evidence: [],
+    barrier_attempt_receipt_cids: [],
+    artifact_derivation_evidence_cids: [],
+    cross_source_consistency: 'no_external_sources',
+  });
+  const authoring = identified('authoring_context_cid', {
+    version: 'actql-authoring-context/0.1',
+    program_definition_cid: cids.run,
+    annotations: [],
+  });
+  const context = identified('effect_context_cid', {
+    version: 'actql-run-effect-context/0.1',
+    effects: {}, effect_plans: {}, effect_plan_logical_cids: {},
+    result_values: {answer: [{answer: 'fixture durable Result payload'}]},
+    result_artifacts: {answer: artifact}, result_fields: {answer: ['answer']},
+    pending_source_state_advances: [], authoring_context: authoring,
+    model_invocation_evidence: [], model_invocation_evidence_cids: [],
+    effect_source_artifacts: {}, effect_source_holding_cids: {},
+    effect_source_local_inventory: {}, effect_dependency_inventory: [],
+  });
+  const captured = identified('captured_run_cid', {
+    version: 'actql-captured-run/0.1',
+    sensitivity: 'private', retention_class: 'run-evidence',
+    encryption_required: true, receipt, effect_context: context,
+  });
+  return Object.freeze({
+    manifest: contractControl.admitArtifactFixture('result_manifest', wire(manifest)),
+    receipt: contractControl.admitArtifactFixture('run_receipt', wire(receipt)),
+    capturedRun: contractControl.admitArtifactFixture('captured_run', wire(captured)),
+  });
+}
+
 function physicalCommitEvidence(invocationValue, binding) {
   // This suite isolates filesystem durability and CAS behavior with the
   // independent contract-control fixture. The product integration suite uses
@@ -339,11 +443,37 @@ function physicalCommitEvidence(invocationValue, binding) {
     orderings: Object.freeze([contract]),
     retentions: Object.freeze([contract]),
     durableBindings: Object.freeze([binding]),
-    manifest: contract,
-    receipt: contract,
-    capturedRun: contract,
+    ...physicalCapturedArtifacts(invocationValue),
   });
 }
+
+test('physical commit fixture carries distinct normative CapturedRun identities', () => {
+  const invocationValue = invocation();
+  const artifacts = physicalCapturedArtifacts(invocationValue);
+  const captured = JSON.parse(artifacts.capturedRun.wire);
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const entry = indexEntry(request, publicationAttempt(request), invocationValue);
+  assert.equal(entry.captured_run_cid, artifacts.capturedRun.identity);
+  assert.equal(entry.result_manifest_cid, artifacts.manifest.identity);
+  assert.equal(entry.run_receipt_cid, artifacts.receipt.identity);
+  assert.equal(captured.receipt.receipt_identity_cid, artifacts.receipt.identity);
+  assert.equal(captured.receipt.result_manifest_cid, artifacts.manifest.identity);
+  assert.equal(captured.receipt.invocation_cid, invocationValue.invocation_cid);
+  assert.equal(captured.effect_context.version, 'actql-run-effect-context/0.1');
+  assert.equal(new Set([invocationValue.invocation_cid, artifacts.manifest.identity,
+    artifacts.receipt.identity, artifacts.capturedRun.identity]).size, 4);
+  const {effect_context: omitted, captured_run_cid: priorCid, ...missing} = captured;
+  assert(omitted);
+  assert(priorCid);
+  assert.throws(() => contractControl.admitArtifactFixture('captured_run',
+    wire({...missing, captured_run_cid: canonicalCid(missing)})),
+  error => error.code === 'PublicationContractRequired' && error.path === '$.effect_context');
+  assert.throws(() => contractControl.admitArtifactFixture('captured_run',
+    wire({...captured, captured_run_cid: invocationValue.invocation_cid})),
+  code('PublicationIdentityMismatch'));
+  assert.throws(() => contractControl.admitArtifactFixture('run_invocation',
+    wire(invocationValue)), code('UnknownPublicationFixtureArtifact'));
+});
 
 async function prepareCommit(
   store,
@@ -389,6 +519,9 @@ async function prepareCommit(
     'durable_result_binding', wire(bindingValue),
   );
   const evidence = physicalCommitEvidence(invocationValue, binding);
+  for (const contract of [evidence.manifest, evidence.receipt, evidence.capturedRun]) {
+    await store.putSemantic(contract.wire, contract.identity);
+  }
   await store.putPublicationContract('publication_request', wire(request));
   await store.createAttempt(wire(attempt));
   const preparing = publicationRecord(attempt, 0, 'preparing');
@@ -402,6 +535,9 @@ async function prepareCommit(
     required: [...new Set([
       invocationValue.invocation_cid,
       binding.identity,
+      evidence.manifest.identity,
+      evidence.receipt.identity,
+      evidence.capturedRun.identity,
       request.publication_request_cid,
       attempt.publication_attempt_cid,
     ])],
