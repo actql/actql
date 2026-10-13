@@ -80,23 +80,64 @@ function checkInstallation(installation) {
 function retainProviderBindingOriginals(value) {
   if (value === undefined) return undefined;
   const fields = ['configuration', 'configurationContract', 'installationRevision'];
-  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).sort().join(',') !== fields.join(',')) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TypeError('InvalidInstalledModelProviderBindingOriginals');
+  }
+  const keys = Object.keys(value).sort();
+  if (keys.length !== fields.length || keys.some((key, index) => key !== fields[index])) {
     throw new TypeError('InvalidInstalledModelProviderBindingOriginals');
   }
   const originals = {};
   for (const name of fields) {
     const original = value[name];
-    if (original === null || typeof original !== 'object' || Array.isArray(original) ||
-        Object.keys(original).sort().join(',') !== 'cid,wire' ||
-        typeof original.wire !== 'string' || original.wire.length === 0 ||
-        Buffer.byteLength(original.wire) > 256 * 1024 ||
-        typeof original.cid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(original.cid)) {
+    if (original === null || typeof original !== 'object' || Array.isArray(original)) {
       throw new TypeError('InvalidInstalledModelProviderBindingOriginals');
     }
-    originals[name] = Object.freeze({wire: original.wire, cid: original.cid});
+    const originalKeys = Object.keys(original).sort();
+    if (originalKeys.length !== 2 || originalKeys[0] !== 'cid' || originalKeys[1] !== 'wire') {
+      throw new TypeError('InvalidInstalledModelProviderBindingOriginals');
+    }
+    const wire = original.wire, cid = original.cid;
+    if (typeof wire !== 'string' || wire.length === 0 ||
+        Buffer.byteLength(wire) > 256 * 1024 ||
+        typeof cid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(cid)) {
+      throw new TypeError('InvalidInstalledModelProviderBindingOriginals');
+    }
+    originals[name] = Object.freeze({wire, cid});
   }
   return Object.freeze(originals);
+}
+
+// Retain exactly the values inspected here. Original Host configuration
+// getters keep their existing acceptance; neither a second get nor a spread
+// after validation may substitute different amounts. This issues no capacity.
+function retainModelQuantityCapacity(capacity) {
+  if (capacity === undefined) return undefined;
+  if (capacity === null || typeof capacity !== 'object') {
+    throw new TypeError('InvalidInstalledModelQuantityCapacity');
+  }
+  const keys = Object.keys(capacity).sort();
+  if (keys.length !== 2 || keys[0] !== 'limits' || keys[1] !== 'perAttempt') {
+    throw new TypeError('InvalidInstalledModelQuantityCapacity');
+  }
+  const limitsSource = capacity.limits, perAttemptSource = capacity.perAttempt;
+  if ([limitsSource, perAttemptSource].some(amount => {
+    if (amount === null || typeof amount !== 'object') return true;
+    const amountKeys = Object.keys(amount).sort();
+    return amountKeys.length !== 3 || amountKeys[0] !== 'costUnits' ||
+      amountKeys[1] !== 'durationMs' || amountKeys[2] !== 'tokens';
+  })) {
+    throw new TypeError('InvalidInstalledModelQuantityCapacity');
+  }
+  const limits = {tokens: limitsSource.tokens, costUnits: limitsSource.costUnits,
+    durationMs: limitsSource.durationMs};
+  const perAttempt = {tokens: perAttemptSource.tokens, costUnits: perAttemptSource.costUnits,
+    durationMs: perAttemptSource.durationMs};
+  if ([limits, perAttempt].some(amount => Object.values(amount).some(value =>
+    typeof value !== 'bigint' || value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER)))) {
+    throw new TypeError('InvalidInstalledModelQuantityCapacity');
+  }
+  return Object.freeze({limits: Object.freeze(limits), perAttempt: Object.freeze(perAttempt)});
 }
 
 // Registration remains physical Host capability. The common admission owner
@@ -116,70 +157,62 @@ export function installModelProviders(moon, register) {
         Object.keys(entry).some(key => !['invoke', 'providerId', 'validatePrompt',
           'physicalPreflight', 'quantityCapacity', 'observeEgress',
           'bindingOriginals', 'reconcileResponse', 'entryPersistence',
-          'originalReadInstallation', 'rawCaptureSelection'].includes(key)) ||
-        entry.entryPersistence !== undefined && entry.entryPersistence !== 'async' ||
-        entry.reconcileResponse !== undefined && typeof entry.reconcileResponse !== 'function' ||
-        typeof entry.providerId !== 'string' ||
-        (entry.entryPersistence === 'async' ? Object.hasOwn(entry, 'invoke')
-          : typeof entry.invoke !== 'function') ||
-        typeof entry.validatePrompt !== 'function' ||
-        result.has(entry.providerId)) {
+          'originalReadInstallation', 'rawCaptureSelection'].includes(key))) {
+      throw new TypeError('InvalidInstalledModelProviderRegistration');
+    }
+    // Static registration values are read once before retention/Core calls.
+    // Dynamic current facts still come from the SAME selected callback later.
+    const providerId = entry.providerId, entryPersistence = entry.entryPersistence;
+    if (entryPersistence !== undefined && entryPersistence !== 'async' ||
+        typeof providerId !== 'string' || result.has(providerId) ||
+        entryPersistence === 'async' && Object.hasOwn(entry, 'invoke')) {
+      throw new TypeError('InvalidInstalledModelProviderRegistration');
+    }
+    const invoke = entryPersistence === 'async' ? undefined : entry.invoke;
+    const validatePrompt = entry.validatePrompt, reconcileResponse = entry.reconcileResponse;
+    const physicalPreflight = entry.physicalPreflight, observeEgress = entry.observeEgress;
+    const originalReadSource = entry.originalReadInstallation, rawSource = entry.rawCaptureSelection;
+    const bindingSource = entry.bindingOriginals, quantitySource = entry.quantityCapacity;
+    if (entryPersistence !== 'async' && typeof invoke !== 'function' ||
+        typeof validatePrompt !== 'function' ||
+        reconcileResponse !== undefined && typeof reconcileResponse !== 'function') {
       throw new TypeError('InvalidInstalledModelProviderRegistration');
     }
     // Installation-time snapshot precedes any provider or original Run start.
     // No default numerical profile is supplied when this declaration is absent.
-    const originalReadInstallation = retainInferOriginalReadInstallation(entry.originalReadInstallation);
-    const rawCaptureSelection = snapshotModelRawCaptureSelection(entry.rawCaptureSelection);
+    const originalReadInstallation = retainInferOriginalReadInstallation(originalReadSource);
+    const rawCaptureSelection = snapshotModelRawCaptureSelection(rawSource);
     // This installation profile connects raw custody only to the existing
     // durable asynchronous caller. It grants no raw capture or send authority.
     if (rawCaptureSelection !== undefined &&
-        (entry.entryPersistence !== 'async' || typeof entry.physicalPreflight !== 'function')) {
+        (entryPersistence !== 'async' || typeof physicalPreflight !== 'function')) {
       throw new TypeError('InstalledInferRawCaptureRequiresAsyncPhysicalPreflight');
     }
-    const bindingOriginals = retainProviderBindingOriginals(entry.bindingOriginals);
-    const validatePrompt = entry.validatePrompt;
-    let quantityCapacity;
-    if (entry.quantityCapacity !== undefined) {
-      const capacity = entry.quantityCapacity;
-      if (capacity === null || typeof capacity !== 'object' ||
-          Object.keys(capacity).sort().join(',') !== 'limits,perAttempt' ||
-          ['limits', 'perAttempt'].some(scope => {
-            const amount = capacity[scope];
-            return amount === null || typeof amount !== 'object' ||
-              Object.keys(amount).sort().join(',') !== 'costUnits,durationMs,tokens' ||
-              Object.values(amount).some(value => typeof value !== 'bigint' ||
-                value < 0n || value > BigInt(Number.MAX_SAFE_INTEGER));
-          })) {
-        throw new TypeError('InvalidInstalledModelQuantityCapacity');
-      }
-      quantityCapacity = Object.freeze({
-        limits: Object.freeze({...capacity.limits}),
-        perAttempt: Object.freeze({...capacity.perAttempt}),
-      });
-    }
-    if (entry.entryPersistence === 'async' &&
-        (typeof entry.physicalPreflight !== 'function' || quantityCapacity === undefined ||
+    const bindingOriginals = retainProviderBindingOriginals(bindingSource);
+    const quantityCapacity = retainModelQuantityCapacity(quantitySource);
+    if (entryPersistence === 'async' &&
+        (typeof physicalPreflight !== 'function' || quantityCapacity === undefined ||
           bindingOriginals === undefined || rawCaptureSelection === undefined)) {
       throw new TypeError('InvalidInstalledModelAsyncProviderRegistration');
     }
-    if (entry.entryPersistence === 'async' &&
+    if (entryPersistence === 'async' &&
         typeof moon.clientProgramInstallAsyncModelProvider !== 'function') {
       throw new TypeError('InstalledModelAsyncProviderRuntimeUnavailable');
     }
-    const provider = entry.entryPersistence === 'async'
-      ? moon.clientProgramInstallAsyncModelProvider(entry.providerId)
-      : moon.clientProgramInstallModelProvider(entry.providerId, entry.invoke);
+    const provider = entryPersistence === 'async'
+      ? moon.clientProgramInstallAsyncModelProvider(providerId)
+      : moon.clientProgramInstallModelProvider(providerId, invoke);
     if (provider === undefined) {
       throw new TypeError('InvalidInstalledModelProviderRegistration');
     }
-    result.set(entry.providerId, Object.freeze({provider, originalReadInstallation, rawCaptureSelection,
+    result.set(providerId, Object.freeze({provider, originalReadInstallation, rawCaptureSelection,
       bindingOriginals,
-      physicalPreflight: entry.physicalPreflight,
-      entryPersistence: entry.entryPersistence,
-      reconcileResponse: entry.reconcileResponse,
+      physicalPreflight,
+      entryPersistence,
+      reconcileResponse,
       quantityCapacity,
-      observeEgress: typeof entry.observeEgress !== 'function' ? undefined : () => {
-        try { return entry.observeEgress(); }
+      observeEgress: typeof observeEgress !== 'function' ? undefined : () => {
+        try { return Reflect.apply(observeEgress, entry, []); }
         catch { return undefined; }
       },
       validatePrompt: (...args) => validatePrompt(...args) === true}));
