@@ -165,12 +165,19 @@ sga_operation = "reach" | "traverse" | "shortest_path" | "components"
               | "graph_diff" | "apply_graph_delta" | "mean_graphs"
               | "node_rows" | "edge_rows"
               | "to_vectors" | "normalize_vectors" | "score_vectors" | "pool_vectors" | "vectors"
-              | "to_events" | "row_window" | "window_events" | "watermark_events" | "watermark_rows" | "dedupe_events" | "session" | "events" | "lag" | "asof_join" | "interval_join" | "merge_rankings" ;
+              | "to_events" | "row_window" | "window_group" | "window_events" | "watermark_events" | "watermark_rows" | "dedupe_events" | "session" | "events" | "lag" | "asof_join" | "interval_join" | "merge_rankings" | "sequence" ;
 (* Closed argument keys accept Word or backtick names, including reserved keys.
    Values are selected by the operation signature: ProducerRef, FieldRef,
    OutputName, Expression, Enum/Literal, ClosedRecord/List or WholeParameter.
    A literal subtree has no reference roles. Lists inherit their leaf role.
    String values cannot replace a producer, field reference or output name.
+   sequence.pattern is a list of {as: OutputName, where: expression} records.
+   window_group.aggregates maps OutputNames to closed function-specific
+   aggregate records. field and order_by use FieldRefs; expr and filter use
+   original query Expressions. Real window boundary and calculation-order
+   evidence remain requirements of the common checker.
+   where uses the original query Expression AST and its source/work limits;
+   it is not a STRING or structured-JSON predicate adapter.
    asof_join.with and interval_join.with are lexical ProducerRefs. Their pair
    lists and temporal records have operand-specific FieldRefs. select is a
    closed OutputName-to-left/right FieldRef map, not an arbitrary Expression.
@@ -182,6 +189,7 @@ sga_operation = "reach" | "traverse" | "shortest_path" | "components"
 sga_argument  = identifier, ":", sga_value ;
 sga_value     = query_string | [ "+" | "-" ], numeric_token | "TRUE" | "FALSE"
               | "NULL" | parameter_token
+              | expression (* only sequence.pattern[].where and window_group.aggregates.*.expr/filter *)
               | path (* only a signature-defined producer, field-reference or output-name position *)
               | "{", [ sga_argument, { ",", sga_argument } ], "}"
               | "[", [ sga_value, { ",", sga_value } ], "]"
