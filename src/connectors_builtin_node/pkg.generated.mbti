@@ -183,6 +183,8 @@ pub fn client_program_advance_infer_original_current_state_writer(@client_infer_
 
 pub fn client_program_advance_infer_root(@client_infer_host.Execution, Int) -> Result[@client_infer_host.Poll, @client_infer_host.Issue]
 
+pub fn client_program_advance_infer_stopped_raw_usage(@client_infer_host.Execution, Int, Int) -> Result[(Bool, Int64, @model_execution.ModelExecutionIssue?), @model_execution.ModelExecutionIssue]
+
 pub fn client_program_advance_model_execution(@model_execution.ModelExecution, Int) -> Result[@model_execution.ModelObservation, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_advance_model_output(@model_execution.ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, @model_execution.ModelExecutionIssue]
