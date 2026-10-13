@@ -2626,7 +2626,8 @@ pub fn strategy_host_finished(
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(host),
   )
-  for task in 1..<strategy_host_count(host) {
+  let first = @strategy.captured_compute_first_task(run)
+  for task in first..<strategy_host_count(host) {
     if !@strategy.captured_task_completed(run, task) {
       return false
     }
@@ -2680,7 +2681,8 @@ pub fn strategy_host_close_outputs(
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(host),
   )
-  for task = strategy_host_count(host) - 1; task > 0; task = task - 1 {
+  let first = @strategy.captured_compute_first_task(run)
+  for task = strategy_host_count(host) - 1; task >= first; task = task - 1 {
     @strategy.close_captured_task_output(run, task)
   }
 }
@@ -3329,6 +3331,14 @@ pub fn strategy_host_output_export_rows(
   value : StrategyHostOutputExport,
 ) -> Int raise NodeHostFailure {
   strategy_publication_output_result(value.core.row_count())
+}
+
+///|
+#export_name("strategyHostOutputExportMeasurement")
+pub fn strategy_host_output_export_measurement(
+  value : StrategyHostOutputExport,
+) -> @execution.CompletedRelationExportMeasurement raise NodeHostFailure {
+  strategy_publication_output_result(value.core.measurement())
 }
 
 ///|
@@ -4619,6 +4629,43 @@ pub fn strategy_remote_output_intent_prepare(
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
+}
+
+///|
+#export_name("strategyRemoteOutputIntentProjection")
+pub fn strategy_remote_output_intent_projection(
+  intent : @remote.RemoteOutputIntent,
+) -> (@remote.RemoteOutputIntentProjection, String) {
+  let value = @remote.remote_output_intent_projection(intent)
+  let route = match value.transfer_route {
+    @transfer.DirectStream => "direct"
+    @transfer.TransferStore => "store"
+  }
+  (value, route)
+}
+
+///|
+#export_name("strategyRemotePollOutputRequest")
+pub fn strategy_remote_poll_output_request(
+  output : @remote.RemotePollOutput,
+) -> @remote.DispatchRequest {
+  @remote.remote_poll_output_request(output)
+}
+
+///|
+#export_name("strategyRemotePollOutputIntent")
+pub fn strategy_remote_poll_output_intent(
+  output : @remote.RemotePollOutput,
+) -> @remote.RemoteOutputIntent {
+  @remote.remote_poll_output_intent(output)
+}
+
+///|
+#export_name("strategyHostManagedExecutionProfileCid")
+pub fn strategy_host_managed_execution_profile_cid() -> String {
+  @execution.managed_execution_profile_cid(
+    @execution.selected_managed_execution_profile(),
+  )
 }
 
 ///|
@@ -6768,6 +6815,102 @@ pub fn strategy_remote_historical_restore(
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
+}
+
+///|
+#export_name("strategyRemoteDurableRecordAdmitJson")
+pub fn strategy_remote_durable_record_admit_json(
+  body : String,
+) -> @remote.DurableDispatchRecord raise NodeHostFailure {
+  match @remote.admit_durable_dispatch_record(@utf8.encode(body)) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteDurableRecordRestore")
+pub fn strategy_remote_durable_record_restore(
+  journal : @remote.SiteDispatchJournal,
+  durable : @remote.DurableDispatchRecord,
+) -> @remote.DispatchRecord raise NodeHostFailure {
+  match @remote.restore_durable_dispatch_record(journal, durable) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteRecordDurableJson")
+pub fn strategy_remote_record_durable_json(
+  record : @remote.DispatchRecord,
+) -> String raise NodeHostFailure {
+  match @remote.dispatch_record_durable_json(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteAdmissionDurableJson")
+pub fn strategy_remote_admission_durable_json(
+  admission : @remote.DispatchAdmission,
+) -> String raise NodeHostFailure {
+  match @remote.dispatch_admission_durable_json(admission) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransitionDurableJson")
+pub fn strategy_remote_transition_durable_json(
+  transition : @remote.DispatchTransition,
+) -> String raise NodeHostFailure {
+  match @remote.dispatch_transition_durable_json(transition) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransitionExpectedRevision")
+pub fn strategy_remote_transition_expected_revision(
+  transition : @remote.DispatchTransition,
+) -> Int {
+  @remote.dispatch_transition_expected_revision(transition)
+}
+
+///|
+#export_name("strategyRemoteDurableRecordJson")
+pub fn strategy_remote_durable_record_json(
+  record : @remote.DurableDispatchRecord,
+) -> String {
+  @remote.durable_dispatch_record_json(record)
+}
+
+///|
+#export_name("strategyRemoteDurableRecordRevision")
+pub fn strategy_remote_durable_record_revision(
+  record : @remote.DurableDispatchRecord,
+) -> Int {
+  @remote.durable_dispatch_record_revision(record)
+}
+
+///|
+#export_name("strategyRemoteDurableRecordKey")
+pub fn strategy_remote_durable_record_key(
+  record : @remote.DurableDispatchRecord,
+) -> Array[String] {
+  @remote.durable_dispatch_record_journal_key(record)
+}
+
+///|
+#export_name("strategyRemoteDurableRecordIdentity")
+pub fn strategy_remote_durable_record_identity(
+  record : @remote.DurableDispatchRecord,
+) -> String {
+  @remote.durable_dispatch_record_request_identity(record)
 }
 
 ///|

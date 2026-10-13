@@ -6,19 +6,31 @@ const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(
 const text = value => typeof value === 'string' && value.length > 0;
 const int = (value, minimum=1) => Number.isSafeInteger(value) &&
   value>=minimum && value<=2_147_483_647;
-const data = (value, keys) => value!==null && typeof value==='object' &&
-  !Array.isArray(value) &&
-  Object.values(Object.getOwnPropertyDescriptors(value)).every(d=>'value' in d) &&
-  Object.keys(value).sort().join(',')===keys;
+// Inspect and retain DATA once. A later Proxy property callback must not swap
+// validated selectors or bounds during the copy. This snapshot is not an
+// installation, physical adequacy, capacity or dispatch grant.
+function snapshotData(value, keys, code) {
+  if (value===null || typeof value!=='object' || Array.isArray(value)) issue(code);
+  const names=Reflect.ownKeys(value);
+  const expected=keys.split(',');
+  if (names.some(name=>typeof name!=='string') || names.length!==expected.length ||
+      names.slice().sort().some((name,index)=>name!==expected[index])) issue(code);
+  const entries=names.map(name=>{
+    const descriptor=Object.getOwnPropertyDescriptor(value,name);
+    if (descriptor===undefined || descriptor.enumerable!==true || !('value' in descriptor)) issue(code);
+    return [name,descriptor.value];
+  });
+  return Object.freeze(Object.fromEntries(entries));
+}
 const frozen = value => value!==null && typeof value==='object' && Object.isFrozen(value);
 
 // Private trusted-installation consumer, not a profile/grant factory. The Host
 // supplies already retained declaration originals; opaque Owners are borrowed,
-// never rebuilt from their CIDs. Public package exports remain closed until
-// the original complete numerical funding and public acceptance are adopted.
+// never rebuilt from their CIDs. The package exposes this assembler only;
+// complete numerical funding and public execution acceptance remain required.
 export function createInstalledOpenAIChatRegistration(config) {
   const keys='apiKey,baseURL,bindingOriginals,fetch,modelId,modelSelector,observeAt,observeEgress,originalReadInstallation,outputSchemaCid,projectionLimits,promptCid,promptPayloadWire,providerId,quantityCapacity,rawCaptureSelection,requestLimits,responseLimits,taskCid';
-  if (!data(config,keys)) issue('InvalidInstalledOpenAIChatConfiguration');
+  config=snapshotData(config,keys,'InvalidInstalledOpenAIChatConfiguration');
   const {providerId,modelSelector,modelId,baseURL,taskCid,promptCid,outputSchemaCid,
     promptPayloadWire,apiKey,fetch,observeAt,observeEgress}=config;
   if (![providerId,modelSelector,modelId,baseURL,apiKey].every(text) ||
@@ -35,18 +47,16 @@ export function createInstalledOpenAIChatRegistration(config) {
       endpoint.username || endpoint.password || endpoint.search || endpoint.hash) {
     issue('InvalidInstalledOpenAIChatEndpoint');
   }
-  const projection=config.projectionLimits;
-  if (!data(projection,'maxBytes,maxDepth,maxFrames,maxNodes,maxWork') ||
-      !Object.entries(projection).every(([name,value])=>int(value,name==='maxWork'?0:1))) {
+  const projectionLimits=snapshotData(config.projectionLimits,
+    'maxBytes,maxDepth,maxFrames,maxNodes,maxWork','InvalidInstalledOpenAIChatProjection');
+  if (!Object.entries(projectionLimits).every(([name,value])=>int(value,name==='maxWork'?0:1))) {
     issue('InvalidInstalledOpenAIChatProjection');
   }
-  const projectionLimits=Object.freeze({...projection});
-  const request=config.requestLimits;
-  if (!data(request,'maxBytes,maxHeaderBytes,maxHeaders') ||
-      !Object.values(request).every(value=>int(value)) || request.maxHeaders>64) {
+  const requestLimits=snapshotData(config.requestLimits,
+    'maxBytes,maxHeaderBytes,maxHeaders','InvalidInstalledOpenAIChatRequestLimits');
+  if (!Object.values(requestLimits).every(value=>int(value)) || requestLimits.maxHeaders>64) {
     issue('InvalidInstalledOpenAIChatRequestLimits');
   }
-  const requestLimits=Object.freeze({...request});
   const responseLimits=fixedInferResponseLimits(config.responseLimits);
   // No supported normal supplier is synthesized when installation is missing.
   // Clamps, positive integers or a matching profile CID are not that supplier.

@@ -62,13 +62,13 @@ pub fn strategy_admit_effect_saved_response_evidence(Array[String], String, Byte
 
 pub fn strategy_admit_pending_source_state_advance(String, @run_publication.RunEvidenceValue, Int, Int, Int) -> @run_publication.PendingSourceStateAdvance raise NodeHostFailure
 
-pub fn strategy_begin_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int, Int) -> @run_publication.CapturedRunIssuancePreparation
+pub fn strategy_begin_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.CapturedRunIssuancePreparation
 
 pub fn strategy_begin_effect_free_chain_check(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, Int) -> @run_publication.ComputationEvidenceCheck
 
 pub fn strategy_begin_effect_free_commit_check(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.PublicationContract, Int, Int, Int, Int) -> @run_publication.PublicationCommitPreparation
 
-pub fn strategy_begin_effectful_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int, Int, String?, Int) -> @run_publication.CapturedRunIssuancePreparation raise NodeHostFailure
+pub fn strategy_begin_effectful_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.CapturedEffectSourceArtifact], Array[@run_publication.CapturedLocalEffectSourceEvidence], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.EffectPreviewIdentity, Array[String], Array[String], Int, Int, Int, String?, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.CapturedRunIssuancePreparation raise NodeHostFailure
 
 pub fn strategy_begin_result_access_progress() -> @run_publication.ResultAccessProgress
 
@@ -292,6 +292,8 @@ pub fn strategy_host_finished(@connectors_workers_async.ConfiguredComputeHost[@p
 
 pub fn strategy_host_has_effects(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Bool
 
+pub fn strategy_host_managed_execution_profile_cid() -> String
+
 pub fn strategy_host_managed_failure_action(@physical_strategy.ManagedFailureProgress) -> Int
 
 pub fn strategy_host_managed_input_count(@connectors_workers_async.ConfiguredComputeHost[@physical_strategy.RunIssue]) -> Int
@@ -328,6 +330,8 @@ pub fn strategy_host_output(@connectors_workers_async.ConfiguredComputeHost[@phy
 
 pub fn strategy_host_output_export_admit_captured_result_snapshot(StrategyHostOutputExport, Int, Int, Int) -> @run_publication.CapturedResultSnapshot raise NodeHostFailure
 
+pub fn strategy_host_output_export_advance(StrategyHostOutputExport, Int) -> (String?, Bool, Int, @run_publication_host.PublicationOutputExportIssue?)
+
 pub fn strategy_host_output_export_begin(@execution_relation.CompletedOutput, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> StrategyHostOutputExport raise NodeHostFailure
 
 pub fn strategy_host_output_export_bytes(StrategyHostOutputExport) -> Int raise NodeHostFailure
@@ -348,6 +352,8 @@ pub fn strategy_host_output_export_issue_result_evidence(StrategyHostOutputExpor
 
 pub fn strategy_host_output_export_logical_relation_cid(StrategyHostOutputExport) -> String raise NodeHostFailure
 
+pub fn strategy_host_output_export_measurement(StrategyHostOutputExport) -> @execution_relation.CompletedRelationExportMeasurement raise NodeHostFailure
+
 pub fn strategy_host_output_export_next(StrategyHostOutputExport) -> String? raise NodeHostFailure
 
 pub fn strategy_host_output_export_nodes(StrategyHostOutputExport) -> Int raise NodeHostFailure
@@ -361,6 +367,8 @@ pub fn strategy_host_output_export_result_schema_cid(StrategyHostOutputExport) -
 pub fn strategy_host_output_export_result_schema_wire(StrategyHostOutputExport) -> String raise NodeHostFailure
 
 pub fn strategy_host_output_export_rows(StrategyHostOutputExport) -> Int raise NodeHostFailure
+
+pub fn strategy_host_output_export_rows_complete(StrategyHostOutputExport) -> Bool raise NodeHostFailure
 
 pub fn strategy_host_output_export_schema_bytes(StrategyHostOutputExport) -> Int raise NodeHostFailure
 
@@ -518,7 +526,7 @@ pub fn strategy_issue_durable_result_binding(@run_publication.PublicationContrac
 
 pub fn strategy_issue_effect_free_captured_run(@run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.PublicationContract, Array[@run_publication.CapturedResultSnapshot], Array[@run_publication.PendingSourceStateAdvance], @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
-pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
+pub fn strategy_issue_effect_free_run_receipt(@run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[@run_publication.PublicationContract], Array[@run_publication.PublicationContract], @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Array[String], Array[String], Array[@run_publication.RunEvidenceValue], Array[@run_publication.RunEvidenceValue], Array[String], Int, Int, Int, Array[@run_publication.BoundContentGeneration]) -> @run_publication.PublicationContract raise NodeHostFailure
 
 pub fn strategy_issue_effect_member_receipt_from_row_partition(@run_publication.EffectPreviewIdentity, Int, Array[@logical_request_scope.LogicalRequestScope], Array[@effect_application.LogicalItemLocator], Array[@effect_application.EffectDispatchKey], Array[@effect_application.EffectLedgerBasis], Array[@effect_application.EffectLedgerEntry?], Array[Bool], Array[String?], Int, Int, Int, Int) -> @run_publication.PublicationContract raise NodeHostFailure
 
@@ -625,6 +633,8 @@ pub fn strategy_remote_active_bundle_drain_prepare(String?, @remote_bundle.Remot
 pub fn strategy_remote_active_bundle_retain_prepare(String?, @remote_bundle.RemoteBundleRecord, Int) -> @remote_bundle.RemoteBundleTransition raise NodeHostFailure
 
 pub fn strategy_remote_admission_commit(@remote_site_protocol.DispatchAdmission, Bool) -> @remote_site_protocol.DispatchRecord raise NodeHostFailure
+
+pub fn strategy_remote_admission_durable_json(@remote_site_protocol.DispatchAdmission) -> String raise NodeHostFailure
 
 pub fn strategy_remote_admission_is_new(@remote_site_protocol.DispatchAdmission) -> Bool
 
@@ -952,6 +962,18 @@ pub fn strategy_remote_dispatch_response_subject(@remote_site_protocol.RemoteDis
 
 pub fn strategy_remote_dispatch_status_json(@remote_site_protocol.DispatchRecord, @remote_site_protocol.RemoteExecutionEvidence?, @remote_site_protocol.RemoteManagedOutputSubject?, @remote_site_protocol.RemoteManagedOutputMeasurement?) -> String raise NodeHostFailure
 
+pub fn strategy_remote_durable_record_admit_json(String) -> @remote_site_protocol.DurableDispatchRecord raise NodeHostFailure
+
+pub fn strategy_remote_durable_record_identity(@remote_site_protocol.DurableDispatchRecord) -> String
+
+pub fn strategy_remote_durable_record_json(@remote_site_protocol.DurableDispatchRecord) -> String
+
+pub fn strategy_remote_durable_record_key(@remote_site_protocol.DurableDispatchRecord) -> Array[String]
+
+pub fn strategy_remote_durable_record_restore(@remote_site_protocol.SiteDispatchJournal, @remote_site_protocol.DurableDispatchRecord) -> @remote_site_protocol.DispatchRecord raise NodeHostFailure
+
+pub fn strategy_remote_durable_record_revision(@remote_site_protocol.DurableDispatchRecord) -> Int
+
 pub fn strategy_remote_execution_capability_scope(@remote_site_protocol.RemoteExecutionCapability) -> Array[String]
 
 pub fn strategy_remote_execution_evidence_admit(String, String, String, String, String, String, String, String, String, String, Int, String, String, String) -> @remote_site_protocol.RemoteExecutionEvidence raise NodeHostFailure
@@ -1026,6 +1048,8 @@ pub fn strategy_remote_output_intent_identity(@remote_site_protocol.RemoteOutput
 
 pub fn strategy_remote_output_intent_prepare(@remote_site_protocol.DispatchRequest, String, String, String, String, String, String, Int, String, Int, Int64, Int64, String, String, String, String) -> @remote_site_protocol.RemoteOutputIntent raise NodeHostFailure
 
+pub fn strategy_remote_output_intent_projection(@remote_site_protocol.RemoteOutputIntent) -> (@remote_site_protocol.RemoteOutputIntentProjection, String)
+
 pub fn strategy_remote_output_plan_admit(String, @remote_site_protocol.RemotePollOutput, @remote_site_protocol.RemoteManagedOutputSubject, Int, Int, Int64) -> @remote_site_protocol.RemoteOutputPlan raise NodeHostFailure
 
 pub fn strategy_remote_output_plan_identity(@remote_site_protocol.RemoteOutputPlan) -> String
@@ -1066,11 +1090,15 @@ pub fn strategy_remote_poll_not_seen_json(@remote_site_protocol.DispatchRequest)
 
 pub fn strategy_remote_poll_output_admit(String) -> @remote_site_protocol.RemotePollOutput raise NodeHostFailure
 
+pub fn strategy_remote_poll_output_intent(@remote_site_protocol.RemotePollOutput) -> @remote_site_protocol.RemoteOutputIntent
+
 pub fn strategy_remote_poll_output_json(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteOutputIntent) -> String raise NodeHostFailure
 
 pub fn strategy_remote_poll_output_plan_admit(String) -> @remote_site_protocol.RemotePollOutput raise NodeHostFailure
 
 pub fn strategy_remote_poll_output_plan_json(@remote_site_protocol.DispatchRequest, @remote_site_protocol.RemoteOutputIntent) -> String raise NodeHostFailure
+
+pub fn strategy_remote_poll_output_request(@remote_site_protocol.RemotePollOutput) -> @remote_site_protocol.DispatchRequest
 
 pub fn strategy_remote_poll_query_json(@remote_site_protocol.DispatchRequest) -> String raise NodeHostFailure
 
@@ -1115,6 +1143,8 @@ pub fn strategy_remote_publication_payload_admit_json(String, String) -> @public
 pub fn strategy_remote_publication_payload_json(@publication_payload.PublicationPayloadRequest) -> String raise NodeHostFailure
 
 pub fn strategy_remote_publication_payload_prepare(String, String, String, String, String, String, String, String, Int64, Int64) -> @publication_payload.PublicationPayloadRequest raise NodeHostFailure
+
+pub fn strategy_remote_record_durable_json(@remote_site_protocol.DispatchRecord) -> String raise NodeHostFailure
 
 pub fn strategy_remote_record_matches_dispatch(@remote_site_protocol.DispatchRecord, @remote_site_protocol.DispatchRequest) -> Bool
 
@@ -1323,6 +1353,10 @@ pub fn strategy_remote_transfer_transition_projection(@remote_transfer.RemoteTra
 pub fn strategy_remote_transfer_unknown_prepare(@remote_transfer.RemoteTransferRecord) -> @remote_transfer.RemoteTransferTransition raise NodeHostFailure
 
 pub fn strategy_remote_transition_commit(@remote_site_protocol.DispatchTransition, Bool) -> Unit raise NodeHostFailure
+
+pub fn strategy_remote_transition_durable_json(@remote_site_protocol.DispatchTransition) -> String raise NodeHostFailure
+
+pub fn strategy_remote_transition_expected_revision(@remote_site_protocol.DispatchTransition) -> Int
 
 pub fn strategy_remote_transition_key(@remote_site_protocol.DispatchTransition) -> Array[String]
 

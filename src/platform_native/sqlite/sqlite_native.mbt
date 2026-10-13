@@ -313,6 +313,37 @@ pub fn Library::open_database(
 }
 
 ///|
+fn sqlite_open_result_with_custody(
+  database : Database,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  if database_ready_ffi(database) {
+    Ok(database)
+  } else {
+    Err({
+      original_issue: DatabaseOpen(decode_diagnostic(database_error_ffi(database))),
+      database: Some(database),
+    })
+  }
+}
+
+///|
+/// Same open/schema policy as open_database, with original failure custody for
+/// callers that must retain cleanup responsibility before returning capacity.
+pub fn Library::open_database_with_custody(
+  self : Library,
+  path : String,
+  max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  if max_body_bytes < 0L {
+    return Err({ original_issue: InvalidLimit, database: None, })
+  }
+  let encoded = @utf8.encode(path)
+  sqlite_open_result_with_custody(
+    open_database_ffi(self, encoded, encoded.length(), max_body_bytes),
+  )
+}
+
+///|
 /// Open a retained journal without creation or schema repair. The caller must
 /// first admit its original format/custody and contain the absolute path under
 /// its pinned managed Root; this physical operation issues no authority.
@@ -336,6 +367,23 @@ pub fn Library::open_existing_database(
   } else {
     Err(DatabaseOpen(decode_diagnostic(database_error_ffi(database))))
   }
+}
+
+///|
+/// Never creates or repairs an original database. An unconfirmed failed-open
+/// close remains in the same carrier, not a fresh-open or retry permission.
+pub fn Library::open_existing_database_with_custody(
+  self : Library,
+  path : String,
+  max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  if max_body_bytes < 0L {
+    return Err({ original_issue: InvalidLimit, database: None, })
+  }
+  let encoded = @utf8.encode(path)
+  sqlite_open_result_with_custody(
+    open_existing_database_ffi(self, encoded, encoded.length(), max_body_bytes),
+  )
 }
 
 ///|

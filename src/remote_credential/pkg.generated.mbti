@@ -27,6 +27,8 @@ pub fn admit_local_signing_credential_grant_json(String, String) -> Result[Local
 
 pub fn admit_local_signing_credential_use_json(LocalSigningCredentialGrant, String, String) -> Result[LocalSigningCredentialUse, RemoteCredentialIssue]
 
+pub fn admit_local_signing_public_key_json(String, String) -> Result[LocalSigningPublicKey, LocalSigningPublicKeyIssue]
+
 pub fn authorize_credential_use(RemoteCredentialUse, Int64, Bool, String, String, String, String, Int, String, String, String, String, String, String, Int, String) -> Result[Unit, RemoteCredentialIssue]
 
 pub fn authorize_local_credential_use(LocalCredentialUse, Int64, Bool, LocalCredentialScope) -> Result[Unit, RemoteCredentialIssue]
@@ -91,6 +93,8 @@ pub fn local_signing_credential_grant_cid(LocalSigningCredentialGrant) -> String
 
 pub fn local_signing_credential_grant_json(LocalSigningCredentialGrant) -> Result[String, RemoteCredentialIssue]
 
+pub fn local_signing_credential_grant_limits(LocalSigningCredentialGrant) -> (Int, Int64)
+
 pub fn local_signing_credential_grant_scope(LocalSigningCredentialGrant) -> LocalSigningCredentialScope
 
 pub fn local_signing_credential_use_cid(LocalSigningCredentialUse) -> String
@@ -118,6 +122,8 @@ pub fn prepare_local_preparation_fence_identity(LocalPreparationFenceFields) -> 
 pub fn prepare_local_signing_credential_grant(String, LocalSigningCredentialScope, Int64, Int) -> Result[LocalSigningCredentialGrant, RemoteCredentialIssue]
 
 pub fn prepare_local_signing_credential_use(LocalSigningCredentialGrant, String, Int64, Int, Bool, LocalSigningCredentialScope) -> Result[LocalSigningCredentialUse, RemoteCredentialIssue]
+
+pub fn prepare_local_signing_public_key(Bytes) -> Result[LocalSigningPublicKey, LocalSigningPublicKeyIssue]
 
 pub fn validate_local_signing_credential_use_binding(LocalSigningCredentialUse, Int64, Bool, LocalSigningCredentialScope) -> Result[Unit, RemoteCredentialIssue]
 
@@ -215,6 +221,17 @@ pub(all) struct LocalSigningCredentialScope {
 } derive(Eq, @debug.Debug)
 
 type LocalSigningCredentialUse
+
+type LocalSigningPublicKey
+pub fn LocalSigningPublicKey::cid(Self) -> String
+pub fn LocalSigningPublicKey::json(Self) -> String
+pub fn LocalSigningPublicKey::raw32(Self) -> Result[Bytes, LocalSigningPublicKeyIssue]
+
+pub(all) enum LocalSigningPublicKeyIssue {
+  InvalidPublicKey
+  PublicKeyEncoding
+  PublicKeyIdentityMismatch
+} derive(Eq, @debug.Debug)
 
 pub(all) enum LocalSigningPurpose {
   ReviewerProof

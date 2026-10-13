@@ -6,15 +6,18 @@ import {
 }
 
 // Values
-pub fn open_private_root(String) -> Result[Root, NativeFilesystemIssue]
+pub fn open_private_root(String, diagnostic_ceiling? : Int?) -> Result[Root, NativeFilesystemIssue]
 
-pub fn open_root(String) -> Result[Root, NativeFilesystemIssue]
+pub fn open_root(String, diagnostic_ceiling? : Int?) -> Result[Root, NativeFilesystemIssue]
+
+pub fn open_root_with_custody(String, diagnostic_ceiling? : Int?) -> Result[Root, NativeRootOpenFailure]
 
 // Errors
 
 // Types and methods
 type Lock
 pub fn Lock::close(Self) -> Bool
+pub fn Lock::close_checked(Self) -> Result[Unit, NativeFilesystemIssue]
 
 pub(all) struct NativeFileChunk {
   bytes : Bytes
@@ -52,9 +55,17 @@ pub(all) enum NativeFilesystemIssue {
   Cleanup(String)
 }
 
+type NativeLockOpenFailure
+pub fn NativeLockOpenFailure::issue(Self) -> NativeFilesystemIssue
+pub fn NativeLockOpenFailure::retry_cleanup(Self) -> Result[Unit, NativeFilesystemIssue]
+
 type NativeReaderOpenFailure
 pub fn NativeReaderOpenFailure::issue(Self) -> NativeFilesystemIssue
 pub fn NativeReaderOpenFailure::retry_cleanup(Self) -> Result[Unit, NativeFilesystemIssue]
+
+type NativeRootOpenFailure
+pub fn NativeRootOpenFailure::issue(Self) -> NativeFilesystemIssue
+pub fn NativeRootOpenFailure::retry_cleanup(Self) -> Result[Unit, NativeFilesystemIssue]
 
 type PrivateFileProjection
 pub fn PrivateFileProjection::export_original(Self) -> Result[Bytes, NativeFilesystemIssue]
@@ -66,6 +77,7 @@ pub fn Reader::next(Self, Int) -> Result[NativeFileChunk, NativeFilesystemIssue]
 
 type Root
 pub fn Root::acquire_lock(Self, String) -> Result[Lock, NativeFilesystemIssue]
+pub fn Root::acquire_lock_with_custody(Self, String) -> Result[Lock, NativeLockOpenFailure]
 pub fn Root::adopt_private_file_projection(Self, String) -> Result[PrivateFileProjection, NativeFilesystemIssue]
 pub fn Root::bootstrap_parent_ownership(Self) -> Result[NativeFileOwnership, NativeFilesystemIssue]
 pub fn Root::close(Self) -> Result[Unit, NativeFilesystemIssue]

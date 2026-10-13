@@ -124,7 +124,7 @@ pub fn declared_key_field_at(KeyedRelation, Int) -> KeyField?
 
 pub fn declared_records(KeyedRelation) -> @carrier_contract.Knowledge
 
-pub fn declared_score_contract(DeclaredScore) -> ScoreContract
+pub fn declared_score_contract(DeclaredScore) -> @vector_checking.ScoreContract
 
 pub fn declared_score_field(DeclaredScore) -> @relation_schema.FieldName
 
@@ -390,9 +390,13 @@ pub fn ranking_score(RankingOptions) -> @relation_schema.FieldName?
 
 pub fn ranking_score_at(RankingInput, @relation_schema.FieldName) -> DeclaredScore?
 
-pub fn ranking_score_contract(RankingOptions) -> ScoreContract?
+pub fn ranking_score_contract(RankingOptions) -> @vector_checking.ScoreContract?
+
+pub fn ranking_score_count(RankingInput) -> Int
 
 pub fn ranking_score_declaration(RankingInput) -> DeclaredScore?
+
+pub fn ranking_score_declarations(RankingInput) -> Iter[DeclaredScore]
 
 pub fn ranking_shape_input(RankingShape) -> RankingInput
 
@@ -422,13 +426,13 @@ pub fn read_ranking_options(@decode_core.Cursor, @vector_checking.Limits) -> Res
 
 pub fn read_text_rank_options(@decode_core.Cursor, @vector_checking.Limits) -> Result[TextRankOptions, @vector_checking.Issue]
 
-pub fn score_contract_domain(ScoreContract) -> String
+pub fn score_contract_domain(@vector_checking.ScoreContract) -> String
 
-pub fn score_contract_maximum(ScoreContract) -> Double
+pub fn score_contract_maximum(@vector_checking.ScoreContract) -> Double
 
-pub fn score_contract_minimum(ScoreContract) -> Double
+pub fn score_contract_minimum(@vector_checking.ScoreContract) -> Double
 
-pub fn score_contract_normalization(ScoreContract) -> String
+pub fn score_contract_normalization(@vector_checking.ScoreContract) -> String
 
 pub fn select_covered_key(@decode_core.Cursor, KeySet, Array[@relation_schema.FieldName], TransferLimits) -> Result[KeySelection, Issue]
 
@@ -443,6 +447,10 @@ pub fn select_sole_string_key(@decode_core.Cursor, KeySet, TransferLimits) -> Re
 pub fn sequence_keys(@relation_typing.CheckedSequence, TransferLimits) -> Result[KeySetTransfer, Issue]
 
 pub fn singleton_key(KeyedRelation) -> KeySet
+
+pub fn source_view_keys(@check_environment.SourceViewCarrier, TransferLimits) -> Result[KeySetTransfer?, Issue]
+
+pub fn source_view_scores(@check_environment.SourceViewCarrier, @vector_checking.Limits) -> Result[RankingTransfer?, @vector_checking.Issue]
 
 pub fn text_rank_bm25(TextRankOptions) -> (Double, Double)
 
@@ -778,7 +786,7 @@ pub struct RankingOptions {
   weights : Array[Double]
   rank_constant : Double?
   rank_window : Double?
-  contract : ScoreContract?
+  contract : @vector_checking.ScoreContract?
   tie_break : Array[@relation_schema.FieldName]?
   k : Double
   usage : @vector_checking.Usage
@@ -795,13 +803,6 @@ type RankingShape
 pub struct RankingTransfer {
   input : RankingInput
   usage : @vector_checking.Usage
-}
-
-pub struct ScoreContract {
-  domain : String
-  normalization : String
-  minimum : Double
-  maximum : Double
 }
 
 pub(all) enum TextRankObligation {
@@ -855,5 +856,7 @@ pub(all) struct Usage {
 
 // Type aliases
 pub using @relation_key_obligation {type KeyObligation}
+
+pub using @vector_checking {type ScoreContract}
 
 // Traits

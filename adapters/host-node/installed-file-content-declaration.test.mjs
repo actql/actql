@@ -1810,7 +1810,7 @@ test(`public ${entrance} Client ${retainedRelationOutput ? 'retained-file' : 'ma
         issuer_kind: 'connector_capture', issuer_contract_cid: token('5'),
         content_store_cid: token('1'), workspace_scope_cid: token('2'),
         content_cid: contentCid, effective_data_policy_cid: facts[3],
-        capture_authority_cid: readSubjectCid};
+        capture_authority_cid: readSubjectCid, reported_media_type: mediaType};
       const refBody = {$actql_ref: 'content', version: 'actql-content-ref/0.1',
         media_type: mediaType, metadata: {content_store_id: 'fixture', content_cid: contentCid,
           media_type: mediaType, storage_scope: 'workspace', retention_class: 'fixture',
@@ -2602,7 +2602,8 @@ test(`GCS physical keyed read uses the original RowRun and real Store-backed Con
       const description = control.inspect(candidate);
       const issuerBody = {version: 'actql-content-issuer-evidence/0.1', issuer_kind: 'connector_capture',
         issuer_contract_cid: token('5'), content_store_cid: token('1'), workspace_scope_cid: token('2'),
-        content_cid: contentCid, effective_data_policy_cid: facts[3], capture_authority_cid: readSubjectCid};
+        content_cid: contentCid, effective_data_policy_cid: facts[3], capture_authority_cid: readSubjectCid,
+        reported_media_type: mediaType};
       const refBody = {$actql_ref: 'content', version: 'actql-content-ref/0.1', media_type: mediaType,
         metadata: {content_store_id: 'fixture', content_cid: contentCid, media_type: mediaType,
           storage_scope: 'workspace', retention_class: 'fixture', availability_evidence_cid: token('3'),
@@ -2757,7 +2758,8 @@ test(missingKeyedPreparation
   const issuerBody = {version: 'actql-content-issuer-evidence/0.1', issuer_kind: 'connector_capture',
     issuer_contract_cid: issuerContractCid, content_store_cid: storeAuthorityCid,
     workspace_scope_cid: authorityScopeCid, content_cid: contentCid,
-    effective_data_policy_cid: sourceFacts[3], capture_authority_cid: readSubjectCid};
+    effective_data_policy_cid: sourceFacts[3], capture_authority_cid: readSubjectCid,
+    reported_media_type: 'application/pdf'};
   const refBody = {$actql_ref: 'content', version: 'actql-content-ref/0.1', media_type: 'application/pdf',
     metadata: {content_store_id: namespaceId, content_cid: contentCid, media_type: 'application/pdf',
       storage_scope: 'workspace', retention_class: 'local-content', expires_at: expiresAt,

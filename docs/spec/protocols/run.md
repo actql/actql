@@ -128,6 +128,31 @@ and placement. Source Evidence retains their observation, provenance, and
 freshness bindings. Equal input identities do not imply equal observation,
 current authorization, or permission to acquire again.
 
+<!-- requirement-block: runtime-source-evidence.completed-listing-original-report-correlation -->
+A completed file-listing input MUST additionally carry the closed
+`file_listing_reports: {row_count, rows}` field. Each row has exactly
+`row_ordinal`, `resource_ref_cid`, `version`, `reported_media_type`, and
+`media_type`. Ordinals and occurrence multiplicity describe the same captured
+input bound by `input_logical_cid`, schema and snapshot reference, not a
+downstream Result or a new ordering guarantee. `version` is exact nullable
+Text; the original nullable provider report and its nullable case-only MIME
+projection remain paired with the same Resource. Missing report evidence is
+not NULL and cannot be repaired from schema, later content acquisition or
+another listing. Non-listing observations omit this field and keep their
+existing canonical bodies.
+
+<!-- requirement-block: runtime-source-evidence.completed-listing-single-transfer-custody -->
+The existing Row acquisition/capture Owner MUST transfer selected report
+correlation once before retiring transient page observations. Completion,
+transport settlement, capture custody and the original reservation remain
+necessary; the field's data shape or CID grants none of them. Retained reports,
+projected values, records, backing and encoding overlap must stay funded until
+actual cleanup or transfer. Existing evidence byte/node/work limits still
+apply; an oversized correlation is refused rather than dropped or encoded
+under a silently enlarged bound. A completed empty listing carries zero rows,
+but only an explicitly empty exact-path selection implies no enumeration I/O.
+An empty glob result does not imply zero provider reads.
+
 A connector that supplies `snapshot_ref`, version, cursor, watermark, or
 content identity is responsible for its stability and collision resistance.
 Page number, request time, provider enumeration order, or a mutable URL alone
@@ -768,7 +793,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/observation_facts sha256:bb63f5ddcba12a33225cc5fefc2ddf69ceed007524cb890d96004363b4ad0db4
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/event_delivery_evidence sha256:e9e5f043206fdf00720bbd14f12a765796b3686a4485505f77ba0a2533767582
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/effect_outcome sha256:e1c2f7c0f3b894c66c9fb205fdef574cba048873ecbc79f2981a0b8bf4450b0f
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/source_evidence sha256:434d2f1c97a9721e01d5eb614577d8620bc3662e2b5b3b05bdecb3029d2eafa6
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/source_evidence sha256:63485b767c477d6ed77853478eefbf7f3af055c2bfac78e915e2db8bb89b51bc
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/source_input_logical sha256:1b11bde1c1081b782d14ffe080ad5c511144724e8c8fd2d0c1c772828d1c09ea
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/observation_set sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_invocation_evidence sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27
@@ -781,7 +806,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_apply_receipt sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_set_apply_receipt sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/effect_reconciliation_receipt sha256:abcfcc932af4c63ae91e9670d0cd41d2cd23a0e3bec25044cfa018cd2b5f3fb2
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_receipt sha256:98d9a727e977009817027e7e88aa510127d1275a24a0f4baec866b7e5ebb7847
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_receipt sha256:62f9011e9e702f3d620f70513eac6260a21b980687b7574c1bdce55984b1aba8
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/runtime_error sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_context sha256:49bb0acf26e64ffc1d0802b03b251f27476732ad28c80f0c89b35c5cbf5734b2
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_policy sha256:d1c763d2ba8357fd33fa41afd690eed8088a310e4640fa615907c4866a125db6
@@ -797,7 +822,7 @@ closure only after its typed correspondence and authority have been admitted.
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/verified_checkpoint_resolution sha256:6dc98be34ae34a02069f644651abbf9eb90ac3117495895e83362faf32c12b76
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/run_state sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30
 ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/execution_account_config sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20
-../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:4d29468956029714f8d1cdab1f43f44ca682775f78b36ccda03b2b3fb908609a
+../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/captured_run sha256:a37894cfc6919e1562be6b44293871f349085e6b94e27281eec26b7af8d0514c
 ../../../spec/contracts/actql-production-profile-schemas.json#/schemas/lookup_evidence sha256:4e50bf4d62354e45aca753d9f436e1002721c78604bcf2a7bfcf6365f8200dc5
 ```
 

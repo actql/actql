@@ -1398,10 +1398,9 @@ pub fn provider(
         )
         is Some(@carrier.Relation(_))
       let binding_rows = count == 1 &&
-        !selected &&
         @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
-          0,
+          first_step,
         )
         is Some(@lower.RowStep(_))
       let direct = count == 1

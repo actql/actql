@@ -711,12 +711,27 @@ pub fn strategy_issue_effect_free_run_receipt(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  content_generations : Array[@publication.BoundContentGeneration],
 ) -> @publication.PublicationContract raise NodeHostFailure {
   match
     @publication.issue_effect_free_run_receipt(
-      admission, run_definition, invocation, observation, definitions, artifacts,
-      manifest, normalization_journal, binding_names, binding_digests, source_evidence,
-      model_evidence, barrier_attempt_receipt_cids, max_wire_bytes, max_nodes, max_depth,
+      admission,
+      run_definition,
+      invocation,
+      observation,
+      definitions,
+      artifacts,
+      manifest,
+      normalization_journal,
+      binding_names,
+      binding_digests,
+      source_evidence,
+      model_evidence,
+      barrier_attempt_receipt_cids,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      content_generations~,
     ) {
     Ok(value) => value
     Err(_) => raise InvalidCommand
@@ -1025,10 +1040,24 @@ pub fn strategy_begin_effect_free_captured_run(
   max_nodes : Int,
   max_depth : Int,
   max_workspace : Int,
+  content_generations : Array[@publication.BoundContentGeneration],
 ) -> @publication.CapturedRunIssuancePreparation {
   @publication.start_effect_free_captured_run(
-    run_definition, invocation, definitions, artifacts, manifest, receipt, snapshots,
-    advances, authoring, models, max_wire_bytes, max_nodes, max_depth, max_workspace,
+    run_definition,
+    invocation,
+    definitions,
+    artifacts,
+    manifest,
+    receipt,
+    snapshots,
+    advances,
+    authoring,
+    models,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+    max_workspace,
+    content_generations~,
   )
 }
 
@@ -1055,6 +1084,7 @@ pub fn strategy_begin_effectful_captured_run(
   max_depth : Int,
   dependency_wire : String?,
   max_workspace : Int,
+  content_generations : Array[@publication.BoundContentGeneration],
 ) -> @publication.CapturedRunIssuancePreparation raise NodeHostFailure {
   if plan_names.length() != plan_wires.length() {
     raise InvalidCommand
@@ -1094,6 +1124,7 @@ pub fn strategy_begin_effectful_captured_run(
     max_depth,
     max_workspace,
     dependency_inventory~,
+    content_generations~,
   )
 }
 
@@ -2597,7 +2628,8 @@ pub fn strategy_host_finished(
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(host),
   )
-  for task in 1..<strategy_host_count(host) {
+  let first = @strategy.captured_compute_first_task(run)
+  for task in first..<strategy_host_count(host) {
     if !@strategy.captured_task_completed(run, task) {
       return false
     }
@@ -2651,7 +2683,8 @@ pub fn strategy_host_close_outputs(
   let run = @host_driver.dispatch_driver_run(
     @builtin.configured_host_driver(host),
   )
-  for task = strategy_host_count(host) - 1; task > 0; task = task - 1 {
+  let first = @strategy.captured_compute_first_task(run)
+  for task = strategy_host_count(host) - 1; task >= first; task = task - 1 {
     @strategy.close_captured_task_output(run, task)
   }
 }
@@ -3240,6 +3273,27 @@ pub fn strategy_host_output_export_next(
 }
 
 ///|
+#export_name("strategyHostOutputExportAdvance")
+pub fn strategy_host_output_export_advance(
+  value : StrategyHostOutputExport,
+  quantum : Int,
+) -> (String?, Bool, Int, @publication_host.PublicationOutputExportIssue?) {
+  let (progress, work, issue) = value.core.advance(quantum)
+  match progress {
+    Some(progress) => (progress.batch, progress.complete, work, None)
+    None => (None, false, work, issue)
+  }
+}
+
+///|
+#export_name("strategyHostOutputExportRowsComplete")
+pub fn strategy_host_output_export_rows_complete(
+  value : StrategyHostOutputExport,
+) -> Bool raise NodeHostFailure {
+  strategy_publication_output_result(value.core.rows_complete())
+}
+
+///|
 /// Finish the canonical stream. The returned tail still has to be accepted by
 /// storage before the receipt can describe a durable representation.
 #export_name("strategyHostOutputExportFinish")
@@ -3279,6 +3333,14 @@ pub fn strategy_host_output_export_rows(
   value : StrategyHostOutputExport,
 ) -> Int raise NodeHostFailure {
   strategy_publication_output_result(value.core.row_count())
+}
+
+///|
+#export_name("strategyHostOutputExportMeasurement")
+pub fn strategy_host_output_export_measurement(
+  value : StrategyHostOutputExport,
+) -> @execution.CompletedRelationExportMeasurement raise NodeHostFailure {
+  strategy_publication_output_result(value.core.measurement())
 }
 
 ///|
@@ -4569,6 +4631,43 @@ pub fn strategy_remote_output_intent_prepare(
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
+}
+
+///|
+#export_name("strategyRemoteOutputIntentProjection")
+pub fn strategy_remote_output_intent_projection(
+  intent : @remote.RemoteOutputIntent,
+) -> (@remote.RemoteOutputIntentProjection, String) {
+  let value = @remote.remote_output_intent_projection(intent)
+  let route = match value.transfer_route {
+    @transfer.DirectStream => "direct"
+    @transfer.TransferStore => "store"
+  }
+  (value, route)
+}
+
+///|
+#export_name("strategyRemotePollOutputRequest")
+pub fn strategy_remote_poll_output_request(
+  output : @remote.RemotePollOutput,
+) -> @remote.DispatchRequest {
+  @remote.remote_poll_output_request(output)
+}
+
+///|
+#export_name("strategyRemotePollOutputIntent")
+pub fn strategy_remote_poll_output_intent(
+  output : @remote.RemotePollOutput,
+) -> @remote.RemoteOutputIntent {
+  @remote.remote_poll_output_intent(output)
+}
+
+///|
+#export_name("strategyHostManagedExecutionProfileCid")
+pub fn strategy_host_managed_execution_profile_cid() -> String {
+  @execution.managed_execution_profile_cid(
+    @execution.selected_managed_execution_profile(),
+  )
 }
 
 ///|
@@ -6718,6 +6817,102 @@ pub fn strategy_remote_historical_restore(
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
+}
+
+///|
+#export_name("strategyRemoteDurableRecordAdmitJson")
+pub fn strategy_remote_durable_record_admit_json(
+  body : String,
+) -> @remote.DurableDispatchRecord raise NodeHostFailure {
+  match @remote.admit_durable_dispatch_record(@utf8.encode(body)) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteDurableRecordRestore")
+pub fn strategy_remote_durable_record_restore(
+  journal : @remote.SiteDispatchJournal,
+  durable : @remote.DurableDispatchRecord,
+) -> @remote.DispatchRecord raise NodeHostFailure {
+  match @remote.restore_durable_dispatch_record(journal, durable) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteRecordDurableJson")
+pub fn strategy_remote_record_durable_json(
+  record : @remote.DispatchRecord,
+) -> String raise NodeHostFailure {
+  match @remote.dispatch_record_durable_json(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteAdmissionDurableJson")
+pub fn strategy_remote_admission_durable_json(
+  admission : @remote.DispatchAdmission,
+) -> String raise NodeHostFailure {
+  match @remote.dispatch_admission_durable_json(admission) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransitionDurableJson")
+pub fn strategy_remote_transition_durable_json(
+  transition : @remote.DispatchTransition,
+) -> String raise NodeHostFailure {
+  match @remote.dispatch_transition_durable_json(transition) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransitionExpectedRevision")
+pub fn strategy_remote_transition_expected_revision(
+  transition : @remote.DispatchTransition,
+) -> Int {
+  @remote.dispatch_transition_expected_revision(transition)
+}
+
+///|
+#export_name("strategyRemoteDurableRecordJson")
+pub fn strategy_remote_durable_record_json(
+  record : @remote.DurableDispatchRecord,
+) -> String {
+  @remote.durable_dispatch_record_json(record)
+}
+
+///|
+#export_name("strategyRemoteDurableRecordRevision")
+pub fn strategy_remote_durable_record_revision(
+  record : @remote.DurableDispatchRecord,
+) -> Int {
+  @remote.durable_dispatch_record_revision(record)
+}
+
+///|
+#export_name("strategyRemoteDurableRecordKey")
+pub fn strategy_remote_durable_record_key(
+  record : @remote.DurableDispatchRecord,
+) -> Array[String] {
+  @remote.durable_dispatch_record_journal_key(record)
+}
+
+///|
+#export_name("strategyRemoteDurableRecordIdentity")
+pub fn strategy_remote_durable_record_identity(
+  record : @remote.DurableDispatchRecord,
+) -> String {
+  @remote.durable_dispatch_record_request_identity(record)
 }
 
 ///|

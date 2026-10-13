@@ -297,6 +297,18 @@ pub fn LocalSDKPayloadEncoding::confirm_chunk(
 }
 
 ///|
+/// The ABI caller has proven the same produced output has zero bytes. Observe
+/// existing cumulative progress without fabricating a physical sink ACK.
+pub fn LocalSDKPayloadEncoding::observe_empty_output(
+  self : LocalSDKPayloadEncoding,
+) -> Result[Int64, LocalSDKPayloadEncodingIssue] {
+  if self.issue is Some(issue) {
+    return Err(issue)
+  }
+  self.sink.observe_empty_output().map_err(issue => Sink(issue))
+}
+
+///|
 /// Explicit sink completion issues the existing receipt from actual confirmed
 /// bytes. The receipt is not durable until the original Store accepts it; no
 /// Run state, index, generation or candidate is issued/changed here.

@@ -3,6 +3,7 @@ package "actql/actql/value_contract"
 
 import {
   "actql/actql/decode_core",
+  "actql/actql/decode_scalar",
   "actql/actql/encode_core",
   "actql/actql/source_span",
   "actql/actql/source_value",
@@ -10,6 +11,8 @@ import {
 }
 
 // Values
+pub fn admit_content_media_type_descriptor(String, Int) -> Result[Unit, ContentMediaTypeIssue]
+
 pub fn advance_checked_emission(CheckedEmission) -> Bool raise @encode_core.EncodeFailure
 
 pub fn advance_json_schema_emission(CheckedEmission) -> Result[Bool, JsonSchemaIssue]
@@ -49,6 +52,8 @@ pub fn join_nullability_usage(Contract, Contract, Int) -> (Contract?, Int) raise
 pub fn key_comparable(Contract, Contract) -> Bool
 
 pub fn nonnull_resource_ref_kind(Contract) -> String?
+
+pub fn normalize_content_media_type_case(String, Int) -> Result[String, ContentMediaTypeIssue]
 
 pub fn object_contract(Array[(String, Contract)], nullable~ : Bool, max_fields~ : Int, max_name_bytes~ : Int) -> Result[Contract, ConstructionIssue]
 
@@ -106,6 +111,12 @@ pub(all) enum ConstructionIssue {
   NonCanonicalConstructionName(String)
   InvalidConstructionUnicode
   DuplicateConstructionName(String)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum ContentMediaTypeIssue {
+  Utf8(@decode_scalar.Utf8AdmissionIssue)
+  InvalidSyntax
+  NonCanonicalCase
 } derive(Eq, @debug.Debug)
 
 pub struct Contract {

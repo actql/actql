@@ -21,6 +21,9 @@ Compatibility date `2026-09-11` explicitly disables both `nodejs_compat` and
 the absence of Node globals. See the [Cloudflare compatibility flag rules](https://developers.cloudflare.com/workers/configuration/compatibility-flags/#nodejs-compatibility-flag).
 An outbound service denies every external request, including unknown URLs;
 the host process does not forward failed requests to the real network.
+The Host harness explicitly sets Miniflare `cf: false`, disabling its optional
+external Request.cf metadata fetch before startup. These local tests use the
+built-in placeholder and do not establish production Request.cf behavior.
 Every runtime records outbound attempts and its common `dispose()` finalizer
 requires zero by default. Worker-side error handling cannot suppress this audit.
 Intentional network probes declare an exact `expectedOutbound` count; an observer
@@ -89,6 +92,97 @@ A recovery error retains an explicit `cleanupHandle`; it is not a successful
 response or permission to store handles for a later request. The generated
 composition supplies implementations, not caller-provided verifier callbacks.
 The test-only `conformance.mjs` prepares fixtures; product callers do not import it.
+
+### Finite source-free entry
+
+The production npm subpath `@actql/run-host-core/workers-finite` exposes
+`createWorkersFiniteRuntime(hashSeed, configuration)`. It links the finite
+preparation/material owner, common Host controls and Account gate into one
+runtime and returns `{host, core, createAuthorizationGate}`. `core` is the exact
+control object used by `host`; copying the runtime into another control facade
+would split wrapper custody. The physical hash seed is explicit and confers no
+identity or authority. The production payload excludes conformance fixtures.
+
+Create this assembly within the invocation driving one original Run. Do not
+cache the returned Host/runtime in module globals or a long-lived Durable Object
+instance for later requests. This follows the existing invocation-created linked
+runtime contract; importing the factory itself does not create a Host. Preserve
+the exact assembly, original Ledger and pending cleanup handle within that
+invocation until cleanup is confirmed. An unresolved cleanup handle is retained
+responsibility, not permission to return success or replay the Run elsewhere.
+
+`workersFiniteArtifact.componentCid` and `componentBytes` identify the audited
+production payload module bytes in the same package. The generated entry wrapper
+is separate from the payload so its SHA-256 has no self-reference. These fields
+can be compared with the existing RuntimeBundle `runtime_executable` component;
+they are content metadata, not a new bundle format, issuer capability or proof
+of physical retention. The package cohort/provenance and the Bundle owner still
+establish which bytes were installed and retained.
+
+`bindWorkersFiniteHost(runtime, configuration)` is an explicit trusted assembly
+for one effect-free, source-free task and one Named Result. The installation
+supplies its checked environment, registry/manifests, capacity, execution/search
+bounds and a known finite duration estimate. Unknown or incompatible inputs
+refuse through the existing owners. These are installation limits, not language
+restrictions or a new placement policy.
+
+`prepare(document)` uses the common JSON Program checker/lowerer and returns its
+original compilation, template and Plan. The accepting request Owner supplies
+its original nominal `admission`, `definition` and `ledger` to `open`. They must
+belong to this same runtime/link unit. For original serialized materials,
+`admitMaterials(body, expectedRunDefinitionCid)` delegates to the existing
+`admit_client_values_run_materials` owner and returns `{preparation, admission,
+definition}` in this link unit. It checks the expected original Run identity and
+reuses received authorization evidence without issuing authority or extending
+its lifetime. It does not accept handles copied from another runtime.
+
+The installation supplies the exact physical `ledger` bounds (`planning_work`,
+`attempts`, `holdings`, `transfer_bytes`, `retained_bytes`, `execution_bytes`).
+`createLedger()` creates that original owner without per-request capacity
+arguments. The caller owns the durable association between its accepted request
+and Ledger and retains that custody. Re-admitting the same material cannot open
+the same Run twice within one binding; the durable accepting owner enforces the
+same no-reexecution rule across bindings and restarts.
+
+The binding keeps only its first original Run Definition CID, including after
+an unsuccessful open. Reopening that Run refuses with
+`WorkersFiniteRunAlreadyOpened`; opening a different original Run in this same
+invocation binding refuses with `InvalidWorkersFiniteInstallation`. Preparation
+metadata alone does not select the Run. This one-shot invocation latch is neither
+a durable claim nor a process-wide deduplication service. The accepting durable
+request Owner must decide replay, restoration and retirement across invocations;
+creating a fresh runtime does not prove that a Run was never executed.
+
+`withExecution(setup, authorization, consume, signal)` requires the same protected
+Account gate as `open`, checks current activation through the common strategy,
+and uses its existing completion and scoped cleanup protocol. The gate must
+protect `in-process-default`. A definition can be opened once per binding and a
+setup executed once; a refusal never causes fallback, a new Run or a retry.
+The accepting Owner must enforce the same invariant across bindings and requests.
+Outputs remain borrowed only during `consume`. The caller remains responsible
+for the existing Named Result publication/Store protocol before releasing them;
+physical task completion alone is not durable publication or Cloud Run completion.
+
+The invocation lifetime fixes where this adapter retains its original CID latch,
+prepared metadata, setup/gate associations and cleanup closure. Their physical
+representation and overlap still belong in the existing installation resource
+inventory. This entry does not establish a complete normal numeric resource
+profile or a deployed CPU/memory limit; finite per-Run Ledger limits do not prove
+capacity for an arbitrary number of long-lived Host instances.
+
+`core.outputExportControl.measurement(exported)` projects the exact column
+measurements established by the live canonical Result export. The same export's
+identity supplies ordered rows, logical Relation, schema and codec CIDs. These
+measurements establish no physical custody or evidence-issuer authority.
+`core.remoteSiteControl` exposes the existing durable admission, transition and
+record JSON owners for asynchronous storage adapters. Persist the original JSON
+and expected revision before committing a transition with durable confirmation;
+restoration never authorizes physical replay. The common runtime success actions
+and custody tokens remain responsible for progression.
+
+This entry adds no Set candidate list, Worker/Native ranking, retained-input
+conversion, cross-request recovery or deployed Worker route. Connecting it to
+ordinary Cloud public Client placement remains a separate integration step.
 
 The reference-only asynchronous test profile is separate from the Local product
 profile. Its Connector waits at reservation and computation boundaries, then

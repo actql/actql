@@ -34,6 +34,7 @@ This document owns catalog, sourceview, mapping, command, model-task, check-envi
 - [Diagnostic compatibility profiles](#diagnostic-profiles)
 - [Ranked candidate acquisition contract](#ranked-search-contract)
 - [SourceView transformation profiles](#sourceview-transformations)
+- [Local signing public-key identity](#local-signing-public-key)
 - [Machine contracts](#machine-contracts)
 <!-- page-contents:end -->
 
@@ -1389,7 +1390,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:ed168d0279b9058d4620097715feb89b29f03ac97ec779a171c4d70636db865f -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:333650fb1490c6d8f4b99a5be34d413309121f5b550bbd4953cbe8a2b1c507dc -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:84f8c82ffb7476f57a3c4e1bef0e0dd8aa891e2ab0f1d79c203e907e91291b9b -->
 
 <a id="parameter-value-projection"></a>
@@ -2071,6 +2072,30 @@ transformation and bound laws, failure behavior, and independent conformance
 vectors. A Connector Catalog or Host-local registration MUST NOT extend this
 set. A profile claim by itself does not authorize provider access.
 
+<a id="local-signing-public-key"></a>
+
+## Local signing public-key identity
+
+<!-- machine-import: ../../../spec/contracts/actql-local-signing-public-key.schema.json# sha256:42ec6febe92ce3582a27602bc8aff0b30a9d26c9f2f212aebd158310b77b7599 -->
+
+<!-- requirement-block: local-signing-public-key.exact-canonical-identity -->
+The existing Credential Owner MUST identify an Ed25519 public key by the
+closed `actql-local-signing-public-key/0.1` body containing only `algorithm`,
+`public_key` and `version`, using exactly32 public bytes in canonical padded
+standard base64 and the lowercase SHA-256 CID of the exact ordered UTF-8
+body, with exact canonical body and expected-CID admission.
+
+<!-- requirement-block: local-signing-public-key.no-authority-or-reconstruction -->
+This public-byte identity MUST NOT substitute for authenticated original
+Host/issuer/key configuration/generation/purpose custody, private/public
+correspondence, current authority, Checkpoint preimage or durable finite claim,
+or repair missing installation originals by hashing current files.
+
+The [closed identity contract](../../../spec/contracts/local-signing-public-key.md)
+and its pinned independent vectors define the byte framing. Existing Local
+grant/use bodies and pins remain unchanged; Native signing and operational
+caller connection are separate.
+
 <a id="machine-contracts"></a>
 
 <!-- machine-import: ../../../spec/contracts/actql-run-publication.json#/schemas/compiled_plan sha256:090a83a3999ddc0ac740a1edb7c62b8b3804750d7f3dfcffb23b706cf338db39 -->
@@ -2082,7 +2107,7 @@ These exact schema/law references are owned here. Their identities do not includ
 <!-- requirement-block: machine-contracts.exact-artifacts -->
 <!-- normative-code: law -->
 ```text
-../../../spec/contracts/actql-check-environment.json# sha256:dc3baf9c4e85a0331b767665f92717a1330aabb357b207ccc7f1cc4ad7300a76
+../../../spec/contracts/actql-check-environment.json# sha256:b72f0e9566ffcb5495e801b342c9c578c90206a63e84761d367e5bd04bc0a13f
 ../../../spec/contracts/actql-local-relation-snapshot.json# sha256:b6757d1d2978133784f3b3cd464fa966e432dc0caa99b6cb05d618249ef1076c
 ../../../spec/contracts/actql-local-source-reference.json# sha256:9be664306a6a91a8e5bfca53d579e6dac77baf4567eb241ceeedc3216ffe47d9
 ../../../spec/contracts/actql-protocol-schemas.json#/schemas/model_task sha256:2923ba31752ae8854198b0fc7848fb89b7ce537c6a67e45e1a46612780509da9

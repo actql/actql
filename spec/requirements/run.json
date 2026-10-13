@@ -25,6 +25,28 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/runtime-source-evidence.completed-listing-original-report-correlation",
+      "statement_sha256": "a44e3f447d19992383b52173b43239ab0e2f6a1b11cd27027486106f68ed77ba",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "runtime-source-evidence",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/runtime-source-evidence.completed-listing-single-transfer-custody",
+      "statement_sha256": "c346ebb9485ebadb20fed6609061b9a5d3f8d9682ddd564c39b566b44db40b56",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "runtime-source-evidence",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.run/runtime-source-evidence.checked-and-runtime-source-contract-cid-schema-evidence-cid-and-capability-evidence-cid-when-applicable-must",
       "statement_sha256": "2464e7ded31b1451b92c1d1a1bfd8e4c0912787fa910d8b04fe9b1fa06be874f",
       "status": "pending",
@@ -719,7 +741,7 @@
     },
     {
       "requirement_id": "actql.protocol.run/machine-contracts.exact-artifacts",
-      "statement_sha256": "1a665822423f30c35abc2ff6b782abf5f20ae17d0c8bec92e60200f06015c915",
+      "statement_sha256": "77686d68d9042757980dcfd3a4c690129c81aea0e1d5278a6bd0239723753f9c",
       "status": "pending",
       "reason": "implementation_evidence_required",
       "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",

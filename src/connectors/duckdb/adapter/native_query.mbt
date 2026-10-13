@@ -129,6 +129,21 @@ fn compile_native_filter_select_base(
     (!owned_prefix && @lower.node_count(preparation) != 2) {
     return Err(UnsupportedShape)
   }
+  // This native filter/select certificate validates the full scan's values,
+  // but does not yet validate SourceView key tuples across that scan. A filtered
+  // result cannot discharge those obligations. Broad capture keeps the original
+  // common input validator; no native provider execution is authorized here.
+  if @pipeline.input_contract_at(@lower.pipeline(preparation), 0)
+    is Some(@pipeline.SourceViewInput(_, _, _, _)) &&
+    (
+      @lower.preparation_input_keys(preparation, 0) is Some(_) ||
+      (
+        @lower.preparation_input_ranking(preparation, 0) is Some(scores) &&
+        @evidence.ranking_score_count(scores) > 0
+      )
+    ) {
+    return Err(UnsupportedShape)
+  }
   let filter = match
     @lower.prepare_kernel(
       owner,

@@ -41,3 +41,33 @@ pub(all) struct NativeJournalEntry {
   revision : Int64
   body : Bytes
 }
+
+///|
+/// The original failed open and its existing physical Database owner. This
+/// opaque carrier cannot reopen a database, issue a request or settle capacity.
+struct NativeSqliteOpenFailure {
+  original_issue : NativeSqliteIssue
+  mut database : Database?
+}
+
+///|
+pub fn NativeSqliteOpenFailure::issue(
+  self : NativeSqliteOpenFailure,
+) -> NativeSqliteIssue {
+  self.original_issue
+}
+
+///|
+/// Keep the same failed-open handle until its own close is acknowledged. The
+/// original open diagnosis survives cleanup; successful retries are idempotent.
+pub fn NativeSqliteOpenFailure::retry_cleanup(
+  self : NativeSqliteOpenFailure,
+) -> Result[Unit, NativeSqliteIssue] {
+  if self.database is Some(original) {
+    match original.close_checked() {
+      Ok(_) => self.database = None
+      Err(issue) => return Err(issue)
+    }
+  }
+  Ok(())
+}

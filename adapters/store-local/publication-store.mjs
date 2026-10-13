@@ -1477,7 +1477,10 @@ export async function openLocalPublicationStore(
         const release = () => {
           if (!holder.active) return Promise.resolve(false);
           if (holder.releasing !== undefined) return holder.releasing;
-          const operation = group.busy.then(async () => {
+          // A physical holding and its prepared release use the same existing
+          // material queue. An awaited directory ACK must not race reclamation.
+          const previous = group.busy;
+          const operation = materialRetentionBusy.then(() => previous).then(async () => {
             if (!holder.active) return false;
             await finishPendingUnlink();
             if (!holder.active) {
@@ -1514,6 +1517,11 @@ export async function openLocalPublicationStore(
               preparedObjects.delete(physical.cid);
               return true;
             }
+            // Physical holdings refer to bytes by CID, not inode hard links.
+            // A visible holding after a lost commit ACK is still responsibility,
+            // not permission to unlink. Keep this exact pending handle until
+            // the same commit is confirmed or its holding is lawfully retired.
+            if (await materialHasLiveReference(physical.cid)) return false;
             await unlink(path);
             group.removable = false;
             group.pendingUnlink = {
@@ -1529,6 +1537,7 @@ export async function openLocalPublicationStore(
             return true;
           });
           group.busy = operation.catch(() => {});
+          materialRetentionBusy = group.busy;
           holder.releasing = operation.catch(error => {
             errors.push(error);
             throw error;
@@ -2201,7 +2210,13 @@ export async function openLocalPublicationStore(
         const decipher = createDecipheriv('aes-256-gcm', key, nonce);
         decipher.setAAD(privateEvidenceAad(name, semanticCid));
         decipher.setAuthTag(tag);
-        return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+        const plaintext = decipher.update(ciphertext);
+        // Authentication must complete before any plaintext escapes. Reuse
+        // the owned block only after final succeeds with no additional bytes;
+        // otherwise preserve the complete authenticated concatenation.
+        const final = decipher.final();
+        return final.byteLength === 0 ? plaintext
+          : Buffer.concat([plaintext, final]);
       } catch (error) {
         if (error?.code === 'PublicationPrivateEvidenceCorrupt') throw error;
         fail('PublicationPrivateEvidenceCorrupt', error);
@@ -2212,21 +2227,38 @@ export async function openLocalPublicationStore(
   };
   const readPrivateEvidence = (name, semanticCid, holdingCid) =>
     readPrivateEvidenceObject(name, semanticCid, holdingCid);
-  const preparePrivateEvidenceBytes = async (name, bytes, semanticCid) => {
+  const preparePrivateEvidenceInput = async (name, input, semanticCid, isWire) => {
     active();
     if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name) ||
-        !(bytes instanceof Uint8Array) ||
-        bytes.byteLength > configuration.maxObjectBytes) {
+        (!isWire && !(input instanceof Uint8Array))) {
+      fail('InvalidPublicationPrivateEvidence');
+    }
+    const byteLength = isWire ? Buffer.byteLength(input, 'utf8') : input.byteLength;
+    if (byteLength > configuration.maxObjectBytes) {
       fail('InvalidPublicationPrivateEvidence');
     }
     cidHex(semanticCid);
     const key = privateEvidenceKey();
+    // This closed format has 128 fixed ASCII bytes, a 12-byte nonce and
+    // 16-byte tag already included, plus 4*ceil(plaintextBytes/3) ciphertext.
+    // Invert the bound to avoid overflowing safe-integer arithmetic. Refuse
+    // before UTF-8 copying, crypto or Base64/JSON envelope construction.
+    // This is an object extent check, not a complete memory reservation.
+    if (configuration.maxObjectBytes < 128 || byteLength >
+        3 * Math.floor((configuration.maxObjectBytes - 128) / 4)) {
+      fail('PublicationObjectLimit');
+    }
+    const bytes = isWire ? Buffer.from(input, 'utf8') : input;
     const nonce = randomBytes(12);
     const cipher = createCipheriv('aes-256-gcm', key, nonce);
     cipher.setAAD(privateEvidenceAad(name, semanticCid));
-    const ciphertext = Buffer.concat([
-      cipher.update(bytes), cipher.final(),
-    ]);
+    const encrypted = cipher.update(bytes);
+    const final = cipher.final();
+    // Reuse the complete owned block when final produced no additional bytes.
+    // Do not retain a second full ciphertext solely for concatenating empty
+    // output. Preserve the original concatenation for a nonempty final block.
+    const ciphertext = final.byteLength === 0 ? encrypted
+      : Buffer.concat([encrypted, final]);
     const envelope = Buffer.from(JSON.stringify({
       version: 'actql-private-publication-evidence/0.1',
       nonce: nonce.toString('base64'),
@@ -2252,6 +2284,8 @@ export async function openLocalPublicationStore(
       throw error;
     }
   };
+  const preparePrivateEvidenceBytes = (name, bytes, semanticCid) =>
+    preparePrivateEvidenceInput(name, bytes, semanticCid, false);
   // The historical String path retains exactly its old encoding and AAD.
   const preparePrivateEvidence = (name, wire, semanticCid) => {
     active();
@@ -2259,7 +2293,7 @@ export async function openLocalPublicationStore(
         Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
       fail('InvalidPublicationPrivateEvidence');
     }
-    return preparePrivateEvidenceBytes(name, Buffer.from(wire, 'utf8'), semanticCid);
+    return preparePrivateEvidenceInput(name, wire, semanticCid, true);
   };
 
   // The portable Model/Publication issuer supplies the admitted descriptor

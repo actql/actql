@@ -35,6 +35,8 @@ struct CarrierSchema {
 struct SourceViewCarrier {
   reference : CatalogReference
   schema : CarrierSchema
+  relation_keys : SourceRelationKeys?
+  relation_scores : SourceRelationScores?
 }
 
 ///|
@@ -308,6 +310,8 @@ pub fn check_carrier_schemas(
   let entries = []
   let by_cid : Map[String, CarrierSchema] = Map([])
   let views : Map[Int, SourceViewCarrier] = Map([])
+  let key_facts : Map[String, RelationKeyFacts] = Map([])
+  let score_facts : Map[String, RelationScoreFacts] = Map([])
   let mut bytes = 0
   let mut nodes = 0
   let mut work = 0
@@ -317,6 +321,25 @@ pub fn check_carrier_schemas(
         carrier_fail(WorkLimit, envelope.body)
       }
       work += 1
+      if envelope.kind == "carrier_facts" {
+        let (keys, used) = read_relation_key_facts(
+          envelope,
+          limits.max_work - work,
+        )
+        work += used
+        if keys is Some(keys) {
+          key_facts[envelope.cid] = keys
+        }
+        let (scores, score_work) = read_relation_score_facts(
+          envelope,
+          limits.max_work - work,
+          limits.bodies.max_depth,
+        )
+        work += score_work
+        if scores is Some(scores) {
+          score_facts[envelope.cid] = scores
+        }
+      }
       if envelope.kind != "carrier_schema" {
         continue
       }
@@ -369,7 +392,43 @@ pub fn check_carrier_schemas(
       if @decode.text(name).unwrap() != carrier_spelling(schema.carrier) {
         carrier_fail(CarrierMismatch, name)
       }
-      views[member_index(reference.item)] = { reference, schema, }
+      let facts_cursor = @decode.required(output, "facts").unwrap()
+      let facts_reference = catalog_reference_for_cursor(
+        references, facts_cursor,
+      ).unwrap()
+      let relation_keys = match key_facts.get(facts_reference.contract.cid) {
+        None => None
+        Some(facts) => {
+          let (keys, used) = bind_source_relation_keys(
+            facts_reference,
+            schema,
+            facts,
+            limits.max_work - work,
+          )
+          work += used
+          Some(keys)
+        }
+      }
+      let relation_scores = match
+        score_facts.get(facts_reference.contract.cid) {
+        None => None
+        Some(facts) => {
+          let (scores, used) = bind_source_relation_scores(
+            facts_reference,
+            schema,
+            facts,
+            limits.max_work - work,
+          )
+          work += used
+          Some(scores)
+        }
+      }
+      views[member_index(reference.item)] = {
+        reference,
+        schema,
+        relation_keys,
+        relation_scores,
+      }
     }
     Ok({ modes, entries, by_cid, views, bytes, nodes, work, })
   } catch {

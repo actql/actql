@@ -107,7 +107,7 @@ test "HAVING grouped subexpressions refuse ungrouped and ambiguous receivers" {
       "SELECT COUNT(*) AS n FROM objects GROUP BY payload.score + 1 HAVING other.score + 1 > 10",
       "SELECT COUNT(*) AS n FROM objects GROUP BY payload.score + 1 HAVING payload.score + 2 > 10",
       "SELECT payload.score + 1 AS bucket, other.score + 1 AS bucket, COUNT(*) AS n FROM objects GROUP BY payload.score + 1 HAVING bucket > 10",
-      "SELECT COUNT(*) AS n FROM objects AS current GROUP BY current.payload.score + 1 HAVING old.payload.score + 1 > 10",
+      "SELECT COUNT(*) AS n FROM objects AS `current` GROUP BY current.payload.score + 1 HAVING old.payload.score + 1 > 10",
       "SELECT COUNT(*) AS n FROM objects GROUP BY payload.score + 1 HAVING aql_pipe_group_bound_0 > 10",
     ] {
     assert_true(

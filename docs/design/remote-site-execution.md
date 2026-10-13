@@ -796,8 +796,64 @@ and this endpoint does not create a Set activation transaction or a second Run
 lifecycle. In the initial topology, different Set revisions name separately bound
 Sites; changing the Cloud active Set does not drain a Site still needed by old
 work. Its later dispatches continue to use ordinary active-bundle admission and
-current execution authority. The Node custody extension itself makes no claim
-that Native or outbound-poll transports already implement these new operations.
+current execution authority. The transport-specific custody adapters preserve these same common operations;
+transport acknowledgement never replaces the original Store observation.
+
+## Pre-Run Bundle custody on the outbound channel
+
+The existing authenticated outbound channel distinguishes `RemoteSitePollOperation`
+from Run-only `RemotePollOperation`. Its `Run` variant preserves every existing
+operation. `BundleCustody` carries the common custody request and the original
+positive JSON-safe `delivery_revision` from the pending Set/member compare-and-swap.
+It has no DispatchRequest, Run, execution budget, or execution authority.
+
+The canonical poll wrapper contains `delivery_revision`, `request_cid`,
+`request_json`, and version `actql-remote-poll-bundle-custody/0.1`.
+The canonical observation contains `delivery_revision`, `request_cid`,
+`response_cid`, `response_json`, and version
+`actql-remote-bundle-custody-observation/0.1`. Both have a 131072-byte total
+UTF-8 bound. The common request/response wires, their CIDs, and their existing
+65536-byte bounds are unchanged. Strict field and canonical-byte checks reject
+shape changes, duplicate fields and identity substitutions.
+
+The Coordinator's original Set/member row supplies routing and authority; a
+caller-supplied request CID is only an index. It admits the response against its
+persisted exact request and pending member revision before acknowledging the
+persisted outcome. The canonical ACK contains `delivery_revision`, `request_cid`,
+`response_cid`, and version `actql-remote-bundle-custody-observation-ack/0.1`.
+HTTP 200, another response, or a late reply for another delivery is not an ACK.
+
+The Native receiver requires explicit trusted workspace, authority-scope and
+environment configuration alongside its existing Coordinator/Site/generation/
+Bundle/Connector registration. Missing scope configuration refuses custody.
+Immediately before Store access it checks the authenticated Coordinator, exact
+current scope, and admission-open status for retain. It checks the actual stored
+manifest's Connector registration and revisions, then invokes the original
+Bundle Store custody operation. Query and release cannot manufacture retention.
+
+The resident control process uses its existing exclusive executor slot for this
+Store access. One bounded in-process slot retains a delivered request while a
+holder owns the Store, then retains the exact Store response until its checked
+ACK. No further poll is accepted while this slot is occupied. Existing control
+pacing governs waiting and ACK retry; retry sends only the retained response and
+never reopens the Store or repeats its operation. Unconfirmed Store or slot
+cleanup produces no response success. Shutdown with pending custody is reported
+as unknown.
+
+This bounded process-local custody is not a durable context-response ledger.
+A process restart without its original context response cannot claim that context
+or construct replacement evidence. Retain and release reconciliation use the
+original durable binding, catalog incarnation and Store fence. An exact canonical
+`actql-remote-bundle-custody-observation-disposition/0.1` response may retire only
+the transport duty: it names `delivery_revision`, `disposition: "obsolete"`,
+`request_cid`, and `response_cid`. The current Set Owner must first validate the
+original typed response and prove that a newer or retired authoritative member
+duty supersedes it. HTTP 409 with that exact bound disposition releases only the
+process-local response slot, allowing the next original current duty to be
+polled. It neither acknowledges retention/release nor repeats a Store operation.
+Generic 409, unknown or mismatched replies retain the response slot until a
+checked ACK, checked obsolete disposition, or explicit shutdown. A disposition
+never authorizes replacement context or a new Run.
 
 ## Environment adapters and completion evidence
 

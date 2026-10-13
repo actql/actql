@@ -17,9 +17,19 @@ pub fn[T] decoded(Result[T, @decode_core.Issue]) -> T raise Stop
 
 pub fn[T] fail(@decode_core.Cursor, IssueKind) -> T raise Stop
 
+pub fn read_score_contract(@decode_core.Cursor) -> ScoreContract raise Stop
+
 pub fn role_name(@decode_core.Cursor) -> @relation_schema.FieldName raise Stop
 
 pub fn scan(Budget, @decode_core.Cursor) -> Unit raise Stop
+
+pub fn score_contract_domain(ScoreContract) -> String
+
+pub fn score_contract_maximum(ScoreContract) -> Double
+
+pub fn score_contract_minimum(ScoreContract) -> Double
+
+pub fn score_contract_normalization(ScoreContract) -> String
 
 pub fn spend(Budget, @decode_core.Cursor, Int) -> Unit raise Stop
 
@@ -81,6 +91,13 @@ pub(all) enum Metric {
   Dot
   L2
 } derive(Eq, @debug.Debug)
+
+pub struct ScoreContract {
+  domain : String
+  normalization : String
+  minimum : Double
+  maximum : Double
+}
 
 pub(all) struct Usage {
   work : Int

@@ -2,7 +2,8 @@ import {build} from 'esbuild';
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {gzipSync} from 'node:zlib';
-import {checkWorkersArtifact, conformanceModules, hostModules} from './artifact.mjs';
+import {checkWorkersArtifact, conformanceModules, hostModules,
+  finiteConformanceModules, finiteRuntimeModules} from './artifact.mjs';
 
 async function buildProfile(entry, name, allowed) {
   const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -11,6 +12,7 @@ async function buildProfile(entry, name, allowed) {
   const result = await build({
     absWorkingDir:root, entryPoints:[entry],
     bundle:true, platform:'browser', format:'esm', target:'es2022',
+    minify: name === 'finite-runtime',
     metafile:true, write:false, outfile:`${output}/${name}.mjs`,
   });
   const source = result.outputFiles[0].text;
@@ -22,10 +24,14 @@ async function buildProfile(entry, name, allowed) {
 }
 
 export const buildConformance = () => buildProfile('adapters/workers/conformance.mjs','conformance',conformanceModules);
+export const buildFiniteConformance = () => buildProfile('adapters/workers/finite-runtime-fixture.mjs',
+  'finite-conformance', finiteConformanceModules);
 export const buildHost = () => buildProfile('adapters/workers/host.mjs','host',hostModules);
+export const buildFiniteRuntime = () => buildProfile('adapters/workers/finite-runtime.mjs',
+  'finite-runtime', finiteRuntimeModules);
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  for (const [profile, build] of [['host',buildHost],['conformance',buildConformance]]) {
+  for (const [profile, build] of [['host',buildHost],['finite-runtime',buildFiniteRuntime],['conformance',buildConformance],['finite-conformance',buildFiniteConformance]]) {
     const {bytes, gzipBytes, metafile} = await build();
     console.log(JSON.stringify({profile,bytes,gzipBytes,modules:Object.keys(metafile.inputs)}));
   }
