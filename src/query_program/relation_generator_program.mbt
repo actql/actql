@@ -15,9 +15,19 @@ fn lower_script_relation_primary(
   guard @query.producer_primary(query) is Some(RelationGenerator(call)) else {
     return (query, known)
   }
-  guard ["time_series", "calendar_series"].contains(call.operation) else { raise Abort(InvalidQuery) }
-  let required = if call.operation == "calendar_series" { ["start", "end", "unit", "timezone"] } else { ["start", "end", "step"] }
-  let allowed = if call.operation == "calendar_series" { required + ["week_start"] } else { required }
+  guard ["time_series", "calendar_series"].contains(call.operation) else {
+    raise Abort(InvalidQuery)
+  }
+  let required = if call.operation == "calendar_series" {
+    ["start", "end", "unit", "timezone"]
+  } else {
+    ["start", "end", "step"]
+  }
+  let allowed = if call.operation == "calendar_series" {
+    required + ["week_start"]
+  } else {
+    required
+  }
   if call.arguments.any(argument => !allowed.contains(argument.0)) ||
     required.any(name => !call.arguments.any(argument => argument.0 == name)) {
     raise Abort(InvalidQuery)

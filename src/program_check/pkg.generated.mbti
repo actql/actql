@@ -131,6 +131,8 @@ pub fn checked_stage_results(CheckedProgram) -> @stage_results.Checked
 
 pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, graph? : Bool, model_tasks? : @check_environment.ModelTasks?, request_value_policies? : Array[HostRequestValuePolicyEvidence]) -> CheckEnvironment
 
+pub fn checking_environment_calendar_profile(CheckEnvironment) -> @check_environment.SelectedCalendarProfile?
+
 pub fn checking_environment_cid(CheckEnvironment) -> String
 
 pub fn checking_environment_model_tasks(CheckEnvironment) -> @check_environment.ModelTasks?

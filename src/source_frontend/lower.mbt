@@ -95,11 +95,22 @@ pub fn bind_query_context(
     return Err(EnvironmentMismatch)
   }
   if calendar_profile is Some(profile) &&
-    @environment.cid(@environment.calendar_selection_environment(@environment.selected_calendar_selection(profile))) != environment_cid {
+    @environment.cid(
+      @environment.calendar_selection_environment(
+        @environment.selected_calendar_selection(profile),
+      ),
+    ) !=
+    environment_cid {
     return Err(EnvironmentMismatch)
   }
-  if calendar_profile is Some(profile) && model_tasks is Some(tasks) &&
-    !physical_equal(@environment.calendar_selection_environment(@environment.selected_calendar_selection(profile)), @environment.model_tasks_environment(tasks)) {
+  if calendar_profile is Some(profile) &&
+    model_tasks is Some(tasks) &&
+    !physical_equal(
+      @environment.calendar_selection_environment(
+        @environment.selected_calendar_selection(profile),
+      ),
+      @environment.model_tasks_environment(tasks),
+    ) {
     return Err(EnvironmentMismatch)
   }
   if source_catalog is Some(catalog) {
@@ -127,8 +138,13 @@ pub fn bind_query_context(
       ) {
       return Err(EnvironmentMismatch)
     }
-    if calendar_profile is Some(profile) && !physical_equal(
-      @environment.calendar_selection_environment(@environment.selected_calendar_selection(profile)), wire) {
+    if calendar_profile is Some(profile) &&
+      !physical_equal(
+        @environment.calendar_selection_environment(
+          @environment.selected_calendar_selection(profile),
+        ),
+        wire,
+      ) {
       return Err(EnvironmentMismatch)
     }
   }

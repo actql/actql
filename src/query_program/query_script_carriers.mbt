@@ -70,8 +70,9 @@ fn script_prefix_carrier(
 fn script_carrier_operation(name : String) -> Bool {
   [
     "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
-    "to_events", "row_window", "calendar_bucket", "window_events", "watermark_events", "dedupe_events",
-    "session", "events", "watermark_rows", "lag", "asof_join", "interval_join", "merge_rankings",
+    "to_events", "row_window", "calendar_bucket", "window_events", "watermark_events",
+    "dedupe_events", "session", "events", "watermark_rows", "lag", "asof_join", "interval_join",
+    "merge_rankings",
   ].contains(name)
 }
 

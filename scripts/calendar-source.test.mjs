@@ -25,6 +25,11 @@ test('Calendar source controls retain independently hashed exact selected UTC ar
   ]);
   assert.deepEqual(expected.columns, ['start', 'end'].map(name =>
     ({name, contract: {type: 'timestamp', nullable: false}})));
+  assert.deepEqual(expected.bucketed.rows, expected.rows.map(row => ({...row,
+    month: {start: '2000-01-01T00:00:00.000Z', end: '2000-02-01T00:00:00.000Z'}})));
+  assert.deepEqual(expected.bucketed.columns, [...expected.columns,
+    {name: 'month', contract: {type: 'object', nullable: false,
+      fields: {start: {type: 'timestamp', nullable: false}, end: {type: 'timestamp', nullable: false}}}}]);
 });
 
 test('Calendar source grammar updates containing identities while preserving parent bodies limits and Values', () => {
