@@ -30,7 +30,11 @@ export function auditNearestCarrierTransport(mode, report, receipt) {
     const fixture = successes[index];
     assert.equal(actual.mode, mode);
     assert.ok(actual.ref && typeof actual.ref === 'object' && Object.keys(actual.ref).length > 0);
-    assert.deepEqual(actual.results, fixture.results);
+    // `unordered` is fixture comparison policy, not Result data. These
+    // authored ORDER BY cases require exact row order and full schema.
+    assert.equal(fixture.results.answer.unordered, false);
+    assert.deepEqual(actual.results, {answer: {rows: fixture.results.answer.rows,
+      columns: fixture.results.answer.columns}});
     actualRows += actual.results.answer.rows.length;
     assert.equal(actual.beforeRead.acceptedRuns - actual.beforeSubmit.acceptedRuns, 1);
     for (const key of ['sourceIo', 'sourceReads', 'sourceReadSessions']) {

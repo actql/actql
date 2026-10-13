@@ -53,7 +53,7 @@ test('all original ten text cases and five refusals retain roles, KEEP, rows and
     const {sourceReadCount, sourceReadSessionCount, ...input} = item;
     assert.deepEqual(input, original.successes[index]);
     assert.equal(sourceReadCount, 2); assert.equal(sourceReadSessionCount, 2);
-    assert.deepEqual(item.results.answer, {rows: expectedRows, columns});
+    assert.deepEqual(item.results.answer, {rows: expectedRows, columns, unordered: false});
     assert.ok(item.text.includes('METRIC dot K 2'));
     assert.ok(item.text.includes('AS neighbor'));
     assert.ok(item.text.includes('ORDER BY neighbor.rank'));
@@ -148,7 +148,9 @@ test('independent audit rejects wrong rank, lost NULL/schema, extra Source reuse
     const count = index => ({acceptedRuns: index, sourceIo: index * 2, sourceReads: index * 2, sourceReadSessions: index * 2});
     const receipt = {version: 'actql-nearest-carrier-acceptance/0.1', mode: 'local', complete: true,
       cases: successes.map((item, index) => ({name: item.name, mode: 'local', ref: {synthetic: index},
-        results: structuredClone(item.results), beforeSubmit: count(index), beforeRead: count(index + 1), afterReplay: count(index + 1)})),
+        results: {answer: {rows: structuredClone(item.results.answer.rows),
+          columns: structuredClone(item.results.answer.columns)}},
+        beforeSubmit: count(index), beforeRead: count(index + 1), afterReplay: count(index + 1)})),
       refusals: refusals.map((item, index) => ({name: item.name, mode: 'local', submissionRef: {synthetic: index},
         outcome: {kind: 'not_accepted', problem: {code: item.expectedCode}, submissionRef: {synthetic: index}},
         beforeSubmit: count(10), afterRefusal: count(10)}))};
