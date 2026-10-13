@@ -63,7 +63,8 @@ try {
       const index = successes.findIndex(candidate => candidate.name === item.name);
       completedInventory.push(inventoryKey('successes', index, successes[index]));
     },
-    completedRefusal(item) {
+    async completedRefusal(item) {
+      await receipts.recordRefusal(item);
       const index = refusals.findIndex(candidate => candidate.name === item.name);
       completedInventory.push(inventoryKey('refusals', index, refusals[index]));
     },

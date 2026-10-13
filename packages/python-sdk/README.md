@@ -1,8 +1,15 @@
 # ActQL Python Remote Client
 
 This development package connects directly to an existing HTTPS ActQL Host.
-It has no embedded Local engine, Node dependency, CLI subprocess, or automatic
-submission retry. It is not published to PyPI yet.
+It does not install a Local runtime, native assets, Node or a CLI subprocess.
+It does not retry submissions automatically. This development cohort is not
+published to PyPI yet.
+
+The lightweight installation is `uv add actql-sdk`, with `from actql_sdk`
+imports. The standard product is `uv add actql`, with `from actql` imports and
+the same-cohort Local runtime dependency. The standard facade delegates to this
+same SDK; it does not copy its execution or recovery implementation.
+The old Local extra is not the current installation entrance.
 
 Python 3.11 or newer is required. Both facades share wire validation, exact
 submitted JSON snapshots, operation identities, and bounded Result readers.
