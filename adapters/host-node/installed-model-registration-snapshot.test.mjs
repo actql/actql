@@ -75,7 +75,8 @@ test('bounded binding wire is the same original inspected before retention',()=>
   Object.defineProperty(entry.bindingOriginals.configuration,'wire',{enumerable:true,
     get(){return ++reads<=3 ? original : oversized;}});
   const installed=installModelProviders(moon,()=>[entry]).get('models/fixture');
-  assert.equal(installed.bindingOriginals.configuration.wire,original);
+  assert.ok(installed.bindingOriginals.configuration.wire===original,
+    'Retain the same bounded original, not an oversized second value');
   assert.equal(reads,1);
 });
 
