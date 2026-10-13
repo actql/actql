@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 from actql_sdk import AsyncClient, Client, ClientError
 from actql_sdk._local_distribution import LocalInstallationError
 from actql_sdk._local_core import LocalCoreInitializationError
+from actql_sdk._local_worker_funding import LocalWorkerFundingUnavailable
 from actql_sdk._local_product import InstalledLocalHost, LocalProductCleanupPending
 import test_local_distribution as components_fixture
 import test_local_product_operation_port as host_fixture
@@ -38,6 +39,14 @@ class LocalFactoryResourcesTests(unittest.TestCase):
 
 
 class AsyncLocalFactoryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_missing_physical_worker_funding_is_typed_and_never_remote_or_vm(self):
+        with patch.object(InstalledLocalHost, 'installed', side_effect=LocalWorkerFundingUnavailable('Original funding unavailable')), \
+                patch('actql_sdk._async.AsyncClient.connect', side_effect=AssertionError('No Remote fallback')) as remote:
+            with self.assertRaises(ClientError) as failure: await AsyncClient.open()
+        self.assertEqual(failure.exception.code, 'LocalExecutionFundingUnavailable')
+        self.assertIsInstance(failure.exception.original_error, LocalWorkerFundingUnavailable)
+        remote.assert_not_called()
+
     async def test_argumentless_factory_uses_existing_host_profile_and_close_without_run(self):
         with TemporaryDirectory() as directory:
             case = host_fixture.LocalOperationPortTests();self.addCleanup(case.doCleanups)

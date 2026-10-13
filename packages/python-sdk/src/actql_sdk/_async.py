@@ -89,6 +89,7 @@ class AsyncClient:
         from ._local_product import InstalledLocalHost, LocalProductCleanupPending
         from ._local_core import LocalCoreInitializationError
         from ._local_distribution import LocalInstallationError
+        from ._local_worker_funding import LocalWorkerFundingUnavailable
         try:
             host = InstalledLocalHost.installed()
         except LocalProductCleanupPending as failure:
@@ -105,6 +106,8 @@ class AsyncClient:
                               original_error=failure, cleanup_client=client) from None
         except LocalInstallationError as failure:
             raise ClientError('LocalInstallationUnavailable', original_error=failure) from None
+        except LocalWorkerFundingUnavailable as failure:
+            raise ClientError('LocalExecutionFundingUnavailable', original_error=failure) from None
         return await cls._connect_local(host)
 
     @classmethod

@@ -113,18 +113,21 @@ class CapacityOriginalTests(unittest.TestCase):
             with self.assertRaises(LocalInstallationError):
                 _selected_capacity_original(replace(self.components, source_sha='c' * 40))
 
-    def test_public_factory_uses_same_resolved_original_and_initial_baseline(self):
+    def test_public_capacity_declaration_cannot_replace_physical_worker_funding(self):
+        from actql_sdk._local_worker_funding import LocalWorkerFundingUnavailable
         self.stage(); core = Mock()
         with patch('actql_sdk._local_capacity_original.resources.files', return_value=self.directory), \
                 patch('actql_sdk._local_product.installed_local_components', return_value=self.components) as resolve, \
                 patch.object(LocalCore, '_from_installed_image', return_value=core) as construct, \
                 patch('actql_sdk._local_product._default_directory', return_value=self.directory), \
                 patch.object(InstalledLocalHost, '__init__', return_value=None):
-            InstalledLocalHost.installed()
+            with self.assertRaises(LocalWorkerFundingUnavailable): InstalledLocalHost.installed()
         self.assertEqual(resolve.call_count, 1)
+        # Independently valid release-bound declaration, but no actual physical
+        # supplier. No Engine/Root may be constructed from these numbers alone.
         original = _capacity_from_source(self.original(), self.components)
-        construct.assert_called_once_with(self.components, transfer_capacity=12582912, slots=64,
-            resources=original.resources, _host_capacity_bytes=4096)
+        self.assertEqual(original.host_capacity_bytes, 4096)
+        construct.assert_not_called()
 
     def test_missing_or_foreign_original_refuses_before_vm_and_store(self):
         self.stage(); (self.directory / '_local_host_capacity.json').unlink()
