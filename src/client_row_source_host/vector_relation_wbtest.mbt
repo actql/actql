@@ -30,9 +30,15 @@ fn vector_fixture_row_schema() -> @schema.Schema {
 ///|
 test "Vector fixture full declaration preserves dimension nullability and independent schema CID" {
   let view = vector_fixture_saved_view()
-  let original = generate_relation_row_declaration(
+  let original = match generate_relation_row_declaration(
     "vector_fixture", "vector_fixture", "vector_fixture/0.1", [view], declaration_limits,
-  ).unwrap()
+  ) {
+    Ok(declaration) => declaration
+    Err(issue) => {
+      inspect(issue, content="successful original Vector declaration")
+      abort("Vector declaration failed")
+    }
+  }
   assert_eq(original.views[0].fields, ["id", "left_vector", "right_vector"])
   let body = "{\"fields\":" + view.schema_wire + ",\"version\":\"actql-relation-schema/0.1\"}"
   assert_true(original.contracts.any(wire => wire.contains(body)))
