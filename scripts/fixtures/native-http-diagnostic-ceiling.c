@@ -26,6 +26,14 @@ static char *fixture_dlerror(void) { return (char *)injected_detail; }
 #undef malloc
 #undef dlopen
 #undef dlerror
+// This fixture has no original private-file installation. Those link seams
+// must never be reached; they provide neither a descriptor nor permission.
+int actql_native_private_file_projection_open(
+  actql_native_private_file_projection *projection
+) { (void)projection; abort(); }
+bool actql_native_private_file_projection_matches(
+  actql_native_private_file_projection *projection, int descriptor
+) { (void)projection; (void)descriptor; abort(); }
 static void expect(moonbit_bytes_t bytes, const char *value) {
   size_t n = strlen(value);
   assert((size_t)Moonbit_array_length(bytes) == n);
