@@ -81,6 +81,14 @@ extern "C" fn lock_error_ffi(lock : Lock) -> Bytes = "actql_native_filesystem_lo
 extern "C" fn lock_close_ffi(lock : Lock) -> Bool = "actql_native_filesystem_lock_close"
 
 ///|
+#borrow(lock)
+extern "C" fn lock_close_checked_ffi(lock : Lock) -> Bool = "actql_native_filesystem_lock_close_checked"
+
+///|
+#borrow(lock)
+extern "C" fn lock_cleanup_error_ffi(lock : Lock) -> Bytes = "actql_native_filesystem_lock_cleanup_error"
+
+///|
 #borrow(root, name)
 extern "C" fn create_writer_ffi(
   root : Root,
@@ -293,6 +301,28 @@ pub fn open_root(
 }
 
 ///|
+/// Additive original-custody entrance. A failed constructor is never admitted
+/// as a usable Root, and cleanup neither reopens nor proves child retirement.
+pub fn open_root_with_custody(
+  path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Root, NativeRootOpenFailure] {
+  if diagnostic_ceiling is Some(limit) && limit <= 0 {
+    return Err({ original_issue: InvalidLimit, root: None, })
+  }
+  let encoded = @utf8.encode(path)
+  let root = open_root_ffi(encoded, encoded.length(), diagnostic_ceiling.unwrap_or(0))
+  if root_ready_ffi(root) {
+    Ok(root)
+  } else {
+    Err({
+      original_issue: RootOpen(decode_diagnostic_message(root_error_ffi(root))),
+      root: Some(root),
+    })
+  }
+}
+
+///|
 /// Open an explicitly selected user-owned private directory. This establishes
 /// physical containment, not adoption, freshness or execution authority.
 pub fn open_private_root(
@@ -368,6 +398,37 @@ pub fn Root::acquire_lock(
 ///|
 pub fn Lock::close(self : Lock) -> Bool {
   lock_close_ffi(self)
+}
+
+///|
+pub fn Root::acquire_lock_with_custody(
+  self : Root,
+  name : String,
+) -> Result[Lock, NativeLockOpenFailure] {
+  if !valid_object_name(name) {
+    return Err({ original_issue: InvalidName, lock: None, })
+  }
+  let encoded = @utf8.encode(name)
+  let lock = acquire_lock_ffi(self, encoded, encoded.length())
+  if lock_ready_ffi(lock) {
+    Ok(lock)
+  } else {
+    Err({
+      original_issue: Lock(decode_diagnostic_message(lock_error_ffi(lock))),
+      lock: Some(lock),
+    })
+  }
+}
+
+///|
+/// Idempotent acknowledgement of this original Lock only. An unconfirmed
+/// consumed descriptor remains sticky and is never closed again by its number.
+pub fn Lock::close_checked(self : Lock) -> Result[Unit, NativeFilesystemIssue] {
+  if lock_close_checked_ffi(self) {
+    Ok(())
+  } else {
+    Err(Cleanup(decode_diagnostic_message(lock_cleanup_error_ffi(self))))
+  }
 }
 
 ///|

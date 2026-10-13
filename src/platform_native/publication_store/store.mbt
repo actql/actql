@@ -57,7 +57,9 @@ priv enum StoreOpenCleanupGap {
 struct NativePublicationStoreOpenFailure {
   original_issue : NativePublicationStoreIssue
   mut root : @filesystem.Root?
+  mut failed_root : @filesystem.NativeRootOpenFailure?
   mut lock : @filesystem.Lock?
+  mut failed_lock : @filesystem.NativeLockOpenFailure?
   mut database : @sqlite.Database?
   mut failed_database : @sqlite.NativeSqliteOpenFailure?
   cleanup_gap : StoreOpenCleanupGap?
@@ -89,14 +91,26 @@ pub fn NativePublicationStoreOpenFailure::retry_cleanup(
       Err(issue) => return Err(Database(issue))
     }
   }
-  if self.lock is Some(original) {
-    if !original.close() {
-      return Err(CleanupPending)
+  if self.failed_lock is Some(original) {
+    match original.retry_cleanup() {
+      Ok(_) => self.failed_lock = None
+      Err(issue) => return Err(Filesystem(issue))
     }
-    self.lock = None
+  }
+  if self.lock is Some(original) {
+    match original.close_checked() {
+      Ok(_) => self.lock = None
+      Err(issue) => return Err(Filesystem(issue))
+    }
   }
   if self.cleanup_gap is Some(_) {
     return Err(CleanupPending)
+  }
+  if self.failed_root is Some(original) {
+    match original.retry_cleanup() {
+      Ok(_) => self.failed_root = None
+      Err(issue) => return Err(Filesystem(issue))
+    }
   }
   if self.root is Some(original) {
     match original.close() {
@@ -111,12 +125,14 @@ pub fn NativePublicationStoreOpenFailure::retry_cleanup(
 fn store_open_failure(
   original_issue : NativePublicationStoreIssue,
   root? : @filesystem.Root? = None,
+  failed_root? : @filesystem.NativeRootOpenFailure? = None,
   lock? : @filesystem.Lock? = None,
+  failed_lock? : @filesystem.NativeLockOpenFailure? = None,
   database? : @sqlite.Database? = None,
   failed_database? : @sqlite.NativeSqliteOpenFailure? = None,
   cleanup_gap? : StoreOpenCleanupGap? = None,
 ) -> NativePublicationStoreOpenFailure {
-  { original_issue, root, lock, database, failed_database, cleanup_gap, }
+  { original_issue, root, failed_root, lock, failed_lock, database, failed_database, cleanup_gap, }
 }
 
 ///|

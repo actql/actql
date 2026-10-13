@@ -571,14 +571,14 @@ fn open_store_owned_with_custody(
   if diagnostic_ceiling is Some(value) && value <= 0 {
     return Err(RefusedBeforeAcquisition(Filesystem(@filesystem.InvalidLimit)))
   }
-  let root = match @filesystem.open_root(root_path, diagnostic_ceiling~) {
+  let root = match @filesystem.open_root_with_custody(root_path, diagnostic_ceiling~) {
     Ok(value) => value
-    Err(issue) =>
+    Err(failure) =>
       return Err(
         CleanupRequired(
           store_open_failure(
-            Filesystem(issue),
-            cleanup_gap=Some(RejectedRootCustodyUnavailable),
+            Filesystem(failure.issue()),
+            failed_root=Some(failure),
           ),
         ),
       )
@@ -588,15 +588,15 @@ fn open_store_owned_with_custody(
     Err(issue) =>
       return Err(CleanupRequired(store_open_failure(issue, root=Some(root))))
   }
-  let lock = match root.acquire_lock(".actql-publication.lock") {
+  let lock = match root.acquire_lock_with_custody(".actql-publication.lock") {
     Ok(value) => value
-    Err(issue) =>
+    Err(failure) =>
       return Err(
         CleanupRequired(
           store_open_failure(
-            Filesystem(issue),
+            Filesystem(failure.issue()),
             root=Some(root),
-            cleanup_gap=Some(RejectedLockCustodyUnavailable),
+            failed_lock=Some(failure),
           ),
         ),
       )
