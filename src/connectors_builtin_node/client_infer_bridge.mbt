@@ -1218,7 +1218,10 @@ pub fn client_program_advance_infer_stopped_raw_usage(
   active : @infer_host.Execution,
   slot : Int,
   quantum : Int,
-) -> Result[(Bool, Int64, @model.ModelExecutionIssue?), @model.ModelExecutionIssue] {
+) -> Result[
+  (Bool, Int64, @model.ModelExecutionIssue?),
+  @model.ModelExecutionIssue,
+] {
   @infer_host.advance_stopped_attempt_raw_usage(active, slot, quantum)
 }
 

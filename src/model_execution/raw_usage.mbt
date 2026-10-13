@@ -277,7 +277,8 @@ pub fn advance_model_stopped_raw_usage(
   if check_model_original_resources_mutable(execution.state) is Err(issue) {
     return Err(issue)
   }
-  guard !execution.state.reclaimed && !execution.state.accepted &&
+  guard !execution.state.reclaimed &&
+    !execution.state.accepted &&
     @bounded.session_stopped(execution.session) &&
     execution.state.attempts.get(slot) is Some(_) else {
     return Err(OutputIdentity)
@@ -296,7 +297,8 @@ fn advance_model_stopped_raw_usage_owned(
 ) -> Result[(Bool, Int64, ModelExecutionIssue?), ModelExecutionIssue] {
   let state = execution.state
   guard state.pending_response is Some(call) &&
-    call.entry is Some(entry) && entry.slot == slot else {
+    call.entry is Some(entry) &&
+    entry.slot == slot else {
     // A previous attempt has no pending raw child. This is zero additional
     // reader work, never an observation of zero tokens or physical cleanup.
     return Ok((true, 0L, None))
@@ -396,12 +398,15 @@ fn transfer_model_stopped_raw_usage_child(
     return Ok(())
   }
   if cursor.phase is DecodeReclaimed {
-    return if raw.usage_reader is Some(_) { Ok(()) } else {
+    return if raw.usage_reader is Some(_) {
+      Ok(())
+    } else {
       Err(OutputIdentity)
     }
   }
   guard cursor.raw_chat is Some(original) &&
-    physical_equal(original, response) && raw.usage_reader is None else {
+    physical_equal(original, response) &&
+    raw.usage_reader is None else {
     return Err(RequestIdentity)
   }
   let reader = match cursor.phase {

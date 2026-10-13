@@ -131,8 +131,13 @@ pub fn advance_stopped_attempt_raw_usage(
   active : Execution,
   slot : Int,
   quantum : Int,
-) -> Result[(Bool, Int64, @model.ModelExecutionIssue?), @model.ModelExecutionIssue] {
-  guard !active.reclaimed && !active.advancing && active.phase is Terminal &&
+) -> Result[
+  (Bool, Int64, @model.ModelExecutionIssue?),
+  @model.ModelExecutionIssue,
+] {
+  guard !active.reclaimed &&
+    !active.advancing &&
+    active.phase is Terminal &&
     active.model is Some(model) else {
     return Err(@model.OutputIdentity)
   }
