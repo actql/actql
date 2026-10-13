@@ -28,7 +28,7 @@ test "quoted reserved and ordinary names retain binding alias and later path rol
     "SELECT result_rows.id FROM records AS result_rows",
     "SELECT r.ROWS FROM records AS r",
   ] {
-    assert_true(parse_query(source, query_limits()) is Ok(_), source)
+    assert_true(parse_query(source, query_limits()) is Ok(_), msg=source)
   }
   let query = parse_query("SELECT 1 AS `ROWS`", query_limits()).unwrap()
   guard operation_at(query, 0) is Some(Select([projection], false)) else {
