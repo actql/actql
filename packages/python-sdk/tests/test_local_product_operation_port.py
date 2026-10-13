@@ -1,10 +1,14 @@
-"""Existing public Client operation over actual SQLite/File and scalar Core."""
+"""Public admission caller over SQLite/File with an opaque execution fixture.
+
+This fixture verifies admission/transport only, not task or product execution.
+"""
 import asyncio
 import copy
 import hashlib
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from threading import Event
 import unittest
 from unittest.mock import patch
 
@@ -29,9 +33,13 @@ class LocalOperationPortTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(selected.stop)
         fixture = assembly_fixture.FiniteRunAssemblyTests()
         self.addCleanup(fixture.doCleanups)
-        return fixture.assembly(path)
+        host, core, events, admission = fixture.assembly(path)
+        execution = patch.object(host, '_execute_original_admitted_run')
+        execution.start()
+        self.addCleanup(execution.stop)
+        return host, core, events, admission
 
-    async def test_public_async_start_consumes_saved_owner_admission_without_http_or_execution(self):
+    async def test_public_async_start_consumes_saved_owner_admission_with_opaque_execution_port(self):
         with TemporaryDirectory(prefix='actql-operation-port-') as directory:
             host, core, events, admission = self.host(Path(directory))
             with patch('actql_sdk._async.httpx.AsyncClient', side_effect=AssertionError('HTTP created')):
@@ -75,6 +83,55 @@ class LocalOperationPortTests(unittest.IsolatedAsyncioTestCase):
             self.assertIs(host._pending_run_write, host._row_outputs[-1])
             self.assertFalse(any(family in ('journal', 'compute', 'task', 'publication') for family, _ in events))
             await client.aclose()
+
+    async def test_cancelled_public_start_keeps_worker_response_and_run_until_actual_stop(self):
+        with TemporaryDirectory(prefix='actql-operation-worker-') as directory:
+            host, core, events, _ = self.host(Path(directory))
+            entered, release = Event(), Event()
+            def execute(run):
+                self.assertIs(run, host._run_loans[0])
+                entered.set()
+                if not release.wait(2):
+                    raise TimeoutError('Test worker was not released')
+            host._execute_original_admitted_run.side_effect = execute
+            client = await AsyncClient._connect_local(host)
+            original = json.loads(input_fixture.INTENT)
+            ref = client.new_submission(nonce='original')
+            task = asyncio.create_task(client.start_source(original['input']['text'], format='sql',
+                parameters=original['parameters'], submission_ref=ref, attempt_id='original-invocation'))
+            try:
+                # Admission uses real SQLite/current checks. The enclosing
+                # finite guard bounds this wait, without mistaking its latency
+                # for physical stop or cancelling before the worker exists.
+                while not entered.is_set():
+                    if task.done():
+                        task.result()
+                        self.fail('Original worker was not reached')
+                    await asyncio.sleep(0.01)
+                task.cancel()
+                with self.assertRaises(asyncio.CancelledError) as failed:
+                    await task
+                self.assertEqual(failed.exception.submission_ref, ref)
+                self.assertFalse(host.close())
+                self.assertFalse(core._closed)
+                self.assertEqual(len(host._response_streams), 1)
+                stream = next(iter(host._response_streams))
+                self.assertFalse(stream._attached)
+                self.assertIs(core._loans[stream._loan.ticket], stream._loan)
+                self.assertIs(host._runs._runs[host._run_loans[0].handle], host._run_loans[0])
+            finally:
+                release.set()
+                if not task.done():
+                    task.cancel()
+                    try:
+                        await task
+                    except asyncio.CancelledError:
+                        pass
+                await client.aclose()
+            host._execute_original_admitted_run.assert_called_once()
+            self.assertTrue(core._closed)
+            self.assertFalse(host._response_streams)
+            self.assertFalse(any(name == 'cancel' for _, name in events))
 
     async def test_wrong_identity_and_unknown_fields_refuse_before_original_preparation_or_write(self):
         with TemporaryDirectory(prefix='actql-operation-refusal-') as directory:
@@ -156,6 +213,9 @@ class SyncLocalOperationPortTests(unittest.TestCase):
             selected.start()
             self.addCleanup(selected.stop)
             host, core, events, admission = fixture.assembly(Path(directory))
+            execution_port = patch.object(host, '_execute_original_admitted_run')
+            execution_port.start()
+            self.addCleanup(execution_port.stop)
             runner = asyncio.Runner()
             client = Client(runner, runner.run(AsyncClient._connect_local(host)))
             with client:
