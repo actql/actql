@@ -12,7 +12,7 @@ import {fileURLToPath} from 'node:url';
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const npm = join(dirname(process.execPath), '../lib/node_modules/npm/bin/npm-cli.js');
-const scratch = await mkdtemp(join(tmpdir(), 'actql-a-optional-provider-'));
+const scratch = await realpath(await mkdtemp(join(tmpdir(), 'actql-a-optional-provider-')));
 console.log('OPTIONAL_PROVIDER_CUSTODY', scratch);
 const cache = join(scratch, 'cache'), artifacts = join(scratch, 'artifacts');
 await mkdir(cache); await mkdir(artifacts);
