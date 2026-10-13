@@ -2125,8 +2125,7 @@ fn source_projection_capture_query(query : @query.Query) -> Bool {
           match ascii_upper(path[0].value) {
             "VECTOR_COSINE_SIMILARITY"
             | "VECTOR_INNER_PRODUCT"
-            | "VECTOR_L2_DISTANCE"
-            | "VECTOR_CONCAT" => has_vector_scalar = true
+            | "VECTOR_L2_DISTANCE" => has_vector_scalar = true
             _ => return false
           }
         }
