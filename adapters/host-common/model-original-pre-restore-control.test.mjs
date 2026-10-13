@@ -60,3 +60,67 @@ test('pre-restore control delegates the same originals without a Scope or Store 
   assert.strictEqual(f.calls[0][1], f.definitionOriginal);
   assert.strictEqual(f.calls[0][3], f.documentOriginal);
 });
+
+test('copied compiled/document/definition refs fail before selected getters or Common calls', () => {
+  const f = fixture();
+  let reads = 0;
+  const selected = {get layout() {reads++; throw Error('UnexpectedSelectionRead');}};
+  for (const [compiled, definition, document] of [
+    [{...f.compiled}, f.definition, f.document],
+    [f.compiled, {...f.definition}, f.document],
+    [f.compiled, f.definition, {...f.document}],
+    [undefined, f.definition, f.document],
+    [f.compiled, f.definition, undefined],
+  ]) {
+    assert.throws(() => f.control.checkCheckedClientInferOriginalPreRestoreOrigin(
+      compiled, definition, f.graph, document, selected), TypeError);
+  }
+  assert.equal(reads, 0); assert.equal(f.calls.length, 0);
+});
+
+test('other installed control cannot adopt original nominal views by copying data', () => {
+  const f = fixture(), other = fixture();
+  for (const [compiled, definition, document] of [
+    [other.compiled, f.definition, f.document],
+    [f.compiled, other.definition, f.document],
+    [f.compiled, f.definition, other.document],
+  ]) {
+    assert.throws(() => f.control.checkCheckedClientInferOriginalPreRestoreOrigin(
+      compiled, definition, f.graph, document, f.selected), TypeError);
+  }
+  assert.equal(f.calls.length, 0); assert.equal(other.calls.length, 0);
+});
+
+test('missing physical consumer is typed unavailable without reading installation data', () => {
+  const f = fixture();
+  delete f.moon.clientProgramCheckInferOriginalPreRestoreOrigin;
+  let reads = 0;
+  const selected = {get layout() {reads++; throw Error('UnexpectedSelectionRead');}};
+  assert.throws(() => f.control.checkCheckedClientInferOriginalPreRestoreOrigin(
+    f.compiled, f.definition, f.graph, f.document, selected), {code: 'ClientOperationUnavailable'});
+  assert.equal(reads, 0); assert.equal(f.calls.length, 0);
+});
+
+test('selected original fields are read once and passed by reference, without normalization', () => {
+  const f = fixture(), counts = {};
+  const selected = Object.fromEntries(Object.keys(f.selected).map(key => [key, undefined]));
+  for (const [key, value] of Object.entries(f.selected)) {
+    Object.defineProperty(selected, key, {get() {counts[key] = (counts[key] ?? 0) + 1; return value;}});
+  }
+  f.control.checkCheckedClientInferOriginalPreRestoreOrigin(f.compiled,
+    f.definition, f.graph, f.document, selected);
+  assert.deepEqual(counts, {layout: 1, installation: 1, runtimeArtifactCid: 1,
+    layoutArtifactCid: 1, probability: 1});
+  assert.strictEqual(f.calls[0][4], f.selected.layout);
+  assert.strictEqual(f.calls[0][5], f.selected.installation);
+  assert.equal(f.calls[0][8], undefined);
+});
+
+test('Common refusal is propagated unchanged, not converted to an allowed restore', () => {
+  const f = fixture(), issue = Object.freeze({kind: 'explicit origin mismatch double'});
+  f.moon.clientProgramCheckInferOriginalPreRestoreOrigin = () => ({$tag: 0, _0: issue});
+  assert.throws(() => f.control.checkCheckedClientInferOriginalPreRestoreOrigin(
+    f.compiled, f.definition, f.graph, f.document, f.selected),
+  error => error.code === 'MoonBitHostFailure' && error.cause === issue);
+  assert.equal('restore' in f.document || 'send' in f.document || 'scope' in f.document, false);
+});
