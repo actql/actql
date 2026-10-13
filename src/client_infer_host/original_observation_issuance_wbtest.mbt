@@ -109,6 +109,10 @@ test "original observation issuance keeps same funding through binding and calle
   assert_true(release_invocation_binding(second))
   assert_true(cleanup_observation_issuance(issued).unwrap())
   assert_true(issued.state.funding is None)
+  assert_true(issued.state.owners.is_empty())
+  assert_true(issued.state.captures.is_empty())
+  assert_true(issued.state.output_uses.is_empty())
+  assert_true(issued.state.slots.is_empty())
   assert_true(observation_issuance_value(issued) is None)
   // Issuer cleanup is not acknowledgement of later Store bodies/alias cleanup.
   assert_eq(@resources.ledger_usage(ledger), after)

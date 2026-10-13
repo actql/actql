@@ -706,14 +706,21 @@ pub fn cleanup_observation_issuance(
   if !observation_issuance_funding_current(active.state) {
     return Err(Model(@model.OutputIdentity))
   }
+  // The legacy metadata Ledger can differ from the borrowed Models. Check
+  // each actual Model fence before retiring any of their capture uses too.
+  if !active.state.captures.all(capture => {
+      @model.verified_model_capture_call_count(capture) is Some(_)
+    }) ||
+    !active.state.owners.all(owner => {
+      owner.model is Some(model) &&
+      @model.model_execution_mutation_current(model) is Ok(_)
+    }) {
+    return Err(Model(@model.OutputIdentity))
+  }
   match @bounded.cleanup(active.session) {
     Err(_) => return Err(InvalidAdvance)
     Ok(false) => return Ok(false)
     Ok(true) => ()
-  }
-  match retire_observation_issuance_metadata(active.state.funding.unwrap()) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
   }
   @encode.cancel_writer(active.state.writer)
   active.state.bindings = []
@@ -725,7 +732,25 @@ pub fn cleanup_observation_issuance(
   for output in active.state.output_uses {
     release_output(output) |> ignore
   }
+  // These arrays are private to this issuer (owners/generations were copied).
+  // Retire their backing references, not escaped immutable contract values.
+  active.state.captures.clear()
+  active.state.captures.shrink_to_fit()
+  active.state.output_uses.clear()
+  active.state.output_uses.shrink_to_fit()
+  active.state.slots.clear()
+  active.state.slots.shrink_to_fit()
+  active.state.owners.clear()
+  active.state.owners.shrink_to_fit()
+  active.state.artifacts.clear()
+  active.state.artifacts.shrink_to_fit()
+  active.state.sources.clear()
+  active.state.sources.shrink_to_fit()
   active.state.generations = []
+  match retire_observation_issuance_metadata(active.state.funding.unwrap()) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   // Original mode does NOT settle the full publication borrow. Its real caller
   // still owns post-issuer Store bodies/aliases and releases it after those
   // children retire, before Model cleanup. Drop only our extra reference here.
