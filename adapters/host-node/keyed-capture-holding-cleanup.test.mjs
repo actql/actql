@@ -20,7 +20,7 @@ async function fixture(t, installedBeforeFailure) {
   const holdingCid = cid('original capture holding'), scope = cid('original scope');
   const policy = cid('original Source policy'), authority = cid('original Store authority');
   const fault = Object.assign(new Error('Independent capture commit reply lost'), {code: 'EIO'});
-  let rejectCommit = true, pending, prepared, execution, current = true;
+  let rejectCommit = false, pending, prepared, execution, current = true;
   const counts = {writers: 0, candidates: 0, commits: 0, reserves: 0, releases: 0, issues: 0};
   const store = await openLocalPublicationStore({directory, storeAuthorityCid: authority,
     capacityBytes: 65536, maxObjectBytes: 4096, maxObjects: 8,
@@ -31,6 +31,8 @@ async function fixture(t, installedBeforeFailure) {
       try { await fd.sync(); } finally { await fd.close(); }
     },
   });
+  // Arm the lost-commit fault after the Store has initialized its directories.
+  rejectCommit = true;
   const physical = {...store,
     createPreparedObjectWriter(maximum) {
       counts.writers++;
