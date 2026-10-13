@@ -200,7 +200,7 @@ pub fn start_supplied_score_validation(
           return @bounded.Stopped(reason, used, used)
         }
         guard state.supplied is Some(read) && supplied_relation_read_available(read) else {
-          return @bounded.Failed(WrongOrigin, used, used)
+          return @bounded.Failed(InputScoreIssue::WrongOrigin, used, used)
         }
         used += 1
         match step_input_score_cursor(state) {
