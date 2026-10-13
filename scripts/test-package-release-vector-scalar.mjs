@@ -31,12 +31,13 @@ const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-relea
 const root = scratch.path, fixtureDigests = {}, audits = [];
 const registry = await openReleaseTestRegistry([{directory, manifest}]);
 const env = {...process.env, npm_config_registry: registry.url,
+  PATH: `${dirname(process.execPath)}:/usr/bin:/bin:/usr/sbin:/sbin`,
   npm_config_cache: join(root, 'npm-cache'), npm_config_userconfig: join(root, 'npmrc'),
   npm_config_globalconfig: join(root, 'npmrc-global'), npm_config_update_notifier: 'false',
   npm_config_proxy: '', npm_config_https_proxy: '', NO_PROXY: '127.0.0.1,localhost'};
 for (const key of Object.keys(env)) {
-  if (key === 'NODE_PATH' || key.startsWith('ACTQL_TEST_') ||
-      ['ACTQL_LOCAL_SOURCE_PROFILE', 'ACTQL_LOCAL_EFFECT_PROFILE', 'ACTQL_PACKED_CLIENT_PACKAGES'].includes(key)) delete env[key];
+  if (['NODE_PATH', 'NODE_OPTIONS', 'MOON_HOME'].includes(key) ||
+      key.startsWith('ACTQL_') || key.startsWith('MOON_')) delete env[key];
 }
 // One original 300-second consumer budget, including install and both transports.
 const owner = createTransportOwner({deadline: Date.now() + 300000, timeoutMs: 300000, env});
