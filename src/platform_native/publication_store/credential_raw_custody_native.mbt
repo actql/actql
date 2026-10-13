@@ -104,6 +104,9 @@ fn prepare_local_raw_custody(
   if store.closed {
     return Err(Closed)
   }
+  if store.retiring {
+    return Err(CleanupPending)
+  }
   let holding = match local_raw_preparation_holding(binding) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -171,6 +174,10 @@ pub fn Store::prepare_local_preparation_raw_observation(
   crypto : @signature.Library,
   key : Bytes,
 ) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let limit = match client.response_limit() {
     Ok(value) => value
     Err(_) => return Err(InvalidConfiguration)
@@ -197,6 +204,9 @@ pub fn LocalPreparationRawCustody::reserve(
   let owner = self.private_custody
   if owner.store.closed {
     return Err(Closed)
+  }
+  if owner.store.retiring {
+    return Err(CleanupPending)
   }
   if owner.transaction_uncertain {
     return Err(CleanupPending)
@@ -298,6 +308,9 @@ fn LocalPreparationRawCustody::require_original_reservation(
   let owner = self.private_custody
   if owner.store.closed {
     return Err(Closed)
+  }
+  if owner.store.retiring {
+    return Err(CleanupPending)
   }
   if owner.transaction_uncertain {
     return Err(CleanupPending)
@@ -448,6 +461,9 @@ pub fn Store::restore_local_preparation_raw_observation(
 ) -> Result[LocalPreparationRawCustody, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let scope = match
     local_preparation_raw_binding(grant, original_use, self.authority_cid, 0L) {
