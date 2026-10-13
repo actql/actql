@@ -88,6 +88,108 @@ async function until(read, predicate) {
 const planOf = f => until(() => f.port.preflight.advance(), value => value._0);
 const release = f => until(() => f.port.preflight.cleanup(), value => value);
 
+test('abort-ignoring unresolved transport keeps original custody while local polling and cleanup return', async () => {
+  const physical = new Promise(() => {});
+  const f = fixture({response: () => physical});
+  const {_1: plan} = await planOf(f);
+  const call = plan.start(f.entry);
+  assert.ok(call);
+  assert.equal(f.state.calls, 1);
+  call.cancel();
+  // This primitive never settles in this test. A local cancellation or a
+  // responsive synchronous poll cannot become a physical-stop/retirement ACK.
+  // The process-local original handle remains held; no public Run close or
+  // memory/GC bound is inferred from this finite mechanism observation.
+  for (let i = 0; i < 16; i++) {
+    assert.deepEqual(call.poll(), {kind: 'pending'});
+    assert.equal(f.port.preflight.cleanup(), false);
+    assert.equal(plan.start(f.entry), undefined);
+    await turn();
+  }
+  assert.equal(f.state.plans, 1);
+  assert.equal(f.state.calls, 1);
+  assert.equal(f.state.saves, 0);
+  assert.equal(f.state.rawCleanups, 0);
+  await assert.rejects(f.port.reconcileRaw(call),
+    {message: 'OriginalRawReconciliationUnavailable'});
+});
+
+test('unresolved original raw save keeps its backing and one call without blocking local cleanup polling', async () => {
+  let heldRaw;
+  let heldCall;
+  const f = fixture({persistRaw(call, raw) {
+    heldCall = call;
+    heldRaw = raw;
+    return new Promise(() => {});
+  }});
+  const {_1: plan} = await planOf(f);
+  const call = plan.start(f.entry);
+  await until(() => heldRaw, value => value !== undefined);
+  assert.strictEqual(heldCall, call);
+  assert.deepEqual(heldRaw.body, new Uint8Array(originalBytes));
+  const backing = heldRaw.body.buffer;
+  call.cancel();
+  for (let i = 0; i < 16; i++) {
+    assert.deepEqual(call.poll(), {kind: 'pending'});
+    assert.equal(f.port.preflight.cleanup(), false);
+    assert.strictEqual(heldRaw.body.buffer, backing);
+    assert.equal(plan.start(f.entry), undefined);
+    await turn();
+  }
+  assert.equal(f.state.calls, 1);
+  assert.equal(f.state.saves, 1);
+  assert.equal(f.state.rawCleanups, 0);
+  await assert.rejects(f.port.reconcileRaw(call),
+    {message: 'OriginalRawReconciliationUnavailable'});
+  // A complete physical body awaiting save is not a nominal persisted
+  // response, Model success, released backing or an automatic retry license.
+});
+
+test('unresolved read and cancel preserve incomplete raw view and original reader after abort', async () => {
+  let reads = 0;
+  let cancellations = 0;
+  let releases = 0;
+  const f = fixture({response: () => ({status: 200,
+    headers: new Headers({'content-type': 'application/json'}),
+    body: {getReader: () => ({
+      read() {
+        reads++;
+        return reads === 1
+          ? Promise.resolve({done: false, value: new Uint8Array([123])})
+          : new Promise(() => {});
+      },
+      cancel() { cancellations++; return new Promise(() => {}); },
+      releaseLock() { releases++; },
+    })}})});
+  const {_1: plan} = await planOf(f);
+  const call = plan.start(f.entry);
+  await until(() => reads, value => value === 2);
+  call.cancel();
+  const observed = await until(() => call.poll(), value => value.kind === 'chat');
+  // The explicit receipt double transfers raw DATA only. Common's actual
+  // completeness/answer/Unknown decision is outside this private port test.
+  const raw = observed.value.originalRaw;
+  const backing = raw.body.buffer;
+  assert.equal(raw.issue, 'InferResponseReadCancelled');
+  assert.equal(raw.transportComplete, false);
+  assert.equal(raw.observedBytes, 1);
+  assert.deepEqual(raw.body, new Uint8Array([123]));
+  const retirement = raw.retryReaderRetirement();
+  for (let i = 0; i < 16; i++) {
+    assert.strictEqual(call.poll().value, observed.value);
+    assert.equal(f.port.preflight.cleanup(), false);
+    assert.strictEqual(raw.retryReaderRetirement(), retirement);
+    assert.strictEqual(raw.body.buffer, backing);
+    assert.equal(plan.start(f.entry), undefined);
+    await turn();
+  }
+  assert.equal(f.state.calls, 1);
+  assert.equal(f.state.saves, 1);
+  assert.equal(reads, 2);
+  assert.equal(cancellations, 1);
+  assert.equal(releases, 0);
+});
+
 test('real SDK preflight retains one plan and starts only its original consumed call', async () => {
   const f = fixture();
   const {_1: plan} = await planOf(f);
