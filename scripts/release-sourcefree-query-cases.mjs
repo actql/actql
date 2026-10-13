@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {inUnnestLiteralArraySuccesses, inUnnestLiteralArrayRefusals}
   from './fixtures/in-unnest-literal-array-source-input.mjs';
 import {selectReleaseSequenceQueryCases} from './release-sequence-query-cases.mjs';
+import {selectReleaseTimeSeriesQueryCases} from './release-time-series-query-cases.mjs';
 
 export const releaseSourcefreeSuccessNames = Object.freeze([
   'general-element', 'array-field', 'conditional-array', 'lazy-array-branch',
@@ -14,6 +15,10 @@ export const releaseSourcefreeRefusalNames = Object.freeze([
 export const releaseSourcefreeFixturePaths = Object.freeze([
   'scripts/release-sourcefree-query-cases.mjs',
   'scripts/release-sequence-query-cases.mjs',
+  'scripts/release-time-series-query-cases.mjs',
+  'scripts/fixtures/time-series-primary-source-input.mjs',
+  'scripts/fixtures/release-sourcefree-authorization.mjs',
+  'scripts/fixtures/release-time-series-reread.mjs',
   'scripts/fixtures/release-sourcefree-query.mjs',
   'scripts/fixtures/release-sourcefree-io.mjs',
   'scripts/fixtures/in-unnest-literal-array-source-input.mjs',
@@ -46,5 +51,6 @@ export function selectReleaseSourcefreeQueryCases({
 export function selectInstalledSourcefreeQuerySuite(suite = 'in-unnest') {
   if (suite === 'in-unnest') return selectReleaseSourcefreeQueryCases();
   if (suite === 'sequence') return selectReleaseSequenceQueryCases();
+  if (suite === 'time-series') return selectReleaseTimeSeriesQueryCases();
   throw new TypeError('Unsupported installed source-free test suite');
 }
