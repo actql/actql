@@ -53,6 +53,7 @@ test('independent nearest values schemas and rejection texts preserve the F04 di
     if (item.format !== 'json') {
       assert.match(item.text, /by: \[b, a\]/u);
       assert.match(item.text, /ORDER BY hit\.query_key\.a, hit\.candidate_key\.a$/u);
+      if (item.format === 'sql') assert.match(item.text, /\) SELECT hit FROM hits ORDER BY/u);
     }
   }
   for (const item of compositeVectorRefusals) {

@@ -41,20 +41,26 @@ export const compositeVectorProgram = {version: 'actql/0.1', id: 'fixture.compos
         {from: 'ordered', select: ['hit'], as: 'out'},
       ], results: {rows: {from: 'out', fields: ['hit']}}},
     ]), results: {answer: {from: {stage: 'main', result: 'rows'}}}};
-const prefix = "WITH qv AS (FROM queries |> pool_vectors(by: [b, a], method: 'mean', vector: embedding)), " +
-  "cv AS (FROM candidates |> pool_vectors(by: [b, a], method: 'mean', vector: embedding)) FROM qv |> NEAREST cv AS corpus";
+const bindings = "WITH qv AS (FROM queries |> pool_vectors(by: [b, a], method: 'mean', vector: embedding)), " +
+  "cv AS (FROM candidates |> pool_vectors(by: [b, a], method: 'mean', vector: embedding))";
 const roles = ' QUERY KEY (b, a) VECTOR embedding CANDIDATE KEY (corpus.b, corpus.a) VECTOR corpus.embedding';
-const tail = ' METRIC cosine K 1 AS hit |> SELECT hit |> ORDER BY hit.query_key.a, hit.candidate_key.a';
+function source(format, roleText) {
+  const nearest = 'FROM qv |> NEAREST cv AS corpus' + roleText + ' METRIC cosine K 1 AS hit';
+  const order = 'ORDER BY hit.query_key.a, hit.candidate_key.a';
+  return format === 'sql'
+    ? bindings + ', hits AS (' + nearest + ') SELECT hit FROM hits ' + order
+    : bindings + ' ' + nearest + ' |> SELECT hit |> ' + order;
+}
 export const compositeVectorSuccesses = [{name: 'composite-vector-json', format: 'json',
   text: JSON.stringify(compositeVectorProgram), results: compositeVectorResults,
   sourceReadCount: 2, sourceReadSessionCount: 2},
 ...['implicit', 'explicit'].flatMap(role => ['sql', 'aql-text'].map(format => ({
   name: `composite-vector-${role}-${format}`, format,
-  text: prefix + (role === 'explicit' ? roles : '') + tail,
+  text: source(format, role === 'explicit' ? roles : ''),
   results: compositeVectorResults, sourceReadCount: 2, sourceReadSessionCount: 2,
 })))];
 export const compositeVectorRefusals = ['sql', 'aql-text'].map(format => ({
   name: `composite-vector-reordered-query-key-${format}`, format,
-  text: prefix + roles.replace('QUERY KEY (b, a)', 'QUERY KEY (a, b)') + tail,
+  text: source(format, roles.replace('QUERY KEY (b, a)', 'QUERY KEY (a, b)')),
   expectedCode: 'ClientProgramInvalidInput', sourceReadCount: 0, sourceReadSessionCount: 0,
 }));
