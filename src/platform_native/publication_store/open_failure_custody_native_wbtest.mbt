@@ -24,15 +24,18 @@ extern "C" fn store_open_fail_close(
 
 ///|
 #borrow(database)
-extern "C" fn store_open_drop_capacity(
-  database : @sqlite.Database,
-) -> Bool = "actql_native_sqlite_test_drop_capacity"
+extern "C" fn store_open_drop_capacity(database : @sqlite.Database) -> Bool = "actql_native_sqlite_test_drop_capacity"
 
 ///|
 test "Store preparation cleanup keeps original Root and lock while database close is pending" {
   let (library, path) = store_open_custody_fixture("store-open-pending")
   let original = open_store_with_custody(
-    library, path, native_payload_cid("store-open-pending-authority"), 128L, 4L, 4096L,
+    library,
+    path,
+    native_payload_cid("store-open-pending-authority"),
+    128L,
+    4L,
+    4096L,
     diagnostic_ceiling=Some(256),
   ).unwrap()
   original.database.insert("original", "input", b"unchanged").unwrap() |> ignore
@@ -57,10 +60,18 @@ test "Store preparation cleanup keeps original Root and lock while database clos
   failure.retry_cleanup().unwrap()
   assert_true(failure.issue() is StateCollision)
   let restored = open_existing_store_with_custody(
-    library, path, native_payload_cid("store-open-pending-authority"), 128L, 4L, 4096L,
+    library,
+    path,
+    native_payload_cid("store-open-pending-authority"),
+    128L,
+    4L,
+    4096L,
     diagnostic_ceiling=Some(256),
   ).unwrap()
-  assert_eq(restored.database.read("original", "input").unwrap().body, b"unchanged")
+  assert_eq(
+    restored.database.read("original", "input").unwrap().body,
+    b"unchanged",
+  )
   restored.database.close_checked().unwrap()
   assert_true(restored.lock.close())
   restored.root.close().unwrap()
@@ -71,16 +82,29 @@ test "existing Store failed-open custody refuses missing schema without repair" 
   let (library, path) = store_open_custody_fixture("store-open-schema")
   let authority = native_payload_cid("store-open-schema-authority")
   let original = open_store_with_custody(
-    library, path, authority, 128L, 4L, 4096L, diagnostic_ceiling=Some(256),
+    library,
+    path,
+    authority,
+    128L,
+    4L,
+    4096L,
+    diagnostic_ceiling=Some(256),
   ).unwrap()
   original.database.insert("original", "input", b"original").unwrap() |> ignore
   assert_true(store_open_drop_capacity(original.database))
   original.database.close_checked().unwrap()
   assert_true(original.lock.close())
   original.root.close().unwrap()
-  let failure = match open_existing_store_with_custody(
-    library, path, authority, 128L, 4L, 4096L, diagnostic_ceiling=Some(256),
-  ) {
+  let failure = match
+    open_existing_store_with_custody(
+      library,
+      path,
+      authority,
+      128L,
+      4L,
+      4096L,
+      diagnostic_ceiling=Some(256),
+    ) {
     Err(CleanupRequired(value)) => value
     Err(RefusedBeforeAcquisition(_)) => {
       fail("acquired Store failure lost its original cleanup custody")
@@ -98,7 +122,10 @@ test "existing Store failed-open custody refuses missing schema without repair" 
   failure.retry_cleanup().unwrap()
   failure.retry_cleanup().unwrap()
   assert_true(failure.issue() is Database(@sqlite.DatabaseOpen(_)))
-  let inspection = library.open_inspection_database(path + "/.actql-publication.sqlite3", 4096L)
+  let inspection = library.open_inspection_database(
+    path + "/.actql-publication.sqlite3",
+    4096L,
+  )
   assert_eq(inspection.read("original", "input").unwrap().body, b"original")
   assert_true(inspection.inspection_status() is Err(@sqlite.DatabaseOpen(_)))
   inspection.close_checked().unwrap()
@@ -107,10 +134,16 @@ test "existing Store failed-open custody refuses missing schema without repair" 
 ///|
 test "Store configuration refusal starts no partial owner and keeps the primary issue" {
   let (library, path) = store_open_custody_fixture("store-open-invalid")
-  let failure = match open_store_with_custody(
-    library, path, native_payload_cid("store-open-invalid-authority"), -1L, 4L, 4096L,
-    diagnostic_ceiling=Some(256),
-  ) {
+  let failure = match
+    open_store_with_custody(
+      library,
+      path,
+      native_payload_cid("store-open-invalid-authority"),
+      -1L,
+      4L,
+      4096L,
+      diagnostic_ceiling=Some(256),
+    ) {
     Err(RefusedBeforeAcquisition(issue)) => issue
     Err(CleanupRequired(_)) => {
       fail("configuration refusal acquired cleanup responsibility")
@@ -123,6 +156,9 @@ test "Store configuration refusal starts no partial owner and keeps the primary 
   }
   assert_true(failure is InvalidConfiguration)
   let root = @filesystem.open_root(path).unwrap()
-  assert_eq(root.inspect_generation(".actql-publication.sqlite3").unwrap(), None)
+  assert_eq(
+    root.inspect_generation(".actql-publication.sqlite3").unwrap(),
+    None,
+  )
   root.close().unwrap()
 }

@@ -528,7 +528,12 @@ pub fn open_store_with_custody(
   diagnostic_ceiling? : Int? = None,
 ) -> Result[Store, NativePublicationStoreOpenError] {
   open_store_owned_with_custody(
-    library, root_path, authority_cid, capacity_bytes, max_objects, max_record_bytes,
+    library,
+    root_path,
+    authority_cid,
+    capacity_bytes,
+    max_objects,
+    max_record_bytes,
     false,
     diagnostic_ceiling~,
   )
@@ -545,7 +550,12 @@ pub fn open_existing_store_with_custody(
   diagnostic_ceiling? : Int? = None,
 ) -> Result[Store, NativePublicationStoreOpenError] {
   open_store_owned_with_custody(
-    library, root_path, authority_cid, capacity_bytes, max_objects, max_record_bytes,
+    library,
+    root_path,
+    authority_cid,
+    capacity_bytes,
+    max_objects,
+    max_record_bytes,
     true,
     diagnostic_ceiling~,
   )
@@ -571,7 +581,8 @@ fn open_store_owned_with_custody(
   if diagnostic_ceiling is Some(value) && value <= 0 {
     return Err(RefusedBeforeAcquisition(Filesystem(@filesystem.InvalidLimit)))
   }
-  let root = match @filesystem.open_root_with_custody(root_path, diagnostic_ceiling~) {
+  let root = match
+    @filesystem.open_root_with_custody(root_path, diagnostic_ceiling~) {
     Ok(value) => value
     Err(failure) =>
       return Err(
@@ -603,11 +614,12 @@ fn open_store_owned_with_custody(
   }
   match admit_store_format(root_path, true, existing_only~) {
     Ok(_) => ()
-    Err(issue) => {
+    Err(issue) =>
       return Err(
-        CleanupRequired(store_open_failure(issue, root=Some(root), lock=Some(lock))),
+        CleanupRequired(
+          store_open_failure(issue, root=Some(root), lock=Some(lock)),
+        ),
       )
-    }
   }
   let journal_path = root_path + "/.actql-publication.sqlite3"
   let selected = if existing_only {
@@ -617,7 +629,7 @@ fn open_store_owned_with_custody(
   }
   let database = match selected {
     Ok(value) => value
-    Err(failure) => {
+    Err(failure) =>
       return Err(
         CleanupRequired(
           store_open_failure(
@@ -628,7 +640,6 @@ fn open_store_owned_with_custody(
           ),
         ),
       )
-    }
   }
   let journal_identity : @filesystem.NativeFileOwnership = match
     root.inspect_generation(".actql-publication.sqlite3") {
@@ -641,7 +652,10 @@ fn open_store_owned_with_custody(
       return Err(
         CleanupRequired(
           store_open_failure(
-            issue, root=Some(root), lock=Some(lock), database=Some(database),
+            issue,
+            root=Some(root),
+            lock=Some(lock),
+            database=Some(database),
           ),
         ),
       )
