@@ -141,7 +141,7 @@ fn event_window_issue(text : String) -> @pipeline.IssueKind raise {
 
 ///|
 test "P2 window source retains common invalid body duration and Carrier refusals" {
-  let prefix = "WITH rows AS (SELECT 1 AS event_id, 0 AS occurred_ms), ev AS (FROM rows |> to_events(id: event_id, time: occurred_ms)) "
+  let prefix = "WITH `rows` AS (SELECT 1 AS event_id, 0 AS occurred_ms), ev AS (FROM rows |> to_events(id: event_id, time: occurred_ms)) "
   let cases : Array[(String, @pipeline.IssueKind)] = [
     (
       "FROM rows |> row_window(time: occurred_ms, kind: 'FIXED', size: 10)",

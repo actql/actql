@@ -63,6 +63,44 @@ extern "C" fn sign_ed25519_ffi(
 ) -> Bytes = "actql_native_signature_sign_ed25519"
 
 ///|
+#borrow(library, public_key, output)
+extern "C" fn ed25519_public_key_raw32_ffi(
+  library : Library,
+  public_key : Bytes,
+  public_key_length : Int,
+  output : Bytes,
+  output_length : Int,
+) -> Int = "actql_native_signature_ed25519_public_key_raw32"
+
+///|
+/// Comparison-only public key projection using the selected Library.
+/// Requires an explicit diagnostic ceiling. It creates no CID or authority.
+pub fn Library::ed25519_public_key_raw32(
+  self : Library,
+  public_key_pem : String,
+) -> Result[Bytes, NativeSignatureIssue] {
+  let public_key = @utf8.encode(public_key_pem)
+  if public_key.length() == 0 || public_key.length() > 16384 {
+    return Err(InvalidInput)
+  }
+  let output = Bytes::make(32, 0)
+  match
+    ed25519_public_key_raw32_ffi(
+      self,
+      public_key,
+      public_key.length(),
+      output,
+      output.length(),
+    ) {
+    0 => Ok(output)
+    2 => Err(InvalidInput)
+    3 => Err(InvalidPublicKey(library_message(self)))
+    4 => Err(UnsupportedKey(library_message(self)))
+    _ => Err(Verification(library_message(self)))
+  }
+}
+
+///|
 /// Physical crypto only, over the exact bytes selected by the existing
 /// Checkpoint/preimage Owner. This does not acquire a key, authorize signing,
 /// issue a Resolution, or persist a credential use. Trusted assembly separately

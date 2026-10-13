@@ -12,6 +12,7 @@ pub fn load_library(String, diagnostic_ceiling? : Int?) -> Result[Library, Nativ
 
 // Types and methods
 type Library
+pub fn Library::ed25519_public_key_raw32(Self, String) -> Result[Bytes, NativeSignatureIssue]
 pub fn Library::hmac_sha256(Self, Bytes, Bytes) -> Result[Bytes, NativeSignatureIssue]
 pub fn Library::open_private_evidence(Self, Bytes, String, String, Bytes) -> Result[Bytes, NativePrivateEvidenceIssue]
 pub fn Library::random_bytes(Self, Int) -> Result[Bytes, NativeSignatureIssue]

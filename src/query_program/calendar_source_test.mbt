@@ -205,7 +205,7 @@ test "Calendar missing profile remains an explicit common refusal" {
 test "Calendar generator placement and bucket output-name checks remain static" {
   for
     text in [
-      "WITH rows AS (SELECT 1 AS id) FROM rows |> calendar_series(start:'2000-01-01T00:00:00.000Z',end:'2000-01-03T00:00:00.000Z',unit:'day',timezone:'UTC')",
+      "WITH `rows` AS (SELECT 1 AS id) FROM rows |> calendar_series(start:'2000-01-01T00:00:00.000Z',end:'2000-01-03T00:00:00.000Z',unit:'day',timezone:'UTC')",
       "WITH days AS (calendar_series(start:'2000-01-01T00:00:00.000Z',end:'2000-01-03T00:00:00.000Z',unit:'day',timezone:'UTC')) FROM days |> calendar_bucket(time:start,unit:'month',timezone:'UTC',into:SELECT)",
     ] {
     assert_true(
@@ -391,7 +391,7 @@ test "Calendar literal-only selectors and timestamp domains keep common refusals
   }
   let numeric = compile_query_script(
     calendar_source_script(
-      "WITH rows AS (SELECT 1 AS clock) FROM rows |> calendar_bucket(time:clock,unit:'day',timezone:'UTC',into:bucket) |> SELECT bucket",
+      "WITH `rows` AS (SELECT 1 AS clock) FROM rows |> calendar_bucket(time:clock,unit:'day',timezone:'UTC',into:bucket) |> SELECT bucket",
     ),
     { ..pair_context(), inputs: [], calendar_profile: Some(selected), },
     construction_limits(),

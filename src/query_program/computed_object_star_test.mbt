@@ -115,7 +115,7 @@ test "computed object star retains scalar scope and replacement refusals" {
   assert_true(
     compile(
       @query.parse_query(
-        "FROM objects old |> AS current |> SELECT COALESCE(old.payload, other).*",
+        "FROM objects old |> AS `current` |> SELECT COALESCE(old.payload, other).*",
         syntax_limits(),
       ).unwrap(),
       computed_star_context(),
