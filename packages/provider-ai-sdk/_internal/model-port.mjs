@@ -8,7 +8,8 @@ import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
 // by the original Run Ledger before this port is installed. No budget, grant,
 // execution state or scheduler is inferred here. Common owns every transition.
 export function createSdkModelPreflight(options) {
-  return createSdkPhysicalPreflight(options, generationPlan);
+  return createSdkPhysicalPreflight(options, generationPlan,
+    (moon, response) => moon.clientProgramModelPhysicalSavedChat(response));
 }
 
 function generationPlan(moon, request, bytes, quantities, profile, installation, start) {
@@ -22,18 +23,21 @@ function generationPlan(moon, request, bytes, quantities, profile, installation,
 // the existing final one-shot gate and its fixed physical transport.
 export function createSdkNativeDecisionPreflight(options, original, provider, probability) {
   if (typeof options?.moon?.clientProgramModelAsyncNativeDecisionRequestPlan !== 'function' ||
+      typeof options?.moon?.clientProgramModelPhysicalSavedNativeDecision !== 'function' ||
       original === undefined || provider === undefined || probability === undefined) {
     throw new TypeError('NativeDecisionPhysicalRuntimeUnavailable');
   }
   return createSdkPhysicalPreflight(options, (moon, request, bytes, quantities, profile, installation, start) =>
     moon.clientProgramModelAsyncNativeDecisionRequestPlan(request, original, provider,
       bytes, quantities.tokens, quantities.costUnits, quantities.durationMs, profile,
-      installation, probability, start));
+      installation, probability, start), (moon, response, checked) =>
+      checked(moon.clientProgramModelPhysicalSavedNativeDecision(response,
+        original, provider, probability)));
 }
 
 function createSdkPhysicalPreflight({moon, request, preparation, profile,
   installation, quantities, fetch, responseLimits, persistRaw, notify, checked,
-  observeAt, cleanupRaw, preparationProgress, rawCaptureBinder}, preparePlan) {
+  observeAt, cleanupRaw, preparationProgress, rawCaptureBinder}, preparePlan, selectSaved) {
   const deferredRaw = rawCaptureBinder !== undefined;
   if (typeof fetch !== 'function' ||
       (deferredRaw ? typeof rawCaptureBinder !== 'function' ||
@@ -67,7 +71,14 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
     // Only the unused SDK projection is dropped. Saved/raw observations and
     // the same Store/Entry cleanup obligation remain owned independently.
     if (!retired && preparation !== undefined) retireSdkDecodedResult(preparation);
-    if (response !== undefined) return moon.clientProgramModelPhysicalSavedChat(response);
+    if (response !== undefined && failure === undefined && !startUnknown) {
+      try { return selectSaved(moon, response, checked); }
+      catch (error) {
+        // Late binding loss does not erase saved raw custody or recreate Entry.
+        // Retain the primary failure and let the original Model hold Unknown.
+        failure = error;
+      }
+    }
     if (failure !== undefined || startUnknown) return moon.clientProgramModelPhysicalUnknown();
     if (retired) {
       throw Object.assign(new TypeError('ForeignSdkPreparation'), {code: 'ForeignSdkPreparation'});
@@ -138,6 +149,7 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
     observeAt = undefined;
     cleanupRaw = undefined;
     preparePlan = undefined;
+    selectSaved = undefined;
     retired = true;
     return true;
   };

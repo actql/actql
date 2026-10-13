@@ -17,6 +17,7 @@ options(
     "filesystem_unsupported.mbt": [ "not", "native" ],
     "filesystem_wbtest.mbt": [ "native" ],
     "reader_custody_native_wbtest.mbt": [ "native" ],
+    "reader_kind_native_wbtest.mbt": [ "native" ],
     "private_root_wbtest.mbt": [ "native" ],
     "filesystem_unsupported_wbtest.mbt": [ "not", "native" ],
   },
