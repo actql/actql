@@ -124,14 +124,15 @@ fn HolderEffectCatalogReviewCustody::close(
   // Once an actual read was entered, a failure without a captured response
   // cannot prove there was no original use/GET. Reconcile through the same
   // Resource Owner before closing its DB; missing/unknown stays pending.
-  if self.read_started &&
-    self.original_use is None &&
-    self.query_issue is None &&
-    self.custody is None &&
-    self.observed is None {
-    if self.query_original_catalog_use() is Err(_) {
-      return false
-    }
+  if !holder_catalog_cleanup_original_use_observed(
+      self.catalog_cleanup_confirmed,
+      self.read_started,
+      self.original_use is Some(_),
+      self.custody is Some(_),
+      self.observed is Some(_),
+      () => self.query_original_catalog_use(),
+    ) {
+    return false
   }
   if !self.catalog_cleanup_confirmed && self.custody is None {
     if self.original_use is Some(_) {
@@ -188,6 +189,33 @@ fn HolderEffectCatalogReviewCustody::close(
   self.query_issue = None
   self.restore_issue = None
   true
+}
+
+///|
+/// A previous query error is not permanent retirement evidence. Each cleanup
+/// pass can inspect only the same original Journal/Resource use. This result
+/// acknowledges observation only: claimed/unknown is neither successful GET
+/// nor Store/physical cleanup, and no absence permits another read or claim.
+/// The existing Store cleanup ACK retires this query prerequisite only; failed
+/// service handles still require their original close retry. The credential DB
+/// may already be closed when another service handle remains pending.
+fn holder_catalog_cleanup_original_use_observed(
+  catalog_cleanup_confirmed : Bool,
+  read_started : Bool,
+  has_original_use : Bool,
+  has_custody : Bool,
+  has_observation : Bool,
+  query : () -> Result[@effect_resource.NativeCredentialUseStatus?, Unit],
+) -> Bool {
+  if !catalog_cleanup_confirmed &&
+    read_started &&
+    !has_original_use &&
+    !has_custody &&
+    !has_observation {
+    query() is Ok(Some(_))
+  } else {
+    true
+  }
 }
 
 ///|
