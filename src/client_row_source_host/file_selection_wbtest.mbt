@@ -24,6 +24,7 @@ fn selection_row(
 fn selection_read_fixture(
   selection : RowFileSelection,
   max_work? : Int = 100000,
+  reports? : RowListingReports? = None,
 ) -> RowSourceRead {
   let resource = @contract.read_checked(
     row_presence_cursor(
@@ -110,6 +111,11 @@ fn selection_read_fixture(
     ("maximum_path_length", 32L),
   ]
   let resolved = listing_rows_fixture(Some(3L), None).unwrap()
+  let resolved = match reports {
+    None => resolved
+    Some(reports) =>
+      ReportListingRows(listing_rows_resolution(resolved), reports)
+  }
   let issuer = @admitted.bind_reference_issuer(
     (_, wire) => ["d", "e", "f"].any(id => wire == selection_reference_wire(id)),
     _ => true,
