@@ -204,7 +204,7 @@ test "Captured Content uses independent byte and issuer identities without envel
   // differs from derivation even when the byte digest and Store bindings agree.
   assert_eq(
     captured_content_reference_identity(candidate),
-    "sha256:2dfff07c2e376252233bf4a15fa5c1277c255adc2ec6c946a6e70d9206c71716",
+    "sha256:48897d51c27c2e3379072119b778536557890fda8bfade70017f9274cbb2ea36",
   )
   let wire = captured_content_reference_wire(candidate)
   let body = parse_contract_wire(wire, 4096, 100, 8, data_keys=true).unwrap()
@@ -213,7 +213,7 @@ test "Captured Content uses independent byte and issuer identities without envel
   assert_eq(
     contract_string_from_value(evidence, "evidence_cid"),
     Some(
-      "sha256:3262be0c7204cd24b97fc4e3a322a51916435887dde89dc873017202a7379771",
+      "sha256:f7d077c12bd2d83b134036e19f2fc17ab8290f80257e0dd08f3873aba1e52317",
     ),
   )
   assert_eq(

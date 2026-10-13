@@ -317,11 +317,12 @@ export async function runInstalledEffectInventoryAcceptance({connect,
       assert.deepEqual(observation(unselected), untouched, 'unselected provider and secret callback stay idle');
     }
 
-    // Mixed ownership is rejected by installation preparation. An absent
+    // The initial mixed-owner profile is one VALUES Unit. A mixed Set with
+    // an additional Unit is still refused by installation preparation. An absent
     // Mapping may be refused earlier by ordinary checking. Neither branch
     // admits a Run, reaches dispatch, reads a credential, or calls a provider.
     for (const [nonce, mappings] of [
-      ['mixed-owner-set', installations.map(item => item.mapping)],
+      ['unsupported-mixed-multistage-set', installations.map(item => item.mapping)],
       ['absent-mapping', [{...installations[0].mapping,
         mappingRef: 'mapping:gh-absent/issue_comments/create-0000000000000000.v1'}]],
     ]) {
@@ -329,11 +330,16 @@ export async function runInstalledEffectInventoryAcceptance({connect,
       const host = await openHost([1, 0]);
       const client = await host.as();
       const submissionRef = client.newSubmission({nonce});
-      await assert.rejects(client.startSource(program(mappings,
-        [{node_id: 'I_ALPHA', comment: 'must never be sent'}]), {format: 'json', submissionRef}));
+      const authored = JSON.parse(program(mappings,
+        [{node_id: 'I_ALPHA', comment: 'must never be sent'}]));
+      if (nonce === 'unsupported-mixed-multistage-set') {
+        const {effects: _effects, ...values} = authored.stages[0];
+        authored.stages.unshift({...values, id: 'prelude'});
+      }
+      await assert.rejects(client.startSource(JSON.stringify(authored), {format: 'json', submissionRef}));
       const refused = await client.lookupSubmission(submissionRef);
       assert.deepEqual(refused.submissionRef, submissionRef);
-      if (nonce === 'mixed-owner-set') {
+      if (nonce === 'unsupported-mixed-multistage-set') {
         assert.equal(refused.kind, 'preparation_failed');
         assert.equal(refused.problem.code, 'ClientProgramUnsupported');
       } else assert.ok(['not_accepted', 'preparation_failed'].includes(refused.kind), JSON.stringify(refused));

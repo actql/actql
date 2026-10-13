@@ -135,6 +135,8 @@ pub fn advance_retained_output_reference_reclamation(RetainedOutputMaterial, Int
 
 pub fn advance_row_wire_order(RowWireOrderPreparation, Int) -> Result[(Bool, Int), RowWireIssue]
 
+pub fn advance_supplied_key_validation(SuppliedKeyValidation, Int) -> Result[@bounded_execution.Observation[Int, InputKeyIssue], @bounded_execution.Issue]
+
 pub fn analytic_execution_supported(@lowering_relation.PreparedAnalytic) -> Bool
 
 pub fn analytic_execution_supported_with_numeric(@lowering_relation.PreparedAnalytic) -> Bool
@@ -437,6 +439,8 @@ pub fn cleanup_infer_rows_preparation(InferRowsPreparation) -> Result[Bool, Infe
 
 pub fn cleanup_prepared_infer_rows(PreparedInferRows) -> Bool
 
+pub fn cleanup_supplied_key_validation(SuppliedKeyValidation) -> Result[Bool, @bounded_execution.Issue]
+
 pub fn[T] close_managed_producer_bridge(ManagedProducerBridge[T]) -> Unit
 
 pub fn[T] close_managed_publication_bridge(ManagedPublicationBridge[T]) -> Unit
@@ -488,6 +492,8 @@ pub fn completed_output_matches_inputs(CompletedOutput, Array[ProducerRead]) -> 
 pub fn completed_output_matches_operation_inputs(CompletedOutput, Int, Array[ProducerRead]) -> Bool
 
 pub fn completed_output_matches_port(CompletedOutput, @lowering_relation.BoundPrepared, @pipeline_typing.Target) -> Bool
+
+pub fn completed_output_matches_segment_input(CompletedOutput, ProducerRead) -> Bool
 
 pub fn completed_output_matches_serialization_sort(CompletedOutput, @lowering_relation.PreparedSerialization) -> Bool
 
@@ -1113,6 +1119,8 @@ pub fn producer_read_has_cell_access(ProducerRead) -> Bool
 
 pub fn producer_read_input_index(ProducerRead) -> Int
 
+pub fn producer_read_matches_completed_output(ProducerRead, CompletedOutput) -> Bool
+
 pub fn producer_read_matches_operation_input(ProducerRead, @lowering_relation.BoundPrepared, Int, Int) -> Bool
 
 pub fn producer_read_preparation_is_small(ProducerReadPreparation) -> Bool
@@ -1182,6 +1190,8 @@ pub fn restrict_supplied_relation_read(SuppliedRelationRead, () -> Bool) -> Supp
 pub fn[T] retain_admitted_output_representation(AdmittedOutputStreamReceipt, T, Int64, () -> Bool) -> Result[RetainedOutputHandle[T], TrustedOutputIssue]
 
 pub fn[T] retain_admitted_output_stream(AdmittedOutputStreamReceipt, T, () -> Bool) -> RetainedOutputHandle[T]
+
+pub fn retain_completed_segment_input(CompletedOutput, ProducerRead) -> CompletedOutput?
 
 pub fn retain_completion_evidence(CompletedOutput, Int, Int) -> Result[RetainedCompletionEvidence, RetainedCompletionEvidenceIssue]
 
@@ -1335,9 +1345,13 @@ pub fn start_relation_schema_identity(@relation_schema.Schema, RelationSchemaIde
 
 pub fn start_row_wire_order(Array[String], Int, Int) -> Result[RowWireOrderPreparation, RowWireIssue]
 
+pub fn start_supplied_key_validation(@bounded_execution.Control, SuppliedRelationRead, Int, Int, Int) -> Result[SuppliedKeyValidation?, InputKeyIssue]
+
 pub fn start_supplied_record_guard(@bounded_execution.Control, SuppliedRelationRead, Int, FixedInputGuardMeasureLimits, Int) -> Result[FixedRecordGuardScan, FixedInputGuardIssue]
 
 pub fn string_bytes_output_unit() -> AggregateOutputUnit
+
+pub fn supplied_key_validation_peak_entries(SuppliedKeyValidation) -> Int
 
 pub fn supplied_relation_input_binding(SuppliedRelationRead) -> ManagedInputBinding
 
@@ -2641,6 +2655,8 @@ pub(all) enum StoreIssue {
   MissingInput
   Limit
 }
+
+type SuppliedKeyValidation
 
 type SuppliedRelationRead
 

@@ -45,7 +45,7 @@ test "SQL grouping and Pipe aggregation retain their distinct column scopes" {
 test "Pipe current range syntax remains available after projection" {
   for
     text in [
-      "FROM records AS old |> AS current |> SELECT current.id AS id |> WHERE id > 1 |> EXTEND id + 1 AS next |> SELECT next, id |> ORDER BY id",
+      "FROM records AS old |> AS `current` |> SELECT current.id AS id |> WHERE id > 1 |> EXTEND id + 1 AS next |> SELECT next, id |> ORDER BY id",
       "FROM records AS old |> SET id = amount, amount = id |> SELECT id AS new_id, amount AS new_amount, old.id AS original_id, old.amount AS original_amount |> ORDER BY original_id",
     ] {
     match parse_query(text, query_limits()) {

@@ -86,7 +86,7 @@ test "star REPLACE validates retained targets and original-snapshot references" 
   assert_true(
     compile(
       @query.parse_query(
-        "FROM t AS old |> AS current |> SELECT * REPLACE (old.x AS x)",
+        "FROM t AS old |> AS `current` |> SELECT * REPLACE (old.x AS x)",
         syntax_limits(),
       ).unwrap(),
       join_order_context(),

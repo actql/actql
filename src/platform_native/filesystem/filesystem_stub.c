@@ -23,6 +23,7 @@
 
 typedef struct {
   int fd;
+  int32_t diagnostic_ceiling;
   char *error;
   char *custody_path;
   uint64_t result_device;
@@ -66,6 +67,8 @@ typedef struct {
   int fd;
   char *error;
   unsigned char *chunk;
+  int32_t diagnostic_ceiling;
+  int32_t open_failure_kind;
   int32_t chunk_length;
   int64_t offset;
   uint64_t device;
@@ -79,6 +82,11 @@ typedef struct {
   int32_t close_result;
   char *close_error;
 } actql_native_filesystem_reader;
+
+enum {
+  ACTQL_READER_OPEN_READ_FAILURE = 1,
+  ACTQL_READER_OPEN_GENERATION_MISMATCH = 2
+};
 
 struct actql_native_private_file_projection {
   actql_native_filesystem_root *root;
@@ -126,6 +134,69 @@ static void actql_replace_errno_error(
   *target = message;
 }
 
+// Positive ceilings are explicit installer input. Zero preserves the legacy
+// unbounded diagnostic path and is never evidence of resource funding.
+static bool actql_bounded_diagnostic_length(
+  const char *text, size_t ceiling, size_t *length
+) {
+  if (text == NULL) return false;
+  for (size_t i = 0; i <= ceiling; i++) {
+    if (text[i] == '\0') { *length = i; return true; }
+  }
+  return false;
+}
+
+static bool actql_diagnostic_length(
+  const char *text, int32_t ceiling, size_t *length
+) {
+  if (text == NULL) return false;
+  if (ceiling <= 0) { *length = strlen(text); return true; }
+  return actql_bounded_diagnostic_length(text, (size_t)ceiling, length);
+}
+
+static void actql_replace_bounded_error(
+  char **target, int32_t ceiling, const char *text
+) {
+  free(*target);
+  *target = NULL;
+  size_t length;
+  if (!actql_diagnostic_length(text, ceiling, &length)) return;
+  char *copy = malloc(length + 1);
+  if (copy == NULL) return;
+  memcpy(copy, text, length);
+  copy[length] = '\0';
+  *target = copy;
+}
+
+static void actql_replace_bounded_errno_error(
+  char **target, int32_t ceiling, const char *operation, int number
+) {
+  if (ceiling <= 0) {
+    actql_replace_errno_error(target, operation, number);
+    return;
+  }
+  size_t operation_length, detail_length;
+  const char *detail = strerror(number);
+  if (!actql_diagnostic_length(operation, ceiling, &operation_length) ||
+      operation_length > (size_t)ceiling ||
+      (size_t)ceiling - operation_length < 2 ||
+      !actql_bounded_diagnostic_length(
+        detail, (size_t)ceiling - operation_length - 2, &detail_length
+      ) || operation_length + detail_length + 2 > (size_t)ceiling) {
+    free(*target); *target = NULL;
+    return;
+  }
+  size_t length = operation_length + detail_length + 2;
+  char *copy = malloc(length + 1);
+  if (copy == NULL) { free(*target); *target = NULL; return; }
+  memcpy(copy, operation, operation_length);
+  copy[operation_length] = ':'; copy[operation_length + 1] = ' ';
+  memcpy(copy + operation_length + 2, detail, detail_length);
+  copy[length] = '\0';
+  // Preserve the old/new overlap of the original errno replacement path.
+  free(*target); *target = copy;
+}
+
 static char *actql_copy_text(moonbit_bytes_t bytes, int32_t length) {
   if (length < 0) return NULL;
   char *text = malloc((size_t)length + 1);
@@ -138,6 +209,15 @@ static char *actql_copy_text(moonbit_bytes_t bytes, int32_t length) {
 static moonbit_bytes_t actql_copy_bytes(const char *text) {
   size_t length = text == NULL ? 0 : strlen(text);
   if (length > INT32_MAX) length = INT32_MAX;
+  moonbit_bytes_t bytes = moonbit_make_bytes_raw((int32_t)length);
+  if (length > 0) memcpy(bytes, text, length);
+  return bytes;
+}
+
+static moonbit_bytes_t actql_copy_diagnostic(const char *text, int32_t ceiling) {
+  size_t length;
+  if (!actql_diagnostic_length(text, ceiling, &length) || length > INT32_MAX)
+    length = 0;
   moonbit_bytes_t bytes = moonbit_make_bytes_raw((int32_t)length);
   if (length > 0) memcpy(bytes, text, length);
   return bytes;
@@ -276,7 +356,7 @@ int32_t actql_native_filesystem_root_close(
   root->fd = -1;
   root->close_result = -1;
   if (close(descriptor) != 0) {
-    actql_replace_errno_error(&root->close_error, "close Store root", errno);
+    actql_replace_bounded_errno_error(&root->close_error, root->diagnostic_ceiling, "close Store root", errno);
     return -1;
   }
   root->close_result = 1;
@@ -361,9 +441,10 @@ static void actql_native_filesystem_reader_finalize(void *value) {
   }
 }
 
-void *actql_native_filesystem_open_root(
+void *actql_native_filesystem_open_root_with_diagnostics(
   moonbit_bytes_t path,
-  int32_t length
+  int32_t length,
+  int32_t diagnostic_ceiling
 ) {
   actql_native_filesystem_root *root = moonbit_make_external_object(
     actql_native_filesystem_root_finalize,
@@ -371,9 +452,11 @@ void *actql_native_filesystem_open_root(
   );
   memset(root, 0, sizeof(*root));
   root->fd = -1;
+  root->diagnostic_ceiling = diagnostic_ceiling;
+  if (diagnostic_ceiling < 0) return root;
   char *path_text = actql_copy_text(path, length);
   if (path_text == NULL) {
-    actql_replace_error(&root->error, "root path allocation failed");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "root path allocation failed");
     return root;
   }
   root->fd = open(path_text, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
@@ -384,9 +467,14 @@ void *actql_native_filesystem_open_root(
   }
   free(path_text);
   if (root->fd < 0) {
-    actql_replace_errno_error(&root->error, "open Store root", open_error);
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "open Store root", open_error);
   }
   return root;
+}
+
+// Existing C callers retain their original ABI and unselected diagnostic path.
+void *actql_native_filesystem_open_root(moonbit_bytes_t path, int32_t length) {
+  return actql_native_filesystem_open_root_with_diagnostics(path, length, 0);
 }
 
 int32_t actql_native_filesystem_root_ready(
@@ -517,18 +605,18 @@ int32_t actql_native_filesystem_bootstrap_parent_identity(
   if (fstat(root->fd, &original) != 0 ||
       !actql_bootstrap_parent_status(&original) ||
       !actql_bootstrap_parent_acl(root->fd)) {
-    actql_replace_error(&root->error, "Bootstrap parent is not trusted");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "Bootstrap parent is not trusted");
     return 0;
   }
   char *copy = strdup(root->custody_path);
   if (copy == NULL) {
-    actql_replace_error(&root->error, "Bootstrap parent custody allocation failed");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "Bootstrap parent custody allocation failed");
     return 0;
   }
   int descriptor = actql_open_contained_directory(copy);
   free(copy);
   if (descriptor < 0) {
-    actql_replace_error(&root->error, "Bootstrap parent namespace is unavailable");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "Bootstrap parent namespace is unavailable");
     return 0;
   }
   struct stat current;
@@ -537,7 +625,7 @@ int32_t actql_native_filesystem_bootstrap_parent_identity(
     actql_bootstrap_parent_status(&current) && actql_bootstrap_parent_acl(descriptor);
   bool closed = close(descriptor) == 0;
   if (!trusted || !closed) {
-    actql_replace_error(&root->error, "Bootstrap parent namespace changed");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "Bootstrap parent namespace changed");
     return 0;
   }
   root->result_device = (uint64_t)original.st_dev;
@@ -553,13 +641,13 @@ int32_t actql_native_filesystem_private_root_identity(
   root->result_inode = 0;
   struct stat status;
   if (fstat(root->fd, &status) != 0) {
-    actql_replace_errno_error(&root->error, "inspect private Host root", errno);
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "inspect private Host root", errno);
     return 0;
   }
   if (!S_ISDIR(status.st_mode) || status.st_nlink == 0 || status.st_uid != geteuid() ||
       (status.st_mode & 0777) != 0700 || !actql_private_root_acl(root->fd) ||
       !actql_private_root_namespace(root, &status)) {
-    actql_replace_error(&root->error, "Host root is not user-owned and private");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "Host root is not user-owned and private");
     return 0;
   }
   root->result_device = (uint64_t)status.st_dev;
@@ -567,9 +655,10 @@ int32_t actql_native_filesystem_private_root_identity(
   return 1;
 }
 
-void *actql_native_filesystem_open_private_root(
+void *actql_native_filesystem_open_private_root_with_diagnostics(
   moonbit_bytes_t path,
-  int32_t length
+  int32_t length,
+  int32_t diagnostic_ceiling
 ) {
   actql_native_filesystem_root *root = moonbit_make_external_object(
     actql_native_filesystem_root_finalize,
@@ -577,25 +666,27 @@ void *actql_native_filesystem_open_private_root(
   );
   memset(root, 0, sizeof(*root));
   root->fd = -1;
+  root->diagnostic_ceiling = diagnostic_ceiling;
+  if (diagnostic_ceiling < 0) return root;
   if (length <= 1 || length > 4096) {
-    actql_replace_error(&root->error, "invalid private Host root path");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "invalid private Host root path");
     return root;
   }
   char *text = actql_copy_text(path, length);
   if (text == NULL) {
-    actql_replace_error(&root->error, "root path allocation failed");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "root path allocation failed");
     return root;
   }
   if (text[0] != '/' || text[length - 1] == '/' ||
       (int32_t)strlen(text) != length) {
     free(text);
-    actql_replace_error(&root->error, "invalid private Host root path");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "invalid private Host root path");
     return root;
   }
   root->custody_path = strdup(text);
   if (root->custody_path == NULL) {
     free(text);
-    actql_replace_error(&root->error, "root custody allocation failed");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "root custody allocation failed");
     return root;
   }
   // Walk pinned descriptors: no component may follow a symlink or interpret
@@ -604,12 +695,18 @@ void *actql_native_filesystem_open_private_root(
   int open_error = errno;
   free(text);
   if (root->fd < 0) {
-    actql_replace_errno_error(&root->error, "open private Host root", open_error);
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "open private Host root", open_error);
   } else if (!actql_native_filesystem_private_root_identity(root)) {
     close(root->fd);
     root->fd = -1;
   }
   return root;
+}
+
+void *actql_native_filesystem_open_private_root(
+  moonbit_bytes_t path, int32_t length
+) {
+  return actql_native_filesystem_open_private_root_with_diagnostics(path, length, 0);
 }
 
 static bool actql_private_file_same_generation(
@@ -865,8 +962,9 @@ int32_t actql_native_filesystem_test_private_mode(
 moonbit_bytes_t actql_native_filesystem_root_error(
   actql_native_filesystem_root *root
 ) {
-  return actql_copy_bytes(root == NULL ? "invalid Store root" :
-    root->close_result < 0 ? root->close_error : root->error);
+  return actql_copy_diagnostic(root == NULL ? "invalid Store root" :
+    root->close_result < 0 ? root->close_error : root->error,
+    root == NULL ? 0 : root->diagnostic_ceiling);
 }
 
 void *actql_native_filesystem_acquire_lock(
@@ -1388,18 +1486,18 @@ int32_t actql_native_filesystem_inspect_generation(
   int32_t length
 ) {
   if (root == NULL || root->fd < 0) return -1;
-  actql_replace_error(&root->error, NULL);
+  actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, NULL);
   root->result_device = 0;
   root->result_inode = 0;
   root->result_size = 0;
   char *name_text = actql_copy_text(name, length);
   if (name_text == NULL) {
-    actql_replace_error(&root->error, "object name allocation failed");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "object name allocation failed");
     return -1;
   }
   if (!actql_valid_name(name_text, (size_t)length)) {
     free(name_text);
-    actql_replace_error(&root->error, "invalid object name");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "invalid object name");
     return 2;
   }
   struct stat status;
@@ -1407,12 +1505,12 @@ int32_t actql_native_filesystem_inspect_generation(
     int stat_error = errno;
     free(name_text);
     if (stat_error == ENOENT) return 1;
-    actql_replace_errno_error(&root->error, "inspect object generation", stat_error);
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "inspect object generation", stat_error);
     return -1;
   }
   free(name_text);
   if (!S_ISREG(status.st_mode) || status.st_size < 0) {
-    actql_replace_error(&root->error, "object is not a regular generation");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "object is not a regular generation");
     return 2;
   }
   root->result_device = (uint64_t)status.st_dev;
@@ -1448,15 +1546,15 @@ int32_t actql_native_filesystem_reclaim_generation(
   int64_t size
 ) {
   if (root == NULL || root->fd < 0) return -1;
-  actql_replace_error(&root->error, NULL);
+  actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, NULL);
   char *name_text = actql_copy_text(name, length);
   if (name_text == NULL) {
-    actql_replace_error(&root->error, "object name allocation failed");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "object name allocation failed");
     return -1;
   }
   if (!actql_valid_name(name_text, (size_t)length) || size < 0) {
     free(name_text);
-    actql_replace_error(&root->error, "invalid object generation");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "invalid object generation");
     return 1;
   }
   struct stat status;
@@ -1465,11 +1563,10 @@ int32_t actql_native_filesystem_reclaim_generation(
     free(name_text);
     if (stat_error == ENOENT) {
       if (actql_sync_root(root) == 0) return 0;
-      actql_replace_errno_error(&root->error, "sync Store root", errno);
+      actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "sync Store root", errno);
       return -1;
     }
-    actql_replace_errno_error(
-      &root->error,
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling,
       "inspect committed file for reclamation",
       stat_error
     );
@@ -1478,14 +1575,13 @@ int32_t actql_native_filesystem_reclaim_generation(
   if (!S_ISREG(status.st_mode) ||
       !actql_exact_generation(&status, device, inode, size)) {
     free(name_text);
-    actql_replace_error(&root->error, "generation mismatch");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "generation mismatch");
     return 1;
   }
   if (unlinkat(root->fd, name_text, 0) != 0) {
     int unlink_error = errno;
     free(name_text);
-    actql_replace_errno_error(
-      &root->error,
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling,
       "remove committed generation",
       unlink_error
     );
@@ -1493,7 +1589,7 @@ int32_t actql_native_filesystem_reclaim_generation(
   }
   free(name_text);
   if (actql_sync_root(root) != 0) {
-    actql_replace_errno_error(&root->error, "sync Store root", errno);
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "sync Store root", errno);
     return -1;
   }
   return 0;
@@ -1503,9 +1599,9 @@ int32_t actql_native_filesystem_sync_root(
   actql_native_filesystem_root *root
 ) {
   if (root == NULL || root->fd < 0) return -1;
-  actql_replace_error(&root->error, NULL);
+  actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, NULL);
   if (actql_sync_root(root) == 0) return 0;
-  actql_replace_errno_error(&root->error, "sync Store root", errno);
+  actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "sync Store root", errno);
   return -1;
 }
 
@@ -1549,46 +1645,50 @@ void *actql_native_filesystem_open_reader(
   );
   memset(reader, 0, sizeof(*reader));
   reader->fd = -1;
+  reader->diagnostic_ceiling = root == NULL ? 0 : root->diagnostic_ceiling;
+  reader->open_failure_kind = ACTQL_READER_OPEN_READ_FAILURE;
   reader->root = root;
   if (root != NULL) moonbit_incref(root);
   reader->device = device;
   reader->inode = inode;
   reader->size = size;
   if (root == NULL || root->fd < 0) {
-    actql_replace_error(&reader->error, "Store root is unavailable");
+    actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling, "Store root is unavailable");
     return reader;
   }
   char *name_text = actql_copy_text(name, length);
   if (name_text == NULL) {
-    actql_replace_error(&reader->error, "object name allocation failed");
+    actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling, "object name allocation failed");
     return reader;
   }
   if (!actql_valid_name(name_text, (size_t)length) || size < 0) {
     free(name_text);
-    actql_replace_error(&reader->error, "invalid object generation");
+    actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling, "invalid object generation");
     return reader;
   }
   reader->fd = openat(root->fd, name_text, O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
   int open_error = errno;
   free(name_text);
   if (reader->fd < 0) {
-    actql_replace_errno_error(&reader->error, "open committed file", open_error);
+    actql_replace_bounded_errno_error(&reader->error, reader->diagnostic_ceiling, "open committed file", open_error);
     return reader;
   }
   struct stat status;
   if (fstat(reader->fd, &status) != 0) {
     int stat_error = errno;
     actql_native_filesystem_reader_close_once(reader);
-    actql_replace_errno_error(&reader->error, "inspect committed file", stat_error);
+    actql_replace_bounded_errno_error(&reader->error, reader->diagnostic_ceiling, "inspect committed file", stat_error);
     return reader;
   }
   if (!S_ISREG(status.st_mode) ||
       !actql_exact_generation(&status, device, inode, size)) {
+    reader->open_failure_kind = ACTQL_READER_OPEN_GENERATION_MISMATCH;
     actql_native_filesystem_reader_close_once(reader);
-    actql_replace_error(&reader->error, "generation mismatch");
+    actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling, "generation mismatch");
     return reader;
   }
   reader->ready = true;
+  reader->open_failure_kind = 0;
   return reader;
 }
 
@@ -1598,18 +1698,27 @@ int32_t actql_native_filesystem_reader_ready(
   return reader != NULL && reader->ready && reader->fd >= 0;
 }
 
+// Original physical open disposition, independent of fallible diagnostic text.
+int32_t actql_native_filesystem_reader_open_failure_kind(
+  actql_native_filesystem_reader *reader
+) {
+  return reader == NULL ? ACTQL_READER_OPEN_READ_FAILURE : reader->open_failure_kind;
+}
+
 moonbit_bytes_t actql_native_filesystem_reader_error(
   actql_native_filesystem_reader *reader
 ) {
-  return actql_copy_bytes(reader == NULL ? "invalid reader" :
-    reader->close_result < 0 ? reader->close_error : reader->error);
+  return actql_copy_diagnostic(reader == NULL ? "invalid reader" :
+    reader->close_result < 0 ? reader->close_error : reader->error,
+    reader == NULL ? 0 : reader->diagnostic_ceiling);
 }
 
 // Opening refusal and its cleanup outcome are separate original facts.
 moonbit_bytes_t actql_native_filesystem_reader_open_error(
   actql_native_filesystem_reader *reader
 ) {
-  return actql_copy_bytes(reader == NULL ? "invalid reader" : reader->error);
+  return actql_copy_diagnostic(reader == NULL ? "invalid reader" : reader->error,
+    reader == NULL ? 0 : reader->diagnostic_ceiling);
 }
 
 int32_t actql_native_filesystem_reader_next(
@@ -1621,17 +1730,17 @@ int32_t actql_native_filesystem_reader_next(
     return 2;
   }
   if (max_bytes <= 0 || max_bytes > 1048576) {
-    actql_replace_error(&reader->error, "invalid read size");
+    actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling, "invalid read size");
     return -1;
   }
-  actql_replace_error(&reader->error, NULL);
+  actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling, NULL);
   free(reader->chunk);
   reader->chunk = NULL;
   reader->chunk_length = 0;
   reader->eof = false;
   unsigned char *chunk = malloc((size_t)max_bytes);
   if (chunk == NULL) {
-    actql_replace_error(&reader->error, "read buffer allocation failed");
+    actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling, "read buffer allocation failed");
     return -1;
   }
   ssize_t count;
@@ -1641,7 +1750,7 @@ int32_t actql_native_filesystem_reader_next(
   if (count < 0) {
     int read_error = errno;
     free(chunk);
-    actql_replace_errno_error(&reader->error, "read committed file", read_error);
+    actql_replace_bounded_errno_error(&reader->error, reader->diagnostic_ceiling, "read committed file", read_error);
     return -1;
   }
   if (count == 0) {
@@ -1652,7 +1761,7 @@ int32_t actql_native_filesystem_reader_next(
   if (reader->offset > reader->size ||
       count > reader->size - reader->offset) {
     free(chunk);
-    actql_replace_error(&reader->error, "generation mismatch");
+    actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling, "generation mismatch");
     return 1;
   }
   reader->chunk = chunk;
@@ -1683,14 +1792,14 @@ static int32_t actql_native_filesystem_reader_close_once(
     return reader->close_result == 1 ? 0 : -1;
   }
   if (reader->fd < 0) return 0;
-  actql_replace_error(&reader->error, NULL);
+  actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling, NULL);
   int descriptor = reader->fd;
   // Consume before close: on Linux and Darwin a reported error may follow FD
   // retirement/reuse. Retrying the integer could close a different file.
   reader->fd = -1;
   reader->close_result = -1;
   if (close(descriptor) != 0) {
-    actql_replace_errno_error(&reader->close_error, "close reader", errno);
+    actql_replace_bounded_errno_error(&reader->close_error, reader->diagnostic_ceiling, "close reader", errno);
     return -1;
   }
   reader->close_result = 1;
@@ -1704,11 +1813,11 @@ int32_t actql_native_filesystem_reader_finish(
   if (reader->close_result < 0) return -1;
   if (reader->finished) return 0;
   if (reader->fd < 0) return 3;
-  actql_replace_error(&reader->error, NULL);
+  actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling, NULL);
   if (reader->offset != reader->size) return 2;
   struct stat status;
   if (fstat(reader->fd, &status) != 0) {
-    actql_replace_errno_error(&reader->error, "recheck committed file", errno);
+    actql_replace_bounded_errno_error(&reader->error, reader->diagnostic_ceiling, "recheck committed file", errno);
     return -1;
   }
   if (!S_ISREG(status.st_mode) || !actql_exact_generation(
@@ -1717,7 +1826,7 @@ int32_t actql_native_filesystem_reader_finish(
         reader->inode,
         reader->size
       )) {
-    actql_replace_error(&reader->error, "generation mismatch");
+    actql_replace_bounded_error(&reader->error, reader->diagnostic_ceiling, "generation mismatch");
     return 1;
   }
   if (actql_native_filesystem_reader_close_once(reader) != 0) return -1;
@@ -1743,25 +1852,25 @@ int32_t actql_native_filesystem_create_directory(
   if (root == NULL) return -1;
   root->result_directory_acquired = 0;
   if (root->fd < 0) return -1;
-  actql_replace_error(&root->error, NULL);
+  actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, NULL);
   root->result_device = 0;
   root->result_inode = 0;
   root->result_size = 0;
   char *name_text = actql_copy_text(name, length);
   if (name_text == NULL) {
-    actql_replace_error(&root->error, "directory name allocation failed");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "directory name allocation failed");
     return -1;
   }
   if (!actql_valid_name(name_text, (size_t)length)) {
     free(name_text);
-    actql_replace_error(&root->error, "invalid directory name");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "invalid directory name");
     return -1;
   }
   if (mkdirat(root->fd, name_text, 0700) != 0) {
     int create_error = errno;
     free(name_text);
     if (create_error == EEXIST) return 1;
-    actql_replace_errno_error(&root->error, "create directory", create_error);
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "create directory", create_error);
     return -1;
   }
   root->result_directory_acquired = 1;
@@ -1780,7 +1889,7 @@ int32_t actql_native_filesystem_create_directory(
     free(name_text);
     // No identity: retain the allocation for reconciliation, never unlink
     // whichever entry happens to be at this name now.
-    actql_replace_errno_error(&root->error, "inspect created directory", stat_error);
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "inspect created directory", stat_error);
     return -1;
   }
   free(name_text);
@@ -1790,7 +1899,7 @@ int32_t actql_native_filesystem_create_directory(
   root->result_inode = (uint64_t)status.st_ino;
   root->result_directory_acquired = 2;
   if (actql_sync_root(root) != 0) {
-    actql_replace_errno_error(&root->error, "sync Store root", errno);
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "sync Store root", errno);
     return -1;
   }
   return 0;
@@ -1804,18 +1913,18 @@ int32_t actql_native_filesystem_inspect_directory(
   int32_t length
 ) {
   if (root == NULL || root->fd < 0) return -1;
-  actql_replace_error(&root->error, NULL);
+  actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, NULL);
   root->result_device = 0;
   root->result_inode = 0;
   root->result_size = 0;
   char *name_text = actql_copy_text(name, length);
   if (name_text == NULL) {
-    actql_replace_error(&root->error, "directory name allocation failed");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "directory name allocation failed");
     return -1;
   }
   if (!actql_valid_name(name_text, (size_t)length)) {
     free(name_text);
-    actql_replace_error(&root->error, "invalid directory name");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "invalid directory name");
     return 2;
   }
   struct stat status;
@@ -1823,7 +1932,7 @@ int32_t actql_native_filesystem_inspect_directory(
     int stat_error = errno;
     free(name_text);
     if (stat_error == ENOENT) return 1;
-    actql_replace_errno_error(&root->error, "inspect directory", stat_error);
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "inspect directory", stat_error);
     return -1;
   }
   free(name_text);
@@ -1844,10 +1953,10 @@ int32_t actql_native_filesystem_remove_directory(
   uint64_t inode
 ) {
   if (root == NULL || root->fd < 0) return -1;
-  actql_replace_error(&root->error, NULL);
+  actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, NULL);
   char *name_text = actql_copy_text(name, length);
   if (name_text == NULL) {
-    actql_replace_error(&root->error, "directory name allocation failed");
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling, "directory name allocation failed");
     return -1;
   }
   if (!actql_valid_name(name_text, (size_t)length)) {
@@ -1860,10 +1969,10 @@ int32_t actql_native_filesystem_remove_directory(
     free(name_text);
     if (stat_error == ENOENT) {
       if (actql_sync_root(root) == 0) return 0;
-      actql_replace_errno_error(&root->error, "sync Store root", errno);
+      actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "sync Store root", errno);
       return -1;
     }
-    actql_replace_errno_error(&root->error, "inspect directory for removal", stat_error);
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "inspect directory for removal", stat_error);
     return -1;
   }
   if (!S_ISDIR(status.st_mode) || (uint64_t)status.st_dev != device ||
@@ -1876,12 +1985,12 @@ int32_t actql_native_filesystem_remove_directory(
     free(name_text);
     if (remove_error == ENOTEMPTY || remove_error == EEXIST) return 3;
     if (remove_error == ENOENT) return 0;
-    actql_replace_errno_error(&root->error, "remove directory", remove_error);
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "remove directory", remove_error);
     return -1;
   }
   free(name_text);
   if (actql_sync_root(root) != 0) {
-    actql_replace_errno_error(&root->error, "sync Store root", errno);
+    actql_replace_bounded_errno_error(&root->error, root->diagnostic_ceiling, "sync Store root", errno);
     return -1;
   }
   return 0;
@@ -1899,18 +2008,19 @@ void *actql_native_filesystem_open_child_root(
   );
   memset(child, 0, sizeof(*child));
   child->fd = -1;
+  child->diagnostic_ceiling = root == NULL ? 0 : root->diagnostic_ceiling;
   if (root == NULL || root->fd < 0) {
-    actql_replace_error(&child->error, "Store root is unavailable");
+    actql_replace_bounded_error(&child->error, child->diagnostic_ceiling, "Store root is unavailable");
     return child;
   }
   char *name_text = actql_copy_text(name, length);
   if (name_text == NULL) {
-    actql_replace_error(&child->error, "directory name allocation failed");
+    actql_replace_bounded_error(&child->error, child->diagnostic_ceiling, "directory name allocation failed");
     return child;
   }
   if (!actql_valid_name(name_text, (size_t)length)) {
     free(name_text);
-    actql_replace_error(&child->error, "invalid directory name");
+    actql_replace_bounded_error(&child->error, child->diagnostic_ceiling, "invalid directory name");
     return child;
   }
   child->fd = openat(
@@ -1929,7 +2039,7 @@ void *actql_native_filesystem_open_child_root(
   }
   free(name_text);
   if (child->fd < 0) {
-    actql_replace_errno_error(&child->error, "open allocation directory", open_error);
+    actql_replace_bounded_errno_error(&child->error, child->diagnostic_ceiling, "open allocation directory", open_error);
   }
   return child;
 }
