@@ -28,6 +28,10 @@ pub fn compile(@query_syntax.Query, Context, Limits, table_writes? : Array[Table
 
 pub fn compile_query_script(@query_syntax.QueryScript, Context, Limits, table_writes? : Array[TableWriteBinding]) -> Result[@stage_syntax.Program, Issue]
 
+pub fn compile_with_source(@query_syntax.Query, Context, Limits, table_writes? : Array[TableWriteBinding]) -> Result[(@stage_syntax.Program, @program_source_builder.Source), Issue]
+
+pub fn issue_without_source(Issue) -> Issue
+
 pub fn resolve_table_write_binding(Array[TableWriteBinding], Array[@query_syntax.NamePart], Bool, Int) -> Result[TableWriteBinding, TableWriteBindingIssue]
 
 pub fn same_relation_path(Array[@query_syntax.NamePart], Array[@query_syntax.NamePart]) -> Bool
@@ -51,6 +55,11 @@ pub(all) enum BindingPreparationIssue {
   SourceDeclarations(@sourceview_input.Issue)
   MissingSourceCatalog(@sourceview_input.Declaration)
   SourceRegistration(@pipeline_check_context.SourceRegistrationIssue)
+  SourceSelection(@sourceview_resolution.Issue)
+  SourceRequestBindings(@binding_declarations.Issue)
+  SourceRequestSlots(@source_request_slots.Issue)
+  SourceRequest(@sourceview_resolution.RequestIssue)
+  SourceRequestForm(@sourceview_resolution.RequestFormIssue)
   SourceProgram(@pipeline_check_context.SourceViewProgramIssue)
   LocalProgram(@stage_results.LocalProgramIssue)
   Demand(BindingDemandIssue)
@@ -146,6 +155,7 @@ pub(all) enum Issue {
   Expression(@query_expression.Diagnostic)
   ExpressionTyping(@expression_typing.Issue)
   BindingPreparation(BindingPreparationIssue)
+  BindingPreparationSource(BindingPreparationIssue, @program_source_builder.Source)
   Admission(@stage_syntax.SyntaxError)
 }
 

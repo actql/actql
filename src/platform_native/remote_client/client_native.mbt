@@ -141,31 +141,6 @@ pub fn poll_operation(
 }
 
 ///|
-/// Compatibility helper for dispatch-only consumers. A query cannot be
-/// mistaken for executable work.
-pub fn poll(
-  client : @http.Client,
-  url : String,
-) -> Result[@remote.DispatchRequest?, NativeRemoteClientIssue] {
-  match poll_operation(client, url) {
-    Ok(None) => Ok(None)
-    Ok(Some(@remote.Dispatch(dispatch))) =>
-      Ok(Some(@remote.remote_poll_dispatch_request(dispatch)))
-    Ok(Some(@remote.RetainedPlan(_)))
-    | Ok(Some(@remote.RetainedTransfer(_)))
-    | Ok(Some(@remote.RetainedCurrent(_)))
-    | Ok(Some(@remote.EffectCurrent(_)))
-    | Ok(Some(@remote.EffectResume(_)))
-    | Ok(Some(@remote.Plan(_)))
-    | Ok(Some(@remote.Output(_)))
-    | Ok(Some(@remote.Query(_)))
-    | Ok(Some(@remote.Cancel(_)))
-    | Ok(Some(@remote.Release(_))) => Err(Protocol(@remote.InvalidDispatch))
-    Err(issue) => Err(issue)
-  }
-}
-
-///|
 /// Durably accept a polled dispatch before acknowledging it to the
 /// Coordinator. Repeating this operation reconciles the same Site record.
 pub fn acknowledge_acceptance(

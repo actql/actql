@@ -9,6 +9,8 @@ import {inferPublicationExecution} from './infer-result-publication.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
 import {runInstalledComposedInfers} from './installed-composed-infer-run.mjs';
 import {createInferIoNotification} from './infer-io-notification.mjs';
+import {selectedInferOriginalCurrentStateCodec,
+  selectedInferOriginalPublicationCapacity} from './infer-original-installation.mjs';
 
 export function installNodeInferRun({moon, core, registry, values, fragment, ordered, selections,
   namespaceId, authorityScopeCid, storeAuthorityCid, now, faultInjection, modelController, inferEvidence,
@@ -23,6 +25,12 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       throw new Error('InstalledInferSelectionMissing');
     }
     const originalInstallation = selected.originalReadInstallation;
+    if (originalInstallation!==undefined) {
+      // Known missing selection refuses before creating the original child.
+      // This finite DATA role supplies no normal numerical funding or grant.
+      selectedInferOriginalCurrentStateCodec(originalInstallation,originalInstallation.nodeInstallation);
+      selectedInferOriginalPublicationCapacity(originalInstallation,originalInstallation.nodeInstallation);
+    }
     if (originalInstallation !== undefined &&
         (originalPreparation !== undefined || acquiredInfer !== undefined || replay ||
           selected.components !== undefined)) {
@@ -128,6 +136,13 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         const recover = captureCloseAttempted;
         captureCloseAttempted = true;
         try {
+          if (operation?.publicationCapacityPending?.()) {
+            // Physical child/alias retirement is observed by its existing
+            // custody. Release this operation's exact original byte borrow,
+            // not a Bool-derived grant, before the pinned parent Model cleanup.
+            if (!await captureOwner.custody.retirePublication()) return false;
+            if (!operation.releaseOriginalPublicationCapacity()) return false;
+          }
           const child = captureOwner?.custody ?? operation;
           const result = child === undefined ? true : await (recover ? child.cleanup() : child.close());
           captureReleased = result !== false && (child === undefined || child.cleanupPending() === false);
@@ -349,6 +364,12 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           }
           const decision = await continuation.authorize();
           if (decision.status === 'waiting_checkpoint') return decision;
+          if (originalPreparation!==undefined) {
+            // Same actual journal now has the original CallSet. Complete its
+            // saved Resource cut and nominal fence removal before next advance
+            // can create an Entry. Authorization and physical send stay separate.
+            await continuation.prepareOriginalResourcesForDispatch();
+          }
           continue;
         }
         if (boundary?.status === 'settling') { await settle(boundary.settlement); continue; }

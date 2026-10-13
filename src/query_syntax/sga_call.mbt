@@ -5,6 +5,7 @@ pub(all) enum SgaArgument {
   Producer(NamePart)
   FieldReference(Array[NamePart])
   OutputName(NamePart)
+  ExpressionValue(SgaPredicate)
   TextValue(String)
   NumberValue(String)
   BooleanValue(Bool)
@@ -16,12 +17,13 @@ pub(all) enum SgaArgument {
 } derive(Eq, Debug)
 
 ///|
-pub(all) struct SgaCall {
+pub struct SgaCall {
   operation : String
   arguments : Array[(String, SgaArgument)]
   start : Int
   end : Int
-} derive(Eq, Debug)
+  priv provenance : SgaCallProvenance
+} derive(Debug)
 
 ///|
 // These are the adopted ActQL logical operation names, not GQL functions or
@@ -35,10 +37,12 @@ fn sga_operation(name : String) -> Bool {
     | "vectors"
     | "to_events"
     | "row_window"
+    | "window_group"
     | "window_events"
     | "watermark_events"
     | "watermark_rows"
     | "lag"
+    | "sequence"
     | "asof_join"
     | "interval_join"
     | "time_series"
@@ -105,9 +109,9 @@ fn carrier_call_head(token : Token) -> Bool {
     Word(name) =>
       [
         "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
-        "to_events", "row_window", "window_events", "watermark_events", "session",
-        "events", "dedupe_events", "watermark_rows", "lag", "asof_join", "interval_join",
-        "merge_rankings",
+        "to_events", "row_window", "window_group", "window_events", "watermark_events",
+        "session", "events", "dedupe_events", "watermark_rows", "lag", "sequence",
+        "asof_join", "interval_join", "merge_rankings",
       ].contains(ascii_upper(name).to_lower())
     _ => false
   }
@@ -208,6 +212,8 @@ fn sga_producer_argument(operation : String, path : Array[String]) -> Bool {
 ///|
 fn sga_selector_object(operation : String, path : Array[String]) -> Bool {
   match operation {
+    "sequence" => path == ["pattern"]
+    "window_group" => path.length() == 2 && path[0] == "aggregates"
     "asof_join" => path == ["by"]
     "interval_join" => path == ["on"] || path == ["left"] || path == ["right"]
     "merge_rankings" =>
@@ -240,6 +246,17 @@ fn QueryParser::sga_argument(
   }
   self.node()
   let token = self.peek()
+  if (operation == "sequence" && path == ["pattern", "where"]) ||
+    (
+      operation == "window_group" &&
+      path.length() == 3 &&
+      path[0] == "aggregates" &&
+      ["expr", "filter"].contains(path[2])
+    ) {
+    // Parse the original bounded query tokens once. Preserve its Expression
+    // owner, source spans and charged work; no String/JSON predicate adapter.
+    return ExpressionValue({ expression: self.expression(), })
+  }
   if token.value == Symbol(91) {
     self.symbol(91)
     let items : Array[SgaArgument] = []
@@ -294,13 +311,22 @@ fn QueryParser::sga_argument(
     return Producer(self.resolve_producer([self.name()])[0])
   }
   if token.value == Symbol(123) &&
-    ["dedupe_events", "lag"].contains(operation) &&
-    path == ["order_by"] {
+    (
+      (["dedupe_events", "lag"].contains(operation) && path == ["order_by"]) ||
+      (
+        operation == "window_group" &&
+        path.length() == 3 &&
+        path[0] == "aggregates" &&
+        path[2] == "order_by"
+      )
+    ) {
     return self.sga_order_argument(operation, depth + 1)
   }
   if token.value == Symbol(123) &&
-    ["asof_join", "interval_join"].contains(operation) &&
-    path == ["select"] {
+    (
+      (["asof_join", "interval_join"].contains(operation) && path == ["select"]) ||
+      (operation == "window_group" && path == ["aggregates"])
+    ) {
     self.symbol(123)
     let fields : Array[(String, SgaArgument)] = []
     while self.peek().value != Symbol(125) {
@@ -309,7 +335,14 @@ fn QueryParser::sga_argument(
       let name = self.sga_output_name()
       self.spend(fields.length())
       if fields.any(field => field.0 == name.value) {
-        raise QueryAbort("Duplicate temporal output name", at)
+        raise QueryAbort(
+          if operation == "window_group" {
+            "Duplicate aggregate output name"
+          } else {
+            "Duplicate temporal output name"
+          },
+          at,
+        )
       }
       self.symbol(58)
       fields.push(
@@ -328,7 +361,14 @@ fn QueryParser::sga_argument(
       }
       self.symbol(44)
       if self.peek().value == Symbol(125) {
-        raise QueryAbort("Expected temporal output name", self.peek().start)
+        raise QueryAbort(
+          if operation == "window_group" {
+            "Expected aggregate output name"
+          } else {
+            "Expected temporal output name"
+          },
+          self.peek().start,
+        )
       }
     }
     self.symbol(125)
@@ -446,6 +486,7 @@ fn QueryParser::sga_arguments(
   depth : Int,
   closing : Int,
   current_alias? : NamePart? = None,
+  origins? : Array[(Int, Int)]? = None,
 ) -> Array[(String, SgaArgument)] raise QueryAbort {
   let fields : Array[(String, SgaArgument)] = []
   while self.peek().value != Symbol(closing) {
@@ -467,6 +508,7 @@ fn QueryParser::sga_arguments(
       raise QueryAbort("Duplicate SGA argument", at)
     }
     self.symbol(58)
+    let value_start = self.peek().start
     let value = self.sga_argument(
       operation,
       path + [key],
@@ -474,6 +516,9 @@ fn QueryParser::sga_arguments(
       current_alias~,
     )
     fields.push((key, value))
+    if origins is Some(origins) {
+      origins.push((value_start, self.source.tokens[self.index - 1].end))
+    }
     if self.peek().value != Symbol(44) {
       break
     }
@@ -500,10 +545,33 @@ fn QueryParser::sga_call(
     raise QueryAbort("Unknown SGA operation", token.start)
   }
   self.symbol(40)
-  let arguments = self.sga_arguments(operation, [], 1, 41, current_alias~)
+  let origins : Array[(Int, Int)] = []
+  let argument_start = self.index
+  let arguments = self.sga_arguments(
+    operation,
+    [],
+    1,
+    41,
+    current_alias~,
+    origins=Some(origins),
+  )
+  // A bounded snapshot protects provenance from mutable public argument views.
+  // Charge its traversal before copying; immutable Expression owners are reused.
+  self.spend(self.index - argument_start)
+  let snapshot = arguments.map(field => (field.0, copy_sga_argument(field.1)))
   let end = self.peek().end
   self.symbol(41)
-  { operation, arguments, start: token.start, end, }
+  {
+    operation,
+    arguments,
+    start: token.start,
+    end,
+    provenance: {
+      document: self.source.document,
+      arguments: snapshot,
+      ranges: origins,
+    },
+  }
 }
 
 ///|

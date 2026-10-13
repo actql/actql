@@ -51,8 +51,14 @@ export async function openReadOpeningFixture(directory, loss,
   traceReadRecovery('journal-open:finished');
   const counts = {admissions: 0, readers: 0, computes: 0, definitions: 0};
   const deliveryOrders = [];
-  let allowed = true, armed = loss, loseReply, beforeSuccessRecord, beforeRow;
+  let allowed = true, armed = loss, loseReply, beforeSuccessRecord, beforeRow,
+    afterDeliveryLookup;
   const observed = {...store,
+    async lookupDeliveryAttempt(request) {
+      const found = await store.lookupDeliveryAttempt(request);
+      await afterDeliveryLookup?.(found);
+      return found;
+    },
     async appendDeliveryRecord(wire) {
       const state = JSON.parse(wire).state;
       traceReadRecovery('delivery-record:start', {state});
@@ -176,6 +182,7 @@ export async function openReadOpeningFixture(directory, loss,
     retainedAdmission: ref => journal.lookupRunDefinition(ref, moon, control)?.runAdmissionEvidence,
     beforeSuccessRecord: callback => {beforeSuccessRecord = callback;},
     beforeRow: callback => {beforeRow = callback;},
+    afterDeliveryLookup: callback => {afterDeliveryLookup = callback;},
     arm: phase => {armed = phase;}, authorize: value => {allowed = value;},
     loseReply: callback => {loseReply = callback;},
     async close() {journal.close(); await store.close();}};

@@ -40,8 +40,10 @@ test "original DAG spends obligation inventory without relying on expansion" {
   )
   let owners = physical_graph_owners(program)
   // Original DAG: stage, owner snapshot, Values obligation, root Result = 4.
-  // Classification: stage, Result, Values Step = 3. No split or remapping.
-  for work in [5, 6] {
+  // Classification: stage, Result, Content-fusion visit, Values shape
+  // visit = 4. The one-step probe does not return early (no Serialize).
+  // Total 8; preserve the previous 7-unit budget as a refusal.
+  for work in [5, 6, 7] {
     assert_true(
       @strategy.prepare_checked_dag(
         program,
@@ -53,13 +55,9 @@ test "original DAG spends obligation inventory without relying on expansion" {
       is Err(WorkLimit),
     )
   }
-  let graph = @strategy.prepare_checked_dag(
-    program,
-    owners,
-    1,
-    7,
-    source_free_root=true,
-  ).unwrap()
+  let graph = checkpoint_graph_issue(
+    @strategy.prepare_checked_dag(program, owners, 1, 8, source_free_root=true),
+  )
   assert_eq(@strategy.graph_task_count(graph), 1)
   assert_eq(@strategy.graph_task_operation_count(graph, 0), Some(1))
   assert_eq(@strategy.graph_task_selected_step(graph, 0), None)
