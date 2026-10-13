@@ -140,8 +140,8 @@ export async function installVectorScalarFixture({moon, helpers,
           limits: {maxPages: 1, maxPageBytes: 4096, maxPageRows: 3, maxCaptureRows: 3},
           readPages: createVectorScalarPageDriver(observations)});
       } catch (cause) {
-        site.close();
-        throw cause;
+        throw await helpers.retainInstalledHostInitializationFailure(cause,
+          {sourceProfile: observedSite});
       }
     },
   };
