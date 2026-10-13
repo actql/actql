@@ -19,3 +19,25 @@ test "quoted reserved output lowers to the independent ordinary Program and comm
     Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
   }
 }
+
+///|
+test "quoted manual row aliases reach the ordinary common Program checker" {
+  for source in [
+    "SELECT `ROWS` AS id FROM UNNEST([1]) AS `ROWS`",
+    "SELECT `ROWS` AS id FROM UNNEST([1]) AS item WITH OFFSET AS `ROWS`",
+    "WITH result_rows AS (SELECT 1 AS id) FROM result_rows |> AS `ROWS` |> SELECT `ROWS`.id",
+    "WITH result_rows AS (SELECT 1 AS x) FROM result_rows |> UNPIVOT(v FOR k IN(x)) AS `ROWS` |> SELECT `ROWS`.v AS id",
+  ] {
+    let actual = compile(
+      @query.parse_query(source, syntax_limits()).unwrap(),
+      { ..fixture_context(), inputs: [] },
+      construction_limits(),
+    ).unwrap()
+    assert_true(semantic(actual).contains("\"fields\":[\"id\"]"), msg=source)
+    match @check.check_parsed(actual, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      NeedsInputs(_) => fail("the authored value is source-free")
+      Rejected(diagnostic) => raise @check.diagnostic_cause(diagnostic)
+    }
+  }
+}
