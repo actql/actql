@@ -96,10 +96,14 @@ fn configure_source_free_compute(
     Ok(_) => ()
     Err(code) => return code
   }
-  guard value.physical_starts.get(start_handle) is Some(physical) else { return -2 }
+  guard value.physical_starts.get(start_handle) is Some(physical) else {
+    return -2
+  }
   if physical.sdk_step is Some(step) {
     let code = validate_sdk_start_claim(value, step, plan)
-    if code != 0 { return code }
+    if code != 0 {
+      return code
+    }
   }
   if record.outcome is Some(_) {
     return 0
