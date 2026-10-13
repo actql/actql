@@ -30,8 +30,19 @@ pub fn start_client_original_keyed_direct_row_acquisition(
     Ok(value) => value
     Err(issue) => return Err(Original(issue))
   }
+  // Existing transport evidence is necessary but cannot keep a stopped original
+  // Scope usable. Recheck custody AFTER that callback; it may synchronously
+  // close/park the Scope. Descriptor/read issuance alone is not retirement.
+  // This extra closure and its captured references must be in the original
+  // bootstrap envelope; no physical coefficient is supplied by this wrapper.
+  let original_verify = attempt => {
+    verify(attempt) &&
+    @publication_host.client_original_keyed_capture_available(
+      scope, compiled, definition, plan, prepared, keyed,
+    )
+  }
   @row_source_host.start_accounted_row_acquisition(
-    acquisition, nonce, verify, ledger, transfer_bytes, execution_scratch,
+    acquisition, nonce, original_verify, ledger, transfer_bytes, execution_scratch,
   ).map_err(issue => Acquisition(issue))
 }
 

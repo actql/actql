@@ -269,6 +269,16 @@ test "original keyed Direct binding rejects a foreign checked selection and issu
   let (scope, ledger) = original_row_scope(compiled, definition, plan)
   let before = @resources.ledger_usage(ledger)
   assert_true(
+    @publication_host.client_original_keyed_capture_available(
+      scope, compiled, definition, plan, prepared, keyed,
+    ),
+  )
+  assert_false(
+    @publication_host.client_original_keyed_capture_available(
+      scope, compiled, definition, plan, foreign, foreign_keyed,
+    ),
+  )
+  assert_true(
     @publication_host.borrow_client_original_keyed_direct_ledger(
       scope, compiled, definition, plan, prepared, foreign_keyed, requirement,
     )
@@ -283,6 +293,13 @@ test "original keyed Direct binding rejects a foreign checked selection and issu
   assert_eq(@resources.ledger_usage(ledger), before)
   let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
   let issued = @resources.ledger_usage(ledger)
+  // Existing dependencies survive immutable descriptor/read issuance; only
+  // NEW capture preparation must reject this phase.
+  assert_true(
+    @publication_host.client_original_keyed_capture_available(
+      scope, compiled, definition, plan, prepared, keyed,
+    ),
+  )
   assert_true(
     @publication_host.borrow_client_original_keyed_direct_ledger(
       scope, compiled, definition, plan, prepared, keyed, requirement,
@@ -295,6 +312,11 @@ test "original keyed Direct binding rejects a foreign checked selection and issu
     @publication_host.finish_client_model_read_scope(
       scope, compiled, definition, plan, true,
     ).unwrap(),
+  )
+  assert_false(
+    @publication_host.client_original_keyed_capture_available(
+      scope, compiled, definition, plan, prepared, keyed,
+    ),
   )
 }
 
@@ -331,9 +353,17 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
       2L,
     transfer_bytes=4096L,
   )
+  let cleanup_requested = Ref(false)
   let run = start_client_original_keyed_direct_row_acquisition(
     scope, compiled, definition, plan, prepared, keyed, acquisition,
-    "original-empty-direct", _ => true, 4096L, 4096L,
+    "original-empty-direct", _ => {
+      if cleanup_requested.val {
+        @publication_host.finish_client_model_read_scope(
+          scope, compiled, definition, plan, false,
+        ) |> ignore
+      }
+      true
+    }, 4096L, 4096L,
   ).unwrap()
   @row_source_host.begin_row_run(run, 4096, 3, 3).unwrap()
   @row_source_host.begin_row_run_listing_request(run, None, 0L).unwrap()
@@ -404,6 +434,17 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     ),
   )
   assert_eq(@resources.ledger_usage(ledger), retired)
+  // A liveness callback can begin original cleanup synchronously and still
+  // return true. The AFTER-callback fence must revoke use without certifying
+  // physical close or returning the Direct holding. Cleanup remains callable.
+  cleanup_requested.val = true
+  assert_true(@row_source_host.row_capture_source(capture) is Err(_))
+  assert_false(
+    @publication_host.client_original_keyed_capture_available(
+      scope, compiled, definition, plan, prepared, keyed,
+    ),
+  )
+  assert_eq(@resources.ledger_usage(ledger).holdings, 1)
   @row_source_host.close_accounted_row_run(run).unwrap()
   assert_true(@row_source_host.row_capture_source(capture) is Err(_))
   assert_eq(@resources.ledger_usage(ledger).holdings, 0)

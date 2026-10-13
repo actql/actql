@@ -1,4 +1,24 @@
 ///|
+// Lifetime of the original captured-left dependency, not permission to acquire
+// another Source. Unlike the preparation prerequisite, this remains valid
+// after descriptor/read issuance while its original custody is still live.
+// There is no user callback between these nominal checks and the final fence.
+pub fn client_original_keyed_capture_available(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+  prepared : PreparedClientProgram,
+  keyed : ClientKeyedAcquisition,
+) -> Bool {
+  client_model_origin_matches(scope.origin, compiled, definition, plan) &&
+  client_compiled_run_matches(compiled, prepared) &&
+  physical_equal(plan.owner, prepared) &&
+  client_keyed_acquisition_matches_program(keyed, prepared) &&
+  @resources.original_ledger_inventory_available(scope.identity)
+}
+
+///|
 // Before the initial Direct read of a checked keyed pipeline, lend the original
 // Ledger only to its existing Core Local accounted Row receiver. This checks
 // Source inventory, not successful keyed acquisition, authority or Model send.
