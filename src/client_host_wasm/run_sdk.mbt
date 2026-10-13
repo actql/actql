@@ -4,6 +4,7 @@ priv struct StoredSDKRunConfiguration {
   profile : @host.ClientLocalRunPolicyProfile
   read : @publication.LocalSDKResultReadSelection
   adoption_cid : String
+  store_authority_cid : String
 }
 
 ///|
@@ -200,6 +201,7 @@ pub fn install_sdk_run_configuration(
       profile,
       read: selection,
       adoption_cid: "sha256:" + @sha.hex(adoption),
+      store_authority_cid: "sha256:" + @sha.hex(store),
     }),
   }
   handle

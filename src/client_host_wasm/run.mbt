@@ -20,6 +20,7 @@ priv struct StoredRunConfiguration {
 priv struct StoredRun {
   borrow : @buffers.BufferBorrow
   slot : @buffers.BufferSlot
+  input_physical : Int
   configuration : Int
   preparation : Int
   mut invoked : Bool
@@ -243,6 +244,7 @@ pub fn reserve_run(
   value.runs[handle] = {
     borrow,
     slot,
+    input_physical: physical,
     configuration,
     preparation,
     invoked: false,

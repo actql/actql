@@ -356,6 +356,7 @@ pub fn starts_query(
         keyword(first, "FROM") ||
         keyword(first, "CREATE") ||
         keyword(first, "TIME_SERIES") ||
+        keyword(first, "CALENDAR_SERIES") ||
         first.value == Symbol(40),
       )
     }
@@ -2485,7 +2486,7 @@ fn QueryParser::query(
     self.producer_query(GraphValue(self.graph()))
   } else if self.has("MEAN_GRAPHS") {
     self.producer_query(GraphGenerator(self.sga_call()))
-  } else if self.has("TIME_SERIES") {
+  } else if self.has("TIME_SERIES") || self.has("CALENDAR_SERIES") {
     self.producer_query(RelationGenerator(self.sga_call()))
   } else {
     self.sql()
@@ -2867,7 +2868,7 @@ fn QueryParser::pipe_tail(
     }
     ignore(self.advance())
     self.node()
-    if self.has("TIME_SERIES") {
+    if self.has("TIME_SERIES") || self.has("CALENDAR_SERIES") {
       raise QueryAbort(
         "Relation generator cannot consume an input",
         self.peek().start,

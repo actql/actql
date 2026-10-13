@@ -253,6 +253,26 @@ class LocalRunCustody:
             self._core._check('physical_start_ready', self._core._call(
                 'run', 'physical_start_ready', value.handle))
 
+    def reserve_sdk_physical_start(self, run: _Run, step: _Output) -> _PhysicalStart:
+        """Bind existing start proof only after Core observes its stored claim."""
+        with self._core._lock:
+            self._active()
+            self._run(run)
+            self._core._owned_output(step)
+            configuration = run.configuration
+            if not configuration.sdk or configuration.current is None:
+                raise ValueError('Missing original SDK start configuration')
+            self._core._host_current_ready(configuration.current)
+            handle = self._core._call('run', 'reserve_sdk_physical_start', run.handle, step.handle)
+            callbacks = self._core._journal_callbacks(configuration.current.ticket)
+            if callbacks is not None and callbacks.failure is not None:
+                raise callbacks.failure
+            if handle <= 0:
+                raise LocalCoreError('reserve_sdk_physical_start', handle)
+            value = _PhysicalStart(self._identity, handle, run, configuration, run.input)
+            self._starts[handle] = value
+            return value
+
     def close_physical_start(self, value: _PhysicalStart) -> bool:
         with self._core._lock:
             self._start(value)
