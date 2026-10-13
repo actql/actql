@@ -244,6 +244,16 @@ fn NativeClientRunJournal::accept_original_submitted_run(
     if @host.client_submitted_intent_cid(original.intent) != intent_cid {
       return Err(ChangedIntent)
     }
+    if original.run_admission is None && local_run_policy_originals is None {
+      match
+        self.database.read(
+          "client_local_installation_originals", local_policy_upgrade_key,
+        ) {
+        Ok(_) => return Err(CustodyLost)
+        Err(@sqlite.NotFound) => ()
+        Err(issue) => return Err(Physical(issue))
+      }
+    }
     let before = if original.run_admission is Some(_) {
       "ready"
     } else {

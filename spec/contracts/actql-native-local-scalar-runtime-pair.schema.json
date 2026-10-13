@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:actql:native-local-scalar-runtime-pair:0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "current_manifest_sha256",
+    "current_source_sha",
+    "evidence_cid",
+    "original_manifest_sha256",
+    "original_source_sha",
+    "platform",
+    "profile",
+    "version"
+  ],
+  "properties": {
+    "current_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "current_source_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "evidence_cid": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "original_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "original_source_sha": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$"
+    },
+    "platform": {
+      "const": "darwin-arm64"
+    },
+    "profile": {
+      "const": "primitive-scalar-values"
+    },
+    "version": {
+      "const": "actql-native-local-scalar-runtime-pair/0.1"
+    }
+  }
+}

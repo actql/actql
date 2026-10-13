@@ -409,3 +409,30 @@ test "Local Native Source does not invent missing registered receipt Capabilitie
     is Err(Configuration(Candidate)),
   )
 }
+
+///|
+test "Native Source capability identifies the independently pinned current two-receipt contract" {
+  let (plan, _, _) = python_native_plan("receipt-capability-control")
+  let requirement = @client_local_host.prepare_local_query_requirement(
+    @local_run.local_run_prepared(plan),
+    0,
+    0,
+    @identity.stringify_value(registered_body(), 100000, 10000, 100),
+    @identity.stringify_value(registered_values(), 100000, 10000, 100),
+    Some(@identity.stringify_value(registered_fragment(), 100000, 10000, 100)),
+    None,
+  ).unwrap()
+  let context = @acquisition_host.prepare_native_source_evidence_context(
+    requirement,
+  ).unwrap()
+  assert_true(
+    @acquisition_host.source_evidence_context_supports(
+      context, "sha256:d3d2737da6d73801f85208a2cdfe50c412e9f7b24e8bf9807e6f804e11757dd7",
+    ),
+  )
+  assert_false(
+    @acquisition_host.source_evidence_context_supports(
+      context, "sha256:7d9eec132b742aca27b78a801c6bea187a251b7423967950e285755c50e853d8",
+    ),
+  )
+}

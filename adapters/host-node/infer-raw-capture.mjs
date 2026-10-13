@@ -3,6 +3,16 @@ import {preparePrivatePublicationHolding} from
 import {checked} from '../host-common/runtime-result.mjs';
 import {createHash} from 'node:crypto';
 
+// Membership of a private physical port in the existing operation, not a new
+// resource or grant Owner. A matching function/CID/copy is not this original.
+const originalTransportPorts = new WeakMap();
+
+export function originalModelRawTransportPersistenceMatches(port, operation, registration) {
+  const original = originalTransportPorts.get(port);
+  return original !== undefined && original.operation.deref() === operation &&
+    original.registration === registration;
+}
+
 const tuple = (value, length) => {
   const fields = Array.isArray(value) ? value
     : Array.from({length}, (_, index) => value?.[`_${index}`]);
@@ -134,7 +144,7 @@ export function createModelRawCaptureStorePort(store, moon, view, bytes) {
 // holding before persistence, including callback/save failures. Core admits
 // the descriptor from the original call and registration, not hand-built JSON.
 export function createModelRawTransportPersistence({store, moon, registration,
-  retainHolding, notify}) {
+  retainHolding, notify, operation}) {
   if (typeof retainHolding !== 'function' || typeof notify !== 'function') {
     throw new TypeError('MissingRawHoldingCustody');
   }
@@ -198,6 +208,7 @@ export function createModelRawTransportPersistence({store, moon, registration,
       // Save/receipt and raw views retain their independent original custody.
       originalRaw = undefined;
       port = undefined;
+      originalTransportPorts.delete(persist);
       retired = true;
       return true;
     };
@@ -219,5 +230,8 @@ export function createModelRawTransportPersistence({store, moon, registration,
     void port.holding.abort().then(wake, wake);
     return false;
   };
+  if (operation !== undefined) {
+    originalTransportPorts.set(persist, {operation: new WeakRef(operation), registration});
+  }
   return Object.freeze(persist);
 }
