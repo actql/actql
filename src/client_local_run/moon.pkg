@@ -3,6 +3,7 @@ supported_targets = "+js+wasm+native"
 import {
   "actql/actql/client_local_preparation" @input,
   "actql/actql/run_publication_host" @host,
+  "actql/actql/sha256" @sha,
   "actql/actql/run_publication" @publication,
   "actql/actql/publication_payload" @payload,
   "actql/actql/check_environment" @environment,
