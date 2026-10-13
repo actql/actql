@@ -62,11 +62,13 @@ test('verified case receipts survive the case block and finish at transport comp
   await receipts.complete();
   assert.deepEqual(files.get(path), {version: 'actql-cte-value-table-acceptance/0.1', mode: 'local',
     complete: true, cases: [{mode: 'local', name: source.name, ref,
+      submissionRef: {nonce: 'receipt-' + source.name},
       results: {answer: {rows: source.expected, columns: source.columns}},
       beforeSubmit: {acceptedRuns: 0, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0},
       beforeRead: {acceptedRuns: 1, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0},
       afterReplay: {acceptedRuns: 1, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0}}]});
   assert.deepEqual(saved.ref, ref);
+  assert.deepEqual(saved.submissionRef, {nonce: 'receipt-' + source.name});
   assert.deepEqual(saved.observedResults.answer, {rows: source.expected, columns: source.columns});
   assert.notEqual(saved.observedResults.answer.rows, source.expected,
     'receipt rows come from the reader, not the authored oracle');
@@ -96,10 +98,13 @@ test('combined transport receipts preserve each actual observation mode', async 
   });
   for (const mode of ['local', 'remote']) {
     await receipts.record({name: 'cte-value-table-observed', ref: {runId: mode},
+      submissionRef: {nonce: 'original-' + mode},
       observedResults: {answer: {rows: [], columns: []}}, beforeSubmit: {}, beforeRead: {}}, mode);
   }
   await receipts.complete();
   assert.equal(report.complete, true);
   assert.deepEqual(report.cases.map(item => item.mode), ['local', 'remote']);
   assert.deepEqual(report.cases.map(item => item.ref), [{runId: 'local'}, {runId: 'remote'}]);
+  assert.deepEqual(report.cases.map(item => item.submissionRef), [
+    {nonce: 'original-local'}, {nonce: 'original-remote'}]);
 });
