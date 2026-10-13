@@ -9,7 +9,7 @@ test "quoted reserved output lowers to the independent ordinary Program and comm
   ).unwrap()
   let actual = compile(
     @query.parse_query("SELECT 1 AS `ROWS`", syntax_limits()).unwrap(),
-    { ..fixture_context(), inputs: [] },
+    { ..fixture_context(), inputs: [], },
     construction_limits(),
   ).unwrap()
   assert_eq(semantic(actual), semantic(expected))

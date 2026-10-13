@@ -8,7 +8,12 @@ test "ordinary WITH and explicit AS roles reject bare reserved names at their au
   ]
   for (source, position) in cases {
     guard parse_query(source, query_limits(), source_path="roles.sql")
-      is Err({ issue: Syntax("Reserved identifier requires backticks"), span: Some(span) }) else {
+      is Err(
+        {
+          issue: Syntax("Reserved identifier requires backticks"),
+          span: Some(span),
+        }
+      ) else {
       fail(source)
     }
     // Independently counted ASCII offsets; QueryAbort retains a point origin.
@@ -20,21 +25,19 @@ test "ordinary WITH and explicit AS roles reject bare reserved names at their au
 
 ///|
 test "quoted reserved and ordinary names retain binding alias and later path roles" {
-  for source in [
-    "WITH `ROWS` AS (SELECT 1 AS id) SELECT id FROM `ROWS`",
-    "WITH result_rows AS (SELECT 1 AS id) SELECT id FROM result_rows",
-    "SELECT 1 AS `ROWS`",
-    "SELECT `ROWS`.id FROM records AS `ROWS`",
-    "SELECT result_rows.id FROM records AS result_rows",
-    "SELECT r.ROWS FROM records AS r",
-  ] {
+  for
+    source in [
+      "WITH `ROWS` AS (SELECT 1 AS id) SELECT id FROM `ROWS`", "WITH result_rows AS (SELECT 1 AS id) SELECT id FROM result_rows",
+      "SELECT 1 AS `ROWS`", "SELECT `ROWS`.id FROM records AS `ROWS`", "SELECT result_rows.id FROM records AS result_rows",
+      "SELECT r.ROWS FROM records AS r",
+    ] {
     assert_true(parse_query(source, query_limits()) is Ok(_), msg=source)
   }
   let query = parse_query("SELECT 1 AS `ROWS`", query_limits()).unwrap()
   guard operation_at(query, 0) is Some(Select([projection], false)) else {
     fail("the ordinary SELECT projection remains present")
   }
-  assert_eq(projection.name, Some({ value: "ROWS", quoted: true }))
+  assert_eq(projection.name, Some({ value: "ROWS", quoted: true, }))
 }
 
 ///|
@@ -47,12 +50,13 @@ test "fixed signature keys and literal object keys do not become ordinary bindin
   guard call.arguments[3].1 is ListValue([ObjectValue(first), _]) else {
     fail("the existing typed pattern object remains present")
   }
-  assert_eq(first[0], ("as", OutputName({ value: "first", quoted: false })))
+  assert_eq(first[0], ("as", OutputName({ value: "first", quoted: false, })))
   assert_true(first[1] is ("where", ExpressionValue(_)))
   assert_true(
     parse_sga_call(
       "match_edges(bindings: {source: src, target: dst}, where: {literal: {SELECT: 'exact', NULL: null}}, fields: [src, dst])",
       query_limits(),
-    ) is Ok(_),
+    )
+    is Ok(_),
   )
 }
