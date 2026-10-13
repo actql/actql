@@ -204,3 +204,47 @@ test "SDK payload codec refuses schema callback revocation and changed initial r
     is Err(ChangedOriginal),
   )
 }
+
+///|
+test "SDK payload codec rechecks original delivery head after schema callback" {
+  let fixture = sdk_read_fixture()
+  defer (fixture.cleanup)()
+  let first = sdk_payload_codec_first(fixture)
+  let rows = sdk_payload_codec_rows(fixture)
+  let changed = @publication.issue_delivery_record(
+    first.attempt,
+    Some(first.streaming),
+    "cancelled",
+    0,
+    "exact",
+    None,
+    None,
+    None,
+    None,
+    "2026-10-13T00:00:05.000Z",
+    [],
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let attempt_cid = @publication.publication_contract_identity(first.attempt)
+  assert_true(
+    sdk_payload_codecs(
+      fixture,
+      first,
+      "2026-10-13T00:00:05.000Z",
+      (table, key) => {
+        if table == "result_schema" {
+          rows.set("delivery_record_head|" + attempt_cid, {
+            key: attempt_cid,
+            revision: 1L,
+            body: @utf8.encode(@publication.publication_contract_json(changed)),
+          })
+        }
+        Ok(rows.get(table + "|" + key))
+      },
+      () => Ok(()),
+    )
+    is Err(ChangedOriginal),
+  )
+}

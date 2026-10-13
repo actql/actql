@@ -11,6 +11,20 @@ pub(all) enum LocalSDKReadPayloadCodecIssue[E] {
 }
 
 ///|
+fn sdk_read_payload_original_matches(
+  first : LocalSDKReadDeliveryPreparation,
+  saved : LocalSDKReadDeliveryObservation,
+) -> Bool {
+  @publication.publication_contract_json(first.grant) ==
+  @publication.publication_contract_json(saved.grant) &&
+  @publication.publication_contract_json(first.attempt) ==
+  @publication.publication_contract_json(saved.attempt) &&
+  saved.record.map(@publication.publication_contract_json) ==
+  Some(@publication.publication_contract_json(first.streaming)) &&
+  saved.receipt is None
+}
+
+///|
 /// Select the existing row-framing and serialization Owners for the original
 /// first delivery. This does not open a payload, confirm a sink, renew a grant,
 /// acknowledge a Store write or permit replay. The caller must retain the
@@ -57,13 +71,7 @@ pub fn[E] prepare_local_sdk_read_payload_codecs(
   }
   // Retained metadata alone never chooses a fresh delivery. Match the genuine
   // original first-installation preparation, including its initial record.
-  if @publication.publication_contract_json(first.grant) !=
-    @publication.publication_contract_json(saved.grant) ||
-    @publication.publication_contract_json(first.attempt) !=
-    @publication.publication_contract_json(saved.attempt) ||
-    saved.record.map(@publication.publication_contract_json) !=
-    Some(@publication.publication_contract_json(first.streaming)) ||
-    saved.receipt is Some(_) {
+  if !sdk_read_payload_original_matches(first, saved) {
     return Err(ChangedOriginal)
   }
   let materials = match
@@ -115,6 +123,19 @@ pub fn[E] prepare_local_sdk_read_payload_codecs(
   }
   if @publication.publication_contract_json(grant) !=
     @publication.publication_contract_json(first.grant) {
+    return Err(ChangedOriginal)
+  }
+  // Schema/current callbacks can change the attempt or its usage/head. Reuse
+  // the same original observation before constructing even these codecs.
+  let final_saved = match
+    observe_local_sdk_read_delivery_from_store(
+      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+      format, attempt_id, max_results, read, current,
+    ) {
+    Ok(value) => value
+    Err(issue) => return Err(Original(issue))
+  }
+  if !sdk_read_payload_original_matches(first, final_saved) {
     return Err(ChangedOriginal)
   }
   let final_materials = match
