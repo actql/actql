@@ -66,7 +66,16 @@ fn original_keyed_typed_content_input(
   let consumer = match original {
     None => None
     Some((scope, definition, ledger)) => {
-      let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
+      let read = match
+        @publication_host.prepare_client_model_read(scope, 7L, 5L) {
+        Ok(value) => value
+        Err(
+          @publication_host.Resource(
+            @resources.Resource(@resources.RetentionLimit)
+          )
+        ) => fail("the original census has no reservation slot for the read")
+        Err(_) => fail("unexpected original read preparation failure")
+      }
       let consumer = @publication_host.claim_client_model_read_preparation(
         read, compiled, definition, plan, 7L, 5L,
       ).unwrap()
