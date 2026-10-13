@@ -2,6 +2,7 @@
 pub(all) enum NativeRemoteJournalIssue {
   UnsupportedTarget
   Closed
+  CleanupPending
   Physical(@sqlite.NativeSqliteIssue)
   Protocol(@remote.DispatchIssue)
   StaleSiteBinding
@@ -130,4 +131,47 @@ pub fn recovered_site_dispatch_file_custody(
   recovered : RecoveredSiteDispatch,
 ) -> NativeOutputFileCustody? {
   recovered.file_custody
+}
+
+///|
+/// The existing Site binding and SQLite Owner remain authoritative. Failure
+/// after physical entry retains the same rejected or initialized Database.
+pub(all) enum NativeRemoteJournalOpenError {
+  RefusedBeforeAcquisition(NativeRemoteJournalIssue)
+  CleanupRequired(NativeRemoteJournalOpenFailure)
+}
+
+///|
+struct NativeRemoteJournalOpenFailure {
+  original_issue : NativeRemoteJournalIssue
+  mut failed_open : @sqlite.NativeSqliteOpenFailure?
+  mut initialized_database : @sqlite.Database?
+}
+
+///|
+pub fn NativeRemoteJournalOpenFailure::issue(
+  self : NativeRemoteJournalOpenFailure,
+) -> NativeRemoteJournalIssue {
+  self.original_issue
+}
+
+///|
+/// Retire the same physical handles only. Durable dispatch/cancel/receipt/
+/// holding records and reservations are not deleted or settled by this ACK.
+pub fn NativeRemoteJournalOpenFailure::retry_cleanup(
+  self : NativeRemoteJournalOpenFailure,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if self.failed_open is Some(original) {
+    match original.retry_cleanup() {
+      Ok(_) => self.failed_open = None
+      Err(issue) => return Err(Physical(issue))
+    }
+  }
+  if self.initialized_database is Some(original) {
+    match original.close_checked() {
+      Ok(_) => self.initialized_database = None
+      Err(issue) => return Err(Physical(issue))
+    }
+  }
+  Ok(())
 }
