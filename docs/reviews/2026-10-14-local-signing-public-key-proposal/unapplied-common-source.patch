@@ -1,0 +1,271 @@
+--- a/src/remote_credential/moon.pkg
++++ b/src/remote_credential/moon.pkg
+@@ -6,5 +6,6 @@
+   "actql/actql/encode_core" @encode,
+   "actql/actql/sha256" @sha,
+   "actql/actql/source_value" @source,
++  "moonbitlang/core/encoding/base64",
+   "moonbitlang/core/encoding/utf8",
+ }
+--- /dev/null
++++ b/src/remote_credential/local_signing_public_key.mbt
+@@ -0,0 +1,141 @@
++///|
++/// PROPOSAL ONLY: not installed in the current Credential package. This opaque
++/// value identifies public bytes; it owns no key, issuer, role or permission.
++struct LocalSigningPublicKey {
++  encoded : String
++  body : String
++  identity : String
++}
++
++///|
++pub(all) enum LocalSigningPublicKeyIssue {
++  InvalidPublicKey
++  PublicKeyEncoding
++  PublicKeyIdentityMismatch
++} derive(Eq, Debug)
++
++///|
++fn local_signing_public_key_body(
++  encoded : String,
++) -> Result[String, LocalSigningPublicKeyIssue] {
++  try {
++    let writer = @encode.writer(256, 16, 2)
++    @encode.begin_ordered_object(writer)
++    @encode.ordered_key(writer, "algorithm")
++    @encode.string_value(writer, "ed25519")
++    @encode.ordered_key(writer, "public_key")
++    @encode.string_value(writer, encoded)
++    @encode.ordered_key(writer, "version")
++    @encode.string_value(writer, "actql-local-signing-public-key/0.1")
++    @encode.end_object(writer)
++    Ok(@encode.finish(writer).text)
++  } catch {
++    _ => Err(PublicKeyEncoding)
++  }
++}
++
++///|
++/// Canonical identity only. Actual key validation/correspondence, authenticated
++/// issuer installation, current authority and signing use remain separate.
++pub fn prepare_local_signing_public_key(
++  public_key : Bytes,
++) -> Result[LocalSigningPublicKey, LocalSigningPublicKeyIssue] {
++  if public_key.length() != 32 {
++    return Err(InvalidPublicKey)
++  }
++  // Retain immutable encoded bytes, not a caller-owned mutable byte array.
++  let encoded = @base64.encode(public_key)
++  let body = match local_signing_public_key_body(encoded) {
++    Ok(value) => value
++    Err(issue) => return Err(issue)
++  }
++  match @sha.text_hex(body) {
++    Ok(value) => Ok({ encoded, body, identity: "sha256:" + value, })
++    Err(_) => Err(PublicKeyEncoding)
++  }
++}
++
++///|
++pub fn LocalSigningPublicKey::json(self : LocalSigningPublicKey) -> String {
++  self.body
++}
++
++///|
++pub fn LocalSigningPublicKey::cid(self : LocalSigningPublicKey) -> String {
++  self.identity
++}
++
++///|
++/// A fresh copy of admitted public bytes, never a private-key handle or grant.
++pub fn LocalSigningPublicKey::raw32(
++  self : LocalSigningPublicKey,
++) -> Result[Bytes, LocalSigningPublicKeyIssue] {
++  try {
++    Ok(@base64.decode(self.encoded[:]))
++  } catch {
++    _ => Err(PublicKeyEncoding)
++  }
++}
++
++///|
++/// Bounded closed reader. Require exact canonical body bytes and the independent
++/// expected CID; syntax-valid metadata alone does not establish issuer custody.
++pub fn admit_local_signing_public_key_json(
++  body : String,
++  expected_cid : String,
++) -> Result[LocalSigningPublicKey, LocalSigningPublicKeyIssue] {
++  if !valid_cid(expected_cid) ||
++    body.length() > 256 ||
++    @utf8.encode(body).length() > 256 {
++    return Err(InvalidPublicKey)
++  }
++  try {
++    let source = credential_decoded(
++      @source.parse_json_bytes_preserving(@utf8.encode(body), {
++        max_input_bytes: 256,
++        max_nodes: 8,
++        max_depth: 2,
++      }),
++    )
++    let cursor = credential_decoded(
++      @decode.admit(source, {
++        max_nodes: 8,
++        max_depth: 2,
++        max_string_bytes: 128,
++        max_total_string_bytes: 256,
++      }),
++    )
++    let object = credential_decoded(
++      @decode.closed_object(cursor, ["algorithm", "public_key", "version"]),
++    )
++    if credential_text(object, "algorithm") != "ed25519" ||
++      credential_text(object, "version") != "actql-local-signing-public-key/0.1" {
++      return Err(InvalidPublicKey)
++    }
++    let encoded = credential_text(object, "public_key")
++    // Bound decoding before allocation; re-encoding rejects padding variants,
++    // nonzero pad bits, URL-safe spelling, whitespace and alternate alphabets.
++    if encoded.length() != 44 {
++      return Err(InvalidPublicKey)
++    }
++    let raw = @base64.decode(encoded[:]) catch {
++      _ => return Err(InvalidPublicKey)
++    }
++    if raw.length() != 32 || @base64.encode(raw) != encoded {
++      return Err(InvalidPublicKey)
++    }
++    let value = match prepare_local_signing_public_key(raw) {
++      Ok(value) => value
++      Err(issue) => return Err(issue)
++    }
++    if value.body != body {
++      return Err(InvalidPublicKey)
++    }
++    if value.identity != expected_cid {
++      return Err(PublicKeyIdentityMismatch)
++    }
++    Ok(value)
++  } catch {
++    RemoteCredentialDecodeStop => Err(InvalidPublicKey)
++  }
++}
+--- /dev/null
++++ b/src/remote_credential/local_signing_public_key_wbtest.mbt
+@@ -0,0 +1,115 @@
++///|
++// PROPOSAL ONLY. Independent Python JSON/hashlib expectations; no key access,
++// signing, issuer installation or permission is exercised by these cases.
++let public_key_proposal_wire : String =
++  #|{"algorithm":"ed25519","public_key":"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=","version":"actql-local-signing-public-key/0.1"}
++
++///|
++let public_key_proposal_cid : String = "sha256:9689096c43f7a1edbda0f95a62d7804485ce8a1ed0cf6834d7a6bc62709a05b7"
++
++///|
++fn public_key_proposal_raw() -> Bytes {
++  Bytes::from_array(Array::makei(32, index => index.to_byte()))
++}
++
++///|
++test "public-key proposal exact independent body and CID" {
++  let value = prepare_local_signing_public_key(public_key_proposal_raw()).unwrap()
++  assert_eq(value.json(), public_key_proposal_wire)
++  assert_eq(value.cid(), public_key_proposal_cid)
++  let admitted = admit_local_signing_public_key_json(
++    public_key_proposal_wire, public_key_proposal_cid,
++  ).unwrap()
++  assert_eq(admitted.raw32().unwrap(), public_key_proposal_raw())
++  assert_eq(admitted.json(), value.json())
++  assert_eq(admitted.cid(), value.cid())
++}
++
++///|
++test "public-key proposal exact32 refuses other lengths" {
++  for length in [0, 31, 33, 256] {
++    assert_eq(
++      prepare_local_signing_public_key(Bytes::make(length, 0)).map(_ => ()),
++      Err(InvalidPublicKey),
++    )
++  }
++}
++
++///|
++test "public-key proposal RFC8032 public vector and distinct bytes" {
++  let encoded = "11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo="
++  let raw = @base64.decode(encoded[:]) catch { _ => fail("fixed public bytes") }
++  let value = prepare_local_signing_public_key(raw).unwrap()
++  assert_eq(
++    value.cid(),
++    "sha256:73bed10fdb3d584a1bad7e7c22ad93c1579582dbbe743cd67964a79165760a52",
++  )
++  assert_true(value.cid() != public_key_proposal_cid)
++  assert_eq(
++    admit_local_signing_public_key_json(value.json(), value.cid())
++      .unwrap().raw32().unwrap(),
++    raw,
++  )
++}
++
++///|
++test "public-key proposal closed canonical body refuses altered framing" {
++  for body in [
++    "null",
++    "{",
++    " " + public_key_proposal_wire,
++    public_key_proposal_wire + "\n",
++    public_key_proposal_wire.replace_all(old="ed25519", new="Ed25519"),
++    public_key_proposal_wire.replace_all(old="ed25519", new="rsa"),
++    public_key_proposal_wire.replace_all(old="{", new="{\"unknown\":null,"),
++    public_key_proposal_wire.replace_all(old="{", new="{\"algorithm\":\"ed25519\","),
++    public_key_proposal_wire.replace_all(old="\"algorithm\"", new="\"alg\\u006frithm\""),
++    public_key_proposal_wire.replace_all(old=":", new=": "),
++    public_key_proposal_wire.replace_all(
++      old="actql-local-signing-public-key/0.1",
++      new="actql-local-signing-public-key/" + "0.2",
++    ),
++    "{\"version\":\"actql-local-signing-public-key/0.1\",\"public_key\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=\",\"algorithm\":\"ed25519\"}",
++  ] {
++    assert_true(
++      admit_local_signing_public_key_json(body, public_key_proposal_cid)
++      is Err(_),
++    )
++  }
++}
++
++///|
++test "public-key proposal base64 admits only standard canonical padded bytes" {
++  for encoded in [
++    "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8",
++    "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh9=",
++    "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8_",
++    "!".repeat(44),
++    "A".repeat(42) + "==",
++  ] {
++    let body = public_key_proposal_wire.replace_all(
++      old="AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
++      new=encoded,
++    )
++    assert_true(
++      admit_local_signing_public_key_json(body, public_key_proposal_cid)
++      is Err(_),
++    )
++  }
++}
++
++///|
++test "public-key proposal independent body and expected CID must both match" {
++  assert_eq(
++    admit_local_signing_public_key_json(
++      public_key_proposal_wire, "sha256:" + "f".repeat(64),
++    ).map(_ => ()),
++    Err(PublicKeyIdentityMismatch),
++  )
++  assert_eq(
++    admit_local_signing_public_key_json(
++      public_key_proposal_wire, "copied-cid",
++    ).map(_ => ()),
++    Err(InvalidPublicKey),
++  )
++}

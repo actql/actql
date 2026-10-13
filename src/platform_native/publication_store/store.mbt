@@ -132,7 +132,16 @@ fn store_open_failure(
   failed_database? : @sqlite.NativeSqliteOpenFailure? = None,
   cleanup_gap? : StoreOpenCleanupGap? = None,
 ) -> NativePublicationStoreOpenFailure {
-  { original_issue, root, failed_root, lock, failed_lock, database, failed_database, cleanup_gap, }
+  {
+    original_issue,
+    root,
+    failed_root,
+    lock,
+    failed_lock,
+    database,
+    failed_database,
+    cleanup_gap,
+  }
 }
 
 ///|

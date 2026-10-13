@@ -390,7 +390,7 @@ fn prepare_checked_dag_owned(
         @lower.pipeline(@lower.bound_preparation(owners[0])),
       ) !=
       0 ||
-      !@pipeline.starts_with_values(
+      !@pipeline.starts_with_selected_local_generator(
         @lower.pipeline(@lower.bound_preparation(owners[0])),
       )
     ) {

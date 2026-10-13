@@ -19,9 +19,11 @@ import {selectInstalledSourcefreeQuerySuite, releaseSourcefreeFixturePaths}
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const [input, receiptPath, ...extra] = process.argv.slice(2);
 assert(input && receiptPath && (extra.length === 0 ||
-  extra.length === 1 && ['--sequence-only', '--time-series-only'].includes(extra[0])) && isAbsolute(receiptPath),
-  'usage: test-package-release-sourcefree-query.mjs <fixed-RC> <new-absolute-receipt.json> [--sequence-only|--time-series-only]');
-const suite = extra.length === 0 ? 'in-unnest' : extra[0] === '--sequence-only' ? 'sequence' : 'time-series';
+  extra.length === 1 && ['--sequence-only', '--time-series-only', '--temporal-join-only'].includes(extra[0])) && isAbsolute(receiptPath),
+  'usage: test-package-release-sourcefree-query.mjs <fixed-RC> <new-absolute-receipt.json> [--sequence-only|--time-series-only|--temporal-join-only]');
+const suite = extra.length === 0 ? 'in-unnest' :
+  {'--sequence-only': 'sequence', '--time-series-only': 'time-series', '--temporal-join-only': 'temporal-join'}[extra[0]];
+const freshProcessReread = suite === 'time-series' || suite === 'temporal-join';
 const directory = resolve(input), manifest = await verifyPackageRelease(directory);
 assert.deepEqual(manifest.cohort.packages, ['client-wire', 'sdk', 'local-node', 'node']);
 assert.ok(!resolve(receiptPath).startsWith(directory + '/'), 'Keep the original RC unchanged');
@@ -86,8 +88,8 @@ try {
     assert.equal(observed.complete, true);
     assert.deepEqual(observed.successNames, cases.successes.map(value => value.name));
     assert.deepEqual(observed.refusalNames, cases.refusals.map(value => value.name));
-    if (suite === 'time-series') {
-      await run(process.execPath, ['scripts/fixtures/release-time-series-reread.mjs', mode]);
+    if (freshProcessReread) {
+      await run(process.execPath, ['scripts/fixtures/release-time-series-reread.mjs', mode, suite]);
       const reread = JSON.parse(await readFile(join(root, `sourcefree-reread-${mode}.json`), 'utf8'));
       assert.equal(reread.complete, true);
       assert.deepEqual(reread.completed.map(item => item.name), cases.successes.map(item => item.name));
@@ -106,7 +108,7 @@ try {
     if (transports.some(value => value.mode === mode)) continue;
     try {
       const observed = JSON.parse(await readFile(join(root, `sourcefree-${mode}.json`), 'utf8'));
-      if (suite === 'time-series') {
+      if (freshProcessReread) {
         try {observed.freshProcessReread = JSON.parse(await readFile(join(root, `sourcefree-reread-${mode}.json`), 'utf8'));}
         catch (error) {if (error.code !== 'ENOENT') throw error;}
       }
