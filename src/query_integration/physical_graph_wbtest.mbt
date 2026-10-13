@@ -945,6 +945,7 @@ fn captured_graph_fixture(
   compute_filter? : String = "id > 2",
   parameter_json? : String = "{\"minimum\":1}",
   supplied_local_rows? : Array[(Int, Int, Array[String])] = [],
+  query_prefix_end? : Int? = None,
 ) -> (@strategy.CapturedDAG, @mock.MockQueryIssuer) raise {
   let program = match checked_program {
     Some(program) => program
@@ -1025,7 +1026,7 @@ fn captured_graph_fixture(
         parameter_json~,
       )
   }
-  let sequence = query_checked_sequence(program)
+  let sequence = query_checked_sequence(program, prefix_end=query_prefix_end)
   let owners = physical_graph_owners(program)
   owners[0] = @query.query_sequence_owner(sequence)
   let graph = @strategy.prepare_checked_dag(

@@ -9,6 +9,7 @@ test "captured projection consumes the acquisition port before publishing its la
     checked_program=Some(checked),
     rows=Some(["{\"id\":3}", "{\"id\":1}", "{\"id\":2}"]),
     parameter_json="{}",
+    query_prefix_end=Some(1),
   )
   let graph = @strategy.captured_dag_graph(run)
   assert_eq(@strategy.graph_task_count(graph), 4)
