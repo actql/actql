@@ -98,10 +98,13 @@ test('combined transport receipts preserve each actual observation mode', async 
   });
   for (const mode of ['local', 'remote']) {
     await receipts.record({name: 'cte-value-table-observed', ref: {runId: mode},
+      submissionRef: {nonce: 'original-' + mode},
       observedResults: {answer: {rows: [], columns: []}}, beforeSubmit: {}, beforeRead: {}}, mode);
   }
   await receipts.complete();
   assert.equal(report.complete, true);
   assert.deepEqual(report.cases.map(item => item.mode), ['local', 'remote']);
   assert.deepEqual(report.cases.map(item => item.ref), [{runId: 'local'}, {runId: 'remote'}]);
+  assert.deepEqual(report.cases.map(item => item.submissionRef), [
+    {nonce: 'original-local'}, {nonce: 'original-remote'}]);
 });
