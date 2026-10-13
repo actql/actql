@@ -11,6 +11,7 @@ struct LocalSDKPayloadEncoding {
   max_bytes : Int
   mut prefix : String?
   mut issue : LocalSDKPayloadEncodingIssue?
+  mut terminal : LocalSDKDeliveryTerminal?
 }
 
 ///|
@@ -67,6 +68,7 @@ fn prepare_local_sdk_payload_encoding(
     max_bytes,
     prefix: Some(prefix),
     issue: None,
+    terminal: None,
   })
 }
 

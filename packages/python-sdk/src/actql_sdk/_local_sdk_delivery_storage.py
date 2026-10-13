@@ -1,7 +1,7 @@
 """Original Core delivery CAS to physical SQLite; not a Read/Run Owner."""
 from collections.abc import Callable
 import json
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 from ._local_core import _Input, _Output, _Workspace, LocalCoreError
 from ._local_storage import ByteWrite, LocalByteStore, LocalStorageError, _NamespaceReader
@@ -17,6 +17,20 @@ _T = TypeVar('_T')
 
 def _physical_plan(raw: bytes) -> tuple[ByteWrite, ...]:
     """Unwrap the closed Core packet, selecting no scope/comparison/Allow."""
+    return _physical_cas_plan(raw, _TABLES,
+        ('absent', 'absent', 'absent', 'absent', 'usage', 'absent'))
+
+
+def _physical_terminal_plan(raw: bytes) -> tuple[ByteWrite, ...]:
+    """Transport Core's receipt/record/head proposal, never terminal evidence."""
+    return _physical_cas_plan(raw,
+        ('publication_contract', 'publication_contract', 'delivery_record_head'),
+        ('absent', 'absent', 'successor'))
+
+
+def _physical_cas_plan(raw: bytes, tables: tuple[str, ...],
+                       revisions: tuple[Literal['absent', 'usage', 'successor'], ...]
+                       ) -> tuple[ByteWrite, ...]:
     def pairs(items: list[tuple[str, Any]]) -> dict[str, Any]:
         value: dict[str, Any] = {}
         for key, body in items:
@@ -27,28 +41,32 @@ def _physical_plan(raw: bytes) -> tuple[ByteWrite, ...]:
     if type(raw) is not bytes or len(raw) > _PLAN_BYTES:
         raise ValueError('Original SDK delivery projection exceeds its reservation')
     rows = json.loads(raw, object_pairs_hook=pairs)
-    if type(rows) is not list or len(rows) != 6:
+    if type(rows) is not list or len(rows) != len(tables):
         raise ValueError('Incomplete original SDK delivery projection')
     writes: list[ByteWrite] = []
     for ordinal, row in enumerate(rows):
         if (type(row) is not dict or set(row) != {'body', 'key', 'revision', 'table'}
-                or type(row['table']) is not str or row['table'] != _TABLES[ordinal]
+                or type(row['table']) is not str or row['table'] != tables[ordinal]
                 or type(row['key']) is not str or type(row['body']) is not str):
             raise ValueError('Invalid original SDK delivery physical row')
         revision = row['revision']
-        if (revision is not None and (ordinal != 4 or type(revision) is not int
-                                     or not 0 <= revision < 2**63)):
+        rule = revisions[ordinal]
+        if ((rule == 'absent' and revision is not None)
+                or (rule == 'usage' and revision is not None
+                    and (type(revision) is not int or not 0 <= revision < 2**63))
+                or (rule == 'successor' and (type(revision) is not int or revision != 0))):
             raise ValueError('Invalid original SDK delivery physical revision')
         key = row['key']
-        encoded_key = key if ordinal == 3 else key[7:]
-        if ((ordinal != 3 and not key.startswith('sha256:')) or len(encoded_key) != 64
+        attempt_key = row['table'] == 'delivery_attempt'
+        encoded_key = key if attempt_key else key[7:]
+        if ((not attempt_key and not key.startswith('sha256:')) or len(encoded_key) != 64
                 or any(character not in '0123456789abcdef' for character in encoded_key)):
             raise ValueError('Invalid original SDK delivery physical key')
         body = row['body'].encode('utf-8')
         if len(body) > 65536:
             raise ValueError('Original SDK delivery metadata exceeds its original bound')
         writes.append(ByteWrite(LocalByteStore.namespaced_key(row['table'], key), revision, body))
-    if len({write.key for write in writes}) != 6:
+    if len({write.key for write in writes}) != len(tables):
         raise ValueError('Duplicate original SDK delivery physical key')
     return tuple(writes)
 
@@ -85,6 +103,8 @@ class OriginalSDKDeliveryStore:
         self._active = self._closing = False
         self._attempted = original._sdk_delivery_request_attempts
         self._keys_attempted = original._sdk_delivery_key_attempts
+        self._terminal_attempted = original._sdk_terminal_request_attempts
+        self._terminal_keys_attempted = original._sdk_terminal_key_attempts
         self._first_outputs: dict[int, _Output] = {}
         self._first_workspaces: dict[int, _Workspace] = {}
         self._uncertain_first: set[int] = set()
@@ -284,6 +304,89 @@ class OriginalSDKDeliveryStore:
                                                               configuration)
             return output
         return self._payload_observation(request, clock, produce)
+
+    def observe_original_terminal(self, request: _Input, clock: _Input) -> None:
+        """Lookup only: Core validates the saved receipt/head in the same Store.
+
+        An exception preserves original custody and classification. This does
+        not retry a write, issue another attempt or emit a reader EOF marker.
+        """
+        self._payload_observation(request, clock, lambda first, configuration:
+            self._core.observe_publication_sdk_terminal(first, configuration))
+
+    def persist_original_terminal(self, request: _Input, clock: _Input) -> None:
+        """Apply Core's original three-row successor CAS exactly once.
+
+        Core rechecks the actual rows before COMMIT and in a separate read
+        transaction after COMMIT. A lost reply remains Unknown; its caller can
+        only observe the same original attempt. Cleanup keeps the child output
+        and its original first-preparation loan until explicitly released.
+        """
+        with self._core._lock:
+            self._nominal()
+            self._core._owned_input(clock)
+            first = self.original_first_output(request)
+            observation = self._observation
+            binding = observation._binding
+            if (self._active or observation._active or not observation._entered
+                    or self._workspace is None or binding is None):
+                raise RuntimeError('Original SDK terminal Store is unavailable')
+            self._core._owned(self._workspace)
+            if request.ticket in self._terminal_attempted:
+                raise LocalStorageError('Original terminal write requires lookup; replay is unavailable')
+            self._terminal_attempted.add(request.ticket)
+            self._active = True
+            writes: tuple[ByteWrite, ...] = ()
+            output: _Output | None = None
+            try:
+                with observation._serialized_facts(), binding.fenced() as fences:
+                    def project(ordinal: int, consume: Callable[[ByteWrite], None]) -> None:
+                        if len(writes) != 3 or not 0 <= ordinal < 3:
+                            raise ValueError('Incomplete original SDK terminal material')
+                        observation._validate_facts()
+                        consume(writes[ordinal])
+                        observation._validate_facts()
+                    def before_commit() -> None:
+                        if output is None:
+                            raise ValueError('Lost original SDK terminal output loan')
+                        observation._before_lookup()
+                        self._core.produce_publication_sdk_terminal_storage(
+                            output, first, clock, observation._projection._configuration)
+                        observation._validate_facts()
+                        self._core._owned_output(output, 'publication_commit_export')
+                        self._core._owned_output(first, 'publication_commit_export')
+                        self._core._owned_input(clock)
+                        if self._closing:
+                            raise RuntimeError('Original SDK terminal Store is closing')
+                    def inspect(reader: _NamespaceReader, take: Callable[[], None]) -> None:
+                        def prepare(_: object) -> None:
+                            nonlocal writes, output
+                            observation._before_lookup()
+                            output = self._reserve_payload_output(request)
+                            self._core.produce_publication_sdk_terminal_storage(
+                                output, first, clock, observation._projection._configuration)
+                            writes = _physical_terminal_plan(
+                                self._core.read_publication_commit_material(output))
+                            head_key = writes[2].key
+                            if head_key in self._terminal_keys_attempted:
+                                raise LocalStorageError('Original terminal key requires lookup; replay is unavailable')
+                            self._terminal_keys_attempted.add(head_key)
+                            observation._validate_facts()
+                            if self._closing:
+                                raise RuntimeError('Original SDK terminal Store is closing')
+                            take()
+                        binding.inspect_reader(reader, prepare)
+                    generations = observation._store.compare_exchange_projected_inspected(
+                        3, project, observation._originals, fences, inspect=inspect,
+                        current=binding.current, before_commit=before_commit)
+                if generations is None:
+                    raise LocalStorageError('Original terminal CAS conflicted; lookup is required')
+            finally:
+                writes = ()
+                self._active = False
+            # The precommit callback cannot acknowledge its own transaction.
+            # Only this independent same-Store read can expose saved evidence.
+            self.observe_original_terminal(request, clock)
 
     def _close_payload_output(self, ticket: int) -> bool:
         if ticket in self._uncertain_payload:
