@@ -70,9 +70,9 @@ fn script_prefix_carrier(
 fn script_carrier_operation(name : String) -> Bool {
   [
     "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
-    "to_events", "row_window", "window_group", "window_events", "watermark_events",
-    "dedupe_events", "session", "events", "watermark_rows", "lag", "sequence", "asof_join",
-    "interval_join", "merge_rankings",
+    "to_events", "row_window", "calendar_bucket", "window_group", "window_events",
+    "watermark_events", "dedupe_events", "session", "events", "watermark_rows", "lag",
+    "sequence", "asof_join", "interval_join", "merge_rankings",
   ].contains(name)
 }
 
@@ -255,7 +255,7 @@ fn lower_script_carrier_calls(
       "to_vectors" => ["id", "vector"]
       "pool_vectors" => ["by", "vector"]
       "to_events" => ["id", "time"]
-      "row_window" | "watermark_rows" => ["time"]
+      "row_window" | "watermark_rows" | "calendar_bucket" => ["time"]
       "window_group" => ["by"]
       "dedupe_events" => ["by"]
       "lag" => ["partition_by", "field"]
@@ -275,6 +275,7 @@ fn lower_script_carrier_calls(
       "score_vectors" => ["query", "metric"]
       "pool_vectors" => ["by", "vector", "method", "output_id"]
       "row_window" => ["kind", "time", "size", "step", "offset"]
+      "calendar_bucket" => ["time", "unit", "timezone", "week_start", "into"]
       "window_events" => ["kind", "size", "step", "offset"]
       "window_group" => ["by", "aggregates"]
       "watermark_events" => ["watermark_ms", "policy"]
@@ -309,6 +310,8 @@ fn lower_script_carrier_calls(
       ["by", "method"]
     } else if call.operation == "row_window" {
       ["kind", "time", "size"]
+    } else if call.operation == "calendar_bucket" {
+      ["time", "unit", "timezone", "into"]
     } else if call.operation == "window_events" {
       ["kind", "size"]
     } else if call.operation == "lag" {
