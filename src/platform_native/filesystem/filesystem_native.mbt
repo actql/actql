@@ -34,11 +34,19 @@ type Reader
 
 ///|
 #borrow(path)
-extern "C" fn open_root_ffi(path : Bytes, length : Int, diagnostic_ceiling : Int) -> Root = "actql_native_filesystem_open_root_with_diagnostics"
+extern "C" fn open_root_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+) -> Root = "actql_native_filesystem_open_root_with_diagnostics"
 
 ///|
 #borrow(path)
-extern "C" fn open_private_root_ffi(path : Bytes, length : Int, diagnostic_ceiling : Int) -> Root = "actql_native_filesystem_open_private_root_with_diagnostics"
+extern "C" fn open_private_root_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+) -> Root = "actql_native_filesystem_open_private_root_with_diagnostics"
 
 ///|
 #borrow(root)
@@ -272,7 +280,11 @@ pub fn open_root(
     return Err(InvalidLimit)
   }
   let encoded = @utf8.encode(path)
-  let root = open_root_ffi(encoded, encoded.length(), diagnostic_ceiling.unwrap_or(0))
+  let root = open_root_ffi(
+    encoded,
+    encoded.length(),
+    diagnostic_ceiling.unwrap_or(0),
+  )
   if root_ready_ffi(root) {
     Ok(root)
   } else {
@@ -291,7 +303,11 @@ pub fn open_private_root(
     return Err(InvalidLimit)
   }
   let encoded = @utf8.encode(path)
-  let root = open_private_root_ffi(encoded, encoded.length(), diagnostic_ceiling.unwrap_or(0))
+  let root = open_private_root_ffi(
+    encoded,
+    encoded.length(),
+    diagnostic_ceiling.unwrap_or(0),
+  )
   if root_ready_ffi(root) {
     Ok(root)
   } else {
@@ -604,7 +620,10 @@ pub fn Root::open_reader_with_custody(
     Ok(reader)
   } else {
     let message = decode_diagnostic_message(reader_open_error_ffi(reader))
-    let issue = reader_open_issue(reader_open_kind(reader_open_kind_ffi(reader)), message)
+    let issue = reader_open_issue(
+      reader_open_kind(reader_open_kind_ffi(reader)),
+      message,
+    )
     let retained = match reader.close() {
       Ok(_) => None
       Err(_) => Some(reader)
@@ -785,7 +804,11 @@ priv enum NativeReaderOpenIssueKind {
 
 ///|
 fn reader_open_kind(code : Int) -> NativeReaderOpenIssueKind {
-  if code == 2 { GenerationFailure } else { ReadFailure }
+  if code == 2 {
+    GenerationFailure
+  } else {
+    ReadFailure
+  }
 }
 
 ///|

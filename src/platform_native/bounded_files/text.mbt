@@ -168,7 +168,7 @@ pub fn read_bounded_text_file_with_custody(
   trim_newline? : Bool = false,
   diagnostic_ceiling? : Int? = None,
 ) -> Result[String, NativeBoundedTextFailure] {
-  if max_bytes <= 0L || diagnostic_ceiling is Some(limit) && limit <= 0 {
+  if max_bytes <= 0L || (diagnostic_ceiling is Some(limit) && limit <= 0) {
     return Err(bounded_text_failure(InvalidLimit))
   }
   let root = match @filesystem.open_root(root_path, diagnostic_ceiling~) {

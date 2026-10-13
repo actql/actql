@@ -20,6 +20,7 @@ static void *fixture_malloc(size_t size) {
   return failure_size == size ? NULL : malloc(size);
 }
 static char *fixture_strerror(int number) {
+  (void)number;
   return injected_detail == NULL ? NULL : (char *)injected_detail;
 }
 static int fixture_close(int descriptor) {
@@ -134,6 +135,15 @@ int main(void) {
   expect(actql_native_filesystem_reader_open_error(reader), "");
   assert(actql_native_filesystem_reader_close(reader) == 0);
   moonbit_decref(reader);
+  // A finite complete detail can also fail allocation on an ordinary read.
+  injected_detail = "x";
+  failure_size = strlen("open committed file: x")+1;
+  reader = actql_native_filesystem_open_reader(root, (moonbit_bytes_t)"absent", 6, 0, 0, 0);
+  failure_size = 0;
+  assert(!actql_native_filesystem_reader_ready(reader));
+  assert(actql_native_filesystem_reader_open_failure_kind(reader) == ACTQL_READER_OPEN_READ_FAILURE);
+  expect(actql_native_filesystem_reader_open_error(reader), "");
+  moonbit_decref(reader);
   assert(actql_native_filesystem_root_close(root) == 0);
   moonbit_decref(root);
   passed("diagnostic allocation failure cannot change generation kind: PASS");
@@ -207,6 +217,21 @@ int main(void) {
   moonbit_decref(root);
   passed("omitted sticky close remains Unknown and never recloses reused FD: PASS");
 
+  root = root_for(path, 1);
+  close_calls = 0; close_failure = EIO;
+  reader = reader_for(root, status, true);
+  close_failure = 0;
+  assert(!actql_native_filesystem_reader_ready(reader));
+  assert(reader->close_result == -1 && close_calls == 1);
+  assert(actql_native_filesystem_reader_open_failure_kind(reader) == ACTQL_READER_OPEN_GENERATION_MISMATCH);
+  expect(actql_native_filesystem_reader_open_error(reader), "");
+  expect(actql_native_filesystem_reader_error(reader), "");
+  assert(actql_native_filesystem_reader_close(reader) == -1 && close_calls == 1);
+  moonbit_decref(reader);
+  assert(actql_native_filesystem_root_close(root) == 0);
+  moonbit_decref(root);
+  passed("original generation refusal and unknown close remain separate: PASS");
+
   root = root_for(path, 8);
   char child_path[512];
   assert(snprintf(child_path, sizeof(child_path), "%s/child", path) > 0);
@@ -219,7 +244,7 @@ int main(void) {
   passed("original child Root inherits immutable ceiling: PASS");
 
   assert(unlink(filename) == 0 && rmdir(path) == 0);
-  assert(cases == 9);
-  printf("Root/Reader diagnostic C cases: %d/9\n", cases);
+  assert(cases == 10);
+  printf("Root/Reader diagnostic C cases: %d/10\n", cases);
   return 0;
 }
