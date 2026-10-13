@@ -60,6 +60,16 @@ pub fn checking_environment_model_tasks(
 }
 
 ///|
+/// Return the exact optional Calendar owner already selected by this checker.
+/// Source preparation retains its environment provenance; no profile is chosen
+/// by authored syntax, an ambient timezone database or a default installation.
+pub fn checking_environment_calendar_profile(
+  value : CheckEnvironment,
+) -> @environment.SelectedCalendarProfile? {
+  value.calendar
+}
+
+///|
 /// Trusted Host-only supplementation of the original checker configuration.
 /// Each opaque proof is still matched to the checked subjects during recheck.
 /// This does not change the admitted wire Environment or grant any execution.

@@ -229,7 +229,9 @@ pub fn physical_start_ready(nonce : Int64, handle : Int) -> Int {
       return -2
     }
     let code = validate_sdk_start_claim(value, step, plan)
-    if code != 0 { return code }
+    if code != 0 {
+      return code
+    }
   }
   match record.outcome {
     Some(Ok(_)) => 0

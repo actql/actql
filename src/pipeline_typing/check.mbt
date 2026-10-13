@@ -1270,7 +1270,10 @@ fn check_impl(
           let diagnostic = @graph.match_diagnostic(issue, operation_body)
           raise Stop({
             kind: GraphMatch(diagnostic.kind),
-            source: operation_body,
+            source: match issue {
+              MatchStructure(cause) => cause.source.unwrap_or(operation_body)
+              _ => operation_body
+            },
             path: diagnostic.path.copy(),
             span: diagnostic.span,
             range: diagnostic.range,
@@ -1571,7 +1574,7 @@ fn check_impl(
         Err(issue) =>
           raise Stop({
             kind: Graph(issue.kind),
-            source: operation_body,
+            source: issue.source.unwrap_or(operation_body),
             path: issue.path.copy(),
             span: issue.span,
             range: None,
