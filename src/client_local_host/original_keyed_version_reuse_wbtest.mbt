@@ -32,7 +32,11 @@ fn original_keyed_version_response(index : Int) -> String {
 }
 
 ///|
-fn original_keyed_version_history(suffix? : Bool = false) -> Unit raise {
+fn original_keyed_version_history(
+  suffix? : Bool = false,
+  content? : Bool = false,
+) -> Unit raise {
+  let suffix = suffix || content
   let (declaration, prepared, compiled, definition, plan, keyed, requirement) = original_keyed_run_fixture(
     relation_versions=true,
     serialization_max_bytes=if suffix { 4470 } else { 4096 },
@@ -65,7 +69,23 @@ fn original_keyed_version_history(suffix? : Bool = false) -> Unit raise {
     execution,
     measurement,
   ).unwrap()
-  let suffix_capacity = if suffix {
+  let suffix_capacity = if content {
+    client_original_keyed_content_suffix_capacity(
+      prepared,
+      keyed,
+      0,
+      7,
+      source_query_original_registry,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      execution,
+      measurement,
+      original_keyed_content_workspace(),
+      { cancel: () => true, stopped: () => true, cleanup: () => Ok(true), },
+      _ => true,
+    ).unwrap()
+  } else if suffix {
     client_original_keyed_serialization_suffix_capacity(
       prepared,
       keyed,
@@ -88,7 +108,7 @@ fn original_keyed_version_history(suffix? : Bool = false) -> Unit raise {
     generation_depth: 32,
     generation_frames: 100,
   }
-  let workspace_capacity = if suffix {
+  let workspace_capacity = if suffix && !content {
     client_serialization_workspace_capacity(workspace).unwrap()
   } else {
     @execution.execution_capacity(0L, 0L).unwrap()
@@ -122,7 +142,11 @@ fn original_keyed_version_history(suffix? : Bool = false) -> Unit raise {
     } else {
       5
     },
-    holdings: 4,
+    holdings: if content {
+      5
+    } else {
+      4
+    },
     transfer_bytes: page.length().to_int64() + 8192L,
     retained_bytes: @row_source_host.row_acquisition_retained_capacity(
       acquisition,
@@ -156,7 +180,11 @@ fn original_keyed_version_history(suffix? : Bool = false) -> Unit raise {
     } else {
       5
     },
-    4,
+    if content {
+      5
+    } else {
+      4
+    },
     0,
   ).unwrap()
   let direct = start_client_original_keyed_direct_row_acquisition(
@@ -463,7 +491,12 @@ fn original_keyed_version_history(suffix? : Bool = false) -> Unit raise {
     ),
     Some(3),
   )
-  if suffix {
+  if content {
+    original_keyed_version_content(
+      scope, compiled, definition, plan, prepared, keyed, prefixed_lookup, prefix,
+      acquisition, capture, requirement, execution, measurement, ledger,
+    )
+  } else if suffix {
     original_keyed_version_serialize(
       scope, compiled, definition, plan, prepared, keyed, prefixed_lookup, prefix,
       execution, measurement, workspace_capacity, ledger,
@@ -477,7 +510,14 @@ fn original_keyed_version_history(suffix? : Bool = false) -> Unit raise {
       5
     },
   )
-  assert_eq(@resources.ledger_usage(ledger).holdings, 4)
+  assert_eq(
+    @resources.ledger_usage(ledger).holdings,
+    if content {
+      5
+    } else {
+      4
+    },
+  )
   complete = false
   for _ in 0..<10000 {
     if @publication_host.cleanup_client_original_keyed_prefix_lookup(
@@ -539,7 +579,7 @@ fn original_keyed_version_history(suffix? : Bool = false) -> Unit raise {
   )
   let final_usage = @resources.ledger_usage(ledger)
   assert_eq(final_usage.attempts, if suffix { 6 } else { 5 })
-  assert_eq(final_usage.holdings, 4)
+  assert_eq(final_usage.holdings, if content { 5 } else { 4 })
   assert_eq(final_usage.held_bytes, 0L)
   assert_eq(final_usage.reserved_retention_bytes, 0L)
   assert_eq(final_usage.reserved_execution_bytes, 0L)
@@ -553,4 +593,9 @@ test "original keyed version history keeps three left occurrences but acquires o
 ///|
 test "original keyed exact versions feed the checked JOIN and whole SERIALIZE suffix without replaying acquisition or left prefix" {
   original_keyed_version_history(suffix=true)
+}
+
+///|
+test "original keyed versions complete one Content generation through the same managed family and Ledger" {
+  original_keyed_version_history(content=true)
 }
