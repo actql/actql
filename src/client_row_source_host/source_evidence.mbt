@@ -155,7 +155,7 @@ pub fn issue_row_listing_source_evidence(
     return Err(SourceEvidence(ObservationUnavailable))
   }
   issue_row_source_evidence(
-    acquisition, capture, identity, logical_input, authority_scope_cid,
-    effective_data_policy_cid, observed_at,
+    acquisition, capture, identity, logical_input, authority_scope_cid, effective_data_policy_cid,
+    observed_at,
   )
 }

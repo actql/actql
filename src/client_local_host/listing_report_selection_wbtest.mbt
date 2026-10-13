@@ -20,7 +20,10 @@ fn listing_report_selection_fixture(
     selector_free=true,
   )
   let facts = @planning.query_requirement_source_evidence_facts(requirement).unwrap()
-  let view = @row_source_host.row_declaration_view(declaration, facts.source_ref).unwrap()
+  let view = @row_source_host.row_declaration_view(
+    declaration,
+    facts.source_ref,
+  ).unwrap()
   let source = @row_source_host.prepare_declared_row_source(
     requirement, "content-fixture", view,
   ).unwrap()
@@ -32,30 +35,44 @@ fn listing_report_selection_fixture(
     "{\"items\":[],\"request_token\":null,\"next_token\":null}",
   )
   let retained = @row_source_host.row_acquisition_retained_capacity(acquisition)
-  let execution = @row_source_host.row_acquisition_execution_capacity(acquisition)
+  let execution = @row_source_host.row_acquisition_execution_capacity(
+    acquisition,
+  )
   let ledger = @resources.create_ledger({
     planning_work: 0,
     attempts: 1,
     holdings: 1,
     transfer_bytes: body.length().to_int64(),
     retained_bytes: retained + (if reports_selected { 7L } else { 0L }),
-    execution_bytes: execution + 4096L + (if reports_selected { 9L } else { 0L }),
+    execution_bytes: execution +
+    4096L +
+    (if reports_selected { 9L } else { 0L }),
   }).unwrap()
   let run = if reports_selected {
     assert_true(accounted)
     @row_source_host.start_accounted_listing_row_acquisition(
-      acquisition, @execution.execution_capacity(7L, 9L),
-      "explicit-report-profile", _ => true, ledger,
-      body.length().to_int64(), 4096L,
+      acquisition,
+      @execution.execution_capacity(7L, 9L),
+      "explicit-report-profile",
+      _ => true,
+      ledger,
+      body.length().to_int64(),
+      4096L,
     ).unwrap()
   } else if accounted {
     @row_source_host.start_accounted_row_acquisition(
-      acquisition, "ordinary-resolved-listing", _ => true, ledger,
-      body.length().to_int64(), 4096L,
+      acquisition,
+      "ordinary-resolved-listing",
+      _ => true,
+      ledger,
+      body.length().to_int64(),
+      4096L,
     ).unwrap()
   } else {
     @row_source_host.start_row_acquisition(
-      acquisition, "ordinary-unaccounted-listing", _ => true,
+      acquisition,
+      "ordinary-unaccounted-listing",
+      _ => true,
     ).unwrap()
   }
   let issuer = @admitted.bind_reference_issuer(
@@ -99,24 +116,43 @@ fn listing_selection_evidence(
   let source = @row_source_host.row_capture_source(fixture.capture).unwrap()
   let limits = original_keyed_content_workspace().export_limits
   let identity = @query.identify_captured_source_relation(
-    source, 3, limits.values, limits.payload_wire, limits.logical_wire,
-    limits.schema, limits.max_batch_bytes,
+    source,
+    3,
+    limits.values,
+    limits.payload_wire,
+    limits.logical_wire,
+    limits.schema,
+    limits.max_batch_bytes,
   ).unwrap()
   let logical = @publication_host.issue_captured_source_input_logical(
-    @publication_host.prepared_client_graph(fixture.prepared), source,
-    identity, fixture.requirement,
+    @publication_host.prepared_client_graph(fixture.prepared),
+    source,
+    identity,
+    fixture.requirement,
   ).unwrap()
-  let facts = @planning.query_requirement_source_evidence_facts(fixture.requirement).unwrap()
+  let facts = @planning.query_requirement_source_evidence_facts(
+    fixture.requirement,
+  ).unwrap()
   let policy = @planning.query_source_evidence_fact_values(facts)[3]
   let authority = "sha256:" + "2".repeat(64)
   if reports_required {
     @row_source_host.issue_row_listing_source_evidence(
-      fixture.acquisition, fixture.capture, identity, logical, authority, policy,
+      fixture.acquisition,
+      fixture.capture,
+      identity,
+      logical,
+      authority,
+      policy,
       "2026-10-14T00:00:01.000Z",
     )
   } else {
     @row_source_host.issue_row_source_evidence(
-      fixture.acquisition, fixture.capture, identity, logical, authority, policy,
+      fixture.acquisition,
+      fixture.capture,
+      identity,
+      logical,
+      authority,
+      policy,
       "2026-10-14T00:00:01.000Z",
     )
   }
@@ -131,9 +167,17 @@ test "ordinary accounted listing retains its original settlement and evidence sc
   assert_eq(captured.reserved_retention_bytes, 0L)
   assert_eq(captured.reserved_execution_bytes, 0L)
   let ordinary = listing_selection_evidence(fixture, false).unwrap()
-  assert_false(@publication.run_evidence_value_json(ordinary).contains("\"file_listing_reports\""))
-  assert_true(listing_selection_evidence(fixture, true)
-    is Err(@row_source_host.SourceEvidence(@row_source_host.ObservationUnavailable)))
+  assert_false(
+    @publication.run_evidence_value_json(ordinary).contains(
+      "\"file_listing_reports\"",
+    ),
+  )
+  assert_true(
+    listing_selection_evidence(fixture, true)
+    is Err(
+      @row_source_host.SourceEvidence(@row_source_host.ObservationUnavailable)
+    ),
+  )
   assert_eq(@resources.ledger_usage(fixture.ledger), captured)
   @row_source_host.close_accounted_row_run(fixture.run).unwrap()
   assert_eq(@resources.ledger_usage(fixture.ledger).held_bytes, 0L)
@@ -145,9 +189,17 @@ test "ordinary unaccounted listing evidence cannot be promoted to an empty repor
   let before = @resources.ledger_usage(fixture.ledger)
   assert_eq(before.attempts, 0)
   let ordinary = listing_selection_evidence(fixture, false).unwrap()
-  assert_false(@publication.run_evidence_value_json(ordinary).contains("\"file_listing_reports\""))
-  assert_true(listing_selection_evidence(fixture, true)
-    is Err(@row_source_host.SourceEvidence(@row_source_host.ObservationUnavailable)))
+  assert_false(
+    @publication.run_evidence_value_json(ordinary).contains(
+      "\"file_listing_reports\"",
+    ),
+  )
+  assert_true(
+    listing_selection_evidence(fixture, true)
+    is Err(
+      @row_source_host.SourceEvidence(@row_source_host.ObservationUnavailable)
+    ),
+  )
   assert_eq(@resources.ledger_usage(fixture.ledger), before)
   @row_source_host.close_row_run(fixture.run)
   assert_true(@row_source_host.row_capture_source(fixture.capture) is Err(_))
@@ -162,9 +214,11 @@ test "explicit report listing keeps its extra reservation and issues actual empt
   assert_true(captured.reserved_retention_bytes > 0L)
   assert_true(captured.reserved_execution_bytes > 0L)
   let report = listing_selection_evidence(fixture, true).unwrap()
-  assert_true(@publication.run_evidence_value_json(report).contains(
-    "\"file_listing_reports\":{\"row_count\":0,\"rows\":[]}",
-  ))
+  assert_true(
+    @publication.run_evidence_value_json(report).contains(
+      "\"file_listing_reports\":{\"row_count\":0,\"rows\":[]}",
+    ),
+  )
   assert_eq(@resources.ledger_usage(fixture.ledger), captured)
   @row_source_host.close_accounted_row_run(fixture.run).unwrap()
   assert_true(@row_source_host.row_capture_source(fixture.capture) is Err(_))

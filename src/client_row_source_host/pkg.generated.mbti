@@ -88,6 +88,8 @@ pub fn generate_relation_row_declaration(String, String, String, Array[RowRelati
 
 pub fn generate_row_declaration(String, String, String, Array[RowViewSpec], RowDeclarationLimits) -> Result[RowDeclaration, RowDeclarationIssue]
 
+pub fn issue_row_listing_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]
+
 pub fn issue_row_source_evidence(RowAcquisition, RowSourceCapture, @execution_query.CapturedSourceRelationIdentity, @run_publication.RunEvidenceValue, String, String, String) -> Result[@run_publication.RunEvidenceValue, RowHostIssue]
 
 pub fn keyed_row_acquisition_target(RowKeyedAcquisition) -> Result[(String, Array[String]), RowHostIssue]
