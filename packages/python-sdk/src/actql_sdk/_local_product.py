@@ -22,7 +22,7 @@ import httpx
 
 from . import _wire as wire
 from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _Workspace, _PublisherFact, _Task, _ResultExport, LocalTaskProgress, LocalResultProgress
-from ._local_distribution import installed_local_components, load_local_module
+from ._local_distribution import installed_local_components, load_local_module, LocalInstallationError, LocalComponents
 from ._local_files import (LocalFileRoot, _AllocationArea, _PayloadFile, _NameAdoption, _FileFinalization, _FileReader,
     LocalAreaAcquisitionError, LocalFileAcquisitionError, LocalReaderAcquisitionError)
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
@@ -104,6 +104,20 @@ def _default_directory() -> Path:
     if not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
         raise ValueError('Python Local requires a private owned state directory')
     return directory
+
+
+def _selected_installed_resources(components: LocalComponents) -> LocalCoreResources:
+    """Require the selected trusted baseline before module capture or VM startup.
+
+    The installed source/cohort resolver is reused exactly once. Numerical
+    Host/root and pre-root native allocator originals are not adopted yet;
+    the private source-bound supplier is the remaining product seam. The
+    explicit resources fixture path is separately qualified and is never a
+    public factory option or a fallback for this missing physical original.
+    """
+    if type(components) is not LocalComponents:
+        raise LocalInstallationError('Invalid installed Local capacity context')
+    raise LocalInstallationError('Installed Local Host capacity original is unavailable')
 
 
 class InstalledLocalHost:
@@ -196,9 +210,11 @@ class InstalledLocalHost:
             raise LocalProductCleanupPending(self) from failure
 
     @classmethod
-    def installed(cls, *, resources: LocalCoreResources) -> InstalledLocalHost:
+    def installed(cls, *, resources: LocalCoreResources | None = None) -> InstalledLocalHost:
         """Resolve the selected cohort with no endpoint/token/internal paths."""
         components = installed_local_components()
+        if resources is None:
+            resources = _selected_installed_resources(components)
         # Product assembly supplies its reviewed finite Root profile. The old
         # minimal buffer fixture has no allowance for initialization workspace.
         core = LocalCore(load_local_module(components), digest=components.module_sha256,
