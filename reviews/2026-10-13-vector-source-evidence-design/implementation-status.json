@@ -2,11 +2,30 @@
   "status": "Implementation checkpoint; not merge-ready or public acceptance",
   "adoptedBase": "5f23eb5c0435d03a619958200334d32392e810fe",
   "decision": "workspace reviews/2026-10-11-integration-owner/source-view-relation-keys-decision-20261013.md",
-  "implementedUncompiled": ["bounded opaque SourceView key declaration admission", "same-facts/schema/member key evidence projection", "SourceViewInput candidate key retention and cumulative static work/text accounting", "selected complete facts-body admission preserving existing lookup/file owners", "native filter/select rejects pending Source key guarantees before provider access", "original trusted Vector supplier declaration uses adopted facts without changing schema or oracle"],
-  "executedWorkingSource": {"Node": "19/19 run-qY70YT", "contractGenerator": "run-5nYYpK complete exit 0", "metadata": "run-WyTarC complete exit 0 after explicit requirement-ID repair"},
+  "implementedUncompiled": [
+    "bounded opaque SourceView key declaration admission",
+    "same-facts/schema/member key evidence projection",
+    "SourceViewInput candidate key retention and cumulative static work/text accounting",
+    "selected complete facts-body admission preserving existing lookup/file owners",
+    "native filter/select rejects pending Source key guarantees before provider access",
+    "original trusted Vector supplier declaration uses adopted facts without changing schema or oracle"
+  ],
+  "executedWorkingSource": {
+    "Node": "19/19 run-qY70YT",
+    "contractGenerator": "run-5nYYpK complete exit 0",
+    "metadata": "run-WyTarC complete exit 0 after explicit requirement-ID repair"
+  },
   "retainedFailure": "run-2rIvbz metadata failure: 2 explicit IDs for 6 extracted obligations; not a product runtime result",
-  "unexecuted": ["Moon compile/focused tests", "generated public interfaces and final canonical freshness", "complete RowSource capture multi-page/key/cancellation regression", "new-SHA ordinary four-package Local/HTTPS original 12+8 matrix", "Native/Wasm execution and Hosted CI"],
-  "preparedFirstMoonSelection": "existing runFocusedTests wrapper: moon --target js src/check_environment/relation_keys_test.mbt src/query_program/vector_source_order_boundary_test.mbt src/query_program/vector_scalar_source_test.mbt; original nonHeavy 60 seconds / TERM grace 5, start only after integration-owner allocation and actual process/lock preflight",
+  "unexecuted": [
+    "Moon compile/focused tests",
+    "generated public interfaces and final canonical freshness",
+    "complete RowSource capture multi-page/key/cancellation regression",
+    "new-SHA ordinary four-package Local/HTTPS original 12+8 matrix",
+    "Native/Wasm execution and Hosted CI"
+  ],
+  "preparedFirstMoonSelection": "node reviews/2026-10-13-vector-source-evidence-design/prepared-checks.mjs <clean complete SHA> declaration; 11 named JS cases, nonHeavy 60 seconds / TERM grace 5, only after integration-owner allocation and actual preflight",
   "publicE2E": 0,
-  "publicFixtureSha256": "9717e6a803428dadf392562f891687bad8ddbb88691cfbbe6e37137e0fff804f"
+  "publicFixtureSha256": "9717e6a803428dadf392562f891687bad8ddbb88691cfbbe6e37137e0fff804f",
+  "preparedRuntimeSelection": "acquisition: 8 named tests in src/query_integration/source_relation_keys_wbtest.mbt; nonHeavy 60 seconds / TERM grace 5, not executed",
+  "runtimeBoundary": "runtime-boundary.json records the installed bounded key-validation gap from actual-source reading; this is not a runtime reproduction"
 }

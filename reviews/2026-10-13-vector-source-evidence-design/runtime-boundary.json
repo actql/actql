@@ -1,0 +1,43 @@
+{
+  "qualification": "Read-only actual-source diagnosis and prepared counterexamples; runtime not executed",
+  "checkpoint": "da78fc59edd3fd6abc6f9d6625da3aefadf1e7ef",
+  "synchronousCapture": [
+    "client_row_source_host/host.mbt::capture_row_run (residual None)",
+    "client_row_source_host/custody.mbt::complete_row_capture",
+    "client_row_source_host/attempt.mbt::execute_row_source_residual",
+    "execution_query/query_guards.mbt::execute_query_receipt_guarded",
+    "execution_relation/sequence_driver.mbt::validate_captured_keys before import_raw/filter/select"
+  ],
+  "installedCapture": [
+    "adapters/host-node/installed-row-run.mjs::capture",
+    "client_row_source_host/capture_residual.mbt::begin_row_capture",
+    "connectors/local/guarded_relation.mbt::prepare_guarded_supplied_relation",
+    "execution_relation/fixed_record_guard_scan.mbt: value-size guard, not candidate-key validation",
+    "connectors/local/selected_relation_provider.mbt::selected_binding_rows_execution",
+    "execution_relation/bounded_binding_rows.mbt: kernel assertion keys, not Source input candidate-key obligations",
+    "client_row_source_host/host.mbt::capture_row_run (residual Some)",
+    "client_row_source_host/custody.mbt::complete_row_capture_output"
+  ],
+  "unresolved": "The installed bounded capture path must validate the complete original resolved acquisition before filtering/projection or refuse unsupported key-dependent runtime before provider I/O. A synchronous duplicate execution or a second scanner is not a solution.",
+  "preparedRuntimeCases": [
+    "SourceView key and owner survive complete two-page acquisition and once-only capture read",
+    "Identical duplicate rows across pages, both surviving and removed by the original filter",
+    "Computed projection drops the input key but cannot discard pending input validation",
+    "NULL and missing required key fields fail original value admission",
+    "Partial acquisition cancellation cannot publish a capture",
+    "Installed bounded filter cannot publish duplicate input as an empty valid result",
+    "Bounded cancellation retains reservation until original cleanup confirms",
+    "Native filtered acquisition without the input-key validator refuses before provider access"
+  ],
+  "coordination": {
+    "root": "Actual boundary sent directly; Moon allocation requested, not received",
+    "A": "Confirmed no active hunks in fixed_record_guard_scan, bounded_binding_rows, supplied_relation_read or input_keys; no parallel repair planned"
+  },
+  "unchangedPublicOracle": {
+    "fixtureSha256": "9717e6a803428dadf392562f891687bad8ddbb88691cfbbe6e37137e0fff804f",
+    "normal": 12,
+    "refusal": 8,
+    "newPublicE2E": 0
+  },
+  "notStarted": ["Moon compile", "Native execution", "producer", "consumer", "Hosted CI", "provider service I/O"]
+}
