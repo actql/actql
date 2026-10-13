@@ -97,7 +97,7 @@ test "analytic STRING_AGG keeps its SELECT input scope" {
   for
     text in [
       "SELECT name AS invented, STRING_AGG(invented) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS names FROM objects",
-      "FROM objects AS old |> AS current |> SELECT STRING_AGG(old.name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS names",
+      "FROM objects AS old |> AS `current` |> SELECT STRING_AGG(old.name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS names",
     ] {
     assert_true(
       compile(

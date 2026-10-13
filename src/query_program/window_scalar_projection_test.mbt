@@ -85,7 +85,7 @@ test "window expression private bindings do not expose siblings or removed range
   for
     text in [
       "SELECT amount AS invented, LAG(invented) OVER (ORDER BY id) + 1 AS pos FROM orders",
-      "FROM orders AS old |> AS current |> SELECT LAG(old.amount) OVER (ORDER BY id) + 1 AS pos",
+      "FROM orders AS old |> AS `current` |> SELECT LAG(old.amount) OVER (ORDER BY id) + 1 AS pos",
       "FROM orders |> SELECT id |> SELECT LAG(amount) OVER (ORDER BY id) + 1 AS pos",
       "SELECT ROW_NUMBER() OVER (ORDER BY id) + aql_select_window_0 AS pos FROM orders",
     ] {

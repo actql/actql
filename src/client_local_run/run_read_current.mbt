@@ -39,7 +39,8 @@ pub fn validate_local_preflight_result_read_current(
   let inventory = preflight.intent.inventory
   let mut found = false
   for index in 0..<@publication.checked_publication_inventory_count(inventory) {
-    if @publication.checked_publication_inventory_name(inventory, index) == Ok(result_name) {
+    if @publication.checked_publication_inventory_name(inventory, index) ==
+      Ok(result_name) {
       found = true
       break
     }

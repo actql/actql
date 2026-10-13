@@ -705,60 +705,20 @@ fn call_native_credential_resource_owned_scope(
       Err(issue) => return Err(issue)
     }
   }
-  let ordinal = match
-    service.database.claim_ordinal_action(
-      use_scope(grant_cid),
-      use_id,
-      max_uses.to_int64(),
-    ) {
-    Ok(@sqlite.Retained(original_ordinal)) => {
-      // Verify the retained original without constructing a replacement use.
-      // Missing/corrupt custody is a typed refusal, never a fresh send right.
-      let original_use = match
-        read_owned_credential_use(service, grant, use_id) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      if !owned_credential_use_matches_ordinal(original_use, original_ordinal) {
-        return Err(Journal(@sqlite.Collision))
-      }
-      return Err(UseAlreadyClaimed)
-    }
-    Ok(@sqlite.Fresh(value)) if value <= 2147483647L => value.to_int()
-    Ok(_) => return Err(InvalidConfiguration)
-    Err(issue) => return Err(Journal(issue))
-  }
   let credential_use = match
-    prepare_owned_credential_use(
+    claim_original_owned_credential_use(
+      service.database,
       grant,
       use_id,
       trusted_now_ms,
-      ordinal - 1,
       revoked,
       scope,
+      max_uses,
     ) {
     Ok(value) => value
-    Err(issue) => return Err(Credential(issue))
+    Err(issue) => return Err(issue)
   }
   let use_cid = owned_credential_use_cid(credential_use)
-  let use_body = match owned_credential_use_json(credential_use) {
-    Ok(value) => @utf8.encode(use_cid + "\n" + value)
-    Err(issue) => return Err(Credential(issue))
-  }
-  match service.database.insert(use_scope(grant_cid), use_id, use_body) {
-    Ok(_) => ()
-    Err(@sqlite.Collision) => {
-      let existing = match service.database.read(use_scope(grant_cid), use_id) {
-        Ok(value) => value
-        Err(issue) => return Err(Journal(issue))
-      }
-      if existing.body != use_body {
-        return Err(Journal(@sqlite.Collision))
-      }
-      return Err(UseAlreadyClaimed)
-    }
-    Err(issue) => return Err(Journal(issue))
-  }
   let raw_custody = match
     prepare_original_raw_custody(service, grant, credential_use) {
     Ok(value) => value

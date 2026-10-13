@@ -1,4 +1,117 @@
 ///|
+/// Query callbacks only, not a physical Journal, successful GET or cleanup ACK.
+test "Catalog cleanup reobserves the original use after a transient query failure" {
+  let queries = Ref(0)
+  let original = "sha256:" + "a".repeat(64)
+  let query : () -> Result[@effect_resource.NativeCredentialUseStatus?, Unit] = () => {
+    queries.val += 1
+    if queries.val == 1 {
+      Err(())
+    } else {
+      Ok(Some({ use_cid: original, outcome: "unknown", status: None, }))
+    }
+  }
+  assert_false(
+    holder_catalog_cleanup_original_use_observed(
+      false, true, false, false, false, query,
+    ),
+  )
+  assert_true(
+    holder_catalog_cleanup_original_use_observed(
+      false, true, false, false, false, query,
+    ),
+  )
+  assert_eq(queries.val, 2)
+  assert_false(
+    holder_catalog_use_succeeded({
+      use_cid: original,
+      outcome: "unknown",
+      status: None,
+    }),
+  )
+}
+
+///|
+test "Catalog cleanup query failure or absence stays pending on each pass" {
+  let queries = Ref(0)
+  for pass in 0..<3 {
+    assert_false(
+      holder_catalog_cleanup_original_use_observed(
+        false,
+        true,
+        false,
+        false,
+        false,
+        () => {
+          queries.val += 1
+          if pass == 1 {
+            Ok(None)
+          } else {
+            Err(())
+          }
+        },
+      ),
+    )
+  }
+  assert_eq(queries.val, 3)
+}
+
+///|
+test "Catalog cleanup does not query before a read or replace existing evidence" {
+  let queries = Ref(0)
+  for
+    (started, original, custody, observation) in [
+      (false, false, false, false),
+      (true, true, false, false),
+      (true, false, true, false),
+      (true, false, false, true),
+    ] {
+    assert_true(
+      holder_catalog_cleanup_original_use_observed(
+        false,
+        started,
+        original,
+        custody,
+        observation,
+        () => {
+          queries.val += 1
+          Err(())
+        },
+      ),
+    )
+  }
+  assert_eq(queries.val, 0)
+}
+
+///|
+/// The flag models an already accepted Store cleanup ACK only. This does not
+/// manufacture that ACK, close the pending client or release its reservation.
+test "Catalog cleanup confirmed Store retirement does not requery a closed credential DB" {
+  let queries = Ref(0)
+  let query_closed_database = () => {
+    queries.val += 1
+    Err(())
+  }
+  // A failed client close can leave the original database already closed.
+  // Every later close pass must reach that same client rather than query it.
+  for _ in 0..<2 {
+    assert_true(
+      holder_catalog_cleanup_original_use_observed(
+        true, true, false, false, false, query_closed_database,
+      ),
+    )
+  }
+  assert_eq(queries.val, 0)
+  // Without the original Store ACK, the same missing-use boundary stays pending.
+  assert_false(
+    holder_catalog_cleanup_original_use_observed(
+      false, true, false, false, false, query_closed_database,
+    ),
+  )
+  assert_eq(queries.val, 1)
+}
+
+///|
 /// Compile-only projection boundaries; the query Owner must supply the actual
 /// authenticated use. These values are not service or persistence evidence.
 test "restored Catalog adoption requires confirmed successful original use" {

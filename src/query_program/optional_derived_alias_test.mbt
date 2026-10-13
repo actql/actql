@@ -54,9 +54,9 @@ test "unnamed derived table preserves NULL predicate duplicates and explicit ord
 test "unaliased table preserves its inner Pipe ranges and value receiver" {
   for
     source in [
-      "SELECT r.x AS original,x AS current FROM (FROM t |> AS r |> SET x=x+10) ORDER BY original",
-      "FROM (FROM t |> AS r |> SET x=x+10) |> WHERE r.x > 0 |> SELECT r.x AS original,x AS current |> ORDER BY original",
-      "SELECT current.x,current.y FROM (FROM t |> AS r |> SET x=x+10) AS current ORDER BY current.x",
+      "SELECT r.x AS original,x AS `current` FROM (FROM t |> AS r |> SET x=x+10) ORDER BY original",
+      "FROM (FROM t |> AS r |> SET x=x+10) |> WHERE r.x > 0 |> SELECT r.x AS original,x AS `current` |> ORDER BY original",
+      "SELECT current.x,current.y FROM (FROM t |> AS r |> SET x=x+10) AS `current` ORDER BY current.x",
       "SELECT element AS value FROM (FROM UNNEST([1,2]) AS element) ORDER BY value",
     ] {
     let query = match @query.parse_query(source, syntax_limits()) {
@@ -87,7 +87,7 @@ test "unaliased table preserves its inner Pipe ranges and value receiver" {
 test "unaliased projected or set outputs do not restore discarded ranges" {
   for
     source in [
-      "SELECT r.x FROM (FROM t |> AS r |> SELECT x)", "SELECT r.x FROM (FROM t |> AS r |> SET x=x+10) current",
+      "SELECT r.x FROM (FROM t |> AS r |> SELECT x)", "SELECT r.x FROM (FROM t |> AS r |> SET x=x+10) `current`",
       "SELECT t.x FROM (FROM t |> UNION ALL (FROM t))",
     ] {
     let result = compile(

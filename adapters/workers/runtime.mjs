@@ -3,6 +3,9 @@
 import {Miniflare, convertV4MiniflareOptions} from 'miniflare';
 
 export const runtimeProfile = Object.freeze({
+  // Disable Miniflare's optional Host-side Request.cf metadata fetch. The
+  // Worker outboundService alone does not cover harness startup traffic.
+  cf: false,
   compatibilityDate: '2026-09-11',
   compatibilityFlags: ['no_nodejs_compat', 'no_nodejs_compat_v2'],
 });

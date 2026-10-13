@@ -154,6 +154,13 @@ pub fn advance_row_capture_cleanup(
     Err(issue) => return Err(issue)
   }
   guard run.residual is Some(residual) else { return Err(InvalidState) }
+  // A stopped reader can still own incremental cleanup. Retry that same
+  // cleanup without resuming an already terminal Compute child.
+  if @local.managed_provider_stopped(
+      @local.guarded_relation_execution(residual.execution),
+    ) {
+    return Ok(false)
+  }
   match
     @local.advance_managed_provider(
       @local.guarded_relation_execution(residual.execution),
