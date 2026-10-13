@@ -121,8 +121,7 @@ test "captured projection consumes the acquisition port before publishing its la
   assert_true(@execution.completed_cell(projected, 0, 1) is Some(Number(13.0)))
   assert_true(@execution.completed_cell(projected, 1, 1) is Some(Number(11.0)))
   assert_true(@execution.completed_cell(projected, 2, 1) is Some(Number(12.0)))
-  @execution.cancel_bounded_binding_rows(rows) |> ignore
-  assert_true(@execution.cleanup_bounded_binding_rows(rows))
+  assert_true(@execution.cleanup_bounded_binding_rows(rows).unwrap())
   live.val = false
   assert_false(@execution.producer_read_available(input))
   @strategy.stop_captured_dag(run)
