@@ -2066,13 +2066,13 @@ fn QueryParser::unnest_source(
       self.peek().start,
     )
   }
-  let element = self.name()
+  let element = self.binding_name()
   let offset = if self.has("WITH") {
     self.keyword("WITH")
     self.keyword("OFFSET")
     let name = if self.has("AS") {
       self.keyword("AS")
-      self.name()
+      self.binding_name()
     } else if self.peek().value is QuotedName(_) {
       self.name()
     } else if self.optional_source_alias() is Some(name) {
@@ -3080,10 +3080,10 @@ fn QueryParser::pipe_tail(
       operations.push(Unpivot(self.unpivot_clause()))
       if self.has("AS") {
         self.keyword("AS")
-        operations.push(Alias(self.name()))
+        operations.push(Alias(self.binding_name()))
       } else if self.peek().value is Word(_) ||
         self.peek().value is QuotedName(_) {
-        operations.push(Alias(self.name()))
+        operations.push(Alias(self.binding_name()))
       }
     } else if self.has("SET") {
       self.keyword("SET")
@@ -3153,7 +3153,7 @@ fn QueryParser::pipe_tail(
       }
     } else if self.has("AS") {
       self.keyword("AS")
-      operations.push(Alias(self.name()))
+      operations.push(Alias(self.binding_name()))
     } else if self.has("AGGREGATE") {
       self.keyword("AGGREGATE")
       let aggregate_order : Array[PipeAggregateOrder] = []

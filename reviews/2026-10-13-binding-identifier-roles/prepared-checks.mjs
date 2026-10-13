@@ -8,6 +8,8 @@ const steps = [
     'src/query_syntax/with_binding_origin_test.mbt',
     'src/query_syntax/sga_output_name_test.mbt',
     'src/query_syntax/sequence_predicate_test.mbt',
+    'src/query_syntax/unnest_source_test.mbt',
+    'src/query_syntax/unpivot_test.mbt',
     'src/query_program/binding_identifier_roles_test.mbt',
     'src/query_program/quoted_identifier_test.mbt',
   ]},

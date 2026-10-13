@@ -5,8 +5,8 @@ import {bindingIdentifierSuccesses as normal, bindingIdentifierRefusals as refus
   quotedIdentifierSuccesses, quotedIdentifierRefusals} from './fixtures/quoted-identifier-source-input.mjs';
 
 test('binding roles retain independent machine values, ordered contracts and both text formats', () => {
-  assert.equal(normal.length, 10);
-  assert.equal(refused.length, 8);
+  assert.equal(normal.length, 19);
+  assert.equal(refused.length, 16);
   for (const name of ['id', 'ROWS']) {
     const control = normal.find(item => item.name === 'identifier-role-json-' + name);
     const program = JSON.parse(control.text);
@@ -16,7 +16,11 @@ test('binding roles retain independent machine values, ordered contracts and bot
     assert.deepEqual(program.stages[0].results.rows.fields, [name]);
     assert.deepEqual(control.expected, [{[name]: 1}]);
   }
-  for (const suffix of ['quoted-with', 'ordinary-with', 'quoted-range', 'quoted-output']) {
+  const offset = normal.find(item => item.name === 'identifier-role-json-offset');
+  assert.deepEqual(JSON.parse(offset.text).stages[0].steps[0].values.rows, [{id: 0}]);
+  assert.deepEqual(offset.expected, [{id: 0}]);
+  for (const suffix of ['quoted-with', 'ordinary-with', 'quoted-range', 'quoted-output',
+    'quoted-element', 'quoted-offset', 'quoted-pipe-alias', 'quoted-unpivot-alias']) {
     const pair = normal.filter(item => item.name.endsWith('-' + suffix));
     assert.deepEqual(pair.map(item => item.format), ['sql', 'aql-text']);
     assert.equal(pair[0].text, pair[1].text);
@@ -32,6 +36,10 @@ test('reserved refusals keep exact authored source and the existing public refus
     'WITH rOwS AS (SELECT 1 AS id) SELECT id FROM rOwS',
     'SELECT 1 AS ROWS',
     'SELECT id FROM (SELECT 1 AS id) AS ROWS',
+    'SELECT 1 AS id FROM UNNEST([1]) AS ROWS',
+    'SELECT 1 AS id FROM UNNEST([1]) AS item WITH OFFSET AS ROWS',
+    'WITH result_rows AS (SELECT 1 AS id) FROM result_rows |> AS ROWS |> SELECT id',
+    'WITH result_rows AS (SELECT 1 AS x) FROM result_rows |> UNPIVOT(v FOR k IN(x)) AS ROWS |> SELECT v',
   ];
   assert.deepEqual(refused.map(item => item.text), expected.flatMap(text => [text, text]));
   assert.ok(refused.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
