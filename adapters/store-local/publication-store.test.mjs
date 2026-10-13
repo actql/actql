@@ -2974,6 +2974,9 @@ test('restart reconciles a retired Result after unlink response is lost',
     // Model abrupt process loss: no product close or cleanup callback runs.
     // Only the dead owner's fencing record is removed before reopen.
     await rm(join(directory, 'owner'), {recursive: true, force: false});
+    // The fixture explicitly models this owner as dead. Teardown must close
+    // the reopened owner, without invoking the dead owner's cleanup callback.
+    fixtureStores.get(resolve(directory)).delete(store);
     const reopened = await openLocalPublicationStore(
       configuration, contractControl,
     );
