@@ -26,4 +26,6 @@ The existing public helper checks the refusal code, zero additional admission/I/
 
 The initial repair `ffb242971b60c2911f42767ba3ef5073c03f8f50` passed 14 focused JS tests in `run-2URCOr`, including the refusal positions, quoted aliases, WITH scope, sequence keys and existing SGA OutputName cases. The subsequent public fixtures, complete Program control and pinned formatting require their own final-source verification.
 
+The manual row-alias follow-up `1f6b33d98` passed 30 focused JS tests and six Node tests in `run-Of0Fko`. All four quoted manual alias texts reached the ordinary Program checker, including the independently authored OFFSET-zero control. This remains static/checker evidence; the public values in the fixture have not been observed from a newly packed installation for this repair.
+
 No new installed E2E, Calendar runtime success, authenticated max/weighted score supplier, Hosted CI or formal release is claimed for this unit. Local bounds remain 60 seconds with TERM grace 5; any allocated normal producer and public consumer retain their existing bounds and clean-source/digest fences. Original RRF and earlier failure records remain immutable.
