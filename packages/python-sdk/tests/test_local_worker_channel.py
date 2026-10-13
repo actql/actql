@@ -1,5 +1,6 @@
 """Driver/process/pipe assembly with Owner/syscall doubles; actual worker0."""
 import asyncio
+import copy
 import unittest
 from unittest.mock import patch
 import httpx
@@ -19,7 +20,8 @@ class Control(_InstalledWorkerControl):
     def __init__(self):
         super().__init__(); self.bootstrap = object(); self.calls = []
         self.start_ack = None; self.close_ack = None; self.start_error = None; self.close_error = None
-        self.response = httpx.Response(200, json=PROFILE); self.responses = []
+        profile = copy.deepcopy(PROFILE); profile.update(mode='local', owner='local')
+        self.response = httpx.Response(200, json=profile); self.responses = []
         self.current_hook = None; self.exchange_error = None; self.bootstrap_hook = None
     def prepare_original_bootstrap(self, process):
         self.calls.append(('bootstrap', process))

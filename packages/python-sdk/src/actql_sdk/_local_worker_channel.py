@@ -132,12 +132,14 @@ class OriginalWorkerPipeChannel(_OriginalWorkerChannel):
         self._funding._ack(await self._control.start_original_host(self._process, self._pipe, self._bootstrap))
         self.require_current_original()
         self._ready = True
+        return None
 
     def require_current_original(self) -> object:
         self._nominal()
         self._funding.require_launch()
         self._funding._ack(self._control.require_current_original(self._process))
         self._nominal()
+        return None
 
     async def exchange_original(self, operation: str, payload: bytes) -> httpx.Response:
         self.require_current_original()
