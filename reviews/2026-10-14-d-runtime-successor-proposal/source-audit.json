@@ -1,0 +1,60 @@
+{
+  "baseSource": "9ee10eecde17749a2ac4e8ba75babec96e7a0ad2",
+  "baseTree": "6f4d1c2f45c6b37968291521b4909f9afce87aba",
+  "sourceFiles": [
+    {
+      "path": "src/platform_native/client_host/local_run_policy_upgrade.mbt",
+      "sha256": "cdaab3ab5fc86bda25c784c448c4f59c06c67b2602993aaa4972e54b0f72a447",
+      "blob": "3ed0960eaf7ecdb7ac6ef40e3a629d21fe9144c8"
+    },
+    {
+      "path": "src/platform_native/client_host/local_installation_original.mbt",
+      "sha256": "8a4562cf2518e8ef616555418908eaa28103ef884e4b045b0ac0e9b62fcdb104",
+      "blob": "42a4141a81fdd36394c29cd4c907a860501b65e3"
+    },
+    {
+      "path": "src/platform_native/client_host/local_runtime_binding.mbt",
+      "sha256": "47a3127ef0f898129aa590b95bf9984cc26f52b8def1eeb0515bfa5f08157a08",
+      "blob": "329637275f6be399dc16998eaa59cbc30456f9e4"
+    },
+    {
+      "path": "src/platform_native/client_host/local_packaged_runtime.mbt",
+      "sha256": "9b48969d34959192499db7e0a82b8d5cec4a1e5d046f31794c7262eb823b1126",
+      "blob": "99b19534456413886c039f40e2d51f77b9467f20"
+    },
+    {
+      "path": "src/run_publication_host/client_local_runtime_policy_upgrade.mbt",
+      "sha256": "90e62d18fc2e42580191d92d3246048befbec7c6237d8890510f752ce69f49ad",
+      "blob": "ad1e411d787cc5cfa654f83a629c2784f7ade71c"
+    },
+    {
+      "path": "src/run_publication_host/client_native_local_scalar_runtime_pair.mbt",
+      "sha256": "f635f920713e3ab0ebe468edd029f065eacc437f909a71d030314215c965b363",
+      "blob": "3239b09644e078a7f7ed3783146278718ae6f5da"
+    },
+    {
+      "path": "src/run_publication_host/client_local_original_codec.mbt",
+      "sha256": "085ddcaba076562dcedac0fca7d87ef7ddb0237f3e162451b5e4dabd26b2ff78",
+      "blob": "a4b5071903bea81cfeb16553e2a453e3df6bd015"
+    },
+    {
+      "path": "src/platform_native/sqlite/sqlite_stub.c",
+      "sha256": "65cf56705193b90e9113870ad537810176503f67363a2bd40356682ed6d978c2",
+      "blob": "209f850ceb0cb58ed3136c8c701116d119053820"
+    },
+    {
+      "path": "packages/native-cli/bin/actql.mjs",
+      "sha256": "f6ae0af9f034df731614300ecb19244a61b495a54afedd983628fa83360c789d",
+      "blob": "6c2d550350b42f85be063d340423df3418e1656c"
+    }
+  ],
+  "adoption": false,
+  "productionFilesChanged": [],
+  "normativeSpecSchemaCIDPinsChanged": [],
+  "newCompilerNativeProvider": 0,
+  "oldRunDBAttemptOperations": 0,
+  "keyPublicKeyIdentity": "separate proposal pending",
+  "classification": "Acceptance extension proposal; source diagnosis clarification only",
+  "independentSizingAssertions": "4344/5902 representative; maximum operation5079/6882; issued1+1=2<=min(8,7+1), reservation16384<=65536. Original settings51999 bytes are separate actual DB bodies, not capacity_sum.",
+  "fullPackagePortGap": "Existing Native runtime witness covers10 library/asset/license members plus manifest; Node verifies binary separately. A trusted typed complete-product projection is required, not assumed implemented."
+}

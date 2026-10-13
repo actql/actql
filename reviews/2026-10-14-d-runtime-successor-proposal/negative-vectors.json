@@ -1,0 +1,67 @@
+{
+  "proposalOnly": true,
+  "scenarioDescriptionsNotAPIBooleans": true,
+  "cases": [
+    {
+      "name": "changed original body or packet digest",
+      "change": "original_upgrade_cid or original_upgrade_packet_sha256 differs from independently authenticated old row",
+      "expected": "CustodyLost/ChangedIntent; no append"
+    },
+    {
+      "name": "missing or altered prior full manifest",
+      "change": "prior_runtime_wire does not hash to saved old pair.current_manifest_sha256",
+      "expected": "Unavailable/CustodyLost; no recapture from current"
+    },
+    {
+      "name": "different old correspondence",
+      "change": "prior_pair_sha256 differs from exact authenticated field12",
+      "expected": "ChangedIntent; no original lookup re-label"
+    },
+    {
+      "name": "unknown predecessor/profile",
+      "change": "not exact retained109\u2192a3b primitive-scalar-values",
+      "expected": "Unavailable"
+    },
+    {
+      "name": "physical package or library/ABI/license/closure/asset mismatch",
+      "change": "opaque whole-package witness or finite compatibility fails",
+      "expected": "Refused; metadata hashes alone never Allow"
+    },
+    {
+      "name": "caller proof or Boolean only",
+      "change": "no opaque Owner-produced full-package/dependency context",
+      "expected": "Unavailable"
+    },
+    {
+      "name": "current permission revoked before or after callback",
+      "change": "current run:submit/publish/read or same scope check denies",
+      "expected": "Refused; any committed original stays immutable/Unknown until same lookup"
+    },
+    {
+      "name": "same operation different intent",
+      "change": "operation_id reused with different target, original or current identity",
+      "expected": "ChangedIntent"
+    },
+    {
+      "name": "other operation after the one finite successor",
+      "change": "another operation requests replacement of closed runtime-successor/0.1 row",
+      "expected": "ChangedIntent; no overwrite/third-cohort expansion"
+    },
+    {
+      "name": "wrong role or duplicate/unknown record field",
+      "change": "body under policy-upgrade key or unselected role",
+      "expected": "CustodyLost; no old/new variant reinterpretation"
+    },
+    {
+      "name": "old deadline/read selection mutation",
+      "change": "new proposal attempts old Policy/Run/grant date change",
+      "expected": "Refused"
+    },
+    {
+      "name": "acknowledgement lost",
+      "change": "record+counter may have committed; caller did not receive reply",
+      "expected": "Unknown then same original operation lookup only; no new attempt/append/HMAC reissue"
+    }
+  ],
+  "executedOwnerTests": 0
+}
