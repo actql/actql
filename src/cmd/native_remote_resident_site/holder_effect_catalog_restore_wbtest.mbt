@@ -13,12 +13,12 @@ test "Catalog cleanup reobserves the original use after a transient query failur
   }
   assert_false(
     holder_catalog_cleanup_original_use_observed(
-      true, false, false, false, query,
+      false, true, false, false, false, query,
     ),
   )
   assert_true(
     holder_catalog_cleanup_original_use_observed(
-      true, false, false, false, query,
+      false, true, false, false, false, query,
     ),
   )
   assert_eq(queries.val, 2)
@@ -37,6 +37,7 @@ test "Catalog cleanup query failure or absence stays pending on each pass" {
   for pass in 0..<3 {
     assert_false(
       holder_catalog_cleanup_original_use_observed(
+        false,
         true,
         false,
         false,
@@ -63,6 +64,7 @@ test "Catalog cleanup does not query before a read or replace existing evidence"
     ] {
     assert_true(
       holder_catalog_cleanup_original_use_observed(
+        false,
         started,
         original,
         custody,
@@ -75,6 +77,44 @@ test "Catalog cleanup does not query before a read or replace existing evidence"
     )
   }
   assert_eq(queries.val, 0)
+}
+
+///|
+/// The flag models an already accepted Store cleanup ACK only. This does not
+/// manufacture that ACK, close the pending client or release its reservation.
+test "Catalog cleanup confirmed Store retirement does not requery a closed credential DB" {
+  let queries = Ref(0)
+  let query_closed_database = () => {
+    queries.val += 1
+    Err(())
+  }
+  // A failed client close can leave the original database already closed.
+  // Every later close pass must reach that same client rather than query it.
+  for _ in 0..<2 {
+    assert_true(
+      holder_catalog_cleanup_original_use_observed(
+        true,
+        true,
+        false,
+        false,
+        false,
+        query_closed_database,
+      ),
+    )
+  }
+  assert_eq(queries.val, 0)
+  // Without the original Store ACK, the same missing-use boundary stays pending.
+  assert_false(
+    holder_catalog_cleanup_original_use_observed(
+      false,
+      true,
+      false,
+      false,
+      false,
+      query_closed_database,
+    ),
+  )
+  assert_eq(queries.val, 1)
 }
 
 ///|

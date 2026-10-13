@@ -125,6 +125,7 @@ fn HolderEffectCatalogReviewCustody::close(
   // cannot prove there was no original use/GET. Reconcile through the same
   // Resource Owner before closing its DB; missing/unknown stays pending.
   if !holder_catalog_cleanup_original_use_observed(
+      self.catalog_cleanup_confirmed,
       self.read_started,
       self.original_use is Some(_),
       self.custody is Some(_),
@@ -195,14 +196,19 @@ fn HolderEffectCatalogReviewCustody::close(
 /// pass can inspect only the same original Journal/Resource use. This result
 /// acknowledges observation only: claimed/unknown is neither successful GET
 /// nor Store/physical cleanup, and no absence permits another read or claim.
+/// The existing Store cleanup ACK retires this query prerequisite only; failed
+/// service handles still require their original close retry. The credential DB
+/// may already be closed when another service handle remains pending.
 fn holder_catalog_cleanup_original_use_observed(
+  catalog_cleanup_confirmed : Bool,
   read_started : Bool,
   has_original_use : Bool,
   has_custody : Bool,
   has_observation : Bool,
   query : () -> Result[@effect_resource.NativeCredentialUseStatus?, Unit],
 ) -> Bool {
-  if read_started &&
+  if !catalog_cleanup_confirmed &&
+    read_started &&
     !has_original_use &&
     !has_custody &&
     !has_observation {
