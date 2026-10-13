@@ -258,6 +258,7 @@ test "unsupported catalog does not overwrite pending custody" {
   let current = load_catalog(store).unwrap()
   let pending : NativeRuntimeBundleCatalog = {
     revision: current.revision + 1L,
+    catalog_incarnation: current.catalog_incarnation,
     active_bundle_cid: None,
     entries: [],
     staging: [{ ..staging, phase: Sealed(generation), }],

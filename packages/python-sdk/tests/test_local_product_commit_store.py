@@ -40,6 +40,8 @@ class ProductCommitStoreTests(unittest.TestCase):
             return previous(family, name, *args)
         core._call = call
         host = InstalledLocalHost.__new__(InstalledLocalHost)
+        host._sdk_read_evidence = {}
+        host._sdk_deliveries = {}
         host._original = host
         host._core, host._closing = core, False
         host._installation = SimpleNamespace(binding=binding, _store=store)

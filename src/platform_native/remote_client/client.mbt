@@ -51,3 +51,28 @@ pub fn remote_dispatch_authorized(
     _ => false
   }
 }
+
+///|
+// Used by the Native transport; non-Native targets expose only refusal stubs.
+#warnings("-unused_value")
+fn admit_bundle_custody_report_reply(
+  status : Int,
+  text : String,
+  delivery : @remote.RemotePollBundleCustody,
+  response : @bundle.RemoteBundleCustodyResponse,
+) -> Result[
+  @remote.RemoteBundleCustodyObservationReply,
+  NativeRemoteClientIssue,
+] {
+  let request = @remote.remote_poll_bundle_custody_request(delivery)
+  let revision = @remote.remote_poll_bundle_custody_delivery_revision(delivery)
+  match
+    @remote.admit_remote_bundle_custody_observation_reply_json(
+      text, request, response, revision,
+    ) {
+    Ok(Accepted) if status == 200 => Ok(Accepted)
+    Ok(Obsolete) if status == 409 => Ok(Obsolete)
+    _ if status != 200 && status != 409 => Err(HttpStatus(status))
+    _ => Err(Protocol(@remote.InvalidDispatch))
+  }
+}

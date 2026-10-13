@@ -92,7 +92,7 @@ class SDKReadStoreProjectionTests(unittest.TestCase):
                 self.assertEqual(args[1:4], (29, 37, 31))
                 if state['produce']:
                     return state['produce']
-                outputs[args[0]] = body if kind == 'evidence_decision' or args[4] == 0 else identity
+                outputs[args[0]] = body if kind in ('evidence_decision', 'delivery_storage') or args[4] == 0 else identity
                 return 0
             if family == 'publication_commit_export' and name == 'length' and args[0] in outputs:
                 return len(outputs[args[0]])

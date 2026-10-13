@@ -1210,6 +1210,27 @@ class LocalByteStore:
         return self._projected_attached(
             count, project, originals, before_commit=before_commit, reuse_identical=True)
 
+    def compare_exchange_projected_inspected(
+            self, count: int,
+            project: Callable[[int, Callable[[ByteWrite], None]], object],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...],
+            fences: tuple[ByteFence, ...], *,
+            inspect: Callable[[_NamespaceReader, Callable[[], None]], object],
+            current: Callable[[], object],
+            before_commit: Callable[[], object]) -> tuple[int, ...] | None:
+        """Apply Core's original CAS under this same write/current snapshot.
+
+        This reuses the existing projected transaction and generation checks.
+        Core selects each key/body/expected revision; the physical return is
+        neither grant usage, delivery completion nor COMMIT acknowledgement.
+        """
+        if not callable(inspect) or not callable(current):
+            raise ValueError('Invalid Local projected CAS inspection')
+        self._validate_metadata_fences(fences, ())
+        return self._projected_attached(
+            count, project, originals, before_commit=before_commit,
+            reuse_identical=False, fences=fences, inspect=inspect, current=current)
+
     def store_publication_projected_inspected(
             self, count: int,
             project: Callable[[int, Callable[[ByteWrite], None]], object],
