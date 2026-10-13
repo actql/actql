@@ -35,8 +35,8 @@ test('STRING values keep decomposed Unicode and CR while their column names cano
 test('normal and focused public consumers retain the name cases and exact typed refusals', () => {
   assert.equal(canonicalQuotedIdentifierSuccesses.length, 10);
   assert.equal(canonicalQuotedIdentifierRefusals.length, 3);
-  assert.equal(quotedIdentifierSuccesses.length, 19);
-  assert.equal(quotedIdentifierRefusals.length, 12);
+  assert.equal(quotedIdentifierSuccesses.length, 38);
+  assert.equal(quotedIdentifierRefusals.length, 28);
   assert.ok(canonicalQuotedIdentifierRefusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
   assert.equal(canonicalQuotedIdentifierRefusals[2].format, 'aql-text',
     'the retired-range refusal must reach Pipe lowering, not SQL format rejection');

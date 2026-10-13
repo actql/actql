@@ -838,6 +838,36 @@ class LocalByteStore:
             self, inspect: Callable[[Callable[[str, Callable[[StoredBytes | None], object]], None]], object],
             originals: tuple[tuple[ByteFence, CapacityReservation], ...], *,
             current: Callable[[], object]) -> None:
+        self._inspect_publication_projected(inspect, originals, current=current)
+
+    def inspect_publication_projected_inspected(
+            self, inspect: Callable[[Callable[[str, Callable[[StoredBytes | None], object]], None]], object],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...],
+            fences: tuple[ByteFence, ...], *,
+            namespace: Callable[[_NamespaceReader, Callable[[], None]], object],
+            current: Callable[[], object],
+            before_lookup: Callable[[], object]) -> None:
+        """Borrow typed current and raw Core-issued keys in the same read TX.
+
+        The namespace supplier wraps the entire original index/request/attempt
+        inspection, not a prior read or cached permission. Physical current and
+        metadata/epoch fences are checked outside that borrowed Core frame as
+        well. Query failure never becomes absence or a durable publication ACK.
+        """
+        if not callable(namespace) or not callable(current):
+            raise ValueError('Invalid Local publication current namespace supplier')
+        self._validate_metadata_fences(fences, ())
+        self._inspect_publication_projected(
+            inspect, originals, current=before_lookup, namespace=namespace,
+            fences=fences, physical_current=current)
+
+    def _inspect_publication_projected(
+            self, inspect: Callable[[Callable[[str, Callable[[StoredBytes | None], object]], None]], object],
+            originals: tuple[tuple[ByteFence, CapacityReservation], ...], *,
+            current: Callable[[], object],
+            namespace: Callable[[_NamespaceReader, Callable[[], None]], object] | None = None,
+            fences: tuple[ByteFence, ...] = (),
+            physical_current: Callable[[], object] | None = None) -> None:
         """Transport bounded original-key reads under one physical snapshot.
 
         The trusted Host holds Core, then File, before this Store lock. It
@@ -918,14 +948,40 @@ class LocalByteStore:
                         reading = False
 
             try:
-                fence()
-                result = inspect(read)
-                # Swallowing a consumer/query/permission failure is not success.
-                if failure is not None:
-                    raise failure
-                if result is not None or reads == 0:
-                    raise ValueError('Incomplete Local publication inspection')
-                fence()
+                consumed = complete = False
+                consumption_failure: BaseException | None = None
+
+                def consume_all() -> None:
+                    nonlocal consumed, complete, consumption_failure
+                    try:
+                        if consumed:
+                            raise ValueError('Original Local inspection was already consumed')
+                        consumed = True
+                        fence()
+                        result = inspect(read)
+                        # A caught query/consumer/permission failure stays failed.
+                        if failure is not None:
+                            raise failure
+                        if result is not None or reads == 0:
+                            raise ValueError('Incomplete Local publication inspection')
+                        fence()
+                        complete = True
+                    except BaseException as error:
+                        consumption_failure = error
+                        raise
+
+                if namespace is None:
+                    consume_all()
+                else:
+                    self._inspect_namespace_locked(
+                        lambda reader: namespace(reader, consume_all), fences, physical_current)
+                if consumption_failure is not None:
+                    raise consumption_failure
+                if not complete:
+                    raise ValueError('Incomplete original Local publication current inspection')
+                self._fenced_current(physical_current)
+                if fences and not self._fences_match_locked(fences, ()):
+                    raise LocalStorageError('Original Local publication metadata changed')
             except BaseException:
                 if database.in_transaction:
                     database.execute('ROLLBACK')
