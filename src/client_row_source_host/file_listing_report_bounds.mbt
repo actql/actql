@@ -30,8 +30,14 @@ pub(all) fn row_acquisition_listing_report_bounds(
   guard value.preparation.file_listing is Some(profile) else {
     return Err(ForeignSource)
   }
-  row_listing_report_bounds(
-    @environment.file_listing_limit_candidates(profile),
-    value.configuration.listing_rows,
-  )
+  guard value.configuration.listing_rows is Some(resolved) else {
+    return Err(ListingLimitUnresolved("max_listing_items"))
+  }
+  guard @environment.file_listing_declared_limit(profile, "max_examined_items")
+    is Some(examined) else {
+    return Err(ListingLimitUnresolved("max_examined_items"))
+  }
+  // No temporary candidate Array or raw profile-body reparsing. Selected
+  // rows still come from the original Catalog/Host resolved witness.
+  Ok((listing_rows_maximum(resolved), examined))
 }

@@ -42,3 +42,30 @@ test "listing report count facts reject missing and nonpositive examined bounds 
     (2L, 1L),
   )
 }
+
+///|
+test "scalar listing limits borrow the same checked Catalog without candidate copy aliases" {
+  let profile = listing_profile_fixture(Some(3L), examined=Some(9L)) catch {
+    _ => abort("checked listing ceiling fixture")
+  }
+  assert_eq(@environment.file_listing_declared_limit(profile, "max_examined_items"), Some(9L))
+  // The scalar candidate remains declared three. It must not replace the
+  // separate Catalog/Host witness that resolves selected rows to two.
+  assert_eq(@environment.file_listing_declared_limit(profile, "max_listing_items"), Some(3L))
+  assert_eq(@environment.file_listing_declared_limit(profile, "missing"), None)
+  let before = @environment.file_listing_facts_cid(profile)
+  let copied = @environment.file_listing_limit_candidates(profile)
+  for index in 0..<copied.length() {
+    if copied[index].0 == "max_examined_items" {
+      copied[index] = ("max_examined_items", 1L)
+    }
+  }
+  // Mutation of an escaped candidate copy is not a mutation of its opaque
+  // checked profile and cannot change the original acquisition's count fact.
+  assert_eq(@environment.file_listing_declared_limit(profile, "max_examined_items"), Some(9L))
+  assert_eq(@environment.file_listing_facts_cid(profile), before)
+  let absent = listing_profile_fixture(Some(3L)) catch {
+    _ => abort("checked missing examined ceiling fixture")
+  }
+  assert_eq(@environment.file_listing_declared_limit(absent, "max_examined_items"), None)
+}
