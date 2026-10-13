@@ -281,7 +281,9 @@ fn client_source_context(
         @program_check.source_catalog_contracts(prepared_catalog),
       ),
       model_tasks=@program_check.checking_environment_model_tasks(environment),
-      calendar_profile=@program_check.checking_environment_calendar_profile(environment),
+      calendar_profile=@program_check.checking_environment_calendar_profile(
+        environment,
+      ),
     ) {
     Ok(value) => value
     Err(issue) => raise PublicationStop(Alias(issue))
