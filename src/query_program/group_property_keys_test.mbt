@@ -157,7 +157,7 @@ test "GROUP property keys cannot revive ungrouped receivers or displaced aliases
     source in [
       "SELECT other.score AS score, COUNT(*) AS n FROM objects GROUP BY payload.score",
       "SELECT payload AS value, COUNT(*) AS n FROM objects GROUP BY payload.score",
-      "FROM objects AS old |> AS current |> AGGREGATE COUNT(*) AS n GROUP BY old.payload.score",
+      "FROM objects AS old |> AS `current` |> AGGREGATE COUNT(*) AS n GROUP BY old.payload.score",
       "FROM objects |> AGGREGATE COUNT(*) AS n GROUP BY payload.score |> SELECT payload.score",
     ] {
     assert_true(

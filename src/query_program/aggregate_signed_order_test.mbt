@@ -122,7 +122,7 @@ test "signed aggregate keys preserve unavailable scope and demand restrictions" 
   assert_true(
     compile(
       @query.parse_query(
-        "FROM objects AS old |> AS current |> AGGREGATE STRING_AGG(name, '|' ORDER BY -old.payload.score, id) AS names",
+        "FROM objects AS old |> AS `current` |> AGGREGATE STRING_AGG(name, '|' ORDER BY -old.payload.score, id) AS names",
         syntax_limits(),
       ).unwrap(),
       aggregate_property_order_context(),

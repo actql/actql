@@ -137,8 +137,8 @@ test "STRUCT value-table receiver stays private and ends at AS or SELECT" {
       "SELECT element, position FROM UNNEST(@items) element WITH OFFSET position ORDER BY position",
       "SELECT element AS original, id, position FROM UNNEST(@items) element WITH OFFSET position WHERE element.id IS NOT NULL ORDER BY position",
       "SELECT element.* EXCEPT (label), position FROM UNNEST(@items) element WITH OFFSET position WHERE id IS NOT NULL ORDER BY position",
-      "FROM UNNEST(@items) element WITH OFFSET position |> SELECT id, position |> AS input |> SET id = id + 10 |> SELECT id AS current, input.id AS original, position |> ORDER BY position",
-      "FROM UNNEST(@items) element WITH OFFSET position |> SELECT * |> DROP label |> AS current |> SELECT current.* |> ORDER BY position",
+      "FROM UNNEST(@items) element WITH OFFSET position |> SELECT id, position |> AS input |> SET id = id + 10 |> SELECT id AS `current`, input.id AS original, position |> ORDER BY position",
+      "FROM UNNEST(@items) element WITH OFFSET position |> SELECT * |> DROP label |> AS `current` |> SELECT current.* |> ORDER BY position",
       "SELECT id FROM UNNEST(@items) element WITH OFFSET position ORDER BY element.label NULLS LAST, position",
       "SELECT id, COUNT(*) AS n FROM UNNEST(@items) element GROUP BY id ORDER BY id",
     ] {
@@ -160,7 +160,7 @@ test "STRUCT value-table receiver stays private and ends at AS or SELECT" {
   for
     text in [
       "FROM UNNEST(@items) element |> SELECT id |> WHERE element.label IS NULL",
-      "FROM UNNEST(@items) element |> AS current |> WHERE element.id IS NULL", "FROM UNNEST(@items) element |> SELECT * |> WHERE element.id IS NULL",
+      "FROM UNNEST(@items) element |> AS `current` |> WHERE element.id IS NULL", "FROM UNNEST(@items) element |> SELECT * |> WHERE element.id IS NULL",
     ] {
     let result = compile(
       @query.parse_query(text, syntax_limits()).unwrap(),

@@ -27,7 +27,7 @@ test "Pipe DISTINCT preserves surviving ranges and prunes displaced slots" {
     source in [
       "FROM pair AS t |> DISTINCT |> WHERE t.x > 0 |> SELECT t.x AS x", "FROM pair AS t |> RENAME x AS z |> DISTINCT |> SELECT t.x AS old_x, z, t.y AS y",
       "FROM pair AS t |> DROP x |> DISTINCT |> SELECT t.y AS y", "FROM pair AS t |> SET x = y |> DISTINCT |> SELECT x, t.y AS y",
-      "FROM pair |> AS old |> AS current |> DISTINCT |> SELECT current.x AS x", "FROM pair |> SELECT x AS y |> DISTINCT |> ORDER BY y + 1 |> SELECT y",
+      "FROM pair |> AS old |> AS `current` |> DISTINCT |> SELECT current.x AS x", "FROM pair |> SELECT x AS y |> DISTINCT |> ORDER BY y + 1 |> SELECT y",
       "SELECT x FROM pair |> DISTINCT |> WHERE x > 0", "FROM pair |> SELECT x |> UNION ALL (FROM pair |> SELECT x) |> DISTINCT |> ORDER BY x",
       "WITH chosen AS (FROM pair AS t |> DISTINCT |> SELECT t.x AS x) SELECT x FROM chosen",
     ] {
@@ -46,7 +46,7 @@ test "Pipe DISTINCT preserves surviving ranges and prunes displaced slots" {
   for
     source in [
       "FROM pair AS t |> SET x = y |> DISTINCT |> SELECT t.x", "FROM pair AS t |> DROP x |> DISTINCT |> SELECT t.x",
-      "FROM pair |> AS old |> AS current |> DISTINCT |> SELECT old.x", "FROM pair AS t |> SELECT DISTINCT * |> DISTINCT |> SELECT t.x",
+      "FROM pair |> AS old |> AS `current` |> DISTINCT |> SELECT old.x", "FROM pair AS t |> SELECT DISTINCT * |> DISTINCT |> SELECT t.x",
       "FROM pair AS t |> SELECT x |> DISTINCT |> SELECT t.x",
     ] {
     assert_true(
