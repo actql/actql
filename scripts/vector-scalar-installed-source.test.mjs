@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {createVectorScalarPageDriver, installVectorScalarFixture, vectorScalarSchemaCid,
+  vectorScalarFactsWire, vectorScalarFactsCid,
   vectorScalarSchemaWire, vectorScalarViewSpecification}
   from './fixtures/vector-scalar-installed-source.mjs';
 import {vectorScalarSourceSchema, vectorScalarSourceRows,
@@ -26,8 +27,11 @@ test('full Relation declaration retains the independent original Vector schema/C
     right_vector: {...vectorScalarSourceSchema.right_vector, element_type: 'f32'},
   });
   assert.equal('sha256:' + createHash('sha256').update(vectorScalarSchemaWire).digest('hex'), vectorScalarSchemaCid);
+  assert.equal('sha256:' + createHash('sha256').update(vectorScalarFactsWire).digest('hex'), vectorScalarFactsCid);
+  assert.deepEqual(JSON.parse(vectorScalarFactsWire), {relation_keys: {candidate_keys: [['id']]}});
   assert.deepEqual(vectorScalarViewSpecification.views[0], {resource: 'vectors', resource_kind: 'table',
-    schema_wire: vectorScalarSchemaWire, schema_cid: vectorScalarSchemaCid});
+    schema_wire: vectorScalarSchemaWire, schema_cid: vectorScalarSchemaCid,
+    facts_wire: vectorScalarFactsWire});
   assert.equal(vectorScalarSourceSuccesses.length, 12);
   assert.equal(vectorScalarSourceRefusals.length, 8);
   assert.equal(vectorScalarSourceSuccesses.filter(item => item.sourceReadSessionCount === 1).length, 8);

@@ -3,9 +3,13 @@ fn carrier_modes(
   body : Json,
   kind : String,
   unused? : Json? = None,
+  facts? : Json? = None,
 ) -> SourceReadModes raise {
   let bodies = value_bodies("{\"type\":\"number\",\"nullable\":false}")
   bodies["carrier_schema"] = body
+  if facts is Some(facts) {
+    bodies["carrier_facts"] = facts
+  }
   let contents = reference_fixture(
     complete_view=true,
     carrier=kind,

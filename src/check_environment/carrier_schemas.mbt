@@ -35,6 +35,7 @@ struct CarrierSchema {
 struct SourceViewCarrier {
   reference : CatalogReference
   schema : CarrierSchema
+  relation_keys : SourceRelationKeys?
 }
 
 ///|
@@ -308,6 +309,7 @@ pub fn check_carrier_schemas(
   let entries = []
   let by_cid : Map[String, CarrierSchema] = Map([])
   let views : Map[Int, SourceViewCarrier] = Map([])
+  let key_facts : Map[String, RelationKeyFacts] = Map([])
   let mut bytes = 0
   let mut nodes = 0
   let mut work = 0
@@ -317,6 +319,16 @@ pub fn check_carrier_schemas(
         carrier_fail(WorkLimit, envelope.body)
       }
       work += 1
+      if envelope.kind == "carrier_facts" {
+        let (keys, used) = read_relation_key_facts(
+          envelope,
+          limits.max_work - work,
+        )
+        work += used
+        if keys is Some(keys) {
+          key_facts[envelope.cid] = keys
+        }
+      }
       if envelope.kind != "carrier_schema" {
         continue
       }
@@ -369,7 +381,28 @@ pub fn check_carrier_schemas(
       if @decode.text(name).unwrap() != carrier_spelling(schema.carrier) {
         carrier_fail(CarrierMismatch, name)
       }
-      views[member_index(reference.item)] = { reference, schema, }
+      let facts_cursor = @decode.required(output, "facts").unwrap()
+      let facts_reference = catalog_reference_for_cursor(
+        references, facts_cursor,
+      ).unwrap()
+      let relation_keys = match key_facts.get(facts_reference.contract.cid) {
+        None => None
+        Some(facts) => {
+          let (keys, used) = bind_source_relation_keys(
+            facts_reference,
+            schema,
+            facts,
+            limits.max_work - work,
+          )
+          work += used
+          Some(keys)
+        }
+      }
+      views[member_index(reference.item)] = {
+        reference,
+        schema,
+        relation_keys,
+      }
     }
     Ok({ modes, entries, by_cid, views, bytes, nodes, work, })
   } catch {
