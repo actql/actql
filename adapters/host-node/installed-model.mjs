@@ -80,15 +80,21 @@ function checkInstallation(installation) {
 function retainProviderBindingOriginals(value) {
   if (value === undefined) return undefined;
   const fields = ['configuration', 'configurationContract', 'installationRevision'];
-  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).sort().join(',') !== fields.join(',')) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw new TypeError('InvalidInstalledModelProviderBindingOriginals');
+  }
+  const keys = Object.keys(value).sort();
+  if (keys.length !== fields.length || keys.some((key, index) => key !== fields[index])) {
     throw new TypeError('InvalidInstalledModelProviderBindingOriginals');
   }
   const originals = {};
   for (const name of fields) {
     const original = value[name];
-    if (original === null || typeof original !== 'object' || Array.isArray(original) ||
-        Object.keys(original).sort().join(',') !== 'cid,wire') {
+    if (original === null || typeof original !== 'object' || Array.isArray(original)) {
+      throw new TypeError('InvalidInstalledModelProviderBindingOriginals');
+    }
+    const originalKeys = Object.keys(original).sort();
+    if (originalKeys.length !== 2 || originalKeys[0] !== 'cid' || originalKeys[1] !== 'wire') {
       throw new TypeError('InvalidInstalledModelProviderBindingOriginals');
     }
     const wire = original.wire, cid = original.cid;
@@ -107,14 +113,20 @@ function retainProviderBindingOriginals(value) {
 // after validation may substitute different amounts. This issues no capacity.
 function retainModelQuantityCapacity(capacity) {
   if (capacity === undefined) return undefined;
-  if (capacity === null || typeof capacity !== 'object' ||
-      Object.keys(capacity).sort().join(',') !== 'limits,perAttempt') {
+  if (capacity === null || typeof capacity !== 'object') {
+    throw new TypeError('InvalidInstalledModelQuantityCapacity');
+  }
+  const keys = Object.keys(capacity).sort();
+  if (keys.length !== 2 || keys[0] !== 'limits' || keys[1] !== 'perAttempt') {
     throw new TypeError('InvalidInstalledModelQuantityCapacity');
   }
   const limitsSource = capacity.limits, perAttemptSource = capacity.perAttempt;
-  if ([limitsSource, perAttemptSource].some(amount =>
-    amount === null || typeof amount !== 'object' ||
-    Object.keys(amount).sort().join(',') !== 'costUnits,durationMs,tokens')) {
+  if ([limitsSource, perAttemptSource].some(amount => {
+    if (amount === null || typeof amount !== 'object') return true;
+    const amountKeys = Object.keys(amount).sort();
+    return amountKeys.length !== 3 || amountKeys[0] !== 'costUnits' ||
+      amountKeys[1] !== 'durationMs' || amountKeys[2] !== 'tokens';
+  })) {
     throw new TypeError('InvalidInstalledModelQuantityCapacity');
   }
   const limits = {tokens: limitsSource.tokens, costUnits: limitsSource.costUnits,
