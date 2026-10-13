@@ -19,10 +19,9 @@ fn original_keyed_environment_members(bodies : Array[String]) -> Json raise {
 ///|
 // Inputs mirror the existing finite file-listing/content declaration fixtures.
 // Declaration generation builds test inputs, never expected output/custody.
-fn original_keyed_declaration_environment() -> (
-  @row_source_host.RowDeclaration,
-  String,
-) raise {
+fn original_keyed_declaration_environment(
+  relation_versions? : Bool = false,
+) -> (@row_source_host.RowDeclaration, String) raise {
   let listing = "{\"media_type\":{\"nullable\":true,\"type\":\"string\"},\"modified_at\":{\"nullable\":true,\"type\":\"timestamp\"},\"name\":{\"nullable\":false,\"type\":\"string\"},\"path\":{\"nullable\":true,\"type\":\"string\"},\"resource\":{\"nullable\":false,\"resource_kind\":\"file\",\"type\":\"resource_ref\"},\"size_bytes\":{\"nullable\":true,\"type\":\"number\"},\"version\":{\"nullable\":false,\"type\":\"string\"}}"
   let content = "{\"content\":{\"media_type\":\"application/pdf\",\"nullable\":false,\"type\":\"content_ref\"},\"resource\":{\"nullable\":false,\"resource_kind\":\"file\",\"type\":\"resource_ref\"},\"version\":{\"nullable\":false,\"type\":\"string\"}}"
   let listed : @row_source_host.RowRelationViewSpec = {
@@ -30,9 +29,13 @@ fn original_keyed_declaration_environment() -> (
     resource_kind: "file",
     schema_wire: listing,
     schema_cid: "sha256:" + @sha.hex(@utf8.encode(listing)),
-    request_schema_wire: Some(
-      "{\"additional_properties\":false,\"fields\":{\"glob\":{\"nullable\":true,\"type\":\"string\"},\"paths\":{\"items\":{\"nullable\":false,\"type\":\"string\"},\"max_items\":8,\"nullable\":true,\"type\":\"array\"}},\"nullable\":false,\"type\":\"object\"}",
-    ),
+    request_schema_wire: if relation_versions {
+      None
+    } else {
+      Some(
+        "{\"additional_properties\":false,\"fields\":{\"glob\":{\"nullable\":true,\"type\":\"string\"},\"paths\":{\"items\":{\"nullable\":false,\"type\":\"string\"},\"max_items\":8,\"nullable\":true,\"type\":\"array\"}},\"nullable\":false,\"type\":\"object\"}",
+      )
+    },
     facts_wire: None,
     acquisition_wire: None,
   }
@@ -67,15 +70,21 @@ fn original_keyed_declaration_environment() -> (
   let content_schema = initial.views.filter(view => view.resource == "contents")[0].carrier_schema_cid
   let listed = {
     ..listed,
-    facts_wire: Some(
-      "{\"file_listing\":{\"admitted_scope_contract_cid\":\"sha256:" +
-      "a".repeat(64) +
-      "\",\"allow_unfiltered_listing\":true,\"kind\":\"file_listing\",\"listing_schema_contract_cid\":\"" +
-      listing_schema +
-      "\",\"max_examined_items\":9,\"max_listing_bytes\":32768,\"max_listing_duration_ms\":10000,\"max_listing_items\":3,\"max_listing_pages\":4,\"max_request_attempts\":4,\"maximum_path_length\":64,\"selectable\":[\"paths\",\"glob\"],\"version\":\"actql-file-list/0.1\",\"version_capability\":{\"contract_cid\":\"sha256:" +
-      "b".repeat(64) +
-      "\",\"required_nonnull\":true}}}",
-    ),
+    // An ordinary Relation can contain a Resource's version history. It is
+    // not a contradictory FILES listing and must not acquire listing facts.
+    facts_wire: if relation_versions {
+      None
+    } else {
+      Some(
+        "{\"file_listing\":{\"admitted_scope_contract_cid\":\"sha256:" +
+        "a".repeat(64) +
+        "\",\"allow_unfiltered_listing\":true,\"kind\":\"file_listing\",\"listing_schema_contract_cid\":\"" +
+        listing_schema +
+        "\",\"max_examined_items\":9,\"max_listing_bytes\":32768,\"max_listing_duration_ms\":10000,\"max_listing_items\":3,\"max_listing_pages\":4,\"max_request_attempts\":4,\"maximum_path_length\":64,\"selectable\":[\"paths\",\"glob\"],\"version\":\"actql-file-list/0.1\",\"version_capability\":{\"contract_cid\":\"sha256:" +
+        "b".repeat(64) +
+        "\",\"required_nonnull\":true}}}",
+      )
+    },
   }
   let fetched = {
     ..fetched,
@@ -147,6 +156,8 @@ fn original_keyed_declaration_environment() -> (
 ///|
 fn original_keyed_run_fixture(
   selector_free? : Bool = false,
+  relation_versions? : Bool = false,
+  serialization_max_bytes? : Int = 4096,
 ) -> (
   @row_source_host.RowDeclaration,
   @publication_host.PreparedClientProgram,
@@ -156,10 +167,12 @@ fn original_keyed_run_fixture(
   @publication_host.ClientKeyedAcquisition,
   @planning.QueryRequirement,
 ) raise {
-  let (declaration, environment) = original_keyed_declaration_environment()
+  let (declaration, environment) = original_keyed_declaration_environment(
+    relation_versions~,
+  )
   let document =
     #|{"version":"actql/0.1","id":"original-keyed-content","stages":[{"id":"capture","inputs":{"contents":{"connector":"content-fixture","resource":"contents"},"files":{"connector":"content-fixture","resource":"files","request":{"paths":["invoice.pdf"],"glob":null}}},"steps":[{"from":"files","filter":"name IS NOT NULL","as":"matched"},{"from":"matched","select":["name","resource","version"],"as":"selected"},{"join":{"left":"selected","with":"contents","kind":"inner","on":[{"left":"resource","right":"resource"},{"left":"version","right":"version"}],"select":{"name":"left.name","content":"right.content"}},"as":"captured"},{"from":"captured","assert_rows":{"unique_by":["name"]}},{"serialize":{"format":"jsonl","fields":["name","content"],"order_by":[{"name":"asc"}],"name":"captured.jsonl","bounds":{"max_rows":3,"max_bytes":4096}},"as":"attachment"},{"assert_rows":{"unique_by":["name"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["name","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"capture","result":"rows"}}}}
-  let document = if selector_free {
+  let document = if selector_free || relation_versions {
     // An empty terminal listing is valid for the explicitly admitted unfiltered
     // selection, not for a missing mandatory exact path.
     let parsed = @json.parse(document)
@@ -171,7 +184,42 @@ fn original_keyed_run_fixture(
       files.get("request") is Some(Object(request)) else {
       abort("fixture Direct request")
     }
-    request["paths"] = @json.parse("null")
+    if relation_versions {
+      // The left connector Resource is an ordinary row relation, not FILES.
+      // Do not fabricate a listing observation to admit multiple versions.
+      files.remove("request")
+      guard stage.get("steps") is Some(Array(steps)) &&
+        steps.length() >= 3 &&
+        steps[2] is Object(join_step) &&
+        join_step.get("join") is Some(Object(join)) else {
+        abort("fixture version-history steps")
+      }
+      // Ordinary Source cardinality is unknown. An explicit take provides
+      // existing producer membership, rather than borrowing a Host ceiling
+      // or adding FILES facts which do not describe this Relation.
+      // Preserve the existing scan/filter/select acquisition. The later
+      // bounded Local prefix, not an invented Source query, owns these guards.
+      join["left"] = @json.parse("\"bounded\"")
+      let augmented = [
+        steps[0],
+        steps[1],
+        @json.parse(
+          "{\"from\":\"selected\",\"assert_rows\":{\"unique_by\":[\"name\"]},\"as\":\"unique_names\"}",
+        ),
+        @json.parse(
+          "{\"from\":\"unique_names\",\"sort\":[{\"field\":\"name\",\"dir\":\"asc\",\"nulls\":\"last\"}],\"as\":\"ordered_names\"}",
+        ),
+        @json.parse(
+          "{\"from\":\"ordered_names\",\"take\":3,\"as\":\"bounded\"}",
+        ),
+      ]
+      for index in 2..<steps.length() {
+        augmented.push(steps[index])
+      }
+      stage["steps"] = Json::array(augmented)
+    } else {
+      request["paths"] = @json.parse("null")
+    }
     @identity.stringify_value(
       @identity.from_json(parsed, 100000, 100, 1000000),
       1000000,
@@ -181,12 +229,20 @@ fn original_keyed_run_fixture(
   } else {
     document
   }
+  let document = if serialization_max_bytes == 4096 {
+    document
+  } else {
+    document.replace(
+      old="\"max_bytes\":4096",
+      new="\"max_bytes\":" + serialization_max_bytes.to_string(),
+    )
+  }
   let (prepared, compiled, definition, plan) = original_prefix_execution_fixture(
     source=true,
     environment_override=Some(environment),
     document_override=Some(document),
-    serialization_coordinate=Some((0, 4)),
-    serialization_bounds=(3, 4096),
+    serialization_coordinate=Some((0, if relation_versions { 7 } else { 4 })),
+    serialization_bounds=(3, serialization_max_bytes),
   )
   let keyed = @publication_host.select_client_single_keyed_acquisition(prepared)
     .unwrap()

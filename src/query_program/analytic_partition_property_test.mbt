@@ -79,7 +79,7 @@ test "analytic partition properties keep immutable SELECT input receivers" {
 test "analytic partition properties preserve current and Pipe snapshot slots" {
   let wire = semantic(
     checked_partition_property(
-      "FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY original.payload.bucket ORDER BY id) AS before, ROW_NUMBER() OVER (PARTITION BY payload.bucket ORDER BY id) AS current |> ORDER BY id",
+      "FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY original.payload.bucket ORDER BY id) AS before, ROW_NUMBER() OVER (PARTITION BY payload.bucket ORDER BY id) AS `current` |> ORDER BY id",
     ),
   )
   assert_true(wire.contains("\"value\":{\"field\":\"payload\"}"))
@@ -109,7 +109,7 @@ test "analytic partition properties preserve typed scope refusals and work bound
     text in [
       "SELECT ROW_NUMBER() OVER (PARTITION BY missing.bucket ORDER BY id) AS pos FROM objects",
       "SELECT other AS sibling, ROW_NUMBER() OVER (PARTITION BY sibling.bucket ORDER BY id) AS pos FROM objects",
-      "FROM objects AS old |> AS current |> SELECT ROW_NUMBER() OVER (PARTITION BY old.payload.bucket ORDER BY id) AS pos",
+      "FROM objects AS old |> AS `current` |> SELECT ROW_NUMBER() OVER (PARTITION BY old.payload.bucket ORDER BY id) AS pos",
     ] {
     assert_true(
       compile(

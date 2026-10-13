@@ -23,6 +23,9 @@ typedef EVP_PKEY *(*actql_pem_read_bio_pubkey_fn)(
 );
 typedef void (*actql_evp_pkey_free_fn)(EVP_PKEY *);
 typedef int (*actql_evp_pkey_get_base_id_fn)(const EVP_PKEY *);
+typedef int (*actql_evp_pkey_get_raw_public_key_fn)(
+  const EVP_PKEY *, unsigned char *, size_t *
+);
 typedef EVP_MD_CTX *(*actql_evp_md_ctx_new_fn)(void);
 typedef void (*actql_evp_md_ctx_free_fn)(EVP_MD_CTX *);
 typedef int (*actql_evp_digest_verify_init_fn)(
@@ -64,6 +67,7 @@ typedef struct {
   actql_evp_digest_final_ex_fn evp_digest_final_ex;
   actql_err_get_error_fn err_get_error;
   actql_err_error_string_n_fn err_error_string_n;
+  actql_evp_pkey_get_raw_public_key_fn evp_pkey_get_raw_public_key;
 } actql_native_signature_library;
 
 // An explicit installer ceiling is independent of row/response limits.
@@ -379,6 +383,56 @@ moonbit_bytes_t actql_native_signature_library_error(
 ) {
   return library == NULL ? moonbit_make_bytes_raw(0) :
     actql_copy_diagnostic(library->error, library->diagnostic_ceiling);
+}
+
+MOONBIT_FFI_EXPORT
+int32_t actql_native_signature_ed25519_public_key_raw32(
+  actql_native_signature_library *library,
+  moonbit_bytes_t public_key,
+  int32_t public_key_length,
+  moonbit_bytes_t output,
+  int32_t output_length
+) {
+  if (library == NULL || library->dynamic_library == NULL ||
+      library->diagnostic_ceiling <= 0 || public_key == NULL ||
+      public_key_length <= 0 || public_key_length > 16384 ||
+      memchr(public_key, 0, (size_t)public_key_length) != NULL ||
+      output == NULL || output_length != 32) return 2;
+  memset(output, 0, 32);
+  actql_replace_error(&library->error, library->diagnostic_ceiling, NULL);
+  // Optional comparison support does not expand legacy load requirements.
+  if (library->evp_pkey_get_raw_public_key == NULL &&
+      !ACTQL_LOAD(library, evp_pkey_get_raw_public_key,
+                  "EVP_PKEY_get_raw_public_key")) return 5;
+  BIO *bio = library->bio_new_mem_buf(public_key, public_key_length);
+  if (bio == NULL) {
+    actql_openssl_error(library, "public key buffer failed");
+    return 3;
+  }
+  EVP_PKEY *key = library->pem_read_bio_pubkey(bio, NULL, NULL, NULL);
+  library->bio_free(bio);
+  if (key == NULL) {
+    actql_openssl_error(library, "public key decode failed");
+    return 3;
+  }
+  if (library->evp_pkey_get_base_id(key) != ACTQL_NID_ED25519) {
+    library->evp_pkey_free(key);
+    actql_replace_error(&library->error, library->diagnostic_ceiling,
+                        "public key is not Ed25519");
+    return 4;
+  }
+  // https://docs.openssl.org/3.0/man3/EVP_PKEY_new/
+  // OpenSSL takes capacity on entry and returns the actual length on exit.
+  // This projection is comparison material, never a grant CID or permission.
+  size_t length = 32;
+  int result = library->evp_pkey_get_raw_public_key(key, output, &length);
+  library->evp_pkey_free(key);
+  if (result != 1 || length != 32) {
+    memset(output, 0, 32);
+    actql_openssl_error(library, "public key projection failed");
+    return 5;
+  }
+  return 0;
 }
 
 MOONBIT_FFI_EXPORT

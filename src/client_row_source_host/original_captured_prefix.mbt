@@ -5,6 +5,7 @@
 pub fn row_capture_original_prefix_requirement(
   capture : RowSourceCapture,
   ledger : @resources.Ledger,
+  prefix? : @resources.Reservation? = None,
 ) -> @planning.QueryRequirement? {
   let run = capture.run
   guard run.configuration is DirectConfiguration(configuration) &&
@@ -24,11 +25,21 @@ pub fn row_capture_original_prefix_requirement(
     physical_equal(physical.ledger, ledger) &&
     physical.dag is None &&
     physical.holding is Some(holding) &&
-    @resources.original_captured_prefix_available(
-      ledger,
-      physical.reservation,
-      holding,
-    ) else {
+    (match prefix {
+      None =>
+        @resources.original_captured_prefix_available(
+          ledger,
+          physical.reservation,
+          holding,
+        )
+      Some(token) =>
+        @resources.original_captured_prefix_reservation_available(
+          ledger,
+          physical.reservation,
+          holding,
+          token,
+        )
+    }) else {
     return None
   }
   Some(configuration.requirement)

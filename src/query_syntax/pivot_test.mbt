@@ -1,7 +1,7 @@
 ///|
 test "Pipe PIVOT retains aggregate columns values aliases and prefix" {
   let query = parse_query(
-    "FROM rows |> PIVOT(MIN(r.amount) AS m FOR r.status IN ('z' AS last, \"a\" first)) AS current",
+    "FROM rows |> PIVOT(MIN(r.amount) AS m FOR r.status IN ('z' AS last, \"a\" first)) AS `current`",
     query_limits(),
   ).unwrap()
   match operation_at(query, 0) {
