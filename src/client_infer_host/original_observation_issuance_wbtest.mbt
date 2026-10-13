@@ -6,15 +6,61 @@ fn original_observation_test_start() -> (
   @resources.Ledger,
   @publication_host.ClientModelReadConsumer,
 ) {
-  let (active, _, consumer, compiled, definition, _, ledger) = model_resource_park_test_start()
+  let prepared = fixture_prepared()
+  let plan = call_identity_plan(prepared)
+  let limits = standard_limits()
+  let (compiled, _) = original_input_capacity_run(prepared, plan)
+  // Select the original Result policy before issuing the checked read origin.
+  // Do not replace an already issued Scope/Run with a newly compiled lookalike.
+  let policy_wire = "{\"classification\":\"unknown\",\"source_data_policy_cids\":[],\"source_response_policy_cids\":[],\"unknown_provenance\":true,\"version\":\"actql-effective-data-policy/0.1\"}"
+  let compiled = @publication_host.with_client_infer_result_policy(
+    compiled,
+    invocation_fixture_policy_cid(),
+    policy_wire,
+    16384,
+    1024,
+    20,
+  ).unwrap()
+  let definition = @publication_host.issue_client_compiled_run_definition(
+    compiled, "original-observation", "run", "2026-10-12T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  let ledger = @resources.create_ledger({
+    ..limits.model.ledger,
+    attempts: Int::min(limits.model.ledger.attempts, 4),
+    transfer_bytes: Int64::min(limits.model.ledger.transfer_bytes, 133072L),
+  }).unwrap()
+  let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
+  let original_scope = @publication_host.begin_client_model_read_scope(
+    compiled, definition, plan, ledger, bootstrap, 4, 2, 0,
+  ).unwrap()
+  let read = @publication_host.prepare_client_model_read(original_scope, 7L, 5L).unwrap()
+  let consumer = @publication_host.claim_client_model_read_preparation(
+    read, compiled, definition, plan, 7L, 5L,
+  ).unwrap()
+  let active = start_original_model_preparation(
+    prepared,
+    2,
+    infer_fixture_registry,
+    infer_fixture_values,
+    original_funded_start_provider(Ref(0)),
+    limits,
+    compiled,
+    definition,
+    plan,
+    consumer,
+    7L,
+    5L,
+    100L,
+    5L,
+  ).unwrap()
   let configuration = evidence_account(@authorization.Allow)
   let permit = @publication_host.issue_client_infer_dispatch_admission(
     compiled,
     definition,
     configuration,
     "fixture-principal",
-    "2026-10-02T00:00:00.000Z",
-    observe_current=() => Ok((configuration, "2026-10-02T00:00:00.000Z")),
+    "2026-10-12T00:00:00.000Z",
+    observe_current=() => Ok((configuration, "2026-10-12T00:00:00.000Z")),
   ).unwrap()
   bind_dispatch_admission(active, permit).unwrap()
   (active, ledger, consumer)
