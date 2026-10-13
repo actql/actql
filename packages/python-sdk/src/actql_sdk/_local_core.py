@@ -654,7 +654,7 @@ class LocalCore:
                  _host_capacity_bytes: int = 0,
                  _physical_holding: _NativeHoldingLease | None = None) -> None:
         from ._local_engine import _InstalledImageInput, _InstalledImageFileInput
-    from ._local_native_image import _NativeImageHolding
+        from ._local_native_image import _NativeImageHolding
         from ._local_image_recipe import _SelectedImageRecipe
         if type(_compiled_image) is _InstalledImageFileInput:
             original_valid = (module is None and type(_compiled_image.recipe) is _SelectedImageRecipe
