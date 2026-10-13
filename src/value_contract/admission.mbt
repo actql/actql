@@ -79,6 +79,30 @@ fn text(cursor : @decode.Cursor, budget : Budget) -> String raise Abort {
 }
 
 ///|
+fn content_media_descriptor(
+  cursor : @decode.Cursor,
+  budget : Budget,
+) -> String raise Abort {
+  let value = decoded(@decode.text(cursor))
+  // Keep the existing aggregate UTF-8 text charge, but not identifier NFC.
+  let size = match @scalar.admit_utf8_length(value, budget.text) {
+    Ok(size) => size
+    Err(@scalar.MalformedUtf16(_)) => invalid(cursor, InvalidUnicode)
+    Err(_) => invalid(cursor, BudgetExceeded)
+  }
+  budget.text -= size
+  if value.is_empty() {
+    invalid(cursor, InvalidRange)
+  }
+  match admit_content_media_type_descriptor(value, size) {
+    Ok(_) => value
+    Err(NonCanonicalCase) => invalid(cursor, NonCanonicalText)
+    Err(Text(@scalar.MalformedUtf16(_))) => invalid(cursor, InvalidUnicode)
+    Err(_) => invalid(cursor, InvalidRange)
+  }
+}
+
+///|
 fn bound(view : @decode.ObjectView, name : String) -> Int64? raise Abort {
   match @decode.lookup(view, name) {
     None => None
@@ -235,7 +259,7 @@ fn decode(
             ContentRef(
               media_type=match @decode.lookup(view, "media_type") {
                 None => None
-                Some(c) => Some(text(c, budget))
+                Some(c) => Some(content_media_descriptor(c, budget))
               },
             )
           "array" => {

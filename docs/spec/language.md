@@ -1014,6 +1014,14 @@ retention, and policy; equal `content_cid` values establish byte identity only.
 SourceView and serialization output contracts may expose `content_cid` as a
 separate field.
 
+<!-- requirement-block: opaque-references.authored-media-name-case opaque-references.media-descriptor-data opaque-references.media-descriptor-refusal -->
+Authored and checked ContentRef `media_type` descriptors MUST already use
+lowercase ASCII type, subtype and parameter names. Opaque parameter values,
+quotes, escapes, parameter order, whitespace and Unicode scalar sequences
+(including NFC/NFD differences) MUST remain exact descriptor data. Invalid
+syntax or noncanonical ASCII name case MUST be refused without rewriting
+the authored descriptor or its Program identity.
+
 <!-- requirement-block: opaque-references.captured-media-report opaque-references.captured-media-value-spelling opaque-references.derived-media-not-report -->
 Connector-captured ContentRefs MUST retain the exact provider-reported MIME
 string in `metadata.issuer_evidence.reported_media_type`. The existing capture

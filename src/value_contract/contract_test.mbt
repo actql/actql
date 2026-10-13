@@ -267,15 +267,20 @@ test "field names and reference restrictions preserve non-identifier strings" {
   }
   for key in ["resource_kind", "media_type"] {
     let kind = if key == "media_type" { "content_ref" } else { "resource_ref" }
-    ignore(
-      author(
+    let non_media_identifier =
         "{\"type\":\"" +
         kind +
         "\",\"nullable\":false,\"" +
         key +
-        "\":\" \\n\"}",
-      ),
-    )
+        "\":\" \\n\"}"
+    if key == "resource_kind" {
+      ignore(author(non_media_identifier))
+    } else {
+      assert_eq(
+        error_name(@value_contract.read_author(cursor(non_media_identifier), limits())),
+        "InvalidRange",
+      )
+    }
     assert_eq(
       error_name(
         @value_contract.read_author(

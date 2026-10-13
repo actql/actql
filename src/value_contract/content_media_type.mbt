@@ -2,6 +2,7 @@
 pub(all) enum ContentMediaTypeIssue {
   Text(@scalar.Utf8AdmissionIssue)
   InvalidSyntax
+  NonCanonicalCase
 } derive(Eq, Debug)
 
 ///|
@@ -52,16 +53,10 @@ fn content_media_lower(
 }
 
 ///|
-// Project the case-insensitive MIME type/subtype and parameter names through
-// this existing Content owner. Parameter value bytes, quoting, escapes, order
-// and whitespace stay exact; this is not a universal MIME-equivalence test.
-// The caller retains the original report as evidence and funds simultaneous
-// source/output storage before entry. This data projection issues no Ref,
-// authenticity, byte validation, Source completion, or Model permission.
-pub fn normalize_content_media_type_case(
+fn validate_content_media_type(
   reported : String,
   max_bytes : Int,
-) -> Result[String, ContentMediaTypeIssue] {
+) -> Result[(Int, Bool), ContentMediaTypeIssue] {
   match @scalar.admit_utf8_length(reported, max_bytes) {
     Ok(_) => ()
     Err(issue) => return Err(Text(issue))
@@ -167,12 +162,44 @@ pub fn normalize_content_media_type_case(
       return Err(InvalidSyntax)
     }
   }
+  Ok((head, needs_fold))
+}
+
+///|
+// Authored/checked descriptors are data, but their case-insensitive names must
+// already be canonical. Validation allocates no projected string on refusal;
+// opaque parameter values are never passed through identifier normalization.
+pub fn admit_content_media_type_descriptor(
+  descriptor : String,
+  max_bytes : Int,
+) -> Result[Unit, ContentMediaTypeIssue] {
+  match validate_content_media_type(descriptor, max_bytes) {
+    Ok((_, true)) => Err(NonCanonicalCase)
+    Ok((_, false)) => Ok(())
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+// Project only case-insensitive MIME names from an actual capture report.
+// Preserve parameter values, quoting, escapes, order and whitespace exactly.
+// The existing caller owns simultaneous original/projected storage; this
+// finite data helper issues no Ref, custody, completion or send authority.
+pub fn normalize_content_media_type_case(
+  reported : String,
+  max_bytes : Int,
+) -> Result[String, ContentMediaTypeIssue] {
+  let (head, needs_fold) = match validate_content_media_type(reported, max_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let length = reported.length()
   if !needs_fold {
     return Ok(reported)
   }
   let output = StringBuilder()
   content_media_lower(reported, 0, head, output)
-  cursor = head
+  let mut cursor = head
   let mut unchanged = cursor
   while cursor < length {
     if reported[cursor] != ';' {
@@ -213,3 +240,4 @@ pub fn normalize_content_media_type_case(
   output.write_view(reported[unchanged:length])
   Ok(output.to_string())
 }
+

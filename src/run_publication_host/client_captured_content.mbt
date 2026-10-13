@@ -39,7 +39,7 @@ pub fn prepare_client_captured_content(
     return Err(InvalidBinding("source_policy"))
   }
   let observed_media_type = match
-    @publication.normalize_content_media_type_case(media_type, 256) {
+    @contract.normalize_content_media_type_case(media_type, 256) {
     Ok(value) => value
     Err(_) => return Err(InvalidBinding("reported_media_type"))
   }

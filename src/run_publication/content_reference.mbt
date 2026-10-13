@@ -250,7 +250,7 @@ fn prepare_content_reference_body(
   // neither a missing report nor saved metadata can repair this evidence.
   match (issuer_kind, reported_media_type) {
     ("connector_capture", Some(reported)) =>
-      if normalize_content_media_type_case(reported, 256) != Ok(media_type) {
+      if @contract.normalize_content_media_type_case(reported, 256) != Ok(media_type) {
         return Err(InvalidBinding("reported_media_type"))
       }
     ("content_derivation", None) => ()
@@ -575,7 +575,7 @@ pub fn prepare_captured_content_reference(
   if !valid_contract_cid(content_cid) || size_bytes < 0 {
     return Err(InvalidBinding("content_bytes"))
   }
-  let media_type = match normalize_content_media_type_case(reported_media_type, 256) {
+  let media_type = match @contract.normalize_content_media_type_case(reported_media_type, 256) {
     Ok(value) => value
     Err(_) => return Err(InvalidBinding("reported_media_type"))
   }

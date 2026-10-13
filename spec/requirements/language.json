@@ -916,6 +916,39 @@
       }
     },
     {
+      "requirement_id": "actql.language/opaque-references.authored-media-name-case",
+      "statement_sha256": "81599d560aacad08f6d35a97d2aa7d04c88b5c911c799a71fed1e5166d86a84d",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "opaque-references",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/opaque-references.media-descriptor-data",
+      "statement_sha256": "8fe91045b58a1116edf13740174297f340f646f57f7134a9efea7dee38fe7361",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "opaque-references",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/opaque-references.media-descriptor-refusal",
+      "statement_sha256": "f1452377b982c549ae9717dad1ecb6696df192bef27e6ec5a14e1c6a7661f328",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "opaque-references",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/opaque-references.captured-media-report",
       "statement_sha256": "81fb19fe82ef5f58fb4d9fb066244a98d5890ecff4729e0507c9684c5ab15941",
       "status": "pending",
