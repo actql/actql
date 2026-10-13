@@ -20,9 +20,7 @@ fn query_reserved_word(value : String) -> Bool {
 ///|
 // Ordinary bindings and aliases use the selected keyword owner. Fixed
 // signature/schema keys and later path components keep their existing roles.
-fn QueryParser::binding_name(
-  self : QueryParser,
-) -> NamePart raise QueryAbort {
+fn QueryParser::binding_name(self : QueryParser) -> NamePart raise QueryAbort {
   let token = self.peek()
   if token.value is Word(value) && query_reserved_word(value) {
     raise QueryAbort("Reserved identifier requires backticks", token.start)
