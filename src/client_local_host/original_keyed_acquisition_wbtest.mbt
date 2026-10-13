@@ -188,27 +188,34 @@ fn original_keyed_run_fixture(
       // Do not fabricate a listing observation to admit multiple versions.
       files.remove("request")
       guard stage.get("steps") is Some(Array(steps)) &&
-        steps[0] is Object(first) else {
+        steps.length() >= 3 &&
+        steps[2] is Object(join_step) &&
+        join_step.get("join") is Some(Object(join)) else {
         abort("fixture version-history steps")
       }
       // Ordinary Source cardinality is unknown. An explicit take provides
       // existing producer membership, rather than borrowing a Host ceiling
       // or adding FILES facts which do not describe this Relation.
-      first["from"] = @json.parse("\"bounded\"")
-      stage["steps"] = Json::array(
-        [
-          @json.parse(
-            "{\"from\":\"files\",\"assert_rows\":{\"unique_by\":[\"name\"]},\"as\":\"unique_names\"}",
-          ),
-          @json.parse(
-            "{\"from\":\"unique_names\",\"sort\":[{\"field\":\"name\",\"dir\":\"asc\",\"nulls\":\"last\"}],\"as\":\"ordered_names\"}",
-          ),
-          @json.parse(
-            "{\"from\":\"ordered_names\",\"take\":3,\"as\":\"bounded\"}",
-          ),
-        ] +
-        steps,
-      )
+      // Preserve the existing scan/filter/select acquisition. The later
+      // bounded Local prefix, not an invented Source query, owns these guards.
+      join["left"] = @json.parse("\"bounded\"")
+      let augmented = [
+        steps[0],
+        steps[1],
+        @json.parse(
+          "{\"from\":\"selected\",\"assert_rows\":{\"unique_by\":[\"name\"]},\"as\":\"unique_names\"}",
+        ),
+        @json.parse(
+          "{\"from\":\"unique_names\",\"sort\":[{\"field\":\"name\",\"dir\":\"asc\",\"nulls\":\"last\"}],\"as\":\"ordered_names\"}",
+        ),
+        @json.parse(
+          "{\"from\":\"ordered_names\",\"take\":3,\"as\":\"bounded\"}",
+        ),
+      ]
+      for index in 2..<steps.length() {
+        augmented.push(steps[index])
+      }
+      stage["steps"] = Json::array(augmented)
     } else {
       request["paths"] = @json.parse("null")
     }
