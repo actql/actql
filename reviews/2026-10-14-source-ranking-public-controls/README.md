@@ -55,3 +55,30 @@ pending the parent's focused admission/API checks and a separately allocated
 normal four-package cohort. No producer, consumer, compiler, Native, Heavy,
 real Provider or hosted CI started here. Calendar and the current Vector SQL
 publication failure remain separate; this unit does not diagnose either.
+
+## Release delivery preparation
+
+True child `6102532a2acb546e40532cd2dd9aca8ad4256b14` connects the same controls
+to the existing installed Client, transport custody, Source installation,
+verified-case receipts and attach/resend/lookup hooks. The dedicated worker uses
+those existing owners. The four-package consumer retains the normal registry,
+clean source, manifest/digest fences and shared 300-second deadline. Original
+Vector consumer and G's diagnostic files remain unchanged.
+
+At exact clean 610253, `run-LyJjQY` executed Node 13/13 under the original
+non-Heavy 60-second/TERM5 guard: supplier seven plus delivery/audit six. Relative
+closure is eight test-only modules; an omitted supplier is independently
+rejected. Audit-unit synthetic records detect changed values/schema/order,
+additional replay acquisition, incomplete inventory and missing cleanup.
+These fabricated records test the auditor only and are not actual Run receipts.
+Owner80010/group and own lock are closed. The external exact handoff is
+`delivery-preparation-handoff-610253.json` in the shared evidence directory.
+
+Prepared public inventory stays six normal/four static refusals per transport,
+12 expected rows and six Named Results per transport, 12 Source page/read/grants
+per transport, and zero additional acquisition on reattach/resend/lookup/reread.
+`prepared-release-public.mjs --producer|--consumer` preserves ordinary 300/TERM5.
+The producer, public worker, registry consumer and Catalog/Runtime admission are
+still unexecuted. JSON two-Source runtime support is unverified rather than
+assumed from its syntactic representation. The current Vector post-acquisition
+publication failure is a separate undetermined failure, not a diagnosis here.
