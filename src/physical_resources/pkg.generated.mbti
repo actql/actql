@@ -130,7 +130,11 @@ pub fn[T] original_current_state_write_current(OriginalCurrentStateWrite[T], Ori
 
 pub fn original_keyed_child_preparation_available(OriginalLedgerIdentity, Ledger, Reservation, Int, prefix? : Reservation?) -> Bool
 
+pub fn original_keyed_lookup_dependents_retired(Ledger, Reservation) -> Bool
+
 pub fn original_keyed_prefix_dependents_retired(Ledger, Reservation) -> Bool
+
+pub fn original_keyed_serialization_preparation_available(OriginalLedgerIdentity, Ledger, Reservation, Reservation, Int) -> Bool
 
 pub fn original_ledger_captured_preparation_available(OriginalLedgerIdentity, prefix? : Reservation?) -> Bool
 

@@ -157,6 +157,7 @@ fn original_keyed_declaration_environment(
 fn original_keyed_run_fixture(
   selector_free? : Bool = false,
   relation_versions? : Bool = false,
+  serialization_max_bytes? : Int = 4096,
 ) -> (
   @row_source_host.RowDeclaration,
   @publication_host.PreparedClientProgram,
@@ -228,12 +229,20 @@ fn original_keyed_run_fixture(
   } else {
     document
   }
+  let document = if serialization_max_bytes == 4096 {
+    document
+  } else {
+    document.replace(
+      old="\"max_bytes\":4096",
+      new="\"max_bytes\":" + serialization_max_bytes.to_string(),
+    )
+  }
   let (prepared, compiled, definition, plan) = original_prefix_execution_fixture(
     source=true,
     environment_override=Some(environment),
     document_override=Some(document),
     serialization_coordinate=Some((0, if relation_versions { 7 } else { 4 })),
-    serialization_bounds=(3, 4096),
+    serialization_bounds=(3, serialization_max_bytes),
   )
   let keyed = @publication_host.select_client_single_keyed_acquisition(prepared)
     .unwrap()

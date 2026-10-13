@@ -6,6 +6,7 @@ fn raw_registration_policy(
   active : Execution,
   prepared : @model.ModelPreparedCallSet,
   changed? : String = "",
+  response_profile? : @environment.ModelResponseProfile = async_response_profile(),
 ) -> @publication.BoundModelRawCapturePolicy raise {
   let originals = [
     (
@@ -58,7 +59,7 @@ fn raw_registration_policy(
       @model.prepared_model_identities(prepared).unwrap().1,
     ),
     "response_profile_cid": Json::string(
-      @environment.model_response_profile_identity(async_response_profile()),
+      @environment.model_response_profile_identity(response_profile),
     ),
     "store_authority_cid": Json::string("sha256:" + "e".repeat(64)),
     "effective_data_policy_cid": Json::string(data_cid),
