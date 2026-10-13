@@ -54,6 +54,63 @@ function rawResponse(wire = bytes, status = 200) {
     'x-request-id': 'actual-header-id', 'private-extra': 'response-secret'}});
 }
 
+test('actual SDK transport exposes cancelled raw prefix while original read and cancel retain cleanup custody', async t => {
+  const handle = realPreparation();
+  let finishRead;
+  let finishCancel;
+  let reads = 0;
+  let cancellations = 0;
+  let releases = 0;
+  let sends = 0;
+  t.after(async () => {
+    finishRead?.({done: true});
+    finishCancel?.();
+    await release(handle);
+  });
+  await until(() => pollSdkPreparation(handle), 'ready');
+  prepareSdkTransport(handle, {responseLimits: bounds, fetch() {
+    sends++;
+    return {status: 200, headers: new Headers({'content-type': 'application/json'}),
+      body: {getReader() { return {
+        read() {
+          reads++;
+          if (reads === 1) return Promise.resolve({done: false,
+            value: new Uint8Array([123])});
+          return new Promise(resolve => { finishRead = resolve; });
+        },
+        cancel() { cancellations++; return new Promise(resolve => { finishCancel = resolve; }); },
+        releaseLock() { releases++; },
+      }; }}};
+  }});
+  startSdkTransport(handle);
+  for (let i = 0; i < 40 && finishRead === undefined; i++) await turn();
+  assert.equal(reads, 2);
+  cancelSdkPreparation(handle);
+  assert.equal((await until(() => pollSdkTransport(handle), 'response')).issue,
+    'InferResponseReadCancelled');
+  const raw = sdkTransportRawObservation(handle);
+  assert.deepEqual(raw.body, new Uint8Array([123]));
+  assert.equal(raw.observedBytes, 1);
+  assert.equal(raw.transportComplete, false);
+  assert.equal((await until(() => pollSdkDecode(handle), 'rejected')).kind, 'rejected');
+  assert.equal(cleanupSdkPreparation(handle), false);
+  finishCancel();
+  for (let i = 0; i < 4; i++) await turn();
+  assert.equal(cleanupSdkPreparation(handle), false);
+  assert.equal(releases, 0);
+  finishRead({done: false, value: new Uint8Array([125])});
+  await release(handle);
+  assert.equal(releases, 1);
+  assert.equal(cancellations, 1);
+  assert.equal(reads, 2);
+  assert.equal(sends, 1);
+  assert.deepEqual(raw.body, new Uint8Array([123]));
+  assert.equal(raw.transportComplete, false);
+  assert.throws(() => startSdkTransport(handle), {code: 'ForeignSdkPreparation'});
+  // Physical SDK/reader and synthetic HTTP response, not a Common Entry,
+  // remote stop, saved nominal response, normal numeric profile or public Run.
+});
+
 test('real SDK defaults do not replace the separately retained original partial usage', async t => {
   const wire='{"choices":[{"index":0,"message":{"content":"{}"},"finish_reason":"stop"}],"usage":{"completion_tokens":0}}';
   const originalBytes=new TextEncoder().encode(wire);
