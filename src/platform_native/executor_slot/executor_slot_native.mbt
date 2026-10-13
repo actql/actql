@@ -137,6 +137,7 @@ pub fn NativeExecutorSlot::spawn_holder_with_channel(
             child,
             pending_frame: None,
             offset: 0,
+            close_unknown: false,
           },
         ),
       )
@@ -409,6 +410,7 @@ struct NativeHolderChannel {
   child : NativeExecutorSlotChild
   mut pending_frame : (String, Bytes)?
   mut offset : Int
+  mut close_unknown : Bool
 }
 
 ///|
@@ -453,24 +455,25 @@ pub fn NativeHolderChannel::send(
 }
 
 ///|
+/// Acknowledges only these descriptors, not child/descendant stop, report ACK
+/// or retirement of the retained frame/Channel aliases. A consumed close with
+/// missing confirmation remains Unknown; never close a reused raw FD again.
 pub fn NativeHolderChannel::close(self : NativeHolderChannel) -> Bool {
-  let closed = if self.descriptor < 0 {
-    true
-  } else if slot_close_ffi(self.descriptor) == 0 {
+  if self.descriptor >= 0 {
+    let original = self.descriptor
     self.descriptor = -1
-    true
-  } else {
-    false
+    if slot_close_ffi(original) != 0 {
+      self.close_unknown = true
+    }
   }
-  let inspection_closed = if self.inspection_descriptor < 0 {
-    true
-  } else if slot_close_ffi(self.inspection_descriptor) == 0 {
+  if self.inspection_descriptor >= 0 {
+    let original = self.inspection_descriptor
     self.inspection_descriptor = -1
-    true
-  } else {
-    false
+    if slot_close_ffi(original) != 0 {
+      self.close_unknown = true
+    }
   }
-  closed && inspection_closed
+  !self.close_unknown
 }
 
 ///|
