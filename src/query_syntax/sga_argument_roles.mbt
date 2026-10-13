@@ -34,6 +34,9 @@ fn sga_field_argument(operation : String, path : Array[String]) -> Bool {
     "pool_vectors" => path == ["by"] || path == ["vector"]
     "to_events" => path == ["id"] || path == ["time"]
     "row_window" | "watermark_rows" => path == ["time"]
+    "window_group" =>
+      path == ["by"] ||
+      (path.length() == 3 && path[0] == "aggregates" && path[2] == "field")
     "dedupe_events" => path == ["by"]
     "lag" => path == ["partition_by"] || path == ["field"]
     "session" => path == ["id"] || path == ["time"] || path == ["by"]

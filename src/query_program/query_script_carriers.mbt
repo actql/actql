@@ -70,9 +70,9 @@ fn script_prefix_carrier(
 fn script_carrier_operation(name : String) -> Bool {
   [
     "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
-    "to_events", "row_window", "window_events", "watermark_events", "dedupe_events",
-    "session", "events", "watermark_rows", "lag", "sequence", "asof_join", "interval_join",
-    "merge_rankings",
+    "to_events", "row_window", "window_group", "window_events", "watermark_events",
+    "dedupe_events", "session", "events", "watermark_rows", "lag", "sequence", "asof_join",
+    "interval_join", "merge_rankings",
   ].contains(name)
 }
 
@@ -241,6 +241,7 @@ fn lower_script_carrier_calls(
       "pool_vectors" => ["by", "vector"]
       "to_events" => ["id", "time"]
       "row_window" | "watermark_rows" => ["time"]
+      "window_group" => ["by"]
       "dedupe_events" => ["by"]
       "lag" => ["partition_by", "field"]
       "sequence" => ["by", "id", "time"]
@@ -260,6 +261,7 @@ fn lower_script_carrier_calls(
       "pool_vectors" => ["by", "vector", "method", "output_id"]
       "row_window" => ["kind", "time", "size", "step", "offset"]
       "window_events" => ["kind", "size", "step", "offset"]
+      "window_group" => ["by", "aggregates"]
       "watermark_events" => ["watermark_ms", "policy"]
       "watermark_rows" => ["time", "late_policy", "watermark_ms", "max_skew"]
       "dedupe_events" => ["by", "order_by"]
@@ -346,6 +348,17 @@ fn lower_script_carrier_calls(
               query,
               input,
               sources,
+            )
+          } else if call.operation == "window_group" &&
+            argument.0 == "aggregates" {
+            script_window_group_aggregates(
+              construction,
+              argument.1,
+              query,
+              input,
+              sources,
+              known,
+              limits,
             )
           } else if call.operation == "sequence" && argument.0 == "pattern" {
             script_sequence_pattern(

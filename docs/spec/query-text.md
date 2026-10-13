@@ -1670,6 +1670,41 @@ missing predecessors and NULL field values remain NULL. No frontend key proof,
 order evidence or execution owner is synthesized. These source connections do
 not by themselves establish public Host execution.
 
+The named `window_group(by: [fields], aggregates: {output: AggregateCall, ...})`
+Pipe call uses the existing [window grouping contract](language.md#relational-temporal).
+Its Relation input must carry checked window boundary roles from `row_window`
+or a declared windowed contract. Ordinary columns named `window_start` and
+`window_end` do not provide that evidence. `by` uses current FieldRefs; the
+common owner prepends both boundary keys once and preserves repeated other keys.
+
+Aggregate output keys are OutputNames: bare reserved words are rejected and
+backtick names remain available. Each aggregate is the existing closed record
+with `fn`, `field` or `expr`, `filter`, `distinct`, `order_by`, `max_items`,
+`max_bytes`, `delimiter` and `fraction` as permitted by its function. `fn` is
+an exact decoded String enum; `count_if` is distinct from scalar SQL spelling
+`COUNTIF`. `field` and shared shorthand or closed OrderKeys resolve current
+FieldRefs. `expr` and `filter` retain the original bounded query Expression
+owner, authored spans, work and input/Parameter scope. They are not reparsed
+from a String or structured JSON. Filter Boolean typing, NULL contributions,
+DISTINCT, function-specific options, calculation order and collection guards
+remain common-checker obligations. No frontend window or key evidence is added.
+
+For example, after an existing `row_window`:
+
+```aql
+FROM windowed AS r
+  |> window_group(by: [r.cohort], aggregates: {
+       n: {fn: 'count'},
+       total: {fn: 'sum', expr: COALESCE(r.amount, 0) + 1,
+               filter: r.amount IS NOT NULL, distinct: true}
+     })
+  |> SELECT window_start, window_end, cohort, n, total
+  |> ORDER BY window_start, window_end, cohort
+```
+
+This source connection is an ActQL operation profile. Checker and lowering
+coverage is separate from installed Local/HTTPS execution evidence.
+
 The `watermark_rows` call preserves Relation input and the existing
 [relational watermark contract](language.md#relational-temporal). Its `time`
 is a FieldRef in the current row scope; policy is the exact `'mark'` or `'drop'`
