@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {execFileSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -31,4 +32,11 @@ test('normal release closure rejects a missing installed Source supplier before 
   const missing = closure(releaseVectorScalarFixturePaths.filter(path =>
     path !== 'scripts/fixtures/vector-scalar-installed-source.mjs'));
   assert.deepEqual(missing.missing, [resolve(root, 'scripts/fixtures/vector-scalar-installed-source.mjs')]);
+});
+test('normal release entry and prepared recipe parse without running a producer or consumer', () => {
+  for (const path of ['scripts/test-package-release-vector-scalar.mjs',
+    'scripts/fixtures/release-vector-scalar-worker.mjs',
+    'reviews/2026-10-13-vector-scalar-installed-source/prepared-release-public.mjs']) {
+    execFileSync(process.execPath, ['--check', resolve(root, path)], {timeout: 10000});
+  }
 });
