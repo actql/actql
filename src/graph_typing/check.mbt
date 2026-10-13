@@ -50,6 +50,8 @@ pub(all) enum IssueKind {
 
 ///|
 pub struct Issue {
+  // Original failure cursor when retained by this checker, never reconstructed.
+  source : @decode.Cursor?
   kind : IssueKind
   path : Array[@decode.PathSegment]
   span : @span.Span
@@ -86,6 +88,7 @@ priv suberror Stop {
 ///|
 fn[T] fail(c : @decode.Cursor, kind : IssueKind) -> T raise Stop {
   raise Stop({
+    source: Some(c),
     kind,
     path: @decode.cursor_path(c),
     span: @decode.cursor_span(c),
@@ -97,7 +100,12 @@ fn[T] decoded(result : Result[T, @decode.Issue]) -> T raise Stop {
   match result {
     Ok(v) => v
     Err(e) =>
-      raise Stop({ kind: Decode(e.kind), path: e.path.copy(), span: e.span, })
+      raise Stop({
+        source: None,
+        kind: Decode(e.kind),
+        path: e.path.copy(),
+        span: e.span,
+      })
   }
 }
 
