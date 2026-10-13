@@ -343,7 +343,7 @@ test "original keyed left prefix refuses workspace one above remaining retention
     before.reserved_retention_bytes
   let workspace = @execution.execution_capacity(
     available - @execution.execution_capacity_retained_bytes(selected) + 1L,
-    0L,
+    1L,
   ).unwrap()
   assert_true(
     start_client_original_keyed_left_prefix(
