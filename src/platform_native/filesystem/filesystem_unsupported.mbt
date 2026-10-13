@@ -241,3 +241,27 @@ pub fn Reader::close(_self : Reader) -> Result[Unit, NativeFilesystemIssue] {
 fn retain_native_import() -> Unit {
   ignore(@utf8.encode(""))
 }
+
+///|
+pub fn open_root_with_custody(
+  _path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Root, NativeRootOpenFailure] {
+  if diagnostic_ceiling is Some(limit) && limit <= 0 {
+    return Err({ original_issue: InvalidLimit, root: None, })
+  }
+  Err({ original_issue: UnsupportedTarget, root: None, })
+}
+
+///|
+pub fn Root::acquire_lock_with_custody(
+  _self : Root,
+  _name : String,
+) -> Result[Lock, NativeLockOpenFailure] {
+  Err({ original_issue: UnsupportedTarget, lock: None, })
+}
+
+///|
+pub fn Lock::close_checked(_self : Lock) -> Result[Unit, NativeFilesystemIssue] {
+  Err(UnsupportedTarget)
+}
