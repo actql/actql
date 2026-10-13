@@ -71,7 +71,7 @@ test "Store close retains original owners and durable reservation through databa
   assert_true(store.closed)
   assert_false(store.close().unwrap())
   // Store handle retirement does not reclaim separately retained data/holding.
-  let restored = open_existing_store_with_custody(
+  let restored = match open_existing_store_with_custody(
     library,
     path,
     authority,
@@ -79,7 +79,21 @@ test "Store close retains original owners and durable reservation through databa
     4L,
     4096L,
     diagnostic_ceiling=Some(256),
-  ).unwrap()
+  ) {
+    Ok(value) => value
+    Err(RefusedBeforeAcquisition(_)) =>
+      fail("restoring the retained original refused before acquisition")
+    Err(CleanupRequired(failure)) =>
+      match failure.issue() {
+        Database(@sqlite.DatabaseOpen(detail)) => fail(detail)
+        Filesystem(@filesystem.RootOpen(detail)) => fail(detail)
+        Filesystem(@filesystem.Lock(detail)) => fail(detail)
+        LegacyStoreFormat(detail) => fail("legacy original: " + detail)
+        UnknownStoreFormat(detail) => fail("unidentified original: " + detail)
+        StoreFormatIo(detail) => fail("original format I/O: " + detail)
+        _ => fail("restoring the retained original holds acquired cleanup")
+      }
+  }
   assert_eq(
     restored.database.read("fixture-original", "result").unwrap().body,
     b"independent original",
