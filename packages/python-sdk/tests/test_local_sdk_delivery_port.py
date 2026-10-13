@@ -33,7 +33,7 @@ class SDKDeliveryPortTests(unittest.TestCase):
         self.assertTrue(all(name == 'retire_sdk_delivery_output' for _, name, _ in calls))
 
     def test_strict_original_signature_and_copy_bool_unknown_boundaries(self):
-        self.assertEqual(LOCAL_CORE_ABI, 69)
+        self.assertEqual(LOCAL_CORE_ABI, 71)
         self.assertEqual(_PUBLICATION_COMMIT_EXPORT_SIGNATURES['produce_sdk_read_delivery_storage'],
                          ('i64 i32 i32 i32 i32', 'i32'))
         core, request, output, calls, status = original_fixture.SDKReadOriginalTests.bridge(self)
