@@ -189,7 +189,8 @@ pub fn normalize_content_media_type_case(
   reported : String,
   max_bytes : Int,
 ) -> Result[String, ContentMediaTypeIssue] {
-  let (head, needs_fold) = match validate_content_media_type(reported, max_bytes) {
+  let (head, needs_fold) = match
+    validate_content_media_type(reported, max_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -240,4 +241,3 @@ pub fn normalize_content_media_type_case(
   output.write_view(reported[unchanged:length])
   Ok(output.to_string())
 }
-

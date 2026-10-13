@@ -173,7 +173,8 @@ fn stored_content_reference_parts(
   let size_bytes = size.to_int()
   let reported_media_type = if issuer_kind == "connector_capture" {
     guard @json.object_field(metadata, "issuer_evidence") is Some(evidence) &&
-      contract_string_from_value(evidence, "reported_media_type") is Some(reported) else {
+      contract_string_from_value(evidence, "reported_media_type")
+      is Some(reported) else {
       return Err(InvalidBinding("reported_media_type"))
     }
     Some(reported)
@@ -182,7 +183,8 @@ fn stored_content_reference_parts(
   }
   let body = match
     prepare_content_reference_body(
-      binding, media_type, content_cid, size_bytes, issuer_kind, reported_media_type, limits,
+      binding, media_type, content_cid, size_bytes, issuer_kind, reported_media_type,
+      limits,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -250,7 +252,8 @@ fn prepare_content_reference_body(
   // neither a missing report nor saved metadata can repair this evidence.
   match (issuer_kind, reported_media_type) {
     ("connector_capture", Some(reported)) =>
-      if @contract.normalize_content_media_type_case(reported, 256) != Ok(media_type) {
+      if @contract.normalize_content_media_type_case(reported, 256) !=
+        Ok(media_type) {
         return Err(InvalidBinding("reported_media_type"))
       }
     ("content_derivation", None) => ()
@@ -575,12 +578,19 @@ pub fn prepare_captured_content_reference(
   if !valid_contract_cid(content_cid) || size_bytes < 0 {
     return Err(InvalidBinding("content_bytes"))
   }
-  let media_type = match @contract.normalize_content_media_type_case(reported_media_type, 256) {
+  let media_type = match
+    @contract.normalize_content_media_type_case(reported_media_type, 256) {
     Ok(value) => value
     Err(_) => return Err(InvalidBinding("reported_media_type"))
   }
   prepare_content_reference_body(
-    binding, media_type, content_cid, size_bytes, "connector_capture", Some(reported_media_type), limits,
+    binding,
+    media_type,
+    content_cid,
+    size_bytes,
+    "connector_capture",
+    Some(reported_media_type),
+    limits,
   ).map(body => { body, binding, media_type, content_cid, size_bytes, })
 }
 

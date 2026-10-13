@@ -63,4 +63,3 @@ test "Content MIME projection admits exact UTF8 limit and refuses one byte short
     is Err(Utf8(@scalar.MalformedUtf16(_))),
   )
 }
-
