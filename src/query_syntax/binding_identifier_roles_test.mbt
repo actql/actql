@@ -60,3 +60,52 @@ test "fixed signature keys and literal object keys do not become ordinary bindin
     is Ok(_),
   )
 }
+
+///|
+fn assert_reserved_row_alias(source : String, position : Int) -> Unit raise {
+  guard parse_query(source, query_limits(), source_path="row-alias.aql")
+    is Err({ issue: Syntax("Reserved identifier requires backticks"), span: Some(span) }) else {
+    fail(source)
+  }
+  assert_eq(span.source_path, "row-alias.aql")
+  assert_eq(span.start_byte, position)
+  assert_eq(span.end_byte, position)
+}
+
+///|
+test "UNNEST element AS shares ordinary row alias admission" {
+  assert_reserved_row_alias("SELECT 1 AS id FROM UNNEST([1]) AS ROWS", 33)
+}
+
+///|
+test "UNNEST OFFSET AS shares ordinary row alias admission" {
+  assert_reserved_row_alias(
+    "SELECT 1 AS id FROM UNNEST([1]) AS item WITH OFFSET AS ROWS",
+    53,
+  )
+}
+
+///|
+test "Pipe AS shares ordinary row alias admission" {
+  assert_reserved_row_alias("FROM records |> AS ROWS |> SELECT id", 19)
+}
+
+///|
+test "Pipe UNPIVOT AS shares ordinary row alias admission" {
+  assert_reserved_row_alias(
+    "FROM records |> UNPIVOT(v FOR k IN(x)) AS ROWS |> SELECT v",
+    40,
+  )
+}
+
+///|
+test "quoted reserved names remain available to each existing row alias entry" {
+  for source in [
+    "SELECT `ROWS` FROM UNNEST([1]) AS `ROWS`",
+    "SELECT item, `ROWS` FROM UNNEST([1]) AS item WITH OFFSET AS `ROWS`",
+    "FROM records |> AS `ROWS` |> SELECT `ROWS`.id",
+    "FROM records |> UNPIVOT(v FOR k IN(x)) AS `ROWS` |> SELECT `ROWS`.v",
+  ] {
+    assert_true(parse_query(source, query_limits()) is Ok(_), msg=source)
+  }
+}
