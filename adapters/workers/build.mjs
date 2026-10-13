@@ -2,7 +2,7 @@ import {build} from 'esbuild';
 import {mkdirSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {gzipSync} from 'node:zlib';
-import {checkWorkersArtifact, conformanceModules, hostModules} from './artifact.mjs';
+import {checkWorkersArtifact, conformanceModules, hostModules, finiteConformanceModules} from './artifact.mjs';
 
 async function buildProfile(entry, name, allowed) {
   const root = fileURLToPath(new URL('../../', import.meta.url));
@@ -22,10 +22,12 @@ async function buildProfile(entry, name, allowed) {
 }
 
 export const buildConformance = () => buildProfile('adapters/workers/conformance.mjs','conformance',conformanceModules);
+export const buildFiniteConformance = () => buildProfile('adapters/workers/finite-runtime-fixture.mjs',
+  'finite-conformance', finiteConformanceModules);
 export const buildHost = () => buildProfile('adapters/workers/host.mjs','host',hostModules);
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  for (const [profile, build] of [['host',buildHost],['conformance',buildConformance]]) {
+  for (const [profile, build] of [['host',buildHost],['conformance',buildConformance],['finite-conformance',buildFiniteConformance]]) {
     const {bytes, gzipBytes, metafile} = await build();
     console.log(JSON.stringify({profile,bytes,gzipBytes,modules:Object.keys(metafile.inputs)}));
   }
