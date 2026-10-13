@@ -150,14 +150,6 @@ fn produce_sdk_read_field(
 ) -> Int {
   guard selected(nonce) is Some(value) &&
     value.commit_exports.get(handle) is Some(record) &&
-    value.publications.get(record.publication) is Some(parent) &&
-    value.runs.get(run) is Some(original_run) &&
-    original_run.finite_policy is Some(finite) &&
-    value.run_configurations.get(original_run.configuration)
-    is Some(original_configuration) &&
-    original_configuration.sdk is Some(sdk) &&
-    value.run_configurations.get(current_configuration) is Some(current) &&
-    current.sdk is Some(current_sdk) &&
     value.copies.get(input) is Some((slot, physical)) else {
     return -2
   }
@@ -196,81 +188,22 @@ fn produce_sdk_read_field(
   if field < 0 || field > 1 {
     return -3
   }
-  if record.closing ||
-    record.output_closed ||
-    parent.observation_closing ||
-    parent.lookup_closing {
+  if record.output_closed {
     return -5
   }
-  // Current metadata never replaces the original selection or finite packet.
-  // Its adoption and Store must still be those of this original Run.
-  if current_sdk.adoption_cid != sdk.adoption_cid ||
-    current_sdk.store_authority_cid != sdk.store_authority_cid ||
-    @publication.local_sdk_result_read_selection_cid(current_sdk.read) !=
-    @publication.local_sdk_result_read_selection_cid(sdk.read) {
-    return -32
-  }
-  let code = validate_publication_run(
-    nonce,
-    record.publication,
-    run,
-    current_configuration,
-  )
-  if code != 0 {
-    return code
-  }
-  let (commit, view) = match
-    publication_commit_export_view(value, parent, current.account) {
-    Ok(original) => original
+  let context = match
+    original_sdk_read_context(value, record, run, current_configuration) {
+    Ok(context) => context
     Err(code) => return code
   }
-  guard value.publication_preflights.get(parent.preflight)
-    is Some({ closing: false, preflight: Some(preflight), .. }) &&
-    parent.observation_checked &&
-    !parent.observation_failed &&
-    parent.observation_index is Some(index) &&
-    parent.observation_publisher is Some(publisher) else {
-    return -32
-  }
-  let (principal, connection, _, result_name, format, _, _) = @publication.local_sdk_result_read_selection_parameters(
-    sdk.read,
-  )
-  if principal != current.tuple.principal ||
-    connection != current.tuple.connection {
-    return -32
-  }
-  if @local_run.validate_local_preflight_result_read_current(
-      preflight,
-      current.account,
-      result_name,
-    )
-    is Err(_) {
-    return -35
-  }
-  let auth = publication_observation_publisher(
-    value,
-    parent,
-    publisher,
-    current_configuration,
-    Some(index),
-  )
-  if auth != 0 {
-    return auth
-  }
-  // The callback may change current authority. Cached returns have the same
-  // current/independent read gates as new output; no prior Allow is reused.
-  match run_configuration_current(value, current) {
-    Err(code) => return code
-    Ok(_) => ()
-  }
-  if @local_run.validate_local_preflight_result_read_current(
-      preflight,
-      current.account,
-      result_name,
-    )
-    is Err(_) {
-    return -35
-  }
+  let current = context.current
+  let sdk = context.sdk
+  let finite = context.finite
+  let preflight = context.preflight
+  let commit = context.owner
+  let view = context.view
+  let result_name = context.result_name
+  let format = context.format
   if record.projection is Some(original) && original != projection {
     return -33
   }
@@ -306,23 +239,7 @@ fn produce_sdk_read_field(
     required_text(object, "observed_at") is Some(observed_at) else {
     return -30
   }
-  let current_check = () => {
-    match run_configuration_current(value, current) {
-      Err(code) => return Err(code)
-      Ok(_) => ()
-    }
-    let auth = publication_observation_publisher(
-      value,
-      parent,
-      publisher,
-      current_configuration,
-      Some(index),
-    )
-    if auth != 0 {
-      return Err(auth)
-    }
-    run_configuration_current(value, current)
-  }
+  let current_check = context.check_current
   let mut first_delivery : @local_run.LocalSDKReadDeliveryPreparation? = None
   let text = match kind {
     Grant(_) => {

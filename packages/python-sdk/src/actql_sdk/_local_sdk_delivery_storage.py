@@ -134,6 +134,34 @@ class OriginalSDKDeliveryStore:
                 del self._first_workspaces[request.ticket]
             return not self._uncertain_first
 
+    def prepare_original_codecs(self, request: _Input, clock: _Input) -> None:
+        """Observe the same original Store/physical facts, retaining both inputs.
+
+        The Core derives the original Run/result/format/attempt from first
+        custody. This method opens no payload and makes no grant or COMMIT ACK.
+        Unknown writes remain non-replayable; this is a separate read frame.
+        """
+        with self._core._lock:
+            self._nominal()
+            self._core._owned_input(clock)
+            first = self.original_first_output(request)
+            observation = self._observation
+            if self._active or observation._active or not observation._entered:
+                raise RuntimeError('Original SDK payload Store observation is unavailable')
+            self._active = True
+            try:
+                with observation._serialized_facts():
+                    def prepare() -> None:
+                        observation._before_lookup()
+                        self._core.prepare_publication_sdk_payload_codecs(
+                            first, clock, observation._projection._configuration)
+                        observation._validate_facts()
+                        if self._closing:
+                            raise RuntimeError('Original SDK delivery storage is closing')
+                    observation._current_call(prepare)
+            finally:
+                self._active = False
+
     def persist(self, request: _Input, original_run: int) -> tuple[int, ...]:
         with self._core._lock:
             self._nominal()

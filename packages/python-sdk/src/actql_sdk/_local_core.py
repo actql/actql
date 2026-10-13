@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 67
+LOCAL_CORE_ABI = 68
 
 
 class LocalCoreError(RuntimeError):
@@ -315,6 +315,7 @@ _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'produce_sdk_read_delivery_storage': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_sdk_delivery_lookup': ('i64 i32 i32 i32 i32', 'i32'),
     'retire_sdk_delivery_output': ('i64 i32', 'i32'),
+    'prepare_sdk_payload_codecs': ('i64 i32 i32 i32', 'i32'),
     'produce_lookup_reference': ('i64 i32 i32 i32', 'i32'),
     'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_index_key': ('i64 i32 i32', 'i32'),
@@ -2085,6 +2086,25 @@ class LocalCore:
             if code != 0:
                 raise LocalCoreError('retire_sdk_delivery_output', code)
             return True
+
+    def prepare_publication_sdk_payload_codecs(self, value: _Output,
+                                               clock: _Input,
+                                               current_configuration: int) -> None:
+        """Connect original retained first codecs, without payload/sink/Store ACK."""
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_input(clock)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK payload configuration')
+            code = self._call('publication_commit_export', 'prepare_sdk_payload_codecs',
+                              value.handle, clock.handle, current_configuration)
+            if type(code) is not int:
+                raise RuntimeError('Invalid Local Core codec status')
+            if code != 0:
+                raise LocalCoreError('prepare_sdk_payload_codecs', code)
 
     def produce_publication_sdk_read_delivery_storage(self, value: _Output,
                                                       request: _Input,
