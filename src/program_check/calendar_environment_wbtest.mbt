@@ -165,3 +165,25 @@ test "Calendar artifact supplementation closes the original missing-artifact che
   // Ordinary checking does not convert these into executed boundary receipts.
   assert_eq(execution_checks, 6)
 }
+
+///|
+test "Calendar supplementation does not invent a missing optional selection" {
+  let wire = @environment.read(
+    @utf8.encode((
+      #|{"command_contracts":[],"connector_capabilities":[],"connector_catalogs":[],"contract_registry":[],"evidence_bundle_cid":"sha256:f7a722e2504c266873a228d46add79847b08daa2ff3a457baa140d08accbd3c6","host_policy_profile":{"capacity":{"max_aggregate_array_items":1000,"max_analytic_frame_memberships":1000,"max_analytic_input_wire_bytes":1000,"max_analytic_output_wire_bytes":1000,"max_analytic_partition_wire_bytes":1000,"max_artifact_bytes":1000,"max_artifact_rows":1000,"max_effect_items":1000,"max_graph_construction_edges":1000,"max_graph_construction_input_rows":1000,"max_graph_construction_nodes":1000,"max_graph_input_edges":1000,"max_graph_input_nodes":1000,"max_graph_output_rows":1000,"max_graph_paths":1000,"max_infer_items":1000,"max_model_input_tokens_per_item":1000,"max_model_request_bytes_per_item":1000,"max_model_total_duration_ms":1000,"max_nested_value_bytes":1000,"max_nested_value_depth":1000,"max_relation_output_rows":1000,"max_temporal_matches_per_key":1000,"max_temporal_output_rows":1000,"version":"actql-capacity-host-policy/0.1"}},"mapping_contracts":[],"model_task_contracts":[],"schema_snapshots":[],"source_views":[],"version":"actql-check-environment/0.1"}
+    )),
+    "sha256:f7a722e2504c266873a228d46add79847b08daa2ff3a457baa140d08accbd3c6",
+    { max_bytes: 65536, max_nodes: 4096, max_depth: 64, max_members: 256, },
+  ).unwrap()
+  let original = checking_environment(
+    wire,
+    { text_time: false, veca: false, },
+    { rela: true, sga: false, tea: true, calendar: true, text_rank: false, },
+  )
+  assert_true(checking_environment_with_calendar_artifact(
+    original, calendar_environment_bytes(), calendar_environment_limits(),
+    max_selection_work=10000,
+  ) is Err(Selection(MissingSelection)))
+  assert_true(original.calendar is None)
+  assert_true(physical_equal(original.wire, wire))
+}
