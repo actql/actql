@@ -34,6 +34,7 @@ This document owns catalog, sourceview, mapping, command, model-task, check-envi
 - [Diagnostic compatibility profiles](#diagnostic-profiles)
 - [Ranked candidate acquisition contract](#ranked-search-contract)
 - [SourceView transformation profiles](#sourceview-transformations)
+- [Local signing public-key identity](#local-signing-public-key)
 - [Machine contracts](#machine-contracts)
 <!-- page-contents:end -->
 
@@ -2070,6 +2071,30 @@ profile ID, version, exact contract CID, input/output contracts, deterministic
 transformation and bound laws, failure behavior, and independent conformance
 vectors. A Connector Catalog or Host-local registration MUST NOT extend this
 set. A profile claim by itself does not authorize provider access.
+
+<a id="local-signing-public-key"></a>
+
+## Local signing public-key identity
+
+<!-- machine-import: ../../../spec/contracts/actql-local-signing-public-key.schema.json# sha256:42ec6febe92ce3582a27602bc8aff0b30a9d26c9f2f212aebd158310b77b7599 -->
+
+<!-- requirement-block: local-signing-public-key.exact-canonical-identity -->
+The existing Credential Owner MUST identify an Ed25519 public key by the
+closed `actql-local-signing-public-key/0.1` body containing only `algorithm`,
+`public_key` and `version`, using exactly32 public bytes in canonical padded
+standard base64 and the lowercase SHA-256 CID of the exact ordered UTF-8
+body, with exact canonical body and expected-CID admission.
+
+<!-- requirement-block: local-signing-public-key.no-authority-or-reconstruction -->
+This public-byte identity MUST NOT substitute for authenticated original
+Host/issuer/key configuration/generation/purpose custody, private/public
+correspondence, current authority, Checkpoint preimage or durable finite claim,
+or repair missing installation originals by hashing current files.
+
+The [closed identity contract](../../../spec/contracts/local-signing-public-key.md)
+and its pinned independent vectors define the byte framing. Existing Local
+grant/use bodies and pins remain unchanged; Native signing and operational
+caller connection are separate.
 
 <a id="machine-contracts"></a>
 
