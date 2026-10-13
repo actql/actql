@@ -12,7 +12,7 @@ import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {releaseNearestCarrierFixturePaths, releaseNearestCarrierEnvironment} from './release-nearest-carrier-fixtures.mjs';
 import {createTransportOwner, transportModes} from './fixtures/packed-query-transport-owner.mjs';
-import {auditNearestCarrierTransport} from '../reviews/2026-10-14-nearest-carrier-public-controls/public-audit.mjs';
+import {auditNearestCarrierTransport} from '../reviews/2026-10-14-nearest-carrier-release-matrix/public-audit.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const [input, receiptPath, ...extra] = process.argv.slice(2);
