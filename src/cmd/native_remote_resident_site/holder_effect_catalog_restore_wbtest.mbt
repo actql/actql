@@ -3,7 +3,7 @@
 test "Catalog cleanup reobserves the original use after a transient query failure" {
   let queries = Ref(0)
   let original = "sha256:" + "a".repeat(64)
-  let query = () => {
+  let query : () -> Result[@effect_resource.NativeCredentialUseStatus?, Unit] = () => {
     queries.val += 1
     if queries.val == 1 {
       Err(())
@@ -36,16 +36,14 @@ test "Catalog cleanup query failure or absence stays pending on each pass" {
   let queries = Ref(0)
   for pass in 0..<3 {
     assert_false(
-      holder_catalog_cleanup_original_use_observed(
-        true,
-        false,
-        false,
-        false,
-        () => {
-          queries.val += 1
-          if pass == 1 { Ok(None) } else { Err(()) }
-        },
-      ),
+      holder_catalog_cleanup_original_use_observed(true, false, false, false, () => {
+        queries.val += 1
+        if pass == 1 {
+          Ok(None)
+        } else {
+          Err(())
+        }
+      }),
     )
   }
   assert_eq(queries.val, 3)
