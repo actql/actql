@@ -84,10 +84,13 @@ fn original_keyed_typed_content_input(
     ),
   )
   assert_true(client_infer_completed_input(active) is Some(_))
-  let use = @execution.acquire_prepared_infer_rows(rows).unwrap()
+  let rows_use = @execution.acquire_prepared_infer_rows(rows).unwrap()
   assert_false(cleanup_client_infer_input(active).unwrap())
+  assert_true(active.mapping is Some(_))
+  assert_true(active.prefix is Some(_))
+  assert_true(active.sequence is Some(_))
   assert_true(@execution.prepared_infer_rows_value(rows, 0, 0) is Some(_))
-  assert_true(@execution.release_prepared_infer_rows_use(use))
+  assert_true(@execution.release_prepared_infer_rows_use(rows_use))
   assert_true(cleanup_client_infer_input(active).unwrap())
   assert_true(client_infer_completed_input(active) is None)
   assert_true(@execution.prepared_infer_rows_value(rows, 0, 0) is None)
@@ -96,5 +99,9 @@ fn original_keyed_typed_content_input(
   // This detects retained mapper/prefix roots on the reusable wrapper after
   // confirmed cleanup; it must not revoke the independently owned byte Ref.
   assert_true(active.mapping is None)
+  assert_true(active.prefix is None)
+  assert_true(active.retained_input is None)
+  assert_true(active.sequence is None)
+  assert_true(cleanup_client_infer_input(active).unwrap())
   assert_true(@admitted.reference_available(reference))
 }
