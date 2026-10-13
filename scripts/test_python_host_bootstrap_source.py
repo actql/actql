@@ -13,6 +13,9 @@ class SourceClosureTests(unittest.TestCase):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.root = Path(self.directory.name)
+        self.head = '0' * 40
+        self.status = b''
+        self.calls = []
         # Fixed SHA256("abc"), independently known. These are source-file
         # fixtures, not Native outputs or Resource accounting expectations.
         self.manifest = {
@@ -33,6 +36,11 @@ class SourceClosureTests(unittest.TestCase):
 
     def git_blob(self, args, *, cwd):
         self.assertEqual(cwd, self.root)
+        self.calls.append(args)
+        if args == ['git', 'rev-parse', 'HEAD']:
+            return self.head.encode() + b'\n'
+        if args == ['git', 'status', '--porcelain', '--untracked-files=normal']:
+            return self.status
         self.assertEqual(args[:2], ['git', 'show'])
         return self.raw if args[2].endswith(':' + MANIFEST) else b'abc'
 
@@ -86,6 +94,30 @@ class SourceClosureTests(unittest.TestCase):
         (self.root / MANIFEST).write_bytes(self.raw + b' ')
         with self.assertRaisesRegex(ValueError, 'manifest mismatch'):
             self.check()
+
+    def test_same_selected_inputs_under_a_foreign_head_are_rejected_before_read(self):
+        self.head = '1' * 40
+        with self.assertRaisesRegex(ValueError, 'exact clean source'):
+            self.check()
+        self.assertFalse(any(args[1] == 'show' for args in self.calls))
+
+    def test_imported_owner_change_before_and_during_inspection_is_rejected(self):
+        self.status = b' M src/physical_resources/delegation.mbt\n'
+        with self.assertRaisesRegex(ValueError, 'exact clean source'):
+            self.check()
+        self.assertFalse(any(args[1] == 'show' for args in self.calls))
+        self.status = b''
+        original_blob = self.git_blob
+
+        def changed_after_read(args, *, cwd):
+            data = original_blob(args, cwd=cwd)
+            if args[1] == 'show':
+                self.status = b' M src/physical_resources/delegation.mbt\n'
+            return data
+
+        with patch('python_host_bootstrap_source.subprocess.check_output', changed_after_read):
+            with self.assertRaisesRegex(ValueError, 'exact clean source'):
+                verify_source(self.root, '0' * 40)
 
 
 if __name__ == '__main__':

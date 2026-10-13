@@ -34,10 +34,21 @@ def _closed_object(pairs: list[tuple[str, object]]) -> dict[str, object]:
     return result
 
 
+def _verify_checkout(root: Path, source: str) -> None:
+    # Package-local hashes do not qualify imported Common Owner source. Require
+    # the whole committed checkout before and after reading the selected closure.
+    head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root).decode().strip()
+    status = subprocess.check_output(
+        ['git', 'status', '--porcelain', '--untracked-files=normal'], cwd=root)
+    if head != source or status:
+        raise ValueError('Private bootstrap requires the exact clean source checkout')
+
+
 def verify_source(root: Path, source: str) -> dict[str, object]:
     """Require committed exact inputs, same selected target and no symlink paths."""
     if re.fullmatch('[0-9a-f]{40}', source) is None:
         raise ValueError('Full source SHA is required')
+    _verify_checkout(root, source)
     raw = subprocess.check_output(['git', 'show', f'{source}:{MANIFEST}'], cwd=root)
     manifest = json.loads(raw, object_pairs_hook=_closed_object)
     if (type(manifest) is not dict or set(manifest) != {'status', 'target', 'inputs'}
@@ -66,6 +77,7 @@ def verify_source(root: Path, source: str) -> dict[str, object]:
         if (data != blob or len(data) != entry['bytes']
                 or hashlib.sha256(data).hexdigest() != entry['sha256']):
             raise ValueError('Private bootstrap source mismatch')
+    _verify_checkout(root, source)
     return {'source': source, 'target': manifest['target'],
             'verified_inputs': len(INPUTS),
             'manifest_sha256': hashlib.sha256(raw).hexdigest(),
