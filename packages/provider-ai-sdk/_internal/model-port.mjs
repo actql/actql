@@ -1,6 +1,7 @@
 import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
   startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
-  cancelSdkPreparation, cleanupSdkPreparation} from './intercepted-request.mjs';
+  cancelSdkPreparation, cleanupSdkPreparation,
+  retireSdkDecodedResult} from './intercepted-request.mjs';
 
 // Private source integration only: not an exported package installation API.
 // All records, SDK/request/response buffers and Promise overlaps must be funded
@@ -39,6 +40,9 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
     try { notify(); } catch { /* Wake is not execution or persistence evidence. */ }
   };
   const poll = () => {
+    // Only the unused SDK projection is dropped. Saved/raw observations and
+    // the same Store/Entry cleanup obligation remain owned independently.
+    if (!retired && preparation !== undefined) retireSdkDecodedResult(preparation);
     if (response !== undefined) return moon.clientProgramModelPhysicalSavedChat(response);
     if (failure !== undefined || startUnknown) return moon.clientProgramModelPhysicalUnknown();
     if (retired) {
@@ -71,6 +75,7 @@ export function createSdkModelPreflight({moon, request, preparation, profile,
   };
   const cleanup = () => {
     if (retired) return true;
+    if (preparation !== undefined) retireSdkDecodedResult(preparation);
     if (saving !== undefined || reconciliationPending) return false;
     // Every attempted raw save retains its original port until cleanup,
     // including a successful save's local aliases. This does not erase the

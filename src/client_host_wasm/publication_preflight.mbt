@@ -119,7 +119,7 @@ pub fn prepare_publication_preflight(
     value.computes.get(record.compute) is Some(compute) &&
     !compute.closing &&
     stored_compute_original_run(value, compute)
-    is Some({ outcome: Some(Ok(plan)), .. }) &&
+    is Some({ outcome: Some(Ok(plan)), .. } as original_run) &&
     value.run_configurations.get(current_configuration) is Some(current) else {
     return -2
   }
@@ -141,50 +141,29 @@ pub fn prepare_publication_preflight(
     Ok(borrow) => borrow
     Err(issue) => return issue_code(issue)
   }
-  guard input_cursor(value, borrow.slot) is Some(cursor) &&
-    @decode.closed_object(cursor, [
-      "namespace_id", "publication_policy_cid", "publication_target_cid", "requested_at",
-      "attempt_id", "fence_cid", "external_idempotency_key", "started_at", "retentions",
-    ])
-    is Ok(object) &&
-    required_text(object, "namespace_id") is Some(namespace_id) &&
-    required_text(object, "publication_policy_cid") is Some(policy) &&
-    required_text(object, "publication_target_cid") is Some(target) &&
-    required_text(object, "requested_at") is Some(requested_at) &&
-    required_text(object, "attempt_id") is Some(attempt_id) &&
-    required_text(object, "fence_cid") is Some(fence) &&
-    optional_text(object, "external_idempotency_key") is Ok(idempotency) &&
-    required_text(object, "started_at") is Some(started_at) &&
-    @decode.required(object, "retentions") is Ok(retentions_cursor) &&
-    @decode.elements(retentions_cursor) is Ok(retention_values) &&
-    retention_values.length() > 0 &&
-    retention_values.length() <= value.workspace_slots else {
-    return -31
+  match run_configuration_current(value, current) {
+    Ok(_) => ()
+    Err(code) => return code
   }
-  let retentions : Array[@publication.PublicationContract] = []
-  for cursor in retention_values {
-    guard @decode.text(cursor) is Ok(wire) &&
-      @publication.admit_publication_contract(
-        "result_retention_policy", wire, 65536, 4096, 64,
-      )
-      is Ok(retention) else {
-      return -31
-    }
-    retentions.push(retention)
+  guard input_cursor(value, borrow.slot) is Some(cursor) else { return -31 }
+  let input = match
+    publication_preflight_input(value, compute, original_run, plan, cursor) {
+    Ok(input) => input
+    Err(code) => return code
   }
   // Original parents and input stay retained even if an Owner call traps.
   record.pending = true
   let intent = match
     @local_run.prepare_local_publication_intent(
       plan,
-      namespace_id,
-      policy,
-      target,
-      requested_at,
-      attempt_id,
-      fence,
-      idempotency,
-      started_at,
+      input.namespace_id,
+      input.policy,
+      input.target,
+      input.requested_at,
+      input.attempt_id,
+      input.fence,
+      input.idempotency,
+      input.started_at,
       {
         max_results: value.workspace_slots,
         max_wire_bytes: 1048576,
@@ -203,7 +182,7 @@ pub fn prepare_publication_preflight(
       intent,
       invocation,
       current.account,
-      retentions,
+      input.retentions,
     ) {
     Ok(preflight) => preflight
     Err(_) => {
@@ -344,4 +323,30 @@ pub fn close_publication_preflight(nonce : Int64, handle : Int) -> Int {
     value.copies.remove(handle) |> ignore
   }
   result
+}
+
+///|
+/// Original checked inventory size, not a caller subset or publication result.
+#export_name("actql_publication_preflight_result_count")
+pub fn publication_preflight_result_count(
+  nonce : Int64,
+  handle : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    !value.closing &&
+    !value.runtime_closing &&
+    value.publication_preflights.get(handle)
+    is Some({ preflight: Some(preflight), .. } as record) &&
+    value.run_configurations.get(current_configuration) is Some(current) else {
+    return -2
+  }
+  match run_configuration_current(value, current) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
+  if !stored_preflight_current(value, record, current.account) {
+    return -32
+  }
+  @local_run.local_publication_preflight_count(preflight)
 }

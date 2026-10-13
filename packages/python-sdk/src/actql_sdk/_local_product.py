@@ -16,7 +16,7 @@ import time
 from typing import Any, TypeVar
 
 from . import _wire as wire
-from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output
+from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _PublisherFact, _Task, _ResultExport, LocalTaskProgress, LocalResultProgress
 from ._local_distribution import installed_local_components, load_local_module
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
 from ._local_preparation import LocalPreparation, _Environment, _Preparation
@@ -84,6 +84,13 @@ class InstalledLocalHost:
         self._pending_start_write: _Output | None = None
         self._physical_starts: list[_PhysicalStart] = []
         self._source_free_computes: list[_SourceFreeCompute] = []
+        self._source_free_invocations: list[tuple[_SourceFreeCompute, _Output]] = []
+        self._publication_preflights: list[_Output] = []
+        self._publishers: list[_Output] = []
+        self._tasks: list[_Task] = []
+        self._result_exports: list[_ResultExport] = []
+        self._result_chunks: list[_Output] = []
+        self._publications: list[_Output] = []
         self._inputs: list[_Input] = []
         self._projections: list[_Output] = []
         self._append_sources: dict[int, _Input] = {}
@@ -547,6 +554,193 @@ class InstalledLocalHost:
                 self._runs.configure_source_free_compute(compute, configuration))
             return compute
 
+    def _prepare_original_publication(self, compute: _SourceFreeCompute) -> tuple[_Output, _Output]:
+        """Join original invocation/preflight/Account publisher before task activation.
+
+        The callback fences physical custody and the six Core facts only. The
+        existing Common port separately evaluates original/current run/publish
+        and validates original Policy/target/request/index before and after it.
+        Nothing here acknowledges Store, executes a task or grants Result read.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        if (configuration is None or not configuration.sdk or
+                not any(original is compute for original in self._source_free_computes)):
+            raise ValueError('Foreign original source-free Compute')
+        with self._core._lock:
+            self._runs._compute(compute)
+            if any(original is compute for original, _ in self._source_free_invocations):
+                raise LocalStorageError('Original Local invocation is retained; new preflight is unavailable')
+            source = self._copy(b'{}')
+            invocation = self._reserve(lambda: self._core.reserve_source_free_invocation(
+                compute.core, source, cleanup=lambda: True))
+            self._source_free_invocations.append((compute, invocation))
+            installation.binding.inspect(lambda _:
+                self._core.prepare_source_free_invocation(invocation, configuration.handle))
+            # These are physical observations, not Run/Policy/scope issuers.
+            request = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
+                'now': self._now(),
+                'attempt_id': os.urandom(32).hex(),
+                'fence_cid': 'sha256:' + hashlib.sha256(os.urandom(32)).hexdigest(),
+                'external_idempotency_key': None,
+            }))
+            preflight = self._reserve(lambda: self._core.reserve_publication_preflight(
+                invocation, request, cleanup=lambda: True))
+            self._publication_preflights.append(preflight)
+            installation.binding.inspect(lambda _:
+                self._core.prepare_publication_preflight(preflight, configuration.handle))
+            # The original request/attempt remain nominal in Core. Installing
+            # an SDK port needs no copied contract, target CID or permit input.
+            publisher_input = self._copy(b'{}')
+
+            def current() -> bool:
+                installation.binding.current()
+                return True
+
+            def authorize(fact: _PublisherFact) -> bool:
+                # This same-Store fence supplies physical custody only. The
+                # nominal Common port checks all six facts, original/current
+                # Account publish, Policy/target and the Core-validated index.
+                installation.binding.current()
+                return fact.namespace_id == 'local'
+
+            publisher = self._reserve(lambda: self._core.reserve_publisher(
+                preflight, publisher_input, current=current, authorize=authorize, cleanup=lambda: True))
+            self._publishers.append(publisher)
+            installation.binding.inspect(lambda _:
+                self._core.install_publisher(publisher, configuration.handle))
+            installation.binding.inspect(lambda _:
+                self._core.authorize_publisher(publisher, configuration.handle, stage='request'))
+            if not self._core.retire_publication_preflight_output(preflight):
+                raise LocalProductCleanupPending(self)
+            return preflight, publisher
+
+    def _execute_original_tasks(self, compute: _SourceFreeCompute, preflight: _Output,
+                                publisher: _Output) -> tuple[_ResultExport, ...]:
+        """Drive existing task Owners; Python selects no task/transition/outcome."""
+        installation = self._active()
+        configuration = self._configuration
+        if (configuration is None or not configuration.sdk or
+                not any(original is compute for original in self._source_free_computes) or
+                not any(original is preflight for original in self._publication_preflights) or
+                not any(original is publisher for original in self._publishers)):
+            raise ValueError('Foreign original Local task/publication custody')
+        with self._core._lock:
+            self._runs._compute(compute)
+            while True:
+                selected: list[_Task | None] = []
+                def select_task(_: _Output) -> None:
+                    task = self._core.reserve_next_sdk_task(compute.core, configuration.handle)
+                    # Retain the original loan before the enclosing snapshot's
+                    # post-current checks can refuse its use.
+                    if task is not None:
+                        self._tasks.append(task)
+                    selected.append(task)
+                installation.binding.inspect(select_task)
+                task = selected[0]
+                if task is None:
+                    break  # Explicit Core-checked end, never reserve's -2.
+                installation.binding.inspect(lambda _: self._core.start_task(task))
+                while True:
+                    fed: list[bool] = []
+                    installation.binding.inspect(lambda _: fed.append(self._core.feed_task(task, 16)))
+                    if fed[0]: break
+                while True:
+                    progress: list[LocalTaskProgress] = []
+                    installation.binding.inspect(lambda _: progress.append(self._core.advance_task(task, 16)))
+                    if progress[0].waiting:
+                        raise LocalCoreError('original_task_waiting', -7)
+                    if progress[0].complete: break
+                installation.binding.inspect(lambda _: self._core.prepare_task_finalization(task))
+                while True:
+                    final: list[LocalTaskProgress] = []
+                    installation.binding.inspect(lambda _: final.append(
+                        self._core.advance_task(task, 16, finalization=True)))
+                    if final[0].waiting:
+                        raise LocalCoreError('original_task_finalization_waiting', -7)
+                    if final[0].complete: break
+                installation.binding.inspect(lambda _: self._core.complete_task(task))
+            counts: list[int] = []
+            installation.binding.inspect(lambda _: counts.append(
+                self._core.publication_preflight_result_count(preflight, configuration.handle)))
+            results: list[_ResultExport] = []
+            for index in range(counts[0]):
+                selected_results: list[_ResultExport] = []
+                def select_result(_: _Output) -> None:
+                    result = self._core.reserve_result_from_compute(compute.core, index, configuration.handle)
+                    # The same Result remains reachable for cleanup even when
+                    # the original snapshot's post-current fence fails.
+                    self._result_exports.append(result)
+                    selected_results.append(result)
+                installation.binding.inspect(select_result)
+                result = selected_results[0]
+                results.append(result)
+            return tuple(results)
+
+    def _capture_original_results(self, compute: _SourceFreeCompute, preflight: _Output,
+                                  results: tuple[_ResultExport, ...]) -> _Output:
+        """Finish original exports and Receipt; Store commit/ACK is separate.
+
+        Transient chunks need not copy rows into Python. Their original Core
+        finish marker closes each stream. The later payload replay reads the
+        retained completed output; it cannot restart Source or Compute.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        if (configuration is None or not configuration.sdk or type(results) is not tuple or
+                not any(original is compute for original in self._source_free_computes) or
+                not any(original is preflight for original in self._publication_preflights) or
+                any(not any(original is result for original in self._result_exports) for result in results)):
+            raise ValueError('Foreign original Local Result/publication custody')
+        with self._core._lock:
+            self._runs._compute(compute)
+            for result in results:
+                installation.binding.inspect(lambda _: self._core.start_result_export(result))
+                while True:
+                    fed: list[bool] = []
+                    installation.binding.inspect(lambda _: fed.append(self._core.feed_result_export(result, 16)))
+                    if fed[0]: break
+                while True:
+                    progress: list[LocalResultProgress] = []
+                    installation.binding.inspect(lambda _: progress.append(
+                        self._core.advance_result_export(result, 16)))
+                    if progress[0].ready: break
+                installation.binding.inspect(lambda _:
+                    self._core.finish_result_export_preparation(result))
+                while True:
+                    chunk = self._reserve(lambda: self._core.reserve_result_chunk(result, cleanup=lambda: True))
+                    self._result_chunks.append(chunk)
+                    installation.binding.inspect(lambda _: self._core.produce_result_chunk(chunk))
+                    final: list[bool] = []
+                    installation.binding.inspect(lambda _: final.append(self._core.result_chunk_finished(chunk)))
+                    if not self._core.close_result_chunk(chunk):
+                        raise LocalProductCleanupPending(self)
+                    self._result_chunks.remove(chunk)
+                    if final[0]: break
+            source = next(original for owner, original in self._source_free_invocations if owner is compute)
+            # Preserve the existing private export limits, not a new unlimited
+            # scan or a broader admitted profile. Core shares this work budget
+            # across snapshot, capture and later commit validation.
+            request = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
+                'results': [result.handle for result in results],
+                'max_work': 1000000, 'max_workspace_slots': 100000,
+            }))
+            publication = self._reserve(lambda: self._core.reserve_publication(
+                source, request, cleanup=lambda: True))
+            self._publications.append(publication)
+            installation.binding.inspect(lambda _:
+                self._core.prepare_publication(publication, configuration.handle))
+            while True:
+                captured: list[LocalResultProgress] = []
+                installation.binding.inspect(lambda _: captured.append(
+                    self._core.advance_publication(publication, configuration.handle, 16)))
+                if captured[0].ready: break
+            installation.binding.inspect(lambda _:
+                self._core.finish_publication(publication, configuration.handle))
+            if not self._core.retire_publication_output(publication):
+                raise LocalProductCleanupPending(self)
+            return publication
+
     def close(self) -> bool:
         """Stop this Host's resources only; never cancel/replay/delete a Run."""
         self._nominal()
@@ -554,6 +748,34 @@ class InstalledLocalHost:
             self._closing = True
             if self._uncertain_ticket is not None and not self._core._closed:
                 return False
+            for publication in tuple(reversed(self._publications)):
+                if not self._core.close_publication(publication):
+                    return False
+                self._publications.remove(publication)
+            for chunk in tuple(reversed(self._result_chunks)):
+                if not self._core.close_result_chunk(chunk):
+                    return False
+                self._result_chunks.remove(chunk)
+            for result in tuple(reversed(self._result_exports)):
+                if not self._core.close_result_export(result):
+                    return False
+                self._result_exports.remove(result)
+            for task in tuple(reversed(self._tasks)):
+                if not self._core.close_task(task):
+                    return False
+                self._tasks.remove(task)
+            for publisher in tuple(reversed(self._publishers)):
+                if not self._core.close_publisher(publisher):
+                    return False
+                self._publishers.remove(publisher)
+            for preflight in tuple(reversed(self._publication_preflights)):
+                if not self._core.close_publication_preflight(preflight):
+                    return False
+                self._publication_preflights.remove(preflight)
+            for compute, invocation in tuple(reversed(self._source_free_invocations)):
+                if not self._core.close_source_free_invocation(invocation):
+                    return False
+                self._source_free_invocations.remove((compute, invocation))
             for compute in tuple(reversed(self._source_free_computes)):
                 if not self._runs.close_source_free_compute(compute):
                     return False

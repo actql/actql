@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 57
+LOCAL_CORE_ABI = 59
 
 
 class LocalCoreError(RuntimeError):
@@ -289,6 +289,7 @@ _PUBLICATION_SIGNATURES = {
     'retire_lookup': ('i64 i32', 'i32'),
 }
 _PUBLICATION_PREFLIGHT_SIGNATURES = {
+    'result_count': ('i64 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32 i32 i64', 'i32'),
     'prepare': ('i64 i32 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
@@ -405,6 +406,7 @@ _SOURCE_SIGNATURES = {
     'close_command': ('i64 i32', 'i32'),
 }
 _TASK_SIGNATURES = {
+    'reserve_next_sdk': ('i64 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32', 'i32'),
     'start': ('i64 i32', 'i32'),
     'started': ('i64 i32', 'i32'),
@@ -428,6 +430,7 @@ _COMPUTE_SIGNATURES = {
     'close': ('i64 i32', 'i32'),
 }
 _RESULT_SIGNATURES = {
+    'reserve_from_compute': ('i64 i32 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32', 'i32'),
     'start': ('i64 i32', 'i32'),
     'feed': ('i64 i32 i32', 'i32'),
@@ -1046,8 +1049,9 @@ class LocalCore:
         """Private trusted Host port, never a public SDK authorization option.
 
         The installed Host must supply its independent current publisher Owner
-        bound to original Policy/target/Store. No portable issuer is provided by
-        this transport. Callback-owned resources require their own reservations.
+        bound to original Policy/target/Store. The existing Common Account port evaluates original/current publish
+        separately from these physical fences. Callback-owned resources require
+        their own reservations.
         """
         with self._lock:
             self._owned_output(preflight, 'publication_preflight')
@@ -1536,6 +1540,18 @@ class LocalCore:
                 raise ValueError('Invalid current preflight configuration')
             self._check('prepare_publication_preflight', self._call(
                 'publication_preflight', 'prepare', value.handle, current_configuration))
+
+    def publication_preflight_result_count(self, value: _Output, current_configuration: int) -> int:
+        with self._lock:
+            self._owned_output(value, 'publication_preflight')
+            if (self._closing or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK preflight configuration')
+            count = self._call('publication_preflight', 'result_count', value.handle,
+                               current_configuration)
+            if type(count) is not int or not 0 < count < 2**31:
+                raise LocalCoreError('preflight_result_count', count if type(count) is int else -33)
+            return count
 
     def read_publication_preflight(self, value: _Output) -> bytes:
         return self._read_output(value, 'publication_preflight', 'length')
@@ -2721,6 +2737,22 @@ class LocalCore:
             self._task_loans[handle] = value
             return value
 
+    def reserve_next_sdk_task(self, compute: _Compute, current_configuration: int) -> _Task | None:
+        """Drive Core's original next task; explicit end is checked there."""
+        with self._lock:
+            self._owned_compute(compute)
+            if (self._closing or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK task configuration')
+            handle = self._call('task', 'reserve_next_sdk', compute.handle, current_configuration)
+            if type(handle) is not int or not 0 <= handle < 2**31:
+                raise LocalCoreError('reserve_next_sdk_task', handle if type(handle) is int else -33)
+            if handle == 0:
+                return None
+            value = _Task(self._identity, handle)
+            self._task_loans[handle] = value
+            return value
+
     def start_task(self, value: _Task) -> None:
         self._task_operation(value, 'start')
         self._task_operation(value, 'started')
@@ -2818,6 +2850,23 @@ class LocalCore:
             self._result_loans[handle] = result
             return result
 
+    def reserve_result_from_compute(self, compute: _Compute, index: int,
+                                    current_configuration: int) -> _ResultExport:
+        """Core maps original inventory ordinal to its completed producer."""
+        with self._lock:
+            self._owned_compute(compute)
+            if (self._closing or type(index) is not int or not 0 <= index < 2**31
+                    or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK Result selection')
+            handle = self._call('result', 'reserve_from_compute', compute.handle, index,
+                                current_configuration)
+            if type(handle) is not int or not 0 < handle < 2**31:
+                raise LocalCoreError('reserve_result_from_compute', handle if type(handle) is int else -33)
+            result = _ResultExport(self._identity, handle)
+            self._result_loans[handle] = result
+            return result
+
     def _result_operation(self, result: _ResultExport, operation: str, *arguments: int) -> None:
         self._owned_result(result)
         if self._closing:
@@ -2885,6 +2934,15 @@ class LocalCore:
             if final not in (0, 1):
                 raise LocalCoreError('result_chunk_final', final)
             return wire, final == 1
+
+    def result_chunk_finished(self, chunk: _Output) -> bool:
+        """Inspect only the original export finish marker, without copying rows."""
+        with self._lock:
+            self._owned_output(chunk, 'result')
+            code = self._call('result', 'chunk_final', chunk.handle)
+            if type(code) is not int or code not in (0, 1):
+                raise LocalCoreError('result_chunk_final', code if type(code) is int else -33)
+            return code == 1
 
     def close_result_chunk(self, chunk: _Output) -> bool:
         return self._close_output(chunk, 'result', 'close_chunk')
