@@ -108,14 +108,24 @@ It keeps the original Unknown/cleanup responsibility. This is the initial privat
 one-Slot connection, not accepted public funding or multi-Slot raw persistence.
 
 The private Chat port validates output and observations from the original saved
-raw response, not the SDK-normalized result. After that same SDK settles, it
-retires only its unused decoded-result alias, even if raw persistence or cleanup
-remains pending. Original raw bytes, request/transport/reader custody, the saved
-view, failure/Unknown and explicit same-call reconciliation remain unchanged.
-Native callers retain their existing explicit one-time decoded-result transfer;
-an already transferred immutable view is never mutated by alias retirement.
-This is not physical GC or capacity release. The parsing/normalization peak and
-all remaining Promise/Store/closure overlap still require complete funding.
+raw response, not the SDK-normalized result. Its installed preflight selects
+private raw-only response consumption: after bounded physical EOF, it ends the
+same intercepted SDK fetch wait without building an unused SDK `Response` copy
+or running the SDK response JSON/schema decoder. Only actual settlement of that
+SDK operation produces the private `retired` consumer observation. This intentional
+consumer retirement is not a Provider error, saved response, validated answer or
+physical cleanup acknowledgement. Malformed original bytes remain available for
+the existing Common decoder's own refusal and observed-usage handling.
+
+Raw persistence, incomplete reads and cleanup can remain pending independently.
+Original raw bytes, request/transport/reader custody, the saved view, failure/Unknown
+and explicit same-call reconciliation remain unchanged. Generic transport defaults
+and Native Decision preflight retain their existing SDK response copy/decoder mode
+and explicit one-time decoded-result transfer; an already transferred immutable
+view is never mutated by alias retirement. This is not physical GC or capacity
+release. SDK request normalization, all actual preparation records, mode/closure
+references and remaining Promise/Store/reader overlap still require complete
+funding. Missing normal numerical funding remains unavailable.
 
 The internal `createInstalledOpenAIChatRegistration` assembles the existing Host
 `registerModelProviders` entry from trusted, already retained installation
@@ -150,12 +160,14 @@ throw or lost response remains unknown responsibility, never proof of non-send.
 These private functions are not public capability or admission APIs.
 
 The response reader bounds bytes, individual chunks, chunk count and selected
-headers before feeding a separately funded Response copy to the original SDK.
-It preserves raw bytes and incomplete prefixes. HTTP EOF is not endpoint or
+headers. Generic and Native SDK mode then feeds a separately funded `Response`
+copy to the original SDK; the installed Chat raw-only mode does not. Both preserve
+raw bytes and incomplete prefixes. HTTP EOF is not endpoint or
 answer completion. A cancel-induced stream EOF is explicitly incomplete.
-No unbounded `text`, `json`, clone or tee precedes the byte check. The pinned
-SDK's subsequent synchronous JSON/schema work is not proven cooperative by
-this reader; Common's bounded codec and validation remain necessary.
+No unbounded `text`, `json`, clone or tee precedes the byte check. The pinned SDK's
+synchronous request normalization and, where selected, response JSON/schema work
+are not proven cooperative by this reader; Common's bounded codec and validation
+remain necessary.
 
 Cleanup retains the same pending transport, unread body or failed reader
 retirement and retries that responsibility, not the request. Local abort or
