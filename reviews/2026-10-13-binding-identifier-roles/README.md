@@ -22,6 +22,8 @@ Nineteen normal controls and sixteen refusals are appended to the existing deliv
 
 The existing public helper checks the refusal code, zero additional admission/I/O, same-submission identity, attached Result reads, lookup and cleanup. Those assertions are preparation until a new exact-source normal package producer and Local/HTTPS consumer actually execute. The accepted RRF packages from `9372ea55d87f726c1cb22ef74693f8e8b55eeeb7` cannot establish this changed parser's public behavior.
 
+`prepared-public.mjs --producer SOURCE PRIVATE_DIRECTORY` and its `--consumer` mode reuse the normal five-package producer and the existing quoted-identifier selection under the original 300/TERM5 bounds. They require clean identical source; the consumer verifies the same package manifest and digests. The existing verified-case hook retains actual Run/rows/full schema only after the independent assertions, without extra Client I/O. Public execution still needs an explicitly allocated shared window.
+
 ## Evidence boundaries
 
 The initial repair `ffb242971b60c2911f42767ba3ef5073c03f8f50` passed 14 focused JS tests in `run-2URCOr`, including the refusal positions, quoted aliases, WITH scope, sequence keys and existing SGA OutputName cases. The subsequent public fixtures, complete Program control and pinned formatting require their own final-source verification.

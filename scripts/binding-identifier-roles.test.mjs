@@ -54,4 +54,8 @@ test('role cases use the existing delivered quoted-identifier selection and ordi
   assert.ok(acceptance.includes('scopeInputs.successes.push(...quotedIdentifierSuccesses)'));
   assert.ok(consumer.includes("['scripts/fixtures/quoted-identifier-source-input.mjs', 'quoted-identifier-source-input.mjs']"));
   assert.ok(consumer.includes('--quoted-identifiers-only'));
+  assert.ok(acceptance.includes("item.name.startsWith('identifier-role-')"));
+  assert.ok(acceptance.includes('await quotedIdentifierReceipts.record(item, mode)'));
+  assert.ok(acceptance.includes('await quotedIdentifierReceipts.complete()'));
+  assert.ok(consumer.includes('quoted-identifier-receipts.local.json'));
 });
