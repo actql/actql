@@ -341,10 +341,10 @@ test "original keyed left prefix refuses workspace one above remaining retention
   let available = @resources.ledger_limits(value.ledger).retained_bytes -
     before.held_bytes -
     before.reserved_retention_bytes
-  let workspace = @execution.execution_capacity(
-    available - @execution.execution_capacity_retained_bytes(selected) + 1L,
-    1L,
-  ).unwrap()
+  let extra = available -
+    @execution.execution_capacity_retained_bytes(selected) +
+    1L
+  let workspace = @execution.execution_capacity(extra, extra).unwrap()
   assert_true(
     start_client_original_keyed_left_prefix(
       value.scope,
