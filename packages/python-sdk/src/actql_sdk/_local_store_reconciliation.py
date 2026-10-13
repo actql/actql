@@ -77,6 +77,8 @@ class OriginalStoreReconciliation:
         self._sdk_evidence_key_attempts: set[str] = set()
         self._sdk_delivery_request_attempts: set[int] = set()
         self._sdk_delivery_key_attempts: set[str] = set()
+        self._sdk_terminal_request_attempts: set[int] = set()
+        self._sdk_terminal_key_attempts: set[str] = set()
 
     def _nominal(self) -> None:
         if self._original is not self:

@@ -17,7 +17,14 @@ fn sdk_payload_access_current(
   first : StoredPublicationCommitExport,
   context : OriginalSDKReadContext,
   clock : @buffers.BufferBorrow,
+  current_configuration : Int,
 ) -> Result[Unit, Int] {
+  let source_current = sdk_payload_record_current(
+    value, first, context, current_configuration,
+  )
+  if source_current != 0 {
+    return Err(source_current)
+  }
   guard first.sdk_delivery_first is Some(original) &&
     first.state_borrow is Some(input) &&
     input_cursor(value, input.slot) is Some(request_cursor) &&
@@ -116,7 +123,10 @@ pub fn prepare_publication_sdk_payload_input(
   first.sdk_payload_tick_borrow = Some(clock)
   first.sdk_payload_clock_input = Some(clock_input)
   first.pending = true
-  let result = match sdk_payload_access_current(value, first, context, clock) {
+  let result = match
+    sdk_payload_access_current(
+      value, first, context, clock, current_configuration,
+    ) {
     Err(code) => code
     Ok(_) =>
       match encoding.prepare_input() {
@@ -135,10 +145,7 @@ pub fn prepare_publication_sdk_payload_input(
   if result != 0 {
     return result
   }
-  match (context.check_current)() {
-    Ok(_) => 0
-    Err(code) => code
-  }
+  sdk_payload_finish_current(value, first, context, current_configuration)
 }
 
 ///|
@@ -217,7 +224,9 @@ pub fn produce_publication_sdk_payload_chunk(
   output.sdk_payload_tick_borrow = Some(clock)
   output.sdk_payload_clock_input = Some(clock_input)
   output.pending = true
-  let access = sdk_payload_access_current(value, first, context, clock)
+  let access = sdk_payload_access_current(
+    value, first, context, clock, current_configuration,
+  )
   let result = match access {
     Err(code) => code
     Ok(_) =>
@@ -271,10 +280,7 @@ pub fn produce_publication_sdk_payload_chunk(
   if result != 0 {
     return result
   }
-  match (context.check_current)() {
-    Ok(_) => 0
-    Err(code) => code
-  }
+  sdk_payload_finish_current(value, first, context, current_configuration)
 }
 
 ///|
@@ -298,7 +304,14 @@ pub fn confirm_publication_sdk_payload_chunk(
   if output.sdk_payload_confirmed is Some(original) {
     return original
   }
-  match encoding.confirm_chunk() {
+  // Only this actual owned produced slot proves an empty output. Do not
+  // convert a generic NoOutstandingChunk refusal into an acknowledgement.
+  let progress = match @buffers.buffer_length(value.pool, output.slot) {
+    Some(0) => encoding.observe_empty_output()
+    Some(_) => encoding.confirm_chunk()
+    None => return -33L
+  }
+  match progress {
     Err(issue) => sdk_payload_encoding_issue(issue).to_int64()
     Ok(confirmed) => {
       output.sdk_payload_confirmed = Some(confirmed)
@@ -357,7 +370,10 @@ pub fn produce_publication_sdk_payload_receipt(
   output.sdk_payload_tick_borrow = Some(clock)
   output.sdk_payload_clock_input = Some(clock_input)
   output.pending = true
-  let result = match sdk_payload_access_current(value, first, context, clock) {
+  let result = match
+    sdk_payload_access_current(
+      value, first, context, clock, current_configuration,
+    ) {
     Err(code) => code
     Ok(_) =>
       if output.produced {
@@ -397,8 +413,5 @@ pub fn produce_publication_sdk_payload_receipt(
   if result != 0 {
     return result
   }
-  match (context.check_current)() {
-    Ok(_) => 0
-    Err(code) => code
-  }
+  sdk_payload_finish_current(value, first, context, current_configuration)
 }
