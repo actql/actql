@@ -1,8 +1,8 @@
 ///|
 test "SourceView key facts retain exact owner schema and conditional tuple declarations" {
-  let facts = @json.parse(
+  let facts = @json.parse((
     #|{"relation_keys":{"candidate_keys":[["id"],["id","at"]]},"uninterpreted_extension":{"name":"still opaque"}}
-  )
+  ))
   let modes = carrier_modes(record_body(), "relation", facts=Some(facts))
   let schemas = check_carrier_schemas(modes, carrier_limits()).unwrap()
   let references = data_policy_references(value_contract_policies(source_view_shape_values(read_mode_shapes(modes))))
@@ -14,7 +14,13 @@ test "SourceView key facts retain exact owner schema and conditional tuple decla
   assert_eq(@decode.array_length(source_relation_key_at(keys, 0).unwrap()), Some(1))
   assert_eq(@decode.text(@decode.element_at(source_relation_key_at(keys, 1).unwrap(), 1).unwrap()), Ok("at"))
   assert_true(physical_equal(source_relation_key_schema(keys), source_view_carrier_schema(carrier)))
-  assert_true(physical_equal(reference_member(source_relation_key_reference(keys)), view))
+  let declared_member = reference_member(source_relation_key_reference(keys))
+  // Member access creates a handle for its original environment and index;
+  // wrapper object identity is not the Member's ownership contract.
+  assert_true(physical_equal(member_environment(declared_member), member_environment(view)))
+  assert_eq(member_section(declared_member), SourceViews)
+  assert_eq(member_index(declared_member), member_index(view))
+  assert_true(physical_equal(source_view_carrier(schemas, declared_member).unwrap(), carrier))
   let foreign_modes = carrier_modes(record_body(), "relation", facts=Some(facts))
   let foreign = check_carrier_schemas(foreign_modes, carrier_limits()).unwrap()
   assert_true(source_view_carrier(foreign, view) is None)

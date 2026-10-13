@@ -51,7 +51,11 @@ fn read_relation_key_facts(
     carrier_fail(InvalidBody, component)
   }
   relation_key_charge(budget, component, 2)
-  let keys = @decode.required(@decode.open_object(component).unwrap(), "candidate_keys").unwrap()
+  let keys = @decode.required(
+    @decode.open_object(component).unwrap(), "candidate_keys",
+  ).unwrap_or_else(() => {
+    carrier_fail(InvalidBody, component)
+  })
   let count = @decode.array_length(keys).unwrap_or_else(() => {
     carrier_fail(InvalidBody, keys)
   })

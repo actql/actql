@@ -198,7 +198,7 @@ test "installed bounded Source capture cannot publish duplicates hidden by its f
         previous_work = work
         if done { break }
       }
-      _ => fail("unexpected bounded Source capture failure"),
+      _ => fail("unexpected bounded Source capture failure")
     }
   }
   assert_true(rejected, msg="a filtered subset is not proof of the declared input key")

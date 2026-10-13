@@ -18,10 +18,12 @@
   },
   "retainedFailure": [
     "run-2rIvbz metadata mismatch",
-    "run-QdPyzo private record ambiguity and callback arity; no runtime counts"
+    "run-QdPyzo private record ambiguity and callback arity; no runtime counts",
+    "run-PGS2CP 9/11: required null component panic and Member wrapper identity assertion",
+    "run-COGgSR: WB match-arm comma compilation failure; acquisition8 not reached"
   ],
   "unexecuted": [
-    "successful Moon compile/focused tests",
+    "successful full selected declaration11 and acquisition8; installed bounded key counterexample still not reached",
     "generated public interfaces and final post-compile freshness",
     "complete RowSource capture multi-page/key/cancellation regression",
     "new-SHA ordinary four-package Local/HTTPS original 12+8 matrix",
@@ -33,6 +35,11 @@
   "preparedRuntimeSelection": "acquisition: 8 named tests in src/query_integration/source_relation_keys_wbtest.mbt; nonHeavy 60 seconds / TERM grace 5, not executed",
   "runtimeBoundary": "runtime-boundary.json records the installed bounded key-validation gap from actual-source reading; this is not a runtime reproduction",
   "executedFixedSource": {
-    "99b11e9ae18ed3ebbd7ddfc9c0ed49f982cbad73": "declaration11 run-QdPyzo compile exit1; no test summary / executed0; acquisition8 not started"
+    "99b11e9ae18ed3ebbd7ddfc9c0ed49f982cbad73": "declaration11 run-QdPyzo compile exit1; no test summary / executed0; acquisition8 not started",
+    "68f73459c71c6a6d68cd1292e832968ec8f00b81": {
+      "declaration": "run-PGS2CP: compile succeeded, JS11/9 passed/2 failed, exit2",
+      "acquisition": "run-COGgSR: compile failed on a WB match-arm comma, 0 tests executed, exit1",
+      "qualification": "both ended naturally, source clean and Owner/child/group/worktree lock absent; not installed acceptance"
+    }
   }
 }
