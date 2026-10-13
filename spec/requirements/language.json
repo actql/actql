@@ -1763,6 +1763,72 @@
       }
     },
     {
+      "requirement_id": "actql.language/sourceviews.relation-score-facts-fields",
+      "statement_sha256": "8c83bed850d949ec5eb47632d381983fcc42a47d8637d47bd789ec18dfdb7a5a",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sourceviews",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/sourceviews.relation-score-facts-owner",
+      "statement_sha256": "7f454951f3e6c10f65f0664e8f4eb784c8ff5ef6cb8f02dde1077136f513be48",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sourceviews",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/sourceviews.relation-score-facts-projection",
+      "statement_sha256": "ed10e856b1417d7250c9c0188d93ab2a288887a5c95a92130f08cbb5e2373352",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sourceviews",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/sourceviews.relation-score-facts-runtime",
+      "statement_sha256": "ada74271575386128fae7bb8b79b7c4b95bb95b131ae44a69452f9093c939f28",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sourceviews",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/sourceviews.relation-score-facts-transfer",
+      "statement_sha256": "deb011be86e94731deedec19d2be32413e35c949cc82f301f7eaa10988adb741",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sourceviews",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.language/sourceviews.relation-score-facts-unsupported-runtime",
+      "statement_sha256": "fb269be37e86f87f28817429cef2fca8acf4cb6f7494d2136bc043ca4fb90256",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify this requirement against the MoonBit implementation with independent positive and negative evidence.",
+      "source": {
+        "anchor": "sourceviews",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.language/sourceviews.a-sourceview-used-as-the-keyed-right-side-of-an",
       "statement_sha256": "84c108db4a57d95ac113760633467172f50e82c644c15435ce928556d9f27d68",
       "status": "pending",
