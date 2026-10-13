@@ -262,7 +262,7 @@ test "original keyed version history keeps three left occurrences but acquires o
     assert_true(complete)
   }
   assert_eq(requested.length(), 2)
-  assert_ne(requested[0], requested[1])
+  assert_true(requested[0] != requested[1])
   let read = @publication_host.finish_client_keyed_lookup_input(lookup).unwrap()
   assert_eq(@execution.supplied_relation_read_row_count(read), 2)
   for index in 0..<2 {
