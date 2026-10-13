@@ -75,6 +75,22 @@ fn input_score_cursor(
 }
 
 ///|
+// Session ACK is necessary but does not replace retirement of this original
+// cursor's borrowed input, assertion iterator, workspace and text charge.
+fn input_score_cursor_reclaimed(state : InputScoreCursor) -> Bool {
+  state.phase is Done &&
+  state.input is None &&
+  state.supplied is None &&
+  state.declarations is None &&
+  state.declaration is None &&
+  workspace_healthy(state.workspace) &&
+  state.workspace.live == 0 &&
+  state.text_charge.offset == 0 &&
+  state.text_charge.next == 0 &&
+  state.text_charge.remaining == 0
+}
+
+///|
 fn clear_input_score_cursor(state : InputScoreCursor) -> Bool {
   state.input = None
   state.supplied = None
@@ -85,7 +101,7 @@ fn clear_input_score_cursor(state : InputScoreCursor) -> Bool {
     release_slots(state.workspace, 2)
   }
   state.phase = Done
-  workspace_healthy(state.workspace) && state.workspace.live == 0
+  input_score_cursor_reclaimed(state)
 }
 
 ///|
@@ -288,5 +304,8 @@ pub fn cleanup_supplied_score_validation(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  Ok(!@bounded.cleanup_pending(validation.session))
+  Ok(
+    !@bounded.cleanup_pending(validation.session) &&
+    input_score_cursor_reclaimed(validation.state),
+  )
 }
