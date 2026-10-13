@@ -63,7 +63,7 @@ test "current expression edges retain exact declared reference positions and pin
     unknown in [
       "",
       // A historical root is not a fallback for the current expression grammar.
-      "sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289",
+       "sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289",
       "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe72710",
     ] {
     assert_true(expression_contract_body(unknown) is None)
