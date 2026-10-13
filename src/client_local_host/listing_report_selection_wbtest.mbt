@@ -112,7 +112,7 @@ fn listing_report_selection_fixture(
 fn listing_selection_evidence(
   fixture : ListingReportSelectionFixture,
   reports_required : Bool,
-) -> Result[@publication.RunEvidenceValue, @row_source_host.RowHostIssue] raise {
+) -> Result[@publication.RunEvidenceValue, @row_source_host.RowHostIssue] {
   let source = @row_source_host.row_capture_source(fixture.capture).unwrap()
   let limits = original_keyed_content_workspace().export_limits
   let identity = @query.identify_captured_source_relation(
