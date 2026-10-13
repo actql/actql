@@ -3,7 +3,7 @@
 extern "C" fn test_fail_census_close(root : Root, failures : Int) -> Unit = "actql_native_filesystem_test_fail_census_close"
 
 ///|
-fn census_fixture_path(name : String) -> String {
+fn census_fixture_path(name : String) -> String raise {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_CENSUS_ROOT") is Some(path) else {
     fail("selected census case requires its owned fixture Root")
   }
