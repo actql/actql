@@ -1,6 +1,6 @@
 {
   "version": "actql-protocol-schema-registry/0.1",
-  "registry_cid": "sha256:65c3dff40737d9598f5d099a6f2daa4e5ac1f97f7cf2fbe6d6f96f06f06e8eb2",
+  "registry_cid": "sha256:6a334eaf196d554671752bff02d2195c51bc76f0448aec51e63c2c5fd170a7c2",
   "schema_cids": {
     "model_task": "sha256:2923ba31752ae8854198b0fc7848fb89b7ce537c6a67e45e1a46612780509da9",
     "contract_ref": "sha256:a149fa3216f6e15bfaca58a886f7a3e6a269b0109fe7b9ccca1c402c1a103e94",
@@ -16,7 +16,7 @@
     "effect_outcome": "sha256:e1c2f7c0f3b894c66c9fb205fdef574cba048873ecbc79f2981a0b8bf4450b0f",
     "author_value_contract": "sha256:7deb73a773cf91e861d73dfc7b7b5331d77ee19605934e0198eb608eac69144d",
     "canonical_value_contract": "sha256:08c311d9a05b323ea6fde184981a965773ee71059c61bf3a830ab0e295c21947",
-    "content_ref": "sha256:dab36fadb3ae6a4d7c65351d5bec6ddc1ca104601d9e936d2bbd4d69231288d2",
+    "content_ref": "sha256:352b114babc0040a2b5c44bc1894823d6cb79e351ac3916d48967ecfe32bd37d",
     "content_availability_evidence": "sha256:784203dbc5f95925f83f57c0ff3230abef8bac867768bbe90b26f622fb2d867d",
     "model_task_v02": "sha256:739d8b30bc5e11a5b7dc954e7b91bb4d2f107d235d53483782be56f94155ba1f"
   },
@@ -10595,8 +10595,39 @@
                 "evidence_cid": {
                   "type": "string",
                   "pattern": "^sha256:[0-9a-f]{64}$"
+                },
+                "reported_media_type": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
                 }
-              }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "issuer_kind": {
+                        "const": "connector_capture"
+                      }
+                    },
+                    "required": [
+                      "issuer_kind"
+                    ]
+                  },
+                  "then": {
+                    "required": [
+                      "reported_media_type"
+                    ]
+                  },
+                  "else": {
+                    "not": {
+                      "required": [
+                        "reported_media_type"
+                      ]
+                    }
+                  }
+                }
+              ]
             }
           }
         }
@@ -13635,13 +13666,13 @@
       ]
     }
   },
-  "artifact_registry_cid": "sha256:7895903e60340ba1bb02efdac260bc02cdbb2ddd681d2751ea0f3ddd6bc101a5",
+  "artifact_registry_cid": "sha256:ab482e2202efda095657590579037326bbe4e8c341190dc5ae115d9e44c9a065",
   "artifact_schema_cids": {
     "authoring_context": "sha256:930efa0eff6819f19378cc397c0f268de71d9fcbb5f1543aa0ac4be30f676398",
     "parameter_values": "sha256:6376d9cbe27f40771a0e47ed84128364c218f7403ed3734612ab719b722da6a3",
     "invocation_bindings": "sha256:6471878465e3cf6c4af4bd7d2c161d578ab861770ec6a893c7e0de116dadbd41",
     "bound_invocation_template": "sha256:d7ba95795c14fc1145fb430f3311d38139a834f15a3dc636bb881ecde9f1cbb7",
-    "source_evidence": "sha256:434d2f1c97a9721e01d5eb614577d8620bc3662e2b5b3b05bdecb3029d2eafa6",
+    "source_evidence": "sha256:63485b767c477d6ed77853478eefbf7f3af055c2bfac78e915e2db8bb89b51bc",
     "observation_set": "sha256:a2a967e39998c2d2037b035d81aab0eb5dce50b308c6d0c08f8b88512307f59c",
     "model_invocation_evidence": "sha256:9b883bf32553da51b01bd88ff912f460eb2308034b33a591a18f7f6e91c38b27",
     "model_capture_bundle": "sha256:9e4c76623e09216b81f70ca5573b90dc6f17f4a8754638345da2f8ec617507ba",
@@ -13655,7 +13686,7 @@
     "effect_apply_receipt": "sha256:4f4aabc61bc08bf79ecfe89cf958906e99d5bde4e12b3e95f5ef6539c9964c62",
     "effect_set_apply_receipt": "sha256:311b168738be9062ba8ff88d5e3d3d1d7fbbfe3935ee334cb6216d92e0a4b9cb",
     "effect_reconciliation_receipt": "sha256:abcfcc932af4c63ae91e9670d0cd41d2cd23a0e3bec25044cfa018cd2b5f3fb2",
-    "run_receipt": "sha256:98d9a727e977009817027e7e88aa510127d1275a24a0f4baec866b7e5ebb7847",
+    "run_receipt": "sha256:62f9011e9e702f3d620f70513eac6260a21b980687b7574c1bdce55984b1aba8",
     "runtime_error": "sha256:065e22b471b7e63c67061a75854e5ca3d1821841fcc07016742d6b715632608d",
     "execution_context": "sha256:49bb0acf26e64ffc1d0802b03b251f27476732ad28c80f0c89b35c5cbf5734b2",
     "run_policy": "sha256:d1c763d2ba8357fd33fa41afd690eed8088a310e4640fa615907c4866a125db6",
@@ -13672,7 +13703,7 @@
     "plan_document": "sha256:2637cd5d00773adb47009f785bf1d14e80193b6b26ba43685eb03802e2c9ef78",
     "plan_result": "sha256:692b481d25e23400f0f81e0ddade946aba2dafca4dd2f1fe6c22c7e15e5122c1",
     "run_state": "sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30",
-    "captured_run": "sha256:4d29468956029714f8d1cdab1f43f44ca682775f78b36ccda03b2b3fb908609a",
+    "captured_run": "sha256:a37894cfc6919e1562be6b44293871f349085e6b94e27281eec26b7af8d0514c",
     "execution_account_config": "sha256:12fabf23550cc9bb9ab5023865de0a8e6393a271d7f8c68d31fc1f6dfa41db20",
     "caller_input_intent": "sha256:513e966082bc64cdc0e6bfd0aa05b0bab90cfd37cd429ddef21a3052e037263d",
     "initial_input_artifact_set": "sha256:ee4569cb2e67186da874a8115acf455276927362d6ee724cdca7ec3389b0176d",
@@ -15097,6 +15128,76 @@
         "source_evidence_cid": {
           "type": "string",
           "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "file_listing_reports": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "row_count",
+            "rows"
+          ],
+          "properties": {
+            "row_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 2147483647
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "row_ordinal",
+                  "resource_ref_cid",
+                  "version",
+                  "reported_media_type",
+                  "media_type"
+                ],
+                "properties": {
+                  "row_ordinal": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  },
+                  "resource_ref_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "version": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "reported_media_type": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "media_type": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -44539,6 +44640,76 @@
               "source_evidence_cid": {
                 "type": "string",
                 "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "file_listing_reports": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "row_count",
+                  "rows"
+                ],
+                "properties": {
+                  "row_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2147483647
+                  },
+                  "rows": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "row_ordinal",
+                        "resource_ref_cid",
+                        "version",
+                        "reported_media_type",
+                        "media_type"
+                      ],
+                      "properties": {
+                        "row_ordinal": {
+                          "type": "integer",
+                          "minimum": 0,
+                          "maximum": 2147483647
+                        },
+                        "resource_ref_cid": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "version": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "reported_media_type": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "media_type": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           }
@@ -79739,6 +79910,76 @@
                   "source_evidence_cid": {
                     "type": "string",
                     "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "file_listing_reports": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "row_count",
+                      "rows"
+                    ],
+                    "properties": {
+                      "row_count": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "maximum": 2147483647
+                      },
+                      "rows": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "row_ordinal",
+                            "resource_ref_cid",
+                            "version",
+                            "reported_media_type",
+                            "media_type"
+                          ],
+                          "properties": {
+                            "row_ordinal": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 2147483647
+                            },
+                            "resource_ref_cid": {
+                              "type": "string",
+                              "pattern": "^sha256:[0-9a-f]{64}$"
+                            },
+                            "version": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "reported_media_type": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            },
+                            "media_type": {
+                              "anyOf": [
+                                {
+                                  "type": "string"
+                                },
+                                {
+                                  "type": "null"
+                                }
+                              ]
+                            }
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -81029,8 +81270,39 @@
                               "evidence_cid": {
                                 "type": "string",
                                 "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "reported_media_type": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 256
                               }
-                            }
+                            },
+                            "allOf": [
+                              {
+                                "if": {
+                                  "properties": {
+                                    "issuer_kind": {
+                                      "const": "connector_capture"
+                                    }
+                                  },
+                                  "required": [
+                                    "issuer_kind"
+                                  ]
+                                },
+                                "then": {
+                                  "required": [
+                                    "reported_media_type"
+                                  ]
+                                },
+                                "else": {
+                                  "not": {
+                                    "required": [
+                                      "reported_media_type"
+                                    ]
+                                  }
+                                }
+                              }
+                            ]
                           }
                         }
                       }

@@ -72,6 +72,10 @@ fn run_evidence_value(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[RunEvidenceValue, RunEvidenceValueIssue] {
+  if name == "source_evidence" &&
+    !completed_file_listing_reports_consistent(value, max_wire_bytes) {
+    return Err(RunEvidenceReferenceMismatch("file_listing_reports"))
+  }
   guard optional_string(@json.object_field(value, identity_field))
     is Some(identity) else {
     return Err(RunEvidenceIdentityMissing)

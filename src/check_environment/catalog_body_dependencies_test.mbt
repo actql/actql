@@ -17,7 +17,7 @@ fn assert_carrier_dependencies(
   assert_eq(grammar.role, GoverningGrammar)
   assert_eq(
     grammar.cid,
-    "sha256:ebc358ceb6d9c9042afeb1b713f1cd26b6d40e87ec785bdaf9ffc4ff03449935",
+    "sha256:b72f0e9566ffcb5495e801b342c9c578c90206a63e84761d367e5bd04bc0a13f",
   )
   let value = catalog_body_dependency_at(dependencies, 1).unwrap()
   assert_eq(value.role, ValueGrammar)
@@ -86,6 +86,8 @@ test "Catalog dependency dispatch retains admitted owners and rejects uninterpre
             LookupFactsBody(_)
             | ListingFactsBody(_, _)
             | ContentFactsBody(_, _)
+            | RelationKeysFactsBody(_, _, _, _)
+            | RelationScoresFactsBody(_, _, _, _, _)
             | PushdownBody(_) =>
               abort("lookup admission is a separate owned branch")
             ValueBody(value) => {
@@ -109,7 +111,7 @@ test "Catalog dependency dispatch retains admitted owners and rejects uninterpre
               assert_eq(catalog_body_dependency_count(dependencies), 1)
               assert_eq(
                 catalog_body_dependency_at(dependencies, 0).unwrap().cid,
-                "sha256:ebc358ceb6d9c9042afeb1b713f1cd26b6d40e87ec785bdaf9ffc4ff03449935",
+                "sha256:b72f0e9566ffcb5495e801b342c9c578c90206a63e84761d367e5bd04bc0a13f",
               )
             }
           }

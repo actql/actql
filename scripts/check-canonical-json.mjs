@@ -126,6 +126,14 @@ function fixtures() {
     assert.equal(typeof c.expected_json, 'string', 'fixed canonical bytes');
     return { id: 'canonical ' + c.id, value: c.input, cid: c.expected_cid, text: c.expected_json };
   });
+  const sourceRelationKeys = read('portability/corpus/source-relation-keys.json');
+  assert.equal(sourceRelationKeys.version, 'actql-source-relation-key-vectors/0.1');
+  for (const item of sourceRelationKeys.cases) {
+    // Identity vectors also cover malformed declarations; canonical equality
+    // is separate from SourceView schema admission and runtime uniqueness.
+    result.push({id: 'Source relation key facts ' + item.id,
+      value: item.body, cid: item.bare_body_cid, text: item.canonical_preimage});
+  }
   const collectionMapping = read('portability/corpus/collection-mapping.json');
   assert.equal(collectionMapping.version, 'actql-collection-mapping-vectors/0.1');
   const {mapping_contract_cid, ...collectionPreimage} = collectionMapping.body;

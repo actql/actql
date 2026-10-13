@@ -2558,6 +2558,20 @@ pub fn check_with_evidence(
   ] = [],
   model_tasks? : @model_environment.ModelTasks? = None,
 ) -> Result[CheckedPipeline, Issue] {
+  if limits.max_steps < 0 ||
+    limits.max_work < 0 ||
+    limits.max_text_bytes < 0 ||
+    limits.max_nodes < 0 ||
+    limits.max_tokens < 0 ||
+    limits.max_depth < 0 {
+    return Err({
+      kind: InvalidLimits,
+      source,
+      path: @decode.cursor_path(source),
+      span: @decode.cursor_span(source),
+      range: None,
+    })
+  }
   let carriers = inputs.map(pair => {
     (
       pair.0,
@@ -2575,45 +2589,108 @@ pub fn check_with_evidence(
       },
     )
   })
-  let keys = inputs.map(pair => {
-    match pair.1 {
+  let mut key_work = limits.max_work
+  let mut key_text = limits.max_text_bytes
+  let keys = []
+  for (_, input) in inputs {
+    let key = match input {
+      SourceViewInput(_, _, _, owner) =>
+        match
+          @evidence.source_view_keys(owner, {
+            max_work: key_work,
+            max_name_bytes: key_text,
+          }) {
+          Ok(None) => None
+          Ok(Some(value)) => {
+            key_work -= value.work
+            key_text -= value.name_bytes
+            Some(value.keys)
+          }
+          Err(issue) =>
+            return Err({
+              kind: KeyEvidence(issue.kind),
+              source,
+              path: issue.path.copy(),
+              span: issue.span,
+              range: None,
+            })
+        }
       ProducedInput(p) => p.keys
-      SourceViewInput(_, _, _, _) | CarrierInput(_) | RankingInput(_) => None
+      CarrierInput(_) | RankingInput(_) => None
       KeyedInput(k) => Some(@evidence.singleton_key(k))
       CandidateKeysInput(k) => Some(k)
       RelationEvidenceInput(e) => Some(e.keys)
     }
-  })
-  let rankings = inputs.map(pair => {
-    match pair.1 {
+    keys.push(key)
+  }
+  let mut score_nodes = limits.max_nodes
+  let rankings = []
+  for (_, input) in inputs {
+    let ranking = match input {
+      SourceViewInput(_, _, _, owner) =>
+        match
+          @vector.source_view_scores(owner, {
+            max_work: key_work,
+            max_nodes: score_nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: key_text,
+          }) {
+          Ok(None) => None
+          Ok(Some(value)) => {
+            key_work -= value.usage.work
+            key_text -= value.usage.text_bytes
+            score_nodes -= value.usage.nodes
+            Some(value.input)
+          }
+          Err(issue) =>
+            return Err({
+              kind: Vector(issue.kind),
+              source,
+              path: issue.path.copy(),
+              span: issue.span,
+              range: None,
+            })
+        }
       ProducedInput(p) => p.ranking
       RankingInput(r) => Some(r)
       RelationEvidenceInput(e) => Some(e.ranking)
       _ => None
     }
-  })
-  Ok(
-    check_impl(
-      source,
-      carriers,
-      parameters,
-      from,
-      limits,
-      calendar_profile,
-      text_rank_profile,
-      delta_contracts,
-      keys,
-      rankings,
-      inputs.map(pair => {
-        match pair.1 {
-          ProducedInput(p) => Some(p)
-          _ => None
-        }
-      }),
-      inputs.map(pair => pair.1),
-      model_tasks,
-    ),
-  ) catch {
-    Stop(issue) => Err(issue)
+    rankings.push(ranking)
   }
+  let checked = check_impl(
+    source,
+    carriers,
+    parameters,
+    from,
+    {
+      ..limits,
+      max_work: key_work,
+      max_nodes: score_nodes,
+      max_text_bytes: key_text,
+    },
+    calendar_profile,
+    text_rank_profile,
+    delta_contracts,
+    keys,
+    rankings,
+    inputs.map(pair => {
+      match pair.1 {
+        ProducedInput(p) => Some(p)
+        _ => None
+      }
+    }),
+    inputs.map(pair => pair.1),
+    model_tasks,
+  ) catch {
+    Stop(issue) => return Err(issue)
+  }
+  Ok({
+    ..checked,
+    usage: {
+      ..checked.usage,
+      work: limits.max_work - key_work + checked.usage.work,
+      text_bytes: limits.max_text_bytes - key_text + checked.usage.text_bytes,
+    },
+  })
 }

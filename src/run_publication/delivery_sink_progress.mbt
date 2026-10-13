@@ -110,6 +110,21 @@ pub fn DeliverySinkProgress::confirm_chunk(
 }
 
 ///|
+/// Observe cumulative progress for an independently proven empty output.
+/// This acknowledges no bytes and changes no sink hash, EOF or status.
+pub fn DeliverySinkProgress::observe_empty_output(
+  self : DeliverySinkProgress,
+) -> Result[Int64, DeliverySinkProgressIssue] {
+  if self.closed || self.failed {
+    return Err(DeliverySinkClosed)
+  }
+  if self.has_outstanding {
+    return Err(DeliverySinkChunkOutstanding)
+  }
+  Ok(self.confirmed_bytes)
+}
+
+///|
 /// Record the exact prefix confirmed by a failed physical write. The attempt
 /// becomes terminal, so the unconfirmed suffix can never be reused as success.
 pub fn DeliverySinkProgress::fail_chunk(

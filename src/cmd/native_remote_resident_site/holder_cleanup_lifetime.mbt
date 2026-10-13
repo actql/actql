@@ -7,6 +7,16 @@ priv enum HolderCleanupInput {
 }
 
 ///|
+/// An unopened ordinary resources set has no close steps. This advances no
+/// existing Owner and proves nothing about the environment or inherited slot.
+fn[T] holder_cleanup_initial_position(resources : T?) -> Int {
+  match resources {
+    Some(_) => 0
+    None => 5
+  }
+}
+
+///|
 fn holder_cleanup_progress_frame(line : String) -> Bool {
   line == "effect-review"
 }

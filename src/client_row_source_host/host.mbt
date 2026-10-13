@@ -359,7 +359,9 @@ pub fn row_acquisition_execution_capacity(value : RowAcquisition) -> Int64 {
   (if value.configuration.listing_rows is Some(rows) {
     // The immutable witness/limit records, parsed claims and admission writer
     // can overlap. Reserve their bounded representations before transport.
-    @environment.file_listing_rows_record_capacity(rows.resolved)
+    @environment.file_listing_rows_record_capacity(
+      listing_rows_resolution(rows),
+    )
   } else {
     0L
   }) +
@@ -494,6 +496,12 @@ pub fn start_accounted_row_acquisition(
   transfer_bytes : Int64,
   execution_scratch : Int64,
 ) -> Result[RowRun, RowHostIssue] {
+  // Preserve the ordinary resolved listing profile and its existing allowance.
+  // The additional report profile is selected only by the dedicated accounted
+  // entry. An ordinary caller cannot infer that envelope or adopt its payload.
+  if value.configuration.listing_rows is Some(ReportListingRows(_, _)) {
+    return Err(Physical(InvalidLimits))
+  }
   if transfer_bytes < 0L ||
     execution_scratch < 0L ||
     execution_scratch >
@@ -546,6 +554,19 @@ fn attach_row_reservation(
       return Err(Physical(issue))
     }
   }
+  install_row_reservation(run, ledger, reservation, execution_scratch)
+  Ok(run)
+}
+
+///|
+// Install only a reservation issued by the same caller's Source Ledger.
+// The listing entry has already reserved before allocating its attempt.
+fn install_row_reservation(
+  run : RowRun,
+  ledger : @resources.Ledger,
+  reservation : @resources.Reservation,
+  execution_scratch : Int64,
+) -> Unit {
   run.physical = Some({
     ledger,
     reservation,
@@ -554,7 +575,6 @@ fn attach_row_reservation(
     dag: None,
     cleanup_confirmed: None,
   })
-  Ok(run)
 }
 
 ///|
@@ -889,6 +909,18 @@ pub fn close_accounted_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
     }
     return Err(Evidence(UnverifiedTransport))
   }
+  if run.configuration is DirectConfiguration(configuration) &&
+    configuration.listing_rows is Some(ReportListingRows(_, reports)) &&
+    !reclaim_row_listing_reports(reports, 1) {
+    if @resources.reservation_open(physical.reservation) {
+      match
+        @resources.mark_cleanup_pending(physical.ledger, physical.reservation) {
+        Ok(_) => ()
+        Err(issue) => return Err(Physical(issue))
+      }
+    }
+    return Err(InvalidState)
+  }
   if physical.dag is Some((dag, task)) {
     @strategy.close_captured_task_output(dag, task)
     @strategy.refresh_captured_retention(dag)
@@ -967,16 +999,30 @@ pub fn capture_row_run(run : RowRun) -> Result[RowSourceCapture, RowHostIssue] {
     Err(issue) => return Err(Consumer(issue))
   }
   if run.physical is Some(physical) {
-    let bytes = observation.records.retention.measured.retained_bytes.to_int64()
+    let measured = observation.records.retention.measured.retained_bytes.to_int64()
+    let (original, _) = row_original_input_capacity()
+    if measured < 0L ||
+      original < 0L ||
+      original > 9223372036854775807L - measured {
+      return Err(Physical(InvalidLimits))
+    }
+    // The same RowRun still owns its original read/export backing. Move its
+    // already reserved allowance beside the measured scan/output wire into
+    // the same holding; only confirmed Row/DAG cleanup may release it.
+    let bytes = measured + original
     let holding = match
       @resources.retain_allocation(physical.ledger, physical.reservation, bytes) {
       Ok(value) => value
       Err(issue) => return Err(Physical(issue))
     }
     physical.holding = Some(holding)
-    match @resources.settle_reservation(physical.ledger, physical.reservation) {
+    match
+      settle_row_capture_capacity(
+        configuration.listing_rows is Some(ReportListingRows(_, _)),
+        physical,
+      ) {
       Ok(_) => ()
-      Err(issue) => return Err(Physical(issue))
+      Err(issue) => return Err(issue)
     }
   }
   Ok({ run, observation, source, })

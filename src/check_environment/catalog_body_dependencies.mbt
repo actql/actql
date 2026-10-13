@@ -6,6 +6,19 @@ pub(all) enum CatalogBodyAdmission {
   LookupFactsBody(LookupFacts)
   ListingFactsBody(LookupFacts, FileListProfile)
   ContentFactsBody(LookupFacts, FileContentProfile)
+  RelationKeysFactsBody(
+    SourceRelationKeys,
+    LookupFacts,
+    FileListProfile?,
+    FileContentProfile?
+  )
+  RelationScoresFactsBody(
+    SourceRelationScores,
+    SourceRelationKeys?,
+    LookupFacts,
+    FileListProfile?,
+    FileContentProfile?
+  )
   PushdownBody(PushdownContract)
 }
 
@@ -89,6 +102,121 @@ pub fn check_lookup_body_dependencies(
     return Err(UnsupportedBodyGrammar(envelope.kind))
   }
   Ok({ envelope, admission: LookupFactsBody(admitted), })
+}
+
+///|
+/// A selected Relation key component retains its original SourceView/schema.
+/// Existing lookup/file components are admitted by their own owners. Unknown
+/// extensions remain unsupported as a complete body, without closing facts.
+pub fn check_relation_key_body_dependencies(
+  requests : SourceRequestContracts,
+  view : SourceViewRequestContract,
+  facts : LookupCapacities,
+  envelope : ContractEnvelope,
+) -> Result[CatalogBodyDependencies, BodyDependencyIssue] {
+  let environment = member_environment(envelope.item)
+  if !physical_equal(environment, member_environment(view.item)) ||
+    !physical_equal(environment, facts.references.contents.registry.environment) ||
+    source_request_for(requests, view.item) is None {
+    return Err(ForeignEnvironment)
+  }
+  if envelope.kind != "carrier_facts" {
+    return Err(UnsupportedBodyGrammar(envelope.kind))
+  }
+  guard source_view_carrier(requests.carriers, view.item) is Some(carrier) &&
+    carrier.relation_keys is Some(keys) &&
+    physical_equal(keys.facts.envelope, envelope) &&
+    facts.by_cid.get(envelope.cid) is Some(admitted) else {
+    return Err(MissingBodyAdmission)
+  }
+  let mut known = 1 + (if admitted.capacity is Some(_) { 1 } else { 0 })
+  if carrier.relation_scores is Some(_) {
+    return check_relation_score_body_dependencies(
+      requests, view, facts, envelope,
+    )
+  }
+  if view.file_listing is Some(profile) {
+    if profile.facts_cid != envelope.cid {
+      return Err(MissingBodyAdmission)
+    }
+    known += 1
+  }
+  if view.file_content is Some(profile) {
+    if profile.facts_cid != envelope.cid {
+      return Err(MissingBodyAdmission)
+    }
+    known += 1
+  }
+  if @decode.object_length(envelope.body) != Some(known) {
+    return Err(UnsupportedBodyGrammar(envelope.kind))
+  }
+  Ok({
+    envelope,
+    admission: RelationKeysFactsBody(
+      keys,
+      admitted,
+      view.file_listing,
+      view.file_content,
+    ),
+  })
+}
+
+///|
+/// Interpret the complete selected facts body through its original owners.
+/// Empty score maps contribute a known facet but no ranking assertion.
+pub fn check_relation_score_body_dependencies(
+  requests : SourceRequestContracts,
+  view : SourceViewRequestContract,
+  facts : LookupCapacities,
+  envelope : ContractEnvelope,
+) -> Result[CatalogBodyDependencies, BodyDependencyIssue] {
+  let environment = member_environment(envelope.item)
+  if !physical_equal(environment, member_environment(view.item)) ||
+    !physical_equal(environment, facts.references.contents.registry.environment) ||
+    source_request_for(requests, view.item) is None {
+    return Err(ForeignEnvironment)
+  }
+  if envelope.kind != "carrier_facts" {
+    return Err(UnsupportedBodyGrammar(envelope.kind))
+  }
+  guard source_view_carrier(requests.carriers, view.item) is Some(carrier) &&
+    carrier.relation_scores is Some(scores) &&
+    physical_equal(scores.facts.envelope, envelope) &&
+    facts.by_cid.get(envelope.cid) is Some(admitted) else {
+    return Err(MissingBodyAdmission)
+  }
+  let mut known = 1 + (if admitted.capacity is Some(_) { 1 } else { 0 })
+  if carrier.relation_keys is Some(keys) {
+    if !physical_equal(keys.facts.envelope, envelope) {
+      return Err(MissingBodyAdmission)
+    }
+    known += 1
+  }
+  if view.file_listing is Some(profile) {
+    if profile.facts_cid != envelope.cid {
+      return Err(MissingBodyAdmission)
+    }
+    known += 1
+  }
+  if view.file_content is Some(profile) {
+    if profile.facts_cid != envelope.cid {
+      return Err(MissingBodyAdmission)
+    }
+    known += 1
+  }
+  if @decode.object_length(envelope.body) != Some(known) {
+    return Err(UnsupportedBodyGrammar(envelope.kind))
+  }
+  Ok({
+    envelope,
+    admission: RelationScoresFactsBody(
+      scores,
+      carrier.relation_keys,
+      admitted,
+      view.file_listing,
+      view.file_content,
+    ),
+  })
 }
 
 ///|
@@ -192,7 +320,9 @@ pub fn catalog_body_dependency_count(v : CatalogBodyDependencies) -> Int {
     | DataPolicyBody(_)
     | LookupFactsBody(_)
     | ListingFactsBody(_, _)
-    | ContentFactsBody(_, _) => 1
+    | ContentFactsBody(_, _)
+    | RelationKeysFactsBody(_, _, _, _)
+    | RelationScoresFactsBody(_, _, _, _, _) => 1
     PushdownBody(body) =>
       1 +
       (if body.operations.length() > 0 { 1 } else { 0 }) +
@@ -223,7 +353,9 @@ pub fn catalog_body_dependency_at(
     DataPolicyBody(_)
     | LookupFactsBody(_)
     | ListingFactsBody(_, _)
-    | ContentFactsBody(_, _) =>
+    | ContentFactsBody(_, _)
+    | RelationKeysFactsBody(_, _, _, _)
+    | RelationScoresFactsBody(_, _, _, _, _) =>
       Some({ role: GoverningGrammar, cid: catalog_body_grammar_cid(), })
     PushdownBody(_) =>
       match index {

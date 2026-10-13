@@ -139,6 +139,10 @@ pub fn check_pushdown_body_dependencies(PushdownContracts, ContractEnvelope) -> 
 
 pub fn check_pushdown_contracts(SourceViewShapes, PushdownLimits) -> Result[PushdownContracts, PushdownIssue]
 
+pub fn check_relation_key_body_dependencies(SourceRequestContracts, SourceViewRequestContract, LookupCapacities, ContractEnvelope) -> Result[CatalogBodyDependencies, BodyDependencyIssue]
+
+pub fn check_relation_score_body_dependencies(SourceRequestContracts, SourceViewRequestContract, LookupCapacities, ContractEnvelope) -> Result[CatalogBodyDependencies, BodyDependencyIssue]
+
 pub fn check_source_data_policies(CatalogReferences, DataPolicyLimits) -> Result[SourceDataPolicies, DataPolicyIssue]
 
 pub fn check_source_read_modes(SourceViewShapes, Int) -> Result[SourceReadModes, SourceReadModeIssue]
@@ -258,6 +262,8 @@ pub fn file_content_source(FileContentProfile) -> @decode_core.Cursor
 pub fn file_content_version_capability_cid(FileContentProfile) -> String
 
 pub fn file_listing_accepts(FileListProfile, String) -> Bool
+
+pub fn file_listing_declared_limit(FileListProfile, String) -> Int64?
 
 pub fn file_listing_facts_cid(FileListProfile) -> String
 
@@ -627,6 +633,20 @@ pub fn source_lookup_reference(SourceLookupFacts) -> CatalogReference
 
 pub fn source_pushdown(PushdownContracts, Member) -> SourcePushdown?
 
+pub fn source_relation_key_at(SourceRelationKeys, Int) -> @decode_core.Cursor?
+
+pub fn source_relation_key_count(SourceRelationKeys) -> Int
+
+pub fn source_relation_key_reference(SourceRelationKeys) -> CatalogReference
+
+pub fn source_relation_key_schema(SourceRelationKeys) -> CarrierSchema
+
+pub fn source_relation_scores_reference(SourceRelationScores) -> CatalogReference
+
+pub fn source_relation_scores_schema(SourceRelationScores) -> CarrierSchema
+
+pub fn source_relation_scores_source(SourceRelationScores) -> @decode_core.Cursor
+
 pub fn source_request_at(SourceRequestContracts, Int) -> SourceViewRequestContract?
 
 pub fn source_request_batching(SourceViewRequestContract) -> SourceBatching?
@@ -660,6 +680,10 @@ pub fn source_view_data_policy(SourceViewPolicy) -> SourceDataPolicy
 pub fn source_view_policy(SourceDataPolicies, Member) -> SourceViewPolicy?
 
 pub fn source_view_policy_reference(SourceViewPolicy) -> CatalogReference
+
+pub fn source_view_relation_keys(SourceViewCarrier) -> SourceRelationKeys?
+
+pub fn source_view_relation_scores(SourceViewCarrier) -> SourceRelationScores?
 
 pub fn source_view_shape_at(SourceViewShapes, Int) -> Member?
 
@@ -753,6 +777,8 @@ pub(all) enum CatalogBodyAdmission {
   LookupFactsBody(LookupFacts)
   ListingFactsBody(LookupFacts, FileListProfile)
   ContentFactsBody(LookupFacts, FileContentProfile)
+  RelationKeysFactsBody(SourceRelationKeys, LookupFacts, FileListProfile?, FileContentProfile?)
+  RelationScoresFactsBody(SourceRelationScores, SourceRelationKeys?, LookupFacts, FileListProfile?, FileContentProfile?)
   PushdownBody(PushdownContract)
 }
 
@@ -1402,6 +1428,10 @@ pub(all) enum SourceReadModeKind {
 } derive(Eq, @debug.Debug)
 
 type SourceReadModes
+
+type SourceRelationKeys
+
+type SourceRelationScores
 
 type SourceRequestContracts
 

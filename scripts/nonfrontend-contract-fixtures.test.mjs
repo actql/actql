@@ -19,10 +19,17 @@ const fixtureBody = (path, name) => {
 
 test('current Catalog dependency fixtures pin the normative environment grammar', () => {
   const expected = cid(json('spec/contracts/actql-check-environment.json'));
-  assert.equal(expected, 'sha256:ebc358ceb6d9c9042afeb1b713f1cd26b6d40e87ec785bdaf9ffc4ff03449935');
+  assert.equal(expected, 'sha256:b513c6a3f6746e20822c51f3fc7dab2327e5ecfe339549b50e98976c11d21804');
   for (const name of ['catalog_body_dependencies_test', 'lookup_body_dependencies_test']) {
     hasPin('src/check_environment/' + name + '.mbt', expected);
   }
+});
+
+test('current expression fixture resolves only the normative root', () => {
+  const expected = cid(json('spec/contracts/actql-expressions.json'));
+  assert.equal(expected, 'sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e');
+  hasPin('src/check_environment/expression_dependencies_test.mbt', expected);
+  assert.notEqual(expected, 'sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289');
 });
 
 test('current Program roots pin the normative closed source schema', () => {

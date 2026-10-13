@@ -265,6 +265,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     if (selected === undefined) {
       selected = installedEffectFor(installedEffect,
         installedRowEffectDescriptors(moon, prepared, compilation));
+      selected.assertPrepared?.({moon, prepared, compilation});
       effectSelections.set(prepared, selected);
     }
     return selected;
@@ -1219,8 +1220,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     return sourceProfile !== undefined &&
       moon.clientProgramAcquisitionCount(preparedProgram) > 0
       ? acquiredTaskRunAdmission(common)
-      : moon.clientProgramTaskCount(preparedProgram) > 1 ||
-          moon.clientProgramUsesGraphCarrier(preparedProgram)
+      : moon.clientProgramRequiresTaskCompilation(preparedProgram)
         ? sourceFreeTaskPlan(common)
         : sourceFreeValuesPlan(common);
   };

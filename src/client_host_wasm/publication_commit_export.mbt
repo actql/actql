@@ -5,6 +5,16 @@ priv enum PublicationCommitExportProjection {
   IndexKey
   Schema(Int, Int)
   ObservedIndex(Int)
+  ObservedRunState(Int)
+  SDKReadOriginal(Int, Int, Int, Int)
+  SDKReadEvidence(Int, Int, Int)
+  SDKReadGrant(Int, Int, Int)
+  SDKReadEvidenceDecision(Int, Int)
+  SDKReadDeliveryStorage(Int, Int)
+  SDKReadDeliveryLookup(Int, Int)
+  SDKPayloadChunk(Int, Int, Int)
+  SDKPayloadReceipt(Int)
+  SDKTerminalStorage(Int)
   InspectedReference(Int)
 } derive(Eq)
 
@@ -19,6 +29,17 @@ priv struct StoredPublicationCommitExport {
   mut pending : Bool
   mut produced : Bool
   mut closing : Bool
+  mut output_closed : Bool
+  mut state_borrow : @buffers.BufferBorrow?
+  mut sdk_delivery_first : @local_run.LocalSDKReadDeliveryPreparation?
+  mut sdk_payload_outcome : Result[@local_run.LocalSDKPayloadEncoding, Int]?
+  mut sdk_payload_tick_borrow : @buffers.BufferBorrow?
+  mut sdk_payload_clock_input : Int?
+  mut sdk_payload_invoked : Bool
+  mut sdk_payload_parent : Int?
+  mut sdk_payload_confirmed : Int64?
+  mut sdk_payload_record : (Int, Int, Int)?
+  mut sdk_payload_terminal : @local_run.LocalSDKDeliveryTerminal?
 }
 
 ///|
@@ -74,6 +95,17 @@ pub fn reserve_publication_commit_export(
     pending: false,
     produced: false,
     closing: false,
+    output_closed: false,
+    state_borrow: None,
+    sdk_delivery_first: None,
+    sdk_payload_outcome: None,
+    sdk_payload_tick_borrow: None,
+    sdk_payload_clock_input: None,
+    sdk_payload_invoked: false,
+    sdk_payload_parent: None,
+    sdk_payload_confirmed: None,
+    sdk_payload_record: None,
+    sdk_payload_terminal: None,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -594,13 +626,43 @@ pub fn publication_commit_export_length(nonce : Int64, handle : Int) -> Int {
     value.commit_exports.get(handle) is Some(record) else {
     return -2
   }
-  if !record.produced || record.closing {
+  if !record.produced || record.closing || record.output_closed {
     return -33
   }
   match @buffers.buffer_length(value.pool, record.slot) {
     Some(length) => length
     None => -33
   }
+}
+
+///|
+#export_name("actql_publication_commit_export_retire_sdk_delivery_output")
+pub fn retire_publication_sdk_delivery_output(
+  nonce : Int64,
+  handle : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(record) else {
+    return -2
+  }
+  if record.pending ||
+    record.closing ||
+    !record.produced ||
+    record.sdk_delivery_first is None ||
+    !(record.projection is Some(SDKReadDeliveryStorage(_, _))) {
+    return -33
+  }
+  if record.output_closed {
+    return 0
+  }
+  // The same Buffer Owner retires only the transport. The actual first
+  // preparation and original request loan survive until full export close.
+  let code = status(@buffers.close_buffer(value.pool, record.slot))
+  if code == 0 {
+    record.output_closed = true
+    value.copies.remove(handle) |> ignore
+  }
+  code
 }
 
 ///|
@@ -614,10 +676,37 @@ pub fn close_publication_commit_export(nonce : Int64, handle : Int) -> Int {
   if record.pending {
     return -33
   }
-  let result = status(@buffers.close_buffer(value.pool, record.slot))
-  if result == 0 {
-    value.commit_exports.remove(handle) |> ignore
-    value.copies.remove(handle) |> ignore
+  if value.commit_exports
+    .values()
+    .any(child => child.sdk_payload_parent == Some(handle)) {
+    return -33
   }
-  result
+  if !record.output_closed {
+    let result = status(@buffers.close_buffer(value.pool, record.slot))
+    if result != 0 {
+      return result
+    }
+    record.output_closed = true
+  }
+  if record.sdk_payload_tick_borrow is Some(borrow) {
+    let result = status(@buffers.return_buffer_borrow(value.pool, borrow))
+    if result != 0 {
+      return result
+    }
+    record.sdk_payload_tick_borrow = None
+  }
+  if record.sdk_payload_outcome is Some(Ok(encoding)) {
+    encoding.cancel_frames()
+  }
+  record.sdk_payload_outcome = None
+  if record.state_borrow is Some(borrow) {
+    let result = status(@buffers.return_buffer_borrow(value.pool, borrow))
+    if result != 0 {
+      return result
+    }
+    record.state_borrow = None
+  }
+  value.commit_exports.remove(handle) |> ignore
+  value.copies.remove(handle) |> ignore
+  0
 }

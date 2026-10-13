@@ -58,8 +58,8 @@ test "GROUP unary plus does not restore other values or expired input ranges" {
   for
     text in [
       "SELECT y, COUNT(*) AS n FROM t GROUP BY +x", "SELECT x, COUNT(*) AS n FROM t GROUP BY -x",
-      "SELECT x, COUNT(*) AS n FROM t GROUP BY +(x + 1)", "SELECT old.x, COUNT(*) AS n FROM t AS current GROUP BY +current.x",
-      "SELECT x AS kept, COUNT(*) AS n FROM t GROUP BY +x |> SELECT t.x", "FROM t AS old |> AS current |> AGGREGATE COUNT(*) AS n GROUP BY +old.x",
+      "SELECT x, COUNT(*) AS n FROM t GROUP BY +(x + 1)", "SELECT old.x, COUNT(*) AS n FROM t AS `current` GROUP BY +current.x",
+      "SELECT x AS kept, COUNT(*) AS n FROM t GROUP BY +x |> SELECT t.x", "FROM t AS old |> AS `current` |> AGGREGATE COUNT(*) AS n GROUP BY +old.x",
     ] {
     assert_true(
       compile(

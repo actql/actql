@@ -24,6 +24,17 @@ const run = (script, env) => spawnSync('bash', ['-eo', 'pipefail', '-c', script]
   cwd: root, env: {...process.env, ...env}, encoding: 'utf8',
 });
 
+// Evaluate the existing CLI selection prelude, including its admission flags.
+// The expected cases below remain independently authored, never read from output.
+function fixtureSelection(script, flags, expression) {
+  const start = script.indexOf('const admissionHttpsOnly = process.argv');
+  const end = script.indexOf('const inferEnabled =');
+  assert.ok(start >= 0 && end > start, 'complete registered CLI selection prelude');
+  return JSON.parse(runInNewContext(script.slice(start, end) +
+    '\nJSON.stringify(' + expression + ')',
+  {process: {argv: ['node', 'harness', ...flags]}, optionalEffectCases}));
+}
+
 test('the submitted JSON fixture binds only the newly published MappingRef', () => {
   const original = structuredClone(compositionTemplate);
   const first = compositionProgram('fixture-mapping-first');
@@ -54,10 +65,7 @@ test('the authored text fixture binds only its published MappingRef', () => {
 
 test('ordinary packed composition ships JSON and authored text with independent replay expectations', () => {
   const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
-  const selection = flags => JSON.parse(runInNewContext(script.slice(
-    script.indexOf('const twoSourceEffect = process.argv'),
-    script.indexOf('const inferEnabled =')) + '\nJSON.stringify(compositionCases)',
-  {process: {argv: ['node', 'harness', ...flags]}, optionalEffectCases}));
+  const selection = flags => fixtureSelection(script, flags, 'compositionCases');
   assert.deepEqual(selection([]), ['source', 'infer', 'infer-model-approval', 'infer-text', 'infer-graph-node', 'infer-graph-edge', 'read-approval']);
   assert.deepEqual(selection(['--two-source-effect']), ['two-source']);
   assert.deepEqual(selection(['--composed-infer']), ['infer', 'infer-text']);
@@ -82,10 +90,7 @@ test('ordinary packed composition ships JSON and authored text with independent 
 
 test('Source approval narrowing preserves ordinary optional Effect pairs and restart outputs', () => {
   const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
-  const selection = flags => JSON.parse(runInNewContext(script.slice(
-    script.indexOf('const twoSourceEffect = process.argv'),
-    script.indexOf('const inferEnabled =')) + '\nJSON.stringify(optionalCases)',
-  {process: {argv: ['node', 'harness', ...flags]}, optionalEffectCases}));
+  const selection = flags => fixtureSelection(script, flags, 'optionalCases');
   assert.deepEqual(selection([]), ['native-json', 'broad-text']);
   assert.deepEqual(selection(['--optional-effect-only']), ['native-json', 'broad-text']);
   for (const flag of ['--two-source-read-approval', '--two-source-effect',
@@ -123,7 +128,8 @@ test('packed Source approval preserves the credential Site account identity', ()
     script.indexOf('const pendingScratch ='));
   const actual = JSON.parse(runInNewContext(setup + '\nJSON.stringify(authorization)', {
     readFileSync: () => JSON.stringify({accountConfiguration}),
-    sourceReadApproval: true, modelApproval: false, process: {env: {}},
+    sourceReadApproval: true, modelApproval: false,
+    process: {env: {}, argv: ['node', 'packed-fixture']},
   }));
   assert.equal(actual.accountConfiguration, accountConfiguration,
     'an unused Model rule must not make Host and Site configuration CIDs diverge');
@@ -133,11 +139,8 @@ test('packed Source approval preserves the credential Site account identity', ()
 
 test('packed Effect target reads keep distinct approval phases and independent provider counts', () => {
   const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
-  const select = flags => JSON.parse(runInNewContext(script.slice(
-    script.indexOf('const twoSourceEffect = process.argv'),
-    script.indexOf('const inferEnabled =')) +
-      '\nJSON.stringify({targetReadApprovalEnabled, compositionCases, optionalCases})',
-  {process: {argv: ['node', 'harness', ...flags]}, optionalEffectCases}));
+  const select = flags => fixtureSelection(script, flags,
+    '{targetReadApprovalEnabled, compositionCases, optionalCases}');
   assert.equal(select([]).targetReadApprovalEnabled, true);
   assert.deepEqual(select(['--target-read-approval']), {
     targetReadApprovalEnabled: true, compositionCases: [], optionalCases: []});
@@ -304,5 +307,15 @@ test('runner-private package/cache environment is set only after successful down
     for (const value of Object.values(job.env ?? {})) {
       assert(!/\$\{\{[^}]*\brunner\./u.test(String(value)), 'runner context cannot be resolved before assigning a job runner');
     }
+  }
+});
+
+test('admission-only flags narrow the existing Source case without ordinary Effect or Model selection', () => {
+  const script = readFileSync(new URL('./test-packed-salesforce-source.mjs', import.meta.url), 'utf8');
+  for (const flag of ['--admission-only', '--admission-https-only']) {
+    assert.deepEqual(fixtureSelection(script, [flag],
+      '{targetReadApprovalEnabled, compositionCases, optionalCases}'), {
+      targetReadApprovalEnabled: false, compositionCases: ['source'], optionalCases: [],
+    });
   }
 });

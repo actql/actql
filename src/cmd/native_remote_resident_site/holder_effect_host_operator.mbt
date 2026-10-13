@@ -88,6 +88,10 @@ fn load_holder_effect_host_operator(
   resources : HolderOutputResources,
   environment : SiteEnvironment,
   current_site : () -> Bool,
+  // Supplied only by the trusted Host installer after its representation and
+  // baseline scope are established; no CLI value, wire or Account Allow can
+  // construct this selection. Absence keeps the original refusal before I/O.
+  setup_profile? : HolderEffectHostSetupProfile? = None,
   preparation? : HolderEffectPreparationCapacity? = None,
 ) -> HolderEffectHostOperatorInstallation? raise CommandStop {
   let selected = match
@@ -112,9 +116,10 @@ fn load_holder_effect_host_operator(
   )
   guard begin_holder_effect_host_setup_scope(
       environment.site,
-      // A production numeric profile remains uninstalled. The private cleanup
-      // receiver is connected, but it cannot create a zero-cost permission.
-      None,
+      // The ordinary CLI leaves this None. A trusted installer can connect its
+      // already reviewed profile to the same operation/holding/cleanup Owners.
+      // This projection is neither a numeric supplier nor Account permission.
+      setup_profile,
       binding,
     )
     is Some(scope) else {
@@ -156,6 +161,7 @@ fn read_holder_effect_host_text(
       name,
       limit,
       trim_newline~,
+      diagnostic_ceiling=Some(scope.profile.diagnostic_ceiling),
     ) {
     Ok(text) =>
       if holder_effect_host_read_scope_current(scope) {
@@ -238,6 +244,7 @@ fn prepare_holder_effect_host_operator(
       // Retain the same trusted operator ceiling for initial, current and final
       // physical reads. The clamped value fits Int; candidate wire cannot raise it.
       read_ceiling=file_limit.to_int(),
+      diagnostic_ceiling=Some(scope.profile.diagnostic_ceiling),
       on_read_failure=Some(failure => {
         observe_holder_effect_host_read_failure(scope, failure)
       }),
