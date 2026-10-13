@@ -36,6 +36,7 @@ fn open_holder_effect_review_installation(
       resources,
       original,
       prepared.catalog,
+      prepared.catalog_diagnostic_ceiling,
     )
     is Some(files) else {
     return None

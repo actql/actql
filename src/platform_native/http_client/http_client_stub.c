@@ -72,6 +72,7 @@ enum {
 typedef struct {
   void *dynamic_library;
   char *error;
+  int32_t diagnostic_ceiling;
   actql_curl_global_init_fn global_init;
   actql_curl_version_fn version;
   actql_curl_easy_init_fn easy_init;
@@ -91,6 +92,8 @@ typedef struct {
   char *key_path;
   char *bearer_path;
   char *error;
+  int32_t diagnostic_ceiling;
+  bool error_present;
   unsigned char *response;
   size_t response_length;
   size_t response_capacity;
@@ -117,15 +120,40 @@ static bool actql_same_file_generation(
     left->st_ctime == right->st_ctime;
 }
 
-static void actql_replace_error(char **target, const char *message) {
+// An explicit installer ceiling is independent of row/response limits.
+// Zero preserves legacy callers, never evidence of a funded numeric profile.
+// Omitted detail is not a valid prefix and cannot erase the original failure.
+static bool actql_diagnostic_length(
+  const char *message, int32_t ceiling, size_t *length
+) {
+  if (message == NULL) return false;
+  if (ceiling <= 0) { *length = strlen(message); return true; }
+  for (size_t i = 0; i <= (size_t)ceiling; i++) {
+    if (message[i] == '\0') { *length = i; return true; }
+  }
+  return false;
+}
+
+static void actql_replace_error(
+  char **target, int32_t ceiling, const char *message
+) {
   free(*target);
   *target = NULL;
-  if (message == NULL) return;
-  size_t length = strlen(message);
+  size_t length;
+  if (!actql_diagnostic_length(message, ceiling, &length)) return;
   char *copy = malloc(length + 1);
   if (copy == NULL) return;
-  memcpy(copy, message, length + 1);
+  memcpy(copy, message, length);
+  copy[length] = '\0';
   *target = copy;
+}
+
+// The original error fact is distinct from fallible diagnostic storage.
+static void actql_set_client_error(
+  actql_native_http_client *client, const char *message
+) {
+  client->error_present = message != NULL;
+  actql_replace_error(&client->error, client->diagnostic_ceiling, message);
 }
 
 static char *actql_copy_text(moonbit_bytes_t bytes, int32_t length) {
@@ -148,6 +176,13 @@ static moonbit_bytes_t actql_copy_message(const char *text) {
   return actql_copy_bytes(text, text == NULL ? 0 : strlen(text));
 }
 
+static moonbit_bytes_t actql_copy_diagnostic(const char *text, int32_t ceiling) {
+  size_t length;
+  if (!actql_diagnostic_length(text, ceiling, &length) || length > INT32_MAX)
+    return actql_copy_bytes(NULL, 0);
+  return actql_copy_bytes(text, length);
+}
+
 static bool actql_load_symbol(
   actql_native_http_library *library,
   void **target,
@@ -157,7 +192,7 @@ static bool actql_load_symbol(
   *target = dlsym(library->dynamic_library, name);
   const char *error = dlerror();
   if (error == NULL && *target != NULL) return true;
-  actql_replace_error(&library->error, error == NULL ? name : error);
+  actql_replace_error(&library->error, library->diagnostic_ceiling, error == NULL ? name : error);
   return false;
 }
 
@@ -181,7 +216,7 @@ static void actql_clear_response(actql_native_http_client *client) {
   client->response_capacity = 0;
   client->status = 0;
   client->capacity_exceeded = false;
-  actql_replace_error(&client->error, NULL);
+  actql_set_client_error(client, NULL);
 }
 
 static void actql_native_http_client_finalize(void *value) {
@@ -238,7 +273,7 @@ static size_t actql_receive_response(
     }
     unsigned char *expanded = realloc(client->response, capacity);
     if (expanded == NULL) {
-      actql_replace_error(&client->error, "HTTP response allocation failed");
+      actql_set_client_error(client, "HTTP response allocation failed");
       return 0;
     }
     client->response = expanded;
@@ -274,28 +309,30 @@ static bool actql_option(
 ) {
   if (code == ACTQL_CURLE_OK) return true;
   const char *detail = client->library->easy_strerror(code);
-  actql_replace_error(&client->error, detail == NULL ? operation : detail);
+  actql_set_client_error(client, detail == NULL ? operation : detail);
   return false;
 }
 
 void *actql_native_http_load_library(
   moonbit_bytes_t path,
-  int32_t length
+  int32_t length,
+  int32_t diagnostic_ceiling
 ) {
   actql_native_http_library *library = moonbit_make_external_object(
     actql_native_http_library_finalize,
     sizeof(actql_native_http_library)
   );
   memset(library, 0, sizeof(*library));
+  library->diagnostic_ceiling = diagnostic_ceiling;
   char *path_text = actql_copy_text(path, length);
   if (path_text == NULL) {
-    actql_replace_error(&library->error, "HTTP library path is invalid");
+    actql_replace_error(&library->error, library->diagnostic_ceiling, "HTTP library path is invalid");
     return library;
   }
   library->dynamic_library = dlopen(path_text, RTLD_NOW | RTLD_LOCAL);
   free(path_text);
   if (library->dynamic_library == NULL) {
-    actql_replace_error(&library->error, dlerror());
+    actql_replace_error(&library->error, library->diagnostic_ceiling, dlerror());
     return library;
   }
   if (!ACTQL_LOAD(library, global_init, "curl_global_init") ||
@@ -314,7 +351,7 @@ void *actql_native_http_load_library(
   }
   CURLcode code = library->global_init(ACTQL_CURL_GLOBAL_ALL);
   if (code != ACTQL_CURLE_OK) {
-    actql_replace_error(&library->error, library->easy_strerror(code));
+    actql_replace_error(&library->error, library->diagnostic_ceiling, library->easy_strerror(code));
     dlclose(library->dynamic_library);
     library->dynamic_library = NULL;
   }
@@ -327,12 +364,9 @@ int32_t actql_native_http_library_ready(
   return library != NULL && library->dynamic_library != NULL;
 }
 
-moonbit_bytes_t actql_native_http_library_error(
-  actql_native_http_library *library
-) {
-  return actql_copy_message(
-    library == NULL ? "invalid HTTP library" : library->error
-  );
+moonbit_bytes_t actql_native_http_library_error(actql_native_http_library *library) {
+  return library == NULL ? actql_copy_bytes(NULL, 0) :
+    actql_copy_diagnostic(library->error, library->diagnostic_ceiling);
 }
 
 moonbit_bytes_t actql_native_http_library_version(
@@ -515,6 +549,7 @@ void *actql_native_http_create_client(
   memset(client, 0, sizeof(*client));
   atomic_init(&client->cancelled, false);
   client->library = library;
+  client->diagnostic_ceiling = library == NULL ? 0 : library->diagnostic_ceiling;
   if (library != NULL) moonbit_incref(library);
   client->max_response_bytes = max_response_bytes;
   client->connect_timeout_ms = connect_timeout_ms;
@@ -522,7 +557,7 @@ void *actql_native_http_create_client(
   if (library == NULL || library->dynamic_library == NULL ||
       max_response_bytes < 0 || max_response_bytes > INT32_MAX ||
       connect_timeout_ms <= 0 || operation_timeout_ms < connect_timeout_ms) {
-    actql_replace_error(&client->error, "invalid HTTP client configuration");
+    actql_set_client_error(client, "invalid HTTP client configuration");
     return client;
   }
   client->ca_path = actql_copy_text(ca_path, ca_path_length);
@@ -533,7 +568,7 @@ void *actql_native_http_create_client(
   client->key_path = actql_copy_text(key_path, key_path_length);
   if (client->ca_path == NULL || client->certificate_path == NULL ||
       client->key_path == NULL) {
-    actql_replace_error(&client->error, "HTTP credential path allocation failed");
+    actql_set_client_error(client, "HTTP credential path allocation failed");
   }
   return client;
 }
@@ -561,6 +596,7 @@ void *actql_native_http_create_authenticated_client(
   memset(client, 0, sizeof(*client));
   atomic_init(&client->cancelled, false);
   client->library = library;
+  client->diagnostic_ceiling = library == NULL ? 0 : library->diagnostic_ceiling;
   if (library != NULL) moonbit_incref(library);
   client->max_response_bytes = max_response_bytes;
   client->connect_timeout_ms = connect_timeout_ms;
@@ -572,7 +608,7 @@ void *actql_native_http_create_authenticated_client(
       connect_timeout_ms <= 0 || operation_timeout_ms < connect_timeout_ms ||
       (!mutual && !bearer) ||
       (mutual && (certificate_path_length <= 0 || key_path_length <= 0))) {
-    actql_replace_error(&client->error, "invalid HTTP client configuration");
+    actql_set_client_error(client, "invalid HTTP client configuration");
     return client;
   }
   client->ca_path = actql_copy_text(ca_path, ca_path_length);
@@ -590,23 +626,20 @@ void *actql_native_http_create_authenticated_client(
       (mutual && (client->certificate_path == NULL ||
         client->key_path == NULL)) ||
       (bearer && client->bearer_path == NULL)) {
-    actql_replace_error(&client->error, "HTTP credential path allocation failed");
+    actql_set_client_error(client, "HTTP credential path allocation failed");
   }
   return client;
 }
 
 int32_t actql_native_http_client_ready(actql_native_http_client *client) {
   return client != NULL && client->library != NULL &&
-    client->library->dynamic_library != NULL && client->error == NULL &&
+    client->library->dynamic_library != NULL && !client->error_present &&
     !client->closed;
 }
 
-moonbit_bytes_t actql_native_http_client_error(
-  actql_native_http_client *client
-) {
-  return actql_copy_message(
-    client == NULL ? "invalid HTTP client" : client->error
-  );
+moonbit_bytes_t actql_native_http_client_error(actql_native_http_client *client) {
+  return client == NULL ? actql_copy_bytes(NULL, 0) :
+    actql_copy_diagnostic(client->error, client->diagnostic_ceiling);
 }
 
 int32_t actql_native_http_client_post_json(
@@ -621,7 +654,7 @@ int32_t actql_native_http_client_post_json(
   actql_clear_response(client);
   char *url_text = actql_copy_text(url, url_length);
   if (url_text == NULL) {
-    actql_replace_error(&client->error, "invalid HTTPS URL");
+    actql_set_client_error(client, "invalid HTTPS URL");
     return -1;
   }
   char *authorization = NULL;
@@ -636,14 +669,14 @@ int32_t actql_native_http_client_post_json(
         &authorization_length
       )) {
     free(url_text);
-    actql_replace_error(&client->error, "bearer credential unavailable");
+    actql_set_client_error(client, "bearer credential unavailable");
     return 5;
   }
   CURL *curl = client->library->easy_init();
   if (curl == NULL) {
     actql_forget_authorization(authorization, authorization_length);
     free(url_text);
-    actql_replace_error(&client->error, "initialize HTTP request failed");
+    actql_set_client_error(client, "initialize HTTP request failed");
     return -1;
   }
   char error_buffer[ACTQL_CURL_ERROR_SIZE];
@@ -660,7 +693,7 @@ int32_t actql_native_http_client_post_json(
     );
     if (next_headers == NULL) {
       configured = false;
-      actql_replace_error(&client->error, "HTTP header allocation failed");
+      actql_set_client_error(client, "HTTP header allocation failed");
     } else {
       headers = next_headers;
     }
@@ -672,7 +705,7 @@ int32_t actql_native_http_client_post_json(
     );
     if (next_headers == NULL) {
       configured = false;
-      actql_replace_error(&client->error, "HTTP header allocation failed");
+      actql_set_client_error(client, "HTTP header allocation failed");
     } else {
       headers = next_headers;
     }
@@ -719,13 +752,13 @@ int32_t actql_native_http_client_post_json(
       &client->status
     );
   }
-  if (code != ACTQL_CURLE_OK && client->error == NULL &&
+  if (code != ACTQL_CURLE_OK && !client->error_present &&
       !client->capacity_exceeded &&
       !atomic_load_explicit(&client->cancelled, memory_order_relaxed)) {
     const char *message = error_buffer[0] == '\0'
       ? client->library->easy_strerror(code)
       : error_buffer;
-    actql_replace_error(&client->error, message);
+    actql_set_client_error(client, message);
   }
   client->library->slist_free_all(headers);
   client->library->easy_cleanup(curl);
@@ -750,7 +783,7 @@ static curl_slist *actql_http_headers_from_block(
 ) {
   *valid = false;
   if (length < 0 || length > 32768) {
-    actql_replace_error(&client->error, "invalid HTTP header block");
+    actql_set_client_error(client, "invalid HTTP header block");
     return NULL;
   }
   curl_slist *headers = NULL;
@@ -775,7 +808,7 @@ static curl_slist *actql_http_headers_from_block(
     size_t line_length = (size_t)(end - offset);
     char *line = malloc(line_length + 1);
     if (line == NULL) {
-      actql_replace_error(&client->error, "HTTP header allocation failed");
+      actql_set_client_error(client, "HTTP header allocation failed");
       client->library->slist_free_all(headers);
       return NULL;
     }
@@ -784,7 +817,7 @@ static curl_slist *actql_http_headers_from_block(
     curl_slist *next = client->library->slist_append(headers, line);
     free(line);
     if (next == NULL) {
-      actql_replace_error(&client->error, "HTTP header allocation failed");
+      actql_set_client_error(client, "HTTP header allocation failed");
       client->library->slist_free_all(headers);
       return NULL;
     }
@@ -795,7 +828,7 @@ static curl_slist *actql_http_headers_from_block(
   return headers;
 
 invalid:
-  actql_replace_error(&client->error, "invalid HTTP header block");
+  actql_set_client_error(client, "invalid HTTP header block");
   client->library->slist_free_all(headers);
   return NULL;
 }
@@ -836,7 +869,7 @@ static int32_t actql_native_http_client_request_owned(
       (preparation_projection != NULL && (!is_get || !require_deadline))) {
     free(method_text);
     free(url_text);
-    actql_replace_error(&client->error, "invalid HTTPS request");
+    actql_set_client_error(client, "invalid HTTPS request");
     return -1;
   }
   bool headers_valid = false;
@@ -866,7 +899,7 @@ static int32_t actql_native_http_client_request_owned(
       client->library->slist_free_all(headers);
       free(method_text);
       free(url_text);
-      actql_replace_error(&client->error, "bearer credential unavailable");
+      actql_set_client_error(client, "bearer credential unavailable");
       return 5;
     }
     curl_slist *next_headers = client->library->slist_append(
@@ -878,7 +911,7 @@ static int32_t actql_native_http_client_request_owned(
       client->library->slist_free_all(headers);
       free(method_text);
       free(url_text);
-      actql_replace_error(&client->error, "HTTP header allocation failed");
+      actql_set_client_error(client, "HTTP header allocation failed");
       return -1;
     }
     headers = next_headers;
@@ -891,7 +924,7 @@ static int32_t actql_native_http_client_request_owned(
       client->library->slist_free_all(headers);
       free(method_text);
       free(url_text);
-      actql_replace_error(&client->error, "credential deadline expired");
+      actql_set_client_error(client, "credential deadline expired");
       return 4;
     }
   }
@@ -900,7 +933,7 @@ static int32_t actql_native_http_client_request_owned(
     client->library->slist_free_all(headers);
     free(method_text);
     free(url_text);
-    actql_replace_error(&client->error, "initialize HTTP request failed");
+    actql_set_client_error(client, "initialize HTTP request failed");
     return -1;
   }
   char error_buffer[ACTQL_CURL_ERROR_SIZE];
@@ -959,7 +992,7 @@ static int32_t actql_native_http_client_request_owned(
       client->library->easy_cleanup(curl);
       free(method_text);
       free(url_text);
-      actql_replace_error(&client->error, !current_installation
+      actql_set_client_error(client, !current_installation
         ? "bearer credential unavailable" : !current_deadline
         ? "credential deadline expired" : "HTTP request cancelled");
       return !current_installation ? 5 : !current_deadline ? 4 : 2;
@@ -975,13 +1008,13 @@ static int32_t actql_native_http_client_request_owned(
       &client->status
     );
   }
-  if (code != ACTQL_CURLE_OK && client->error == NULL &&
+  if (code != ACTQL_CURLE_OK && !client->error_present &&
       !client->capacity_exceeded &&
       !atomic_load_explicit(&client->cancelled, memory_order_relaxed)) {
     const char *message = error_buffer[0] == '\0'
       ? client->library->easy_strerror(code)
       : error_buffer;
-    actql_replace_error(&client->error, message);
+    actql_set_client_error(client, message);
   }
   client->library->slist_free_all(headers);
   client->library->easy_cleanup(curl);

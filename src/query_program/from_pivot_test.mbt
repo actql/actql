@@ -127,7 +127,7 @@ test "FROM PIVOT does not restore input ranges or consumed columns" {
   for
     source in [
       "SELECT old.id FROM orders old PIVOT(COUNT(old.amount) FOR old.status IN('open'))",
-      "SELECT amount FROM orders PIVOT(COUNT(amount) FOR status IN('open'))", "SELECT current.amount FROM orders PIVOT(COUNT(amount) FOR status IN('open')) current",
+      "SELECT amount FROM orders PIVOT(COUNT(amount) FOR status IN('open'))", "SELECT current.amount FROM orders PIVOT(COUNT(amount) FOR status IN('open')) `current`",
     ] {
     let result = compile(
       @query.parse_query(source, syntax_limits()).unwrap(),
