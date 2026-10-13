@@ -2221,15 +2221,28 @@ export async function openLocalPublicationStore(
   };
   const readPrivateEvidence = (name, semanticCid, holdingCid) =>
     readPrivateEvidenceObject(name, semanticCid, holdingCid);
-  const preparePrivateEvidenceBytes = async (name, bytes, semanticCid) => {
+  const preparePrivateEvidenceInput = async (name, input, semanticCid, isWire) => {
     active();
     if (typeof name !== 'string' || !/^[a-z][a-z0-9_]*$/u.test(name) ||
-        !(bytes instanceof Uint8Array) ||
-        bytes.byteLength > configuration.maxObjectBytes) {
+        (!isWire && !(input instanceof Uint8Array))) {
+      fail('InvalidPublicationPrivateEvidence');
+    }
+    const byteLength = isWire ? Buffer.byteLength(input, 'utf8') : input.byteLength;
+    if (byteLength > configuration.maxObjectBytes) {
       fail('InvalidPublicationPrivateEvidence');
     }
     cidHex(semanticCid);
     const key = privateEvidenceKey();
+    // This closed format has 128 fixed ASCII bytes, a 12-byte nonce and
+    // 16-byte tag already included, plus 4*ceil(plaintextBytes/3) ciphertext.
+    // Invert the bound to avoid overflowing safe-integer arithmetic. Refuse
+    // before UTF-8 copying, crypto or Base64/JSON envelope construction.
+    // This is an object extent check, not a complete memory reservation.
+    if (configuration.maxObjectBytes < 128 || byteLength >
+        3 * Math.floor((configuration.maxObjectBytes - 128) / 4)) {
+      fail('PublicationObjectLimit');
+    }
+    const bytes = isWire ? Buffer.from(input, 'utf8') : input;
     const nonce = randomBytes(12);
     const cipher = createCipheriv('aes-256-gcm', key, nonce);
     cipher.setAAD(privateEvidenceAad(name, semanticCid));
@@ -2261,6 +2274,8 @@ export async function openLocalPublicationStore(
       throw error;
     }
   };
+  const preparePrivateEvidenceBytes = (name, bytes, semanticCid) =>
+    preparePrivateEvidenceInput(name, bytes, semanticCid, false);
   // The historical String path retains exactly its old encoding and AAD.
   const preparePrivateEvidence = (name, wire, semanticCid) => {
     active();
@@ -2268,7 +2283,7 @@ export async function openLocalPublicationStore(
         Buffer.byteLength(wire, 'utf8') > configuration.maxObjectBytes) {
       fail('InvalidPublicationPrivateEvidence');
     }
-    return preparePrivateEvidenceBytes(name, Buffer.from(wire, 'utf8'), semanticCid);
+    return preparePrivateEvidenceInput(name, wire, semanticCid, true);
   };
 
   // The portable Model/Publication issuer supplies the admitted descriptor
