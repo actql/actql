@@ -1,13 +1,16 @@
 """One original Core/File/Store inspection; no independent recovery decisions."""
 from collections.abc import Callable
 import sqlite3
-from typing import Literal
+from typing import Literal, TypeVar
 
 from ._local_commit_projection import OriginalCommitProjection
 from ._local_core import LocalResultProgress, _Input, _Output
+from ._local_host_binding import OriginalHostBinding
 from ._local_observation_transfer import OriginalObservationTransfer
 from ._local_reader_facts import OriginalReaderFacts
 from ._local_storage import ByteFence, CapacityReservation, LocalByteStore, LocalStorageError, StoredBytes
+
+_T = TypeVar('_T')
 
 
 class OriginalStoreReconciliation:
@@ -62,6 +65,7 @@ class OriginalStoreReconciliation:
         self._response = response
         self._entered = False
         self._active = False
+        self._binding: OriginalHostBinding | None = None
 
     def _nominal(self) -> None:
         if self._original is not self:
@@ -78,24 +82,37 @@ class OriginalStoreReconciliation:
             self._response.transfer_query_failure()
             raise
 
-    def prepare(self) -> None:
+    def prepare(self, *, binding: OriginalHostBinding | None = None) -> None:
         """Forward actual same-snapshot bytes; this performs no semantic finish."""
         core = self._projection._core
         with core._lock:
             self._nominal()
             if self._entered or self._active:
                 raise RuntimeError('Original Store inspection cannot be repeated automatically')
+            if binding is not None and (type(binding) is not OriginalHostBinding
+                    or binding._core is not core or binding._store is not self._store):
+                raise ValueError('Foreign original Store current binding')
             for transfer in (self._lookup, self._response):
                 transfer._ready()
                 if (transfer.pending_workspace is None or transfer.pending_input is not None
                         or transfer.pending_sources):
                     raise RuntimeError('Original Store inspection requires fresh reserved transfers')
+            self._binding = binding
             self._entered = self._active = True
             try:
                 with self._facts.serialized():
-                    self._store.inspect_publication_projected_attached(
-                        self._inspect, self._originals,
-                        current=lambda: self._facts.before_lookup(self._publisher))
+                    if binding is None:
+                        self._store.inspect_publication_projected_attached(
+                            self._inspect, self._originals,
+                            current=lambda: self._facts.before_lookup(self._publisher))
+                    else:
+                        with binding.fenced() as fences:
+                            self._store.inspect_publication_projected_inspected(
+                                self._inspect, self._originals, fences,
+                                namespace=lambda reader, consume:
+                                    binding.inspect_reader(reader, lambda _: consume()),
+                                current=binding.current,
+                                before_lookup=lambda: self._facts.before_lookup(self._publisher))
             finally:
                 self._active = False
 
@@ -154,11 +171,13 @@ class OriginalStoreReconciliation:
             if self._active or not self._entered:
                 raise RuntimeError('Original Store observation transfer is not available')
             with self._facts.serialized():
-                self._facts.before_lookup(self._publisher)
-                progress = core.advance_publication_observation(
-                    self._projection._publication, self._projection._configuration, quantum)
-                self._facts.validate()
-                return progress
+                def consume() -> LocalResultProgress:
+                    self._facts.before_lookup(self._publisher)
+                    progress = core.advance_publication_observation(
+                        self._projection._publication, self._projection._configuration, quantum)
+                    self._facts.validate()
+                    return progress
+                return self._current_call(consume)
 
     def finish(self) -> Literal['append_unknown', 'confirm_uncommitted_failure', 'adopt_committed_index']:
         """Read the Core action after complete original chain/current checks; no ACK."""
@@ -168,8 +187,22 @@ class OriginalStoreReconciliation:
             if self._active or not self._entered:
                 raise RuntimeError('Original Store observation transfer is not available')
             with self._facts.serialized():
-                self._facts.before_lookup(self._publisher)
-                action = core.finish_publication_observation(
-                    self._projection._publication, self._projection._configuration)
-                self._facts.validate()
-                return action
+                def consume() -> Literal['append_unknown', 'confirm_uncommitted_failure', 'adopt_committed_index']:
+                    self._facts.before_lookup(self._publisher)
+                    action = core.finish_publication_observation(
+                        self._projection._publication, self._projection._configuration)
+                    self._facts.validate()
+                    return action
+                return self._current_call(consume)
+
+    def _current_call(self, consume: Callable[[], _T]) -> _T:
+        # File/Core locks are held by the caller before the fresh Store frame.
+        # Reuse the original binding after prepare; never manufacture a grant
+        # from its earlier read or from physical COMMIT success.
+        if self._binding is None:
+            return consume()
+        captured: list[_T] = []
+        self._binding.inspect(lambda _: captured.append(consume()))
+        if len(captured) != 1:
+            raise RuntimeError('Incomplete original Store current observation')
+        return captured[0]
