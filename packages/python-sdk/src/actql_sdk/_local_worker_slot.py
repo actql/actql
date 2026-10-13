@@ -65,6 +65,7 @@ class OriginalWorkerSlot:
         self._acquired = False
         self._closing = False
         self._closed = False
+        self._process_consumer: object | None = None
 
     def __copy__(self) -> OriginalWorkerSlot:
         raise TypeError('Original Local worker slot cannot be copied')
@@ -75,6 +76,12 @@ class OriginalWorkerSlot:
     def _nominal(self) -> None:
         if self._original is not self or self._closing or self._closed:
             raise ValueError('Foreign or closing original worker slot')
+
+    def _bind_process(self, consumer: object) -> None:
+        self._nominal()
+        if self._process_consumer is not None:
+            raise ValueError('Original worker slot already has a process')
+        self._process_consumer = consumer
 
     @staticmethod
     def _private(status: os.stat_result) -> bool:
