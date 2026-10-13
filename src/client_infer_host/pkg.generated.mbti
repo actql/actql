@@ -173,6 +173,8 @@ pub fn read_saved_input_scope(@run_publication_host.ClientCompiledRun, @run_publ
 
 pub fn release_invocation_binding(InvocationBinding) -> Bool
 
+pub fn release_original_infer_publication_capacity(@model_execution.OriginalModelPublicationCapacity) -> Result[Bool, Issue]
+
 pub fn release_output(OutputUse) -> Bool
 
 pub fn release_result_publication(ResultPublication) -> Bool
@@ -180,6 +182,8 @@ pub fn release_result_publication(ResultPublication) -> Bool
 pub fn request_preflight_pending(Execution) -> Bool
 
 pub fn require_model_call_entry(Execution) -> Result[Unit, InvocationBindingIssue]
+
+pub fn reserve_original_infer_publication_capacity(Execution, Int64, Int64) -> Result[@model_execution.OriginalModelPublicationCapacity, Issue]
 
 pub fn restoring(Execution) -> Bool
 
@@ -216,6 +220,8 @@ pub fn start_original_model_current_state_decode(Execution, @run_publication_hos
 pub fn start_original_model_current_state_write(Execution, @run_publication_host.ClientModelReadScope, @physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @encode_core.Writer) -> Result[@physical_resources.OriginalCurrentStateWrite[@run_publication_host.ClientModelReadOrigin], @physical_resources.OriginalStateWriteIssue]
 
 pub fn start_original_model_preparation(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.ModelProvider, Limits, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
+
+pub fn start_original_observation_issuance(Execution, @model_execution.OriginalModelPublicationCapacity, ObservationIssuanceLimits, generations? : Array[@run_publication_host.ClientSerializationGeneration]) -> Result[ObservationIssuance, Issue]
 
 pub fn start_replay(@run_publication_host.PreparedClientProgram, Int, String, String, @model_execution.VerifiedModelCapture, Limits, @run_publication_host.ClientInferPlanGraph, acquired_input? : @run_publication_host.ClientInferCapturedInput?, fragment_body? : String?, ordered_body? : String?) -> Result[Execution, Issue]
 

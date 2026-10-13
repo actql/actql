@@ -53,19 +53,19 @@ pub fn[E] prepare_client_submitted_journal_append(
     E,
   ],
   custody_lost : E,
-) -> Result[ClientSubmittedJournalAppendPlan, ClientSubmittedJournalAppendIssue[E]] {
+) -> Result[
+  ClientSubmittedJournalAppendPlan,
+  ClientSubmittedJournalAppendIssue[E],
+] {
   let (count, retained_bytes, revision) = match
     inspect_client_submitted_journal_inventory(
-      max_records,
-      scan,
-      read,
-      validate_submission,
-      custody_lost,
+      max_records, scan, read, validate_submission, custody_lost,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Observation(issue))
   }
-  match read_client_saved_submission(reference, read, validate_run, custody_lost) {
+  match
+    read_client_saved_submission(reference, read, validate_run, custody_lost) {
     Ok(Some(snapshot)) => {
       if client_submitted_intent_cid(snapshot.record.intent) !=
         client_submitted_intent_cid(intent) {
@@ -81,7 +81,9 @@ pub fn[E] prepare_client_submitted_journal_append(
   if validity != @request_scope.Admissible {
     return Err(EpochRejected(validity))
   }
-  let bytes = @utf8.encode(client_submitted_intent_wire(intent)).length().to_int64()
+  let bytes = @utf8.encode(client_submitted_intent_wire(intent))
+    .length()
+    .to_int64()
   if count == max_records || bytes > 67108864L - retained_bytes {
     return Err(CapacityExceeded)
   }
@@ -93,10 +95,12 @@ pub fn[E] prepare_client_submitted_journal_append(
     Ok(value) => value
     Err(issue) => return Err(Encoding(issue))
   }
-  Ok(Append({
-    key: client_submission_reference_record_request_id(reference),
-    body,
-    issued_revision: revision,
-    issued_body: @utf8.encode((count + 1).to_string()),
-  }))
+  Ok(
+    Append({
+      key: client_submission_reference_record_request_id(reference),
+      body,
+      issued_revision: revision,
+      issued_body: @utf8.encode((count + 1).to_string()),
+    }),
+  )
 }

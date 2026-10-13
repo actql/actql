@@ -22,6 +22,69 @@ test "unused WITH expression reaches the common pipeline type checker" {
 }
 
 ///|
+test "ordinary compilation drops failed nested diagnostic snapshots" {
+  for
+    text in [
+      "WITH q AS (SELECT x FROM pair WHERE x) SELECT x FROM q", "SELECT x FROM (SELECT x FROM pair WHERE x) AS q",
+    ] {
+    let query = @query.parse_query(text, syntax_limits()).unwrap()
+    let script = @query.parse_query_script(text, syntax_limits()).unwrap()
+    let context = pair_context()
+    let limits = construction_limits()
+    assert_true(
+      compile_with_source(query, context, limits)
+      is Err(
+        BindingPreparationSource(
+          LocalProgram(Pipeline(_, { kind: Operation(ExpectedBoolean), .. }))
+          | SourceProgram(
+            Program(Pipeline(_, { kind: Operation(ExpectedBoolean), .. }))
+          ),
+          _
+        )
+      ),
+    )
+    for
+      ordinary in [
+        compile(query, context, limits),
+        compile_query_script(script, context, limits),
+      ] {
+      assert_true(
+        ordinary
+        is Err(
+          BindingPreparation(
+            LocalProgram(Pipeline(_, { kind: Operation(ExpectedBoolean), .. }))
+            | SourceProgram(
+              Program(Pipeline(_, { kind: Operation(ExpectedBoolean), .. }))
+            )
+          )
+        ),
+      )
+    }
+    assert_true(
+      @frontend.lower(text, Sql, Some(context))
+      is Err(
+        QueryLowering(
+          BindingPreparation(
+            LocalProgram(Pipeline(_, { kind: Operation(ExpectedBoolean), .. }))
+            | SourceProgram(
+              Program(Pipeline(_, { kind: Operation(ExpectedBoolean), .. }))
+            )
+          )
+        )
+      ),
+    )
+    assert_true(
+      @frontend.lower(
+        text.replace(old="WHERE x", new="WHERE x > 0"),
+        Sql,
+        Some(context),
+      )
+      is Ok(_),
+    )
+  }
+}
+
+///|
 test "unused WITH Source requires its actual Catalog registration" {
   let parsed = @query.parse_query_script(
     "WITH unused AS (SELECT id FROM objects) SELECT 1 AS id",
