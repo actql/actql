@@ -285,7 +285,7 @@ fn advance_guarded_relation(
                 state.execution.max_frames,
                 state.execution.rows.operation_entries,
               ) {
-              Ok(None) => state.phase = StartScores
+              Ok(None) => state.phase = guarded_relation_after_keys(state)
               Ok(Some(validation)) => {
                 state.key_guard = Some(validation)
                 state.phase = InputKeys
@@ -353,12 +353,20 @@ fn advance_guarded_relation(
             return Err(@connector.InvalidLimits)
           }
           state.key_guard = None
-          state.phase = StartScores
+          state.phase = guarded_relation_after_keys(state)
           Ok(managed_provider_continue(delta, delta))
         }
       }
     }
     StartScores => {
+      if state.cancelled {
+        state.phase = Finished
+        return Ok(managed_provider_stopped_poll(0L, 0L))
+      }
+      if state.measurement.max_work < 1 {
+        return guarded_relation_failure(state, @connector.Guard(@execution.MeasurementWork), 0L)
+      }
+      state.measurement = { ..state.measurement, max_work: state.measurement.max_work - 1, }
       match @execution.start_supplied_score_validation(
         state.control, state.input, state.execution.max_work,
         state.execution.max_frames, state.execution.rows.operation_entries,
@@ -371,10 +379,10 @@ fn advance_guarded_relation(
         Err(issue) => return guarded_relation_failure(
           state, @connector.Execution(@execution.InputScore(
             @execution.supplied_relation_read_input_index(state.input), issue,
-          )), 0L,
+          )), 1L,
         )
       }
-      Ok(managed_provider_continue(0L, 0L))
+      Ok(managed_provider_continue(1L, 1L))
     }
     InputScores => {
       let validation = state.score_guard.unwrap()
@@ -524,5 +532,14 @@ fn advance_guarded_relation(
       }
     }
     Finished => Err(@connector.InvalidLimits)
+  }
+}
+
+///|
+fn guarded_relation_after_keys(state : GuardedRelationState) -> GuardedRelationPhase {
+  if @execution.supplied_relation_read_needs_score_validation(state.input) {
+    StartScores
+  } else {
+    StartCompute
   }
 }
