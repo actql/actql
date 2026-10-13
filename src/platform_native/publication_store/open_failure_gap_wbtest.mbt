@@ -1,5 +1,5 @@
 ///|
-/// Portable missing-custody model only: no Root/Lock/SQLite physical execution.
+/// Native missing-custody model only: no Root/Lock/SQLite physical execution.
 test "missing constructor custody is not an empty cleanup acknowledgement" {
   let failure : NativePublicationStoreOpenFailure = {
     original_issue: Filesystem(@filesystem.RootOpen("original refused open")),
