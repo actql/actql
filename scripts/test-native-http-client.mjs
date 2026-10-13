@@ -39,6 +39,11 @@ import {canonical, hash as canonicalHash} from
 import {pinnedEngineContracts} from
   '../adapters/connectors/duckdb/node/test/pinned-engine-contracts.mjs';
 
+const focus = process.env.ACTQL_TEST_NATIVE_HTTP_FOCUS;
+if (focus !== undefined && focus !== 'remote-client-poll') {
+  throw new Error('unsupported native HTTP test focus');
+}
+const focusedRequests = [];
 const scratchRoot = process.env.ACTQL_TEST_SCRATCH_ROOT;
 if (typeof scratchRoot !== 'string' || scratchRoot.length === 0) {
   throw new Error('ACTQL_TEST_SCRATCH_ROOT is required');
@@ -118,10 +123,12 @@ const nativeTestDuckDBLibrary = process.env.ACTQL_TEST_DUCKDB_LIBRARY ?? join(
   `node-bindings-${process.platform}-${process.arch}`,
   process.platform === 'darwin' ? 'libduckdb.dylib' : 'libduckdb.so',
 );
-// This dedicated runner owns the native DuckDB prerequisites: a missing
-// library is a failure here, not a silently skipped native test.
-assert(existsSync(nativeTestDuckDBLibrary),
-  `native DuckDB test library unavailable: ${nativeTestDuckDBLibrary}`);
+// The full runner owns DuckDB prerequisites. The focused remote-client case
+// only uses libcurl and SQLite; it does not build or execute a DuckDB consumer.
+if (focus === undefined) {
+  assert(existsSync(nativeTestDuckDBLibrary),
+    `native DuckDB test library unavailable: ${nativeTestDuckDBLibrary}`);
+}
 const multiBundleStoreRoot = join(root, 'multi-bundle-store');
 const sqliteRoot = join(root, 'sqlite');
 const standardRoot = join(root, 'standard');
@@ -271,7 +278,7 @@ let releaseStalePoll;
 const stalePollReleased = new Promise(resolve => {
   releaseStalePoll = resolve;
 });
-try {
+verification: try {
   openssl('genrsa', '-out', 'ca.key', '2048');
   openssl(
     'req', '-x509', '-new', '-key', 'ca.key', '-out', 'ca.crt',
@@ -309,6 +316,7 @@ try {
     requestCert: true,
     rejectUnauthorized: true,
   }, async (request, response) => {
+    if (focus === 'remote-client-poll') focusedRequests.push(request.url);
     const nativeTransferBase =
       '/v1/sites/native-destination/generations/3/transfers';
     const nativeTransferRequest = request.url === nativeTransferBase ||
@@ -394,6 +402,7 @@ try {
           '/remote/query',
           '/remote/foreign',
           '/outbound/poll',
+          '/outbound/query',
           '/outbound/stale-poll',
           '/outbound/observation',
           '/outbound/status-observation',
@@ -882,6 +891,19 @@ try {
       }));
       return;
     }
+    if (request.url === '/outbound/query') {
+      if (body !== '{}') {
+        response.writeHead(400).end();
+        return;
+      }
+      response.writeHead(200, {'content-type': 'application/json'});
+      response.end(JSON.stringify({
+        dispatch_request_cid: remoteRequestCid,
+        request_json: remoteRequestBody,
+        version: 'actql-remote-poll-query/0.1',
+      }));
+      return;
+    }
     if (request.url === '/outbound/stale-poll') {
       if (body !== '{}') {
         response.writeHead(400).end();
@@ -1029,6 +1051,39 @@ try {
     throw new Error(
       `unsupported native HTTP test target ${process.platform}/${process.arch}`,
     );
+  }
+  if (focus === 'remote-client-poll') {
+    // Reuse the real HTTPS peer and authored dispatch above. The child keeps
+    // this event loop free to serve mTLS while enforcing nonzero test execution.
+    const child = spawn(process.execPath, ['--input-type=module', '-e',
+      "import {runFocusedTests} from './scripts/test-execution.mjs'; " +
+      "process.exitCode=runFocusedTests('moon',['--target','native'," +
+      "'src/platform_native/remote_client/client_native_wbtest.mbt'," +
+      "'--filter','native Site polls outbound and durably accepts before acknowledgement']," +
+      "{cwd:process.cwd(),timeout:60000});"], {
+      cwd: new URL('../', import.meta.url), stdio: 'inherit',
+      env: {
+        ...process.env,
+        ACTQL_TEST_NATIVE_HTTP_LIBRARY: library,
+        ACTQL_TEST_NATIVE_HTTP_URL: nativeHttpOrigin,
+        ACTQL_TEST_NATIVE_HTTP_CA: join(root, 'ca.crt'),
+        ACTQL_TEST_NATIVE_HTTP_CERT: join(root, 'client.crt'),
+        ACTQL_TEST_NATIVE_HTTP_KEY: join(root, 'client.key'),
+        ACTQL_TEST_NATIVE_SQLITE_LIBRARY:
+          process.env.ACTQL_TEST_NATIVE_SQLITE_LIBRARY ??
+          (process.platform === 'darwin'
+            ? '/usr/lib/libsqlite3.dylib'
+            : 'libsqlite3.so.0'),
+        ACTQL_TEST_NATIVE_REMOTE_JOURNAL: join(root, 'coordinator.sqlite'),
+      },
+    });
+    const [code, signal] = await once(child, 'exit');
+    assert.equal(code, 0, `focused native HTTP test failed: ${code ?? signal}`);
+    assert.deepEqual(focusedRequests, [
+      '/outbound/poll', '/outbound/query', '/probe', '/outbound/observation',
+      '/outbound/status-observation', '/outbound/status-observation',
+    ]);
+    break verification;
   }
   execFileSync(moon, [
     'build', '--target', 'js', '--release', 'src/connectors_builtin_node',

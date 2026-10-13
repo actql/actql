@@ -468,6 +468,14 @@ test('SGA query grammar pin matches an independent normative preimage', () => {
   const {grammar_manifest_cid: joinCid, ...joinBody} = read('scripts/fixtures/submitted-nearest-join-values-identities.json').grammar;
   assert.equal(cid(joinBody), joinCid);
   assert.deepEqual(joinBody, {...continuationBody,query_text_rules_sha256:joinBody.query_text_rules_sha256});
+  // Original Sequence grammar is immutable evidence; current merged input is separate.
+  const {grammar_manifest_cid: sequenceCid, ...sequenceBody} = read('scripts/fixtures/submitted-sequence-values-identities.json').grammar;
+  assert.equal(cid(sequenceBody), sequenceCid);
+  assert.equal(sequenceBody.query_text_grammar_sha256, fileDigest('reviews/2026-10-12-frontend-sequence-predicate-ast/preimages/submitted-query-grammar.ebnf'));
+  assert.equal(sequenceBody.query_text_rules_sha256, fileDigest('reviews/2026-10-12-frontend-sequence-predicate-ast/preimages/submitted-query-rules.md'));
+  const {grammar_manifest_cid: currentSequenceCid, ...currentSequenceBody} = read('scripts/fixtures/current-sequence-values-identities.json').grammar;
+  assert.equal(cid(currentSequenceBody), currentSequenceCid);
+  assert.deepEqual(currentBody, currentSequenceBody);
   const {grammar_manifest_cid: seriesCid, ...seriesBody} = read('scripts/fixtures/submitted-time-series-primary-values-identities.json').grammar;
   assert.equal(cid(seriesBody), seriesCid);
   assert.deepEqual(seriesBody, {...joinBody,query_text_grammar_sha256:seriesBody.query_text_grammar_sha256,query_text_rules_sha256:seriesBody.query_text_rules_sha256});

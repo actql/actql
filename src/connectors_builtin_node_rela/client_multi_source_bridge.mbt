@@ -10,6 +10,16 @@ pub fn client_program_acquisition_count(
 }
 
 ///|
+#export_name("clientProgramRequiresAcquisitionResultPublication")
+pub fn client_program_requires_acquisition_result_publication(
+  prepared : @publication_host.PreparedClientProgram,
+) -> Bool {
+  @strategy.graph_requires_acquisition_result_publication(
+    @publication_host.prepared_client_graph(prepared),
+  )
+}
+
+///|
 #export_name("clientProgramCapturedTaskSourceMatches")
 pub fn client_program_captured_task_source_matches(
   prepared : @publication_host.PreparedClientProgram,

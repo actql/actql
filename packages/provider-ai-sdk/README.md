@@ -50,6 +50,22 @@ phase payloads, output tuple and Node progress reference/callback/context overla
 must be funded before normal startup; this private integration supplies no
 numerical layout, public capability or execution permission.
 
+The original installed read declaration also selects immutable
+`currentStateCodec` limits (`quantum`, `comparisonWork`, `decode`) for its
+existing Writer/read/comparison child. Those finite serializer limits are not
+physical funding. The original installation's missing selection refuses
+before a child is created; request data or a copied declaration cannot supply
+it. When the existing authorization gate returns dispatch, the original Run
+caller saves its quiescent resource state through the same selected Store,
+confirms the same journal cut, and consumes that journal's invalidation through
+the original Resource Owner before the next Model advance can create an Entry.
+Waiting approval does not perform that transition. Save/COMMIT loss keeps the
+same failed Promise, park and custody without blind retry. This fence removal
+does not issue InferAllow or bypass current authority/egress/Entry/send checks.
+The original codec and dispatch-cut record/Promise overlap still require full
+installation funding; normal public startup and restore are not established
+by these private Store/journal tests.
+
 The private physical preflight can retain the original operation's raw binder
 before Approval. Its installed continuation supplies one actual Store persistence
 port after nominal raw registration, before returning dispatch and creating an
@@ -60,6 +76,16 @@ another operation and rebinding refuse. A missing binding observed after an Entr
 cannot start transport or regain the consumed attempt when a late binding arrives.
 It keeps the original Unknown/cleanup responsibility. This is the initial private
 one-Slot connection, not accepted public funding or multi-Slot raw persistence.
+
+The private Chat port validates output and observations from the original saved
+raw response, not the SDK-normalized result. After that same SDK settles, it
+retires only its unused decoded-result alias, even if raw persistence or cleanup
+remains pending. Original raw bytes, request/transport/reader custody, the saved
+view, failure/Unknown and explicit same-call reconciliation remain unchanged.
+Native callers retain their existing explicit one-time decoded-result transfer;
+an already transferred immutable view is never mutated by alias retirement.
+This is not physical GC or capacity release. The parsing/normalization peak and
+all remaining Promise/Store/closure overlap still require complete funding.
 
 The internal `createInstalledOpenAIChatRegistration` assembles the existing Host
 `registerModelProviders` entry from trusted, already retained installation
@@ -117,5 +143,74 @@ all remain part of C's full funding before public adoption.
 The package lock freezes the actual dependency closure. Preparation and
 transport tests use the real pinned SDK with synthetic responses and explicitly
 installed fixture fetches, with no ambient or live network.
+
+The private native `prepareTypeSafeDecisionRequest` reuses that same interceptor
+and fixed transport with the selected TypeSafe v4 `doDecide` operation. It sends
+all mapped questions against one state without generation settings, high-level
+retries, default-provider mutation or SDK workflow restoration. Its input must
+come from the original bounded Common Decision projection and funded caller;
+the private builder itself does not admit a Task or validate native answers.
+The private `prepareProjectedTypeSafeDecisionRequest` consumes the opaque
+Common projection view and rechecks its original Provider/request membership,
+Task/prompt/output-schema CIDs and authored selector before SDK allocation.
+It passes Common's positional question/option aliases unchanged to the pinned
+native SDK and checks the actual intercepted request against the immutable
+projection wires. Only the SDK's Boolean-to-`noul` representation is mapped;
+no generation defaults, question evaluator or answer validator is added.
+The caller retains the separate original view until Common's answer mapping
+retires it. Parsed input trees, verification trees/callback and SDK overlap
+require the original full funding before use, not a grant from codec clamps.
+Selected Node tests use actual SDK execution with Common boundary doubles and
+synthetic responses. They are not actual Common-to-SDK or public Run acceptance.
+
+Common native raw decode/completeness, registered physical
+profile/precision, original Store receipt and installed caller remain unconnected.
+SDK model fallbacks and reported rounding are not provider observations or
+profile authority. Prototype-key SDK response refusal keeps original raw bytes
+and no repair call; it does not prohibit legal Common IDs. This preparation adds
+no public/native capability or numerical profile. The generation SDK closure and
+the native SDK's separately pinned dependency closure remain distinguishable.
+
 Formal packaging, external consumer, public Local/HTTPS, real model acceptance,
 four parallel calls, Decision and Cloud are unfinished M0–M5 work.
+
+### Private native Decision request projection
+
+The Common `start_native_decision_projection` child projects an original
+admitted Decision request without dispatching it. The Node consumer exposes
+the same opaque cursor and escaped request view; neither is an installation,
+capacity, approval, response-completion or send grant. This preparation is not
+part of the initial Node generation gate.
+
+Questions remain borrowed from the original admitted prompt. Fixed-width
+position aliases preserve ordered question/option correspondence without
+banning legal IDs such as `__proto__`. The escaped view retains the original
+IDs and exact Task/prompt/schema/selector binding for a later response codec.
+Retiring the emitting child does not retire an escaped view. The original
+parent must fund and retire both lifetimes, including retained empty backing
+arrays, writers and request strings. No physical numeric profile is supplied.
+
+The initial physical subset accepts text and JSON-compatible state, preserving
+empty text, null, numbers, booleans, arrays and Unicode/newlines. The typed JSON
+carrier is unwrapped before its original value is emitted by Common; JS must
+not reconstruct the value. Unsupported typed state and the selected SDK's
+question-count limits are physical refusals, not common language restrictions.
+Native answer decoding, original raw Store binding and public Decision
+execution remain unconnected; do not route this view through the generation
+`SavedChat` completion codec.
+
+The private answer projection now consumes an already admitted original raw
+response tree and the same Common request view. Common maps positional question
+and option aliases back to the original IDs, emits distributions in original
+order, and preserves the actual Choice/tie, fractional Score and Boolean
+probability. Missing, extra or mismatched aliases refuse; no value is rounded
+or normalized. The existing Decision validator and output admission remain
+mandatory and independent of this DATA mapping. Unknown response metadata
+stays in the original raw custody rather than being copied into the answer.
+
+This finite synchronous codec has explicit output/work limits; it is not a
+cooperatively preemptible response cursor or an endpoint-completion assertion.
+Its admitted tree, lookup maps, output writer and escaped wire overlap must be
+funded before installation. The Node wrapper delegates to Common without
+implementing a second answer mapper. No native installed capability, saved raw
+receipt, physical numerical profile or public execution is enabled by it.

@@ -1,0 +1,21 @@
+///|
+/// Observe only this existing consumer's handed-off lifetime. The Model may
+/// have spent work/quantities or acquired further resources, so its current
+/// aggregate is not the initial read snapshot. The original bootstrap, input
+/// tokens and exact read reservation must still be live and unchanged.
+/// This is not a new read claim, restored Ledger or dispatch permission.
+pub fn[T] funded_read_consumer_handed_off_origin(
+  value : FundedReadConsumer[T],
+) -> T? {
+  guard value.claim is Some(claim) &&
+    claim.phase is ConsumerHandedOff(current) &&
+    physical_equal(current, value) &&
+    check_original_resources_mutable(claim.descriptor.ledger) is Ok(_) &&
+    capacity_reservation_open(claim.read) &&
+    capacity_reservation_open(claim.descriptor.bootstrap) &&
+    original_reservation_snapshot(claim.read.reservation) == claim.read_state &&
+    original_tokens_match(claim.descriptor) else {
+    return None
+  }
+  Some(claim.descriptor.origin)
+}

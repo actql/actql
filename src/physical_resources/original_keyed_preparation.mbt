@@ -1,0 +1,64 @@
+///|
+// The existing opaque census authenticates its own single captured child.
+// This is a phase/lifetime prerequisite, not capture evidence or byte funding.
+// Local still checks its exact Row capture against these nominal tokens.
+pub fn original_ledger_captured_preparation_available(
+  identity : OriginalLedgerIdentity,
+) -> Bool {
+  guard original_ledger_preparation_available(identity) &&
+    identity.ledger.original_inventory is Some(value) &&
+    value.reservations.length() == 1 &&
+    value.holdings.length() == 1 else {
+    return false
+  }
+  original_captured_prefix_available(
+    identity.ledger,
+    value.reservations[0],
+    value.holdings[0],
+  )
+}
+
+///|
+// Closed Core Row receiver prerequisite for the NEXT physical keyed child.
+// The Host supplies the count from its private accepted distinct-key cache,
+// never a caller's row/usage aggregate. The exact assembly token and ordered
+// original inventory prevent a second child from using the same opportunity.
+// This does not reserve, reset a spent identity, or grant Source/Model I/O.
+pub fn original_keyed_child_preparation_available(
+  identity : OriginalLedgerIdentity,
+  ledger : Ledger,
+  assembly : Reservation,
+  accepted_children : Int,
+) -> Bool {
+  guard physical_equal(identity.ledger, ledger) &&
+    original_ledger_preparation_available(identity) &&
+    accepted_children >= 0 &&
+    accepted_children <= 2147483645 &&
+    ledger.original_inventory is Some(inventory) &&
+    inventory.reservations.length() == accepted_children + 2 &&
+    inventory.holdings.length() == accepted_children + 1 &&
+    inventory.delegations.is_empty() &&
+    ledger.next_capacity_serial == Some(-2) &&
+    ledger.usage.attempts == accepted_children + 2 &&
+    physical_equal(inventory.reservations[1], assembly) &&
+    physical_equal(assembly.owner, ledger) &&
+    assembly.open &&
+    !assembly.cleanup_pending &&
+    !inventory.reservations[0].open &&
+    inventory.holdings[0].reservation_serial == inventory.reservations[0].serial else {
+    return false
+  }
+  for token in inventory.holdings {
+    if !holding_available(ledger, token) {
+      return false
+    }
+  }
+  for index in 2..<inventory.reservations.length() {
+    if inventory.reservations[index].open ||
+      inventory.holdings[index - 1].reservation_serial !=
+      inventory.reservations[index].serial {
+      return false
+    }
+  }
+  true
+}

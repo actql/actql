@@ -44,7 +44,10 @@ fn[Store, E] publication_binding_current(
   original : LocalRunPublicationBinding[Store, E],
 ) -> Result[Unit, LocalRunPublicationBindingIssue[E]] {
   let account = match
-    @host.client_local_adopted_current_account(original.material, original.store) {
+    @host.client_local_adopted_current_account(
+      original.material,
+      original.store,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Current(issue))
   }
@@ -56,7 +59,12 @@ fn[Store, E] publication_binding_current(
     resource: "run",
     operation: "publish",
   }
-  match @host.client_local_adopted_account_outcome(original.material, original.store, tuple) {
+  match
+    @host.client_local_adopted_account_outcome(
+      original.material,
+      original.store,
+      tuple,
+    ) {
     Ok(@authorization.Allow(_)) => ()
     Ok(_) => return Err(AuthorizationMismatch)
     Err(issue) => return Err(Current(issue))
@@ -83,21 +91,33 @@ fn[Store, E] publication_binding_saved_rows(
   original : LocalRunPublicationBinding[Store, E],
   run : @host.ClientJournalPhysicalRow,
   submitted : @host.ClientJournalPhysicalRow,
-) -> Result[(@host.ClientRunJournalEncoding, String?), LocalRunPublicationBindingIssue[E]] {
-  match validate_local_saved_submitted_rows(
-    original.rows, original.plan, original.preparation,
-    run.key, run.revision, run.body,
-    submitted.key, submitted.revision, submitted.body,
-  ) {
+) -> Result[
+  (@host.ClientRunJournalEncoding, String?),
+  LocalRunPublicationBindingIssue[E],
+] {
+  match
+    validate_local_saved_submitted_rows(
+      original.rows,
+      original.plan,
+      original.preparation,
+      run.key,
+      run.revision,
+      run.body,
+      submitted.key,
+      submitted.revision,
+      submitted.body,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(SavedRows(issue))
   }
-  let decoded = match @host.decode_client_run_journal_row_with_local_policy(run.body) {
+  let decoded = match
+    @host.decode_client_run_journal_row_with_local_policy(run.body) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
   let (encoding, _) = decoded
-  if encoding.cancellation_requested || encoding.checkpoint is Some(_) ||
+  if encoding.cancellation_requested ||
+    encoding.checkpoint is Some(_) ||
     encoding.effect_material_originals is Some(_) {
     return Err(CustodyLost)
   }
@@ -122,14 +142,18 @@ pub fn[Store, E] prepare_local_run_publication_binding(
   inode : UInt64,
   run : @host.ClientJournalPhysicalRow,
   submitted : @host.ClientJournalPhysicalRow,
-) -> Result[LocalRunPublicationBindingPlan[Store, E], LocalRunPublicationBindingIssue[E]] {
+) -> Result[
+  LocalRunPublicationBindingPlan[Store, E],
+  LocalRunPublicationBindingIssue[E],
+] {
   if !physical_equal(rows.plan, plan) ||
     !physical_equal(rows.preparation, preparation) {
     return Err(ForeignPreparation)
   }
   // Match the existing Native installation selector bounds. The pure binding
   // codec remains a byte projection, not admission of arbitrary selectors.
-  if namespace_id.is_empty() || namespace_id.length() > 128 ||
+  if namespace_id.is_empty() ||
+    namespace_id.length() > 128 ||
     store_authority_cid.length() != 71 ||
     !store_authority_cid.has_prefix("sha256:") {
     return Err(CustodyLost)
@@ -140,13 +164,18 @@ pub fn[Store, E] prepare_local_run_publication_binding(
       return Err(CustodyLost)
     }
   }
-  let binding = match @host.client_publication_store_binding_body(
-    namespace_id, store_authority_cid, device, inode,
-  ) {
+  let binding = match
+    @host.client_publication_store_binding_body(
+      namespace_id, store_authority_cid, device, inode,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(StoreEncoding(issue))
   }
-  let policy = match @host.issue_client_run_policy_originals(plan.prepared, compiled=plan.compiled) {
+  let policy = match
+    @host.issue_client_run_policy_originals(
+      plan.prepared,
+      compiled=plan.compiled,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Policy(issue))
   }
@@ -155,7 +184,8 @@ pub fn[Store, E] prepare_local_run_publication_binding(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let (encoding, finite_policy) = match publication_binding_saved_rows(original, run, submitted) {
+  let (encoding, finite_policy) = match
+    publication_binding_saved_rows(original, run, submitted) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -178,10 +208,15 @@ pub fn[Store, E] prepare_local_run_publication_binding(
   if run.revision < 0L || run.revision == 9223372036854775807L {
     return Err(CapacityExceeded)
   }
-  let body = match @host.client_run_journal_row_body(
-    { ..encoding, publication_binding: Some(binding), publication_policy_originals: Some(policy), },
-    local_run_policy_originals=finite_policy,
-  ) {
+  let body = match
+    @host.client_run_journal_row_body(
+      {
+        ..encoding,
+        publication_binding: Some(binding),
+        publication_policy_originals: Some(policy),
+      },
+      local_run_policy_originals=finite_policy,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Encoding(issue))
   }
@@ -210,7 +245,9 @@ pub fn[Store, E] validate_local_run_publication_binding(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  if run.key != step.prior.key || run.revision != step.prior.revision || run.body != step.prior.body {
+  if run.key != step.prior.key ||
+    run.revision != step.prior.revision ||
+    run.body != step.prior.body {
     return Err(CustodyLost)
   }
   match publication_binding_saved_rows(step.original, run, submitted) {
@@ -226,12 +263,17 @@ pub fn[Store, E] confirm_local_run_publication_binding(
   step : LocalRunPublicationBindingStep[Store, E],
   run : @host.ClientJournalPhysicalRow,
   submitted : @host.ClientJournalPhysicalRow,
-) -> Result[LocalRunPublicationBinding[Store, E], LocalRunPublicationBindingIssue[E]] {
+) -> Result[
+  LocalRunPublicationBinding[Store, E],
+  LocalRunPublicationBindingIssue[E],
+] {
   match publication_binding_current(step.original) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  if run.key != step.prior.key || run.revision != step.prior.revision + 1L || run.body != step.body {
+  if run.key != step.prior.key ||
+    run.revision != step.prior.revision + 1L ||
+    run.body != step.body {
     return Err(CustodyLost)
   }
   match publication_binding_saved_rows(step.original, run, submitted) {
@@ -256,7 +298,8 @@ pub fn[Store, E] validate_local_run_publication_binding_original(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let (encoding, _) = match publication_binding_saved_rows(original, run, submitted) {
+  let (encoding, _) = match
+    publication_binding_saved_rows(original, run, submitted) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }

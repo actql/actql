@@ -21,7 +21,7 @@ fn script_traversal_argument(
       guard path.length() == 1 else { raise Abort(InvalidQuery) }
       construction.text(path[0].value)
     }
-    FieldMapValue(_) => raise Abort(InvalidQuery)
+    FieldMapValue(_) | ExpressionValue(_) => raise Abort(InvalidQuery)
     OutputName(name) => construction.text(name.value)
     TextValue(value) => construction.text(value)
     NumberValue(text) =>

@@ -43,26 +43,7 @@ pub fn begin_original_ledger_inventory(
     ledger.next_capacity_serial != Some(-2) {
     return Err(InvalidBootstrap)
   }
-  let usage = ledger.usage
-  if usage.planning_work != 0 ||
-    usage.attempts != 0 ||
-    usage.holdings != 0 ||
-    usage.transferred_bytes != 0L ||
-    usage.uncertain_transfer_bytes != 0L ||
-    usage.reserved_transfer_bytes != 0L ||
-    usage.held_bytes != 0L ||
-    usage.reserved_retention_bytes != bootstrap.reservation.retention ||
-    usage.reserved_execution_bytes != bootstrap.reservation.execution ||
-    usage.peak_retention_bytes != bootstrap.reservation.retention ||
-    ledger.delegated_planning != 0 ||
-    ledger.delegated_attempts != 0 ||
-    ledger.delegated_holdings != 0 ||
-    ledger.quantity_usage !=
-    {
-      reserved: zero_quantities(),
-      uncertain: zero_quantities(),
-      consumed: zero_quantities(),
-    } {
+  if !original_ledger_has_only_bootstrap(ledger, bootstrap) {
     return Err(ChangedOriginalState)
   }
   if max_reservations < 0 ||
@@ -91,6 +72,33 @@ pub fn begin_original_ledger_inventory(
 }
 
 ///|
+fn original_ledger_has_only_bootstrap(
+  ledger : Ledger,
+  bootstrap : CapacityReservation,
+) -> Bool {
+  let usage = ledger.usage
+  !(usage.planning_work != 0 ||
+  usage.attempts != 0 ||
+  usage.holdings != 0 ||
+  usage.transferred_bytes != 0L ||
+  usage.uncertain_transfer_bytes != 0L ||
+  usage.reserved_transfer_bytes != 0L ||
+  usage.held_bytes != 0L ||
+  usage.reserved_retention_bytes != bootstrap.reservation.retention ||
+  usage.reserved_execution_bytes != bootstrap.reservation.execution ||
+  usage.peak_retention_bytes != bootstrap.reservation.retention ||
+  ledger.delegated_planning != 0 ||
+  ledger.delegated_attempts != 0 ||
+  ledger.delegated_holdings != 0 ||
+  ledger.quantity_usage !=
+  {
+    reserved: zero_quantities(),
+    uncertain: zero_quantities(),
+    consumed: zero_quantities(),
+  })
+}
+
+///|
 fn check_original_inventory_open(
   value : LedgerOriginalInventory,
 ) -> Result[Unit, LedgerIssue] {
@@ -116,6 +124,27 @@ pub fn original_ledger_inventory_available(
   !value.closing &&
   value.park is None &&
   original_read_bootstrap_available(identity.ledger, identity.bootstrap)
+}
+
+///|
+// Core-only prerequisite for the checked source-free prefix constructor.
+// Unlike the ordinary lifetime getter, this rejects descriptor/read issuance
+// and every spent child identity, including a zero-byte or settled attempt.
+// It neither lends a Ledger to JS nor grants Model send/restore authority.
+pub fn original_ledger_prefix_available(
+  identity : OriginalLedgerIdentity,
+) -> Bool {
+  guard original_ledger_inventory_available(identity) &&
+    identity.ledger.original_inventory is Some(value) else {
+    return false
+  }
+  !value.descriptor_issued &&
+  !value.read_claimed &&
+  value.reservations.is_empty() &&
+  value.holdings.is_empty() &&
+  value.delegations.is_empty() &&
+  identity.ledger.next_capacity_serial == Some(-2) &&
+  original_ledger_has_only_bootstrap(identity.ledger, identity.bootstrap)
 }
 
 ///|
