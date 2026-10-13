@@ -132,7 +132,10 @@ fn HolderEffectCatalogFileCustody::read(
     self.diagnostic_ceiling,
     ceiling => {
       @bounded_files.read_bounded_text_file_with_custody(
-        root, name, limit, diagnostic_ceiling=Some(ceiling),
+        root,
+        name,
+        limit,
+        diagnostic_ceiling=Some(ceiling),
       )
     },
   )
