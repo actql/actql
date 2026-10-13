@@ -209,8 +209,10 @@ test('prepared worker and normal release commands parse without starting a produ
     'reviews/2026-10-14-identifier-release-matrix/prepared-release-public.mjs']) {
     execFileSync(process.execPath, ['--check', resolve(root, path)], {timeout: 10000});
     const entry = resolve(root, path);
+    // A producer's -e string resolves relative to its declared cwd. It is
+    // not a file-relative static import of the recipe module.
     for (const match of readFileSync(entry, 'utf8').matchAll(
-      /(?:from\s*|import\s*\()(['"])(\.[^'"\n]+\.mjs)\1/gu)) {
+      /^\s*(?:import\b[^;\n]*?\bfrom\s*|from\s*|import\s*)(['"])(\.[^'"\n]+\.mjs)\1/gmu)) {
       assert.doesNotThrow(() => readFileSync(resolve(dirname(entry), match[2])));
     }
   }
