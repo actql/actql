@@ -116,3 +116,15 @@ The fixed three-wheel cohort is built by `scripts/build-python-product-wheels.py
 from the same clean source and original artifact directory. Its `cohort.json`
 records all three wheel digests and keeps product/recovery acceptance false.
 SDK-only installation is `uv add actql-sdk`; it does not select this runtime.
+
+The maintainer-only `scripts/compile-python-local-image.py` prepares the image
+receipt consumed by the component assembler. It requires an exact clean
+`--source`, original `--core-receipt`, new `--destination`, and explicit
+`--verify-only` or `--compile`. Verification does not import the native runtime
+or create an Engine. Compilation uses the same selected Engine adapter as the
+installed constructor, reuses the existing Core module signature validator,
+and serializes without creating a Wasm instance, Store, Run or Submission.
+Receipt issuance follows native cleanup and a second original-material fence.
+The selected source-original recipe remains unavailable until reviewed; this
+script never supplies fixture values or runtime defaults for missing bounds.
+Actual `--compile` and wheel generation use the coordinator's finite lane.

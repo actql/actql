@@ -529,6 +529,89 @@ def _signature(value: Any) -> tuple[str, str]:
             ' '.join(str(item) for item in value.results))
 
 
+def _validate_core_module(wasmtime: Any, module: Any) -> None:
+    imports = module.imports
+    if (len(imports) != len(_IMPORT_SIGNATURES) or
+            {(item.module, item.name) for item in imports} !=
+            {('actql_host', name) for name in _IMPORT_SIGNATURES} or
+            any(not isinstance(item.type, wasmtime.FuncType) or
+                _signature(item.type) != _IMPORT_SIGNATURES[item.name]
+                for item in imports)):
+        raise ValueError('Unrecognized Local Core physical imports')
+    expected = {'actql_buffer_' + name: value
+                for name, value in _BUFFER_SIGNATURES.items()}
+    expected.update({'actql_program_' + name: value
+                     for name, value in _PROGRAM_SIGNATURES.items()})
+    expected.update({'actql_run_' + name: value
+                     for name, value in _RUN_SIGNATURES.items()})
+    expected.update({'actql_submission_' + name: value
+                     for name, value in _SUBMISSION_SIGNATURES.items()})
+    expected.update({'actql_bootstrap_' + name: value
+                     for name, value in _BOOTSTRAP_SIGNATURES.items()})
+    expected.update({'actql_source_publication_' + name: value
+                     for name, value in _SOURCE_PUBLICATION_SIGNATURES.items()})
+    expected.update({'actql_run_invocation_' + name: value
+                     for name, value in _RUN_INVOCATION_SIGNATURES.items()})
+    expected.update({'actql_material_' + name: value
+                     for name, value in _MATERIAL_SIGNATURES.items()})
+    expected.update({'actql_publication_' + name: value
+                     for name, value in _PUBLICATION_SIGNATURES.items()})
+    expected.update({'actql_publication_preflight_' + name: value
+                     for name, value in _PUBLICATION_PREFLIGHT_SIGNATURES.items()})
+    expected.update({'actql_publication_commit_export_' + name: value
+                     for name, value in _PUBLICATION_COMMIT_EXPORT_SIGNATURES.items()})
+    expected.update({'actql_payload_request_' + name: value
+                     for name, value in _PAYLOAD_REQUEST_SIGNATURES.items()})
+    expected.update({'actql_payload_chunk_' + name: value
+                     for name, value in _PAYLOAD_CHUNK_SIGNATURES.items()})
+    expected.update({'actql_payload_record_' + name: value
+                     for name, value in _PAYLOAD_RECORD_SIGNATURES.items()})
+    expected.update({'actql_payload_reservation_' + name: value
+                     for name, value in _PAYLOAD_RESERVATION_SIGNATURES.items()})
+    expected.update({'actql_payload_writing_' + name: value
+                     for name, value in _PAYLOAD_WRITING_SIGNATURES.items()})
+    expected.update({'actql_payload_allocation_' + name: value
+                     for name, value in _PAYLOAD_ALLOCATION_SIGNATURES.items()})
+    expected.update({'actql_payload_names_' + name: value
+                     for name, value in _PAYLOAD_NAMES_SIGNATURES.items()})
+    expected.update({'actql_payload_binding_' + name: value
+                     for name, value in _PAYLOAD_BINDING_SIGNATURES.items()})
+    expected.update({'actql_result_binding_' + name: value
+                     for name, value in _RESULT_BINDING_SIGNATURES.items()})
+    expected.update({'actql_source_' + name: value
+                     for name, value in _SOURCE_SIGNATURES.items()})
+    expected.update({'actql_workspace_' + name: value
+                     for name, value in _WORKSPACE_SIGNATURES.items()})
+    expected.update({'actql_compute_' + name: value
+                     for name, value in _COMPUTE_SIGNATURES.items()})
+    expected.update({'actql_task_' + name: value
+                     for name, value in _TASK_SIGNATURES.items()})
+    expected.update({'actql_result_' + name: value
+                     for name, value in _RESULT_SIGNATURES.items()})
+    expected.update({'actql_publisher_' + name: value
+                     for name, value in _PUBLISHER_SIGNATURES.items()})
+    expected.update({'actql_journal_' + name: value
+                     for name, value in _JOURNAL_SIGNATURES.items()})
+    expected.update({'actql_current_' + name: value
+                     for name, value in _CURRENT_SIGNATURES.items()})
+    expected.update({'actql_original_' + name: value
+                     for name, value in _ORIGINAL_SIGNATURES.items()})
+    expected['actql_host_abi_version'] = ('', 'i32')
+    exports = {item.name: item.type for item in module.exports}
+    if (any(name not in exports or
+            not isinstance(exports[name], wasmtime.FuncType) or
+            _signature(exports[name]) != signature
+            for name, signature in expected.items()) or
+            any(name.startswith('actql_') and name not in expected
+                for name in exports)):
+        raise ValueError('Unrecognized Local Core exports')
+    memory = exports.get('memory')
+    if (not isinstance(memory, wasmtime.MemoryType) or memory.is_64 or
+            memory.is_shared or memory.limits.max != 256 or
+            memory.limits.min > 256):
+        raise ValueError('Unbounded Local Core linear memory')
+
+
 def _valid_core_limits(transfer_capacity: int, slots: int, fuel: int,
                        resources: LocalCoreResources) -> bool:
     return (type(transfer_capacity) is int and 0 < transfer_capacity <= 2**63 - 1
@@ -630,86 +713,7 @@ class LocalCore:
             self._store.set_limits(memory_size=_MEMORY_LIMIT, memories=1)
             self._module = (wasmtime.Module(self._engine, module) if _compiled_image is None
                             else wasmtime.Module.deserialize(self._engine, _compiled_image.encoded))
-            imports = self._module.imports
-            if (len(imports) != len(_IMPORT_SIGNATURES) or
-                    {(item.module, item.name) for item in imports} !=
-                    {('actql_host', name) for name in _IMPORT_SIGNATURES} or
-                    any(not isinstance(item.type, wasmtime.FuncType) or
-                        _signature(item.type) != _IMPORT_SIGNATURES[item.name]
-                        for item in imports)):
-                raise ValueError('Unrecognized Local Core physical imports')
-            expected = {'actql_buffer_' + name: value
-                        for name, value in _BUFFER_SIGNATURES.items()}
-            expected.update({'actql_program_' + name: value
-                             for name, value in _PROGRAM_SIGNATURES.items()})
-            expected.update({'actql_run_' + name: value
-                             for name, value in _RUN_SIGNATURES.items()})
-            expected.update({'actql_submission_' + name: value
-                             for name, value in _SUBMISSION_SIGNATURES.items()})
-            expected.update({'actql_bootstrap_' + name: value
-                             for name, value in _BOOTSTRAP_SIGNATURES.items()})
-            expected.update({'actql_source_publication_' + name: value
-                             for name, value in _SOURCE_PUBLICATION_SIGNATURES.items()})
-            expected.update({'actql_run_invocation_' + name: value
-                             for name, value in _RUN_INVOCATION_SIGNATURES.items()})
-            expected.update({'actql_material_' + name: value
-                             for name, value in _MATERIAL_SIGNATURES.items()})
-            expected.update({'actql_publication_' + name: value
-                             for name, value in _PUBLICATION_SIGNATURES.items()})
-            expected.update({'actql_publication_preflight_' + name: value
-                             for name, value in _PUBLICATION_PREFLIGHT_SIGNATURES.items()})
-            expected.update({'actql_publication_commit_export_' + name: value
-                             for name, value in _PUBLICATION_COMMIT_EXPORT_SIGNATURES.items()})
-            expected.update({'actql_payload_request_' + name: value
-                             for name, value in _PAYLOAD_REQUEST_SIGNATURES.items()})
-            expected.update({'actql_payload_chunk_' + name: value
-                             for name, value in _PAYLOAD_CHUNK_SIGNATURES.items()})
-            expected.update({'actql_payload_record_' + name: value
-                             for name, value in _PAYLOAD_RECORD_SIGNATURES.items()})
-            expected.update({'actql_payload_reservation_' + name: value
-                             for name, value in _PAYLOAD_RESERVATION_SIGNATURES.items()})
-            expected.update({'actql_payload_writing_' + name: value
-                             for name, value in _PAYLOAD_WRITING_SIGNATURES.items()})
-            expected.update({'actql_payload_allocation_' + name: value
-                             for name, value in _PAYLOAD_ALLOCATION_SIGNATURES.items()})
-            expected.update({'actql_payload_names_' + name: value
-                             for name, value in _PAYLOAD_NAMES_SIGNATURES.items()})
-            expected.update({'actql_payload_binding_' + name: value
-                             for name, value in _PAYLOAD_BINDING_SIGNATURES.items()})
-            expected.update({'actql_result_binding_' + name: value
-                             for name, value in _RESULT_BINDING_SIGNATURES.items()})
-            expected.update({'actql_source_' + name: value
-                             for name, value in _SOURCE_SIGNATURES.items()})
-            expected.update({'actql_workspace_' + name: value
-                             for name, value in _WORKSPACE_SIGNATURES.items()})
-            expected.update({'actql_compute_' + name: value
-                             for name, value in _COMPUTE_SIGNATURES.items()})
-            expected.update({'actql_task_' + name: value
-                             for name, value in _TASK_SIGNATURES.items()})
-            expected.update({'actql_result_' + name: value
-                             for name, value in _RESULT_SIGNATURES.items()})
-            expected.update({'actql_publisher_' + name: value
-                             for name, value in _PUBLISHER_SIGNATURES.items()})
-            expected.update({'actql_journal_' + name: value
-                             for name, value in _JOURNAL_SIGNATURES.items()})
-            expected.update({'actql_current_' + name: value
-                             for name, value in _CURRENT_SIGNATURES.items()})
-            expected.update({'actql_original_' + name: value
-                             for name, value in _ORIGINAL_SIGNATURES.items()})
-            expected['actql_host_abi_version'] = ('', 'i32')
-            exports = {item.name: item.type for item in self._module.exports}
-            if (any(name not in exports or
-                    not isinstance(exports[name], wasmtime.FuncType) or
-                    _signature(exports[name]) != signature
-                    for name, signature in expected.items()) or
-                    any(name.startswith('actql_') and name not in expected
-                        for name in exports)):
-                raise ValueError('Unrecognized Local Core exports')
-            memory = exports.get('memory')
-            if (not isinstance(memory, wasmtime.MemoryType) or memory.is_64 or
-                    memory.is_shared or memory.limits.max != 256 or
-                    memory.limits.min > 256):
-                raise ValueError('Unbounded Local Core linear memory')
+            _validate_core_module(wasmtime, self._module)
             self._linker = wasmtime.Linker(self._engine)
             for name, callback in [('input_byte', self._read),
                                    ('input_cleanup', self._cleanup),

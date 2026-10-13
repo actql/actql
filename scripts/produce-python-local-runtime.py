@@ -64,21 +64,17 @@ def copy_original(path: Path, target: Path, maximum: int, digest: str) -> None:
     target.write_bytes(raw)
 
 
-def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, destination: Path) -> dict[str, object]:
-    source = clean_source()
-    core, core_hash = read_receipt(core_receipt)
-    duckdb, duckdb_hash = read_receipt(duckdb_receipt)
-    image, image_receipt_hash = read_receipt(image_receipt)
+def verify_original_core(root: Path, core: dict[str, Any], source: str) -> str:
     require(set(core) == {'source_sha', 'module', 'module_sha256', 'scope', 'moonc', 'python',
                          'result', 'physical', 'workspace', 'positive_native_result_acceptance',
                          'public_local_acceptance'}, 'Select the original physical-boundary Core receipt')
-    require(core['source_sha'] == source and duckdb.get('source_sha') == source,
+    require(core['source_sha'] == source,
             'Physical receipts must belong to this exact producer source')
     require(core['scope'] == 'physical_buffer_bridge_workspace_only'
             and core['positive_native_result_acceptance'] is False
             and core['public_local_acceptance'] is False,
             'Core physical receipt is not public Local acceptance')
-    pins = json.loads((ROOT / 'toolchain.json').read_bytes())
+    pins = json.loads((root / 'toolchain.json').read_bytes())
     require(core['moonc'] == pins['moonc'], 'Core receipt does not use the pinned compiler')
     digest = core['module_sha256']
     require(type(digest) is str and len(digest) == 64
@@ -89,6 +85,16 @@ def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, desti
                 and value.get('module_sha256') == digest
                 and type(value.get('cases')) is list and bool(value['cases']),
                 'Core physical receipt did not confirm the same module')
+    return cast(str, digest)
+
+
+def produce(core_receipt: Path, duckdb_receipt: Path, image_receipt: Path, destination: Path) -> dict[str, object]:
+    source = clean_source()
+    core, core_hash = read_receipt(core_receipt)
+    duckdb, duckdb_hash = read_receipt(duckdb_receipt)
+    image, image_receipt_hash = read_receipt(image_receipt)
+    digest = verify_original_core(ROOT, core, source)
+    require(duckdb.get('source_sha') == source, 'Physical receipts must belong to this exact producer source')
     require(set(duckdb) == {'source_sha', 'library', 'library_sha256', 'library_version',
                            'python', 'platform', 'machine', 'tests', 'success', 'module_source',
                            'workspace_selection', 'public_local_acceptance', 'wheel_acceptance'},
