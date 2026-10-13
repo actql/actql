@@ -45,17 +45,17 @@ pub(all) enum NativePublicationStoreOpenError {
 ///|
 /// Original failed preparation with the same existing physical Owners. No
 /// wire, persistence, reservation, authority or substitute Store is issued.
-struct NativePublicationStoreOpenFailure {
-  original_issue : NativePublicationStoreIssue
-  mut root : @filesystem.Root?
-  mut failed_root : @filesystem.NativeRootOpenFailure?
-  mut lock : @filesystem.Lock?
-  mut failed_lock : @filesystem.NativeLockOpenFailure?
-  mut database : @sqlite.Database?
-  mut failed_database : @sqlite.NativeSqliteOpenFailure?
+pub struct NativePublicationStoreOpenFailure {
+  priv original_issue : NativePublicationStoreIssue
+  priv mut root : @filesystem.Root?
+  priv mut failed_root : @filesystem.NativeRootOpenFailure?
+  priv mut lock : @filesystem.Lock?
+  priv mut failed_lock : @filesystem.NativeLockOpenFailure?
+  priv mut database : @sqlite.Database?
+  priv mut failed_database : @sqlite.NativeSqliteOpenFailure?
   // Missing original constructor custody remains pending. Its primary issue
   // retains the original diagnostic; this marker cannot acknowledge cleanup.
-  cleanup_gap : Unit?
+  priv cleanup_gap : Unit?
 }
 
 ///|
