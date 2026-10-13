@@ -171,6 +171,21 @@ and no repair call; it does not prohibit legal Common IDs. This preparation adds
 no public/native capability or numerical profile. The generation SDK closure and
 the native SDK's separately pinned dependency closure remain distinguishable.
 
+The private `createProjectedTypeSafeDecisionPreflight` connects the original
+opaque projection to Common's dedicated native asynchronous Plan builder.
+Construction starts no SDK operation; its lazy preparation rechecks membership,
+then the existing fixed transport and raw port own the same Entry/call. The
+builder checks the Decision Task, installed async Provider, original view and
+native response/probability/installation binding. It creates no generation
+settings or output-token default. Generation keeps its authored token floor;
+synchronous Decision remains refused. Retired views cannot start that adapter.
+The temporary native tuple and original-view/provider/start callback borrows,
+SDK progress/context and plan callback overlap require funding. Cleanup clears
+those local callback aliases only after the same SDK/raw/progress owners settle;
+it cannot retire the caller-owned escaped projection or invent raw observations.
+This is private Plan/caller preparation, not accepted native raw decoding,
+startup funding, original Store ACK, public capability or a live Jev Result.
+
 Formal packaging, external consumer, public Local/HTTPS, real model acceptance,
 four parallel calls, Decision and Cloud are unfinished M0–M5 work.
 
