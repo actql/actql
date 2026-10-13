@@ -675,3 +675,28 @@ not an atomic snapshot, named-namespace restoration, file mode/content/hash
 verification, admitted complete package or authority. Those original/current
 facts remain separate requirements of the existing product and Account Owners.
 The private-state 0700/ACL contract is unchanged.
+
+## Original package-file observations
+
+The filesystem Owner can capture an opaque transient observation of one regular
+file relative to its existing opened Root. Only actual stat can construct it;
+public generation fields, hashes and copied metadata cannot. The observation
+keeps the same Root/name, original device/inode/size, mode, UID/GID/link count and
+mtime/ctime. It detects mode changes and same-size modifications that the
+legacy three-field generation does not describe.
+
+Reads still use the existing Reader constructor and failure-custody carrier.
+The observation compares the actual opened Reader and current named file to the
+same original facts before returning it and after bounded consumption. A failed
+comparison closes the original Reader once; missing close ACK keeps that Reader
+in its existing failure carrier. No replacement stat or reader repairs it.
+The package observation is distinct from private credential installation
+projection; the latter's 0700/ACL checks, original wire and restore are unchanged.
+
+This is physical metadata, not named Root restoration, content digest, current
+Account authorization, compatibility or a complete package witness. The existing
+product caller must separately perform those checks and account for retained
+observation memory before capture. Syntax/descriptor fit does not supply funding.
+The intended product integration replaces generation-only witness storage rather
+than simultaneously retaining both representations; its holding/ARC evidence
+must be checked at that connection. No new numeric profile is admitted here.

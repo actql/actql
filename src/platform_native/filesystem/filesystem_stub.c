@@ -102,6 +102,15 @@ struct actql_native_private_file_projection {
   bool ready;
 };
 
+// Opaque transient facts of a package file on an existing Root. These are not
+// private-key installation materials and are never exported/persisted as one.
+typedef struct {
+  struct stat original;
+  uint64_t root_device;
+  uint64_t root_inode;
+  int32_t issue_kind;
+} actql_native_observed_file_stat;
+
 static void actql_replace_error(char **target, const char *message) {
   free(*target);
   *target = NULL;
@@ -887,6 +896,141 @@ void *actql_native_filesystem_open_private_root(
   moonbit_bytes_t path, int32_t length
 ) {
   return actql_native_filesystem_open_private_root_with_diagnostics(path, length, 0);
+}
+
+static void actql_observed_file_stat_finalize(void *value) {
+  // The existing Moon object owns only stat bytes, no descriptor or new Owner.
+  (void)value;
+}
+
+static bool actql_observed_file_matches(
+  const struct stat *original, const struct stat *current
+) {
+  if (!S_ISREG(current->st_mode) || current->st_nlink == 0 ||
+      original->st_dev != current->st_dev || original->st_ino != current->st_ino ||
+      original->st_mode != current->st_mode || original->st_uid != current->st_uid ||
+      original->st_gid != current->st_gid || original->st_nlink != current->st_nlink ||
+      original->st_size != current->st_size) return false;
+#ifdef __APPLE__
+  return original->st_mtimespec.tv_sec == current->st_mtimespec.tv_sec &&
+    original->st_mtimespec.tv_nsec == current->st_mtimespec.tv_nsec &&
+    original->st_ctimespec.tv_sec == current->st_ctimespec.tv_sec &&
+    original->st_ctimespec.tv_nsec == current->st_ctimespec.tv_nsec;
+#elif defined(__linux__)
+  return original->st_mtim.tv_sec == current->st_mtim.tv_sec &&
+    original->st_mtim.tv_nsec == current->st_mtim.tv_nsec &&
+    original->st_ctim.tv_sec == current->st_ctim.tv_sec &&
+    original->st_ctim.tv_nsec == current->st_ctim.tv_nsec;
+#else
+  return false;
+#endif
+}
+
+static bool actql_observed_file_root_matches(
+  actql_native_filesystem_root *root, actql_native_observed_file_stat *original
+) {
+  if (root == NULL || root->fd < 0 || original == NULL || original->issue_kind != 0 ||
+      root->census_cleanup_unconfirmed) return false;
+  struct stat current;
+  return fstat(root->fd, &current) == 0 && S_ISDIR(current.st_mode) &&
+    current.st_nlink > 0 && (uint64_t)current.st_dev == original->root_device &&
+    (uint64_t)current.st_ino == original->root_inode;
+}
+
+void *actql_native_filesystem_observe_file(
+  actql_native_filesystem_root *root, moonbit_bytes_t name, int32_t length
+) {
+  actql_native_observed_file_stat *observation = moonbit_make_external_object(
+    actql_observed_file_stat_finalize, sizeof(*observation));
+  memset(observation, 0, sizeof(*observation));
+  observation->issue_kind = 1;
+  if (root == NULL || root->fd < 0) return observation;
+  if (root->census_cleanup_unconfirmed) {
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
+      root->census_cleanup_error);
+    observation->issue_kind = 3;
+    return observation;
+  }
+  char *text = actql_copy_text(name, length);
+  if (text == NULL || length <= 0 || !actql_valid_name(text, (size_t)length)) {
+    free(text); return observation;
+  }
+  struct stat parent;
+  bool captured = fstat(root->fd, &parent) == 0 && S_ISDIR(parent.st_mode) &&
+    parent.st_nlink > 0 && actql_stat_regular_at(root, text, &observation->original);
+  free(text);
+  if (!captured || observation->original.st_nlink == 0) return observation;
+  observation->root_device = (uint64_t)parent.st_dev;
+  observation->root_inode = (uint64_t)parent.st_ino;
+  observation->issue_kind = 0;
+  return observation;
+}
+
+int32_t actql_native_filesystem_observed_file_kind(actql_native_observed_file_stat *value) {
+  return value == NULL ? 1 : value->issue_kind;
+}
+uint64_t actql_native_filesystem_observed_file_device(actql_native_observed_file_stat *value) {
+  return (uint64_t)value->original.st_dev;
+}
+uint64_t actql_native_filesystem_observed_file_inode(actql_native_observed_file_stat *value) {
+  return (uint64_t)value->original.st_ino;
+}
+int64_t actql_native_filesystem_observed_file_size(actql_native_observed_file_stat *value) {
+  return (int64_t)value->original.st_size;
+}
+int32_t actql_native_filesystem_observed_file_mode(actql_native_observed_file_stat *value) {
+  return (int32_t)(value->original.st_mode & 07777);
+}
+
+int32_t actql_native_filesystem_observed_file_current(
+  actql_native_filesystem_root *root, moonbit_bytes_t name, int32_t length,
+  actql_native_observed_file_stat *original
+) {
+  if (root != NULL && root->census_cleanup_unconfirmed) {
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
+      root->census_cleanup_error);
+    return 3;
+  }
+  if (!actql_observed_file_root_matches(root, original)) return 1;
+  char *text = actql_copy_text(name, length);
+  if (text == NULL || length <= 0 || !actql_valid_name(text, (size_t)length)) {
+    free(text); return 1;
+  }
+  struct stat current;
+  bool matches = actql_stat_regular_at(root, text, &current) &&
+    actql_observed_file_matches(&original->original, &current);
+  free(text);
+  return matches ? 0 : 1;
+}
+
+int32_t actql_native_filesystem_observed_file_reader(
+  actql_native_filesystem_root *root, actql_native_filesystem_reader *reader,
+  actql_native_observed_file_stat *original
+) {
+  if (!actql_observed_file_root_matches(root, original) || reader == NULL ||
+      reader->root != root || reader->fd < 0 || !reader->ready) return 0;
+  struct stat opened;
+  return fstat(reader->fd, &opened) == 0 &&
+    actql_observed_file_matches(&original->original, &opened);
+}
+
+int32_t actql_native_filesystem_test_observation_mutation(
+  actql_native_filesystem_root *root, moonbit_bytes_t name, int32_t length,
+  int32_t kind
+) {
+  if (root == NULL || root->fd < 0 || (kind != 1 && kind != 2)) return 0;
+  char *text = actql_copy_text(name, length);
+  if (text == NULL || !actql_valid_name(text, (size_t)length)) {free(text); return 0;}
+  int descriptor = openat(root->fd, text, O_RDWR | O_CLOEXEC | O_NOFOLLOW | O_NONBLOCK);
+  free(text);
+  if (descriptor < 0) return 0;
+  struct stat stat;
+  bool valid = fstat(descriptor, &stat) == 0 && S_ISREG(stat.st_mode) && stat.st_size == 3;
+  bool changed = false;
+  if (valid) {
+    changed = kind == 1 ? fchmod(descriptor, 0600) == 0 : pwrite(descriptor, "xyz", 3, 0) == 3;
+  }
+  return close(descriptor) == 0 && changed;
 }
 
 static bool actql_private_file_same_generation(
