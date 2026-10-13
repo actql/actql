@@ -32,6 +32,8 @@ class _NativeImageHolding:
         self._attempted = False
         self._captured = False
         self._closing = False
+        self._fd: int | None = None
+        self._fd_close_failure: NativeImageError | None = None
 
     def __copy__(self) -> _NativeImageHolding:
         raise TypeError('Original native image cannot be copied')
@@ -51,16 +53,45 @@ class _NativeImageHolding:
         digest = (c_ubyte * 32).from_buffer_copy(bytes.fromhex(image.sha256))
         # The original native function checks readonly/regular/size/EOF/digest
         # and same-FD metadata. No Python whole-file read or ctypes image copy.
-        fd = os.open(image.path, os.O_RDONLY | os.O_NOFOLLOW)
+        self._fd = os.open(image.path, os.O_RDONLY | os.O_NOFOLLOW)
+        primary: BaseException | None = None
         try:
             with self._lease._scope():
-                code = capture(self._lease._pointer, fd, image.length,
+                code = capture(self._lease._pointer, self._fd, image.length,
                                image.recipe.image_bytes_limit, digest, byref(self._pointer))
             if type(code) is not int or code != 0 or self._pointer.value is None:
                 raise NativeImageError('capture', code if type(code) is int else None)
+        except BaseException as failure:
+            primary = failure
+            raise
         finally:
-            os.close(fd)
+            try:
+                self._close_original_fd()
+            except BaseException:
+                # Preserve the original capture failure. The same image still
+                # retains its independent unconfirmed FD-close responsibility.
+                if primary is None:
+                    raise
         self._captured = True
+
+    def _close_original_fd(self) -> None:
+        if self._fd_close_failure is not None:
+            # Unknown may already have consumed the descriptor. Its number can
+            # name another file now; never close it again or infer retirement.
+            # Reuse the same diagnostic without accumulating retry tracebacks.
+            raise self._fd_close_failure.with_traceback(None)
+        if self._fd is None:
+            return
+        # Publish Unknown before the physical call. Keep this same image/Core
+        # and parent lease until the original FD close actually acknowledges.
+        failure = NativeImageError('close_fd', None)
+        self._fd_close_failure = failure
+        try:
+            os.close(self._fd)
+        except BaseException as original:
+            raise failure from original
+        self._fd = None
+        self._fd_close_failure = None
 
     def deserialize_into(self, engine: Any, module: Any, wasmtime: Any, ffi: Any) -> None:
         if not self._captured or self._closing or self._pointer.value is None:
@@ -87,6 +118,7 @@ class _NativeImageHolding:
 
     def close(self) -> None:
         self._closing = True
+        self._close_original_fd()
         if self._pointer.value is None:
             return
         retire = self._lease._library.actql_owned_retire
