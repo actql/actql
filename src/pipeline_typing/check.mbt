@@ -2628,12 +2628,13 @@ pub fn check_with_evidence(
   for (_, input) in inputs {
     let ranking = match input {
       SourceViewInput(_, _, _, owner) =>
-        match @vector.source_view_scores(owner, {
-          max_work: key_work,
-          max_nodes: score_nodes,
-          max_depth: limits.max_depth,
-          max_text_bytes: key_text,
-        }) {
+        match
+          @vector.source_view_scores(owner, {
+            max_work: key_work,
+            max_nodes: score_nodes,
+            max_depth: limits.max_depth,
+            max_text_bytes: key_text,
+          }) {
           Ok(None) => None
           Ok(Some(value)) => {
             key_work -= value.usage.work
@@ -2641,10 +2642,14 @@ pub fn check_with_evidence(
             score_nodes -= value.usage.nodes
             Some(value.input)
           }
-          Err(issue) => return Err({
-            kind: Vector(issue.kind), source,
-            path: issue.path.copy(), span: issue.span, range: None,
-          })
+          Err(issue) =>
+            return Err({
+              kind: Vector(issue.kind),
+              source,
+              path: issue.path.copy(),
+              span: issue.span,
+              range: None,
+            })
         }
       ProducedInput(p) => p.ranking
       RankingInput(r) => Some(r)
@@ -2658,7 +2663,12 @@ pub fn check_with_evidence(
     carriers,
     parameters,
     from,
-    { ..limits, max_work: key_work, max_nodes: score_nodes, max_text_bytes: key_text, },
+    {
+      ..limits,
+      max_work: key_work,
+      max_nodes: score_nodes,
+      max_text_bytes: key_text,
+    },
     calendar_profile,
     text_rank_profile,
     delta_contracts,

@@ -25,6 +25,21 @@ pub fn delivery_attempt_read_grant_cid(
 }
 
 ///|
+/// Read the admitted original timestamp for metadata validation only. It is
+/// not a fresh clock observation, grant renewal or payload-read permission.
+pub fn delivery_attempt_requested_at(
+  attempt : PublicationContract,
+) -> Result[String, DeliveryIssuanceIssue] {
+  if attempt.name != "delivery_attempt" {
+    return Err(DeliveryIssuanceWrongContract("delivery_attempt"))
+  }
+  match contract_string(attempt, "requested_at") {
+    Some(value) => Ok(value)
+    None => Err(DeliveryIssuanceReferenceMismatch("requested_at"))
+  }
+}
+
+///|
 /// Validate retained originals before matching a caller's authorized scope.
 /// The original grant binds identity; its expiry is not a current lookup
 /// permission. This never issues/consumes a grant or opens Result material.

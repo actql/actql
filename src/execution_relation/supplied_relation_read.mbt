@@ -172,9 +172,13 @@ fn supplied_relation_read_identity(
 
 ///|
 /// Metadata only: conditional original-input obligations, not validated scores.
-pub fn supplied_relation_read_needs_score_validation(value : SuppliedRelationRead) -> Bool {
+pub fn supplied_relation_read_needs_score_validation(
+  value : SuppliedRelationRead,
+) -> Bool {
   let prepared = @lower.bound_preparation(value.receiver)
-  if @lower.preparation_input_is_produced(prepared, value.input_index) { return false }
+  if @lower.preparation_input_is_produced(prepared, value.input_index) {
+    return false
+  }
   match @lower.preparation_input_ranking(prepared, value.input_index) {
     Some(ranking) => @evidence.ranking_score_count(ranking) > 0
     None => false

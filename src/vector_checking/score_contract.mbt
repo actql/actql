@@ -27,17 +27,13 @@ pub fn score_contract_maximum(value : ScoreContract) -> Double {
 }
 
 ///|
-pub fn read_score_contract(
-  at : @decode.Cursor,
-) -> ScoreContract raise Stop {
+pub fn read_score_contract(at : @decode.Cursor) -> ScoreContract raise Stop {
   let root = decoded(
     @decode.closed_object(at, [
       "domain", "range", "normalization", "higher_is_better",
     ]),
   )
-  let domain = score_contract_name(
-    decoded(@decode.required(root, "domain")),
-  )
+  let domain = score_contract_name(decoded(@decode.required(root, "domain")))
   let normalization = score_contract_name(
     decoded(@decode.required(root, "normalization")),
   )
@@ -62,6 +58,8 @@ pub fn read_score_contract(
 ///|
 fn score_contract_name(at : @decode.Cursor) -> String raise Stop {
   let name = decoded(@decode.text(at))
-  if name.is_empty() { fail(at, InvalidBody) }
+  if name.is_empty() {
+    fail(at, InvalidBody)
+  }
   name
 }

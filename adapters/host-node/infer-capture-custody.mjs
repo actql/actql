@@ -216,6 +216,20 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     }
     for (let index = 0; index < attempts; index++) {
       const slot = operation.stoppedAttemptSlot?.(index) ?? index;
+      if (typeof operation.advanceStoppedAttemptUsage !== 'function') {
+        throw new Error('InstalledInferRawUsageUnavailable');
+      }
+      // Persist only after the original Common usage child has retired.
+      // Common preserves partials and reader issues on the same attempt; JS
+      // neither decodes raw bytes nor classifies a stopped outcome as success.
+      for (;;) {
+        const progress = operation.advanceStoppedAttemptUsage(slot, 1);
+        if (typeof progress?.complete !== 'boolean') {
+          throw new Error('InstalledInferRawUsageUnavailable');
+        }
+        if (progress.complete) break;
+        await yieldEventLoop();
+      }
       const proof = operation.attemptEvidence(slot);
       const entry = durableCalls ? modelEntryFor?.(slot) : undefined;
       let terminalFailure = false;

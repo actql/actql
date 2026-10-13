@@ -44,6 +44,8 @@ pub fn advance_model_output_preparation(ModelOutputPreparation, Int) -> Result[@
 
 pub fn advance_model_reconciled_raw_usage(ModelPhysicalCall, ModelPhysicalChatResponse, Int) -> Result[(Bool, Int64), ModelExecutionIssue]
 
+pub fn advance_model_stopped_raw_usage(ModelExecution, Int, Int) -> Result[(Bool, Int64, ModelExecutionIssue?), ModelExecutionIssue]
+
 pub fn advance_native_decision_projection(NativeDecisionProjection) -> Result[NativeDecisionRequest?, NativeDecisionProjectionIssue]
 
 pub fn advance_openai_chat_projection(OpenAIChatProjection) -> Result[(String, String, String, String, String, String, String)?, OpenAIChatProjectionIssue]

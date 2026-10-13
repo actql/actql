@@ -444,7 +444,7 @@ pub fn start_supplied_key_validation(
         }
         guard state.supplied is Some(read) &&
           supplied_relation_read_available(read) else {
-          return @bounded.Failed(WrongOrigin, used, used)
+          return @bounded.Failed(InputKeyIssue::WrongOrigin, used, used)
         }
         used += 1
         match step_input_key_cursor(state) {

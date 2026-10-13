@@ -364,29 +364,47 @@ fn advance_guarded_relation(
         return Ok(managed_provider_stopped_poll(0L, 0L))
       }
       if state.measurement.max_work < 1 {
-        return guarded_relation_failure(state, @connector.Guard(@execution.MeasurementWork), 0L)
+        return guarded_relation_failure(
+          state,
+          @connector.Guard(@execution.MeasurementWork),
+          0L,
+        )
       }
-      state.measurement = { ..state.measurement, max_work: state.measurement.max_work - 1, }
-      match @execution.start_supplied_score_validation(
-        state.control, state.input, state.execution.max_work,
-        state.execution.max_frames, state.execution.rows.operation_entries,
-      ) {
+      state.measurement = {
+        ..state.measurement,
+        max_work: state.measurement.max_work - 1,
+      }
+      match
+        @execution.start_supplied_score_validation(
+          state.control,
+          state.input,
+          state.execution.max_work,
+          state.execution.max_frames,
+          state.execution.rows.operation_entries,
+        ) {
         Ok(None) => state.phase = StartCompute
         Ok(Some(validation)) => {
           state.score_guard = Some(validation)
           state.phase = InputScores
         }
-        Err(issue) => return guarded_relation_failure(
-          state, @connector.Execution(@execution.InputScore(
-            @execution.supplied_relation_read_input_index(state.input), issue,
-          )), 1L,
-        )
+        Err(issue) =>
+          return guarded_relation_failure(
+            state,
+            @connector.Execution(
+              @execution.InputScore(
+                @execution.supplied_relation_read_input_index(state.input),
+                issue,
+              ),
+            ),
+            1L,
+          )
       }
       Ok(managed_provider_continue(1L, 1L))
     }
     InputScores => {
       let validation = state.score_guard.unwrap()
-      let poll = match @execution.advance_supplied_score_validation(validation, quantum) {
+      let poll = match
+        @execution.advance_supplied_score_validation(validation, quantum) {
         Ok(poll) => poll
         Err(_) => return Err(@connector.InvalidLimits)
       }
@@ -399,19 +417,27 @@ fn advance_guarded_relation(
       let delta = work - state.score_work
       state.score_work = work
       match poll {
-        @bounded.ContinueWith(_, ..) => Ok(managed_provider_continue(delta, delta))
-        @bounded.FailedWith(issue, ..) => guarded_relation_failure(
-          state, @connector.Execution(@execution.InputScore(
-            @execution.supplied_relation_read_input_index(state.input), issue,
-          )), delta,
-        )
+        @bounded.ContinueWith(_, ..) =>
+          Ok(managed_provider_continue(delta, delta))
+        @bounded.FailedWith(issue, ..) =>
+          guarded_relation_failure(
+            state,
+            @connector.Execution(
+              @execution.InputScore(
+                @execution.supplied_relation_read_input_index(state.input),
+                issue,
+              ),
+            ),
+            delta,
+          )
         @bounded.StoppedWith(_, ..) => {
           state.phase = Finished
           Ok(managed_provider_stopped_poll(delta, delta))
         }
         @bounded.Completed(remaining, ..) => {
           state.execution = { ..state.execution, max_work: remaining, }
-          guard @execution.cleanup_supplied_score_validation(validation) is Ok(true) else {
+          guard @execution.cleanup_supplied_score_validation(validation)
+            is Ok(true) else {
             return Err(@connector.InvalidLimits)
           }
           state.score_guard = None
@@ -536,7 +562,9 @@ fn advance_guarded_relation(
 }
 
 ///|
-fn guarded_relation_after_keys(state : GuardedRelationState) -> GuardedRelationPhase {
+fn guarded_relation_after_keys(
+  state : GuardedRelationState,
+) -> GuardedRelationPhase {
   if @execution.supplied_relation_read_needs_score_validation(state.input) {
     StartScores
   } else {

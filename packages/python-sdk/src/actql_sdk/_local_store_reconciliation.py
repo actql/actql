@@ -77,6 +77,8 @@ class OriginalStoreReconciliation:
         self._sdk_evidence_key_attempts: set[str] = set()
         self._sdk_delivery_request_attempts: set[int] = set()
         self._sdk_delivery_key_attempts: set[str] = set()
+        self._sdk_terminal_request_attempts: set[int] = set()
+        self._sdk_terminal_key_attempts: set[str] = set()
 
     def _nominal(self) -> None:
         if self._original is not self:
@@ -324,6 +326,11 @@ class OriginalStoreReconciliation:
                                consume: Callable[[ByteWrite], object]) -> None:
         self._project_sdk_read_store(request, lambda transfer:
             self._projection.project_sdk_read_grant(request, original_run, transfer), consume)
+
+    def project_sdk_delivery_lookup(self, request: _Input, original_run: int,
+                                    consume: Callable[[bytes], object]) -> None:
+        self._project_sdk_read_store(request, lambda transfer:
+            self._projection.project_sdk_delivery_lookup(request, original_run, transfer), consume)
 
     def _project_sdk_read_store(self, request: _Input,
                                 produce: Callable[[Callable[[_T], None]], None],

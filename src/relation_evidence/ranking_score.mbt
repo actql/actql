@@ -211,7 +211,7 @@ pub fn source_view_scores(
       @model_environment.source_relation_scores_schema(scores),
     ),
     limits,
-  ).map(Some)
+  ).map(value => Some(value))
 }
 
 ///|

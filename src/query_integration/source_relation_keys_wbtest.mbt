@@ -26,9 +26,13 @@ fn source_relation_keys_declaration(
         schema_wire,
         schema_cid,
         request_schema_wire: None,
-        facts_wire: Some(if scores {
-          "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]},\"relation_scores\":{\"payload\":{\"domain\":\"Relevance\",\"normalization\":\"Identity\",\"range\":[0,1]}}}"
-        } else { "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]}}" }),
+        facts_wire: Some(
+          if scores {
+            "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]},\"relation_scores\":{\"payload\":{\"domain\":\"Relevance\",\"normalization\":\"Identity\",\"range\":[0,1]}}}"
+          } else {
+            "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]}}"
+          },
+        ),
         acquisition_wire: None,
       },
     ],
@@ -97,13 +101,25 @@ fn source_relation_keys_requirement(
   assert_true(@lower.preparation_input_keys(preparation, 0) is Some(_))
   if scores {
     let original = @lower.preparation_input_ranking(preparation, 0).unwrap()
-    let declaration = @vector.ranking_score_at(original, @schema.Unqualified("payload")).unwrap()
+    let declaration = @vector.ranking_score_at(
+      original,
+      @schema.Unqualified("payload"),
+    ).unwrap()
     assert_eq(@vector.declared_score_contract(declaration).domain, "Relevance")
-    let projected = @pipeline.ranking_evidence(@lower.pipeline(preparation), @pipeline.Step(1)).unwrap()
-    assert_true(physical_equal(
-      @vector.ranking_score_at(projected, @schema.Unqualified("value")).unwrap(), declaration,
-    ))
-    assert_true(@vector.ranking_score_at(projected, @schema.Unqualified("payload")) is None)
+    let projected = @pipeline.ranking_evidence(
+      @lower.pipeline(preparation),
+      @pipeline.Step(1),
+    ).unwrap()
+    assert_true(
+      physical_equal(
+        @vector.ranking_score_at(projected, @schema.Unqualified("value")).unwrap(),
+        declaration,
+      ),
+    )
+    assert_true(
+      @vector.ranking_score_at(projected, @schema.Unqualified("payload"))
+      is None,
+    )
   }
   @planning.prepare_query_requirement(
     @planning.prepare_query_material(sequence, query_material_limits()).unwrap(),
@@ -120,7 +136,11 @@ fn source_relation_keys_run(
   scores? : Bool = false,
 ) -> (@row_host.RowRun, @resources.Ledger) raise {
   let declaration = source_relation_keys_declaration(drop_key~, scores~)
-  let requirement = source_relation_keys_requirement(declaration, drop_key~, scores~)
+  let requirement = source_relation_keys_requirement(
+    declaration,
+    drop_key~,
+    scores~,
+  )
   let (query, evidence) = query_evidence_test_bodies()
   let acquisition = @row_host.prepare_row_acquisition(
     declaration,
