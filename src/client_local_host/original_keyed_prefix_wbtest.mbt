@@ -14,7 +14,9 @@ priv struct OriginalKeyedPrefixFixture {
 }
 
 ///|
-fn original_keyed_prefix_fixture() -> OriginalKeyedPrefixFixture raise {
+fn original_keyed_prefix_fixture(
+  one_short? : Bool = false,
+) -> OriginalKeyedPrefixFixture raise {
   let (declaration, prepared, compiled, definition, plan, keyed, requirement) = original_keyed_run_fixture(
     relation_versions=true,
   )
@@ -76,7 +78,8 @@ fn original_keyed_prefix_fixture() -> OriginalKeyedPrefixFixture raise {
     retained_bytes: @row_source_host.row_acquisition_retained_capacity(
       acquisition,
     ) +
-    @execution.execution_capacity_retained_bytes(capacity) +
+    @execution.execution_capacity_retained_bytes(capacity) -
+    (if one_short { 1L } else { 0L }) +
     3L,
     execution_bytes: @row_source_host.row_acquisition_execution_capacity(
       acquisition,
@@ -196,7 +199,10 @@ test "original keyed left prefix executes unique sort take and binds the actual 
     before.transferred_bytes,
   )
   let admitted = @resources.ledger_usage(value.ledger)
-  assert_true(original_keyed_prefix_start(value) is Err(Original(_)))
+  // Closing revokes the actual Row capture before the later Scope loan.
+  assert_true(
+    original_keyed_prefix_start(value) is Err(Capture(@query.Unavailable)),
+  )
   assert_eq(@resources.ledger_usage(value.ledger), admitted)
   let mut output : @execution.CompletedOutput? = None
   for _ in 0..<10000 {
@@ -310,4 +316,19 @@ test "original keyed left prefix refuses a foreign Scope and a closing original 
   assert_eq(@resources.ledger_usage(value.ledger), before)
   original_keyed_prefix_close(value)
   original_keyed_prefix_close(foreign)
+}
+
+///|
+test "original keyed left prefix one-short allowance rejects before provider allocation without changing the original census" {
+  let value = original_keyed_prefix_fixture(one_short=true)
+  let before = @resources.ledger_usage(value.ledger)
+  assert_true(
+    original_keyed_prefix_start(value)
+    is Err(Physical(@resources.RetentionLimit)),
+  )
+  assert_eq(@resources.ledger_usage(value.ledger), before)
+  assert_eq(before.attempts, 1)
+  assert_eq(before.holdings, 1)
+  assert_true(@row_source_host.row_capture_source(value.capture) is Ok(_))
+  original_keyed_prefix_close(value)
 }
