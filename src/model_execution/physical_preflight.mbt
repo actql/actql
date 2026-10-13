@@ -99,6 +99,61 @@ pub fn model_async_physical_request_plan(
 }
 
 ///|
+// Native Decision has no generation settings or authored output-token floor.
+// This dedicated builder consumes the same immutable request projection and
+// installed asynchronous provider. Profile/quantity declarations are not
+// startup funding, current authority, saved observations or permission to send.
+pub fn model_async_native_decision_request_plan(
+  request : ModelRequest,
+  original : NativeDecisionRequest,
+  provider : AdmittedModelProvider,
+  wire_bytes : Int64,
+  quantities : @resources.QuantityAmounts,
+  profile : @environment.ModelResponseProfile,
+  installation : @environment.ModelResponseProfileInstallation,
+  probability : @environment.DecisionProbabilityProfile,
+  start : (ModelCallEntry) -> ModelPhysicalCall?,
+) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
+  if !native_decision_request_matches(original, provider, request) ||
+    !(provider.provider.invocation is AsynchronousPhysical) ||
+    @environment.model_task_kind(request.task) != @environment.Decision ||
+    @environment.model_response_profile_completion_basis(profile) !=
+    "native_decision" ||
+    @environment.check_model_response_profile_binding(
+      profile,
+      request.task,
+      installation,
+      Some(probability),
+    )
+    is Err(_) {
+    return Err(InvalidProvider)
+  }
+  if wire_bytes >
+    @environment.model_response_profile_limits(profile).request_bytes.to_int64() {
+    return Err(RequestLimit)
+  }
+  prepare_model_physical_plan(
+    request,
+    wire_bytes,
+    quantities,
+    Asynchronous(entry => {
+      // A retired/foreign borrowed view cannot re-enter the fixed adapter.
+      // If retirement is observed after durable Entry, None preserves that
+      // original entered Unknown responsibility; it is not an unsent proof.
+      if native_decision_request_matches(original, provider, request) {
+        start(entry)
+      } else {
+        None
+      }
+    }),
+    Some(profile),
+    None,
+    [],
+    native_original=(original, provider),
+  )
+}
+
+///|
 fn prepare_model_physical_plan(
   request : ModelRequest,
   wire_bytes : Int64,
@@ -107,6 +162,7 @@ fn prepare_model_physical_plan(
   response_profile : @environment.ModelResponseProfile?,
   evidence : ModelPhysicalRequestEvidence?,
   attachments : Array[ModelContentAdmission],
+  native_original? : (NativeDecisionRequest, AdmittedModelProvider),
 ) -> Result[ModelPhysicalRequestPlan, ModelExecutionIssue] {
   if wire_bytes < 0L ||
     wire_bytes > 9007199254740991L ||
@@ -118,14 +174,30 @@ fn prepare_model_physical_plan(
     quantities.duration_ms > 9007199254740991L {
     return Err(InvalidLimits)
   }
-  // This installed synchronous generation profile has no Decision transport.
-  // Contract admission is not provider compatibility or a fabricated token cap.
-  guard @environment.model_task_generation_config(request.task)
-    is Some(generation) else {
-    return Err(InvalidProvider)
-  }
-  if quantities.tokens < generation.max_output_tokens {
-    return Err(InvalidLimits)
+  match @environment.model_task_generation_config(request.task) {
+    Some(generation) => {
+      if native_original is Some(_) {
+        return Err(InvalidProvider)
+      }
+      if quantities.tokens < generation.max_output_tokens {
+        return Err(InvalidLimits)
+      }
+    }
+    None => {
+      // No other caller, especially the synchronous fixture path, can turn a
+      // missing generation config into an admitted Decision transport. Preserve
+      // the exact original view and native profile checks without a Plan field.
+      guard native_original is Some((original, provider)) &&
+        invocation is Asynchronous(_) &&
+        response_profile is Some(profile) &&
+        native_decision_request_matches(original, provider, request) &&
+        provider.provider.invocation is AsynchronousPhysical &&
+        @environment.model_task_kind(request.task) == @environment.Decision &&
+        @environment.model_response_profile_completion_basis(profile) ==
+        "native_decision" else {
+        return Err(InvalidProvider)
+      }
+    }
   }
   match model_content_admissions_match(request, attachments, wire_bytes) {
     Err(issue) => return Err(Content(issue))
