@@ -866,6 +866,9 @@ try {
       ...((process.argv.includes('--ranking-fusion-only') ||
         (!narrowPublicQuery && !twoSourceExampleOnly && !plannerSelectionOnly))
         ? ['ranking-fusion-receipts.local.json', 'ranking-fusion-receipts.remote.json'] : []),
+      ...((process.argv.includes('--quoted-identifiers-only') ||
+        (!narrowPublicQuery && !twoSourceExampleOnly && !plannerSelectionOnly))
+        ? ['quoted-identifier-receipts.local.json', 'quoted-identifier-receipts.remote.json'] : []),
       ...((process.argv.includes('--carrier-continuation-only') ||
         (!narrowPublicQuery && !twoSourceExampleOnly && !plannerSelectionOnly))
         ? ['carrier-continuation-receipts.local.json', 'carrier-continuation-receipts.remote.json'] : []),
