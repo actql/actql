@@ -3,7 +3,8 @@ import {bindWorkersFiniteHost} from './finite.mjs';
 import {createAuthorizationGate} from '../host-common/authorization-gate.mjs';
 
 // Trusted installation only. Every opaque handle and authorization gate in
-// this assembly belongs to one explicitly seeded production MoonBit runtime.
+// this assembly belongs to one invocation-created production MoonBit runtime
+// driving one original Run. Do not cache the returned assembly across requests.
 // Programs and received run materials cannot choose a runtime or verifier.
 export function createWorkersFiniteRuntime(hashSeed, configuration) {
   const runtime = instantiate(hashSeed);

@@ -103,6 +103,14 @@ control object used by `host`; copying the runtime into another control facade
 would split wrapper custody. The physical hash seed is explicit and confers no
 identity or authority. The production payload excludes conformance fixtures.
 
+Create this assembly within the invocation driving one original Run. Do not
+cache the returned Host/runtime in module globals or a long-lived Durable Object
+instance for later requests. This follows the existing invocation-created linked
+runtime contract; importing the factory itself does not create a Host. Preserve
+the exact assembly, original Ledger and pending cleanup handle within that
+invocation until cleanup is confirmed. An unresolved cleanup handle is retained
+responsibility, not permission to return success or replay the Run elsewhere.
+
 `workersFiniteArtifact.componentCid` and `componentBytes` identify the audited
 production payload module bytes in the same package. The generated entry wrapper
 is separate from the payload so its SHA-256 has no self-reference. These fields
@@ -136,6 +144,15 @@ and Ledger and retains that custody. Re-admitting the same material cannot open
 the same Run twice within one binding; the durable accepting owner enforces the
 same no-reexecution rule across bindings and restarts.
 
+The binding keeps only its first original Run Definition CID, including after
+an unsuccessful open. Reopening that Run refuses with
+`WorkersFiniteRunAlreadyOpened`; opening a different original Run in this same
+invocation binding refuses with `InvalidWorkersFiniteInstallation`. Preparation
+metadata alone does not select the Run. This one-shot invocation latch is neither
+a durable claim nor a process-wide deduplication service. The accepting durable
+request Owner must decide replay, restoration and retirement across invocations;
+creating a fresh runtime does not prove that a Run was never executed.
+
 `withExecution(setup, authorization, consume, signal)` requires the same protected
 Account gate as `open`, checks current activation through the common strategy,
 and uses its existing completion and scoped cleanup protocol. The gate must
@@ -145,6 +162,13 @@ The accepting Owner must enforce the same invariant across bindings and requests
 Outputs remain borrowed only during `consume`. The caller remains responsible
 for the existing Named Result publication/Store protocol before releasing them;
 physical task completion alone is not durable publication or Cloud Run completion.
+
+The invocation lifetime fixes where this adapter retains its original CID latch,
+prepared metadata, setup/gate associations and cleanup closure. Their physical
+representation and overlap still belong in the existing installation resource
+inventory. This entry does not establish a complete normal numeric resource
+profile or a deployed CPU/memory limit; finite per-Run Ledger limits do not prove
+capacity for an arbitrary number of long-lived Host instances.
 
 `core.outputExportControl.measurement(exported)` projects the exact column
 measurements established by the live canonical Result export. The same export's

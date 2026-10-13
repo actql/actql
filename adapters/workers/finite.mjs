@@ -61,7 +61,7 @@ function protectedGate(authorization) {
   return authorization;
 }
 
-// Trusted installation, never request JSON. Preparation and original Run
+// Trusted invocation-scoped installation, never request JSON. Preparation and original Run
 // admission MUST share this runtime/link unit. No separately built package's
 // opaque handle can stand in for a checked preparation or authorization.
 export function bindWorkersFiniteHost(runtime, configuration) {
@@ -75,7 +75,7 @@ export function bindWorkersFiniteHost(runtime, configuration) {
   const capacity = Object.freeze({...selected.capacity, common_fragment: undefined});
   const core = runtimeCore(moon);
   const preparations = new WeakSet();
-  const openedDefinitions = new Set();
+  let originalDefinitionCid = null;
   const setups = new WeakMap();
   const started = new WeakSet();
   const retainPreparation = (program, compilation) => {
@@ -116,12 +116,18 @@ export function bindWorkersFiniteHost(runtime, configuration) {
       if (!preparations.has(preparation) || definition === null ||
           typeof definition !== 'object') invalid();
       const identity = moon.strategyPublicationContractIdentity(definition);
-      if (openedDefinitions.has(identity)) {
-        throw new TypeError('WorkersFiniteRunAlreadyOpened');
+      if (!text(identity)) invalid();
+      if (originalDefinitionCid !== null) {
+        if (originalDefinitionCid === identity) {
+          throw new TypeError('WorkersFiniteRunAlreadyOpened');
+        }
+        // A different original Run requires its own invocation/link unit.
+        // This installation refusal is not a restriction on Program meaning.
+        invalid();
       }
       // An unsuccessful open may already have charged planning work. Keep the
       // original caller's Ledger and refusal; never silently reopen this Run.
-      openedDefinitions.add(identity);
+      originalDefinitionCid = identity;
       const setup = checked(moon.workersFiniteOpen(preparation.program, preparation.compilation,
         admission, definition, contracts, selected.sequence, selected.execution,
         selected.measurement, capacity, ledger, selected.search,

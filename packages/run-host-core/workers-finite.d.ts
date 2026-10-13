@@ -109,7 +109,11 @@ export interface WorkersFiniteAuthorizationOptions {
   readonly maxRetainedDecisions?: number;
 }
 
-/** Creates one explicit-seed production runtime with no conformance issuer. */
+/**
+ * Creates one invocation-scoped linked runtime for one original Run, with no
+ * conformance issuer. Do not cache the returned assembly across requests.
+ * Keep pending cleanup and its original Ledger within this invocation's custody.
+ */
 export function createWorkersFiniteRuntime(hashSeed: number,
   configuration: WorkersFiniteConfiguration): Readonly<{
     host: WorkersFiniteHost;

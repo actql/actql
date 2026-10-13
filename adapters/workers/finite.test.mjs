@@ -33,7 +33,7 @@ function fixture() {
   Object.assign(runtime, {workersFiniteTemplate: () => ({}), workersFiniteCompiledPlan: () => ({}),
     strategyRemoteManagedOutputEvidenceKind: () => 'fixture-only',
     strategyHostAuthorizeActivation() {}, strategyHostRequireActivation() {},
-    strategyPublicationContractIdentity: definition => definition.identity ?? definition,
+    strategyPublicationContractIdentity: definition => definition.identity ?? 'original-run',
     strategyHostUsage: setup => ({setup}), strategyHostProgramDefinitionCid() {}});
   const authorization = {authorize() {}, cover() {}, isProtectedSite: site => site === 'in-process-default'};
   return {configuration, runtime, calls, authorization};
@@ -125,6 +125,63 @@ test('failed finite open preserves the refusal and never automatically creates a
   assert.throws(() => host.open(preparation, owner, authorization), error => error.cause === refusal);
   assert.throws(() => host.open(preparation, owner, authorization), /WorkersFiniteRunAlreadyOpened/);
   assert.equal(attempts, 1);
+});
+
+test('an invocation binding preserves its first original Run identity after a successful open', () => {
+  const {configuration, runtime, calls, authorization} = fixture();
+  const host = bindWorkersFiniteHost(runtime, configuration);
+  const preparation = host.prepare('{}');
+  const original = {admission: {}, definition: {identity: 'first-run'}, ledger: {}};
+  const setup = host.open(preparation, original, authorization);
+  host.usage(setup);
+  assert.throws(() => host.open(preparation, {...original,
+    definition: {identity: 'first-run'}}, authorization), /WorkersFiniteRunAlreadyOpened/);
+  assert.throws(() => host.open(preparation, {...original,
+    definition: {identity: 'second-run'}}, authorization), /InvalidWorkersFiniteInstallation/);
+  assert.equal(calls.filter(call => call.name === 'Open').length, 1);
+});
+
+test('a charged open refusal retains the same invocation binding without opening a different Run', () => {
+  const {configuration, runtime, authorization} = fixture();
+  const refusal = {}, ledger = {observedCalls: 0};
+  runtime.workersFiniteOpen = (...args) => {
+    assert.equal(args[9], ledger);
+    ledger.observedCalls++;
+    return {$tag: 0, _0: refusal};
+  };
+  const host = bindWorkersFiniteHost(runtime, configuration);
+  const preparation = host.prepare('{}');
+  const original = {admission: {}, definition: {identity: 'first-run'}, ledger};
+  assert.throws(() => host.open(preparation, original, authorization), error => error.cause === refusal);
+  assert.throws(() => host.open(preparation, {...original,
+    definition: {identity: 'second-run'}}, authorization), /InvalidWorkersFiniteInstallation/);
+  assert.throws(() => host.open(preparation, original, authorization), /WorkersFiniteRunAlreadyOpened/);
+  assert.equal(ledger.observedCalls, 1);
+});
+
+test('pre-open authorization and foreign preparation refusals do not bind another Run', () => {
+  const {configuration, runtime, calls, authorization} = fixture();
+  const host = bindWorkersFiniteHost(runtime, configuration);
+  const preparation = host.prepare('{}');
+  const original = {admission: {}, definition: {identity: 'refused-before-open'}, ledger: {}};
+  assert.throws(() => host.open(preparation, original, {}), /WorkersFiniteProtectedAuthorizationRequired/);
+  assert.throws(() => host.open({...preparation}, original, authorization), /InvalidWorkersFiniteInstallation/);
+  host.open(preparation, {...original, definition: {identity: 'selected-run'}}, authorization);
+  assert.equal(calls.filter(call => call.name === 'Open').length, 1);
+});
+
+test('preparation metadata and Ledger creation do not select an invocation Run before open', () => {
+  const {configuration, runtime, calls, authorization} = fixture();
+  const host = bindWorkersFiniteHost(runtime, configuration);
+  const unused = host.prepare('{}');
+  const selected = host.prepare('{}');
+  assert.ok(unused.template && unused.compiledPlan && selected.template && selected.compiledPlan);
+  const ledger = host.createLedger();
+  const original = {admission: {}, definition: {identity: 'selected-run'}, ledger};
+  host.open(selected, original, authorization);
+  assert.throws(() => host.open(unused, {...original,
+    definition: {identity: 'unused-run'}}, authorization), /InvalidWorkersFiniteInstallation/);
+  assert.equal(calls.filter(call => call.name === 'Open').length, 1);
 });
 
 
