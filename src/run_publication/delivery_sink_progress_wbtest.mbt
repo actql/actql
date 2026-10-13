@@ -72,4 +72,3 @@ test "empty delivery output observation cannot acknowledge a failed sink" {
   assert_eq(sink.observe_empty_output(), Err(DeliverySinkClosed))
   assert_eq(sink.confirmed_bytes(), 0L)
 }
-

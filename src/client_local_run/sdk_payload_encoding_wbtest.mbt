@@ -166,4 +166,3 @@ test "SDK payload empty outputs retain cumulative progress through independent 4
   encoding.cancel_frames()
   assert_true(encoding.observe_empty_output() is Err(Frames(DurableRowFrameClosed)))
 }
-
