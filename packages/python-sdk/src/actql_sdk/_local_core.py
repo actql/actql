@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 62
+LOCAL_CORE_ABI = 64
 
 
 class LocalCoreError(RuntimeError):
@@ -308,6 +308,10 @@ _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'result_count': ('i64 i32 i32', 'i32'),
     'produce_observed_index': ('i64 i32 i32 i32', 'i32'),
     'produce_run_state': ('i64 i32 i32 i32', 'i32'),
+    'produce_sdk_read_original': ('i64 i32 i32 i32 i32 i32 i32', 'i32'),
+    'produce_sdk_read_evidence': ('i64 i32 i32 i32 i32 i32', 'i32'),
+    'produce_sdk_read_grant': ('i64 i32 i32 i32 i32 i32', 'i32'),
+    'produce_sdk_read_evidence_decision': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_lookup_reference': ('i64 i32 i32 i32', 'i32'),
     'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_index_key': ('i64 i32 i32', 'i32'),
@@ -1997,6 +2001,94 @@ class LocalCore:
             self._check('produce_publication_observed_run_state', self._call(
                 'publication_commit_export', 'produce_run_state', value.handle,
                 observed_at.handle, current_configuration))
+
+    def produce_publication_sdk_read_original(self, value: _Output, request: _Input,
+                                              original_run: int,
+                                              current_configuration: int,
+                                              ordinal: int, *,
+                                              field: Literal['wire', 'identity']) -> None:
+        """Copy one Core-issued original body/CID, never permission or ACK.
+
+        Core requires the original finite Run, complete observed chain and
+        independent current publisher/Account read decisions. The original
+        request loan remains borrowed until this output's cleanup succeeds.
+        Persisting these bytes and issuing a grant are separate operations.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_input(request)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(original_run) is not int or not 0 < original_run < 2**31
+                    or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31
+                    or type(ordinal) is not int or not 0 <= ordinal <= 2
+                    or type(field) is not str or field not in ('wire', 'identity')):
+                raise ValueError('Invalid original SDK read projection')
+            self._check('produce_publication_sdk_read_original', self._call(
+                'publication_commit_export', 'produce_sdk_read_original', value.handle,
+                request.handle, original_run, current_configuration, ordinal,
+                0 if field == 'wire' else 1))
+
+    def produce_publication_sdk_read_evidence_decision(self, value: _Output,
+                                                      request: _Input,
+                                                      original_run: int,
+                                                      current_configuration: int) -> None:
+        """Project Core's typed append/retained proposal from actual Store rows.
+
+        No Python comparison or physical COMMIT result supplies this decision.
+        Unknown attempted writes keep original custody and are never replayed.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_input(request)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(original_run) is not int or not 0 < original_run < 2**31
+                    or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK read evidence decision')
+            self._check('produce_sdk_read_evidence_decision', self._call(
+                'publication_commit_export', 'produce_sdk_read_evidence_decision',
+                value.handle, request.handle, original_run, current_configuration))
+
+    def produce_publication_sdk_read_evidence(self, value: _Output, request: _Input,
+                                              original_run: int,
+                                              current_configuration: int, *,
+                                              field: Literal['wire', 'identity']) -> None:
+        """Project the exact Core evidence packet/key, without a Store write."""
+        self._produce_publication_sdk_read_entry(value, request, original_run,
+            current_configuration, field, 'produce_sdk_read_evidence')
+
+    def produce_publication_sdk_read_grant(self, value: _Output, request: _Input,
+                                           original_run: int,
+                                           current_configuration: int, *,
+                                           field: Literal['wire', 'identity']) -> None:
+        """Issue through Core only after the same Store's actual evidence read.
+
+        A grant body is not its persistence, usage claim, delivery or Run state.
+        Query failure/missing/changed evidence retain the exact same loans.
+        """
+        self._produce_publication_sdk_read_entry(value, request, original_run,
+            current_configuration, field, 'produce_sdk_read_grant')
+
+    def _produce_publication_sdk_read_entry(self, value: _Output, request: _Input,
+                                           original_run: int, current_configuration: int,
+                                           field: Literal['wire', 'identity'],
+                                           operation: str) -> None:
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_input(request)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(original_run) is not int or not 0 < original_run < 2**31
+                    or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31
+                    or type(field) is not str or field not in ('wire', 'identity')):
+                raise ValueError('Invalid original SDK read entry projection')
+            self._check(operation, self._call(
+                'publication_commit_export', operation, value.handle, request.handle,
+                original_run, current_configuration, 0 if field == 'wire' else 1))
 
     def produce_publication_commit_schema(self, value: _Output,
                                            current_configuration: int, result: int, *,

@@ -157,6 +157,8 @@ class InstalledLocalHost:
         self._observation_attempts: set[int] = set()
         self._publication_write_attempts: set[int] = set()
         self._pending_publication_write: OriginalCommitProjection | None = None
+        # Routing alias to the same retained publisher loan, never a new grant.
+        self._pending_publication_publisher: _Output | None = None
         self._payloads: list[_PayloadCustody] = []
         self._payload_write_attempts: set[int] = set()
         self._payload_capacity_attempts: set[int] = set()
@@ -354,6 +356,7 @@ class InstalledLocalHost:
             installation.binding.inspect(lambda _:
                 self._core.validate_publication_run(projection._publication,
                     run.handle, configuration.handle))
+            self._ensure_original_publication_observation(projection)
             self._project_original_run_state(projection, consume)
         except BaseException:
             # Unattached transport never reaches the Client. The original
@@ -1943,6 +1946,33 @@ class InstalledLocalHost:
             installation.binding.inspect(select)
             return tuple(collected)
 
+    def _ensure_original_publication_observation(self, projection: OriginalCommitProjection) -> None:
+        """Observe this attempted original write when an explicit status arrives.
+
+        A lost COMMIT response can stop the original worker before lookup. This
+        retains the same pending write/publisher and asks the existing Owner to
+        inspect the same Store once. It starts no write, acceptance or execution,
+        and does not turn the resulting action into ACK or a Run terminal.
+        Failed lookup keeps the same observation holder for cleanup, not replay.
+        """
+        self._active()
+        with self._core._lock:
+            key = projection._publication.ticket
+            if key in self._store_observations:
+                if self._store_observations[key]._projection is not projection:
+                    raise ValueError('Foreign original Local publication observation')
+                return
+            publisher = self._pending_publication_publisher
+            if (self._pending_publication_write is not projection
+                    or key not in self._publication_write_attempts
+                    or publisher is None
+                    or not any(original is projection for original in self._commit_projections)
+                    or not any(original is publisher for original in self._publishers)):
+                raise ValueError('Original attempted publication observation is unavailable')
+            self._prepare_original_store_observation(projection, publisher)
+            while self._advance_original_store_observation(projection) is None:
+                pass  # Existing finite observation Owner and shared work/fuel.
+
     def _prepare_original_store_observation(self, projection: OriginalCommitProjection, publisher: _Output) -> None:
         """Forward actual same-key lookup without a write, resend or ACK.
 
@@ -2103,6 +2133,7 @@ class InstalledLocalHost:
                 with installation.binding.fenced() as fences:
                     self._publication_write_attempts.add(projection._publication.ticket)
                     self._pending_publication_write = projection
+                    self._pending_publication_publisher = publisher
                     generations = store.store_publication_projected_inspected(
                         counts[0], projection.project_storage_entry, originals, fences,
                         inspect=lambda reader, consume:
@@ -2235,6 +2266,7 @@ class InstalledLocalHost:
                 if (self._pending_publication_write is not None
                         and self._pending_publication_write._publication is publication):
                     self._pending_publication_write = None
+                    self._pending_publication_publisher = None
             for chunk in tuple(reversed(self._result_chunks)):
                 if not self._core.close_result_chunk(chunk):
                     return False
