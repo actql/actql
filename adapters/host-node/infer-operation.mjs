@@ -73,10 +73,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   // aggregate headroom or the later Model seal's distinct requirements.
   let originalConsumer;
   let originalScope = originalPreparation?.scope;
-  const metadataInstallation = originalPreparation?.metadataInstallation;
-  const metadataNodeInstallation = originalPreparation?.nodeInstallation;
-  const metadataControl = originalPreparation?.control;
-  const metadataDefinition = originalPreparation?.runDefinition;
+  let metadataInstallation = originalPreparation?.metadataInstallation;
+  let metadataNodeInstallation = originalPreparation?.nodeInstallation;
+  let metadataControl = originalPreparation?.control;
+  let metadataDefinition = originalPreparation?.runDefinition;
   let originalMetadata;
   if (originalPreparation !== undefined) {
     if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined || keyedInput !== undefined ||
@@ -289,6 +289,14 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (originalMetadata !== undefined) originalMetadataSources.delete(originalMetadata.handle);
       originalMetadata = undefined;
       originalScope = undefined;
+      // Escaped metadata methods must not keep the original installation/Run
+      // after this same Core Owner acknowledges cleanup. Pending/failed
+      // cleanup retains these aliases; independent immutable borrows and
+      // external Store/read custody are neither mutated nor settled here.
+      metadataInstallation = undefined;
+      metadataNodeInstallation = undefined;
+      metadataControl = undefined;
+      metadataDefinition = undefined;
       rawCaptureBinder = undefined;
       io?.close();
       io = undefined;

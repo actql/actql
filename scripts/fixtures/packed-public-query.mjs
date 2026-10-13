@@ -1,3 +1,4 @@
+import {windowGroupSourceSuccesses, windowGroupSourceRefusals} from './window-group-source-input.mjs';
 import {sequenceSourceSuccesses, sequenceSourceRefusals} from './sequence-source-input.mjs';
 import {temporalJoinSourceSuccesses, temporalJoinSourceRefusals} from './temporal-join-source-input.mjs';
 import {timeSeriesPrimarySuccesses, timeSeriesPrimaryRefusals} from './time-series-primary-source-input.mjs';
@@ -272,6 +273,7 @@ const distinctOrderOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_ONLY === '1';
 const analyticPropertyOnly = process.env.ACTQL_TEST_ANALYTIC_PROPERTY_ONLY === '1';
 const graphRemainingOperationsOnly = process.env.ACTQL_TEST_GRAPH_REMAINING_OPERATIONS_ONLY === '1';
 const timeSeriesPrimaryOnly = process.env.ACTQL_TEST_TIME_SERIES_PRIMARY_ONLY === '1';
+const windowGroupOnly = process.env.ACTQL_TEST_WINDOW_GROUP_ONLY === '1';
 const sequenceSourceOnly = process.env.ACTQL_TEST_SEQUENCE_SOURCE_ONLY === '1';
 const carrierContinuationOnly = process.env.ACTQL_TEST_CARRIER_CONTINUATION_ONLY === '1';
 const temporalJoinOnly = process.env.ACTQL_TEST_TEMPORAL_JOIN_ONLY === '1';
@@ -362,7 +364,7 @@ const countifDistinctOnly = process.env.ACTQL_TEST_COUNTIF_DISTINCT_ONLY === '1'
 const analyticDistinctFrameOnly = process.env.ACTQL_TEST_ANALYTIC_DISTINCT_FRAME_ONLY === '1';
 const distinctAggregateOrderOnly = process.env.ACTQL_TEST_DISTINCT_AGGREGATE_ORDER_ONLY === '1';
 const distinctOrderReceiverOnly = process.env.ACTQL_TEST_DISTINCT_ORDER_RECEIVER_ONLY === '1';
-const scopeOnly = sequenceSourceOnly || rankingFusionOnly || temporalJoinOnly || timeSeriesPrimaryOnly || carrierContinuationOnly || lagOnly || rowWatermarkOnly || eventDedupeOnly || aggregateFilterOnly || distinctOrderReceiverOnly || groupOrderRangeAliasOnly || groupedRowsBoundaryOnly || positiveLimitOnly || hexIntegerOnly || unpivotMulticolumnOnly || unpivotRowLabelOnly || fromUnpivotOnly || pipePivotOnly || pipeUnpivotOnly || matchWithProducerOnly || betweenOnly || ifnullCoalesceReuseOnly || negatedPredicateReuseOnly || concatReuseOnly || absOnly || distinctAggregateOrderOnly || analyticDistinctFrameOnly || countifDistinctOnly || minMaxDistinctOnly || pipeDistinctOnly || setCorrespondingOnly || setInnerByNameOnly || groupByAllOnly || setByNameListOnly || lowerOnly || shortRowsOnly || orderWindowOnly || upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || graphGraftOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || cteValueTableOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly || membershipReuseOnly || graphRowsJoinOnly || traversalJoinOnly || graphRelationJoinOnly;
+const scopeOnly = windowGroupOnly || sequenceSourceOnly || rankingFusionOnly || temporalJoinOnly || timeSeriesPrimaryOnly || carrierContinuationOnly || lagOnly || rowWatermarkOnly || eventDedupeOnly || aggregateFilterOnly || distinctOrderReceiverOnly || groupOrderRangeAliasOnly || groupedRowsBoundaryOnly || positiveLimitOnly || hexIntegerOnly || unpivotMulticolumnOnly || unpivotRowLabelOnly || fromUnpivotOnly || pipePivotOnly || pipeUnpivotOnly || matchWithProducerOnly || betweenOnly || ifnullCoalesceReuseOnly || negatedPredicateReuseOnly || concatReuseOnly || absOnly || distinctAggregateOrderOnly || analyticDistinctFrameOnly || countifDistinctOnly || minMaxDistinctOnly || pipeDistinctOnly || setCorrespondingOnly || setInnerByNameOnly || groupByAllOnly || setByNameListOnly || lowerOnly || shortRowsOnly || orderWindowOnly || upperOnly || windowScalarOnly || analyticStringAggOnly || sqrtOnly || unnestCheckedArrayOnly || inUnnestLiteralArrayOnly || correlatedUnnestOnly || graphAnyDirectionOnly || arrayLiteralOnly || graphQuantifierFormsOnly || graphAbbreviatedOnly || pipeJoinRangesOnly || pipeJoinInputOnly || unnestOnly || unnestParameterPathOnly || ceilingOnly || fullJoinScopeOnly || orderAggregateExpressionOnly || selectAggregateExpressionOnly || havingAggregateOnly || unaryPlusOnly || replaceCallOnly || characterLengthOnly || selectAllOnly || starExclusionOnly || typedJsonOnly || analyticPartitionExpressionOnly || graphSubtractionOnly || graphUnionOnly || graphGraftOnly || statisticalAggregateOnly || graphDifferenceOnly || limitParameterOnly || ifnullOnly || aggregatePropertyOrderOnly || computedObjectPropertyOnly || havingObjectPropertyOnly || analyticPartitionPropertyOnly || analyticCountifOnly || analyticFrameParameterOnly || analyticOffsetOnly || joinPropertyOnly || analyticProfilesOnly || analyticOrderOnly || process.env.ACTQL_TEST_PIPE_SCOPE_ONLY === '1' || scopedOrderOnly || inferOnly || joinOnly || groupOnly || groupSelectScopeOnly || groupPropertyOnly || havingProjectionOnly || implicitPropertyOnly || groupStarOnly || groupOrdinalOnly || sourceFreeOnly || cteValueTableOnly || compositionOnly || resultOnly || dataOnly || acquiredDataOnly || dataSetStrategyOnly || graphOnly || graphRowsOnly || graphTraverseOnly || orderOrdinalOnly || distinctOrderOnly || graphPropertyPredicateOnly || graphProjectionPropertyOnly || sourceGraphMemberOnly || orderPropertyOnly || quotedIdentifiersOnly || graphEqualityOnly || graphDiagnosticsOnly || graphTraversePathsOnly || graphMatchOnly || aggregatePropertyOnly || analyticPropertyOnly || subgraphOnly || groupedInOnly || qualifiedStarOnly || starReplaceOnly || qualifyOnly || namedWindowOnly || rightJoinOnly || joinStarOnly || membershipReuseOnly || graphRowsJoinOnly || traversalJoinOnly || graphRelationJoinOnly;
 const joinOrder = JSON.parse(await readFile('join-order-cases.json', 'utf8'));
 const joinChain = JSON.parse(await readFile('join-chain-cases.json', 'utf8'));
 const groupScope = JSON.parse(await readFile('group-scope-cases.json', 'utf8'));
@@ -497,6 +499,7 @@ const scopeInputs = timeSeriesPrimaryOnly ? {successes: timeSeriesPrimarySuccess
     refusals: [...graphTraverseSourceRefusals, ...graphTraversePathRefusals]}
   : temporalJoinOnly ? {successes: temporalJoinSourceSuccesses, refusals: temporalJoinSourceRefusals, executionFailures: []}
   : rankingFusionOnly ? {successes: rankingFusionSourceSuccesses, refusals: rankingFusionSourceRefusals, executionFailures: []}
+  : windowGroupOnly ? {successes: windowGroupSourceSuccesses, refusals: windowGroupSourceRefusals, executionFailures: []}
   : sequenceSourceOnly ? {successes: sequenceSourceSuccesses, refusals: sequenceSourceRefusals, executionFailures: []}
   : lagOnly ? {successes: lagSourceSuccesses, refusals: lagSourceRefusals, executionFailures: []}
   : rowWatermarkOnly ? {successes: rowWatermarkSourceSuccesses, refusals: rowWatermarkSourceRefusals, executionFailures: []}
@@ -672,6 +675,8 @@ if (!scopeOnly) {
   scopeInputs.refusals.push(...temporalJoinSourceRefusals);
   scopeInputs.successes.push(...rankingFusionSourceSuccesses);
   scopeInputs.refusals.push(...rankingFusionSourceRefusals);
+  scopeInputs.successes.push(...windowGroupSourceSuccesses);
+  scopeInputs.refusals.push(...windowGroupSourceRefusals);
   scopeInputs.successes.push(...sequenceSourceSuccesses);
   scopeInputs.refusals.push(...sequenceSourceRefusals);
   scopeInputs.successes.push(...lagSourceSuccesses);
@@ -899,6 +904,9 @@ const temporalJoinReceipts = createVerifiedCaseReceipts(transport ?? 'both', wri
 const rankingFusionReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
   prefix: 'ranking-fusion', version: 'actql-ranking-fusion-acceptance/0.1',
 });
+const windowGroupReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
+  prefix: 'window-group', version: 'actql-window-group-acceptance/0.1',
+});
 const sequenceReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
   prefix: 'sequence-source', version: 'actql-sequence-source-acceptance/0.1',
 });
@@ -963,8 +971,10 @@ const environment = JSON.parse(await readFile('source-environment.json', 'utf8')
 const base = JSON.parse(await readFile('base-environment.json', 'utf8'));
 const hostCapacityPolicy = {...base.host_policy_profile.capacity, ...analyticCapacity};
 environment.host_policy_profile = {...base.host_policy_profile, capacity: hostCapacityPolicy};
-environment.connector_capabilities[0].capability_contract_cids.push(
-  'sha256:5cbd39d6847336c5961e222b083ca1395ab68be466ac69cadfbf7021cf617b89');
+environment.connector_capabilities[0].capability_contract_cids = [
+  'sha256:2fb477209d9149ec8fa6d103fb14af3c287e2d2bc331b237dadd281f9dbab916',
+  'sha256:d3d2737da6d73801f85208a2cdfe50c412e9f7b24e8bf9807e6f804e11757dd7',
+];
 environment.connector_capabilities[0].capability_contract_cids.sort();
 delete environment.evidence_bundle_cid;
 environment.evidence_bundle_cid = 'sha256:' + createHash('sha256')
@@ -1233,6 +1243,7 @@ const recordCohort = (mode, directory, cohort, authorization) => {
     if (item.name.startsWith('carrier-continuation-')) await carrierContinuationReceipts.record(item, mode);
     if (item.name.startsWith('temporal-')) await temporalJoinReceipts.record(item, mode);
     if (item.name.startsWith('ranking-fusion-')) await rankingFusionReceipts.record(item, mode);
+    if (item.name.startsWith('window-group-')) await windowGroupReceipts.record(item, mode);
     if (item.name.startsWith('sequence-')) await sequenceReceipts.record(item, mode);
     if (item.name.startsWith('lag-')) await lagReceipts.record(item, mode);
     if (item.name.startsWith('unpivot-multicolumn-')) await unpivotMulticolumnReceipts.record(item, mode);
@@ -1349,6 +1360,7 @@ if (transport !== 'tail') {
   requireCompleteInventory(expectedInventory, completedInventory);
   await timeSeriesPrimaryReceipts.complete();
   await carrierContinuationReceipts.complete();
+  await windowGroupReceipts.complete();
   await sequenceReceipts.complete();
   await temporalJoinReceipts.complete();
   await rankingFusionReceipts.complete();
