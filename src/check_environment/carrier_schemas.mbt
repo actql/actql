@@ -331,10 +331,14 @@ pub fn check_carrier_schemas(
           key_facts[envelope.cid] = keys
         }
         let (scores, score_work) = read_relation_score_facts(
-          envelope, limits.max_work - work, limits.bodies.max_depth,
+          envelope,
+          limits.max_work - work,
+          limits.bodies.max_depth,
         )
         work += score_work
-        if scores is Some(scores) { score_facts[envelope.cid] = scores }
+        if scores is Some(scores) {
+          score_facts[envelope.cid] = scores
+        }
       }
       if envelope.kind != "carrier_schema" {
         continue
@@ -405,11 +409,15 @@ pub fn check_carrier_schemas(
           Some(keys)
         }
       }
-      let relation_scores = match score_facts.get(facts_reference.contract.cid) {
+      let relation_scores = match
+        score_facts.get(facts_reference.contract.cid) {
         None => None
         Some(facts) => {
           let (scores, used) = bind_source_relation_scores(
-            facts_reference, schema, facts, limits.max_work - work,
+            facts_reference,
+            schema,
+            facts,
+            limits.max_work - work,
           )
           work += used
           Some(scores)

@@ -29,7 +29,12 @@ fn read_relation_score_facts(
   }
   // Reuse the ScoreContract reader; keep its bounded scan and original cursors.
   let budget : @score_checks.Budget = {
-    limits: { max_work, max_nodes: max_work, max_depth, max_text_bytes: max_work, },
+    limits: {
+      max_work,
+      max_nodes: max_work,
+      max_depth,
+      max_text_bytes: max_work,
+    },
     work: max_work,
     nodes: max_work,
     text: max_work,
@@ -41,14 +46,20 @@ fn read_relation_score_facts(
     @score_checks.spend(budget, source, count)
     for index in 0..<count {
       let (name, at) = @decode.field_at(source, index).unwrap()
-      if name.is_empty() { @score_checks.fail(at, InvalidBody) }
+      if name.is_empty() {
+        @score_checks.fail(at, InvalidBody)
+      }
       let _ = @score_checks.read_score_contract(at)
     }
     (Some({ envelope, source, }), max_work - budget.work)
   } catch {
     @score_checks.Stop(issue) =>
       carrier_fail(
-        if issue.kind is BudgetExceeded { WorkLimit } else { InvalidBody },
+        if issue.kind is BudgetExceeded {
+          WorkLimit
+        } else {
+          InvalidBody
+        },
         source,
       )
   }
@@ -83,21 +94,29 @@ fn bind_source_relation_scores(
 }
 
 ///|
-pub fn source_view_relation_scores(view : SourceViewCarrier) -> SourceRelationScores? {
+pub fn source_view_relation_scores(
+  view : SourceViewCarrier,
+) -> SourceRelationScores? {
   view.relation_scores
 }
 
 ///|
-pub fn source_relation_scores_source(scores : SourceRelationScores) -> @decode.Cursor {
+pub fn source_relation_scores_source(
+  scores : SourceRelationScores,
+) -> @decode.Cursor {
   scores.facts.source
 }
 
 ///|
-pub fn source_relation_scores_schema(scores : SourceRelationScores) -> CarrierSchema {
+pub fn source_relation_scores_schema(
+  scores : SourceRelationScores,
+) -> CarrierSchema {
   scores.schema
 }
 
 ///|
-pub fn source_relation_scores_reference(scores : SourceRelationScores) -> CatalogReference {
+pub fn source_relation_scores_reference(
+  scores : SourceRelationScores,
+) -> CatalogReference {
   scores.reference
 }

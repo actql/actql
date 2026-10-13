@@ -408,9 +408,12 @@ fn[T : RelationRows] prepare_sequence_with_importers(
             Ok(_) => ()
             Err(e) => return Err(InputKey(i, e))
           }
-          match validate_captured_scores(captured, control, {
-            limit: limits.operation_entries, live: 0, peak: 0,
-          }) {
+          match
+            validate_captured_scores(captured, control, {
+              limit: limits.operation_entries,
+              live: 0,
+              peak: 0,
+            }) {
             Ok(_) => ()
             Err(issue) => return Err(InputScore(i, issue))
           }

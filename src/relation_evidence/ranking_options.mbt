@@ -72,7 +72,9 @@ fn ranking_input_name(at : @decode.Cursor) -> String raise @checking.Stop {
 }
 
 ///|
-fn read_score_contract(at : @decode.Cursor) -> ScoreContract raise @checking.Stop {
+fn read_score_contract(
+  at : @decode.Cursor,
+) -> ScoreContract raise @checking.Stop {
   @checking.read_score_contract(at)
 }
 
