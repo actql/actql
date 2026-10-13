@@ -203,3 +203,114 @@ pub fn local_sdk_read_delivery_usage_row(
     @utf8.encode(@publication.delivery_grant_usage_claim_wire(original.usage)),
   )
 }
+
+///|
+/// Closed original first-installation writes. A retained/partial installation
+/// needs the original lookup path and is never silently overwritten here.
+/// The issuer holds the same trusted TX/current frame throughout preparation.
+pub fn[E] prepare_local_sdk_read_delivery_storage_from_store(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  observed_at : String,
+  max_results : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[String, LocalSDKReadDeliveryIssue[E]] {
+  let prepared = match
+    prepare_local_sdk_read_delivery_from_store(
+      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+      format, attempt_id, observed_at, max_results, read, current,
+    ) {
+    Ok(prepared) => prepared
+    Err(issue) => return Err(issue)
+  }
+  for contract in [prepared.grant, prepared.attempt, prepared.streaming] {
+    let key = @publication.publication_contract_identity(contract)
+    match read("publication_contract", key) {
+      Err(issue) => return Err(Observation(issue))
+      Ok(Some(_)) => return Err(UnresolvedUsage)
+      Ok(None) => ()
+    }
+  }
+  let attempt_cid = @publication.publication_contract_identity(prepared.attempt)
+  match read("delivery_record_head", attempt_cid) {
+    Err(issue) => return Err(Observation(issue))
+    Ok(Some(_)) => return Err(UnresolvedUsage)
+    Ok(None) => ()
+  }
+  let final_grant = match
+    issue_local_sdk_read_grant_from_store(
+      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+      format, attempt_id, observed_at, max_results, read, current,
+    ) {
+    Ok(grant) => grant
+    Err(issue) => return Err(Store(issue))
+  }
+  if @publication.publication_contract_json(final_grant) !=
+    @publication.publication_contract_json(prepared.grant) {
+    return Err(ChangedObservation)
+  }
+  try {
+    // One original export slot, not an expanded buffer/pool or new wire domain.
+    // Failure to fit stays capacity failure; no partial installation escapes.
+    let writer = @encode.writer(1048576, 128, 6)
+    @encode.begin_array(writer)
+    let entries : Array[(String, String, Int64?, String)] = []
+    for contract in [prepared.grant, prepared.attempt, prepared.streaming] {
+      entries.push(
+        (
+          "publication_contract",
+          @publication.publication_contract_identity(contract),
+          None,
+          @publication.publication_contract_json(contract),
+        ),
+      )
+    }
+    entries.push(("delivery_attempt", prepared.attempt_key, None, attempt_cid))
+    entries.push(
+      (
+        "result_read_grant_usage",
+        prepared.usage_key,
+        prepared.usage_revision,
+        @publication.delivery_grant_usage_claim_wire(prepared.usage),
+      ),
+    )
+    entries.push(
+      (
+        "delivery_record_head",
+        attempt_cid,
+        None,
+        @publication.publication_contract_json(prepared.streaming),
+      ),
+    )
+    for (table, key, revision, body) in entries {
+      @encode.begin_object(writer)
+      @encode.key(writer, "body")
+      @encode.string_value(writer, body)
+      @encode.key(writer, "key")
+      @encode.string_value(writer, key)
+      @encode.key(writer, "revision")
+      match revision {
+        None => @encode.null_value(writer)
+        Some(revision) =>
+          @encode.decimal_number_value(writer, revision.to_string())
+      }
+      @encode.key(writer, "table")
+      @encode.string_value(writer, table)
+      @encode.end_object(writer)
+    }
+    @encode.end_array(writer)
+    Ok(@encode.finish(writer))
+  } catch {
+    @encode.OutputLimit => Err(Store(Preparation(Codec(CapacityExceeded))))
+    _ => Err(Store(Preparation(Codec(Encoding))))
+  }
+}
