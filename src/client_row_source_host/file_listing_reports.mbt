@@ -30,10 +30,41 @@ fn row_listing_original_report(
     Some({ value: @admitted.Null, .. }) => None
     _ => return Err(Value("version"))
   }
+  let (reported, projected, cell) = match row_listing_media_projection(read) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok((
+    {
+      row_ordinal: read.rows.to_int(),
+      resource_ref_cid: @admitted.reference_identity_cid(resource),
+      version,
+      reported_media_type: reported,
+      media_type: projected,
+    },
+    cell,
+  ))
+}
+
+///|
+// The funded admission caller validates this before selection/duplicate
+// handling, including excluded rows. Selection cannot replace mandatory
+// metadata admission. Keep the raw cells unchanged for the exact duplicate
+// law; only the future append transition uses the returned projected cell.
+fn row_listing_media_projection(
+  read : RowSourceRead,
+) -> Result[(String?, String?, @admitted.CheckedValue), RowSourceIssue] {
+  guard read.open &&
+    read.listing is Some(progress) &&
+    progress.selection is Some(_) &&
+    progress.page is Some(page) &&
+    page.cells is Some(cells) else {
+    return Err(ListingProtocol)
+  }
   guard listing_named_cell(read, cells, "media_type") is Some(original) else {
     return Err(Value("media_type"))
   }
-  let (reported, projected, cell) = match original.value {
+  match original.value {
     @admitted.Text(value) => {
       let projected = match
         @contract.normalize_content_media_type_case(value, read.page_limits.max_bytes) {
@@ -46,19 +77,9 @@ fn row_listing_original_report(
         is Some(checked) else {
         return Err(Value("media_type"))
       }
-      (Some(value), Some(projected), checked)
+      Ok((Some(value), Some(projected), checked))
     }
-    @admitted.Null => (None, None, original)
-    _ => return Err(Value("media_type"))
+    @admitted.Null => Ok((None, None, original))
+    _ => Err(Value("media_type"))
   }
-  Ok((
-    {
-      row_ordinal: read.rows.to_int(),
-      resource_ref_cid: @admitted.reference_identity_cid(resource),
-      version,
-      reported_media_type: reported,
-      media_type: projected,
-    },
-    cell,
-  ))
 }

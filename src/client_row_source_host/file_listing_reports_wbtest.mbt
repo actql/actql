@@ -60,6 +60,18 @@ test "original listing NULL report differs from missing evidence and malformed r
     old="\"media_type\":null", new="\"media_type\":\"not a media type\""))
   assert_true(row_listing_original_report(malformed) is Err(Value("media_type")))
   cancel_row_source_read(malformed) |> ignore
+  // This row will not match the selector. Its already-admitted nullable Text
+  // still cannot bypass the common descriptor's mandatory metadata validation.
+  let excluded = selection_read_fixture(ExactPaths(["a.csv"]))
+  let excluded_wire = selection_row("d", "ignore.txt").replace(
+    old="\"media_type\":null", new="\"media_type\":\"not a media type\"")
+  begin_row_listing_request(excluded, None, 0L).unwrap()
+  begin_row_source_listing_page(excluded, listing_page("[" + excluded_wire + "]", None, None), 0L).unwrap()
+  assert_true(advance_row_source_listing_page(excluded, 1, 0L) is Ok(ListingPageContinue(..)))
+  assert_true(excluded.listing.unwrap().page.unwrap().selected is None)
+  assert_true(row_listing_media_projection(excluded) is Err(Value("media_type")))
+  assert_eq(excluded.rows, 0L)
+  cancel_row_source_read(excluded) |> ignore
 }
 
 ///|
