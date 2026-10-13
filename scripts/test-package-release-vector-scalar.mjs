@@ -10,7 +10,7 @@ import {verifyPackageRelease} from './package-release.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
-import {releaseVectorScalarFixturePaths} from './release-vector-scalar-fixtures.mjs';
+import {releaseVectorScalarFixturePaths, releaseVectorScalarEnvironment} from './release-vector-scalar-fixtures.mjs';
 import {createTransportOwner, transportModes} from './fixtures/packed-query-transport-owner.mjs';
 import {auditVectorScalarTransport} from '../reviews/2026-10-13-vector-scalar-installed-source/public-audit.mjs';
 
@@ -30,15 +30,7 @@ const scratch = await createOwnedScratch({parent: tmpdir(), prefix: 'actql-relea
   label: 'Installed Vector scalar query acceptance'});
 const root = scratch.path, fixtureDigests = {}, audits = [];
 const registry = await openReleaseTestRegistry([{directory, manifest}]);
-const env = {...process.env, npm_config_registry: registry.url,
-  PATH: `${dirname(process.execPath)}:/usr/bin:/bin:/usr/sbin:/sbin`,
-  npm_config_cache: join(root, 'npm-cache'), npm_config_userconfig: join(root, 'npmrc'),
-  npm_config_globalconfig: join(root, 'npmrc-global'), npm_config_update_notifier: 'false',
-  npm_config_proxy: '', npm_config_https_proxy: '', NO_PROXY: '127.0.0.1,localhost'};
-for (const key of Object.keys(env)) {
-  if (['NODE_PATH', 'NODE_OPTIONS', 'MOON_HOME'].includes(key) ||
-      key.startsWith('ACTQL_') || key.startsWith('MOON_')) delete env[key];
-}
+const env = releaseVectorScalarEnvironment(process.env, {registry: registry.url, root, node: process.execPath});
 // One original 300-second consumer budget, including install and both transports.
 const owner = createTransportOwner({deadline: Date.now() + 300000, timeoutMs: 300000, env});
 let primary;
