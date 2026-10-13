@@ -186,3 +186,49 @@ test('header array and pair keep the inspected DATA without Proxy property callb
   Object.defineProperty(accessor.headers[0], '1', {get() { assert.fail('No header getter'); }});
   assert.throws(() => createInstalledHttpChatRegistration(accessor), /InvalidInstalledHTTPChatHeaders/u);
 });
+
+
+test('HTTP facade refuses a combined projection key before registration', () => {
+  const config = configuration(), f = runtime(config);
+  config.projectionLimits = {'maxBytes,maxDepth': 4096, maxFrames: 32, maxNodes: 256, maxWork: 4096};
+  assert.throws(() => createInstalledHttpChatRegistration(config), /InvalidInstalledHTTPChatProjection/u);
+  assert.deepEqual(f.counts, {installs: 0, projections: 0, sends: 0});
+});
+
+test('HTTP facade refuses a combined request key before registration', () => {
+  const config = configuration(), f = runtime(config);
+  config.requestLimits = {'maxBytes,maxHeaderBytes': 4096, maxHeaders: 4};
+  assert.throws(() => createInstalledHttpChatRegistration(config), /InvalidInstalledHTTPChatRequestLimits/u);
+  assert.deepEqual(f.counts, {installs: 0, projections: 0, sends: 0});
+});
+
+
+test('HTTP facade refuses mismatched outer array keys before indexed descriptor reads', () => {
+  const config = configuration(), f = runtime(config);
+  let indexedReads = 0;
+  config.headers = new Proxy(config.headers, {
+    ownKeys() { return ['length', 'extra']; },
+    getOwnPropertyDescriptor(target, name) {
+      if (name !== 'length') indexedReads++;
+      return Reflect.getOwnPropertyDescriptor(target, name);
+    },
+  });
+  assert.throws(() => createInstalledHttpChatRegistration(config), /InvalidInstalledHTTPChatHeaders/u);
+  assert.equal(indexedReads, 0);
+  assert.deepEqual(f.counts, {installs: 0, projections: 0, sends: 0});
+});
+
+test('HTTP facade refuses mismatched pair array keys before indexed descriptor reads', () => {
+  const config = configuration(), f = runtime(config);
+  let indexedReads = 0;
+  config.headers = [new Proxy(config.headers[0], {
+    ownKeys() { return ['length', '0', 'extra']; },
+    getOwnPropertyDescriptor(target, name) {
+      if (name !== 'length') indexedReads++;
+      return Reflect.getOwnPropertyDescriptor(target, name);
+    },
+  })];
+  assert.throws(() => createInstalledHttpChatRegistration(config), /InvalidInstalledHTTPChatHeaders/u);
+  assert.equal(indexedReads, 0);
+  assert.deepEqual(f.counts, {installs: 0, projections: 0, sends: 0});
+});

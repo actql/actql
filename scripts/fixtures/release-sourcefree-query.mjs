@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import {generateKeyPairSync} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
 import {createServer} from 'node:https';
 import {resolve} from 'node:path';
@@ -8,21 +7,13 @@ import {DatabaseSync} from 'node:sqlite';
 import {selectInstalledSourcefreeQuerySuite} from '../release-sourcefree-query-cases.mjs';
 import {exercisePublicQueryInput} from './public-query-input.mjs';
 import {guardReleaseSourcefreeIo} from './release-sourcefree-io.mjs';
+import {sourcefreeFixtureAuthorization} from './release-sourcefree-authorization.mjs';
 
 const mode = process.argv[2];
 assert.ok(['local', 'https'].includes(mode), 'Select one installed transport');
 const suite = process.argv[3] ?? 'in-unnest';
 const directory = resolve(`sourcefree-${mode}`);
-const reviewer = generateKeyPairSync('ed25519'), hostKey = generateKeyPairSync('ed25519');
-const authorization = {
-  accountConfiguration: JSON.stringify({version: 'actql-execution-account-config/0.1',
-    account_id: `release-sourcefree-${mode}`, entries: [{entry_id: 'write', outcome: 'allow',
-      principal: {all: true}, connection: {all: true}, resource: {all: true},
-      operation: {any_of: ['write']}, exclusions: []}]}),
-  reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: userInfo().username,
-    publicKey: reviewer.publicKey.export({type: 'spki', format: 'pem'})}],
-  hostKey: {keyId: 'host', privateKey: hostKey.privateKey.export({type: 'pkcs8', format: 'pem'})},
-};
+const authorization = await sourcefreeFixtureAuthorization(mode, suite);
 const cases = selectInstalledSourcefreeQuerySuite(suite), completed = [], completedRefusals = [];
 let host, server;
 let primary;
@@ -61,7 +52,7 @@ try {
     } finally {journal.close();}
   };
   await exercisePublicQueryInput(connectClient, options, {
-    requestPrefix: suite === 'in-unnest' ? `release-${mode}` : `release-sequence-${mode}`,
+    requestPrefix: suite === 'in-unnest' ? `release-${mode}` : `release-${suite}-${mode}`,
     observe, ...cases,
     completedCase({name, ref, submissionRef, observedResults, beforeSubmit, beforeRead, afterReplay}) {
       completed.push({name, ref, submissionRef, observedResults, beforeSubmit, beforeRead, afterReplay});
