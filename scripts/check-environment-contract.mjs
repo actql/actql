@@ -68,6 +68,12 @@ const body = {
     carrier_facts:{
       type:'object',additionalProperties:true,
       properties:{
+        relation_keys:{
+          type:'object',additionalProperties:false,required:['candidate_keys'],
+          properties:{candidate_keys:{type:'array',minItems:1,uniqueItems:true,
+            items:{type:'array',minItems:1,uniqueItems:true,
+              items:{type:'string',minLength:1}}}},
+        },
         file_listing:fileListingProfile(),
         file_content:fileContentProfile(),
         lookup_capacity:{

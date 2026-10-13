@@ -69,6 +69,14 @@ pub struct NativeRuntimeBundleComponentSource {
   offset : Int64
 }
 
+pub(all) struct NativeRuntimeBundleHoldReceipt {
+  binding_cid : String
+  runtime_bundle_cid : String
+  observation : @remote_bundle.RemoteBundleHoldObservation
+  catalog_incarnation : String?
+  record_revision : Int?
+}
+
 pub(all) struct NativeRuntimeBundleInstallSnapshot {
   install_id : String
   runtime_bundle_cid : String
@@ -91,6 +99,13 @@ pub(all) enum NativeRuntimeBundleIssue {
   Signature(@signature.NativeSignatureIssue)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct NativeRuntimeBundleRetentionContext {
+  catalog_incarnation : String
+  runtime_bundle_cid : String
+  initial_revision : Int
+  manifest : @remote_bundle.RemoteBundleManifest
+}
+
 pub(all) struct NativeRuntimeBundleSnapshot {
   runtime_bundle_cid : String
   manifest_json : String
@@ -109,16 +124,22 @@ pub fn NativeRuntimeBundleStore::adopt(Self, String, String, String, String, Str
 pub fn NativeRuntimeBundleStore::begin_install(Self, String, String, String, String, String, String) -> Result[NativeRuntimeBundleInstaller, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::capacity_usage(Self) -> Result[@sqlite.NativeCapacityUsage, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::close(Self) -> Result[Bool, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::custody(Self, @remote_bundle.RemoteBundleCustodyRequest) -> Result[@remote_bundle.RemoteBundleCustodyResponse, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::drain(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::initialize_retention(Self) -> Result[String, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::inspect(Self, String) -> Result[NativeRuntimeBundleSnapshot?, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::inspect_install(Self, String) -> Result[NativeRuntimeBundleInstallSnapshot?, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::inspect_member_hold(Self, @remote_bundle.RemoteBundleHoldBinding) -> Result[NativeRuntimeBundleHoldReceipt, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::list(Self) -> Result[Array[NativeRuntimeBundleSnapshot], NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::materialize_active_component(Self, NativeActiveRuntimeBinding, String) -> Result[NativeRuntimeBundleComponentSource, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::reclaim(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::recover(Self) -> Result[Array[NativeRuntimeBundleSnapshot], NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::recover_install(Self, String) -> Result[Bool, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::release(Self, String) -> Result[Bool, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::release_member(Self, @remote_bundle.RemoteBundleHoldBinding) -> Result[NativeRuntimeBundleHoldReceipt, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::retain(Self, String, String, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::retain_member(Self, @remote_bundle.RemoteBundleHoldBinding) -> Result[NativeRuntimeBundleHoldReceipt, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::retention_context(Self, String) -> Result[NativeRuntimeBundleRetentionContext, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::rollback(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::verify(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::verify_active_component_binding(Self, NativeActiveRuntimeBinding) -> Result[Unit, NativeRuntimeBundleStoreIssue]

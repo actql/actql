@@ -160,7 +160,7 @@ test "a nonterminal RESULT preserves the usual primary export" {
 test "RESULT exposes current columns without deleting immutable range snapshots" {
   for
     text in [
-      "FROM pair AS old |> SET x = y |> RESULT saved |> SELECT old.x AS original, x AS current |> RESULT final",
+      "FROM pair AS old |> SET x = y |> RESULT saved |> SELECT old.x AS original, x AS `current` |> RESULT final",
       "FROM pair AS old |> DROP x |> RESULT saved |> SELECT old.x AS original, y |> RESULT final",
       "FROM pair AS old |> RENAME x AS z |> RESULT saved |> SELECT old.x AS original, z |> RESULT final",
       "FROM pair |> SELECT x |> RESULT saved |> WHERE x > 0 |> SELECT x |> ORDER BY x + 1 |> RESULT final",

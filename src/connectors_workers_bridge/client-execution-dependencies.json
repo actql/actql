@@ -1,0 +1,9 @@
+{
+  "imports": [
+    {"path": "actql/actql/program_check", "alias": "checked"},
+    {"path": "actql/actql/pipeline_check_context", "alias": "context"},
+    {"path": "actql/actql/lowering_relation", "alias": "lower"},
+    {"path": "actql/actql/canonical_json", "alias": "identity"},
+    {"path": "actql/actql/source_value", "alias": "source"}
+  ]
+}

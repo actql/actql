@@ -14,15 +14,41 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {join, resolve, sep} from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
-import {createPublicationContractControlFixture} from
+import {canonicalCid, createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
-import {openLocalPublicationStore} from './publication-store.mjs';
+import {openLocalPublicationStore as openActualLocalPublicationStore} from './publication-store.mjs';
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';
+
+const fixtureStores = new Map();
+async function openLocalPublicationStore(configuration, ...arguments_) {
+  const store = await openActualLocalPublicationStore(configuration, ...arguments_);
+  const directory = resolve(configuration.directory);
+  const stores = fixtureStores.get(directory) ?? new Set();
+  stores.add(store);
+  fixtureStores.set(directory, stores);
+  return store;
+}
+
+// Node runs registered after hooks in order. Close each original or reopened
+// Store before removing its directory, rather than erasing its live lock first.
+// A refused close retains the fixture and still fails the test.
+async function removeFixtureDirectory(directory) {
+  const root = resolve(directory);
+  const owned = [...fixtureStores].filter(([path]) =>
+    path === root || path.startsWith(root + sep));
+  for (const [, stores] of owned) {
+    for (const store of stores) {
+      if (!store.status().closed) await store.close();
+    }
+  }
+  await rm(directory, {recursive: true, force: true});
+  for (const [path] of owned) fixtureStores.delete(path);
+}
 
 const contractControl = createPublicationContractControlFixture();
 const limits = Object.freeze({
@@ -75,7 +101,7 @@ async function runStoreChild(source) {
 
 async function fixture(t, options = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-publication-store-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  t.after(() => removeFixtureDirectory(directory));
   const configuration = {
     directory,
     storeAuthorityCid: cids.authority,
@@ -98,7 +124,7 @@ async function fixture(t, options = {}) {
 test('unmarked and prior-format Stores are refused without changing files',
   async t => {
     const parent = await mkdtemp(join(tmpdir(), 'actql-store-format-'));
-    t.after(() => rm(parent, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(parent));
     const configuration = directory => ({
       directory, storeAuthorityCid: cids.authority,
       capacityBytes: 1024 * 1024, maxObjectBytes: 64 * 1024,
@@ -267,15 +293,16 @@ function deliveryRecord(attempt, sequence, state, prior, extra = {}) {
 }
 
 function indexEntry(request, attempt, invocationValue, values = {}) {
+  const artifacts = physicalCapturedArtifacts(invocationValue, request);
   return seal('public_index_entry', {
     version: 'actql-public-index-entry/0.1',
     namespace_id: 'namespace-a',
     authority_scope_cid: cids.scope,
     run_definition_cid: request.run_definition_cid,
     invocation_cid: invocationValue.invocation_cid,
-    result_manifest_cid: invocationValue.invocation_cid,
-    run_receipt_cid: invocationValue.invocation_cid,
-    captured_run_cid: invocationValue.invocation_cid,
+    result_manifest_cid: artifacts.manifest.identity,
+    run_receipt_cid: artifacts.receipt.identity,
+    captured_run_cid: artifacts.capturedRun.identity,
     durable_result_binding_cids: values.durable_result_binding_cids ??
       [invocationValue.invocation_cid],
     publication_request_cid: request.publication_request_cid,
@@ -297,7 +324,112 @@ const indexKeyFor = request => Object.freeze({
   runDefinitionCid: request.run_definition_cid,
 });
 
-function physicalCommitEvidence(invocationValue, binding) {
+function physicalCapturedArtifacts(invocationValue, request) {
+  // Independent normative shape and canonical identity, not a Core-issued
+  // authorization. The containing chain remains an explicit adapter double.
+  const identified = (field, body) => ({...body, [field]: canonicalCid(body)});
+  const prepared = identified('prepared_invocation_cid', {
+    version: 'actql-prepared-invocation/0.1',
+    invocation_template_cid: cids.template,
+    compiled_plan_cid: cids.run,
+    execution_context_cid: cids.scope,
+    host_policy_cid: cids.policy,
+    policy_decision: 'allow',
+    expires_at: '2026-09-19T00:00:00.000Z',
+  });
+  const authorization = identified('run_authorization_cid', {
+    version: 'actql-run-authorization/0.1',
+    prepared_invocation_cid: prepared.prepared_invocation_cid,
+    execution_context_cid: cids.scope,
+    host_policy_cid: cids.policy,
+    decision: 'allowed',
+  });
+  const observation = identified('observation_set_cid', {
+    version: 'actql-observation-set/0.1',
+    invocation_template_cid: cids.template,
+    source_evidence_cids: [],
+    captured_input_artifact_cids: [],
+    consistency: 'no_external_sources',
+    capture_started_at: null,
+    capture_completed_at: null,
+    replayability: {materialized: true, availability_evidence_cids: []},
+    data_policy_cid: cids.policy,
+  });
+  const selected = request.inventory[0];
+  const artifact = identified('result_artifact_cid', {
+    version: 'actql-result-artifact/0.1',
+    result_definition_cid: selected.result_definition_cid,
+    invocation_cid: invocationValue.invocation_cid,
+    logical_result_cid: cids.result,
+    result_schema_cid: cids.schema,
+    ordering_evidence_cid: cids.receipt,
+    actual_row_count: 1,
+    actual_completeness: 'complete',
+    effective_data_policy_cid: cids.policy,
+    effective_retention_policy_cid: cids.policy,
+    provenance_evidence_cids: [],
+  });
+  const manifest = identified('result_manifest_cid', {
+    version: 'actql-result-manifest/0.1',
+    run_definition_cid: request.run_definition_cid,
+    invocation_cid: invocationValue.invocation_cid,
+    results: {[selected.result_name]: artifact},
+  });
+  const receipt = identified('receipt_identity_cid', {
+    version: 'actql-run-receipt/0.1',
+    compiler_version: 'fixture-0.1',
+    aoa_ir_version: '0.1',
+    prepared_invocation: prepared,
+    run_authorization: authorization,
+    program_semantics_cid: cids.run,
+    program_definition_cid: cids.run,
+    invocation_cid: invocationValue.invocation_cid,
+    compiled_plan_cid: cids.run,
+    check_environment_cid: cids.scope,
+    observation_set: observation,
+    observation_set_cid: observation.observation_set_cid,
+    normalization_journal_cid: cids.receipt,
+    aoa_logical_cid: cids.result,
+    bindings: [],
+    result_manifest: manifest,
+    result_manifest_cid: manifest.result_manifest_cid,
+    result_artifacts: {[selected.result_name]: artifact},
+    source_evidence: [],
+    source_evidence_cids: [],
+    external_observation_evidence: [],
+    barrier_attempt_receipt_cids: [],
+    artifact_derivation_evidence_cids: [],
+    cross_source_consistency: 'no_external_sources',
+  });
+  const authoring = identified('authoring_context_cid', {
+    version: 'actql-authoring-context/0.1',
+    program_definition_cid: cids.run,
+    annotations: [],
+  });
+  const context = identified('effect_context_cid', {
+    version: 'actql-run-effect-context/0.1',
+    effects: {}, effect_plans: {}, effect_plan_logical_cids: {},
+    result_values: {[selected.result_name]: [{answer: 'fixture durable Result payload'}]},
+    result_artifacts: {[selected.result_name]: artifact},
+    result_fields: {[selected.result_name]: ['answer']},
+    pending_source_state_advances: [], authoring_context: authoring,
+    model_invocation_evidence: [], model_invocation_evidence_cids: [],
+    effect_source_artifacts: {}, effect_source_holding_cids: {},
+    effect_source_local_inventory: {}, effect_dependency_inventory: [],
+  });
+  const captured = identified('captured_run_cid', {
+    version: 'actql-captured-run/0.1',
+    sensitivity: 'private', retention_class: 'run-evidence',
+    encryption_required: true, receipt, effect_context: context,
+  });
+  return Object.freeze({
+    manifest: contractControl.admitArtifactFixture('result_manifest', wire(manifest)),
+    receipt: contractControl.admitArtifactFixture('run_receipt', wire(receipt)),
+    capturedRun: contractControl.admitArtifactFixture('captured_run', wire(captured)),
+  });
+}
+
+function physicalCommitEvidence(invocationValue, binding, request) {
   // This suite isolates filesystem durability and CAS behavior with the
   // independent contract-control fixture. The product integration suite uses
   // distinct real contracts and the MoonBit commit-chain verdict.
@@ -313,11 +445,47 @@ function physicalCommitEvidence(invocationValue, binding) {
     orderings: Object.freeze([contract]),
     retentions: Object.freeze([contract]),
     durableBindings: Object.freeze([binding]),
-    manifest: contract,
-    receipt: contract,
-    capturedRun: contract,
+    ...physicalCapturedArtifacts(invocationValue, request),
   });
 }
+
+test('physical commit fixture carries distinct normative CapturedRun identities', () => {
+  const invocationValue = invocation();
+  const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const artifacts = physicalCapturedArtifacts(invocationValue, request);
+  const captured = JSON.parse(artifacts.capturedRun.wire);
+  const entry = indexEntry(request, publicationAttempt(request), invocationValue);
+  assert.equal(entry.captured_run_cid, artifacts.capturedRun.identity);
+  assert.equal(entry.result_manifest_cid, artifacts.manifest.identity);
+  assert.equal(entry.run_receipt_cid, artifacts.receipt.identity);
+  assert.equal(captured.receipt.receipt_identity_cid, artifacts.receipt.identity);
+  assert.equal(captured.receipt.result_manifest_cid, artifacts.manifest.identity);
+  assert.equal(captured.receipt.invocation_cid, invocationValue.invocation_cid);
+  assert.equal(captured.receipt.result_manifest.run_definition_cid, request.run_definition_cid);
+  assert.deepEqual(Object.keys(captured.effect_context.result_artifacts), ['answer']);
+  const otherRequest = publicationRequest(resultDefinition('other'), cids.run);
+  const other = physicalCapturedArtifacts(invocationValue, otherRequest);
+  const otherCaptured = JSON.parse(other.capturedRun.wire);
+  assert.equal(otherCaptured.receipt.result_manifest.run_definition_cid, cids.run);
+  assert.deepEqual(Object.keys(otherCaptured.receipt.result_manifest.results), ['other']);
+  assert.equal(otherCaptured.effect_context.result_artifacts.other.result_definition_cid,
+    otherRequest.inventory[0].result_definition_cid);
+  assert.notEqual(other.capturedRun.identity, artifacts.capturedRun.identity);
+  assert.equal(captured.effect_context.version, 'actql-run-effect-context/0.1');
+  assert.equal(new Set([invocationValue.invocation_cid, artifacts.manifest.identity,
+    artifacts.receipt.identity, artifacts.capturedRun.identity]).size, 4);
+  const {effect_context: omitted, captured_run_cid: priorCid, ...missing} = captured;
+  assert(omitted);
+  assert(priorCid);
+  assert.throws(() => contractControl.admitArtifactFixture('captured_run',
+    wire({...missing, captured_run_cid: canonicalCid(missing)})),
+  error => error.code === 'PublicationContractRequired' && error.path === '$.effect_context');
+  assert.throws(() => contractControl.admitArtifactFixture('captured_run',
+    wire({...captured, captured_run_cid: invocationValue.invocation_cid})),
+  code('PublicationIdentityMismatch'));
+  assert.throws(() => contractControl.admitArtifactFixture('run_invocation',
+    wire(invocationValue)), code('UnknownPublicationFixtureArtifact'));
+});
 
 async function prepareCommit(
   store,
@@ -362,7 +530,10 @@ async function prepareCommit(
   await store.putPublicationContract(
     'durable_result_binding', wire(bindingValue),
   );
-  const evidence = physicalCommitEvidence(invocationValue, binding);
+  const evidence = physicalCommitEvidence(invocationValue, binding, request);
+  for (const contract of [evidence.manifest, evidence.receipt, evidence.capturedRun]) {
+    await store.putSemantic(contract.wire, contract.identity);
+  }
   await store.putPublicationContract('publication_request', wire(request));
   await store.createAttempt(wire(attempt));
   const preparing = publicationRecord(attempt, 0, 'preparing');
@@ -376,6 +547,9 @@ async function prepareCommit(
     required: [...new Set([
       invocationValue.invocation_cid,
       binding.identity,
+      evidence.manifest.identity,
+      evidence.receipt.identity,
+      evidence.capturedRun.identity,
       request.publication_request_cid,
       attempt.publication_attempt_cid,
     ])],
@@ -976,7 +1150,7 @@ test('restart reclaims an unpublished prepared Result schema', async t => {
   const directory = await mkdtemp(join(
     tmpdir(), 'actql-publication-schema-crash-',
   ));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  t.after(() => removeFixtureDirectory(directory));
   const configuration = {
     directory,
     storeAuthorityCid: cids.authority,
@@ -1020,7 +1194,7 @@ test('restart resumes schema cleanup after alias unlink before sync',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-schema-unlink-crash-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -1078,7 +1252,7 @@ test('prepared schema cleanup retains capacity across sync failure',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-schema-sync-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     let failContractSync = false;
     const durability = Object.freeze({
       async syncDirectory(path) {
@@ -1123,7 +1297,7 @@ test('schema preparation failure keeps exact retryable cleanup custody',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-schema-prepare-fault-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     let failContractSync = false;
     const durability = Object.freeze({
       async syncDirectory(path) {
@@ -1169,7 +1343,7 @@ test('schema cleanup retry never deletes a replacement allocation',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-schema-replacement-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     let failObjectSync = false;
     const durability = Object.freeze({
       async syncDirectory(path) {
@@ -1241,7 +1415,7 @@ test('prepared cleanup resumes directory sync after its exact unlink',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-cleanup-sync-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const objects = join(directory, 'objects');
     let failObjectSync = false;
     let objectSyncs = 0;
@@ -1304,7 +1478,7 @@ test('seal failure removes its staging alias before reclaiming custody',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-seal-custody-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const objects = join(directory, 'objects');
     let remainingObjectSyncFailures = 0;
     const durability = Object.freeze({
@@ -1524,7 +1698,7 @@ test('restart reclaims a prepared payload abandoned by process exit',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-prepared-crash-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -1577,7 +1751,7 @@ test('restart reclaims a semantic object from a pre-link process crash',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-semantic-crash-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -1642,7 +1816,7 @@ test('crash custody cannot reclaim a committed shared allocation',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-shared-custody-crash-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -1818,7 +1992,7 @@ test('delivery record durability retries the exact visible record', async t => {
   const directory = await mkdtemp(join(
     tmpdir(), 'actql-delivery-record-durability-',
   ));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  t.after(() => removeFixtureDirectory(directory));
   const deliveries = join(directory, 'deliveries');
   let failRecordSync = false;
   let recordSyncFailures = 0;
@@ -2375,7 +2549,7 @@ test('metadata retirement retains capacity until durability retry', async t => {
   const directory = await mkdtemp(join(
     tmpdir(), 'actql-publication-metadata-retry-',
   ));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  t.after(() => removeFixtureDirectory(directory));
   const objects = join(directory, 'objects');
   let objectSyncFailures = 0;
   const durability = Object.freeze({
@@ -2676,7 +2850,7 @@ test('Result retirement retains capacity until object durability retry',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-retirement-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -2751,7 +2925,7 @@ test('restart reconciles a retired Result after unlink response is lost',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-retirement-restart-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -2800,6 +2974,9 @@ test('restart reconciles a retired Result after unlink response is lost',
     // Model abrupt process loss: no product close or cleanup callback runs.
     // Only the dead owner's fencing record is removed before reopen.
     await rm(join(directory, 'owner'), {recursive: true, force: false});
+    // The fixture explicitly models this owner as dead. Teardown must close
+    // the reopened owner, without invoking the dead owner's cleanup callback.
+    fixtureStores.get(resolve(directory)).delete(store);
     const reopened = await openLocalPublicationStore(
       configuration, contractControl,
     );
@@ -2883,7 +3060,7 @@ test('visible index is not committed until directory durability is confirmed',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-durability-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -2955,7 +3132,7 @@ test('committed payload custody remains retryable after cleanup failure',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-custody-retry-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -3026,7 +3203,7 @@ test('confirmed non-commit releases custody before prepared reclamation',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-noncommit-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -3145,7 +3322,7 @@ test('restart reclaims terminal uncommitted publication metadata', async t => {
   const directory = await mkdtemp(join(
     tmpdir(), 'actql-publication-uncommitted-metadata-',
   ));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  t.after(() => removeFixtureDirectory(directory));
   const configuration = {
     directory,
     storeAuthorityCid: cids.authority,
@@ -3688,7 +3865,7 @@ test(`visible physical holdings retry directory durability before success (${nam
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-holding-commit-durability-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -3919,7 +4096,7 @@ test('physical holding retains capacity until unlink durability retry',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-transfer-holding-durability-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,

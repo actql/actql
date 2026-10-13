@@ -4,6 +4,7 @@
 fn host_setup_test_profile() -> HolderEffectHostSetupProfile {
   {
     read_ceiling: 32,
+    diagnostic_ceiling: 8,
     setup_retained_bytes: 120L,
     current_retained_bytes: 30L,
     caller_retained_bytes: 30L,
@@ -512,4 +513,22 @@ test "caller handoff clears scope aliases and never replaces the original operat
   assert_eq(@site.site_status(site)[2], 0L)
   assert_eq(@site.site_status(site)[7], 0L)
   assert_eq(@site.site_status(site)[8], 0L)
+}
+
+///|
+test "selected setup requires independent positive diagnostic ceiling before reservation" {
+  for ceiling in [-1, 0] {
+    let profile = { ..host_setup_test_profile(), diagnostic_ceiling: ceiling, }
+    let site = host_setup_test_site(2)
+    let checks = [0]
+    assert_true(
+      begin_holder_effect_host_setup_scope(site, Some(profile), () => {
+        checks[0] += 1
+        true
+      })
+      is None,
+    )
+    assert_eq(checks[0], 0)
+    assert_eq(@site.site_status(site)[7], 0L)
+  }
 }
