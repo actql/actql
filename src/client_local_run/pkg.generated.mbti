@@ -443,12 +443,31 @@ pub struct LocalRunPublicationBindingStep[Store, E] {
   body : Bytes
 }
 
+type LocalSDKDeliveryTerminal
+pub fn[E] LocalSDKDeliveryTerminal::observe_from_store(Self, LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[Unit, LocalSDKDeliveryTerminalIssue[E]]
+pub fn[E] LocalSDKDeliveryTerminal::storage_from_store(Self, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[String, LocalSDKDeliveryTerminalIssue[E]]
+
+pub(all) enum LocalSDKDeliveryTerminalIssue[E] {
+  Current(LocalSDKReadPayloadCodecIssue[E])
+  Observation(LocalSDKReadDeliveryObservationIssue[E])
+  Query(E)
+  Encoding(LocalSDKPayloadEncodingIssue)
+  Issuance(@run_publication.DeliveryIssuanceIssue)
+  ChangedOriginal
+  MissingOriginal
+  UnresolvedOriginal
+  CapacityExceeded
+  EncodingFailure
+}
+
 type LocalSDKPayloadEncoding
 pub fn LocalSDKPayloadEncoding::cancel_frames(Self) -> Unit
 pub fn LocalSDKPayloadEncoding::confirm_chunk(Self) -> Result[Int64, LocalSDKPayloadEncodingIssue]
 pub fn LocalSDKPayloadEncoding::confirm_finished(Self) -> Result[@run_publication.PublicationContract, LocalSDKPayloadEncodingIssue]
 pub fn LocalSDKPayloadEncoding::feed(Self, Bytes, Bool) -> Result[Bytes, LocalSDKPayloadEncodingIssue]
+pub fn LocalSDKPayloadEncoding::observe_empty_output(Self) -> Result[Int64, LocalSDKPayloadEncodingIssue]
 pub fn LocalSDKPayloadEncoding::prepare_input(Self) -> Result[Unit, LocalSDKPayloadEncodingIssue]
+pub fn[E] LocalSDKPayloadEncoding::prepare_terminal_from_store(Self, LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[LocalSDKDeliveryTerminal, LocalSDKDeliveryTerminalIssue[E]]
 
 pub(all) enum LocalSDKPayloadEncodingIssue {
   Frames(@run_publication.DurableResultRowFrameIssue)

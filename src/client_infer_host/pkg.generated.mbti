@@ -43,6 +43,8 @@ pub fn advance_result_publication(ResultPublication, Int) -> Result[(Bool, Int),
 
 pub fn advance_root(Execution, Int) -> Result[Poll, Issue]
 
+pub fn advance_stopped_attempt_raw_usage(Execution, Int, Int) -> Result[(Bool, Int64, @model_execution.ModelExecutionIssue?), @model_execution.ModelExecutionIssue]
+
 pub fn attempt_evidence(Execution, Int) -> Result[@model_execution.ModelAttemptEvidence, @model_execution.ModelExecutionIssue]
 
 pub fn begin_original_model_read_scope(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelExecutionLimits, @model_execution.ModelQuantityCapacity?, Int64, Int64, Int, Int, Int) -> Result[@run_publication_host.ClientModelReadScope, Issue]

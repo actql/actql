@@ -89,13 +89,24 @@ fn row_listing_maximum(
   progress : RowListingProgress,
   quantity : String,
 ) -> Result[Int64, RowSourceIssue] {
+  row_listing_bound(progress.limits, progress.resolved_rows, quantity)
+}
+
+///|
+// Same admitted limits before a read/frame is constructed. This is only a
+// finite enforcement bound, not observation, capacity funding or authority.
+fn row_listing_bound(
+  limits : Array[(String, Int64)],
+  resolved_rows : RowListingRows?,
+  quantity : String,
+) -> Result[Int64, RowSourceIssue] {
   if quantity == "max_listing_items" {
-    return match progress.resolved_rows {
+    return match resolved_rows {
       Some(value) => Ok(listing_rows_maximum(value))
       None => Err(ListingLimitUnresolved(quantity))
     }
   }
-  for (name, bound) in progress.limits {
+  for (name, bound) in limits {
     if name == quantity && bound > 0L {
       return Ok(bound)
     }
@@ -363,6 +374,12 @@ fn advance_row_source_listing_page(
         Err(issue) => return fail_read(read, issue)
       }
       page.cells = Some(cells)
+      if row_read_listing_reports(read) is Some(_) {
+        match row_listing_media_projection(read) {
+          Ok(_) => ()
+          Err(issue) => return fail_read(read, issue)
+        }
+      }
       if progress.selection is Some(_) {
         guard listing_named_cell(read, cells, "resource")
           is Some({ value: @admitted.Reference(resource), .. }) &&
@@ -516,7 +533,16 @@ fn advance_row_source_listing_page(
         return fail_read(read, ListingLimit("max_listing_items"))
       }
       match
-        append_row_source_cells(read.input, read.schema, cells, read.retention) {
+        (match row_read_listing_reports(read) {
+          Some(reports) => append_row_listing_report(read, reports, cells)
+          None =>
+            append_row_source_cells(
+              read.input,
+              read.schema,
+              cells,
+              read.retention,
+            )
+        }) {
         Ok(_) => ()
         Err(issue) => return fail_read(read, issue)
       }
