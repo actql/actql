@@ -77,6 +77,16 @@ cannot start transport or regain the consumed attempt when a late binding arrive
 It keeps the original Unknown/cleanup responsibility. This is the initial private
 one-Slot connection, not accepted public funding or multi-Slot raw persistence.
 
+The private Chat port validates output and observations from the original saved
+raw response, not the SDK-normalized result. After that same SDK settles, it
+retires only its unused decoded-result alias, even if raw persistence or cleanup
+remains pending. Original raw bytes, request/transport/reader custody, the saved
+view, failure/Unknown and explicit same-call reconciliation remain unchanged.
+Native callers retain their existing explicit one-time decoded-result transfer;
+an already transferred immutable view is never mutated by alias retirement.
+This is not physical GC or capacity release. The parsing/normalization peak and
+all remaining Promise/Store/closure overlap still require complete funding.
+
 The internal `createInstalledOpenAIChatRegistration` assembles the existing Host
 `registerModelProviders` entry from trusted, already retained installation
 selections. It does not load packages, derive a numerical profile or reconstruct
