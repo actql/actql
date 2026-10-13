@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 66
+LOCAL_CORE_ABI = 67
 
 
 class LocalCoreError(RuntimeError):
@@ -314,6 +314,7 @@ _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'produce_sdk_read_evidence_decision': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_sdk_read_delivery_storage': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_sdk_delivery_lookup': ('i64 i32 i32 i32 i32', 'i32'),
+    'retire_sdk_delivery_output': ('i64 i32', 'i32'),
     'produce_lookup_reference': ('i64 i32 i32 i32', 'i32'),
     'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_index_key': ('i64 i32 i32', 'i32'),
@@ -2071,6 +2072,19 @@ class LocalCore:
             self._check('produce_sdk_delivery_lookup', self._call(
                 'publication_commit_export', 'produce_sdk_delivery_lookup',
                 value.handle, request.handle, original_run, current_configuration))
+
+    def retire_publication_sdk_delivery_output(self, value: _Output) -> bool:
+        """Retire transport only; the actual first preparation/request stay owned."""
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            code = self._call('publication_commit_export', 'retire_sdk_delivery_output', value.handle)
+            if type(code) is not int:
+                raise RuntimeError('Invalid Local Core retirement status')
+            if code == -9:
+                return False
+            if code != 0:
+                raise LocalCoreError('retire_sdk_delivery_output', code)
+            return True
 
     def produce_publication_sdk_read_delivery_storage(self, value: _Output,
                                                       request: _Input,

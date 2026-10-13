@@ -30,13 +30,22 @@ class SDKDeliveryStorageTests(unittest.TestCase):
         self.assertTrue(evidence.close())
         previous = core._call
         outputs, calls = {}, []
-        state = {'cleanup': True, 'current': True}
+        state = {'cleanup': True, 'current': True, 'retire': True, 'retired': set()}
+        observation._projection._cleanup = lambda: state['cleanup']
         rows = self.rows(revision)
         raw = json.dumps(rows, ensure_ascii=False).encode()
         if revision is not None:
             key = store.namespaced_key(rows[4]['table'], rows[4]['key'])
             store.compare_exchange(key, None, b'old-usage')
         def call(family, name, *args):
+            if family == 'publication_commit_export' and name == 'retire_sdk_delivery_output':
+                if not state['retire']:
+                    return -9
+                loan = next(value for value in core._loans.values() if value.handle == args[0])
+                if core._cleanup(loan.ticket) != 0:
+                    return -9
+                state['retired'].add(args[0])
+                return 0
             if family == 'publication_commit_export' and name == 'produce_sdk_read_delivery_storage':
                 frame = core._journal_callbacks(binding._current.ticket).reader
                 self.assertIs(frame.owner, store)
@@ -53,6 +62,8 @@ class SDKDeliveryStorageTests(unittest.TestCase):
                 outputs[args[0]] = raw
                 return 0
             if family == 'publication_commit_export' and name == 'length' and args[0] in outputs:
+                if args[0] in state['retired']:
+                    return -33
                 return len(outputs[args[0]])
             if family == 'buffer' and name == 'byte' and args[0] in outputs:
                 return outputs[args[0]][args[1]]
@@ -75,6 +86,14 @@ class SDKDeliveryStorageTests(unittest.TestCase):
             self.assertEqual(calls[0], calls[1])
             self.assertFalse(observation._projection.pending_outputs)
             self.assertIs(core._loans[request.ticket], request)
+            first = holder.original_first_output(request)
+            self.assertIs(core._loans[first.ticket], first)
+            with self.assertRaisesRegex(RuntimeError, 'cleanup has completed'):
+                core.read_publication_commit_material(first)
+            self.assertTrue(holder.close_original_first(request))
+            self.assertTrue(holder.close_original_first(request))
+            with self.assertRaises(ValueError):
+                holder.original_first_output(request)
             self.assertTrue(holder.close())
 
     def test_usage_cas_revision_is_applied_but_conflict_rolls_back_all_six(self):
@@ -155,3 +174,67 @@ class SDKDeliveryStorageTests(unittest.TestCase):
             current = self.rows();mutate(current)
             with self.assertRaises(ValueError): _physical_plan(json.dumps(current).encode())
         self.assertEqual(len(_physical_plan(json.dumps(rows).encode())), 6)
+
+    def test_transport_retirement_failure_keeps_registered_first_without_commit_or_reprojection(self):
+        helper = file_fixture.ReaderFactsTests()
+        with helper.file() as (_, root, _, final):
+            holder, store, core, observation, request, _, state, calls, rows = self.bridge(root, helper.transfer_ready(root, final))
+            state['retire'] = False
+            with self.assertRaises(LocalCoreError) as issue:
+                holder.persist(request, 37)
+            self.assertEqual(issue.exception.code, -9)
+            first = holder.original_first_output(request)
+            self.assertIs(core._loans[first.ticket], first)
+            self.assertFalse(observation._projection.pending_outputs)
+            self.assertIsNone(store.read(store.namespaced_key(rows[3]['table'], rows[3]['key'])))
+            before = len(calls)
+            with self.assertRaises(LocalStorageError):
+                holder.persist(request, 37)
+            self.assertEqual(len(calls), before)
+            with self.assertRaises(ValueError):
+                holder.original_first_output(copy.copy(request))
+            state['cleanup'] = False
+            self.assertFalse(holder.close_original_first(request))
+            self.assertIs(core._loans[first.ticket], first)
+            state['cleanup'] = True
+            self.assertTrue(holder.close_original_first(request))
+            self.assertTrue(holder.close())
+
+    def test_retained_first_capacity_refusal_precedes_core_preparation(self):
+        helper = file_fixture.ReaderFactsTests()
+        with helper.file() as (_, root, _, final):
+            holder, store, core, _, request, codes, _, calls, rows = self.bridge(root, helper.transfer_ready(root, final))
+            original_workspace = holder._workspace
+            codes['workspace', 'reserve'] = -4
+            with self.assertRaises(LocalCoreError) as issue:
+                holder.persist(request, 37)
+            self.assertEqual(issue.exception.code, -4)
+            self.assertEqual(calls, [])
+            self.assertFalse(holder._first_outputs)
+            self.assertFalse(holder._first_workspaces)
+            self.assertFalse(holder._uncertain_first)
+            self.assertIs(core._loans[original_workspace.ticket], original_workspace)
+            self.assertIs(core._loans[request.ticket], request)
+            self.assertIsNone(store.read(store.namespaced_key(rows[3]['table'], rows[3]['key'])))
+            self.assertTrue(holder.close())
+
+    def test_transport_cleanup_reentry_close_refuses_commit_and_keeps_first_custody(self):
+        helper = file_fixture.ReaderFactsTests()
+        with helper.file() as (_, root, _, final):
+            holder, store, core, observation, request, _, _, _, rows = self.bridge(root, helper.transfer_ready(root, final))
+            original = core._call
+            def call(family, name, *args):
+                if family == 'publication_commit_export' and name == 'retire_sdk_delivery_output':
+                    self.assertFalse(holder.close())
+                return original(family, name, *args)
+            core._call = call
+            with self.assertRaisesRegex(RuntimeError, 'storage is closing'):
+                holder.persist(request, 37)
+            self.assertIsNone(store.read(store.namespaced_key(rows[3]['table'], rows[3]['key'])))
+            self.assertFalse(observation._projection.pending_outputs)
+            first = holder._first_outputs[request.ticket]
+            self.assertIs(core._loans[first.ticket], first)
+            self.assertIs(core._loans[request.ticket], request)
+            with self.assertRaises(ValueError):
+                holder.original_first_output(request)
+            self.assertTrue(holder.close())

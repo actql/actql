@@ -266,6 +266,23 @@ test "SDK delivery storage projects six original CAS writes and rejects partial 
     }
   }
   let wire = prepare(read).unwrap()
+  let (first, same_wire) = prepare_local_sdk_read_delivery_installation_from_store(
+    fixture.preflight,
+    fixture.account,
+    fixture.original,
+    fixture.selection,
+    "sha256:" + "a".repeat(64),
+    fixture.owner,
+    fixture.view,
+    "answer",
+    "jsonl",
+    "sdk-read-original",
+    "2026-10-13T00:00:04.000Z",
+    16,
+    read,
+    () => Ok(()),
+  ).unwrap()
+  assert_eq(same_wire, wire)
   assert_true(@utf8.encode(wire).length() <= 1048576)
   guard @json.parse(wire) is Array(rows) && rows.length() == 6 else {
     fail("Expected six original physical writes")
@@ -280,6 +297,18 @@ test "SDK delivery storage projects six original CAS writes and rejects partial 
     assert_eq(row.get("table"), Some(@json.to_json(tables[ordinal])))
     assert_eq(row.get("revision"), Some(@json.parse("null")))
   }
+  // The typed first preparation is the source of these actual CAS bodies,
+  // not reconstructed by admitting the exported packet as new custody.
+  for ordinal in 0..<3 {
+    let (body, cid) = local_sdk_read_delivery_original(first, ordinal).unwrap()
+    guard rows[ordinal] is Object(row) else { fail("Expected original row") }
+    assert_eq(row.get("body"), Some(@json.to_json(body)))
+    assert_eq(row.get("key"), Some(@json.to_json(cid)))
+  }
+  assert_eq(
+    @publication.publication_contract_identity(first.attempt),
+    local_sdk_read_delivery_original(first, 1).unwrap().1,
+  )
   assert_true(
     prepare((table, requested_key) => {
       if table == "publication_contract" {

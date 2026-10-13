@@ -275,6 +275,9 @@ fn produce_sdk_read_field(
     return -33
   }
   if record.produced {
+    if kind is DeliveryStorage && record.sdk_delivery_first is None {
+      return -41
+    }
     return 0
   }
   if record.invoked || record.pending {
@@ -320,6 +323,7 @@ fn produce_sdk_read_field(
     }
     run_configuration_current(value, current)
   }
+  let mut first_delivery : @local_run.LocalSDKReadDeliveryPreparation? = None
   let text = match kind {
     Grant(_) => {
       let grant = match
@@ -387,7 +391,7 @@ fn produce_sdk_read_field(
     }
     DeliveryStorage =>
       match
-        @local_run.prepare_local_sdk_read_delivery_storage_from_store(
+        @local_run.prepare_local_sdk_read_delivery_installation_from_store(
           preflight,
           current.account,
           finite,
@@ -403,7 +407,10 @@ fn produce_sdk_read_field(
           (table, key) => sdk_run_journal_port(value, current, 1, table, key),
           current_check,
         ) {
-        Ok(wire) => wire
+        Ok((first, wire)) => {
+          first_delivery = Some(first)
+          wire
+        }
         Err(Observation(code)) | Err(Store(Observation(code))) => return code
         Err(Store(Preparation(Preflight(_)))) => return -35
         Err(Store(Preparation(Codec(CapacityExceeded)))) => return -4
@@ -497,6 +504,9 @@ fn produce_sdk_read_field(
   )
   record.pending = false
   if result == 0 {
+    // Keep the actual first-issuance value under this original output/input
+    // custody. Saved/Copied response bytes are not its constructor or permit.
+    record.sdk_delivery_first = first_delivery
     record.produced = true
   }
   result

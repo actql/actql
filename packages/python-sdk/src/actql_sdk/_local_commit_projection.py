@@ -44,6 +44,20 @@ class OriginalCommitProjection:
         with self._core._lock:
             return tuple(self._outputs)
 
+    def retain_sdk_delivery_custody(self, output: _Output) -> None:
+        """Move one exact active loan to its already registered Store holder.
+
+        This changes physical cleanup custody only. The Core export validates
+        its genuine first preparation when its transport is retired; neither
+        this move nor the caller's physical COMMIT creates read permission.
+        """
+        with self._core._lock:
+            self._core._owned_output(output, 'publication_commit_export')
+            if (not self._projecting or self._closing or len(self._outputs) != 1
+                    or self._outputs[0] is not output):
+                raise ValueError('Foreign original SDK delivery output custody')
+            self._outputs.pop()
+
     def count(self) -> int:
         with self._core._lock:
             self._ready()

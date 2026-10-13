@@ -224,6 +224,36 @@ pub fn[E] prepare_local_sdk_read_delivery_storage_from_store(
   read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
   current : () -> Result[Unit, E],
 ) -> Result[String, LocalSDKReadDeliveryIssue[E]] {
+  prepare_local_sdk_read_delivery_installation_from_store(
+    preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+    format, attempt_id, observed_at, max_results, read, current,
+  ).map(pair => pair.1)
+}
+
+///|
+/// Keep the original typed first-installation preparation with its exact CAS
+/// projection. The portable Host borrows it before retiring transport output;
+/// wire bytes or saved metadata cannot reconstruct this nominal preparation.
+/// Neither component is a Store ACK, byte-disclosure permit or new attempt.
+pub fn[E] prepare_local_sdk_read_delivery_installation_from_store(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  observed_at : String,
+  max_results : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[
+  (LocalSDKReadDeliveryPreparation, String),
+  LocalSDKReadDeliveryIssue[E],
+] {
   let prepared = match
     prepare_local_sdk_read_delivery_from_store(
       preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
@@ -308,7 +338,7 @@ pub fn[E] prepare_local_sdk_read_delivery_storage_from_store(
       @encode.end_object(writer)
     }
     @encode.end_array(writer)
-    Ok(@encode.finish(writer))
+    Ok((prepared, @encode.finish(writer)))
   } catch {
     @encode.OutputLimit => Err(Store(Preparation(Codec(CapacityExceeded))))
     _ => Err(Store(Preparation(Codec(Encoding))))
