@@ -3643,12 +3643,13 @@ class LocalCore:
         if getattr(self, '_store', None) is not None:
             self._store.close()
             self._store = None
-        if getattr(self, '_physical_holding', None) is not None:
+        holding: _NativeHoldingLease | None = getattr(self, '_physical_holding', None)
+        if holding is not None:
             # Store success retires the executable Wasm Root. A final native
             # unmap failure retains only this same Core identity and original
             # holding for physical retirement retry; never reopen that Root or
             # repeat already retired Store/native handles.
-            self._physical_holding.close()
+            holding.close()
             self._physical_holding = None
         self._closed = True
         self._inputs.clear()
