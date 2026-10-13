@@ -162,10 +162,59 @@ test "aggregate predicates retain common operand and membership-list admission" 
 }
 
 ///|
-test "aggregate membership retains unsupported annotated and computed list contracts" {
+test "aggregate membership preserves ordinary annotated and computed ARRAY contracts" {
+  for
+    (key, expression) in [
+      (
+        "payload.score IN UNNEST(ARRAY<FLOAT64>[20])",
+        (
+          #|{"in":[{"property":{"name":"score","value":{"field":"payload"}}},{"if":[{"literal":true},{"array":[{"literal":20}]},{"empty_array":{"items":{"type":"number","nullable":false}}}]}]}
+        ),
+      ),
+      (
+        "payload.score IN UNNEST([id])",
+        (
+          #|{"in":[{"property":{"name":"score","value":{"field":"payload"}}},{"array":[{"field":"id"}]}]}
+        ),
+      ),
+    ] {
+    // These complete controls follow the ordinary ARRAY/IF/membership contract,
+    // not the source compiler's output. The original implicit ASC NULLS FIRST
+    // order, delimiter, fields, source rows and aggregate limit are retained.
+    let expected = aggregate_signed_order_key_expected(
+      expression,
+      "",
+      first_nulls="first",
+    )
+    assert_true(
+      @check.check_parsed(expected, check_environment(), None, check_limits())
+      is Checked(_),
+      msg=key,
+    )
+    let actual = compile(
+      @query.parse_query(
+        "SELECT STRING_AGG(name, '|' ORDER BY " +
+        key +
+        ", id) AS names FROM objects",
+        syntax_limits(),
+      ).unwrap(),
+      aggregate_property_order_context(),
+      construction_limits(),
+    ).unwrap()
+    assert_eq(semantic(actual), semantic(expected), msg=key)
+    assert_true(
+      @check.check_parsed(actual, check_environment(), None, check_limits())
+      is Checked(_),
+      msg=key,
+    )
+  }
+}
+
+///|
+test "aggregate membership still rejects incompatible annotated and computed ARRAY domains" {
   for
     key in [
-      "payload.score IN UNNEST(ARRAY<FLOAT64>[20])", "payload.score IN UNNEST([id])",
+      "payload.score IN UNNEST(ARRAY<STRING>[20])", "payload.score IN UNNEST([name])",
     ] {
     let actual = compile(
       @query.parse_query(
@@ -181,11 +230,7 @@ test "aggregate membership retains unsupported annotated and computed list contr
       @check.check_parsed(actual, check_environment(), None, check_limits()) {
       Rejected(error) =>
         assert_true(@check.diagnostic_cause(error) is Source(_), msg=key)
-      _ =>
-        fail(
-          "general membership lists remain unsupported by common admission: " +
-          key,
-        )
+      _ => fail("incompatible membership ARRAY must be rejected: " + key)
     }
   }
 }

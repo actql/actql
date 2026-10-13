@@ -12,8 +12,15 @@ This repair quotes only those ordinary declarations and implicit derived/PIVOT a
 
 `authored-text-changes.json` records the original and corrected synthetic source chunks with independent byte hashes, plus before/after file hashes. It is authored-input evidence; no expected Program, row, schema or CID was generated from product output. `selection.json` contains only the 78 affected files and two existing quoted-name/refusal control files.
 
-The membership rejection expectation, Graph AoA contract pin, and policy Program Definition preimage are separate remaining diagnoses, not hidden by this fixture change. A corrected syntax entry may expose further failures; such results must remain failures until their own existing contract is satisfied.
+The membership rejection expectation was a separate diagnosed stale expectation. The original two SQL keys now have independent complete Program controls using ordinary ARRAY/IF/membership nodes, the original implicit ASC NULLS FIRST order, and the same source/fields/aggregate limit. Two incompatible ARRAY-domain controls retain the existing common Source refusal. No annotated or computed operand is converted to a literal list. The current query-text prose is aligned with the existing common language contract. Graph AoA contract pin and policy Program Definition preimage remain separate diagnoses, not hidden by this fixture change. A corrected syntax entry may expose further failures; such results must remain failures until their own existing contract is satisfied.
 
 ## Limited verification
 
 `node reviews/2026-10-13-frontend-reserved-fixture-repair/prepared-checks.mjs EXACT_SOURCE` uses the existing nonzero Moon test wrapper under a single 60-second/TERM5, nonHeavy guard. It executes selected files only, not all Core/all targets/packed/Provider/Hosted CI. Report actual counts and the termination receipt at the exact source. No runtime success is asserted by merely preparing this command. Public installed E2E for this unit is 0 until observed separately.
+
+## Retained first attempts
+
+- `c867727bd51adb6dbd3d60f356700c13cdbca504`, run-DHJGls: Node argument parsing failed before Moon execution (exit 9). Its source and receipt remain retained; it is not a test pass.
+- `a19e61fc080ca23ece06a570209d4dd3178d2f54`, run-6KR6VB: actual JS 494 tests, 492 passed and 2 failed, under the original 60/5 guard. The stale membership refusal and the remaining implicit UNPIVOT `current` alias both failed. The next repair quotes that alias without changing its complete independent Program. Compiler/package success is not public installed E2E.
+
+The authored-text manifest records the initial role repair at c867. Later source hashes and changed membership controls belong to their own commits, rather than reinterpreting the initial manifest as evidence of later executions.
