@@ -12,7 +12,9 @@ const int = (value, minimum=1) => Number.isSafeInteger(value) &&
 function snapshotData(value, keys, code) {
   if (value===null || typeof value!=='object' || Array.isArray(value)) issue(code);
   const names=Reflect.ownKeys(value);
-  if (names.some(name=>typeof name!=='string') || names.slice().sort().join(',')!==keys) issue(code);
+  const expected=keys.split(',');
+  if (names.some(name=>typeof name!=='string') || names.length!==expected.length ||
+      names.slice().sort().some((name,index)=>name!==expected[index])) issue(code);
   const entries=names.map(name=>{
     const descriptor=Object.getOwnPropertyDescriptor(value,name);
     if (descriptor===undefined || descriptor.enumerable!==true || !('value' in descriptor)) issue(code);
