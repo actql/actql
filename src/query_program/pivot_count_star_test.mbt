@@ -51,7 +51,7 @@ test "PIVOT COUNT star retains nullable keys empty groups range axis and authore
     source in [
       "SELECT 'A' AS axis WHERE FALSE |> PIVOT(COUNT(*) FOR axis IN('B' AS later,'A' AS first))",
       "SELECT 1 AS n,'A' AS axis WHERE FALSE |> PIVOT(COUNT(*) FOR axis IN('A'))",
-      "SELECT CAST(NULL AS FLOAT64) AS n,'A' AS axis |> AS old |> PIVOT(COUNT(*) AS total FOR old.axis IN('B','A')) AS current |> SELECT current.*",
+      "SELECT CAST(NULL AS FLOAT64) AS n,'A' AS axis |> AS old |> PIVOT(COUNT(*) AS total FOR old.axis IN('B','A')) AS `current` |> SELECT current.*",
       "SELECT 9 AS aql_pivot_row_4,'A' AS axis |> PIVOT(COUNT(*) FOR axis IN('A'))",
       "SELECT 'A' AS axis |> PIVOT(COUNT(*) FOR axis IN('A' AS aql_pivot_row_4))",
     ] {

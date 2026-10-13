@@ -1,5 +1,6 @@
 import {instantiate} from '../../_build/workers/modules/bridge.mjs';
 import {installStrategyContributions} from '../connectors-workers/strategy.generated.mjs';
+import {bindWorkersFiniteHost} from './finite.mjs';
 import {bindLocalJsHost} from '../host-common/local-js-host.mjs';
 
 // Standard Local-only entry: no request-supplied implementations or verifiers.
@@ -13,3 +14,7 @@ export function createWorkersHost(hashSeed) {
 export function bindWorkersHost(runtime) {
   return bindLocalJsHost(runtime, installStrategyContributions);
 }
+
+// Trusted source-free installation. The accepting request Owner links its
+// admission and Ledger into this same runtime; see finite.mjs.
+export {bindWorkersFiniteHost};

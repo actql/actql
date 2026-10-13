@@ -13,6 +13,7 @@ fn aggregate_signed_order_expected(positive : Bool) -> @program.Program {
 fn aggregate_signed_order_key_expected(
   key : String,
   declarations : String,
+  first_nulls? : String = "last",
 ) -> @program.Program {
   @program.parse(
     "{\"version\":\"actql/0.1\",\"id\":\"fixture.pipe_slots\"," +
@@ -21,7 +22,9 @@ fn aggregate_signed_order_key_expected(
     aggregate_property_order_seed() +
     ", {\"from\":\"objects\",\"derive\":{\"aql_aggregate_sort_5\":" +
     key +
-    "}},{\"group\":{\"by\":[],\"aggregates\":{\"names\":{\"fn\":\"string_agg\",\"field\":\"name\",\"max_bytes\":10000,\"order_by\":[{\"field\":\"aql_aggregate_sort_5\",\"dir\":\"asc\",\"nulls\":\"last\"},{\"field\":\"id\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"delimiter\":\"|\"}}}},{\"select\":[\"names\"],\"as\":\"aql_gen_0\"}],\"results\":{\"rows\":{\"from\":\"aql_gen_0\",\"fields\":[\"names\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
+    "}},{\"group\":{\"by\":[],\"aggregates\":{\"names\":{\"fn\":\"string_agg\",\"field\":\"name\",\"max_bytes\":10000,\"order_by\":[{\"field\":\"aql_aggregate_sort_5\",\"dir\":\"asc\",\"nulls\":\"" +
+    first_nulls +
+    "\"},{\"field\":\"id\",\"dir\":\"asc\",\"nulls\":\"first\"}],\"delimiter\":\"|\"}}}},{\"select\":[\"names\"],\"as\":\"aql_gen_0\"}],\"results\":{\"rows\":{\"from\":\"aql_gen_0\",\"fields\":[\"names\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
     construction_limits().program,
     format=Json,
   ).unwrap()
@@ -122,7 +125,7 @@ test "signed aggregate keys preserve unavailable scope and demand restrictions" 
   assert_true(
     compile(
       @query.parse_query(
-        "FROM objects AS old |> AS current |> AGGREGATE STRING_AGG(name, '|' ORDER BY -old.payload.score, id) AS names",
+        "FROM objects AS old |> AS `current` |> AGGREGATE STRING_AGG(name, '|' ORDER BY -old.payload.score, id) AS names",
         syntax_limits(),
       ).unwrap(),
       aggregate_property_order_context(),

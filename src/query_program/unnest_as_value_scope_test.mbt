@@ -88,7 +88,7 @@ test "Pipe AS retains the scalar value table under its new range" {
   )
   let actual = compile(
     @query.parse_query(
-      "FROM UNNEST(@items) element |> AS current |> WHERE current > 0 |> SELECT current AS value |> ORDER BY value",
+      "FROM UNNEST(@items) element |> AS `current` |> WHERE current > 0 |> SELECT current AS value |> ORDER BY value",
       syntax_limits(),
     ).unwrap(),
     {
@@ -118,7 +118,7 @@ test "Pipe AS retains the whole object and its implicit member slots" {
     is Checked(_),
   )
   let actual = unnest_struct_compile(
-    "FROM UNNEST(@items) element |> AS current |> SELECT current AS original, id |> ORDER BY id NULLS LAST",
+    "FROM UNNEST(@items) element |> AS `current` |> SELECT current AS original, id |> ORDER BY id NULLS LAST",
   )
   assert_eq(semantic(actual), semantic(expected))
 }
@@ -141,8 +141,8 @@ test "multi-column Pipe AS keeps the former value as an ordinary whole column" {
   )
   for
     text in [
-      "FROM UNNEST(@items) element WITH OFFSET position |> AS current |> SELECT current.element AS original, position |> ORDER BY position",
-      "FROM UNNEST(@items) element WITH OFFSET position |> AS current |> SELECT element AS original, current.position AS position |> ORDER BY position",
+      "FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> SELECT current.element AS original, position |> ORDER BY position",
+      "FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> SELECT element AS original, current.position AS position |> ORDER BY position",
     ] {
     assert_eq(
       semantic(unnest_struct_compile(text)),
@@ -166,11 +166,11 @@ test "AS retains object star layout separately from ordinary whole columns" {
   )
   for
     text in [
-      "FROM UNNEST(@items) element WITH OFFSET position |> AS current |> SELECT * |> ORDER BY position",
-      "FROM UNNEST(@items) element WITH OFFSET position |> AS current |> SELECT current.* |> ORDER BY position",
-      "FROM UNNEST(@items) element WITH OFFSET position |> AS first |> AS current |> SELECT current.* |> ORDER BY position",
-      "FROM UNNEST(@items) element WITH OFFSET position |> AS current |> RENAME element AS next |> SELECT * |> ORDER BY position",
-      "FROM UNNEST(@items) element WITH OFFSET position |> AS current |> RENAME element AS next |> SELECT current.* |> ORDER BY position",
+      "FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> SELECT * |> ORDER BY position",
+      "FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> SELECT current.* |> ORDER BY position",
+      "FROM UNNEST(@items) element WITH OFFSET position |> AS first |> AS `current` |> SELECT current.* |> ORDER BY position",
+      "FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> RENAME element AS next |> SELECT * |> ORDER BY position",
+      "FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> RENAME element AS next |> SELECT current.* |> ORDER BY position",
     ] {
     assert_eq(
       semantic(unnest_struct_compile(text)),
@@ -185,9 +185,9 @@ test "AS current whole columns can be renamed without reviving old ranges" {
   let expected = unnest_as_expected(true, true)
   for
     text in [
-      "FROM UNNEST(@items) element WITH OFFSET position |> AS current |> RENAME element AS next |> SELECT next AS original, position |> ORDER BY position",
-      "FROM UNNEST(@items) element WITH OFFSET position |> AS current |> RENAME element AS next |> SELECT current.element AS original, position |> ORDER BY position",
-      "FROM UNNEST(@items) element WITH OFFSET position |> AS first |> AS current |> SELECT current.element AS original, position |> ORDER BY position",
+      "FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> RENAME element AS next |> SELECT next AS original, position |> ORDER BY position",
+      "FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> RENAME element AS next |> SELECT current.element AS original, position |> ORDER BY position",
+      "FROM UNNEST(@items) element WITH OFFSET position |> AS first |> AS `current` |> SELECT current.element AS original, position |> ORDER BY position",
     ] {
     assert_eq(
       semantic(unnest_struct_compile(text)),
@@ -202,7 +202,7 @@ test "AS preserves scalar value-table kind across repeated aliases" {
   let expected = unnest_as_expected(false, false)
   for
     text in [
-      "FROM UNNEST(@items) element |> AS first |> AS current |> WHERE current > 0 |> SELECT current AS value |> ORDER BY value",
+      "FROM UNNEST(@items) element |> AS first |> AS `current` |> WHERE current > 0 |> SELECT current AS value |> ORDER BY value",
       "FROM UNNEST(@items) element |> AS `Current` |> WHERE `CURRENT` > 0 |> SELECT current AS value |> ORDER BY value",
     ] {
     let actual = compile(
@@ -219,7 +219,7 @@ test "AS preserves scalar value-table kind across repeated aliases" {
   assert_true(
     compile(
       @query.parse_query(
-        "FROM UNNEST(@items) element |> AS current |> RENAME current AS next |> SELECT next",
+        "FROM UNNEST(@items) element |> AS `current` |> RENAME current AS next |> SELECT next",
         syntax_limits(),
       ).unwrap(),
       {
@@ -236,7 +236,7 @@ test "AS preserves scalar value-table kind across repeated aliases" {
 ///|
 test "AS does not authorize editing implicit object members" {
   for operation in ["SET id = 100", "DROP id", "RENAME id AS next"] {
-    let text = "FROM UNNEST(@items) element WITH OFFSET position |> AS current |> " +
+    let text = "FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> " +
       operation +
       " |> SELECT position"
     assert_true(
@@ -259,7 +259,7 @@ test "AS does not authorize editing implicit object members" {
 test "AS cannot bypass the existing whole-object DISTINCT refusal" {
   for
     text in [
-      "FROM UNNEST(@items) element |> AS current |> DISTINCT |> SELECT id", "FROM UNNEST(@items) element WITH OFFSET position |> AS current |> DISTINCT |> SELECT id",
+      "FROM UNNEST(@items) element |> AS `current` |> DISTINCT |> SELECT id", "FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> DISTINCT |> SELECT id",
     ] {
     assert_true(
       compile(
@@ -292,7 +292,7 @@ test "AS captures qualified star before whole-column SET" {
   assert_eq(
     semantic(
       unnest_struct_compile(
-        "FROM UNNEST(@items) element WITH OFFSET position |> AS current |> SET element = 100 |> SELECT current.* |> ORDER BY position",
+        "FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> SET element = 100 |> SELECT current.* |> ORDER BY position",
       ),
     ),
     semantic(expected),
@@ -314,7 +314,7 @@ test "AS whole-column DROP removes implicit fields from current star" {
   assert_eq(
     semantic(
       unnest_struct_compile(
-        "FROM UNNEST(@items) element WITH OFFSET position |> AS current |> DROP element |> SELECT * |> ORDER BY position",
+        "FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> DROP element |> SELECT * |> ORDER BY position",
       ),
     ),
     semantic(expected),

@@ -18,6 +18,8 @@ import stat
 import time
 from typing import Any, Literal, TypeVar
 
+import httpx
+
 from . import _wire as wire
 from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _Workspace, _PublisherFact, _Task, _ResultExport, LocalTaskProgress, LocalResultProgress
 from ._local_distribution import installed_local_components, load_local_module
@@ -30,8 +32,12 @@ from ._local_commit_projection import OriginalCommitProjection
 from ._local_reader_facts import OriginalReaderFacts
 from ._local_observation_transfer import OriginalObservationTransfer
 from ._local_store_reconciliation import OriginalStoreReconciliation
+from ._local_sdk_read_storage import OriginalSDKReadEvidenceStore, SDKReadEvidenceCleanupPending
+from ._local_sdk_delivery_storage import OriginalSDKDeliveryStore, SDKDeliveryStorageCleanupPending
+from ._local_response import OriginalLocalResponseStream
+from ._local_work import OriginalLocalWork
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
-from ._values import wire_bytes
+from ._values import content_cid, wire_bytes
 
 _T = TypeVar('_T')
 _LOCAL_SELECTION = {'mode': 'local', 'owner': 'local', 'durability': 'durable',
@@ -67,6 +73,13 @@ class _PayloadCustody:
     finalization: _FileFinalization | None = None
     binding: _Output | None = None
     reader: _FileReader | None = None
+
+
+@dataclass(frozen=True, slots=True, eq=False)
+class _OriginalRunReference:
+    # Accounted routing metadata issued by Core, never Run state or authority.
+    run: _Run
+    source: _Input
 
 
 class LocalProductCleanupPending(RuntimeError):
@@ -113,8 +126,12 @@ class InstalledLocalHost:
         self._runs = LocalRunCustody(core, self._preparation)
         self._configuration: _RunConfiguration | None = None
         self._run_loans: list[_Run] = []
+        self._public_run_references: list[_OriginalRunReference] = []
+        self._run_publications: list[tuple[_Run, _Output]] = []
         self._row_outputs: list[_Output] = []
+        self._run_rows: list[tuple[_Run, _Output]] = []
         self._journal_outputs: list[_Output] = []
+        self._admission_observations: dict[int, _Output] = {}
         # Physical write-invocation custody, not Run/admission state. A retained
         # attempt cannot be reused as a transport retry or new acceptance.
         self._row_write_attempts: set[int] = set()
@@ -139,18 +156,24 @@ class InstalledLocalHost:
         self._reader_facts: list[OriginalReaderFacts] = []
         self._observation_transfers: list[OriginalObservationTransfer] = []
         self._store_observations: dict[int, OriginalStoreReconciliation] = {}
+        self._sdk_read_evidence: dict[int, OriginalSDKReadEvidenceStore] = {}
+        self._sdk_deliveries: dict[int, OriginalSDKDeliveryStore] = {}
         self._observation_attempts: set[int] = set()
         self._publication_write_attempts: set[int] = set()
         self._pending_publication_write: OriginalCommitProjection | None = None
+        # Routing alias to the same retained publisher loan, never a new grant.
+        self._pending_publication_publisher: _Output | None = None
         self._payloads: list[_PayloadCustody] = []
         self._payload_write_attempts: set[int] = set()
         self._payload_capacity_attempts: set[int] = set()
         self._payload_transition_attempts: set[int] = set()
         self._inputs: list[_Input] = []
+        self._response_streams: set[OriginalLocalResponseStream] = set()
         self._projections: list[_Output] = []
         self._append_sources: dict[int, _Input] = {}
         self._uncertain_ticket: int | None = None
         self._closing = False
+        self._physical_work: list[OriginalLocalWork] = []
         try:
             self._installation = OriginalLocalInstallation(core, directory,
                 observed_at=observed_at, now=now, project_epoch=self._project_epoch, sdk_finite=sdk_finite)
@@ -196,6 +219,170 @@ class InstalledLocalHost:
     def _nominal(self) -> None:
         if self._original is not self:
             raise ValueError('Copied installed Local Host')
+
+    async def open(self, operation: str, payload: bytes) -> httpx.Response:
+        """Use the existing SDK's closed operation wire without HTTP or a token.
+
+        Profile/admission and completed original Run observations use their
+        existing Owners. Other operations still need their own observations; no outcome
+        is fabricated from a physical write, exception, or unsupported request.
+        The public installed factory remains gated on Result/recovery assembly.
+        """
+        self._active()
+        if any(not work.stopped for work in self._physical_work):
+            raise ValueError('Original Local physical invocation is still active')
+        body = _object(payload, 1048576)
+        if (type(operation) is not str or not wire.valid_body(operation, body)  # type: ignore[no-untyped-call]
+                or body['connection'] != _LOCAL_SELECTION):
+            raise ValueError('Invalid original Local Client operation')
+        work: OriginalLocalWork | None = None
+        with self._core._lock:
+            if operation == 'connect':
+                raw = wire_bytes(self.profile())  # type: ignore[no-untyped-call]
+            elif operation == 'submit-intent':
+                intent = {key: body[key] for key in ('kind', 'input', 'parameters')}
+                identity = content_cid({'version': 'actql-submitted-intent/0.1',
+                    'intent': intent}, data_keys=True)  # type: ignore[no-untyped-call]
+                if body['intentCid'] != identity:
+                    raise ValueError('Invalid original Local submitted intent identity')
+                run, admission = self._accept_original(body['submissionRef'],
+                    wire_bytes(intent), run_id='python-' + secrets.token_hex(16))  # type: ignore[no-untyped-call]
+                saved = _object(admission, 4096)
+                if (not wire.negotiated(saved, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
+                        or saved['ref']['authorityScopeCid'] != body['submissionRef']['epoch']['authorityScopeCid']):
+                    raise ValueError('Invalid original saved Local admission wire')
+                # The invocation envelope correlates this call with the saved
+                # Owner admission, as in the existing Host transport. It does
+                # not manufacture a Run terminal, dispatch or Result response.
+                value = {'kind': 'recorded', 'attemptRef': body['attemptRef'], 'outcome': {
+                    'kind': 'ready', 'submissionRef': body['submissionRef'],
+                    'intentCid': identity, 'admission': saved}}
+                if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
+                    raise ValueError('Invalid original Local Submission response')
+                self._register_original_run_reference(run, admission)
+                raw = wire_bytes(value)  # type: ignore[no-untyped-call]
+                work = OriginalLocalWork(lambda: self._execute_original_admitted_run(run))
+            elif operation in ('status', 'wait'):
+                if operation == 'wait' and body['until'] is not None:
+                    raise ValueError('Original Local wait condition supplier is unavailable')
+                run, _ = self._select_original_run(body['ref'])
+                projection = self._original_run_projection(run)
+                return self._original_run_response(run, projection)
+            else:
+                raise ValueError('Original Local operation supplier is unavailable')
+            stream = OriginalLocalResponseStream(self, raw)
+        if work is not None:
+            # Keep the accounted response and original invocation even if the
+            # awaiting coroutine disappears. Host close observes actual worker
+            # stop before touching its Core/File/Store loans; no automatic retry.
+            self._physical_work.append(work)
+            work.start()
+            await work.wait()
+        with self._core._lock:
+            response = httpx.Response(200, headers={'content-type': 'application/json',
+                'content-encoding': 'identity'}, stream=stream)
+            stream._attached = True
+            return response
+
+    def _register_original_run_reference(self, run: _Run, admission: bytes) -> None:
+        """Hold only a Core-issued reference for routing to its nominal Run loan."""
+        self._runs._run(run)
+        if not any(original is run for original in self._run_loans):
+            raise ValueError('Foreign original Local Run')
+        saved = _object(admission, 4096)
+        if not wire.negotiated(saved, 'admission', _LOCAL_SELECTION):  # type: ignore[no-untyped-call]
+            raise ValueError('Invalid original Local admission reference')
+        raw = wire_bytes(saved['ref'])  # type: ignore[no-untyped-call]
+        if len(raw) > 4096:
+            raise ValueError('Invalid bounded original Local reference')
+        for original in self._public_run_references:
+            self._core._owned_input(original.source)
+            held = self._core._inputs[original.source.ticket].payload
+            if original.run is run:
+                if held != raw:
+                    raise ValueError('Original Local Run reference changed')
+                return
+            if held == raw:
+                raise ValueError('Ambiguous original Local Run reference')
+        self._public_run_references.append(_OriginalRunReference(run, self._copy(raw)))
+
+    def _select_original_run(self, reference: object) -> tuple[_Run, bytes]:
+        """Route a reference, then reobserve its original actual saved admission.
+
+        Exact field equality locates custody only. Current read/publisher and
+        full stored-chain checks still precede any public Run state response.
+        This performs no preparation, adoption, dispatch or new acceptance.
+        """
+        self._active()
+        requested = _object(wire_bytes(reference), 4096)  # type: ignore[no-untyped-call]
+        if not wire.valid(requested, 'run_ref'):  # type: ignore[no-untyped-call]
+            raise ValueError('Invalid original Local Run reference')
+        for original in self._public_run_references:
+            self._core._owned_input(original.source)
+            held = self._core._inputs[original.source.ticket].payload
+            if _object(held, 4096) != requested:
+                continue
+            saved = self._read_original_saved_admission(original.run)
+            admission = _object(saved, 4096)
+            if (not wire.negotiated(admission, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
+                    or admission['ref'] != requested):
+                raise ValueError('Original Local Run is unavailable')
+            return original.run, saved
+        # No retained routing loan proves neither absence nor permission to
+        # submit again. Fresh-process restoration uses its separate Owner path.
+        raise ValueError('Original Local Run is unavailable')
+
+    def _original_run_projection(self, run: _Run) -> OriginalCommitProjection:
+        self._runs._run(run)
+        held = [publication for original, publication in self._run_publications if original is run]
+        projections = [projection for projection in self._commit_projections
+                       if any(projection._publication is publication for publication in held)]
+        if len(projections) != 1:
+            raise ValueError('Original Local Run observation is unavailable')
+        return projections[0]
+
+    def _original_run_response(self, run: _Run,
+                               projection: OriginalCommitProjection) -> httpx.Response:
+        """Move original Core state into the existing accounted response stream."""
+        installation = self._active()
+        configuration = self._configuration
+        self._runs._run(run)
+        if configuration is None or projection._configuration != configuration.handle:
+            raise ValueError('Foreign original Local Run observation')
+        streams: list[OriginalLocalResponseStream] = []
+        def consume(raw: bytes) -> None:
+            # The existing Core guard prevents a different Run's publication
+            # being routed under this reference. Its zero is no read grant.
+            self._core.validate_publication_run(projection._publication,
+                run.handle, configuration.handle)
+            streams.append(OriginalLocalResponseStream(self, raw))
+        try:
+            installation.binding.inspect(lambda _:
+                self._core.validate_publication_run(projection._publication,
+                    run.handle, configuration.handle))
+            self._ensure_original_publication_observation(projection)
+            self._project_original_run_state(projection, consume)
+        except BaseException:
+            # Unattached transport never reaches the Client. The original
+            # buffer Owner decides cleanup; failure retains this same stream.
+            for stream in streams:
+                if not stream._close():
+                    raise LocalProductCleanupPending(self) from None
+            raise
+        if len(streams) != 1:
+            raise ValueError('Incomplete original Local Run observation')
+        stream = streams[0]
+        response = httpx.Response(200, headers={'content-type': 'application/json',
+            'content-encoding': 'identity'}, stream=stream)
+        stream._attached = True
+        return response
+
+    async def aclose(self) -> None:
+        self._nominal()
+        for work in self._physical_work:
+            await work.wait_stopped()
+        if not self.close():
+            raise LocalProductCleanupPending(self)
 
     def _active(self) -> OriginalLocalInstallation:
         self._nominal()
@@ -444,14 +631,45 @@ class InstalledLocalHost:
             output = self._reserve(lambda: self._runs.reserve_submitted_rows(
                 run, configuration, row_input, cleanup=lambda: True))
             self._row_outputs.append(output)
+            self._run_rows.append((run, output))
             installation.binding.inspect(lambda _: self._core.produce_material(output))
             self._commit_original_run_rows(output)
-            # A fresh same-Store inspection supplies the original saved admission.
-            # Neither the candidate nor the successful SQLite API response does.
+            admission = self._read_original_saved_admission(run)
+            # The immutable row Owner/input remain in Core. These consumed
+            # buffers need not overlap the later dispatch/Compute/Result phase.
+            if not self._core.retire_material_output(output):
+                raise LocalProductCleanupPending(self)
+            if not self._core.retire_submission_append_output(observed):
+                raise LocalProductCleanupPending(self)
+            self._pending_run_write = None
+            return run, admission
+
+    def _read_original_saved_admission(self, run: _Run) -> bytes:
+        """Reobserve the retained original rows without preparation, acceptance or dispatch.
+
+        The earlier transport may be retired; its nominal Plan/rows/input loan
+        must still be live. Core checks the original saved admission revision
+        against the current actual Run/submission snapshot, not a cached reply.
+        This produces neither Store ACK nor a completed Run/Result.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        store = installation._store
+        if (configuration is None or not configuration.sdk or store is None
+                or not any(original is run for original in self._run_loans)):
+            raise ValueError('Foreign original saved Local Run')
+        with self._core._lock:
+            self._runs._run(run)
+            if run.handle in self._admission_observations:
+                raise LocalProductCleanupPending(self)
+            held = [output for original, output in self._run_rows if original is run]
+            if len(held) != 1 or not any(original is held[0] for original in self._row_outputs):
+                raise ValueError('Original saved Local rows are unavailable')
             journal = self._reserve(lambda: self._core.reserve_journal_observation(
-                output, configuration.handle, store=store,
+                held[0], configuration.handle, store=store,
                 current=installation.binding.current, cleanup=lambda: True))
             self._journal_outputs.append(journal)
+            self._admission_observations[run.handle] = journal
             admission: list[bytes] = []
             with installation.binding.fenced() as fences:
                 def inspect(reader: Any) -> None:
@@ -459,19 +677,12 @@ class InstalledLocalHost:
                         self._core.inspect_journal_observation(journal, reader)
                         admission.append(self._core.read_journal_admission(journal, reader))
                     installation.binding.inspect_reader(reader, consume)
-                store.inspect_namespaces(
-                    fences, inspect=inspect, current=installation.binding.current)
-            # The immutable row Owner/input remain in Core. These consumed
-            # buffers need not overlap the later dispatch/Compute/Result phase.
+                store.inspect_namespaces(fences, inspect=inspect, current=installation.binding.current)
             if not self._core.close_journal_observation(journal):
                 raise LocalProductCleanupPending(self)
             self._journal_outputs.remove(journal)
-            if not self._core.retire_material_output(output):
-                raise LocalProductCleanupPending(self)
-            if not self._core.retire_submission_append_output(observed):
-                raise LocalProductCleanupPending(self)
-            self._pending_run_write = None
-            return run, admission[0]
+            del self._admission_observations[run.handle]
+            return admission[0]
 
     def _commit_original_run_rows(self, output: _Output) -> None:
         """Forward the original Core candidate in one fenced SQLite transaction.
@@ -628,6 +839,55 @@ class InstalledLocalHost:
             if not self._core.retire_material_output(output):
                 raise LocalProductCleanupPending(self)
             return output
+
+    def _execute_original_admitted_run(self, run: _Run) -> None:
+        """Drive one explicit start through existing task, payload and Store ports.
+
+        The common Owners choose every task, transition, binding, key and full
+        chain. This method selects no Run outcome, does not issue ACK, and never
+        repeats uncertain work. Failure leaves the same retained loans for the
+        original lookup/cleanup path. Status and wait do not call this method.
+        """
+        self._active()
+        self._runs._run(run)
+        if any(compute.start.run is run for compute in self._source_free_computes):
+            raise LocalStorageError('Original Local execution is retained; replay is unavailable')
+        compute = self._configure_original_compute(run)
+        preflight, publisher = self._prepare_original_publication(compute)
+        results = self._execute_original_tasks(compute, preflight, publisher)
+        publication = self._capture_original_results(compute, preflight, results)
+        for index in range(len(results)):
+            held = self._prepare_original_payload(publication, index)
+            self._save_original_payload_intent(held)
+            self._reserve_original_payload_capacity(held)
+            self._save_original_payload_reserved(held)
+            self._prepare_original_payload_writing(held)
+            self._acquire_original_payload_file(held)
+            self._stage_original_payload_file(held)
+            while not self._advance_original_payload_copy(held):
+                pass  # Existing bounded Core/File cursor, same input and fuel.
+            while not self._advance_original_payload_sealing(held):
+                pass
+            self._open_original_payload_reader(held)
+            while not self._advance_original_payload_reader(held):
+                pass
+        self._prepare_original_commit_candidate(publication, preflight)
+        projection = self._advance_original_commit_candidate(publication)
+        while projection is None:
+            projection = self._advance_original_commit_candidate(publication)
+        facts = self._original_commit_reader_facts(projection)
+        originals: list[tuple[ByteFence, CapacityReservation]] = []
+        for fact in facts:
+            held = next(value for value in self._payloads if value.record is fact._record)
+            if held.row is None or held.capacity is None:
+                raise ValueError('Original Local publication physical fences are unavailable')
+            originals.append((held.row, held.capacity))
+        self._store_original_commit(projection, facts, tuple(originals), publisher)
+        self._prepare_original_store_observation(projection, publisher)
+        while self._advance_original_store_observation(projection) is None:
+            pass
+        # An action is not ACK or terminal. Public observation must still copy
+        # the actual stored chain through the original RunState/read Owners.
 
     def _configure_original_compute(self, run: _Run) -> _SourceFreeCompute:
         """Join the original saved Run/start/Compute Owners without executing tasks."""
@@ -842,6 +1102,7 @@ class InstalledLocalHost:
             publication = self._reserve(lambda: self._core.reserve_publication(
                 source, request, cleanup=lambda: True))
             self._publications.append(publication)
+            self._run_publications.append((compute.start.run, publication))
             installation.binding.inspect(lambda _:
                 self._core.prepare_publication(publication, configuration.handle))
             while True:
@@ -1689,6 +1950,33 @@ class InstalledLocalHost:
             installation.binding.inspect(select)
             return tuple(collected)
 
+    def _ensure_original_publication_observation(self, projection: OriginalCommitProjection) -> None:
+        """Observe this attempted original write when an explicit status arrives.
+
+        A lost COMMIT response can stop the original worker before lookup. This
+        retains the same pending write/publisher and asks the existing Owner to
+        inspect the same Store once. It starts no write, acceptance or execution,
+        and does not turn the resulting action into ACK or a Run terminal.
+        Failed lookup keeps the same observation holder for cleanup, not replay.
+        """
+        self._active()
+        with self._core._lock:
+            key = projection._publication.ticket
+            if key in self._store_observations:
+                if self._store_observations[key]._projection is not projection:
+                    raise ValueError('Foreign original Local publication observation')
+                return
+            publisher = self._pending_publication_publisher
+            if (self._pending_publication_write is not projection
+                    or key not in self._publication_write_attempts
+                    or publisher is None
+                    or not any(original is projection for original in self._commit_projections)
+                    or not any(original is publisher for original in self._publishers)):
+                raise ValueError('Original attempted publication observation is unavailable')
+            self._prepare_original_store_observation(projection, publisher)
+            while self._advance_original_store_observation(projection) is None:
+                pass  # Existing finite observation Owner and shared work/fuel.
+
     def _prepare_original_store_observation(self, projection: OriginalCommitProjection, publisher: _Output) -> None:
         """Forward actual same-key lookup without a write, resend or ACK.
 
@@ -1757,6 +2045,140 @@ class InstalledLocalHost:
                 raise ValueError('Original Local Store observation is unavailable')
             observation.project_observed_index(consume)
 
+    def _original_sdk_read_observation(self, run: _Run,
+                                    projection: OriginalCommitProjection) -> OriginalStoreReconciliation:
+        """Recheck the original Run/current/Store for both private read holders."""
+        installation = self._active()
+        configuration = self._configuration
+        self._runs._run(run)
+        if (configuration is None or not configuration.sdk
+                or not any(original is run for original in self._run_loans)
+                or not any(original is projection for original in self._commit_projections)):
+            raise ValueError('Foreign original SDK read evidence')
+        with self._core._lock:
+            installation.binding.inspect(lambda _:
+                self._core.validate_publication_run(projection._publication,
+                    run.handle, configuration.handle))
+            # Current callbacks may reenter close. Recheck original custody
+            # after the callback before returning a cached holder or reserving.
+            if self._active() is not installation:
+                raise ValueError('Changed original SDK read installation')
+            self._runs._run(run)
+            projection._ready()
+            if (self._configuration is not configuration
+                    or not any(original is run for original in self._run_loans)
+                    or not any(original is projection for original in self._commit_projections)):
+                raise ValueError('Released original SDK read custody')
+            key = projection._publication.ticket
+            observation = self._store_observations.get(key)
+            if observation is None or observation._projection is not projection:
+                raise ValueError('Original SDK read Store observation is unavailable')
+            return observation
+
+    def _original_sdk_read_evidence(self, run: _Run,
+                                    projection: OriginalCommitProjection) -> OriginalSDKReadEvidenceStore:
+        with self._core._lock:
+            observation = self._original_sdk_read_observation(run, projection)
+            key = projection._publication.ticket
+            original = self._sdk_read_evidence.get(key)
+            if original is not None:
+                if original._observation is not observation:
+                    raise ValueError('Foreign original SDK read Store holder')
+                return original
+            try:
+                original = OriginalSDKReadEvidenceStore(observation, cleanup=lambda: True)
+            except SDKReadEvidenceCleanupPending as failure:
+                # Retain before returning/trapping; do not construct a second
+                # workspace or repair a failed original holder on the next read.
+                self._sdk_read_evidence[key] = failure.cleanup_evidence
+                raise
+            self._sdk_read_evidence[key] = original
+            return original
+
+    def _original_sdk_delivery_store(self, run: _Run,
+                                     projection: OriginalCommitProjection) -> OriginalSDKDeliveryStore:
+        """One original delivery workspace; no repair or replacement on refusal."""
+        with self._core._lock:
+            observation = self._original_sdk_read_observation(run, projection)
+            key = projection._publication.ticket
+            original = self._sdk_deliveries.get(key)
+            if original is not None:
+                if original._observation is not observation:
+                    raise ValueError('Foreign original SDK delivery Store holder')
+                return original
+            try:
+                original = OriginalSDKDeliveryStore(observation, cleanup=lambda: True)
+            except SDKDeliveryStorageCleanupPending as failure:
+                self._sdk_deliveries[key] = failure.cleanup_storage
+                raise
+            self._sdk_deliveries[key] = original
+            return original
+
+    def _persist_original_sdk_delivery(self, run: _Run,
+                                       projection: OriginalCommitProjection,
+                                       request: _Input) -> None:
+        """Original physical first CAS only; no use adoption or public read."""
+        with self._core._lock:
+            self._core._owned_input(request)
+            self._original_sdk_delivery_store(run, projection).persist(request, run.handle)
+
+    def _persist_original_sdk_read_evidence(self, run: _Run,
+                                           projection: OriginalCommitProjection,
+                                           request: _Input) -> None:
+        """Same-Store physical evidence only; not grant usage, delivery or ACK."""
+        with self._core._lock:
+            self._core._owned_input(request)
+            self._original_sdk_read_evidence(run, projection).persist(request, run.handle)
+
+    def _project_original_sdk_read_grant(self, run: _Run,
+                                         projection: OriginalCommitProjection,
+                                         request: _Input,
+                                         consume: Callable[[ByteWrite], object]) -> None:
+        """Lookup the original evidence through Core without repeating a write."""
+        with self._core._lock:
+            self._core._owned_input(request)
+            self._original_sdk_read_evidence(run, projection).project_grant(request, run.handle, consume)
+
+    def _project_original_run_state(self, projection: OriginalCommitProjection,
+                                    consume: Callable[[bytes], object]) -> None:
+        """Forward Core RunState bytes under the original File/Store/current frame.
+
+        Only the physical observation clock is supplied here. Cleanup retains
+        its same input if output retirement or physical stop is incomplete.
+        This neither marks ACK nor infers availability or grants Result read.
+        """
+        self._active()
+        if not callable(consume):
+            raise ValueError('Invalid original Run observation consumer')
+        with self._core._lock:
+            observation = self._store_observations.get(projection._publication.ticket)
+            if observation is None or observation._projection is not projection:
+                raise ValueError('Original Local Store observation is unavailable')
+            # A pending output must not allocate another clock loan on a poll.
+            projection._ready()
+            now = self._now()
+            if type(now) is not int or not 0 <= now <= 253402300799999:
+                raise ValueError('Invalid Local physical observation time')
+            seconds, milliseconds = divmod(now, 1000)
+            observed_at = datetime.fromtimestamp(seconds, timezone.utc).replace(
+                microsecond=milliseconds * 1000).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+            source = self._copy(wire_bytes({'observed_at': observed_at}))  # type: ignore[no-untyped-call]
+            try:
+                observation.project_run_state(source, consume)
+            except BaseException:
+                # No output means the current File/Store fence refused before
+                # Core acquired the dependent output. Only the buffer Owner
+                # may confirm that this physical clock loan can be reclaimed.
+                # A trap or live output retains it for same-handle cleanup.
+                if not projection.pending_outputs and not self._core._closing:
+                    if not self._core.close_input(source):
+                        raise LocalProductCleanupPending(self) from None
+                    self._inputs.remove(source)
+                raise
+            if not self._core.close_input(source):
+                raise LocalProductCleanupPending(self)
+            self._inputs.remove(source)
+
     def _store_original_commit(self, projection: OriginalCommitProjection,
                                facts: tuple[OriginalReaderFacts, ...],
                                originals: tuple[tuple[ByteFence, CapacityReservation], ...],
@@ -1809,6 +2231,7 @@ class InstalledLocalHost:
                 with installation.binding.fenced() as fences:
                     self._publication_write_attempts.add(projection._publication.ticket)
                     self._pending_publication_write = projection
+                    self._pending_publication_publisher = publisher
                     generations = store.store_publication_projected_inspected(
                         counts[0], projection.project_storage_entry, originals, fences,
                         inspect=lambda reader, consume:
@@ -1820,14 +2243,27 @@ class InstalledLocalHost:
     def close(self) -> bool:
         """Stop this Host's resources only; never cancel/replay/delete a Run."""
         self._nominal()
+        if any(not work.stopped for work in self._physical_work):
+            return False
         with self._core._lock:
             self._closing = True
+            for stream in tuple(self._response_streams):
+                if stream._attached or not stream._close():
+                    return False
             if self._uncertain_ticket is not None and not self._core._closed:
                 return False
             for projection in tuple(reversed(self._commit_projections)):
                 if not projection.close():
                     return False
                 self._commit_projections.remove(projection)
+            for key, evidence in tuple(self._sdk_read_evidence.items()):
+                if not evidence.close():
+                    return False
+                del self._sdk_read_evidence[key]
+            for key, delivery in tuple(self._sdk_deliveries.items()):
+                if not delivery.close():
+                    return False
+                del self._sdk_deliveries[key]
             for observation in tuple(self._store_observations.values()):
                 publication = observation._projection._publication
                 if not self._core.retire_publication_observation(publication):
@@ -1929,11 +2365,14 @@ class InstalledLocalHost:
                 if not self._core.close_publication(publication):
                     return False
                 self._publications.remove(publication)
+                self._run_publications[:] = [(run, original) for run, original in self._run_publications
+                                            if original is not publication]
                 self._commit_requests.pop(publication.ticket, None)
                 self._publication_write_attempts.discard(publication.ticket)
                 if (self._pending_publication_write is not None
                         and self._pending_publication_write._publication is publication):
                     self._pending_publication_write = None
+                    self._pending_publication_publisher = None
             for chunk in tuple(reversed(self._result_chunks)):
                 if not self._core.close_result_chunk(chunk):
                     return False
@@ -1984,10 +2423,15 @@ class InstalledLocalHost:
                 if not self._core.close_journal_observation(output):
                     return False
                 self._journal_outputs.remove(output)
+                self._admission_observations = {run: original
+                    for run, original in self._admission_observations.items()
+                    if original is not output}
             for output in tuple(reversed(self._row_outputs)):
                 if not self._core.close_material(output):
                     return False
                 self._row_outputs.remove(output)
+                self._run_rows[:] = [(run, original) for run, original in self._run_rows
+                                     if original is not output]
                 self._row_write_attempts.discard(output.ticket)
                 if self._pending_run_write is output:
                     self._pending_run_write = None
@@ -1995,6 +2439,8 @@ class InstalledLocalHost:
                 if not self._runs.close_run(run):
                     return False
                 self._run_loans.remove(run)
+                self._public_run_references[:] = [original for original in self._public_run_references
+                                                  if original.run is not run]
             for prepared in tuple(reversed(self._prepared_inputs)):
                 if not self._preparation.close_preparation(prepared):
                     return False
@@ -2019,4 +2465,7 @@ class InstalledLocalHost:
                 if not self._installation.close():
                     return False
                 self._installation = None
-            return self._core.close()
+            if not self._core.close():
+                return False
+            self._physical_work.clear()
+            return True

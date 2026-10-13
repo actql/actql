@@ -67,7 +67,7 @@ test "Pipe GROUP property member aliases retain collisions and removed scopes" {
   }
   for
     source in [
-      "FROM objects AS old |> AS current |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score",
+      "FROM objects AS old |> AS `current` |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score",
       "FROM objects AS old |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score |> SELECT old.payload.score",
     ] {
     assert_true(

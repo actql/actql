@@ -218,7 +218,18 @@ pub fn program_source_contract_body_at(
     return Err(@environment.MissingBodyAdmission)
   }
   let view = @sourceviews.selected_contract(selected)
-  let body = if @environment.source_request_file_listing(view) is Some(_) {
+  let carrier = @environment.source_view_carrier(
+    @environment.source_request_carriers(@sourceviews.catalog_owner(selected)),
+    @environment.source_request_member(view),
+  ).unwrap()
+  let body = if @environment.source_view_relation_keys(carrier) is Some(_) {
+    @environment.check_relation_key_body_dependencies(
+      @sourceviews.catalog_owner(selected),
+      view,
+      facts,
+      envelope,
+    )
+  } else if @environment.source_request_file_listing(view) is Some(_) {
     @environment.check_listing_body_dependencies(
       @sourceviews.catalog_owner(selected),
       view,
