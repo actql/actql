@@ -151,27 +151,30 @@ class LocalDistributionTests(unittest.TestCase):
                 installed_local_components()
 
     def test_installed_resolver_uses_matching_cohort_and_optional_dependency(self):
-        versions = {'actql-sdk': '0.0.0.dev0', 'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
+        versions = {'actql': '0.0.0.dev0', 'actql-sdk': '0.0.0.dev0', 'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
         with patch('actql_sdk._local_distribution.metadata.version', side_effect=lambda name: versions[name]), \
                 patch('actql_sdk._local_distribution.resources.files', return_value=self.directory) as resource:
             self.assertEqual(installed_local_components().module, self.directory / 'client_host_wasm.wasm')
             resource.assert_called_once_with('actql_local_runtime')
-            for name in ('actql-local-runtime', 'wasmtime'):
+            for name in ('actql', 'actql-local-runtime', 'wasmtime'):
                 original = versions[name]
                 versions[name] = 'wrong'
                 with self.assertRaisesRegex(LocalInstallationError, 'incompatible'):
                     installed_local_components()
                 versions[name] = original
         with patch('actql_sdk._local_distribution.metadata.version', side_effect=metadata.PackageNotFoundError('runtime')):
-            with self.assertRaisesRegex(LocalInstallationError, r'actql-sdk\[local\]'):
+            with self.assertRaisesRegex(LocalInstallationError, 'standard actql'):
                 installed_local_components()
 
     def test_recipe_and_sdk_versions_dependencies_are_one_cohort(self):
         sdk = tomllib.loads((ROOT / 'packages/python-sdk/pyproject.toml').read_text())['project']
         runtime = tomllib.loads((ROOT / 'packages/python-local-runtime/pyproject.toml').read_text())['project']
+        product = tomllib.loads((ROOT / 'packages/python-product/pyproject.toml').read_text())['project']
         self.assertEqual(runtime['version'], sdk['version'])
-        self.assertEqual(sdk['optional-dependencies']['local'],
-                         ['actql-local-runtime==' + sdk['version'], 'wasmtime==38.0.0'])
+        self.assertEqual(product['version'], sdk['version'])
+        self.assertEqual(product['dependencies'],
+                         ['actql-sdk==' + sdk['version'], 'actql-local-runtime==' + sdk['version']])
+        self.assertNotIn('local', sdk['optional-dependencies'])
         self.assertEqual(runtime['dependencies'], ['wasmtime==38.0.0'])
         self.assertEqual(sdk['dependencies'], ['httpx==0.28.1', 'rfc8785==0.1.4'])
 

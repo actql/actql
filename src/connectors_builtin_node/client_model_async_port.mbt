@@ -100,6 +100,19 @@ pub fn client_program_model_physical_saved_chat(
 }
 
 ///|
+#export_name("clientProgramModelPhysicalSavedNativeDecision")
+pub fn client_program_model_physical_saved_native_decision(
+  response : @model.ModelPhysicalChatResponse,
+  original : @model.NativeDecisionRequest,
+  provider : @model.AdmittedModelProvider,
+  probability : @check_environment.DecisionProbabilityProfile,
+) -> Result[@model.ModelPhysicalCallPoll, @model.ModelExecutionIssue] {
+  @model.model_physical_saved_native_response(
+    response, original, provider, probability,
+  )
+}
+
+///|
 /// Project actual raw port facts through the original call/registration Owner.
 /// The trusted Store still must verify exact bytes before issuing any receipt.
 #export_name("clientProgramObserveInferRawCapture")
