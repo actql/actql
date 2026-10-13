@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 59
+LOCAL_CORE_ABI = 60
 
 
 class LocalCoreError(RuntimeError):
@@ -258,6 +258,8 @@ _MATERIAL_SIGNATURES = {
     'validate_submitted_rows': ('i64 i32', 'i32'),
     'validate_sdk_start': ('i64 i32', 'i32'),
     'confirm_sdk_start': ('i64 i32', 'i32'),
+    'validate_sdk_publication': ('i64 i32', 'i32'),
+    'confirm_sdk_publication': ('i64 i32', 'i32'),
     'retire_output': ('i64 i32', 'i32'),
     'produce': ('i64 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
@@ -2539,7 +2541,7 @@ class LocalCore:
         """
         with self._lock:
             if (self._closing or type(run) is not int or run <= 0 or
-                    type(kind) is not int or kind not in (1, 2, 3, 4, 5, 7, 8)):
+                    type(kind) is not int or kind not in (1, 2, 3, 4, 5, 7, 8, 9)):
                 raise ValueError('Invalid Local material projection')
             ticket = self._next_ticket
             if ticket >= 2**31:
@@ -2987,12 +2989,16 @@ class LocalCore:
     def _sdk_start_material_current(self, value: _Output, current: _Output, operation: str) -> None:
         self._owned_output(value)
         self._host_current_ready(current)
+        self._owned_output(value)
+        self._owned_output(current, 'current')
         code = self._call('material', operation, value.handle)
         callbacks = self._journal_callbacks(current.ticket)
         if callbacks is not None and callbacks.failure is not None:
             raise callbacks.failure
         self._check(operation, code)
         self._host_current_ready(current)
+        self._owned_output(value)
+        self._owned_output(current, 'current')
 
     def validate_sdk_start_step(self, value: _Output, current: _Output) -> None:
         with self._lock:
@@ -3009,6 +3015,23 @@ class LocalCore:
         """Read original saved CAS successor; not a candidate or IO permission."""
         with self._lock:
             self._sdk_start_material_current(value, current, 'confirm_sdk_start')
+
+    def validate_sdk_publication_binding(self, value: _Output, current: _Output) -> None:
+        """Recheck original Common candidate/current in the same Store frame."""
+        with self._lock:
+            self._sdk_start_material_current(value, current, 'validate_sdk_publication')
+
+    def read_sdk_publication_binding(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            self._sdk_start_material_current(value, current, 'validate_sdk_publication')
+            raw = self._read_output(value, 'material', 'length')
+            self._host_current_ready(current)
+            return raw
+
+    def confirm_sdk_publication_binding(self, value: _Output, current: _Output) -> None:
+        """Adopt actual saved binding, never a publication ACK or permission Bool."""
+        with self._lock:
+            self._sdk_start_material_current(value, current, 'confirm_sdk_publication')
 
     def retire_material_output(self, value: _Output) -> bool:
         """Release transport only; original Core proof/borrow/children survive."""

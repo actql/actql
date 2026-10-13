@@ -747,6 +747,8 @@ pub fn client_publication_plan_fact_entries(ClientPublicationPlanFacts) -> Array
 
 pub fn client_publication_plan_fact_limits(ClientPublicationPlanFacts) -> Array[String]
 
+pub fn client_publication_store_binding_body(String, String, UInt64, UInt64) -> Result[String, ClientPublicationStoreBindingIssue]
+
 pub fn client_publication_witness_bodies(ClientPublicationWitnesses) -> Array[String]
 
 pub fn client_publication_witness_cids(ClientPublicationWitnesses) -> Array[String]
@@ -2854,6 +2856,10 @@ pub struct ClientPublicationPlanFacts {
   bindings : Array[String]
   entries : Array[String]
 }
+
+pub(all) enum ClientPublicationStoreBindingIssue {
+  Encoding
+} derive(Eq, @debug.Debug)
 
 pub(all) enum ClientPublicationWitnessAdmissionIssue {
   Issue(ClientPublicationWitnessIssue)
