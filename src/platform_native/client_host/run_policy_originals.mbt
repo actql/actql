@@ -112,26 +112,14 @@ fn NativeClientRunJournal::lookup_publication_policy_original(
     if !authority.current_for(self, request) {
       return Err(AuthorizationDenied)
     }
-    let record = match self.retained(request) {
+    let (record, selected_policy) = match
+      self.retained_with_selected_policy(request, Some(actual_policy_cid)) {
       Ok(Some(value)) => value
       Ok(None) => return Err(CustodyLost)
       Err(issue) => return Err(issue)
     }
-    guard record.publication_policy_originals is Some(wire) else {
-      return Err(PublicationPolicy(@checked.MissingDependency))
-    }
-    let bodies = match read_run_policy_originals(wire) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    guard bodies
-      .iter()
-      .find_first(body => {
-        @publication.captured_effect_dependency_body_kind(body) == "data_policy" &&
-        @publication.captured_effect_dependency_body_cid(body) ==
-        actual_policy_cid
-      })
-      is Some(body) else {
+    guard record.publication_policy_originals is Some(_) &&
+      selected_policy is Some(body) else {
       return Err(PublicationPolicy(@checked.MissingDependency))
     }
     if !authority.current_for(self, request) {

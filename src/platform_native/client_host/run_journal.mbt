@@ -111,6 +111,20 @@ fn run_record_body(
 fn read_run_record(
   row : @sqlite.NativeJournalValue,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  read_run_record_with_selected_policy(row, None).map(value => value.0)
+}
+
+///|
+// Private projection of one existing decode, not a read authorization. The
+// selected body borrows that decoder's admitted body; no body/array is copied.
+// Nothing is returned before all Run, Checkpoint and canonical-row checks pass.
+fn read_run_record_with_selected_policy(
+  row : @sqlite.NativeJournalValue,
+  selected_policy_cid : String?,
+) -> Result[
+  (NativeClientRunRecord, @publication.CapturedEffectDependencyBody?),
+  NativeClientRunJournalIssue,
+] {
   let (decoded, local_run_policy_originals) = match
     @host.decode_client_run_journal_row_with_local_policy(row.body) {
     Ok(value) => value
@@ -128,9 +142,27 @@ fn read_run_record(
     is Err(_) {
     return Err(CustodyLost)
   }
-  if decoded.publication_policy_originals is Some(wire) &&
-    read_run_policy_originals(wire) is Err(_) {
-    return Err(CustodyLost)
+  let selected_policy = match decoded.publication_policy_originals {
+    None => None
+    Some(wire) => {
+      // Validate every body and the full dependency closure before selection.
+      // None still performs exactly this validation for the original wrapper.
+      let bodies = match read_run_policy_originals(wire) {
+        Ok(value) => value
+        Err(_) => return Err(CustodyLost)
+      }
+      match selected_policy_cid {
+        None => None
+        Some(cid) =>
+          bodies
+          .iter()
+          .find_first(body => {
+            @publication.captured_effect_dependency_body_kind(body) ==
+            "data_policy" &&
+            @publication.captured_effect_dependency_body_cid(body) == cid
+          })
+      }
+    }
   }
   if decoded.effect_material_originals is Some(wire) &&
     read_effect_material_original_packet(wire) is Err(_) {
@@ -168,7 +200,7 @@ fn read_run_record(
     return Err(CustodyLost)
   }
   match run_record_body(record) {
-    Ok(body) if body == row.body => Ok(record)
+    Ok(body) if body == row.body => Ok((record, selected_policy))
     _ => Err(CustodyLost)
   }
 }
@@ -346,18 +378,35 @@ fn NativeClientRunJournal::retained(
   self : NativeClientRunJournal,
   requested : @host.ClientRequestIdentity,
 ) -> Result[NativeClientRunRecord?, NativeClientRunJournalIssue] {
+  self
+  .retained_with_selected_policy(requested, None)
+  .map(value => value.map(selected => selected.0))
+}
+
+///|
+// Transaction ownership/current authority stay with the original caller.
+// Re-read the actual row on every invocation; retain no Host/Allow cache.
+fn NativeClientRunJournal::retained_with_selected_policy(
+  self : NativeClientRunJournal,
+  requested : @host.ClientRequestIdentity,
+  selected_policy_cid : String?,
+) -> Result[
+  (NativeClientRunRecord, @publication.CapturedEffectDependencyBody?)?,
+  NativeClientRunJournalIssue,
+] {
   let row = match
     self.database.read("client_runs", @host.client_request_scope_cid(requested)) {
     Ok(value) => value
     Err(@sqlite.NotFound) => return Ok(None)
     Err(issue) => return Err(Physical(issue))
   }
-  let retained = match read_run_record(row) {
+  let (retained, selected_policy) = match
+    read_run_record_with_selected_policy(row, selected_policy_cid) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   match @host.client_request_identity_relation(requested, retained.request) {
-    SameRequest => Ok(Some(retained))
+    SameRequest => Ok(Some((retained, selected_policy)))
     ChangedIntent => Err(ChangedIntent)
     DifferentRequest => Err(CustodyLost)
   }
