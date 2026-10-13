@@ -367,14 +367,16 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
         Ok(value) => value
         Err(issue) => return issue
       }
-    7 | 8 => match sdk_start_material_wire(value, material, record, plan) {
-      Ok(wire) => wire
-      Err(code) => return code
-    }
-    9 => match sdk_publication_material_wire(value, material, plan) {
-      Ok(wire) => wire
-      Err(code) => return code
-    }
+    7 | 8 =>
+      match sdk_start_material_wire(value, material, record, plan) {
+        Ok(wire) => wire
+        Err(code) => return code
+      }
+    9 =>
+      match sdk_publication_material_wire(value, material, plan) {
+        Ok(wire) => wire
+        Err(code) => return code
+      }
     _ => return -3
   }
   let result = status(
@@ -399,7 +401,9 @@ pub fn material_length(nonce : Int64, handle : Int) -> Int {
   }
   if material.sdk_publication is Some(_) {
     let code = validate_sdk_publication_material(nonce, handle)
-    if code != 0 { return code }
+    if code != 0 {
+      return code
+    }
   }
   if material.sdk_start is Some(_) {
     let code = validate_sdk_start_material(nonce, handle)
@@ -432,9 +436,18 @@ pub fn close_material(nonce : Int64, handle : Int) -> Int {
   if value.physical_starts.values().any(child => child.sdk_step == Some(handle)) {
     return -9
   }
-  if value.materials.values().any(child =>
-    (child.sdk_publication is Some({ rows_material, .. }) && rows_material == handle) ||
-    (child.sdk_start is Some({ publication_material, .. }) && publication_material == handle)) {
+  if value.materials
+    .values()
+    .any(child => {
+      (
+        child.sdk_publication is Some({ rows_material, .. }) &&
+        rows_material == handle
+      ) ||
+      (
+        child.sdk_start is Some({ publication_material, .. }) &&
+        publication_material == handle
+      )
+    }) {
     return -9
   }
   if !material.output_closed {
@@ -462,9 +475,19 @@ pub fn close_material(nonce : Int64, handle : Int) -> Int {
 #export_name("actql_material_retire_output")
 pub fn retire_material_output(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
-    value.materials.get(handle) is Some(material) && material.produced &&
-    (material.kind == 6 || material.kind == 7 || material.kind == 8 || material.kind == 9) else { return -2 }
-  if material.output_closed { return 0 }
+    value.materials.get(handle) is Some(material) &&
+    material.produced &&
+    (
+      material.kind == 6 ||
+      material.kind == 7 ||
+      material.kind == 8 ||
+      material.kind == 9
+    ) else {
+    return -2
+  }
+  if material.output_closed {
+    return 0
+  }
   let code = status(@buffers.close_buffer(value.pool, material.slot))
   if code != 0 {
     return code
