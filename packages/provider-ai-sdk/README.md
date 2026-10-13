@@ -50,6 +50,22 @@ phase payloads, output tuple and Node progress reference/callback/context overla
 must be funded before normal startup; this private integration supplies no
 numerical layout, public capability or execution permission.
 
+The original installed read declaration also selects immutable
+`currentStateCodec` limits (`quantum`, `comparisonWork`, `decode`) for its
+existing Writer/read/comparison child. Those finite serializer limits are not
+physical funding. The original installation's missing selection refuses
+before a child is created; request data or a copied declaration cannot supply
+it. When the existing authorization gate returns dispatch, the original Run
+caller saves its quiescent resource state through the same selected Store,
+confirms the same journal cut, and consumes that journal's invalidation through
+the original Resource Owner before the next Model advance can create an Entry.
+Waiting approval does not perform that transition. Save/COMMIT loss keeps the
+same failed Promise, park and custody without blind retry. This fence removal
+does not issue InferAllow or bypass current authority/egress/Entry/send checks.
+The original codec and dispatch-cut record/Promise overlap still require full
+installation funding; normal public startup and restore are not established
+by these private Store/journal tests.
+
 The private physical preflight can retain the original operation's raw binder
 before Approval. Its installed continuation supplies one actual Store persistence
 port after nominal raw registration, before returning dispatch and creating an
@@ -124,7 +140,20 @@ all mapped questions against one state without generation settings, high-level
 retries, default-provider mutation or SDK workflow restoration. Its input must
 come from the original bounded Common Decision projection and funded caller;
 the private builder itself does not admit a Task or validate native answers.
-Exact SDK key mapping, Common native raw decode/completeness, registered physical
+The private `prepareProjectedTypeSafeDecisionRequest` consumes the opaque
+Common projection view and rechecks its original Provider/request membership,
+Task/prompt/output-schema CIDs and authored selector before SDK allocation.
+It passes Common's positional question/option aliases unchanged to the pinned
+native SDK and checks the actual intercepted request against the immutable
+projection wires. Only the SDK's Boolean-to-`noul` representation is mapped;
+no generation defaults, question evaluator or answer validator is added.
+The caller retains the separate original view until Common's answer mapping
+retires it. Parsed input trees, verification trees/callback and SDK overlap
+require the original full funding before use, not a grant from codec clamps.
+Selected Node tests use actual SDK execution with Common boundary doubles and
+synthetic responses. They are not actual Common-to-SDK or public Run acceptance.
+
+Common native raw decode/completeness, registered physical
 profile/precision, original Store receipt and installed caller remain unconnected.
 SDK model fallbacks and reported rounding are not provider observations or
 profile authority. Prototype-key SDK response refusal keeps original raw bytes
@@ -159,3 +188,19 @@ question-count limits are physical refusals, not common language restrictions.
 Native answer decoding, original raw Store binding and public Decision
 execution remain unconnected; do not route this view through the generation
 `SavedChat` completion codec.
+
+The private answer projection now consumes an already admitted original raw
+response tree and the same Common request view. Common maps positional question
+and option aliases back to the original IDs, emits distributions in original
+order, and preserves the actual Choice/tie, fractional Score and Boolean
+probability. Missing, extra or mismatched aliases refuse; no value is rounded
+or normalized. The existing Decision validator and output admission remain
+mandatory and independent of this DATA mapping. Unknown response metadata
+stays in the original raw custody rather than being copied into the answer.
+
+This finite synchronous codec has explicit output/work limits; it is not a
+cooperatively preemptible response cursor or an endpoint-completion assertion.
+Its admitted tree, lookup maps, output writer and escaped wire overlap must be
+funded before installation. The Node wrapper delegates to Common without
+implementing a second answer mapper. No native installed capability, saved raw
+receipt, physical numerical profile or public execution is enabled by it.

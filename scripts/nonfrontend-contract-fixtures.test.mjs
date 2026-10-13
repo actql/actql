@@ -19,7 +19,7 @@ const fixtureBody = (path, name) => {
 
 test('current Catalog dependency fixtures pin the normative environment grammar', () => {
   const expected = cid(json('spec/contracts/actql-check-environment.json'));
-  assert.equal(expected, 'sha256:2edbaec105871702a061b1e21f0ff929cc7c76f4010bcd3f681e0d7ad89b43fb');
+  assert.equal(expected, 'sha256:ebc358ceb6d9c9042afeb1b713f1cd26b6d40e87ec785bdaf9ffc4ff03449935');
   for (const name of ['catalog_body_dependencies_test', 'lookup_body_dependencies_test']) {
     hasPin('src/check_environment/' + name + '.mbt', expected);
   }
@@ -29,7 +29,7 @@ test('current Program roots pin the normative closed source schema', () => {
   const body = json('spec/contracts/actql-protocol-schemas.json').artifact_schemas
     .executable_plan.properties.execution_material.properties.program;
   const expected = cid(body);
-  assert.equal(expected, 'sha256:1e63d8fb2cdfb0a8b54811762a96091ce2b7bc107089fd1682a76b1dbd57919b');
+  assert.equal(expected, 'sha256:7845446da568e6b5093059cb28bce82b39c727606fa30f81694598bac91e1e77');
   hasPin('src/pipeline_check_context/core_contracts_test.mbt', expected);
 });
 
@@ -39,14 +39,54 @@ test('managed completion fixture pins the complete normative profile', () => {
   hasPin('src/execution_relation/managed_completion_wbtest.mbt', expected);
 });
 
+// Bind complete (authored source, CID, byte length) tuples, not textual CID
+// membership: a pin belonging to another request must not satisfy this check.
+const callerTuples = path => [...read(path).matchAll(
+  /\(\s*("(?:\\.|[^"\\])*")\s*,\s*("(?:\\.|[^"\\])*")\s*,\s*(\d+),\s*\)/gu,
+)].map(([, source, pin, bytes]) => [JSON.parse(JSON.parse(source)), JSON.parse(pin), Number(bytes)]);
+const currentInstrTuples = fixture => fixture.cases.map(item => {
+  // Preserve all historical request, graph, root and capacity witnesses. The
+  // current caller intentionally uses the current normative expression body.
+  const body = {...item.body, expression_contract_cid: cid(json('spec/contracts/actql-expressions.json'))};
+  return [item.source, cid(body), Buffer.byteLength(canonical(body))];
+});
+
 test('INSTR and STRPOS fixtures retain the independent complete-fragment preimages', () => {
-  const fixture = json('portability/corpus/translate-instr-identities.json');
+  const path = 'portability/corpus/translate-instr-identities.json';
+  assert.equal(createHash('sha256').update(read(path)).digest('hex'),
+    'f0d2dfe30ec14d858b22c321c141df68b8743bf01257282d7ae3bc075a149889');
+  const fixture = json(path);
   assert.equal(fixture.cases.length, 4);
   for (const item of fixture.cases) {
     assert.equal(cid(item.body), item.cid);
     assert.equal(canonical(item.body), item.canonical);
     assert.equal(Buffer.byteLength(item.canonical), item.bytes);
-    hasPin('src/execution_relation/translate_instr_identity_wbtest.mbt', item.cid);
+    assert.equal(item.body.expression_contract_cid, fixture.expression_contract_cid);
+  }
+  // Exact caller bytes from c05f1f385d21e32865f542e63ddde21ba308157d:
+  // this is historical source evidence, never a fallback for the current caller.
+  const historical = 'portability/corpus/historical/translate-instr-identity-caller-c05f1f385.mbt';
+  assert.equal(createHash('sha256').update(read(historical)).digest('hex'),
+    '10ba0420baf40bd9fd6b228f8acbb3905e5c53a605359eed2b9a5243fa6fa5f1');
+  assert.deepEqual(callerTuples(historical), fixture.cases.map(item => [item.source, item.cid, item.bytes]));
+  const current = currentInstrTuples(fixture);
+  assert.deepEqual(callerTuples('src/execution_relation/translate_instr_identity_wbtest.mbt'), current);
+  assert.equal(new Set(current.map(([, pin]) => pin)).size, 4);
+  for (const [index, [, pin]] of current.entries()) assert.notEqual(pin, fixture.cases[index].cid);
+});
+
+test('INSTR current caller binding refuses historical pins and cross-request substitution', () => {
+  const fixture = json('portability/corpus/translate-instr-identities.json');
+  const expected = currentInstrTuples(fixture);
+  for (const mutate of [
+    tuples => {tuples[0][1] = fixture.cases[0].cid;},
+    tuples => {[tuples[0][1], tuples[1][1]] = [tuples[1][1], tuples[0][1]];},
+    tuples => {tuples[0][0] = fixture.cases[1].source;},
+    tuples => {tuples[0][2] += 1;},
+  ]) {
+    const candidate = structuredClone(expected);
+    mutate(candidate);
+    assert.throws(() => assert.deepEqual(candidate, expected), assert.AssertionError);
   }
 });
 

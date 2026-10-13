@@ -6,6 +6,7 @@ priv struct StoredSubmissionProjection {
   kind : Int
   borrow : Result[@buffers.BufferBorrow, @buffers.BufferIssue]
   slot : @buffers.BufferSlot
+  mut append_plan : @host.ClientSubmittedJournalAppendPlan?
   mut invoked : Bool
   mut produced : Bool
   mut output_closed : Bool
@@ -37,7 +38,7 @@ pub fn reserve_submission_projection(
   if value.closing || value.runtime_closing {
     return -5
   }
-  if (kind != 1 && kind != 2) ||
+  if (kind != 1 && kind != 2 && kind != 3) ||
     physical_ticket <= 0 ||
     value.next_handle == 2147483647 ||
     value.copies.values().any(pair => pair.1 == physical_ticket) ||
@@ -52,9 +53,16 @@ pub fn reserve_submission_projection(
   }
   let handle = value.next_handle
   let slot = match
-    @buffers.reserve_output_buffer(value.pool, 4096, physical_copy_bytes, () => {
-      physical_input_cleanup(physical_ticket) == 0
-    }) {
+    @buffers.reserve_output_buffer(
+      value.pool,
+      if kind == 3 {
+        1048576
+      } else {
+        4096
+      },
+      physical_copy_bytes,
+      () => physical_input_cleanup(physical_ticket) == 0,
+    ) {
     Ok(slot) => slot
     Err(issue) => return issue_code(issue)
   }
@@ -68,6 +76,7 @@ pub fn reserve_submission_projection(
     kind,
     borrow,
     slot,
+    append_plan: None,
     invoked: false,
     produced: false,
     output_closed: false,
@@ -84,6 +93,9 @@ pub fn produce_submission_projection(nonce : Int64, handle : Int) -> Int {
     value.submissions.get(handle) is Some(record) &&
     value.run_configurations.get(record.configuration) is Some(configuration) else {
     return -2
+  }
+  if record.kind == 3 {
+    return produce_submission_append(value, record, configuration)
   }
   if record.produced {
     return 0
@@ -188,10 +200,47 @@ pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
     value.submissions.get(handle) is Some(record) else {
     return -2
   }
+  if record.output_closed {
+    return -5
+  }
+  if record.kind == 3 {
+    guard value.run_configurations.get(record.configuration)
+      is Some(configuration) else {
+      return -2
+    }
+    match submission_append_current(value, record, configuration) {
+      Ok(_) => ()
+      Err(code) => return code
+    }
+  }
   match @buffers.buffer_length(value.pool, record.slot) {
     Some(length) => length
     None => -33
   }
+}
+
+///|
+/// Retire the consumed transport; the original reference/intent input borrow
+/// remains available to internal same-Store observation until full close.
+#export_name("actql_submission_retire_output")
+pub fn retire_submission_output(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.submissions.get(handle) is Some(record) &&
+    record.kind == 3 &&
+    record.produced &&
+    record.append_plan is Some(_) else {
+    return -2
+  }
+  if record.output_closed {
+    return 0
+  }
+  let code = status(@buffers.close_buffer(value.pool, record.slot))
+  if code != 0 {
+    return code
+  }
+  record.output_closed = true
+  value.copies.remove(handle) |> ignore
+  0
 }
 
 ///|
@@ -200,6 +249,9 @@ pub fn close_submission_projection(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) else {
     return -2
+  }
+  if value.runs.values().any(run => run.sdk_submission == Some(handle)) {
+    return -9
   }
   if !record.output_closed {
     let result = status(@buffers.close_buffer(value.pool, record.slot))

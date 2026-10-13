@@ -10,6 +10,7 @@ priv struct StoredPhysicalStart {
     @local_run.LocalRunPhysicalStart,
     @local_run.LocalRunIssue,
   ]?
+  sdk_step : Int?
 }
 
 ///|
@@ -110,6 +111,10 @@ pub fn reserve_physical_start(
   if value.next_handle == 2147483647 {
     return -4
   }
+  if value.run_configurations[current_configuration].sdk is Some(_) {
+    // SDK start facts must come from the original Store/Owner projection.
+    return -3
+  }
   // One original pre-I/O start invocation. An unknown or rejected result does
   // not permit another handle to bypass the retained invocation.
   if original.physical_start_reserved {
@@ -129,6 +134,7 @@ pub fn reserve_physical_start(
     borrow,
     invoked: false,
     outcome: None,
+    sdk_step: None,
   }
   original.physical_start_reserved = true
   value.next_handle += 1
@@ -145,6 +151,9 @@ pub fn confirm_physical_start(nonce : Int64, handle : Int) -> Int {
     value.runs.get(record.run) is Some({ outcome: Some(Ok(plan)), .. }) &&
     value.run_configurations.get(record.current_configuration) is Some(current) else {
     return -2
+  }
+  if record.sdk_step is Some(step) {
+    return validate_sdk_start_claim(value, step, plan)
   }
   if record.outcome is Some(_) {
     return 0
@@ -214,6 +223,15 @@ pub fn physical_start_ready(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.physical_starts.get(handle) is Some(record) else {
     return -2
+  }
+  if record.sdk_step is Some(step) {
+    guard value.runs.get(record.run) is Some({ outcome: Some(Ok(plan)), .. }) else {
+      return -2
+    }
+    let code = validate_sdk_start_claim(value, step, plan)
+    if code != 0 {
+      return code
+    }
   }
   match record.outcome {
     Some(Ok(_)) => 0

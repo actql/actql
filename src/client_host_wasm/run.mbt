@@ -11,6 +11,7 @@ priv struct StoredRunConfiguration {
   run_namespace : String
   source_free_result_policy : (String, String)?
   host_current : Int?
+  sdk : StoredSDKRunConfiguration?
 }
 
 ///|
@@ -19,6 +20,7 @@ priv struct StoredRunConfiguration {
 priv struct StoredRun {
   borrow : @buffers.BufferBorrow
   slot : @buffers.BufferSlot
+  input_physical : Int
   configuration : Int
   preparation : Int
   mut invoked : Bool
@@ -28,6 +30,8 @@ priv struct StoredRun {
   mut source_free_compute_reserved : Bool
   mut normalization : @local_run.LocalRunNormalization?
   mut outcome : Result[@local_run.LocalRunPlan, @local_run.LocalRunIssue]?
+  mut finite_policy : @host.ClientLocalRunPolicyOriginal?
+  mut sdk_submission : Int?
 }
 
 ///|
@@ -106,6 +110,7 @@ pub fn install_run_configuration(nonce : Int64, input : Int) -> Int {
     run_namespace,
     source_free_result_policy,
     host_current: None,
+    sdk: None,
   }
   value.next_handle += 1
   handle
@@ -181,6 +186,7 @@ pub fn install_current_run_configuration(
     run_namespace,
     source_free_result_policy: Some((cid, policy_body)),
     host_current: Some(current),
+    sdk: None,
   }
   value.next_handle += 1
   handle
@@ -238,6 +244,7 @@ pub fn reserve_run(
   value.runs[handle] = {
     borrow,
     slot,
+    input_physical: physical,
     configuration,
     preparation,
     invoked: false,
@@ -247,6 +254,8 @@ pub fn reserve_run(
     source_free_compute_reserved: false,
     normalization: None,
     outcome: None,
+    finite_policy: None,
+    sdk_submission: None,
   }
   value.next_handle += 1
   handle
@@ -263,6 +272,11 @@ pub fn prepare_run(nonce : Int64, handle : Int) -> Int {
     value.preparations.get(record.preparation) is Some(preparation) &&
     stored_preparation_input(preparation) is Some(input) else {
     return -2
+  }
+  // Product finite configuration has a separate original-request entry. It
+  // must never accept caller-supplied absolute adoption-time deadlines.
+  if configuration.sdk is Some(_) {
+    return -3
   }
   if record.restoration is Some(_) {
     return -3

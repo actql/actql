@@ -5,6 +5,7 @@ import {
   "actql/actql/bounded_execution",
   "actql/actql/canonical_json",
   "actql/actql/check_environment",
+  "actql/actql/decode_core",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/run_publication",
@@ -62,6 +63,8 @@ pub fn cancel_model_capture_export(ModelCaptureExport) -> Bool
 pub fn cancel_model_observation_verification(ModelObservationVerification) -> Bool
 
 pub fn cancel_model_output_preparation(ModelOutputPreparation) -> Bool
+
+pub fn charge_original_model_observation_step(OriginalModelPublicationCapacity) -> Result[Unit, ModelExecutionIssue]
 
 pub fn cleanup_model_capture_export(ModelCaptureExport) -> Result[Bool, ModelExecutionIssue]
 
@@ -201,6 +204,10 @@ pub fn observe_model_raw_capture(ModelPhysicalCall, @run_publication_host.Client
 
 pub fn openai_chat_projection_work(OpenAIChatProjection) -> Int
 
+pub fn original_model_publication_capacity_covers(OriginalModelPublicationCapacity, Int64, Int64) -> Bool
+
+pub fn original_model_publication_capacity_current(OriginalModelPublicationCapacity, ModelExecution, @run_publication_host.ClientInferCallScope) -> Bool
+
 pub fn poll_model_call_entry_persistence(ModelCallEntryPersistence, ModelCallEntry, ModelPreparedCallSet) -> Result[ModelEntryPersistenceObservation, ModelExecutionIssue]
 
 pub fn prepare_model_raw_capture_save(ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, @run_publication.RunEvidenceValue) -> Result[ModelRawCaptureSave, ModelRawCaptureSaveIssue]
@@ -231,6 +238,8 @@ pub fn prepared_model_request(ModelPreparedCallSet, Int) -> ModelRequest?
 
 pub fn prepared_model_scope(ModelPreparedCallSet) -> @run_publication.BoundModelInvocationScope?
 
+pub fn project_native_decision_answers(NativeDecisionRequest, AdmittedModelProvider, ModelRequest, @decode_core.Cursor, Int, Int, Int, Int) -> Result[(String, Int), NativeDecisionAnswerIssue]
+
 pub fn project_openai_chat_request(AdmittedModelProvider, ModelRequest, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String), OpenAIChatProjectionIssue]
 
 pub fn read_model_slot_replay(@run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelCaptureBundleRead, Int, Int) -> Result[ModelSlotReplayRead, ModelExecutionIssue]
@@ -241,6 +250,8 @@ pub fn release_model_outcomes(ModelOutcomeRead) -> Bool
 
 pub fn release_model_slot_replay(ModelSlotReplayRead) -> Bool
 
+pub fn release_original_model_publication_capacity(OriginalModelPublicationCapacity) -> Result[Bool, ModelExecutionIssue]
+
 pub fn release_verified_model_capture(VerifiedModelCapture) -> Bool
 
 pub fn replay_model_capture(@check_environment.ModelTaskContract, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
@@ -248,6 +259,8 @@ pub fn replay_model_capture(@check_environment.ModelTaskContract, String, ModelC
 pub fn replay_model_capture_rows(@execution_relation.PreparedInferRows, String, ModelCaptureBundle) -> Result[Array[@value_admission.CheckedValue], ModelExecutionIssue]
 
 pub fn request_model_cancel(ModelExecution) -> Bool
+
+pub fn reserve_original_model_publication_capacity(ModelExecution, @run_publication_host.ClientInferCallScope, Int64, Int64) -> Result[OriginalModelPublicationCapacity, ModelExecutionIssue]
 
 pub fn restore_prepared_model_call(ModelPreparedCallSet, Int, @run_publication.RunEvidenceValue, ModelAttemptRecords, @run_publication.ModelCaptureBundleRead?) -> Result[Unit, ModelExecutionIssue]
 
@@ -704,6 +717,12 @@ type ModelSlotReplayStorage
 
 type ModelState
 
+pub(all) enum NativeDecisionAnswerIssue {
+  ForeignRequest
+  Malformed
+  Limit
+} derive(Eq, @debug.Debug)
+
 type NativeDecisionProjection
 
 pub(all) enum NativeDecisionProjectionIssue {
@@ -721,6 +740,8 @@ pub(all) enum OpenAIChatProjectionIssue {
   Unsupported
   Limit
 } derive(Eq, @debug.Debug)
+
+type OriginalModelPublicationCapacity
 
 type OriginalModelStartup
 

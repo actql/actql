@@ -11,20 +11,69 @@ const count = (value, minimum = 0) => Number.isSafeInteger(value) && value >= mi
 const unavailable = () => { throw Object.assign(new Error('InferOriginalMetadataAcquisitionUnavailable'),
   {code: 'InferOriginalMetadataAcquisitionUnavailable'}); };
 
+// Retain inspected DATA once. Accessors/Proxy property callbacks cannot swap
+// validated amounts or original selections during the subsequent copy. This
+// is an installation snapshot, not a physical adequacy check or new grant.
+function snapshotData(value, required, optional, fail) {
+  if (value===null || typeof value!=='object' || Array.isArray(value)) fail();
+  const names=Reflect.ownKeys(value);
+  if (names.some(name=>typeof name!=='string') ||
+      required!==undefined && (required.some(name=>!names.includes(name)) ||
+        names.some(name=>!required.includes(name) && !optional.includes(name)))) fail();
+  const entries=names.map(name=>{
+    const descriptor=Object.getOwnPropertyDescriptor(value,name);
+    if (descriptor===undefined || descriptor.enumerable!==true ||
+        !Object.hasOwn(descriptor,'value')) fail();
+    return [name,descriptor.value];
+  });
+  return Object.freeze(Object.fromEntries(entries));
+}
+const exactData=(value,fields,fail)=>snapshotData(value,fields.split(','),[],fail);
+
+// Shared codec DATA validation only, never an installation or capacity grant.
+export function snapshotInferOriginalCurrentStateCodec(codec) {
+  const fail = () => {throw Object.assign(new Error('ModelOriginalCurrentCodecUnavailable'),
+    {code:'ModelOriginalCurrentCodecUnavailable'});};
+  codec=exactData(codec,'comparisonWork,decode,quantum',fail);
+  const decode=exactData(codec.decode,'maxWork,parse,tree',fail);
+  const parse=exactData(decode.parse,'max_depth,max_input_bytes,max_nodes',fail);
+  const tree=exactData(decode.tree,'max_depth,max_nodes,max_string_bytes,max_total_string_bytes',fail);
+  const bounded = value => Object.values(value).every(n=>Number.isSafeInteger(n)&&n>=0&&n<=2147483647);
+  if (
+      !Number.isSafeInteger(codec.quantum)||codec.quantum<1||codec.quantum>2147483647 ||
+      !Number.isSafeInteger(codec.comparisonWork)||codec.comparisonWork<1||codec.comparisonWork>2147483647 ||
+      !Number.isSafeInteger(decode.maxWork)||decode.maxWork<1||decode.maxWork>2147483647 ||
+      !bounded(parse) || !bounded(tree)) fail();
+  return Object.freeze({quantum:codec.quantum,comparisonWork:codec.comparisonWork,
+    decode:Object.freeze({maxWork:decode.maxWork,parse,tree})});
+}
+
+// Only the exact retained installation supplies this finite serializer role.
+// Matching codec fields/CIDs or a copied selection do not select it.
+export function selectedInferOriginalCurrentStateCodec(original, nodeInstallation) {
+  if (!originals.has(original) || original.nodeInstallation!==nodeInstallation ||
+      original.currentStateCodec===undefined) {
+    throw Object.assign(new Error('InferOriginalStateCodecUnavailable'),
+      {code:'InferOriginalStateCodecUnavailable'});
+  }
+  return original.currentStateCodec;
+}
+
 function retainMetadata(value) {
   if (value === undefined) return undefined;
-  if (!keys(value, 'directory,metadata,retainedBytes,workspaceBytes') ||
-      !keys(value.metadata, 'maxLedgerEntries,maxWireBytes') ||
-      !keys(value.directory, 'maxDirectoryEntries,maxWireBytes') ||
-      !count(value.metadata.maxWireBytes, 1) || !count(value.metadata.maxLedgerEntries) ||
-      !count(value.directory.maxWireBytes, 1) || !count(value.directory.maxDirectoryEntries) ||
+  const fail=()=>{throw new TypeError('InvalidInstalledInferMetadataAcquisition');};
+  value=exactData(value,'directory,metadata,retainedBytes,workspaceBytes',fail);
+  const metadata=exactData(value.metadata,'maxLedgerEntries,maxWireBytes',fail);
+  const directory=exactData(value.directory,'maxDirectoryEntries,maxWireBytes',fail);
+  if (!count(metadata.maxWireBytes, 1) || !count(metadata.maxLedgerEntries) ||
+      !count(directory.maxWireBytes, 1) || !count(directory.maxDirectoryEntries) ||
       !int64(value.retainedBytes, 1n) || !int64(value.workspaceBytes, 1n)) {
     throw new TypeError('InvalidInstalledInferMetadataAcquisition');
   }
   // Complete simultaneous amounts are supplied by the reviewed installation,
   // never derived from wire/count clamps, metadata payloads or object limits.
-  return Object.freeze({metadata: Object.freeze({...value.metadata}),
-    directory: Object.freeze({...value.directory}), retainedBytes: value.retainedBytes,
+  return Object.freeze({metadata,
+    directory, retainedBytes: value.retainedBytes,
     workspaceBytes: value.workspaceBytes});
 }
 
@@ -47,50 +96,87 @@ export function selectedInferOriginalStoreBootstrapLimits(original, nodeInstalla
   return original.storeBootstrap;
 }
 
+// Private declaration selection only. The same original Model owner must
+// separately reserve its complete, justified simultaneous publication bytes.
+// Neither positive amounts nor this nominal installation select a profile,
+// restore a Ledger, acknowledge cleanup or authorize Model/Result dispatch.
+export function selectedInferOriginalPublicationCapacity(original, nodeInstallation) {
+  if (!originals.has(original) || original.nodeInstallation !== nodeInstallation ||
+      original.publicationCapacity === undefined) {
+    throw Object.assign(new Error('InferOriginalPublicationCapacityUnavailable'),
+      {code: 'InferOriginalPublicationCapacityUnavailable'});
+  }
+  return original.publicationCapacity;
+}
+
+function retainPublicationCapacity(value) {
+  if (value === undefined) return undefined;
+  if (!keys(value, 'retainedBytes,workspaceBytes')) {
+    throw new TypeError('InvalidInstalledInferPublicationCapacity');
+  }
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const retainedBytes = descriptors.retainedBytes?.value;
+  const workspaceBytes = descriptors.workspaceBytes?.value;
+  if (Reflect.ownKeys(descriptors).length !== 2 ||
+      !Object.values(descriptors).every(d => 'value' in d) ||
+      !int64(retainedBytes, 1n) || !int64(workspaceBytes, 0n)) {
+    throw new TypeError('InvalidInstalledInferPublicationCapacity');
+  }
+  // Validate and retain the same descriptor DATA without another property read.
+  return Object.freeze({retainedBytes, workspaceBytes});
+}
+
 export function retainInferOriginalReadInstallation(value) {
   if (value === undefined) return undefined;
-  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).filter(name => !['metadataAcquisition', 'storeBootstrap'].includes(name)).sort().join(',') !==
-        'bootstrap,modelExecutionBytes,modelRetainedBytes,nodeInstallation' ||
-      !keys(value.bootstrap,
-        'bootstrapExecutionBytes,bootstrapRetainedBytes,maxDelegations,maxHoldings,maxReservations') ||
-      !int64(value.bootstrap.bootstrapRetainedBytes, 1n) ||
-      !int64(value.bootstrap.bootstrapExecutionBytes, 0n) ||
+  const fail=()=>{throw new TypeError('InvalidInstalledInferOriginalReadInstallation');};
+  value=snapshotData(value,['bootstrap','modelExecutionBytes','modelRetainedBytes','nodeInstallation'],
+    ['metadataAcquisition','storeBootstrap','currentStateCodec','publicationCapacity'],fail);
+  const bootstrap=exactData(value.bootstrap,
+    'bootstrapExecutionBytes,bootstrapRetainedBytes,maxDelegations,maxHoldings,maxReservations',fail);
+  const node=exactData(value.nodeInstallation,
+    'installation,layout,layoutArtifactCid,probability,runtimeArtifactCid',fail);
+  const layout=exactData(node.layout,
+    'barrier_cid,execution_bytes,layout_artifact_cid,parameter_values_cid,prepared_rows,program_definition_cid,response_profile,retained_bytes,runtime_artifact_cid',fail);
+  const installation=snapshotData(node.installation,undefined,[],fail);
+  const sdk=installation.sdk===undefined || installation.sdk===null ? installation.sdk
+    : snapshotData(installation.sdk,undefined,[],fail);
+  if (!int64(bootstrap.bootstrapRetainedBytes, 1n) ||
+      !int64(bootstrap.bootstrapExecutionBytes, 0n) ||
       !['maxReservations', 'maxHoldings', 'maxDelegations'].every(name =>
-        Number.isInteger(value.bootstrap[name]) && value.bootstrap[name] >= 0 &&
-        value.bootstrap[name] <= 2_147_483_647) ||
-      !int64(value.modelRetainedBytes, 1n) || !int64(value.modelExecutionBytes, 0n) ||
-      !keys(value.nodeInstallation,
-        'installation,layout,layoutArtifactCid,probability,runtimeArtifactCid') ||
-      !keys(value.nodeInstallation.layout,
-        'barrier_cid,execution_bytes,layout_artifact_cid,parameter_values_cid,prepared_rows,program_definition_cid,response_profile,retained_bytes,runtime_artifact_cid') ||
-      value.nodeInstallation.installation === null ||
-      typeof value.nodeInstallation.installation !== 'object') {
+        Number.isInteger(bootstrap[name]) && bootstrap[name] >= 0 &&
+        bootstrap[name] <= 2_147_483_647) ||
+      !int64(value.modelRetainedBytes, 1n) || !int64(value.modelExecutionBytes, 0n)) {
     throw new TypeError('InvalidInstalledInferOriginalReadInstallation');
   }
-  const node = value.nodeInstallation;
   // Copy the finite declaration, not the opaque admitted profile/Owner. Common
   // still checks every original reference and all-R bound before read reserve
   // and again before one-shot claim. There is no permissive fallback.
   const metadataAcquisition = retainMetadata(value.metadataAcquisition);
-  const storeBootstrap = value.storeBootstrap;
+  const publicationCapacity = retainPublicationCapacity(value.publicationCapacity);
+  const currentStateCodec = value.currentStateCodec===undefined ? undefined
+    : snapshotInferOriginalCurrentStateCodec(value.currentStateCodec);
+  const storeBootstrap = value.storeBootstrap===undefined ? undefined
+    : exactData(value.storeBootstrap,'maxDirectoryEntries,maxWireBytes',
+      ()=>{throw new TypeError('InvalidInstalledInferStoreBootstrap');});
   if (storeBootstrap !== undefined &&
       (!keys(storeBootstrap, 'maxDirectoryEntries,maxWireBytes') ||
         !count(storeBootstrap.maxWireBytes, 1) || !count(storeBootstrap.maxDirectoryEntries))) {
     throw new TypeError('InvalidInstalledInferStoreBootstrap');
   }
-  const retained = Object.freeze({bootstrap: Object.freeze({...value.bootstrap}),
+  const retained = Object.freeze({bootstrap,
     modelRetainedBytes: value.modelRetainedBytes,
     modelExecutionBytes: value.modelExecutionBytes,
-    nodeInstallation: Object.freeze({layout: Object.freeze({...node.layout}),
-      installation: Object.freeze({...node.installation,
-        ...(node.installation.sdk === undefined ? {} : {
-          sdk: node.installation.sdk === null ? null : Object.freeze({...node.installation.sdk}),
+    nodeInstallation: Object.freeze({layout,
+      installation: Object.freeze({...installation,
+        ...(installation.sdk === undefined ? {} : {
+          sdk,
         })}),
       runtimeArtifactCid: node.runtimeArtifactCid, layoutArtifactCid: node.layoutArtifactCid,
       probability: node.probability}),
     ...(metadataAcquisition === undefined ? {} : {metadataAcquisition}),
-    ...(storeBootstrap === undefined ? {} : {storeBootstrap: Object.freeze({...storeBootstrap})})});
+    ...(publicationCapacity === undefined ? {} : {publicationCapacity}),
+    ...(currentStateCodec === undefined ? {} : {currentStateCodec}),
+    ...(storeBootstrap === undefined ? {} : {storeBootstrap})});
   originals.add(retained);
   return retained;
 }

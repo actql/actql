@@ -18,6 +18,7 @@ class _RunConfiguration:
     handle: int
     input: _Input
     current: _Output | None = None
+    sdk: bool = False
 
 
 @dataclass(frozen=True, slots=True, eq=False)
@@ -123,17 +124,25 @@ class LocalRunCustody:
         This requires the same Store transaction frame and does not adopt or
         repair the Host, grant execution, or acknowledge a durable write.
         """
+        return self._install_current_configuration(current, input, sdk=False)
+
+    def install_sdk_configuration(self, current: _Output, input: _Input) -> _RunConfiguration:
+        """Select actual finite/read originals from the same current Store."""
+        return self._install_current_configuration(current, input, sdk=True)
+
+    def _install_current_configuration(self, current: _Output, input: _Input, *, sdk: bool) -> _RunConfiguration:
         with self._core._lock:
             self._active()
             self._core._host_current_ready(current)
             self._core._owned_input(input)
-            handle = self._core._call('run', 'install_current_configuration', current.handle, input.handle)
+            operation = 'install_sdk_configuration' if sdk else 'install_current_configuration'
+            handle = self._core._call('run', operation, current.handle, input.handle)
             callbacks = self._core._journal_callbacks(current.ticket)
             if callbacks is not None and callbacks.failure is not None:
                 raise callbacks.failure
             if handle <= 0:
-                raise LocalCoreError('install_current_configuration', handle)
-            value = _RunConfiguration(self._identity, handle, input, current)
+                raise LocalCoreError(operation, handle)
+            value = _RunConfiguration(self._identity, handle, input, current, sdk)
             self._configurations[handle] = value
             return value
 
@@ -158,8 +167,34 @@ class LocalRunCustody:
         with self._core._lock:
             self._active()
             self._run(value)
+            if value.configuration.sdk:
+                raise ValueError('Finite Local Run requires its original submission lookup')
             self._core._check('prepare', self._core._call('run', 'prepare', value.handle))
             self._core._check('prepared', self._core._call('run', 'prepared', value.handle))
+
+    def prepare_sdk(self, value: _Run, submission: _Output) -> Literal['prepared', 'restore_required']:
+        """Let Core look up first; readiness never acknowledges a Store write.
+
+        An existing ready request requires original restoration, not a newly
+        issued Policy. Current and the same namespace reader must be active.
+        """
+        with self._core._lock:
+            self._active()
+            self._run(value)
+            self._core._owned_output(submission, 'submission_append')
+            if not value.configuration.sdk or value.configuration.current is None:
+                raise ValueError('Missing original SDK configuration')
+            current = value.configuration.current
+            self._core._host_current_ready(current)
+            code = self._core._call('run', 'prepare_sdk', value.handle, submission.handle)
+            callbacks = self._core._journal_callbacks(current.ticket)
+            if callbacks is not None and callbacks.failure is not None:
+                raise callbacks.failure
+            if code == 2:
+                return 'restore_required'
+            self._core._check('prepare_sdk', code)
+            self._core._check('prepared', self._core._call('run', 'prepared', value.handle))
+            return 'prepared'
 
     def reserve_submitted_rows(self, value: _Run, current: _RunConfiguration,
                                input: _Input, *, cleanup: Callable[[], bool]) -> _Output:
@@ -217,6 +252,26 @@ class LocalRunCustody:
                 'run', 'confirm_physical_start', value.handle))
             self._core._check('physical_start_ready', self._core._call(
                 'run', 'physical_start_ready', value.handle))
+
+    def reserve_sdk_physical_start(self, run: _Run, step: _Output) -> _PhysicalStart:
+        """Bind existing start proof only after Core observes its stored claim."""
+        with self._core._lock:
+            self._active()
+            self._run(run)
+            self._core._owned_output(step)
+            configuration = run.configuration
+            if not configuration.sdk or configuration.current is None:
+                raise ValueError('Missing original SDK start configuration')
+            self._core._host_current_ready(configuration.current)
+            handle = self._core._call('run', 'reserve_sdk_physical_start', run.handle, step.handle)
+            callbacks = self._core._journal_callbacks(configuration.current.ticket)
+            if callbacks is not None and callbacks.failure is not None:
+                raise callbacks.failure
+            if handle <= 0:
+                raise LocalCoreError('reserve_sdk_physical_start', handle)
+            value = _PhysicalStart(self._identity, handle, run, configuration, run.input)
+            self._starts[handle] = value
+            return value
 
     def close_physical_start(self, value: _PhysicalStart) -> bool:
         with self._core._lock:

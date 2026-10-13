@@ -1670,6 +1670,41 @@ missing predecessors and NULL field values remain NULL. No frontend key proof,
 order evidence or execution owner is synthesized. These source connections do
 not by themselves establish public Host execution.
 
+The named `window_group(by: [fields], aggregates: {output: AggregateCall, ...})`
+Pipe call uses the existing [window grouping contract](language.md#relational-temporal).
+Its Relation input must carry checked window boundary roles from `row_window`
+or a declared windowed contract. Ordinary columns named `window_start` and
+`window_end` do not provide that evidence. `by` uses current FieldRefs; the
+common owner prepends both boundary keys once and preserves repeated other keys.
+
+Aggregate output keys are OutputNames: bare reserved words are rejected and
+backtick names remain available. Each aggregate is the existing closed record
+with `fn`, `field` or `expr`, `filter`, `distinct`, `order_by`, `max_items`,
+`max_bytes`, `delimiter` and `fraction` as permitted by its function. `fn` is
+an exact decoded String enum; `count_if` is distinct from scalar SQL spelling
+`COUNTIF`. `field` and shared shorthand or closed OrderKeys resolve current
+FieldRefs. `expr` and `filter` retain the original bounded query Expression
+owner, authored spans, work and input/Parameter scope. They are not reparsed
+from a String or structured JSON. Filter Boolean typing, NULL contributions,
+DISTINCT, function-specific options, calculation order and collection guards
+remain common-checker obligations. No frontend window or key evidence is added.
+
+For example, after an existing `row_window`:
+
+```aql
+FROM windowed AS r
+  |> window_group(by: [r.cohort], aggregates: {
+       n: {fn: 'count'},
+       total: {fn: 'sum', expr: COALESCE(r.amount, 0) + 1,
+               filter: r.amount IS NOT NULL, distinct: true}
+     })
+  |> SELECT window_start, window_end, cohort, n, total
+  |> ORDER BY window_start, window_end, cohort
+```
+
+This source connection is an ActQL operation profile. Checker and lowering
+coverage is separate from installed Local/HTTPS execution evidence.
+
 The `watermark_rows` call preserves Relation input and the existing
 [relational watermark contract](language.md#relational-temporal). Its `time`
 is a FieldRef in the current row scope; policy is the exact `'mark'` or `'drop'`
@@ -2280,6 +2315,48 @@ Append/upsert, schema evolution, automatic Catalog observation and other Carrier
 writers are separate implementation units.
 
 
+### Named finite event sequences
+
+The adopted ActQL Pipe call `sequence` lowers through the existing common
+[sequence contract](language.md#sequence). `pattern` is a finite list of
+`{as: OutputName, where: Expression}` records. The predicate is parsed once from
+the original query tokens, retaining its opaque source Expression owner, spans
+and charged work. String-valued predicates are String expressions, not reparsed
+SQL; structured JSON is not a second source-expression language here.
+
+```aql
+WITH records AS (
+  SELECT 1 AS id, 0 AS occurred_ms, 1 AS kind
+  UNION ALL SELECT 2, 10, 2
+)
+FROM records AS e
+  |> sequence(by: [], id: e.id, time: e.occurred_ms,
+       pattern: [{as: first, where: e.kind = 1},
+                 {as: second, where: e.kind = 2}],
+       within: 20, overlap: 'disallow', contiguity: 'adjacent',
+       max_matches_per_key: 2, max_output_rows: 2)
+  |> SELECT first_id, second_id |> ORDER BY first_id;
+```
+
+Closed keys are `by`, `id`, `time`, `pattern`, `within`, `overlap`, `contiguity`,
+and optional `max_matches_per_key`, `max_output_rows`. Required membership,
+pattern length, generated-name collisions and clock/identity validity remain
+with the common checker. `by`/`id`/`time` are ordinary current-row FieldRefs;
+label names use ordinary OutputName reserved/quoted-name rules. The original
+scope and Parameters are available to every predicate. Earlier labels never
+introduce input fields into a later predicate. CASE, property access, NULL and
+other ordinary expressions keep their existing typing/evaluation contracts;
+only Boolean true matches. Whole Parameters for within and guards retain
+existing binding and validation obligations, with no substituted defaults.
+
+Relation and Events inputs return a Relation through the existing sequence
+owner. On Events the explicitly named clock must be a non-null number payload
+field; the common event carrier does not synthesize `event_time_ms` inside its
+record schema. An explicit events() bridge has its own output fields and does
+not justify rewriting an authored sequence clock. Empty outputs retain the
+complete match schema. No evaluator, capture owner, identity or resource
+quantity is created by this syntax connection.
+
 ### Named temporal correlations
 
 The adopted ActQL Pipe calls `asof_join` and `interval_join` lower to the
@@ -2367,3 +2444,45 @@ check-only Context must preserve that evidence before a positive public
 score-fusion claim is made. This is a remaining connection requirement, not a
 new language restriction or permission to invent a declaration. Pure RRF does
 not require score-scale comparability; its own complete-input obligations remain.
+
+### Optional named Calendar operations
+
+`calendar_bucket(time: field, unit: string, timezone: string, into: name,
+week_start: string?)` is an adopted Relation Pipe call. `calendar_series(start:
+value, end: value, unit: string, timezone: string, week_start: string?)` is a
+NONE-input Relation generator, using the existing producer-primary/WITH path.
+Both retain the optional [Calendar profile](language.md#calendar). No default
+profile, host locale, ambient timezone database or fixed-duration approximation
+is supplied by the frontend.
+
+```aql
+WITH days AS (
+  calendar_series(start: '2000-01-01T00:00:00.000Z',
+                  end: '2000-01-03T00:00:00.000Z',
+                  unit: 'day', timezone: 'UTC')
+)
+FROM days AS d
+  |> calendar_bucket(time: d.start, into: month,
+                     unit: 'month', timezone: 'UTC')
+  |> SELECT start, `end`, month
+  |> ORDER BY start
+```
+
+`time` uses the ordinary current FieldRef resolver and `into` the reserved/
+quoted OutputName rule. `unit`, `timezone` and `week_start` are exact decoded
+literal strings. `week_start` is required for week and forbidden for other
+units, including explicit NULL. Series endpoints retain literal timestamp or
+whole non-null timestamp Parameter roles; year/range/bound checks belong to the
+existing common owner. A generator cannot consume a Pipe input. Fixed signature
+key `end` remains available; the ordinary leading column name `end` must be
+quoted. Public Result fields retain authored projection order separately from
+canonical object-schema order.
+
+Trusted source Contexts carry the exact optional SelectedCalendarProfile from
+the existing CheckEnvironment. Actual Catalog and ModelTask owners must agree
+with that environment. The frontend neither reacquires TZDB bytes nor asserts
+physical execution capability. Missing profile remains a common refusal;
+foreign same-CID profile owners are not accepted through a published Catalog.
+Source/checker connection does not establish an installed Calendar runtime:
+current physical lowering and normal Host profile installation must be verified
+separately.
