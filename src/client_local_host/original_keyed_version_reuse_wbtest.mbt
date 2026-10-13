@@ -35,11 +35,14 @@ fn original_keyed_version_response(index : Int) -> String {
 fn original_keyed_version_history(
   suffix? : Bool = false,
   content? : Bool = false,
+  typed_content? : Bool = false,
 ) -> Unit raise {
+  let content = content || typed_content
   let suffix = suffix || content
   let (declaration, prepared, compiled, definition, plan, keyed, requirement) = original_keyed_run_fixture(
     relation_versions=true,
     serialization_max_bytes=if suffix { 4470 } else { 4096 },
+    typed_content_input=typed_content,
   )
   let execution : @execution.SequenceExecutionLimits = {
     rows: {
@@ -493,8 +496,21 @@ fn original_keyed_version_history(
   )
   if content {
     original_keyed_version_content(
-      scope, compiled, definition, plan, prepared, keyed, prefixed_lookup, prefix,
-      acquisition, capture, requirement, execution, measurement, ledger,
+      scope,
+      compiled,
+      definition,
+      plan,
+      prepared,
+      keyed,
+      prefixed_lookup,
+      prefix,
+      acquisition,
+      capture,
+      requirement,
+      execution,
+      measurement,
+      ledger,
+      typed_content~,
     )
   } else if suffix {
     original_keyed_version_serialize(
@@ -598,4 +614,9 @@ test "original keyed exact versions feed the checked JOIN and whole SERIALIZE su
 ///|
 test "original keyed versions complete one Content generation through the same managed family and Ledger" {
   original_keyed_version_history(content=true)
+}
+
+///|
+test "original keyed Content generation feeds the actual document reference into typed INFER input preparation" {
+  original_keyed_version_history(typed_content=true)
 }
