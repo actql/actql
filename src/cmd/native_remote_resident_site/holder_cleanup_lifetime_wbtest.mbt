@@ -178,3 +178,64 @@ test "completed close cursor does not call any Owner a second time" {
   assert_true(advance_holder_cleanup_pass(original, position, 9, close))
   assert_eq(calls, Array::make(9, 1))
 }
+
+///|
+test "unopened resources preserve original environment through release pending" {
+  let original = Ref(77)
+  let unopened : Ref[Int]? = None
+  let position = Ref(holder_cleanup_initial_position(unopened))
+  assert_eq(position.val, 5)
+  assert_eq(holder_cleanup_initial_position(Some(original)), 0)
+  let release_ready = Ref(false)
+  let calls = Array::make(9, 0)
+  let facts = Ref(true)
+  let reads = Ref(0)
+  let waits = Ref(0)
+  let returned = retain_holder_cleanup_lifetime(
+    original,
+    value => {
+      advance_holder_cleanup_pass(value, position, 9, (same, step) => {
+        facts.val = facts.val && physical_equal(same, original)
+        calls[step] += 1
+        step != 6 || release_ready.val
+      })
+    },
+    () => {
+      // No Host reservation exists for a channel read. EOF is not a release
+      // ACK; the same environment/slot is retained through a signal wait.
+      reads.val += 1
+      CleanupInputEnded
+    },
+    () => {
+      waits.val += 1
+      facts.val = facts.val && position.val == 6 && calls[8] == 0
+      release_ready.val = true
+    },
+    (_, _) => (),
+  )
+  assert_true(facts.val)
+  assert_true(physical_equal(returned, original))
+  assert_eq(reads.val, 1)
+  assert_eq(waits.val, 1)
+  assert_eq(calls, [0, 0, 0, 0, 0, 1, 3, 1, 1])
+}
+
+///|
+test "unopened resources do not turn missing process hold into slot release" {
+  let original = Ref(88)
+  let unopened : Ref[Int]? = None
+  let position = Ref(holder_cleanup_initial_position(unopened))
+  let calls = Array::make(9, 0)
+  let same_owner = Ref(true)
+  let close = (same, step) => {
+    same_owner.val = same_owner.val && physical_equal(same, original)
+    calls[step] += 1
+    // The existing Bundle Owner did not confirm the original release.
+    step != 6
+  }
+  assert_false(advance_holder_cleanup_pass(original, position, 9, close))
+  assert_false(advance_holder_cleanup_pass(original, position, 9, close))
+  assert_true(same_owner.val)
+  assert_eq(position.val, 6)
+  assert_eq(calls, [0, 0, 0, 0, 0, 1, 2, 0, 0])
+}
