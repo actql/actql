@@ -2,7 +2,11 @@
 
 The development `actql-sdk` wheel talks directly to an existing ActQL HTTPS
 Host. It contains no Local engine, DuckDB, Node runtime, or CLI subprocess.
-Install the reviewed wheel into your application environment; PyPI publication
+The lightweight installation is `uv add actql-sdk`, using `from actql_sdk`.
+The standard product is `uv add actql`, using `from actql`; its same-cohort
+runtime supplies Local components. Public Local execution/recovery acceptance
+is still in progress and is separate from package metadata/import checks.
+Install the reviewed wheel cohort into your application environment; PyPI publication
 is a separate release step. Python 3.11 is the declared minimum. Acceptance
 records identify the Python/platform combinations actually tested.
 
