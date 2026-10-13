@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 import hashlib
 import json
+from ctypes import c_void_p, cast
 from importlib import import_module
 import secrets
 import sys
@@ -704,6 +705,8 @@ class LocalCore:
         self._store: Any = None
         self._module: Any = None
         self._linker: Any = None
+        self._physical_vm_type: Any = None
+        self._physical_vm_span: tuple[int, int] | None = None
         if _physical_holding is not None:
             _physical_holding._bind_core(self._identity)
         self._physical_holding = _physical_holding
@@ -790,6 +793,8 @@ class LocalCore:
                 self._exports = instance.exports(self._store)
                 if self._exports['actql_host_abi_version'](self._store) != LOCAL_CORE_ABI:
                     raise ValueError('Unsupported Local Core ABI version')
+                if self._physical_holding is not None:
+                    self._observe_original_vm_span(wasmtime)
                 self._check('open', self._call('buffer', 'open', transfer_capacity,
                                             slots, 1_048_576, resources.planning_work,
                                             resources.attempts, resources.holdings,
@@ -803,6 +808,33 @@ class LocalCore:
             except Exception:
                 raise LocalCoreInitializationError(self) from error
             raise
+
+    def _observe_original_vm_span(self, wasmtime: Any) -> None:
+        """Observe only this instance/Store's original reserved VM backing span.
+
+        This establishes physical membership, not capacity funding or permission.
+        Do not accept an address, memory, Store or size from a public caller.
+        """
+        holding = self._physical_holding
+        if (holding is None or self._store is None or self._physical_vm_span is not None
+                or self._closed or self._retired or self._closing):
+            raise ValueError('Original native VM observation is unavailable')
+        memory = self._exports.get('memory')
+        if not isinstance(memory, wasmtime.Memory):
+            raise ValueError('Original Local instance memory is unavailable')
+        self._physical_vm_type = memory.type(self._store)
+        limits = self._physical_vm_type.limits
+        if (self._physical_vm_type.is_64 or self._physical_vm_type.is_shared
+                or type(limits.max) is not int or limits.max != _MEMORY_LIMIT // 65536
+                or type(limits.min) is not int or not 0 <= limits.min <= limits.max):
+            raise ValueError('Original Local VM reservation differs from its selected contract')
+        address = cast(memory.data_ptr(self._store), c_void_p)
+        holding._require_live_span(address, _MEMORY_LIMIT)
+        if address.value is None:
+            raise ValueError('Original Local VM reservation has no physical address')
+        self._physical_vm_span = (address.value, _MEMORY_LIMIT)
+        self._physical_vm_type.close()
+        self._physical_vm_type = None
 
     @contextmanager
     def _native_scope(self) -> Iterator[None]:
@@ -3680,10 +3712,10 @@ class LocalCore:
             image.close()
             self._physical_image = None
         if any(getattr(self, name, None) is not None for name in
-               ('_linker', '_module', '_engine', '_engine_configuration',
+               ('_physical_vm_type', '_linker', '_module', '_engine', '_engine_configuration',
                 '_pool_configuration', '_store')):
             with self._native_scope():
-                for name in ('_linker', '_module', '_engine', '_engine_configuration'):
+                for name in ('_physical_vm_type', '_linker', '_module', '_engine', '_engine_configuration'):
                     value = getattr(self, name, None)
                     if value is not None:
                         value.close()
@@ -3703,6 +3735,7 @@ class LocalCore:
             holding.close()
             self._physical_holding = None
         self._closed = True
+        self._physical_vm_span = None
         self._inputs.clear()
         self._loans.clear()
         self._released.clear()

@@ -250,6 +250,7 @@ class InstalledImageTests(unittest.TestCase):
         linker = Handle('linker', self.events)
         linker.define_func = lambda *args: None
         linker.instantiate = lambda store, module: SimpleNamespace(exports=lambda store: {
+            'memory': self.memory if holding is not None else None,
             'actql_host_abi_version': lambda store: LOCAL_CORE_ABI,
             'actql_buffer_open': lambda store, *args: calls.append(('open', args)) or 0,
             'actql_buffer_close_pool': lambda store, *args: calls.append(('close', args)) or 0})
@@ -258,6 +259,13 @@ class InstalledImageTests(unittest.TestCase):
         self.wasmtime.FuncType = lambda *args: args
         if holding is not None:
             self.ffi.dll = holding._library
+            memory_type = SimpleNamespace(is_64=False, is_shared=False,
+                limits=SimpleNamespace(min=1, max=256), close=lambda: None)
+            class Memory:
+                def type(self, store): return memory_type
+                def data_ptr(self, store): return c_void_p(234)
+            self.wasmtime.Memory = Memory
+            self.memory = Memory()
         resources = replace(RESOURCES, execution_bytes=16777216 + 65536 + 4096)
         with patch('actql_sdk._local_core.import_module', side_effect=self.runtime), \
                 patch('actql_sdk._local_engine._verify_loaded_runtime'), \
@@ -307,6 +315,11 @@ class InstalledImageTests(unittest.TestCase):
             actql_owned_enter=NativeScope(state, 'enter'),
             actql_owned_leave=NativeScope(state, 'leave'), scope=state,
             actql_owned_transfer=NativeTransfer())
+        library.span_calls = []
+        def span(pointer, address, length):
+            library.span_calls.append((pointer.value, address.value, length))
+            return 0
+        library.actql_owned_contains_live_span = span
         original = c_void_p(123)  # Independent pointer scalar, not an allocation.
         holding = _NativeHoldingLease(original, library, generation=7, recipe=b'r' * 32)
         self.assertIsNone(original.value)
@@ -425,7 +438,8 @@ class InstalledImageTests(unittest.TestCase):
         core, _ = self._construct_with_baseline(holding=holding)
         self.assertEqual(state.depth, 0)
         self.assertEqual(state.events,
-            [('enter', 123), ('enter', 123), ('leave', 123), ('leave', 123)])
+            [('enter', 123), ('enter', 123), ('leave', 123),
+             ('enter', 123), ('leave', 123), ('leave', 123)])
         self.assertTrue(core.close())
         self.assertEqual(state.depth, 0)
         self.assertEqual(state.events[-4:],
