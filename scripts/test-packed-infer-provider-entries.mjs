@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {mkdtemp, mkdir, readFile, writeFile, realpath} from 'node:fs/promises';
-import {dirname, join, resolve} from 'node:path';
+import {dirname, join, relative} from 'node:path';
 import {tmpdir} from 'node:os';
 import {createRequire} from 'node:module';
 import {fileURLToPath} from 'node:url';
@@ -115,6 +115,7 @@ void startSdkTransport;
   run(process.execPath, [join(repository, 'node_modules/typescript/bin/tsc'), '--noEmit', '--strict',
     '--module', 'NodeNext', '--moduleResolution', 'NodeNext', '--target', 'ES2022', 'consumer.typecheck.mts'], consumer);
   const closure = [];
+  const consumerLock = JSON.parse(await readFile(join(consumer, 'package-lock.json'), 'utf8'));
   if (directory === 'provider-ai-sdk') {
     const originalLock = await readFile(join(packageRoot, 'package-lock.json'));
     assert.deepEqual(await readFile(join(installed, 'npm-shrinkwrap.json')), originalLock);
@@ -136,17 +137,18 @@ void startSdkTransport;
       assert.ok(issuer.startsWith(consumer + '/'), 'No repository/ambient hoist');
       const actual = JSON.parse(await readFile(join(issuer, 'package.json'), 'utf8'));
       assert.equal(actual.version, expected.version, path);
-      closure.push({path,version:actual.version});
+      const installedPath = relative(consumer, issuer);
+      assert.equal(consumerLock.packages[installedPath].integrity, expected.integrity, path);
+      closure.push({path,version:actual.version,integrity:expected.integrity});
     }
-    for (const path of ['dist/index.js', 'dist/index.mjs']) {
-      const sdk = createRequire(join(installed, 'package.json')).resolve('@ai-sdk/openai');
-      const sdkRoot = dirname(dirname(sdk));
-      assert.equal(hash(await readFile(join(sdkRoot, path))),
-        hash(await readFile(join(packageRoot, 'node_modules/@ai-sdk/openai', path))), path);
-    }
+    // Use the actual pinned package export, not an invented alternate suffix.
+    const sdk = createRequire(join(installed, 'package.json')).resolve('@ai-sdk/openai');
+    const sdkRoot = dirname(dirname(sdk));
+    const sdkEntry = relative(sdkRoot, sdk);
+    assert.equal(hash(await readFile(sdk)),
+      hash(await readFile(join(packageRoot, 'node_modules/@ai-sdk/openai', sdkEntry))), sdkEntry);
   } else {
     assert.deepEqual(manifest.dependencies, {});
-    const consumerLock = JSON.parse(await readFile(join(consumer, 'package-lock.json'), 'utf8'));
     assert.deepEqual(Object.keys(consumerLock.packages).sort(), ['', 'node_modules/@actql/provider-http']);
   }
   results.push({name,source,tarball,bytes:bytes.length,sha256:hash(bytes),integrity:metadata.integrity,
