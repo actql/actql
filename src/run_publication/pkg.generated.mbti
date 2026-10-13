@@ -58,6 +58,8 @@ pub fn admit_hashed_effect_dependency_body(String, String, String, Int, Int, Int
 
 pub fn admit_local_effect_dependency_body(String, String, Int, Int, Int) -> Result[CapturedEffectDependencyBody, CapturedEffectDependencyIssue]
 
+pub fn admit_local_sdk_result_read_selection(String, String, String) -> Result[LocalSDKResultReadSelection, LocalSDKReadSelectionIssue]
+
 pub fn admit_model_source_observation(RunEvidenceValue, RunEvidenceValue, String, String, String, String, String, String) -> Result[ModelSourceObservation, RunEvidenceValueIssue]
 
 pub fn admit_pending_source_state_advance(String, RunEvidenceValue, Int, Int, Int) -> Result[PendingSourceStateAdvance, CapturedRunIssuanceIssue]
@@ -400,6 +402,8 @@ pub fn emit_content_serialization_options(ContentSerializationProfile, @encode_c
 
 pub fn empty_initial_input_artifact_set_cid() -> String
 
+pub fn encode_model_original_resource_document(String, String, String, String, Int, Int, Int) -> Result[String, PublicationContractIssue]
+
 pub fn existing_delivery_attempt_action_code(ExistingDeliveryAttemptAction) -> Int
 
 pub fn feed_durable_result_row_frames(DurableResultRowFrames, Bytes) -> Result[Array[String], DurableResultRowFrameIssue]
@@ -476,6 +480,8 @@ pub fn issue_generated_content_reference(GeneratedContentReference, @value_admis
 
 pub fn issue_local_result_occurrence_evidence(String, String, String, String, Array[String], String, String, String, String, Int, Int, Int) -> Result[ResultOrderingEvidence, ResultEvidenceIssuanceIssue]
 
+pub fn issue_local_sdk_result_read_selection(String, String) -> Result[LocalSDKResultReadSelection, LocalSDKReadSelectionIssue]
+
 pub fn issue_manifest_read_grant(PublicationContract, PublicationContract, String, String, String, Int, Int, String, String, Int, Int, Int) -> Result[PublicationContract, DeliveryIssuanceIssue]
 
 pub fn issue_model_raw_response(BoundModelRawCapturePolicy, BoundModelInvocationScope, Int, RunEvidenceValue, RunEvidenceValue, String, Int, Int, Bool, String) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
@@ -513,6 +519,12 @@ pub fn issue_stored_generated_content_reference(StoredGeneratedContentReference,
 pub fn issue_succeeded_run_state(String, String, Array[String], Array[ResultAvailability], Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
 
 pub fn issue_succeeded_run_state_wire(String, String, Array[String], Array[String], Array[String], Array[String], Array[String], Int, Int, Int) -> Result[String, RunStateIssue]
+
+pub fn local_sdk_result_read_selection_cid(LocalSDKResultReadSelection) -> String
+
+pub fn local_sdk_result_read_selection_parameters(LocalSDKResultReadSelection) -> (String, String, String, String, String, Int, Int)
+
+pub fn local_sdk_result_read_selection_wire(LocalSDKResultReadSelection) -> String
 
 pub fn manifest_read_grant_allows_bytes(PublicationContract, Int) -> Bool
 
@@ -1489,6 +1501,14 @@ pub(all) enum GeneratedContentReferenceIssue {
   Encoding
   Issuance(@value_admission.ReferenceIssue)
 } derive(Eq, @debug.Debug)
+
+pub(all) enum LocalSDKReadSelectionIssue {
+  InvalidBinding
+  ForeignOriginal
+  Encoding
+} derive(Eq, @debug.Debug)
+
+type LocalSDKResultReadSelection derive(Eq, @debug.Debug)
 
 pub struct ModelCaptureBundleRead {
   storage : ModelCaptureStorage

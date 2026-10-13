@@ -126,7 +126,7 @@ class SubmittedMaterialCustodyTests(unittest.TestCase):
         self.assertNotIn('cancel', [name for _, name, _ in calls])
 
     def test_strict_private_abi_requires_original_submitted_row_export(self):
-        self.assertEqual(LOCAL_CORE_ABI, 53)
+        self.assertEqual(LOCAL_CORE_ABI, 55)
         self.assertEqual(_MATERIAL_SIGNATURES['reserve_submitted_rows'],
                          ('i64 i32 i32 i32 i32 i64', 'i32'))
 

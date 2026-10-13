@@ -71,7 +71,9 @@ fn holder_effect_host_control_representation_ready(
     is Some(text_bytes) &&
     holder_effect_host_extent_add(profile.retained_controls_bytes, text_bytes)
     is Some(control_bytes) &&
-    control_bytes <= profile.setup_retained_bytes else {
+    holder_effect_host_extent_add(control_bytes, profile.caller_retained_bytes)
+    is Some(partition) &&
+    partition <= profile.setup_retained_bytes else {
     return None
   }
   Some(text_bytes)
@@ -110,8 +112,8 @@ fn load_holder_effect_host_operator(
   )
   guard begin_holder_effect_host_setup_scope(
       environment.site,
-      // A production profile and a receiver for the original pending cleanup
-      // carrier are both uninstalled. Refuse before reservation or physical I/O.
+      // A production numeric profile remains uninstalled. The private cleanup
+      // receiver is connected, but it cannot create a zero-cost permission.
       None,
       binding,
     )

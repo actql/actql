@@ -741,6 +741,8 @@ pub fn client_program_effect_table_source_artifact_preview_binding(@run_publicat
 
 pub fn client_program_effect_table_write_binding(@run_publication_host.PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, @run_publication_host.ClientEffectMemberDescriptorIssue]
 
+pub fn client_program_encode_model_original_resource_document(String, String, String, String, Int, Int, Int) -> Result[String, @run_publication.PublicationContractIssue]
+
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
 pub fn client_program_export_content_generation_output(@run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, String) -> Result[(String, String, Array[String]), @client_local_host.ClientInferRetainedInputIssue]
@@ -1395,6 +1397,8 @@ pub fn client_program_model_provider_admission_issue_kind(@model_execution.Model
 
 pub fn client_program_model_provider_binding(String, String, String, String) -> Result[@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValueIssue]
 
+pub fn client_program_model_raw_selection_originals(@run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody) -> Array[(String, String, String)]
+
 pub fn client_program_model_request_generation(@model_execution.ModelRequest) -> (String, Double, Double, Int64, Int64?)?
 
 pub fn client_program_model_request_input(@model_execution.ModelRequest, String) -> String?
@@ -1658,6 +1662,8 @@ pub fn client_program_request_identity(@run_publication_host.PreparedClientProgr
 pub fn client_program_request_value_policy_subjects(@run_publication_host.PreparedClientProgram) -> Array[String] raise @program_check.UnitBuildFailure
 
 pub fn client_program_require_infer_call_entry(@client_infer_host.Execution) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
+
+pub fn client_program_requires_acquisition_result_publication(@run_publication_host.PreparedClientProgram) -> Bool
 
 pub fn client_program_reserve_captured_content_workspace(@physical_resources.Ledger, Int, Int) -> Result[@physical_resources.Reservation, @physical_resources.LedgerIssue]
 

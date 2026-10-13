@@ -134,6 +134,51 @@ test('typed Submission uses the existing receipt and rebinds AlreadySatisfied to
   assert.deepEqual(f.counts, {prepare: 2, submit: 2}, 'explicit replay still uses the original Run owner');
 });
 
+for (const change of ['unsupported', 'protected rejection', 'authority lost', 'Run lost',
+  'intent corrupt', 'infrastructure failure']) {
+  test(`ready replay after preparation failure preserves original ownership: ${change}`, async t => {
+    let f, replay = false, missing = false;
+    const infrastructure = new Error('fixture infrastructure interruption');
+    f = await fixture(t, {
+      async prepare() {
+        if (!replay) return {};
+        await Promise.resolve();
+        if (change === 'authority lost') f.authorize(false);
+        if (change === 'Run lost') missing = true;
+        if (change === 'intent corrupt') {
+          const db = new DatabaseSync(join(f.root, 'client-requests.sqlite3'));
+          try {db.prepare('UPDATE client_submitted_intents SET intent_cid = ?')
+            .run('sha256:' + '0'.repeat(64));} finally {db.close();}
+        }
+        if (change === 'infrastructure failure') throw infrastructure;
+        throw Object.assign(new Error('current preparation refused'), {
+          code: change === 'protected rejection' ? 'ClientProgramRejected' : 'ClientProgramUnsupported'});
+      },
+      submit: value => admitOriginal(f, value),
+      lookup(value) {
+        const admitted = missing ? undefined : f.journal.lookup({...fields, requestId: value.requestId}, moon);
+        return admitted === undefined ? {kind: 'not_found'} : {kind: 'found', ref: admitted.ref};
+      },
+    });
+    const first = await f.service.submitAttempt(f.body());
+    assert.equal(first.outcome.kind, 'ready');
+    replay = true;
+    const attemptRef = {operation: 'submit', attemptId: 'replay-after-current-change'};
+    const operation = f.service.submitAttempt({...f.body(), attemptRef});
+    if (['unsupported', 'protected rejection'].includes(change)) {
+      assert.deepEqual(await operation, {kind: 'already_satisfied', attemptRef, outcome: first.outcome});
+      assert.deepEqual(await f.service.lookupSubmission({principalId, connection, submissionRef: f.ref}), first.outcome);
+    } else if (change === 'infrastructure failure') {
+      await assert.rejects(operation, error => error === infrastructure);
+    } else {
+      await assert.rejects(operation, {code: change === 'authority lost'
+        ? 'ClientRequestLookupDenied' : 'ClientSubmissionUnresolvable'});
+    }
+    assert.deepEqual(f.counts, {prepare: 2, submit: 1},
+      'a refused new preparation cannot enter physical dispatch or admit another Run');
+  });
+}
+
 test('typed Submission changed-intent Conflict does not prepare or dispatch the changed request', async t => {
   let f;
   f = await fixture(t, {submit: value => admitOriginal(f, value), lookup(value) {

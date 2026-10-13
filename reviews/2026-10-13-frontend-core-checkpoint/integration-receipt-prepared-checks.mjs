@@ -1,0 +1,8 @@
+import {runLocalCheck} from '../../scripts/local-checks-guard.mjs';
+const runner='import {runFocusedTests} from "./scripts/test-execution.mjs"; process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd()});';
+process.exitCode=await runLocalCheck({root:process.cwd(),heavy:false,timeoutSeconds:60,graceSeconds:5,steps:[
+  {name:'Original Native authorization issuance capture and refusal controls on JS',command:'node',args:['--input-type=module','-e',runner,'moon','--target','js','src/query_integration/python_local_native_authorization_wbtest.mbt','src/query_integration/duckdb_native_capture_wbtest.mbt','src/query_integration/duckdb_native_completion_wbtest.mbt']},
+  {name:'Original policy candidate metadata projection',command:'node',args:['--input-type=module','-e',runner,'moon','--target','js','src/query_integration/physical_search_wbtest.mbt','--index','7-8']},
+  {name:'Independent current and historical preimages and unchanged controls',command:'node',args:['--input-type=module','-e',runner,'node','reviews/2026-10-13-frontend-core-checkpoint/integration-receipt-oracle.test.mjs']},
+  {name:'Bounded changed-file formatting and whitespace',command:'node',args:['--input-type=module','-e',`import {execFileSync} from 'node:child_process';import {readFileSync} from 'node:fs';import assert from 'node:assert/strict';for(const name of ['resident_native_source','duckdb_native_capture','python_local_native_authorization','policy_candidates_body']){const path='src/query_integration/'+name+'_wbtest.mbt';assert.equal(execFileSync('moonfmt',[path],{encoding:'utf8'}),readFileSync(path,'utf8'));}execFileSync('git',['diff','--check']);`]},
+]});

@@ -1,0 +1,286 @@
+///|
+/// The same original typed Host/Account fence, never a submitted Bool grant.
+fn submission_append_current(
+  value : Instance,
+  record : StoredSubmissionProjection,
+  configuration : StoredRunConfiguration,
+) -> Result[Unit, Int] {
+  if value.closing || value.runtime_closing || record.output_closed {
+    return Err(-5)
+  }
+  if configuration.host_current is None {
+    return Err(-32)
+  }
+  match run_configuration_current(value, configuration) {
+    Ok(_) => ()
+    Err(code) => return Err(code)
+  }
+  if @authorization.evaluate_account(configuration.account, configuration.tuple)
+    is @authorization.Allow(_) {
+    Ok(())
+  } else {
+    Err(-32)
+  }
+}
+
+///|
+fn submission_append_run_inspection(
+  row : @host.ClientJournalPhysicalRow,
+) -> Result[@host.ClientRunJournalInspection, Int] {
+  let (record, local_policy) = match
+    @host.decode_client_run_journal_row_with_local_policy(row.body) {
+    Ok(value) => value
+    Err(_) => return Err(-31)
+  }
+  if local_policy is Some(wire) &&
+    @host.validate_client_local_run_policy_original_run(
+      @utf8.encode(wire),
+      record.request,
+      record.definition,
+    )
+    is Err(_) {
+    return Err(-31)
+  }
+  if record.checkpoint is Some(_) || record.effect_material_originals is Some(_) {
+    return Err(-42)
+  }
+  if record.publication_policy_originals is Some(wire) &&
+    @host.read_client_run_policy_originals(wire) is Err(_) {
+    return Err(-31)
+  }
+  Ok({
+    request: record.request,
+    definition: record.definition,
+    checkpoint: None,
+  })
+}
+
+///|
+/// Observe original namespaces through the existing same-transaction callback.
+/// The Host authenticates the exact epoch before this call. Core retains its
+/// own reference/intent, checks scope/validity and selects the write candidate.
+/// Producing this output performs no write, admission, start or COMMIT ACK.
+fn observe_submission_append(
+  value : Instance,
+  record : StoredSubmissionProjection,
+  configuration : StoredRunConfiguration,
+) -> Result[@host.ClientSubmittedJournalAppendPlan, Int] {
+  match submission_append_current(value, record, configuration) {
+    Ok(_) => ()
+    Err(code) => return Err(code)
+  }
+  let borrow = match record.borrow {
+    Ok(value) => value
+    Err(issue) => return Err(issue_code(issue))
+  }
+  guard input_cursor(value, borrow.slot) is Some(cursor) &&
+    @decode.closed_object(cursor, ["reference", "intent", "now"]) is Ok(object) &&
+    required_text(object, "reference") is Some(reference_wire) &&
+    @host.admit_client_submission_reference_record(reference_wire)
+    is Ok(reference) &&
+    required_text(object, "intent") is Some(intent_wire) &&
+    @host.prepare_client_submitted_intent(intent_wire, 65536, 8192, 64)
+    is Ok(intent) &&
+    required_number(object, "now") is Some(now) &&
+    configuration.host_current is Some(current_handle) &&
+    value.host_currents.get(current_handle) is Some(current) else {
+    return Err(-31)
+  }
+  let epoch = @host.client_submission_reference_record_epoch(reference)
+  if @host.client_submission_epoch_token_authority_scope_cid(epoch) !=
+    configuration.authority_scope_cid {
+    return Err(-32)
+  }
+  let validity = match
+    @host.submission_epoch_validity(
+      @host.client_submission_epoch_token_body(epoch),
+      now,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(-31)
+  }
+  let check = () => submission_append_current(value, record, configuration)
+  let scan = (table, cursor) => {
+    physical_journal_row(current.physical, check, 0, table, cursor)
+  }
+  let read = (table, key) => {
+    physical_journal_row(current.physical, check, 1, table, key)
+  }
+  // Keep the original complete inventory and unsupported Effect distinction.
+  // No missing row, partial scan or outer count substitutes for these checks.
+  match
+    @host.inspect_client_run_journal_inventory(
+      1024,
+      scan,
+      read,
+      submission_append_run_inspection,
+      () => {
+        @host.inspect_client_empty_cancellation_inventory(
+          1024, scan, read, -31, -42,
+        )
+      },
+      -31,
+    ) {
+    Ok(_) => ()
+    Err(code) => return Err(code)
+  }
+  let plan = match
+    @host.prepare_client_submitted_journal_append(
+      reference,
+      intent,
+      validity,
+      1024,
+      scan,
+      read,
+      row => {
+        let original = match
+          @host.decode_client_submitted_journal_row(row.body) {
+          Ok(value) => value
+          Err(_) => return Err(-31)
+        }
+        let observed = @host.read_client_saved_submission(
+          original.reference,
+          read,
+          submission_append_run_inspection,
+          -31,
+        )
+        match observed {
+          Ok(Some(snapshot)) if @host.client_saved_submission_row(snapshot).body ==
+            row.body &&
+            @host.client_saved_submission_row(snapshot).revision == row.revision =>
+            Ok(@host.client_saved_submission_record(snapshot))
+          Err(code) => Err(code)
+          _ => Err(-31)
+        }
+      },
+      submission_append_run_inspection,
+      -31,
+    ) {
+    Ok(value) => value
+    Err(@host.Observation(code)) => return Err(code)
+    Err(@host.ChangedIntent) => return Err(-45)
+    Err(@host.EpochRejected(_)) => return Err(-46)
+    Err(@host.CapacityExceeded) => return Err(-4)
+    Err(@host.Encoding(_)) => return Err(-34)
+  }
+  match check() {
+    Ok(_) => ()
+    Err(code) => return Err(code)
+  }
+  Ok(plan)
+}
+
+///|
+fn produce_submission_append(
+  value : Instance,
+  record : StoredSubmissionProjection,
+  configuration : StoredRunConfiguration,
+) -> Int {
+  match submission_append_current(value, record, configuration) {
+    Ok(_) => ()
+    Err(code) => return code
+  }
+  if record.produced {
+    return 0
+  }
+  if record.invoked {
+    return -33
+  }
+  record.invoked = true
+  let plan = match observe_submission_append(value, record, configuration) {
+    Ok(value) => value
+    Err(code) => return code
+  }
+  let check = () => submission_append_current(value, record, configuration)
+  let writer = @encode.writer(1048576, 16, 2) catch { _ => return -34 }
+  let wire = try {
+    @encode.begin_object(writer)
+    match plan {
+      @host.Append(candidate) => {
+        let (key, body, revision, issued) = @host.client_submitted_journal_append_rows(
+          candidate,
+        )
+        @encode.key(writer, "kind")
+        @encode.string_value(writer, "append")
+        @encode.key(writer, "key")
+        @encode.string_value(writer, key)
+        @encode.key(writer, "body")
+        @encode.string_value(writer, @utf8.decode(body))
+        @encode.key(writer, "issued_revision")
+        @encode.string_value(writer, revision.to_string())
+        @encode.key(writer, "issued_body")
+        @encode.string_value(writer, @utf8.decode(issued))
+      }
+      @host.Retained(snapshot) => {
+        let row = @host.client_saved_submission_row(snapshot)
+        @encode.key(writer, "kind")
+        @encode.string_value(writer, "retained")
+        @encode.key(writer, "key")
+        @encode.string_value(writer, row.key)
+        @encode.key(writer, "body")
+        @encode.string_value(writer, @utf8.decode(row.body))
+        @encode.key(writer, "revision")
+        @encode.string_value(writer, row.revision.to_string())
+      }
+    }
+    @encode.end_object(writer)
+    @encode.finish(writer)
+  } catch {
+    _ => return -34
+  }
+  match check() {
+    Ok(_) => ()
+    Err(code) => return code
+  }
+  let result = status(
+    @buffers.supply_buffer_output(value.pool, record.slot, @utf8.encode(wire)),
+  )
+  if result == 0 {
+    record.append_plan = Some(plan)
+    record.produced = true
+  }
+  result
+}
+
+///|
+#export_name("actql_submission_validate_append")
+pub fn validate_submission_append(
+  nonce : Int64,
+  handle : Int,
+  current : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.submissions.get(handle) is Some(record) &&
+    record.kind == 3 &&
+    record.produced &&
+    record.append_plan is Some(_) &&
+    value.run_configurations.get(record.configuration) is Some(configuration) &&
+    configuration.host_current == Some(current) else {
+    return -2
+  }
+  let observed = match observe_submission_append(value, record, configuration) {
+    Ok(value) => value
+    Err(code) => return code
+  }
+  match (record.append_plan, observed) {
+    (Some(@host.Append(original)), @host.Append(actual)) =>
+      if @host.client_submitted_journal_append_rows(original) ==
+        @host.client_submitted_journal_append_rows(actual) {
+        0
+      } else {
+        -32
+      }
+    (Some(@host.Retained(original)), @host.Retained(actual)) => {
+      let before = @host.client_saved_submission_row(original)
+      let after = @host.client_saved_submission_row(actual)
+      if before.key == after.key &&
+        before.body == after.body &&
+        before.revision == after.revision {
+        0
+      } else {
+        -32
+      }
+    }
+    _ => -32
+  }
+}

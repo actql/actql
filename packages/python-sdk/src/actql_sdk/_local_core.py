@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 53
+LOCAL_CORE_ABI = 55
 
 
 class LocalCoreError(RuntimeError):
@@ -223,11 +223,13 @@ _SUBMISSION_SIGNATURES = {
     'produce': ('i64 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
+    'validate_append': ('i64 i32 i32', 'i32'),
 }
 
 _BOOTSTRAP_SIGNATURES = {
     'reserve': ('i64 i32 i32 i64', 'i32'),
     'produce': ('i64 i32', 'i32'),
+    'produce_sdk': ('i64 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
 }
@@ -1221,22 +1223,23 @@ class LocalCore:
         with self._lock:
             self._owned_input(source)
             if (self._closing or type(configuration) is not int or
-                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2)):
+                    not 0 < configuration < 2**31 or type(kind) is not int or kind not in (1, 2, 3)):
                 raise ValueError('Invalid Local Submission projection')
             ticket = self._next_ticket
             if ticket >= 2**31:
                 raise RuntimeError('Local Core input identity exhausted')
             self._next_ticket += 1
-            limit = 4096
+            limit = 1048576 if kind == 3 else 4096
+            family = 'submission_append' if kind == 3 else 'submission'
             self._inputs[ticket] = _PhysicalInput(b'', cleanup, lambda _: True)
             physical_bytes = (2 * limit + sys.getsizeof(bytearray()) + sys.getsizeof(b'')
-                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit, 'submission')))
+                              + sys.getsizeof(_Output(self._identity, ticket, 0, limit, family)))
             handle = self._call('submission', 'reserve', configuration, source.handle,
                                 kind, ticket, physical_bytes)
             if handle <= 0:
                 del self._inputs[ticket]
                 raise LocalCoreError('reserve_submission_projection', handle)
-            value = _Output(self._identity, ticket, handle, limit, 'submission')
+            value = _Output(self._identity, ticket, handle, limit, family)
             self._loans[ticket] = value
             return value
 
@@ -1247,6 +1250,13 @@ class LocalCore:
         performs no adoption, writes, authority, Run admission or execution.
         The Host must restore saved originals instead of calling this again.
         """
+        return self._reserve_bootstrap(source, cleanup=cleanup, sdk=False)
+
+    def reserve_sdk_bootstrap(self, source: _Input, *, cleanup: Callable[[], bool]) -> _Output:
+        """Explicit first-install metadata; never upgrade an adopted Host."""
+        return self._reserve_bootstrap(source, cleanup=cleanup, sdk=True)
+
+    def _reserve_bootstrap(self, source: _Input, *, cleanup: Callable[[], bool], sdk: bool) -> _Output:
         with self._lock:
             self._owned_input(source)
             if self._closing or not callable(cleanup):
@@ -1263,7 +1273,7 @@ class LocalCore:
             if handle <= 0:
                 del self._inputs[ticket]
                 raise LocalCoreError('reserve_bootstrap', handle)
-            value = _Output(self._identity, ticket, handle, limit, 'bootstrap')
+            value = _Output(self._identity, ticket, handle, limit, 'bootstrap_sdk' if sdk else 'bootstrap')
             self._loans[ticket] = value
             return value
 
@@ -1312,6 +1322,19 @@ class LocalCore:
     def close_bootstrap(self, value: _Output) -> bool:
         return self._close_output(value, 'bootstrap', 'close')
 
+    def produce_sdk_bootstrap(self, value: _Output) -> None:
+        with self._lock:
+            self._owned_output(value, 'bootstrap_sdk')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            self._check('produce_sdk_bootstrap', self._call('bootstrap', 'produce_sdk', value.handle))
+
+    def read_sdk_bootstrap(self, value: _Output) -> bytes:
+        return self._read_output(value, 'bootstrap_sdk', 'length', abi_family='bootstrap')
+
+    def close_sdk_bootstrap(self, value: _Output) -> bool:
+        return self._close_output(value, 'bootstrap_sdk', 'close', abi_family='bootstrap')
+
     def produce_submission_projection(self, value: _Output) -> None:
         self._produce_output(value, 'submission', 'produce')
 
@@ -1320,6 +1343,37 @@ class LocalCore:
 
     def close_submission_projection(self, value: _Output) -> bool:
         return self._close_output(value, 'submission', 'close')
+
+    def produce_submission_append(self, value: _Output, current: _Output) -> None:
+        """Inspect original rows in the current Store snapshot; never write/ACK."""
+        with self._lock:
+            self._owned_output(value, 'submission_append')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'produce', value.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('produce_submission_append', code)
+            self.validate_submission_append(value, current)
+
+    def validate_submission_append(self, value: _Output, current: _Output) -> None:
+        """Reinspect the same original candidate before cache or physical CAS."""
+        with self._lock:
+            self._owned_output(value, 'submission_append')
+            callbacks = self._host_current_ready(current)
+            code = self._call('submission', 'validate_append', value.handle, current.handle)
+            if callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('validate_submission_append', code)
+
+    def read_submission_append(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            self.validate_submission_append(value, current)
+            result = self._read_output(value, 'submission_append', 'length', abi_family='submission')
+            self.validate_submission_append(value, current)
+            return result
+
+    def close_submission_append(self, value: _Output) -> bool:
+        return self._close_output(value, 'submission_append', 'close', abi_family='submission')
 
     def reserve_source_publication(self, compute: _Compute, source: _Input, *,
                                    cleanup: Callable[[], bool]) -> _Output:
@@ -2846,7 +2900,7 @@ class LocalCore:
     def read_native_command(self, value: _Output) -> bytes:
         return self._read_output(value, 'source', 'command_length')
 
-    def _read_output(self, value: _Output, family: str, operation: str) -> bytes:
+    def _read_output(self, value: _Output, family: str, operation: str, *, abi_family: str | None = None) -> bytes:
         """Copy exact Core bytes within the same pre-reserved physical loan."""
         with self._lock:
             self._owned_output(value, family)
@@ -2855,7 +2909,7 @@ class LocalCore:
                 raise RuntimeError('Local projection cleanup has completed')
             if physical.payload:
                 return physical.payload
-            length = self._call(family, operation, value.handle)
+            length = self._call(abi_family if abi_family is not None else family, operation, value.handle)
             if not 0 <= length <= value.limit:
                 raise LocalCoreError(operation, length)
             destination = bytearray(length)
@@ -2874,10 +2928,10 @@ class LocalCore:
     def close_native_command(self, value: _Output) -> bool:
         return self._close_output(value, 'source', 'close_command')
 
-    def _close_output(self, value: _Output, family: str, operation: str) -> bool:
+    def _close_output(self, value: _Output, family: str, operation: str, *, abi_family: str | None = None) -> bool:
         with self._lock:
             self._owned_output(value, family)
-            code = self._call(family, operation, value.handle)
+            code = self._call(abi_family if abi_family is not None else family, operation, value.handle)
             if code == -9:
                 return False
             self._check(operation, code)
