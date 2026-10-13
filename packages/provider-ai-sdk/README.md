@@ -1,7 +1,35 @@
-# AI SDK private physical preparation and transport
+# Optional AI SDK Host installer (development)
 
-This private, unfinished optional package has no public exports or installed
-capability. It is not a published provider or permission to send model requests.
+This unfinished development package exports only
+`createInstalledOpenAIChatRegistration`, the existing Host registration
+assembler. Its internal send, receipt, raw-response and native Decision
+preparation functions are not package exports. The package remains private;
+the entry is not a published provider, installed profile, capacity or permission
+to send model requests.
+
+The entry produces the existing `registerModelProviders` callback; the installed
+Host supplies its consuming runtime. Applications do not import a MoonBit
+runtime, construct a second Model Owner or register a dummy synchronous invoke.
+Trusted Host options must retain the original selected profile, checked read
+installation, raw capture policies, canonical binding originals and finite
+quantities. Missing originals/runtime refuse before sending. Matching CIDs,
+configuration copies or positive byte declarations are not original admission.
+
+```js
+import {createInstalledOpenAIChatRegistration} from '@actql/provider-ai-sdk';
+// Host integration skeleton, not a runnable live-provider example.
+// trustedHostOptions comes from the installed Host's existing original
+// admission/funding/policy/secret supply, never from a Program or Run packet.
+const registerModelProviders = createInstalledOpenAIChatRegistration(trustedHostOptions);
+// Supply this callback through @actql/node's existing
+// installation.registerModelProviders alongside its admitted modelInstallation.
+```
+
+`npm-shrinkwrap.json` preserves the exact existing SDK dependency lock closure
+for an external installation; the original profile's lock artifact remains the
+unchanged `package-lock.json` bytes. No packages are fetched implicitly from a
+Program/URI. Registry publication, supported numerical installation, public
+Local/HTTPS Named Result and real OpenAI acceptance remain unfinished.
 
 The first physical preparation uses the pinned OpenAI SDK's v4 chat generation
 operation. It starts the SDK exactly once and intercepts the final request
@@ -97,12 +125,12 @@ Projection, request and response bounds are distinct immutable declarations.
 The selected SDK, endpoint, generation completion basis, original raw profile,
 quantity and read selections stay with their existing Host/Model Owners.
 
-This is private assembler preparation, not the public user installation API:
-the package still has no public exports. The Host must verify actual builder,
+The exported assembler is a Host integration entry, not a supported numerical
+user installation. The Host must verify actual builder,
 codec, build/lock and validator originals and supply justified complete physical
 funding before public use. Frozen objects, matching declarations and fixture
-allowances do not establish those facts. The public entry and external-package
-example remain dependent on that original installation/funding acceptance.
+allowances do not establish those facts. The actual user execution example and
+external-package Result acceptance still require that original funding.
 
 The existing Common Model Owner must admit the Task, original inputs, complete
 Slot inventory, profile and all simultaneous holdings before using this code.
