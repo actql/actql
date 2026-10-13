@@ -39,6 +39,13 @@ test "original keyed child uses exact assembly custody and one physical child pe
     original_keyed_child_preparation_available(identity, foreign, assembly, 0),
   )
   assert_eq(ledger_usage(ledger), before)
+  // Current retained boundary is independently 30 - bootstrap3 - assembly7.
+  // One byte too many fails without spending the next child opportunity.
+  assert_true(reserve_attempt(ledger, 0L, 21L, 0L) is Err(RetentionLimit))
+  assert_eq(ledger_usage(ledger), before)
+  assert_true(
+    original_keyed_child_preparation_available(identity, ledger, assembly, 0),
+  )
   // Independent lifetime amounts only, not physical Model coefficients.
   let child = reserve_attempt(ledger, 0L, 4L, 3L).unwrap()
   assert_false(
