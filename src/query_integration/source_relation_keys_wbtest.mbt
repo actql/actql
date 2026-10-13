@@ -3,8 +3,8 @@
 fn source_relation_keys_declaration() -> @row_host.RowDeclaration {
   @row_host.generate_relation_row_declaration(
     "crm/main",
-    "relation-key-fixture",
-    "fixture",
+    "relation_key_fixture",
+    "relation_key_fixture/0.1",
     [{
       resource: "r",
       resource_kind: "table",

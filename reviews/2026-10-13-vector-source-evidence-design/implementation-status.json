@@ -20,10 +20,11 @@
     "run-2rIvbz metadata mismatch",
     "run-QdPyzo private record ambiguity and callback arity; no runtime counts",
     "run-PGS2CP 9/11: required null component panic and Member wrapper identity assertion",
-    "run-COGgSR: WB match-arm comma compilation failure; acquisition8 not reached"
+    "run-COGgSR: WB match-arm comma compilation failure; acquisition8 not reached",
+    "run-ZiVUsg synthetic connector registration/version violates existing declaration contract; all8 runtime cases not reached"
   ],
   "unexecuted": [
-    "successful full selected declaration11 and acquisition8; installed bounded key counterexample still not reached",
+    "successful acquisition8 and installed bounded key-validation connection",
     "generated public interfaces and final post-compile freshness",
     "complete RowSource capture multi-page/key/cancellation regression",
     "new-SHA ordinary four-package Local/HTTPS original 12+8 matrix",
@@ -40,6 +41,11 @@
       "declaration": "run-PGS2CP: compile succeeded, JS11/9 passed/2 failed, exit2",
       "acquisition": "run-COGgSR: compile failed on a WB match-arm comma, 0 tests executed, exit1",
       "qualification": "both ended naturally, source clean and Owner/child/group/worktree lock absent; not installed acceptance"
+    },
+    "40302d12507c2cd32ef7ff60f1d46a54297924e2": {
+      "declaration": "run-e8qEv1 actualJS11/11 complete exit0",
+      "acquisition": "run-ZiVUsg actualJS8=0 passed/8 failed, exit2; setup rejected before page acquisition",
+      "qualification": "static component passed; whole-page/bounded runtime still unverified, Source clean and Owner/child/group/locks closed"
     }
   }
 }
