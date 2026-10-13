@@ -1,9 +1,26 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import {mkdtemp, rm, stat} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {sourcefreeFixtureAuthorization} from './fixtures/release-sourcefree-authorization.mjs';
 import {selectReleaseSequenceQueryCases, releaseSequenceSuccessNames,
   releaseSequenceRefusalNames} from './release-sequence-query-cases.mjs';
 import {sequenceSourceSuccesses, sequenceSourceRefusals}
   from './fixtures/sequence-source-input.mjs';
+
+test('Sequence retains exact synthetic authorization for its second process', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'actql-sequence-auth-unit-'));
+  try {
+    for (const mode of ['local', 'https']) {
+      const original = await sourcefreeFixtureAuthorization(mode, 'sequence', {directory});
+      assert.equal((await stat(join(directory, `sourcefree-sequence-authorization-${mode}.json`))).mode & 0o777, 0o600);
+      assert.deepEqual(await sourcefreeFixtureAuthorization(mode, 'sequence', {directory, reopen: true}), original);
+      await assert.rejects(sourcefreeFixtureAuthorization(mode, 'sequence', {directory}), {code: 'EEXIST'});
+      await assert.rejects(sourcefreeFixtureAuthorization(mode, 'time-series', {directory, reopen: true}), {code: 'ENOENT'});
+    }
+  } finally {await rm(directory, {recursive: true});}
+});
 
 test('release Sequence selects all original 18 normal and 9 refusal inputs without rewriting them', () => {
   const selected = selectReleaseSequenceQueryCases();
