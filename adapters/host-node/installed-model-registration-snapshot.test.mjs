@@ -106,3 +106,39 @@ test('invalid first quantity or mode refuses before constructing a Provider',()=
     assert.deepEqual(calls,[]);
   }
 });
+
+test('quantity amount rejects a combined own key with inherited expected fields',()=>{
+  const {entry,moon,calls}=fixture();entry.quantityCapacity=capacity();
+  entry.quantityCapacity.perAttempt=Object.assign(Object.create({
+    tokens:1n,costUnits:0n,durationMs:1n}),{'costUnits,durationMs,tokens':1n});
+  assert.throws(()=>installModelProviders(moon,()=>[entry]),
+    /InvalidInstalledModelQuantityCapacity/u);
+  assert.deepEqual(calls,[]);
+});
+
+test('quantity scope rejects a combined own key with inherited expected fields',()=>{
+  const {entry,moon,calls}=fixture();
+  entry.quantityCapacity=Object.assign(Object.create(capacity()),{'limits,perAttempt':1n});
+  assert.throws(()=>installModelProviders(moon,()=>[entry]),
+    /InvalidInstalledModelQuantityCapacity/u);
+  assert.deepEqual(calls,[]);
+});
+
+test('binding original rejects a combined own key with inherited cid and wire',()=>{
+  const {entry,moon,calls}=fixture();
+  entry.bindingOriginals=providerBindingOriginals('models/fixture');
+  entry.bindingOriginals.configuration=Object.assign(
+    Object.create(entry.bindingOriginals.configuration),{'cid,wire':'not two own fields'});
+  assert.throws(()=>installModelProviders(moon,()=>[entry]),
+    /InvalidInstalledModelProviderBindingOriginals/u);
+  assert.deepEqual(calls,[]);
+});
+
+test('binding wrapper rejects a combined own key with inherited originals',()=>{
+  const {entry,moon,calls}=fixture();
+  entry.bindingOriginals=Object.assign(Object.create(providerBindingOriginals('models/fixture')),
+    {'configuration,configurationContract,installationRevision':'not three own fields'});
+  assert.throws(()=>installModelProviders(moon,()=>[entry]),
+    /InvalidInstalledModelProviderBindingOriginals/u);
+  assert.deepEqual(calls,[]);
+});
