@@ -1,0 +1,1616 @@
+{
+  "base": "f51d8d7d03648efab8db7af323ab9105881d7a68",
+  "qualification": "Synthetic active test source changes derived from existing role grammar; not generated from product output. Original G source and logs are retained separately.",
+  "changes": [
+    {
+      "path": "src/query_program/aggregate_conditional_order_test.mbt",
+      "beforeFileSHA256": "7524300145162ff34b1385e16793461ea5ead98d91c23eac584e4b992a8f4cc0",
+      "afterFileSHA256": "fb61dcee500e516a950300f5e80eaef33deae2adf378b0bc7a76aede3e7290cb",
+      "authoredTexts": [
+        {
+          "line": 130,
+          "beforeSHA256": "166d0f6f0664bb1549a65ee40dc279d3b15b9f6963f02623a38c89ad076737ee",
+          "afterSHA256": "a809d207eeec6db50e5b7dd4409f67d5083749d8f6fcbb54a50ec0633a124546",
+          "before": "\"FROM objects AS old |> AS current |> AGGREGATE STRING_AGG(name, '|' ORDER BY COALESCE(old.payload.score, 0), id) AS names\"",
+          "after": "\"FROM objects AS old |> AS `current` |> AGGREGATE STRING_AGG(name, '|' ORDER BY COALESCE(old.payload.score, 0), id) AS names\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/aggregate_filter_test.mbt",
+      "beforeFileSHA256": "d8cb286187348952c004f0dc18f6e98c8a04bb6a6c4875db2e45a907b2ddf90a",
+      "afterFileSHA256": "22be4c4c608f162a0eb7722e8f3e28f1739b803abb0887c65399b382ff34ded3",
+      "authoredTexts": [
+        {
+          "line": 94,
+          "beforeSHA256": "9a7d3c204d1df64d3353eaa1ad5a7fc6ebbb96084f8adc020f0c4b78b0e65604",
+          "afterSHA256": "ab43623e116498ae271ca5b69485435a371b9a14c0c2d8724d9df898fbc99a53",
+          "before": "\"FROM orders |> AS old |> AS current |> AGGREGATE COUNT(* WHERE old.amount > 0) AS n\"",
+          "after": "\"FROM orders |> AS old |> AS `current` |> AGGREGATE COUNT(* WHERE old.amount > 0) AS n\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/aggregate_membership_order_test.mbt",
+      "beforeFileSHA256": "d007182de63c186eaf9380a85a08583484b8c33ca0415c74611362f555c09d3e",
+      "afterFileSHA256": "6389a3ee7877be3c888360c3e050fef7cd79fea27aed41765b0bcc8c72914cbb",
+      "authoredTexts": [
+        {
+          "line": 118,
+          "beforeSHA256": "9d0575f95396032da108e2d7fe9eb11af718e1b1160b248acaa387d3d76314f6",
+          "afterSHA256": "ef8a883a477bf37cf07b96801af4dcdb4eedee89fdb71833c9cb48f0ca75c08c",
+          "before": "\"FROM objects AS old |> AS current |> AGGREGATE STRING_AGG(name, '|' ORDER BY old.payload.score IN (20), id) AS names\"",
+          "after": "\"FROM objects AS old |> AS `current` |> AGGREGATE STRING_AGG(name, '|' ORDER BY old.payload.score IN (20), id) AS names\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/aggregate_predicate_order_test.mbt",
+      "beforeFileSHA256": "a4eb00dd7b4e7d5330035c44779de3fa324f0f10b2fd9decefae29be2394a679",
+      "afterFileSHA256": "297e30c48fa01565de1285e194cd40f78f61230cab8616fce4b5eae2f16b0321",
+      "authoredTexts": [
+        {
+          "line": 124,
+          "beforeSHA256": "c4f80506c4ba389d36aaf775f5d953fa30db9732af521e4543cce6792fdd029b",
+          "afterSHA256": "7d15c168084ebf1128a194d9cbca733023cafd89ca8bb97a6542fb8a2ee4dfa6",
+          "before": "\"FROM objects AS old |> AS current |> AGGREGATE STRING_AGG(name, '|' ORDER BY old.payload.score IS NULL, id) AS names\"",
+          "after": "\"FROM objects AS old |> AS `current` |> AGGREGATE STRING_AGG(name, '|' ORDER BY old.payload.score IS NULL, id) AS names\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/aggregate_property_order_test.mbt",
+      "beforeFileSHA256": "aaef312cfc75577c9befff5626b8e2e67a13790d007f27dc94858a663fe00965",
+      "afterFileSHA256": "006351bb8d64140dfdd286d2de5000db636cb70a79bcde59519e07a36efec762",
+      "authoredTexts": [
+        {
+          "line": 156,
+          "beforeSHA256": "af96b75da5cf248992fe46fc0c255cfefdbaef7d58b368610a59b8a24600359b",
+          "afterSHA256": "8971e2d278a9fb2f1a7232607c2c0ec8f8ef53b09da8de21d1101ba5b9dc67f5",
+          "before": "\"FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score, id) AS current, STRING_AGG(name, '|' ORDER BY before.payload.score NULLS LAST, id) AS previous\"",
+          "after": "\"FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score, id) AS `current`, STRING_AGG(name, '|' ORDER BY before.payload.score NULLS LAST, id) AS previous\""
+        },
+        {
+          "line": 181,
+          "beforeSHA256": "294c5095ccf04c05af3af5f2b57e55a63b40ff7fcbedd874fb2c6ec3970f3e51",
+          "afterSHA256": "99b062d0994fd8daf29081725c3837a4dbf077ded12db8ba195bb1a492524065",
+          "before": "\"FROM objects AS old |> AS current |> AGGREGATE STRING_AGG(name, '|' ORDER BY old.payload.score, id) AS names\"",
+          "after": "\"FROM objects AS old |> AS `current` |> AGGREGATE STRING_AGG(name, '|' ORDER BY old.payload.score, id) AS names\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/aggregate_property_paths_test.mbt",
+      "beforeFileSHA256": "ead72a52d055da09e33af0afc8efd3ee1bae8d38bc78f3cde854a2278a82ff34",
+      "afterFileSHA256": "0cbdb868cef027d2399017ced19521c0c1d9027629c1a8445781f2c730d487af",
+      "authoredTexts": [
+        {
+          "line": 170,
+          "beforeSHA256": "9c8a869ae67dfd1dc5a7dce90bb8c6a92e697fd715b3f185d57acf4bda11a80f",
+          "afterSHA256": "5d865db83922d69d5fbcae62b3599a563e83b1fa78a9e6734c5ecbf0c2d6d406",
+          "before": "\"FROM objects AS old |> AS current |> AGGREGATE COUNT(old.payload.score) AS n\"",
+          "after": "\"FROM objects AS old |> AS `current` |> AGGREGATE COUNT(old.payload.score) AS n\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/aggregate_signed_order_test.mbt",
+      "beforeFileSHA256": "2e7cb8e8951e31525d6d2fbc05232069fff985f5cd1a603a920833c7447ea0a5",
+      "afterFileSHA256": "da796b6607de0500411e673e367fbbe0610836cd5a28a5d67fe8efbfadce999f",
+      "authoredTexts": [
+        {
+          "line": 125,
+          "beforeSHA256": "688a8dfa0c0490d46a0c19ee5675fcf14c4da771ffd5f9963aca50e6beda17fb",
+          "afterSHA256": "efda8474fe257888f3d6dd558916acc83b0b5d2912a9c7d9dfbac690bbb84e9a",
+          "before": "\"FROM objects AS old |> AS current |> AGGREGATE STRING_AGG(name, '|' ORDER BY -old.payload.score, id) AS names\"",
+          "after": "\"FROM objects AS old |> AS `current` |> AGGREGATE STRING_AGG(name, '|' ORDER BY -old.payload.score, id) AS names\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/analytic_countif_test.mbt",
+      "beforeFileSHA256": "dd7848a67cf88c30dc419d0f380e68754d38ab872ea337650c5b32a57645f094",
+      "afterFileSHA256": "89a880914a580c32b160386d97834de428b88ac23bbfef74ec13848a38d081be",
+      "authoredTexts": [
+        {
+          "line": 86,
+          "beforeSHA256": "60a8e9c7266a712b5761c91af632c32d5ccb73c41fa7ec1a60b099c51ba976cf",
+          "afterSHA256": "5a0c234a8fd82da095f46079428f5d4239253d98f749123c91edf8cd6516080b",
+          "before": "\"FROM flags AS old |> AS current |> SELECT COUNTIF(old.flag) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n\"",
+          "after": "\"FROM flags AS old |> AS `current` |> SELECT COUNTIF(old.flag) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS n\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/analytic_order_expression_test.mbt",
+      "beforeFileSHA256": "8de3a95e6bb42f445c45c613cf911e72f2db2047e92ce4a95babc900a8136716",
+      "afterFileSHA256": "811c5c37c00583aa52a4a9415f92b03827498c48192c2488e7a4c0dcf1e474ce",
+      "authoredTexts": [
+        {
+          "line": 127,
+          "beforeSHA256": "fc04b81f064a2de10e9253f4e507249719a82ae3441aece38a45259bfdf83c2e",
+          "afterSHA256": "60492bfe598c780663538ff47032d4b0adb7b07b5836af0b389a23395154ac1f",
+          "before": "\"FROM orders AS old |> AS current |> SELECT ROW_NUMBER() OVER (ORDER BY old.amount) AS pos\"",
+          "after": "\"FROM orders AS old |> AS `current` |> SELECT ROW_NUMBER() OVER (ORDER BY old.amount) AS pos\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/analytic_partition_expression_test.mbt",
+      "beforeFileSHA256": "f356235a1ad80298bcec1e70954a130188f83d347038e8ceaebe9057ab8af0b5",
+      "afterFileSHA256": "c2ff0decc4a5bdf368fc73dff6f8c2dc3f2977bb4dfda261d54ee86845e36220",
+      "authoredTexts": [
+        {
+          "line": 58,
+          "beforeSHA256": "3ede559ab2e88e425d46a653cd2fa11f8aceb9ace7558f66a2af7eafd121358e",
+          "afterSHA256": "a413ce51b8e619db07e6604b8f224caab0ce5d057208362c76fd547d19714a08",
+          "before": "\"FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY COALESCE(original.payload.bucket, 'missing') ORDER BY id) AS before, ROW_NUMBER() OVER (PARTITION BY COALESCE(payload.bucket, 'missing') ORDER BY id) AS current |> ORDER BY id\"",
+          "after": "\"FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY COALESCE(original.payload.bucket, 'missing') ORDER BY id) AS before, ROW_NUMBER() OVER (PARTITION BY COALESCE(payload.bucket, 'missing') ORDER BY id) AS `current` |> ORDER BY id\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/analytic_partition_property_test.mbt",
+      "beforeFileSHA256": "d8d8ff8712e3f4f7f4e3186cc9f637c6c5775e6b8ecb268fbf5d7a78c42a9971",
+      "afterFileSHA256": "88b09063f4586286cc74f3c6ef0632f789ff2cb022bad7fdb92e9a655ca8bfea",
+      "authoredTexts": [
+        {
+          "line": 82,
+          "beforeSHA256": "834a3b75a4fe78cf4deb5361c67041ef868a766ca3de82ddc3532daf42a267f2",
+          "afterSHA256": "a426860fe18d4d1169342464c2e40b4cfb142e8ba11f5fcca975b3599c6ed15b",
+          "before": "\"FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY original.payload.bucket ORDER BY id) AS before, ROW_NUMBER() OVER (PARTITION BY payload.bucket ORDER BY id) AS current |> ORDER BY id\"",
+          "after": "\"FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY original.payload.bucket ORDER BY id) AS before, ROW_NUMBER() OVER (PARTITION BY payload.bucket ORDER BY id) AS `current` |> ORDER BY id\""
+        },
+        {
+          "line": 112,
+          "beforeSHA256": "fba0bd0689671b9a26f929164e7fe62bfe9fe90eba0c592a66af53a187d00ff0",
+          "afterSHA256": "15d5c99e49b2ff8e4293474ec8a90735c236e5fa98de9441e8e6a1ef45661cf4",
+          "before": "\"FROM objects AS old |> AS current |> SELECT ROW_NUMBER() OVER (PARTITION BY old.payload.bucket ORDER BY id) AS pos\"",
+          "after": "\"FROM objects AS old |> AS `current` |> SELECT ROW_NUMBER() OVER (PARTITION BY old.payload.bucket ORDER BY id) AS pos\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/analytic_property_arguments_test.mbt",
+      "beforeFileSHA256": "2ec096e3a570c207736b759ffef5d39106277b8416149a2d95a29faba48c829a",
+      "afterFileSHA256": "e277d60ea6d7cc992e3a00e31eb7fe0cd3dfe44bd3967041a35c5bb8f17adacb",
+      "authoredTexts": [
+        {
+          "line": 68,
+          "beforeSHA256": "1dbdf73cbb6ed7e78727d7f52fe2df11241f5adf6c59ea70ecab046dcee68844",
+          "afterSHA256": "9497f4d58b5f4eb40138c533d9e24ed248c2c019ee0928ae0f72c06e8b3c00d6",
+          "before": "\"FROM objects AS original |> SET payload = other |> SELECT id, LAG(original.payload.score) OVER (ORDER BY id) AS previous, LEAD(payload.score, 0) OVER (ORDER BY id) AS current\"",
+          "after": "\"FROM objects AS original |> SET payload = other |> SELECT id, LAG(original.payload.score) OVER (ORDER BY id) AS previous, LEAD(payload.score, 0) OVER (ORDER BY id) AS `current`\""
+        },
+        {
+          "line": 130,
+          "beforeSHA256": "9d2e132db11ad5591d183c5efa04495066b02aaf08531c04159146777aec4523",
+          "afterSHA256": "90e49bf11bbeb01395ea60863c235bab717b32c621cd14d4e2485e12b5547b8b",
+          "before": "\"FROM objects AS old |> AS current |> SELECT LAG(old.payload.score) OVER (ORDER BY id) AS previous\"",
+          "after": "\"FROM objects AS old |> AS `current` |> SELECT LAG(old.payload.score) OVER (ORDER BY id) AS previous\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/analytic_string_agg_test.mbt",
+      "beforeFileSHA256": "bc892a85fc9d3c61c57d858ea6b609f0cf12a2be7ac60060d4ca4bf9a37717d5",
+      "afterFileSHA256": "6c7b5e49ff919442a67852eed5d05ca572ca43322f760f8fae21aa84752d9270",
+      "authoredTexts": [
+        {
+          "line": 100,
+          "beforeSHA256": "018fb44fe190cfc3552b2106f658aafab4df6a356d4050d5c670ff736c59e4db",
+          "afterSHA256": "29e6bad14d5dad46404599f7735bde17d767e41447ecb9280fb535b4e44a9985",
+          "before": "\"FROM objects AS old |> AS current |> SELECT STRING_AGG(old.name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS names\"",
+          "after": "\"FROM objects AS old |> AS `current` |> SELECT STRING_AGG(old.name) OVER (ORDER BY id ROWS BETWEEN CURRENT ROW AND CURRENT ROW) AS names\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/calendar_source_test.mbt",
+      "beforeFileSHA256": "0dd5f7fc1df93308c1e77687c2448a6628cf1965703b63e54091646b4afe88d1",
+      "afterFileSHA256": "0c7bd250c427493374d340b1725d49f399179b40224bbd7855933588b5420c83",
+      "authoredTexts": [
+        {
+          "line": 208,
+          "beforeSHA256": "3bf3d3d0de0ff11cd17d5e54b9f7dd27a111c251fa1c30c04d2d70eabce4bbe2",
+          "afterSHA256": "8521c831fdce32b9afd3ec283b03cf42a60e2cc806b13a2175a8e14304b9a92c",
+          "before": "\"WITH rows AS (SELECT 1 AS id) FROM rows |> calendar_series(start:'2000-01-01T00:00:00.000Z',end:'2000-01-03T00:00:00.000Z',unit:'day',timezone:'UTC')\"",
+          "after": "\"WITH `rows` AS (SELECT 1 AS id) FROM rows |> calendar_series(start:'2000-01-01T00:00:00.000Z',end:'2000-01-03T00:00:00.000Z',unit:'day',timezone:'UTC')\""
+        },
+        {
+          "line": 394,
+          "beforeSHA256": "51cabe218bc8e16fc15c785ae0f75617fc94f72becb029df80f89c1f94bfee37",
+          "afterSHA256": "cdc5904cedba2a36df6b1ca87cf1bff3cbe9789e21133aab4570065e1a9ed5e4",
+          "before": "\"WITH rows AS (SELECT 1 AS clock) FROM rows |> calendar_bucket(time:clock,unit:'day',timezone:'UTC',into:bucket) |> SELECT bucket\"",
+          "after": "\"WITH `rows` AS (SELECT 1 AS clock) FROM rows |> calendar_bucket(time:clock,unit:'day',timezone:'UTC',into:bucket) |> SELECT bucket\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/carrier_peer_scope_test.mbt",
+      "beforeFileSHA256": "229c206b3c192e44d9e71e3b6e7f756bbd48e0576c6ea6612bd9e279022bf560",
+      "afterFileSHA256": "9fc263002f41302fad8395037c01bcc9a75ecedbafc8bec654ca27cb42e1685d",
+      "authoredTexts": [
+        {
+          "line": 18,
+          "beforeSHA256": "101a93e13235e21557045656b8812f14cc48d0af8fbdce67530a069eccdbac22",
+          "afterSHA256": "fdb11064e6185e18d721361afbaaf197da52b246cd1dcd24684c194948c327a7",
+          "before": "\"rows AS (FROM v |> vectors()), candidate_rows AS\"",
+          "after": "\"`rows` AS (FROM v |> vectors()), candidate_rows AS\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/computed_object_property_test.mbt",
+      "beforeFileSHA256": "c144983d555932b9aaf6402bf0d8e90ab02c47ce212c683cbd65e9ddd30405ec",
+      "afterFileSHA256": "d93eb16ca374cd2747aabaed34fa4bf253955d9d6e6fe62250dc41890ee62095",
+      "authoredTexts": [
+        {
+          "line": 130,
+          "beforeSHA256": "7714443b71f8b57831cd4c25f3fff08451b6ed893a27f7db44871c16271686a6",
+          "afterSHA256": "561d8c480ab56cbdedc5722ea288193ee63f945df13aadd76489b3b396faa902",
+          "before": "\"FROM objects AS original |> SET payload = other |> SELECT id, COALESCE(original.payload, original.other).score AS before, COALESCE(payload, other).score AS current |> ORDER BY id\"",
+          "after": "\"FROM objects AS original |> SET payload = other |> SELECT id, COALESCE(original.payload, original.other).score AS before, COALESCE(payload, other).score AS `current` |> ORDER BY id\""
+        },
+        {
+          "line": 137,
+          "beforeSHA256": "7a940a6bc01787e6353e80a34fa570ea073c3e4bf78e812942d747a0e4427bfb",
+          "afterSHA256": "eb581fad778c76a887562ed53efeb37f2c34854d40cba61b42533f8da275f1a2",
+          "before": "\"FROM objects AS old |> AS current |> SELECT COALESCE(old.payload, other).score AS score\"",
+          "after": "\"FROM objects AS old |> AS `current` |> SELECT COALESCE(old.payload, other).score AS score\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/computed_object_star_test.mbt",
+      "beforeFileSHA256": "f6eacce457f62f6588053268953824e2d190972645365ff10dd04709f158044f",
+      "afterFileSHA256": "232a8197aa7764f05bca2e53cccd7935de380b290733495789a946221411b96d",
+      "authoredTexts": [
+        {
+          "line": 118,
+          "beforeSHA256": "b013c97263a2474c45568dad0c819b6bbc452c6e0e334941d83026bbeb326c58",
+          "afterSHA256": "73c938da5ed64ac2cf8f80fb825d90d414db38b7cf9c1cbff5dd1be8cd7088ae",
+          "before": "\"FROM objects old |> AS current |> SELECT COALESCE(old.payload, other).*\"",
+          "after": "\"FROM objects old |> AS `current` |> SELECT COALESCE(old.payload, other).*\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/cte_pipe_test.mbt",
+      "beforeFileSHA256": "c45f4e8468a8084ce58bb9f9311ceee2daf9e6e8f2415b657e14e04f73a67c6a",
+      "afterFileSHA256": "54c3d7a08c626f111058ea5087160e506d617bf95053b8bdecd1f741ba429700",
+      "authoredTexts": [
+        {
+          "line": 34,
+          "beforeSHA256": "7728a5d8df6baaeeb1e1f8c976b65cb4809c26b41a31869dd866ff7aceb3cf54",
+          "afterSHA256": "271ae9e8d03a5d8709a18437cd6b75e81e3a06d9b43cb42ad8fe6d4958b8c7ba",
+          "before": "\"WITH first AS (FROM left_rows |> SELECT a, b), second AS (FROM first AS old |> AS current |> SELECT current.a AS a, current.b AS b) FROM second |> SELECT b, a\"",
+          "after": "\"WITH first AS (FROM left_rows |> SELECT a, b), second AS (FROM first AS old |> AS `current` |> SELECT current.a AS a, current.b AS b) FROM second |> SELECT b, a\""
+        },
+        {
+          "line": 47,
+          "beforeSHA256": "c84c39b26acdc5d59dfa1da3a8e8de4aeb3991075875cdd747a82c7d7ecb1f84",
+          "afterSHA256": "a5974b68456543557a07c6a4fdb2bec5225bbde65ef6b77dbffbb0d5b5480cc9",
+          "before": "\"WITH c AS (FROM left_rows AS old |> AS current |> SELECT old.a) FROM c |> SELECT a\"",
+          "after": "\"WITH c AS (FROM left_rows AS old |> AS `current` |> SELECT old.a) FROM c |> SELECT a\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/event_dedupe_source_test.mbt",
+      "beforeFileSHA256": "5f120ab736cf0b14fcc437a4a3d462bafec82861d06f27e9bded81aed08c758b",
+      "afterFileSHA256": "e7a6dcdb2d0a9479d5a17fc1c839662b7d50c582ec1ef99441fba1d844b040f8",
+      "authoredTexts": [
+        {
+          "line": 28,
+          "beforeSHA256": "f65c3aa8c05e4c1775ce8498b2398ad08f2fa49e0d8cb80988c46db6e3d29396",
+          "afterSHA256": "0c5d4ce60a6d6899ea2d55f024952809d3d81738e55dc7dbfeaa260a3435aaf0",
+          "before": "\"WITH rows AS (\"",
+          "after": "\"WITH `rows` AS (\""
+        },
+        {
+          "line": 98,
+          "beforeSHA256": "f65c3aa8c05e4c1775ce8498b2398ad08f2fa49e0d8cb80988c46db6e3d29396",
+          "afterSHA256": "0c5d4ce60a6d6899ea2d55f024952809d3d81738e55dc7dbfeaa260a3435aaf0",
+          "before": "\"WITH rows AS (\"",
+          "after": "\"WITH `rows` AS (\""
+        },
+        {
+          "line": 148,
+          "beforeSHA256": "f65c3aa8c05e4c1775ce8498b2398ad08f2fa49e0d8cb80988c46db6e3d29396",
+          "afterSHA256": "0c5d4ce60a6d6899ea2d55f024952809d3d81738e55dc7dbfeaa260a3435aaf0",
+          "before": "\"WITH rows AS (\"",
+          "after": "\"WITH `rows` AS (\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/event_window_source_test.mbt",
+      "beforeFileSHA256": "28dc6f59b85dde369c0c4e971f1d6e93e76409c4303601a042b99bec09ac1a54",
+      "afterFileSHA256": "83ec7f9841453e9ee0db746849fd27fc0b3b05f851e7b625f3e1f13ace8a20b9",
+      "authoredTexts": [
+        {
+          "line": 144,
+          "beforeSHA256": "04fb5f0afc48660c126dcd2aad135a015e5f47af43af90039a1ef19ab44f88e0",
+          "afterSHA256": "6470e0aa714e7286efcb9fb5763bfa20387502fa1d953fccb9901dfc70f5aabd",
+          "before": "\"WITH rows AS (SELECT 1 AS event_id, 0 AS occurred_ms), ev AS (FROM rows |> to_events(id: event_id, time: occurred_ms)) \"",
+          "after": "\"WITH `rows` AS (SELECT 1 AS event_id, 0 AS occurred_ms), ev AS (FROM rows |> to_events(id: event_id, time: occurred_ms)) \""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/extend_range_snapshot_test.mbt",
+      "beforeFileSHA256": "c7904f11f00eafe1725a2f5d98f4431fe3a24bdc14b4b3435bbba0a14e7238cd",
+      "afterFileSHA256": "a797d8c183f7cc691436a041ee9dd6bfe554c45919b2c4c8158d2f1e22af9d36",
+      "authoredTexts": [
+        {
+          "line": 70,
+          "beforeSHA256": "ccf36e316234a5233e42c193b4df6978080df85c5e3ce4da202b0526ef457486",
+          "afterSHA256": "28a85288f9cbf96db9e448ca3e3e389ed70146e758387d74687f33ede6279832",
+          "before": "\"FROM pair AS old |> EXTEND x + 1 AS z |> AS current |> SELECT current.x AS original, current.z AS z\"",
+          "after": "\"FROM pair AS old |> EXTEND x + 1 AS z |> AS `current` |> SELECT current.x AS original, current.z AS z\""
+        },
+        {
+          "line": 81,
+          "beforeSHA256": "8308e9ab709e22937d465e2c242082477e97a994c6e946b79652313bd8de3b6c",
+          "afterSHA256": "2d70d6018c409ce5454d80dd0d7d748ceead0fe898f5c126593331c751269d1b",
+          "before": "\"RENAME x AS current\"",
+          "after": "\"RENAME x AS `current`\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/from_pivot_test.mbt",
+      "beforeFileSHA256": "5a54d001640f5510b41e3efa06aa852853e4a9d2c3385e8d41107c9a723269cd",
+      "afterFileSHA256": "f8b20a8c916d23295436eacde8e258c164083239079700dba96d944d434c150a",
+      "authoredTexts": [
+        {
+          "line": 130,
+          "beforeSHA256": "8cce63e57af8419ade88107aaf0d574098ae2d3863eca11b7d32621a058745bd",
+          "afterSHA256": "5fc2ae3220964ee677a47302e4fe0e157329ad1b78e9a737e5f5efa7bc9c5f2d",
+          "before": "\"SELECT current.amount FROM orders PIVOT(COUNT(amount) FOR status IN('open')) current\"",
+          "after": "\"SELECT current.amount FROM orders PIVOT(COUNT(amount) FOR status IN('open')) `current`\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/graph_refusal_classification_test.mbt",
+      "beforeFileSHA256": "014d8ab88a3756a81da43a0432e5d170d706bb6d942e0dfe2e59cf9b3c71c952",
+      "afterFileSHA256": "dc4283261320adfa5b7c1cc8054f8abeca19f5bf87d8bbda24119638c33319f2",
+      "authoredTexts": [
+        {
+          "line": 14,
+          "beforeSHA256": "417c5abb4cbf1fecc54559a3deeccec051547e4cf00d8b3ca92d8078503ae2ad",
+          "afterSHA256": "5dff606450381a8ea9a8e79a3786130abad80f26f2d077e2c8c704b20f4a007f",
+          "before": "\", rows AS (FROM n |> node_rows()) FROM rows |> SELECT node_key\"",
+          "after": "\", `rows` AS (FROM n |> node_rows()) FROM rows |> SELECT node_key\""
+        },
+        {
+          "line": 15,
+          "beforeSHA256": "24f313969119074ff9292eb4f0826eb305164ce9cbc9989ef9dcc244f2934d12",
+          "afterSHA256": "d63e486d9a0e6e43bdceff41064f45c535ead15cfd04e9ff8ace67ef125a9152",
+          "before": "\", rows AS (WITH g AS (SELECT 1 AS id) FROM g |> node_rows()) FROM rows |> SELECT id\"",
+          "after": "\", `rows` AS (WITH g AS (SELECT 1 AS id) FROM g |> node_rows()) FROM rows |> SELECT id\""
+        },
+        {
+          "line": 36,
+          "beforeSHA256": "be32ad1a32d1859562dac14a5e00909d098766f3d9467f4fda5a6fb08bb69f4a",
+          "afterSHA256": "21159da81334065d0572f01f4bf1ad8e56d5a84450c28db45ede197f142bd869",
+          "before": "\", rows AS (FROM missing |> node_rows()) FROM rows |> SELECT id\"",
+          "after": "\", `rows` AS (FROM missing |> node_rows()) FROM rows |> SELECT id\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/graph_row_selection_test.mbt",
+      "beforeFileSHA256": "115c4d4e0598113b0d5b3949163a8f0368e4c6eaff997774f9e3bf6919abe8e1",
+      "afterFileSHA256": "769cf28dae830a073b3294a9e61d2aa606fbd9abf0c987dcf881afd58ed441f7",
+      "authoredTexts": [
+        {
+          "line": 22,
+          "beforeSHA256": "756b755df11d57be5f50398437e710f87c7809b08cc61e6b17f15f2e3b8b4b40",
+          "afterSHA256": "5c95d2482753d52cb8d12af9b074576b70ba325d0e3cf1a16e95867c24470505",
+          "before": "\", rows AS (FROM g |> node_rows(label: 'Company') |> SELECT other_key) FROM rows |> ORDER BY other_key\"",
+          "after": "\", `rows` AS (FROM g |> node_rows(label: 'Company') |> SELECT other_key) FROM rows |> ORDER BY other_key\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/group_comparison_alias_test.mbt",
+      "beforeFileSHA256": "a07f5506789ebd622780dfad50850a490aa788f32c542aaf5719815891929047",
+      "afterFileSHA256": "567e0eb274a1fa1c98e20f8c502644b2dfd06a1d5d22ad7af96737852f36d8db",
+      "authoredTexts": [
+        {
+          "line": 44,
+          "beforeSHA256": "7a5c6f470aef771ee028636fdd8adf6f27cf35b2cda076c97ab6dc883b982b38",
+          "afterSHA256": "cff6f197355a256381fc906dc7f342c9baf54c6ed39f94a8ba4f9787beca1d41",
+          "before": "\"SELECT COUNT(*) + IF(old.x != 1, 1, 0) AS n FROM pair AS current GROUP BY current.x <> 1\"",
+          "after": "\"SELECT COUNT(*) + IF(old.x != 1, 1, 0) AS n FROM pair AS `current` GROUP BY current.x <> 1\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/group_having_implicit_alias_test.mbt",
+      "beforeFileSHA256": "4398fb939e585525c75fa908cb4de371ad36d44b1b87799744213aa68dbbe7bf",
+      "afterFileSHA256": "aa82a9fdb3793139ab6b76bafd638a6ea1681ad668f35db73f9eecfd8e55db06",
+      "authoredTexts": [
+        {
+          "line": 203,
+          "beforeSHA256": "91928bf3c9be34d63d70ef686fe685eddf43837f2bff37895ff74224fa7e9c62",
+          "afterSHA256": "9a0904b05f857802794af9976241ac107784451f178ee2d9b791ebf35b967490",
+          "before": "\"SELECT payload.score, COUNT(*) AS n FROM objects AS current GROUP BY score HAVING objects.payload.score > 10\"",
+          "after": "\"SELECT payload.score, COUNT(*) AS n FROM objects AS `current` GROUP BY score HAVING objects.payload.score > 10\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/group_property_keys_test.mbt",
+      "beforeFileSHA256": "44b0c446037b685f0f3f69542af2594d95e948f09d35872553853bf8b2d2472c",
+      "afterFileSHA256": "0396df76655cd0f156910d7da3dbc5daf4401eeb915e06c77efec41628637e6b",
+      "authoredTexts": [
+        {
+          "line": 160,
+          "beforeSHA256": "2c490a8dd3ba0d786ee3ef043eb43ddbb77c40bbbdf0deec1010a12e3b340fa8",
+          "afterSHA256": "7fee59134bd7ae9ea87869b304838993a8d3ecf27cbcd9833b268280f4824048",
+          "before": "\"FROM objects AS old |> AS current |> AGGREGATE COUNT(*) AS n GROUP BY old.payload.score\"",
+          "after": "\"FROM objects AS old |> AS `current` |> AGGREGATE COUNT(*) AS n GROUP BY old.payload.score\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/group_unary_plus_value_test.mbt",
+      "beforeFileSHA256": "e518fbc0dffb14fe84e317ce65e4171610745b8b789e67997ca790f58af68f48",
+      "afterFileSHA256": "6f0383b07f40603740b39e13390c563be711d6a0d03fb74a29f1c113896f0f56",
+      "authoredTexts": [
+        {
+          "line": 61,
+          "beforeSHA256": "9fdadbe44be2a1cc5870085bc4b4aef464676123d11ca0d40f6046c9b8ac343f",
+          "afterSHA256": "07a21d9f1c492879fee04991321495014ad15fc376cd91e6f916c050555b853f",
+          "before": "\"SELECT old.x, COUNT(*) AS n FROM t AS current GROUP BY +current.x\"",
+          "after": "\"SELECT old.x, COUNT(*) AS n FROM t AS `current` GROUP BY +current.x\""
+        },
+        {
+          "line": 62,
+          "beforeSHA256": "5ae45a327982c5df95ef2f1948234f31e93578821732ea498890b751631a3a77",
+          "afterSHA256": "85800c39ee6270dd858a6d0a774a7a0594477f63b9c1094e4bfbf65a39464c5e",
+          "before": "\"FROM t AS old |> AS current |> AGGREGATE COUNT(*) AS n GROUP BY +old.x\"",
+          "after": "\"FROM t AS old |> AS `current` |> AGGREGATE COUNT(*) AS n GROUP BY +old.x\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/grouped_implicit_property_name_test.mbt",
+      "beforeFileSHA256": "885bba88051ed96a51dd8a4b120989129dc22286dce0c3e1a967b313e687372e",
+      "afterFileSHA256": "a698f37e6702791e1c91ff98e43e6454fdfe84e589d6e9a9645571839b132a75",
+      "authoredTexts": [
+        {
+          "line": 135,
+          "beforeSHA256": "c3cc2eb8ab4f5f655f5f615550c584ce9e423c0018b7f4f4bc6dc7cfff06e60e",
+          "afterSHA256": "9266f669dbe331758e794db094c99a7b394fe02bfebc8c9065a86f80adde3d5e",
+          "before": "\"SELECT objects.payload.score, COUNT(*) AS n FROM objects AS current GROUP BY current.payload.score\"",
+          "after": "\"SELECT objects.payload.score, COUNT(*) AS n FROM objects AS `current` GROUP BY current.payload.score\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/having_grouped_subexpression_test.mbt",
+      "beforeFileSHA256": "5ec7d700d71e4486369c30ef16750612faeca32badc694b10fee4194b62f7967",
+      "afterFileSHA256": "510154e12d5770f609c6991239e5143dcd500e73f0c8954263ded65f04632735",
+      "authoredTexts": [
+        {
+          "line": 110,
+          "beforeSHA256": "91af6e435ca60e8f32c814e98d45fb67acf8a782c2b341b57f2b06c629137ee8",
+          "afterSHA256": "d62bad2783bdccb379f1d6ddeba615ccefa57ccbe8086d91586473f09941bd2b",
+          "before": "\"SELECT COUNT(*) AS n FROM objects AS current GROUP BY current.payload.score + 1 HAVING old.payload.score + 1 > 10\"",
+          "after": "\"SELECT COUNT(*) AS n FROM objects AS `current` GROUP BY current.payload.score + 1 HAVING old.payload.score + 1 > 10\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/implicit_property_projection_test.mbt",
+      "beforeFileSHA256": "e7629dac1e544a7963745e4e612e2ee13ca1625915dcc68d62da5966826d8feb",
+      "afterFileSHA256": "313b09e73825af0bc62376a9e6ca4988584f8b3ace774fc8d72ca21b59763095",
+      "authoredTexts": [
+        {
+          "line": 101,
+          "beforeSHA256": "1d294064e7f05589c3c645b9d3bd82a365e847b7eab52d29eb33ee747ade625b",
+          "afterSHA256": "e3142d4ac2c45c72554e7d882a77bcca94251f44adc8bab6dd404361b5f2cd02",
+          "before": "\"FROM objects |> AS current |> SELECT current.payload.score, id\"",
+          "after": "\"FROM objects |> AS `current` |> SELECT current.payload.score, id\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/inner_correlated_unnest_test.mbt",
+      "beforeFileSHA256": "16841aa1c4e534a676ea8be5cb93b33b7273c7b325f3bb6b48f062cfbadd0d31",
+      "afterFileSHA256": "1b16207e2c354cc922c4a5f410c49b9c32c5e9a51add52dc74d8a80b0687c0ef",
+      "authoredTexts": [
+        {
+          "line": 49,
+          "beforeSHA256": "4b5a3585ed7728bd2449d054eca281d4a6443d880760d15f243a7a120b985bf3",
+          "afterSHA256": "70417a4955750cd88cb087ac590d54a01825d0c0231d2862ae03ca54beca0d9a",
+          "before": "\"FROM parents p |> SET id = 99 |> INNER JOIN UNNEST(p.items) element ON element = p.id |> SELECT id AS current, p.id AS original, element\"",
+          "after": "\"FROM parents p |> SET id = 99 |> INNER JOIN UNNEST(p.items) element ON element = p.id |> SELECT id AS `current`, p.id AS original, element\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/join_pipe_edits_test.mbt",
+      "beforeFileSHA256": "ad57a1bf336705641c4ae0a3c8359f90fad4ba2f7e34b83f9fceeab3a9cf7e4b",
+      "afterFileSHA256": "ef3a0f0c3fc6b2f908ef8ad25f5942c13c13a504a9fc79407a6c1d954c4afd41",
+      "authoredTexts": [
+        {
+          "line": 85,
+          "beforeSHA256": "583483f206f28433a08a4770571a7c3606248bc71410a3c93b6ada2a0dea1e75",
+          "afterSHA256": "a701abd59380fb7dfbfca077a7e476f2606476f464a554fa6b0de864eb28e814",
+          "before": "\"FROM t AS l |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SET y = y + 10 |> SELECT y AS current, l.y AS original, rr.k AS matched |> ORDER BY original\"",
+          "after": "\"FROM t AS l |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SET y = y + 10 |> SELECT y AS `current`, l.y AS original, rr.k AS matched |> ORDER BY original\""
+        },
+        {
+          "line": 109,
+          "beforeSHA256": "58556ffbf8fd46161e39503c9924874b6e13db8de76def6f82b7eca5cefe26eb",
+          "afterSHA256": "a4bf804762e9058299948af139243ba0c2b0c2258c1277fe2d0eed73184a7423",
+          "before": "\"FROM t AS l |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> EXTEND y + 10 AS current |> SELECT current, l.y AS original, rr.k AS matched |> ORDER BY original\"",
+          "after": "\"FROM t AS l |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> EXTEND y + 10 AS `current` |> SELECT current, l.y AS original, rr.k AS matched |> ORDER BY original\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/join_range_property_test.mbt",
+      "beforeFileSHA256": "62e37cb8aec35c80518fdb6c7f294255a946a931e5d27c4d9c6d027ce3557e06",
+      "afterFileSHA256": "abe78ed6294e1e78c4c0dfd8933d7206d1304f2e293755e922cbb5eaf151a7fd",
+      "authoredTexts": [
+        {
+          "line": 181,
+          "beforeSHA256": "32ac83cd6ebed985417a8e04d0f909f8c2c8699e31d9986da1d72a9d4165b854",
+          "afterSHA256": "6ab208f4902da815d2c905e56acffb40a0b97bf90bb610a7d678b8e9d854c597",
+          "before": "\"FROM objects AS l |> JOIN others AS r ON l.id = r.id |> SELECT l.id, l.payload |> AS current |> ORDER BY ((current)).payload.score NULLS LAST\"",
+          "after": "\"FROM objects AS l |> JOIN others AS r ON l.id = r.id |> SELECT l.id, l.payload |> AS `current` |> ORDER BY ((current)).payload.score NULLS LAST\""
+        },
+        {
+          "line": 185,
+          "beforeSHA256": "c3992421ea7310158d7e435b884015d30e082462ab2520745f085fa6dd15f90e",
+          "afterSHA256": "0b25d28be4e55f84b61555f5352160b078ce4c66792a7f344de48d41f4c2fd57",
+          "before": "\"FROM objects AS l |> JOIN others AS r ON l.id = r.id |> SELECT l.id, l.payload |> AS current |> ORDER BY ((l)).payload.score NULLS LAST\"",
+          "after": "\"FROM objects AS l |> JOIN others AS r ON l.id = r.id |> SELECT l.id, l.payload |> AS `current` |> ORDER BY ((l)).payload.score NULLS LAST\""
+        },
+        {
+          "line": 198,
+          "beforeSHA256": "87d647440f29e40f5b99e608b16b855804087902d067163bcfe605e79019a691",
+          "afterSHA256": "b7f8233a3585dea1f3615ee0cc5e4065e7bbfd094e22f329c8ce2af77d494c0e",
+          "before": "\"FROM pair |> AS current |> ORDER BY ((current)).x + 1 |> SELECT current.x\"",
+          "after": "\"FROM pair |> AS `current` |> ORDER BY ((current)).x + 1 |> SELECT current.x\""
+        },
+        {
+          "line": 233,
+          "beforeSHA256": "2f8e04b1898a80aa99a6720fc69e6e61a3d50debe16a5c53f8d5efdfd943c8e8",
+          "afterSHA256": "a7e54633f86d4acbbd06e83100540caf65c119374680e0d3b72eb382638fc7dd",
+          "before": "\"WITH seed AS (SELECT 1 AS unit), objects AS (SELECT 2 AS id, @a AS payload FROM seed UNION ALL SELECT 1 AS id, @b AS payload FROM seed UNION ALL SELECT 3 AS id, @c AS payload FROM seed), others AS (SELECT 1 AS id, @oa AS other FROM seed UNION ALL SELECT 2 AS id, @ob AS other FROM seed UNION ALL SELECT 3 AS id, @oc AS other FROM seed UNION ALL SELECT 2 AS id, @od AS other FROM seed) FROM objects |> AS current |> ORDER BY ((current)).payload.score NULLS LAST |> SELECT current.id AS id, current.payload.score AS score\"",
+          "after": "\"WITH seed AS (SELECT 1 AS unit), objects AS (SELECT 2 AS id, @a AS payload FROM seed UNION ALL SELECT 1 AS id, @b AS payload FROM seed UNION ALL SELECT 3 AS id, @c AS payload FROM seed), others AS (SELECT 1 AS id, @oa AS other FROM seed UNION ALL SELECT 2 AS id, @ob AS other FROM seed UNION ALL SELECT 3 AS id, @oc AS other FROM seed UNION ALL SELECT 2 AS id, @od AS other FROM seed) FROM objects |> AS `current` |> ORDER BY ((current)).payload.score NULLS LAST |> SELECT current.id AS id, current.payload.score AS score\""
+        },
+        {
+          "line": 255,
+          "beforeSHA256": "4ef7b94af05b44a4683d4a63016c679eaa281cd0e84ca76920dfc543bd180aa8",
+          "afterSHA256": "50423c1907507f2fdd065de69cb872101fddfc956e580714641e0159160c5dfc",
+          "before": "\"WITH seed AS (SELECT 1 AS unit), objects AS (SELECT 2 AS id, @a AS payload FROM seed UNION ALL SELECT 1 AS id, @b AS payload FROM seed UNION ALL SELECT 3 AS id, @c AS payload FROM seed) FROM objects |> AS current |> ORDER BY ((current)).payload.score NULLS LAST |> SELECT current.id AS id, current.payload.score AS score\"",
+          "after": "\"WITH seed AS (SELECT 1 AS unit), objects AS (SELECT 2 AS id, @a AS payload FROM seed UNION ALL SELECT 1 AS id, @b AS payload FROM seed UNION ALL SELECT 3 AS id, @c AS payload FROM seed) FROM objects |> AS `current` |> ORDER BY ((current)).payload.score NULLS LAST |> SELECT current.id AS id, current.payload.score AS score\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/lag_source_test.mbt",
+      "beforeFileSHA256": "53661807db9768f7e30dc241bfe2b1ab1a3ad455f546f0f7a359ab3acda16ff4",
+      "afterFileSHA256": "fb2f873f362b98137824623375aab8241b5158028b608cd44955f0ba96cad4fb",
+      "authoredTexts": [
+        {
+          "line": 26,
+          "beforeSHA256": "54d5051c87f771fedb001e9784acdd84da97b09df2dbe616fd1bff61acfc8695",
+          "afterSHA256": "a751961e59792c54760062bf3c726b4877cba648cb07a786620b04668b78d99f",
+          "before": "\"WITH rows AS (SELECT 1 AS id, 10 AS amount UNION ALL SELECT 2, 30 UNION ALL SELECT 3, CAST(NULL AS FLOAT64)), \"",
+          "after": "\"WITH `rows` AS (SELECT 1 AS id, 10 AS amount UNION ALL SELECT 2, 30 UNION ALL SELECT 3, CAST(NULL AS FLOAT64)), \""
+        },
+        {
+          "line": 36,
+          "beforeSHA256": "02d131c6b6cdd434ece6300fa3e3f31258286a2082452de77262abe5a902d4d4",
+          "afterSHA256": "7ba2d468faa13df933c32b730fbee099f10f4a08b996159a516469d427b3af56",
+          "before": "\"WITH rows AS (SELECT 1 AS id, 10 AS amount), keyed AS (FROM rows |> ASSERT UNIQUE BY (id)) FROM keyed |> \"",
+          "after": "\"WITH `rows` AS (SELECT 1 AS id, 10 AS amount), keyed AS (FROM rows |> ASSERT UNIQUE BY (id)) FROM keyed |> \""
+        },
+        {
+          "line": 66,
+          "beforeSHA256": "1a5192063018d7e38f10ee97946c20ed632b37cb263c7e1d83c2bb32e849f94b",
+          "afterSHA256": "034b0220f257bcedb836d5b12170f4e7ab8c42afc2fe8ebcd5b4d037ebcf7f57",
+          "before": "\"WITH rows AS (SELECT 1 AS id, 10 AS amount), kept AS (FROM rows AS old |> SELECT id |> AS current) FROM kept AS r |> \"",
+          "after": "\"WITH `rows` AS (SELECT 1 AS id, 10 AS amount), kept AS (FROM rows AS old |> SELECT id |> AS `current`) FROM kept AS r |> \""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/object_column_star_test.mbt",
+      "beforeFileSHA256": "67762323b4a87a2a31e1d9ffc2df0abbcc0aa284461ccdb2f719327eaaa9a024",
+      "afterFileSHA256": "7643b43c0e4635281544a4266fd93de79ba6f30611d3d37960d149cf19fc5351",
+      "authoredTexts": [
+        {
+          "line": 67,
+          "beforeSHA256": "059cdf7dc7b16c5381e247dda206b7c2345da6202de2847ddb4bbed163588fe9",
+          "afterSHA256": "3a8df95ad5aebe295e02b7d9f3236a06dc329a2f39e744a62c432a4b81a3360e",
+          "before": "\"FROM objects o |> AS current |> SELECT o.*\"",
+          "after": "\"FROM objects o |> AS `current` |> SELECT o.*\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/object_member_case_probe_test.mbt",
+      "beforeFileSHA256": "f4872d9c5f0ae919826d53c29dd03e6bea807b0f57cd7d3fc5f7e54666b50ea7",
+      "afterFileSHA256": "f81d0a10128507d5e9cb8ba4417a0beb077d3c6441472145e512fcd69280f1fc",
+      "authoredTexts": [
+        {
+          "line": 159,
+          "beforeSHA256": "badf9b83dfabfd8fde421e84d65c771b99311fba3e333c6942e57f7e8bafe02a",
+          "afterSHA256": "375f92a636bf79b3b624d47652940b155de846a736ac1edce8d089500b59f8aa",
+          "before": "\"FROM objects AS original |> SET payload = other |> SELECT id, original.payload.SCORE AS before, payload.SCORE AS current |> ORDER BY id\"",
+          "after": "\"FROM objects AS original |> SET payload = other |> SELECT id, original.payload.SCORE AS before, payload.SCORE AS `current` |> ORDER BY id\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/optional_derived_alias_test.mbt",
+      "beforeFileSHA256": "bd7a25b88e0b19a01db630bceaf32ab9cdc782fa61cf46b7649492960f9a4bf1",
+      "afterFileSHA256": "661b618045e5292763176d5eb213da20e42d0b0f8ec91f1cff0ffef5d6c40870",
+      "authoredTexts": [
+        {
+          "line": 57,
+          "beforeSHA256": "e1b2905698536d09a818ce3426838a0d5e3efd0fee103852e660bb4b302a53a1",
+          "afterSHA256": "19b1e7736a0db78223ea88913a6b6ad25a03ba1329f16b8e3021bd500be33159",
+          "before": "\"SELECT r.x AS original,x AS current FROM (FROM t |> AS r |> SET x=x+10) ORDER BY original\"",
+          "after": "\"SELECT r.x AS original,x AS `current` FROM (FROM t |> AS r |> SET x=x+10) ORDER BY original\""
+        },
+        {
+          "line": 58,
+          "beforeSHA256": "3e5d14ba7a47d97076943d24bbafbe18dd72415e848bb787b9d2f634305e0128",
+          "afterSHA256": "3472dd5dbd464a1ce7f0b74a0b7acf39939624aaa55a1cfb2f2bbea2d2e1bb13",
+          "before": "\"FROM (FROM t |> AS r |> SET x=x+10) |> WHERE r.x > 0 |> SELECT r.x AS original,x AS current |> ORDER BY original\"",
+          "after": "\"FROM (FROM t |> AS r |> SET x=x+10) |> WHERE r.x > 0 |> SELECT r.x AS original,x AS `current` |> ORDER BY original\""
+        },
+        {
+          "line": 59,
+          "beforeSHA256": "fa746d818c94b0eaa0032cacf5ad19e9b8309d447e57ffcb9e0f2bac9a5f06ec",
+          "afterSHA256": "b99da486ff3567533172524f31def05e8a5358fc17af1b25e07161702d2157f6",
+          "before": "\"SELECT current.x,current.y FROM (FROM t |> AS r |> SET x=x+10) AS current ORDER BY current.x\"",
+          "after": "\"SELECT current.x,current.y FROM (FROM t |> AS r |> SET x=x+10) AS `current` ORDER BY current.x\""
+        },
+        {
+          "line": 90,
+          "beforeSHA256": "c2e0df7175934b98648ee1a83c3362cfe1a0e80e995dfe7d035a1a433cc288ff",
+          "afterSHA256": "6e8676f78251fd32d62e1f02d3d7c28b633d90fc7330ab8d0aacc4b9921b97f4",
+          "before": "\"SELECT r.x FROM (FROM t |> AS r |> SET x=x+10) current\"",
+          "after": "\"SELECT r.x FROM (FROM t |> AS r |> SET x=x+10) `current`\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/order_grouped_subexpression_test.mbt",
+      "beforeFileSHA256": "de37aae9c3a9df3602cf6ff7e6cc3602c0e406e06a685f18540d2905d3728673",
+      "afterFileSHA256": "edb1b28e25b147fa7c07ce6f26c825d16b3c677c12b6d760e2980c96c3f47da9",
+      "authoredTexts": [
+        {
+          "line": 160,
+          "beforeSHA256": "ab7611b00fe44f684bb8ab339c211c9d84ad194129d62af3dab97abdf0cf4038",
+          "afterSHA256": "6f90854a4476a96c5fb265cd5b0e91615f600a7200eba02cd33db2f144cdf3df",
+          "before": "\"SELECT COUNT(*) AS n FROM objects AS current GROUP BY current.payload.score + 1 ORDER BY old.payload.score + 1\"",
+          "after": "\"SELECT COUNT(*) AS n FROM objects AS `current` GROUP BY current.payload.score + 1 ORDER BY old.payload.score + 1\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/order_window_expression_test.mbt",
+      "beforeFileSHA256": "e3f68df22c252d321f11f8ebb1831f29d9817d6372e53aae1863340f9a44f6cc",
+      "afterFileSHA256": "8e8eddc9a28567937c16b89bc3842e6b9af801df89186d109767fe49d3a9a99e",
+      "authoredTexts": [
+        {
+          "line": 131,
+          "beforeSHA256": "12cda0d1af9e4b0ab049e4bf413f5d77afb94dd42c3bcbfe61cd832607f29bcd",
+          "afterSHA256": "c953c31b632266a29148387e66d2720531416100898991f5ea316a2cc60b4f07",
+          "before": "\"FROM orders AS old |> AS current |> ORDER BY ROW_NUMBER() OVER (ORDER BY current.id) DESC |> SELECT *\"",
+          "after": "\"FROM orders AS old |> AS `current` |> ORDER BY ROW_NUMBER() OVER (ORDER BY current.id) DESC |> SELECT *\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/pipe_distinct_test.mbt",
+      "beforeFileSHA256": "368c077e7091a437f4af7e378ea9292de8b30375145fbdd5b7beb66428ca93b1",
+      "afterFileSHA256": "e19bbb2f465a60f14fe7650cd16dfa17ad61d6e12bc6101cea74a01fb362aba7",
+      "authoredTexts": [
+        {
+          "line": 30,
+          "beforeSHA256": "e575fdfc1bc597fafa6187538c4ca2af649a7df062985a0ddbd920123ad9457e",
+          "afterSHA256": "3fb2d5f372b1b5d6112569915969cbcaa6aa8ade8f90ef2b24395173e98dc035",
+          "before": "\"FROM pair |> AS old |> AS current |> DISTINCT |> SELECT current.x AS x\"",
+          "after": "\"FROM pair |> AS old |> AS `current` |> DISTINCT |> SELECT current.x AS x\""
+        },
+        {
+          "line": 49,
+          "beforeSHA256": "35fa779ef63ee919b8246e02f0b0d8c001b31493ed50fae90382f520259a0969",
+          "afterSHA256": "5a437d22e803da175e8da36b3c22c26d53b3ac4b8047fe25f9c9a6168ca63ce5",
+          "before": "\"FROM pair |> AS old |> AS current |> DISTINCT |> SELECT old.x\"",
+          "after": "\"FROM pair |> AS old |> AS `current` |> DISTINCT |> SELECT old.x\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/pipe_edit_range_collision_test.mbt",
+      "beforeFileSHA256": "4475b7e93284f7a216aefee68d0b85ea1624c7141f00ce37b81895267be38889",
+      "afterFileSHA256": "d977f03720de86dae03585e4a211950f3f3b97625c6baa5e2d06b9cb2092e2db",
+      "authoredTexts": [
+        {
+          "line": 27,
+          "beforeSHA256": "7e68a9932f72aa458ec912e172ffbbf8673426479d610928211cd79a80677598",
+          "afterSHA256": "38972a98a7d0aa0e02510a96a2abd4ac06c9bc3169d078d86735a67c8b2debb0",
+          "before": "\"FROM pair AS x |> RENAME x AS current |> SELECT current\"",
+          "after": "\"FROM pair AS x |> RENAME x AS `current` |> SELECT current\""
+        },
+        {
+          "line": 27,
+          "beforeSHA256": "0bb9ab98d70fe8ac8545f3d4d0b7d5a2dc5b4886a150eb20702045bb337eea1c",
+          "afterSHA256": "0bcde7aa5490d0e8c31c78ac41e258a8d9152170f50acb9e732c715a98f8bfe8",
+          "before": "\"FROM pair AS `X` |> RENAME `x` AS current |> SELECT current\"",
+          "after": "\"FROM pair AS `X` |> RENAME `x` AS `current` |> SELECT current\""
+        },
+        {
+          "line": 28,
+          "beforeSHA256": "134638585e02697ca96dca066dfa4e40088fa53bb20c826d9157f9fbf5d9adec",
+          "afterSHA256": "8fb040eaad24b0a12bb3e80cb79e49ee5f5b8885a0c3fa2597beb0b81315c68e",
+          "before": "\"FROM pair |> AS x |> RENAME x AS current |> SELECT current\"",
+          "after": "\"FROM pair |> AS x |> RENAME x AS `current` |> SELECT current\""
+        },
+        {
+          "line": 64,
+          "beforeSHA256": "fed8bb1267a2b5b33a3bab88c0225cc94a3d772debdb5d7549105c984792b0ae",
+          "afterSHA256": "97f4dbd177ffe6fac6eac82827d2be5974b1afb6081ea25197d65c403ccc7858",
+          "before": "\"FROM pair AS x |> SET x = @replacement |> RENAME x AS current |> SELECT current.x AS value\"",
+          "after": "\"FROM pair AS x |> SET x = @replacement |> RENAME x AS `current` |> SELECT current.x AS value\""
+        },
+        {
+          "line": 115,
+          "beforeSHA256": "4d60d7dba08cd93cfb3c0598d36b8fb8601d53c15518f742eee8baaf8fa0cfc8",
+          "afterSHA256": "ffede682d73bd1984a95cb25606a25dedb5d09ddd58639a5f10ced2987afd154",
+          "before": "\"FROM pair AS x |> SET x = 99, y = x.y |> SELECT x AS current, y AS original_y\"",
+          "after": "\"FROM pair AS x |> SET x = 99, y = x.y |> SELECT x AS `current`, y AS original_y\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/pipe_extend_window_test.mbt",
+      "beforeFileSHA256": "7ec2341d97facd64216c3578f5fc2147634a667b3dff90b15f2b4caf94da742b",
+      "afterFileSHA256": "8ee2d6c428b970af08ab2bf7e6c81d6db7131f245dfdd674b72ced662d18543f",
+      "authoredTexts": [
+        {
+          "line": 59,
+          "beforeSHA256": "1bfb140a357fc8605d38f42779835b8fd3cecbc52949413a2885d737e5a29d2d",
+          "afterSHA256": "6ecb36a557a937469d2609057ba675ea6641418cd8d0fab889df8f650e6bf87e",
+          "before": "\"FROM orders AS before |> SET amount = -amount |> EXTEND LAG(before.amount) OVER (ORDER BY id) AS original, LAG(amount) OVER (ORDER BY id) AS current |> SELECT id, original, current |> ORDER BY id\"",
+          "after": "\"FROM orders AS before |> SET amount = -amount |> EXTEND LAG(before.amount) OVER (ORDER BY id) AS original, LAG(amount) OVER (ORDER BY id) AS `current` |> SELECT id, original, current |> ORDER BY id\""
+        },
+        {
+          "line": 76,
+          "beforeSHA256": "e3dbdb334ec61d40c3575419fd44cfa1c61adf590af1b64fdd49b9ceb7113aa6",
+          "afterSHA256": "fcf21e1f0dbd1d9a27d54c095ce74bba02ad11e4c823db8cb63f1129d9da6282",
+          "before": "\"FROM orders AS old |> AS current |> EXTEND LAG(old.amount) OVER (ORDER BY id) AS pos\"",
+          "after": "\"FROM orders AS old |> AS `current` |> EXTEND LAG(old.amount) OVER (ORDER BY id) AS pos\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/pipe_group_property_name_test.mbt",
+      "beforeFileSHA256": "fdfe6d8244f4604c30922b1e07abf957ca51700a07143352a50e1078f6a824ca",
+      "afterFileSHA256": "ca35eb7d25fb76263b4f43f16083592504058908c629537332e8468f741eb554",
+      "authoredTexts": [
+        {
+          "line": 70,
+          "beforeSHA256": "f4d14e6fe3396bf86b8bc1731e057efc75e1a0a539c3100a1b5cb2ec25974b49",
+          "afterSHA256": "7e974fffd2fab120a5d87f79a7d4cd1ef40c84e32eca3b43f2e6c2546a2549a6",
+          "before": "\"FROM objects AS old |> AS current |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score\"",
+          "after": "\"FROM objects AS old |> AS `current` |> AGGREGATE COUNT(*) AS n GROUP BY (old.payload).score\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/pipe_join_ranges_test.mbt",
+      "beforeFileSHA256": "90a25a1ced046a678c9224c8898a8fa0942548c00226b3d7f8686c6b80eef31f",
+      "afterFileSHA256": "12e2a1af0fd75cc591cf41a5dc579124b61047c1a557d37f9d6cc36a9a8a6cc7",
+      "authoredTexts": [
+        {
+          "line": 5,
+          "beforeSHA256": "7486a42f55ff4a36c9e80dcc02afcc804c1d1af70557811cd235db7ab86500f3",
+          "afterSHA256": "0efb45d235c3ab5fd55858f4cbf382a161f99e0d13c0ca3e0bc1df6085ea9fba",
+          "before": "\"x AS current, l.x AS original, rr.k AS matched\"",
+          "after": "\"x AS `current`, l.x AS original, rr.k AS matched\""
+        },
+        {
+          "line": 6,
+          "beforeSHA256": "43260fadba6afd9d976f36e566b752b9d7d5e777f1aa81633e3b8bdc8ab73f6a",
+          "afterSHA256": "33ba45921af19a120f9c12bdef60f896f1a4c47e36e592ba3f752f3f752e136c",
+          "before": "\"y AS current, l.x AS original, rr.k AS matched\"",
+          "after": "\"y AS `current`, l.x AS original, rr.k AS matched\""
+        },
+        {
+          "line": 7,
+          "beforeSHA256": "8308e9ab709e22937d465e2c242082477e97a994c6e946b79652313bd8de3b6c",
+          "afterSHA256": "2d70d6018c409ce5454d80dd0d7d748ceead0fe898f5c126593331c751269d1b",
+          "before": "\"RENAME x AS current\"",
+          "after": "\"RENAME x AS `current`\""
+        },
+        {
+          "line": 46,
+          "beforeSHA256": "5614a5cf00a5adb49d7a48e625cb698eedd71c5a72cd8fbf3ef0a84341a67568",
+          "afterSHA256": "d740cd6a6286357d59be14837587d8ce079558db334e75a37660078a4ace0cfd",
+          "before": "\"WITH lefts AS (SELECT 1 AS x, 10 AS y), rights AS (SELECT 1 AS k), paired AS (FROM lefts |> AS l |> SET x = x + 10 |> JOIN rights AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT x AS current, l.x AS original, rr.k AS matched) FROM paired |> SELECT current, original, matched\"",
+          "after": "\"WITH lefts AS (SELECT 1 AS x, 10 AS y), rights AS (SELECT 1 AS k), paired AS (FROM lefts |> AS l |> SET x = x + 10 |> JOIN rights AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT x AS `current`, l.x AS original, rr.k AS matched) FROM paired |> SELECT current, original, matched\""
+        },
+        {
+          "line": 55,
+          "beforeSHA256": "4d19b5f9280623fdfdb11eef8b038fc19a9e26cfd65c65f9c4a54b7945118454",
+          "afterSHA256": "cec51cd753f6674634fba504c3dbe09eda9e209afcbb6d571f63cddbe3126012",
+          "before": "\"FROM t AS l |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SET x = x + 10 |> JOIN r AS s ON l.x = s.k MAX_OUTPUT_ROWS 10 |> SELECT x AS current, l.x AS original, rr.k AS first, s.k AS second\"",
+          "after": "\"FROM t AS l |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SET x = x + 10 |> JOIN r AS s ON l.x = s.k MAX_OUTPUT_ROWS 10 |> SELECT x AS `current`, l.x AS original, rr.k AS first, s.k AS second\""
+        },
+        {
+          "line": 65,
+          "beforeSHA256": "8308e9ab709e22937d465e2c242082477e97a994c6e946b79652313bd8de3b6c",
+          "afterSHA256": "2d70d6018c409ce5454d80dd0d7d748ceead0fe898f5c126593331c751269d1b",
+          "before": "\"RENAME x AS current\"",
+          "after": "\"RENAME x AS `current`\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/pipe_pivot_test.mbt",
+      "beforeFileSHA256": "7adbc5676c3c43873ebac80673a9e5c8d15f4202ec2f9f24149f8e6965fd4a39",
+      "afterFileSHA256": "7c323880c9f0e8bd71579a669e6b675c33a1bfa7e6f98105bb3d5b89a44a9541",
+      "authoredTexts": [
+        {
+          "line": 42,
+          "beforeSHA256": "552c42fa351ab48e3049ea5e27687d26910be8e57468660556981ecabbc99cdc",
+          "afterSHA256": "73bfdc28842f594d8bb8f05fb8c41588eedada80d97f8eae36cbabcc3dc0348c",
+          "before": "\"FROM orders AS old |> PIVOT(COUNT(old.amount) FOR old.status IN ('open' AS opened, 'closed')) AS current |> SELECT current.id,current.customer_id,current.opened,current.closed\"",
+          "after": "\"FROM orders AS old |> PIVOT(COUNT(old.amount) FOR old.status IN ('open' AS opened, 'closed')) AS `current` |> SELECT current.id,current.customer_id,current.opened,current.closed\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/pipe_result_test.mbt",
+      "beforeFileSHA256": "b6139f9c6454dab21d2a57a9fb1622748a500072f88ed3f7ec5f7a1b4fc5b72b",
+      "afterFileSHA256": "7fc086bc953de6b3c72c177b5ffea471bf584d1618a0873f9342eb9b1dd9714f",
+      "authoredTexts": [
+        {
+          "line": 163,
+          "beforeSHA256": "39b861e6dfd853acc592e7512882356858501fb1d6dbebf98bb82df373692fe1",
+          "afterSHA256": "5aff6c392dc62cdbb5082602e8943b21040a008dbca16b8ce7e94d69e9f7df75",
+          "before": "\"FROM pair AS old |> SET x = y |> RESULT saved |> SELECT old.x AS original, x AS current |> RESULT final\"",
+          "after": "\"FROM pair AS old |> SET x = y |> RESULT saved |> SELECT old.x AS original, x AS `current` |> RESULT final\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/pipe_select_named_window_test.mbt",
+      "beforeFileSHA256": "2c15d475372458199d491d29d62ecfd7000d7c28d85523c715c99e54d3c82fa6",
+      "afterFileSHA256": "7a0597faf6b3151e203cad5341294e674bbcc88502029bb164a8304c92c3b838",
+      "authoredTexts": [
+        {
+          "line": 68,
+          "beforeSHA256": "1b418ea0e8b88830ed680fd933d9c176f2db31df65df7f465835016703c5556d",
+          "afterSHA256": "aeae8d3be26e3313c95dbe9b764e65514d5ead67d5a1cd3f850fcaf6c98c807e",
+          "before": "\"FROM orders AS before |> SET amount = -amount |> SELECT id, LAG(before.amount) OVER w AS original, LAG(amount) OVER w AS current WINDOW w AS (ORDER BY id) |> ORDER BY id\"",
+          "after": "\"FROM orders AS before |> SET amount = -amount |> SELECT id, LAG(before.amount) OVER w AS original, LAG(amount) OVER w AS `current` WINDOW w AS (ORDER BY id) |> ORDER BY id\""
+        },
+        {
+          "line": 81,
+          "beforeSHA256": "3d13369dfec615a0a193a6dd93c20c6763bcacfb21e3ea1a316629c9542e7108",
+          "afterSHA256": "995cb0fc169822e1d751af3f9b31afa0871bb766dd5e4d8efd08bd58e5b39aec",
+          "before": "\"FROM orders AS old |> AS current |> SELECT LAG(old.amount) OVER w AS pos WINDOW w AS (ORDER BY id)\"",
+          "after": "\"FROM orders AS old |> AS `current` |> SELECT LAG(old.amount) OVER w AS pos WINDOW w AS (ORDER BY id)\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/pipe_set_target_scope_test.mbt",
+      "beforeFileSHA256": "2ecde66ede5b1cf256a55178c016db9113365656eec206fffd32aae96fa00f88",
+      "afterFileSHA256": "440a529ce9a112d43aa7e679b5d9a4d439bfbb0dc88b0797a6e96cf74f61bcab",
+      "authoredTexts": [
+        {
+          "line": 93,
+          "beforeSHA256": "42273ca3eb4a841c06dc1817bc07b52cf3a3861af3298337af5c88249ddc8fbe",
+          "afterSHA256": "7b0adfd461ec1899f7401ca38e882baaf6fd46c92de3f8a240db76ad98ec02d3",
+          "before": "\"FROM t AS l |> RIGHT JOIN (SELECT 3 AS k) AS r ON l.x = r.k MAX_OUTPUT_ROWS 10 |> SET y = 99 |> SELECT y AS current, l.y AS original, r.k AS matched |> ORDER BY original\"",
+          "after": "\"FROM t AS l |> RIGHT JOIN (SELECT 3 AS k) AS r ON l.x = r.k MAX_OUTPUT_ROWS 10 |> SET y = 99 |> SELECT y AS `current`, l.y AS original, r.k AS matched |> ORDER BY original\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/pipe_set_window_test.mbt",
+      "beforeFileSHA256": "0aa1fe393acb5a69380ee0d47a2f07936debe6e9745c1e7ad346326881ccb797",
+      "afterFileSHA256": "29677e86b2dbd7d9ec2bf529cc4627974f8f70a19ce25c732b939de3b6369a46",
+      "authoredTexts": [
+        {
+          "line": 102,
+          "beforeSHA256": "725d654aa68f1935ed563ec93d7a80aa58fbe6c08c14e1e46d7d8f43aecaef0d",
+          "afterSHA256": "2914d77ff8cf88c27d362b72715df1cf89d862f792a5d5f93bf17c32f4b3155f",
+          "before": "\"FROM orders AS old |> AS current |> SET amount = LAG(old.amount) OVER (ORDER BY id)\"",
+          "after": "\"FROM orders AS old |> AS `current` |> SET amount = LAG(old.amount) OVER (ORDER BY id)\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/pipe_unpivot_test.mbt",
+      "beforeFileSHA256": "dea000059dcc25973758ac6f04d628a57e0ad3e13751f1f702397e8930891f7b",
+      "afterFileSHA256": "9670325999c8f28100005afe6b109a2217906b1838ded610b2a9e49f8fff675b",
+      "authoredTexts": [
+        {
+          "line": 120,
+          "beforeSHA256": "e910e0e80cd48df452b5bb69d9e8e1cc09e17c6045a74fc5cf1e909ef1768fae",
+          "afterSHA256": "6d763df1509184ee84a64f96eaf2367498f324a086d0bcf25fedcdc96ab9aed1",
+          "before": "\"FROM pair |> UNPIVOT INCLUDE NULLS (amount FOR column_name IN (`X`,`Y`)) AS current |> SELECT current.amount, current.column_name\"",
+          "after": "\"FROM pair |> UNPIVOT INCLUDE NULLS (amount FOR column_name IN (`X`,`Y`)) AS `current` |> SELECT current.amount, current.column_name\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/pipe_where_window_test.mbt",
+      "beforeFileSHA256": "03591562f268d63b0199cdba0e03cdadace763680ab463bf699c940c66443d4c",
+      "afterFileSHA256": "c0a724efe723a4fb17fce2a6dc2583cc5dbe0bfdf461fa568a60496ad2782697",
+      "authoredTexts": [
+        {
+          "line": 77,
+          "beforeSHA256": "2b9f533b434b23e6da7bb5752ee7169ce23443621dc9260877507ec3224c6e11",
+          "afterSHA256": "aeba923c3a6d5a8930e39459801fd535d5f7b808d2af665e9ecba86a7d324b78",
+          "before": "\"FROM orders AS old |> AS current |> WHERE LAG(old.amount) OVER (ORDER BY id) > 0\"",
+          "after": "\"FROM orders AS old |> AS `current` |> WHERE LAG(old.amount) OVER (ORDER BY id) > 0\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/pivot_count_star_test.mbt",
+      "beforeFileSHA256": "7e0c1e171088996bcf857fececb53963b8f3f1ea7ed201d71356849e54db3452",
+      "afterFileSHA256": "c425fee36b686ae7ebd28be7f47da464a2165099ca6b0ad86afad2f6b43ef8f3",
+      "authoredTexts": [
+        {
+          "line": 54,
+          "beforeSHA256": "89e7e0269bd83967b8247dec266f9fad77ac2fd9d2fcd22689066620945d7a9d",
+          "afterSHA256": "decc3870acfd7c516e7127e6d177a86e22d506b86410f821c35cf55d258d8dea",
+          "before": "\"SELECT CAST(NULL AS FLOAT64) AS n,'A' AS axis |> AS old |> PIVOT(COUNT(*) AS total FOR old.axis IN('B','A')) AS current |> SELECT current.*\"",
+          "after": "\"SELECT CAST(NULL AS FLOAT64) AS n,'A' AS axis |> AS old |> PIVOT(COUNT(*) AS total FOR old.axis IN('B','A')) AS `current` |> SELECT current.*\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/positional_assert_control_test.mbt",
+      "beforeFileSHA256": "d9a316916437ea5ebba9300d18fc83600a9d071ae6d4158df435cc8cf9956f84",
+      "afterFileSHA256": "4235db82e5e06dd161fc35dd07830969a8f955b02fa4326643eff53f720a558d",
+      "authoredTexts": [
+        {
+          "line": 127,
+          "beforeSHA256": "95d301b79bcbaec1da26e1110f9ab781305d8d57eee45a1d251f3d4e1cfd216b",
+          "afterSHA256": "5eeb988a2b3ec5e163591805cda84c1cae05109154e50d94e98f69c879e4d43f",
+          "before": "\"SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-y |> AS before |> AS current |> ASSERT UNIQUE BY(before.kept) |> SELECT *) ORDER BY a,b\"",
+          "after": "\"SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-y |> AS before |> AS `current` |> ASSERT UNIQUE BY(before.kept) |> SELECT *) ORDER BY a,b\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/positional_pipe_distinct_test.mbt",
+      "beforeFileSHA256": "da13910298343ad3e13150307ceb407339359151b3509c8340888ea6431486f7",
+      "afterFileSHA256": "76d2d4ea1fb054088f49b513947cb5069364d0d93c432cb24c6ba9d2e9f9150c",
+      "authoredTexts": [
+        {
+          "line": 132,
+          "beforeSHA256": "5cf425fe11d0b3afe2ced503d78815728e6a7c1b4f75e5b09871ce2aa5cc4c48",
+          "afterSHA256": "e0cda4e05705f7a7ca31abbe7911bced9febdc2318ab72acaa1b56aa9a71cdd0",
+          "before": "\"SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-y |> AS before |> AS current |> DISTINCT |> WHERE before.kept>0) ORDER BY a,b\"",
+          "after": "\"SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-y |> AS before |> AS `current` |> DISTINCT |> WHERE before.kept>0) ORDER BY a,b\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/positional_pipe_order_window_test.mbt",
+      "beforeFileSHA256": "612be27c969a976e3d8bf312a9bce8929d2bc67723551ffac9bab1bc0a7f315b",
+      "afterFileSHA256": "8a63f758c1e133b3c32994c208fca908f895baf3f6a40b78dafbfe88dba09137",
+      "authoredTexts": [
+        {
+          "line": 106,
+          "beforeSHA256": "9eef08b25ad1d61f0fcafb33b1e3f40f0398ebe77f4fcbbe8b8a2a0628cc2f72",
+          "afterSHA256": "fea93b542b1089f52cc2451b2bc748c8d530cfad8eefab1ff36a79f05335df34",
+          "before": "\"SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-x |> AS before |> AS current |> ORDER BY ROW_NUMBER() OVER (ORDER BY before.kept) |> LIMIT 1) ORDER BY a,b\"",
+          "after": "\"SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-x |> AS before |> AS `current` |> ORDER BY ROW_NUMBER() OVER (ORDER BY before.kept) |> LIMIT 1) ORDER BY a,b\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/qualified_star_test.mbt",
+      "beforeFileSHA256": "3b4b9c892fd7835c7e2ea31da2787ade085389ee767b4beb686ad235f6334ee4",
+      "afterFileSHA256": "fff81e2eb4f66d35fd99696da8250529e69ef10f027a3b669a031a7c16be0cb1",
+      "authoredTexts": [
+        {
+          "line": 35,
+          "beforeSHA256": "d55f59cbc30fe96c07f79390703b1d04a555522f4d2802bd24a1ddea83899d14",
+          "afterSHA256": "3e70acbb401725d1613a5f6a10732292afe54c4a95578c046c5c06a5e5dc870a",
+          "before": "\"FROM t AS old |> AS current |> SELECT current.* EXCEPT (y) |> ORDER BY x\"",
+          "after": "\"FROM t AS old |> AS `current` |> SELECT current.* EXCEPT (y) |> ORDER BY x\""
+        },
+        {
+          "line": 57,
+          "beforeSHA256": "96d30bb112463ccfd2638e5568c2719a2f06426ae8706c422338d1a7aa0aec20",
+          "afterSHA256": "46b30847229a2e54f0cdb076f533a2b32c40bfae133655f486553d319b102143",
+          "before": "\"FROM t AS old |> AS current |> SELECT old.*\"",
+          "after": "\"FROM t AS old |> AS `current` |> SELECT old.*\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/quoted_name_canonicalization_test.mbt",
+      "beforeFileSHA256": "bdae9f303c819a4c9d993cb234fa90fb85dd08c8f5df8191ff5b0d672358145d",
+      "afterFileSHA256": "ab025223699bf50076d316e615770d1c87b48eb6c2ffee3bf5ba6db3bd697d84",
+      "authoredTexts": [
+        {
+          "line": 90,
+          "beforeSHA256": "8850c62cabf07d81250604ff3923788e842a08affd1c8cfabe4cba5af2631dbf",
+          "afterSHA256": "657a5e9cb5a33e94fe7de4b82bb04ebb454e5ec347030a70ef55cb37c51445bb",
+          "before": "\"FROM pair AS `e\\\\u0301` |> AS current |> SELECT `\u00e9`.x\"",
+          "after": "\"FROM pair AS `e\\\\u0301` |> AS `current` |> SELECT `\u00e9`.x\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/ranking_fusion_source_test.mbt",
+      "beforeFileSHA256": "5b16ea54772ac9db7aef1c0423ed4a5e05a3a4d6075191df20bdc88498192cac",
+      "afterFileSHA256": "2a17005a7e14c29bd5db5804168ff3009e609b4b99b8d89b85c6a925afceb6e5",
+      "authoredTexts": [
+        {
+          "line": 3,
+          "beforeSHA256": "18c3178472733030bb91227cab6748e1e404d50d0b0a7f242d2c06912e09aed6",
+          "afterSHA256": "a0fb81badef7284795872505b9eb8a9f76840e518b65bab3991d9d41da96fc3a",
+          "before": "\"WITH l AS (SELECT 1 AS id, 1 AS position UNION ALL SELECT 2, 2), r AS (SELECT 2 AS id, 1 AS position UNION ALL SELECT 3, 2), fused AS (FROM l AS current |> \"",
+          "after": "\"WITH l AS (SELECT 1 AS id, 1 AS position UNION ALL SELECT 2, 2), r AS (SELECT 2 AS id, 1 AS position UNION ALL SELECT 3, 2), fused AS (FROM l AS `current` |> \""
+        },
+        {
+          "line": 72,
+          "beforeSHA256": "29e850d7e0425d7283a05d5067d8bbfce2326df37395561249220caa38af88d3",
+          "afterSHA256": "ba1ebd1c2e20893bd42bef1d256a8e649ef4e425a5ef491af1d2997814fe6e46",
+          "before": "\"WITH l AS (SELECT 1 AS id, 1 AS position, 7 AS group_id), `ranking.right` AS (SELECT 2 AS id, 1 AS position, 7 AS group_id), fused AS (FROM l AS current |> merge_rankings(with: [`ranking.right`, `ranking.right`], by: [current.group_id, group_id], candidate: id, rank: position, k: 3, score_policy: {RRF: {RANK_CONSTANT: 1, WEIGHTS: [1, 0, 2], RANK_WINDOW: 2}})) SELECT group_id, id, score, rank FROM fused ORDER BY group_id, rank\"",
+          "after": "\"WITH l AS (SELECT 1 AS id, 1 AS position, 7 AS group_id), `ranking.right` AS (SELECT 2 AS id, 1 AS position, 7 AS group_id), fused AS (FROM l AS `current` |> merge_rankings(with: [`ranking.right`, `ranking.right`], by: [current.group_id, group_id], candidate: id, rank: position, k: 3, score_policy: {RRF: {RANK_CONSTANT: 1, WEIGHTS: [1, 0, 2], RANK_WINDOW: 2}})) SELECT group_id, id, score, rank FROM fused ORDER BY group_id, rank\""
+        },
+        {
+          "line": 103,
+          "beforeSHA256": "4ee889b3824958dec7887692ccb8131295ba8f6a38f65268929bc5d58f837660",
+          "afterSHA256": "d10ee2a76ef21fd41a49446fd5f8342d3616f14f53ec43c0428c8063985c7661",
+          "before": "\"WITH l AS (SELECT 1 AS id, 1 AS position), r AS (SELECT 2 AS id, 1 AS position), kept AS (SELECT id FROM l) FROM kept AS current |> \"",
+          "after": "\"WITH l AS (SELECT 1 AS id, 1 AS position), r AS (SELECT 2 AS id, 1 AS position), kept AS (SELECT id FROM l) FROM kept AS `current` |> \""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/repeated_group_key_test.mbt",
+      "beforeFileSHA256": "45533682f270e33e80a5c147ca57f210f3eca60fec4ea54b013ddf90a4bd5665",
+      "afterFileSHA256": "025749126622e72a490972c6053c8fe0b7f426e6a5af94e48ab63a7bd5dfcbf3",
+      "authoredTexts": [
+        {
+          "line": 86,
+          "beforeSHA256": "ec6a10dea87a9700cac75bf3058b17f7805df82bc0600d9cbb2e31f5c8b1eb48",
+          "afterSHA256": "3fc133824323a1ca5cc0a0e6b47468c446f88fb9feee2c288e08680425dc68e7",
+          "before": "\"SELECT payload.score AS current, other.score AS original, COUNT(*) AS n FROM objects GROUP BY payload.score, other.score, (objects.payload).score\"",
+          "after": "\"SELECT payload.score AS `current`, other.score AS original, COUNT(*) AS n FROM objects GROUP BY payload.score, other.score, (objects.payload).score\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/row_watermark_source_test.mbt",
+      "beforeFileSHA256": "c41f78178dd79cb7e9bc2d2fad0b7ebf5e5cedb4c65bc04a1f70479abe6e0720",
+      "afterFileSHA256": "5d49ecafeeb7a3cdc57277a3ad89e9bc0d39ce832b1761d0727794da131d5e36",
+      "authoredTexts": [
+        {
+          "line": 26,
+          "beforeSHA256": "ab6d57e8b913d839351aa9ca52d4315ce3c1231180781add567ab12e13a85818",
+          "afterSHA256": "a6d85e768d46c0420d89081738b203fb221440db7ea7b86cd1ac23e81e07983d",
+          "before": "\"WITH rows AS (SELECT 1 AS id, 10 AS at UNION ALL SELECT 2, 3), \"",
+          "after": "\"WITH `rows` AS (SELECT 1 AS id, 10 AS `at` UNION ALL SELECT 2, 3), \""
+        },
+        {
+          "line": 151,
+          "beforeSHA256": "b63cbab0116d20fd8383fa6543128e7917c32a5d5a0181a58042ec21b09aee9e",
+          "afterSHA256": "c4645ca9ae05b5ed68e7fc9ef0eae7ab84b15dc1d8c250926e45b21de727b176",
+          "before": "\"WITH rows AS (SELECT 1 AS id, 10 AS at) FROM rows |> AS old |> SELECT id |> watermark_rows(time: \"",
+          "after": "\"WITH `rows` AS (SELECT 1 AS id, 10 AS `at`) FROM rows |> AS old |> SELECT id |> watermark_rows(time: \""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/scalar_alias_group_reuse_test.mbt",
+      "beforeFileSHA256": "7c7aabc80ad9d8264de6d4bda4c32c482b354aee45175d2ad13c9764b6f9ef78",
+      "afterFileSHA256": "701c3e47f5fe4a2f572771fc254d968b721937fc36c39690836b3efd19a6d7a7",
+      "authoredTexts": [
+        {
+          "line": 56,
+          "beforeSHA256": "cad1b6711cc27d3deee6609869c91dca0e793747adfc8fedce4255079d6b308d",
+          "afterSHA256": "24c1c92fbdde860526ac866c15e2d108b70137b09edff80abaad11f32bdab06e",
+          "before": "\"SELECT COUNT(*) + CHAR_LENGTH(old.name) AS n FROM objects AS current GROUP BY CHARACTER_LENGTH(current.name)\"",
+          "after": "\"SELECT COUNT(*) + CHAR_LENGTH(old.name) AS n FROM objects AS `current` GROUP BY CHARACTER_LENGTH(current.name)\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/select_range_lifetime_test.mbt",
+      "beforeFileSHA256": "3624e6feedf44548ae1b2a104af537491657350853120c06bba84f17bc71c8f0",
+      "afterFileSHA256": "b5d055b8d7d1fae30de74700727327cb12046307f20f6bc0788257193efaf0bb",
+      "authoredTexts": [
+        {
+          "line": 134,
+          "beforeSHA256": "a53af346916619bc97d29f66079453cf2b936db443100e81ef85d26e17ffdb59",
+          "afterSHA256": "ed75292cae36767ae5f62cbea88ec0b800a11abaab6d10fd5fc12920210584c8",
+          "before": "\"FROM pair AS old |> SELECT x |> AS current |> WHERE current.x = 7 |> SELECT current.x\"",
+          "after": "\"FROM pair AS old |> SELECT x |> AS `current` |> WHERE current.x = 7 |> SELECT current.x\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/sql_group_by_all_test.mbt",
+      "beforeFileSHA256": "5e557d46779eeaf7fd1605749a9236bded0e1e5d48530c269d6d4fa1951753e1",
+      "afterFileSHA256": "7443186c4e2dda242cf046b7ed837d6591a8294bde5e90c86e8fe1c59452b7ff",
+      "authoredTexts": [
+        {
+          "line": 195,
+          "beforeSHA256": "b076b3da396dd428c9c72e6c3e4389f9babb32b1f70938f5d443c24910126d33",
+          "afterSHA256": "20b391ea9acd6a8cbb9f807ad6135eb6b46e82823f139500a130fe5924f6af5b",
+          "before": "\"SELECT old.x FROM t AS current GROUP BY ALL\"",
+          "after": "\"SELECT old.x FROM t AS `current` GROUP BY ALL\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/sql_grouped_subexpression_test.mbt",
+      "beforeFileSHA256": "2747560209a9f3b56783c836b320d30fc5ba1aef684b2d0d47a48476d56f765b",
+      "afterFileSHA256": "be3d526edcda96bcf3a498793f0739e3bfc396d19d96f7b6497a7ff30c52d89a",
+      "authoredTexts": [
+        {
+          "line": 58,
+          "beforeSHA256": "d508ca342205c585b9cd70d270919c5c0fa9ee42e17a682f4958bf3826b67939",
+          "afterSHA256": "fe06caa437c1bd5236d0ab28452f8acb776c5183c96f6fec4a0b31e4967b0e5c",
+          "before": "\"SELECT COUNT(*) + old.payload.score AS n FROM objects AS current GROUP BY current.payload.score\"",
+          "after": "\"SELECT COUNT(*) + old.payload.score AS n FROM objects AS `current` GROUP BY current.payload.score\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/star_replace_test.mbt",
+      "beforeFileSHA256": "75acfe01f971b210499ce388dbb5badb80380328cba1e4c5da4d66a65fea2a3a",
+      "afterFileSHA256": "97e10b1be3d8a7ee0fae00cba939733f6a0ad967f37deaec407fc87bce3b7bb8",
+      "authoredTexts": [
+        {
+          "line": 89,
+          "beforeSHA256": "97e9483f71e8f56d13ee1e30ffc00e3e8382335ecb6515e071c55495d2522c07",
+          "afterSHA256": "a7b5459740f19b72b0921c4c531daa8ee880690a521f4c45aa4f41b953c51a23",
+          "before": "\"FROM t AS old |> AS current |> SELECT * REPLACE (old.x AS x)\"",
+          "after": "\"FROM t AS old |> AS `current` |> SELECT * REPLACE (old.x AS x)\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/temporal_join_source_test.mbt",
+      "beforeFileSHA256": "c2479c265ac8aa29a16d215b833ca51b79cfe290a0a5e902c4b5859f36bcdcd7",
+      "afterFileSHA256": "054900f00f5998067c6bafcc6b6b21780a641e5fbba4a4efc6ae039d5d2d6a91",
+      "authoredTexts": [
+        {
+          "line": 3,
+          "beforeSHA256": "0274fd3f7820c7436baccdd4c45ac6bc47cc660a41c41532a5b9d225174d2991",
+          "afterSHA256": "2ce1253d79ac6bcdb49dc3d4e933d0cf04e1ddbb8938e137a9645545af1ecac5",
+          "before": "\"WITH l AS (SELECT 1 AS id, 10 AS at), r AS (SELECT 2 AS id, 5 AS begin, 15 AS finish), matched AS (FROM l AS left_rows |> \"",
+          "after": "\"WITH l AS (SELECT 1 AS id, 10 AS `at`), r AS (SELECT 2 AS id, 5 AS begin, 15 AS finish), matched AS (FROM l AS left_rows |> \""
+        },
+        {
+          "line": 100,
+          "beforeSHA256": "69ba5b4738e9faf27d7ab3e14bfddba7e7d0e038e793d7de80aca392157aa5b6",
+          "afterSHA256": "b3cbf8ac0c4d44b53686e04be6418f37400da297de3b200fc2ffbffadedaf7ce",
+          "before": "\"WITH l AS (SELECT 1 AS id, 10 AS at), r AS (SELECT 2 AS id, 5 AS begin), ev AS (FROM l |> to_events(id: id, time: at)), matched AS (FROM ev |> asof_join(with: r, kind: 'left', by: [], left_time: at, right_time: begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id\"",
+          "after": "\"WITH l AS (SELECT 1 AS id, 10 AS `at`), r AS (SELECT 2 AS id, 5 AS begin), ev AS (FROM l |> to_events(id: id, time: at)), matched AS (FROM ev |> asof_join(with: r, kind: 'left', by: [], left_time: at, right_time: begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id\""
+        },
+        {
+          "line": 109,
+          "beforeSHA256": "5b9fea9ba4c694700779e80833eccf7e71c932928767f6de7553a49ea9c28eb9",
+          "afterSHA256": "a76ffc4b691cfeea063ede5a9c31e01293b866783ce14d7cb661615d877368be",
+          "before": "\"WITH r AS (SELECT 99 AS id, 100 AS begin), matched AS (WITH l AS (SELECT 1 AS id, 10 AS at), r AS (SELECT 2 AS id, 5 AS begin) FROM l |> asof_join(with: r, kind: 'left', by: [], left_id: id, left_time: at, right_time: r.begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id\"",
+          "after": "\"WITH r AS (SELECT 99 AS id, 100 AS begin), matched AS (WITH l AS (SELECT 1 AS id, 10 AS `at`), r AS (SELECT 2 AS id, 5 AS begin) FROM l |> asof_join(with: r, kind: 'left', by: [], left_id: id, left_time: at, right_time: r.begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id\""
+        },
+        {
+          "line": 119,
+          "beforeSHA256": "368b8b5b1045571036d768826b89d737c17df2682b4de0220cd9263a7ee5a87c",
+          "afterSHA256": "f696fddafd532197ba88d264a53e421c189d703e8932930b0d566d7a4e671128",
+          "before": "\"WITH l AS (SELECT x AS id, y AS at FROM pair), r AS (SELECT x AS id, y AS begin, y + 10 AS finish FROM pair), matched AS (FROM l |> interval_join(with: r, kind: 'left', mode: 'point_in_interval', on: [], left: {time: at}, right: {start: begin, end: finish}, select: {id: left.id, value: right.id}, max_output_rows: 2)) SELECT id, value FROM matched ORDER BY id\"",
+          "after": "\"WITH l AS (SELECT x AS id, y AS `at` FROM pair), r AS (SELECT x AS id, y AS begin, y + 10 AS finish FROM pair), matched AS (FROM l |> interval_join(with: r, kind: 'left', mode: 'point_in_interval', on: [], left: {time: at}, right: {start: begin, end: finish}, select: {id: left.id, value: right.id}, max_output_rows: 2)) SELECT id, value FROM matched ORDER BY id\""
+        },
+        {
+          "line": 144,
+          "beforeSHA256": "fc7ebb5b3a0e173c4e5467cf69226616881e60a825c9ec32934da25def3886e2",
+          "afterSHA256": "dcc09883302a9d85c7250fb4ae97f1476851cb103a9facd563196caeacc14e97",
+          "before": "\"WITH l AS (SELECT 1 AS id, 10 AS at), r AS (SELECT 2 AS id, 5 AS begin) FROM l |> asof_join(with: r, kind: 'left', by: [], left_id: id, left_time: at, right_time: begin, direction: 'backward', tolerance: 10, select: {\"",
+          "after": "\"WITH l AS (SELECT 1 AS id, 10 AS `at`), r AS (SELECT 2 AS id, 5 AS begin) FROM l |> asof_join(with: r, kind: 'left', by: [], left_id: id, left_time: at, right_time: begin, direction: 'backward', tolerance: 10, select: {\""
+        },
+        {
+          "line": 167,
+          "beforeSHA256": "eeb419fcfa99935ec74c84687e6b942bdcd85849d2283309d4ee1d8f8955da5f",
+          "afterSHA256": "c94987dd075c128126f93ebc492206debdab55b69ff4d432c90eac267d7f5aca",
+          "before": "\"WITH left_rows AS (SELECT 99 AS id, 100 AS at), l AS (SELECT 1 AS id, 10 AS at), r AS (SELECT 2 AS id, 5 AS begin), matched AS (FROM l AS left_rows |> asof_join(with: r, kind: 'left', by: [], left_id: left_rows.id, left_time: left_rows.at, right_time: r.begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id\"",
+          "after": "\"WITH left_rows AS (SELECT 99 AS id, 100 AS `at`), l AS (SELECT 1 AS id, 10 AS `at`), r AS (SELECT 2 AS id, 5 AS begin), matched AS (FROM l AS left_rows |> asof_join(with: r, kind: 'left', by: [], left_id: left_rows.id, left_time: left_rows.at, right_time: r.begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id\""
+        },
+        {
+          "line": 224,
+          "beforeSHA256": "37e0321bb9878d2dbf0def6c89e0802be85b5fa20e8efb142b6420cdbb1f163d",
+          "afterSHA256": "59b01c4ebd79a0d37c01e63575bc36aff1e95d610be9351bf069c36bca6b9874",
+          "before": "\"WITH l AS (SELECT 1 AS id, 10 AS at), r AS (SELECT 2 AS id, 5 AS begin), matched AS (FROM l AS r |> asof_join(with: r, kind: 'left', by: [], left_id: r.id, left_time: r.at, right_time: r.begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id\"",
+          "after": "\"WITH l AS (SELECT 1 AS id, 10 AS `at`), r AS (SELECT 2 AS id, 5 AS begin), matched AS (FROM l AS r |> asof_join(with: r, kind: 'left', by: [], left_id: r.id, left_time: r.at, right_time: r.begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id\""
+        },
+        {
+          "line": 261,
+          "beforeSHA256": "f0e9c11a7446831b227edcd54e3d4648c88ac94b9b01b2274dc43be1f3387a1a",
+          "afterSHA256": "72487f21aa5b6d38189dc32c7a1b965802694c6856d8938821d991798e8fd382",
+          "before": "\"SELECT 1 AS id, 10 AS at\"",
+          "after": "\"SELECT 1 AS id, 10 AS `at`\""
+        },
+        {
+          "line": 262,
+          "beforeSHA256": "ed307a3d0845b1297a15aeadbe2406db7efd640262bc3736a77181f46d471ecf",
+          "afterSHA256": "87e40ac43b71754749b389186ae0be49bcd5b36c1f575e7cf6ec8a399fbbba74",
+          "before": "\"WITH seed AS (SELECT 1 AS id, 10 AS at) SELECT id, at FROM seed WHERE FALSE\"",
+          "after": "\"WITH seed AS (SELECT 1 AS id, 10 AS `at`) SELECT id, at FROM seed WHERE FALSE\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/unnest_as_value_scope_test.mbt",
+      "beforeFileSHA256": "2910f4a344b224ea245068e180df9100f4fc6109e7867797e021c8463ff5f620",
+      "afterFileSHA256": "0a6d4049273d0a30f84e99b1df4063504aac9af39488cc7cbaf170ce007a767e",
+      "authoredTexts": [
+        {
+          "line": 91,
+          "beforeSHA256": "155e1976b07ef7df93513c37be2e7dfb8d2dedb88c430fff5d5a50a5784acd08",
+          "afterSHA256": "a58ee7c14f3bb16172e51cea52483a435b762c4db49d0e5c8d547cc836c5bfac",
+          "before": "\"FROM UNNEST(@items) element |> AS current |> WHERE current > 0 |> SELECT current AS value |> ORDER BY value\"",
+          "after": "\"FROM UNNEST(@items) element |> AS `current` |> WHERE current > 0 |> SELECT current AS value |> ORDER BY value\""
+        },
+        {
+          "line": 121,
+          "beforeSHA256": "035893513a174ec2eefc1a6e8eec76b48f4036e7f3b0e9282d30064f4d5b12de",
+          "afterSHA256": "e771af2f968a03634783672997362c5d1015cd0cca019a8fbca16d36c1331a49",
+          "before": "\"FROM UNNEST(@items) element |> AS current |> SELECT current AS original, id |> ORDER BY id NULLS LAST\"",
+          "after": "\"FROM UNNEST(@items) element |> AS `current` |> SELECT current AS original, id |> ORDER BY id NULLS LAST\""
+        },
+        {
+          "line": 144,
+          "beforeSHA256": "0bf01dab80750ca2f67edd41d1ecc9e35ef8d77a4be349eb79f64ffb15b43137",
+          "afterSHA256": "dd706e4ce393fe20f4962d20af77eaff2ef70645c67d3b9030b09e2fe63b750a",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS current |> SELECT current.element AS original, position |> ORDER BY position\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> SELECT current.element AS original, position |> ORDER BY position\""
+        },
+        {
+          "line": 145,
+          "beforeSHA256": "3c0301db652d1ae7d4e997ca8f57776c23cd800074264276c66081db95b41352",
+          "afterSHA256": "8a16dbb9bdeb2ebb481314275e4a999b5a451066fa479c0503717bde9fa64111",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS current |> SELECT element AS original, current.position AS position |> ORDER BY position\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> SELECT element AS original, current.position AS position |> ORDER BY position\""
+        },
+        {
+          "line": 169,
+          "beforeSHA256": "6b3d7d71494aa74bfaf07851299b7ffc400203070a3a55e6c42a7711fe7e0466",
+          "afterSHA256": "b0970b3dbaa3263669d3619ed0158fbdd528259e79aeaa1486d9fa6af45649b7",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS current |> SELECT * |> ORDER BY position\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> SELECT * |> ORDER BY position\""
+        },
+        {
+          "line": 170,
+          "beforeSHA256": "89ab70260fff728ee8edd3b13cea3bdba4fbf396e83f001709d2acb96844bfa1",
+          "afterSHA256": "5d3787807fcc3f7688a833ebb16fb6990f777f5e26482195aa8d011a2f814735",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS current |> SELECT current.* |> ORDER BY position\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> SELECT current.* |> ORDER BY position\""
+        },
+        {
+          "line": 171,
+          "beforeSHA256": "222c8b208af198a1e7210cbb6c90a31a5789823c973f11f483063cac96334e35",
+          "afterSHA256": "0d070d09a0357320f7a238cf82d27f6e5c7fb25b50e4ca4d37601e845bd2dd23",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS first |> AS current |> SELECT current.* |> ORDER BY position\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS first |> AS `current` |> SELECT current.* |> ORDER BY position\""
+        },
+        {
+          "line": 172,
+          "beforeSHA256": "003efcc609f232839039a901d31898e4383febc58d3950487ebdac22476c591e",
+          "afterSHA256": "31d75cff916c8a84bfb178c4f003f46478520bc542b5636c4ad0851d386fa4a6",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS current |> RENAME element AS next |> SELECT * |> ORDER BY position\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> RENAME element AS next |> SELECT * |> ORDER BY position\""
+        },
+        {
+          "line": 173,
+          "beforeSHA256": "c23c51f916bc04138a89524229d8841ef70d48ad6c7f792562ec7cb570b25c48",
+          "afterSHA256": "e06a9521d5d9585eb5d7cb3f6c61a644b540d9f63187f3366f4122bdff251f53",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS current |> RENAME element AS next |> SELECT current.* |> ORDER BY position\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> RENAME element AS next |> SELECT current.* |> ORDER BY position\""
+        },
+        {
+          "line": 188,
+          "beforeSHA256": "b8010950c4b35ab46cfa1c7a1370fd3797fb13b9db2c39c1757536ad3e2b14f3",
+          "afterSHA256": "5a172f785efa5c2b39ac9c46f1b14e44c2a0aaa5b6acf820c74d239df6c6a256",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS current |> RENAME element AS next |> SELECT next AS original, position |> ORDER BY position\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> RENAME element AS next |> SELECT next AS original, position |> ORDER BY position\""
+        },
+        {
+          "line": 189,
+          "beforeSHA256": "0d4aeda805e48aa5e18e25ede75a1776a6a03264388f712dcbff853894906288",
+          "afterSHA256": "a726f664665e32dd78fa3af89cb1bd30ff1189f5313f6e54927bc44dec88a006",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS current |> RENAME element AS next |> SELECT current.element AS original, position |> ORDER BY position\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> RENAME element AS next |> SELECT current.element AS original, position |> ORDER BY position\""
+        },
+        {
+          "line": 190,
+          "beforeSHA256": "a2a1e296d479d6f103d469a6f038db2f2dae4ba09fb183173ceffd9f3e917b33",
+          "afterSHA256": "5aeacc7370d5c3b4d3a091674bc7f579265b0eaf925c7a5ecdab0be563b495ae",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS first |> AS current |> SELECT current.element AS original, position |> ORDER BY position\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS first |> AS `current` |> SELECT current.element AS original, position |> ORDER BY position\""
+        },
+        {
+          "line": 205,
+          "beforeSHA256": "3a8bf38baf8dba106ed15b24b15e8402416172afc71b267190688568390145d9",
+          "afterSHA256": "f9d7cd53c5b04abf79116b4c5339f79076e6f052ed20907006ed1c5ee6e303a1",
+          "before": "\"FROM UNNEST(@items) element |> AS first |> AS current |> WHERE current > 0 |> SELECT current AS value |> ORDER BY value\"",
+          "after": "\"FROM UNNEST(@items) element |> AS first |> AS `current` |> WHERE current > 0 |> SELECT current AS value |> ORDER BY value\""
+        },
+        {
+          "line": 222,
+          "beforeSHA256": "63921890338bd4a56c11c9c3da8c81f97fed6995231677aacf319c035960cce0",
+          "afterSHA256": "dbeb62e671f93e9449cccf257b7048b1d4815b36c61c50077a303d87e0d27962",
+          "before": "\"FROM UNNEST(@items) element |> AS current |> RENAME current AS next |> SELECT next\"",
+          "after": "\"FROM UNNEST(@items) element |> AS `current` |> RENAME current AS next |> SELECT next\""
+        },
+        {
+          "line": 239,
+          "beforeSHA256": "6af588aade79fd23b6061bb44edac098d7b34cdcf46eec2c07ec69b3f1dd5074",
+          "afterSHA256": "771c166dcff6dfa269d88291092073bcfe4f20acbc62b43b0d9078446626e6f3",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS current |> \"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> \""
+        },
+        {
+          "line": 262,
+          "beforeSHA256": "22b8161f21dc814d8573e00a7f64efb0cab9b0135366d235b10f4739b19b462f",
+          "afterSHA256": "9f9740d42bda9b3de85b0d9c75bfdf5a311cdf2475b289d7b3f2051dccc51629",
+          "before": "\"FROM UNNEST(@items) element |> AS current |> DISTINCT |> SELECT id\"",
+          "after": "\"FROM UNNEST(@items) element |> AS `current` |> DISTINCT |> SELECT id\""
+        },
+        {
+          "line": 262,
+          "beforeSHA256": "95782f34540e6e4920db4c555bded41a495ceffa63711c87527d6128326b16ac",
+          "afterSHA256": "193b11d891a25fde49f3a222829e79b887d7207c7dd6bf44f6be42273c2ac0dd",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS current |> DISTINCT |> SELECT id\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> DISTINCT |> SELECT id\""
+        },
+        {
+          "line": 295,
+          "beforeSHA256": "7c37c75c5c3961ff9477966a2911cba53c4c5f80bb407b38bd2c0b6915ec862f",
+          "afterSHA256": "a0b17b3c43888d356fdd03b65bfdc49e05bca85a3f6c525da4bc4e672b560950",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS current |> SET element = 100 |> SELECT current.* |> ORDER BY position\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> SET element = 100 |> SELECT current.* |> ORDER BY position\""
+        },
+        {
+          "line": 317,
+          "beforeSHA256": "e0b0564e1c10e29a99cdc020e376b5588d11c0a766b98a0519432efc8e5e2f0d",
+          "afterSHA256": "2010c66c0c594c66902923dc60095e69f96b533117b9e7068a718ff46fc0fe66",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS current |> DROP element |> SELECT * |> ORDER BY position\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> AS `current` |> DROP element |> SELECT * |> ORDER BY position\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/unnest_join_continuation_test.mbt",
+      "beforeFileSHA256": "8ad0fe72776eae9b09e587962b928de70ed95eced136cb0a8a609d4b7a0c29af",
+      "afterFileSHA256": "3c5c856741ba41dd896b6f54bdac5351270c67075c9e8bf0983c091a12f124d8",
+      "authoredTexts": [
+        {
+          "line": 18,
+          "beforeSHA256": "d7c605cb0097a6d5c0dde958eacdb6b01bbce80128758f045521dcc93476d237",
+          "afterSHA256": "5fbdc8a91319cc4307a7802f452fa3f26444a53234968a40077e5dc5e72b923d",
+          "before": "\"FROM parents p |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id AS id, code, e.code AS original, position |> AS row |> SET code = 99 |> LEFT JOIN (SELECT 20 AS key) k ON row.original = k.key MAX_OUTPUT_ROWS 10 |> SELECT id, code AS current, row.original AS original, position, k.key |> ORDER BY id, position\"",
+          "after": "\"FROM parents p |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id AS id, code, e.code AS original, position |> AS row |> SET code = 99 |> LEFT JOIN (SELECT 20 AS key) k ON row.original = k.key MAX_OUTPUT_ROWS 10 |> SELECT id, code AS `current`, row.original AS original, position, k.key |> ORDER BY id, position\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/unnest_struct_star_test.mbt",
+      "beforeFileSHA256": "ab5a13a0a0177b2b8c916bcba6a7aaf8d3db5e46ab180140a663dcbcaa78989f",
+      "afterFileSHA256": "aae7b4666a90add4fc23a9effb9fd78dd9efdfc1764d49fc3274b9bd6c8a30f3",
+      "authoredTexts": [
+        {
+          "line": 140,
+          "beforeSHA256": "6b82759709f6fa5c17d0b7b5ff93a2f819b3bc700de36ac0853e44a6f19beb71",
+          "afterSHA256": "be939a2b69f00674a97f04a7a9dcc7db314c0fd4c088ccc9e6466492cb130c91",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> SELECT id, position |> AS input |> SET id = id + 10 |> SELECT id AS current, input.id AS original, position |> ORDER BY position\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> SELECT id, position |> AS input |> SET id = id + 10 |> SELECT id AS `current`, input.id AS original, position |> ORDER BY position\""
+        },
+        {
+          "line": 141,
+          "beforeSHA256": "2f9a5b3f3c78b6b84fbaed1cab740a4cc6d61b887697851c644775798c2e7bc3",
+          "afterSHA256": "81e86ef50619fd1a7c177988e978f96bcf0bbd11750caefcedc5af70b853bd37",
+          "before": "\"FROM UNNEST(@items) element WITH OFFSET position |> SELECT * |> DROP label |> AS current |> SELECT current.* |> ORDER BY position\"",
+          "after": "\"FROM UNNEST(@items) element WITH OFFSET position |> SELECT * |> DROP label |> AS `current` |> SELECT current.* |> ORDER BY position\""
+        },
+        {
+          "line": 163,
+          "beforeSHA256": "95a196ccbd17854b4a9ecc3e3eeac0839e86afaa4917940ee8e95400cfa978f3",
+          "afterSHA256": "d83c29be452b00490acce5ca5ae4c45d173e438a11b612e80bfbeb9301ff36a9",
+          "before": "\"FROM UNNEST(@items) element |> AS current |> WHERE element.id IS NULL\"",
+          "after": "\"FROM UNNEST(@items) element |> AS `current` |> WHERE element.id IS NULL\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/vector_pool_source_test.mbt",
+      "beforeFileSHA256": "b4cda7df9fc883c9092e5bedbf1b5da28e93d48188d2268ae6e2a05b628b2ca2",
+      "afterFileSHA256": "67966e5fe81ecdb53988ae9803b1b3f5de42f3d16247e819fb974cc1ef4a73b4",
+      "authoredTexts": [
+        {
+          "line": 89,
+          "beforeSHA256": "1012a5dcdeeebe3b812b868c7548792e20e78e7016bd7ecf89870c049e8fb5fb",
+          "afterSHA256": "ca48293f12a62acd0b3b875a862e5691928255860bd726d566e4f19c6a5f1be1",
+          "before": "\")), rows AS (FROM pooled |> vectors()) SELECT label, pooled_id, embedding, member_count FROM rows ORDER BY label\"",
+          "after": "\")), `rows` AS (FROM pooled |> vectors()) SELECT label, pooled_id, embedding, member_count FROM rows ORDER BY label\""
+        },
+        {
+          "line": 175,
+          "beforeSHA256": "1c3cf0c32652b228e783b27b51d65b2b55c6802ebb9bbd8709d06755b147ffbb",
+          "afterSHA256": "931f3bdd02886ada0502b024e02619bdeb6abdf4746a7b29a27ff4b5a3584743",
+          "before": "\")), rows AS (FROM pooled |> vectors()) SELECT cohort, pooled_id, embedding, member_count FROM rows ORDER BY cohort\"",
+          "after": "\")), `rows` AS (FROM pooled |> vectors()) SELECT cohort, pooled_id, embedding, member_count FROM rows ORDER BY cohort\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/whole_row_range_test.mbt",
+      "beforeFileSHA256": "3e8d038a6df877bbee6ae2adab3b8376a794d35c6e80063d13d2e70870dd7a10",
+      "afterFileSHA256": "ff00bfa32387e40a3cfa7f293c7c2004f9172109cf6ae4d6614abc75af4134d0",
+      "authoredTexts": [
+        {
+          "line": 106,
+          "beforeSHA256": "00f0f1d5d95afd8543cde6476ce414cdd822df8f73b505c3c58dd4c86430d957",
+          "afterSHA256": "d0c54175b33e723d0b7a2851805f20331c14367d569d1d835e6bd03f3856c251",
+          "before": "\"FROM pair |> AS r |> SET x = y |> SELECT r AS row,x AS current\"",
+          "after": "\"FROM pair |> AS r |> SET x = y |> SELECT r AS row,x AS `current`\""
+        },
+        {
+          "line": 114,
+          "beforeSHA256": "fc005ace5eb445b3531af528d35c17fb50554c92299cc0b357a510cc23a5a26f",
+          "afterSHA256": "eb22d4947f87cdd5e338a413f123ed38f237b24028c042c9bc1dcb73eaea28af",
+          "before": "\"FROM pair |> SET x = y |> AS r |> SELECT r AS row,x AS current\"",
+          "after": "\"FROM pair |> SET x = y |> AS r |> SELECT r AS row,x AS `current`\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/window_key_receiver_reuse_test.mbt",
+      "beforeFileSHA256": "28be59f41950a111456c803633003c966156c302422401ca191c94d89eb8f198",
+      "afterFileSHA256": "b7dd1aaeb25ba24302e1062d22c8f530797750ba02e60fc53589444835dcd907",
+      "authoredTexts": [
+        {
+          "line": 43,
+          "beforeSHA256": "424cb3c1733ec13cb4f607bc6427edc39f9de6c2430d5f1b5929979a67f0d3cf",
+          "afterSHA256": "4b2877da2011ddb8c0109bc4516697b178c78c6fa9739ace3c6e2362588a1c19",
+          "before": "\"FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY COALESCE((original.payload).bucket, 'missing') ORDER BY id) AS before, RANK() OVER (PARTITION BY COALESCE(payload.bucket, 'missing') ORDER BY id) AS current |> ORDER BY id\"",
+          "after": "\"FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY COALESCE((original.payload).bucket, 'missing') ORDER BY id) AS before, RANK() OVER (PARTITION BY COALESCE(payload.bucket, 'missing') ORDER BY id) AS `current` |> ORDER BY id\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_program/window_scalar_projection_test.mbt",
+      "beforeFileSHA256": "d3edf04bf3fc8001cbc5a1f37ae084b20d2ffae9d69802d20d57101512285248",
+      "afterFileSHA256": "e79159fe2c69f62c3035b227ecf6c4f66dee5649e583da4f755e09d0f88d6ab9",
+      "authoredTexts": [
+        {
+          "line": 88,
+          "beforeSHA256": "21c44c11fb13d7b987771df2b8d94add178920c29f08f76c6969d27e2250c64c",
+          "afterSHA256": "c0e1ad2866d5ed93a16a60718c3bf176c83c2ac639de57091b6272a6ce752d2c",
+          "before": "\"FROM orders AS old |> AS current |> SELECT LAG(old.amount) OVER (ORDER BY id) + 1 AS pos\"",
+          "after": "\"FROM orders AS old |> AS `current` |> SELECT LAG(old.amount) OVER (ORDER BY id) + 1 AS pos\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_syntax/optional_derived_alias_test.mbt",
+      "beforeFileSHA256": "3722f2c0a6fb18d3013d5608cc9874f19f4292216d1af277eabe5f70cdf1a15f",
+      "afterFileSHA256": "0d5d923030441fa238ed332c0891633a9c8bd9543cda316fe81b3df87e4a8a4d",
+      "authoredTexts": [
+        {
+          "line": 13,
+          "beforeSHA256": "140c6b67652c44b7c595d5408cacf32c72e837b250d2b3c4ac98e2131fe23394",
+          "afterSHA256": "a564648d21882cbb212b68fe7e29746d31b73c6a9662a2820a4bf02d1a1e1830",
+          "before": "\"SELECT current.x FROM (FROM rows |> AS r) current\"",
+          "after": "\"SELECT current.x FROM (FROM rows |> AS r) `current`\""
+        },
+        {
+          "line": 24,
+          "beforeSHA256": "04a3cadc2ff16fa1a3e6764acd9a74b2f1baf98bd1200bcde1c77a2fcc976f06",
+          "afterSHA256": "d5e96f2290dd79594a92a166ee72f453876f10fc6576f99a273b7ed118333fac",
+          "before": "\"SELECT current.x FROM (SELECT x FROM rows) current\"",
+          "after": "\"SELECT current.x FROM (SELECT x FROM rows) `current`\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_syntax/pivot_test.mbt",
+      "beforeFileSHA256": "c3cad0b4b9eb756eb0bff444b92b429ece406f92d4ea6a9c24d15c24762e12e6",
+      "afterFileSHA256": "0c731d22b631cb6c403ffa6acc1b3f7ef1fe451e5e798e8a36e21efe277129e3",
+      "authoredTexts": [
+        {
+          "line": 4,
+          "beforeSHA256": "2c27472810dddfa81e1d0c8d38599831fdd13a32fdf6ae08becc3b542db30adb",
+          "afterSHA256": "5637f2337062c57d0bf9609ab8374d335e8ef262bcef0d567418957a6c6d1fd7",
+          "before": "\"FROM rows |> PIVOT(MIN(r.amount) AS m FOR r.status IN ('z' AS last, \\\"a\\\" first)) AS current\"",
+          "after": "\"FROM rows |> PIVOT(MIN(r.amount) AS m FOR r.status IN ('z' AS last, \\\"a\\\" first)) AS `current`\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_syntax/query_test.mbt",
+      "beforeFileSHA256": "4e9db3d0caaf2b1fb6b43572b5445cb7613d1f3a0462b896331fd2c0ddc38c56",
+      "afterFileSHA256": "83bcc3a42e027f74d2f22533f6b1e2bf2a783e3f641bd1861e6149bcf731eb9f",
+      "authoredTexts": [
+        {
+          "line": 48,
+          "beforeSHA256": "b2fdd75a2816357ecd31330788b4b51260248bb9006d2221b1de8d3103127175",
+          "afterSHA256": "f62337c84b1e5f4314545fc1eed54c3d2316e505092574453607c7ef47c1ae62",
+          "before": "\"FROM records AS old |> AS current |> SELECT current.id AS id |> WHERE id > 1 |> EXTEND id + 1 AS next |> SELECT next, id |> ORDER BY id\"",
+          "after": "\"FROM records AS old |> AS `current` |> SELECT current.id AS id |> WHERE id > 1 |> EXTEND id + 1 AS next |> SELECT next, id |> ORDER BY id\""
+        }
+      ]
+    },
+    {
+      "path": "src/query_syntax/with_relational_public_callers_test.mbt",
+      "beforeFileSHA256": "8cd459ae96e5718abe4b2af6f6e705fb46143cd80738c486fef1c0ad0071b2b2",
+      "afterFileSHA256": "a074109f3c949fbd1918990a87b515455a8f554e6668cc8ad23f608887a4a7d5",
+      "authoredTexts": [
+        {
+          "line": 49,
+          "beforeSHA256": "e2cb2e61857dac87129e4f2f4419ab9a3d06198a306f54c65928d1bd4651c514",
+          "afterSHA256": "7211fbdc4b77372a85d7736a7a0301588d67e1ed63b325989f5b48873e3e3b37",
+          "before": "\"WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY -payload.score NULLS LAST, id) AS current, STRING_AGG(name, '|' ORDER BY -before.payload.score NULLS LAST, id) AS previous\"",
+          "after": "\"WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY -payload.score NULLS LAST, id) AS `current`, STRING_AGG(name, '|' ORDER BY -before.payload.score NULLS LAST, id) AS previous\""
+        },
+        {
+          "line": 97,
+          "beforeSHA256": "d6ad6aaa265dac760d450000f489394fdb1292a1a7f6f26407962087da7f813a",
+          "afterSHA256": "42a34d6b0438a52665fed2a1b6afc60054405f143f32d5a6f0e3d83a8a137d65",
+          "before": "\"WITH objects AS (SELECT id, CASE WHEN id = 3 THEN @none WHEN id = 5 THEN @empty WHEN id = 1 THEN @b ELSE @a END AS payload, CASE WHEN id = 2 OR id = 3 THEN @oa ELSE @ob END AS other FROM records WHERE id > 0) FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY original.payload.bucket ORDER BY id) AS before, ROW_NUMBER() OVER (PARTITION BY payload.bucket ORDER BY id) AS current |> ORDER BY id\"",
+          "after": "\"WITH objects AS (SELECT id, CASE WHEN id = 3 THEN @none WHEN id = 5 THEN @empty WHEN id = 1 THEN @b ELSE @a END AS payload, CASE WHEN id = 2 OR id = 3 THEN @oa ELSE @ob END AS other FROM records WHERE id > 0) FROM objects AS original |> SET payload = other |> SELECT id, ROW_NUMBER() OVER (PARTITION BY original.payload.bucket ORDER BY id) AS before, ROW_NUMBER() OVER (PARTITION BY payload.bucket ORDER BY id) AS `current` |> ORDER BY id\""
+        },
+        {
+          "line": 292,
+          "beforeSHA256": "e17a981d223c83a11364a98f1ca66097f50d2652db830911b586d15f5d664448",
+          "afterSHA256": "7a63e3773604626f4902a60ea28d74b347686384fbee52af3d469ef6f5ce4128",
+          "before": "\"WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score, id) AS current, STRING_AGG(name, '|' ORDER BY before.payload.score NULLS LAST, id) AS previous\"",
+          "after": "\"WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score, id) AS `current`, STRING_AGG(name, '|' ORDER BY before.payload.score NULLS LAST, id) AS previous\""
+        },
+        {
+          "line": 336,
+          "beforeSHA256": "b8aa5c620ffef00c7dcb7f6c8c8be0f0d6c8f7349e899f05dac86e667d59aa63",
+          "afterSHA256": "beca92bc97d23945b94ec061ccc8f7c8b3caa6ce91ecb18304e2947f7184775f",
+          "before": "\"WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY IFNULL(payload.score, 0), id) AS current, STRING_AGG(name, '|' ORDER BY IFNULL(before.payload.score, 0), id) AS previous\"",
+          "after": "\"WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY IFNULL(payload.score, 0), id) AS `current`, STRING_AGG(name, '|' ORDER BY IFNULL(before.payload.score, 0), id) AS previous\""
+        },
+        {
+          "line": 351,
+          "beforeSHA256": "f7a8d384a9f84d66a94f8b390ad12c16dae6bbc4eff9446c958e5f458af7b1ee",
+          "afterSHA256": "655afa10f824704c6ddda0e935e0642b3a814451dfa59a41d6b7ca0a1477d60a",
+          "before": "\"WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score > 15 NULLS LAST, id) AS current, STRING_AGG(name, '|' ORDER BY before.payload.score > 15 NULLS LAST, id) AS previous\"",
+          "after": "\"WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score > 15 NULLS LAST, id) AS `current`, STRING_AGG(name, '|' ORDER BY before.payload.score > 15 NULLS LAST, id) AS previous\""
+        },
+        {
+          "line": 364,
+          "beforeSHA256": "731c382798bfd0c8d6d34f18f3518eedcd1ea1404cb8de3b3f18e9519e27fc05",
+          "afterSHA256": "df2f113cb197d7175ea3e0a9ec8b5b7c64c81465d623c7392006d7e529f4ffd2",
+          "before": "\"WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score IN (25, 30) NULLS LAST, id) AS current, STRING_AGG(name, '|' ORDER BY before.payload.score IN (25, 30) NULLS LAST, id) AS previous\"",
+          "after": "\"WITH objects AS (SELECT id, CASE WHEN id = 1 THEN 'a' WHEN id = 2 THEN 'b' WHEN id = 3 THEN 'c' ELSE NULL END AS name, CASE WHEN id = 1 THEN @p1 WHEN id = 2 THEN @p2 WHEN id = 3 THEN @p3 ELSE @p4 END AS payload, CASE WHEN id = 1 THEN @o1 WHEN id = 2 THEN @o2 WHEN id = 3 THEN @o3 ELSE @o4 END AS other FROM records WHERE id > 0) FROM objects AS before |> SET payload = other |> AGGREGATE STRING_AGG(name, '|' ORDER BY payload.score IN (25, 30) NULLS LAST, id) AS `current`, STRING_AGG(name, '|' ORDER BY before.payload.score IN (25, 30) NULLS LAST, id) AS previous\""
+        }
+      ]
+    }
+  ]
+}

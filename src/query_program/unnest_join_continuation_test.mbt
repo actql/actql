@@ -15,7 +15,7 @@ test "UNNEST JOIN retains nullable object receivers ranges and explicit bounds" 
     text in [
       "SELECT p.id, e.*, position, k.key FROM parents p CROSS JOIN UNNEST(p.items) e WITH OFFSET position JOIN (SELECT 20 AS key) k ON e.code = k.key MAX_OUTPUT_ROWS 10 ORDER BY p.id, position",
       "FROM parents p |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> JOIN (SELECT 20 AS key) k ON e.code = k.key MAX_OUTPUT_ROWS 10 |> SELECT p.id, e AS object, e.*, position, k.key |> ORDER BY p.id, position",
-      "FROM parents p |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id AS id, code, e.code AS original, position |> AS row |> SET code = 99 |> LEFT JOIN (SELECT 20 AS key) k ON row.original = k.key MAX_OUTPUT_ROWS 10 |> SELECT id, code AS current, row.original AS original, position, k.key |> ORDER BY id, position",
+      "FROM parents p |> CROSS JOIN UNNEST(p.items) e WITH OFFSET position |> SELECT p.id AS id, code, e.code AS original, position |> AS row |> SET code = 99 |> LEFT JOIN (SELECT 20 AS key) k ON row.original = k.key MAX_OUTPUT_ROWS 10 |> SELECT id, code AS `current`, row.original AS original, position, k.key |> ORDER BY id, position",
       "SELECT p.id, e.code, position, k.key FROM parents p JOIN (SELECT 2 AS first_key) first ON p.id = first.first_key MAX_OUTPUT_ROWS 10 CROSS JOIN UNNEST(p.items) e WITH OFFSET position LEFT JOIN (SELECT 20 AS key) k ON e.code = k.key MAX_OUTPUT_ROWS 10 ORDER BY p.id, position",
     ] {
     let query = @query.parse_query(text, syntax_limits()).unwrap()

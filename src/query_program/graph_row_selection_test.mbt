@@ -19,7 +19,7 @@ test "Graph selectors preserve declared fields and common checking" {
   for
     suffix in [
       "FROM g |> node_rows(definition: 'n') |> SELECT node_key, p, labels", "FROM g |> node_rows(label: 'PERSON') |> SELECT node_key, p, labels",
-      ", rows AS (FROM g |> node_rows(label: 'Company') |> SELECT other_key) FROM rows |> ORDER BY other_key",
+      ", `rows` AS (FROM g |> node_rows(label: 'Company') |> SELECT other_key) FROM rows |> ORDER BY other_key",
     ] {
     let program = compile_with_set(prefix + suffix)
     match
