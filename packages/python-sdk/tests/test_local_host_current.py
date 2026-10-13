@@ -193,7 +193,7 @@ class LocalHostCurrentTests(unittest.TestCase):
         self.assertTrue(core.close_host_current(loan))
 
     def test_closed_scalar_loader_and_namespace_revision_width_remain_exact(self):
-        self.assertEqual(LOCAL_CORE_ABI, 65)
+        self.assertEqual(LOCAL_CORE_ABI, 69)
         self.assertEqual(_CURRENT_SIGNATURES, {
             'reserve': ('i64 i32 i32 i64', 'i32'), 'bind': ('i64 i32', 'i32'),
             'validate': ('i64 i32', 'i32'), 'produce': ('i64 i32', 'i32'),
