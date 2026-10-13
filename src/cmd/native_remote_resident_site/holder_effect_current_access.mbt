@@ -185,6 +185,8 @@ fn holder_effect_evidence_allowed(
 /// supplying it. These existing capacity types retain their original Owners.
 priv struct HolderEffectPreparationCapacity {
   catalog : @journal.NativeInitialCatalogUseEnvelope
+  // Independent trusted physical bound; the original producer pays its extent.
+  catalog_diagnostic_ceiling : Int
   computation : @resident_host.ResidentEffectComputationCapacity
 }
 

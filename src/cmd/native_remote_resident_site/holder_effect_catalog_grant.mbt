@@ -168,7 +168,10 @@ fn open_holder_effect_catalog_installation(
   }
   let read = (index : Int) => snapshot[index].1
   let crypto = match
-    @signature.load_library(required(matches, "crypto-library")) {
+    @signature.load_library(
+      required(matches, "crypto-library"),
+      diagnostic_ceiling=Some(files.diagnostic_ceiling),
+    ) {
     Ok(value) => value
     Err(_) => stop("Effect Catalog signature library unavailable")
   }
@@ -266,7 +269,11 @@ fn open_holder_effect_catalog_installation(
   if !current() {
     return None
   }
-  let http = match @http.load_library(required(matches, "http-library")) {
+  let http = match
+    @http.load_library(
+      required(matches, "http-library"),
+      diagnostic_ceiling=Some(files.diagnostic_ceiling),
+    ) {
     Ok(value) => value
     Err(_) => stop("Effect Catalog HTTP library unavailable")
   }
