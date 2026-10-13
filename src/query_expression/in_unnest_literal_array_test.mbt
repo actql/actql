@@ -23,17 +23,21 @@ test "IN UNNEST literal array keeps the existing literal list contract" {
 }
 
 ///|
-test "IN UNNEST never erases annotations or expands general expressions" {
-  for
-    text in [
-      "x IN UNNEST([y])", "x IN UNNEST([1 + 2])", "x IN UNNEST([-@p])", "x IN UNNEST(ARRAY<STRING>[1])",
-    ] {
-    assert_true(
-      lower(fixture(text), path => Some(path[0].value), limits())
-      is Err(
-        { issue: Admission({ kind: @expression.InvalidArguments, .. }), .. }
-      ),
-      msg=text,
-    )
-  }
+test "IN UNNEST preserves general ARRAY operands and their annotations" {
+  assert_eq(
+    emit("x IN UNNEST([y])"),
+    "{\"in\":[{\"field\":\"x\"},{\"array\":[{\"field\":\"y\"}]}]}",
+  )
+  assert_eq(
+    emit("x IN UNNEST([1 + 2])"),
+    "{\"in\":[{\"field\":\"x\"},{\"array\":[{\"add\":[{\"literal\":1},{\"literal\":2}]}]}]}",
+  )
+  assert_eq(
+    emit("x IN UNNEST([-@p])"),
+    "{\"in\":[{\"field\":\"x\"},{\"array\":[{\"negate\":{\"$param\":\"p\"}}]}]}",
+  )
+  assert_eq(
+    emit("x IN UNNEST(ARRAY<STRING>[1])"),
+    "{\"in\":[{\"field\":\"x\"},{\"if\":[{\"literal\":true},{\"array\":[{\"literal\":1}]},{\"empty_array\":{\"items\":{\"nullable\":false,\"type\":\"string\"}}}]}]}",
+  )
 }

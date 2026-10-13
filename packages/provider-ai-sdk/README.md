@@ -77,6 +77,16 @@ cannot start transport or regain the consumed attempt when a late binding arrive
 It keeps the original Unknown/cleanup responsibility. This is the initial private
 one-Slot connection, not accepted public funding or multi-Slot raw persistence.
 
+The private Chat port validates output and observations from the original saved
+raw response, not the SDK-normalized result. After that same SDK settles, it
+retires only its unused decoded-result alias, even if raw persistence or cleanup
+remains pending. Original raw bytes, request/transport/reader custody, the saved
+view, failure/Unknown and explicit same-call reconciliation remain unchanged.
+Native callers retain their existing explicit one-time decoded-result transfer;
+an already transferred immutable view is never mutated by alias retirement.
+This is not physical GC or capacity release. The parsing/normalization peak and
+all remaining Promise/Store/closure overlap still require complete funding.
+
 The internal `createInstalledOpenAIChatRegistration` assembles the existing Host
 `registerModelProviders` entry from trusted, already retained installation
 selections. It does not load packages, derive a numerical profile or reconstruct
@@ -161,6 +171,21 @@ and no repair call; it does not prohibit legal Common IDs. This preparation adds
 no public/native capability or numerical profile. The generation SDK closure and
 the native SDK's separately pinned dependency closure remain distinguishable.
 
+The private `createProjectedTypeSafeDecisionPreflight` connects the original
+opaque projection to Common's dedicated native asynchronous Plan builder.
+Construction starts no SDK operation; its lazy preparation rechecks membership,
+then the existing fixed transport and raw port own the same Entry/call. The
+builder checks the Decision Task, installed async Provider, original view and
+native response/probability/installation binding. It creates no generation
+settings or output-token default. Generation keeps its authored token floor;
+synchronous Decision remains refused. Retired views cannot start that adapter.
+The temporary native tuple and original-view/provider/start callback borrows,
+SDK progress/context and plan callback overlap require funding. Cleanup clears
+those local callback aliases only after the same SDK/raw/progress owners settle;
+it cannot retire the caller-owned escaped projection or invent raw observations.
+This is private Plan/caller preparation, not accepted native raw decoding,
+startup funding, original Store ACK, public capability or a live Jev Result.
+
 Formal packaging, external consumer, public Local/HTTPS, real model acceptance,
 four parallel calls, Decision and Cloud are unfinished M0–M5 work.
 
@@ -188,3 +213,19 @@ question-count limits are physical refusals, not common language restrictions.
 Native answer decoding, original raw Store binding and public Decision
 execution remain unconnected; do not route this view through the generation
 `SavedChat` completion codec.
+
+The private answer projection now consumes an already admitted original raw
+response tree and the same Common request view. Common maps positional question
+and option aliases back to the original IDs, emits distributions in original
+order, and preserves the actual Choice/tie, fractional Score and Boolean
+probability. Missing, extra or mismatched aliases refuse; no value is rounded
+or normalized. The existing Decision validator and output admission remain
+mandatory and independent of this DATA mapping. Unknown response metadata
+stays in the original raw custody rather than being copied into the answer.
+
+This finite synchronous codec has explicit output/work limits; it is not a
+cooperatively preemptible response cursor or an endpoint-completion assertion.
+Its admitted tree, lookup maps, output writer and escaped wire overlap must be
+funded before installation. The Node wrapper delegates to Common without
+implementing a second answer mapper. No native installed capability, saved raw
+receipt, physical numerical profile or public execution is enabled by it.

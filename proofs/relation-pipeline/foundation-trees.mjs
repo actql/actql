@@ -98,6 +98,32 @@ export function foundationAncestorQuery(completeParents) {
   };
 }
 
+export function foundationMergeBaseQuery(completeParents) {
+  // Only this invocation's complete, unsimplified Git parent graph is used.
+  // Snapshot parent arrays as well as the map; neither caller mutation nor a
+  // prior inspection may supply a history or acceptance result.
+  const graph = new Map([...completeParents].map(([revision, parents]) =>
+    [revision, Array.isArray(parents) ? [...parents] : parents]));
+  const ancestor = foundationAncestorQuery(graph), cache = new Map();
+  return (left, right) => {
+    assert(sha.test(left) && sha.test(right) && graph.has(left) && graph.has(right),
+      'Missing foundation merge-base parent');
+    const key = [left, right].sort().join(':');
+    if (!cache.has(key)) {
+      const common = new Set([...graph.keys()].filter(revision =>
+        ancestor(revision, left) && ancestor(revision, right)));
+      const maximal = new Set(common);
+      // Common ancestors are ancestor-closed. Every nonmaximal common node
+      // has an immediate child in that set, so removing every common node's
+      // parents removes exactly the nonmaximal nodes, including all forks.
+      for (const revision of common) for (const parent of graph.get(revision))
+        maximal.delete(parent);
+      cache.set(key, [...maximal].sort());
+    }
+    return [...cache.get(key)];
+  };
+}
+
 export function readFoundationTreeDeltas(output, revisions, paths) {
   assert(Buffer.isBuffer(output) && revisions.length > 0 && revisions.length <= 256,
     'Invalid foundation tree batch');

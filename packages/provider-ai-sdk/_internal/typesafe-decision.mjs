@@ -1,6 +1,7 @@
 import {createTypeSafeAi} from '@ai-sdk/typesafe-ai';
 import {interceptSdkRequest} from './intercepted-request.mjs';
 import {isDeepStrictEqual} from 'node:util';
+import {createSdkNativeDecisionPreflight} from './model-port.mjs';
 
 // Private physical preparation, not Common Decision admission or a native
 // completion/profile issuer. The original caller supplies checked, bounded
@@ -68,4 +69,66 @@ export function prepareProjectedTypeSafeDecisionRequest({moon,projected,
         model:modelId,state:JSON.parse(stateWire),questions:originalQuestions});
     },
   });
+}
+
+// Lazy original-view consumer of the same SDK/Entry/raw port as generation.
+// The caller owns the escaped immutable view through raw answer mapping; this
+// preparation borrows it and cannot retire the caller's separate lifetime.
+// Complete native raw validation and normal funding remain separate required
+// installation boundaries, not grants derived from this prepared Plan.
+export function createProjectedTypeSafeDecisionPreflight({moon, projected,
+  admittedProvider, request, probability, taskCid, promptCid, outputSchemaCid,
+  modelSelector, modelId, baseURL, apiKey, maxRequestBytes, maxHeaderBytes,
+  maxHeaders, signal, notify, ...port}) {
+  if (!moon.clientProgramNativeDecisionRequestMatches?.(projected, admittedProvider, request)) {
+    throw new TypeError('TypeSafeOriginalProjectionUnavailable');
+  }
+  let terminal = false;
+  const progress = {
+    advance() {
+      if (terminal || signal?.aborted) { terminal = true; return {kind: 'rejected'}; }
+      terminal = true;
+      return {kind: 'ready', preparation: prepareProjectedTypeSafeDecisionRequest({
+        moon, projected, admittedProvider, request, taskCid, promptCid, outputSchemaCid,
+        modelSelector, modelId, baseURL, apiKey, maxRequestBytes, maxHeaderBytes,
+        maxHeaders, signal, notify})};
+    },
+    cleanup() {
+      terminal = true;
+      projected = admittedProvider = request = probability = undefined;
+      signal = notify = apiKey = undefined;
+      return true;
+    },
+  };
+  return createSdkNativeDecisionPreflight({...port, moon, request, notify,
+    preparationProgress: progress}, projected, admittedProvider, probability);
+}
+
+// Common owns the answer alias mapping. This private consumer accepts only an
+// existing admitted response cursor; it never parses SDK-decoded objects into
+// authority or treats a mapped wire as saved/complete/validated output. The
+// original raw Store/EOF/status/profile and Decision validator remain separate.
+export function projectProjectedTypeSafeDecisionAnswers({moon,projected,
+  admittedProvider,request,admittedResponse,limits}) {
+  if (typeof moon?.clientProgramProjectNativeDecisionAnswers!=='function' ||
+      !moon.clientProgramNativeDecisionRequestMatches?.(projected,admittedProvider,request)) {
+    throw new TypeError('TypeSafeOriginalProjectionUnavailable');
+  }
+  const keys=['maxBytes','maxDepth','maxNodes','maxWork'];
+  const descriptors=limits===null || typeof limits!=='object' || Array.isArray(limits)
+    ? undefined : Object.getOwnPropertyDescriptors(limits);
+  const amounts=descriptors===undefined ? undefined : keys.map(name=>descriptors[name]?.value);
+  if (limits===null || typeof limits!=='object' || Array.isArray(limits) ||
+      Reflect.ownKeys(descriptors).length!==keys.length ||
+      keys.some((name,index)=>!Object.hasOwn(descriptors[name] ?? {},'value') ||
+        !Number.isSafeInteger(amounts[index]) ||
+        amounts[index]<(name==='maxWork'?0:1) || amounts[index]>2_147_483_647)) {
+    throw new TypeError('InvalidTypeSafeAnswerProjectionLimits');
+  }
+  // Validate and pass the same DATA descriptor values, never re-read a getter
+  // or Proxy property after checking a different finite amount.
+  const result=moon.clientProgramProjectNativeDecisionAnswers(projected,
+    admittedProvider,request,admittedResponse,amounts[0],amounts[2],amounts[1],amounts[3]);
+  if (result?.$tag!==1) throw new TypeError('TypeSafeOriginalAnswerProjectionRefused');
+  return result._0;
 }

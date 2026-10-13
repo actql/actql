@@ -333,6 +333,8 @@ pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, 
 
 pub fn client_program_check_environment_cid(@run_publication_host.PreparedClientProgram) -> String
 
+pub fn client_program_check_environment_with_calendar_artifact(@program_check.CheckEnvironment, Bytes, Int, Int, Int, Int, Int, Int) -> @program_check.CheckEnvironment?
+
 pub fn client_program_check_environment_with_graph_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String, String) -> @program_check.CheckEnvironment?
 
 pub fn client_program_check_environment_with_numeric_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String) -> @program_check.CheckEnvironment?
@@ -1357,6 +1359,8 @@ pub fn client_program_local_values_unit_source_json(@run_publication_host.Prepar
 
 pub fn client_program_matches_request_identity(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Bool
 
+pub fn client_program_model_async_native_decision_request_plan(@model_execution.ModelRequest, @model_execution.NativeDecisionRequest, @model_execution.AdmittedModelProvider, Int64, Int64, Int64, Int64, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile, (@model_execution.ModelCallEntry) -> @model_execution.ModelPhysicalCall?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
+
 pub fn client_program_model_async_physical_request_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (@model_execution.ModelCallEntry) -> @model_execution.ModelPhysicalCall?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_model_capture(@model_execution.ModelObservation) -> @model_execution.ModelCaptureBundle?
@@ -1550,6 +1554,10 @@ pub fn client_program_prepare_serialization_captured_ledger(@run_publication_hos
 pub fn client_program_prepare_source_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
 
 pub fn client_program_prepare_source_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?) -> ClientProgramBridgeOutcome
+
+pub fn client_program_project_http_chat_request(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, String, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String), @model_execution.OpenAIChatProjectionIssue]
+
+pub fn client_program_project_native_decision_answers(@model_execution.NativeDecisionRequest, @model_execution.AdmittedModelProvider, @model_execution.ModelRequest, @decode_core.Cursor, Int, Int, Int, Int) -> Result[(String, Int), @model_execution.NativeDecisionAnswerIssue]
 
 pub fn client_program_project_openai_chat_request(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String), @model_execution.OpenAIChatProjectionIssue]
 

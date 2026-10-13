@@ -2,6 +2,7 @@
 package "actql/actql/program_check"
 
 import {
+  "actql/actql/calendar_profile",
   "actql/actql/capacity_graph_input",
   "actql/actql/capacity_graph_preflight",
   "actql/actql/capacity_host_witness",
@@ -133,6 +134,8 @@ pub fn checked_stage_results(CheckedProgram) -> @stage_results.Checked
 
 pub fn checking_environment(@check_environment.WireEnvironment, @pipeline_check_context.ExpressionProfiles, @pipeline_check_context.PureOperationProfiles, numeric_profile? : @numeric_reduction.Profile?, calendar? : @check_environment.SelectedCalendarProfile?, text_rank? : @check_environment.SelectedTextRankProfile?, graph? : Bool, model_tasks? : @check_environment.ModelTasks?, request_value_policies? : Array[HostRequestValuePolicyEvidence]) -> CheckEnvironment
 
+pub fn checking_environment_calendar_profile(CheckEnvironment) -> @check_environment.SelectedCalendarProfile?
+
 pub fn checking_environment_cid(CheckEnvironment) -> String
 
 pub fn checking_environment_model_tasks(CheckEnvironment) -> @check_environment.ModelTasks?
@@ -140,6 +143,8 @@ pub fn checking_environment_model_tasks(CheckEnvironment) -> @check_environment.
 pub fn checking_environment_profile_selection(CheckEnvironment) -> CheckProfileSelection
 
 pub fn checking_environment_wire(CheckEnvironment) -> @check_environment.WireEnvironment
+
+pub fn checking_environment_with_calendar_artifact(CheckEnvironment, Bytes, @calendar_profile.Limits, max_selection_work~ : Int) -> Result[CheckEnvironment, CalendarEnvironmentIssue]
 
 pub fn checking_environment_with_request_value_policies(CheckEnvironment, Array[HostRequestValuePolicyEvidence]) -> CheckEnvironment
 
@@ -162,6 +167,10 @@ pub fn diagnostic_category(CheckDiagnostic) -> DiagnosticCategory
 pub fn diagnostic_cause(CheckDiagnostic) -> LocalConstructionFailure
 
 pub fn diagnostic_expression_range(CheckDiagnostic) -> @expression_text.Range?
+
+pub fn diagnostic_graph_argument_origin(CheckDiagnostic, @stage_syntax.Program, @program_source_builder.Source) -> @frontend_source_map.Origin?
+
+pub fn diagnostic_graph_argument_origin_from_source(CheckDiagnostic, @program_source_builder.Source) -> @frontend_source_map.Origin?
 
 pub fn diagnostic_location(CheckDiagnostic) -> DiagnosticLocation?
 
@@ -882,6 +891,12 @@ pub struct BuiltResultInterface {
   result_name : String
   row : @pipeline_check_context.ResultImportType
   cid : String
+}
+
+pub enum CalendarEnvironmentIssue {
+  CapabilityDisabled
+  Selection(@check_environment.CalendarSelectionIssue)
+  Artifact(@calendar_profile.Issue)
 }
 
 type CheckDiagnostic

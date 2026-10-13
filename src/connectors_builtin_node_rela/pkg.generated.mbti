@@ -163,6 +163,8 @@ pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, 
 
 pub fn client_program_check_environment_cid(@run_publication_host.PreparedClientProgram) -> String
 
+pub fn client_program_check_environment_with_calendar_artifact(@program_check.CheckEnvironment, Bytes, Int, Int, Int, Int, Int, Int) -> @program_check.CheckEnvironment?
+
 pub fn client_program_check_environment_with_graph_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String, String) -> @program_check.CheckEnvironment?
 
 pub fn client_program_check_environment_with_numeric_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String) -> @program_check.CheckEnvironment?

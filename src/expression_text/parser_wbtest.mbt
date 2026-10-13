@@ -119,8 +119,8 @@ test "membership, truth tests and nonassociative families" {
   for
     source in [
       "x IN (TRUE, NULL) IN (1)", "x LIKE 'a' LIKE 'b'", "x BETWEEN 1 AND 2 BETWEEN 3 AND 4",
-      "x IS TRUE IS FALSE", "x = (NULL)", "NULL < x", "x IN $p[0]", "x IN ([])",
-      "x IN ([1])", "x IN (- -1)", "x LIKE concat('a','b')",
+      "x IS TRUE IS FALSE", "x = (NULL)", "NULL < x", "x IN ([])", "x IN ([1])",
+      "x IN (- -1)", "x LIKE concat('a','b')",
     ] {
     assert_true(parse(source, test_limits()) is Err(_), msg=source)
   }
