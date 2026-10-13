@@ -124,7 +124,9 @@ test('unresolved original raw save keeps its backing and one call without blocki
   }});
   const {_1: plan} = await planOf(f);
   const call = plan.start(f.entry);
-  await until(() => heldRaw, value => value !== undefined);
+  // The existing Common caller polls the physical port to start raw saving;
+  // observing the fixture variable alone must not replace that transition.
+  await until(() => { call.poll(); return heldRaw; }, value => value !== undefined);
   assert.strictEqual(heldCall, call);
   assert.deepEqual(heldRaw.body, new Uint8Array(originalBytes));
   const backing = heldRaw.body.buffer;
