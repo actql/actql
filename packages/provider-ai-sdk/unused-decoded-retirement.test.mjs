@@ -115,3 +115,34 @@ test('Chat cleanup drops unused projection but keeps Store failure Unknown and r
   assert.deepEqual(original.body,bytes);assert.equal(f.sends(),1);assert.equal(f.saves(),2);
   assert.equal(call.cleanup(),false);
 });
+
+// Original SDK and preparation-progress cleanup acknowledge independently.
+// Retiring the SDK alias must retain the second owner's pending retry.
+test('partial SDK owner cleanup retries while original preparation owner remains pending', async()=>{
+  const handle=preparation();
+  await until(()=>pollSdkPreparation(handle),v=>v.kind==='ready');
+  let cleanupAllowed=false,progressCleanups=0,sends=0;
+  const originalProgress={advance:()=>({kind:'ready',preparation:handle}),
+    cleanup(){progressCleanups++;return cleanupAllowed;}};
+  const moon={clientProgramModelRequestPreflight:(advance,cleanup)=>({advance,cleanup}),
+    clientProgramModelAsyncPhysicalRequestPlan:()=>({originalPlan:true})};
+  const port=createSdkModelPreflight({moon,request:{},preparationProgress:originalProgress,
+    profile:{},installation:{},quantities:{tokens:1n,costUnits:0n,durationMs:1n},
+    fetch(){sends++;throw Error('Preflight cleanup must not send');},
+    responseLimits:{maxBytes:128,maxChunkBytes:128,maxChunks:1,maxHeaderBytes:128},
+    persistRaw(){throw Error('Unstarted cleanup must not save');},cleanupRaw:()=>true,
+    notify(){},checked:v=>v,observeAt:()=> '2026-10-13T00:00:00Z'});
+  assert.equal(port.preflight.advance()._0,false);
+  assert.equal(port.preflight.advance()._0,true);
+  await until(()=>port.preflight.cleanup(),()=>progressCleanups===1);
+  assert.throws(()=>pollSdkDecode(handle),{code:'ForeignSdkPreparation'},
+    'SDK cleanup is complete while the other owner remains pending');
+  assert.equal(port.preflight.cleanup(),false);
+  assert.equal(progressCleanups,2,'Same original preparation owner is retried');
+  cleanupAllowed=true;
+  assert.equal(port.preflight.cleanup(),true);
+  assert.equal(progressCleanups,3);
+  assert.equal(port.preflight.cleanup(),true);
+  assert.equal(progressCleanups,3,'Completed cleanup remains idempotent');
+  assert.equal(sends,0);
+});
