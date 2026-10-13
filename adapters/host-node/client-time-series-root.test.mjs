@@ -33,7 +33,7 @@ for (const name of ['json', 'empty-json', 'parameters-json']) {
     value.name === `time-series-primary-${name}`);
   test(`checked TimeSeries root uses one task and the installed provider: ${name}`, async () => {
     if (name === 'json') assert.equal(createHash('sha256').update(fixture.text).digest('hex'),
-      '691fb26d1338c28b5fe357087468d563f52cd9c3d5b35f88877434d6238c6');
+      '691fb26d1338c28b5fe357087468d563563f52cd9c3d5b35f88877434d6238c6');
     const prepare = installNodeClientProgramPreparation({moon, environment});
     const request = {kind: 'aql', input: {text: fixture.text, format: 'json'},
       parameters: fixture.parameters ?? null, maxWireBytes: 65536,
