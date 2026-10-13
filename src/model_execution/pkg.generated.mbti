@@ -5,6 +5,7 @@ import {
   "actql/actql/bounded_execution",
   "actql/actql/canonical_json",
   "actql/actql/check_environment",
+  "actql/actql/decode_core",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/run_publication",
@@ -62,6 +63,8 @@ pub fn cancel_model_capture_export(ModelCaptureExport) -> Bool
 pub fn cancel_model_observation_verification(ModelObservationVerification) -> Bool
 
 pub fn cancel_model_output_preparation(ModelOutputPreparation) -> Bool
+
+pub fn charge_original_model_observation_step(OriginalModelPublicationCapacity) -> Result[Unit, ModelExecutionIssue]
 
 pub fn cleanup_model_capture_export(ModelCaptureExport) -> Result[Bool, ModelExecutionIssue]
 
@@ -201,6 +204,8 @@ pub fn observe_model_raw_capture(ModelPhysicalCall, @run_publication_host.Client
 
 pub fn openai_chat_projection_work(OpenAIChatProjection) -> Int
 
+pub fn original_model_publication_capacity_covers(OriginalModelPublicationCapacity, Int64, Int64) -> Bool
+
 pub fn original_model_publication_capacity_current(OriginalModelPublicationCapacity, ModelExecution, @run_publication_host.ClientInferCallScope) -> Bool
 
 pub fn poll_model_call_entry_persistence(ModelCallEntryPersistence, ModelCallEntry, ModelPreparedCallSet) -> Result[ModelEntryPersistenceObservation, ModelExecutionIssue]
@@ -232,6 +237,8 @@ pub fn prepared_model_physical_request(ModelPreparedCallSet, Int) -> (ModelReque
 pub fn prepared_model_request(ModelPreparedCallSet, Int) -> ModelRequest?
 
 pub fn prepared_model_scope(ModelPreparedCallSet) -> @run_publication.BoundModelInvocationScope?
+
+pub fn project_native_decision_answers(NativeDecisionRequest, AdmittedModelProvider, ModelRequest, @decode_core.Cursor, Int, Int, Int, Int) -> Result[(String, Int), NativeDecisionAnswerIssue]
 
 pub fn project_openai_chat_request(AdmittedModelProvider, ModelRequest, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String), OpenAIChatProjectionIssue]
 
@@ -709,6 +716,12 @@ pub struct ModelSlotReplayRead {
 type ModelSlotReplayStorage
 
 type ModelState
+
+pub(all) enum NativeDecisionAnswerIssue {
+  ForeignRequest
+  Malformed
+  Limit
+} derive(Eq, @debug.Debug)
 
 type NativeDecisionProjection
 

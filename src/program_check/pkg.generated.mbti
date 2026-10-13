@@ -15,11 +15,13 @@ import {
   "actql/actql/encode_core",
   "actql/actql/expression_text",
   "actql/actql/expression_typing",
+  "actql/actql/frontend_source_map",
   "actql/actql/numeric_reduction",
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_check_context",
   "actql/actql/pipeline_typing",
   "actql/actql/program_references",
+  "actql/actql/program_source_builder",
   "actql/actql/relation_evidence",
   "actql/actql/relation_nest",
   "actql/actql/relation_typing",
@@ -175,6 +177,10 @@ pub fn diagnostic_location_position(DiagnosticLocation) -> @source_value.ParseLo
 pub fn diagnostic_location_source_path(DiagnosticLocation) -> String
 
 pub fn diagnostic_origin(CheckDiagnostic) -> DiagnosticOrigin?
+
+pub fn diagnostic_predicate_origin(CheckDiagnostic, @stage_syntax.Program, @program_source_builder.Source) -> @frontend_source_map.Origin?
+
+pub fn diagnostic_predicate_origin_from_source(CheckDiagnostic, @program_source_builder.Source) -> @frontend_source_map.Origin?
 
 pub fn diagnostic_undeclared_parameter(CheckDiagnostic) -> String?
 

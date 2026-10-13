@@ -16,11 +16,11 @@ import time
 from typing import Any, TypeVar
 
 from . import _wire as wire
-from ._local_core import LocalCore, LocalCoreInitializationError, LocalCoreResources, _Input, _Output
+from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output
 from ._local_distribution import installed_local_components, load_local_module
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
 from ._local_preparation import LocalPreparation, _Environment, _Preparation
-from ._local_run import LocalRunCustody, _RunConfiguration
+from ._local_run import LocalRunCustody, _RunConfiguration, _Run, _PhysicalStart, _SourceFreeCompute
 from ._local_storage import ByteWrite, LocalStorageError
 from ._values import wire_bytes
 
@@ -72,6 +72,18 @@ class InstalledLocalHost:
         self._prepared_inputs: list[_Preparation] = []
         self._runs = LocalRunCustody(core, self._preparation)
         self._configuration: _RunConfiguration | None = None
+        self._run_loans: list[_Run] = []
+        self._row_outputs: list[_Output] = []
+        self._journal_outputs: list[_Output] = []
+        # Physical write-invocation custody, not Run/admission state. A retained
+        # attempt cannot be reused as a transport retry or new acceptance.
+        self._row_write_attempts: set[int] = set()
+        self._pending_run_write: _Output | None = None
+        self._step_outputs: list[_Output] = []
+        self._step_write_attempts: set[int] = set()
+        self._pending_start_write: _Output | None = None
+        self._physical_starts: list[_PhysicalStart] = []
+        self._source_free_computes: list[_SourceFreeCompute] = []
         self._inputs: list[_Input] = []
         self._projections: list[_Output] = []
         self._append_sources: dict[int, _Input] = {}
@@ -88,7 +100,8 @@ class InstalledLocalHost:
             setup = self._copy(wire_bytes({'namespace': 'local', 'source_free_result_policy': {  # type: ignore[no-untyped-call]
                 'cid': 'sha256:' + hashlib.sha256(raw).hexdigest(), 'body': raw.decode('utf-8')}}))
             def configure(current: _Output) -> None:
-                self._configuration = self._runs.install_current_configuration(current, setup)
+                self._configuration = (self._runs.install_sdk_configuration(current, setup)
+                    if sdk_finite else self._runs.install_current_configuration(current, setup))
             binding.inspect(configure)
         except BaseException as failure:
             if isinstance(failure, LocalInstallationCleanupPending):
@@ -327,6 +340,213 @@ class InstalledLocalHost:
                 raise LocalProductCleanupPending(self)
             return prepared
 
+    def _accept_original(self, reference: object, intent: bytes, *, run_id: str) -> tuple[_Run, bytes]:
+        """Join original preparation, finite issuance, same-TX write and lookup.
+
+        Only Core supplies the Policy, row candidate and saved admission. The
+        returned admission does not reserve dispatch or start physical work.
+        Existing-ready restoration still requires its original saved materials;
+        this entry must not replace them with a fresh Plan or Policy.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        if (configuration is None or not configuration.sdk or configuration.current is None
+                or installation._store is None):
+            raise ValueError('Original finite Local configuration is unavailable')
+        store = installation._store
+        captured_reference = _object(wire_bytes(reference), 8192)  # type: ignore[no-untyped-call]
+        with self._core._lock:
+            if self._pending_run_write is not None:
+                raise LocalStorageError('Original Local Run write requires lookup; new acceptance is unavailable')
+            prepared = self._prepare_original(captured_reference, intent)
+            observed = self._retain_intent(captured_reference, intent)
+            source = self._copy(wire_bytes({'run_id': run_id, 'now': self._now()}))  # type: ignore[no-untyped-call]
+            run = self._runs.reserve(configuration, prepared, source)
+            self._run_loans.append(run)
+            decisions: list[str] = []
+            installation.binding.inspect(lambda _: decisions.append(self._runs.prepare_sdk(run, observed)))
+            if decisions != ['prepared']:
+                # Preserve the original loans. Restoration is not fresh accept,
+                # a new issuance, or an implicit retry of an uncertain COMMIT.
+                raise LocalCoreError('original_run_restore_required', -42)
+            captured: list[dict[str, Any]] = []
+            installation.binding.inspect(lambda current: captured.append(_object(
+                self._core.read_submission_append(observed, current), 1048576)))
+            retained = captured[0]
+            if (set(retained) != {'kind', 'key', 'body', 'revision'} or
+                    retained['kind'] != 'retained' or type(retained['body']) is not str):
+                raise ValueError('Invalid original retained submission projection')
+            row_input = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
+                'reference': wire_bytes(captured_reference).decode('utf-8'),  # type: ignore[no-untyped-call]
+                'preparing': retained['body'], 'now': self._now()}))
+            output = self._reserve(lambda: self._runs.reserve_submitted_rows(
+                run, configuration, row_input, cleanup=lambda: True))
+            self._row_outputs.append(output)
+            installation.binding.inspect(lambda _: self._core.produce_material(output))
+            self._commit_original_run_rows(output)
+            # A fresh same-Store inspection supplies the original saved admission.
+            # Neither the candidate nor the successful SQLite API response does.
+            journal = self._reserve(lambda: self._core.reserve_journal_observation(
+                output, configuration.handle, store=store,
+                current=installation.binding.current, cleanup=lambda: True))
+            self._journal_outputs.append(journal)
+            admission: list[bytes] = []
+            with installation.binding.fenced() as fences:
+                def inspect(reader: Any) -> None:
+                    def consume(_: _Output) -> None:
+                        self._core.inspect_journal_observation(journal, reader)
+                        admission.append(self._core.read_journal_admission(journal, reader))
+                    installation.binding.inspect_reader(reader, consume)
+                store.inspect_namespaces(
+                    fences, inspect=inspect, current=installation.binding.current)
+            # The immutable row Owner/input remain in Core. These consumed
+            # buffers need not overlap the later dispatch/Compute/Result phase.
+            if not self._core.close_journal_observation(journal):
+                raise LocalProductCleanupPending(self)
+            self._journal_outputs.remove(journal)
+            if not self._core.retire_material_output(output):
+                raise LocalProductCleanupPending(self)
+            if not self._core.retire_submission_append_output(observed):
+                raise LocalProductCleanupPending(self)
+            self._pending_run_write = None
+            return run, admission[0]
+
+    def _commit_original_run_rows(self, output: _Output) -> None:
+        """Forward the original Core candidate in one fenced SQLite transaction.
+
+        The Core supplier chooses the Run/counter bytes. Python only transports
+        its CAS/insert operations; acknowledged rows are not dispatch, Result,
+        publication or cleanup. After attempted COMMIT an exception retains the
+        same loans and never enters this write again automatically.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        if configuration is None or not configuration.sdk or configuration.current is None:
+            raise ValueError('Original finite Local configuration is unavailable')
+        store = installation._store
+        if store is None:
+            raise ValueError('Original Local Store is unavailable')
+        with self._core._lock:
+            self._core._owned_output(output)
+            if not any(original is output for original in self._row_outputs):
+                raise ValueError('Foreign original Run row projection')
+            if output.ticket in self._row_write_attempts or self._pending_run_write is not None:
+                raise LocalStorageError('Original Local Run write requires lookup; transport replay is unavailable')
+            captured: list[dict[str, Any]] = []
+            installation.binding.inspect(lambda current: captured.append(_object(
+                self._core.read_submitted_run_rows(output, current), 1048576)))
+            candidate = captured[0]
+            fields = {'run_key', 'submission_key', 'preparing', 'run', 'submitted',
+                      'issued_revision', 'issued_body'}
+            if set(candidate) != fields or any(type(candidate[key]) is not str for key in fields):
+                raise ValueError('Invalid original Core Run row projection')
+            revision = candidate['issued_revision']
+            if (not revision.isascii() or not revision.isdecimal() or
+                    (len(revision) > 1 and revision.startswith('0')) or
+                    len(revision) > 19 or int(revision) > 2**63 - 1):
+                raise ValueError('Invalid original Core Run issued generation')
+            # Original preparing insertion has revision zero. Core revalidates
+            # its exact bytes/reference/intent and candidate before these writes.
+            writes = (
+                ByteWrite(store.namespaced_key('client_run_custody', 'issued'),
+                          int(revision), candidate['issued_body'].encode('utf-8')),
+                ByteWrite(store.namespaced_key('client_runs', candidate['run_key']),
+                          None, candidate['run'].encode('utf-8')),
+                ByteWrite(store.namespaced_key('client_submitted_intents', candidate['submission_key']),
+                          0, candidate['submitted'].encode('utf-8')),
+            )
+            with installation.binding.fenced() as fences:
+                def inspect(reader: Any) -> None:
+                    installation.binding.inspect_reader(reader, lambda current:
+                        self._core.validate_submitted_run_rows(output, current))
+                self._row_write_attempts.add(output.ticket)
+                self._pending_run_write = output
+                result = store.compare_exchange_many_inspected(
+                    writes, fences, inspect=inspect, current=installation.binding.current)
+            if result is None:
+                raise LocalStorageError('Original Local Run write conflicted; lookup is required')
+
+    def _save_original_start_step(self, output: _Output) -> None:
+        """Forward one Core-produced Run-row CAS, then observe its original successor."""
+        installation = self._active()
+        store = installation._store
+        if store is None:
+            raise ValueError('Original Local Store is unavailable')
+        with self._core._lock:
+            self._core._owned_output(output)
+            if not any(original is output for original in self._step_outputs):
+                raise ValueError('Foreign original Local start step')
+            if output.ticket in self._step_write_attempts or self._pending_start_write is not None:
+                raise LocalStorageError('Original Local start write requires lookup; replay is unavailable')
+            captured: list[dict[str, Any]] = []
+            installation.binding.inspect(lambda current: captured.append(_object(
+                self._core.read_sdk_start_step(output, current), 1048576)))
+            candidate = captured[0]
+            if (set(candidate) != {'kind', 'key', 'revision', 'body'} or
+                    any(type(candidate[key]) is not str for key in candidate) or
+                    candidate['kind'] not in ('dispatch', 'claim')):
+                raise ValueError('Invalid original Core start step projection')
+            revision = candidate['revision']
+            if (not revision.isascii() or not revision.isdecimal() or
+                    (len(revision) > 1 and revision.startswith('0')) or
+                    len(revision) > 19 or int(revision) >= 2**63 - 1):
+                raise ValueError('Invalid original Core start step generation')
+            writes = (ByteWrite(store.namespaced_key('client_runs', candidate['key']),
+                                int(revision), candidate['body'].encode('utf-8')),)
+            with installation.binding.fenced() as fences:
+                def inspect(reader: Any) -> None:
+                    installation.binding.inspect_reader(reader, lambda current:
+                        self._core.validate_sdk_start_step(output, current))
+                self._step_write_attempts.add(output.ticket)
+                self._pending_start_write = output
+                result = store.compare_exchange_many_inspected(
+                    writes, fences, inspect=inspect, current=installation.binding.current)
+            if result is None:
+                raise LocalStorageError('Original Local start write conflicted; lookup is required')
+            # Owner confirmation is a separate same-Store observation. No
+            # candidate, physical response or Bool can replace these facts.
+            installation.binding.inspect(lambda current:
+                self._core.confirm_sdk_start_step(output, current))
+            self._pending_start_write = None
+
+    def _configure_original_compute(self, run: _Run) -> _SourceFreeCompute:
+        """Join the original saved Run/start/Compute Owners without executing tasks."""
+        installation = self._active()
+        configuration = self._configuration
+        if (configuration is None or not configuration.sdk or
+                not any(original is run for original in self._run_loans)):
+            raise ValueError('Foreign original finite Local Run')
+        with self._core._lock:
+            if self._pending_start_write is not None:
+                raise LocalStorageError('Original Local start requires lookup; new Compute is unavailable')
+            for kind in (7, 8):
+                output = self._reserve(lambda: self._core.reserve_material(
+                    run.handle, kind, cleanup=lambda: True))
+                self._step_outputs.append(output)
+                installation.binding.inspect(lambda _: self._core.produce_material(output))
+                self._save_original_start_step(output)
+                if kind == 7:
+                    if not self._core.close_material(output):
+                        raise LocalProductCleanupPending(self)
+                    self._step_outputs.remove(output)
+                    self._step_write_attempts.discard(output.ticket)
+                else:
+                    starts: list[_PhysicalStart] = []
+                    installation.binding.inspect(lambda _: starts.append(
+                        self._runs.reserve_sdk_physical_start(run, output)))
+                    start = starts[0]
+                    self._physical_starts.append(start)
+                    installation.binding.inspect(lambda _: self._runs.confirm_physical_start(start))
+                    if not self._core.retire_material_output(output):
+                        raise LocalProductCleanupPending(self)
+            selected = next(value for value in installation.binding._selected if value.name == 'compute.json')
+            source = self._copy(installation.binding._source.original_bytes(selected))
+            compute = self._runs.reserve_source_free_compute(self._physical_starts[-1], source)
+            self._source_free_computes.append(compute)
+            installation.binding.inspect(lambda _:
+                self._runs.configure_source_free_compute(compute, configuration))
+            return compute
+
     def close(self) -> bool:
         """Stop this Host's resources only; never cancel/replay/delete a Run."""
         self._nominal()
@@ -334,6 +554,36 @@ class InstalledLocalHost:
             self._closing = True
             if self._uncertain_ticket is not None and not self._core._closed:
                 return False
+            for compute in tuple(reversed(self._source_free_computes)):
+                if not self._runs.close_source_free_compute(compute):
+                    return False
+                self._source_free_computes.remove(compute)
+            for start in tuple(reversed(self._physical_starts)):
+                if not self._runs.close_physical_start(start):
+                    return False
+                self._physical_starts.remove(start)
+            for output in tuple(reversed(self._step_outputs)):
+                if not self._core.close_material(output):
+                    return False
+                self._step_outputs.remove(output)
+                self._step_write_attempts.discard(output.ticket)
+                if self._pending_start_write is output:
+                    self._pending_start_write = None
+            for output in tuple(reversed(self._journal_outputs)):
+                if not self._core.close_journal_observation(output):
+                    return False
+                self._journal_outputs.remove(output)
+            for output in tuple(reversed(self._row_outputs)):
+                if not self._core.close_material(output):
+                    return False
+                self._row_outputs.remove(output)
+                self._row_write_attempts.discard(output.ticket)
+                if self._pending_run_write is output:
+                    self._pending_run_write = None
+            for run in tuple(reversed(self._run_loans)):
+                if not self._runs.close_run(run):
+                    return False
+                self._run_loans.remove(run)
             for prepared in tuple(reversed(self._prepared_inputs)):
                 if not self._preparation.close_preparation(prepared):
                     return False

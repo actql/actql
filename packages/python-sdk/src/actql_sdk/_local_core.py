@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 55
+LOCAL_CORE_ABI = 57
 
 
 class LocalCoreError(RuntimeError):
@@ -207,13 +207,16 @@ _RUN_SIGNATURES = {
     'dispatch_action': ('i64 i32 i32 i32', 'i32'),
     'install_configuration': ('i64 i32', 'i32'),
     'install_current_configuration': ('i64 i32 i32', 'i32'),
+    'install_sdk_configuration': ('i64 i32 i32', 'i32'),
     'reserve': ('i64 i32 i32 i32', 'i32'),
     'prepare': ('i64 i32', 'i32'),
+    'prepare_sdk': ('i64 i32 i32', 'i32'),
     'restore': ('i64 i32 i32', 'i32'),
     'prepared': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
     'close_configuration': ('i64 i32', 'i32'),
     'reserve_physical_start': ('i64 i32 i32 i32', 'i32'),
+    'reserve_sdk_physical_start': ('i64 i32 i32', 'i32'),
     'confirm_physical_start': ('i64 i32', 'i32'),
     'physical_start_ready': ('i64 i32', 'i32'),
     'close_physical_start': ('i64 i32', 'i32'),
@@ -224,6 +227,7 @@ _SUBMISSION_SIGNATURES = {
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
     'validate_append': ('i64 i32 i32', 'i32'),
+    'retire_output': ('i64 i32', 'i32'),
 }
 
 _BOOTSTRAP_SIGNATURES = {
@@ -251,6 +255,10 @@ _RUN_INVOCATION_SIGNATURES = {
 _MATERIAL_SIGNATURES = {
     'reserve': ('i64 i32 i32 i32 i64', 'i32'),
     'reserve_submitted_rows': ('i64 i32 i32 i32 i32 i64', 'i32'),
+    'validate_submitted_rows': ('i64 i32', 'i32'),
+    'validate_sdk_start': ('i64 i32', 'i32'),
+    'confirm_sdk_start': ('i64 i32', 'i32'),
+    'retire_output': ('i64 i32', 'i32'),
     'produce': ('i64 i32', 'i32'),
     'length': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
@@ -1374,6 +1382,16 @@ class LocalCore:
 
     def close_submission_append(self, value: _Output) -> bool:
         return self._close_output(value, 'submission_append', 'close', abi_family='submission')
+
+    def retire_submission_append_output(self, value: _Output) -> bool:
+        """Retire transport while Core retains original input/Run relationships."""
+        with self._lock:
+            self._owned_output(value, 'submission_append')
+            code = self._call('submission', 'retire_output', value.handle)
+            if code == -9:
+                return False
+            self._check('retire_submission_append_output', code)
+            return True
 
     def reserve_source_publication(self, compute: _Compute, source: _Input, *,
                                    cleanup: Callable[[], bool]) -> _Output:
@@ -2505,7 +2523,7 @@ class LocalCore:
         """
         with self._lock:
             if (self._closing or type(run) is not int or run <= 0 or
-                    type(kind) is not int or kind not in (1, 2, 3, 4, 5)):
+                    type(kind) is not int or kind not in (1, 2, 3, 4, 5, 7, 8)):
                 raise ValueError('Invalid Local material projection')
             ticket = self._next_ticket
             if ticket >= 2**31:
@@ -2883,6 +2901,66 @@ class LocalCore:
 
     def produce_material(self, value: _Output) -> None:
         self._produce_output(value, 'material', 'produce')
+
+    def validate_submitted_run_rows(self, value: _Output, current: _Output) -> None:
+        """Revalidate the same Core candidate inside the original Store frame.
+
+        No Python count, row comparison or acceptance decision substitutes for
+        the existing Core supplier. This is inspection, not a COMMIT ACK.
+        """
+        with self._lock:
+            self._owned_output(value)
+            self._host_current_ready(current)
+            code = self._call('material', 'validate_submitted_rows', value.handle)
+            callbacks = self._journal_callbacks(current.ticket)
+            if callbacks is not None and callbacks.failure is not None:
+                raise callbacks.failure
+            self._check('validate_submitted_run_rows', code)
+            self._host_current_ready(current)
+
+    def read_submitted_run_rows(self, value: _Output, current: _Output) -> bytes:
+        """Keep cached transport bytes subordinate to fresh current/Store checks."""
+        with self._lock:
+            self.validate_submitted_run_rows(value, current)
+            raw = self._read_output(value, 'material', 'length')
+            self._host_current_ready(current)
+            return raw
+
+    def _sdk_start_material_current(self, value: _Output, current: _Output, operation: str) -> None:
+        self._owned_output(value)
+        self._host_current_ready(current)
+        code = self._call('material', operation, value.handle)
+        callbacks = self._journal_callbacks(current.ticket)
+        if callbacks is not None and callbacks.failure is not None:
+            raise callbacks.failure
+        self._check(operation, code)
+        self._host_current_ready(current)
+
+    def validate_sdk_start_step(self, value: _Output, current: _Output) -> None:
+        with self._lock:
+            self._sdk_start_material_current(value, current, 'validate_sdk_start')
+
+    def read_sdk_start_step(self, value: _Output, current: _Output) -> bytes:
+        with self._lock:
+            self._sdk_start_material_current(value, current, 'validate_sdk_start')
+            raw = self._read_output(value, 'material', 'length')
+            self._host_current_ready(current)
+            return raw
+
+    def confirm_sdk_start_step(self, value: _Output, current: _Output) -> None:
+        """Read original saved CAS successor; not a candidate or IO permission."""
+        with self._lock:
+            self._sdk_start_material_current(value, current, 'confirm_sdk_start')
+
+    def retire_material_output(self, value: _Output) -> bool:
+        """Release transport only; original Core proof/borrow/children survive."""
+        with self._lock:
+            self._owned_output(value)
+            code = self._call('material', 'retire_output', value.handle)
+            if code == -9:
+                return False
+            self._check('retire_material_output', code)
+            return True
 
     def produce_native_command(self, value: _Output) -> None:
         self._produce_output(value, 'source', 'produce_command')
