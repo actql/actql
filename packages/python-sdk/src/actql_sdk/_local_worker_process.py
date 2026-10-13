@@ -83,6 +83,8 @@ class OriginalWorkerProcess:
         self._closing = False
         self._parent_closed = False
         self._parent_close_inflight = False
+        self._parent_pipe_consumer: object | None = None
+        self._parent_pipe_borrowed = False
         slot._bind_process(self)
 
     def __copy__(self) -> OriginalWorkerProcess:
@@ -99,6 +101,38 @@ class OriginalWorkerProcess:
         self._nominal()
         if self._closing:
             raise ValueError('Original worker process descriptors are closing')
+
+    def _bind_parent_pipe(self, consumer: object) -> None:
+        with self._lock:
+            self._launchable()
+            if self._parent_pipe_consumer is not None:
+                raise ValueError('Original worker parent pipes already have a consumer')
+            self._parent_pipe_consumer = consumer
+
+    def _borrow_parent_pipe(self, consumer: object, kind: str) -> _OriginalDescriptor:
+        with self._lock:
+            self._launchable()
+            if (consumer is not self._parent_pipe_consumer or self._parent_pipe_borrowed
+                    or type(self._pid) is not int or self._pid <= 0
+                    or self._wait_unknown is not None):
+                raise ValueError('Original worker parent pipe is unavailable')
+            pair = {'stdin': self._stdin, 'stdout': self._stdout, 'stderr': self._stderr}.get(kind)
+            if pair is None:
+                raise ValueError('Original worker pipe is unavailable')
+            descriptor = pair[1] if kind == 'stdin' else pair[0]
+            if descriptor.closed or descriptor.close_attempted:
+                raise ValueError('Original worker parent descriptor is unavailable')
+            self._parent_pipe_borrowed = True
+            return descriptor
+
+    def _return_parent_pipe(self, consumer: object) -> None:
+        with self._lock:
+            self._nominal()
+            if consumer is not self._parent_pipe_consumer or not self._parent_pipe_borrowed:
+                raise ValueError('Foreign original worker pipe borrow')
+            # Returning a stopped Python I/O invocation is not worker stop,
+            # independent resource cleanup or execution-delegation settlement.
+            self._parent_pipe_borrowed = False
 
     def _pipe(self) -> tuple[_OriginalDescriptor, _OriginalDescriptor]:
         read, write = os.pipe()
@@ -221,6 +255,8 @@ class OriginalWorkerProcess:
             if self._parent_close_inflight:
                 raise RuntimeError('Original worker parent close cannot reenter')
             self._closing = True
+            if self._parent_pipe_borrowed:
+                raise LocalWorkerProcessPending(self)
             self._parent_close_inflight = True
             try:
                 failure: BaseException | None = None
