@@ -55,7 +55,7 @@ test('finite public entry prepares and executes one original Values Run on Node 
     assert.deepEqual(value.completedTasks, [0]);
     assert.equal(value.sites.length, 1);
     assert.deepEqual(value.sites[0], {key: 'in-process-default', generation: 0,
-      runtimeRevision: 'actql-in-process-site/0.1'});
+      runtimeRevision: 'actql-in-process-site/0.1', accepting: true});
     assert.equal(value.consumed, 1);
     assert.equal(value.counters.evaluations, 1);
     assert.equal(value.counters.protectedDispatches, 1);
@@ -104,7 +104,16 @@ test('finite capacity refusal and consumer failure retain cleanup without a repl
     assert.equal(value.consumed, input.consumeFailure ? 1 : 0);
     assert.equal(value.cleanupPending, false);
     if (input.consumeFailure) assert.ok(value.codes.includes('finite consumer failure'));
-    else assert.equal(value.finalUsage[1], '0');
+    else {
+      // Local row-capacity refusal occurs after the original attempt starts.
+      // A refused output releases physical resources, not the charged attempt.
+      assert.equal(value.phase, 'execution');
+      assert.equal(value.finalUsage[1], '1');
+      assert.equal(value.counters.evaluations, 1);
+      assert.equal(value.counters.protectedDispatches, 1);
+      assert.equal(value.outputAfterFailure, false);
+      assert.equal(value.finishedAfterFailure, false);
+    }
     released(value);
   });
 });

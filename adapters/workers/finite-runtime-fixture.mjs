@@ -123,7 +123,9 @@ export async function runFiniteCase({rows = [{id: 1}, {id: 2}], nullable = false
       finishedAfterExecution: moon.strategyHostFinished(setup), scopedUsage: usage()};
   } catch (error) {
     result = {status: 'failed', phase, codes: failureCodes(error),
-      cleanupPending: !!error.cleanupHandle?.status().pending, scopedUsage: usage()};
+      cleanupPending: !!error.cleanupHandle?.status().pending, scopedUsage: usage(),
+      outputAfterFailure: setup ? moon.strategyHostOutput(setup, 0) !== undefined : false,
+      finishedAfterFailure: setup ? moon.strategyHostFinished(setup) : false};
     if (!setup) duplicateOpen = refusal(() => host.open(preparation, owner, authorization));
   } finally {
     if (setup) {
