@@ -3,6 +3,7 @@ package "actql/actql/run_publication"
 
 import {
   "actql/actql/canonical_json",
+  "actql/actql/decode_scalar",
   "actql/actql/encode_core",
   "actql/actql/relation_schema",
   "actql/actql/value_admission",
@@ -608,6 +609,8 @@ pub fn native_effect_source_custody_record_json(PublicationContract, CapturedEff
 
 pub fn next_result_delivery_row(ResultDeliverySerializer, String) -> Result[String, DeliverySerializationIssue]
 
+pub fn normalize_content_media_type_case(String, Int) -> Result[String, ContentMediaTypeIssue]
+
 pub fn normalize_control_amount_decimal(String) -> Result[String, RunControlMoneyIssue]
 
 pub fn parse_content_reference_binding(String, @value_admission.ReferenceLimits) -> Result[GeneratedContentBinding, GeneratedContentReferenceIssue]
@@ -1112,6 +1115,11 @@ pub(all) enum ContentInputCell {
   ContentText(String)
   ContentInputUnavailable
 }
+
+pub(all) enum ContentMediaTypeIssue {
+  Text(@decode_scalar.Utf8AdmissionIssue)
+  InvalidSyntax
+} derive(Eq, @debug.Debug)
 
 pub(all) struct ContentProfileLimits {
   max_fields : Int
