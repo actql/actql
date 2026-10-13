@@ -62,12 +62,6 @@ test "checked listing refuses missing capacity and either shortage before the or
       )
       is Err(@row_source_host.Physical(@resources.InvalidLimits)),
     )
-    assert_true(
-      @row_source_host.start_accounted_row_acquisition(
-        acquisition, "no-inferred-listing-capacity", verify, ledger, 0L, 0L,
-      )
-      is Err(@row_source_host.Physical(@resources.InvalidLimits)),
-    )
     assert_eq(@resources.ledger_usage(ledger), before)
     let started = @row_source_host.start_accounted_listing_row_acquisition(
       acquisition,

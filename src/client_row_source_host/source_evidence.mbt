@@ -101,7 +101,10 @@ pub fn issue_row_source_evidence(
     observed_at,
     snapshot_ref: row_observation_cid(capture.observation),
   }
-  if configuration.listing_rows is Some(_) {
+  // Only the selected funded report variant has the additional data/custody
+  // obligation. Ordinary resolved listings retain their preactivation evidence
+  // scope; absence never becomes a zero-row report or completed correlation.
+  if configuration.listing_rows is Some(ReportListingRows(_, _)) {
     guard !capture.run.closed &&
       capture.run.physical is Some(physical) &&
       row_listing_encoding_reservation_live(physical) &&
@@ -129,4 +132,30 @@ pub fn issue_row_source_evidence(
   @publication.seal_completed_source_observation(fields).map_err(issue => {
     SourceEvidence(Evidence(issue))
   })
+}
+
+///|
+// Explicit report-capable entry in the same Source Owner. A resolved listing,
+// even a genuinely empty one, cannot satisfy this entry without selecting the
+// additional accounted profile and retaining its original scan/report custody.
+// The common issuer below still checks all nominal bindings and live funding.
+// Include this call-frame overlap in the selected report execution envelope;
+// no ordinary Source call acquires an additional standing field or wrapper.
+pub fn issue_row_listing_source_evidence(
+  acquisition : RowAcquisition,
+  capture : RowSourceCapture,
+  identity : @query.CapturedSourceRelationIdentity,
+  logical_input : @publication.RunEvidenceValue,
+  authority_scope_cid : String,
+  effective_data_policy_cid : String,
+  observed_at : String,
+) -> Result[@publication.RunEvidenceValue, RowHostIssue] {
+  guard capture.run.configuration is DirectConfiguration(configuration) &&
+    configuration.listing_rows is Some(ReportListingRows(_, _)) else {
+    return Err(SourceEvidence(ObservationUnavailable))
+  }
+  issue_row_source_evidence(
+    acquisition, capture, identity, logical_input, authority_scope_cid,
+    effective_data_policy_cid, observed_at,
+  )
 }
