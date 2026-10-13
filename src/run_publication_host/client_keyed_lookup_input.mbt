@@ -98,6 +98,7 @@ fn start_client_keyed_lookup_input_owned(
   max_bytes : Int,
   max_work : Int,
   original : @resources.OriginalLedgerIdentity?,
+  prefix? : @resources.Reservation? = None,
 ) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue] {
   if max_bytes < 1 ||
     max_work < 1 ||
@@ -108,7 +109,10 @@ fn start_client_keyed_lookup_input_owned(
   }
   let rows = @execution.producer_read_row_count(left.read)
   if original is Some(identity) &&
-    !@resources.original_ledger_captured_preparation_available(identity) {
+    !@resources.original_ledger_captured_preparation_available(
+      identity,
+      prefix~,
+    ) {
     return Err(Assembly("original_custody_changed"))
   }
   guard @acquisition.lookup_bounds_at(

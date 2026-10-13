@@ -42,6 +42,8 @@ pub fn captured_source_matches_query(CapturedInputSource, QuerySequence) -> Bool
 
 pub fn captured_source_matches_result(CapturedInputSource, @execution_relation.ManagedResultOccurrence) -> Bool
 
+pub fn captured_source_matches_segment_input(CapturedInputSource, @execution_relation.ProducerRead) -> Bool
+
 pub fn captured_source_relation_dependency_bodies(CapturedSourceRelationIdentity, CapturedInputSource) -> (String, String)?
 
 pub fn captured_source_relation_identity_matches_source(CapturedSourceRelationIdentity, CapturedInputSource) -> Bool

@@ -9,9 +9,10 @@ import shutil
 import struct
 import subprocess
 import sys
-import tomllib
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts'))
+from python_release_cohort import read_cohort  # noqa: E402
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
 from actql_sdk._local_distribution import LocalComponents, inspect_local_components  # noqa: E402
 
@@ -87,12 +88,8 @@ def verify_artifact(artifact: Path) -> LocalComponents:
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT):
         raise ValueError('Use committed clean Python Local recipe source')
     head = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
-    sdk = tomllib.loads((ROOT / 'packages/python-sdk/pyproject.toml').read_text())['project']
-    runtime = ROOT / 'packages/python-local-runtime'
-    package = tomllib.loads((runtime / 'pyproject.toml').read_text())['project']
-    if package['version'] != sdk['version']:
-        raise ValueError('Python Local package versions do not form one release cohort')
-    components = inspect_local_components(artifact, package_version=sdk['version'])
+    version = read_cohort(ROOT)
+    components = inspect_local_components(artifact, package_version=version)
     if components.source_sha != head:
         raise ValueError('Python Local producer source does not match the recipe source')
     with components.module.open('rb') as source:

@@ -2,6 +2,7 @@
 package "actql/actql/platform_native/credential_resource"
 
 import {
+  "actql/actql/checkpoint_runtime",
   "actql/actql/platform_native/filesystem",
   "actql/actql/platform_native/http_client",
   "actql/actql/platform_native/publication_store",
@@ -11,6 +12,8 @@ import {
 }
 
 // Values
+pub fn admit_native_local_signing_key_selection(String) -> Result[NativeLocalSigningKeySelection, NativeLocalSigningKeySelectionIssue]
+
 pub fn admit_signed_native_credential_grant(@signature.Library, @remote_credential.RemoteCredentialSignatureEnvelope, Array[NativeCredentialAuthority]) -> Result[@remote_credential.RemoteCredentialGrant, NativeCredentialResourceIssue]
 
 pub fn bind_native_local_preparation_raw_lookup(@sqlite.Database, NativeLocalPreparationRawStore, @remote_credential.LocalPreparationCredentialGrant, @remote_credential.LocalPreparationCredentialScope, (NativeLocalPreparationCredentialAuthorization) -> Bool, () -> Bool) -> Result[NativeLocalPreparationRawLookup, NativeCredentialResourceIssue]
@@ -38,6 +41,10 @@ pub fn install_native_credential_resource_service_with_use_retention(@sqlite.Dat
 pub fn install_native_local_credential_resource_service(@sqlite.Database, @http_client.Client, Array[NativeCredentialOperation], (NativeLocalCredentialAuthorization) -> Bool) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
 
 pub fn install_native_local_preparation_credential_resource_service(@sqlite.Database, @http_client.Client, Array[NativeLocalPreparationCredentialInstallation], (NativeLocalPreparationCredentialAuthorization) -> Bool, raw_store? : NativeLocalPreparationRawStore?) -> Result[NativeCredentialResourceService, NativeCredentialResourceIssue]
+
+pub fn native_local_signing_key_selection_allows_kind(NativeLocalSigningKeySelection, @checkpoint_runtime.CheckpointKind) -> Bool
+
+pub fn native_local_signing_key_selection_projection(NativeLocalSigningKeySelection) -> (Bool, @remote_credential.LocalSigningPurpose, String, String, String, String, String, String)
 
 pub fn query_native_credential_use(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, NativeCredentialScope) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue]
 
@@ -161,6 +168,13 @@ pub struct NativeLocalPreparationRawRecovery {
 }
 
 type NativeLocalPreparationRawStore
+
+type NativeLocalSigningKeySelection
+
+pub(all) enum NativeLocalSigningKeySelectionIssue {
+  InvalidSigningKeySelection
+  SigningKeySelectionLimitExceeded
+}
 
 // Type aliases
 
