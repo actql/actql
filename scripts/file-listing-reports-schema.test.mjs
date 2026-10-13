@@ -92,6 +92,22 @@ test('report occurrence, Resource, version and nullable presence are identity-be
   // Identity sensitivity is not an Owner admission or authorization test.
 });
 
+test('current corrected schema and pins agree without changing Ref or non-listing identities', () => {
+  const current = read('spec/contracts/actql-protocol-schemas.json');
+  assert.deepEqual(applyFileListingReportsSchema(current), current);
+  assert.deepEqual(current.artifact_schemas.source_evidence.properties.file_listing_reports,
+    fileListingReportsSchema);
+  assert.equal(current.artifact_schema_cids.source_evidence,
+    'sha256:63485b767c477d6ed77853478eefbf7f3af055c2bfac78e915e2db8bb89b51bc');
+  const {schema_cids, registry_cid} = current;
+  assert.equal(registry_cid, cid(current.schemas));
+  for (const name of ['resource_ref', 'content_ref', 'canonical_value_contract']) {
+    assert.equal(schema_cids[name], cid(current.schemas[name]));
+  }
+  assert.equal(cid(JSON.parse(vectors.vectors[0].body)),
+    'sha256:bc7dc16b6de51a07a3bfdfeeca311da581c9e2fe35fee66f21883a80fb98b27d');
+});
+
 test('historical listing field set and non-listing bytes remain fixed without report repair', () => {
   const historical = vectors.historical;
   assert.equal(historical.source, 'd71d9c3667bf7cb12a501f491b1f5d418d44746b');
