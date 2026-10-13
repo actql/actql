@@ -904,6 +904,9 @@ const temporalJoinReceipts = createVerifiedCaseReceipts(transport ?? 'both', wri
 const rankingFusionReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
   prefix: 'ranking-fusion', version: 'actql-ranking-fusion-acceptance/0.1',
 });
+const quotedIdentifierReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
+  prefix: 'quoted-identifier', version: 'actql-quoted-identifier-acceptance/0.1',
+});
 const windowGroupReceipts = createVerifiedCaseReceipts(transport ?? 'both', writeFile, {
   prefix: 'window-group', version: 'actql-window-group-acceptance/0.1',
 });
@@ -1243,6 +1246,9 @@ const recordCohort = (mode, directory, cohort, authorization) => {
     if (item.name.startsWith('carrier-continuation-')) await carrierContinuationReceipts.record(item, mode);
     if (item.name.startsWith('temporal-')) await temporalJoinReceipts.record(item, mode);
     if (item.name.startsWith('ranking-fusion-')) await rankingFusionReceipts.record(item, mode);
+    if (item.name.startsWith('quoted-identifier-') || item.name.startsWith('identifier-role-')) {
+      await quotedIdentifierReceipts.record(item, mode);
+    }
     if (item.name.startsWith('window-group-')) await windowGroupReceipts.record(item, mode);
     if (item.name.startsWith('sequence-')) await sequenceReceipts.record(item, mode);
     if (item.name.startsWith('lag-')) await lagReceipts.record(item, mode);
@@ -1364,6 +1370,7 @@ if (transport !== 'tail') {
   await sequenceReceipts.complete();
   await temporalJoinReceipts.complete();
   await rankingFusionReceipts.complete();
+  await quotedIdentifierReceipts.complete();
   await lagReceipts.complete();
   await cteValueTableReceipts.complete();
   await fromUnpivotReceipts.complete();
