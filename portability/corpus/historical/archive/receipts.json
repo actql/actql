@@ -11,6 +11,12 @@
     "canonical_sha256": "6e493bab7d787593c1c1c4a43814c28afabd375e4d0aca7296fc93f4a294080d",
     "canonical_bytes": 159965
   },
+  "portability/corpus/historical/pre-general-array-membership-contract-identities.json": {
+    "raw_sha256": "f467c949b2924e108b5959545d965c317a14afc3d1223ab3224024dba730a49a",
+    "raw_bytes": 2098453,
+    "canonical_sha256": "e413d080f256e6123982af9aa864b300ba98eaf51e42a6e38f0a1e7a0a5162d3",
+    "canonical_bytes": 607854
+  },
   "portability/corpus/historical/pre-number-extrema-contract-identities.json": {
     "raw_sha256": "05aec95bbdac410bee530daee540b1bcca89af6967ce551c471b74b161c1cc1c",
     "raw_bytes": 3075946,

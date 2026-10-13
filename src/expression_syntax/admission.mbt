@@ -169,11 +169,11 @@ fn read(root : @decode.Cursor, limits : Limits) -> Expression raise Stop {
                   invalid(cursor, origin, InvalidExpression)
                 }
                 let tag = names[0]
-                if role is InRight && tag != "literal" && tag != "$param" {
-                  invalid(cursor, origin, InvalidArguments)
-                }
                 roles.push(
-                  if role is InRight && tag == "literal" {
+                  if role is InRight &&
+                    tag == "literal" &&
+                    @decode.array_length(@decode.lookup(object, tag).unwrap())
+                    is Some(_) {
                     InList
                   } else {
                     expression_role(tag, cursor, origin)
