@@ -94,15 +94,31 @@ test('public JSON/text controls retain independent values, ordered schema and re
           {from: 'all_rows', select: ['id', 's'], as: 'captured'}]);
         assert.deepEqual(source.results, {rows: {from: 'captured', fields: ['id', 's']}});
       }
-      assert.deepEqual(body.stages[2].inputs, {
+      // The complete consumer oracle is authored from the independent corpus,
+      // not from sourceRankingControlProgram or a runtime-generated Program.
+      const policy = fixture.name.endsWith('weighted')
+        ? {weighted_sum: {left: corpus.controls.weighted_sum.left,
+          right: corpus.controls.weighted_sum.right}}
+        : 'max';
+      const expectedConsumer = {id: 'main', inputs: {
         left: {result: {stage: 'left_source', result: 'rows'}},
         right: {result: {stage: 'right_source', result: 'rows'}},
-      });
-      const ranking = body.stages[2].steps[0].merge_rankings;
-      assert.equal(ranking.score, 's');
-      assert.equal(ranking.candidate, 'id');
-      assert.equal(ranking.k, 3);
-      assert.deepEqual(ranking.score_contract, {domain: 'Relevance', normalization: 'Identity', range: [0, 1]});
+      }, steps: [{from: 'left', merge_rankings: {with: 'right', by: [],
+        candidate: 'id', score: 's', k: 3, score_policy: policy,
+        score_contract: {domain: 'Relevance', normalization: 'Identity', range: [0, 1]}}, as: 'fused'},
+      {from: 'fused', sort: [{field: 'rank', dir: 'asc', nulls: 'first'}]},
+      {select: ['id', 'score', 'rank'], as: 'out'}],
+      results: {rows: {from: 'out', fields: ['id', 'score', 'rank']}}};
+      assert.deepEqual(body.stages[2], expectedConsumer);
+      assert.deepEqual(body.results, {answer: {from: {stage: 'main', result: 'rows'}}});
+      if (fixture.name.endsWith('weighted')) {
+        for (const wrongPolicy of ['max', {weighted_sum: {left: 1, right: 1}}]) {
+          const changed = structuredClone(body.stages[2]);
+          changed.steps[0].merge_rankings.score_policy = wrongPolicy;
+          assert.throws(() => assert.deepEqual(changed, expectedConsumer),
+            {code: 'ERR_ASSERTION'});
+        }
+      }
     }
   }
   assert.equal(sourceRankingPublicRefusals.length, 4);
