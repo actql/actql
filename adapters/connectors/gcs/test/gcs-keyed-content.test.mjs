@@ -12,7 +12,7 @@ const content = Object.freeze({$fixtureContent: 'actually-verified-bytes'});
 const scope = {operation: 'gcs:file:read', resourceOrigin: 'https://storage.googleapis.com',
   siteGeneration: 1, connectorRegistration: 'gcs', connectorRevision: 'gcs/0.1'};
 
-function fixture() {
+function fixture(reportedMediaType = 'text/csv') {
   const state = {requests: [], calls: [], charges: [], pages: [], verification: [],
     captures: [], currentChecks: 0, pending: undefined};
   const options = {requestWire: JSON.stringify({resource, version: generation}),
@@ -41,7 +41,7 @@ function fixture() {
     verifyRead: async () => { state.currentChecks++; },
     captureContent: async observed => {
       assert.deepEqual(observed.bytes, payload);
-      assert.equal(observed.mediaType, 'text/csv');
+      assert.equal(observed.mediaType, reportedMediaType);
       assert.equal(observed.contentCid,
         'sha256:15e2b0d3c33891ebb0f1ef609ec419420c20e320ce94c65fbc8c3312448eb225');
       state.captures.push(observed); return content;
@@ -49,7 +49,8 @@ function fixture() {
     callResource: async invocation => {
       state.calls.push(invocation);
       return {accepted: true, statusCode: 200, headers: [],
-        body: state.calls.length === 1 ? Buffer.from(JSON.stringify(metadata)) : payload};
+        body: state.calls.length === 1 ? Buffer.from(JSON.stringify({
+          ...metadata, contentType: reportedMediaType})) : payload};
     }};
   return {options, state};
 }
@@ -74,6 +75,36 @@ test('keyed GCS capture sequences actual request observations and consumes metad
   assert.equal(state.requests[1].target,
     '/storage/v1/b/actql-fixture/o/test%2Fe%CC%81%252F.csv?generation=9007199254740993&ifGenerationMatch=9007199254740993&alt=media&ifMetagenerationMatch=9007199254740995');
 });
+
+for (const [name, reportedMediaType] of [
+  ['type and subtype case', 'Application/PDF'],
+  ['decomposed parameter value', 'Text/Plain;Label="e\u0301";X-ID=AbC'],
+  ['composed parameter value', 'Text/Plain;Label="\u00e9";X-ID=AbC'],
+  ['quoted escapes and parameter case', 'Text/Plain;Label="A\\"B\\\\C";CHARSET=UTF-8'],
+]) {
+  test(`keyed GCS capture preserves the original MIME report: ${name}`, async () => {
+    const {options, state} = fixture(reportedMediaType);
+    await readGcsKeyedContent(options);
+    // This executes the provider transport with fixture exchanges and a
+    // fixture capture owner. It does not issue a ContentRef or prove real GCS
+    // acceptance. Canonical projection belongs to the checked Core issuer;
+    // the transport must not discard the original report before that boundary.
+    assert.equal(state.captures.length, 1);
+    const captured = state.captures[0];
+    assert.equal(captured.mediaType, reportedMediaType);
+    assert.equal(captured.metadata.mediaType, reportedMediaType);
+    assert.equal(JSON.parse(state.charges[0].body).contentType, reportedMediaType);
+    assert.equal(captured.metadata.generation, generation);
+    assert.equal(captured.metadata.metageneration, '9007199254740995');
+    assert.deepEqual(captured.bytes, payload);
+    assert.deepEqual(state.pages, [[], [{resource, version: generation, content}]]);
+    assert.equal(state.pending, undefined);
+    assert.equal(state.requests.length, 2);
+    assert.equal(state.calls.length, 2, 'report preservation does not reacquire content');
+    assert.equal(state.currentChecks, 1);
+    assert.deepEqual(state.verification, [9]);
+  });
+}
 
 test('wrong media bytes leave the original physical ticket pending and produce no ContentRef row', async () => {
   const {options, state} = fixture(); const call = options.callResource;

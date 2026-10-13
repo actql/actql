@@ -1,7 +1,7 @@
 ///|
 test "current expression references reach both inherited and replacement contracts" {
   let root = expression_contract_body(
-    "sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289",
+    "sha256:e7645d18471d4436b7542302adce28303a8a634ce29e9f5fd849f5cee8d1159e",
   ).unwrap()
   assert_eq(root, ExpressionRoot)
   let pending = [root]
@@ -61,7 +61,10 @@ test "current expression edges retain exact declared reference positions and pin
   )
   for
     unknown in [
-      "", "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe72710",
+      "",
+      // A historical root is not a fallback for the current expression grammar.
+       "sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289",
+      "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe72710",
     ] {
     assert_true(expression_contract_body(unknown) is None)
   }
