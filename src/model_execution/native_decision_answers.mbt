@@ -17,7 +17,10 @@ priv suberror NativeAnswerStop {
 }
 
 ///|
-fn native_answer_charge(b : NativeAnswerBudget, count : Int) -> Unit raise NativeAnswerStop {
+fn native_answer_charge(
+  b : NativeAnswerBudget,
+  count : Int,
+) -> Unit raise NativeAnswerStop {
   if count < 0 || count > b.limit - b.work {
     raise NativeAnswerStop(Limit)
   }
@@ -27,7 +30,10 @@ fn native_answer_charge(b : NativeAnswerBudget, count : Int) -> Unit raise Nativ
 ///|
 // Prepay every retained field-name traversal before building the existing
 // decoder lookup. This is a finite synchronous codec, not a quantum cursor.
-fn native_answer_object(source : @decode.Cursor, b : NativeAnswerBudget) -> @decode.ObjectView raise NativeAnswerStop {
+fn native_answer_object(
+  source : @decode.Cursor,
+  b : NativeAnswerBudget,
+) -> @decode.ObjectView raise NativeAnswerStop {
   guard @decode.object_length(source) is Some(count) else {
     raise NativeAnswerStop(Malformed)
   }
@@ -43,7 +49,11 @@ fn native_answer_object(source : @decode.Cursor, b : NativeAnswerBudget) -> @dec
 }
 
 ///|
-fn native_answer_required(object : @decode.ObjectView, name : String, b : NativeAnswerBudget) -> @decode.Cursor raise NativeAnswerStop {
+fn native_answer_required(
+  object : @decode.ObjectView,
+  name : String,
+  b : NativeAnswerBudget,
+) -> @decode.Cursor raise NativeAnswerStop {
   native_answer_charge(b, name.length() + 1)
   match @decode.required(object, name) {
     Ok(value) => value
@@ -52,7 +62,10 @@ fn native_answer_required(object : @decode.ObjectView, name : String, b : Native
 }
 
 ///|
-fn native_answer_text(source : @decode.Cursor, b : NativeAnswerBudget) -> String raise NativeAnswerStop {
+fn native_answer_text(
+  source : @decode.Cursor,
+  b : NativeAnswerBudget,
+) -> String raise NativeAnswerStop {
   match @decode.text(source) {
     Ok(text) => {
       native_answer_charge(b, text.length() + 1)
@@ -63,7 +76,10 @@ fn native_answer_text(source : @decode.Cursor, b : NativeAnswerBudget) -> String
 }
 
 ///|
-fn native_answer_number(source : @decode.Cursor, b : NativeAnswerBudget) -> Double raise NativeAnswerStop {
+fn native_answer_number(
+  source : @decode.Cursor,
+  b : NativeAnswerBudget,
+) -> Double raise NativeAnswerStop {
   native_answer_charge(b, 1)
   match @decode.finite_number(source) {
     Ok(value) => value
@@ -119,27 +135,49 @@ pub fn project_native_decision_answers(
       // by a position alias. No semantic CID is calculated from this wire.
       native_answer_charge(b, id.length())
       @encode.key(writer, id)
-      let answer_source = native_answer_required(answers, native_decision_wire_key("q", i), b)
+      let answer_source = native_answer_required(
+        answers,
+        native_decision_wire_key("q", i),
+        b,
+      )
       let answer = native_answer_object(answer_source, b)
       let kind = native_decision_text(question, "type").unwrap()
-      let observed = native_answer_text(native_answer_required(answer, "type", b), b)
+      let observed = native_answer_text(
+        native_answer_required(answer, "type", b),
+        b,
+      )
       if observed != (if kind == "boolean" { "noul" } else { kind }) {
         raise NativeAnswerStop(Malformed)
       }
       @encode.begin_object(writer)
       if kind == "boolean" {
         @encode.key(writer, "probability")
-        @encode.number_value(writer, native_answer_number(native_answer_required(answer, "noul", b), b))
+        @encode.number_value(
+          writer,
+          native_answer_number(native_answer_required(answer, "noul", b), b),
+        )
       } else {
-        let items = native_decision_field(question, if kind == "choice" { "options" } else { "levels" }).unwrap()
+        let items = native_decision_field(
+          question,
+          if kind == "choice" {
+            "options"
+          } else {
+            "levels"
+          },
+        ).unwrap()
         let item_count = @decode.array_length(items).unwrap()
-        let probabilities_source = native_answer_required(answer, "probabilities", b)
+        let probabilities_source = native_answer_required(
+          answer, "probabilities", b,
+        )
         if @decode.object_length(probabilities_source) != Some(item_count) {
           raise NativeAnswerStop(Malformed)
         }
         let probabilities = native_answer_object(probabilities_source, b)
         if kind == "choice" {
-          let chosen = native_answer_text(native_answer_required(answer, "choice", b), b)
+          let chosen = native_answer_text(
+            native_answer_required(answer, "choice", b),
+            b,
+          )
           let mut chosen_original = None
           for j in 0..<item_count {
             native_answer_charge(b, 12)
@@ -162,8 +200,15 @@ pub fn project_native_decision_answers(
         // Original option/level order, never response object enumeration.
         for j in 0..<item_count {
           native_answer_charge(b, 1)
-          let position_key = if kind == "choice" { native_decision_wire_key("o", j) } else { j.to_string() }
-          let p = native_answer_number(native_answer_required(probabilities, position_key, b), b)
+          let position_key = if kind == "choice" {
+            native_decision_wire_key("o", j)
+          } else {
+            j.to_string()
+          }
+          let p = native_answer_number(
+            native_answer_required(probabilities, position_key, b),
+            b,
+          )
           @encode.begin_object(writer)
           if kind == "choice" {
             let option = native_decision_option_id(original, i, j).unwrap()
@@ -181,7 +226,10 @@ pub fn project_native_decision_answers(
         @encode.end_array(writer)
         if kind == "score" {
           @encode.key(writer, "score")
-          @encode.number_value(writer, native_answer_number(native_answer_required(answer, "score", b), b))
+          @encode.number_value(
+            writer,
+            native_answer_number(native_answer_required(answer, "score", b), b),
+          )
         }
       }
       @encode.end_object(writer)
@@ -192,11 +240,15 @@ pub fn project_native_decision_answers(
     Ok((wire, b.work))
   } catch {
     NativeAnswerStop(issue) => {
-      if held_writer is Some(writer) { @encode.cancel_writer(writer) }
+      if held_writer is Some(writer) {
+        @encode.cancel_writer(writer)
+      }
       Err(issue)
     }
     _ => {
-      if held_writer is Some(writer) { @encode.cancel_writer(writer) }
+      if held_writer is Some(writer) {
+        @encode.cancel_writer(writer)
+      }
       Err(Limit)
     }
   }
