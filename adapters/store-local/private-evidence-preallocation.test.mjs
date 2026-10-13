@@ -147,3 +147,59 @@ test('private evidence: original validation and missing-key priority remain '
   assert.throws(() => store.preparePrivateEvidence(name, 'x'.repeat(132),
     digest('key')), {code: 'InvalidPublicationPrivateEvidence'});
 });
+
+test('private evidence: completed AES-GCM block does not acquire a second '
+    + 'ciphertext backing through concat', async t => {
+  const {store} = await fixture(t, 16384);
+  const wire = 'original e\u0301 bytes\r\n';
+  const semanticCid = digest(wire);
+  const holdingCid = digest('single ciphertext backing');
+  const originalCipher = crypto.createCipheriv;
+  const originalConcat = Buffer.concat;
+  let ciphertextBlock;
+  let finalBytes;
+  let ciphertextCopies = 0;
+  crypto.createCipheriv = (...args) => {
+    const cipher = Reflect.apply(originalCipher, crypto, args);
+    const update = cipher.update;
+    const final = cipher.final;
+    cipher.update = function(...updateArgs) {
+      ciphertextBlock = Reflect.apply(update, this, updateArgs);
+      return ciphertextBlock;
+    };
+    cipher.final = function(...finalArgs) {
+      const result = Reflect.apply(final, this, finalArgs);
+      finalBytes = result.byteLength;
+      return result;
+    };
+    return cipher;
+  };
+  Buffer.concat = function(chunks, ...args) {
+    if (ciphertextBlock !== undefined && chunks.includes(ciphertextBlock)) {
+      ciphertextCopies++;
+    }
+    return Reflect.apply(originalConcat, Buffer, [chunks, ...args]);
+  };
+  syncBuiltinESMExports();
+  let prepared;
+  try {
+    prepared = await store.preparePrivateEvidence(name, wire, semanticCid);
+  } finally {
+    crypto.createCipheriv = originalCipher;
+    Buffer.concat = originalConcat;
+    syncBuiltinESMExports();
+  }
+  // Commit before assertions so failure teardown still preserves/settles the
+  // actual writer custody. This is not Core admission or capacity evidence.
+  await store.commitPhysicalHolding({
+    version: 'actql-local-physical-holding/0.1',
+    namespace: 'publication-private', holding_cid: holdingCid,
+    manifest_cid: semanticCid,
+    objects: [{cid: prepared.physicalCid, byte_count: prepared.bytes}],
+  }, [prepared.prepared]);
+  assert.deepEqual(await store.readPrivateEvidence(name, semanticCid, holdingCid),
+    Buffer.from(wire, 'utf8'));
+  assert.equal(ciphertextBlock.byteLength, 20);
+  assert.equal(finalBytes, 0);
+  assert.equal(ciphertextCopies, 0);
+});
