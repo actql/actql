@@ -28,7 +28,6 @@ pub fn original_keyed_serialization_preparation_available(
     physical_equal(inventory.reservations[2], assembly) &&
     physical_equal(assembly.owner, ledger) &&
     !assembly.open &&
-    !assembly.cleanup_pending &&
     inventory.holdings[children + 1].reservation_serial == assembly.serial else {
     return false
   }
@@ -40,7 +39,6 @@ pub fn original_keyed_serialization_preparation_available(
   for index in 0..<children {
     let token = inventory.reservations[index + 3]
     if token.open ||
-      token.cleanup_pending ||
       inventory.holdings[index + 1].reservation_serial != token.serial {
       return false
     }
@@ -63,7 +61,9 @@ pub fn original_keyed_lookup_dependents_retired(
   }
   for index in 3..<inventory.reservations.length() {
     let token = inventory.reservations[index]
-    if token.open || token.cleanup_pending {
+    // settle_reservation closes the token after trusted cleanup ACK; its
+    // historical cleanup_pending field need not be reset by that operation.
+    if token.open {
       return false
     }
   }
