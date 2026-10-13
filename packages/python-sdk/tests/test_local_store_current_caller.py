@@ -39,6 +39,7 @@ class StoreCurrentCallerTests(unittest.TestCase):
         before = core._call
         frames, packets = [], []
         def call(family, name, *args):
+            if family == 'publication_commit_export' and name == 'result_count': return 1
             if family in ('publication', 'publisher', 'payload_record', 'publication_commit_export'):
                 frame = core._journal_callbacks(binding._current.ticket).reader
                 self.assertIsNotNone(frame, (family, name))
@@ -70,7 +71,7 @@ class StoreCurrentCallerTests(unittest.TestCase):
             stopped=lambda _: True, workspace_cleanup=lambda: True, workspace_stopped=lambda: True)
             for _ in range(2)]
         for transfer in transfers: transfer.reserve()
-        caller = OriginalStoreReconciliation(projection, facts, store, originals, publisher, *transfers)
+        caller = OriginalStoreReconciliation(projection, (facts,), store, originals, publisher, *transfers)
         return store, core, binding, codes, caller, frames, packets, originals, transfers, scope
 
     def test_same_original_binding_survives_lookup_and_is_fresh_for_advance_finish(self):

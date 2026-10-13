@@ -16,7 +16,7 @@ import secrets
 from pathlib import Path
 import stat
 import time
-from typing import Any, TypeVar
+from typing import Any, Literal, TypeVar
 
 from . import _wire as wire
 from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _Workspace, _PublisherFact, _Task, _ResultExport, LocalTaskProgress, LocalResultProgress
@@ -28,6 +28,8 @@ from ._local_preparation import LocalPreparation, _Environment, _Preparation
 from ._local_run import LocalRunCustody, _RunConfiguration, _Run, _PhysicalStart, _SourceFreeCompute
 from ._local_commit_projection import OriginalCommitProjection
 from ._local_reader_facts import OriginalReaderFacts
+from ._local_observation_transfer import OriginalObservationTransfer
+from ._local_store_reconciliation import OriginalStoreReconciliation
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
 from ._values import wire_bytes
 
@@ -135,6 +137,9 @@ class InstalledLocalHost:
         self._commit_projections: list[OriginalCommitProjection] = []
         self._commit_requests: dict[int, _Input] = {}
         self._reader_facts: list[OriginalReaderFacts] = []
+        self._observation_transfers: list[OriginalObservationTransfer] = []
+        self._store_observations: dict[int, OriginalStoreReconciliation] = {}
+        self._observation_attempts: set[int] = set()
         self._publication_write_attempts: set[int] = set()
         self._pending_publication_write: OriginalCommitProjection | None = None
         self._payloads: list[_PayloadCustody] = []
@@ -1645,6 +1650,113 @@ class InstalledLocalHost:
             self._commit_projections.append(projection)
             return projection
 
+    def _original_commit_reader_facts(self, projection: OriginalCommitProjection) -> tuple[OriginalReaderFacts, ...]:
+        """Borrow the complete original record/reader inventory for one view."""
+        installation = self._active()
+        if not any(value is projection for value in self._commit_projections):
+            raise ValueError('Foreign original Local commit view')
+        collected: list[OriginalReaderFacts] = []
+        def select(_: _Output) -> None:
+            count = self._core.publication_commit_result_count(
+                projection._publication, projection._configuration)
+            selected = [held for held in self._payloads if held.publication is projection._publication]
+            if not count or len(selected) != count:
+                raise ValueError('Incomplete original Local Result reader inventory')
+            for index in range(count):
+                matches = [held for held in selected if held.index == index]
+                if len(matches) != 1:
+                    raise ValueError('Ambiguous original Local Result reader ordinal')
+                held = matches[0]
+                self._payload_original(held)
+                if held.reader is None or held.record is None or held.capacity is None or held.row is None:
+                    raise ValueError('Original Sealed reader/fences are unavailable')
+                facts = [fact for fact in self._reader_facts
+                         if fact._projection is projection and fact._record is held.record]
+                if len(facts) > 1:
+                    raise ValueError('Ambiguous original Local reader metadata loan')
+                if facts:
+                    fact = facts[0]
+                else:
+                    fact = OriginalReaderFacts(projection, held.record, held.reader.root, held.reader,
+                        index, index, held.store_authority, held.generation,
+                        cleanup=lambda: True, stopped=lambda _: True)
+                    # Retain before the first fallible metadata allocation.
+                    self._reader_facts.append(fact)
+                if fact._reader is not held.reader or fact._result != index:
+                    raise ValueError('Foreign original Local completed reader')
+                collected.append(fact)
+        with self._core._lock:
+            installation.binding.inspect(select)
+            return tuple(collected)
+
+    def _prepare_original_store_observation(self, projection: OriginalCommitProjection, publisher: _Output) -> None:
+        """Forward actual same-key lookup without a write, resend or ACK.
+
+        All original readers/fences and both transfer workspaces are retained
+        before querying. Query failure remains the original Core Unknown action;
+        it never becomes NotFound or a new operation. Failed transfer/cleanup
+        keeps the same holders and does not allocate another lookup attempt.
+        """
+        installation = self._active()
+        store = installation._store
+        if (store is None or not any(value is projection for value in self._commit_projections)
+                or not any(value is publisher for value in self._publishers)):
+            raise ValueError('Foreign original Local Store observation')
+        with self._core._lock:
+            key = projection._publication.ticket
+            if key in self._observation_attempts:
+                raise LocalStorageError('Original Store observation is retained; advance or clean the same handles')
+            self._observation_attempts.add(key)
+            facts = self._original_commit_reader_facts(projection)
+            originals: list[tuple[ByteFence, CapacityReservation]] = []
+            for fact in facts:
+                held = next(value for value in self._payloads if value.record is fact._record)
+                assert held.row is not None and held.capacity is not None
+                originals.append((held.row, held.capacity))
+            transfers = []
+            for _ in range(2):
+                # The existing transfer quotes bounded original bytes. Six
+                # octets per source octet plus the fixed envelope is its strict
+                # worst case, charged before Store rows or encoding are copied.
+                transfer = OriginalObservationTransfer(projection, publisher,
+                    max_source_bytes=65536, max_packet_bytes=6 * 65536 + 256,
+                    cleanup=lambda: True, stopped=lambda _: True,
+                    workspace_cleanup=lambda: True, workspace_stopped=lambda: True)
+                self._observation_transfers.append(transfer)
+                transfers.append(transfer)
+                transfer.reserve()
+            observation = OriginalStoreReconciliation(projection, facts, store, tuple(originals),
+                publisher, transfers[0], transfers[1])
+            self._store_observations[key] = observation
+            observation.prepare(binding=installation.binding)
+
+    def _advance_original_store_observation(self, projection: OriginalCommitProjection
+            ) -> Literal['append_unknown', 'confirm_uncommitted_failure', 'adopt_committed_index'] | None:
+        """Return only the original Owner's complete, current full-chain action."""
+        self._active()
+        with self._core._lock:
+            observation = self._store_observations.get(projection._publication.ticket)
+            if observation is None or observation._projection is not projection:
+                raise ValueError('Original Local Store observation is unavailable')
+            progress = observation.advance(16)
+            if not progress.ready:
+                return None
+            return observation.finish()
+
+    def _project_original_observed_index(self, projection: OriginalCommitProjection,
+                                         consume: Callable[[bytes, bytes], object]) -> None:
+        """Forward the actual stored index to the original publication caller only.
+
+        The index export itself checks the full-chain observation and publisher;
+        action codes and physical write returns cannot supply these bytes.
+        """
+        self._active()
+        with self._core._lock:
+            observation = self._store_observations.get(projection._publication.ticket)
+            if observation is None or observation._projection is not projection:
+                raise ValueError('Original Local Store observation is unavailable')
+            observation.project_observed_index(consume)
+
     def _store_original_commit(self, projection: OriginalCommitProjection,
                                facts: tuple[OriginalReaderFacts, ...],
                                originals: tuple[tuple[ByteFence, CapacityReservation], ...],
@@ -1716,6 +1828,17 @@ class InstalledLocalHost:
                 if not projection.close():
                     return False
                 self._commit_projections.remove(projection)
+            for observation in tuple(self._store_observations.values()):
+                publication = observation._projection._publication
+                if not self._core.retire_publication_observation(publication):
+                    return False
+                if not self._core.retire_publication_lookup(publication):
+                    return False
+            for transfer in tuple(reversed(self._observation_transfers)):
+                if not transfer.close():
+                    return False
+                self._observation_transfers.remove(transfer)
+            self._store_observations.clear()
             for fact in tuple(reversed(self._reader_facts)):
                 if not fact.close():
                     return False
