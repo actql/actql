@@ -1827,6 +1827,46 @@ class InstalledLocalHost:
                 raise ValueError('Original Local Store observation is unavailable')
             observation.project_observed_index(consume)
 
+    def _project_original_run_state(self, projection: OriginalCommitProjection,
+                                    consume: Callable[[bytes], object]) -> None:
+        """Forward Core RunState bytes under the original File/Store/current frame.
+
+        Only the physical observation clock is supplied here. Cleanup retains
+        its same input if output retirement or physical stop is incomplete.
+        This neither marks ACK nor infers availability or grants Result read.
+        """
+        self._active()
+        if not callable(consume):
+            raise ValueError('Invalid original Run observation consumer')
+        with self._core._lock:
+            observation = self._store_observations.get(projection._publication.ticket)
+            if observation is None or observation._projection is not projection:
+                raise ValueError('Original Local Store observation is unavailable')
+            # A pending output must not allocate another clock loan on a poll.
+            projection._ready()
+            now = self._now()
+            if type(now) is not int or not 0 <= now <= 253402300799999:
+                raise ValueError('Invalid Local physical observation time')
+            seconds, milliseconds = divmod(now, 1000)
+            observed_at = datetime.fromtimestamp(seconds, timezone.utc).replace(
+                microsecond=milliseconds * 1000).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+            source = self._copy(wire_bytes({'observed_at': observed_at}))  # type: ignore[no-untyped-call]
+            try:
+                observation.project_run_state(source, consume)
+            except BaseException:
+                # No output means the current File/Store fence refused before
+                # Core acquired the dependent output. Only the buffer Owner
+                # may confirm that this physical clock loan can be reclaimed.
+                # A trap or live output retains it for same-handle cleanup.
+                if not projection.pending_outputs and not self._core._closing:
+                    if not self._core.close_input(source):
+                        raise LocalProductCleanupPending(self) from None
+                    self._inputs.remove(source)
+                raise
+            if not self._core.close_input(source):
+                raise LocalProductCleanupPending(self)
+            self._inputs.remove(source)
+
     def _store_original_commit(self, projection: OriginalCommitProjection,
                                facts: tuple[OriginalReaderFacts, ...],
                                originals: tuple[tuple[ByteFence, CapacityReservation], ...],
