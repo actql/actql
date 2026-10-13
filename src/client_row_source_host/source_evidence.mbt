@@ -103,6 +103,8 @@ pub fn issue_row_source_evidence(
   }
   if configuration.listing_rows is Some(_) {
     guard !capture.run.closed &&
+      capture.run.physical is Some(physical) &&
+      row_listing_encoding_reservation_live(physical) &&
       configuration.listing_rows is Some(ReportListingRows(resolved, reports)) &&
       acquisition.configuration.listing_rows is Some(original) &&
       physical_equal(resolved, listing_rows_resolution(original)) &&
