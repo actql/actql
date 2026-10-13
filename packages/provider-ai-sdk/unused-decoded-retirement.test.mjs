@@ -133,10 +133,12 @@ test('partial SDK owner cleanup retries while original preparation owner remains
     persistRaw(){throw Error('Unstarted cleanup must not save');},cleanupRaw:()=>true,
     notify(){},checked:v=>v,observeAt:()=> '2026-10-13T00:00:00Z'});
   assert.equal(port.preflight.advance()._0,false);
-  assert.equal(port.preflight.advance()._0,true);
+  assert.deepEqual(port.preflight.advance(),{_0:true,_1:{originalPlan:true}});
   await until(()=>port.preflight.cleanup(),()=>progressCleanups===1);
   assert.throws(()=>pollSdkDecode(handle),{code:'ForeignSdkPreparation'},
     'SDK cleanup is complete while the other owner remains pending');
+  assert.equal(retireSdkDecodedResult(handle),true);
+  assert.throws(()=>retireSdkDecodedResult({...handle}),{code:'ForeignSdkPreparation'});
   assert.equal(port.preflight.cleanup(),false);
   assert.equal(progressCleanups,2,'Same original preparation owner is retried');
   cleanupAllowed=true;

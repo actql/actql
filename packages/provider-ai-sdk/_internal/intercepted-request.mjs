@@ -317,7 +317,10 @@ export function takeSdkDecodedResult(handle) {
 // transport, request, reader, Promise or entered-call responsibility. This is
 // not physical GC, saved response, remote stop or capacity-release evidence.
 export function retireSdkDecodedResult(handle) {
-  const state = record(handle);
+  const state = preparations.get(handle);
+  if (state === undefined) throw issue('ForeignSdkPreparation');
+  // Original preparation cleanup may finish before its parent Owner retires.
+  if (state.retired) return true;
   if (!state.settled) return false;
   state.taken = true;
   state.decoded = undefined;
