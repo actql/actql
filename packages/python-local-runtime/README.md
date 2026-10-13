@@ -57,8 +57,26 @@ artifact is rejected. Raw Wasm remains an original producer input/evidence;
 there is no image-to-JIT fallback. Component inspection is not bootstrap
 capacity adoption or permission to deserialize native code. The trusted Host
 supplier must independently adopt the matching original before VM construction.
-The image compiler, installed image loading and capacity supplier remain
-separate unverified boundaries until their matching physical acceptance.
+The installed constructor is image-only and shares the pinned Engine setting
+adapter with the producer recipe. It verifies the selected Wasmtime native
+library before import and again before Config/Engine construction, then uses
+`Module.deserialize` and the existing strict Core import/export/ABI checks.
+There is no raw-module compilation fallback. An unavailable source-original
+bootstrap capacity still refuses before image capture or VM creation.
+
+The selected classic-Wasm profile disables GC, components and native async
+stacks; their pool counts are explicitly zero because those features are
+inactive, not because unknown scratch was measured as zero. The original
+16MiB linear-memory limit is also the memory reservation, with no growth
+reservation or guard mapping. The Wasmtime38 default 512KiB Wasm stack limit
+is recorded explicitly. The 12MiB transfer pool and 100M instruction fuel
+remain unchanged. Instance-metadata and table maxima require the separately
+reviewed source-original recipe; fixture values are not product defaults.
+
+The image compiler, actual installed image execution and capacity supplier
+remain unverified until their matching physical acceptance. Native config,
+pool, module and Engine cleanup failures retain the original handles through
+the existing Core cleanup carrier; they do not cancel or retry a Run.
 
 Do not copy a historical success receipt onto a new module or derive execution
 success from this manifest. The final producer and wheel consumer evidence must

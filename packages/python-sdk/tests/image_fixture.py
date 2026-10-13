@@ -4,13 +4,16 @@ import json
 
 ENGINE = {'target': 'aarch64-apple-darwin', 'cpu_features': ['aarch64-baseline'],
     'consume_fuel': True, 'strategy': 'cranelift', 'parallel_compilation': False,
-    'allocation': 'pooling', 'pooling': {'total_core_instances': 1, 'total_memories': 1,
+    'allocation': 'pooling', 'wasm_gc': False, 'wasm_component_model': False,
+    'async_support': False, 'memory_reservation': 16777216, 'memory_guard_size': 0,
+    'memory_reservation_for_growth': 0, 'max_wasm_stack': 524288, 'pooling': {'total_core_instances': 1, 'total_memories': 1,
     'max_memories_per_module': 1, 'max_memory_size': 16777216, 'max_core_instance_size': 65536,
-    'total_tables': 1, 'max_tables_per_module': 1, 'table_elements': 64, 'total_gc_heaps': 1}}
+    'total_tables': 1, 'max_tables_per_module': 1, 'table_elements': 64, 'total_gc_heaps': 0, 'total_component_instances': 0, 'total_stacks': 0}}
 # Header-only fixture, explicitly never compiled or deserialized.
 IMAGE = b'\x7fELF\x02\x01\x01' + b'\0' * 11 + b'\xb7\x00' + b'\0' * 44
 RUNTIME_HASH = hashlib.sha256(b'independent runtime library fixture').hexdigest()
 ORIGINAL = json.dumps({'wasmtime_version': '38.0.0', 'runtime_library_sha256': RUNTIME_HASH,
+                      'runtime_library_bytes': len(b'independent runtime library fixture'),
                       'engine_body': ENGINE, 'image_bytes_limit': 1024}, indent=2).encode()
 
 

@@ -20,7 +20,7 @@ class LocalFactoryResourcesTests(unittest.TestCase):
         case.setUp();self.addCleanup(case.doCleanups)
         components = case.inspect()
         with patch('actql_sdk._local_product.installed_local_components', return_value=components) as resolve, \
-             patch('actql_sdk._local_product.load_local_module', side_effect=AssertionError('No module capture')) as capture, \
+             patch('actql_sdk._local_product.LocalCore._from_installed_image', side_effect=AssertionError('No module capture')) as capture, \
              patch('actql_sdk._local_product.LocalCore', side_effect=AssertionError('No VM')) as vm, \
              patch('actql_sdk._local_product._default_directory', side_effect=AssertionError('No Store')) as state:
             with self.assertRaisesRegex(LocalInstallationError, 'capacity original is unavailable'):

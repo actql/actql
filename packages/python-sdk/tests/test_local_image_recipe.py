@@ -20,15 +20,11 @@ class LocalImageRecipeTests(unittest.TestCase):
         self.image = b'independent fixture image; not executable'
         (self.root / 'client_host_wasm.cwasm').write_bytes(self.image)
         # These scalar test values are not an adopted product capacity profile.
-        self.engine = {'target': 'aarch64-apple-darwin', 'cpu_features': ['aarch64-baseline'],
-            'consume_fuel': True, 'strategy': 'cranelift', 'parallel_compilation': False,
-            'allocation': 'pooling', 'pooling': {'total_core_instances': 1,
-            'total_memories': 1, 'max_memories_per_module': 1, 'max_memory_size': 16777216,
-            'max_core_instance_size': 65536, 'total_tables': 1, 'max_tables_per_module': 1,
-            'table_elements': 64, 'total_gc_heaps': 1}}
+        from image_fixture import ENGINE
+        self.engine = copy.deepcopy(ENGINE)
         encoded = json.dumps(self.engine, sort_keys=True, separators=(',', ':')).encode('ascii')
         self.recipe = _SelectedImageRecipe('a' * 40, '0.0.0.dev0', 'b' * 64,
-                                         'c' * 64, encoded, len(self.image))
+                                         'c' * 64, encoded, len(self.image), len(b'independent runtime library fixture'))
         self.body = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0',
             'module_sha256': 'b' * 64, 'core_abi': LOCAL_CORE_ABI,
             'wasmtime_version': '38.0.0', 'runtime_library_sha256': 'c' * 64,

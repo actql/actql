@@ -10,7 +10,11 @@ from importlib import import_module
 import secrets
 import sys
 from threading import RLock
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    from ._local_engine import _InstalledImageInput
+    from ._local_distribution import LocalComponents
 
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
@@ -525,6 +529,15 @@ def _signature(value: Any) -> tuple[str, str]:
             ' '.join(str(item) for item in value.results))
 
 
+def _valid_core_limits(transfer_capacity: int, slots: int, fuel: int,
+                       resources: LocalCoreResources) -> bool:
+    return (type(transfer_capacity) is int and 0 < transfer_capacity <= 2**63 - 1
+            and type(slots) is int and 1 <= slots <= 1024
+            and type(fuel) is int and 0 < fuel <= 2**64 - 1
+            and type(resources) is LocalCoreResources and resources.valid()
+            and transfer_capacity <= resources.execution_bytes - _MEMORY_LIMIT)
+
+
 class LocalCore:
     """Serialize calls into one instance and preserve its physical custody.
 
@@ -533,16 +546,33 @@ class LocalCore:
     allowance and its other holdings in the existing shared capacity Owner.
     """
 
-    def __init__(self, module: bytes, *, digest: str, transfer_capacity: int, resources: LocalCoreResources,
-                 slots: int = 32, fuel: int = 100_000_000) -> None:
-        if (type(module) is not bytes or hashlib.sha256(module).hexdigest() != digest
-                or type(transfer_capacity) is not int
-                or not 0 < transfer_capacity <= 2**63 - 1
-                or type(slots) is not int or not 1 <= slots <= 1024
-                or type(fuel) is not int or not 0 < fuel <= 2**64 - 1
-                or type(resources) is not LocalCoreResources or not resources.valid()
-                or transfer_capacity > resources.execution_bytes - _MEMORY_LIMIT):
+    @classmethod
+    def _from_installed_image(cls, components: LocalComponents, *, resources: LocalCoreResources,
+                              transfer_capacity: int, slots: int = 64) -> LocalCore:
+        if not _valid_core_limits(transfer_capacity, slots, 100_000_000, resources):
             raise ValueError('Invalid installed Local Core artifact or capacity')
+        from ._local_engine import _checked_installed_image
+        image = _checked_installed_image(components)
+        return cls(None, digest=components.module_sha256, transfer_capacity=transfer_capacity,
+                   resources=resources, slots=slots, _compiled_image=image)
+
+    def __init__(self, module: bytes | None, *, digest: str, transfer_capacity: int, resources: LocalCoreResources,
+                 slots: int = 32, fuel: int = 100_000_000,
+                 _compiled_image: _InstalledImageInput | None = None) -> None:
+        from ._local_engine import _InstalledImageInput
+        from ._local_image_recipe import _SelectedImageRecipe
+        original_valid = (type(module) is bytes and hashlib.sha256(module).hexdigest() == digest
+            if _compiled_image is None else type(_compiled_image) is _InstalledImageInput
+                and module is None and type(_compiled_image.recipe) is _SelectedImageRecipe
+                and _compiled_image.recipe.module_sha256 == digest
+                and type(_compiled_image.encoded) is bytes
+                and hashlib.sha256(_compiled_image.encoded).hexdigest() == _compiled_image.sha256)
+        if not original_valid or not _valid_core_limits(transfer_capacity, slots, fuel, resources):
+            raise ValueError('Invalid installed Local Core artifact or capacity')
+        if _compiled_image is not None:
+            _compiled_image.recipe.validate()
+            if fuel != 100_000_000:
+                raise ValueError('Installed Local image requires the original instruction fuel')
         # Remote-only imports never import or initialize the optional engine.
         try:
             wasmtime = import_module('wasmtime')
@@ -565,17 +595,41 @@ class LocalCore:
         self._closing = False
         self._invoking = False
         self._engine: Any = None
+        self._engine_configuration: Any = None
+        self._pool_configuration: Any = None
+        self._pool_ffi: Any = None
         self._store: Any = None
         self._module: Any = None
         self._linker: Any = None
         try:
-            config = wasmtime.Config()
-            config.consume_fuel = True
-            self._engine = wasmtime.Engine(config)
+            if _compiled_image is not None:
+                _compiled_image.recipe.validate()
+                from ._local_engine import _configure_selected_engine, _verify_loaded_runtime
+                ffi = import_module('wasmtime._ffi')
+                _verify_loaded_runtime(_compiled_image, ffi)
+            self._engine_configuration = wasmtime.Config()
+            if _compiled_image is None:
+                # Original raw-Wasm physical diagnostics remain separately
+                # qualified. The installed product never selects this branch.
+                self._engine_configuration.consume_fuel = True
+            else:
+                self._pool_ffi = ffi
+                self._pool_configuration = ffi.wasmtime_pooling_allocation_config_new()
+                if not self._pool_configuration:
+                    raise RuntimeError('Selected Local pooling configuration is unavailable')
+                _configure_selected_engine(self._engine_configuration, self._pool_configuration,
+                                           ffi, wasmtime, _compiled_image.recipe)
+                # Pinned C API clones the pool settings; retire the temporary
+                # configuration only after that copy succeeds.
+                ffi.wasmtime_pooling_allocation_config_delete(self._pool_configuration)
+                self._pool_configuration = None
+            self._engine = wasmtime.Engine(self._engine_configuration)
+            self._engine_configuration = None
             self._store = wasmtime.Store(self._engine)
             self._store.set_fuel(fuel)
             self._store.set_limits(memory_size=_MEMORY_LIMIT, memories=1)
-            self._module = wasmtime.Module(self._engine, module)
+            self._module = (wasmtime.Module(self._engine, module) if _compiled_image is None
+                            else wasmtime.Module.deserialize(self._engine, _compiled_image.encoded))
             imports = self._module.imports
             if (len(imports) != len(_IMPORT_SIGNATURES) or
                     {(item.module, item.name) for item in imports} !=
@@ -3555,11 +3609,14 @@ class LocalCore:
             return True
 
     def _dispose(self) -> None:
-        for name in ('_store', '_linker', '_module', '_engine'):
-            value = getattr(self, name)
+        for name in ('_store', '_linker', '_module', '_engine', '_engine_configuration'):
+            value = getattr(self, name, None)
             if value is not None:
                 value.close()
                 setattr(self, name, None)
+        if getattr(self, '_pool_configuration', None) is not None:
+            self._pool_ffi.wasmtime_pooling_allocation_config_delete(self._pool_configuration)
+            self._pool_configuration = None
         self._closed = True
         self._inputs.clear()
         self._loans.clear()

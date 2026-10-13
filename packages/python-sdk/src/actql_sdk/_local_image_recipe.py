@@ -24,6 +24,7 @@ class _SelectedImageRecipe:
     runtime_library_sha256: str
     engine_body: bytes
     image_bytes_limit: int
+    runtime_library_bytes: int
 
     def validate(self) -> None:
         if (not _hex(self.source_sha, 40) or type(self.package_version) is not str
@@ -31,12 +32,15 @@ class _SelectedImageRecipe:
                 or not _hex(self.runtime_library_sha256, 64)
                 or type(self.engine_body) is not bytes
                 or not 0 < len(self.engine_body) <= 65536
-                or type(self.image_bytes_limit) is not int or self.image_bytes_limit <= 0):
+                or type(self.image_bytes_limit) is not int or self.image_bytes_limit <= 0
+                or type(self.runtime_library_bytes) is not int or self.runtime_library_bytes <= 0):
             raise LocalInstallationError('Unavailable selected Local image recipe')
         try:
             body = _closed(json.loads(self.engine_body, object_pairs_hook=_pairs), (
                 'target', 'cpu_features', 'consume_fuel', 'strategy',
-                'parallel_compilation', 'allocation', 'pooling'))
+                'parallel_compilation', 'allocation', 'pooling', 'wasm_gc',
+                'wasm_component_model', 'async_support', 'memory_reservation',
+                'memory_guard_size', 'memory_reservation_for_growth', 'max_wasm_stack'))
             # An explicit baseline target avoids compilation for the producer's
             # detected CPU. Actual pinned compiler/config validation is separate.
             if (body['target'] != 'aarch64-apple-darwin'
@@ -44,18 +48,28 @@ class _SelectedImageRecipe:
                     or body['consume_fuel'] is not True
                     or body['strategy'] != 'cranelift'
                     or body['parallel_compilation'] is not False
-                    or body['allocation'] != 'pooling'):
+                    or body['allocation'] != 'pooling'
+                    or body['wasm_gc'] is not False or body['wasm_component_model'] is not False
+                    or body['async_support'] is not False
+                    or any(type(body[key]) is not int for key in ('memory_reservation',
+                        'memory_guard_size', 'memory_reservation_for_growth', 'max_wasm_stack'))
+                    or body['memory_reservation'] != 16 * 1024 * 1024
+                    or body['memory_guard_size'] != 0 or body['memory_reservation_for_growth'] != 0
+                    or body['max_wasm_stack'] != 512 * 1024):
                 raise LocalInstallationError('Unsupported selected Local engine recipe')
             pool = _closed(body['pooling'], (
                 'total_core_instances', 'total_memories', 'max_memories_per_module',
                 'max_memory_size', 'max_core_instance_size', 'total_tables',
-                'max_tables_per_module', 'table_elements', 'total_gc_heaps'))
-            if (any(type(value) is not int or not 0 < value <= (2**64 - 1 if name in (
+                'max_tables_per_module', 'table_elements', 'total_gc_heaps',
+                'total_component_instances', 'total_stacks'))
+            zero_pools = ('total_gc_heaps', 'total_component_instances', 'total_stacks')
+            if (any(type(value) is not int or not (0 if name in zero_pools else 1) <= value <= (2**64 - 1 if name in (
                     'max_memory_size', 'max_core_instance_size', 'table_elements') else 2**32 - 1)
                     for name, value in pool.items())
                     or pool['total_core_instances'] != 1 or pool['total_memories'] != 1
                     or pool['max_memories_per_module'] != 1
-                    or pool['max_memory_size'] != 16 * 1024 * 1024):
+                    or pool['max_memory_size'] != 16 * 1024 * 1024
+                    or any(pool[name] != 0 for name in zero_pools)):
                 raise LocalInstallationError('Unavailable selected Local pooling recipe')
         except (ValueError, UnicodeError, RecursionError) as original:
             raise LocalInstallationError('Invalid selected Local image recipe') from original
@@ -118,13 +132,14 @@ def _recipe_from_original(original: bytes, *, source_sha: str,
         raise LocalInstallationError('Unavailable original Local image recipe')
     try:
         body = _closed(json.loads(original, object_pairs_hook=_pairs), (
-            'wasmtime_version', 'runtime_library_sha256', 'engine_body', 'image_bytes_limit'))
+            'wasmtime_version', 'runtime_library_sha256', 'runtime_library_bytes',
+            'engine_body', 'image_bytes_limit'))
         if body['wasmtime_version'] != WASMTIME_VERSION:
             raise LocalInstallationError('Incompatible original Local image recipe')
         recipe = _SelectedImageRecipe(source_sha, package_version, module_sha256,
             body['runtime_library_sha256'], json.dumps(body['engine_body'], sort_keys=True,
                 separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('ascii'),
-            body['image_bytes_limit'])
+            body['image_bytes_limit'], body['runtime_library_bytes'])
         recipe.validate()
         return recipe
     except (ValueError, UnicodeError, RecursionError) as original_error:

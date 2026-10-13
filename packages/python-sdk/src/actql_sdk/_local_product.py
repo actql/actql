@@ -22,7 +22,7 @@ import httpx
 
 from . import _wire as wire
 from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _Workspace, _PublisherFact, _Task, _ResultExport, LocalTaskProgress, LocalResultProgress
-from ._local_distribution import installed_local_components, load_local_module, LocalInstallationError, LocalComponents
+from ._local_distribution import installed_local_components, LocalInstallationError, LocalComponents
 from ._local_files import (LocalFileRoot, _AllocationArea, _PayloadFile, _NameAdoption, _FileFinalization, _FileReader,
     LocalAreaAcquisitionError, LocalFileAcquisitionError, LocalReaderAcquisitionError)
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
@@ -217,7 +217,7 @@ class InstalledLocalHost:
             resources = _selected_installed_resources(components)
         # Product assembly supplies its reviewed finite Root profile. The old
         # minimal buffer fixture has no allowance for initialization workspace.
-        core = LocalCore(load_local_module(components), digest=components.module_sha256,
+        core = LocalCore._from_installed_image(components,
             transfer_capacity=12 * 1024 * 1024, slots=64,
             resources=resources)
         try:
