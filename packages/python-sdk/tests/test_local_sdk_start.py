@@ -11,6 +11,7 @@ from actql_sdk._local_storage import LocalStorageCommitUnknown, LocalStorageErro
 import test_local_finite_run as fixture
 import test_local_submission_append as append_fixture
 
+BINDING = b'{"opaque":"original Core publication binding e\xcc\x81/~","null":null}'
 DISPATCH = b'{"opaque":"original Core dispatch e\xcc\x81/~","null":null}'
 CLAIM = b'{"opaque":"original Core physical claim e\xcc\x81/~","null":null}'
 
@@ -35,15 +36,15 @@ class SDKStartAssemblyTests(unittest.TestCase):
         def call(family, name, *args):
             if family == 'material' and name == 'reserve':
                 self.assertEqual(args[0], run.handle)
-                self.assertIn(args[1], (7, 8))
+                self.assertIn(args[1], (9, 7, 8))
                 handle = 100 + args[2]
                 kinds[handle] = args[1]
                 return handle
             if family == 'material' and args[0] in kinds:
                 handle = args[0]
                 kind = kinds[handle]
-                before, after, revision = ((fixture.RUN_BODY, DISPATCH, 0) if kind == 7
-                                            else (DISPATCH, CLAIM, 1))
+                before, after, revision = ((fixture.RUN_BODY, BINDING, 0) if kind == 9 else
+                    (BINDING, DISPATCH, 1) if kind == 7 else (DISPATCH, CLAIM, 2))
                 events.append((kind, name))
                 code = failures.get((kind, name))
                 if isinstance(code, BaseException): raise code
@@ -51,14 +52,14 @@ class SDKStartAssemblyTests(unittest.TestCase):
                 if name == 'produce':
                     row = actual()
                     self.assertEqual((row.payload, row.generation), (before, revision))
-                    candidates[handle] = json.dumps({'kind': 'dispatch' if kind == 7 else 'claim',
+                    candidates[handle] = json.dumps({'kind': 'publication' if kind == 9 else 'dispatch' if kind == 7 else 'claim',
                         'key': fixture.RUN_KEY, 'revision': str(revision), 'body': after.decode()},
                         ensure_ascii=False).encode()
                     return 0
-                if name == 'validate_sdk_start':
+                if name in ('validate_sdk_start', 'validate_sdk_publication'):
                     row = actual()
                     return 0 if (row.payload, row.generation) == (before, revision) else -35
-                if name == 'confirm_sdk_start':
+                if name in ('confirm_sdk_start', 'confirm_sdk_publication'):
                     row = actual()
                     return 0 if (row.payload, row.generation) == (after, revision + 1) else -35
                 if name == 'length': return len(candidates[handle])
@@ -69,7 +70,7 @@ class SDKStartAssemblyTests(unittest.TestCase):
                                             'physical_start_ready', 'close_physical_start'):
                 events.append(('run', name))
                 if name != 'close_physical_start':
-                    self.assertEqual((actual().payload, actual().generation), (CLAIM, 2))
+                    self.assertEqual((actual().payload, actual().generation), (CLAIM, 3))
                 if name == 'reserve_sdk_physical_start': return 1500000
                 return 0
             if family == 'compute' and name in ('reserve_source_free', 'configure_source_free', 'configured', 'close'):
@@ -88,7 +89,7 @@ class SDKStartAssemblyTests(unittest.TestCase):
         with TemporaryDirectory(prefix='actql-sdk-start-') as directory:
             host, core, run, events, _ = self.host(Path(directory))
             compute = host._configure_original_compute(run)
-            self.assertEqual((self.row(host).payload, self.row(host).generation), (CLAIM, 2))
+            self.assertEqual((self.row(host).payload, self.row(host).generation), (CLAIM, 3))
             self.assertEqual(events.count((7, 'confirm_sdk_start')), 1)
             self.assertEqual(events.count((8, 'confirm_sdk_start')), 1)
             self.assertIs(compute.start.run, run)
@@ -110,7 +111,9 @@ class SDKStartAssemblyTests(unittest.TestCase):
             write = store.compare_exchange_many_inspected
             attempts = []
             def lose(*args, **kwargs):
-                attempts.append(write(*args, **kwargs))
+                result = write(*args, **kwargs)
+                if self.row(host).payload == BINDING: return result
+                attempts.append(result)
                 raise LocalStorageCommitUnknown(store)
             with patch.object(store, 'compare_exchange_many_inspected', side_effect=lose):
                 with self.assertRaises(LocalStorageCommitUnknown): host._configure_original_compute(run)
@@ -137,7 +140,7 @@ class SDKStartAssemblyTests(unittest.TestCase):
             host, _, run, events, failures = self.host(Path(directory))
             failures[7, 'validate_sdk_start'] = -32
             with self.assertRaises(LocalCoreError): host._configure_original_compute(run)
-            self.assertEqual(self.row(host).payload, fixture.RUN_BODY)
+            self.assertEqual(self.row(host).payload, BINDING)
             self.assertFalse(any(name == 'confirm_sdk_start' for _, name in events))
 
     def test_foreign_run_copy_refuses_before_any_new_projection(self):
