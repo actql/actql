@@ -960,7 +960,8 @@ fn start_model_owned(
   let count = @relation.prepared_infer_rows_count(rows)
   // Task admission does not enable a native Decision transport in this
   // synchronous profile. Refuse before acquiring inputs or creating a Ledger.
-  if source is Provider(_) &&
+  if source is Provider(provider) &&
+    provider.invocation is SynchronousFixture(_) &&
     @environment.model_task_kind(task) == @environment.Decision {
     return Err(InvalidProvider)
   }
