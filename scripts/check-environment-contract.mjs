@@ -74,6 +74,15 @@ const body = {
             items:{type:'array',minItems:1,uniqueItems:true,
               items:{type:'string',minLength:1}}}},
         },
+        relation_scores:{
+          type:'object',propertyNames:{minLength:1},
+          additionalProperties:{type:'object',additionalProperties:false,
+            required:['domain','normalization','range'],
+            properties:{domain:{type:'string',minLength:1},
+              normalization:{type:'string',minLength:1},
+              range:{type:'array',minItems:2,maxItems:2,items:{type:'number'}},
+              higher_is_better:{const:true}}},
+        },
         file_listing:fileListingProfile(),
         file_content:fileContentProfile(),
         lookup_capacity:{
