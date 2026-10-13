@@ -88,6 +88,10 @@ fn load_holder_effect_host_operator(
   resources : HolderOutputResources,
   environment : SiteEnvironment,
   current_site : () -> Bool,
+  // Supplied only by the trusted Host installer after its representation and
+  // baseline scope are established; no CLI value, wire or Account Allow can
+  // construct this selection. Absence keeps the original refusal before I/O.
+  setup_profile? : HolderEffectHostSetupProfile? = None,
   preparation? : HolderEffectPreparationCapacity? = None,
 ) -> HolderEffectHostOperatorInstallation? raise CommandStop {
   let selected = match
@@ -112,9 +116,10 @@ fn load_holder_effect_host_operator(
   )
   guard begin_holder_effect_host_setup_scope(
       environment.site,
-      // A production numeric profile remains uninstalled. The private cleanup
-      // receiver is connected, but it cannot create a zero-cost permission.
-      None,
+      // The ordinary CLI leaves this None. A trusted installer can connect its
+      // already reviewed profile to the same operation/holding/cleanup Owners.
+      // This projection is neither a numeric supplier nor Account permission.
+      setup_profile,
       binding,
     )
     is Some(scope) else {

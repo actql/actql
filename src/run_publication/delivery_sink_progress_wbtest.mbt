@@ -44,3 +44,32 @@ test "delivery limit is enforced before a chunk is exposed" {
   assert_true(progress.offer(b"abcd", true) is Err(DeliverySinkLimitExceeded))
   assert_eq(progress.confirmed_bytes(), 0L)
 }
+
+///|
+test "empty delivery output observation preserves progress and rejects outstanding bytes" {
+  let sink = prepare_delivery_sink_progress(10L).unwrap()
+  sink.offer(b"", false).unwrap() |> ignore
+  assert_eq(sink.observe_empty_output(), Ok(0L))
+  assert_eq(sink.confirm_chunk(), Err(DeliverySinkNoOutstandingChunk))
+  sink.offer(b"a", false).unwrap() |> ignore
+  assert_eq(sink.observe_empty_output(), Err(DeliverySinkChunkOutstanding))
+  assert_eq(sink.confirm_chunk(), Ok(1L))
+  sink.offer(b"", true).unwrap() |> ignore
+  assert_eq(sink.observe_empty_output(), Ok(1L))
+  let summary = sink.confirm_finished().unwrap()
+  assert_eq(summary.confirmed_bytes, 1L)
+  assert_eq(
+    summary.delivered_sha256,
+    "sha256:ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+  )
+  assert_eq(sink.observe_empty_output(), Err(DeliverySinkClosed))
+}
+
+///|
+test "empty delivery output observation cannot acknowledge a failed sink" {
+  let sink = prepare_delivery_sink_progress(10L).unwrap()
+  sink.offer(b"a", false).unwrap() |> ignore
+  assert_eq(sink.fail_chunk(0), Ok(0L))
+  assert_eq(sink.observe_empty_output(), Err(DeliverySinkClosed))
+  assert_eq(sink.confirmed_bytes(), 0L)
+}

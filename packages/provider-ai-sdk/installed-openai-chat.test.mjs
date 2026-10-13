@@ -202,3 +202,20 @@ test('facade refuses symbol and nonenumerable extra DATA before registration',()
     assert.equal(f.counts.installs,0);assert.equal(f.counts.fetch,0);
   }
 });
+
+
+test('facade refuses a combined projection key before registration',()=>{
+  const config=configuration(),f=runtime(config);
+  config.projectionLimits={'maxBytes,maxDepth':10000,maxFrames:100,maxNodes:1000,maxWork:10000};
+  assert.throws(()=>createInstalledOpenAIChatRegistration(config),
+    {code:'InvalidInstalledOpenAIChatProjection'});
+  assert.equal(f.counts.installs,0);assert.equal(f.counts.starts,0);assert.equal(f.counts.fetch,0);
+});
+
+test('facade refuses a combined request key before registration',()=>{
+  const config=configuration(),f=runtime(config);
+  config.requestLimits={'maxBytes,maxHeaderBytes':4096,maxHeaders:16};
+  assert.throws(()=>createInstalledOpenAIChatRegistration(config),
+    {code:'InvalidInstalledOpenAIChatRequestLimits'});
+  assert.equal(f.counts.installs,0);assert.equal(f.counts.starts,0);assert.equal(f.counts.fetch,0);
+});
