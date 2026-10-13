@@ -717,14 +717,16 @@ class LocalCore:
             with self._native_scope():
                 # Keep an already supplied holding through optional import failure.
                 # Remote-only imports never initialize the optional engine.
+                runtime_name = ('actql_local_runtime._wasmtime'
+                                if self._physical_holding is not None else 'wasmtime')
                 try:
-                    wasmtime = import_module('wasmtime')
+                    wasmtime = import_module(runtime_name)
                 except ImportError as error:
                     raise RuntimeError('Python Local requires the optional Wasmtime runtime') from error
                 if _compiled_image is not None:
                     _compiled_image.recipe.validate()
                     from ._local_engine import _configure_selected_engine, _verify_loaded_runtime
-                    ffi = import_module('wasmtime._ffi')
+                    ffi = import_module(runtime_name + '._ffi')
                     _verify_loaded_runtime(_compiled_image, ffi)
                     if self._physical_holding is not None:
                         self._physical_holding._verify_library(ffi.dll)

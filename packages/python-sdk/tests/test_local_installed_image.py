@@ -120,7 +120,8 @@ class InstalledImageTests(unittest.TestCase):
             Engine=lambda config: self.engine, Store=lambda engine: self.store,
             Module=SimpleNamespace(deserialize=self.deserialize),
             WasmtimeError=SimpleNamespace(_from_ptr=lambda value: RuntimeError('target rejected')))
-        self.runtime = lambda name: self.wasmtime if name == 'wasmtime' else self.ffi
+        self.runtime = lambda name: self.wasmtime if name in (
+            'wasmtime', 'actql_local_runtime._wasmtime') else self.ffi
 
     def create(self, **options):
         return LocalCore(None, digest='b' * 64, transfer_capacity=65536,

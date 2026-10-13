@@ -64,7 +64,7 @@ def _checked_installed_image_file(components: LocalComponents) -> _InstalledImag
     This supplies no allocator, capacity, library adoption or execution authority.
     The genuine original holding must already exist before native FD capture.
     """
-    library = _installed_runtime_library(components)
+    library = _installed_runtime_library(components, native=True)
     recipe = components.image_recipe
     body = json.loads(_read_file(components.image.parent / 'artifact.json', maximum=65536),
                       object_pairs_hook=_pairs)
@@ -76,7 +76,7 @@ def _checked_installed_image_file(components: LocalComponents) -> _InstalledImag
     return _InstalledImageFileInput(components.image, item['bytes'], item['sha256'], recipe, library)
 
 
-def _installed_runtime_library(components: LocalComponents) -> Path:
+def _installed_runtime_library(components: LocalComponents, *, native: bool = False) -> Path:
     if type(components) is not LocalComponents:
         raise LocalInstallationError('Unavailable installed Local image components')
     recipe = components.image_recipe
@@ -86,11 +86,19 @@ def _installed_runtime_library(components: LocalComponents) -> Path:
             or recipe.module_sha256 != components.module_sha256):
         raise LocalInstallationError('Installed image original component binding mismatch')
     _read_file(components.module, maximum=32 * 1024 * 1024, digest=components.module_sha256)
-    if metadata.version('wasmtime') != WASMTIME_VERSION:
-        raise LocalInstallationError('Installed image runtime version mismatch')
-    root = resources.files('wasmtime')
-    if not isinstance(root, Path):
-        raise LocalInstallationError('Installed image runtime requires ordinary wheel files')
+    if native:
+        # Do not import the private bindings to discover their directory. Their
+        # generated functions capture DLL addresses at import, after the trusted
+        # supplier has acquired and transferred the original native holding.
+        if metadata.version('actql-local-runtime') != components.package_version:
+            raise LocalInstallationError('Installed native runtime cohort mismatch')
+        root = components.image.parent / '_wasmtime'
+    else:
+        if metadata.version('wasmtime') != WASMTIME_VERSION:
+            raise LocalInstallationError('Installed image runtime version mismatch')
+        root = resources.files('wasmtime')
+        if not isinstance(root, Path):
+            raise LocalInstallationError('Installed image runtime requires ordinary wheel files')
     library = root / 'darwin-aarch64/_libwasmtime.dylib'
     _read_file(library, maximum=recipe.runtime_library_bytes,
                expected=recipe.runtime_library_bytes, digest=recipe.runtime_library_sha256)
