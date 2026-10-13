@@ -123,6 +123,65 @@ test('module-level build hooks and alternative roots fail closed', t => {
   assert.throws(f.check,/UnsupportedCoreSourceRoot/);
 });
 
+test('reviewed ESM module literal preserves legacy metadata and isolated bytes', t => {
+  const f = fixture(t);
+  const legacy = 'name = "actql/actql"\nsource = "src"\n';
+  const reviewed = 'options("link-flags": [ "-js-format", "esm" ])\n';
+  assert.deepEqual(f.check().packages, ['root']);
+  for (const source of [legacy + reviewed, reviewed + legacy]) {
+    writeFileSync(join(f.root, 'moon.mod'), source);
+    assert.deepEqual(f.check().packages, ['root']);
+  }
+  const source = legacy + '// Pinned format selection only.\n' + reviewed;
+  writeFileSync(join(f.root, 'moon.mod'), source);
+  const isolated = join(f.root, 'isolated');
+  copyProductionCore(f.root, isolated, ['root']);
+  assert.equal(readFileSync(join(isolated, 'moon.mod'), 'utf8'), source);
+  assert.deepEqual(inspectCore(isolated, ['root']).packages, ['root']);
+});
+
+test('reviewed module option refuses unknown keys, hooks and surplus fields', t => {
+  const f = fixture(t);
+  for (const option of [
+    'options("other": ["-js-format", "esm"])',
+    'options("pre-build": ["-js-format", "esm"])',
+    'options(link_flags: ["-js-format", "esm"])',
+    'options("link-flags": ["-js-format", "esm"], "pre-build": "node io.mjs")',
+    'options("link-flags": ["-js-format", "esm"], "link-flags": [])',
+  ]) {
+    writeFileSync(join(f.root, 'moon.mod'), 'source = "src"\n' + option);
+    assert.throws(f.check, /UnauditedCoreModuleDirective/, option);
+  }
+});
+
+test('reviewed module flags refuse modified values, extra flags and wrong types', t => {
+  const f = fixture(t);
+  for (const value of [
+    '[]', '["-js-format"]', '["esm", "-js-format"]',
+    '["-js-format", "cjs"]', '["-other", "esm"]',
+    '["-js-format", "esm", "-another"]',
+    '["-js-format", esm]', '["-js-format", 1]',
+    '["-js-format", ["esm"]]', '"-js-format esm"',
+    '{"format": "esm"}', '["-js-format", "esm",]',
+  ]) {
+    writeFileSync(join(f.root, 'moon.mod'), `source = "src"\noptions("link-flags": ${value})`);
+    assert.throws(f.check, /UnauditedCoreModuleDirective/, value);
+  }
+});
+
+test('reviewed module literal refuses duplicates, incomplete input and trailing directives', t => {
+  const f = fixture(t);
+  const reviewed = 'options("link-flags": ["-js-format", "esm"])';
+  for (const source of [
+    reviewed + '\n' + reviewed, reviewed + '\npre_build("node io.mjs")',
+    reviewed + '\nunknown = "value"', reviewed.slice(0, -1),
+    reviewed + ', external = "socket"',
+  ]) {
+    writeFileSync(join(f.root, 'moon.mod'), 'source = "src"\n' + source);
+    assert.throws(f.check, /UnauditedCoreModuleDirective/, source);
+  }
+});
+
 test('public concrete binding import is rejected; opaque abstract port is allowed', t => {
   const f = fixture(t);
   f.put('root', 'pkg.generated.mbti', 'import { "actql/actql/connectors/duckdb/adapter" @db }\npub fn leak() -> @db.Session');
