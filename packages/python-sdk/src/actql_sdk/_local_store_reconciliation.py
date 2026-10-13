@@ -71,6 +71,10 @@ class OriginalStoreReconciliation:
         self._entered = False
         self._active = False
         self._binding: OriginalHostBinding | None = None
+        # Physical write-attempt guards belong to this original Store custody,
+        # not a replaceable transport wrapper or a Run/Read state machine.
+        self._sdk_evidence_request_attempts: set[int] = set()
+        self._sdk_evidence_key_attempts: set[str] = set()
 
     def _nominal(self) -> None:
         if self._original is not self:
