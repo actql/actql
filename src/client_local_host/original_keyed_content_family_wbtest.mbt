@@ -20,10 +20,11 @@ test "Pure keyed Content family retains the actual checked boundary without ente
   let execution : @execution.SequenceExecutionLimits = {
     rows: {
       max_rows: 3,
-      max_metadata_bytes: 10000,
-      max_retained_bytes: 10000,
-      max_operation_entries: 10000,
-      values: source_capture_values(),
+      metadata_entries: 10000,
+      retained_entries: 10000,
+      operation_entries: 10000,
+      input_values: source_capture_values(),
+      output_values: source_capture_values(),
     },
     max_work: 100000,
     max_frames: 100,
