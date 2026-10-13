@@ -128,6 +128,29 @@ and placement. Source Evidence retains their observation, provenance, and
 freshness bindings. Equal input identities do not imply equal observation,
 current authorization, or permission to acquire again.
 
+A completed file-listing input additionally carries the closed
+`file_listing_reports: {row_count, rows}` field. Each row has exactly
+`row_ordinal`, `resource_ref_cid`, `version`, `reported_media_type`, and
+`media_type`. Ordinals and occurrence multiplicity describe the same captured
+input bound by `input_logical_cid`, schema and snapshot reference, not a
+downstream Result or a new ordering guarantee. `version` is exact nullable
+Text; the original nullable provider report and its nullable case-only MIME
+projection remain paired with the same Resource. Missing report evidence is
+not NULL and cannot be repaired from schema, later content acquisition or
+another listing. Non-listing observations omit this field and keep their
+existing canonical bodies.
+
+The existing Row acquisition/capture Owner transfers selected report
+correlation once before retiring transient page observations. Completion,
+transport settlement, capture custody and the original reservation remain
+necessary; the field's data shape or CID grants none of them. Retained reports,
+projected values, records, backing and encoding overlap must stay funded until
+actual cleanup or transfer. Existing evidence byte/node/work limits still
+apply; an oversized correlation is refused rather than dropped or encoded
+under a silently enlarged bound. A completed empty listing carries zero rows,
+but only an explicitly empty exact-path selection implies no enumeration I/O.
+An empty glob result does not imply zero provider reads.
+
 A connector that supplies `snapshot_ref`, version, cursor, watermark, or
 content identity is responsible for its stability and collision resistance.
 Page number, request time, provider enumeration order, or a mutable URL alone
