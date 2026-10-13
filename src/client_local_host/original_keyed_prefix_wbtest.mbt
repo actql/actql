@@ -230,8 +230,9 @@ test "original keyed left prefix executes unique sort take and binds the actual 
       output, row, 10000, 1000, 100,
     ).unwrap()
     // Canonical schema order is authored independently of the output/provider.
+    // The authored Source SELECT exports precisely these three columns.
     let expected = original_keyed_version_row(row, [
-      "media_type", "modified_at", "name", "path", "resource", "size_bytes", "version",
+      "name", "resource", "version",
     ])
     assert_eq(wire, expected)
   }
@@ -266,4 +267,47 @@ test "original keyed left prefix cancellation retires only its provider reservat
   assert_eq(@resources.ledger_usage(value.ledger).reserved_retention_bytes, 3L)
   assert_true(@row_source_host.row_capture_source(value.capture) is Ok(_))
   original_keyed_prefix_close(value)
+}
+
+///|
+test "original keyed left prefix refuses a foreign Scope and a closing original before provider reservation" {
+  let value = original_keyed_prefix_fixture()
+  let foreign = original_keyed_prefix_fixture()
+  let before = @resources.ledger_usage(value.ledger)
+  let other = @resources.ledger_usage(foreign.ledger)
+  assert_true(
+    start_client_original_keyed_left_prefix(
+      foreign.scope,
+      value.compiled,
+      value.definition,
+      value.plan,
+      value.prepared,
+      value.keyed,
+      value.capture,
+      source_query_original_registry,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      value.execution,
+      value.measurement,
+      100,
+      4096,
+    )
+    is Err(Original(@publication_host.ForeignRun)),
+  )
+  assert_eq(@resources.ledger_usage(value.ledger), before)
+  assert_eq(@resources.ledger_usage(foreign.ledger), other)
+  assert_false(
+    @publication_host.finish_client_model_read_scope(
+      value.scope,
+      value.compiled,
+      value.definition,
+      value.plan,
+      false,
+    ).unwrap(),
+  )
+  assert_true(original_keyed_prefix_start(value) is Err(Original(_)))
+  assert_eq(@resources.ledger_usage(value.ledger), before)
+  original_keyed_prefix_close(value)
+  original_keyed_prefix_close(foreign)
 }
