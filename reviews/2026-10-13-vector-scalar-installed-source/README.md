@@ -49,3 +49,17 @@ are obtained. Node driver/closure checks do not establish common Vector
 admission, runtime dispatch, ProfileAdmission discharge or public execution.
 Calendar, authenticated max/weighted ranking, Sequence/window cohorts and
 identifier-role public acceptance remain separate pending work.
+
+Focused preparation evidence: clean source
+`06043a56cb7579017e0ec10f70310edf34cf345b`, tree
+`6c32d19b7992726288d4009720a3b382279d6dd9`, `run-0TpUVo`:
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 60 --kill-grace-seconds 5 -- scripts/vector-scalar-installed-source.test.mjs scripts/vector-scalar-source.test.mjs scripts/packed-query-transports.test.mjs
+```
+
+Node 17/17, exit zero, complete guard receipt; exact owner PID and own lock
+observed absent after exit. Driver tests use admission callbacks, not a running
+common evaluator. This is no compiler or public-runtime evidence. Raw summary,
+output and independent prepared inventory are retained in workspace reviews
+`2026-10-13-b-vector-scalar-installed-source-evidence`.
