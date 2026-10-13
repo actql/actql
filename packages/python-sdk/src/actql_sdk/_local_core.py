@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 70
+LOCAL_CORE_ABI = 71
 
 
 class LocalCoreError(RuntimeError):
@@ -321,6 +321,8 @@ _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'produce_sdk_payload_chunk': ('i64 i32 i32 i32 i32 i32 i32', 'i32'),
     'confirm_sdk_payload_chunk': ('i64 i32', 'i64'),
     'produce_sdk_payload_receipt': ('i64 i32 i32 i32 i32', 'i32'),
+    'produce_sdk_terminal_storage': ('i64 i32 i32 i32 i32', 'i32'),
+    'observe_sdk_terminal': ('i64 i32 i32', 'i32'),
     'produce_lookup_reference': ('i64 i32 i32 i32', 'i32'),
     'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_index_key': ('i64 i32 i32', 'i32'),
@@ -2245,6 +2247,52 @@ class LocalCore:
             self._owned_output(value, 'publication_commit_export')
             self._owned_output(first, 'publication_commit_export')
             self._owned_input(clock)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+
+    def produce_publication_sdk_terminal_storage(self, value: _Output, first: _Output,
+                                                 clock: _Input,
+                                                 current_configuration: int) -> None:
+        """Project the original successor CAS; no physical COMMIT ACK occurs."""
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_output(first, 'publication_commit_export')
+            self._owned_input(clock)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (value is first or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK terminal projection')
+            code = self._call('publication_commit_export', 'produce_sdk_terminal_storage',
+                              value.handle, first.handle, clock.handle,
+                              current_configuration)
+            if type(code) is not int:
+                raise RuntimeError('Invalid Local Core terminal status')
+            if code != 0:
+                raise LocalCoreError('produce_sdk_terminal_storage', code)
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_output(first, 'publication_commit_export')
+            self._owned_input(clock)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+
+    def observe_publication_sdk_terminal(self, first: _Output,
+                                        current_configuration: int) -> None:
+        """Validate actual saved terminal evidence; never write or replay bytes."""
+        with self._lock:
+            self._owned_output(first, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK terminal observation')
+            code = self._call('publication_commit_export', 'observe_sdk_terminal',
+                              first.handle, current_configuration)
+            if type(code) is not int:
+                raise RuntimeError('Invalid Local Core terminal status')
+            if code != 0:
+                raise LocalCoreError('observe_sdk_terminal', code)
+            self._owned_output(first, 'publication_commit_export')
             if self._closing:
                 raise RuntimeError('Local Core is closing')
 
