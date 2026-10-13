@@ -89,6 +89,15 @@ test('installed egress observer keeps its selected function and original receive
   assert.equal(observed,1);
 });
 
+test('egress invocation uses the selected callback rather than its mutable call property',()=>{
+  const {entry,moon}=fixture();let observed=0;
+  entry.observeEgress=function(){assert.strictEqual(this,entry);observed++;return 'original';};
+  entry.observeEgress.call=()=> 'substituted';
+  const installed=installModelProviders(moon,()=>[entry]).get('models/fixture');
+  assert.equal(installed.observeEgress(),'original');
+  assert.equal(observed,1);
+});
+
 test('invalid first quantity or mode refuses before constructing a Provider',()=>{
   for(const change of [entry=>{entry.entryPersistence='unknown';},
     entry=>{entry.quantityCapacity={...capacity(),perAttempt:{tokens:-1n,costUnits:0n,durationMs:1n}};}]) {
