@@ -108,3 +108,21 @@ pub fn local_saved_submission_revisions(
     ),
   )
 }
+
+///|
+/// Transfer the original saved admission, not the candidate write or current
+/// control revision. The same nominal Plan/input/rows and current Host frame
+/// remain required; the caller retains all loans until explicit cleanup.
+pub fn local_saved_submission_admission_wire(
+  value : LocalSavedSubmissionObservation,
+  rows : LocalSubmittedRunRows,
+  plan : LocalRunPlan,
+  preparation : @input.LocalSubmittedPreparation,
+) -> Result[String, @host.ClientSavedSubmissionViewIssue] {
+  if !physical_equal(value.rows, rows) ||
+    !physical_equal(value.plan, plan) ||
+    !physical_equal(value.preparation, preparation) {
+    return Err(@host.CustodyLost)
+  }
+  @host.client_saved_submission_admission_wire(value.snapshot)
+}

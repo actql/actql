@@ -32,7 +32,10 @@ pub fn borrow_client_original_row_acquisition_ledger(
     @planning.query_requirement_material(requirement),
   )
   let acquisition = @query.query_sequence_requirement(sequence)
-  guard physical_equal(@planning.query_requirement_program(requirement), program) &&
+  guard physical_equal(
+      @planning.query_requirement_program(requirement),
+      program,
+    ) &&
     physical_equal(@query.query_sequence_owner(sequence), owner) &&
     @context.program_identity_stage_requests(program, stage) is Some(requests) &&
     physical_equal(@acquisition.query_acquisition_owner(acquisition), requests) &&

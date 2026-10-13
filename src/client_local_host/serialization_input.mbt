@@ -158,8 +158,20 @@ pub fn start_client_acquired_serialization_prefix(
   keyed? : @publication_host.ClientKeyedLookupInput? = None,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
   start_client_acquired_serialization_prefix_owned(
-    prepared, task, step, source, registry_body, values_body, fragment_body,
-    ordered_body, execution, measurement, ledger, workspace, keyed, None,
+    prepared,
+    task,
+    step,
+    source,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+    execution,
+    measurement,
+    ledger,
+    workspace,
+    keyed,
+    None,
   )
 }
 
@@ -269,7 +281,9 @@ fn start_client_acquired_serialization_prefix_owned(
   if original_capture is Some(capture) &&
     @row_source_host.row_capture_original_prefix_requirement(capture, ledger)
     is None {
-    return Err(Original(@publication_host.Resource(@resources.ChangedOriginalState)))
+    return Err(
+      Original(@publication_host.Resource(@resources.ChangedOriginalState)),
+    )
   }
   // Capacity addition and reserve_attempt below run synchronously and invoke
   // no capture/provider callback behind this final original-custody fence.

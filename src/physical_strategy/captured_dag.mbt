@@ -869,6 +869,15 @@ pub fn select_captured_managed_registration(
 }
 
 ///|
+/// Whether checked root Results require acquisition publication identity.
+/// Managed Compute publication does not own that capability.
+pub fn graph_requires_acquisition_result_publication(
+  graph : CheckedDAG,
+) -> Bool {
+  graph.results.any(result => result.task < graph.captured_prefix)
+}
+
+///|
 /// Install the Host-owned logical-identity policy before any managed request is
 /// prepared. Program text and connector code cannot weaken this policy later.
 pub fn configure_captured_managed_identity_policy(
@@ -897,7 +906,7 @@ pub fn configure_captured_managed_identity_policy(
   // before comparing or starting any Compute candidate.
   let publication_required = publish_checked_results || publication
   if publication_required &&
-    run.graph.results.any(result => result.task < run.graph.captured_prefix) {
+    graph_requires_acquisition_result_publication(run.graph) {
     return false
   }
   run.managed_publication_identity = publication_required

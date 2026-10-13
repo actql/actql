@@ -7,6 +7,7 @@ pub struct ClientSavedSubmissionSnapshot {
   record : ClientSubmittedJournalEncoding
   submission : ClientJournalPhysicalRow
   run : ClientJournalPhysicalRow?
+  inspection : ClientRunJournalInspection?
 }
 
 ///|
@@ -63,8 +64,8 @@ fn[E] read_client_saved_submission_row(
     client_submission_reference_record_wire(reference) {
     return Err(custody_lost)
   }
-  let run = match record.run_admission {
-    None => None
+  let (run, inspection) = match record.run_admission {
+    None => (None, None)
     Some(admission) => {
       let key = client_request_scope_cid(admission.0)
       let retained = match read("client_runs", key) {
@@ -86,12 +87,12 @@ fn[E] read_client_saved_submission_row(
           run.definition,
           retained.revision,
         ) {
-        Ok(_) => Some(retained)
+        Ok(_) => (Some(retained), Some(run))
         Err(_) => return Err(custody_lost)
       }
     }
   }
-  Ok({ record, submission: row, run, })
+  Ok({ record, submission: row, run, inspection, })
 }
 
 ///|

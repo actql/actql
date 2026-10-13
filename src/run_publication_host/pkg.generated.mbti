@@ -649,6 +649,8 @@ pub fn client_local_product_finite_originals(String, String, String, String, Cli
 
 pub fn client_local_product_originals(String, String, String, String, ClientLocalProductAssets) -> Result[Array[(String, Bytes)], ClientLocalProductConfigurationIssue]
 
+pub fn client_local_product_sdk_bootstrap_originals(String, String) -> Result[ClientLocalProductSDKBootstrapOriginals, ClientLocalProductConfigurationIssue]
+
 pub fn client_local_run_policy_metadata_cursor(Bytes) -> Result[@decode_core.Cursor, ClientLocalProductConfigurationIssue]
 
 pub fn client_local_run_policy_original_body(ClientLocalRunPolicyOriginal) -> Bytes
@@ -853,6 +855,8 @@ pub fn client_retained_task_route_receipt(ClientRetainedTaskRoute) -> @remote_tr
 
 pub fn client_run_journal_row_body(ClientRunJournalEncoding, local_run_policy_originals? : String?) -> Result[Bytes, ClientJournalEncodingIssue]
 
+pub fn client_saved_submission_admission_wire(ClientSavedSubmissionSnapshot) -> Result[String, ClientSavedSubmissionViewIssue]
+
 pub fn client_saved_submission_record(ClientSavedSubmissionSnapshot) -> ClientSubmittedJournalEncoding
 
 pub fn client_saved_submission_revision(ClientSavedSubmissionSnapshot) -> Int64
@@ -899,6 +903,8 @@ pub fn client_standard_program_preparation_limits() -> ClientProgramPreparationL
 
 pub fn client_standard_values_sequence_limits() -> @lowering_relation.SequenceLimits
 
+pub fn client_submission_epoch_token_authority_scope_cid(ClientSubmissionEpochToken) -> String
+
 pub fn client_submission_epoch_token_body(ClientSubmissionEpochToken) -> @logical_request_scope.SubmissionEpoch
 
 pub fn client_submission_epoch_token_tag(ClientSubmissionEpochToken) -> Bytes
@@ -920,6 +926,8 @@ pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, r
 pub fn client_submitted_intent_transition(String, String) -> Bool
 
 pub fn client_submitted_intent_wire(ClientSubmittedIntent) -> String
+
+pub fn client_submitted_journal_append_rows(ClientSubmittedJournalAppend) -> (String, Bytes, Int64, Bytes)
 
 pub fn client_submitted_run_admission_wire(ClientRequestIdentity, String, Int64) -> Result[String, ClientSubmittedRunRecordIssue]
 
@@ -1464,6 +1472,8 @@ pub fn prepare_client_stored_run_captured_content(ClientCompiledRun, @run_public
 pub fn prepare_client_submission_reference_record(ClientSubmissionEpochToken, String) -> Result[ClientSubmissionReferenceRecord, ClientSubmissionReferenceRecordIssue]
 
 pub fn prepare_client_submitted_intent(String, Int, Int, Int) -> Result[ClientSubmittedIntent, ClientSubmittedIntentIssue]
+
+pub fn[E] prepare_client_submitted_journal_append(ClientSubmissionReferenceRecord, ClientSubmittedIntent, @logical_request_scope.SubmissionEpochValidity, Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientSubmittedJournalEncoding, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E) -> Result[ClientSubmittedJournalAppendPlan, ClientSubmittedJournalAppendIssue[E]]
 
 pub fn prepare_client_task_dispatch(PreparedClientProgram, ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, ClientRequestIdentity, Int, Int, String, ClientValuesSiteSelection) -> Result[@remote_site_protocol.DispatchRequest, ClientTaskDispatchIssue]
 
@@ -2589,6 +2599,12 @@ pub(all) enum ClientLocalProductConfigurationIssue {
   ConfigurationLimit
 } derive(Eq, @debug.Debug)
 
+pub(all) struct ClientLocalProductSDKBootstrapOriginals {
+  original : ClientLocalProductBootstrapOriginals
+  profile : ClientLocalRunPolicyProfile
+  read : @run_publication.LocalSDKResultReadSelection
+}
+
 type ClientLocalRunPolicyOriginal
 
 type ClientLocalRunPolicyProfile derive(Eq, @debug.Debug)
@@ -3163,7 +3179,15 @@ pub struct ClientSavedSubmissionSnapshot {
   record : ClientSubmittedJournalEncoding
   submission : ClientJournalPhysicalRow
   run : ClientJournalPhysicalRow?
+  inspection : ClientRunJournalInspection?
 }
+
+pub(all) enum ClientSavedSubmissionViewIssue {
+  NotAdmitted
+  CustodyLost
+  UnrepresentableRevision
+  Encoding
+} derive(Eq, @debug.Debug)
 
 pub struct ClientSerializationCapturedInput {
   owner : PreparedClientProgram
@@ -3303,6 +3327,26 @@ pub(all) enum ClientSubmittedIntentIssue {
   InvalidEnvelope
   Encoding
 } derive(Eq, @debug.Debug)
+
+pub struct ClientSubmittedJournalAppend {
+  key : String
+  body : Bytes
+  issued_revision : Int64
+  issued_body : Bytes
+}
+
+pub(all) enum ClientSubmittedJournalAppendIssue[E] {
+  Observation(E)
+  ChangedIntent
+  EpochRejected(@logical_request_scope.SubmissionEpochValidity)
+  CapacityExceeded
+  Encoding(ClientJournalEncodingIssue)
+}
+
+pub(all) enum ClientSubmittedJournalAppendPlan {
+  Retained(ClientSavedSubmissionSnapshot)
+  Append(ClientSubmittedJournalAppend)
+}
 
 pub(all) struct ClientSubmittedJournalEncoding {
   reference : ClientSubmissionReferenceRecord

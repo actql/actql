@@ -54,6 +54,85 @@ function rawResponse(wire = bytes, status = 200) {
     'x-request-id': 'actual-header-id', 'private-extra': 'response-secret'}});
 }
 
+test('real SDK defaults do not replace the separately retained original partial usage', async t => {
+  const wire='{"choices":[{"index":0,"message":{"content":"{}"},"finish_reason":"stop"}],"usage":{"completion_tokens":0}}';
+  const originalBytes=new TextEncoder().encode(wire);
+  const handle=realPreparation();
+  t.after(()=>release(handle));
+  let calls=0;
+  await until(()=>pollSdkPreparation(handle),'ready');
+  prepareSdkTransport(handle,{responseLimits:{...bounds,maxBytes:originalBytes.length,
+    maxChunkBytes:originalBytes.length},fetch(){calls++;return rawResponse(originalBytes);}});
+  startSdkTransport(handle);
+  await until(()=>pollSdkTransport(handle),'response');
+  await until(()=>pollSdkDecode(handle),'ready');
+  const original=sdkTransportRawObservation(handle);
+  const decoded=takeSdkDecodedResult(handle);
+  // These SDK zeros are generated defaults, not provider observations. The
+  // Common raw codec must independently retain absent prompt/total as unknown.
+  assert.equal(decoded.usage.inputTokens.total,0);
+  assert.equal(decoded.usage.outputTokens.reasoning,0);
+  assert.deepEqual(decoded.response.body.usage,{completion_tokens:0});
+  assert.equal(Object.hasOwn(decoded.response.body.usage,'prompt_tokens'),false);
+  assert.equal(Object.hasOwn(decoded.response.body.usage,'total_tokens'),false);
+  assert.deepEqual(original.body,originalBytes);
+  assert.equal(Object.hasOwn(JSON.parse(new TextDecoder().decode(original.body)).usage,
+    'prompt_tokens'),false);
+  assert.equal(calls,1);
+});
+
+test('real SDK returned raw and validated trees overlap the original request and survive handle retirement', async t => {
+  const wire='{"model":"reported","extra":{"text":"é\\r\\n"},"choices":[{"index":0,"message":{"content":"{}","extra":"opaque"},"finish_reason":"stop"}],"usage":{"completion_tokens":0,"opaque":17}}';
+  const originalBytes=new TextEncoder().encode(wire);
+  const handle=realPreparation();
+  t.after(()=>release(handle));
+  let calls=0;
+  await until(()=>pollSdkPreparation(handle),'ready');
+  prepareSdkTransport(handle,{responseLimits:{...bounds,maxBytes:originalBytes.length,
+    maxChunkBytes:originalBytes.length},fetch(){calls++;return rawResponse(originalBytes);}});
+  startSdkTransport(handle);
+  await until(()=>pollSdkTransport(handle),'response');
+  await until(()=>pollSdkDecode(handle),'ready');
+  const original=sdkTransportRawObservation(handle);
+  const decoded=takeSdkDecodedResult(handle);
+  // The raw parse and schema-validated projection are distinct objects. SDK
+  // normalization/stripping is not the Common metadata or capture contract.
+  assert.notEqual(decoded.usage.raw,decoded.response.body.usage);
+  assert.deepEqual(decoded.usage.raw,{completion_tokens:0});
+  assert.deepEqual(decoded.response.body.usage,{completion_tokens:0,opaque:17});
+  assert.deepEqual(decoded.response.body.extra,{text:'é\r\n'});
+  assert.equal(decoded.response.body.choices[0].message.extra,'opaque');
+  const sdkBody=decoded.request.body;
+  // Internal SDK args keep undefined fields that JSON.stringify omits from
+  // the physical wire. Those owned reference slots are not costless absence.
+  assert.deepEqual(Object.keys(sdkBody).sort(),[
+    'model','logit_bias','logprobs','top_logprobs','user','parallel_tool_calls',
+    'max_tokens','temperature','top_p','frequency_penalty','presence_penalty',
+    'response_format','stop','seed','verbosity','max_completion_tokens','store',
+    'metadata','prediction','reasoning_effort','service_tier','prompt_cache_key',
+    'prompt_cache_options','prompt_cache_retention','safety_identifier','messages',
+    'tools','tool_choice',
+  ].sort());
+  assert.equal(sdkBody.model,'gpt-4.1-nano');
+  assert.equal(sdkBody.max_tokens,16);
+  assert.equal(sdkBody.store,false);
+  assert.deepEqual(sdkBody.messages,expectedBody.messages);
+  assert.deepEqual(sdkBody.response_format.json_schema.schema,schema);
+  assert.equal(Object.hasOwn(sdkBody.response_format.json_schema,'description'),true);
+  assert.equal(sdkBody.response_format.json_schema.description,undefined);
+  assert.equal(sdkBody.logit_bias,undefined);
+  assert.deepEqual(JSON.parse(JSON.stringify(sdkBody)),expectedBody);
+  await release(handle);
+  // Retirement of the SDK handle does not retire transferred caller aliases.
+  // Their lifetime still belongs in the original receiving Owner's inventory.
+  assert.equal(decoded.request.body,sdkBody);
+  assert.deepEqual(JSON.parse(JSON.stringify(sdkBody)),expectedBody);
+  assert.deepEqual(original.body,originalBytes);
+  assert.deepEqual(decoded.response.body.extra,{text:'é\r\n'});
+  assert.equal(calls,1);
+  assert.throws(()=>startSdkTransport(handle),{code:'ForeignSdkPreparation'});
+});
+
 test('fixed real SDK transport starts once and delivers bounded original bytes to the same invocation', async t => {
   const ambient = globalThis.fetch;
   let ambientCalls = 0;
