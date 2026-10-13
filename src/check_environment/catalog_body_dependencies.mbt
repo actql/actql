@@ -6,7 +6,12 @@ pub(all) enum CatalogBodyAdmission {
   LookupFactsBody(LookupFacts)
   ListingFactsBody(LookupFacts, FileListProfile)
   ContentFactsBody(LookupFacts, FileContentProfile)
-  RelationKeysFactsBody(SourceRelationKeys, LookupFacts, FileListProfile?, FileContentProfile?)
+  RelationKeysFactsBody(
+    SourceRelationKeys,
+    LookupFacts,
+    FileListProfile?,
+    FileContentProfile?
+  )
   PushdownBody(PushdownContract)
 }
 
@@ -119,17 +124,29 @@ pub fn check_relation_key_body_dependencies(
   }
   let mut known = 1 + (if admitted.capacity is Some(_) { 1 } else { 0 })
   if view.file_listing is Some(profile) {
-    if profile.facts_cid != envelope.cid { return Err(MissingBodyAdmission) }
+    if profile.facts_cid != envelope.cid {
+      return Err(MissingBodyAdmission)
+    }
     known += 1
   }
   if view.file_content is Some(profile) {
-    if profile.facts_cid != envelope.cid { return Err(MissingBodyAdmission) }
+    if profile.facts_cid != envelope.cid {
+      return Err(MissingBodyAdmission)
+    }
     known += 1
   }
   if @decode.object_length(envelope.body) != Some(known) {
     return Err(UnsupportedBodyGrammar(envelope.kind))
   }
-  Ok({ envelope, admission: RelationKeysFactsBody(keys, admitted, view.file_listing, view.file_content), })
+  Ok({
+    envelope,
+    admission: RelationKeysFactsBody(
+      keys,
+      admitted,
+      view.file_listing,
+      view.file_content,
+    ),
+  })
 }
 
 ///|

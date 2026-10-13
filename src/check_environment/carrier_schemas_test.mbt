@@ -7,7 +7,9 @@ fn carrier_modes(
 ) -> SourceReadModes raise {
   let bodies = value_bodies("{\"type\":\"number\",\"nullable\":false}")
   bodies["carrier_schema"] = body
-  if facts is Some(facts) { bodies["carrier_facts"] = facts }
+  if facts is Some(facts) {
+    bodies["carrier_facts"] = facts
+  }
   let contents = reference_fixture(
     complete_view=true,
     carrier=kind,

@@ -52,14 +52,15 @@ fn read_relation_key_facts(
   }
   relation_key_charge(budget, component, 2)
   let keys = @decode.required(
-    @decode.open_object(component).unwrap(), "candidate_keys",
-  ).unwrap_or_else(() => {
-    carrier_fail(InvalidBody, component)
-  })
+    @decode.open_object(component).unwrap(),
+    "candidate_keys",
+  ).unwrap_or_else(() => carrier_fail(InvalidBody, component))
   let count = @decode.array_length(keys).unwrap_or_else(() => {
     carrier_fail(InvalidBody, keys)
   })
-  if count == 0 { carrier_fail(InvalidBody, keys) }
+  if count == 0 {
+    carrier_fail(InvalidBody, keys)
+  }
   relation_key_charge(budget, keys, count)
   let tuples = []
   let seen : Map[Array[String], Bool] = Map([])
@@ -68,7 +69,9 @@ fn read_relation_key_facts(
     let arity = @decode.array_length(tuple).unwrap_or_else(() => {
       carrier_fail(InvalidBody, tuple)
     })
-    if arity == 0 { carrier_fail(InvalidBody, tuple) }
+    if arity == 0 {
+      carrier_fail(InvalidBody, tuple)
+    }
     relation_key_charge(budget, tuple, arity)
     let fields = []
     let names : Map[String, Bool] = Map([])
@@ -78,11 +81,15 @@ fn read_relation_key_facts(
         carrier_fail(InvalidBody, at)
       })
       relation_key_charge(budget, at, name.length())
-      if name == "" || names.contains(name) { carrier_fail(InvalidBody, at) }
+      if name == "" || names.contains(name) {
+        carrier_fail(InvalidBody, at)
+      }
       names[name] = true
       fields.push(name)
     }
-    if seen.contains(fields) { carrier_fail(InvalidBody, tuple) }
+    if seen.contains(fields) {
+      carrier_fail(InvalidBody, tuple)
+    }
     seen[fields] = true
     tuples.push((tuple, fields))
   }
@@ -109,8 +116,10 @@ fn bind_source_relation_keys(
     for name in fields {
       relation_key_charge(budget, source, name.length())
       guard @carrier.lookup(rows, @row.Unqualified(name)) is Present(field) &&
-        field.presence == @row.Required && field.contract is Some(contract) &&
-        !contract.nullable && @value_contract.key_comparable(contract, contract) else {
+        field.presence == @row.Required &&
+        field.contract is Some(contract) &&
+        !contract.nullable &&
+        @value_contract.key_comparable(contract, contract) else {
         carrier_fail(InvalidBody, source)
       }
     }
@@ -119,7 +128,9 @@ fn bind_source_relation_keys(
 }
 
 ///|
-pub fn source_view_relation_keys(view : SourceViewCarrier) -> SourceRelationKeys? {
+pub fn source_view_relation_keys(
+  view : SourceViewCarrier,
+) -> SourceRelationKeys? {
   view.relation_keys
 }
 
@@ -130,7 +141,10 @@ pub fn source_relation_key_count(keys : SourceRelationKeys) -> Int {
 
 ///|
 /// The exact admitted declaration cursor; never a reconstructed local assertion.
-pub fn source_relation_key_at(keys : SourceRelationKeys, index : Int) -> @decode.Cursor? {
+pub fn source_relation_key_at(
+  keys : SourceRelationKeys,
+  index : Int,
+) -> @decode.Cursor? {
   keys.facts.tuples.get(index).map(tuple => tuple.0)
 }
 
@@ -140,6 +154,8 @@ pub fn source_relation_key_schema(keys : SourceRelationKeys) -> CarrierSchema {
 }
 
 ///|
-pub fn source_relation_key_reference(keys : SourceRelationKeys) -> CatalogReference {
+pub fn source_relation_key_reference(
+  keys : SourceRelationKeys,
+) -> CatalogReference {
   keys.reference
 }

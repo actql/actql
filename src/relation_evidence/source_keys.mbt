@@ -23,10 +23,11 @@ pub fn source_view_keys(
     let witnesses = []
     for index in 0..<count {
       let tuple = @model_environment.source_relation_key_at(declaration, index).unwrap()
-      let key = match declare_primary_key(tuple, carrier, {
-        max_fields: budget.work,
-        max_name_bytes: budget.text,
-      }) {
+      let key = match
+        declare_primary_key(tuple, carrier, {
+          max_fields: budget.work,
+          max_name_bytes: budget.text,
+        }) {
         Ok(key) => key
         Err(issue) => raise Stop(issue)
       }
@@ -35,22 +36,25 @@ pub fn source_view_keys(
       budget.text -= usage.name_bytes
       witnesses.push(key)
     }
-    let keys = match collect_keys(source, carrier, witnesses, {
-      max_keys: count,
-      max_work: budget.work,
-      max_name_bytes: budget.text,
-    }) {
+    let keys = match
+      collect_keys(source, carrier, witnesses, {
+        max_keys: count,
+        max_work: budget.work,
+        max_name_bytes: budget.text,
+      }) {
       Ok(keys) => keys
       Err(issue) => raise Stop(issue)
     }
     let (work, text) = key_set_usage(keys)
     budget.work -= work
     budget.text -= text
-    Ok(Some({
-      keys,
-      work: limits.max_work - budget.work,
-      name_bytes: limits.max_name_bytes - budget.text,
-    }))
+    Ok(
+      Some({
+        keys,
+        work: limits.max_work - budget.work,
+        name_bytes: limits.max_name_bytes - budget.text,
+      }),
+    )
   } catch {
     Stop(issue) => Err(issue)
   }

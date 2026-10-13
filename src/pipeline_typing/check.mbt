@@ -2558,8 +2558,12 @@ pub fn check_with_evidence(
   ] = [],
   model_tasks? : @model_environment.ModelTasks? = None,
 ) -> Result[CheckedPipeline, Issue] {
-  if limits.max_steps < 0 || limits.max_work < 0 || limits.max_text_bytes < 0 ||
-    limits.max_nodes < 0 || limits.max_tokens < 0 || limits.max_depth < 0 {
+  if limits.max_steps < 0 ||
+    limits.max_work < 0 ||
+    limits.max_text_bytes < 0 ||
+    limits.max_nodes < 0 ||
+    limits.max_tokens < 0 ||
+    limits.max_depth < 0 {
     return Err({
       kind: InvalidLimits,
       source,
@@ -2591,10 +2595,11 @@ pub fn check_with_evidence(
   for (_, input) in inputs {
     let key = match input {
       SourceViewInput(_, _, _, owner) =>
-        match @evidence.source_view_keys(owner, {
-          max_work: key_work,
-          max_name_bytes: key_text,
-        }) {
+        match
+          @evidence.source_view_keys(owner, {
+            max_work: key_work,
+            max_name_bytes: key_text,
+          }) {
           Ok(None) => None
           Ok(Some(value)) => {
             key_work -= value.work
@@ -2627,33 +2632,33 @@ pub fn check_with_evidence(
     }
   })
   let checked = check_impl(
-      source,
-      carriers,
-      parameters,
-      from,
-      { ..limits, max_work: key_work, max_text_bytes: key_text, },
-      calendar_profile,
-      text_rank_profile,
-      delta_contracts,
-      keys,
-      rankings,
-      inputs.map(pair => {
-        match pair.1 {
-          ProducedInput(p) => Some(p)
-          _ => None
-        }
-      }),
-      inputs.map(pair => pair.1),
-      model_tasks,
-    ) catch {
+    source,
+    carriers,
+    parameters,
+    from,
+    { ..limits, max_work: key_work, max_text_bytes: key_text, },
+    calendar_profile,
+    text_rank_profile,
+    delta_contracts,
+    keys,
+    rankings,
+    inputs.map(pair => {
+      match pair.1 {
+        ProducedInput(p) => Some(p)
+        _ => None
+      }
+    }),
+    inputs.map(pair => pair.1),
+    model_tasks,
+  ) catch {
     Stop(issue) => return Err(issue)
   }
   Ok({
     ..checked,
     usage: {
       ..checked.usage,
-      work: (limits.max_work - key_work) + checked.usage.work,
-      text_bytes: (limits.max_text_bytes - key_text) + checked.usage.text_bytes,
+      work: limits.max_work - key_work + checked.usage.work,
+      text_bytes: limits.max_text_bytes - key_text + checked.usage.text_bytes,
     },
   })
 }

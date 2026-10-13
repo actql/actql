@@ -320,7 +320,10 @@ pub fn check_carrier_schemas(
       }
       work += 1
       if envelope.kind == "carrier_facts" {
-        let (keys, used) = read_relation_key_facts(envelope, limits.max_work - work)
+        let (keys, used) = read_relation_key_facts(
+          envelope,
+          limits.max_work - work,
+        )
         work += used
         if keys is Some(keys) {
           key_facts[envelope.cid] = keys
@@ -379,18 +382,27 @@ pub fn check_carrier_schemas(
         carrier_fail(CarrierMismatch, name)
       }
       let facts_cursor = @decode.required(output, "facts").unwrap()
-      let facts_reference = catalog_reference_for_cursor(references, facts_cursor).unwrap()
+      let facts_reference = catalog_reference_for_cursor(
+        references, facts_cursor,
+      ).unwrap()
       let relation_keys = match key_facts.get(facts_reference.contract.cid) {
         None => None
         Some(facts) => {
           let (keys, used) = bind_source_relation_keys(
-            facts_reference, schema, facts, limits.max_work - work,
+            facts_reference,
+            schema,
+            facts,
+            limits.max_work - work,
           )
           work += used
           Some(keys)
         }
       }
-      views[member_index(reference.item)] = { reference, schema, relation_keys, }
+      views[member_index(reference.item)] = {
+        reference,
+        schema,
+        relation_keys,
+      }
     }
     Ok({ modes, entries, by_cid, views, bytes, nodes, work, })
   } catch {
