@@ -99,13 +99,20 @@ allocation behavior remain unknown. The proposal uses the target SDK's
 CommonCrypto API, whose header/library identity and scratch coverage must be
 reviewed before native adoption. It adds no custom digest algorithm.
 
-The current `_checked_installed_image` still captures Python bytes, and stock
-Python `Module.deserialize` still makes a ctypes copy. This candidate does not
-change those installed calls or claim that their allocations are now funded.
-The future call must preserve the original sealed native capture until exact
-deserialization has completed, use the original private C API pointer interface
-without a Python whole-file copy, and then retire it through the same LocalCore.
-Native code's separate deserialize copy remains a distinct simultaneous extent.
+The private SDK now has an installed file-descriptor branch that registers its
+original image extent before native capture and its module output slot before
+native deserialization. A genuine supplied holding is mandatory on that branch;
+the same library receives the original native pointer without a Python whole
+image or ctypes image copy. Failed capture/retirement retains the original
+extent in the same LocalCore cleanup path. Null module output is not deleted.
+This connection has only FD/pointer/status-double evidence, not actual native
+capture or an adopted installed supplier. Native code's separate deserialize
+copy remains a distinct simultaneous extent.
+
+The original byte-capture diagnostic branch and stock Python Module.deserialize
+remain separately qualified. The native descriptor branch never falls back to
+either one. Ordinary factory acquisition, before-capture physical funding,
+private binding adoption and native generation/recipe transfer remain incomplete.
 
 ## Python binding source and one-library requirement
 
@@ -163,6 +170,8 @@ The final `InstalledLocalHost.installed` sequence must be:
 3. Capture image and construct native configuration/Engine/Store/module under
    that original lease. Every native operation and callback reentry must use the
    same nominal lease; foreign or missing scope is refusal, never fallback.
+   The private Core caller now connects native enter/leave to initialization,
+   Core calls and Store cleanup; actual native execution is still unverified.
 4. Transfer once to the existing LocalCore and bind the holding projection to
    its original initial Root. ABI73's resident number is only a projection; it
    neither acquires physical capacity nor funds an earlier allocation.

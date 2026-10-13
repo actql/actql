@@ -83,8 +83,8 @@
     "infallible Rust allocation exhaustion is an abort, not typed capacity refusal",
     "Engine::new config.build_compiler under cranelift remains an allocation domain",
     "all foreign native allocations and OS registrations still require declared coverage",
-    "all native C API calls and reentry require original lease scopes",
-    "image FD capture candidate uncompiled; SDK-to-native pointer/deserializer call unconnected",
+    "private Core original lease scope connection prepared; actual native calls and reentry unverified",
+    "image FD capture candidate uncompiled; private SDK pointer/deserializer connected only with FD/status doubles; installed supplier unadopted",
     "actual capacity profile/toolchain/SDK/build closure unadopted",
     "Original C API default feature proposal preserves source surface; actual export inventory and full native dependency allocation coverage unverified"
   ],
