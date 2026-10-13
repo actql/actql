@@ -71,15 +71,16 @@ test "Store close retains original owners and durable reservation through databa
   assert_true(store.closed)
   assert_false(store.close().unwrap())
   // Store handle retirement does not reclaim separately retained data/holding.
-  let restored = match open_existing_store_with_custody(
-    library,
-    path,
-    authority,
-    128L,
-    4L,
-    4096L,
-    diagnostic_ceiling=Some(256),
-  ) {
+  let restored = match
+    open_existing_store_with_custody(
+      library,
+      path,
+      authority,
+      128L,
+      4L,
+      4096L,
+      diagnostic_ceiling=Some(256),
+    ) {
     Ok(value) => value
     Err(RefusedBeforeAcquisition(_)) =>
       fail("restoring the retained original refused before acquisition")
