@@ -5,12 +5,13 @@ import {createServer} from 'node:https';
 import {resolve} from 'node:path';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
-import {selectReleaseSourcefreeQueryCases} from '../release-sourcefree-query-cases.mjs';
+import {selectInstalledSourcefreeQuerySuite} from '../release-sourcefree-query-cases.mjs';
 import {exercisePublicQueryInput} from './public-query-input.mjs';
 import {guardReleaseSourcefreeIo} from './release-sourcefree-io.mjs';
 
 const mode = process.argv[2];
 assert.ok(['local', 'https'].includes(mode), 'Select one installed transport');
+const suite = process.argv[3] ?? 'in-unnest';
 const directory = resolve(`sourcefree-${mode}`);
 const reviewer = generateKeyPairSync('ed25519'), hostKey = generateKeyPairSync('ed25519');
 const authorization = {
@@ -22,8 +23,9 @@ const authorization = {
     publicKey: reviewer.publicKey.export({type: 'spki', format: 'pem'})}],
   hostKey: {keyId: 'host', privateKey: hostKey.privateKey.export({type: 'pkcs8', format: 'pem'})},
 };
-const cases = selectReleaseSourcefreeQueryCases(), completed = [];
+const cases = selectInstalledSourcefreeQuerySuite(suite), completed = [], completedRefusals = [];
 let host, server;
+let primary;
 const io = guardReleaseSourcefreeIo();
 try {
   // No Source/Effect/Model installation or external Provider is added. These
@@ -59,19 +61,36 @@ try {
     } finally {journal.close();}
   };
   await exercisePublicQueryInput(connectClient, options, {
-    requestPrefix: `release-${mode}`, observe, ...cases,
-    completedCase({name, ref, submissionRef, observedResults, beforeSubmit, beforeRead}) {
-      completed.push({name, ref, submissionRef, observedResults, beforeSubmit, beforeRead});
+    requestPrefix: suite === 'in-unnest' ? `release-${mode}` : `release-sequence-${mode}`,
+    observe, ...cases,
+    completedCase({name, ref, submissionRef, observedResults, beforeSubmit, beforeRead, afterReplay}) {
+      completed.push({name, ref, submissionRef, observedResults, beforeSubmit, beforeRead, afterReplay});
+    },
+    completedRefusal({name, submissionRef, outcome, beforeSubmit, afterRefusal}) {
+      completedRefusals.push({name, submissionRef, outcome, beforeSubmit, afterRefusal});
     },
   });
-  assert.equal(completed.length, 4);
-  assert.equal(observe().acceptedRuns, 4);
+  assert.deepEqual(completed.map(value => value.name), cases.successes.map(value => value.name));
+  assert.deepEqual(completedRefusals.map(value => value.name), cases.refusals.map(value => value.name));
+  assert.equal(observe().acceptedRuns, cases.successes.length);
   io.assertQuiet();
-  await writeFile(`sourcefree-${mode}.json`, JSON.stringify({mode,
-    successNames: completed.map(value => value.name), refusalNames: cases.refusals.map(value => value.name),
-    completed, providerObservation: io.snapshot(),
-    observationScope: 'Empty Source inventory; process/fetch/secret guards and read-only durable Run admission. Store filesystem I/O is not Source I/O.'}, null, 2) + '\n', {flag: 'wx'});
+} catch (error) {
+  primary = error;
 } finally {
   try {if (server) await new Promise(resolve => server.close(resolve));}
-  finally {try {await host?.close();} finally {io?.close();}}
+  catch (error) {primary ??= error;}
+  try {await host?.close();}
+  catch (error) {primary ??= error;}
+  const providerObservation = io.snapshot();
+  io.close();
+  // Keep actual completed cases and refusals even when later cases never run.
+  await writeFile(`sourcefree-${mode}.json`, JSON.stringify({mode, suite,
+    complete: primary === undefined,
+    actualNormal: completed.length, actualRefusal: completedRefusals.length,
+    expectedSuccessNames: cases.successes.map(value => value.name),
+    expectedRefusalNames: cases.refusals.map(value => value.name),
+    successNames: completed.map(value => value.name), refusalNames: completedRefusals.map(value => value.name),
+    completed, completedRefusals, providerObservation,
+    observationScope: 'Empty Source inventory; process/fetch/secret guards and read-only durable Run admission. Store filesystem I/O is not Source I/O.'}, null, 2) + '\n', {flag: 'wx'});
 }
+if (primary !== undefined) throw primary;

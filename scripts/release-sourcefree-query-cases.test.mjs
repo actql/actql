@@ -1,11 +1,59 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import childProcess from 'node:child_process';
+import {readFileSync} from 'node:fs';
+import {dirname, resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
 import {inUnnestLiteralArraySuccesses as successes, inUnnestLiteralArrayRefusals as refusals}
   from './fixtures/in-unnest-literal-array-source-input.mjs';
-import {selectReleaseSourcefreeQueryCases, releaseSourcefreeSuccessNames, releaseSourcefreeRefusalNames}
+import {selectReleaseSourcefreeQueryCases, releaseSourcefreeSuccessNames, releaseSourcefreeRefusalNames,
+  selectInstalledSourcefreeQuerySuite, releaseSourcefreeFixturePaths}
   from './release-sourcefree-query-cases.mjs';
+import {sequenceSourceSuccesses, sequenceSourceRefusals} from './fixtures/sequence-source-input.mjs';
 import {guardReleaseSourcefreeIo} from './fixtures/release-sourcefree-io.mjs';
+
+test('closed installed suites retain the old default and the complete original Sequence cohort', () => {
+  assert.deepEqual(selectInstalledSourcefreeQuerySuite(), selectReleaseSourcefreeQueryCases());
+  assert.deepEqual(selectInstalledSourcefreeQuerySuite('sequence'), {
+    successes: sequenceSourceSuccesses, refusals: sequenceSourceRefusals});
+  for (const suite of ['unknown', '--sequence-only', 'calendar', '']) {
+    assert.throws(() => selectInstalledSourcefreeQuerySuite(suite), TypeError);
+  }
+});
+
+test('normal source-free delivery contains its full relative import closure', () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  const closure = paths => {
+    const delivered = new Set(paths.map(path => resolve(root, path)));
+    const pending = [resolve(root, 'scripts/fixtures/release-sourcefree-query.mjs')];
+    const seen = new Set(), missing = [];
+    while (pending.length) {
+      const path = pending.pop();
+      if (seen.has(path)) continue;
+      seen.add(path);
+      if (!delivered.has(path)) { missing.push(path); continue; }
+      for (const match of readFileSync(path, 'utf8').matchAll(
+        /(?:from\s*|import\s*\()(['"])(\.[^'"\n]+\.mjs)\1/gu)) {
+        pending.push(resolve(dirname(path), match[2]));
+      }
+    }
+    return {seen, missing};
+  };
+  const complete = closure(releaseSourcefreeFixturePaths);
+  assert.deepEqual(complete.missing, []);
+  assert.equal(complete.seen.size, 7);
+  const omitted = resolve(root, 'scripts/fixtures/sequence-source-input.mjs');
+  assert.deepEqual(closure(releaseSourcefreeFixturePaths.filter(path =>
+    !path.endsWith('/sequence-source-input.mjs'))).missing, [omitted]);
+});
+
+test('installed source-free worker and consumer parse without starting a product', () => {
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  for (const path of ['scripts/fixtures/release-sourcefree-query.mjs',
+    'scripts/test-package-release-sourcefree-query.mjs']) {
+    childProcess.execFileSync(process.execPath, ['--check', resolve(root, path)], {timeout: 10000});
+  }
+});
 
 test('release selection preserves four independent inputs and all six refusals', () => {
   const before = JSON.stringify({successes, refusals});
