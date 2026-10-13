@@ -154,9 +154,8 @@ fn local_installation_packet(
 }
 
 ///|
-fn read_local_installation_projection(
+fn read_local_installation_authenticated_payload(
   host : NativeLocalHostConnection,
-  file : NativeLocalSelectedFile,
   packet : Bytes,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
   try {
@@ -181,6 +180,27 @@ fn read_local_installation_projection(
       .map_err(issue => LocalInstallationAdoptionStop(issue))
       .unwrap_or_error() else {
       return Err(CustodyLost)
+    }
+    Ok(payload)
+  } catch {
+    LocalInstallationAdoptionStop(issue) => Err(issue)
+  }
+}
+
+///|
+fn read_local_installation_projection(
+  host : NativeLocalHostConnection,
+  file : NativeLocalSelectedFile,
+  packet : Bytes,
+) -> Result[Bytes, NativeLocalAdoptionIssue] {
+  try {
+    let payload = read_local_installation_authenticated_payload(host, packet)
+      .map_err(issue => LocalInstallationAdoptionStop(issue))
+      .unwrap_or_error()
+    // The exact adopted configuration selects one closed role. No other file
+    // is searched and an unknown role never repairs a retained original.
+    if local_preparation_installation_selection(file.body) is Err(_) {
+      return read_local_signing_installation_projection(host, file, payload)
     }
     let fields = local_adoption_fields(payload, [
         "adoption_cid", "installation_configuration_cid", "provider_configuration_cid",
@@ -357,6 +377,10 @@ fn NativeLocalHostConnection::installation_original_locked(
           .map_err(_ => NativeClientRunJournalIssue::CustodyLost)
           .map_err(issue => LocalInstallationJournalStop(issue))
           .unwrap_or_error()
+        self
+        .require_distinct_signing_key_locked(file, bytes)
+        .map_err(issue => LocalInstallationJournalStop(issue))
+        .unwrap_or_error()
         self.session.source_root
         .restore_private_file_projection(bytes)
         .map_err(_ => NativeClientRunJournalIssue::CustodyLost)
@@ -393,6 +417,10 @@ fn NativeLocalHostConnection::installation_original_locked(
           .map_err(_ => NativeClientRunJournalIssue::CustodyLost)
           .map_err(issue => LocalInstallationJournalStop(issue))
           .unwrap_or_error()
+        self
+        .require_distinct_signing_key_locked(file, exported)
+        .map_err(issue => LocalInstallationJournalStop(issue))
+        .unwrap_or_error()
         let payload = local_installation_payload(self, file, provider, exported)
           .map_err(_ => NativeClientRunJournalIssue::Encoding)
           .map_err(issue => LocalInstallationJournalStop(issue))
