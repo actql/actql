@@ -59,7 +59,13 @@ pub fn advance_client_original_keyed_prefix_input(
     Err(issue) => return Err(issue)
   }
   if poll is @local.Complete(output, ..) {
-    value.output = Some(output)
+    guard value.input is Some(input) &&
+      @execution.retain_completed_segment_input(output, input) is Some(retained) else {
+      return Err(@connector.Execution(@execution.InputSet))
+    }
+    // The only donor is this actual managed execution and the exact read it
+    // received at start. Keep the underlying terminal poll and work unchanged.
+    value.output = Some(retained)
   }
   Ok(poll)
 }
