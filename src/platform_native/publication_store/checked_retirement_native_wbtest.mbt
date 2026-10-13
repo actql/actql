@@ -105,8 +105,9 @@ test "Store close retains original owners and durable reservation through databa
     4096L,
     diagnostic_ceiling=Some(256),
   ).unwrap()
+  let close_result : Ref[Result[Bool, NativePublicationStoreIssue]?] = Ref(None)
   callback_store.allocation_failure.val = Some(fn(_) {
-    assert_true(callback_store.close().unwrap())
+    close_result.val = Some(callback_store.close())
     None
   })
   assert_true(
@@ -116,6 +117,7 @@ test "Store close retains original owners and durable reservation through databa
     })
     is Err(Closed),
   )
+  assert_true(close_result.val is Some(Ok(true)))
   assert_eq(calls.val, 0)
 }
 
