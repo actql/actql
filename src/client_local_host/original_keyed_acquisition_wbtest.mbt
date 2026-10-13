@@ -2,9 +2,7 @@
 // The existing environment contract orders evidence sections by whole-member
 // canonical CID, as does rowSourceCheckEnvironment. This constructs inputs;
 // it supplies no expectation for a Source observation or Model result.
-fn original_keyed_environment_members(
-  bodies : Array[String],
-) -> Json raise {
+fn original_keyed_environment_members(bodies : Array[String]) -> Json raise {
   let ordered = bodies.map(body => {
     let wire = @identity.stringify_value(
       @identity.from_json(@json.parse(body), 100000, 100, 1000000),
@@ -325,13 +323,15 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
   let (declaration, prepared, compiled, definition, plan, keyed, requirement) = original_keyed_run_fixture()
   let facts = @planning.query_requirement_source_evidence_facts(requirement).unwrap()
   let view = @row_source_host.row_declaration_view(
-    declaration, facts.source_ref,
+    declaration,
+    facts.source_ref,
   ).unwrap()
   let source = @row_source_host.prepare_declared_row_source(
     requirement, "content-fixture", view,
   ).unwrap()
   let acquisition = @row_source_host.prepare_declared_row_acquisition(
-    source, "fixture-original-keyed-empty", original_row_query_contract_fixture, original_row_evidence_contract_fixture,
+    source, "fixture-original-keyed-empty", original_row_query_contract_fixture,
+    original_row_evidence_contract_fixture,
   ).unwrap()
   // Independently calculated existing empty assembly envelope:
   // retention = 64*8 + 4096; workspace = 64*32 + 64*8 + 4096.
@@ -355,15 +355,25 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
   )
   let cleanup_requested = Ref(false)
   let run = start_client_original_keyed_direct_row_acquisition(
-    scope, compiled, definition, plan, prepared, keyed, acquisition,
-    "original-empty-direct", _ => {
+    scope,
+    compiled,
+    definition,
+    plan,
+    prepared,
+    keyed,
+    acquisition,
+    "original-empty-direct",
+    _ => {
       if cleanup_requested.val {
         @publication_host.finish_client_model_read_scope(
           scope, compiled, definition, plan, false,
-        ) |> ignore
+        )
+        |> ignore
       }
       true
-    }, 4096L, 4096L,
+    },
+    4096L,
+    4096L,
   ).unwrap()
   @row_source_host.begin_row_run(run, 4096, 3, 3).unwrap()
   @row_source_host.begin_row_run_listing_request(run, None, 0L).unwrap()
@@ -400,8 +410,7 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
   assert_eq(captured_usage.attempts, 1)
   assert_eq(captured_usage.holdings, 1)
   let lookup = start_client_original_keyed_lookup(
-    scope, compiled, definition, plan, prepared, keyed, capture,
-    100, 4096, 64, 64,
+    scope, compiled, definition, plan, prepared, keyed, capture, 100, 4096, 64, 64,
   ).unwrap()
   let assembled_usage = @resources.ledger_usage(ledger)
   assert_eq(assembled_usage.attempts, 2)
@@ -426,8 +435,8 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
   assert_true(@row_source_host.row_capture_source(capture) is Ok(_))
   assert_true(
     start_client_original_keyed_lookup(
-      scope, compiled, definition, plan, prepared, keyed, capture,
-      100, 4096, 64, 64,
+      scope, compiled, definition, plan, prepared, keyed, capture, 100, 4096, 64,
+      64,
     )
     is Err(
       Original(@publication_host.Resource(@resources.ChangedOriginalState))

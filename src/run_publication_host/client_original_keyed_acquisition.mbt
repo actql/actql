@@ -45,7 +45,8 @@ pub fn borrow_client_original_keyed_direct_ledger(
     select_client_single_keyed_acquisition(prepared) is Ok(Some(original)) &&
     physical_equal(keyed.check, original.check) &&
     client_keyed_acquisition_coordinates(keyed) is Some((_, task, join)) &&
-    task == component.task && join < component.step &&
+    task == component.task &&
+    join < component.step &&
     client_serialization_single_capture_shape(prepared, component.task) &&
     client_keyed_observation_covers_sources(prepared, keyed, requirement) &&
     client_keyed_direct_acquisition_coordinates(keyed)
@@ -54,12 +55,17 @@ pub fn borrow_client_original_keyed_direct_ledger(
     @strategy.graph_task_unit_index(prepared.graph, 0) == Some(stage) else {
     return Err(ForeignRun)
   }
-  let program = @checked.source_identity(@strategy.graph_program(prepared.graph))
+  let program = @checked.source_identity(
+    @strategy.graph_program(prepared.graph),
+  )
   let query = @planning.query_material_owner(
     @planning.query_requirement_material(requirement),
   )
   let acquisition = @query.query_sequence_requirement(query)
-  guard physical_equal(@planning.query_requirement_program(requirement), program) &&
+  guard physical_equal(
+      @planning.query_requirement_program(requirement),
+      program,
+    ) &&
     physical_equal(@query.query_sequence_owner(query), owner) &&
     @context.program_identity_stage_requests(program, stage) is Some(requests) &&
     physical_equal(@acquisition.query_acquisition_owner(acquisition), requests) &&
@@ -101,11 +107,15 @@ pub fn borrow_client_original_keyed_captured_ledger(
     select_client_single_keyed_acquisition(prepared) is Ok(Some(original)) &&
     physical_equal(keyed.check, original.check) &&
     client_keyed_acquisition_coordinates(keyed) is Some((_, task, join)) &&
-    task == component.task && join < component.step &&
+    task == component.task &&
+    join < component.step &&
     client_serialization_single_capture_shape(prepared, component.task) &&
     @strategy.graph_task_owner(prepared.graph, 0) is Some(owner) &&
-    @query.captured_source_matches(source,
-      @checked.source_identity(@strategy.graph_program(prepared.graph)), owner) else {
+    @query.captured_source_matches(
+      source,
+      @checked.source_identity(@strategy.graph_program(prepared.graph)),
+      owner,
+    ) else {
     return Err(ForeignRun)
   }
   // Source liveness can synchronously stop/reenter; only the current census
@@ -135,13 +145,24 @@ pub fn start_client_original_keyed_lookup_input(
   if !physical_equal(left.acquisition, keyed) {
     return Err(ForeignLeft)
   }
-  let ledger = match borrow_client_original_keyed_captured_ledger(
-    scope, compiled, definition, plan, prepared, keyed, left.source,
-  ) {
+  let ledger = match
+    borrow_client_original_keyed_captured_ledger(
+      scope,
+      compiled,
+      definition,
+      plan,
+      prepared,
+      keyed,
+      left.source,
+    ) {
     Ok(value) => value
     Err(_) => return Err(Assembly("original_custody_changed"))
   }
   start_client_keyed_lookup_input_owned(
-    left, ledger, max_bytes, max_work, Some(scope.identity),
+    left,
+    ledger,
+    max_bytes,
+    max_work,
+    Some(scope.identity),
   )
 }
