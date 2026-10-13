@@ -25,7 +25,8 @@ test('normal source-free delivery contains its full relative import closure', ()
   const root = fileURLToPath(new URL('../', import.meta.url));
   const closure = paths => {
     const delivered = new Set(paths.map(path => resolve(root, path)));
-    const pending = [resolve(root, 'scripts/fixtures/release-sourcefree-query.mjs')];
+    const pending = [resolve(root, 'scripts/fixtures/release-sourcefree-query.mjs'),
+      resolve(root, 'scripts/fixtures/release-time-series-reread.mjs')];
     const seen = new Set(), missing = [];
     while (pending.length) {
       const path = pending.pop();
@@ -41,10 +42,13 @@ test('normal source-free delivery contains its full relative import closure', ()
   };
   const complete = closure(releaseSourcefreeFixturePaths);
   assert.deepEqual(complete.missing, []);
-  assert.equal(complete.seen.size, 7);
+  assert.equal(complete.seen.size, 13);
   const omitted = resolve(root, 'scripts/fixtures/sequence-source-input.mjs');
   assert.deepEqual(closure(releaseSourcefreeFixturePaths.filter(path =>
     !path.endsWith('/sequence-source-input.mjs'))).missing, [omitted]);
+  assert.deepEqual(closure(releaseSourcefreeFixturePaths.filter(path =>
+    !path.endsWith('/temporal-join-source-input.mjs'))).missing,
+  [resolve(root, 'scripts/fixtures/temporal-join-source-input.mjs')]);
 });
 
 test('installed source-free worker and consumer parse without starting a product', () => {
