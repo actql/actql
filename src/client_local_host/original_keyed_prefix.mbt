@@ -108,6 +108,41 @@ pub fn start_client_original_keyed_left_prefix(
   max_name_bytes : Int,
   workspace? : @execution.ExecutionCapacity? = None,
 ) -> Result[ClientSerializationPrefix, ClientSerializationPrefixIssue] {
+  start_client_original_keyed_left_prefix_owned(
+    scope, compiled, definition, plan, prepared, keyed, capture, registry_body, values_body,
+    fragment_body, ordered_body, execution, measurement, max_entries, max_name_bytes,
+    workspace,
+  ).map(value => value.0)
+}
+
+///|
+// The existing managed execution and the exact input it consumed. Keep this
+// tuple inside Core Local; it is not a Node Ledger getter or a new Owner.
+fn start_client_original_keyed_left_prefix_owned(
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : @publication_host.ClientInferPlanGraph,
+  prepared : @publication_host.PreparedClientProgram,
+  keyed : @publication_host.ClientKeyedAcquisition,
+  capture : @row_source_host.RowSourceCapture,
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+  execution : @execution.SequenceExecutionLimits,
+  measurement : @execution.FixedInputGuardMeasureLimits,
+  max_entries : Int,
+  max_name_bytes : Int,
+  workspace : @execution.ExecutionCapacity?,
+) -> Result[
+  (
+    ClientSerializationPrefix,
+    @query.CapturedInputSource,
+    @execution.ProducerRead,
+  ),
+  ClientSerializationPrefixIssue,
+] {
   let source = match @row_source_host.row_capture_source(capture) {
     Ok(value) => value
     Err(issue) => return Err(Capture(issue))
@@ -183,5 +218,11 @@ pub fn start_client_original_keyed_left_prefix(
   }
   start_serialization_prefix_provider(
     sequence, provider, capacity, inputs, execution, measurement, ledger, workspace,
-  )
+  ).map(prefix => {
+    // This constructor admitted exactly one external original capture above.
+    match inputs[0] {
+      @local.RelationInput(read) => (prefix, source, read)
+      _ => abort("checked keyed prefix requires its original Relation input")
+    }
+  })
 }

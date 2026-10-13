@@ -36,6 +36,34 @@ test "original keyed version history keeps three left occurrences but acquires o
   let (declaration, prepared, compiled, definition, plan, keyed, requirement) = original_keyed_run_fixture(
     relation_versions=true,
   )
+  let execution : @execution.SequenceExecutionLimits = {
+    rows: {
+      max_rows: 3,
+      metadata_entries: 10000,
+      retained_entries: 10000,
+      operation_entries: 10000,
+      input_values: source_capture_values(),
+      output_values: source_capture_values(),
+    },
+    max_work: 100000,
+    max_frames: 100,
+  }
+  let measurement : @execution.FixedInputGuardMeasureLimits = {
+    max_work: 100000,
+    max_bytes: 10000,
+    max_nodes: 10000,
+    max_depth: 100,
+  }
+  let prefix_capacity = client_original_keyed_left_prefix_capacity(
+    prepared,
+    keyed,
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    execution,
+    measurement,
+  ).unwrap()
   let facts = @planning.query_requirement_source_evidence_facts(requirement).unwrap()
   let view = @row_source_host.row_declaration_view(
     declaration,
@@ -60,7 +88,7 @@ test "original keyed version history keeps three left occurrences but acquires o
   // Child logical allowances remain 8192/81920, not a normal physical profile.
   let ledger = @resources.create_ledger({
     planning_work: 3,
-    attempts: 4,
+    attempts: 5,
     holdings: 4,
     transfer_bytes: page.length().to_int64() + 8192L,
     retained_bytes: @row_source_host.row_acquisition_retained_capacity(
@@ -68,6 +96,7 @@ test "original keyed version history keeps three left occurrences but acquires o
     ) +
     61632L +
     16384L +
+    @execution.execution_capacity_retained_bytes(prefix_capacity) +
     3L,
     execution_bytes: @row_source_host.row_acquisition_execution_capacity(
       acquisition,
@@ -75,11 +104,12 @@ test "original keyed version history keeps three left occurrences but acquires o
     4096L +
     3236864L +
     163840L +
+    @execution.execution_capacity_execution_bytes(prefix_capacity) +
     2L,
   }).unwrap()
   let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
   let scope = @publication_host.begin_client_model_read_scope(
-    compiled, definition, plan, ledger, bootstrap, 4, 4, 0,
+    compiled, definition, plan, ledger, bootstrap, 5, 4, 0,
   ).unwrap()
   let direct = start_client_original_keyed_direct_row_acquisition(
     scope,
@@ -128,10 +158,49 @@ test "original keyed version history keeps three left occurrences but acquires o
     ),
     Some(3),
   )
-  let lookup = match
-    start_client_original_keyed_lookup(
-      scope, compiled, definition, plan, prepared, keyed, capture, 100, 4096, 4096,
-      100000,
+  let prefix = start_client_original_keyed_prefix_input(
+    scope,
+    compiled,
+    definition,
+    plan,
+    prepared,
+    keyed,
+    capture,
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    execution,
+    measurement,
+    100,
+    4096,
+  ).unwrap()
+  // It is not legal to substitute the earlier Step1 capture for Step4.
+  assert_true(
+    start_client_original_keyed_prefix_lookup_input(
+      prefix, scope, compiled, definition, plan, prepared, keyed, capture, 100, 4096,
+      4096, 100000,
+    )
+    is Err(
+      Original(@publication_host.Resource(@resources.ChangedOriginalState))
+    ),
+  )
+  complete = false
+  for _ in 0..<10000 {
+    match advance_client_original_keyed_prefix_input(prefix, 1).unwrap() {
+      @local.Complete(..) => {
+        complete = true
+        break
+      }
+      @local.Continue(..) | @local.Waiting(..) | @local.Settling(_, ..) => ()
+      _ => fail("original version-history prefix did not complete")
+    }
+  }
+  assert_true(complete)
+  let prefixed_lookup = match
+    start_client_original_keyed_prefix_lookup_input(
+      prefix, scope, compiled, definition, plan, prepared, keyed, capture, 100, 4096,
+      4096, 100000,
     ) {
     Ok(value) => value
     Err(issue) => {
@@ -147,6 +216,7 @@ test "original keyed version history keeps three left occurrences but acquires o
       }
       // Keep the success expectation. On a rejected left port, retire the
       // actual original capture/census; do not reacquire or fake a completion.
+      assert_true(cleanup_client_original_keyed_prefix_input(prefix).unwrap())
       @row_source_host.close_accounted_row_run(direct).unwrap()
       assert_true(
         @publication_host.finish_client_model_read_scope(
@@ -157,6 +227,12 @@ test "original keyed version history keeps three left occurrences but acquires o
       fail("original keyed version prefix unavailable: " + cause)
     }
   }
+  let lookup = @publication_host.client_original_keyed_prefix_lookup_input(
+    prefixed_lookup,
+  ).unwrap()
+  let borrowed = @resources.ledger_usage(ledger)
+  assert_false(cleanup_client_original_keyed_prefix_input(prefix).unwrap())
+  assert_eq(@resources.ledger_usage(ledger), borrowed)
   let stopped = Ref(false)
   let children : Array[@row_source_host.RowRun] = []
   let requested : Array[String] = []
@@ -198,14 +274,14 @@ test "original keyed version history keeps three left occurrences but acquires o
     if index >= 0 {
       let before = @resources.ledger_usage(ledger)
       assert_true(
-        start_client_original_keyed_row_acquisition(
+        start_client_original_keyed_prefix_row_acquisition(
           scope,
           compiled,
           definition,
           plan,
           prepared,
           keyed,
-          lookup,
+          prefixed_lookup,
           request,
           declaration,
           original_keyed_child_limits(),
@@ -227,14 +303,14 @@ test "original keyed version history keeps three left occurrences but acquires o
       continue
     }
     requested.push(wire)
-    let child = start_client_original_keyed_row_acquisition(
+    let child = start_client_original_keyed_prefix_row_acquisition(
       scope,
       compiled,
       definition,
       plan,
       prepared,
       keyed,
-      lookup,
+      prefixed_lookup,
       request,
       declaration,
       original_keyed_child_limits(),
@@ -306,17 +382,26 @@ test "original keyed version history keeps three left occurrences but acquires o
     ),
     Some(3),
   )
-  assert_eq(@resources.ledger_usage(ledger).attempts, 4)
+  assert_eq(@resources.ledger_usage(ledger).attempts, 5)
   assert_eq(@resources.ledger_usage(ledger).holdings, 4)
   complete = false
   for _ in 0..<10000 {
-    if @publication_host.cleanup_client_keyed_lookup_input(lookup, 1).unwrap() {
+    if @publication_host.cleanup_client_original_keyed_prefix_lookup(
+        prefixed_lookup, 1,
+      ).unwrap() {
       complete = true
       break
     }
   }
   assert_true(complete)
+  assert_true(
+    @publication_host.client_original_keyed_prefix_lookup_input(prefixed_lookup)
+    is None,
+  )
   let pending = @resources.ledger_usage(ledger)
+  // Assembly cleanup does not stand in for either physical child's ACK.
+  assert_false(cleanup_client_original_keyed_prefix_input(prefix).unwrap())
+  assert_eq(@resources.ledger_usage(ledger), pending)
   for child in children {
     assert_true(
       @row_source_host.close_accounted_row_run(child)
@@ -333,6 +418,24 @@ test "original keyed version history keeps three left occurrences but acquires o
   for child in children {
     @row_source_host.close_accounted_row_run(child).unwrap()
   }
+  assert_true(cleanup_client_original_keyed_prefix_input(prefix).unwrap())
+  assert_true(
+    prefix.output is None &&
+    prefix.source is None &&
+    prefix.input is None &&
+    prefix.lookup is None &&
+    prefix.scope is None &&
+    prefix.keyed is None,
+  )
+  assert_true(
+    start_client_original_keyed_prefix_lookup_input(
+      prefix, scope, compiled, definition, plan, prepared, keyed, capture, 100, 4096,
+      4096, 100000,
+    )
+    is Err(
+      Original(@publication_host.Resource(@resources.ChangedOriginalState))
+    ),
+  )
   @row_source_host.close_accounted_row_run(direct).unwrap()
   assert_true(
     @publication_host.finish_client_model_read_scope(
@@ -340,7 +443,7 @@ test "original keyed version history keeps three left occurrences but acquires o
     ).unwrap(),
   )
   let final_usage = @resources.ledger_usage(ledger)
-  assert_eq(final_usage.attempts, 4)
+  assert_eq(final_usage.attempts, 5)
   assert_eq(final_usage.holdings, 4)
   assert_eq(final_usage.held_bytes, 0L)
   assert_eq(final_usage.reserved_retention_bytes, 0L)
