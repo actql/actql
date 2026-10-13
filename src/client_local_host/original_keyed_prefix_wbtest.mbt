@@ -14,9 +14,7 @@ priv struct OriginalKeyedPrefixFixture {
 }
 
 ///|
-fn original_keyed_prefix_fixture(
-  one_short? : Bool = false,
-) -> OriginalKeyedPrefixFixture raise {
+fn original_keyed_prefix_fixture() -> OriginalKeyedPrefixFixture raise {
   let (declaration, prepared, compiled, definition, plan, keyed, requirement) = original_keyed_run_fixture(
     relation_versions=true,
   )
@@ -78,8 +76,7 @@ fn original_keyed_prefix_fixture(
     retained_bytes: @row_source_host.row_acquisition_retained_capacity(
       acquisition,
     ) +
-    @execution.execution_capacity_retained_bytes(capacity) -
-    (if one_short { 1L } else { 0L }) +
+    @execution.execution_capacity_retained_bytes(capacity) +
     3L,
     execution_bytes: @row_source_host.row_acquisition_execution_capacity(
       acquisition,
@@ -324,11 +321,49 @@ test "original keyed left prefix refuses a foreign Scope and a closing original 
 }
 
 ///|
-test "original keyed left prefix one-short allowance rejects before provider allocation without changing the original census" {
-  let value = original_keyed_prefix_fixture(one_short=true)
+test "original keyed left prefix refuses workspace one above remaining retention before provider allocation" {
+  let value = original_keyed_prefix_fixture()
   let before = @resources.ledger_usage(value.ledger)
+  let selected = client_original_keyed_left_prefix_capacity(
+    value.prepared,
+    value.keyed,
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+    value.execution,
+    value.measurement,
+  ).unwrap()
+  // The original Row allowance exceeds its actual capture holding. Use the
+  // actual remaining capacity for this reservation-boundary test, not that
+  // allowance as though all its bytes were held. This does not independently
+  // establish a physical normal-profile bound or its component coefficients.
+  let available = @resources.ledger_limits(value.ledger).retained_bytes -
+    before.held_bytes -
+    before.reserved_retention_bytes
+  let workspace = @execution.execution_capacity(
+    available - @execution.execution_capacity_retained_bytes(selected) + 1L,
+    0L,
+  ).unwrap()
   assert_true(
-    original_keyed_prefix_start(value)
+    start_client_original_keyed_left_prefix(
+      value.scope,
+      value.compiled,
+      value.definition,
+      value.plan,
+      value.prepared,
+      value.keyed,
+      value.capture,
+      source_query_original_registry,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      value.execution,
+      value.measurement,
+      100,
+      4096,
+      workspace=Some(workspace),
+    )
     is Err(Physical(@resources.RetentionLimit)),
   )
   assert_eq(@resources.ledger_usage(value.ledger), before)
