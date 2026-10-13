@@ -1,4 +1,83 @@
 ///|
+/// Query callbacks only, not a physical Journal, successful GET or cleanup ACK.
+test "Catalog cleanup reobserves the original use after a transient query failure" {
+  let queries = Ref(0)
+  let original = "sha256:" + "a".repeat(64)
+  let query = () => {
+    queries.val += 1
+    if queries.val == 1 {
+      Err(())
+    } else {
+      Ok(Some({ use_cid: original, outcome: "unknown", status: None, }))
+    }
+  }
+  assert_false(
+    holder_catalog_cleanup_original_use_observed(
+      true, false, false, false, query,
+    ),
+  )
+  assert_true(
+    holder_catalog_cleanup_original_use_observed(
+      true, false, false, false, query,
+    ),
+  )
+  assert_eq(queries.val, 2)
+  assert_false(
+    holder_catalog_use_succeeded({
+      use_cid: original,
+      outcome: "unknown",
+      status: None,
+    }),
+  )
+}
+
+///|
+test "Catalog cleanup query failure or absence stays pending on each pass" {
+  let queries = Ref(0)
+  for pass in 0..<3 {
+    assert_false(
+      holder_catalog_cleanup_original_use_observed(
+        true,
+        false,
+        false,
+        false,
+        () => {
+          queries.val += 1
+          if pass == 1 { Ok(None) } else { Err(()) }
+        },
+      ),
+    )
+  }
+  assert_eq(queries.val, 3)
+}
+
+///|
+test "Catalog cleanup does not query before a read or replace existing evidence" {
+  let queries = Ref(0)
+  for
+    (started, original, custody, observation) in [
+      (false, false, false, false),
+      (true, true, false, false),
+      (true, false, true, false),
+      (true, false, false, true),
+    ] {
+    assert_true(
+      holder_catalog_cleanup_original_use_observed(
+        started,
+        original,
+        custody,
+        observation,
+        () => {
+          queries.val += 1
+          Err(())
+        },
+      ),
+    )
+  }
+  assert_eq(queries.val, 0)
+}
+
+///|
 /// Compile-only projection boundaries; the query Owner must supply the actual
 /// authenticated use. These values are not service or persistence evidence.
 test "restored Catalog adoption requires confirmed successful original use" {
