@@ -42,7 +42,8 @@ export const nearestCarrierViewSpecification = Object.freeze({views: Object.free
 export const nearestCarrierReadOperations = Object.freeze(Object.fromEntries(
   resources.map(resource => [resource, `nearest_fixture:${resource}:read`])));
 
-export function createNearestCarrierPageDriver(observations) {
+export function createNearestCarrierPageDriver(observations,
+  readRows = resource => nearestCarrierSourceRows[resource]) {
   return async ({resource, columns, requestWire, operation: selectedOperation,
     signal, authorizationFor, chargePage, consumePage}) => {
     signal?.throwIfAborted();
@@ -60,7 +61,7 @@ export function createNearestCarrierPageDriver(observations) {
     observations.sourceReads++;
     observations.sourceIo++;
     observations.sourceReadCommands.push({resource, columns: [...columns], requestWire});
-    const rows = nearestCarrierSourceRows[resource].map(row => Object.fromEntries(
+    const rows = readRows(resource).map(row => Object.fromEntries(
       columns.map(name => [name, structuredClone(row[name])])));
     const charge = chargePage(Buffer.from(JSON.stringify(rows)));
     await consumePage(rows, {charge});
@@ -69,7 +70,8 @@ export function createNearestCarrierPageDriver(observations) {
 }
 
 export async function installNearestCarrierFixture({moon, helpers,
-  createInstalledConnectorTable, directory}) {
+  createInstalledConnectorTable, directory,
+  readRows = resource => nearestCarrierSourceRows[resource]}) {
   for (const resource of resources) assert.deepEqual(
     JSON.parse(nearestCarrierSchemaWires[resource]), nearestCarrierSourceSchemas[resource]);
   await mkdir(directory, {recursive: true});
@@ -153,7 +155,7 @@ export async function installNearestCarrierFixture({moon, helpers,
           bindingCid: cid({version: 'actql-nearest-fixture-binding/0.1',
             contextCid: authorization.context.contextCid, catalogCid: current.catalog_cid}),
           limits: {maxPages: 1, maxPageBytes: 4096, maxPageRows: 3, maxCaptureRows: 3},
-          readPages: createNearestCarrierPageDriver(observations)});
+          readPages: createNearestCarrierPageDriver(observations, readRows)});
       } catch (cause) {
         throw await helpers.retainInstalledHostInitializationFailure(cause,
           {sourceProfile: observedSite});
