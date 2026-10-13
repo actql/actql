@@ -10,6 +10,7 @@ priv enum PublicationCommitExportProjection {
   SDKReadEvidence(Int, Int, Int)
   SDKReadGrant(Int, Int, Int)
   SDKReadEvidenceDecision(Int, Int)
+  SDKReadDeliveryStorage(Int, Int)
   InspectedReference(Int)
 } derive(Eq)
 

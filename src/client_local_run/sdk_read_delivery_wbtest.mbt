@@ -229,3 +229,77 @@ test "SDK delivery keeps lookup failure existing attempt and post-callback inval
     is Err(Store(Preparation(StoredChain(_)))),
   )
 }
+
+///|
+test "SDK delivery storage projects six original CAS writes and rejects partial installations" {
+  let fixture = sdk_read_fixture()
+  defer (fixture.cleanup)()
+  let (key, packet) = sdk_delivery_evidence(fixture)
+  let prepare = (
+    read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, String],
+  ) => {
+    prepare_local_sdk_read_delivery_storage_from_store(
+      fixture.preflight,
+      fixture.account,
+      fixture.original,
+      fixture.selection,
+      "sha256:" + "a".repeat(64),
+      fixture.owner,
+      fixture.view,
+      "answer",
+      "jsonl",
+      "sdk-read-original",
+      "2026-10-13T00:00:04.000Z",
+      16,
+      read,
+      () => Ok(()),
+    )
+  }
+  let read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, String] = (
+    table,
+    _,
+  ) => {
+    if table == "client_local_read_evidence" {
+      Ok(Some({ key, revision: 0L, body: packet, }))
+    } else {
+      Ok(None)
+    }
+  }
+  let wire = prepare(read).unwrap()
+  assert_true(@utf8.encode(wire).length() <= 1048576)
+  guard @json.parse(wire) is Array(rows) && rows.length() == 6 else {
+    fail("Expected six original physical writes")
+  }
+  let tables = [
+    "publication_contract", "publication_contract", "publication_contract", "delivery_attempt",
+    "result_read_grant_usage", "delivery_record_head",
+  ]
+  for ordinal in 0..<6 {
+    guard rows[ordinal] is Object(row) else { fail("Expected closed row") }
+    assert_eq(row.length(), 4)
+    assert_eq(row.get("table"), Some(@json.to_json(tables[ordinal])))
+    assert_eq(row.get("revision"), Some(@json.parse("null")))
+  }
+  assert_true(
+    prepare((table, requested_key) => {
+      if table == "publication_contract" {
+        Ok(
+          Some({ key: requested_key, revision: 0L, body: b"retained-contract", }),
+        )
+      } else {
+        read(table, requested_key)
+      }
+    })
+    is Err(UnresolvedUsage),
+  )
+  assert_true(
+    prepare((table, requested_key) => {
+      if table == "delivery_record_head" {
+        Err("original head query failed")
+      } else {
+        read(table, requested_key)
+      }
+    })
+    is Err(Observation("original head query failed")),
+  )
+}
