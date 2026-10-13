@@ -369,12 +369,12 @@ fn lower_script_relation_term(
 ///|
 // Compose WITH producer references in one existing pipeline. Binding does not add
 // Stage Results, Artifact boundaries or physical task requests.
-pub fn compile_query_script(
+fn compile_query_script_with_source(
   script : @query.QueryScript,
   context : Context,
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
-) -> Result[@program.Program, Issue] {
+) -> Result[(@program.Program, @builder.Source), Issue] {
   if context.program_id.is_empty() ||
     context.stage_id.is_empty() ||
     context.stage_result.is_empty() ||
@@ -723,7 +723,7 @@ pub fn compile_query_script(
     }
     let checked = match check_query_bindings(complete, context, limits) {
       Ok(checked) => checked
-      Err(issue) => return Err(BindingPreparation(issue))
+      Err(issue) => return Err(BindingPreparationSource(issue, source))
     }
     let demand = match
       trace_query_binding_demand(
@@ -749,8 +749,8 @@ pub fn compile_query_script(
     // New syntax gets its own common owners. Never transfer conditional
     // evidence issued for the complete temporary pipeline onto the pruned one.
     match prepare_query_bindings(program, context, limits) {
-      Ok(_) => Ok(program)
-      Err(issue) => Err(BindingPreparation(issue))
+      Ok(_) => Ok((program, source))
+      Err(issue) => Err(BindingPreparationSource(issue, source))
     }
   } catch {
     Abort(issue) => {
@@ -758,4 +758,17 @@ pub fn compile_query_script(
       Err(issue)
     }
   }
+}
+
+///|
+/// Preserve the ordinary Script API without retaining diagnostic annotations.
+pub fn compile_query_script(
+  script : @query.QueryScript,
+  context : Context,
+  limits : Limits,
+  table_writes? : Array[TableWriteBinding] = [],
+) -> Result[@program.Program, Issue] {
+  compile_query_script_with_source(script, context, limits, table_writes~)
+  .map(pair => pair.0)
+  .map_err(issue_without_source)
 }

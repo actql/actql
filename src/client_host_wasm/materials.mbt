@@ -9,6 +9,7 @@ priv struct StoredMaterial {
   mut produced : Bool
   mut output_closed : Bool
   mut submission : StoredSubmittedMaterial?
+  mut sdk_start : StoredSDKStartStep?
 }
 
 ///|
@@ -16,6 +17,7 @@ priv struct StoredSubmittedMaterial {
   current_configuration : Int
   borrow : Result[@buffers.BufferBorrow, @buffers.BufferIssue]
   mut rows : @local_run.LocalSubmittedRunRows?
+  mut sdk_wire : String?
 }
 
 ///|
@@ -33,7 +35,7 @@ pub fn reserve_material(
     value.runs.get(run) is Some({ outcome: Some(Ok(_)), .. }) else {
     return -2
   }
-  if kind < 1 || kind > 5 {
+  if (kind < 1 || kind > 5) && kind != 7 && kind != 8 {
     return -3
   }
   reserve_material_record(
@@ -80,6 +82,7 @@ fn reserve_material_record(
     produced: false,
     output_closed: false,
     submission: None,
+    sdk_start: None,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -120,6 +123,7 @@ pub fn reserve_submitted_rows_material(
     current_configuration,
     borrow,
     rows: None,
+    sdk_wire: None,
   })
   handle
 }
@@ -176,18 +180,51 @@ fn submitted_rows_material_wire(
       current.tuple,
       current.context_cid,
       now,
+      local_policy_original=value.runs[material.run].finite_policy,
     ) {
     Ok(value) => value
     Err(@local_run.AuthorizationMismatch) => return Err(-32)
     Err(_) => return Err(-31)
   }
-  submission.rows = Some(rows)
   let fields = match @local_run.local_submitted_run_rows(rows, plan, original) {
     Ok(value) => value
     Err(_) => return Err(-31)
   }
+  let issued = if current.sdk is Some(_) {
+    guard value.runs[material.run].finite_policy is Some(packet) &&
+      value.runs[material.run].sdk_submission is Some(held) &&
+      value.submissions.get(held) is Some(observation) else {
+      return Err(-31)
+    }
+    let saved = match observe_submission_append(value, observation, current) {
+      Ok(@host.Retained(saved)) => @host.client_saved_submission_row(saved)
+      Ok(@host.Append(_)) => return Err(-35)
+      Err(code) => return Err(code)
+    }
+    if saved.key != fields.1 || saved.body != fields.2 || saved.revision != 0L {
+      return Err(-35)
+    }
+    let candidate = match
+      sdk_run_append_candidate(value, current, plan, packet) {
+      Ok(value) => value
+      Err(code) => return Err(code)
+    }
+    let (key, body, revision, count) = @host.client_run_journal_append_rows(
+      candidate,
+    )
+    if key != fields.0 || body != fields.3 {
+      return Err(-31)
+    }
+    Some((revision, count))
+  } else {
+    None
+  }
+  // Preserve any existing nominal row Owner held by an observation child.
+  if submission.rows is None {
+    submission.rows = Some(rows)
+  }
   try {
-    let writer = @encode.writer(1048576, 8, 1)
+    let writer = @encode.writer(1048576, 10, 1)
     @encode.begin_object(writer)
     for
       (key, text) in [
@@ -200,11 +237,45 @@ fn submitted_rows_material_wire(
       @encode.key(writer, key)
       @encode.string_value(writer, text)
     }
+    if issued is Some((revision, count)) {
+      @encode.key(writer, "issued_revision")
+      @encode.string_value(writer, revision.to_string())
+      @encode.key(writer, "issued_body")
+      @encode.string_value(writer, @utf8.decode(count))
+    }
     @encode.end_object(writer)
     Ok(@encode.finish(writer))
   } catch {
     _ => Err(-34)
   }
+}
+
+///|
+/// Re-observe in the original write transaction, never accept a cached candidate
+/// from a previous snapshot/current generation. This performs no write or ACK.
+#export_name("actql_material_validate_submitted_rows")
+pub fn validate_submitted_rows_material(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.materials.get(handle) is Some(material) &&
+    !material.output_closed &&
+    material.produced &&
+    material.kind == 6 &&
+    material.submission is Some(submission) &&
+    submission.sdk_wire is Some(expected) &&
+    value.runs.get(material.run) is Some(record) &&
+    record.outcome is Some(Ok(plan)) &&
+    value.preparations.get(record.preparation) is Some(preparation) else {
+    return -2
+  }
+  let actual = match
+    submitted_rows_material_wire(value, material, plan, preparation) {
+    Ok(wire) => wire
+    Err(code) => return code
+  }
+  if actual != expected {
+    return -35
+  }
+  0
 }
 
 ///|
@@ -225,6 +296,12 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
     return -5
   }
   if material.produced {
+    if material.sdk_start is Some(_) {
+      return validate_sdk_start_material(nonce, handle)
+    }
+    if material.submission is Some({ sdk_wire: Some(_), .. }) {
+      return validate_submitted_rows_material(nonce, handle)
+    }
     return 0
   }
   if material.invoked {
@@ -285,12 +362,21 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
         Ok(value) => value
         Err(issue) => return issue
       }
+    7 | 8 =>
+      match sdk_start_material_wire(value, material, record, plan) {
+        Ok(wire) => wire
+        Err(code) => return code
+      }
     _ => return -3
   }
   let result = status(
     @buffers.supply_buffer_output(value.pool, material.slot, @utf8.encode(wire)),
   )
   if result == 0 {
+    if material.submission is Some(submission) &&
+      value.run_configurations[submission.current_configuration].sdk is Some(_) {
+      submission.sdk_wire = Some(wire)
+    }
     material.produced = true
   }
   result
@@ -302,6 +388,18 @@ pub fn material_length(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) else {
     return -2
+  }
+  if material.sdk_start is Some(_) {
+    let code = validate_sdk_start_material(nonce, handle)
+    if code != 0 {
+      return code
+    }
+  }
+  if material.submission is Some({ sdk_wire: Some(_), .. }) {
+    let code = validate_submitted_rows_material(nonce, handle)
+    if code != 0 {
+      return code
+    }
   }
   match @buffers.buffer_length(value.pool, material.slot) {
     Some(length) => length
@@ -317,6 +415,9 @@ pub fn close_material(nonce : Int64, handle : Int) -> Int {
     return -2
   }
   if value.journal_observations.values().any(child => child.material == handle) {
+    return -9
+  }
+  if value.physical_starts.values().any(child => child.sdk_step == Some(handle)) {
     return -9
   }
   if !material.output_closed {
@@ -336,4 +437,27 @@ pub fn close_material(nonce : Int64, handle : Int) -> Int {
     value.copies.remove(handle) |> ignore
   }
   result
+}
+
+///|
+/// Retire only the consumed transport through the same Buffer Owner. Original
+/// rows/step proof, Run/input borrow and child custody survive until full close.
+#export_name("actql_material_retire_output")
+pub fn retire_material_output(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.materials.get(handle) is Some(material) &&
+    material.produced &&
+    (material.kind == 6 || material.kind == 7 || material.kind == 8) else {
+    return -2
+  }
+  if material.output_closed {
+    return 0
+  }
+  let code = status(@buffers.close_buffer(value.pool, material.slot))
+  if code != 0 {
+    return code
+  }
+  material.output_closed = true
+  value.copies.remove(handle) |> ignore
+  0
 }
