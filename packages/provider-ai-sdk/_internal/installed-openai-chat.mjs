@@ -26,8 +26,8 @@ const frozen = value => value!==null && typeof value==='object' && Object.isFroz
 
 // Private trusted-installation consumer, not a profile/grant factory. The Host
 // supplies already retained declaration originals; opaque Owners are borrowed,
-// never rebuilt from their CIDs. Public package exports remain closed until
-// the original complete numerical funding and public acceptance are adopted.
+// never rebuilt from their CIDs. The package exposes this assembler only;
+// complete numerical funding and public execution acceptance remain required.
 export function createInstalledOpenAIChatRegistration(config) {
   const keys='apiKey,baseURL,bindingOriginals,fetch,modelId,modelSelector,observeAt,observeEgress,originalReadInstallation,outputSchemaCid,projectionLimits,promptCid,promptPayloadWire,providerId,quantityCapacity,rawCaptureSelection,requestLimits,responseLimits,taskCid';
   config=snapshotData(config,keys,'InvalidInstalledOpenAIChatConfiguration');
