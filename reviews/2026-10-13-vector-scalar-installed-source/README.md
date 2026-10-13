@@ -97,3 +97,24 @@ Node 8/8 (original controls, page driver and actual copied import closure).
 The pinned formatter changed only the new control file. The original 60/5
 nonHeavy guard completed exit zero. Public producer/Local/HTTPS remain zero;
 these controls do not prove actual charged page capture or dispatch on the Host.
+
+
+The fixture initialization catch now uses the existing
+`retainInstalledHostInitializationFailure` owner, matching the installed
+external-read adapter. A one-case Node fault injection at
+`5ea48d893a42bd0b32bdb692bfc7046c35af3177` failed (`run-i7wSTb`): a Site-close
+failure replaced the primary constructor failure and exposed no cleanup handle.
+At clean `8f894a5b59de9d99104e139bc19bcf12e628a72c`, `run-yRqoyJ` passed Node 9/9:
+the original failure and pending Site survive; retry closes that same Site;
+neither constructor execution nor successful close is repeated.
+
+```sh
+node scripts/local-checks.mjs test node --timeout-seconds 60 --kill-grace-seconds 5 -- scripts/vector-scalar-installed-source.test.mjs scripts/vector-scalar-source.test.mjs
+```
+
+The same 60/5 nonHeavy guard completed exit zero. This is fault-injected
+installation-boundary evidence, not a public failure/recovery experiment.
+Common cleanup implementation, schema, original twelve/eight public controls,
+limits and expected results are unchanged. The Common JS 3/3 remains evidence
+for the earlier exact `e3a377b8…` source; it was not rerun or promoted to this SHA.
+Public producer, charged capture, Host dispatch and Local/HTTPS remain unexecuted.
