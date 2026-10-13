@@ -20,6 +20,7 @@ import {
   "actql/actql/query_planning",
   "actql/actql/run_publication",
   "actql/actql/run_publication_host",
+  "moonbitlang/core/debug",
 }
 
 // Values
@@ -166,6 +167,8 @@ pub fn prepare_local_run_physical_start(LocalRunPlan, @run_publication_host.Clie
 pub fn[Store, E] prepare_local_run_publication_binding(LocalRunPlan, LocalSubmittedRunRows, @client_local_preparation.LocalSubmittedPreparation, @run_publication_host.ClientLocalAdoptedHostMaterial[Store, E], Store, String, String, UInt64, UInt64, @run_publication_host.ClientJournalPhysicalRow, @run_publication_host.ClientJournalPhysicalRow) -> Result[LocalRunPublicationBindingPlan[Store, E], LocalRunPublicationBindingIssue[E]]
 
 pub fn prepare_local_run_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@run_publication_host.ClientRunStartAction, LocalRunIssue]
+
+pub fn[E] prepare_local_sdk_payload_encoding_from_store(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, LocalSDKReadDeliveryPreparation, String, String, String, String, Int, Int, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[LocalSDKPayloadEncoding, LocalSDKPayloadPreparationIssue[E]]
 
 pub fn[E] prepare_local_sdk_read_delivery_from_store(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[LocalSDKReadDeliveryPreparation, LocalSDKReadDeliveryIssue[E]]
 
@@ -436,6 +439,27 @@ pub struct LocalRunPublicationBindingStep[Store, E] {
   original : LocalRunPublicationBinding[Store, E]
   prior : @run_publication_host.ClientJournalPhysicalRow
   body : Bytes
+}
+
+type LocalSDKPayloadEncoding
+pub fn LocalSDKPayloadEncoding::cancel_frames(Self) -> Unit
+pub fn LocalSDKPayloadEncoding::confirm_chunk(Self) -> Result[Int64, LocalSDKPayloadEncodingIssue]
+pub fn LocalSDKPayloadEncoding::confirm_finished(Self) -> Result[@run_publication.PublicationContract, LocalSDKPayloadEncodingIssue]
+pub fn LocalSDKPayloadEncoding::feed(Self, Bytes, Bool) -> Result[Bytes, LocalSDKPayloadEncodingIssue]
+
+pub(all) enum LocalSDKPayloadEncodingIssue {
+  Frames(@run_publication.DurableResultRowFrameIssue)
+  Serialization(@run_publication.DeliverySerializationIssue)
+  Sink(@run_publication.DeliverySinkProgressIssue)
+  ContentMismatch
+  CapacityExceeded
+  HashFailure
+  Receipt(@run_publication.DeliveryIssuanceIssue)
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LocalSDKPayloadPreparationIssue[E] {
+  Codecs(LocalSDKReadPayloadCodecIssue[E])
+  Encoding(LocalSDKPayloadEncodingIssue)
 }
 
 pub(all) enum LocalSDKReadDeliveryIssue[E] {
