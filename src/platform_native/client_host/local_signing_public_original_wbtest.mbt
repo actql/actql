@@ -50,7 +50,7 @@ test "signing public original rejects wrong identity and extra metadata" {
   for wire in [
     signing_public_original_wire.replace_all(old=signing_public_original_cid, new="sha256:" + "4".repeat(64)),
     signing_public_original_wire.replace_all(old="ed25519", new="rsa"),
-    signing_public_original_wire.replace_all(old="{", new="{\"extra\":\"unexpected\","),
+    "{\"extra\":\"unexpected\"," + signing_public_original_wire[1:].to_owned(),
     signing_public_original_wire.replace_all(old="AAA=", new="AAA=\",\"projection\":\"AAA="),
   ] {
     assert_true(local_signing_installation_fields(@utf8.encode(wire)) is Err(CustodyLost))
