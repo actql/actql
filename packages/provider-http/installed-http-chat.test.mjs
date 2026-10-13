@@ -186,3 +186,18 @@ test('header array and pair keep the inspected DATA without Proxy property callb
   Object.defineProperty(accessor.headers[0], '1', {get() { assert.fail('No header getter'); }});
   assert.throws(() => createInstalledHttpChatRegistration(accessor), /InvalidInstalledHTTPChatHeaders/u);
 });
+
+
+test('HTTP facade refuses a combined projection key before registration', () => {
+  const config = configuration(), f = runtime(config);
+  config.projectionLimits = {'maxBytes,maxDepth': 4096, maxFrames: 32, maxNodes: 256, maxWork: 4096};
+  assert.throws(() => createInstalledHttpChatRegistration(config), /InvalidInstalledHTTPChatProjection/u);
+  assert.deepEqual(f.counts, {installs: 0, projections: 0, sends: 0});
+});
+
+test('HTTP facade refuses a combined request key before registration', () => {
+  const config = configuration(), f = runtime(config);
+  config.requestLimits = {'maxBytes,maxHeaderBytes': 4096, maxHeaders: 4};
+  assert.throws(() => createInstalledHttpChatRegistration(config), /InvalidInstalledHTTPChatRequestLimits/u);
+  assert.deepEqual(f.counts, {installs: 0, projections: 0, sends: 0});
+});
