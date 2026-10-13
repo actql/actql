@@ -73,20 +73,23 @@ fn original_keyed_encode_whole(
           ready = true
           break
         }
-        ContentBytesFailed(@publication.ContentByteLimit, ..) => {
+        ContentBytesFailed(issue, ..) => {
+          // The original bounded nested-value writer reports its refusal as
+          // ContentValueEncoding; the final framing byte reports ByteLimit.
+          // Neither returns a completion or permits partial publication.
+          let expected = if max_bytes == 4096 {
+            @publication.ContentValueEncoding
+          } else {
+            @publication.ContentByteLimit
+          }
           assert_true(max_bytes == 4469 || max_bytes == 4096)
+          assert_eq(issue, expected)
           assert_true(
-            @publication.finish_content_bytes(encoder)
-            is Err(@publication.ContentByteLimit),
+            @publication.finish_content_bytes(encoder) is Err(failed) &&
+            failed == expected,
           )
           @publication.cancel_content_byte_encoder(encoder)
           return (bytes.to_string(), None)
-        }
-        ContentBytesFailed(issue, ..) => {
-          assert_eq(issue, @publication.ContentByteLimit)
-          fail(
-            "unexpected whole keyed serialization failure: row=\{row}, limit=\{max_bytes}",
-          )
         }
       }
     }
