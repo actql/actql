@@ -22,6 +22,9 @@ class SDKPayloadReaderTests(unittest.TestCase):
         fact = holder._observation._facts[0]
         previous = core._call
         outputs, calls = {}, []
+        confirmations = {}
+        confirmed_total = [0]
+        expected_payloads = (b'', b'{"n":1}\n', b'')
         state['binding_status'] = 0
         def call(family, name, *args):
             if name == 'bind_sdk_payload_record':
@@ -35,9 +38,17 @@ class SDKPayloadReaderTests(unittest.TestCase):
                 calls.append((name, args))
                 if state['payload_status']:
                     return state['payload_status']
-                # Independent fixed mock result; this is not a Python codec.
-                outputs[args[0]] = b'{"n":1}\n' if args[4] else b''
+                # Independent responses for original 4/4/1 input slices. This
+                # transport double does not execute or duplicate the codec.
+                if args[0] not in outputs:
+                    outputs[args[0]] = expected_payloads[len(outputs)]
                 return 0
+            if name == 'confirm_sdk_payload_chunk':
+                calls.append((name, args))
+                if args[0] not in confirmations:
+                    confirmed_total[0] += len(outputs[args[0]])
+                    confirmations[args[0]] = confirmed_total[0]
+                return confirmations[args[0]]
             if name == 'length' and args[0] in outputs:
                 return len(outputs[args[0]])
             if family == 'buffer' and name == 'byte' and args[0] in outputs:
@@ -67,8 +78,8 @@ class SDKPayloadReaderTests(unittest.TestCase):
                     self.assertEqual(stream._reader.offset, expected_offset)
                     with self.assertRaises(RuntimeError):
                         stream.offer(clock)
-                    self.assertEqual(payload, b'{"n":1}\n' if expected_offset == 8 else b'')
-                    stream.accept(output)
+                    self.assertEqual(payload, b'{"n":1}\n' if expected_offset == 4 else b'')
+                    self.assertEqual(stream.accept(output), 0 if expected_offset == 0 else 8)
             self.assertEqual(raw_reads, [(4, 0), (4, 4), (1, 8)])
             self.assertTrue(stream._reader.eof)
             self.assertEqual('sha256:' + stream._reader.hash.hexdigest(),
@@ -107,7 +118,7 @@ class SDKPayloadReaderTests(unittest.TestCase):
             self.assertFalse(holder.close_original_first(request))
             self.assertIs(core._loans[first.ticket], first)
             state['cleanup'] = True
-            self.assertEqual(stream.accept(output), 8)
+            self.assertEqual(stream.accept(output), 0)
             self.assertEqual(stream._reader.offset, 4)
             output, _ = stream.offer(clock)
             raw = stream._input
@@ -145,5 +156,31 @@ class SDKPayloadReaderTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 copy.copy(stream).close()
             self.assertIs(core._loans[first.ticket], first)
+            self.assertTrue(stream.close())
+            self.assertTrue(holder.close())
+
+    def test_empty_output_refusal_cannot_be_inferred_as_ack_or_advance_the_descriptor(self):
+        files = file_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            holder, _, core, request, first, fact, clock, _, _ = self.bridge(root, final)
+            stream = OriginalSDKPayloadReader(holder, request, clock, fact)
+            output, payload = stream.offer(clock)
+            self.assertEqual(payload, b'')
+            chunk, raw = stream._chunk, stream._input
+            previous = core._call
+            def refuse(family, name, *args):
+                if name == 'confirm_sdk_payload_chunk':
+                    return -32
+                return previous(family, name, *args)
+            core._call = refuse
+            with self.assertRaises(LocalCoreError) as error:
+                stream.accept(output)
+            self.assertEqual(error.exception.code, -32)
+            self.assertEqual(stream._reader.offset, 0)
+            self.assertIs(stream._chunk, chunk)
+            self.assertIs(stream._input, raw)
+            self.assertIs(stream._output, output)
+            self.assertIs(core._loans[first.ticket], first)
+            self.assertIs(core._loans[raw.ticket], raw)
             self.assertTrue(stream.close())
             self.assertTrue(holder.close())
