@@ -2,7 +2,7 @@
 // Existing Row parser/admission/selection fixture only. The reference issuer
 // is the independent test fixture, not real Source authorization or funding.
 // Stop at the append transition so extraction borrows the actual page cells.
-fn original_listing_report_fixture(row : String) -> RowSourceRead {
+fn original_listing_report_fixture(row : String) -> RowSourceRead raise {
   let read = selection_read_fixture(ExactPaths(["a.csv"]))
   begin_row_listing_request(read, None, 0L).unwrap()
   begin_row_source_listing_page(read, listing_page("[" + row + "]", None, None), 0L).unwrap()

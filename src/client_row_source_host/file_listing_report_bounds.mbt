@@ -24,7 +24,7 @@ fn row_listing_report_bounds(
 // They do not construct that control, lend a Ledger, reserve bytes, authorize
 // I/O or supply a normal physical profile. The result/control lifetime still
 // belongs in the caller's existing funded preparation envelope.
-pub(all) fn row_acquisition_listing_report_bounds(
+pub fn row_acquisition_listing_report_bounds(
   value : RowAcquisition,
 ) -> Result[(Int64, Int64), RowSourceIssue] {
   guard value.preparation.file_listing is Some(profile) else {
