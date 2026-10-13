@@ -24,6 +24,29 @@ struct Store {
 }
 
 ///|
+fn store_open_failure(
+  original_issue : NativePublicationStoreIssue,
+  root? : @filesystem.Root? = None,
+  failed_root? : @filesystem.NativeRootOpenFailure? = None,
+  lock? : @filesystem.Lock? = None,
+  failed_lock? : @filesystem.NativeLockOpenFailure? = None,
+  database? : @sqlite.Database? = None,
+  failed_database? : @sqlite.NativeSqliteOpenFailure? = None,
+  cleanup_gap? : Unit? = None,
+) -> NativePublicationStoreOpenFailure {
+  {
+    original_issue,
+    root,
+    failed_root,
+    lock,
+    failed_lock,
+    database,
+    failed_database,
+    cleanup_gap,
+  }
+}
+
+///|
 fn require_store_open(
   store : Store,
 ) -> Result[Unit, NativePublicationStoreIssue] {

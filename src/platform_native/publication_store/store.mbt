@@ -43,15 +43,6 @@ pub(all) enum NativePublicationStoreOpenError {
 }
 
 ///|
-/// Existing constructors that do not yet return their rejected opaque object.
-/// Root close does not prove retirement of a missing child Lock. This private
-/// gap is cleanup responsibility, never a Run outcome or retry-send permission.
-priv enum StoreOpenCleanupGap {
-  RejectedRootCustodyUnavailable
-  RejectedLockCustodyUnavailable
-}
-
-///|
 /// Original failed preparation with the same existing physical Owners. No
 /// wire, persistence, reservation, authority or substitute Store is issued.
 struct NativePublicationStoreOpenFailure {
@@ -62,7 +53,9 @@ struct NativePublicationStoreOpenFailure {
   mut failed_lock : @filesystem.NativeLockOpenFailure?
   mut database : @sqlite.Database?
   mut failed_database : @sqlite.NativeSqliteOpenFailure?
-  cleanup_gap : StoreOpenCleanupGap?
+  // Missing original constructor custody remains pending. Its primary issue
+  // retains the original diagnostic; this marker cannot acknowledge cleanup.
+  cleanup_gap : Unit?
 }
 
 ///|
@@ -119,29 +112,6 @@ pub fn NativePublicationStoreOpenFailure::retry_cleanup(
     }
   }
   Ok(())
-}
-
-///|
-fn store_open_failure(
-  original_issue : NativePublicationStoreIssue,
-  root? : @filesystem.Root? = None,
-  failed_root? : @filesystem.NativeRootOpenFailure? = None,
-  lock? : @filesystem.Lock? = None,
-  failed_lock? : @filesystem.NativeLockOpenFailure? = None,
-  database? : @sqlite.Database? = None,
-  failed_database? : @sqlite.NativeSqliteOpenFailure? = None,
-  cleanup_gap? : StoreOpenCleanupGap? = None,
-) -> NativePublicationStoreOpenFailure {
-  {
-    original_issue,
-    root,
-    failed_root,
-    lock,
-    failed_lock,
-    database,
-    failed_database,
-    cleanup_gap,
-  }
 }
 
 ///|
