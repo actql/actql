@@ -35,6 +35,7 @@ from ._local_store_reconciliation import OriginalStoreReconciliation
 from ._local_sdk_read_storage import OriginalSDKReadEvidenceStore, SDKReadEvidenceCleanupPending
 from ._local_sdk_delivery_storage import OriginalSDKDeliveryStore, SDKDeliveryStorageCleanupPending
 from ._local_response import OriginalLocalResponseStream
+from ._local_sdk_response import OriginalLocalSDKResponseStream
 from ._local_work import OriginalLocalWork
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
 from ._values import content_cid, wire_bytes
@@ -168,7 +169,7 @@ class InstalledLocalHost:
         self._payload_capacity_attempts: set[int] = set()
         self._payload_transition_attempts: set[int] = set()
         self._inputs: list[_Input] = []
-        self._response_streams: set[OriginalLocalResponseStream] = set()
+        self._response_streams: set[OriginalLocalResponseStream | OriginalLocalSDKResponseStream] = set()
         self._projections: list[_Output] = []
         self._append_sources: dict[int, _Input] = {}
         self._uncertain_ticket: int | None = None
@@ -381,6 +382,17 @@ class InstalledLocalHost:
             'content-encoding': 'identity'}, stream=stream)
         stream._attached = True
         return response
+
+    def _original_sdk_delivery_clock(self) -> _Input:
+        """Reserve one physical clock input; this renews no grant or attempt."""
+        self._active()
+        now = self._now()
+        if type(now) is not int or not 0 <= now <= 253402300799999:
+            raise ValueError('Invalid Local physical observation time')
+        seconds, milliseconds = divmod(now, 1000)
+        observed_at = datetime.fromtimestamp(seconds, timezone.utc).replace(
+            microsecond=milliseconds * 1000).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+        return self._copy(wire_bytes({'observed_at': observed_at}))  # type: ignore[no-untyped-call]
 
     def _original_delivery_lookup_response(self, run: _Run,
                                             projection: OriginalCommitProjection,
