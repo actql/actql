@@ -180,6 +180,8 @@ pub fn start_accounted_row_acquisition(RowAcquisition, String, (RowAttempt) -> B
 
 pub fn start_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]
 
+pub fn start_original_accounted_keyed_row_acquisition(RowKeyedAcquisition, String, (RowAttempt) -> Bool, @physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, Int64, Int64, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]
+
 pub fn start_row_acquisition(RowAcquisition, String, (RowAttempt) -> Bool) -> Result[RowRun, RowHostIssue]
 
 // Errors

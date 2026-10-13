@@ -204,6 +204,21 @@ fn lower_script_carrier_calls(
   let mut input = bind_script_input(
     construction, selected, context, sources, steps, reserved,
   )
+  // The common Catalog validates every supplied snapshot against this prefix.
+  // Install the actual authored peer inputs before reading the current Carrier;
+  // later body lowering reuses these same bindings, not another acquisition.
+  for index in 0..<@query.operation_count(query) {
+    guard @query.operation_at(query, index) is Some(GraphCall(call)) &&
+      script_carrier_operation(call.operation) else {
+      break
+    }
+    for path in script_call_sources(call) {
+      let peer = resolve_relation_input(path, known)
+      ignore(
+        bind_script_input(construction, peer, context, sources, steps, reserved),
+      )
+    }
+  }
   let mut carrier = script_prefix_carrier(
     construction,
     query,
