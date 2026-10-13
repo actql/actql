@@ -263,6 +263,8 @@ pub fn file_content_version_capability_cid(FileContentProfile) -> String
 
 pub fn file_listing_accepts(FileListProfile, String) -> Bool
 
+pub fn file_listing_declared_limit(FileListProfile, String) -> Int64?
+
 pub fn file_listing_facts_cid(FileListProfile) -> String
 
 pub fn file_listing_limit_candidates(FileListProfile) -> Array[(String, Int64)]
