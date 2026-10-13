@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools==80.10.2", "wheel==0.45.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "actql"
+version = "0.0.0.dev0"
+description = "Standard ActQL Python product with the Local runtime"
+requires-python = ">=3.11"
+dependencies = ["actql-sdk==0.0.0.dev0", "actql-local-runtime==0.0.0.dev0"]
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+actql = ["py.typed", "__init__.pyi"]
