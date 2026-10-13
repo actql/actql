@@ -550,3 +550,71 @@ test "native original incomplete raw usage retires before immutable Unknown atte
   assert_true(cleanup(f.active).unwrap())
   assert_eq(f.sent.val, 1)
 }
+
+///|
+test "native original incomplete nullable usage retains reservation and immutable Unknown proof" {
+  let f = native_original_call_fixture()
+  let body = native_original_answer().replace(
+    old="\"input_tokens\":3,\"output_tokens\":2",
+    new="\"input_tokens\":3",
+  )
+  let raw = native_original_saved_response(f, 0, body, eof=false)
+  let call = f.calls.get(0).unwrap()
+  f.responses[0] = @model.model_physical_saved_native_response(
+    raw,
+    f.views.get(0).unwrap(),
+    f.provider,
+    @environment.initial_jev_decision_profile(),
+  ).unwrap()
+  assert_true(
+    native_original_finish(f.active, f.work)
+    is Failed(Model(@model.UnknownCalls), ..),
+  )
+  let model = f.active.model.unwrap()
+  let before = @model.model_execution_quantity_usage(model)
+  let mut done = false
+  let mut last = 0L
+  for _ in 0..<10000 {
+    let (completed, work) = @model.advance_model_reconciled_raw_usage(
+      call, raw, 1,
+    ).unwrap()
+    assert_true(work >= last && work - last <= 1L)
+    last = work
+    if completed {
+      done = true
+      break
+    }
+  }
+  assert_true(done)
+  let usage = @model.model_execution_quantity_usage(model)
+  // This is the Ledger's settled counter, not a report of zero output usage.
+  assert_eq(usage.consumed.tokens, before.consumed.tokens)
+  assert_eq(usage.reserved.tokens, before.reserved.tokens)
+  let proof = attempt_evidence(f.active, 0).unwrap()
+  let wire = @publication.run_evidence_value_json(
+    @model.model_attempt_accounting(proof),
+  )
+  assert_true(wire.contains("\"input_tokens\":3"))
+  assert_true(wire.contains("\"output_tokens\":null"))
+  assert_true(
+    @publication.run_evidence_value_json(@model.model_attempt_outcome(proof)).contains(
+      "\"category\":\"result_unknown\"",
+    ),
+  )
+  assert_eq(
+    @model.advance_model_reconciled_raw_usage(call, raw, 7).unwrap(),
+    (true, last),
+  )
+  assert_eq(
+    @publication.run_evidence_value_json(
+      @model.model_attempt_accounting(attempt_evidence(f.active, 0).unwrap()),
+    ),
+    wire,
+  )
+  assert_true(acquire_output(f.active) is None)
+  assert_true(!cleanup(f.active).unwrap())
+  f.release.val = true
+  assert_true(!cleanup(f.active).unwrap())
+  assert_true(cleanup(f.active).unwrap())
+  assert_eq(f.sent.val, 1)
+}
