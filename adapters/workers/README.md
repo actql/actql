@@ -95,6 +95,22 @@ The test-only `conformance.mjs` prepares fixtures; product callers do not import
 
 ### Finite source-free entry
 
+The production npm subpath `@actql/run-host-core/workers-finite` exposes
+`createWorkersFiniteRuntime(hashSeed, configuration)`. It links the finite
+preparation/material owner, common Host controls and Account gate into one
+runtime and returns `{host, core, createAuthorizationGate}`. `core` is the exact
+control object used by `host`; copying the runtime into another control facade
+would split wrapper custody. The physical hash seed is explicit and confers no
+identity or authority. The production payload excludes conformance fixtures.
+
+`workersFiniteArtifact.componentCid` and `componentBytes` identify the audited
+production payload module bytes in the same package. The generated entry wrapper
+is separate from the payload so its SHA-256 has no self-reference. These fields
+can be compared with the existing RuntimeBundle `runtime_executable` component;
+they are content metadata, not a new bundle format, issuer capability or proof
+of physical retention. The package cohort/provenance and the Bundle owner still
+establish which bytes were installed and retained.
+
 `bindWorkersFiniteHost(runtime, configuration)` is an explicit trusted assembly
 for one effect-free, source-free task and one Named Result. The installation
 supplies its checked environment, registry/manifests, capacity, execution/search
@@ -105,9 +121,20 @@ restrictions or a new placement policy.
 `prepare(document)` uses the common JSON Program checker/lowerer and returns its
 original compilation, template and Plan. The accepting request Owner supplies
 its original nominal `admission`, `definition` and `ledger` to `open`. They must
-belong to this same runtime/link unit; this entry neither issues authorization
-nor reconstructs a Run from serialized handles. The caller owns the association
-between its accepted request and Ledger and retains that original custody.
+belong to this same runtime/link unit. For original serialized materials,
+`admitMaterials(body, expectedRunDefinitionCid)` delegates to the existing
+`admit_client_values_run_materials` owner and returns `{preparation, admission,
+definition}` in this link unit. It checks the expected original Run identity and
+reuses received authorization evidence without issuing authority or extending
+its lifetime. It does not accept handles copied from another runtime.
+
+The installation supplies the exact physical `ledger` bounds (`planning_work`,
+`attempts`, `holdings`, `transfer_bytes`, `retained_bytes`, `execution_bytes`).
+`createLedger()` creates that original owner without per-request capacity
+arguments. The caller owns the durable association between its accepted request
+and Ledger and retains that custody. Re-admitting the same material cannot open
+the same Run twice within one binding; the durable accepting owner enforces the
+same no-reexecution rule across bindings and restarts.
 
 `withExecution(setup, authorization, consume, signal)` requires the same protected
 Account gate as `open`, checks current activation through the common strategy,
@@ -118,6 +145,16 @@ The accepting Owner must enforce the same invariant across bindings and requests
 Outputs remain borrowed only during `consume`. The caller remains responsible
 for the existing Named Result publication/Store protocol before releasing them;
 physical task completion alone is not durable publication or Cloud Run completion.
+
+`core.outputExportControl.measurement(exported)` projects the exact column
+measurements established by the live canonical Result export. The same export's
+identity supplies ordered rows, logical Relation, schema and codec CIDs. These
+measurements establish no physical custody or evidence-issuer authority.
+`core.remoteSiteControl` exposes the existing durable admission, transition and
+record JSON owners for asynchronous storage adapters. Persist the original JSON
+and expected revision before committing a transition with durable confirmation;
+restoration never authorizes physical replay. The common runtime success actions
+and custody tokens remain responsible for progression.
 
 This entry adds no Set candidate list, Worker/Native ranking, retained-input
 conversion, cross-request recovery or deployed Worker route. Connecting it to

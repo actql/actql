@@ -20,17 +20,20 @@ function fixture() {
     measurement: {max_work: 1000, max_bytes: 1000, max_nodes: 100, max_depth: 10},
     capacity: {contract_cid: 'capacity', max_rows: 10, max_value_bytes: 1000},
     search: {max_offers: 10, max_strategies: 10, max_work: 1000, max_revisions: 3},
+    ledger: {planning_work: 10000, attempts: 10, holdings: 10, transfer_bytes: 300000n,
+      retained_bytes: 32000000n, execution_bytes: 134217728n},
     milliseconds: 1n, max_work: 1000, max_entries: 100,
   };
   const calls = [];
   const ok = value => ({$tag: 1, _0: value});
-  const runtime = Object.fromEntries(['Environment', 'Contracts', 'Manifests', 'Prepare', 'Compile', 'Open']
+  const runtime = Object.fromEntries(['Environment', 'Contracts', 'Manifests', 'Prepare', 'Compile', 'Open', 'Ledger', 'AdmitMaterials']
     .map(name => [`workersFinite${name}`, (...args) => {
       calls.push({name, args}); return ok({name});
     }]));
   Object.assign(runtime, {workersFiniteTemplate: () => ({}), workersFiniteCompiledPlan: () => ({}),
     strategyRemoteManagedOutputEvidenceKind: () => 'fixture-only',
     strategyHostAuthorizeActivation() {}, strategyHostRequireActivation() {},
+    strategyPublicationContractIdentity: definition => definition.identity ?? definition,
     strategyHostUsage: setup => ({setup}), strategyHostProgramDefinitionCid() {}});
   const authorization = {authorize() {}, cover() {}, isProtectedSite: site => site === 'in-process-default'};
   return {configuration, runtime, calls, authorization};
@@ -104,4 +107,29 @@ test('failed finite open preserves the refusal and never automatically creates a
   assert.throws(() => host.open(preparation, owner, authorization), error => error.cause === refusal);
   assert.throws(() => host.open(preparation, owner, authorization), /WorkersFiniteRunAlreadyOpened/);
   assert.equal(attempts, 1);
+});
+
+
+test('materials admission uses frozen installation limits and refuses copied preparation or duplicate Run identity', () => {
+  const {configuration, runtime, authorization} = fixture();
+  const original = {_0: {}, _1: {}, _2: {}, _3: {identity: 'original-run'}};
+  let received;
+  runtime.workersFiniteAdmitMaterials = (...args) => {
+    received = args;
+    return {$tag: 1, _0: {...original, _3: {...original._3}}};
+  };
+  const host = bindWorkersFiniteHost(runtime, configuration);
+  configuration.sequence.max_rows = 999;
+  const restored = host.admitMaterials('original-body', 'original-run');
+  assert.equal(received[0], 'original-body');
+  assert.equal(received[1], 'original-run');
+  assert.equal(received[5].max_rows, 10);
+  assert.equal(restored.admission, original._2);
+  assert.equal(restored.preparation.program, original._0);
+  const ledger = host.createLedger();
+  const second = host.admitMaterials('original-body', 'original-run');
+  host.open(restored.preparation, {...restored, ledger}, authorization);
+  assert.throws(() => host.open(second.preparation, {...second, ledger}, authorization),
+    /WorkersFiniteRunAlreadyOpened/);
+  assert.throws(() => host.admitMaterials({}, 'original-run'), /InvalidWorkersFiniteMaterials/);
 });

@@ -39,11 +39,14 @@ const configurationShape = {
   measurement: {max_work: integer, max_bytes: integer, max_nodes: integer, max_depth: integer},
   capacity: {contract_cid: text, max_rows: integer, max_value_bytes: integer},
   search: {max_offers: integer, max_strategies: integer, max_work: integer, max_revisions: integer},
+  ledger: {planning_work: integer, attempts: integer, holdings: integer,
+    transfer_bytes: quantity, retained_bytes: quantity, execution_bytes: quantity},
   milliseconds: quantity, max_work: integer, max_entries: integer,
 };
 const requiredExports = ['workersFiniteEnvironment', 'workersFiniteContracts',
   'workersFiniteManifests', 'workersFinitePrepare', 'workersFiniteCompile',
   'workersFiniteTemplate', 'workersFiniteCompiledPlan', 'workersFiniteOpen',
+  'workersFiniteAdmitMaterials', 'workersFiniteLedger', 'strategyPublicationContractIdentity',
   'strategyHostAuthorizeActivation', 'strategyHostRequireActivation',
   'strategyHostUsage', 'strategyHostProgramDefinitionCid'];
 
@@ -72,20 +75,38 @@ export function bindWorkersFiniteHost(runtime, configuration) {
   const capacity = Object.freeze({...selected.capacity, common_fragment: undefined});
   const core = runtimeCore(moon);
   const preparations = new WeakSet();
-  const openedDefinitions = new WeakSet();
+  const openedDefinitions = new Set();
   const setups = new WeakMap();
   const started = new WeakSet();
+  const retainPreparation = (program, compilation) => {
+    const preparation = Object.freeze({program, compilation,
+      template: moon.workersFiniteTemplate(compilation),
+      compiledPlan: moon.workersFiniteCompiledPlan(compilation)});
+    preparations.add(preparation);
+    return preparation;
+  };
   return Object.freeze({
+    core,
+    createLedger() {
+      return checked(moon.workersFiniteLedger(selected.ledger));
+    },
+    admitMaterials(body, expectedRunDefinitionCid) {
+      if (typeof body !== 'string' || typeof expectedRunDefinitionCid !== 'string') {
+        throw new TypeError('InvalidWorkersFiniteMaterials');
+      }
+      const value = checked(moon.workersFiniteAdmitMaterials(body,
+        expectedRunDefinitionCid, selected.environment.expressions,
+        selected.environment.operations, manifests, selected.sequence,
+        selected.max_work, selected.max_entries));
+      return Object.freeze({preparation: retainPreparation(value._0, value._1),
+        admission: value._2, definition: value._3});
+    },
     prepare(document) {
       if (typeof document !== 'string') throw new TypeError('InvalidWorkersFiniteDocument');
       const program = checked(moon.workersFinitePrepare(document, environment));
       const compilation = checked(moon.workersFiniteCompile(program, manifests,
         selected.sequence, selected.max_work, selected.max_entries));
-      const preparation = Object.freeze({program, compilation,
-        template: moon.workersFiniteTemplate(compilation),
-        compiledPlan: moon.workersFiniteCompiledPlan(compilation)});
-      preparations.add(preparation);
-      return preparation;
+      return retainPreparation(program, compilation);
     },
     // Only the caller's accepted request Owner supplies these original nominal
     // Run and Ledger handles. No admission is issued here and no retry opens a
@@ -94,12 +115,13 @@ export function bindWorkersFiniteHost(runtime, configuration) {
       protectedGate(authorization);
       if (!preparations.has(preparation) || definition === null ||
           typeof definition !== 'object') invalid();
-      if (openedDefinitions.has(definition)) {
+      const identity = moon.strategyPublicationContractIdentity(definition);
+      if (openedDefinitions.has(identity)) {
         throw new TypeError('WorkersFiniteRunAlreadyOpened');
       }
       // An unsuccessful open may already have charged planning work. Keep the
       // original caller's Ledger and refusal; never silently reopen this Run.
-      openedDefinitions.add(definition);
+      openedDefinitions.add(identity);
       const setup = checked(moon.workersFiniteOpen(preparation.program, preparation.compilation,
         admission, definition, contracts, selected.sequence, selected.execution,
         selected.measurement, capacity, ledger, selected.search,

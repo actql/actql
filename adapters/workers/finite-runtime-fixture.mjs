@@ -2,6 +2,7 @@
 // compilation, authorization, selection, execution and cleanup are product code.
 import {instantiate} from '../../_build/workers/modules/fixture.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
+import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {createAuthorizationGate} from '../host-common/authorization-gate.mjs';
 import {bindWorkersFiniteHost} from './finite.mjs';
 
@@ -34,6 +35,8 @@ function configuration(moon, maxRows) {
     capacity: {contract_cid: 'sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f',
       max_rows: maxRows, max_value_bytes: 10000},
     search: {max_offers: 10, max_strategies: 10, max_work: 10000, max_revisions: 3},
+    ledger: {planning_work: 10000, attempts: 10, holdings: 10, transfer_bytes: 300000n,
+      retained_bytes: 32000000n, execution_bytes: 134217728n},
     milliseconds: 1n, max_work: 10000, max_entries: 100,
   };
 }
@@ -70,16 +73,135 @@ const refusal = action => {
   try { action(); return null; } catch (error) { return error.message; }
 };
 
+export function finiteOriginalMaterials({hashSeed = 0, rows = [{id: 1}, {id: 2}], nullable = false} = {}) {
+  const moon = instantiate(hashSeed), selected = configuration(moon, 100);
+  const host = bindWorkersFiniteHost(moon, selected);
+  const document = finiteDocument(rows, nullable);
+  const preparation = host.prepare(document);
+  const original = moon.workersFiniteFixtureOriginal(preparation.program, preparation.compilation);
+  const admission = moon.workersFiniteFixtureAdmission(original);
+  const definition = moon.workersFiniteFixtureDefinition(original);
+  return Object.freeze({configuration: selected,
+    wire: moon.workersFiniteFixtureMaterials(preparation.program, preparation.compilation,
+      admission, definition, environmentWire, environmentCid, document),
+    runDefinitionCid: moon.strategyPublicationContractIdentity(definition)});
+}
+
+function durableRecordCase(moon) {
+  const core = runtimeCore(moon), control = core.remoteSiteControl;
+  const cid = digit => `sha256:${digit.repeat(64)}`;
+  const site = core.siteControl.create({key: 'worker-durable', generation: 1,
+    runtimeRevision: cid('a'), maxConcurrentOperations: 1, maxConcurrentTransfers: 1,
+    maxRetainedBytes: 1024n, maxExecutionBytes: 1024n});
+  const request = control.prepare({coordinatorAuthority: 'coordinator-a',
+    runDefinitionCid: cid('0'), taskKey: 'task-a', taskAttempt: 1,
+    dispatchId: 'dispatch-a', siteKey: 'worker-durable', siteGeneration: 1,
+    runtimeBundleCid: cid('a'), connectorRegistration: 'local',
+    connectorRevision: 'local/1', strategyRevision: 'strategy/1',
+    inputBindingCid: cid('1'), obligationsCid: cid('2'), budgetCid: cid('3'),
+    evidenceIssuerCapabilityCid: cid('b'), grantCid: cid('4')});
+  const outputIntentInput = {storeAuthorityCid: cid('c'), publicationAttemptCid: cid('d'),
+    resultDefinitionCid: cid('e'), orderingEvidenceCid: cid('f'),
+    coordinatorAuthority: 'coordinator-a', transferAttemptId: 'transfer-a', transferRoute: 'direct',
+    destinationSite: 'destination', destinationSiteGeneration: 2, transferMaxBytes: 1024n,
+    transferExpiresAtMilliseconds: 1000n, sourceGrantCid: cid('1'),
+    destinationGrantCid: cid('2'), routeCapabilityCid: cid('3'), transferOrigin: 'https://site.test'};
+  const intent = control.prepareOutputIntent(request, outputIntentInput);
+  const polled = control.admitPollOutput(control.pollOutputJson(request, intent));
+  const outputProjection = control.outputIntentProjection(control.pollOutputIntent(polled));
+  const outputRequestMatches = control.identity(control.pollOutputRequest(polled)) === control.identity(request);
+  const journal = control.createJournal(site);
+  const admission = control.prepareAdmission(journal, request);
+  const initial = control.admissionDurableJson(admission);
+  const record = control.commitAdmission(admission, true);
+  const initialMatch = control.recordDurableJson(record) === initial;
+  const durable = control.admitDurableRecordJson(initial);
+  const custody = control.createRuntimeCustody();
+  const actions = [control.runtimeSuccessAction(record, custody)];
+  control.runtimeCustodyAcquireBundle(custody);
+  actions.push(control.runtimeSuccessAction(record, custody));
+  const capability = control.registerExecutionCapability({site,
+    runtimeBundleCid: cid('a'), connectorRegistration: 'local',
+    connectorRevision: 'local/1', strategyRevision: 'strategy/1',
+    operationCapabilityCid: cid('4')});
+  const transition = control.prepareProvisioning(record, capability);
+  const planned = control.transitionDurableJson(transition);
+  const expectedRevision = control.transitionExpectedRevision(transition);
+  const refusedCommit = refusal(() => control.commitTransition(transition, false));
+  const unchangedAfterRefusal = control.recordDurableJson(record) === initial;
+  control.commitTransition(transition, true);
+  const plannedMatch = control.recordDurableJson(record) === planned;
+  actions.push(control.runtimeSuccessAction(record, custody));
+  control.runtimeCustodyAcquireOperation(custody);
+  actions.push(control.runtimeSuccessAction(record, custody));
+  control.commitTransition(control.prepareExecution(record), true);
+  actions.push(control.runtimeSuccessAction(record, custody));
+  control.runtimeCustodyAcquireOutput(custody);
+  actions.push(control.runtimeSuccessAction(record, custody));
+  control.runtimeCustodyAcquireHolding(custody);
+  actions.push(control.runtimeSuccessAction(record, custody));
+  control.runtimeCustodySettleOperation(custody);
+  actions.push(control.runtimeSuccessAction(record, custody));
+  control.commitTransition(control.prepareSettled(record), true);
+  actions.push(control.runtimeSuccessAction(record, custody));
+  control.commitTransition(control.prepareRetained(record, 'material-generation', cid('c')), true);
+  actions.push(control.runtimeSuccessAction(record, custody));
+  const issuer = control.registerEvidenceIssuer({site, runtimeBundleCid: cid('a'),
+    connectorRegistration: 'local', connectorRevision: 'local/1',
+    strategyRevision: 'strategy/1', evidenceKind: 'actql.remote.physical-output/0.1',
+    issuerCapabilityCid: cid('b')});
+  const evidence = control.issueExecutionEvidence(issuer, record, cid('d'));
+  control.commitTransition(control.prepareEvidence(record, evidence), true);
+  actions.push(control.runtimeSuccessAction(record, custody));
+  const finishedWire = control.recordDurableJson(record);
+  const saved = control.admitDurableRecordJson(finishedWire);
+  const restored = control.restoreDurableRecord(control.createJournal(site), saved);
+  const collision = refusal(() => control.restoreDurableRecord(journal, durable));
+  control.runtimeCustodyReleaseOutput(custody);
+  const releasedCustody = refusal(() => control.runtimeSuccessAction(record, custody));
+  return {initialMatch, plannedMatch, expectedRevision, refusedCommit,
+    outputRequestMatches, outputProjection, outputIntentInput,
+    managedExecutionProfileCid: core.managedExecutionProfileCid(),
+    unchangedAfterRefusal, actions, collision, releasedCustody,
+    initialRevision: control.durableRecordRevision(durable),
+    initialIdentityMatches: control.durableRecordIdentity(durable) === control.identity(request),
+    initialKey: control.durableRecordKey(durable),
+    originalWireMatches: control.durableRecordJson(durable) === initial,
+    restoredWireMatches: control.recordDurableJson(restored) === finishedWire,
+    restoredRevision: control.revision(restored),
+    malformed: refusal(() => control.admitDurableRecordJson(initial + ' ')),
+    unknownField: refusal(() => control.admitDurableRecordJson(`${initial.slice(0, -1)},"extra":true}`))};
+}
+
 export async function runFiniteCase({rows = [{id: 1}, {id: 2}], nullable = false,
   outcome = 'allow', maxRows = 100, cancel = false, consumeFailure = false,
-  directClose = false, hashSeed = 0} = {}) {
+  directClose = false, hashSeed = 0, durableRecords = false, restoreMaterials = false, exportMeasurement = false} = {}) {
   const moon = instantiate(hashSeed);
+  if (durableRecords) return durableRecordCase(moon);
   const host = bindWorkersFiniteHost(moon, configuration(moon, maxRows));
   const authorization = gate(moon, outcome);
-  const preparation = host.prepare(finiteDocument(rows, nullable));
+  let preparation = host.prepare(finiteDocument(rows, nullable));
   const original = moon.workersFiniteFixtureOriginal(preparation.program, preparation.compilation);
-  const owner = {admission: moon.workersFiniteFixtureAdmission(original),
-    definition: moon.workersFiniteFixtureDefinition(original), ledger: moon.workersFiniteFixtureLedger()};
+  let owner = {admission: moon.workersFiniteFixtureAdmission(original),
+    definition: moon.workersFiniteFixtureDefinition(original), ledger: host.createLedger()};
+  let materialsChecks;
+  if (restoreMaterials) {
+    const wire = moon.workersFiniteFixtureMaterials(preparation.program, preparation.compilation,
+      owner.admission, owner.definition, environmentWire, environmentCid, finiteDocument(rows, nullable));
+    const expected = moon.strategyPublicationContractIdentity(owner.definition);
+    const restored = host.admitMaterials(wire, expected);
+    const duplicate = host.admitMaterials(wire, expected);
+    materialsChecks = {originalIdentity: expected, restoredIdentity:
+      moon.strategyPublicationContractIdentity(restored.definition),
+      malformed: refusal(() => host.admitMaterials(
+        `${wire.slice(0, -1)},"unexpected":true}`, expected)),
+      wrongIdentity: refusal(() => host.admitMaterials(wire, "sha256:" + "f".repeat(64))),
+      foreignPreparation: refusal(() => host.open({...restored.preparation},
+        {...restored, ledger: owner.ledger}, authorization))};
+    preparation = restored.preparation;
+    owner = {...restored, ledger: owner.ledger};
+    materialsChecks.duplicate = duplicate;
+  }
   const usage = () => moon.workersFiniteFixtureUsage(owner.ledger);
   const initialUsage = usage();
   let setup, saved, consumed = 0, phase = 'open', duplicateOpen, duplicateExecution, openedFinished;
@@ -89,6 +211,12 @@ export async function runFiniteCase({rows = [{id: 1}, {id: 2}], nullable = false
     openedFinished = moon.strategyHostFinished(setup);
     const openedUsage = usage();
     duplicateOpen = refusal(() => host.open(preparation, owner, authorization));
+    if (materialsChecks) {
+      const duplicate = materialsChecks.duplicate;
+      materialsChecks.duplicateAdmission = refusal(() => host.open(duplicate.preparation,
+        {...duplicate, ledger: owner.ledger}, authorization));
+      delete materialsChecks.duplicate;
+    }
     const duplicateOpenUsage = usage();
     phase = 'execution';
     const abort = new AbortController();
@@ -104,6 +232,37 @@ export async function runFiniteCase({rows = [{id: 1}, {id: 2}], nullable = false
         completedTasks: report.completed.map(item => item.task),
         sites: report.completed.map(item => item.executionSite),
         consumedUsage: report.usage()};
+      if (exportMeasurement) {
+        const control = host.core.outputExportControl;
+        const exported = await control.beginResult(setup, 0, {
+          maxResultFields: 10, maxResultMappingWork: 10000,
+          maxResultOrderWork: 10000, maxResultWorkspaceEntries: 1000,
+          maxRows: 100, maxValueNodes: 10000, maxValueTextBytes: 100000,
+          maxValueDepth: 100, maxValueWork: 100000, maxWireBytes: 100000,
+          maxWireNodes: 10000, maxWireDepth: 100, maxColumns: 100,
+          maxOrderWork: 10000, maxLogicalWireBytes: 100000,
+          maxLogicalWireNodes: 10000, maxLogicalWireDepth: 100,
+          maxSchemaFields: 100, maxSchemaBytes: 10000, maxSchemaNodes: 1000,
+          maxSchemaDepth: 100, maxBatchBytes: 32,
+        });
+        try {
+          observation.measurementBeforeFinish = refusal(() => control.measurement(exported));
+          let wire = '';
+          while (true) {
+            const progress = control.advance(exported, 8);
+            if (progress.issue !== undefined) throw new Error(progress.issue);
+            if (progress.batch !== undefined) wire += progress.batch;
+            if (progress.complete) break;
+          }
+          wire += control.finish(exported);
+          observation.exportRows = JSON.parse(wire);
+          observation.exportIdentity = control.identity(exported);
+          observation.measurement = control.measurement(exported);
+          observation.measurementFrozen = Object.isFrozen(observation.measurement) &&
+            Object.isFrozen(observation.measurement.columnRows);
+        } finally { control.cancel(exported); }
+        observation.measurementAfterCancel = refusal(() => control.measurement(exported));
+      }
       if (directClose) {
         // Call the canonical bridge while the task-0 output is still retained.
         // Scoped cleanup alone could hide a task-index-zero close regression.
@@ -137,7 +296,7 @@ export async function runFiniteCase({rows = [{id: 1}, {id: 2}], nullable = false
   let released = saved === undefined;
   if (saved) released = refusal(() => saved.output(0)) === 'ReleasedStrategy';
   return {...result, initialUsage, finalUsage: usage(), consumed, released,
-    duplicateOpen, duplicateExecution, openedFinished, counters: authorization.counters(),
+    duplicateOpen, duplicateExecution, openedFinished, materialsChecks, counters: authorization.counters(),
     authorizationResources: authorization.resourceUsage()};
 }
 
