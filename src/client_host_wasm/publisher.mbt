@@ -199,10 +199,16 @@ pub fn install_publisher(
     Ok(borrow) => borrow
     Err(issue) => return issue_code(issue)
   }
-  guard input_cursor(value, borrow.slot) is Some(cursor) &&
-    @decode.closed_object(cursor, ["store_authority_cid"]) is Ok(object) &&
-    required_text(object, "store_authority_cid") is Some(store) else {
-    return -31
+  guard input_cursor(value, borrow.slot) is Some(cursor) else { return -31 }
+  let store = if original.sdk is Some(sdk) {
+    guard @decode.closed_object(cursor, []) is Ok(_) else { return -31 }
+    sdk.store_authority_cid
+  } else {
+    guard @decode.closed_object(cursor, ["store_authority_cid"]) is Ok(object) &&
+      required_text(object, "store_authority_cid") is Some(store) else {
+      return -31
+    }
+    store
   }
   child.configuration = current_configuration
   child.unknown = false
