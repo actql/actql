@@ -149,8 +149,20 @@ test "original keyed children share original custody and retain failed physical 
   @row_source_host.begin_row_run_listing_page(direct, @utf8.encode(listing), 0L).unwrap()
   let mut done = false
   for _ in 0..<10000 {
-    match
-      @row_source_host.advance_row_run_listing_page(direct, 1, 0L).unwrap() {
+    let poll = match
+      @row_source_host.advance_row_run_listing_page(direct, 1, 0L) {
+      Ok(value) => value
+      Err(@row_source_host.Source(@row_source_host.Value(field))) =>
+        fail("listing rejected value: " + field)
+      Err(@row_source_host.Source(@row_source_host.MissingField(field))) =>
+        fail("listing missing field: " + field)
+      Err(@row_source_host.Source(@row_source_host.UnexpectedField(field))) =>
+        fail("listing unexpected field: " + field)
+      Err(@row_source_host.Source(@row_source_host.ListingLimit(limit))) =>
+        fail("listing limit: " + limit)
+      Err(_) => fail("listing failed before child acquisition")
+    }
+    match poll {
       @row_source_host.ListingPageContinue(_) => ()
       @row_source_host.ListingPageComplete(rows~, ..) => {
         assert_eq(rows, 2)
