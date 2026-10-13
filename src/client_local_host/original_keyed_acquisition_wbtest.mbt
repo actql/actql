@@ -145,7 +145,9 @@ fn original_keyed_declaration_environment() -> (
 }
 
 ///|
-fn original_keyed_run_fixture() -> (
+fn original_keyed_run_fixture(
+  selector_free? : Bool = false,
+) -> (
   @row_source_host.RowDeclaration,
   @publication_host.PreparedClientProgram,
   @publication_host.ClientCompiledRun,
@@ -157,6 +159,28 @@ fn original_keyed_run_fixture() -> (
   let (declaration, environment) = original_keyed_declaration_environment()
   let document =
     #|{"version":"actql/0.1","id":"original-keyed-content","stages":[{"id":"capture","inputs":{"contents":{"connector":"content-fixture","resource":"contents"},"files":{"connector":"content-fixture","resource":"files","request":{"paths":["invoice.pdf"],"glob":null}}},"steps":[{"from":"files","filter":"name IS NOT NULL","as":"matched"},{"from":"matched","select":["name","resource","version"],"as":"selected"},{"join":{"left":"selected","with":"contents","kind":"inner","on":[{"left":"resource","right":"resource"},{"left":"version","right":"version"}],"select":{"name":"left.name","content":"right.content"}},"as":"captured"},{"from":"captured","assert_rows":{"unique_by":["name"]}},{"serialize":{"format":"jsonl","fields":["name","content"],"order_by":[{"name":"asc"}],"name":"captured.jsonl","bounds":{"max_rows":3,"max_bytes":4096}},"as":"attachment"},{"assert_rows":{"unique_by":["name"]}},{"infer":{"contract":"model-task:risk-score.v1","key":"name","input":{"text":{"field":"name"}}},"as":"classified"}],"results":{"rows":{"from":"classified","fields":["name","outcome","value"]}}}],"results":{"rows":{"from":{"stage":"capture","result":"rows"}}}}
+  let document = if selector_free {
+    // An empty terminal listing is valid for the explicitly admitted unfiltered
+    // selection, not for a missing mandatory exact path.
+    let parsed = @json.parse(document)
+    guard parsed is Object(root) &&
+      root.get("stages") is Some(Array(stages)) &&
+      stages[0] is Object(stage) &&
+      stage.get("inputs") is Some(Object(inputs)) &&
+      inputs.get("files") is Some(Object(files)) &&
+      files.get("request") is Some(Object(request)) else {
+      abort("fixture Direct request")
+    }
+    request["paths"] = @json.parse("null")
+    @identity.stringify_value(
+      @identity.from_json(parsed, 100000, 100, 1000000),
+      1000000,
+      100000,
+      100,
+    )
+  } else {
+    document
+  }
   let (prepared, compiled, definition, plan) = original_prefix_execution_fixture(
     source=true,
     environment_override=Some(environment),
@@ -320,7 +344,9 @@ test "original keyed Direct binding rejects a foreign checked selection and issu
 
 ///|
 test "original keyed empty listing keeps Direct custody through assembly cleanup without reacquisition" {
-  let (declaration, prepared, compiled, definition, plan, keyed, requirement) = original_keyed_run_fixture()
+  let (declaration, prepared, compiled, definition, plan, keyed, requirement) = original_keyed_run_fixture(
+    selector_free=true,
+  )
   let facts = @planning.query_requirement_source_evidence_facts(requirement).unwrap()
   let view = @row_source_host.row_declaration_view(
     declaration,
@@ -375,7 +401,23 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
     4096L,
     4096L,
   ).unwrap()
-  @row_source_host.begin_row_run(run, 4096, 3, 3).unwrap()
+  // The listing profile requires an installed Ref issuer even for zero rows.
+  // This one refuses all issuance; an empty page must never call it.
+  let reference_calls = Ref(0)
+  let reference_issuer = @admitted.bind_reference_issuer(
+    (_, _) => {
+      reference_calls.val += 1
+      false
+    },
+    _ => false,
+  )
+  @row_source_host.begin_row_run(
+    run,
+    4096,
+    3,
+    3,
+    reference_issuer=Some(reference_issuer),
+  ).unwrap()
   @row_source_host.begin_row_run_listing_request(run, None, 0L).unwrap()
   // Independently authored terminal protocol envelope, not an empty query
   // response inferred from absent pages or a successful selected prefix.
@@ -406,6 +448,7 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
   }
   assert_true(complete)
   let capture = @row_source_host.capture_row_run(run).unwrap()
+  assert_eq(reference_calls.val, 0)
   let captured_usage = @resources.ledger_usage(ledger)
   assert_eq(captured_usage.attempts, 1)
   assert_eq(captured_usage.holdings, 1)
