@@ -82,7 +82,10 @@ fn original_keyed_encode_whole(
           @publication.cancel_content_byte_encoder(encoder)
           return (bytes.to_string(), None)
         }
-        _ => fail("unexpected whole keyed serialization failure")
+        ContentBytesFailed(issue, ..) =>
+          fail(
+            "unexpected whole keyed serialization failure: \{issue}, row=\{row}, limit=\{max_bytes}",
+          )
       }
     }
     assert_true(ready)
