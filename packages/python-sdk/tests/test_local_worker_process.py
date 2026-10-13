@@ -5,10 +5,13 @@ import os
 from pathlib import Path
 import unittest
 from unittest.mock import patch
+from types import SimpleNamespace
 
 from actql_sdk._local_worker_process import OriginalWorkerProcess, LocalWorkerProcessPending
 from actql_sdk._local_worker_funding import LocalWorkerFundingUnavailable
 import test_local_worker_slot as slot_fixture
+
+_VERIFY_EXECUTABLE = OriginalWorkerProcess._verify_executable
 
 
 class WorkerProcessTests(unittest.TestCase):
@@ -18,11 +21,12 @@ class WorkerProcessTests(unittest.TestCase):
         self.funding, self.slot = self.case.funding, self.case.slot
         self.slot.open(); self.slot.try_acquire()
         self.case.fcntl_fcntl.side_effect = iter(range(11, 17))
-        for name, options in [('_read_file', {}), ('os.pipe', {'side_effect': [(3, 4), (3, 4), (3, 4)]}),
+        for name, options in [('OriginalWorkerProcess._verify_executable', {}), ('os.pipe', {'side_effect': [(3, 4), (3, 4), (3, 4)]}),
                 ('os.posix_spawn', {'return_value': 4321}), ('os.waitpid', {'return_value': (0, 0)})]:
             wrapper = patch('actql_sdk._local_worker_process.' + name, **options)
             value = wrapper.start(); self.addCleanup(wrapper.stop)
             setattr(self, name.replace('.', '_'), value)
+        self._read_file = self.OriginalWorkerProcess__verify_executable
         self.options = {'executable': Path('/installed/bin/python'), 'executable_bytes': 8192,
             'executable_sha256': 'a' * 64, 'environment': (('LANG', 'C.UTF-8'),)}
         self.process = OriginalWorkerProcess(self.funding, self.slot, **self.options)
@@ -48,8 +52,7 @@ class WorkerProcessTests(unittest.TestCase):
     def test_selected_executable_and_environment_are_exact_without_inheritance(self):
         with patch.dict(os.environ, {'SECRET': 'not-inherited', 'PATH': '/foreign'}, clear=True):
             self.process.spawn()
-        self._read_file.assert_called_once_with(Path('/installed/bin/python'), maximum=8192,
-            expected=8192, digest='a' * 64)
+        self._read_file.assert_called_once_with()
         args, options = self.os_posix_spawn.call_args
         self.assertEqual(args, ('/installed/bin/python',
             ('/installed/bin/python', '-I', '-m', 'actql_sdk._local_worker_entry'), {'LANG': 'C.UTF-8'}))
@@ -164,3 +167,72 @@ class WorkerProcessTests(unittest.TestCase):
         with self.assertRaises(LocalWorkerProcessPending): self.process.observe_child_exit()
         with self.assertRaises(RuntimeError): self.process.spawn()
         self.os_waitpid.assert_not_called(); self.os_posix_spawn.assert_called_once()
+
+
+class WorkerExecutableTests(unittest.TestCase):
+    def setUp(self):
+        self.case = WorkerProcessTests(); self.case.setUp()
+        self.addCleanup(self.case.doCleanups)
+        self.process = self.case.process
+        # Fixed independent SHA256 of three ASCII bytes, not product output.
+        self.process._executable_bytes = 3
+        self.process._executable_sha256 = 'ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad'
+        self.case._read_file.side_effect = lambda: _VERIFY_EXECUTABLE(self.process)
+        self.status = SimpleNamespace(st_mode=0o100755, st_dev=7, st_ino=13,
+            st_size=3, st_mtime_ns=1, st_ctime_ns=2)
+        self.case.case.os_fstat.side_effect = lambda fd: self.status
+        wrapper = patch('actql_sdk._local_worker_process.os.read', side_effect=[b'abc', b''])
+        self.read = wrapper.start(); self.addCleanup(wrapper.stop)
+
+    def test_bounded_original_fd_read_and_exact_digest_then_close(self):
+        _VERIFY_EXECUTABLE(self.process)
+        self.case.case.os_open.assert_called_with(Path('/installed/bin/python'),
+            os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        self.assertEqual([call.args for call in self.read.call_args_list], [(4, 3), (4, 1)])
+        self.assertTrue(self.process._descriptors[0].closed)
+        self.case.os_posix_spawn.assert_not_called()
+
+    def test_metadata_failure_registers_and_closes_original_fd(self):
+        self.case.case.os_fstat.side_effect = OSError('Original fstat failed')
+        with self.assertRaises(OSError): _VERIFY_EXECUTABLE(self.process)
+        self.assertEqual(len(self.process._descriptors), 1)
+        self.assertTrue(self.process._descriptors[0].closed); self.read.assert_not_called()
+
+    def test_incomplete_read_or_trailing_byte_never_spawns(self):
+        self.read.side_effect = [b'abc', b'x']
+        with self.assertRaises(LocalWorkerProcessPending): self.process.spawn()
+        self.case.os_pipe.assert_not_called(); self.case.os_posix_spawn.assert_not_called()
+        self.assertTrue(self.process._descriptors[0].closed)
+
+    def test_changed_fd_metadata_rejects_before_pipe_or_spawn(self):
+        changed = SimpleNamespace(**vars(self.status)); changed.st_ctime_ns = 3
+        self.case.case.os_fstat.side_effect = [self.status, changed]
+        with self.assertRaises(LocalWorkerProcessPending): self.process.spawn()
+        self.case.os_pipe.assert_not_called(); self.case.os_posix_spawn.assert_not_called()
+
+    def test_bad_digest_and_close_unknown_preserve_both_original_failures(self):
+        self.read.side_effect = [b'abd', b'']
+        self.case.case.os_close.side_effect = OSError('Original executable close Unknown')
+        with self.assertRaises(LocalWorkerProcessPending) as caught: self.process.spawn()
+        self.assertIsInstance(caught.exception.__cause__, ValueError)
+        descriptor = self.process._descriptors[0]
+        self.assertIsInstance(descriptor.close_failure, OSError)
+        before = len(self.case.case.os_close.call_args_list)
+        for _ in range(2):
+            with self.assertRaises(LocalWorkerProcessPending): self.process.close_parent_descriptors()
+        # Slot's moved descriptor retires once; the ambiguous executable FD
+        # number is never closed again, even if the kernel has reused it.
+        self.assertEqual(len(self.case.case.os_close.call_args_list), before + 1)
+        self.case.os_posix_spawn.assert_not_called(); self.case.assert_no_execution_ack()
+
+    def test_verified_bytes_with_unknown_close_cannot_spawn_or_reclose_executable(self):
+        def close(fd):
+            if fd == 4: raise OSError('Original executable close Unknown')
+        self.case.case.os_close.side_effect = close
+        with self.assertRaises(LocalWorkerProcessPending): self.process.spawn()
+        for _ in range(2):
+            with self.assertRaises(LocalWorkerProcessPending): self.process.close_parent_descriptors()
+        self.assertEqual(sum(call.args == (4,) for call in self.case.case.os_close.call_args_list), 2)
+        # One previous slot-open temporary close, one executable close.
+        self.assertTrue(self.case.slot._closed)
+        self.case.os_posix_spawn.assert_not_called(); self.case.assert_no_execution_ack()

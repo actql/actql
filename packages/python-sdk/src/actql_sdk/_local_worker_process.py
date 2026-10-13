@@ -8,11 +8,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import fcntl
+import hashlib
 import os
 from pathlib import Path
+import stat
 from threading import RLock
 
-from ._local_distribution import _hex, _read_file
+from ._local_distribution import _hex
 from ._local_worker_funding import OriginalWorkerFunding, LocalWorkerFundingUnavailable
 from ._local_worker_slot import OriginalWorkerSlot, _OriginalDescriptor
 
@@ -110,6 +112,42 @@ class OriginalWorkerProcess:
             original.close()
         return moved[0], moved[1]
 
+    def _verify_executable(self) -> None:
+        # Keep this descriptor in the same process carrier before metadata,
+        # reads or close can fail. A generic file context loses close Unknown.
+        original = _OriginalDescriptor(os.open(self._executable,
+            os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC))
+        self._descriptors.append(original)
+        primary: BaseException | None = None
+        try:
+            before = os.fstat(original.value)
+            if not stat.S_ISREG(before.st_mode) or before.st_size != self._executable_bytes:
+                raise ValueError('Original installed worker executable size is invalid')
+            remaining = self._executable_bytes
+            checksum = hashlib.sha256()
+            while remaining:
+                block = os.read(original.value, min(65536, remaining))
+                if not block or len(block) > remaining:
+                    raise ValueError('Original installed worker executable is incomplete')
+                checksum.update(block)
+                remaining -= len(block)
+            after = os.fstat(original.value)
+            if (os.read(original.value, 1) or checksum.hexdigest() != self._executable_sha256
+                    or (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns, before.st_ctime_ns)
+                    != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns, after.st_ctime_ns)):
+                raise ValueError('Original installed worker executable changed')
+        except BaseException as failure:
+            primary = failure
+            raise
+        finally:
+            try:
+                original.close()
+            except BaseException:
+                # Preserve a prior digest/read failure as well as this FD's
+                # independent sticky Unknown. Neither permits another launch.
+                if primary is None:
+                    raise
+
     def spawn(self) -> None:
         with self._lock:
             self._launchable()
@@ -121,8 +159,7 @@ class OriginalWorkerProcess:
             try:
                 # Same-FD nofollow/size/digest check; no PATH search or system
                 # interpreter fallback. Startup attestation is still required.
-                _read_file(self._executable, maximum=self._executable_bytes,
-                           expected=self._executable_bytes, digest=self._executable_sha256)
+                self._verify_executable()
                 slot_action = self._slot.inheritance_action()
                 self._stdin, self._stdout, self._stderr = self._pipe(), self._pipe(), self._pipe()
                 actions: list[tuple[int, int] | tuple[int, int, int]] = [slot_action,
