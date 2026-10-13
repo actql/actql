@@ -50,6 +50,7 @@ pub(all) enum ModelPhysicalCallPoll {
   PhysicalResponse(ModelPhysicalResponse)
   PhysicalEncodedResponse(ModelPhysicalEncodedResponse)
   PhysicalChatResponse(ModelPhysicalChatResponse)
+  PhysicalNativeResponse(ModelPhysicalNativeResponse)
   PhysicalRejected(ModelProviderFailure, ModelPhysicalUsage)
   PhysicalUnknown(ModelPhysicalUsage)
 }
@@ -164,8 +165,7 @@ fn cancel_model_physical_call(call : ModelPhysicalCall) -> Unit {
 // does not prove local cleanup, response persistence or remote cancellation.
 fn cleanup_model_physical_call(state : ModelState) -> Bool {
   guard state.pending_response is Some(call) else { return true }
-  if call.polling ||
-    (call.raw_capture is Some(raw) && raw.usage_advancing) {
+  if call.polling || (call.raw_capture is Some(raw) && raw.usage_advancing) {
     return false
   }
   if !call.retired {
@@ -211,7 +211,7 @@ fn observe_model_physical_usage(
 ) -> Result[Unit, ModelExecutionIssue] {
   // Raw usage has not been decoded yet. Do not cache unknown quantities and
   // thereby discard actual usage discovered by the original Common child.
-  if observed is PhysicalChatResponse(_) {
+  if observed is (PhysicalChatResponse(_) | PhysicalNativeResponse(_)) {
     return call.usage_result.unwrap_or(Ok(()))
   }
   if call.usage_result is Some(original) {
@@ -247,7 +247,8 @@ fn observe_original_model_physical_usage(
         output_tokens: response.observation.output_tokens,
       }
     PhysicalRejected(_, usage) | PhysicalUnknown(usage) => usage
-    PhysicalPending | PhysicalChatResponse(_) => return Ok(())
+    PhysicalPending | PhysicalChatResponse(_) | PhysicalNativeResponse(_) =>
+      return Ok(())
   }
   if !valid_model_optional_tokens(usage.input_tokens) ||
     !valid_model_optional_tokens(usage.output_tokens) {
@@ -317,6 +318,10 @@ fn advance_model_physical_response(
     PhysicalChatResponse(response) => {
       observe_model_physical(state, InvokeReturned)
       begin_chat_model_response(state, prepared, response, reader)
+    }
+    PhysicalNativeResponse(response) => {
+      observe_model_physical(state, InvokeReturned)
+      begin_native_model_response(state, prepared, response, reader)
     }
   }
 }
