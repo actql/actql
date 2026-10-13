@@ -197,6 +197,18 @@ test "original keyed version history keeps three left occurrences but acquires o
     }
   }
   assert_true(complete)
+  assert_true(
+    @query.captured_source_matches_segment_input(
+      prefix.source.unwrap(),
+      prefix.input.unwrap(),
+    ),
+  )
+  assert_true(
+    @execution.completed_output_matches_segment_input(
+      prefix.output.unwrap(),
+      prefix.input.unwrap(),
+    ),
+  )
   let prefixed_lookup = match
     start_client_original_keyed_prefix_lookup_input(
       prefix, scope, compiled, definition, plan, prepared, keyed, capture, 100, 4096,
