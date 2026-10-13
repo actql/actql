@@ -1053,12 +1053,12 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.notEqual(priorRulesGrammar, grammarCid);
   // Freeze every original role, Program and barrier; changing only grammar
   // while reading today's dependency oracle would silently rewrite history.
-  const priorDependencies = valuesDependencyOracle({retainedContractCids: priorRules.contract_cids});
-  const priorIdentity = valuesProgramOracle({retainedContractCids: priorRules.contract_cids});
-  assert.deepEqual(priorDependencies, priorRules.values_dependencies);
-  assert.deepEqual(priorIdentity, priorRules.program_identity);
-  assert.deepEqual(vector(priorRulesGrammar, priorRules.aoa_contract_cid, priorDependencies,
-    priorRules.barrier_contract_manifest_cid, priorIdentity, {canonicalCandidates: true}),
+  const priorRulesDependencies = valuesDependencyOracle({retainedContractCids: priorRules.contract_cids});
+  const priorRulesIdentity = valuesProgramOracle({retainedContractCids: priorRules.contract_cids});
+  assert.deepEqual(priorRulesDependencies, priorRules.values_dependencies);
+  assert.deepEqual(priorRulesIdentity, priorRules.program_identity);
+  assert.deepEqual(vector(priorRulesGrammar, priorRules.aoa_contract_cid, priorRulesDependencies,
+    priorRules.barrier_contract_manifest_cid, priorRulesIdentity, {canonicalCandidates: true}),
   priorRules.run_preimages);
   assert.equal(priorRules.run_preimages.run.run_definition_cid,
     'sha256:38be88c8a116893f3e59f2a62e473b57ff6ad8e308d50fa7a8d321ef4552c052');
