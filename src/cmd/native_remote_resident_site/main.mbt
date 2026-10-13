@@ -4098,9 +4098,7 @@ fn run_holder(
     revision != required(matches, "connector-revision") ||
     strategy != required(matches, "strategy-revision") {
     return finish_unopened_holder_cleanup(
-      environment,
-      slot,
-      "installed runtime differs from the Site delegation",
+      environment, slot, "installed runtime differs from the Site delegation",
     )
   }
   let max_file_bytes = required_int64(matches, "max-file-bytes")
@@ -4185,9 +4183,7 @@ fn run_holder(
       }
       guard configured is Some(profile) else {
         return finish_unopened_holder_cleanup(
-          environment,
-          slot,
-          "retained consumer bounded profile unavailable",
+          environment, slot, "retained consumer bounded profile unavailable",
         )
       }
       Some(profile)

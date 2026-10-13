@@ -196,7 +196,10 @@ fn finish_holder_cleanup_lifetime(
   original_failure : String,
 ) -> @site.SiteOperation? {
   retain_pending_holder_cleanup(
-    Some(resources), environment, slot, original_failure,
+    Some(resources),
+    environment,
+    slot,
+    original_failure,
   )
   resources.effect_host_caller_current = None
   let operation = resources.effect_host_caller_operation
