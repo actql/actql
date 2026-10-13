@@ -1,7 +1,7 @@
 # Vector scalar receipt follow-up
 
 This independent child of #1867 retains observations that the existing public
-query helper already compares. The submitted parent remains fixed at
+query helper already compares. The original submitted parent was fixed at
 `50ed4a8b9e91b61d8cbf647172f2c1aec025465a`; this follow-up does not change its
 typed supplier or initialization cleanup implementation.
 
@@ -52,6 +52,15 @@ its process group and the worktree lock were observed absent after completion.
 The raw success/failure receipts are retained in the workspace's
 `reviews/2026-10-13-b-vector-scalar-installed-source-evidence` directory.
 This document-only commit does not extend those results to a new runtime source.
+
+After the integration owner merged #1867 into main
+`d676dc5c85fbbcba23d85659777d2ccdf975c526`, this child normally merged that
+main. At clean `83e1bd3d0f0ad10c47f2995110d753d8dec8154f`, tree
+`4194f728c589601b10e3cb62f76229ad6ac6f682`, the same exact 20 Node checks
+passed in `run-tgwmqQ`, complete exit 0, focused `focused-test-UrbvBn`,
+under the unchanged 60-second / TERM-five nonHeavy bound. These are current
+fixture/collector/verifier checks, not execution of the checked supplier through
+Host capture/dispatch. The earlier pass/failure sources above remain separate.
 
 ## Pending public boundary
 
