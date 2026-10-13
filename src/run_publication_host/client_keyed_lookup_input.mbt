@@ -125,6 +125,13 @@ fn start_client_keyed_lookup_input_owned(
   }
   let owner = left.acquisition.owner
   let index = @acquisition.keyed_join_input(left.acquisition.binding.join)
+  // Admit the existing layout/workspace envelope before materializing the
+  // input buffer. The original per-key holdings are independent live owners.
+  let reserve = match
+    @resources.reserve_attempt(ledger, 0L, retained_bytes, execution_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
   let input = match
     @execution.prepare_bounded_admitted_input(owner, index, rows, {
       max_work,
@@ -133,16 +140,11 @@ fn start_client_keyed_lookup_input_owned(
       max_text_bytes: max_bytes,
     }) {
     Ok(value) => value
-    Err(issue) => return Err(InputCapture(issue))
-  }
-  // The canonical keys, copied row layout and encoding/recheck workspace may
-  // overlap the original per-key holdings. Reserve before constructing them.
-  let reserve = match
-    @resources.reserve_attempt(ledger, 0L, retained_bytes, execution_bytes) {
-    Ok(value) => value
     Err(issue) => {
-      @execution.cancel_admitted_input(input) |> ignore
-      return Err(Physical(issue))
+      // Failed preparation has no escaped input or physical reader. Retire
+      // this exact attempt, without refunding its spent attempt identity.
+      @resources.settle_reservation(ledger, reserve) |> ignore
+      return Err(InputCapture(issue))
     }
   }
   if !@execution.charge_admitted_input_external_work(input, 1) {

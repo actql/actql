@@ -297,3 +297,119 @@ test "original keyed Direct binding rejects a foreign checked selection and issu
     ).unwrap(),
   )
 }
+
+///|
+test "original keyed empty listing keeps Direct custody through assembly cleanup without reacquisition" {
+  let (declaration, prepared, compiled, definition, plan, keyed, requirement) = original_keyed_run_fixture()
+  let facts = @planning.query_requirement_source_evidence_facts(requirement).unwrap()
+  let view = @row_source_host.row_declaration_view(
+    declaration, facts.source_ref,
+  ).unwrap()
+  let source = @row_source_host.prepare_declared_row_source(
+    requirement, "content-fixture", view,
+  ).unwrap()
+  let acquisition = @row_source_host.prepare_declared_row_acquisition(
+    source, "fixture-original-keyed-empty", original_row_query_contract_fixture, original_row_evidence_contract_fixture,
+  ).unwrap()
+  // Independently calculated existing empty assembly envelope:
+  // retention = 64*8 + 4096; workspace = 64*32 + 64*8 + 4096.
+  // These canonical-layout budgets are not a normal Node physical profile.
+  let (scope, ledger) = original_row_scope(
+    compiled,
+    definition,
+    plan,
+    retained_bytes=@row_source_host.row_acquisition_retained_capacity(
+        acquisition,
+      ) +
+      4608L +
+      3L,
+    execution_bytes=@row_source_host.row_acquisition_execution_capacity(
+        acquisition,
+      ) +
+      4096L +
+      6656L +
+      2L,
+    transfer_bytes=4096L,
+  )
+  let run = start_client_original_keyed_direct_row_acquisition(
+    scope, compiled, definition, plan, prepared, keyed, acquisition,
+    "original-empty-direct", _ => true, 4096L, 4096L,
+  ).unwrap()
+  @row_source_host.begin_row_run(run, 4096, 3, 3).unwrap()
+  @row_source_host.begin_row_run_listing_request(run, None, 0L).unwrap()
+  // Independently authored terminal protocol envelope, not an empty query
+  // response inferred from absent pages or a successful selected prefix.
+  let body = @utf8.encode(
+    "{\"items\":[],\"request_token\":null,\"next_token\":null}",
+  )
+  @row_source_host.begin_row_run_listing_page(run, body, 0L).unwrap()
+  let mut complete = false
+  for _ in 0..<10000 {
+    match @row_source_host.advance_row_run_listing_page(run, 1, 0L).unwrap() {
+      @row_source_host.ListingPageContinue(_) => ()
+      @row_source_host.ListingPageComplete(rows~, ..) => {
+        assert_eq(rows, 0)
+        complete = true
+        break
+      }
+    }
+  }
+  assert_true(complete)
+  @row_source_host.finish_row_run(run).unwrap()
+  @row_source_host.begin_row_capture(run).unwrap()
+  complete = false
+  for _ in 0..<10000 {
+    if @row_source_host.advance_row_capture(run, 1).unwrap().0 {
+      complete = true
+      break
+    }
+  }
+  assert_true(complete)
+  let capture = @row_source_host.capture_row_run(run).unwrap()
+  let captured_usage = @resources.ledger_usage(ledger)
+  assert_eq(captured_usage.attempts, 1)
+  assert_eq(captured_usage.holdings, 1)
+  let lookup = start_client_original_keyed_lookup(
+    scope, compiled, definition, plan, prepared, keyed, capture,
+    100, 4096, 64, 64,
+  ).unwrap()
+  let assembled_usage = @resources.ledger_usage(ledger)
+  assert_eq(assembled_usage.attempts, 2)
+  assert_eq(assembled_usage.reserved_retention_bytes, 4611L)
+  assert_eq(assembled_usage.reserved_execution_bytes, 6658L)
+  assert_eq(assembled_usage.holdings, 1)
+  // Zero progress is neither cleanup acknowledgment nor permission to return
+  // the buffer's reservation. It must not close the original Direct child.
+  assert_false(
+    @publication_host.cleanup_client_keyed_lookup_input(lookup, 0).unwrap(),
+  )
+  assert_eq(@resources.ledger_usage(ledger), assembled_usage)
+  assert_true(@row_source_host.row_capture_source(capture) is Ok(_))
+  assert_true(
+    @publication_host.cleanup_client_keyed_lookup_input(lookup, 8).unwrap(),
+  )
+  let retired = @resources.ledger_usage(ledger)
+  assert_eq(retired.attempts, 2)
+  assert_eq(retired.holdings, 1)
+  assert_eq(retired.reserved_retention_bytes, 3L)
+  assert_eq(retired.reserved_execution_bytes, 2L)
+  assert_true(@row_source_host.row_capture_source(capture) is Ok(_))
+  assert_true(
+    start_client_original_keyed_lookup(
+      scope, compiled, definition, plan, prepared, keyed, capture,
+      100, 4096, 64, 64,
+    )
+    is Err(
+      Original(@publication_host.Resource(@resources.ChangedOriginalState))
+    ),
+  )
+  assert_eq(@resources.ledger_usage(ledger), retired)
+  @row_source_host.close_accounted_row_run(run).unwrap()
+  assert_true(@row_source_host.row_capture_source(capture) is Err(_))
+  assert_eq(@resources.ledger_usage(ledger).holdings, 0)
+  assert_true(
+    @publication_host.finish_client_model_read_scope(
+      scope, compiled, definition, plan, true,
+    ).unwrap(),
+  )
+}
