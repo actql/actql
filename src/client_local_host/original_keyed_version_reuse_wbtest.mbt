@@ -188,7 +188,7 @@ test "original keyed version history keeps three left occurrences but acquires o
   complete = false
   for _ in 0..<10000 {
     match advance_client_original_keyed_prefix_input(prefix, 1).unwrap() {
-      @local.Complete(..) => {
+      @local.Complete(_, ..) => {
         complete = true
         break
       }
