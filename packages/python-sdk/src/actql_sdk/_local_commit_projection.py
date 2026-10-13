@@ -305,6 +305,33 @@ class OriginalCommitProjection:
         if consume(raw) is not None:
             raise ValueError('Invalid synchronous SDK evidence decision consumer result')
 
+    def project_sdk_delivery_lookup(self, request: _Input, original_run: int,
+                                    consume: Callable[[bytes], object]) -> None:
+        """Borrow an existing delivery response, never retry or payload authority."""
+        if (not callable(consume) or type(original_run) is not int
+                or not 0 < original_run < 2**31):
+            raise ValueError('Invalid original SDK delivery lookup consumer')
+        with self._core._lock:
+            self._core._owned_input(request)
+            self._ready()
+            self._projecting = True
+            try:
+                self._consume_sdk_delivery_lookup(request, original_run, consume)
+                self._retire_outputs()
+                if self._outputs:
+                    raise LocalCoreError('original_sdk_delivery_lookup_cleanup', -9)
+            finally:
+                self._projecting = False
+
+    def _consume_sdk_delivery_lookup(self, request: _Input, original_run: int,
+                                     consume: Callable[[bytes], object]) -> None:
+        output = self._output()
+        self._core.produce_publication_sdk_delivery_lookup(
+            output, request, original_run, self._configuration)
+        raw = self._core.read_publication_commit_material(output)
+        if consume(raw) is not None:
+            raise ValueError('Invalid synchronous SDK delivery lookup consumer result')
+
     def project_sdk_read_delivery_storage(self, request: _Input, original_run: int,
                                          consume: Callable[[bytes], object]) -> None:
         """Borrow original closed CAS materials; not a use/ACK or read stream."""

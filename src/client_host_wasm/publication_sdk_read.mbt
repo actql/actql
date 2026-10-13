@@ -10,6 +10,7 @@ priv enum SDKReadExport {
   Grant(Int)
   Decision
   DeliveryStorage
+  DeliveryLookup
 }
 
 ///|
@@ -119,6 +120,26 @@ pub fn produce_publication_sdk_read_delivery_storage(
 }
 
 ///|
+/// Existing read-only delivery-attempt response from original Store metadata.
+#export_name("actql_publication_commit_export_produce_sdk_delivery_lookup")
+pub fn produce_publication_sdk_delivery_lookup(
+  nonce : Int64,
+  handle : Int,
+  input : Int,
+  run : Int,
+  current_configuration : Int,
+) -> Int {
+  produce_sdk_read_field(
+    nonce,
+    handle,
+    input,
+    run,
+    current_configuration,
+    DeliveryLookup,
+  )
+}
+
+///|
 fn produce_sdk_read_field(
   nonce : Int64,
   handle : Int,
@@ -169,6 +190,8 @@ fn produce_sdk_read_field(
       )
     DeliveryStorage =>
       (0, PublicationCommitExportProjection::SDKReadDeliveryStorage(input, run))
+    DeliveryLookup =>
+      (0, PublicationCommitExportProjection::SDKReadDeliveryLookup(input, run))
   }
   if field < 0 || field > 1 {
     return -3
@@ -390,6 +413,30 @@ fn produce_sdk_read_field(
         Err(Store(MissingEvidence)) => return -37
         Err(_) => return -32
       }
+    DeliveryLookup =>
+      match
+        @local_run.local_sdk_read_delivery_lookup_wire(
+          preflight,
+          current.account,
+          finite,
+          sdk.read,
+          sdk.adoption_cid,
+          commit,
+          view,
+          result_name,
+          format,
+          attempt_id,
+          8,
+          (table, key) => sdk_run_journal_port(value, current, 1, table, key),
+          current_check,
+        ) {
+        Ok(wire) => wire
+        Err(Observation(code)) | Err(Store(Observation(code))) => return code
+        Err(Store(Preparation(Preflight(_)))) => return -35
+        Err(Store(Preparation(Codec(CapacityExceeded)))) => return -4
+        Err(MissingOriginal) => return -41
+        Err(_) => return -32
+      }
     Original(_, _) | Evidence(_) => {
       let originals = match
         @local_run.prepare_local_sdk_read_originals(
@@ -440,7 +487,7 @@ fn produce_sdk_read_field(
             key
           }
         }
-        Grant(_) | Decision | DeliveryStorage => return -3
+        Grant(_) | Decision | DeliveryStorage | DeliveryLookup => return -3
       }
     }
   }

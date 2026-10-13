@@ -268,6 +268,11 @@ class InstalledLocalHost:
                 run, _ = self._select_original_run(body['ref'])
                 projection = self._original_run_projection(run)
                 return self._original_run_response(run, projection)
+            elif operation == 'delivery-attempt':
+                run, _ = self._select_original_run(body['ref'])
+                projection = self._original_run_projection(run)
+                return self._original_delivery_lookup_response(run, projection,
+                    body['resultName'], body['attemptId'])
             else:
                 raise ValueError('Original Local operation supplier is unavailable')
             stream = OriginalLocalResponseStream(self, raw)
@@ -371,6 +376,49 @@ class InstalledLocalHost:
             raise
         if len(streams) != 1:
             raise ValueError('Incomplete original Local Run observation')
+        stream = streams[0]
+        response = httpx.Response(200, headers={'content-type': 'application/json',
+            'content-encoding': 'identity'}, stream=stream)
+        stream._attached = True
+        return response
+
+    def _original_delivery_lookup_response(self, run: _Run,
+                                            projection: OriginalCommitProjection,
+                                            result_name: str, attempt_id: str) -> httpx.Response:
+        """Same-Store original lookup; no new attempt, write or payload access."""
+        self._ensure_original_publication_observation(projection)
+        observation = self._original_sdk_read_observation(run, projection)
+        projection._ready()
+        now = self._now()
+        if type(now) is not int or not 0 <= now <= 253402300799999:
+            raise ValueError('Invalid Local physical observation time')
+        seconds, milliseconds = divmod(now, 1000)
+        observed_at = datetime.fromtimestamp(seconds, timezone.utc).replace(
+            microsecond=milliseconds * 1000).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+        # The existing private request shape remains opaque to Python. Core
+        # selects/validates the original format and saved metadata scope. The
+        # supplied current clock never renews the old attempt or grant.
+        source = self._copy(wire_bytes({'result_name': result_name, 'format': 'jsonl',  # type: ignore[no-untyped-call]
+            'attempt_id': attempt_id, 'observed_at': observed_at}))
+        streams: list[OriginalLocalResponseStream] = []
+        try:
+            observation.project_sdk_delivery_lookup(source, run.handle,
+                lambda raw: streams.append(OriginalLocalResponseStream(self, raw)))
+            if not self._core.close_input(source):
+                raise LocalProductCleanupPending(self)
+            self._inputs.remove(source)
+        except BaseException:
+            for stream in streams:
+                if not stream._close():
+                    raise LocalProductCleanupPending(self) from None
+            if (not projection.pending_outputs and not self._core._closing
+                    and any(original is source for original in self._inputs)):
+                if not self._core.close_input(source):
+                    raise LocalProductCleanupPending(self) from None
+                self._inputs.remove(source)
+            raise
+        if len(streams) != 1:
+            raise ValueError('Incomplete original Local delivery lookup')
         stream = streams[0]
         response = httpx.Response(200, headers={'content-type': 'application/json',
             'content-encoding': 'identity'}, stream=stream)

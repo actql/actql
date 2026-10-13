@@ -258,6 +258,8 @@ pub fn delivery_attempt_lookup_matches_scope(PublicationContract, PublicationCon
 
 pub fn delivery_attempt_read_grant_cid(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
 
+pub fn delivery_attempt_requested_at(PublicationContract) -> Result[String, DeliveryIssuanceIssue]
+
 pub fn delivery_failure_terminal_action_code(DeliveryFailureTerminalAction) -> Int
 
 pub fn delivery_failure_terminal_state(DeliveryFailureTerminalAction) -> String
