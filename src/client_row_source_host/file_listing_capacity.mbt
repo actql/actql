@@ -61,12 +61,13 @@ pub fn start_accounted_listing_row_acquisition(
     Ok(_) => ()
     Err(issue) => return Err(Source(issue))
   }
-  let (retained, execution) = match row_listing_capacity_sum(
-    row_acquisition_retained_capacity(value),
-    row_acquisition_execution_capacity(value),
-    execution_scratch,
-    declaration,
-  ) {
+  let (retained, execution) = match
+    row_listing_capacity_sum(
+      row_acquisition_retained_capacity(value),
+      row_acquisition_execution_capacity(value),
+      execution_scratch,
+      declaration,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -88,14 +89,13 @@ pub fn start_accounted_listing_row_acquisition(
   let selected : RowAcquisition = { ..value, configuration, }
   let run = match start_row_acquisition(selected, nonce, verify) {
     Ok(value) => value
-    Err(issue) => {
+    Err(issue) =>
       // Registration failure closed its own issuer; no input or provider I/O
       // exists. This same reservation is settled, never replaced or retried.
       match @resources.settle_reservation(ledger, reservation) {
         Ok(_) => return Err(issue)
         Err(resource_issue) => return Err(Physical(resource_issue))
       }
-    }
   }
   install_row_reservation(run, ledger, reservation, execution_scratch)
   Ok(run)
@@ -116,7 +116,9 @@ fn settle_row_capture_capacity(
     }
     Ok(())
   } else {
-    @resources.settle_reservation(physical.ledger, physical.reservation)
-    .map_err(issue => Physical(issue))
+    @resources.settle_reservation(physical.ledger, physical.reservation).map_err(issue => {
+        Physical(issue)
+      },
+    )
   }
 }

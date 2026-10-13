@@ -3,26 +3,53 @@ test "listing supplementary declaration checks each overlap addition without gra
   // Independent accounting fixture units, not a selected Node layout or a
   // production physical profile. Construction changes no Ledger usage.
   let declared = @execution.execution_capacity(7L, 9L).unwrap()
-  assert_eq(row_listing_capacity_sum(11L, 13L, 5L, Some(declared)).unwrap(), (18L, 27L))
-  assert_true(row_listing_capacity_sum(11L, 13L, 5L, None) is Err(Physical(InvalidLimits)))
-  assert_true(row_listing_capacity_sum(11L, 13L, 5L, @execution.execution_capacity(0L, 0L))
-    is Err(Physical(InvalidLimits)))
-  assert_true(row_listing_capacity_sum(-1L, 13L, 5L, Some(declared))
-    is Err(Physical(InvalidLimits)))
-  assert_true(row_listing_capacity_sum(11L, -1L, 5L, Some(declared))
-    is Err(Physical(InvalidLimits)))
-  assert_true(row_listing_capacity_sum(11L, 13L, -1L, Some(declared))
-    is Err(Physical(InvalidLimits)))
-  assert_true(row_listing_capacity_sum(9223372036854775801L, 13L, 5L, Some(declared))
-    is Err(Physical(InvalidLimits)))
-  assert_true(row_listing_capacity_sum(11L, 9223372036854775799L, 0L, Some(declared))
-    is Err(Physical(InvalidLimits)))
-  assert_true(row_listing_capacity_sum(11L, 9223372036854775798L, 1L, Some(declared))
-    is Err(Physical(InvalidLimits)))
+  assert_eq(
+    row_listing_capacity_sum(11L, 13L, 5L, Some(declared)).unwrap(),
+    (18L, 27L),
+  )
+  assert_true(
+    row_listing_capacity_sum(11L, 13L, 5L, None) is Err(Physical(InvalidLimits)),
+  )
+  assert_true(
+    row_listing_capacity_sum(
+      11L,
+      13L,
+      5L,
+      @execution.execution_capacity(0L, 0L),
+    )
+    is Err(Physical(InvalidLimits)),
+  )
+  assert_true(
+    row_listing_capacity_sum(-1L, 13L, 5L, Some(declared))
+    is Err(Physical(InvalidLimits)),
+  )
+  assert_true(
+    row_listing_capacity_sum(11L, -1L, 5L, Some(declared))
+    is Err(Physical(InvalidLimits)),
+  )
+  assert_true(
+    row_listing_capacity_sum(11L, 13L, -1L, Some(declared))
+    is Err(Physical(InvalidLimits)),
+  )
+  assert_true(
+    row_listing_capacity_sum(9223372036854775801L, 13L, 5L, Some(declared))
+    is Err(Physical(InvalidLimits)),
+  )
+  assert_true(
+    row_listing_capacity_sum(11L, 9223372036854775799L, 0L, Some(declared))
+    is Err(Physical(InvalidLimits)),
+  )
+  assert_true(
+    row_listing_capacity_sum(11L, 9223372036854775798L, 1L, Some(declared))
+    is Err(Physical(InvalidLimits)),
+  )
 }
 
 ///|
-fn listing_capacity_ledger(retained : Int64, execution : Int64) -> @resources.Ledger {
+fn listing_capacity_ledger(
+  retained : Int64,
+  execution : Int64,
+) -> @resources.Ledger {
   @resources.create_ledger({
     planning_work: 0,
     attempts: 1,
@@ -36,7 +63,12 @@ fn listing_capacity_ledger(retained : Int64, execution : Int64) -> @resources.Le
 ///|
 test "listing overlap exact fit and either one short use the same Source reservation" {
   let declaration = @execution.execution_capacity(7L, 9L).unwrap()
-  let (retained, execution) = row_listing_capacity_sum(11L, 13L, 5L, Some(declaration)).unwrap()
+  let (retained, execution) = row_listing_capacity_sum(
+    11L,
+    13L,
+    5L,
+    Some(declaration),
+  ).unwrap()
   assert_eq((retained, execution), (18L, 27L))
   for shortage in 0..<3 {
     let ledger = listing_capacity_ledger(
@@ -53,11 +85,13 @@ test "listing overlap exact fit and either one short use the same Source reserva
       assert_eq(usage.reserved_execution_bytes, 27L)
       @resources.settle_reservation(ledger, reservation).unwrap()
     } else {
-      assert_true(if shortage == 1 {
-        reserved is Err(@resources.RetentionLimit)
-      } else {
-        reserved is Err(@resources.ExecutionLimit)
-      })
+      assert_true(
+        if shortage == 1 {
+          reserved is Err(@resources.RetentionLimit)
+        } else {
+          reserved is Err(@resources.ExecutionLimit)
+        },
+      )
       assert_eq(@resources.ledger_usage(ledger), before)
     }
   }
@@ -87,8 +121,14 @@ test "listing capture keeps report and encoding overlap through pending cleanup"
   @resources.mark_cleanup_pending(ledger, reservation).unwrap()
   settle_row_capture_capacity(true, physical).unwrap()
   assert_true(@resources.reservation_pending(reservation))
-  assert_true(@resources.reserve_capacity(ledger, 1L, 0L) is Err(@resources.RetentionLimit))
-  assert_true(@resources.reserve_capacity(ledger, 0L, 1L) is Err(@resources.ExecutionLimit))
+  assert_true(
+    @resources.reserve_capacity(ledger, 1L, 0L)
+    is Err(@resources.RetentionLimit),
+  )
+  assert_true(
+    @resources.reserve_capacity(ledger, 0L, 1L)
+    is Err(@resources.ExecutionLimit),
+  )
   assert_eq(@resources.ledger_usage(ledger), before)
   // This primitive fixture explicitly performs the original cleanup ACK.
   // A production cancellation/callback return is not such an ACK.
@@ -98,7 +138,10 @@ test "listing capture keeps report and encoding overlap through pending cleanup"
   assert_eq(retired.held_bytes, 0L)
   assert_eq(retired.reserved_retention_bytes, 0L)
   assert_eq(retired.reserved_execution_bytes, 0L)
-  assert_true(settle_row_capture_capacity(true, physical) is Err(Physical(ClosedReservation)))
+  assert_true(
+    settle_row_capture_capacity(true, physical)
+    is Err(Physical(ClosedReservation)),
+  )
   assert_eq(@resources.ledger_usage(ledger), retired)
 }
 

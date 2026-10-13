@@ -17,7 +17,8 @@ fn row_listing_original_report(
     page.selected is Some(true) &&
     !page.duplicate &&
     page.cells is Some(cells) &&
-    read.rows >= 0L && read.rows <= 2147483647L else {
+    read.rows >= 0L &&
+    read.rows <= 2147483647L else {
     return Err(ListingProtocol)
   }
   guard listing_named_cell(read, cells, "resource")
@@ -34,16 +35,18 @@ fn row_listing_original_report(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  Ok((
-    {
-      row_ordinal: read.rows.to_int(),
-      resource_ref_cid: @admitted.reference_identity_cid(resource),
-      version,
-      reported_media_type: reported,
-      media_type: projected,
-    },
-    cell,
-  ))
+  Ok(
+    (
+      {
+        row_ordinal: read.rows.to_int(),
+        resource_ref_cid: @admitted.reference_identity_cid(resource),
+        version,
+        reported_media_type: reported,
+        media_type: projected,
+      },
+      cell,
+    ),
+  )
 }
 
 ///|
@@ -67,13 +70,20 @@ fn row_listing_media_projection(
   match original.value {
     @admitted.Text(value) => {
       let projected = match
-        @contract.normalize_content_media_type_case(value, read.page_limits.max_bytes) {
+        @contract.normalize_content_media_type_case(
+          value,
+          read.page_limits.max_bytes,
+        ) {
         Ok(value) => value
         Err(_) => return Err(Value("media_type"))
       }
       guard @admitted.text_value(projected, read.values.max_text_bytes)
         is Some(projected_value) &&
-        @admitted.recheck_runtime_value(projected_value, original.contract, read.values)
+        @admitted.recheck_runtime_value(
+          projected_value,
+          original.contract,
+          read.values,
+        )
         is Some(checked) else {
         return Err(Value("media_type"))
       }

@@ -113,7 +113,8 @@ fn selection_read_fixture(
   let resolved = listing_rows_fixture(Some(3L), None).unwrap()
   let resolved = match reports {
     None => resolved
-    Some(reports) => ReportListingRows(listing_rows_resolution(resolved), reports)
+    Some(reports) =>
+      ReportListingRows(listing_rows_resolution(resolved), reports)
   }
   let issuer = @admitted.bind_reference_issuer(
     (_, wire) => ["d", "e", "f"].any(id => wire == selection_reference_wire(id)),

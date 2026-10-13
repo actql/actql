@@ -61,15 +61,17 @@ pub fn seal_completed_file_listing_observation(
     }
     match (row.reported_media_type, row.media_type) {
       (None, None) => ()
-      (Some(reported), Some(projected)) => {
+      (Some(reported), Some(projected)) =>
         // The existing writer's finite wire bound is unchanged. Projection
         // preserves opaque data and is never a replacement for a missing report.
         if @contract.normalize_content_media_type_case(reported, 16384) !=
           Ok(projected) {
-          return Err(RunEvidenceReferenceMismatch("file_listing_reports.media_type"))
+          return Err(
+            RunEvidenceReferenceMismatch("file_listing_reports.media_type"),
+          )
         }
-      }
-      _ => return Err(RunEvidenceReferenceMismatch("file_listing_reports.report"))
+      _ =>
+        return Err(RunEvidenceReferenceMismatch("file_listing_reports.report"))
     }
   }
   seal_completed_source_observation_owned(fields, Some(rows))
@@ -137,7 +139,11 @@ fn seal_completed_source_observation_owned(
         @encode.key(writer, "resource_ref_cid")
         @encode.string_value(writer, row.resource_ref_cid)
         emit_source_listing_nullable(writer, "version", row.version)
-        emit_source_listing_nullable(writer, "reported_media_type", row.reported_media_type)
+        emit_source_listing_nullable(
+          writer,
+          "reported_media_type",
+          row.reported_media_type,
+        )
         emit_source_listing_nullable(writer, "media_type", row.media_type)
         @encode.end_object(writer)
       }

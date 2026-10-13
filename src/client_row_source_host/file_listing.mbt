@@ -532,10 +532,17 @@ fn advance_row_source_listing_page(
       if read.rows >= maximum {
         return fail_read(read, ListingLimit("max_listing_items"))
       }
-      match (match row_read_listing_reports(read) {
-        Some(reports) => append_row_listing_report(read, reports, cells)
-        None => append_row_source_cells(read.input, read.schema, cells, read.retention)
-      }) {
+      match
+        (match row_read_listing_reports(read) {
+          Some(reports) => append_row_listing_report(read, reports, cells)
+          None =>
+            append_row_source_cells(
+              read.input,
+              read.schema,
+              cells,
+              read.retention,
+            )
+        }) {
         Ok(_) => ()
         Err(issue) => return fail_read(read, issue)
       }

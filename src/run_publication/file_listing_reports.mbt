@@ -18,7 +18,8 @@ fn completed_file_listing_reports_consistent(
     guard @json.array_at(rows, index) is Some(row) &&
       @json.object_field(row, "row_ordinal") is Some(@json.Number(ordinal)) &&
       ordinal == index.to_double() &&
-      @json.object_field(row, "resource_ref_cid") is Some(@json.String(resource)) &&
+      @json.object_field(row, "resource_ref_cid")
+      is Some(@json.String(resource)) &&
       valid_contract_cid(resource) else {
       return false
     }
@@ -28,12 +29,11 @@ fn completed_file_listing_reports_consistent(
         @json.object_field(row, "media_type"),
       ) {
       (Some(@json.Null), Some(@json.Null)) => ()
-      (Some(@json.String(reported)), Some(@json.String(projected))) => {
+      (Some(@json.String(reported)), Some(@json.String(projected))) =>
         if @contract.normalize_content_media_type_case(reported, max_wire_bytes) !=
           Ok(projected) {
           return false
         }
-      }
       _ => return false
     }
   }

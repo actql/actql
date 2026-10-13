@@ -43,7 +43,8 @@ fn append_row_listing_report(
   reports : RowListingReports,
   cells : Array[@admitted.CheckedValue?],
 ) -> Result[Unit, RowSourceIssue] {
-  guard reports.rows is Some(rows) && reports.scan is None &&
+  guard reports.rows is Some(rows) &&
+    reports.scan is None &&
     read.rows == rows.length().to_int64() &&
     read.columns.search("media_type") is Some(media) else {
     return Err(ListingProtocol)
@@ -54,7 +55,13 @@ fn append_row_listing_report(
   }
   let input_cells = cells.copy()
   input_cells[media] = Some(projected)
-  match append_row_source_cells(read.input, read.schema, input_cells, read.retention) {
+  match
+    append_row_source_cells(
+      read.input,
+      read.schema,
+      input_cells,
+      read.retention,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -71,8 +78,11 @@ fn finish_row_listing_reports(
   scan : @execution.CapturedRows,
 ) -> Result[Unit, RowSourceIssue] {
   guard row_read_listing_reports(read) is Some(reports) else { return Ok(()) }
-  guard !read.open && reports.scan is None && reports.rows is Some(rows) &&
-    read.listing is Some(progress) && progress.complete &&
+  guard !read.open &&
+    reports.scan is None &&
+    reports.rows is Some(rows) &&
+    read.listing is Some(progress) &&
+    progress.complete &&
     read.rows == rows.length().to_int64() &&
     @execution.captured_row_count(scan).to_int64() == read.rows else {
     return Err(ListingProtocol)
@@ -85,7 +95,10 @@ fn finish_row_listing_reports(
 // Called only after the existing Row child/transport cleanup confirms. Cancel,
 // terminal listing or callback return cannot call this as retirement. Remove
 // each owned record before shrinking so non-JS backing retains no old value.
-fn reclaim_row_listing_reports(reports : RowListingReports, quantum : Int) -> Bool {
+fn reclaim_row_listing_reports(
+  reports : RowListingReports,
+  quantum : Int,
+) -> Bool {
   guard reports.rows is Some(rows) else { return true }
   if quantum <= 0 {
     return false

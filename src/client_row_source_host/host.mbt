@@ -359,7 +359,9 @@ pub fn row_acquisition_execution_capacity(value : RowAcquisition) -> Int64 {
   (if value.configuration.listing_rows is Some(rows) {
     // The immutable witness/limit records, parsed claims and admission writer
     // can overlap. Reserve their bounded representations before transport.
-    @environment.file_listing_rows_record_capacity(listing_rows_resolution(rows))
+    @environment.file_listing_rows_record_capacity(
+      listing_rows_resolution(rows),
+    )
   } else {
     0L
   }) +
@@ -911,7 +913,8 @@ pub fn close_accounted_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
     configuration.listing_rows is Some(ReportListingRows(_, reports)) &&
     !reclaim_row_listing_reports(reports, 1) {
     if @resources.reservation_open(physical.reservation) {
-      match @resources.mark_cleanup_pending(physical.ledger, physical.reservation) {
+      match
+        @resources.mark_cleanup_pending(physical.ledger, physical.reservation) {
         Ok(_) => ()
         Err(issue) => return Err(Physical(issue))
       }
@@ -1013,7 +1016,11 @@ pub fn capture_row_run(run : RowRun) -> Result[RowSourceCapture, RowHostIssue] {
       Err(issue) => return Err(Physical(issue))
     }
     physical.holding = Some(holding)
-    match settle_row_capture_capacity(configuration.listing_rows is Some(_), physical) {
+    match
+      settle_row_capture_capacity(
+        configuration.listing_rows is Some(_),
+        physical,
+      ) {
       Ok(_) => ()
       Err(issue) => return Err(issue)
     }

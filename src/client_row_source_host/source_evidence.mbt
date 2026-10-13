@@ -108,7 +108,8 @@ pub fn issue_row_source_evidence(
       configuration.listing_rows is Some(ReportListingRows(resolved, reports)) &&
       acquisition.configuration.listing_rows is Some(original) &&
       physical_equal(resolved, listing_rows_resolution(original)) &&
-      reports.scan is Some(scan) && reports.rows is Some(rows) &&
+      reports.scan is Some(scan) &&
+      reports.rows is Some(rows) &&
       capture.run.residual is Some(residual) &&
       physical_equal(scan, @query.query_receipt_rows(residual.receipt)) &&
       @execution.captured_row_count(scan) == rows.length() else {
@@ -120,9 +121,12 @@ pub fn issue_row_source_evidence(
     // Borrow the original array synchronously; the codec never receives a
     // copied/reconstructed correlation list or custody permission from data.
     return @publication.seal_completed_file_listing_observation(
-      fields, rows.length(), rows,
+      fields,
+      rows.length(),
+      rows,
     ).map_err(issue => SourceEvidence(Evidence(issue)))
   }
-  @publication.seal_completed_source_observation(fields)
-  .map_err(issue => SourceEvidence(Evidence(issue)))
+  @publication.seal_completed_source_observation(fields).map_err(issue => {
+    SourceEvidence(Evidence(issue))
+  })
 }

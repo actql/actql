@@ -29,7 +29,9 @@ fn listing_rows_maximum(value : RowListingRows) -> Int64 {
 }
 
 ///|
-fn listing_rows_resolution(value : RowListingRows) -> @environment.FileListingRows {
+fn listing_rows_resolution(
+  value : RowListingRows,
+) -> @environment.FileListingRows {
   match value {
     ResolvedListingRows(resolved) | ReportListingRows(resolved, _) => resolved
   }
