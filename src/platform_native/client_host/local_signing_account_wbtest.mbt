@@ -138,6 +138,7 @@ test "Local Reviewer key Account retains independent registration resolve and or
     .replace_all(old="host-signer", new="reviewer")
     .replace_all(old="host-cli", new="review-cli")
     .replace_all(old="host-attestation-2026", new="release-approver-2026")
+    .replace_all(old="host-attestation.pem", new="reviewer-proof.pem")
     .replace_all(old="dummy-host-public-key", new=public_key_wire)
   let reviewer_wire = local_reviewer_selection_wire
     .replace_all(old="\"operator\"", new="\"reviewer\"")
