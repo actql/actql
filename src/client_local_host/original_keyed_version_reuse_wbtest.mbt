@@ -128,10 +128,35 @@ test "original keyed version history keeps three left occurrences but acquires o
     ),
     Some(3),
   )
-  let lookup = start_client_original_keyed_lookup(
-    scope, compiled, definition, plan, prepared, keyed, capture, 100, 4096, 4096,
-    100000,
-  ).unwrap()
+  let lookup = match
+    start_client_original_keyed_lookup(
+      scope, compiled, definition, plan, prepared, keyed, capture, 100, 4096, 4096,
+      100000,
+    ) {
+    Ok(value) => value
+    Err(issue) => {
+      let cause = match issue {
+        Original(@publication_host.ForeignRun) => "foreign_original"
+        Original(@publication_host.Resource(_)) => "original_custody"
+        Original(@publication_host.InvalidBootstrap) => "bootstrap"
+        Capture(_) => "source_capture"
+        Lookup(@publication_host.Capture(_)) => "left_capture_binding"
+        Lookup(@publication_host.Read(_)) => "producer_read"
+        Lookup(@publication_host.Assembly(reason)) => "assembly:" + reason
+        Lookup(_) => "keyed_left"
+      }
+      // Keep the success expectation. On a rejected left port, retire the
+      // actual original capture/census; do not reacquire or fake a completion.
+      @row_source_host.close_accounted_row_run(direct).unwrap()
+      assert_true(
+        @publication_host.finish_client_model_read_scope(
+          scope, compiled, definition, plan, true,
+        ).unwrap(),
+      )
+      assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
+      fail("original keyed version prefix unavailable: " + cause)
+    }
+  }
   let stopped = Ref(false)
   let children : Array[@row_source_host.RowRun] = []
   let requested : Array[String] = []
