@@ -1,0 +1,1 @@
+FROM l |> merge_rankings(with: r, by: [], candidate: id, score: s, k: 3, score_policy: {weighted_sum: {left: 0.5, right: 0.5}}, score_contract: {domain: 'Relevance', range: [0, 1], normalization: 'Identity'}) |> SELECT id, score, rank |> ORDER BY rank
