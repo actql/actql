@@ -116,8 +116,9 @@ fn read_run_record(
 
 ///|
 // Private projection of one existing decode, not a read authorization. The
-// selected body borrows that decoder's admitted body; no body/array is copied.
-// Nothing is returned before all Run, Checkpoint and canonical-row checks pass.
+// selected body references that decoder's admitted body; no body/array is copied.
+// Policy admission is last, across a private validation phase boundary.
+// Every pure refusal maps to CustodyLost; current/I/O remain with the caller.
 fn read_run_record_with_selected_policy(
   row : @sqlite.NativeJournalValue,
   selected_policy_cid : String?,
@@ -125,24 +126,11 @@ fn read_run_record_with_selected_policy(
   (NativeClientRunRecord, @publication.CapturedEffectDependencyBody?),
   NativeClientRunJournalIssue,
 ] {
-  let (decoded, local_run_policy_originals) = match
-    @host.decode_client_run_journal_row_with_local_policy(row.body) {
+  let record = match read_run_record_validation_prefix(row) {
     Ok(value) => value
-    Err(_) => return Err(CustodyLost)
+    Err(issue) => return Err(issue)
   }
-  let request = decoded.request
-  let definition = decoded.definition
-  let physical_start_claimed = decoded.physical_start_claimed
-  if local_run_policy_originals is Some(wire) &&
-    @host.validate_client_local_run_policy_original_run(
-      @utf8.encode(wire),
-      request,
-      definition,
-    )
-    is Err(_) {
-    return Err(CustodyLost)
-  }
-  let selected_policy = match decoded.publication_policy_originals {
+  let selected_policy = match record.publication_policy_originals {
     None => None
     Some(wire) => {
       // Validate every body and the full dependency closure before selection.
@@ -163,6 +151,34 @@ fn read_run_record_with_selected_policy(
           })
       }
     }
+  }
+  Ok((record, selected_policy))
+}
+
+///|
+// Pure incomplete validation phase, called only by the full reader above.
+// Keep cursor/Effect/Checkpoint/canonical-encoding temporaries inside this
+// function. Verify their ARC release at this boundary in the matching target.
+// The returned record grants no read authority.
+fn read_run_record_validation_prefix(
+  row : @sqlite.NativeJournalValue,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  let (decoded, local_run_policy_originals) = match
+    @host.decode_client_run_journal_row_with_local_policy(row.body) {
+    Ok(value) => value
+    Err(_) => return Err(CustodyLost)
+  }
+  let request = decoded.request
+  let definition = decoded.definition
+  let physical_start_claimed = decoded.physical_start_claimed
+  if local_run_policy_originals is Some(wire) &&
+    @host.validate_client_local_run_policy_original_run(
+      @utf8.encode(wire),
+      request,
+      definition,
+    )
+    is Err(_) {
+    return Err(CustodyLost)
   }
   if decoded.effect_material_originals is Some(wire) &&
     read_effect_material_original_packet(wire) is Err(_) {
@@ -200,7 +216,7 @@ fn read_run_record_with_selected_policy(
     return Err(CustodyLost)
   }
   match run_record_body(record) {
-    Ok(body) if body == row.body => Ok((record, selected_policy))
+    Ok(body) if body == row.body => Ok(record)
     _ => Err(CustodyLost)
   }
 }

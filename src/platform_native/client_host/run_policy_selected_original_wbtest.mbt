@@ -233,3 +233,45 @@ test "selected retained Policy still rejects ChangedIntent without row changes" 
   assert_eq(after.revision, before.revision)
   database.close_checked().unwrap()
 }
+
+///|
+test "Policy-last phase keeps CustodyLost for independently malformed combinations" {
+  let record = selected_policy_fixture_record()
+  for originals in [Some(selected_policy_fixture_packet), Some("{}"), None] {
+    for effect in [Some("{}"), None] {
+      let invalid_checkpoint_record = {
+        ..record,
+        publication_policy_originals: originals,
+        effect_material_originals: effect,
+      }
+      let row = selected_policy_fixture_row(invalid_checkpoint_record)
+      let wire = (@utf8.decode(row.body) catch { _ => fail("original UTF8") }).replace(
+        old="\"checkpoint\":null",
+        new="\"checkpoint\":\"{}\"",
+      )
+      assert_true(
+        read_run_record_with_selected_policy(
+          { ..row, body: @utf8.encode(wire), },
+          Some(selected_policy_fixture_cid),
+        )
+        is Err(CustodyLost),
+      )
+      assert_true(
+        read_run_record({ ..row, body: @utf8.encode(wire), })
+        is Err(CustodyLost),
+      )
+    }
+  }
+  let compound = {
+    ..record,
+    publication_policy_originals: Some("{}"),
+    effect_material_originals: Some("{}"),
+    local_run_policy_originals: Some("{}"),
+  }
+  let row = selected_policy_fixture_row(compound)
+  assert_true(
+    read_run_record_with_selected_policy(row, Some(selected_policy_fixture_cid))
+    is Err(CustodyLost),
+  )
+  assert_true(read_run_record(row) is Err(CustodyLost))
+}
