@@ -103,7 +103,7 @@ test "ordinary row names and parenthesized receivers retain the declared columns
 ///|
 test "row AS captures slots once while SET changes current columns" {
   let before = checked_whole_row(
-    "FROM pair |> AS r |> SET x = y |> SELECT r AS row,x AS current",
+    "FROM pair |> AS r |> SET x = y |> SELECT r AS row,x AS `current`",
   )
   assert_true(
     before.contains(
@@ -111,7 +111,7 @@ test "row AS captures slots once while SET changes current columns" {
     ),
   )
   let after = checked_whole_row(
-    "FROM pair |> SET x = y |> AS r |> SELECT r AS row,x AS current",
+    "FROM pair |> SET x = y |> AS r |> SELECT r AS row,x AS `current`",
   )
   assert_true(after.contains("\"x\":{\"field\":\"aql_pipe_set_2\"}"))
   let edited = checked_whole_row(

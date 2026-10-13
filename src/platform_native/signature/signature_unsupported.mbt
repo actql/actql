@@ -85,6 +85,14 @@ pub fn Library::sign_ed25519(
 }
 
 ///|
+pub fn Library::ed25519_public_key_raw32(
+  _self : Library,
+  _public_key_pem : String,
+) -> Result[Bytes, NativeSignatureIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 fn Library::private_cipher(
   _self : Library,
   _key : Bytes,

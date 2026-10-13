@@ -2087,6 +2087,63 @@ fn having_column(
 }
 
 ///|
+// A single-consumer pure projection may run after the existing acquisition
+// capture port but before publishing its cross-stage Result. The common
+// checker still owns the projected schema and publication-order obligation.
+priv struct SourceProjectionCapture {
+  projection_name : String
+  mut steps : Array[@builder.Node]
+  mut fields : Array[String]
+  mut count : Int
+}
+
+///|
+fn source_projection_capture_query(query : @query.Query) -> Bool {
+  let mut index = 0
+  if @query.operation_at(query, index) is Some(Where(_)) {
+    index += 1
+  }
+  guard @query.operation_at(query, index) is Some(Select(projections, false)) &&
+    @query.operation_at(query, index + 1) is Some(Order(_)) else {
+    return false
+  }
+  // This unit moves only the adopted pure Vector scalar calls. Other
+  // functions may have their own evaluation-context contract and stay put.
+  let mut has_vector_scalar = false
+  for projection in projections {
+    if projection.aggregate is Some(_) ||
+      projection.analytic is Some(_) ||
+      projection.star is Some(_) ||
+      !projection.replacements.is_empty() {
+      return false
+    }
+    if projection.expression is Some(expression) {
+      for node_index in 0..<@query.expression_node_count(expression) {
+        if @query.expression_node(expression, node_index).unwrap().kind
+          is Call(path, _) {
+          guard path.length() == 1 else { return false }
+          match ascii_upper(path[0].value) {
+            "VECTOR_COSINE_SIMILARITY"
+            | "VECTOR_INNER_PRODUCT"
+            | "VECTOR_L2_DISTANCE"
+            | "VECTOR_CONCAT" => has_vector_scalar = true
+            _ => return false
+          }
+        }
+      }
+    }
+  }
+  if !has_vector_scalar {
+    return false
+  }
+  index += 2
+  if @query.operation_at(query, index) is Some(Limit(_, _)) {
+    index += 1
+  }
+  index == @query.operation_count(query)
+}
+
+///|
 fn compile_steps(
   construction : Construction,
   query : @query.Query,
@@ -2111,6 +2168,7 @@ fn compile_steps(
   prefix_steps? : Array[@builder.Node] = [],
   prefix_context? : Context? = None,
   positional_set_output? : Bool = false,
+  source_projection_capture? : SourceProjectionCapture? = None,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   // Internal parenthesized bindings retain their positional export role.
   // This parser fact never grants anonymous exports to authored CTEs.
@@ -6648,6 +6706,28 @@ fn compile_steps(
       sql_group_select_scope = None
       sql_group_expression_input_scope = None
     }
+    if operation is Select(_, _) &&
+      pending_select is None &&
+      source_projection_capture is Some(capture) {
+      // A deferred SELECT still needs the old input for ORDER and cannot be
+      // moved across this boundary. No order failure is caught or retried.
+      let prefix = step_entries.map(entries => entries.copy())
+      if !prefix.is_empty() {
+        prefix[0] = prefix[0].map(entry => {
+          if entry.0 == "from" {
+            ("from", construction.text("aql_capture_0"))
+          } else {
+            entry
+          }
+        })
+        prefix[prefix.length() - 1].push(
+          ("as", construction.text(capture.projection_name)),
+        )
+        capture.steps = prefix.map(entries => construction.object(entries))
+        capture.fields = output.copy()
+        capture.count = step_entries.length()
+      }
+    }
     if operation is Select(_, _) {
       pipe_value_table = false
       pipe_value_columns = []
@@ -6786,7 +6866,19 @@ fn compile_steps(
       ("as", construction.text(final_alias)),
     )
   }
-  (step_entries.map(entries => construction.object(entries)), output)
+  let emitted = match source_projection_capture {
+    Some(capture) if capture.count > 0 => {
+      let tail = Array::makei(step_entries.length() - capture.count, i => {
+        step_entries[capture.count + i]
+      })
+      guard !tail.is_empty() else { raise Abort(InvalidContext) }
+      // Continue from the exact projected Result, not the raw provider input.
+      tail[0].insert(0, ("from", construction.text(input.name)))
+      tail
+    }
+    _ => step_entries
+  }
+  (emitted.map(entries => construction.object(entries)), output)
 }
 
 ///|
@@ -6799,6 +6891,7 @@ fn capture_source_boundary(
   imported : @builder.Node,
   fields : Array[String],
   predicate : @builder.Node,
+  projection? : SourceProjectionCapture? = None,
 ) -> (@builder.Node, @builder.Node) raise Abort {
   let capture_filter = construction.object([
     ("from", construction.text(input_name)),
@@ -6811,17 +6904,24 @@ fn capture_source_boundary(
     ),
     ("as", construction.text("aql_capture_0")),
   ])
+  let (publication_from, publication_fields, continuation) = match projection {
+    Some(projection) if projection.count > 0 =>
+      (projection.projection_name, projection.fields, projection.steps)
+    _ => ("aql_capture_0", fields, [])
+  }
   let capture_result = construction.object([
-    ("from", construction.text("aql_capture_0")),
+    ("from", construction.text(publication_from)),
     (
       "fields",
-      construction.array(fields.map(field => construction.text(field))),
+      construction.array(
+        publication_fields.map(field => construction.text(field)),
+      ),
     ),
   ])
   let capture = construction.object([
     ("id", construction.text(stage_id)),
     ("inputs", construction.object([(input_name, imported)])),
-    ("steps", construction.array([capture_filter, capture_step])),
+    ("steps", construction.array([capture_filter, capture_step] + continuation)),
     ("results", construction.object([("source", capture_result)])),
   ])
   let source_ref = construction.object([
@@ -6976,6 +7076,24 @@ pub fn compile_with_source(
       Ok(node) => node
       Err(issue) => raise Abort(Construction(issue))
     }
+    let source_projection_capture : SourceProjectionCapture? = if input.source
+      is Captured(_) &&
+      context.captured_stage is Some(_) &&
+      dependencies.is_empty() &&
+      source_projection_capture_query(query) {
+      Some({
+        projection_name: pipe_physical_name(
+          fields + [input.name],
+          "aql_capture_projection_",
+        ),
+        steps: [],
+        fields: [],
+        count: 0,
+      })
+    } else {
+      None
+    }
+    let capture_details : Array[(String, @builder.Node, @builder.Node)] = []
     let mut start_at = 0
     let (input_entries, seed_steps, capture_stage) = match input.source {
       Captured(_) =>
@@ -6996,6 +7114,7 @@ pub fn compile_with_source(
               _ =>
                 construction.object([("literal", construction.add(Bool(true)))])
             }
+            capture_details.push((stage_id, imported, predicate))
             let (capture, source_ref) = capture_source_boundary(
               construction,
               stage_id,
@@ -7082,7 +7201,21 @@ pub fn compile_with_source(
       parameter_declarations=context.parameter_declarations,
       prefix_steps=seed_steps,
       prefix_context=Some(context),
+      source_projection_capture~,
     )
+    if source_projection_capture is Some(projection) && projection.count > 0 {
+      let (stage_id, imported, predicate) = capture_details[0]
+      let (capture, _) = capture_source_boundary(
+        construction,
+        stage_id,
+        input.name,
+        imported,
+        fields,
+        predicate,
+        projection=Some(projection),
+      )
+      capture_stages[0] = capture
+    }
     let all_steps = seed_steps + steps
     let result_source = if steps.is_empty() { input.name } else { "aql_gen_0" }
     let result = construction.object([
