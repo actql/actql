@@ -176,7 +176,7 @@ test('original serialized materials and live canonical export survive the same N
 test('durable Site JSON roundtrips and custody actions remain owned on Node and workerd', async () => {
   await onBoth([{durableRecords: true}], value => {
     for (const name of ['initialMatch', 'plannedMatch', 'unchangedAfterRefusal',
-      'initialIdentityMatches', 'originalWireMatches', 'restoredWireMatches']) {
+      'initialIdentityMatches', 'originalWireMatches', 'restoredWireMatches', 'unchangedAfterStaleCommit']) {
       assert.equal(value[name], true, name);
     }
     assert.equal(value.outputRequestMatches, true);
@@ -186,7 +186,8 @@ test('durable Site JSON roundtrips and custody actions remain owned on Node and 
     assert.equal(value.initialRevision, 0);
     assert.equal(value.restoredRevision, 5);
     assert.deepEqual(value.actions, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
-    for (const name of ['refusedCommit', 'collision', 'releasedCustody', 'malformed', 'unknownField']) {
+    for (const name of ['refusedCommit', 'refusedAdmission', 'refusedStaleCommit',
+      'refusedConsumedCommit', 'collision', 'releasedCustody', 'malformed', 'unknownField']) {
       assert.equal(value[name], 'MoonBitHostFailure', name);
     }
   });

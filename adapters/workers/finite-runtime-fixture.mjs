@@ -113,6 +113,7 @@ function durableRecordCase(moon) {
   const journal = control.createJournal(site);
   const admission = control.prepareAdmission(journal, request);
   const initial = control.admissionDurableJson(admission);
+  const refusedAdmission = refusal(() => control.commitAdmission(admission, false));
   const record = control.commitAdmission(admission, true);
   const initialMatch = control.recordDurableJson(record) === initial;
   const durable = control.admitDurableRecordJson(initial);
@@ -125,12 +126,16 @@ function durableRecordCase(moon) {
     connectorRevision: 'local/1', strategyRevision: 'strategy/1',
     operationCapabilityCid: cid('4')});
   const transition = control.prepareProvisioning(record, capability);
+  const staleTransition = control.prepareProvisioning(record, capability);
   const planned = control.transitionDurableJson(transition);
   const expectedRevision = control.transitionExpectedRevision(transition);
   const refusedCommit = refusal(() => control.commitTransition(transition, false));
   const unchangedAfterRefusal = control.recordDurableJson(record) === initial;
   control.commitTransition(transition, true);
   const plannedMatch = control.recordDurableJson(record) === planned;
+  const refusedStaleCommit = refusal(() => control.commitTransition(staleTransition, true));
+  const refusedConsumedCommit = refusal(() => control.commitTransition(transition, true));
+  const unchangedAfterStaleCommit = control.recordDurableJson(record) === planned;
   actions.push(control.runtimeSuccessAction(record, custody));
   control.runtimeCustodyAcquireOperation(custody);
   actions.push(control.runtimeSuccessAction(record, custody));
@@ -159,7 +164,8 @@ function durableRecordCase(moon) {
   const collision = refusal(() => control.restoreDurableRecord(journal, durable));
   control.runtimeCustodyReleaseOutput(custody);
   const releasedCustody = refusal(() => control.runtimeSuccessAction(record, custody));
-  return {initialMatch, plannedMatch, expectedRevision, refusedCommit,
+  return {initialMatch, plannedMatch, expectedRevision, refusedCommit, refusedAdmission,
+    refusedStaleCommit, refusedConsumedCommit, unchangedAfterStaleCommit,
     outputRequestMatches, outputProjection, outputIntentInput,
     managedExecutionProfileCid: core.managedExecutionProfileCid(),
     unchangedAfterRefusal, actions, collision, releasedCustody,
