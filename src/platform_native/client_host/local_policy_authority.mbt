@@ -25,14 +25,32 @@ fn NativeLocalPolicyAuthority::current_for(
   request : @host.ClientRequestIdentity,
 ) -> Bool {
   if !physical_equal(self.host.journal, journal) ||
-    @host.client_request_authority_scope_cid(request) != self.scope ||
-    !(self.host.authority_scope_cid(
-      self.principal,
-      self.connection,
-      self.crypto,
-    )
-    is Ok(scope) &&
-    scope == self.scope) {
+    @host.client_request_authority_scope_cid(request) != self.scope {
+    return false
+  }
+  // Fresh only for this synchronous predicate. Each Common operation still
+  // observes actual current custody before and after its scope/Account work.
+  let material = match self.host.adopted_current_material() {
+    Ok(value) => value
+    Err(_) => return false
+  }
+  let scope = {
+    let body = match
+      @host.client_local_adopted_authority_scope_body(
+        material,
+        self.host.database,
+        self.principal,
+        self.connection,
+      ) {
+      Ok(value) => value
+      Err(_) => return false
+    }
+    match local_adoption_digest(self.crypto, body) {
+      Ok(value) => value
+      Err(_) => return false
+    }
+  }
+  if scope != self.scope {
     return false
   }
   let operation = match self.purpose {
@@ -40,19 +58,23 @@ fn NativeLocalPolicyAuthority::current_for(
     PublishRun => "publish"
     ReadRunMaterials | ReadResultPolicy(_) => "read"
   }
-  if !(self.host.authorize({
-      principal: self.principal,
-      connection: self.connection,
-      resource: "run",
-      operation,
-    })
+  if !(@host.client_local_adopted_account_outcome(
+      material,
+      self.host.database,
+      {
+        principal: self.principal,
+        connection: self.connection,
+        resource: "run",
+        operation,
+      },
+    )
     is Ok(@authorization.Allow(_))) {
     return false
   }
   match self.purpose {
     SubmitOriginals | PublishRun | ReadRunMaterials => true
     ReadResultPolicy(name) =>
-      self.host.authorize({
+      @host.client_local_adopted_account_outcome(material, self.host.database, {
         principal: self.principal,
         connection: self.connection,
         resource: "result/" + name,
