@@ -19,11 +19,11 @@
     },
     {
       "path": "local_signing_public_key_wbtest.mbt",
-      "sha256": "d7f60228a78e9a40ad1dc4b0494aa26f4d89832ec775a333abb5a74630d9db42"
+      "sha256": "1a46fe9c41f68bf710ca0a07f7b2f90d8a26ad2ac2acfd520cfa98929793655a"
     },
     {
       "path": "unapplied-common-source.patch",
-      "sha256": "129b4534b34a8260f6776464ab8d86f139d37c6865df7042fa8a6fced8646746"
+      "sha256": "e386f7b4937eacf63f18c1b9b865c74cef3153a9e3bdae9d5917e1ad457c19d2"
     }
   ]
 }

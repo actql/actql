@@ -223,7 +223,7 @@
 +    public_key_proposal_wire.replace_all(old=":", new=": "),
 +    public_key_proposal_wire.replace_all(
 +      old="actql-local-signing-public-key/0.1",
-+      new="actql-local-signing-public-key/0." + "2",
++      new="actql-local-signing-public-key/" + "0.2",
 +    ),
 +    "{\"version\":\"actql-local-signing-public-key/0.1\",\"public_key\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=\",\"algorithm\":\"ed25519\"}",
 +  ] {
