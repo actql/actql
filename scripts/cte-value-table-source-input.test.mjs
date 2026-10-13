@@ -62,11 +62,13 @@ test('verified case receipts survive the case block and finish at transport comp
   await receipts.complete();
   assert.deepEqual(files.get(path), {version: 'actql-cte-value-table-acceptance/0.1', mode: 'local',
     complete: true, cases: [{mode: 'local', name: source.name, ref,
+      submissionRef: {nonce: 'receipt-' + source.name},
       results: {answer: {rows: source.expected, columns: source.columns}},
       beforeSubmit: {acceptedRuns: 0, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0},
       beforeRead: {acceptedRuns: 1, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0},
       afterReplay: {acceptedRuns: 1, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0}}]});
   assert.deepEqual(saved.ref, ref);
+  assert.deepEqual(saved.submissionRef, {nonce: 'receipt-' + source.name});
   assert.deepEqual(saved.observedResults.answer, {rows: source.expected, columns: source.columns});
   assert.notEqual(saved.observedResults.answer.rows, source.expected,
     'receipt rows come from the reader, not the authored oracle');
