@@ -41,18 +41,21 @@ test "SourceView score map shares the closed ScoreContract reader" {
 
 ///|
 test "SourceView score names require required nonnull Number fields" {
+  let contract : Json = {
+    "domain": "Relevance", "normalization": "Identity", "range": [0, 1],
+  }
   for name in ["missing", "other", "at", "v"] {
-    let facts : Json = { "relation_scores": { name: {
-      "domain": "Relevance", "normalization": "Identity", "range": [0, 1],
-    } } }
+    let facts : Json = {
+      "relation_scores": Json::object(Map([(name, contract)])),
+    }
     assert_true(check_carrier_schemas(
       carrier_modes(record_body(), "relation", facts=Some(facts)), carrier_limits(),
     ) is Err({ kind: InvalidBody, .. }))
   }
   for name in ["p", "q"] {
-    let facts : Json = { "relation_scores": { name: {
-      "domain": "Relevance", "normalization": "Identity", "range": [0, 1],
-    } } }
+    let facts : Json = {
+      "relation_scores": Json::object(Map([(name, contract)])),
+    }
     assert_true(check_carrier_schemas(
       carrier_modes(relation_presence_body(), "relation", facts=Some(facts)), carrier_limits(),
     ) is Err({ kind: InvalidBody, .. }))
