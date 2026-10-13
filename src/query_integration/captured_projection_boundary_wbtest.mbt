@@ -21,7 +21,10 @@ test "captured projection consumes the acquisition port before publishing its la
     Some(2),
   )
   let edge = @strategy.graph_data_at(graph, 0).unwrap()
-  assert_eq((edge.producer, edge.consumer, edge.target), (0, 1, @pipeline.Step(1)))
+  assert_eq(
+    (edge.producer, edge.consumer, edge.target),
+    (0, 1, @pipeline.Step(1)),
+  )
   assert_eq(@strategy.data_edge_operation_input(edge), Some((2, 0)))
   assert_true(@strategy.graph_ordered_inputs_complete(graph))
   let input = @strategy.captured_task_input(run, 1, 100, 10000).unwrap()
