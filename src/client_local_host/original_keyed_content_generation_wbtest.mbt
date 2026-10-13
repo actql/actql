@@ -255,6 +255,9 @@ fn original_keyed_version_content(
     is Some(_),
   )
   assert_true(client_local_content_generation_input(active) is None)
+  assert_true(
+    active.bytes is None && active.generation is None && active.output is None,
+  )
   assert_false(cleanup_client_original_keyed_prefix_input(left_prefix).unwrap())
   @resources.release_allocation(ledger, holding).unwrap()
   assert_true(

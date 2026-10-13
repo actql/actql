@@ -740,6 +740,12 @@ fn cleanup_client_content_step(
   active.borrowed = None
   active.receipt = None
   active.piece = None
+  // The family must not retain completed output/proof/byte roots after its
+  // actual physical and sort cleanup. Independently escaped generation views
+  // still borrow their separate live byte holding; do not revoke that custody.
+  active.bytes = None
+  active.generation = None
+  active.output = None
   active.cleaned = true
   Ok(true)
 }
