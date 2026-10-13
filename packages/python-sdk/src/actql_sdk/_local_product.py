@@ -7,6 +7,7 @@ No bootstrap/profile/epoch result is an admission or execution permission.
 from __future__ import annotations
 
 from collections.abc import Callable
+from contextlib import ExitStack
 from datetime import datetime, timezone
 import hashlib
 import os
@@ -16,12 +17,14 @@ import time
 from typing import Any, TypeVar
 
 from . import _wire as wire
-from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _PublisherFact
+from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _PublisherFact, _Task, _ResultExport, LocalTaskProgress, LocalResultProgress
 from ._local_distribution import installed_local_components, load_local_module
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
 from ._local_preparation import LocalPreparation, _Environment, _Preparation
 from ._local_run import LocalRunCustody, _RunConfiguration, _Run, _PhysicalStart, _SourceFreeCompute
-from ._local_storage import ByteWrite, LocalStorageError
+from ._local_commit_projection import OriginalCommitProjection
+from ._local_reader_facts import OriginalReaderFacts
+from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError
 from ._values import wire_bytes
 
 _T = TypeVar('_T')
@@ -87,6 +90,14 @@ class InstalledLocalHost:
         self._source_free_invocations: list[tuple[_SourceFreeCompute, _Output]] = []
         self._publication_preflights: list[_Output] = []
         self._publishers: list[_Output] = []
+        self._tasks: list[_Task] = []
+        self._result_exports: list[_ResultExport] = []
+        self._result_chunks: list[_Output] = []
+        self._publications: list[_Output] = []
+        self._commit_projections: list[OriginalCommitProjection] = []
+        self._reader_facts: list[OriginalReaderFacts] = []
+        self._publication_write_attempts: set[int] = set()
+        self._pending_publication_write: OriginalCommitProjection | None = None
         self._inputs: list[_Input] = []
         self._projections: list[_Output] = []
         self._append_sources: dict[int, _Input] = {}
@@ -611,6 +622,192 @@ class InstalledLocalHost:
                 raise LocalProductCleanupPending(self)
             return preflight, publisher
 
+    def _execute_original_tasks(self, compute: _SourceFreeCompute, preflight: _Output,
+                                publisher: _Output) -> tuple[_ResultExport, ...]:
+        """Drive existing task Owners; Python selects no task/transition/outcome."""
+        installation = self._active()
+        configuration = self._configuration
+        if (configuration is None or not configuration.sdk or
+                not any(original is compute for original in self._source_free_computes) or
+                not any(original is preflight for original in self._publication_preflights) or
+                not any(original is publisher for original in self._publishers)):
+            raise ValueError('Foreign original Local task/publication custody')
+        with self._core._lock:
+            self._runs._compute(compute)
+            while True:
+                selected: list[_Task | None] = []
+                def select_task(_: _Output) -> None:
+                    task = self._core.reserve_next_sdk_task(compute.core, configuration.handle)
+                    # Retain the original loan before the enclosing snapshot's
+                    # post-current checks can refuse its use.
+                    if task is not None:
+                        self._tasks.append(task)
+                    selected.append(task)
+                installation.binding.inspect(select_task)
+                task = selected[0]
+                if task is None:
+                    break  # Explicit Core-checked end, never reserve's -2.
+                installation.binding.inspect(lambda _: self._core.start_task(task))
+                while True:
+                    fed: list[bool] = []
+                    installation.binding.inspect(lambda _: fed.append(self._core.feed_task(task, 16)))
+                    if fed[0]: break
+                while True:
+                    progress: list[LocalTaskProgress] = []
+                    installation.binding.inspect(lambda _: progress.append(self._core.advance_task(task, 16)))
+                    if progress[0].waiting:
+                        raise LocalCoreError('original_task_waiting', -7)
+                    if progress[0].complete: break
+                installation.binding.inspect(lambda _: self._core.prepare_task_finalization(task))
+                while True:
+                    final: list[LocalTaskProgress] = []
+                    installation.binding.inspect(lambda _: final.append(
+                        self._core.advance_task(task, 16, finalization=True)))
+                    if final[0].waiting:
+                        raise LocalCoreError('original_task_finalization_waiting', -7)
+                    if final[0].complete: break
+                installation.binding.inspect(lambda _: self._core.complete_task(task))
+            counts: list[int] = []
+            installation.binding.inspect(lambda _: counts.append(
+                self._core.publication_preflight_result_count(preflight, configuration.handle)))
+            results: list[_ResultExport] = []
+            for index in range(counts[0]):
+                selected_results: list[_ResultExport] = []
+                def select_result(_: _Output) -> None:
+                    result = self._core.reserve_result_from_compute(compute.core, index, configuration.handle)
+                    # The same Result remains reachable for cleanup even when
+                    # the original snapshot's post-current fence fails.
+                    self._result_exports.append(result)
+                    selected_results.append(result)
+                installation.binding.inspect(select_result)
+                result = selected_results[0]
+                results.append(result)
+            return tuple(results)
+
+    def _capture_original_results(self, compute: _SourceFreeCompute, preflight: _Output,
+                                  results: tuple[_ResultExport, ...]) -> _Output:
+        """Finish original exports and Receipt; Store commit/ACK is separate.
+
+        Transient chunks need not copy rows into Python. Their original Core
+        finish marker closes each stream. The later payload replay reads the
+        retained completed output; it cannot restart Source or Compute.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        if (configuration is None or not configuration.sdk or type(results) is not tuple or
+                not any(original is compute for original in self._source_free_computes) or
+                not any(original is preflight for original in self._publication_preflights) or
+                any(not any(original is result for original in self._result_exports) for result in results)):
+            raise ValueError('Foreign original Local Result/publication custody')
+        with self._core._lock:
+            self._runs._compute(compute)
+            for result in results:
+                installation.binding.inspect(lambda _: self._core.start_result_export(result))
+                while True:
+                    fed: list[bool] = []
+                    installation.binding.inspect(lambda _: fed.append(self._core.feed_result_export(result, 16)))
+                    if fed[0]: break
+                while True:
+                    progress: list[LocalResultProgress] = []
+                    installation.binding.inspect(lambda _: progress.append(
+                        self._core.advance_result_export(result, 16)))
+                    if progress[0].ready: break
+                installation.binding.inspect(lambda _:
+                    self._core.finish_result_export_preparation(result))
+                while True:
+                    chunk = self._reserve(lambda: self._core.reserve_result_chunk(result, cleanup=lambda: True))
+                    self._result_chunks.append(chunk)
+                    installation.binding.inspect(lambda _: self._core.produce_result_chunk(chunk))
+                    final: list[bool] = []
+                    installation.binding.inspect(lambda _: final.append(self._core.result_chunk_finished(chunk)))
+                    if not self._core.close_result_chunk(chunk):
+                        raise LocalProductCleanupPending(self)
+                    self._result_chunks.remove(chunk)
+                    if final[0]: break
+            source = next(original for owner, original in self._source_free_invocations if owner is compute)
+            # Preserve the existing private export limits, not a new unlimited
+            # scan or a broader admitted profile. Core shares this work budget
+            # across snapshot, capture and later commit validation.
+            request = self._copy(wire_bytes({  # type: ignore[no-untyped-call]
+                'results': [result.handle for result in results],
+                'max_work': 1000000, 'max_workspace_slots': 100000,
+            }))
+            publication = self._reserve(lambda: self._core.reserve_publication(
+                source, request, cleanup=lambda: True))
+            self._publications.append(publication)
+            installation.binding.inspect(lambda _:
+                self._core.prepare_publication(publication, configuration.handle))
+            while True:
+                captured: list[LocalResultProgress] = []
+                installation.binding.inspect(lambda _: captured.append(
+                    self._core.advance_publication(publication, configuration.handle, 16)))
+                if captured[0].ready: break
+            installation.binding.inspect(lambda _:
+                self._core.finish_publication(publication, configuration.handle))
+            if not self._core.retire_publication_output(publication):
+                raise LocalProductCleanupPending(self)
+            return publication
+
+    def _store_original_commit(self, projection: OriginalCommitProjection,
+                               facts: tuple[OriginalReaderFacts, ...],
+                               originals: tuple[tuple[ByteFence, CapacityReservation], ...],
+                               publisher: _Output) -> None:
+        """Physically project the original Done chain once; no Run ACK occurs.
+
+        Payload production retains these original File/record/fact loans and
+        their separately reserved workspace. The same Core/File/current frame
+        spans every projected field and publisher stage inside the write TX.
+        Physical generations do not clear pending custody: only later original
+        full-chain lookup/adoption can acknowledge publication. A conflict or
+        Unknown never selects a new request, index, task or write attempt here.
+        """
+        installation = self._active()
+        configuration = self._configuration
+        store = installation._store
+        if (configuration is None or not configuration.sdk or store is None
+                or type(projection) is not OriginalCommitProjection
+                or projection._core is not self._core
+                or projection._configuration != configuration.handle
+                or not any(original is projection._publication for original in self._publications)
+                or not any(original is publisher for original in self._publishers)
+                or type(facts) is not tuple or not facts
+                or any(type(fact) is not OriginalReaderFacts or fact._projection is not projection
+                       for fact in facts)):
+            raise ValueError('Foreign original Local publication commit custody')
+        with self._core._lock:
+            if (projection._publication.ticket in self._publication_write_attempts
+                    or self._pending_publication_write is not None):
+                raise LocalStorageError('Original publication write requires lookup; replay is unavailable')
+            # Retain children before the first fallible validation/transfer.
+            # A failed count or metadata fill can already hold an original loan.
+            if not any(original is projection for original in self._commit_projections):
+                self._commit_projections.append(projection)
+            for fact in facts:
+                if not any(original is fact for original in self._reader_facts):
+                    self._reader_facts.append(fact)
+            with ExitStack() as loans:
+                for fact in facts: loans.enter_context(fact.serialized())
+                counts: list[int] = []
+                def inspect_count(_: _Output) -> None:
+                    if (projection._storage_counts()[1] != len(facts)
+                            or any(fact._result != index for index, fact in enumerate(facts))):
+                        raise ValueError('Incomplete original Local Result fact inventory')
+                    for fact in facts: fact.validate()
+                    counts.append(projection.storage_count())
+                installation.binding.inspect(inspect_count)
+                def before_commit() -> None:
+                    for fact in facts: fact.before_commit(publisher)
+                with installation.binding.fenced() as fences:
+                    self._publication_write_attempts.add(projection._publication.ticket)
+                    self._pending_publication_write = projection
+                    generations = store.store_publication_projected_inspected(
+                        counts[0], projection.project_storage_entry, originals, fences,
+                        inspect=lambda reader, consume:
+                            installation.binding.inspect_reader(reader, lambda _: consume()),
+                        current=installation.binding.current, before_commit=before_commit)
+                if generations is None:
+                    raise LocalStorageError('Original publication write conflicted; lookup is required')
+
     def close(self) -> bool:
         """Stop this Host's resources only; never cancel/replay/delete a Run."""
         self._nominal()
@@ -618,6 +815,34 @@ class InstalledLocalHost:
             self._closing = True
             if self._uncertain_ticket is not None and not self._core._closed:
                 return False
+            for projection in tuple(reversed(self._commit_projections)):
+                if not projection.close():
+                    return False
+                self._commit_projections.remove(projection)
+            for fact in tuple(reversed(self._reader_facts)):
+                if not fact.close():
+                    return False
+                self._reader_facts.remove(fact)
+            for publication in tuple(reversed(self._publications)):
+                if not self._core.close_publication(publication):
+                    return False
+                self._publications.remove(publication)
+                self._publication_write_attempts.discard(publication.ticket)
+                if (self._pending_publication_write is not None
+                        and self._pending_publication_write._publication is publication):
+                    self._pending_publication_write = None
+            for chunk in tuple(reversed(self._result_chunks)):
+                if not self._core.close_result_chunk(chunk):
+                    return False
+                self._result_chunks.remove(chunk)
+            for result in tuple(reversed(self._result_exports)):
+                if not self._core.close_result_export(result):
+                    return False
+                self._result_exports.remove(result)
+            for task in tuple(reversed(self._tasks)):
+                if not self._core.close_task(task):
+                    return False
+                self._tasks.remove(task)
             for publisher in tuple(reversed(self._publishers)):
                 if not self._core.close_publisher(publisher):
                     return False

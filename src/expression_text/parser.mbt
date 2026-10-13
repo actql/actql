@@ -16,7 +16,7 @@ priv enum Frame {
   BetweenLow(Node, Bool, Int)
   BetweenHigh(Node, Node, Bool)
   LikeFinish(Node, Bool, Token)
-  InParameter(Node, Bool, Token)
+  InOperand(Node, Bool)
   InItem(Node, Bool, Array[Node], Token, Int)
 }
 
@@ -337,17 +337,13 @@ fn Parser::expression(self : Parser) -> Node raise ExpressionError {
         let base = self.arguments("like", [left, result.node])
         result = parsed(if negated { self.form("not", base) } else { base })
       }
-      InParameter(left, negated, token) => {
-        if object_get(result.node, "$param") is None {
-          raise SyntaxFailure(token.start, token.end)
-        }
+      InOperand(left, negated) =>
         result = parsed(
           self.arguments(if negated { "not_in" } else { "in" }, [
             left,
             result.node,
           ]),
         )
-      }
       InItem(left, negated, items, token, depth) => {
         match literal_value(result.node) {
           Some(value) => items.push(value)
@@ -473,11 +469,7 @@ fn Parser::expression(self : Parser) -> Node raise ExpressionError {
               stack.push(InItem(result.node, negated, [], self.peek(), depth))
               stack.push(Enter(1, depth + 1))
             } else {
-              let start = self.peek()
-              if !(start.kind is Parameter(_)) {
-                raise SyntaxFailure(start.start, start.end)
-              }
-              stack.push(InParameter(result.node, negated, start))
+              stack.push(InOperand(result.node, negated))
               stack.push(Enter(10, depth + 1))
             }
           Reserved(Between) => {
