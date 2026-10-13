@@ -138,3 +138,30 @@ bootstrap before VM construction: this later Root projection does not supply
 that missing pre-root fact. Product capacity numbers and the selected allocator
 original remain unadopted, and ordinary installed construction still refuses
 before image capture or native initialization.
+
+The standard wheel cohort also requires the trusted source original
+`packages/python-local-runtime/selected-host-capacity.json`. The original is
+currently absent: staging refuses rather than using fixture allowances. Its
+closed private fields are `platform`, `backend`, `allocation_domain`,
+`engine_recipe_sha256`, `host_capacity_bytes`, `bootstrap_execution_bytes` and
+the six existing `LocalCoreResources` fields under `root`. It selects
+`darwin-arm64`, `wasmtime-precompiled-pooling` and
+`host-owned-reserved-capacity`; the Engine recipe digest must match the same
+artifact. These are installed Host restrictions, not a new Wire contract,
+allocator implementation, authority or Run admission.
+
+The cohort builder verifies that bounded file against the exact clean Git blob
+before creating a stage. It preserves the original bytes in the SDK's generated
+`_local_host_capacity.json`, attaches source/version/ABI/module/Engine context,
+and binds its digest in `_local_release_binding.json`. Both actual wheel members
+are checked after packaging. The argumentless factory selects that original
+before image acquisition and projects its lifetime allowance at the first Core
+open. The lightweight SDK still has no Wasmtime/runtime default dependency or
+native binary. Missing originals, different context or changed bytes are refused;
+older SDK bindings without the capacity digest are not silently accepted.
+
+The known44,441,600-byte fresh installation subtotal is only a consistency
+floor. It does not supply unknown native/Python/SQLite allowances or prove a
+complete Run/read profile. Physical pre-root funding and justification of every
+selected numerical allowance remain integrator requirements. Encoding or
+decoding the original and a scalar factory test are not installed execution.

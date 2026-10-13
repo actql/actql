@@ -189,10 +189,11 @@ def installed_local_components() -> LocalComponents:
         # its image by changing both the declared recipe and file checksums.
         binding = _closed(json.loads(_read_file(sdk_root / '_local_release_binding.json',
             maximum=65536), object_pairs_hook=_pairs),
-            ('source_sha', 'package_version', 'core_abi', 'artifact_sha256'))
+            ('source_sha', 'package_version', 'core_abi', 'artifact_sha256', 'host_capacity_sha256'))
         if (not _hex(binding['source_sha'], 40) or binding['package_version'] != version
                 or type(binding['core_abi']) is not int or binding['core_abi'] != LOCAL_CORE_ABI
-                or not _hex(binding['artifact_sha256'], 64)):
+                or not _hex(binding['artifact_sha256'], 64)
+                or not _hex(binding['host_capacity_sha256'], 64)):
             raise LocalInstallationError('Installed SDK Local cohort binding is incompatible')
         components = inspect_local_components(root, package_version=version,
             artifact_sha256=binding['artifact_sha256'])

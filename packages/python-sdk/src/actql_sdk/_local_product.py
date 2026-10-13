@@ -106,20 +106,6 @@ def _default_directory() -> Path:
     return directory
 
 
-def _selected_installed_resources(components: LocalComponents) -> LocalCoreResources:
-    """Require the selected trusted baseline before module capture or VM startup.
-
-    The installed source/cohort resolver is reused exactly once. Numerical
-    Host/root and pre-root native allocator originals are not adopted yet;
-    the private source-bound supplier is the remaining product seam. The
-    explicit resources fixture path is separately qualified and is never a
-    public factory option or a fallback for this missing physical original.
-    """
-    if type(components) is not LocalComponents:
-        raise LocalInstallationError('Invalid installed Local capacity context')
-    raise LocalInstallationError('Installed Local Host capacity original is unavailable')
-
-
 class InstalledLocalHost:
     """Compose installed originals and typed current with existing SDK transport.
 
@@ -214,12 +200,19 @@ class InstalledLocalHost:
         """Resolve the selected cohort with no endpoint/token/internal paths."""
         components = installed_local_components()
         if resources is None:
-            resources = _selected_installed_resources(components)
+            from ._local_capacity_original import _selected_capacity_original
+            original = _selected_capacity_original(components)
+            resources = original.resources
+            baseline = original.host_capacity_bytes
+        else:
+            # Private explicit-resource diagnostics retain their declared
+            # subset. This is not an option on either public Local factory.
+            baseline = 0
         # Product assembly supplies its reviewed finite Root profile. The old
         # minimal buffer fixture has no allowance for initialization workspace.
         core = LocalCore._from_installed_image(components,
             transfer_capacity=12 * 1024 * 1024, slots=64,
-            resources=resources)
+            resources=resources, **({'_host_capacity_bytes': baseline} if baseline else {}))
         try:
             directory = _default_directory()
             now = lambda: time.time_ns() // 1_000_000

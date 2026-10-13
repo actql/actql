@@ -181,7 +181,8 @@ class LocalDistributionTests(unittest.TestCase):
 
     def test_installed_resolver_uses_matching_cohort_and_optional_dependency(self):
         binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 73,
-                   'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest()}
+                   'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
+                   'host_capacity_sha256': 'c' * 64}
         (self.directory / '_local_release_binding.json').write_text(json.dumps(binding))
         versions = {'actql': '0.0.0.dev0', 'actql-sdk': '0.0.0.dev0', 'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
         with patch('actql_sdk._local_distribution.metadata.version', side_effect=lambda name: versions[name]), \
@@ -203,7 +204,8 @@ class LocalDistributionTests(unittest.TestCase):
         versions = {'actql': '0.0.0.dev0', 'actql-sdk': '0.0.0.dev0',
                     'actql-local-runtime': '0.0.0.dev0', 'wasmtime': '38.0.0'}
         binding = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0', 'core_abi': 73,
-                   'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest()}
+                   'artifact_sha256': hashlib.sha256((self.directory / 'artifact.json').read_bytes()).hexdigest(),
+                   'host_capacity_sha256': 'c' * 64}
         path = self.directory / '_local_release_binding.json'
         with patch('actql_sdk._local_distribution.metadata.version', side_effect=versions.__getitem__), \
                 patch('actql_sdk._local_distribution.resources.files', return_value=self.directory):

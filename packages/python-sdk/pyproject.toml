@@ -25,4 +25,4 @@ follow_imports = "silent"
 where = ["src"]
 
 [tool.setuptools.package-data]
-actql_sdk = ["_contract.json", "_local_release_binding.json", "py.typed"]
+actql_sdk = ["_contract.json", "_local_release_binding.json", "_local_host_capacity.json", "py.typed"]
