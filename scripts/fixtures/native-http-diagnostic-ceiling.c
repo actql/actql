@@ -99,12 +99,17 @@ int main(void) {
     (moonbit_bytes_t)"none",4,4);
   assert(!actql_native_http_library_ready(failed) && failed->diagnostic_ceiling==4);
   expect(actql_native_http_library_error(failed), "");
+  // Inject a ready Library only for the invalid constructor's no-I/O branch.
+  // Without a separate error fact, omitted detail would make it look ready.
+  failed->dynamic_library=(void *)&library;
   actql_native_http_client *created=actql_native_http_create_authenticated_client(
-    failed,(moonbit_bytes_t)"ca",2,NULL,0,NULL,0,(moonbit_bytes_t)"secret",6,0,1,1);
+    failed,(moonbit_bytes_t)"ca",2,NULL,0,NULL,0,(moonbit_bytes_t)"secret",6,-1,1,1);
   assert(created->diagnostic_ceiling==4 && created->error_present);
   assert(!actql_native_http_client_ready(created));
   expect(actql_native_http_client_error(created), "");
-  moonbit_decref(created); moonbit_decref(failed);
+  moonbit_decref(created);
+  failed->dynamic_library=NULL;
+  moonbit_decref(failed);
   puts("Library to Client inheritance and constructor failure: PASS");
   client.max_response_bytes=0;
   library.easy_init=fixture_init; library.easy_setopt=fixture_setopt;
