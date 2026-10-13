@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 61
+LOCAL_CORE_ABI = 62
 
 
 class LocalCoreError(RuntimeError):
@@ -279,6 +279,7 @@ _PUBLICATION_SIGNATURES = {
     'retire_output': ('i64 i32', 'i32'),
     'close': ('i64 i32', 'i32'),
     'prepare_commit': ('i64 i32 i32 i32', 'i32'),
+    'validate_run': ('i64 i32 i32 i32', 'i32'),
     'advance_commit': ('i64 i32 i32 i32', 'i32'),
     'commit_progress': ('i64 i32 i32', 'i64'),
     'finish_commit': ('i64 i32 i32', 'i32'),
@@ -1603,6 +1604,17 @@ class LocalCore:
             raise RuntimeError('Local Core is closing')
         if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
             raise ValueError('Invalid current publication configuration')
+
+    def validate_publication_run(self, value: _Output, original_run: int,
+                                 current_configuration: int) -> None:
+        """Check the Core publication's original Run loan; no read or ACK grant."""
+        with self._lock:
+            self._publication_configuration(value, current_configuration)
+            if type(original_run) is not int or not 0 < original_run < 2**31:
+                raise ValueError('Invalid original publication Run')
+            self._check('validate_publication_run', self._call(
+                'publication', 'validate_run', value.handle, original_run,
+                current_configuration))
 
     def prepare_publication(self, value: _Output, current_configuration: int) -> None:
         with self._lock:

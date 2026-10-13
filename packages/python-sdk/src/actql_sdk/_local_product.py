@@ -72,6 +72,13 @@ class _PayloadCustody:
     reader: _FileReader | None = None
 
 
+@dataclass(frozen=True, slots=True, eq=False)
+class _OriginalRunReference:
+    # Accounted routing metadata issued by Core, never Run state or authority.
+    run: _Run
+    source: _Input
+
+
 class LocalProductCleanupPending(RuntimeError):
     def __init__(self, host: 'InstalledLocalHost') -> None:
         super().__init__('Installed Local Host cleanup is pending')
@@ -116,6 +123,8 @@ class InstalledLocalHost:
         self._runs = LocalRunCustody(core, self._preparation)
         self._configuration: _RunConfiguration | None = None
         self._run_loans: list[_Run] = []
+        self._public_run_references: list[_OriginalRunReference] = []
+        self._run_publications: list[tuple[_Run, _Output]] = []
         self._row_outputs: list[_Output] = []
         self._run_rows: list[tuple[_Run, _Output]] = []
         self._journal_outputs: list[_Output] = []
@@ -206,8 +215,8 @@ class InstalledLocalHost:
     async def open(self, operation: str, payload: bytes) -> httpx.Response:
         """Use the existing SDK's closed operation wire without HTTP or a token.
 
-        This initial port connects profile and original fresh admission only.
-        Other operations need their own existing Owner observations; no outcome
+        Profile/admission and completed original Run observations use their
+        existing Owners. Other operations still need their own observations; no outcome
         is fabricated from a physical write, exception, or unsupported request.
         The public installed factory remains gated on Result/recovery assembly.
         """
@@ -225,7 +234,7 @@ class InstalledLocalHost:
                     'intent': intent}, data_keys=True)  # type: ignore[no-untyped-call]
                 if body['intentCid'] != identity:
                     raise ValueError('Invalid original Local submitted intent identity')
-                _, admission = self._accept_original(body['submissionRef'],
+                run, admission = self._accept_original(body['submissionRef'],
                     wire_bytes(intent), run_id='python-' + secrets.token_hex(16))  # type: ignore[no-untyped-call]
                 saved = _object(admission, 4096)
                 if (not wire.negotiated(saved, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
@@ -239,7 +248,14 @@ class InstalledLocalHost:
                     'intentCid': identity, 'admission': saved}}
                 if not wire.submission_attempt(value, _LOCAL_SELECTION, body):  # type: ignore[no-untyped-call]
                     raise ValueError('Invalid original Local Submission response')
+                self._register_original_run_reference(run, admission)
                 raw = wire_bytes(value)  # type: ignore[no-untyped-call]
+            elif operation in ('status', 'wait'):
+                if operation == 'wait' and body['until'] is not None:
+                    raise ValueError('Original Local wait condition supplier is unavailable')
+                run, _ = self._select_original_run(body['ref'])
+                projection = self._original_run_projection(run)
+                return self._original_run_response(run, projection)
             else:
                 raise ValueError('Original Local operation supplier is unavailable')
             stream = OriginalLocalResponseStream(self, raw)
@@ -247,6 +263,98 @@ class InstalledLocalHost:
                 'content-encoding': 'identity'}, stream=stream)
             stream._attached = True
             return response
+
+    def _register_original_run_reference(self, run: _Run, admission: bytes) -> None:
+        """Hold only a Core-issued reference for routing to its nominal Run loan."""
+        self._runs._run(run)
+        if not any(original is run for original in self._run_loans):
+            raise ValueError('Foreign original Local Run')
+        saved = _object(admission, 4096)
+        if not wire.negotiated(saved, 'admission', _LOCAL_SELECTION):  # type: ignore[no-untyped-call]
+            raise ValueError('Invalid original Local admission reference')
+        raw = wire_bytes(saved['ref'])  # type: ignore[no-untyped-call]
+        if len(raw) > 4096:
+            raise ValueError('Invalid bounded original Local reference')
+        for original in self._public_run_references:
+            self._core._owned_input(original.source)
+            held = self._core._inputs[original.source.ticket].payload
+            if original.run is run:
+                if held != raw:
+                    raise ValueError('Original Local Run reference changed')
+                return
+            if held == raw:
+                raise ValueError('Ambiguous original Local Run reference')
+        self._public_run_references.append(_OriginalRunReference(run, self._copy(raw)))
+
+    def _select_original_run(self, reference: object) -> tuple[_Run, bytes]:
+        """Route a reference, then reobserve its original actual saved admission.
+
+        Exact field equality locates custody only. Current read/publisher and
+        full stored-chain checks still precede any public Run state response.
+        This performs no preparation, adoption, dispatch or new acceptance.
+        """
+        self._active()
+        requested = _object(wire_bytes(reference), 4096)  # type: ignore[no-untyped-call]
+        if not wire.valid(requested, 'run_ref'):  # type: ignore[no-untyped-call]
+            raise ValueError('Invalid original Local Run reference')
+        for original in self._public_run_references:
+            self._core._owned_input(original.source)
+            held = self._core._inputs[original.source.ticket].payload
+            if _object(held, 4096) != requested:
+                continue
+            saved = self._read_original_saved_admission(original.run)
+            admission = _object(saved, 4096)
+            if (not wire.negotiated(admission, 'admission', _LOCAL_SELECTION)  # type: ignore[no-untyped-call]
+                    or admission['ref'] != requested):
+                raise ValueError('Original Local Run is unavailable')
+            return original.run, saved
+        # No retained routing loan proves neither absence nor permission to
+        # submit again. Fresh-process restoration uses its separate Owner path.
+        raise ValueError('Original Local Run is unavailable')
+
+    def _original_run_projection(self, run: _Run) -> OriginalCommitProjection:
+        self._runs._run(run)
+        held = [publication for original, publication in self._run_publications if original is run]
+        projections = [projection for projection in self._commit_projections
+                       if any(projection._publication is publication for publication in held)]
+        if len(projections) != 1:
+            raise ValueError('Original Local Run observation is unavailable')
+        return projections[0]
+
+    def _original_run_response(self, run: _Run,
+                               projection: OriginalCommitProjection) -> httpx.Response:
+        """Move original Core state into the existing accounted response stream."""
+        installation = self._active()
+        configuration = self._configuration
+        self._runs._run(run)
+        if configuration is None or projection._configuration != configuration.handle:
+            raise ValueError('Foreign original Local Run observation')
+        streams: list[OriginalLocalResponseStream] = []
+        def consume(raw: bytes) -> None:
+            # The existing Core guard prevents a different Run's publication
+            # being routed under this reference. Its zero is no read grant.
+            self._core.validate_publication_run(projection._publication,
+                run.handle, configuration.handle)
+            streams.append(OriginalLocalResponseStream(self, raw))
+        try:
+            installation.binding.inspect(lambda _:
+                self._core.validate_publication_run(projection._publication,
+                    run.handle, configuration.handle))
+            self._project_original_run_state(projection, consume)
+        except BaseException:
+            # Unattached transport never reaches the Client. The original
+            # buffer Owner decides cleanup; failure retains this same stream.
+            for stream in streams:
+                if not stream._close():
+                    raise LocalProductCleanupPending(self) from None
+            raise
+        if len(streams) != 1:
+            raise ValueError('Incomplete original Local Run observation')
+        stream = streams[0]
+        response = httpx.Response(200, headers={'content-type': 'application/json',
+            'content-encoding': 'identity'}, stream=stream)
+        stream._attached = True
+        return response
 
     async def aclose(self) -> None:
         if not self.close():
@@ -912,6 +1020,7 @@ class InstalledLocalHost:
             publication = self._reserve(lambda: self._core.reserve_publication(
                 source, request, cleanup=lambda: True))
             self._publications.append(publication)
+            self._run_publications.append((compute.start.run, publication))
             installation.binding.inspect(lambda _:
                 self._core.prepare_publication(publication, configuration.handle))
             while True:
@@ -2042,6 +2151,8 @@ class InstalledLocalHost:
                 if not self._core.close_publication(publication):
                     return False
                 self._publications.remove(publication)
+                self._run_publications[:] = [(run, original) for run, original in self._run_publications
+                                            if original is not publication]
                 self._commit_requests.pop(publication.ticket, None)
                 self._publication_write_attempts.discard(publication.ticket)
                 if (self._pending_publication_write is not None
@@ -2113,6 +2224,8 @@ class InstalledLocalHost:
                 if not self._runs.close_run(run):
                     return False
                 self._run_loans.remove(run)
+                self._public_run_references[:] = [original for original in self._public_run_references
+                                                  if original.run is not run]
             for prepared in tuple(reversed(self._prepared_inputs)):
                 if not self._preparation.close_preparation(prepared):
                     return False
