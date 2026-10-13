@@ -24,7 +24,9 @@ struct Store {
 }
 
 ///|
-fn require_store_open(store : Store) -> Result[Unit, NativePublicationStoreIssue] {
+fn require_store_open(
+  store : Store,
+) -> Result[Unit, NativePublicationStoreIssue] {
   if store.closed {
     Err(Closed)
   } else if store.retiring {
@@ -62,8 +64,18 @@ fn[T] allocation_prepare(
   step : String,
   operation : () -> Result[T, NativePublicationStoreIssue],
 ) -> Result[T, NativePublicationStoreIssue] {
+  match require_store_open(store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if store.allocation_failure.val is Some(inject) && inject(step) is Some(issue) {
     return Err(issue)
+  }
+  // The existing observation seam can retire this same Store. Its callback
+  // grants no permission to start I/O after returning.
+  match require_store_open(store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   operation()
 }
@@ -1137,6 +1149,10 @@ pub fn PayloadCleanupOwner::retry(
 ) -> Result[Bool, NativePublicationStoreIssue] {
   if self.complete {
     return Ok(false)
+  }
+  match require_store_open(self.store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let key = record_key(self.request)
   if self.store.pending_writers.contains(key) {
@@ -3074,6 +3090,10 @@ pub fn ResultDelivery::confirm_sink_finished(
   if self.closed {
     return Err(Closed)
   }
+  match require_store_open(self.store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if !@publication.result_read_grant_valid_at(self.grant, observed_at) {
     return Err(DeliveryLimit)
   }
@@ -3212,6 +3232,10 @@ pub fn ResultDelivery::terminate(
 ) -> Result[NativeResultDeliveryFailure, NativePublicationStoreIssue] {
   if self.succeeded is Some(_) || self.closed {
     return Err(Closed)
+  }
+  match require_store_open(self.store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let confirmed = match self.failure_confirmed {
     Some(value) => value

@@ -12,6 +12,10 @@ fn PrivateEffectEvidenceCustody::confirm_preparation(
   self : PrivateEffectEvidenceCustody,
 ) -> Result[Bool, NativePublicationStoreIssue] {
   guard self.preparation is Some(preparation) else { return Ok(false) }
+  match require_store_open(self.store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let row = match self.store.database.read(preparation.table, self.holding) {
     Ok(value) => value
     Err(issue) => return Err(Database(issue))
