@@ -124,13 +124,13 @@ test "original keyed children share original custody and retain failed physical 
       wire == original_keyed_child_content(0) ||
       wire == original_keyed_child_content(1)
     },
-    cid => {
-      cid == "sha256:" + "d".repeat(64) ||
-      cid == "sha256:" + "e".repeat(64) ||
-      cid ==
-      "sha256:47d3281cea0ae2c62b082a6617b2ed53145c822037a37d7179a2f447351c96d9" ||
-      cid ==
-      "sha256:ca5a7a880d1a0ddfebe2a28e7d0cc10ca86872988d273ff396cfdcd6e692e974"
+    wire => {
+      // The existing ReferenceIssuer authorizer receives canonical WIRE,
+      // not identity CID. Keep exact fixture authorization, never allow-all.
+      wire == original_keyed_child_resource(0) ||
+      wire == original_keyed_child_resource(1) ||
+      wire == original_keyed_child_content(0) ||
+      wire == original_keyed_child_content(1)
     },
   )
   @row_source_host.begin_row_run(
