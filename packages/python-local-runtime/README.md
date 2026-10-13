@@ -165,3 +165,9 @@ floor. It does not supply unknown native/Python/SQLite allowances or prove a
 complete Run/read profile. Physical pre-root funding and justification of every
 selected numerical allowance remain integrator requirements. Encoding or
 decoding the original and a scalar factory test are not installed execution.
+The original bootstrap peak and later resident Host baseline belong to distinct
+phases. The consistency check requires the selected Root ceiling to cover the
+maximum of that bootstrap peak and the known installation overlap plus resident
+baseline. It neither sums those phases nor requires temporary image/FFI load
+copies to remain in the resident baseline. This comparison still creates no
+physical bootstrap reservation and cannot fill an unknown allocator allowance.

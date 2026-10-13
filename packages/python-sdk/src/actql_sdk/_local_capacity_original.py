@@ -45,10 +45,12 @@ def _capacity_from_source(original: bytes, components: LocalComponents) -> _Host
                 or not selected.valid() or selected.attempts < 3
                 or type(baseline) is not int or not 0 < baseline <= 2**63 - 1
                 or type(bootstrap) is not int or not 16777216 < bootstrap <= 2**63 - 1
-                or bootstrap > 16777216 + baseline
                 # This is the known current installation overlap only. It is
                 # not a complete numerical proof of later Run/read holdings.
-                or selected.execution_bytes < 44441600 + baseline):
+                # Bootstrap includes temporary image/FFI/native load copies;
+                # the later lifetime baseline does not retain those copies.
+                # Select the maximum of these disjoint phases, not their sum.
+                or selected.execution_bytes < max(44441600 + baseline, bootstrap)):
             raise LocalInstallationError('Inconsistent selected Local Host capacity original')
         return _HostCapacityOriginal(selected, baseline, bootstrap)
     except (ValueError, TypeError, UnicodeError, RecursionError) as failure:

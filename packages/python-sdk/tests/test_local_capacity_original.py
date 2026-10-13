@@ -59,7 +59,7 @@ class CapacityOriginalTests(unittest.TestCase):
 
     def test_unknown_zero_wrong_domain_or_unfunded_bootstrap_refuses(self):
         changes = [('host_capacity_bytes', None), ('host_capacity_bytes', 0), ('host_capacity_bytes', True),
-            ('bootstrap_execution_bytes', None), ('bootstrap_execution_bytes', 16781313),
+            ('bootstrap_execution_bytes', None), ('bootstrap_execution_bytes', 44445697),
             ('backend', 'jit'), ('allocation_domain', 'universal-rss'),
             ('platform', 'linux-x64'), ('engine_recipe_sha256', 'b' * 64), ('extra', 0)]
         for field, value in changes:
@@ -82,6 +82,23 @@ class CapacityOriginalTests(unittest.TestCase):
             _capacity_from_source(b'{"host_capacity_bytes":4096,' + self.original()[1:], self.components)
         with self.assertRaises(LocalInstallationError):
             _decode_installed_capacity(b'{"source_sha":"' + b'a' * 40 + b'",' + encoded[1:], self.components)
+
+    def test_disjoint_bootstrap_and_installation_use_the_maximum_not_the_sum(self):
+        self.body['bootstrap_execution_bytes'] = 44445696
+        original = _capacity_from_source(self.original(), self.components)
+        self.assertEqual(original.resources.execution_bytes, 44445696)
+        self.assertEqual(original.host_capacity_bytes, 4096)
+        # The bootstrap peak may exceed VM plus the later resident baseline.
+        # Both phases fit the original ceiling independently; there is no
+        # simultaneous bootstrap + installation reservation in this fixture.
+        self.assertGreater(original.bootstrap_execution_bytes, 16777216 + 4096)
+        self.body['root']['execution_bytes'] = 44445695
+        with self.assertRaises(LocalInstallationError):
+            _capacity_from_source(self.original(), self.components)
+        self.body['root']['execution_bytes'] = 44445696
+        self.body['bootstrap_execution_bytes'] = 44445697
+        with self.assertRaises(LocalInstallationError):
+            _capacity_from_source(self.original(), self.components)
 
     def test_installed_original_digest_symlink_and_component_binding_are_fenced(self):
         self.stage()
