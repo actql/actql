@@ -49,6 +49,8 @@ pub(all) struct Context {
   source_catalog : @environment.SourceRequestContracts?
   // Exact selected contract owner; this does not authorize model execution.
   model_tasks : @environment.ModelTasks?
+  // Exact optional Calendar owner selected by the Host, never authored data.
+  calendar_profile : @environment.SelectedCalendarProfile?
 }
 
 ///|
@@ -6854,6 +6856,7 @@ pub fn compile_with_source(
     @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||
     has_pipe_range_input(query) ||
+    script_has_carrier_calls(query) ||
     has_cte_unnest_input(query) ||
     @query.query_binding_count(query) > 0 ||
     @query.producer_primary(query) is Some(_) ||

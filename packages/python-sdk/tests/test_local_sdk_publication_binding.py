@@ -106,5 +106,85 @@ class SDKPublicationBindingCustodyTests(unittest.TestCase):
             inside(lambda: core.read_sdk_publication_binding(material, current))
 
 
+    def test_pre_current_callback_close_refuses_before_confirmation_io(self):
+        core, current, material, calls, _, inside = self.bridge()
+        callbacks = core._journal_callbacks(current.ticket)
+        state = {'active': False}
+        original = callbacks.current
+
+        def observe():
+            original()
+            if state['active']:
+                state['active'] = False
+                self.assertTrue(core.close_material(material))
+
+        callbacks.current = observe
+
+        def confirm():
+            state['active'] = True
+            with self.assertRaisesRegex(ValueError, 'Foreign or released'):
+                core.confirm_sdk_publication_binding(material, current)
+
+        inside(confirm)
+        self.assertNotIn(material.ticket, core._loans)
+        self.assertFalse(any(name == 'confirm_sdk_publication' for _, name, _ in calls))
+
+    def test_post_current_callback_close_cannot_confirm_released_material(self):
+        core, current, material, calls, _, inside = self.bridge()
+        callbacks = core._journal_callbacks(current.ticket)
+        state = {'active': False, 'calls': 0}
+        original = callbacks.current
+
+        def observe():
+            original()
+            if state['active']:
+                state['calls'] += 1
+                if state['calls'] == 2:
+                    self.assertTrue(core.close_material(material))
+
+        callbacks.current = observe
+
+        def confirm():
+            state['active'] = True
+            with self.assertRaisesRegex(ValueError, 'Foreign or released'):
+                core.confirm_sdk_publication_binding(material, current)
+            state['active'] = False
+
+        inside(confirm)
+        self.assertEqual(state['calls'], 2)
+        self.assertNotIn(material.ticket, core._loans)
+        self.assertEqual(sum(name == 'confirm_sdk_publication' for _, name, _ in calls), 1)
+        self.assertFalse(any(family in ('run', 'compute', 'publication') for family, _, _ in calls))
+
+    def test_current_close_pending_preserves_same_reader_and_material_loans(self):
+        core, current, material, calls, _, inside = self.bridge()
+        callbacks = core._journal_callbacks(current.ticket)
+        state = {'active': False, 'calls': 0}
+        closes = []
+        original = callbacks.current
+
+        def observe():
+            original()
+            if state['active']:
+                state['calls'] += 1
+                if state['calls'] == 2:
+                    closes.append(core.close_host_current(current))
+
+        callbacks.current = observe
+
+        def confirm():
+            state['active'] = True
+            core.confirm_sdk_publication_binding(material, current)
+            state['active'] = False
+
+        inside(confirm)
+        self.assertEqual(closes, [False])
+        self.assertIs(core._loans[current.ticket], current)
+        self.assertIs(core._loans[material.ticket], material)
+        self.assertIn(current.ticket, core._inputs)
+        self.assertEqual(sum(name == 'confirm_sdk_publication' for _, name, _ in calls), 1)
+        self.assertTrue(core.close_host_current(current))
+
+
 if __name__ == '__main__':
     unittest.main()
