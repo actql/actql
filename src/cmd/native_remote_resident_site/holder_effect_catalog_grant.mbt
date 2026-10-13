@@ -271,10 +271,9 @@ fn open_holder_effect_catalog_installation(
     Err(_) => stop("Effect Catalog HTTP library unavailable")
   }
   let client = match
-    http.create_client(
+    http.create_authenticated_client(
       read(19),
-      "",
-      "",
+      @http.Bearer(read(18)),
       required_int64(matches, "max-response-bytes"),
       required_int(matches, "connect-timeout-ms"),
       required_int(matches, "total-timeout-ms"),
