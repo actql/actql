@@ -127,6 +127,8 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     currentStateCodec:{quantum:1,comparisonWork:5,decode:{maxWork:20000,
       parse:{max_input_bytes:10000,max_nodes:1000,max_depth:20},
       tree:{max_nodes:1000,max_depth:20,max_string_bytes:10000,max_total_string_bytes:10000}}},
+    // Independent declaration DATA only; these tests allocate no publication.
+    publicationCapacity:{retainedBytes:1n,workspaceBytes:0n},
     nodeInstallation: {...originalPreparation.nodeInstallation, layout: {
       response_profile: {}, runtime_artifact_cid: 'runtime', layout_artifact_cid: 'layout',
       program_definition_cid: 'program', parameter_values_cid: 'parameters',
@@ -180,6 +182,14 @@ test('missing original state codec is refused before child allocation or physica
   await assert.rejects(f.run(),{code:'InferOriginalStateCodecUnavailable'});
   assert.deepEqual(f.calls,[]);
   assert.equal(f.custody(),undefined);
+});
+
+test('missing original publication supply is refused before creating a scope or sending',async()=>{
+  const f=fixture({installation:true});
+  f.selected.originalReadInstallation=retainInferOriginalReadInstallation({
+    ...f.selected.originalReadInstallation,publicationCapacity:undefined});
+  await assert.rejects(f.run(),{code:'InferOriginalPublicationCapacityUnavailable'});
+  assert.deepEqual(f.calls,[]);assert.equal(f.custody(),undefined);
 });
 
 test('installed original dispatch completes its cut after authorization and before the next Model advance',async()=>{
