@@ -603,6 +603,10 @@ pub fn source_identity(CheckedProgram) -> @pipeline_check_context.ProgramSourceI
 
 pub fn source_registration_diagnostic(@pipeline_check_context.SourceRegistrationIssue) -> CheckDiagnostic
 
+pub fn source_request_form_diagnostic(@sourceview_resolution.RequestFormIssue) -> CheckDiagnostic
+
+pub fn source_requests_diagnostic(@pipeline_check_context.PrepareSourcesIssue) -> CheckDiagnostic
+
 pub fn template_checked_capacity(TemplateCheckedProgram) -> @check_environment.Capacity
 
 pub fn template_checked_contracts(TemplateCheckedProgram) -> @pipeline_check_context.AuthoringCoreContracts
@@ -818,6 +822,7 @@ pub suberror SourceFailure {
   UnsupportedBindings(@decode_core.Cursor)
   UnsupportedEffects(@decode_core.Cursor)
   Requests(@pipeline_check_context.PrepareSourcesIssue)
+  RequestForm(@sourceview_resolution.RequestFormIssue)
   Checks(@pipeline_check_context.PrepareChecksIssue)
   Identity(@pipeline_check_context.SourcePreparationIssue)
   Declarations(@stage_parameters.Issue)

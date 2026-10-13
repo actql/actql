@@ -23,7 +23,8 @@ import {mkdir, open as openFile, readFile, readdir, rename, stat} from
   'node:fs/promises';
 import {dirname, join} from 'node:path';
 import {openLocalPublicationStore, readBoundedLocalMetadata} from '../store-local/publication-store.mjs';
-import {selectOriginalInferMetadataAcquisition} from './infer-operation.mjs';
+import {selectOriginalInferMetadataAcquisition,
+  selectOriginalInferStoreBootstrapAcquisition} from './infer-operation.mjs';
 import {readContinuationLedgerBounded} from './bounded-continuation-metadata.mjs';
 import {listContinuationLedgerNamesBounded} from './bounded-continuation-directory.mjs';
 
@@ -145,12 +146,14 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
   // after which the next owner recovers the durable deletion record).
   let retained;
   let queue = Promise.resolve();
-  async function openStore() {
+  async function openStore(acquisition, ownerId, requestCid) {
     const deadline = Date.now() + busyTimeoutMs;
     for (;;) {
       try {
+        const bootstrap = acquisition === undefined ? undefined
+          : selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
         return await openLocalPublicationStore({...configuration,
-          privateEvidenceKey: Buffer.from(key)}, contractControl);
+          privateEvidenceKey: Buffer.from(key)}, contractControl, undefined, bootstrap);
       } catch (error) {
         if (error?.code !== 'PublicationStoreBusy' || Date.now() > deadline) {
           throw error;
@@ -159,16 +162,30 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       }
     }
   }
-  function withStore(work) {
+  function withStore(work, acquisition, ownerId, requestCid) {
+    if (acquisition !== undefined) {
+      selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+    }
     const operation = queue.then(async pending => {
       if (pending?.cleanupHandle?.status().pending) throw pending;
-      const store = retained ?? await openStore();
+      if (acquisition !== undefined) {
+        selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+      }
+      const store = retained ?? await openStore(acquisition, ownerId, requestCid);
       retained = undefined;
       const cleanups = [];
       let workFailure;
       let workFailed = false;
       try {
+        // Keep the acquired Store in this existing cleanup scope even if the
+        // same original operation changed during opening. No fallback open.
+        if (acquisition !== undefined) {
+          selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+        }
         cleanups.push(...await store.recoverPhysicalHoldingDeletions());
+        if (acquisition !== undefined) {
+          selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+        }
         return await work(store, cleanup => cleanups.push(cleanup));
       } catch (error) {
         workFailed = true;
@@ -177,7 +194,9 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       } finally {
         if (cleanups.some(item => item.status().pending)) retained = store;
         else {
-          try { await store.close(); }
+          try {
+            if (await store.close() === false) fail('ContinuationStoreCleanupPending');
+          }
           catch (closeFailure) {
             // Pending original metadata/FD custody keeps this exact Store.
             // Neither a failed close nor its Error is successful cleanup.
@@ -384,7 +403,7 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
           fail('ContinuationEvidenceNotHeld');
         }
         if (entry.state !== 'held') fail('ContinuationEvidenceRetired');
-        if (acquisition !== undefined) selectOriginalInferMetadataAcquisition(acquisition, prepareAttemptId, ledger.request_cid);
+        if (acquisition !== undefined) selectOriginalInferStoreBootstrapAcquisition(acquisition, prepareAttemptId, ledger.request_cid);
         const stored = await withStore(async store => {
           if (acquisition !== undefined) selectOriginalInferMetadataAcquisition(acquisition, prepareAttemptId, ledger.request_cid);
           if (maxBytes !== undefined) {
@@ -400,7 +419,7 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
           }
           return store.readPrivateEvidence(name, semanticCid,
             entry.holding_cid);
-        });
+        }, acquisition, prepareAttemptId, ledger.request_cid);
         if (acquisition !== undefined) selectOriginalInferMetadataAcquisition(acquisition, prepareAttemptId, ledger.request_cid);
         if (maxBytes !== undefined && stored.byteLength > maxBytes) {
           fail('EvidenceReadLimitExceeded');
@@ -466,7 +485,9 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
     // Existing ordinary Evidence API is not relabelled as funded original I/O.
     open: prepareAttemptId => openEvidence(prepareAttemptId),
     async openOriginalModelState(prepareAttemptId, acquisition) {
-      selectOriginalInferMetadataAcquisition(acquisition, prepareAttemptId);
+      // The separate trusted Store role is mandatory before even the first
+      // selected metadata read. Ordinary Source/prime paths remain unchanged.
+      selectOriginalInferStoreBootstrapAcquisition(acquisition, prepareAttemptId);
       return openEvidence(prepareAttemptId, acquisition);
     },
     async listOriginalModelMetadata(acquisition) {
@@ -539,7 +560,7 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       if (queue === closing) queue = Promise.resolve();
       const store = retained;
       if (store !== undefined) {
-        await store.close();
+        if (await store.close() === false) fail('ContinuationStoreCleanupPending');
         retained = undefined;
       }
     },

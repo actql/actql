@@ -50,6 +50,7 @@ fn load_holder_effect_review_policy(
   matches : @argparse.Matches,
   resources : HolderOutputResources,
   export_limits : @host.PublicationOutputExportLimits,
+  files : HolderEffectCatalogFileCustody,
 ) -> HolderEffectReviewPolicyInstallation raise CommandStop {
   let configured_file_limit = required_int64(matches, "max-file-bytes")
   guard configured_file_limit > 0L else {
@@ -71,7 +72,9 @@ fn load_holder_effect_review_policy(
     "review-dependency-max-entries.txt", "review-dependency-max-bytes.txt", "review-dependency-max-depth.txt",
     "review-dependency-max-references.txt",
   ]
-  let snapshot = names.map(name => (name, load_text(root, name, file_limit)))
+  let snapshot = names.map(name => {
+    (name, load_holder_catalog_file(files, root, name, file_limit))
+  })
   if snapshot.any(entry => entry.1.is_empty()) {
     stop("Effect Review policy contains an empty field")
   }
@@ -158,9 +161,9 @@ fn load_holder_effect_review_policy(
   }
   let current = () => {
     snapshot.all(entry => {
-      match @bounded_files.read_bounded_text_file(root, entry.0, file_limit) {
-        Ok(value) => value == entry.1
-        Err(_) => false
+      match files.read(root, entry.0, file_limit) {
+        Some(value) => value == entry.1
+        None => false
       }
     })
   }

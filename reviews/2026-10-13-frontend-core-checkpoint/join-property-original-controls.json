@@ -1,0 +1,34 @@
+{
+  "baseline": "57bbee0a583a7eb4557af8c5ddd1e8acb62c9b01",
+  "controls": [
+    {
+      "file": "src/query_program/join_range_property_test.mbt",
+      "oldHelper": "staged_join_range_property_expected",
+      "currentHelper": "join_range_property_expected",
+      "profile": "chain",
+      "originalLiteralSha256": "61d31b13a20ace80dfe0a50cf9d33fec5a5c0e5d6dc5bce76d76e4e134b6d272",
+      "testStringsCount": 50,
+      "testStringsSha256": "143ee9f9648c04d8269ac5603aca2ea79aa3cac9f45e140c800a3792e6158bb6"
+    },
+    {
+      "file": "src/query_program/join_property_paths_test.mbt",
+      "oldHelper": "staged_join_property_expected",
+      "currentHelper": "join_property_expected",
+      "profile": "specialized",
+      "originalLiteralSha256": "e59b5590fec9621dfaee84249394f1346e217268719b26fe574069103f7881eb",
+      "testStringsCount": 46,
+      "testStringsSha256": "096af7c5f0e7586e74c532041e3f252ca6e25c794ab80fab5bd05ac2b101c8df"
+    },
+    {
+      "file": "src/query_program/join_implicit_property_test.mbt",
+      "oldHelper": "staged_join_implicit_property_expected",
+      "currentHelper": "join_implicit_property_expected",
+      "profile": "specialized",
+      "originalLiteralSha256": "d2d0d19e1b487e9dada357b802353bbcfc51e9021c7cef1f4cb6eee02c39ff9f",
+      "testStringsCount": 21,
+      "testStringsSha256": "c22bdc2c49d2082ae1e405946f52b1960ead21ca0cc7ace955027857f42404fe"
+    }
+  ],
+  "originalOrderStringsCount": 33,
+  "originalOrderStringsSha256": "74a01233cf5de1346d64f4150766bece7d69aed0d07cd39c072ce74955162765"
+}

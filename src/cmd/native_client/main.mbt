@@ -784,6 +784,16 @@ fn command() -> @argparse.Command {
       ]),
       @argparse.Command("adopt", flags=[@argparse.FlagArg("json")]),
       @argparse.Command("connect", flags=[@argparse.FlagArg("json")]),
+      @argparse.Command("upgrade-policy", flags=[@argparse.FlagArg("json")], options=[
+        @argparse.OptionArg("operation-id", required=true),
+        @argparse.OptionArg("retention-file", default_values=["retention.json"]),
+        @argparse.OptionArg("store-file", default_values=["store.json"]),
+      ]),
+      @argparse.Command(
+        "lookup-policy-upgrade",
+        flags=[@argparse.FlagArg("json")],
+        options=[@argparse.OptionArg("operation-id", required=true)],
+      ),
       @argparse.Command("new-submission", options=[
         @argparse.OptionArg("request-id", required=true),
       ]),

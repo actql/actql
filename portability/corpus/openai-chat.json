@@ -1,0 +1,340 @@
+{
+  "version": "actql-openai-chat-vectors/0.1",
+  "cases": [
+    {
+      "id": "empty",
+      "payload": {
+        "format": "actql.openai_chat_prompt/0.1",
+        "instructions": ""
+      },
+      "accepted": true,
+      "body": {
+        "version": "actql-model-prompt/0.1",
+        "payload": {
+          "format": "actql.openai_chat_prompt/0.1",
+          "instructions": ""
+        },
+        "self_cid": "sha256:569a0ace73cebaae33dc947794fdb88961739bf54f4b61257af9a07305e3c976"
+      },
+      "expected_cid": "sha256:569a0ace73cebaae33dc947794fdb88961739bf54f4b61257af9a07305e3c976",
+      "expected_preimage": "{\"payload\":{\"format\":\"actql.openai_chat_prompt/0.1\",\"instructions\":\"\"},\"version\":\"actql-model-prompt/0.1\"}"
+    },
+    {
+      "id": "raw Unicode and line endings",
+      "payload": {
+        "format": "actql.openai_chat_prompt/0.1",
+        "instructions": "é\r\né\n😀"
+      },
+      "accepted": true,
+      "body": {
+        "version": "actql-model-prompt/0.1",
+        "payload": {
+          "format": "actql.openai_chat_prompt/0.1",
+          "instructions": "é\r\né\n😀"
+        },
+        "self_cid": "sha256:4dafcb774d376060c511f323e7a55cd2d2eeb634691f4431b0dd977c3ae7abba"
+      },
+      "expected_cid": "sha256:4dafcb774d376060c511f323e7a55cd2d2eeb634691f4431b0dd977c3ae7abba",
+      "expected_preimage": "{\"payload\":{\"format\":\"actql.openai_chat_prompt/0.1\",\"instructions\":\"é\\r\\né\\n😀\"},\"version\":\"actql-model-prompt/0.1\"}"
+    },
+    {
+      "id": "missing instructions",
+      "payload": {
+        "format": "actql.openai_chat_prompt/0.1"
+      },
+      "accepted": false,
+      "body": {
+        "version": "actql-model-prompt/0.1",
+        "payload": {
+          "format": "actql.openai_chat_prompt/0.1"
+        },
+        "self_cid": "sha256:1e0e02a1c1fdbdf0f7338967280c8eab6d376b3c51d90fe7bee47a8e5274b5cc"
+      },
+      "expected_cid": "sha256:1e0e02a1c1fdbdf0f7338967280c8eab6d376b3c51d90fe7bee47a8e5274b5cc",
+      "expected_preimage": "{\"payload\":{\"format\":\"actql.openai_chat_prompt/0.1\"},\"version\":\"actql-model-prompt/0.1\"}"
+    },
+    {
+      "id": "NULL instructions",
+      "payload": {
+        "format": "actql.openai_chat_prompt/0.1",
+        "instructions": null
+      },
+      "accepted": false,
+      "body": {
+        "version": "actql-model-prompt/0.1",
+        "payload": {
+          "format": "actql.openai_chat_prompt/0.1",
+          "instructions": null
+        },
+        "self_cid": "sha256:7066b9e83570e3858efdccac6e3daa820f1db8080c9406d0d205f94285eaa6ce"
+      },
+      "expected_cid": "sha256:7066b9e83570e3858efdccac6e3daa820f1db8080c9406d0d205f94285eaa6ce",
+      "expected_preimage": "{\"payload\":{\"format\":\"actql.openai_chat_prompt/0.1\",\"instructions\":null},\"version\":\"actql-model-prompt/0.1\"}"
+    },
+    {
+      "id": "wrong type",
+      "payload": {
+        "format": "actql.openai_chat_prompt/0.1",
+        "instructions": false
+      },
+      "accepted": false,
+      "body": {
+        "version": "actql-model-prompt/0.1",
+        "payload": {
+          "format": "actql.openai_chat_prompt/0.1",
+          "instructions": false
+        },
+        "self_cid": "sha256:96624984d2435d881ce3cad8a70b3c8b298b43c1ed75b45dffe8b95fcbf7e925"
+      },
+      "expected_cid": "sha256:96624984d2435d881ce3cad8a70b3c8b298b43c1ed75b45dffe8b95fcbf7e925",
+      "expected_preimage": "{\"payload\":{\"format\":\"actql.openai_chat_prompt/0.1\",\"instructions\":false},\"version\":\"actql-model-prompt/0.1\"}"
+    },
+    {
+      "id": "extra key",
+      "payload": {
+        "format": "actql.openai_chat_prompt/0.1",
+        "instructions": "",
+        "tool": null
+      },
+      "accepted": false,
+      "body": {
+        "version": "actql-model-prompt/0.1",
+        "payload": {
+          "format": "actql.openai_chat_prompt/0.1",
+          "instructions": "",
+          "tool": null
+        },
+        "self_cid": "sha256:9257a89611616aa871319a82fafb888f0d3722865946fefb0fd663f2487706ed"
+      },
+      "expected_cid": "sha256:9257a89611616aa871319a82fafb888f0d3722865946fefb0fd663f2487706ed",
+      "expected_preimage": "{\"payload\":{\"format\":\"actql.openai_chat_prompt/0.1\",\"instructions\":\"\",\"tool\":null},\"version\":\"actql-model-prompt/0.1\"}"
+    },
+    {
+      "id": "wrong format",
+      "payload": {
+        "format": "fixture-other/0.1",
+        "instructions": ""
+      },
+      "accepted": false,
+      "body": {
+        "version": "actql-model-prompt/0.1",
+        "payload": {
+          "format": "fixture-other/0.1",
+          "instructions": ""
+        },
+        "self_cid": "sha256:9cde7433fbb09dce0b82330a1b9729b425219635f52747cb95c702a9f6011ef7"
+      },
+      "expected_cid": "sha256:9cde7433fbb09dce0b82330a1b9729b425219635f52747cb95c702a9f6011ef7",
+      "expected_preimage": "{\"payload\":{\"format\":\"fixture-other/0.1\",\"instructions\":\"\"},\"version\":\"actql-model-prompt/0.1\"}"
+    },
+    {
+      "id": "NULL payload",
+      "payload": null,
+      "accepted": false,
+      "body": {
+        "version": "actql-model-prompt/0.1",
+        "payload": null,
+        "self_cid": "sha256:eb8a48012a361caa2a0dbb0925570b04bc732255bf2ebb4cbfe3665dfa6f1c56"
+      },
+      "expected_cid": "sha256:eb8a48012a361caa2a0dbb0925570b04bc732255bf2ebb4cbfe3665dfa6f1c56",
+      "expected_preimage": "{\"payload\":null,\"version\":\"actql-model-prompt/0.1\"}"
+    }
+  ],
+  "task": {
+    "schema": "actql.model_task/0.1",
+    "task_id": "model-task:chat-fixture",
+    "version": "1",
+    "task_kind": "structured_generate",
+    "connector_id": "models/fixture",
+    "authored_model_selector": "fixture-chat",
+    "input_schema_cid": "sha256:72b560b69347d1b6e7b74fa3ebca73f808d0be12a7cd6b53b3a53da4a3954b2a",
+    "output_schema_cid": "sha256:773858f1a0187020cb634048b5062e82163816ebf568902ff7c89d78ebacd317",
+    "input_contract": {
+      "type": "object",
+      "nullable": false,
+      "additional_properties": false,
+      "fields": {
+        "amount": {
+          "type": "decimal",
+          "nullable": false,
+          "precision": 20,
+          "scale": 2
+        },
+        "absent": {
+          "type": "boolean",
+          "nullable": true
+        },
+        "text": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "output_contract": {
+      "type": "object",
+      "nullable": false,
+      "additional_properties": false,
+      "fields": {
+        "answer": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "max_items": 1,
+    "prompt_template_cid": "sha256:4dafcb774d376060c511f323e7a55cd2d2eeb634691f4431b0dd977c3ae7abba",
+    "generation_config": {
+      "temperature": 0.25,
+      "top_p": 0.875,
+      "max_output_tokens": 16,
+      "seed_requested": -7
+    },
+    "data_handling": {
+      "contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "retention": "none",
+      "training_use": "forbidden",
+      "accepted_classifications": [
+        "public"
+      ],
+      "allowed_regions": [
+        "fixture"
+      ]
+    },
+    "tool_policy": "none",
+    "retrieval_policy": "none",
+    "streaming": false,
+    "contract_cid": "sha256:35db189b1ef0b8e41d799f6aa6420dc1acaf572afc290a2e28873e191ed01d4f"
+  },
+  "execution": {
+    "version": "actql-model-execution-contract/0.1",
+    "model_task_contract_cid": "sha256:35db189b1ef0b8e41d799f6aa6420dc1acaf572afc290a2e28873e191ed01d4f",
+    "retry_classification_contract_cid": "sha256:0c53e62a9c01afcf23a2036a06dd0b5e47653e943cae76d48bee1c84c11efb90",
+    "backoff_contract_cid": "sha256:739f886f72a9d0393470b92ccc3eb6a3a00f0616ed2d6f61df714f429de99d56",
+    "default_publication": "outcomes",
+    "max_attempts_per_slot": 1,
+    "max_total_attempts": 1,
+    "max_total_cost_units": 0,
+    "max_total_duration_ms": 1000,
+    "max_total_token_reservation": 17,
+    "max_total_wire_bytes": 65536,
+    "media_input_contracts": {},
+    "self_cid": "sha256:635bfcc9ae49f51b2393ac731e51cc92c7b56047d4c21bff71b6cb8240eed8a8"
+  },
+  "prompt": {
+    "version": "actql-model-prompt/0.1",
+    "payload": {
+      "format": "actql.openai_chat_prompt/0.1",
+      "instructions": "é\r\né\n😀"
+    },
+    "self_cid": "sha256:4dafcb774d376060c511f323e7a55cd2d2eeb634691f4431b0dd977c3ae7abba"
+  },
+  "retry": {
+    "version": "actql-model-retry-policy/0.1",
+    "retryable_failures": [],
+    "self_cid": "sha256:0c53e62a9c01afcf23a2036a06dd0b5e47653e943cae76d48bee1c84c11efb90"
+  },
+  "backoff": {
+    "version": "actql-model-backoff/0.1",
+    "delays_ms": [],
+    "self_cid": "sha256:739f886f72a9d0393470b92ccc3eb6a3a00f0616ed2d6f61df714f429de99d56"
+  },
+  "environment": {
+    "version": "actql-check-environment/0.1",
+    "command_contracts": [],
+    "connector_capabilities": [],
+    "connector_catalogs": [],
+    "contract_registry": [],
+    "host_policy_profile": {},
+    "mapping_contracts": [],
+    "model_task_contracts": [
+      {
+        "schema": "actql.model_task/0.1",
+        "task_id": "model-task:chat-fixture",
+        "version": "1",
+        "task_kind": "structured_generate",
+        "connector_id": "models/fixture",
+        "authored_model_selector": "fixture-chat",
+        "input_schema_cid": "sha256:72b560b69347d1b6e7b74fa3ebca73f808d0be12a7cd6b53b3a53da4a3954b2a",
+        "output_schema_cid": "sha256:773858f1a0187020cb634048b5062e82163816ebf568902ff7c89d78ebacd317",
+        "input_contract": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "amount": {
+              "type": "decimal",
+              "nullable": false,
+              "precision": 20,
+              "scale": 2
+            },
+            "absent": {
+              "type": "boolean",
+              "nullable": true
+            },
+            "text": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        },
+        "output_contract": {
+          "type": "object",
+          "nullable": false,
+          "additional_properties": false,
+          "fields": {
+            "answer": {
+              "type": "string",
+              "nullable": true
+            }
+          }
+        },
+        "max_items": 1,
+        "prompt_template_cid": "sha256:4dafcb774d376060c511f323e7a55cd2d2eeb634691f4431b0dd977c3ae7abba",
+        "generation_config": {
+          "temperature": 0.25,
+          "top_p": 0.875,
+          "max_output_tokens": 16,
+          "seed_requested": -7
+        },
+        "data_handling": {
+          "contract_cid": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "retention": "none",
+          "training_use": "forbidden",
+          "accepted_classifications": [
+            "public"
+          ],
+          "allowed_regions": [
+            "fixture"
+          ]
+        },
+        "tool_policy": "none",
+        "retrieval_policy": "none",
+        "streaming": false,
+        "contract_cid": "sha256:35db189b1ef0b8e41d799f6aa6420dc1acaf572afc290a2e28873e191ed01d4f"
+      }
+    ],
+    "schema_snapshots": [],
+    "source_views": [],
+    "evidence_bundle_cid": "sha256:e3312d25f97217872acca89d19526263eb28af666318c01f090f07b3134dd0e7"
+  },
+  "schema": {
+    "additionalProperties": false,
+    "properties": {
+      "answer": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "answer"
+    ],
+    "type": "object"
+  },
+  "schema_cid": "sha256:62f7715bfc032ac33d95a93b2d80aae42c76d6c83f5ba1986d51cfbe4725888d"
+}

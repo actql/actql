@@ -431,6 +431,8 @@ pub fn model_execution_task(ModelExecutionContract) -> ModelTaskContract
 
 pub fn model_execution_usage(ModelExecutionContract) -> (Int, Int, Int)
 
+pub fn model_openai_chat_instructions(ModelDependency) -> String?
+
 pub fn model_response_profile_completion_basis(ModelResponseProfile) -> String
 
 pub fn model_response_profile_identity(ModelResponseProfile) -> String
