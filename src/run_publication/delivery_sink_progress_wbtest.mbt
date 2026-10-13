@@ -44,6 +44,7 @@ test "delivery limit is enforced before a chunk is exposed" {
   assert_true(progress.offer(b"abcd", true) is Err(DeliverySinkLimitExceeded))
   assert_eq(progress.confirmed_bytes(), 0L)
 }
+
 ///|
 test "empty delivery output observation preserves progress and rejects outstanding bytes" {
   let sink = prepare_delivery_sink_progress(10L).unwrap()
