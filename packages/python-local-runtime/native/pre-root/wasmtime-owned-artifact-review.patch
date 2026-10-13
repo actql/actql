@@ -24,7 +24,7 @@
 +    actql_owned_heap::OwnedAllocator;
 --- a/crates/c-api/build.rs
 +++ b/crates/c-api/build.rs
-@@ -32,0 +33,11 @@
+@@ -32,0 +33,12 @@
 +    #[cfg(feature = "actql-owned-capacity")]
 +    {
 +        assert_eq!(env::var("CARGO_CFG_TARGET_OS").as_deref(), Ok("macos"));
@@ -33,6 +33,7 @@
 +        println!("cargo:rerun-if-changed=src/owned_capacity.h");
 +        cc::Build::new()
 +            .file("src/actql_owned_capacity.c")
++            .file("src/actql_owned_image.c")
 +            .flag_if_supported("-std=c11")
 +            .compile("actql-owned-capacity");
 +    }

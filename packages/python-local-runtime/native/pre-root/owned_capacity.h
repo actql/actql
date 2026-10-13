@@ -12,7 +12,8 @@ enum actql_owned_status {
     ACTQL_OWNED_INVALID = -1,
     ACTQL_OWNED_PHYSICAL_FAILURE = -2,
     ACTQL_OWNED_BUSY = -3,
-    ACTQL_OWNED_EXHAUSTED = -4
+    ACTQL_OWNED_EXHAUSTED = -4,
+    ACTQL_OWNED_IMAGE_MISMATCH = -5
 };
 
 /* Capacity includes the allocator's control storage. No implicit heap growth. */
@@ -30,6 +31,12 @@ int actql_native_owned_allocate(actql_owned_capacity *lease, size_t bytes,
                          size_t alignment, void **out);
 int actql_native_owned_protect(actql_owned_capacity *lease, void *allocation,
                         size_t offset, size_t length, int protection);
+int actql_native_owned_seal_readonly(actql_owned_capacity *lease, void *allocation);
+/* The caller lends its original readonly, nofollow FD. Failure after allocation
+ * leaves *out in the original lease for cleanup; it is not an accepted image. */
+int actql_native_owned_capture_image_fd(actql_owned_capacity *lease, int fd,
+                                        size_t expected_bytes, size_t maximum_bytes,
+                                        const unsigned char digest[32], void **out);
 /* Retirement keeps a failed physical cleanup in the same native lease. */
 int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation);
 /* Requires all children retired. Failure preserves the original pointer. */

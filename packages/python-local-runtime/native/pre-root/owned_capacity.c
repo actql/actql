@@ -209,6 +209,20 @@ static int clean_retired(actql_owned_capacity *lease, size_t start) {
     return ACTQL_OWNED_OK;
 }
 
+int actql_native_owned_seal_readonly(actql_owned_capacity *lease, void *allocation) {
+    if (lease == NULL) return ACTQL_OWNED_INVALID;
+    lock_capacity(lease);
+    size_t start;
+    int status = ACTQL_OWNED_INVALID;
+    if (allocation_start(lease, allocation, &start) && !lease->extents[start].retired) {
+        size_t bytes = lease->extents[start].pages * lease->page_size;
+        status = mprotect(allocation, bytes, PROT_READ) == 0
+                     ? ACTQL_OWNED_OK : ACTQL_OWNED_PHYSICAL_FAILURE;
+    }
+    unlock_capacity(lease);
+    return status;
+}
+
 int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation) {
     if (lease == NULL) return ACTQL_OWNED_INVALID;
     lock_capacity(lease);

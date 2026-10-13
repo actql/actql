@@ -44,7 +44,7 @@ Mmap source. It is a proposed patch surface, not an adopted engine fork.
 | Table slab | `runtime/vm/instance/allocator/pooling/table_pool.rs`, `TablePool::new` | Same Mmap slice allocation | Selected target's element size and finite table counts |
 | Native code/image copy | `engine.rs`, `Engine::load_code_bytes`; `runtime/vm/mmap_vec.rs` | Same page-rounded original mapping; original code publication/cache coherence retained | Exact source image and native library recipe; image capture below |
 | Rust instance metadata and scratch | `pooling.rs`, Vec/Box/Arc and dependency allocations | Proposed `owned_heap.rs` in the final C API cdylib; **uncompiled and not adopted** | Exhaustion/fallible boundary, exact complete feature/allocation coverage and phase envelope |
-| Initial encoded image and ctypes copy | SDK `_local_engine.py`, Wasmtime Python `_module.py` | **Not connected** | Capture into an owned native slice before deserialize, no uncharged `bytes`/`from_buffer_copy` replacement |
+| Initial encoded image and ctypes copy | SDK `_local_engine.py`, Wasmtime Python `_module.py` | Proposed `owned_image.c` captures into the original holding; **uncompiled, SDK call unconnected** | Nominal native pointer borrow into exact C deserializer, original recipe/current fences and lifetime |
 | Python, SQLite, dynamic loader and native registrations | Existing bootstrap/Store and runtime dependencies | **Unknown; not zero** | Exact declared allocation/scratch supplier and phase envelope |
 
 The Mmap candidate refuses file mapping and file-backed memory images in its
@@ -58,7 +58,7 @@ cdylib allocator hook, an explicit non-default feature relay to Wasmtime, and
 compilation of the C holding source. `owned_abi.rs` supplies Rust-exported private
 symbols, so the recipe does not assume that symbols from a linked C archive are
 automatically exported by a Rust cdylib. `workspace-build-inputs.json` binds seven
-upstream source inputs and four exact source copies. This is an additional
+upstream source inputs and five exact source copies. This is an additional
 source candidate; no final native library has been built or adopted.
 
 The heap candidate places the original lease/extent and layout in an allocation
@@ -79,6 +79,33 @@ Precompiled loading does not remove all compiler initialization: pinned
 (the source is in the original pinned crate). That retained domain needs
 coverage under the selected recipe. Do not silently disable or substitute the
 existing backend to report compiler scratch as zero.
+
+The separate image candidate accepts the original readonly FD lent by the
+installed nofollow resolver. It does not open paths, infer a recipe or accept a
+user image. Expected bytes, maximum and digest must come from that same trusted
+component/recipe, not caller claims. Native pread uses the existing 65536-byte
+quantum, preserves FD position and fails on interrupted/failed/truncated reads
+without an unbounded retry. It checks regular-file size, EOF, device/inode and
+nanosecond mtime/ctime on the same FD and hashes the exact capture. Only final
+success seals the original extent readonly. It closes neither FD nor lease.
+
+The output cleanup pointer is published before the next physical operation can
+fail. A nonzero status never accepts that pointer as an image. The original
+LocalCore must retain and retire it through its same lease. A failed digest
+context retirement stays in the native allocator's pending extent records;
+no successful image status is returned. The context itself is allocated from
+that lease, but the target compiler's stack frame and CommonCrypto's internal
+allocation behavior remain unknown. The proposal uses the target SDK's
+CommonCrypto API, whose header/library identity and scratch coverage must be
+reviewed before native adoption. It adds no custom digest algorithm.
+
+The current `_checked_installed_image` still captures Python bytes, and stock
+Python `Module.deserialize` still makes a ctypes copy. This candidate does not
+change those installed calls or claim that their allocations are now funded.
+The future call must preserve the original sealed native capture until exact
+deserialization has completed, use the original private C API pointer interface
+without a Python whole-file copy, and then retire it through the same LocalCore.
+Native code's separate deserialize copy remains a distinct simultaneous extent.
 
 ## Required installed connection
 
