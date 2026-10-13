@@ -754,9 +754,11 @@ class LocalCore:
                     self._physical_image.deserialize_into(self._engine, self._module, wasmtime, ffi)
                     self._physical_image.close()
                     self._physical_image = None
+                elif _compiled_image is None:
+                    self._module = wasmtime.Module(self._engine, module)
                 else:
-                    self._module = (wasmtime.Module(self._engine, module) if _compiled_image is None
-                                    else wasmtime.Module.deserialize(self._engine, _compiled_image.encoded))
+                    assert type(_compiled_image) is _InstalledImageInput
+                    self._module = wasmtime.Module.deserialize(self._engine, _compiled_image.encoded)
                 _validate_core_module(wasmtime, self._module)
                 self._linker = wasmtime.Linker(self._engine)
                 for name, callback in [('input_byte', self._read),
