@@ -81,12 +81,12 @@ function actualChatFixture({failSave=false}={}) {
 
 // Actual pinned SDK + physical port; Common and saved Store receipt are explicit
 // boundary doubles. This proves alias/lifetime behavior, not ACK/grant/heap size.
-test('Chat poll drops unused SDK projection while the same raw save remains pending',async t=>{
+test('Chat SDK consumer retires without a projection while the same raw save remains pending',async t=>{
   const f=actualChatFixture();
   t.after(async()=>{f.completeSave();f.allowCleanup();await until(()=>f.port.preflight.cleanup(),v=>v===true);});
   const plan=(await until(()=>f.port.preflight.advance(),v=>v._0))._1;
   const call=plan.start(f.entry);
-  await until(()=>pollSdkDecode(f.handle),v=>v.kind==='ready');
+  assert.deepEqual(await until(()=>pollSdkDecode(f.handle),v=>v.kind!=='pending'),{kind:'retired'});
   const original=sdkTransportRawObservation(f.handle);
   assert.equal(call.poll().kind,'pending');
   await until(()=>f.saves(),v=>v===1);
@@ -98,12 +98,12 @@ test('Chat poll drops unused SDK projection while the same raw save remains pend
   assert.equal(observed.response,f.saved);assert.equal(f.sends(),1);assert.equal(f.saves(),1);
   assert.equal(call.cleanup(),false);
 });
-test('Chat cleanup drops unused projection but keeps Store failure Unknown and raw reconciliation',async t=>{
+test('Chat SDK consumer retirement keeps Store failure Unknown and raw reconciliation',async t=>{
   const f=actualChatFixture({failSave:true});
   t.after(async()=>{f.allowCleanup();await until(()=>f.port.preflight.cleanup(),v=>v===true);});
   const plan=(await until(()=>f.port.preflight.advance(),v=>v._0))._1;
   const call=plan.start(f.entry);
-  await until(()=>pollSdkDecode(f.handle),v=>v.kind==='ready');
+  assert.deepEqual(await until(()=>pollSdkDecode(f.handle),v=>v.kind!=='pending'),{kind:'retired'});
   call.poll();await until(()=>call.poll(),v=>v.kind==='unknown');
   const original=sdkTransportRawObservation(f.handle);
   assert.equal(call.cleanup(),false);

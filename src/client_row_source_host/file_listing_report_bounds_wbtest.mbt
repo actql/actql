@@ -1,4 +1,24 @@
 ///|
+// Keep selected report rows and examined observations in distinct domains.
+// Missing finite bounds never become zero, infinity, or an observed count.
+fn row_listing_report_bounds(
+  limits : Array[(String, Int64)],
+  resolved_rows : RowListingRows?,
+) -> Result[(Int64, Int64), RowSourceIssue] {
+  let selected = match
+    row_listing_bound(limits, resolved_rows, "max_listing_items") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let examined = match
+    row_listing_bound(limits, resolved_rows, "max_examined_items") {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  Ok((selected, examined))
+}
+
+///|
 test "listing report count facts use the resolved selected ceiling and a distinct examined ceiling" {
   // Actual checked Catalog + Host policy resolution caps the declared three
   // selected rows at two. Examined observations remain nine, not two.

@@ -4059,8 +4059,9 @@ fn run_holder(
     registration != required(matches, "connector-registration") ||
     revision != required(matches, "connector-revision") ||
     strategy != required(matches, "strategy-revision") {
-    close_site_environment(environment)
-    stop("installed runtime differs from the Site delegation")
+    return finish_unopened_holder_cleanup(
+      environment, slot, "installed runtime differs from the Site delegation",
+    )
   }
   let max_file_bytes = required_int64(matches, "max-file-bytes")
   let values_root = required(matches, "engine-root")
@@ -4143,9 +4144,9 @@ fn run_holder(
         None => None
       }
       guard configured is Some(profile) else {
-        close_site_environment(environment)
-        ignore(slot.close())
-        stop("retained consumer bounded profile unavailable")
+        return finish_unopened_holder_cleanup(
+          environment, slot, "retained consumer bounded profile unavailable",
+        )
       }
       Some(profile)
     }

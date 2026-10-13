@@ -1,0 +1,29 @@
+{
+  "baseSource": "9ee10eecde17749a2ac4e8ba75babec96e7a0ad2",
+  "proposalFilesOnly": true,
+  "productionAdopted": false,
+  "independentAssertions": [
+    "Historical a3b manifest exact2289 bytes/hash585e verified against retained authenticated confirmation",
+    "Actual historical issued1/revision1 and selected7 derived from retained row hashes, not fresh stat/DB",
+    "Representative4344/5902 and max operation5079/6882 fit existing wire/reservation bounds",
+    "Tree23/depth2 and aggregate keys+values remain inside existing64/4/8192 reader limits",
+    "N4/count5\u21926 refuses relative bound even if absolute8 has space",
+    "Count8\u21929 and payload5633 refuse",
+    "Opaque physical/current/HMAC/account/workspace conditions remain unexecuted"
+  ],
+  "compiler": 0,
+  "Native": 0,
+  "Provider": 0,
+  "oldDBRunAttempt": 0,
+  "newIdentityIssued": 0,
+  "newPublicE2E": 0,
+  "executedCommand": "python3 reviews/2026-10-14-d-runtime-successor-proposal/check-preparation.py",
+  "commandExitCode": 0,
+  "initialCheckerFailure": {
+    "kind": "assertion on metadata container key insertion order",
+    "productOrOwnerExecution": false,
+    "correction": "Compare the independently canonicalized sorted-key wire; no vector or policy value changed."
+  },
+  "checksClassification": "Python read-only source/digest/structural sizing assertions only; planned Owner vectors were not executed.",
+  "followup": "Existing NativeClientRunJournalIssue and original lookup priority inspected read-only; precise issue-routing/priority scenarios added without production adoption."
+}

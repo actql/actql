@@ -86,15 +86,22 @@ struct NativeRootOpenFailure {
 }
 
 ///|
-pub fn NativeRootOpenFailure::issue(self : NativeRootOpenFailure) -> NativeFilesystemIssue {
+pub fn NativeRootOpenFailure::issue(
+  self : NativeRootOpenFailure,
+) -> NativeFilesystemIssue {
   self.original_issue
 }
 
 ///|
-pub fn NativeRootOpenFailure::retry_cleanup(self : NativeRootOpenFailure) -> Result[Unit, NativeFilesystemIssue] {
+pub fn NativeRootOpenFailure::retry_cleanup(
+  self : NativeRootOpenFailure,
+) -> Result[Unit, NativeFilesystemIssue] {
   guard self.root is Some(original) else { return Ok(()) }
   match original.close() {
-    Ok(_) => { self.root = None; Ok(()) }
+    Ok(_) => {
+      self.root = None
+      Ok(())
+    }
     Err(issue) => Err(issue)
   }
 }
@@ -108,15 +115,22 @@ struct NativeLockOpenFailure {
 }
 
 ///|
-pub fn NativeLockOpenFailure::issue(self : NativeLockOpenFailure) -> NativeFilesystemIssue {
+pub fn NativeLockOpenFailure::issue(
+  self : NativeLockOpenFailure,
+) -> NativeFilesystemIssue {
   self.original_issue
 }
 
 ///|
-pub fn NativeLockOpenFailure::retry_cleanup(self : NativeLockOpenFailure) -> Result[Unit, NativeFilesystemIssue] {
+pub fn NativeLockOpenFailure::retry_cleanup(
+  self : NativeLockOpenFailure,
+) -> Result[Unit, NativeFilesystemIssue] {
   guard self.lock is Some(original) else { return Ok(()) }
   match original.close_checked() {
-    Ok(_) => { self.lock = None; Ok(()) }
+    Ok(_) => {
+      self.lock = None
+      Ok(())
+    }
     Err(issue) => Err(issue)
   }
 }

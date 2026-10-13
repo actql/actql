@@ -21,6 +21,10 @@
     "./checkpoints": {
       "types": "./checkpoints.d.ts",
       "default": "./checkpoints.mjs"
+    },
+    "./workers-finite": {
+      "types": "./workers-finite.d.ts",
+      "default": "./dist/workers_finite.js"
     }
   },
   "dependencies": {"@actql/client-wire": "0.0.0-development"},
@@ -28,6 +32,7 @@
     "result-access.d.ts", "result-delivery.mjs",
     "observation.mjs", "observation.d.ts",
     "checkpoints.mjs", "checkpoints.d.ts",
+    "workers-finite.d.ts", "dist/workers_finite.js", "dist/workers_finite_payload.js",
     "dist/client_values_host_abi.js", "dist/checkpoint_runtime_node.js"],
   "scripts": {
     "prepack": "node ../../scripts/build-runtime-packages.mjs run-host-core"
