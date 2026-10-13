@@ -197,6 +197,12 @@ fn scalar_call(
     raise Abort(UnsupportedFunction)
   }
   match upper(path[0].value) {
+    "VECTOR_SCORE" => ("VECTOR_SCORE", "vector_score", 3, 3)
+    "VECTOR_COSINE_SIMILARITY" =>
+      ("VECTOR_COSINE_SIMILARITY", "vector_score", 2, 2)
+    "VECTOR_INNER_PRODUCT" => ("VECTOR_INNER_PRODUCT", "vector_score", 2, 2)
+    "VECTOR_L2_DISTANCE" => ("VECTOR_L2_DISTANCE", "vector_score", 2, 2)
+    "VECTOR_CONCAT" => ("VECTOR_CONCAT", "vector_concat", 2, 2147483647)
     "BYTE_LENGTH" | "OCTET_LENGTH" => ("BYTE_LENGTH", "byte_length", 1, 1)
     "UNICODE" => ("UNICODE", "unicode", 1, 1)
     "CHR" => ("CHR", "chr", 1, 1)
@@ -436,6 +442,7 @@ fn append_resolved(
   // this classification in the bounded postorder pass rather than reopening
   // the AST or treating arbitrary expression nodes as parameter holes.
   let numbers : Array[Double?] = []
+  let strings : Array[String?] = []
   let parameters : Array[Bool] = []
   let mut current : @origin.Origin? = None
   let mut work = 0
@@ -451,6 +458,7 @@ fn append_resolved(
       let lowering : Lowering = { builder, origin, }
       let mut literal : @builder.Node? = None
       let mut numeric : Double? = None
+      let mut text_literal : String? = None
       let mut parameter = false
       let result = match node.kind {
         Null | Boolean(_) | Number(_) | StringLiteral(_) => {
@@ -463,7 +471,10 @@ fn append_resolved(
                 numeric = Some(value)
                 Number(value)
               }
-              StringLiteral(value) => String(value)
+              StringLiteral(value) => {
+                text_literal = Some(value)
+                String(value)
+              }
               _ => raise Abort(InvalidArguments)
             },
           )
@@ -568,6 +579,7 @@ fn append_resolved(
         Parenthesized(child) => {
           literal = literals[child]
           numeric = numbers[child]
+          text_literal = strings[child]
           parameter = parameters[child]
           nodes[child]
         }
@@ -651,11 +663,48 @@ fn append_resolved(
           match macro_calls[i] {
             Some(child) => nodes[child]
             None => {
-              let (_, name, minimum, maximum) = scalar_call(path)
+              let (public_name, name, minimum, maximum) = scalar_call(path)
               if args.length() < minimum || args.length() > maximum {
                 raise Abort(InvalidArguments)
               }
-              if name == "log" && args.length() == 1 {
+              if name == "vector_score" {
+                let metric = if public_name == "VECTOR_SCORE" {
+                  // Literal role follows transparent grouping in this bounded
+                  // postorder pass. Never evaluate a Parameter, field or CASE
+                  // to choose an operator metric or fold a data enum's case.
+                  match strings[args[2]] {
+                    Some(value) if ["cosine", "dot", "l2"].contains(value) =>
+                      value
+                    _ => {
+                      current = @query.expression_origin(ast, args[2])
+                      raise Abort(InvalidArguments)
+                    }
+                  }
+                } else {
+                  match public_name {
+                    "VECTOR_COSINE_SIMILARITY" => "cosine"
+                    "VECTOR_INNER_PRODUCT" => "dot"
+                    "VECTOR_L2_DISTANCE" => "l2"
+                    _ => raise Abort(UnsupportedFunction)
+                  }
+                }
+                let score = lowering.form(
+                  "vector_score",
+                  lowering.object([
+                    ("left", nodes[args[0]]),
+                    ("right", nodes[args[1]]),
+                    ("metric", lowering.add(String(metric))),
+                  ]),
+                )
+                // The adopted L2 expression is a negative distance score.
+                // Preserve VecA typing, input precision, NULL and numeric law;
+                // this explicit surface changes only the score direction.
+                if public_name == "VECTOR_L2_DISTANCE" {
+                  lowering.form("negate", score)
+                } else {
+                  score
+                }
+              } else if name == "log" && args.length() == 1 {
                 lowering.form("ln", nodes[args[0]])
               } else if name == "ceil" {
                 // Finite-number ceiling uses one operand subtree. The numeric
@@ -816,6 +865,7 @@ fn append_resolved(
       nodes.push(result)
       literals.push(literal)
       numbers.push(numeric)
+      strings.push(text_literal)
       parameters.push(parameter)
     }
     Ok(nodes[@query.expression_root(ast)])

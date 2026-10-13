@@ -18,7 +18,7 @@ priv enum CheckFinding {
   FrameViolation
   ExpressionTypeViolation(String)
   OperationScalarViolation(String, String, (String, String)?)
-  GraphViolation(String, String)
+  GraphViolation(String, String, (Int, Int)?)
   TypeViolation(String, String, String, String?)
   DefaultTypeViolation(String, String, String, String?)
   JsonInputViolation(String, String, String?)
@@ -309,8 +309,13 @@ fn check_source_findings(
   ) catch {
     _ => return Failed("check_context_invalid")
   }
-  let lowered = match
-    @source_frontend.lower(document, selected, Some(context), table_writes~) {
+  let (lowered, diagnostic_source) = match
+    @source_frontend.lower_with_source(
+      document,
+      selected,
+      Some(context),
+      table_writes~,
+    ) {
     Ok(value) => value
     Err(issue) => {
       match issue {
@@ -414,6 +419,16 @@ fn check_source_findings(
           findings.push(ExpressionViolation("unknown_reference", None))
         QueryLowering(BindingPreparation(issue)) =>
           if check_binding_preparation_findings(findings, issue, scope)
+            is Some(failure) {
+            return Failed(failure)
+          }
+        QueryLowering(BindingPreparationSource(issue, source)) =>
+          if check_binding_preparation_findings(
+              findings,
+              issue,
+              scope,
+              diagnostic_source=Some(source),
+            )
             is Some(failure) {
             return Failed(failure)
           }
@@ -526,7 +541,7 @@ fn check_source_findings(
       | FrameViolation
       | ExpressionTypeViolation(_)
       | OperationScalarViolation(_, _, _)
-      | GraphViolation(_, _)
+      | GraphViolation(_, _, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
       | JsonInputViolation(_, _, _)
@@ -639,7 +654,13 @@ fn check_source_findings(
           } else {
             findings.push(
               check_program_finding(
-                diagnostic, explanation_bindings, supplied, parameters, declarations,
+                diagnostic,
+                explanation_bindings,
+                supplied,
+                parameters,
+                declarations,
+                program=Some(program),
+                diagnostic_source~,
               ),
             )
           }
@@ -1020,6 +1041,7 @@ fn check_binding_preparation_findings(
   findings : Array[CheckFinding],
   issue : @query_program.BindingPreparationIssue,
   scope : @program_check.CheckScope,
+  diagnostic_source? : @source_frontend.DiagnosticSource? = None,
 ) -> String? {
   let diagnostic = match issue {
     Declarations(error) => @program_check.source_declarations_diagnostic(error)
@@ -1073,7 +1095,16 @@ fn check_binding_preparation_findings(
         name.length() <= 256 {
         findings.push(UndeclaredParameter(name, None))
       } else {
-        findings.push(check_program_finding(diagnostic, None, None, None, None))
+        findings.push(
+          check_program_finding(
+            diagnostic,
+            None,
+            None,
+            None,
+            None,
+            diagnostic_source~,
+          ),
+        )
       }
     MissingInput => check_missing_input_findings(findings, diagnostic, scope)
     UnsupportedImplementation => findings.push(Limit("implementation_limit"))
@@ -1091,6 +1122,8 @@ fn check_program_finding(
   supplied : @decode.Cursor?,
   parameters : String?,
   declarations : String?,
+  program? : @stage_syntax.Program? = None,
+  diagnostic_source? : @source_frontend.DiagnosticSource? = None,
 ) -> CheckFinding {
   if check_operation_scalar_finding(
       diagnostic, bindings, supplied, parameters, declarations,
@@ -1122,16 +1155,29 @@ fn check_program_finding(
     issue.path[4] is Key("subgraph") &&
     issue.path[5] is Key("nodes") &&
     issue.kind is (InvalidBody | GraphMatch(Structure(InvalidBody))) {
-    // The current Graph owner proves this selector violation. Its generated
-    // Program path is not an authored text span and is never published as one.
-    return GraphViolation("subgraph", "invalid_node_selector")
+    // The current Graph owner proves the selector violation. Only its original
+    // construction cursor can supply authored argument bytes.
+    return GraphViolation(
+      "subgraph",
+      "invalid_node_selector",
+      check_graph_argument_range(diagnostic, program, diagnostic_source),
+    )
   }
   if @program_check.diagnostic_cause(diagnostic)
     is Source(SourceView(Program(Program(Pipeline(_, issue))))) &&
     issue.kind is Operation(ExpectedBoolean) {
     // The existing Relation checker proves the Boolean predicate requirement.
-    // Its span lacks authored/generated origin kind, so no SQL range is guessed.
-    return ExpressionViolation("expected_boolean", None)
+    // Only the original common construction owner can establish authored bytes.
+    let origin = match (program, diagnostic_source) {
+      (Some(program), Some(source)) =>
+        @program_check.diagnostic_predicate_origin(diagnostic, program, source)
+      (None, Some(source)) =>
+        @program_check.diagnostic_predicate_origin_from_source(
+          diagnostic, source,
+        )
+      _ => None
+    }
+    return ExpressionViolation("expected_boolean", check_authored_range(origin))
   }
   if @program_check.diagnostic_cause(diagnostic)
     is Source(SourceView(Program(Program(Pipeline(_, issue))))) &&
@@ -1143,9 +1189,17 @@ fn check_program_finding(
     issue.path[4] is Key("components") {
     match (issue.kind, issue.path[5]) {
       (Graph(InvalidBody), Key("kind")) =>
-        return GraphViolation("components", "invalid_kind")
+        return GraphViolation(
+          "components",
+          "invalid_kind",
+          check_graph_argument_range(diagnostic, program, diagnostic_source),
+        )
       (Graph(InvalidCount), Key("max_output_rows")) =>
-        return GraphViolation("components", "invalid_output_rows")
+        return GraphViolation(
+          "components",
+          "invalid_output_rows",
+          check_graph_argument_range(diagnostic, program, diagnostic_source),
+        )
       _ => ()
     }
   }
@@ -1203,7 +1257,7 @@ fn check_verdict(findings : Array[CheckFinding]) -> String {
       | FrameViolation
       | ExpressionTypeViolation(_)
       | OperationScalarViolation(_, _, _)
-      | GraphViolation(_, _)
+      | GraphViolation(_, _, _)
       | SourceSelectorUnregistered(_, _, _)
       | TypeViolation(_, _, _, _)
       | DefaultTypeViolation(_, _, _, _)
@@ -1274,7 +1328,7 @@ fn write_check_report(
       FrameViolation => Some("query_frame_invalid")
       ExpressionTypeViolation(_) => Some("expression_type_mismatch")
       OperationScalarViolation(_, _, _) => Some("operation_parameter_invalid")
-      GraphViolation(_, _) => Some("graph_operation_invalid")
+      GraphViolation(_, _, _) => Some("graph_operation_invalid")
       SourceSelectorUnregistered(_, _, _) =>
         Some("source_selector_unregistered")
       TypeViolation(_, _, _, _) => Some("supplied_value_type_mismatch")
@@ -1528,7 +1582,7 @@ fn write_check_report(
     }
     if code == "graph_operation_invalid" {
       for finding in findings {
-        if finding is GraphViolation(operation, issue) {
+        if finding is GraphViolation(operation, issue, range) {
           @encode.key(writer, "facts")
           @encode.begin_object(writer)
           @encode.key(writer, "issue")
@@ -1536,8 +1590,14 @@ fn write_check_report(
           @encode.key(writer, "operation")
           @encode.string_value(writer, operation)
           @encode.end_object(writer)
-          // The checker-facing span does not retain authored origin kind
-          // or argument precision. Do not publish it as an exact input range.
+          if range is Some((start, end)) {
+            write_check_text_location(
+              writer,
+              documents.source_revision,
+              start,
+              end,
+            )
+          }
           break
         }
       }
@@ -2486,4 +2546,24 @@ fn write_check_text_location(
   @encode.key(writer, "start_byte")
   @encode.number_value(writer, start.to_double())
   @encode.end_object(writer)
+}
+
+///|
+fn check_graph_argument_range(
+  diagnostic : @program_check.CheckDiagnostic,
+  program : @stage_syntax.Program?,
+  source : @source_frontend.DiagnosticSource?,
+) -> (Int, Int)? {
+  let origin = match (program, source) {
+    (Some(program), Some(source)) =>
+      @program_check.diagnostic_graph_argument_origin(
+        diagnostic, program, source,
+      )
+    (None, Some(source)) =>
+      @program_check.diagnostic_graph_argument_origin_from_source(
+        diagnostic, source,
+      )
+    _ => None
+  }
+  check_authored_range(origin)
 }

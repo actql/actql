@@ -3011,12 +3011,16 @@ class LocalCore:
     def _sdk_start_material_current(self, value: _Output, current: _Output, operation: str) -> None:
         self._owned_output(value)
         self._host_current_ready(current)
+        self._owned_output(value)
+        self._owned_output(current, 'current')
         code = self._call('material', operation, value.handle)
         callbacks = self._journal_callbacks(current.ticket)
         if callbacks is not None and callbacks.failure is not None:
             raise callbacks.failure
         self._check(operation, code)
         self._host_current_ready(current)
+        self._owned_output(value)
+        self._owned_output(current, 'current')
 
     def validate_sdk_start_step(self, value: _Output, current: _Output) -> None:
         with self._lock:

@@ -218,7 +218,13 @@ fn close_holder_task(
   }
   // Review owns separate semantic pins and an export. Retiring it must
   // precede its original consumer, receiver and producer Runtime cleanup.
+  if !prepare_holder_catalog_file_cleanup(resources, task) {
+    return false
+  }
   if !close_holder_effect_review(task) {
+    return false
+  }
+  if !detach_holder_catalog_file_custody(resources, task) {
     return false
   }
   if task.handoff is Some((_, handoff)) {

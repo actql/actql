@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {readFileSync} from 'node:fs';
+import {readFileSync, mkdtempSync, mkdirSync, copyFileSync, writeFileSync, rmSync} from 'node:fs';
+import {dirname, join} from 'node:path';
+import {tmpdir} from 'node:os';
 import {canonicalText} from './check-canonical-json.mjs';
 import {loadScalarPairBodies, verifyScalarPairBodies, scalarPairEvidence, scalarPairSource, assertScalarPairEvidenceFresh} from './native-local-scalar-pair-evidence.mjs';
 
@@ -45,6 +47,31 @@ test('missing, relabelled or unknown predecessor material is not repaired from c
     change(pair);
     assert.throws(() => verifyScalarPairBodies(pair));
   }
+});
+
+test('later expression grammar is not certified by the retained reviewed pair', () => {
+  const changed = structuredClone(original);
+  changed.current.expression.grammar_sha256 = '0'.repeat(64);
+  assert.throws(() => verifyScalarPairBodies(changed), /Unknown current body: expression/);
+  assert.equal(scalarPairEvidence().body_pairs.find(row => row.role === 'expression').current_cid,
+    'sha256:e4b8431ae81884a1e198420dcbd08d6b12ef4dca4bd9b7b8ffa4cd45db887289');
+});
+
+test('retaining reviewed bodies does not snapshot away current implementation equality', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'actql-scalar-pair-implementation-'));
+  const fixture = 'scripts/fixtures/native-local-scalar-predecessor';
+  const index = JSON.parse(readFileSync(fixture + '/manifest.json'));
+  const first = index.implementation_records[0];
+  try {
+    for (const path of [fixture + '/manifest.json', fixture + '/' + first.fixture,
+      'scripts/fixtures/native-local-scalar-reviewed-current.json.gz', first.path]) {
+      mkdirSync(dirname(join(directory, path)), {recursive: true});
+      copyFileSync(path, join(directory, path));
+    }
+    writeFileSync(join(directory, first.path), readFileSync(first.path, 'utf8') + '\n// changed implementation\n');
+    assert.throws(() => loadScalarPairBodies(directory),
+      error => error.message === 'Unknown scalar implementation change: ' + first.path);
+  } finally { rmSync(directory, {recursive: true, force: true}); }
 });
 
 test('generated bounded evidence stays tied to reviewed source inputs without a Git checkout of old109', () => {

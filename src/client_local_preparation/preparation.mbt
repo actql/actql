@@ -72,6 +72,9 @@ pub fn bind_local_input_context(
       parameter_declarations~,
       input_schemas~,
       source_catalog~,
+      calendar_profile=@checked.checking_environment_calendar_profile(
+        environment,
+      ),
     ) {
     Ok(query) => Ok({ environment_cid, query, })
     Err(issue) => Err(Context(issue))

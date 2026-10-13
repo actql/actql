@@ -356,6 +356,7 @@ pub fn starts_query(
         keyword(first, "FROM") ||
         keyword(first, "CREATE") ||
         keyword(first, "TIME_SERIES") ||
+        keyword(first, "CALENDAR_SERIES") ||
         first.value == Symbol(40),
       )
     }
@@ -978,7 +979,7 @@ fn QueryParser::optional_source_alias(
 ) -> NamePart? raise QueryAbort {
   if self.has("AS") {
     self.keyword("AS")
-    Some(self.name())
+    Some(self.binding_name())
   } else if self.peek().value is QuotedName(_) {
     Some(self.name())
   } else if self.peek().value is Word(value) &&
@@ -987,7 +988,7 @@ fn QueryParser::optional_source_alias(
       "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "ON", "USING", "MAX_OUTPUT_ROWS",
       "QUALIFY", "WINDOW", "PIVOT", "UNPIVOT",
     ].contains(value.to_upper()) {
-    Some(self.name())
+    Some(self.binding_name())
   } else {
     None
   }
@@ -1313,7 +1314,7 @@ fn QueryParser::optional_output_alias(
 ) -> NamePart? raise QueryAbort {
   if self.has("AS") {
     self.keyword("AS")
-    return Some(self.name())
+    return Some(self.binding_name())
   }
   match self.peek().value {
     QuotedName(_) => Some(self.name())
@@ -1553,7 +1554,7 @@ fn QueryParser::value_projection(
   }
   let name = if require_alias {
     self.keyword("AS")
-    Some(self.name())
+    Some(self.binding_name())
   } else {
     self.optional_output_alias()
   }
@@ -2065,13 +2066,13 @@ fn QueryParser::unnest_source(
       self.peek().start,
     )
   }
-  let element = self.name()
+  let element = self.binding_name()
   let offset = if self.has("WITH") {
     self.keyword("WITH")
     self.keyword("OFFSET")
     let name = if self.has("AS") {
       self.keyword("AS")
-      self.name()
+      self.binding_name()
     } else if self.peek().value is QuotedName(_) {
       self.name()
     } else if self.optional_source_alias() is Some(name) {
@@ -2441,7 +2442,7 @@ fn QueryParser::query(
         raise QueryAbort("CTE count limit", self.peek().start)
       }
       let binding_start = self.peek().start
-      let name = self.name()
+      let name = self.binding_name()
       if scope.any(binding => same_binding_name(binding.0, name)) {
         raise QueryAbort("Duplicate CTE name", self.peek().start)
       }
@@ -2485,7 +2486,7 @@ fn QueryParser::query(
     self.producer_query(GraphValue(self.graph()))
   } else if self.has("MEAN_GRAPHS") {
     self.producer_query(GraphGenerator(self.sga_call()))
-  } else if self.has("TIME_SERIES") {
+  } else if self.has("TIME_SERIES") || self.has("CALENDAR_SERIES") {
     self.producer_query(RelationGenerator(self.sga_call()))
   } else {
     self.sql()
@@ -2867,7 +2868,7 @@ fn QueryParser::pipe_tail(
     }
     ignore(self.advance())
     self.node()
-    if self.has("TIME_SERIES") {
+    if self.has("TIME_SERIES") || self.has("CALENDAR_SERIES") {
       raise QueryAbort(
         "Relation generator cannot consume an input",
         self.peek().start,
@@ -3079,10 +3080,10 @@ fn QueryParser::pipe_tail(
       operations.push(Unpivot(self.unpivot_clause()))
       if self.has("AS") {
         self.keyword("AS")
-        operations.push(Alias(self.name()))
+        operations.push(Alias(self.binding_name()))
       } else if self.peek().value is Word(_) ||
         self.peek().value is QuotedName(_) {
-        operations.push(Alias(self.name()))
+        operations.push(Alias(self.binding_name()))
       }
     } else if self.has("SET") {
       self.keyword("SET")
@@ -3152,7 +3153,7 @@ fn QueryParser::pipe_tail(
       }
     } else if self.has("AS") {
       self.keyword("AS")
-      operations.push(Alias(self.name()))
+      operations.push(Alias(self.binding_name()))
     } else if self.has("AGGREGATE") {
       self.keyword("AGGREGATE")
       let aggregate_order : Array[PipeAggregateOrder] = []

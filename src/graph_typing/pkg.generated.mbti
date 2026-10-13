@@ -560,6 +560,7 @@ pub(all) enum GraphPathMode {
 } derive(Eq, @debug.Debug)
 
 pub struct Issue {
+  source : @decode_core.Cursor?
   kind : IssueKind
   path : Array[@source_value.PathSegment]
   span : @source_span.Span

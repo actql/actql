@@ -44,6 +44,15 @@ runtime and hosted CI remain unverified.
 
 ## Scored-fusion dependency remains required
 
+The original raw-Values controls below had no authenticated score snapshots.
+A later [Catalog-backed control](../2026-10-13-ranked-snapshot-control/README.md)
+confirms that the existing `source_catalog` registration path already reaches
+`stage_local_inputs.prepare_environment`. Its local fix connects ordinary flat
+Carrier dispatch and installs the actual peer declarations before prefix
+checking. The earlier absence of an EnvironmentInputs field in Context alone
+is not evidence that Catalog-backed score registration is missing. Installed
+max/weighted_sum acceptance remains unverified and required.
+
 A score_contract argument is not authenticated input evidence. The existing
 formal common route is `stage_local_inputs.prepare_environment` or
 `reconcile_environment`, whose environment snapshots retain score assertions;

@@ -89,6 +89,33 @@ pub fn client_program_check_environment_with_graph_profile(
 }
 
 ///|
+/// Supplement the original checker with explicitly installed semantic bytes.
+/// The common owner verifies the pinned artifact and retains all other profiles.
+/// This cannot enable Calendar or assert that the Host can execute its operations.
+#export_name("clientProgramCheckEnvironmentWithCalendarArtifact")
+pub fn client_program_check_environment_with_calendar_artifact(
+  environment : @program_check.CheckEnvironment,
+  table_bytes : Bytes,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_zones : Int,
+  max_transitions : Int,
+  max_selection_work : Int,
+) -> @program_check.CheckEnvironment? {
+  match
+    @program_check.checking_environment_with_calendar_artifact(
+      environment,
+      table_bytes,
+      { max_bytes, max_nodes, max_depth, max_zones, max_transitions, },
+      max_selection_work~,
+    ) {
+    Ok(selected) => Some(selected)
+    Err(_) => None
+  }
+}
+
+///|
 /// Preserve the shared checker's typed failure across the in-process Host bridge.
 /// A wire adapter may project it to a public error, but must not recheck the
 /// Program or infer missing inputs from an absent prepared handle.

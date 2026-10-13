@@ -765,7 +765,7 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
 // does not lower source, manufacture schema, or call a test compiler bridge.
 export async function exercisePublicQueryInput(connect, options,
   {requestPrefix, observe, successes = querySuccesses,
-    refusals = queryRefusals, executionFailures = [], prepareCase, persistSubmission, completedCase}) {
+    refusals = queryRefusals, executionFailures = [], prepareCase, persistSubmission, completedCase, completedRefusal}) {
   assert.equal(typeof observe, 'function');
   const counters = async () => {
     const current = await observe();
@@ -920,6 +920,7 @@ export async function exercisePublicQueryInput(connect, options,
       assert.deepEqual(await counters(), before,
         'rejected source must not accept a Run or perform source I/O');
       assert.deepEqual(await client.lookupSubmission(submissionRef), outcome);
+      await completedRefusal?.({name, submissionRef, outcome});
       if (expectedCode !== undefined) {
         console.log(`Public query refusal passed: ${requestPrefix}/${name} (${expectedCode}); no admission or source I/O`);
       }
