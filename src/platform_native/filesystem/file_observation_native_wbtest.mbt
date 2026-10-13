@@ -3,7 +3,7 @@
 extern "C" fn test_observation_mutation(root : Root, name : Bytes, length : Int, kind : Int) -> Bool = "actql_native_filesystem_test_observation_mutation"
 
 ///|
-fn observed_fixture_path(name : String) -> String {
+fn observed_fixture_path(name : String) -> String raise {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_FILE_OBSERVATION_ROOT") is Some(path) else {
     fail("selected observation case requires its owned fixture Root")
   }

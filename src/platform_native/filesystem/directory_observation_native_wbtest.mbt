@@ -11,7 +11,7 @@ extern "C" fn test_directory_replacement(root : Root) -> Bool = "actql_native_fi
 extern "C" fn test_directory_mode(root : Root, mode : Int) -> Bool = "actql_native_filesystem_test_private_mode"
 
 ///|
-fn directory_observation_fixture(name : String) -> String {
+fn directory_observation_fixture(name : String) -> String raise {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_DIRECTORY_OBSERVATION_ROOT") is Some(path) else {
     fail("selected directory observation requires its own canonical fixture Root")
   }
