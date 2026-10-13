@@ -20,7 +20,9 @@ membership_suffix = [ "NOT" ], "IN", membership_rhs
                   | [ "NOT" ], "BETWEEN", concatenation, "AND", concatenation
                   | [ "NOT" ], "LIKE", like_pattern ;
 like_pattern = string | parameter | "(", like_pattern, ")" ;
-membership_rhs = "(", in_item, { ",", in_item }, ")" | parameter ;
+membership_rhs = "(", in_item, { ",", in_item }, ")" | unary ;
+(* An initial open parenthesis always selects the literal-list production,
+   never a grouped ARRAY expression. Other operands retain unary precedence and are typed as ARRAY. *)
 in_item = literal | "-", grouped_number | parameter | "(", in_item, ")" ;
 grouped_number = number | "(", grouped_number, ")" ;
 concatenation = addition, { "||", addition } ;
