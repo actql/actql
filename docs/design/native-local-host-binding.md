@@ -700,3 +700,27 @@ observation memory before capture. Syntax/descriptor fit does not supply funding
 The intended product integration replaces generation-only witness storage rather
 than simultaneously retaining both representations; its holding/ARC evidence
 must be checked at that connection. No new numeric profile is admitted here.
+
+## Original named-directory observations
+
+The existing Root can also capture a transient opaque observation of its actual
+opened directory, including device/inode, mode and UID/GID. Only the path already
+retained by that Root is used to compare the named directory. A bounded no-follow
+descriptor walk rejects aliases, replacement or changed original metadata; it
+does not replace the Root, accept another caller path or restore a missing
+historical original from fresh stat.
+
+Each temporary directory descriptor is closed once with an observed result.
+If close is unconfirmed, the same Root retains the namespace-cleanup fact and
+refuses subsequent physical observations. Closing its ordinary directory fd
+does not confirm those temporary descriptors' retirement. The consumed/unknown
+fd is never reopened or closed again through a potentially reused number.
+These facts compose with that Root's existing census and Reader custody.
+
+This additive package namespace check does not weaken or reuse the private
+credential projection's 0700/ACL eligibility, wire or restore. It is not Account
+permission, compatibility, a grant or admission of any package contents. Full
+product verification still separately checks every exact file observation,
+descriptor/digest and bounded member census before and after current authority.
+Path-walk scratch and simultaneous directory observations remain subject to the
+existing caller's workspace/lifetime accounting, not inferred from path bounds.

@@ -14,6 +14,7 @@
 #include <string.h>
 #include <sys/file.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #ifdef __APPLE__
@@ -39,6 +40,9 @@ typedef struct {
   bool census_cleanup_unconfirmed;
   char *census_cleanup_error;
   int32_t test_census_close_failures;
+  bool namespace_cleanup_unconfirmed;
+  char *namespace_cleanup_error;
+  int32_t test_namespace_close_failures;
 } actql_native_filesystem_root;
 
 typedef struct {
@@ -110,6 +114,15 @@ typedef struct {
   uint64_t root_inode;
   int32_t issue_kind;
 } actql_native_observed_file_stat;
+
+typedef struct {
+  uint64_t device;
+  uint64_t inode;
+  mode_t mode;
+  uid_t uid;
+  gid_t gid;
+  int32_t issue_kind;
+} actql_native_observed_directory_stat;
 
 static void actql_replace_error(char **target, const char *message) {
   free(*target);
@@ -297,9 +310,9 @@ int32_t actql_native_filesystem_directory_census(
 ) {
   if (!actql_census_frame_valid(frame, length, count)) return 4;
   if (root == NULL || root->fd < 0 || root->census_stream != NULL) return -1;
-  if (root->census_cleanup_unconfirmed) {
+  if (root->census_cleanup_unconfirmed || root->namespace_cleanup_unconfirmed) {
     actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
-      root->census_cleanup_error);
+      root->census_cleanup_unconfirmed ? root->census_cleanup_error : root->namespace_cleanup_error);
     return 3;
   }
   struct stat original;
@@ -515,9 +528,11 @@ static void actql_native_filesystem_root_finalize(void *value) {
   free(root->error);
   free(root->close_error);
   free(root->census_cleanup_error);
+  free(root->namespace_cleanup_error);
   root->error = NULL;
   root->close_error = NULL;
   root->census_cleanup_error = NULL;
+  root->namespace_cleanup_error = NULL;
   free(root->custody_path);
   root->custody_path = NULL;
 }
@@ -546,6 +561,11 @@ int32_t actql_native_filesystem_root_close(
     // The Root fd close does not acknowledge a consumed census descriptor.
     actql_replace_bounded_error(&root->close_error, root->diagnostic_ceiling,
       root->census_cleanup_error);
+    return -1;
+  }
+  if (root->namespace_cleanup_unconfirmed) {
+    actql_replace_bounded_error(&root->close_error, root->diagnostic_ceiling,
+      root->namespace_cleanup_error);
     return -1;
   }
   root->close_result = 1;
@@ -748,6 +768,148 @@ static bool actql_private_root_namespace(
   return close(descriptor) == 0 && matches;
 }
 
+// Additive package namespace observation. Unlike the legacy private-mode walk,
+// every temporary close is observed and an Unknown stays on the same Root.
+static bool actql_package_namespace_close(
+  actql_native_filesystem_root *root, int descriptor
+) {
+  int result = close(descriptor), error_number = errno;
+  if (root->test_namespace_close_failures > 0) {
+    root->test_namespace_close_failures--;
+    result = -1; error_number = EIO;
+  }
+  if (result == 0) return true;
+  root->namespace_cleanup_unconfirmed = true;
+  actql_replace_bounded_errno_error(&root->namespace_cleanup_error,
+    root->diagnostic_ceiling, "close package namespace observation", error_number);
+  actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
+    root->namespace_cleanup_error);
+  return false;
+}
+
+static int actql_package_namespace_walk(actql_native_filesystem_root *root) {
+  if (root->custody_path == NULL) return -1;
+  size_t length = strlen(root->custody_path);
+  if (length <= 1 || length > 4096 || root->custody_path[0] != '/' ||
+      root->custody_path[length - 1] == '/') return -1;
+  char *text = strdup(root->custody_path);
+  if (text == NULL) return -1;
+  // Validate the whole selected original path before acquiring any descriptor.
+  for (char *part = text + 1; *part != '\0';) {
+    char *end = strchr(part, '/');
+    size_t size = end == NULL ? strlen(part) : (size_t)(end - part);
+    if (size == 0 || (size == 1 && part[0] == '.') ||
+        (size == 2 && part[0] == '.' && part[1] == '.')) {free(text); return -1;}
+    if (end == NULL) break;
+    part = end + 1;
+  }
+  int current = open("/", O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+  for (char *part = text + 1; current >= 0 && *part != '\0';) {
+    char *end = strchr(part, '/');
+    if (end != NULL) *end = '\0';
+    int next = openat(current, part, O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW);
+    if (!actql_package_namespace_close(root, current)) {
+      if (next >= 0) actql_package_namespace_close(root, next);
+      free(text); return -2;
+    }
+    current = next;
+    if (end == NULL) break;
+    part = end + 1;
+  }
+  free(text);
+  return current;
+}
+
+static bool actql_observed_directory_matches(
+  actql_native_observed_directory_stat *original, const struct stat *current
+) {
+  return S_ISDIR(current->st_mode) && current->st_nlink > 0 &&
+    (uint64_t)current->st_dev == original->device &&
+    (uint64_t)current->st_ino == original->inode && current->st_mode == original->mode &&
+    current->st_uid == original->uid && current->st_gid == original->gid;
+}
+
+static int32_t actql_directory_observation_current(
+  actql_native_filesystem_root *root, actql_native_observed_directory_stat *original
+) {
+  if (root == NULL || original == NULL || original->issue_kind != 0)
+    return 1;
+  if (root->census_cleanup_unconfirmed || root->namespace_cleanup_unconfirmed) {
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
+      root->census_cleanup_unconfirmed ? root->census_cleanup_error : root->namespace_cleanup_error);
+    return 3;
+  }
+  if (root->fd < 0) return 1;
+  struct stat opened;
+  if (fstat(root->fd, &opened) != 0 || !actql_observed_directory_matches(original, &opened))
+    return 1;
+  int descriptor = actql_package_namespace_walk(root);
+  if (descriptor == -2) return 3;
+  if (descriptor < 0) return 1;
+  struct stat named;
+  bool matches = fstat(descriptor, &named) == 0 && actql_observed_directory_matches(original, &named);
+  if (!actql_package_namespace_close(root, descriptor)) return 3;
+  return matches ? 0 : 1;
+}
+
+static void actql_observed_directory_stat_finalize(void *value) {
+  (void)value;
+}
+
+void *actql_native_filesystem_observe_directory(actql_native_filesystem_root *root) {
+  actql_native_observed_directory_stat *observation = moonbit_make_external_object(
+    actql_observed_directory_stat_finalize, sizeof(*observation));
+  memset(observation, 0, sizeof(*observation));
+  observation->issue_kind = 1;
+  if (root == NULL) return observation;
+  if (root->census_cleanup_unconfirmed || root->namespace_cleanup_unconfirmed) {
+    actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
+      root->census_cleanup_unconfirmed ? root->census_cleanup_error : root->namespace_cleanup_error);
+    observation->issue_kind = 3;
+    return observation;
+  }
+  if (root->fd < 0) return observation;
+  struct stat original;
+  if (fstat(root->fd, &original) != 0 || !S_ISDIR(original.st_mode) || original.st_nlink == 0)
+    return observation;
+  observation->device = (uint64_t)original.st_dev;
+  observation->inode = (uint64_t)original.st_ino;
+  observation->mode = original.st_mode;
+  observation->uid = original.st_uid;
+  observation->gid = original.st_gid;
+  observation->issue_kind = 0;
+  observation->issue_kind = actql_directory_observation_current(root, observation);
+  return observation;
+}
+
+int32_t actql_native_filesystem_observed_directory_kind(actql_native_observed_directory_stat *value) {
+  return value == NULL ? 1 : value->issue_kind;
+}
+
+int32_t actql_native_filesystem_observed_directory_current(
+  actql_native_filesystem_root *root, actql_native_observed_directory_stat *original
+) {
+  return actql_directory_observation_current(root, original);
+}
+
+void actql_native_filesystem_test_namespace_close_failure(
+  actql_native_filesystem_root *root, int32_t count
+) {
+  if (root != NULL) root->test_namespace_close_failures = count;
+}
+
+int32_t actql_native_filesystem_test_directory_replacement(actql_native_filesystem_root *root) {
+  if (root == NULL || root->fd < 0 || root->custody_path == NULL) return 0;
+  size_t size = strlen(root->custody_path);
+  if (size > 4096 - 6) return 0;
+  char *moved = malloc(size + 7);
+  if (moved == NULL) return 0;
+  snprintf(moved, size + 7, "%s.moved", root->custody_path);
+  int renamed = rename(root->custody_path, moved);
+  free(moved);
+  return renamed == 0 && mkdir(root->custody_path, 0755) == 0;
+}
+
 // A bootstrap parent is not private state: ordinary HOME mode bits and a
 // valid deny-only Darwin ACL may restrict access without granting other users
 // mutation rights. Any allow entry or failed ACL observation remains a refusal.
@@ -930,7 +1092,7 @@ static bool actql_observed_file_root_matches(
   actql_native_filesystem_root *root, actql_native_observed_file_stat *original
 ) {
   if (root == NULL || root->fd < 0 || original == NULL || original->issue_kind != 0 ||
-      root->census_cleanup_unconfirmed) return false;
+      root->census_cleanup_unconfirmed || root->namespace_cleanup_unconfirmed) return false;
   struct stat current;
   return fstat(root->fd, &current) == 0 && S_ISDIR(current.st_mode) &&
     current.st_nlink > 0 && (uint64_t)current.st_dev == original->root_device &&
@@ -945,9 +1107,9 @@ void *actql_native_filesystem_observe_file(
   memset(observation, 0, sizeof(*observation));
   observation->issue_kind = 1;
   if (root == NULL || root->fd < 0) return observation;
-  if (root->census_cleanup_unconfirmed) {
+  if (root->census_cleanup_unconfirmed || root->namespace_cleanup_unconfirmed) {
     actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
-      root->census_cleanup_error);
+      root->census_cleanup_unconfirmed ? root->census_cleanup_error : root->namespace_cleanup_error);
     observation->issue_kind = 3;
     return observation;
   }
@@ -986,9 +1148,9 @@ int32_t actql_native_filesystem_observed_file_current(
   actql_native_filesystem_root *root, moonbit_bytes_t name, int32_t length,
   actql_native_observed_file_stat *original
 ) {
-  if (root != NULL && root->census_cleanup_unconfirmed) {
+  if (root != NULL && (root->census_cleanup_unconfirmed || root->namespace_cleanup_unconfirmed)) {
     actql_replace_bounded_error(&root->error, root->diagnostic_ceiling,
-      root->census_cleanup_error);
+      root->census_cleanup_unconfirmed ? root->census_cleanup_error : root->namespace_cleanup_error);
     return 3;
   }
   if (!actql_observed_file_root_matches(root, original)) return 1;
