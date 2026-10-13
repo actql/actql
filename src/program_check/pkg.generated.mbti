@@ -168,6 +168,10 @@ pub fn diagnostic_cause(CheckDiagnostic) -> LocalConstructionFailure
 
 pub fn diagnostic_expression_range(CheckDiagnostic) -> @expression_text.Range?
 
+pub fn diagnostic_graph_argument_origin(CheckDiagnostic, @stage_syntax.Program, @program_source_builder.Source) -> @frontend_source_map.Origin?
+
+pub fn diagnostic_graph_argument_origin_from_source(CheckDiagnostic, @program_source_builder.Source) -> @frontend_source_map.Origin?
+
 pub fn diagnostic_location(CheckDiagnostic) -> DiagnosticLocation?
 
 pub fn diagnostic_location_path(DiagnosticLocation) -> Array[@source_value.PathSegment]?

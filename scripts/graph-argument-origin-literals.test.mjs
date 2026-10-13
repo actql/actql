@@ -25,3 +25,19 @@ for (const fixture of cases) {
     // never supplies an origin to production diagnostics.
   });
 }
+
+const publicPrefix = 'WITH n AS (SELECT 1 AS node_key), g AS (GRAPH ' +
+  '(NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) ';
+for (const [suffix, start, end, token] of [
+  ["components(kind: 'private-kind-value') |> SELECT component_size", 147, 167, "'private-kind-value'"],
+  ["components(kind: 'weak', max_output_rows: 0) |> SELECT component_size", 172, 173, '0'],
+  ["components(kind: 'weak', max_output_rows: 1.5) |> SELECT component_size", 172, 175, '1.5'],
+  ['subgraph(nodes: [1]) |> node_rows() |> SELECT node_key', 146, 149, '[1]'],
+  ['subgraph(nodes: {ids: []}) |> node_rows() |> SELECT node_key', 146, 155, '{ids: []}'],
+  ['subgraph(nodes: {ids: [], unknown: true}) |> node_rows() |> SELECT node_key', 146, 170, '{ids: [], unknown: true}'],
+]) {
+  test(`Graph public fixture independent UTF-8 vector: ${suffix}`, () => {
+    const source = '/*😀*/\r\n' + publicPrefix + 'FROM g |> ' + suffix;
+    assert.equal(Buffer.from(source).subarray(start, end).toString('utf8'), token);
+  });
+}
