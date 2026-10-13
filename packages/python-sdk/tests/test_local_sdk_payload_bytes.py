@@ -86,10 +86,10 @@ class SDKPayloadBytePortTests(unittest.TestCase):
     def test_chunk_confirmation_is_bounded_fact_and_never_permission_or_cancellation(self):
         core, _, _, _, output, calls, status = self.bridge()
         core._closing = True
-        for count in (0, 8, 65536):
+        for count in (0, 8, 65536, 2**63 - 1):
             status[0] = count
             self.assertEqual(core.confirm_publication_sdk_payload_chunk(output), count)
-        for count in (True, None, 65537):
+        for count in (True, False, None, 8.0, 2**63):
             status[0] = count
             with self.assertRaisesRegex(RuntimeError, 'confirmed byte count'):
                 core.confirm_publication_sdk_payload_chunk(output)
