@@ -14,15 +14,41 @@ import {
   writeFile,
 } from 'node:fs/promises';
 import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {join, resolve, sep} from 'node:path';
 import {createHash} from 'node:crypto';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import {createPublicationContractControlFixture} from
   '../host-common/publication-contract-control.fixture.mjs';
-import {openLocalPublicationStore} from './publication-store.mjs';
+import {openLocalPublicationStore as openActualLocalPublicationStore} from './publication-store.mjs';
 import {preparePrivatePublicationHolding} from
   '../host-common/private-publication-holding.mjs';
+
+const fixtureStores = new Map();
+async function openLocalPublicationStore(configuration, ...arguments_) {
+  const store = await openActualLocalPublicationStore(configuration, ...arguments_);
+  const directory = resolve(configuration.directory);
+  const stores = fixtureStores.get(directory) ?? new Set();
+  stores.add(store);
+  fixtureStores.set(directory, stores);
+  return store;
+}
+
+// Node runs registered after hooks in order. Close each original or reopened
+// Store before removing its directory, rather than erasing its live lock first.
+// A refused close retains the fixture and still fails the test.
+async function removeFixtureDirectory(directory) {
+  const root = resolve(directory);
+  const owned = [...fixtureStores].filter(([path]) =>
+    path === root || path.startsWith(root + sep));
+  for (const [, stores] of owned) {
+    for (const store of stores) {
+      if (!store.status().closed) await store.close();
+    }
+  }
+  await rm(directory, {recursive: true, force: true});
+  for (const [path] of owned) fixtureStores.delete(path);
+}
 
 const contractControl = createPublicationContractControlFixture();
 const limits = Object.freeze({
@@ -75,7 +101,7 @@ async function runStoreChild(source) {
 
 async function fixture(t, options = {}) {
   const directory = await mkdtemp(join(tmpdir(), 'actql-publication-store-'));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  t.after(() => removeFixtureDirectory(directory));
   const configuration = {
     directory,
     storeAuthorityCid: cids.authority,
@@ -98,7 +124,7 @@ async function fixture(t, options = {}) {
 test('unmarked and prior-format Stores are refused without changing files',
   async t => {
     const parent = await mkdtemp(join(tmpdir(), 'actql-store-format-'));
-    t.after(() => rm(parent, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(parent));
     const configuration = directory => ({
       directory, storeAuthorityCid: cids.authority,
       capacityBytes: 1024 * 1024, maxObjectBytes: 64 * 1024,
@@ -976,7 +1002,7 @@ test('restart reclaims an unpublished prepared Result schema', async t => {
   const directory = await mkdtemp(join(
     tmpdir(), 'actql-publication-schema-crash-',
   ));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  t.after(() => removeFixtureDirectory(directory));
   const configuration = {
     directory,
     storeAuthorityCid: cids.authority,
@@ -1020,7 +1046,7 @@ test('restart resumes schema cleanup after alias unlink before sync',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-schema-unlink-crash-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -1078,7 +1104,7 @@ test('prepared schema cleanup retains capacity across sync failure',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-schema-sync-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     let failContractSync = false;
     const durability = Object.freeze({
       async syncDirectory(path) {
@@ -1123,7 +1149,7 @@ test('schema preparation failure keeps exact retryable cleanup custody',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-schema-prepare-fault-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     let failContractSync = false;
     const durability = Object.freeze({
       async syncDirectory(path) {
@@ -1169,7 +1195,7 @@ test('schema cleanup retry never deletes a replacement allocation',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-schema-replacement-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     let failObjectSync = false;
     const durability = Object.freeze({
       async syncDirectory(path) {
@@ -1241,7 +1267,7 @@ test('prepared cleanup resumes directory sync after its exact unlink',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-cleanup-sync-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const objects = join(directory, 'objects');
     let failObjectSync = false;
     let objectSyncs = 0;
@@ -1304,7 +1330,7 @@ test('seal failure removes its staging alias before reclaiming custody',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-seal-custody-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const objects = join(directory, 'objects');
     let remainingObjectSyncFailures = 0;
     const durability = Object.freeze({
@@ -1524,7 +1550,7 @@ test('restart reclaims a prepared payload abandoned by process exit',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-prepared-crash-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -1577,7 +1603,7 @@ test('restart reclaims a semantic object from a pre-link process crash',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-semantic-crash-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -1642,7 +1668,7 @@ test('crash custody cannot reclaim a committed shared allocation',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-shared-custody-crash-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -1818,7 +1844,7 @@ test('delivery record durability retries the exact visible record', async t => {
   const directory = await mkdtemp(join(
     tmpdir(), 'actql-delivery-record-durability-',
   ));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  t.after(() => removeFixtureDirectory(directory));
   const deliveries = join(directory, 'deliveries');
   let failRecordSync = false;
   let recordSyncFailures = 0;
@@ -2375,7 +2401,7 @@ test('metadata retirement retains capacity until durability retry', async t => {
   const directory = await mkdtemp(join(
     tmpdir(), 'actql-publication-metadata-retry-',
   ));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  t.after(() => removeFixtureDirectory(directory));
   const objects = join(directory, 'objects');
   let objectSyncFailures = 0;
   const durability = Object.freeze({
@@ -2676,7 +2702,7 @@ test('Result retirement retains capacity until object durability retry',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-retirement-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -2751,7 +2777,7 @@ test('restart reconciles a retired Result after unlink response is lost',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-retirement-restart-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -2883,7 +2909,7 @@ test('visible index is not committed until directory durability is confirmed',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-durability-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -2955,7 +2981,7 @@ test('committed payload custody remains retryable after cleanup failure',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-custody-retry-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -3026,7 +3052,7 @@ test('confirmed non-commit releases custody before prepared reclamation',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-publication-noncommit-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -3145,7 +3171,7 @@ test('restart reclaims terminal uncommitted publication metadata', async t => {
   const directory = await mkdtemp(join(
     tmpdir(), 'actql-publication-uncommitted-metadata-',
   ));
-  t.after(() => rm(directory, {recursive: true, force: true}));
+  t.after(() => removeFixtureDirectory(directory));
   const configuration = {
     directory,
     storeAuthorityCid: cids.authority,
@@ -3688,7 +3714,7 @@ test(`visible physical holdings retry directory durability before success (${nam
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-holding-commit-durability-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
@@ -3919,7 +3945,7 @@ test('physical holding retains capacity until unlink durability retry',
     const directory = await mkdtemp(join(
       tmpdir(), 'actql-transfer-holding-durability-',
     ));
-    t.after(() => rm(directory, {recursive: true, force: true}));
+    t.after(() => removeFixtureDirectory(directory));
     const configuration = {
       directory,
       storeAuthorityCid: cids.authority,
