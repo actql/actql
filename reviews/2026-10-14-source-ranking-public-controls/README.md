@@ -1,0 +1,57 @@
+# Installed Source controls for max/weighted ranking
+
+This test-only child depends on the SourceView score-admission change #1930 at
+`7454f01b69aec85ee692ddd2f458543f0ceb2842`. The parent submission is unchanged.
+It prepares the existing max/weighted completion boundary. It does not implement
+an evaluator or establish installed-product execution evidence.
+
+## Inputs and expectations
+
+The original independent control supplies left `{id:1,s:0.5}` and right
+`{id:2,s:0.5}`. SourceView facts assert the original unique `id` and field-scoped
+Relevance/Identity/[0,1] score `s`. Two distinct original Sources are necessary;
+neither is a private captured-local snapshot.
+
+Six normal declarations cover the two adopted policies through JSON, Pipe and
+WITH/SQL. Weighted 0.5/0.5 produces scores 0.25; max produces scores 0.5. The tie
+order is IDs 1,2 and the full ordered schema is non-null Number id/score/rank.
+All these controls acquire each original Source once. The frontend JSON Program
+has two connector inputs and therefore two Source reads; physical JSON pages
+are a transport encoding, not the source-free Vector JSON control's zero-fetch
+qualification. Four static refusals test an undeclared `id` score assertion and
+an incompatible normalization for both policies, with zero Source reads.
+
+These declarations are preparation only. Nothing has yet lowered or executed
+these texts through the installed product. They do not replace the unchanged
+Vector 9717 12+8 acceptance matrix or the already completed RRF cohort.
+
+## Existing installation owner
+
+`source-ranking-installed-source.mjs` uses the normal exported connector table,
+RowDeclaration restore, Check Environment, authorization, credential Site,
+RowSource and capture owners. The supplier sends only raw 0.5 rows and never
+produces ranking results. Original source field order, exact charge ticket,
+page admission refusal and cancellation are preserved. Resource-specific read
+operations prevent the right Source from inheriting the left operation.
+
+The actual `clientProgramRowSourceDeclarationJson` implementation exposes
+Resource/source_ref/view_cid for each declared view. SourceView body array order
+is a Catalog identity order, so query aliases match exact `view_cid`, never array
+position or ResourceKind. The two Source schemas/facts have independent SHA-256
+preimages embedded in the fixture and checked against the original corpus.
+
+## Executed and pending
+
+At fixed `2cdcb9b9569921894ff06571ae0eee39c67314bc`, Node-only `run-EwLVwq`
+executed 7/7 cases through the existing 60-second/TERM5 non-Heavy guard. The alias
+projection case uses a clearly marked mock declaration with reversed view bodies;
+it is not Catalog admission, Runtime or Host acceptance. Raw receipts are retained
+in the shared workspace `reviews/2026-10-14-b-source-ranking-score-evidence`.
+A subsequent immutable-view-spec change does not inherit this test result as a
+new-source pass; its same targeted check remains to be executed.
+
+Public worker/delivery and registry-installed Local/HTTPS execution remain
+pending the parent's focused admission/API checks and a separately allocated
+normal four-package cohort. No producer, consumer, compiler, Native, Heavy,
+real Provider or hosted CI started here. Calendar and the current Vector SQL
+publication failure remain separate; this unit does not diagnose either.

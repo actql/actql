@@ -22,10 +22,10 @@ export const sourceRankingSchemaCid = 'sha256:fdba6c82573c5300c291282e13cea75bfe
 export const sourceRankingFactsWire = '{"relation_keys":{"candidate_keys":[["id"]]},"relation_scores":{"s":{"domain":"Relevance","normalization":"Identity","range":[0,1]}}}';
 export const sourceRankingFactsCid = 'sha256:a261bd122e81c9c3e3f1bb638782d50c3f014b746ec64da74b2871e1110c89ce';
 const resources = ['left', 'right'];
-export const sourceRankingViewSpecification = Object.freeze({views: resources.map(resource => ({
+export const sourceRankingViewSpecification = Object.freeze({views: Object.freeze(resources.map(resource => Object.freeze({
   resource, resource_kind: 'table', schema_wire: sourceRankingSchemaWire,
   schema_cid: sourceRankingSchemaCid, facts_wire: sourceRankingFactsWire,
-}))});
+})))});
 export const sourceRankingReadOperations = Object.freeze(Object.fromEntries(
   resources.map(resource => [resource, `score_fixture:${resource}:read`])));
 
