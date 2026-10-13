@@ -13,8 +13,9 @@ const frozen = value => value !== null && typeof value === 'object' && Object.is
 function snapshot(value, fields, code) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) fail(code);
   const names = Reflect.ownKeys(value);
-  if (names.some(name => typeof name !== 'string') ||
-      names.slice().sort().join(',') !== [...fields].sort().join(',')) fail(code);
+  const expected = [...fields].sort();
+  if (names.some(name => typeof name !== 'string') || names.length !== expected.length ||
+      names.slice().sort().some((name, index) => name !== expected[index])) fail(code);
   return Object.freeze(Object.fromEntries(names.map(name => {
     const descriptor = Object.getOwnPropertyDescriptor(value, name);
     if (descriptor?.enumerable !== true || !Object.hasOwn(descriptor, 'value')) fail(code);
@@ -31,6 +32,9 @@ function snapshotArray(value, maximum, code) {
   const names = Reflect.ownKeys(value);
   if (names.length !== count + 1 || names.some(name => typeof name !== 'string') ||
       !names.includes('length')) fail(code);
+  for (let index = 0; index < count; index++) {
+    if (!names.includes(String(index))) fail(code);
+  }
   const result = [];
   for (let index = 0; index < count; index++) {
     const descriptor = Object.getOwnPropertyDescriptor(value, String(index));
