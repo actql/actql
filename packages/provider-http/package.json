@@ -2,9 +2,10 @@
   "name": "@actql/provider-http",
   "version": "0.0.0-development",
   "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "engines": {"node": ">=22"},
-  "exports": {},
-  "files": ["_internal", "README.md"],
+  "exports": {".": {"types": "./index.d.ts", "default": "./index.mjs"}},
+  "files": ["_internal", "index.mjs", "index.d.ts", "LICENSE", "README.md"],
   "dependencies": {}
 }
