@@ -709,6 +709,8 @@ class LocalCore:
         self._physical_holding = _physical_holding
         self._physical_image: _NativeImageHolding | None = None
         try:
+            if self._physical_holding is not None:
+                self._physical_holding._transfer_to_core(self._identity)
             with self._native_scope():
                 # Keep an already supplied holding through optional import failure.
                 # Remote-only imports never initialize the optional engine.

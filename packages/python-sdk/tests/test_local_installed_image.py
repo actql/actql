@@ -91,6 +91,19 @@ class NativeScope:
         return code
 
 
+class NativeTransfer:
+    """Original native acquire context double, not a Python acceptance supplier."""
+
+    def __init__(self):
+        self.calls = []
+        self.reply = 0
+
+    def __call__(self, pointer, generation, recipe):
+        self.calls.append((pointer.value, generation, bytes(recipe)))
+        if isinstance(self.reply, BaseException): raise self.reply
+        return self.reply
+
+
 class InstalledImageTests(unittest.TestCase):
     def setUp(self):
         self.recipe = _recipe_from_original(ORIGINAL, source_sha='a' * 40,
@@ -292,9 +305,10 @@ class InstalledImageTests(unittest.TestCase):
         state = SimpleNamespace(depth=0, events=[], enter_replies=[], leave_replies=[])
         library = SimpleNamespace(actql_owned_try_close=retire,
             actql_owned_enter=NativeScope(state, 'enter'),
-            actql_owned_leave=NativeScope(state, 'leave'), scope=state)
+            actql_owned_leave=NativeScope(state, 'leave'), scope=state,
+            actql_owned_transfer=NativeTransfer())
         original = c_void_p(123)  # Independent pointer scalar, not an allocation.
-        holding = _NativeHoldingLease(original, library)
+        holding = _NativeHoldingLease(original, library, generation=7, recipe=b'r' * 32)
         self.assertIsNone(original.value)
         return holding, library
 
@@ -381,8 +395,9 @@ class InstalledImageTests(unittest.TestCase):
         retire = NativeRetirement(self.events, [(0, True)])
         library = SimpleNamespace(actql_owned_try_close=retire)
         slot = c_void_p(123)
-        holding = _NativeHoldingLease(slot, library)
-        with self.assertRaises(ValueError): _NativeHoldingLease(slot, library)
+        holding = _NativeHoldingLease(slot, library, generation=7, recipe=b'r' * 32)
+        with self.assertRaises(ValueError):
+            _NativeHoldingLease(slot, library, generation=7, recipe=b'r' * 32)
         with self.assertRaises(TypeError): copy(holding)
         with self.assertRaises(TypeError): deepcopy(holding)
         holding.close(); holding.close()

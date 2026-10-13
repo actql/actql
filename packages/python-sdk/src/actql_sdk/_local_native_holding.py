@@ -5,7 +5,7 @@ This adapter neither loads a DLL nor acquires/adopts an allocator or profile.
 """
 from __future__ import annotations
 
-from ctypes import byref, c_int, c_void_p, POINTER
+from ctypes import byref, c_int, c_void_p, c_uint64, c_ubyte, POINTER
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
@@ -27,6 +27,14 @@ class NativeHoldingScopeError(RuntimeError):
         super().__init__(f'Native Local holding {operation} failed or is unconfirmed')
 
 
+class NativeHoldingTransferError(RuntimeError):
+    """Physical transfer is denied or unknown, never an Engine or Run permission."""
+
+    def __init__(self, code: int | None) -> None:
+        self.code = code
+        super().__init__('Original native holding transfer failed or is unconfirmed')
+
+
 class _NativeHoldingLease:
     """Private owner of a previously acquired opaque native holding pointer.
 
@@ -36,11 +44,15 @@ class _NativeHoldingLease:
     No Python ledger, quota, cleanup scheduler or Root is created here.
     """
 
-    __slots__ = ('_pointer', '_try_close', '_library', '_core_identity')
+    __slots__ = ('_pointer', '_try_close', '_library', '_core_identity',
+                 '_generation', '_recipe', '_transfer_attempted')
 
-    def __init__(self, pointer: c_void_p, library: Any) -> None:
+    def __init__(self, pointer: c_void_p, library: Any, *, generation: int, recipe: bytes) -> None:
         if type(pointer) is not c_void_p or pointer.value is None:
             raise ValueError('Unavailable original native holding')
+        if (type(generation) is not int or not 0 < generation <= 2**64 - 1
+                or type(recipe) is not bytes or len(recipe) != 32):
+            raise ValueError('Invalid original native holding acquisition context')
         retire = library.actql_owned_try_close
         retire.argtypes = [POINTER(c_void_p)]
         retire.restype = c_int
@@ -49,6 +61,10 @@ class _NativeHoldingLease:
         self._pointer = c_void_p(pointer.value)
         self._try_close = retire
         self._core_identity: object | None = None
+        # These are the original acquire supplier's facts. Do not derive them
+        # from SDK input, a new random epoch, a current config or permission.
+        self._generation, self._recipe = generation, recipe
+        self._transfer_attempted = False
         # Move the trusted supplier's owning slot exactly once. A second wrapper
         # cannot consume that same slot. Arbitrary raw pointers are not trusted.
         pointer.value = None
@@ -63,6 +79,20 @@ class _NativeHoldingLease:
         if self._core_identity is not None or self._pointer.value is None:
             raise ValueError('Original native holding was already transferred or retired')
         self._core_identity = identity
+
+    def _transfer_to_core(self, identity: object) -> None:
+        """Observe the original native transfer once, after Core takes custody."""
+        if (identity is not self._core_identity or self._pointer.value is None
+                or self._transfer_attempted):
+            raise ValueError('Original native holding transfer is unavailable')
+        self._transfer_attempted = True
+        transfer = self._library.actql_owned_transfer
+        transfer.argtypes = [c_void_p, c_uint64, POINTER(c_ubyte)]
+        transfer.restype = c_int
+        recipe = (c_ubyte * 32).from_buffer_copy(self._recipe)
+        code = transfer(self._pointer, self._generation, recipe)
+        if type(code) is not int or code != 0:
+            raise NativeHoldingTransferError(code if type(code) is int else None)
 
     def _verify_library(self, library: Any) -> None:
         if library is not self._library:
