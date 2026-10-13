@@ -46,6 +46,26 @@
       "path": "packages/native-cli/bin/actql.mjs",
       "sha256": "f6ae0af9f034df731614300ecb19244a61b495a54afedd983628fa83360c789d",
       "blob": "6c2d550350b42f85be063d340423df3418e1656c"
+    },
+    {
+      "path": "src/platform_native/client_host/run_journal.mbt",
+      "sha256": "3900a7075241766ec4cf5a5f9967701b6849b756c37dc54e104e584050b81e34",
+      "blob": "93da7fc203eefb14371a0665856d0a0b3d129db5"
+    },
+    {
+      "path": "src/platform_native/client_host/local_current_material.mbt",
+      "sha256": "787248453996011ecd179321bee1e3903fc9d978248a493d4d631bf912c042b5",
+      "blob": "615812fa6c350b20d9b815dc3edc6cb3a2479564"
+    },
+    {
+      "path": "src/platform_native/client_host/local_journal.mbt",
+      "sha256": "5562db525274c05d684b9fe6eef1c68594a52becadd962761c60be50482286e9",
+      "blob": "34b85b81b410d4c353ffc3b4610bc953346d29bc"
+    },
+    {
+      "path": "src/platform_native/client_host/local_settings.mbt",
+      "sha256": "4a11654c8f5332b9ca2d0c1fb49404ad89e5420f48cf5923dbc79a9cd3ff1418",
+      "blob": "215f2199b50b59ce3c6a9a92b277d38ece0f0690"
     }
   ],
   "adoption": false,
@@ -56,5 +76,10 @@
   "keyPublicKeyIdentity": "separate proposal pending",
   "classification": "Acceptance extension proposal; source diagnosis clarification only",
   "independentSizingAssertions": "4344/5902 representative; maximum operation5079/6882; issued1+1=2<=min(8,7+1), reservation16384<=65536. Original settings51999 bytes are separate actual DB bodies, not capacity_sum.",
-  "fullPackagePortGap": "Existing Native runtime witness covers10 library/asset/license members plus manifest; Node verifies binary separately. A trusted typed complete-product projection is required, not assumed implemented."
+  "fullPackagePortGap": "Existing Native runtime witness covers10 library/asset/license members plus manifest; Node verifies binary separately. A trusted typed complete-product projection is required, not assumed implemented.",
+  "followupSourceFacts": [
+    "NativeClientRunJournalIssue has UnsupportedPreparation/CustodyLost/AuthorizationDenied/ChangedIntent, no Unavailable variant.",
+    "authority_scope_cid/authorize use adopted_current_material -> current_adoption_material -> check_binding; that check retains closed/runtime physical generation/fenced/original settings/DB/adoption singleton validation. These functions do not directly call installation_custody. This is source evidence, not runtime/no-cycle proof of the proposed added visitor.",
+    "Original lookup performs installation_custody and complete original decoding before the operation-id ChangedIntent comparison."
+  ]
 }

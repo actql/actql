@@ -5,37 +5,37 @@
     {
       "name": "changed original body or packet digest",
       "change": "original_upgrade_cid or original_upgrade_packet_sha256 differs from independently authenticated old row",
-      "expected": "CustodyLost/ChangedIntent; no append"
+      "expected": "CustodyLost; no append. ChangedIntent applies only after the retained original is fully authentic."
     },
     {
       "name": "missing or altered prior full manifest",
       "change": "prior_runtime_wire does not hash to saved old pair.current_manifest_sha256",
-      "expected": "Unavailable/CustodyLost; no recapture from current"
+      "expected": "CustodyLost for saved altered/missing linked dependency; UnsupportedPreparation for unavailable pre-append trusted acquisition. No recapture."
     },
     {
       "name": "different old correspondence",
       "change": "prior_pair_sha256 differs from exact authenticated field12",
-      "expected": "ChangedIntent; no original lookup re-label"
+      "expected": "CustodyLost for forged saved pair binding; ChangedIntent only for a fully valid original with a different retained intent."
     },
     {
       "name": "unknown predecessor/profile",
       "change": "not exact retained109\u2192a3b primitive-scalar-values",
-      "expected": "Unavailable"
+      "expected": "UnsupportedPreparation; no new enum or generalized compatibility."
     },
     {
       "name": "physical package or library/ABI/license/closure/asset mismatch",
       "change": "opaque whole-package witness or finite compatibility fails",
-      "expected": "Refused; metadata hashes alone never Allow"
+      "expected": "CustodyLost for changed bound physical generations/bytes; UnsupportedPreparation for a non-admitted profile. No metadata-only Allow."
     },
     {
       "name": "caller proof or Boolean only",
       "change": "no opaque Owner-produced full-package/dependency context",
-      "expected": "Unavailable"
+      "expected": "No callable public factory; private acquisition without trusted capability returns UnsupportedPreparation."
     },
     {
       "name": "current permission revoked before or after callback",
       "change": "current run:submit/publish/read or same scope check denies",
-      "expected": "Refused; any committed original stays immutable/Unknown until same lookup"
+      "expected": "AuthorizationDenied at its current fence; no receipt or disclosure. Uncertain committed outcome stays Unknown until same lookup."
     },
     {
       "name": "same operation different intent",
@@ -55,7 +55,7 @@
     {
       "name": "old deadline/read selection mutation",
       "change": "new proposal attempts old Policy/Run/grant date change",
-      "expected": "Refused"
+      "expected": "Closed record rejects unknown fields; CustodyLost on restore. A valid saved intent mismatch returns ChangedIntent."
     },
     {
       "name": "acknowledgement lost",
@@ -63,5 +63,24 @@
       "expected": "Unknown then same original operation lookup only; no new attempt/append/HMAC reissue"
     }
   ],
-  "executedOwnerTests": 0
+  "executedOwnerTests": 0,
+  "existingJournalIssueType": "src/platform_native/client_host/run_journal.mbt: NativeClientRunJournalIssue",
+  "priorityScenariosUnexecuted": [
+    {
+      "case": "malformed saved body + different operation",
+      "expected": "CustodyLost before ChangedIntent"
+    },
+    {
+      "case": "initial current deny + malformed saved body",
+      "expected": "AuthorizationDenied; no private disclosure"
+    },
+    {
+      "case": "all rows valid + same original operation absent",
+      "expected": "Ok(None), unresolved; no resend permission"
+    },
+    {
+      "case": "all rows valid + final current deny",
+      "expected": "AuthorizationDenied; no retained receipt returned"
+    }
+  ]
 }

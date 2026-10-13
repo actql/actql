@@ -24,5 +24,6 @@
     "productOrOwnerExecution": false,
     "correction": "Compare the independently canonicalized sorted-key wire; no vector or policy value changed."
   },
-  "checksClassification": "Python read-only source/digest/structural sizing assertions only; planned Owner vectors were not executed."
+  "checksClassification": "Python read-only source/digest/structural sizing assertions only; planned Owner vectors were not executed.",
+  "followup": "Existing NativeClientRunJournalIssue and original lookup priority inspected read-only; precise issue-routing/priority scenarios added without production adoption."
 }

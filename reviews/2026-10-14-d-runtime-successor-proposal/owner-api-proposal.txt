@@ -16,7 +16,7 @@ These are references to actual owned material, not Caller CIDs/Bools or permissi
 Acquisition:
   prepare_runtime_successor_context(host, current_packaged_runtime,
       source_bound_prior_a3b_manifest)
-    -> Result[private context, existing typed issue]
+    -> Result[private context, NativeClientRunJournalIssue]
   - current Account/scope/adoption fence first;
   - bounded exact old row/revision and HMAC dependency read (not Policy Allow);
   - prior manifest hash/source selected from the authenticated old pair;
@@ -42,7 +42,8 @@ Proposed management API:
     -> Result[immutable successor receipt, existing journal/refusal issue]
   NativeLocalHostConnection::lookup_runtime_successor(
       crypto, principal, connection, operation_id)
-    -> Result[OriginalSuccessor | UnresolvedHistory, existing issue]
+    -> Result[successor receipt?, NativeClientRunJournalIssue]
+  None retains unresolved history; it is not nonexecution or resend permission.
   No attempt_id, new grant, renewal duration, new policy profile or clock input.
 
 Append transaction:
@@ -94,3 +95,36 @@ Affected files if adopted (not edited now):
 No immediate changes to Source, Model, Effect, signing issuer or ReadPolicy
 meaning. The existing Local read history, same request, grant/use, expiration,
 retention and cleanup Owners remain the only authorities.
+
+Exact existing issue routing (proposal only):
+  Invalid operation (empty/>128 UTF16 units/NUL) -> InvalidSubmission before I/O.
+  Current scope/Account denial -> AuthorizationDenied at the existing fences.
+  Missing trusted whole-product capability or unsupported finite profile
+    -> UnsupportedPreparation, not a new Journal.Unavailable enum.
+  Broken HMAC/canonical body/CID/linked prior manifest/pair/reservation/counter
+    or unknown role -> CustodyLost. A caller-supplied raw context has no factory.
+  Fully authenticated retained original with another operation/exact intent
+    -> ChangedIntent; do not compare intent before complete original validation.
+  Exact payload/slot/relative-count/reservation ceiling shortage
+    -> CapacityExceeded; original closed codec failures retain Encoding on build
+    and CustodyLost on restore. Physical/epoch failure retains Physical/Epoch.
+  TransactionUnknown or lost reply preserves Unknown at the caller; never map
+    absence (Ok(None)) to retry authorization. Cleanup carries its original
+    physical failure/retry responsibility and is not inferred from receipt.
+
+Refusal priority to keep: valid operation -> initial current -> TX current ->
+all-row custody -> authentic linked original -> retained operation/intent ->
+capacity/append -> existing final current. Malformed saved record plus a wrong
+operation returns CustodyLost, not ChangedIntent. Initial current denial
+prevents disclosure even when a private malformed record exists. A denial at
+the final fence must not return an earlier receipt. These are unexecuted
+priority scenarios, not proof of changed common semantics.
+
+Existing current acquisition (base9ee, inspected only):
+  authority_scope_cid / authorize -> adopted_current_material ->
+  current_adoption_material -> check_binding. That fence checks closed/current
+  packaged physical generation/transaction fence/original selection and staging/
+  exact DB ownership/settings retention/adoption singleton. It does not directly
+  invoke installation_custody; preserve it unchanged before dependency reads.
+  The new visitor must still avoid indirect recursion; this static path is not
+  execution or a proof that the proposed context is constructible.
