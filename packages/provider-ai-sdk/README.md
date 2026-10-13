@@ -26,7 +26,9 @@ const registerModelProviders = createInstalledOpenAIChatRegistration(trustedHost
 ```
 
 `npm-shrinkwrap.json` preserves the exact existing SDK dependency lock closure
-for an external installation; the original profile's lock artifact remains the
+for an external installation. The package explicitly constrains its Zod peer to
+the original4.6.5; a newly resolved peer is not interchangeable with that lock.
+The original profile's lock artifact remains the
 unchanged `package-lock.json` bytes. No packages are fetched implicitly from a
 Program/URI. Registry publication, supported numerical installation, public
 Local/HTTPS Named Result and real OpenAI acceptance remain unfinished.

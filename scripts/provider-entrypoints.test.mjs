@@ -40,6 +40,8 @@ test('external SDK shrinkwrap preserves the exact original dependency bytes', ()
   const lock = JSON.parse(original);
   assert.equal(lock.packages['node_modules/@ai-sdk/openai'].version, '4.0.91');
   assert.equal(lock.packages['node_modules/@ai-sdk/typesafe-ai'].version, '3.0.13');
+  const manifest = JSON.parse(readFileSync(new URL('../packages/provider-ai-sdk/package.json', import.meta.url)));
+  assert.deepEqual(manifest.peerDependencies, {zod: lock.packages['node_modules/zod'].version});
   for (const [name, entry] of Object.entries(lock.packages)) {
     if (name === '') continue;
     assert.match(entry.resolved, /^https:\/\/registry\.npmjs\.org\//u);
