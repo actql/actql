@@ -92,6 +92,7 @@ pub fn borrow_client_original_keyed_captured_ledger(
   prepared : PreparedClientProgram,
   keyed : ClientKeyedAcquisition,
   source : @query.CapturedInputSource,
+  prefix? : @resources.Reservation? = None,
 ) -> Result[@resources.Ledger, ClientModelReadPreparationIssue] {
   if !client_model_origin_matches(scope.origin, compiled, definition, plan) ||
     !client_compiled_run_matches(compiled, prepared) ||
@@ -120,7 +121,10 @@ pub fn borrow_client_original_keyed_captured_ledger(
   }
   // Source liveness can synchronously stop/reenter; only the current census
   // AFTER that callback can authorize this Core borrow.
-  if !@resources.original_ledger_captured_preparation_available(scope.identity) {
+  if !@resources.original_ledger_captured_preparation_available(
+      scope.identity,
+      prefix~,
+    ) {
     return Err(Resource(@resources.ChangedOriginalState))
   }
   Ok(scope.ledger)
@@ -181,6 +185,7 @@ pub fn borrow_client_original_keyed_child(
   keyed : ClientKeyedAcquisition,
   lookup : ClientKeyedLookupInput,
   request : ClientKeyedRequest,
+  prefix? : @resources.Reservation? = None,
 ) -> Result[
   (
     @resources.Ledger,
@@ -220,6 +225,7 @@ pub fn borrow_client_original_keyed_child(
       scope.ledger,
       lookup.reservation,
       lookup.known.length(),
+      prefix~,
     ) else {
     return Err(Assembly("original_child_custody_changed"))
   }
