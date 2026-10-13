@@ -2091,7 +2091,7 @@ fn having_column(
 // capture port but before publishing its cross-stage Result. The common
 // checker still owns the projected schema and publication-order obligation.
 priv struct SourceProjectionCapture {
-  alias : String
+  projection_name : String
   mut steps : Array[@builder.Node]
   mut fields : Array[String]
   mut count : Int
@@ -6721,7 +6721,7 @@ fn compile_steps(
           }
         })
         prefix[prefix.length() - 1].push(
-          ("as", construction.text(capture.alias)),
+          ("as", construction.text(capture.projection_name)),
         )
         capture.steps = prefix.map(entries => construction.object(entries))
         capture.fields = output.copy()
@@ -6906,7 +6906,7 @@ fn capture_source_boundary(
   ])
   let (publication_from, publication_fields, continuation) = match projection {
     Some(projection) if projection.count > 0 =>
-      (projection.alias, projection.fields, projection.steps)
+      (projection.projection_name, projection.fields, projection.steps)
     _ => ("aql_capture_0", fields, [])
   }
   let capture_result = construction.object([
@@ -7082,7 +7082,7 @@ pub fn compile_with_source(
       dependencies.is_empty() &&
       source_projection_capture_query(query) {
       Some({
-        alias: pipe_physical_name(
+        projection_name: pipe_physical_name(
           fields + [input.name],
           "aql_capture_projection_",
         ),
