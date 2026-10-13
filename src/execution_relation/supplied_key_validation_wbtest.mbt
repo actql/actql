@@ -78,7 +78,7 @@ test "supplied key cursor rejects short work and workspace without leaking entri
     let mut rejected = false
     for _ in 0..<1000 {
       match advance_supplied_key_validation(validation, 1).unwrap() {
-        @bounded.ContinueWith(..) => ()
+        @bounded.ContinueWith(_, ..) => ()
         @bounded.FailedWith(Limit, ..) => {
           rejected = true
           break
@@ -124,7 +124,7 @@ test "supplied key cursor cancellation retires partial text and preserves borrow
   for _ in 0..<1000 {
     assert_true(
       advance_supplied_key_validation(validation, 1)
-      is Ok(@bounded.ContinueWith(..)),
+      is Ok(@bounded.ContinueWith(_, ..)),
     )
     if validation.state.phase is AtomCharge &&
       validation.state.text_charge.offset > 0 {
@@ -175,7 +175,7 @@ test "supplied key cursor rejects a narrowed unavailable input before continuing
     .unwrap()
   assert_true(
     advance_supplied_key_validation(validation, 1)
-    is Ok(@bounded.ContinueWith(..)),
+    is Ok(@bounded.ContinueWith(_, ..)),
   )
   available.val = false
   assert_true(

@@ -23,7 +23,8 @@
     "run-COGgSR: WB match-arm comma compilation failure; acquisition8 not reached",
     "run-ZiVUsg synthetic connector registration/version violates existing declaration contract; all8 runtime cases not reached",
     "run-4f4Z70 select arithmetic fixture violates select input-field grammar; bounded duplicate raw input not rejected before filter completion",
-    "run-dgMiMo stopped bounded duplicate reader resumed during pending cleanup; original typed duplicate rejection reached, cleanup failed"
+    "run-dgMiMo stopped bounded duplicate reader resumed during pending cleanup; original typed duplicate rejection reached, cleanup failed",
+    "run-l1DXsQ ContinueWith token positional argument missing in new WB patterns; no runtime tests executed"
   ],
   "unexecuted": [
     "successful acquisition8 and installed bounded key-validation connection",
@@ -56,10 +57,15 @@
     "92d946a16a1f0dbdb67a222c56cebe3ec5dbdd3f": {
       "acquisition": "run-dgMiMo actualJS8=7 passed/1 failed, compile succeeded, exit2",
       "qualification": "Installed component now produces exact InputKey duplicate refusal, but subsequent cleanup advance resumes a stopped wrapper and rejects; not public acceptance"
+    },
+    "45f8a1d28ec0b7d4bac1a19ad3c3b40464ce1e33": {
+      "acquisition": "run-E2eFGW actualJS8/8 complete exit0",
+      "keycursor": "run-l1DXsQ test-only ContinueWith arity compile exit1; executed0",
+      "qualification": "Real component whole-page/key/filter/projection/reread/cancellation/custody assertions passed at this source; external installed matrix still0"
     }
   },
   "pendingRuntimeRepair": {
-    "status": "92d compile/acquisition7/8 evidence retained; cleanup child prepared, not executed",
+    "status": "45f8 acquisition8/8 passed; WB-pattern child prepared, new keycursor execution pending",
     "files": [
       "src/execution_relation/input_keys.mbt",
       "src/connectors/local/guarded_relation.mbt"
