@@ -1,13 +1,49 @@
 ///|
 fn original_keyed_content_workspace() -> ClientSerializationWorkspaceLimits {
-  let original = content_workspace_fixture()
+  // This three-row Content fixture supplies its own finite export bounds.
+  // The independent tiny capacity fixture (schema bytes17, value bytes7) is
+  // unchanged and is not a valid generation envelope for these reference rows.
   {
-    ..original,
     generation_bytes: 4470,
     generation_nodes: 1000,
     generation_depth: 32,
     generation_frames: 100,
-    export_limits: { ..original.export_limits, max_rows: 3, },
+    identity_slots: 10000,
+    reference_bytes: 16384,
+    reference_nodes: 256,
+    reference_depth: 32,
+    contract_bytes: 100000,
+    contract_nodes: 10000,
+    contract_depth: 100,
+    export_limits: {
+      max_rows: 3,
+      values: source_capture_values(),
+      payload_wire: {
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 64,
+        max_columns: 20,
+        max_order_work: 10000,
+      },
+      logical_wire: {
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 64,
+        max_columns: 20,
+        max_order_work: 10000,
+      },
+      schema: {
+        max_fields: 20,
+        max_bytes: 10000,
+        max_nodes: 1000,
+        max_depth: 64,
+      },
+      max_batch_bytes: 16384,
+      max_result_fields: 20,
+      max_result_mapping_work: 10000,
+      max_result_order_work: 10000,
+      max_result_workspace_entries: 1000,
+    },
   }
 }
 
