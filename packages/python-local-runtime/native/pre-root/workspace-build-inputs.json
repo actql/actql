@@ -1,7 +1,7 @@
 {
   "status": "uncompiled-unadopted-source-preparation",
   "upstream_git_commit": "399f857f28ee8845d0cfd4ec71680912b5375831",
-  "parent": "8a9c87c6de4978d4c363848e9fc486dde23db68a",
+  "parent": "5e6283d7d88bb1e8035bc415c49b3265fb3202ee",
   "target": "aarch64-apple-darwin",
   "deployment_target": "11.0",
   "source_workspace_inputs": [
@@ -72,12 +72,9 @@
   "selected_rust_toolchain": null,
   "selected_macos_sdk": null,
   "proposed_features": [
-    "actql-owned-capacity",
-    "pooling-allocator",
-    "cranelift",
-    "disable-logging"
+    "actql-owned-capacity"
   ],
-  "default_features": false,
+  "default_features": true,
   "feature_closure_accepted": false,
   "native_library_artifact": null,
   "image_recipe_accepted": false,
@@ -89,7 +86,7 @@
     "all native C API calls and reentry require original lease scopes",
     "image FD capture candidate uncompiled; SDK-to-native pointer/deserializer call unconnected",
     "actual capacity profile/toolchain/SDK/build closure unadopted",
-    "Original Python binding package captures WASI/WAT symbols at import; proposed minimal native features are incompatible with that whole surface"
+    "Original C API default feature proposal preserves source surface; actual export inventory and full native dependency allocation coverage unverified"
   ],
   "source_decision": "Preparation for the existing precompiled pooling backend, not adoption of a fork or alternate backend",
   "source_archives": {
@@ -108,5 +105,28 @@
     "namespace": "actql_local_runtime._wasmtime",
     "required_dll_symbols": 529,
     "staging_adopted": false
-  }
+  },
+  "original_c_api_default_features": [
+    "profiling",
+    "wat",
+    "wasi",
+    "cache",
+    "parallel-compilation",
+    "async",
+    "coredump",
+    "addr2line",
+    "demangle",
+    "threads",
+    "gc",
+    "gc-drc",
+    "gc-null",
+    "cranelift",
+    "winch",
+    "debug-builtins",
+    "pooling-allocator",
+    "component-model",
+    "pulley"
+  ],
+  "original_default_feature_source_sha256": "bf42afe2a1cd512c7457ca36c75adb3394182bc0c13a08bb6b2c6b4638c138e6",
+  "native_symbol_verification_executed": false
 }

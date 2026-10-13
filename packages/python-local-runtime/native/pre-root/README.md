@@ -128,13 +128,29 @@ library must never reach a function captured from the stock library.
 
 The original generated bindings require WASI and WAT symbols even when the
 selected Guest profile does not invoke those APIs. Their upstream C API modules
-are feature-gated. Therefore the earlier minimal `proposed_features` list is
-not sufficient for that whole binding package and remains explicitly unadopted.
-The native build feature/export closure must be reviewed against the staged
-symbol inventory, or the original binding generator must generate a reviewed
-selected surface. Do not handwrite missing symbols, ignore AttributeError or
-fall back to a second library. Compiled C API availability is not an Account
-grant or permission to run WASI, Model or Effect operations.
+are feature-gated. The earlier minimal feature proposal was incompatible with
+the whole binding surface and is retained in its original parent history.
+The current source proposal preserves the pinned C API artifact's original
+default feature list and adds only the owned-capacity feature. It does not
+enable logging, infer extra features or handwrite missing symbols. The exact
+original feature list and its source digest are in `workspace-build-inputs.json`.
+Actual native export/dependency coverage and recipe adoption remain unverified.
+
+Keeping the original compiled C API surface does not change the selected
+Engine configuration: parallel compilation, Guest GC, components and native
+async remain disabled, with the original pooling limits. Code/dependency and
+initializer holdings still need coverage; compiling a feature is not proof that
+its baseline costs zero. Compiled availability is not an Account grant or
+permission to run WASI, Model or Effect operations. The original Core still
+checks the selected Guest import/capability profile.
+
+The original `ci/cbindgen.py` parses the selected C headers using gcc as a C
+preprocessor. It must not be run during a compiler exclusion window. If a later
+review chooses a smaller surface, that existing generator and the pinned
+feature headers must generate it; do not manually trim generated declarations,
+ignore AttributeError or fall back to a second library. Before adoption, the
+actual final dylib must expose the staged symbol inventory and private allocator
+symbols from the same library, with exact source/build/image recipe bindings.
 
 ## Required installed connection
 
