@@ -37,13 +37,30 @@ fn selected_policy_fixture_row(
 }
 
 ///|
-test "selected original Policy reuses one complete decode without changing the row" {
-  let row = selected_policy_fixture_row(selected_policy_fixture_record())
-  let (record, selected) = read_run_record_with_selected_policy(
+fn selected_policy_from_fixture_row(
+  row : @sqlite.NativeJournalValue,
+  request : @host.ClientRequestIdentity,
+  cid : String,
+) -> Result[
+  @publication.CapturedEffectDependencyBody,
+  NativeClientRunJournalIssue,
+] {
+  let (wire, comparison) = match extract_run_policy_wire(row, request) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  select_run_policy_wire(wire, comparison, cid)
+}
+
+///|
+test "wire-only lookup selects exact Policy without changing the ordinary row" {
+  let original = selected_policy_fixture_record()
+  let row = selected_policy_fixture_row(original)
+  let body = selected_policy_from_fixture_row(
     row,
-    Some(selected_policy_fixture_cid),
+    original.request,
+    selected_policy_fixture_cid,
   ).unwrap()
-  let body = selected.unwrap()
   assert_eq(
     @publication.captured_effect_dependency_body_json(body),
     selected_policy_fixture_wire,
@@ -56,38 +73,41 @@ test "selected original Policy reuses one complete decode without changing the r
     @publication.captured_effect_dependency_body_kind(body),
     "data_policy",
   )
-  assert_eq(run_record_body(record).unwrap(), row.body)
-  assert_eq(record.revision, 0L)
-  assert_false(record.physical_start_claimed)
-  assert_false(record.cancellation_requested)
-  let (unselected, none) = read_run_record_with_selected_policy(row, None).unwrap()
-  assert_true(none is None)
-  assert_eq(run_record_body(unselected).unwrap(), row.body)
-  assert_eq(run_record_body(read_run_record(row).unwrap()).unwrap(), row.body)
+  let restored = read_run_record(row).unwrap()
+  assert_eq(run_record_body(restored).unwrap(), row.body)
+  assert_eq(restored.revision, 0L)
+  assert_false(restored.physical_start_claimed)
+  assert_false(restored.cancellation_requested)
 }
 
 ///|
-test "missing selected Policy stays absent and does not repair old originals" {
+test "wire-only missing Policy refuses without repairing originals" {
   let record = selected_policy_fixture_record()
-  let row = selected_policy_fixture_row(record)
-  let (_, missing) = read_run_record_with_selected_policy(
-    row,
-    Some("sha256:" + "f".repeat(64)),
-  ).unwrap()
-  assert_true(missing is None)
+  assert_true(
+    selected_policy_from_fixture_row(
+      selected_policy_fixture_row(record),
+      record.request,
+      "sha256:" + "f".repeat(64),
+    )
+    is Err(PublicationPolicy(@checked.MissingDependency)),
+  )
   let absent = { ..record, publication_policy_originals: None, }
-  let old_row = selected_policy_fixture_row(absent)
-  let (restored, selected) = read_run_record_with_selected_policy(
-    old_row,
-    Some(selected_policy_fixture_cid),
-  ).unwrap()
-  assert_true(selected is None)
+  let row = selected_policy_fixture_row(absent)
+  assert_true(
+    selected_policy_from_fixture_row(
+      row,
+      record.request,
+      selected_policy_fixture_cid,
+    )
+    is Err(PublicationPolicy(@checked.MissingDependency)),
+  )
+  let restored = read_run_record(row).unwrap()
   assert_true(restored.publication_policy_originals is None)
-  assert_eq(run_record_body(restored).unwrap(), old_row.body)
+  assert_eq(run_record_body(restored).unwrap(), row.body)
 }
 
 ///|
-test "selected Policy cannot bypass malformed nonselected bodies or dependencies" {
+test "wire-only selection validates malformed nonselected bodies and full dependencies" {
   let record = selected_policy_fixture_record()
   let extra = selected_policy_fixture_packet.replace(
     old="}],",
@@ -115,9 +135,10 @@ test "selected Policy cannot bypass malformed nonselected bodies or dependencies
       publication_policy_originals: Some(invalid),
     })
     assert_true(
-      read_run_record_with_selected_policy(
+      selected_policy_from_fixture_row(
         row,
-        Some(selected_policy_fixture_cid),
+        record.request,
+        selected_policy_fixture_cid,
       )
       is Err(CustodyLost),
     )
@@ -126,63 +147,57 @@ test "selected Policy cannot bypass malformed nonselected bodies or dependencies
 }
 
 ///|
-test "selected Policy is not returned before later original and canonical checks" {
+test "wire-only extraction rejects Effect Checkpoint and canonical damage" {
   let record = selected_policy_fixture_record()
   let bad_effect = { ..record, effect_material_originals: Some("{}"), }
   assert_true(
-    read_run_record_with_selected_policy(
+    extract_run_policy_wire(
       selected_policy_fixture_row(bad_effect),
-      Some(selected_policy_fixture_cid),
+      record.request,
     )
     is Err(CustodyLost),
   )
   let row = selected_policy_fixture_row(record)
-  assert_true(
-    read_run_record_with_selected_policy(
-      {
-        ..row,
-        body: @utf8.encode(
-          (@utf8.decode(row.body) catch { _ => fail("original UTF8") }) + " ",
-        ),
-      },
-      Some(selected_policy_fixture_cid),
+  let wire = @utf8.decode(row.body) catch { _ => fail("original UTF8") }
+  for
+    invalid in [
+      wire + " ",
+      wire.replace(old="\"checkpoint\":null", new="\"checkpoint\":\"{}\""),
+    ] {
+    let damaged = { ..row, body: @utf8.encode(invalid), }
+    assert_true(
+      extract_run_policy_wire(damaged, record.request) is Err(CustodyLost),
     )
-    is Err(CustodyLost),
-  )
-  let bad_checkpoint = (@utf8.decode(row.body) catch {
-    _ => fail("original UTF8")
-  }).replace(old="\"checkpoint\":null", new="\"checkpoint\":\"{}\"")
-  assert_true(
-    read_run_record_with_selected_policy(
-      { ..row, body: @utf8.encode(bad_checkpoint), },
-      Some(selected_policy_fixture_cid),
-    )
-    is Err(CustodyLost),
-  )
+    assert_true(read_run_record(damaged) is Err(CustodyLost))
+  }
 }
 
 ///|
-test "selected Policy projection preserves original cancellation and start facts" {
-  let record = {
+test "wire-only lookup leaves cancellation start and revision facts unchanged" {
+  let original = {
     ..selected_policy_fixture_record(),
     dispatch_reserved: true,
     physical_start_claimed: true,
     cancellation_requested: true,
+    revision: 7L,
   }
-  let row = selected_policy_fixture_row(record)
-  let (restored, _) = read_run_record_with_selected_policy(
+  let row = selected_policy_fixture_row(original)
+  selected_policy_from_fixture_row(
     row,
-    Some(selected_policy_fixture_cid),
+    original.request,
+    selected_policy_fixture_cid,
   ).unwrap()
+  |> ignore
+  let restored = read_run_record(row).unwrap()
   assert_true(restored.dispatch_reserved)
   assert_true(restored.physical_start_claimed)
   assert_true(restored.cancellation_requested)
+  assert_eq(restored.revision, 7L)
   assert_eq(run_record_body(restored).unwrap(), row.body)
-  // This private metadata projection is not a read grant or a continuation.
 }
 
 ///|
-test "selected retained Policy still rejects ChangedIntent without row changes" {
+test "wire-only lookup defers ChangedIntent until complete Policy validation" {
   let database = epoch_test_database("selected-policy-identity")
   initialize_native_client_run_journal(database).unwrap()
   let journal = open_native_client_run_journal(database, 8).unwrap()
@@ -202,11 +217,6 @@ test "selected retained Policy still rejects ChangedIntent without row changes" 
   let before = database
     .read("client_runs", @host.client_request_scope_cid(request))
     .unwrap()
-  let (_, selected) = journal
-    .retained_with_selected_policy(request, Some(selected_policy_fixture_cid))
-    .unwrap()
-    .unwrap()
-  assert_true(selected is Some(_))
   let changed = @host.prepare_effect_free_client_program(
     preparation_values_document().replace(old="{\"id\":1}", new="{\"id\":3}"),
     Json,
@@ -219,13 +229,15 @@ test "selected retained Policy still rejects ChangedIntent without row changes" 
     "sha256:" + "a".repeat(64),
     "selected-policy-request",
   ).unwrap()
+  let (wire, comparison) = journal
+    .retained_policy_wire(changed_request)
+    .unwrap()
+  assert_true(comparison is ChangedOriginalIntent)
   assert_true(
-    journal.retained_with_selected_policy(
-      changed_request,
-      Some(selected_policy_fixture_cid),
-    )
+    select_run_policy_wire(wire, comparison, selected_policy_fixture_cid)
     is Err(ChangedIntent),
   )
+  assert_true(journal.retained(changed_request) is Err(ChangedIntent))
   let after = database
     .read("client_runs", @host.client_request_scope_cid(request))
     .unwrap()
@@ -235,43 +247,79 @@ test "selected retained Policy still rejects ChangedIntent without row changes" 
 }
 
 ///|
-test "Policy-last phase keeps CustodyLost for independently malformed combinations" {
-  let record = selected_policy_fixture_record()
-  for originals in [Some(selected_policy_fixture_packet), Some("{}"), None] {
-    for effect in [Some("{}"), None] {
-      let invalid_checkpoint_record = {
-        ..record,
-        publication_policy_originals: originals,
-        effect_material_originals: effect,
-      }
-      let row = selected_policy_fixture_row(invalid_checkpoint_record)
-      let wire = (@utf8.decode(row.body) catch { _ => fail("original UTF8") }).replace(
-        old="\"checkpoint\":null",
-        new="\"checkpoint\":\"{}\"",
+test "deferred identity keeps malformed Policy priority and missing wire identity order" {
+  for
+    comparison in [
+      OriginalRequest,
+      ChangedOriginalIntent,
+      ForeignOriginalRequest,
+    ] {
+    assert_true(
+      select_run_policy_wire(
+        Some("{}"),
+        comparison,
+        selected_policy_fixture_cid,
       )
-      assert_true(
-        read_run_record_with_selected_policy(
-          { ..row, body: @utf8.encode(wire), },
-          Some(selected_policy_fixture_cid),
-        )
-        is Err(CustodyLost),
-      )
-      assert_true(
-        read_run_record({ ..row, body: @utf8.encode(wire), })
-        is Err(CustodyLost),
-      )
-    }
+      is Err(CustodyLost),
+    )
   }
-  let compound = {
-    ..record,
-    publication_policy_originals: Some("{}"),
-    effect_material_originals: Some("{}"),
-    local_run_policy_originals: Some("{}"),
-  }
-  let row = selected_policy_fixture_row(compound)
   assert_true(
-    read_run_record_with_selected_policy(row, Some(selected_policy_fixture_cid))
+    select_run_policy_wire(
+      Some(selected_policy_fixture_packet),
+      ChangedOriginalIntent,
+      selected_policy_fixture_cid,
+    )
+    is Err(ChangedIntent),
+  )
+  assert_true(
+    select_run_policy_wire(
+      None,
+      ChangedOriginalIntent,
+      selected_policy_fixture_cid,
+    )
+    is Err(ChangedIntent),
+  )
+  assert_true(
+    select_run_policy_wire(
+      None,
+      ForeignOriginalRequest,
+      selected_policy_fixture_cid,
+    )
     is Err(CustodyLost),
   )
-  assert_true(read_run_record(row) is Err(CustodyLost))
+  assert_true(
+    select_run_policy_wire(None, OriginalRequest, selected_policy_fixture_cid)
+    is Err(PublicationPolicy(@checked.MissingDependency)),
+  )
+}
+
+///|
+test "changed work row after normal custody cannot bypass malformed Policy" {
+  let initial = selected_policy_fixture_record()
+  let row = selected_policy_fixture_row(initial)
+  read_run_record(row).unwrap() |> ignore
+  let changed = @host.prepare_effect_free_client_program(
+    preparation_values_document().replace(old="{\"id\":1}", new="{\"id\":3}"),
+    Json,
+    preparation_environment(),
+    None,
+    @host.client_standard_program_preparation_limits(),
+  ).unwrap()
+  let changed_request = @host.prepare_source_free_client_request_identity(
+    changed,
+    "sha256:" + "a".repeat(64),
+    "selected-policy-request",
+  ).unwrap()
+  // Models a different row supplied after current2; no original database mutation.
+  let damaged_row = selected_policy_fixture_row({
+    ..initial,
+    publication_policy_originals: Some("{}"),
+  })
+  let (wire, comparison) = extract_run_policy_wire(damaged_row, changed_request).unwrap()
+  assert_true(comparison is ChangedOriginalIntent)
+  assert_true(
+    select_run_policy_wire(wire, comparison, selected_policy_fixture_cid)
+    is Err(CustodyLost),
+  )
+  assert_true(read_run_record(damaged_row) is Err(CustodyLost))
 }
