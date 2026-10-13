@@ -43,6 +43,12 @@ priv enum HolderOutputResourceClose {
 fn close_holder_output_resources(
   original : HolderCleanupCustody,
 ) -> HolderOutputResourceClose {
+  // A task-owned Catalog preparation may have survived an initialization
+  // refusal. Only its task cleanup detaches it; ordinary close is no substitute
+  // for the producer/Reader/stamp acknowledgements.
+  if original.resources.effect_catalog_files.val is Some(_) {
+    return HolderOutputResourcesPending(original)
+  }
   guard advance_holder_cleanup_pass(original, original.step, 5, (custody, step) => {
     match step {
       0 => close_holder_effect_host_setup(custody.resources) is HostSetupClosed

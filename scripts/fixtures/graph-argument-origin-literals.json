@@ -1,0 +1,145 @@
+{
+  "sourceGrammar": "current WITH/GRAPH; no retired DATA form",
+  "cases": [
+    {
+      "id": "components-kind-plain",
+      "source": "WITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) FROM g |> components(kind: 'invented') |> SELECT component_size",
+      "operation": "components",
+      "argument": "kind",
+      "token": "'invented'",
+      "startByte": 137,
+      "endByte": 147,
+      "issueKind": "InvalidBody"
+    },
+    {
+      "id": "components-max-output-rows-plain",
+      "source": "WITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) FROM g |> components(kind: 'weak', max_output_rows: 0) |> SELECT component_size",
+      "operation": "components",
+      "argument": "max_output_rows",
+      "token": "0",
+      "startByte": 162,
+      "endByte": 163,
+      "issueKind": "InvalidCount"
+    },
+    {
+      "id": "subgraph-nodes-plain",
+      "source": "WITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) FROM g |> subgraph(nodes: [1]) |> node_rows() |> SELECT node_key",
+      "operation": "subgraph",
+      "argument": "nodes",
+      "token": "[1]",
+      "startByte": 136,
+      "endByte": 139,
+      "issueKind": "InvalidBody"
+    },
+    {
+      "id": "components-kind-emoji-crlf",
+      "source": "/*😀*/\r\nWITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) FROM g |> components(kind: 'invented') |> SELECT component_size",
+      "operation": "components",
+      "argument": "kind",
+      "token": "'invented'",
+      "startByte": 147,
+      "endByte": 157,
+      "issueKind": "InvalidBody"
+    },
+    {
+      "id": "components-max-output-rows-emoji-crlf",
+      "source": "/*😀*/\r\nWITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) FROM g |> components(kind: 'weak', max_output_rows: 0) |> SELECT component_size",
+      "operation": "components",
+      "argument": "max_output_rows",
+      "token": "0",
+      "startByte": 172,
+      "endByte": 173,
+      "issueKind": "InvalidCount"
+    },
+    {
+      "id": "subgraph-nodes-emoji-crlf",
+      "source": "/*😀*/\r\nWITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) FROM g |> subgraph(nodes: [1]) |> node_rows() |> SELECT node_key",
+      "operation": "subgraph",
+      "argument": "nodes",
+      "token": "[1]",
+      "startByte": 146,
+      "endByte": 149,
+      "issueKind": "InvalidBody"
+    },
+    {
+      "id": "components-kind-decomposed-crlf",
+      "source": "/*é*/\r\nWITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) FROM g |> components(kind: 'invented') |> SELECT component_size",
+      "operation": "components",
+      "argument": "kind",
+      "token": "'invented'",
+      "startByte": 146,
+      "endByte": 156,
+      "issueKind": "InvalidBody"
+    },
+    {
+      "id": "components-max-output-rows-decomposed-crlf",
+      "source": "/*é*/\r\nWITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) FROM g |> components(kind: 'weak', max_output_rows: 0) |> SELECT component_size",
+      "operation": "components",
+      "argument": "max_output_rows",
+      "token": "0",
+      "startByte": 171,
+      "endByte": 172,
+      "issueKind": "InvalidCount"
+    },
+    {
+      "id": "subgraph-nodes-decomposed-crlf",
+      "source": "/*é*/\r\nWITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) FROM g |> subgraph(nodes: [1]) |> node_rows() |> SELECT node_key",
+      "operation": "subgraph",
+      "argument": "nodes",
+      "token": "[1]",
+      "startByte": 145,
+      "endByte": 148,
+      "issueKind": "InvalidBody"
+    },
+    {
+      "id": "components-kind-decoy-comment",
+      "source": "/* 'invented' 0 [1] */\r\nWITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) FROM g |> components(kind: 'invented') |> SELECT component_size",
+      "operation": "components",
+      "argument": "kind",
+      "token": "'invented'",
+      "startByte": 161,
+      "endByte": 171,
+      "issueKind": "InvalidBody"
+    },
+    {
+      "id": "components-max-output-rows-decoy-comment",
+      "source": "/* 'invented' 0 [1] */\r\nWITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) FROM g |> components(kind: 'weak', max_output_rows: 0) |> SELECT component_size",
+      "operation": "components",
+      "argument": "max_output_rows",
+      "token": "0",
+      "startByte": 186,
+      "endByte": 187,
+      "issueKind": "InvalidCount"
+    },
+    {
+      "id": "subgraph-nodes-decoy-comment",
+      "source": "/* 'invented' 0 [1] */\r\nWITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) FROM g |> subgraph(nodes: [1]) |> node_rows() |> SELECT node_key",
+      "operation": "subgraph",
+      "argument": "nodes",
+      "token": "[1]",
+      "startByte": 160,
+      "endByte": 163,
+      "issueKind": "InvalidBody"
+    },
+    {
+      "id": "components-kind-repeated-plain",
+      "source": "WITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) , first AS (FROM g |> components(kind: 'weak') |> SELECT component_size), second AS (FROM g |> components(kind: 'invented') |> SELECT component_size) FROM second |> SELECT component_size",
+      "operation": "components",
+      "argument": "kind",
+      "token": "'invented'",
+      "startByte": 222,
+      "endByte": 232,
+      "issueKind": "InvalidBody"
+    },
+    {
+      "id": "components-kind-repeated-emoji-crlf",
+      "source": "/*😀*/\r\nWITH n AS (SELECT 1 AS node_key), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) , first AS (FROM g |> components(kind: 'weak') |> SELECT component_size), second AS (FROM g |> components(kind: 'invented') |> SELECT component_size) FROM second |> SELECT component_size",
+      "operation": "components",
+      "argument": "kind",
+      "token": "'invented'",
+      "startByte": 232,
+      "endByte": 242,
+      "issueKind": "InvalidBody"
+    }
+  ]
+}

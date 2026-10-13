@@ -66,7 +66,7 @@ function fixture() {
     plan:{runDefinition:{}},store,storeAuthorityCid:'original-store',
     captureOnly:true,durableCalls:true});
   owner.configureModelJournal({observe:async()=>({state:'SavedSuccess'}),entry:()=>entry});
-  return {owner,flags,counters,stored,bundleWire,
+  return {owner,operation,flags,counters,stored,bundleWire,
     async complete(){
       await owner.persistSettlement(settlement,entry);
       owner.retainCompleted();await owner.persist();
@@ -226,4 +226,23 @@ test('publication and parent cleanup observers share the original persistence fl
   f.flags.modelCleanup=true;
   assert.equal(await f.owner.custody.cleanup(),true);
   assert.equal(f.counters.ack,1);
+});
+
+test('terminal publication reservation precedes capture allocation and refusal creates no capture',async()=>{
+  const f=fixture();
+  // Use the original settlement from the fixture; no new response/send occurs.
+  await f.settling();
+  let admitted=false,reserves=0;
+  f.operation.reserveOriginalPublicationCapacity=()=>{
+    reserves++;assert.equal(f.counters.acquire,0);
+    if(!admitted)throw Error('FixturePublicationCapacityUnavailable');
+  };
+  assert.throws(()=>f.owner.retainCompleted(),/FixturePublicationCapacityUnavailable/);
+  assert.equal(f.counters.acquire,0);
+  admitted=true;
+  assert.equal(f.owner.retainCompleted(),true);
+  assert.equal(f.counters.acquire,1);assert.equal(reserves,2);
+  assert.equal(f.owner.retainCompleted(),true);assert.equal(reserves,2);
+  await f.owner.persist();
+  assert.equal(await f.owner.custody.cleanup(),true);
 });

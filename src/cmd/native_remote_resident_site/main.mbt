@@ -2458,6 +2458,8 @@ priv struct HolderOutputResources {
   effect_host_installation : Ref[HolderEffectHostOperatorInstallation?]
   effect_host_holding : Ref[@site.SiteHolding?]
   effect_host_cleanup : Ref[@site.SiteCleanup?]
+  // Shared across the existing resources projection; same producer custody.
+  effect_catalog_files : Ref[HolderEffectCatalogFileCustody?]
   retained_delegation : @resident.ResidentRetainedInputDelegation?
   retained_root : @filesystem.Root?
   retained_max_bytes : Int64
@@ -2587,6 +2589,7 @@ fn open_holder_output_resources(
     effect_host_caller_operation: None,
     effect_host_caller_current: None,
     effect_host_holding: Ref(None),
+    effect_catalog_files: Ref(None),
     effect_host_cleanup: Ref(None),
     retained_root,
     retained_max_bytes: max_bytes,
@@ -3710,7 +3713,18 @@ fn serve_holder_output(
         ("request_cid", order[index]),
         ("reason", "owned-cleanup"),
       ])
-      @slot.native_wait_milliseconds(250)
+      if holder_catalog_file_cleanup_pending(resources, task) {
+        // EOF has already ended this channel. Keep the same task/preparation
+        // through the existing signal wait; no timer or replacement read can
+        // resolve an unconfirmed original filesystem close.
+        if !@slot.install_native_termination_request() {
+          ignore(park_holder_cleanup_unconfirmed_ffi())
+        } else {
+          wait_holder_cleanup_lifetime_signal()
+        }
+      } else {
+        @slot.native_wait_milliseconds(250)
+      }
     }
   }
   if order.length() > 1 {

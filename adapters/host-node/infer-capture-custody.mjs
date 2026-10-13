@@ -167,6 +167,10 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
   function retainCompleted() {
     if (reclaimed || publicationCleaned) throw new Error('InstalledInferCaptureUnavailable');
     if (capture !== undefined) return true;
+    // The actual original operation selects and reserves terminal publication
+    // capacity before these additional captures/exporters/metadata are built.
+    // Its initial record and per-slot/raw phases require earlier startup funds.
+    operation.reserveOriginalPublicationCapacity?.();
     captureOutput ??= operation.acquireOutput();
     if (captureOutput === undefined) throw new Error('InstalledInferOutputUnavailable');
     capture = operation.acquireCapture();
@@ -352,10 +356,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       // A persistence retry must keep the original issuer, its reservations
       // and progress, including completion before the publication binding.
       if (issuance === undefined) {
-        const ledger = checked(moon.clientProgramInferPublicationLedger(
-          262144n + BigInt(count) * 128n + BigInt(operation.contentGenerationCount ?? 0) * 256n,
-          count + 2));
-        issuance = operation.startObservation({ledger, maxSlots: count,
+        issuance = operation.startObservation({maxSlots: count,
           maxWireBytes: 16384, maxWork: count + 2});
       }
       while (!issuanceComplete) {

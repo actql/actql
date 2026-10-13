@@ -18,9 +18,9 @@ test('canonical score independent values keep l2 negative and the distance alias
  assert.equal(new Set([...vectorScoreLiteralSuccesses,...vectorScoreLiteralRefusals].map(c=>c.name)).size,21);
 });
 test('canonical score reidentifies only authored rules and retains alias preimages',()=>{
- const before=vectorScoreLiteralIdentityOracle({current:false}),after=vectorScoreLiteralIdentityOracle();
+ const before=vectorScoreLiteralIdentityOracle({current:false}),after=vectorScoreLiteralIdentityOracle({rulesPath:'reviews/2026-10-13-frontend-calendar-source/preimages/parent-query-rules.md'});
  assert.deepEqual(before,read(prefix+'pre-values.json'));assert.deepEqual(after,read(prefix+'current-values.json'));
- assert.deepEqual(after.grammar,read('spec/manifests/actql-grammar-0.1.json'));
+ assert.deepEqual(after.grammar,read('reviews/2026-10-13-frontend-calendar-source/preimages/parent-grammar-manifest.json')); // retained submitted source
  assert.deepEqual(after.values_dependencies,before.values_dependencies);assert.deepEqual(after.program_identity,before.program_identity);
  assert.deepEqual(after.run_preimages.executable.nodes,before.run_preimages.executable.nodes);
  assert.deepEqual(after.run_preimages.executable.resolved_limits,before.run_preimages.executable.resolved_limits);
