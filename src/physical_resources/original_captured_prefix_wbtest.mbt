@@ -84,3 +84,26 @@ test "original captured prefix reserve failure is retryable but spent prefix nev
   release_allocation(ledger, holding).unwrap()
   assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
 }
+
+///|
+test "original keyed assembly prerequisite keeps the exact captured child and spent identity" {
+  let (ledger, identity, _, holding) = original_captured_prefix_fixture(0L)
+  let before = ledger_usage(ledger)
+  assert_true(original_ledger_captured_preparation_available(identity))
+  assert_eq(ledger_usage(ledger), before)
+  // A rejected allocation does not spend the original assembly opportunity.
+  assert_true(reserve_attempt(ledger, 0L, 28L, 0L) is Err(RetentionLimit))
+  assert_eq(ledger_usage(ledger), before)
+  assert_true(original_ledger_captured_preparation_available(identity))
+  let assembly = reserve_attempt(ledger, 0L, 7L, 5L).unwrap()
+  mark_cleanup_pending(ledger, assembly).unwrap()
+  assert_false(original_ledger_captured_preparation_available(identity))
+  assert_true(holding_available(ledger, holding))
+  assert_true(reservation_open(assembly))
+  settle_reservation(ledger, assembly).unwrap()
+  assert_eq(ledger_usage(ledger).attempts, 2)
+  assert_false(original_ledger_captured_preparation_available(identity))
+  release_allocation(ledger, holding).unwrap()
+  assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
+  assert_false(original_ledger_captured_preparation_available(identity))
+}
