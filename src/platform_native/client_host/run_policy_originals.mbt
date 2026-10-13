@@ -112,31 +112,60 @@ fn NativeClientRunJournal::lookup_publication_policy_original(
     if !authority.current_for(self, request) {
       return Err(AuthorizationDenied)
     }
-    let record = match self.retained(request) {
-      Ok(Some(value)) => value
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    guard record.publication_policy_originals is Some(wire) else {
-      return Err(PublicationPolicy(@checked.MissingDependency))
-    }
-    let bodies = match read_run_policy_originals(wire) {
+    let (wire, comparison) = match self.retained_policy_wire(request) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    guard bodies
-      .iter()
-      .find_first(body => {
-        @publication.captured_effect_dependency_body_kind(body) == "data_policy" &&
-        @publication.captured_effect_dependency_body_cid(body) ==
-        actual_policy_cid
-      })
-      is Some(body) else {
-      return Err(PublicationPolicy(@checked.MissingDependency))
+    let body = match
+      select_run_policy_wire(wire, comparison, actual_policy_cid) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
     if !authority.current_for(self, request) {
       return Err(AuthorizationDenied)
     }
     Ok(body)
   })
+}
+
+///|
+// The Record-only extraction returns before this admission begins. Matching
+// Native ARC must verify retirement of Record/Checkpoint/definition/scratch.
+// Admit every body/root/dependency before applying the deferred identity result.
+// Missing wire preserves identity refusal before MissingDependency.
+fn select_run_policy_wire(
+  wire : String?,
+  comparison : RunPolicyRequestComparison,
+  selected_policy_cid : String,
+) -> Result[
+  @publication.CapturedEffectDependencyBody,
+  NativeClientRunJournalIssue,
+] {
+  let bodies = match wire {
+    Some(original) =>
+      match read_run_policy_originals(original) {
+        Ok(value) => Some(value)
+        Err(_) => return Err(CustodyLost)
+      }
+    None => None
+  }
+  match comparison {
+    OriginalRequest => ()
+    ChangedOriginalIntent => return Err(ChangedIntent)
+    ForeignOriginalRequest => return Err(CustodyLost)
+  }
+  guard bodies is Some(admitted) else {
+    return Err(PublicationPolicy(@checked.MissingDependency))
+  }
+  guard admitted
+    .iter()
+    .find_first(body => {
+      @publication.captured_effect_dependency_body_kind(body) == "data_policy" &&
+      @publication.captured_effect_dependency_body_cid(body) ==
+      selected_policy_cid
+    })
+    is Some(body) else {
+    return Err(PublicationPolicy(@checked.MissingDependency))
+  }
+  Ok(body)
 }
