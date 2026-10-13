@@ -16,11 +16,14 @@ const scratch = await mkdtemp(join(tmpdir(), 'actql-a-optional-provider-'));
 console.log('OPTIONAL_PROVIDER_CUSTODY', scratch);
 const cache = join(scratch, 'cache'), artifacts = join(scratch, 'artifacts');
 await mkdir(cache); await mkdir(artifacts);
+const userConfig = join(scratch, 'npm-user-config');
+const globalConfig = join(scratch, 'npm-global-config');
+await writeFile(userConfig, ''); await writeFile(globalConfig, '');
 // No caller credential/configuration variables or NODE_PATH reach npm/child
 // consumers. Registry dependency acquisition is distinct from Provider I/O.
 const env = {PATH: `${dirname(process.execPath)}:/usr/bin:/bin`, LANG: 'C',
-  npm_config_cache: cache, npm_config_userconfig: '/dev/null',
-  npm_config_globalconfig: '/dev/null', npm_config_registry: 'https://registry.npmjs.org',
+  npm_config_cache: cache, npm_config_userconfig: userConfig,
+  npm_config_globalconfig: globalConfig, npm_config_registry: 'https://registry.npmjs.org',
   npm_config_audit: 'false', npm_config_fund: 'false'};
 function run(command, args, cwd) {
   const result = spawnSync(command, args, {cwd, env, encoding: 'utf8',
