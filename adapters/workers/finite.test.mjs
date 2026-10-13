@@ -65,6 +65,24 @@ test('finite installation snapshots trusted configuration and runtime before pre
   assert.throws(() => host.prepare({}), /InvalidWorkersFiniteDocument/);
 });
 
+test('finite Ledger creation uses all six original installation bounds after caller mutation', () => {
+  const {configuration, runtime, calls} = fixture();
+  const original = {...configuration.ledger};
+  const host = bindWorkersFiniteHost(runtime, configuration);
+  for (const key of ['planning_work', 'attempts', 'holdings']) configuration.ledger[key] = 0;
+  for (const key of ['transfer_bytes', 'retained_bytes', 'execution_bytes']) configuration.ledger[key] = 0n;
+  host.createLedger();
+  configuration.ledger = {...original, attempts: 2147483647};
+  host.createLedger();
+  const ledgers = calls.filter(call => call.name === 'Ledger');
+  assert.equal(ledgers.length, 2);
+  for (const {args} of ledgers) {
+    assert.deepEqual(args, [original]);
+    assert.ok(Object.isFrozen(args[0]));
+  }
+  assert.equal(ledgers[0].args[0], ledgers[1].args[0]);
+});
+
 test('finite open requires an owned preparation and protected authorization before charging', () => {
   const {configuration, runtime, calls, authorization} = fixture();
   const host = bindWorkersFiniteHost(runtime, configuration);
