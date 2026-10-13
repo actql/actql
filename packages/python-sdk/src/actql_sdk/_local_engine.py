@@ -96,9 +96,10 @@ def _installed_runtime_library(components: LocalComponents, *, native: bool = Fa
     else:
         if metadata.version('wasmtime') != WASMTIME_VERSION:
             raise LocalInstallationError('Installed image runtime version mismatch')
-        root = resources.files('wasmtime')
-        if not isinstance(root, Path):
+        selected_root = resources.files('wasmtime')
+        if not isinstance(selected_root, Path):
             raise LocalInstallationError('Installed image runtime requires ordinary wheel files')
+        root = selected_root
     library = root / 'darwin-aarch64/_libwasmtime.dylib'
     _read_file(library, maximum=recipe.runtime_library_bytes,
                expected=recipe.runtime_library_bytes, digest=recipe.runtime_library_sha256)
