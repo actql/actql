@@ -60,7 +60,7 @@ export function createNearestCarrierPageDriver(observations) {
     observations.sourceReads++;
     observations.sourceIo++;
     observations.sourceReadCommands.push({resource, columns: [...columns], requestWire});
-    const rows = nearestCarrierRows[resource].map(row => Object.fromEntries(
+    const rows = nearestCarrierSourceRows[resource].map(row => Object.fromEntries(
       columns.map(name => [name, structuredClone(row[name])])));
     const charge = chargePage(Buffer.from(JSON.stringify(rows)));
     await consumePage(rows, {charge});
