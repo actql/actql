@@ -3,7 +3,7 @@
 // These seven references/control slots and completion overlap require original
 // bootstrap funding; this record provides no numeric normal-profile supplier.
 struct ClientOriginalKeyedPrefixInput {
-  prefix : ClientSerializationPrefix
+  mut prefix : ClientSerializationPrefix?
   mut scope : @publication_host.ClientModelReadScope?
   mut keyed : @publication_host.ClientKeyedAcquisition?
   mut source : @query.CapturedInputSource?
@@ -38,7 +38,7 @@ pub fn start_client_original_keyed_prefix_input(
   ).map(tuple => {
     let (prefix, source, input) = tuple
     {
-      prefix,
+      prefix: Some(prefix),
       scope: Some(scope),
       keyed: Some(keyed),
       source: Some(source),
@@ -54,7 +54,10 @@ pub fn advance_client_original_keyed_prefix_input(
   value : ClientOriginalKeyedPrefixInput,
   quantum : Int,
 ) -> Result[@local.ManagedProviderPoll, @connector.FixedComputeIssue] {
-  let poll = match advance_client_serialization_prefix(value.prefix, quantum) {
+  guard value.prefix is Some(prefix) else {
+    return Ok(@local.managed_provider_stopped_poll(0L, 0L))
+  }
+  let poll = match advance_client_serialization_prefix(prefix, quantum) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -74,21 +77,22 @@ pub fn advance_client_original_keyed_prefix_input(
 pub fn cleanup_client_original_keyed_prefix_input(
   value : ClientOriginalKeyedPrefixInput,
 ) -> Result[Bool, ClientSerializationPrefixIssue] {
+  guard value.prefix is Some(prefix) else { return Ok(true) }
   if (
       value.lookup is Some(lookup) &&
       @publication_host.client_original_keyed_prefix_lookup_input(lookup)
       is Some(_)
     ) ||
     (
-      !value.prefix.released &&
+      !prefix.released &&
       !@resources.original_keyed_prefix_dependents_retired(
-        value.prefix.ledger,
-        value.prefix.reservation,
+        prefix.ledger,
+        prefix.reservation,
       )
     ) {
     return Ok(false)
   }
-  let complete = match cleanup_client_serialization_prefix(value.prefix) {
+  let complete = match cleanup_client_serialization_prefix(prefix) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -99,6 +103,7 @@ pub fn cleanup_client_original_keyed_prefix_input(
     value.source = None
     value.input = None
     value.lookup = None
+    value.prefix = None
   }
   Ok(complete)
 }
@@ -130,13 +135,14 @@ pub fn start_client_original_keyed_prefix_lookup_input(
     value.source is Some(source) &&
     value.input is Some(input) &&
     value.lookup is None &&
-    !value.prefix.child_cleaned &&
-    !value.prefix.released &&
+    value.prefix is Some(prefix) &&
+    !prefix.child_cleaned &&
+    !prefix.released &&
     value.output is Some(output) &&
     @row_source_host.row_capture_original_prefix_requirement(
       capture,
-      value.prefix.ledger,
-      prefix=Some(value.prefix.reservation),
+      prefix.ledger,
+      prefix=Some(prefix.reservation),
     )
     is Some(_) else {
     return Err(
@@ -144,9 +150,10 @@ pub fn start_client_original_keyed_prefix_lookup_input(
     )
   }
   let retained = @execution.restrict_completed_output(output, () => {
-    !value.prefix.child_cleaned &&
-    !value.prefix.released &&
-    @resources.reservation_open(value.prefix.reservation) &&
+    value.prefix is Some(current) &&
+    !current.child_cleaned &&
+    !current.released &&
+    @resources.reservation_open(current.reservation) &&
     value.source is Some(source) &&
     @query.captured_source_available(source)
   })
@@ -160,7 +167,7 @@ pub fn start_client_original_keyed_prefix_lookup_input(
     source,
     retained,
     input,
-    value.prefix.reservation,
+    prefix.reservation,
     max_entries,
     max_name_bytes,
     max_bytes,

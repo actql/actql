@@ -458,7 +458,8 @@ test "original keyed version history keeps three left occurrences but acquires o
     prefix.input is None &&
     prefix.lookup is None &&
     prefix.scope is None &&
-    prefix.keyed is None,
+    prefix.keyed is None &&
+    prefix.prefix is None,
   )
   assert_true(
     start_client_original_keyed_prefix_lookup_input(
