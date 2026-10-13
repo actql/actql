@@ -116,7 +116,7 @@ class FiniteRunSQLiteTests(unittest.TestCase):
                 if name == 'produce':
                     self.assertIsNotNone(core._journal_callbacks(host._configuration.current.ticket).reader)
                     return 0
-                if name == 'close':
+                if name in ('close', 'retire_output'):
                     return core._cleanup(args[0] - 100)
             if family == 'buffer' and name == 'byte' and args[0] in output_handle:
                 return json.dumps(candidate, ensure_ascii=False).encode()[args[1]]
@@ -272,6 +272,8 @@ class FiniteRunAssemblyTests(unittest.TestCase):
                     self.assertEqual(seen[1][1].payload, READY)
                     return len(admission) if name == 'admission_length' else 0
                 if name == 'close': return core._cleanup(journal_tickets[args[0]])
+            if family == 'submission' and name == 'retire_output':
+                return core._cleanup(args[0] - 100)
             if family == 'buffer' and name == 'byte' and args[0] in journal_tickets:
                 return admission[args[1]]
             return previous(family, name, *args)
