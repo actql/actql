@@ -64,15 +64,25 @@ export function explicitSeedRuntime(source) {
     source + `\nreturn Object.freeze({${exports.join(',')}});\n}\n`;
 }
 
-export function prepareRuntimeModules() {
+function prepareSelectedRuntimeModules(entries) {
   const root = fileURLToPath(new URL('../../',import.meta.url));
   const directory = `${root}_build/workers/modules`;
   mkdirSync(directory,{recursive:true});
-  for (const [name,pkg] of [['bridge','connectors_workers_bridge'],['fixture','workers_conformance'],
-    ['async_bridge','connectors_workers_async_bridge']]) {
+  for (const [name,pkg] of entries) {
     const source = readFileSync(`${root}_build/js/release/build/${pkg}/${pkg}.js`,'utf8');
     writeFileSync(`${directory}/${name}.mjs`,explicitSeedRuntime(source));
   }
+}
+
+// Package production must not read or require a conformance/test runtime.
+export function prepareProductionRuntimeModule() {
+  prepareSelectedRuntimeModules([['bridge', 'connectors_workers_bridge']]);
+}
+
+export function prepareRuntimeModules() {
+  prepareSelectedRuntimeModules([['bridge', 'connectors_workers_bridge'],
+    ['fixture', 'workers_conformance'],
+    ['async_bridge', 'connectors_workers_async_bridge']]);
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) prepareRuntimeModules();

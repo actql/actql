@@ -22,6 +22,7 @@ import {
   "actql/actql/connectors/local/driver" @binding15,
   "actql/actql/effect_application" @effect,
   "actql/actql/remote_transfer" @transfer,
+  "moonbitlang/core/encoding/utf8",
   "actql/actql/program_check" @checked,
   "actql/actql/pipeline_check_context" @context,
   "actql/actql/lowering_relation" @lower,

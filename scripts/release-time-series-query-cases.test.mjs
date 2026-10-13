@@ -36,7 +36,7 @@ test('TimeSeries cannot omit duplicate reorder or replace the source-free invent
     assert.throws(() => selectReleaseTimeSeriesQueryCases({refusals: changed}));
   }
 });
-test('only TimeSeries retains its synthetic authorization unchanged for a second process', async () => {
+test('TimeSeries retains its synthetic authorization unchanged for a second process', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-timeseries-auth-unit-'));
   try {
     for (const mode of ['local', 'https']) {

@@ -614,3 +614,71 @@ transaction; nested mutating operations remain rejected.
 This metadata connection is not installed-product upgrade acceptance. Compatibility
 between the originally adopted runtime and a newly installed package must be
 admitted and retained separately before the packaged CLI can cross that boundary.
+
+## One explicit runtime successor
+
+The adopted finite successor is a separate `runtime-successor/0.1` revision-zero
+append in the same installation-originals journal. It never rewrites the old
+`policy-upgrade/0.1` packet, correspondence, signature, dates or read selections.
+Its `actql-local-runtime-successor/0.1` closed body binds the current Account
+configuration, original adoption/scope, exact operation, old upgrade CID/packet
+digest, prior pair digest and original a3b runtime wire, independent current
+complete-package identity and new finite pair. There is at most one successor;
+this does not introduce a general migration registry or compatibility alias.
+
+The Common metadata codec uses the existing 8,192-byte/64-node/depth-four record
+codec with a 5,632-byte payload ceiling. Metadata content identity is not an
+authenticated original or a physical/current witness. Nested package/runtime
+wires must be independently revalidated by their existing Owners. JSON Schema
+string length does not replace the Owner's UTF16 operation bound, UTF8 limits,
+current Account authorization or workspace admission.
+
+Native must verify the complete current product's opened members/generations,
+the authenticated old correspondence and exact finite scalar compatibility
+independently. It reserves the same 8,192 bytes/one object before copying and
+commits the append and issued-counter CAS together. Count remains at most eight
+and at most `settings.files.length + 1`; reservation ceilings do not increase.
+Missing/changed packets, dependencies, reservations or unknown physical profiles
+refuse. A saved successor cannot be repaired from current files or copied CIDs.
+
+Under that retained context, old operation lookup validates and returns the
+unchanged original bytes/CID against its original a3b pair, separately from the
+successor's current package. Response loss retains the same operation/Unknown
+and cleanup responsibility; lookup alone can confirm its original commit.
+Compatibility never renews an old grant/expiry or authorizes a resend, new Run,
+Source/Model/Effect, signing use or automatic append. Initial/final current
+authorization and every retained read-row's original policy checks remain.
+
+## Private complete-product member descriptors
+
+The private package-member descriptor projects the formal release inventory's
+exact `path`, `bytes`, `mode` and `sha256` entries together with `sourceSha`,
+`platform` and `packageName`. Its reader requires the selected source/platform/
+package and exact canonical bytes. This metadata format is not a contract CID
+domain, physical witness, release-cohort admission or compatibility Allow.
+Independent source-bound release/runtime correspondence remains necessary.
+
+`local-product-members.json` is the single root-level self-hash exclusion from
+its own inventory. It is still a required physical member: its exact bytes,
+opened generation and separately bound digest must be verified. No other path,
+suffix, metadata file or directory is exempt. The platform descriptor digest
+can be bound in launcher metadata before constructing the launcher inventory;
+the complete product identity binds both descriptor digests independently.
+Historical packets and descriptors are not rewritten to implement this order.
+
+The descriptor's pure census projection contains only expected immediate names
+and file/directory kinds. Physical enumeration must compare the complete bounded
+set through the same OriginalRoot and reject unknown entries, symlinks, extra
+empty directories and changed mode/hash/generation. Unknown directory contents
+must not be accumulated without a bound. The descriptor's 65,536-byte/8,192-node
+intake ceilings do not establish workspace funding or permit retaining extra
+physical resources. Root/Reader cleanup remains owned until its actual ACK.
+
+The existing launcher resolver selects exactly one optional platform package.
+Hoisted and nested placement are distinguished as separate root relationships;
+nested `node_modules/@actql/cli-<platform>` is not launcher-owned payload. Its
+selected platform must be verified through its own OriginalRoot. This does not
+exempt `node_modules` generally or admit unknown metadata, packages or symlinks.
+Path classification alone establishes neither physical containment nor support
+for every npm layout. Formal staging, Native physical census and installed
+consumer acceptance are separate from this pure descriptor connection.

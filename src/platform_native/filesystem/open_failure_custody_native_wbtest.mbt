@@ -1,5 +1,5 @@
 ///|
-fn root_lock_custody_fixture() -> String {
+fn root_lock_custody_fixture() -> String raise {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
     fail("selected Root/Lock custody cases require an owned isolated Root")
     return ""
@@ -13,10 +13,16 @@ extern "C" fn mark_lock_retirement_unknown(lock : Lock) -> Bool = "actql_native_
 
 ///|
 test "failed Root constructor retains original refusal and acknowledges only its own retirement" {
-  let path = root_lock_custody_fixture() + "/missing-root-" + @env.now().to_string()
-  let failure = match open_root_with_custody(path, diagnostic_ceiling=Some(128)) {
+  let path = root_lock_custody_fixture() +
+    "/missing-root-" +
+    @env.now().to_string()
+  let failure = match
+    open_root_with_custody(path, diagnostic_ceiling=Some(128)) {
     Err(original) => original
-    Ok(_) => { fail("missing directory was admitted"); return }
+    Ok(_) => {
+      fail("missing directory was admitted")
+      return
+    }
   }
   assert_true(failure.issue() is RootOpen(_))
   assert_true(failure.root is Some(_))
@@ -28,12 +34,18 @@ test "failed Root constructor retains original refusal and acknowledges only its
 
 ///|
 test "rejected competing Lock carries original constructor and does not release the current owner" {
-  let root = open_root_with_custody(root_lock_custody_fixture(), diagnostic_ceiling=Some(128)).unwrap()
+  let root = open_root_with_custody(
+    root_lock_custody_fixture(),
+    diagnostic_ceiling=Some(128),
+  ).unwrap()
   let name = "lock-custody-" + @env.now().to_string()
   let owner = root.acquire_lock_with_custody(name).unwrap()
   let failure = match root.acquire_lock_with_custody(name) {
     Err(original) => original
-    Ok(_) => { fail("competing Lock was admitted"); return }
+    Ok(_) => {
+      fail("competing Lock was admitted")
+      return
+    }
   }
   assert_true(failure.issue() is Lock(_))
   assert_true(failure.lock is Some(_))
@@ -43,7 +55,10 @@ test "rejected competing Lock carries original constructor and does not release 
   // Cleaning the rejected descriptor never releases the genuine owner.
   let still_refused = match root.acquire_lock_with_custody(name) {
     Err(original) => original
-    Ok(_) => { fail("rejected cleanup released the genuine Lock"); return }
+    Ok(_) => {
+      fail("rejected cleanup released the genuine Lock")
+      return
+    }
   }
   still_refused.retry_cleanup().unwrap()
   owner.close_checked().unwrap()
@@ -55,7 +70,10 @@ test "rejected competing Lock carries original constructor and does not release 
 
 ///|
 test "consumed Lock close Unknown never reuses its raw descriptor" {
-  let root = open_root_with_custody(root_lock_custody_fixture(), diagnostic_ceiling=Some(128)).unwrap()
+  let root = open_root_with_custody(
+    root_lock_custody_fixture(),
+    diagnostic_ceiling=Some(128),
+  ).unwrap()
   let token = @env.now().to_string()
   let lock = root.acquire_lock_with_custody("lock-unknown-" + token).unwrap()
   // Real close followed by whitebox loss of its observation. This is not a
