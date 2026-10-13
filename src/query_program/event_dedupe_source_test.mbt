@@ -25,7 +25,7 @@ fn event_dedupe_rows() -> String {
 
 ///|
 fn event_dedupe_source(by : String, order : String) -> String {
-  "WITH rows AS (" +
+  "WITH `rows` AS (" +
   event_dedupe_rows() +
   "), " +
   "ev AS (FROM rows |> to_events(id: event_id, time: occurred_ms)), " +
@@ -95,7 +95,7 @@ test "P2 shorthand dedupe order keeps typed field names and omitted null placeme
 
 ///|
 test "P2 dedupe common refusals keep wrong Carrier and exact OrderKey causes" {
-  let prefix = "WITH rows AS (" +
+  let prefix = "WITH `rows` AS (" +
     event_dedupe_rows() +
     "), ev AS (FROM rows |> to_events(id: event_id, time: occurred_ms)) "
   let cases : Array[(String, @pipeline.IssueKind)] = [
@@ -145,7 +145,7 @@ test "P2 dedupe common refusals keep wrong Carrier and exact OrderKey causes" {
 
 ///|
 test "P2 dedupe cannot resurrect a dropped grouping field or range alias" {
-  let rows = "WITH rows AS (" + event_dedupe_rows() + ") "
+  let rows = "WITH `rows` AS (" + event_dedupe_rows() + ") "
   for
     call in [
       "dedupe_events(by: [bucket], order_by: [{event_id: 'asc'}])", "dedupe_events(by: [], order_by: [{old.event_id: 'asc'}])",

@@ -201,6 +201,20 @@ pub fn client_local_run_policy_original_read_expires_at(
 }
 
 ///|
+/// Read only the dependencies already bound into the admitted original body.
+/// This metadata neither observes current adoption nor supplies read authority.
+pub fn client_local_run_policy_original_read_dependencies(
+  original : ClientLocalRunPolicyOriginal,
+) -> Result[(String, String), ClientLocalRunPolicyProfileIssue] {
+  client_local_original_record_fields(
+    original.body,
+    local_run_policy_original_keys(),
+  )
+  .map(fields => (fields[0], fields[3]))
+  .map_err(_ => InvalidOriginal)
+}
+
+///|
 /// Structural Run correspondence for the existing journal inventory reader.
 /// This returns no selected profile, original custody or permission. Native
 /// current/adoption and actual dependency-body admission remain separate.

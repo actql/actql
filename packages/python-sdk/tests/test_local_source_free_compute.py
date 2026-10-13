@@ -17,7 +17,7 @@ class SourceFreeComputeTests(unittest.TestCase):
         return core, custody, inputs, run, start, calls, codes
 
     def test_closed_abi_addition_is_exact_and_versioned(self):
-        self.assertEqual(LOCAL_CORE_ABI, 60)
+        self.assertEqual(LOCAL_CORE_ABI, 64)
         self.assertEqual(_COMPUTE_SIGNATURES, {
             'reserve': ('i64 i32 i32', 'i32'),
             'reserve_source_free': ('i64 i32 i32 i32', 'i32'),

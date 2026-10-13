@@ -2,6 +2,7 @@
 priv struct NativeRuntimeBundleHold {
   hold_id : String
   kind : String
+  binding_body : String?
 }
 
 ///|
@@ -52,6 +53,7 @@ priv struct NativeRuntimeBundleComponentCopy {
 /// Private Store journal. Its version is independent of the signed bundle.
 priv struct NativeRuntimeBundleCatalog {
   revision : Int64
+  catalog_incarnation : String?
   active_bundle_cid : String?
   entries : Array[NativeRuntimeBundleEntry]
   staging : Array[NativeRuntimeBundleStaging]
@@ -74,6 +76,7 @@ struct NativeRuntimeBundleStore {
   max_record_bytes : Int
   active_installers : Map[String, Bool]
   mut closed : Bool
+  mut retention_initialized : Bool
 }
 
 ///|
@@ -390,6 +393,13 @@ fn emit_hold(
   hold : NativeRuntimeBundleHold,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
+  match hold.binding_body {
+    Some(body) => {
+      @encode.key(writer, "binding_body")
+      @encode.string_value(writer, body)
+    }
+    None => ()
+  }
   @encode.key(writer, "hold_id")
   @encode.string_value(writer, hold.hold_id)
   @encode.key(writer, "kind")
@@ -555,6 +565,13 @@ fn catalog_bytes(
     @encode.begin_object(writer)
     @encode.key(writer, "active_bundle_cid")
     @encode.string_value(writer, catalog.active_bundle_cid.unwrap_or(""))
+    match catalog.catalog_incarnation {
+      Some(value) => {
+        @encode.key(writer, "catalog_incarnation")
+        @encode.string_value(writer, value)
+      }
+      None => ()
+    }
     @encode.key(writer, "component_copies")
     @encode.begin_array(writer)
     for copy in catalog.component_copies {
@@ -629,8 +646,25 @@ fn unsigned_int64(value : String) -> UInt64 raise NativeBundleCatalogStop {
 fn decode_hold(
   cursor : @decode.Cursor,
 ) -> NativeRuntimeBundleHold raise NativeBundleCatalogStop {
-  let object = decoded(@decode.closed_object(cursor, ["hold_id", "kind"]))
-  let hold = { hold_id: text(object, "hold_id"), kind: text(object, "kind"), }
+  let object = decoded(
+    @decode.closed_object(cursor, ["binding_body", "hold_id", "kind"]),
+  )
+  let binding_body = match @decode.lookup(object, "binding_body") {
+    Some(_) => Some(text(object, "binding_body"))
+    None => None
+  }
+  let hold = {
+    hold_id: text(object, "hold_id"),
+    kind: text(object, "kind"),
+    binding_body,
+  }
+  if binding_body is Some(body) {
+    if !bounded(body, 65536) ||
+      hold.kind != "workspace-set" ||
+      hold.hold_id != "workspace-set:sha256:" + @sha.hex(@utf8.encode(body)) {
+      raise NativeBundleCatalogStop
+    }
+  }
   if !bounded(hold.hold_id, 512) || !bounded(hold.kind, 512) {
     raise NativeBundleCatalogStop
   }
@@ -951,9 +985,21 @@ fn admit_catalog(
     }
     let object = decoded(
       @decode.closed_object(cursor, [
-        "active_bundle_cid", "component_copies", "entries", "staging", "version",
+        "active_bundle_cid", "catalog_incarnation", "component_copies", "entries",
+        "staging", "version",
       ]),
     )
+    let catalog_incarnation = match
+      @decode.lookup(object, "catalog_incarnation") {
+      Some(_) => {
+        let value = text(object, "catalog_incarnation")
+        if !@bundle.valid_bundle_catalog_incarnation(value) {
+          raise NativeBundleCatalogStop
+        }
+        Some(value)
+      }
+      None => None
+    }
     let active_text = text(object, "active_bundle_cid")
     let entries_cursor = decoded(@decode.required(object, "entries"))
     let entry_count = match @decode.array_length(entries_cursor) {
@@ -1051,8 +1097,21 @@ fn admit_catalog(
       }
       Some(active_text)
     }
+    for entry in entries {
+      for hold in entry.holds {
+        if hold.binding_body is Some(_) && catalog_incarnation is None {
+          raise NativeBundleCatalogStop
+        }
+        if catalog_incarnation is Some(_) &&
+          hold.hold_id.has_prefix("workspace-set:") &&
+          hold.binding_body is None {
+          raise NativeBundleCatalogStop
+        }
+      }
+    }
     let catalog = {
       revision,
+      catalog_incarnation,
       active_bundle_cid,
       entries,
       staging,
@@ -1095,11 +1154,13 @@ fn admit_store_catalog(
 
 ///|
 fn initial_catalog_bytes(
+  incarnation : String,
   max_record_bytes : Int,
 ) -> Result[Bytes, NativeRuntimeBundleStoreIssue] {
   catalog_bytes(
     {
       revision: 0L,
+      catalog_incarnation: Some(incarnation),
       active_bundle_cid: None,
       entries: [],
       staging: [],
@@ -1132,7 +1193,17 @@ fn load_catalog(
     Ok(value) => value
     Err(issue) => return Err(Database(issue))
   }
-  admit_store_catalog(store, value.revision, value.body)
+  let catalog = match admit_store_catalog(store, value.revision, value.body) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if store.retention_initialized && catalog.catalog_incarnation is None {
+    return Err(RecoveryRequired)
+  }
+  if catalog.catalog_incarnation is Some(_) {
+    store.retention_initialized = true
+  }
+  Ok(catalog)
 }
 
 ///|
@@ -1166,6 +1237,7 @@ fn with_catalog_revision(
 ) -> NativeRuntimeBundleCatalog {
   {
     revision: catalog.revision + 1L,
+    catalog_incarnation: catalog.catalog_incarnation,
     active_bundle_cid,
     entries,
     staging: catalog.staging,
@@ -1181,6 +1253,7 @@ fn with_catalog_staging(
 ) -> NativeRuntimeBundleCatalog {
   {
     revision: catalog.revision + 1L,
+    catalog_incarnation: catalog.catalog_incarnation,
     active_bundle_cid: active_cid(catalog),
     entries,
     staging,
@@ -1195,6 +1268,7 @@ fn with_catalog_copies(
 ) -> NativeRuntimeBundleCatalog {
   {
     revision: catalog.revision + 1L,
+    catalog_incarnation: catalog.catalog_incarnation,
     active_bundle_cid: active_cid(catalog),
     entries: catalog.entries,
     staging: catalog.staging,
@@ -1263,11 +1337,15 @@ fn open_runtime_bundle_store_with_authorities(
     max_record_bytes: max_record_bytes.to_int(),
     active_installers: Map([]),
     closed: false,
+    retention_initialized: false,
   }
   match database.read("runtime_bundle", "catalog") {
     Ok(value) =>
       match admit_store_catalog(store, value.revision, value.body) {
-        Ok(_) => Ok(store)
+        Ok(catalog) => {
+          store.retention_initialized = catalog.catalog_incarnation is Some(_)
+          Ok(store)
+        }
         Err(issue) => {
           database.close()
           ignore(lock.close())
@@ -1275,7 +1353,16 @@ fn open_runtime_bundle_store_with_authorities(
         }
       }
     Err(@sqlite.NotFound) => {
-      let initial = match initial_catalog_bytes(store.max_record_bytes) {
+      let incarnation = match new_catalog_incarnation(signature_library) {
+        Ok(value) => value
+        Err(issue) => {
+          database.close()
+          ignore(lock.close())
+          return Err(issue)
+        }
+      }
+      let initial = match
+        initial_catalog_bytes(incarnation, store.max_record_bytes) {
         Ok(value) => value
         Err(issue) => {
           database.close()
@@ -1284,12 +1371,19 @@ fn open_runtime_bundle_store_with_authorities(
         }
       }
       match database.insert("runtime_bundle", "catalog", initial) {
-        Ok(_) => Ok(store)
+        Ok(_) => {
+          store.retention_initialized = true
+          Ok(store)
+        }
         Err(@sqlite.Collision) =>
           match database.read("runtime_bundle", "catalog") {
             Ok(value) =>
               match admit_store_catalog(store, value.revision, value.body) {
-                Ok(_) => Ok(store)
+                Ok(catalog) => {
+                  store.retention_initialized = catalog.catalog_incarnation
+                    is Some(_)
+                  Ok(store)
+                }
                 Err(issue) => {
                   database.close()
                   ignore(lock.close())
@@ -2914,7 +3008,9 @@ pub fn NativeRuntimeBundleStore::retain(
   hold_id : String,
   kind : String,
 ) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue] {
-  if !bounded(hold_id, 512) || !bounded(kind, 512) {
+  if !bounded(hold_id, 512) ||
+    !bounded(kind, 512) ||
+    hold_id.has_prefix("workspace-set:") {
     return Err(InvalidConfiguration)
   }
   let current = match load_catalog(self) {
@@ -2947,7 +3043,7 @@ pub fn NativeRuntimeBundleStore::retain(
     Err(issue) => return Err(issue)
   }
   let holds = entry.holds.copy()
-  holds.push({ hold_id, kind, })
+  holds.push({ hold_id, kind, binding_body: None, })
   let replacement = match
     after_transition(entry, transition, holds, entry.reclaim_pending) {
     Ok(value) => value
@@ -2970,7 +3066,7 @@ pub fn NativeRuntimeBundleStore::release(
   self : NativeRuntimeBundleStore,
   hold_id : String,
 ) -> Result[Bool, NativeRuntimeBundleStoreIssue] {
-  if !bounded(hold_id, 512) {
+  if !bounded(hold_id, 512) || hold_id.has_prefix("workspace-set:") {
     return Err(InvalidConfiguration)
   }
   let current = match load_catalog(self) {

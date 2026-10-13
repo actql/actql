@@ -4,6 +4,8 @@
 /// These are heap/control/backing charges; no stack/RSS/baseline claim is made.
 priv struct HolderEffectHostSetupProfile {
   read_ceiling : Int
+  // Independent physical diagnostic bound, not inferred from Account body size.
+  diagnostic_ceiling : Int
   setup_retained_bytes : Int64
   current_retained_bytes : Int64
   // Minimum remainder of the initial reservation after snapshot partition.
@@ -58,6 +60,7 @@ fn holder_effect_host_setup_binding(
 fn holder_effect_host_setup_profile_valid(
   profile : HolderEffectHostSetupProfile,
 ) -> Bool {
+  profile.diagnostic_ceiling > 0 &&
   profile.read_ceiling > 0 &&
   profile.read_ceiling <= 1000000 &&
   profile.setup_retained_bytes > 0L &&

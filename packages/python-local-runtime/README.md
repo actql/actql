@@ -1,14 +1,14 @@
 # ActQL Python Local runtime recipe
 
-This package supplies installed component resources for `actql-sdk[local]`.
-It shares the SDK release version and pins Wasmtime 38.0.0. Importing either
+This package supplies installed component resources for `actql`.
+It shares the standard product and SDK release version and pins Wasmtime 38.0.0. Importing either
 `actql_sdk` or `actql_local_runtime` does not load Wasmtime or DuckDB. Remote-only
 installation keeps its existing dependencies.
 
 This source directory is a recipe, not a shipped runtime. It contains no Wasm
 module or native library. A release producer must supply the exact committed
 source artifact and its independent build and execution receipts. The existing
-Core loader validates ABI60; an older module is not a fallback. Installed
+Core loader validates ABI64; an older module is not a fallback. Installed
 metadata must select standalone DuckDB `v1.4.3`; other library versions cannot
 enter this installed profile. The physical loader also checks the actual
 library version before use.
@@ -30,7 +30,7 @@ The supplied directory contains `artifact.json`, `client_host_wasm.wasm`,
 - `source_sha`: the complete clean recipe/source commit.
 - `package_version`: the SDK/runtime release cohort version.
 - `platform`: `darwin-arm64`.
-- `core_abi`: the existing private Core ABI, currently 60.
+- `core_abi`: the existing private Core ABI, currently 64.
 - `wasmtime_version`: `38.0.0`.
 - `module` and `duckdb`: `{file, bytes, sha256}`, with the fixed filenames above.
 - `duckdb_version`: the actual library's `vMAJOR.MINOR.PATCH` string, independently
@@ -60,8 +60,13 @@ or minimum OS, and refuses unbundled non-system library dependencies.
 runtime execution and public Local acceptance false.
 
 Wheel generation and a clean external installation require their separately
-coordinated validation lane. Normal users will install `actql-sdk[local]` and
+coordinated validation lane. Normal users will install `actql` and
 use the SDK's ordinary Local Client entrance; they will not run this recipe,
 provide component paths, build source, start another Host, or supply a token.
 The public Local Client and its copyable SELECT1 example are still being
 connected and must pass the actual installed-wheel consumer before delivery.
+
+The fixed three-wheel cohort is built by `scripts/build-python-product-wheels.py`
+from the same clean source and original artifact directory. Its `cohort.json`
+records all three wheel digests and keeps product/recovery acceptance false.
+SDK-only installation is `uv add actql-sdk`; it does not select this runtime.

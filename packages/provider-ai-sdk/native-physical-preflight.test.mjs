@@ -36,7 +36,12 @@ function fixture(change = {}) {
     },
     clientProgramModelPhysicalPending: () => ({kind: 'pending'}),
     clientProgramModelPhysicalUnknown: () => ({kind: 'unknown'}),
-    clientProgramModelPhysicalSavedChat: view => ({kind: 'saved', view}),
+    clientProgramModelPhysicalSavedChat: () => assert.fail('Native raw must not use generation decoder'),
+    clientProgramModelPhysicalSavedNativeDecision(view, original, admitted, prob) {
+      assert.equal(view, response); assert.equal(original, projected);
+      assert.equal(admitted, provider); assert.equal(prob, probability);
+      return {$tag: 1, _0: {kind: 'saved', view}};
+    },
   };
   const config = {moon, projected, admittedProvider: provider, request, probability,
     taskCid: 'task', promptCid: 'prompt', outputSchemaCid: 'schema', modelSelector: 'native',
@@ -87,12 +92,31 @@ test('native SDK preflight uses dedicated original plan without generation defau
 
 test('native SDK preflight rejects missing runtime and foreign originals before SDK allocation', () => {
   for (const mutate of [f => { delete f.moon.clientProgramModelAsyncNativeDecisionRequestPlan; },
+    f => { delete f.moon.clientProgramModelPhysicalSavedNativeDecision; },
     f => { f.config.projected = {}; }, f => { f.config.admittedProvider = {}; },
     f => { f.config.request = {}; }, f => { f.config.probability = undefined; }, f => { f.retire(); }]) {
     const f = fixture(); mutate(f);
     assert.throws(() => createProjectedTypeSafeDecisionPreflight(f.config), /Unavailable/);
     assert.deepEqual(f.counters(), {plans: 0, starts: 0, saves: 0, wakes: 0});
   }
+});
+
+test('native late saved-binding refusal keeps original Unknown raw custody without another transport', async t => {
+  const f = fixture(); let checks = 0;
+  f.moon.clientProgramModelPhysicalSavedNativeDecision = () => {
+    checks++; return {$tag: 0, _0: 'ForeignOriginalNativeResponse'};
+  };
+  const port = createProjectedTypeSafeDecisionPreflight(f.config);
+  t.after(() => f.release(port));
+  const plan = (await until(() => port.preflight.advance(), value => value._0))._1;
+  const call = plan.start(f.entry);
+  await until(() => call.poll(), value => value.kind === 'unknown');
+  assert.equal(call.poll().kind, 'unknown');
+  assert.equal(checks, 1);
+  assert.equal(plan.start(f.entry), undefined);
+  assert.deepEqual(Buffer.from(f.raw().body), Buffer.from(wire));
+  assert.equal(call.cleanup(), false);
+  assert.deepEqual({...f.counters(), wakes: 0}, {plans: 1, starts: 1, saves: 1, wakes: 0});
 });
 
 test('native SDK preflight checks original membership again before lazy preparation', async t => {
