@@ -499,10 +499,16 @@ test "original keyed empty listing keeps Direct custody through assembly cleanup
   assert_eq(@resources.ledger_usage(ledger).holdings, 1)
   @row_source_host.close_accounted_row_run(run).unwrap()
   assert_true(@row_source_host.row_capture_source(capture) is Err(_))
-  assert_eq(@resources.ledger_usage(ledger).holdings, 0)
+  // LedgerUsage.holdings is the cumulative issued identity count. The existing
+  // release_allocation retires holding.live and subtracts held_bytes; it does
+  // not refund this count. Final Scope cleanup below checks actual live tokens.
+  assert_eq(@resources.ledger_usage(ledger).holdings, 1)
+  assert_eq(@resources.ledger_usage(ledger).held_bytes, 0L)
   assert_true(
     @publication_host.finish_client_model_read_scope(
       scope, compiled, definition, plan, true,
     ).unwrap(),
   )
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
+  assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)
 }
