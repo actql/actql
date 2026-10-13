@@ -61,6 +61,8 @@ test "Transfer Journal close failure keeps cache and original holding until Data
   let original_allocation = journal.database.read(
     "remote_transfer_destination_allocation", allocation.key,
   ).unwrap()
+  assert_eq(original_allocation.revision, 0L)
+  assert_eq(original_allocation.body, b"1\noriginal-staging\noriginal-final\nintent\n\n\n")
   transfer_journal_fail_close(journal.database, 1)
   assert_false(journal.close())
   assert_false(journal.closed)
