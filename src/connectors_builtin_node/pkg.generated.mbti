@@ -1393,6 +1393,8 @@ pub fn client_program_model_physical_request_plan(@model_execution.ModelRequest,
 
 pub fn client_program_model_physical_saved_chat(@model_execution.ModelPhysicalChatResponse) -> @model_execution.ModelPhysicalCallPoll
 
+pub fn client_program_model_physical_saved_native_decision(@model_execution.ModelPhysicalChatResponse, @model_execution.NativeDecisionRequest, @model_execution.AdmittedModelProvider, @check_environment.DecisionProbabilityProfile) -> Result[@model_execution.ModelPhysicalCallPoll, @model_execution.ModelExecutionIssue]
+
 pub fn client_program_model_physical_unknown() -> @model_execution.ModelPhysicalCallPoll
 
 pub fn client_program_model_private_holding_cid(@run_publication.PublicationContract, String, String, Int) -> String?

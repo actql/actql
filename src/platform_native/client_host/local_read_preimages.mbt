@@ -1,12 +1,4 @@
 ///|
-priv enum NativeLocalReadEvidenceValue {
-  Text(String)
-  Quantity(Int)
-  Texts(Array[String])
-  AllowedReads(String)
-}
-
-///|
 priv struct NativeLocalReadPreimage {
   wire : String
   cid : String
@@ -24,53 +16,18 @@ priv struct NativeLocalReadAdmissionOriginals {
 ///|
 fn local_read_preimage(
   crypto : @crypto.Library,
-  fields : Array[(String, NativeLocalReadEvidenceValue)],
+  fields : Array[(String, @host.ClientLocalReadEvidenceValue)],
 ) -> Result[NativeLocalReadPreimage, NativeClientRunJournalIssue] {
-  try {
-    let writer = @encode.writer(16384, 256, 8)
-    // Use the existing canonical UTF-16 key Owner. Core String comparison is
-    // length-first and cannot validate these literal canonical preimages.
-    @encode.begin_ordered_object(writer)
-    for (name, value) in fields {
-      @encode.ordered_key(writer, name)
-      match value {
-        Text(value) => @encode.string_value(writer, value)
-        Quantity(value) =>
-          @encode.decimal_number_value(writer, value.to_string())
-        Texts(values) => {
-          @encode.begin_array(writer)
-          for value in values {
-            @encode.string_value(writer, value)
-          }
-          @encode.end_array(writer)
-        }
-        AllowedReads(result_name) => {
-          @encode.begin_array(writer)
-          for resource in ["run", "result/" + result_name] {
-            @encode.begin_object(writer)
-            @encode.key(writer, "operation")
-            @encode.string_value(writer, "read")
-            @encode.key(writer, "outcome")
-            @encode.string_value(writer, "allow")
-            @encode.key(writer, "resource")
-            @encode.string_value(writer, resource)
-            @encode.end_object(writer)
-          }
-          @encode.end_array(writer)
-        }
-      }
-    }
-    @encode.end_object(writer)
-    let wire = @encode.finish(writer)
-    let cid = match local_adoption_digest(crypto, @utf8.encode(wire)) {
-      Ok(value) => value
-      Err(_) => return Err(Encoding)
-    }
-    Ok({ wire, cid, })
-  } catch {
-    @encode.OutputLimit => Err(CapacityExceeded)
-    _ => Err(Encoding)
+  let wire = match @host.encode_client_local_read_preimage(fields) {
+    Ok(value) => value
+    Err(CapacityExceeded) => return Err(CapacityExceeded)
+    Err(Encoding) => return Err(Encoding)
   }
+  let cid = match local_adoption_digest(crypto, @utf8.encode(wire)) {
+    Ok(value) => value
+    Err(_) => return Err(Encoding)
+  }
+  Ok({ wire, cid, })
 }
 
 ///|

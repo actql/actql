@@ -53,7 +53,7 @@ test "GROUP scalar alias reuse preserves receiver and function differences" {
   for
     source in [
       "SELECT COUNT(*) + CHAR_LENGTH(name) AS n FROM objects GROUP BY CHARACTER_LENGTH(objects.id)",
-      "SELECT COUNT(*) + ABS(id) AS n FROM objects GROUP BY CEIL(id)", "SELECT COUNT(*) + CHAR_LENGTH(old.name) AS n FROM objects AS current GROUP BY CHARACTER_LENGTH(current.name)",
+      "SELECT COUNT(*) + ABS(id) AS n FROM objects GROUP BY CEIL(id)", "SELECT COUNT(*) + CHAR_LENGTH(old.name) AS n FROM objects AS `current` GROUP BY CHARACTER_LENGTH(current.name)",
     ] {
     assert_true(
       compile(
