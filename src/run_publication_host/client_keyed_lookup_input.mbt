@@ -85,6 +85,20 @@ pub fn start_client_keyed_lookup_input(
   max_bytes : Int,
   max_work : Int,
 ) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue] {
+  start_client_keyed_lookup_input_owned(left, ledger, max_bytes, max_work, None)
+}
+
+///|
+// Original initialization adds only the existing opaque census prerequisite.
+// Recheck it after producer liveness/count callbacks and before allocating the
+// admitted input. No caller Bool, replacement Ledger or permanent field.
+fn start_client_keyed_lookup_input_owned(
+  left : ClientKeyedLeftRead,
+  ledger : @resources.Ledger,
+  max_bytes : Int,
+  max_work : Int,
+  original : @resources.OriginalLedgerIdentity?,
+) -> Result[ClientKeyedLookupInput, ClientKeyedRequestIssue] {
   if max_bytes < 1 ||
     max_work < 1 ||
     left.assembly_started ||
@@ -93,6 +107,10 @@ pub fn start_client_keyed_lookup_input(
     return Err(Assembly("unavailable"))
   }
   let rows = @execution.producer_read_row_count(left.read)
+  if original is Some(identity) &&
+    !@resources.original_ledger_captured_preparation_available(identity) {
+    return Err(Assembly("original_custody_changed"))
+  }
   guard @acquisition.lookup_bounds_at(
       left.acquisition.binding.bounds,
       left.acquisition.binding.index,
@@ -107,6 +125,13 @@ pub fn start_client_keyed_lookup_input(
   }
   let owner = left.acquisition.owner
   let index = @acquisition.keyed_join_input(left.acquisition.binding.join)
+  // Admit the existing layout/workspace envelope before materializing the
+  // input buffer. The original per-key holdings are independent live owners.
+  let reserve = match
+    @resources.reserve_attempt(ledger, 0L, retained_bytes, execution_bytes) {
+    Ok(value) => value
+    Err(issue) => return Err(Physical(issue))
+  }
   let input = match
     @execution.prepare_bounded_admitted_input(owner, index, rows, {
       max_work,
@@ -115,16 +140,11 @@ pub fn start_client_keyed_lookup_input(
       max_text_bytes: max_bytes,
     }) {
     Ok(value) => value
-    Err(issue) => return Err(InputCapture(issue))
-  }
-  // The canonical keys, copied row layout and encoding/recheck workspace may
-  // overlap the original per-key holdings. Reserve before constructing them.
-  let reserve = match
-    @resources.reserve_attempt(ledger, 0L, retained_bytes, execution_bytes) {
-    Ok(value) => value
     Err(issue) => {
-      @execution.cancel_admitted_input(input) |> ignore
-      return Err(Physical(issue))
+      // Failed preparation has no escaped input or physical reader. Retire
+      // this exact attempt, without refunding its spent attempt identity.
+      @resources.settle_reservation(ledger, reserve) |> ignore
+      return Err(InputCapture(issue))
     }
   }
   if !@execution.charge_admitted_input_external_work(input, 1) {
