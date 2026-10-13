@@ -10,7 +10,7 @@ const runner = 'import {runFocusedTests} from "./scripts/test-execution.mjs";pro
 process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false,
   timeoutSeconds: 60, graceSeconds: 5, steps: [
     {name: 'Installed Source score supplier component controls', command: 'node',
-      args: ['--input-type=module', '-e', runner, 'node', '--test', 'scripts/source-ranking-installed-source.test.mjs']},
+      args: ['--input-type=module', '-e', runner, 'node', '--test', 'scripts/source-ranking-installed-source.test.mjs', 'scripts/release-source-ranking-fixtures.test.mjs']},
     {name: 'Whitespace', command: 'git', args: ['diff', '--check']},
   ]});
 assert.equal(git('rev-parse', 'HEAD'), source);
