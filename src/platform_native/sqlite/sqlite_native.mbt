@@ -275,7 +275,7 @@ pub fn load_library(
   let library = load_library_ffi(
     encoded,
     encoded.length(),
-    diagnostic_ceiling.or(0),
+    diagnostic_ceiling.unwrap_or(0),
   )
   if library_ready_ffi(library) {
     Ok(library)
