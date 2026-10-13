@@ -1,0 +1,163 @@
+{
+  "status": "Design proposal for integration-owner decision; no new product contract or guarantee adopted by this file.",
+  "fixedBase": {
+    "source": "5f23eb5c0435d03a619958200334d32392e810fe",
+    "tree": "4c7a74cb3d57bdcfb80300dc3cb7d37d056d8430"
+  },
+  "scope": "Close the original Vector scalar Source publication/order boundary while keeping the original 12-normal/8-refusal SQL/JSON/AQL-text fixtures, rows, schema, f32 identity, limits and Source-fetch counts.",
+  "alreadyNormative": [
+    {
+      "source": "docs/spec/language.md:721",
+      "rule": "Candidate keys are proven non-null unique tuples; schema completeness, physical enumeration and total order are separate."
+    },
+    {
+      "source": "docs/spec/language.md:1525",
+      "rule": "SourceView owns connector input facts. Author input local schema/primary_key repetition is invalid."
+    },
+    {
+      "source": "docs/spec/language.md:4014",
+      "rule": "Existing sort/publication completion uses admitted candidate keys or an applicable retained total-order witness; provider arrival is not a witness."
+    },
+    {
+      "source": "docs/spec/protocols/contracts.md:795",
+      "rule": "Output facts reference exactly one carrier_facts Contract Envelope in the owning Catalog. Any changed transitive body changes Catalog identity and its lock."
+    }
+  ],
+  "currentContract": {
+    "sourceViewSchema": "spec/contracts/actql-protocol-schemas.json#/schemas/source_view",
+    "factsBodyGrammar": "spec/contracts/actql-check-environment.json#/contract_bodies/carrier_facts",
+    "sourceViewReference": "output.facts: {id,version,cid}; keep this existing reference and Contract Envelope owner.",
+    "existingFactsInterpretation": "Lookup/List/Content component admission is purpose-specific. Arbitrary bounded facts objects are not admitted keys/order.",
+    "carrierSchema": "actql-relation-schema/0.1 remains closed {version,fields}; do not add primary_key to a schema or to connector input.",
+    "delivery": "Existing acquisition.modes[].delivery.ordering is ordered/partition_ordered/unordered. Current SourceReadMode retains only source/kind/bounded and no typed occurrence-order witness. An enum alone cannot be attached as an arbitrary LogicalOrder."
+  },
+  "recommendedMinimum": {
+    "path": "Extend the existing carrier_facts body grammar with one closed relation_keys component; no parallel facts file/store or new evaluator. Prefer this key path for the original CONCAT boundary; leave a general Source delivery-order issuer to its own justified contract boundary.",
+    "componentPointer": "/contract_bodies/carrier_facts/properties/relation_keys",
+    "proposedComponentSchema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_keys"
+      ],
+      "properties": {
+        "candidate_keys": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "array",
+            "minItems": 1,
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "proposedFixtureFactsBody": {
+      "relation_keys": {
+        "candidate_keys": [
+          [
+            "id"
+          ]
+        ]
+      }
+    },
+    "factsMeaning": "Each tuple is an admitted SourceView declaration of required non-null KeyComparable columns unique across the complete resolved acquisition. It retains conditional runtime validation, rather than claiming rows were already tested.",
+    "keyComparison": "Exact admitted field names/typed domains and ordered tuple components. Reuse bounded relation_evidence admission/key selection; no sample inference, stringification or frontend identifier normalization.",
+    "absent": "No key; retain current missing-order rejection. Null/empty component or malformed tuple is a declaration error.",
+    "owner": "Same SourceView member, output.facts envelope and output.schema reference in the same physical admitted environment. No same-CID foreign owner substitution."
+  },
+  "missingClosedContractDecision": [
+    "Approve the relation_keys spelling/closed schema in the existing carrier_facts grammar. These exact wire members are a proposed encoding of the existing key law, not already supported bytes.",
+    "Reject repeated identical tuple declarations, empty tuples, repeated components and unknown fields; do not silently repair them.",
+    "For this minimal scope do not interpret ordered/partition_ordered delivery as a key or introduce a fabricated total-order certificate. If an existing admitted delivery contract already proves a full occurrence sequence, its exact checked and runtime issuance seam must be identified separately."
+  ],
+  "identityImpact": {
+    "currentFactsSchemaFragmentSha256": "084ba0ab1e66364c284b1565fe3e7491fc91fca172c347eb88b82c2015a7d7c8",
+    "proposedFactsSchemaFragmentSha256": "b585cf9129284f47508d4acf874e1e294fe055001c91c7b7c53d02ad7ecf7e46",
+    "proposedBareFactsBodyCid": "sha256:38ffc0cad6baa7699f2ed6b40426b522df5bc7dd9dc369024d278f70a1d29209",
+    "qualification": "These are independent hashes of the described fragments/body, not new deployed pins or Contract Envelope CIDs. Use the existing identity/registry generators for normative registration.",
+    "changes": [
+      "carrier_facts body/Contract Envelope CID",
+      "SourceView contract CID via output.facts reference",
+      "owning Catalog CID and lock",
+      "Check Environment/evidence bundle and checked dependencies",
+      "affected current descriptor/pin/metadata/canonical/independent vectors",
+      "Plan/Invocation identity wherever the exact changed environment/source dependency is bound"
+    ],
+    "unchanged": [
+      "Vector field-map/schema CID when its exact bytes are unchanged",
+      "original fixture9717 text/rows/full expected schema",
+      "historical receipts/preimages and saved old identities"
+    ],
+    "oldData": "No relabeling of old bare facts/schema/Run material under a new key guarantee. Old exact bytes keep their old identity and no-key meaning; mismatched current pins are explicitly rejected."
+  },
+  "consumerPlan": [
+    {
+      "boundary": "check_environment carrier-facts admission",
+      "change": "Add bounded typed relation-key component admission against the exact SourceView output Relation schema; retain facts/source/schema envelope ownership, cursor and key_pending obligations. Integrate complete-body CatalogBodyDependencies admission instead of treating an unknown fact component as checked."
+    },
+    {
+      "boundary": "check_environment SourceViewCarrier",
+      "change": "Retain an opaque SourceView-bound candidate-key witness alongside the exact schema; do not replace this owner with a structurally equal local key contract."
+    },
+    {
+      "boundary": "sourceview_resolution.pipeline_input_at / pipeline_typing.check_with_evidence",
+      "change": "Project the retained SourceView key set into the same InputContract/pipeline key axis while keeping SourceViewInput and its Stage/declaration/catalog owner. Do not attach a standalone KeyedInput or fictitious ProducedInput."
+    },
+    {
+      "boundary": "lowering_relation preparation input keys / execution_relation input_keys",
+      "change": "Preserve key_pending into the established execution preparation. The existing bounded validate_captured_keys path checks supplied captured rows across the complete input before dispatch/publication; verify the actual Source capture read reaches that owner and retains all required key columns. Do not discharge obligations at static admission."
+    },
+    {
+      "boundary": "client_row_source_host begin_row_capture / execution_query captured Source",
+      "change": "Original checked acquisition prefix, RowRun receipt, guarded child, liveness, Source authorization, work/retention and cleanup stay the owner. Carry the new exact facts dependency and reject missing support before I/O. Validate keys across all pages, not once per page; failure publishes nothing."
+    },
+    {
+      "boundary": "Host installation / save/replay",
+      "change": "Fixture declaration explicitly supplies its adopted facts through existing RowRelationViewSpec.facts_wire; preserve exact original schema/values. Saved capture and checked key/Source dependency identity must survive existing replay with fetch count unchanged, not a second query or post-lowering patch."
+    }
+  ],
+  "negativeExamples": [
+    {
+      "input": "No relation_keys or arbitrary facts containing a key-looking string",
+      "expected": "No key witness; original CONCAT order refusal remains."
+    },
+    {
+      "input": "Foreign SourceView/schema/environment with structurally equal fields or reused facts CID",
+      "expected": "Reject owner mismatch; no key substitution."
+    },
+    {
+      "input": "Missing/conditional/nullable/vector/object key field or duplicate tuple component",
+      "expected": "Static declaration rejection before Source I/O."
+    },
+    {
+      "input": "Unknown component field, empty list/tuple or repeated candidate tuple",
+      "expected": "Closed-component rejection; no repair or catch/retry."
+    },
+    {
+      "input": "Duplicate id on another physical page; duplicate fully identical row; runtime NULL/missing id",
+      "expected": "Existing bounded key-admission failure across the complete captured input; no downstream Compute/Model/Effect or Named Result."
+    },
+    {
+      "input": "Key field not retained in the complete acquired columns; cancellation/retired Source/foreign replay",
+      "expected": "No proof from partial columns or stale custody; preserve existing owner refusal/cleanup behavior."
+    },
+    {
+      "input": "delivery.ordering=partition_ordered or provider physical page sequence alone",
+      "expected": "No fabricated global total order or key."
+    },
+    {
+      "input": "Original declared id key, original three Vector rows",
+      "expected": "Conditional strict prepare succeeds; real Local/HTTPS must still execute the unchanged original result, Source once, replay/re-read zero additional fetch, and cleanup."
+    }
+  ],
+  "verificationQualification": {
+    "existing": "Author e905 JS7/7 and Root029 JS7/7 are separate source-specific narrow evidence. Root merge5f23 is adopted normally here; no product execution at this new branch yet.",
+    "unexecuted": "All proposed key contract/code/runtime validation and original fresh four-package Local/HTTPS matrix are unimplemented/unexecuted by this design file. New public E2E0; no new Moon/Native/Heavy/producer/consumer/Hosted starts."
+  }
+}
