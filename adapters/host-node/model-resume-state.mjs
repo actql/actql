@@ -603,6 +603,55 @@ export function createModelResumeState(database, {
     originalJournalObservations.set(token, facts);
     return token;
   }
+  function currentCutCandidate(observation, {parkReceipt, savedReceipt} = {}) {
+    const facts = originalJournalObservation(observation);
+    const resource = verifier?.originalResourceCut;
+    const storage = verifier?.originalStateSaved;
+    if (parkReceipt === undefined || savedReceipt === undefined ||
+        typeof resource?.inspect !== 'function' || typeof resource?.current !== 'function' ||
+        typeof storage?.inspect !== 'function' || typeof storage?.current !== 'function') {
+      fail('ModelOriginalCurrentCutUnavailable');
+    }
+    // Installed issuers lend immutable facts from their opaque original refs.
+    // No callback runs inside the journal transaction or COMMIT boundary.
+    const parkFacts = resource.inspect(parkReceipt);
+    const savedFacts = storage.inspect(savedReceipt);
+    if (!Object.isFrozen(parkFacts) || !Object.isFrozen(savedFacts) ||
+        !same(parkFacts?.identity, facts.identity) ||
+        !same(savedFacts?.identity, facts.identity) ||
+        !['parked', 'stopping'].includes(parkFacts?.phase) ||
+        savedFacts.phase !== parkFacts.phase ||
+        !sameCut(parkFacts.cut, savedFacts.cut) ||
+        !cid(savedFacts.documentCid) || !cid(savedFacts.holdingCid) ||
+        !cid(savedFacts.storageBindingCid) || !cid(savedFacts.resourceStateCid) ||
+        !text(savedFacts.documentWire)) {
+      fail('ModelOriginalCurrentCutBindingMismatch');
+    }
+    const originalScope = facts.scopes.find(row => row.scope_cid === facts.identity.scopeCid);
+    const fixedInput = JSON.parse(JSON.parse(originalScope.originals_json).fixedInputReceiptWire);
+    const cut = parkFacts.cut;
+    if (!fact(cut) || cut.scope_cid !== facts.identity.scopeCid ||
+        cut.input_artifact_cid !== facts.identity.inputArtifactCid ||
+        cut.fixed_input_receipt_cid !== fixedInput.cid ||
+        cut.run_version !== facts.run.version || !Array.isArray(cut.slots)) {
+      fail('ModelOriginalCurrentCutBindingMismatch');
+    }
+    // Keep schema/Slot semantics with the existing Common projection port.
+    const expected = synchronous(verifier?.projectOriginalCurrentCut, {facts});
+    if (!sameCut(expected, cut)) fail('ModelOriginalCurrentCutBindingMismatch');
+    const data = {identity: facts.identity, documentCid: savedFacts.documentCid,
+      holdingCid: savedFacts.holdingCid, storageBindingCid: savedFacts.storageBindingCid,
+      resourceStateCid: savedFacts.resourceStateCid, phase: parkFacts.phase,
+      cut, originalFacts: originalCutFence(facts)};
+    const wire = JSON.stringify(data);
+    // Existing private Model envelope, not a language-wide limit or byte fee.
+    if (Buffer.byteLength(wire) > 3 * 1024 * 1024) fail('ModelOriginalCurrentCutUnavailable');
+    const operation = {identity: facts.identity, before: facts, wire,
+      parkReceipt, savedReceipt, parkFacts, savedFacts, state: 'prepared'};
+    exactCurrentCutPorts(operation);
+    transaction.run(() => requireCurrentCutFacts(operation, facts));
+    return operation;
+  }
   function originalJournalPortCurrent(port) {
     alive();
     const original = originalJournalPorts.get(port);
@@ -785,56 +834,40 @@ export function createModelResumeState(database, {
         return originalJournalPortSource.current(port, receipt, reference, parkReceipt, invalidationRequest);
       },
       prepareOriginalModelCurrentCut(observation, {parkReceipt, savedReceipt} = {}) {
-        const facts = originalJournalObservation(observation);
-        const resource = verifier?.originalResourceCut;
-        const storage = verifier?.originalStateSaved;
-        if (parkReceipt === undefined || savedReceipt === undefined ||
-            typeof resource?.inspect !== 'function' || typeof resource?.current !== 'function' ||
-            typeof storage?.inspect !== 'function' || typeof storage?.current !== 'function') {
-          fail('ModelOriginalCurrentCutUnavailable');
-        }
-        // Trusted installed issuers provide borrowed immutable facts from the
-        // actual opaque Resource and Store references. No callback runs inside
-        // the conditional journal write/COMMIT boundary.
-        const parkFacts = resource.inspect(parkReceipt);
-        const savedFacts = storage.inspect(savedReceipt);
-        if (!Object.isFrozen(parkFacts) || !Object.isFrozen(savedFacts) ||
-            !same(parkFacts?.identity, facts.identity) ||
-            !same(savedFacts?.identity, facts.identity) ||
-            !['parked', 'stopping'].includes(parkFacts?.phase) ||
-            savedFacts.phase !== parkFacts.phase ||
-            !sameCut(parkFacts.cut, savedFacts.cut) ||
-            !cid(savedFacts.documentCid) || !cid(savedFacts.holdingCid) ||
-            !cid(savedFacts.storageBindingCid) || !cid(savedFacts.resourceStateCid) ||
-            !text(savedFacts.documentWire)) {
-          fail('ModelOriginalCurrentCutBindingMismatch');
-        }
-        const originalScope = facts.scopes.find(row => row.scope_cid === facts.identity.scopeCid);
-        const fixedInput = JSON.parse(JSON.parse(originalScope.originals_json).fixedInputReceiptWire);
-        const cut = parkFacts.cut;
-        if (!fact(cut) || cut.scope_cid !== facts.identity.scopeCid ||
-            cut.input_artifact_cid !== facts.identity.inputArtifactCid ||
-            cut.fixed_input_receipt_cid !== fixedInput.cid ||
-            cut.run_version !== facts.run.version || !Array.isArray(cut.slots)) {
-          fail('ModelOriginalCurrentCutBindingMismatch');
-        }
-        // The current schema/complete Slot identities are checked by the
-        // existing Common projection port, not a second Node semantic codec.
-        const expected = synchronous(verifier?.projectOriginalCurrentCut, {facts});
-        if (!sameCut(expected, cut)) fail('ModelOriginalCurrentCutBindingMismatch');
-        const data = {identity: facts.identity, documentCid: savedFacts.documentCid,
-          holdingCid: savedFacts.holdingCid, storageBindingCid: savedFacts.storageBindingCid,
-          resourceStateCid: savedFacts.resourceStateCid, phase: parkFacts.phase,
-          cut, originalFacts: originalCutFence(facts)};
-        const wire = JSON.stringify(data);
-        // Existing private Model envelope, not a language-wide limit or byte fee.
-        if (Buffer.byteLength(wire) > 3 * 1024 * 1024) fail('ModelOriginalCurrentCutUnavailable');
-        const operation = {identity: facts.identity, before: facts, wire,
-          parkReceipt, savedReceipt, parkFacts, savedFacts, state: 'prepared'};
-        exactCurrentCutPorts(operation);
-        transaction.run(() => requireCurrentCutFacts(operation, facts));
+        const operation = currentCutCandidate(observation, {parkReceipt, savedReceipt});
         const reference = Object.freeze({kind: 'original-model-current-cut-operation'});
         originalCutOperations.set(reference, operation);
+        return reference;
+      },
+      recoverOriginalModelCurrentCut(observation, {parkReceipt, savedReceipt} = {}) {
+        const facts = originalJournalObservation(observation);
+        // Select the exact existing link and all ordered Run-local facts before
+        // entering installed verification ports. Absence is not an old ACK.
+        const wire = transaction.run(() => {
+          requireCurrentCutFacts({identity: facts.identity}, facts);
+          const row = facts.scopes.find(value => value.scope_cid === facts.identity.scopeCid);
+          if (!text(row.current_cut_link_json) ||
+              Buffer.byteLength(row.current_cut_link_json) > 3 * 1024 * 1024) {
+            fail('ModelOriginalCurrentCutUnavailable');
+          }
+          return row.current_cut_link_json;
+        });
+        const operation = currentCutCandidate(observation, {parkReceipt, savedReceipt});
+        let matches;
+        try {matches = sameCut(JSON.parse(wire), JSON.parse(operation.wire));}
+        catch (error) {fail('ModelOriginalCurrentCutCorrupt', error);}
+        if (!matches) fail('ModelOriginalCurrentCutBindingMismatch');
+        // Verification callbacks may have changed any row or the exact link.
+        // Recheck the whole observation, without rewriting/re-signing its data.
+        transaction.run(() => requireCurrentCutFacts(operation, facts));
+        operation.wire = wire;
+        operation.after = facts;
+        operation.state = 'reconciled';
+        operation.observation = issueOriginalObservation(facts);
+        const reference = Object.freeze({kind: 'original-model-current-cut-operation'});
+        originalCutOperations.set(reference, operation);
+        // The current layout does not persist invalidation intent/outcome.
+        // This read-only reference cannot retry Unknown or issue a COMMIT ACK.
         return reference;
       },
       commitOriginalModelCurrentCut(reference) {
@@ -860,7 +893,9 @@ export function createModelResumeState(database, {
       },
       originalModelCurrentCutObservation(reference) {
         const operation = cutOperation(reference);
-        if (operation.state !== 'linked') fail('ModelOriginalCurrentCutUnavailable');
+        if (operation.state !== 'linked' && operation.state !== 'reconciled') {
+          fail('ModelOriginalCurrentCutUnavailable');
+        }
         transaction.run(() => requireCurrentCutFacts(operation, operation.after));
         return operation.observation;
       },
