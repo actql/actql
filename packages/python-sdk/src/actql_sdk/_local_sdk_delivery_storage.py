@@ -6,6 +6,7 @@ from typing import Any, TypeVar
 from ._local_core import _Input, _Output, _Workspace, LocalCoreError
 from ._local_storage import ByteWrite, LocalByteStore, LocalStorageError, _NamespaceReader
 from ._local_store_reconciliation import OriginalStoreReconciliation
+from ._local_reader_facts import OriginalReaderFacts
 
 _PLAN_BYTES = 1048576
 _PLAN_WORKSPACE = 16 * _PLAN_BYTES + 8192
@@ -89,6 +90,7 @@ class OriginalSDKDeliveryStore:
         self._uncertain_first: set[int] = set()
         self._payload_outputs: dict[int, _Output] = {}
         self._uncertain_payload: dict[int, int] = {}
+        self._payload_facts: dict[int, OriginalReaderFacts] = {}
         with self._core._lock:
             original._projection._ready()
             self._uncertain_ticket = self._core._next_ticket
@@ -132,6 +134,7 @@ class OriginalSDKDeliveryStore:
                 if not self._core.close_publication_commit_export(output):
                     return False
                 del self._first_outputs[request.ticket]
+            self._payload_facts.pop(request.ticket, None)
             workspace = self._first_workspaces.get(request.ticket)
             if workspace is not None:
                 if not self._core.close_workspace(workspace):
@@ -192,6 +195,25 @@ class OriginalSDKDeliveryStore:
                     return observation._current_call(inspect)
             finally:
                 self._active = False
+
+    def bind_original_payload(self, request: _Input, clock: _Input,
+                              fact: OriginalReaderFacts) -> None:
+        """Match the exact original fact/Sealed record through Core, not Python."""
+        with self._core._lock:
+            self._nominal()
+            if (type(fact) is not OriginalReaderFacts
+                    or not any(original is fact for original in self._observation._facts)):
+                raise ValueError('Foreign original SDK payload reader facts')
+            retained = self._payload_facts.get(request.ticket)
+            if retained is not None and retained is not fact:
+                raise ValueError('Original SDK payload record cannot be replaced')
+            def bind(first: _Output, configuration: int) -> None:
+                # Retain physical custody before the Core callback. Failure is
+                # unresolved custody, never a successful selected descriptor.
+                self._payload_facts[request.ticket] = fact
+                self._core.bind_publication_sdk_payload_record(first, fact._record,
+                    configuration, fact._result, fact._binding_index)
+            self._payload_observation(request, clock, bind)
 
     def prepare_original_input(self, request: _Input, clock: _Input) -> None:
         """Check original current/backpressure before advancing a file reader."""
@@ -375,6 +397,7 @@ class OriginalSDKDeliveryStore:
                 if not self._core.close_publication_commit_export(output):
                     return False
                 del self._first_outputs[ticket]
+                self._payload_facts.pop(ticket, None)
             for ticket, workspace in tuple(self._first_workspaces.items())[::-1]:
                 if not self._core.close_workspace(workspace):
                     return False

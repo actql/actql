@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 69
+LOCAL_CORE_ABI = 70
 
 
 class LocalCoreError(RuntimeError):
@@ -316,6 +316,7 @@ _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'produce_sdk_delivery_lookup': ('i64 i32 i32 i32 i32', 'i32'),
     'retire_sdk_delivery_output': ('i64 i32', 'i32'),
     'prepare_sdk_payload_codecs': ('i64 i32 i32 i32', 'i32'),
+    'bind_sdk_payload_record': ('i64 i32 i32 i32 i32 i32', 'i32'),
     'prepare_sdk_payload_input': ('i64 i32 i32 i32', 'i32'),
     'produce_sdk_payload_chunk': ('i64 i32 i32 i32 i32 i32 i32', 'i32'),
     'confirm_sdk_payload_chunk': ('i64 i32', 'i64'),
@@ -2109,6 +2110,36 @@ class LocalCore:
                 raise RuntimeError('Invalid Local Core codec status')
             if code != 0:
                 raise LocalCoreError('prepare_sdk_payload_codecs', code)
+
+    def bind_publication_sdk_payload_record(self, first: _Output, record: _Output,
+                                           current_configuration: int,
+                                           result: int, binding_index: int) -> None:
+        """Bind the selected original Sealed record through existing Core Owners.
+
+        Python proposes only physical inventory ordinals. Core matches the
+        actual read binding and keeps the source loan until first cleanup.
+        """
+        with self._lock:
+            self._owned_output(first, 'publication_commit_export')
+            self._owned_output(record, 'payload_record')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31
+                    or any(type(index) is not int or not 0 <= index < 2**31
+                           for index in (result, binding_index))):
+                raise ValueError('Invalid original SDK payload record binding')
+            code = self._call('publication_commit_export', 'bind_sdk_payload_record',
+                              first.handle, record.handle, current_configuration,
+                              result, binding_index)
+            if type(code) is not int:
+                raise RuntimeError('Invalid Local Core payload binding status')
+            if code != 0:
+                raise LocalCoreError('bind_sdk_payload_record', code)
+            self._owned_output(first, 'publication_commit_export')
+            self._owned_output(record, 'payload_record')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
 
     def prepare_publication_sdk_payload_input(self, first: _Output,
                                              clock: _Input,
