@@ -9,7 +9,7 @@ from ._local_core import LocalResultProgress, _Input, _Output
 from ._local_host_binding import OriginalHostBinding
 from ._local_observation_transfer import OriginalObservationTransfer
 from ._local_reader_facts import OriginalReaderFacts
-from ._local_storage import ByteFence, CapacityReservation, LocalByteStore, LocalStorageError, StoredBytes
+from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalByteStore, LocalStorageError, StoredBytes
 
 _T = TypeVar('_T')
 
@@ -71,6 +71,12 @@ class OriginalStoreReconciliation:
         self._entered = False
         self._active = False
         self._binding: OriginalHostBinding | None = None
+        # Physical write-attempt guards belong to this original Store custody,
+        # not a replaceable transport wrapper or a Run/Read state machine.
+        self._sdk_evidence_request_attempts: set[int] = set()
+        self._sdk_evidence_key_attempts: set[str] = set()
+        self._sdk_delivery_request_attempts: set[int] = set()
+        self._sdk_delivery_key_attempts: set[str] = set()
 
     def _nominal(self) -> None:
         if self._original is not self:
@@ -302,6 +308,53 @@ class OriginalStoreReconciliation:
                             raise ValueError('Invalid synchronous SDK original consumer result')
                         self._validate_facts()
                     self._projection.project_sdk_read_original(request, original_run, ordinal, transfer)
+                self._current_call(project)
+
+    def project_sdk_read_evidence_decision(self, request: _Input, original_run: int,
+                                          consume: Callable[[bytes], object]) -> None:
+        self._project_sdk_read_store(request, lambda transfer:
+            self._projection.project_sdk_read_evidence_decision(request, original_run, transfer), consume)
+
+    def project_sdk_read_evidence(self, request: _Input, original_run: int,
+                                  consume: Callable[[ByteWrite], object]) -> None:
+        self._project_sdk_read_store(request, lambda transfer:
+            self._projection.project_sdk_read_evidence(request, original_run, transfer), consume)
+
+    def project_sdk_read_grant(self, request: _Input, original_run: int,
+                               consume: Callable[[ByteWrite], object]) -> None:
+        self._project_sdk_read_store(request, lambda transfer:
+            self._projection.project_sdk_read_grant(request, original_run, transfer), consume)
+
+    def project_sdk_delivery_lookup(self, request: _Input, original_run: int,
+                                    consume: Callable[[bytes], object]) -> None:
+        self._project_sdk_read_store(request, lambda transfer:
+            self._projection.project_sdk_delivery_lookup(request, original_run, transfer), consume)
+
+    def _project_sdk_read_store(self, request: _Input,
+                                produce: Callable[[Callable[[_T], None]], None],
+                                consume: Callable[[_T], object]) -> None:
+        """Keep all original reader facts and current Store around each projection.
+
+        The physical consumer does not choose scope, authority, comparison or
+        acceptance. Failures retain exact output/request/reader custody.
+        """
+        if not callable(consume):
+            raise ValueError('Invalid original SDK read Store consumer')
+        core = self._projection._core
+        with core._lock:
+            self._nominal()
+            core._owned_input(request)
+            if self._active or not self._entered:
+                raise RuntimeError('Original Store observation transfer is not available')
+            with self._serialized_facts():
+                def project() -> None:
+                    self._before_lookup()
+                    def transfer(value: _T) -> None:
+                        self._validate_facts()
+                        if consume(value) is not None:
+                            raise ValueError('Invalid synchronous SDK read Store consumer result')
+                        self._validate_facts()
+                    produce(transfer)
                 self._current_call(project)
 
     def _current_call(self, consume: Callable[[], _T]) -> _T:

@@ -6,17 +6,49 @@ import {
   "actql/actql/platform_native/remote_client",
   "actql/actql/platform_native/remote_journal",
   "actql/actql/platform_native/remote_runtime",
+  "actql/actql/platform_native/runtime_bundle",
+  "actql/actql/remote_bundle",
   "actql/actql/remote_site_protocol",
 }
 
 // Values
+pub fn advance_native_bundle_custody_report(NativeBundleCustodyPendingReport?, (@remote_site_protocol.RemotePollBundleCustody, @remote_bundle.RemoteBundleCustodyResponse) -> Result[@remote_site_protocol.RemoteBundleCustodyObservationReply, @remote_client.NativeRemoteClientIssue]) -> (NativeBundleCustodyPendingReport?, @remote_site_protocol.RemoteBundleCustodyObservationReply?)
+
 pub fn advance_native_outbound_operation(@remote_runtime.NativeRemoteRuntime, @remote_site_protocol.RemotePollOperation?, (@remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord, @remote_client.NativeRemoteClientIssue], (@remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.DispatchRecord?, @remote_client.NativeRemoteClientIssue]) -> Result[NativeRemoteAgentOutcome, NativeRemoteAgentIssue]
+
+pub fn native_bundle_custody_authorized(NativeBundleCustodyConfiguration, String, @remote_bundle.RemoteBundleCustodyRequest, Bool) -> Result[Unit, NativeBundleCustodyIssue]
+
+pub fn prepare_native_bundle_custody_pending_report(@remote_site_protocol.RemotePollBundleCustody, @remote_bundle.RemoteBundleCustodyResponse) -> Result[NativeBundleCustodyPendingReport, @remote_site_protocol.DispatchIssue]
+
+pub fn prepare_native_bundle_custody_response(@runtime_bundle.NativeRuntimeBundleStore, @remote_site_protocol.RemotePollBundleCustody, NativeBundleCustodyConfiguration, String, Bool) -> Result[@remote_bundle.RemoteBundleCustodyResponse, NativeBundleCustodyIssue]
 
 pub fn run_native_outbound_site_occurrence(@remote_runtime.NativeRemoteRuntime, @remote_journal.Journal, @http_client.Client, String, String) -> Result[NativeRemoteAgentOutcome, NativeRemoteAgentIssue]
 
 // Errors
 
 // Types and methods
+pub(all) struct NativeBundleCustodyConfiguration {
+  coordinator_authority : String
+  workspace_id : String
+  authority_scope_cid : String
+  environment : String
+  site_key : String
+  site_generation : Int
+  runtime_bundle_cid : String
+  connector_registration : String
+  connector_revision : String
+  strategy_revision : String
+}
+
+pub(all) enum NativeBundleCustodyIssue {
+  AuthorityRejected
+  AdmissionClosed
+  RegistrationMismatch
+  Store(@runtime_bundle.NativeRuntimeBundleStoreIssue)
+}
+
+type NativeBundleCustodyPendingReport
+
 pub(all) enum NativeRemoteAgentIssue {
   Client(@remote_client.NativeRemoteClientIssue)
   Runtime(@remote_runtime.NativeRemoteRuntimeIssue)

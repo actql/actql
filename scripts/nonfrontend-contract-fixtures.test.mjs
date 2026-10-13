@@ -19,7 +19,7 @@ const fixtureBody = (path, name) => {
 
 test('current Catalog dependency fixtures pin the normative environment grammar', () => {
   const expected = cid(json('spec/contracts/actql-check-environment.json'));
-  assert.equal(expected, 'sha256:dc3baf9c4e85a0331b767665f92717a1330aabb357b207ccc7f1cc4ad7300a76');
+  assert.equal(expected, 'sha256:b513c6a3f6746e20822c51f3fc7dab2327e5ecfe339549b50e98976c11d21804');
   for (const name of ['catalog_body_dependencies_test', 'lookup_body_dependencies_test']) {
     hasPin('src/check_environment/' + name + '.mbt', expected);
   }

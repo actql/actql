@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 63
+LOCAL_CORE_ABI = 69
 
 
 class LocalCoreError(RuntimeError):
@@ -309,6 +309,17 @@ _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'produce_observed_index': ('i64 i32 i32 i32', 'i32'),
     'produce_run_state': ('i64 i32 i32 i32', 'i32'),
     'produce_sdk_read_original': ('i64 i32 i32 i32 i32 i32 i32', 'i32'),
+    'produce_sdk_read_evidence': ('i64 i32 i32 i32 i32 i32', 'i32'),
+    'produce_sdk_read_grant': ('i64 i32 i32 i32 i32 i32', 'i32'),
+    'produce_sdk_read_evidence_decision': ('i64 i32 i32 i32 i32', 'i32'),
+    'produce_sdk_read_delivery_storage': ('i64 i32 i32 i32 i32', 'i32'),
+    'produce_sdk_delivery_lookup': ('i64 i32 i32 i32 i32', 'i32'),
+    'retire_sdk_delivery_output': ('i64 i32', 'i32'),
+    'prepare_sdk_payload_codecs': ('i64 i32 i32 i32', 'i32'),
+    'prepare_sdk_payload_input': ('i64 i32 i32 i32', 'i32'),
+    'produce_sdk_payload_chunk': ('i64 i32 i32 i32 i32 i32 i32', 'i32'),
+    'confirm_sdk_payload_chunk': ('i64 i32', 'i64'),
+    'produce_sdk_payload_receipt': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_lookup_reference': ('i64 i32 i32 i32', 'i32'),
     'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_index_key': ('i64 i32 i32', 'i32'),
@@ -2026,6 +2037,245 @@ class LocalCore:
                 'publication_commit_export', 'produce_sdk_read_original', value.handle,
                 request.handle, original_run, current_configuration, ordinal,
                 0 if field == 'wire' else 1))
+
+    def produce_publication_sdk_read_evidence_decision(self, value: _Output,
+                                                      request: _Input,
+                                                      original_run: int,
+                                                      current_configuration: int) -> None:
+        """Project Core's typed append/retained proposal from actual Store rows.
+
+        No Python comparison or physical COMMIT result supplies this decision.
+        Unknown attempted writes keep original custody and are never replayed.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_input(request)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(original_run) is not int or not 0 < original_run < 2**31
+                    or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK read evidence decision')
+            self._check('produce_sdk_read_evidence_decision', self._call(
+                'publication_commit_export', 'produce_sdk_read_evidence_decision',
+                value.handle, request.handle, original_run, current_configuration))
+
+    def produce_publication_sdk_delivery_lookup(self, value: _Output,
+                                               request: _Input,
+                                               original_run: int,
+                                               current_configuration: int) -> None:
+        """Project only Common's original read-only delivery-attempt response."""
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_input(request)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(original_run) is not int or not 0 < original_run < 2**31
+                    or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK delivery lookup')
+            self._check('produce_sdk_delivery_lookup', self._call(
+                'publication_commit_export', 'produce_sdk_delivery_lookup',
+                value.handle, request.handle, original_run, current_configuration))
+
+    def retire_publication_sdk_delivery_output(self, value: _Output) -> bool:
+        """Retire transport only; the actual first preparation/request stay owned."""
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            code = self._call('publication_commit_export', 'retire_sdk_delivery_output', value.handle)
+            if type(code) is not int:
+                raise RuntimeError('Invalid Local Core retirement status')
+            if code == -9:
+                return False
+            if code != 0:
+                raise LocalCoreError('retire_sdk_delivery_output', code)
+            return True
+
+    def prepare_publication_sdk_payload_codecs(self, value: _Output,
+                                               clock: _Input,
+                                               current_configuration: int) -> None:
+        """Connect original retained first codecs, without payload/sink/Store ACK."""
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_input(clock)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK payload configuration')
+            code = self._call('publication_commit_export', 'prepare_sdk_payload_codecs',
+                              value.handle, clock.handle, current_configuration)
+            if type(code) is not int:
+                raise RuntimeError('Invalid Local Core codec status')
+            if code != 0:
+                raise LocalCoreError('prepare_sdk_payload_codecs', code)
+
+    def prepare_publication_sdk_payload_input(self, first: _Output,
+                                             clock: _Input,
+                                             current_configuration: int) -> None:
+        """Check Core's current original read and backpressure before file I/O.
+
+        This is not a durable permit. Producing the actual chunk rechecks the
+        same current/Store facts; no read grant, use or attempt is installed.
+        """
+        with self._lock:
+            self._owned_output(first, 'publication_commit_export')
+            self._owned_input(clock)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK payload configuration')
+            code = self._call('publication_commit_export', 'prepare_sdk_payload_input',
+                              first.handle, clock.handle, current_configuration)
+            if type(code) is not int:
+                raise RuntimeError('Invalid Local Core payload status')
+            if code != 0:
+                raise LocalCoreError('prepare_sdk_payload_input', code)
+            self._owned_output(first, 'publication_commit_export')
+            self._owned_input(clock)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+
+    def produce_publication_sdk_payload_chunk(self, value: _Output, first: _Output,
+                                             chunk: _Input, clock: _Input,
+                                             current_configuration: int, *, eof: bool) -> None:
+        """Offer bounded original bytes to Core's codecs and existing sink.
+
+        Physical acceptance, reader release and terminal Store ACK remain
+        separate. Errors keep all original loans for their explicit cleanup.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_output(first, 'publication_commit_export')
+            self._owned_input(chunk)
+            self._owned_input(clock)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (value is first or chunk.length > 65536 or type(eof) is not bool
+                    or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK payload chunk')
+            code = self._call('publication_commit_export', 'produce_sdk_payload_chunk',
+                              value.handle, first.handle, chunk.handle, clock.handle,
+                              int(eof), current_configuration)
+            if type(code) is not int:
+                raise RuntimeError('Invalid Local Core payload status')
+            if code != 0:
+                raise LocalCoreError('produce_sdk_payload_chunk', code)
+            for output in (value, first):
+                self._owned_output(output, 'publication_commit_export')
+            for original in (chunk, clock):
+                self._owned_input(original)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+
+    def confirm_publication_sdk_payload_chunk(self, value: _Output) -> int:
+        """Record actual sink acceptance, without a new permit or Store ACK.
+
+        Recording an already accepted chunk remains distinct from starting
+        another read; closing does not fabricate acceptance or cancel the Run.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            count = self._call('publication_commit_export', 'confirm_sdk_payload_chunk',
+                               value.handle)
+            if type(count) is not int:
+                raise RuntimeError('Invalid Local Core confirmed byte count')
+            if count < 0:
+                raise LocalCoreError('confirm_sdk_payload_chunk', count)
+            # Core returns cumulative confirmed bytes, not this input chunk's
+            # length. Its sink Owner enforces the original total byte limit.
+            if count >= 2**63:
+                raise RuntimeError('Invalid Local Core confirmed byte count')
+            self._owned_output(value, 'publication_commit_export')
+            return count
+
+    def produce_publication_sdk_payload_receipt(self, value: _Output, first: _Output,
+                                               clock: _Input,
+                                               current_configuration: int) -> None:
+        """Project Core's explicit sink-completion receipt, never durable ACK."""
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_output(first, 'publication_commit_export')
+            self._owned_input(clock)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (value is first or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK payload receipt')
+            code = self._call('publication_commit_export', 'produce_sdk_payload_receipt',
+                              value.handle, first.handle, clock.handle,
+                              current_configuration)
+            if type(code) is not int:
+                raise RuntimeError('Invalid Local Core payload status')
+            if code != 0:
+                raise LocalCoreError('produce_sdk_payload_receipt', code)
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_output(first, 'publication_commit_export')
+            self._owned_input(clock)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+
+    def produce_publication_sdk_read_delivery_storage(self, value: _Output,
+                                                      request: _Input,
+                                                      original_run: int,
+                                                      current_configuration: int) -> None:
+        """Project the existing delivery/usage Owners' same-TX first CAS only.
+
+        This neither acknowledges physical COMMIT nor starts payload delivery.
+        Core chooses original keys/body/revisions; unknown attempts need lookup.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_input(request)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(original_run) is not int or not 0 < original_run < 2**31
+                    or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31):
+                raise ValueError('Invalid original SDK delivery storage projection')
+            self._check('produce_sdk_read_delivery_storage', self._call(
+                'publication_commit_export', 'produce_sdk_read_delivery_storage',
+                value.handle, request.handle, original_run, current_configuration))
+
+    def produce_publication_sdk_read_evidence(self, value: _Output, request: _Input,
+                                              original_run: int,
+                                              current_configuration: int, *,
+                                              field: Literal['wire', 'identity']) -> None:
+        """Project the exact Core evidence packet/key, without a Store write."""
+        self._produce_publication_sdk_read_entry(value, request, original_run,
+            current_configuration, field, 'produce_sdk_read_evidence')
+
+    def produce_publication_sdk_read_grant(self, value: _Output, request: _Input,
+                                           original_run: int,
+                                           current_configuration: int, *,
+                                           field: Literal['wire', 'identity']) -> None:
+        """Issue through Core only after the same Store's actual evidence read.
+
+        A grant body is not its persistence, usage claim, delivery or Run state.
+        Query failure/missing/changed evidence retain the exact same loans.
+        """
+        self._produce_publication_sdk_read_entry(value, request, original_run,
+            current_configuration, field, 'produce_sdk_read_grant')
+
+    def _produce_publication_sdk_read_entry(self, value: _Output, request: _Input,
+                                           original_run: int, current_configuration: int,
+                                           field: Literal['wire', 'identity'],
+                                           operation: str) -> None:
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_input(request)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(original_run) is not int or not 0 < original_run < 2**31
+                    or type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31
+                    or type(field) is not str or field not in ('wire', 'identity')):
+                raise ValueError('Invalid original SDK read entry projection')
+            self._check(operation, self._call(
+                'publication_commit_export', operation, value.handle, request.handle,
+                original_run, current_configuration, 0 if field == 'wire' else 1))
 
     def produce_publication_commit_schema(self, value: _Output,
                                            current_configuration: int, result: int, *,

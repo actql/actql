@@ -44,6 +44,20 @@ class OriginalCommitProjection:
         with self._core._lock:
             return tuple(self._outputs)
 
+    def retain_sdk_delivery_custody(self, output: _Output) -> None:
+        """Move one exact active loan to its already registered Store holder.
+
+        This changes physical cleanup custody only. The Core export validates
+        its genuine first preparation when its transport is retired; neither
+        this move nor the caller's physical COMMIT creates read permission.
+        """
+        with self._core._lock:
+            self._core._owned_output(output, 'publication_commit_export')
+            if (not self._projecting or self._closing or len(self._outputs) != 1
+                    or self._outputs[0] is not output):
+                raise ValueError('Foreign original SDK delivery output custody')
+            self._outputs.pop()
+
     def count(self) -> int:
         with self._core._lock:
             self._ready()
@@ -277,6 +291,135 @@ class OriginalCommitProjection:
         raw_body = self._core.read_publication_commit_material(body)
         if consume(raw_identity, raw_body) is not None:
             raise ValueError('Invalid synchronous SDK original consumer result')
+
+    def project_sdk_read_evidence_decision(self, request: _Input, original_run: int,
+                                          consume: Callable[[bytes], object]) -> None:
+        """Transport Core's closed same-Store append/retained proposal only."""
+        if (not callable(consume) or type(original_run) is not int
+                or not 0 < original_run < 2**31):
+            raise ValueError('Invalid original SDK evidence decision consumer')
+        with self._core._lock:
+            self._core._owned_input(request)
+            self._ready()
+            self._projecting = True
+            try:
+                self._consume_sdk_read_decision(request, original_run, consume)
+                self._retire_outputs()
+                if self._outputs:
+                    raise LocalCoreError('original_sdk_evidence_decision_cleanup', -9)
+            finally:
+                self._projecting = False
+
+    def _consume_sdk_read_decision(self, request: _Input, original_run: int,
+                                   consume: Callable[[bytes], object]) -> None:
+        output = self._output()
+        self._core.produce_publication_sdk_read_evidence_decision(
+            output, request, original_run, self._configuration)
+        raw = self._core.read_publication_commit_material(output)
+        if consume(raw) is not None:
+            raise ValueError('Invalid synchronous SDK evidence decision consumer result')
+
+    def project_sdk_delivery_lookup(self, request: _Input, original_run: int,
+                                    consume: Callable[[bytes], object]) -> None:
+        """Borrow an existing delivery response, never retry or payload authority."""
+        if (not callable(consume) or type(original_run) is not int
+                or not 0 < original_run < 2**31):
+            raise ValueError('Invalid original SDK delivery lookup consumer')
+        with self._core._lock:
+            self._core._owned_input(request)
+            self._ready()
+            self._projecting = True
+            try:
+                self._consume_sdk_delivery_lookup(request, original_run, consume)
+                self._retire_outputs()
+                if self._outputs:
+                    raise LocalCoreError('original_sdk_delivery_lookup_cleanup', -9)
+            finally:
+                self._projecting = False
+
+    def _consume_sdk_delivery_lookup(self, request: _Input, original_run: int,
+                                     consume: Callable[[bytes], object]) -> None:
+        output = self._output()
+        self._core.produce_publication_sdk_delivery_lookup(
+            output, request, original_run, self._configuration)
+        raw = self._core.read_publication_commit_material(output)
+        if consume(raw) is not None:
+            raise ValueError('Invalid synchronous SDK delivery lookup consumer result')
+
+    def project_sdk_read_delivery_storage(self, request: _Input, original_run: int,
+                                         consume: Callable[[bytes], object]) -> None:
+        """Borrow original closed CAS materials; not a use/ACK or read stream."""
+        if (not callable(consume) or type(original_run) is not int
+                or not 0 < original_run < 2**31):
+            raise ValueError('Invalid original SDK delivery storage consumer')
+        with self._core._lock:
+            self._core._owned_input(request)
+            self._ready()
+            self._projecting = True
+            try:
+                self._consume_sdk_delivery_storage(request, original_run, consume)
+                self._retire_outputs()
+                if self._outputs:
+                    raise LocalCoreError('original_sdk_delivery_storage_cleanup', -9)
+            finally:
+                self._projecting = False
+
+    def _consume_sdk_delivery_storage(self, request: _Input, original_run: int,
+                                      consume: Callable[[bytes], object]) -> None:
+        output = self._output()
+        self._core.produce_publication_sdk_read_delivery_storage(
+            output, request, original_run, self._configuration)
+        raw = self._core.read_publication_commit_material(output)
+        if consume(raw) is not None:
+            raise ValueError('Invalid synchronous SDK delivery storage consumer result')
+
+    def project_sdk_read_evidence(self, request: _Input, original_run: int,
+                                  consume: Callable[[ByteWrite], object]) -> None:
+        """Project the original evidence packet to its Core-selected key."""
+        self._project_sdk_read_entry(request, original_run, 'evidence', consume)
+
+    def project_sdk_read_grant(self, request: _Input, original_run: int,
+                               consume: Callable[[ByteWrite], object]) -> None:
+        """Project an issued grant after Core's same-Store evidence validation.
+
+        Persisting this grant, usage, delivery and terminal receipts remain
+        separate existing Owner operations, never inferred from these bytes.
+        """
+        self._project_sdk_read_entry(request, original_run, 'grant', consume)
+
+    def _project_sdk_read_entry(self, request: _Input, original_run: int,
+                                kind: Literal['evidence', 'grant'],
+                                consume: Callable[[ByteWrite], object]) -> None:
+        if (not callable(consume) or type(original_run) is not int
+                or not 0 < original_run < 2**31):
+            raise ValueError('Invalid original SDK read entry consumer')
+        with self._core._lock:
+            self._core._owned_input(request)
+            self._ready()
+            self._projecting = True
+            try:
+                self._consume_sdk_read_entry(request, original_run, kind, consume)
+                self._retire_outputs()
+                if self._outputs:
+                    raise LocalCoreError('original_sdk_read_entry_cleanup', -9)
+            finally:
+                self._projecting = False
+
+    def _consume_sdk_read_entry(self, request: _Input, original_run: int,
+                                kind: Literal['evidence', 'grant'],
+                                consume: Callable[[ByteWrite], object]) -> None:
+        producer = (self._core.produce_publication_sdk_read_evidence if kind == 'evidence'
+                    else self._core.produce_publication_sdk_read_grant)
+        identity = self._output()
+        producer(identity, request, original_run, self._configuration, field='identity')
+        address = self._address(self._core.read_publication_commit_material(identity), index_key=False)
+        payload = self._output()
+        producer(payload, request, original_run, self._configuration, field='wire')
+        raw = self._core.read_publication_commit_material(payload)
+        key = LocalByteStore.namespaced_key(
+            'client_local_read_evidence' if kind == 'evidence' else 'publication_contract', address)
+        if consume(ByteWrite(key, None, raw)) is not None:
+            raise ValueError('Invalid synchronous SDK read entry consumer result')
 
     def _consume_run_state(self, observed_at: _Input,
                            consume: Callable[[bytes], object]) -> None:
