@@ -82,3 +82,25 @@ The producer, public worker, registry consumer and Catalog/Runtime admission are
 still unexecuted. JSON two-Source runtime support is unverified rather than
 assumed from its syntactic representation. The current Vector post-acquisition
 publication failure is a separate undetermined failure, not a diagnosis here.
+
+## Explicit authored JSON acquisition boundary
+
+Read-only caller tracing found the prepared one-stage JSON layout did not match
+`installed-row-source.mjs:456` -> `prepare_client_query_acquisition` ->
+`derive_query_acquisition`: the latter requires an exclusive Source -> Filter ->
+Select occurrence, and `prepare_query_sequence` requires its owned two-step
+prefix. A direct Source -> ranking edge cannot substitute this acquisition.
+
+True child 360a83987afa8d54cc73352c66a344f03a674644 authors left/right acquisition
+Stages explicitly, each with `filter: "true"` (the originally unfiltered extent)
+and `select: ["id","s"]`, followed by the original ranking consumer of their
+Results. No existing predicate is replaced, no field or Source is discarded,
+and no lowering output is patched. Policies, weights, range, k, expected values,
+ordered full schema and original two Source acquisitions are unchanged. The old
+prepared JSON remains in Git history; it was never product acceptance evidence.
+
+Exact clean360a Node13/13 `run-YklPeP` completed under the same60/TERM5 non-Heavy
+recipe, with sourceclean and Owner86445/group/ownlock closure. The two-Source,
+three-Stage installed Host path still requires actual admission/runtime evidence;
+this shape correction and Node checks do not prove it. No Moon/pack/consumer or
+new public E2E ran. External raw handoff: `explicit-acquisition-fixture-handoff-360a83.json`.
