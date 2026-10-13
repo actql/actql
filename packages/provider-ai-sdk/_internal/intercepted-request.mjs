@@ -5,6 +5,10 @@
 import {fixedInferResponseLimits, readBoundedInferResponse} from './bounded-response.mjs';
 
 const preparations = new WeakMap();
+// Internal SDK consumer retirement, not Provider failure or a response fact.
+// The owned transport mode records why its already intercepted wait ends;
+// the existing rejection handlers still wait for actual SDK settlement.
+const rawConsumerRetired = Symbol('ActQLSdkRawConsumerRetired');
 const positive = value => Number.isSafeInteger(value) && value > 0 &&
   value <= 2_147_483_647;
 const issue = code => Object.assign(new TypeError(code), {code});
@@ -121,7 +125,10 @@ export function interceptSdkRequest({runSdk, endpoint, maxRequestBytes,
     return handle;
   }
   Promise.resolve(operation).then(value => {
-    if (!state.delivered || state.fetchCount !== 1 || state.violation) {
+    if (state.transport?.responseMode === 'raw-only-retiring') {
+      state.taken = true;
+      state.decoded = undefined;
+    } else if (!state.delivered || state.fetchCount !== 1 || state.violation) {
       state.failure = state.violation ?? 'SdkReturnedBeforeResponse';
       state.responseReject?.(issue(state.failure));
     } else {
@@ -131,8 +138,15 @@ export function interceptSdkRequest({runSdk, endpoint, maxRequestBytes,
       state.decoded = value;
     }
   }, () => {
-    state.failure = state.violation ?? (state.stopped
-      ? 'SdkPreparationCancelled' : 'SdkPreparationRejected');
+    if (state.transport?.responseMode === 'raw-only-retiring') {
+      // SDK error wrapping cannot turn this private, intentionally ended
+      // consumer into Provider failure/Unknown. Common adopts only raw facts.
+      state.taken = true;
+      state.decoded = undefined;
+    } else {
+      state.failure = state.violation ?? (state.stopped
+        ? 'SdkPreparationCancelled' : 'SdkPreparationRejected');
+    }
   }).finally(() => {
     state.settled = true;
     state.responseResolve = undefined;
@@ -165,11 +179,13 @@ export function sdkPreparedRequest(handle) {
 // There is no ambient fetch, endpoint override or authority in this API.
 // The complete request/init, limits and closure are fixed BEFORE Core consumes
 // its original one-shot send gate. Their holdings must already be funded.
-export function prepareSdkTransport(handle, {fetch, responseLimits, observeAt}) {
+export function prepareSdkTransport(handle, {fetch, responseLimits, observeAt,
+  responseMode = 'sdk'}) {
   const state = record(handle);
   if (pollSdkPreparation(handle).kind !== 'ready' ||
       state.transport !== undefined || state.delivered || state.settled ||
       typeof fetch !== 'function' ||
+      !['sdk', 'raw-only'].includes(responseMode) ||
       (observeAt !== undefined && typeof observeAt !== 'function')) {
     throw issue('SdkTransportPreparationRefused');
   }
@@ -178,7 +194,7 @@ export function prepareSdkTransport(handle, {fetch, responseLimits, observeAt}) 
   const init = Object.freeze({method: original.method, body: original.body,
     headers: original.headers, redirect: 'error', signal: state.controller.signal});
   state.transport = {invoke: () => fetch(original.url, init), limits, observeAt,
-    observedAt: undefined, rawObservation: undefined,
+    observedAt: undefined, rawObservation: undefined, responseMode,
     started: false, settled: false, raw: undefined, failure: undefined,
     readerRetired: false, retiring: false, unreadResponse: undefined};
 }
@@ -222,6 +238,15 @@ export function startSdkTransport(handle) {
     if (!raw.transportComplete || raw.issue !== undefined) {
       transport.failure = raw.issue ?? 'SdkTransportIncomplete';
       state.responseReject?.(issue('SdkTransportIncomplete'));
+      return;
+    }
+    if (transport.responseMode === 'raw-only') {
+      // Chat's original raw/Store/Common codec owns response interpretation.
+      // Do not allocate an unused SDK Response copy or decoder tree. This is
+      // not raw persistence or reader retirement: those original obligations
+      // remain held, independently of the SDK Promise's later settlement.
+      transport.responseMode = 'raw-only-retiring';
+      state.responseReject?.(rawConsumerRetired);
       return;
     }
     // This is a separately funded physical copy for the same suspended SDK.
@@ -295,6 +320,9 @@ export function pollSdkDecode(handle) {
   const state = record(handle);
   if (state.failure || state.violation) return Object.freeze({kind: 'rejected',
     issue: state.failure ?? state.violation});
+  if (state.settled && state.transport?.responseMode === 'raw-only-retiring') {
+    return Object.freeze({kind: 'retired'});
+  }
   return Object.freeze({kind: state.settled ? 'ready' : 'pending'});
 }
 
