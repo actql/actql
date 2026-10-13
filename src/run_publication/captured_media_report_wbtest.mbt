@@ -38,11 +38,12 @@ test "saved captured MIME reconstructs original report and refuses missing or ch
   assert_eq(captured_content_reference_wire(saved), original_wire)
   assert_eq(captured_content_reference_media_type(saved), "application/pdf")
   for changed in [
-    original_wire.replace(old="\\\"reported_media_type\\\":\\\"Application/PDF\\\",", new=""),
+    original_wire.replace(old="\"reported_media_type\":\"Application/PDF\",", new=""),
     original_wire.replace(old="Application/PDF", new="application/pdf"),
     original_wire.replace(old="Application/PDF", new="text/plain"),
     original_wire.replace(old="Application/PDF", new="broken MIME"),
   ] {
+    assert_true(changed != original_wire)
     assert_true(prepare_stored_captured_content_reference(changed, binding, limits) is Err(_))
   }
   let retired_wire = "{\"$actql_ref\":\"content\",\"content_ref_cid\":\"sha256:2dfff07c2e376252233bf4a15fa5c1277c255adc2ec6c946a6e70d9206c71716\",\"media_type\":\"application/pdf\",\"metadata\":{\"availability_evidence_cid\":\"sha256:3333333333333333333333333333333333333333333333333333333333333333\",\"capture_authority\":\"read_content\",\"content_cid\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"content_store_id\":\"fixture\",\"data_classification\":\"internal\",\"effective_data_policy_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"issuer_evidence\":{\"capture_authority_cid\":\"sha256:6666666666666666666666666666666666666666666666666666666666666666\",\"content_cid\":\"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\",\"content_store_cid\":\"sha256:1111111111111111111111111111111111111111111111111111111111111111\",\"effective_data_policy_cid\":\"sha256:4444444444444444444444444444444444444444444444444444444444444444\",\"evidence_cid\":\"sha256:3262be0c7204cd24b97fc4e3a322a51916435887dde89dc873017202a7379771\",\"issuer_contract_cid\":\"sha256:5555555555555555555555555555555555555555555555555555555555555555\",\"issuer_kind\":\"connector_capture\",\"version\":\"actql-content-issuer-evidence/0.1\",\"workspace_scope_cid\":\"sha256:2222222222222222222222222222222222222222222222222222222222222222\"},\"media_type\":\"application/pdf\",\"retention_class\":\"fixture\",\"size_bytes\":0,\"storage_scope\":\"workspace\",\"truncated\":false},\"version\":\"actql-content-ref/0.1\"}"
