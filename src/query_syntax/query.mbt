@@ -979,7 +979,7 @@ fn QueryParser::optional_source_alias(
 ) -> NamePart? raise QueryAbort {
   if self.has("AS") {
     self.keyword("AS")
-    Some(self.name())
+    Some(self.binding_name())
   } else if self.peek().value is QuotedName(_) {
     Some(self.name())
   } else if self.peek().value is Word(value) &&
@@ -988,7 +988,7 @@ fn QueryParser::optional_source_alias(
       "ORDER", "LIMIT", "UNION", "INTERSECT", "EXCEPT", "ON", "USING", "MAX_OUTPUT_ROWS",
       "QUALIFY", "WINDOW", "PIVOT", "UNPIVOT",
     ].contains(value.to_upper()) {
-    Some(self.name())
+    Some(self.binding_name())
   } else {
     None
   }
@@ -1314,7 +1314,7 @@ fn QueryParser::optional_output_alias(
 ) -> NamePart? raise QueryAbort {
   if self.has("AS") {
     self.keyword("AS")
-    return Some(self.name())
+    return Some(self.binding_name())
   }
   match self.peek().value {
     QuotedName(_) => Some(self.name())
@@ -1554,7 +1554,7 @@ fn QueryParser::value_projection(
   }
   let name = if require_alias {
     self.keyword("AS")
-    Some(self.name())
+    Some(self.binding_name())
   } else {
     self.optional_output_alias()
   }
@@ -2442,7 +2442,7 @@ fn QueryParser::query(
         raise QueryAbort("CTE count limit", self.peek().start)
       }
       let binding_start = self.peek().start
-      let name = self.name()
+      let name = self.binding_name()
       if scope.any(binding => same_binding_name(binding.0, name)) {
         raise QueryAbort("Duplicate CTE name", self.peek().start)
       }
