@@ -23,7 +23,7 @@ fn wait_holder_cleanup_lifetime_signal() -> Unit {
 
 ///|
 priv struct HolderCleanupCustody {
-  resources : HolderOutputResources
+  resources : HolderOutputResources?
   environment : SiteEnvironment
   slot : @slot.NativeExecutorSlot
   original_failure : String
@@ -43,19 +43,22 @@ priv enum HolderOutputResourceClose {
 fn close_holder_output_resources(
   original : HolderCleanupCustody,
 ) -> HolderOutputResourceClose {
+  guard original.resources is Some(resources) else {
+    return HolderOutputResourcesClosed
+  }
   // A task-owned Catalog preparation may have survived an initialization
   // refusal. Only its task cleanup detaches it; ordinary close is no substitute
   // for the producer/Reader/stamp acknowledgements.
-  if original.resources.effect_catalog_files.val is Some(_) {
+  if resources.effect_catalog_files.val is Some(_) {
     return HolderOutputResourcesPending(original)
   }
-  guard advance_holder_cleanup_pass(original, original.step, 5, (custody, step) => {
+  guard advance_holder_cleanup_pass(resources, original.step, 5, (same, step) => {
     match step {
-      0 => close_holder_effect_host_setup(custody.resources) is HostSetupClosed
-      1 => custody.resources.transfer_journal.close()
-      2 => custody.resources.store.close() is Ok(_)
-      3 => custody.resources.transfer.close()
-      _ => custody.resources.control.close()
+      0 => close_holder_effect_host_setup(same) is HostSetupClosed
+      1 => same.transfer_journal.close()
+      2 => same.store.close() is Ok(_)
+      3 => same.transfer.close()
+      _ => same.control.close()
     }
   }) else {
     return HolderOutputResourcesPending(original)
@@ -127,7 +130,7 @@ fn holder_cleanup_caller_read_current(
 /// value. The same process keeps resources, environment and inherited slot;
 /// no CommandStop/process-hold/slot release is reached while close is pending.
 fn retain_pending_holder_cleanup(
-  resources : HolderOutputResources,
+  resources : HolderOutputResources?,
   environment : SiteEnvironment,
   slot : @slot.NativeExecutorSlot,
   original_failure : String,
@@ -137,7 +140,7 @@ fn retain_pending_holder_cleanup(
     environment,
     slot,
     original_failure,
-    step: Ref(0),
+    step: Ref(holder_cleanup_initial_position(resources)),
     slot_close_unknown: false,
   }
   // Register the existing termination handler only for this closing holder;
@@ -153,12 +156,13 @@ fn retain_pending_holder_cleanup(
       () => {
         // A missing profile/reservation is not a free read grant. Keep custody
         // through signal observation instead of allocating another input frame.
-        guard holder_cleanup_caller_read_current(resources) else {
+        guard resources is Some(opened) &&
+          holder_cleanup_caller_read_current(opened) else {
           return CleanupInputEnded
         }
         match read_holder_lifetime_input() {
           InputLine(line) =>
-            if !holder_cleanup_caller_read_current(resources) {
+            if !holder_cleanup_caller_read_current(opened) {
               CleanupInputEnded
             } else if holder_cleanup_progress_frame(line) {
               CleanupProgress
@@ -191,11 +195,28 @@ fn finish_holder_cleanup_lifetime(
   slot : @slot.NativeExecutorSlot,
   original_failure : String,
 ) -> @site.SiteOperation? {
-  retain_pending_holder_cleanup(resources, environment, slot, original_failure)
+  retain_pending_holder_cleanup(
+    Some(resources), environment, slot, original_failure,
+  )
   resources.effect_host_caller_current = None
   let operation = resources.effect_host_caller_operation
   resources.effect_host_caller_operation = None
   operation
+}
+
+///|
+/// Preparation refused before ordinary resources existed. Preserve the same
+/// environment/process holding/slot until their own close ACKs; do not invent
+/// an executed value or a Host setup reservation to enter the cleanup receiver.
+fn finish_unopened_holder_cleanup(
+  environment : SiteEnvironment,
+  slot : @slot.NativeExecutorSlot,
+  original_failure : String,
+) -> HolderCommandClose {
+  retain_pending_holder_cleanup(None, environment, slot, original_failure)
+  // No Host operation has been selected here. Bootstrap funding remains a
+  // separate missing supplier; None is not a zero-cost capacity admission.
+  HolderCommandFailed(None, original_failure)
 }
 
 ///|
