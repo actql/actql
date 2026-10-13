@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 57
+LOCAL_CORE_ABI = 58
 
 
 class LocalCoreError(RuntimeError):
@@ -1046,8 +1046,9 @@ class LocalCore:
         """Private trusted Host port, never a public SDK authorization option.
 
         The installed Host must supply its independent current publisher Owner
-        bound to original Policy/target/Store. No portable issuer is provided by
-        this transport. Callback-owned resources require their own reservations.
+        bound to original Policy/target/Store. The existing Common Account port evaluates original/current publish
+        separately from these physical fences. Callback-owned resources require
+        their own reservations.
         """
         with self._lock:
             self._owned_output(preflight, 'publication_preflight')
