@@ -31,7 +31,13 @@ pub fn Database::close_checked(
 }
 
 ///|
-pub fn load_library(_path : String) -> Result[Library, NativeSqliteIssue] {
+pub fn load_library(
+  _path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Library, NativeSqliteIssue] {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(InvalidLimit)
+  }
   Err(UnsupportedTarget)
 }
 

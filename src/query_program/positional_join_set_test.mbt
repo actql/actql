@@ -26,18 +26,18 @@ test "anonymous JOIN positional operand retains its existing named control" {
 ///|
 test "positional JOIN operands preserve WITH bindings and multi-JOIN ceilings" {
   for
-    (source, joins) in [
+    (source, ceilings) in [
       (
         "SELECT 0 AS n UNION ALL SELECT l.x + s.k FROM t AS l JOIN r ON l.x = r.k JOIN r AS s ON r.k = s.k ORDER BY n",
-        2,
+        [7L, 7L],
       ),
       (
         "WITH joined AS (SELECT t.x AS x, r.k AS k FROM t JOIN r ON t.x = r.k) SELECT 0 AS n UNION ALL SELECT j.x + r.k FROM joined AS j JOIN r ON j.k = r.k ORDER BY n",
-        2,
+        [4L, 7L],
       ),
       (
         "WITH combined AS (SELECT 0 AS n UNION ALL SELECT l.x + r.k FROM t AS l JOIN r ON l.x = r.k) FROM combined |> ORDER BY n",
-        1,
+        [7L],
       ),
     ] {
     let program = compile_query_script(
@@ -45,9 +45,22 @@ test "positional JOIN operands preserve WITH bindings and multi-JOIN ceilings" {
       join_order_context(),
       { ..construction_limits(), max_join_output_rows: 7L, },
     ).unwrap()
+    // The original Values pair bound is four; a later non-Values JOIN
+    // retains the context ceiling. Explicit per-JOIN guards are independent.
+    assert_eq(set_join_checked_ceilings(program), ceilings, msg=source)
+    let explicit = source
+      .replace(old="l.x = r.k", new="l.x = r.k MAX_OUTPUT_ROWS 7")
+      .replace(old="r.k = s.k", new="r.k = s.k MAX_OUTPUT_ROWS 7")
+      .replace(old="t.x = r.k", new="t.x = r.k MAX_OUTPUT_ROWS 7")
+      .replace(old="j.k = r.k", new="j.k = r.k MAX_OUTPUT_ROWS 7")
+    let explicit_program = compile_query_script(
+      @query.parse_query_script(explicit, syntax_limits()).unwrap(),
+      join_order_context(),
+      { ..construction_limits(), max_join_output_rows: 7L, },
+    ).unwrap()
     assert_eq(
-      semantic(program).split("\"max_output_rows\":7").length(),
-      joins + 1,
+      set_join_checked_ceilings(explicit_program),
+      Array::make(ceilings.length(), 7L),
     )
     match
       @check.check_parsed(program, check_environment(), None, check_limits()) {
@@ -95,6 +108,7 @@ test "positional JOIN comparison Program is independent and checked" {
     construction_limits().program,
     format=Json,
   ).unwrap()
+  assert_eq(set_join_checked_ceilings(expected), [7L])
   match
     @check.check_parsed(expected, check_environment(), None, check_limits()) {
     Checked(_) => ()

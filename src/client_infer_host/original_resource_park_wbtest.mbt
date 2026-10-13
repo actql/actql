@@ -1,7 +1,9 @@
 ///|
 // This uses the original checked fixture and synthetic byte allowances. It
 // executes real Core callers, not installed physical funding or Store/CAS.
-fn model_resource_park_test_start() -> (
+fn model_resource_park_test_start(
+  max_reservations? : Int = 4,
+) -> (
   Execution,
   @publication_host.ClientModelReadScope,
   @publication_host.ClientModelReadConsumer,
@@ -21,7 +23,7 @@ fn model_resource_park_test_start() -> (
   }).unwrap()
   let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
   let scope = @publication_host.begin_client_model_read_scope(
-    compiled, definition, plan, ledger, bootstrap, 4, 2, 0,
+    compiled, definition, plan, ledger, bootstrap, max_reservations, 2, 0,
   ).unwrap()
   let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
   let consumer = @publication_host.claim_client_model_read_preparation(

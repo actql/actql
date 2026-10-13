@@ -120,6 +120,7 @@ fn open_holder_effect_catalog_installation(
   max_nodes : Int,
   max_depth : Int,
   configuration_current : () -> Bool,
+  files : HolderEffectCatalogFileCustody,
   preparation_envelope? : @journal.NativeInitialCatalogUseEnvelope? = None,
 ) -> HolderEffectCatalogInstallation? raise CommandStop {
   // This explicit trusted Host envelope includes original Journal bytes and
@@ -157,7 +158,9 @@ fn open_holder_effect_catalog_installation(
     "catalog-grant-cid.txt", "catalog-grant.json", "catalog-grant-signature.txt",
     "provider-token-path.txt", "provider-ca-path.txt", "credential-db-path.txt",
   ]
-  let snapshot = names.map(name => (name, load_text(root, name, file_limit)))
+  let snapshot = names.map(name => {
+    (name, load_holder_catalog_file(files, root, name, file_limit))
+  })
   for (_, body) in snapshot {
     if body.is_empty() {
       stop("Effect Catalog installation contains an empty field")
@@ -244,9 +247,9 @@ fn open_holder_effect_catalog_installation(
     )
     is Ok(_) &&
     snapshot.all(entry => {
-      match @bounded_files.read_bounded_text_file(root, entry.0, file_limit) {
-        Ok(value) => value == entry.1
-        Err(_) => false
+      match files.read(root, entry.0, file_limit) {
+        Some(value) => value == entry.1
+        None => false
       }
     }) &&
     original.current() &&
@@ -268,10 +271,9 @@ fn open_holder_effect_catalog_installation(
     Err(_) => stop("Effect Catalog HTTP library unavailable")
   }
   let client = match
-    http.create_client(
+    http.create_authenticated_client(
       read(19),
-      "",
-      "",
+      @http.Bearer(read(18)),
       required_int64(matches, "max-response-bytes"),
       required_int(matches, "connect-timeout-ms"),
       required_int(matches, "total-timeout-ms"),

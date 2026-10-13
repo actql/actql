@@ -601,33 +601,53 @@ pub fn managed_task_assessment(
 /// Explicit end comes from the original CapturedDAG's completed task facts,
 /// never from a missing handle, transport error or Python scheduling decision.
 #export_name("actql_task_reserve_next_sdk")
-pub fn reserve_next_sdk_task(nonce : Int64, compute : Int, current_configuration : Int) -> Int {
-  guard selected(nonce) is Some(value) && !value.closing && !value.runtime_closing &&
-    value.computes.get(compute) is Some({ closing: false, origin: SourceFree(_, start), host: Some(host), .. } as record) &&
-    stored_compute_original_run(value, record) is Some({ configuration, outcome: Some(Ok(plan)), .. }) &&
+pub fn reserve_next_sdk_task(
+  nonce : Int64,
+  compute : Int,
+  current_configuration : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    !value.closing &&
+    !value.runtime_closing &&
+    value.computes.get(compute)
+    is Some(
+      { closing: false, origin: SourceFree(_, start), host: Some(host), .. } as record
+    ) &&
+    stored_compute_original_run(value, record)
+    is Some({ configuration, outcome: Some(Ok(plan)), .. }) &&
     value.run_configurations.get(configuration) is Some({ sdk: Some(_), .. }) &&
     value.run_configurations.get(current_configuration) is Some(current) &&
     value.physical_starts.get(start) is Some({ sdk_step: Some(step), .. }) &&
-    compute_publication_preflight(value, compute) is Some((_, preflight)) else { return -2 }
+    compute_publication_preflight(value, compute) is Some((_, preflight)) else {
+    return -2
+  }
   match run_configuration_current(value, current) {
     Ok(_) => ()
     Err(code) => return code
   }
   let code = validate_sdk_start_claim(value, step, plan)
-  if code != 0 { return code }
-  if !stored_preflight_current(value, preflight, current.account) { return -32 }
+  if code != 0 {
+    return code
+  }
+  if !stored_preflight_current(value, preflight, current.account) {
+    return -32
+  }
   let run = @local_run.local_compute_run(host)
   let graph = @strategy.captured_dag_graph(run)
   let first = @strategy.captured_compute_first_task(run)
   let count = @strategy.graph_task_count(graph)
   // Every task handle remains borrowed until its Result children close. The
   // original physical workspace selection bounds this retained inventory.
-  if count < first || count - first > value.workspace_slots { return -4 }
+  if count < first || count - first > value.workspace_slots {
+    return -4
+  }
   if @strategy.next_captured_task(run) is Some(_) {
     return reserve_managed_task(nonce, compute, current_configuration)
   }
   for task in first..<count {
-    if !@strategy.captured_task_completed(run, task) { return -33 }
+    if !@strategy.captured_task_completed(run, task) {
+      return -33
+    }
   }
   0
 }

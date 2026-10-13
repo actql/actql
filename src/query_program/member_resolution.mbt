@@ -1009,11 +1009,11 @@ fn admit_query_source(
   document : @origin.Document,
   context : Context,
   limits : Limits,
-) -> Result[@program.Program, Issue] {
+) -> Result[(@program.Program, @builder.Source), Issue] {
   let source = resolve_query_members(source, document, context, limits) catch {
     Abort(issue) => return Err(issue)
   }
-  @program.admit_generated_source(source, limits.program).map_err(issue => {
-    Admission(issue)
-  })
+  @program.admit_generated_source(source, limits.program)
+  .map(program => (program, source))
+  .map_err(issue => Admission(issue))
 }
