@@ -3,6 +3,7 @@ priv enum NativeOwnedCredentialGrant {
   RemoteGrant(@credential.RemoteCredentialGrant)
   LocalGrant(@credential.LocalCredentialGrant)
   PreparationGrant(@credential.LocalPreparationCredentialGrant)
+  SigningGrant(@credential.LocalSigningCredentialGrant)
 }
 
 ///|
@@ -10,6 +11,7 @@ priv enum NativeOwnedCredentialScope {
   RemoteScope(NativeCredentialScope)
   LocalScope(@credential.LocalCredentialScope)
   PreparationScope(@credential.LocalPreparationCredentialScope)
+  SigningScope(@credential.LocalSigningCredentialScope)
 }
 
 ///|
@@ -17,6 +19,7 @@ priv enum NativeOwnedCredentialUse {
   RemoteUse(@credential.RemoteCredentialUse)
   LocalUse(@credential.LocalCredentialUse)
   PreparationUse(@credential.LocalPreparationCredentialUse)
+  SigningUse(@credential.LocalSigningCredentialUse)
 }
 
 ///|
@@ -52,6 +55,9 @@ fn authorize_owned_credential(
   facts : NativeOwnedCredentialAuthorizationFacts,
 ) -> Bool {
   match scope {
+    // No signing current supplier is installed by this metadata unit.
+    // HTTP authorization is never borrowed for either signing purpose.
+    SigningScope(_) => false
     RemoteScope(remote) =>
       (service.authorize)({
         stage: facts.stage,
@@ -93,6 +99,7 @@ fn owned_operation_for(
   scope : NativeOwnedCredentialScope,
 ) -> NativeCredentialOperation? {
   match scope {
+    SigningScope(_) => None
     RemoteScope(remote) => operation_for(service, remote)
     LocalScope(direct_scope) => {
       let mut found = None
@@ -129,6 +136,7 @@ fn owned_operation_for(
 ///|
 fn owned_credential_grant_cid(grant : NativeOwnedCredentialGrant) -> String {
   match grant {
+    SigningGrant(value) => @credential.local_signing_credential_grant_cid(value)
     RemoteGrant(value) => @credential.credential_grant_cid(value)
     LocalGrant(value) => @credential.local_credential_grant_cid(value)
     PreparationGrant(value) =>
@@ -142,6 +150,13 @@ fn owned_grant_matches_scope(
   scope : NativeOwnedCredentialScope,
 ) -> (Int, Int64)? {
   match (grant, scope) {
+    (SigningGrant(value), SigningScope(current)) =>
+      if @credential.local_signing_credential_grant_scope(value) == current &&
+        @credential.local_signing_credential_grant_json(value) is Ok(_) {
+        Some(@credential.local_signing_credential_grant_limits(value))
+      } else {
+        None
+      }
     (RemoteGrant(value), RemoteScope(current)) =>
       grant_matches_scope(value, current)
     (LocalGrant(value), LocalScope(current)) =>
@@ -170,6 +185,9 @@ fn owned_request_matches_scope(
   body : Bytes,
 ) -> Bool {
   match scope {
+    // A signing purpose has no HTTP request. Even matching dummy fields must
+    // never select the HTTP claim/send path.
+    SigningScope(_) => false
     RemoteScope(_) => true
     LocalScope(direct_scope) => {
       let request_method = match verb {
@@ -204,6 +222,10 @@ fn prepare_owned_credential_use(
   scope : NativeOwnedCredentialScope,
 ) -> Result[NativeOwnedCredentialUse, @credential.RemoteCredentialIssue] {
   match (grant, scope) {
+    (SigningGrant(value), SigningScope(current)) =>
+      @credential.prepare_local_signing_credential_use(
+        value, use_id, now, used_count, revoked, current,
+      ).map(value => SigningUse(value))
     (RemoteGrant(value), RemoteScope(current)) =>
       @credential.prepare_credential_use(
         value,
@@ -245,6 +267,10 @@ fn authorize_owned_credential_use(
   scope : NativeOwnedCredentialScope,
 ) -> Result[Unit, @credential.RemoteCredentialIssue] {
   match (credential_use, scope) {
+    (SigningUse(value), SigningScope(current)) =>
+      @credential.validate_local_signing_credential_use_binding(
+        value, now, revoked, current,
+      )
     (RemoteUse(value), RemoteScope(current)) =>
       @credential.authorize_credential_use(
         value,
@@ -279,6 +305,7 @@ fn owned_credential_use_cid(
   credential_use : NativeOwnedCredentialUse,
 ) -> String {
   match credential_use {
+    SigningUse(value) => @credential.local_signing_credential_use_cid(value)
     RemoteUse(value) => @credential.credential_use_cid(value)
     LocalUse(value) => @credential.local_credential_use_cid(value)
     PreparationUse(value) =>
@@ -291,6 +318,7 @@ fn owned_credential_use_json(
   credential_use : NativeOwnedCredentialUse,
 ) -> Result[String, @credential.RemoteCredentialIssue] {
   match credential_use {
+    SigningUse(value) => @credential.local_signing_credential_use_json(value)
     RemoteUse(value) => @credential.credential_use_json(value)
     LocalUse(value) => @credential.local_credential_use_json(value)
     PreparationUse(value) =>
@@ -301,6 +329,12 @@ fn owned_credential_use_json(
 ///|
 fn owned_credential_use_id(credential_use : NativeOwnedCredentialUse) -> String {
   match credential_use {
+    SigningUse(value) => {
+      let (_, use_id, _) = @credential.local_signing_credential_use_projection(
+        value,
+      )
+      use_id
+    }
     RemoteUse(value) => @credential.credential_use_projection(value)[2]
     LocalUse(value) => {
       let (_, use_id, _) = @credential.local_credential_use_projection(value)
@@ -321,6 +355,12 @@ fn owned_credential_use_matches_ordinal(
   ordinal : Int64,
 ) -> Bool {
   match credential_use {
+    SigningUse(value) => {
+      let (_, _, saved_ordinal) = @credential.local_signing_credential_use_projection(
+        value,
+      )
+      saved_ordinal.to_int64() == ordinal
+    }
     RemoteUse(value) =>
       @credential.credential_use_projection(value)[3] == ordinal.to_string()
     LocalUse(value) => {
@@ -345,6 +385,11 @@ fn admit_owned_credential_use(
   cid : String,
 ) -> Result[NativeOwnedCredentialUse, @credential.RemoteCredentialIssue] {
   match grant {
+    SigningGrant(value) =>
+      @credential.admit_local_signing_credential_use_json(value, wire, cid).map(value => {
+          SigningUse(value)
+        },
+      )
     RemoteGrant(value) =>
       @credential.admit_credential_use_json(value, wire, cid).map(value => {
         RemoteUse(value)
