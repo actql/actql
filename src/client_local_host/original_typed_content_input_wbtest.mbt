@@ -26,6 +26,11 @@ fn original_keyed_typed_content_input(
   generation : @publication_host.ClientSerializationGeneration,
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
+  original? : (
+    @publication_host.ClientModelReadScope,
+    @publication.PublicationContract,
+    @resources.Ledger,
+  )? = None,
 ) -> Unit raise {
   let occurrence = @publication_host.client_serialization_generation_infer_occurrence(
     generation, compiled, plan,
@@ -54,6 +59,30 @@ fn original_keyed_typed_content_input(
       max_live_value_bytes: 100000L,
       max_work: 100000L,
     },
+  }
+  // Synthetic 7/5 and 10/5 values test nominal same-Ledger admission only.
+  // They are not a simultaneous physical bound or a production supplier.
+  // Claim/enter precedes the input constructor; no Model execution is started.
+  let consumer = match original {
+    None => None
+    Some((scope, definition, ledger)) => {
+      let read = @publication_host.prepare_client_model_read(scope, 7L, 5L).unwrap()
+      let consumer = @publication_host.claim_client_model_read_preparation(
+        read, compiled, definition, plan, 7L, 5L,
+      ).unwrap()
+      @publication_host.enter_client_model_read_consumer(
+        consumer, compiled, definition, plan, 7L, 5L,
+      ).unwrap()
+      let before = @resources.ledger_usage(ledger)
+      assert_true(
+        @publication_host.enter_client_model_read_consumer(
+          consumer, compiled, definition, plan, 7L, 5L,
+        )
+        is Err(@publication_host.Resource(@resources.SpentClaim)),
+      )
+      assert_eq(@resources.ledger_usage(ledger), before)
+      Some(consumer)
+    }
   }
   let active = start_client_serialized_infer_input(
     occurrence, segment, 7, output, execution, measurement, mapping,
@@ -84,6 +113,63 @@ fn original_keyed_typed_content_input(
     ),
   )
   assert_true(client_infer_completed_input(active) is Some(_))
+  let handed = match (original, consumer) {
+    (Some((_, definition, ledger)), Some(consumer)) => {
+      let input = client_infer_completed_input(active).unwrap()
+      let workspace = original_keyed_content_workspace().export_limits
+      let scan = @execution.start_completed_relation_identity_scan(
+        input,
+        20,
+        workspace.values,
+        workspace.payload_wire,
+        workspace.logical_wire,
+        workspace.schema,
+        10000,
+        10000,
+      ).unwrap()
+      while !@execution.advance_completed_relation_identity_scan(scan, 7).unwrap().0 {
+        ()
+      }
+      let receipt = @execution.finish_completed_relation_identity_scan(scan).unwrap()
+      assert_true(
+        @publication_host.issue_client_infer_occurrence_call_scope(
+          occurrence, plan, input, receipt, 100000, 10000, 100,
+        )
+        is Err(@publication_host.ClientInferCallScopeIssue::ForeignInput),
+      )
+      let call_scope = @publication_host.issue_client_infer_occurrence_call_scope(
+        occurrence,
+        plan,
+        input,
+        receipt,
+        100000,
+        10000,
+        100,
+        generation=Some(generation),
+      ).unwrap()
+      let quantities = @resources.quantity_usage(ledger)
+      let (same, token) = @publication_host.handoff_client_model_read_consumer_input_capacity(
+        consumer, compiled, definition, plan, call_scope, rows, 10L, 5L,
+      ).unwrap()
+      assert_true(physical_equal(same, ledger))
+      assert_true(@resources.capacity_reservation_matches(same, token, 10L, 5L))
+      assert_eq(@resources.quantity_usage(same), quantities)
+      let before = @resources.ledger_usage(same)
+      assert_true(
+        @publication_host.handoff_client_model_read_consumer_input_capacity(
+          consumer, compiled, definition, plan, call_scope, rows, 10L, 5L,
+        )
+        is Err(@publication_host.Read(Resource(@resources.SpentClaim))),
+      )
+      assert_true(
+        @publication_host.settle_client_model_read_consumer(consumer, false)
+        is Err(@publication_host.Resource(@resources.CleanupPending)),
+      )
+      assert_eq(@resources.ledger_usage(same), before)
+      Some((same, token))
+    }
+    _ => None
+  }
   let rows_use = @execution.acquire_prepared_infer_rows(rows).unwrap()
   assert_false(cleanup_client_infer_input(active).unwrap())
   assert_true(active.mapping is Some(_))
@@ -104,4 +190,13 @@ fn original_keyed_typed_content_input(
   assert_true(active.sequence is None)
   assert_true(cleanup_client_infer_input(active).unwrap())
   assert_true(@admitted.reference_available(reference))
+  match (consumer, handed) {
+    (Some(consumer), Some((same, token))) => {
+      // Only this API fixture's input has existed: its confirmed cleanup does
+      // not stand in for a Model, SDK, Store, Provider or durable ACK cleanup.
+      @publication_host.settle_client_model_read_consumer(consumer, true).unwrap()
+      @resources.settle_capacity(same, token).unwrap()
+    }
+    _ => ()
+  }
 }

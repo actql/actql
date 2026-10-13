@@ -36,7 +36,9 @@ fn original_keyed_version_history(
   suffix? : Bool = false,
   content? : Bool = false,
   typed_content? : Bool = false,
+  same_ledger_consumer? : Bool = false,
 ) -> Unit raise {
+  let typed_content = typed_content || same_ledger_consumer
   let content = content || typed_content
   let suffix = suffix || content
   let (declaration, prepared, compiled, definition, plan, keyed, requirement) = original_keyed_run_fixture(
@@ -159,7 +161,9 @@ fn original_keyed_version_history(
     @execution.execution_capacity_retained_bytes(prefix_capacity) +
     @execution.execution_capacity_retained_bytes(suffix_capacity) +
     @execution.execution_capacity_retained_bytes(workspace_capacity) +
-    3L,
+    3L +
+    // Nominal API-only read7 + handoff10, not a physical Model profile.
+    (if same_ledger_consumer { 17L } else { 0L }),
     execution_bytes: @row_source_host.row_acquisition_execution_capacity(
       acquisition,
     ) +
@@ -169,7 +173,8 @@ fn original_keyed_version_history(
     @execution.execution_capacity_execution_bytes(prefix_capacity) +
     @execution.execution_capacity_execution_bytes(suffix_capacity) +
     @execution.execution_capacity_execution_bytes(workspace_capacity) +
-    2L,
+    2L +
+    (if same_ledger_consumer { 10L } else { 0L }),
   }).unwrap()
   let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
   let scope = @publication_host.begin_client_model_read_scope(
@@ -511,6 +516,7 @@ fn original_keyed_version_history(
       measurement,
       ledger,
       typed_content~,
+      same_ledger_consumer~,
     )
   } else if suffix {
     original_keyed_version_serialize(
@@ -619,4 +625,9 @@ test "original keyed versions complete one Content generation through the same m
 ///|
 test "original keyed Content generation feeds the actual document reference into typed INFER input preparation" {
   original_keyed_version_history(typed_content=true)
+}
+
+///|
+test "original keyed Content input enters once and hands off through the same original Ledger" {
+  original_keyed_version_history(same_ledger_consumer=true)
 }
