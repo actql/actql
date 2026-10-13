@@ -121,7 +121,7 @@ pub fn prepared_client_requires_task_compilation(
   }
   let pipeline = @lower.pipeline(@lower.bound_preparation(owner))
   @pipeline.starts_with_selected_local_generator(pipeline) &&
-    !@pipeline.starts_with_values(pipeline)
+  !@pipeline.starts_with_values(pipeline)
 }
 
 ///|
