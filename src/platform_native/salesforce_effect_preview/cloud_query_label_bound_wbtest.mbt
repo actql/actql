@@ -1,23 +1,25 @@
 ///|
 test "Cloud query labels preserve the UTF8 ceiling after the allocation precheck" {
-  for label in [
-    "x".repeat(256),
-    "é".repeat(128),
-    "😀".repeat(64),
-    "e\u{301}",
-    "é",
-  ] {
+  for
+    label in [
+      "x".repeat(256),
+      "é".repeat(128),
+      "😀".repeat(64),
+      "e\u{301}",
+      "é",
+    ] {
     assert_true(cloud_resume_query_label(label))
   }
-  for label in [
-    "",
-    "x".repeat(257),
-    "é".repeat(129),
-    "😀".repeat(65),
-    "e\u{301}".repeat(86),
-    "x\n",
-    "x\u{7f}",
-  ] {
+  for
+    label in [
+      "",
+      "x".repeat(257),
+      "é".repeat(129),
+      "😀".repeat(65),
+      "e\u{301}".repeat(86),
+      "x\n",
+      "x\u{7f}",
+    ] {
     assert_false(cloud_resume_query_label(label))
   }
 }
