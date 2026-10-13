@@ -64,7 +64,8 @@ test "object column star preserves SET current values and retained range values"
 test "object column star retains exact absent range scalar and replacement refusals" {
   for
     text in [
-      "SELECT id.* FROM objects", "FROM objects o |> AS current |> SELECT o.*", "FROM objects |> SELECT id |> SELECT payload.*",
+      "SELECT id.* FROM objects", "FROM objects o |> AS `current` |> SELECT o.*",
+      "FROM objects |> SELECT id |> SELECT payload.*",
     ] {
     assert_true(
       compile(

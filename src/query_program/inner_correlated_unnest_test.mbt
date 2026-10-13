@@ -46,7 +46,7 @@ test "INNER correlation retains ordinary continuations and immutable ranges" {
   for
     text in [
       "SELECT p.id, element, position FROM parents p JOIN UNNEST(p.items) element WITH OFFSET position ON element = p.id JOIN (SELECT 2 AS key) k ON element = k.key MAX_OUTPUT_ROWS 10 ORDER BY position",
-      "FROM parents p |> SET id = 99 |> INNER JOIN UNNEST(p.items) element ON element = p.id |> SELECT id AS current, p.id AS original, element",
+      "FROM parents p |> SET id = 99 |> INNER JOIN UNNEST(p.items) element ON element = p.id |> SELECT id AS `current`, p.id AS original, element",
       "FROM parents p |> SELECT id, items |> UNION ALL (FROM parents p |> SELECT id, items) |> JOIN UNNEST(items) element ON element = id |> SELECT id, element",
       "SELECT p.id, element FROM parents p INNER JOIN UNNEST(p.items) element", "FROM parents p |> INNER JOIN UNNEST(p.items) element |> SELECT p.id, element",
     ] {

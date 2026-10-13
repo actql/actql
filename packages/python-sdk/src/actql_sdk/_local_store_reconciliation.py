@@ -250,6 +250,60 @@ class OriginalStoreReconciliation:
                     self._projection.project_observed_index(transfer)
                 self._current_call(project)
 
+    def project_run_state(self, observed_at: _Input,
+                          consume: Callable[[bytes], object]) -> None:
+        """Keep all original File facts/current Store through Core observation.
+
+        Core independently checks the completed stored chain and Account read.
+        No action, physical COMMIT return or Python comparison supplies status.
+        """
+        if not callable(consume):
+            raise ValueError('Invalid original Run observation consumer')
+        core = self._projection._core
+        with core._lock:
+            self._nominal()
+            core._owned_input(observed_at)
+            if self._active or not self._entered:
+                raise RuntimeError('Original Store observation transfer is not available')
+            with self._serialized_facts():
+                def project() -> None:
+                    self._before_lookup()
+                    def transfer(raw: bytes) -> None:
+                        self._validate_facts()
+                        if consume(raw) is not None:
+                            raise ValueError('Invalid synchronous Run observation consumer result')
+                        self._validate_facts()
+                    self._projection.project_run_state(observed_at, transfer)
+                self._current_call(project)
+
+    def project_sdk_read_original(self, request: _Input, original_run: int,
+                                  ordinal: int,
+                                  consume: Callable[[bytes, bytes], object]) -> None:
+        """Use the same original six File facts and actual current Store frame.
+
+        Core chooses the saved finite packet/selection and checks its current
+        independent publisher and Account permissions. This physical holder
+        creates no scope, Allow, grant, Run state or Store acknowledgement.
+        """
+        if not callable(consume):
+            raise ValueError('Invalid original SDK read consumer')
+        core = self._projection._core
+        with core._lock:
+            self._nominal()
+            core._owned_input(request)
+            if self._active or not self._entered:
+                raise RuntimeError('Original Store observation transfer is not available')
+            with self._serialized_facts():
+                def project() -> None:
+                    self._before_lookup()
+                    def transfer(identity: bytes, body: bytes) -> None:
+                        self._validate_facts()
+                        if consume(identity, body) is not None:
+                            raise ValueError('Invalid synchronous SDK original consumer result')
+                        self._validate_facts()
+                    self._projection.project_sdk_read_original(request, original_run, ordinal, transfer)
+                self._current_call(project)
+
     def _current_call(self, consume: Callable[[], _T]) -> _T:
         # File/Core locks are held by the caller before the fresh Store frame.
         # Reuse the original binding after prepare; never manufacture a grant

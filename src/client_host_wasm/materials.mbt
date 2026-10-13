@@ -8,6 +8,7 @@ priv struct StoredMaterial {
   mut invoked : Bool
   mut produced : Bool
   mut output_closed : Bool
+  mut closing : Bool
   mut submission : StoredSubmittedMaterial?
   mut sdk_start : StoredSDKStartStep?
   mut sdk_publication : StoredSDKPublicationBinding?
@@ -82,6 +83,7 @@ fn reserve_material_record(
     invoked: false,
     produced: false,
     output_closed: false,
+    closing: false,
     submission: None,
     sdk_start: None,
     sdk_publication: None,
@@ -260,6 +262,7 @@ pub fn validate_submitted_rows_material(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.materials.get(handle) is Some(material) &&
     !material.output_closed &&
+    !material.closing &&
     material.produced &&
     material.kind == 6 &&
     material.submission is Some(submission) &&
@@ -294,7 +297,10 @@ pub fn produce_material(nonce : Int64, handle : Int) -> Int {
     value.environments.get(preparation.environment) is Some(environment) else {
     return -2
   }
-  if value.closing || value.runtime_closing || material.output_closed {
+  if value.closing ||
+    value.runtime_closing ||
+    material.output_closed ||
+    material.closing {
     return -5
   }
   if material.produced {
@@ -450,6 +456,9 @@ pub fn close_material(nonce : Int64, handle : Int) -> Int {
     }) {
     return -9
   }
+  // Transport retirement preserves the original rows/input borrow. Full
+  // close does not: once its cleanup starts no new observation may borrow it.
+  material.closing = true
   if !material.output_closed {
     let result = status(@buffers.close_buffer(value.pool, material.slot))
     if result != 0 {
@@ -484,6 +493,9 @@ pub fn retire_material_output(nonce : Int64, handle : Int) -> Int {
       material.kind == 9
     ) else {
     return -2
+  }
+  if material.closing {
+    return -5
   }
   if material.output_closed {
     return 0

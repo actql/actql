@@ -32,9 +32,14 @@ fn original_keyed_version_response(index : Int) -> String {
 }
 
 ///|
-test "original keyed version history keeps three left occurrences but acquires only two exact Resource version children" {
+fn original_keyed_version_history(
+  suffix? : Bool = false,
+  content? : Bool = false,
+) -> Unit raise {
+  let suffix = suffix || content
   let (declaration, prepared, compiled, definition, plan, keyed, requirement) = original_keyed_run_fixture(
     relation_versions=true,
+    serialization_max_bytes=if suffix { 4470 } else { 4096 },
   )
   let execution : @execution.SequenceExecutionLimits = {
     rows: {
@@ -64,6 +69,50 @@ test "original keyed version history keeps three left occurrences but acquires o
     execution,
     measurement,
   ).unwrap()
+  let suffix_capacity = if content {
+    client_original_keyed_content_suffix_capacity(
+      prepared,
+      keyed,
+      0,
+      7,
+      source_query_original_registry,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      execution,
+      measurement,
+      original_keyed_content_workspace(),
+      { cancel: () => true, stopped: () => true, cleanup: () => Ok(true), },
+      _ => true,
+    ).unwrap()
+  } else if suffix {
+    client_original_keyed_serialization_suffix_capacity(
+      prepared,
+      keyed,
+      0,
+      7,
+      source_query_original_registry,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+      execution,
+      measurement,
+    ).unwrap()
+  } else {
+    @execution.execution_capacity(0L, 0L).unwrap()
+  }
+  let workspace = {
+    ..content_workspace_fixture(),
+    generation_bytes: 4470,
+    generation_nodes: 1000,
+    generation_depth: 32,
+    generation_frames: 100,
+  }
+  let workspace_capacity = if suffix && !content {
+    client_serialization_workspace_capacity(workspace).unwrap()
+  } else {
+    @execution.execution_capacity(0L, 0L).unwrap()
+  }
   let facts = @planning.query_requirement_source_evidence_facts(requirement).unwrap()
   let view = @row_source_host.row_declaration_view(
     declaration,
@@ -88,8 +137,16 @@ test "original keyed version history keeps three left occurrences but acquires o
   // Child logical allowances remain 8192/81920, not a normal physical profile.
   let ledger = @resources.create_ledger({
     planning_work: 3,
-    attempts: 5,
-    holdings: 4,
+    attempts: if suffix {
+      6
+    } else {
+      5
+    },
+    holdings: if content {
+      5
+    } else {
+      4
+    },
     transfer_bytes: page.length().to_int64() + 8192L,
     retained_bytes: @row_source_host.row_acquisition_retained_capacity(
       acquisition,
@@ -97,6 +154,8 @@ test "original keyed version history keeps three left occurrences but acquires o
     61632L +
     16384L +
     @execution.execution_capacity_retained_bytes(prefix_capacity) +
+    @execution.execution_capacity_retained_bytes(suffix_capacity) +
+    @execution.execution_capacity_retained_bytes(workspace_capacity) +
     3L,
     execution_bytes: @row_source_host.row_acquisition_execution_capacity(
       acquisition,
@@ -105,11 +164,28 @@ test "original keyed version history keeps three left occurrences but acquires o
     3236864L +
     163840L +
     @execution.execution_capacity_execution_bytes(prefix_capacity) +
+    @execution.execution_capacity_execution_bytes(suffix_capacity) +
+    @execution.execution_capacity_execution_bytes(workspace_capacity) +
     2L,
   }).unwrap()
   let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
   let scope = @publication_host.begin_client_model_read_scope(
-    compiled, definition, plan, ledger, bootstrap, 5, 4, 0,
+    compiled,
+    definition,
+    plan,
+    ledger,
+    bootstrap,
+    if suffix {
+      6
+    } else {
+      5
+    },
+    if content {
+      5
+    } else {
+      4
+    },
+    0,
   ).unwrap()
   let direct = start_client_original_keyed_direct_row_acquisition(
     scope,
@@ -415,8 +491,33 @@ test "original keyed version history keeps three left occurrences but acquires o
     ),
     Some(3),
   )
-  assert_eq(@resources.ledger_usage(ledger).attempts, 5)
-  assert_eq(@resources.ledger_usage(ledger).holdings, 4)
+  if content {
+    original_keyed_version_content(
+      scope, compiled, definition, plan, prepared, keyed, prefixed_lookup, prefix,
+      acquisition, capture, requirement, execution, measurement, ledger,
+    )
+  } else if suffix {
+    original_keyed_version_serialize(
+      scope, compiled, definition, plan, prepared, keyed, prefixed_lookup, prefix,
+      execution, measurement, workspace_capacity, ledger,
+    )
+  }
+  assert_eq(
+    @resources.ledger_usage(ledger).attempts,
+    if suffix {
+      6
+    } else {
+      5
+    },
+  )
+  assert_eq(
+    @resources.ledger_usage(ledger).holdings,
+    if content {
+      5
+    } else {
+      4
+    },
+  )
   complete = false
   for _ in 0..<10000 {
     if @publication_host.cleanup_client_original_keyed_prefix_lookup(
@@ -477,9 +578,24 @@ test "original keyed version history keeps three left occurrences but acquires o
     ).unwrap(),
   )
   let final_usage = @resources.ledger_usage(ledger)
-  assert_eq(final_usage.attempts, 5)
-  assert_eq(final_usage.holdings, 4)
+  assert_eq(final_usage.attempts, if suffix { 6 } else { 5 })
+  assert_eq(final_usage.holdings, if content { 5 } else { 4 })
   assert_eq(final_usage.held_bytes, 0L)
   assert_eq(final_usage.reserved_retention_bytes, 0L)
   assert_eq(final_usage.reserved_execution_bytes, 0L)
+}
+
+///|
+test "original keyed version history keeps three left occurrences but acquires only two exact Resource version children" {
+  original_keyed_version_history()
+}
+
+///|
+test "original keyed exact versions feed the checked JOIN and whole SERIALIZE suffix without replaying acquisition or left prefix" {
+  original_keyed_version_history(suffix=true)
+}
+
+///|
+test "original keyed versions complete one Content generation through the same managed family and Ledger" {
+  original_keyed_version_history(content=true)
 }

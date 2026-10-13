@@ -124,7 +124,7 @@ test "OVER refuses missing and sibling names without exposing computed slots" {
   for
     text in [
       "SELECT amount AS renamed, ROW_NUMBER() OVER (ORDER BY renamed) AS pos FROM orders",
-      "SELECT ROW_NUMBER() OVER (ORDER BY pos) AS pos FROM orders", "FROM orders AS old |> AS current |> SELECT ROW_NUMBER() OVER (ORDER BY old.amount) AS pos",
+      "SELECT ROW_NUMBER() OVER (ORDER BY pos) AS pos FROM orders", "FROM orders AS old |> AS `current` |> SELECT ROW_NUMBER() OVER (ORDER BY old.amount) AS pos",
     ] {
     assert_true(
       compile(

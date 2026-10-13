@@ -82,7 +82,7 @@ test "post-JOIN SET keeps the original range value and edits the current column"
     "[\"current\",\"original\",\"matched\"]",
   )
   check_join_pipe_edit(
-    "FROM t AS l |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SET y = y + 10 |> SELECT y AS current, l.y AS original, rr.k AS matched |> ORDER BY original",
+    "FROM t AS l |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SET y = y + 10 |> SELECT y AS `current`, l.y AS original, rr.k AS matched |> ORDER BY original",
     expected,
   )
 }
@@ -106,7 +106,7 @@ test "post-JOIN EXTEND derives a new current slot without extending the old rang
     "[\"current\",\"original\",\"matched\"]",
   )
   check_join_pipe_edit(
-    "FROM t AS l |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> EXTEND y + 10 AS current |> SELECT current, l.y AS original, rr.k AS matched |> ORDER BY original",
+    "FROM t AS l |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> EXTEND y + 10 AS `current` |> SELECT current, l.y AS original, rr.k AS matched |> ORDER BY original",
     expected,
   )
 }
