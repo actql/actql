@@ -86,10 +86,10 @@ class SDKPayloadBytePortTests(unittest.TestCase):
     def test_chunk_confirmation_is_bounded_fact_and_never_permission_or_cancellation(self):
         core, _, _, _, output, calls, status = self.bridge()
         core._closing = True
-        for count in (0, 8, 65536):
+        for count in (0, 8, 65536, 2**63 - 1):
             status[0] = count
             self.assertEqual(core.confirm_publication_sdk_payload_chunk(output), count)
-        for count in (True, None, 65537):
+        for count in (True, False, None, 8.0, 2**63):
             status[0] = count
             with self.assertRaisesRegex(RuntimeError, 'confirmed byte count'):
                 core.confirm_publication_sdk_payload_chunk(output)
@@ -113,3 +113,20 @@ class SDKPayloadBytePortTests(unittest.TestCase):
                 core.produce_publication_sdk_payload_chunk(output, first, chunk, clock,
                                                            23, eof=False)
             self.assertEqual(len(calls), 1)
+
+    def test_multiple_chunk_confirmation_preserves_cumulative_count_and_original_loans(self):
+        core, _, _, _, first_output, calls, status = self.bridge()
+        second_output = _Output(core._identity, 7, 41, 1048576, 'publication_commit_export')
+        core._loans[7] = second_output
+        originals = dict(core._loans)
+        # The existing sink returns cumulative accepted bytes: a 64 KiB chunk
+        # followed by one byte. Input chunk limits do not bound this total.
+        status[0] = 65536
+        self.assertEqual(core.confirm_publication_sdk_payload_chunk(first_output), 65536)
+        status[0] = 65537
+        self.assertEqual(core.confirm_publication_sdk_payload_chunk(second_output), 65537)
+        self.assertEqual(calls, [
+            ('publication_commit_export', 'confirm_sdk_payload_chunk', (31,)),
+            ('publication_commit_export', 'confirm_sdk_payload_chunk', (41,)),
+        ])
+        self.assertEqual(core._loans, originals)
