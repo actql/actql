@@ -333,3 +333,22 @@ pub fn Journal::recover_after(
 pub fn Journal::close(_self : Journal) -> Bool {
   false
 }
+
+///|
+pub fn open_journal_with_custody(
+  _library : @sqlite.Library,
+  _path : String,
+  _max_record_bytes : Int64,
+  _max_chunks : Int,
+  _max_manifest_bytes : Int,
+  _max_referenced_bytes : Int64,
+  max_destination_readers? : Int64 = 1024L,
+) -> Result[Journal, NativeRemoteTransferJournalOpenError] {
+  ignore(max_destination_readers)
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
+pub fn Journal::close_checked(_self : Journal) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+  Err(UnsupportedTarget)
+}

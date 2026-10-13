@@ -2,6 +2,7 @@
 pub(all) enum NativeRemoteTransferJournalIssue {
   UnsupportedTarget
   Closed
+  CleanupPending
   Physical(@sqlite.NativeSqliteIssue)
   Protocol(@transfer.RemoteTransferIssue)
   StateCollision
@@ -103,4 +104,36 @@ pub fn recovered_remote_transfer_record(
 #warnings("-unused_value")
 fn journal_bytes(body : String) -> Bytes {
   @utf8.encode(body)
+}
+
+///|
+/// Validation refusal precedes physical acquisition. A failed Database open
+/// carries the original SQLite cleanup responsibility; neither permits resend.
+pub(all) enum NativeRemoteTransferJournalOpenError {
+  RefusedBeforeAcquisition(NativeRemoteTransferJournalIssue)
+  CleanupRequired(NativeRemoteTransferJournalOpenFailure)
+}
+
+///|
+struct NativeRemoteTransferJournalOpenFailure {
+  original_issue : NativeRemoteTransferJournalIssue
+  mut database : @sqlite.NativeSqliteOpenFailure?
+}
+
+///|
+pub fn NativeRemoteTransferJournalOpenFailure::issue(
+  self : NativeRemoteTransferJournalOpenFailure,
+) -> NativeRemoteTransferJournalIssue {
+  self.original_issue
+}
+
+///|
+pub fn NativeRemoteTransferJournalOpenFailure::retry_cleanup(
+  self : NativeRemoteTransferJournalOpenFailure,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+  guard self.database is Some(original) else { return Ok(()) }
+  match original.retry_cleanup() {
+    Ok(_) => { self.database = None; Ok(()) }
+    Err(issue) => Err(Physical(issue))
+  }
 }
