@@ -39,7 +39,7 @@ test "Pipe PIVOT connects aggregate arguments grouping columns and authored colu
 test "Pipe PIVOT exposes a fresh range over renamed result columns" {
   for
     source in [
-      "FROM orders AS old |> PIVOT(COUNT(old.amount) FOR old.status IN ('open' AS opened, 'closed')) AS current |> SELECT current.id,current.customer_id,current.opened,current.closed",
+      "FROM orders AS old |> PIVOT(COUNT(old.amount) FOR old.status IN ('open' AS opened, 'closed')) AS `current` |> SELECT current.id,current.customer_id,current.opened,current.closed",
       "FROM orders |> PIVOT(COUNT(`AMOUNT`) FOR `STATUS` IN ('open' AS `opened`, 'closed')) reshaped |> SELECT reshaped.*",
     ] {
     let actual = compile(

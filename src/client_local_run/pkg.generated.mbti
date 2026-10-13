@@ -179,6 +179,8 @@ pub fn start_local_run_capture(LocalRunManifest, LocalRunNormalization, Array[@r
 
 pub fn validate_local_preflight_commit_binding(LocalPublicationPreflight, Int, LocalResultPublication, @publication_payload.PublicationPayloadRecord, @execution_authorization.AdmittedAccountConfiguration, @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, LocalResultCommitBindingIssue]
 
+pub fn validate_local_preflight_run_read_current(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalPublicationIntentIssue]
+
 pub fn validate_local_publication_preflight_current(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalPublicationIntentIssue]
 
 pub fn validate_local_result_publication_current(LocalResultPublication, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalResultPublicationIssue]

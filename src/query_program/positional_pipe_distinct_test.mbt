@@ -129,7 +129,7 @@ test "positional DISTINCT keeps private and ambiguous authored references inacce
   for
     source in [
       "SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-y |> DISTINCT |> WHERE y>0) ORDER BY a,b",
-      "SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-y |> AS before |> AS current |> DISTINCT |> WHERE before.kept>0) ORDER BY a,b",
+      "SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-y |> AS before |> AS `current` |> DISTINCT |> WHERE before.kept>0) ORDER BY a,b",
       "SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-y |> AS r |> SET kept=1 |> DISTINCT |> WHERE r.kept>0) ORDER BY a,b",
       "SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-y |> AS r |> DISTINCT |> WHERE r.aql_set_anonymous_4>0) ORDER BY a,b",
     ] {

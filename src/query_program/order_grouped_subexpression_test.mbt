@@ -157,7 +157,7 @@ test "ORDER grouped subexpressions cannot restore dropped keys or an earlier sco
       "SELECT COUNT(*) AS n FROM objects GROUP BY payload.score + 1 ORDER BY payload.score",
       "SELECT COUNT(*) AS n FROM objects GROUP BY payload.score + 1 ORDER BY other.score + 1",
       "SELECT COUNT(*) AS n FROM objects GROUP BY payload.score + 1 ORDER BY payload.score + 2",
-      "SELECT COUNT(*) AS n FROM objects AS current GROUP BY current.payload.score + 1 ORDER BY old.payload.score + 1",
+      "SELECT COUNT(*) AS n FROM objects AS `current` GROUP BY current.payload.score + 1 ORDER BY old.payload.score + 1",
       "SELECT payload.score + 1 AS bucket, COUNT(*) AS n FROM objects GROUP BY payload.score + 1 ORDER BY bucket |> ORDER BY objects.payload.score + 1",
     ] {
     assert_true(

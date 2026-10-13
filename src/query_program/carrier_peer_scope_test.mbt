@@ -15,7 +15,7 @@ test "Vectors to Relation retains a visible candidate peer for NEAREST" {
   let explicit = carrier_peer_program(
     prefix.replace(
       old="candidate_rows AS",
-      new="rows AS (FROM v |> vectors()), candidate_rows AS",
+      new="`rows` AS (FROM v |> vectors()), candidate_rows AS",
     ) +
     "FROM rows" +
     suffix,

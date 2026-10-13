@@ -217,6 +217,8 @@ pub fn borrow_client_original_keyed_direct_ledger(ClientModelReadScope, ClientCo
 
 pub fn borrow_client_original_keyed_prefix_child(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition, ClientOriginalKeyedPrefixLookup, ClientKeyedRequest) -> Result[(@physical_resources.Ledger, @physical_resources.OriginalLedgerIdentity, @physical_resources.Reservation, Int, @sourceview_resolution.KeyedRowRequest, @physical_resources.Reservation), ClientKeyedRequestIssue]
 
+pub fn borrow_client_original_keyed_serialization_inputs(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientOriginalKeyedPrefixLookup, Int, Int, @execution_relation.GeneratedSequence) -> Result[(@physical_resources.Ledger, @execution_relation.ProducerRead, @execution_relation.SuppliedRelationRead), ClientKeyedRequestIssue]
+
 pub fn borrow_client_original_row_acquisition_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, @query_planning.QueryRequirement) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]
 
 pub fn borrow_client_original_serialization_ledger(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, Int, Int) -> Result[@physical_resources.Ledger, ClientModelReadPreparationIssue]

@@ -425,7 +425,9 @@ pub fn retire_publication_observation(nonce : Int64, handle : Int) -> Int {
   if value.commit_exports
     .values()
     .any(child => {
-      child.publication == handle && child.projection is Some(ObservedIndex(_))
+      child.publication == handle &&
+      (child.projection is Some(ObservedIndex(_)) ||
+      child.projection is Some(ObservedRunState(_)))
     }) {
     return -9
   }

@@ -1572,6 +1572,12 @@ pub struct ModelSourceObservation {
   completed_at : String
 }
 
+pub(all) enum ObservedPublicationRunStateIssue {
+  Commit(PublicationCommitIssue)
+  Projection(DeliveryIssuanceIssue)
+  State(RunStateIssue)
+} derive(Eq, @debug.Debug)
+
 type PendingSourceStateAdvance
 
 pub(all) struct PublicIndexRead {
@@ -1646,6 +1652,7 @@ pub fn PublicationCommitPreparation::cancel(Self) -> Unit
 pub fn PublicationCommitPreparation::finish(Self) -> Result[Unit, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::finish_observed_commit(Self, PublicationCommitReadView) -> Result[PublicationContract, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::finish_view(Self) -> Result[PublicationCommitReadView, PublicationCommitIssue]
+pub fn PublicationCommitPreparation::observed_run_state_wire(Self, PublicationCommitReadView, String, Int, Int, Int) -> Result[String, ObservedPublicationRunStateIssue]
 pub fn PublicationCommitPreparation::release_observed_commit(Self, PublicationCommitReadView) -> Result[Unit, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::release_view(Self, PublicationCommitReadView) -> Result[Unit, PublicationCommitIssue]
 pub fn PublicationCommitPreparation::view_binding(Self, PublicationCommitReadView, Int) -> Result[PublicationContract, PublicationCommitIssue]
