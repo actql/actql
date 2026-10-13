@@ -329,6 +329,7 @@ class InstalledImageTests(unittest.TestCase):
         holding, library = self._holding([(-2, False), (0, True)])
         core, calls = self._construct_with_baseline(holding=holding)
         identity = core._identity
+        self.assertEqual(core._physical_vm_span, (234, 16777216))
         with self.assertRaises(NativeHoldingRetirementError) as failure:
             core.close()
         self.assertEqual(failure.exception.code, -2)
@@ -337,6 +338,7 @@ class InstalledImageTests(unittest.TestCase):
         self.assertIs(holding._library, library)
         self.assertEqual(holding._pointer.value, 123)
         self.assertIsNone(core._store)
+        self.assertIsNone(core._physical_vm_span)
         self.assertFalse(core._closed)
         self.assertTrue(core._retired)
         with self.assertRaisesRegex(RuntimeError, 'closed'):
@@ -354,6 +356,7 @@ class InstalledImageTests(unittest.TestCase):
         self.store.failures = 1
         with self.assertRaises(OSError): core.close()
         self.assertIs(core._store, self.store)
+        self.assertEqual(core._physical_vm_span, (234, 16777216))
         self.assertIs(core._physical_holding, holding)
         self.assertFalse(any(event[0] == 'retire' for event in self.events))
         self.assertTrue(core.close())

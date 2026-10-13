@@ -3726,6 +3726,9 @@ class LocalCore:
                 if getattr(self, '_store', None) is not None:
                     self._store.close()
                     self._store = None
+                    # This VM reservation no longer exists after Store success,
+                    # even when the original outer holding still needs unmap.
+                    self._physical_vm_span = None
         holding: _NativeHoldingLease | None = getattr(self, '_physical_holding', None)
         if holding is not None:
             # Store success retires the executable Wasm Root. A final native
