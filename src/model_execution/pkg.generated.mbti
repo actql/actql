@@ -5,6 +5,7 @@ import {
   "actql/actql/bounded_execution",
   "actql/actql/canonical_json",
   "actql/actql/check_environment",
+  "actql/actql/decode_core",
   "actql/actql/execution_relation",
   "actql/actql/physical_resources",
   "actql/actql/run_publication",
@@ -236,6 +237,8 @@ pub fn prepared_model_physical_request(ModelPreparedCallSet, Int) -> (ModelReque
 pub fn prepared_model_request(ModelPreparedCallSet, Int) -> ModelRequest?
 
 pub fn prepared_model_scope(ModelPreparedCallSet) -> @run_publication.BoundModelInvocationScope?
+
+pub fn project_native_decision_answers(NativeDecisionRequest, AdmittedModelProvider, ModelRequest, @decode_core.Cursor, Int, Int, Int, Int) -> Result[(String, Int), NativeDecisionAnswerIssue]
 
 pub fn project_openai_chat_request(AdmittedModelProvider, ModelRequest, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String), OpenAIChatProjectionIssue]
 
@@ -713,6 +716,12 @@ pub struct ModelSlotReplayRead {
 type ModelSlotReplayStorage
 
 type ModelState
+
+pub(all) enum NativeDecisionAnswerIssue {
+  ForeignRequest
+  Malformed
+  Limit
+} derive(Eq, @debug.Debug)
 
 type NativeDecisionProjection
 

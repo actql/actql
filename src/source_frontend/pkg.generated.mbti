@@ -8,6 +8,7 @@ import {
   "actql/actql/parameter_binding",
   "actql/actql/pipeline_typing",
   "actql/actql/program_check",
+  "actql/actql/program_source_builder",
   "actql/actql/query_program",
   "actql/actql/query_syntax",
   "actql/actql/relation_schema",
@@ -21,6 +22,8 @@ pub fn bind_query_context(Array[PublishedAlias], String, program_id? : String, p
 pub fn check_array_profile(@program_check.CheckedProgram, max_work~ : Int, max_slots~ : Int) -> Result[Unit, ArrayProfileIssue]
 
 pub fn lower(String, Format, @query_program.Context?, source_path? : String, table_writes? : Array[@query_program.TableWriteBinding]) -> Result[Lowered, Issue]
+
+pub fn lower_with_source(String, Format, @query_program.Context?, source_path? : String, table_writes? : Array[@query_program.TableWriteBinding]) -> Result[(Lowered, @program_source_builder.Source?), Issue]
 
 pub fn parse_query(String, Format, source_path? : String) -> Result[@query_syntax.Query, Issue]
 
@@ -84,5 +87,6 @@ pub(all) struct PublishedAlias {
 }
 
 // Type aliases
+pub using @program_source_builder {type Source as DiagnosticSource}
 
 // Traits

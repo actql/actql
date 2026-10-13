@@ -69,3 +69,32 @@ export function prepareProjectedTypeSafeDecisionRequest({moon,projected,
     },
   });
 }
+
+// Common owns the answer alias mapping. This private consumer accepts only an
+// existing admitted response cursor; it never parses SDK-decoded objects into
+// authority or treats a mapped wire as saved/complete/validated output. The
+// original raw Store/EOF/status/profile and Decision validator remain separate.
+export function projectProjectedTypeSafeDecisionAnswers({moon,projected,
+  admittedProvider,request,admittedResponse,limits}) {
+  if (typeof moon?.clientProgramProjectNativeDecisionAnswers!=='function' ||
+      !moon.clientProgramNativeDecisionRequestMatches?.(projected,admittedProvider,request)) {
+    throw new TypeError('TypeSafeOriginalProjectionUnavailable');
+  }
+  const keys=['maxBytes','maxDepth','maxNodes','maxWork'];
+  const descriptors=limits===null || typeof limits!=='object' || Array.isArray(limits)
+    ? undefined : Object.getOwnPropertyDescriptors(limits);
+  const amounts=descriptors===undefined ? undefined : keys.map(name=>descriptors[name]?.value);
+  if (limits===null || typeof limits!=='object' || Array.isArray(limits) ||
+      Reflect.ownKeys(descriptors).length!==keys.length ||
+      keys.some((name,index)=>!Object.hasOwn(descriptors[name] ?? {},'value') ||
+        !Number.isSafeInteger(amounts[index]) ||
+        amounts[index]<(name==='maxWork'?0:1) || amounts[index]>2_147_483_647)) {
+    throw new TypeError('InvalidTypeSafeAnswerProjectionLimits');
+  }
+  // Validate and pass the same DATA descriptor values, never re-read a getter
+  // or Proxy property after checking a different finite amount.
+  const result=moon.clientProgramProjectNativeDecisionAnswers(projected,
+    admittedProvider,request,admittedResponse,amounts[0],amounts[2],amounts[1],amounts[3]);
+  if (result?.$tag!==1) throw new TypeError('TypeSafeOriginalAnswerProjectionRefused');
+  return result._0;
+}

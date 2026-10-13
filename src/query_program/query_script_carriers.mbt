@@ -45,7 +45,7 @@ fn script_prefix_carrier(
       max_expression_work: sources.carrier_work,
     }) {
     Ok(checked) => checked
-    Err(issue) => raise Abort(BindingPreparation(issue))
+    Err(issue) => raise Abort(BindingPreparationSource(issue, source))
   }
   let usage = @stage_results.topology_usage(checked.topology)
   if usage.work < 0 || usage.work > sources.carrier_work {
