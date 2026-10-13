@@ -475,6 +475,23 @@ pub fn result_retention_clock_contract_cid(
 }
 
 ///|
+/// Project the admitted retention endpoint without issuing or extending it.
+pub fn result_retention_available_until(
+  retention : PublicationContract,
+) -> Result[String, DeliveryIssuanceIssue] {
+  if retention.name != "result_retention_policy" {
+    return Err(DeliveryIssuanceWrongContract("result_retention_policy"))
+  }
+  if !result_retention_intervals_valid(retention) {
+    return Err(DeliveryIssuanceReferenceMismatch("retention_interval"))
+  }
+  match contract_string(retention, "available_until") {
+    Some(value) => Ok(value)
+    None => Err(DeliveryIssuanceReferenceMismatch("available_until"))
+  }
+}
+
+///|
 pub fn trusted_clock_not_before(
   previous : String?,
   observed_at : String,

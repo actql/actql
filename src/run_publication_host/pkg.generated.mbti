@@ -841,6 +841,8 @@ pub fn client_retained_input_producer_evidence(ClientRetainedInputProducer) -> @
 
 pub fn client_retained_input_producer_subject(ClientRetainedInputProducer) -> @remote_site_protocol.RemoteManagedOutputSubject
 
+pub fn client_retained_run_journal_row(ClientRetainedRunJournalRow) -> ClientJournalPhysicalRow
+
 pub fn client_retained_source_cleanup_requests(ClientRetainedSourceCleanup) -> (@remote_site_protocol.DispatchRequest, @remote_site_protocol.DispatchRequest)
 
 pub fn client_retained_task_input_binding(ClientRetainedTaskInput) -> @remote_site_protocol.RemoteInputBinding
@@ -858,6 +860,8 @@ pub fn client_retained_task_route_physical(ClientRetainedTaskRoute) -> ClientTra
 pub fn client_retained_task_route_producer_dispatch(ClientRetainedTaskRoute) -> @remote_site_protocol.DispatchRequest
 
 pub fn client_retained_task_route_receipt(ClientRetainedTaskRoute) -> @remote_transfer.RemoteTransferDestinationReceipt
+
+pub fn client_run_journal_append_rows(ClientRunJournalAppend) -> (String, Bytes, Int64, Bytes)
 
 pub fn client_run_journal_row_body(ClientRunJournalEncoding, local_run_policy_originals? : String?) -> Result[Bytes, ClientJournalEncodingIssue]
 
@@ -1465,6 +1469,8 @@ pub fn prepare_client_run_cancellation(@run_publication.PublicationContract, Str
 
 pub fn prepare_client_run_captured_content(ClientCompiledRun, @run_publication.PublicationContract, ClientKeyedAcquisition, ClientKeyedRequest, String, String, String, Int, @value_admission.ReferenceLimits) -> Result[ClientCapturedContent, @run_publication.GeneratedContentReferenceIssue]
 
+pub fn[E] prepare_client_run_journal_append(ClientRequestIdentity, @run_publication.PublicationContract, Int, (String, String) -> Result[ClientJournalPhysicalRow?, E], (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], () -> Result[Unit, E], E, local_policy_original? : ClientLocalRunPolicyOriginal?) -> Result[ClientRunJournalAppendPlan, ClientRunJournalAppendIssue[E]]
+
 pub fn prepare_client_run_physical_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, cancellation_requested? : Bool, pre_start_failure_confirmed? : Bool) -> Result[Bool, ClientRunStartIssue]
 
 pub fn prepare_client_run_pre_start_failure(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool, Bool, Bool) -> Result[Bool, ClientRunStartIssue]
@@ -1600,6 +1606,8 @@ pub fn project_client_remote_task_run(ClientRemoteTaskProgress, String, Bool, Ar
 pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
 pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph, String, String, () -> Bool) -> Result[ClientInferSavedCallScope, ClientInferCallScopeIssue]
+
+pub fn[E] read_client_retained_run_journal(ClientRequestIdentity, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E) -> Result[ClientRetainedRunJournalRow?, ClientRunJournalAppendIssue[E]]
 
 pub fn read_client_run_policy_originals(String) -> Result[Array[@run_publication.CapturedEffectDependencyBody], ClientRunPolicyOriginalsIssue]
 
@@ -3057,6 +3065,11 @@ pub(all) struct ClientRetainedInputTransferPolicy {
   transfer_max_bytes : Int64
 }
 
+pub struct ClientRetainedRunJournalRow {
+  row : ClientJournalPhysicalRow
+  original : ClientRunJournalInspection
+}
+
 pub struct ClientRetainedSourceCleanup {
   binding : @remote_site_protocol.RemoteInputBinding
   producer : @remote_site_protocol.DispatchRequest
@@ -3126,6 +3139,27 @@ pub(all) enum ClientRunCompilation {
 pub(all) enum ClientRunExecutionFamily {
   EffectFreeComputation
   EffectComputation
+}
+
+pub struct ClientRunJournalAppend {
+  key : String
+  body : Bytes
+  issued_revision : Int64
+  issued_body : Bytes
+}
+
+pub(all) enum ClientRunJournalAppendIssue[E] {
+  Observation(E)
+  ChangedIntent
+  ForeignRun
+  CapacityExceeded
+  InvalidOriginal
+  Encoding(ClientJournalEncodingIssue)
+}
+
+pub(all) enum ClientRunJournalAppendPlan {
+  Retained(ClientRetainedRunJournalRow)
+  Append(ClientRunJournalAppend)
 }
 
 pub(all) struct ClientRunJournalEncoding {

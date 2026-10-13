@@ -200,6 +200,9 @@ pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
     value.submissions.get(handle) is Some(record) else {
     return -2
   }
+  if record.output_closed {
+    return -5
+  }
   if record.kind == 3 {
     guard value.run_configurations.get(record.configuration)
       is Some(configuration) else {
@@ -217,11 +220,38 @@ pub fn submission_projection_length(nonce : Int64, handle : Int) -> Int {
 }
 
 ///|
+/// Retire the consumed transport; the original reference/intent input borrow
+/// remains available to internal same-Store observation until full close.
+#export_name("actql_submission_retire_output")
+pub fn retire_submission_output(nonce : Int64, handle : Int) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.submissions.get(handle) is Some(record) &&
+    record.kind == 3 &&
+    record.produced &&
+    record.append_plan is Some(_) else {
+    return -2
+  }
+  if record.output_closed {
+    return 0
+  }
+  let code = status(@buffers.close_buffer(value.pool, record.slot))
+  if code != 0 {
+    return code
+  }
+  record.output_closed = true
+  value.copies.remove(handle) |> ignore
+  0
+}
+
+///|
 #export_name("actql_submission_close")
 pub fn close_submission_projection(nonce : Int64, handle : Int) -> Int {
   guard selected(nonce) is Some(value) &&
     value.submissions.get(handle) is Some(record) else {
     return -2
+  }
+  if value.runs.values().any(run => run.sdk_submission == Some(handle)) {
+    return -9
   }
   if !record.output_closed {
     let result = status(@buffers.close_buffer(value.pool, record.slot))

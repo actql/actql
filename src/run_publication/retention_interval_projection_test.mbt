@@ -115,3 +115,25 @@ test "Local retention interval projection does not authorize a foreign Result" {
     Err(DeliveryIssuanceReferenceMismatch("effective_retention_policy_cid")),
   )
 }
+
+///|
+test "finite Run expiry projection preserves saved availability without renewal or grant" {
+  let retention = interval_projection_retention()
+  let original = publication_contract_json(retention)
+  assert_eq(
+    result_retention_available_until(retention),
+    Ok("2026-10-13T08:00:00.000Z"),
+  )
+  assert_eq(publication_contract_json(retention), original)
+  assert_eq(
+    result_retention_available_until(
+      interval_projection_retention_at("2026-10-15T08:00:00.000Z"),
+    ),
+    Err(DeliveryIssuanceReferenceMismatch("retention_interval")),
+  )
+  let (_, manifest, _) = delivery_test_root()
+  assert_eq(
+    result_retention_available_until(manifest),
+    Err(DeliveryIssuanceWrongContract("result_retention_policy")),
+  )
+}

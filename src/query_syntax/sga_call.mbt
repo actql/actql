@@ -17,12 +17,13 @@ pub(all) enum SgaArgument {
 } derive(Eq, Debug)
 
 ///|
-pub(all) struct SgaCall {
+pub struct SgaCall {
   operation : String
   arguments : Array[(String, SgaArgument)]
   start : Int
   end : Int
-} derive(Eq, Debug)
+  priv provenance : SgaCallProvenance
+} derive(Debug)
 
 ///|
 // These are the adopted ActQL logical operation names, not GQL functions or
@@ -45,6 +46,8 @@ fn sga_operation(name : String) -> Bool {
     | "asof_join"
     | "interval_join"
     | "time_series"
+    | "calendar_series"
+    | "calendar_bucket"
     | "merge_rankings"
     | "dedupe_events"
     | "session"
@@ -108,9 +111,9 @@ fn carrier_call_head(token : Token) -> Bool {
     Word(name) =>
       [
         "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
-        "to_events", "row_window", "window_group", "window_events", "watermark_events",
-        "session", "events", "dedupe_events", "watermark_rows", "lag", "sequence",
-        "asof_join", "interval_join", "merge_rankings",
+        "to_events", "row_window", "calendar_bucket", "window_group", "window_events",
+        "watermark_events", "session", "events", "dedupe_events", "watermark_rows",
+        "lag", "sequence", "asof_join", "interval_join", "merge_rankings",
       ].contains(ascii_upper(name).to_lower())
     _ => false
   }
@@ -485,6 +488,7 @@ fn QueryParser::sga_arguments(
   depth : Int,
   closing : Int,
   current_alias? : NamePart? = None,
+  origins? : Array[(Int, Int)]? = None,
 ) -> Array[(String, SgaArgument)] raise QueryAbort {
   let fields : Array[(String, SgaArgument)] = []
   while self.peek().value != Symbol(closing) {
@@ -506,6 +510,7 @@ fn QueryParser::sga_arguments(
       raise QueryAbort("Duplicate SGA argument", at)
     }
     self.symbol(58)
+    let value_start = self.peek().start
     let value = self.sga_argument(
       operation,
       path + [key],
@@ -513,6 +518,9 @@ fn QueryParser::sga_arguments(
       current_alias~,
     )
     fields.push((key, value))
+    if origins is Some(origins) {
+      origins.push((value_start, self.source.tokens[self.index - 1].end))
+    }
     if self.peek().value != Symbol(44) {
       break
     }
@@ -539,10 +547,33 @@ fn QueryParser::sga_call(
     raise QueryAbort("Unknown SGA operation", token.start)
   }
   self.symbol(40)
-  let arguments = self.sga_arguments(operation, [], 1, 41, current_alias~)
+  let origins : Array[(Int, Int)] = []
+  let argument_start = self.index
+  let arguments = self.sga_arguments(
+    operation,
+    [],
+    1,
+    41,
+    current_alias~,
+    origins=Some(origins),
+  )
+  // A bounded snapshot protects provenance from mutable public argument views.
+  // Charge its traversal before copying; immutable Expression owners are reused.
+  self.spend(self.index - argument_start)
+  let snapshot = arguments.map(field => (field.0, copy_sga_argument(field.1)))
   let end = self.peek().end
   self.symbol(41)
-  { operation, arguments, start: token.start, end, }
+  {
+    operation,
+    arguments,
+    start: token.start,
+    end,
+    provenance: {
+      document: self.source.document,
+      arguments: snapshot,
+      ranges: origins,
+    },
+  }
 }
 
 ///|

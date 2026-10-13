@@ -22,17 +22,29 @@ fn lower_script_graph_diagnostic(
   steps : Array[@builder.Node],
   reserved : Array[String],
 ) -> Input raise Abort {
+  // The enclosing generated body is not an exact individual argument location.
+  // Only parser-issued value occurrences below receive authored provenance.
   let origin = match
-    @origin.range(@query.query_document(query), call.start, call.end) {
+    @origin.range(
+      @query.query_document(query),
+      call.start,
+      call.end,
+      kind=Generated,
+    ) {
     Ok(origin) => origin
     Err(_) => raise Abort(InvalidContext)
   }
   let construction = { ..construction, generated: origin, }
   let body = construction.object(
-    call.arguments.map(argument => {
+    call.arguments.mapi((index, argument) => {
+      let argument_construction = match
+        @query.sga_argument_origin(call, index, @query.query_document(query)) {
+        Some(origin) => { ..construction, generated: origin, }
+        None => construction
+      }
       (
         argument.0,
-        script_traversal_argument(construction, argument.1, [], limits),
+        script_traversal_argument(argument_construction, argument.1, [], limits),
       )
     }),
   )
