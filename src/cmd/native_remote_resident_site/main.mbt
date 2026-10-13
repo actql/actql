@@ -1600,6 +1600,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     None
   }
   let generation = required_int(matches, "site-generation")
+  let custody_configuration = bundle_custody_configuration(
+    matches, site_delegation, generation,
+  )
+  let mut pending_custody : PendingBundleCustody? = None
   let queue = match
     @resident.ResidentAcceptedQueue::new(
       required_int(matches, "queue-capacity"),
@@ -1806,6 +1810,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     if holder is None &&
       orphan_store is None &&
       recovery.val is None &&
+      pending_custody is None &&
       @env.now() >= next_start_ms {
       if !slot.is_open() {
         slot = match @slot.open_native_executor_slot(slot_path) {
@@ -1865,6 +1870,83 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         None => ()
       }
     }
+    // A delivered context cannot be dropped merely because a holder owns the
+    // Store. Retain this one exact request until the original slot is free.
+    match pending_custody {
+      Some(Waiting(delivery)) => {
+        if holder is None &&
+          orphan_store is None &&
+          recovery.val is None &&
+          !orphan_reconciliation {
+          if !slot.is_open() {
+            slot = match @slot.open_native_executor_slot(slot_path) {
+              Ok(value) => value
+              Err(_) => stop("executor slot open failed")
+            }
+          }
+          if slot.try_acquire() == Ok(true) {
+            let result = try {
+              match custody_configuration {
+                Some(configuration) =>
+                  control_bundle_custody_response(
+                    matches, environment, delivery, configuration,
+                  )
+                None => Err("scope-not-configured")
+              }
+            } catch {
+              CommandStop(reason) => {
+                ignore(slot.close())
+                stop(reason)
+              }
+            }
+            if !slot.close() {
+              stop("Bundle custody executor slot close unconfirmed")
+            }
+            match result {
+              Ok(response) => {
+                let pending = match
+                  @agent.prepare_native_bundle_custody_pending_report(
+                    delivery, response,
+                  ) {
+                  Ok(value) => value
+                  Err(_) => stop("Bundle custody response identity mismatch")
+                }
+                pending_custody = Some(Responding(pending))
+              }
+              Err(reason) => {
+                report("bundle-custody-unconfirmed", [("reason", reason)])
+                pending_custody = None
+              }
+            }
+          }
+        }
+        @slot.native_wait_milliseconds(max_backoff_ms)
+        continue
+      }
+      Some(Responding(original)) => {
+        // Only the authenticated reply boundary can retire this exact duty.
+        // This step has no Store port and cannot repeat retain or release.
+        let (remaining, reply) = @agent.advance_native_bundle_custody_report(
+          Some(original),
+          (delivery, response) => {
+            @client.report_bundle_custody(
+              client, observation_url, delivery, response,
+            )
+          },
+        )
+        pending_custody = match remaining {
+          Some(value) => Some(Responding(value))
+          None => None
+        }
+        match reply {
+          Some(Accepted) => report("bundle-custody-observed", [])
+          Some(Obsolete) => report("bundle-custody-transport-obsolete", [])
+          None => @slot.native_wait_milliseconds(max_backoff_ms)
+        }
+        continue
+      }
+      None => ()
+    }
     if max_polls > 0 && polls >= max_polls {
       if holder is None && unsettled.is_empty() {
         break
@@ -1874,7 +1956,15 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     }
     polls += 1
     let started = @env.now()
-    let operation = @client.poll_operation(client, poll_url)
+    let operation = match @client.poll_site_operation(client, poll_url) {
+      Ok(Some(@remote.BundleCustody(delivery))) => {
+        pending_custody = Some(Waiting(delivery))
+        continue
+      }
+      Ok(Some(@remote.Run(operation))) => Ok(Some(operation))
+      Ok(None) => Ok(None)
+      Err(issue) => Err(issue)
+    }
     guard fresh_journal(environment) is Some(journal) else {
       // Nothing is lost: the operation is served again on a later poll.
       report("journal-unavailable", [])
@@ -2343,6 +2433,9 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       }
     }
     ignore(journal.close())
+  }
+  if pending_custody is Some(_) {
+    report("bundle-custody-unknown-on-stop", [])
   }
   // After a termination request no new work is taken. A running holder is
   // given a bounded time to finish; after it, the durable journal keeps its
@@ -4829,6 +4922,9 @@ fn command() -> @argparse.Command {
       global("poll-url"),
       global("observation-url"),
       global("coordinator-authority"),
+      global("bundle-custody-workspace"),
+      global("bundle-custody-authority-scope-cid"),
+      global("bundle-custody-environment"),
       global("runtime-bundle-cid"),
       global("connector-registration"),
       global("connector-revision"),

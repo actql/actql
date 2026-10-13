@@ -247,5 +247,11 @@ fn finish_reconciled_raw_usage(
     Ok(_) => retained
   }
   raw.usage_result = Some(result)
+  // A stopped native response can precede the ordinary usage observation.
+  // Retiring its original reader seals that observation, not the Unknown
+  // outcome. Preserve any already established call result unchanged.
+  if call.usage_result is None {
+    call.usage_result = Some(result)
+  }
   result.map(_ => (true, raw.usage_work.to_int64()))
 }

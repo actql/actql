@@ -32,6 +32,7 @@ from ._local_commit_projection import OriginalCommitProjection
 from ._local_reader_facts import OriginalReaderFacts
 from ._local_observation_transfer import OriginalObservationTransfer
 from ._local_store_reconciliation import OriginalStoreReconciliation
+from ._local_sdk_read_storage import OriginalSDKReadEvidenceStore, SDKReadEvidenceCleanupPending
 from ._local_response import OriginalLocalResponseStream
 from ._local_work import OriginalLocalWork
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
@@ -154,9 +155,12 @@ class InstalledLocalHost:
         self._reader_facts: list[OriginalReaderFacts] = []
         self._observation_transfers: list[OriginalObservationTransfer] = []
         self._store_observations: dict[int, OriginalStoreReconciliation] = {}
+        self._sdk_read_evidence: dict[int, OriginalSDKReadEvidenceStore] = {}
         self._observation_attempts: set[int] = set()
         self._publication_write_attempts: set[int] = set()
         self._pending_publication_write: OriginalCommitProjection | None = None
+        # Routing alias to the same retained publisher loan, never a new grant.
+        self._pending_publication_publisher: _Output | None = None
         self._payloads: list[_PayloadCustody] = []
         self._payload_write_attempts: set[int] = set()
         self._payload_capacity_attempts: set[int] = set()
@@ -354,6 +358,7 @@ class InstalledLocalHost:
             installation.binding.inspect(lambda _:
                 self._core.validate_publication_run(projection._publication,
                     run.handle, configuration.handle))
+            self._ensure_original_publication_observation(projection)
             self._project_original_run_state(projection, consume)
         except BaseException:
             # Unattached transport never reaches the Client. The original
@@ -1943,6 +1948,33 @@ class InstalledLocalHost:
             installation.binding.inspect(select)
             return tuple(collected)
 
+    def _ensure_original_publication_observation(self, projection: OriginalCommitProjection) -> None:
+        """Observe this attempted original write when an explicit status arrives.
+
+        A lost COMMIT response can stop the original worker before lookup. This
+        retains the same pending write/publisher and asks the existing Owner to
+        inspect the same Store once. It starts no write, acceptance or execution,
+        and does not turn the resulting action into ACK or a Run terminal.
+        Failed lookup keeps the same observation holder for cleanup, not replay.
+        """
+        self._active()
+        with self._core._lock:
+            key = projection._publication.ticket
+            if key in self._store_observations:
+                if self._store_observations[key]._projection is not projection:
+                    raise ValueError('Foreign original Local publication observation')
+                return
+            publisher = self._pending_publication_publisher
+            if (self._pending_publication_write is not projection
+                    or key not in self._publication_write_attempts
+                    or publisher is None
+                    or not any(original is projection for original in self._commit_projections)
+                    or not any(original is publisher for original in self._publishers)):
+                raise ValueError('Original attempted publication observation is unavailable')
+            self._prepare_original_store_observation(projection, publisher)
+            while self._advance_original_store_observation(projection) is None:
+                pass  # Existing finite observation Owner and shared work/fuel.
+
     def _prepare_original_store_observation(self, projection: OriginalCommitProjection, publisher: _Output) -> None:
         """Forward actual same-key lookup without a write, resend or ACK.
 
@@ -2010,6 +2042,66 @@ class InstalledLocalHost:
             if observation is None or observation._projection is not projection:
                 raise ValueError('Original Local Store observation is unavailable')
             observation.project_observed_index(consume)
+
+    def _original_sdk_read_evidence(self, run: _Run,
+                                    projection: OriginalCommitProjection) -> OriginalSDKReadEvidenceStore:
+        """Use the same original Run/observation holder; no public grant here."""
+        installation = self._active()
+        configuration = self._configuration
+        self._runs._run(run)
+        if (configuration is None or not configuration.sdk
+                or not any(original is run for original in self._run_loans)
+                or not any(original is projection for original in self._commit_projections)):
+            raise ValueError('Foreign original SDK read evidence')
+        with self._core._lock:
+            installation.binding.inspect(lambda _:
+                self._core.validate_publication_run(projection._publication,
+                    run.handle, configuration.handle))
+            # Current callbacks may reenter close. Recheck original custody
+            # after the callback before returning a cached holder or reserving.
+            if self._active() is not installation:
+                raise ValueError('Changed original SDK read installation')
+            self._runs._run(run)
+            projection._ready()
+            if (self._configuration is not configuration
+                    or not any(original is run for original in self._run_loans)
+                    or not any(original is projection for original in self._commit_projections)):
+                raise ValueError('Released original SDK read custody')
+            key = projection._publication.ticket
+            observation = self._store_observations.get(key)
+            if observation is None or observation._projection is not projection:
+                raise ValueError('Original SDK read Store observation is unavailable')
+            original = self._sdk_read_evidence.get(key)
+            if original is not None:
+                if original._observation is not observation:
+                    raise ValueError('Foreign original SDK read Store holder')
+                return original
+            try:
+                original = OriginalSDKReadEvidenceStore(observation, cleanup=lambda: True)
+            except SDKReadEvidenceCleanupPending as failure:
+                # Retain before returning/trapping; do not construct a second
+                # workspace or repair a failed original holder on the next read.
+                self._sdk_read_evidence[key] = failure.cleanup_evidence
+                raise
+            self._sdk_read_evidence[key] = original
+            return original
+
+    def _persist_original_sdk_read_evidence(self, run: _Run,
+                                           projection: OriginalCommitProjection,
+                                           request: _Input) -> None:
+        """Same-Store physical evidence only; not grant usage, delivery or ACK."""
+        with self._core._lock:
+            self._core._owned_input(request)
+            self._original_sdk_read_evidence(run, projection).persist(request, run.handle)
+
+    def _project_original_sdk_read_grant(self, run: _Run,
+                                         projection: OriginalCommitProjection,
+                                         request: _Input,
+                                         consume: Callable[[ByteWrite], object]) -> None:
+        """Lookup the original evidence through Core without repeating a write."""
+        with self._core._lock:
+            self._core._owned_input(request)
+            self._original_sdk_read_evidence(run, projection).project_grant(request, run.handle, consume)
 
     def _project_original_run_state(self, projection: OriginalCommitProjection,
                                     consume: Callable[[bytes], object]) -> None:
@@ -2103,6 +2195,7 @@ class InstalledLocalHost:
                 with installation.binding.fenced() as fences:
                     self._publication_write_attempts.add(projection._publication.ticket)
                     self._pending_publication_write = projection
+                    self._pending_publication_publisher = publisher
                     generations = store.store_publication_projected_inspected(
                         counts[0], projection.project_storage_entry, originals, fences,
                         inspect=lambda reader, consume:
@@ -2127,6 +2220,10 @@ class InstalledLocalHost:
                 if not projection.close():
                     return False
                 self._commit_projections.remove(projection)
+            for key, evidence in tuple(self._sdk_read_evidence.items()):
+                if not evidence.close():
+                    return False
+                del self._sdk_read_evidence[key]
             for observation in tuple(self._store_observations.values()):
                 publication = observation._projection._publication
                 if not self._core.retire_publication_observation(publication):
@@ -2235,6 +2332,7 @@ class InstalledLocalHost:
                 if (self._pending_publication_write is not None
                         and self._pending_publication_write._publication is publication):
                     self._pending_publication_write = None
+                    self._pending_publication_publisher = None
             for chunk in tuple(reversed(self._result_chunks)):
                 if not self._core.close_result_chunk(chunk):
                     return False

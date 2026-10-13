@@ -261,3 +261,42 @@ fn retain_native_store_imports() -> Unit {
     Err(_) => ()
   }
 }
+
+///|
+pub fn NativeRuntimeBundleStore::initialize_retention(
+  _self : NativeRuntimeBundleStore,
+) -> Result[String, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn NativeRuntimeBundleStore::retention_context(
+  _self : NativeRuntimeBundleStore,
+  _runtime_bundle_cid : String,
+) -> Result[NativeRuntimeBundleRetentionContext, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn NativeRuntimeBundleStore::retain_member(
+  _self : NativeRuntimeBundleStore,
+  _binding : @bundle.RemoteBundleHoldBinding,
+) -> Result[NativeRuntimeBundleHoldReceipt, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn NativeRuntimeBundleStore::inspect_member_hold(
+  _self : NativeRuntimeBundleStore,
+  _binding : @bundle.RemoteBundleHoldBinding,
+) -> Result[NativeRuntimeBundleHoldReceipt, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn NativeRuntimeBundleStore::release_member(
+  _self : NativeRuntimeBundleStore,
+  _binding : @bundle.RemoteBundleHoldBinding,
+) -> Result[NativeRuntimeBundleHoldReceipt, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
