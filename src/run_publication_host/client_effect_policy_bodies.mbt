@@ -240,7 +240,8 @@ fn checked_client_source_policy_bodies(
         {
           max_entries: Int::min(max_nodes, 4096),
           max_total_bytes: Int::min(max_bytes, 16777216),
-          max_depth,
+          // The dependency graph keeps its own existing depth ceiling.
+          max_depth: Int::min(max_depth, 64),
           max_references: Int::min(max_nodes, 4096),
         },
       ) {

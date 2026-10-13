@@ -303,6 +303,11 @@ export async function inspectAuthorizedDeliveryAttempt(service, input) {
   catch { fail('ResultAccessDenied'); }
   if (allowed !== true) fail('ResultAccessDenied');
   const found = await installed.store.lookupDeliveryAttempt(request);
+  // Store acquisition can outlive the original authorization decision.
+  // Recheck this same request before disclosing either metadata or absence.
+  try { allowed = await authorize(request); }
+  catch { fail('ResultAccessDenied'); }
+  if (allowed !== true) fail('ResultAccessDenied');
   if (found === undefined) return Object.freeze({kind: 'not_found'});
   const reply = Object.freeze({kind: 'found',
     attempt: found.attempt, record: found.record ?? null,

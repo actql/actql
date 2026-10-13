@@ -4,7 +4,9 @@
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {claimInferIoNotification} from './infer-io-notification.mjs';
-import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits} from './infer-original-installation.mjs';
+import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits,
+  selectedInferOriginalPublicationCapacity} from './infer-original-installation.mjs';
+import {originalModelRawTransportPersistenceMatches} from './infer-raw-capture.mjs';
 
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
   {code: 'ClientDispatchCleanupPending'});
@@ -72,11 +74,12 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   // aggregate headroom or the later Model seal's distinct requirements.
   let originalConsumer;
   let originalScope = originalPreparation?.scope;
-  const metadataInstallation = originalPreparation?.metadataInstallation;
-  const metadataNodeInstallation = originalPreparation?.nodeInstallation;
-  const metadataControl = originalPreparation?.control;
-  const metadataDefinition = originalPreparation?.runDefinition;
+  let metadataInstallation = originalPreparation?.metadataInstallation;
+  let metadataNodeInstallation = originalPreparation?.nodeInstallation;
+  let metadataControl = originalPreparation?.control;
+  let metadataDefinition = originalPreparation?.runDefinition;
   let originalMetadata;
+  let originalPublicationCapacity;
   if (originalPreparation !== undefined) {
     if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined || keyedInput !== undefined ||
         restoredInput !== undefined || savedCapture !== undefined || savedSlots !== undefined ||
@@ -279,6 +282,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
 
   function cleanup() {
     if (reclaimed) return true;
+    // This same nominal borrower must retire after its actual publication
+    // children/aliases and before parent cleanup. Never drop it on stop alone.
+    if (originalPublicationCapacity !== undefined) return false;
     // Cancellation delivery alone never permits releasing the execution.
     if (!moon.clientProgramInferExecutionStopped(active)) return false;
     reclaimed = checked(moon.clientProgramCleanupInferExecution(active));
@@ -288,6 +294,14 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (originalMetadata !== undefined) originalMetadataSources.delete(originalMetadata.handle);
       originalMetadata = undefined;
       originalScope = undefined;
+      // Escaped metadata methods must not keep the original installation/Run
+      // after this same Core Owner acknowledges cleanup. Pending/failed
+      // cleanup retains these aliases; independent immutable borrows and
+      // external Store/read custody are neither mutated nor settled here.
+      metadataInstallation = undefined;
+      metadataNodeInstallation = undefined;
+      metadataControl = undefined;
+      metadataDefinition = undefined;
       rawCaptureBinder = undefined;
       io?.close();
       io = undefined;
@@ -718,12 +732,16 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     // Private installation seam of this original physical operation only.
     // Common registration supplies the nominal raw authority; this callback
     // creates neither a send claim nor an alternate cleanup owner.
-    bindModelRawCapture(registration) {
+    bindModelRawCapture(registration, persistence) {
       if (closing || reclaimed || rawCaptureBound || rawCaptureBinder === undefined) {
         throw new TypeError('InferRawCaptureBindingUnavailable');
       }
+      if (persistence !== undefined &&
+          !originalModelRawTransportPersistenceMatches(persistence, operation, registration)) {
+        throw new TypeError('ForeignInferRawCapturePersistence');
+      }
       rawCaptureBound = true;
-      if (rawCaptureBinder(registration) !== undefined) {
+      if (rawCaptureBinder(registration, persistence) !== undefined) {
         throw new TypeError('InvalidInferRawCaptureBinderResult');
       }
     },
@@ -768,12 +786,44 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     bindInvocation: (control, {compiled, runDefinition, verification,
       invocation, dataPolicyCid}) => control.bindCheckedClientInferInvocation(
       compiled, active, runDefinition, verification, invocation, dataPolicyCid),
-    startObservation: ({ledger, maxSlots, maxWireBytes, maxWork}) => serializedInput !== undefined
+    reserveOriginalPublicationCapacity() {
+      if (originalConsumer === undefined) return;
+      if (reclaimed || closing) throw new Error('InferOriginalPublicationCapacityUnavailable');
+      if (originalPublicationCapacity !== undefined) return;
+      const selection = selectedInferOriginalPublicationCapacity(metadataInstallation,
+        metadataNodeInstallation);
+      originalPublicationCapacity = checked(moon.clientProgramReserveOriginalInferPublicationCapacity(
+        active, selection.retainedBytes, selection.workspaceBytes));
+    },
+    publicationCapacityPending: () => originalPublicationCapacity !== undefined,
+    releaseOriginalPublicationCapacity() {
+      if (originalPublicationCapacity === undefined) return true;
+      const released = checked(moon.clientProgramReleaseOriginalInferPublicationCapacity(
+        originalPublicationCapacity));
+      if (released) originalPublicationCapacity = undefined;
+      return released;
+    },
+    startObservation: ({ledger, maxSlots, maxWireBytes, maxWork}) => {
+      if (originalConsumer !== undefined) {
+        if (ledger !== undefined || originalPublicationCapacity === undefined) {
+          throw new Error('InferOriginalPublicationCapacityUnavailable');
+        }
+        return checked(moon.clientProgramStartOriginalInferObservationIssuance(active,
+          originalPublicationCapacity, maxSlots, maxWireBytes, maxWork,
+          serializedInput === undefined ? [] : [serializedInput.generation]));
+      }
+      // Preserve the explicit legacy diagnostic/publication path. The original
+      // installation never creates this separate Ledger as a funding fallback.
+      ledger ??= checked(moon.clientProgramInferPublicationLedger(
+        BigInt(maxWireBytes) * 16n + BigInt(maxSlots) * 128n +
+        BigInt(operation.contentGenerationCount ?? 0) * 256n, maxWork));
+      return serializedInput !== undefined
       ? serializedInput.control.startCheckedClientContentInferObservation(
         serializedInput.compiled, [active], [serializedInput.generation], ledger,
         {maxSlots, maxWireBytes, maxWork})
       : checked(moon.clientProgramStartInferObservationIssuance(active, ledger,
-        maxSlots, maxWireBytes, maxWork)),
+        maxSlots, maxWireBytes, maxWork));
+    },
     bindIssuedInvocation: (control, {compiled, runDefinition, issued}) =>
       control.bindIssuedClientInferInvocation(compiled, active, runDefinition,
         issued),

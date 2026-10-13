@@ -47,6 +47,7 @@ fn mapping_context() -> Context {
     input_schemas: [],
     source_catalog: None,
     model_tasks: None,
+    calendar_profile: None,
     result_name: "answer",
     captured_stage: None,
     parameter_declarations: None,

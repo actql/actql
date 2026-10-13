@@ -2451,6 +2451,15 @@ fn output_code(issue : @resident_host.ResidentOutputIssue) -> String {
 /// before execution, so no fallible setup remains once the holder owns an
 /// output.
 priv struct HolderOutputResources {
+  // Same initial Site reservation, separate from snapshot retirement.
+  mut effect_host_caller_operation : @site.SiteOperation?
+  mut effect_host_caller_current : (() -> Bool)?
+  effect_host_setup : Ref[HolderEffectHostSetupScope?]
+  effect_host_installation : Ref[HolderEffectHostOperatorInstallation?]
+  effect_host_holding : Ref[@site.SiteHolding?]
+  effect_host_cleanup : Ref[@site.SiteCleanup?]
+  // Shared across the existing resources projection; same producer custody.
+  effect_catalog_files : Ref[HolderEffectCatalogFileCustody?]
   retained_delegation : @resident.ResidentRetainedInputDelegation?
   retained_root : @filesystem.Root?
   retained_max_bytes : Int64
@@ -2575,6 +2584,13 @@ fn open_holder_output_resources(
   }
   Ok({
     retained_delegation,
+    effect_host_setup: Ref(None),
+    effect_host_installation: Ref(None),
+    effect_host_caller_operation: None,
+    effect_host_caller_current: None,
+    effect_host_holding: Ref(None),
+    effect_catalog_files: Ref(None),
+    effect_host_cleanup: Ref(None),
     retained_root,
     retained_max_bytes: max_bytes,
     retained_max_objects: max_transfers.to_int64(),
@@ -2613,16 +2629,6 @@ fn holder_checkpoint(resources : HolderOutputResources) -> (String) -> Unit {
 }
 
 ///|
-/// Closes output resources when no output was produced, so nothing can be
-/// owned by them.
-fn close_holder_output_resources(resources : HolderOutputResources) -> Unit {
-  ignore(resources.transfer_journal.close())
-  ignore(resources.store.close())
-  ignore(resources.transfer.close())
-  ignore(resources.control.close())
-}
-
-///|
 /// After execution the holder keeps its output and serves the Coordinator's
 /// output operations, relayed by the control process over the holder's
 /// standard input. When the output is released, or the control process is
@@ -2648,7 +2654,7 @@ fn serve_holder_output(
   effect_catalog_review? : (HolderEffectOriginalPolicyContext) -> HolderEffectCatalogReviewCustody? = _ => {
     None
   },
-  effect_host_operator? : HolderEffectHostOperatorInstallation? = None,
+  effect_host_operator? : Ref[HolderEffectHostOperatorInstallation?] = Ref(None),
   effect_resume_installation? : (@remote.DispatchRequest) -> @effect_review.NativeResidentEffectCloudResumeInstallation? = _ => {
     None
   },
@@ -2669,10 +2675,9 @@ fn serve_holder_output(
   let identity = @remote.dispatch_request_identity(request)
   // Explicit Host funding is independent of Account/Reviewer permissions. No
   // candidate dispatch, request body or grant supplies this private profile.
-  let effect_preparation = match effect_host_operator {
-    Some(installed) => installed.preparation
-    None => None
-  }
+  let effect_preparation = holder_effect_host_preparation(
+    effect_host_operator.val,
+  )
   store.observe_allocation(holder_checkpoint(resources))
   let tasks : Map[String, HolderTaskCustody] = Map([])
   let order : Array[String] = [identity]
@@ -2696,10 +2701,15 @@ fn serve_holder_output(
       is Some(context) else {
       return false
     }
-    holder_effect_evidence_allowed(context, resources, purpose, original => {
-      holder_effect_operator_admission(
-        original, resources, effect_host_operator,
-      )
+    guard effect_host_operator.val is Some(installed) else { return false }
+    with_holder_effect_host_read_scope(installed.scope, () => {
+      holder_effect_evidence_allowed(context, resources, purpose, original => {
+        holder_effect_operator_admission(
+          original,
+          resources,
+          effect_host_operator.val,
+        )
+      })
     })
   }
   if holder_effect_computation(original, environment.journal) is Some(_) {
@@ -2707,7 +2717,7 @@ fn serve_holder_output(
   }
   let mut serving = true
   while serving {
-    match @slot.native_read_holder_input(2097152) {
+    match read_holder_lifetime_input() {
       InputEnded => {
         report("holder-control-gone", [("request_cid", identity)])
         serving = false
@@ -3703,12 +3713,19 @@ fn serve_holder_output(
         ("request_cid", order[index]),
         ("reason", "owned-cleanup"),
       ])
-      @slot.native_wait_milliseconds(250)
+      if holder_catalog_file_cleanup_pending(resources, task) {
+        // EOF has already ended this channel. Keep the same task/preparation
+        // through the existing signal wait; no timer or replacement read can
+        // resolve an unconfirmed original filesystem close.
+        if !@slot.install_native_termination_request() {
+          ignore(park_holder_cleanup_unconfirmed_ffi())
+        } else {
+          wait_holder_cleanup_lifetime_signal()
+        }
+      } else {
+        @slot.native_wait_milliseconds(250)
+      }
     }
-  }
-  while store.close() is Err(_) {
-    report("cleanup-pending", [("step", "store"), ("request_cid", identity)])
-    @slot.native_wait_milliseconds(250)
   }
   if order.length() > 1 {
     let state = @site.site_status(environment.site)
@@ -3722,9 +3739,8 @@ fn serve_holder_output(
       ("reserved_execution_bytes", state[8].to_string()),
     ])
   }
-  ignore(transfer_journal.close())
-  ignore(transfer.close())
-  ignore(control.close())
+  // The caller retains the same resources for checked Host -> ordinary ->
+  // environment/process-hold -> slot closure. No close result is discarded here.
 }
 
 ///|
@@ -3922,7 +3938,7 @@ fn settle_holder_cleanup(
 fn run_holder(
   matches : @argparse.Matches,
   holder : @argparse.Matches,
-) -> Unit raise CommandStop {
+) -> HolderCommandClose raise CommandStop {
   // Validate the optional retained profile before acquiring Site custody.
   let retained_delegation = retained_input_delegation(matches)
   let retained_engine_bytes = match retained_delegation {
@@ -4136,17 +4152,17 @@ fn run_holder(
       }
     _ => (false, false)
   }
-  let effect_host_operator = load_holder_effect_host_operator(
-    matches,
-    resources,
-    () => slot.verify_current_hold() == Ok(()),
+  ignore(
+    load_holder_effect_host_operator(matches, resources, environment, () => {
+      slot.verify_current_hold() == Ok(())
+    }),
   ) catch {
     CommandStop(issue) => {
       if proven_unstarted {
-        close_holder_output_resources(resources)
-        close_site_environment(environment)
-        ignore(slot.close())
-        stop(issue)
+        let operation = finish_holder_cleanup_lifetime(
+          resources, environment, slot, issue,
+        )
+        return HolderCommandFailed(operation, issue)
       }
       // Deny evidence access while retaining the original journal and passing
       // existing work to its normal restoration/unknown/cleanup Owners. This
@@ -4154,9 +4170,10 @@ fn run_holder(
       report("effect-host-account-installation-failed", [
         ("reason", "operator-input"),
       ])
-      None
+      ()
     }
   }
+  let effect_host_operator = resources.effect_host_installation
   // A Provider grant binds the captured invocation, including actual Source
   // observation times. It is installed on the first exact Resume, not made a
   // prerequisite of the independently authorized Source start claim.
@@ -4250,10 +4267,7 @@ fn run_holder(
             resources,
             execution.limits.output.output_export,
             original,
-            preparation=match effect_host_operator {
-              Some(installed) => installed.preparation
-              None => None
-            },
+            preparation=holder_effect_host_preparation(effect_host_operator.val),
           ) catch {
             CommandStop(_) => {
               report("effect-review-pending", [
@@ -4332,7 +4346,6 @@ fn run_holder(
         }
         None => ()
       }
-      close_holder_output_resources(resources)
       match issue {
         Ordinary(Runtime(@runtime.StartClaimLost(_)))
         | Ordinary(Runtime(@runtime.StartCancelled))
@@ -4350,10 +4363,14 @@ fn run_holder(
       wait_ms = holder_effect_installation_backoff(wait_ms)
     }
   }
-  close_site_environment(environment)
-  ignore(slot.close())
+  let failure = "execute exited with " + code.to_string()
+  let operation = finish_holder_cleanup_lifetime(
+    resources, environment, slot, failure,
+  )
   if code != 0 {
-    stop("execute exited with " + code.to_string())
+    HolderCommandFailed(operation, failure)
+  } else {
+    HolderCommandClosed(operation)
   }
 }
 
@@ -4918,10 +4935,13 @@ fn command() -> @argparse.Command {
 }
 
 ///|
-fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
+fn run_command(
+  matches : @argparse.Matches,
+) -> HolderTerminalFailure? raise CommandStop {
   match matches.subcommand {
     Some(("run", _)) => run_control(matches)
-    Some(("execute", child)) => run_holder(matches, child)
+    Some(("execute", child)) =>
+      return finish_holder_command(run_holder(matches, child))
     Some(("recover-output", child)) => recover_output_command(matches, child)
     Some(("recover-retained-input", child)) =>
       recover_retained_input_command(matches, child)
@@ -5006,12 +5026,17 @@ fn run_command(matches : @argparse.Matches) -> Unit raise CommandStop {
     }
     _ => stop("missing operation")
   }
+  None
 }
 
 ///|
 fn main {
   let matches = command().parse() catch { error => abort(error.to_string()) }
-  run_command(matches) catch {
+  try {
+    if run_command(matches) is Some(terminal) {
+      consume_holder_terminal_failure(terminal.operation, terminal.failure)
+    }
+  } catch {
     CommandStop(issue) => abort("actql-native-remote-resident-site: " + issue)
   }
 }

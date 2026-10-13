@@ -1,4 +1,9 @@
 ///|
+/// Alias for the existing bounded construction owner, retained only by a
+/// diagnostic call. It grants no checking or execution authority.
+pub type DiagnosticSource = @builder.Source
+
+///|
 /// The transport spelling is distinct from the structured Program parser's
 /// JSON/YAML enum. Installed Hosts provide a checked source context for query
 /// forms; the frontend itself never fetches Catalog facts or grants authority.
@@ -80,6 +85,7 @@ pub fn bind_query_context(
   parameter_declarations? : @parameters.Declarations? = None,
   input_schemas? : Array[(String, @schema.Schema)] = [],
   model_tasks? : @environment.ModelTasks? = None,
+  calendar_profile? : @environment.SelectedCalendarProfile? = None,
   source_catalog? : @environment.SourceRequestContracts? = None,
 ) -> Result[@query.Context, AliasIssue] {
   if aliases.length() > 1024 {
@@ -91,6 +97,25 @@ pub fn bind_query_context(
   if model_tasks is Some(tasks) &&
     @environment.cid(@environment.model_tasks_environment(tasks)) !=
     environment_cid {
+    return Err(EnvironmentMismatch)
+  }
+  if calendar_profile is Some(profile) &&
+    @environment.cid(
+      @environment.calendar_selection_environment(
+        @environment.selected_calendar_selection(profile),
+      ),
+    ) !=
+    environment_cid {
+    return Err(EnvironmentMismatch)
+  }
+  if calendar_profile is Some(profile) &&
+    model_tasks is Some(tasks) &&
+    !physical_equal(
+      @environment.calendar_selection_environment(
+        @environment.selected_calendar_selection(profile),
+      ),
+      @environment.model_tasks_environment(tasks),
+    ) {
     return Err(EnvironmentMismatch)
   }
   if source_catalog is Some(catalog) {
@@ -115,6 +140,15 @@ pub fn bind_query_context(
       (
         model_tasks is Some(tasks) &&
         !physical_equal(@environment.model_tasks_environment(tasks), wire)
+      ) {
+      return Err(EnvironmentMismatch)
+    }
+    if calendar_profile is Some(profile) &&
+      !physical_equal(
+        @environment.calendar_selection_environment(
+          @environment.selected_calendar_selection(profile),
+        ),
+        wire,
       ) {
       return Err(EnvironmentMismatch)
     }
@@ -169,6 +203,7 @@ pub fn bind_query_context(
     input_schemas,
     source_catalog,
     model_tasks,
+    calendar_profile,
     result_name: "answer",
     captured_stage: if captured {
       Some("capture")
@@ -314,6 +349,42 @@ fn parse_selected_query_script(
 ///|
 /// Lower only the selected query language. No structural text fallback or
 /// compatibility parser is available. The Host checks the resulting Program normally.
+/// Retain existing construction annotations only through the diagnostic call.
+/// The ordinary lower entry drops this owner before returning.
+pub fn lower_with_source(
+  document : String,
+  format : Format,
+  context : @query.Context?,
+  source_path? : String = "<source>",
+  table_writes? : Array[@query.TableWriteBinding] = [],
+) -> Result[(Lowered, @builder.Source?), Issue] {
+  match format {
+    Json => Ok(({ document, format: @program.Json, program: None, }, None))
+    Yaml => Ok(({ document, format: @program.Yaml, program: None, }, None))
+    Text | Sql => {
+      let parsed = match parse_query(document, format, source_path~) {
+        Ok(value) => value
+        Err(issue) => return Err(issue)
+      }
+      guard context is Some(context) else { return Err(MissingQueryContext) }
+      let (program, source) = match
+        @query.compile_with_source(
+          parsed,
+          context,
+          query_limits(),
+          table_writes~,
+        ) {
+        Ok(value) => value
+        Err(issue) => return Err(QueryLowering(issue))
+      }
+      emit(program).map(lowered => (lowered, Some(source)))
+    }
+  }
+}
+
+///|
+/// Ordinary lowering drops construction annotations before returning. The
+/// diagnostic entry uses this same parser, lowerer and admitted Program.
 pub fn lower(
   document : String,
   format : Format,
@@ -321,21 +392,12 @@ pub fn lower(
   source_path? : String = "<source>",
   table_writes? : Array[@query.TableWriteBinding] = [],
 ) -> Result[Lowered, Issue] {
-  match format {
-    Json => Ok({ document, format: @program.Json, program: None, })
-    Yaml => Ok({ document, format: @program.Yaml, program: None, })
-    Text | Sql => {
-      let parsed = match parse_query(document, format, source_path~) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      guard context is Some(context) else { return Err(MissingQueryContext) }
-      let program = match
-        @query.compile(parsed, context, query_limits(), table_writes~) {
-        Ok(value) => value
-        Err(issue) => return Err(QueryLowering(issue))
-      }
-      emit(program)
+  lower_with_source(document, format, context, source_path~, table_writes~)
+  .map(pair => pair.0)
+  .map_err(issue => {
+    match issue {
+      QueryLowering(cause) => QueryLowering(@query.issue_without_source(cause))
+      _ => issue
     }
-  }
+  })
 }

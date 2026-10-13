@@ -40,6 +40,25 @@ pub fn client_program_bind_model_raw_capture_policy(
 }
 
 ///|
+/// Project already admitted selection bodies for physical Store availability.
+/// These exact original bytes are data, not a capture or dispatch grant.
+#export_name("clientProgramModelRawSelectionOriginals")
+pub fn client_program_model_raw_selection_originals(
+  retention : @publication.CapturedEffectDependencyBody,
+  metadata : @publication.CapturedEffectDependencyBody,
+  clock : @publication.CapturedEffectDependencyBody,
+  data : @publication.CapturedEffectDependencyBody,
+) -> Array[(String, String, String)] {
+  [retention, metadata, clock, data].map(original => {
+    (
+      @publication.captured_effect_dependency_body_kind(original),
+      @publication.captured_effect_dependency_body_cid(original),
+      @publication.captured_effect_dependency_body_json(original),
+    )
+  })
+}
+
+///|
 /// Issue the existing policy body from original typed owners and fixed Host
 /// selection values. It is not capture permission or a Store observation.
 #export_name("clientProgramIssueInferRawCapturePolicy")
