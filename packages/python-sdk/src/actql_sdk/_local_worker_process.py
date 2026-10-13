@@ -125,7 +125,7 @@ class OriginalWorkerProcess:
                            expected=self._executable_bytes, digest=self._executable_sha256)
                 slot_action = self._slot.inheritance_action()
                 self._stdin, self._stdout, self._stderr = self._pipe(), self._pipe(), self._pipe()
-                actions = [slot_action,
+                actions: list[tuple[int, int] | tuple[int, int, int]] = [slot_action,
                     (os.POSIX_SPAWN_DUP2, self._stdin[0].value, 0),
                     (os.POSIX_SPAWN_DUP2, self._stdout[1].value, 1),
                     (os.POSIX_SPAWN_DUP2, self._stderr[1].value, 2)]
