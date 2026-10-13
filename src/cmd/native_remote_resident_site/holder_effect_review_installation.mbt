@@ -32,8 +32,16 @@ fn open_holder_effect_review_installation(
     preparation is Some(prepared) else {
     return None
   }
+  guard prepare_holder_catalog_file_custody(
+      resources,
+      original,
+      prepared.catalog,
+    )
+    is Some(files) else {
+    return None
+  }
   let policy = load_holder_effect_review_policy(
-    policy_root, matches, resources, export_limits,
+    policy_root, matches, resources, export_limits, files,
   )
   if !(policy.current)() || !original.current() {
     return None
@@ -48,6 +56,7 @@ fn open_holder_effect_review_installation(
       policy.configuration.preview_limits.max_nodes,
       policy.configuration.preview_limits.max_depth,
       policy.current,
+      files,
       preparation_envelope=Some(prepared.catalog),
     )
     is Some(installed) else {

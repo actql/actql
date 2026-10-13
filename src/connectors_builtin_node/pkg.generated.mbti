@@ -1655,6 +1655,8 @@ pub fn client_program_release_infer_output(@client_infer_host.OutputUse) -> Bool
 
 pub fn client_program_release_infer_slot_replay(@model_execution.ModelSlotReplayRead) -> Bool
 
+pub fn client_program_release_original_infer_publication_capacity(@model_execution.OriginalModelPublicationCapacity) -> Result[Bool, @client_infer_host.Issue]
+
 pub fn client_program_replay_model_capture(@execution_relation.PreparedInferRows, String, @model_execution.ModelCaptureBundle) -> Bool
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
@@ -1668,6 +1670,8 @@ pub fn client_program_requires_acquisition_result_publication(@run_publication_h
 pub fn client_program_reserve_captured_content_workspace(@physical_resources.Ledger, Int, Int) -> Result[@physical_resources.Reservation, @physical_resources.LedgerIssue]
 
 pub fn client_program_reserve_infer_evidence_copy(Int) -> Result[(@physical_resources.Ledger, @physical_resources.Reservation), @physical_resources.LedgerIssue]
+
+pub fn client_program_reserve_original_infer_publication_capacity(@client_infer_host.Execution, Int64, Int64) -> Result[@model_execution.OriginalModelPublicationCapacity, @client_infer_host.Issue]
 
 pub fn client_program_resource_reference_issuer((String, String) -> Bool, (String) -> Bool) -> @value_admission.ReferenceIssuer
 
@@ -2008,6 +2012,8 @@ pub fn client_program_start_original_generated_infer_execution(@run_publication_
 pub fn client_program_start_original_generated_infer_inputs(@run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_original_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+
+pub fn client_program_start_original_infer_observation_issuance(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity, Int, Int, Int, Array[@run_publication_host.ClientSerializationGeneration]) -> Result[@client_infer_host.ObservationIssuance, @client_infer_host.Issue]
 
 pub fn client_program_start_restored_composed_infer_input(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, String, String, Array[String], () -> Bool, @run_publication_host.ClientInferSavedCallScope, @value_admission.ReferenceIssuer?, @physical_resources.Ledger?, @execution_relation.GeneratedSequence?) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
