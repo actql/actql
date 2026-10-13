@@ -75,7 +75,7 @@ int actql_owned_acquire(size_t capacity, uint64_t generation,
     lease->transferred = false;
     lease->closing = false;
     lease->active_scopes = 0;
-    atomic_flag_clear(&lease->lock);
+    lease->lock = (atomic_flag)ATOMIC_FLAG_INIT;
     /* Anonymous pages are zero initialized, including extent records. */
     *out = lease;
     return ACTQL_OWNED_OK;
