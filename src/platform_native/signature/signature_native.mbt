@@ -26,7 +26,11 @@ extern "C" fn sha256_finish_ffi(hash : Sha256Hasher) -> Bytes = "actql_native_si
 
 ///|
 #borrow(path)
-extern "C" fn load_library_ffi(path : Bytes, length : Int) -> Library = "actql_native_signature_load_library"
+extern "C" fn load_library_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+) -> Library = "actql_native_signature_load_library"
 
 ///|
 #borrow(library)
@@ -101,7 +105,12 @@ pub fn Library::sign_ed25519(
 
 ///|
 fn library_message(library : Library) -> String {
-  @utf8.decode_lossy(library_error_ffi(library))
+  let bytes = library_error_ffi(library)
+  if bytes.is_empty() {
+    "Crypto diagnostic detail omitted"
+  } else {
+    @utf8.decode_lossy(bytes)
+  }
 }
 
 ///|
@@ -224,12 +233,24 @@ pub fn Sha256Hasher::finish_hex(
 }
 
 ///|
-pub fn load_library(path : String) -> Result[Library, NativeSignatureIssue] {
+/// Select from trusted installer configuration bound to its source/ABI.
+/// Omission preserves legacy behavior; this bound issues no funding/authority.
+pub fn load_library(
+  path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Library, NativeSignatureIssue] {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(InvalidInput)
+  }
   if path.is_empty() || path.length() > 4096 {
     return Err(InvalidInput)
   }
   let encoded = @utf8.encode(path)
-  let library = load_library_ffi(encoded, encoded.length())
+  let library = load_library_ffi(
+    encoded,
+    encoded.length(),
+    diagnostic_ceiling.unwrap_or(0),
+  )
   if library_ready_ffi(library) {
     Ok(library)
   } else {
