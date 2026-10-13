@@ -15,7 +15,7 @@ from typing import Any, Literal
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 60
+LOCAL_CORE_ABI = 61
 
 
 class LocalCoreError(RuntimeError):
@@ -306,6 +306,7 @@ _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'count': ('i64 i32 i32', 'i32'),
     'result_count': ('i64 i32 i32', 'i32'),
     'produce_observed_index': ('i64 i32 i32 i32', 'i32'),
+    'produce_run_state': ('i64 i32 i32 i32', 'i32'),
     'produce_lookup_reference': ('i64 i32 i32 i32', 'i32'),
     'produce_material': ('i64 i32 i32 i32 i32', 'i32'),
     'produce_index_key': ('i64 i32 i32', 'i32'),
@@ -1963,6 +1964,27 @@ class LocalCore:
             self._check('produce_publication_observed_index', self._call(
                 'publication_commit_export', 'produce_observed_index', value.handle,
                 current_configuration, _COMMIT_MATERIAL_FIELDS[field]))
+
+    def produce_publication_observed_run_state(self, value: _Output,
+                                               observed_at: _Input,
+                                               current_configuration: int) -> None:
+        """Copy the existing RunState Owner's original full-chain observation.
+
+        The input carries only the physical observation time. Core retains its
+        loan and separately checks current publisher and Account run/read.
+        Read with read_publication_commit_material(); close the output before
+        closing this same input. This supplies no durable ACK or read grant.
+        """
+        with self._lock:
+            self._owned_output(value, 'publication_commit_export')
+            self._owned_input(observed_at)
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if type(current_configuration) is not int or not 0 < current_configuration < 2**31:
+                raise ValueError('Invalid current publication configuration')
+            self._check('produce_publication_observed_run_state', self._call(
+                'publication_commit_export', 'produce_run_state', value.handle,
+                observed_at.handle, current_configuration))
 
     def produce_publication_commit_schema(self, value: _Output,
                                            current_configuration: int, result: int, *,
