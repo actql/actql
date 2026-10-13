@@ -8,8 +8,32 @@ import test_local_sdk_read_store as store_fixture
 
 
 class SDKDeliveryPortTests(unittest.TestCase):
+    def test_transport_retirement_keeps_same_semantic_loan_and_rejects_copies(self):
+        self.assertEqual(_PUBLICATION_COMMIT_EXPORT_SIGNATURES['retire_sdk_delivery_output'],
+                         ('i64 i32', 'i32'))
+        core, request, output, calls, status = original_fixture.SDKReadOriginalTests.bridge(self)
+        with self.assertRaises(ValueError):
+            core.retire_publication_sdk_delivery_output(copy.copy(output))
+        self.assertEqual(calls, [])
+        status[0] = -9
+        self.assertFalse(core.retire_publication_sdk_delivery_output(output))
+        self.assertIs(core._loans[output.ticket], output)
+        self.assertIs(core._loans[request.ticket], request)
+        status[0] = 0
+        self.assertTrue(core.retire_publication_sdk_delivery_output(output))
+        self.assertTrue(core.retire_publication_sdk_delivery_output(output))
+        status[0] = 1
+        with self.assertRaises(LocalCoreError) as failure:
+            core.retire_publication_sdk_delivery_output(output)
+        self.assertEqual(failure.exception.code, 1)
+        status[0] = False
+        with self.assertRaisesRegex(RuntimeError, 'retirement status'):
+            core.retire_publication_sdk_delivery_output(output)
+        self.assertIs(core._loans[output.ticket], output)
+        self.assertTrue(all(name == 'retire_sdk_delivery_output' for _, name, _ in calls))
+
     def test_strict_original_signature_and_copy_bool_unknown_boundaries(self):
-        self.assertEqual(LOCAL_CORE_ABI, 66)
+        self.assertEqual(LOCAL_CORE_ABI, 67)
         self.assertEqual(_PUBLICATION_COMMIT_EXPORT_SIGNATURES['produce_sdk_read_delivery_storage'],
                          ('i64 i32 i32 i32 i32', 'i32'))
         core, request, output, calls, status = original_fixture.SDKReadOriginalTests.bridge(self)

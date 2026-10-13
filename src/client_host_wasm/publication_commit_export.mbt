@@ -28,6 +28,7 @@ priv struct StoredPublicationCommitExport {
   mut closing : Bool
   mut output_closed : Bool
   mut state_borrow : @buffers.BufferBorrow?
+  mut sdk_delivery_first : @local_run.LocalSDKReadDeliveryPreparation?
 }
 
 ///|
@@ -85,6 +86,7 @@ pub fn reserve_publication_commit_export(
     closing: false,
     output_closed: false,
     state_borrow: None,
+    sdk_delivery_first: None,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
@@ -612,6 +614,36 @@ pub fn publication_commit_export_length(nonce : Int64, handle : Int) -> Int {
     Some(length) => length
     None => -33
   }
+}
+
+///|
+#export_name("actql_publication_commit_export_retire_sdk_delivery_output")
+pub fn retire_publication_sdk_delivery_output(
+  nonce : Int64,
+  handle : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(handle) is Some(record) else {
+    return -2
+  }
+  if record.pending ||
+    record.closing ||
+    !record.produced ||
+    record.sdk_delivery_first is None ||
+    !(record.projection is Some(SDKReadDeliveryStorage(_, _))) {
+    return -33
+  }
+  if record.output_closed {
+    return 0
+  }
+  // The same Buffer Owner retires only the transport. The actual first
+  // preparation and original request loan survive until full export close.
+  let code = status(@buffers.close_buffer(value.pool, record.slot))
+  if code == 0 {
+    record.output_closed = true
+    value.copies.remove(handle) |> ignore
+  }
+  code
 }
 
 ///|
