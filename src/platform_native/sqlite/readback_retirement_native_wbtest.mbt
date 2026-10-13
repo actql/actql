@@ -11,9 +11,7 @@ extern "C" fn test_readback_fail_close(
 
 ///|
 #borrow(database)
-extern "C" fn test_readback_close_count(
-  database : Database,
-) -> Int = "actql_native_sqlite_test_checked_close_count"
+extern "C" fn test_readback_close_count(database : Database) -> Int = "actql_native_sqlite_test_checked_close_count"
 
 ///|
 test "checked SQLite close retires readback only after success and keeps returned bytes" {
