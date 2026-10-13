@@ -13,12 +13,13 @@
   "executedWorkingSource": {
     "Node": "19/19 run-qY70YT",
     "contractGenerator": "run-5nYYpK complete exit 0",
-    "metadata": "run-WyTarC complete exit 0 after explicit requirement-ID repair"
+    "metadata": "run-WyTarC complete exit 0 after explicit requirement-ID repair",
+    "canonical": "run-4VOZBF: ordinary Node generator and read-only freshness verified 590 declared canonical identities, not Moon590"
   },
   "retainedFailure": "run-2rIvbz metadata failure: 2 explicit IDs for 6 extracted obligations; not a product runtime result",
   "unexecuted": [
     "Moon compile/focused tests",
-    "generated public interfaces and final canonical freshness",
+    "generated public interfaces and final post-compile freshness",
     "complete RowSource capture multi-page/key/cancellation regression",
     "new-SHA ordinary four-package Local/HTTPS original 12+8 matrix",
     "Native/Wasm execution and Hosted CI"
