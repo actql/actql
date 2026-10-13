@@ -248,6 +248,7 @@ void *actql_native_sqlite_open_inspection_database(
 int32_t actql_native_sqlite_close_checked(
   actql_native_sqlite_database *database
 ) {
+  if (database == NULL) return 1;
   if (database->database == NULL) {
     actql_retire_result_storage(database);
     return 1;
@@ -690,6 +691,32 @@ moonbit_bytes_t actql_native_sqlite_library_version(
   return actql_copy_message(library->libversion());
 }
 
+// Preserve the primary open diagnosis and the same handle when its immediate
+// cleanup is not acknowledged. The custody API can later observe close on this
+// object; it never opens another connection or initializes schema again.
+static void actql_retire_failed_open_database(
+  actql_native_sqlite_database *database
+) {
+  database->opened = false;
+  if (database->database == NULL) return;
+  if (database->test_close_failures > 0) {
+    database->test_close_failures--;
+    return;
+  }
+  if (database->library->close_v2(database->database) == SQLITE_OK)
+    database->database = NULL;
+}
+
+// Whitebox fault injection on an already owned connection, using the same
+// failed-open cleanup boundary. No environment option enables this path.
+void actql_native_sqlite_test_failed_open_cleanup(
+  actql_native_sqlite_database *database
+) {
+  actql_replace_error(&database->error, database->diagnostic_ceiling,
+    "injected original database open failure");
+  actql_retire_failed_open_database(database);
+}
+
 static void *actql_open_database(
   actql_native_sqlite_library *library,
   moonbit_bytes_t path,
@@ -757,17 +784,13 @@ static void *actql_open_database(
   free(path_text);
   if (code != SQLITE_OK) {
     actql_database_error(database, "open SQLite database failed");
-    if (database->database != NULL) {
-      library->close_v2(database->database);
-      database->database = NULL;
-    }
+    actql_retire_failed_open_database(database);
     return database;
   }
   code = library->busy_timeout(database->database, 5000);
   if (code != SQLITE_OK) {
     actql_database_error(database, "configure SQLite busy timeout failed");
-    library->close_v2(database->database);
-    database->database = NULL;
+    actql_retire_failed_open_database(database);
     return database;
   }
   // Restoration validates the retained schema. It cannot create tables,
@@ -778,9 +801,7 @@ static void *actql_open_database(
       actql_exec(database, "PRAGMA synchronous=FULL;PRAGMA foreign_keys=ON") == SQLITE_OK
     : actql_initialize_schema(database);
   if (!admitted) {
-    database->opened = false;
-    library->close_v2(database->database);
-    database->database = NULL;
+    actql_retire_failed_open_database(database);
     return database;
   }
   database->opened = true;
