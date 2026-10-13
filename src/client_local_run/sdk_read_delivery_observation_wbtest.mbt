@@ -61,7 +61,6 @@ fn sdk_delivery_observe(
     "answer",
     "jsonl",
     "sdk-read-original",
-    "2026-10-13T00:00:04.000Z",
     16,
     read,
     current,
@@ -80,6 +79,28 @@ test "SDK delivery lookup preserves streaming and older original attempt without
     key,
   ) => Ok(rows.get(table + "|" + key))
   let original = sdk_delivery_observe(fixture, read, () => Ok(())).unwrap()
+  let wire = local_sdk_read_delivery_lookup_wire(
+    fixture.preflight,
+    fixture.account,
+    fixture.original,
+    fixture.selection,
+    "sha256:" + "a".repeat(64),
+    fixture.owner,
+    fixture.view,
+    "answer",
+    "jsonl",
+    "sdk-read-original",
+    16,
+    read,
+    () => Ok(()),
+  ).unwrap()
+  assert_true(@utf8.encode(wire).length() <= 8192)
+  guard @json.parse(wire) is Object(found) else {
+    fail("Expected closed found wire")
+  }
+  assert_eq(found.length(), 4)
+  assert_eq(found.get("kind"), Some(@json.to_json("found")))
+  assert_eq(found.get("hostReleaseReceipt"), Some(@json.parse("null")))
   assert_eq(
     local_sdk_read_delivery_observation_action(original),
     @publication.DeliveryRejectUnresolvedAttempt,
@@ -100,6 +121,12 @@ test "SDK delivery lookup preserves streaming and older original attempt without
   let grant = @publication.admit_publication_contract(
     "result_read_grant", grant_wire, 65536, 8192, 64,
   ).unwrap()
+  // Historical metadata remains available after the original grant expires;
+  // the same saved grant cannot authorize a fresh payload at this later time.
+  assert_false(
+    @publication.result_read_grant_valid_at(grant, "2026-10-15T00:00:00.000Z"),
+  )
+  assert_true(sdk_delivery_observe(fixture, read, () => Ok(())) is Ok(_))
   let materials = fixture.owner
     .observed_result_read_materials(fixture.view, "answer", 16)
     .unwrap()
@@ -188,6 +215,30 @@ test "SDK delivery lookup separates confirmed miss query failure partial usage a
     table,
     key,
   ) => Ok(rows.get(table + "|" + key))
+  assert_eq(
+    local_sdk_read_delivery_lookup_wire(
+      fixture.preflight,
+      fixture.account,
+      fixture.original,
+      fixture.selection,
+      "sha256:" + "a".repeat(64),
+      fixture.owner,
+      fixture.view,
+      "answer",
+      "jsonl",
+      "sdk-read-original",
+      16,
+      (table, key) => {
+        if table == "delivery_attempt" {
+          Ok(None)
+        } else {
+          read(table, key)
+        }
+      },
+      () => Ok(()),
+    ).unwrap(),
+    "{\"kind\":\"not_found\"}",
+  )
   assert_true(
     sdk_delivery_observe(
       fixture,

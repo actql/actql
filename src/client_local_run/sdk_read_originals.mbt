@@ -32,25 +32,18 @@ fn sdk_read_preimage(
 }
 
 ///|
-/// Select original read evidence through the existing current Account,
-/// checked preflight, saved finite packet and complete stored-chain Owners.
-/// No grant, attempt, write, renewal or authority registry is created here.
-/// The physical caller still fences actual original custody/current before
-/// and after this operation and before adopting/persisting its output.
-pub fn prepare_local_sdk_read_originals(
+/// The same original current/selection/Run/adoption binding checks for both
+/// read preparation and metadata lookup. Availability is a separate byte gate.
+fn validate_sdk_read_original_binding(
   preflight : LocalPublicationPreflight,
   account : @authorization.AdmittedAccountConfiguration,
   original : @host.ClientLocalRunPolicyOriginal,
   selection : @publication.LocalSDKResultReadSelection,
   host_adoption_cid : String,
-  owner : @publication.PublicationCommitPreparation,
-  view : @publication.PublicationCommitReadView,
   result_name : String,
   format : String,
   attempt_id : String,
-  observed_at : String,
-  max_results : Int,
-) -> Result[LocalSDKReadOriginals, LocalSDKReadOriginalsIssue] {
+) -> Result[Unit, LocalSDKReadOriginalsIssue] {
   match
     validate_local_preflight_result_read_current(
       preflight, account, result_name,
@@ -58,15 +51,9 @@ pub fn prepare_local_sdk_read_originals(
     Ok(_) => ()
     Err(issue) => return Err(Preflight(issue))
   }
-  let (
-    principal,
-    connection,
-    purpose,
-    name,
-    selected_format,
-    max_bytes,
-    max_uses,
-  ) = @publication.local_sdk_result_read_selection_parameters(selection)
+  let (principal, connection, _, name, selected_format, _, _) = @publication.local_sdk_result_read_selection_parameters(
+    selection,
+  )
   let plan = preflight.intent.plan
   if result_name != name ||
     format != selected_format ||
@@ -91,6 +78,46 @@ pub fn prepare_local_sdk_read_originals(
   if adoption != host_adoption_cid ||
     read_cid != @publication.local_sdk_result_read_selection_cid(selection) {
     return Err(InvalidOriginal)
+  }
+  Ok(())
+}
+
+///|
+/// Select original read evidence through the existing current Account,
+/// checked preflight, saved finite packet and complete stored-chain Owners.
+/// No grant, attempt, write, renewal or authority registry is created here.
+/// The physical caller still fences actual original custody/current before
+/// and after this operation and before adopting/persisting its output.
+pub fn prepare_local_sdk_read_originals(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  original : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  observed_at : String,
+  max_results : Int,
+) -> Result[LocalSDKReadOriginals, LocalSDKReadOriginalsIssue] {
+  match
+    validate_sdk_read_original_binding(
+      preflight, account, original, selection, host_adoption_cid, result_name, format,
+      attempt_id,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let (principal, connection, purpose, _, _, max_bytes, max_uses) = @publication.local_sdk_result_read_selection_parameters(
+    selection,
+  )
+  let plan = preflight.intent.plan
+  let (adoption, read_cid) = match
+    @host.client_local_run_policy_original_read_dependencies(original) {
+    Ok(pair) => pair
+    Err(_) => return Err(InvalidOriginal)
   }
   let materials = match
     owner.observed_result_read_materials(view, result_name, max_results) {

@@ -66,7 +66,6 @@ pub fn[E] observe_local_sdk_read_delivery_from_store(
   result_name : String,
   format : String,
   attempt_id : String,
-  observed_at : String,
   max_results : Int,
   read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
   current : () -> Result[Unit, E],
@@ -74,20 +73,47 @@ pub fn[E] observe_local_sdk_read_delivery_from_store(
   LocalSDKReadDeliveryObservation,
   LocalSDKReadDeliveryObservationIssue[E],
 ] {
-  // This is an independent validation/recomputation of the original grant,
-  // not an installation, replacement of saved Policy or public read permit.
-  let expected = match
-    issue_local_sdk_read_grant_from_store(
-      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
-      format, attempt_id, observed_at, max_results, read, current,
+  // Metadata lookup uses current authority, not current payload availability.
+  // Retained grants/timestamps are validated later and are never renewed.
+  match current() {
+    Err(issue) => return Err(Observation(issue))
+    Ok(_) => ()
+  }
+  match
+    validate_sdk_read_original_binding(
+      preflight, account, finite, selection, host_adoption_cid, result_name, format,
+      attempt_id,
     ) {
-    Ok(grant) => grant
-    Err(issue) => return Err(Store(issue))
+    Err(issue) => return Err(Store(Preparation(issue)))
+    Ok(_) => ()
+  }
+  // Scope/nominal custody must be complete even for a confirmed missing key.
+  match owner.observed_result_read_materials(view, result_name, max_results) {
+    Err(issue) => return Err(Store(Preparation(StoredChain(issue))))
+    Ok(_) => ()
   }
   let attempt_key = @sha.hex(@utf8.encode(attempt_id))
   let row = match read("delivery_attempt", attempt_key) {
     Err(issue) => return Err(Observation(issue))
-    Ok(None) => return Err(MissingAttempt)
+    Ok(None) => {
+      match current() {
+        Err(issue) => return Err(Observation(issue))
+        Ok(_) => ()
+      }
+      match
+        validate_sdk_read_original_binding(
+          preflight, account, finite, selection, host_adoption_cid, result_name,
+          format, attempt_id,
+        ) {
+        Err(issue) => return Err(Store(Preparation(issue)))
+        Ok(_) => ()
+      }
+      match
+        owner.observed_result_read_materials(view, result_name, max_results) {
+        Err(issue) => return Err(Store(Preparation(StoredChain(issue))))
+        Ok(_) => return Err(MissingAttempt)
+      }
+    }
     Ok(Some(row)) => row
   }
   if row.key != attempt_key || row.revision < 0L || row.body.length() != 71 {
@@ -100,6 +126,20 @@ pub fn[E] observe_local_sdk_read_delivery_from_store(
     sdk_delivery_stored_contract("delivery_attempt", attempt_cid, read) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  let requested_at = match @publication.delivery_attempt_requested_at(attempt) {
+    Ok(value) => value
+    Err(issue) => return Err(Issuance(issue))
+  }
+  // Recompute the saved body's binding at its actual admitted request time.
+  // Current authority remains independent; this grants no present byte access.
+  let expected = match
+    issue_local_sdk_read_grant_from_store(
+      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+      format, attempt_id, requested_at, max_results, read, current,
+    ) {
+    Ok(grant) => grant
+    Err(issue) => return Err(Store(issue))
   }
   let grant_cid = match @publication.delivery_attempt_read_grant_cid(attempt) {
     Ok(cid) => cid
@@ -228,7 +268,7 @@ pub fn[E] observe_local_sdk_read_delivery_from_store(
   let final_grant = match
     issue_local_sdk_read_grant_from_store(
       preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
-      format, attempt_id, observed_at, max_results, read, current,
+      format, attempt_id, requested_at, max_results, read, current,
     ) {
     Ok(value) => value
     Err(issue) => return Err(Store(issue))
@@ -267,4 +307,55 @@ pub fn local_sdk_read_delivery_observation_original(
       )
     }),
   )
+}
+
+///|
+/// Existing Client delivery-attempt response, produced only by Common's
+/// original read-only observation. Confirmed missing is never replay permission.
+/// The initial Source-free response allowance is unchanged; oversized metadata
+/// is refused, not truncated or reported as a missing/succeeded occurrence.
+pub fn[E] local_sdk_read_delivery_lookup_wire(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  max_results : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[String, LocalSDKReadDeliveryObservationIssue[E]] {
+  let observed = match
+    observe_local_sdk_read_delivery_from_store(
+      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+      format, attempt_id, max_results, read, current,
+    ) {
+    Ok(observed) => observed
+    Err(MissingAttempt) => return Ok("{\"kind\":\"not_found\"}")
+    Err(issue) => return Err(issue)
+  }
+  // These are already admitted canonical contract objects. No user text is
+  // concatenated, interpreted as a contract or used to build an authority.
+  let attempt = @publication.publication_contract_json(observed.attempt)
+  let record = observed.record
+    .map(@publication.publication_contract_json)
+    .unwrap_or("null")
+  let receipt = observed.receipt
+    .map(@publication.publication_contract_json)
+    .unwrap_or("null")
+  let wire = "{\"attempt\":" +
+    attempt +
+    ",\"hostReleaseReceipt\":" +
+    receipt +
+    ",\"kind\":\"found\",\"record\":" +
+    record +
+    "}"
+  if @utf8.encode(wire).length() > 8192 {
+    return Err(Store(Preparation(Codec(CapacityExceeded))))
+  }
+  Ok(wire)
 }
