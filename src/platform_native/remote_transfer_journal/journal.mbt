@@ -133,7 +133,10 @@ pub fn NativeRemoteTransferJournalOpenFailure::retry_cleanup(
 ) -> Result[Unit, NativeRemoteTransferJournalIssue] {
   guard self.database is Some(original) else { return Ok(()) }
   match original.retry_cleanup() {
-    Ok(_) => { self.database = None; Ok(()) }
+    Ok(_) => {
+      self.database = None
+      Ok(())
+    }
     Err(issue) => Err(Physical(issue))
   }
 }

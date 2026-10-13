@@ -349,6 +349,8 @@ pub fn open_journal_with_custody(
 }
 
 ///|
-pub fn Journal::close_checked(_self : Journal) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+pub fn Journal::close_checked(
+  _self : Journal,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
   Err(UnsupportedTarget)
 }
