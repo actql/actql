@@ -629,10 +629,7 @@ fn advance_observation_issuance_step(
   match
     (emit_observation_issuance_step(state) catch {
       _ => Err(Model(@model.OutputValue))
-    }) &&
-    // Generation availability may cross a physical callback. Recheck the same
-    // original funding immediately before exposing the sealed values.
-    observation_issuance_funding_current(active.state) {
+    }) {
     Err(issue) => @bounded.Failed(issue, 1, 1)
     Ok(_) =>
       if state.phase is Done {
@@ -677,7 +674,10 @@ pub fn observation_issuance_value(
         active.state.definition,
       )
       is Some(_)
-    }) {
+    }) &&
+    // Generation availability may cross a physical callback. Recheck the same
+    // original funding immediately before exposing the sealed values.
+    observation_issuance_funding_current(active.state) {
     Some((active.state.observation.unwrap(), active.state.invocation.unwrap()))
   } else {
     None
