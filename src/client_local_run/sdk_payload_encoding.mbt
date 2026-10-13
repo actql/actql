@@ -117,6 +117,65 @@ pub fn[E] prepare_local_sdk_payload_encoding_from_store(
 }
 
 ///|
+/// Reuse original evidence/availability/current Owners around actual byte
+/// disclosure. Recomputing the same grant body does not renew or install it.
+pub fn[E] validate_local_sdk_payload_encoding_current(
+  preflight : LocalPublicationPreflight,
+  account : @authorization.AdmittedAccountConfiguration,
+  finite : @host.ClientLocalRunPolicyOriginal,
+  selection : @publication.LocalSDKResultReadSelection,
+  host_adoption_cid : String,
+  owner : @publication.PublicationCommitPreparation,
+  view : @publication.PublicationCommitReadView,
+  first : LocalSDKReadDeliveryPreparation,
+  result_name : String,
+  format : String,
+  attempt_id : String,
+  observed_at : String,
+  max_results : Int,
+  read : (String, String) -> Result[@host.ClientJournalPhysicalRow?, E],
+  current : () -> Result[Unit, E],
+) -> Result[Unit, LocalSDKReadPayloadCodecIssue[E]] {
+  let saved = match
+    observe_local_sdk_read_delivery_from_store(
+      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+      format, attempt_id, max_results, read, current,
+    ) {
+    Ok(saved) => saved
+    Err(issue) => return Err(Original(issue))
+  }
+  if !sdk_read_payload_original_matches(first, saved) {
+    return Err(ChangedOriginal)
+  }
+  let grant = match
+    issue_local_sdk_read_grant_from_store(
+      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+      format, attempt_id, observed_at, max_results, read, current,
+    ) {
+    Ok(grant) => grant
+    Err(issue) => return Err(Store(issue))
+  }
+  if @publication.publication_contract_json(grant) !=
+    @publication.publication_contract_json(first.grant) {
+    return Err(ChangedOriginal)
+  }
+  // A current callback can change the saved usage/head after observation.
+  // Revalidate the original streaming attempt without constructing new codecs.
+  let final_saved = match
+    observe_local_sdk_read_delivery_from_store(
+      preflight, account, finite, selection, host_adoption_cid, owner, view, result_name,
+      format, attempt_id, max_results, read, current,
+    ) {
+    Ok(saved) => saved
+    Err(issue) => return Err(Original(issue))
+  }
+  if !sdk_read_payload_original_matches(first, final_saved) {
+    return Err(ChangedOriginal)
+  }
+  Ok(())
+}
+
+///|
 fn local_sdk_payload_feed(
   value : LocalSDKPayloadEncoding,
   chunk : Bytes,
