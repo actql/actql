@@ -3,7 +3,7 @@
 test "Catalog cleanup reobserves the original use after a transient query failure" {
   let queries = Ref(0)
   let original = "sha256:" + "a".repeat(64)
-  let query = () => {
+  let query : () -> Result[@effect_resource.NativeCredentialUseStatus?, Unit] = () => {
     queries.val += 1
     if queries.val == 1 {
       Err(())
@@ -44,7 +44,11 @@ test "Catalog cleanup query failure or absence stays pending on each pass" {
         false,
         () => {
           queries.val += 1
-          if pass == 1 { Ok(None) } else { Err(()) }
+          if pass == 1 {
+            Ok(None)
+          } else {
+            Err(())
+          }
         },
       ),
     )
@@ -93,12 +97,7 @@ test "Catalog cleanup confirmed Store retirement does not requery a closed crede
   for _ in 0..<2 {
     assert_true(
       holder_catalog_cleanup_original_use_observed(
-        true,
-        true,
-        false,
-        false,
-        false,
-        query_closed_database,
+        true, true, false, false, false, query_closed_database,
       ),
     )
   }
@@ -106,12 +105,7 @@ test "Catalog cleanup confirmed Store retirement does not requery a closed crede
   // Without the original Store ACK, the same missing-use boundary stays pending.
   assert_false(
     holder_catalog_cleanup_original_use_observed(
-      false,
-      true,
-      false,
-      false,
-      false,
-      query_closed_database,
+      false, true, false, false, false, query_closed_database,
     ),
   )
   assert_eq(queries.val, 1)
