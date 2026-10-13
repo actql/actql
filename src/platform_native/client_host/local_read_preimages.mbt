@@ -127,7 +127,7 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
       ),
       ("principal_id", Text(self.principal)),
       ("purpose", Text(facts.request.purpose)),
-      ("read_original_cid", Text(self.file.content_cid)),
+      ("read_original_cid", Text(self.selection_cid)),
       ("result_name", Text(facts.request.result_name)),
       ("run_definition_cid", Text(facts.request.run_definition_cid)),
     ]) {
@@ -141,7 +141,7 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
       ("expires_at", Text(self.expires_at)),
       ("max_bytes", Quantity(self.selection.max_bytes)),
       ("max_uses", Quantity(self.selection.max_uses)),
-      ("read_original_cid", Text(self.file.content_cid)),
+      ("read_original_cid", Text(self.selection_cid)),
     ]) {
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
@@ -162,7 +162,7 @@ fn NativeLocalReadPolicyBinding::read_admission_preimages(
       ("principal_id", Text(self.principal)),
       ("public_index_entry_cid", Text(facts.public_index_entry_cid)),
       ("purpose", Text(facts.request.purpose)),
-      ("read_original_cid", Text(self.file.content_cid)),
+      ("read_original_cid", Text(self.selection_cid)),
       ("result_artifact_cid", Text(facts.result_artifact_cid)),
       ("result_definition_cid", Text(facts.result_definition_cid)),
       ("result_manifest_cid", Text(facts.result_manifest_cid)),

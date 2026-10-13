@@ -17,6 +17,7 @@ fn test_context() -> @query.Context {
     input_schemas: [],
     source_catalog: None,
     model_tasks: None,
+    calendar_profile: None,
     result_name: "answer",
     captured_stage: Some("capture"),
     parameter_declarations: None,
@@ -310,10 +311,13 @@ test "public Graph input distinguishes missing producer from retired annotation"
     document in [
       "FROM GRAPH g |> MATCH WALK (a)-[]->(b) |> SELECT *", "FROM GRAPH g |> MATCH WALK (a) |> SELECT a.id",
     ] {
-    assert_true(
-      lower(document, Text, Some(context))
-      is Err(QueryLowering(@query.UnknownRelation)),
-      msg=document,
+    guard lower(document, Text, Some(context)) is Err(QueryLowering(issue)) &&
+      issue is @query.UnresolvedRelation(_) else {
+      fail("missing Graph producer must retain its unresolved-input witness")
+    }
+    assert_eq(
+      @query.unresolved_relation_reference(issue),
+      Some([{ value: "g", quoted: false, }]),
     )
   }
   let retired = "FROM GRAPH g LABELS {\"node\":{\"field\":\"name\"}} |> MATCH WALK (a:Person) |> SELECT a.id"

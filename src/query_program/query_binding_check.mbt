@@ -4,6 +4,11 @@ pub(all) enum BindingPreparationIssue {
   SourceDeclarations(@sourceviews.Issue)
   MissingSourceCatalog(@sourceviews.Declaration)
   SourceRegistration(@check_context.SourceRegistrationIssue)
+  SourceSelection(@source_resolution.Issue)
+  SourceRequestBindings(@bindings.Issue)
+  SourceRequestSlots(@request_slots.Issue)
+  SourceRequest(@source_resolution.RequestIssue)
+  SourceRequestForm(@source_resolution.RequestFormIssue)
   SourceProgram(@check_context.SourceViewProgramIssue)
   LocalProgram(@stage_results.LocalProgramIssue)
   Demand(BindingDemandIssue)
@@ -153,6 +158,7 @@ fn prepare_query_binding_source(
             views,
             locals,
             pipeline_limits,
+            calendar=context.calendar_profile,
             model_tasks=context.model_tasks,
           ) {
           Ok((checked, _)) =>
@@ -170,6 +176,7 @@ fn prepare_query_binding_source(
             views,
             locals,
             pipeline_limits,
+            calendar=context.calendar_profile,
             model_tasks=context.model_tasks,
           ) {
           Ok((wiring, _)) => Ok(Publication(wiring))
@@ -199,6 +206,9 @@ fn prepare_query_binding_source(
               ..pipeline_limits,
               max_work: pipeline_limits.max_work - @sourceviews.work(views),
             },
+            calendar_profile=context.calendar_profile.map(profile => {
+              @environment.selected_calendar_profile(profile)
+            }),
             model_tasks=context.model_tasks,
           ) {
           Ok((topology, _)) => Ok(Topology({ topology, sourceviews: None, }))
@@ -212,6 +222,9 @@ fn prepare_query_binding_source(
               ..pipeline_limits,
               max_work: pipeline_limits.max_work - @sourceviews.work(views),
             },
+            calendar_profile=context.calendar_profile.map(profile => {
+              @environment.selected_calendar_profile(profile)
+            }),
             model_tasks=context.model_tasks,
           ) {
           Ok((wiring, _)) => Ok(Publication(wiring))

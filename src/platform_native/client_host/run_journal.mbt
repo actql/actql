@@ -6,6 +6,8 @@ struct NativeClientRunJournal {
   database : @sqlite.Database
   max_records : Int
   mut fenced : Bool
+  // Physical transaction ownership only; this is not a Run control revision.
+  mut transaction_active : Bool
   // Read-only lookup may join this journal's own publication fence. Mutating
   // nested operations still fail instead of acquiring another transaction.
   mut publication_read_locked : Bool
@@ -290,6 +292,7 @@ pub fn open_native_client_run_journal(
         max_records,
         fenced: false,
         publication_read_locked: false,
+        transaction_active: false,
       })
     Err(issue) => Err(issue)
   }
@@ -303,17 +306,19 @@ fn[T] NativeClientRunJournal::transaction(
   if self.fenced || self.database.transaction_fenced() {
     return Err(Fenced)
   }
-  if self.publication_read_locked {
+  if self.publication_read_locked || self.transaction_active {
     return Err(Physical(@sqlite.Busy))
   }
   match self.database.begin_immediate() {
     Ok(_) => ()
     Err(issue) => return Err(Physical(issue))
   }
+  self.transaction_active = true
   let result = match run_journal_custody(self.database, self.max_records) {
     Ok(_) => work()
     Err(issue) => Err(issue)
   }
+  self.transaction_active = false
   match result {
     Ok(value) =>
       match self.database.commit() {

@@ -1,0 +1,174 @@
+{
+  "source": "109564ef9a4f8241096292843b875d4c81fbb6f3",
+  "receipt_sha256": "7442fb6637fef2b797116c6d87d89d25351cef5dd686b3120910e528af1ef0d1",
+  "runtime_sha256": "80731853b15f4d600ef391b3778c734bc40bfb6caed246c0c145916b419e49bd",
+  "records": [
+    {
+      "role": "registry",
+      "fixture": "registry.json.gz",
+      "bytes": 5585,
+      "sha256": "a212a9ee1aa4d927591ffc15f25df3218548e9da2f9aa688c6b5733f7348a8aa",
+      "git_path": "spec/dependencies/aoa-pipeline-registry.json",
+      "pointer": "",
+      "git_source_sha256": "e3825d069150e3d92ea664f19924c6d8eabcbec00c716460833aa51c7e70ce93"
+    },
+    {
+      "role": "values",
+      "fixture": "values.json.gz",
+      "bytes": 9241,
+      "sha256": "7f667a6f89689763a2cb8bf8db81318408bd6eb0b3ad399ed5fd218d79ffa529",
+      "git_path": "spec/contracts/actql-aoa.json",
+      "pointer": "/execution_contracts/REL.values",
+      "git_source_sha256": "0981d6e64dffcdde9b4c9e48da7eb1ae9047cea27a96d1c370edfcd5ec2db7d3"
+    },
+    {
+      "role": "fragment",
+      "fixture": "fragment.json.gz",
+      "bytes": 1621,
+      "sha256": "9d361dde54e27332a350f3f1d2ebfaef8c991b69a935538b45a049a739f775ca",
+      "git_path": "spec/contracts/actql-aoa.json",
+      "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
+      "git_source_sha256": "0981d6e64dffcdde9b4c9e48da7eb1ae9047cea27a96d1c370edfcd5ec2db7d3"
+    },
+    {
+      "role": "ordered",
+      "fixture": "ordered.json.gz",
+      "bytes": 21855,
+      "sha256": "96f0783f537b1856116d818cc5f73c67c27977b48ec6f2f6e2d1eac5b0a04748",
+      "git_path": "spec/contracts/actql-aoa.json",
+      "pointer": "/execution_contracts/REL.derive.ordered",
+      "git_source_sha256": "0981d6e64dffcdde9b4c9e48da7eb1ae9047cea27a96d1c370edfcd5ec2db7d3"
+    },
+    {
+      "role": "expression",
+      "fixture": "expression.json.gz",
+      "bytes": 1478497,
+      "sha256": "2983b5347eb2eefad356ed66b957ae328b6d9ef67ad8f2352072cc7a1afd5382",
+      "git_path": "spec/contracts/actql-expressions.json",
+      "pointer": "",
+      "git_source_sha256": "2983b5347eb2eefad356ed66b957ae328b6d9ef67ad8f2352072cc7a1afd5382"
+    },
+    {
+      "role": "value-contract",
+      "fixture": "value-contract.json.gz",
+      "bytes": 6851,
+      "sha256": "fada646bc4781c80a1b4a92a5dea60e98c9149222afb05eb13c3a88adc7afc44",
+      "git_path": "spec/contracts/actql-protocol-schemas.json",
+      "pointer": "/schemas/canonical_value_contract",
+      "git_source_sha256": "a7ec0f3886a3a0058209b33903a670e4f28eaba5937ac22c411881bd0decb404"
+    },
+    {
+      "role": "text-time",
+      "fixture": "text-time.json.gz",
+      "bytes": 109891,
+      "sha256": "1d7f507c375c99b6848b72e3bcaea76b96a3376f7b5da28d13a117e6c55a31ea",
+      "git_path": "spec/dependencies/actql-text-time-base.json",
+      "pointer": "",
+      "git_source_sha256": "1d7f507c375c99b6848b72e3bcaea76b96a3376f7b5da28d13a117e6c55a31ea"
+    },
+    {
+      "role": "text-time-dependencies",
+      "fixture": "text-time-dependencies.json.gz",
+      "bytes": 14055,
+      "sha256": "f8db8b02e5f16424da8f94ea635b04c554959a7a02481b597b7d489bbcccd90b",
+      "git_path": "spec/dependencies/actql-text-time-base-dependencies.json",
+      "pointer": "",
+      "git_source_sha256": "f8db8b02e5f16424da8f94ea635b04c554959a7a02481b597b7d489bbcccd90b"
+    },
+    {
+      "role": "derive-binding",
+      "fixture": "derive-binding.json.gz",
+      "bytes": 1251,
+      "sha256": "c79adf7080f5a93e3b34002cebee2ae82c5dcc03064336c872f93e8fafb03ab8",
+      "git_path": "spec/contracts/actql-stage-contracts.json",
+      "pointer": "/schemas/derive_binding",
+      "git_source_sha256": "b8682e1a202b13d7af4bcc6f7e810d5cbc41fbb291f313ed0727f2528fcbb83c"
+    },
+    {
+      "role": "rows-to-graph",
+      "fixture": "rows-to-graph.json.gz",
+      "bytes": 12561,
+      "sha256": "6c0079d8e0a76edd4a0eea67f1142b9389d8c39b08c533da8355a1c3ce4587fd",
+      "git_path": "spec/contracts/actql-aoa.json",
+      "pointer": "/execution_contracts/BRIDGE.rows.to_graph",
+      "git_source_sha256": "0981d6e64dffcdde9b4c9e48da7eb1ae9047cea27a96d1c370edfcd5ec2db7d3"
+    },
+    {
+      "role": "unicode-data",
+      "fixture": "unicode-data.json.gz",
+      "bytes": 206649,
+      "sha256": "393835958aff4e6879148fa3964b6a7208309a18f7c7254b1d45ce0aca78d497",
+      "git_path": "spec/dependencies/actql-text-time-unicode-data.json",
+      "pointer": "",
+      "git_source_sha256": "393835958aff4e6879148fa3964b6a7208309a18f7c7254b1d45ce0aca78d497"
+    }
+  ],
+  "implementation_records": [
+    {
+      "path": "src/expression_typing/check.mbt",
+      "fixture": "scalar-code-0.mbt.gz",
+      "bytes": 3389,
+      "sha256": "00c842500a9f55d9b07f47453731101ac435ca90f15f422c2b00de908a084261"
+    },
+    {
+      "path": "src/expression_typing/tree.mbt",
+      "fixture": "scalar-code-1.mbt.gz",
+      "bytes": 8195,
+      "sha256": "1b96a3b81a740626e013d1e918b88800f8e06d2797d6370a1873f3427be2e675"
+    },
+    {
+      "path": "src/value_admission/scalars.mbt",
+      "fixture": "scalar-code-2.mbt.gz",
+      "bytes": 3898,
+      "sha256": "c8945d40f105bda2bd2bf26bace9757e87350cef56405235af138d3879828b47"
+    },
+    {
+      "path": "src/value_admission/admission.mbt",
+      "fixture": "scalar-code-3.mbt.gz",
+      "bytes": 9465,
+      "sha256": "fa072c954160186c0e2e647841e1505adfc5e2205d95d6db648e52aab13e8b17"
+    },
+    {
+      "path": "src/value_admission/execution_values.mbt",
+      "fixture": "scalar-code-4.mbt.gz",
+      "bytes": 7006,
+      "sha256": "ea35110aacf7d3db3b2a972a53d4f7d2f4c00116ed5c315fc154fda31286505f"
+    },
+    {
+      "path": "src/lowering_relation/values_encode.mbt",
+      "fixture": "scalar-code-5.mbt.gz",
+      "bytes": 4456,
+      "sha256": "66ab56ca3b59bec113ab533b5f1c65f3bddf231fdf590bb3a65b0103dad9c793"
+    },
+    {
+      "path": "src/execution_relation/expression.mbt",
+      "fixture": "scalar-code-6.mbt.gz",
+      "bytes": 76115,
+      "sha256": "f3b4d7adbe2a2bd047ab9c01903db21e14ce32645d6fe9c2ae844dc685afde43"
+    },
+    {
+      "path": "src/execution_relation/bounded_expression.mbt",
+      "fixture": "scalar-code-7.mbt.gz",
+      "bytes": 2199,
+      "sha256": "e7230e669d2e17ee9b0df616e5af69d91c9b5b5deadc28ac7ad7c280ea068153"
+    },
+    {
+      "path": "src/execution_relation/expression_comparison_steps.mbt",
+      "fixture": "scalar-code-8.mbt.gz",
+      "bytes": 3346,
+      "sha256": "9da510ddc3e7cf5dd2c252fa8afb22cea7584af857879d23cb9803e77ec98e7f"
+    },
+    {
+      "path": "src/execution_relation/expression_roots.mbt",
+      "fixture": "scalar-code-9.mbt.gz",
+      "bytes": 5690,
+      "sha256": "70f1c9c657a073b0eb957c0768844d782057715b18a2bdc9479243c08c3f3c06"
+    },
+    {
+      "path": "src/execution_relation/expression_text_functions.mbt",
+      "fixture": "scalar-code-10.mbt.gz",
+      "bytes": 26704,
+      "sha256": "bc71f74348dc4a7023564b17cc59804e4f432b789f72fe1ea5a30b9b22a96c2b"
+    }
+  ]
+}
