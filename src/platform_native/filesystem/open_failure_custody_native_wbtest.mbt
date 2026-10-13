@@ -41,7 +41,11 @@ test "rejected competing Lock carries original constructor and does not release 
   failure.retry_cleanup().unwrap()
   assert_true(failure.issue() is Lock(_))
   // Cleaning the rejected descriptor never releases the genuine owner.
-  assert_true(root.acquire_lock_with_custody(name) is Err(_))
+  let still_refused = match root.acquire_lock_with_custody(name) {
+    Err(original) => original
+    Ok(_) => { fail("rejected cleanup released the genuine Lock"); return }
+  }
+  still_refused.retry_cleanup().unwrap()
   owner.close_checked().unwrap()
   owner.close_checked().unwrap()
   let successor = root.acquire_lock_with_custody(name).unwrap()
