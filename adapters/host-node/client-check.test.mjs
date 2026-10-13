@@ -671,6 +671,51 @@ for (const [entrance, open] of Object.entries(entrances)) {
     client.assertNoExecution();
   });
 
+  for (const [form, cases] of [
+    ['WITH', [
+      ['WITH q AS (SELECT id FROM records WHERE id) SELECT id FROM q', 40, 42],
+      ['-- 😀\r\nWITH q AS (SELECT id FROM records WHERE id) SELECT id FROM q', 49, 51],
+    ]],
+    ['derived', [
+      ['SELECT id FROM (SELECT id FROM records WHERE id) AS q', 45, 47],
+      ['-- 😀\r\nSELECT id FROM (SELECT id FROM records WHERE id) AS q', 54, 56],
+    ]],
+  ]) {
+    test(`${entrance}: nested ${form} predicates retain exact authored origins`, async t => {
+      const client = await open(t, configurations.allowed);
+      for (const [text, start, end] of cases) {
+        // These byte ranges count the independently authored original prefix,
+        // including the nine UTF-8 bytes of emoji and real CRLF.
+        assert.equal(Buffer.from(text, 'utf8').subarray(start, end).toString(), 'id');
+        const corrected = await client.check(text.replace(' WHERE id', ' WHERE id > 0'),
+          {kind: 'text', scope: 'bound_input', format: 'sql'});
+        assert.equal(corrected.report.verdict, 'verified', 'nested scope positive control');
+        const result = await client.check(text, {kind: 'text', scope: 'bound_input', format: 'sql'});
+        assert.equal(result.outcome, 'completed');
+        assert.equal(result.report.verdict, 'invalid');
+        const input = getCheckInput(result, 'source');
+        assert.deepEqual(result.report.reasons, [{code: 'query_expression_invalid',
+          facts: {issue: 'expected_boolean'}, location: {document_id: 'source',
+            revision: input.revision, kind: 'text', start_byte: start, end_byte: end,
+            precision: 'exact'}}], 'nested predicate owns its original failing occurrence');
+        assert.equal(resolveCheckTextRange(result, result.report.reasons[0].location).text, 'id');
+        assert.deepEqual(result.report.coverage, {limits: [], unresolved: []});
+        const hidden = [];
+        for (const configuration of [configurations.absent, configurations.denied]) {
+          const protectedClient = await open(t, configuration);
+          const protectedResult = await protectedClient.check(text,
+            {kind: 'text', scope: 'bound_input', format: 'sql'});
+          assert.deepEqual(protectedResult.report.reasons, []);
+          assert.equal(protectedResult.report.verdict, 'undetermined');
+          hidden.push(withoutContext(protectedResult));
+          protectedClient.assertNoExecution();
+        }
+        assert.deepEqual(hidden[0], hidden[1]);
+      }
+      client.assertNoExecution();
+    });
+  }
+
   test(`${entrance}: invalid declarations retain only their owned submitted locations`, async t => {
     const client = await open(t, configurations.denied);
     for (const [declaration, pointer, typedDefault = false] of [
