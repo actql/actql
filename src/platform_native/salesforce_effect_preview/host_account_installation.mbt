@@ -60,7 +60,11 @@ fn host_account_subject_valid(subject : NativeEffectHostAccountSubject) -> Bool 
     subject.read_resource,
     subject.publication_connection,
     subject.publication_resource,
-  ].all(value => !value.is_empty() && @utf8.encode(value).length() <= 512) &&
+  ].all(value =>
+    !value.is_empty() &&
+    value.length() <= 512 &&
+    @utf8.encode(value).length() <= 512,
+  ) &&
   native_reviewer_cid(subject.configuration_cid) &&
   native_reviewer_cid(subject.authorization_context_cid)
 }
@@ -91,7 +95,11 @@ fn host_account_configuration(
   if read_scope_current is Some(current) && !current() {
     return Err(ReadScopeUnavailable)
   }
-  if @utf8.encode(wire).length() > read_ceiling {
+  // Every valid UTF16 unit needs at least one UTF8 byte. Bound the private
+  // seam's rejection copy before encoding; the existing byte check still
+  // rejects multibyte overflow before Common admission.
+  if wire.length() > read_ceiling ||
+    @utf8.encode(wire).length() > read_ceiling {
     return Err(File(@bounded_files.CapacityExceeded))
   }
   let configuration = match
@@ -126,6 +134,8 @@ fn install_host_account_with_read(
     (diagnostic_ceiling is Some(value) && value <= 0) ||
     selected.root.is_empty() ||
     selected.name.is_empty() ||
+    selected.root.length() > 4096 ||
+    selected.name.length() > 4096 ||
     @utf8.encode(selected.root).length() > 4096 ||
     @utf8.encode(selected.name).length() > 4096 ||
     !host_account_subject_valid(selected.subject) {
