@@ -1,0 +1,28 @@
+{
+  "status": "proposal; approval pending; not an issuer original or operational signing evidence",
+  "derivation": "Authored raw32 bytes; Python standard base64/JSON/hashlib independently of product source.",
+  "vectors": [
+    {
+      "name": "authored-ascending",
+      "raw32_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "body": {
+        "algorithm": "ed25519",
+        "public_key": "AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=",
+        "version": "actql-local-signing-public-key/0.1"
+      },
+      "wire": "{\"algorithm\":\"ed25519\",\"public_key\":\"AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8=\",\"version\":\"actql-local-signing-public-key/0.1\"}",
+      "cid": "sha256:9689096c43f7a1edbda0f95a62d7804485ce8a1ed0cf6834d7a6bc62709a05b7"
+    },
+    {
+      "name": "rfc8032-public-test-vector",
+      "raw32_hex": "d75a980182b10ab7d54bfed3c964073a0ee172f3daa62325af021a68f707511a",
+      "body": {
+        "algorithm": "ed25519",
+        "public_key": "11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=",
+        "version": "actql-local-signing-public-key/0.1"
+      },
+      "wire": "{\"algorithm\":\"ed25519\",\"public_key\":\"11qYAYKxCrfVS/7TyWQHOg7hcvPapiMlrwIaaPcHURo=\",\"version\":\"actql-local-signing-public-key/0.1\"}",
+      "cid": "sha256:73bed10fdb3d584a1bad7e7c22ad93c1579582dbbe743cd67964a79165760a52"
+    }
+  ]
+}
