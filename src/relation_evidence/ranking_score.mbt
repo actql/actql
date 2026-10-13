@@ -193,3 +193,34 @@ pub fn declared_score_contract(value : DeclaredScore) -> ScoreContract {
 pub fn declared_score_usage(value : DeclaredScore) -> @checking.Usage {
   value.usage
 }
+
+///|
+/// Project only an opaque declaration from the original admitted SourceView.
+/// The shared reader retains exact field, schema and source cursors. Runtime
+/// score-range obligations remain pending across filters and projections.
+pub fn source_view_scores(
+  view : @model_environment.SourceViewCarrier,
+  limits : @checking.Limits,
+) -> Result[RankingTransfer?, @checking.Issue] {
+  guard @model_environment.source_view_relation_scores(view) is Some(scores) else {
+    return Ok(None)
+  }
+  declare_ranking_scores(
+    @model_environment.source_relation_scores_source(scores),
+    @model_environment.carrier_schema_value(
+      @model_environment.source_relation_scores_schema(scores),
+    ),
+    limits,
+  ).map(value => Some(value))
+}
+
+///|
+/// Original declarations in their admitted map order, with no array copy.
+pub fn ranking_score_count(input : RankingInput) -> Int {
+  input.score_aliases.length()
+}
+
+///|
+pub fn ranking_score_declarations(input : RankingInput) -> Iter[DeclaredScore] {
+  input.score_aliases.iter().map(pair => pair.1)
+}
