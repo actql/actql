@@ -378,14 +378,17 @@ class LocalByteStore:
         self._capacity_name(key)
         with self._lock:
             self._open()
-            row = self._connection.execute('''SELECT reserved_bytes, reserved_objects
-                FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
-                (namespace, key)).fetchone()
-            if row is None:
-                return None
-            if any(type(amount) is not int or not 0 <= amount <= 2**63 - 1 for amount in row):
-                raise LocalStorageError('Invalid retained Local physical capacity')
-            return CapacityReservation(namespace, key, row[0], row[1])
+            return self._read_capacity_locked(namespace, key)
+
+    def _read_capacity_locked(self, namespace: str, key: str) -> CapacityReservation | None:
+        row = self._connection.execute('''SELECT reserved_bytes, reserved_objects
+            FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
+            (namespace, key)).fetchone()
+        if row is None:
+            return None
+        if any(type(amount) is not int or not 0 <= amount <= 2**63 - 1 for amount in row):
+            raise LocalStorageError('Invalid retained Local physical capacity')
+        return CapacityReservation(namespace, key, row[0], row[1])
 
     def capacity_usage(self, namespace: str) -> CapacityUsage:
         self._capacity_name(namespace)
@@ -410,6 +413,30 @@ class LocalByteStore:
         Neither is publication authority, Run admission or a retry instruction.
         Commit errors remain unknown and are never automatically repeated.
         """
+        return self._reserve_capacity(namespace, key, reserved_bytes, reserved_objects, max_bytes, max_objects)
+
+    def reserve_capacity_inspected(
+            self, namespace: str, key: str, reserved_bytes: int,
+            reserved_objects: int, max_bytes: int, max_objects: int,
+            fences: tuple[ByteFence, ...], *, inspect: _InventoryInspection,
+            current: Callable[[], object]) -> bool:
+        """Use the existing reservation formula in the original current write TX.
+
+        Metadata and the original payload record are fenced before/after the
+        current Core inspection. The physical result is not Reserved or an ACK.
+        Any attempted COMMIT failure remains this Store's Unknown, without retry.
+        """
+        if not callable(inspect) or not callable(current):
+            raise ValueError('Invalid original Local capacity inspection')
+        self._validate_metadata_fences(fences, ())
+        return self._reserve_capacity(namespace, key, reserved_bytes, reserved_objects,
+            max_bytes, max_objects, fences=fences, inspect=inspect, current=current)
+
+    def _reserve_capacity(self, namespace: str, key: str, reserved_bytes: int,
+                          reserved_objects: int, max_bytes: int, max_objects: int, *,
+                          fences: tuple[ByteFence, ...] = (),
+                          inspect: _InventoryInspection | None = None,
+                          current: Callable[[], object] | None = None) -> bool:
         self._capacity_name(namespace)
         self._capacity_name(key)
         for amount in (reserved_bytes, reserved_objects, max_bytes, max_objects):
@@ -420,14 +447,25 @@ class LocalByteStore:
             self._open()
             database = self._connection
             database.execute('BEGIN IMMEDIATE')
+            commit_attempted = False
             try:
+                self._fenced_current(current)
+                if fences and not self._fences_match_locked(fences):
+                    raise LocalStorageError('Original Local capacity fences changed')
+                if inspect is not None:
+                    self._inspect_namespace_locked(inspect, fences, current)
                 existing = database.execute('''SELECT reserved_bytes, reserved_objects
                     FROM actql_capacity WHERE namespace = ? AND reservation_key = ?''',
                     (namespace, key)).fetchone()
                 if existing is not None:
                     if existing != (reserved_bytes, reserved_objects):
                         raise LocalStorageError('Local physical capacity reservation collision')
+                    self._fenced_current(current)
+                    if fences and not self._fences_match_locked(fences):
+                        raise LocalStorageError('Original Local capacity fences changed')
+                    commit_attempted = True
                     database.execute('COMMIT')
+                    self._fenced_current(current)
                     return False
                 used = self._capacity_usage_locked(namespace)
                 count = database.execute('SELECT count(*) FROM actql_capacity').fetchone()[0]
@@ -438,11 +476,23 @@ class LocalByteStore:
                     raise LocalStorageError('Local physical capacity exceeded')
                 database.execute('INSERT INTO actql_capacity VALUES (?, ?, ?, ?)',
                                  (namespace, key, reserved_bytes, reserved_objects))
+                self._fenced_current(current)
+                if fences and not self._fences_match_locked(fences):
+                    raise LocalStorageError('Original Local capacity fences changed')
+                commit_attempted = True
                 database.execute('COMMIT')
+                self._fenced_current(current)
                 return True
-            except BaseException:
-                if database.in_transaction:
-                    database.execute('ROLLBACK')
+            except BaseException as failure:
+                try:
+                    if database.in_transaction:
+                        database.execute('ROLLBACK')
+                except BaseException as cleanup:
+                    if current is not None and commit_attempted:
+                        raise LocalStorageCommitUnknown(self) from cleanup
+                    raise
+                if current is not None and commit_attempted:
+                    raise LocalStorageCommitUnknown(self) from failure
                 raise
 
     def release_capacity(self, namespace: str, key: str,
@@ -491,6 +541,18 @@ class LocalByteStore:
         generations = self.compare_exchange_many((write,), capacity=capacity)
         return None if generations is None else generations[0]
 
+    def compare_exchange_reserved_inspected(
+            self, write: ByteWrite, capacity: CapacityReservation,
+            fences: tuple[ByteFence, ...], *, inspect: _InventoryInspection,
+            current: Callable[[], object]) -> int | None:
+        """Forward one original transition under exact capacity/current fences."""
+        if not callable(inspect) or not callable(current):
+            raise ValueError('Invalid original Local reserved CAS inspection')
+        self._validate_fences(fences, (write,))
+        result = self._compare_exchange_many((write,), capacity=capacity,
+            fences=fences, inspect=inspect, current=current)
+        return None if result is None else result[0]
+
     def compare_exchange_attached(self, write: ByteWrite, original: ByteFence,
                                   capacity: CapacityReservation) -> int | None:
         """CAS separate metadata while retaining the exact original record.
@@ -506,6 +568,20 @@ class LocalByteStore:
             raise ValueError('Invalid original Local physical metadata binding')
         generations = self.compare_exchange_many_attached((write,), ((original, capacity),))
         return None if generations is None else generations[0]
+
+    def compare_exchange_attached_inspected(
+            self, write: ByteWrite, original: ByteFence,
+            capacity: CapacityReservation, fences: tuple[ByteFence, ...], *,
+            inspect: _InventoryInspection, current: Callable[[], object]) -> int | None:
+        """CAS original allocation metadata under payload/capacity/current fences."""
+        if not callable(inspect) or not callable(current):
+            raise ValueError('Invalid original Local attached CAS inspection')
+        self._validate_fences(fences, (write,))
+        originals = ((original, capacity),)
+        self._validate_originals(originals, {write.key})
+        result = self._compare_exchange_many((write,), capacity=None,
+            originals=originals, fences=fences, inspect=inspect, current=current)
+        return None if result is None else result[0]
 
     def compare_exchange_many(self, writes: tuple[ByteWrite, ...], *,
                               capacity: CapacityReservation | None = None) -> tuple[int, ...] | None:
@@ -712,6 +788,95 @@ class LocalByteStore:
                 # A failed physical stop keeps this same connection pending.
                 # No observation escapes and no cleanup is automatically repeated.
                 database.execute('ROLLBACK')
+
+    def inspect_capacity_inspected(
+            self, namespace: str, key: str, fences: tuple[ByteFence, ...], *,
+            inspect: Callable[[_NamespaceReader, Callable[[], None]], object],
+            consume: Callable[[CapacityReservation | None], object],
+            current: Callable[[], object]) -> None:
+        """Supply actual reservation fields in the same original current snapshot.
+
+        Missing/query failure is not physical reservation success, permission
+        to re-reserve, or a Core payload transition. No amount is synthesized.
+        """
+        self._capacity_name(namespace)
+        self._capacity_name(key)
+        if not callable(inspect) or not callable(consume):
+            raise ValueError('Invalid original Local capacity observation')
+        def observe(reader: _NamespaceReader) -> None:
+            attempts = 0
+            complete = False
+            failure: BaseException | None = None
+            def take() -> None:
+                nonlocal attempts, complete, failure
+                try:
+                    attempts += 1
+                    if attempts != 1:
+                        raise ValueError('Repeated original Local capacity consumption')
+                    reader.current()
+                    actual = self._read_capacity_locked(namespace, key)
+                    if consume(actual) is not None:
+                        raise ValueError('Invalid original Local capacity consumer result')
+                    del actual
+                    reader.current()
+                    complete = True
+                except BaseException as error:
+                    failure = error
+                    raise
+            result = inspect(reader, take)
+            if failure is not None:
+                raise failure
+            if result is not None or not complete:
+                raise ValueError('Incomplete original Local capacity observation')
+        self.inspect_namespaces(fences, inspect=observe, current=current)
+
+    def inspect_bounded_record_inspected(
+            self, key: str, max_bytes: int, fences: tuple[ByteFence, ...], *,
+            inspect: Callable[[_NamespaceReader, Callable[[], None]], object],
+            consume: Callable[[StoredBytes | None], object],
+            current: Callable[[], object]) -> None:
+        """Borrow one bounded physical row in the original current read snapshot.
+
+        The key comes from the held original payload request. A missing row is
+        merely an observation; only Core can confirm it or choose a next action.
+        SQL bounds the copy before allocation, independently of the Store-wide
+        record limit. The same namespace/current/fence and cleanup rules apply.
+        This method performs no CAS, reservation, retry, publication or ACK.
+        """
+        self._key(key)
+        if (type(max_bytes) is not int or not 0 < max_bytes <= self._max_record_bytes
+                or not callable(inspect) or not callable(consume)):
+            raise ValueError('Invalid original Local bounded record inspection')
+
+        def observe(reader: _NamespaceReader) -> None:
+            attempts = 0
+            complete = False
+            failure: BaseException | None = None
+
+            def take() -> None:
+                nonlocal attempts, complete, failure
+                try:
+                    attempts += 1
+                    if attempts != 1:
+                        raise ValueError('Repeated original Local record consumption')
+                    reader.current()
+                    actual = self._read_bytes_locked(key, max_bytes=max_bytes)
+                    if consume(actual) is not None:
+                        raise ValueError('Invalid original Local record consumer result')
+                    del actual
+                    reader.current()
+                    complete = True
+                except BaseException as error:
+                    failure = error
+                    raise
+
+            result = inspect(reader, take)
+            if failure is not None:
+                raise failure
+            if result is not None or not complete:
+                raise ValueError('Incomplete original Local record inspection')
+
+        self.inspect_namespaces(fences, inspect=observe, current=current)
 
     def _inspect_namespace_locked(
             self, inspect: _InventoryInspection, fences: tuple[ByteFence, ...],
