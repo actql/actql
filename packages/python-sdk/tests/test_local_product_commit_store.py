@@ -16,7 +16,7 @@ class ProductCommitStoreTests(unittest.TestCase):
         case = store_fixture.StoreCurrentCallerTests()
         case.addCleanup = self.addCleanup
         store, core, binding, codes, caller, frames, packets, originals, transfers, scope = case.fixture(root, reader)
-        projection, facts, publisher = caller._projection, caller._facts, caller._publisher
+        projection, facts, publisher = caller._projection, caller._facts[0], caller._publisher
         previous = core._call
         refs = {0: b'sha256:' + b'f' * 64, 1: b'sha256:' + b'9' * 64,
                 7: b'sha256:' + b'e' * 64}
@@ -46,6 +46,8 @@ class ProductCommitStoreTests(unittest.TestCase):
         host._configuration = _RunConfiguration(core._identity, 31, binding._input, binding._current, True)
         host._publications, host._publishers = [projection._publication], [publisher]
         host._commit_projections, host._reader_facts = [], []
+        host._observation_transfers, host._store_observations = [], {}
+        host._observation_attempts, host._commit_requests = set(), {}
         host._publication_write_attempts, host._pending_publication_write = set(), None
         host._uncertain_ticket = None
         return host, store, binding, projection, facts, publisher, originals, frames, scope
