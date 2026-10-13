@@ -159,12 +159,12 @@ test "Calendar text reaches unchanged series and bucket operation bodies" {
         guard field.contract.shape is @contract.Object(members) else {
           fail("month is a closed boundary object")
         }
-        assert_eq(@contract.fields(members).map(member => member.name), [
+        assert_eq(@contract.fields(members).map(boundary_field => boundary_field.name), [
           "end", "start",
         ])
-        for member in @contract.fields(members) {
-          assert_false(member.contract.nullable)
-          assert_true(member.contract.shape is @contract.Timestamp)
+        for boundary_field in @contract.fields(members) {
+          assert_false(boundary_field.contract.nullable)
+          assert_true(boundary_field.contract.shape is @contract.Timestamp)
         }
       } else {
         assert_true(field.contract.shape is @contract.Timestamp)
