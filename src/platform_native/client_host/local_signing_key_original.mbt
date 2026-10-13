@@ -135,6 +135,10 @@ fn NativeLocalHostConnection::require_distinct_signing_key_locked(
   let own_signing = @credential_resource.admit_native_local_signing_key_selection(
     own_wire,
   )
+  if own_signing is Err(_) &&
+    local_preparation_installation_selection(own_file.body) is Err(_) {
+    return Err(CustodyLost)
+  }
   let mut cursor = ""
   for _ in 0..<8 {
     let row = match
@@ -153,10 +157,14 @@ fn NativeLocalHostConnection::require_distinct_signing_key_locked(
       is Some(file) else {
       return Err(CustodyLost)
     }
-    let other = match
-      read_local_installation_projection(self, file, row.body) {
+    let other = match read_local_installation_projection(self, file, row.body) {
       Ok(value) => value
       Err(_) => return Err(CustodyLost)
+    }
+    // An authenticated row is not proof that its original physical generation
+    // still exists. Missing or replaced peer custody cannot prove key separation.
+    if self.session.source_root.restore_private_file_projection(other) is Err(_) {
+      return Err(CustodyLost)
     }
     // Offsets refer to the closed AQLPFP01 private export protocol, not a
     // native C struct. The existing FileProjection Owner defines these four
@@ -175,9 +183,25 @@ fn NativeLocalHostConnection::require_distinct_signing_key_locked(
         let (_, other_purpose, _, _, _, _, _, other_public_key) = @credential_resource.native_local_signing_key_selection_projection(
           other,
         )
-        if own_purpose != other_purpose &&
-          (same_file || own_public_key == other_public_key) {
-          return Err(ChangedIntent)
+        if own_purpose != other_purpose {
+          if same_file {
+            return Err(ChangedIntent)
+          }
+          // Both public originals use the same Host-selected Library. Raw32
+          // is comparison material only, never the issuer's public-key CID.
+          let own_raw = match
+            self.epoch.crypto.ed25519_public_key_raw32(own_public_key) {
+            Ok(value) => value
+            Err(_) => return Err(CustodyLost)
+          }
+          let other_raw = match
+            self.epoch.crypto.ed25519_public_key_raw32(other_public_key) {
+            Ok(value) => value
+            Err(_) => return Err(CustodyLost)
+          }
+          if own_raw == other_raw {
+            return Err(ChangedIntent)
+          }
         }
       }
       (Ok(_), Err(_)) | (Err(_), Ok(_)) =>
