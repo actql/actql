@@ -21,7 +21,7 @@ process.exitCode = await runLocalCheck({
   root: process.cwd(), heavy: false, timeoutSeconds: 60, graceSeconds: 5,
   steps: [
     {name: `SourceView keys: ${selection}`, command: 'node',
-      args: ['--input-type=module', '-e', runner, 'moon', '--target', 'js', ...selections[selection]]},
+      args: ['--input-type=module', '-e', runner, 'moon', '--target', 'js', '-j', '2', ...selections[selection]]},
     {name: 'Whitespace', command: 'git', args: ['diff', '--check']},
   ],
 });

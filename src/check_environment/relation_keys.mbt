@@ -17,7 +17,7 @@ struct SourceRelationKeys {
 
 ///|
 priv struct RelationKeyBudget {
-  mut remaining : Int
+  mut key_work : Int
 }
 
 ///|
@@ -26,10 +26,10 @@ fn relation_key_charge(
   source : @decode.Cursor,
   amount : Int,
 ) -> Unit raise CarrierStop {
-  if amount < 0 || amount > budget.remaining {
+  if amount < 0 || amount > budget.key_work {
     carrier_fail(WorkLimit, source)
   }
-  budget.remaining -= amount
+  budget.key_work -= amount
 }
 
 ///|
@@ -38,13 +38,13 @@ fn read_relation_key_facts(
   max_work : Int,
 ) -> (RelationKeyFacts?, Int) raise CarrierStop {
   let root = envelope.body
-  let budget = { remaining: max_work, }
+  let budget : RelationKeyBudget = { key_work: max_work, }
   let object = @decode.open_object(root).unwrap_or_else(() => {
     carrier_fail(InvalidBody, root)
   })
   relation_key_charge(budget, root, @decode.object_length(root).unwrap() + 1)
   guard @decode.lookup(object, "relation_keys") is Some(component) else {
-    return (None, max_work - budget.remaining)
+    return (None, max_work - budget.key_work)
   }
   if @decode.object_length(component) != Some(1) ||
     @decode.closed_object(component, ["candidate_keys"]) is Err(_) {
@@ -70,7 +70,7 @@ fn read_relation_key_facts(
     let names : Map[String, Bool] = Map([])
     for field in 0..<arity {
       let at = @decode.element_at(tuple, field).unwrap()
-      let name = @decode.text(at).unwrap_or_else(_ => {
+      let name = @decode.text(at).unwrap_or_else(() => {
         carrier_fail(InvalidBody, at)
       })
       relation_key_charge(budget, at, name.length())
@@ -82,7 +82,7 @@ fn read_relation_key_facts(
     seen[fields] = true
     tuples.push((tuple, fields))
   }
-  (Some({ envelope, tuples, }), max_work - budget.remaining)
+  (Some({ envelope, tuples, }), max_work - budget.key_work)
 }
 
 ///|
@@ -98,7 +98,7 @@ fn bind_source_relation_keys(
   let rows = @carrier.relation_rows(schema.carrier).unwrap_or_else(() => {
     carrier_fail(CarrierMismatch, reference.source)
   })
-  let budget = { remaining: max_work, }
+  let budget : RelationKeyBudget = { key_work: max_work, }
   relation_key_charge(budget, reference.source, facts.tuples.length())
   for (source, fields) in facts.tuples {
     relation_key_charge(budget, source, fields.length())
@@ -111,7 +111,7 @@ fn bind_source_relation_keys(
       }
     }
   }
-  ({ reference, schema, facts, }, max_work - budget.remaining)
+  ({ reference, schema, facts, }, max_work - budget.key_work)
 }
 
 ///|
