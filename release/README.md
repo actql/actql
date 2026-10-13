@@ -49,6 +49,27 @@ node scripts/test-package-release-install.mjs /absolute/path/to/rc
 node scripts/package-release.mjs plan /absolute/path/to/rc
 ```
 
+The consumer-only source-free query entry uses those same four release archives:
+
+```sh
+node scripts/test-package-release-sourcefree-query.mjs /absolute/path/to/rc /absolute/path/to/new-receipt.json
+```
+
+It selects the existing general-element, array-field, conditional-array and
+lazy-array-branch IN/UNNEST inputs plus the six existing refusals, through
+installed Local and SDK HTTPS. Authored rows, ordered schemas and parameters
+remain unchanged. The original five-development-package query harness and its
+Source-backed cases retain their defaults. No runtime/adapter overlay, second
+pack, replacement evaluator or new capability is used. A later fixture commit
+may consume the RC only with ancestor binding and unchanged runtime/package
+inputs. Product refusal remains a failing acceptance, not a fixture rewrite.
+
+Admission is observed through the same read-only request journal used by the
+existing public harness. Provider observation is limited to an empty Source
+inventory and forbidden process, non-ingress-fetch and secret-resolution
+attempts; it is not arbitrary Provider or filesystem I/O coverage. Actual
+installed acceptance must run separately from the Node-only selection tests.
+
 `release.json` binds full source SHA, recipe, toolchain, original prepack
 digests, public tarball SHA256/SHA512, exact dependencies and file inventory.
 Retain this manifest, development originals, public tarballs, acceptance

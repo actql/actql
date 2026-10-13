@@ -765,7 +765,7 @@ const inputCodes = new Set(['ClientProgramInvalidInput',
 // does not lower source, manufacture schema, or call a test compiler bridge.
 export async function exercisePublicQueryInput(connect, options,
   {requestPrefix, observe, successes = querySuccesses,
-    refusals = queryRefusals, executionFailures = [], prepareCase, persistSubmission, completedCase}) {
+    refusals = queryRefusals, executionFailures = [], prepareCase, persistSubmission, completedCase, completedRefusal}) {
   assert.equal(typeof observe, 'function');
   const counters = async () => {
     const current = await observe();
@@ -833,10 +833,11 @@ export async function exercisePublicQueryInput(connect, options,
       assert.equal(lookup.kind, 'ready');
       assert.deepEqual(lookup.submissionRef, submissionRef);
       assert.deepEqual(lookup.admission.ref, execution.ref);
-      assert.deepEqual(await counters(), beforeRead,
+      const afterReplay = await counters();
+      assert.deepEqual(afterReplay, beforeRead,
         'reading, attaching and resending must not accept or acquire again');
       await completedCase?.({name, ref: execution.ref, submissionRef, execution, expected, columns,
-        beforeSubmit, beforeRead, observedResults});
+        beforeSubmit, beforeRead, afterReplay, observedResults});
       console.log(`Public query passed: ${requestPrefix}/${name}`);
       if (name === 'sql') {
         await assert.rejects(execution.result('answer').all({maxRows: 1}),
@@ -917,9 +918,11 @@ export async function exercisePublicQueryInput(connect, options,
         assert.ok(!String(error.message).includes('secret-value'));
         return true;
       });
-      assert.deepEqual(await counters(), before,
+      const afterRefusal = await counters();
+      assert.deepEqual(afterRefusal, before,
         'rejected source must not accept a Run or perform source I/O');
       assert.deepEqual(await client.lookupSubmission(submissionRef), outcome);
+      await completedRefusal?.({name, submissionRef, outcome, beforeSubmit: before, afterRefusal});
       if (expectedCode !== undefined) {
         console.log(`Public query refusal passed: ${requestPrefix}/${name} (${expectedCode}); no admission or source I/O`);
       }

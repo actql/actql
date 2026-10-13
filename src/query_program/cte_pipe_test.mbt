@@ -31,7 +31,7 @@ test "SELECT and Pipe CTE forms match an independently authored Program" {
 ///|
 test "Pipe CTE chains retain prior scope and reject unchecked declarations" {
   let chain = @query.parse_query(
-    "WITH first AS (FROM left_rows |> SELECT a, b), second AS (FROM first AS old |> AS current |> SELECT current.a AS a, current.b AS b) FROM second |> SELECT b, a",
+    "WITH first AS (FROM left_rows |> SELECT a, b), second AS (FROM first AS old |> AS `current` |> SELECT current.a AS a, current.b AS b) FROM second |> SELECT b, a",
     syntax_limits(),
   ).unwrap()
   let program = compile(chain, set_context(), construction_limits()).unwrap()
@@ -44,7 +44,7 @@ test "Pipe CTE chains retain prior scope and reject unchecked declarations" {
   }
   for
     text in [
-      "WITH c AS (FROM left_rows AS old |> AS current |> SELECT old.a) FROM c |> SELECT a",
+      "WITH c AS (FROM left_rows AS old |> AS `current` |> SELECT old.a) FROM c |> SELECT a",
       "WITH c AS (FROM later |> SELECT a), later AS (FROM left_rows |> SELECT a) FROM c |> SELECT a",
       "WITH c AS (FROM c |> SELECT a) FROM c |> SELECT a", "WITH c AS (FROM left_rows |> SELECT a) FROM c |> SELECT b",
       "WITH c AS (FROM left_rows |> SELECT a), C AS (FROM left_rows |> SELECT a) FROM c |> SELECT a",

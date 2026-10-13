@@ -56,7 +56,7 @@ test "EXTEND window operands retain sibling input scope and ordinary continuatio
   for
     text in [
       "FROM orders |> EXTEND ROW_NUMBER() OVER (ORDER BY id) + 1 AS pos |> WHERE pos > 1 |> SELECT id, pos |> ORDER BY pos |> LIMIT 1",
-      "FROM orders AS before |> SET amount = -amount |> EXTEND LAG(before.amount) OVER (ORDER BY id) AS original, LAG(amount) OVER (ORDER BY id) AS current |> SELECT id, original, current |> ORDER BY id",
+      "FROM orders AS before |> SET amount = -amount |> EXTEND LAG(before.amount) OVER (ORDER BY id) AS original, LAG(amount) OVER (ORDER BY id) AS `current` |> SELECT id, original, current |> ORDER BY id",
       "FROM orders |> EXTEND ROW_NUMBER() OVER w AS pos WINDOW base AS (ORDER BY id), w AS (base) |> EXTEND RANK() OVER w AS ranking WINDOW w AS (ORDER BY amount DESC, id) |> SELECT id, pos, ranking |> ORDER BY id",
       "FROM orders |> EXTEND amount AS aql_select_window_0 |> EXTEND ROW_NUMBER() OVER (ORDER BY id) + aql_select_window_0 AS pos |> SELECT id, pos |> ORDER BY id",
       "FROM orders |> AGGREGATE SUM(amount) AS total GROUP BY customer_id |> EXTEND LAG(total) OVER (ORDER BY customer_id) AS previous |> SELECT customer_id, total, previous |> ORDER BY customer_id",
@@ -73,7 +73,7 @@ test "EXTEND sibling values never become window input aliases" {
       "FROM orders |> EXTEND amount AS invented, LAG(invented) OVER (ORDER BY id) AS pos",
       "FROM orders |> EXTEND ROW_NUMBER() OVER (ORDER BY id) AS pos, pos + 1 AS next",
       "FROM orders |> SELECT id |> EXTEND LAG(amount) OVER (ORDER BY id) AS pos",
-      "FROM orders AS old |> AS current |> EXTEND LAG(old.amount) OVER (ORDER BY id) AS pos",
+      "FROM orders AS old |> AS `current` |> EXTEND LAG(old.amount) OVER (ORDER BY id) AS pos",
       "FROM orders |> EXTEND ROW_NUMBER() OVER (ORDER BY id) + aql_select_window_0 AS pos",
     ] {
     let query = @query.parse_query(text, syntax_limits()).unwrap()

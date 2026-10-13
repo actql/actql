@@ -140,3 +140,24 @@ pub fn acknowledge_effect_current(
 ) -> Result[Unit, NativeRemoteClientIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn poll_site_operation(
+  _client : @http.Client,
+  _url : String,
+) -> Result[@remote.RemoteSitePollOperation?, NativeRemoteClientIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn report_bundle_custody(
+  _client : @http.Client,
+  _url : String,
+  _delivery : @remote.RemotePollBundleCustody,
+  _response : @bundle.RemoteBundleCustodyResponse,
+) -> Result[
+  @remote.RemoteBundleCustodyObservationReply,
+  NativeRemoteClientIssue,
+] {
+  Err(UnsupportedTarget)
+}
