@@ -50,6 +50,13 @@ export function installRunKeyedContentCapture({moon, publications, control,
     last = entry;
   };
   const releaseCurrent = async () => {
+    if (current?.holding !== undefined && current?.prepared?.status().pending === true) {
+      // A failed holding ACK may leave its exact record installed. Confirm it
+      // through the same Store before releasing bytes or the original frame;
+      // cleanup does not re-capture, issue authority, or create an absent holding.
+      const observed = await store.inspectPhysicalHolding(current.holding.holding_cid);
+      if (observed !== undefined) await store.commitPhysicalHolding(current.holding, []);
+    }
     if (current?.prepared?.status().pending === true) await current.prepared.release();
     if (current?.prepared?.status().pending === true) return false;
     if (current?.writer !== undefined) {

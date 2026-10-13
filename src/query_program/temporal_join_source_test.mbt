@@ -1,6 +1,6 @@
 ///|
 fn temporal_join_source(call : String) -> String {
-  "WITH l AS (SELECT 1 AS id, 10 AS at), r AS (SELECT 2 AS id, 5 AS begin, 15 AS finish), matched AS (FROM l AS left_rows |> " +
+  "WITH l AS (SELECT 1 AS id, 10 AS `at`), r AS (SELECT 2 AS id, 5 AS begin, 15 AS finish), matched AS (FROM l AS left_rows |> " +
   call +
   ") SELECT id, value FROM matched ORDER BY id"
 }
@@ -97,7 +97,7 @@ test "temporal selectors retain repeated pairs, right ties and explicit bounds" 
 
 ///|
 test "asof Events input retains its intrinsic identity and produces a Relation" {
-  let text = "WITH l AS (SELECT 1 AS id, 10 AS at), r AS (SELECT 2 AS id, 5 AS begin), ev AS (FROM l |> to_events(id: id, time: at)), matched AS (FROM ev |> asof_join(with: r, kind: 'left', by: [], left_time: at, right_time: begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id"
+  let text = "WITH l AS (SELECT 1 AS id, 10 AS `at`), r AS (SELECT 2 AS id, 5 AS begin), ev AS (FROM l |> to_events(id: id, time: at)), matched AS (FROM ev |> asof_join(with: r, kind: 'left', by: [], left_time: at, right_time: begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id"
   let actual = temporal_join_checked(text)
   let body = with_carrier_argument(actual, "asof_join")
   assert_true(!body.contains("left_id"))
@@ -106,7 +106,7 @@ test "asof Events input retains its intrinsic identity and produces a Relation" 
 
 ///|
 test "temporal peer shadowing does not select an outer same-name producer" {
-  let text = "WITH r AS (SELECT 99 AS id, 100 AS begin), matched AS (WITH l AS (SELECT 1 AS id, 10 AS at), r AS (SELECT 2 AS id, 5 AS begin) FROM l |> asof_join(with: r, kind: 'left', by: [], left_id: id, left_time: at, right_time: r.begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id"
+  let text = "WITH r AS (SELECT 99 AS id, 100 AS begin), matched AS (WITH l AS (SELECT 1 AS id, 10 AS `at`), r AS (SELECT 2 AS id, 5 AS begin) FROM l |> asof_join(with: r, kind: 'left', by: [], left_id: id, left_time: at, right_time: r.begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id"
   let actual = temporal_join_checked(text)
   let body = semantic(actual)
   assert_true(!body.contains("\"literal\":99"))
@@ -116,7 +116,7 @@ test "temporal peer shadowing does not select an outer same-name producer" {
 
 ///|
 test "temporal peer references share an original installed input once" {
-  let text = "WITH l AS (SELECT x AS id, y AS at FROM pair), r AS (SELECT x AS id, y AS begin, y + 10 AS finish FROM pair), matched AS (FROM l |> interval_join(with: r, kind: 'left', mode: 'point_in_interval', on: [], left: {time: at}, right: {start: begin, end: finish}, select: {id: left.id, value: right.id}, max_output_rows: 2)) SELECT id, value FROM matched ORDER BY id"
+  let text = "WITH l AS (SELECT x AS id, y AS `at` FROM pair), r AS (SELECT x AS id, y AS begin, y + 10 AS finish FROM pair), matched AS (FROM l |> interval_join(with: r, kind: 'left', mode: 'point_in_interval', on: [], left: {time: at}, right: {start: begin, end: finish}, select: {id: left.id, value: right.id}, max_output_rows: 2)) SELECT id, value FROM matched ORDER BY id"
   let actual = @frontend.lower(text, Sql, Some(pair_context())).unwrap().program.unwrap()
   event_window_common_checked(actual)
   assert_eq(semantic(actual).split("\"values\":").length(), 2)
@@ -141,7 +141,7 @@ test "temporal operands reject wrong receivers instead of selecting equal named 
 
 ///|
 test "temporal OutputNames use ordinary reserved-word and quotation rules" {
-  let prefix = "WITH l AS (SELECT 1 AS id, 10 AS at), r AS (SELECT 2 AS id, 5 AS begin) FROM l |> asof_join(with: r, kind: 'left', by: [], left_id: id, left_time: at, right_time: begin, direction: 'backward', tolerance: 10, select: {"
+  let prefix = "WITH l AS (SELECT 1 AS id, 10 AS `at`), r AS (SELECT 2 AS id, 5 AS begin) FROM l |> asof_join(with: r, kind: 'left', by: [], left_id: id, left_time: at, right_time: begin, direction: 'backward', tolerance: 10, select: {"
   for name in ["SELECT", "NULL"] {
     assert_true(
       @frontend.lower(
@@ -164,7 +164,7 @@ test "temporal OutputNames use ordinary reserved-word and quotation rules" {
 
 ///|
 test "temporal row alias wins over a same-name outer WITH producer" {
-  let text = "WITH left_rows AS (SELECT 99 AS id, 100 AS at), l AS (SELECT 1 AS id, 10 AS at), r AS (SELECT 2 AS id, 5 AS begin), matched AS (FROM l AS left_rows |> asof_join(with: r, kind: 'left', by: [], left_id: left_rows.id, left_time: left_rows.at, right_time: r.begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id"
+  let text = "WITH left_rows AS (SELECT 99 AS id, 100 AS `at`), l AS (SELECT 1 AS id, 10 AS `at`), r AS (SELECT 2 AS id, 5 AS begin), matched AS (FROM l AS left_rows |> asof_join(with: r, kind: 'left', by: [], left_id: left_rows.id, left_time: left_rows.at, right_time: r.begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id"
   let actual = temporal_join_checked(text)
   assert_true(!semantic(actual).contains("\"literal\":99"))
   assert_true(
@@ -221,7 +221,7 @@ test "temporal calls preserve whole Parameters and pending values" {
 
 ///|
 test "temporal operand roles distinguish a row alias from a same-name right peer" {
-  let text = "WITH l AS (SELECT 1 AS id, 10 AS at), r AS (SELECT 2 AS id, 5 AS begin), matched AS (FROM l AS r |> asof_join(with: r, kind: 'left', by: [], left_id: r.id, left_time: r.at, right_time: r.begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id"
+  let text = "WITH l AS (SELECT 1 AS id, 10 AS `at`), r AS (SELECT 2 AS id, 5 AS begin), matched AS (FROM l AS r |> asof_join(with: r, kind: 'left', by: [], left_id: r.id, left_time: r.at, right_time: r.begin, direction: 'backward', tolerance: 10, select: {id: left.id, value: right.id})) SELECT id, value FROM matched ORDER BY id"
   let actual = temporal_join_checked(text)
   let body = with_carrier_argument(actual, "asof_join")
   assert_true(body.contains("\"left_time\":\"at\""))
@@ -258,8 +258,8 @@ fn temporal_join_schema(
 test "temporal empty output retains the full independent ordered nullable schema" {
   let call = "interval_join(with: r, kind: 'left', mode: 'point_in_interval', on: [], left: {time: at}, right: {start: begin, end: finish}, select: {id: left.id, value: right.id}, max_output_rows: 2)"
   let text = temporal_join_source(call).replace(
-    old="SELECT 1 AS id, 10 AS at",
-    new="WITH seed AS (SELECT 1 AS id, 10 AS at) SELECT id, at FROM seed WHERE FALSE",
+    old="SELECT 1 AS id, 10 AS `at`",
+    new="WITH seed AS (SELECT 1 AS id, 10 AS `at`) SELECT id, at FROM seed WHERE FALSE",
   )
   let actual = temporal_join_checked(text)
   let control = temporal_join_control(

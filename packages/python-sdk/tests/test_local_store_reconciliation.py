@@ -29,7 +29,7 @@ class StoreReconciliationTests(unittest.TestCase):
 
     def bridge(self, root, reader, store, *, populate=True):
         helper = original_fixture.ReaderFactsTests()
-        core, record, publisher, projection, facts, calls, state, metadata = helper.bridge(root, reader)
+        core, record, publisher, projection, facts, calls, state, metadata = helper.bridge(root, reader, result=0, binding_index=0)
         facts.validate()
         state.update(publisher=0, lookup=0, observation=0, advance=0, ready=1, work=2,
                      finish=4, borrow=True, transfer_cleanup=True, workspace_cleanup=True)
@@ -37,6 +37,7 @@ class StoreReconciliationTests(unittest.TestCase):
         packets = []
         original_call = core._call
         def call(family, name, *args):
+            if family == 'publication_commit_export' and name == 'result_count': return 1
             if family == 'workspace':
                 calls.append((family, name, args))
                 if name == 'reserve':
@@ -90,7 +91,7 @@ class StoreReconciliationTests(unittest.TestCase):
             for key, raw in ((self.scope_key, self.ref), (self.index_key, self.index),
                              (self.request_key, self.request), (self.attempt_key, self.attempt)):
                 store.compare_exchange(key, None, raw)
-        caller = OriginalStoreReconciliation(projection, facts, store, originals, publisher, *transfers)
+        caller = OriginalStoreReconciliation(projection, (facts,), store, originals, publisher, *transfers)
         return core, record, projection, facts, transfers, caller, calls, state, packets
 
     def test_same_original_snapshot_forwards_actual_index_and_old_contracts_before_owner_fullchain_finish(self):
@@ -296,10 +297,10 @@ class StoreReconciliationTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     operation()
             with self.assertRaises(ValueError):
-                OriginalStoreReconciliation(projection, facts, store, caller._originals,
+                OriginalStoreReconciliation(projection, (facts,), store, caller._originals,
                                             caller._publisher, copy.copy(transfers[0]), transfers[1])
             with self.assertRaises(ValueError):
-                OriginalStoreReconciliation(projection, facts, store, caller._originals,
+                OriginalStoreReconciliation(projection, (facts,), store, caller._originals,
                                             caller._publisher, transfers[0], transfers[0])
             state['borrow'] = False
             self.assertTrue(transfers[0].close())

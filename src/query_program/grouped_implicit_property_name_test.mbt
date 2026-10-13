@@ -132,7 +132,7 @@ test "grouped implicit property names cannot restore ungrouped receivers or suff
   for
     source in [
       "SELECT missing.score, COUNT(*) AS n FROM objects GROUP BY payload.score",
-      "SELECT objects.payload.score, COUNT(*) AS n FROM objects AS current GROUP BY current.payload.score",
+      "SELECT objects.payload.score, COUNT(*) AS n FROM objects AS `current` GROUP BY current.payload.score",
     ] {
     assert_true(
       compile(

@@ -67,6 +67,8 @@ pub fn issue_local_run_normalization(LocalRunPlan) -> Result[LocalRunNormalizati
 
 pub fn issue_local_run_receipt(LocalRunManifest, LocalRunNormalization, @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int) -> Result[@run_publication.PublicationContract, LocalResultPublicationIssue]
 
+pub fn[E] issue_local_sdk_read_grant_from_store(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[@run_publication.PublicationContract, LocalSDKReadStoreIssue[E]]
+
 pub fn issue_local_source_free_invocation(LocalComputeHost, LocalComputeStart, @execution_authorization.AdmittedAccountConfiguration) -> Result[LocalRunInvocation, LocalResultPublicationIssue]
 
 pub fn issue_local_source_invocation(LocalComputeHost, LocalSourcePublication, @execution_authorization.AdmittedAccountConfiguration, String, String, Int, Int, Int) -> Result[LocalRunInvocation, LocalResultPublicationIssue]
@@ -123,6 +125,18 @@ pub fn local_saved_submission_admission_wire(LocalSavedSubmissionObservation, Lo
 
 pub fn local_saved_submission_revisions(LocalSavedSubmissionObservation, LocalSubmittedRunRows, LocalRunPlan, @client_local_preparation.LocalSubmittedPreparation) -> Result[(Int64, Int64, Int64), LocalSubmittedRunRowsIssue]
 
+pub fn local_sdk_read_delivery_attempt_key(LocalSDKReadDeliveryPreparation) -> String
+
+pub fn local_sdk_read_delivery_original(LocalSDKReadDeliveryPreparation, Int) -> Result[(String, String), LocalSDKReadOriginalsIssue]
+
+pub fn local_sdk_read_delivery_usage_row(LocalSDKReadDeliveryPreparation) -> (String, Int64?, Bytes)
+
+pub fn local_sdk_read_evidence_decision_wire(LocalSDKReadEvidenceDecision) -> Result[String, LocalSDKReadOriginalsIssue]
+
+pub fn local_sdk_read_evidence_packet(LocalSDKReadOriginals) -> Result[(String, Bytes), LocalSDKReadOriginalsIssue]
+
+pub fn local_sdk_read_original(LocalSDKReadOriginals, Int) -> Result[(String, String), LocalSDKReadOriginalsIssue]
+
 pub fn local_source_publication_evidence(LocalSourcePublication) -> @run_publication.RunEvidenceValue
 
 pub fn local_source_publication_logical(LocalSourcePublication) -> @run_publication.RunEvidenceValue
@@ -144,6 +158,14 @@ pub fn prepare_local_run_physical_start(LocalRunPlan, @run_publication_host.Clie
 pub fn[Store, E] prepare_local_run_publication_binding(LocalRunPlan, LocalSubmittedRunRows, @client_local_preparation.LocalSubmittedPreparation, @run_publication_host.ClientLocalAdoptedHostMaterial[Store, E], Store, String, String, UInt64, UInt64, @run_publication_host.ClientJournalPhysicalRow, @run_publication_host.ClientJournalPhysicalRow) -> Result[LocalRunPublicationBindingPlan[Store, E], LocalRunPublicationBindingIssue[E]]
 
 pub fn prepare_local_run_start(LocalRunPlan, @run_publication_host.ClientRequestIdentity, String, Bool, @execution_authorization.DispatchAuthorization, @execution_authorization.AdmittedAccountConfiguration, @execution_authorization.AccessTuple, String) -> Result[@run_publication_host.ClientRunStartAction, LocalRunIssue]
+
+pub fn[E] prepare_local_sdk_read_delivery_from_store(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[LocalSDKReadDeliveryPreparation, LocalSDKReadDeliveryIssue[E]]
+
+pub fn[E] prepare_local_sdk_read_delivery_storage_from_store(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[String, LocalSDKReadDeliveryIssue[E]]
+
+pub fn[E] prepare_local_sdk_read_evidence_from_store(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[LocalSDKReadEvidenceDecision, LocalSDKReadStoreIssue[E]]
+
+pub fn prepare_local_sdk_read_originals(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, String, String, String, Int) -> Result[LocalSDKReadOriginals, LocalSDKReadOriginalsIssue]
 
 pub fn prepare_local_source_publication(LocalNativeSourceConfiguration, LocalComputeHost, @host.NativeHostSourceCapture, @execution_authorization.AdmittedAccountConfiguration, Int, @execution_relation.ValueLimits, @execution_relation.RowWireLimits, @execution_relation.RowWireLimits, @execution_relation.RelationSchemaIdentityLimits, Int, Int) -> Result[LocalSourcePublicationPreparation, LocalSourcePublicationIssue]
 
@@ -178,6 +200,10 @@ pub fn start_local_result_publication_snapshot(LocalResultPublication, @executio
 pub fn start_local_run_capture(LocalRunManifest, LocalRunNormalization, Array[@run_publication.CapturedResultSnapshot], @execution_authorization.AdmittedAccountConfiguration, Int, Int, Int, Int) -> Result[(@run_publication.CapturedRunIssuancePreparation, @run_publication.PublicationContract), LocalResultPublicationIssue]
 
 pub fn validate_local_preflight_commit_binding(LocalPublicationPreflight, Int, LocalResultPublication, @publication_payload.PublicationPayloadRecord, @execution_authorization.AdmittedAccountConfiguration, @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, LocalResultCommitBindingIssue]
+
+pub fn validate_local_preflight_result_read_current(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, String) -> Result[Unit, LocalPublicationIntentIssue]
+
+pub fn validate_local_preflight_run_read_current(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalPublicationIntentIssue]
 
 pub fn validate_local_publication_preflight_current(LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration) -> Result[Unit, LocalPublicationIntentIssue]
 
@@ -398,6 +424,44 @@ pub struct LocalRunPublicationBindingStep[Store, E] {
   original : LocalRunPublicationBinding[Store, E]
   prior : @run_publication_host.ClientJournalPhysicalRow
   body : Bytes
+}
+
+pub(all) enum LocalSDKReadDeliveryIssue[E] {
+  Store(LocalSDKReadStoreIssue[E])
+  Observation(E)
+  ChangedObservation
+  ExistingAttempt
+  UnresolvedUsage
+  Issuance(@run_publication.DeliveryIssuanceIssue)
+  Usage(@run_publication.DeliveryGrantUsageIssue)
+}
+
+type LocalSDKReadDeliveryPreparation
+
+pub(all) enum LocalSDKReadEvidenceDecision {
+  Append(@run_publication_host.ClientJournalPhysicalRow)
+  Retained(@run_publication_host.ClientJournalPhysicalRow)
+}
+
+type LocalSDKReadOriginals
+
+pub(all) enum LocalSDKReadOriginalsIssue {
+  Preflight(LocalPublicationIntentIssue)
+  StoredChain(@run_publication.ObservedResultReadIssue)
+  Projection(@run_publication.DeliveryIssuanceIssue)
+  Codec(@run_publication_host.ClientLocalReadPreimageIssue)
+  InvalidOriginal
+  InvalidSelection
+  PolicyUnavailable
+  Expired
+}
+
+pub(all) enum LocalSDKReadStoreIssue[E] {
+  Observation(E)
+  Preparation(LocalSDKReadOriginalsIssue)
+  MissingEvidence
+  ChangedEvidence
+  Grant(@run_publication.DeliveryIssuanceIssue)
 }
 
 pub struct LocalSavedSubmissionObservation {
