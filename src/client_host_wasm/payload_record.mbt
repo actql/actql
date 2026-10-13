@@ -254,7 +254,15 @@ pub fn close_payload_record(nonce : Int64, handle : Int) -> Int {
     value.payload_writings.values().any(child => child.parent == handle) ||
     value.payload_allocations.values().any(child => child.parent == handle) ||
     value.payload_names.values().any(child => child.parent == handle) ||
-    value.payload_bindings.values().any(child => child.parent == handle) {
+    value.payload_bindings.values().any(child => child.parent == handle) ||
+    value.commit_exports
+    .values()
+    .any(child => {
+      match child.sdk_payload_record {
+        Some((original, _, _)) => original == handle
+        None => false
+      }
+    }) {
     return -9
   }
   if record.begun && !record.confirmed {

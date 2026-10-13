@@ -1235,6 +1235,7 @@ pub fn DeliverySinkProgress::confirm_finished(Self) -> Result[DeliverySinkSummar
 pub fn DeliverySinkProgress::confirmed_bytes(Self) -> Int64
 pub fn DeliverySinkProgress::fail(Self) -> Result[Int64, DeliverySinkProgressIssue]
 pub fn DeliverySinkProgress::fail_chunk(Self, Int) -> Result[Int64, DeliverySinkProgressIssue]
+pub fn DeliverySinkProgress::observe_empty_output(Self) -> Result[Int64, DeliverySinkProgressIssue]
 pub fn DeliverySinkProgress::offer(Self, Bytes, Bool) -> Result[Unit, DeliverySinkProgressIssue]
 pub fn DeliverySinkProgress::prepare_next(Self) -> Result[Unit, DeliverySinkProgressIssue]
 
