@@ -1,0 +1,34 @@
+{
+  "baseline": "17301cbbd7f76ec91252846f8153b8a7ffe5721c",
+  "compileTestTokenCount": 516,
+  "compileTestTokenSha256": "bf2a7f4308277ce8c21ba918773040fcf6e4411a35d3b61ddfc605ac17c3ee1b",
+  "privateAssertionUpdates": [
+    {
+      "old": "\"\\\"from\\\":\\\"aql_join_derived\\\",\\\"select\\\"\"",
+      "current": "\"\\\"from\\\":\\\"aql_join_derived_8\\\",\\\"select\\\"\""
+    },
+    {
+      "old": "\"\\\"aql_join_filtered\\\"\"",
+      "current": "\"\\\"aql_join_filtered_7\\\"\""
+    },
+    {
+      "old": "\"\\\"from\\\":\\\"aql_join_filtered\\\",\\\"select\\\"\"",
+      "current": "\"\\\"from\\\":\\\"aql_join_filtered_7\\\",\\\"select\\\"\""
+    },
+    {
+      "old": "\"\\\"from\\\":\\\"aql_join_taken\\\"\"",
+      "current": "\"\\\"from\\\":\\\"aql_join_taken_12\\\"\""
+    },
+    {
+      "old": "\"\\\"from\\\":\\\"aql_join_visible\\\"\"",
+      "current": "\"\\\"from\\\":\\\"aql_join_visible_13\\\"\""
+    },
+    {
+      "old": "\"\\\"aql_join_prefiltered\\\"\"",
+      "current": "\"\\\"aql_join_prefiltered_4\\\"\""
+    }
+  ],
+  "parenthesizedOriginalLiteralSha256": "3aecf4eb7b33cd60f166fcabcd593722138f7d5c0578a490864aab66bff8fb5a",
+  "parenthesizedTestTokenCount": 36,
+  "parenthesizedTestTokenSha256": "bb2172de639e31b0b9e6a4f2c123233baaf97e8a1556d8bf6df1d56f89a0cbd5"
+}

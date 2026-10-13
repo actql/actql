@@ -636,12 +636,17 @@ class InstalledLocalHost:
             self._runs._compute(compute)
             while True:
                 selected: list[_Task | None] = []
-                installation.binding.inspect(lambda _: selected.append(
-                    self._core.reserve_next_sdk_task(compute.core, configuration.handle)))
+                def select_task(_: _Output) -> None:
+                    task = self._core.reserve_next_sdk_task(compute.core, configuration.handle)
+                    # Retain the original loan before the enclosing snapshot's
+                    # post-current checks can refuse its use.
+                    if task is not None:
+                        self._tasks.append(task)
+                    selected.append(task)
+                installation.binding.inspect(select_task)
                 task = selected[0]
                 if task is None:
                     break  # Explicit Core-checked end, never reserve's -2.
-                self._tasks.append(task)
                 installation.binding.inspect(lambda _: self._core.start_task(task))
                 while True:
                     fed: list[bool] = []
@@ -668,10 +673,14 @@ class InstalledLocalHost:
             results: list[_ResultExport] = []
             for index in range(counts[0]):
                 selected_results: list[_ResultExport] = []
-                installation.binding.inspect(lambda _: selected_results.append(
-                    self._core.reserve_result_from_compute(compute.core, index, configuration.handle)))
+                def select_result(_: _Output) -> None:
+                    result = self._core.reserve_result_from_compute(compute.core, index, configuration.handle)
+                    # The same Result remains reachable for cleanup even when
+                    # the original snapshot's post-current fence fails.
+                    self._result_exports.append(result)
+                    selected_results.append(result)
+                installation.binding.inspect(select_result)
                 result = selected_results[0]
-                self._result_exports.append(result)
                 results.append(result)
             return tuple(results)
 

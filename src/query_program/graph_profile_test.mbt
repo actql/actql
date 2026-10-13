@@ -5,7 +5,9 @@ test "a static label does not supply the missing admitted Graph producer" {
     syntax_limits(),
   ).unwrap()
   assert_true(
-    compile(parsed, fixture_context(), construction_limits())
-    is Err(UnknownRelation),
+    exact_unresolved_relation(
+      compile(parsed, fixture_context(), construction_limits()),
+      [("g", false)],
+    ),
   )
 }

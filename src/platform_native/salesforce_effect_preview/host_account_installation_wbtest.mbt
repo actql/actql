@@ -26,6 +26,42 @@ fn host_account_test_file() -> NativeEffectHostAccountFile {
 }
 
 ///|
+test "unavailable capacity scope refuses before Account read" {
+  let reads = [0]
+  assert_true(
+    install_host_account_with_read(
+      Some(host_account_test_file()),
+      _ => {
+        reads[0] += 1
+        Ok(host_account_test_wire())
+      },
+      read_scope_current=Some(() => false),
+    )
+    is Err(ReadScopeUnavailable),
+  )
+  assert_eq(reads[0], 0)
+}
+
+///|
+test "scope loss after physical read prevents Common acceptance" {
+  let current = Ref(true)
+  let reads = [0]
+  assert_true(
+    install_host_account_with_read(
+      Some(host_account_test_file()),
+      _ => {
+        reads[0] += 1
+        current.val = false
+        Ok(host_account_test_wire())
+      },
+      read_scope_current=Some(() => current.val),
+    )
+    is Err(ReadScopeUnavailable),
+  )
+  assert_eq(reads[0], 1)
+}
+
+///|
 test "unselected Host does not read or report a physical failure" {
   let failures = [0]
   assert_true(

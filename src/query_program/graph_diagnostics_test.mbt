@@ -281,11 +281,17 @@ test "Graph components WITH admits both kinds and retains its current Relation s
 
 ///|
 test "Graph components invalid arguments retain exact common-checker reasons and locations" {
-  let cases : Array[(String, @pipeline.IssueKind, String)] = [
-    ("kind: 'invented'", Graph(InvalidBody), "kind"),
-    ("kind: 'weak', max_output_rows: 0", Graph(InvalidCount), "max_output_rows"),
+  let cases : Array[(String, @pipeline.IssueKind, String, Int, Int)] = [
+    ("kind: 'invented'", Graph(InvalidBody), "kind", 137, 147),
+    (
+      "kind: 'weak', max_output_rows: 0",
+      Graph(InvalidCount),
+      "max_output_rows",
+      162,
+      163,
+    ),
   ]
-  for (arguments, expected, field) in cases {
+  for (arguments, expected, field, start, end) in cases {
     let actual = classified_graph_source(
       graph_diagnostic_prefix() +
       "FROM g |> components(" +
@@ -306,13 +312,9 @@ test "Graph components invalid arguments retain exact common-checker reasons and
       Key("components"),
       Key(field),
     ])
-    // The common issue retains the authored call span before E's diagnostic
-    // projection decides whether any public position can be disclosed.
-    let prefix = graph_diagnostic_prefix() + "FROM g |> "
-    assert_eq(issue.span.start_byte, @utf8.encode(prefix).length())
-    assert_eq(
-      issue.span.end_byte,
-      @utf8.encode(prefix + "components(" + arguments + ")").length(),
-    )
+    // Independent argument-token byte positions in the literal current grammar.
+    // Public disclosure still requires the owned diagnostic source boundary.
+    assert_eq(issue.span.start_byte, start)
+    assert_eq(issue.span.end_byte, end)
   }
 }

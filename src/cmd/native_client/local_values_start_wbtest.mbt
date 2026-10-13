@@ -106,3 +106,71 @@ test "CLI Values caller uses existing Native work publication and immutable poli
   ) -> String raise ClientStop = local_execute_publish_values
   caller |> ignore
 }
+
+///|
+// Pure metadata definitions, compiler-only until matching Native execution.
+test "current runtime asset selection keeps original Result Policy identity and bytes" {
+  let original : LocalValuesInstallation = {
+    registry_body: "old-registry",
+    values_body: "old-values",
+    fragment_body: Some("old-fragment"),
+    ordered_body: Some("old-ordered"),
+    result_policy_cid: "sha256:" + "a".repeat(64),
+    result_policy_wire: "original-policy\r\n",
+  }
+  let assets : @run_host.ClientLocalProductAssets = {
+    environment: "original-environment",
+    registry: "current-registry",
+    values: "current-values",
+    fragment: "current-fragment",
+    ordered: Some("current-ordered"),
+    result_policy: "original-policy\r\n",
+  }
+  let installed = local_current_values_installation(original, assets)
+  assert_eq(installed.registry_body, "current-registry")
+  assert_eq(installed.values_body, "current-values")
+  assert_eq(installed.result_policy_cid, "sha256:" + "a".repeat(64))
+  assert_eq(installed.result_policy_wire, "original-policy\r\n")
+  let rejected = try {
+    local_current_values_installation(original, {
+      ..assets,
+      result_policy: "original-policy\n",
+    })
+    |> ignore
+    false
+  } catch {
+    ClientStop(_) => true
+  }
+  assert_true(rejected)
+}
+
+///|
+// Exercise getter refusal and unacknowledged cleanup with the real opaque
+// filesystem carrier. This does not directly recreate a post-open path race.
+test "packaged runtime getter refusal retains unacknowledged cleanup" {
+  let parent = @env.get_env_var("ACTQL_TEST_NATIVE_RUNTIME_CUSTODY_ROOT").unwrap()
+  let path = parent + "/runtime-constructor-pending"
+  let root = @local_filesystem.open_root(path).unwrap()
+  let writer = root.create_writer("manifest.stage", 2L).unwrap()
+  writer.append(b"{}").unwrap()
+  writer.seal("local-runtime.json").unwrap() |> ignore
+  root.close().unwrap()
+  guard @local_host.open_native_local_packaged_runtime(
+      path,
+      "a".repeat(40),
+      "darwin-arm64",
+      "b".repeat(64),
+    )
+    is Err(Pending(physical, _)) else {
+    fail("diagnostic must retain the original pending cleanup carrier")
+  }
+  let stopped = try {
+    local_packaged_runtime_from_physical(physical) |> ignore
+    "unexpected-success"
+  } catch {
+    ClientStop(reason) => reason
+  }
+  assert_eq(stopped, "PackagedLocalRuntimeCleanupPending")
+  assert_true(physical.check_current() is Err(Changed))
+  assert_true(physical.close() is Err(CleanupPending))
+}
