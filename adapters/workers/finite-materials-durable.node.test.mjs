@@ -20,7 +20,11 @@ test('original finite materials retain their Run and canonical export owners on 
   assert.deepEqual(value.measurement.columnRows, [3]);
   assert.deepEqual(value.measurement.columnNullRows, [1]);
   assert.equal(value.released, true);
-  assert.equal(value.cleanupPending, false);
+  assert.deepEqual(value.scopedUsage.slice(4), [0n, 0n, 0n, 0n]);
+  assert.deepEqual(value.finalUsage, value.scopedUsage);
+  assert.deepEqual(value.authorizationResources, {
+    retainedDecisions: 0, scopeDecisions: 0, inFlightDecisions: 0, scopeInFlightDecisions: 0,
+  });
 });
 
 test('Common durable observations refuse false, stale and consumed commits without changing the original record', async () => {
