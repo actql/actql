@@ -501,54 +501,164 @@ fn open_store_owned(
   max_record_bytes : Int64,
   existing_only : Bool,
 ) -> Result[Store, NativePublicationStoreIssue] {
+  match
+    open_store_owned_with_custody(
+      library, root_path, authority_cid, capacity_bytes, max_objects, max_record_bytes,
+      existing_only,
+    ) {
+    Ok(value) => Ok(value)
+    Err(RefusedBeforeAcquisition(issue)) => Err(issue)
+    Err(CleanupRequired(failure)) => {
+      // Legacy issue-only entrance has no failure-custody return port. It is
+      // not a funded fallback; new bounded callers select the explicit API.
+      ignore(failure.retry_cleanup())
+      Err(failure.issue())
+    }
+  }
+}
+
+///|
+pub fn open_store_with_custody(
+  library : @sqlite.Library,
+  root_path : String,
+  authority_cid : String,
+  capacity_bytes : Int64,
+  max_objects : Int64,
+  max_record_bytes : Int64,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Store, NativePublicationStoreOpenError] {
+  open_store_owned_with_custody(
+    library,
+    root_path,
+    authority_cid,
+    capacity_bytes,
+    max_objects,
+    max_record_bytes,
+    false,
+    diagnostic_ceiling~,
+  )
+}
+
+///|
+pub fn open_existing_store_with_custody(
+  library : @sqlite.Library,
+  root_path : String,
+  authority_cid : String,
+  capacity_bytes : Int64,
+  max_objects : Int64,
+  max_record_bytes : Int64,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Store, NativePublicationStoreOpenError] {
+  open_store_owned_with_custody(
+    library,
+    root_path,
+    authority_cid,
+    capacity_bytes,
+    max_objects,
+    max_record_bytes,
+    true,
+    diagnostic_ceiling~,
+  )
+}
+
+///|
+fn open_store_owned_with_custody(
+  library : @sqlite.Library,
+  root_path : String,
+  authority_cid : String,
+  capacity_bytes : Int64,
+  max_objects : Int64,
+  max_record_bytes : Int64,
+  existing_only : Bool,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Store, NativePublicationStoreOpenError] {
   if capacity_bytes < 0L ||
     max_objects < 1L ||
     max_record_bytes < 1L ||
     max_record_bytes > 2147483647L {
-    return Err(InvalidConfiguration)
+    return Err(RefusedBeforeAcquisition(InvalidConfiguration))
   }
-  let root = match @filesystem.open_root(root_path) {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(RefusedBeforeAcquisition(Filesystem(@filesystem.InvalidLimit)))
+  }
+  let root = match
+    @filesystem.open_root_with_custody(root_path, diagnostic_ceiling~) {
     Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
+    Err(failure) =>
+      return Err(
+        CleanupRequired(
+          store_open_failure(
+            Filesystem(failure.issue()),
+            failed_root=Some(failure),
+          ),
+        ),
+      )
   }
   match admit_store_format(root_path, false, existing_only~) {
     Ok(_) => ()
-    Err(issue) => return Err(issue)
+    Err(issue) =>
+      return Err(CleanupRequired(store_open_failure(issue, root=Some(root))))
   }
-  let lock = match root.acquire_lock(".actql-publication.lock") {
+  let lock = match root.acquire_lock_with_custody(".actql-publication.lock") {
     Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
+    Err(failure) =>
+      return Err(
+        CleanupRequired(
+          store_open_failure(
+            Filesystem(failure.issue()),
+            root=Some(root),
+            failed_lock=Some(failure),
+          ),
+        ),
+      )
   }
   match admit_store_format(root_path, true, existing_only~) {
     Ok(_) => ()
-    Err(issue) => {
-      ignore(lock.close())
-      return Err(issue)
-    }
+    Err(issue) =>
+      return Err(
+        CleanupRequired(
+          store_open_failure(issue, root=Some(root), lock=Some(lock)),
+        ),
+      )
   }
   let journal_path = root_path + "/.actql-publication.sqlite3"
   let selected = if existing_only {
-    library.open_existing_database(journal_path, max_record_bytes)
+    library.open_existing_database_with_custody(journal_path, max_record_bytes)
   } else {
-    library.open_database(journal_path, max_record_bytes)
+    library.open_database_with_custody(journal_path, max_record_bytes)
   }
   let database = match selected {
     Ok(value) => value
-    Err(issue) => {
-      ignore(lock.close())
-      return Err(Database(issue))
-    }
+    Err(failure) =>
+      return Err(
+        CleanupRequired(
+          store_open_failure(
+            Database(failure.issue()),
+            root=Some(root),
+            lock=Some(lock),
+            failed_database=Some(failure),
+          ),
+        ),
+      )
   }
   let journal_identity : @filesystem.NativeFileOwnership = match
     root.inspect_generation(".actql-publication.sqlite3") {
     Ok(Some(value)) => { device: value.device, inode: value.inode, }
     other => {
-      database.close()
-      ignore(lock.close())
-      return match other {
-        Err(issue) => Err(Filesystem(issue))
-        _ => Err(StateCollision)
+      let issue = match other {
+        Err(issue) => Filesystem(issue)
+        _ => StateCollision
       }
+      return Err(
+        CleanupRequired(
+          store_open_failure(
+            issue,
+            root=Some(root),
+            lock=Some(lock),
+            database=Some(database),
+          ),
+        ),
+      )
     }
   }
   Ok({
