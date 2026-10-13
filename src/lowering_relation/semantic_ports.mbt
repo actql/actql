@@ -470,3 +470,12 @@ pub fn preparation_output_target(prepared : Prepared) -> @pipeline.Target? {
     None
   }
 }
+
+///|
+/// Original input score assertions, before downstream metadata transfer.
+pub fn preparation_input_ranking(
+  prepared : Prepared,
+  index : Int,
+) -> @evidence.RankingInput? {
+  @pipeline.ranking_evidence(prepared.owner, @pipeline.Input(index))
+}

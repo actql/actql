@@ -68,6 +68,53 @@ test('independent HTTP physical plan freezes request, starts once, saves same ra
   assert.equal(f.raw().transportComplete,true);
   assert.equal(call.cleanup(),false);call.cancel();assert.equal(call.cleanup(),false);
 });
+test('independent HTTP cancelled prefix remains incomplete while original read retains cleanup', async t => {
+  let finishRead;
+  let finishCancel;
+  let reads = 0;
+  let releases = 0;
+  let sends = 0;
+  let raw;
+  const f = fixture({fetch() {
+    sends++;
+    return {status: 503, headers: new Headers(), body: {getReader() { return {
+      read() {
+        reads++;
+        if (reads === 1) return Promise.resolve({done: false, value: new Uint8Array([65])});
+        return new Promise(resolve => { finishRead = resolve; });
+      },
+      cancel() { return new Promise(resolve => { finishCancel = resolve; }); },
+      releaseLock() { releases++; },
+    }; }}};
+  }, persistRaw(call, value) { raw = value; return Promise.resolve({response: f.saved}); }});
+  t.after(async () => {
+    finishRead?.({done: true}); finishCancel?.();
+    await finish(f);
+  });
+  const plan = f.port.preflight.advance()._1;
+  const call = plan.start(f.entry);
+  await until(() => finishRead, value => typeof value === 'function');
+  call.cancel();
+  await until(() => { call.poll(); return raw; }, value => value !== undefined);
+  assert.deepEqual(raw.body, new Uint8Array([65]));
+  assert.equal(raw.observedBytes, 1);
+  assert.equal(raw.transportComplete, false);
+  assert.equal(raw.issue, 'InferResponseReadCancelled');
+  assert.equal(raw.status, 503);
+  assert.equal(call.cleanup(), false);
+  finishCancel();
+  for (let i = 0; i < 4; i++) await turn();
+  assert.equal(call.cleanup(), false);
+  assert.equal(releases, 0);
+  finishRead({done: false, value: new Uint8Array([66])});
+  await finish(f);
+  assert.equal(releases, 1);
+  assert.equal(reads, 2);
+  assert.equal(sends, 1);
+  assert.equal(plan.start(f.entry), undefined);
+  assert.deepEqual(raw.body, new Uint8Array([65]));
+  assert.equal(raw.transportComplete, false);
+});
 test('independent HTTP save backpressure retains raw and cancel is not cleanup ACK',async t=>{
   let completeSave,saves=0,raw;
   const waiting=new Promise(resolve=>{completeSave=resolve;});

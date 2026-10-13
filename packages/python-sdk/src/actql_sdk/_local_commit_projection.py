@@ -44,6 +44,20 @@ class OriginalCommitProjection:
         with self._core._lock:
             return tuple(self._outputs)
 
+    def retain_sdk_delivery_custody(self, output: _Output) -> None:
+        """Move one exact active loan to its already registered Store holder.
+
+        This changes physical cleanup custody only. The Core export validates
+        its genuine first preparation when its transport is retired; neither
+        this move nor the caller's physical COMMIT creates read permission.
+        """
+        with self._core._lock:
+            self._core._owned_output(output, 'publication_commit_export')
+            if (not self._projecting or self._closing or len(self._outputs) != 1
+                    or self._outputs[0] is not output):
+                raise ValueError('Foreign original SDK delivery output custody')
+            self._outputs.pop()
+
     def count(self) -> int:
         with self._core._lock:
             self._ready()
@@ -304,6 +318,33 @@ class OriginalCommitProjection:
         raw = self._core.read_publication_commit_material(output)
         if consume(raw) is not None:
             raise ValueError('Invalid synchronous SDK evidence decision consumer result')
+
+    def project_sdk_delivery_lookup(self, request: _Input, original_run: int,
+                                    consume: Callable[[bytes], object]) -> None:
+        """Borrow an existing delivery response, never retry or payload authority."""
+        if (not callable(consume) or type(original_run) is not int
+                or not 0 < original_run < 2**31):
+            raise ValueError('Invalid original SDK delivery lookup consumer')
+        with self._core._lock:
+            self._core._owned_input(request)
+            self._ready()
+            self._projecting = True
+            try:
+                self._consume_sdk_delivery_lookup(request, original_run, consume)
+                self._retire_outputs()
+                if self._outputs:
+                    raise LocalCoreError('original_sdk_delivery_lookup_cleanup', -9)
+            finally:
+                self._projecting = False
+
+    def _consume_sdk_delivery_lookup(self, request: _Input, original_run: int,
+                                     consume: Callable[[bytes], object]) -> None:
+        output = self._output()
+        self._core.produce_publication_sdk_delivery_lookup(
+            output, request, original_run, self._configuration)
+        raw = self._core.read_publication_commit_material(output)
+        if consume(raw) is not None:
+            raise ValueError('Invalid synchronous SDK delivery lookup consumer result')
 
     def project_sdk_read_delivery_storage(self, request: _Input, original_run: int,
                                          consume: Callable[[bytes], object]) -> None:

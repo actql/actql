@@ -1,0 +1,194 @@
+{
+  "provenance": "Independent Python JSON ordering and hashlib over authored ASCII declarations; not product output.",
+  "cases": [
+    {
+      "id": "absent",
+      "body": {},
+      "canonical_preimage": "{}",
+      "bare_body_cid": "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": "key_only",
+      "body": {
+        "relation_keys": {
+          "candidate_keys": [
+            [
+              "id"
+            ]
+          ]
+        }
+      },
+      "canonical_preimage": "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]}}",
+      "bare_body_cid": "sha256:38ffc0cad6baa7699f2ed6b40426b522df5bc7dd9dc369024d278f70a1d29209"
+    },
+    {
+      "id": "empty_scores",
+      "body": {
+        "relation_scores": {}
+      },
+      "canonical_preimage": "{\"relation_scores\":{}}",
+      "bare_body_cid": "sha256:7271ab412f372be484ec995336129e5dd2bb06635091c3bb150c7df43bcf6b67"
+    },
+    {
+      "id": "score_s",
+      "body": {
+        "relation_scores": {
+          "s": {
+            "domain": "Relevance",
+            "normalization": "Identity",
+            "range": [
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "canonical_preimage": "{\"relation_scores\":{\"s\":{\"domain\":\"Relevance\",\"normalization\":\"Identity\",\"range\":[0,1]}}}",
+      "bare_body_cid": "sha256:c25fc4e102794bc9d041d9c028c2ea1f2e682d10a1882abf084358e51346d51f"
+    },
+    {
+      "id": "keys_and_scores",
+      "body": {
+        "relation_keys": {
+          "candidate_keys": [
+            [
+              "id"
+            ]
+          ]
+        },
+        "relation_scores": {
+          "s": {
+            "domain": "Relevance",
+            "normalization": "Identity",
+            "range": [
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "canonical_preimage": "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]},\"relation_scores\":{\"s\":{\"domain\":\"Relevance\",\"normalization\":\"Identity\",\"range\":[0,1]}}}",
+      "bare_body_cid": "sha256:a261bd122e81c9c3e3f1bb638782d50c3f014b746ec64da74b2871e1110c89ce"
+    },
+    {
+      "id": "two_fields",
+      "body": {
+        "relation_scores": {
+          "s": {
+            "domain": "Relevance",
+            "normalization": "Identity",
+            "range": [
+              0,
+              1
+            ]
+          },
+          "other": {
+            "domain": "Relevance",
+            "normalization": "Identity",
+            "range": [
+              0,
+              1
+            ]
+          }
+        }
+      },
+      "canonical_preimage": "{\"relation_scores\":{\"other\":{\"domain\":\"Relevance\",\"normalization\":\"Identity\",\"range\":[0,1]},\"s\":{\"domain\":\"Relevance\",\"normalization\":\"Identity\",\"range\":[0,1]}}}",
+      "bare_body_cid": "sha256:87e8e986d846fae3f6bf53aba77eaddb330af8cc13b856e248daaf39fe4602c1"
+    },
+    {
+      "id": "closed_contract_extra",
+      "body": {
+        "relation_scores": {
+          "s": {
+            "domain": "Relevance",
+            "normalization": "Identity",
+            "range": [
+              0,
+              1
+            ],
+            "extra": true
+          }
+        }
+      },
+      "canonical_preimage": "{\"relation_scores\":{\"s\":{\"domain\":\"Relevance\",\"extra\":true,\"normalization\":\"Identity\",\"range\":[0,1]}}}",
+      "bare_body_cid": "sha256:1ec50efc96914a048a82d7f1e18110d5d9d40cb7ddcdaa9c0683d01d27f0e80f"
+    },
+    {
+      "id": "reversed_range",
+      "body": {
+        "relation_scores": {
+          "s": {
+            "domain": "Relevance",
+            "normalization": "Identity",
+            "range": [
+              1,
+              0
+            ]
+          }
+        }
+      },
+      "canonical_preimage": "{\"relation_scores\":{\"s\":{\"domain\":\"Relevance\",\"normalization\":\"Identity\",\"range\":[1,0]}}}",
+      "bare_body_cid": "sha256:86db7cb963225deb8ffc98c76b5df8206e91470ba5b1a36811449a14c99572b3"
+    }
+  ],
+  "controls": {
+    "inputs": {
+      "left": [
+        {
+          "id": 1,
+          "s": 0.5
+        }
+      ],
+      "right": [
+        {
+          "id": 2,
+          "s": 0.5
+        }
+      ]
+    },
+    "weighted_sum": {
+      "left": 0.5,
+      "right": 0.5,
+      "rows": [
+        {
+          "id": 1,
+          "score": 0.25,
+          "rank": 1
+        },
+        {
+          "id": 2,
+          "score": 0.25,
+          "rank": 2
+        }
+      ]
+    },
+    "max": {
+      "rows": [
+        {
+          "id": 1,
+          "score": 0.5,
+          "rank": 1
+        },
+        {
+          "id": 2,
+          "score": 0.5,
+          "rank": 2
+        }
+      ]
+    },
+    "filtered_out_invalid": {
+      "rows": [
+        {
+          "id": 1,
+          "s": 0.5
+        },
+        {
+          "id": 2,
+          "s": 2
+        }
+      ],
+      "predicate": "id = 1",
+      "expected": "InputScore(0, InvalidScore(1))"
+    }
+  }
+}

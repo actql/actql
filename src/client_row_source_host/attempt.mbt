@@ -485,7 +485,21 @@ fn finish_row_source_read(
     return fail_read(read, KeyedIncomplete)
   }
   read.open = false
-  @execution.finish_admitted_input(read.input).map_err(issue => Capture(issue))
+  if read.listing is None ||
+    !(read.listing.unwrap().resolved_rows is Some(ReportListingRows(_, _))) {
+    // Preserve ordinary acquisition and protocol-only fixtures unchanged.
+    return @execution.finish_admitted_input(read.input).map_err(issue => {
+      Capture(issue)
+    })
+  }
+  match @execution.finish_admitted_input(read.input) {
+    Ok(scan) =>
+      match finish_row_listing_reports(read, scan) {
+        Ok(_) => Ok(scan)
+        Err(issue) => Err(issue)
+      }
+    Err(issue) => Err(Capture(issue))
+  }
 }
 
 ///|

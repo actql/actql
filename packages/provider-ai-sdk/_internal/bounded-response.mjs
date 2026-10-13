@@ -1,7 +1,8 @@
 // Private physical reading only. This does not admit a Model response, issue
 // evidence, decide remote success/stop, or enable an installed async profile.
 // Fund the fixed backing buffer, one borrowed stream chunk, header originals,
-// reader and pending cancellation in the shared retention sum before use.
+// reader, pending read/abort wait and cancellation in the shared retention sum
+// before use. Returning an incomplete view does not release those obligations.
 const positive = value => Number.isSafeInteger(value) && value > 0;
 const fail = code => { throw Object.assign(new TypeError(code), {code}); };
 
@@ -59,16 +60,21 @@ export async function readBoundedInferResponse(response, inputLimits, signal) {
   const reader = response.body.getReader();
   let heldReader = reader;
   let retiring;
+  let pendingRead;
+  let wakeRead;
   const retryReaderRetirement = () => {
     if (heldReader === undefined) return Promise.resolve(true);
     if (retiring !== undefined) return retiring;
     let cancellation;
     try { cancellation = heldReader.cancel(); }
     catch { cancellation = Promise.reject(new Error('InferReaderCancelFailed')); }
-    retiring = Promise.resolve(cancellation).then(() => {
+    // An abort-ignoring read remains an original physical obligation even
+    // when cancel resolves. Never report reader retirement from cancel alone.
+    retiring = Promise.resolve(cancellation).then(() => pendingRead).then(() => {
       try {
         heldReader.releaseLock();
         heldReader = undefined;
+        pendingRead = undefined;
         return true;
       } catch { return false; }
     }, () => false).finally(() => { retiring = undefined; });
@@ -77,6 +83,7 @@ export async function readBoundedInferResponse(response, inputLimits, signal) {
   let aborted = signal?.aborted ?? false;
   const abort = () => {
     aborted = true;
+    wakeRead?.({cancelled: true});
     void retryReaderRetirement();
   };
   signal?.addEventListener('abort', abort, {once: true});
@@ -86,10 +93,25 @@ export async function readBoundedInferResponse(response, inputLimits, signal) {
   let issue;
   for (;;) {
     if (aborted) { issue = 'InferResponseReadCancelled'; break; }
-    let next;
-    try { next = await reader.read(); }
-    catch { issue = 'InferResponseReadFailed'; break; }
+    let observed;
+    try {
+      // Preserve the same physical read, including its late rejection/value.
+      // Cancellation can expose an incomplete prefix without waiting for a
+      // read that ignores abort; cleanup still owns that pending operation.
+      pendingRead = Promise.resolve(reader.read()).then(next => ({next}),
+        () => ({failed: true}));
+      if (aborted) { issue = 'InferResponseReadCancelled'; break; }
+      observed = signal === undefined ? await pendingRead
+        : await new Promise(resolve => {
+          wakeRead = resolve;
+          pendingRead.then(resolve);
+        });
+      wakeRead = undefined;
+    } catch { issue = 'InferResponseReadFailed'; break; }
     if (aborted) { issue = 'InferResponseReadCancelled'; break; }
+    pendingRead = undefined;
+    if (observed.failed) { issue = 'InferResponseReadFailed'; break; }
+    const next = observed.next;
     if (next.done) {
       signal?.removeEventListener('abort', abort);
       try { reader.releaseLock(); heldReader = undefined; }

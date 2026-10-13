@@ -1,8 +1,11 @@
 ///|
 // The acquisition owner retains the common resolved Catalog/Host ceiling.
 // Construction is not a data-count observation or read authorization.
-priv struct RowListingRows {
-  resolved : @environment.FileListingRows
+priv enum RowListingRows {
+  ResolvedListingRows(@environment.FileListingRows)
+  // This listing-only payload is constructed after the same Source reserve.
+  // No report reference is added to ordinary Row/Model configuration.
+  ReportListingRows(@environment.FileListingRows, RowListingReports)
 }
 
 ///|
@@ -16,11 +19,20 @@ fn resolve_row_listing_rows(
     policy,
     "file-listing:" + @planning.query_requirement_cid(preparation.requirement),
   )
-  .map(resolved => Some({ resolved, }))
+  .map(resolved => Some(ResolvedListingRows(resolved)))
   .map_err(_ => ListingLimitUnresolved("max_listing_items"))
 }
 
 ///|
 fn listing_rows_maximum(value : RowListingRows) -> Int64 {
-  @environment.file_listing_rows_maximum(value.resolved)
+  @environment.file_listing_rows_maximum(listing_rows_resolution(value))
+}
+
+///|
+fn listing_rows_resolution(
+  value : RowListingRows,
+) -> @environment.FileListingRows {
+  match value {
+    ResolvedListingRows(resolved) | ReportListingRows(resolved, _) => resolved
+  }
 }

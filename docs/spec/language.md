@@ -1575,6 +1575,28 @@ published Result. Missing execution support MUST be rejected before provider
 access. Provider arrival order, delivery-order labels and old facts without
 this component MUST NOT be promoted to a key or total-order witness.
 
+<!-- requirement-block: sourceviews.relation-score-facts-fields sourceviews.relation-score-facts-owner sourceviews.relation-score-facts-projection sourceviews.relation-score-facts-runtime sourceviews.relation-score-facts-transfer sourceviews.relation-score-facts-unsupported-runtime -->
+For a Relation SourceView, its referenced `carrier_facts` body MAY contain
+`relation_scores: {field: ScoreContract, ...}`. This field-scoped map uses the
+existing closed ScoreContract reader: nonempty domain and normalization,
+finite ordered two-number range, and optional `higher_is_better: true`.
+Fields MUST resolve exactly against the same SourceView's required, non-null
+Number fields. Duplicate names, unknown fields and invalid contracts are invalid.
+An absent or empty map asserts no scores. The enclosing facts object remains
+extensible; unknown extensions are not implicitly admitted as complete bodies.
+
+The checker MUST retain the original facts Envelope, Catalog, SourceView and
+schema. It MUST project these assertions through the existing ranking-evidence
+owner, never through a same-named local snapshot or operation argument. Before
+relying on an assertion, the runtime MUST validate every declared score across
+the complete captured input, before filtering, renaming, overwriting or dropping
+fields. Non-finite, NULL, missing and out-of-range values fail without publishing
+a Result. Existing lawful metadata transfer applies; computed or overwritten
+scores MUST NOT inherit an unrelated original assertion. Validation consumes the
+existing work allowance and retains input custody until cleanup completes.
+Unavailable runtime support MUST refuse before provider access. Empty and
+key-only facts and historical saved Run identities retain their meaning.
+
 <!-- requirement-block: sourceviews.a-sourceview-used-as-the-keyed-right-side-of-an -->
 A SourceView used as the keyed right side of an external join MUST NOT author
 `scan`, including an empty object. Its keyed access path and bounded default

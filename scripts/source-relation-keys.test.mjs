@@ -24,11 +24,11 @@ test('adopted Source key component is closed inside extensible original facts', 
         items: {type: 'string', minLength: 1}}}},
   });
   const old = read('reviews/2026-10-13-vector-source-evidence-design/preimages/check-environment-before-relation-keys.json');
-  const retained = {...facts.properties}; delete retained.relation_keys;
+  const retained = {...facts.properties}; delete retained.relation_keys; delete retained.relation_scores;
   assert.deepEqual(retained, old.contract_bodies.carrier_facts.properties);
   assert.equal('sha256:' + digest(canonical(old)),
     'sha256:dc3baf9c4e85a0331b767665f92717a1330aabb357b207ccc7f1cc4ad7300a76');
-  assert.equal('sha256:' + digest(canonical(read('spec/contracts/actql-check-environment.json'))),
+  assert.equal('sha256:' + digest(canonical(read('reviews/2026-10-14-source-ranking-scores/preimages/check-environment-before-relation-scores.json'))),
     'sha256:b513c6a3f6746e20822c51f3fc7dab2327e5ecfe339549b50e98976c11d21804');
 });
 
