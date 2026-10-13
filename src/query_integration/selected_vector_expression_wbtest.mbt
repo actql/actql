@@ -143,7 +143,7 @@ test "registered VecA provider runs selected scalar steps at their original coor
       ).unwrap()
       assert_true(
         @local_connector.advance_managed_provider(wrong_port, 1).unwrap()
-        is @local_connector.Failed(..),
+        is @local_connector.Failed(_, ..),
       )
       assert_true(
         @local_connector.cleanup_managed_provider(wrong_port).unwrap(),
