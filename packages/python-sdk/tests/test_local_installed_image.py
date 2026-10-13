@@ -320,6 +320,12 @@ class InstalledImageTests(unittest.TestCase):
             library.span_calls.append((pointer.value, address.value, length))
             return 0
         library.actql_owned_contains_live_span = span
+        def capacity(pointer, out):
+            # Independent mapping scalar matches this fixture's VM + baseline.
+            from ctypes import cast, POINTER, c_uint64
+            cast(out, POINTER(c_uint64))[0] = 16777216 + 4096
+            return 0
+        library.actql_owned_capacity_bytes = capacity
         original = c_void_p(123)  # Independent pointer scalar, not an allocation.
         holding = _NativeHoldingLease(original, library, generation=7, recipe=b'r' * 32)
         self.assertIsNone(original.value)

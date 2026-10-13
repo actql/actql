@@ -795,6 +795,7 @@ class LocalCore:
                     raise ValueError('Unsupported Local Core ABI version')
                 if self._physical_holding is not None:
                     self._observe_original_vm_span(wasmtime)
+                    self._validate_original_native_projection(_host_capacity_bytes)
                 self._check('open', self._call('buffer', 'open', transfer_capacity,
                                             slots, 1_048_576, resources.planning_work,
                                             resources.attempts, resources.holdings,
@@ -835,6 +836,25 @@ class LocalCore:
         self._physical_vm_span = (address.value, _MEMORY_LIMIT)
         self._physical_vm_type.close()
         self._physical_vm_type = None
+
+    def _validate_original_native_projection(self, host_capacity_bytes: int) -> None:
+        """Refuse undercounting the original mapping before opening its Root.
+
+        VM membership is a prerequisite for subtracting its existing reserved
+        allowance. Child retirement does not release the outer mapping. This
+        necessary lower bound does not supply outside Python/SQLite funding or
+        adopt a numerical Host profile.
+        """
+        holding = self._physical_holding
+        if (holding is None or self._store is None or self._physical_vm_span is None
+                or self._physical_vm_span[1] != _MEMORY_LIMIT
+                or self._closed or self._retired or self._closing
+                or type(host_capacity_bytes) is not int
+                or not 0 < host_capacity_bytes <= 2**63 - 1):
+            raise ValueError('Original native capacity projection is unavailable')
+        capacity = holding._capacity_bytes()
+        if capacity < _MEMORY_LIMIT or capacity - _MEMORY_LIMIT > host_capacity_bytes:
+            raise ValueError('Original native holding exceeds its selected Host capacity')
 
     @contextmanager
     def _native_scope(self) -> Iterator[None]:
