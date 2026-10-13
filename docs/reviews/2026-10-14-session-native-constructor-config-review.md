@@ -3,7 +3,8 @@
 Reviewed immutable cohort Source: `4736480dd98542420d83fe205589fc33e2d038ba`.
 The cohort is normally integrated in main
 `49db953fcbef61c4f86862f35db13d2a28735f8d`. The previous
-[Native configuration review](2026-10-14-session-native-config-refresh-review.md)+ remains historical. This uses the same existing
+[Native configuration review](2026-10-14-session-native-config-refresh-review.md)
+remains historical. This uses the same existing
 `literal-native-options-with-bound-source-membership` rule for the pinned JS
 target, Moon revision `94521db`, and toolchain manifest SHA256
 `8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a`.
