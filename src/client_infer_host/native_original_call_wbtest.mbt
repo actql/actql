@@ -483,3 +483,70 @@ test "native original cancellation and authority loss preserve entered cleanup w
     assert_true(cleanup(f.active).unwrap())
   }
 }
+
+///|
+test "native original incomplete raw usage retires before immutable Unknown attempt proof" {
+  let f = native_original_call_fixture()
+  let raw = native_original_saved_response(
+    f,
+    0,
+    native_original_answer(),
+    eof=false,
+  )
+  let call = f.calls.get(0).unwrap()
+  f.responses[0] = @model.model_physical_saved_native_response(
+    raw,
+    f.views.get(0).unwrap(),
+    f.provider,
+    @environment.initial_jev_decision_profile(),
+  ).unwrap()
+  assert_true(
+    native_original_finish(f.active, f.work)
+    is Failed(Model(@model.UnknownCalls), ..),
+  )
+  assert_true(attempt_evidence(f.active, 0) is Err(@model.OutputIdentity))
+  let model = f.active.model.unwrap()
+  let mut last = 0L
+  let mut completed = false
+  for _ in 0..<10000 {
+    let (done, work) = @model.advance_model_reconciled_raw_usage(call, raw, 1).unwrap()
+    assert_true(work >= last && work - last <= 1L)
+    last = work
+    if done {
+      completed = true
+      break
+    }
+  }
+  assert_true(completed)
+  assert_eq(@model.model_execution_quantity_usage(model).consumed.tokens, 5L)
+  assert_eq(f.sent.val, 1)
+  assert_true(acquire_output(f.active) is None)
+  // Reader retirement enables the original failure/Unknown proof, not a
+  // response success, a new immutable attempt or permission to resend.
+  let proof = attempt_evidence(f.active, 0).unwrap()
+  let accounting = @model.model_attempt_accounting(proof)
+  let wire = @publication.run_evidence_value_json(accounting)
+  assert_true(wire.contains("\"input_tokens\":3"))
+  assert_true(wire.contains("\"output_tokens\":2"))
+  assert_true(
+    @publication.run_evidence_value_json(@model.model_attempt_outcome(proof)).contains(
+      "\"category\":\"result_unknown\"",
+    ),
+  )
+  assert_eq(
+    @model.advance_model_reconciled_raw_usage(call, raw, 1).unwrap(),
+    (true, last),
+  )
+  assert_eq(@model.model_execution_quantity_usage(model).consumed.tokens, 5L)
+  assert_eq(
+    @publication.run_evidence_value_identity(
+      @model.model_attempt_accounting(attempt_evidence(f.active, 0).unwrap()),
+    ),
+    @publication.run_evidence_value_identity(accounting),
+  )
+  assert_true(!cleanup(f.active).unwrap())
+  f.release.val = true
+  assert_true(!cleanup(f.active).unwrap())
+  assert_true(cleanup(f.active).unwrap())
+  assert_eq(f.sent.val, 1)
+}
