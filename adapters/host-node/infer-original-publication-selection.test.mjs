@@ -73,3 +73,19 @@ test('exact Int64 amounts and explicit zero scratch remain DATA, not adequate fu
   // No Core/Resource/Model/Store/SDK port is invoked by declaration selection.
   // In particular this case is not a physical zero-workspace installation.
 });
+
+
+test('publication snapshot uses checked descriptor values once',()=>{
+  const data={retainedBytes:101n,workspaceBytes:203n};
+  const reads={retainedBytes:0,workspaceBytes:0};
+  const supplied=new Proxy(data,{get(target,key,receiver){
+    if(key==='retainedBytes')return ++reads.retainedBytes===1?101n:9223372036854775808n;
+    if(key==='workspaceBytes')return ++reads.workspaceBytes===1?203n:-1n;
+    return Reflect.get(target,key,receiver);
+  }});
+  const original=retainInferOriginalReadInstallation(configuration(supplied));
+  const selected=selectedInferOriginalPublicationCapacity(original,original.nodeInstallation);
+  assert.deepEqual(selected,data,'the same validated descriptor DATA is retained');
+  assert.deepEqual(reads,{retainedBytes:0,workspaceBytes:0},'property callbacks cannot replace validated DATA');
+  assert.ok(Object.isFrozen(selected));
+});
