@@ -71,7 +71,8 @@ fn script_carrier_operation(name : String) -> Bool {
   [
     "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
     "to_events", "row_window", "window_events", "watermark_events", "dedupe_events",
-    "session", "events", "watermark_rows", "lag", "asof_join", "interval_join", "merge_rankings",
+    "session", "events", "watermark_rows", "lag", "sequence", "asof_join", "interval_join",
+    "merge_rankings",
   ].contains(name)
 }
 
@@ -242,6 +243,7 @@ fn lower_script_carrier_calls(
       "row_window" | "watermark_rows" => ["time"]
       "dedupe_events" => ["by"]
       "lag" => ["partition_by", "field"]
+      "sequence" => ["by", "id", "time"]
       "merge_rankings" => ["by", "candidate", "score", "rank", "tie_break"]
       "session" =>
         if carrier is @carrier.Relation(_) {
@@ -262,6 +264,11 @@ fn lower_script_carrier_calls(
       "watermark_rows" => ["time", "late_policy", "watermark_ms", "max_skew"]
       "dedupe_events" => ["by", "order_by"]
       "lag" => ["partition_by", "order_by", "field", "output", "offset"]
+      "sequence" =>
+        [
+          "by", "id", "time", "pattern", "within", "overlap", "contiguity", "max_matches_per_key",
+          "max_output_rows",
+        ]
       "asof_join" =>
         [
           "with", "kind", "by", "left_id", "left_time", "right_time", "direction",
@@ -289,6 +296,8 @@ fn lower_script_carrier_calls(
       ["kind", "size"]
     } else if call.operation == "lag" {
       ["partition_by", "order_by", "field", "output"]
+    } else if call.operation == "sequence" {
+      ["by", "id", "time", "pattern", "within", "overlap", "contiguity"]
     } else if call.operation == "asof_join" {
       [
         "with", "kind", "by", "left_time", "right_time", "direction", "tolerance",
@@ -337,6 +346,15 @@ fn lower_script_carrier_calls(
               query,
               input,
               sources,
+            )
+          } else if call.operation == "sequence" && argument.0 == "pattern" {
+            script_sequence_pattern(
+              construction,
+              argument.1,
+              query,
+              input,
+              sources,
+              limits,
             )
           } else if ["dedupe_events", "lag"].contains(call.operation) &&
             argument.0 == "order_by" {

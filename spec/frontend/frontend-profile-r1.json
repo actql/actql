@@ -867,7 +867,8 @@
         "|> asof_join(with: producer, kind: string, by: [pairs], left_id: field?, left_time: field, right_time: field, direction: string, tolerance: value, select: {outputs}, right_tie_break: [fields]?)",
         "|> interval_join(with: producer, kind: string, mode: string, on: [pairs], left: {temporal fields}, right: {temporal fields}, select: {outputs}?, max_output_rows: value?)",
         "WITH grid AS (time_series(start: value, end: value, step: value)) query",
-        "|> merge_rankings(with: producer|[producers], by: [fields], candidate: field, score: field?, rank: field?, score_policy: value, score_contract: value?, k: integer, tie_break: [fields]?)"
+        "|> merge_rankings(with: producer|[producers], by: [fields], candidate: field, score: field?, rank: field?, score_policy: value, score_contract: value?, k: integer, tie_break: [fields]?)",
+        "|> sequence(by: [fields], id: field, time: field, pattern: [{as: name, where: expression}], within: value, overlap: string, contiguity: string, max_matches_per_key: value?, max_output_rows: value?)"
       ],
       "canonical_lowering": "common checked producer topology, followed by demanded emission",
       "preconditions": [
@@ -878,7 +879,8 @@
         "Vectors/Events require an explicit common bridge before Relation operations",
         "temporal correlations preserve operand-specific FieldRefs, lexical peers, repeated pairs and authored guards; the common checker owns Carrier and temporal obligations",
         "NONE-input Relation generator schema, range and bounds remain common-checker evidence",
-        "ranking peers are lexical producers; RRF occurrence order/repetition is separate from dependency sharing; common score/rank evidence and resource rules remain required"
+        "ranking peers are lexical producers; RRF occurrence order/repetition is separate from dependency sharing; common score/rank evidence and resource rules remain required",
+        "sequence predicates retain original source Expression owners, spans/work and input/Parameter scope; labels do not introduce predicate inputs; common clock, identity, match and resource rules remain required"
       ],
       "spec_section": "7.8",
       "execution_evidence_ids": [],

@@ -2280,6 +2280,48 @@ Append/upsert, schema evolution, automatic Catalog observation and other Carrier
 writers are separate implementation units.
 
 
+### Named finite event sequences
+
+The adopted ActQL Pipe call `sequence` lowers through the existing common
+[sequence contract](language.md#sequence). `pattern` is a finite list of
+`{as: OutputName, where: Expression}` records. The predicate is parsed once from
+the original query tokens, retaining its opaque source Expression owner, spans
+and charged work. String-valued predicates are String expressions, not reparsed
+SQL; structured JSON is not a second source-expression language here.
+
+```aql
+WITH records AS (
+  SELECT 1 AS id, 0 AS occurred_ms, 1 AS kind
+  UNION ALL SELECT 2, 10, 2
+)
+FROM records AS e
+  |> sequence(by: [], id: e.id, time: e.occurred_ms,
+       pattern: [{as: first, where: e.kind = 1},
+                 {as: second, where: e.kind = 2}],
+       within: 20, overlap: 'disallow', contiguity: 'adjacent',
+       max_matches_per_key: 2, max_output_rows: 2)
+  |> SELECT first_id, second_id |> ORDER BY first_id;
+```
+
+Closed keys are `by`, `id`, `time`, `pattern`, `within`, `overlap`, `contiguity`,
+and optional `max_matches_per_key`, `max_output_rows`. Required membership,
+pattern length, generated-name collisions and clock/identity validity remain
+with the common checker. `by`/`id`/`time` are ordinary current-row FieldRefs;
+label names use ordinary OutputName reserved/quoted-name rules. The original
+scope and Parameters are available to every predicate. Earlier labels never
+introduce input fields into a later predicate. CASE, property access, NULL and
+other ordinary expressions keep their existing typing/evaluation contracts;
+only Boolean true matches. Whole Parameters for within and guards retain
+existing binding and validation obligations, with no substituted defaults.
+
+Relation and Events inputs return a Relation through the existing sequence
+owner. On Events the explicitly named clock must be a non-null number payload
+field; the common event carrier does not synthesize `event_time_ms` inside its
+record schema. An explicit events() bridge has its own output fields and does
+not justify rewriting an authored sequence clock. Empty outputs retain the
+complete match schema. No evaluator, capture owner, identity or resource
+quantity is created by this syntax connection.
+
 ### Named temporal correlations
 
 The adopted ActQL Pipe calls `asof_join` and `interval_join` lower to the
