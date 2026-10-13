@@ -33,6 +33,7 @@ from ._local_reader_facts import OriginalReaderFacts
 from ._local_observation_transfer import OriginalObservationTransfer
 from ._local_store_reconciliation import OriginalStoreReconciliation
 from ._local_sdk_read_storage import OriginalSDKReadEvidenceStore, SDKReadEvidenceCleanupPending
+from ._local_sdk_delivery_storage import OriginalSDKDeliveryStore, SDKDeliveryStorageCleanupPending
 from ._local_response import OriginalLocalResponseStream
 from ._local_work import OriginalLocalWork
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
@@ -156,6 +157,7 @@ class InstalledLocalHost:
         self._observation_transfers: list[OriginalObservationTransfer] = []
         self._store_observations: dict[int, OriginalStoreReconciliation] = {}
         self._sdk_read_evidence: dict[int, OriginalSDKReadEvidenceStore] = {}
+        self._sdk_deliveries: dict[int, OriginalSDKDeliveryStore] = {}
         self._observation_attempts: set[int] = set()
         self._publication_write_attempts: set[int] = set()
         self._pending_publication_write: OriginalCommitProjection | None = None
@@ -2043,9 +2045,9 @@ class InstalledLocalHost:
                 raise ValueError('Original Local Store observation is unavailable')
             observation.project_observed_index(consume)
 
-    def _original_sdk_read_evidence(self, run: _Run,
-                                    projection: OriginalCommitProjection) -> OriginalSDKReadEvidenceStore:
-        """Use the same original Run/observation holder; no public grant here."""
+    def _original_sdk_read_observation(self, run: _Run,
+                                    projection: OriginalCommitProjection) -> OriginalStoreReconciliation:
+        """Recheck the original Run/current/Store for both private read holders."""
         installation = self._active()
         configuration = self._configuration
         self._runs._run(run)
@@ -2071,6 +2073,13 @@ class InstalledLocalHost:
             observation = self._store_observations.get(key)
             if observation is None or observation._projection is not projection:
                 raise ValueError('Original SDK read Store observation is unavailable')
+            return observation
+
+    def _original_sdk_read_evidence(self, run: _Run,
+                                    projection: OriginalCommitProjection) -> OriginalSDKReadEvidenceStore:
+        with self._core._lock:
+            observation = self._original_sdk_read_observation(run, projection)
+            key = projection._publication.ticket
             original = self._sdk_read_evidence.get(key)
             if original is not None:
                 if original._observation is not observation:
@@ -2085,6 +2094,33 @@ class InstalledLocalHost:
                 raise
             self._sdk_read_evidence[key] = original
             return original
+
+    def _original_sdk_delivery_store(self, run: _Run,
+                                     projection: OriginalCommitProjection) -> OriginalSDKDeliveryStore:
+        """One original delivery workspace; no repair or replacement on refusal."""
+        with self._core._lock:
+            observation = self._original_sdk_read_observation(run, projection)
+            key = projection._publication.ticket
+            original = self._sdk_deliveries.get(key)
+            if original is not None:
+                if original._observation is not observation:
+                    raise ValueError('Foreign original SDK delivery Store holder')
+                return original
+            try:
+                original = OriginalSDKDeliveryStore(observation, cleanup=lambda: True)
+            except SDKDeliveryStorageCleanupPending as failure:
+                self._sdk_deliveries[key] = failure.cleanup_storage
+                raise
+            self._sdk_deliveries[key] = original
+            return original
+
+    def _persist_original_sdk_delivery(self, run: _Run,
+                                       projection: OriginalCommitProjection,
+                                       request: _Input) -> None:
+        """Original physical first CAS only; no use adoption or public read."""
+        with self._core._lock:
+            self._core._owned_input(request)
+            self._original_sdk_delivery_store(run, projection).persist(request, run.handle)
 
     def _persist_original_sdk_read_evidence(self, run: _Run,
                                            projection: OriginalCommitProjection,
@@ -2224,6 +2260,10 @@ class InstalledLocalHost:
                 if not evidence.close():
                     return False
                 del self._sdk_read_evidence[key]
+            for key, delivery in tuple(self._sdk_deliveries.items()):
+                if not delivery.close():
+                    return False
+                del self._sdk_deliveries[key]
             for observation in tuple(self._store_observations.values()):
                 publication = observation._projection._publication
                 if not self._core.retire_publication_observation(publication):

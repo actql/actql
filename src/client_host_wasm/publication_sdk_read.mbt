@@ -9,6 +9,7 @@ priv enum SDKReadExport {
   Evidence(Int)
   Grant(Int)
   Decision
+  DeliveryStorage
 }
 
 ///|
@@ -98,6 +99,26 @@ pub fn produce_publication_sdk_read_evidence_decision(
 }
 
 ///|
+/// Original first-delivery CAS materials only, never usage ACK or payload.
+#export_name("actql_publication_commit_export_produce_sdk_read_delivery_storage")
+pub fn produce_publication_sdk_read_delivery_storage(
+  nonce : Int64,
+  handle : Int,
+  input : Int,
+  run : Int,
+  current_configuration : Int,
+) -> Int {
+  produce_sdk_read_field(
+    nonce,
+    handle,
+    input,
+    run,
+    current_configuration,
+    DeliveryStorage,
+  )
+}
+
+///|
 fn produce_sdk_read_field(
   nonce : Int64,
   handle : Int,
@@ -146,6 +167,8 @@ fn produce_sdk_read_field(
         0,
         PublicationCommitExportProjection::SDKReadEvidenceDecision(input, run),
       )
+    DeliveryStorage =>
+      (0, PublicationCommitExportProjection::SDKReadDeliveryStorage(input, run))
   }
   if field < 0 || field > 1 {
     return -3
@@ -339,6 +362,34 @@ fn produce_sdk_read_field(
         Err(_) => return -32
       }
     }
+    DeliveryStorage =>
+      match
+        @local_run.prepare_local_sdk_read_delivery_storage_from_store(
+          preflight,
+          current.account,
+          finite,
+          sdk.read,
+          sdk.adoption_cid,
+          commit,
+          view,
+          result_name,
+          format,
+          attempt_id,
+          observed_at,
+          8,
+          (table, key) => sdk_run_journal_port(value, current, 1, table, key),
+          current_check,
+        ) {
+        Ok(wire) => wire
+        Err(Observation(code)) | Err(Store(Observation(code))) => return code
+        Err(Store(Preparation(Preflight(_)))) => return -35
+        Err(Store(Preparation(Codec(CapacityExceeded)))) => return -4
+        Err(Store(Preparation(Expired))) => return -42
+        Err(ExistingAttempt) => return -33
+        Err(UnresolvedUsage) => return -41
+        Err(Store(MissingEvidence)) => return -37
+        Err(_) => return -32
+      }
     Original(_, _) | Evidence(_) => {
       let originals = match
         @local_run.prepare_local_sdk_read_originals(
@@ -389,7 +440,7 @@ fn produce_sdk_read_field(
             key
           }
         }
-        Grant(_) | Decision => return -3
+        Grant(_) | Decision | DeliveryStorage => return -3
       }
     }
   }
