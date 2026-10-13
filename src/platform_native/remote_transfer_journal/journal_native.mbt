@@ -246,6 +246,12 @@ fn Journal::replace_destination_allocation(
   current : NativeRemoteDestinationAllocation,
   phase : NativeRemoteDestinationAllocationPhase,
 ) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let body = destination_allocation_body(
     current.staging_name,
     current.final_name,

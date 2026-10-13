@@ -55,15 +55,28 @@ test "Transfer Journal close failure keeps cache and original holding until Data
   let original_usage = journal.database.capacity_usage("remote_transfer_destination").unwrap()
   assert_eq(original_usage.reserved_bytes, 5L)
   assert_eq(original_usage.reserved_objects, 1L)
+  let allocation = journal.prepare_destination_allocation(
+    fixture.request, "close-custody-allocation", 0, "original-staging", "original-final",
+  ).unwrap()
+  let original_allocation = journal.database.read(
+    "remote_transfer_destination_allocation", allocation.key,
+  ).unwrap()
   transfer_journal_fail_close(journal.database, 1)
   assert_false(journal.close())
   assert_false(journal.closed)
   assert_true(journal.retiring)
   assert_true(physical_equal(journal.destination_record_admission.unwrap(), original_cache))
   assert_true(journal.require(fixture.request) is Err(CleanupPending))
+  assert_true(journal.release_destination_allocation_intent(allocation) is Err(CleanupPending))
+  let retained_allocation = journal.database.read(
+    "remote_transfer_destination_allocation", allocation.key,
+  ).unwrap()
+  assert_eq(retained_allocation.revision, original_allocation.revision)
+  assert_eq(retained_allocation.body, original_allocation.body)
   journal.close_checked().unwrap()
   assert_true(journal.closed)
   assert_true(journal.destination_record_admission is None)
+  assert_true(journal.release_destination_allocation_intent(allocation) is Err(Closed))
   journal.close_checked().unwrap()
   let restored = open_journal_with_custody(fixture.library, fixture.path, 262144L, 1, 4096, 5L).unwrap()
   let retained_usage = restored.database.capacity_usage("remote_transfer_destination").unwrap()
