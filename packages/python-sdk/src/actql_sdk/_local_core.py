@@ -3620,7 +3620,11 @@ class LocalCore:
             return True
 
     def _dispose(self) -> None:
-        for name in ('_store', '_linker', '_module', '_engine', '_engine_configuration'):
+        # Pinned Wasmtime Store owns an Engine clone and the live instance.
+        # Keep the Store, and therefore the original Wasm Root, until every
+        # other native handle has retired. A failed child/Engine cleanup must
+        # not destroy that Root or drop its pending capacity first.
+        for name in ('_linker', '_module', '_engine', '_engine_configuration'):
             value = getattr(self, name, None)
             if value is not None:
                 value.close()
@@ -3628,6 +3632,9 @@ class LocalCore:
         if getattr(self, '_pool_configuration', None) is not None:
             self._pool_ffi.wasmtime_pooling_allocation_config_delete(self._pool_configuration)
             self._pool_configuration = None
+        if getattr(self, '_store', None) is not None:
+            self._store.close()
+            self._store = None
         self._closed = True
         self._inputs.clear()
         self._loans.clear()

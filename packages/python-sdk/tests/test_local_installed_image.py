@@ -139,7 +139,7 @@ class InstalledImageTests(unittest.TestCase):
         self.deserialize.assert_called_once_with(self.engine, IMAGE)
         self.assertEqual([event for event in self.events if event[0] == 'fuel'], [('fuel', 100000000)])
         self.assertEqual([event[1] for event in self.events if event[0] == 'close'],
-                         ['store', 'module', 'engine'])
+                         ['module', 'engine', 'store'])
         self.assertEqual([value for name, value in self.events if name == 'delete_pool'], [self.ffi.pool])
 
     def test_config_failure_retains_original_pending_pool_for_same_core_cleanup(self):
@@ -163,10 +163,11 @@ class InstalledImageTests(unittest.TestCase):
             with self.assertRaises(LocalCoreInitializationError) as failure: self.create()
         core = failure.exception.cleanup_core
         self.assertIs(core._module, self.module); self.assertIs(core._engine, self.engine)
+        self.assertIs(core._store, self.store)
         self.assertTrue(core.close()); self.assertTrue(core.close())
         self.deserialize.assert_called_once()
         self.assertEqual([event[1] for event in self.events if event[0] == 'close'],
-                         ['store', 'module', 'module', 'engine'])
+                         ['module', 'module', 'engine', 'store'])
 
     def test_installed_host_routes_only_to_image_constructor(self):
         components = object(); core = Mock()
@@ -219,15 +220,28 @@ class InstalledImageTests(unittest.TestCase):
         self.assertTrue(core.close()); self.assertTrue(core.close())
         self.assertEqual([name for name, args in calls], ['open', 'close'])
         self.assertEqual([event[1] for event in self.events if event[0] == 'close'],
-                         ['store', 'linker', 'module', 'engine'])
+                         ['linker', 'module', 'engine', 'store'])
 
     def test_cleanup_failure_keeps_original_engine_without_reopening_root(self):
         core, calls = self._construct_with_baseline(failures=1)
         with self.assertRaises(OSError): core.close()
         self.assertIs(core._engine, self.engine)
+        self.assertIs(core._store, self.store)
         self.assertFalse(core._closed)
         self.assertTrue(core._retired)
         self.assertTrue(core.close())
         self.assertEqual([name for name, args in calls], ['open', 'close'])
         self.assertEqual([event[1] for event in self.events if event[0] == 'close'],
-                         ['store', 'linker', 'module', 'engine', 'engine'])
+                         ['linker', 'module', 'engine', 'engine', 'store'])
+
+    def test_store_failure_preserves_root_and_does_not_repeat_retired_native_handles(self):
+        core, calls = self._construct_with_baseline()
+        self.store.failures = 1
+        with self.assertRaises(OSError): core.close()
+        self.assertIs(core._store, self.store)
+        self.assertIsNone(core._module); self.assertIsNone(core._engine)
+        self.assertFalse(core._closed)
+        self.assertTrue(core.close()); self.assertTrue(core.close())
+        self.assertEqual([name for name, args in calls], ['open', 'close'])
+        self.assertEqual([event[1] for event in self.events if event[0] == 'close'],
+                         ['linker', 'module', 'engine', 'store', 'store'])

@@ -171,3 +171,12 @@ maximum of that bootstrap peak and the known installation overlap plus resident
 baseline. It neither sums those phases nor requires temporary image/FFI load
 copies to remain in the resident baseline. This comparison still creates no
 physical bootstrap reservation and cannot fill an unknown allocator allowance.
+
+Cleanup keeps the original Wasmtime Store until Linker, Module, Engine wrapper
+and temporary configuration handles are released. The Store contains its own
+Engine clone: releasing the Python Engine handle is not proof that the Engine's
+physical allocations have stopped. Final Store cleanup releases that last
+instance/Root custody. Failure retains the same Store, Core and pending Root;
+retry never reopens Core or repeats release of successful native handles. The
+Python handle counterexamples qualify this order only; actual Native/Wasmtime
+cleanup and outer bootstrap reservation remain separate physical evidence.
