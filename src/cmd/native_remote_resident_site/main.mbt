@@ -4097,8 +4097,9 @@ fn run_holder(
     registration != required(matches, "connector-registration") ||
     revision != required(matches, "connector-revision") ||
     strategy != required(matches, "strategy-revision") {
-    close_site_environment(environment)
-    stop("installed runtime differs from the Site delegation")
+    return finish_unopened_holder_cleanup(
+      environment, slot, "installed runtime differs from the Site delegation",
+    )
   }
   let max_file_bytes = required_int64(matches, "max-file-bytes")
   let values_root = required(matches, "engine-root")
@@ -4181,9 +4182,9 @@ fn run_holder(
         None => None
       }
       guard configured is Some(profile) else {
-        close_site_environment(environment)
-        ignore(slot.close())
-        stop("retained consumer bounded profile unavailable")
+        return finish_unopened_holder_cleanup(
+          environment, slot, "retained consumer bounded profile unavailable",
+        )
       }
       Some(profile)
     }
@@ -4219,6 +4220,9 @@ fn run_holder(
     Ok(value) => value
     Err(issue) => {
       report("setup-failed", [("reason", issue)])
+      // This constructor can already have opened ordinary resources. Until
+      // its own partial-failure custody is returned, it is not the unopened
+      // resources case handled by finish_unopened_holder_cleanup.
       close_site_environment(environment)
       ignore(slot.close())
       stop("holder setup failed before claim")
