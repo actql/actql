@@ -172,6 +172,11 @@ test('normal release consumer and bounded recipes parse without loading the inst
     'scripts/fixtures/packed-nearest-carrier.mjs',
     'reviews/2026-10-14-nearest-carrier-release-matrix/prepared-checks.mjs',
     'reviews/2026-10-14-nearest-carrier-release-matrix/prepared-release-public.mjs']) {
+    const file = resolve(root, path);
+    for (const match of readFileSync(file, 'utf8').matchAll(/(?:from\s*|import\s*\()(['"])(\.[^'"\n]+\.mjs)\1/gu)) {
+      assert.doesNotThrow(() => readFileSync(resolve(dirname(file), match[2])),
+        `missing relative import: ${path} -> ${match[2]}`);
+    }
     execFileSync(process.execPath, ['--check', resolve(root, path)], {timeout: 10000});
   }
 });
