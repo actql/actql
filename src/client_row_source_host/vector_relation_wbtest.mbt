@@ -35,8 +35,10 @@ test "Vector fixture full declaration preserves dimension nullability and indepe
   ) {
     Ok(declaration) => declaration
     Err(issue) => {
-      inspect(issue, content="successful original Vector declaration")
-      abort("Vector declaration failed")
+      if issue is InvalidContracts {
+        abort("RowHostIssue.InvalidContracts: original Vector declaration")
+      }
+      abort("unexpected RowHostIssue: original Vector declaration")
     }
   }
   assert_eq(original.views[0].fields, ["id", "left_vector", "right_vector"])
