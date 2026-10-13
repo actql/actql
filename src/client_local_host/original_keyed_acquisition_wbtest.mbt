@@ -187,6 +187,18 @@ fn original_keyed_run_fixture(
       // The left connector Resource is an ordinary row relation, not FILES.
       // Do not fabricate a listing observation to admit multiple versions.
       files.remove("request")
+      guard stage.get("steps") is Some(Array(steps)) &&
+        steps[0] is Object(first) else {
+        abort("fixture version-history steps")
+      }
+      // Ordinary Source cardinality is unknown. An explicit take provides
+      // existing producer membership, rather than borrowing a Host ceiling
+      // or adding FILES facts which do not describe this Relation.
+      first["from"] = @json.parse("\"bounded\"")
+      stage["steps"] = Json::array(
+        [@json.parse("{\"from\":\"files\",\"take\":3,\"as\":\"bounded\"}")] +
+        steps,
+      )
     } else {
       request["paths"] = @json.parse("null")
     }
@@ -203,7 +215,7 @@ fn original_keyed_run_fixture(
     source=true,
     environment_override=Some(environment),
     document_override=Some(document),
-    serialization_coordinate=Some((0, 4)),
+    serialization_coordinate=Some((0, if relation_versions { 5 } else { 4 })),
     serialization_bounds=(3, 4096),
   )
   let keyed = @publication_host.select_client_single_keyed_acquisition(prepared)
