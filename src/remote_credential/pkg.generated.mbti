@@ -2,6 +2,7 @@
 package "actql/actql/remote_credential"
 
 import {
+  "actql/actql/checkpoint_runtime",
   "moonbitlang/core/debug",
 }
 
@@ -21,6 +22,10 @@ pub fn admit_local_preparation_credential_grant_json(String, String, LocalPrepar
 pub fn admit_local_preparation_credential_use_json(LocalPreparationCredentialGrant, String, String) -> Result[LocalPreparationCredentialUse, RemoteCredentialIssue]
 
 pub fn admit_local_preparation_fence_json(String, String) -> Result[LocalPreparationFenceIdentity, RemoteCredentialIssue]
+
+pub fn admit_local_signing_credential_grant_json(String, String) -> Result[LocalSigningCredentialGrant, RemoteCredentialIssue]
+
+pub fn admit_local_signing_credential_use_json(LocalSigningCredentialGrant, String, String) -> Result[LocalSigningCredentialUse, RemoteCredentialIssue]
 
 pub fn authorize_credential_use(RemoteCredentialUse, Int64, Bool, String, String, String, String, Int, String, String, String, String, String, String, Int, String) -> Result[Unit, RemoteCredentialIssue]
 
@@ -82,6 +87,18 @@ pub fn local_preparation_fence_fields(LocalPreparationFenceIdentity) -> LocalPre
 
 pub fn local_preparation_fence_json(LocalPreparationFenceIdentity) -> String
 
+pub fn local_signing_credential_grant_cid(LocalSigningCredentialGrant) -> String
+
+pub fn local_signing_credential_grant_json(LocalSigningCredentialGrant) -> Result[String, RemoteCredentialIssue]
+
+pub fn local_signing_credential_grant_scope(LocalSigningCredentialGrant) -> LocalSigningCredentialScope
+
+pub fn local_signing_credential_use_cid(LocalSigningCredentialUse) -> String
+
+pub fn local_signing_credential_use_json(LocalSigningCredentialUse) -> Result[String, RemoteCredentialIssue]
+
+pub fn local_signing_credential_use_projection(LocalSigningCredentialUse) -> (String, String, Int)
+
 pub fn prepare_credential_signature_envelope(RemoteCredentialGrant, String, String) -> Result[RemoteCredentialSignatureEnvelope, RemoteCredentialIssue]
 
 pub fn prepare_credential_use(RemoteCredentialGrant, String, Int64, Int, Bool, String, String, String, String, Int, String, String, String, String, String, String, Int, String) -> Result[RemoteCredentialUse, RemoteCredentialIssue]
@@ -97,6 +114,12 @@ pub fn prepare_local_preparation_credential_grant(String, LocalPreparationCreden
 pub fn prepare_local_preparation_credential_use(LocalPreparationCredentialGrant, String, Int64, Int, Bool, LocalPreparationCredentialScope) -> Result[LocalPreparationCredentialUse, RemoteCredentialIssue]
 
 pub fn prepare_local_preparation_fence_identity(LocalPreparationFenceFields) -> Result[LocalPreparationFenceIdentity, RemoteCredentialIssue]
+
+pub fn prepare_local_signing_credential_grant(String, LocalSigningCredentialScope, Int64, Int) -> Result[LocalSigningCredentialGrant, RemoteCredentialIssue]
+
+pub fn prepare_local_signing_credential_use(LocalSigningCredentialGrant, String, Int64, Int, Bool, LocalSigningCredentialScope) -> Result[LocalSigningCredentialUse, RemoteCredentialIssue]
+
+pub fn validate_local_signing_credential_use_binding(LocalSigningCredentialUse, Int64, Bool, LocalSigningCredentialScope) -> Result[Unit, RemoteCredentialIssue]
 
 // Errors
 
@@ -164,6 +187,39 @@ pub(all) struct LocalPreparationFenceFields {
 } derive(Eq, @debug.Debug)
 
 type LocalPreparationFenceIdentity derive(Eq, @debug.Debug)
+
+type LocalSigningCredentialGrant
+
+pub(all) struct LocalSigningCredentialScope {
+  account_configuration_cid : String
+  account_id : String
+  attempt_id : String
+  authority_scope_cid : String
+  checkpoint_cid : String
+  checkpoint_id : String
+  checkpoint_kind : @checkpoint_runtime.CheckpointKind
+  host_adoption_cid : String
+  key_configuration_cid : String
+  key_generation_cid : String
+  key_id : String
+  key_public_key_cid : String
+  preimage : String
+  principal : String
+  request_cid : String
+  request_scope_cid : String
+  run_definition_cid : String
+  run_invocation_cid : String
+  submission_scope_cid : String
+  unit_definition_cid : String
+  purpose : LocalSigningPurpose
+} derive(Eq, @debug.Debug)
+
+type LocalSigningCredentialUse
+
+pub(all) enum LocalSigningPurpose {
+  ReviewerProof
+  HostAttestation
+} derive(Eq, @debug.Debug)
 
 type RemoteCredentialGrant
 

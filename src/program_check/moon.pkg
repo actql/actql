@@ -34,6 +34,7 @@ import {
   "actql/actql/expression_syntax",
   "actql/actql/source_value" @source,
   "actql/actql/calendar_typing" @calendar,
+  "actql/actql/calendar_profile",
   "actql/actql/parameter_binding" @parameters,
   "actql/actql/parameter_references" @parameter_refs,
   "actql/actql/value_admission" @value,

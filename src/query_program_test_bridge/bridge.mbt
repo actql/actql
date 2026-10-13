@@ -175,6 +175,7 @@ fn compile_query_json_checked(
     input_schemas: [],
     source_catalog: None,
     model_tasks: None,
+    calendar_profile: None,
     inputs: [
       {
         relation: [{ value: relation, quoted: false, }],
@@ -269,6 +270,7 @@ pub fn compile_two_values_set_query_json(
       input_schemas: [],
       source_catalog: None,
       model_tasks: None,
+      calendar_profile: None,
       inputs: [
         values_input(left_name, left_json, left_fields_json),
         values_input(right_name, right_json, right_fields_json),
