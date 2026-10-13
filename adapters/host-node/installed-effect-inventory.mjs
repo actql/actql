@@ -6,6 +6,7 @@ import {composeInstalledCheckEnvironment, verifyInstalledConnectorBindings}
 import {retainInstalledHostInitializationFailure} from './installed-host-cleanup.mjs';
 import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';
 import {contentCid} from './local-account-config.mjs';
+import {composeInstalledRowEffectOwners} from './installed-row-effect.mjs';
 
 const fail = code => { throw Object.assign(new TypeError(code), {code}); };
 const text = value => typeof value === 'string' && value.length > 0;
@@ -179,6 +180,7 @@ export function installedEffectFor(inventory, descriptors) {
     fail('InstalledEffectProgramMismatch');
   }
   let owner;
+  const owners = [];
   for (const descriptor of descriptors) {
     if (!validSelector(descriptor)) fail('InstalledEffectProgramMismatch');
     const matches = inventory.effects.filter(effect => effect.effectSelectors.some(selector =>
@@ -190,8 +192,11 @@ export function installedEffectFor(inventory, descriptors) {
         ? selector.effectId === undefined || selector.effectId === descriptor.effectId
         : selector.capabilityCid === descriptor.capabilityCid)));
     if (matches.length !== 1) fail('InstalledEffectProgramMismatch');
-    if (owner !== undefined && owner !== matches[0]) fail('InstalledEffectSetOwnerMismatch');
+    owners.push(matches[0]);
     owner = matches[0];
+  }
+  if (owners.some(value => value !== owner)) {
+    return composeInstalledRowEffectOwners(owners, descriptors, inventory.environmentWire);
   }
   return owner;
 }

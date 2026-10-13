@@ -534,6 +534,22 @@ pub fn model_response_profile_completion_basis(
 }
 
 ///|
+// DATA cross-references of an already selected profile, not an installation or
+// completion grant. Runtime callers still require the original entered call.
+pub fn check_model_response_profile_probability(
+  profile : ModelResponseProfile,
+  task : ModelTaskContract,
+  probability : DecisionProbabilityProfile,
+) -> Result[Unit, ModelTaskIssueKind] {
+  check_model_response_profile_binding(
+    profile,
+    task,
+    profile.installation,
+    Some(probability),
+  )
+}
+
+///|
 pub fn model_response_profile_usage(
   value : ModelResponseProfile,
 ) -> (Int, Int, Int) {

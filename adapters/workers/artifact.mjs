@@ -52,6 +52,9 @@ export function checkWorkersArtifact(metafile, source, allowedModules) {
 // ABI translation table; they confer no publication authority.
 // Task observation has no imports; it retains an optional projection in a
 // WeakMap and freezes copied facts. It adds no task completion authority or I/O.
+// The Client wire index and its three closed generated schemas perform only
+// structural validation with pure JavaScript and TextEncoder. They import no
+// provider, transport, Node builtin or external package.
 // No namespace-wide permission.
 // The Carrier snapshot transport is dependency-free: it uses typed arrays,
 // text codecs and timers, and calls the supplied Store lease. It imports no
@@ -89,9 +92,14 @@ export const conformanceModules = [
   'adapters/host-common/run-publication-preflight.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
+  'packages/client-wire/index.mjs',
+  'packages/client-wire/client-host.generated.js',
+  'packages/client-wire/interactive-control.generated.js',
+  'packages/client-wire/publication.generated.js',
   'adapters/host-common/runtime-result.mjs',
   'adapters/host-common/result-output-limits.mjs',
   'adapters/workers/host.mjs',
+  'adapters/workers/finite.mjs',
   'adapters/host-common/local-js-host.mjs',
   'adapters/host-common/scoped-strategy.mjs',
   'adapters/workers/invocation.mjs',
@@ -127,9 +135,18 @@ export const hostModules = [
   'adapters/host-common/run-publication-preflight.mjs',
   'adapters/host-common/publication-action.mjs',
   'adapters/host-common/runtime-core.mjs',
+  'packages/client-wire/index.mjs',
+  'packages/client-wire/client-host.generated.js',
+  'packages/client-wire/interactive-control.generated.js',
+  'packages/client-wire/publication.generated.js',
   'adapters/host-common/runtime-result.mjs',
   'adapters/host-common/result-output-limits.mjs',
   'adapters/workers/host.mjs',
+  'adapters/workers/finite.mjs',
   'adapters/host-common/local-js-host.mjs',
   'adapters/host-common/scoped-strategy.mjs',
 ];
+
+// Same audited product closure with an independent source-free test Owner.
+export const finiteConformanceModules = [...conformanceModules,
+  'adapters/workers/finite-runtime-fixture.mjs'];

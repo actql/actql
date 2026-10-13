@@ -22,6 +22,14 @@ test "delivery lookup matches each original scope field without a renewed grant"
     index, manifest, grant, "answer", "json", "original-read", "2026-09-18T01:00:00.000Z",
     32768, 256, 16,
   ).unwrap()
+  assert_eq(
+    delivery_attempt_requested_at(attempt),
+    Ok("2026-09-18T01:00:00.000Z"),
+  )
+  assert_true(
+    delivery_attempt_requested_at(grant)
+    is Err(DeliveryIssuanceWrongContract(_)),
+  )
   let scope : DeliveryAttemptLookupScope = {
     namespace_id: "namespace_id",
     authority_scope_cid: delivery_test_cid("4"),

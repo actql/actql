@@ -178,11 +178,11 @@ test "JOIN range properties retain precise unknown-range and work refusals" {
 test "JOIN scoped ORDER binds a parenthesized current range without reviving an old range" {
   ignore(
     checked_join_range_property(
-      "FROM objects AS l |> JOIN others AS r ON l.id = r.id |> SELECT l.id, l.payload |> AS current |> ORDER BY ((current)).payload.score NULLS LAST",
+      "FROM objects AS l |> JOIN others AS r ON l.id = r.id |> SELECT l.id, l.payload |> AS `current` |> ORDER BY ((current)).payload.score NULLS LAST",
     ),
   )
   let query = @query.parse_query(
-    "FROM objects AS l |> JOIN others AS r ON l.id = r.id |> SELECT l.id, l.payload |> AS current |> ORDER BY ((l)).payload.score NULLS LAST",
+    "FROM objects AS l |> JOIN others AS r ON l.id = r.id |> SELECT l.id, l.payload |> AS `current` |> ORDER BY ((l)).payload.score NULLS LAST",
     syntax_limits(),
   ).unwrap()
   assert_true(
@@ -195,7 +195,7 @@ test "JOIN scoped ORDER binds a parenthesized current range without reviving an 
 test "ordinary scoped ORDER uses the same existing range-property binder" {
   let actual = compile(
     @query.parse_query(
-      "FROM pair |> AS current |> ORDER BY ((current)).x + 1 |> SELECT current.x",
+      "FROM pair |> AS `current` |> ORDER BY ((current)).x + 1 |> SELECT current.x",
       syntax_limits(),
     ).unwrap(),
     pair_context(),
@@ -230,7 +230,7 @@ test "CTE current-range property ORDER retains ordinary Relation scope" {
     },
   ).unwrap()
   let query = @query.parse_query(
-    "WITH seed AS (SELECT 1 AS unit), objects AS (SELECT 2 AS id, @a AS payload FROM seed UNION ALL SELECT 1 AS id, @b AS payload FROM seed UNION ALL SELECT 3 AS id, @c AS payload FROM seed), others AS (SELECT 1 AS id, @oa AS other FROM seed UNION ALL SELECT 2 AS id, @ob AS other FROM seed UNION ALL SELECT 3 AS id, @oc AS other FROM seed UNION ALL SELECT 2 AS id, @od AS other FROM seed) FROM objects |> AS current |> ORDER BY ((current)).payload.score NULLS LAST |> SELECT current.id AS id, current.payload.score AS score",
+    "WITH seed AS (SELECT 1 AS unit), objects AS (SELECT 2 AS id, @a AS payload FROM seed UNION ALL SELECT 1 AS id, @b AS payload FROM seed UNION ALL SELECT 3 AS id, @c AS payload FROM seed), others AS (SELECT 1 AS id, @oa AS other FROM seed UNION ALL SELECT 2 AS id, @ob AS other FROM seed UNION ALL SELECT 3 AS id, @oc AS other FROM seed UNION ALL SELECT 2 AS id, @od AS other FROM seed) FROM objects |> AS `current` |> ORDER BY ((current)).payload.score NULLS LAST |> SELECT current.id AS id, current.payload.score AS score",
     syntax_limits(),
   ).unwrap()
   let context = {
@@ -252,7 +252,7 @@ test "CTE current-range property ORDER retains ordinary Relation scope" {
     _ => fail("the original object parameters remain required")
   }
   let used = @query.parse_query(
-    "WITH seed AS (SELECT 1 AS unit), objects AS (SELECT 2 AS id, @a AS payload FROM seed UNION ALL SELECT 1 AS id, @b AS payload FROM seed UNION ALL SELECT 3 AS id, @c AS payload FROM seed) FROM objects |> AS current |> ORDER BY ((current)).payload.score NULLS LAST |> SELECT current.id AS id, current.payload.score AS score",
+    "WITH seed AS (SELECT 1 AS unit), objects AS (SELECT 2 AS id, @a AS payload FROM seed UNION ALL SELECT 1 AS id, @b AS payload FROM seed UNION ALL SELECT 3 AS id, @c AS payload FROM seed) FROM objects |> AS `current` |> ORDER BY ((current)).payload.score NULLS LAST |> SELECT current.id AS id, current.payload.score AS score",
     syntax_limits(),
   ).unwrap()
   match compile(used, context, construction_limits()) {

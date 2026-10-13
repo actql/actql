@@ -82,12 +82,14 @@ export function retainPinnedEffectDependencyPayloads({
   return bindings;
 }
 
-// Prepare every pinned member under one retention and source-binding policy.
+// Prepare every pinned member under one retention policy. The private optional
+// vector preserves each original occurrence's source binding; it is not a new
+// identity domain or permission to share another installation's custody.
 // MoonBit alone decides whether two members own the same live Result view.
 // The caller retains the pins and receives every distinct physical owner;
 // durable holdings remain independent even when members share these bytes.
 export async function preparePinnedEffectSourceSet({
-  maxMembers, maxGroupingWork, ...options
+  maxMembers, maxGroupingWork, memberSourceBindings, ...options
 }) {
   const {moon, inputs, control, signal} = options;
   if (!Number.isSafeInteger(maxMembers) || maxMembers < 1 ||
@@ -105,10 +107,58 @@ export async function preparePinnedEffectSourceSet({
   if (!Number.isSafeInteger(count) || count < 1 || count > maxMembers) {
     throw new RangeError('EffectSourceMemberLimit');
   }
+  let bindings;
+  if (memberSourceBindings !== undefined) {
+    if (!Array.isArray(memberSourceBindings) ||
+        !Object.isFrozen(memberSourceBindings) ||
+        memberSourceBindings.length !== count) {
+      throw new TypeError('InvalidEffectMemberSourceBindings');
+    }
+    bindings = [];
+    for (let index = 0; index < count; index++) {
+      const slot = Object.getOwnPropertyDescriptor(memberSourceBindings, index);
+      const entry = slot?.value;
+      const member = Object.getOwnPropertyDescriptor(entry ?? {}, 'memberIndex');
+      const binding = Object.getOwnPropertyDescriptor(entry ?? {}, 'sourceBindingCid');
+      if (entry === null || typeof entry !== 'object' ||
+          !Object.isFrozen(entry) || member?.value !== index ||
+          typeof binding?.value !== 'string' ||
+          binding.value.length !== 71 ||
+          !/^sha256:[0-9a-f]{64}$/u.test(binding.value)) {
+        throw new TypeError('InvalidEffectMemberSourceBindings');
+      }
+      bindings.push(binding.value);
+    }
+    Object.freeze(bindings);
+  }
+  let remaining = maxGroupingWork;
+  if (bindings !== undefined) {
+    // A dependent Result is also an import producer. Splitting its source
+    // bindings requires an independently admitted dependency inventory; never
+    // silently flatten that inventory to one representative member.
+    if (options.localEvidenceContext?.acquiredEvidence !== undefined ||
+        options.localEvidenceContext?.acquiredEvidenceByUnit !== undefined ||
+        typeof moon.clientProgramEffectResultImportCount !== 'function') {
+      throw new TypeError('UnsupportedDependentEffectMemberSourceBindings');
+    }
+    for (let index = 0; index < count; index++) {
+      if (remaining === 0) throw new RangeError('EffectSourceGroupingLimit');
+      remaining--;
+      const table = moon.clientProgramEffectTableInputAt?.(inputs, index);
+      const stage = table === undefined ? moon.clientProgramEffectInputStage(
+        moon.clientProgramEffectInputAt(inputs, index))
+        : moon.clientProgramEffectTableInputStage(table);
+      const imports = moon.clientProgramEffectResultImportCount(options.checkedOwner, stage);
+      if (!Number.isSafeInteger(imports) || imports !== 0) {
+        throw new TypeError('UnsupportedDependentEffectMemberSourceBindings');
+      }
+    }
+  }
   // A source-free Model is not itself an imported Local Result. Preserve
   // the existing self-contained capture when no Effect input imports another
   // Unit; a populated dependency inventory would have no admitted roots.
-  const importedSourceFree = options.localEvidenceContext?.sourceFreeDependencyClosure === true &&
+  const importedSourceFree = bindings === undefined &&
+    options.localEvidenceContext?.sourceFreeDependencyClosure === true &&
     Array.from({length: count}, (_, index) => {
       const table = moon.clientProgramEffectTableInputAt?.(inputs, index);
       const input = moon.clientProgramEffectInputAt(inputs, index);
@@ -120,7 +170,7 @@ export async function preparePinnedEffectSourceSet({
     return prepareDependentEffectSourceSet(options, count, maxGroupingWork);
   }
   const groups = [];
-  let remaining = maxGroupingWork;
+  const duplicateManifestMembers = new Set();
   // A private source does not replace the ordinary Result namespace in its
   // Unit Manifest. Keep the complete checked declarations, not a synthetic
   // empty Result map or invented Effect member.
@@ -150,8 +200,19 @@ export async function preparePinnedEffectSourceSet({
   for (let index = 0; index < count; index++) {
     signal?.throwIfAborted();
     if (!shares(index, index)) throw new TypeError('UnavailableEffectSource');
-    const group = groups.find(value => shares(value[0], index));
-    if (group === undefined) groups.push([index]);
+    let sharedManifest = false;
+    const group = groups.find(value => {
+      const sameView = shares(value[0], index);
+      if (sameView) sharedManifest = true;
+      return sameView && (bindings === undefined ||
+        bindings[value[0]] === bindings[index]);
+    });
+    if (group === undefined) {
+      groups.push([index]);
+      // Moon's original live Result view proof, never equal content or CID,
+      // permits one logical Manifest entry across independent source custody.
+      if (sharedManifest) duplicateManifestMembers.add(index);
+    }
     else group.push(index);
   }
   const owned = {...options,
@@ -167,10 +228,13 @@ export async function preparePinnedEffectSourceSet({
     for (const indexes of groups) {
       const payload = await preparePinnedEffectSourcePayloadOwned({
         ...owned, memberIndex: indexes[0],
+        ...(bindings === undefined ? {} : {
+          sourceBindingCid: bindings[indexes[0]],
+        }),
         ...(owned.onProposalRow === undefined ? {} : {
           proposalMemberIndexes: indexes,
         }),
-      }, manifestSet);
+      }, manifestSet, undefined, duplicateManifestMembers.has(indexes[0]));
       payloads.push(payload);
       for (const memberIndex of indexes) {
         members[memberIndex] = Object.freeze({memberIndex, payload});
@@ -587,7 +651,7 @@ async function preparePinnedEffectSourcePayloadOwned({
   control, invocation, retention, sourceBindingCid, contractLimits, signal,
   localEvidenceContext,
   onProposalRow, proposalMemberIndexes, proposalLimits,
-}, manifestSet, local) {
+}, manifestSet, local, duplicateManifestMember = false) {
   if (typeof store?.createPreparedObjectWriter !== 'function' ||
       typeof store.storeAuthorityCid !== 'string' ||
       typeof moon?.clientProgramIssueCapturedEffectInputLocalResultDefinition !==
@@ -844,7 +908,9 @@ async function preparePinnedEffectSourcePayloadOwned({
       tableInput: table,
       contractLimits: Object.freeze({...contractLimits}),
     }));
-    manifestSet?.get(unitIndex).artifacts.push(localResultArtifact);
+    if (!duplicateManifestMember) {
+      manifestSet?.get(unitIndex).artifacts.push(localResultArtifact);
+    }
     return payload;
   } catch (failure) {
     const pendingOwners = [];

@@ -1314,8 +1314,9 @@ the selected [GoogleSQL IN operator](https://docs.cloud.google.com/bigquery/docs
 Array parameters retain their existing membership contract. General element
 expressions and annotated ARRAY constructors retain ordinary common admission;
 they are not rewritten into literal lists or stripped of their annotations.
-Those forms remain unsupported by the current membership expression profile,
-not invalid GoogleSQL. An ordinary SELECT ARRAY remains an `array` expression.
+The existing common membership owner checks the ARRAY item domain and preserves
+its NULL and empty-set rules. Incompatible item domains are rejected. An
+ordinary SELECT ARRAY remains an `array` expression.
 
 `[expression, ...]` and `ARRAY[expression, ...]` preserve the authored element
 order and duplicates through the ordinary finite `array` expression. Elements

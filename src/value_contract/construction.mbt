@@ -41,9 +41,7 @@ pub fn content_reference_contract(
     return None
   }
   if media_type is Some(media) {
-    if media.is_empty() ||
-      @scalar.admit_utf8_length(media, max_name_bytes) is Err(_) ||
-      @canonical.normalize_nfc_lf(media) != Ok(media) {
+    if admit_content_media_type_descriptor(media, max_name_bytes) is Err(_) {
       return None
     }
   }

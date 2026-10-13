@@ -1,6 +1,7 @@
 supported_targets = "native"
 
 import {
+  "actql/actql/remote_bundle" @bundle_protocol,
   "actql/actql/execution_site" @site,
   "actql/actql/physical_manifest" @manifest,
   "actql/actql/platform_native/filesystem",
