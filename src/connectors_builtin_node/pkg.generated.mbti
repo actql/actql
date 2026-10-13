@@ -1359,6 +1359,8 @@ pub fn client_program_local_values_unit_source_json(@run_publication_host.Prepar
 
 pub fn client_program_matches_request_identity(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientRequestIdentity) -> Bool
 
+pub fn client_program_model_async_native_decision_request_plan(@model_execution.ModelRequest, @model_execution.NativeDecisionRequest, @model_execution.AdmittedModelProvider, Int64, Int64, Int64, Int64, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, @check_environment.DecisionProbabilityProfile, (@model_execution.ModelCallEntry) -> @model_execution.ModelPhysicalCall?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
+
 pub fn client_program_model_async_physical_request_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, @check_environment.ModelResponseProfile, @check_environment.ModelResponseProfileInstallation, (@model_execution.ModelCallEntry) -> @model_execution.ModelPhysicalCall?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_model_capture(@model_execution.ModelObservation) -> @model_execution.ModelCaptureBundle?
