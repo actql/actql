@@ -18,6 +18,7 @@ if TYPE_CHECKING:
 
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
+from ._local_native_holding import _NativeHoldingLease
 
 LOCAL_CORE_ABI = 73
 
@@ -647,7 +648,8 @@ class LocalCore:
     def __init__(self, module: bytes | None, *, digest: str, transfer_capacity: int, resources: LocalCoreResources,
                  slots: int = 32, fuel: int = 100_000_000,
                  _compiled_image: _InstalledImageInput | None = None,
-                 _host_capacity_bytes: int = 0) -> None:
+                 _host_capacity_bytes: int = 0,
+                 _physical_holding: _NativeHoldingLease | None = None) -> None:
         from ._local_engine import _InstalledImageInput
         from ._local_image_recipe import _SelectedImageRecipe
         original_valid = (type(module) is bytes and hashlib.sha256(module).hexdigest() == digest
@@ -663,11 +665,8 @@ class LocalCore:
             _compiled_image.recipe.validate()
             if fuel != 100_000_000:
                 raise ValueError('Installed Local image requires the original instruction fuel')
-        # Remote-only imports never import or initialize the optional engine.
-        try:
-            wasmtime = import_module('wasmtime')
-        except ImportError as error:
-            raise RuntimeError('Python Local requires the optional Wasmtime runtime') from error
+        if _physical_holding is not None and type(_physical_holding) is not _NativeHoldingLease:
+            raise ValueError('Invalid original native holding')
         self._lock = RLock()
         self._identity = object()
         self._nonce = secrets.randbelow(2**63 - 1) + 1
@@ -691,7 +690,16 @@ class LocalCore:
         self._store: Any = None
         self._module: Any = None
         self._linker: Any = None
+        if _physical_holding is not None:
+            _physical_holding._bind_core(self._identity)
+        self._physical_holding = _physical_holding
         try:
+            # Keep an already supplied holding through optional import failure.
+            # Remote-only imports never initialize the optional engine.
+            try:
+                wasmtime = import_module('wasmtime')
+            except ImportError as error:
+                raise RuntimeError('Python Local requires the optional Wasmtime runtime') from error
             if _compiled_image is not None:
                 _compiled_image.recipe.validate()
                 from ._local_engine import _configure_selected_engine, _verify_loaded_runtime
@@ -3635,6 +3643,13 @@ class LocalCore:
         if getattr(self, '_store', None) is not None:
             self._store.close()
             self._store = None
+        if getattr(self, '_physical_holding', None) is not None:
+            # Store success retires the executable Wasm Root. A final native
+            # unmap failure retains only this same Core identity and original
+            # holding for physical retirement retry; never reopen that Root or
+            # repeat already retired Store/native handles.
+            self._physical_holding.close()
+            self._physical_holding = None
         self._closed = True
         self._inputs.clear()
         self._loans.clear()

@@ -1,5 +1,7 @@
 """Original handle/FFI doubles and actual file integrity; no native Engine execution."""
 from dataclasses import replace
+from copy import copy, deepcopy
+from ctypes import c_void_p, cast, POINTER
 import hashlib
 import json
 from pathlib import Path
@@ -14,6 +16,7 @@ from actql_sdk._local_engine import (_InstalledImageInput, _checked_installed_im
     _configure_selected_engine, _verify_loaded_runtime)
 from actql_sdk._local_image_recipe import _recipe_from_original
 from actql_sdk._local_product import InstalledLocalHost
+from actql_sdk._local_native_holding import _NativeHoldingLease, NativeHoldingRetirementError
 from image_fixture import ORIGINAL, IMAGE, ENGINE
 import test_local_distribution as distribution_fixture
 
@@ -51,6 +54,24 @@ class FFI:
             if name == self.fail_setting: raise RuntimeError('independent config setter failure')
             return None
         return setter
+
+
+class NativeRetirement:
+    """Pointer/status double; no library loading, native allocation or unmap."""
+
+    def __init__(self, events, replies):
+        self.events, self.replies = events, list(replies)
+
+    def __call__(self, slot):
+        pointer = cast(slot, POINTER(c_void_p))
+        self.events.append(('retire', pointer.contents.value))
+        reply = self.replies.pop(0)
+        if isinstance(reply, BaseException):
+            raise reply
+        code, cleared = reply
+        if cleared:
+            pointer.contents.value = None
+        return code
 
 
 class InstalledImageTests(unittest.TestCase):
@@ -193,7 +214,7 @@ class InstalledImageTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.create(_host_capacity_bytes=1)
 
-    def _construct_with_baseline(self, failures=0):
+    def _construct_with_baseline(self, failures=0, holding=None):
         calls = []
         self.engine.failures = failures
         linker = Handle('linker', self.events)
@@ -210,7 +231,8 @@ class InstalledImageTests(unittest.TestCase):
                 patch('actql_sdk._local_engine._verify_loaded_runtime'), \
                 patch('actql_sdk._local_core._validate_core_module'):
             core = LocalCore(None, digest='b' * 64, transfer_capacity=65536,
-                resources=resources, _compiled_image=self.image, _host_capacity_bytes=4096)
+                resources=resources, _compiled_image=self.image, _host_capacity_bytes=4096,
+                _physical_holding=holding)
         return core, calls
 
     def test_exact_initial_root_projection_and_no_second_baseline_on_close(self):
@@ -245,3 +267,113 @@ class InstalledImageTests(unittest.TestCase):
         self.assertEqual([name for name, args in calls], ['open', 'close'])
         self.assertEqual([event[1] for event in self.events if event[0] == 'close'],
                          ['linker', 'module', 'engine', 'store', 'store'])
+
+    def _holding(self, replies):
+        retire = NativeRetirement(self.events, replies)
+        library = SimpleNamespace(actql_owned_try_close=retire)
+        original = c_void_p(123)  # Independent pointer scalar, not an allocation.
+        holding = _NativeHoldingLease(original, library)
+        self.assertIsNone(original.value)
+        return holding, library
+
+    def test_holding_failure_after_store_success_retries_only_original_holding(self):
+        holding, library = self._holding([(-2, False), (0, True)])
+        core, calls = self._construct_with_baseline(holding=holding)
+        identity = core._identity
+        with self.assertRaises(NativeHoldingRetirementError) as failure:
+            core.close()
+        self.assertEqual(failure.exception.code, -2)
+        self.assertIs(core._identity, identity)
+        self.assertIs(core._physical_holding, holding)
+        self.assertIs(holding._library, library)
+        self.assertEqual(holding._pointer.value, 123)
+        self.assertIsNone(core._store)
+        self.assertFalse(core._closed)
+        self.assertTrue(core._retired)
+        with self.assertRaisesRegex(RuntimeError, 'closed'):
+            core._call('buffer', 'open')
+        self.assertTrue(core.close()); self.assertTrue(core.close())
+        self.assertIsNone(core._physical_holding)
+        self.assertEqual([name for name, _ in calls], ['open', 'close'])
+        self.assertEqual([event for event in self.events if event[0] in ('close', 'retire')],
+            [('close', 'linker'), ('close', 'module'), ('close', 'engine'),
+             ('close', 'store'), ('retire', 123), ('retire', 123)])
+
+    def test_store_failure_does_not_retire_holding_until_store_success(self):
+        holding, _ = self._holding([(0, True)])
+        core, _ = self._construct_with_baseline(holding=holding)
+        self.store.failures = 1
+        with self.assertRaises(OSError): core.close()
+        self.assertIs(core._store, self.store)
+        self.assertIs(core._physical_holding, holding)
+        self.assertFalse(any(event[0] == 'retire' for event in self.events))
+        self.assertTrue(core.close())
+        self.assertEqual(self.events[-2:], [('close', 'store'), ('retire', 123)])
+
+    def test_child_failure_does_not_retire_store_or_holding(self):
+        holding, _ = self._holding([(0, True)])
+        core, _ = self._construct_with_baseline(failures=1, holding=holding)
+        with self.assertRaises(OSError): core.close()
+        self.assertIs(core._store, self.store)
+        self.assertIs(core._physical_holding, holding)
+        self.assertFalse(any(event[0] == 'retire' for event in self.events))
+        self.assertTrue(core.close())
+
+    def test_unconfirmed_or_exceptional_retirement_does_not_mark_core_closed(self):
+        for reply in ((0, False), (True, True), OSError('Unknown physical retirement')):
+            with self.subTest(reply=reply):
+                self.setUp()
+                holding, _ = self._holding([reply, (0, True)])
+                core, calls = self._construct_with_baseline(holding=holding)
+                with self.assertRaises((NativeHoldingRetirementError, OSError)):
+                    core.close()
+                self.assertFalse(core._closed)
+                self.assertIsNone(core._store)
+                self.assertEqual(holding._pointer.value, 123)
+                self.assertTrue(core.close())
+                self.assertEqual([name for name, _ in calls], ['open', 'close'])
+
+    def test_optional_import_failure_retains_same_holding_when_retirement_fails(self):
+        holding, _ = self._holding([(-2, False), (0, True)])
+        with patch('actql_sdk._local_core.import_module', side_effect=ImportError('Missing runtime')):
+            with self.assertRaises(LocalCoreInitializationError) as failure:
+                self.create(_physical_holding=holding)
+        core = failure.exception.cleanup_core
+        self.assertIs(core._physical_holding, holding)
+        self.assertIsNone(core._store)
+        self.assertFalse(core._closed)
+        self.assertTrue(core._retired)
+        self.assertIsInstance(failure.exception.__cause__, RuntimeError)
+        self.assertTrue(core.close()); self.assertTrue(core.close())
+        self.assertEqual(self.events, [('retire', 123), ('retire', 123)])
+
+    def test_optional_import_failure_retires_holding_without_run_or_store(self):
+        holding, _ = self._holding([(0, True)])
+        with patch('actql_sdk._local_core.import_module', side_effect=ImportError('Missing runtime')):
+            with self.assertRaisesRegex(RuntimeError, 'optional Wasmtime'):
+                self.create(_physical_holding=holding)
+        self.assertEqual(self.events, [('retire', 123)])
+        self.assertIsNone(holding._pointer.value)
+
+    def test_holding_slot_single_consumption_and_copy_refusal(self):
+        retire = NativeRetirement(self.events, [(0, True)])
+        library = SimpleNamespace(actql_owned_try_close=retire)
+        slot = c_void_p(123)
+        holding = _NativeHoldingLease(slot, library)
+        with self.assertRaises(ValueError): _NativeHoldingLease(slot, library)
+        with self.assertRaises(TypeError): copy(holding)
+        with self.assertRaises(TypeError): deepcopy(holding)
+        holding.close(); holding.close()
+        self.assertEqual(self.events, [('retire', 123)])
+
+    def test_holding_cannot_transfer_to_second_core_before_or_after_retirement(self):
+        holding, _ = self._holding([(0, True)])
+        core, _ = self._construct_with_baseline(holding=holding)
+        with patch('actql_sdk._local_core.import_module', side_effect=AssertionError('Second engine')):
+            with self.assertRaisesRegex(ValueError, 'already transferred'):
+                self.create(_physical_holding=holding)
+        self.assertIs(holding._core_identity, core._identity)
+        self.assertTrue(core.close())
+        with patch('actql_sdk._local_core.import_module', side_effect=AssertionError('Second engine')):
+            with self.assertRaisesRegex(ValueError, 'already transferred'):
+                self.create(_physical_holding=holding)
