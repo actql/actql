@@ -50,14 +50,23 @@ class OriginalWorkerProcess:
     def __init__(self, funding: OriginalWorkerFunding | None, slot: OriginalWorkerSlot,
                  *, executable: Path | None, executable_bytes: int | None,
                  executable_sha256: str | None,
+                 executable_image: Path | None, executable_link: str | None,
                  environment: tuple[tuple[str, str], ...] | None) -> None:
         if type(funding) is not OriginalWorkerFunding:
             raise LocalWorkerFundingUnavailable('Original worker physical funding is unavailable')
         if (type(slot) is not OriginalWorkerSlot or slot._funding is not funding
                 or not isinstance(executable, Path) or not executable.is_absolute()
+                or not isinstance(executable_image, Path) or not executable_image.is_absolute()
                 or type(executable_bytes) is not int or not 0 < executable_bytes <= 2**63 - 1
                 or not _hex(executable_sha256, 64) or type(environment) is not tuple):
             raise ValueError('Original installed worker launch selection is unavailable')
+        if (any('\x00' in str(path) or not 0 < len(os.fsencode(path)) <= 4096
+                for path in (executable, executable_image))
+                or executable_link is None and executable != executable_image
+                or executable_link is not None and (type(executable_link) is not str
+                    or '\x00' in executable_link or not 0 < len(os.fsencode(executable_link)) <= 4096
+                    or Path(os.path.abspath(executable.parent / executable_link)) != executable_image)):
+            raise ValueError('Invalid original worker executable image selection')
         selected: dict[str, str] = {}
         for item in environment:
             if (type(item) is not tuple or len(item) != 2 or type(item[0]) is not str
@@ -70,6 +79,8 @@ class OriginalWorkerProcess:
         self._lock = RLock()
         self._funding, self._slot = funding, slot
         self._executable, self._executable_bytes = executable, executable_bytes
+        self._executable_image, self._executable_link = executable_image, executable_link
+        self._launch_identity: tuple[int, int, int, int] | None = None
         self._executable_sha256 = executable_sha256
         self._environment = selected
         self._descriptors: list[_OriginalDescriptor] = []
@@ -150,7 +161,8 @@ class OriginalWorkerProcess:
     def _verify_executable(self) -> None:
         # Keep this descriptor in the same process carrier before metadata,
         # reads or close can fail. A generic file context loses close Unknown.
-        original = _OriginalDescriptor(os.open(self._executable,
+        self._verify_launch_original()
+        original = _OriginalDescriptor(os.open(self._executable_image,
             os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC))
         self._descriptors.append(original)
         primary: BaseException | None = None
@@ -183,6 +195,24 @@ class OriginalWorkerProcess:
                 if primary is None:
                     raise
 
+    def _verify_launch_original(self) -> None:
+        """Keep the selected venv launch path; never replace it with realpath.
+
+        The supplier explicitly selected this one link and readonly image.
+        This necessary consistency check is not child startup attestation or
+        an atomic pathname execution guarantee. No arbitrary link traversal.
+        """
+        if self._executable_link is None:
+            return
+        selected = os.lstat(self._executable)
+        if not stat.S_ISLNK(selected.st_mode) or os.readlink(self._executable) != self._executable_link:
+            raise ValueError('Original worker launch link changed')
+        identity = (selected.st_dev, selected.st_ino, selected.st_mtime_ns, selected.st_ctime_ns)
+        if self._launch_identity is None:
+            self._launch_identity = identity
+        elif identity != self._launch_identity:
+            raise ValueError('Original worker launch link identity changed')
+
     def spawn(self) -> None:
         with self._lock:
             self._launchable()
@@ -205,6 +235,7 @@ class OriginalWorkerProcess:
                 actions.append((os.POSIX_SPAWN_CLOSE, slot_action[1]))
                 self._funding.require_launch()
                 self._launchable()
+                self._verify_launch_original()
                 pid = os.posix_spawn(str(self._executable),
                     (str(self._executable), '-I', '-m', 'actql_sdk._local_worker_entry'),
                     dict(self._environment), file_actions=actions, setpgroup=0)

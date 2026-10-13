@@ -28,7 +28,8 @@ class WorkerProcessTests(unittest.TestCase):
             setattr(self, name.replace('.', '_'), value)
         self._read_file = self.OriginalWorkerProcess__verify_executable
         self.options = {'executable': Path('/installed/bin/python'), 'executable_bytes': 8192,
-            'executable_sha256': 'a' * 64, 'environment': (('LANG', 'C.UTF-8'),)}
+            'executable_sha256': 'a' * 64, 'executable_image': Path('/installed/bin/python'),
+            'executable_link': None, 'environment': (('LANG', 'C.UTF-8'),)}
         self.process = OriginalWorkerProcess(self.funding, self.slot, **self.options)
 
     def assert_no_execution_ack(self):
@@ -248,3 +249,58 @@ class WorkerExecutableTests(unittest.TestCase):
         # One previous slot-open temporary close, one executable close.
         self.assertTrue(self.case.slot._closed)
         self.case.os_posix_spawn.assert_not_called(); self.case.assert_no_execution_ack()
+
+
+class WorkerInterpreterSelectionTests(unittest.TestCase):
+    def setUp(self):
+        self.case = WorkerExecutableTests(); self.case.setUp()
+        self.addCleanup(self.case.doCleanups)
+        self.process = self.case.process
+        self.process._executable = Path('/installed/venv/bin/python')
+        self.process._executable_image = Path('/installed/runtime/bin/python3.12')
+        self.process._executable_link = '/installed/runtime/bin/python3.12'
+        self.link_status = SimpleNamespace(st_mode=0o120755, st_dev=7, st_ino=15,
+            st_mtime_ns=1, st_ctime_ns=2)
+        self.case.case.case.os_lstat.side_effect = lambda path: self.link_status
+        wrapper = patch('actql_sdk._local_worker_process.os.readlink', return_value=self.process._executable_link)
+        self.readlink = wrapper.start(); self.addCleanup(wrapper.stop)
+
+    def test_selected_image_is_checked_without_replacing_venv_launch_path(self):
+        _VERIFY_EXECUTABLE(self.process)
+        self.case.case.case.os_open.assert_called_with(Path('/installed/runtime/bin/python3.12'),
+            os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        self.assertEqual(self.process._executable, Path('/installed/venv/bin/python'))
+        self.assertEqual(self.process._launch_identity, (7, 15, 1, 2))
+
+    def test_image_missing_and_implicit_link_mapping_refuse_at_selection(self):
+        case = self.case.case
+        for changes in ({'executable_image': None}, {'executable_image': Path('relative')},
+                {'executable_image': Path('/different/python'), 'executable_link': None},
+                {'executable_link': '/unrelated/python'}, {'executable_link': True}):
+            with self.assertRaises(ValueError):
+                OriginalWorkerProcess(case.funding, case.slot, **(case.options | changes))
+        case.os_posix_spawn.assert_not_called()
+
+    def test_changed_link_target_refuses_before_opening_image(self):
+        self.readlink.return_value = '/unrelated/python'
+        before = self.case.case.case.os_open.call_count
+        with self.assertRaises(ValueError): _VERIFY_EXECUTABLE(self.process)
+        self.assertEqual(self.case.case.case.os_open.call_count, before)
+        self.case.case.os_posix_spawn.assert_not_called()
+
+    def test_replaced_same_target_link_identity_refuses(self):
+        self.process._verify_launch_original(); self.link_status.st_ino = 16
+        with self.assertRaises(ValueError): self.process._verify_launch_original()
+        self.case.case.os_posix_spawn.assert_not_called()
+
+    def test_regular_file_cannot_replace_selected_link(self):
+        self.link_status.st_mode = 0o100755
+        with self.assertRaises(ValueError): self.process._verify_launch_original()
+        self.readlink.assert_not_called()
+
+    def test_link_metadata_change_after_image_read_refuses_at_spawn_boundary(self):
+        _VERIFY_EXECUTABLE(self.process); self.link_status.st_ctime_ns = 3
+        with self.assertRaises(ValueError): self.process._verify_launch_original()
+        self.assertTrue(self.process._descriptors[0].closed)
+        self.case.case.os_posix_spawn.assert_not_called()
+
