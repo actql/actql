@@ -521,10 +521,13 @@ test "selected setup requires independent positive diagnostic ceiling before res
     let profile = { ..host_setup_test_profile(), diagnostic_ceiling: ceiling, }
     let site = host_setup_test_site(2)
     let checks = [0]
-    assert_true(begin_holder_effect_host_setup_scope(site, Some(profile), () => {
-      checks[0] += 1
-      true
-    }) is None)
+    assert_true(
+      begin_holder_effect_host_setup_scope(site, Some(profile), () => {
+        checks[0] += 1
+        true
+      })
+      is None,
+    )
     assert_eq(checks[0], 0)
     assert_eq(@site.site_status(site)[7], 0L)
   }

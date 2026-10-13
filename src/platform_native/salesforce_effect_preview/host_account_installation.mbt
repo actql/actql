@@ -139,13 +139,15 @@ fn install_host_account_with_read(
       read_scope_current~,
     ) {
     Ok(_) =>
-      Ok(Some({
-        selected,
-        read_ceiling,
-        diagnostic_ceiling,
-        on_read_failure,
-        read_scope_current,
-      }))
+      Ok(
+        Some({
+          selected,
+          read_ceiling,
+          diagnostic_ceiling,
+          on_read_failure,
+          read_scope_current,
+        }),
+      )
     Err(issue) => Err(issue)
   }
 }
@@ -175,7 +177,10 @@ pub fn install_native_effect_host_account(
         return Err(@bounded_files.Missing)
       }
       read_host_account_file_with_custody(
-        selected, limit, on_read_failure, diagnostic_ceiling~,
+        selected,
+        limit,
+        on_read_failure,
+        diagnostic_ceiling~,
       )
     },
     read_ceiling~,
