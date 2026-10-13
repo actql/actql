@@ -11,6 +11,7 @@ struct LocalSDKPayloadEncoding {
   max_bytes : Int
   mut prefix : String?
   mut issue : LocalSDKPayloadEncodingIssue?
+  mut terminal : LocalSDKDeliveryTerminal?
 }
 
 ///|
@@ -67,6 +68,7 @@ fn prepare_local_sdk_payload_encoding(
     max_bytes,
     prefix: Some(prefix),
     issue: None,
+    terminal: None,
   })
 }
 
@@ -292,6 +294,18 @@ pub fn LocalSDKPayloadEncoding::confirm_chunk(
     return Err(issue)
   }
   self.sink.confirm_chunk().map_err(issue => Sink(issue))
+}
+
+///|
+/// The ABI caller has proven the same produced output has zero bytes. Observe
+/// existing cumulative progress without fabricating a physical sink ACK.
+pub fn LocalSDKPayloadEncoding::observe_empty_output(
+  self : LocalSDKPayloadEncoding,
+) -> Result[Int64, LocalSDKPayloadEncodingIssue] {
+  if self.issue is Some(issue) {
+    return Err(issue)
+  }
+  self.sink.observe_empty_output().map_err(issue => Sink(issue))
 }
 
 ///|

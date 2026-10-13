@@ -14,6 +14,7 @@ priv enum PublicationCommitExportProjection {
   SDKReadDeliveryLookup(Int, Int)
   SDKPayloadChunk(Int, Int, Int)
   SDKPayloadReceipt(Int)
+  SDKTerminalStorage(Int)
   InspectedReference(Int)
 } derive(Eq)
 
@@ -37,6 +38,8 @@ priv struct StoredPublicationCommitExport {
   mut sdk_payload_invoked : Bool
   mut sdk_payload_parent : Int?
   mut sdk_payload_confirmed : Int64?
+  mut sdk_payload_record : (Int, Int, Int)?
+  mut sdk_payload_terminal : @local_run.LocalSDKDeliveryTerminal?
 }
 
 ///|
@@ -101,6 +104,8 @@ pub fn reserve_publication_commit_export(
     sdk_payload_invoked: false,
     sdk_payload_parent: None,
     sdk_payload_confirmed: None,
+    sdk_payload_record: None,
+    sdk_payload_terminal: None,
   }
   value.copies[handle] = (slot, physical_ticket)
   value.next_handle += 1
