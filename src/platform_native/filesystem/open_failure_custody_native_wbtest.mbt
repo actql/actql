@@ -1,5 +1,5 @@
 ///|
-fn root_lock_custody_fixture() -> String {
+fn root_lock_custody_fixture() -> String raise {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(path) else {
     fail("selected Root/Lock custody cases require an owned isolated Root")
     return ""
