@@ -85,9 +85,24 @@ test('public JSON/text controls retain independent values, ordered schema and re
     assert.equal(fixture.sourceReadCount, 2);
     if (fixture.format === 'json') {
       const body = JSON.parse(fixture.text);
-      assert.deepEqual(body.stages[0].inputs, {left: {connector: 'score_fixture', resource: 'left'},
-        right: {connector: 'score_fixture', resource: 'right'}});
-      assert.equal(body.stages[0].steps[0].merge_rankings.score, 's');
+      assert.equal(body.stages.length, 3);
+      for (const [index, resource] of ['left', 'right'].entries()) {
+        const source = body.stages[index];
+        assert.equal(source.id, `${resource}_source`);
+        assert.deepEqual(source.inputs, {remote: {connector: 'score_fixture', resource}});
+        assert.deepEqual(source.steps, [{from: 'remote', filter: 'true', as: 'all_rows'},
+          {from: 'all_rows', select: ['id', 's'], as: 'captured'}]);
+        assert.deepEqual(source.results, {rows: {from: 'captured', fields: ['id', 's']}});
+      }
+      assert.deepEqual(body.stages[2].inputs, {
+        left: {result: {stage: 'left_source', result: 'rows'}},
+        right: {result: {stage: 'right_source', result: 'rows'}},
+      });
+      const ranking = body.stages[2].steps[0].merge_rankings;
+      assert.equal(ranking.score, 's');
+      assert.equal(ranking.candidate, 'id');
+      assert.equal(ranking.k, 3);
+      assert.deepEqual(ranking.score_contract, {domain: 'Relevance', normalization: 'Identity', range: [0, 1]});
     }
   }
   assert.equal(sourceRankingPublicRefusals.length, 4);

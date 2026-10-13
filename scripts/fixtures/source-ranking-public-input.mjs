@@ -14,9 +14,16 @@ const policies = [
     text: '{weighted_sum: {left: 0.5, right: 0.5}}', score: 0.25},
 ];
 export function sourceRankingControlProgram(policy) {
-  return {version: 'actql/0.1', id: 'fixture.scored_catalog', stages: [{id: 'main',
-    inputs: {left: {connector: 'score_fixture', resource: 'left'},
-      right: {connector: 'score_fixture', resource: 'right'}},
+  // Author the normal Source acquisition boundary explicitly. A missing
+  // filter/select cannot be patched into a lowered Program by the test.
+  const captures = ['left', 'right'].map(resource => ({id: `${resource}_source`,
+    inputs: {remote: {connector: 'score_fixture', resource}},
+    steps: [{from: 'remote', filter: 'true', as: 'all_rows'},
+      {from: 'all_rows', select: ['id', 's'], as: 'captured'}],
+    results: {rows: {from: 'captured', fields: ['id', 's']}}}));
+  return {version: 'actql/0.1', id: 'fixture.scored_catalog', stages: [...captures, {id: 'main',
+    inputs: {left: {result: {stage: 'left_source', result: 'rows'}},
+      right: {result: {stage: 'right_source', result: 'rows'}}},
     steps: [{from: 'left', merge_rankings: {with: 'right', by: [], candidate: 'id',
       score: 's', k: 3, score_policy: structuredClone(policy), score_contract: structuredClone(contract)}, as: 'fused'},
     {from: 'fused', sort: [{field: 'rank', dir: 'asc', nulls: 'first'}]},
