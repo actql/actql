@@ -97,7 +97,10 @@ test "proof preparation binds each original checkpoint Run and artifact field" {
     } else {
       "foreign"
     }
-    let body = proof_preparation_unsigned_wire.replace_all(old, new=replacement)
+    let body = proof_preparation_unsigned_wire.replace_all(
+      old~,
+      new=replacement,
+    )
     assert_eq(
       prepare_resolution_proof(
         proof_preparation_checkpoint(),
