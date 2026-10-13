@@ -403,6 +403,9 @@ struct RowRun {
 priv enum RowRunConfiguration {
   DirectConfiguration(RowHostConfiguration)
   KeyedConfiguration(RowKeyedAcquisition)
+  // Same Row owner and payload shape; only this checked receiver installs
+  // original Scope liveness that must be detached after actual physical close.
+  OriginalKeyedConfiguration(RowKeyedAcquisition)
 }
 
 ///|
@@ -901,6 +904,13 @@ pub fn close_accounted_row_run(run : RowRun) -> Result[Unit, RowHostIssue] {
       Ok(_) => ()
       Err(issue) => return Err(Physical(issue))
     }
+  }
+  if run.configuration is OriginalKeyedConfiguration(acquisition) {
+    // A failed close/holding/reservation settlement returns above. Only actual
+    // same-Owner completion may sever the new original Scope/lookup borrow.
+    // The escaped acquisition stays unavailable, never silently permissive.
+    acquisition.input_available = Some(() => false)
+    physical.cleanup_confirmed = None
   }
   Ok(())
 }
