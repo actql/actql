@@ -101,7 +101,9 @@ pub fn original_keyed_prefix_dependents_retired(
   }
   for index in 2..<inventory.reservations.length() {
     let token = inventory.reservations[index]
-    if token.open || token.cleanup_pending {
+    // Pending is a live obligation only while open. A trusted successful
+    // settle may leave the historical flag set on the closed token.
+    if token.open {
       return false
     }
   }
