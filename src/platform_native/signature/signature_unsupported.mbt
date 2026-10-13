@@ -54,7 +54,13 @@ pub fn Sha256Hasher::finish_hex(
 }
 
 ///|
-pub fn load_library(_path : String) -> Result[Library, NativeSignatureIssue] {
+pub fn load_library(
+  _path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Library, NativeSignatureIssue] {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(InvalidInput)
+  }
   ignore(@utf8.encode(""))
   Err(UnsupportedTarget)
 }
@@ -75,6 +81,14 @@ pub fn Library::sign_ed25519(
   _private_key_pem : Bytes,
   _message : Bytes,
 ) -> Result[String, NativeSignatureIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Library::ed25519_public_key_raw32(
+  _self : Library,
+  _public_key_pem : String,
+) -> Result[Bytes, NativeSignatureIssue] {
   Err(UnsupportedTarget)
 }
 

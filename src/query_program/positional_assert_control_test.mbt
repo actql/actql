@@ -124,7 +124,7 @@ test "positional ASSERT keys cannot read internal values, dropped inputs or ambi
   assert_true(
     compile(
       @query.parse_query(
-        "SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-y |> AS before |> AS current |> ASSERT UNIQUE BY(before.kept) |> SELECT *) ORDER BY a,b",
+        "SELECT 0 AS a,0 AS b UNION ALL (FROM t |> SELECT x AS kept,-y |> AS before |> AS `current` |> ASSERT UNIQUE BY(before.kept) |> SELECT *) ORDER BY a,b",
         syntax_limits(),
       ).unwrap(),
       join_order_context(),

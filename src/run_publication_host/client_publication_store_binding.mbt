@@ -16,7 +16,8 @@ pub fn client_publication_store_binding_body(
   try {
     let writer = @encode.writer(4096, 8, 2)
     @encode.begin_array(writer)
-    for value in [namespace_id, authority, device.to_string(), inode.to_string()] {
+    for
+      value in [namespace_id, authority, device.to_string(), inode.to_string()] {
       @encode.string_value(writer, value)
     }
     @encode.end_array(writer)

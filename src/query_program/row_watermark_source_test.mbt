@@ -23,7 +23,7 @@ fn row_watermark_control(
 
 ///|
 fn row_watermark_source(call : String) -> String {
-  "WITH rows AS (SELECT 1 AS id, 10 AS at UNION ALL SELECT 2, 3), " +
+  "WITH `rows` AS (SELECT 1 AS id, 10 AS `at` UNION ALL SELECT 2, 3), " +
   "ordered AS (FROM rows |> ORDER BY id), " +
   "marked AS (FROM ordered AS r |> " +
   call +
@@ -148,7 +148,7 @@ test "P2 row watermark cannot resurrect dropped time or old aliases" {
   for time in ["at", "old.at"] {
     assert_true(
       with_carrier_program(
-        "WITH rows AS (SELECT 1 AS id, 10 AS at) FROM rows |> AS old |> SELECT id |> watermark_rows(time: " +
+        "WITH `rows` AS (SELECT 1 AS id, 10 AS `at`) FROM rows |> AS old |> SELECT id |> watermark_rows(time: " +
         time +
         ", late_policy: 'mark', watermark_ms: 0)",
         { ..pair_context(), inputs: [], },

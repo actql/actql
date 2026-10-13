@@ -1,0 +1,10 @@
+{
+  "name": "@actql/provider-http",
+  "version": "0.0.0-development",
+  "private": true,
+  "type": "module",
+  "engines": {"node": ">=22"},
+  "exports": {},
+  "files": ["_internal", "README.md"],
+  "dependencies": {}
+}
