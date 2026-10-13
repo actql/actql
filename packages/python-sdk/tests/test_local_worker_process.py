@@ -304,3 +304,13 @@ class WorkerInterpreterSelectionTests(unittest.TestCase):
         self.assertTrue(self.process._descriptors[0].closed)
         self.case.case.os_posix_spawn.assert_not_called()
 
+    def test_spawn_keeps_selected_venv_path_and_checks_original_image(self):
+        slot = self.case.case.case
+        slot.os_lstat.side_effect = lambda path: self.link_status if path == self.process._executable else slot.named
+        slot.os_fstat.side_effect = lambda fd: slot.status if fd == 10 else self.case.status
+        self.process.spawn()
+        args = self.case.case.os_posix_spawn.call_args.args
+        self.assertEqual(args[0], '/installed/venv/bin/python')
+        self.assertEqual(args[1][0], '/installed/venv/bin/python')
+        self.assertEqual(self.process._executable_image, Path('/installed/runtime/bin/python3.12'))
+        self.case.case.assert_no_execution_ack()
