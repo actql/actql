@@ -150,8 +150,31 @@ pub fn start_keyed_row_acquisition(
   nonce : String,
   verify : (RowAttempt) -> Bool,
 ) -> Result[RowRun, RowHostIssue] {
+  start_keyed_row_acquisition_owned(acquisition, nonce, verify, None)
+}
+
+///|
+fn start_keyed_row_acquisition_owned(
+  acquisition : RowKeyedAcquisition,
+  nonce : String,
+  verify : (RowAttempt) -> Bool,
+  original : (
+    @resources.Ledger,
+    @resources.OriginalLedgerIdentity,
+    @resources.Reservation,
+    Int,
+  )?,
+) -> Result[RowRun, RowHostIssue] {
   if !keyed_acquisition_input_live(acquisition) {
     return Err(InvalidState)
+  }
+  // The existing liveness callback can alter original custody synchronously.
+  // Reject that change before registration/RowRun allocation, not after I/O.
+  if original is Some((ledger, identity, assembly, children)) &&
+    !@resources.original_keyed_child_preparation_available(
+      identity, ledger, assembly, children,
+    ) {
+    return Err(Physical(ForeignOwner))
   }
   let issuer : RowKeyedIssuer = match
     @planning.register_query_evidence_issuer(
@@ -203,10 +226,66 @@ pub fn start_accounted_keyed_row_acquisition(
   execution_scratch : Int64,
   cleanup_confirmed : (RowAttempt) -> Bool,
 ) -> Result[RowRun, RowHostIssue] {
+  start_accounted_keyed_row_acquisition_owned(
+    acquisition,
+    nonce,
+    verify,
+    ledger,
+    transfer_bytes,
+    execution_scratch,
+    cleanup_confirmed,
+    None,
+  )
+}
+
+///|
+// Core Local is the original Host's closed receiver; this is no public Node
+// Ledger getter or caller-issued permission. Ordinary acquisition is unchanged.
+pub fn start_original_accounted_keyed_row_acquisition(
+  acquisition : RowKeyedAcquisition,
+  nonce : String,
+  verify : (RowAttempt) -> Bool,
+  ledger : @resources.Ledger,
+  identity : @resources.OriginalLedgerIdentity,
+  assembly : @resources.Reservation,
+  accepted_children : Int,
+  transfer_bytes : Int64,
+  execution_scratch : Int64,
+  cleanup_confirmed : (RowAttempt) -> Bool,
+) -> Result[RowRun, RowHostIssue] {
+  start_accounted_keyed_row_acquisition_owned(
+    acquisition,
+    nonce,
+    verify,
+    ledger,
+    transfer_bytes,
+    execution_scratch,
+    cleanup_confirmed,
+    Some((ledger, identity, assembly, accepted_children)),
+  )
+}
+
+///|
+fn start_accounted_keyed_row_acquisition_owned(
+  acquisition : RowKeyedAcquisition,
+  nonce : String,
+  verify : (RowAttempt) -> Bool,
+  ledger : @resources.Ledger,
+  transfer_bytes : Int64,
+  execution_scratch : Int64,
+  cleanup_confirmed : (RowAttempt) -> Bool,
+  original : (
+    @resources.Ledger,
+    @resources.OriginalLedgerIdentity,
+    @resources.Reservation,
+    Int,
+  )?,
+) -> Result[RowRun, RowHostIssue] {
   if transfer_bytes < 0L || execution_scratch < 0L {
     return Err(Physical(InvalidLimits))
   }
-  let run = match start_keyed_row_acquisition(acquisition, nonce, verify) {
+  let run = match
+    start_keyed_row_acquisition_owned(acquisition, nonce, verify, original) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
