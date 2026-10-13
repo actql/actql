@@ -8,7 +8,7 @@ installation keeps its existing dependencies.
 This source directory is a recipe, not a shipped runtime. It contains no Wasm
 module or native library. A release producer must supply the exact committed
 source artifact and its independent build and execution receipts. The existing
-Core loader validates ABI72; an older module is not a fallback. Installed
+Core loader validates ABI73; an older module is not a fallback. Installed
 metadata must select standalone DuckDB `v1.4.3`; other library versions cannot
 enter this installed profile. The physical loader also checks the actual
 library version before use.
@@ -31,7 +31,7 @@ The supplied directory contains `artifact.json`, `engine-recipe.json`, `client_h
 - `source_sha`: the complete clean recipe/source commit.
 - `package_version`: the SDK/runtime release cohort version.
 - `platform`: `darwin-arm64`.
-- `core_abi`: the existing private Core ABI, currently 72.
+- `core_abi`: the existing private Core ABI, currently 73.
 - `wasmtime_version`: `38.0.0`.
 - `module` and `duckdb`: `{file, bytes, sha256}`, with the fixed filenames above.
 - `duckdb_version`: the actual library's `vMAJOR.MINOR.PATCH` string, independently
@@ -128,3 +128,13 @@ Receipt issuance follows native cleanup and a second original-material fence.
 The selected source-original recipe remains unavailable until reviewed; this
 script never supplies fixture values or runtime defaults for missing bounds.
 Actual `--compile` and wheel generation use the coordinator's finite lane.
+
+Private ABI73 projects a separately declared physical Host baseline into the
+same initial Core Root as the existing16MiB VM and12MiB transfer pool. It keeps
+that reservation through native Store/Engine destruction; logical pool close
+only marks cleanup pending. A zero baseline remains the declared raw diagnostic
+subset, never a product profile. The selected physical supplier must fund
+bootstrap before VM construction: this later Root projection does not supply
+that missing pre-root fact. Product capacity numbers and the selected allocator
+original remain unadopted, and ordinary installed construction still refuses
+before image capture or native initialization.

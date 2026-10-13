@@ -19,7 +19,7 @@ if TYPE_CHECKING:
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 
-LOCAL_CORE_ABI = 72
+LOCAL_CORE_ABI = 73
 
 
 class LocalCoreError(RuntimeError):
@@ -185,7 +185,7 @@ class _Output:
 
 # This is the private in-process ABI, independent of Client wire versions.
 _BUFFER_SIGNATURES = {
-    'open': ('i64 i64 i32 i32 i32 i32 i32 i64 i64 i64', 'i32'),
+    'open': ('i64 i64 i32 i32 i32 i32 i32 i64 i64 i64 i64', 'i32'),
     'reserve': ('i64 i32 i32 i64', 'i32'),
     'fill': ('i64 i32 i32 i32', 'i32'),
     'seal': ('i64 i32', 'i32'),
@@ -613,12 +613,14 @@ def _validate_core_module(wasmtime: Any, module: Any) -> None:
 
 
 def _valid_core_limits(transfer_capacity: int, slots: int, fuel: int,
-                       resources: LocalCoreResources) -> bool:
+                       resources: LocalCoreResources, host_capacity_bytes: int = 0) -> bool:
     return (type(transfer_capacity) is int and 0 < transfer_capacity <= 2**63 - 1
             and type(slots) is int and 1 <= slots <= 1024
             and type(fuel) is int and 0 < fuel <= 2**64 - 1
             and type(resources) is LocalCoreResources and resources.valid()
-            and transfer_capacity <= resources.execution_bytes - _MEMORY_LIMIT)
+            and type(host_capacity_bytes) is int and 0 <= host_capacity_bytes <= 2**63 - 1
+            and transfer_capacity <= resources.execution_bytes - _MEMORY_LIMIT - host_capacity_bytes
+            and (host_capacity_bytes == 0 or resources.attempts >= 3))
 
 
 class LocalCore:
@@ -631,17 +633,21 @@ class LocalCore:
 
     @classmethod
     def _from_installed_image(cls, components: LocalComponents, *, resources: LocalCoreResources,
-                              transfer_capacity: int, slots: int = 64) -> LocalCore:
-        if not _valid_core_limits(transfer_capacity, slots, 100_000_000, resources):
+                              transfer_capacity: int, slots: int = 64,
+                              _host_capacity_bytes: int = 0) -> LocalCore:
+        if not _valid_core_limits(transfer_capacity, slots, 100_000_000, resources,
+                                  _host_capacity_bytes):
             raise ValueError('Invalid installed Local Core artifact or capacity')
         from ._local_engine import _checked_installed_image
         image = _checked_installed_image(components)
         return cls(None, digest=components.module_sha256, transfer_capacity=transfer_capacity,
-                   resources=resources, slots=slots, _compiled_image=image)
+                   resources=resources, slots=slots, _compiled_image=image,
+                   _host_capacity_bytes=_host_capacity_bytes)
 
     def __init__(self, module: bytes | None, *, digest: str, transfer_capacity: int, resources: LocalCoreResources,
                  slots: int = 32, fuel: int = 100_000_000,
-                 _compiled_image: _InstalledImageInput | None = None) -> None:
+                 _compiled_image: _InstalledImageInput | None = None,
+                 _host_capacity_bytes: int = 0) -> None:
         from ._local_engine import _InstalledImageInput
         from ._local_image_recipe import _SelectedImageRecipe
         original_valid = (type(module) is bytes and hashlib.sha256(module).hexdigest() == digest
@@ -650,7 +656,8 @@ class LocalCore:
                 and _compiled_image.recipe.module_sha256 == digest
                 and type(_compiled_image.encoded) is bytes
                 and hashlib.sha256(_compiled_image.encoded).hexdigest() == _compiled_image.sha256)
-        if not original_valid or not _valid_core_limits(transfer_capacity, slots, fuel, resources):
+        if not original_valid or not _valid_core_limits(transfer_capacity, slots, fuel, resources,
+                                                       _host_capacity_bytes):
             raise ValueError('Invalid installed Local Core artifact or capacity')
         if _compiled_image is not None:
             _compiled_image.recipe.validate()
@@ -746,7 +753,7 @@ class LocalCore:
                                         slots, 1_048_576, resources.planning_work,
                                         resources.attempts, resources.holdings,
                                         resources.transfer_bytes, resources.retained_bytes,
-                                        resources.execution_bytes))
+                                        resources.execution_bytes, _host_capacity_bytes))
         except BaseException as error:
             self._retired = True
             self._closing = True

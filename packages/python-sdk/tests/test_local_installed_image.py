@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-from actql_sdk._local_core import LocalCore, LocalCoreResources, LocalCoreInitializationError
+from actql_sdk._local_core import LocalCore, LocalCoreResources, LocalCoreInitializationError, LOCAL_CORE_ABI
 from actql_sdk._local_distribution import LocalInstallationError
 from actql_sdk._local_engine import (_InstalledImageInput, _checked_installed_image,
     _configure_selected_engine, _verify_loaded_runtime)
@@ -177,3 +177,57 @@ class InstalledImageTests(unittest.TestCase):
                 patch.object(InstalledLocalHost, '__init__', return_value=None):
             InstalledLocalHost.installed(resources=RESOURCES)
         create.assert_called_once_with(components, transfer_capacity=12582912, slots=64, resources=RESOURCES)
+
+    def test_baseline_competes_with_vm_and_pool_before_capture(self):
+        # Independent scalar fixture, not an adopted product baseline.
+        resources = replace(RESOURCES, execution_bytes=16777216 + 65536 + 4095)
+        with patch('actql_sdk._local_engine._checked_installed_image', side_effect=AssertionError('Capture')):
+            with self.assertRaises(ValueError):
+                LocalCore._from_installed_image(object(), resources=resources,
+                    transfer_capacity=65536, _host_capacity_bytes=4096)
+        with patch('actql_sdk._local_core.import_module', side_effect=AssertionError('Native import')):
+            for invalid in (None, True, -1, 2**63):
+                with self.subTest(invalid=invalid), self.assertRaises(ValueError):
+                    self.create(_host_capacity_bytes=invalid)
+            with self.assertRaises(ValueError):
+                self.create(_host_capacity_bytes=1)
+
+    def _construct_with_baseline(self, failures=0):
+        calls = []
+        self.engine.failures = failures
+        linker = Handle('linker', self.events)
+        linker.define_func = lambda *args: None
+        linker.instantiate = lambda store, module: SimpleNamespace(exports=lambda store: {
+            'actql_host_abi_version': lambda store: LOCAL_CORE_ABI,
+            'actql_buffer_open': lambda store, *args: calls.append(('open', args)) or 0,
+            'actql_buffer_close_pool': lambda store, *args: calls.append(('close', args)) or 0})
+        self.wasmtime.Linker = lambda engine: linker
+        self.wasmtime.ValType = SimpleNamespace(i32=lambda: 'i32', i64=lambda: 'i64')
+        self.wasmtime.FuncType = lambda *args: args
+        resources = replace(RESOURCES, execution_bytes=16777216 + 65536 + 4096)
+        with patch('actql_sdk._local_core.import_module', side_effect=self.runtime), \
+                patch('actql_sdk._local_engine._verify_loaded_runtime'), \
+                patch('actql_sdk._local_core._validate_core_module'):
+            core = LocalCore(None, digest='b' * 64, transfer_capacity=65536,
+                resources=resources, _compiled_image=self.image, _host_capacity_bytes=4096)
+        return core, calls
+
+    def test_exact_initial_root_projection_and_no_second_baseline_on_close(self):
+        core, calls = self._construct_with_baseline()
+        self.assertEqual(calls, [('open', (core._nonce, 65536, 32, 1048576,
+            0, 8, 0, 0, 0, 16846848, 4096))])
+        self.assertTrue(core.close()); self.assertTrue(core.close())
+        self.assertEqual([name for name, args in calls], ['open', 'close'])
+        self.assertEqual([event[1] for event in self.events if event[0] == 'close'],
+                         ['store', 'linker', 'module', 'engine'])
+
+    def test_cleanup_failure_keeps_original_engine_without_reopening_root(self):
+        core, calls = self._construct_with_baseline(failures=1)
+        with self.assertRaises(OSError): core.close()
+        self.assertIs(core._engine, self.engine)
+        self.assertFalse(core._closed)
+        self.assertTrue(core._retired)
+        self.assertTrue(core.close())
+        self.assertEqual([name for name, args in calls], ['open', 'close'])
+        self.assertEqual([event[1] for event in self.events if event[0] == 'close'],
+                         ['store', 'linker', 'module', 'engine', 'engine'])
