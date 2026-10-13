@@ -655,6 +655,8 @@ pub fn client_local_run_policy_original_body(ClientLocalRunPolicyOriginal) -> By
 
 pub fn client_local_run_policy_original_issued_at(ClientLocalRunPolicyOriginal) -> String
 
+pub fn client_local_run_policy_original_read_dependencies(ClientLocalRunPolicyOriginal) -> Result[(String, String), ClientLocalRunPolicyProfileIssue]
+
 pub fn client_local_run_policy_original_read_expires_at(ClientLocalRunPolicyOriginal) -> String
 
 pub fn client_local_run_policy_original_retention(ClientLocalRunPolicyOriginal) -> @run_publication.PublicationContract
@@ -1082,6 +1084,8 @@ pub fn emit_prepared_client_task_pipeline(PreparedClientProgram, Int, @lowering_
 pub fn emit_prepared_client_values_pipeline(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientValuesPipelineIssue]
 
 pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[String, ClientValuesUnitSourceIssue]
+
+pub fn encode_client_local_read_preimage(Array[(String, ClientLocalReadEvidenceValue)]) -> Result[String, ClientLocalReadPreimageIssue]
 
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
 
@@ -2614,6 +2618,18 @@ pub(all) struct ClientLocalProductSDKBootstrapOriginals {
   profile : ClientLocalRunPolicyProfile
   read : @run_publication.LocalSDKResultReadSelection
 }
+
+pub(all) enum ClientLocalReadEvidenceValue {
+  Text(String)
+  Quantity(Int)
+  Texts(Array[String])
+  AllowedReads(String)
+}
+
+pub(all) enum ClientLocalReadPreimageIssue {
+  CapacityExceeded
+  Encoding
+} derive(Eq, @debug.Debug)
 
 type ClientLocalRunPolicyOriginal
 
