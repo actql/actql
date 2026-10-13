@@ -13,3 +13,6 @@ pub using @evidence {
   declared_score_contract,
   declared_score_usage,
 }
+
+///|
+pub using @evidence {source_view_scores}

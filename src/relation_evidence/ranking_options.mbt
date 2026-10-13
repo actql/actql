@@ -6,31 +6,14 @@ pub(all) enum RankingPolicy {
 } derive(Eq, Debug)
 
 ///|
-pub struct ScoreContract {
-  domain : String
-  normalization : String
-  minimum : Double
-  maximum : Double
-}
+pub type ScoreContract = @checking.ScoreContract
 
 ///|
-pub fn score_contract_domain(value : ScoreContract) -> String {
-  value.domain
-}
-
-///|
-pub fn score_contract_normalization(value : ScoreContract) -> String {
-  value.normalization
-}
-
-///|
-pub fn score_contract_minimum(value : ScoreContract) -> Double {
-  value.minimum
-}
-
-///|
-pub fn score_contract_maximum(value : ScoreContract) -> Double {
-  value.maximum
+pub using @checking {
+  score_contract_domain,
+  score_contract_normalization,
+  score_contract_minimum,
+  score_contract_maximum,
 }
 
 ///|
@@ -92,33 +75,7 @@ fn ranking_input_name(at : @decode.Cursor) -> String raise @checking.Stop {
 fn read_score_contract(
   at : @decode.Cursor,
 ) -> ScoreContract raise @checking.Stop {
-  let root = @checking.decoded(
-    @decode.closed_object(at, [
-      "domain", "range", "normalization", "higher_is_better",
-    ]),
-  )
-  let domain = ranking_input_name(
-    @checking.decoded(@decode.required(root, "domain")),
-  )
-  let normalization = ranking_input_name(
-    @checking.decoded(@decode.required(root, "normalization")),
-  )
-  if @decode.lookup(root, "higher_is_better") is Some(at) {
-    if !@checking.decoded(@decode.boolean(at)) {
-      @checking.fail(at, InvalidBody)
-    }
-  }
-  let range_at = @checking.decoded(@decode.required(root, "range"))
-  let items = @checking.decoded(@decode.elements(range_at))
-  if items.length() != 2 {
-    @checking.fail(range_at, InvalidBody)
-  }
-  let minimum = @checking.decoded(@decode.finite_number(items[0]))
-  let maximum = @checking.decoded(@decode.finite_number(items[1]))
-  if minimum > maximum {
-    @checking.fail(range_at, InvalidBody)
-  }
-  { domain, normalization, minimum, maximum, }
+  @checking.read_score_contract(at)
 }
 
 ///|

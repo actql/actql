@@ -137,6 +137,8 @@ pub fn advance_row_wire_order(RowWireOrderPreparation, Int) -> Result[(Bool, Int
 
 pub fn advance_supplied_key_validation(SuppliedKeyValidation, Int) -> Result[@bounded_execution.Observation[Int, InputKeyIssue], @bounded_execution.Issue]
 
+pub fn advance_supplied_score_validation(SuppliedScoreValidation, Int) -> Result[@bounded_execution.Observation[Int, InputScoreIssue], @bounded_execution.Issue]
+
 pub fn analytic_execution_supported(@lowering_relation.PreparedAnalytic) -> Bool
 
 pub fn analytic_execution_supported_with_numeric(@lowering_relation.PreparedAnalytic) -> Bool
@@ -440,6 +442,8 @@ pub fn cleanup_infer_rows_preparation(InferRowsPreparation) -> Result[Bool, Infe
 pub fn cleanup_prepared_infer_rows(PreparedInferRows) -> Bool
 
 pub fn cleanup_supplied_key_validation(SuppliedKeyValidation) -> Result[Bool, @bounded_execution.Issue]
+
+pub fn cleanup_supplied_score_validation(SuppliedScoreValidation) -> Result[Bool, @bounded_execution.Issue]
 
 pub fn[T] close_managed_producer_bridge(ManagedProducerBridge[T]) -> Unit
 
@@ -1349,6 +1353,8 @@ pub fn start_supplied_key_validation(@bounded_execution.Control, SuppliedRelatio
 
 pub fn start_supplied_record_guard(@bounded_execution.Control, SuppliedRelationRead, Int, FixedInputGuardMeasureLimits, Int) -> Result[FixedRecordGuardScan, FixedInputGuardIssue]
 
+pub fn start_supplied_score_validation(@bounded_execution.Control, SuppliedRelationRead, Int, Int, Int) -> Result[SuppliedScoreValidation?, InputScoreIssue]
+
 pub fn string_bytes_output_unit() -> AggregateOutputUnit
 
 pub fn supplied_key_validation_peak_entries(SuppliedKeyValidation) -> Int
@@ -1366,6 +1372,8 @@ pub fn supplied_relation_read_input_index(SuppliedRelationRead) -> Int
 pub fn supplied_relation_read_matches_input(SuppliedRelationRead, @lowering_relation.BoundPrepared, Int) -> Bool
 
 pub fn supplied_relation_read_matches_operation_input(SuppliedRelationRead, @lowering_relation.BoundPrepared, Int, Int) -> Bool
+
+pub fn supplied_relation_read_needs_score_validation(SuppliedRelationRead) -> Bool
 
 pub fn supplied_relation_read_presence_cell(SuppliedRelationRead, Int, Int) -> RelationCell?
 
@@ -2032,6 +2040,14 @@ pub(all) enum InputKeyIssue {
   Limit
 }
 
+pub(all) enum InputScoreIssue {
+  WrongOrigin
+  MissingField
+  InvalidScore(Int)
+  InvalidLimits
+  Limit
+}
+
 type LocalComputeAttempt
 
 pub(all) enum LocalComputeIssue {
@@ -2610,6 +2626,7 @@ pub(all) enum SequenceFailureKind {
   InputRepresentationRequired(Int)
   InputLimit
   InputKey(Int)
+  InputScore(Int)
   Wiring
   Capture(Int)
   Rows(Int)
@@ -2629,6 +2646,7 @@ pub(all) enum SequenceRunIssue {
   InputRepresentationRequired(Int)
   InputLimit
   InputKey(Int, InputKeyIssue)
+  InputScore(Int, InputScoreIssue)
   Wiring(WiringIssue)
   Capture(Int, CaptureIssue)
   Rows(Int, RowIssue)
@@ -2659,6 +2677,8 @@ pub(all) enum StoreIssue {
 type SuppliedKeyValidation
 
 type SuppliedRelationRead
+
+type SuppliedScoreValidation
 
 type TrustedOutputInput
 
