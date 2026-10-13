@@ -16,6 +16,7 @@ fn original_keyed_version_content(
   execution : @execution.SequenceExecutionLimits,
   measurement : @execution.FixedInputGuardMeasureLimits,
   ledger : @resources.Ledger,
+  typed_content? : Bool = false,
 ) -> Unit raise {
   let selected : Array[ClientLocalContentStep] = []
   let clean = Ref(false)
@@ -238,6 +239,11 @@ fn original_keyed_version_content(
     generation, compiled,
   ).unwrap()
   assert_eq(originals.map(item => item.0), ["files", "contents"])
+  if typed_content {
+    original_keyed_typed_content_input(
+      compiled, plan, generation, execution, measurement,
+    )
+  }
   let before = @resources.ledger_usage(ledger)
   assert_false(cleanup_client_serialization_prefix(suffix).unwrap())
   assert_eq(closes.val, 1)
