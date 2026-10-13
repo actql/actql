@@ -83,3 +83,26 @@ fn row_listing_media_projection(
     _ => Err(Value("media_type"))
   }
 }
+
+///|
+// Private pre-transfer data check against the actual append transition. A
+// valid closed body/CID or matching caller array does not establish this
+// association. This does not consume the row or issue custody/funding; the
+// existing Row owner still performs its one-shot append and capture transfer.
+fn check_row_listing_original_report(
+  read : RowSourceRead,
+  report : @publication.CompletedFileListingReportRow,
+) -> Result[Unit, RowSourceIssue] {
+  let (original, _) = match row_listing_original_report(read) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if report.row_ordinal != original.row_ordinal ||
+    report.resource_ref_cid != original.resource_ref_cid ||
+    report.version != original.version ||
+    report.reported_media_type != original.reported_media_type ||
+    report.media_type != original.media_type {
+    return Err(ListingProtocol)
+  }
+  Ok(())
+}

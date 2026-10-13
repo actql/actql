@@ -85,3 +85,45 @@ test "original listing report is unavailable before selection for duplicates and
   cancel_row_source_read(selected) |> ignore
   assert_true(row_listing_original_report(selected) is Err(ListingProtocol))
 }
+
+///|
+test "original listing correlation rejects reassignment of any closed report field" {
+  let wire = selection_row("d", "a.csv", version="9007199254740993").replace(
+    old="\"media_type\":null",
+    new="\"media_type\":\"Text/Plain;Label=\\\"é\\\"\"",
+  )
+  let read = original_listing_report_fixture(wire)
+  // Independent data oracle, not a record returned by the product extractor.
+  let expected : @publication.CompletedFileListingReportRow = {
+    row_ordinal: 0,
+    resource_ref_cid: "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    version: Some("9007199254740993"),
+    reported_media_type: Some("Text/Plain;Label=\"é\""),
+    media_type: Some("text/plain;label=\"é\""),
+  }
+  check_row_listing_original_report(read, expected).unwrap()
+  for changed in [
+    { ..expected, row_ordinal: 1, },
+    {
+      ..expected,
+      resource_ref_cid: "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    },
+    { ..expected, version: Some("9007199254740992"), },
+    { ..expected, version: None, },
+    { ..expected, reported_media_type: None, },
+    { ..expected, media_type: None, },
+    { ..expected, reported_media_type: Some("text/plain;label=\"é\""), },
+    { ..expected, reported_media_type: Some("Text/Plain;Label=\"é\""), },
+    { ..expected, media_type: Some("text/plain;label=\"é\""), },
+  ] {
+    assert_true(check_row_listing_original_report(read, changed) is Err(ListingProtocol))
+    // A rejected correlation cannot consume/reorder the actual input row.
+    assert_eq(read.rows, 0L)
+    check_row_listing_original_report(read, expected).unwrap()
+  }
+  read.listing.unwrap().page.unwrap().duplicate = true
+  assert_true(check_row_listing_original_report(read, expected) is Err(ListingProtocol))
+  read.listing.unwrap().page.unwrap().duplicate = false
+  cancel_row_source_read(read) |> ignore
+  assert_true(check_row_listing_original_report(read, expected) is Err(ListingProtocol))
+}
