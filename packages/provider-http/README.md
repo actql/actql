@@ -26,7 +26,36 @@ Endpoint/TLS/DNS and credentials remain trusted Host installation selections,
 not Program parameters. The physical transport, original durable Entry,
 current final-send gate, bounded raw read, selected Store persistence, Common
 response validation, cleanup, replay and public Named Result path are not yet
-connected here. SDK-free does not mean resource-free or currently accepted.
+connected to public installation here. SDK-free does not mean resource-free or
+currently accepted.
+
+The private `createHttpChatPreflight` supplies the existing Common async plan/call
+API with one fixed transport. It prepares endpoint/header/body/response bounds
+before Entry, records call custody before invoking the exact installed fetch and
+starts it without an intervening await, notification or reconstruction. Common
+retains final current authority/egress/one-shot validation. Known missing ports
+refuse preparation; a missing binding observed after Entry keeps Unknown and
+cannot regain a consumed start. An already aborted preparation starts no physical
+request, without declaring the original Run Cancelled.
+
+Bounded raw bytes are independently saved through the original installed raw
+port, including incomplete transport observations. JS does not decode Chat
+answers or infer completeness. Store failure/backpressure, unsuccessful reader
+or raw cleanup, and explicit one-Promise same-call reconciliation retain the
+original buffers/callbacks. Reconciliation does not rewrite terminal Unknown
+or resend. Cleanup only clears local references after the corresponding original
+physical/raw owners confirm retirement; escaped saved views remain separately
+owned. A never-settling transport remains held, not a fabricated cleanup ACK.
+
+`adapters/host-common/model-response-reader.mjs` is the single physical-reader
+source. `scripts/generate-model-response-reader.mjs` reproduces identical private
+copies for A and B; `--check` rejects drift. The current A copy is byte-unchanged.
+Independent package consumers need neither the other adapter nor its SDK.
+
+Node mechanism cases use explicit Common/Entry/saved-view doubles. A loopback
+case uses two separately configured fixture endpoints and the existing bounded
+notification Owner, one physical request each. These are not public Named Result,
+actual nominal Store ACK, current-cut, numerical funding or live acceptance.
 
 The initial profile needs explicit one-choice/no-stream/no-tools/no-retry
 conformance against two independent compatible fixtures and an authorized live
