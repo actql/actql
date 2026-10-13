@@ -2,9 +2,9 @@
 test "Pipe JOIN preserves SET DROP and RENAME range snapshots through the checker" {
   for
     (prefix, projection) in [
-      ("SET x = x + 10", "x AS current, l.x AS original, rr.k AS matched"),
-      ("DROP x", "y AS current, l.x AS original, rr.k AS matched"),
-      ("RENAME x AS current", "current, l.x AS original, rr.k AS matched"),
+      ("SET x = x + 10", "x AS `current`, l.x AS original, rr.k AS matched"),
+      ("DROP x", "y AS `current`, l.x AS original, rr.k AS matched"),
+      ("RENAME x AS `current`", "current, l.x AS original, rr.k AS matched"),
     ] {
     let text = "FROM t |> AS l |> " +
       prefix +
@@ -43,7 +43,7 @@ test "Pipe JOIN remaps evaluated slots rather than rebinding original values" {
     format=Json,
   ).unwrap()
   let actual = checked_with_join(
-    "WITH lefts AS (SELECT 1 AS x, 10 AS y), rights AS (SELECT 1 AS k), paired AS (FROM lefts |> AS l |> SET x = x + 10 |> JOIN rights AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT x AS current, l.x AS original, rr.k AS matched) FROM paired |> SELECT current, original, matched",
+    "WITH lefts AS (SELECT 1 AS x, 10 AS y), rights AS (SELECT 1 AS k), paired AS (FROM lefts |> AS l |> SET x = x + 10 |> JOIN rights AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SELECT x AS `current`, l.x AS original, rr.k AS matched) FROM paired |> SELECT current, original, matched",
     { ..fixture_context(), inputs: [], },
   )
   assert_eq(semantic(actual), semantic(expected))
@@ -52,7 +52,7 @@ test "Pipe JOIN remaps evaluated slots rather than rebinding original values" {
 ///|
 test "Pipe JOIN carries several ranges and refuses removed current names" {
   let query = @query.parse_query(
-    "FROM t AS l |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SET x = x + 10 |> JOIN r AS s ON l.x = s.k MAX_OUTPUT_ROWS 10 |> SELECT x AS current, l.x AS original, rr.k AS first, s.k AS second",
+    "FROM t AS l |> JOIN r AS rr ON l.x = rr.k MAX_OUTPUT_ROWS 10 |> SET x = x + 10 |> JOIN r AS s ON l.x = s.k MAX_OUTPUT_ROWS 10 |> SELECT x AS `current`, l.x AS original, rr.k AS first, s.k AS second",
     syntax_limits(),
   ).unwrap()
   let program = compile(query, join_order_context(), construction_limits()).unwrap()
@@ -62,7 +62,7 @@ test "Pipe JOIN carries several ranges and refuses removed current names" {
     Rejected(error) => raise @check.diagnostic_cause(error)
     _ => fail("range continuation remains closed")
   }
-  for prefix in ["DROP x", "RENAME x AS current"] {
+  for prefix in ["DROP x", "RENAME x AS `current`"] {
     assert_true(
       compile(
         @query.parse_query(
