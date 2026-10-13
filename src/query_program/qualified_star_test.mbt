@@ -32,7 +32,7 @@ test "range stars use current CTE JOIN and GROUP scopes" {
       "SELECT left_side.* FROM t AS left_side JOIN r ON left_side.x = r.k ORDER BY x",
       "SELECT right_side.*, t.x AS id FROM t LEFT JOIN r AS right_side ON t.x = right_side.k ORDER BY id",
       "SELECT o.* EXCEPT (y), COUNT(*) AS n FROM t AS o GROUP BY 1 ORDER BY x", "FROM t AS old |> SET y = -y |> SELECT old.* EXCEPT (x) |> ORDER BY y",
-      "FROM t AS old |> AS current |> SELECT current.* EXCEPT (y) |> ORDER BY x",
+      "FROM t AS old |> AS `current` |> SELECT current.* EXCEPT (y) |> ORDER BY x",
     ] {
     let wire = checked_join_order(source)
     assert_true(wire.contains("\"results\":"), msg=source)
@@ -54,7 +54,7 @@ test "range stars never revive hidden renamed or projected aliases" {
   )
   for
     source in [
-      "SELECT missing.* FROM t", "SELECT t.* FROM t AS renamed", "FROM t AS old |> AS current |> SELECT old.*",
+      "SELECT missing.* FROM t", "SELECT t.* FROM t AS renamed", "FROM t AS old |> AS `current` |> SELECT old.*",
       "FROM t AS old |> SELECT x |> SELECT old.*",
     ] {
     assert_true(

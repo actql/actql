@@ -200,7 +200,7 @@ test "GROUP HAVING implicit aliases reject ambiguity and ungrouped receivers" {
     source in [
       "SELECT payload.score, other.score, COUNT(*) AS n FROM objects GROUP BY payload.score HAVING score > 10",
       "SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY payload.score + 1 HAVING score > 10",
-      "SELECT payload.score, COUNT(*) AS n FROM objects AS current GROUP BY score HAVING objects.payload.score > 10",
+      "SELECT payload.score, COUNT(*) AS n FROM objects AS `current` GROUP BY score HAVING objects.payload.score > 10",
       "SELECT payload.score, COUNT(*) AS n FROM objects GROUP BY score HAVING other.score > 10",
     ] {
     assert_true(
