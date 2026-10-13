@@ -118,6 +118,8 @@ pub fn observe_quantities(Ledger, Reservation, tokens? : Int64?, cost_units? : I
 
 pub fn original_captured_prefix_available(Ledger, Reservation, Holding) -> Bool
 
+pub fn original_captured_prefix_reservation_available(Ledger, Reservation, Holding, Reservation) -> Bool
+
 pub fn[T] original_current_state_comparison_current(OriginalCurrentStateComparison[T], OriginalResourcePark[T]) -> OriginalCurrentStateComparison[T]?
 
 pub fn[T] original_current_state_match_current(OriginalCurrentStateMatch[T], OriginalResourcePark[T], T) -> OriginalCurrentStateMatch[T]?
@@ -126,9 +128,11 @@ pub fn[T] original_current_state_read_bounds(OriginalResourcePark[T], T) -> Resu
 
 pub fn[T] original_current_state_write_current(OriginalCurrentStateWrite[T], OriginalResourcePark[T]) -> OriginalCurrentStateWrite[T]?
 
-pub fn original_keyed_child_preparation_available(OriginalLedgerIdentity, Ledger, Reservation, Int) -> Bool
+pub fn original_keyed_child_preparation_available(OriginalLedgerIdentity, Ledger, Reservation, Int, prefix? : Reservation?) -> Bool
 
-pub fn original_ledger_captured_preparation_available(OriginalLedgerIdentity) -> Bool
+pub fn original_keyed_prefix_dependents_retired(Ledger, Reservation) -> Bool
+
+pub fn original_ledger_captured_preparation_available(OriginalLedgerIdentity, prefix? : Reservation?) -> Bool
 
 pub fn original_ledger_inventory_available(OriginalLedgerIdentity) -> Bool
 
