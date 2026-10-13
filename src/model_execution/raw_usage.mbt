@@ -1,4 +1,40 @@
 ///|
+priv enum ModelRawUsageReader {
+  ChatUsage(ChatEnvelopeDecode)
+  NativeUsage(NativeEnvelopeDecode)
+}
+
+///|
+fn model_raw_usage_facts(reader : ModelRawUsageReader) -> ChatEnvelopeFacts? {
+  match reader {
+    ChatUsage(child) => child.facts
+    NativeUsage(child) => child.facts
+  }
+}
+
+///|
+fn cancel_model_raw_usage_reader(reader : ModelRawUsageReader) -> Unit {
+  match reader {
+    ChatUsage(child) => cancel_chat_envelope_decode(child)
+    NativeUsage(child) => cancel_native_envelope_decode(child)
+  }
+}
+
+///|
+fn advance_model_raw_usage_reader(
+  reader : ModelRawUsageReader,
+) -> Result[ChatEnvelopeFacts?, ModelExecutionIssue] {
+  match reader {
+    ChatUsage(child) => advance_chat_envelope_decode(child)
+    NativeUsage(child) =>
+      advance_native_envelope_decode(child).map(root => match root {
+        None => None
+        Some(_) => child.facts
+      })
+  }
+}
+
+///|
 // Merge actual observations only. The terminal poll/result and immutable
 // evidence are not replaced by a later cleanup observation.
 fn retain_reconciled_raw_usage(
@@ -48,13 +84,13 @@ fn retire_model_raw_usage_child(
   if raw.usage_retired {
     return raw.usage_result.unwrap_or(Ok(()))
   }
-  let result = if raw.usage_reader is Some(reader) && reader.facts is Some(facts) {
+  let result = if raw.usage_reader is Some(reader) && model_raw_usage_facts(reader) is Some(facts) {
     retain_reconciled_raw_usage(call, facts)
   } else {
     Ok(())
   }
   if raw.usage_reader is Some(reader) {
-    cancel_chat_envelope_decode(reader)
+    cancel_model_raw_usage_reader(reader)
   }
   raw.usage_reader = None
   raw.usage_retired = true
@@ -77,10 +113,21 @@ pub fn advance_model_reconciled_raw_usage(
   guard model_chat_response_original(response, call) &&
     call.raw_capture is Some(raw) &&
     physical_equal(raw, response.saved_raw.original) &&
-    call.entry is Some(entry) &&
-    call.terminal is Some(PhysicalUnknown(_) | PhysicalRejected(_, _)) else {
+    call.entry is Some(entry) else {
     return Err(RequestIdentity)
   }
+  let stopped_original = match call.terminal {
+    Some(PhysicalUnknown(_) | PhysicalRejected(_, _)) => true
+    Some(PhysicalNativeResponse(native)) =>
+      model_native_response_original(native, call) &&
+      physical_equal(native.raw, response) &&
+      @bounded.session_stopped(entry.prepared.owner.session)
+    _ => false
+  }
+  // An incomplete/failed native decode may retain a nominal saved prefix.
+  // Only its stopped original execution may reconcile usage; never run two
+  // CPU readers concurrently or replace its immutable physical terminal.
+  if !stopped_original { return Err(RequestIdentity) }
   if raw.usage_retired {
     return raw.usage_result.unwrap_or(Ok(())).map(_ => {
       (true, raw.usage_work.to_int64())
@@ -110,7 +157,7 @@ fn advance_reconciled_raw_usage_owned(
   for _ in 0..<quantum {
     // Keep scanned partials before a stop, permission/clock failure, work
     // exhaustion or codec error can retire the child.
-    if raw.usage_reader is Some(reader) && reader.facts is Some(facts) {
+    if raw.usage_reader is Some(reader) && model_raw_usage_facts(reader) is Some(facts) {
       match retain_reconciled_raw_usage(call, facts) {
         Err(issue) => return finish_reconciled_raw_usage(call, raw, Err(issue))
         Ok(_) => ()
@@ -145,14 +192,18 @@ fn advance_reconciled_raw_usage_owned(
         plan.response_profile is Some(profile) else {
         return finish_reconciled_raw_usage(call, raw, Err(RequestIdentity))
       }
-      match start_chat_envelope_decode(
-        response.body, @environment.model_response_profile_limits(profile),
-      ) {
+      let limits = @environment.model_response_profile_limits(profile)
+      let child = if @environment.model_response_profile_completion_basis(profile) == "native_decision" {
+        start_native_envelope_decode(response.body, limits).map(child => NativeUsage(child))
+      } else {
+        start_chat_envelope_decode(response.body, limits).map(child => ChatUsage(child))
+      }
+      match child {
         Err(issue) => return finish_reconciled_raw_usage(call, raw, Err(issue))
         Ok(reader) => raw.usage_reader = Some(reader)
       }
     } else {
-      match advance_chat_envelope_decode(raw.usage_reader.unwrap()) {
+      match advance_model_raw_usage_reader(raw.usage_reader.unwrap()) {
         Err(issue) => return finish_reconciled_raw_usage(call, raw, Err(issue))
         Ok(None) => ()
         Ok(Some(facts)) => {

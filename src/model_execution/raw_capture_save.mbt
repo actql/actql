@@ -7,7 +7,7 @@ pub struct ModelRawCaptureSave {
   priv registration : @publication_host.ClientModelRawCaptureRegistration
   priv response : @publication.BoundModelRawResponse
   priv mut saved : ModelSavedRawReceipt?
-  priv mut usage_reader : ChatEnvelopeDecode?
+  priv mut usage_reader : ModelRawUsageReader?
   priv mut usage_result : Result[Unit, ModelExecutionIssue]?
   priv mut usage_retired : Bool
   priv mut usage_work : Int
