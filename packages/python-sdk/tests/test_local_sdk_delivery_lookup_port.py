@@ -8,7 +8,7 @@ import test_local_sdk_read_store as store_fixture
 
 class SDKDeliveryLookupPortTests(unittest.TestCase):
     def test_original_signature_copy_and_boolean_refusal_precede_abi(self):
-        self.assertEqual(LOCAL_CORE_ABI, 69)
+        self.assertEqual(LOCAL_CORE_ABI, 70)
         self.assertEqual(_PUBLICATION_COMMIT_EXPORT_SIGNATURES['produce_sdk_delivery_lookup'],
                          ('i64 i32 i32 i32 i32', 'i32'))
         core, request, output, calls, status = original_fixture.SDKReadOriginalTests.bridge(self)
