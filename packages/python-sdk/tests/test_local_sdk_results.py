@@ -3,9 +3,11 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 from actql_sdk._local_core import LocalCoreError
 from actql_sdk._local_product import LocalProductCleanupPending
+from actql_sdk._local_storage import LocalStorageError
 import test_local_sdk_preflight as preflight_fixture
 import test_local_sdk_start as start_fixture
 
@@ -163,6 +165,50 @@ class SDKResultAssemblyTests(unittest.TestCase):
             self.assertFalse(host.close())
             failures.pop(('result', 'close_chunk'))
             self.assertTrue(host.close())
+
+    def test_post_current_failure_retains_original_selected_task_for_cleanup(self):
+        with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
+            host, core, compute, preflight, publisher, calls, _ = self.host(Path(directory))
+            original_validate = core.validate_host_current
+            revoked = [False]
+
+            def validate(value):
+                if core._task_loans and not revoked[0]:
+                    revoked[0] = True
+                    raise LocalStorageError('Current changed after original task selection')
+                return original_validate(value)
+
+            with patch.object(core, 'validate_host_current', side_effect=validate):
+                with self.assertRaisesRegex(LocalStorageError, 'after original task selection'):
+                    host._execute_original_tasks(compute, preflight, publisher)
+            task = next(iter(core._task_loans.values()))
+            self.assertEqual(host._tasks, [task])
+            self.assertIs(host._tasks[0], task)
+            self.assertFalse(any((family, name) == ('task', 'start') for family, name, _ in calls))
+            self.assertTrue(host.close())
+            self.assertFalse(core._task_loans)
+
+    def test_post_current_failure_retains_original_selected_result_for_cleanup(self):
+        with TemporaryDirectory(prefix='actql-sdk-results-') as directory:
+            host, core, compute, preflight, publisher, calls, _ = self.host(Path(directory))
+            original_validate = core.validate_host_current
+            revoked = [False]
+
+            def validate(value):
+                if core._result_loans and not revoked[0]:
+                    revoked[0] = True
+                    raise LocalStorageError('Current changed after original Result selection')
+                return original_validate(value)
+
+            with patch.object(core, 'validate_host_current', side_effect=validate):
+                with self.assertRaisesRegex(LocalStorageError, 'after original Result selection'):
+                    host._execute_original_tasks(compute, preflight, publisher)
+            result = next(iter(core._result_loans.values()))
+            self.assertEqual(host._result_exports, [result])
+            self.assertIs(host._result_exports[0], result)
+            self.assertFalse(any(family == 'publication' for family, _, _ in calls))
+            self.assertTrue(host.close())
+            self.assertFalse(core._result_loans)
 
 
 if __name__ == '__main__':

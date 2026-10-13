@@ -18,7 +18,7 @@ fn scalar_pair_test_admit(wire : String) -> ClientNativeLocalRuntime {
 fn scalar_pair_test_inspect(
   current : ClientNativeLocalRuntime,
   original_assets? : ClientLocalProductAssets = scalar_pair_test_original_assets(),
-  current_assets? : ClientLocalProductAssets = client_local_product_assets(),
+  current_assets? : ClientLocalProductAssets = scalar_pair_test_reviewed_current_assets(),
 ) -> Result[
   ClientNativeLocalScalarRuntimePair,
   ClientNativeLocalScalarRuntimePairIssue,
@@ -64,7 +64,7 @@ test "scalar runtime pair keeps exact complete source and manifest identities" {
       pair.original,
       current,
       scalar_pair_test_original_assets(),
-      client_local_product_assets(),
+      scalar_pair_test_reviewed_current_assets(),
     ).map(_ => 0),
     Ok(0),
   )
@@ -81,7 +81,7 @@ test "scalar runtime pair refuses unknown or relabelled predecessor and changed 
       current,
       current,
       scalar_pair_test_original_assets(),
-      client_local_product_assets(),
+      scalar_pair_test_reviewed_current_assets(),
     ).map(_ => 0),
     Err(UnknownPredecessor),
   )
@@ -108,7 +108,7 @@ test "scalar runtime pair refuses unknown or relabelled predecessor and changed 
 test "scalar runtime pair refuses absent or altered asset bytes despite a valid manifest" {
   let current = scalar_pair_test_admit(scalar_pair_test_current_runtime_wire())
   let original_assets = scalar_pair_test_original_assets()
-  let current_assets = client_local_product_assets()
+  let current_assets = scalar_pair_test_reviewed_current_assets()
   assert_eq(
     scalar_pair_test_inspect(current, original_assets=current_assets).map(_ => 0),
     Err(AssetChanged),
@@ -146,6 +146,36 @@ test "scalar runtime pair refuses absent or altered asset bytes despite a valid 
 }
 
 ///|
+test "scalar runtime pair rejects later grammar assets even with matching manifest hashes" {
+  let current_assets = client_local_product_assets()
+  let reviewed = scalar_pair_test_reviewed_current_assets()
+  assert_true(current_assets.fragment != reviewed.fragment)
+  assert_true(current_assets.registry != reviewed.registry)
+  let parsed = @json.parse(scalar_pair_test_current_runtime_wire())
+  guard parsed is Object(fields) && fields.get("assets") is Some(Array(assets)) else {
+    fail("fixture")
+  }
+  // Offer the actual new assets with their own consistent sizes and hashes.
+  // Refusal must come from the fixed reviewed pair, not a stale manifest.
+  for asset in assets {
+    guard asset is Object(entry) && entry.get("role") is Some(String(role)) else {
+      fail("asset")
+    }
+    guard scalar_pair_asset(current_assets, role) is Some(wire) else {
+      fail("role")
+    }
+    let bytes = @utf8.encode(wire)
+    entry["bytes"] = Json::number(bytes.length().to_double())
+    entry["sha256"] = Json::string(@sha.hex(bytes))
+  }
+  let current = scalar_pair_test_admit(parsed.stringify())
+  assert_eq(
+    scalar_pair_test_inspect(current, current_assets~).map(_ => 0),
+    Err(AssetChanged),
+  )
+}
+
+///|
 test "scalar runtime pair restores only exact original correspondence bytes" {
   let pair = scalar_pair_test_inspect(
     scalar_pair_test_admit(scalar_pair_test_current_runtime_wire()),
@@ -165,7 +195,7 @@ test "scalar runtime pair restores only exact original correspondence bytes" {
         pair.original,
         pair.current,
         scalar_pair_test_original_assets(),
-        client_local_product_assets(),
+        scalar_pair_test_reviewed_current_assets(),
       ).map(_ => 0),
       Err(InvalidOriginal),
     )

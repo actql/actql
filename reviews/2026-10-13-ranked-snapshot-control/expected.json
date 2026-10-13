@@ -1,0 +1,1 @@
+{"inputs":{"left":[{"id":1,"s":0.5}],"right":[{"id":2,"s":0.5}]},"max":[{"id":1,"rank":1,"score":0.5},{"id":2,"rank":2,"score":0.5}],"weighted_sum":[{"id":1,"rank":1,"score":0.25},{"id":2,"rank":2,"score":0.25}]}

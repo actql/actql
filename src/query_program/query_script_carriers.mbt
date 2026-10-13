@@ -45,7 +45,7 @@ fn script_prefix_carrier(
       max_expression_work: sources.carrier_work,
     }) {
     Ok(checked) => checked
-    Err(issue) => raise Abort(BindingPreparation(issue))
+    Err(issue) => raise Abort(BindingPreparationSource(issue, source))
   }
   let usage = @stage_results.topology_usage(checked.topology)
   if usage.work < 0 || usage.work > sources.carrier_work {
@@ -70,8 +70,9 @@ fn script_prefix_carrier(
 fn script_carrier_operation(name : String) -> Bool {
   [
     "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
-    "to_events", "row_window", "window_events", "watermark_events", "dedupe_events",
-    "session", "events", "watermark_rows", "lag", "asof_join", "interval_join", "merge_rankings",
+    "to_events", "row_window", "calendar_bucket", "window_group", "window_events",
+    "watermark_events", "dedupe_events", "session", "events", "watermark_rows", "lag",
+    "sequence", "asof_join", "interval_join", "merge_rankings",
   ].contains(name)
 }
 
@@ -203,6 +204,21 @@ fn lower_script_carrier_calls(
   let mut input = bind_script_input(
     construction, selected, context, sources, steps, reserved,
   )
+  // The common Catalog validates every supplied snapshot against this prefix.
+  // Install the actual authored peer inputs before reading the current Carrier;
+  // later body lowering reuses these same bindings, not another acquisition.
+  for index in 0..<@query.operation_count(query) {
+    guard @query.operation_at(query, index) is Some(GraphCall(call)) &&
+      script_carrier_operation(call.operation) else {
+      break
+    }
+    for path in script_call_sources(call) {
+      let peer = resolve_relation_input(path, known)
+      ignore(
+        bind_script_input(construction, peer, context, sources, steps, reserved),
+      )
+    }
+  }
   let mut carrier = script_prefix_carrier(
     construction,
     query,
@@ -239,9 +255,11 @@ fn lower_script_carrier_calls(
       "to_vectors" => ["id", "vector"]
       "pool_vectors" => ["by", "vector"]
       "to_events" => ["id", "time"]
-      "row_window" | "watermark_rows" => ["time"]
+      "row_window" | "watermark_rows" | "calendar_bucket" => ["time"]
+      "window_group" => ["by"]
       "dedupe_events" => ["by"]
       "lag" => ["partition_by", "field"]
+      "sequence" => ["by", "id", "time"]
       "merge_rankings" => ["by", "candidate", "score", "rank", "tie_break"]
       "session" =>
         if carrier is @carrier.Relation(_) {
@@ -257,11 +275,18 @@ fn lower_script_carrier_calls(
       "score_vectors" => ["query", "metric"]
       "pool_vectors" => ["by", "vector", "method", "output_id"]
       "row_window" => ["kind", "time", "size", "step", "offset"]
+      "calendar_bucket" => ["time", "unit", "timezone", "week_start", "into"]
       "window_events" => ["kind", "size", "step", "offset"]
+      "window_group" => ["by", "aggregates"]
       "watermark_events" => ["watermark_ms", "policy"]
       "watermark_rows" => ["time", "late_policy", "watermark_ms", "max_skew"]
       "dedupe_events" => ["by", "order_by"]
       "lag" => ["partition_by", "order_by", "field", "output", "offset"]
+      "sequence" =>
+        [
+          "by", "id", "time", "pattern", "within", "overlap", "contiguity", "max_matches_per_key",
+          "max_output_rows",
+        ]
       "asof_join" =>
         [
           "with", "kind", "by", "left_id", "left_time", "right_time", "direction",
@@ -285,10 +310,14 @@ fn lower_script_carrier_calls(
       ["by", "method"]
     } else if call.operation == "row_window" {
       ["kind", "time", "size"]
+    } else if call.operation == "calendar_bucket" {
+      ["time", "unit", "timezone", "into"]
     } else if call.operation == "window_events" {
       ["kind", "size"]
     } else if call.operation == "lag" {
       ["partition_by", "order_by", "field", "output"]
+    } else if call.operation == "sequence" {
+      ["by", "id", "time", "pattern", "within", "overlap", "contiguity"]
     } else if call.operation == "asof_join" {
       [
         "with", "kind", "by", "left_time", "right_time", "direction", "tolerance",
@@ -337,6 +366,26 @@ fn lower_script_carrier_calls(
               query,
               input,
               sources,
+            )
+          } else if call.operation == "window_group" &&
+            argument.0 == "aggregates" {
+            script_window_group_aggregates(
+              construction,
+              argument.1,
+              query,
+              input,
+              sources,
+              known,
+              limits,
+            )
+          } else if call.operation == "sequence" && argument.0 == "pattern" {
+            script_sequence_pattern(
+              construction,
+              argument.1,
+              query,
+              input,
+              sources,
+              limits,
             )
           } else if ["dedupe_events", "lag"].contains(call.operation) &&
             argument.0 == "order_by" {

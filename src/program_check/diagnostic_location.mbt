@@ -307,3 +307,87 @@ pub fn diagnostic_undeclared_parameter(value : CheckDiagnostic) -> String? {
     _ => None
   }
 }
+
+///|
+/// Resolve the failed predicate through the submitted Program's original
+/// construction owner. A matching span/path is not evidence of cursor identity.
+/// Generated and unavailable origins remain unavailable to authored diagnostics.
+pub fn diagnostic_predicate_origin(
+  value : CheckDiagnostic,
+  program : @syntax.Program,
+  source : @builder.Source,
+) -> @frontend_origin.Origin? {
+  guard physical_equal(@syntax.program_body(program), @builder.cursor(source)) else {
+    return None
+  }
+  diagnostic_predicate_origin_from_source(value, source)
+}
+
+///|
+/// Preparation can reject an unfinished prefix before a complete Program
+/// exists. Resolve only the actual failure cursor in that check's immutable
+/// snapshot; equal spans, paths or copied trees cannot establish membership.
+pub fn diagnostic_predicate_origin_from_source(
+  value : CheckDiagnostic,
+  source : @builder.Source,
+) -> @frontend_origin.Origin? {
+  guard diagnostic_pipeline_issue(value) is Some(issue) &&
+    issue.kind is Operation(ExpectedBoolean) else {
+    return None
+  }
+  guard @builder.origin(source, issue.source) is Some(origin) &&
+    @frontend_origin.kind(origin) == Authored else {
+    return None
+  }
+  Some(origin)
+}
+
+///|
+/// Resolve only a checked Graph argument's original construction cursor.
+/// Program paths classify the typed refusal; they never locate source bytes.
+pub fn diagnostic_graph_argument_origin(
+  value : CheckDiagnostic,
+  program : @syntax.Program,
+  source : @builder.Source,
+) -> @frontend_origin.Origin? {
+  guard physical_equal(@syntax.program_body(program), @builder.cursor(source)) else {
+    return None
+  }
+  diagnostic_graph_argument_origin_from_source(value, source)
+}
+
+///|
+/// The immutable failed-prefix snapshot is sufficient when preparation rejects
+/// before a complete Program exists. Foreign cursors and generated origins
+/// remain unavailable, even when their text, paths or numeric spans agree.
+pub fn diagnostic_graph_argument_origin_from_source(
+  value : CheckDiagnostic,
+  source : @builder.Source,
+) -> @frontend_origin.Origin? {
+  guard diagnostic_pipeline_issue(value) is Some(issue) &&
+    issue.path.length() >= 6 &&
+    issue.path[0] is Key("stages") &&
+    issue.path[1] is Index(_) &&
+    issue.path[2] is Key("steps") &&
+    issue.path[3] is Index(_) else {
+    return None
+  }
+  let supported = match (issue.path[4], issue.path[5], issue.kind) {
+    (Key("components"), Key("kind"), Graph(InvalidBody))
+    | (Key("components"), Key("max_output_rows"), Graph(InvalidCount)) =>
+      issue.path.length() == 6
+    (
+      Key("subgraph"),
+      Key("nodes"),
+      InvalidBody
+      | GraphMatch(Structure(InvalidBody)),
+    ) => true
+    _ => false
+  }
+  guard supported &&
+    @builder.origin(source, issue.source) is Some(origin) &&
+    @frontend_origin.kind(origin) == Authored else {
+    return None
+  }
+  Some(origin)
+}

@@ -27,7 +27,7 @@ struct RowKeyedAcquisition {
   ]
   limits : RowKeyedLimits
   max_rows : Int
-  input_available : (() -> Bool)?
+  mut input_available : (() -> Bool)?
 }
 
 ///|
@@ -150,8 +150,36 @@ pub fn start_keyed_row_acquisition(
   nonce : String,
   verify : (RowAttempt) -> Bool,
 ) -> Result[RowRun, RowHostIssue] {
+  start_keyed_row_acquisition_owned(acquisition, nonce, verify, None)
+}
+
+///|
+fn start_keyed_row_acquisition_owned(
+  acquisition : RowKeyedAcquisition,
+  nonce : String,
+  verify : (RowAttempt) -> Bool,
+  original : (
+    @resources.Ledger,
+    @resources.OriginalLedgerIdentity,
+    @resources.Reservation,
+    Int,
+    @resources.Reservation?,
+  )?,
+) -> Result[RowRun, RowHostIssue] {
   if !keyed_acquisition_input_live(acquisition) {
     return Err(InvalidState)
+  }
+  // The existing liveness callback can alter original custody synchronously.
+  // Reject that change before registration/RowRun allocation, not after I/O.
+  if original is Some((ledger, identity, assembly, children, prefix)) &&
+    !@resources.original_keyed_child_preparation_available(
+      identity,
+      ledger,
+      assembly,
+      children,
+      prefix~,
+    ) {
+    return Err(Physical(ForeignOwner))
   }
   let issuer : RowKeyedIssuer = match
     @planning.register_query_evidence_issuer(
@@ -179,7 +207,11 @@ pub fn start_keyed_row_acquisition(
     }
   }
   Ok({
-    configuration: KeyedConfiguration(acquisition),
+    configuration: if original is Some(_) {
+      OriginalKeyedConfiguration(acquisition)
+    } else {
+      KeyedConfiguration(acquisition)
+    },
     issuer: KeyedIssuer(issuer),
     attempt: {
       preparation: KeyedPreparation(acquisition),
@@ -203,10 +235,68 @@ pub fn start_accounted_keyed_row_acquisition(
   execution_scratch : Int64,
   cleanup_confirmed : (RowAttempt) -> Bool,
 ) -> Result[RowRun, RowHostIssue] {
+  start_accounted_keyed_row_acquisition_owned(
+    acquisition,
+    nonce,
+    verify,
+    ledger,
+    transfer_bytes,
+    execution_scratch,
+    cleanup_confirmed,
+    None,
+  )
+}
+
+///|
+// Core Local is the original Host's closed receiver; this is no public Node
+// Ledger getter or caller-issued permission. Ordinary acquisition is unchanged.
+pub fn start_original_accounted_keyed_row_acquisition(
+  acquisition : RowKeyedAcquisition,
+  nonce : String,
+  verify : (RowAttempt) -> Bool,
+  ledger : @resources.Ledger,
+  identity : @resources.OriginalLedgerIdentity,
+  assembly : @resources.Reservation,
+  accepted_children : Int,
+  transfer_bytes : Int64,
+  execution_scratch : Int64,
+  cleanup_confirmed : (RowAttempt) -> Bool,
+  prefix? : @resources.Reservation? = None,
+) -> Result[RowRun, RowHostIssue] {
+  start_accounted_keyed_row_acquisition_owned(
+    acquisition,
+    nonce,
+    verify,
+    ledger,
+    transfer_bytes,
+    execution_scratch,
+    cleanup_confirmed,
+    Some((ledger, identity, assembly, accepted_children, prefix)),
+  )
+}
+
+///|
+fn start_accounted_keyed_row_acquisition_owned(
+  acquisition : RowKeyedAcquisition,
+  nonce : String,
+  verify : (RowAttempt) -> Bool,
+  ledger : @resources.Ledger,
+  transfer_bytes : Int64,
+  execution_scratch : Int64,
+  cleanup_confirmed : (RowAttempt) -> Bool,
+  original : (
+    @resources.Ledger,
+    @resources.OriginalLedgerIdentity,
+    @resources.Reservation,
+    Int,
+    @resources.Reservation?,
+  )?,
+) -> Result[RowRun, RowHostIssue] {
   if transfer_bytes < 0L || execution_scratch < 0L {
     return Err(Physical(InvalidLimits))
   }
-  let run = match start_keyed_row_acquisition(acquisition, nonce, verify) {
+  let run = match
+    start_keyed_row_acquisition_owned(acquisition, nonce, verify, original) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -232,7 +322,9 @@ pub fn begin_keyed_row_run(
 ) -> Result[Unit, RowHostIssue] {
   guard !run.closed &&
     run.attempt.state is Pending &&
-    run.configuration is KeyedConfiguration(acquisition) &&
+    run.configuration
+    is (KeyedConfiguration(acquisition)
+    | OriginalKeyedConfiguration(acquisition)) &&
     run.attempt.preparation is KeyedPreparation(original) &&
     physical_equal(original, acquisition) else {
     return Err(InvalidState)
@@ -290,7 +382,9 @@ pub fn begin_charged_row_run_keyed_page(
   charge : RowPageCharge,
   body : Bytes,
 ) -> Result[Unit, RowHostIssue] {
-  guard run.configuration is KeyedConfiguration(acquisition) &&
+  guard run.configuration
+    is (KeyedConfiguration(acquisition)
+    | OriginalKeyedConfiguration(acquisition)) &&
     keyed_acquisition_input_live(acquisition) else {
     abort_row_run(run)
     return Err(InvalidState)
@@ -346,7 +440,9 @@ pub fn advance_row_run_keyed_page(
   guard !run.closed && run.attempt.state is Reading(read) else {
     return Err(InvalidState)
   }
-  guard run.configuration is KeyedConfiguration(acquisition) &&
+  guard run.configuration
+    is (KeyedConfiguration(acquisition)
+    | OriginalKeyedConfiguration(acquisition)) &&
     keyed_acquisition_input_live(acquisition) else {
     abort_row_run(run)
     return Err(InvalidState)
@@ -363,7 +459,8 @@ pub fn advance_row_run_keyed_page(
 ///|
 fn keyed_retention_live(run : RowRun, retained : RowKeyedRetention) -> Bool {
   !run.closed &&
-  run.configuration is KeyedConfiguration(acquisition) &&
+  run.configuration
+  is (KeyedConfiguration(acquisition) | OriginalKeyedConfiguration(acquisition)) &&
   keyed_acquisition_input_live(acquisition) &&
   run.issuer is KeyedIssuer(issuer) &&
   run.attempt.authority is KeyedAuthority(authority) &&
@@ -402,7 +499,9 @@ pub fn retain_keyed_row_run(
     return Ok({ run, retention, })
   }
   guard !run.closed &&
-    run.configuration is KeyedConfiguration(acquisition) &&
+    run.configuration
+    is (KeyedConfiguration(acquisition)
+    | OriginalKeyedConfiguration(acquisition)) &&
     keyed_acquisition_input_live(acquisition) &&
     run.issuer is KeyedIssuer(issuer) &&
     run.attempt.authority is KeyedAuthority(authority) &&

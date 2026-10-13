@@ -29,8 +29,8 @@ test('literal membership controls distinguish matching, unknown and empty sets',
   assert.equal(source.sourceReadCount, 1);
   assert.equal(source.sourceReadSessionCount, 1);
   const all = [...inUnnestLiteralArraySuccesses, ...inUnnestLiteralArrayRefusals];
-  assert.equal(inUnnestLiteralArraySuccesses.length, 10);
-  assert.equal(inUnnestLiteralArrayRefusals.length, 7);
+  assert.equal(inUnnestLiteralArraySuccesses.length, 14);
+  assert.equal(inUnnestLiteralArrayRefusals.length, 6);
   assert.equal(new Set(all.map(value => value.name)).size, all.length);
 });
 
@@ -49,4 +49,26 @@ test('normal packed acceptance and its narrow selector register the same literal
   assert.ok(driver.includes("['scripts/fixtures/in-unnest-literal-array-source-input.mjs', 'in-unnest-literal-array-source-input.mjs']"));
   assert.match(driver, /const narrowPublicQuery = process\.argv\.some\(flag => \[[^\]]*'--in-unnest-literal-array-only'/u);
   assert.ok(driver.includes("if (process.argv.includes('--in-unnest-literal-array-only')) return;"));
+});
+
+// These are authored public-boundary expectations, not observed runtime output.
+test('general ARRAY membership corpus fixes field, conditional and lazy results', () => {
+  const cases = new Map(inUnnestLiteralArraySuccesses.map(value => [value.name, value]));
+  for (const name of ['array-field', 'conditional-array', 'lazy-array-branch']) {
+    const value = cases.get('in-unnest-literal-array-' + name);
+    assert.deepEqual(value.expected, [{included: true}]);
+    assert.deepEqual(value.columns, [{name: 'included', contract: {type: 'boolean', nullable: false}}]);
+    assert.equal(value.sourceReadCount, 0);
+    assert.equal(value.sourceReadSessionCount, 0);
+  }
+  for (const name of ['array-field', 'conditional-array']) {
+    const value = cases.get('in-unnest-literal-array-' + name);
+    assert.deepEqual(value.parameters, {xs: [2], ys: [7]});
+    assert.deepEqual(value.parameterDeclarations, {
+      xs: {type: 'array', nullable: false, max_items: 2, items: {type: 'number', nullable: false}},
+      ys: {type: 'array', nullable: false, max_items: 2, items: {type: 'number', nullable: false}},
+    });
+  }
+  assert.deepEqual(cases.get('in-unnest-literal-array-general-element').expected, [{found: true}]);
+  assert.ok(!inUnnestLiteralArrayRefusals.some(value => value.name.endsWith('-general-element')));
 });

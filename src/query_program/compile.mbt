@@ -49,6 +49,8 @@ pub(all) struct Context {
   source_catalog : @environment.SourceRequestContracts?
   // Exact selected contract owner; this does not authorize model execution.
   model_tasks : @environment.ModelTasks?
+  // Exact optional Calendar owner selected by the Host, never authored data.
+  calendar_profile : @environment.SelectedCalendarProfile?
 }
 
 ///|
@@ -101,7 +103,20 @@ pub(all) enum Issue {
   // Common metadata/pipeline preparation before selecting demanded bindings.
   // The original typed cause is retained; this is not execution admission.
   BindingPreparation(BindingPreparationIssue)
+  // Diagnostic-only snapshot from the exact failed preparation check. The
+  // snapshot is neither a completed Program nor checking/execution authority.
+  BindingPreparationSource(BindingPreparationIssue, @builder.Source)
   Admission(@program.SyntaxError)
+}
+
+///|
+/// Ordinary callers retain the original error contract without diagnostic
+/// construction annotations. No new admission or compilation occurs here.
+pub fn issue_without_source(issue : Issue) -> Issue {
+  match issue {
+    BindingPreparationSource(cause, _) => BindingPreparation(cause)
+    _ => issue
+  }
 }
 
 ///|
@@ -6824,12 +6839,16 @@ fn capture_source_boundary(
 ///|
 // Supplied source fragments are admitted projections of a compile context.
 // This frontend does not ask a provider for rows or infer schema during check.
-pub fn compile(
+
+///|
+/// Return the existing construction owner alongside its exact admitted Program
+/// for diagnostic projection only. This is the same lowering path as compile.
+pub fn compile_with_source(
   query : @query.Query,
   context : Context,
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
-) -> Result[@program.Program, Issue] {
+) -> Result[(@program.Program, @builder.Source), Issue] {
   // Binding and primary scopes must be installed before inspecting a JOIN
   // input. The standalone probe sees only Context inputs, not authored WITH
   // producers or transformed range inputs.
@@ -6837,11 +6856,12 @@ pub fn compile(
     @query.terminal_effect(query) is Some(_) ||
     @query.terminal_table_effect(query) is Some(_) ||
     has_pipe_range_input(query) ||
+    script_has_carrier_calls(query) ||
     has_cte_unnest_input(query) ||
     @query.query_binding_count(query) > 0 ||
     @query.producer_primary(query) is Some(_) ||
     @query.graph_query(query) is Some(_) {
-    return compile_query_script(
+    return compile_query_script_with_source(
       @query.single_query_script(query),
       context,
       limits,
@@ -6852,7 +6872,7 @@ pub fn compile(
     Abort(issue) => return Err(issue)
   }
   if needs_input_binding {
-    return compile_query_script(
+    return compile_query_script_with_source(
       @query.single_query_script(query),
       context,
       limits,
@@ -6882,7 +6902,7 @@ pub fn compile(
     return Err(UnsupportedGraph)
   }
   if query_has_join_set_operand(query) || query_has_mixed_cte_join_input(query) {
-    return compile_query_script(
+    return compile_query_script_with_source(
       @query.single_query_script(query),
       context,
       limits,
@@ -6893,7 +6913,7 @@ pub fn compile(
     // The Host requested a capture boundary. Reuse the script's existing
     // producer binding for raw/shared sources and derived-table CTEs, including
     // a single projected JOIN. Captured inputs cannot use the Values-only path.
-    return compile_query_script(
+    return compile_query_script_with_source(
       @query.single_query_script(query),
       context,
       limits,
@@ -7563,7 +7583,7 @@ fn compile_set_query(
   query : @query.Query,
   context : Context,
   limits : Limits,
-) -> Result[@program.Program, Issue] {
+) -> Result[(@program.Program, @builder.Source), Issue] {
   if limits.max_expression_work < 0 ||
     context.program_id == "" ||
     context.stage_id == "" ||
@@ -9147,7 +9167,7 @@ fn compile_join_query(
   query : @query.Query,
   context : Context,
   limits : Limits,
-) -> Result[@program.Program, Issue] {
+) -> Result[(@program.Program, @builder.Source), Issue] {
   if @query.join_part_count(query) == 1 {
     validate_join_using_names(@query.join_part_at(query, 0).unwrap()) catch {
       Abort(issue) => return Err(issue)
@@ -9470,4 +9490,18 @@ fn authored_join_bound(
     raise Abort(UnsupportedJoin)
   }
   bound
+}
+
+///|
+/// Ordinary compilation retains only the admitted Program. Diagnostic source
+/// annotations do not become part of its runtime retention or identity.
+pub fn compile(
+  query : @query.Query,
+  context : Context,
+  limits : Limits,
+  table_writes? : Array[TableWriteBinding] = [],
+) -> Result[@program.Program, Issue] {
+  compile_with_source(query, context, limits, table_writes~)
+  .map(pair => pair.0)
+  .map_err(issue_without_source)
 }
