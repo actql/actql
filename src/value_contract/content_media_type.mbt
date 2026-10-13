@@ -1,6 +1,6 @@
 ///|
 pub(all) enum ContentMediaTypeIssue {
-  Text(@scalar.Utf8AdmissionIssue)
+  Utf8(@scalar.Utf8AdmissionIssue)
   InvalidSyntax
   NonCanonicalCase
 } derive(Eq, Debug)
@@ -59,7 +59,7 @@ fn validate_content_media_type(
 ) -> Result[(Int, Bool), ContentMediaTypeIssue] {
   match @scalar.admit_utf8_length(reported, max_bytes) {
     Ok(_) => ()
-    Err(issue) => return Err(Text(issue))
+    Err(issue) => return Err(Utf8(issue))
   }
   let length = reported.length()
   let mut cursor = 0

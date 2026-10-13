@@ -49,18 +49,18 @@ test "Content MIME projection admits exact UTF8 limit and refuses one byte short
   )
   assert_eq(
     normalize_content_media_type_case("Text/Plain", 9),
-    Err(Text(@scalar.LimitExceeded)),
+    Err(Utf8(@scalar.LimitExceeded)),
   )
   assert_eq(
     normalize_content_media_type_case("Text/Plain", -1),
-    Err(Text(@scalar.InvalidLimit)),
+    Err(Utf8(@scalar.InvalidLimit)),
   )
   let reported = "Text/Plain;X=\"" +
     String::from_array([(0xd800).unsafe_to_char()]) +
     "\""
   assert_true(
     normalize_content_media_type_case(reported, 1024)
-    is Err(Text(@scalar.MalformedUtf16(_))),
+    is Err(Utf8(@scalar.MalformedUtf16(_))),
   )
 }
 

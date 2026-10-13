@@ -97,7 +97,7 @@ fn content_media_descriptor(
   match admit_content_media_type_descriptor(value, size) {
     Ok(_) => value
     Err(NonCanonicalCase) => invalid(cursor, NonCanonicalText)
-    Err(Text(@scalar.MalformedUtf16(_))) => invalid(cursor, InvalidUnicode)
+    Err(Utf8(@scalar.MalformedUtf16(_))) => invalid(cursor, InvalidUnicode)
     Err(_) => invalid(cursor, InvalidRange)
   }
 }
