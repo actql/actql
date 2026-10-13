@@ -61,7 +61,7 @@ export async function installCarrierContinuationFixture({moon, helpers,
   assert.deepEqual(JSON.parse(carrierContinuationSchemaWire), carrierContinuationRecordsSchema);
   await mkdir(directory, {recursive: true});
   const declaration = helpers.checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
-    registration, connectorId, revision, JSON.stringify(carrierContinuationViewSpecification), undefined));
+    connectorId, registration, revision, JSON.stringify(carrierContinuationViewSpecification), undefined));
   const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
   const bodies = declared.view_bodies.map(wire => JSON.parse(wire));
   const queryAliases = resources.map(resource => {
@@ -98,7 +98,7 @@ export async function installCarrierContinuationFixture({moon, helpers,
       baseEnvironmentWire, runtimeBundleCid}) {
       check(profile);
       const restored = helpers.checked(installedMoon.clientProgramRowSourceRestoreRelationDeclaration(
-        registration, connectorId, revision, JSON.stringify(carrierContinuationViewSpecification), declared.catalog_cid));
+        connectorId, registration, revision, JSON.stringify(carrierContinuationViewSpecification), declared.catalog_cid));
       const current = JSON.parse(installedMoon.clientProgramRowSourceDeclarationJson(restored));
       const environment = helpers.rowSourceCheckEnvironment(baseEnvironmentWire, current);
       const authorization = await helpers.installRowSourceAuthorization({
