@@ -159,5 +159,18 @@
   "verificationQualification": {
     "existing": "Author e905 JS7/7 and Root029 JS7/7 are separate source-specific narrow evidence. Root merge5f23 is adopted normally here; no product execution at this new branch yet.",
     "unexecuted": "All proposed key contract/code/runtime validation and original fresh four-package Local/HTTPS matrix are unimplemented/unexecuted by this design file. New public E2E0; no new Moon/Native/Heavy/producer/consumer/Hosted starts."
+  },
+  "packageDependencyBoundary": {
+    "observed": "src/relation_evidence/moon.pkg already imports check_environment; check_environment imports only lower Carrier/schema/value/contract owners. Adding relation_evidence.KeySet to check_environment would introduce a dependency cycle.",
+    "environmentWitness": "Keep an opaque SourceView-bound RelationKeyDeclaration in the existing environment owner: exact Member/CatalogReference, CarrierSchema/row handle, facts ContractEnvelope, original component cursors and bounded validated tuple descriptors. Expose bounded count/at accessors, not mutable arrays or an author-provided constructor. This is typed admission material in the existing owner, not another Source facts authority.",
+    "evidenceProjection": "Implement the keys projection in relation_evidence, which already depends on check_environment. It must consume the opaque admitted SourceView declaration against the exact retained schema/owner and retain normal key_pending/InputDeclaration admission obligations. No new check_environment -> relation_evidence import, structurally reconstructed fake local input, or source-rows sample is needed.",
+    "pipelineProjection": "pipeline_typing already imports both owners. Its SourceViewInput branch derives the key axis through this projection while retaining the same SourceViewInput owner; imported produced-order remains absent on the key-only route.",
+    "runtimeHandoff": "lowering_relation.preparation_input_keys already delegates to pipeline_typing.candidate_keys(Input(index)); execution_relation.sequence_driver RawInput invokes validate_captured_keys before import/dispatch. Confirm actual Source captured rows traverse this existing path and that Source/facts key obligations remain attached through query receipt and RowRun liveness."
+  },
+  "resourcesAndCheckOnly": {
+    "static": "Charge each tuple/field, UTF-8 name and descriptor to the existing cumulative body/admission work/nodes/bytes. Validate supplied facts even when no particular query consumes the key; check-only/deferred-order mode does not exempt malformed Source guarantees.",
+    "execution": "Retain the existing InputKey validation work/workspace and capacity accounting; a larger claimed key set cannot bypass reservation or move key checks outside the common control budget. Do not replace bounded upper limits with the observed three-row fixture size.",
+    "lifetime": "The original captured-input validation covers the complete supplied Relation, including repeated ids across pages, before any consumer may rely on the key. Preserve current cleanup/cancellation and admission failure atomicity. No new unbounded scanner or private evaluator is proposed.",
+    "diagnostics": "Use original facts/declaration cursors and existing typed environment/key/order failure projections. Protected Catalog facts remain non-disclosing; do not add author blame, new public reason codes or generated source positions merely for this seam."
   }
 }
