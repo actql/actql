@@ -293,7 +293,7 @@ function deliveryRecord(attempt, sequence, state, prior, extra = {}) {
 }
 
 function indexEntry(request, attempt, invocationValue, values = {}) {
-  const artifacts = physicalCapturedArtifacts(invocationValue);
+  const artifacts = physicalCapturedArtifacts(invocationValue, request);
   return seal('public_index_entry', {
     version: 'actql-public-index-entry/0.1',
     namespace_id: 'namespace-a',
@@ -324,7 +324,7 @@ const indexKeyFor = request => Object.freeze({
   runDefinitionCid: request.run_definition_cid,
 });
 
-function physicalCapturedArtifacts(invocationValue) {
+function physicalCapturedArtifacts(invocationValue, request) {
   // Independent normative shape and canonical identity, not a Core-issued
   // authorization. The containing chain remains an explicit adapter double.
   const identified = (field, body) => ({...body, [field]: canonicalCid(body)});
@@ -355,9 +355,10 @@ function physicalCapturedArtifacts(invocationValue) {
     replayability: {materialized: true, availability_evidence_cids: []},
     data_policy_cid: cids.policy,
   });
+  const selected = request.inventory[0];
   const artifact = identified('result_artifact_cid', {
     version: 'actql-result-artifact/0.1',
-    result_definition_cid: resultDefinition().result_definition_cid,
+    result_definition_cid: selected.result_definition_cid,
     invocation_cid: invocationValue.invocation_cid,
     logical_result_cid: cids.result,
     result_schema_cid: cids.schema,
@@ -370,9 +371,9 @@ function physicalCapturedArtifacts(invocationValue) {
   });
   const manifest = identified('result_manifest_cid', {
     version: 'actql-result-manifest/0.1',
-    run_definition_cid: invocationValue.invocation_cid,
+    run_definition_cid: request.run_definition_cid,
     invocation_cid: invocationValue.invocation_cid,
-    results: {answer: artifact},
+    results: {[selected.result_name]: artifact},
   });
   const receipt = identified('receipt_identity_cid', {
     version: 'actql-run-receipt/0.1',
@@ -392,7 +393,7 @@ function physicalCapturedArtifacts(invocationValue) {
     bindings: [],
     result_manifest: manifest,
     result_manifest_cid: manifest.result_manifest_cid,
-    result_artifacts: {answer: artifact},
+    result_artifacts: {[selected.result_name]: artifact},
     source_evidence: [],
     source_evidence_cids: [],
     external_observation_evidence: [],
@@ -408,8 +409,9 @@ function physicalCapturedArtifacts(invocationValue) {
   const context = identified('effect_context_cid', {
     version: 'actql-run-effect-context/0.1',
     effects: {}, effect_plans: {}, effect_plan_logical_cids: {},
-    result_values: {answer: [{answer: 'fixture durable Result payload'}]},
-    result_artifacts: {answer: artifact}, result_fields: {answer: ['answer']},
+    result_values: {[selected.result_name]: [{answer: 'fixture durable Result payload'}]},
+    result_artifacts: {[selected.result_name]: artifact},
+    result_fields: {[selected.result_name]: ['answer']},
     pending_source_state_advances: [], authoring_context: authoring,
     model_invocation_evidence: [], model_invocation_evidence_cids: [],
     effect_source_artifacts: {}, effect_source_holding_cids: {},
@@ -427,7 +429,7 @@ function physicalCapturedArtifacts(invocationValue) {
   });
 }
 
-function physicalCommitEvidence(invocationValue, binding) {
+function physicalCommitEvidence(invocationValue, binding, request) {
   // This suite isolates filesystem durability and CAS behavior with the
   // independent contract-control fixture. The product integration suite uses
   // distinct real contracts and the MoonBit commit-chain verdict.
@@ -443,15 +445,15 @@ function physicalCommitEvidence(invocationValue, binding) {
     orderings: Object.freeze([contract]),
     retentions: Object.freeze([contract]),
     durableBindings: Object.freeze([binding]),
-    ...physicalCapturedArtifacts(invocationValue),
+    ...physicalCapturedArtifacts(invocationValue, request),
   });
 }
 
 test('physical commit fixture carries distinct normative CapturedRun identities', () => {
   const invocationValue = invocation();
-  const artifacts = physicalCapturedArtifacts(invocationValue);
-  const captured = JSON.parse(artifacts.capturedRun.wire);
   const request = publicationRequest(resultDefinition(), invocationValue.invocation_cid);
+  const artifacts = physicalCapturedArtifacts(invocationValue, request);
+  const captured = JSON.parse(artifacts.capturedRun.wire);
   const entry = indexEntry(request, publicationAttempt(request), invocationValue);
   assert.equal(entry.captured_run_cid, artifacts.capturedRun.identity);
   assert.equal(entry.result_manifest_cid, artifacts.manifest.identity);
@@ -459,6 +461,16 @@ test('physical commit fixture carries distinct normative CapturedRun identities'
   assert.equal(captured.receipt.receipt_identity_cid, artifacts.receipt.identity);
   assert.equal(captured.receipt.result_manifest_cid, artifacts.manifest.identity);
   assert.equal(captured.receipt.invocation_cid, invocationValue.invocation_cid);
+  assert.equal(captured.receipt.result_manifest.run_definition_cid, request.run_definition_cid);
+  assert.deepEqual(Object.keys(captured.effect_context.result_artifacts), ['answer']);
+  const otherRequest = publicationRequest(resultDefinition('other'), cids.run);
+  const other = physicalCapturedArtifacts(invocationValue, otherRequest);
+  const otherCaptured = JSON.parse(other.capturedRun.wire);
+  assert.equal(otherCaptured.receipt.result_manifest.run_definition_cid, cids.run);
+  assert.deepEqual(Object.keys(otherCaptured.receipt.result_manifest.results), ['other']);
+  assert.equal(otherCaptured.effect_context.result_artifacts.other.result_definition_cid,
+    otherRequest.inventory[0].result_definition_cid);
+  assert.notEqual(other.capturedRun.identity, artifacts.capturedRun.identity);
   assert.equal(captured.effect_context.version, 'actql-run-effect-context/0.1');
   assert.equal(new Set([invocationValue.invocation_cid, artifacts.manifest.identity,
     artifacts.receipt.identity, artifacts.capturedRun.identity]).size, 4);
@@ -518,7 +530,7 @@ async function prepareCommit(
   await store.putPublicationContract(
     'durable_result_binding', wire(bindingValue),
   );
-  const evidence = physicalCommitEvidence(invocationValue, binding);
+  const evidence = physicalCommitEvidence(invocationValue, binding, request);
   for (const contract of [evidence.manifest, evidence.receipt, evidence.capturedRun]) {
     await store.putSemantic(contract.wire, contract.identity);
   }
