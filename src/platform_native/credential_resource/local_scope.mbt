@@ -1,4 +1,7 @@
 ///|
+// Signing is deliberately not constructed until its trusted supplier is wired.
+// Keep the typed metadata alternative and its independent refusal cases.
+#warnings("-unused_constructor")
 priv enum NativeOwnedCredentialGrant {
   RemoteGrant(@credential.RemoteCredentialGrant)
   LocalGrant(@credential.LocalCredentialGrant)
@@ -7,6 +10,8 @@ priv enum NativeOwnedCredentialGrant {
 }
 
 ///|
+// This scope cannot select an HTTP operation or grant current signing authority.
+#warnings("-unused_constructor")
 priv enum NativeOwnedCredentialScope {
   RemoteScope(NativeCredentialScope)
   LocalScope(@credential.LocalCredentialScope)
