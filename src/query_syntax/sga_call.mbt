@@ -5,6 +5,7 @@ pub(all) enum SgaArgument {
   Producer(NamePart)
   FieldReference(Array[NamePart])
   OutputName(NamePart)
+  ExpressionValue(SgaPredicate)
   TextValue(String)
   NumberValue(String)
   BooleanValue(Bool)
@@ -35,10 +36,12 @@ fn sga_operation(name : String) -> Bool {
     | "vectors"
     | "to_events"
     | "row_window"
+    | "window_group"
     | "window_events"
     | "watermark_events"
     | "watermark_rows"
     | "lag"
+    | "sequence"
     | "asof_join"
     | "interval_join"
     | "time_series"
@@ -107,9 +110,9 @@ fn carrier_call_head(token : Token) -> Bool {
     Word(name) =>
       [
         "to_vectors", "normalize_vectors", "score_vectors", "pool_vectors", "vectors",
-        "to_events", "row_window", "calendar_bucket", "window_events", "watermark_events",
-        "session", "events", "dedupe_events", "watermark_rows", "lag", "asof_join",
-        "interval_join", "merge_rankings",
+        "to_events", "row_window", "calendar_bucket", "window_group", "window_events",
+        "watermark_events", "session", "events", "dedupe_events", "watermark_rows",
+        "lag", "sequence", "asof_join", "interval_join", "merge_rankings",
       ].contains(ascii_upper(name).to_lower())
     _ => false
   }
@@ -210,6 +213,8 @@ fn sga_producer_argument(operation : String, path : Array[String]) -> Bool {
 ///|
 fn sga_selector_object(operation : String, path : Array[String]) -> Bool {
   match operation {
+    "sequence" => path == ["pattern"]
+    "window_group" => path.length() == 2 && path[0] == "aggregates"
     "asof_join" => path == ["by"]
     "interval_join" => path == ["on"] || path == ["left"] || path == ["right"]
     "merge_rankings" =>
@@ -242,6 +247,17 @@ fn QueryParser::sga_argument(
   }
   self.node()
   let token = self.peek()
+  if (operation == "sequence" && path == ["pattern", "where"]) ||
+    (
+      operation == "window_group" &&
+      path.length() == 3 &&
+      path[0] == "aggregates" &&
+      ["expr", "filter"].contains(path[2])
+    ) {
+    // Parse the original bounded query tokens once. Preserve its Expression
+    // owner, source spans and charged work; no String/JSON predicate adapter.
+    return ExpressionValue({ expression: self.expression(), })
+  }
   if token.value == Symbol(91) {
     self.symbol(91)
     let items : Array[SgaArgument] = []
@@ -296,13 +312,22 @@ fn QueryParser::sga_argument(
     return Producer(self.resolve_producer([self.name()])[0])
   }
   if token.value == Symbol(123) &&
-    ["dedupe_events", "lag"].contains(operation) &&
-    path == ["order_by"] {
+    (
+      (["dedupe_events", "lag"].contains(operation) && path == ["order_by"]) ||
+      (
+        operation == "window_group" &&
+        path.length() == 3 &&
+        path[0] == "aggregates" &&
+        path[2] == "order_by"
+      )
+    ) {
     return self.sga_order_argument(operation, depth + 1)
   }
   if token.value == Symbol(123) &&
-    ["asof_join", "interval_join"].contains(operation) &&
-    path == ["select"] {
+    (
+      (["asof_join", "interval_join"].contains(operation) && path == ["select"]) ||
+      (operation == "window_group" && path == ["aggregates"])
+    ) {
     self.symbol(123)
     let fields : Array[(String, SgaArgument)] = []
     while self.peek().value != Symbol(125) {
@@ -311,7 +336,14 @@ fn QueryParser::sga_argument(
       let name = self.sga_output_name()
       self.spend(fields.length())
       if fields.any(field => field.0 == name.value) {
-        raise QueryAbort("Duplicate temporal output name", at)
+        raise QueryAbort(
+          if operation == "window_group" {
+            "Duplicate aggregate output name"
+          } else {
+            "Duplicate temporal output name"
+          },
+          at,
+        )
       }
       self.symbol(58)
       fields.push(
@@ -330,7 +362,14 @@ fn QueryParser::sga_argument(
       }
       self.symbol(44)
       if self.peek().value == Symbol(125) {
-        raise QueryAbort("Expected temporal output name", self.peek().start)
+        raise QueryAbort(
+          if operation == "window_group" {
+            "Expected aggregate output name"
+          } else {
+            "Expected temporal output name"
+          },
+          self.peek().start,
+        )
       }
     }
     self.symbol(125)

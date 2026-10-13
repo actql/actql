@@ -34,14 +34,6 @@ pub fn cancel(
 }
 
 ///|
-pub fn poll(
-  _client : @http.Client,
-  _url : String,
-) -> Result[@remote.DispatchRequest?, NativeRemoteClientIssue] {
-  Err(UnsupportedTarget)
-}
-
-///|
 pub fn poll_operation(
   _client : @http.Client,
   _url : String,

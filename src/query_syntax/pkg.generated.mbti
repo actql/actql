@@ -108,6 +108,8 @@ pub fn set_part_at(Query, Int) -> SetPart?
 
 pub fn set_part_count(Query) -> Int
 
+pub fn sga_predicate_expression(SgaPredicate) -> Expression
+
 pub fn single_query_script(Query) -> QueryScript
 
 pub fn star_column_projection(Query, Projection, String) -> Projection
@@ -534,6 +536,7 @@ pub(all) enum SgaArgument {
   Producer(NamePart)
   FieldReference(Array[NamePart])
   OutputName(NamePart)
+  ExpressionValue(SgaPredicate)
   TextValue(String)
   NumberValue(String)
   BooleanValue(Bool)
@@ -550,6 +553,12 @@ pub(all) struct SgaCall {
   start : Int
   end : Int
 } derive(Eq, @debug.Debug)
+
+pub struct SgaPredicate {
+  expression : Expression
+}
+pub impl Eq for SgaPredicate
+pub impl @debug.Debug for SgaPredicate
 
 pub(all) struct SortTerm {
   expression : Expression

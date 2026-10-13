@@ -1,6 +1,6 @@
 # Optional Calendar source connection
 
-Adopted main: `0c6e9546f400c7972008c95ec195ac959642e014`, normally merged into
+Original adopted main: `0c6e9546f400c7972008c95ec195ac959642e014`, normally merged into
 the preserved private Calendar branch. Original implementation commit
 `d040303e2ac333e6d3c3070d8920226543b0e3b0` and all earlier failures remain in history.
 This implements the already adopted Calendar surface in LANGUAGE_CHANGES.md and
@@ -64,9 +64,9 @@ Retain the complete parent grammar/rules and Values preimages. Independently
 assemble current Values preimages using the existing non-product oracle:
 
 - Parent grammar: `sha256:04b977020143daec12a5e49925ef1024491d397ef56832339880f37170ef3700`.
-- Calendar grammar: `sha256:bfe7a8b864c3c4562654e69145e755c7428b074a2e6950d95ba2a03d550ac9d0`.
+- First submitted Calendar grammar: `sha256:bfe7a8b864c3c4562654e69145e755c7428b074a2e6950d95ba2a03d550ac9d0`.
 - Parent Values Run: `sha256:bb1e2674cd4c88bf8e3d44f72194e0adf9e392a433f211be53d08ee8bd726b52`.
-- Current Values Run: `sha256:32df49c43a64752de8f410f8312f75c3c02f55389856f62c2053a648f2fc8f45`.
+- First submitted Calendar Values Run: `sha256:32df49c43a64752de8f410f8312f75c3c02f55389856f62c2053a648f2fc8f45`.
 
 Historical vector-score literal tests now read their exact retained parent rules;
 their original preimages are not overwritten with Calendar identities.
@@ -110,3 +110,18 @@ node reviews/2026-10-13-frontend-calendar-source/prepared-checks.mjs
 node reviews/2026-10-13-frontend-calendar-source/prepared-checks.mjs --node
 node reviews/2026-10-13-frontend-calendar-source/prepared-checks.mjs --freshness
 ```
+
+## Sequence/window_group integration
+
+Normally adopt main `12f4b2220c06bc2f704d4dfe1246c1fd9e9b9ef6` after publishing the exact reviewed Calendar
+source `6fb1d4730e4670a0a76b1e64e4d75dc24bd158ed`. Preserve the Sequence
+predicate and closed window-aggregate roles together with Calendar field/output
+roles, both grammar alternatives and profile entries. The original parent
+preimages and the synthetic UTC operation/value/schema controls are unchanged.
+Current preimages describe the merged grammar; the first Calendar-only preimages
+remain immutable in the original submitted Git object. Existing generators
+project the merged pins rather than choosing either stale branch pin.
+
+The 10 JS / 5 Node fixed-source evidence belongs to 6fb1. Integration check
+results are recorded separately; Calendar physical lowering and installed
+profile admission remain unfinished. No package or public E2E run is added.
