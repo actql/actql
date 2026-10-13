@@ -780,6 +780,19 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     },
     attemptEvidence: slot => checked(moon.clientProgramInferAttemptEvidence(
       active, slot)),
+    advanceStoppedAttemptUsage(slot, quantum) {
+      if (reclaimed || typeof moon.clientProgramAdvanceInferStoppedRawUsage !== 'function') {
+        throw new Error('InstalledInferRawUsageUnavailable');
+      }
+      if (!codecInt(slot) || !codecInt(quantum, true)) {
+        throw new TypeError('InvalidInferRawUsageQuantum');
+      }
+      // Common selects the original call/child and accounts its remaining
+      // work. Closing/AbortSignal alone cannot erase partial observations or
+      // become a new dispatch authorization check for this cleanup duty.
+      const progress = checked(moon.clientProgramAdvanceInferStoppedRawUsage(active, slot, quantum));
+      return Object.freeze({complete:progress._0,work:progress._1,issue:progress._2});
+    },
     issuedAttachmentAdmission: slot => checked(moon.clientProgramIssueInferAttachmentAdmission(active, slot)),
     issuedSlotCapture: slot => checked(moon.clientProgramIssueInferSlotCapture(
       active, slot)),
