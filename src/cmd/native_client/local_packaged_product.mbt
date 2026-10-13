@@ -6,17 +6,15 @@ priv struct LocalPackagedRuntime {
   sqlite : String
   crypto : String
   assets : @run_host.ClientLocalProductAssets
-  witnesses : Array[
-    (@local_filesystem.Root, String, @local_filesystem.NativeFileGeneration),
-  ]
+  physical : @local_host.NativeLocalPackagedRuntime
 }
 
 ///|
 fn local_product_operation(operation : String) -> Bool {
   [
-    "adopt", "connect", "check", "new-submission", "lookup-submission", "checkpoint-state",
-    "lookup-preparation-grant", "lookup-preparation-raw", "lookup-cancellation",
-    "cancel", "delivery-attempt", "read", "start", "aql",
+    "adopt", "connect", "upgrade-policy", "lookup-policy-upgrade", "check", "new-submission",
+    "lookup-submission", "checkpoint-state", "lookup-preparation-grant", "lookup-preparation-raw",
+    "lookup-cancellation", "cancel", "delivery-attempt", "read", "start", "aql",
   ].contains(operation)
 }
 
@@ -61,142 +59,54 @@ fn local_product_context(
 }
 
 ///|
-fn local_product_read_member(
-  root : @local_filesystem.Root,
-  name : String,
-  bytes : Int64,
-  hash : String,
-  collect : Bool,
-) -> (String, @local_filesystem.NativeFileGeneration) raise ClientStop {
-  let generation = root
-    .inspect_generation(name)
-    .unwrap_or_else(() => stop("PackagedLocalRuntimeUnavailable"))
-    .unwrap_or_else(() => stop("PackagedLocalRuntimeUnavailable"))
-  if bytes < 1L ||
-    generation.size != bytes ||
-    bytes > 67108864L ||
-    (collect && bytes > 65536L) {
-    stop("PackagedLocalRuntimeLimit")
-  }
-  let reader = root
-    .open_reader(name, generation)
-    .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-  let hasher = @sha.hasher()
-  let retained : Array[Byte] = []
-  try {
-    let mut done = false
-    while !done {
-      let chunk = reader
-        .next(65536)
-        .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
-      @sha.update(hasher, chunk.bytes) catch {
-        _ => stop("PackagedLocalRuntimeLimit")
+fn local_packaged_runtime(
+  context_wire : String,
+) -> LocalPackagedRuntime raise ClientStop {
+  let (root, source, platform, digest) = local_product_context(context_wire)
+  let physical = match
+    @local_host.open_native_local_packaged_runtime(
+      root, source, platform, digest,
+    ) {
+    Ok(value) => value
+    Err(Pending(pending, _)) => {
+      if pending.close() is Err(_) {
+        stop("PackagedLocalRuntimeCleanupPending")
       }
-      if collect {
-        for byte in chunk.bytes {
-          retained.push(byte)
-        }
-      }
-      done = chunk.eof
+      stop("PackagedLocalRuntimeUnavailable")
     }
-    reader.finish().unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+    Err(_) => stop("PackagedLocalRuntimeUnavailable")
+  }
+  local_packaged_runtime_from_physical(physical)
+}
+
+///|
+fn local_packaged_runtime_from_physical(
+  physical : @local_host.NativeLocalPackagedRuntime,
+) -> LocalPackagedRuntime raise ClientStop {
+  try {
+    let manifest = physical
+      .manifest()
+      .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+    let assets = physical
+      .assets()
+      .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+    let (sqlite, crypto) = physical
+      .library_paths()
+      .unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+    { manifest, sqlite, crypto, assets, physical, }
   } catch {
     error => {
-      if reader.close() is Err(_) {
+      if physical.close() is Err(_) {
         stop("PackagedLocalRuntimeCleanupPending")
       }
       raise error
     }
   }
-  let digest = @sha.finish_hex(hasher) catch {
-    _ => stop("PackagedLocalRuntimeLimit")
-  }
-  if digest != hash || !root.verify_generation(name, generation) {
-    stop("PackagedLocalRuntimeChanged")
-  }
-  let wire = if collect {
-    @utf8.decode(Bytes::from_array(retained)) catch {
-      _ => stop("PackagedLocalRuntimeInvalid")
-    }
-  } else {
-    ""
-  }
-  (wire, generation)
-}
-
-///|
-fn local_packaged_runtime(
-  context_wire : String,
-) -> LocalPackagedRuntime raise ClientStop {
-  let (root_path, source_sha, platform, manifest_hash) = local_product_context(
-    context_wire,
-  )
-  let root = @local_filesystem.open_root(root_path).unwrap_or_else(() => {
-    stop("PackagedLocalRuntimeUnavailable")
-  })
-  let generation = root
-    .inspect_generation("local-runtime.json")
-    .unwrap_or_else(() => stop("PackagedLocalRuntimeUnavailable"))
-    .unwrap_or_else(() => stop("PackagedLocalRuntimeUnavailable"))
-  let (wire, manifest_generation) = local_product_read_member(
-    root,
-    "local-runtime.json",
-    generation.size,
-    manifest_hash,
-    true,
-  )
-  let manifest = @run_host.admit_client_native_local_runtime(
-    wire, source_sha, platform, manifest_hash,
-  ).unwrap_or_else(() => stop("PackagedLocalRuntimeInvalid"))
-  let witnesses = [(root, "local-runtime.json", manifest_generation)]
-  let bodies : Map[String, String] = Map([])
-  let mut sqlite = ""
-  let mut crypto = ""
-  for entry in @run_host.client_native_local_runtime_members(manifest) {
-    let parts = entry.path.split("/").map(part => part.to_owned()).to_array()
-    let parent = root
-      .open_child(parts[0])
-      .unwrap_or_else(() => stop("PackagedLocalRuntimeUnavailable"))
-    let collect = parts[0] == "data"
-    let (body, generation) = local_product_read_member(
-      parent,
-      parts[1],
-      entry.bytes,
-      entry.sha256,
-      collect,
-    )
-    witnesses.push((parent, parts[1], generation))
-    if collect {
-      bodies[entry.role] = body
-    }
-    if entry.role == "sqlite" {
-      sqlite = root_path + "/" + entry.path
-    }
-    if entry.role == "crypto" {
-      crypto = root_path + "/" + entry.path
-    }
-  }
-  {
-    manifest,
-    sqlite,
-    crypto,
-    witnesses,
-    assets: {
-      environment: bodies.get("environment").unwrap(),
-      registry: bodies.get("registry").unwrap(),
-      values: bodies.get("values").unwrap(),
-      fragment: bodies.get("fragment").unwrap(),
-      ordered: bodies.get("ordered"),
-      result_policy: bodies.get("result-policy").unwrap(),
-    },
-  }
 }
 
 ///|
 fn local_product_runtime_current(runtime : LocalPackagedRuntime) -> Bool {
-  runtime.witnesses.all(witness => {
-    witness.0.verify_generation(witness.1, witness.2)
-  })
+  runtime.physical.check_current() is Ok(_)
 }
 
 ///|
@@ -204,8 +114,6 @@ fn execute_native_local_product(
   matches : @argparse.Matches,
   operation : String,
 ) -> String raise ClientStop {
-  // An explicit configuration remains its own profile. Do not silently replace
-  // a user's selected root or repair an absent original configuration there.
   if !(matches.sources.get("config-root") is Some(@argparse.Default)) {
     stop("ExplicitLocalRootRequiresConfiguration")
   }
@@ -213,6 +121,33 @@ fn execute_native_local_product(
     stop("PackagedLocalRuntimeUnavailable")
   })
   let runtime = local_packaged_runtime(context)
+  let reply = execute_native_local_packaged_operation(
+    matches, operation, runtime,
+  ) catch {
+    error => {
+      if runtime.physical.close() is Err(_) {
+        stop("PackagedLocalRuntimeCleanupPending")
+      }
+      raise error
+    }
+  }
+  if runtime.physical.close() is Err(_) {
+    stop("PackagedLocalRuntimeCleanupPending")
+  }
+  reply
+}
+
+///|
+fn execute_native_local_packaged_operation(
+  matches : @argparse.Matches,
+  operation : String,
+  runtime : LocalPackagedRuntime,
+) -> String raise ClientStop {
+  // An explicit configuration remains its own profile. Do not silently replace
+  // a user's selected root or repair an absent original configuration there.
+  if !(matches.sources.get("config-root") is Some(@argparse.Default)) {
+    stop("ExplicitLocalRootRequiresConfiguration")
+  }
   let home = @env.get_env_var("HOME").unwrap_or_else(() => {
     stop("LocalProductHomeUnavailable")
   })
@@ -276,19 +211,41 @@ fn execute_native_local_product(
   }
   let reply = try {
     local_host_result(session.stage_configuration())
-    if text_file(configuration_root, "runtime.json", 65536L) !=
-      @run_host.client_native_local_runtime_original(runtime.manifest) {
-      stop("PackagedLocalRuntimeChanged")
+    let original_runtime_wire = text_file(
+      configuration_root, "runtime.json", 65536L,
+    )
+    let unchanged = original_runtime_wire ==
+      @run_host.client_native_local_runtime_original(runtime.manifest)
+    if !unchanged {
+      // The original staging session has authenticated these bytes. This only
+      // selects physically identical libraries for opening the original DB;
+      // it cannot authorize a Run or replace adoption/configuration originals.
+      let original = @run_host.admit_client_native_local_runtime(
+        original_runtime_wire, "109564ef9a4f8241096292843b875d4c81fbb6f3", "darwin-arm64",
+        "80731853b15f4d600ef391b3778c734bc40bfb6caed246c0c145916b419e49bd",
+      ).unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+      @run_host.validate_client_native_local_runtime_library_components(
+        original,
+        runtime.manifest,
+      ).unwrap_or_else(() => stop("PackagedLocalRuntimeChanged"))
+      |> ignore
     }
     let settings = local_host_settings(
       text_file(configuration_root, "config.json", 65536L),
     )
-    if settings.sqlite_library != runtime.sqlite ||
-      settings.signature_library != runtime.crypto ||
+    if (
+        unchanged &&
+        (
+          settings.sqlite_library != runtime.sqlite ||
+          settings.signature_library != runtime.crypto
+        )
+      ) ||
       !settings.installation_files.contains("runtime.json") ||
       !local_product_runtime_current(runtime) {
       stop("PackagedLocalRuntimeChanged")
     }
+    // Close the original-file observation race before selecting a library.
+    local_host_result(session.stage_configuration())
     if optional(matches, "input-root") is None {
       let input = @env.current_dir().unwrap_or_else(() => {
         stop("LocalDocumentRootUnavailable")
@@ -297,7 +254,17 @@ fn execute_native_local_product(
     }
     matches.values["config-root"] = [configuration_root]
     matches.values["config-file"] = ["config.json"]
-    execute_native_local(matches)
+    if operation == "check" {
+      execute_native_local(matches)
+    } else {
+      let (_, child) = matches.subcommand.unwrap()
+      execute_native_local_adoption(
+        matches,
+        operation,
+        child,
+        packaged_runtime=Some(runtime.physical),
+      )
+    }
   } catch {
     error => {
       if !session.close() {

@@ -136,13 +136,35 @@ fn NativeLocalHostConnection::validate_read_evidence(
     Err(issue) => return Err(issue)
   }
   guard epoch_text(egress, "read_original_cid") is Some(read_cid) &&
-    self.session.settings.files
-    .iter()
-    .find_first(file => file.content_cid == read_cid)
-    is Some(file) &&
     epoch_text(egress, "effective_data_policy_cid") is Some(policy_cid) &&
     record.publication_policy_originals is Some(policy_wire) else {
     return Err(CustodyLost)
+  }
+  // Each saved row resolves its own exact original. The closed signed append
+  // is distinct from an ordinary selected file and cannot repair a missing CID.
+  let (file, read_wire, upgrade) = match
+    self.session.settings.files
+    .iter()
+    .find_first(file => file.content_cid == read_cid) {
+    Some(file) => {
+      let wire = @utf8.decode(file.body) catch { _ => return Err(CustodyLost) }
+      (file, wire, None)
+    }
+    None => {
+      let upgrade = match self.retained_policy_upgrade() {
+        Ok(Some(value)) => value
+        Ok(None) => return Err(CustodyLost)
+        Err(issue) => return Err(issue)
+      }
+      let wire = @host.client_local_run_policy_upgrade_read_wire(
+        upgrade.original,
+      )
+      if !(local_adoption_digest(crypto, @utf8.encode(wire)) is Ok(actual) &&
+        actual == read_cid) {
+        return Err(CustodyLost)
+      }
+      (upgrade.files[0], wire, Some(upgrade))
+    }
   }
   let policies = match read_run_policy_originals(policy_wire) {
     Ok(value) => value
@@ -154,12 +176,7 @@ fn NativeLocalHostConnection::validate_read_evidence(
     }) {
     return Err(CustodyLost)
   }
-  let selection = match
-    admit_native_local_read_selection(
-      @utf8.decode(file.body) catch {
-        _ => return Err(CustodyLost)
-      },
-    ) {
+  let selection = match admit_native_local_read_selection(read_wire) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -193,27 +210,50 @@ fn NativeLocalHostConnection::validate_read_evidence(
     return Err(CustodyLost)
   }
   let (expires_at, run_policy_original) = match selection.expiry {
-    Absolute(expires_at) => (expires_at, None)
-    AcceptedRunProfile(roles) => {
-      guard self.session.settings.files
-        .iter()
-        .find_first(candidate => candidate.content_cid == roles.profile_cid)
-        is Some(profile_file) else {
-        return Err(CustodyLost)
+    Absolute(expires_at) => {
+      match self.require_original_legacy_policy(original) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
       }
-      let policy = match
-        self.bind_run_policy_profile(
-          crypto,
-          selection.principal,
-          selection.connection,
-          profile_file.name,
-          file.name,
-          roles.run_file,
-          roles.retention_file,
-          roles.store_file,
-        ) {
+      (expires_at, None)
+    }
+    AcceptedRunProfile(roles) => {
+      let policy = match upgrade {
+        Some(saved) => {
+          if saved.scope != scope {
+            return Err(AuthorizationDenied)
+          }
+          policy_binding_from_upgrade(self, crypto, saved)
+        }
+        None => {
+          guard self.session.settings.files
+            .iter()
+            .find_first(candidate => candidate.content_cid == roles.profile_cid)
+            is Some(profile_file) else {
+            return Err(CustodyLost)
+          }
+          self.bind_run_policy_profile(
+            crypto,
+            selection.principal,
+            selection.connection,
+            profile_file.name,
+            file.name,
+            roles.run_file,
+            roles.retention_file,
+            roles.store_file,
+          )
+        }
+      }
+      let policy = match policy {
         Ok(value) => value
         Err(issue) => return Err(issue)
+      }
+      if roles.profile_cid !=
+        @host.client_local_run_policy_profile_cid(policy.profile) ||
+        roles.run_file != policy.run_file.name ||
+        roles.retention_file != policy.retention_file.name ||
+        roles.store_file != policy.store_file.name {
+        return Err(CustodyLost)
       }
       let (reference, saved) = match policy.restore_read_original(record) {
         Ok(value) => value
@@ -240,6 +280,8 @@ fn NativeLocalHostConnection::validate_read_evidence(
     connection: selection.connection,
     scope,
     expires_at,
+    selection_cid: read_cid,
+    upgrade_packet: upgrade.map(value => value.packet),
     run_policy_original,
   }
   let facts : @result_access.NativeResultReadFacts = {

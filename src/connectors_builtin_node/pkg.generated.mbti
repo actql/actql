@@ -187,6 +187,10 @@ pub fn client_program_advance_model_execution(@model_execution.ModelExecution, I
 
 pub fn client_program_advance_model_output(@model_execution.ModelOutputPreparation, Int) -> Result[@execution_relation.AdmittedOutputPoll, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_advance_native_decision_projection(@model_execution.NativeDecisionProjection) -> Result[@model_execution.NativeDecisionRequest?, @model_execution.NativeDecisionProjectionIssue]
+
+pub fn client_program_advance_openai_chat_projection(@model_execution.OpenAIChatProjection) -> Result[(String, String, String, String, String, String, String)?, @model_execution.OpenAIChatProjectionIssue]
+
 pub fn client_program_allowed_effect_run_admission(@run_publication_host.ClientEffectAllowedRun) -> @run_publication.RunPublicationAdmission
 
 pub fn client_program_allowed_effect_run_authorization(@run_publication_host.ClientEffectAllowedRun) -> @run_publication.RunEvidenceValue
@@ -328,6 +332,8 @@ pub fn client_program_check_effect_risk_acceptance_body(@physical_strategy.Captu
 pub fn client_program_check_environment(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool) -> @program_check.CheckEnvironment?
 
 pub fn client_program_check_environment_cid(@run_publication_host.PreparedClientProgram) -> String
+
+pub fn client_program_check_environment_with_calendar_artifact(@program_check.CheckEnvironment, Bytes, Int, Int, Int, Int, Int, Int) -> @program_check.CheckEnvironment?
 
 pub fn client_program_check_environment_with_graph_profile(String, String, Bool, Bool, Bool, Bool, Bool, Bool, Bool, String, String) -> @program_check.CheckEnvironment?
 
@@ -736,6 +742,8 @@ pub fn client_program_effect_table_managed_input_finish(ClientEffectManagedInput
 pub fn client_program_effect_table_source_artifact_preview_binding(@run_publication.PublicationContract, String, String, String) -> Result[(String, String), @run_publication.EffectSourceArtifactIssue]
 
 pub fn client_program_effect_table_write_binding(@run_publication_host.PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, @run_publication_host.ClientEffectMemberDescriptorIssue]
+
+pub fn client_program_encode_model_original_resource_document(String, String, String, String, Int, Int, Int) -> Result[String, @run_publication.PublicationContractIssue]
 
 pub fn client_program_encode_plan_fact_manifest_identity(String) -> Result[@run_publication_host.PlanFactManifestIdentity, @run_publication_host.PlanFactManifestIdentityIssue]
 
@@ -1391,6 +1399,8 @@ pub fn client_program_model_provider_admission_issue_kind(@model_execution.Model
 
 pub fn client_program_model_provider_binding(String, String, String, String) -> Result[@run_publication.RunEvidenceValue, @run_publication.RunEvidenceValueIssue]
 
+pub fn client_program_model_raw_selection_originals(@run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyBody) -> Array[(String, String, String)]
+
 pub fn client_program_model_request_generation(@model_execution.ModelRequest) -> (String, Double, Double, Int64, Int64?)?
 
 pub fn client_program_model_request_input(@model_execution.ModelRequest, String) -> String?
@@ -1406,6 +1416,18 @@ pub fn client_program_model_response(@model_execution.ModelRequest, String, Stri
 pub fn client_program_model_scoped_private_holding_cid(@run_publication.PublicationContract, String, String, String, String, Int, String, String) -> String?
 
 pub fn client_program_multi_captured_ledger_usage(@physical_resources.Ledger) -> Array[Int64]
+
+pub fn client_program_native_decision_option_id(@model_execution.NativeDecisionRequest, Int, Int) -> String?
+
+pub fn client_program_native_decision_projection_issue_kind(@model_execution.NativeDecisionProjectionIssue) -> String
+
+pub fn client_program_native_decision_question_id(@model_execution.NativeDecisionRequest, Int) -> String?
+
+pub fn client_program_native_decision_request_binding(@model_execution.NativeDecisionRequest) -> (String, String, String, String)?
+
+pub fn client_program_native_decision_request_matches(@model_execution.NativeDecisionRequest, @model_execution.AdmittedModelProvider, @model_execution.ModelRequest) -> Bool
+
+pub fn client_program_native_decision_request_wires(@model_execution.NativeDecisionRequest) -> (String, String)?
 
 pub fn client_program_observe_infer_raw_capture(@model_execution.ModelPhysicalCall, @run_publication_host.ClientModelRawCaptureRegistration, String, Int, Int, Bool, String) -> Result[@model_execution.ModelRawCaptureSave, @model_execution.ModelRawCaptureSaveIssue]
 
@@ -1436,6 +1458,8 @@ pub fn client_program_open_source_free_local_effect_host(@run_publication_host.P
 pub fn client_program_open_source_free_local_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
 
 pub fn client_program_open_source_free_local_retained_host(@run_publication_host.PreparedClientProgram, String, String, Int64, Int64, Int64, Int64, String?, String?) -> @connectors_builtin.ConfiguredComputeHost[@physical_strategy.RunIssue]?
+
+pub fn client_program_openai_chat_projection_issue_kind(@model_execution.OpenAIChatProjectionIssue) -> String
 
 pub fn client_program_park_infer_original_model_resources(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope) -> Result[@physical_resources.OriginalResourcePark[@run_publication_host.ClientModelReadOrigin], @client_infer_host.Issue]
 
@@ -1528,6 +1552,10 @@ pub fn client_program_prepare_serialization_captured_ledger(@run_publication_hos
 pub fn client_program_prepare_source_computation_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?, Bool, Array[@pipeline_check_context.StageCapacityInput]) -> ClientSourceComputationBridgeOutcome
 
 pub fn client_program_prepare_source_with_parameters(String, String, @program_check.CheckEnvironment, String, String?, String?) -> ClientProgramBridgeOutcome
+
+pub fn client_program_project_native_decision_answers(@model_execution.NativeDecisionRequest, @model_execution.AdmittedModelProvider, @model_execution.ModelRequest, @decode_core.Cursor, Int, Int, Int, Int) -> Result[(String, Int), @model_execution.NativeDecisionAnswerIssue]
+
+pub fn client_program_project_openai_chat_request(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, Int, Int, Int, Int, Int) -> Result[(String, String, String, String, String, String, String), @model_execution.OpenAIChatProjectionIssue]
 
 pub fn client_program_publication_bytes_binding_json(@run_publication_host.PreparedClientProgram, Int, Int) -> Result[String, @run_publication_host.ClientPublicationBindingIssue]
 
@@ -1631,6 +1659,8 @@ pub fn client_program_release_infer_output(@client_infer_host.OutputUse) -> Bool
 
 pub fn client_program_release_infer_slot_replay(@model_execution.ModelSlotReplayRead) -> Bool
 
+pub fn client_program_release_original_infer_publication_capacity(@model_execution.OriginalModelPublicationCapacity) -> Result[Bool, @client_infer_host.Issue]
+
 pub fn client_program_replay_model_capture(@execution_relation.PreparedInferRows, String, @model_execution.ModelCaptureBundle) -> Bool
 
 pub fn client_program_request_identity(@run_publication_host.PreparedClientProgram, String, String, String) -> @run_publication_host.ClientRequestIdentity?
@@ -1639,9 +1669,13 @@ pub fn client_program_request_value_policy_subjects(@run_publication_host.Prepar
 
 pub fn client_program_require_infer_call_entry(@client_infer_host.Execution) -> Result[Unit, @client_infer_host.InvocationBindingIssue]
 
+pub fn client_program_requires_acquisition_result_publication(@run_publication_host.PreparedClientProgram) -> Bool
+
 pub fn client_program_reserve_captured_content_workspace(@physical_resources.Ledger, Int, Int) -> Result[@physical_resources.Reservation, @physical_resources.LedgerIssue]
 
 pub fn client_program_reserve_infer_evidence_copy(Int) -> Result[(@physical_resources.Ledger, @physical_resources.Reservation), @physical_resources.LedgerIssue]
+
+pub fn client_program_reserve_original_infer_publication_capacity(@client_infer_host.Execution, Int64, Int64) -> Result[@model_execution.OriginalModelPublicationCapacity, @client_infer_host.Issue]
 
 pub fn client_program_resource_reference_issuer((String, String) -> Bool, (String) -> Bool) -> @value_admission.ReferenceIssuer
 
@@ -1678,6 +1712,12 @@ pub fn client_program_result_row_contract_wire(@run_publication_host.ClientResul
 pub fn client_program_retire_infer_original_current_state_document(@physical_resources.OriginalCurrentStateDocument) -> Unit
 
 pub fn client_program_retire_infer_original_current_state_match(@physical_resources.OriginalCurrentStateMatch[@run_publication_host.ClientModelReadOrigin]) -> Unit
+
+pub fn client_program_retire_native_decision_projection(@model_execution.NativeDecisionProjection) -> Unit
+
+pub fn client_program_retire_native_decision_request(@model_execution.NativeDecisionRequest) -> Unit
+
+pub fn client_program_retire_openai_chat_projection(@model_execution.OpenAIChatProjection) -> Unit
 
 pub fn client_program_row_content_reference_issuer(@value_admission.ReferenceIssuer, @value_admission.ReferenceIssuer) -> @value_admission.ReferenceIssuer
 
@@ -1967,11 +2007,17 @@ pub fn client_program_start_model_execution(@execution_relation.PreparedInferRow
 
 pub fn client_program_start_model_output(@client_local_host.ClientInferInputExecution, @execution_relation.PreparedInferRows, @model_execution.ModelExecution) -> Result[@model_execution.ModelOutputPreparation, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_start_native_decision_projection(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, Int, Int, Int, Int, Int) -> Result[@model_execution.NativeDecisionProjection, @model_execution.NativeDecisionProjectionIssue]
+
+pub fn client_program_start_openai_chat_projection(@model_execution.AdmittedModelProvider, @model_execution.ModelRequest, Int, Int, Int, Int, Int) -> Result[@model_execution.OpenAIChatProjection, @model_execution.OpenAIChatProjectionIssue]
+
 pub fn client_program_start_original_generated_infer_execution(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, @model_execution.ModelProvider, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_original_generated_infer_inputs(@run_publication_host.ClientCompiledRun, @run_publication_host.ClientSerializationGeneration, @run_publication_host.ClientInferPlanGraph, Array[@local.ManagedProviderInput], @model_execution.ModelProvider, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 
 pub fn client_program_start_original_infer_execution(@run_publication_host.PreparedClientProgram, Int, @run_publication_host.ClientInferPlanGraph, String, String, @model_execution.ModelProvider, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientModelReadConsumer, Int64, Int64, Int64, Int64, String, String) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
+
+pub fn client_program_start_original_infer_observation_issuance(@client_infer_host.Execution, @model_execution.OriginalModelPublicationCapacity, Int, Int, Int, Array[@run_publication_host.ClientSerializationGeneration]) -> Result[@client_infer_host.ObservationIssuance, @client_infer_host.Issue]
 
 pub fn client_program_start_restored_composed_infer_input(@run_publication_host.ClientInferOccurrence, @run_publication_host.ClientInferPlanGraph, @execution_relation.GeneratedSequence, @model_execution.ModelProvider, String, String, Array[String], () -> Bool, @run_publication_host.ClientInferSavedCallScope, @value_admission.ReferenceIssuer?, @physical_resources.Ledger?, @execution_relation.GeneratedSequence?) -> Result[@client_infer_host.Execution, @client_infer_host.Issue]
 

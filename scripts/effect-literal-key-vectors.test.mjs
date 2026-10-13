@@ -17,7 +17,7 @@ test('current literal identities change only the reviewed expression dependency 
   const current = currentEffectLiteralKeyVectors(original);
   assert.deepEqual(original, saved, 'historical envelopes and CIDs are not rewritten');
   assert.equal(current[0].expected_definition_cid,
-    'sha256:fa57a54b8020ac4eafb2ec028c71e671abfd6a902b8a35fa6feb7df6f8e587a6');
+    'sha256:8e6ed397c9bd75c7f617d3a2645e29bf944a7fa090d1a22a9b84541f1de96762');
   for (const [i, vector] of current.entries()) {
     assert.deepEqual(vector.payload, original.cases[i].payload);
     assert.deepEqual(vector.stage_envelope.local_body, original.cases[i].stage_envelope.local_body);
@@ -76,4 +76,15 @@ test('fixture validation rejects payload normalization, synthetic defaults and s
     mutate(corpus);
     assert.throws(() => checkEffectLiteralKeyVectors(corpus), {name: 'AssertionError'}, label);
   }
+});
+
+// The old dependency remains historical data, not permission to accept an old
+// governing contract for current reference identities.
+test('current literal references reject the pre-ContentRef text/time dependency', () => {
+  const expression = JSON.parse(readFileSync(new URL(
+    '../spec/contracts/actql-expressions.json', import.meta.url), 'utf8'));
+  expression.inherited_text_time_profile_cid =
+    'sha256:2d41f38bd3bf8217d9bc394b1ca2ed9dfe6695b0088cd6a489328dabdee61dcc';
+  assert.throws(() => currentEffectLiteralKeyVectors(readCorpus(), expression),
+    /review the current expression dependency/);
 });
