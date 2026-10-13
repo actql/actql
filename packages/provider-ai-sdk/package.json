@@ -2,9 +2,11 @@
   "name": "@actql/provider-ai-sdk",
   "version": "0.0.0-development",
   "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "engines": {"node": ">=22"},
-  "exports": {},
-  "files": ["_internal", "README.md"],
-  "dependencies": {"@ai-sdk/openai": "4.0.91", "@ai-sdk/typesafe-ai": "3.0.13"}
+  "exports": {".": {"types": "./index.d.ts", "default": "./index.mjs"}},
+  "files": ["_internal", "index.mjs", "index.d.ts", "LICENSE", "npm-shrinkwrap.json", "README.md"],
+  "dependencies": {"@ai-sdk/openai": "4.0.91", "@ai-sdk/typesafe-ai": "3.0.13"},
+  "peerDependencies": {"zod": "4.6.5"}
 }
