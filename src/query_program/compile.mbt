@@ -2111,8 +2111,10 @@ fn source_projection_capture_query(query : @query.Query) -> Bool {
   // functions may have their own evaluation-context contract and stay put.
   let mut has_vector_scalar = false
   for projection in projections {
-    if projection.aggregate is Some(_) || projection.analytic is Some(_) ||
-      projection.star is Some(_) || !projection.replacements.is_empty() {
+    if projection.aggregate is Some(_) ||
+      projection.analytic is Some(_) ||
+      projection.star is Some(_) ||
+      !projection.replacements.is_empty() {
       return false
     }
     if projection.expression is Some(expression) {
@@ -2121,15 +2123,19 @@ fn source_projection_capture_query(query : @query.Query) -> Bool {
           is Call(path, _) {
           guard path.length() == 1 else { return false }
           match ascii_upper(path[0].value) {
-            "VECTOR_COSINE_SIMILARITY" | "VECTOR_INNER_PRODUCT" |
-            "VECTOR_L2_DISTANCE" | "VECTOR_CONCAT" => has_vector_scalar = true
+            "VECTOR_COSINE_SIMILARITY"
+            | "VECTOR_INNER_PRODUCT"
+            | "VECTOR_L2_DISTANCE"
+            | "VECTOR_CONCAT" => has_vector_scalar = true
             _ => return false
           }
         }
       }
     }
   }
-  if !has_vector_scalar { return false }
+  if !has_vector_scalar {
+    return false
+  }
   index += 2
   if @query.operation_at(query, index) is Some(Limit(_, _)) {
     index += 1
@@ -6700,7 +6706,8 @@ fn compile_steps(
       sql_group_select_scope = None
       sql_group_expression_input_scope = None
     }
-    if operation is Select(_, _) && pending_select is None &&
+    if operation is Select(_, _) &&
+      pending_select is None &&
       source_projection_capture is Some(capture) {
       // A deferred SELECT still needs the old input for ORDER and cannot be
       // moved across this boundary. No order failure is caught or retried.
@@ -6713,7 +6720,9 @@ fn compile_steps(
             entry
           }
         })
-        prefix[prefix.length() - 1].push(("as", construction.text(capture.alias)))
+        prefix[prefix.length() - 1].push(
+          ("as", construction.text(capture.alias)),
+        )
         capture.steps = prefix.map(entries => construction.object(entries))
         capture.fields = output.copy()
         capture.count = step_entries.length()
@@ -6859,7 +6868,9 @@ fn compile_steps(
   }
   let emitted = match source_projection_capture {
     Some(capture) if capture.count > 0 => {
-      let tail = Array::makei(step_entries.length() - capture.count, i => step_entries[capture.count + i])
+      let tail = Array::makei(step_entries.length() - capture.count, i => {
+        step_entries[capture.count + i]
+      })
       guard !tail.is_empty() else { raise Abort(InvalidContext) }
       // Continue from the exact projected Result, not the raw provider input.
       tail[0].insert(0, ("from", construction.text(input.name)))
@@ -6902,7 +6913,9 @@ fn capture_source_boundary(
     ("from", construction.text(publication_from)),
     (
       "fields",
-      construction.array(publication_fields.map(field => construction.text(field))),
+      construction.array(
+        publication_fields.map(field => construction.text(field)),
+      ),
     ),
   ])
   let capture = construction.object([
@@ -7064,10 +7077,15 @@ pub fn compile_with_source(
       Err(issue) => raise Abort(Construction(issue))
     }
     let source_projection_capture : SourceProjectionCapture? = if input.source
-      is Captured(_) && context.captured_stage is Some(_) &&
-      dependencies.is_empty() && source_projection_capture_query(query) {
+      is Captured(_) &&
+      context.captured_stage is Some(_) &&
+      dependencies.is_empty() &&
+      source_projection_capture_query(query) {
       Some({
-        alias: pipe_physical_name(fields + [input.name], "aql_capture_projection_"),
+        alias: pipe_physical_name(
+          fields + [input.name],
+          "aql_capture_projection_",
+        ),
         steps: [],
         fields: [],
         count: 0,
@@ -7188,7 +7206,12 @@ pub fn compile_with_source(
     if source_projection_capture is Some(projection) && projection.count > 0 {
       let (stage_id, imported, predicate) = capture_details[0]
       let (capture, _) = capture_source_boundary(
-        construction, stage_id, input.name, imported, fields, predicate,
+        construction,
+        stage_id,
+        input.name,
+        imported,
+        fields,
+        predicate,
         projection=Some(projection),
       )
       capture_stages[0] = capture
