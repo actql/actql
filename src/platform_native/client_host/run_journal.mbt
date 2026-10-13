@@ -111,6 +111,31 @@ fn run_record_body(
 fn read_run_record(
   row : @sqlite.NativeJournalValue,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
+  read_run_record_in_mode(row, ValidatePublication)
+}
+
+///|
+// Both modes share every row/local/Effect/Checkpoint/canonical check. Only the
+// private wire extractor may defer publication admission inside lookup work.
+// Ordinary readers and the initial all-row custody scan keep the original order.
+enum RunRecordPolicyValidation {
+  ValidatePublication
+  DeferPublicationWire
+}
+
+///|
+// A small deferred comparison result, never a permission or retained Record.
+enum RunPolicyRequestComparison {
+  OriginalRequest
+  ChangedOriginalIntent
+  ForeignOriginalRequest
+}
+
+///|
+fn read_run_record_in_mode(
+  row : @sqlite.NativeJournalValue,
+  mode : RunRecordPolicyValidation,
+) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   let (decoded, local_run_policy_originals) = match
     @host.decode_client_run_journal_row_with_local_policy(row.body) {
     Ok(value) => value
@@ -128,9 +153,13 @@ fn read_run_record(
     is Err(_) {
     return Err(CustodyLost)
   }
-  if decoded.publication_policy_originals is Some(wire) &&
-    read_run_policy_originals(wire) is Err(_) {
-    return Err(CustodyLost)
+  match mode {
+    ValidatePublication =>
+      if decoded.publication_policy_originals is Some(wire) &&
+        read_run_policy_originals(wire) is Err(_) {
+        return Err(CustodyLost)
+      }
+    DeferPublicationWire => ()
   }
   if decoded.effect_material_originals is Some(wire) &&
     read_effect_material_original_packet(wire) is Err(_) {
@@ -361,6 +390,44 @@ fn NativeClientRunJournal::retained(
     ChangedIntent => Err(ChangedIntent)
     DifferentRequest => Err(CustodyLost)
   }
+}
+
+///|
+// No Record/Checkpoint/definition escapes this boundary. Hold only the original
+// wire and a deferred identity refusal before the work's full Policy admission.
+// Policy validation must precede identity refusal, including a row changed by
+// the second current callback after the initial normal custody scan.
+fn extract_run_policy_wire(
+  row : @sqlite.NativeJournalValue,
+  requested : @host.ClientRequestIdentity,
+) -> Result[(String?, RunPolicyRequestComparison), NativeClientRunJournalIssue] {
+  let record = match read_run_record_in_mode(row, DeferPublicationWire) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let comparison = match
+    @host.client_request_identity_relation(requested, record.request) {
+    SameRequest => OriginalRequest
+    ChangedIntent => ChangedOriginalIntent
+    DifferentRequest => ForeignOriginalRequest
+  }
+  Ok((record.publication_policy_originals, comparison))
+}
+
+///|
+// Re-read the selected row inside the existing transaction; no Host cache.
+// Only lookup work consumes this private raw-wire extraction.
+fn NativeClientRunJournal::retained_policy_wire(
+  self : NativeClientRunJournal,
+  requested : @host.ClientRequestIdentity,
+) -> Result[(String?, RunPolicyRequestComparison), NativeClientRunJournalIssue] {
+  let row = match
+    self.database.read("client_runs", @host.client_request_scope_cid(requested)) {
+    Ok(value) => value
+    Err(@sqlite.NotFound) => return Err(CustodyLost)
+    Err(issue) => return Err(Physical(issue))
+  }
+  extract_run_policy_wire(row, requested)
 }
 
 ///|

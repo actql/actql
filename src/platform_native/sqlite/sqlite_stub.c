@@ -147,7 +147,9 @@ static moonbit_bytes_t actql_copy_message(const char *text) {
   return actql_copy_bytes(text, (int32_t)length);
 }
 
-static void actql_clear_result(actql_native_sqlite_database *database) {
+// Returned MoonBytes are independent copies. Retire only the C readback
+// storage; diagnostic lifetime and durable rows are separate responsibilities.
+static void actql_retire_result_storage(actql_native_sqlite_database *database) {
   free(database->result_body);
   free(database->result_key);
   database->result_body = NULL;
@@ -157,6 +159,10 @@ static void actql_clear_result(actql_native_sqlite_database *database) {
   database->result_revision = 0;
   database->result_capacity_bytes = 0;
   database->result_capacity_objects = 0;
+}
+
+static void actql_clear_result(actql_native_sqlite_database *database) {
+  actql_retire_result_storage(database);
   actql_replace_error(&database->error, database->diagnostic_ceiling, NULL);
 }
 
@@ -191,10 +197,14 @@ static void actql_native_sqlite_library_finalize(void *value) {
 static void actql_native_sqlite_database_close(
   actql_native_sqlite_database *database
 ) {
-  if (database->database == NULL) return;
+  if (database->database == NULL) {
+    actql_retire_result_storage(database);
+    return;
+  }
   if (database->library->close_v2(database->database) != SQLITE_OK) return;
   database->database = NULL;
   database->opened = false;
+  actql_retire_result_storage(database);
 }
 
 // Inspection callers retain this database even if open failed, and close it
@@ -238,7 +248,10 @@ void *actql_native_sqlite_open_inspection_database(
 int32_t actql_native_sqlite_close_checked(
   actql_native_sqlite_database *database
 ) {
-  if (database->database == NULL) return 1;
+  if (database->database == NULL) {
+    actql_retire_result_storage(database);
+    return 1;
+  }
   database->test_checked_close_count++;
   if (database->test_close_failures > 0) {
     database->test_close_failures--;
@@ -252,7 +265,18 @@ int32_t actql_native_sqlite_close_checked(
   }
   database->database = NULL;
   database->opened = false;
+  actql_retire_result_storage(database);
   return 1;
+}
+
+// Whitebox observation only, never a physical-close ACK or a settlement port.
+int32_t actql_native_sqlite_test_result_storage_empty(
+  actql_native_sqlite_database *database
+) {
+  return database->result_body == NULL && database->result_key == NULL &&
+    database->result_body_length == 0 && database->result_key_length == 0 &&
+    database->result_revision == 0 && database->result_capacity_bytes == 0 &&
+    database->result_capacity_objects == 0;
 }
 
 // Whitebox-only callers inject a physical close failure on their own database;

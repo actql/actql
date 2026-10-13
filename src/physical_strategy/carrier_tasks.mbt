@@ -363,7 +363,7 @@ fn carrier_segment_prefix_end(
     return None
   }
   if stage < graph.captured_prefix {
-    return captured_keyed_segment_prefix_end(graph, stage, work)
+    return captured_segment_prefix_end(graph, stage, work)
   }
   let prepared = @lower.bound_preparation(graph.owners[stage])
   let pipeline = @lower.pipeline(prepared)
@@ -778,10 +778,10 @@ fn carrier_segment_prefix_end(
 
 ///|
 /// A Direct scan/filter/select capture is not completion of a later keyed
-/// JOIN in the same authored Stage. Derive that boundary from the original
-/// requests, then use the existing selected-task and exact-port expansion.
-/// Other captured profiles retain their current whole-acquisition ownership.
-fn captured_keyed_segment_prefix_end(
+/// JOIN or pure projection in the same authored Stage. Derive that boundary
+/// from the original requests, then use the existing selected-task and
+/// exact-port expansion. The source capture never impersonates a later Result.
+fn captured_segment_prefix_end(
   graph : CheckedDAG,
   stage : Int,
   work : Ref[Int],
@@ -815,8 +815,8 @@ fn captured_keyed_segment_prefix_end(
       keyed = Some(binding)
     }
   }
-  guard keyed is Some(_) &&
-    @lower.node_at(prepared, 0) is Some(first) &&
+  let pure_projection = keyed is None
+  guard @lower.node_at(prepared, 0) is Some(first) &&
     @lower.node_input_target(first, 0) is Some(@pipeline.Input(source)) else {
     return None
   }
@@ -858,6 +858,12 @@ fn captured_keyed_segment_prefix_end(
     guard @lower.node_at(prepared, step) is Some(node) &&
       carrier_node_supports_selected_execution(node, work) else {
       return None
+    }
+    if pure_projection {
+      match @lower.payload(node) {
+        @lower.Derive(_) | @lower.Select(_) => ()
+        _ => return None
+      }
     }
     for port in 0..<@lower.node_input_count(node) {
       carrier_work(work)
