@@ -6,7 +6,11 @@ type Database
 
 ///|
 #borrow(path)
-extern "C" fn load_library_ffi(path : Bytes, length : Int) -> Library = "actql_native_sqlite_load_library"
+extern "C" fn load_library_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+) -> Library = "actql_native_sqlite_load_library"
 
 ///|
 #borrow(library)
@@ -230,6 +234,15 @@ fn decode_message(bytes : Bytes) -> String {
 }
 
 ///|
+fn decode_diagnostic(bytes : Bytes) -> String {
+  if bytes.is_empty() {
+    "SQLite diagnostic detail omitted"
+  } else {
+    @utf8.decode_lossy(bytes)
+  }
+}
+
+///|
 fn valid_name(bytes : Bytes) -> Bool {
   bytes.length() > 0 && bytes.length() <= 512
 }
@@ -243,18 +256,31 @@ fn operation_issue(database : Database, code : Int) -> NativeSqliteIssue {
     4 => BodyTooLarge
     5 => DatabaseClosed
     6 => CapacityExceeded
-    _ => Physical(decode_message(database_error_ffi(database)))
+    _ => Physical(decode_diagnostic(database_error_ffi(database)))
   }
 }
 
 ///|
-pub fn load_library(path : String) -> Result[Library, NativeSqliteIssue] {
+/// Select only from trusted installer configuration bound to its source/ABI.
+/// This physical diagnostic bound issues no authority or capacity reservation.
+/// Omission preserves legacy behavior and does not establish a funded profile.
+pub fn load_library(
+  path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Library, NativeSqliteIssue] {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(InvalidLimit)
+  }
   let encoded = @utf8.encode(path)
-  let library = load_library_ffi(encoded, encoded.length())
+  let library = load_library_ffi(
+    encoded,
+    encoded.length(),
+    diagnostic_ceiling.unwrap_or(0),
+  )
   if library_ready_ffi(library) {
     Ok(library)
   } else {
-    Err(LibraryLoad(decode_message(library_error_ffi(library))))
+    Err(LibraryLoad(decode_diagnostic(library_error_ffi(library))))
   }
 }
 
@@ -282,7 +308,7 @@ pub fn Library::open_database(
   if database_ready_ffi(database) {
     Ok(database)
   } else {
-    Err(DatabaseOpen(decode_message(database_error_ffi(database))))
+    Err(DatabaseOpen(decode_diagnostic(database_error_ffi(database))))
   }
 }
 
@@ -308,7 +334,7 @@ pub fn Library::open_existing_database(
   if database_ready_ffi(database) {
     Ok(database)
   } else {
-    Err(DatabaseOpen(decode_message(database_error_ffi(database))))
+    Err(DatabaseOpen(decode_diagnostic(database_error_ffi(database))))
   }
 }
 
@@ -338,7 +364,7 @@ pub fn Library::initialize_owned_database(
   if database_ready_ffi(database) {
     Ok(database)
   } else {
-    Err(DatabaseOpen(decode_message(database_error_ffi(database))))
+    Err(DatabaseOpen(decode_diagnostic(database_error_ffi(database))))
   }
 }
 
@@ -389,7 +415,7 @@ pub fn Database::inspection_status(
   if database_ready_ffi(self) && inspection_schema_ffi(self) {
     Ok(())
   } else {
-    Err(DatabaseOpen(decode_message(database_error_ffi(self))))
+    Err(DatabaseOpen(decode_diagnostic(database_error_ffi(self))))
   }
 }
 
@@ -402,7 +428,7 @@ pub fn Database::close_checked(
   if close_checked_ffi(self) {
     Ok(())
   } else {
-    Err(Physical(decode_message(database_error_ffi(self))))
+    Err(Physical(decode_diagnostic(database_error_ffi(self))))
   }
 }
 
