@@ -496,10 +496,10 @@ pub fn start_accounted_row_acquisition(
   transfer_bytes : Int64,
   execution_scratch : Int64,
 ) -> Result[RowRun, RowHostIssue] {
-  // Report-enabled listing needs the selected trusted installation envelope.
-  // This ordinary entry cannot infer one from row-wire or Model allowances.
-  // Its non-listing capacity and allocation order remain unchanged.
-  if row_acquisition_is_listing(value) {
+  // Preserve the ordinary resolved listing profile and its existing allowance.
+  // The additional report profile is selected only by the dedicated accounted
+  // entry. An ordinary caller cannot infer that envelope or adopt its payload.
+  if value.configuration.listing_rows is Some(ReportListingRows(_, _)) {
     return Err(Physical(InvalidLimits))
   }
   if transfer_bytes < 0L ||
@@ -1018,7 +1018,7 @@ pub fn capture_row_run(run : RowRun) -> Result[RowSourceCapture, RowHostIssue] {
     physical.holding = Some(holding)
     match
       settle_row_capture_capacity(
-        configuration.listing_rows is Some(_),
+        configuration.listing_rows is Some(ReportListingRows(_, _)),
         physical,
       ) {
       Ok(_) => ()
