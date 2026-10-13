@@ -723,7 +723,7 @@ fn compile_query_script_with_source(
     }
     let checked = match check_query_bindings(complete, context, limits) {
       Ok(checked) => checked
-      Err(issue) => return Err(BindingPreparation(issue))
+      Err(issue) => return Err(BindingPreparationSource(issue, source))
     }
     let demand = match
       trace_query_binding_demand(
@@ -750,7 +750,7 @@ fn compile_query_script_with_source(
     // evidence issued for the complete temporary pipeline onto the pruned one.
     match prepare_query_bindings(program, context, limits) {
       Ok(_) => Ok((program, source))
-      Err(issue) => Err(BindingPreparation(issue))
+      Err(issue) => Err(BindingPreparationSource(issue, source))
     }
   } catch {
     Abort(issue) => {
@@ -768,7 +768,7 @@ pub fn compile_query_script(
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
 ) -> Result[@program.Program, Issue] {
-  compile_query_script_with_source(script, context, limits, table_writes~).map(pair => {
-    pair.0
-  })
+  compile_query_script_with_source(script, context, limits, table_writes~)
+  .map(pair => pair.0)
+  .map_err(issue_without_source)
 }

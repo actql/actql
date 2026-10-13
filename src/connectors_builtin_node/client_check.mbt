@@ -422,6 +422,16 @@ fn check_source_findings(
             is Some(failure) {
             return Failed(failure)
           }
+        QueryLowering(BindingPreparationSource(issue, source)) =>
+          if check_binding_preparation_findings(
+              findings,
+              issue,
+              scope,
+              diagnostic_source=Some(source),
+            )
+            is Some(failure) {
+            return Failed(failure)
+          }
         QueryLowering(GraphExpected(origin)) => {
           findings.push(Violation("query_invalid"))
           if check_authored_range(origin) is Some((start, end)) {
@@ -1031,6 +1041,7 @@ fn check_binding_preparation_findings(
   findings : Array[CheckFinding],
   issue : @query_program.BindingPreparationIssue,
   scope : @program_check.CheckScope,
+  diagnostic_source? : @source_frontend.DiagnosticSource? = None,
 ) -> String? {
   let diagnostic = match issue {
     Declarations(error) => @program_check.source_declarations_diagnostic(error)
@@ -1084,7 +1095,16 @@ fn check_binding_preparation_findings(
         name.length() <= 256 {
         findings.push(UndeclaredParameter(name, None))
       } else {
-        findings.push(check_program_finding(diagnostic, None, None, None, None))
+        findings.push(
+          check_program_finding(
+            diagnostic,
+            None,
+            None,
+            None,
+            None,
+            diagnostic_source~,
+          ),
+        )
       }
     MissingInput => check_missing_input_findings(findings, diagnostic, scope)
     UnsupportedImplementation => findings.push(Limit("implementation_limit"))
@@ -1147,6 +1167,10 @@ fn check_program_finding(
     let origin = match (program, diagnostic_source) {
       (Some(program), Some(source)) =>
         @program_check.diagnostic_predicate_origin(diagnostic, program, source)
+      (None, Some(source)) =>
+        @program_check.diagnostic_predicate_origin_from_source(
+          diagnostic, source,
+        )
       _ => None
     }
     return ExpressionViolation("expected_boolean", check_authored_range(origin))

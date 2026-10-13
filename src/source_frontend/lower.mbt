@@ -362,8 +362,12 @@ pub fn lower(
   source_path? : String = "<source>",
   table_writes? : Array[@query.TableWriteBinding] = [],
 ) -> Result[Lowered, Issue] {
-  lower_with_source(document, format, context, source_path~, table_writes~).map(pair => {
-      pair.0
-    },
-  )
+  lower_with_source(document, format, context, source_path~, table_writes~)
+  .map(pair => pair.0)
+  .map_err(issue => {
+    match issue {
+      QueryLowering(cause) => QueryLowering(@query.issue_without_source(cause))
+      _ => issue
+    }
+  })
 }

@@ -101,7 +101,20 @@ pub(all) enum Issue {
   // Common metadata/pipeline preparation before selecting demanded bindings.
   // The original typed cause is retained; this is not execution admission.
   BindingPreparation(BindingPreparationIssue)
+  // Diagnostic-only snapshot from the exact failed preparation check. The
+  // snapshot is neither a completed Program nor checking/execution authority.
+  BindingPreparationSource(BindingPreparationIssue, @builder.Source)
   Admission(@program.SyntaxError)
+}
+
+///|
+/// Ordinary callers retain the original error contract without diagnostic
+/// construction annotations. No new admission or compilation occurs here.
+pub fn issue_without_source(issue : Issue) -> Issue {
+  match issue {
+    BindingPreparationSource(cause, _) => BindingPreparation(cause)
+    _ => issue
+  }
 }
 
 ///|
@@ -9485,5 +9498,7 @@ pub fn compile(
   limits : Limits,
   table_writes? : Array[TableWriteBinding] = [],
 ) -> Result[@program.Program, Issue] {
-  compile_with_source(query, context, limits, table_writes~).map(pair => pair.0)
+  compile_with_source(query, context, limits, table_writes~)
+  .map(pair => pair.0)
+  .map_err(issue_without_source)
 }

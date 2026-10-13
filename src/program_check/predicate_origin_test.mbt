@@ -44,13 +44,26 @@ test "predicate diagnostics use only the original authored construction owner" {
     let origin = @program_check.diagnostic_predicate_origin(
       diagnostic, program, source,
     )
+    let snapshot_origin = @program_check.diagnostic_predicate_origin_from_source(
+      diagnostic, source,
+    )
     if generated {
       assert_true(origin is None)
+      assert_true(snapshot_origin is None)
     } else {
       let origin = origin.unwrap()
       assert_eq(@origin.kind(origin), Authored)
       assert_eq(
         (@origin.start(origin).byte_offset, @origin.end(origin).byte_offset),
+        (177, 190),
+      )
+      let snapshot_origin = snapshot_origin.unwrap()
+      assert_eq(@origin.kind(snapshot_origin), Authored)
+      assert_eq(
+        (
+          @origin.start(snapshot_origin).byte_offset,
+          @origin.end(snapshot_origin).byte_offset,
+        ),
         (177, 190),
       )
     }
@@ -69,6 +82,21 @@ test "predicate diagnostics use only the original authored construction owner" {
       other_source,
       limits.input,
     ).unwrap()
+    assert_true(
+      @program_check.diagnostic_predicate_origin_from_source(
+        diagnostic, other_source,
+      )
+      is None,
+    )
+    let other_diagnostic = public_rejected(
+      @program_check.check_parsed(other_program, environment, None, limits),
+    )
+    assert_true(
+      @program_check.diagnostic_predicate_origin_from_source(
+        other_diagnostic, source,
+      )
+      is None,
+    )
     assert_true(
       @program_check.diagnostic_predicate_origin(
         diagnostic, other_program, other_source,
