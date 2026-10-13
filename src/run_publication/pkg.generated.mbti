@@ -868,6 +868,8 @@ pub fn run_publication_start_current(RunPublicationAdmission, PublicationContrac
 
 pub fn run_publication_template_cid(RunPublicationAdmission) -> String
 
+pub fn seal_completed_file_listing_observation(CompletedSourceObservationBody, Int, Array[CompletedFileListingReportRow]) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
+
 pub fn seal_completed_source_observation(CompletedSourceObservationBody) -> Result[RunEvidenceValue, RunEvidenceValueIssue]
 
 pub fn seal_publication_contract(String, String, Int, Int, Int) -> Result[PublicationContract, PublicationContractIssue]
@@ -1068,6 +1070,14 @@ pub(all) struct CommittedResultRead {
   row_count : Int64
   byte_count : Int64
   physical_sha256 : String
+}
+
+pub(all) struct CompletedFileListingReportRow {
+  row_ordinal : Int
+  resource_ref_cid : String
+  version : String?
+  reported_media_type : String?
+  media_type : String?
 }
 
 pub(all) struct CompletedSourceObservationBody {
