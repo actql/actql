@@ -26,7 +26,7 @@
   "sga_identity_law_manifest_cid": "sha256:ab1ae472462b96ac48e56d3ce0544213cab5d422e6bb198bc9acd5e4d90e0fe4",
   "graph_law_manifest_cid": "sha256:6a6da6032f71b2b5e629ece1155c98e9dc92fd16e7b204a5f4925e2d74453e34",
   "pipeline_registry_file": "spec/dependencies/aoa-pipeline-registry.json",
-  "pipeline_registry_cid": "sha256:79aa0a847874d3f277b0fab929ed8d6bd4173ad0f032d60413e3c279487f50b4",
+  "pipeline_registry_cid": "sha256:ee56c009fc4983ae885fb6f7ed414f12de46b6b68de38ebe52d95d33dd931cb7",
   "target_module_contract_cid": "sha256:ae21e53e9cd0727435f707f49efb2ffc9fa1665abda9adde0ff57312265e06e1",
   "local_family_execution_profile": {
     "version": "actql-local-family-execution/0.1",
@@ -324,6 +324,24 @@
       "execution_contract": {
         "pointer": "/execution_contracts/BRIDGE.rows.to_graph",
         "cid": "sha256:d567ede4e421b6aaa6df39bf9fe03dfaaff129fb85ab9489faa6ffb61a8fa282"
+      }
+    },
+    "TEA.calendar.bucket": {
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation",
+      "execution_contract": {
+        "pointer": "/execution_contracts/TEA.calendar.bucket",
+        "cid": "sha256:8cbb70e4edcd1dd29deee777b44b3f09b9cee337b5495944ca895fa3065b6227"
+      }
+    },
+    "TEA.calendar.series": {
+      "inputs": [],
+      "output": "relation",
+      "execution_contract": {
+        "pointer": "/execution_contracts/TEA.calendar.series",
+        "cid": "sha256:040129c2ff63394a6b4804daf3a7c0641e2bdae4b524389d3c8c362e7e4dc13f"
       }
     }
   },
@@ -4839,6 +4857,216 @@
         "resources": "existing_Graph_storage_builder_output_builder_retention_capacity_cancel_and_cleanup_owners_no_second_engine_or_accounting_owner",
         "unsupported": "reject_unimplemented_property_profile_operations_without_fallback_to_legacy_SGA",
         "authority": "registration_is_not_execution_authorization_or_a_claim_of_all_SGA_support"
+      }
+    },
+    "TEA.calendar.bucket": {
+      "operation": "TEA.calendar.bucket",
+      "inputs": [
+        "relation"
+      ],
+      "output": "relation",
+      "params_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "time",
+          "into",
+          "unit",
+          "timezone",
+          "profile"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "unit": {
+                  "const": "week"
+                }
+              },
+              "required": [
+                "unit"
+              ]
+            },
+            "then": {
+              "required": [
+                "week_start"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "week_start"
+                ]
+              }
+            }
+          }
+        ],
+        "properties": {
+          "unit": {
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "quarter",
+              "year"
+            ]
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1
+          },
+          "week_start": {
+            "enum": [
+              "monday",
+              "sunday"
+            ]
+          },
+          "time": {
+            "type": "string",
+            "pattern": "^(?:(?:left|right)\\.)?(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+          },
+          "into": {
+            "type": "string",
+            "pattern": "^(?!__cid$)(?!__actql_)(?![\\s\\S]*\\.)(?=[\\s\\S]*\\S)[\\s\\S]+$"
+          },
+          "profile": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "conversion_law",
+              "table_bytes_cid",
+              "tzdb_version"
+            ],
+            "properties": {
+              "conversion_law": {
+                "const": "actql-calendar-boundaries/0.1"
+              },
+              "table_bytes_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "tzdb_version": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "urn:actql:calendar-bucket-params:0.1"
+      },
+      "semantics": {
+        "profile": "exact_selected_CalendarProfile_original_table_bytes_CID_tzdb_version_and_conversion_law_for_same_checked_occurrence_and_timezone",
+        "endpoints": "bind_original_non_null_timestamp_Parameters_then_validate_canonical_years_0001_to_9999_and_start_not_after_end",
+        "boundaries": "original_selected_timezone_table_earliest_exact_fold_earliest_forward_gap_greatest_distinct_UTC_start_not_after_timestamp_and_least_distinct_UTC_end_after_timestamp",
+        "output": "retain_original_input_fields_and_append_non_null_start_end_interval_for_original_time_field",
+        "authority": "registration_and_lowering_are_not_executable_Plan_authorization_or_Runtime_support",
+        "runtime": "existing_selected_TEA_input_output_control_work_retention_capacity_cancellation_and_cleanup_owners_no_ambient_timezone_or_fixed_milliseconds_substitution",
+        "unsupported": "reject_before_execution_when_original_profile_or_required_runtime_obligation_cannot_be_enforced"
+      }
+    },
+    "TEA.calendar.series": {
+      "operation": "TEA.calendar.series",
+      "inputs": [],
+      "output": "relation",
+      "params_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "start",
+          "end",
+          "unit",
+          "timezone",
+          "profile"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "unit": {
+                  "const": "week"
+                }
+              },
+              "required": [
+                "unit"
+              ]
+            },
+            "then": {
+              "required": [
+                "week_start"
+              ]
+            },
+            "else": {
+              "not": {
+                "required": [
+                  "week_start"
+                ]
+              }
+            }
+          }
+        ],
+        "properties": {
+          "unit": {
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "quarter",
+              "year"
+            ]
+          },
+          "timezone": {
+            "type": "string",
+            "minLength": 1
+          },
+          "week_start": {
+            "enum": [
+              "monday",
+              "sunday"
+            ]
+          },
+          "start": {
+            "type": "string",
+            "pattern": "^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])"
+          },
+          "end": {
+            "type": "string",
+            "pattern": "^(?!0000-)[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$(?![\\s\\S])"
+          },
+          "profile": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "conversion_law",
+              "table_bytes_cid",
+              "tzdb_version"
+            ],
+            "properties": {
+              "conversion_law": {
+                "const": "actql-calendar-boundaries/0.1"
+              },
+              "table_bytes_cid": {
+                "type": "string",
+                "pattern": "^sha256:[a-f0-9]{64}$"
+              },
+              "tzdb_version": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "urn:actql:calendar-series-params:0.1"
+      },
+      "semantics": {
+        "profile": "exact_selected_CalendarProfile_original_table_bytes_CID_tzdb_version_and_conversion_law_for_same_checked_occurrence_and_timezone",
+        "endpoints": "bind_original_non_null_timestamp_Parameters_then_validate_canonical_years_0001_to_9999_and_start_not_after_end",
+        "boundaries": "original_selected_timezone_table_earliest_exact_fold_earliest_forward_gap_greatest_distinct_UTC_start_not_after_timestamp_and_least_distinct_UTC_end_after_timestamp",
+        "output": "complete_unclipped_intersecting_intervals_in_UTC_order_equal_range_empty_coincident_boundaries_collapse",
+        "authority": "registration_and_lowering_are_not_executable_Plan_authorization_or_Runtime_support",
+        "runtime": "existing_selected_TEA_input_output_control_work_retention_capacity_cancellation_and_cleanup_owners_no_ambient_timezone_or_fixed_milliseconds_substitution",
+        "unsupported": "reject_before_execution_when_original_profile_or_required_runtime_obligation_cannot_be_enforced"
       }
     }
   }
