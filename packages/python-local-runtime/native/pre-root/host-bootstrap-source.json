@@ -13,9 +13,24 @@
       "sha256": "d58a220339e71bff1a2d8e45045dd0d8e30eaac942010229419312451a4db054"
     },
     {
+      "path": "src/platform_native/host_bootstrap/backed_region_native.mbt",
+      "bytes": 7348,
+      "sha256": "8f93cb86edc7acc2a2f41a8fc6a33ee5264a2545352ea354df2c779ab0b42301"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/backed_view_native.mbt",
+      "bytes": 7139,
+      "sha256": "e24bced9dfdf2c0f1a3209730d01d8e901847729fd8641388066e2668a1215c8"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/backed_region_wbtest.mbt",
+      "bytes": 6466,
+      "sha256": "4115258cd1706aa60a0ff8da8e02f7e67a43752d4361fe056b47052407cefbff"
+    },
+    {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
-      "bytes": 5287,
-      "sha256": "13ca60db8c382b5a9db69554eabf68a6eb6e0212ebc4c69e09386236e218ea21"
+      "bytes": 11378,
+      "sha256": "93f1a10a47c5348a1900cf5b3337563baf0e87667c1c184eb830065f918f3474"
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_wbtest.mbt",
