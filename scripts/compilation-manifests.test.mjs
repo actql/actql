@@ -103,28 +103,31 @@ test('query grammar and rules have independent manifest identity inputs', () => 
 });
 
 test('current query rules bind the manifest while prior rules retain their identity', () => {
-  // Independent SHA-256 expectations from the normative query-rules bytes
-  // and the complete canonical manifest preimage, not generator output.
+  // Independent Python SHA-256 of the normative bytes and sorted manifest
+  // preimage. Preserve the complete earlier body, including its old grammar.
+  const vector = read('scripts/fixtures/initial-from-join/independent-vector.json');
   const queryRules = readFileSync('docs/spec/query-text.md', 'utf8');
   assert.equal(sha(readFileSync('spec/grammar/actql-query-0.1.ebnf')),
-    'sha256:4e73edb82a9466e4506972ac1a5eef603e3ac82534318e9f92ad09812d2b8e67');
+    'sha256:cf4cd02faa671596107953a38720a50b7f2ffd617d0cb4f2aa78c002ed175ab7');
   assert.equal(sha(queryRules),
-    'sha256:e1a3cf2899e9716a82f7707714c4dbfdf20208d48c00766d37d43f484a35747f');
+    'sha256:fb60b50e2ab331c59d575b5eec3cb048b360c2b3959bc65654b4f93a6fc7782e');
   const {grammar_manifest_cid: current, ...body} =
     read('spec/manifests/actql-grammar-0.1.json');
   assert.equal(body.query_text_rules_sha256, sha(queryRules).slice(7));
   assert.equal(sha(canonicalText(body)), current);
   assert.equal(current,
-    'sha256:3cf1d68930468fb3f8110d889fc0a514589b10f414061088adcc6f54a8f9f625');
-  const previous = {...body, query_text_grammar_sha256:
-    '2a746aadeb0c29514d69d2cc2fada9729c2f7c219dc980650eae4d34e16819af',
-    query_text_rules_sha256: 'd06e43b1b31cffcaef022d0568a81aab7c22ced4e25e7ae9c9e9aec9346b071a'};
-  assert.equal(sha(canonicalText(previous)), 'sha256:27d3b7110464cb168591ceebd54340aaafde66e46fc4f7b576ee6df7aec143ca');
-  const prior = {...previous,
+    'sha256:20546214b1d002a50ae1ab3bda2d2bb76dacadbdcf79771acd3cf512fa4c504f');
+  const {grammar_manifest_cid: previous, ...before} = vector.before;
+  assert.equal(previous,
+    'sha256:27d3b7110464cb168591ceebd54340aaafde66e46fc4f7b576ee6df7aec143ca');
+  assert.equal(before.query_text_rules_sha256,
+    'd06e43b1b31cffcaef022d0568a81aab7c22ced4e25e7ae9c9e9aec9346b071a');
+  assert.equal(sha(canonicalText(before)), previous);
+  const prior = {...before,
     query_text_rules_sha256: '87b7d37c8bf5a739631dc7ecf187e8fe0c7a75564c58e26f8d11282b08a0b722'};
   assert.equal(sha(canonicalText(prior)),
     'sha256:2aa67a52bae3a27fec7397dfa40c0cdc63096cd988e7cfee480477386c53b2ec');
-  assert.notEqual(sha(canonicalText(prior)), current);
+  assert.notEqual(previous, current);
 });
 
 test('pinned manifests close over their source contracts and exact schemas', () => {
