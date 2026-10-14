@@ -19,11 +19,13 @@ pub fn NativeHttpLibraryLoadFailure::retry_cleanup(
 ) -> Result[Unit, NativeHttpIssue] {
   guard self.library is Some(original) else { return Ok(()) }
   match retire_failed_http_library(original) {
-    Ok(_) => { self.library = None; Ok(()) }
+    Ok(_) => {
+      self.library = None
+      Ok(())
+    }
     Err(issue) => Err(issue)
   }
 }
-
 
 ///|
 struct NativeHttpClientCreateFailure {
@@ -47,9 +49,7 @@ pub fn NativeHttpClientCreateFailure::issue(
 pub fn NativeHttpClientCreateFailure::retry_cleanup(
   self : NativeHttpClientCreateFailure,
 ) -> Result[Library, NativeHttpIssue] {
-  guard self.client is Some(original) else {
-    return Ok(self.original_library)
-  }
+  guard self.client is Some(original) else { return Ok(self.original_library) }
   match retire_failed_http_client(self.original_library, original) {
     Ok(_) => {
       self.client = None
@@ -87,10 +87,15 @@ extern "C" fn retire_failed_library_ffi(library : Library) -> Int = "actql_nativ
 
 ///|
 #borrow(library, client)
-extern "C" fn retire_failed_client_ffi(library : Library, client : Client) -> Int = "actql_native_http_retire_failed_client"
+extern "C" fn retire_failed_client_ffi(
+  library : Library,
+  client : Client,
+) -> Int = "actql_native_http_retire_failed_client"
 
 ///|
-fn retire_failed_http_library(library : Library) -> Result[Unit, NativeHttpIssue] {
+fn retire_failed_http_library(
+  library : Library,
+) -> Result[Unit, NativeHttpIssue] {
   match retire_failed_library_ffi(library) {
     0 => Ok(())
     _ => Err(Transport("HTTP library retirement unconfirmed"))
@@ -98,7 +103,10 @@ fn retire_failed_http_library(library : Library) -> Result[Unit, NativeHttpIssue
 }
 
 ///|
-fn retire_failed_http_client(library : Library, client : Client) -> Result[Unit, NativeHttpIssue] {
+fn retire_failed_http_client(
+  library : Library,
+  client : Client,
+) -> Result[Unit, NativeHttpIssue] {
   match retire_failed_client_ffi(library, client) {
     0 => Ok(())
     _ => Err(Transport("HTTP constructor metadata retirement unconfirmed"))
@@ -287,15 +295,21 @@ pub fn load_library_with_custody(
   }
   let encoded = @utf8.encode(path)
   let library = load_library_with_custody_ffi(
-    encoded, encoded.length(), diagnostic_ceiling.unwrap_or(0),
+    encoded,
+    encoded.length(),
+    diagnostic_ceiling.unwrap_or(0),
   )
   if library_ready_ffi(library) {
     Ok(library)
   } else {
-    Err(CleanupRequired({
-      original_issue: LibraryLoad(decode_diagnostic(library_error_ffi(library))),
-      library: Some(library),
-    }))
+    Err(
+      CleanupRequired({
+        original_issue: LibraryLoad(
+          decode_diagnostic(library_error_ffi(library)),
+        ),
+        library: Some(library),
+      }),
+    )
   }
 }
 
@@ -307,11 +321,15 @@ fn http_client_create_result_with_custody(
   if client_ready_ffi(client) {
     Ok(client)
   } else {
-    Err(CleanupRequired({
-      original_issue: ClientCreate(decode_diagnostic(client_error_ffi(client))),
-      original_library: library,
-      client: Some(client),
-    }))
+    Err(
+      CleanupRequired({
+        original_issue: ClientCreate(
+          decode_diagnostic(client_error_ffi(client)),
+        ),
+        original_library: library,
+        client: Some(client),
+      }),
+    )
   }
 }
 
@@ -330,7 +348,11 @@ pub fn Library::create_client(
   connect_timeout_ms : Int,
   operation_timeout_ms : Int,
 ) -> Result[Client, NativeHttpIssue] {
-  match self.create_client_with_custody(ca_path, certificate_path, key_path, max_response_bytes, connect_timeout_ms, operation_timeout_ms) {
+  match
+    self.create_client_with_custody(
+      ca_path, certificate_path, key_path, max_response_bytes, connect_timeout_ms,
+      operation_timeout_ms,
+    ) {
     Ok(client) => Ok(client)
     Err(RefusedBeforeAcquisition(issue)) => Err(issue)
     Err(CleanupRequired(failure)) => {
@@ -391,7 +413,10 @@ pub fn Library::create_authenticated_client(
   connect_timeout_ms : Int,
   operation_timeout_ms : Int,
 ) -> Result[Client, NativeHttpIssue] {
-  match self.create_authenticated_client_with_custody(ca_path, authentication, max_response_bytes, connect_timeout_ms, operation_timeout_ms) {
+  match
+    self.create_authenticated_client_with_custody(
+      ca_path, authentication, max_response_bytes, connect_timeout_ms, operation_timeout_ms,
+    ) {
     Ok(client) => Ok(client)
     Err(RefusedBeforeAcquisition(issue)) => Err(issue)
     Err(CleanupRequired(failure)) => {

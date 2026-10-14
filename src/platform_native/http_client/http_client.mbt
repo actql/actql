@@ -68,4 +68,3 @@ pub(all) enum NativeHttpClientCreateError {
   RefusedBeforeAcquisition(NativeHttpIssue)
   CleanupRequired(NativeHttpClientCreateFailure)
 }
-
