@@ -14,6 +14,7 @@ const directory = await mkdtemp(join(tmpdir(), 'actql-a-selected-startup-host-')
 let host;
 let registrations = 0;
 let fault;
+let completed = false;
 const options = {directory, authenticate: () => 'owner', registerModelProviders() {
   registrations++;
   return [];
@@ -88,6 +89,7 @@ try {
   await host.close();
   host = undefined;
   assert.equal(registrations, phase === 'open-close' ? 2 : 3);
+  completed = true;
   console.log(JSON.stringify({phase, registrations, checked: true,
     realHost: true, realSqlite: true, providerCalls: 0, realCoreScopes: 0, publicE2E: 0}));
 } finally {
@@ -95,5 +97,6 @@ try {
   fault?.closeRemaining();
   if (host !== undefined) await host.close();
   // Only this new, fully stopped fixture namespace; no previous Run/DB/raw.
-  await rm(directory, {recursive: true, force: true});
+  if (completed) await rm(directory, {recursive: true, force: true});
+  else console.error(`Selected startup failure namespace retained: ${directory}`);
 }
