@@ -3,13 +3,16 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as sdk from '../packages/provider-ai-sdk/index.mjs';
 import * as http from '../packages/provider-http/index.mjs';
-import {createInstalledOpenAIChatRegistration} from '../packages/provider-ai-sdk/_internal/installed-openai-chat.mjs';
+import {createInstalledOpenAIChatRegistration, createInstalledUndiciOpenAIChatRegistration}
+  from '../packages/provider-ai-sdk/_internal/installed-openai-chat.mjs';
 import {createInstalledHttpChatRegistration} from '../packages/provider-http/_internal/installed-http-chat.mjs';
 
 test('optional entries expose the original Host assemblers only', () => {
-  assert.deepEqual(Object.keys(sdk), ['createInstalledOpenAIChatRegistration']);
+  assert.deepEqual(Object.keys(sdk),
+    ['createInstalledOpenAIChatRegistration', 'createInstalledUndiciOpenAIChatRegistration']);
   assert.deepEqual(Object.keys(http), ['createInstalledHttpChatRegistration']);
   assert.strictEqual(sdk.createInstalledOpenAIChatRegistration, createInstalledOpenAIChatRegistration);
+  assert.strictEqual(sdk.createInstalledUndiciOpenAIChatRegistration, createInstalledUndiciOpenAIChatRegistration);
   assert.strictEqual(http.createInstalledHttpChatRegistration, createInstalledHttpChatRegistration);
   for (const entry of [sdk, http]) {
     assert.equal(entry.startSdkTransport, undefined);
