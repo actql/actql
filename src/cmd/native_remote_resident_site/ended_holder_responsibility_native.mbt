@@ -254,6 +254,12 @@ fn retry_control_ended_holder_lifetime(
     }
   }
   match original.pending_custody {
+    Some(Retiring(same)) => {
+      original.pending_custody = advance_control_bundle_custody_cleanup(same)
+      // Reporting is a separate later pass; cleanup ACK is not report ACK.
+      return false
+    }
+    Some(Unconfirmed(_)) => return false
     Some(Responding(report)) => {
       let (remaining, _) = @agent.advance_native_bundle_custody_report(
         Some(report),
