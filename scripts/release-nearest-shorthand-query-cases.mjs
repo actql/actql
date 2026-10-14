@@ -1,12 +1,12 @@
 import {selectReleaseNearestCarrierCases} from './release-nearest-carrier-query-cases.mjs';
+import {nearestCarrierSchemaWires} from './fixtures/nearest-carrier-installed-source.mjs';
 // Independent L3 expectations from the original q=[1,0], a=[1,0], b=[0,1].
 // No compiler/runtime output supplies expected values, types or identities.
 const scalar = (type, nullable=false) => ({type, nullable});
-const queryColumns = [
-  {name:'request_id',contract:scalar('string')},
-  {name:'embedding',contract:{type:'vector',dimensions:2,element_type:'f32',nullable:false}},
-  {name:'note',contract:scalar('string',true)},
-];
+// The installed declaration enumerates this exact canonical schema wire.
+// Its field order is independent of compiler or observed Result output.
+const queryColumns = Object.entries(JSON.parse(nearestCarrierSchemaWires.queries))
+  .map(([name,contract])=>({name,contract}));
 const hit = withBody => ({type:'object',nullable:false,additional_properties:false,fields:{
   query_key:{type:'object',nullable:false,additional_properties:false,fields:{request_id:scalar('string')}},
   candidate_key:{type:'object',nullable:false,additional_properties:false,fields:{item_id:scalar('string')}},
@@ -26,7 +26,7 @@ export function selectReleaseNearestShorthandCases() {
     ['explicit-default','sql',base+'QUERY KEY (request_id) VECTOR embedding CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC cosine K 2 KEEP (queries.*) AS hit'+ordered,result(defaults,[...queryColumns,{name:'hit',contract:hit(false)}])],
     ['candidate-keep','aql-text',base+'USING embedding K 2 KEEP (c.label) AS hit'+ordered,result(hits.map((value,i)=>({label:i===0?'first':'second',hit:value})),[{name:'label',contract:scalar('string')},{name:'hit',contract:hit(false)}])],
     ['body','aql',bodyPrefix+'USING (embedding) K 2 AS hit'+ordered,result(withBodies.map(value=>({request_id:'q1',embedding:[1,0],note:null,hit:value})),[...queryColumns,{name:'hit',contract:hit(true)}])],
-    ['rag-continuation','aql',bodyPrefix+'USING embedding K 2 AS hit |> WHERE hit.rank = 1 |> SELECT note, hit.body AS context',result([{note:null,context:'first'}],[queryColumns[2],{name:'context',contract:scalar('string')}])],
+    ['rag-continuation','aql',bodyPrefix+'USING embedding K 2 AS hit |> WHERE hit.rank = 1 |> SELECT note, hit.body AS context',result([{note:null,context:'first'}],[queryColumns.find(column=>column.name==='note'),{name:'context',contract:scalar('string')}])],
     ['typed-vectors','aql','WITH qv AS (FROM queries |> to_vectors(id: request_id, vector: embedding)), cv AS (FROM candidates |> to_vectors(id: item_id, vector: embedding)) FROM qv |> NEAREST cv USING embedding K 2 AS hit'+ordered,result(defaults,[...queryColumns,{name:'hit',contract:hit(false)}])],
   ].map(([name,format,text,results])=>({name:'nearest-short-'+name,format,text,results,sourceReadCount:2,sourceReadSessionCount:2}));
   const refusals = [
