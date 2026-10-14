@@ -915,6 +915,9 @@ export async function openLocalPublicationStore(
   let metadataRetentionBusy = Promise.resolve();
   const activeResultReaders = new Map();
   const activePhysicalHoldingReaders = new Map();
+  // Same Store lifetime only, not another capacity grant or semantic authority.
+  // Keep the original read/failed-close custody until that exact FD closes.
+  let activeSemanticReaders = 0;
   const pendingResultDeletions = new Map();
   const pendingMetadataDeletions = new Map();
   const pendingPhysicalHoldingDeletions = new Map();
@@ -2199,12 +2202,16 @@ export async function openLocalPublicationStore(
 
   const readSemanticBytes = async cid => {
     const path = contractPath(cid);
+    active();
+    activeSemanticReaders++;
     let handle;
     try { handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW); }
     catch (error) {
+      activeSemanticReaders--; // No original FD was acquired.
       if (error?.code === 'ENOENT') fail('PublicationContractMissing');
       throw error;
     }
+    let readFailure, readFailed = false;
     try {
       const before = await handle.stat();
       if (!before.isFile() || !quantity(before.size) ||
@@ -2241,8 +2248,39 @@ export async function openLocalPublicationStore(
       }
       await verifyObject(physicalCid);
       return bytes;
+    } catch (error) {
+      readFailure = error;
+      readFailed = true;
+      throw error;
     } finally {
-      await handle.close();
+      try {
+        if (await handle.close() === false) fail('PublicationSemanticReaderCleanupPending');
+        activeSemanticReaders--;
+      } catch (closeFailure) {
+        // Preserve this same original FD and primary failure. Cleanup retries
+        // close only: never reopen, reread, or release the Store on rejection.
+        let original = handle, flight;
+        const status = () => Object.freeze({pending: original !== undefined});
+        const cleanup = Object.freeze({status, retry() {
+          if (flight !== undefined) return flight;
+          if (original === undefined) return Promise.resolve(status());
+          flight = Promise.resolve().then(async () => {
+            if (await original.close() === false) fail('PublicationSemanticReaderCleanupPending');
+            original = undefined;
+            activeSemanticReaders--;
+            return status();
+          }).finally(() => { flight = undefined; });
+          return flight;
+        }});
+        const primary = readFailed ? readFailure : closeFailure;
+        const failure = primary !== null && typeof primary === 'object' &&
+          Object.isExtensible(primary) && primary.cleanupHandle === undefined
+          ? primary : new Error('PublicationSemanticReaderCleanupPending', {cause: primary});
+        failure.cleanupHandle = cleanup;
+        failure.cleanupPending = true;
+        failure.cleanupError = closeFailure;
+        throw failure;
+      }
     }
   };
 
@@ -5935,6 +5973,7 @@ export async function openLocalPublicationStore(
           pendingPhysicalHoldingDeletions.size !== 0 ||
           activeResultReaders.size !== 0 ||
           activePhysicalHoldingReaders.size !== 0 ||
+          activeSemanticReaders !== 0 ||
           originalModelStorageBindingReaders !== 0) {
         return Promise.reject(new PublicationStoreError(
           'PublicationStoreCleanupPending',
