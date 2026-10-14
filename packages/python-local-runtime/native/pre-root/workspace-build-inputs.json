@@ -43,16 +43,6 @@
   ],
   "copy_before_patch": [
     {
-      "source": "owned_capacity.c",
-      "target": "crates/c-api/src/actql_owned_capacity.c",
-      "sha256": "8a524b0f0d59131de32bd4539bac10ce02ac1b8e4f171a9a1d20ab4d298113cb"
-    },
-    {
-      "source": "owned_capacity.h",
-      "target": "crates/c-api/src/owned_capacity.h",
-      "sha256": "e57bce1f377b8e5a0172da263e59153c20fe97970fb8783cac5986eb78c9b448"
-    },
-    {
       "source": "owned_heap.rs",
       "target": "crates/c-api/artifact/src/actql_owned_heap.rs",
       "sha256": "0cf569c5b81235d8e52e2f3bf6afbcbad0bcc67ef585b3921e26b11246d7db42"
@@ -60,36 +50,19 @@
     {
       "source": "owned_abi.rs",
       "target": "crates/c-api/artifact/src/actql_owned_abi.rs",
-      "sha256": "151b086629977f782c042cdfe166b36d1e84ee50be4f60d4faa2d2ea22126fa6"
+      "sha256": "77b8c0729588622168bb06be9b9f04ba59f4b33c44147e3c485365c161f327da"
     },
     {
-      "source": "owned_image.c",
-      "target": "crates/c-api/src/actql_owned_image.c",
-      "sha256": "5dd1b8a7019f3a516ed881d0106c85bdccbbded3569b49dda6ec4280d21de979"
-    },
-    {
-      "source": "owned_region.h",
-      "target": "crates/c-api/src/owned_region.h",
-      "sha256": "2f5e3d67c1a7beeb0cdc12254a2b25128d624d11653d23ee0ce01c0c9bfa0520"
-    },
-    {
-      "source": "owned_region.inc",
-      "target": "crates/c-api/src/owned_region.inc",
-      "sha256": "56619bc5a2a5c3436eba4f09abd54fdeb8b02eef7b9081bfeecf07b42907ab9d"
-    },
-    {
-      "source": "owned_domain_borrow.h",
-      "target": "crates/c-api/src/owned_domain_borrow.h",
-      "sha256": "666b3739ee86a08203e84aaf23139a938ff0af8c29474648d6266af8f9c8cce0"
-    },
-    {
-      "source": "owned_domain_borrow.inc",
-      "target": "crates/c-api/src/owned_domain_borrow.inc",
-      "sha256": "928638b5cdbd8202800c2f6f0e7c2891829873010ba342c9a9479d1e4c11935b"
+      "source": "owned_build.rs",
+      "target": "crates/c-api/artifact/actql_owned_build.rs",
+      "sha256": "51acb1a03bccbd2276b920eef51a92e1aa0069ace8b5deb741a2c420234f464b"
     }
   ],
   "upstream_minimum_rust_version": "1.88.0",
-  "selected_rust_toolchain": null,
+  "selected_rust_toolchain": {
+    "file": "builder-toolchain.json",
+    "sha256": "216e63ef2a39195f95ccd0c43778430cab8f34896851c256f88dcaf26b6bda77"
+  },
   "selected_macos_sdk": null,
   "proposed_features": [
     "actql-owned-capacity"
@@ -148,5 +121,44 @@
     "pulley"
   ],
   "original_default_feature_source_sha256": "bf42afe2a1cd512c7457ca36c75adb3394182bc0c13a08bb6b2c6b4638c138e6",
-  "native_symbol_verification_executed": false
+  "native_symbol_verification_executed": false,
+  "provider_source_inputs": [
+    {
+      "source": "owned_capacity.c",
+      "sha256": "8a524b0f0d59131de32bd4539bac10ce02ac1b8e4f171a9a1d20ab4d298113cb"
+    },
+    {
+      "source": "owned_capacity.h",
+      "sha256": "e57bce1f377b8e5a0172da263e59153c20fe97970fb8783cac5986eb78c9b448"
+    },
+    {
+      "source": "owned_image.c",
+      "sha256": "5dd1b8a7019f3a516ed881d0106c85bdccbbded3569b49dda6ec4280d21de979"
+    },
+    {
+      "source": "owned_region.h",
+      "sha256": "2f5e3d67c1a7beeb0cdc12254a2b25128d624d11653d23ee0ce01c0c9bfa0520"
+    },
+    {
+      "source": "owned_region.inc",
+      "sha256": "56619bc5a2a5c3436eba4f09abd54fdeb8b02eef7b9081bfeecf07b42907ab9d"
+    },
+    {
+      "source": "owned_domain_borrow.h",
+      "sha256": "666b3739ee86a08203e84aaf23139a938ff0af8c29474648d6266af8f9c8cce0"
+    },
+    {
+      "source": "owned_domain_borrow.inc",
+      "sha256": "928638b5cdbd8202800c2f6f0e7c2891829873010ba342c9a9479d1e4c11935b"
+    }
+  ],
+  "native_provider_link": {
+    "kind": "dynamic-original-provider",
+    "file": "libactql_native_control.dylib",
+    "build_directory_env": "ACTQL_OWNED_PROVIDER_DIR",
+    "runtime_resolution": "@loader_path",
+    "provider_artifact": null,
+    "build_executed": false,
+    "installed_acceptance": false
+  }
 }

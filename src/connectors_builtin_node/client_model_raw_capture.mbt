@@ -23,6 +23,23 @@ pub fn client_program_read_model_response_profile(
 }
 
 ///|
+// Private installed transport/profile consistency only. This reads the actual
+// opaque Common profile and does not issue a loan, capture or dispatch grant.
+#export_name("clientProgramModelResponseProfileTransportMatches")
+pub fn client_program_model_response_profile_transport_matches(
+  profile : @check_environment.ModelResponseProfile,
+  request_bytes : Int,
+  response_bytes : Int,
+  chunk_bytes : Int,
+  chunks : Int,
+  header_bytes : Int,
+) -> Bool {
+  @check_environment.model_response_profile_transport_matches(
+    profile, request_bytes, response_bytes, chunk_bytes, chunks, header_bytes,
+  )
+}
+
+///|
 #export_name("clientProgramBindModelRawCapturePolicy")
 pub fn client_program_bind_model_raw_capture_policy(
   policy : @publication.RunEvidenceValue,
