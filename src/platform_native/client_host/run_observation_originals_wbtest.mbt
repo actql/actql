@@ -117,7 +117,11 @@ test "original Run evidence admission refuses current denial and orphan backfill
     is Err(AuthorizationDenied),
   )
   assert_true(journal.retained(request).unwrap() is None)
-  journal.bind_run(request, definition, true).unwrap() |> ignore
+  guard preparation.preparation is Computation(prepared) else {
+    fail("expected original computation fixture")
+  }
+  journal.bind_run(request, prepared, compiled, definition, true).unwrap()
+  |> ignore
   assert_true(
     journal.accept_submitted_run(
       authority, reference, preparation, request, compiled, definition, scope, true,
