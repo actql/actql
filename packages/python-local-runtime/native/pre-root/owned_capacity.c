@@ -382,3 +382,4 @@ int actql_native_owned_try_close(actql_owned_capacity **slot) {
 /* Included once. Child views exclude the parent's control table; an adopted
  * domain borrow uses only its original interior relative allocator records. */
 #include "owned_region.inc"
+#include "owned_domain_borrow.inc"
