@@ -79,6 +79,43 @@ const exactKeys = (value, keys) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
 
+// The existing Store's synchronous encoding phase. Only its complete envelope
+// crosses into writer/FD/ACK waits; crypto and Base64 segment temporaries do not
+// belong to that async frame. This retires references, not capacity, physical
+// GC, a pending writer or the original borrowed input's independent custody.
+function encodePrivateEvidenceEnvelope(input, isWire, key, aad, maximum) {
+  const bytes = isWire ? Buffer.from(input, 'utf8') : input;
+  const nonce = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', key, nonce);
+  cipher.setAAD(aad);
+  const encrypted = cipher.update(bytes);
+  const final = cipher.final();
+  const ciphertext = final.byteLength === 0 ? encrypted
+    : Buffer.concat([encrypted, final]);
+  // Every variable segment is Base64 ASCII. Preserve the historical field
+  // order and bytes without a second complete JSON String/envelope backing.
+  const segments = [
+    '{"version":"actql-private-publication-evidence/0.1","nonce":"',
+    nonce.toString('base64'),
+    '","tag":"',
+    cipher.getAuthTag().toString('base64'),
+    '","ciphertext":"',
+    ciphertext.toString('base64'),
+    '"}',
+  ];
+  const envelopeBytes = segments.reduce((total, segment) => total + segment.length, 0);
+  if (!Number.isSafeInteger(envelopeBytes) || envelopeBytes > maximum) {
+    fail('PublicationObjectLimit');
+  }
+  const envelope = Buffer.alloc(envelopeBytes);
+  let envelopeOffset = 0;
+  for (const segment of segments) {
+    envelopeOffset += envelope.write(segment, envelopeOffset, 'ascii');
+  }
+  if (envelopeOffset !== envelopeBytes) fail('PublicationPrivateEvidenceCorrupt');
+  return envelope;
+}
+
 async function syncDirectoryPath(path) {
   const directory = await open(path, constants.O_RDONLY);
   try { await directory.sync(); }
@@ -2248,41 +2285,8 @@ export async function openLocalPublicationStore(
         3 * Math.floor((configuration.maxObjectBytes - 128) / 4)) {
       fail('PublicationObjectLimit');
     }
-    const bytes = isWire ? Buffer.from(input, 'utf8') : input;
-    const nonce = randomBytes(12);
-    const cipher = createCipheriv('aes-256-gcm', key, nonce);
-    cipher.setAAD(privateEvidenceAad(name, semanticCid));
-    const encrypted = cipher.update(bytes);
-    const final = cipher.final();
-    // Reuse the complete owned block when final produced no additional bytes.
-    // Do not retain a second full ciphertext solely for concatenating empty
-    // output. Preserve the original concatenation for a nonempty final block.
-    const ciphertext = final.byteLength === 0 ? encrypted
-      : Buffer.concat([encrypted, final]);
-    // Every variable segment is Base64 ASCII. Preserve the exact original
-    // JSON field order and bytes without retaining a second complete envelope
-    // String alongside its UTF-8 Buffer. The segments and ciphertext still
-    // have their own simultaneous lifetimes; this is not capacity admission.
-    const segments = [
-      '{"version":"actql-private-publication-evidence/0.1","nonce":"',
-      nonce.toString('base64'),
-      '","tag":"',
-      cipher.getAuthTag().toString('base64'),
-      '","ciphertext":"',
-      ciphertext.toString('base64'),
-      '"}',
-    ];
-    const envelopeBytes = segments.reduce((total, segment) => total + segment.length, 0);
-    if (!Number.isSafeInteger(envelopeBytes) ||
-        envelopeBytes > configuration.maxObjectBytes) {
-      fail('PublicationObjectLimit');
-    }
-    const envelope = Buffer.alloc(envelopeBytes);
-    let envelopeOffset = 0;
-    for (const segment of segments) {
-      envelopeOffset += envelope.write(segment, envelopeOffset, 'ascii');
-    }
-    if (envelopeOffset !== envelopeBytes) fail('PublicationPrivateEvidenceCorrupt');
+    const envelope = encodePrivateEvidenceEnvelope(input, isWire, key,
+      privateEvidenceAad(name, semanticCid), configuration.maxObjectBytes);
     const writer = createPreparedObjectWriter(envelope.byteLength);
     try {
       await writer.append(envelope);

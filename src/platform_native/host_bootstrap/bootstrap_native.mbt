@@ -49,6 +49,14 @@ extern "C" fn retire_ffi(backing : Backing, extent : Extent) -> Int = "actql_boo
 extern "C" fn close_ffi(backing : Backing) -> Int = "actql_bootstrap_close"
 
 ///|
+#borrow(backing)
+extern "C" fn enter_scope_ffi(backing : Backing) -> Int = "actql_bootstrap_enter_scope"
+
+///|
+#borrow(backing)
+extern "C" fn leave_scope_ffi(backing : Backing) -> Int = "actql_bootstrap_leave_scope"
+
+///|
 pub(all) enum NativeBootstrapIssue {
   Unavailable
   ForeignOriginal
@@ -349,6 +357,7 @@ pub fn[T] NativeHostBootstrap::retire(
 struct NativeBootstrapBorrow[T] {
   owner : NativeHostBootstrap[T]
   borrow : @resources.SharedBorrow
+  mut scopes : Int64
   mut returned : Bool
 }
 
@@ -366,7 +375,7 @@ pub fn[T] NativeHostBootstrap::borrow_backing(
   guard self.control is Some(control) else { return Err(Unavailable) }
   match @resources.borrow_shared_capacity(self.capacity, control) {
     Err(issue) => Err(Resource(issue))
-    Ok(borrow) => Ok({ owner: self, borrow, returned: false, })
+    Ok(borrow) => Ok({ owner: self, borrow, scopes: 0L, returned: false, })
   }
 }
 
@@ -388,6 +397,52 @@ pub fn[T] NativeHostBootstrap::require_borrow_current(
 }
 
 ///|
+/// Enter the one original physical allocator through this current Owner loan.
+/// The scope carries no raw pointer, VM permission or second capacity claim.
+pub fn[T] NativeHostBootstrap::enter_borrow_scope(
+  self : NativeHostBootstrap[T],
+  original : T,
+  borrow : NativeBootstrapBorrow[T],
+) -> Result[Unit, NativeBootstrapIssue] {
+  match self.require_borrow_current(original, borrow) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if borrow.scopes == 9223372036854775807L {
+    return Err(Unavailable)
+  }
+  let status = enter_scope_ffi(self.backing)
+  if status != 0 {
+    return Err(Physical(status))
+  }
+  borrow.scopes = borrow.scopes + 1L
+  Ok(())
+}
+
+///|
+/// Cleanup may leave after closing begins. Failed physical leave keeps the
+/// original loan/use count; it cannot be replaced by a logical return ACK.
+pub fn[T] NativeHostBootstrap::leave_borrow_scope(
+  self : NativeHostBootstrap[T],
+  original : T,
+  borrow : NativeBootstrapBorrow[T],
+) -> Result[Unit, NativeBootstrapIssue] {
+  if !physical_equal(self.supplier.original, original) ||
+    !physical_equal(borrow.owner, self) {
+    return Err(ForeignOriginal)
+  }
+  if borrow.returned || borrow.scopes == 0L {
+    return Err(AlreadyConsumed)
+  }
+  let status = leave_scope_ffi(self.backing)
+  if status != 0 {
+    return Err(Physical(status))
+  }
+  borrow.scopes = borrow.scopes - 1L
+  Ok(())
+}
+
+///|
 pub fn[T] NativeHostBootstrap::borrow(
   self : NativeHostBootstrap[T],
   original : T,
@@ -402,7 +457,7 @@ pub fn[T] NativeHostBootstrap::borrow(
   }
   match @resources.borrow_shared_capacity(self.capacity, child.allocation) {
     Err(issue) => Err(Resource(issue))
-    Ok(borrow) => Ok({ owner: self, borrow, returned: false, })
+    Ok(borrow) => Ok({ owner: self, borrow, scopes: 0L, returned: false, })
   }
 }
 
@@ -420,6 +475,9 @@ pub fn[T] NativeHostBootstrap::return_borrow(
   }
   if borrow.returned {
     return Err(AlreadyConsumed)
+  }
+  if borrow.scopes != 0L {
+    return Err(ReadersPending)
   }
   match @resources.return_shared_capacity(borrow.borrow) {
     Err(issue) => return Err(Resource(issue))
