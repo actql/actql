@@ -89,3 +89,36 @@ test('publication snapshot uses checked descriptor values once',()=>{
   assert.deepEqual(reads,{retainedBytes:0,workspaceBytes:0},'property callbacks cannot replace validated DATA');
   assert.ok(Object.isFrozen(selected));
 });
+
+test('publication shape and amount snapshot uses one descriptor read per original field',()=>{
+  const data={retainedBytes:101n,workspaceBytes:203n};
+  const reads={retainedBytes:0,workspaceBytes:0};
+  const supplied=new Proxy(data,{
+    get(){assert.fail('No property getter is part of this DATA snapshot');},
+    getOwnPropertyDescriptor(target,name){
+      const descriptor=Object.getOwnPropertyDescriptor(target,name);
+      reads[name]++;
+      return descriptor;
+    },
+  });
+  const original=retainInferOriginalReadInstallation(configuration(supplied));
+  assert.deepEqual(selectedInferOriginalPublicationCapacity(original,original.nodeInstallation),data);
+  assert.deepEqual(reads,{retainedBytes:1,workspaceBytes:1});
+});
+
+test('publication snapshot never re-reads a descriptor that changes after initial inspection',()=>{
+  const data={retainedBytes:101n,workspaceBytes:203n};
+  const reads={retainedBytes:0,workspaceBytes:0};
+  const supplied=new Proxy(data,{
+    get(){assert.fail('No delayed amount getter');},
+    getOwnPropertyDescriptor(target,name){
+      const descriptor=Object.getOwnPropertyDescriptor(target,name);
+      if(++reads[name]===1)return descriptor;
+      return {...descriptor,enumerable:false,
+        value:name==='retainedBytes'?9223372036854775808n:-1n};
+    },
+  });
+  const original=retainInferOriginalReadInstallation(configuration(supplied));
+  assert.deepEqual(selectedInferOriginalPublicationCapacity(original,original.nodeInstallation),data);
+  assert.deepEqual(reads,{retainedBytes:1,workspaceBytes:1});
+});
