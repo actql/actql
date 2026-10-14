@@ -48,6 +48,43 @@ pub(all) enum NativeBackedDomainAcquisition[T, C] {
 }
 
 ///|
+/// Checked original transport DATA, not a launch/funding/Account grant. The
+/// same trusted worker bootstrap must retain its nominal and durable originals.
+pub(all) struct NativePreparedDomainTransport {
+  extent : NativeBackedExtentTransport
+  limits : @resources.LedgerLimits
+} derive(Eq, Debug)
+
+///|
+/// Reuse the existing region/child/ticket Owner before projecting any material.
+/// Transfer is the original physical preparation, not child startup success.
+pub fn[T, C] NativeHostBootstrap::project_prepared_domain(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[NativePreparedDomainTransport, NativeBackedExecutionIssue] {
+  match self.require_domain_current(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !domain.transferred {
+    return Err(Bootstrap(Unavailable))
+  }
+  let (_, _, limits) = match @resources.backed_execution_delegation_description(
+    domain.view.loan.region.accounting, self, child, domain.view.loan.accounting,
+  ) {
+    Err(issue) => return Err(Accounting(issue))
+    Ok(value) => value
+  }
+  let extent = match self.project_backed_extent(original, domain.view.loan, child) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  Ok({ extent, limits })
+}
+
+///|
 pub fn[T, C] NativeHostBootstrap::acquire_backed_domain(
   self : NativeHostBootstrap[T],
   original : T,
