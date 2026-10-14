@@ -1,0 +1,60 @@
+[
+  {
+    "wire": "{\"files\":[{\"bytes\":1,\"mode\":420,\"path\":\"README.md\",\"sha256\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},{\"bytes\":2,\"mode\":493,\"path\":\"bin/actql-native-client\",\"sha256\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"},{\"bytes\":0,\"mode\":420,\"path\":\"package.json\",\"sha256\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}],\"packageName\":\"actql\",\"platform\":\"darwin-arm64\",\"sourceSha\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+    "sha256": "86f72e1005718344a9eb9d7252a4ef2472a724added468677949201054167eb4",
+    "selectors": {
+      "sourceSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "platform": "darwin-arm64",
+      "packageName": "actql"
+    },
+    "members": [
+      {
+        "bytes": 1,
+        "mode": 420,
+        "path": "README.md",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      {
+        "bytes": 2,
+        "mode": 493,
+        "path": "bin/actql-native-client",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      {
+        "bytes": 0,
+        "mode": 420,
+        "path": "package.json",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    ]
+  },
+  {
+    "wire": "{\"files\":[{\"bytes\":1,\"mode\":420,\"path\":\"README.md\",\"sha256\":\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\"},{\"bytes\":2,\"mode\":493,\"path\":\"bin/actql-native-client\",\"sha256\":\"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\"},{\"bytes\":0,\"mode\":420,\"path\":\"package.json\",\"sha256\":\"dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\"}],\"packageName\":\"@actql/cli-darwin-arm64\",\"platform\":\"darwin-arm64\",\"sourceSha\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"}",
+    "sha256": "563dbe623a3df434ff049942de129a827530dfb3baa3d1c33999fea11baab69e",
+    "selectors": {
+      "sourceSha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "platform": "darwin-arm64",
+      "packageName": "@actql/cli-darwin-arm64"
+    },
+    "members": [
+      {
+        "bytes": 1,
+        "mode": 420,
+        "path": "README.md",
+        "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      {
+        "bytes": 2,
+        "mode": 493,
+        "path": "bin/actql-native-client",
+        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      },
+      {
+        "bytes": 0,
+        "mode": 420,
+        "path": "package.json",
+        "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+      }
+    ]
+  }
+]
