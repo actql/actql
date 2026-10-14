@@ -6,8 +6,9 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {acquireLocalLocks, checkBudget, durationSeconds, lockDirectory,
-  lockOwnerStatus, runLocalCheck} from './local-checks-guard.mjs';
+  heavyResourceAdmission, heavyResourceRequest, lockOwnerStatus, runLocalCheck} from './local-checks-guard.mjs';
 
+const tinyResources = {memoryBytes: 16 * 1024 * 1024, diskBytes: 1024 * 1024, cpuThreads: 1};
 const guard = new URL('./local-checks-guard.mjs', import.meta.url).href;
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 // Normal cancellation must allow a process exit, pipe EOF and the supervisor's
@@ -56,7 +57,7 @@ function steps(source) {
   return [{name: 'fixture', command: process.execPath, args: ['-e', source]}];
 }
 function start(f, options = {}, extraEnv = {}) {
-  const config = {root: f.root, heavy: true, timeoutSeconds: 10, graceSeconds: cancellationGraceSeconds,
+  const config = {root: f.root, heavy: true, heavyResources: tinyResources, timeoutSeconds: 10, graceSeconds: cancellationGraceSeconds,
     steps: steps('console.log("fixture ran")'), ...options};
   const script = `import {runLocalCheck} from ${JSON.stringify(guard)};
     process.exitCode = await runLocalCheck(${JSON.stringify(config)});`;
@@ -531,7 +532,7 @@ test('budgets come from workflow or explicit positive timer-safe seconds', () =>
 test('locks use canonical worktree and home/host state, not TMPDIR', t => {
   const f = fixture(t), directory = lockDirectory(f.home);
   const link = join(f.directory, 'checkout-link'); symlinkSync(f.root, link);
-  const lock = acquireLocalLocks({root: f.root, heavy: true, directory});
+  const lock = acquireLocalLocks({root: f.root, heavy: true, heavyResources: tinyResources, directory});
   assert.throws(() => acquireLocalLocks({root: link, heavy: false, directory}), /lock busy/u);
   assert.match(lockOwnerStatus(lock.owner), /PID present/u);
   assert.ok(directory.path.startsWith(join(f.home, '.cache/actql/local-checks')));
@@ -540,7 +541,7 @@ test('locks use canonical worktree and home/host state, not TMPDIR', t => {
 
 test('unknown/stale/PID-reused owners and changed tokens are never reclaimed', t => {
   const f = fixture(t), directory = lockDirectory(f.home);
-  const lock = acquireLocalLocks({root: f.root, heavy: true, directory});
+  const lock = acquireLocalLocks({root: f.root, heavy: true, heavyResources: tinyResources, directory});
   const foreign = {...lock.owner, token: 'different-owner', pid: 2147483647};
   writeFileSync(lock.paths[0], JSON.stringify(foreign));
   assert.throws(() => lock.release(), /changed local check lock/u);
@@ -558,7 +559,7 @@ test('state directory symlinks and foreign lock-file symlinks are refused', t =>
   const directory = lockDirectory(f.home);
   const sentinel = join(foreign, 'sentinel'); writeFileSync(sentinel, 'untouched');
   symlinkSync(sentinel, join(directory.path, 'heavy.lock'));
-  assert.throws(() => acquireLocalLocks({root: f.root, heavy: true, directory}), /lock busy/u);
+  assert.throws(() => acquireLocalLocks({root: f.root, heavy: true, heavyResources: tinyResources, directory}), /lock busy/u);
   assert.equal(readFileSync(sentinel, 'utf8'), 'untouched');
   assert.deepEqual(readdirSync(directory.path), ['heavy.lock']);
 });
@@ -725,7 +726,83 @@ function heldSteps(marker, release) {
     }, 10);`);
 }
 
-test('same-worktree race admits one command; a different heavy worktree is refused', async t => {
+test('heavy admission refuses memory, disk, CPU pressure and more than four reservations', () => {
+  const available = {memoryBytes: 1024 ** 3, diskBytes: 1024 ** 3, cpuThreads: 4};
+  assert.equal(heavyResourceAdmission(tinyResources, [], available).admitted, true);
+  for (const key of Object.keys(available)) {
+    assert.equal(heavyResourceAdmission(tinyResources, [], {...available, [key]: 0}).admitted,
+      false, key);
+  }
+  assert.equal(heavyResourceAdmission(tinyResources, Array(4).fill(tinyResources),
+    {...available, cpuThreads: 64}).admitted, false);
+  for (const value of [null, [], {unknown: 1}, {cpuThreads: 0}, {diskBytes: -1},
+    {memoryBytes: 1.5}, {memoryBytes: Number.MAX_SAFE_INTEGER + 1}]) {
+    assert.throws(() => heavyResourceRequest(value), /resources|request/u);
+  }
+});
+
+test('four real heavy supervisors coexist, refuse a fifth, and keep the legacy barrier until last release', async t => {
+  const f = fixture(t), directory = lockDirectory(f.home), runs = [], markers = [], releases = [];
+  for (let index = 0; index < 4; index++) {
+    const root = join(f.directory, `parallel-${index}`); mkdirSync(root);
+    const marker = join(root, 'started'), release = join(root, 'release');
+    markers.push(marker); releases.push(release);
+    runs.push(start(f, {root, timeoutSeconds: 30, steps: heldSteps(marker, release)}));
+  }
+  await until(() => markers.every(existsSync));
+  const barrier = join(directory.path, 'heavy.lock');
+  const originalBarrier = readFileSync(barrier, 'utf8');
+  try {
+    assert.equal(locks(f).filter(name => name.startsWith('heavy-slot-')).length, 4);
+    const fifthRoot = join(f.directory, 'fifth'); mkdirSync(fifthRoot);
+    const fifth = await start(f, {root: fifthRoot}).done;
+    assert.equal(fifth.code, 1);
+    assert.match(fifth.stderr, /queue\/resource pressure/u);
+    assert.doesNotMatch(fifth.stdout, /fixture ran/u);
+    // This is the old guard's exclusive-create primitive, not a pooled reader.
+    const legacy = spawnSync(process.execPath, ['-e',
+      `require('fs').openSync(${JSON.stringify(barrier)}, 'wx');`], {encoding: 'utf8'});
+    assert.equal(legacy.status, 1);
+    assert.match(legacy.stderr, /EEXIST/u);
+    writeFileSync(releases[0], 'x');
+    assert.equal((await runs[0].done).code, 0);
+    assert.equal(readFileSync(barrier, 'utf8'), originalBarrier,
+      'one completed Owner cannot release a compatibility barrier held by other jobs');
+    const replacement = await start(f, {root: fifthRoot}).done;
+    assert.equal(replacement.code, 0, replacement.stderr);
+    assert.equal(locks(f).filter(name => name.startsWith('heavy-slot-')).length, 3);
+  } finally {
+    for (const release of releases) writeFileSync(release, 'x');
+    for (const result of await Promise.all(runs.map(run => run.done))) {
+      assert.equal(result.code, 0, result.stderr);
+    }
+  }
+  assert.deepEqual(locks(f), []);
+});
+
+test('a live legacy singleton and malformed pooled members are retained, not bypassed', t => {
+  const f = fixture(t), directory = lockDirectory(f.home);
+  const barrier = join(directory.path, 'heavy.lock');
+  const legacy = {token: 'legacy-live-owner', pid: process.pid, uid: process.getuid(),
+    host: 'fixture', worktree: f.root};
+  writeFileSync(barrier, JSON.stringify(legacy));
+  assert.throws(() => acquireLocalLocks({root: f.root, heavy: true,
+    heavyResources: tinyResources, directory}), /lock busy/u);
+  assert.deepEqual(JSON.parse(readFileSync(barrier)), legacy);
+  rmSync(barrier); // fixture owns this inert fake lock, not a production Owner.
+  const lock = acquireLocalLocks({root: f.root, heavy: true, heavyResources: tinyResources, directory});
+  const slot = lock.paths[1], original = readFileSync(slot, 'utf8');
+  const malformed = JSON.parse(original); malformed.heavyPool.resources = {cpuThreads: 1};
+  writeFileSync(slot, JSON.stringify(malformed));
+  const other = join(f.directory, 'other'); mkdirSync(other);
+  assert.throws(() => acquireLocalLocks({root: other, heavy: true,
+    heavyResources: tinyResources, directory}), /lock busy/u);
+  assert.equal(readFileSync(slot, 'utf8'), JSON.stringify(malformed));
+  writeFileSync(slot, original); lock.release();
+  assert.deepEqual(locks(f), []);
+});
+
+test('same-worktree race refuses overlap while independent heavy worktrees share admission', async t => {
   const f = fixture(t), marker = join(f.root, 'started'), release = join(f.root, 'release');
   const first = start(f, {steps: heldSteps(marker, release)});
   await until(() => existsSync(marker));
@@ -734,12 +811,14 @@ test('same-worktree race admits one command; a different heavy worktree is refus
     const same = start(f, {}, {TMPDIR: join(f.directory, 'different-temp')});
     const otherRoot = join(f.directory, 'other'); mkdirSync(otherRoot);
     const other = start(f, {root: otherRoot});
-    for (const result of await Promise.all([same.done, other.done])) {
-      assert.equal(result.code, 1);
-      assert.match(result.stderr, /lock busy/u);
-      assert.doesNotMatch(result.stdout, /fixture ran/u);
-    }
-    assert.equal(locks(f).length, 2, 'original command still holds both locks');
+    const refused = await same.done;
+    assert.equal(refused.code, 1);
+    assert.match(refused.stderr, /lock busy/u);
+    assert.doesNotMatch(refused.stdout, /fixture ran/u);
+    const accepted = await other.done;
+    assert.equal(accepted.code, 0, accepted.stderr);
+    assert.match(accepted.stdout, /fixture ran/u);
+    assert.equal(locks(f).length, 3, 'original command retains worktree, reservation and compatibility barrier');
   } finally {
     writeFileSync(release, 'x');
     admitted = await first.done;
@@ -756,7 +835,7 @@ test('focused work in another worktree does not take the heavy lock', async t =>
   try {
     const otherRoot = join(f.directory, 'other'); mkdirSync(otherRoot);
     assert.equal((await start(f, {root: otherRoot, heavy: false}).done).code, 0);
-    assert.equal(locks(f).length, 2, 'focused work finishes while the original heavy custody remains');
+    assert.equal(locks(f).length, 3, 'focused work finishes while the original heavy custody remains');
   } finally {
     writeFileSync(release, 'x');
     admitted = await first.done;
@@ -804,7 +883,7 @@ for (const [exitCode, resistant] of [[0, false], [7, false], [7, true]]) {
     assert.match(readFileSync(join(attempts(f)[0], 'output.log'), 'utf8'), /parent exit/u);
     if (resistant) {
       assert.match(record.status, /SIGKILL escalation/u);
-      assert.equal(locks(f).length, 2);
+      assert.equal(locks(f).length, 3);
     } else {
       assert.equal(record.exitCode, exitCode || 1);
       assert.deepEqual(locks(f), []);
@@ -848,7 +927,7 @@ test('TERM-resistant descendants trigger owned-group KILL and retain locks', asy
   } finally { result = await run.done; }
   assert.equal(result.code, 130, result.stderr);
   assert.equal(Boolean(live(Number(readFileSync(pidFile)))), false);
-  assert.equal(locks(f).length, 2);
+  assert.equal(locks(f).length, 3);
   assert.match(summary(attempts(f)[0]).status, /^interrupted/u);
   assert.match(summary(attempts(f)[0]).status, /SIGKILL escalation/u);
   assert.match(readFileSync(join(attempts(f)[0], 'output.log'), 'utf8'), /resistant/u);
@@ -901,7 +980,7 @@ for (const exitCode of [0, 7]) {
         assert.equal(pending.steps[0].streamsComplete, false);
         assert.equal(pending.steps[0].status, exitCode ? 'failed' : 'draining');
         assert.ok(pending.steps[0].exitedAt);
-        assert.equal(locks(f).length, 2, 'direct exit alone must not release custody');
+        assert.equal(locks(f).length, 3, 'direct exit alone must not release custody');
         if (cancellation === 'caller') run.child.kill('SIGINT');
       } finally { result = await run.done; }
       const expected = exitCode || (cancellation === 'timeout' ? 124 : 130);
@@ -923,7 +1002,7 @@ for (const exitCode of [0, 7]) {
         assert.match(record.status, /SIGKILL escalation/u);
         assert.equal(record.outputComplete, false);
         assert.equal(record.locksReleased, false);
-        assert.equal(locks(f).length, 2);
+        assert.equal(locks(f).length, 3);
       } else {
         assert.equal(record.status, cancellation === 'timeout' ? 'timeout' : 'interrupted');
         assert.equal(record.outputComplete, true);
@@ -977,7 +1056,7 @@ for (const cancellation of ['timeout', 'caller']) {
       assert.equal(record.complete, false);
       assert.equal(record.outputComplete, !resistant);
       assert.equal(record.locksReleased, !resistant);
-      assert.equal(locks(f).length, resistant ? 2 : 0);
+      assert.equal(locks(f).length, resistant ? 3 : 0);
       assert.match(record.status, cancellation === 'timeout' ? /^timeout/u : /^interrupted/u);
       if (resistant) assert.match(record.status, /SIGKILL escalation/u);
       for (const pid of JSON.parse(readFileSync(ready))) assert.equal(Boolean(live(pid)), false);
@@ -1047,7 +1126,7 @@ test('supervisor SIGKILL retains ownership rather than auto-clearing a stale PID
   const record = summary(attempts(f)[0]);
   process.kill(record.owner.pid, 'SIGKILL');
   assert.equal((await run.done).code, 137);
-  assert.equal(locks(f).length, 2);
+  assert.equal(locks(f).length, 3);
   const next = await start(f).done;
   assert.equal(next.code, 1);
   assert.match(next.stderr, /No automatic stale-lock removal/u);
@@ -1070,6 +1149,6 @@ test('ps failure after execution retains locks and cannot certify completion', a
   const result = await start(f, {}, {PATH: bin + ':' + process.env.PATH}).done;
   assert.notEqual(result.code, 0);
   assert.match(result.stderr, /Cannot inspect owned process group/u);
-  assert.equal(locks(f).length, 2);
+  assert.equal(locks(f).length, 3);
   assert.equal(summary(attempts(f)[0]).complete, false);
 });

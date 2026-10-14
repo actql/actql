@@ -595,8 +595,18 @@ best-effort, not proof that arbitrary application output has no secrets.
 ### Lock ownership and stopped processes
 
 The canonical worktree path gets one exclusive lock for every routed
-execution. Classified-heavy work additionally gets one lock across this
-user's worktrees on this host. State is beneath the canonical home directory
+execution. Classified-heavy work additionally reserves one of at most four
+shared slots across this user's worktrees on this host. Admission checks current
+free memory, disk space and available CPUs against still-held verification
+reservations. The default estimate is 2 GiB memory, 2 GiB disk and two CPU threads
+per job, with 256 MiB memory and 128 MiB disk headroom. A `runLocalCheck` caller
+may supply positive integer `heavyResources: {memoryBytes, diskBytes, cpuThreads}`
+estimates for its actual workload; these do not alter product fuel, capacity or
+authorization and are not an OS quota or a cold-build peak guarantee. Preserve
+each recipe's additional preparation/runtime and minimum-free-space conditions.
+If resources or all slots are occupied, report concrete queue/resource pressure
+and retry admission only after the relevant resource or Owner state changes.
+State is beneath the canonical home directory
 at `.cache/actql/local-checks/<host-hash>/`, independent of `TMPDIR` and
 `RUNNER_TEMP`. Other users or containers with separate homes/state are outside
 this cooperative lock scope. Existing state-directory symlinks or foreign
@@ -604,14 +614,29 @@ ownership are refused; the wrapper does not change permissions or user config.
 
 A lock records a random owner token, supervisor PID, user/host, worktree and
 evidence path. Acquisition is exclusive; release checks file identity and the
-same token. A failed second acquisition releases only locks it acquired before
-starting any command. A busy or incomplete lock fails immediately, without
-waiting or retrying. PID liveness is diagnostic only: PID reuse, missing PIDs,
+same token. `summary.json` lists the invocation's worktree and reservation locks;
+`heavyAdmission` separately records its estimate, resource snapshot, slot and
+shared compatibility barrier. Other admitted jobs may still hold that barrier
+after this invocation has released its own locks. A failed acquisition releases
+only locks it acquired before starting any command. A busy worktree, legacy or
+incomplete lock is refused. Pool admission/release uses a checked short mutex
+with at most one second of bounded contention waiting; it never reclaims a stale
+mutex. PID liveness is diagnostic only: PID reuse, missing PIDs,
 reboots, incomplete metadata and surviving descendants never authorize removal.
 There is no automatic stale-lock recovery or generic cleanup command. Inspect
 the exact reported owner/evidence and confirm its processes have stopped
 before manually recovering that lock. Never remove another active worker's
 lock or use a broad process-kill command.
+
+The existing `heavy.lock` is retained as an immutable compatibility barrier
+for the complete pooled lifetime. A live old singleton prevents pooled admission;
+an old checkout also refuses a pooled barrier rather than overlapping its jobs.
+Each reservation retains its own supervisor identity and token. The barrier's
+initial Owner may already have completed while other slots remain live: inspect
+all member Owners, not only the barrier PID. The last member removes the checked
+barrier. A missing/replaced barrier, malformed member, orphan slot or unknown
+ownership is refused without automatic cleanup. Worktrees must normally adopt
+the integrated guard before participating; never bypass a live legacy lock.
 
 The per-invocation Node supervisor stays alive as its own process-group leader.
 Commands inherit that group; signals never target a PID read from an old lock.
@@ -624,7 +649,7 @@ itself is killed, no new watchdog is started and locks stay in place.
 This is not a security sandbox or OS resource quota. Detached/daemonized children
 that intentionally escape the group, raw commands, edits or branch switches
 outside the wrapper, and manual lock removal are not prevented. Continue to
-follow the same-worktree/one-heavy-gate rules in [AGENTS.md](../AGENTS.md).
+keep each running worktree exclusive and honor all existing live locks.
 The optional [Claude Code and Codex hooks](local-checks-hooks.md) add pre-launch
 reminders for a small literal-command grammar; they do not broaden these limits.
 
