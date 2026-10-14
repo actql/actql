@@ -155,9 +155,13 @@ test('actual Common readers preserve original policies and refuse changed wire/C
   }
 });
 
-test('actual installed Host supplies its original runtime once; second installation refuses and closes',async t=>{
+for(const [route,create] of [['generic',createInstalledOpenAIChatRegistration],
+  ['Undici',createInstalledUndiciOpenAIChatRegistration]]) {
+test(`actual installed ${route} Host supplies its original runtime once; second installation refuses and closes`,async t=>{
   const {openInstalledRemoteHttpHost}=await import('../../adapters/host-node/embedded-local.mjs');
-  const config=configuration(),register=createInstalledOpenAIChatRegistration(config),moon=await realRuntime();
+  const config=configuration();
+  if(route==='Undici')delete config.fetch;
+  const register=create(config),moon=await realRuntime();
   const root=await mkdtemp(join(tmpdir(),'actql-original-materials-host-'));
   let host,callbacks=0;
   t.after(async()=>{if(host!==undefined)await host.close();await rm(root,{recursive:true,force:true});});
@@ -172,3 +176,4 @@ test('actual installed Host supplies its original runtime once; second installat
   assert.equal(callbacks,2);
   t.diagnostic('Actual Host registration/SQLite close only; no Run, Provider send, grant or public E2E');
 });
+}
