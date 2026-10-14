@@ -97,9 +97,22 @@ pub(all) struct NativeEffectFreeRunContext {
   authoring : @actql/actql/run_publication.RunEvidenceValue
 }
 
+type NativeObservedRunState
+pub fn NativeObservedRunState::definition_cid(Self) -> String
+pub fn NativeObservedRunState::wire(Self) -> String
+
+pub(all) enum NativeObservedRunStateIssue {
+  Unavailable
+  InvalidLimits
+  ValidationLimit
+  Publication(NativeRunPublicationIssue)
+  State(@actql/actql/run_publication.ObservedPublicationRunStateIssue)
+}
+
 type NativePreparedCapturedRunPublication
 pub fn NativePreparedCapturedRunPublication::cancel(Self) -> Result[Bool, NativeCapturedRunPublicationCancellationIssue]
 pub fn NativePreparedCapturedRunPublication::commit(Self) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
+pub fn NativePreparedCapturedRunPublication::observe_run_state(Self, String, Int, Int, Int, () -> Bool) -> Result[NativeObservedRunState, NativeObservedRunStateIssue]
 
 pub(all) struct NativePublicationOutputContext {
   run_definition : @actql/actql/run_publication.PublicationContract
