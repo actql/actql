@@ -117,7 +117,7 @@ pub fn[T] prepare_installed_arena_supplier(
   Ok({
     original,
     source,
-    recipe: recipe.copy(),
+    recipe,
     generation,
     bytes,
     limits,
@@ -184,6 +184,11 @@ fn[T] NativeInstalledArenaSupplier::acquire_original(
   }
   if self.consumed {
     return Err(AlreadyConsumed)
+  }
+  // Keep the installer's original finite control precondition at acquisition.
+  // This declaration does not fund the independent loader, VM or read domains.
+  if self.control_envelope_bytes <= 0L {
+    return Err(Unavailable)
   }
   self.consumed = true
   let ledger = match @resources.create_ledger(self.limits) {

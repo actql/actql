@@ -121,7 +121,17 @@ class LocalArtifactProducerTests(unittest.TestCase):
         self.assertFalse(result['wheel_built'])
         self.assertFalse(result['public_local_accepted'])
         stage = self.root / 'stage'
-        prepared = producer.recipe.prepare(self.output, stage)
+        def private_stage(components, archive, native, target):
+            self.assertEqual(archive, self.root / 'fixed-binding-source')
+            self.assertEqual(native, self.root / 'fixed-native-libraries')
+            (target / 'WASMTIME-LICENSE').write_bytes(b'independent private notice fixture')
+            return {'native_loaded': False}
+        # Native staging and Mach-O refusals have independent tests. This
+        # synthetic receipt case retains its original component-copy scope.
+        with patch.object(producer.recipe, 'stage_private_runtime', side_effect=private_stage):
+            prepared = producer.recipe.prepare(self.output, stage,
+                bindings_source=self.root / 'fixed-binding-source',
+                native_libraries=self.root / 'fixed-native-libraries')
         self.assertEqual(prepared['source_sha'], self.head)
         self.assertFalse(prepared['runtime_executed'])
 
@@ -140,6 +150,11 @@ class LocalArtifactProducerTests(unittest.TestCase):
             ROOT / 'scripts/build-python-product-wheels.py')
         module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
         wheel = self.root / 'synthetic.whl'
+        stage = self.root / 'private-stage'
+        private = stage / 'src/actql_local_runtime/_wasmtime'
+        private.mkdir(parents=True)
+        (private / '__init__.py').write_bytes(b'# Independent non-executable binding fixture\n')
+        (private.parent / 'WASMTIME-LICENSE').write_bytes(b'independent private notice fixture')
         names = ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
                  'client_host_wasm.wasm', 'libduckdb.dylib', 'LICENSE',
                  'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE')
@@ -152,11 +167,13 @@ class LocalArtifactProducerTests(unittest.TestCase):
                         value = (self.output / name).read_bytes()
                         if name == changed: value = b'x' * len(value)
                         archive.writestr('actql_local_runtime/' + name, value)
+                    for path in (private / '__init__.py', private.parent / 'WASMTIME-LICENSE'):
+                        archive.writestr('actql_local_runtime/' + path.relative_to(private.parent).as_posix(), path.read_bytes())
                 if missing or changed:
                     with self.assertRaises((ValueError, KeyError)):
-                        module.runtime_wheel_components(wheel, self.output)
+                        module.runtime_wheel_components(wheel, self.output, stage)
                 else:
-                    module.runtime_wheel_components(wheel, self.output)
+                    module.runtime_wheel_components(wheel, self.output, stage)
 
     def test_synthetic_sdk_wheel_binding_is_exact_and_contains_no_runtime(self):
         spec = importlib.util.spec_from_file_location('sdk_image_binding_inspector',

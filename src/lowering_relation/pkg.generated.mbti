@@ -2,6 +2,9 @@
 package "actql/actql/lowering_relation"
 
 import {
+  "actql/actql/calendar_options",
+  "actql/actql/calendar_transition",
+  "actql/actql/calendar_typing",
   "actql/actql/carrier_contract",
   "actql/actql/carrier_projection",
   "actql/actql/decode_core",
@@ -130,6 +133,20 @@ pub fn bindings_ordered(PreparedBindings) -> Bool
 pub fn bound_preparation(BoundPrepared) -> Prepared
 
 pub fn bound_values_cell(BoundPrepared, Int, Int, Int) -> Result[@value_admission.CheckedValue, ValuesIssue]
+
+pub fn calendar_checked(PreparedCalendar) -> @calendar_typing.CheckedCalendar
+
+pub fn calendar_end(PreparedCalendar) -> String?
+
+pub fn calendar_owner(PreparedCalendar) -> BoundPrepared
+
+pub fn calendar_row_bound(PreparedCalendar) -> Int?
+
+pub fn calendar_start(PreparedCalendar) -> String?
+
+pub fn calendar_step(PreparedCalendar) -> Int
+
+pub fn calendar_table(PreparedCalendar) -> @calendar_transition.Table
 
 pub fn carrier_handoff_at(CarrierHandoffIndex, Int) -> CarrierHandoff?
 
@@ -1158,6 +1175,15 @@ pub(all) enum BindingIssueKind {
 
 type BoundPrepared
 
+pub(all) enum CalendarIssue {
+  InvalidCalendarLimits
+  InvalidCalendarWiring
+  CalendarPreparationLimit
+  MissingCalendarParameter(String)
+  InvalidCalendarParameter(String)
+  CalendarRange(@calendar_options.IssueKind)
+} derive(Eq, @debug.Debug)
+
 pub struct CanonicalOccurrence {
   source_step : Int
   id : String
@@ -1562,6 +1588,7 @@ pub enum Payload {
   Serialize(@pipeline_typing.CheckedSerialization)
   Values(@relation_values.CheckedValues)
   TimeSeriesValue(@time_series.CheckedSeries)
+  CalendarValue(@calendar_typing.CheckedCalendar)
   RowWindow(@temporal_window.CheckedWindow)
   Derive(@relation_typing.CheckedOperation)
   Where(@relation_typing.CheckedOperation)
@@ -1648,6 +1675,8 @@ type PreparedAppendKernel
 type PreparedAsOfJoin
 
 type PreparedBindings
+
+type PreparedCalendar
 
 type PreparedCarrierProjection
 
@@ -1755,6 +1784,7 @@ pub enum PreparedStep {
   CompletedProducerBoundary(Int)
   ValuesStep(PreparedValues)
   TimeSeriesStep(PreparedTimeSeries)
+  CalendarStep(PreparedCalendar)
   WindowStep(PreparedWindow)
   RowStep(PreparedKernel)
   JoinStep(PreparedJoinKernel)
@@ -1850,6 +1880,7 @@ pub(all) enum SequenceIssue {
   SequenceLimit
   ValuesFailure(Int, ValuesIssue)
   TimeSeriesFailure(Int, TimeSeriesIssue)
+  CalendarFailure(Int, CalendarIssue)
   WindowFailure(Int, WindowIssue)
   KernelFailure(Int, KernelIssue)
   JoinFailure(Int, InnerJoinIssue)
