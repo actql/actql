@@ -104,3 +104,27 @@ children settle; allocation retirement and Host mapping close remain separate.
 Independent overhead requires a separately backed selected domain and is still
 unavailable in this arena-only supplier. No ordinary worker or numerical
 whole-VM profile is enabled.
+
+The bounded extent projection separates the actual FD identity, generation,
+recipe and absolute page window from the original Common payload offset/length.
+The immutable DATA does not carry child or loan custody. Each original loan
+captures at most one projection and attempts at most one view mapping. Physical
+failure preserves its same partial view; cleanup can retry that view and is
+idempotent after success. Pending mapped-view retirement prevents range return
+and Core settlement. Region closing refuses new mapping and cached projection
+reuse, while same-view cleanup remains available. No caller FD is closed here.
+
+The region conformance executable consumes one caller-owned private 64-page FD.
+It tests live range/view custody before worker dispatch. It does not execute a
+worker/VM or independently cover the mapping/FD/process/control overhead of an
+ordinary product profile. The original selected funding boundaries are unchanged.
+
+The domain custody port retains the same Native Host/child/view through physical
+acquisition, one-shot transfer, scoped use and original cleanup. A pending
+domain prevents outer-view cleanup even when acquisition failed; it first
+returns through its same typed cleanup carrier. Scope leave and cleanup remain
+available after parent closing. Closing the domain does not release the view,
+FD, parent range or logical quota. Successful domain cleanup removes the
+view's backreference; successful parent settlement removes the loan's view
+backreference. Closed aliases are idempotent only after the original Host and
+child identity checks. No new Run/Recovery Owner or Python success inference.

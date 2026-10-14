@@ -14,8 +14,18 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_region_native.mbt",
-      "bytes": 7023,
-      "sha256": "0e624d202c0e3e4d736577279f6ba7902d8c1059d1a3eafefb60a25f93b77940"
+      "bytes": 7371,
+      "sha256": "031321b773f0f5156ace56c23bcde53756f0a957414f836607a6519ea70ca353"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/backed_view_native.mbt",
+      "bytes": 7942,
+      "sha256": "c43e9de36446ea9a669ac4d16576ec75064702de69468b3a8b864f9ab062ff9c"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/backed_domain_native.mbt",
+      "bytes": 5872,
+      "sha256": "5eafd245e2f12f26c847ec25fe890bd6682bcf1108995ee4f9d8d6dad5e19743"
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_region_wbtest.mbt",
@@ -24,8 +34,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
-      "bytes": 7158,
-      "sha256": "0485827bad574756ec79c58beeedf08f64cbab1b9189c1495ae97a8b3b6da524"
+      "bytes": 13619,
+      "sha256": "ad392ae8367c110f130ae7d29b97f9492b46c357fb1b4067ed28d4c97064cefa"
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_wbtest.mbt",
@@ -39,8 +49,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.c",
-      "bytes": 13515,
-      "sha256": "75ad75312f41236a0f08f60473001c86480d69e562801d307c73916c8e3ef89a"
+      "bytes": 13894,
+      "sha256": "6d71b37e7383cb8ed1676e20ae9bee3aa76c0903a95f542c10d10ce1a48fe1c9"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
@@ -49,13 +59,13 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_region.h",
-      "bytes": 2863,
-      "sha256": "0ebfe06bf3311ae4c3690342916d727c88c68f06f5ea7ea1e17cc878de9ed445"
+      "bytes": 3996,
+      "sha256": "f9add7f86513bd7c7c6607dc8146dd2c4e5f3b274533687e248a90822c7d0fa6"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_region.inc",
-      "bytes": 9926,
-      "sha256": "57ae393f46b18aa2ad34cd7efde280db32288cb175cd1059fe172130c0914639"
+      "bytes": 14325,
+      "sha256": "00b572a0492f707aec7422cbb02b7bdc296a8efef5d1eb808342d88621207b86"
     }
   ]
 }

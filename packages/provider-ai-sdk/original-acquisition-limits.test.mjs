@@ -35,7 +35,7 @@ const exactBuffer = text => {
 };
 const wire = 'HTTP/1.1 200 OK\r\nContent-Length: 1\r\nConnection: close\r\n\r\nA';
 
-async function exercise(t, declaration, packets) {
+async function exercise(t, declaration, packets, firstBorrowedView) {
   let responded = false, closes = 0;
   const socket = new Duplex({read() {}, write(_bytes, _encoding, callback) {
     callback();
@@ -55,6 +55,7 @@ async function exercise(t, declaration, packets) {
   let originalReads = 0, nullProbes = 0;
   socket.read = function (...args) {
     originalReads++;
+    if (originalReads === 1 && firstBorrowedView !== undefined) return firstBorrowedView;
     const chunk = Reflect.apply(originalRead, socket, args);
     if (chunk === null) nullProbes++;
     return chunk;
@@ -146,6 +147,16 @@ test('small emitted view cannot conceal a larger original backing', async t => {
   assert.deepEqual(await exercise(t, {...limits, maxBorrowedBackingBytes: 8191},
     [original.subarray(0, Buffer.byteLength(wire))]),
   {error: 'UndiciOriginalAcquisitionBackingExceeded'});
+});
+
+test('empty emitted view cannot conceal a larger original backing', async t => {
+  const original = Buffer.allocUnsafeSlow(8192);
+  const empty = original.subarray(0, 0);
+  assert.equal(empty.byteLength, 0);
+  assert.equal(empty.buffer.byteLength, 8192);
+  assert.deepEqual(await exercise(t, {...limits,
+    maxBorrowedBackingBytes: responseLimits.maxChunkBytes + 8191},
+    [exactBuffer(wire)], empty), {error: 'UndiciOriginalAcquisitionBackingExceeded'});
 });
 
 test('framing-only large chunk exceeds acquisition while body remains one byte', async t => {

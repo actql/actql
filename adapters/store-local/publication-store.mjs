@@ -84,7 +84,12 @@ const exactKeys = (value, keys) => value !== null &&
 // belong to that async frame. This retires references, not capacity, physical
 // GC, a pending writer or the original borrowed input's independent custody.
 function encodePrivateEvidenceEnvelope(input, isWire, key, aad, maximum) {
-  const bytes = isWire ? Buffer.from(input, 'utf8') : input;
+  // The caller already checked the complete encrypted extent. A short wire
+  // must not borrow a larger shared pool backing for this encoding lifetime.
+  // Keep its exact UTF-8 snapshot; the original String and codec controls are
+  // still separate funded components, not released by this extent check.
+  const bytes = isWire ? Buffer.allocUnsafeSlow(Buffer.byteLength(input, 'utf8')) : input;
+  if (isWire) bytes.write(input, 0, bytes.byteLength, 'utf8');
   const nonce = randomBytes(12);
   const cipher = createCipheriv('aes-256-gcm', key, nonce);
   cipher.setAAD(aad);
@@ -2238,10 +2243,15 @@ export async function openLocalPublicationStore(
     holding?.namespace === 'publication-private' ||
     (holding?.namespace === 'local-continuation-private' &&
       localContinuationEvidenceNames.includes(name));
-  const privateEvidenceAad = (name, semanticCid) => Buffer.from(
-    `actql-private-publication-evidence/0.1\0${name}\0${semanticCid}`,
-    'utf8',
-  );
+  const privateEvidenceAad = (name, semanticCid) => {
+    const text = `actql-private-publication-evidence/0.1\0${name}\0${semanticCid}`;
+    // Preserve the exact historical preimage without borrowing a larger pool
+    // slab through crypto/read/cleanup. String/control and crypto scratch are
+    // still separate original-envelope costs; exact extent is not a grant.
+    const bytes = Buffer.allocUnsafeSlow(Buffer.byteLength(text, 'utf8'));
+    bytes.write(text, 0, bytes.byteLength, 'utf8');
+    return bytes;
+  };
   const privateEvidenceKey = () => {
     if (configuration.privateEvidenceKey === undefined) {
       fail('PublicationPrivateEvidenceKeyUnavailable');
@@ -2254,8 +2264,15 @@ export async function openLocalPublicationStore(
           .test(value)) {
       fail('PublicationPrivateEvidenceCorrupt');
     }
-    const decoded = Buffer.from(value, 'base64');
-    if ((bytes !== undefined && decoded.byteLength !== bytes) ||
+    // The bounded envelope and strict alphabet above fix the decoded extent.
+    // Noncanonical padding bits still fail the same round-trip check below.
+    // Keep nonce/tag/ciphertext on dedicated backings, not shared pool slices.
+    const length = value.length / 4 * 3 - (value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0);
+    if (bytes !== undefined && length !== bytes) {
+      fail('PublicationPrivateEvidenceCorrupt');
+    }
+    const decoded = Buffer.allocUnsafeSlow(length);
+    if (decoded.write(value, 0, length, 'base64') !== length ||
         decoded.toString('base64') !== value) {
       fail('PublicationPrivateEvidenceCorrupt');
     }
@@ -2270,7 +2287,11 @@ export async function openLocalPublicationStore(
     }
     cidHex(semanticCid);
     cidHex(holdingCid);
-    const key = Buffer.from(privateEvidenceKey());
+    // This private getter reads the same immutable Store configuration with
+    // no await/caller callback between size validation and copying. Do not add
+    // an original-key alias to the async reader frame; only its copy escapes.
+    const key = Buffer.allocUnsafeSlow(privateEvidenceKey().byteLength);
+    key.set(privateEvidenceKey());
     try {
       const holding = await inspectPhysicalHolding(holdingCid);
       if (!privateEvidenceHolding(holding, name) ||
