@@ -2,10 +2,11 @@
 from unittest.mock import patch
 import unittest
 
-from actql_sdk._local_engine import _checked_installed_image_file
+from actql_sdk._local_engine import _checked_installed_image_file, _verify_loaded_runtime
 from actql_sdk._local_distribution import LocalInstallationError
 import test_local_distribution as distribution
 import test_local_installed_image as image
+from image_fixture import PROVIDER
 
 
 class PrivateRuntimeTests(unittest.TestCase):
@@ -44,7 +45,7 @@ class PrivateRuntimeTests(unittest.TestCase):
         stock.parent.mkdir(); stock.write_bytes(b'independent runtime library fixture')
         with patch('actql_sdk._local_engine.metadata.version', return_value=components.package_version), \
                 patch('actql_sdk._local_engine.resources.files', side_effect=AssertionError('Stock fallback')):
-            with self.assertRaises(FileNotFoundError): _checked_installed_image_file(components)
+            with self.assertRaises(LocalInstallationError): _checked_installed_image_file(components)
 
     def test_private_library_requires_exact_cohort_and_original_digest(self):
         case = distribution.LocalDistributionTests(); case.setUp()
@@ -52,6 +53,7 @@ class PrivateRuntimeTests(unittest.TestCase):
         components = case.inspect()
         native = case.directory / '_wasmtime/darwin-aarch64/_libwasmtime.dylib'
         native.parent.mkdir(parents=True); native.write_bytes(b'independent runtime library fixture')
+        (native.parent / 'libactql_native_control.dylib').write_bytes(PROVIDER)
         with patch('actql_sdk._local_engine.metadata.version', return_value='foreign-cohort'):
             with self.assertRaisesRegex(LocalInstallationError, 'cohort mismatch'):
                 _checked_installed_image_file(components)
@@ -61,3 +63,45 @@ class PrivateRuntimeTests(unittest.TestCase):
             self.assertEqual(selected.runtime_library, native)
             native.write_bytes(b'x' * len(b'independent runtime library fixture'))
             with self.assertRaises(LocalInstallationError): _checked_installed_image_file(components)
+
+    def test_native_provider_is_required_before_binding_import_without_fallback(self):
+        case = distribution.LocalDistributionTests(); case.setUp(); self.addCleanup(case.doCleanups)
+        components = case.inspect()
+        native = case.directory / '_wasmtime/darwin-aarch64/_libwasmtime.dylib'
+        native.parent.mkdir(parents=True); native.write_bytes(b'independent runtime library fixture')
+        provider = native.parent / 'libactql_native_control.dylib'
+        with patch('actql_sdk._local_engine.metadata.version', return_value=components.package_version), \
+                patch('actql_sdk._local_engine.resources.files', side_effect=AssertionError('Stock fallback')):
+            with self.assertRaises(FileNotFoundError): _checked_installed_image_file(components)
+            provider.write_bytes(b'x' * len(PROVIDER))
+            with self.assertRaisesRegex(LocalInstallationError, 'digest mismatched'):
+                _checked_installed_image_file(components)
+            provider.unlink(); outside = case.directory / 'foreign.dylib'; outside.write_bytes(PROVIDER)
+            provider.symlink_to(outside)
+            with self.assertRaises(OSError): _checked_installed_image_file(components)
+            provider.unlink(); provider.write_bytes(PROVIDER)
+            self.assertEqual(_checked_installed_image_file(components).runtime_library, native)
+
+    def test_provider_parent_symlink_is_rejected(self):
+        case = distribution.LocalDistributionTests(); case.setUp(); self.addCleanup(case.doCleanups)
+        components = case.inspect()
+        outside = case.directory / 'foreign'; outside.mkdir()
+        (case.directory / '_wasmtime').symlink_to(outside, target_is_directory=True)
+        with patch('actql_sdk._local_engine.metadata.version', return_value=components.package_version):
+            with self.assertRaisesRegex(LocalInstallationError, 'provider directory'):
+                _checked_installed_image_file(components)
+
+    def test_provider_is_rechecked_after_native_loader_before_engine(self):
+        from types import SimpleNamespace
+        case = distribution.LocalDistributionTests(); case.setUp(); self.addCleanup(case.doCleanups)
+        components = case.inspect()
+        native = case.directory / '_wasmtime/darwin-aarch64/_libwasmtime.dylib'
+        native.parent.mkdir(parents=True); native.write_bytes(b'independent runtime library fixture')
+        provider = native.parent / 'libactql_native_control.dylib'; provider.write_bytes(PROVIDER)
+        with patch('actql_sdk._local_engine.metadata.version', return_value=components.package_version):
+            selected = _checked_installed_image_file(components)
+        ffi = SimpleNamespace(filename=native, dll=SimpleNamespace(_name=str(native)))
+        _verify_loaded_runtime(selected, ffi)
+        provider.write_bytes(b'x' * len(PROVIDER))
+        with self.assertRaisesRegex(LocalInstallationError, 'digest mismatched'):
+            _verify_loaded_runtime(selected, ffi)

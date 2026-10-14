@@ -25,15 +25,19 @@ class _SelectedImageRecipe:
     engine_body: bytes
     image_bytes_limit: int
     runtime_library_bytes: int
+    provider_library_sha256: str
+    provider_library_bytes: int
 
     def validate(self) -> None:
         if (not _hex(self.source_sha, 40) or type(self.package_version) is not str
                 or not self.package_version or not _hex(self.module_sha256, 64)
                 or not _hex(self.runtime_library_sha256, 64)
+                or not _hex(self.provider_library_sha256, 64)
                 or type(self.engine_body) is not bytes
                 or not 0 < len(self.engine_body) <= 65536
                 or type(self.image_bytes_limit) is not int or self.image_bytes_limit <= 0
-                or type(self.runtime_library_bytes) is not int or self.runtime_library_bytes <= 0):
+                or type(self.runtime_library_bytes) is not int or self.runtime_library_bytes <= 0
+                or type(self.provider_library_bytes) is not int or self.provider_library_bytes <= 0):
             raise LocalInstallationError('Unavailable selected Local image recipe')
         try:
             body = _closed(json.loads(self.engine_body, object_pairs_hook=_pairs), (
@@ -80,7 +84,7 @@ def _image_descriptor(body: Any, recipe: _SelectedImageRecipe) -> dict[str, Any]
         raise LocalInstallationError('Unavailable selected Local image recipe')
     recipe.validate()
     item = _closed(body, ('source_sha', 'package_version', 'module_sha256',
-        'core_abi', 'wasmtime_version', 'runtime_library_sha256', 'platform',
+        'core_abi', 'wasmtime_version', 'runtime_library_sha256', 'provider_library_sha256', 'platform',
         'engine_body', 'engine_sha256', 'file', 'bytes', 'sha256'))
     expected = json.loads(recipe.engine_body, object_pairs_hook=_pairs)
     # Compare exact canonical bytes too: JSON equality alone identifies True
@@ -95,6 +99,7 @@ def _image_descriptor(body: Any, recipe: _SelectedImageRecipe) -> dict[str, Any]
             or type(item['core_abi']) is not int or item['core_abi'] != LOCAL_CORE_ABI
             or item['wasmtime_version'] != WASMTIME_VERSION
             or item['runtime_library_sha256'] != recipe.runtime_library_sha256
+            or item['provider_library_sha256'] != recipe.provider_library_sha256
             or item['platform'] != 'darwin-arm64' or encoded != original
             or item['engine_sha256'] != hashlib.sha256(original).hexdigest()
             or item['file'] != 'client_host_wasm.cwasm'
@@ -133,13 +138,15 @@ def _recipe_from_original(original: bytes, *, source_sha: str,
     try:
         body = _closed(json.loads(original, object_pairs_hook=_pairs), (
             'wasmtime_version', 'runtime_library_sha256', 'runtime_library_bytes',
+            'provider_library_sha256', 'provider_library_bytes',
             'engine_body', 'image_bytes_limit'))
         if body['wasmtime_version'] != WASMTIME_VERSION:
             raise LocalInstallationError('Incompatible original Local image recipe')
         recipe = _SelectedImageRecipe(source_sha, package_version, module_sha256,
             body['runtime_library_sha256'], json.dumps(body['engine_body'], sort_keys=True,
                 separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode('ascii'),
-            body['image_bytes_limit'], body['runtime_library_bytes'])
+            body['image_bytes_limit'], body['runtime_library_bytes'],
+            body['provider_library_sha256'], body['provider_library_bytes'])
         recipe.validate()
         return recipe
     except (ValueError, UnicodeError, RecursionError) as original_error:
