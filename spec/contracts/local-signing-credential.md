@@ -21,6 +21,26 @@ principal/current authority scope, independently selected key configuration,
 generation, key ID and public-key CID, issuer identity, purpose, exact preimage,
 expiry and use limit. Every field contributes to the grant CID.
 
+For the initial Client Local profile, `request_cid` is the original
+`ClientRequestIdentity`'s IntentFingerprint, read through
+`client_request_intent_cid`. `request_scope_cid` is the LogicalRequestScope CID
+of that same original request, read through `client_request_scope_cid`. Retain
+and authenticate the original Submission scope separately. Matching intent
+under another logical scope denotes another request; changing intent under
+the same logical scope is a conflict. `ClientSubmittedIntent` binds submitted
+`kind/input/parameters` content and is a different identity; its CID, a Provider
+request CID, caller ID, proof preimage or a transport-wrapper hash cannot
+replace the original IntentFingerprint.
+
+At a waiting Checkpoint, `run_invocation_cid` comes from the original invocation
+retained by the existing opaque paired approval/capture custody. Select
+`unit_definition_cid` through the original checked owner and the Checkpoint's
+explicit RunUnit coordinate. Recheck original request, Run, Checkpoint and
+current custody around this projection. A preparation-start fence, the first
+array element, recompile, recapture or current Program reconstruction cannot
+supply missing originals. Missing/retired original custody remains unavailable;
+a live projection alone does not establish durable restart support.
+
 `checkpoint_kind` uses the existing Checkpoint Owner's six closed tokens.
 `purpose` is exactly `reviewer_proof` or `host_attestation`. The two purposes
 require separate selected key originals at the operational boundary. Changing

@@ -3,6 +3,7 @@
 // Only its explicitly installed transport can perform network I/O. Neither
 // physical preparation nor transport can issue execution evidence.
 import {fixedInferResponseLimits, readBoundedInferResponse} from './bounded-response.mjs';
+import {prepareOriginalUndiciFetch} from './original-undici-transport.mjs';
 
 const preparations = new WeakMap();
 // Internal SDK consumer retirement, not Provider failure or a response fact.
@@ -193,7 +194,12 @@ export function prepareSdkTransport(handle, {fetch, responseLimits, observeAt,
   const original = state.request;
   const init = Object.freeze({method: original.method, body: original.body,
     headers: original.headers, redirect: 'error', signal: state.controller.signal});
-  state.transport = {invoke: () => fetch(original.url, init), limits, observeAt,
+  // Selected per-call Client/options are fixed in preparation before Entry.
+  // Generic/native transports retain their original fetch behavior.
+  const physical = prepareOriginalUndiciFetch(fetch, original.url, init, limits);
+  state.transport = {invoke: physical?.invoke ?? (() => fetch(original.url, init)),
+    physicalCleanup: physical?.cleanup, physicalRetired: physical === undefined,
+    physicalRetiring: false, limits, observeAt,
     observedAt: undefined, rawObservation: undefined, responseMode,
     started: false, settled: false, raw: undefined, failure: undefined,
     readerRetired: false, retiring: false, unreadResponse: undefined};
@@ -365,6 +371,20 @@ export function cleanupSdkPreparation(handle) {
   if (state === undefined) throw issue('ForeignSdkPreparation');
   if (state.retired) return true;
   const transport = state.transport;
+  if (transport?.physicalCleanup !== undefined && !transport.physicalRetired) {
+    if (!transport.physicalRetiring) {
+      transport.physicalRetiring = true;
+      transport.physicalCleanup().then(retired => {
+        transport.physicalRetired = retired === true;
+      }, () => { /* Preserve the same original physical cleanup duty. */ }).finally(() => {
+        transport.physicalRetiring = false;
+        try { state.notify?.(); } catch { /* Close acknowledgement is not Run release. */ }
+      });
+    }
+    // Preserve request/Client/body/SDK/raw holdings until actual settlement.
+    state.abort();
+    return false;
+  }
   if (transport?.started) {
     if (!transport.settled) {
       state.abort();
