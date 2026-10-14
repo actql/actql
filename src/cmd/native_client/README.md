@@ -69,6 +69,22 @@ cohort. The accepted installed baseline above retains its original digest and
 does not gain `explain` until a matching formal artifact passes external
 installation acceptance.
 
+## Original Local run entry in current source
+
+The source-level `run` command delegates once to the existing Local `aql`
+intake. It requires the same explicit format, original Submission reference
+file and operation-attempt ID; optional nonce and separate parameters retain
+that Owner's existing meanings. Submitted content still has `kind: aql` and
+passes the existing lookup-first acceptance and execution path. This command
+creates no substitute identity, automatic retry or new execution model.
+
+JSON output preserves the existing Owner response exactly. Human output labels
+it as the original Submission response; acceptance or exit status alone is not
+Run completion. Remote mode refuses this Local entry before reading connection
+or input files. The installed baseline keeps its original `aql` command until a
+matching formal artifact passes external installation acceptance; source tests
+for `run` do not extend that installed cohort's evidence.
+
 ## Explicit Local Host adoption
 
 `adopt`, `connect` and `new-submission` in explicit Local mode connect the
