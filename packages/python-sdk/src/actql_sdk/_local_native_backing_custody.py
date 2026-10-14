@@ -63,13 +63,15 @@ class _OriginalBackingCustody:
     same use stopped; it neither stops the caller nor acknowledges Host cleanup.
     """
 
-    __slots__ = ('_owner', '_functions', '_host', '_loan', '_reply', '_unknown', '_closed')
+    __slots__ = ('_owner', '_functions', '_host', '_loan', '_reply', '_unknown',
+                 '_unknown_carrier', '_closed')
     _owner: _OriginalControlCustody
     _functions: _OriginalBackingFunctions
     _host: c_void_p
     _loan: c_void_p
     _reply: c_void_p
     _unknown: _OriginalBackingError | None
+    _unknown_carrier: _OriginalBackingError
     _closed: bool
 
     @classmethod
@@ -85,6 +87,9 @@ class _OriginalBackingCustody:
         borrow._owner, borrow._functions = owner, functions
         borrow._host, borrow._loan, borrow._reply = _new_backing_slots()
         borrow._unknown, borrow._closed = None, False
+        # Allocate the same-loan failure carrier before Core can issue a loan.
+        # Unknown reply reporting then retains these slots without allocation.
+        borrow._unknown_carrier = _OriginalBackingError(borrow, unknown=True)
         owner._enter()
         if owner._closed or owner._original.value is None:
             owner._busy = False
@@ -127,7 +132,7 @@ class _OriginalBackingCustody:
 
     def _mark_unknown(self) -> _OriginalBackingError:
         if self._unknown is None:
-            self._unknown = _OriginalBackingError(self, unknown=True)
+            self._unknown = self._unknown_carrier
         return self._unknown
 
     def _status(self, code: Any) -> None:

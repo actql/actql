@@ -67,13 +67,14 @@ class _OriginalControlCustody:
     """
 
     __slots__ = ('_functions', '_incoming', '_original', '_retained', '_reply',
-                 '_unknown', '_busy', '_thread', '_process', '_closed')
+                 '_unknown', '_unknown_carrier', '_busy', '_thread', '_process', '_closed')
     _functions: _OriginalControlFunctions
     _incoming: c_void_p
     _original: c_void_p
     _retained: c_void_p
     _reply: c_void_p
     _unknown: _OriginalControlError | None
+    _unknown_carrier: _OriginalControlError
     _busy: bool
     _thread: Thread
     _process: int
@@ -91,6 +92,9 @@ class _OriginalControlCustody:
         host._unknown = None
         host._busy, host._closed = False, False
         host._thread, host._process = current_thread(), getpid()
+        # Reporting a lost native reply must not allocate its cleanup carrier
+        # after the original has moved. Failure here leaves the input untouched.
+        host._unknown_carrier = _OriginalControlError(host, unknown=True)
         host._enter()
         try:
             # Initialization/allocation failures above leave the caller's slot
@@ -128,7 +132,7 @@ class _OriginalControlCustody:
 
     def _mark_unknown(self) -> _OriginalControlError:
         if self._unknown is None:
-            self._unknown = _OriginalControlError(self, unknown=True)
+            self._unknown = self._unknown_carrier
         return self._unknown
 
     def _drop(self, slot: c_void_p) -> None:
