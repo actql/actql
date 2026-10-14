@@ -92,6 +92,12 @@ fn[E] read_client_saved_submission_row(
       }
     }
   }
+  if record.run_state_original is Some(wire) {
+    guard inspection is Some(original) &&
+      restore_client_run_state_original(original.definition, wire) is Ok(_) else {
+      return Err(custody_lost)
+    }
+  }
   Ok({ record, submission: row, run, inspection, })
 }
 

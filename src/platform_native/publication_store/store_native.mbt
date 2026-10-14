@@ -2124,43 +2124,12 @@ pub fn Store::commit_publication(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  for index, binding in bindings {
-    let projected = match
-      delivery_issuance(
-        @publication.project_durable_result_binding_read(binding),
-      ) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    let info = match self.inspect_payload(projected.material_generation_cid) {
-      Ok(value) => value
-      Err(issue) => return Err(issue)
-    }
-    if !info.physical_digest.has_prefix("sha256:") {
-      return Err(DigestMismatch)
-    }
-    let facts : @publication.DeliveryPayloadFacts = {
-      store_authority_cid: self.authority_cid,
-      material_generation_cid: info.material_generation_cid,
-      logical_result_cid: info.logical_relation_cid,
-      result_schema_cid: info.result_schema_cid,
-      ordering_evidence_cid: info.ordering_evidence_cid,
-      codec_contract_cid: info.durable_codec_cid,
-      result_fields: projected.result_fields,
-      result_schema_wire: binding_schema_wires[index],
-      row_count: info.row_count,
-      byte_count: info.generation.size,
-      physical_sha256: info.physical_digest[7:].to_owned(),
-    }
-    match
-      delivery_issuance(
-        @publication.validate_durable_result_binding_facts(
-          binding, facts, max_wire_bytes, max_nodes, max_depth,
-        ),
-      ) {
-      Ok(_) => ()
-      Err(issue) => return Err(issue)
-    }
+  match
+    self.observe_publication_payload_facts(
+      bindings, binding_schema_wires, max_wire_bytes, max_nodes, max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let key = match
     publication_commit_key(

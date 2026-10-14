@@ -615,7 +615,7 @@ pub(all) struct UpdateEffectClause {
   name : NamePart?
   target : String
   mapping : NamePart
-  result : NamePart
+  result : NamePart?
   id : NamePart
   set : Array[(NamePart, Expression)]
 }
