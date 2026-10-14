@@ -10,6 +10,7 @@ const leftFields = {id: {type: 'number', nullable: false}, amount: {type: 'numbe
 const rightFields = {id: {type: 'number', nullable: false}, tag: {type: 'string', nullable: false}};
 const cid = body => 'sha256:' + createHash('sha256').update(canonical(body)).digest('hex');
 const seal = (body, key) => ({...body, [key]: cid(body)});
+const compareIdentity = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 
 export function selectInitialFromJoinCases(vector) {
   assert.deepEqual(vector.expected_fields, [
@@ -42,19 +43,28 @@ export function initialFromJoinFixture(vector, environments) {
   assert.deepEqual(old[0].body.fields, leftFields);
   assert.deepEqual(left.contract_registry.find(value => value.kind === 'carrier_schema').body.fields, leftFields);
   const {cid: oldSchemaCid, ...schemaBody} = old[0];
-  const schema = seal({...schemaBody, body: {...schemaBody.body, fields: rightFields}}, 'cid');
+  const schema = seal({...schemaBody, id: 'fixture-initial-join-right-carrier-schema',
+    body: {...schemaBody.body, fields: rightFields}}, 'cid');
   const [oldView] = right.source_views; assert.equal(right.source_views.length, 1);
+  assert.equal(oldView.connector_id, 'crm/right');
+  assert.equal(oldView.output.schema.id, old[0].id);
+  assert.equal(oldView.output.schema.version, old[0].version);
   assert.equal(oldView.output.schema.cid, oldSchemaCid);
   const {contract_cid: oldViewCid, ...viewBody} = oldView;
   const view = seal({...viewBody, output: {...viewBody.output,
-    schema: {...viewBody.output.schema, cid: schema.cid}}}, 'contract_cid');
-  right.contract_registry = right.contract_registry.map(value => value.cid === oldSchemaCid ? schema : value);
+    schema: {id: schema.id, version: schema.version, cid: schema.cid}}}, 'contract_cid');
+  // Environment members are ordered by complete body hash; Catalog contracts
+  // below are ordered by their self-CIDs. Retyping changes both orderings.
+  right.contract_registry = right.contract_registry.map(value => value.cid === oldSchemaCid ? schema : value)
+    .sort((a, b) => compareIdentity(cid(a), cid(b)));
   right.source_views = [view];
   assert.equal(right.connector_catalogs.length, 1);
   const {catalog_cid, ...catalog} = right.connector_catalogs[0];
   assert.deepEqual(catalog.source_views, [oldView]);
+  assert.equal(catalog.connector_id, oldView.connector_id);
   right.connector_catalogs = [seal({...catalog,
-    contracts: catalog.contracts.map(value => value.cid === oldSchemaCid ? schema : value),
+    contracts: catalog.contracts.map(value => value.cid === oldSchemaCid ? schema : value)
+      .sort((a, b) => compareIdentity(a.cid, b.cid)),
     source_views: [view]}, 'catalog_cid')];
   for (const snapshot of right.schema_snapshots) {
     assert.equal(snapshot.source_contract_cid, oldViewCid);
