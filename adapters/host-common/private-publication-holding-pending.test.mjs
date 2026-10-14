@@ -163,10 +163,13 @@ function rawPreparation(f, primary) {
   });
 }
 
+const rawBinding = ({semanticCid, holdingCid, wire, contentCid, byteCount}) =>
+  ({semanticCid, holdingCid, wire, contentCid, byteCount});
+
 test('private holding: actual raw preparation catch exports false-release cleanup custody', async t => {
   const f = await fixture(t, true);
   const primary = new PublicationStoreError('PublicationObjectLimit');
-  await assert.rejects(rawPreparation(f, primary)(f.binding, Buffer.from('raw')), error => {
+  await assert.rejects(rawPreparation(f, primary)(rawBinding(f.binding), Buffer.from('raw')), error => {
     assert.equal(error, primary);
     assert.equal(error.code, 'PublicationObjectLimit');
     assert.equal(error.cleanupPending, true);
@@ -180,7 +183,7 @@ test('private holding: actual raw preparation catch exports false-release cleanu
 test('private holding: frozen raw preparation primary retains cause and same cleanup custody', async t => {
   const f = await fixture(t, true);
   const primary = Object.freeze(new PublicationStoreError('PublicationObjectLimit'));
-  await assert.rejects(rawPreparation(f, primary)(f.binding, Buffer.from('raw')), error => {
+  await assert.rejects(rawPreparation(f, primary)(rawBinding(f.binding), Buffer.from('raw')), error => {
     assert.equal(error.code, 'PublicationObjectLimit');
     assert.equal(error.cause, primary);
     assert.equal(error.cleanupPending, true);
