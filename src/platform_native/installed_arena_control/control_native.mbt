@@ -137,6 +137,59 @@ struct InstalledArenaBorrow {
 }
 
 ///|
+/// Opaque original backing loan for a trusted physical adapter. It is not a
+/// transferable raw lease, another supplier or a VM/Run permission.
+struct InstalledArenaBackingBorrow {
+  host : InstalledArenaHost
+  original : @bootstrap.NativeBootstrapBorrow[InstalledArenaHost]
+}
+
+///|
+pub fn InstalledArenaHost::borrow_backing(
+  self : InstalledArenaHost,
+) -> Result[InstalledArenaBackingBorrow, @bootstrap.NativeBootstrapIssue] {
+  let backing = match self.original_backing() {
+    Err(issue) => return Err(issue)
+    Ok(backing) => backing
+  }
+  match backing.borrow_backing(self) {
+    Err(issue) => Err(issue)
+    Ok(original) => Ok({ host: self, original, })
+  }
+}
+
+///|
+pub fn InstalledArenaHost::require_backing_borrow_current(
+  self : InstalledArenaHost,
+  borrow : InstalledArenaBackingBorrow,
+) -> Result[Unit, @bootstrap.NativeBootstrapIssue] {
+  if !physical_equal(borrow.host, self) {
+    return Err(@bootstrap.ForeignOriginal)
+  }
+  let backing = match self.original_backing() {
+    Err(issue) => return Err(issue)
+    Ok(backing) => backing
+  }
+  backing.require_borrow_current(self, borrow.original)
+}
+
+///|
+/// The same physical borrower must have stopped. Closing permits this original
+/// return but no new borrow/current execution, transfer or cleanup inference.
+pub fn InstalledArenaHost::return_backing_borrow(
+  self : InstalledArenaHost,
+  borrow : InstalledArenaBackingBorrow,
+) -> Result[Unit, @bootstrap.NativeBootstrapIssue] {
+  if !physical_equal(borrow.host, self) {
+    return Err(@bootstrap.ForeignOriginal)
+  }
+  guard self.backing is Some(backing) else {
+    return Err(@bootstrap.Closing)
+  }
+  backing.return_borrow(self, borrow.original)
+}
+
+///|
 pub fn InstalledArenaHost::borrow(
   self : InstalledArenaHost,
   allocation : InstalledArenaAllocation,

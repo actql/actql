@@ -283,6 +283,13 @@ pub fn[T] NativeHostBootstrap::retire(
   if child.released {
     return Ok(())
   }
+  // A backing borrower can be using this extent even without a child-specific
+  // reader. Do not physically retire it behind that original caller.
+  if self.control is Some(control) {
+    if @resources.shared_allocation_usage(control).readers != 0 {
+      return Err(ReadersPending)
+    }
+  }
   match @resources.retire_shared_capacity(child.allocation) {
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
@@ -309,6 +316,43 @@ struct NativeBootstrapBorrow[T] {
   owner : NativeHostBootstrap[T]
   borrow : @resources.SharedBorrow
   mut returned : Bool
+}
+
+///|
+/// Lend the original control allocation while a physical caller uses this same
+/// backing. This creates no extent, second transfer or VM execution grant.
+pub fn[T] NativeHostBootstrap::borrow_backing(
+  self : NativeHostBootstrap[T],
+  original : T,
+) -> Result[NativeBootstrapBorrow[T], NativeBootstrapIssue] {
+  match self.require_current(original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard self.control is Some(control) else {
+    return Err(Unavailable)
+  }
+  match @resources.borrow_shared_capacity(self.capacity, control) {
+    Err(issue) => Err(Resource(issue))
+    Ok(borrow) => Ok({ owner: self, borrow, returned: false, })
+  }
+}
+
+///|
+/// Current execution use is refused once closing starts. Returning the original
+/// borrow for cleanup still uses return_borrow, including after close refusal.
+pub fn[T] NativeHostBootstrap::require_borrow_current(
+  self : NativeHostBootstrap[T],
+  original : T,
+  borrow : NativeBootstrapBorrow[T],
+) -> Result[Unit, NativeBootstrapIssue] {
+  if !physical_equal(borrow.owner, self) {
+    return Err(ForeignOriginal)
+  }
+  if borrow.returned {
+    return Err(AlreadyConsumed)
+  }
+  self.require_current(original)
 }
 
 ///|
@@ -422,6 +466,13 @@ pub fn[T] NativeHostBootstrap::try_close(
     match @resources.close_shared_capacity(self.capacity) {
       Err(issue) => return Err(Resource(issue))
       Ok(_) => self.closing = true
+    }
+  }
+  // A caller borrowing the backing can still be using its child extents.
+  // Preserve all original physical custody until it returns the same loan.
+  if self.control is Some(control) {
+    if @resources.shared_allocation_usage(control).readers != 0 {
+      return Err(ReadersPending)
     }
   }
   for child in self.children {
