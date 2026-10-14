@@ -94,6 +94,7 @@ pub fn[T] NativeHostBootstrap::leave_borrow_scope(Self[T], T, NativeBootstrapBor
 pub fn[T, C] NativeHostBootstrap::lend_backed_region(Self[T], T, NativeBackedExecutionRegion[T, C], NativeBootstrapBorrow[T], C, @physical_resources.BackedExecutionExtent, @physical_resources.BackedExecutionAccess, @physical_resources.LedgerLimits, Int64, Int64) -> Result[NativeBackedExecutionAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::map_backed_view(Self[T], T, NativeBackedExecutionLoan[T, C], C, Int) -> Result[NativeBackedViewAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::project_backed_extent(Self[T], T, NativeBackedExecutionLoan[T, C], C) -> Result[NativeBackedExtentTransport, NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::project_prepared_domain(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[NativePreparedDomainTransport, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::report(Self[T], T, NativeBootstrapDelegation[T], @physical_resources.LedgerUsage) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::report_backed_region(Self[T], T, NativeBackedExecutionLoan[T, C], C, @physical_resources.LedgerUsage) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::require_backed_domain_current(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
@@ -109,6 +110,11 @@ pub fn[T] NativeHostBootstrap::usage(Self[T]) -> @physical_resources.LedgerUsage
 type NativeInstalledArenaSupplier[T]
 pub fn[T] NativeInstalledArenaSupplier::acquire(Self[T], T) -> Result[NativeBootstrapAcquisition[T], NativeBootstrapIssue]
 pub fn[T] NativeInstalledArenaSupplier::acquire_fd(Self[T], T, Int) -> Result[NativeBootstrapAcquisition[T], NativeBootstrapIssue]
+
+pub(all) struct NativePreparedDomainTransport {
+  extent : NativeBackedExtentTransport
+  limits : @physical_resources.LedgerLimits
+} derive(Eq, @debug.Debug)
 
 // Type aliases
 
