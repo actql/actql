@@ -61,12 +61,12 @@ relational_sql = sql_operand, { set_part }, [ order_clause ], [ limit_clause ],
                  { "|>", cte_pipe_item } ;
 sql_operand   = select_core | "(", relational_body, ")" ;
 (* Declaration bodies exclude statement-level INFER, RESULT and EFFECT declarations. *)
-cte_pipe      = "FROM", carrier_source, { "|>", cte_pipe_item } ;
+cte_pipe      = "FROM", carrier_source, { join }, { "|>", cte_pipe_item } ;
 cte_pipe_item = relation_pipe_item | nearest_operator | named_sga_call | graph_match ;
 select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { join } ],
                 [ where_clause ], [ group_clause ],
                 [ having_clause ], [ qualify_clause ], [ window_clause ] ;
-pipe_query    = "FROM", carrier_source, { "|>", pipe_item } ;
+pipe_query    = "FROM", carrier_source, { join }, { "|>", pipe_item } ;
 carrier_source = source | "GRAPH", path, [ source_alias ] ;
 (* FROM preserves the resolved Carrier. GRAPH adds an explicit Graph type
    expectation; MATCH does not require the marker. An authored row alias
