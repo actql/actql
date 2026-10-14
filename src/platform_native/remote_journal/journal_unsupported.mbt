@@ -1,4 +1,21 @@
 ///|
+type NativeRemoteJournalOpenFailure
+
+///|
+pub fn NativeRemoteJournalOpenFailure::issue(
+  _self : NativeRemoteJournalOpenFailure,
+) -> NativeRemoteJournalIssue {
+  UnsupportedTarget
+}
+
+///|
+pub fn NativeRemoteJournalOpenFailure::retry_cleanup(
+  _self : NativeRemoteJournalOpenFailure,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 type Journal
 
 ///|
@@ -284,4 +301,28 @@ pub fn Journal::cancellation_requested(
   _request : @remote.DispatchRequest,
 ) -> Result[Bool, NativeRemoteJournalIssue] {
   Err(UnsupportedTarget)
+}
+
+///|
+pub fn Journal::close_checked(
+  _self : Journal,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn CoordinatorJournal::close_checked(
+  _self : CoordinatorJournal,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn open_journal_with_custody(
+  _library : @sqlite.Library,
+  _path : String,
+  _max_record_bytes : Int64,
+  _control : @remote.SiteDispatchJournal,
+) -> Result[Journal, NativeRemoteJournalOpenError] {
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
 }

@@ -13,14 +13,15 @@
 // docs/reviews/2026-10-14-session-native-store-failure-scope-review.md and
 // docs/reviews/2026-10-14-session-transfer-journal-selector-review.md and
 // docs/reviews/2026-10-14-session-directory-census-config-review.md and
-// docs/reviews/2026-10-14-session-native-http-failure-scope-review.md.
+// docs/reviews/2026-10-14-session-native-http-failure-scope-review.md and
+// docs/reviews/2026-10-14-session-site-journal-custody-configuration-review.md.
 // Changes to this table, the toolchain or any configuration force fresh work.
 // Unknown options and other targets require separate review; matching a digest
 // is configuration identity, not a proof of compiler or OS correctness.
 // A separate exact JS foreign-library review is recorded below; it does not
 // inherit the native-options rule or authorize arbitrary package kinds.
 export const packageConfigurationReview = Object.freeze({
-  revision: '10a23c53ad5df94cd52dfa08718b579e5bd32bdd',
+  revision: '813dfbbd867bc83958c1d4d069061a4aabace1f3',
   target: 'js',
   toolchainDigest: '8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a',
   moonRevision: '94521db',
@@ -36,7 +37,7 @@ export const reviewedPackageConfigurations = Object.freeze({
   'src/platform_native/publication_store/moon.pkg': 'da2ed748a2cee398537d8be64de7e695446009fcdce04a6cf09ec69f0d9f0fa0',
   'src/platform_native/result_access/moon.pkg': '0ed904ab54effb2f116b1eb3b7b285f20c94ec75ce099b93f47f4a08377a0d37',
   'src/platform_native/remote_client/moon.pkg': '4ab04b27d2c7be75c9d5521f3e2e0d53d8cc8d8d612cb6cbb13115b240eafb6e',
-  'src/platform_native/remote_journal/moon.pkg': 'a16cc63e68918f4208620e6137d0d55fbb128c42b0d80723a43c6f0c86bf9602',
+  'src/platform_native/remote_journal/moon.pkg': 'c83f1565e76f17043331ef9220ad6e0811f5699a0b537f13e3280aed857c8b9f',
   'src/platform_native/remote_standard_host/moon.pkg': '14c80ec28c7c4f706f8aa55c2a73fa0c2f3023c4f91d4cb016094d0170b04f87',
   'src/platform_native/remote_transfer_client/moon.pkg': 'b026d1ada91a1f113c33df63fae999c0a05e197b2b50b0d29d9e7258d830baeb',
   'src/platform_native/remote_transfer_journal/moon.pkg': '4af6a1f153011554ab829bb6b494cbd8a8cf32110ed39f66de7c7974993411b5',
