@@ -537,9 +537,43 @@ test "Saved Content proof tampering cannot be hidden by resealing the outer capt
         "\"parameter_values_cid\":\"" + ordering_test_cid("9") + "\"",
       ),
     ] {
-    let changed = captured_test_value(
+    let mut changed = captured_test_value(
       captured_test_wire(context_body).replace(old~, new=replacement),
     )
+    if old == "\"issuer_kind\":\"content_derivation\"" {
+      // Connector capture requires an original media report. Keep the missing
+      // report attack as a typed shape refusal before testing proof closure.
+      let missing_report = @json.object_with_string_field(
+        changed,
+        "effect_context_cid",
+        @json.cid_value(changed, 65536, 4096, 32),
+      ).unwrap()
+      let missing_report_wire = captured_test_wire(body).replace(
+        old=captured_test_wire(context),
+        new=captured_test_wire(missing_report),
+      )
+      assert_true(
+        seal_publication_contract(
+          "captured_run", missing_report_wire, 65536, 4096, 32,
+        )
+        is Err(InvalidField("protocol_schema")),
+      )
+      let records = @json.object_field(changed, "content_generations").unwrap()
+      guard records is @json.Array(values) else { fail("No Content inventory") }
+      let record = @json.array_at(values, 0).unwrap()
+      let reference = @json.object_field(record, "content_reference").unwrap()
+      let metadata = @json.object_field(reference, "metadata").unwrap()
+      let issuer = @json.object_field(metadata, "issuer_evidence").unwrap()
+      let reported = @json.object_with_string_field(
+        issuer, "reported_media_type", "application/json",
+      ).unwrap()
+      changed = captured_test_value(
+        captured_test_wire(changed).replace(
+          old=captured_test_wire(issuer),
+          new=captured_test_wire(reported),
+        ),
+      )
+    }
     let identity = @json.cid_value(changed, 65536, 4096, 32)
     let changed = @json.object_with_string_field(
       changed, "effect_context_cid", identity,
