@@ -99,11 +99,10 @@ fn holder_effect_host_catalog_representation_ready(
 }
 
 ///|
-fn begin_holder_effect_host_setup_scope(
+fn reserve_holder_effect_host_setup_scope(
   site : @site.ExecutionSite,
   profile : HolderEffectHostSetupProfile?,
   original_catalog_record_limit : Int64,
-  current_binding : () -> Bool,
 ) -> HolderEffectHostSetupScope? {
   guard profile is Some(selected) &&
     holder_effect_host_catalog_representation_ready(
@@ -124,7 +123,7 @@ fn begin_holder_effect_host_setup_scope(
   let scope : HolderEffectHostSetupScope = {
     site,
     profile: selected,
-    current_binding: Some(current_binding),
+    current_binding: None,
     caller_operation: Some(operation),
     operation: Some(operation),
     holding: None,
@@ -133,10 +132,9 @@ fn begin_holder_effect_host_setup_scope(
     cleanup: None,
     retiring: false,
   }
-  if !current_binding() {
-    ignore(@site.settle_site_operation(operation))
-    return None
-  }
+  // The caller must retain this scope before allocating binding callbacks.
+  // An absent binding authorizes no read; a failed later current fence must
+  // return through the same caller retirement, never drop this reservation.
   Some(scope)
 }
 
