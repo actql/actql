@@ -2,6 +2,7 @@
 // A temporal selector has a declared operand. Fixed left/right qualifiers and
 // lexical producer qualifiers cannot silently select the other input's field.
 fn script_temporal_field_name(
+  construction : Construction,
   path : Array[@query.NamePart],
   left : Bool,
   query : @query.Query,
@@ -30,6 +31,7 @@ fn script_temporal_field_name(
   }
   if left {
     return script_carrier_field_name(
+      construction,
       [path.last().unwrap()],
       query,
       input,
@@ -67,7 +69,7 @@ fn script_temporal_field(
     FieldReference(path) =>
       construction.text(
         script_temporal_field_name(
-          path, left, query, input, right_name, right, sources,
+          construction, path, left, query, input, right_name, right, sources,
         ),
       )
     _ => raise Abort(InvalidQuery)
@@ -174,7 +176,7 @@ fn script_temporal_join_body(
               same_name(path[0], { value: "right", quoted: false, })
             guard left || is_right else { raise Abort(InvalidQuery) }
             let selected = script_temporal_field_name(
-              path, left, query, input, name, right, sources,
+              construction, path, left, query, input, name, right, sources,
             )
             (
               item.0,

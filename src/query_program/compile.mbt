@@ -131,6 +131,8 @@ priv struct Construction {
   // Published contract owner for resolving named INFER INPUT fields only.
   model_tasks : @environment.ModelTasks?
   parameter_names : ParameterNames?
+  infer_labels : Bool
+  infer_budget : InferPrefixBudget
 }
 
 ///|
@@ -2294,6 +2296,10 @@ fn compile_steps(
   let mut scalar_value_table_ranges : Array[(@query.NamePart, String)] = initial_scope
     .map(scope => scope.scalar_ranges.copy())
     .unwrap_or([])
+  let mut infer_key_labels = match initial_scope {
+    Some(scope) => seed_infer_key_labels(construction, scope.key_labels, [])
+    None => seed_infer_key_labels(construction, [], pipe_visible)
+  }
   let mut selected_input_scope : JoinChainScope = {
     visible: pipe_visible.copy(),
     ranges: pipe_ranges.copy(),
@@ -2302,6 +2308,7 @@ fn compile_steps(
     value_columns: pipe_value_columns.copy(),
     star_ranges: pipe_star_ranges.copy(),
     receivers: initial_scope.map(scope => scope.receivers.copy()).unwrap_or([]),
+    key_labels: infer_key_labels.copy(),
     scalar_ranges: scalar_value_table_ranges.copy(),
   }
   let mut pipe_changed = initial_scope is Some(_)
@@ -2404,6 +2411,23 @@ fn compile_steps(
   }
   for i in start_at..<@query.operation_count(query) {
     let operation = @query.operation_at(query, i).unwrap()
+    let mut reset_infer_key_labels = false
+    // Scope-only operators cannot rename a value slot. Avoid rebuilding the
+    // identity metadata for every predicate, assertion or ordinary range AS.
+    let update_key_labels = construction.infer_labels &&
+      (match operation {
+        Where(_) | Limit(_, _) | AssertUnique(_) | RetainResult(_) => false
+        Alias(_) => pipe_value_table
+        Order(_) => pending_select is Some(_)
+        _ => true
+      })
+    let previous_key_names = if update_key_labels {
+      infer_key_column_names(
+        construction, pipe_visible, positional_private_fields, positional_authored_aliases,
+      )
+    } else {
+      []
+    }
     if sql_group_projection &&
       sql_group_select_scope is None &&
       !(operation is Order(_) ||
@@ -2716,6 +2740,7 @@ fn compile_steps(
             pipe_visible = names.map(name => (name, name))
             pipe_columns = pipe_visible.copy()
             pipe_changed = false
+            reset_infer_key_labels = true
             deferred = false
           }
         }
@@ -3065,6 +3090,7 @@ fn compile_steps(
         scalar_value_table_ranges = []
         pipe_rebound = true
         pipe_changed = false
+        reset_infer_key_labels = true
         grouped = false
         selected_expressions = []
         deferred = true
@@ -3095,6 +3121,7 @@ fn compile_steps(
         scalar_value_table_ranges = []
         pipe_rebound = true
         pipe_changed = false
+        reset_infer_key_labels = true
         grouped = false
         selected_expressions = []
         deferred = true
@@ -3111,6 +3138,7 @@ fn compile_steps(
           input.name,
           max_work,
           authored_aliases=positional_authored_aliases,
+          key_labels=infer_key_labels,
           checked_prefix=checked_infer_prefix.map(check => {
             (nodes, producer, visible, authored_aliases) => {
               check(
@@ -3140,6 +3168,7 @@ fn compile_steps(
         scalar_value_table_ranges = []
         pipe_rebound = true
         pipe_changed = false
+        reset_infer_key_labels = true
         grouped = false
         selected_expressions = []
         deferred = true
@@ -3658,6 +3687,7 @@ fn compile_steps(
             pipe_visible = names.map(name => (name, name))
             pipe_columns = pipe_visible.copy()
             pipe_changed = false
+            reset_infer_key_labels = true
             deferred = false
           }
         }
@@ -3916,6 +3946,7 @@ fn compile_steps(
             value_columns: pipe_value_columns.copy(),
             star_ranges: pipe_star_ranges.copy(),
             receivers: value_table_receivers.copy(),
+            key_labels: infer_key_labels.copy(),
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
           sql_group_input_columns = input_visible.copy()
@@ -4263,6 +4294,7 @@ fn compile_steps(
             value_columns: pipe_value_columns.copy(),
             star_ranges: pipe_star_ranges.copy(),
             receivers: value_table_receivers.copy(),
+            key_labels: infer_key_labels.copy(),
             scalar_ranges: scalar_value_table_ranges.filter(receiver => {
               key_names.contains(receiver.1)
             }),
@@ -4784,6 +4816,7 @@ fn compile_steps(
             entries.clear()
             entries.push(("select", construction.array(selected)))
           }
+          reset_infer_key_labels = true
           active_fields = names.copy()
           output = names
           pipe_visible = names.map(name => (name, name))
@@ -4834,6 +4867,7 @@ fn compile_steps(
             value_columns: pipe_value_columns.copy(),
             star_ranges: pipe_star_ranges.copy(),
             receivers: value_table_receivers.copy(),
+            key_labels: infer_key_labels.copy(),
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
         } else {
@@ -5020,6 +5054,7 @@ fn compile_steps(
             value_columns: pipe_value_columns.copy(),
             star_ranges: pipe_star_ranges.copy(),
             receivers: value_table_receivers.copy(),
+            key_labels: infer_key_labels.copy(),
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
         }
@@ -5168,6 +5203,7 @@ fn compile_steps(
             value_columns: pipe_value_columns.copy(),
             star_ranges: pipe_star_ranges.copy(),
             receivers: value_table_receivers.copy(),
+            key_labels: infer_key_labels.copy(),
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
           analytic_input_fields = Some(snapshot)
@@ -5197,6 +5233,7 @@ fn compile_steps(
             value_columns: pipe_value_columns.copy(),
             star_ranges: pipe_star_ranges.copy(),
             receivers: value_table_receivers.copy(),
+            key_labels: infer_key_labels.copy(),
             scalar_ranges: scalar_value_table_ranges.copy(),
           })
         }
@@ -5519,6 +5556,7 @@ fn compile_steps(
             value_columns: pipe_value_columns.copy(),
             star_ranges: pipe_star_ranges.copy(),
             receivers: value_table_receivers.copy(),
+            key_labels: infer_key_labels.copy(),
             scalar_ranges: scalar_value_table_ranges.copy(),
           }
         }
@@ -5883,6 +5921,7 @@ fn compile_steps(
           value_columns: pipe_value_columns.copy(),
           star_ranges: pipe_star_ranges.copy(),
           receivers: value_table_receivers.copy(),
+          key_labels: infer_key_labels.copy(),
           scalar_ranges: scalar_value_table_ranges.copy(),
         }
         selected_output_slots = bindings.copy()
@@ -5904,6 +5943,7 @@ fn compile_steps(
           pipe_visible = names.map(name => (name, name))
           pipe_columns = pipe_visible.copy()
           pipe_changed = false
+          reset_infer_key_labels = true
         }
         pipe_selected = true
         if distinct {
@@ -5948,6 +5988,7 @@ fn compile_steps(
           value_columns: pipe_value_columns.copy(),
           star_ranges: pipe_star_ranges.copy(),
           receivers: value_table_receivers.copy(),
+          key_labels: infer_key_labels.copy(),
           scalar_ranges: scalar_value_table_ranges.copy(),
         }
         let projections = if sql_group_projection {
@@ -6772,6 +6813,7 @@ fn compile_steps(
       positional_set_analytic_slots.clear()
       analytic_expression_bindings.clear()
       if pending_select is None {
+        reset_infer_key_labels = true
         value_table_receivers = []
         pipe_value_columns = []
         pipe_value_table = false
@@ -6827,9 +6869,22 @@ fn compile_steps(
           pipe_visible = output.map(name => (name, name))
           pipe_columns = pipe_visible.copy()
           pipe_changed = false
+          reset_infer_key_labels = true
         }
         None => ()
       }
+    }
+    if update_key_labels {
+      infer_key_labels = retain_infer_key_labels(
+        construction,
+        infer_key_labels,
+        previous_key_names,
+        infer_key_column_names(
+          construction, pipe_visible, positional_private_fields, positional_authored_aliases,
+        ),
+        active_fields,
+        reset=reset_infer_key_labels,
+      )
     }
   }
   let retained_scope = match preserved_scope {
@@ -6847,6 +6902,7 @@ fn compile_steps(
       value_columns: pipe_value_columns.copy(),
       star_ranges: pipe_star_ranges.copy(),
       receivers: value_table_receivers.copy(),
+      key_labels: infer_key_labels.copy(),
       scalar_ranges: scalar_value_table_ranges.copy(),
     })
     output = active_fields.copy()
@@ -7097,6 +7153,8 @@ pub fn compile_with_source(
     generated,
     model_tasks: context.model_tasks,
     parameter_names,
+    infer_labels: query_has_omitted_infer(query),
+    infer_budget: { remaining_work: limits.max_expression_work, },
   }
   try {
     let dependencies = nearest_dependencies(query, context.inputs)
@@ -7216,9 +7274,7 @@ pub fn compile_with_source(
         StageResult(_, _) | StepReference => raise Abort(UnsupportedNearest)
       }
     }
-    let infer_budget : InferPrefixBudget = {
-      remaining_work: limits.max_expression_work,
-    }
+    let infer_budget = construction.infer_budget
     let retained : Array[RetainedResult] = []
     let (steps, output) = compile_steps(
       construction,
@@ -7800,6 +7856,8 @@ fn compile_set_query(
     generated,
     model_tasks: context.model_tasks,
     parameter_names,
+    infer_labels: query_has_omitted_infer(query),
+    infer_budget: { remaining_work: limits.max_expression_work, },
   }
   try {
     let (stages, _) = compile_set_stages(
@@ -7847,9 +7905,7 @@ fn compile_set_stages(
     Array[@builder.Node],
   )? = None
   let captured : Array[(String, String, Bool)] = []
-  let infer_budget : InferPrefixBudget = {
-    remaining_work: limits.max_expression_work,
-  }
+  let infer_budget = construction.infer_budget
   for index in 0..<terms.length() {
     let term = terms[index]
     if @query.join_part_count(term) > 0 {
@@ -9429,6 +9485,8 @@ fn compile_join_query(
     generated,
     model_tasks: context.model_tasks,
     parameter_names,
+    infer_labels: query_has_omitted_infer(query),
+    infer_budget: { remaining_work: limits.max_expression_work, },
   }
   try {
     let part = @query.join_part_at(query, 0).unwrap()
@@ -9455,9 +9513,7 @@ fn compile_join_query(
         (left.name, import_query_cursor(construction, left_declaration)),
         (right.name, import_query_cursor(construction, right_declaration)),
       ]
-      let infer_budget : InferPrefixBudget = {
-        remaining_work: limits.max_expression_work,
-      }
+      let infer_budget = construction.infer_budget
       let retained : Array[RetainedResult] = []
       let (steps, output, from) = compile_join_steps(
         construction,
@@ -9657,9 +9713,7 @@ fn compile_join_query(
         ("as", construction.text(joined)),
       ]),
     ]
-    let infer_budget : InferPrefixBudget = {
-      remaining_work: limits.max_expression_work,
-    }
+    let infer_budget = construction.infer_budget
     let retained : Array[RetainedResult] = []
     let result_from = append_join_order_steps(
       construction,

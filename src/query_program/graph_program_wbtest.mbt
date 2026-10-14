@@ -109,6 +109,8 @@ fn property_mapping_program(
     generated,
     model_tasks: None,
     parameter_names: None,
+    infer_labels: false,
+    infer_budget: { remaining_work: mapping_limits().max_expression_work, },
   }
   try {
     let steps : Array[@builder.Node] = []

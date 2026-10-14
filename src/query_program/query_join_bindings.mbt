@@ -65,6 +65,7 @@ fn lower_script_join_relation(
   let scoped = { ..context, inputs: known, }
   let selected = selected_input(query, scoped, limits)
   let initial_scope = script_input_scope(
+    construction,
     sources,
     selected.name,
     query_range_name(query),
@@ -75,6 +76,7 @@ fn lower_script_join_relation(
     let right = selected_relation(part.relation, scoped)
     right_scopes.push(
       script_input_scope(
+        construction,
         sources,
         right.name,
         part.source_alias.unwrap_or(part.relation.last().unwrap()),

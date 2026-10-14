@@ -42,6 +42,37 @@ const retainedColumns = [
 ];
 const retainedRows = [{id: 'ticket-1', text: 'urgent', ...expectedRows[0]}];
 
+// Independent old/new values and contracts expose accidental replacement-slot
+// adoption: the proven key is Number 7, while the visible replacement is Text.
+const historicalPrefix = "SELECT 7 AS id |> EXTEND 'urgent' AS text " +
+  "|> ASSERT UNIQUE BY (id) |> SET id = 'same' " +
+  '|> RENAME id AS replacement_id |> AS current';
+const omittedInfer = '|> INFER `model-task:packed-risk.v1` INPUT (text = text) AS assessment';
+const historicalOutcome = {input_key: {id: 7}, outcome: 'ok',
+  value: {reason: null, risk: 'high'}};
+const historicalColumn = {name: 'assessment', contract: {
+  ...expectedColumns[0].contract,
+  fields: {...expectedColumns[0].contract.fields,
+    input_key: {type: 'object', nullable: false, additional_properties: false,
+      fields: {id: {type: 'number', nullable: false}}}},
+}};
+const replacementColumn = {name: 'replacement_id',
+  contract: {type: 'string', nullable: false, max_utf8_bytes: 4}};
+const historicalColumns = [replacementColumn, retainedColumns[1], historicalColumn];
+const stableHistoricalColumn = {name: 'assessment', contract: {
+  ...historicalColumn.contract,
+  fields: {...historicalColumn.contract.fields,
+    input_key: {type: 'object', nullable: false, additional_properties: false,
+      fields: {stable_id: {type: 'number', nullable: false}}}},
+}};
+const compositeHistoricalColumn = {name: 'assessment', contract: {
+  ...historicalColumn.contract,
+  fields: {...historicalColumn.contract.fields,
+    input_key: {type: 'object', nullable: false, additional_properties: false,
+      fields: {secret: {type: 'string', nullable: false, max_utf8_bytes: 7},
+        id: {type: 'number', nullable: false}}}},
+}};
+
 // All cases are authored from the common outcome, key and projection rules.
 // No expected row or contract is obtained from a compiler or Result reader.
 export const sourceCases = {
@@ -56,6 +87,36 @@ export const sourceCases = {
   'omitted-item-key': {
     source: `${prefix} |> INFER \`model-task:packed-risk.v1\` INPUT (text = text) AS assessment`,
     rows: retainedRows, columns: retainedColumns, calls: 1, inputWire: '"urgent"',
+  },
+  'historical-key': {
+    source: `${historicalPrefix} ${omittedInfer}`,
+    rows: [{replacement_id: 'same', text: 'urgent', assessment: historicalOutcome}],
+    columns: historicalColumns, calls: 1, inputWire: '"urgent"',
+  },
+  'historical-key-frozen': {
+    source: `${historicalPrefix} ${omittedInfer} |> RENAME replacement_id AS renamed_again`,
+    rows: [{renamed_again: 'same', text: 'urgent', assessment: historicalOutcome}],
+    columns: [{...replacementColumn, name: 'renamed_again'},
+      retainedColumns[1], historicalColumn], calls: 1, inputWire: '"urgent"',
+  },
+  'historical-key-original-rename': {
+    source: "SELECT 7 AS id |> EXTEND 'urgent' AS text |> ASSERT UNIQUE BY (id) " +
+      "|> RENAME id AS stable_id |> SET stable_id = 'same' " +
+      `|> RENAME stable_id AS replacement_id |> AS current ${omittedInfer}`,
+    rows: [{replacement_id: 'same', text: 'urgent',
+      assessment: {...historicalOutcome, input_key: {stable_id: 7}}}],
+    columns: [replacementColumn, retainedColumns[1], stableHistoricalColumn],
+    calls: 1, inputWire: '"urgent"',
+  },
+  'historical-key-composite': {
+    source: "SELECT 7 AS id |> EXTEND 'urgent' AS text, 'private' AS secret " +
+      "|> ASSERT UNIQUE BY (secret, id) |> SET id = 'same' " +
+      `|> RENAME id AS replacement_id |> AS current ${omittedInfer}`,
+    rows: [{replacement_id: 'same', text: 'urgent', secret: 'private',
+      assessment: {...historicalOutcome, input_key: {secret: 'private', id: 7}}}],
+    columns: [replacementColumn, retainedColumns[1],
+      {name: 'secret', contract: {type: 'string', nullable: false, max_utf8_bytes: 7}},
+      compositeHistoricalColumn], calls: 1, inputWire: '"urgent"',
   },
   'literal-input': {
     source: "SELECT DISTINCT 'ticket-1' AS id " +
@@ -128,6 +189,10 @@ export const sourceCases = {
 };
 
 export const sourceRefusals = {
+  'historical-key-hidden-lookup': `${historicalPrefix} ${omittedInfer} |> SELECT id`,
+  'historical-key-label-collision': "SELECT 'old' AS id |> EXTEND 'urgent' AS text " +
+    "|> AS old |> SET id = 'key' |> ASSERT UNIQUE BY (old.id, id) " +
+    `|> SET id = 'same' |> AS current ${omittedInfer}`,
   'omitted-key-unproven': "SELECT 'ticket-1' AS id |> EXTEND 'urgent' AS text " +
     '|> INFER `model-task:packed-risk.v1` INPUT (text = text) AS assessment',
   'omitted-key-ambiguous': `${prefix} |> ASSERT UNIQUE BY (text) ` +

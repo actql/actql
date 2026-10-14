@@ -327,6 +327,7 @@ fn lower_script_relation_term(
     retained~,
     parameter_declarations=context.parameter_declarations,
     initial_scope=script_input_scope(
+      construction,
       sources,
       input.name,
       query_range_name(query),
@@ -424,6 +425,8 @@ fn compile_query_script_with_source(
     generated,
     model_tasks: context.model_tasks,
     parameter_names,
+    infer_labels: query_has_omitted_infer(@query.script_query(script)),
+    infer_budget: { remaining_work: limits.max_expression_work, },
   }
   try {
     let steps : Array[@builder.Node] = []

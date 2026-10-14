@@ -11,7 +11,10 @@ fn script_prefix_carrier(
   steps : Array[@builder.Node],
   producer : String,
 ) -> @carrier.Carrier raise Abort {
-  let budget : InferPrefixBudget = { remaining_work: sources.carrier_work, }
+  let budget = construction.infer_budget
+  if budget.remaining_work > sources.carrier_work {
+    budget.remaining_work = sources.carrier_work
+  }
   sources.carrier_work = 0
   let pipeline = checked_query_prefix_pipeline(
     construction,
@@ -70,13 +73,19 @@ fn script_carrier_columns(carrier : @carrier.Carrier) -> Array[String] {
 // Carrier fields use the same retained scope as ordinary FieldRef selectors.
 // A miss must never fall back to an input range removed by a projection.
 fn script_carrier_field_name(
+  construction : Construction,
   path : Array[@query.NamePart],
   query : @query.Query,
   input : Input,
   sources : ScriptSources,
 ) -> String raise Abort {
   let resolved = match
-    script_input_scope(sources, input.name, query_range_name(query)) {
+    script_input_scope(
+      construction,
+      sources,
+      input.name,
+      query_range_name(query),
+    ) {
     Some(scope) => pipe_slot(path, scope.visible, scope.ranges)
     None => resolve_column(path, query, input, columns(input))
   }
@@ -96,7 +105,9 @@ fn script_carrier_field(
 ) -> @builder.Node raise Abort {
   match argument {
     FieldReference(path) =>
-      construction.text(script_carrier_field_name(path, query, input, sources))
+      construction.text(
+        script_carrier_field_name(construction, path, query, input, sources),
+      )
     ListValue(items) =>
       construction.array(
         items.map(item => {
@@ -132,7 +143,7 @@ fn script_carrier_order(
       construction.object(
         fields.map(field => {
           (
-            script_carrier_field_name(field.0, query, input, sources),
+            script_carrier_field_name(construction, field.0, query, input, sources),
             script_traversal_argument(construction, field.1, known, limits),
           )
         }),
@@ -185,6 +196,7 @@ fn retain_script_carrier_column_scope(
     ranges: [],
     star_ranges: [],
     receivers: [],
+    key_labels: [],
     scalar_ranges: [],
   }
 }

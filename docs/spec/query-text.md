@@ -1578,8 +1578,32 @@ implicit DISTINCT, or canonical-order choice establish a key. An explicit
 ITEM KEY retains exact tuple checking. ASSERT UNIQUE BY remains available and
 its runtime guard must succeed before Model dispatch.
 
+Omitted-key completion retains the last authored name bound to each selected
+physical value slot. A RENAME or same-slot alias names that same original key;
+SET binds its replacement to a different value slot and never retargets the
+earlier key's name, value or type. An older surviving range name cannot override
+a newer name authored for that original slot. Real projection/remapping follows
+the existing slot correspondence; a reused physical spelling is not an earlier
+slot generation. Retaining a hidden key label does not restore a column or range
+to SQL lookup or visibility.
+
+The original Common-proven values, types, ordered composite components and their
+selected names are fixed when INFER adopts the tuple. Later column edits do not
+rewrite that information; retention and recovery reuse the same emitted tuple
+and captured correspondence rather than resolving names again. Key names are
+identity-bearing parts of the ordinary Program and result-object projection,
+not cosmetic display metadata or a new capture format. Retaining the original
+Program preserves that projection with its existing capture correspondence.
+Identical normalized key metadata preserves
+explicit/default identity, while a different authored key name can change a CID.
+Conflicting or ambiguous output names, including the existing reserved result
+roles, cause the existing typed refusal; completion never invents a replacement
+name or chooses a different candidate key. Explicit ITEM KEY keeps its authored
+tuple and existing name semantics.
+
 The new visible scope consists of KEEP columns followed by one result object:
-`input_key` (named fields in the authored key tuple), `outcome`, and `value`.
+`input_key` (named fields in the completed or explicitly authored key tuple),
+`outcome`, and `value`.
 Omitted KEEP is exactly KEEP (*): all visible input columns retain their order
 and layout, followed by the result object. Explicit KEEP remains an authored
 subset; a later SELECT can retain only the result object. Prior range aliases
