@@ -7,13 +7,13 @@ let calendar_domain_end : Int64 = 253402300800000L
 ///|
 fn calendar_day_floor(coordinate : Int64) -> Int64 {
   let remainder = coordinate % 86400000L
-  coordinate - remainder - if remainder < 0L { 86400000L } else { 0L }
+  coordinate - remainder - (if remainder < 0L { 86400000L } else { 0L })
 }
 
 ///|
 fn calendar_digits(text : String, start : Int, count : Int) -> Int {
   let mut result = 0
-  for index in start..<start + count {
+  for index in start..<(start + count) {
     result = result * 10 + text[index].to_int() - 48
   }
   result
@@ -26,8 +26,12 @@ fn calendar_month_boundary(year : Int, month : Int) -> Int64? {
   }
   let year_text = year.to_string()
   let month_text = month.to_string()
-  let text = "0".repeat(4 - year_text.length()) + year_text + "-" +
-    "0".repeat(2 - month_text.length()) + month_text + "-01T00:00:00.000Z"
+  let text = "0".repeat(4 - year_text.length()) +
+    year_text +
+    "-" +
+    "0".repeat(2 - month_text.length()) +
+    month_text +
+    "-01T00:00:00.000Z"
   @value.timestamp_epoch_milliseconds(text)
 }
 
@@ -49,7 +53,7 @@ fn calendar_boundary_floor(
         Some(Sunday) => 6L
         None => return None
       }
-      Some(day - ((monday_index - origin + 7L) % 7L) * 86400000L)
+      Some(day - (monday_index - origin + 7L) % 7L * 86400000L)
     }
     Month | Quarter | Year => {
       guard @value.epoch_milliseconds_timestamp(coordinate) is Some(text) else {
@@ -74,8 +78,12 @@ fn calendar_boundary_next(
 ) -> Int64? {
   match unit {
     Day | Week => {
-      let next = coordinate + if unit == Day { 86400000L } else { 604800000L }
-      if next < calendar_domain_end { Some(next) } else { None }
+      let next = coordinate + (if unit == Day { 86400000L } else { 604800000L })
+      if next < calendar_domain_end {
+        Some(next)
+      } else {
+        None
+      }
     }
     Month | Quarter | Year => {
       guard @value.epoch_milliseconds_timestamp(coordinate) is Some(text) else {
@@ -83,7 +91,11 @@ fn calendar_boundary_next(
       }
       let year = calendar_digits(text, 0, 4)
       let month = calendar_digits(text, 5, 2)
-      let stride = match unit { Month => 1; Quarter => 3; _ => 12 }
+      let stride = match unit {
+        Month => 1
+        Quarter => 3
+        _ => 12
+      }
       let index = (year - 1) * 12 + month - 1 + stride
       calendar_month_boundary(index / 12 + 1, index % 12 + 1)
     }
@@ -146,19 +158,35 @@ pub fn start_interval(
   week_start~ : @options.WeekStart?,
   max_work~ : Int,
 ) -> Result[IntervalCursor, IntervalIssue] {
-  if max_work < 0 { return Err(InvalidIntervalLimits) }
+  if max_work < 0 {
+    return Err(InvalidIntervalLimits)
+  }
   if (unit == @options.Week) != (week_start is Some(_)) {
     return Err(InvalidWeekOrigin)
   }
-  if instant < calendar_domain_start || instant >= calendar_domain_end ||
+  if instant < calendar_domain_start ||
+    instant >= calendar_domain_end ||
     offset_at(table, instant) is None {
     return Err(CalendarBoundaryDomain)
   }
   let initial = table.initial_offset_seconds.to_int64() * 1000L
-  Ok({ table, instant, unit, week_start, remaining_work: max_work,
-    offset_index: 0, minimum_offset: initial, maximum_offset: initial,
-    initialized: false, candidate: None, last_candidate: 0L, inverse: None,
-    left: None, right: None, terminal: false })
+  Ok({
+    table,
+    instant,
+    unit,
+    week_start,
+    remaining_work: max_work,
+    offset_index: 0,
+    minimum_offset: initial,
+    maximum_offset: initial,
+    initialized: false,
+    candidate: None,
+    last_candidate: 0L,
+    inverse: None,
+    left: None,
+    right: None,
+    terminal: false,
+  })
 }
 
 ///|
@@ -170,8 +198,12 @@ pub fn advance_interval(
   cursor : IntervalCursor,
   quantum : Int,
 ) -> Result[IntervalPoll, IntervalIssue] {
-  if quantum <= 0 { return Err(InvalidIntervalLimits) }
-  if cursor.terminal { return Err(IntervalTerminal) }
+  if quantum <= 0 {
+    return Err(InvalidIntervalLimits)
+  }
+  if cursor.terminal {
+    return Err(IntervalTerminal)
+  }
   let mut used = 0
   while used < quantum {
     if cursor.remaining_work == 0 {
@@ -188,30 +220,40 @@ pub fn advance_interval(
       }
       used += work
       cursor.remaining_work -= work
-      if poll is ResolutionContinue(_) { continue }
+      if poll is ResolutionContinue(_) {
+        continue
+      }
       if resolved is Some(utc) {
         if utc >= calendar_domain_start && utc < calendar_domain_end {
           if utc <= cursor.instant {
-            cursor.left = Some(match cursor.left {
-              Some(previous) => Int64::max(previous, utc)
-              None => utc
-            })
+            cursor.left = Some(
+              match cursor.left {
+                Some(previous) => Int64::max(previous, utc)
+                None => utc
+              },
+            )
           } else {
-            cursor.right = Some(match cursor.right {
-              Some(previous) => Int64::min(previous, utc)
-              None => utc
-            })
+            cursor.right = Some(
+              match cursor.right {
+                Some(previous) => Int64::min(previous, utc)
+                None => utc
+              },
+            )
           }
         }
       }
       cursor.inverse = None
-      cursor.candidate = calendar_boundary_next(cursor.candidate.unwrap(), cursor.unit)
+      cursor.candidate = calendar_boundary_next(
+        cursor.candidate.unwrap(),
+        cursor.unit,
+      )
       continue
     }
     cursor.remaining_work -= 1
     used += 1
     if cursor.offset_index < cursor.table.transitions.length() {
-      let offset = cursor.table.transitions[cursor.offset_index].offset_seconds.to_int64() * 1000L
+      let offset = cursor.table.transitions[cursor.offset_index].offset_seconds.to_int64() *
+        1000L
       cursor.minimum_offset = Int64::min(cursor.minimum_offset, offset)
       cursor.maximum_offset = Int64::max(cursor.maximum_offset, offset)
       cursor.offset_index += 1
@@ -220,11 +262,19 @@ pub fn advance_interval(
     if !cursor.initialized {
       let spread = cursor.maximum_offset - cursor.minimum_offset
       let span = calendar_maximum_span(cursor.unit)
-      let first = Int64::max(calendar_domain_start,
-        cursor.instant + cursor.minimum_offset - spread - span)
-      cursor.last_candidate = Int64::min(calendar_domain_end - 1L,
-        cursor.instant + cursor.maximum_offset + spread + span)
-      cursor.candidate = calendar_boundary_floor(first, cursor.unit, cursor.week_start)
+      let first = Int64::max(
+        calendar_domain_start,
+        cursor.instant + cursor.minimum_offset - spread - span,
+      )
+      cursor.last_candidate = Int64::min(
+        calendar_domain_end - 1L,
+        cursor.instant + cursor.maximum_offset + spread + span,
+      )
+      cursor.candidate = calendar_boundary_floor(
+        first,
+        cursor.unit,
+        cursor.week_start,
+      )
       // A weekly floor can precede year 0001. Skip that unrepresentable civil
       // boundary; absence of a valid adjacent start still fails at completion.
       if cursor.candidate is Some(value) {
@@ -237,8 +287,13 @@ pub fn advance_interval(
     }
     if cursor.candidate is Some(value) {
       if value <= cursor.last_candidate {
-        cursor.inverse = Some(start_local_resolution(cursor.table, value,
-          max_work=cursor.remaining_work).unwrap())
+        cursor.inverse = Some(
+          start_local_resolution(
+            cursor.table,
+            value,
+            max_work=cursor.remaining_work,
+          ).unwrap(),
+        )
         continue
       }
     }
