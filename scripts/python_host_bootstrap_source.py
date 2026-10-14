@@ -17,6 +17,10 @@ import subprocess
 INPUTS = (
     'src/platform_native/host_bootstrap/moon.pkg',
     'src/platform_native/host_bootstrap/bootstrap_native.mbt',
+    'src/platform_native/host_bootstrap/backed_region_native.mbt',
+    'src/platform_native/host_bootstrap/backed_view_native.mbt',
+    'src/platform_native/host_bootstrap/backed_domain_native.mbt',
+    'src/platform_native/host_bootstrap/backed_region_wbtest.mbt',
     'src/platform_native/host_bootstrap/bootstrap_stub.c',
     'src/platform_native/host_bootstrap/bootstrap_wbtest.mbt',
     'src/platform_native/host_bootstrap/fd_supplier_wbtest.mbt',
@@ -24,6 +28,8 @@ INPUTS = (
     'packages/python-local-runtime/native/pre-root/owned_capacity.h',
     'packages/python-local-runtime/native/pre-root/owned_region.h',
     'packages/python-local-runtime/native/pre-root/owned_region.inc',
+    'packages/python-local-runtime/native/pre-root/owned_domain_borrow.h',
+    'packages/python-local-runtime/native/pre-root/owned_domain_borrow.inc',
 )
 MANIFEST = 'packages/python-local-runtime/native/pre-root/host-bootstrap-source.json'
 

@@ -12,6 +12,7 @@ import {once} from 'node:events';
 
 const corpus=JSON.parse(readFileSync(new URL('../../portability/corpus/openai-chat.json',import.meta.url)));
 const cid=c=>`sha256:${c.repeat(64)}`;
+const physicalAcquisitionLimits={maxPlaintextBytes:65536,maxBorrowedBackingBytes:131072,maxReads:64};
 function configuration() {
   // Trusted-selection/profile/Core ports are explicit doubles. Their values
   // are not a normal numerical profile, installation grant or public Run.
@@ -103,7 +104,7 @@ test('explicit Undici facade reaches the existing SDK/async port and real loopba
         installation:config.rawCaptureSelection.installation})});
     const f=runtime(config); // Core/installation/nominal raw binding are doubles.
     const {fetch:unused,...selected}=config;void unused;
-    const register=createInstalledUndiciOpenAIChatRegistration(selected);
+    const register=createInstalledUndiciOpenAIChatRegistration({...selected,physicalAcquisitionLimits});
     const installed=installModelProviders(f.moon,register).get(config.providerId);
     let bind;
     preflight=installed.physicalPreflight(f.request,createInferIoNotification(),
@@ -140,9 +141,9 @@ test('explicit selected route refuses an extra fetch rather than accepting fallb
 
 test('explicit physical route cannot replace a missing original installation or mismatched profile',()=>{
   const {fetch:unused,...selected}=configuration();void unused;
-  assert.throws(()=>createInstalledUndiciOpenAIChatRegistration({...selected,
+  assert.throws(()=>createInstalledUndiciOpenAIChatRegistration({...selected,physicalAcquisitionLimits,
     originalReadInstallation:undefined}),{code:'OpenAIOriginalInstallationUnavailable'});
-  assert.throws(()=>createInstalledUndiciOpenAIChatRegistration({...selected,
+  assert.throws(()=>createInstalledUndiciOpenAIChatRegistration({...selected,physicalAcquisitionLimits,
     rawCaptureSelection:Object.freeze({...selected.rawCaptureSelection,profile:{}})}),
     {code:'OpenAIOriginalInstallationMismatch'});
 });
@@ -151,7 +152,7 @@ test('explicit route retains inspected original DATA without invoking Proxy get 
   const config=configuration(),f=runtime(config);
   const {fetch:unused,...selected}=config;void unused;
   let gets=0;
-  const supplied=new Proxy(selected,{get(){gets++;throw Error('LateReadForbidden');}});
+  const supplied=new Proxy({...selected,physicalAcquisitionLimits},{get(){gets++;throw Error('LateReadForbidden');}});
   const entry=createInstalledUndiciOpenAIChatRegistration(supplied)(f.moon)[0];
   assert.equal(entry.providerId,selected.providerId);assert.equal(gets,0);
   const secret={...selected};Object.defineProperty(secret,'apiKey',{
@@ -159,6 +160,23 @@ test('explicit route retains inspected original DATA without invoking Proxy get 
   assert.throws(()=>createInstalledUndiciOpenAIChatRegistration(secret),
     {code:'InvalidInstalledOpenAIChatConfiguration'});
   assert.equal(gets,0);assert.equal(f.counts.starts,0);assert.equal(f.counts.fetch,0);
+});
+
+test('explicit acquisition has no missing null or default declaration before Model preparation',()=>{
+  const config=configuration(),f=runtime(config);
+  const {fetch:unused,...selected}=config;void unused;
+  assert.throws(()=>createInstalledUndiciOpenAIChatRegistration(selected),
+    {code:'InvalidInstalledOpenAIChatConfiguration'});
+  for(const value of [undefined,null,{...physicalAcquisitionLimits,maxReads:0}]) {
+    assert.throws(()=>createInstalledUndiciOpenAIChatRegistration({...selected,physicalAcquisitionLimits:value}),
+      {code:'UndiciOriginalAcquisitionLimitsUnavailable'});
+  }
+  assert.equal(f.counts.starts,0);assert.equal(f.counts.fetch,0);assert.equal(f.counts.installs,0);
+});
+
+test('selected acquisition declaration is private to Undici and cannot alter generic fetch',()=>{
+  assert.throws(()=>createInstalledOpenAIChatRegistration({...configuration(),physicalAcquisitionLimits}),
+    {code:'InvalidInstalledOpenAIChatConfiguration'});
 });
 
 test('private facade returns the existing exclusive async registration with zero construction I/O',()=>{

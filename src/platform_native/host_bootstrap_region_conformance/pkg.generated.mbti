@@ -1,0 +1,15 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/host_bootstrap_region_conformance"
+
+// Values
+
+// Errors
+
+// Types and methods
+type RegionChild
+
+type RegionOriginal
+
+// Type aliases
+
+// Traits

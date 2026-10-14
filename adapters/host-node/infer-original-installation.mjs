@@ -111,19 +111,13 @@ export function selectedInferOriginalPublicationCapacity(original, nodeInstallat
 
 function retainPublicationCapacity(value) {
   if (value === undefined) return undefined;
-  if (!keys(value, 'retainedBytes,workspaceBytes')) {
-    throw new TypeError('InvalidInstalledInferPublicationCapacity');
-  }
-  const descriptors = Object.getOwnPropertyDescriptors(value);
-  const retainedBytes = descriptors.retainedBytes?.value;
-  const workspaceBytes = descriptors.workspaceBytes?.value;
-  if (Reflect.ownKeys(descriptors).length !== 2 ||
-      !Object.values(descriptors).every(d => 'value' in d) ||
-      !int64(retainedBytes, 1n) || !int64(workspaceBytes, 0n)) {
-    throw new TypeError('InvalidInstalledInferPublicationCapacity');
-  }
-  // Validate and retain the same descriptor DATA without another property read.
-  return Object.freeze({retainedBytes, workspaceBytes});
+  const fail=()=>{throw new TypeError('InvalidInstalledInferPublicationCapacity');};
+  // The existing closed DATA helper checks shape/enumerability and captures
+  // each descriptor once. Object.keys followed by another descriptor walk can
+  // inspect two different originals on a Proxy; neither is a capacity grant.
+  value=exactData(value,'retainedBytes,workspaceBytes',fail);
+  if (!int64(value.retainedBytes, 1n) || !int64(value.workspaceBytes, 0n)) fail();
+  return value;
 }
 
 export function retainInferOriginalReadInstallation(value) {

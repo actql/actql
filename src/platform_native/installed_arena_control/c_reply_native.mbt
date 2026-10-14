@@ -62,6 +62,14 @@ pub fn acquire_installed_arena_reply(
 }
 
 ///|
+pub fn acquire_installed_arena_fd_reply(
+  original : InstalledArenaHost,
+  fd : Int,
+) -> InstalledArenaReply {
+  original_unit_reply(Acquire, original, original.acquire_fd(fd))
+}
+
+///|
 pub fn current_installed_arena_reply(
   original : InstalledArenaHost,
 ) -> InstalledArenaReply {
