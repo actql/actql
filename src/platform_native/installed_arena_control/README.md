@@ -43,3 +43,13 @@ close. No raw Ledger or nominal pointer is serialized on wire. API/info, VM,
 Wasmtime, worker, runtime wheel and public product acceptance are not added by
 this entry. Production linkage must use one original C capacity/TLS provider;
 the Wasmtime artifact must not silently compile a second physical provider.
+
+The additional C reply surface preserves the original Host and exact typed issue
+in an immutable projection, alongside Prepare/Acquire/Current/Close. Prepare
+success is only an intent. A zero physical-error payload still has the Physical
+issue family; descriptions never determine success. Each operation invokes the
+existing Host method again. A reply is a historical observation, not current
+permission, a re-execution token or cleanup authority. C callers must use the
+generated typed accessors rather than inspecting Result/option/struct layouts.
+Four metadata-only reply cases are prepared and unexecuted. The reply helpers
+and primitive entry are not covered by the earlier Source675 Native5 result.
