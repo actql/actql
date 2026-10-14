@@ -31,6 +31,14 @@ const selected = module.isPreloading === true &&
 
 let startup;
 if (selected) {
+  // Stock subclass initialization must precede the base-method fence. In the
+  // selected Node source, net installs Socket.prototype.read by assignment;
+  // freezing the inherited Readable method first prevents Node's own setup.
+  // These are fixed builtin imports only, not user preload/code or network IO.
+  const {Socket} = require('node:net');
+  require('node:http');
+  require('node:https');
+  require('node:tls');
   // This opt-in physical startup keeps the selected allocator/pool premise
   // invariant, rather than trying to infer historical slabs at Host.open().
   // It is not a language restriction or a default for existing processes.
@@ -38,7 +46,7 @@ if (selected) {
     [Buffer, 'poolSize'], [Buffer, 'alloc'], [Buffer, 'allocUnsafe'], [Buffer, 'allocUnsafeSlow'],
     [Buffer, 'from'], [Buffer, 'concat'],
     [Readable.prototype, 'read'], [Readable.prototype, 'push'],
-    [Readable.prototype, 'unshift'],
+    [Readable.prototype, 'unshift'], [Socket.prototype, 'read'],
   ].map(([owner, name]) => {
     const descriptor = Object.getOwnPropertyDescriptor(owner, name);
     if (descriptor === undefined || !Object.hasOwn(descriptor, 'value')) unavailable();
