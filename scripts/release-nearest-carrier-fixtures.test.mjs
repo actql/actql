@@ -116,7 +116,7 @@ test('query aliases bind exact declared view CIDs even when Catalog view bodies 
     assert.equal(installed.observations.sourceIo, 0);
   } finally {await rm(directory, {recursive: true});}
 });
-test('normal release delivery includes eleven modules and all four untouched independent originals', async () => {
+test('normal release delivery includes twelve modules and all four untouched independent originals', async () => {
   const delivered = new Set(releaseNearestCarrierFixturePaths.map(path => resolve(root, path)));
   const pending = [resolve(root, 'scripts/fixtures/release-nearest-carrier-worker.mjs')], seen = new Set();
   while (pending.length) {
@@ -126,7 +126,7 @@ test('normal release delivery includes eleven modules and all four untouched ind
       pending.push(resolve(dirname(path), match[2]));
     }
   }
-  assert.equal(seen.size, 11); assert.equal(delivered.size, 15);
+  assert.equal(seen.size, 12); assert.equal(delivered.size, 16);
   const directory = await mkdtemp(join(tmpdir(), 'actql-nearest-originals-unit-'));
   try {
     for (const path of releaseNearestCarrierFixturePaths.filter(path => path.startsWith('spec/'))) {
