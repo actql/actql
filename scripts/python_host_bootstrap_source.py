@@ -19,6 +19,7 @@ INPUTS = (
     'src/platform_native/host_bootstrap/bootstrap_native.mbt',
     'src/platform_native/host_bootstrap/bootstrap_stub.c',
     'src/platform_native/host_bootstrap/bootstrap_wbtest.mbt',
+    'src/platform_native/host_bootstrap/fd_supplier_wbtest.mbt',
     'packages/python-local-runtime/native/pre-root/owned_capacity.c',
     'packages/python-local-runtime/native/pre-root/owned_capacity.h',
     'packages/python-local-runtime/native/pre-root/owned_region.h',
