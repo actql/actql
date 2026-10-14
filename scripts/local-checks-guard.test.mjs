@@ -620,6 +620,8 @@ for (const exitCode of [0, 7]) {
     const f = fixture(t);
     const source = locateEvidence + `
       const record = JSON.parse(fs.readFileSync(path.join(attempt, 'summary.json')));
+      fs.writeFileSync('slot-lock-before.json', fs.readFileSync(record.locks[1]));
+      fs.writeFileSync('barrier-lock-before.json', fs.readFileSync(record.heavyAdmission.barrier));
       const owner = JSON.parse(fs.readFileSync(record.locks[0]));
       owner.token = 'changed-owner'; fs.writeFileSync(record.locks[0], JSON.stringify(owner));
       console.log('owned command completed'); process.exit(${exitCode});`;
@@ -632,7 +634,24 @@ for (const exitCode of [0, 7]) {
     assert.notEqual(record.status, 'passed');
     assert.equal(record.steps[0].code, exitCode);
     assert.equal(JSON.parse(readFileSync(record.locks[0])).token, 'changed-owner');
-    assert.deepEqual(locks(f), [record.locks[0].split('/').at(-1)]);
+    // Refused original worktree custody must preserve the shared reservation
+    // and compatibility barrier too; it cannot certify available capacity.
+    assert.deepEqual(locks(f).sort(), [...record.locks,
+      record.heavyAdmission.barrier].map(path => path.split('/').at(-1)).sort());
+    assert.deepEqual(readFileSync(record.locks[1]), readFileSync(join(f.root, 'slot-lock-before.json')));
+    assert.deepEqual(readFileSync(record.heavyAdmission.barrier),
+      readFileSync(join(f.root, 'barrier-lock-before.json')));
+    const member = JSON.parse(readFileSync(record.locks[1]));
+    const barrier = JSON.parse(readFileSync(record.heavyAdmission.barrier));
+    for (const key of ['token', 'pid', 'uid', 'host', 'worktree']) {
+      assert.equal(member[key], record.owner[key]);
+      assert.equal(barrier[key], record.owner[key]);
+    }
+    assert.equal(member.heavyPool.version, 'actql-local-heavy-pool/' + String(1));
+    assert.equal(barrier.heavyPool.version, member.heavyPool.version);
+    assert.equal(member.heavyPool.token, barrier.heavyPool.token);
+    assert.equal(member.heavyPool.slot, record.heavyAdmission.slot);
+    assert.deepEqual(member.heavyPool.resources, tinyResources);
   });
 }
 
