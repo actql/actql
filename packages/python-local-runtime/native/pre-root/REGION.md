@@ -84,3 +84,23 @@ responses or parent death do not create those acknowledgements or new credits.
 
 This source/private fixture is not adopted numerical funding, a compiled
 Wasmtime runtime, worker dispatch or installed Python product acceptance.
+
+## Original read/workspace use
+
+The Resource Owner's `borrow_backed_execution_read_use` retains one additional
+original `SharedBorrow` of an existing exclusive-write child. It adds no byte
+reservation, logical allowance, installation proof or read permission. Only one
+such lifetime can be issued for that same child. A pending use blocks parent
+delegation settlement before any logical quota or overhead is returned.
+
+Logical stop denies new use while the same physical Owner finishes cleanup.
+Only after Root/Reader acknowledgments, last aliases and original context
+retirement does `return_backed_execution_read_use_after_owner_ack` return this
+additional borrow. It does not settle the parent, close an FD, confirm process
+stop or establish a Provider/Store outcome. The original parent cleanup remains
+separate. Control/closure/physical overhead still requires real funding and
+layout review; this source connection does not adopt a numerical profile.
+
+This generic physical read use is not `FundedReadClaim`, which retains its
+existing original-census authentication and restoration contract. A caller
+that reads that census must separately retain its authentic original claim.
