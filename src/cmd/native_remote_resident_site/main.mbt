@@ -4366,9 +4366,7 @@ fn run_holder(
     _ => (false, false)
   }
   ignore(
-    load_holder_effect_host_operator(matches, resources, environment, () => {
-      slot.verify_current_hold() == Ok(())
-    }),
+    load_holder_effect_host_operator(matches, resources, environment, slot),
   ) catch {
     CommandStop(issue) => {
       if proven_unstarted {

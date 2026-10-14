@@ -2,7 +2,7 @@ import {randomBytes, timingSafeEqual} from 'node:crypto';
 import {Hono} from 'hono';
 import {serve} from '@hono/node-server';
 import {validRunRef} from '@actql/client-wire';
-import {createReadEpoch, describeExistingResult, readExistingRun,
+import {createReadEpoch, describeExistingResult, readExistingRun, readExistingRunPlan,
   readStaticPlan} from '@actql/explorer-ui/read-model';
 
 // These are presentation/transport ceilings, not new execution reservations.
@@ -87,7 +87,7 @@ function safeReadError(error) {
     'ExplorerSessionExpired', 'ExplorerBootstrapRefused', 'ExplorerSessionRefused',
     'ExplorerBusy', 'ExplorerCapabilityUnavailable', 'ExplorerReplyLimit',
     'ExplorerReadTimeout', 'ExplorerStaleScope', 'ExplorerMapLimit',
-    'ExplorerUnresolvedPort', 'ExplorerInvalidPlan'].includes(error?.code)) {
+    'ExplorerUnresolvedPort', 'ExplorerInvalidPlan', 'ExplorerInvalidRunPlan'].includes(error?.code)) {
     return {code: error.code, status: error.status ?? 409};
   }
   // Never serialize Host messages, bodies, URLs, stack traces or credentials.
@@ -191,6 +191,10 @@ export function createExplorerGateway({client, origin, assets = new Map(),
         case 'run':
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
           data = await readExistingRun(client, body.ref, ticket);
+          break;
+        case 'run-plan':
+          if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
+          data = await readExistingRunPlan(client, body.ref, ticket);
           break;
         case 'result':
           if (!exact(body, ['ref', 'name']) || !validRunRef(body.ref) ||

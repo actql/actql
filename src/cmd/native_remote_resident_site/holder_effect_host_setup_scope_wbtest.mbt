@@ -1,4 +1,23 @@
 ///|
+/// Fixture adapter only. Product setup reserves before constructing callbacks
+/// and retains its original scope even when the first current fence refuses.
+fn begin_holder_effect_host_setup_scope(
+  site : @site.ExecutionSite,
+  profile : HolderEffectHostSetupProfile?,
+  original_catalog_record_limit : Int64,
+  current_binding : () -> Bool,
+) -> HolderEffectHostSetupScope? {
+  guard reserve_holder_effect_host_setup_scope(
+      site, profile, original_catalog_record_limit,
+    )
+    is Some(scope) else {
+    return None
+  }
+  scope.current_binding = Some(current_binding)
+  Some(scope)
+}
+
+///|
 /// Arithmetic/lifecycle fixtures only. These quantities are not an adopted
 /// Host layout profile and no physical Account/Source/Provider is opened.
 fn host_setup_test_profile() -> HolderEffectHostSetupProfile {
@@ -583,4 +602,90 @@ test "selected setup requires independent positive diagnostic ceiling before res
     assert_eq(checks[0], 0)
     assert_eq(@site.site_status(site)[7], 0L)
   }
+}
+
+///|
+test "setup reservation precedes binding installation and permits no unbound read" {
+  let site = host_setup_test_site(1)
+  let scope = reserve_holder_effect_host_setup_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+  ).unwrap()
+  let operation = scope.caller_operation.unwrap()
+  assert_true(scope.current_binding is None)
+  assert_false(holder_effect_host_read_scope_current(scope))
+  assert_eq(@site.site_status(site)[2], 1L)
+  assert_eq(@site.site_status(site)[7], 120L)
+  let observed = Ref((0L, 0L))
+  scope.current_binding = Some(() => {
+    observed.val = (@site.site_status(site)[2], @site.site_status(site)[7])
+    true
+  })
+  assert_true(holder_effect_host_read_scope_current(scope))
+  assert_eq(observed.val, (1L, 120L))
+  assert_true(physical_equal(scope.caller_operation.unwrap(), operation))
+  assert_true(leave_holder_effect_host_read_scope(scope))
+  assert_true(prepare_holder_effect_host_scope_retirement(scope))
+  let (retained, _) = take_holder_effect_host_caller_reservation(scope)
+  assert_true(physical_equal(retained.unwrap(), operation))
+  assert_true(@site.settle_site_operation(operation))
+  assert_eq(@site.site_status(site)[2], 0L)
+  assert_eq(@site.site_status(site)[7], 0L)
+}
+
+///|
+test "first setup binding refusal retains the same reservation for caller retirement" {
+  let site = host_setup_test_site(1)
+  let scope = reserve_holder_effect_host_setup_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+  ).unwrap()
+  let operation = scope.caller_operation.unwrap()
+  let current = Ref(false)
+  scope.current_binding = Some(() => current.val)
+  assert_false(holder_effect_host_read_scope_current(scope))
+  // A refused first read ends only its borrow. No replacement operation can
+  // be admitted while the original caller still holds this Site slot/charge.
+  assert_false(leave_holder_effect_host_read_scope(scope))
+  assert_eq(scope.depth, 0)
+  assert_true(scope.operation is None)
+  assert_true(physical_equal(scope.caller_operation.unwrap(), operation))
+  assert_eq(@site.site_status(site)[2], 1L)
+  assert_eq(@site.site_status(site)[7], 120L)
+  assert_true(
+    reserve_holder_effect_host_setup_scope(
+      site,
+      Some(host_setup_test_profile()),
+      1024L,
+    )
+    is None,
+  )
+  assert_true(prepare_holder_effect_host_scope_retirement(scope))
+  current.val = true
+  assert_false(enter_holder_effect_host_read_scope(scope))
+  let (retained, _) = take_holder_effect_host_caller_reservation(scope)
+  assert_true(physical_equal(retained.unwrap(), operation))
+  assert_true(@site.settle_site_operation(operation))
+  assert_false(@site.settle_site_operation(operation))
+  assert_eq(@site.site_status(site)[2], 0L)
+  assert_eq(@site.site_status(site)[7], 0L)
+}
+
+///|
+test "setup reservation refuses absent invalid or uncovered profile without binding construction" {
+  let site = host_setup_test_site(1)
+  let profile = host_setup_test_profile()
+  let before = @site.site_status(site)
+  for selected in [None, Some({ ..profile, diagnostic_ceiling: 0, })] {
+    assert_true(
+      reserve_holder_effect_host_setup_scope(site, selected, 1024L) is None,
+    )
+    assert_eq(@site.site_status(site), before)
+  }
+  assert_true(
+    reserve_holder_effect_host_setup_scope(site, Some(profile), 1025L) is None,
+  )
+  assert_eq(@site.site_status(site), before)
 }
