@@ -7,8 +7,7 @@ let nearest_failed_document : String = "{\"id\":\"adhoc.query\",\"results\":{\"a
 
 ///|
 test "original installed nearest Host capacity is derived from its checked tasks" {
-  let environment = @publication_host.admit_client_check_environment(nearest_failed_environment, "sha256:39519da6217e4774ced5c39cc755770eec4385da59317c7c654804e2000b5a60", {text_time:false,veca:true}, {rela:true,sga:false,tea:false,calendar:false,text_rank:false}).unwrap()
-  let prepared = @publication_host.prepare_effect_free_client_program(nearest_failed_document, Json, environment, None, @publication_host.client_standard_program_preparation_limits()).unwrap()
+  let prepared = nearest_failed_prepared()
   let sequences = prepare_client_local_sequences(prepared, source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
   let count = @strategy.graph_task_count(@publication_host.prepared_client_graph(prepared))
   assert_eq(count,15)
@@ -25,4 +24,54 @@ test "original installed nearest Host capacity is derived from its checked tasks
   }
   println("NEAREST_CAPACITY total_retained=\{total}")
   assert_true(client_local_sequence_capacity(compute,count,max_rows=@publication_host.prepared_client_values_max_rows(prepared)) is Some(_))
+}
+
+///|
+fn nearest_failed_prepared() -> @publication_host.PreparedClientProgram {
+  let environment = @publication_host.admit_client_check_environment(nearest_failed_environment, "sha256:39519da6217e4774ced5c39cc755770eec4385da59317c7c654804e2000b5a60", {text_time:false,veca:true}, {rela:true,sga:false,tea:false,calendar:false,text_rank:false}).unwrap()
+  let prepared = @publication_host.prepare_effect_free_client_program(nearest_failed_document, Json, environment, None, @publication_host.client_standard_program_preparation_limits()).unwrap()
+  prepared
+}
+
+///|
+test "original installed nearest captures retain their exact graph and Host owner" {
+  let prepared = nearest_failed_prepared()
+  let declaration = @row_source_host.restore_relation_row_declaration("nearest_fixture","nearest_fixture","nearest_fixture/0.1","{\"views\":[{\"resource\":\"queries\",\"resource_kind\":\"table\",\"schema_wire\":\"{\\\"embedding\\\":{\\\"dimensions\\\":2,\\\"element_type\\\":\\\"f32\\\",\\\"nullable\\\":false,\\\"type\\\":\\\"vector\\\"},\\\"note\\\":{\\\"nullable\\\":true,\\\"type\\\":\\\"string\\\"},\\\"request_id\\\":{\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"}}\",\"schema_cid\":\"sha256:561dfd2407116f43ed07dbe940c571e4fea7779fa0e6dda1bf079d8f986c02a5\",\"facts_wire\":\"{\\\"relation_keys\\\":{\\\"candidate_keys\\\":[[\\\"request_id\\\"]]}}\"},{\"resource\":\"candidates\",\"resource_kind\":\"table\",\"schema_wire\":\"{\\\"embedding\\\":{\\\"dimensions\\\":2,\\\"element_type\\\":\\\"f32\\\",\\\"nullable\\\":false,\\\"type\\\":\\\"vector\\\"},\\\"item_id\\\":{\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"},\\\"label\\\":{\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"}}\",\"schema_cid\":\"sha256:c58169521c543e83af21aed505d1f304fef1496c5e427295f905f797d69a349b\",\"facts_wire\":\"{\\\"relation_keys\\\":{\\\"candidate_keys\\\":[[\\\"item_id\\\"]]}}\"}]}",None).unwrap()
+  let acquisitions = Array::makei(2,task => {
+    let requirement = prepare_local_query_requirement(prepared,task,0,source_query_original_registry,source_query_original_values,Some(source_query_original_fragment),None).unwrap()
+    @row_source_host.prepare_row_acquisition(declaration,requirement,original_row_query_contract_fixture,original_row_evidence_contract_fixture).unwrap()
+  })
+  let capacities = acquisitions.map(acquisition => installed_row_capture_capacity(acquisition).unwrap())
+  let ledger = prepare_multi_captured_local_installed_ledger(prepared,capacities,[4096L,4096L],[4096L,4096L],source_query_original_registry,source_query_original_values,Some(source_query_original_fragment),None).unwrap()
+  let bodies = ["[{\"request_id\":\"q1\",\"embedding\":[1,0],\"note\":null}]","[{\"item_id\":\"b\",\"embedding\":[0,1],\"label\":\"second\"},{\"item_id\":\"a\",\"embedding\":[1,0],\"label\":\"first\"}]"]
+  let runs = []
+  let sources = []
+  for task in 0..<2 {
+    let run = @row_source_host.start_accounted_row_acquisition(acquisitions[task],"nearest-component-\{task}",_ => true,ledger,4096L,4096L).unwrap()
+    runs.push(run)
+    @row_source_host.begin_row_run(run,4096,3,3).unwrap()
+    let bytes = @utf8.encode(bodies[task])
+    let charge = @row_source_host.charge_row_run_page(run,bytes).unwrap()
+    @row_source_host.accept_charged_row_run_page(run,charge,bytes).unwrap() |> ignore
+    @row_source_host.finish_row_run(run).unwrap()
+    @row_source_host.begin_row_capture(run).unwrap()
+    let mut complete = false
+    for _ in 0..<10000 {
+      if @row_source_host.advance_row_capture(run,256).unwrap().0 { complete=true; break }
+    }
+    assert_true(complete)
+    let capture = @row_source_host.capture_row_run(run).unwrap()
+    sources.push((task,@row_source_host.row_capture_source(capture).unwrap()))
+  }
+  let graph = @publication_host.prepared_client_graph(prepared)
+  let dag = match @strategy.open_multi_captured_dag(graph,sources,ledger) {
+    Ok(run) => run
+    Err(ForeignCapture) => fail("original installed nearest ForeignCapture")
+    Err(UnsupportedGraph) => fail("original installed nearest UnsupportedGraph")
+    Err(_) => fail("original installed nearest other graph opening refusal")
+  }
+  assert_eq(@strategy.graph_task_count(graph),15)
+  @strategy.stop_captured_dag(dag)
+  @strategy.refresh_captured_retention(dag)
+  for run in runs { @row_source_host.close_accounted_row_run(run).unwrap() }
 }
