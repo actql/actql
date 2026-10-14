@@ -24,8 +24,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.c",
-      "bytes": 13028,
-      "sha256": "f49eff9630da4b2422171a93601a820d48284515925c83c8c9520d84167ed5ee"
+      "bytes": 13515,
+      "sha256": "75ad75312f41236a0f08f60473001c86480d69e562801d307c73916c8e3ef89a"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
@@ -34,13 +34,13 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_region.h",
-      "bytes": 2456,
-      "sha256": "80b3a0e9c0386013756402d2eb064cdb4402714eb3e79702487876b61eaf3c1e"
+      "bytes": 2863,
+      "sha256": "0ebfe06bf3311ae4c3690342916d727c88c68f06f5ea7ea1e17cc878de9ed445"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_region.inc",
-      "bytes": 8335,
-      "sha256": "1cf47baf7d8c2d5b675d2ed9b6742d14827dbbad51a183a17a0647bf01ac31b0"
+      "bytes": 9926,
+      "sha256": "57ae393f46b18aa2ad34cd7efde280db32288cb175cd1059fe172130c0914639"
     }
   ]
 }

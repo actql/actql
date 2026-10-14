@@ -191,6 +191,19 @@ static bool allocation_start(actql_owned_capacity *lease, void *allocation,
            lease->extents[*start].pages != SIZE_MAX;
 }
 
+/* Parent-local physical guards cover every page in this original allocation.
+ * Interior page records retain their own external use counts. */
+static bool allocation_has_external_use(actql_owned_capacity *lease, size_t start,
+                                         bool writers_only) {
+    size_t pages = lease->extents[start].pages;
+    for (size_t i = 0; i < pages; i++) {
+        struct extent *page = &lease->extents[start + i];
+        if (page->external_writer || (!writers_only && page->external_readers != 0))
+            return true;
+    }
+    return false;
+}
+
 int actql_native_owned_capacity_bytes(actql_owned_capacity *lease, uint64_t *out) {
     if (lease == NULL || out == NULL || *out != 0) return ACTQL_OWNED_INVALID;
     lock_capacity(lease);
@@ -241,8 +254,7 @@ int actql_native_owned_protect(actql_owned_capacity *lease, void *allocation,
     size_t start;
     int status = ACTQL_OWNED_INVALID;
     if (allocation_start(lease, allocation, &start) && !lease->extents[start].retired) {
-        if (lease->extents[start].external_readers != 0 ||
-            lease->extents[start].external_writer ||
+        if (allocation_has_external_use(lease, start, false) ||
             (lease->fd_backed && lease->extents[start].sealed && protection != PROT_READ)) {
             unlock_capacity(lease);
             return ACTQL_OWNED_BUSY;
@@ -271,7 +283,7 @@ int actql_native_owned_seal_readonly(actql_owned_capacity *lease, void *allocati
     size_t start;
     int status = ACTQL_OWNED_INVALID;
     if (allocation_start(lease, allocation, &start) && !lease->extents[start].retired) {
-        if (lease->extents[start].external_writer) {
+        if (allocation_has_external_use(lease, start, true)) {
             unlock_capacity(lease);
             return ACTQL_OWNED_BUSY;
         }
@@ -290,8 +302,7 @@ int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation) {
     size_t start;
     int status = ACTQL_OWNED_INVALID;
     if (allocation_start(lease, allocation, &start)) {
-        if (lease->extents[start].external_readers != 0 ||
-            lease->extents[start].external_writer) {
+        if (allocation_has_external_use(lease, start, false)) {
             unlock_capacity(lease);
             return ACTQL_OWNED_BUSY;
         }
