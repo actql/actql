@@ -15,14 +15,22 @@ extern "C" fn observe_directory_ffi(root : Root) -> NativeObservedDirectoryStat 
 
 ///|
 #borrow(stat)
-extern "C" fn observed_directory_kind_ffi(stat : NativeObservedDirectoryStat) -> Int = "actql_native_filesystem_observed_directory_kind"
+extern "C" fn observed_directory_kind_ffi(
+  stat : NativeObservedDirectoryStat,
+) -> Int = "actql_native_filesystem_observed_directory_kind"
 
 ///|
 #borrow(root, stat)
-extern "C" fn observed_directory_current_ffi(root : Root, stat : NativeObservedDirectoryStat) -> Int = "actql_native_filesystem_observed_directory_current"
+extern "C" fn observed_directory_current_ffi(
+  root : Root,
+  stat : NativeObservedDirectoryStat,
+) -> Int = "actql_native_filesystem_observed_directory_current"
 
 ///|
-fn directory_observation_issue(root : Root, kind : Int) -> NativeFilesystemIssue {
+fn directory_observation_issue(
+  root : Root,
+  kind : Int,
+) -> NativeFilesystemIssue {
   if kind == 3 {
     Cleanup(decode_diagnostic_message(root_error_ffi(root)))
   } else {

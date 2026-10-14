@@ -1,10 +1,16 @@
 ///|
 #borrow(root, name)
-extern "C" fn test_observation_mutation(root : Root, name : Bytes, length : Int, kind : Int) -> Bool = "actql_native_filesystem_test_observation_mutation"
+extern "C" fn test_observation_mutation(
+  root : Root,
+  name : Bytes,
+  length : Int,
+  kind : Int,
+) -> Bool = "actql_native_filesystem_test_observation_mutation"
 
 ///|
 fn observed_fixture_path(name : String) -> String raise {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_FILE_OBSERVATION_ROOT") is Some(path) else {
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_FILE_OBSERVATION_ROOT")
+    is Some(path) else {
     fail("selected observation case requires its owned fixture Root")
   }
   path + "/" + name
@@ -32,7 +38,10 @@ test "observed file refuses mode change and same size overwrite" {
     let root = open_root(observed_fixture_path(name)).unwrap()
     let original = root.observe_file("file").unwrap()
     assert_true(test_observation_mutation(root, b"file", 4, kind))
-    assert_eq(root.inspect_generation("file").unwrap().unwrap(), original.generation().unwrap())
+    assert_eq(
+      root.inspect_generation("file").unwrap().unwrap(),
+      original.generation().unwrap(),
+    )
     assert_true(original.check_current() is Err(GenerationMismatch))
     guard original.open_reader_with_custody() is Err(failure) else {
       fail("changed observation admitted a Reader")
@@ -57,7 +66,9 @@ test "observed Reader cannot be borrowed from another same path Root" {
   let root = open_root(observed_fixture_path("exact")).unwrap()
   let other = open_root(observed_fixture_path("exact")).unwrap()
   let original = root.observe_file("file").unwrap()
-  let foreign = other.open_reader("file", original.generation().unwrap()).unwrap()
+  let foreign = other
+    .open_reader("file", original.generation().unwrap())
+    .unwrap()
   assert_true(original.check_reader(foreign) is Err(GenerationMismatch))
   foreign.close().unwrap()
   root.close().unwrap()

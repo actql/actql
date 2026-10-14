@@ -12,8 +12,11 @@ extern "C" fn test_directory_mode(root : Root, mode : Int) -> Bool = "actql_nati
 
 ///|
 fn directory_observation_fixture(name : String) -> String raise {
-  guard @env.get_env_var("ACTQL_TEST_NATIVE_DIRECTORY_OBSERVATION_ROOT") is Some(path) else {
-    fail("selected directory observation requires its own canonical fixture Root")
+  guard @env.get_env_var("ACTQL_TEST_NATIVE_DIRECTORY_OBSERVATION_ROOT")
+    is Some(path) else {
+    fail(
+      "selected directory observation requires its own canonical fixture Root",
+    )
   }
   path + "/" + name
 }
@@ -61,7 +64,10 @@ test "namespace close Unknown remains on the same Root and blocks observations" 
   test_namespace_close_failure(root, 1)
   assert_true(root.observe_directory() is Err(Cleanup(_)))
   assert_true(file.check_current() is Err(Cleanup(_)))
-  assert_true(root.check_directory_members([{ name: "file", kind: File, }]) is Err(Cleanup(_)))
+  assert_true(
+    root.check_directory_members([{ name: "file", kind: File, }])
+    is Err(Cleanup(_)),
+  )
   assert_true(root.close() is Err(Cleanup(_)))
   assert_true(root.close() is Err(Cleanup(_)))
 }

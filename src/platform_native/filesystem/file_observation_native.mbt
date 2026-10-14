@@ -13,7 +13,11 @@ struct NativeFileObservation {
 
 ///|
 #borrow(root, name)
-extern "C" fn observe_file_ffi(root : Root, name : Bytes, length : Int) -> NativeObservedFileStat = "actql_native_filesystem_observe_file"
+extern "C" fn observe_file_ffi(
+  root : Root,
+  name : Bytes,
+  length : Int,
+) -> NativeObservedFileStat = "actql_native_filesystem_observe_file"
 
 ///|
 #borrow(stat)
@@ -37,11 +41,20 @@ extern "C" fn observed_file_mode_ffi(stat : NativeObservedFileStat) -> Int = "ac
 
 ///|
 #borrow(root, name, stat)
-extern "C" fn observed_file_current_ffi(root : Root, name : Bytes, length : Int, stat : NativeObservedFileStat) -> Int = "actql_native_filesystem_observed_file_current"
+extern "C" fn observed_file_current_ffi(
+  root : Root,
+  name : Bytes,
+  length : Int,
+  stat : NativeObservedFileStat,
+) -> Int = "actql_native_filesystem_observed_file_current"
 
 ///|
 #borrow(root, reader, stat)
-extern "C" fn observed_file_reader_ffi(root : Root, reader : Reader, stat : NativeObservedFileStat) -> Bool = "actql_native_filesystem_observed_file_reader"
+extern "C" fn observed_file_reader_ffi(
+  root : Root,
+  reader : Reader,
+  stat : NativeObservedFileStat,
+) -> Bool = "actql_native_filesystem_observed_file_reader"
 
 ///|
 fn observed_file_issue(root : Root, kind : Int) -> NativeFilesystemIssue {
@@ -94,7 +107,12 @@ pub fn NativeFileObservation::check_current(
   self : NativeFileObservation,
 ) -> Result[Unit, NativeFilesystemIssue] {
   let name = @utf8.encode(self.name)
-  let kind = observed_file_current_ffi(self.root, name, name.length(), self.stat)
+  let kind = observed_file_current_ffi(
+    self.root,
+    name,
+    name.length(),
+    self.stat,
+  )
   if kind == 0 {
     Ok(())
   } else {
