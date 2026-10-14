@@ -79,6 +79,16 @@ class Fixture:
 
 
 class OriginalControlCustodyTests(unittest.TestCase):
+    def test_slot_allocation_failure_keeps_caller_owned_input_without_native_calls(self):
+        f = Fixture(); slot = c_void_p(11)
+        primary = MemoryError('injected Python slot metadata allocation')
+        with patch('actql_sdk._local_native_control_custody._new_control_slots', side_effect=primary):
+            with self.assertRaises(MemoryError) as observed:
+                _OriginalControlCustody._take_original_reply(f.functions, slot)
+        self.assertIs(observed.exception, primary)
+        self.assertEqual(slot.value, 11)
+        self.assertEqual(f.events, [])
+
     def test_scope_capture_failure_keeps_caller_owned_input_before_native_calls(self):
         f = Fixture(); slot = c_void_p(11)
         primary = MemoryError('injected Python bootstrap scope allocation')

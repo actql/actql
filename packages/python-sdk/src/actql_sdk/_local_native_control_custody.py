@@ -13,6 +13,11 @@ from threading import Thread, current_thread
 from typing import Any, NoReturn
 
 
+def _new_control_slots() -> tuple[c_void_p, c_void_p, c_void_p, c_void_p]:
+    """Allocate empty Python metadata before consuming any native reference."""
+    return c_void_p(), c_void_p(), c_void_p(), c_void_p()
+
+
 @dataclass(frozen=True)
 class _OriginalArenaFact:
     """Explanation only; copying a fact transfers no original custody."""
@@ -82,14 +87,16 @@ class _OriginalControlCustody:
             raise ValueError('Unavailable original Native reply')
         host = cls.__new__(cls)
         host._functions = functions
-        host._incoming = c_void_p(owning_reply.value)
-        owning_reply.value = None
-        host._original, host._retained, host._reply = c_void_p(), c_void_p(), c_void_p()
+        host._incoming, host._original, host._retained, host._reply = _new_control_slots()
         host._unknown = None
         host._busy, host._closed = False, False
         host._thread, host._process = current_thread(), getpid()
         host._enter()
         try:
+            # Initialization/allocation failures above leave the caller's slot
+            # untouched. After this move every failure returns this carrier.
+            host._incoming.value = owning_reply.value
+            owning_reply.value = None
             code = functions.originals(host._incoming, byref(host._original), byref(host._retained))
             if (type(code) is not int or code != 0 or host._original.value is None
                     or host._original.value != host._retained.value):
