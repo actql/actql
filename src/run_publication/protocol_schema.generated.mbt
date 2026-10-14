@@ -3,7 +3,7 @@
 
 ///|
 fn generated_protocol_schema_nodes() -> Array[ProtocolSchemaRule] {
-  let nodes : Array[ProtocolSchemaRule] = Array(capacity=6842)
+  let nodes : Array[ProtocolSchemaRule] = Array(capacity=6959)
   generated_protocol_schema_nodes_0(nodes)
   generated_protocol_schema_nodes_1(nodes)
   generated_protocol_schema_nodes_2(nodes)
@@ -20721,6 +20721,338 @@ fn generated_protocol_schema_nodes_6(nodes : Array[ProtocolSchemaRule]) -> Unit 
     ),
   )
   nodes.push(AllOfRule([6806, 6840]))
+  nodes.push(protocol_string_rule(Some("waiting_checkpoint"), [], 0, 0))
+  nodes.push(protocol_object_rule([("status", 6842)], ["status"], -2, 0, None))
+  nodes.push(protocol_string_rule(Some("resolve_checkpoint"), [], 0, 0))
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 6844)],
+      ["kind", "checkpoint_id"],
+      -2,
+      0,
+      None,
+    ),
+  )
+  nodes.push(
+    protocol_object_rule([("next_action", 6845)], ["checkpoint"], -2, 0, None),
+  )
+  nodes.push(protocol_any_rule())
+  nodes.push(ConditionalRule(6843, 6846, 6847))
+  nodes.push(protocol_string_rule(Some("needs_reconciliation"), [], 0, 0))
+  nodes.push(protocol_object_rule([("status", 6849)], ["status"], -2, 0, None))
+  nodes.push(protocol_object_rule([], ["checkpoint"], -2, 0, None))
+  nodes.push(NotRule(6851))
+  nodes.push(protocol_string_rule(Some("reconcile"), [], 0, 0))
+  nodes.push(protocol_string_rule(None, [], 0, 1))
+  nodes.push(protocol_array_rule(6854, 1, true, -1))
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 6853), ("effects", 6855)],
+      ["kind", "effects"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_string_rule(Some("reconcile_run"), [], 0, 0))
+  nodes.push(protocol_string_rule(Some("execution_unknown"), [], 0, 0))
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 6857), ("reason", 6858)],
+      ["kind", "reason"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([6856, 6859]))
+  nodes.push(protocol_object_rule([("next_action", 6860)], [], -2, 0, None))
+  nodes.push(AllOfRule([6852, 6861]))
+  nodes.push(protocol_any_rule())
+  nodes.push(ConditionalRule(6850, 6862, 6863))
+  nodes.push(protocol_string_rule(Some("succeeded"), [], 0, 0))
+  nodes.push(protocol_object_rule([("status", 6865)], ["status"], -2, 0, None))
+  nodes.push(protocol_object_rule([], ["checkpoint"], -2, 0, None))
+  nodes.push(NotRule(6867))
+  nodes.push(
+    protocol_string_rule(
+      None,
+      ["read_result", "refresh_availability", "none"],
+      0,
+      0,
+    ),
+  )
+  nodes.push(protocol_object_rule([("kind", 6869)], ["kind"], -2, 0, None))
+  nodes.push(protocol_object_rule([("next_action", 6870)], [], -2, 0, None))
+  nodes.push(AllOfRule([6868, 6871]))
+  nodes.push(protocol_any_rule())
+  nodes.push(ConditionalRule(6866, 6872, 6873))
+  nodes.push(
+    protocol_string_rule(
+      None,
+      ["preparing", "running", "resuming", "failed", "cancelled"],
+      0,
+      0,
+    ),
+  )
+  nodes.push(protocol_object_rule([("status", 6875)], ["status"], -2, 0, None))
+  nodes.push(protocol_object_rule([], ["checkpoint"], -2, 0, None))
+  nodes.push(NotRule(6877))
+  nodes.push(protocol_string_rule(Some("none"), [], 0, 0))
+  nodes.push(protocol_object_rule([("kind", 6879)], ["kind"], -2, 0, None))
+  nodes.push(protocol_object_rule([("next_action", 6880)], [], -2, 0, None))
+  nodes.push(AllOfRule([6878, 6881]))
+  nodes.push(protocol_any_rule())
+  nodes.push(ConditionalRule(6876, 6882, 6883))
+  nodes.push(ObjectCeilingRule(0))
+  nodes.push(protocol_any_rule())
+  nodes.push(AllOfRule([6885, 6886]))
+  nodes.push(
+    protocol_object_rule(
+      [("result_availability", 6887)],
+      ["result_availability"],
+      -2,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_bool_rule(Some(false)))
+  nodes.push(
+    protocol_string_rule(
+      None,
+      ["none", "resolve_checkpoint", "reconcile", "reconcile_run"],
+      0,
+      0,
+    ),
+  )
+  nodes.push(protocol_object_rule([("kind", 6890)], [], -2, 0, None))
+  nodes.push(
+    protocol_object_rule(
+      [("result_available", 6889), ("next_action", 6891)],
+      [],
+      -2,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_any_rule())
+  nodes.push(ConditionalRule(6888, 6892, 6893))
+  nodes.push(protocol_string_rule(Some("actql-run-state/0.1"), [], 0, 0))
+  nodes.push(protocol_string_rule(None, [], 0, 1))
+  nodes.push(
+    protocol_string_rule(
+      None,
+      [
+        "preparing", "running", "waiting_checkpoint", "resuming", "needs_reconciliation",
+        "succeeded", "failed", "cancelled",
+      ],
+      0,
+      0,
+    ),
+  )
+  nodes.push(protocol_string_rule(None, [], 2, 0))
+  nodes.push(protocol_string_rule(None, [], 0, 1))
+  nodes.push(protocol_string_rule(None, [], 1, 0))
+  nodes.push(
+    protocol_string_rule(
+      None,
+      [
+        "run_scope", "read_access", "data_egress", "cost_scope", "effect_set", "model_invocation",
+      ],
+      0,
+      0,
+    ),
+  )
+  nodes.push(
+    protocol_object_rule(
+      [("checkpoint_id", 6899), ("checkpoint_cid", 6900), ("kind", 6901)],
+      ["checkpoint_id", "checkpoint_cid", "kind"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_string_rule(Some("resolve_checkpoint"), [], 0, 0))
+  nodes.push(protocol_string_rule(None, [], 0, 1))
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 6903), ("checkpoint_id", 6904)],
+      ["kind", "checkpoint_id"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_string_rule(Some("reconcile"), [], 0, 0))
+  nodes.push(protocol_string_rule(None, [], 0, 1))
+  nodes.push(protocol_array_rule(6907, 1, true, -1))
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 6906), ("effects", 6908)],
+      ["kind", "effects"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_string_rule(Some("read_result"), [], 0, 0))
+  nodes.push(protocol_string_rule(None, [], 0, 1))
+  nodes.push(protocol_array_rule(6911, 1, true, -1))
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 6910), ("results", 6912)],
+      ["kind", "results"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_string_rule(Some("refresh_availability"), [], 0, 0))
+  nodes.push(protocol_string_rule(None, [], 0, 1))
+  nodes.push(protocol_array_rule(6915, 1, true, -1))
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 6914), ("results", 6916)],
+      ["kind", "results"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_string_rule(Some("none"), [], 0, 0))
+  nodes.push(protocol_object_rule([("kind", 6918)], ["kind"], -1, 0, None))
+  nodes.push(protocol_string_rule(Some("reconcile_run"), [], 0, 0))
+  nodes.push(protocol_string_rule(Some("execution_unknown"), [], 0, 0))
+  nodes.push(
+    protocol_object_rule(
+      [("kind", 6920), ("reason", 6921)],
+      ["kind", "reason"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_one_of_rule([6905, 6909, 6913, 6917, 6919, 6922]))
+  nodes.push(protocol_bool_rule(None))
+  nodes.push(protocol_string_rule(None, [], 10, 0))
+  nodes.push(protocol_string_rule(None, [], 0, 1))
+  nodes.push(
+    protocol_object_rule(
+      [("code", 6925), ("message", 6926)],
+      ["code", "message"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(protocol_string_rule(Some("available"), [], 0, 0))
+  nodes.push(protocol_object_rule([("state", 6928)], ["state"], -2, 0, None))
+  nodes.push(protocol_string_rule(Some("confirmed_present"), [], 0, 0))
+  nodes.push(protocol_object_rule([("reason", 6930)], [], -2, 0, None))
+  nodes.push(protocol_any_rule())
+  nodes.push(ConditionalRule(6929, 6931, 6932))
+  nodes.push(protocol_string_rule(Some("unavailable"), [], 0, 0))
+  nodes.push(protocol_object_rule([("state", 6934)], ["state"], -2, 0, None))
+  nodes.push(
+    protocol_string_rule(
+      None,
+      [
+        "retention_expired", "deleted", "policy_unavailable", "integrity_failed",
+        "not_published",
+      ],
+      0,
+      0,
+    ),
+  )
+  nodes.push(protocol_object_rule([("reason", 6936)], [], -2, 0, None))
+  nodes.push(protocol_any_rule())
+  nodes.push(ConditionalRule(6935, 6937, 6938))
+  nodes.push(protocol_string_rule(Some("unknown"), [], 0, 0))
+  nodes.push(protocol_object_rule([("state", 6940)], ["state"], -2, 0, None))
+  nodes.push(
+    protocol_string_rule(
+      None,
+      ["store_query_failed", "clock_uncertain", "verification_pending"],
+      0,
+      0,
+    ),
+  )
+  nodes.push(protocol_object_rule([("reason", 6942)], [], -2, 0, None))
+  nodes.push(protocol_any_rule())
+  nodes.push(ConditionalRule(6941, 6943, 6944))
+  nodes.push(
+    protocol_string_rule(None, ["available", "unavailable", "unknown"], 0, 0),
+  )
+  nodes.push(protocol_string_rule(None, [], 2, 0))
+  nodes.push(
+    protocol_string_rule(
+      None,
+      [
+        "confirmed_present", "retention_expired", "deleted", "policy_unavailable",
+        "integrity_failed", "not_published", "store_query_failed", "clock_uncertain",
+        "verification_pending",
+      ],
+      0,
+      0,
+    ),
+  )
+  nodes.push(protocol_string_rule(None, [], 1, 0))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("state", 6946),
+        ("observed_at", 6947),
+        ("reason", 6948),
+        ("cause_cid", 6949),
+      ],
+      ["state", "observed_at", "reason"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(AllOfRule([6933, 6939, 6945, 6950]))
+  nodes.push(protocol_named_object_rule([], [], 6951, 0, None, 11))
+  nodes.push(protocol_integer_rule(Some(0L), Some(2147483647L)))
+  nodes.push(protocol_bool_rule(None))
+  nodes.push(protocol_string_rule(None, ["unknown", "confirmed"], 0, 0))
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("revision", 6953),
+        ("cancellation_requested", 6954),
+        ("physical_stop", 6955),
+      ],
+      ["revision", "cancellation_requested", "physical_stop"],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(
+    protocol_object_rule(
+      [
+        ("version", 6895),
+        ("run_id", 6896),
+        ("status", 6897),
+        ("updated_at", 6898),
+        ("checkpoint", 6902),
+        ("next_action", 6923),
+        ("result_available", 6924),
+        ("terminal_error", 6927),
+        ("result_availability", 6952),
+        ("control", 6956),
+      ],
+      [
+        "version", "run_id", "status", "updated_at", "next_action", "result_available",
+        "result_availability",
+      ],
+      -1,
+      0,
+      None,
+    ),
+  )
+  nodes.push(AllOfRule([6848, 6864, 6874, 6884, 6894, 6957]))
 }
 
 ///|
@@ -20866,6 +21198,7 @@ fn generated_protocol_schema_root(name : String, complete : Bool) -> Int? {
     ("model_journal_entry", true) => Some(6760)
     ("model_journal_settlement", false) => Some(6800)
     ("model_journal_settlement", true) => Some(6841)
+    ("run_state", true) => Some(6958)
     _ => None
   }
 }
