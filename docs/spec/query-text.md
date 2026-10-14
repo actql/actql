@@ -1635,11 +1635,22 @@ explicitly named candidate Relation or typed Vectors. Each side independently
 admits an optional complete KEY/VECTOR pair: `QUERY KEY (...) VECTOR ...` or
 `CANDIDATE KEY (...) VECTOR ...`. A missing half is a syntax error; absence is
 retained in the typed AST, never an empty key list or a fabricated vector field.
-Relation operands require their explicit pair. Typed Vectors may omit it and
-use their existing identity and component roles; an explicit pair must restate
-those exact roles and cannot replace identity. The candidate operand alias,
-METRIC, positive safe-integer literal K, and result AS are mandatory. Metrics are the existing exact cosine, dot and negative-distance
-l2 contracts. K is per query, not a search-work or memory ceiling.
+Typed Vectors may omit the pair and retain their admitted identity and component
+roles. An explicit pair must restate those roles. Relation sides use the existing
+Common nearest completion: the sole known vector field in a closed field set,
+and a sole eligible proven string key from that exact input target. Missing or
+ambiguous evidence refuses. Numeric and composite implicit-key completion is a
+current Common gap, not a permanent language restriction. No spelling or observed
+row value is key evidence.
+
+`USING expression` supplies the query vector without a QUERY role pair. The
+ordinary expression owner evaluates it against the current query scope; a typed
+Vectors input can only restate its admitted component role. USING and QUERY
+VECTOR cannot both supply that expression. An omitted candidate alias is its
+final producer-name component; an explicit AS remains authoritative. Omitted
+METRIC selects exact cosine. Explicit cosine, dot and negative-distance l2
+remain authoritative. Positive safe-integer literal K and the final result AS
+are mandatory. K is per query, not a search-work or memory ceiling.
 
 KEY references resolve independently within each side. Named key objects use
 the resolved input column names; quoting and case-insensitive lookup do not
@@ -1653,13 +1664,21 @@ Wildcards expand known columns in declaration order; `*` expands query columns
 then candidate columns and still rejects duplicates. Each explicit item retains
 its authored position. The output contains KEEP columns followed by the result
 closed object: query_key and candidate_key (named objects), score and rank.
-Omitted KEEP yields only that result object. Old input aliases cannot recover
-omitted columns. Query values repeat for each retained candidate match; no
+Omitted KEEP retains all visible query columns in their declaration order,
+followed by the named hit. Explicit `KEEP (*)` still expands both scopes and is
+not the query-only default. Old input aliases cannot recover omitted columns. Query values repeat for each retained candidate match; no
 match produces no row. Query-key-only uniqueness is never inferred after KNN.
 
 Lowering retains each source producer once, uses the existing rows-to-Vectors
 bridges and nearest operation, then common many-to-one joins for KEEP and
-ordinary object projection. Explicit candidate selection cannot be replaced
+ordinary object projection. If the candidate declares an unambiguously resolved `body` column,
+its actual value and type are projected as `hit.body` through that same retained
+candidate correspondence. It is neither the query row nor a flattened query
+column, and cannot replace query_key, candidate_key, score or rank. Other
+candidate payload columns remain available through explicit KEEP. A missing
+body is not manufactured; ordinary property checking rejects its reference.
+These defaults affect newly compiled text only; saved Programs, identities and
+Runs retain their original meaning. Explicit candidate selection cannot be replaced
 by the filtered query Relation. Shared sources retain one capture boundary
 covering both demands under the ordinary grant and capacity checks. No read
 permission, synthetic ID, output key witness, implicit sort, retry or alternate
@@ -1680,8 +1699,8 @@ remain an UnsupportedNearest gap in the scalar-id Program bridge. Ordinary
 Relation Pipe operations retain their scopes, predicates and limits
 before a typed candidate; the same admitted candidate metadata reaches the
 existing Relation lowerer. Typed set heads use the common script dispatcher
-with the existing outer set owner, and KEEP-free typed operands do not create
-unused row bridges. JOIN continuations bind their candidate through the same
+with the existing outer set owner, and row bridges are retained only for the actual query default, explicit KEEP,
+or candidate body demand. JOIN continuations bind their candidate through the same
 WITH input owner and pass its admitted Carrier to the existing Pipe compiler;
 qualified query roles continue to resolve through the actual JOIN row scope.
 Composite Relation conversion remains an implementation gap, not a permanent
