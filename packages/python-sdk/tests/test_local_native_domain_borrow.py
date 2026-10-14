@@ -17,6 +17,7 @@ class BorrowFixture:
     def __init__(self):
         self.events = []
         self.open_code = self.close_code = 0
+        self.claim_fault = None
         self.open_fault = self.close_fault = self.enter_fault = None
         self.size = 256
         self.library = SimpleNamespace()
@@ -25,6 +26,9 @@ class BorrowFixture:
             'open': self.open, 'status': lambda p: self.event('status'),
             'enter': self.enter, 'leave': lambda p: self.event('leave'),
             'close': self.close, 'pointer': lambda p, out: 0,
+            'claim_holding': self.claim, 'transfer_holding': lambda p,h,g,r:self.event('transfer_holding'),
+            'close_holding': self.close_holding, 'capacity':self.capacity,
+            'contains_live_span':lambda p,a,n:self.event('contains'),
         }.items():
             setattr(self.library, 'actql_native_domain_borrow_' + name, Function(call))
         self.functions = _OriginalDomainBorrowFunctions(self.library)
@@ -47,6 +51,23 @@ class BorrowFixture:
         if self.close_fault:
             raise self.close_fault
         return self.close_code
+
+    def claim(self, pointer, slot):
+        self.events.append('claim_holding')
+        slot._obj.value = 123
+        if self.claim_fault:
+            raise self.claim_fault
+        return 0
+
+    def close_holding(self, pointer, slot):
+        code = self.close(pointer)
+        if code == 0:
+            slot._obj.value = None
+        return code
+
+    def capacity(self, pointer, out):
+        out._obj.value = 16384
+        return 0
 
     def enter(self, pointer):
         self.events.append('enter')

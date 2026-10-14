@@ -69,13 +69,13 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_domain_borrow.h",
-      "bytes": 1453,
-      "sha256": "da27a96b13a34821ea9d99da7ee096c1f0ea7899c86aff11ec8129e2061581f4"
+      "bytes": 2197,
+      "sha256": "666b3739ee86a08203e84aaf23139a938ff0af8c29474648d6266af8f9c8cce0"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_domain_borrow.inc",
-      "bytes": 4663,
-      "sha256": "133054e03d5d204abb938eab0df25424a9029a086b14d5588e6e800b84c140ed"
+      "bytes": 7546,
+      "sha256": "928638b5cdbd8202800c2f6f0e7c2891829873010ba342c9a9479d1e4c11935b"
     }
   ]
 }

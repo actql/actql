@@ -10,6 +10,9 @@ struct actql_domain_borrow_record {
     int status;
     bool closing;
     bool closed;
+    bool holding_claimed;
+    bool holding_transferred;
+    actql_owned_capacity *holding_pointer;
 };
 
 size_t actql_native_domain_borrow_storage_bytes(void) {
@@ -79,9 +82,7 @@ int actql_native_domain_borrow_pointer(void *storage, actql_owned_capacity **out
     *out = record->lease;
     return ACTQL_OWNED_OK;
 }
-int actql_native_domain_borrow_close(void *storage) {
-    struct actql_domain_borrow_record *record = original_domain_record(storage);
-    if (record == NULL) return ACTQL_OWNED_INVALID;
+static int close_original_domain_record(struct actql_domain_borrow_record *record) {
     if (record->closed) return ACTQL_OWNED_OK;
     record->closing = true;
     if (record->lease != NULL) {
@@ -94,4 +95,56 @@ int actql_native_domain_borrow_close(void *storage) {
     }
     record->closed = true;
     return ACTQL_OWNED_OK;
+}
+int actql_native_domain_borrow_close(void *storage) {
+    struct actql_domain_borrow_record *record = original_domain_record(storage);
+    if (record == NULL || record->holding_claimed) return ACTQL_OWNED_INVALID;
+    return close_original_domain_record(record);
+}
+int actql_native_domain_borrow_claim_holding(void *storage, actql_owned_capacity **slot) {
+    struct actql_domain_borrow_record *record = original_domain_record(storage);
+    if (record == NULL || slot == NULL || *slot != NULL || record->holding_claimed ||
+        record->closed || record->closing || record->status != ACTQL_OWNED_OK || record->lease == NULL)
+        return ACTQL_OWNED_INVALID;
+    record->holding_claimed = true;
+    record->holding_pointer = record->lease;
+    *slot = record->holding_pointer;
+    return ACTQL_OWNED_OK;
+}
+int actql_native_domain_borrow_transfer_holding(void *storage, actql_owned_capacity *holding,
+    uint64_t generation, const unsigned char recipe[32]) {
+    struct actql_domain_borrow_record *record = original_domain_record(storage);
+    if (record == NULL || !record->holding_claimed || record->holding_transferred ||
+        record->closed || record->closing || holding == NULL || holding != record->holding_pointer ||
+        holding != record->lease || recipe == NULL || !holding->transferred ||
+        generation != holding->generation || memcmp(recipe, holding->recipe, 32) != 0)
+        return ACTQL_OWNED_INVALID;
+    /* Consume only this local custody move, never the original SharedCapacity
+     * or the already transferred domain's allowances. */
+    record->holding_transferred = true;
+    return ACTQL_OWNED_OK;
+}
+int actql_native_domain_borrow_close_holding(void *storage, actql_owned_capacity **slot) {
+    struct actql_domain_borrow_record *record = original_domain_record(storage);
+    if (record == NULL || slot == NULL ||
+        (record->holding_claimed ? *slot != record->holding_pointer : *slot != NULL))
+        return ACTQL_OWNED_INVALID;
+    int status = close_original_domain_record(record);
+    if (status == ACTQL_OWNED_OK) {
+        record->holding_pointer = NULL;
+        *slot = NULL;
+    }
+    return status;
+}
+int actql_native_domain_borrow_capacity(void *storage, uint64_t *out) {
+    struct actql_domain_borrow_record *record = original_domain_record(storage);
+    if (record == NULL || record->closed || record->closing || record->lease == NULL)
+        return ACTQL_OWNED_INVALID;
+    return actql_native_owned_capacity_bytes(record->lease, out);
+}
+int actql_native_domain_borrow_contains_live_span(void *storage, const void *address, size_t bytes) {
+    struct actql_domain_borrow_record *record = original_domain_record(storage);
+    if (record == NULL || record->closed || record->closing || record->lease == NULL)
+        return ACTQL_OWNED_INVALID;
+    return actql_native_owned_contains_live_span(record->lease, address, bytes);
 }

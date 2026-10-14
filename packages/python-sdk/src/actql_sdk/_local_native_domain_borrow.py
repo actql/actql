@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from collections.abc import Iterator
-from ctypes import Array, POINTER, c_int, c_int64, c_size_t, c_ubyte, c_uint64, c_void_p, alignment, cast
+from ctypes import Array, POINTER, byref, c_int, c_int64, c_size_t, c_ubyte, c_uint64, c_void_p, alignment, cast
 from os import getpid
 from threading import Thread, current_thread
 from typing import Any, NoReturn
@@ -46,6 +46,20 @@ class _OriginalDomainBorrowFunctions:
         self.pointer = library.actql_native_domain_borrow_pointer
         self.pointer.argtypes = [c_void_p, POINTER(c_void_p)]
         self.pointer.restype = c_int
+        self.claim = library.actql_native_domain_borrow_claim_holding
+        self.close_holding = library.actql_native_domain_borrow_close_holding
+        for call in (self.claim, self.close_holding):
+            call.argtypes = [c_void_p, POINTER(c_void_p)]
+            call.restype = c_int
+        self.transfer = library.actql_native_domain_borrow_transfer_holding
+        self.transfer.argtypes = [c_void_p, c_void_p, c_uint64, POINTER(c_ubyte)]
+        self.transfer.restype = c_int
+        self.capacity = library.actql_native_domain_borrow_capacity
+        self.capacity.argtypes = [c_void_p, POINTER(c_uint64)]
+        self.capacity.restype = c_int
+        self.contains = library.actql_native_domain_borrow_contains_live_span
+        self.contains.argtypes = [c_void_p, c_void_p, c_size_t]
+        self.contains.restype = c_int
 
 
 class _OriginalDomainBorrow:
@@ -68,6 +82,7 @@ class _OriginalDomainBorrow:
     _closing: bool
     _unknown: _OriginalDomainBorrowError | None
     _unknown_carrier: _OriginalDomainBorrowError
+    _holding_consumer: object | None
 
     @classmethod
     def _map_original(cls, functions: _OriginalDomainBorrowFunctions,
@@ -95,6 +110,7 @@ class _OriginalDomainBorrow:
         borrow._process, borrow._thread = getpid(), current_thread()
         borrow._busy, borrow._closed, borrow._closing = False, False, False
         borrow._unknown = None
+        borrow._holding_consumer = None
         borrow._unknown_carrier = _OriginalDomainBorrowError(borrow, unknown=True)
         recipe, values = (c_ubyte * 32).from_buffer_copy(material.recipe), (c_int64 * 15)(*material.scalars)
         borrow._begin()
@@ -172,7 +188,9 @@ class _OriginalDomainBorrow:
         self._call('status')
 
     @contextmanager
-    def _scope(self) -> Iterator[None]:
+    def _scope(self, *, _consumer: object | None = None) -> Iterator[None]:
+        if self._holding_consumer is not None and self._holding_consumer is not _consumer:
+            raise ValueError('Original child domain borrow belongs to its holding')
         self._call('enter')
         try:
             yield
@@ -187,4 +205,100 @@ class _OriginalDomainBorrow:
 
     def close(self) -> None:
         """Retire original map/borrow only; never FD/process/Owner/Run ACK."""
+        if self._holding_consumer is not None:
+            raise ValueError('Original child domain borrow belongs to its holding')
         self._call('close')
+
+    def _claim_holding(self, consumer: object, slot: c_void_p) -> None:
+        self._begin()
+        if self._closed or self._closing or self._holding_consumer is not None or slot.value is not None:
+            self._busy = False
+            raise ValueError('Original child domain holding is unavailable')
+        self._holding_consumer = consumer
+        try:
+            self._check_code(self._functions.claim(self._pointer, byref(slot)))
+            if slot.value is None:
+                raise self._mark_unknown()
+        except _OriginalDomainBorrowError:
+            raise
+        except BaseException as error:
+            raise self._mark_unknown() from error
+        finally:
+            self._busy = False
+
+    def _check_code(self, code: Any) -> None:
+        if type(code) is not int:
+            raise self._mark_unknown()
+        if code != 0:
+            raise _OriginalDomainBorrowError(self, unknown=False, code=code)
+
+    def _holding_identity(self, consumer: object) -> None:
+        if self._holding_consumer is not consumer:
+            raise ValueError('Foreign original child domain holding')
+
+    def _transfer_holding(self, consumer: object, slot: c_void_p, generation: int, recipe: bytes) -> None:
+        self._holding_identity(consumer)
+        self._begin()
+        try:
+            self._check_code(self._functions.transfer(self._pointer, slot, generation,
+                (c_ubyte * 32).from_buffer_copy(recipe)))
+        except _OriginalDomainBorrowError:
+            raise
+        except BaseException as error:
+            raise self._mark_unknown() from error
+        finally:
+            self._busy = False
+
+    def _close_holding_slot(self, consumer: object, slot: Any) -> int:
+        self._holding_identity(consumer)
+        self._begin()
+        self._closing = True
+        try:
+            original = cast(slot, POINTER(c_void_p))[0]
+            code = self._functions.close_holding(self._pointer, slot)
+            current = cast(slot, POINTER(c_void_p))[0]
+            if type(code) is not int or (code == 0 and current is not None) or (code != 0 and current != original):
+                raise self._mark_unknown()
+            self._check_code(code)
+            self._closed = True
+            return 0
+        except _OriginalDomainBorrowError as error:
+            if not error.unknown and error.code is not None:
+                return error.code
+            raise
+        except BaseException as error:
+            raise self._mark_unknown() from error
+        finally:
+            self._busy = False
+
+    def _holding_capacity(self, consumer: object) -> int:
+        self._holding_identity(consumer)
+        self._begin()
+        try:
+            value = c_uint64()
+            self._check_code(self._functions.capacity(self._pointer, byref(value)))
+            return value.value
+        except _OriginalDomainBorrowError:
+            raise
+        except BaseException as error:
+            raise self._mark_unknown() from error
+        finally:
+            self._busy = False
+
+    def _holding_contains(self, consumer: object, address: c_void_p, size: int) -> None:
+        self._holding_identity(consumer)
+        self._begin()
+        try:
+            self._check_code(self._functions.contains(self._pointer, address, size))
+        except _OriginalDomainBorrowError:
+            raise
+        except BaseException as error:
+            raise self._mark_unknown() from error
+        finally:
+            self._busy = False
+
+    @contextmanager
+    def _holding_scope(self, consumer: object) -> Iterator[None]:
+        self._holding_identity(consumer)
+        with self._scope(_consumer=consumer):
+            yield

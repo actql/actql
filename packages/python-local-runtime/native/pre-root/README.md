@@ -300,3 +300,14 @@ Its bounded control-copy storage does not adopt ordinary startup funding.
 cases. Its PID observations are explicit scalar counters; munmap failure is
 injected. Different-process validation belongs to the separately qualified
 real FD/DLL consumer. Neither fixture is installed worker or VM acceptance.
+
+A child borrow can move once into the existing `_NativeHoldingLease`, preserving
+that same record, provider and persistent pointer slot. Native checks the local
+one-shot holding transfer against the already transferred parent domain; it
+never resets the shared header or reserves another capacity. The moved borrow
+cannot independently close or provide another holding. Final close clears its
+holding slot only after domain-return and view-unmap succeed. An unmap failure
+after domain return retains the original slot and skips that completed stage
+on retry. The existing LocalCore cleanup keeps Store last and retries only the
+same retained holding after Store success. This connection does not instantiate
+Wasmtime, supply a numeric profile or enable ordinary unfunded startup.

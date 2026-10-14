@@ -21,4 +21,13 @@ int actql_native_domain_borrow_pointer(void *storage, actql_owned_capacity **out
  * Retry retains its same record and skips already acknowledged borrow return.
  * Unknown response requires retaining the original, not calling close again. */
 int actql_native_domain_borrow_close(void *storage);
+/* Move local holding custody once. The parent already transferred this same
+ * physical domain; this does not reset its header or issue capacity/Run grant.
+ * The stable slot survives a partial close, and clears only after final unmap. */
+int actql_native_domain_borrow_claim_holding(void *storage, actql_owned_capacity **slot);
+int actql_native_domain_borrow_transfer_holding(void *storage, actql_owned_capacity *holding,
+    uint64_t generation, const unsigned char recipe[32]);
+int actql_native_domain_borrow_close_holding(void *storage, actql_owned_capacity **slot);
+int actql_native_domain_borrow_capacity(void *storage, uint64_t *out);
+int actql_native_domain_borrow_contains_live_span(void *storage, const void *address, size_t bytes);
 #endif
