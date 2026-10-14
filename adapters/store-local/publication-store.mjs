@@ -84,7 +84,12 @@ const exactKeys = (value, keys) => value !== null &&
 // belong to that async frame. This retires references, not capacity, physical
 // GC, a pending writer or the original borrowed input's independent custody.
 function encodePrivateEvidenceEnvelope(input, isWire, key, aad, maximum) {
-  const bytes = isWire ? Buffer.from(input, 'utf8') : input;
+  // The caller already checked the complete encrypted extent. A short wire
+  // must not borrow a larger shared pool backing for this encoding lifetime.
+  // Keep its exact UTF-8 snapshot; the original String and codec controls are
+  // still separate funded components, not released by this extent check.
+  const bytes = isWire ? Buffer.allocUnsafeSlow(Buffer.byteLength(input, 'utf8')) : input;
+  if (isWire) bytes.write(input, 0, bytes.byteLength, 'utf8');
   const nonce = randomBytes(12);
   const cipher = createCipheriv('aes-256-gcm', key, nonce);
   cipher.setAAD(aad);
