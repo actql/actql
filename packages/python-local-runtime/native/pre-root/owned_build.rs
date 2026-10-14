@@ -27,4 +27,7 @@ fn main() {
     // owned_abi.rs declares the exact dynamic dependency. Keep resolution local
     // to the packaged cohort, never PATH/DYLD/Homebrew or another provider copy.
     println!("cargo:rustc-link-arg=-Wl,-rpath,@loader_path");
+    // Cargo's output directory is not an installed library identity. Match the
+    // existing private Python binding layout, including after wheel relocation.
+    println!("cargo:rustc-link-arg-cdylib=-Wl,-install_name,@rpath/_libwasmtime.dylib");
 }
