@@ -895,7 +895,7 @@ pub fn client_retained_task_route_receipt(ClientRetainedTaskRoute) -> @remote_tr
 
 pub fn client_run_journal_append_rows(ClientRunJournalAppend) -> (String, Bytes, Int64, Bytes)
 
-pub fn client_run_journal_row_body(ClientRunJournalEncoding, local_run_policy_originals? : String?) -> Result[Bytes, ClientJournalEncodingIssue]
+pub fn client_run_journal_row_body(ClientRunJournalEncoding, local_run_policy_originals? : String?, run_observation_originals? : String?) -> Result[Bytes, ClientJournalEncodingIssue]
 
 pub fn client_saved_submission_admission_wire(ClientSavedSubmissionSnapshot) -> Result[String, ClientSavedSubmissionViewIssue]
 
@@ -1096,6 +1096,8 @@ pub fn consume_client_model_resource_invalidation(@physical_resources.OriginalRe
 pub fn decode_client_run_journal_row(Bytes) -> Result[ClientRunJournalEncoding, ClientJournalDecodingIssue]
 
 pub fn decode_client_run_journal_row_with_local_policy(Bytes) -> Result[(ClientRunJournalEncoding, String?), ClientJournalDecodingIssue]
+
+pub fn decode_client_run_journal_row_with_observation_originals(Bytes) -> Result[(ClientRunJournalEncoding, String?, String?), ClientJournalDecodingIssue]
 
 pub fn decode_client_submitted_journal_row(Bytes) -> Result[ClientSubmittedJournalEncoding, ClientJournalDecodingIssue]
 

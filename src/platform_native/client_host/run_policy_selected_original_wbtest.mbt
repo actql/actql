@@ -120,6 +120,7 @@ fn selected_policy_fixture_record() -> NativeClientRunRecord raise {
     publication_policy_originals: Some(selected_policy_fixture_packet),
     effect_material_originals: None,
     local_run_policy_originals: None,
+    run_observation_originals: None,
     revision: 0L,
     checkpoint: None,
   }
