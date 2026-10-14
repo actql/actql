@@ -48,6 +48,9 @@ test('original headers are borrowed once without retaining the full response thr
     call = physical.prepareOriginalUndiciFetch(fetch, endpoint, {method: 'POST', body: '{}', headers: [],
       redirect: 'error', signal: new AbortController().signal}, limits);
     const view = await call.invoke();
+    // This counter did not acquire a reader. Settle its own original body
+    // before assertion/cleanup, rather than waiting on unread EOF forever.
+    await view.body.cancel();
     assert.equal(view.headers.get('CONTENT-TYPE'), 'application/json');
     assert.equal(view.headers.get('x-many'), 'a, b');
     assert.equal(view.headers.get('x-absent'), null);
@@ -57,7 +60,6 @@ test('original headers are borrowed once without retaining the full response thr
     originalHeaders['x-many'].push('c');
     assert.equal(view.headers.get('x-many'), 'a, b, c');
     assert.equal(headersReads, 1);
-    await view.body.cancel();
     assert.equal(await call.cleanup(), true);
     assert.equal(await call.cleanup(), true);
     assert.equal(view.headers.get('x-many'), 'a, b, c', 'escaped original header view is unchanged');
