@@ -2,7 +2,8 @@
 import assert from 'node:assert/strict';
 import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import {sourceCases, sourceRefusals} from './fixtures/infer-source-expectation.mjs';
+import {sourceCases, sourceRefusals, sourceRuntimeRefusals}
+  from './fixtures/infer-source-expectation.mjs';
 
 export async function exercisePackedInferSource({root, directory, run, environment,
   sourceSha, inputFieldsOnly = false}) {
@@ -12,12 +13,13 @@ export async function exercisePackedInferSource({root, directory, run, environme
     Object.keys(sourceCases);
   const refusalCases = inputFieldsOnly ? ['unknown-input', 'duplicate-input'] :
     Object.keys(sourceRefusals);
+  const runtimeRefusalCases = inputFieldsOnly ? [] : Object.keys(sourceRuntimeRefusals);
   const captureCases = inputFieldsOnly ? ['minimal'] :
     ['minimal', 'historical-key-frozen'];
   await writeFile(join(directory, 'infer-source-provenance.json'), JSON.stringify({
     sourceSha,
     commonConnectionSha: 'f9e6dbe36d263ef7baf4799646a1c53ebca47df9',
-    positiveCases, refusalCases, captureCases,
+    positiveCases, refusalCases, runtimeRefusalCases, captureCases,
   }, null, 2) + '\n');
   for (const transport of ['local', 'remote']) {
     for (const caseName of positiveCases) {
@@ -28,6 +30,11 @@ export async function exercisePackedInferSource({root, directory, run, environme
     for (const caseName of refusalCases) {
       console.log(run(process.execPath,
         ['packed-infer-source.mjs', transport, 'refusal', caseName],
+        root, environment, 120_000).trimEnd());
+    }
+    for (const caseName of runtimeRefusalCases) {
+      console.log(run(process.execPath,
+        ['packed-infer-source.mjs', transport, 'runtime-refusal', caseName],
         root, environment, 120_000).trimEnd());
     }
     for (const caseName of captureCases) {
@@ -49,7 +56,8 @@ export async function exercisePackedInferSource({root, directory, run, environme
     ...captureCases.map(name => `${transport}:capture:${name}`),
   ]);
   assert.deepEqual(calls, expectedCalls,
-    'empty input, refused source, reread, resend and retained capture must not dispatch');
+    'empty input, refused source, failed assertions, reread, resend and retained capture must not dispatch');
   console.log(JSON.stringify({sourceSha, acceptance: 'source-infer',
-    transports: ['local', 'remote'], positiveCases, refusalCases, captureCases, calls}));
+    transports: ['local', 'remote'], positiveCases, refusalCases, runtimeRefusalCases,
+    captureCases, calls}));
 }
