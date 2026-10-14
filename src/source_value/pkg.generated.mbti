@@ -39,6 +39,8 @@ pub fn parse_yaml_bytes_measured(Bytes, ParseLimits, source_path? : String) -> R
 
 pub fn parse_yaml_measured(String, ParseLimits, source_path? : String) -> Result[ParsedSource, ParseError]
 
+pub fn representation_extent(Node, Int, Int, Int) -> Result[SourceRepresentationExtent, SourceRepresentationExtentIssue]
+
 pub fn start_json_parse(String, ParseLimits, source_path? : String, data_keys? : Bool) -> Result[JsonParse, ParseError]
 
 // Errors
@@ -131,6 +133,28 @@ pub(all) struct ParsedSource {
 pub(all) enum PathSegment {
   Key(String)
   Index(Int)
+} derive(Eq, @debug.Debug)
+
+pub(all) struct SourceRepresentationExtent {
+  nodes : Int64
+  fields : Int64
+  spans : Int64
+  strings : Int64
+  text_utf16_units : Int64
+  arrays : Int64
+  objects : Int64
+  array_backing_slots : Int64
+  object_backing_slots : Int64
+  uninspected_array_slots : Int64
+  uninspected_object_slots : Int64
+  max_frame_slots : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SourceRepresentationExtentIssue {
+  InvalidLimits
+  NodeLimit
+  DepthLimit
+  TextLimit
 } derive(Eq, @debug.Debug)
 
 pub(all) enum Value {
