@@ -451,6 +451,8 @@ pub fn model_response_profile_observation_at(ModelResponseProfile, Int) -> Strin
 
 pub fn model_response_profile_observation_count(ModelResponseProfile) -> Int
 
+pub fn model_response_profile_transport_matches(ModelResponseProfile, Int, Int, Int, Int, Int) -> Bool
+
 pub fn model_response_profile_usage(ModelResponseProfile) -> (Int, Int, Int)
 
 pub fn model_task_accepts_classification(ModelTaskContract, DataClassification) -> Bool

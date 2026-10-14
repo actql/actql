@@ -31,7 +31,8 @@ const assertRuntime = moon => {
     'clientProgramModelRequestGeneration','clientProgramModelRequestPreflight',
     'clientProgramModelAsyncPhysicalRequestPlan','clientProgramModelPhysicalCallForRequest',
     'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown',
-    'clientProgramModelPhysicalSavedChat'].every(name=>typeof moon?.[name]==='function')) {
+    'clientProgramModelPhysicalSavedChat',
+    'clientProgramModelResponseProfileTransportMatches'].every(name=>typeof moon?.[name]==='function')) {
     issue('OpenAIOriginalRuntimeUnavailable');
   }
 };
@@ -130,7 +131,8 @@ function installedChatRegistration(config, originalUndici) {
   }
   const installation=raw.installation;
   const sdk=installation.sdk;
-  if (original.nodeInstallation.layout.response_profile!==raw.profile ||
+  if (raw.profile===undefined || raw.profile===null ||
+      original.nodeInstallation.layout.response_profile!==raw.profile ||
       original.nodeInstallation.probability!==undefined || raw.probability!==undefined ||
       installation.endpoint!==endpoint.href || installation.http_method!=='POST' ||
       installation.streaming!==false || installation.completion_basis!=='generation_finish' ||
@@ -151,11 +153,20 @@ function installedChatRegistration(config, originalUndici) {
   // A missing/mismatched original selection above refuses before constructing
   // even this physical selector. The per-call Client remains later original
   // SDK preparation, after its existing same-Ledger funding and before Entry.
-  const physicalFetch=originalUndici ? createOriginalUndiciFetch({
-    endpoint:endpoint.href,requestLimits,responseLimits,
-    physicalAcquisitionLimits:config.physicalAcquisitionLimits}) : fetch;
+  let physicalFetch;
   return moon => {
     assertRuntime(moon);
+    if (moon.clientProgramModelResponseProfileTransportMatches(raw.profile,
+      requestLimits.maxBytes,responseLimits.maxBytes,responseLimits.maxChunkBytes,
+      responseLimits.maxChunks,responseLimits.maxHeaderBytes)!==true) {
+      issue('OpenAIOriginalTransportLimitsMismatch');
+    }
+    // The actual callback runtime checks the admitted profile BEFORE even the
+    // physical selector is built. The existing Host envelope still must fund
+    // this selector and all later Client/SDK allocations; matching is no grant.
+    physicalFetch??=originalUndici ? createOriginalUndiciFetch({
+      endpoint:endpoint.href,requestLimits,responseLimits,
+      physicalAcquisitionLimits:config.physicalAcquisitionLimits}) : fetch;
     return [Object.freeze({providerId,entryPersistence:'async',
       bindingOriginals:bindings,originalReadInstallation:original,
       rawCaptureSelection:raw,quantityCapacity:quantities,observeEgress,
