@@ -106,17 +106,28 @@ test('current query rules bind the manifest while prior rules retain their ident
   // Independent Python SHA-256 of the normative bytes and sorted manifest
   // preimage. Preserve the complete earlier body, including its old grammar.
   const vector = read('scripts/fixtures/initial-from-join/independent-vector.json');
+  const parent = read('reviews/2026-10-15-nearest-shorthand/preimages/grammar-manifest.json');
   const queryRules = readFileSync('docs/spec/query-text.md', 'utf8');
-  assert.equal(sha(readFileSync('spec/grammar/actql-query-0.1.ebnf')),
-    'sha256:db0eabfabb2001aae2b2354ea10ce117f0ec0e249fabf857b766dad293243279');
-  assert.equal(sha(queryRules),
-    'sha256:935fdeabfd1ae1f03ca42d21c012a66880081ce09d6bf4856bc3d66ee036a6a4');
+  assert.equal(parent.query_text_grammar_sha256,
+    'db0eabfabb2001aae2b2354ea10ce117f0ec0e249fabf857b766dad293243279');
+  assert.equal(parent.query_text_rules_sha256,
+    '935fdeabfd1ae1f03ca42d21c012a66880081ce09d6bf4856bc3d66ee036a6a4');
   const {grammar_manifest_cid: current, ...body} =
     read('spec/manifests/actql-grammar-0.1.json');
+  assert.equal(body.query_text_grammar_sha256, sha(readFileSync('spec/grammar/actql-query-0.1.ebnf')).slice(7));
   assert.equal(body.query_text_rules_sha256, sha(queryRules).slice(7));
   assert.equal(sha(canonicalText(body)), current);
-  assert.equal(current,
+  const integrated = read('scripts/fixtures/nearest-shorthand/manifest-identity.json');
+  assert.deepEqual({...body, grammar_manifest_cid: current}, integrated.manifest);
+  const update = read('scripts/fixtures/private-update-capture/manifest-identity.json');
+  const {grammar_manifest_cid: priorUpdate, ...priorUpdateBody} = update.after;
+  assert.equal(priorUpdate, 'sha256:913d9e69aa87096a497cbf163a2fb9bb019b13a765f28792b734fa5f1a367361');
+  assert.equal(sha(canonicalText(priorUpdateBody)), priorUpdate);
+  assert.notEqual(priorUpdate, current);
+  assert.equal(parent.grammar_manifest_cid,
     'sha256:577baba6e0eeda68b93a01f4bb0744be2c01fe6108fd16d889d4f4caaca8233b');
+  const {grammar_manifest_cid: adopted, ...adoptedBody} = parent;
+  assert.equal(sha(canonicalText(adoptedBody)), adopted);
   const {grammar_manifest_cid: previous, ...before} = vector.before;
   assert.equal(previous,
     'sha256:27d3b7110464cb168591ceebd54340aaafde66e46fc4f7b576ee6df7aec143ca');
@@ -128,6 +139,31 @@ test('current query rules bind the manifest while prior rules retain their ident
   assert.equal(sha(canonicalText(prior)),
     'sha256:2aa67a52bae3a27fec7397dfa40c0cdc63096cd988e7cfee480477386c53b2ec');
   assert.notEqual(previous, current);
+});
+
+test('private UPDATE capture retains prior grammar identity and binds exact source bytes', () => {
+  // This fixed vector uses independent Python hashes, never compiler output.
+  // The prior manifest remains historical, including its stale structural pin.
+  const vector = read('scripts/fixtures/private-update-capture/manifest-identity.json');
+  const {grammar_manifest_cid: previous, ...before} = vector.before;
+  assert.equal(previous,
+    'sha256:577baba6e0eeda68b93a01f4bb0744be2c01fe6108fd16d889d4f4caaca8233b');
+  assert.equal(sha(canonicalText(before)), previous);
+  assert.equal(before.query_text_grammar_sha256,
+    'db0eabfabb2001aae2b2354ea10ce117f0ec0e249fabf857b766dad293243279');
+  assert.equal(before.query_text_rules_sha256,
+    '935fdeabfd1ae1f03ca42d21c012a66880081ce09d6bf4856bc3d66ee036a6a4');
+  const grammar = readFileSync('spec/grammar/actql-query-0.1.ebnf', 'utf8');
+  assert.match(grammar, /terminal_update = "EFFECT", \[ identifier \], "UPDATE", "TARGET", query_string,\s+"MAPPING", identifier, \[ "FROM", "RESULT", identifier \],/u);
+  assert.equal(sha(readFileSync('docs/spec/structural-text.md')),
+    'sha256:' + vector.after.structural_text_rules_sha256);
+  const unchanged = {...vector.after};
+  for (const key of ['grammar_manifest_cid', 'query_text_grammar_sha256',
+    'query_text_rules_sha256', 'structural_text_rules_sha256']) {
+    unchanged[key] = vector.before[key];
+  }
+  assert.deepEqual(unchanged, vector.before);
+  assert.equal(vector.actual_parser_or_runtime_execution, 0);
 });
 
 test('pinned manifests close over their source contracts and exact schemas', () => {

@@ -120,6 +120,9 @@ fn load_holder_effect_host_operator(
       // already reviewed profile to the same operation/holding/cleanup Owners.
       // This projection is neither a numeric supplier nor Account permission.
       setup_profile,
+      // Bound the current Bundle catalog read independently of Account bytes
+      // before this operation reserves or invokes the original Store verifier.
+      environment.runtime_catalog_record_bytes,
       binding,
     )
     is Some(scope) else {

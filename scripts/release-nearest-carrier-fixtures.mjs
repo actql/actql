@@ -7,6 +7,7 @@ export const releaseNearestCarrierFixturePaths = Object.freeze([
   'scripts/fixtures/nearest-carrier-installed-source.mjs',
   'scripts/fixtures/nearest-carrier-source-data.mjs',
   'scripts/release-nearest-carrier-query-cases.mjs',
+  'scripts/release-nearest-shorthand-query-cases.mjs',
   'scripts/fixtures/nearest-carrier-public-input.mjs',
   'scripts/fixtures/nearest-public-input.mjs',
   'scripts/fixtures/public-query-input.mjs',

@@ -1,5 +1,6 @@
 import {createInstalledOpenAIChatRegistration, createInstalledUndiciOpenAIChatRegistration,
   type OpenAIChatRegistrationOptions, type UndiciOpenAIChatRegistrationOptions,
+  type OpenAIChatMaterialsRegistrationOptions, type UndiciOpenAIChatMaterialsRegistrationOptions,
   type ModelProviderRegistration} from '@actql/provider-ai-sdk';
 import type {HostInstallation} from '../local-node/index.js';
 
@@ -11,6 +12,20 @@ declare const originalUndici: UndiciOpenAIChatRegistrationOptions;
 const undici: HostInstallation['registerModelProviders'] =
   createInstalledUndiciOpenAIChatRegistration(originalUndici);
 void undici;
+declare const materials: OpenAIChatMaterialsRegistrationOptions;
+const materialRegistration: HostInstallation['registerModelProviders'] =
+  createInstalledOpenAIChatRegistration(materials);
+void materialRegistration;
+declare const undiciMaterials: UndiciOpenAIChatMaterialsRegistrationOptions;
+createInstalledUndiciOpenAIChatRegistration(undiciMaterials);
+const {physicalAcquisitionLimits: removedAcquisition, ...missingAcquisition} = undiciMaterials;
+void removedAcquisition;
+// @ts-expect-error Selected Undici physical acquisition DATA has no default.
+createInstalledUndiciOpenAIChatRegistration(missingAcquisition);
+// @ts-expect-error Generic fetch does not accept the selected Undici role.
+createInstalledOpenAIChatRegistration({...materials,physicalAcquisitionLimits:{maxPlaintextBytes:1,maxBorrowedBackingBytes:1,maxReads:1}});
+// @ts-expect-error Mixed opaque and DATA selections are not an overload.
+createInstalledOpenAIChatRegistration({...materials,rawCaptureSelection:{}});
 // @ts-expect-error A different fetch is not part of the explicit selected route.
 createInstalledUndiciOpenAIChatRegistration({...originalUndici, fetch: globalThis.fetch});
 // @ts-expect-error Explicit transport does not supply missing original admissions.

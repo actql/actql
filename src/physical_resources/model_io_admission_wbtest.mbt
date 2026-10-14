@@ -17,6 +17,106 @@ fn model_io_test_run() -> (Ledger, OriginalLedgerIdentity, Reservation) {
 }
 
 ///|
+test "Model owned Ledger seam shares two Runs without projecting their census identities" {
+  let installation = Ref(0)
+  let shared = issue_model_io_admission(installation, 1, 2).unwrap()
+  let (ledger_a, _, attempt_a) = model_io_test_run()
+  let (ledger_b, _, attempt_b) = model_io_test_run()
+  let a = claim_model_io_for_owned_ledger(
+    shared, installation, ledger_a, attempt_a, 0, 1,
+  ).unwrap()
+  let before = ledger_usage(ledger_b)
+  assert_true(
+    claim_model_io_for_owned_ledger(
+      shared, installation, ledger_b, attempt_b, 0, 1,
+    )
+    is Err(ActiveExhausted),
+  )
+  assert_eq(ledger_usage(ledger_b), before)
+  settle_model_io_for_owned_ledger_after_owner_ack(
+    shared, installation, ledger_a, a, 0, 1,
+  ).unwrap()
+  assert_eq(model_io_admission_counts(shared, installation), Some((0, 1)))
+  let b = claim_model_io_for_owned_ledger(
+    shared, installation, ledger_b, attempt_b, 0, 1,
+  ).unwrap()
+  assert_true(
+    settle_model_holding_for_owned_ledger_after_owner_ack(
+      shared, installation, ledger_b, b, 0, 1,
+    )
+    is Err(CleanupPending),
+  )
+  settle_model_holding_for_owned_ledger_after_owner_ack(
+    shared, installation, ledger_a, a, 0, 1,
+  ).unwrap()
+  assert_true(a.owner is None && a.origin is None && a.census is None)
+  settle_model_io_for_owned_ledger_after_owner_ack(
+    shared, installation, ledger_b, b, 0, 1,
+  ).unwrap()
+  settle_model_holding_for_owned_ledger_after_owner_ack(
+    shared, installation, ledger_b, b, 0, 1,
+  ).unwrap()
+  assert_eq(model_io_admission_counts(shared, installation), Some((0, 0)))
+  assert_true(close_model_io_admission(shared, installation).unwrap())
+}
+
+///|
+test "Model owned Ledger seam refuses absent census and foreign reservation or retirement" {
+  let installation = Ref(0)
+  let shared = issue_model_io_admission(installation, 2, 2).unwrap()
+  let (ledger_a, _, attempt_a) = model_io_test_run()
+  let (ledger_b, _, attempt_b) = model_io_test_run()
+  let ordinary = create_ledger(ledger_limits(ledger_a)).unwrap()
+  assert_true(
+    claim_model_io_for_owned_ledger(
+      shared, installation, ordinary, attempt_a, 0, 1,
+    )
+    is Err(ForeignTicket),
+  )
+  assert_true(
+    claim_model_io_for_owned_ledger(
+      shared, installation, ledger_a, attempt_b, 0, 1,
+    )
+    is Err(ForeignTicket),
+  )
+  let a = claim_model_io_for_owned_ledger(
+    shared, installation, ledger_a, attempt_a, 0, 1,
+  ).unwrap()
+  assert_true(
+    settle_model_io_for_owned_ledger_after_owner_ack(
+      shared, installation, ledger_b, a, 0, 1,
+    )
+    is Err(ForeignTicket),
+  )
+  assert_eq(model_io_admission_counts(shared, installation), Some((1, 1)))
+  settle_model_io_for_owned_ledger_after_owner_ack(
+    shared, installation, ledger_a, a, 0, 1,
+  ).unwrap()
+  assert_true(
+    settle_model_holding_for_owned_ledger_after_owner_ack(
+      shared, installation, ledger_b, a, 0, 1,
+    )
+    is Err(ForeignTicket),
+  )
+  assert_eq(model_io_admission_counts(shared, installation), Some((0, 1)))
+  settle_model_holding_for_owned_ledger_after_owner_ack(
+    shared, installation, ledger_a, a, 0, 1,
+  ).unwrap()
+  assert_true(
+    settle_model_io_for_owned_ledger_after_owner_ack(
+      shared, installation, ledger_a, a, 0, 1,
+    )
+    is Err(TicketRetired),
+  )
+  assert_true(
+    settle_model_holding_for_owned_ledger_after_owner_ack(
+      shared, installation, ledger_a, a, 0, 1,
+    )
+    is Err(TicketRetired),
+  )
+}
+
+///|
 test "Model shared availability uses the declared initial slot domain only" {
   let installation = Ref(0)
   assert_true(

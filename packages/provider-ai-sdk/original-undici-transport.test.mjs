@@ -15,6 +15,9 @@ import {interceptSdkRequest, pollSdkPreparation, prepareSdkTransport,
   progressSdkOriginalIoCleanup} from './_internal/intercepted-request.mjs';
 
 const requestLimits = {maxBytes: 256, maxHeaderBytes: 1024, maxHeaders: 8};
+// Explicit private fixture clamps, not an adopted numerical profile.
+const physicalAcquisitionLimits = {maxPlaintextBytes: 65536,
+  maxBorrowedBackingBytes: 131072, maxReads: 64};
 const responseLimits = {maxBytes: 256, maxChunkBytes: 256, maxChunks: 8,
   maxHeaderBytes: 1024, observedHeaders: ['content-type', 'content-encoding']};
 const originalBody = '{"model":"synthetic","messages":[{"role":"user","content":"é\\n雪"}]}';
@@ -44,7 +47,7 @@ async function fixture(t, respond) {
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const endpoint = `http://127.0.0.1:${server.address().port}/chat/completions`;
-  const fetch = createOriginalUndiciFetch({endpoint, requestLimits, responseLimits});
+  const fetch = createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits});
   const preparations = [];
   t.after(async () => {
     try {
@@ -169,6 +172,8 @@ test('original Model port drives IO close while the same raw Store save stays pe
     clientProgramModelPhysicalPending: () => ({kind: 'pending'}),
     clientProgramModelPhysicalUnknown: () => ({kind: 'unknown'}),
     clientProgramModelPhysicalSavedChat: response => ({kind: 'saved', response}),
+    clientProgramModelPhysicalIoObservation: (call, quiescent, inner) =>
+      ({kind: 'io', call, quiescent, inner}),
   };
   const port = createSdkModelPreflight({moon, request, preparation: handle,
     profile: {}, installation: {}, quantities: {tokens: 16n, costUnits: 0n, durationMs: 500n},
@@ -186,7 +191,10 @@ test('original Model port drives IO close while the same raw Store save stays pe
   // Real original Client/socket cleanup is driven by this existing port;
   // Common Entry/receipt and Store persistence remain explicit doubles.
   await until(() => { call.poll(); return progressSdkOriginalIoCleanup(handle); }, value => value === true);
-  assert.deepEqual(call.poll(), {kind: 'pending'});
+  const io = call.poll();
+  assert.strictEqual(io.call, call);
+  assert.equal(io.quiescent, true);
+  assert.deepEqual(io.inner, {kind: 'pending'});
   assert.equal(call.cleanup(), false);
   assert.strictEqual(heldRaw.body.buffer, backing);
   assert.equal(Buffer.from(heldRaw.body).toString(), '{"answer":"original"}');
@@ -194,7 +202,7 @@ test('original Model port drives IO close while the same raw Store save stays pe
   assert.equal(f.calls.length, 1);
   assert.equal(plan.start(entry), undefined);
   completeSave({response: {original: heldRaw, nominal: Symbol('saved double')}});
-  await until(() => call.poll(), value => value.kind === 'saved');
+  await until(() => call.poll(), value => value.inner?.kind === 'saved');
   assert.equal(call.cleanup(), false, 'actual raw alias cleanup remains independent');
   rawReleased = true;
   await until(() => call.cleanup(), value => value === true);
@@ -202,6 +210,96 @@ test('original Model port drives IO close while the same raw Store save stays pe
   assert.equal(f.calls.length, 1);
   assert.strictEqual(heldRaw.body.buffer, backing, 'escaped immutable raw view not mutated');
 });
+
+test('Model port retains its response before same Socket late close and independent holding cleanup',
+  {timeout: 5000}, async t => {
+    const originalConnect = net.connect;
+    let socket, finishClose, closes = 0;
+    net.connect = (...args) => {
+      socket = Reflect.apply(originalConnect, net, args);
+      const destroy = socket._destroy;
+      const owner = socket;
+      owner._destroy = (error, callback) => {
+        finishClose = () => {
+          finishClose = undefined;
+          Reflect.apply(destroy, owner, [error, callback]);
+        };
+      };
+      owner.once('close', () => { closes++; });
+      return owner;
+    };
+    t.after(() => { net.connect = originalConnect; finishClose?.(); });
+    const f = await fixture(t, (request, response) => {
+      response.setHeader('content-type', 'application/json');
+      response.end('{"answer":"original"}');
+    });
+    const handle = f.prepare({transport: false});
+    let raw, released = false, saves = 0;
+    const moon = {
+      clientProgramModelRequestPreflight: (advance, cleanup) => ({advance, cleanup}),
+      clientProgramModelAsyncPhysicalRequestPlan: (...args) => ({start: args.at(-1)}),
+      clientProgramModelPhysicalCallForRequest: (entry, request, poll, cancel, cleanup) =>
+        ({poll, cancel, cleanup}),
+      clientProgramModelPhysicalPending: () => ({kind: 'pending'}),
+      clientProgramModelPhysicalUnknown: () => ({kind: 'unknown'}),
+      clientProgramModelPhysicalSavedChat: response => ({kind: 'saved', response}),
+      clientProgramModelPhysicalIoObservation: (call, quiescent, inner) =>
+        ({kind: 'io', call, quiescent, inner}),
+    };
+    const port = createSdkModelPreflight({moon, request: {}, preparation: handle,
+      profile: {}, installation: {}, quantities: {tokens: 1n, costUnits: 0n, durationMs: 1n},
+      fetch: f.fetch, responseLimits, checked: value => value, notify() {},
+      observeAt: () => '2026-10-15T00:00:00.000Z',
+      persistRaw(call, observed) { raw = observed; saves++; return {response: {raw}}; },
+      cleanupRaw: () => released});
+    const {_1: plan} = await until(() => port.preflight.advance(), value => value._0);
+    const call = plan.start({});
+    const first = await until(() => call.poll(), value => value.inner?.kind === 'saved');
+    assert.strictEqual(first.call, call);
+    assert.equal(first.quiescent, false);
+    assert.equal(closes, 0);
+    assert.equal(call.cleanup(), false);
+    await until(() => finishClose, value => typeof value === 'function');
+    const saved = first.inner;
+    const backing = raw.body.buffer;
+    finishClose();
+    const late = await until(() => call.poll(), value => value.quiescent === true);
+    assert.strictEqual(late.call, call);
+    assert.strictEqual(late.inner, saved, 'no new saved projection while waiting for original close');
+    assert.equal(closes, 1);
+    assert.equal(call.cleanup(), false, 'physical close is not raw/Store holding retirement');
+    assert.strictEqual(raw.body.buffer, backing);
+    assert.equal(plan.start({}), undefined);
+    released = true;
+    await until(() => call.cleanup(), value => value === true);
+    assert.equal(f.calls.length, 1);
+    assert.equal(saves, 1);
+    assert.equal(socket.destroyed, true);
+    t.diagnostic('Actual selected Undici/Socket/reader; Common Entry/ACK and Store are doubles, numeric/public0');
+  });
+
+test('missing Common I/O carrier refuses the original physical plan before Entry or send',
+  {timeout: 5000}, async t => {
+    const f = await fixture(t, (request, response) => response.end('{}'));
+    const handle = f.prepare({transport: false});
+    let plans = 0, entries = 0;
+    const moon = {
+      clientProgramModelRequestPreflight: (advance, cleanup) => ({advance, cleanup}),
+      clientProgramModelAsyncPhysicalRequestPlan() { plans++; assert.fail('No physical plan'); },
+      clientProgramModelPhysicalCallForRequest() { entries++; assert.fail('No Entry'); },
+    };
+    const port = createSdkModelPreflight({moon, request: {}, preparation: handle,
+      profile: {}, installation: {}, quantities: {tokens: 1n, costUnits: 0n, durationMs: 1n},
+      fetch: f.fetch, responseLimits, checked: value => value, notify() {},
+      observeAt: () => '2026-10-15T00:00:00.000Z', persistRaw() { assert.fail('No raw save'); },
+      cleanupRaw: () => true});
+    assert.deepEqual(await until(() => port.preflight.advance(), value => value._0),
+      {_0: true, _1: undefined});
+    assert.equal(plans, 0);
+    assert.equal(entries, 0);
+    assert.equal(f.calls.length, 0);
+    await until(() => port.preflight.cleanup(), value => value === true);
+  });
 
 test('per-call Client is prepared without IO and raw response/Unicode stay original', {timeout: 5000}, async t => {
   const f = await fixture(t, (request, response) => {
@@ -375,7 +473,7 @@ test('actual pinned OpenAI SDK resumes only into original loopback raw-only tran
   const localRequest = {maxBytes: 4096, maxHeaderBytes: 4096, maxHeaders: 16};
   const localResponse = {...responseLimits, maxBytes: 4096, maxChunkBytes: 512};
   const fetch = createOriginalUndiciFetch({endpoint: f.endpoint,
-    requestLimits: localRequest, responseLimits: localResponse});
+    requestLimits: localRequest, responseLimits: localResponse, physicalAcquisitionLimits});
   const handle = prepareOpenAIChatRequest({modelId: 'synthetic-model',
     baseURL: f.endpoint.slice(0, -'/chat/completions'.length), apiKey: 'synthetic-only',
     maxRequestBytes: localRequest.maxBytes, maxHeaderBytes: localRequest.maxHeaderBytes,
@@ -428,7 +526,7 @@ test('connecting Client destroy cannot retire the original socket before its rea
     if (handle !== undefined) await until(() => cleanupSdkPreparation(handle), value => value === true);
   });
   const endpoint = 'http://127.0.0.1:1/chat/completions';
-  const fetch = createOriginalUndiciFetch({endpoint, requestLimits, responseLimits});
+  const fetch = createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits});
   handle = interceptSdkRequest({endpoint, maxRequestBytes: 256,
     maxHeaderBytes: 1024, maxHeaders: 8, notify() {}, async runSdk(intercepted, signal) {
       await intercepted(endpoint, {method: 'POST', body: '{}', signal});

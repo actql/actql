@@ -812,6 +812,15 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("submission-ref-file", required=true),
         @argparse.OptionArg("operation-attempt-id", required=true),
       ]),
+      @argparse.Command("run", flags=[@argparse.FlagArg("json")], options=[
+        @argparse.OptionArg("program-file", required=true),
+        @argparse.OptionArg("parameters-file"),
+        @argparse.OptionArg("parameter-declarations-file"),
+        @argparse.OptionArg("format", required=true),
+        @argparse.OptionArg("request-id"),
+        @argparse.OptionArg("submission-ref-file", required=true),
+        @argparse.OptionArg("operation-attempt-id", required=true),
+      ]),
       @argparse.Command("start", options=[
         @argparse.OptionArg("program-file", required=true),
         @argparse.OptionArg("parameters-file"),
@@ -844,8 +853,10 @@ fn command() -> @argparse.Command {
       @argparse.Command("attach", options=[
         @argparse.OptionArg("ref-file", required=true),
       ]),
-      @argparse.Command("status", options=[
-        @argparse.OptionArg("ref-file", required=true),
+      @argparse.Command("status", flags=[@argparse.FlagArg("json")], options=[
+        @argparse.OptionArg("ref-file"),
+        @argparse.OptionArg("submission-ref-file"),
+        @argparse.OptionArg("run-id"),
       ]),
       @argparse.Command("wait", options=[
         @argparse.OptionArg("ref-file", required=true),
@@ -894,6 +905,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     "remote" =>
       if matches.subcommand is Some(("check", _)) ||
         matches.subcommand is Some(("explain", _)) ||
+        matches.subcommand is Some(("run", _)) ||
         matches.subcommand is Some(("adopt", _)) ||
         matches.subcommand is Some(("checkpoint-state", _)) ||
         matches.subcommand is Some(("lookup-preparation-grant", _)) ||
@@ -904,6 +916,13 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   }
   if optional(matches, "input-root") is Some(_) {
     stop("Local document root is unavailable in Remote mode")
+  }
+  if matches.subcommand is Some(("status", child)) &&
+    (
+      optional(child, "run-id") is Some(_) ||
+      optional(child, "submission-ref-file") is Some(_)
+    ) {
+    stop("Original Local status selection is unavailable in Remote mode")
   }
   if matches.subcommand is Some((operation, child)) &&
     (

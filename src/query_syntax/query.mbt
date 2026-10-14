@@ -159,7 +159,7 @@ pub(all) struct UpdateEffectClause {
   name : NamePart?
   target : String
   mapping : NamePart
-  result : NamePart
+  result : NamePart?
   id : NamePart
   set : Array[(NamePart, Expression)]
 }
@@ -194,6 +194,8 @@ pub(all) struct NearestRolePair {
 pub(all) struct NearestClause {
   relation : Array[NamePart]
   candidate_alias : NamePart
+  candidate_alias_explicit : Bool
+  query_vector : Expression?
   query_roles : NearestRolePair?
   candidate_roles : NearestRolePair?
   metric : String
@@ -3573,8 +3575,25 @@ fn QueryParser::nearest_clause(
 ) -> NearestClause raise QueryAbort {
   self.keyword("NEAREST")
   let relation = self.resolve_producer(self.path())
-  self.keyword("AS")
-  let candidate_alias = self.name()
+  let candidate_alias_explicit = self.has("AS")
+  let candidate_alias = if candidate_alias_explicit {
+    self.keyword("AS")
+    self.name()
+  } else {
+    relation.last().unwrap()
+  }
+  let query_vector = if self.has("USING") {
+    self.keyword("USING")
+    Some(self.expression())
+  } else {
+    None
+  }
+  if query_vector is Some(_) && self.has("QUERY") {
+    raise QueryAbort(
+      "USING and QUERY VECTOR cannot both supply the query vector",
+      self.peek().start,
+    )
+  }
   let query_roles = if self.has("QUERY") {
     self.keyword("QUERY")
     let keys = self.nearest_keys()
@@ -3591,12 +3610,17 @@ fn QueryParser::nearest_clause(
   } else {
     None
   }
-  self.keyword("METRIC")
-  let metric_start = self.peek().start
-  let metric = self.name()
-  if metric.quoted ||
-    !["COSINE", "DOT", "L2"].contains(ascii_upper(metric.value)) {
-    raise QueryAbort("NEAREST metric must be cosine, dot or l2", metric_start)
+  let metric = if self.has("METRIC") {
+    self.keyword("METRIC")
+    let metric_start = self.peek().start
+    let metric = self.name()
+    if metric.quoted ||
+      !["COSINE", "DOT", "L2"].contains(ascii_upper(metric.value)) {
+      raise QueryAbort("NEAREST metric must be cosine, dot or l2", metric_start)
+    }
+    metric.value.to_lower()
+  } else {
+    "cosine"
   }
   self.keyword("K")
   let k = self.safe_integer(false)
@@ -3605,9 +3629,11 @@ fn QueryParser::nearest_clause(
   {
     relation,
     candidate_alias,
+    candidate_alias_explicit,
+    query_vector,
     query_roles,
     candidate_roles,
-    metric: metric.value.to_lower(),
+    metric,
     k,
     keep,
     name: self.name(),
@@ -3795,9 +3821,13 @@ fn QueryParser::update_effect_clause(
   }
   self.keyword("MAPPING")
   let mapping = self.name()
-  self.keyword("FROM")
-  self.keyword("RESULT")
-  let result = self.name()
+  let result = if self.has("FROM") {
+    self.keyword("FROM")
+    self.keyword("RESULT")
+    Some(self.name())
+  } else {
+    None
+  }
   self.keyword("ID")
   let id = self.name()
   self.keyword("SET")
