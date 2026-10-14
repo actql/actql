@@ -110,3 +110,12 @@ test "short nearest projects original candidate body without flattening or refet
     NeedsInputs(_) => fail("original retained Values")
   }
 }
+
+///|
+test "short nearest shares one actual producer without creating an alias ambiguity" {
+  let text = "WITH q AS (FROM queries |> ASSERT UNIQUE BY (request_id)) FROM q |> NEAREST q USING embedding K 1 AS hit"
+  let program = with_demand_program(with_carrier_program(text, nearest_context()))
+  assert_eq(semantic(program).split("\"values\":{").length(), 2)
+  assert_true(semantic(program).contains("\"candidate_key\":{\"object\":{\"request_id\":"))
+  assert_true(with_carrier_program(text.replace(old="K 1 AS hit",new="K 1 KEEP (q.*) AS hit"), nearest_context()) is Err(AmbiguousColumn))
+}

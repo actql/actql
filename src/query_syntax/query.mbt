@@ -194,6 +194,7 @@ pub(all) struct NearestRolePair {
 pub(all) struct NearestClause {
   relation : Array[NamePart]
   candidate_alias : NamePart
+  candidate_alias_explicit : Bool
   query_vector : Expression?
   query_roles : NearestRolePair?
   candidate_roles : NearestRolePair?
@@ -3574,7 +3575,8 @@ fn QueryParser::nearest_clause(
 ) -> NearestClause raise QueryAbort {
   self.keyword("NEAREST")
   let relation = self.resolve_producer(self.path())
-  let candidate_alias = if self.has("AS") {
+  let candidate_alias_explicit = self.has("AS")
+  let candidate_alias = if candidate_alias_explicit {
     self.keyword("AS")
     self.name()
   } else {
@@ -3627,6 +3629,7 @@ fn QueryParser::nearest_clause(
   {
     relation,
     candidate_alias,
+    candidate_alias_explicit,
     query_vector,
     query_roles,
     candidate_roles,

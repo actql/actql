@@ -256,7 +256,7 @@ fn lower_nearest_steps(
   checked_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
   completion_limits? : Limits? = None,
 ) -> (Array[Array[(String, @builder.Node)]], Array[String]) raise Abort {
-  if ranges.any(range => same_name(range.0, clause.candidate_alias)) {
+  if clause.candidate_alias_explicit && ranges.any(range => same_name(range.0, clause.candidate_alias)) {
     raise Abort(AmbiguousRelation)
   }
   let candidate_columns = columns(candidate)
@@ -284,6 +284,7 @@ fn lower_nearest_steps(
         )
       } else if item.path.length() == 1 &&
         same_name(item.path[0], clause.candidate_alias) {
+        if ranges.any(range => same_name(range.0, item.path[0])) { raise Abort(AmbiguousColumn) }
         expanded.append(
           candidate_visible.map(entry => (entry.0, true, entry.1)),
         )
