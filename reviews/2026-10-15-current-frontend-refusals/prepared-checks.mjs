@@ -6,7 +6,8 @@ assert.match(source,/^[a-f0-9]{40}$/u);
 const git=(...args)=>execFileSync('git',args,{encoding:'utf8'}).trim();
 assert.equal(git('rev-parse','HEAD'),source);
 assert.equal(git('status','--porcelain'),'');
-const filter=process.argv[3]??'*';
+const filter=process.argv[3];
+assert.equal(typeof filter,'string');assert(filter!==''&&filter!=='*');
 const args=['--target','js','-j','1','src/query_program','--filter',filter];
 const code=`import {runFocusedTests} from './scripts/test-execution.mjs';process.exitCode=runFocusedTests('moon',${JSON.stringify(args)},{cwd:process.cwd(),timeout:240000});`;
 process.exitCode=await runLocalCheck({root:process.cwd(),heavy:false,timeoutSeconds:270,graceSeconds:5,
