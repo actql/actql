@@ -83,7 +83,7 @@ for (const entrance of ['local', 'https']) {
     const root = await mkdtemp(join(tmpdir(), 'actql-effect-static-public-'));
     const trust = getCACertificates('default');
     const operations = {authenticate: () => 'static-reader', authorizeConnection: () => true,
-      negotiate: ({connection}) => ({...profile, mode: connection.mode, owner: connection.owner}),
+      negotiate: ({connection}) => ({...profile, mode: connection.mode, owner: connection.owner}), maxRowBytes: 1024,
       plan: f.plan, submit() {submits++; throw new Error('unexpected submit');}};
     let complete = false;
     t.after(async () => {
