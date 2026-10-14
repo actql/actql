@@ -162,6 +162,23 @@ test('explicit route retains inspected original DATA without invoking Proxy get 
   assert.equal(gets,0);assert.equal(f.counts.starts,0);assert.equal(f.counts.fetch,0);
 });
 
+test('explicit acquisition has no missing null or default declaration before Model preparation',()=>{
+  const config=configuration(),f=runtime(config);
+  const {fetch:unused,...selected}=config;void unused;
+  assert.throws(()=>createInstalledUndiciOpenAIChatRegistration(selected),
+    {code:'InvalidInstalledOpenAIChatConfiguration'});
+  for(const value of [undefined,null,{...physicalAcquisitionLimits,maxReads:0}]) {
+    assert.throws(()=>createInstalledUndiciOpenAIChatRegistration({...selected,physicalAcquisitionLimits:value}),
+      {code:'UndiciOriginalAcquisitionLimitsUnavailable'});
+  }
+  assert.equal(f.counts.starts,0);assert.equal(f.counts.fetch,0);assert.equal(f.counts.installs,0);
+});
+
+test('selected acquisition declaration is private to Undici and cannot alter generic fetch',()=>{
+  assert.throws(()=>createInstalledOpenAIChatRegistration({...configuration(),physicalAcquisitionLimits}),
+    {code:'InvalidInstalledOpenAIChatConfiguration'});
+});
+
 test('private facade returns the existing exclusive async registration with zero construction I/O',()=>{
   const config=configuration(),f=runtime(config);
   const register=createInstalledOpenAIChatRegistration(config);
