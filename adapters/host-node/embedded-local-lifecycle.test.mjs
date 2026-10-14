@@ -16,7 +16,8 @@ const deferred = () => {
   const promise = new Promise(done => { resolve = done; });
   return {promise, resolve};
 };
-function fixture({perform, sourceClose, drain, open, observationClose} = {}) {
+function fixture({perform, sourceClose, drain, open, observationClose,
+  stopModelRuntime, retireModelRuntime} = {}) {
   const calls = [];
   let opens = 0;
   const registry = createEmbeddedHostRegistry((left, right) => left === right);
@@ -40,11 +41,39 @@ function fixture({perform, sourceClose, drain, open, observationClose} = {}) {
         installedEffect: {close() {calls.push('effect');}},
         store: {close() {calls.push('store');}},
         diagnostic: {close() {calls.push('diagnostic');}},
+        ...(stopModelRuntime===undefined?{}:{stopModelRuntime}),
+        ...(retireModelRuntime===undefined?{}:{retireModelRuntime}),
         ...(observationClose === undefined ? {} : {observation: {close: observationClose}}),
       };
     }, options);
   return {acquire, calls, opens: () => opens};
 }
+
+test('ordinary Client close retires the original runtime once after all actual closes',async()=>{
+  let retired=0,stopped=0;
+  const f=fixture({stopModelRuntime(){stopped++;},retireModelRuntime(){
+    assert.equal(f.calls.at(-1),'diagnostic');retired++;
+  }});
+  const [a,b]=await Promise.all([f.acquire(),f.acquire()]);
+  await a.close();assert.equal(retired,0);
+  await Promise.all([b.close(),b.close()]);
+  await a.close();await b.close();
+  assert.equal(stopped,1);assert.equal(retired,1);
+});
+
+test('failed final cleanup retains the runtime and the same shutdown for retry',async()=>{
+  let pending=true,retired=0,closed=0;
+  const f=fixture({async observationClose(){
+    closed++;if(pending)throw new Error('OriginalObservationCloseUnknown');
+  },retireModelRuntime(){assert.equal(pending,false);retired++;}});
+  const client=await f.acquire();
+  await assert.rejects(client.close(),{code:'ClientCleanupPending'});
+  assert.equal(retired,0);
+  assert.equal(f.calls.filter(value=>value==='store').length,1);
+  pending=false;await client.close();await client.close();
+  assert.equal(retired,1);assert.equal(closed,2);
+  assert.equal(f.calls.filter(value=>value==='store').length,1);
+});
 
 test('shared clients close independently and the last lease closes the Host once', async () => {
   const f = fixture();

@@ -148,6 +148,20 @@ fn client_model_origin_matches(
 }
 
 ///|
+// Lifetime of the SAME original scope, not availability for allocation or
+// permission to send. A legitimate park remains live until its original
+// Resource owner closes/retires it. Never expose its Ledger/bootstrap fields.
+pub fn client_model_read_scope_live(
+  scope : ClientModelReadScope,
+  compiled : ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  plan : ClientInferPlanGraph,
+) -> Bool {
+  client_model_origin_matches(scope.origin, compiled, definition, plan) &&
+  @resources.original_ledger_inventory_live(scope.identity)
+}
+
+///|
 pub fn client_model_read_available(
   value : ClientModelReadPreparation,
   compiled : ClientCompiledRun,

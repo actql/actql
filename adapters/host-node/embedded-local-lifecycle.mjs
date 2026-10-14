@@ -4,8 +4,11 @@ import {connectInProcess} from '../../packages/sdk/host-port.mjs';
 import {createInstalledHostShutdown} from './installed-host-cleanup.mjs';
 
 export function installedHostShutdown(host) {
-  return createInstalledHostShutdown({
-    stop: () => host.checkpoints?.stop(),
+  const shutdown = createInstalledHostShutdown({
+    stop: () => {
+      host.stopModelRuntime?.();
+      return host.checkpoints?.stop();
+    },
     drain: () => host.dispatchOwner.drain(),
     retire: () => host.retireTerminalEffects(),
     checkpoint: () => host.checkpoints?.close(),
@@ -19,6 +22,16 @@ export function installedHostShutdown(host) {
       {observation: () => host.observation.close()}),
     ...(host.ownerViews === undefined ? {} : {ownerViews: () => host.ownerViews.close()}),
   });
+  return Object.freeze({status: shutdown.status, async close() {
+    // Only this SAME existing shutdown confirms all child duties. A failed
+    // close retains its retry state and the original runtime view unchanged.
+    const result = await shutdown.close();
+    host.retireModelRuntime?.();
+    // The actual Host records finalization by retiring this internal hook.
+    // Multiple leases/repeated close cannot call the nominal forget twice.
+    delete host.retireModelRuntime;
+    return result;
+  }});
 }
 
 const closing = () => Object.assign(new Error('ClientHostClosing'),

@@ -109,6 +109,30 @@ pub fn client_program_bind_infer_physical_preflight(
 }
 
 ///|
+// Private installed current fence. The factory's returned cursor ALWAYS
+// reaches the same Common custody before a later currentness refusal. The
+// wrapper retains its exact child and delegates cleanup without a new Owner.
+#export_name("clientProgramBindInferPhysicalPreflightCurrent")
+pub fn client_program_bind_infer_physical_preflight_current(
+  active : @infer_host.Execution,
+  prepare : (@model.ModelRequest) -> @model.ModelRequestPreflight?,
+  current : () -> Bool,
+) -> Result[Unit, @infer_host.Issue] {
+  @infer_host.bind_physical_preflight(active, request => {
+    // Check before acquisition, but never throw away a returned cursor based
+    // on a post-factory observation. Its guarded first advance may refuse.
+    if !current() {
+      return Err(@model.Cancelled)
+    }
+    match prepare(request) {
+      Some(cursor) =>
+        Ok(@model.guard_model_request_preflight_current(cursor, current))
+      None => Err(@model.InvalidProvider)
+    }
+  })
+}
+
+///|
 /// One bounded physical preparation unit per advance. Invalid terminal
 /// preparation is a barrier refusal, never a fabricated provider outcome.
 #export_name("clientProgramModelRequestPreflight")
@@ -981,6 +1005,21 @@ pub fn client_program_begin_infer_original_read_scope(
     max_reservations,
     max_holdings,
     max_delegations,
+  )
+}
+
+///|
+// Private current predicate only; park is legal lifetime, not permission to
+// allocate/unpark/send. Original checked binding and Resource custody decide.
+#export_name("clientProgramInferOriginalReadScopeLive")
+pub fn client_program_infer_original_read_scope_live(
+  scope : @publication_host.ClientModelReadScope,
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+) -> Bool {
+  @publication_host.client_model_read_scope_live(
+    scope, compiled, definition, graph,
   )
 }
 
