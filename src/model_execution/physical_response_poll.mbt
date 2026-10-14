@@ -60,9 +60,11 @@ pub(all) enum ModelPhysicalCallPoll {
 }
 
 ///|
-// Common's nominal observation retains the original binding, not a Bool/CID.
-// Additional references and the None domain require the original inventory.
-priv struct ModelPhysicalIoObservation {
+// Registration captures the original binding before transport starts. A later
+// current map entry cannot substitute another Plan or reservation. Common's
+// private observed field only adopts this same record after checked poll DATA.
+// All references and None domains require the original funded inventory.
+priv struct ModelPhysicalCallBinding {
   entry : ModelCallEntry
   plan : ModelPhysicalRequestPlan
   reservation : @resources.Reservation
@@ -86,7 +88,8 @@ pub struct ModelPhysicalCall {
   mut decoded_response : ModelPhysicalResponse?
   mut raw_capture : ModelRawCaptureSave?
   priv mut io_tracking : Bool
-  priv mut io_observation : ModelPhysicalIoObservation?
+  priv mut original_binding : ModelPhysicalCallBinding?
+  priv mut io_observation : ModelPhysicalCallBinding?
   priv mut poll_issue : ModelExecutionIssue?
 }
 
@@ -139,6 +142,7 @@ pub fn model_physical_call(
     decoded_response: None,
     raw_capture: None,
     io_tracking: false,
+    original_binding: Some({ entry, plan, reservation, }),
     io_observation: None,
     poll_issue: None,
   }
@@ -167,7 +171,11 @@ fn poll_model_physical_call(
         !physical_equal(original, call) {
         return Err(RequestIdentity)
       }
-      guard call.entry is Some(entry) else { return Err(RequestIdentity) }
+      guard call.entry is Some(entry) &&
+        call.original_binding is Some(binding) &&
+        physical_equal(binding.entry, entry) else {
+        return Err(RequestIdentity)
+      }
       let state = entry.prepared.owner.state
       guard state.pending_response is Some(current) &&
         physical_equal(current, call) &&
@@ -176,9 +184,12 @@ fn poll_model_physical_call(
         state.attempts.get(entry.slot) is Some(trace) &&
         physical_equal(trace, entry.trace) &&
         state.physical_plans.get(entry.slot) is Some(plan) &&
+        physical_equal(plan, binding.plan) &&
         plan.invocation is Asynchronous(_) &&
         state.reservations.get(entry.slot) is Some(reservation) &&
+        physical_equal(reservation, binding.reservation) &&
         @resources.reservation_open(reservation) &&
+        entry.trace.attempt == 1 &&
         entry.send_started &&
         !state.reclaimed else {
         return Err(RequestIdentity)
@@ -192,7 +203,7 @@ fn poll_model_physical_call(
       }
       call.io_tracking = true
       if observed is PhysicalIoQuiescent(_, _) && call.io_observation is None {
-        call.io_observation = Some({ entry, plan, reservation, })
+        call.io_observation = Some(binding)
       }
       inner
     }
@@ -270,6 +281,7 @@ fn cleanup_model_physical_call(state : ModelState) -> Bool {
     call.decoded_response = None
     call.raw_capture = None
     call.io_observation = None
+    call.original_binding = None
     call.io_tracking = false
     call.poll_issue = None
     call.retired = true
