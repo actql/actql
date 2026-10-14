@@ -177,7 +177,20 @@ test "explicit earlier UPDATE expressions do not bind a renamed filtered tail" {
   let source = @wire.open_object(private_update_result(explicit)).unwrap()
   let capture = @wire.text(@wire.required(source, "from").unwrap()).unwrap()
   let body = semantic(explicit)
-  assert_true(body.contains("\"from\":\"aql_result_checkpoint_0\",\"derive\":"))
+  let stage = @wire.open_object(
+    @program.stage_body(@program.stages(explicit)[0]),
+  ).unwrap()
+  assert_true(
+    @wire.elements(@wire.required(stage, "steps").unwrap())
+    .unwrap()
+    .any(step => {
+      let step = @wire.open_object(step).unwrap()
+      @wire.lookup(step, "derive") is Some(_) &&
+      @wire.lookup(step, "from")
+      .map(value => @wire.text(value) == Ok("aql_result_checkpoint_0"))
+      .unwrap_or(false)
+    }),
+  )
   assert_true(body.contains("\"as\":\"" + capture + "\""))
   assert_true(
     compile(
@@ -269,4 +282,239 @@ test "implicit UPDATE captures completed set output rather than a set head" {
     "aql_private_update",
   ])
   assert_eq(private_update_fields(program), ["id", "aql_update_value_2"])
+}
+
+///|
+test "private UPDATE keeps immutable range bindings after Pipe SET" {
+  let program = compile(
+    @query.parse_query(
+      "FROM pair AS before |> SET y = x |> EFFECT UPDATE TARGET 'connector://c/T' MAPPING m ID x SET (Original = before.y, Current = y + 1)",
+      syntax_limits(),
+    ).unwrap(),
+    pair_context(),
+    construction_limits(),
+  ).unwrap()
+  let wire = semantic(program)
+  assert_true(wire.contains("\"Original\":{\"field\":\"y\"}"))
+  assert_true(
+    wire.contains("\"add\":[{\"field\":\"aql_pipe_set_2\"},{\"literal\":1}]"),
+  )
+  assert_eq(@program.export_count(program), 0)
+}
+
+///|
+test "computed UPDATE retains nested access and lazy CASE in the common expression" {
+  let step = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"id":{"type":"string","nullable":false},"payload":{"type":"object","nullable":false,"additional_properties":false,"fields":{"score":{"type":"number","nullable":true}}}},"rows":[{"id":"original-id","payload":{"score":2}}]},"as":"nested"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let context = {
+    ..private_update_context(),
+    inputs: [
+      {
+        relation: [{ value: "nested", quoted: false, }],
+        name: "nested",
+        source: GeneratedValues(step),
+        visible_fields: ["id", "payload"],
+        graph_bindings: [],
+      },
+    ],
+  }
+  let program = compile(
+    @query.parse_query(
+      "FROM nested" +
+      private_update_tail(
+        "", "Name = CASE WHEN payload.score IS NULL THEN 0 ELSE payload.score + 1 END",
+      ),
+      syntax_limits(),
+    ).unwrap(),
+    context,
+    construction_limits(),
+  ).unwrap()
+  assert_eq(private_update_fields(program), ["id", "aql_update_value_2"])
+  assert_true(semantic(program).contains("\"property\":{\"name\":\"score\""))
+  ignore(private_update_static(program))
+  // The branch remains present. No frontend evaluation folds it or suppresses
+  // a demanded error; execution of CASE laziness remains a separate check.
+  let lazy = private_update_program(
+    "FROM updates_source" +
+    private_update_tail(
+      "", "Name = CASE WHEN value > 0 THEN value ELSE 1 / 0 END",
+    ),
+  )
+  assert_true(
+    semantic(lazy).contains("\"div\":[{\"literal\":1},{\"literal\":0}]"),
+  )
+  ignore(private_update_static(lazy))
+}
+
+///|
+test "UPDATE expressions reject wrong pure types at the existing checker" {
+  let parsed = @query.parse_query(
+    "FROM updates_source" + private_update_tail("", "Name = secret + 1"),
+    syntax_limits(),
+  ).unwrap()
+  match compile(parsed, private_update_context(), construction_limits()) {
+    Err(_) => ()
+    Ok(program) =>
+      assert_true(
+        @check.prepare_effect_computation_candidate(
+          program,
+          update_shorthand_environment(),
+          None,
+          [],
+          check_limits(),
+          1,
+          100,
+        )
+        is Err(_),
+      )
+  }
+}
+
+///|
+test "UPDATE unknown nested members retain the authored expression diagnostic" {
+  let source = "/*😀*/\r\nFROM updates_source" +
+    private_update_tail("", "Name = missing.member + 1")
+  let query = @query.parse_query(
+    source,
+    syntax_limits(),
+    source_path="update-original.sql",
+  ).unwrap()
+  guard compile(query, private_update_context(), construction_limits())
+    is Err(Expression({ origin: Some(origin), .. })) else {
+    fail("Expected the ordinary expression diagnostic and original origin")
+  }
+  let span = @origin.span(origin)
+  assert_eq(span.source_path, "update-original.sql")
+  assert_true(span.start_byte > 0)
+  assert_true(span.end_byte > span.start_byte)
+}
+
+///|
+test "earlier INFER Result is imported once and retains public tail behavior" {
+  let environment = infer_member_environment()
+  let prefix = infer_member_source(
+    "RESULT early |> WHERE id = 'a' |> RENAME assessment AS later",
+  )
+  for selection in ["FROM RESULT early ", ""] {
+    let expression = if selection == "" {
+      "later.value.risk"
+    } else {
+      "assessment.value.risk"
+    }
+    let query = @query.parse_query(
+      prefix + private_update_tail(selection, "Name = " + expression),
+      syntax_limits(),
+    ).unwrap()
+    let program = compile(
+      query,
+      infer_member_context(environment),
+      construction_limits(),
+    ).unwrap()
+    assert_eq(@program.exports(program).map(export => export.0), [
+      "early", "answer",
+    ])
+    assert_eq(@program.stage_count(program), 2)
+    let tail = @program.stages(program)[1]
+    let from_early = @program.imports(tail).filter(entry => {
+      entry.1 is @program.Result(producer="main", result="rows")
+    })
+    assert_eq(from_early.length(), 1)
+    let mut calls = 0
+    for stage in @program.stages(program) {
+      let stage = @wire.open_object(@program.stage_body(stage)).unwrap()
+      for
+        step in @wire.elements(@wire.required(stage, "steps").unwrap()).unwrap() {
+        if @wire.lookup(@wire.open_object(step).unwrap(), "infer") is Some(_) {
+          calls += 1
+        }
+      }
+    }
+    assert_eq(calls, 1)
+    assert_false(private_update_fields(program).contains("assessment"))
+    assert_false(private_update_fields(program).contains("later"))
+  }
+}
+
+///|
+test "private UPDATE names avoid authored Stage and value slots" {
+  let step = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"id":{"type":"string","nullable":false},"value":{"type":"number","nullable":false},"aql_update_value_3":{"type":"number","nullable":false}},"rows":[{"id":"original-id","value":1,"aql_update_value_3":99}]},"as":"updates_source"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  let base = private_update_context()
+  let context = {
+    ..base,
+    stage_result: "aql_private_update",
+    inputs: [
+      {
+        ..base.inputs[0],
+        name: "aql_update_capture_4",
+        source: GeneratedValues(step),
+        visible_fields: ["id", "value", "aql_update_value_3"],
+      },
+    ],
+  }
+  let program = compile(
+    @query.parse_query(
+      "FROM updates_source" + private_update_tail("", "Name = value + 1"),
+      syntax_limits(),
+    ).unwrap(),
+    context,
+    construction_limits(),
+  ).unwrap()
+  assert_eq(@program.export_count(program), 0)
+  let stage = @program.stages(program)[0]
+  assert_eq(@program.result_names(stage), ["aql_private_update_retained"])
+  let body = semantic(program)
+  assert_true(body.contains("\"as\":\"aql_update_capture_5\""))
+  assert_true(body.contains("\"Name\":{\"field\":\"aql_update_value_4\"}"))
+  assert_true(body.contains("\"fields\":[\"id\",\"aql_update_value_4\"]"))
+}
+
+///|
+test "private UPDATE literal assignments retain only their selector" {
+  let program = private_update_program(
+    "FROM updates_source" + private_update_tail("", "Name = 7"),
+  )
+  assert_eq(private_update_fields(program), ["id"])
+  assert_false(semantic(program).contains("aql_update_value_"))
+  ignore(private_update_static(program))
+}
+
+///|
+test "JOIN set heads do not capture terminal UPDATE before the complete set" {
+  let query = @query.parse_query(
+    "FROM pair AS l JOIN pair AS r ON l.x = r.x |> SELECT l.x AS x, r.y AS y |> WHERE y > 0 |> UNION ALL (FROM pair) |> EFFECT UPDATE TARGET 'connector://c/T' MAPPING m ID x SET (Name = y + 1)",
+    syntax_limits(),
+  ).unwrap()
+  let program = compile(query, pair_context(), construction_limits()).unwrap()
+  let body = semantic(program)
+  assert_eq(@program.export_count(program), 0)
+  assert_eq(body.split("\"append\":").length() - 1, 1)
+  assert_eq(body.split("\"aql_private_update\":{").length() - 1, 1)
+  let stages = @program.stages(program)
+  let mut capture_aliases = 0
+  for stage in stages {
+    let stage = @wire.open_object(@program.stage_body(stage)).unwrap()
+    for step in @wire.elements(@wire.required(stage, "steps").unwrap()).unwrap() {
+      let step = @wire.open_object(step).unwrap()
+      if @wire.lookup(step, "as") is Some(alias) &&
+        @wire.text(alias).unwrap().has_prefix("aql_update_capture_") {
+        capture_aliases += 1
+      }
+    }
+  }
+  assert_eq(capture_aliases, 1)
 }

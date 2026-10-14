@@ -478,6 +478,7 @@ fn compile_query_script_with_source(
     let stage_arrays : Array[Array[@builder.Node]] = []
     let exports : Array[(String, (String, String))] = []
     let prior_results : Array[(String, String, RetainedResult)] = []
+    let mut continuation_input : (String, String, String)? = None
     while true {
       let input_name = pipe_physical_name(
         reserved, "aql_script_continuation_input_",
@@ -583,25 +584,33 @@ fn compile_query_script_with_source(
           let (producer, fields) = if selected.get(0) is Some(selected) {
             (selected.from, selected.fields)
           } else if earlier.get(0) is Some((stage, port, selected)) {
-            let input = pipe_physical_name(
-              reserved + stage_sources.declarations.map(pair => pair.0),
-              "aql_update_source_",
-            )
-            reserved.push(input)
-            stage_sources.declarations.push(
-              (
-                input,
-                construction.object([
-                  (
-                    "result",
-                    construction.object([
-                      ("stage", construction.text(stage)),
-                      ("result", construction.text(port)),
-                    ]),
-                  ),
-                ]),
-              ),
-            )
+            let input = if continuation_input
+              is Some((from_stage, from_port, input)) &&
+              from_stage == stage &&
+              from_port == port {
+              input
+            } else {
+              let input = pipe_physical_name(
+                reserved + stage_sources.declarations.map(pair => pair.0),
+                "aql_update_source_",
+              )
+              reserved.push(input)
+              stage_sources.declarations.push(
+                (
+                  input,
+                  construction.object([
+                    (
+                      "result",
+                      construction.object([
+                        ("stage", construction.text(stage)),
+                        ("result", construction.text(port)),
+                      ]),
+                    ),
+                  ]),
+                ),
+              )
+              input
+            }
             (input, selected.fields)
           } else {
             // Non-Pipe final carriers use their completed visible Relation.
@@ -799,6 +808,9 @@ fn compile_query_script_with_source(
       }
       reserved.push(input_name)
       reserved.push(next_stage)
+      continuation_input = Some(
+        (stage_context.stage_id, stage_context.stage_result, input_name),
+      )
       stage_context = { ..context, stage_id: next_stage, captured_stage: None, }
       stage_steps = []
       query = continuation

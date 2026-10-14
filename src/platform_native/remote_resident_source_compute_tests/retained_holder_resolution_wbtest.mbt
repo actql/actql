@@ -66,6 +66,46 @@ fn retained_holder_admit_resolution(
     },
   ]
   let at = () => "2026-10-10T00:01:00.000Z"
+  // Use the real persisted Review's original subject and the candidate's
+  // unsigned body. Existing Checkpoint admission independently checks every
+  // binding; the proposed Resolution never supplies an expected Checkpoint.
+  let unsigned = match @json.parse(resolution) {
+    Object(fields) => {
+      fields.remove("proof") |> ignore
+      fields.remove("resolution_cid") |> ignore
+      Json::object(fields).stringify()
+    }
+    _ => fail("Invalid original Resolution fixture body")
+  }
+  let (prepared, subject) = work
+    .prepare_original_resolution_proof(unsigned, () => true)
+    .unwrap()
+  assert_eq(prepared.checkpoint(), checkpoint)
+  assert_eq(prepared.actor(), "native-reviewer")
+  assert_eq(prepared.preimage(), authentication.proof_preimage)
+  assert_eq(subject, work.original_signing_subject(() => true).unwrap())
+  assert_true(
+    work.prepare_original_resolution_proof(unsigned, () => false)
+    is Err(Unavailable),
+  )
+  let disclosures = Ref(0)
+  assert_true(
+    work.prepare_original_resolution_proof(unsigned, () => {
+      disclosures.val += 1
+      disclosures.val == 1
+    })
+    is Err(Unavailable),
+  )
+  assert_eq(disclosures.val, 2)
+  let foreign = unsigned.replace_all(
+    old=checkpoint.checkpoint_cid,
+    new="sha256:" + "f".repeat(64),
+  )
+  assert_true(
+    work.prepare_original_resolution_proof(foreign, () => true)
+    is Err(Resolution(CheckpointBindingMismatch(_))),
+  )
+  assert_eq(work.original_signing_subject(() => true).unwrap(), subject)
   println("native-original-resolution: admitting original Checkpoint")
   let admitted = match
     work.admit_resolution(wire, authentication, reviewers, keys, () => true, at) {

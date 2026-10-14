@@ -6925,6 +6925,7 @@ fn compile_steps(
   let update_steps : Array[Array[(String, @builder.Node)]] = []
   if @query.terminal_effect(query) is Some(clause) &&
     clause.result is None &&
+    @query.set_part_count(query) == 0 &&
     retained is Some(retained) {
     let names = reserved_bindings +
       nearest_inputs.map(input => input.name) +
@@ -6955,9 +6956,11 @@ fn compile_steps(
       active_fields,
       max_work,
       reserved_bindings~,
-      expression_columns=Some(unnest_expression_columns(
-        pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
-      )),
+      expression_columns=Some(
+        unnest_expression_columns(
+          pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+        ),
+      ),
       value_ranges=value_range_names(
         value_table_receivers, scalar_value_table_ranges,
       ),
@@ -7467,6 +7470,7 @@ fn compile_join_steps(
   capture_left? : Bool = false,
   values_bound? : Int64? = None,
   prefix_steps? : Array[@builder.Node] = [],
+  reserved_bindings? : Array[String] = [],
   checked_infer_prefix? : ((
     Array[@builder.Node],
     String,
@@ -7680,6 +7684,7 @@ fn compile_join_steps(
       result_tail=join_continuation_context(query, limits, retained),
       step_bindings~,
       prefix_steps~,
+      reserved_bindings~,
       checked_infer_prefix~,
     )
     return (steps, visible_names, final_from)
@@ -7893,6 +7898,7 @@ fn compile_join_steps(
     result_tail=join_continuation_context(query, limits, retained),
     step_bindings~,
     prefix_steps~,
+    reserved_bindings~,
     checked_infer_prefix~,
   )
   (steps, output, from)
@@ -9406,6 +9412,7 @@ fn append_join_order_steps(
   result_tail? : (Limits, Array[RetainedResult])? = None,
   step_bindings? : Map[String, String] = Map([]),
   prefix_steps? : Array[@builder.Node] = [],
+  reserved_bindings? : Array[String] = [],
   checked_infer_prefix? : ((
     Array[@builder.Node],
     String,
@@ -9510,6 +9517,7 @@ fn append_join_order_steps(
       retained=Some(retained),
       projected_input=true,
       prefix_steps=prefix_steps + steps,
+      reserved_bindings~,
       checked_infer_prefix~,
     )
     if output != visible_names {
