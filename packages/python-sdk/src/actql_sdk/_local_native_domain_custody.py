@@ -3,12 +3,34 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from contextlib import contextmanager
-from ctypes import POINTER, byref, c_int, c_int32, c_int64, c_void_p
+from ctypes import POINTER, byref, c_int, c_int32, c_int64, c_void_p, c_ubyte
+from dataclasses import dataclass
 from typing import Any, NoReturn
 
 from ._local_native_control_custody import _OriginalArenaFact, _OriginalControlCustody
 from ._local_native_backing_custody import _OriginalBackingCustody
 from ._local_worker_slot import _OriginalDescriptor
+
+
+@dataclass(frozen=True, slots=True)
+class _OriginalDomainMaterial:
+    """Immutable explanation/transport DATA; no original custody or permit."""
+    source: str
+    recipe: bytes
+    scalars: tuple[int, ...]
+
+
+class _OriginalDomainMaterialFunctions:
+    """Mandatory matching private exports, not a loader or compatibility path."""
+    def __init__(self, library: Any) -> None:
+        self.library = library
+        self.project = library.actql_domain_project_into
+        self.project.argtypes = [c_void_p, c_void_p, POINTER(c_void_p)]
+        self.project.restype = c_int
+        self.read = library.actql_domain_copy_material
+        self.read.argtypes = [c_void_p, c_void_p, c_void_p,
+                              POINTER(c_ubyte), POINTER(c_ubyte), POINTER(c_int64)]
+        self.read.restype = c_int
 
 
 def _new_domain_slots() -> tuple[c_void_p, c_void_p, c_void_p]:
@@ -204,6 +226,56 @@ class _OriginalDomainCustody:
 
     def current(self) -> _OriginalArenaFact:
         return self._call(2)
+
+    def _project_original_material(self, functions: _OriginalDomainMaterialFunctions) -> _OriginalDomainMaterial:
+        """Get DATA from the same Owner; no scalar material can start a child.
+
+        Each call obtains a new checked reply, retains the original slots on
+        response loss and rechecks current after the exact bounded copy. No
+        previous reply/cache bypasses current or supplies new execution quota.
+        """
+        if (type(functions) is not _OriginalDomainMaterialFunctions
+                or functions.library is not self._functions.library):
+            raise ValueError('Foreign original domain material component')
+        if self._unknown is not None:
+            raise self._unknown
+        # Allocate bounded output metadata before consuming a native reply.
+        source, recipe, scalars = (c_ubyte * 40)(), (c_ubyte * 32)(), (c_int64 * 15)()
+        self._owner._enter()
+        if self._closed or self._domain.value is None:
+            self._owner._busy = False
+            raise ValueError('Original Native domain is retired')
+        known: _OriginalDomainError | None = None
+        try:
+            self._drop()
+            self._status(functions.project(self._host, self._domain, byref(self._reply)))
+            fact = self._fact(7)
+            if fact.issue_family != 0:
+                self._drop()
+                known = _OriginalDomainError(self, unknown=False, fact=fact)
+                raise known
+            self._status(functions.read(self._reply, self._host, self._domain, source, recipe, scalars))
+            text, values = bytes(source).decode('ascii'), tuple(scalars)
+            # Encoding consistency only. The existing Core/physical Owners
+            # validate limits, bounds and funding; Python creates no grant.
+            if (any(c not in '0123456789abcdef' for c in text) or values[8] not in (0, 1)
+                    or any(value < 0 for value in values)):
+                raise self._mark_unknown()
+            material = _OriginalDomainMaterial(text, bytes(recipe), values)
+            self._drop()
+            self._status(self._functions.current(self._host, self._domain, byref(self._reply)))
+            fact = self._fact(2)
+            self._drop()
+            if fact.issue_family != 0:
+                known = _OriginalDomainError(self, unknown=False, fact=fact)
+                raise known
+            return material
+        except BaseException as error:
+            if error is self._unknown or error is known:
+                raise
+            raise self._mark_unknown() from error
+        finally:
+            self._owner._busy = False
 
     def transfer(self) -> None:
         self._call(3)

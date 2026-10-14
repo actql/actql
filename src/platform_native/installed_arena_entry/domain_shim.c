@@ -1,4 +1,5 @@
 #include "domain_shim.h"
+#include <string.h>
 static struct {
     actql_domain_prepare_fn prepare;
     actql_domain_operation_fn current, transfer, enter, leave, close;
@@ -118,4 +119,54 @@ int actql_domain_finish_refused_prepare(actql_control_host **host, actql_domain_
     actql_domain_reply *r = *reply; *reply = NULL; moonbit_decref(r);
     actql_control_host *h = *host; *host = NULL; moonbit_decref(h);
     return ACTQL_CONTROL_OK;
+}
+
+static struct {
+    actql_domain_operation_fn project;
+    actql_domain_scalar_fn scalar;
+    actql_domain_description_fn source;
+    actql_domain_recipe_fn recipe;
+} material_callbacks;
+static int material_registered;
+void actql_native_control_register_domain_material_roots(
+    actql_domain_operation_fn project, actql_domain_scalar_fn scalar,
+    actql_domain_description_fn source, actql_domain_recipe_fn recipe) {
+    if (material_registered) return;
+    if (!project || !scalar || !source || !recipe) { material_registered = -1; return; }
+    material_callbacks.project = project;
+    material_callbacks.scalar = scalar;
+    material_callbacks.source = source;
+    material_callbacks.recipe = recipe;
+    material_registered = 1;
+}
+int actql_domain_project_into(actql_control_host *host, actql_domain *domain,
+                              actql_domain_reply **slot) {
+    if (material_registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    return domain_operation_into(material_callbacks.project, host, domain, slot);
+}
+int actql_domain_copy_material(actql_domain_reply *reply, actql_control_host *host,
+    actql_domain *domain, unsigned char source[40], unsigned char recipe[32], int64_t scalars[15]) {
+    if (material_registered != 1 || domain_registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    if (!reply || !host || !domain || !source || !recipe || !scalars ||
+        domain_callbacks.operation(reply) != 7 || domain_callbacks.issue(reply) != 0 ||
+        !same_domain_reply(reply, host, domain)) return ACTQL_CONTROL_INVALID_SLOT;
+    moonbit_string_t text = material_callbacks.source(reply);
+    moonbit_bytes_t bytes = material_callbacks.recipe(reply);
+    int status = ACTQL_CONTROL_INVALID_SLOT;
+    if (!text || !bytes || Moonbit_array_length(text) != 40 || Moonbit_array_length(bytes) != 32)
+        goto done;
+    /* Core source identity is ASCII hex. Reject non-ASCII rather than truncate
+     * UTF-16 units or interpret String.to_bytes as UTF-8. */
+    for (size_t i = 0; i < 40; i++) {
+        if (!((text[i] >= '0' && text[i] <= '9') || (text[i] >= 'a' && text[i] <= 'f')))
+            goto done;
+        source[i] = (unsigned char)text[i];
+    }
+    memcpy(recipe, bytes, 32);
+    for (int32_t i = 0; i < 15; i++) scalars[i] = material_callbacks.scalar(reply, i);
+    status = ACTQL_CONTROL_OK;
+done:
+    if (bytes) moonbit_decref(bytes);
+    if (text) moonbit_decref(text);
+    return status;
 }
