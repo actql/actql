@@ -6,6 +6,7 @@ struct NativeLocalSigningKeyOriginal {
   projection : @filesystem.PrivateFileProjection
   exported : Bytes
   generation_cid : String
+  public_key : @credential.LocalSigningPublicKey
 }
 
 ///|
@@ -57,18 +58,19 @@ fn local_signing_installation_purpose(
 fn local_signing_installation_payload(
   account : NativeLocalSigningAccountBinding,
   projection : Bytes,
+  public_key : @credential.LocalSigningPublicKey,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
   let (_, purpose, _, _, _, _, _, _) = @credential_resource.native_local_signing_key_selection_projection(
     account.selection,
   )
-  local_adoption_record([
-    ("adoption_cid", account.host.adoption_cid),
-    ("authority_scope_cid", account.scope),
-    ("installation_configuration_cid", account.file.content_cid),
-    ("projection", @base64.encode(projection)),
-    ("purpose", local_signing_installation_purpose(purpose)),
-    ("version", "actql-native-local-installation-original/0.1"),
-  ])
+  local_signing_public_installation_body(
+    account.host.adoption_cid,
+    account.scope,
+    account.file.content_cid,
+    projection,
+    purpose,
+    public_key,
+  )
 }
 
 ///|
@@ -79,11 +81,21 @@ fn read_local_signing_installation_projection(
   file : NativeLocalSelectedFile,
   payload : Bytes,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
-  let fields = match
-    local_adoption_fields(payload, [
-      "adoption_cid", "authority_scope_cid", "installation_configuration_cid", "projection",
-      "purpose", "version",
-    ]) {
+  read_local_signing_installation_record(host, file, payload).map(record => {
+    record.0
+  })
+}
+
+///|
+fn read_local_signing_installation_record(
+  host : NativeLocalHostConnection,
+  file : NativeLocalSelectedFile,
+  payload : Bytes,
+) -> Result[
+  (Bytes, @credential.LocalSigningPublicKey?),
+  NativeLocalAdoptionIssue,
+] {
+  let fields = match local_signing_installation_fields(payload) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -101,23 +113,23 @@ fn read_local_signing_installation_projection(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  if fields[0] != host.adoption_cid ||
-    fields[1] != scope ||
-    fields[2] != file.content_cid ||
-    fields[4] != local_signing_installation_purpose(purpose) ||
-    fields[5] != "actql-native-local-installation-original/0.1" {
+  if fields.adoption != host.adoption_cid ||
+    fields.scope != scope ||
+    fields.configuration != file.content_cid ||
+    fields.purpose != local_signing_installation_purpose(purpose) ||
+    fields.version != "actql-native-local-installation-original/0.1" {
     return Err(CustodyLost)
   }
-  let projection = @base64.decode(fields[3]) catch {
+  let projection = @base64.decode(fields.projection) catch {
     _ => return Err(CustodyLost)
   }
   if projection.length() <= 106 ||
     projection.length() > 234 ||
-    @base64.encode(projection) != fields[3] ||
+    @base64.encode(projection) != fields.projection ||
     projection[106:].to_owned() != @utf8.encode(private_key_file) {
     return Err(CustodyLost)
   }
-  Ok(projection)
+  Ok((projection, fields.public_key))
 }
 
 ///|
@@ -258,7 +270,7 @@ fn NativeLocalSigningAccountBinding::signing_key_original(
       scope == self.scope else {
       return Err(SigningOriginalUnavailable)
     }
-    let exported = local_signing_original_value(
+    let (exported, public_key) = local_signing_original_value(
       self.host.journal
       .transaction(() => {
         try {
@@ -277,11 +289,17 @@ fn NativeLocalSigningAccountBinding::signing_key_original(
               if row.revision != 0L {
                 return Err(CustodyLost)
               }
+              let payload = local_signing_installation_value(
+                read_local_installation_authenticated_payload(
+                  self.host,
+                  row.body,
+                ).map_err(_ => CustodyLost),
+              )
               local_signing_installation_value(
-                read_local_installation_projection(
+                read_local_signing_installation_record(
                   self.host,
                   self.file,
-                  row.body,
+                  payload,
                 ).map_err(_ => CustodyLost),
               )
             }
@@ -318,10 +336,14 @@ fn NativeLocalSigningAccountBinding::signing_key_original(
                   original,
                 ),
               )
+              let public_key = local_signing_installation_value(
+                self.prepare_public_key_original(),
+              )
               let payload = local_signing_installation_value(
-                local_signing_installation_payload(self, original).map_err(_ => {
-                  Encoding
-                }),
+                local_signing_installation_payload(self, original, public_key).map_err(_ => {
+                    Encoding
+                  },
+                ),
               )
               let packet = local_signing_installation_value(
                 local_installation_packet(self.host, payload).map_err(_ => {
@@ -352,12 +374,13 @@ fn NativeLocalSigningAccountBinding::signing_key_original(
                 .map_err(issue => Physical(issue)),
               )
               |> ignore
-              original
+              (original, Some(public_key))
             }
             Err(issue) => return Err(Physical(issue))
           }
+          let (projection, _) = original
           local_signing_installation_value(
-            self.host.require_distinct_signing_key_locked(self.file, original),
+            self.host.require_distinct_signing_key_locked(self.file, projection),
           )
           local_signing_installation_value(
             self.require_current_account().map_err(_ => AuthorizationDenied),
@@ -372,6 +395,11 @@ fn NativeLocalSigningAccountBinding::signing_key_original(
     local_signing_original_value(
       self.require_current_account().map_err(issue => SigningAccount(issue)),
     )
+    // A legacy authenticated projection remains valid historical custody, but
+    // lacks this operational public identity. Never backfill or recapture it.
+    guard public_key is Some(public_key) else {
+      return Err(SigningOriginalUnavailable)
+    }
     let projection = local_signing_original_value(
       self.host.session.source_root
       .restore_private_file_projection(exported)
@@ -385,7 +413,7 @@ fn NativeLocalSigningAccountBinding::signing_key_original(
     local_signing_original_value(
       self.require_current_account().map_err(issue => SigningAccount(issue)),
     )
-    Ok({ account: self, projection, exported, generation_cid, })
+    Ok({ account: self, projection, exported, generation_cid, public_key, })
   } catch {
     LocalSigningOriginalStop(issue) => Err(issue)
   }
@@ -398,6 +426,16 @@ pub fn NativeLocalSigningKeyOriginal::generation_cid(
   self : NativeLocalSigningKeyOriginal,
 ) -> String {
   self.generation_cid
+}
+
+///|
+/// Authenticated public-byte identity only. Before an operational use, the
+/// existing key/crypto Owner must still prove actual private-key correspondence.
+/// Copied identity is not a key handle, issuer or purpose/current permission.
+pub fn NativeLocalSigningKeyOriginal::public_key_cid(
+  self : NativeLocalSigningKeyOriginal,
+) -> String {
+  self.public_key.cid()
 }
 
 ///|
@@ -422,7 +460,9 @@ pub fn NativeLocalSigningKeyOriginal::require_current_key(
       self.account.restore_signing_key_original(),
     )
     if restored.exported != self.exported ||
-      restored.generation_cid != self.generation_cid {
+      restored.generation_cid != self.generation_cid ||
+      restored.public_key.json() != self.public_key.json() ||
+      restored.public_key.cid() != self.public_key.cid() {
       return Err(SigningOriginalUnavailable)
     }
     self.account
