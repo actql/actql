@@ -13,6 +13,7 @@ test "bounded read custody preserves the original refusal without a Reader" {
   }
   assert_true(failure.issue() is InvalidLimit)
   assert_true(failure.root_cleanup_issue() is None)
+  assert_true(failure.rejected_root is None)
   failure.retry_cleanup().unwrap()
   failure.retry_cleanup().unwrap()
   assert_true(failure.issue() is InvalidLimit)
