@@ -30,7 +30,7 @@ fn infer_defaults_object_context(
   let source = @wire.admit(
     @source.parse_json(
       (
-        #|{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true},"secret":{"type":"string","nullable":false},"note_object":{"type":"object","nullable":false,"additional_properties":false,"fields":{"notes":{"type":"string","nullable":true}}}},"rows":[{"id":"a","text":"urgent","secret":"private-a","note_object":{"notes":"urgent"}},{"id":"b","text":null,"secret":"private-b","note_object":{"notes":null}}]},"as":"tickets"}
+        #|{"values":{"schema":{"id":{"type":"string","nullable":false},"secret":{"type":"string","nullable":false},"note_object":{"type":"object","nullable":false,"additional_properties":false,"fields":{"notes":{"type":"string","nullable":true}}}},"rows":[{"id":"a","secret":"private-a","note_object":{"notes":"urgent"}},{"id":"b","secret":"private-b","note_object":{"notes":null}}]},"as":"tickets"}
       ),
       construction_limits().source.source,
     ).unwrap(),
@@ -44,7 +44,7 @@ fn infer_defaults_object_context(
         relation: [{ value: "tickets", quoted: false, }],
         name: "tickets",
         source: GeneratedValues(source),
-        visible_fields: ["id", "text", "secret", "note_object"],
+        visible_fields: ["id", "secret", "note_object"],
         graph_bindings: [],
       },
     ],
@@ -56,7 +56,13 @@ fn infer_defaults_object_context(
 // reference is printed, and the original refusal is never converted to success.
 fn infer_defaults_issue_tag(issue : Issue) -> String {
   match issue {
-    Expression(diagnostic) => "Expression/" + @debug.to_string(diagnostic.issue)
+    Expression(diagnostic) =>
+      "Expression/" +
+      @debug.to_string(diagnostic.issue) +
+      "/" +
+      diagnostic.origin
+      .map(at => @origin.start(at).byte_offset.to_string())
+      .unwrap_or("unlocated")
     ExpressionTyping(issue) =>
       "ExpressionTyping/" + @debug.to_string(issue.kind)
     BindingPreparation(LocalProgram(Pipeline(_, issue)))
