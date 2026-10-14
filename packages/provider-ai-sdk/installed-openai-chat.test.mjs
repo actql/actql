@@ -48,6 +48,8 @@ function configuration() {
 
 function runtime(config) {
   const request={},provider={},entry={},cursor={};
+  const transportBounds=[config.requestLimits.maxBytes,config.responseLimits.maxBytes,
+    config.responseLimits.maxChunkBytes,config.responseLimits.maxChunks,config.responseLimits.maxHeaderBytes];
   const counts={installs:0,starts:0,steps:0,retired:0,generation:0,fetch:0,saves:0};
   const wire='{"decimal":"9007199254740993.00","text":"é\\r\\n"}';
   const moon={
@@ -70,6 +72,12 @@ function runtime(config) {
     clientProgramModelPhysicalPending:()=>({kind:'pending'}),
     clientProgramModelPhysicalUnknown:()=>({kind:'unknown'}),
     clientProgramModelPhysicalSavedChat:response=>({kind:'saved',response}),
+    // Common/profile double, not actual profile admission or physical funding.
+    clientProgramModelResponseProfileTransportMatches:(profile,...bounds)=>{
+      assert.strictEqual(profile,config.rawCaptureSelection.profile);
+      assert.deepEqual(bounds,transportBounds);
+      return true;
+    },
   };
   config.fetch=(url,init)=>{counts.fetch++;assert.equal(url,'https://fixture.invalid/v1/chat/completions');
     assert.equal(JSON.parse(init.body).messages[1].content,wire);
@@ -78,6 +86,43 @@ function runtime(config) {
   return {moon,request,provider,entry,counts};
 }
 async function until(read,predicate){for(let i=0;i<50;i++){const v=read();if(predicate(v))return v;await turn();}assert.fail('Finite private consumer did not settle');}
+
+for (const route of ['generic','original-undici']) {
+  test(`installed profile transport mismatch ${route} refuses before SDK preparation`,()=>{
+    const config=configuration(),f=runtime(config);
+    let comparisons=0;
+    f.moon.clientProgramModelResponseProfileTransportMatches=(profile,...bounds)=>{
+      comparisons++;
+      assert.strictEqual(profile,config.rawCaptureSelection.profile);
+      assert.deepEqual(bounds,[4096,1024,1024,4,128]);
+      return false; // Common/profile double only; never a capacity grant.
+    };
+    const {fetch:unused,...selected}=config;void unused;
+    const register=route==='generic'?createInstalledOpenAIChatRegistration(config)
+      :createInstalledUndiciOpenAIChatRegistration({...selected,physicalAcquisitionLimits});
+    assert.throws(()=>installModelProviders(f.moon,register),
+      {code:'OpenAIOriginalTransportLimitsMismatch'});
+    assert.equal(comparisons,1);
+    assert.equal(f.counts.starts,0);
+    assert.equal(f.counts.generation,0);
+    assert.equal(f.counts.fetch,0);
+  });
+}
+
+test('missing profile consistency runtime and non-Bool observation refuse without SDK activity',()=>{
+  for(const result of [undefined,null,0,1,{},new Boolean(true)]) {
+    const config=configuration(),f=runtime(config);
+    f.moon.clientProgramModelResponseProfileTransportMatches=()=>result;
+    assert.throws(()=>createInstalledOpenAIChatRegistration(config)(f.moon),
+      {code:'OpenAIOriginalTransportLimitsMismatch'});
+    assert.equal(f.counts.starts,0);assert.equal(f.counts.generation,0);assert.equal(f.counts.fetch,0);
+  }
+  const config=configuration(),f=runtime(config);
+  delete f.moon.clientProgramModelResponseProfileTransportMatches;
+  assert.throws(()=>createInstalledOpenAIChatRegistration(config)(f.moon),
+    {code:'OpenAIOriginalRuntimeUnavailable'});
+  assert.equal(f.counts.starts,0);assert.equal(f.counts.fetch,0);
+});
 
 test('explicit Undici facade reaches the existing SDK/async port and real loopback only after start',
   {timeout:5000},async t=>{
@@ -267,7 +312,8 @@ test('each missing consuming runtime hook rejects registration rather than faili
     'clientProgramRetireOpenAIChatProjection','clientProgramInstallAsyncModelProvider',
     'clientProgramModelRequestGeneration','clientProgramModelRequestPreflight',
     'clientProgramModelAsyncPhysicalRequestPlan','clientProgramModelPhysicalCallForRequest',
-    'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown','clientProgramModelPhysicalSavedChat']) {
+    'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown','clientProgramModelPhysicalSavedChat',
+    'clientProgramModelResponseProfileTransportMatches']) {
     const config=configuration(),f=runtime(config),register=createInstalledOpenAIChatRegistration(config);
     delete f.moon[hook];
     assert.throws(()=>installModelProviders(f.moon,register),{code:'OpenAIOriginalRuntimeUnavailable'},hook);

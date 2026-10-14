@@ -37,8 +37,9 @@ function configuration() {
     quantityCapacity:Object.freeze({limits:Object.freeze({tokens:16n,costUnits:0n,durationMs:500n}),
       perAttempt:Object.freeze({tokens:16n,costUnits:0n,durationMs:500n})}),
     projectionLimits:{maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:10000},
-    requestLimits:{maxBytes:4096,maxHeaderBytes:4096,maxHeaders:16},
-    responseLimits:{maxBytes:1024,maxChunkBytes:1024,maxChunks:4,maxHeaderBytes:128,observedHeaders:['content-type']},
+    requestLimits:{maxBytes:p.limits.request_bytes,maxHeaderBytes:4096,maxHeaders:16},
+    responseLimits:{maxBytes:p.limits.response_bytes,maxChunkBytes:p.limits.chunk_bytes,
+      maxChunks:p.limits.chunks,maxHeaderBytes:p.limits.header_bytes,observedHeaders:['content-type']},
     fetch:()=>assert.fail('No physical send'),observeAt:()=> '2026-10-13T00:00:00.000Z',observeEgress:()=>({}),
     originalMaterials:{responseProfile:{wire,cid:original.cid},policyOriginals:policies,
       readerLimits:{maxBytes:16384,maxNodes:1000,maxDepth:30,maxMembers:1000,maxWork:100000},installation,
@@ -59,8 +60,15 @@ const names=['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenA
   'clientProgramModelPhysicalUnknown','clientProgramModelPhysicalSavedChat'];
 function runtime(config) {
   const calls=[];const profile=Object.freeze({originalRuntime:{}});
+  const transportBounds=[config.requestLimits.maxBytes,config.responseLimits.maxBytes,
+    config.responseLimits.maxChunkBytes,config.responseLimits.maxChunks,config.responseLimits.maxHeaderBytes];
   const moon=Object.fromEntries(names.map(name=>[name,()=>assert.fail('No Model execution')]));
   moon.clientProgramInstallAsyncModelProvider=()=>({});
+  moon.clientProgramModelResponseProfileTransportMatches=(actual,...limits)=>{
+    assert.strictEqual(actual,profile);
+    assert.deepEqual(limits,transportBounds);
+    return true;
+  };
   moon.clientProgramReadModelResponseProfile=(...args)=>{calls.push(['profile',...args]);
     return {$tag:1,_0:profile};};
   moon.clientProgramAdmitEffectDependencyBody=(...args)=>{calls.push(['policy',...args]);
