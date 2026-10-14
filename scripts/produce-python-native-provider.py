@@ -107,7 +107,9 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                                 'src/decode_core', 'src/sha256', 'src/encode_core',
                                 'src/physical_resources', 'src/platform_native/host_bootstrap',
                                 'src/platform_native/installed_arena_control', ENTRY))]
-    inputs = source_inputs + [original(clang), original(sdk / 'SDKSettings.json')]
+    inputs = source_inputs + [original(clang), original(sdk / 'SDKSettings.json'),
+                              original(ROOT / 'toolchain.json'), original(ROOT / 'moon.mod'),
+                              original(moon_home / 'installed.json')]
     for directory in (moon_home / 'include', moon_home / 'lib/runtime',
                       ROOT / 'packages/python-local-runtime/native/pre-root', ROOT / ENTRY):
         inputs += [original(path) for path in sorted(directory.rglob('*'))
@@ -169,6 +171,9 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     for item in inputs:
         if original(Path(str(item['path']))) != item:
             raise ValueError('Original Native provider input changed during build')
+    if (run(['git', 'rev-parse', 'HEAD'], capture=True).strip() != source
+            or run(['git', 'status', '--porcelain'], capture=True)):
+        raise ValueError('Original Native provider source changed during build')
     record = {'source': source, 'target': 'aarch64-apple-darwin', 'deployment_target': '11.0',
               'emission_build_packages': 12, 'emission_link_core': 1,
               'diagnostic_debug_registry_omitted': True,
