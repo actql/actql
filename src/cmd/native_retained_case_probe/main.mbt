@@ -433,6 +433,7 @@ fn rejection_name(issue : @resources.LedgerIssue?) -> String {
     Some(@resources.ClosedReservation) => "closed-reservation"
     Some(@resources.ClosedHolding) => "closed-holding"
     Some(@resources.InvalidCharge) => "invalid-charge"
+    Some(@resources.ResourceParked) => "resource-parked"
   }
 }
 
