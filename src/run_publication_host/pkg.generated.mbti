@@ -231,6 +231,8 @@ pub fn cancel_client_model_current_state_comparison(@physical_resources.Original
 
 pub fn cancel_client_model_current_state_write(@physical_resources.OriginalCurrentStateWrite[ClientModelReadOrigin]) -> Unit
 
+pub fn capture_client_run_observation_originals(ClientCompiledRun, @run_publication.PublicationContract) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue]
+
 pub fn charge_client_keyed_lookup_verification(ClientKeyedLookupInput, ClientKeyedRequest, Int) -> Result[Unit, ClientKeyedRequestIssue]
 
 pub fn check_client_compiled_run_definition(ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, ClientCompiledRunIssue]
@@ -1684,6 +1686,8 @@ pub fn restore_client_infer_captured_input(ClientInferCapturedInput, @run_public
 pub fn restore_client_native_local_scalar_runtime_pair(Bytes, ClientNativeLocalRuntime, ClientNativeLocalRuntime, ClientLocalProductAssets, ClientLocalProductAssets) -> Result[ClientNativeLocalScalarRuntimePair, ClientNativeLocalScalarRuntimePairIssue]
 
 pub fn restore_client_retained_task_input(@remote_site_protocol.RemoteInputBinding, ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, ClientRetainedInputCurrent, Int, Int, Int, Int64) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue]
+
+pub fn restore_client_run_observation_originals(@run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue]
 
 pub fn restore_prepared_client_effect_normalization(PreparedClientEffectComputation, ClientEffectNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
 
@@ -3254,6 +3258,16 @@ pub(all) struct ClientRunMaterials {
 pub(all) enum ClientRunMaterialsIssue {
   Values(ClientValuesRunMaterialsIssue)
   Tasks(ClientTaskRunMaterialsIssue)
+}
+
+type ClientRunObservationOriginals
+pub fn ClientRunObservationOriginals::authorization(Self) -> @run_publication.RunEvidenceValue
+pub fn ClientRunObservationOriginals::prepared(Self) -> @run_publication.RunEvidenceValue
+
+pub(all) enum ClientRunObservationOriginalsIssue {
+  Compilation(ClientCompiledRunIssue)
+  Evidence(@run_publication.RunEvidenceValueIssue)
+  Binding(@run_publication.RunControlReadIssue)
 }
 
 pub(all) enum ClientRunOpenIssue {
