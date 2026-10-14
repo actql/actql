@@ -159,6 +159,27 @@ pub fn NativeLocalHostConnection::bind_run_publisher(
 pub fn NativeLocalPublisherBinding::current(
   self : NativeLocalPublisherBinding,
 ) -> Bool {
+  self.current_in_mode(false)
+}
+
+///|
+// Metadata CAS already owns this same journal TX and its full initial custody
+// scan. Joining it is private and cannot turn a supplied Bool into permission.
+fn NativeLocalPublisherBinding::current_in_owned_transaction(
+  self : NativeLocalPublisherBinding,
+) -> Bool {
+  let journal = self.authority.host.journal
+  journal.transaction_active &&
+  !journal.fenced &&
+  !journal.database.transaction_fenced() &&
+  self.current_in_mode(true)
+}
+
+///|
+fn NativeLocalPublisherBinding::current_in_mode(
+  self : NativeLocalPublisherBinding,
+  join_owned_transaction : Bool,
+) -> Bool {
   let host = self.authority.host
   if !self.authority.current_for(host.journal, self.request) ||
     host.session.source_body != self.account_body ||
@@ -173,12 +194,25 @@ pub fn NativeLocalPublisherBinding::current(
     binding == self.store_binding else {
     return false
   }
-  // The journal, not a caller Run CID, supplies the accepted definition.
-  guard host.journal.lookup(
-      self.request,
-      self.authority.current_for(host.journal, self.request),
-    )
-    is Ok(Retained(record)) &&
+  // Both paths validate the same retained record. The public path still uses
+  // its original bounded transaction; the private path joins only the actual
+  // transaction above, after its mandatory all-row custody validation.
+  if !self.authority.current_for(host.journal, self.request) {
+    return false
+  }
+  let retained = if join_owned_transaction {
+    host.journal.retained(self.request)
+  } else {
+    host.journal
+    .lookup(self.request, true)
+    .map(value => {
+      match value {
+        Retained(value) => Some(value)
+        UnresolvedHistory => None
+      }
+    })
+  }
+  guard retained is Ok(Some(record)) &&
     record.publication_binding == Some(self.store_binding) &&
     @publication.publication_contract_identity(record.definition) ==
     @publication.publication_contract_identity(self.definition) else {
