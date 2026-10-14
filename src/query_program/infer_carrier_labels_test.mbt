@@ -32,6 +32,6 @@ test "omitted INFER key retains a scoped hidden rename through row watermark" {
       context,
       true,
     )
-    is Err(_),
+    is Err(UnknownColumn),
   )
 }

@@ -3,14 +3,11 @@ fn assert_infer_label_refusal_origin(
   result : Result[@program.Program, Issue],
   offset : Int,
 ) -> Unit raise {
-  guard result
-    is Err(
-      Expression({ issue: @expression.InvalidArguments, origin: Some(at), })
-    ) else {
+  guard result is Err(InferKeyLabel(DuplicateLabel, Some(at))) else {
     match result {
       Err(issue) =>
         fail(
-          "expected the existing located InvalidArguments diagnostic: " +
+          "expected the typed located duplicate-label diagnostic: " +
           infer_defaults_issue_tag(issue),
         )
       Ok(_) => fail("expected refusal, not a completed Program")

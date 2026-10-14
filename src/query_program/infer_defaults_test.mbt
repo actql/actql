@@ -74,6 +74,13 @@ fn infer_defaults_issue_tag(issue : Issue) -> String {
     Admission(_) => "Admission"
     UnknownColumn => "UnknownColumn"
     AmbiguousColumn => "AmbiguousColumn"
+    InferKeyLabel(issue, origin) =>
+      "InferKeyLabel/" +
+      @debug.to_string(issue) +
+      "/" +
+      origin
+      .map(at => @origin.start(at).byte_offset.to_string())
+      .unwrap_or("unlocated")
     UnsupportedInfer => "UnsupportedInfer"
     InvalidContext => "InvalidContext"
     DuplicateOutput => "DuplicateOutput"
@@ -637,17 +644,26 @@ test "adopted historical key names are CID-bearing metadata" {
 }
 
 ///|
-test "historical key label collisions refuse at the original INFER without invented names" {
+test "historical key label collisions retain the original INFER token diagnostic" {
   let environment = infer_member_environment()
   let context = infer_input_field_context(environment)
-  let prefix = "FROM tickets AS old |> SET id = secret |> ASSERT UNIQUE BY (old.id, id) |> SET id = 'same' |> AS `current`"
+  let prefix = "/*😀é*/\r\nFROM tickets AS old |> SET id = secret |> ASSERT UNIQUE BY (old.id, id) |> SET id = 'same' |> AS `current`"
   for script in [false, true] {
-    let result = compile_infer_defaults(
-      prefix + " |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment",
-      context,
-      script,
-    )
-    assert_infer_label_refusal_origin(result, prefix.length() + 4)
+    guard compile_infer_defaults(
+        prefix +
+        " |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment",
+        context,
+        script,
+        source_path="key-label.sql",
+      )
+      is Err(InferKeyLabel(DuplicateLabel, Some(origin))) else {
+      fail("expected a located duplicate historical label refusal")
+    }
+    let span = @origin.span(origin)
+    assert_eq(span.source_path, "key-label.sql")
+    assert_eq(span.start_byte, 123)
+    assert_eq(span.end_byte, 128)
+    assert_eq(@origin.kind(origin), @origin.Authored)
   }
 }
 
@@ -662,20 +678,26 @@ test "inferred ITEM KEY retains case-insensitive VALUE and OUTCOME surface refus
       " |> ASSERT UNIQUE BY (" +
       quoted +
       ") |> INFER `model-task:risk-score.v1`"
-    for key in ["", " ITEM KEY (" + quoted + ")"] {
-      for script in [false, true] {
-        let result = compile_infer_defaults(
-          prefix + key + " INPUT (text) AS assessment",
+    for script in [false, true] {
+      assert_true(
+        compile_infer_defaults(
+          prefix + " INPUT (text) AS assessment",
           context,
           script,
         )
-        let before_infer = "FROM tickets |> RENAME id AS " +
-          quoted +
-          " |> ASSERT UNIQUE BY (" +
-          quoted +
-          ") |> "
-        assert_infer_label_refusal_origin(result, before_infer.length())
-      }
+        is Err(InferKeyLabel(ReservedRole, Some(_))),
+        msg=name,
+      )
+      // The explicit authored tuple retains its original refusal contract.
+      assert_true(
+        compile_infer_defaults(
+          prefix + " ITEM KEY (" + quoted + ") INPUT (text) AS assessment",
+          context,
+          script,
+        )
+        is Err(UnsupportedInfer),
+        msg=name,
+      )
     }
   }
 }

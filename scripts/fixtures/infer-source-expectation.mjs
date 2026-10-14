@@ -102,7 +102,7 @@ export const sourceCases = {
   'historical-key-original-rename': {
     source: "SELECT 7 AS id |> EXTEND 'urgent' AS text |> ASSERT UNIQUE BY (id) " +
       "|> RENAME id AS stable_id |> SET stable_id = 'same' " +
-      `|> RENAME stable_id AS replacement_id |> AS `current` ${omittedInfer}`,
+      `|> RENAME stable_id AS replacement_id |> AS \`current\` ${omittedInfer}`,
     rows: [{replacement_id: 'same', text: 'urgent',
       assessment: {...historicalOutcome, input_key: {stable_id: 7}}}],
     columns: [replacementColumn, retainedColumns[1], stableHistoricalColumn],
@@ -111,7 +111,7 @@ export const sourceCases = {
   'historical-key-composite': {
     source: "SELECT 7 AS id |> EXTEND 'urgent' AS text, 'private' AS secret " +
       "|> ASSERT UNIQUE BY (secret, id) |> SET id = 'same' " +
-      `|> RENAME id AS replacement_id |> AS `current` ${omittedInfer}`,
+      `|> RENAME id AS replacement_id |> AS \`current\` ${omittedInfer}`,
     rows: [{replacement_id: 'same', text: 'urgent', secret: 'private',
       assessment: {...historicalOutcome, input_key: {secret: 'private', id: 7}}}],
     columns: [replacementColumn, retainedColumns[1],
@@ -192,7 +192,7 @@ export const sourceRefusals = {
   'historical-key-hidden-lookup': `${historicalPrefix} ${omittedInfer} |> SELECT id`,
   'historical-key-label-collision': "SELECT 'old' AS id |> EXTEND 'urgent' AS text " +
     "|> AS old |> SET id = 'key' |> ASSERT UNIQUE BY (old.id, id) " +
-    `|> SET id = 'same' |> AS `current` ${omittedInfer}`,
+    `|> SET id = 'same' |> AS \`current\` ${omittedInfer}`,
   'omitted-key-unproven': "SELECT 'ticket-1' AS id |> EXTEND 'urgent' AS text " +
     '|> INFER `model-task:packed-risk.v1` INPUT (text = text) AS assessment',
   'omitted-key-ambiguous': `${prefix} |> ASSERT UNIQUE BY (text) ` +
