@@ -366,21 +366,43 @@ export function cancelSdkPreparation(handle) {
   state.abort();
 }
 
+// Advance only the SAME installed physical duty. This does not clear raw,
+// reader, SDK, request or Store aliases, and does not issue a Common receipt.
+function advanceOriginalPhysicalCleanup(state, transport) {
+  if (transport.physicalRetired) return true;
+  if (!transport.physicalRetiring) {
+    transport.physicalRetiring = true;
+    transport.physicalCleanup().then(retired => {
+      transport.physicalRetired = retired === true;
+    }, () => { /* Preserve the same original physical cleanup duty. */ }).finally(() => {
+      transport.physicalRetiring = false;
+      try { state.notify?.(); } catch { /* Physical wake is not Run release. */ }
+    });
+  }
+  return false;
+}
+
+// Private OriginalCall observation/progress, not a public ACK factory. Generic
+// fetch's initial physicalRetired flag is NOT an original I/O acknowledgement.
+// Successful reading must finish before normal close; cancellation/Unknown
+// retains independent raw/reader/SDK/Store custody until their actual cleanup.
+export function progressSdkOriginalIoCleanup(handle) {
+  const state = preparations.get(handle);
+  if (state === undefined) throw issue('ForeignSdkPreparation');
+  const transport = state.transport;
+  if (transport?.physicalCleanup === undefined) return undefined;
+  if (!transport.started) return false;
+  if (!transport.settled && !state.stopped) return false;
+  return advanceOriginalPhysicalCleanup(state, transport);
+}
+
 export function cleanupSdkPreparation(handle) {
   const state = preparations.get(handle);
   if (state === undefined) throw issue('ForeignSdkPreparation');
   if (state.retired) return true;
   const transport = state.transport;
   if (transport?.physicalCleanup !== undefined && !transport.physicalRetired) {
-    if (!transport.physicalRetiring) {
-      transport.physicalRetiring = true;
-      transport.physicalCleanup().then(retired => {
-        transport.physicalRetired = retired === true;
-      }, () => { /* Preserve the same original physical cleanup duty. */ }).finally(() => {
-        transport.physicalRetiring = false;
-        try { state.notify?.(); } catch { /* Close acknowledgement is not Run release. */ }
-      });
-    }
+    advanceOriginalPhysicalCleanup(state, transport);
     // Preserve request/Client/body/SDK/raw holdings until actual settlement.
     state.abort();
     return false;
