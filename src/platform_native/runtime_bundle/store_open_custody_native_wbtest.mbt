@@ -221,3 +221,24 @@ test "Bundle process release first retires its same pending verification Reader"
   store.close_checked().unwrap()
   assert_eq(bundle_close_database_attempts(store.database), 1)
 }
+
+///|
+test "Bundle process hold collision refuses before holding and preserves the foreign original" {
+  let (store, _, _, _) = native_retention_fixture("bundle-process-foreign-hold")
+  store
+  .retain(native_bundle_cid("1"), "foreign-original", "independent-kind")
+  .unwrap()
+  |> ignore
+  assert_true(
+    store.acquire_active_component_with_custody(
+      "sha256:5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f",
+      "aarch64-apple-darwin", "foreign-original",
+    )
+    is Err(RefusedBeforeHolding(HoldCollision)),
+  )
+  let original = store.inspect(native_bundle_cid("1")).unwrap().unwrap()
+  assert_eq(original.state[2], "1")
+  // The refused acquisition has no release responsibility for this foreign
+  // nominal holding. Store handle retirement preserves the durable record.
+  store.close_checked().unwrap()
+}

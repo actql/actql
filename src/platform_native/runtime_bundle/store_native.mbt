@@ -2659,9 +2659,13 @@ pub fn NativeRuntimeBundleStore::acquire_active_component_with_custody(
     Err(issue) => return Err(RefusedBeforeHolding(issue))
   }
   match
-    self.retain(binding.runtime_bundle_cid, process_hold_id, "runtime-process") {
+    self.retain_with_acquisition_stage(
+      binding.runtime_bundle_cid,
+      process_hold_id,
+      "runtime-process",
+    ) {
     Ok(_) => Ok(binding)
-    Err(issue) => Err(HoldingUnconfirmed(issue))
+    Err(original) => Err(original)
   }
 }
 
@@ -3150,14 +3154,28 @@ pub fn NativeRuntimeBundleStore::retain(
   hold_id : String,
   kind : String,
 ) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue] {
+  match self.retain_with_acquisition_stage(runtime_bundle_cid, hold_id, kind) {
+    Ok(value) => Ok(value)
+    Err(RefusedBeforeHolding(issue)) | Err(HoldingUnconfirmed(issue)) =>
+      Err(issue)
+  }
+}
+
+///|
+fn NativeRuntimeBundleStore::retain_with_acquisition_stage(
+  self : NativeRuntimeBundleStore,
+  runtime_bundle_cid : String,
+  hold_id : String,
+  kind : String,
+) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleProcessAcquireError] {
   if !bounded(hold_id, 512) ||
     !bounded(kind, 512) ||
     hold_id.has_prefix("workspace-set:") {
-    return Err(InvalidConfiguration)
+    return Err(RefusedBeforeHolding(InvalidConfiguration))
   }
   let current = match load_catalog(self) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(RefusedBeforeHolding(issue))
   }
   for entry in current.entries {
     for hold in entry.holds {
@@ -3165,12 +3183,12 @@ pub fn NativeRuntimeBundleStore::retain(
         if entry_cid(entry) == runtime_bundle_cid && hold.kind == kind {
           return Ok(snapshot(entry))
         }
-        return Err(HoldCollision)
+        return Err(RefusedBeforeHolding(HoldCollision))
       }
     }
   }
   guard entry_index(current, runtime_bundle_cid) is Some(index) else {
-    return Err(MissingBundle)
+    return Err(RefusedBeforeHolding(MissingBundle))
   }
   let entry = current.entries[index]
   let transition = match
@@ -3182,24 +3200,24 @@ pub fn NativeRuntimeBundleStore::retain(
       ),
     ) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(RefusedBeforeHolding(issue))
   }
   let holds = entry.holds.copy()
   holds.push({ hold_id, kind, binding_body: None, })
   let replacement = match
     after_transition(entry, transition, holds, entry.reclaim_pending) {
     Ok(value) => value
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(RefusedBeforeHolding(issue))
   }
   let entries = replace_entry(current.entries, index, replacement)
   let next = with_catalog_revision(current, active_cid(current), entries)
   match persist_catalog(self, current, next) {
     Ok(_) => ()
-    Err(issue) => return Err(issue)
+    Err(issue) => return Err(HoldingUnconfirmed(issue))
   }
   match bundle_result(@bundle.commit_bundle_transition(transition, true)) {
     Ok(_) => Ok(snapshot(replacement))
-    Err(issue) => Err(issue)
+    Err(issue) => Err(HoldingUnconfirmed(issue))
   }
 }
 
