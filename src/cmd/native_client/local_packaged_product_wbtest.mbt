@@ -22,10 +22,10 @@ test "packaged Local context rejects unknown fields and unbounded roots" {
 
 ///|
 test "packaged selection keeps unsupported Local controls unavailable" {
-  for command in ["adopt", "check", "aql", "read", "lookup-submission"] {
+  for command in ["adopt", "check", "aql", "run", "read", "lookup-submission"] {
     assert_true(local_product_operation(command))
   }
-  for command in ["approve", "run", "step", "pause", "reconcile"] {
+  for command in ["approve", "step", "pause", "reconcile"] {
     assert_false(local_product_operation(command))
   }
   let parsed = command().parse(argv=["--mode", "local", "adopt"])
