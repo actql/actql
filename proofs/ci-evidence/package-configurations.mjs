@@ -10,14 +10,16 @@
 // docs/reviews/2026-10-12-session-native-custody-configuration-review.md and
 // docs/reviews/2026-10-14-session-native-config-refresh-review.md and
 // docs/reviews/2026-10-14-session-native-constructor-config-review.md and
-// docs/reviews/2026-10-14-session-native-store-failure-scope-review.md.
+// docs/reviews/2026-10-14-session-native-store-failure-scope-review.md and
+// docs/reviews/2026-10-14-session-transfer-journal-selector-review.md and
+// docs/reviews/2026-10-14-session-directory-census-config-review.md.
 // Changes to this table, the toolchain or any configuration force fresh work.
 // Unknown options and other targets require separate review; matching a digest
 // is configuration identity, not a proof of compiler or OS correctness.
 // A separate exact JS foreign-library review is recorded below; it does not
 // inherit the native-options rule or authorize arbitrary package kinds.
 export const packageConfigurationReview = Object.freeze({
-  revision: '91c7cb60640b311d110181f0748d4a0fed3be4b8',
+  revision: '56c5f4aad48e9637f06b7cff09c7d399c6cd38dc',
   target: 'js',
   toolchainDigest: '8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a',
   moonRevision: '94521db',
@@ -27,7 +29,7 @@ export const packageConfigurationReview = Object.freeze({
 export const reviewedPackageConfigurations = Object.freeze({
   'src/native_values_integration/moon.pkg': '7e6c593d713e34a6c57ef95eae7e29f483b63a9f7f4ab2804e0d5106b1d009c5',
   'src/connectors/duckdb/adapters/native/moon.pkg': '7283cc7667b9293a7132672ce9edf375901ffb35eb02e25af9eb9eba55a1e89d',
-  'src/platform_native/filesystem/moon.pkg': 'eef78cb8d41b54e003391bae5336ae10282debcce65f40f2f1be96e7f87bc837',
+  'src/platform_native/filesystem/moon.pkg': '6968c40ed7d166f9d94e00af31d42654efd27afc8e7ceaca2f1aaead3a8f5e0f',
   'src/platform_native/http_client/moon.pkg': 'cc26506c7f246eaa061a9642b09d28e1317be7040338135bc0756b254182f443',
   'src/platform_native/https_server/moon.pkg': '880ad74137ab58e0f92f43465f9bc2bcd096eb2b29461b9f93d68883ed5d22bd',
   'src/platform_native/publication_store/moon.pkg': 'da2ed748a2cee398537d8be64de7e695446009fcdce04a6cf09ec69f0d9f0fa0',
@@ -36,7 +38,7 @@ export const reviewedPackageConfigurations = Object.freeze({
   'src/platform_native/remote_journal/moon.pkg': 'a16cc63e68918f4208620e6137d0d55fbb128c42b0d80723a43c6f0c86bf9602',
   'src/platform_native/remote_standard_host/moon.pkg': '14c80ec28c7c4f706f8aa55c2a73fa0c2f3023c4f91d4cb016094d0170b04f87',
   'src/platform_native/remote_transfer_client/moon.pkg': 'b026d1ada91a1f113c33df63fae999c0a05e197b2b50b0d29d9e7258d830baeb',
-  'src/platform_native/remote_transfer_journal/moon.pkg': 'da01cf66f62a1632dce894f19a8d781d3b8c7f4d822aaf71e3e1cb1d07556ffd',
+  'src/platform_native/remote_transfer_journal/moon.pkg': '4af6a1f153011554ab829bb6b494cbd8a8cf32110ed39f66de7c7974993411b5',
   'src/platform_native/retained_task_file/moon.pkg': 'e3050859982bfa2a176e04f44c08dcf073be7405e42be6f0af81f51a680347de',
   'src/platform_native/runtime_bundle/moon.pkg': 'bf180bc9b2bb454dc0b2fc7e6553a630d6b0d523eddeed95c800fde9f7bed94e',
   'src/platform_native/signature/moon.pkg': '7d5f82f21d707d93d0ad352324cbdc65b7b4eebe6c8456413430699ff084eab3',
