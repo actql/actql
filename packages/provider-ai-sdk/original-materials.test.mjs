@@ -91,6 +91,10 @@ test('materials refuse null/absent runtime readers before any physical selector 
     assert.throws(()=>createInstalledOpenAIChatRegistration(configuration())(moon),
       {code:'OpenAIOriginalRuntimeUnavailable'});
   }
+  const config=configuration(),f=runtime(config);
+  delete f.moon.clientProgramModelPhysicalSavedChat;
+  assert.throws(()=>createInstalledOpenAIChatRegistration(config)(f.moon),{code:'OpenAIOriginalRuntimeUnavailable'});
+  assert.equal(f.calls.length,0,'Missing consumer is checked before material admission');
 });
 
 test('closed materials refuse missing policy, extra opaque field and ambiguous mixed overload',()=>{

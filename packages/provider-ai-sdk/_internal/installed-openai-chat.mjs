@@ -25,6 +25,16 @@ function snapshotData(value, keys, code) {
   return Object.freeze(Object.fromEntries(entries));
 }
 const frozen = value => value!==null && typeof value==='object' && Object.isFrozen(value);
+const assertRuntime = moon => {
+  if (!['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenAIChatProjection',
+    'clientProgramRetireOpenAIChatProjection','clientProgramInstallAsyncModelProvider',
+    'clientProgramModelRequestGeneration','clientProgramModelRequestPreflight',
+    'clientProgramModelAsyncPhysicalRequestPlan','clientProgramModelPhysicalCallForRequest',
+    'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown',
+    'clientProgramModelPhysicalSavedChat'].every(name=>typeof moon?.[name]==='function')) {
+    issue('OpenAIOriginalRuntimeUnavailable');
+  }
+};
 
 // Private trusted-installation consumer, not a profile/grant factory. The Host
 // supplies already retained declaration originals; opaque Owners are borrowed,
@@ -48,9 +58,9 @@ function installedChatRegistration(config, originalUndici) {
   config=snapshotData(config,originalUndici ? selectedKeys.replace(',fetch', '') : selectedKeys,
     'InvalidInstalledOpenAIChatConfiguration');
   if (materialMode) {
-    const materials=snapshotOpenAIOriginalMaterials(config.originalMaterials);
+    let materials=snapshotOpenAIOriginalMaterials(config.originalMaterials);
     const {originalMaterials:unused,...source}=config;void unused;
-    const retained=Object.freeze({...source,
+    let retained=Object.freeze({...source,
       projectionLimits:snapshotData(source.projectionLimits,
         'maxBytes,maxDepth,maxFrames,maxNodes,maxWork','InvalidInstalledOpenAIChatProjection'),
       requestLimits:snapshotData(source.requestLimits,
@@ -63,10 +73,16 @@ function installedChatRegistration(config, originalUndici) {
     // consumer. Refuse another installation even if it shares that module.
     return moon => {
       if (installed) issue('OpenAIOriginalInstallationReused');
+      assertRuntime(moon);
       const originals=admitOpenAIOriginalMaterials(moon,materials);
       const register=installedChatRegistration({...retained,...originals},originalUndici);
       const entries=register(moon);
       installed=true;
+      // Admission/assembler overlap remains funded until it ends here. The
+      // Host retains the actual entries; this spent loader need not retain a
+      // second snapshot of their original material wires or selector config.
+      materials=undefined;
+      retained=undefined;
       return entries;
     };
   }
@@ -133,14 +149,7 @@ function installedChatRegistration(config, originalUndici) {
   const physicalFetch=originalUndici ? createOriginalUndiciFetch({
     endpoint:endpoint.href,requestLimits,responseLimits}) : fetch;
   return moon => {
-    if (!['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenAIChatProjection',
-      'clientProgramRetireOpenAIChatProjection','clientProgramInstallAsyncModelProvider',
-      'clientProgramModelRequestGeneration','clientProgramModelRequestPreflight',
-      'clientProgramModelAsyncPhysicalRequestPlan','clientProgramModelPhysicalCallForRequest',
-      'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown',
-      'clientProgramModelPhysicalSavedChat'].every(name=>typeof moon?.[name]==='function')) {
-      issue('OpenAIOriginalRuntimeUnavailable');
-    }
+    assertRuntime(moon);
     return [Object.freeze({providerId,entryPersistence:'async',
       bindingOriginals:bindings,originalReadInstallation:original,
       rawCaptureSelection:raw,quantityCapacity:quantities,observeEgress,
