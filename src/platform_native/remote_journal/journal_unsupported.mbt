@@ -304,12 +304,16 @@ pub fn Journal::cancellation_requested(
 }
 
 ///|
-pub fn Journal::close_checked(_self : Journal) -> Result[Unit, NativeRemoteJournalIssue] {
+pub fn Journal::close_checked(
+  _self : Journal,
+) -> Result[Unit, NativeRemoteJournalIssue] {
   Err(UnsupportedTarget)
 }
 
 ///|
-pub fn CoordinatorJournal::close_checked(_self : CoordinatorJournal) -> Result[Unit, NativeRemoteJournalIssue] {
+pub fn CoordinatorJournal::close_checked(
+  _self : CoordinatorJournal,
+) -> Result[Unit, NativeRemoteJournalIssue] {
   Err(UnsupportedTarget)
 }
 
