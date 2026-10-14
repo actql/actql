@@ -100,10 +100,21 @@ fn lower_infer_steps(
         slot
       }
     }
+    // The mapping value denotes this authored input occurrence, including a
+    // same-name shorthand. Retain its range through common contract typing.
+    let argument_construction = {
+      ..construction,
+      generated: @query.expression_origin(
+        expression,
+        @query.expression_root(expression),
+      ).unwrap_or(construction.generated),
+    }
     mappings.push(
       (
         input_names[argument_index],
-        construction.object([("field", construction.text(slot))]),
+        argument_construction.object([
+          ("field", argument_construction.text(slot)),
+        ]),
       ),
     )
   }

@@ -35,6 +35,9 @@ pub fn Journal::effect_catalog_use(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   match self.require(request) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -81,6 +84,9 @@ pub fn Journal::retain_effect_catalog_use(
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   if !catalog_use_matches_dispatch(request, original_grant, credential_use) {
     return Err(StateCollision)

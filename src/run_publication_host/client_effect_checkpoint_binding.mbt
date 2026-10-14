@@ -31,6 +31,19 @@ pub fn admit_client_effect_review_checkpoint_binding(
     Ok(value) => value
     Err(issue) => return Err(Checkpoint(issue))
   }
+  validate_client_effect_review_checkpoint_subject(
+    allowed, definition, artifact,
+  ).map(_ => artifact)
+}
+
+///|
+// Shared pure nominal-subject validation after the original compiled Run bind.
+// The wire reader keeps its original bind -> decode -> validation order.
+fn validate_client_effect_review_checkpoint_subject(
+  allowed : ClientEffectAllowedRun,
+  definition : @publication.PublicationContract,
+  artifact : @checkpoint.SealedCheckpoint,
+) -> Result[Unit, ClientEffectCheckpointBindingIssue] {
   let run_id = match @publication.run_definition_run_id(definition) {
     Ok(value) => value
     Err(_) => return Err(ForeignSubject)
@@ -62,5 +75,5 @@ pub fn admit_client_effect_review_checkpoint_binding(
     ) {
     return Err(OriginalLifetime)
   }
-  Ok(artifact)
+  Ok(())
 }

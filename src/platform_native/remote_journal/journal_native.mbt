@@ -1,9 +1,45 @@
 ///|
+struct NativeRemoteJournalOpenFailure {
+  original_issue : NativeRemoteJournalIssue
+  mut failed_open : @sqlite.NativeSqliteOpenFailure?
+  mut initialized_database : @sqlite.Database?
+}
+
+///|
+pub fn NativeRemoteJournalOpenFailure::issue(
+  self : NativeRemoteJournalOpenFailure,
+) -> NativeRemoteJournalIssue {
+  self.original_issue
+}
+
+///|
+/// Retire the same physical handles only. Durable dispatch/cancel/receipt/
+/// holding records and reservations are not deleted or settled by this ACK.
+pub fn NativeRemoteJournalOpenFailure::retry_cleanup(
+  self : NativeRemoteJournalOpenFailure,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if self.failed_open is Some(original) {
+    match original.retry_cleanup() {
+      Ok(_) => self.failed_open = None
+      Err(issue) => return Err(Physical(issue))
+    }
+  }
+  if self.initialized_database is Some(original) {
+    match original.close_checked() {
+      Ok(_) => self.initialized_database = None
+      Err(issue) => return Err(Physical(issue))
+    }
+  }
+  Ok(())
+}
+
+///|
 struct Journal {
   database : @sqlite.Database
   control : @remote.SiteDispatchJournal
   max_record_bytes : Int64
   mut closed : Bool
+  mut retiring : Bool
 }
 
 ///|
@@ -11,6 +47,7 @@ struct CoordinatorJournal {
   database : @sqlite.Database
   control : @remote.CoordinatorDispatchJournal
   mut closed : Bool
+  mut retiring : Bool
 }
 
 ///|
@@ -103,16 +140,63 @@ pub fn open_journal(
   max_record_bytes : Int64,
   control : @remote.SiteDispatchJournal,
 ) -> Result[Journal, NativeRemoteJournalIssue] {
-  let database = match library.open_database(path, max_record_bytes) {
+  match open_journal_with_custody(library, path, max_record_bytes, control) {
+    Ok(value) => Ok(value)
+    Err(RefusedBeforeAcquisition(issue)) => Err(issue)
+    Err(CleanupRequired(failure)) => {
+      // Legacy issue-only construction cannot hand pending custody upward.
+      // Actual bounded setup uses the explicit original-custody return port.
+      ignore(failure.retry_cleanup())
+      Err(failure.issue())
+    }
+  }
+}
+
+///|
+pub fn open_journal_with_custody(
+  library : @sqlite.Library,
+  path : String,
+  max_record_bytes : Int64,
+  control : @remote.SiteDispatchJournal,
+) -> Result[Journal, NativeRemoteJournalOpenError] {
+  if max_record_bytes < 0L {
+    return Err(RefusedBeforeAcquisition(Physical(@sqlite.InvalidLimit)))
+  }
+  // Validate the same nominal binding before physical entry. Installation
+  // below still compares the actual durable original, with no new identity.
+  match expected_site_binding(control) {
+    Ok(_) => ()
+    Err(issue) => return Err(RefusedBeforeAcquisition(issue))
+  }
+  let database = match
+    library.open_database_with_custody(path, max_record_bytes) {
     Ok(value) => value
-    Err(issue) => return Err(Physical(issue))
+    Err(original) =>
+      return Err(
+        CleanupRequired({
+          original_issue: Physical(original.issue()),
+          failed_open: Some(original),
+          initialized_database: None,
+        }),
+      )
   }
   match install_site_binding(database, control) {
-    Ok(_) => Ok({ database, control, max_record_bytes, closed: false, })
-    Err(issue) => {
-      database.close()
-      Err(issue)
-    }
+    Ok(_) =>
+      Ok({
+        database,
+        control,
+        max_record_bytes,
+        closed: false,
+        retiring: false,
+      })
+    Err(issue) =>
+      Err(
+        CleanupRequired({
+          original_issue: issue,
+          failed_open: None,
+          initialized_database: Some(database),
+        }),
+      )
   }
 }
 
@@ -128,7 +212,7 @@ pub fn open_coordinator_journal(
     Err(issue) => return Err(issue)
   }
   match library.open_database(path, max_record_bytes) {
-    Ok(database) => Ok({ database, control, closed: false, })
+    Ok(database) => Ok({ database, control, closed: false, retiring: false, })
     Err(issue) => Err(Physical(issue))
   }
 }
@@ -263,6 +347,9 @@ fn Journal::accept_with_initial_custody(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -341,6 +428,9 @@ pub fn Journal::request_cancellation(
 ) -> Result[@remote.DispatchRecord, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
@@ -497,6 +587,9 @@ pub fn Journal::cancellation_requested(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -522,6 +615,9 @@ pub fn Journal::require(
 ) -> Result[@remote.DispatchRecord, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
@@ -578,6 +674,9 @@ pub fn Journal::require_completed_cleanup(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -617,6 +716,9 @@ pub fn Journal::recover_after(
 ) -> Result[(String, @remote.DispatchRecord)?, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let entry = match self.database.scan_after("site_dispatch", after_key) {
     Ok(value) => value
@@ -695,6 +797,9 @@ pub fn Journal::restart(
 ) -> Result[Int, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   match self.begin_mutation(true) {
     Ok(_) => ()
@@ -807,6 +912,9 @@ fn Journal::persist_transition(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   if @remote.dispatch_transition_installs_managed_observation(transition) {
     return Err(Protocol(@remote.InvalidTransition))
   }
@@ -915,6 +1023,9 @@ pub fn Journal::start_claimant(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   match self.require(request) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -955,6 +1066,9 @@ pub fn Journal::claim_start(
 ) -> Result[NativeRemoteStartClaim, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   if !@remote.dispatch_transition_starts_execution(transition) ||
     !valid_start_claimant(claimant) {
@@ -1070,6 +1184,9 @@ pub fn Journal::retain_dispatch_envelope(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -1124,6 +1241,9 @@ pub fn Journal::retain_output_intent(
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let bytes = @utf8.encode(body)
   match self.begin_mutation(true) {
@@ -1181,6 +1301,9 @@ pub fn Journal::pending_output_intents(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let pending : Array[(String, String)] = []
   let mut cursor = ""
   while true {
@@ -1209,6 +1332,9 @@ pub fn Journal::complete_output_intent(
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   match self.begin_mutation(false) {
     Ok(_) => ()
@@ -1270,6 +1396,9 @@ pub fn Journal::dispatch_envelope(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   match self.database.read("site_dispatch_envelope", attempt_identity) {
     Ok(value) => Ok(Some(@utf8.decode_lossy(value.body)))
     Err(@sqlite.NotFound) => Ok(None)
@@ -1303,6 +1432,9 @@ pub fn Journal::force_loss(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let force = match
     @remote.prepare_force_loss(self.control, record, authorized) {
     Ok(value) => value
@@ -1332,6 +1464,9 @@ pub fn Journal::commit_evidence_transition(
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   if !@remote.dispatch_transition_installs_managed_observation(transition) {
     return Err(Protocol(@remote.InvalidTransition))
@@ -1451,9 +1586,27 @@ pub fn Journal::close(self : Journal) -> Bool {
   if self.closed {
     return false
   }
-  self.database.close()
-  self.closed = true
-  true
+  self.close_checked() is Ok(_)
+}
+
+///|
+/// Retain this same Journal/control/Database until physical retirement. A
+/// close intent blocks new I/O; it neither deletes durable records nor returns
+/// reservations, and failure cannot become a Closed acknowledgement.
+pub fn Journal::close_checked(
+  self : Journal,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Ok(())
+  }
+  self.retiring = true
+  match self.database.close_checked() {
+    Ok(_) => {
+      self.closed = true
+      Ok(())
+    }
+    Err(issue) => Err(Physical(issue))
+  }
 }
 
 ///|
@@ -1503,6 +1656,9 @@ pub fn CoordinatorJournal::accept(
 ] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
@@ -1577,6 +1733,9 @@ pub fn CoordinatorJournal::require(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let key = match @remote.dispatch_request_attempt_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -1609,6 +1768,9 @@ pub fn CoordinatorJournal::commit_transition(
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let key = match
     @remote.coordinator_dispatch_transition_attempt_identity(transition) {
@@ -1680,6 +1842,9 @@ pub fn CoordinatorJournal::recover_after(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   match self.database.scan_after("coordinator_dispatch", after_key) {
     Ok(entry) =>
       self
@@ -1695,7 +1860,25 @@ pub fn CoordinatorJournal::close(self : CoordinatorJournal) -> Bool {
   if self.closed {
     return false
   }
-  self.database.close()
-  self.closed = true
-  true
+  self.close_checked() is Ok(_)
+}
+
+///|
+/// Retain this same Journal/control/Database until physical retirement. A
+/// close intent blocks new I/O; it neither deletes durable records nor returns
+/// reservations, and failure cannot become a Closed acknowledgement.
+pub fn CoordinatorJournal::close_checked(
+  self : CoordinatorJournal,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if self.closed {
+    return Ok(())
+  }
+  self.retiring = true
+  match self.database.close_checked() {
+    Ok(_) => {
+      self.closed = true
+      Ok(())
+    }
+    Err(issue) => Err(Physical(issue))
+  }
 }

@@ -186,6 +186,41 @@ fn script_carrier_order(
 }
 
 ///|
+// Preserve only current logical column names through the actual checked
+// Carrier. A typed boundary retires every former row/range receiver.
+fn retain_script_carrier_column_scope(
+  sources : ScriptSources,
+  previous : String,
+  producer : String,
+  carrier : @carrier.Carrier,
+) -> Unit {
+  guard sources.ranges.get(previous) is Some(scope) && !scope.value_table else {
+    return
+  }
+  let fields = script_carrier_columns(carrier)
+  let live = Map(fields.map(field => (field, true)))
+  let visible = scope.visible.filter(column => live.contains(column.1))
+  let columns = scope.columns.filter(column => live.contains(column.1))
+  let carried = Map(columns.map(column => (column.1, true)))
+  for field in fields {
+    if !carried.contains(field) {
+      visible.push((field, field))
+      columns.push((field, field))
+    }
+  }
+  sources.ranges[producer] = {
+    visible,
+    columns,
+    value_table: false,
+    value_columns: [],
+    ranges: [],
+    star_ranges: [],
+    receivers: [],
+    scalar_ranges: [],
+  }
+}
+
+///|
 fn lower_script_carrier_calls(
   construction : Construction,
   query : @query.Query,
@@ -417,6 +452,7 @@ fn lower_script_carrier_calls(
     carrier = script_prefix_carrier(
       construction, query, context, sources, limits, steps, name,
     )
+    retain_script_carrier_column_scope(sources, input.name, name, carrier)
     input = {
       ..input,
       name,

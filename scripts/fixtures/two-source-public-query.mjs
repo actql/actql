@@ -31,21 +31,34 @@ export async function loadTwoSourceFixtures(directory) {
 export async function installTwoSourceFixtures({root, fixture, duckdb}) {
   await mkdir(root, {recursive: true});
   const databases = {}, profiles = {};
-  for (const name of ['left', 'right', 'equal_content']) {
+  const initialJoin = fixture.initialFromJoin === true;
+  const databaseNames = initialJoin ? ['left', 'right'] : ['left', 'right', 'equal_content'];
+  for (const name of databaseNames) {
+    const tagged = initialJoin && name === 'right';
+    const fields = tagged ? ['id', 'tag'] : ['id', 'amount'];
+    if (initialJoin) for (const row of fixture.rows[name]) {
+      assert.deepEqual(Object.keys(row), fields);
+      assert.equal(typeof row.id, 'number'); assert.ok(Number.isFinite(row.id));
+      if (tagged) assert.equal(typeof row.tag, 'string');
+      else assert.ok(row.amount === null || typeof row.amount === 'number' && Number.isFinite(row.amount));
+    }
     const database = databases[name] = resolve(root, `${name}.duckdb`);
     const instance = await duckdb.DuckDBInstance.create(database);
     const connection = await instance.connect();
     try {
-      await connection.run('CREATE TABLE records(id DOUBLE, amount DOUBLE)');
+      await connection.run(tagged ? 'CREATE TABLE records(id DOUBLE, tag VARCHAR)' :
+        'CREATE TABLE records(id DOUBLE, amount DOUBLE)');
       for (const row of fixture.rows[name]) {
-        await connection.run('INSERT INTO records VALUES (?, ?)', [row.id, row.amount]);
+        await connection.run('INSERT INTO records VALUES (?, ?)', fields.map(field => row[field]));
       }
     } finally { connection.closeSync(); instance.closeSync(); }
   }
-  for (const [name, source, databaseName] of [['left', 'left', 'left'],
+  const profileNames = initialJoin ? [['left', 'left', 'left'], ['right', 'right', 'right']] :
+    [['left', 'left', 'left'],
     ['right', 'right', 'right'], ['right_equal', 'right', 'equal_content'],
     ['right_missing', 'right', 'right'], ['left_broad', 'left', 'left'],
-    ['right_broad', 'right', 'right'], ['right_missing_broad', 'right', 'right']]) {
+    ['right_broad', 'right', 'right'], ['right_missing_broad', 'right', 'right']];
+  for (const [name, source, databaseName] of profileNames) {
     const environment = fixture.environments[source], database = databases[databaseName];
     const view = environment.source_views[0];
     profiles[name] = resolve(root, `${name}.profile.json`);

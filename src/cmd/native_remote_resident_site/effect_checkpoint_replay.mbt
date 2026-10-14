@@ -23,13 +23,18 @@ fn advance_effect_checkpoint_replay(
   delegation : @resident.ResidentSiteDelegation,
   generation : Int,
   cursor : Ref[String],
-  next : Map[String, UInt64],
+  next : Ref[UInt64],
   now : UInt64,
   backoff_ms : Int,
   checkpoint : (String) -> Unit,
 ) -> EffectCheckpointReplay {
   if backoff_ms < 1 {
     return Pending("", "invalid-backoff")
+  }
+  // Constant-size pacing for this report class. No request identity is kept
+  // here; the original journal and cursor retain the durable responsibility.
+  if now < next.val {
+    return Idle
   }
   let (key, record) = match journal.recover_after(cursor.val) {
     Ok(Some(value)) => value
@@ -42,9 +47,6 @@ fn advance_effect_checkpoint_replay(
   cursor.val = key
   let request = @remote.dispatch_record_request(record)
   let identity = @remote.dispatch_request_identity(request)
-  if next.get(identity) is Some(deadline) && now < deadline {
-    return Idle
-  }
   let (_, reply) = match
     journal.effect_checkpoint_report(
       request,
@@ -57,12 +59,12 @@ fn advance_effect_checkpoint_replay(
   match reply {
     Some(@remote.RemoteEffectCheckpointReply::Accepted) => return Idle
     Some(@remote.RemoteEffectCheckpointReply::Refused(reason)) => {
-      next.set(identity, now + backoff_ms.to_uint64())
+      next.val = now + backoff_ms.to_uint64()
       return Attention(identity, reason)
     }
     None => ()
   }
-  next.set(identity, now + backoff_ms.to_uint64())
+  next.val = now + backoff_ms.to_uint64()
   // Current operator delegation and the journal's current durable Site fence
   // precede HTTP I/O. A scope mismatch cannot manufacture a remote refusal.
   if @resident.check_resident_dispatch_delegation(
@@ -89,15 +91,19 @@ fn advance_effect_checkpoint_replay(
 ///|
 fn replay_effect_checkpoint_reports(
   environment : ControlEnvironment,
+  retained : Ref[ControlReplayJournalCustody?],
   client : @http.Client,
   url : String,
-  next : Map[String, UInt64],
+  next : Ref[UInt64],
   backoff_ms : Int,
   cursor : Ref[String],
   delegation : @resident.ResidentSiteDelegation,
   checkpoint : (String) -> Unit,
 ) -> Unit {
-  guard fresh_journal(environment) is Some(journal) else {
+  if @env.now() < next.val || retained.val is Some(_) {
+    return
+  }
+  guard open_control_replay_journal(environment, retained) is Some(journal) else {
     report("effect-checkpoint-recovery-pending", [("reason", "journal-open")])
     return
   }
@@ -128,7 +134,7 @@ fn replay_effect_checkpoint_reports(
         ("reason", reason),
       ])
   }
-  if !journal.close() {
+  if !retry_control_replay_journal_cleanup(retained) {
     report("effect-checkpoint-recovery-pending", [("reason", "journal-close")])
   }
 }
