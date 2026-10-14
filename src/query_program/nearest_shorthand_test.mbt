@@ -136,4 +136,7 @@ test "ambiguous implicit nearest vector is a Common input refusal" {
   assert_true(
     with_carrier_program(text, nearest_context()) is Err(InvalidQuery),
   )
+  // An explicit role removes that ambiguity through the existing owner.
+  let explicit = "WITH q AS (FROM queries |> ASSERT UNIQUE BY (request_id)), corpus AS (FROM candidates |> ASSERT UNIQUE BY (item_id) |> SELECT item_id, embedding, embedding AS alternate) FROM q |> NEAREST corpus AS c USING embedding CANDIDATE KEY (c.item_id) VECTOR c.embedding K 2 AS hit"
+  assert_true(with_carrier_program(explicit, nearest_context()) is Ok(_))
 }
