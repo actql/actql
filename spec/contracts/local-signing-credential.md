@@ -25,7 +25,17 @@ For the initial Client Local profile, `request_cid` is the original
 `ClientRequestIdentity`'s IntentFingerprint, read through
 `client_request_intent_cid`. `request_scope_cid` is the LogicalRequestScope CID
 of that same original request, read through `client_request_scope_cid`. Retain
-and authenticate the original Submission scope separately. Matching intent
+and authenticate the original Submission scope separately. For this profile,
+`submission_scope_cid` is `native_client_submission_request_id` of the reference
+read from the authenticated retained Submission and its original Run admission.
+The existing `actql-submission-identity/0.1` CID binds the original epoch CID and
+caller nonce. Neither the shared epoch CID, authority scope, logical request
+scope nor a new reference-wrapper hash can replace it. The reference getter is
+identity only; existing epoch/journal authentication and current request, Run,
+Checkpoint and control-revision checks remain mandatory around the read.
+Expired-epoch history inspection is not new-start or signing permission.
+Missing or foreign retained admission remains unavailable; an incoming
+reference's matching CID cannot repair or replace it. Matching intent
 under another logical scope denotes another request; changing intent under
 the same logical scope is a conflict. `ClientSubmittedIntent` binds submitted
 `kind/input/parameters` content and is a different identity; its CID, a Provider

@@ -54,6 +54,8 @@ pub fn charge_planning(Ledger, Int) -> Result[Unit, LedgerIssue]
 
 pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
 
+pub fn check_original_current_state_document_configuration(OriginalCurrentStateDocument, LedgerLimits, QuantityAmounts?) -> Result[Unit, OriginalStateDocumentIssue]
+
 pub fn check_original_resources_mutable(Ledger) -> Result[Unit, LedgerIssue]
 
 pub fn check_original_state_write_preparation(OriginalLedgerIdentity) -> Result[Unit, OriginalStateWriteIssue]

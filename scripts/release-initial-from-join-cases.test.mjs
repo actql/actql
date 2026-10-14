@@ -160,3 +160,35 @@ test('right schema has its own logical identity and only byte-identical shared c
   assert.equal(right.connector_catalogs[0].connector_id, 'crm/right');
   assert.equal(right.schema_snapshots[0].source_ref, 'connector://crm/right/r#v');
 });
+
+
+test('all three forms assert the same non-null key before sorting and hide it only after total order', () => {
+  for (const {text} of selectInitialFromJoinCases(vector)) {
+    assert.equal(text.split('COALESCE(amount, 0)').length - 1, 1);
+    const key = text.indexOf('EXTEND COALESCE(amount, 0) AS initial_join_amount_key');
+    const asserted = text.indexOf('ASSERT UNIQUE BY (initial_join_amount_key, tag)');
+    const sorted = text.indexOf('ORDER BY amount ASC NULLS FIRST, tag, initial_join_amount_key');
+    const projected = text.lastIndexOf('SELECT id, amount, tag');
+    assert.ok(key >= 0 && key < asserted && asserted < sorted && sorted < projected);
+    assert.doesNotMatch(text, /WHERE|DISTINCT|IS NOT NULL/);
+  }
+});
+
+test('independent rows require a nullable amount, keep every occurrence and provide distinct asserted helper tuples', () => {
+  const expected = [
+    {id: 1, amount: null, tag: 'x'}, {id: 1, amount: null, tag: 'y'},
+    {id: 1, amount: 10, tag: 'x'}, {id: 1, amount: 10, tag: 'y'},
+  ];
+  assert.deepEqual(vector.expected_rows, expected);
+  assert.equal(vector.left_rows.filter(row => row.amount === null).length, 1);
+  assert.equal(vector.left_rows.some(row => row.id === null), false);
+  assert.equal(vector.right_rows.some(row => row.id === null || row.tag === null), false);
+  const keys = expected.map(({amount, tag}) => [amount ?? 0, tag]);
+  assert.deepEqual(keys, [[0, 'x'], [0, 'y'], [10, 'x'], [10, 'y']]);
+  assert.equal(new Set(keys.map(JSON.stringify)).size, 4);
+  assert.equal(new Set(expected.map(({id, tag}) => JSON.stringify([id, tag]))).size, 2);
+  // This is an independent fixture property, not a product assertion ACK.
+  // If later Source values collide, the original assertion must refuse them.
+  const collision = [...keys, [0, 'x']];
+  assert.notEqual(new Set(collision.map(JSON.stringify)).size, collision.length);
+});

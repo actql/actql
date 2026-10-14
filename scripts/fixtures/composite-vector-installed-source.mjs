@@ -16,9 +16,13 @@ const cid = value => 'sha256:' + createHash('sha256').update(canonical(value)).d
 const registration = 'composite_fixture';
 const revision = 'composite_fixture/0.1';
 const version = 'actql-installed-composite-vector-fixture/0.1';
-// Independent authored mixed scalar/Vector schema and real composite key facts.
-export const compositeVectorSchemaWire = canonical(compositeVectorSchema);
-export const compositeVectorSchemaCid = cid(compositeVectorSchema);
+// The checked machine contract retains the authored fields and the normative
+// fixed f32 member, as in the existing Vector scalar Source installation.
+// This is declaration input, never an observed or product-generated schema.
+const checkedSchema = {...compositeVectorSchema,
+  embedding: {...compositeVectorSchema.embedding, element_type: 'f32'}};
+export const compositeVectorSchemaWire = canonical(checkedSchema);
+export const compositeVectorSchemaCid = cid(checkedSchema);
 export const compositeVectorFactsWire = canonical(compositeVectorFacts);
 export const compositeVectorFactsCid = cid(compositeVectorFacts);
 const resources = ['queries', 'candidates'];
@@ -56,7 +60,7 @@ export function createCompositeVectorPageDriver(observations) {
 
 export async function installCompositeVectorFixture({moon, helpers,
   createInstalledConnectorTable, directory}) {
-  assert.deepEqual(JSON.parse(compositeVectorSchemaWire), compositeVectorSchema);
+  assert.deepEqual(JSON.parse(compositeVectorSchemaWire), checkedSchema);
   await mkdir(directory, {recursive: true});
   const declaration = helpers.checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
     registration, registration, revision, JSON.stringify(compositeVectorViewSpecification), undefined));
