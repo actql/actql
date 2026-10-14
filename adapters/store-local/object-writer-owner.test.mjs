@@ -7,7 +7,7 @@ const digest = value => `sha256:${createHash('sha256')
   .update(value).digest('hex')}`;
 const failure = code => Object.assign(new Error(code), {code});
 
-function fixture() {
+function fixture(maxBytes = 4) {
   let held = true;
   let releases = 0;
   let closeFailures = 0;
@@ -19,9 +19,11 @@ function fixture() {
   let syncCalls = 0;
   let linked = 0;
   let size = 0;
+  const writes = [];
   const handle = {
-    async write(_bytes, _offset, length) {
+    async write(buffer, offset, length) {
       if (emptyWrites-- > 0) return {bytesWritten: 0};
+      writes.push({buffer, offset, length});
       size += length;
       return {bytesWritten: length};
     },
@@ -63,7 +65,8 @@ function fixture() {
     accountInstalled() {},
   };
   return {
-    writer: createObjectWriterOwner(4, false, reservation, operations),
+    writer: createObjectWriterOwner(maxBytes, false, reservation, operations),
+    writes: () => writes,
     failClose: () => { closeFailures++; },
     failUnlink: () => { unlinkFailures++; },
     failSync: () => { syncFailures++; },
@@ -73,6 +76,65 @@ function fixture() {
     }),
   };
 }
+
+test('queued mutable frames keep independent exact backing and original bytes',
+  async () => {
+    // These are operations doubles, not real FD/Store or Resource admission.
+    const {writer, writes} = fixture(6);
+    const buffer = Buffer.from([1, 0, 255]);
+    const source = new Uint8Array([9, 2, 0, 254, 9]);
+    const view = source.subarray(1, 4);
+    const first = writer.append(buffer);
+    const second = writer.append(view);
+    buffer.fill(7);
+    source.fill(8);
+    await Promise.all([first, second]);
+    const observed = writes();
+    assert.equal(observed.length, 2);
+    assert.deepEqual([...observed[0].buffer], [1, 0, 255]);
+    assert.deepEqual([...observed[1].buffer], [2, 0, 254]);
+    for (const write of observed) {
+      assert.equal(write.offset, 0);
+      assert.equal(write.length, 3);
+      assert.equal(write.buffer.byteOffset, 0);
+      assert.equal(write.buffer.buffer.byteLength, 3);
+      assert.notEqual(write.buffer.buffer, buffer.buffer);
+      assert.notEqual(write.buffer.buffer, source.buffer);
+    }
+    assert.notEqual(observed[0].buffer.buffer, observed[1].buffer.buffer);
+    const result = await writer.seal(digest(new Uint8Array([1, 0, 255, 2, 0, 254])));
+    assert.equal(result.bytes, 6);
+    assert.equal(writer.status().reservationHeld, false);
+  });
+
+test('string snapshot retains exact UTF8 bytes without normalization or a slab',
+  async () => {
+    const {writer, writes} = fixture();
+    await writer.append('e\u0301\0');
+    const [{buffer}] = writes();
+    assert.deepEqual([...buffer], [0x65, 0xcc, 0x81, 0]);
+    assert.equal(buffer.byteOffset, 0);
+    assert.equal(buffer.buffer.byteLength, 4);
+    const result = await writer.seal(digest(new Uint8Array([0x65, 0xcc, 0x81, 0])));
+    assert.equal(result.bytes, 4);
+    assert.equal(writer.status().reservationHeld, false);
+  });
+
+test('empty frame and one-short limit preserve the original writer and cleanup',
+  async () => {
+    const {writer, writes, counts} = fixture(3);
+    await writer.append(new Uint8Array(0));
+    await assert.rejects(writer.append('data'), {code: 'PublicationObjectLimit'});
+    assert.equal(writes().length, 0);
+    assert.equal(writer.status().bytes, 0);
+    assert.equal(writer.status().finished, false);
+    assert.equal(writer.status().reservationHeld, true);
+    await writer.append(new Uint8Array([1, 0, 255]));
+    assert.equal(writes()[0].buffer.buffer.byteLength, 3);
+    const result = await writer.seal(digest(new Uint8Array([1, 0, 255])));
+    assert.equal(result.bytes, 3);
+    assert.equal(counts().releases, 1);
+  });
 
 test('writer owner retains its reservation after close failure and retries '
     + 'only cleanup',

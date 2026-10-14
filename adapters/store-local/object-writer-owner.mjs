@@ -86,10 +86,13 @@ class ObjectWriterOwner {
       });
     }
     // Snapshot caller-owned mutable input only after its exact size is
-    // known to fit. No rejected frame can force an unbounded copy.
-    const buffer = Buffer.isBuffer(frame) ? Buffer.from(frame) :
-      frame instanceof Uint8Array ? Buffer.from(frame) :
-        Buffer.from(frame, 'utf8');
+    // known to fit. Keep a dedicated backing: a small Buffer.from copy can
+    // borrow a larger shared pool for this queued writer's whole lifetime.
+    // The original supplier still covers controls, overlapping caller bytes
+    // and pending cleanup; an exact extent is not itself a capacity grant.
+    const buffer = Buffer.allocUnsafeSlow(length);
+    if (typeof frame === 'string') buffer.write(frame, 0, length, 'utf8');
+    else buffer.set(frame);
     this.acceptedBytes += length;
     return this.queue(async () => {
       await this.ready;
