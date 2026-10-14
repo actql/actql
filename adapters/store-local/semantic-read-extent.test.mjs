@@ -78,14 +78,14 @@ async function exercise(t, {original = 'abcd', changed, maximum = 16384,
   try { result = await read('original'); }
   catch (error) { failure = error; }
   finally { restore(); }
+  t.diagnostic(JSON.stringify({allocations, stats, streams, verified, closes, hashed,
+    returnedBytes: result?.byteLength ?? null,
+    returnedBacking: result?.buffer.byteLength ?? null,
+    normalNumericProfile: null, publicE2E: 0}));
   return {result, failure, allocations,
     counts: () => ({stats, streams, verified, closes, hashed}),
     fd: () => handle.fd,
     pass() {
-      t.diagnostic(JSON.stringify({allocations, counts: this.counts(),
-        returnedBytes: result?.byteLength ?? null,
-        returnedBacking: result?.buffer.byteLength ?? null,
-        normalNumericProfile: null, publicE2E: 0}));
       passed = true;
     }};
 }
