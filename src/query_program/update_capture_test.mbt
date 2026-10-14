@@ -25,14 +25,32 @@ fn private_update_context() -> Context {
 }
 
 ///|
-fn private_update_program(body : String) -> @program.Program {
+fn private_update_issue_label(issue : Issue) -> String {
+  match issue {
+    UnknownColumn => "UnknownColumn"
+    AmbiguousColumn => "AmbiguousColumn"
+    DuplicateOutput => "DuplicateOutput"
+    UnsupportedEffect => "UnsupportedEffect"
+    Admission(_) => "Admission"
+    Construction(_) => "Construction"
+    Expression(diagnostic) => @debug.to_string(diagnostic.issue)
+    ExpressionTyping(_) => "ExpressionTyping"
+    BindingPreparation(_) => "BindingPreparation"
+    BindingPreparationSource(_, _) => "BindingPreparationSource"
+    _ => "other lowering refusal"
+  }
+}
+
+///|
+fn private_update_program(body : String) -> @program.Program raise {
   let parsed = match @query.parse_query(body, syntax_limits()) {
     Ok(parsed) => parsed
     Err(issue) => fail("UPDATE syntax refused: " + @debug.to_string(issue))
   }
   match compile(parsed, private_update_context(), construction_limits()) {
     Ok(program) => program
-    Err(issue) => fail("UPDATE compilation refused: " + @debug.to_string(issue))
+    Err(issue) =>
+      fail("UPDATE compilation refused: " + private_update_issue_label(issue))
   }
 }
 
@@ -64,7 +82,7 @@ fn private_update_fields(program : @program.Program) -> Array[String] {
 ///|
 fn private_update_static(
   program : @program.Program,
-) -> @check.EffectProgramStaticCandidate {
+) -> @check.EffectProgramStaticCandidate raise {
   let environment = update_shorthand_environment()
   let candidate = match
     @check.prepare_effect_computation_candidate(
@@ -77,7 +95,16 @@ fn private_update_static(
       100,
     ) {
     Ok(candidate) => candidate
-    Err(issue) => fail("UPDATE checker refused: " + @debug.to_string(issue))
+    Err(issue) => {
+      let reason = match issue {
+        InvalidLimits => "InvalidLimits"
+        InvalidProgram(_) => "InvalidProgram"
+        Headers(_) => "Headers"
+        MissingEffects => "MissingEffects"
+        Computation(cause) => cause.to_string()
+      }
+      fail("UPDATE checker refused: " + reason)
+    }
   }
   let mappings = @environment.check_mapping_contract_shapes(
     @check.checking_environment_wire(environment),
@@ -483,7 +510,8 @@ test "private UPDATE names avoid authored Stage and value slots" {
   )
   let program = match compiled {
     Ok(program) => program
-    Err(issue) => fail("UPDATE collision refused: " + @debug.to_string(issue))
+    Err(issue) =>
+      fail("UPDATE collision refused: " + private_update_issue_label(issue))
   }
   assert_eq(@program.export_count(program), 0)
   let stage = @program.stages(program)[0]
