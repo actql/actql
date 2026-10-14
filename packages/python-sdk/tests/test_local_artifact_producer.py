@@ -69,6 +69,7 @@ class LocalArtifactProducerTests(unittest.TestCase):
         self.image_path.write_bytes(IMAGE)
         self.image = {'source_sha': self.head, 'module_sha256': digest, 'core_abi': 73,
             'wasmtime_version': '38.0.0', 'runtime_library_sha256': RUNTIME_HASH,
+            'provider_library_sha256': json.loads(ORIGINAL)['provider_library_sha256'],
             'engine_sha256': descriptor(self.head, '0.0.0.dev0', digest)['engine_sha256'],
             'image': str(self.image_path), 'image_sha256': hash_bytes(IMAGE),
             'compiled': True, 'runtime_executed': False, 'public_local_acceptance': False}
@@ -126,7 +127,8 @@ class LocalArtifactProducerTests(unittest.TestCase):
 
     def test_foreign_or_incomplete_image_provenance_is_not_copied(self):
         for key, value in [('source_sha', '0' * 40), ('module_sha256', '0' * 64),
-                ('runtime_library_sha256', '0' * 64), ('engine_sha256', '0' * 64),
+                ('runtime_library_sha256', '0' * 64), ('provider_library_sha256', '0' * 64),
+                ('engine_sha256', '0' * 64),
                 ('compiled', 1), ('runtime_executed', True)]:
             original = self.image.copy(); self.image[key] = value; self.write_receipts()
             with self.assertRaisesRegex(ValueError, 'selected original recipe'): self.run_producer()
