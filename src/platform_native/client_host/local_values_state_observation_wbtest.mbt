@@ -563,24 +563,66 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     true,
     1004.0,
   )
-  if duplicate_admission is Err(issue) {
+  assert_true(duplicate_admission is Err(ForeignRun))
+  // The existing Owner correctly forbids reusing one exact definition CID.
+  // Ambiguity therefore needs two independently issued namespace definitions,
+  // each retained under its own authentic new Submission, not a rewritten row.
+  let alternate_reference = prepare_native_client_submission_reference(
+    token, "alternate-state-submit",
+  ).unwrap()
+  let (alternate_request, _, alternate_compilation, _) = journal_test_prepared_run(
+    duplicate_prepared,
+    alternate_reference.request_id,
+    "values-state-original",
+    scope~,
+  )
+  let alternate_compiled = @host.with_client_source_free_result_policy(
+    alternate_compilation,
+    policy_cid,
+    assets.result_policy,
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let alternate_definition = @host.issue_client_compiled_run_definition(
+    alternate_compiled, "alternate-original-namespace", "values-state-original",
+    "2026-10-10T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
+  ).unwrap()
+  reopened_journal
+  .record_submitted_intent(
+    reopened.epoch,
+    alternate_reference,
+    intent,
+    scope,
+    true,
+    1004.0,
+  )
+  .unwrap()
+  |> ignore
+  let alternate_admission = reopened_journal.accept_submitted_run(
+    reopened.epoch,
+    alternate_reference,
+    duplicate_preparation,
+    alternate_request,
+    alternate_compiled,
+    alternate_definition,
+    scope,
+    true,
+    1004.0,
+  )
+  if alternate_admission is Err(issue) {
     let kind = match issue {
       CustodyLost => "CustodyLost"
-      CapacityExceeded => "CapacityExceeded"
-      AuthorizationDenied => "AuthorizationDenied"
-      ChangedIntent => "ChangedIntent"
       ForeignRun => "ForeignRun"
-      Fenced => "Fenced"
-      TransactionUnknown => "TransactionUnknown"
+      ChangedIntent => "ChangedIntent"
+      CapacityExceeded => "CapacityExceeded"
       InvalidSubmission => "InvalidSubmission"
-      UnsupportedPreparation => "UnsupportedPreparation"
-      Start(_) => "Start"
       Epoch(_) => "Epoch"
-      SubmissionEpochRejected(_) => "SubmissionEpochRejected"
+      Start(_) => "Start"
       _ => "OtherTypedIssue"
     }
     reopened.close().unwrap() |> ignore
-    fail("duplicate fixture accept_submitted_run: " + kind)
+    fail("alternate fixture accept_submitted_run: " + kind)
   }
   assert_true(
     reopened.lookup_submitted_run_state_by_id(
