@@ -12,7 +12,7 @@ for (const selected of [true, false]) {
   test(`original startup ${selected ? 'binds actual Common Scope before refused read' : 'absence refuses before Common Scope'}`, t => {
     const coverage = mkdtempSync(join(tmpdir(), 'actql-a-original-scope-coverage-'));
     t.diagnostic(`Original coverage retained: ${coverage}`);
-    const args = [...selected ? ['--require', preload] : [], fixture, selected ? 'selected' : 'absent'];
+    const args = [...(selected ? ['--require', preload] : []), fixture, selected ? 'selected' : 'absent'];
     const result = spawnSync(process.execPath, args, {env: {PATH: process.env.PATH,
       NODE_V8_COVERAGE: coverage}, timeout: 25000, encoding: 'utf8', maxBuffer: 1024 * 1024});
     assert.equal(result.error, undefined);

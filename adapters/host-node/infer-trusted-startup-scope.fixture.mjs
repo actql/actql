@@ -6,7 +6,8 @@ import {createServer} from 'node:http';
 import {once} from 'node:events';
 import {generateKeyPairSync} from 'node:crypto';
 import {takeCoverage, stopCoverage} from 'node:v8';
-import {connect} from '../../packages/sdk/index.mjs';
+import {connect, getSubmissionOutcome} from '../../packages/sdk/index.mjs';
+import {DatabaseSync} from 'node:sqlite';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openInstalledRemoteHttpHost} from './embedded-local.mjs';
 import {canonical, cid, configuration, program} from '../../scripts/fixtures/installed-infer-fixture.mjs';
@@ -23,6 +24,7 @@ const profileSource = await readFile(new URL(
 const profileText = profileSource.match(/#\|(\{[^\n]+\})/u)[1];
 let host, server, completed = false, providerCalls = 0, preflights = 0;
 const failures = [];
+const preparationFailures = [];
 const keys = generateKeyPairSync('ed25519');
 const authorization = {
   hostKey: {keyId: 'fixture-host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})},
@@ -31,7 +33,10 @@ const authorization = {
   accountConfiguration: canonical({version: 'actql-execution-account-config/0.1', account_id: 'scope-fixture',
     entries: [{entry_id: 'allow', outcome: 'allow', principal: {all: true}, connection: {all: true},
       resource: {all: true}, operation: {all: true}, exclusions: []}]}),
-  observe(name, detail) { if (name === 'dispatch_failed') failures.push(detail); },
+  observe(name, detail) {
+    if (name === 'dispatch_failed') failures.push(detail);
+    if (name === 'infer_preparation_rejected') preparationFailures.push(detail);
+  },
 };
 try {
   const base = JSON.parse(await readFile(new URL('../../spec/local-check-environment.json', import.meta.url), 'utf8'));
@@ -42,6 +47,9 @@ try {
       const control = runtimeCore(moon).publicationControl;
       const profileBody = JSON.parse(profileText); delete profileBody.self_cid;
       profileBody.task.contract_cid = taskCid;
+      // Match the existing checked Host request ceiling, so a separate 1024
+      // fixture bound cannot mask the intentionally foreign layout identity.
+      profileBody.limits.request_bytes = 1000;
       const identity = cid(profileBody);
       const profile = control.readInstalledModelResponseProfile(canonical({...profileBody, self_cid: identity}),
         identity, {maxWireBytes: 10000, maxNodes: 1000, maxDepth: 30, maxMembers: 1000, maxWork: 100000});
@@ -83,10 +91,27 @@ try {
   await once(server, 'listening');
   const client = await connect(`actql://127.0.0.1:${server.address().port}/scope?transport=http`,
     {token: 'synthetic-only', durability: 'durable'});
-  const run = await client.start(program, {submissionRef: client.newSubmission({nonce: 'original-scope'})});
-  const terminal = await run.wait();
-  assert.notEqual(terminal.status, 'succeeded');
-  assert.equal(failures.length, 1);
+  const submissionRef = client.newSubmission({nonce: 'original-scope'});
+  if (selected) {
+    const run = await client.start(program, {submissionRef});
+    const terminal = await run.wait();
+    assert.notEqual(terminal.status, 'succeeded');
+    assert.equal(failures.length, 1);
+    assert.equal(preparationFailures.length, 0);
+  } else {
+    await assert.rejects(client.start(program, {submissionRef}), error => {
+      const outcome = getSubmissionOutcome(error);
+      assert.equal(outcome.kind, 'preparation_failed');
+      assert.equal(outcome.problem.code, 'ClientProgramUnsupported');
+      return true;
+    });
+    assert.equal(failures.length, 0, 'known missing startup never reserves dispatch start');
+    assert.equal(preparationFailures.length, 1);
+    assert.equal(preparationFailures[0].boundary, 'model_admission.original_startup');
+    const journal = new DatabaseSync(join(root, 'requests', 'client-requests.sqlite3'), {readOnly: true});
+    try { assert.equal(journal.prepare('SELECT COUNT(*) AS count FROM client_requests').get().count, 0); }
+    finally { journal.close(); }
+  }
   assert.equal(providerCalls, 0);
   assert.equal(preflights, 0);
   await host.close();
@@ -125,8 +150,10 @@ try {
     server.closeAllConnections();
     await new Promise(resolve => server.close(resolve));
   }
-  if (host !== undefined) await host.close();
-  if (completed) await rm(root, {recursive: true, force: true});
-  else console.error(`Original startup Scope fixture retained: ${root}`);
+  try { if (host !== undefined) await host.close(); }
+  finally {
+    if (completed) await rm(root, {recursive: true, force: true});
+    else console.error(`Original startup Scope fixture retained: ${root}`);
+  }
 }
 
