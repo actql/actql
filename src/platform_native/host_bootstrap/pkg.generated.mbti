@@ -12,10 +12,17 @@ pub fn[T] prepare_installed_arena_supplier(T, String, Bytes, Int64, Int64, @phys
 // Errors
 
 // Types and methods
+pub(all) enum NativeBackedDomainAcquisition[T, C] {
+  DomainReady(NativeBackedExecutionDomain[T, C])
+  DomainPending(NativeBackedExecutionDomain[T, C], NativeBackedExecutionIssue)
+}
+
 pub(all) enum NativeBackedExecutionAcquisition[T, C] {
   Lent(NativeBackedExecutionLoan[T, C])
   Pending(NativeBackedExecutionLoan[T, C], NativeBackedExecutionIssue)
 }
+
+type NativeBackedExecutionDomain[T, C]
 
 pub(all) enum NativeBackedExecutionIssue {
   Bootstrap(NativeBootstrapIssue)
@@ -69,16 +76,20 @@ pub(all) enum NativeBootstrapIssue {
 } derive(Eq, @debug.Debug)
 
 type NativeHostBootstrap[T]
+pub fn[T, C] NativeHostBootstrap::acquire_backed_domain(Self[T], T, NativeBackedExecutionView[T, C], C) -> Result[NativeBackedDomainAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::allocate(Self[T], T, Int64) -> Result[NativeBootstrapAllocation[T], NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::borrow(Self[T], T, NativeBootstrapAllocation[T]) -> Result[NativeBootstrapBorrow[T], NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::borrow_backing(Self[T], T) -> Result[NativeBootstrapBorrow[T], NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::capacity_usage(Self[T]) -> @physical_resources.SharedCapacityUsage
 pub fn[T] NativeHostBootstrap::claim(Self[T], T, String, Bytes, Int64) -> Result[Unit, NativeBootstrapIssue]
+pub fn[T, C] NativeHostBootstrap::close_backed_domain(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::close_backed_region(Self[T], T, NativeBackedExecutionRegion[T, C]) -> Result[Bool, NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::close_backed_view(Self[T], T, NativeBackedExecutionView[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::delegate(Self[T], T, @physical_resources.LedgerLimits) -> Result[NativeBootstrapDelegation[T], NativeBootstrapIssue]
+pub fn[T, C] NativeHostBootstrap::enter_backed_domain(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::enter_borrow_scope(Self[T], T, NativeBootstrapBorrow[T]) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::issue_backed_region(Self[T], T, NativeBootstrapAllocation[T]) -> Result[NativeBackedExecutionRegion[T, C], NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::leave_backed_domain(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::leave_borrow_scope(Self[T], T, NativeBootstrapBorrow[T]) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::lend_backed_region(Self[T], T, NativeBackedExecutionRegion[T, C], NativeBootstrapBorrow[T], C, @physical_resources.BackedExecutionExtent, @physical_resources.BackedExecutionAccess, @physical_resources.LedgerLimits, Int64, Int64) -> Result[NativeBackedExecutionAcquisition[T, C], NativeBackedExecutionIssue]
 pub fn[T, C] NativeHostBootstrap::map_backed_view(Self[T], T, NativeBackedExecutionLoan[T, C], C, Int) -> Result[NativeBackedViewAcquisition[T, C], NativeBackedExecutionIssue]
@@ -90,6 +101,7 @@ pub fn[T] NativeHostBootstrap::require_current(Self[T], T) -> Result[Unit, Nativ
 pub fn[T] NativeHostBootstrap::retire(Self[T], T, NativeBootstrapAllocation[T]) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::return_borrow(Self[T], T, NativeBootstrapBorrow[T]) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::settle_backed_region_after_owner_ack(Self[T], T, NativeBackedExecutionLoan[T, C], C, @physical_resources.LedgerUsage?) -> Result[Unit, NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::transfer_backed_domain(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::try_close(Self[T], T) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::usage(Self[T]) -> @physical_resources.LedgerUsage
 

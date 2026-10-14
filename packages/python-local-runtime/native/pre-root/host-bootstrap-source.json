@@ -14,13 +14,18 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_region_native.mbt",
-      "bytes": 7348,
-      "sha256": "8f93cb86edc7acc2a2f41a8fc6a33ee5264a2545352ea354df2c779ab0b42301"
+      "bytes": 7371,
+      "sha256": "031321b773f0f5156ace56c23bcde53756f0a957414f836607a6519ea70ca353"
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_view_native.mbt",
-      "bytes": 7669,
-      "sha256": "ee9b1786f71e998e5d6174b3f9eb67cd7bb2b06b9eac30912aa97efa17fe9d46"
+      "bytes": 7942,
+      "sha256": "c43e9de36446ea9a669ac4d16576ec75064702de69468b3a8b864f9ab062ff9c"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/backed_domain_native.mbt",
+      "bytes": 5872,
+      "sha256": "5eafd245e2f12f26c847ec25fe890bd6682bcf1108995ee4f9d8d6dad5e19743"
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_region_wbtest.mbt",
@@ -29,8 +34,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
-      "bytes": 11723,
-      "sha256": "c508cce6d5784a31c213fb1f79127b591f83b4b722a0ca93539f7d39ae3a2619"
+      "bytes": 13619,
+      "sha256": "ad392ae8367c110f130ae7d29b97f9492b46c357fb1b4067ed28d4c97064cefa"
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_wbtest.mbt",

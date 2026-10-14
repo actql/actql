@@ -1,0 +1,15 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/host_bootstrap_domain_conformance"
+
+// Values
+
+// Errors
+
+// Types and methods
+type DomainChild
+
+type DomainOriginal
+
+// Type aliases
+
+// Traits
