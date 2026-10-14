@@ -26,11 +26,14 @@ fn private_update_context() -> Context {
 
 ///|
 fn private_update_program(body : String) -> @program.Program {
-  compile(
-    @query.parse_query(body, syntax_limits()).unwrap(),
-    private_update_context(),
-    construction_limits(),
-  ).unwrap()
+  let parsed = match @query.parse_query(body, syntax_limits()) {
+    Ok(parsed) => parsed
+    Err(issue) => fail("UPDATE syntax refused: " + @debug.to_string(issue))
+  }
+  match compile(parsed, private_update_context(), construction_limits()) {
+    Ok(program) => program
+    Err(issue) => fail("UPDATE compilation refused: " + @debug.to_string(issue))
+  }
 }
 
 ///|
@@ -63,15 +66,19 @@ fn private_update_static(
   program : @program.Program,
 ) -> @check.EffectProgramStaticCandidate {
   let environment = update_shorthand_environment()
-  let candidate = @check.prepare_effect_computation_candidate(
-    program,
-    environment,
-    None,
-    [],
-    check_limits(),
-    1,
-    100,
-  ).unwrap()
+  let candidate = match
+    @check.prepare_effect_computation_candidate(
+      program,
+      environment,
+      None,
+      [],
+      check_limits(),
+      1,
+      100,
+    ) {
+    Ok(candidate) => candidate
+    Err(issue) => fail("UPDATE checker refused: " + @debug.to_string(issue))
+  }
   let mappings = @environment.check_mapping_contract_shapes(
     @check.checking_environment_wire(environment),
     { max_bytes: 20000, max_nodes: 2000, max_depth: 100, max_members: 100, },
@@ -466,14 +473,18 @@ test "private UPDATE names avoid authored Stage and value slots" {
       },
     ],
   }
-  let program = compile(
+  let compiled = compile(
     @query.parse_query(
       "FROM updates_source" + private_update_tail("", "Name = value + 1"),
       syntax_limits(),
     ).unwrap(),
     context,
     construction_limits(),
-  ).unwrap()
+  )
+  let program = match compiled {
+    Ok(program) => program
+    Err(issue) => fail("UPDATE collision refused: " + @debug.to_string(issue))
+  }
   assert_eq(@program.export_count(program), 0)
   let stage = @program.stages(program)[0]
   assert_eq(@program.result_names(stage), ["aql_private_update_retained"])
