@@ -65,3 +65,36 @@ test "namespace close Unknown remains on the same Root and blocks observations" 
   assert_true(root.close() is Err(Cleanup(_)))
   assert_true(root.close() is Err(Cleanup(_)))
 }
+
+///|
+// This is the already selected absolute package namespace, not open_child's
+// generic object-name domain or permission to install arbitrary scopes.
+test "selected scope directory retains its exact named and opened original" {
+  let root = open_root(
+    directory_observation_fixture("scope-exact/node_modules/@actql"),
+  ).unwrap()
+  let original = root.observe_directory().unwrap()
+  original.check_current().unwrap()
+  original.check_current().unwrap()
+  root.close().unwrap()
+  assert_true(original.check_current() is Err(GenerationMismatch))
+}
+
+///|
+test "selected scope namespace refuses a symlink and later directory replacement" {
+  // The fixture contains a symlink at the @actql component. General root-open
+  // is not the proof; the same Owner's full no-follow namespace read is.
+  let alias = open_root(
+    directory_observation_fixture("scope-alias/node_modules/@actql"),
+  ).unwrap()
+  assert_true(alias.observe_directory() is Err(GenerationMismatch))
+  alias.close().unwrap()
+  let root = open_root(
+    directory_observation_fixture("scope-replacement/node_modules/@actql"),
+  ).unwrap()
+  let original = root.observe_directory().unwrap()
+  assert_true(test_directory_replacement(root))
+  assert_true(original.check_current() is Err(GenerationMismatch))
+  assert_true(root.observe_directory() is Err(GenerationMismatch))
+  root.close().unwrap()
+}
