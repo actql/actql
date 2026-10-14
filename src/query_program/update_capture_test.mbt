@@ -27,6 +27,8 @@ fn private_update_context() -> Context {
 ///|
 fn private_update_issue_label(issue : Issue) -> String {
   match issue {
+    InvalidContext => "InvalidContext"
+    UnknownRelation => "UnknownRelation"
     UnknownColumn => "UnknownColumn"
     AmbiguousColumn => "AmbiguousColumn"
     DuplicateOutput => "DuplicateOutput"
@@ -110,7 +112,19 @@ fn private_update_static(
               "Computation.CapacityInputs"
             @check.LocalConstructionFailure::Environment(_) =>
               "Computation.Environment"
-            @check.LocalConstructionFailure::Source(_) => "Computation.Source"
+            @check.LocalConstructionFailure::Source(cause) =>
+              match cause {
+                @check.SourceFailure::Checks(_) => "Computation.Source.Checks"
+                @check.SourceFailure::Registration(_) =>
+                  "Computation.Source.Registration"
+                @check.SourceFailure::Identity(_) =>
+                  "Computation.Source.Identity"
+                @check.SourceFailure::Requests(_) =>
+                  "Computation.Source.Requests"
+                @check.SourceFailure::Declarations(_) =>
+                  "Computation.Source.Declarations"
+                _ => "Computation.Source.Other"
+              }
             @check.LocalConstructionFailure::Closure(_) => "Computation.Closure"
             @check.LocalConstructionFailure::Units(_) => "Computation.Units"
             @check.LocalConstructionFailure::Template(_, _) =>
@@ -258,7 +272,7 @@ test "UPDATE captures repeated source fields once and leaves literals sealed" {
   let program = private_update_program(
     "FROM updates_source" +
     private_update_tail(
-      "", "A = id, B = value, C = value, D = '😀\r\ntext', E = NULL",
+      "", "A = id, B = value, C = value, D = '😀\\r\\ntext', E = NULL",
     ),
   )
   assert_eq(private_update_fields(program), ["id", "value"])
@@ -495,7 +509,7 @@ test "private UPDATE names avoid authored Stage and value slots" {
   let step = @wire.admit(
     @source.parse_json(
       (
-        #|{"values":{"schema":{"id":{"type":"string","nullable":false},"value":{"type":"number","nullable":false},"aql_update_value_3":{"type":"number","nullable":false}},"rows":[{"id":"original-id","value":1,"aql_update_value_3":99}]},"as":"updates_source"}
+        #|{"values":{"schema":{"id":{"type":"string","nullable":false},"value":{"type":"number","nullable":false},"aql_update_value_3":{"type":"number","nullable":false}},"rows":[{"id":"original-id","value":1,"aql_update_value_3":99}]},"as":"aql_update_capture_4"}
       ),
       construction_limits().source.source,
     ).unwrap(),
