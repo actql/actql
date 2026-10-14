@@ -1693,6 +1693,22 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     }
   }
   while !@slot.native_termination_requested() {
+    // Retiring owns the original Store/Slot. Neither another constructor nor
+    // a poll/start/reclaim may bypass it. The existing loop supplies pacing.
+    match pending_custody {
+      Some(Retiring(original)) => {
+        pending_custody = advance_control_bundle_custody_cleanup(original)
+        @slot.native_wait_milliseconds(max_backoff_ms)
+        continue
+      }
+      Some(Unconfirmed(_)) => {
+        // No Store action is retried from a generic failure. Preserve the
+        // original duty for terminal handoff/Owner reconciliation.
+        @slot.native_wait_milliseconds(max_backoff_ms)
+        continue
+      }
+      _ => ()
+    }
     // A failed replay constructor/close owns this same original handle. Do not
     // poll, dispatch, or open another journal until its checked cleanup ACK.
     if !retry_control_replay_journal_cleanup(replay_journal) {
@@ -1956,39 +1972,28 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             }
           }
           if slot.try_acquire() == Ok(true) {
-            let result = try {
+            let original = try {
               match custody_configuration {
                 Some(configuration) =>
                   control_bundle_custody_response(
-                    matches, environment, delivery, configuration,
+                    matches, environment, delivery, configuration, slot,
                   )
-                None => Err("scope-not-configured")
+                None =>
+                  control_bundle_custody_cleanup(
+                    delivery,
+                    slot,
+                    BundleCustodyRejected("scope-not-configured"),
+                  )
               }
             } catch {
-              CommandStop(reason) => {
-                ignore(slot.close())
-                stop(reason)
-              }
+              CommandStop(reason) =>
+                control_bundle_custody_cleanup(
+                  delivery,
+                  slot,
+                  BundleCustodyRejected(reason),
+                )
             }
-            if !slot.close() {
-              stop("Bundle custody executor slot close unconfirmed")
-            }
-            match result {
-              Ok(response) => {
-                let pending = match
-                  @agent.prepare_native_bundle_custody_pending_report(
-                    delivery, response,
-                  ) {
-                  Ok(value) => value
-                  Err(_) => stop("Bundle custody response identity mismatch")
-                }
-                pending_custody = Some(Responding(pending))
-              }
-              Err(reason) => {
-                report("bundle-custody-unconfirmed", [("reason", reason)])
-                pending_custody = None
-              }
-            }
+            pending_custody = Some(Retiring(original))
           }
         }
         @slot.native_wait_milliseconds(max_backoff_ms)
@@ -2016,6 +2021,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         }
         continue
       }
+      Some(Retiring(_)) | Some(Unconfirmed(_)) => continue
       None => ()
     }
     if max_polls > 0 && polls >= max_polls {
