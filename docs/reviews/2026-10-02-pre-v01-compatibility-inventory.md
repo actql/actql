@@ -60,6 +60,31 @@ or weakened. The normative nearest operation remains in
 inventory continues to name the current typed entrypoints in
 `2026-09-23-local-resource-production-routes.json`.
 
+## Workers invocation forwarding entry retirement
+
+At main `3605d1829df24df9d826efc3e35bb5cbf462306b`,
+`adapters/workers/invocation.mjs` only re-exported `withScopedStrategy` from
+`adapters/host-common/scoped-strategy.mjs`. The common owner was established by
+[#68](https://github.com/actql/actql/pull/68). Product `local-js-host.mjs` and
+Workers `finite.mjs` already imported it directly, and the product artifact test
+already excluded the forwarding file. The `run-host-core` package's export and
+file inventories did not expose it. Bounded searches of `actql/actql-cloud`
+found no import or call; this does not prove absence of arbitrary external users.
+
+The remaining imports in Workers `async-conformance.mjs`, `conformance.mjs` and
+the Node `finalizer-fixture.mjs` now name the common owner directly. The forwarding
+file and conformance artifact allowance are removed. Its alias-identity test is
+replaced by an exact missing-module refusal test, and the artifact tests reject
+that path in every Workers profile. No compatibility loader or fallback remains.
+
+The common scoped implementation, Host entry names and diagnostic text are
+unchanged. Existing runtime snapshot and failed-finalizer fixtures retain their
+independent assertions for original causes, pending cleanup ownership, no
+successful consumption and exact finalization counts. Workerd's finalizer and
+the real conformance cases continue to use the same common owner. These are
+retained test obligations, not a claim that every suite ran for this removal.
+There is no wire, CID, retained-state, execution-authority or operational switch.
+
 ## Retained paths and concrete follow-ups
 
 ### Current managed lifecycle retirement
