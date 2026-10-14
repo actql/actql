@@ -30,6 +30,7 @@ class Fixture:
         self.library = SimpleNamespace(
             actql_control_originals_into=Function(self.capture),
             actql_control_current_into=Function(self.current),
+            actql_control_acquire_fd_into=Function(self.acquire_fd),
             actql_control_try_close_and_drop=Function(self.close),
             actql_control_drop_reply=Function(self.drop),
             actql_control_operation=Function(lambda p: self.replies[p.value][0]),
@@ -55,6 +56,12 @@ class Fixture:
         self.replies[12] = (3, 0)
         reply._obj.value = 12
         if self.current_fault: raise self.current_fault
+        return 0
+
+    def acquire_fd(self, original, descriptor, reply):
+        self.events.append(('acquire_fd', original.value, descriptor))
+        self.replies[14] = (2, 0)
+        reply._obj.value = 14
         return 0
 
     def close(self, original, reply):

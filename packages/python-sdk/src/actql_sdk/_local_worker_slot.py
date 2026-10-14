@@ -10,6 +10,7 @@ import fcntl
 import os
 from pathlib import Path
 import stat
+from typing import NoReturn
 
 from ._local_files import PhysicalFileIdentity
 from ._local_worker_funding import OriginalWorkerFunding, LocalWorkerFundingUnavailable
@@ -27,12 +28,24 @@ class _OriginalDescriptor:
     """One physical descriptor and its one-shot close observation."""
 
     def __init__(self, descriptor: int) -> None:
+        self._original = self
         self.value = descriptor
         self.closed = False
         self.close_attempted = False
         self.close_failure: BaseException | None = None
 
+    def __copy__(self) -> NoReturn:
+        raise TypeError('Original physical descriptor cannot be copied')
+
+    def __deepcopy__(self, memo: dict[int, object]) -> NoReturn:
+        raise TypeError('Original physical descriptor cannot be copied')
+
+    def __reduce__(self) -> NoReturn:
+        raise TypeError('Original physical descriptor cannot be serialized')
+
     def close(self) -> None:
+        if self._original is not self:
+            raise ValueError('Foreign original physical descriptor')
         if self.closed:
             return
         if self.close_attempted:
