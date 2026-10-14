@@ -17,10 +17,19 @@ const scalar = value => {
   if (!['string','bigint','number','boolean','undefined'].includes(typeof value) && value !== null) fail();
   return value;
 };
-const fields = names => Object.fromEntries(names.split(',').map(name => [name,scalar]));
-const shape = names => value => record(value,fields(names));
+const integer = value => {
+  if (!Number.isSafeInteger(value) || value < 0 || value > 2147483647) fail();return value;
+};
+const quantity = value => {
+  if (typeof value !== 'bigint' || value < 0n || value > 9223372036854775807n) fail();return value;
+};
+const identity = value => {
+  if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(value)) fail();return value;
+};
+const fields = (names,check=scalar) => Object.fromEntries(names.split(',').map(name => [name,check]));
+const shape = (names,check=scalar) => value => record(value,fields(names,check));
 const original = value => record(value,{
-  cid:value => {if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(value)) fail();return value;},
+  cid:identity,
   wire:value => {if (typeof value !== 'string') fail();return value;},
 });
 const installation = value => record(value,{
@@ -41,23 +50,29 @@ export function snapshotOpenAIOriginalMaterials(value) {
       }]))),
     installation,
     originalReadInstallation:value => record(value,{
-      bootstrap:shape('bootstrapExecutionBytes,bootstrapRetainedBytes,maxDelegations,maxHoldings,maxReservations'),
-      modelExecutionBytes:scalar,modelRetainedBytes:scalar,
+      bootstrap:value => record(value,{
+        ...fields('bootstrapExecutionBytes,bootstrapRetainedBytes',quantity),
+        ...fields('maxDelegations,maxHoldings,maxReservations',integer),
+      }),
+      modelExecutionBytes:quantity,modelRetainedBytes:quantity,
       nodeInstallation:value => record(value,{
-        runtimeArtifactCid:scalar,layoutArtifactCid:scalar,
-        layout:shape('barrier_cid,execution_bytes,layout_artifact_cid,parameter_values_cid,prepared_rows,program_definition_cid,retained_bytes,runtime_artifact_cid'),
+        runtimeArtifactCid:identity,layoutArtifactCid:identity,
+        layout:value => record(value,{
+          ...fields('barrier_cid,layout_artifact_cid,parameter_values_cid,program_definition_cid,runtime_artifact_cid',identity),
+          ...fields('execution_bytes,prepared_rows,retained_bytes',quantity),
+        }),
       }),
     },{
-      storeBootstrap:shape('maxDirectoryEntries,maxWireBytes'),
-      publicationCapacity:shape('retainedBytes,workspaceBytes'),
+      storeBootstrap:shape('maxDirectoryEntries,maxWireBytes',integer),
+      publicationCapacity:shape('retainedBytes,workspaceBytes',quantity),
       metadataAcquisition:value => record(value,{
-        retainedBytes:scalar,workspaceBytes:scalar,
-        metadata:shape('maxLedgerEntries,maxWireBytes'),directory:shape('maxDirectoryEntries,maxWireBytes'),
+        retainedBytes:quantity,workspaceBytes:quantity,
+        metadata:shape('maxLedgerEntries,maxWireBytes',integer),directory:shape('maxDirectoryEntries,maxWireBytes',integer),
       }),
       currentStateCodec:value => record(value,{
-        quantum:scalar,comparisonWork:scalar,decode:value => record(value,{
-          maxWork:scalar,parse:shape('max_depth,max_input_bytes,max_nodes'),
-          tree:shape('max_depth,max_nodes,max_string_bytes,max_total_string_bytes'),
+        quantum:integer,comparisonWork:integer,decode:value => record(value,{
+          maxWork:integer,parse:shape('max_depth,max_input_bytes,max_nodes',integer),
+          tree:shape('max_depth,max_nodes,max_string_bytes,max_total_string_bytes',integer),
         }),
       }),
     }),

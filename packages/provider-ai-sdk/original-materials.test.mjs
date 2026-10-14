@@ -106,6 +106,15 @@ test('closed materials refuse missing policy, extra opaque field and ambiguous m
   }
 });
 
+test('material read/layout quantities keep the existing Int64 domain before callback or selector',()=>{
+  for(const value of [1,-1n,9223372036854775808n,'1']) {
+    const config=configuration();config.originalMaterials.originalReadInstallation.nodeInstallation.layout.prepared_rows=value;
+    assert.throws(()=>createInstalledOpenAIChatRegistration(config),{code:'InvalidOpenAIOriginalMaterials'});
+  }
+  const config=configuration();config.originalMaterials.readerLimits.maxNodes=2147483648;
+  assert.throws(()=>createInstalledOpenAIChatRegistration(config),{code:'InvalidOpenAIOriginalMaterials'});
+});
+
 test('material accessors do not read secrets or original bodies',()=>{
   const config=configuration();let reads=0;
   Object.defineProperty(config.originalMaterials.responseProfile,'wire',{enumerable:true,get(){reads++;return 'secret';}});
