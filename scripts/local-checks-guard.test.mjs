@@ -862,6 +862,53 @@ test('pooled admission and release refuse a member whose worktree Owner token ch
   assert.deepEqual(locks(f), []);
 });
 
+test('partial heavy admission failure releases only its new locks and preserves other members', t => {
+  const f = fixture(t), directory = lockDirectory(f.home);
+  assert.throws(() => acquireLocalLocks({root: f.root, heavy: true,
+    heavyResources: {cpuThreads: 0}, directory}), /positive safe integers/u);
+  assert.deepEqual(locks(f), [], 'failed first construction leaves no barrier or reservation');
+  const first = acquireLocalLocks({root: f.root, heavy: true, heavyResources: tinyResources, directory});
+  const original = locks(f).sort().map(name => [name, readFileSync(join(directory.path, name), 'utf8')]);
+  const other = join(f.directory, 'other'); mkdirSync(other);
+  assert.throws(() => acquireLocalLocks({root: other, heavy: true,
+    heavyResources: {...tinyResources, cpuThreads: Number.MAX_SAFE_INTEGER}, directory}),
+  /queue\/resource pressure/u);
+  assert.deepEqual(locks(f).sort().map(name => [name, readFileSync(join(directory.path, name), 'utf8')]),
+    original, 'failed second construction cannot remove a retained member or its barrier');
+  first.release();
+  assert.deepEqual(locks(f), []);
+});
+
+test('unknown pool admission mutex is retained without acquiring a slot', t => {
+  const f = fixture(t), directory = lockDirectory(f.home);
+  const mutex = join(directory.path, 'heavy-pool-admission.lock');
+  writeFileSync(mutex, 'unknown-owner');
+  assert.throws(() => acquireLocalLocks({root: f.root, heavy: true,
+    heavyResources: tinyResources, directory}), /No automatic stale-lock removal/u);
+  assert.equal(readFileSync(mutex, 'utf8'), 'unknown-owner');
+  assert.deepEqual(locks(f), ['heavy-pool-admission.lock']);
+});
+
+test('oversized heavy member metadata refuses admission and release while preserving custody', t => {
+  const f = fixture(t), directory = lockDirectory(f.home);
+  const lock = acquireLocalLocks({root: f.root, heavy: true, heavyResources: tinyResources, directory});
+  const slot = lock.paths[1], original = readFileSync(slot, 'utf8');
+  const oversized = JSON.stringify({...JSON.parse(original), unknown: 'x'.repeat(16385)});
+  writeFileSync(slot, oversized);
+  const barrier = readFileSync(join(directory.path, 'heavy.lock'), 'utf8');
+  const other = join(f.directory, 'other'); mkdirSync(other);
+  try {
+    assert.throws(() => acquireLocalLocks({root: other, heavy: true,
+      heavyResources: tinyResources, directory}), /lock busy/u);
+    assert.throws(() => lock.release(), /lock busy/u);
+    assert.equal(readFileSync(slot, 'utf8'), oversized);
+    assert.equal(readFileSync(join(directory.path, 'heavy.lock'), 'utf8'), barrier);
+    assert.equal(locks(f).length, 3);
+  } finally { writeFileSync(slot, original); }
+  lock.release();
+  assert.deepEqual(locks(f), []);
+});
+
 test('changed pooled epoch and out-of-range slots refuse admission without reclaiming custody', t => {
   const f = fixture(t), directory = lockDirectory(f.home);
   const lock = acquireLocalLocks({root: f.root, heavy: true, heavyResources: tinyResources, directory});
