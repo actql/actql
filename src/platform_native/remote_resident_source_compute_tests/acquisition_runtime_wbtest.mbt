@@ -459,7 +459,38 @@ fn acquisition_runtime_case(
       assert_true(bundles.close().unwrap())
       return
     }
-    let owned = outcome.unwrap()
+    let owned = match outcome {
+      Ok(value) => value
+      Err(failure) => {
+        // Preserve the original failure/custody classification in a failed
+        // fixture instead of aborting before the typed boundary is observable.
+        // This diagnostic neither retries the attempt nor confirms cleanup.
+        let boundary = match failure.issue {
+          @resident.Dispatch(@resident.Materials(_)) => "dispatch-materials"
+          @resident.Dispatch(@resident.Dispatch(_)) => "dispatch-binding"
+          @resident.Dispatch(@resident.Source(_)) => "dispatch-source"
+          @resident.Dispatch(@resident.Refused(_)) => "dispatch-refused"
+          @resident.Host(@resident.Runtime(_)) => "runtime"
+          @resident.Host(@resident.Source(_)) => "host-source"
+          @resident.Host(_) => "host"
+          @resident.Compute(_) => "compute"
+          @resident.NotStartable(_) => "not-startable"
+        }
+        println(
+          "original-effect-producer-failure: " +
+          boundary +
+          "; pending-runtime=" +
+          (failure.pending_runtime is Some(_)).to_string() +
+          "; cleanup-issue=" +
+          (failure.cleanup_issue is Some(_)).to_string() +
+          "; acquisitions=" +
+          acquisitions.val.to_string() +
+          "; captures=" +
+          captures.val.to_string(),
+        )
+        fail("Original Effect producer failed at " + boundary)
+      }
+    }
     let capture_materials = owned.materials_for_capture(journal).unwrap()
     if completion_free {
       assert_eq(capture_materials.request, effect_pair.unwrap().0.request)
