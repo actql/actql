@@ -142,7 +142,7 @@ function retainModelQuantityCapacity(capacity) {
 
 // Registration remains physical Host capability. The common admission owner
 // subsequently binds the selected callback to its exact Task and prompt.
-export function installModelProviders(moon, register, assertHostRuntime) {
+export function installModelProviders(moon, register, assertHostRuntime, assertNewHostRuntime = assertHostRuntime) {
   if (register === undefined) return new Map();
   if (typeof register !== 'function') {
     throw new TypeError('InvalidInstalledModelProviderRegistration');
@@ -220,8 +220,12 @@ export function installModelProviders(moon, register, assertHostRuntime) {
           {code: 'InferTrustedRuntimeOriginalChanged'});
       }
     };
+    const assertNewTrustedRuntime = assertNewHostRuntime === undefined ? undefined : () => {
+      assertNewHostRuntime();
+      assertTrustedRuntime();
+    };
     retained = Object.freeze({provider, originalReadInstallation, rawCaptureSelection,
-      assertTrustedRuntime,
+      assertTrustedRuntime, assertNewTrustedRuntime,
       bindingOriginals,
       physicalPreflight,
       entryPersistence,

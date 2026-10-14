@@ -9,6 +9,27 @@ pub(all) struct ModelRequestPreflight {
 }
 
 ///|
+// Existing installed Owner's current predicate is a refusal fence, never a
+// caller-supplied admission/grant. Keep the original acquired child until
+// SAME Model cleanup acknowledges it, including refusal before first advance.
+// The original preparation envelope funds this wrapper/closure overlap.
+pub fn guard_model_request_preflight_current(
+  cursor : ModelRequestPreflight,
+  current : () -> Bool,
+) -> ModelRequestPreflight {
+  {
+    advance: () => {
+      if !current() {
+        Err(Cancelled)
+      } else {
+        (cursor.advance)()
+      }
+    },
+    cleanup: cursor.cleanup,
+  }
+}
+
+///|
 /// The installed adapter retains the exact prepared payload in invoke. It
 /// must not rebuild a different request at dispatch. Tokenizer/media bounds
 /// describe the complete attempt, including the possible output, not usage.

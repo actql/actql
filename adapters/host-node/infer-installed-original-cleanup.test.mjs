@@ -9,13 +9,15 @@ const {installNodeInferRun} = await import(process.env.ACTQL_ORIGINAL_CLEANUP_MO
 
 function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
   installation = false, readIssue, scopeIssue, waiting=false,
-  authorization='dispatch',cutIssue} = {}) {
+  authorization='dispatch',cutIssue,afterAuthorize} = {}) {
   const calls = [], active = {}, read = {}, scope = {}, compiled = {}, consumer = {};
   const preparedProgram = {}, graph = {};
   const runDefinition = {wire: '{"run_id":"original-cleanup"}'};
   const issue = {kind: 'OriginalFixtureBindingRefused'};
   let custody, physicalComplete = false, physicalPending = true, physicalFailure;
   let allowScope = true, stoppedRead = false, settledRead = false;
+  let hostClosing=false,scopeLive=false;
+  const runtimeView={}, scopeView={};
   let stop = stopComplete, modelCleanup = modelCleanupComplete;
   let advances=0;
   const nextIssue={kind:'NextModelAdvanceFixtureStop'};
@@ -30,6 +32,7 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
       calls.push('unownedStart'); return {$tag: 1, _0: active};
     },
     clientProgramRequireInferCallEntry: () => ({$tag: 1, _0: undefined}),
+    clientProgramBindInferPhysicalPreflightCurrent:()=>({$tag:1,_0:undefined}),
     clientProgramBindInferQuantityCapacity: () => waiting ? {$tag:1,_0:undefined}:({$tag: 0, _0: issue}),
     clientProgramCancelInferExecution() { calls.push('modelStopRequest'); },
     clientProgramInferExecutionStopped: () => stop,
@@ -61,7 +64,11 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
       assert.equal(args[3].quantityCapacity, selected.quantityCapacity);
       calls.push('scopeBegin');
       if (scopeIssue !== undefined) throw scopeIssue;
+      scopeLive=true;
       return scope;
+    },
+    checkedClientInferOriginalReadScopeLive(...args){
+      exact(...args);return args[3]===scope&&scopeLive;
     },
     prepareCheckedClientInferNodeReadLayout(...args) {
       exact(...args); assert.equal(args[3], scope); calls.push('readPrepare');
@@ -90,7 +97,7 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     finishCheckedClientInferOriginalReadScope(...args) {
       exact(...args); assert.equal(args[3], scope); assert.equal(args[4], true);
       assert.equal(settledRead || installation && readIssue !== undefined, true);
-      calls.push('scopeFinish'); return allowScope;
+      calls.push('scopeFinish');if(allowScope)scopeLive=false;return allowScope;
     },
   };
   function assertChecked(value) {
@@ -120,6 +127,25 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
   const selected = {graph, step: 0, provider() { assert.fail('no physical send'); },
     // Explicit Host-current counters, not a real runtime coverage/profile.
     currentProvider:()=>true,assertTrustedRuntime:()=>{},
+    assertNewTrustedRuntime(){
+      if(hostClosing)throw Object.assign(new Error('ClientHostClosing'),{code:'ClientHostClosing'});
+      selected.assertTrustedRuntime();
+    },
+    bindTrustedRuntimeScope(actual,actualCompiled,definition,actualGraph){
+      exact(actualCompiled,definition,actualGraph);assert.equal(actual,scope);
+      assert.equal(scopeLive,true);assert.notEqual(runtimeView,scopeView);return scopeView;
+    },
+    assertTrustedRuntimeScope(actual,view,actualCompiled,definition,actualGraph){
+      exact(actualCompiled,definition,actualGraph);assert.equal(actual,scope);
+      assert.equal(view,scopeView);assert.equal(scopeLive,true);
+      // Existing borrow ignores Host closing, not actual original loss.
+      selected.assertTrustedRuntime();
+    },
+    finishTrustedRuntimeScope(actual,view,actualCompiled,definition,actualGraph){
+      assert.equal(actual,scope);assert.equal(view,scopeView);
+      return control.finishCheckedClientInferOriginalReadScope(
+        actualCompiled,definition,actualGraph,actual,true);
+    },
     quantityCapacity: {limits: {tokens: 1n, costUnits: 0n, durationMs: 1n},
       perAttempt: {tokens: 1n, costUnits: 0n, durationMs: 1n}}};
   if (installation) selected.originalReadInstallation = retainInferOriginalReadInstallation({
@@ -143,7 +169,7 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     async open(options) {
       if(!waiting)assert.fail('a binding refusal cannot authorize a Model call');
       assert.equal(options.preparedCallSet,preparedCallSet);calls.push('openContinuation');
-      return {observe(){},entry(){},async authorize(){calls.push('authorize');return {status:authorization};},
+      return {observe(){},entry(){},async authorize(){calls.push('authorize');afterAuthorize?.();return {status:authorization};},
         async prepareOriginalResourcesForDispatch(){calls.push('originalCut');if(cutIssue!==undefined)throw cutIssue;}};
     }};
   const runInfer = installNodeInferRun({moon, core: {publicationControl: control},
@@ -160,6 +186,7 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     scopeAllowed(value) { allowScope = value; },
     modelStopped(value) { stop = value; },
     modelClean(value) { modelCleanup = value; },
+    hostClosing(value){hostClosing=value;},
     existing(value) { discovered = value; }};
 }
 
@@ -197,6 +224,24 @@ test('foreign installed provider refuses before original child allocation',async
   const f=fixture({installation:true});f.selected.currentProvider=()=>false;
   await assert.rejects(f.run(),/InferTrustedRuntimeViewUnavailable/u);
   assert.deepEqual(f.calls,[]);assert.equal(f.custody(),undefined);
+});
+
+test('Host closing refuses a new original Scope without claiming an existing borrow',async()=>{
+  const f=fixture({installation:true});f.hostClosing(true);
+  await assert.rejects(f.run(),{code:'ClientHostClosing'});
+  assert.deepEqual(f.calls,[]);assert.equal(f.custody(),undefined);
+});
+
+test('entered Run keeps its same Scope during graceful Host drain without cancellation',async()=>{
+  let f;
+  f=fixture({installation:true,waiting:true,stopComplete:false,
+    afterAuthorize:()=>f.hostClosing(true)});
+  await assert.rejects(f.run(),typed(f.nextIssue));
+  assert.equal(f.calls.filter(value=>value==='scopeBegin').length,1);
+  assert.equal(f.calls.filter(value=>value==='advance').length,2);
+  assert.equal(f.calls.includes('originalCut'),true);
+  assert.equal(f.calls.includes('modelStopRequest'),false);
+  assert.equal(f.custody().cleanupPending(),true);
 });
 
 test('runtime loss after approval keeps the same original custody and blocks another advance',async()=>{

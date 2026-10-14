@@ -228,14 +228,21 @@ async function openInstalledHost(originalInstallation) {
   let modelRuntimeClosing = false;
   let modelRuntimeView;
   let modelProviders;
+  // Nominal association in this SAME Host, not a capacity pool or Run Owner.
+  // A key is an actual Common-issued Scope; its value is retired only after
+  // that Scope's original Common cleanup succeeds.
+  const modelRuntimeScopes = new WeakMap();
   const runtimeTarget = () => `${process.version}/${process.platform}/${process.arch}` +
     `/openssl:${process.versions.openssl}/v8:${process.versions.v8}`;
   const runtimeOriginals = () => ({host, supplier: openInstalledHost,
     installation: originalInstallation, generation: host, runtime: process,
     moduleLifetime: import.meta, transport: registerModelProviders, target: runtimeTarget()});
   function assertModelRuntime() {
-    if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
     checkInferTrustedRuntimeView(modelRuntimeView, runtimeOriginals());
+  }
+  function assertNewModelRuntime() {
+    if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
+    assertModelRuntime();
   }
   function retireModelRuntime() {
     if (modelRuntimeView !== undefined) {
@@ -279,7 +286,7 @@ async function openInstalledHost(originalInstallation) {
     // Node installation only; module/native lifetime remains process-owned.
     // Managed JS/buffer/holding bounds still require the original Run Ledger.
     modelRuntimeView = issueInferTrustedRuntimeView(runtimeOriginals());
-    assertModelRuntime();
+    assertNewModelRuntime();
   }
   const moon = await import(runtimeUrl.href);
   if (modelRuntimeView !== undefined) assertModelRuntime();
@@ -288,7 +295,8 @@ async function openInstalledHost(originalInstallation) {
     control.admitSourceFreeResultPolicy(resultDataPolicy, localContractLimits);
   const evidenceConfiguration = configureInferEvidence(inferEvidence);
   modelProviders = installModelProviders(moon, registerModelProviders,
-    modelRuntimeView === undefined ? undefined : assertModelRuntime);
+    modelRuntimeView === undefined ? undefined : assertModelRuntime,
+    modelRuntimeView === undefined ? undefined : assertNewModelRuntime);
   const inferSelections = new WeakMap();
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();
@@ -1026,13 +1034,63 @@ async function openInstalledHost(originalInstallation) {
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
           currentProvider: () => modelProviders.get(providerId) === physical,
           assertTrustedRuntime: physical.assertTrustedRuntime,
+          assertNewTrustedRuntime: physical.assertNewTrustedRuntime,
+          bindTrustedRuntimeScope(scope, compiled, definition, graph) {
+            physical.assertTrustedRuntime?.();
+            if (modelRuntimeView === undefined || modelRuntimeScopes.has(scope) ||
+                typeof control.checkedClientInferOriginalReadScopeLive !== 'function' ||
+                !control.checkedClientInferOriginalReadScopeLive(compiled, definition, graph, scope)) {
+              throw clientOperationError('InferTrustedRuntimeScopeUnavailable');
+            }
+            // The caller records the actual issuer's Scope in its existing
+            // cleanup custody BEFORE this fallible private association.
+            const originals = {...runtimeOriginals(), installation: scope,
+              transport: physical.provider};
+            const view = issueInferTrustedRuntimeView(originals);
+            modelRuntimeScopes.set(scope, {view, compiled, definition, graph, physical});
+            return view;
+          },
+          assertTrustedRuntimeScope(scope, view, compiled, definition, graph) {
+            const borrowed = modelRuntimeScopes.get(scope);
+            if (borrowed?.view !== view || borrowed.compiled !== compiled ||
+                borrowed.definition !== definition || borrowed.graph !== graph ||
+                borrowed.physical !== physical) {
+              throw clientOperationError('InferTrustedRuntimeScopeUnavailable');
+            }
+            // Graceful Host closing forbids NEW Scopes, not this original
+            // live/parked Run's existing borrow. Authority stays in Core.
+            physical.assertTrustedRuntime();
+            checkInferTrustedRuntimeView(view, {...runtimeOriginals(),
+              installation: scope, transport: physical.provider});
+            if (!control.checkedClientInferOriginalReadScopeLive(compiled, definition, graph, scope)) {
+              throw clientOperationError('InferTrustedRuntimeScopeUnavailable');
+            }
+          },
+          finishTrustedRuntimeScope(scope, view, compiled, definition, graph) {
+            const borrowed = modelRuntimeScopes.get(scope);
+            if (borrowed?.view !== view || borrowed.compiled !== compiled ||
+                borrowed.definition !== definition || borrowed.graph !== graph ||
+                borrowed.physical !== physical) {
+              throw clientOperationError('InferTrustedRuntimeScopeUnavailable');
+            }
+            // Ask the SAME Common cleanup Owner directly. Non-live/current
+            // refusal is not final cleanup, and a caller Bool supplies no fact.
+            // This installed caller reaches here only after its actual children
+            // retire; Common's live-child census also prevents early release.
+            const finished = control.finishCheckedClientInferOriginalReadScope(
+              compiled, definition, graph, scope, true);
+            if (finished !== true) return false;
+            forgetInferTrustedRuntimeView(view, host, host);
+            modelRuntimeScopes.delete(scope);
+            return true;
+          },
           physicalPreflight: physical.physicalPreflight === undefined ? undefined
             : (request, ioNotification, rawCaptureBinder) => {
               physical.assertTrustedRuntime?.();
-              const value = physical.physicalPreflight(request, ioNotification,
+              // Never throw a post-factory current refusal before Common has
+              // registered this returned cursor's cleanup responsibility.
+              return physical.physicalPreflight(request, ioNotification,
                 rawCaptureBinder, admittedProvider);
-              physical.assertTrustedRuntime?.();
-              return value;
             },
           originalReadInstallation: physical.originalReadInstallation,
           rawCaptureSelection: physical.rawCaptureSelection,

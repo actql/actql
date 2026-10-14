@@ -22,6 +22,10 @@ test "checked original read scope cleanup retains failed issuance custody" {
   let scope = begin_client_model_read_scope(
     compiled, definition, plan, ledger, bootstrap, 1, 0, 0,
   ).unwrap()
+  assert_true(client_model_read_scope_live(scope, compiled, definition, plan))
+  assert_false(client_model_read_scope_live(scope, foreign, definition, plan))
+  assert_false(client_model_read_scope_live(scope, compiled, foreign_definition, plan))
+  assert_false(client_model_read_scope_live(scope, compiled, definition, foreign_plan))
   let before = @resources.ledger_usage(ledger)
   let before_quantities = @resources.quantity_usage(ledger)
   assert_true(
@@ -52,6 +56,9 @@ test "checked original read scope cleanup retains failed issuance custody" {
   assert_false(
     finish_client_model_read_scope(scope, compiled, definition, plan, false).unwrap(),
   )
+  // Actual Resource closing differs from graceful Host closing. It refuses
+  // new work but still preserves the same bootstrap and cleanup responsibility.
+  assert_false(client_model_read_scope_live(scope, compiled, definition, plan))
   assert_true(@resources.capacity_reservation_open(bootstrap))
   assert_eq(@resources.ledger_usage(ledger), before)
   // A failed descriptor issue is not reset into a new read or new serial.
@@ -63,6 +70,7 @@ test "checked original read scope cleanup retains failed issuance custody" {
     finish_client_model_read_scope(scope, compiled, definition, plan, true).unwrap(),
   )
   assert_false(@resources.capacity_reservation_open(bootstrap))
+  assert_false(client_model_read_scope_live(scope, compiled, definition, plan))
   assert_eq(@resources.quantity_usage(ledger), before_quantities)
   assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, 0L)
   assert_eq(@resources.ledger_usage(ledger).reserved_execution_bytes, 0L)

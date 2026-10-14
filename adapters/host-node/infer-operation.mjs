@@ -64,9 +64,15 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   registry, values, fragment, ordered, provider, savedCapture, savedSlots, quantityCapacity,
   physicalPreflight, egressAdmission, computeSuffix, acquiredInput, composedInput, keyedInput,
   signal, quantum = 256, observeProgress, durableCalls = false, restoredInput, retainOperation,
-  ioNotification, originalPreparation, rawCaptureBinder, serializedInput, restoredReferenceIssuer}) {
+  ioNotification, originalPreparation, rawCaptureBinder, serializedInput, restoredReferenceIssuer,
+  assertRuntimeCurrent}) {
   if (rawCaptureBinder !== undefined && typeof rawCaptureBinder !== 'function') {
     throw new TypeError('InvalidInferRawCaptureBinder');
+  }
+  if (assertRuntimeCurrent !== undefined &&
+      (originalPreparation === undefined || typeof assertRuntimeCurrent !== 'function' ||
+        typeof moon.clientProgramBindInferPhysicalPreflightCurrent !== 'function')) {
+    throw new TypeError('InferTrustedRuntimeScopeUnavailable');
   }
   let rawCaptureBound = false;
   // The original installing Run has already reserved this entire simultaneous
@@ -273,6 +279,16 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     if (!stopNotified) { stopNotified = true; io?.notify(); }
     return result;
   };
+  const runtimeCurrent = () => {
+    if (assertRuntimeCurrent === undefined) return true;
+    try { assertRuntimeCurrent(); return true; }
+    catch {
+      // Actual original currentness loss, NEVER Host closing alone. Only the
+      // existing Core stop/failure/cleanup paths drive the retained children.
+      requestStop();
+      return false;
+    }
+  };
   signal?.addEventListener('abort', requestStop, {once: true});
   let flight;
   let closeFlight;
@@ -311,6 +327,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
 
   async function drive() {
     for (;;) {
+      runtimeCurrent();
       if (closing || signal?.aborted) requestStop();
       // Arm before polling: a completion during the poll must not be lost.
       // Only Core may decide whether the notification has changed its state.
@@ -757,12 +774,16 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
           }}),
     bindModelObservation: (preparedCallSet, observe) =>
       moon.clientProgramBindInferModelObservation(active, preparedCallSet, value => {
+        // This original current check runs BEFORE one-shot gate consumption.
+        // A diagnostic callback may revoke the original; recheck after it.
+        runtimeCurrent();
         // Only the installed metadata observer is called here. Its failure
         // must not escape into invoke, admission, accounting, or cleanup.
         try {
           const facts = moon.clientProgramInferPhysicalObservationFacts(value);
           observe({slot: facts._0, attemptCid: facts._1, event: facts._2, outcome: facts._3});
         } catch { /* Optional observation has no execution authority. */ }
+        finally { runtimeCurrent(); }
       }),
     restoreCall: (preparedCallSet, slot, record, proof, bundle) => checked(
       moon.clientProgramRestoreInferPreparedCall(preparedCallSet, slot, record, proof, bundle)),
@@ -866,9 +887,11 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // physical I/O. It carries no ACK, outcome, authority or send permission.
       // The original preparation envelope funds this one callback closure and
       // its overlap with Core's retained callback; no per-poll context is made.
-      checked(moon.clientProgramBindInferPhysicalPreflight(active,
-        ioNotification === undefined ? physicalPreflight
-          : request => physicalPreflight(request, ioNotification, retainRawCaptureBinder)));
+      const prepare = ioNotification === undefined ? physicalPreflight
+        : request => physicalPreflight(request, ioNotification, retainRawCaptureBinder);
+      checked(assertRuntimeCurrent === undefined
+        ? moon.clientProgramBindInferPhysicalPreflight(active, prepare)
+        : moon.clientProgramBindInferPhysicalPreflightCurrent(active, prepare, runtimeCurrent));
     }
     if (egressAdmission !== undefined) checked(moon.clientProgramBindInferEgress(active, egressAdmission));
   } catch (error) {
