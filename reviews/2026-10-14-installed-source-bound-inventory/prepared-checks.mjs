@@ -18,6 +18,9 @@ process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false,
   timeoutSeconds: 60, graceSeconds: 5, steps: [
     {name: `Ordinary installed Source binding ${selection} controls`, command: process.execPath,
       args: ['--input-type=module', '-e', runner, '--', '--test', ...tests]},
+    ...['client-checkpoints', 'client-dispatch-owner', 'client-request-journal',
+      'embedded-local', 'installed-row-source'].map(name => ({name: `Syntax ${name}`,
+      command: process.execPath, args: ['--check', `adapters/host-node/${name}.mjs`]})),
     {name: 'Whitespace', command: 'git', args: ['diff', '--check']},
   ]});
 assert.equal(git('rev-parse', 'HEAD'), source);

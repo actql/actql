@@ -10,6 +10,7 @@ const keys = (value, expected) => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join(',') === expected.split(',').sort().join(',');
 const text = value => typeof value === 'string' && value.length > 0 &&
   value.length <= 256 && !/[\u0000-\u001f\u007f]/u.test(value);
+const ordinaryText = value => typeof value === 'string' && value.length > 0;
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
 export function validInstallationBinding(binding) {
   return keys(binding, 'connectorId,connectorRegistration,connectorRevision,bindingCid') &&
@@ -23,10 +24,10 @@ export function validBoundSourceOccurrence(item, index) {
     keys(source, 'requirementCid,sourceRef,sourceContractCid,carrierSchemaContractCid,sourceDataPolicyCid,dataClassification,sourceViewContractCid,inputContractCid,outputContractCid') &&
     [source.requirementCid, source.sourceContractCid, source.carrierSchemaContractCid,
       source.sourceDataPolicyCid, source.sourceViewContractCid, source.inputContractCid,
-      source.outputContractCid].every(cid) && text(source.sourceRef) &&
+      source.outputContractCid].every(cid) && ordinaryText(source.sourceRef) &&
     ['public', 'internal', 'confidential', 'restricted', 'unknown'].includes(source.dataClassification) &&
     keys(item.readTuple, 'connection,resource,operation') &&
-    [item.readTuple.connection, item.readTuple.resource].every(text) && item.readTuple.operation === 'read' &&
+    [item.readTuple.connection, item.readTuple.resource].every(ordinaryText) && item.readTuple.operation === 'read' &&
     validInstallationBinding(item.installationBinding) &&
     item.physicalBinding !== null && typeof item.physicalBinding === 'object' &&
     !Array.isArray(item.physicalBinding) && Object.keys(item.physicalBinding).length > 0;

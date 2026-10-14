@@ -140,8 +140,11 @@ export function validateSourceInventory(wire) {
   const keys = (object, expected) => object !== null && typeof object === 'object' &&
     !Array.isArray(object) && Object.keys(object).sort().join(',') === expected.split(',').sort().join(',');
   if (value?.version === BOUND_SOURCE_INVENTORY) {
+    let canonical;
+    try { canonical = canonicalValueJson(value, {dataKeys: true}); }
+    catch (cause) { fail('InvalidClientSourceInventory', cause); }
     if (!keys(value, 'version,environmentCid,acquisitions') || !cid(value.environmentCid) ||
-        canonicalValueJson(value, {dataKeys: true}) !== wire ||
+        canonical !== wire ||
         !Array.isArray(value.acquisitions) || value.acquisitions.length !== 2 ||
         !value.acquisitions.every(validBoundSourceOccurrence) ||
         value.acquisitions[0].checkedSource.requirementCid ===

@@ -46,6 +46,15 @@ test('ordinary bound inventory refuses noncanonical bytes and legacy shape subst
   for (const item of value.acquisitions) delete item.installationBinding;
   assert.throws(() => validateSourceInventory(wire(value)), {code: 'InvalidClientSourceInventory'});
 });
+test('ordinary bound malformed data uses the journal typed refusal', () => {
+  const value = boundSourceInventoryFixture();
+  const original = wire(value);
+  const prefix = original.replace('"fields":["id","score"]', '"fields":["id","score"],"invalid_number":1e999');
+  assert.notEqual(prefix, original);
+  assert.throws(() => validateSourceInventory(prefix), {code: 'InvalidClientSourceInventory'});
+  value.acquisitions[0].physicalBinding.path = '\ud800';
+  assert.throws(() => validateSourceInventory(JSON.stringify(value)), {code: 'InvalidClientSourceInventory'});
+});
 
 // These are descriptor/provenance controls, not execution of the row owner.
 function retainedSources() {
