@@ -348,7 +348,7 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
       16,
       1000,
     )
-    is Err(AuthorizationDenied),
+    is Err(Candidate(Publication(Store(@publication_store.Closed)))),
   )
   host.close().unwrap() |> ignore
 }
