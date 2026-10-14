@@ -9,8 +9,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_native.mbt",
-      "bytes": 13765,
-      "sha256": "89147357fc31240ef06431b706937cdc810bbd29155791a9087a09711f290e8e"
+      "bytes": 14232,
+      "sha256": "4be1e4c50e24552d472f77db02b4d945c59b06f332062e1b33780e6d7ed1b0ed"
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",

@@ -1,0 +1,6 @@
+supported_targets = "native"
+
+import {
+  "actql/actql/platform_native/host_bootstrap" @bootstrap,
+  "actql/actql/physical_resources" @resources,
+}

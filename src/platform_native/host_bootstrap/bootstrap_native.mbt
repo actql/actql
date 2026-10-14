@@ -171,6 +171,23 @@ fn[T] NativeHostBootstrap::check_original(
 }
 
 ///|
+/// Original arena availability only. This is not a VM/Run/publisher permission.
+/// An installed non-test wrapper keeps this exact Host and its original anchor.
+pub fn[T] NativeHostBootstrap::require_current(
+  self : NativeHostBootstrap[T],
+  original : T,
+) -> Result[Unit, NativeBootstrapIssue] {
+  match self.check_original(original) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !self.claimed {
+    return Err(Unavailable)
+  }
+  Ok(())
+}
+
+///|
 /// One transfer to this original installed Host. A copied reference shares this
 /// consumed state; matching source/recipe data cannot create another supplier.
 pub fn[T] NativeHostBootstrap::claim(
