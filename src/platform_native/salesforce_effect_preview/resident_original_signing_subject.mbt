@@ -2,6 +2,7 @@
 /// Read metadata only from this Review's original retained request and paired
 /// Checkpoint/capture. Disclosure permission is independently installed; these
 /// identities issue no grant, signing claim, approval or execution authority.
+/// The caller's control holding remains separate; this supplies no capacity.
 pub fn NativeResidentEffectReview::original_signing_subject(
   self : NativeResidentEffectReview,
   authorize_evidence_read : () -> Bool,
