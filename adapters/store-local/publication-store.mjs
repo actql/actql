@@ -3843,14 +3843,23 @@ export async function openLocalPublicationStore(
     let readFailed = false;
     try {
       const before = await handle.stat();
-      if (!before.isFile() || before.size > configuration.maxObjectBytes) {
+      if (!before.isFile() || !quantity(before.size) ||
+          before.size > configuration.maxObjectBytes) {
         fail('InvalidPublicationStoreObject');
       }
-      const stream = handle.createReadStream({autoClose: false});
-      for await (const chunk of stream) {
-        hash.update(chunk);
-        await accept(chunk);
-        bytes += chunk.byteLength;
+      // Bound this original FD's acquisition before allocating a stream,
+      // rather than relying on a later byte/hash check or its default HWM.
+      // A growing file cannot expand this read; the final version check still
+      // rejects it. Empty objects retain stat/hash/close without a data stream.
+      if (before.size > 0) {
+        const stream = handle.createReadStream({autoClose: false,
+          end: before.size - 1, highWaterMark: Math.min(65536, before.size)});
+        for await (const chunk of stream) {
+          if (chunk.byteLength > before.size - bytes) fail('PublicationObjectCorrupt');
+          hash.update(chunk);
+          await accept(chunk);
+          bytes += chunk.byteLength;
+        }
       }
       const after = await handle.stat();
       if (!after.isFile() || before.dev !== after.dev ||
