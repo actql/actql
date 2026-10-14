@@ -5,6 +5,11 @@ import {constants} from 'node:fs';
 import {createHash, randomUUID} from 'node:crypto';
 import {resolve} from 'node:path';
 
+// Measure the nominal view's storage, not a caller-owned length property.
+const typedArrayByteLength = Object.getOwnPropertyDescriptor(
+  Object.getPrototypeOf(Uint8Array.prototype), 'byteLength',
+).get;
+
 class ObjectWriterOwner {
   constructor(maxBytes, trackCustody, reservation, operations) {
     this.maxBytes = maxBytes;
@@ -69,7 +74,7 @@ class ObjectWriterOwner {
   append(frame) {
     let length;
     if (Buffer.isBuffer(frame) || frame instanceof Uint8Array) {
-      length = frame.byteLength;
+      length = Reflect.apply(typedArrayByteLength, frame, []);
     } else if (typeof frame === 'string') {
       length = Buffer.byteLength(frame, 'utf8');
     } else {
@@ -86,10 +91,13 @@ class ObjectWriterOwner {
       });
     }
     // Snapshot caller-owned mutable input only after its exact size is
-    // known to fit. No rejected frame can force an unbounded copy.
-    const buffer = Buffer.isBuffer(frame) ? Buffer.from(frame) :
-      frame instanceof Uint8Array ? Buffer.from(frame) :
-        Buffer.from(frame, 'utf8');
+    // known to fit. Keep a dedicated backing: a small Buffer.from copy can
+    // borrow a larger shared pool for this queued writer's whole lifetime.
+    // The original supplier still covers controls, overlapping caller bytes
+    // and pending cleanup; an exact extent is not itself a capacity grant.
+    const buffer = Buffer.allocUnsafeSlow(length);
+    if (typeof frame === 'string') buffer.write(frame, 0, length, 'utf8');
+    else buffer.set(frame);
     this.acceptedBytes += length;
     return this.queue(async () => {
       await this.ready;
