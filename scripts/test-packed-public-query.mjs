@@ -28,7 +28,8 @@ function run(command, args, cwd = root, env = environment,
 }
 console.log(`Packed public-query evidence: ${directory}`);
 console.log(run(process.execPath, ['--test', 'scripts/analytic-offset-profiles.test.mjs',
-  'scripts/public-query-profiles.test.mjs', 'scripts/packed-query-transports.test.mjs'],
+  'scripts/public-query-profiles.test.mjs', 'scripts/packed-query-transports.test.mjs',
+  'scripts/graph-argument-check.test.mjs', 'scripts/graph-argument-origin-literals.test.mjs'],
   repository).trimEnd());
 const packages = ['client-wire', 'sdk', 'run-host-core', 'local-node', 'node'];
 for (const name of packages) {
@@ -56,6 +57,8 @@ for (const [source, destination] of [
   ['scripts/fixtures/pipe-pivot-source-input.mjs', 'pipe-pivot-source-input.mjs'],
   ['scripts/fixtures/match-with-producer-source-input.mjs', 'match-with-producer-source-input.mjs'],
   ['scripts/fixtures/unaliased-column-origin.mjs', 'unaliased-column-origin.mjs'],
+  ['scripts/fixtures/graph-argument-check.mjs', 'graph-argument-check.mjs'],
+  ['scripts/fixtures/graph-argument-origin-literals.json', 'graph-argument-origin-literals.json'],
   ['scripts/fixtures/countif-distinct-source-input.mjs', 'countif-distinct-source-input.mjs'],
   ['scripts/fixtures/min-max-distinct-source-input.mjs', 'min-max-distinct-source-input.mjs'],
   ['scripts/fixtures/negated-predicate-reuse-source-input.mjs', 'negated-predicate-reuse-source-input.mjs'],
@@ -828,6 +831,8 @@ async function retainTransportReports(names, succeeded, primary, indexName) {
   } catch (error) { failed(indexName, error); }
   if (evidenceFailure !== undefined) throw evidenceFailure;
 }
+const graphArgumentChecksSelected = runtimeEnvironment.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY === '1' ||
+  !process.argv.some(flag => flag.endsWith('-only'));
 let acceptanceStarted = false, acceptanceSucceeded = false, packedFailure;
 try {
   if (!plannerSelectionOnly && !twoSourceExampleOnly) {
@@ -857,6 +862,8 @@ try {
 } finally {
   if (acceptanceStarted) {
     const reports = ['transport-processes.json',
+      ...(graphArgumentChecksSelected
+        ? ['graph-argument-check.local.json', 'graph-argument-check.remote.json'] : []),
       ...(process.argv.includes('--vector-scalar-only')
         ? ['vector-scalar-receipts.local.json', 'vector-scalar-receipts.remote.json'] : []),
       ...((process.argv.includes('--window-group-only') ||
