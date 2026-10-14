@@ -68,6 +68,8 @@ import {installNodeClientDispatchOwner, confirmNodeRunCancellation, cancelNodeRu
   observeNodeRestoredModelStop, recordNodeRunPhysicalStop} from './client-dispatch-owner.mjs';
 import {retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
+import {issueInferTrustedRuntimeView, checkInferTrustedRuntimeView,
+  forgetInferTrustedRuntimeView} from './infer-trusted-runtime-view.mjs';
 import {composeInstalledCheckEnvironment,
   verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
@@ -212,12 +214,41 @@ function validateSourceNamespace(value) {
   }
 }
 
-async function openInstalledHost({root, mode = 'local', beforeDispatch, workspaceId,
+async function openInstalledHost(originalInstallation) {
+  let {root, mode = 'local', beforeDispatch, workspaceId,
   authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
   effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
   modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence, hostCapacityPolicy,
   hostLookupExecutionPolicy, verifyRequestValuePolicy,
-  retainedRelationOutput = false, valuesMaxRows, observation: observationConnection}) {
+  retainedRelationOutput = false, valuesMaxRows, observation: observationConnection} = originalInstallation;
+  // This is the actual returned Host generation, not a CID/configuration
+  // stand-in or another resource Owner. The installer covers native/process
+  // domains as trusted implementation responsibility, NOT zero bytes or RSS.
+  const host = {};
+  let modelRuntimeClosing = false;
+  let modelRuntimeView;
+  let modelProviders;
+  const runtimeTarget = () => `${process.version}/${process.platform}/${process.arch}` +
+    `/openssl:${process.versions.openssl}/v8:${process.versions.v8}`;
+  const runtimeOriginals = () => ({host, supplier: openInstalledHost,
+    installation: originalInstallation, generation: host, runtime: process,
+    moduleLifetime: import.meta, transport: registerModelProviders, target: runtimeTarget()});
+  function assertModelRuntime() {
+    if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
+    checkInferTrustedRuntimeView(modelRuntimeView, runtimeOriginals());
+  }
+  function retireModelRuntime() {
+    if (modelRuntimeView !== undefined) {
+      forgetInferTrustedRuntimeView(modelRuntimeView, host, host);
+    }
+    modelRuntimeView = undefined;
+    // Drop the installer's borrowed configuration/callback and table links
+    // only at the same final cleanup boundary. This is NOT process/native ACK.
+    originalInstallation = undefined;
+    registerModelProviders = undefined;
+    modelProviders?.clear();
+  }
+  try {
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
   if (connectorTable !== undefined) assertInstalledConnectorTable(connectorTable);
@@ -241,12 +272,23 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     throw new TypeError('InvalidInstalledEffectSite');
   }
   await admitHostRootFormat(root);
+  if (registerModelProviders !== undefined && process.version === 'v22.22.0' &&
+      process.platform === 'darwin' && process.arch === 'arm64' &&
+      process.versions.openssl === '3.5.4') {
+    // Issue before loading the runtime/provider table. This is the selected
+    // Node installation only; module/native lifetime remains process-owned.
+    // Managed JS/buffer/holding bounds still require the original Run Ledger.
+    modelRuntimeView = issueInferTrustedRuntimeView(runtimeOriginals());
+    assertModelRuntime();
+  }
   const moon = await import(runtimeUrl.href);
+  if (modelRuntimeView !== undefined) assertModelRuntime();
   const control = runtimeCore(moon).publicationControl;
   const installedResultDataPolicy = resultDataPolicy === undefined ? undefined :
     control.admitSourceFreeResultPolicy(resultDataPolicy, localContractLimits);
   const evidenceConfiguration = configureInferEvidence(inferEvidence);
-  const modelProviders = installModelProviders(moon, registerModelProviders);
+  modelProviders = installModelProviders(moon, registerModelProviders,
+    modelRuntimeView === undefined ? undefined : assertModelRuntime);
   const inferSelections = new WeakMap();
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();
@@ -983,10 +1025,15 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
           provider: moon.clientProgramAdmittedModelProvider(admittedProvider, execution),
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
           currentProvider: () => modelProviders.get(providerId) === physical,
+          assertTrustedRuntime: physical.assertTrustedRuntime,
           physicalPreflight: physical.physicalPreflight === undefined ? undefined
-            : (request, ioNotification, rawCaptureBinder) =>
-              physical.physicalPreflight(request, ioNotification, rawCaptureBinder,
-                admittedProvider),
+            : (request, ioNotification, rawCaptureBinder) => {
+              physical.assertTrustedRuntime?.();
+              const value = physical.physicalPreflight(request, ioNotification,
+                rawCaptureBinder, admittedProvider);
+              physical.assertTrustedRuntime?.();
+              return value;
+            },
           originalReadInstallation: physical.originalReadInstallation,
           rawCaptureSelection: physical.rawCaptureSelection,
           entryPersistence: physical.entryPersistence,
@@ -2770,16 +2817,33 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
     perform: (operation, request, signal) => observation.run(operation,
       undefined, () => ingress.perform(operation, request, signal)),
   });
-  return {port, store, journal, hostOperations, checkpoints, diagnostic,
+  return Object.assign(host, {port, store, journal, hostOperations, checkpoints, diagnostic,
     observation, ownerViews,
     dispatchOwner, inspectAcquisition, sourceProfile, installedEffect,
-    retireTerminalEffects};
+    retireTerminalEffects,
+    stopModelRuntime() { modelRuntimeClosing = true; }, retireModelRuntime});
   } catch (cause) {
     diagnostic?.close();
     effectEvidenceKey?.key.fill(0);
     throw await retainInstalledHostInitializationFailure(cause,
       {journal, store, checkpoints, dispatchOwner,
         sourceProfile, installedEffect, observation, ownerViews});
+  }
+  } catch (cause) {
+    modelRuntimeClosing = true;
+    if (cause?.cleanupPending === true) {
+      // The SAME initialization cleanup handle retains this borrowed view.
+      // Never retire it merely because opening threw or close was requested.
+      const cleanup = cause.cleanupHandle;
+      if (typeof cleanup?.retry === 'function' && typeof cleanup?.status === 'function') {
+        cause.cleanupHandle = Object.freeze({status: () => cleanup.status(), async retry() {
+          const status = await cleanup.retry();
+          if (cleanup.status().pending === false) retireModelRuntime();
+          return status;
+        }});
+      }
+    } else retireModelRuntime();
+    throw cause;
   }
 }
 

@@ -118,6 +118,8 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
       layoutArtifactCid: 'layout', probability: undefined}};
   const plan = {compiled, runDefinition, inferGraph: graph};
   const selected = {graph, step: 0, provider() { assert.fail('no physical send'); },
+    // Explicit Host-current counters, not a real runtime coverage/profile.
+    currentProvider:()=>true,assertTrustedRuntime:()=>{},
     quantityCapacity: {limits: {tokens: 1n, costUnits: 0n, durationMs: 1n},
       perAttempt: {tokens: 1n, costUnits: 0n, durationMs: 1n}}};
   if (installation) selected.originalReadInstallation = retainInferOriginalReadInstallation({
@@ -182,6 +184,33 @@ test('missing original state codec is refused before child allocation or physica
   await assert.rejects(f.run(),{code:'InferOriginalStateCodecUnavailable'});
   assert.deepEqual(f.calls,[]);
   assert.equal(f.custody(),undefined);
+});
+
+test('missing Host runtime association refuses before scope read or Entry creation',async()=>{
+  const f=fixture({installation:true});
+  delete f.selected.assertTrustedRuntime;
+  await assert.rejects(f.run(),/InferTrustedRuntimeViewUnavailable/u);
+  assert.deepEqual(f.calls,[]);assert.equal(f.custody(),undefined);
+});
+
+test('foreign installed provider refuses before original child allocation',async()=>{
+  const f=fixture({installation:true});f.selected.currentProvider=()=>false;
+  await assert.rejects(f.run(),/InferTrustedRuntimeViewUnavailable/u);
+  assert.deepEqual(f.calls,[]);assert.equal(f.custody(),undefined);
+});
+
+test('runtime loss after approval keeps the same original custody and blocks another advance',async()=>{
+  const f=fixture({installation:true,waiting:true,stopComplete:false});
+  const unavailable=Object.assign(new Error('InferTrustedRuntimeViewRetired'),
+    {code:'InferTrustedRuntimeViewRetired'});
+  f.selected.assertTrustedRuntime=()=>{
+    if(f.calls.includes('authorize'))throw unavailable;
+  };
+  await assert.rejects(f.run(),error=>error===unavailable);
+  assert.equal(f.calls.filter(value=>value==='scopeBegin').length,1);
+  assert.equal(f.calls.filter(value=>value==='advance').length,1);
+  assert.equal(f.calls.includes('originalCut'),false);
+  assert.equal(f.custody().cleanupPending(),true);
 });
 
 test('missing original publication supply is refused before creating a scope or sending',async()=>{
