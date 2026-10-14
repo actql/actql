@@ -473,7 +473,24 @@ fn acquisition_runtime_case(
           @resident.Host(@resident.Runtime(_)) => "runtime"
           @resident.Host(@resident.Source(_)) => "host-source"
           @resident.Host(_) => "host"
-          @resident.Compute(_) => "compute"
+          @resident.Compute(@resident.Source(@resident.Acquisition(_))) =>
+            "compute-source-acquisition"
+          @resident.Compute(@resident.Source(@resident.Query(_))) =>
+            "compute-source-query"
+          @resident.Compute(@resident.Source(@resident.Binding(_))) =>
+            "compute-source-binding"
+          @resident.Compute(@resident.Source(@resident.ForeignInput)) =>
+            "compute-source-foreign-input"
+          @resident.Compute(@resident.Source(_)) => "compute-source"
+          @resident.Compute(@resident.UnsupportedGraph) => "compute-graph"
+          @resident.Compute(@resident.Capacity(_)) => "compute-capacity"
+          @resident.Compute(@resident.Acquisition(_)) => "compute-acquisition"
+          @resident.Compute(@resident.Execution(_)) => "compute-execution"
+          @resident.Compute(@resident.ForeignEffectMaterials) =>
+            "compute-original-materials"
+          @resident.Compute(@resident.EffectRun(_)) => "compute-effect-run"
+          @resident.Compute(@resident.EffectInput(_)) => "compute-effect-input"
+          @resident.Compute(_) => "compute-post-acquisition"
           @resident.NotStartable(_) => "not-startable"
         }
         println(
