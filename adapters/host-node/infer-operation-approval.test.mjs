@@ -3,6 +3,85 @@ import test from 'node:test';
 import {openNodeInferOperation} from './infer-operation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 
+test('original current loss in BeforeInvoke diagnostic requests Core stop before the final gate',async()=>{
+  // Actual operation observer/stop wiring with explicit Common doubles. This
+  // proves callback ordering, not a compiled gate, Scope admission or I/O ACK.
+  const active={},compiled={},definition={},graph={},scope={},read={},consumer={},callSet={};
+  const events=[];let current=true,stopped=false,observer;
+  const control={
+    claimCheckedClientInferNodePreparationLayout(_compiled,_definition,_graph,actualRead){
+      assert.equal(_compiled,compiled);assert.equal(_definition,definition);
+      assert.equal(_graph,graph);assert.equal(actualRead,read);return consumer;
+    },
+    startCheckedClientInferOriginalPreparation(...args){
+      assert.equal(args[8],consumer);return active;
+    },
+  };
+  const moon={
+    clientProgramBindInferPhysicalPreflightCurrent:()=>assert.fail('no physical factory in this counter'),
+    clientProgramRequireInferCallEntry:()=>({$tag:1,_0:undefined}),
+    clientProgramBindInferModelObservation(owner,prepared,callback){
+      assert.equal(owner,active);assert.equal(prepared,callSet);observer=callback;
+      return true;
+    },
+    clientProgramInferPhysicalObservationFacts:()=>({_0:0,_1:'attempt',_2:'before_invoke',_3:undefined}),
+    clientProgramCancelInferExecution(owner){assert.equal(owner,active);events.push('stop');stopped=true;},
+    clientProgramAdvanceInferExecution(){
+      observer({});events.push('finalGate');
+      if(!stopped)events.push('send');
+      return {$tag:1,_0:stopped?'stopped':'waiting'};
+    },
+    clientProgramInferExecutionPollKind:value=>value,
+    clientProgramInferExecutionStopped:()=>stopped,
+    clientProgramCleanupInferExecution:()=>({$tag:1,_0:true}),
+  };
+  const operation=openNodeInferOperation({moon,provider:{},graph,durableCalls:true,
+    originalPreparation:{compiled,runDefinition:definition,control,scope,read,
+      readRetainedBytes:7n,readExecutionBytes:5n,modelRetainedBytes:100n,modelExecutionBytes:5n,
+      nodeInstallation:{layout:{},installation:{},runtimeArtifactCid:'runtime',
+        layoutArtifactCid:'layout',probability:undefined}},
+    assertRuntimeCurrent(){if(!current)throw new Error('OriginalRuntimeChanged');}});
+  operation.bindModelObservation(callSet,()=>{events.push('diagnostic');current=false;});
+  await assert.rejects(operation.run(),{code:'InferExecutionStopped'});
+  assert.deepEqual(events,['diagnostic','stop','finalGate']);
+  assert.equal(operation.cleanup(),true);
+});
+
+test('original runtime observer is bound without optional diagnostics before leaving Waiting',async()=>{
+  const active={},compiled={},definition={},graph={},scope={},read={},consumer={},callSet={};
+  let binds=0,observer,stopped=false,advances=0;
+  const control={claimCheckedClientInferNodePreparationLayout:()=>consumer,
+    startCheckedClientInferOriginalPreparation:()=>active};
+  const moon={
+    clientProgramBindInferPhysicalPreflightCurrent:()=>assert.fail('no factory'),
+    clientProgramRequireInferCallEntry:()=>({$tag:1,_0:undefined}),
+    clientProgramBindInferModelObservation(_active,_prepared,callback){
+      assert.equal(_active,active);assert.equal(_prepared,callSet);
+      assert.equal(binds++,0);observer=callback;return true;
+    },
+    clientProgramAdvanceInferExecution(){advances++;return {$tag:1,_0:stopped?'stopped':'waiting'};},
+    clientProgramInferExecutionPollKind:value=>value,
+    clientProgramInferPreparedCallSet:()=>callSet,
+    clientProgramCancelInferExecution(){stopped=true;},
+    clientProgramInferExecutionStopped:()=>stopped,
+    clientProgramCleanupInferExecution:()=>({$tag:1,_0:true}),
+    clientProgramInferPhysicalObservationFacts:()=>({_0:0,_1:'attempt',_2:'before_invoke',_3:undefined}),
+  };
+  const operation=openNodeInferOperation({moon,provider:{},graph,durableCalls:true,
+    originalPreparation:{compiled,runDefinition:definition,control,scope,read,
+      readRetainedBytes:7n,readExecutionBytes:5n,modelRetainedBytes:100n,modelExecutionBytes:5n,
+      nodeInstallation:{layout:{},installation:{},runtimeArtifactCid:'runtime',
+        layoutArtifactCid:'layout',probability:undefined}},assertRuntimeCurrent(){}});
+  assert.equal((await operation.run()).preparedCallSet,callSet);
+  assert.equal(binds,1);assert.equal(typeof observer,'function');
+  let observed=0;
+  assert.equal(operation.bindModelObservation(callSet,()=>observed++),true);
+  assert.equal(binds,1);observer({});assert.equal(observed,1);
+  assert.equal(operation.bindModelObservation({},()=>assert.fail('foreign')),false);
+  await operation.close();
+  assert.equal(binds,1);assert.equal(advances,1);
+});
+
 for (const route of ['plain', 'composed', 'keyed']) {
   const composed = route !== 'plain', keyed = route === 'keyed';
   test(`restored ${route} INFER forwards the current issuer without deriving authority from saved rows`, async () => {
