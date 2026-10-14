@@ -38,13 +38,9 @@ pub struct BackedExecutionDelegation[P, C] {
   access : BackedExecutionAccess
   limits : LedgerLimits
   mut peak_retention : Int64
-  mut settlement : BackedExecutionSettlement
-}
-
-///|
-priv enum BackedExecutionSettlement {
-  Active
-  Settled(LedgerUsage?)
+  // The original logical reservation's open flag is the settlement state.
+  // None remains unknown final usage; it never means zero usage or unsent.
+  mut final_usage : LedgerUsage?
 }
 
 ///|
@@ -171,7 +167,7 @@ pub fn[P, C] reserve_backed_execution_delegation(
   let borrow : SharedBorrow = { allocation, returned: false, }
   let ticket : BackedExecutionDelegation[P, C] = {
     owner: Some(region), child: Some(child), borrow: Some(borrow), logical: Some(logical),
-    extent, access, limits, peak_retention: 0L, settlement: Active,
+    extent, access, limits, peak_retention: 0L, final_usage: None,
   }
   region.children.push(ticket)
   Ok(ticket)
@@ -246,7 +242,7 @@ pub fn[P, C] report_backed_execution_delegation(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  guard ticket.settlement is Active else { return Err(Retired) }
+  if !logical.reservation.open { return Err(Retired) }
   if !backed_usage_valid(ticket, usage) { return Err(Resource(InvalidCharge)) }
   match report_execution_delegation(capacity.ledger, logical, backed_logical_usage(usage)) {
     Err(issue) => Err(Resource(issue))
@@ -284,20 +280,17 @@ pub fn[P, C] settle_backed_execution_after_owner_ack(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  match ticket.settlement {
-    Active => {
+  if logical.reservation.open {
       if final_usage is Some(usage) && !backed_usage_valid(ticket, usage) {
         return Err(Resource(InvalidCharge))
       }
       match settle_execution_delegation(capacity.ledger, logical,
         final_usage.map(backed_logical_usage)) {
         Err(issue) => return Err(Resource(issue))
-        Ok(_) => ticket.settlement = Settled(final_usage)
+        Ok(_) => ticket.final_usage = final_usage
       }
-    }
-    Settled(original) => {
-      if !backed_final_usage_equal(original, final_usage) { return Err(ChangedFinalUsage) }
-    }
+  } else {
+    if !backed_final_usage_equal(ticket.final_usage, final_usage) { return Err(ChangedFinalUsage) }
   }
   match return_shared_capacity(borrow) {
     Err(issue) => return Err(Resource(issue))
