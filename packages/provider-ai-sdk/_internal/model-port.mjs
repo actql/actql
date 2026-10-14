@@ -9,7 +9,7 @@ import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
 // execution state or scheduler is inferred here. Common owns every transition.
 export function createSdkModelPreflight(options) {
   return createSdkPhysicalPreflight(options, generationPlan,
-    (moon, response) => moon.clientProgramModelPhysicalSavedChat(response));
+    (moon, response) => moon.clientProgramModelPhysicalSavedChat(response), 'raw-only');
 }
 
 function generationPlan(moon, request, bytes, quantities, profile, installation, start) {
@@ -32,12 +32,12 @@ export function createSdkNativeDecisionPreflight(options, original, provider, pr
       bytes, quantities.tokens, quantities.costUnits, quantities.durationMs, profile,
       installation, probability, start), (moon, response, checked) =>
       checked(moon.clientProgramModelPhysicalSavedNativeDecision(response,
-        original, provider, probability)));
+        original, provider, probability)), 'sdk');
 }
 
 function createSdkPhysicalPreflight({moon, request, preparation, profile,
   installation, quantities, fetch, responseLimits, persistRaw, notify, checked,
-  observeAt, cleanupRaw, preparationProgress, rawCaptureBinder}, preparePlan, selectSaved) {
+  observeAt, cleanupRaw, preparationProgress, rawCaptureBinder}, preparePlan, selectSaved, responseMode) {
   const deferredRaw = rawCaptureBinder !== undefined;
   if (typeof fetch !== 'function' ||
       (deferredRaw ? typeof rawCaptureBinder !== 'function' ||
@@ -195,7 +195,7 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
     // Freeze fetch/init/bounds before Common consumes its one-shot Entry.
     preparationTerminal = true;
     try {
-      prepareSdkTransport(preparation, {fetch, responseLimits, observeAt});
+      prepareSdkTransport(preparation, {fetch, responseLimits, observeAt, responseMode});
       plan = checked(preparePlan(moon, request, BigInt(original.requestBytes),
         quantities, profile, installation, start));
     } catch { return [true, undefined]; }

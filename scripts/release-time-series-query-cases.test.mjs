@@ -36,7 +36,7 @@ test('TimeSeries cannot omit duplicate reorder or replace the source-free invent
     assert.throws(() => selectReleaseTimeSeriesQueryCases({refusals: changed}));
   }
 });
-test('only TimeSeries retains its synthetic authorization unchanged for a second process', async () => {
+test('TimeSeries retains its synthetic authorization unchanged for a second process', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-timeseries-auth-unit-'));
   try {
     for (const mode of ['local', 'https']) {
@@ -50,14 +50,15 @@ test('only TimeSeries retains its synthetic authorization unchanged for a second
     await assert.rejects(sourcefreeFixtureAuthorization('local', 'unknown', {directory}));
   } finally {await rm(directory, {recursive: true});}
 });
-test('existing default and Sequence authorization do not write a retained credential', async () => {
+test('existing default authorization does not write a retained credential', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-sourcefree-auth-unit-'));
   try {
-    for (const suite of ['in-unnest', 'sequence']) {
+    for (const suite of ['in-unnest']) {
       const authorization = await sourcefreeFixtureAuthorization('local', suite, {directory});
       assert.equal(authorization.reviewers.length, 1);
       assert.match(authorization.hostKey.privateKey, /BEGIN PRIVATE KEY/u);
-      await assert.rejects(readFile(join(directory, 'sourcefree-time-series-authorization-local.json')), {code: 'ENOENT'});
+      await assert.rejects(readFile(join(directory, `sourcefree-${suite}-authorization-local.json`)), {code: 'ENOENT'});
+      await assert.rejects(sourcefreeFixtureAuthorization('local', suite, {directory, reopen: true}));
     }
   } finally {await rm(directory, {recursive: true});}
 });

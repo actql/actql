@@ -1,7 +1,26 @@
-# Private independent HTTP provider preparation
+# Optional independent HTTP Host installer (development)
 
-This unfinished optional package has no public exports, installation capability
-or permission to transmit. It has no AI SDK or Cloudflare dependency.
+This unfinished development package exports only
+`createInstalledHttpChatRegistration`, the existing Host registration assembler.
+Internal transport/send/raw-receipt functions are not exported. The package
+remains private; its entry is not an installed profile, numerical funding or
+permission to transmit. It has no AI SDK or Cloudflare dependency.
+
+```js
+import {createInstalledHttpChatRegistration} from '@actql/provider-http';
+// Host integration skeleton, not a runnable live-provider example.
+// trustedHostOptions retains the installed Host's actual original profile,
+// read/funding/raw policy/binding/quantity and secret selections.
+const registerModelProviders = createInstalledHttpChatRegistration(trustedHostOptions);
+// Supply this callback through @actql/node's existing
+// installation.registerModelProviders with its admitted modelInstallation.
+```
+
+The existing Host supplies the consuming runtime to this callback; an application
+does not assemble a Model Owner or dummy invoke. Missing original installation,
+runtime or physical context refuses before send. Program data, arbitrary URLs
+and matching CID strings cannot select an installation or grant. Registry
+publication and ordinary public Named Result acceptance remain unfinished.
 
 Its initial request codec consumes the original admitted Common Provider/Task,
 mapped input and strict structured schema. Common emits one nonstreaming choice,
@@ -92,6 +111,6 @@ typed output checks remain mandatory.
 This assembler supplies no nominal original admission or numerical supplier.
 Its immutable configuration/bounds/header tuples and closure borrows, plus
 each physical request/reader/save overlap, must be counted in the original
-Host/Run inventory. Normal package exports remain empty. The independent Node
+Host/Run inventory. The package exports only this assembler. The independent Node
 registration cases use Core/Entry/selection/receipt doubles; they are not an
 installed public Result or permission to use the selected fixture allowance.

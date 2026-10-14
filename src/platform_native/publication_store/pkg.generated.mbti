@@ -16,7 +16,11 @@ import {
 // Values
 pub fn open_existing_store(@sqlite.Library, String, String, Int64, Int64, Int64) -> Result[Store, NativePublicationStoreIssue]
 
+pub fn open_existing_store_with_custody(@sqlite.Library, String, String, Int64, Int64, Int64, diagnostic_ceiling? : Int?) -> Result[Store, NativePublicationStoreOpenError]
+
 pub fn open_store(@sqlite.Library, String, String, Int64, Int64, Int64) -> Result[Store, NativePublicationStoreIssue]
+
+pub fn open_store_with_custody(@sqlite.Library, String, String, Int64, Int64, Int64, diagnostic_ceiling? : Int?) -> Result[Store, NativePublicationStoreOpenError]
 
 // Errors
 
@@ -163,6 +167,15 @@ pub(all) enum NativePublicationStoreIssue {
   ExistingDeliveryAttempt
   DeliveryAttemptUnresolved
 }
+
+pub(all) enum NativePublicationStoreOpenError {
+  RefusedBeforeAcquisition(NativePublicationStoreIssue)
+  CleanupRequired(NativePublicationStoreOpenFailure)
+}
+
+type NativePublicationStoreOpenFailure
+pub fn NativePublicationStoreOpenFailure::issue(Self) -> NativePublicationStoreIssue
+pub fn NativePublicationStoreOpenFailure::retry_cleanup(Self) -> Result[Unit, NativePublicationStoreIssue]
 
 pub(all) struct NativeResultDeliveryFailure {
   delivery_attempt_cid : String

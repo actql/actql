@@ -48,7 +48,9 @@ test('static service uses the same prepared owner and rechecks current access', 
     kindOf: () => 'effect_free',
   });
   const service = installClientStaticPlan({prepare, authorize: () => allowed,
-    moon: {clientProgramTaskCount: () => 2, clientProgramUsesGraphCarrier: () => false},
+    moon: {clientProgramRequiresTaskCompilation: value => {
+      assert.equal(value, prepared); return true;
+    }},
     control: {readCheckedClientStaticPlan(value, kind, limits) {
       assert.equal(value, prepared); assert.equal(kind, 'tasks');
       assert.equal(limits.maxWireBytes, 65536); reads.push(value);
@@ -62,7 +64,7 @@ test('static service uses the same prepared owner and rechecks current access', 
   allowed = true;
   const revoked = installClientStaticPlan({prepare,
     authorize: () => allowed,
-    moon: {clientProgramTaskCount: () => 1, clientProgramUsesGraphCarrier: () => false},
+    moon: {clientProgramRequiresTaskCompilation: () => false},
     control: {readCheckedClientStaticPlan() {allowed = false; return JSON.stringify(mockView());}}});
   await assert.rejects(revoked(request), {code: 'ClientConnectionDenied'});
 });

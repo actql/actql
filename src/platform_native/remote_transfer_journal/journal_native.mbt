@@ -1,4 +1,31 @@
 ///|
+struct NativeRemoteTransferJournalOpenFailure {
+  original_issue : NativeRemoteTransferJournalIssue
+  mut database : @sqlite.NativeSqliteOpenFailure?
+}
+
+///|
+pub fn NativeRemoteTransferJournalOpenFailure::issue(
+  self : NativeRemoteTransferJournalOpenFailure,
+) -> NativeRemoteTransferJournalIssue {
+  self.original_issue
+}
+
+///|
+pub fn NativeRemoteTransferJournalOpenFailure::retry_cleanup(
+  self : NativeRemoteTransferJournalOpenFailure,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+  guard self.database is Some(original) else { return Ok(()) }
+  match original.retry_cleanup() {
+    Ok(_) => {
+      self.database = None
+      Ok(())
+    }
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 struct Journal {
   database : @sqlite.Database
   max_chunks : Int
@@ -246,6 +273,12 @@ fn Journal::replace_destination_allocation(
   current : NativeRemoteDestinationAllocation,
   phase : NativeRemoteDestinationAllocationPhase,
 ) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let body = destination_allocation_body(
     current.staging_name,
     current.final_name,
@@ -324,10 +357,16 @@ pub fn open_journal(
   max_referenced_bytes : Int64,
   max_destination_readers? : Int64 = 1024L,
 ) -> Result[Journal, NativeRemoteTransferJournalIssue] {
-  match open_journal_with_custody(
-    library, path, max_record_bytes, max_chunks, max_manifest_bytes,
-    max_referenced_bytes, max_destination_readers~,
-  ) {
+  match
+    open_journal_with_custody(
+      library,
+      path,
+      max_record_bytes,
+      max_chunks,
+      max_manifest_bytes,
+      max_referenced_bytes,
+      max_destination_readers~,
+    ) {
     Ok(value) => Ok(value)
     Err(RefusedBeforeAcquisition(issue)) => Err(issue)
     Err(CleanupRequired(failure)) => {
@@ -357,20 +396,24 @@ pub fn open_journal_with_custody(
     return Err(RefusedBeforeAcquisition(Protocol(@transfer.InvalidTransfer)))
   }
   match library.open_database_with_custody(path, max_record_bytes) {
-    Ok(database) => Ok({
-      database,
-      max_chunks,
-      max_manifest_bytes,
-      max_referenced_bytes,
-      max_destination_readers,
-      closed: false,
-      retiring: false,
-      destination_record_admission: None,
-    })
-    Err(original) => Err(CleanupRequired({
-      original_issue: Physical(original.issue()),
-      database: Some(original),
-    }))
+    Ok(database) =>
+      Ok({
+        database,
+        max_chunks,
+        max_manifest_bytes,
+        max_referenced_bytes,
+        max_destination_readers,
+        closed: false,
+        retiring: false,
+        destination_record_admission: None,
+      })
+    Err(original) =>
+      Err(
+        CleanupRequired({
+          original_issue: Physical(original.issue()),
+          database: Some(original),
+        }),
+      )
   }
 }
 

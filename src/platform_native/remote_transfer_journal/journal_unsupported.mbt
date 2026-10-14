@@ -1,4 +1,21 @@
 ///|
+type NativeRemoteTransferJournalOpenFailure
+
+///|
+pub fn NativeRemoteTransferJournalOpenFailure::issue(
+  _self : NativeRemoteTransferJournalOpenFailure,
+) -> NativeRemoteTransferJournalIssue {
+  UnsupportedTarget
+}
+
+///|
+pub fn NativeRemoteTransferJournalOpenFailure::retry_cleanup(
+  _self : NativeRemoteTransferJournalOpenFailure,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 type Journal
 
 ///|
@@ -349,6 +366,8 @@ pub fn open_journal_with_custody(
 }
 
 ///|
-pub fn Journal::close_checked(_self : Journal) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+pub fn Journal::close_checked(
+  _self : Journal,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
   Err(UnsupportedTarget)
 }
