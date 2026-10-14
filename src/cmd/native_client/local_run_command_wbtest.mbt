@@ -72,7 +72,11 @@ test "Native Local run uses the existing exact AQL submitted intent bytes" {
   let parsed = run_command_fixture(true)
   let (_, child) = parsed.subcommand.unwrap()
   let root = @env.current_dir().unwrap() + "/scripts/fixtures/native-local-cli"
-  let wire = local_intent_wire(root, local_run_original_operation(), child)
+  let input = local_intent_wire(root, local_run_original_operation(), child)
+  let original = @run_host.prepare_client_submitted_intent(
+    input, 65536, 8192, 64,
+  ).unwrap()
+  let wire = @run_host.client_submitted_intent_wire(original)
   // Independent canonical input: no new command field, nonce or attempt enters
   // the original submitted-content body. Reference validation remains with the
   // existing submission Owner, not this bounded input reader.
