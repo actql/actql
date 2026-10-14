@@ -250,7 +250,7 @@ test('private facade returns the existing exclusive async registration with zero
     [config.taskCid,config.modelSelector,config.promptPayloadWire+' ']]) {
     assert.equal(installed.validatePrompt(...args),false);
   }
-  assert.deepEqual(f.counts,{installs:1,starts:0,steps:0,retired:0,generation:0,fetch:0,saves:0});
+  assert.deepEqual(f.counts,{installs:1,starts:0,steps:0,retired:0,generation:0,fetch:0,saves:0,ioData:0});
 });
 
 test('facade preserves original selectors bounds and fixed SDK transport across caller mutation',async()=>{
