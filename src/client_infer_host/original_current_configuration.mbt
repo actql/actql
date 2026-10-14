@@ -32,6 +32,8 @@ pub fn check_original_model_current_configuration(
       }
   }
   @resources.check_original_current_state_document_configuration(
-    document, original_model_ledger_limits(plan, limits), quantities,
+    document,
+    original_model_ledger_limits(plan, limits),
+    quantities,
   ).map_err(issue => @resources.Document(issue))
 }

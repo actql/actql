@@ -16,7 +16,11 @@ test "current configuration DATA guard compares every independent limit without 
   let expected = current_configuration_test_limits()
   let original = document.state
   assert_true(
-    check_original_current_state_document_configuration(document, expected, None)
+    check_original_current_state_document_configuration(
+      document,
+      expected,
+      None,
+    )
     is Ok(_),
   )
   for
@@ -37,7 +41,9 @@ test "current configuration DATA guard compares every independent limit without 
   }
   assert_true(
     check_original_current_state_document_configuration(
-      document, expected, Some({ tokens: 0L, cost_units: 0L, duration_ms: 0L, }),
+      document,
+      expected,
+      Some({ tokens: 0L, cost_units: 0L, duration_ms: 0L, }),
     )
     is Err(InvalidRecord),
   )
@@ -64,7 +70,9 @@ test "current configuration DATA guard does not refill unknown or consumed-overr
   }
   assert_true(
     check_original_current_state_document_configuration(
-      document, current_configuration_test_limits(), Some(expected),
+      document,
+      current_configuration_test_limits(),
+      Some(expected),
     )
     is Ok(_),
   )
@@ -77,7 +85,9 @@ test "current configuration DATA guard does not refill unknown or consumed-overr
     ] {
     assert_true(
       check_original_current_state_document_configuration(
-        document, current_configuration_test_limits(), wrong,
+        document,
+        current_configuration_test_limits(),
+        wrong,
       )
       is Err(InvalidRecord),
     )
@@ -97,7 +107,9 @@ test "current configuration DATA guard rejects retired document without creating
   retire_original_current_state_document(document)
   assert_true(
     check_original_current_state_document_configuration(
-      document, current_configuration_test_limits(), None,
+      document,
+      current_configuration_test_limits(),
+      None,
     )
     is Err(Terminal),
   )

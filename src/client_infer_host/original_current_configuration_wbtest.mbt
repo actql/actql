@@ -67,13 +67,23 @@ test "cold Model configuration uses the original checked intersections without c
   let quantities = current_configuration_host_test_quantities()
   assert_true(
     check_original_model_current_configuration(
-      compiled, definition, plan, document, limits, Some(quantities),
+      compiled,
+      definition,
+      plan,
+      document,
+      limits,
+      Some(quantities),
     )
     is Ok(_),
   )
   assert_true(
     check_original_model_current_configuration(
-      compiled, definition, plan, document, limits, None,
+      compiled,
+      definition,
+      plan,
+      document,
+      limits,
+      None,
     )
     is Err(@resources.Document(@resources.InvalidRecord)),
   )
@@ -91,7 +101,12 @@ test "cold Model configuration uses the original checked intersections without c
   // Refusal does not retire the original borrowed document or replace it.
   assert_true(
     check_original_model_current_configuration(
-      compiled, definition, plan, document, limits, Some(quantities),
+      compiled,
+      definition,
+      plan,
+      document,
+      limits,
+      Some(quantities),
     )
     is Ok(_),
   )
@@ -105,9 +120,7 @@ test "cold Model configuration rejects foreign originals and invalid installed q
   let (compiled, definition) = original_input_capacity_run(prepared, plan)
   let foreign_prepared = fixture_prepared()
   let foreign_plan = call_identity_plan(foreign_prepared)
-  let (foreign, _) = original_input_capacity_run(
-    foreign_prepared, foreign_plan,
-  )
+  let (foreign, _) = original_input_capacity_run(foreign_prepared, foreign_plan)
   let document = current_configuration_host_test_document(
     current_configuration_host_test_wire(),
   )
@@ -115,7 +128,12 @@ test "cold Model configuration rejects foreign originals and invalid installed q
   let quantities = current_configuration_host_test_quantities()
   assert_true(
     check_original_model_current_configuration(
-      foreign, definition, plan, document, limits, Some(quantities),
+      foreign,
+      definition,
+      plan,
+      document,
+      limits,
+      Some(quantities),
     )
     is Err(@resources.Original(@resources.ForeignOrigin)),
   )
@@ -133,7 +151,12 @@ test "cold Model configuration rejects foreign originals and invalid installed q
   @resources.retire_original_current_state_document(document)
   assert_true(
     check_original_model_current_configuration(
-      compiled, definition, plan, document, limits, Some(quantities),
+      compiled,
+      definition,
+      plan,
+      document,
+      limits,
+      Some(quantities),
     )
     is Err(@resources.Document(@resources.Terminal)),
   )
