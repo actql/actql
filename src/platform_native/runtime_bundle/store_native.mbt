@@ -1600,19 +1600,22 @@ fn verify_component(
       return Err(Filesystem(original.issue()))
     }
   }
-  store.component_reader = Some(reader)
   let mut total = 0L
   for component in @bundle.bundle_manifest_components_projection(entry.manifest) {
     let expected_component_bytes : Int64 = @string.from_str(component[2]) catch {
       _ => {
-        ignore(close_bundle_component_reader(store))
+        ignore(
+          close_bundle_component_reader(store, original_reader=Some(reader)),
+        )
         return Err(ComponentMismatch)
       }
     }
     let hash = match store.signature_library.sha256_hasher() {
       Ok(value) => value
       Err(issue) => {
-        ignore(close_bundle_component_reader(store))
+        ignore(
+          close_bundle_component_reader(store, original_reader=Some(reader)),
+        )
         return Err(Signature(issue))
       }
     }
@@ -1622,59 +1625,69 @@ fn verify_component(
       let chunk = match filesystem_result(reader.next(limit)) {
         Ok(value) => value
         Err(issue) => {
-          ignore(close_bundle_component_reader(store))
+          ignore(
+            close_bundle_component_reader(store, original_reader=Some(reader)),
+          )
           return Err(issue)
         }
       }
       if chunk.bytes.is_empty() || chunk.bytes.length().to_int64() > remaining {
-        ignore(close_bundle_component_reader(store))
+        ignore(
+          close_bundle_component_reader(store, original_reader=Some(reader)),
+        )
         return Err(ComponentMismatch)
       }
       match hash.update(chunk.bytes) {
         Ok(_) => ()
         Err(issue) => {
-          ignore(close_bundle_component_reader(store))
+          ignore(
+            close_bundle_component_reader(store, original_reader=Some(reader)),
+          )
           return Err(Signature(issue))
         }
       }
       remaining = remaining - chunk.bytes.length().to_int64()
       total = total + chunk.bytes.length().to_int64()
       if chunk.eof && remaining > 0L {
-        ignore(close_bundle_component_reader(store))
+        ignore(
+          close_bundle_component_reader(store, original_reader=Some(reader)),
+        )
         return Err(ComponentMismatch)
       }
     }
     let digest = match hash.finish_hex() {
       Ok(value) => value
       Err(issue) => {
-        ignore(close_bundle_component_reader(store))
+        ignore(
+          close_bundle_component_reader(store, original_reader=Some(reader)),
+        )
         return Err(Signature(issue))
       }
     }
     if "sha256:" + digest != component[1] {
-      ignore(close_bundle_component_reader(store))
+      ignore(close_bundle_component_reader(store, original_reader=Some(reader)))
       return Err(ComponentMismatch)
     }
   }
   let terminal = match filesystem_result(reader.next(1)) {
     Ok(value) => value
     Err(issue) => {
-      ignore(close_bundle_component_reader(store))
+      ignore(close_bundle_component_reader(store, original_reader=Some(reader)))
       return Err(issue)
     }
   }
   if !terminal.eof || !terminal.bytes.is_empty() {
-    ignore(close_bundle_component_reader(store))
+    ignore(close_bundle_component_reader(store, original_reader=Some(reader)))
     return Err(ComponentMismatch)
   }
   match filesystem_result(reader.finish()) {
     Ok(_) => ()
     Err(issue) => {
-      ignore(close_bundle_component_reader(store))
+      ignore(close_bundle_component_reader(store, original_reader=Some(reader)))
       return Err(issue)
     }
   }
-  match close_bundle_component_reader(store) {
+  match close_bundle_component_reader(store, original_reader=Some(reader)) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -3197,6 +3210,13 @@ pub fn NativeRuntimeBundleStore::release(
 ) -> Result[Bool, NativeRuntimeBundleStoreIssue] {
   if !bounded(hold_id, 512) || hold_id.has_prefix("workspace-set:") {
     return Err(InvalidConfiguration)
+  }
+  // Cleanup of the same verification Reader precedes release's catalog read.
+  // Otherwise its pending I/O fence would also prevent the release needed to
+  // reach close_checked. This retires no durable holding by itself.
+  match close_bundle_component_reader(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let current = match load_catalog(self) {
     Ok(value) => value

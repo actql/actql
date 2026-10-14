@@ -197,3 +197,27 @@ test "Bundle verification Reader stays with original Store until its checked ret
   store.close_checked().unwrap()
   assert_eq(bundle_close_database_attempts(store.database), 1)
 }
+
+///|
+test "Bundle process release first retires its same pending verification Reader" {
+  let (store, _, _, _) = native_retention_fixture("bundle-reader-release-order")
+  store
+  .retain(native_bundle_cid("1"), "original-process-reader", "runtime-process")
+  .unwrap()
+  |> ignore
+  let generation = store.root.inspect_generation("artifact").unwrap().unwrap()
+  let reader = store.root
+    .open_reader_with_custody("artifact", generation)
+    .unwrap()
+  store.component_reader = Some(reader)
+  assert_true(store.inspect(native_bundle_cid("1")) is Err(CleanupPending))
+  assert_true(store.release("original-process-reader").unwrap())
+  assert_true(store.component_reader is None)
+  assert_eq(
+    store.inspect(native_bundle_cid("1")).unwrap().unwrap().state[2],
+    "0",
+  )
+  assert_eq(bundle_close_database_attempts(store.database), 0)
+  store.close_checked().unwrap()
+  assert_eq(bundle_close_database_attempts(store.database), 1)
+}

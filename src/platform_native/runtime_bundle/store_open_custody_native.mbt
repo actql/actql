@@ -110,7 +110,16 @@ pub fn open_runtime_bundle_store_with_custody(
 /// after a failed close or discard a rejected Reader before its own ACK.
 fn close_bundle_component_reader(
   store : NativeRuntimeBundleStore,
+  original_reader? : @filesystem.Reader? = None,
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  if original_reader is Some(same) {
+    // Successful verification keeps its live reader locally until this close.
+    // Only a failed close leaves this exact reference in the Store.
+    if store.component_reader is Some(prior) && !physical_equal(prior, same) {
+      return Err(CleanupPending)
+    }
+    store.component_reader = Some(same)
+  }
   if store.component_open_failure is Some(original) {
     match original.retry_cleanup() {
       Ok(_) => store.component_open_failure = None
