@@ -2,6 +2,43 @@
 // The current prefix has no synthetic Result. Its actual inputs, capture
 // imports and source origins are checked by the shared topology owner. Reading
 // a Carrier neither closes deferred order/value obligations nor issues a Plan.
+fn script_checked_prefix_carrier(
+  construction : Construction,
+  query : @query.Query,
+  context : Context,
+  sources : ScriptSources,
+  limits : Limits,
+  steps : Array[@builder.Node],
+  producer : String,
+) -> (@pipeline.CheckedPipeline, @pipeline.Target, @carrier.Carrier) raise Abort {
+  let budget = construction.infer_budget
+  if budget.remaining_work > sources.carrier_work {
+    budget.remaining_work = sources.carrier_work
+  }
+  sources.carrier_work = 0
+  let pipeline = checked_query_prefix_pipeline(
+    construction,
+    query,
+    context,
+    sources.stages + sources.prior_stages,
+    sources.declarations,
+    steps,
+    limits,
+    budget,
+  )
+  let target = match @pipeline.lookup(pipeline, producer) {
+    Some(target) => target
+    None => raise Abort(InvalidContext)
+  }
+  let carrier = match @pipeline.carrier_at(pipeline, target) {
+    Some(carrier) => carrier
+    None => raise Abort(UnsupportedProjection)
+  }
+  sources.carrier_work = budget.remaining_work
+  (pipeline, target, carrier)
+}
+
+///|
 fn script_prefix_carrier(
   construction : Construction,
   query : @query.Query,
@@ -11,59 +48,9 @@ fn script_prefix_carrier(
   steps : Array[@builder.Node],
   producer : String,
 ) -> @carrier.Carrier raise Abort {
-  let root = program_root(
-    construction,
-    context,
-    sources.stages +
-    [
-      construction.object([
-        ("id", construction.text(context.stage_id)),
-        ("inputs", construction.object(sources.declarations)),
-        ("steps", construction.array(steps)),
-        ("results", construction.object([])),
-      ]),
-    ],
-    staged_result_exports=Some([]),
-  )
-  let source = match @builder.snapshot(construction.builder, root) {
-    Ok(source) => source
-    Err(issue) => raise Abort(Construction(issue))
-  }
-  let source = resolve_query_members(
-    source,
-    @query.query_document(query),
-    context,
-    { ..limits, max_expression_work: sources.carrier_work, },
-  )
-  let prefix = match @program.admit_generated_prefix(source, limits.program) {
-    Ok(prefix) => prefix
-    Err(issue) => raise Abort(Admission(issue))
-  }
-  let checked = match
-    check_query_prefix(prefix, context, {
-      ..limits,
-      max_expression_work: sources.carrier_work,
-    }) {
-    Ok(checked) => checked
-    Err(issue) => raise Abort(BindingPreparationSource(issue, source))
-  }
-  let usage = @stage_results.topology_usage(checked.topology)
-  if usage.work < 0 || usage.work > sources.carrier_work {
-    raise Abort(BindingPreparation(Demand(WorkLimit)))
-  }
-  sources.carrier_work -= usage.work
-  let stage = @stage_results.topology_stage_at(
-    checked.topology,
-    sources.stages.length(),
-  ).unwrap()
-  let pipeline = @pipeline_parameters.pipeline(
-    @stage_parameters.collection(@stage_results.topology_stage_source(stage)),
-  )
-  let target = @pipeline.lookup(pipeline, producer).unwrap()
-  match @pipeline.carrier_at(pipeline, target) {
-    Some(carrier) => carrier
-    None => raise Abort(UnsupportedProjection)
-  }
+  script_checked_prefix_carrier(
+    construction, query, context, sources, limits, steps, producer,
+  ).2
 }
 
 ///|
@@ -101,13 +88,19 @@ fn script_carrier_columns(carrier : @carrier.Carrier) -> Array[String] {
 // Carrier fields use the same retained scope as ordinary FieldRef selectors.
 // A miss must never fall back to an input range removed by a projection.
 fn script_carrier_field_name(
+  construction : Construction,
   path : Array[@query.NamePart],
   query : @query.Query,
   input : Input,
   sources : ScriptSources,
 ) -> String raise Abort {
   let resolved = match
-    script_input_scope(sources, input.name, query_range_name(query)) {
+    script_input_scope(
+      construction,
+      sources,
+      input.name,
+      query_range_name(query),
+    ) {
     Some(scope) => pipe_slot(path, scope.visible, scope.ranges)
     None => resolve_column(path, query, input, columns(input))
   }
@@ -127,7 +120,9 @@ fn script_carrier_field(
 ) -> @builder.Node raise Abort {
   match argument {
     FieldReference(path) =>
-      construction.text(script_carrier_field_name(path, query, input, sources))
+      construction.text(
+        script_carrier_field_name(construction, path, query, input, sources),
+      )
     ListValue(items) =>
       construction.array(
         items.map(item => {
@@ -163,7 +158,13 @@ fn script_carrier_order(
       construction.object(
         fields.map(field => {
           (
-            script_carrier_field_name(field.0, query, input, sources),
+            script_carrier_field_name(
+              construction,
+              field.0,
+              query,
+              input,
+              sources,
+            ),
             script_traversal_argument(construction, field.1, known, limits),
           )
         }),
@@ -189,11 +190,16 @@ fn script_carrier_order(
 // Preserve only current logical column names through the actual checked
 // Carrier. A typed boundary retires every former row/range receiver.
 fn retain_script_carrier_column_scope(
+  construction : Construction,
   sources : ScriptSources,
   previous : String,
   producer : String,
   carrier : @carrier.Carrier,
-) -> Unit {
+  pipeline : @pipeline.CheckedPipeline,
+  target : @pipeline.Target,
+  known : Array[Input],
+  call : @query.SgaCall,
+) -> Unit raise Abort {
   guard sources.ranges.get(previous) is Some(scope) && !scope.value_table else {
     return
   }
@@ -216,6 +222,9 @@ fn retain_script_carrier_column_scope(
     ranges: [],
     star_ranges: [],
     receivers: [],
+    key_labels: script_carrier_key_labels(
+      construction, sources, scope, pipeline, target, known, fields, call,
+    ),
     scalar_ranges: [],
   }
 }
@@ -449,10 +458,21 @@ fn lower_script_carrier_calls(
         ("as", construction.text(name)),
       ]),
     )
-    carrier = script_prefix_carrier(
+    let (pipeline, target, checked_carrier) = script_checked_prefix_carrier(
       construction, query, context, sources, limits, steps, name,
     )
-    retain_script_carrier_column_scope(sources, input.name, name, carrier)
+    carrier = checked_carrier
+    retain_script_carrier_column_scope(
+      construction,
+      sources,
+      input.name,
+      name,
+      carrier,
+      pipeline,
+      target,
+      known,
+      call,
+    )
     input = {
       ..input,
       name,

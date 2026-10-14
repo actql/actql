@@ -110,6 +110,8 @@ fn lower_file_listing_input(
     generated,
     model_tasks: context.model_tasks,
     parameter_names,
+    infer_labels: false,
+    infer_budget: { remaining_work: limits.max_expression_work, },
   }
   try {
     let request : Array[(String, @builder.Node)] = []

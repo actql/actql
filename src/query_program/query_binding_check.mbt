@@ -46,6 +46,9 @@ fn prepare_query_bindings(
 priv struct BindingTopology {
   topology : @stage_results.CheckedTopology
   sourceviews : @check_context.SourceViewCheckedTopology?
+  // Includes the source-registration/attachment owner, not only its nested
+  // local topology. Prefix callers use this once against their shared budget.
+  work : Int
 }
 
 ///|
@@ -98,18 +101,43 @@ fn check_query_prefix(
   limits : Limits,
 ) -> Result[BindingTopology, BindingPreparationIssue] {
   let tree = limits.program.tree
+  if limits.max_expression_work < 0 {
+    return Err(Demand(WorkLimit))
+  }
   let source = match
     @stage_parameters.prepare_prefix(prefix, {
-      max_parameters: tree.max_nodes,
-      max_nodes: tree.max_nodes,
+      max_parameters: tree.max_nodes.min(limits.max_expression_work),
+      max_nodes: tree.max_nodes.min(limits.max_expression_work),
       max_depth: tree.max_depth,
-      max_text_bytes: tree.max_total_string_bytes,
+      max_text_bytes: tree.max_total_string_bytes.min(
+        limits.max_expression_work,
+      ),
     }) {
     Ok(source) => source
     Err(issue) => return Err(Declarations(issue))
   }
-  match prepare_query_binding_source(source, context, limits, check_only=true) {
-    Ok(Topology(topology)) => Ok(topology)
+  let declaration_usage = @parameters.declaration_usage(
+    @stage_parameters.declarations(source),
+  )
+  let mut remaining = limits.max_expression_work
+  for used in [declaration_usage.0, declaration_usage.1] {
+    if used < 0 || used > remaining {
+      return Err(Demand(WorkLimit))
+    }
+    remaining -= used
+  }
+  match
+    prepare_query_binding_source(
+      source,
+      context,
+      { ..limits, max_expression_work: remaining, },
+      check_only=true,
+    ) {
+    Ok(Topology(topology)) =>
+      Ok({
+        ..topology,
+        work: limits.max_expression_work - remaining + topology.work,
+      })
     Ok(_) => abort("mixed binding preparation modes")
     Err(issue) => Err(issue)
   }
@@ -161,11 +189,12 @@ fn prepare_query_binding_source(
             calendar=context.calendar_profile,
             model_tasks=context.model_tasks,
           ) {
-          Ok((checked, _)) =>
+          Ok((checked, used)) =>
             Ok(
               Topology({
                 topology: @check_context.sourceview_checked_topology(checked),
                 sourceviews: Some(checked),
+                work: used.work,
               }),
             )
           Err(issue) => Err(SourceProgram(issue))
@@ -211,7 +240,14 @@ fn prepare_query_binding_source(
             }),
             model_tasks=context.model_tasks,
           ) {
-          Ok((topology, _)) => Ok(Topology({ topology, sourceviews: None, }))
+          Ok((topology, used)) =>
+            Ok(
+              Topology({
+                topology,
+                sourceviews: None,
+                work: @sourceviews.work(views) + used.work,
+              }),
+            )
           Err(issue) => Err(LocalProgram(issue))
         }
       } else {

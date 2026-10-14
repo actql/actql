@@ -122,7 +122,7 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     operation == "aql" {
     return execute_native_local_adoption(matches, operation, child)
   }
-  if operation != "check" {
+  if operation != "check" && operation != "explain" {
     stop("LocalOperationUnavailable")
   }
   let root = required(matches, "config-root")
@@ -188,6 +188,13 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     ) {
     Ok(value) => value
     Err(_) => stop("LocalPreparationNotReady")
+  }
+  if operation == "explain" {
+    let wire = local_static_plan_view(prepared)
+    if child.flags.get("json").unwrap_or(false) {
+      return wire
+    }
+    return "Local static Plan; no Run has been admitted.\n" + wire
   }
   // Only static identity is returned. No Run or Result grant is fabricated.
   let (identity, effectful) = match prepared {

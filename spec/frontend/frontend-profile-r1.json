@@ -1298,13 +1298,15 @@
     {
       "feature_id": "acquisition.infer",
       "surface_forms": [
-        "INFER model_task ITEM KEY (...) INPUT (...) [KEEP (...)] AS result"
+        "INFER model_task [ITEM KEY (...)] INPUT (...) [KEEP (...)] AS result"
       ],
       "canonical_lowering": "infer",
       "preconditions": [
         "exact input mapping; single same-name identifiers normalize to explicit assignments",
         "typed outcomes",
         "known fields of a nullable non-success value remain typed NULL",
+        "omitted KEEP retains all visible input columns exactly as KEEP (*)",
+        "omitted ITEM KEY is completed only from Common CheckedInfer sole-candidate proof",
         "KEEP and result STRUCT form a new output scope without old input aliases",
         "not scalar"
       ],
