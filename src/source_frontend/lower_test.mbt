@@ -401,3 +401,16 @@ test "published receiver schemas retain generation binding and input ownership" 
     is Err(InvalidInputSchema),
   )
 }
+
+///|
+test "public aql spelling uses the same explicit text compiler" {
+  let selected = select_format("aql").unwrap()
+  assert_true(selected is Text)
+  let text = "FROM records |> SELECT id"
+  let context = Some(test_context())
+  let actual = lower(text, selected, context).unwrap()
+  let previous = lower(text, Text, context).unwrap()
+  assert_eq(actual.document, previous.document)
+  assert_true(select_format("aql2") is Err(InvalidFormat))
+  assert_true(select_format("aql-text") is Ok(Text))
+}

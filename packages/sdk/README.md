@@ -98,7 +98,7 @@ supports every Program. See the [current implementation status](https://github.c
 
 On a supporting installed Node Host, `client.plan(program)` reads a checked
 compiler-issued static Plan and immutable logical ports without creating a Run
-or acquiring Source data. AQL text uses `client.plan(text, {format: 'aql-text'})`;
+or acquiring Source data. AQL text uses `client.plan(text, {format: 'aql'})`;
 SQL uses `{format: 'sql'}`. The map describes original checked operations, not
 physical task numbers. An input-only Stage remains an input/output occurrence.
 
@@ -1759,3 +1759,8 @@ reconciliation or release permission and does not change the original Run.
 Formatters preserve complete admitted facts in text, escaped HTML or agent JSON;
 an insufficient output budget returns `undefined` rather than partial facts.
 Missing translations use the same safe English wording.
+
+`client.startSource(text, {format: 'aql'})` selects the same query compiler for
+SQL/Pipe and admitted Graph forms. It accepts typed `parameterDeclarations`,
+keeps the authored format in the submission, and does not autodetect input.
+Existing `aql-text` sources and helper defaults keep their original spelling.
