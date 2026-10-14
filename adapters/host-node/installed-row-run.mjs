@@ -9,6 +9,14 @@ const fail = code => { throw Object.assign(new Error(code), {code}); };
 export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   capacity, keyed = false}) {
   if (keyed && ledger === undefined) fail('InstalledKeyedSourceLedgerRequired');
+  const reportCapacity = capacity?.listingReport;
+  if (reportCapacity !== undefined) {
+    if (keyed) fail('InstalledListingSourceProgramMismatch');
+    if (ledger === undefined) fail('InstalledListingSourceLedgerRequired');
+    if (typeof moon.clientProgramRowSourceStartListingAccounted !== 'function') {
+      fail('InstalledListingSourceUnavailable');
+    }
+  }
   const settled = new Set();
   let transportStopped = false;
   let transportRecovery;
@@ -16,6 +24,10 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
     ? moon.clientProgramKeyedRowStartAccounted(acquisition, nonce,
       attempt => settled.has(attempt), ledger, capacity.transferBytes,
       capacity.executionBytes, () => transportStopped)
+    : reportCapacity !== undefined
+    ? moon.clientProgramRowSourceStartListingAccounted(acquisition,
+      reportCapacity, nonce, attempt => settled.has(attempt), ledger,
+      capacity.transferBytes, capacity.executionBytes)
     : ledger === undefined
     ? moon.clientProgramRowSourceStart(acquisition, nonce,
       attempt => settled.has(attempt))
