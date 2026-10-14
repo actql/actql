@@ -128,6 +128,12 @@ test "installed Calendar family preserves selected quota output work and cleanup
   }
   let provider = calendar_series_provider(
     {
+      max_input_records: 100,
+      max_records: 100,
+      max_fields_per_record: 100,
+      max_value_bytes: 10000,
+      max_total_value_bytes: 100000,
+      max_retained_value_bytes: 100000,
       max_value_nodes: 10000,
       max_value_depth: 100,
       max_contract_work: 10000,
