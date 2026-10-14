@@ -156,7 +156,9 @@ test "Effectful static binding refuses independently changed Program parameters 
       "program_definition_cid", "parameter_values_cid", "check_environment_cid",
     ] {
     let changed = @canonical.object_with_string_field(
-      value, field, "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      @canonical.object_without_field(value, field).unwrap(),
+      field,
+      "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     ).unwrap()
     let changed_wire = @canonical.stringify_value(changed, 65536, 8192, 64)
     assert_true(
