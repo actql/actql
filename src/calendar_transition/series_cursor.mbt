@@ -43,16 +43,29 @@ pub fn start_series(
   max_rows~ : Int,
   max_work~ : Int,
 ) -> Result[SeriesCursor, SeriesIssue] {
-  if max_rows < 0 || max_work < 0 { return Err(InvalidSeriesLimits) }
-  if start_ms < calendar_domain_start || end_ms >= calendar_domain_end ||
+  if max_rows < 0 || max_work < 0 {
+    return Err(InvalidSeriesLimits)
+  }
+  if start_ms < calendar_domain_start ||
+    end_ms >= calendar_domain_end ||
     start_ms > end_ms {
     return Err(InvalidSeriesRange)
   }
   if (unit == @options.Week) != (week_start is Some(_)) {
     return Err(SeriesBoundary(InvalidWeekOrigin))
   }
-  Ok({ table, end_ms, unit, week_start, max_rows, next_ms: start_ms,
-    rows: 0, remaining_work: max_work, interval: None, terminal: false })
+  Ok({
+    table,
+    end_ms,
+    unit,
+    week_start,
+    max_rows,
+    next_ms: start_ms,
+    rows: 0,
+    remaining_work: max_work,
+    interval: None,
+    terminal: false,
+  })
 }
 
 ///|
@@ -60,8 +73,12 @@ pub fn advance_series(
   cursor : SeriesCursor,
   quantum : Int,
 ) -> Result[SeriesPoll, SeriesIssue] {
-  if quantum <= 0 { return Err(InvalidSeriesLimits) }
-  if cursor.terminal { return Err(SeriesTerminal) }
+  if quantum <= 0 {
+    return Err(InvalidSeriesLimits)
+  }
+  if cursor.terminal {
+    return Err(SeriesTerminal)
+  }
   let mut used = 0
   while used < quantum {
     if cursor.next_ms >= cursor.end_ms {
@@ -79,8 +96,14 @@ pub fn advance_series(
     if cursor.interval is None {
       cursor.remaining_work -= 1
       used += 1
-      cursor.interval = match start_interval(cursor.table, cursor.next_ms,
-        cursor.unit, week_start=cursor.week_start, max_work=cursor.remaining_work) {
+      cursor.interval = match
+        start_interval(
+          cursor.table,
+          cursor.next_ms,
+          cursor.unit,
+          week_start=cursor.week_start,
+          max_work=cursor.remaining_work,
+        ) {
         Ok(value) => Some(value)
         Err(issue) => {
           cursor.terminal = true
@@ -90,10 +113,14 @@ pub fn advance_series(
       continue
     }
     let interval = cursor.interval.unwrap()
-    let poll = advance_interval(interval,
-      Int::min(quantum - used, cursor.remaining_work)).unwrap()
+    let poll = advance_interval(
+      interval,
+      Int::min(quantum - used, cursor.remaining_work),
+    ).unwrap()
     let work = match poll {
-      IntervalContinue(work~) | IntervalReady(work~, ..) | IntervalFailed(_, work~) => work
+      IntervalContinue(work~)
+      | IntervalReady(work~, ..)
+      | IntervalFailed(_, work~) => work
     }
     used += work
     cursor.remaining_work -= work
