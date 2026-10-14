@@ -2334,15 +2334,28 @@ export async function openLocalPublicationStore(
       );
       return Object.freeze([descriptor, content]);
     } catch (error) {
-      try { await content.prepared.release(); }
-      catch (cleanupError) {
-        // Keep the existing retry owner rather than losing a prepared object
-        // when construction of the second original object fails.
-        error.cleanupFailure = cleanupError;
-        error.cleanupPending = true;
-        error.cleanupHandle = content.prepared;
+      let cleanupFailure;
+      let cleanupPending;
+      try {
+        await content.prepared.release();
+        cleanupPending = content.prepared.status().pending !== false;
       }
-      throw error;
+      catch (cleanupError) {
+        cleanupFailure = cleanupError;
+        cleanupPending = true;
+      }
+      if (!cleanupPending) throw error;
+      // False release can retain a visible-but-unconfirmed holding. Export
+      // that same retry handle, just as for a thrown cleanup failure. A frozen
+      // primary cannot accept fields, but its original cause must survive.
+      const failure = error !== null && typeof error === 'object' &&
+        Object.isExtensible(error) ? error
+        : new PublicationStoreError(error?.code ??
+          'PublicationModelRawEvidencePreparationFailed', error);
+      if (cleanupFailure !== undefined) failure.cleanupFailure = cleanupFailure;
+      failure.cleanupPending = true;
+      failure.cleanupHandle = content.prepared;
+      throw failure;
     }
   };
   const readModelRawEvidence = async binding => {
