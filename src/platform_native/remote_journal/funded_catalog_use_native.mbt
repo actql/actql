@@ -9,6 +9,9 @@ pub fn Journal::read_funded_initial_catalog_use(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   if !physical_equal(self, custody.journal) ||
     !custody.accepted ||
     custody.cleanup_started ||

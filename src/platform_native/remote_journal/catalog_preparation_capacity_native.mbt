@@ -12,6 +12,9 @@ pub fn Journal::read_catalog_preparation_capacity(
   if self.closed {
     return Err(Journal(Closed))
   }
+  if self.retiring {
+    return Err(Journal(CleanupPending))
+  }
   if !physical_equal(self, custody.journal) ||
     !custody.accepted ||
     custody.cleanup_started ||
