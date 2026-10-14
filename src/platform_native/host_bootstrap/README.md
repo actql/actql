@@ -26,7 +26,11 @@ and disposable 64-page arena are fixture inputs only.
    trusted initial control envelope, it obtains the original Resource Ledger
    and calls `reserve_shared_capacity(N)` **before** physical acquisition.
 2. `bootstrap_stub.c` includes the existing `owned_capacity.c` implementation.
-   It obtains one actual anonymous N-byte mapping. Mapping/control/child pages
+   It obtains one actual anonymous N-byte mapping, or `acquire_fd` maps the
+   trusted caller's exact-sized original FD using the same provider. The FD is
+   borrowed: its original caller retains descriptor custody and separate
+   funding. Neither matching FD metadata nor this mapping supplies that grant.
+   Mapping/control/child pages
    belong to the same lease. No alternate allocator or implicit growth is used.
 3. `Acquired` carries the original Host; `Pending` carries that same partial
    Host, reservation and primary error. Pending acquisition is not successful
@@ -42,6 +46,13 @@ and disposable 64-page arena are fixture inputs only.
    physical allocation/retirement remains under this same Host. Final `munmap`
    succeeds before releasing control suballocation and settling outer capacity.
    Retries retain the original lease; successful steps are not repeated.
+
+`acquire_fd` uses the same original intent, Ledger/reservation and partial Host
+as anonymous acquisition. Invalid input or foreign nominal original is refused
+before consumption or FD access. Once physical acquisition begins, failure
+retains the same reservation and partial carrier. Host mapping cleanup never
+acknowledges FD close, process stop or settlement of independent FD overhead.
+The initial control declaration does not fund an unadopted worker or VM.
 
 Only `physical_resources` makes accounting decisions. The wrapper forwards
 cumulative delegation reports and conservative unknown-final settlement. This
