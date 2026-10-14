@@ -147,15 +147,12 @@ test "Calendar selected series prepares through the ordinary source-free client 
   ).unwrap()
   let document =
     #|{"version":"actql/0.1","id":"fixture.calendar_series","stages":[{"id":"main","inputs":{},"steps":[{"calendar_series":{"start":"2000-01-01T00:00:00.000Z","end":"2000-01-03T00:00:00.000Z","unit":"day","timezone":"UTC"},"as":"days"},{"from":"days","sort":[{"field":"start","dir":"asc","nulls":"first"}]},{"select":["start","end"],"as":"out"}],"results":{"rows":{"from":"out","fields":["start","end"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
-  match
-    client_program_prepare_effect_free_with_parameters(
-      document,
-      "json",
-      selected,
-      None,
-    ) {
-    Prepared(_) => ()
-    Rejected(issue) =>
-      fail("original source-free Calendar series rejected: \(issue)")
-  }
+  let outcome = client_program_prepare_effect_free_with_parameters(
+    document,
+    "json",
+    selected,
+    None,
+  )
+  assert_eq(client_program_preparation_issue_code(outcome), None)
+  assert_true(outcome is Prepared(_))
 }
