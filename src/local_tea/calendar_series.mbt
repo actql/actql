@@ -129,7 +129,6 @@ fn calendar_series_step(
         guard state.output is Some(output) else {
           return @bounded.Failed(InvalidCalendarKernel, progress, used)
         }
-        state.output = None
         let rows = match @execution.finish_admitted_output(output) {
           Ok(value) => value
           Err(issue) =>
@@ -151,13 +150,17 @@ fn calendar_series_step(
 fn cleanup_calendar_series_state(state : CalendarSeriesState) -> Bool {
   state.cursor = None
   state.phase = FinishCalendarSeries
-  if state.output is Some(output) {
-    @execution.cancel_admitted_output(output) |> ignore
-    state.output = None
-  }
   if !state.accepted.val {
     state.rows.val = None
     state.live.val = false
+  }
+  if state.output is Some(output) {
+    // The original buffer owner retains the same handle across bounded
+    // reclamation retries. Completion acceptance never clears retained rows.
+    if !@execution.reclaim_bounded_admitted_output(output, state.accepted.val) {
+      return false
+    }
+    state.output = None
   }
   true
 }
@@ -168,8 +171,7 @@ fn cleanup_calendar_series_state(state : CalendarSeriesState) -> Bool {
 /// with the ordinary checked/managed owners; this API installs no authority.
 pub fn start_calendar_series(
   control : @bounded.Control,
-  preparation : @execution.CompletionPreparation,
-  sequence : @lower.PreparedSequence,
+  generated : @execution.GeneratedSequence,
   step : Int,
   max_rows : Int,
   limits : @execution.ValueLimits,
@@ -180,6 +182,8 @@ pub fn start_calendar_series(
   if max_rows < 0 || max_entries < 0 || max_name_bytes < 0 {
     return Err(InvalidCalendarExecutionLimits)
   }
+  let sequence = @execution.generated_prepared_sequence(generated)
+  let preparation = @execution.generated_completion_preparation(generated)
   let owner = @lower.sequence_owner(sequence)
   guard physical_equal(
       @execution.completion_preparation_owner(preparation),
@@ -231,8 +235,8 @@ pub fn start_calendar_series(
     Err(issue) => return Err(CalendarBoundary(issue))
   }
   let output = match
-    @execution.prepare_admitted_output(
-      owner,
+    @execution.prepare_bounded_admitted_output(
+      generated,
       @pipeline.Step(step),
       max_rows,
       limits,

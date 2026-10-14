@@ -128,8 +128,7 @@ pub fn calendar_series_provider(
       let active = match
         @tea.start_calendar_series(
           control,
-          @execution.generated_completion_preparation(sequence),
-          @execution.generated_prepared_sequence(sequence),
+          sequence,
           @execution.generated_sequence_step_index_at(sequence, 0).unwrap(),
           max_rows,
           {
