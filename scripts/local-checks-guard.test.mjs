@@ -821,6 +821,47 @@ test('a live legacy singleton and malformed pooled members are retained, not byp
   assert.deepEqual(locks(f), []);
 });
 
+test('pooled admission and release retain an orphan member whose worktree lock is missing', t => {
+  const f = fixture(t), directory = lockDirectory(f.home);
+  const lock = acquireLocalLocks({root: f.root, heavy: true, heavyResources: tinyResources, directory});
+  const worktree = lock.paths[0], original = readFileSync(worktree, 'utf8');
+  const barrier = readFileSync(join(directory.path, 'heavy.lock'), 'utf8');
+  const member = readFileSync(lock.paths[1], 'utf8');
+  rmSync(worktree); // This fixture owns the original lock and restores its bytes below.
+  const other = join(f.directory, 'other'); mkdirSync(other);
+  try {
+    assert.throws(() => acquireLocalLocks({root: other, heavy: true,
+      heavyResources: tinyResources, directory}), /lock busy/u);
+    assert.throws(() => lock.release(), /lock busy/u);
+    assert.equal(readFileSync(join(directory.path, 'heavy.lock'), 'utf8'), barrier);
+    assert.equal(readFileSync(lock.paths[1], 'utf8'), member);
+    assert.deepEqual(locks(f).sort(), ['heavy-slot-1.lock', 'heavy.lock']);
+  } finally { writeFileSync(worktree, original); }
+  // Recreating an original lock is manual fixture recovery, not guard recovery.
+});
+
+test('pooled admission and release refuse a member whose worktree Owner token changed', t => {
+  const f = fixture(t), directory = lockDirectory(f.home);
+  const lock = acquireLocalLocks({root: f.root, heavy: true, heavyResources: tinyResources, directory});
+  const worktree = lock.paths[0], original = readFileSync(worktree, 'utf8');
+  const changed = {...JSON.parse(original), token: 'a-different-worktree-owner'};
+  writeFileSync(worktree, JSON.stringify(changed));
+  const barrier = readFileSync(join(directory.path, 'heavy.lock'), 'utf8');
+  const member = readFileSync(lock.paths[1], 'utf8');
+  const other = join(f.directory, 'other'); mkdirSync(other);
+  try {
+    assert.throws(() => acquireLocalLocks({root: other, heavy: true,
+      heavyResources: tinyResources, directory}), /lock busy/u);
+    assert.throws(() => lock.release(), /lock busy/u);
+    assert.equal(readFileSync(join(directory.path, 'heavy.lock'), 'utf8'), barrier);
+    assert.equal(readFileSync(lock.paths[1], 'utf8'), member);
+    assert.equal(readFileSync(worktree, 'utf8'), JSON.stringify(changed));
+    assert.equal(locks(f).length, 3);
+  } finally { writeFileSync(worktree, original); }
+  lock.release();
+  assert.deepEqual(locks(f), []);
+});
+
 test('changed pooled epoch and out-of-range slots refuse admission without reclaiming custody', t => {
   const f = fixture(t), directory = lockDirectory(f.home);
   const lock = acquireLocalLocks({root: f.root, heavy: true, heavyResources: tinyResources, directory});
