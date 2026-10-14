@@ -42,7 +42,7 @@ async function fixture(t, maxObjectBytes, withKey = true) {
 async function countPreparation(wire, operation) {
   const originals = {
     randomBytes: crypto.randomBytes, createCipheriv: crypto.createCipheriv,
-    from: Buffer.from,
+    from: Buffer.from, slow: Buffer.allocUnsafeSlow,
   };
   const counts = {nonce: 0, cipher: 0, plaintextCopy: 0};
   crypto.randomBytes = (...args) => {
@@ -57,6 +57,13 @@ async function countPreparation(wire, operation) {
     if (args[0] === wire && args[1] === 'utf8') counts.plaintextCopy++;
     return Reflect.apply(originals.from, Buffer, args);
   };
+  // Refusal must precede either the historical pooled String conversion or
+  // the exact dedicated snapshot. This hook is used only on rejected input,
+  // before a writer/crypto allocation can have the same independent extent.
+  Buffer.allocUnsafeSlow = function(length) {
+    if (length === Buffer.byteLength(wire, 'utf8')) counts.plaintextCopy++;
+    return Reflect.apply(originals.slow, Buffer, [length]);
+  };
   syncBuiltinESMExports();
   try { await operation(); }
   finally {
@@ -64,6 +71,7 @@ async function countPreparation(wire, operation) {
       randomBytes: originals.randomBytes, createCipheriv: originals.createCipheriv,
     });
     Buffer.from = originals.from;
+    Buffer.allocUnsafeSlow = originals.slow;
     syncBuiltinESMExports();
   }
   return counts;
