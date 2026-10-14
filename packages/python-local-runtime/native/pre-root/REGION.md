@@ -104,3 +104,32 @@ layout review; this source connection does not adopt a numerical profile.
 This generic physical read use is not `FundedReadClaim`, which retains its
 existing original-census authentication and restoration contract. A caller
 that reads that census must separately retain its authentic original claim.
+
+## Native domain read caller
+
+`prepare_backed_read_context` borrows that original Common read use and stores
+it in the existing `NativeBackedExecutionDomain` before physical creation. The
+same domain is the partial-failure carrier. Stock builds refuse before this
+claim: scoped allocation requires both the exact copied provider and matching
+runtime/header flags. No default producer, installed toolchain or runtime
+selection is changed here.
+
+`enter_backed_read_context`/`leave_backed_read_context` bracket the whole managed
+caller, including UTF-8 input, results and failures. The C-only
+`actql_bootstrap_current_read_context` borrows only the same provider's active
+TLS context; it is not a wire pointer or a new permission. Filesystem callers
+must retain it before their first target allocation/FD and keep their existing
+logical closing, current-generation and failure-carrier checks.
+
+`enter_backed_read_cleanup` is only for an existing retained cleanup operation.
+It logically stops the Common use without setting physical closing ahead of
+Root/Reader acknowledgments. Closing the read context releases its own user
+once, waits for active scopes/last aliases, then returns only the extra Common
+borrow. A Common-return failure retains the original carrier but does not repeat
+an already acknowledged physical retirement. Domain/view/FD/process cleanup and
+authority remain separate. Domain close invokes this child-first boundary.
+
+The derived C domain carrier adds context/active/attempt/user/pending-scope
+fields, and the Native managed domain adds read-use/attempt/retirement fields.
+They need a new actual layout and holding inventory. Existing C9/F4 receipts or
+stock layout do not price this new source; normal profile remains `None`.
