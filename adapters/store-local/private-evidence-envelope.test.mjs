@@ -120,7 +120,9 @@ test('private envelope: encoding completes synchronously before the writer wait'
   assert.equal(prepared.physicalCid, cid(original.envelope()));
   // A source boundary check, not a GC/heap proof or a writer ACK. The helper
   // returns only the original complete Buffer and cannot suspend or create IO.
-  const synchronous = productSource.slice(encoderStart, encoderEnd);
+  const synchronousEnd = productSource.indexOf('\n// Recovery facade', encoderStart);
+  assert.ok(synchronousEnd > encoderStart);
+  const synchronous = productSource.slice(encoderStart, synchronousEnd);
   assert.match(synchronous, /^function encodePrivateEvidenceEnvelope\(/u);
   assert.doesNotMatch(synchronous, /\bawait\b|createPreparedObjectWriter/u);
   assert.match(synchronous, /return envelope;/u);
