@@ -24,10 +24,12 @@ class LocalImageRecipeTests(unittest.TestCase):
         self.engine = copy.deepcopy(ENGINE)
         encoded = json.dumps(self.engine, sort_keys=True, separators=(',', ':')).encode('ascii')
         self.recipe = _SelectedImageRecipe('a' * 40, '0.0.0.dev0', 'b' * 64,
-                                         'c' * 64, encoded, len(self.image), len(b'independent runtime library fixture'))
+                                         'c' * 64, encoded, len(self.image), len(b'independent runtime library fixture'),
+                                         'd' * 64, 43)
         self.body = {'source_sha': 'a' * 40, 'package_version': '0.0.0.dev0',
             'module_sha256': 'b' * 64, 'core_abi': LOCAL_CORE_ABI,
             'wasmtime_version': '38.0.0', 'runtime_library_sha256': 'c' * 64,
+            'provider_library_sha256': 'd' * 64,
             'platform': 'darwin-arm64', 'engine_body': copy.deepcopy(self.engine),
             'engine_sha256': hashlib.sha256(encoded).hexdigest(),
             'file': 'client_host_wasm.cwasm', 'bytes': len(self.image),
@@ -38,9 +40,25 @@ class LocalImageRecipeTests(unittest.TestCase):
             self.assertEqual(_load_selected_image(self.root, self.body, self.recipe), self.image)
         with self.assertRaises(FrozenInstanceError): self.recipe.source_sha = 'd' * 40
 
+    def test_native_provider_original_cannot_be_missing_or_replaced_by_numbers(self):
+        from image_fixture import ORIGINAL
+        body = json.loads(ORIGINAL)
+        for key, value in [('provider_library_sha256', None), ('provider_library_sha256', 'x' * 64),
+                           ('provider_library_bytes', True), ('provider_library_bytes', 0)]:
+            with self.subTest(key=key, value=value):
+                changed = body | {key: value}
+                with self.assertRaises(LocalInstallationError):
+                    _recipe_from_original(json.dumps(changed).encode(), source_sha='a' * 40,
+                        package_version='0.0.0.dev0', module_sha256='b' * 64)
+        del body['provider_library_sha256']; del body['provider_library_bytes']
+        with self.assertRaises(LocalInstallationError):
+            _recipe_from_original(json.dumps(body).encode(), source_sha='a' * 40,
+                package_version='0.0.0.dev0', module_sha256='b' * 64)
+
     def test_source_cohort_module_runtime_abi_target_cannot_be_rebound(self):
         for key, value in [('source_sha', 'd' * 40), ('package_version', 'foreign'),
                 ('module_sha256', 'd' * 64), ('runtime_library_sha256', 'd' * 64),
+                ('provider_library_sha256', 'e' * 64),
                 ('wasmtime_version', '37.0.0'), ('core_abi', LOCAL_CORE_ABI - 1),
                 ('platform', 'linux-arm64'), ('file', '../outside.cwasm')]:
             with self.subTest(key=key):
