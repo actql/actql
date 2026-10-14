@@ -26,12 +26,18 @@ test "omitted INFER key retains a scoped hidden rename through row watermark" {
     ),
   )
   // Carrying its identity label does not restore the retired row/range lookup.
-  assert_true(
-    compile_infer_defaults(
+  guard compile_infer_defaults(
       prefix + " |> SELECT `current`.stable_id",
       context,
       true,
     )
-    is Err(UnknownColumn),
-  )
+    is Err(
+      Expression({ issue: @expression.UnknownReference, origin: Some(origin), })
+    ) else {
+    fail("expected the original located hidden-reference refusal")
+  }
+  let span = @origin.span(origin)
+  assert_eq(span.source_path, "defaults.sql")
+  assert_eq(span.start_byte, 274)
+  assert_eq(span.end_byte, 293)
 }
