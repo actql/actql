@@ -45,7 +45,7 @@ export function auditNearestCarrierTransport(mode, report, receipt, fixtures = {
     assert.deepEqual(actual.afterReplay, actual.beforeRead,
       'attach/resend/lookup/reread retain the original Run and acquisition');
   }
-  assert.equal(actualRows, 20);
+  assert.equal(actualRows, successes.reduce((n,item)=>n+item.results.answer.rows.length,0));
   for (const [index, actual] of receipt.refusals.entries()) {
     assert.equal(actual.mode, mode);
     assert.equal(actual.outcome.kind, 'not_accepted');

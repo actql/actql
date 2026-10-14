@@ -76,7 +76,11 @@ test "NEAREST KEEP lowers typed keys and repeats query correspondence without fa
 ///|
 test "NEAREST omitted KEEP retains query columns and discards old ranges" {
   let program = nearest_program("AS neighbor").unwrap()
-  assert_true(semantic(program).contains("\"fields\":[\"request_id\",\"embedding\",\"note\",\"neighbor\"]"))
+  assert_true(
+    semantic(program).contains(
+      "\"fields\":[\"request_id\",\"embedding\",\"note\",\"neighbor\"]",
+    ),
+  )
   for
     suffix in [
       "SELECT q.note", "SELECT c.label", "WHERE q.note IS NULL", "SET note = c.label",

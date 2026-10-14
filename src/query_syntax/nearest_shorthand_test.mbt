@@ -11,8 +11,13 @@ test "short NEAREST accepts USING and defaults to exact cosine" {
   assert_eq(clause.metric, "cosine")
   assert_eq(clause.candidate_alias.value, "corpus")
   let vector = clause.query_vector.unwrap()
-  guard expression_node(vector, expression_root(vector)).unwrap().kind is Parenthesized(child) else { fail("authored wrapper") }
-  guard expression_node(vector, child).unwrap().kind is Reference(path) else { fail("query vector reference") }
+  guard expression_node(vector, expression_root(vector)).unwrap().kind
+    is Parenthesized(child) else {
+    fail("authored wrapper")
+  }
+  guard expression_node(vector, child).unwrap().kind is Reference(path) else {
+    fail("query vector reference")
+  }
   assert_eq(path[0].value, "query_vec")
   assert_eq(clause.k, 3L)
   assert_eq(clause.relation.map(part => part.value), ["corpus"])
@@ -36,13 +41,20 @@ test "short NEAREST preserves explicit metric KEEP and candidate scope" {
 
 ///|
 test "short NEAREST refuses two authored query vectors and malformed USING" {
-  for tail in [
-    "USING embedding QUERY KEY (id) VECTOR other K 1 AS hit",
-    "USING K 1 AS hit", "USING (embedding K 1 AS hit",
-    "USING embedding METRIC approximate K 1 AS hit",
-    "USING embedding K 0 AS hit", "USING embedding K 1 KEEP () AS hit",
-  ] {
-    guard parse_query("FROM q |> NEAREST corpus " + tail, query_limits(), source_path="short.aql") is Err({ span: Some(span), .. }) else { fail(tail) }
+  for
+    tail in [
+      "USING embedding QUERY KEY (id) VECTOR other K 1 AS hit", "USING K 1 AS hit",
+      "USING (embedding K 1 AS hit", "USING embedding METRIC approximate K 1 AS hit",
+      "USING embedding K 0 AS hit", "USING embedding K 1 KEEP () AS hit",
+    ] {
+    guard parse_query(
+        "FROM q |> NEAREST corpus " + tail,
+        query_limits(),
+        source_path="short.aql",
+      )
+      is Err({ span: Some(span), .. }) else {
+      fail(tail)
+    }
     assert_eq(span.source_path, "short.aql")
   }
 }

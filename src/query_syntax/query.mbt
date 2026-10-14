@@ -3587,7 +3587,10 @@ fn QueryParser::nearest_clause(
     None
   }
   if query_vector is Some(_) && self.has("QUERY") {
-    raise QueryAbort("USING and QUERY VECTOR cannot both supply the query vector", self.peek().start)
+    raise QueryAbort(
+      "USING and QUERY VECTOR cannot both supply the query vector",
+      self.peek().start,
+    )
   }
   let query_roles = if self.has("QUERY") {
     self.keyword("QUERY")

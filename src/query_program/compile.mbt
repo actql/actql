@@ -3089,8 +3089,14 @@ fn compile_steps(
             .get(0)
             .map(pair => pair.1),
           completion_limits=Some(query_limits),
-          checked_prefix=checked_nearest_prefix.map(check => nodes => {
-            check(prefix_steps + step_entries.map(step => construction.object(step)) + nodes)
+          checked_prefix=checked_nearest_prefix.map(check => {
+            nodes => {
+              check(
+                prefix_steps +
+                step_entries.map(step => construction.object(step)) +
+                nodes,
+              )
+            }
           }),
         )
         step_entries.append(steps)
@@ -7313,7 +7319,10 @@ pub fn compile_with_source(
       prefix_context=Some(context),
       source_projection_capture~,
       checked_nearest_prefix=Some(nodes => {
-        checked_query_prefix_pipeline(construction, query, context, capture_stages, input_entries, nodes, limits, infer_budget)
+        checked_query_prefix_pipeline(
+          construction, query, context, capture_stages, input_entries, nodes, limits,
+          infer_budget,
+        )
       }),
       checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
         infer_prefix_check(
@@ -7413,8 +7422,8 @@ fn compile_join_steps(
     String,
     InferInputLabels,
     Array[(String, String)],
-    checked_nearest_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
-) -> InferPrefixProjection raise Abort)? = None,
+  ) -> InferPrefixProjection raise Abort)? = None,
+  checked_nearest_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if @query.operation_count(query) < 1 ||
     limits.max_join_output_rows < 1L ||
@@ -9355,8 +9364,8 @@ fn append_join_order_steps(
     String,
     InferInputLabels,
     Array[(String, String)],
-    checked_nearest_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
-) -> InferPrefixProjection raise Abort)? = None,
+  ) -> InferPrefixProjection raise Abort)? = None,
+  checked_nearest_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
 ) -> String raise Abort {
   let mut result_from = initial_from
   if !order_fields.is_empty() {

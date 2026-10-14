@@ -8,9 +8,20 @@ fn script_nearest_prefix_pipeline(
   limits : Limits,
 ) -> @pipeline.CheckedPipeline raise Abort {
   let budget = construction.infer_budget
-  if budget.remaining_work > sources.carrier_work { budget.remaining_work = sources.carrier_work }
+  if budget.remaining_work > sources.carrier_work {
+    budget.remaining_work = sources.carrier_work
+  }
   sources.carrier_work = 0
-  let checked = checked_query_prefix_pipeline(construction, query, context, sources.stages + sources.prior_stages, sources.declarations, nodes, limits, budget)
+  let checked = checked_query_prefix_pipeline(
+    construction,
+    query,
+    context,
+    sources.stages + sources.prior_stages,
+    sources.declarations,
+    nodes,
+    limits,
+    budget,
+  )
   sources.carrier_work = budget.remaining_work
   checked
 }
@@ -128,7 +139,14 @@ fn lower_script_nearest_carrier(
     candidate_typed=candidate_vectors,
     completion_limits=Some(limits),
     checked_prefix=Some(nodes => {
-      script_nearest_prefix_pipeline(construction, query, context, sources, steps.copy() + nodes, limits)
+      script_nearest_prefix_pipeline(
+        construction,
+        query,
+        context,
+        sources,
+        steps.copy() + nodes,
+        limits,
+      )
     }),
   )
   for members in body {

@@ -142,9 +142,11 @@ fn lower_script_join_relation(
       nearest_vectors~,
       positional_set_output~,
       checked_nearest_prefix=Some(nodes => {
-      script_nearest_prefix_pipeline(construction, query, context, sources, nodes, limits)
-    }),
-    checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
+        script_nearest_prefix_pipeline(
+          construction, query, context, sources, nodes, limits,
+        )
+      }),
+      checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
         script_infer_prefix_check(
           construction, query, context, sources, nodes, producer, limits, visible,
           authored_aliases,
@@ -225,7 +227,9 @@ fn lower_script_join_relation(
     values_bound~,
     prefix_steps=steps.copy(),
     checked_nearest_prefix=Some(nodes => {
-      script_nearest_prefix_pipeline(construction, query, context, sources, nodes, limits)
+      script_nearest_prefix_pipeline(
+        construction, query, context, sources, nodes, limits,
+      )
     }),
     checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
       script_infer_prefix_check(
