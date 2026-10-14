@@ -129,3 +129,11 @@ test "short nearest shares one actual producer without creating an alias ambigui
     is Err(AmbiguousColumn),
   )
 }
+
+///|
+test "ambiguous implicit nearest vector is a Common input refusal" {
+  let text = "WITH q AS (FROM queries |> ASSERT UNIQUE BY (request_id)), corpus AS (FROM candidates |> ASSERT UNIQUE BY (item_id) |> SELECT item_id, embedding, embedding AS alternate) FROM q |> NEAREST corpus USING embedding K 2 AS hit"
+  assert_true(
+    with_carrier_program(text, nearest_context()) is Err(InvalidQuery),
+  )
+}
