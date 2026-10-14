@@ -7,6 +7,43 @@ import {createModelRawCaptureStorePort, createModelRawTransportPersistence}
 
 const digest = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 
+for (const boundary of ['originals', 'receipt', 'decode']) {
+test(`frozen raw ${boundary} failure preserves original error and same holding custody`, async t => {
+  const f = await fixture(t, {bytes: Buffer.from('{"original":"raw"}')});
+  const failure = Object.freeze(new Error(`FrozenOriginalRaw:${boundary}`));
+  const originalAck = f.moon.clientProgramAcknowledgeSavedInferRawCapture;
+  const originalDecode = f.moon.clientProgramInferSavedRawChatResponse;
+  const physical = {...f.physical};
+  if (boundary === 'originals') physical.confirmModelRawCaptureOriginals = async () => { throw failure; };
+  if (boundary === 'receipt') f.moon.clientProgramAcknowledgeSavedInferRawCapture = () => { throw failure; };
+  if (boundary === 'decode') f.moon.clientProgramInferSavedRawChatResponse = () => { throw failure; };
+  const port = createModelRawCaptureStorePort(physical, f.moon, f.view, f.bytes);
+  await assert.rejects(port.persistChat(undefined), error => {
+    assert.equal(error.cause, failure, 'Do not replace the primary failure with a field-assignment TypeError');
+    assert.equal(error.rawPersistenceConfirmed, boundary !== 'originals');
+    assert.equal(error.rawCustodyRetained, true);
+    assert.equal(error.cleanupHandle, port.holding);
+    assert.equal(error.rawReceipt, boundary === 'decode' ? f.receipt : undefined);
+    return true;
+  });
+  assert.equal(Object.isFrozen(failure), true);
+  assert.equal(Object.hasOwn(failure, 'rawCustodyRetained'), false);
+  assert.equal(f.state.writes, boundary === 'originals' ? 0 : 1);
+  assert.equal(f.state.acknowledgements, boundary === 'decode' ? 1 : 0);
+  assert.equal(port.holding.status().committed, boundary !== 'originals');
+  // Reconciliation uses the same saved cell/holding and actual Store; it is
+  // not another physical Model request or a copied error's cleanup permission.
+  physical.confirmModelRawCaptureOriginals = f.physical.confirmModelRawCaptureOriginals;
+  f.moon.clientProgramAcknowledgeSavedInferRawCapture = originalAck;
+  f.moon.clientProgramInferSavedRawChatResponse = originalDecode;
+  const saved = await port.persistChat(undefined);
+  assert.equal(saved.receipt, f.receipt);
+  assert.equal(f.state.writes, 1);
+  assert.equal(port.holding.status().committed, true);
+  await f.store.retirePhysicalHolding(f.binding.holdingCid);
+});
+}
+
 test('private raw port confirms same original Store bytes before acknowledging its view', async t => {
   const f = await fixture(t);
   const port = createModelRawCaptureStorePort(f.physical, f.moon, f.view, f.bytes);
