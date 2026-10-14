@@ -5,6 +5,11 @@ import {constants} from 'node:fs';
 import {createHash, randomUUID} from 'node:crypto';
 import {resolve} from 'node:path';
 
+// Measure the nominal view's storage, not a caller-owned length property.
+const typedArrayByteLength = Object.getOwnPropertyDescriptor(
+  Object.getPrototypeOf(Uint8Array.prototype), 'byteLength',
+).get;
+
 class ObjectWriterOwner {
   constructor(maxBytes, trackCustody, reservation, operations) {
     this.maxBytes = maxBytes;
@@ -69,7 +74,7 @@ class ObjectWriterOwner {
   append(frame) {
     let length;
     if (Buffer.isBuffer(frame) || frame instanceof Uint8Array) {
-      length = frame.byteLength;
+      length = Reflect.apply(typedArrayByteLength, frame, []);
     } else if (typeof frame === 'string') {
       length = Buffer.byteLength(frame, 'utf8');
     } else {
