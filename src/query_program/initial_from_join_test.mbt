@@ -1,4 +1,20 @@
 ///|
+fn initial_from_compiled(
+  text : String,
+  context : Context,
+) -> @program.Program raise {
+  match
+    compile_query_script(
+      @query.parse_query_script(text, syntax_limits()).unwrap(),
+      context,
+      construction_limits(),
+    ) {
+    Ok(program) => program
+    Err(cause) => fail(text + " => " + @debug.to_string(cause))
+  }
+}
+
+///|
 fn initial_from_graph_inputs() -> String {
   "WITH n AS (SELECT 1 AS id), r AS (SELECT 9 AS tag), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES))) "
 }
@@ -22,17 +38,12 @@ test "initial JOIN rejects Graph before a later explicit row bridge" {
   }
   // A proper bridge before JOIN is an existing Relation producer, not an
   // implicit bridge inserted to rescue a non-Relation JOIN operand.
-  assert_true(
-    compile_query_script(
-      @query.parse_query_script(
-        initial_from_graph_inputs() +
-        "FROM g |> node_rows() |> AS nodes |> CROSS JOIN r MAX_OUTPUT_ROWS 10 |> SELECT nodes.id",
-        syntax_limits(),
-      ).unwrap(),
+  ignore(
+    initial_from_compiled(
+      initial_from_graph_inputs() +
+      "FROM g |> node_rows() |> AS nodes |> CROSS JOIN r MAX_OUTPUT_ROWS 10 |> SELECT nodes.id",
       { ..fixture_context(), inputs: [], },
-      construction_limits(),
-    )
-    is Ok(_),
+    ),
   )
 }
 
@@ -79,15 +90,7 @@ test "initial JOIN does not discard Vectors or Events before their bridge" {
       bridge +
       " |> SELECT " +
       field
-    assert_true(
-      compile_query_script(
-        @query.parse_query_script(control, syntax_limits()).unwrap(),
-        initial_from_vector_context(),
-        construction_limits(),
-      )
-      is Ok(_),
-      msg=control,
-    )
+    ignore(initial_from_compiled(control, initial_from_vector_context()))
     let invalid = prefix +
       "FROM " +
       name +
@@ -110,11 +113,7 @@ test "initial JOIN does not discard Vectors or Events before their bridge" {
 ///|
 test "initial Relation JOIN stays in the prefix before a typed Carrier call" {
   let text = "WITH r AS (SELECT 9 AS tag) FROM candidates AS c CROSS JOIN r MAX_OUTPUT_ROWS 10 |> to_vectors(id: c.id, vector: c.embedding) |> vectors() |> SELECT id"
-  let actual = compile_query_script(
-    @query.parse_query_script(text, syntax_limits()).unwrap(),
-    initial_from_vector_context(),
-    construction_limits(),
-  ).unwrap()
+  let actual = initial_from_compiled(text, initial_from_vector_context())
   let body = semantic(actual)
   assert_eq(body.split("\"cross_join\":").length(), 2)
   assert_eq(body.split("\"to_vectors\":").length(), 2)
@@ -136,7 +135,17 @@ test "three initial JOIN forms retain the same logical Values and nullable outpu
     " |> SELECT l.id AS id, l.amount AS amount, r.tag AS tag |> ORDER BY amount ASC NULLS FIRST, tag",
   ]
   let programs = forms.map(text => {
-    checked_with_join(prefix + text, { ..fixture_context(), inputs: [], })
+    let program = initial_from_compiled(prefix + text, {
+      ..fixture_context(),
+      inputs: [],
+    })
+    match
+      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      Checked(_) => ()
+      Rejected(error) => fail(@debug.to_string(@check.diagnostic_cause(error)))
+      NeedsInputs(_) => fail("initial JOIN controls have no external Source")
+    }
+    program
   })
   for program in programs {
     assert_eq(@program.stage_count(program), 1)
