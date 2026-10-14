@@ -991,6 +991,9 @@ export function readStoredRunPlanOriginal(original, definition, programCid, limi
     throw new TypeError('InvalidRunHostOriginalPlan');
   }
   const plan = admitPublicationContract('compiled_plan', compiledPlanWire, limits);
+  if (plan.wire !== compiledPlanWire) {
+    throw new TypeError('InvalidRunHostOriginalPlan');
+  }
   checked(owner.clientValuesHostCheckStoredPlanView(planViewWire,
     maxWireBytes, maxNodes, maxDepth), 'RunHostOriginalPlanRejected');
   const view = JSON.parse(planViewWire);
