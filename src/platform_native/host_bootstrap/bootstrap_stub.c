@@ -6,6 +6,7 @@
 #include <stdint.h>
 #include <string.h>
 #include "../../../packages/python-local-runtime/native/pre-root/owned_capacity.c"
+#include "../../../packages/python-local-runtime/native/pre-root/owned_image.c"
 
 typedef struct {
     actql_owned_capacity *lease;

@@ -3,6 +3,9 @@
 
 use core::ffi::{c_int, c_void};
 
+// The same original provider used by the Native control component. This crate
+// contains forwarders only; it must not compile another capacity/TLS provider.
+#[link(name = "actql_native_control", kind = "dylib")]
 unsafe extern "C" {
     fn actql_native_owned_acquire(capacity: usize, generation: u64,
                                   recipe: *const u8, out: *mut *mut c_void) -> c_int;
