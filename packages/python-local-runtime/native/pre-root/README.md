@@ -277,3 +277,37 @@ single 64-page temporary FD and a fork solely as a physical diagnostic launcher.
 The child drops its inherited parent mappings, maps only the issued window,
 and uses the same provider. This is not the installed worker startup, complete
 pre-spawn funding, Wasmtime execution or wheel/product acceptance.
+
+## Child physical borrow record
+
+`owned_domain_borrow` is included once in the same provider. A trusted child
+bootstrap supplies zero-initialized, stable, aligned caller-owned control
+storage and its independently owned inherited FD, after original Core and
+durable launch validation. Fixed material DATA alone is not that validation.
+The record retains any partial map and original borrowed domain before a
+failure, and refuses copying, reinitialization and cross-process use. It creates
+no Ledger, allocator, additional capacity claim or FD.
+
+Close first returns the original domain borrow, then unmaps the same view. A
+failed second stage retains the record and skips the completed first stage on
+retry. Active scopes may still leave after closing. Successful close does not
+close the FD or supply confirmed stop, Common settlement or Run/Store ACK.
+The private Python carrier retains its buffer, selected component, descriptor
+and partial result; lost returns are sticky Unknown, never an implicit retry.
+Its bounded control-copy storage does not adopt ordinary startup funding.
+
+`fixtures/domain_record.c` supplies eight independent syscall-fault/record
+cases. Its PID observations are explicit scalar counters; munmap failure is
+injected. Different-process validation belongs to the separately qualified
+real FD/DLL consumer. Neither fixture is installed worker or VM acceptance.
+
+A child borrow can move once into the existing `_NativeHoldingLease`, preserving
+that same record, provider and persistent pointer slot. Native checks the local
+one-shot holding transfer against the already transferred parent domain; it
+never resets the shared header or reserves another capacity. The moved borrow
+cannot independently close or provide another holding. Final close clears its
+holding slot only after domain-return and view-unmap succeed. An unmap failure
+after domain return retains the original slot and skips that completed stage
+on retry. The existing LocalCore cleanup keeps Store last and retries only the
+same retained holding after Store success. This connection does not instantiate
+Wasmtime, supply a numeric profile or enable ordinary unfunded startup.
