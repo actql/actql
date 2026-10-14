@@ -1052,7 +1052,7 @@ async function openInstalledHost(originalInstallation) {
           },
           assertTrustedRuntimeScope(scope, view, compiled, definition, graph) {
             const borrowed = modelRuntimeScopes.get(scope);
-            if (borrowed?.view !== view || borrowed.compiled !== compiled ||
+            if (borrowed === undefined || borrowed.view !== view || borrowed.compiled !== compiled ||
                 borrowed.definition !== definition || borrowed.graph !== graph ||
                 borrowed.physical !== physical) {
               throw clientOperationError('InferTrustedRuntimeScopeUnavailable');
@@ -1068,7 +1068,7 @@ async function openInstalledHost(originalInstallation) {
           },
           finishTrustedRuntimeScope(scope, view, compiled, definition, graph) {
             const borrowed = modelRuntimeScopes.get(scope);
-            if (borrowed?.view !== view || borrowed.compiled !== compiled ||
+            if (borrowed === undefined || borrowed.view !== view || borrowed.compiled !== compiled ||
                 borrowed.definition !== definition || borrowed.graph !== graph ||
                 borrowed.physical !== physical) {
               throw clientOperationError('InferTrustedRuntimeScopeUnavailable');
