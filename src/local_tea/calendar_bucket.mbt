@@ -256,7 +256,9 @@ fn calendar_bucket_step(
               state.workspace,
               column => {
                 if column == state.into_column {
-                  state.bucket.map(value => @execution.Present(value))
+                  state.bucket.map(value => {
+                    @execution.relation_cell(Some(value))
+                  })
                 } else {
                   state.output_columns
                   .get(column)
@@ -547,7 +549,9 @@ pub fn advance_calendar_bucket(
 pub fn cleanup_calendar_bucket(
   value : CalendarBucketExecution,
 ) -> Result[Bool, CalendarBucketExecutionIssue] {
-  @bounded.cleanup(value.session).map_err(CalendarBucketExecution)
+  @bounded.cleanup(value.session).map_err(issue => {
+    CalendarBucketExecution(issue)
+  })
 }
 
 ///|

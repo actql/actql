@@ -78,7 +78,7 @@ fn calendar_bucket_source(
 fn calendar_bucket_read(
   generated : @execution.GeneratedSequence,
   source : @execution.CompletedOutput,
-) -> @execution.ProducerRead raise {
+) -> @execution.ProducerRead {
   let owner = @execution.generated_sequence_owner(generated)
   let binding = @execution.bind_completed_operation_input(
     owner, 1, 0, owner, source,
