@@ -13,7 +13,7 @@ fn NativeLocalReviewerProofMaterials::original_signing_subject(
     Err(issue) => return Err(issue)
   }
   let reviewer = self.reviewer
-  let projected = reviewer.approval_scope.original_signing_subject_for(
+  let projected = reviewer.approval_scope.read_original_signing_subject_for(
     reviewer.request,
     reviewer.original.run_definition_cid,
     self.original.artifact.checkpoint_cid,
@@ -25,7 +25,13 @@ fn NativeLocalReviewerProofMaterials::original_signing_subject(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  match projected {
+  let subject = match projected {
+    Ok(read) => read.original_subject_after_current()
+    Err(issue) => Err(issue)
+  }
+  // The terminal read above performs no callbacks. A last now/RunRead/key
+  // callback cannot retire the original and leave a stale CID tuple successful.
+  match subject {
     Ok((invocation, unit)) =>
       Ok((
         @host.client_request_intent_cid(reviewer.request),
