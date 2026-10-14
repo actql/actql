@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {publicAqlFormatCases} from './release-public-aql-format-cases.mjs';
 import {inUnnestLiteralArraySuccesses, inUnnestLiteralArrayRefusals}
   from './fixtures/in-unnest-literal-array-source-input.mjs';
 import {selectReleaseSequenceQueryCases} from './release-sequence-query-cases.mjs';
@@ -15,6 +16,7 @@ export const releaseSourcefreeRefusalNames = Object.freeze([
 
 export const releaseSourcefreeFixturePaths = Object.freeze([
   'scripts/release-sourcefree-query-cases.mjs',
+  'scripts/release-public-aql-format-cases.mjs',
   'scripts/release-sequence-query-cases.mjs',
   'scripts/release-time-series-query-cases.mjs',
   'scripts/release-temporal-join-query-cases.mjs',
@@ -52,6 +54,7 @@ export function selectReleaseSourcefreeQueryCases({
 
 // Closed test cohorts only; the original default and its inventory are stable.
 export function selectInstalledSourcefreeQuerySuite(suite = 'in-unnest') {
+  if (suite === 'aql-format') return publicAqlFormatCases;
   if (suite === 'in-unnest') return selectReleaseSourcefreeQueryCases();
   if (suite === 'sequence') return selectReleaseSequenceQueryCases();
   if (suite === 'time-series') return selectReleaseTimeSeriesQueryCases();

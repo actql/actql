@@ -46,6 +46,16 @@ extern "C" fn register_original_backing_roots(
 ) -> Unit = "actql_native_control_register_backing_roots"
 
 ///|
+extern "C" fn register_original_backing_scope_roots(
+  enter : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaBackingBorrow) -> @control.InstalledArenaBackingReply,
+  ],
+  leave : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaBackingBorrow) -> @control.InstalledArenaBackingReply,
+  ],
+) -> Unit = "actql_native_control_register_backing_scope_roots"
+
+///|
 fn original_host(
   reply : @control.InstalledArenaReply,
 ) -> @control.InstalledArenaHost? {
@@ -111,5 +121,13 @@ fn main {
     fn(reply) { reply.operation_tag() },
     fn(reply) { reply.issue_family() },
     fn(reply) { reply.issue_description() },
+  )
+  register_original_backing_scope_roots(
+    fn(original, loan) {
+      @control.enter_installed_arena_backing_scope_reply(original, loan)
+    },
+    fn(original, loan) {
+      @control.leave_installed_arena_backing_scope_reply(original, loan)
+    },
   )
 }

@@ -44,6 +44,28 @@ test('actual original policy body absence refuses before Approval Entry or SDK f
   assert.equal(f.opened.entry(0),undefined);
 });
 
+test('selected service uses the original Common Task and saved raw response without SDK answer adoption',async t=>{
+  const f=await originalSdkCommonFixture(t,moon,{responseWire,
+    modelId:'gpt-4.1-mini-2025-04-14'});
+  assert.equal(f.sends(),0);
+  assert.deepEqual(await f.opened.authorize(),{status:'dispatch'});
+  assert.equal(f.sends(),0,'Approval does not invoke the prepared transport');
+  await f.opened.prepareOriginalResourcesForDispatch();
+  assert.equal(f.sends(),0,'Confirmed original cut does not itself send');
+  const boundary=await f.operation.run();
+  assert.equal(boundary.status,'settling');
+  assert.equal(f.sends(),1);
+  assert.equal(f.originalReads(),2);
+  assert.deepEqual(JSON.parse(f.requests[0].body),{
+    model:'gpt-4.1-mini-2025-04-14',temperature:0,top_p:1,max_tokens:32,seed:-7,
+    messages:[{role:'system',content:'Original é\r\n'},{role:'user',content:'{"text":"hello"}'}],
+    response_format:{type:'json_schema',json_schema:{name:'actql_output',strict:true,
+      schema:{type:'object',properties:{reason:{anyOf:[{type:'string'},{type:'null'}]},risk:{type:'string'}},
+        required:['reason','risk'],additionalProperties:false}}},
+  });
+  t.diagnostic('Actual Common/SDK/SQLite/raw Store; synthetic installation and transport response, live/public/funding0');
+});
+
 test('cancellation while exact Store originals are checked cannot authorize an Entry or send',async t=>{
   const abort=new AbortController();
   const f=await originalSdkCommonFixture(t,moon,{responseWire,signal:abort.signal,

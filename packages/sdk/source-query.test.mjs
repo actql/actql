@@ -384,3 +384,17 @@ test('query observation loss retains the actual accepted submission outcome', as
   assert.equal(f.count('wait'), 1);
   assert.equal(f.count('read'), 0);
 });
+
+test('public aql spelling reaches submit without rewriting its source', async t => {
+  const f=await fixture(t);
+  const execution=await f.client.startSource('SELECT @id AS id', {
+    format:'aql', parameters:{id:1}, parameterDeclarations:{id:{type:'number',nullable:false}},
+  });
+  assert.ok(execution);
+  const sent=f.calls.find(x=>x.operation==='submit-intent').body;
+  assert.equal(sent.input.format,'aql');
+  assert.equal(sent.input.text,'SELECT @id AS id');
+  assert.deepEqual(sent.input.parameterDeclarations,{id:{type:'number',nullable:false}});
+  assert.deepEqual(sent.parameters,{id:1});
+  assert.equal(f.count('submit-intent'),1);
+});
