@@ -119,6 +119,20 @@ test('unsupported native SDK options and question ceilings cannot create a sendi
   }
 });
 
+test('native options reject a joined own-key collision before reading inherited fields',async t=>{
+  let reads=0,handle;
+  const prototype={get questions(){reads++;return questions;},
+    get state(){reads++;return state;}};
+  const options=Object.create(prototype);
+  options['questions,state']=true;
+  // Retain any mistakenly issued original preparation through normal cleanup;
+  // no transport is selected or started in this registration counterexample.
+  t.after(async()=>{if(handle!==undefined)await release(handle);});
+  assert.throws(()=>{handle=prepare({options});},/InvalidTypeSafeSdkPreparation/u);
+  assert.equal(reads,0);
+  assert.equal(handle,undefined);
+});
+
 test('cancelled original native preparation cannot start and cleanup uses that same handle',async()=>{
   const handle=prepare();await until(()=>pollSdkPreparation(handle),'ready');
   let calls=0;
