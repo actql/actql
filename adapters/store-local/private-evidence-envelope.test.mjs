@@ -28,9 +28,13 @@ const productSource = readFileSync(new URL('./publication-store.mjs', import.met
 const start = productSource.indexOf('  const preparePrivateEvidenceInput =');
 const end = productSource.indexOf('  const preparePrivateEvidenceBytes =', start);
 assert.ok(start >= 0 && end > start);
-const currentSource = productSource.slice(start, end);
+const encoderStart = productSource.indexOf('function encodePrivateEvidenceEnvelope(');
+const encoderEnd = productSource.indexOf('\nasync function syncDirectoryPath', encoderStart);
+assert.ok(encoderStart >= 0 && encoderEnd > encoderStart);
+const currentSource = productSource.slice(encoderStart, encoderEnd) + '\n' +
+  productSource.slice(start, end);
 
-function encoder(source, {splitFinal = false, failAppend = false} = {}) {
+function encoder(source, {splitFinal = false, failAppend = false, pauseAppend = false} = {}) {
   const counts = {jsonEnvelope: 0, stringEnvelopeCopy: 0, crypto: 0, cancel: 0};
   let envelope;
   const BufferView = new Proxy(Buffer, {get(target, key) {
@@ -51,6 +55,9 @@ function encoder(source, {splitFinal = false, failAppend = false} = {}) {
   }};
   const primary = new Error('independent append failure');
   const cleanup = new Error('independent cancel failure');
+  let resumeAppend, enteredAppend;
+  const appendEntered = new Promise(resolve => { enteredAppend = resolve; });
+  const appendGate = new Promise(resolve => { resumeAppend = resolve; });
   const prepare = runInNewContext(source + '\npreparePrivateEvidenceInput;', {
     Buffer: BufferView, Uint8Array, JSON: json,
     active() {}, configuration: {maxObjectBytes: 16384},
@@ -80,14 +87,46 @@ function encoder(source, {splitFinal = false, failAppend = false} = {}) {
           if (failAppend) throw primary;
           assert.equal(bytes.length, expected);
           envelope = Buffer.from(bytes);
+          enteredAppend();
+          if (pauseAppend) await appendGate;
         },
         async seal() { return {cid: cid(envelope), bytes: expected, prepared: {}}; },
         async cancel() { counts.cancel++; throw cleanup; },
+        status: () => ({reservationHeld: failAppend, custodyPending: false,
+          cleanupPending: failAppend}),
       };
     },
   });
-  return {prepare, counts, primary, cleanup, envelope: () => envelope};
+  return {prepare, counts, primary, cleanup, envelope: () => envelope,
+    appendEntered, resumeAppend};
 }
+
+test('private envelope: encoding completes synchronously before the writer wait', async () => {
+  // The original input remains separately owned. Mutating this test-owned
+  // backing after append entry cannot alter the already encoded envelope.
+  const input = Uint8Array.from([0, 255, 13]);
+  const original = encoder(originalSource);
+  await original.prepare(name, input, semanticCid, false);
+  const current = encoder(currentSource, {pauseAppend: true});
+  const operation = current.prepare(name, input, semanticCid, false);
+  await current.appendEntered;
+  try {
+    assert.equal(current.counts.crypto, 1);
+    assert.deepEqual(current.envelope(), original.envelope());
+    input.fill(88);
+    assert.deepEqual(current.envelope(), original.envelope());
+  } finally { current.resumeAppend(); }
+  const prepared = await operation;
+  assert.equal(prepared.physicalCid, cid(original.envelope()));
+  // A source boundary check, not a GC/heap proof or a writer ACK. The helper
+  // returns only the original complete Buffer and cannot suspend or create IO.
+  const synchronousEnd = productSource.indexOf('\n// Recovery facade', encoderStart);
+  assert.ok(synchronousEnd > encoderStart);
+  const synchronous = productSource.slice(encoderStart, synchronousEnd);
+  assert.match(synchronous, /^function encodePrivateEvidenceEnvelope\(/u);
+  assert.doesNotMatch(synchronous, /\bawait\b|createPreparedObjectWriter/u);
+  assert.match(synchronous, /return envelope;/u);
+});
 
 test('private envelope: fixed old bytes and CID without full JSON String backing', async () => {
   const rawBacking = Buffer.alloc(64, 88);

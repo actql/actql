@@ -16,39 +16,16 @@ pub fn project_current_interactive_run_view(
   max_depth : Int,
   static_plan_installed? : Bool = false,
 ) -> Result[String, RunControlReadIssue] {
-  if run.name != "run_definition" ||
-    prepared.name != "prepared_invocation" ||
-    authorization.name != "run_authorization" {
-    return Err(LegacyProjectionMismatch("original_evidence"))
+  match
+    validate_original_interactive_run_evidence(run, prepared, authorization) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
-  for field in ["compiled_plan_cid", "invocation_template_cid"] {
-    if contract_string_from_value(prepared.value, field) !=
-      contract_string(run, field) {
-      return Err(LegacyProjectionMismatch(field))
-    }
-  }
-  if contract_string_from_value(authorization.value, "prepared_invocation_cid") !=
-    Some(prepared.identity) ||
-    contract_string_from_value(prepared.value, "policy_decision") !=
-    Some("allow") ||
-    contract_string_from_value(authorization.value, "decision") !=
-    Some("allowed") {
-    return Err(LegacyProjectionMismatch("authorization"))
-  }
-  let context = contract_string(run, "authorization_context_cid")
-  if context !=
-    contract_string_from_value(prepared.value, "execution_context_cid") ||
-    context !=
-    contract_string_from_value(authorization.value, "execution_context_cid") {
-    return Err(LegacyProjectionMismatch("execution_context_cid"))
-  }
+  // The validated original value is also displayed later in this projection.
   let policy = contract_string_from_value(
     authorization.value,
     "host_policy_cid",
   )
-  if policy != contract_string_from_value(prepared.value, "host_policy_cid") {
-    return Err(LegacyProjectionMismatch("host_policy_cid"))
-  }
   let state = match
     parse_contract_wire(
       state_wire,
