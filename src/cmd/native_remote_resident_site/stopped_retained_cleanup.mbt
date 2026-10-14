@@ -79,12 +79,7 @@ fn recover_retained_input_command(
     ignore(slot.close())
     stop("retained cleanup slot busy")
   }
-  let owner = open_release_recovery(matches, slot, expected_consumer) catch {
-    CommandStop(issue) => {
-      ignore(slot.close())
-      stop(issue)
-    }
-  }
+  let owner = open_release_recovery(matches, slot, expected_consumer)
   let receiver : Ref[@transfer_journal.Journal?] = { val: None, }
   let failure = try {
     for

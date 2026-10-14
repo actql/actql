@@ -67,6 +67,8 @@ pub fn admit_client_local_runtime_policy_upgrade(Bytes, ClientLocalRunPolicyProf
 
 pub fn admit_client_native_local_runtime(String, String, String, String) -> Result[ClientNativeLocalRuntime, ClientNativeLocalRuntimeIssue]
 
+pub fn admit_client_native_product_members(String, String, String, String) -> Result[ClientNativeProductMembers, ClientNativeLocalRuntimeIssue]
+
 pub fn admit_client_request_identity_record(String, String, String, String, String, String, String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
 
 pub fn admit_client_request_identity_record_wire(String) -> Result[ClientRequestIdentity, ClientRequestIdentityIssue]
@@ -752,6 +754,24 @@ pub fn client_native_local_scalar_values_profile_inspected_entries(ClientNativeL
 pub fn client_native_local_scalar_values_profile_operation_at(ClientNativeLocalScalarValuesProfile, Int) -> String?
 
 pub fn client_native_local_scalar_values_profile_operation_count(ClientNativeLocalScalarValuesProfile) -> Int
+
+pub fn client_native_product_census(ClientNativeProductMembers, String) -> Result[ClientNativeProductCensus, ClientNativeLocalRuntimeIssue]
+
+pub fn client_native_product_census_at(ClientNativeProductCensus, Int) -> ClientNativeProductCensusMember?
+
+pub fn client_native_product_census_count(ClientNativeProductCensus) -> Int
+
+pub fn client_native_product_members_at(ClientNativeProductMembers, Int) -> ClientNativeProductMember?
+
+pub fn client_native_product_members_count(ClientNativeProductMembers) -> Int
+
+pub fn client_native_product_members_package(ClientNativeProductMembers) -> String
+
+pub fn client_native_product_members_platform(ClientNativeProductMembers) -> String
+
+pub fn client_native_product_members_source(ClientNativeProductMembers) -> String
+
+pub fn client_native_product_members_wire(ClientNativeProductMembers) -> String
 
 pub fn client_node_model_state_read(ClientNodeModelStateWriter) -> Result[ClientModelReadPreparation, ClientNodeModelStateIssue]
 
@@ -2800,6 +2820,27 @@ pub(all) enum ClientNativeLocalScalarValuesProfileIssue {
   BudgetExceeded
   ForeignPreparation
 } derive(Eq, @debug.Debug)
+
+type ClientNativeProductCensus
+
+pub(all) enum ClientNativeProductCensusKind {
+  ProductFile
+  ProductDirectory
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientNativeProductCensusMember {
+  name : String
+  kind : ClientNativeProductCensusKind
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientNativeProductMember {
+  path : String
+  bytes : Int64
+  mode : Int
+  sha256 : String
+} derive(Eq, @debug.Debug)
+
+type ClientNativeProductMembers
 
 pub(all) struct ClientNodeModelPreparationLayout {
   response_profile : @check_environment.ModelResponseProfile
