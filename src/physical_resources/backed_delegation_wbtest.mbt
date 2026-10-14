@@ -189,10 +189,11 @@ test "backed physical windows exclude writers while original read windows can sh
 ///|
 test "backed one-shot region and child reject foreign copied and duplicated originals" {
   let (ledger, capacity, allocation, provider, region) = backed_test_region()
-  assert_true(
-    issue_backed_execution_region(capacity, allocation, provider)
-    is Err(CleanupPending),
-  )
+  let duplicate : Result[
+    BackedExecutionRegion[Ref[Int], Ref[Int]],
+    BackedExecutionIssue,
+  ] = issue_backed_execution_region(capacity, allocation, provider)
+  assert_true(duplicate is Err(CleanupPending))
   assert_true(
     borrow_shared_capacity(capacity, allocation) is Err(ClosedHolding),
   )
