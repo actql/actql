@@ -8,17 +8,32 @@ struct BootstrapTestOriginal {
 extern "C" fn test_page_bytes_ffi() -> Int64 = "actql_bootstrap_page_bytes"
 
 ///|
-fn test_supplier(original : BootstrapTestOriginal, bytes : Int64) -> NativeInstalledArenaSupplier[BootstrapTestOriginal] {
-  prepare_installed_arena_supplier(original,
+fn test_supplier(
+  original : BootstrapTestOriginal,
+  bytes : Int64,
+) -> NativeInstalledArenaSupplier[BootstrapTestOriginal] {
+  prepare_installed_arena_supplier(
+    original,
     "0123456789012345678901234567890123456789",
-    Bytes::make(32, 17), 1L, bytes,
-    { planning_work: 20, attempts: 8, holdings: 4,
-      transfer_bytes: 30L, retained_bytes: 0L, execution_bytes: bytes, },
-    65536L).unwrap()
+    Bytes::make(32, 17),
+    1L,
+    bytes,
+    {
+      planning_work: 20,
+      attempts: 8,
+      holdings: 4,
+      transfer_bytes: 30L,
+      retained_bytes: 0L,
+      execution_bytes: bytes,
+    },
+    65536L,
+  ).unwrap()
 }
 
 ///|
-fn test_host(original : BootstrapTestOriginal) -> NativeHostBootstrap[BootstrapTestOriginal] {
+fn test_host(
+  original : BootstrapTestOriginal,
+) -> NativeHostBootstrap[BootstrapTestOriginal] {
   let supplier = test_supplier(original, 64L * test_page_bytes_ffi())
   match supplier.acquire(original).unwrap() {
     Acquired(host) => {
@@ -31,8 +46,8 @@ fn test_host(original : BootstrapTestOriginal) -> NativeHostBootstrap[BootstrapT
 
 ///|
 test "installed supplier refuses foreign original before consuming acquisition" {
-  let original = { identity: 1 }
-  let foreign = { identity: 1 }
+  let original = { identity: 1, }
+  let foreign = { identity: 1, }
   assert_eq(original.identity, foreign.identity)
   let supplier = test_supplier(original, 64L * test_page_bytes_ffi())
   assert_true(supplier.acquire(foreign) is Err(ForeignOriginal))
@@ -49,17 +64,26 @@ test "installed supplier refuses foreign original before consuming acquisition" 
 
 ///|
 test "original recipe and generation are fenced before the single transfer" {
-  let original = { identity: 2 }
+  let original = { identity: 2, }
   let supplier = test_supplier(original, 64L * test_page_bytes_ffi())
   let host = match supplier.acquire(original).unwrap() {
     Acquired(host) => host
     Pending(_, _) => abort("fixture physical backing unavailable")
   }
-  assert_true(host.claim(original, supplier.source, Bytes::make(32, 18), 1L) is Err(ForeignOriginal))
-  assert_true(host.claim(original, supplier.source, supplier.recipe, 2L) is Err(ForeignOriginal))
+  assert_true(
+    host.claim(original, supplier.source, Bytes::make(32, 18), 1L)
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    host.claim(original, supplier.source, supplier.recipe, 2L)
+    is Err(ForeignOriginal),
+  )
   host.claim(original, supplier.source, supplier.recipe, 1L).unwrap()
   let copied_handle = host
-  assert_true(copied_handle.claim(original, supplier.source, supplier.recipe, 1L) is Err(AlreadyConsumed))
+  assert_true(
+    copied_handle.claim(original, supplier.source, supplier.recipe, 1L)
+    is Err(AlreadyConsumed),
+  )
   assert_true(supplier.acquire(original) is Err(AlreadyConsumed))
   host.try_close(original).unwrap()
   assert_true(host.allocate(original, 1L) is Err(Closing))
@@ -67,7 +91,7 @@ test "original recipe and generation are fenced before the single transfer" {
 
 ///|
 test "failed physical acquisition returns the original reserved partial carrier" {
-  let original = { identity: 3 }
+  let original = { identity: 3, }
   let bytes = 64L * test_page_bytes_ffi() + 1L
   let supplier = test_supplier(original, bytes)
   let host = match supplier.acquire(original).unwrap() {
@@ -75,7 +99,10 @@ test "failed physical acquisition returns the original reserved partial carrier"
     _ => abort("unaligned acquisition must be a physical rejection")
   }
   assert_eq(host.usage().reserved_execution_bytes, bytes)
-  assert_true(host.claim(original, supplier.source, supplier.recipe, 1L) is Err(Unavailable))
+  assert_true(
+    host.claim(original, supplier.source, supplier.recipe, 1L)
+    is Err(Unavailable),
+  )
   assert_true(supplier.acquire(original) is Err(AlreadyConsumed))
   host.try_close(original).unwrap()
   assert_eq(host.usage().reserved_execution_bytes, 0L)
@@ -86,7 +113,7 @@ test "failed physical acquisition returns the original reserved partial carrier"
 
 ///|
 test "borrow blocks physical retirement and preserves other original allocations" {
-  let original = { identity: 4 }
+  let original = { identity: 4, }
   let host = test_host(original)
   let page = test_page_bytes_ffi()
   let control = host.capacity_usage().allocated
@@ -96,7 +123,9 @@ test "borrow blocks physical retirement and preserves other original allocations
   let borrowed = host.borrow(original, first).unwrap()
   assert_true(host.retire(original, first) is Err(ReadersPending))
   assert_eq(host.capacity_usage().allocated, control + 3L * page)
-  assert_true(host.borrow(original, first) is Err(Resource(@resources.ClosedHolding)))
+  assert_true(
+    host.borrow(original, first) is Err(Resource(@resources.ClosedHolding)),
+  )
   host.return_borrow(original, borrowed).unwrap()
   assert_true(host.return_borrow(original, borrowed) is Err(AlreadyConsumed))
   host.retire(original, first).unwrap()
@@ -112,7 +141,7 @@ test "borrow blocks physical retirement and preserves other original allocations
 
 ///|
 test "close pending keeps the same backing and settles only after original reader stop" {
-  let original = { identity: 5 }
+  let original = { identity: 5, }
   let host = test_host(original)
   let child = host.allocate(original, 1L).unwrap()
   let borrowed = host.borrow(original, child).unwrap()
@@ -130,26 +159,49 @@ test "close pending keeps the same backing and settles only after original reade
 
 ///|
 test "Common delegation reports are cumulative and unknown final usage is not refunded" {
-  let original = { identity: 6 }
+  let original = { identity: 6, }
   let host = test_host(original)
-  let child = host.delegate(original,
-    { planning_work: 4, attempts: 2, holdings: 1,
-      transfer_bytes: 12L, retained_bytes: 0L, execution_bytes: 0L, }).unwrap()
+  let child = host
+    .delegate(original, {
+      planning_work: 4,
+      attempts: 2,
+      holdings: 1,
+      transfer_bytes: 12L,
+      retained_bytes: 0L,
+      execution_bytes: 0L,
+    })
+    .unwrap()
   let usage : @resources.LedgerUsage = {
-    planning_work: 2, attempts: 1, holdings: 0,
-    transferred_bytes: 7L, uncertain_transfer_bytes: 0L,
-    reserved_transfer_bytes: 5L, held_bytes: 0L,
-    reserved_retention_bytes: 0L, reserved_execution_bytes: 0L,
+    planning_work: 2,
+    attempts: 1,
+    holdings: 0,
+    transferred_bytes: 7L,
+    uncertain_transfer_bytes: 0L,
+    reserved_transfer_bytes: 5L,
+    held_bytes: 0L,
+    reserved_retention_bytes: 0L,
+    reserved_execution_bytes: 0L,
     peak_retention_bytes: 0L,
   }
   host.report(original, child, usage).unwrap()
   host.report(original, child, usage).unwrap()
   assert_eq(host.usage().transferred_bytes, 7L)
   assert_eq(host.usage().planning_work, 2)
-  assert_true(host.report(original, child, { ..usage, transferred_bytes: 6L, }) is Err(Resource(@resources.InvalidCharge)))
-  assert_true(host.delegate(original,
-    { planning_work: 0, attempts: 0, holdings: 0,
-      transfer_bytes: 0L, retained_bytes: 0L, execution_bytes: 1L, }) is Err(Unavailable))
+  assert_true(
+    host.report(original, child, { ..usage, transferred_bytes: 6L, })
+    is Err(Resource(@resources.InvalidCharge)),
+  )
+  assert_true(
+    host.delegate(original, {
+      planning_work: 0,
+      attempts: 0,
+      holdings: 0,
+      transfer_bytes: 0L,
+      retained_bytes: 0L,
+      execution_bytes: 1L,
+    })
+    is Err(Unavailable),
+  )
   host.try_close(original).unwrap()
   assert_eq(host.usage().transferred_bytes, 7L)
   assert_eq(host.usage().uncertain_transfer_bytes, 5L)
