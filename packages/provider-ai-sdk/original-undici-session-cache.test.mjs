@@ -39,8 +39,11 @@ test('selected original preparation disables unused TLS session caching before a
   const call = prepared();
   try {
     assert.equal(selections.length, before + 1);
-    assert.deepEqual(selections[before].options,
-      {allowH2: false, maxCachedSessions: 0});
+    const {onread, ...options} = selections[before].options;
+    assert.deepEqual(options, {allowH2: false, maxCachedSessions: 0});
+    assert.equal(onread.buffer.byteLength, 512);
+    assert.equal(onread.buffer.buffer.byteLength, 512);
+    assert.equal(typeof onread.callback, 'function');
   } finally {
     // Actual unstarted Client cleanup; not a Model/Store or TLS close witness.
     assert.equal(await call.cleanup(), true);
