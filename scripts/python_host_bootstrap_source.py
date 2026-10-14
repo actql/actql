@@ -21,6 +21,8 @@ INPUTS = (
     'src/platform_native/host_bootstrap/bootstrap_wbtest.mbt',
     'packages/python-local-runtime/native/pre-root/owned_capacity.c',
     'packages/python-local-runtime/native/pre-root/owned_capacity.h',
+    'packages/python-local-runtime/native/pre-root/owned_region.h',
+    'packages/python-local-runtime/native/pre-root/owned_region.inc',
 )
 MANIFEST = 'packages/python-local-runtime/native/pre-root/host-bootstrap-source.json'
 
