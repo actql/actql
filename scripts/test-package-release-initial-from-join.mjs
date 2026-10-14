@@ -43,7 +43,8 @@ const owner = createTransportOwner({deadline: Date.now() + 180000, timeoutMs: 18
 let primary;
 try {
   await writeFile(join(root, 'package.json'), '{"private":true,"type":"module"}\n');
-  await writeFile(env.npm_config_userconfig, `registry=${registry.url}\n@actql:registry=${registry.url}\n`);
+  await writeFile(env.npm_config_userconfig,
+    `registry=${registry.url}\n@actql:registry=${registry.url}\n@duckdb:registry=${manifest.cohort.registry}\n`);
   await writeFile(env.npm_config_globalconfig, '');
   await owner.run([{name: 'registry-install-node', command: 'npm',
     args: ['install', '--no-audit', '--no-fund', `@actql/node@${manifest.cohort.packageVersion}`, duckdbPackage], cwd: root}]);
