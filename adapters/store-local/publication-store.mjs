@@ -2259,8 +2259,15 @@ export async function openLocalPublicationStore(
           .test(value)) {
       fail('PublicationPrivateEvidenceCorrupt');
     }
-    const decoded = Buffer.from(value, 'base64');
-    if ((bytes !== undefined && decoded.byteLength !== bytes) ||
+    // The bounded envelope and strict alphabet above fix the decoded extent.
+    // Noncanonical padding bits still fail the same round-trip check below.
+    // Keep nonce/tag/ciphertext on dedicated backings, not shared pool slices.
+    const length = value.length / 4 * 3 - (value.endsWith('==') ? 2 : value.endsWith('=') ? 1 : 0);
+    if (bytes !== undefined && length !== bytes) {
+      fail('PublicationPrivateEvidenceCorrupt');
+    }
+    const decoded = Buffer.allocUnsafeSlow(length);
+    if (decoded.write(value, 0, length, 'base64') !== length ||
         decoded.toString('base64') !== value) {
       fail('PublicationPrivateEvidenceCorrupt');
     }
@@ -2275,7 +2282,9 @@ export async function openLocalPublicationStore(
     }
     cidHex(semanticCid);
     cidHex(holdingCid);
-    const key = Buffer.from(privateEvidenceKey());
+    const originalKey = privateEvidenceKey();
+    const key = Buffer.allocUnsafeSlow(originalKey.byteLength);
+    key.set(originalKey);
     try {
       const holding = await inspectPhysicalHolding(holdingCid);
       if (!privateEvidenceHolding(holding, name) ||
