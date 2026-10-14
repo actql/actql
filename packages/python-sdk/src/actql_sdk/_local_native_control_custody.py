@@ -10,7 +10,7 @@ from ctypes import POINTER, byref, c_int, c_int32, c_void_p
 from dataclasses import dataclass
 from os import getpid
 from threading import Thread, current_thread
-from typing import Any
+from typing import Any, NoReturn
 
 
 @dataclass(frozen=True)
@@ -109,7 +109,7 @@ class _OriginalControlCustody:
     def __deepcopy__(self, memo: dict[int, object]) -> _OriginalControlCustody:
         raise TypeError('Original Native control custody cannot be copied')
 
-    def __reduce__(self) -> object:
+    def __reduce__(self) -> NoReturn:
         raise TypeError('Original Native control custody cannot be serialized')
 
     def _enter(self) -> None:
