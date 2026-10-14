@@ -11,6 +11,20 @@ static struct {
     actql_backing_description_fn description;
 } backing_callbacks;
 static int backing_registered;
+static actql_backing_operation_fn enter_scope_callback, leave_scope_callback;
+static int scope_registered;
+
+void actql_native_control_register_backing_scope_roots(
+    actql_backing_operation_fn enter, actql_backing_operation_fn leave) {
+    if (scope_registered) return;
+    if (!enter || !leave) {
+        scope_registered = -1;
+        return;
+    }
+    enter_scope_callback = enter;
+    leave_scope_callback = leave;
+    scope_registered = 1;
+}
 
 void actql_native_control_register_backing_roots(
     actql_backing_borrow_fn borrow, actql_backing_operation_fn current,
@@ -63,6 +77,20 @@ int actql_backing_return_into(actql_control_host *host,
                             actql_backing_loan *loan,
                             actql_backing_reply **reply_slot) {
     return backing_operation_into(backing_callbacks.return_loan, host, loan, reply_slot);
+}
+
+int actql_backing_enter_scope_into(actql_control_host *host,
+                                 actql_backing_loan *loan,
+                                 actql_backing_reply **reply_slot) {
+    if (scope_registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    return backing_operation_into(enter_scope_callback, host, loan, reply_slot);
+}
+
+int actql_backing_leave_scope_into(actql_control_host *host,
+                                 actql_backing_loan *loan,
+                                 actql_backing_reply **reply_slot) {
+    if (scope_registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    return backing_operation_into(leave_scope_callback, host, loan, reply_slot);
 }
 
 int actql_backing_originals_into(actql_backing_reply *reply,

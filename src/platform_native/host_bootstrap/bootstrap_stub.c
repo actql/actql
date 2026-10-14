@@ -96,3 +96,13 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_retire(actql_bootstrap_backing *recor
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_close(actql_bootstrap_backing *record) {
     return actql_native_owned_try_close(&record->lease);
 }
+
+/* Nominal Host/loan checks precede these calls in the existing Native Owner.
+ * The same backing owns the only allocator/TLS; no pointer is exported. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_enter_scope(actql_bootstrap_backing *record) {
+    return actql_native_owned_enter(record->lease);
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_leave_scope(actql_bootstrap_backing *record) {
+    return actql_native_owned_leave(record->lease);
+}
