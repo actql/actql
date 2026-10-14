@@ -1,5 +1,5 @@
 ///|
-fn holder_partial_root_fixture(label : String) -> (@filesystem.Root, String) {
+fn holder_partial_root_fixture(label : String) -> (@filesystem.Root, String) raise {
   guard @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT") is Some(parent) else {
     fail("selected partial-holder cases require an owned isolated Root")
     abort("missing partial-holder Root")
