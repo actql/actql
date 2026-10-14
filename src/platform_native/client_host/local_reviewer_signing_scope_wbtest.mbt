@@ -18,6 +18,23 @@ fn[T, E] reviewer_signing_scope_require(
 }
 
 ///|
+// The existing capacity-custody scan requires the same original journal TX.
+// Even an exact retained reservation must not be queried outside that boundary.
+fn reviewer_signing_scope_installation_count(
+  host : NativeLocalHostConnection,
+) -> Int raise {
+  reviewer_signing_scope_require(
+    host.journal.transaction(() => {
+      host
+      .installation_custody()
+      .map(value => value.0)
+      .map_err(_ => CustodyLost)
+    }),
+    "read_installation_custody_in_original_transaction",
+  )
+}
+
+///|
 // Real private Root, authenticated installation journal and public PEM original;
 // the descriptor contains no private key. This fixture covers the key side
 // only, not a fabricated paired capture or a successful signing operation.
@@ -162,23 +179,30 @@ test "Reviewer scope key correspondence uses authenticated originals without iss
   let before = host.database
     .read("client_local_installation_originals", key.account.file.name)
     .unwrap()
-  let count = host.installation_custody().unwrap().0
-  key.require_reviewer_signing_key_scope(candidate).unwrap()
-  key.require_reviewer_signing_key_scope(candidate).unwrap()
+  let count = reviewer_signing_scope_installation_count(host)
+  reviewer_signing_scope_require(
+    key.require_reviewer_signing_key_scope(candidate),
+    "original_key_scope",
+  )
+  reviewer_signing_scope_require(
+    key.require_reviewer_signing_key_scope(candidate),
+    "repeat_original_key_scope",
+  )
   // The separate subject fence remains necessary: key correspondence is not
   // evidence that a caller's request/Run/Checkpoint metadata is authenticated.
-  key
-  .require_reviewer_signing_key_scope({
-    ..candidate,
-    submission_scope_cid: candidate.request_scope_cid,
-  })
-  .unwrap()
+  reviewer_signing_scope_require(
+    key.require_reviewer_signing_key_scope({
+      ..candidate,
+      submission_scope_cid: candidate.request_scope_cid,
+    }),
+    "key_only_does_not_authenticate_submission",
+  )
   let after = host.database
     .read("client_local_installation_originals", key.account.file.name)
     .unwrap()
   assert_eq(after.body, before.body)
   assert_eq(after.revision, before.revision)
-  assert_eq(host.installation_custody().unwrap().0, count)
+  assert_eq(reviewer_signing_scope_installation_count(host), count)
   assert_true(
     host.database.scan_after("client_local_grant_originals", "")
     is Err(@sqlite.NotFound),
@@ -209,7 +233,10 @@ test "Reviewer scope rejects substituted key Account role generation and public 
       key.require_reviewer_signing_key_scope(changed) is Err(ProofUnavailable),
     )
   }
-  key.require_reviewer_signing_key_scope(candidate).unwrap()
+  reviewer_signing_scope_require(
+    key.require_reviewer_signing_key_scope(candidate),
+    "unchanged_key_after_refusals",
+  )
   host.close().unwrap()
 }
 
@@ -236,7 +263,7 @@ test "Reviewer scope cannot borrow another original Host and cannot outlive its 
   assert_true(
     key.require_reviewer_signing_key_scope(candidate) is Err(ProofKey(_)),
   )
-  assert_eq(host.installation_custody().unwrap().0, 1)
+  assert_eq(reviewer_signing_scope_installation_count(host), 1)
   host.close().unwrap()
 }
 
@@ -244,7 +271,10 @@ test "Reviewer scope cannot borrow another original Host and cannot outlive its 
 test "Reviewer scope rejects closed original custody before returning matching metadata" {
   let (host, key) = reviewer_signing_scope_key_fixture("scope-key-closed")
   let candidate = reviewer_signing_scope_key_candidate(key)
-  key.require_reviewer_signing_key_scope(candidate).unwrap()
+  reviewer_signing_scope_require(
+    key.require_reviewer_signing_key_scope(candidate),
+    "original_key_before_close",
+  )
   host.close().unwrap()
   assert_true(
     key.require_reviewer_signing_key_scope(candidate) is Err(ProofKey(_)),
