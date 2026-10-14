@@ -105,6 +105,14 @@ for (const empty of [true, false]) {
     const preparedSource = await adapter.prepare(options);
     const capacity = adapter.ledgerCapacity(preparedSource);
     assert.notEqual(capacity.capacity, undefined);
+    const shortLedger = checked(moon.clientProgramAcquisitionLedger(1, 1,
+      32768n, 1n, 1n, 0));
+    const before = moon.clientProgramMultiCapturedLedgerUsage(shortLedger);
+    await assert.rejects(adapter.openCapture({...options, preparedSource, ledger: shortLedger}),
+      error => error.cause?.code === 'MoonBitHostFailure');
+    assert.equal(reads, 0);
+    assert.equal(grants, 0);
+    assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(shortLedger), before);
     const captured = await adapter.openCapture({...options, preparedSource, ledger});
     t.after(() => captured.close());
     assert.equal(reads, empty ? 0 : 1);
