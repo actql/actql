@@ -258,6 +258,10 @@ A refused chunk destroys that same socket and retains original cleanup duties.
 `maxReads` counts every original socket read invocation, including null/empty
 probes, before calling the captured read method; exhaustion does not perform
 another read. It is not the accepted body-chunk count or a native queue bound.
+The new fixed-input listener also charges its native deliveries to that same
+finite read ceiling, rather than creating an unpriced second allowance. The
+backing union includes the original input, every dedicated copy and later
+parser-facing backings; aliases of an already counted allocation add no bytes.
 
 Parser-facing checks are **post-acquisition**. Selected Node/TLS emission, Readable
 queue and concatenation can allocate before `socket.read()` returns. Their
