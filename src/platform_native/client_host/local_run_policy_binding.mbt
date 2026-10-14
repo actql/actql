@@ -475,6 +475,11 @@ pub fn NativeLocalRunPolicyBinding::accept_submitted_run(
     is Err(_) {
     return Err(CustodyLost)
   }
+  let observation = match
+    capture_native_run_observation_originals(compiled, definition) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   self.host.journal.accept_original_submitted_run(
     self.host.epoch,
     reference,
@@ -484,6 +489,7 @@ pub fn NativeLocalRunPolicyBinding::accept_submitted_run(
     self.scope,
     current(),
     local_run_policy_original=Some(original),
+    run_observation_originals=Some(observation),
     current_fence=Some(current),
   )
 }

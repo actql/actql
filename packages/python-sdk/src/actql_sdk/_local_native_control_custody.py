@@ -12,6 +12,8 @@ from os import getpid
 from threading import Thread, current_thread
 from typing import Any, NoReturn
 
+from ._local_worker_slot import _OriginalDescriptor
+
 
 def _new_control_slots() -> tuple[c_void_p, c_void_p, c_void_p, c_void_p]:
     """Allocate empty Python metadata before consuming any native reference."""
@@ -45,6 +47,9 @@ class _OriginalControlFunctions:
         self.current = library.actql_control_current_into
         self.current.argtypes = [c_void_p, POINTER(c_void_p)]
         self.current.restype = c_int
+        self.acquire_fd = library.actql_control_acquire_fd_into
+        self.acquire_fd.argtypes = [c_void_p, c_int32, POINTER(c_void_p)]
+        self.acquire_fd.restype = c_int
         self.close = library.actql_control_try_close_and_drop
         self.close.argtypes = [POINTER(c_void_p), POINTER(c_void_p)]
         self.close.restype = c_int
@@ -67,7 +72,8 @@ class _OriginalControlCustody:
     """
 
     __slots__ = ('_functions', '_incoming', '_original', '_retained', '_reply',
-                 '_unknown', '_unknown_carrier', '_busy', '_thread', '_process', '_closed')
+                 '_unknown', '_unknown_carrier', '_busy', '_thread', '_process', '_closed',
+                 '_acquire_started', '_borrowed_fd')
     _functions: _OriginalControlFunctions
     _incoming: c_void_p
     _original: c_void_p
@@ -79,6 +85,8 @@ class _OriginalControlCustody:
     _thread: Thread
     _process: int
     _closed: bool
+    _acquire_started: bool
+    _borrowed_fd: _OriginalDescriptor | None
 
     @classmethod
     def _take_original_reply(cls, functions: _OriginalControlFunctions,
@@ -91,6 +99,7 @@ class _OriginalControlCustody:
         host._incoming, host._original, host._retained, host._reply = _new_control_slots()
         host._unknown = None
         host._busy, host._closed = False, False
+        host._acquire_started, host._borrowed_fd = False, None
         host._thread, host._process = current_thread(), getpid()
         # Reporting a lost native reply must not allocate its cleanup carrier
         # after the original has moved. Failure here leaves the input untouched.
@@ -166,6 +175,46 @@ class _OriginalControlCustody:
             return fact
         except BaseException as error:
             if error is self._unknown:
+                raise
+            raise self._mark_unknown() from error
+        finally:
+            self._busy = False
+
+    def acquire_fd(self, descriptor: _OriginalDescriptor) -> _OriginalArenaFact:
+        """Trusted installed physical caller only; no supplier or FD grant.
+
+        The same descriptor remains caller-owned through confirmed mapping
+        cleanup. A data fact returned here cannot cover its separate overhead,
+        admit a worker or supply VM/Source/Model/publisher authorization.
+        """
+        if (type(descriptor) is not _OriginalDescriptor or descriptor._original is not descriptor or descriptor.closed
+                or descriptor.close_attempted or type(descriptor.value) is not int
+                or not 0 <= descriptor.value <= 2**31 - 1):
+            raise ValueError('Original borrowed control descriptor is unavailable')
+        self._enter()
+        if (self._closed or self._acquire_started or self._original.value is None
+                or self._reply.value is not None):
+            self._busy = False
+            raise ValueError('Original Native FD acquisition is unavailable')
+        self._acquire_started = True
+        # Retain the same FD carrier before Core/physical acquisition. The
+        # caller owns its close; response loss cannot detach that responsibility.
+        self._borrowed_fd = descriptor
+        known: _OriginalControlError | None = None
+        try:
+            code = self._functions.acquire_fd(self._original, descriptor.value, byref(self._reply))
+            if type(code) is not int or code != 0 or self._reply.value is None:
+                raise self._mark_unknown()
+            fact = self._fact()
+            if fact.operation != 2:
+                raise self._mark_unknown()
+            self._drop(self._reply)
+            if fact.issue_family != 0:
+                known = _OriginalControlError(self, unknown=False, fact=fact)
+                raise known
+            return fact
+        except BaseException as error:
+            if error is self._unknown or error is known:
                 raise
             raise self._mark_unknown() from error
         finally:

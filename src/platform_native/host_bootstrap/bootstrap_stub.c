@@ -45,6 +45,22 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_status(actql_bootstrap_backing *recor
     return record->status;
 }
 
+/* Same external carrier, reservation order and provider as anonymous acquire.
+ * The trusted original caller retains the borrowed FD; no implicit dup/close. */
+MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire_fd(int32_t fd, int64_t bytes,
+                                                  int64_t generation,
+                                                  const unsigned char *recipe) {
+    actql_bootstrap_backing *record = moonbit_make_external_object(
+        keep_physical_custody, sizeof(*record));
+    record->lease = NULL;
+    record->status = ACTQL_OWNED_INVALID;
+    if (fd >= 0 && bytes > 0 && (uint64_t)bytes <= SIZE_MAX && generation > 0) {
+        record->status = actql_native_owned_acquire_fd(fd, (size_t)bytes,
+                           (uint64_t)generation, recipe, &record->lease);
+    }
+    return record;
+}
+
 MOONBIT_FFI_EXPORT int64_t actql_bootstrap_control_bytes(actql_bootstrap_backing *record) {
     if (record->lease == NULL) return -1;
     return (int64_t)(record->lease->control_pages * record->lease->page_size);
@@ -105,4 +121,47 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_enter_scope(actql_bootstrap_backing *
 
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_leave_scope(actql_bootstrap_backing *record) {
     return actql_native_owned_leave(record->lease);
+}
+
+/* One same-provider physical loan, retained by the original Native/Core carrier.
+ * This fixed record belongs to the existing control envelope, not child bytes. */
+typedef struct {
+    actql_bootstrap_backing *owner;
+    actql_bootstrap_extent *extent;
+    actql_owned_extent_loan loan;
+    int status;
+} actql_bootstrap_region;
+
+MOONBIT_FFI_EXPORT void *actql_bootstrap_lend_region(
+    actql_bootstrap_backing *owner, actql_bootstrap_extent *extent,
+    int64_t offset, int64_t length, int32_t writable) {
+    actql_bootstrap_region *record = moonbit_make_external_object(
+        keep_physical_custody, sizeof(*record));
+    memset(record, 0, sizeof(*record));
+    record->owner = owner;
+    record->extent = extent;
+    record->status = ACTQL_OWNED_INVALID;
+    if (extent->owner == owner && extent->address != NULL &&
+        offset >= 0 && length > 0 && (uint64_t)offset <= SIZE_MAX &&
+        (uint64_t)length <= SIZE_MAX && (writable == 0 || writable == 1)) {
+        record->status = actql_native_owned_lend_extent_range(
+            owner->lease, extent->address, (size_t)offset, (size_t)length,
+            writable != 0, &record->loan);
+    }
+    return record;
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_region_status(actql_bootstrap_region *record) {
+    return record->status;
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_return_region(
+    actql_bootstrap_backing *owner, actql_bootstrap_extent *extent,
+    actql_bootstrap_region *record) {
+    if (record->owner != owner || record->extent != extent || extent->owner != owner)
+        return ACTQL_OWNED_INVALID;
+    /* A failed pre-lend has published no view/borrower. This is not evidence
+     * of stopping a successfully entered child; the Native caller supplies it. */
+    if (record->loan.original == NULL) return ACTQL_OWNED_OK;
+    return actql_native_owned_return_extent(&record->loan);
 }

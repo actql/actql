@@ -40,7 +40,9 @@ pub fn client_journal_issuance_count(
 pub fn decode_client_run_journal_row(
   body : Bytes,
 ) -> Result[ClientRunJournalEncoding, ClientJournalDecodingIssue] {
-  decode_client_run_journal_row_originals(body, false).map(value => value.0)
+  decode_client_run_journal_row_originals(body, false, false).map(value => {
+    value.0
+  })
 }
 
 ///|
@@ -50,14 +52,32 @@ pub fn decode_client_run_journal_row(
 pub fn decode_client_run_journal_row_with_local_policy(
   body : Bytes,
 ) -> Result[(ClientRunJournalEncoding, String?), ClientJournalDecodingIssue] {
-  decode_client_run_journal_row_originals(body, true)
+  decode_client_run_journal_row_originals(body, true, false).map(value => {
+    (value.0, value.1)
+  })
+}
+
+///|
+/// Raw private metadata in the same existing Native row. Authentication,
+/// original compiled-evidence validation and current authority remain separate.
+pub fn decode_client_run_journal_row_with_observation_originals(
+  body : Bytes,
+) -> Result[
+  (ClientRunJournalEncoding, String?, String?),
+  ClientJournalDecodingIssue,
+] {
+  decode_client_run_journal_row_originals(body, true, true)
 }
 
 ///|
 fn decode_client_run_journal_row_originals(
   body : Bytes,
   allow_local_policy : Bool,
-) -> Result[(ClientRunJournalEncoding, String?), ClientJournalDecodingIssue] {
+  allow_observation_originals : Bool,
+) -> Result[
+  (ClientRunJournalEncoding, String?, String?),
+  ClientJournalDecodingIssue,
+] {
   let keys = [
     "version", "request", "run_definition", "dispatch_reserved", "physical_start_claimed",
     "cancellation_requested", "checkpoint", "publication_binding", "publication_policy_originals",
@@ -65,6 +85,9 @@ fn decode_client_run_journal_row_originals(
   ]
   if allow_local_policy {
     keys.push("local_run_policy_originals")
+  }
+  if allow_observation_originals {
+    keys.push("run_observation_originals")
   }
   let source = @source.parse_json_bytes_preserving(body, {
     max_input_bytes: 131072,
@@ -156,6 +179,15 @@ fn decode_client_run_journal_row_originals(
         _ => return Err(CustodyLost)
       }
   }
+  let run_observation_originals = match
+    @decode.lookup(object, "run_observation_originals") {
+    None => None
+    Some(value) =>
+      match @decode.text(value) {
+        Ok(wire) => Some(wire)
+        Err(_) => return Err(CustodyLost)
+      }
+  }
   let record : ClientRunJournalEncoding = {
     request,
     definition,
@@ -167,8 +199,14 @@ fn decode_client_run_journal_row_originals(
     effect_material_originals,
     checkpoint,
   }
-  match client_run_journal_row_body(record, local_run_policy_originals~) {
-    Ok(original) if original == body => Ok((record, local_run_policy_originals))
+  match
+    client_run_journal_row_body(
+      record,
+      local_run_policy_originals~,
+      run_observation_originals~,
+    ) {
+    Ok(original) if original == body =>
+      Ok((record, local_run_policy_originals, run_observation_originals))
     _ => Err(CustodyLost)
   }
 }
