@@ -2,7 +2,7 @@
 export const source = "SELECT DISTINCT 'ticket-1' AS id " +
   "|> EXTEND 'urgent' AS text " +
   "|> INFER `model-task:packed-risk.v1` ITEM KEY (id) " +
-  'INPUT (text = text) AS assessment';
+  'INPUT (text = text) AS assessment |> SELECT assessment';
 export const expectedRows = [{assessment: {
   input_key: {id: 'ticket-1'}, outcome: 'ok',
   value: {reason: null, risk: 'high'},
@@ -34,26 +34,46 @@ const keptRows = [{id: 'ticket-1', note: 'urgent', assessment: {
   value: {reason: null, risk: 'high'},
 }}];
 
+// Default/wildcard retention exposes the authored input layout before the struct.
+const retainedColumns = [
+  keptColumns[0],
+  {name: 'text', contract: {type: 'string', nullable: false, max_utf8_bytes: 6}},
+  ...expectedColumns,
+];
+const retainedRows = [{id: 'ticket-1', text: 'urgent', ...expectedRows[0]}];
+
 // All cases are authored from the common outcome, key and projection rules.
 // No expected row or contract is obtained from a compiler or Result reader.
 export const sourceCases = {
+  'default-keep': {
+    source: `${prefix} ${infer} AS assessment`,
+    rows: retainedRows, columns: retainedColumns, calls: 1, inputWire: '"urgent"',
+  },
+  'wildcard-keep': {
+    source: `${prefix} ${infer} KEEP (*) AS assessment`,
+    rows: retainedRows, columns: retainedColumns, calls: 1, inputWire: '"urgent"',
+  },
+  'omitted-item-key': {
+    source: `${prefix} |> INFER \`model-task:packed-risk.v1\` INPUT (text = text) AS assessment`,
+    rows: retainedRows, columns: retainedColumns, calls: 1, inputWire: '"urgent"',
+  },
   'literal-input': {
     source: "SELECT DISTINCT 'ticket-1' AS id " +
-      "|> INFER `model-task:packed-risk.v1` ITEM KEY (id) INPUT (text = 'urgent') AS assessment",
+      "|> INFER `model-task:packed-risk.v1` ITEM KEY (id) INPUT (text = 'urgent') AS assessment |> SELECT assessment",
     rows: expectedRows, columns: expectedColumns, calls: 1, inputWire: '"urgent"',
   },
   'expression-input': {
     source: "SELECT DISTINCT 'ticket-1' AS id " +
-      "|> INFER `model-task:packed-risk.v1` ITEM KEY (id) INPUT (text = CONCAT('ur', 'gent')) AS assessment",
+      "|> INFER `model-task:packed-risk.v1` ITEM KEY (id) INPUT (text = CONCAT('ur', 'gent')) AS assessment |> SELECT assessment",
     rows: expectedRows, columns: expectedColumns, calls: 1, inputWire: '"urgent"',
   },
   minimal: {source, rows: expectedRows, columns: expectedColumns, calls: 1,
     inputWire: '"urgent"'},
   'folded-input': {source: `${prefix} |> INFER \`model-task:packed-risk.v1\` ` +
-      'ITEM KEY (id) INPUT (TEXT = text) AS assessment',
+      'ITEM KEY (id) INPUT (TEXT = text) AS assessment |> SELECT assessment',
     rows: expectedRows, columns: expectedColumns, calls: 1, inputWire: '"urgent"'},
   'quoted-input': {source: `${prefix} |> INFER \`model-task:packed-risk.v1\` ` +
-      'ITEM KEY (id) INPUT (`TeXt` = text) AS assessment',
+      'ITEM KEY (id) INPUT (`TeXt` = text) AS assessment |> SELECT assessment',
     rows: expectedRows, columns: expectedColumns, calls: 1, inputWire: '"urgent"'},
   keep: {source: `${prefix} ${infer} KEEP (id, text AS note) AS assessment`,
     rows: keptRows, columns: keptColumns, calls: 1, inputWire: '"urgent"'},
@@ -108,13 +128,17 @@ export const sourceCases = {
 };
 
 export const sourceRefusals = {
+  'omitted-key-unproven': "SELECT 'ticket-1' AS id |> EXTEND 'urgent' AS text " +
+    '|> INFER `model-task:packed-risk.v1` INPUT (text = text) AS assessment',
+  'omitted-key-ambiguous': `${prefix} |> ASSERT UNIQUE BY (text) ` +
+    '|> INFER `model-task:packed-risk.v1` INPUT (text = text) AS assessment',
   'unknown-input': `${prefix} |> INFER \`model-task:packed-risk.v1\` ` +
     'ITEM KEY (id) INPUT (absent = text) AS assessment',
   'duplicate-input': `${prefix} |> INFER \`model-task:packed-risk.v1\` ` +
     'ITEM KEY (id) INPUT (text = text, TEXT = text) AS assessment',
   'unknown-member': `${source} |> SELECT assessment.VALUE.missing AS risk`,
   'folded-unproven-key': `${prefix} |> INFER \`model-task:packed-risk.v1\` ITEM KEY (text) INPUT (text = text) AS assessment |> SELECT assessment.VALUE.RISK AS risk`,
-  'dropped-input': `${prefix} ${infer} AS assessment |> SELECT text`,
+  'dropped-input': `${prefix} ${infer} KEEP (id) AS assessment |> SELECT text`,
   'old-alias': `${prefix} |> AS original ${infer} KEEP (id) AS assessment |> SELECT original.text`,
   'unproven-key': `${prefix} |> INFER \`model-task:packed-risk.v1\` ITEM KEY (text) INPUT (text = text) AS assessment`,
   'name-collision': `${prefix} ${infer} KEEP (id AS assessment) AS assessment`,
