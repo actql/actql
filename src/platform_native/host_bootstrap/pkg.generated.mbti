@@ -1,0 +1,53 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "actql/actql/platform_native/host_bootstrap"
+
+import {
+  "actql/actql/physical_resources",
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn[T] prepare_installed_arena_supplier(T, String, Bytes, Int64, Int64, @physical_resources.LedgerLimits, Int64) -> Result[NativeInstalledArenaSupplier[T], NativeBootstrapIssue]
+
+// Errors
+
+// Types and methods
+pub(all) enum NativeBootstrapAcquisition[T] {
+  Acquired(NativeHostBootstrap[T])
+  Pending(NativeHostBootstrap[T], NativeBootstrapIssue)
+}
+
+type NativeBootstrapAllocation[T]
+
+type NativeBootstrapBorrow[T]
+
+type NativeBootstrapDelegation[T]
+
+pub(all) enum NativeBootstrapIssue {
+  Unavailable
+  ForeignOriginal
+  AlreadyConsumed
+  Closing
+  ReadersPending
+  Physical(Int)
+  Resource(@physical_resources.LedgerIssue)
+} derive(Eq, @debug.Debug)
+
+type NativeHostBootstrap[T]
+pub fn[T] NativeHostBootstrap::allocate(Self[T], T, Int64) -> Result[NativeBootstrapAllocation[T], NativeBootstrapIssue]
+pub fn[T] NativeHostBootstrap::borrow(Self[T], T, NativeBootstrapAllocation[T]) -> Result[NativeBootstrapBorrow[T], NativeBootstrapIssue]
+pub fn[T] NativeHostBootstrap::capacity_usage(Self[T]) -> @physical_resources.SharedCapacityUsage
+pub fn[T] NativeHostBootstrap::claim(Self[T], T, String, Bytes, Int64) -> Result[Unit, NativeBootstrapIssue]
+pub fn[T] NativeHostBootstrap::delegate(Self[T], T, @physical_resources.LedgerLimits) -> Result[NativeBootstrapDelegation[T], NativeBootstrapIssue]
+pub fn[T] NativeHostBootstrap::report(Self[T], T, NativeBootstrapDelegation[T], @physical_resources.LedgerUsage) -> Result[Unit, NativeBootstrapIssue]
+pub fn[T] NativeHostBootstrap::retire(Self[T], T, NativeBootstrapAllocation[T]) -> Result[Unit, NativeBootstrapIssue]
+pub fn[T] NativeHostBootstrap::return_borrow(Self[T], T, NativeBootstrapBorrow[T]) -> Result[Unit, NativeBootstrapIssue]
+pub fn[T] NativeHostBootstrap::try_close(Self[T], T) -> Result[Unit, NativeBootstrapIssue]
+pub fn[T] NativeHostBootstrap::usage(Self[T]) -> @physical_resources.LedgerUsage
+
+type NativeInstalledArenaSupplier[T]
+pub fn[T] NativeInstalledArenaSupplier::acquire(Self[T], T) -> Result[NativeBootstrapAcquisition[T], NativeBootstrapIssue]
+
+// Type aliases
+
+// Traits
