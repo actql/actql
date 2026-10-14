@@ -36,6 +36,7 @@ test "Effect accepts existing literal values and refuses computed or foreign Res
         construction_limits(),
       )
       is Err(_),
+      msg=tail,
     )
   }
   let actual = compile(

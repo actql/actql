@@ -65,7 +65,16 @@ test "a nested candidate peer shadows the outer peer after a Carrier bridge" {
     "FROM (WITH candidate_rows AS (SELECT 1 AS unrelated) FROM v |> vectors() |> NEAREST candidate_rows AS c QUERY KEY (request_id) VECTOR embedding CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC dot K 1 AS hit)",
     nearest_context(),
   )
-  assert_true(shadowed is Err(UnknownColumn))
+  assert_true(
+    shadowed is Err(UnknownColumn),
+    msg=match shadowed {
+      Ok(_) => "actual accepted missing inner roles"
+      Err(InvalidQuery) => "actual InvalidQuery"
+      Err(UnsupportedNearest) => "actual UnsupportedNearest"
+      Err(UnknownColumn) => "actual UnknownColumn"
+      Err(_) => "actual other typed refusal"
+    },
+  )
 }
 
 ///|
