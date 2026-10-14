@@ -192,21 +192,392 @@ test "computed two-input JOIN projections retain Common key inference" {
 }
 
 ///|
-test "unnameable proven ITEM KEY currently fails closed at the representation gap" {
+test "USING-hidden qualified right keys retain their authored INFER label" {
   let environment = infer_member_environment()
   let context = infer_input_field_context(environment)
-  let text = "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> AS current |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment"
-  // Temporary implementation gap: Common retains a valid proven physical key,
-  // but AS after SET removes its last authored name for input_key emission.
-  // This refusal is not a language restriction or completion evidence for #1840.
-  // The current UnsupportedInfer variant carries no diagnostic source span.
+  // The Values fixture has no declared keys. This assertion proves the right
+  // slot, which USING retains for qualified lookup but hides from visible '*'.
+  let expanded = "FROM tickets AS l JOIN tickets AS r USING (id) MAX_OUTPUT_ROWS 2 |> ASSERT UNIQUE BY (r.id) |> INFER `model-task:risk-score.v1` ITEM KEY (r.id) INPUT (text = l.text) KEEP (id) AS assessment"
+  for script in [false, true] {
+    let expected = compile_infer_defaults(expanded, context, script).unwrap()
+    let actual = compile_infer_defaults(
+      expanded.replace(old=" ITEM KEY (r.id)", new=""),
+      context,
+      script,
+    ).unwrap()
+    assert_eq(semantic(actual), semantic(expected))
+    let checked = check_shorthand_identity_program(actual, environment)
+    assert_shorthand_checked_identity(
+      checked,
+      check_shorthand_identity_program(expected, environment),
+    )
+    let key = infer_defaults_checked_input_key(checked)
+    guard key.shape is @contract.Object(fields) else {
+      fail("expected the USING-hidden right key in input_key")
+    }
+    assert_eq(@contract.field_count(fields), 1)
+    assert_eq(@contract.field_at(fields, 0).unwrap().name, "id")
+    assert_true(
+      @contract.type_equal(
+        infer_defaults_object_field(key, "id"),
+        @contract.primitive(@contract.StringType, nullable=false),
+        10000,
+      ),
+    )
+    assert_true(semantic(actual).contains("\"fields\":[\"id\",\"assessment\"]"))
+  }
+}
+
+///|
+fn infer_defaults_object_field(
+  contract : @contract.Contract,
+  name : String,
+) -> @contract.Contract raise {
+  guard contract.shape is @contract.Object(fields) else {
+    fail("expected a closed INFER output object")
+  }
+  for index in 0..<@contract.field_count(fields) {
+    let field = @contract.field_at(fields, index).unwrap()
+    if field.name == name {
+      return field.contract
+    }
+  }
+  fail("missing INFER output member: " + name)
+}
+
+///|
+fn infer_defaults_checked_input_key(
+  checked : @check.CheckedProgram,
+) -> @contract.Contract raise {
+  let pipeline = @check.unit_pipeline(checked, @check.unit_count(checked) - 1).unwrap()
+  let assessment = @schema.lookup_reference(
+      @pipeline.output_schema(pipeline).unwrap(),
+      "assessment",
+    ).unwrap().contract
+  infer_defaults_object_field(assessment, "input_key")
+}
+
+///|
+test "omitted ITEM KEY retains its historical label after replacement and scope reset" {
+  let environment = infer_member_environment()
+  let context = infer_input_field_context(environment)
+  for
+    (prefix, name) in [
+      (
+        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> AS current",
+        "id",
+      ),
+      (
+        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> RENAME id AS replacement_id |> AS current",
+        "id",
+      ),
+      (
+        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> RENAME id AS stable_id |> SET stable_id = 'same' |> RENAME stable_id AS replacement_id |> AS current",
+        "stable_id",
+      ),
+    ] {
+    for script in [false, true] {
+      let checked = check_shorthand_identity_program(
+        compile_infer_defaults(
+          prefix +
+          " |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment",
+          context,
+          script,
+        ).unwrap(),
+        environment,
+      )
+      let input_key = infer_defaults_checked_input_key(checked)
+      guard input_key.shape is @contract.Object(fields) else {
+        fail("expected historical input_key fields")
+      }
+      assert_eq(@contract.field_count(fields), 1)
+      assert_eq(@contract.field_at(fields, 0).unwrap().name, name)
+      // The proven secret value has the original unbounded non-null String
+      // contract, rather than the replacement literal's four-byte bound.
+      assert_true(
+        @contract.type_equal(
+          infer_defaults_object_field(input_key, name),
+          @contract.primitive(@contract.StringType, nullable=false),
+          10000,
+        ),
+      )
+    }
+  }
+}
+
+///|
+test "historical labels normalize against explicit keys on the same snapshot prefix" {
+  let environment = infer_member_environment()
+  let context = infer_input_field_context(environment)
+  for
+    (prefix, key) in [
+      (
+        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> AS snapshot |> SET id = 'same' |> RENAME id AS replacement_id",
+        "snapshot.id",
+      ),
+      (
+        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> RENAME id AS stable_id |> AS snapshot |> SET stable_id = 'same' |> RENAME stable_id AS replacement_id",
+        "snapshot.stable_id",
+      ),
+      (
+        "FROM tickets |> SET id = 7 |> ASSERT UNIQUE BY (secret, id) |> AS snapshot |> SET id = 'same' |> RENAME id AS replacement_id",
+        "snapshot.secret, snapshot.id",
+      ),
+    ] {
+    for script in [false, true] {
+      // Both forms retain exactly the same authored ranges. A separate AS
+      // snapshot must not be added only to the explicit identity oracle.
+      let expanded = prefix +
+        " |> INFER `model-task:risk-score.v1` ITEM KEY (" +
+        key +
+        ") INPUT (text) KEEP (*) AS assessment"
+      let expected = compile_infer_defaults(expanded, context, script).unwrap()
+      let actual = compile_infer_defaults(
+        expanded
+        .replace(old=" ITEM KEY (" + key + ")", new="")
+        .replace(old=" KEEP (*)", new=""),
+        context,
+        script,
+      ).unwrap()
+      assert_eq(semantic(actual), semantic(expected))
+      let checked = check_shorthand_identity_program(actual, environment)
+      assert_shorthand_checked_identity(
+        checked,
+        check_shorthand_identity_program(expected, environment),
+      )
+      if key == "snapshot.secret, snapshot.id" {
+        let mut count = 0
+        for unit in 0..<@check.unit_count(checked) {
+          let pipeline = @check.unit_pipeline(checked, unit).unwrap()
+          for step in 0..<@pipeline.step_count(pipeline) {
+            if @pipeline.step_at(pipeline, step).unwrap().operation
+              is @pipeline.Infer(infer) {
+              count += 1
+              assert_eq(@evidence.infer_key_count(infer), 2)
+              assert_true(
+                @evidence.infer_key_at(infer, 0).unwrap().contract.shape
+                is @contract.Text(_),
+              )
+              assert_true(
+                @evidence.infer_key_at(infer, 1).unwrap().contract.shape
+                is @contract.Number,
+              )
+            }
+          }
+        }
+        assert_eq(count, 1)
+      }
+    }
+  }
+}
+
+///|
+test "SELECT materialization resets historical labels for newly projected key generations" {
+  let environment = infer_member_environment()
+  let context = infer_input_field_context(environment)
+  for order in ["", " |> ORDER BY id"] {
+    // The earlier physical id generation was renamed retired_id. SELECT
+    // materializes a new Boolean id (true/false for the two fixture rows).
+    // Adjacent ORDER exercises the deferred SELECT materialization path.
+    let expanded = "FROM tickets |> RENAME id AS retired_id |> SELECT retired_id = 'a' AS id, text" +
+      order +
+      " |> ASSERT UNIQUE BY (id) |> AS snapshot |> SET id = 'same' |> RENAME id AS replacement_id |> INFER `model-task:risk-score.v1` ITEM KEY (snapshot.id) INPUT (text) KEEP (*) AS assessment"
+    for script in [false, true] {
+      let expected = compile_infer_defaults(expanded, context, script).unwrap()
+      let actual = compile_infer_defaults(
+        expanded
+        .replace(old=" ITEM KEY (snapshot.id)", new="")
+        .replace(old=" KEEP (*)", new=""),
+        context,
+        script,
+      ).unwrap()
+      assert_eq(semantic(actual), semantic(expected), msg=order)
+      let checked = check_shorthand_identity_program(actual, environment)
+      assert_shorthand_checked_identity(
+        checked,
+        check_shorthand_identity_program(expected, environment),
+      )
+      let key = infer_defaults_checked_input_key(checked)
+      guard key.shape is @contract.Object(fields) else {
+        fail("expected the newly asserted projection key")
+      }
+      assert_eq(@contract.field_count(fields), 1)
+      assert_eq(@contract.field_at(fields, 0).unwrap().name, "id")
+      let original = infer_defaults_object_field(key, "id")
+      assert_false(original.nullable)
+      assert_true(original.shape is @contract.Boolean)
+      let pipeline = @check.unit_pipeline(
+        checked,
+        @check.unit_count(checked) - 1,
+      ).unwrap()
+      let output = @pipeline.output_schema(pipeline).unwrap()
+      assert_true(
+        @schema.lookup_reference(output, "replacement_id").unwrap().contract.shape
+        is @contract.Text(_),
+      )
+      assert_true(@schema.lookup_reference(output, "retired_id") is None)
+    }
+  }
+}
+
+///|
+test "historical key labels take priority over older retained range spellings" {
+  let environment = infer_member_environment()
+  let context = infer_input_field_context(environment)
+  let prefix = "FROM tickets AS old |> ASSERT UNIQUE BY (id) |> RENAME id AS ticket |> SET ticket = 'same' |> INFER `model-task:risk-score.v1`"
+  for script in [false, true] {
+    let omitted = check_shorthand_identity_program(
+      compile_infer_defaults(
+        prefix + " INPUT (text) AS assessment",
+        context,
+        script,
+      ).unwrap(),
+      environment,
+    )
+    let explicit = check_shorthand_identity_program(
+      compile_infer_defaults(
+        prefix + " ITEM KEY (old.id) INPUT (text) AS assessment",
+        context,
+        script,
+      ).unwrap(),
+      environment,
+    )
+    let inferred_key = infer_defaults_checked_input_key(omitted)
+    let authored_key = infer_defaults_checked_input_key(explicit)
+    guard inferred_key.shape is @contract.Object(inferred_fields) else {
+      fail("expected the current historical key label")
+    }
+    guard authored_key.shape is @contract.Object(authored_fields) else {
+      fail("expected the explicitly authored range label")
+    }
+    assert_eq(@contract.field_count(inferred_fields), 1)
+    assert_eq(@contract.field_at(inferred_fields, 0).unwrap().name, "ticket")
+    assert_eq(@contract.field_count(authored_fields), 1)
+    assert_eq(@contract.field_at(authored_fields, 0).unwrap().name, "id")
+    assert_true(
+      @contract.type_equal(
+        infer_defaults_object_field(inferred_key, "ticket"),
+        infer_defaults_object_field(authored_key, "id"),
+        10000,
+      ),
+    )
+    // The physical proof is the same, but different adopted output names are
+    // semantic metadata and must not be erased to force an identity match.
+    assert_false(
+      @check_context.program_identity_definition_cid(
+        @check.source_identity(omitted),
+      ) ==
+      @check_context.program_identity_definition_cid(
+        @check.source_identity(explicit),
+      ),
+    )
+  }
+}
+
+///|
+test "historical key adoption preserves the old type and freezes earlier output names" {
+  let environment = infer_member_environment()
+  let context = infer_member_context(environment)
+  let prefix = "SELECT 7 AS id |> EXTEND 'urgent' AS text |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> RENAME id AS replacement_id |> AS current"
+  for script in [false, true] {
+    for suffix in ["", " |> RENAME replacement_id AS renamed_again"] {
+      let checked = check_shorthand_identity_program(
+        compile_infer_defaults(
+          prefix +
+          " |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment" +
+          suffix,
+          context,
+          script,
+        ).unwrap(),
+        environment,
+      )
+      let key = infer_defaults_checked_input_key(checked)
+      let original = infer_defaults_object_field(key, "id")
+      assert_false(original.nullable)
+      assert_true(original.shape is @contract.Number)
+      guard key.shape is @contract.Object(fields) else {
+        fail("expected one frozen input_key name")
+      }
+      assert_eq(@contract.field_count(fields), 1)
+      assert_eq(@contract.field_at(fields, 0).unwrap().name, "id")
+    }
+    // Historical output labels do not create ordinary lookup names or ranges.
+    for hidden in ["id", "current.id"] {
+      assert_true(
+        compile_infer_defaults(prefix + " |> SELECT " + hidden, context, script)
+        is Err(_),
+        msg=hidden,
+      )
+      assert_true(
+        compile_infer_defaults(
+          prefix +
+          " |> INFER `model-task:risk-score.v1` INPUT (text) KEEP (" +
+          hidden +
+          ") AS assessment",
+          context,
+          script,
+        )
+        is Err(_),
+        msg=hidden,
+      )
+    }
+  }
+}
+
+///|
+test "adopted historical key names are CID-bearing metadata" {
+  let environment = infer_member_environment()
+  let context = infer_input_field_context(environment)
+  for script in [false, true] {
+    let original = check_shorthand_identity_program(
+      compile_infer_defaults(
+        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> AS current |> INFER `model-task:risk-score.v1` INPUT (text) KEEP (text) AS assessment",
+        context, script,
+      ).unwrap(),
+      environment,
+    )
+    let renamed = check_shorthand_identity_program(
+      compile_infer_defaults(
+        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> RENAME id AS stable_id |> SET stable_id = 'same' |> AS current |> INFER `model-task:risk-score.v1` INPUT (text) KEEP (text) AS assessment",
+        context, script,
+      ).unwrap(),
+      environment,
+    )
+    ignore(
+      infer_defaults_object_field(
+        infer_defaults_checked_input_key(original),
+        "id",
+      ),
+    )
+    ignore(
+      infer_defaults_object_field(
+        infer_defaults_checked_input_key(renamed),
+        "stable_id",
+      ),
+    )
+    assert_false(
+      @check_context.program_identity_definition_cid(
+        @check.source_identity(original),
+      ) ==
+      @check_context.program_identity_definition_cid(
+        @check.source_identity(renamed),
+      ),
+    )
+  }
+}
+
+///|
+test "historical key label collisions refuse without invented output names" {
+  let environment = infer_member_environment()
+  let context = infer_input_field_context(environment)
+  let prefix = "FROM tickets AS old |> SET id = secret |> ASSERT UNIQUE BY (old.id, id) |> SET id = 'same' |> AS current"
   for script in [false, true] {
     assert_true(
       compile_infer_defaults(
-        text,
+        prefix +
+        " |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment",
         context,
         script,
-        source_path="unnameable-key.sql",
       )
       is Err(UnsupportedInfer),
     )

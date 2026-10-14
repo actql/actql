@@ -11,7 +11,10 @@ fn script_prefix_carrier(
   steps : Array[@builder.Node],
   producer : String,
 ) -> @carrier.Carrier raise Abort {
-  let budget : InferPrefixBudget = { remaining_work: sources.carrier_work, }
+  let budget = construction.infer_budget
+  if budget.remaining_work > sources.carrier_work {
+    budget.remaining_work = sources.carrier_work
+  }
   sources.carrier_work = 0
   let pipeline = checked_query_prefix_pipeline(
     construction,
@@ -76,7 +79,12 @@ fn script_carrier_field_name(
   sources : ScriptSources,
 ) -> String raise Abort {
   let resolved = match
-    script_input_scope(sources, input.name, query_range_name(query)) {
+    script_input_scope(
+      construction,
+      sources,
+      input.name,
+      query_range_name(query),
+    ) {
     Some(scope) => pipe_slot(path, scope.visible, scope.ranges)
     None => resolve_column(path, query, input, columns(input))
   }
@@ -185,6 +193,7 @@ fn retain_script_carrier_column_scope(
     ranges: [],
     star_ranges: [],
     receivers: [],
+    key_labels: [],
     scalar_ranges: [],
   }
 }

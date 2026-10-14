@@ -19,6 +19,7 @@ fn lower_infer_steps(
     Array[(String, String)],
   ) -> InferPrefixProjection raise Abort)? = None,
   authored_aliases? : Array[(String, String)] = [],
+  key_labels? : Array[(String, String)] = [],
 ) -> (Array[Array[(String, @builder.Node)]], Array[String]) raise Abort {
   if clause.contract.value == "" || clause.name.value == "" {
     raise Abort(UnsupportedInfer)
@@ -188,7 +189,7 @@ fn lower_infer_steps(
     let projection = check(
       steps.map(step => construction.object(step)),
       captured,
-      { visible, ranges, },
+      { visible, ranges, key_labels: key_labels.copy(), },
       authored_aliases,
     )
     keys.append(projection.keys)

@@ -28,6 +28,8 @@ fn right_source_capture_allowed(
     generated,
     model_tasks: context.model_tasks,
     parameter_names,
+    infer_labels: false,
+    infer_budget: { remaining_work: limits.max_expression_work, },
   }
   try {
     let fields = columns(input)

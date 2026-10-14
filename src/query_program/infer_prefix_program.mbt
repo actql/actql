@@ -11,6 +11,7 @@ priv struct InferPrefixBudget {
 priv struct InferInputLabels {
   visible : Array[(String, String)]
   ranges : Array[(@query.NamePart, Array[(String, String)])]
+  key_labels : Array[(String, String)]
 }
 
 ///|
@@ -154,7 +155,7 @@ fn infer_prefix_check(
   limits : Limits,
   budget : InferPrefixBudget,
   visible : InferInputLabels,
-  authored_aliases : Array[(String, String)],
+  _authored_aliases : Array[(String, String)],
 ) -> InferPrefixProjection raise Abort {
   let pipeline = checked_query_prefix_pipeline(
     construction, query, context, prior_stages, declarations, prefix_nodes, limits,
@@ -179,55 +180,25 @@ fn infer_prefix_check(
     let binding = @evidence.infer_key_at(infer, key_index).unwrap()
     let slot = @schema.reference_name(binding.field)
     budget.spend_text(slot, construction.generated)
-    let mut display : String? = None
-    for entry in visible.visible {
+    // The label belongs to this exact surviving slot generation. A newer
+    // same-spelled column or an older range snapshot cannot rename its key.
+    let mut label : String? = None
+    for entry in visible.key_labels {
       budget.spend(1, construction.generated)
       budget.spend_text(slot, construction.generated)
-      budget.spend_text(entry.1, construction.generated)
-      if entry.1 == slot {
-        display = Some(entry.0)
+      budget.spend_text(entry.0, construction.generated)
+      if entry.0 == slot {
+        label = Some(entry.1)
         break
       }
     }
-    if display is None {
-      for range in visible.ranges {
-        budget.spend(1, construction.generated)
-        for entry in range.1 {
-          budget.spend(1, construction.generated)
-          budget.spend_text(slot, construction.generated)
-          budget.spend_text(entry.1, construction.generated)
-          if entry.1 == slot {
-            display = Some(entry.0)
-            break
-          }
-        }
-        if display is Some(_) {
-          break
-        }
-      }
-    }
-    let name = match display {
-      Some(display) => {
-        let mut name = display
-        for alias in authored_aliases {
-          budget.spend(1, construction.generated)
-          budget.spend_text(display, construction.generated)
-          budget.spend_text(alias.0, construction.generated)
-          if alias.0 == display {
-            name = alias.1
-            break
-          }
-        }
-        name
-      }
-      // Common proved the tuple, but this frontend cannot name a key whose
-      // last authored scope was discarded. Do not expose a private slot or
-      // silently bind a newer same-name column as its input_key component.
+    let name = match label {
+      Some(name) => name
       None => raise Abort(UnsupportedInfer)
     }
     budget.spend_text(name, construction.generated)
     let normalized_name = ascii_upper(name)
-    if ["OUTCOME", "VALUE"].contains(normalized_name) {
+    if name.is_empty() || ["OUTCOME", "VALUE"].contains(normalized_name) {
       raise Abort(UnsupportedInfer)
     }
     for key in keys {
@@ -259,7 +230,10 @@ fn script_infer_prefix_check(
   visible : InferInputLabels,
   authored_aliases : Array[(String, String)],
 ) -> InferPrefixProjection raise Abort {
-  let budget : InferPrefixBudget = { remaining_work: sources.carrier_work, }
+  let budget = construction.infer_budget
+  if budget.remaining_work > sources.carrier_work {
+    budget.remaining_work = sources.carrier_work
+  }
   sources.carrier_work = 0
   let checked = infer_prefix_check(
     construction,

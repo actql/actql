@@ -312,6 +312,7 @@ fn lower_script_bindings(
     if !binding.carry_ranges &&
       sources.value_tables.get(bound.name) is Some(scope) {
       sources.value_tables[bound.name] = bind_value_table_scope(
+        construction,
         scope,
         binding.name,
       )

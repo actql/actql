@@ -47,6 +47,8 @@ test "original prefix checks share one exact and one-short cumulative allowance"
     generated: @origin.range(document, 0, 0, kind=Generated).unwrap(),
     model_tasks: None,
     parameter_names: None,
+    infer_labels: false,
+    infer_budget: { remaining_work: 10000, },
   }
   let input = property_input(
     "rows",
@@ -99,5 +101,48 @@ test "original prefix checks share one exact and one-short cumulative allowance"
   }
   assert_true(rejected)
   assert_true(short.remaining_work < used)
+
+  // Metadata pre-spends this same owner before Common receives the remaining
+  // allowance. A new source origin shares it; no post-hoc debt or fresh cap.
+  let check_labeled = fn(budget : InferPrefixBudget) -> Unit raise Abort {
+    let labeled = { ..construction, infer_labels: true, infer_budget: budget, }
+    let labels = seed_infer_key_labels(labeled, [], [("id", "id")])
+    if labels != [("id", "id")] {
+      raise Abort(InvalidContext)
+    }
+    let continued = {
+      ..labeled,
+      generated: @origin.range(document, 0, 1, kind=Generated).unwrap(),
+    }
+    let pipeline = checked_query_prefix_pipeline(
+      continued,
+      query,
+      mapping_context(),
+      [],
+      [],
+      nodes,
+      mapping_limits(),
+      continued.infer_budget,
+    )
+    if @pipeline.step_count(pipeline) != 1 {
+      raise Abort(InvalidContext)
+    }
+  }
+  let labeled_measure : InferPrefixBudget = { remaining_work: 10000, }
+  check_labeled(labeled_measure)
+  let labeled_used = 10000 - labeled_measure.remaining_work
+  assert_true(labeled_used > used)
+  let labeled_exact : InferPrefixBudget = { remaining_work: labeled_used, }
+  check_labeled(labeled_exact)
+  assert_eq(labeled_exact.remaining_work, 0)
+  let labeled_short : InferPrefixBudget = { remaining_work: labeled_used - 1, }
+  let labeled_rejected = try {
+    check_labeled(labeled_short)
+    false
+  } catch {
+    Abort(_) => true
+  }
+  assert_true(labeled_rejected)
+  assert_true(labeled_short.remaining_work < labeled_used - 1)
   @builder.discard(builder)
 }

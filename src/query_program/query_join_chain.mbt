@@ -11,6 +11,7 @@ priv struct JoinChainScope {
   star_ranges : Array[(@query.NamePart, Array[(String, String)])]
   receivers : Array[(@query.NamePart, String)]
   scalar_ranges : Array[(@query.NamePart, String)]
+  key_labels : Array[(String, String)]
 }
 
 ///|
@@ -317,16 +318,21 @@ fn compile_join_chain_steps(
     slots[field] = slot
   }
   let original = fields.map(field => (field, field))
-  let source_scope = initial_scope.unwrap_or({
-    visible: original,
-    columns: original.copy(),
-    value_table: false,
-    value_columns: [],
-    star_ranges: [],
-    ranges: [(query_range_name(query), original.copy())],
-    receivers: [],
-    scalar_ranges: [],
-  })
+  let source_scope = match initial_scope {
+    Some(scope) => scope
+    None =>
+      {
+        visible: original,
+        columns: original.copy(),
+        value_table: false,
+        value_columns: [],
+        star_ranges: [],
+        ranges: [(query_range_name(query), original.copy())],
+        receivers: [],
+        scalar_ranges: [],
+        key_labels: seed_infer_key_labels(construction, [], original),
+      }
+  }
   let visible = source_scope.visible.map(entry => (entry.0, slots[entry.1]))
   let first_columns = source_scope.columns.map(column => {
     (column.0, slots[column.1])
@@ -350,16 +356,21 @@ fn compile_join_chain_steps(
       Some(scope) => scope
       None => None
     }
-    let right_scope = preserved_right.unwrap_or({
-      visible: right_columns,
-      columns: right_columns.copy(),
-      value_table: false,
-      value_columns: [],
-      star_ranges: [],
-      ranges: [(qualifier, right_columns.copy())],
-      receivers: [],
-      scalar_ranges: [],
-    })
+    let right_scope = match preserved_right {
+      Some(scope) => scope
+      None =>
+        {
+          visible: right_columns,
+          columns: right_columns.copy(),
+          value_table: false,
+          value_columns: [],
+          star_ranges: [],
+          ranges: [(qualifier, right_columns.copy())],
+          receivers: [],
+          scalar_ranges: [],
+          key_labels: seed_infer_key_labels(construction, [], right_columns),
+        }
+    }
     if right_scope.ranges.any(right_range => {
         scope.ranges.any(range => same_name(range.0, right_range.0))
       }) {
@@ -571,6 +582,20 @@ fn compile_join_chain_steps(
       from = merged
     }
     scope = {
+      key_labels: seed_infer_key_labels(
+        construction,
+        (if index == 0 {
+          remap_infer_key_labels(construction, source_scope.key_labels, slots)
+        } else {
+          scope.key_labels
+        }) +
+        remap_infer_key_labels(
+          construction,
+          right_scope.key_labels,
+          right_slots,
+        ),
+        next_visible,
+      ),
       visible: next_visible,
       columns: next_columns,
       value_table: false,
@@ -714,9 +739,7 @@ fn compile_join_chain_stage_body(
     }
     inputs.push((input, name))
   }
-  let infer_budget : InferPrefixBudget = {
-    remaining_work: limits.max_expression_work,
-  }
+  let infer_budget = construction.infer_budget
   let (steps, output, from) = compile_join_chain_steps(
     construction,
     query,
@@ -770,6 +793,8 @@ fn compile_join_chain_query(
     generated,
     model_tasks: context.model_tasks,
     parameter_names,
+    infer_labels: query_has_omitted_infer(query),
+    infer_budget: { remaining_work: limits.max_expression_work, },
   }
   try {
     let selected = [selected_input(query, context, limits)]
