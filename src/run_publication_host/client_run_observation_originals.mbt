@@ -26,9 +26,10 @@ pub fn capture_client_run_observation_originals(
   }
   let prepared = compiled.prepared
   let authorization = compiled.authorization
-  match @publication.validate_original_interactive_run_evidence(
-    definition, prepared, authorization,
-  ) {
+  match
+    @publication.validate_original_interactive_run_evidence(
+      definition, prepared, authorization,
+    ) {
     Ok(_) => Ok({ prepared, authorization, })
     Err(issue) => Err(Binding(issue))
   }
@@ -46,21 +47,24 @@ pub fn restore_client_run_observation_originals(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue] {
-  let prepared = match @publication.admit_run_evidence_value(
-    "prepared_invocation", prepared_wire, max_bytes, max_nodes, max_depth,
-  ) {
+  let prepared = match
+    @publication.admit_run_evidence_value(
+      "prepared_invocation", prepared_wire, max_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
-  let authorization = match @publication.admit_run_evidence_value(
-    "run_authorization", authorization_wire, max_bytes, max_nodes, max_depth,
-  ) {
+  let authorization = match
+    @publication.admit_run_evidence_value(
+      "run_authorization", authorization_wire, max_bytes, max_nodes, max_depth,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Evidence(issue))
   }
-  match @publication.validate_original_interactive_run_evidence(
-    definition, prepared, authorization,
-  ) {
+  match
+    @publication.validate_original_interactive_run_evidence(
+      definition, prepared, authorization,
+    ) {
     Ok(_) => Ok({ prepared, authorization, })
     Err(issue) => Err(Binding(issue))
   }
