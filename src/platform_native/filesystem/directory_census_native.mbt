@@ -33,10 +33,12 @@ pub fn Root::check_directory_members(
   }
   let frame : Array[Byte] = []
   for entry in expected {
-    frame.push(match entry.kind {
-      File => b'f'
-      Directory => b'd'
-    })
+    frame.push(
+      match entry.kind {
+        File => b'f'
+        Directory => b'd'
+      },
+    )
     for byte in @utf8.encode(entry.name) {
       frame.push(byte)
     }

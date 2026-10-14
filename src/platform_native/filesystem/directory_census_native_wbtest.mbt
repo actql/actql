@@ -30,7 +30,8 @@ test "bounded census rejects missing extra empty directory and symlink members" 
   for name in ["missing", "extra", "extra-empty", "symlink", "wrong-kind"] {
     let root = open_root(census_fixture_path(name)).unwrap()
     assert_true(
-      root.check_directory_members(census_fixture_members()) is Err(GenerationMismatch),
+      root.check_directory_members(census_fixture_members())
+      is Err(GenerationMismatch),
     )
     root.close().unwrap()
   }
@@ -41,16 +42,21 @@ test "bounded census refuses duplicate nonordered names and invalid intake" {
   let root = open_root(census_fixture_path("exact")).unwrap()
   assert_true(
     root.check_directory_members([
-      { name: "LICENSE", kind: File, }, { name: "LICENSE", kind: File, },
-    ]) is Err(InvalidName),
+      { name: "LICENSE", kind: File, },
+      { name: "LICENSE", kind: File, },
+    ])
+    is Err(InvalidName),
   )
   assert_true(
     root.check_directory_members([
-      { name: "bin", kind: Directory, }, { name: "LICENSE", kind: File, },
-    ]) is Err(InvalidName),
+      { name: "bin", kind: Directory, },
+      { name: "LICENSE", kind: File, },
+    ])
+    is Err(InvalidName),
   )
   assert_true(
-    root.check_directory_members([{ name: "../escape", kind: File, }]) is Err(InvalidName),
+    root.check_directory_members([{ name: "../escape", kind: File, }])
+    is Err(InvalidName),
   )
   assert_true(root.check_directory_members(census_fixture_members()) is Ok(_))
   root.close().unwrap()
@@ -68,8 +74,12 @@ test "bounded census accepts a truly empty opened directory" {
 test "unconfirmed census close stays with the same Root beyond its fd close" {
   let root = open_root(census_fixture_path("cleanup")).unwrap()
   test_fail_census_close(root, 1)
-  assert_true(root.check_directory_members(census_fixture_members()) is Err(Cleanup(_)))
-  assert_true(root.check_directory_members(census_fixture_members()) is Err(Cleanup(_)))
+  assert_true(
+    root.check_directory_members(census_fixture_members()) is Err(Cleanup(_)),
+  )
+  assert_true(
+    root.check_directory_members(census_fixture_members()) is Err(Cleanup(_)),
+  )
   assert_true(root.close() is Err(Cleanup(_)))
   // Another observation cannot reinterpret the old consumed descriptor as ACK.
   assert_true(root.close() is Err(Cleanup(_)))
