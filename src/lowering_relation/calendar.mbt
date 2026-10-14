@@ -52,8 +52,7 @@ fn calendar_range_bound(
 ) -> Result[(Int, Int), CalendarIssue] {
   // This is finite static preparation over the already admitted original
   // profile, not an observed-row estimate or an acquisition scanner.
-  let count = @calendar_transition.transition_count(table)
-  if max_work < 2 || count > max_work - 2 {
+  if max_work < 2 {
     return Err(CalendarPreparationLimit)
   }
   if @calendar_options.validate_range(start, end) is Err(issue) {
@@ -61,6 +60,10 @@ fn calendar_range_bound(
   }
   if start == end {
     return Ok((0, 2))
+  }
+  let count = @calendar_transition.transition_count(table)
+  if count > max_work - 2 {
+    return Err(CalendarPreparationLimit)
   }
   let mut minimum = @calendar_transition.initial_offset(table).to_int64()
   let mut maximum = minimum

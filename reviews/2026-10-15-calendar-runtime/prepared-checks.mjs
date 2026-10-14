@@ -11,7 +11,7 @@ assert.equal(git('status','--porcelain'),'');
 const selected = mode === 'laws' ? 'src/calendar_profile' :
   mode === 'lowering' ? 'src/lowering_relation' : 'src/calendar_transition';
 const args = ['--target','js','-j','1',selected,
-  ...(mode === 'lowering' ? ['--filter','selected original UTC Calendar series reaches normal lowering'] : [])];
+  ...(mode === 'lowering' ? ['--filter','*Calendar*'] : [])];
 const runner = `import {runFocusedTests} from "./scripts/test-execution.mjs";process.exitCode=runFocusedTests("moon",${JSON.stringify(args)},{cwd:process.cwd(),timeout:240000});`;
 const steps = mode === 'api' ? ['js', 'wasm', 'native'].map(target => ({
   name: `Calendar transition/profile consuming API (${target})`, command: 'moon',
