@@ -107,6 +107,52 @@ test('queued mutable frames keep independent exact backing and original bytes',
     assert.equal(writer.status().reservationHeld, false);
   });
 
+test('typed snapshots measure their actual extent despite a shadowed byteLength',
+  async () => {
+    for (const frame of [Buffer.from([1, 2]), new Uint8Array([1, 2])]) {
+      const {writer, writes} = fixture();
+      Object.defineProperty(frame, 'byteLength', {value: 4});
+      try {
+        await writer.append(frame);
+        // Inspect the extent first; a failing candidate never prints or
+        // hashes an uninitialized tail as expected test material.
+        assert.equal(writes()[0].buffer.byteLength, 2);
+        assert.deepEqual([...writes()[0].buffer], [1, 2]);
+        assert.equal(writes()[0].buffer.buffer.byteLength, 2);
+        const result = await writer.seal(digest(new Uint8Array([1, 2])));
+        assert.equal(result.bytes, 2);
+        assert.equal(writer.status().reservationHeld, false);
+      } finally {
+        await writer.cancel();
+      }
+    }
+  });
+
+test('a shadowed byteLength cannot admit an oversized typed frame or allocate',
+  async () => {
+    const {writer, writes, counts} = fixture(2);
+    const frame = new Uint8Array([1, 2, 3]);
+    Object.defineProperty(frame, 'byteLength', {value: 1});
+    const allocate = Buffer.allocUnsafeSlow;
+    let allocations = 0;
+    Buffer.allocUnsafeSlow = function(size) {
+      allocations++;
+      return Reflect.apply(allocate, Buffer, [size]);
+    };
+    try {
+      await assert.rejects(async () => writer.append(frame),
+        {code: 'PublicationObjectLimit'});
+      assert.equal(allocations, 0);
+      assert.equal(writes().length, 0);
+      assert.equal(writer.status().bytes, 0);
+      assert.equal(writer.status().reservationHeld, true);
+    } finally {
+      Buffer.allocUnsafeSlow = allocate;
+      await writer.cancel();
+    }
+    assert.equal(counts().releases, 1);
+  });
+
 test('string snapshot retains exact UTF8 bytes without normalization or a slab',
   async () => {
     const {writer, writes} = fixture();
