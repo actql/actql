@@ -208,7 +208,50 @@ test "actual Values publication supplies succeeded state with unknown Result ava
     })
     is Err(_),
   )
+  let read_calls = Ref(0)
+  assert_true(
+    pending.observe_run_state(
+      "2026-10-15T00:00:02.000Z",
+      limits.max_result_workspace_entries,
+      16,
+      1000,
+      () => {
+        read_calls.val += 1
+        read_calls.val < 3
+      },
+    )
+    is Err(Publication(AccessDenied)),
+  )
+  assert_eq(read_calls.val, 3)
+  assert_true(
+    pending.observe_run_state(
+      "invalid-time",
+      limits.max_result_workspace_entries,
+      16,
+      1000,
+      () => true,
+    )
+    is Err(State(_)),
+  )
   assert_true(work.close())
+  let close_calls = Ref(0)
+  assert_true(
+    pending.observe_run_state(
+      "2026-10-15T00:00:02.000Z",
+      limits.max_result_workspace_entries,
+      16,
+      1000,
+      () => {
+        close_calls.val += 1
+        if close_calls.val == 3 {
+          store.close().unwrap() |> ignore
+        }
+        true
+      },
+    )
+    is Err(Publication(Store(Closed))),
+  )
+  assert_eq(close_calls.val, 3)
   store.close().unwrap() |> ignore
   assert_true(
     pending.observe_run_state(
