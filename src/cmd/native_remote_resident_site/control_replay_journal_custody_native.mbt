@@ -32,22 +32,31 @@ fn open_control_replay_journal(
   retained : Ref[ControlReplayJournalCustody?],
 ) -> @journal.Journal? {
   guard retained.val is None else { return None }
-  let site = match @site.create_site(
-    environment.site_key, environment.site_generation,
-    environment.runtime_bundle_cid, environment.max_operations,
-    environment.max_transfers, environment.max_bytes, environment.max_bytes,
-  ) {
+  let site = match
+    @site.create_site(
+      environment.site_key,
+      environment.site_generation,
+      environment.runtime_bundle_cid,
+      environment.max_operations,
+      environment.max_transfers,
+      environment.max_bytes,
+      environment.max_bytes,
+    ) {
     Some(value) => value
     None => return None
   }
-  let control = match @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1") {
+  let control = match
+    @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1") {
     Ok(value) => value
     Err(_) => return None
   }
-  match @journal.open_journal_with_custody(
-    environment.sqlite_library, environment.journal_path,
-    environment.max_record_bytes, control,
-  ) {
+  match
+    @journal.open_journal_with_custody(
+      environment.sqlite_library,
+      environment.journal_path,
+      environment.max_record_bytes,
+      control,
+    ) {
     Ok(original) => {
       retained.val = Some(ReplayJournalHandle(original))
       Some(original)
