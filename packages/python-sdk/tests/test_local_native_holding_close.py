@@ -132,3 +132,38 @@ class NativeHoldingCloseTests(unittest.TestCase):
         self.assertEqual(call.addresses, [123])
         self.assertIsNone(lease._pointer.value)
         self.assertEqual(case.events.count(('close', 'store')), 1)
+
+    def test_core_holding_only_retry_does_not_enter_native_closing_lease(self):
+        case = fixture.InstalledImageTests()
+        case.setUp()
+        lease, library = case._holding([(0, True)])
+        core, _ = case._construct_with_baseline(holding=lease)
+        state = {'closing': False, 'enter_calls': 0}
+        original_enter = library.actql_owned_enter
+        def enter(pointer):
+            state['enter_calls'] += 1
+            # owned_capacity.c refuses entry after try_close has set closing,
+            # including a known physical failure whose original slot survives.
+            return -3 if state['closing'] else original_enter(pointer)
+        library.actql_owned_enter = enter
+        def close(out):
+            state['closing'] = True
+            if len(call.addresses) == 1:
+                return -2
+            cast(out, POINTER(c_void_p))[0] = None
+            return 0
+        call = _CloseCall(close)
+        lease._try_close = call
+        with self.assertRaises(NativeHoldingRetirementError):
+            core.close()
+        self.assertIsNone(core._store)
+        self.assertIsNone(core._module)
+        self.assertIsNone(core._engine)
+        self.assertIs(core._physical_holding, lease)
+        self.assertFalse(core._closed)
+        before = state['enter_calls']
+        self.assertTrue(core.close())
+        self.assertEqual(state['enter_calls'], before)
+        self.assertEqual(call.addresses, [123, 123])
+        self.assertIsNone(core._physical_holding)
+        self.assertTrue(core._closed)
