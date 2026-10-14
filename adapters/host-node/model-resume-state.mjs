@@ -185,7 +185,10 @@ export function createModelResumeState(database, {
     scope: database.prepare('SELECT * FROM resume_model_scopes WHERE checkpoint_cid = ?'),
     scopeByCid: database.prepare('SELECT * FROM resume_model_scopes WHERE scope_cid = ?'),
     linkCut: database.prepare('UPDATE resume_model_scopes SET current_cut_link_json = ?, current_cut_invalidation_json = ? WHERE scope_cid = ? AND current_cut_link_json IS NULL AND current_cut_invalidation_json IS NULL'),
-    cutRecords: database.prepare('SELECT * FROM resume_model_scopes WHERE current_cut_link_json IS NOT NULL OR current_cut_invalidation_json IS NOT NULL ORDER BY run_id, task_index, scope_cid'),
+    cutRecords: database.prepare(`SELECT * FROM resume_model_scopes
+      WHERE (current_cut_link_json IS NOT NULL OR current_cut_invalidation_json IS NOT NULL)
+        AND (? IS NULL OR (run_id, task_index, scope_cid) > (?, ?, ?))
+      ORDER BY run_id, task_index, scope_cid LIMIT 1`),
     updateCutInvalidation: database.prepare('UPDATE resume_model_scopes SET current_cut_invalidation_json = ? WHERE scope_cid = ? AND current_cut_link_json = ? AND current_cut_invalidation_json = ?'),
     invalidateCut: database.prepare('UPDATE resume_model_scopes SET current_cut_link_json = NULL, current_cut_invalidation_json = ? WHERE scope_cid = ? AND current_cut_link_json = ? AND current_cut_invalidation_json = ?'),
     slots: database.prepare('SELECT * FROM resume_model_slots WHERE scope_cid = ? ORDER BY ordinal'),
@@ -830,7 +833,15 @@ export function createModelResumeState(database, {
     },
   });
   function originalCutMutationFence() {
-    for (const row of q.cutRecords.all()) {
+    // Preserve every durable record and its validation, but keep only one row
+    // in this transaction's working window. The exact keyset follows the same
+    // ordering; no persistent cursor, cleanup carrier or second queue is added.
+    let previous;
+    for (;;) {
+      const row = q.cutRecords.get(previous?.run_id ?? null,
+        previous?.run_id ?? null, previous?.task_index ?? 0, previous?.scope_cid ?? '');
+      if (row === undefined) break;
+      previous = {run_id: row.run_id, task_index: row.task_index, scope_cid: row.scope_cid};
       // Confirmed outcome data remains, but no longer freezes legitimate
       // subsequent Model/Run mutations. Null metadata remains legacy unknown.
       const record = cutInvalidationRecord(row);
