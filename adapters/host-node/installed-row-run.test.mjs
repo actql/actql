@@ -6,7 +6,7 @@ const ok = value => ({$tag: 1, _0: value});
 const token = name => Object.freeze({name});
 
 function rowRunFixture({accounted = false, effectful = false, task = 0,
-  retainedRelationOutput = false} = {}) {
+  retainedRelationOutput = false, listingReport = false} = {}) {
   const calls = [];
   const failures = new Map();
   const responses = new Map();
@@ -24,6 +24,8 @@ function rowRunFixture({accounted = false, effectful = false, task = 0,
   const retainedTask = token('retained-task');
   const ledger = accounted ? token('ledger') : undefined;
   const capacity = {transferBytes: 8192n, executionBytes: 1024n};
+  const reportCapacity = listingReport ? token('original-report-declaration') : undefined;
+  if (listingReport) capacity.listingReport = reportCapacity;
   const occurrence = Object.freeze({stage: task, input: 0, task});
   const owner = Object.freeze({checkedOwner, effectful, requirement, occurrence});
   const prepared = Object.freeze({checkedSource});
@@ -57,12 +59,14 @@ function rowRunFixture({accounted = false, effectful = false, task = 0,
       return responses.has(name) ? responses.get(name) : result;
     };
   };
-  const startName = accounted ? 'clientProgramRowSourceStartAccounted'
+  const startName = listingReport ? 'clientProgramRowSourceStartListingAccounted'
+    : accounted ? 'clientProgramRowSourceStartAccounted'
     : 'clientProgramRowSourceStart';
   method(startName, undefined, ok(run), args => {
-    assert.equal(typeof args[2], 'function');
-    settled = args[2];
-    exact(args, [acquisition, nonce, settled,
+    const verifyIndex = listingReport ? 3 : 2;
+    assert.equal(typeof args[verifyIndex], 'function');
+    settled = args[verifyIndex];
+    exact(args, [acquisition, ...(listingReport ? [reportCapacity] : []), nonce, settled,
       ...(accounted ? [ledger, capacity.transferBytes,
         capacity.executionBytes] : [])]);
     assert.equal(settled(attempt), false);
@@ -154,6 +158,59 @@ function rowRunFixture({accounted = false, effectful = false, task = 0,
       capacity: accounted ? capacity : undefined}),
   };
 }
+
+test('selected listing declaration enters the original accounted RowRun and capture owner', async () => {
+  const f = rowRunFixture({accounted: true, listingReport: true});
+  const owner = f.start();
+  assert.equal(owner.run, f.run);
+  const result = await owner.complete(f.options);
+  assert.equal(result.identity, f.identity);
+  assert.equal(result.capture.originalRead instanceof Function, true);
+  assert.equal(f.count('clientProgramRowSourceStartListingAccounted'), 1);
+  assert.equal(f.count('clientProgramRowSourceStartAccounted'), 0);
+  assert.equal(f.count('clientProgramRowSourceStart'), 0);
+  owner.close();
+  owner.close();
+  assert.equal(f.count('clientProgramRowSourceCloseAccounted'), 1);
+});
+
+test('selected listing Core reservation refusal does not fall back to an ordinary start', () => {
+  const f = rowRunFixture({accounted: true, listingReport: true});
+  f.fail(f.startName, {checked: true});
+  assert.throws(() => f.start(), {code: 'MoonBitHostFailure'});
+  assert.deepEqual(f.names(), [f.startName]);
+});
+
+test('selected listing pending cleanup retains the same RowRun and original retry', async () => {
+  const f = rowRunFixture({accounted: true, listingReport: true});
+  const owner = f.start();
+  f.fail(f.closeName, {checked: true});
+  const state = {};
+  owner.closeAfterFailure(state);
+  assert.equal(state.closeFailed, true);
+  assert.equal(state.recovery.cleanupPending(), true);
+  f.respond('clientProgramRowSourceCaptureCleanupAdvance', ok(false));
+  assert.equal(await state.recovery.cleanup(), false);
+  assert.equal(f.count(f.closeName), 1);
+  f.respond('clientProgramRowSourceCaptureCleanupAdvance', ok(true));
+  assert.equal(await state.recovery.cleanup(), true);
+  assert.equal(state.recovery.cleanupPending(), false);
+  assert.equal(f.count(f.closeName), 2);
+  assert.equal(f.count(f.startName), 1);
+});
+
+test('listing report requires the original Ledger and does not enter the keyed owner', () => {
+  let starts = 0;
+  const moon = new Proxy({}, {get() { return () => { starts++; }; }});
+  const options = {moon, acquisition: token('original-acquisition'), nonce: 'original',
+    capacity: {transferBytes: 1n, executionBytes: 1n,
+      listingReport: token('original-report-declaration')}};
+  assert.throws(() => startInstalledRowRun(options),
+    {code: 'InstalledListingSourceLedgerRequired'});
+  assert.throws(() => startInstalledRowRun({...options, keyed: true, ledger: token('ledger')}),
+    {code: 'InstalledListingSourceProgramMismatch'});
+  assert.equal(starts, 0);
+});
 
 for (const accounted of [false, true]) {
   for (const effectful of [false, true]) {
