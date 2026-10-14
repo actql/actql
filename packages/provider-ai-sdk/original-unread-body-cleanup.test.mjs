@@ -71,7 +71,7 @@ async function until(read, accepted) {
 }
 
 test('actual SDK header refusal before getReader keeps unread body close pending and another Call alive',
-  {timeout: 5000}, async () => {
+  {timeout: 5000}, async t => {
     const handles = [];
     let requests = 0, secondResponse;
     const server = createServer((request, response) => {
@@ -132,11 +132,20 @@ test('actual SDK header refusal before getReader keeps unread body close pending
       await until(() => sdk.cleanupSdkPreparation(second), value => value === true);
       assert.equal(requests, 2, 'one send per original Call, no retry');
       assert.equal(bodies[1].closes, 1);
+    } catch (error) {
+      t.diagnostic(JSON.stringify({primary: error.message, stack: error.stack,
+        requests, bodies: bodies.map(record => ({iterators: record.iterators,
+          closes: record.closes, delayed: typeof record.finish === 'function'})),
+        socketCloses: sockets.map(record => record.closes)}));
+      throw error;
     } finally {
       for (const record of bodies) record.finish?.();
       try {
         for (const handle of handles) {
-          await until(() => sdk.cleanupSdkPreparation(handle), value => value === true);
+          await until(() => {
+            for (const record of bodies) record.finish?.();
+            return sdk.cleanupSdkPreparation(handle);
+          }, value => value === true);
         }
       } finally {
         server.closeAllConnections();
