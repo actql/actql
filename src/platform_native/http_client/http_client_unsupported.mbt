@@ -1,4 +1,38 @@
 ///|
+type NativeHttpLibraryLoadFailure
+
+///|
+pub fn NativeHttpLibraryLoadFailure::issue(
+  _self : NativeHttpLibraryLoadFailure,
+) -> NativeHttpIssue {
+  UnsupportedTarget
+}
+
+///|
+pub fn NativeHttpLibraryLoadFailure::retry_cleanup(
+  _self : NativeHttpLibraryLoadFailure,
+) -> Result[Unit, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+type NativeHttpClientCreateFailure
+
+///|
+pub fn NativeHttpClientCreateFailure::issue(
+  _self : NativeHttpClientCreateFailure,
+) -> NativeHttpIssue {
+  UnsupportedTarget
+}
+
+///|
+pub fn NativeHttpClientCreateFailure::retry_cleanup(
+  _self : NativeHttpClientCreateFailure,
+) -> Result[Library, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 type Library
 
 ///|
@@ -149,14 +183,4 @@ pub fn Library::create_authenticated_client_with_custody(
   _operation_timeout_ms : Int,
 ) -> Result[Client, NativeHttpClientCreateError] {
   Err(RefusedBeforeAcquisition(UnsupportedTarget))
-}
-
-///|
-fn retire_failed_http_library(_library : Library) -> Result[Unit, NativeHttpIssue] {
-  Err(UnsupportedTarget)
-}
-
-///|
-fn retire_failed_http_client(_library : Library, _client : Client) -> Result[Unit, NativeHttpIssue] {
-  Err(UnsupportedTarget)
 }

@@ -32,7 +32,9 @@ export const EFFECT_SETTLEMENT_JOURNAL_LAYOUT =
   'actql-checkpoint-journal/0.1;model-call-provenance=1;effect-settlement=1';
 export const MODEL_CURRENT_CUT_JOURNAL_LAYOUT =
   EFFECT_SETTLEMENT_JOURNAL_LAYOUT + ';model-current-cut-link=1';
-const SCHEMA_VERSION = MODEL_CURRENT_CUT_JOURNAL_LAYOUT;
+export const MODEL_CURRENT_CUT_INVALIDATION_JOURNAL_LAYOUT =
+  MODEL_CURRENT_CUT_JOURNAL_LAYOUT + ';model-current-cut-invalidation=1';
+const SCHEMA_VERSION = MODEL_CURRENT_CUT_INVALIDATION_JOURNAL_LAYOUT;
 export const EFFECT_SETTLEMENT_TABLE_SQL = `
   CREATE TABLE resume_effect_settlements (
     intent_id TEXT PRIMARY KEY NOT NULL REFERENCES resume_intents (intent_id),
@@ -270,7 +272,7 @@ export function openSqliteCheckpointJournal(root, {
       // Never repair a recognized journal by recreating a missing refusal
       // marker table: it may have held a still-unsettled no-send decision.
       database.prepare('SELECT intent_id, generation, refusal_code FROM resume_effect_settlements LIMIT 0');
-      database.prepare('SELECT current_cut_link_json FROM resume_model_scopes LIMIT 0');
+      database.prepare('SELECT current_cut_link_json, current_cut_invalidation_json FROM resume_model_scopes LIMIT 0');
       return true;
     };
     const initialized = hasCurrentLayout();

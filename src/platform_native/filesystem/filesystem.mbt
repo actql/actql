@@ -42,6 +42,20 @@ pub(all) struct NativeFileChunk {
 }
 
 ///|
+/// Expected immediate member shape for a physical directory comparison only.
+/// It is not namespace custody, authority or an admitted package descriptor.
+pub(all) enum NativeDirectoryMemberKind {
+  File
+  Directory
+} derive(Eq, Debug)
+
+///|
+pub(all) struct NativeDirectoryMember {
+  name : String
+  kind : NativeDirectoryMemberKind
+}
+
+///|
 /// Refusal from the existing Reader constructor, with the same rejected Reader
 /// retained when its close result was not acknowledged. It never admits reads.
 struct NativeReaderOpenFailure {
@@ -86,15 +100,22 @@ struct NativeRootOpenFailure {
 }
 
 ///|
-pub fn NativeRootOpenFailure::issue(self : NativeRootOpenFailure) -> NativeFilesystemIssue {
+pub fn NativeRootOpenFailure::issue(
+  self : NativeRootOpenFailure,
+) -> NativeFilesystemIssue {
   self.original_issue
 }
 
 ///|
-pub fn NativeRootOpenFailure::retry_cleanup(self : NativeRootOpenFailure) -> Result[Unit, NativeFilesystemIssue] {
+pub fn NativeRootOpenFailure::retry_cleanup(
+  self : NativeRootOpenFailure,
+) -> Result[Unit, NativeFilesystemIssue] {
   guard self.root is Some(original) else { return Ok(()) }
   match original.close() {
-    Ok(_) => { self.root = None; Ok(()) }
+    Ok(_) => {
+      self.root = None
+      Ok(())
+    }
     Err(issue) => Err(issue)
   }
 }
@@ -108,15 +129,22 @@ struct NativeLockOpenFailure {
 }
 
 ///|
-pub fn NativeLockOpenFailure::issue(self : NativeLockOpenFailure) -> NativeFilesystemIssue {
+pub fn NativeLockOpenFailure::issue(
+  self : NativeLockOpenFailure,
+) -> NativeFilesystemIssue {
   self.original_issue
 }
 
 ///|
-pub fn NativeLockOpenFailure::retry_cleanup(self : NativeLockOpenFailure) -> Result[Unit, NativeFilesystemIssue] {
+pub fn NativeLockOpenFailure::retry_cleanup(
+  self : NativeLockOpenFailure,
+) -> Result[Unit, NativeFilesystemIssue] {
   guard self.lock is Some(original) else { return Ok(()) }
   match original.close_checked() {
-    Ok(_) => { self.lock = None; Ok(()) }
+    Ok(_) => {
+      self.lock = None
+      Ok(())
+    }
     Err(issue) => Err(issue)
   }
 }

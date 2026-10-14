@@ -284,6 +284,8 @@ pub fn ${name}_managed_start(
 bridge = bridge.replace('  // MANAGED_START_ISSUES', managedStartIssues.join('\n'));
 dependencies.set('actql/actql/effect_application', 'effect');
 dependencies.set('actql/actql/remote_transfer', 'transfer');
+// The common output receipt bridge projects canonical UTF-8 payload bytes.
+dependencies.set('moonbitlang/core/encoding/utf8', 'utf8');
 if (existsSync(join(sourceRoot, bridgePackage, 'client_infer_bridge.mbt'))) {
   dependencies.set('actql/actql/model_execution', 'model');
   dependencies.set('actql/actql/client_infer_host', 'infer_host');

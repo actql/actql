@@ -6,16 +6,19 @@ import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {sourcefreeFixtureAuthorization} from './release-sourcefree-authorization.mjs';
-import {selectReleaseTimeSeriesQueryCases} from '../release-time-series-query-cases.mjs';
+import {selectInstalledSourcefreeQuerySuite, sourcefreeSuiteRequiresReread}
+  from '../release-sourcefree-query-cases.mjs';
 import {guardReleaseSourcefreeIo} from './release-sourcefree-io.mjs';
 const mode = process.argv[2];
 assert.ok(['local', 'https'].includes(mode));
+const suite = process.argv[3] ?? 'time-series';
+assert.equal(sourcefreeSuiteRequiresReread(suite), true);
 const saved = JSON.parse(await readFile(`sourcefree-${mode}.json`, 'utf8'));
-const cases = selectReleaseTimeSeriesQueryCases();
-assert.equal(saved.suite, 'time-series'); assert.equal(saved.complete, true);
+const cases = selectInstalledSourcefreeQuerySuite(suite);
+assert.equal(saved.suite, suite); assert.equal(saved.complete, true);
 assert.deepEqual(saved.successNames, cases.successes.map(item => item.name));
 assert.deepEqual(saved.refusalNames, cases.refusals.map(item => item.name));
-const authorization = await sourcefreeFixtureAuthorization(mode, 'time-series', {reopen: true});
+const authorization = await sourcefreeFixtureAuthorization(mode, suite, {reopen: true});
 const directory = resolve(`sourcefree-${mode}`), completed = [], io = guardReleaseSourcefreeIo();
 let primary, host, server, client;
 const count = () => {
@@ -68,7 +71,7 @@ finally {
   catch (error) {primary ??= error;}
   try {await host?.close();} catch (error) {primary ??= error;}
   const providerObservation = io.snapshot(); io.close();
-  await writeFile(`sourcefree-reread-${mode}.json`, JSON.stringify({mode, suite: 'time-series',
+  await writeFile(`sourcefree-reread-${mode}.json`, JSON.stringify({mode, suite,
     phase: 'fresh-process-reread', complete: primary === undefined, completed, providerObservation}, null, 2) + '\n',
   {flag: 'wx'});
 }

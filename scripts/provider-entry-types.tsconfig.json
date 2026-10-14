@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "strict": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "baseUrl": "..",
+    "paths": {
+      "@actql/sdk": ["packages/sdk/index.d.ts"],
+      "@actql/client-wire": ["packages/client-wire/index.d.ts"]
+    }
+  },
+  "files": [
+    "../packages/provider-ai-sdk/entry.typecheck.mts",
+    "../packages/provider-http/entry.typecheck.mts"
+  ]
+}

@@ -46,7 +46,8 @@ function snapshotArray(value, maximum, code) {
 
 // Private trusted Host assembler. It does not load a package, admit a numeric
 // profile, infer credentials or replace the existing Model/Run/Store Owner.
-// Public exports remain closed until complete original funding and acceptance.
+// The package exposes this assembler only; original funding and public
+// execution acceptance remain separate required boundaries.
 export function createInstalledHttpChatRegistration(value) {
   const config = snapshot(value, ['providerId', 'modelSelector', 'modelId',
     'endpoint', 'headers', 'taskCid', 'promptCid', 'outputSchemaCid',
