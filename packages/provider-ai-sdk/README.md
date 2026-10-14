@@ -35,6 +35,37 @@ const registerModelProviders =
   createInstalledUndiciOpenAIChatRegistration(trustedUndiciHostOptions);
 ```
 
+Alternatively, replace **both** `originalReadInstallation` and
+`rawCaptureSelection` with the closed `originalMaterials` DATA option. It holds
+the original response-profile wire/CID, four policy originals, explicit reader
+limits, generation installation declaration, read declarations without an
+opaque profile, and raw selection times/callback. The exported
+`OpenAIOriginalMaterials` type lists every field. Missing policies, accessor
+fields, extra fields and mixed opaque/DATA options refuse; there is no fallback.
+
+```js
+const registerModelProviders = createInstalledUndiciOpenAIChatRegistration({
+  ...trustedOptionsWithoutOpaqueSelections,
+  originalMaterials: selectedOriginalMaterials,
+});
+```
+
+The constructor snapshots those descriptors once. Only the actual Host's
+registration callback admits canonical wires/CIDs through its own Common
+readers, then passes that same runtime's opaque profile/policies to the existing
+assembler. Applications need no internal runtime import. A material callback
+is single-installation: reuse (even with the same runtime module), null runtime
+or absent readers refuse before constructing a physical selector. Create a new
+callback for a new Host; DATA identity is not transferable custody. The older
+already-opaque overload retains its existing behavior.
+
+Material admission is not Task authorization, raw capture approval, actual
+Store availability, a loan, a numerical profile or an installed Run. The
+snapshot, captured originals, reader workspace and later opaque aliases must
+all be included in the original Host/Run simultaneous budget. Missing complete
+funding still returns the existing Unavailable; these reader limits cannot
+stand in for it. This remains a development installer, not live-ready guidance.
+
 This entry selects the fixed private Undici transport after the same existing
 Host snapshots/profile/original-selection checks. It reuses the existing
 exclusive async registration, physical preflight and original Call cleanup;
@@ -208,6 +239,35 @@ is distinct from the existing observed-header subset limit. Neither the
 body HWM nor the reader's acquired-chunk check is a socket/TLS/Buffer-backing
 physical upper bound. Full constructor/native/parser/header/queue/closure
 overlap remains an original Host/Resource funding requirement, not zero.
+
+The selected Undici options additionally require closed private
+`physicalAcquisitionLimits` DATA: `maxPlaintextBytes`,
+`maxBorrowedBackingBytes`, and `maxReads` (positive bounded integers). The
+original installation snapshots these once before preparation and the same
+Call borrows that snapshot. Missing/extra/accessor declarations refuse; no
+default or normal numerical profile is supplied. Generic/native fetch options
+do not acquire this role.
+
+The same original socket's parser-facing reads count all HTTP plaintext,
+including framing, and check whole distinct Buffer backing extents before
+Undici's parser receives the chunk. Backing accounting conservatively sums
+distinct allocations over the entire Call lifetime, not just simultaneous
+peaks; it never refunds at EOF/cancel/Promise settlement. Weak membership
+retains no additional strong buffer alias, but its controls still need funding.
+A refused chunk destroys that same socket and retains original cleanup duties.
+`maxReads` counts every original socket read invocation, including null/empty
+probes, before calling the captured read method; exhaustion does not perform
+another read. It is not the accepted body-chunk count or a native queue bound.
+
+These are **post-acquisition** checks. Selected Node/TLS emission, Readable
+queue and concatenation can allocate before `socket.read()` returns. Their
+first managed allocator/burst/queue envelope remains unresolved; neither a
+clamp nor a successful private fixture proves pre-acquisition reservation.
+Original model/Host coverage must include those holdings and the new snapshot,
+per-read controls, parser/native scratch, raw/Store/SDK borrowers until their
+actual retirement. Normal installation therefore remains Unavailable without
+the complete original same-Ledger envelope. Selected trusted TLS/llhttp/VM
+coverage is not zero managed memory or a whole-RSS claim.
 
 Cleanup retains the same connector/returned socket and body. Client destroy
 fulfillment alone cannot retire a connection in progress: the original

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import test from 'node:test';
 import {occurrences} from './check-owned-contract-versions.mjs';
 import {assertGeneratedOwnedContracts} from './generated-owned-contracts.mjs';
@@ -40,6 +41,18 @@ test('historical tests and documents cannot authorize generated production contr
     assert.throws(() => assertGeneratedOwnedContracts({source: historical,
       generated, inventory: historicalInventory}), /require admitted production source/u);
   }
+});
+
+test('reviewed local verification protocol cannot authorize a generated runtime token', () => {
+  const path = 'scripts/local-checks-guard.mjs';
+  const localSource = occurrences(readFileSync(new URL('../' + path, import.meta.url), 'utf8'), path);
+  const localInventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
+  assert.equal(localSource.length, 1);
+  assertGeneratedOwnedContracts({source: localSource, generated: [], inventory: localInventory});
+  const localGenerated = occurrences(`const protocol = "${localSource[0].token}"`, 'generated/runtime.js');
+  assert.equal(localGenerated.length, 1);
+  assert.throws(() => assertGeneratedOwnedContracts({source: localSource,
+    generated: localGenerated, inventory: localInventory}), /require admitted production source/u);
 });
 
 test('baseline-only bundles need no nonbaseline source grant', () => {
