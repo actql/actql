@@ -59,16 +59,16 @@ fn product_inventory_wire(
     @encode.begin_ordered_object(writer)
     @encode.ordered_key(writer, "files")
     @encode.begin_array(writer)
-    for member in members {
+    for entry in members {
       @encode.begin_ordered_object(writer)
       @encode.ordered_key(writer, "bytes")
-      @encode.number_value(writer, member.bytes.to_double())
+      @encode.number_value(writer, entry.bytes.to_double())
       @encode.ordered_key(writer, "mode")
-      @encode.number_value(writer, member.mode.to_double())
+      @encode.number_value(writer, entry.mode.to_double())
       @encode.ordered_key(writer, "path")
-      @encode.string_value(writer, member.path)
+      @encode.string_value(writer, entry.path)
       @encode.ordered_key(writer, "sha256")
-      @encode.string_value(writer, member.sha256)
+      @encode.string_value(writer, entry.sha256)
       @encode.end_object(writer)
     }
     @encode.end_array(writer)
