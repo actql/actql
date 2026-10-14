@@ -116,7 +116,7 @@ fn nearest_failed_offer_boundary(
     work_slots:Array::makei(slots,i=>i),fixed_ms:Some(1L),per_row_ms:Some(0L),
     per_wire_byte_ms:Some(0L),per_pair_ms:Some(0L),
   }],100).unwrap()
-  let estimates = @local_driver.prepare_local_estimate_module(installed,[schedule],100).unwrap()
+  let estimates = @local_driver.prepare_local_estimate_module(installed,Array::make(compute.length(),schedule),1000).unwrap()
   @local_driver.install_local_dispatch_estimates(installed,estimates).unwrap()
   let offers = []
   for task in 2..<all.length() {
@@ -125,7 +125,7 @@ fn nearest_failed_offer_boundary(
       Err(_) => fail("original nearest offer estimation rejected task \{task}")
     }
     println("NEAREST_OFFERS task=\{task} count=\{proposed.length()}")
-    assert_false(proposed.is_empty(),msg="original nearest task \{task} has no installed offer")
+    if proposed.is_empty() { fail("original nearest task \{task} has no installed offer") }
     for offer in proposed { offers.push(offer) }
   }
   @strategy.configure_strategy_search(run,{max_offers:100,max_strategies:100,max_work:10000,max_revisions:100}).unwrap()
