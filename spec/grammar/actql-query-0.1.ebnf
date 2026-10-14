@@ -203,7 +203,7 @@ assertion_operator = "ASSERT", "UNIQUE", "BY", "(", path, { ",", path }, ")" ;
 terminal_effect = terminal_update | [ "EFFECT", identifier ], table_create ;
 table_create  = "CREATE", [ "OR", "REPLACE" ], "TABLE", path ;
 terminal_update = "EFFECT", [ identifier ], "UPDATE", "TARGET", query_string,
-                  "MAPPING", identifier, "FROM", "RESULT", identifier,
+                  "MAPPING", identifier, [ "FROM", "RESULT", identifier ],
                   "ID", identifier, "SET", "(", assignment, { ",", assignment }, ")" ;
 (* Pipe WHERE permits supported inline window calls in its predicate. *)
 pipe_where_clause = "WHERE", expression ;
