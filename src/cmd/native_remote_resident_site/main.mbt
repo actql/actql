@@ -1332,8 +1332,12 @@ fn replay_output_reports(
 ) -> Unit {
   // A class-wide pacing hint has constant size. The original journal/cursor
   // owns every report; a deadline never drops or reissues that responsibility.
-  if @env.now() < next.val { return }
-  guard open_control_replay_journal(environment, retained) is Some(journal) else { return }
+  if @env.now() < next.val {
+    return
+  }
+  guard open_control_replay_journal(environment, retained) is Some(journal) else {
+    return
+  }
   let mut cursor = cursor_owner.val
   // One report per pass; rotate the cursor so retries cannot starve poll,
   // release, or another report even when requests outlast the backoff.
@@ -1458,8 +1462,12 @@ fn reconcile_saved_cancellation(
   recovery : Ref[StoppedReleaseRecovery?],
   close_failures : Ref[Int],
 ) -> Unit raise CommandStop {
-  if @env.now() < next.val { return }
-  guard open_control_replay_journal(environment, retained) is Some(journal) else { return }
+  if @env.now() < next.val {
+    return
+  }
+  guard open_control_replay_journal(environment, retained) is Some(journal) else {
+    return
+  }
   let recovered = journal.recover_after(cursor.val)
   match recovered {
     Ok(Some((key, record))) => {
@@ -1494,7 +1502,9 @@ fn reconcile_saved_cancellation(
         report("cancel-cleanup-pending", [("request_cid", identity)])
         return
       }
-      guard open_control_replay_journal(environment, retained) is Some(current) else { return }
+      guard open_control_replay_journal(environment, retained) is Some(current) else {
+        return
+      }
       match @client.acknowledge_status(current, client, url, request) {
         Ok(_) => report("cancel-reconciled", [("request_cid", identity)])
         Err(issue) =>
@@ -1504,7 +1514,9 @@ fn reconcile_saved_cancellation(
           ])
       }
       if !retry_control_replay_journal_cleanup(retained) {
-        report("cancel-recovery-pending", [("reason", "original-report-journal-close")])
+        report("cancel-recovery-pending", [
+          ("reason", "original-report-journal-close"),
+        ])
       }
     }
     Ok(None) => {
@@ -1629,12 +1641,12 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       continue
     }
     replay_output_reports(
-      environment, replay_journal, client, observation_url, next_output_report, max_backoff_ms, report_cursor,
-      site_delegation, report_checkpoint,
+      environment, replay_journal, client, observation_url, next_output_report, max_backoff_ms,
+      report_cursor, site_delegation, report_checkpoint,
     )
     replay_effect_checkpoint_reports(
-      environment, replay_journal, client, observation_url, next_checkpoint_report, max_backoff_ms,
-      checkpoint_report_cursor, site_delegation, report_checkpoint,
+      environment, replay_journal, client, observation_url, next_checkpoint_report,
+      max_backoff_ms, checkpoint_report_cursor, site_delegation, report_checkpoint,
     )
     if replay_journal.val is Some(_) {
       // The original remains reachable through terminal handoff if stopped.
@@ -1718,10 +1730,14 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     let still_unsettled = unsettled.filter(current => {
       if @env.now() >= current.original.next_report_ms {
         observe_ended_holder(current, environment, client, observation_url)
-        current.original.next_report_ms = @env.now() + max_backoff_ms.to_uint64()
+        current.original.next_report_ms = @env.now() +
+          max_backoff_ms.to_uint64()
       }
-      if orphan_store is Some(_) || reclaim_due || orphan_reconciliation ||
-        recovery.val is Some(_) || pending_custody is Some(_) ||
+      if orphan_store is Some(_) ||
+        reclaim_due ||
+        orphan_reconciliation ||
+        recovery.val is Some(_) ||
+        pending_custody is Some(_) ||
         !ended_holder_can_leave_window(current, slot) {
         return true
       }
@@ -1778,8 +1794,8 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       !reclaim_due &&
       !orphan_reconciliation {
       reconcile_saved_cancellation(
-        matches, environment, replay_journal, client, observation_url, cancel_cursor, next_cancel_report,
-        max_backoff_ms, site_delegation, recovery, recovery_close_failures,
+        matches, environment, replay_journal, client, observation_url, cancel_cursor,
+        next_cancel_report, max_backoff_ms, site_delegation, recovery, recovery_close_failures,
       )
     }
     if replay_journal.val is Some(_) {
@@ -1790,9 +1806,13 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     }
     // No holder starts while this process still has the slot for a Store
     // it could not close yet.
-    if holder is None && unsettled.is_empty() &&
-      orphan_store is None && !reclaim_due && !orphan_reconciliation &&
-      recovery.val is None && pending_custody is None &&
+    if holder is None &&
+      unsettled.is_empty() &&
+      orphan_store is None &&
+      !reclaim_due &&
+      !orphan_reconciliation &&
+      recovery.val is None &&
+      pending_custody is None &&
       @env.now() >= next_start_ms {
       if !slot.is_open() {
         slot = match @slot.open_native_executor_slot(slot_path) {
@@ -1804,9 +1824,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         Some(attempt) =>
           // The exact request is read and checked before a holder starts, so
           // nothing is left to fail between the spawn and its tracking.
-          match accepted_control_request(
-            environment, replay_journal, attempt, envelope_read_failures,
-          ) {
+          match
+            accepted_control_request(
+              environment, replay_journal, attempt, envelope_read_failures,
+            ) {
             None => {
               report("holder-request-unavailable", [("attempt", attempt)])
               @slot.native_wait_milliseconds(min_backoff_ms)
@@ -1955,7 +1976,8 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       Ok(None) => Ok(None)
       Err(issue) => Err(issue)
     }
-    guard open_control_replay_journal(environment, replay_journal) is Some(journal) else {
+    guard open_control_replay_journal(environment, replay_journal)
+      is Some(journal) else {
       // Nothing is lost: the operation is served again on a later poll.
       report("journal-unavailable", [])
       @slot.native_wait_milliseconds(max_backoff_ms)
@@ -2048,13 +2070,12 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                   @slot.native_kill_self()
                 }
                 match @remote.dispatch_request_attempt_identity(request) {
-                  Ok(attempt) => {
+                  Ok(attempt) =>
                     // Cancellation intent does not retire an ended executor's
                     // physical/channel responsibility or its admission.
                     if !unsettled.any(value => value.original.attempt == attempt) {
                       ignore(queue.remove(attempt))
                     }
-                  }
                   Err(_) => ()
                 }
                 let codes = @remote.dispatch_record_state_codes(record)
@@ -2107,9 +2128,12 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           Ok(Some(record)) => {
             let identity = @remote.dispatch_request_identity(request)
             for current in unsettled {
-              if @remote.dispatch_request_identity(current.original.request) == identity {
+              if @remote.dispatch_request_identity(current.original.request) ==
+                identity {
                 current.report_evidence = OriginalStatusAcknowledged
-                current.startability = Some(@remote.remote_runtime_record_startable(record))
+                current.startability = Some(
+                  @remote.remote_runtime_record_startable(record),
+                )
               }
             }
             // A late Query report never removes physical/channel custody.
@@ -2206,7 +2230,8 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           report("release-failed", [("reason", "original-journal-close")])
           continue
         }
-        guard open_control_replay_journal(environment, replay_journal) is Some(current) else {
+        guard open_control_replay_journal(environment, replay_journal)
+          is Some(current) else {
           report("release-failed", [("reason", "journal")])
           close_control_replay_journal(replay_journal)
           continue
@@ -2464,13 +2489,15 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   }
   // Neither report ACK nor child exit discards physical responsibility at the
   // terminal controller boundary. Keep it in the existing lifetime shell.
-  if !unsettled.is_empty() || holder is Some(_) || orphan_store is Some(_) ||
-    recovery.val is Some(_) || pending_custody is Some(_) ||
+  if !unsettled.is_empty() ||
+    holder is Some(_) ||
+    orphan_store is Some(_) ||
+    recovery.val is Some(_) ||
+    pending_custody is Some(_) ||
     replay_journal.val is Some(_) {
     slot = retain_control_ended_holder_lifetime(
-      unsettled, holder, environment, client, observation_url, slot, slot_path,
-      orphan_store, recovery, matches, recovery_close_failures, pending_custody,
-      replay_journal,
+      unsettled, holder, environment, client, observation_url, slot, slot_path, orphan_store,
+      recovery, matches, recovery_close_failures, pending_custody, replay_journal,
     )
     holder = None
     orphan_store = None
