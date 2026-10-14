@@ -21,8 +21,9 @@ new nonce), independently compares rows/schema, performs lookup and resends the
 unchanged source with original Parameters, requiring the same Run and unchanged
 admission/Source counters. The test's synthetic authorization keys are retained
 only inside the private consumer directory with mode 0600 for this restart.
-No key or credential body is committed or added to acceptance receipts. Default
-and Sequence workers do not persist this fixture authorization.
+No key or credential body is committed or added to acceptance receipts. The
+default IN/UNNEST worker does not persist this fixture authorization. Sequence
+and Temporal reuse this retained-custody seam for their own closed reread cohorts.
 
 ## Bounded commands and qualification
 
