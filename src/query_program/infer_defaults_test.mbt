@@ -74,13 +74,21 @@ fn infer_defaults_issue_tag(issue : Issue) -> String {
     Admission(_) => "Admission"
     UnknownColumn => "UnknownColumn"
     AmbiguousColumn => "AmbiguousColumn"
-    InferKeyLabel(issue, origin) =>
+    InferKeyLabel(issue, origin) => {
+      let tag = match issue {
+        MissingCorrespondence => "MissingCorrespondence"
+        EmptyOrAmbiguousLabel => "EmptyOrAmbiguousLabel"
+        ReservedRole => "ReservedRole"
+        DuplicateLabel => "DuplicateLabel"
+        DuplicateSlot => "DuplicateSlot"
+      }
       "InferKeyLabel/" +
-      @debug.to_string(issue) +
+      tag +
       "/" +
       origin
       .map(at => @origin.start(at).byte_offset.to_string())
       .unwrap_or("unlocated")
+    }
     UnsupportedInfer => "UnsupportedInfer"
     InvalidContext => "InvalidContext"
     DuplicateOutput => "DuplicateOutput"
