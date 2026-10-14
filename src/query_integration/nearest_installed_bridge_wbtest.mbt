@@ -2,7 +2,7 @@
 // Independent component control for the original installed declaration. This
 // does not replay a public Run or use observed product values as expectations.
 test "selected nearest bridge retains original f32 string key and nullable payload" {
-  let limits = {
+  let limits : @pipeline.Limits = {
     max_steps: 10,
     max_work: 10000,
     max_text_bytes: 10000,
@@ -52,7 +52,8 @@ test "selected nearest bridge retains original f32 string key and nullable paylo
     match @execution.advance_bounded_binding_rows(selection, 1).unwrap() {
       @execution.BoundedBindingRowsContinue(..) => ()
       @execution.BoundedBindingRowsComplete(output, ..) => selected_output = Some(output)
-      @execution.BoundedBindingRowsFailed(issue, ..) => raise issue
+      @execution.BoundedBindingRowsFailed(InvalidExecution, ..) => fail("original selected projection InvalidExecution")
+      @execution.BoundedBindingRowsFailed(_, ..) => fail("original selected projection bounded refusal")
       _ => fail("original selected projection did not complete")
     }
   }
@@ -78,7 +79,8 @@ test "selected nearest bridge retains original f32 string key and nullable paylo
     match @local_connector.advance_managed_provider(active, 1).unwrap() {
       @local_connector.Continue(..) => ()
       @local_connector.CarrierComplete(output, ..) => material = Some(output)
-      @local_connector.Failed(issue, ..) => raise issue
+      @local_connector.Failed(Execution(InputSet), ..) => fail("original selected bridge InputSet")
+      @local_connector.Failed(_, ..) => fail("original selected bridge bounded refusal")
       _ => fail("original selected rows-to-vectors bridge did not complete")
     }
   }
