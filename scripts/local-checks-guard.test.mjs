@@ -474,6 +474,7 @@ test('failed fixtures retain actual evidence and reap owned callers; successful 
     import {existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync} from 'node:fs';
     import {tmpdir} from 'node:os'; import {join} from 'node:path'; import test from 'node:test';
     const guard = ${JSON.stringify(guard)};
+    const tinyResources = ${JSON.stringify(tinyResources)};
     const cancellationGraceSeconds = ${cancellationGraceSeconds};
     const sleep = ${sleep.toString()};
     ${[fixture, steps, start, until].map(fn => fn.toString()).join('\n')}
