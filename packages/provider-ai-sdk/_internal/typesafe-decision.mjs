@@ -12,8 +12,16 @@ export function prepareTypeSafeDecisionRequest({modelId,baseURL,apiKey,options,
   if(typeof modelId!=='string'||modelId.length===0||
     typeof baseURL!=='string'||baseURL.endsWith('/')||
     typeof apiKey!=='string'||apiKey.length===0||
-    options===null||typeof options!=='object'||Array.isArray(options)||
-    Object.keys(options).sort().join(',')!=='questions,state'||
+    options===null||typeof options!=='object'||Array.isArray(options)) {
+    throw new TypeError('InvalidTypeSafeSdkPreparation');
+  }
+  // Preserve the original validation order: invalid scalar/receiver inputs
+  // refuse before invoking any option inspection callback.
+  // Joining names can mistake one comma-bearing own field for both required
+  // originals and then read their values from the prototype. Compare the
+  // actual enumerable field vector without changing hidden/symbol rules.
+  const optionKeys=Object.keys(options).sort();
+  if(optionKeys.length!==2||optionKeys[0]!=='questions'||optionKeys[1]!=='state'||
     Object.values(Object.getOwnPropertyDescriptors(options)).some(d=>!('value' in d))||
     options.questions===null||typeof options.questions!=='object'||Array.isArray(options.questions)) {
     throw new TypeError('InvalidTypeSafeSdkPreparation');

@@ -10,13 +10,16 @@ import {verifyPackageRelease} from './package-release.mjs';
 import {checkoutState} from './packed-client-packages.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
+import {nearestCarrierFixtureDirectory} from './fixtures/nearest-carrier-source-data.mjs';
 import {releaseNearestCarrierFixturePaths, releaseNearestCarrierEnvironment} from './release-nearest-carrier-fixtures.mjs';
 import {createTransportOwner, transportModes} from './fixtures/packed-query-transport-owner.mjs';
+import {selectReleaseNearestShorthandMatrix} from './release-nearest-shorthand-query-cases.mjs';
 import {auditNearestCarrierTransport} from '../reviews/2026-10-14-nearest-carrier-release-matrix/public-audit.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const [input, receiptPath, ...extra] = process.argv.slice(2);
-assert(input && receiptPath && extra.length === 0 && isAbsolute(receiptPath),
+const shorthand = extra.length === 1 && extra[0] === '--shorthand';
+assert(input && receiptPath && (extra.length === 0 || shorthand) && isAbsolute(receiptPath),
   'usage: test-package-release-nearest-carrier.mjs <fixed-RC> <new-absolute-receipt.json>');
 assert.equal(process.env.ACTQL_TEST_PRESERVE_SCRATCH, '1',
   'Retain actual Run/Result, Source custody and full transport receipts');
@@ -54,11 +57,11 @@ try {
       '-addext', 'subjectAltName=DNS:localhost,IP:127.0.0.1'], cwd: root}]);
   await owner.run(transportModes.map(mode => ({name: `nearest-carrier-${mode}`,
     args: [join(root, 'scripts/fixtures/release-nearest-carrier-worker.mjs')], cwd: root,
-    environment: {ACTQL_TEST_QUERY_TRANSPORT: mode, NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')}})));
+    environment: {ACTQL_TEST_QUERY_TRANSPORT: mode, ...(shorthand ? {ACTQL_TEST_NEAREST_SHORTHAND: '1'} : {}), NODE_EXTRA_CA_CERTS: join(root, 'remote.crt')}})));
   for (const mode of transportModes) {
     const report = JSON.parse(await readFile(join(root, `transport-completion.${mode}.json`), 'utf8'));
     const receipt = JSON.parse(await readFile(join(root, `nearest-carrier-receipts.${mode}.json`), 'utf8'));
-    audits.push(await auditNearestCarrierTransport(mode, report, receipt));
+    audits.push(await auditNearestCarrierTransport(mode, report, receipt, shorthand ? await selectReleaseNearestShorthandMatrix(nearestCarrierFixtureDirectory) : undefined));
   }
   await verifyPackageRelease(directory);
   auditPackedPackages(root, manifest.cohort.packages);

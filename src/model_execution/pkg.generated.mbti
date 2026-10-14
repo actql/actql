@@ -553,6 +553,7 @@ pub struct ModelPhysicalCall {
   mut usage_result : Result[Unit, ModelExecutionIssue]?
   mut decoded_response : ModelPhysicalResponse?
   mut raw_capture : ModelRawCaptureSave?
+  // private fields
 }
 
 pub(all) enum ModelPhysicalCallPoll {
@@ -563,6 +564,8 @@ pub(all) enum ModelPhysicalCallPoll {
   PhysicalNativeResponse(ModelPhysicalNativeResponse)
   PhysicalRejected(ModelProviderFailure, ModelPhysicalUsage)
   PhysicalUnknown(ModelPhysicalUsage)
+  PhysicalIoPending(ModelPhysicalCall, ModelPhysicalCallPoll)
+  PhysicalIoQuiescent(ModelPhysicalCall, ModelPhysicalCallPoll)
 }
 
 pub struct ModelPhysicalChatResponse {

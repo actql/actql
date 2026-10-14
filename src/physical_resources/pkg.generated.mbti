@@ -64,9 +64,15 @@ pub fn check_original_state_write_preparation(OriginalLedgerIdentity) -> Result[
 
 pub fn[T] claim_funded_read_preparation(FundedReadClaim[T], T, Int64, Int64) -> Result[FundedReadConsumer[T], OriginalReadIssue]
 
+pub fn claim_model_io_access(ModelIoAccess, Ledger, Reservation, Int, Int) -> Result[ModelIoLease, ModelIoAdmissionIssue]
+
 pub fn[T] claim_model_io_admission(ModelIoAdmission[T], T, OriginalLedgerIdentity, Reservation, Int, Int) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue]
 
+pub fn[T] claim_model_io_for_owned_ledger(ModelIoAdmission[T], T, Ledger, Reservation, Int, Int) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue]
+
 pub fn[P, C] close_backed_execution_region(BackedExecutionRegion[P, C], P) -> Result[Bool, BackedExecutionIssue]
+
+pub fn close_model_io_access(ModelIoAccess) -> Result[Bool, ModelIoAdmissionIssue]
 
 pub fn[T] close_model_io_admission(ModelIoAdmission[T], T) -> Result[Bool, ModelIoAdmissionIssue]
 
@@ -111,6 +117,8 @@ pub fn holding_belongs_to(Ledger, Holding) -> Bool
 pub fn holding_serial(Holding) -> Int
 
 pub fn[P, C] issue_backed_execution_region(SharedCapacity, SharedAllocation, P) -> Result[BackedExecutionRegion[P, C], BackedExecutionIssue]
+
+pub fn[T] issue_model_io_access(ModelIoAdmission[T], T) -> Result[ModelIoAccess, ModelIoAdmissionIssue]
 
 pub fn[T] issue_model_io_admission(T, Int, Int) -> Result[ModelIoAdmission[T], ModelIoAdmissionIssue]
 
@@ -246,7 +254,15 @@ pub fn[T] settle_funded_read_consumer(FundedReadConsumer[T], Bool) -> Result[Uni
 
 pub fn[T] settle_model_holding_after_owner_ack(ModelIoAdmission[T], T, OriginalLedgerIdentity, ModelIoTicket[T], Int, Int) -> Result[Unit, ModelIoAdmissionIssue]
 
+pub fn[T] settle_model_holding_for_owned_ledger_after_owner_ack(ModelIoAdmission[T], T, Ledger, ModelIoTicket[T], Int, Int) -> Result[Unit, ModelIoAdmissionIssue]
+
 pub fn[T] settle_model_io_after_owner_ack(ModelIoAdmission[T], T, OriginalLedgerIdentity, ModelIoTicket[T], Int, Int) -> Result[Unit, ModelIoAdmissionIssue]
+
+pub fn[T] settle_model_io_for_owned_ledger_after_owner_ack(ModelIoAdmission[T], T, Ledger, ModelIoTicket[T], Int, Int) -> Result[Unit, ModelIoAdmissionIssue]
+
+pub fn settle_model_io_lease_after_owner_ack(ModelIoAccess, ModelIoLease, Ledger, Reservation, Int, Int) -> Result[Unit, ModelIoAdmissionIssue]
+
+pub fn settle_model_io_lease_holding_after_owner_ack(ModelIoAccess, ModelIoLease, Ledger, Reservation, Int, Int) -> Result[Unit, ModelIoAdmissionIssue]
 
 pub fn settle_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
@@ -374,6 +390,10 @@ pub(all) struct LedgerUsage {
   peak_retention_bytes : Int64
 } derive(Eq, @debug.Debug)
 
+pub struct ModelIoAccess {
+  // private fields
+}
+
 pub struct ModelIoAdmission[T] {
   mut installation : T?
   active_limit : Int
@@ -382,6 +402,7 @@ pub struct ModelIoAdmission[T] {
   mut unsettled : Int
   duties : Array[ModelIoTicket[T]]
   mut closing : Bool
+  // private fields
 }
 
 pub(all) enum ModelIoAdmissionIssue {
@@ -393,11 +414,16 @@ pub(all) enum ModelIoAdmissionIssue {
   ActiveExhausted
   HoldingExhausted
   DuplicateAttempt
+  DuplicateAccess
   IoAlreadyRetired
   CleanupPending
   TicketRetired
   Resource(LedgerIssue)
 } derive(Eq, @debug.Debug)
+
+pub struct ModelIoLease {
+  // private fields
+}
 
 pub struct ModelIoTicket[T] {
   mut owner : ModelIoAdmission[T]?
