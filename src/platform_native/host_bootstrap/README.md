@@ -118,3 +118,13 @@ The region conformance executable consumes one caller-owned private 64-page FD.
 It tests live range/view custody before worker dispatch. It does not execute a
 worker/VM or independently cover the mapping/FD/process/control overhead of an
 ordinary product profile. The original selected funding boundaries are unchanged.
+
+The domain custody port retains the same Native Host/child/view through physical
+acquisition, one-shot transfer, scoped use and original cleanup. A pending
+domain prevents outer-view cleanup even when acquisition failed; it first
+returns through its same typed cleanup carrier. Scope leave and cleanup remain
+available after parent closing. Closing the domain does not release the view,
+FD, parent range or logical quota. Successful domain cleanup removes the
+view's backreference; successful parent settlement removes the loan's view
+backreference. Closed aliases are idempotent only after the original Host and
+child identity checks. No new Run/Recovery Owner or Python success inference.
