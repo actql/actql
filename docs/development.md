@@ -634,8 +634,9 @@ lock or use a broad process-kill command.
 The existing `heavy.lock` is retained as an immutable compatibility barrier
 for the complete pooled lifetime. A live old singleton prevents pooled admission;
 an old checkout also refuses a pooled barrier rather than overlapping its jobs.
-Each reservation retains its own supervisor identity and token. The barrier's
-initial Owner may already have completed while other slots remain live: inspect
+Each reservation retains its own supervisor identity and token and must match
+its still-held exclusive worktree lock. Missing or changed worktree custody
+refuses both admission and release. The barrier's initial Owner may already have completed while other slots remain live: inspect
 all member Owners, not only the barrier PID. The last member removes the checked
 barrier. A missing/replaced barrier, malformed member, orphan slot or unknown
 ownership is refused without automatic cleanup. Worktrees must normally adopt

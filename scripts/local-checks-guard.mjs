@@ -211,12 +211,22 @@ function poolMembers(directory, poolToken) {
     const pool = member.owner.heavyPool;
     if (pool?.version !== poolVersion || pool.token !== poolToken || pool.slot !== slot ||
         member.owner.uid !== uid() || member.owner.host !== hostname() ||
-        typeof member.owner.token !== 'string' || !Number.isSafeInteger(member.owner.pid) ||
+        typeof member.owner.token !== 'string' || member.owner.token.length === 0 ||
+        typeof member.owner.worktree !== 'string' || member.owner.worktree.length === 0 ||
+        !Number.isSafeInteger(member.owner.pid) ||
         member.owner.pid <= 0 || pool.resources === null || typeof pool.resources !== 'object' ||
         Object.keys(pool.resources).sort().join(',') !== 'cpuThreads,diskBytes,memoryBytes') {
       throw busyLock(path);
     }
     heavyResourceRequest(pool.resources);
+    // A reservation remains bound to the original exclusive worktree Owner.
+    // Missing or replaced custody is not available capacity, even with a valid pool token.
+    let worktree;
+    try {
+      worktree = readLock(join(directory.path, `worktree-${digest(member.owner.worktree)}.lock`));
+      if (['token', 'pid', 'uid', 'host', 'worktree'].some(key =>
+        worktree.owner?.[key] !== member.owner[key])) throw new Error('Heavy member worktree Owner changed');
+    } catch { throw busyLock(path); }
     members.push({...member, path});
   }
   return members;
