@@ -7,6 +7,85 @@ import {fixedInferResponseLimits} from './bounded-response.mjs';
 const installations = new WeakMap();
 const issue = code => Object.assign(new TypeError(code), {code});
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2_147_483_647;
+const acquisitionSnapshots = new WeakSet();
+
+// Private DATA membership only, never a capacity loan or currentness receipt.
+// Reuse our own snapshot across material admission/assembler preparation.
+export function fixedOriginalAcquisitionLimits(value) {
+  if (acquisitionSnapshots.has(value)) return value;
+  const names = ['maxBorrowedBackingBytes', 'maxPlaintextBytes', 'maxReads'];
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw issue('UndiciOriginalAcquisitionLimitsUnavailable');
+  }
+  const keys = Reflect.ownKeys(value);
+  if (keys.length !== names.length || keys.some(key => typeof key !== 'string') ||
+      keys.slice().sort().some((key, index) => key !== names[index])) {
+    throw issue('UndiciOriginalAcquisitionLimitsUnavailable');
+  }
+  const entries = names.map(name => {
+    const descriptor = Object.getOwnPropertyDescriptor(value, name);
+    if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor) ||
+        !positive(descriptor.value)) throw issue('UndiciOriginalAcquisitionLimitsUnavailable');
+    return [name, descriptor.value];
+  });
+  const snapshot = Object.freeze(Object.fromEntries(entries));
+  acquisitionSnapshots.add(snapshot);
+  return snapshot;
+}
+
+function bindAcquisitionRead(socket, limits, acquisition) {
+  const read = socket.read;
+  const descriptor = Object.getOwnPropertyDescriptor(socket, 'read');
+  let plaintext = 0;
+  // Undici 7.30 Parser.readMore/resume calls this same socket.read before
+  // Parser.execute allocates/copies llhttp scratch or exposes body aliases.
+  // Node/TLS emission and Readable queue/concat precede this observation:
+  // these checks cannot fund or bound that first allocator. Ordinary adoption
+  // still requires its original Host coverage and same-Ledger phase envelope.
+  const boundedRead = function (...args) {
+    if (acquisition.refused) return null;
+    // Count every original read invocation, including null/empty probes.
+    // Refuse before another read; this still does not bound native emission.
+    if (acquisition.reads >= limits.maxReads) {
+      acquisition.refused = true;
+      socket.destroy(issue('UndiciOriginalAcquisitionReadsExceeded'));
+      return null;
+    }
+    acquisition.reads++;
+    const chunk = Reflect.apply(read, socket, args);
+    if (chunk === null) return chunk;
+    let code;
+    if (!Buffer.isBuffer(chunk)) code = 'UndiciOriginalAcquisitionShapeRefused';
+    else if (chunk.byteLength > limits.maxPlaintextBytes - plaintext) {
+      code = 'UndiciOriginalAcquisitionPlaintextExceeded';
+    } else if (!acquisition.backings.has(chunk.buffer) &&
+        chunk.buffer.byteLength > limits.maxBorrowedBackingBytes - acquisition.backingBytes) {
+      code = 'UndiciOriginalAcquisitionBackingExceeded';
+    }
+    if (code !== undefined) {
+      acquisition.refused = true;
+      socket.destroy(issue(code));
+      return null; // Never forward the refused chunk into the HTTP parser.
+    }
+    plaintext += chunk.byteLength;
+    // A conservative lifetime union, not an observed simultaneous peak. No
+    // refund at EOF/cancel/Promise completion; aliases may outlive the read.
+    // Weak membership adds no strong buffer alias; its controls need funding.
+    if (!acquisition.backings.has(chunk.buffer)) {
+      acquisition.backings.add(chunk.buffer);
+      acquisition.backingBytes += chunk.buffer.byteLength;
+    }
+    return chunk;
+  };
+  Object.defineProperty(socket, 'read', {value: boundedRead, configurable: true, writable: true});
+  return () => {
+    if (socket.read === boundedRead) {
+      if (descriptor === undefined) delete socket.read;
+      else Object.defineProperty(socket, 'read', descriptor);
+    }
+    acquisition.backings = undefined;
+  };
+}
 
 // Keep validation-only bindings out of the long-lived Call context shared by
 // invoke/connect/cleanup. The comparison remains synchronous and exact; this
@@ -26,7 +105,8 @@ function sameResponseLimits(limits, original) {
 // Private selected Host factory, not an arbitrary Run-provided dispatcher.
 // All descriptor/control/module and future Client/native holdings must already
 // be funded by the original installation/Call before physical preparation.
-export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimits}) {
+export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits}) {
+  const acquisition = fixedOriginalAcquisitionLimits(physicalAcquisitionLimits);
   let url;
   try { url = new URL(endpoint); } catch { throw issue('UndiciOriginalEndpointUnavailable'); }
   if (typeof endpoint !== 'string' || url.href !== endpoint ||
@@ -44,7 +124,7 @@ export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimi
     throw issue('UndiciOriginalRequestNotPrepared');
   });
   installations.set(fetch, Object.freeze({endpoint, origin: url.origin,
-    path: url.pathname, maxBytes, maxHeaderBytes, maxHeaders, limits}));
+    path: url.pathname, maxBytes, maxHeaderBytes, maxHeaders, limits, acquisition}));
   return fetch;
 }
 
@@ -80,24 +160,89 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
   // This original Client never reconnects or reuses another Call's session.
   // Do not register unused resumption tickets in Undici's session cache. Its
   // empty cache/registry, listener and TLS/native lifetimes still need funding.
-  const connector = buildConnector({allowH2: false, maxCachedSessions: 0});
   let connecting = false;
   let socket;
   let socketClosed;
   let connectorFinished;
+  let retireAcquisition;
+  // The selected Node listener writes into one dedicated buffer fixed during
+  // this original preparation, never a new backing chosen after acquisition.
+  // Its extent and all controls must be covered by the existing Model envelope
+  // BEFORE entering this function. This selection does not issue that loan.
+  let nativeInput = Buffer.allocUnsafeSlow(Math.min(limits.maxChunkBytes,
+    original.acquisition.maxBorrowedBackingBytes));
+  const inputExtent = nativeInput.byteLength;
+  const acquisition = {reads: 0, backingBytes: inputExtent,
+    backings: new WeakSet([nativeInput.buffer]), refused: false};
+  let emittedBytes = 0, socketPush;
+  const onread = {
+    buffer: nativeInput,
+    callback(length, buffer) {
+      if (acquisition.refused || socket?.destroyed) return false;
+      let code;
+      if (this !== socket || buffer !== nativeInput ||
+          !Number.isSafeInteger(length) || length <= 0 || length > inputExtent) {
+        code = 'UndiciOriginalAcquisitionShapeRefused';
+      } else if (acquisition.reads >= original.acquisition.maxReads) {
+        code = 'UndiciOriginalAcquisitionReadsExceeded';
+      } else if (length > original.acquisition.maxPlaintextBytes - emittedBytes) {
+        code = 'UndiciOriginalAcquisitionPlaintextExceeded';
+      } else if (length > original.acquisition.maxBorrowedBackingBytes - acquisition.backingBytes) {
+        code = 'UndiciOriginalAcquisitionBackingExceeded';
+      }
+      if (code !== undefined) {
+        acquisition.refused = true;
+        socket?.destroy(issue(code));
+        return false;
+      }
+      // Reserve from these fixed declaration bounds before allocating a copy.
+      // They are not capacity receipts. Native reuse must never overwrite an
+      // escaped parser/body view, so only an exact dedicated copy is queued.
+      emittedBytes += length;
+      // Native deliveries and parser probes share one finite original read
+      // ceiling; neither stage can create an unbounded set of controls.
+      acquisition.reads++;
+      try {
+        const copy = Buffer.allocUnsafeSlow(length);
+        acquisition.backings.add(copy.buffer);
+        acquisition.backingBytes += copy.buffer.byteLength;
+        nativeInput.copy(copy, 0, 0, length);
+        return Reflect.apply(socketPush, socket, [copy]);
+      } catch (error) {
+        acquisition.refused = true;
+        socket.destroy(error);
+        return false;
+      }
+    },
+  };
+  // No buffer generator, ambient dispatcher or independent stream owner.
+  // Node CustomBufferJSListener reuses this exact input backing for TCP/TLS;
+  // SSL/BIO/handshake native and queued/copy controls remain explicit holdings.
+  const connector = buildConnector({allowH2: false, maxCachedSessions: 0, onread});
   const connect = (options, callback) => {
     if (connecting) { callback(issue('UndiciOriginalReconnectRefused')); return; }
     connecting = true;
     let finish;
     connectorFinished = new Promise(resolve => { finish = resolve; });
     socket = connector(options, (error, connected) => {
-      try { callback(error, connected); } finally { finish(true); }
+      try {
+        if (connected !== undefined && retireAcquisition === undefined) {
+          try { retireAcquisition = bindAcquisitionRead(connected, original.acquisition, acquisition); }
+          catch (refusal) {
+            connected.destroy(refusal);
+            callback(refusal, null);
+            return;
+          }
+        }
+        callback(error, connected);
+      } finally { finish(true); }
     });
     socketClosed = socket.closed ? Promise.resolve(true)
       : new Promise(resolve => socket.once('close', () => resolve(true)));
+    socketPush = socket.push;
     return socket;
   };
-  const client = new Client(original.origin, {allowH2: false, pipelining: 0, connect,
+  let client = new Client(original.origin, {allowH2: false, pipelining: 0, connect,
     maxHeaderSize: limits.maxHeaderBytes, maxResponseSize: limits.maxBytes});
   const request = Object.freeze({path: original.path, method: 'POST',
     headers: Object.freeze(headers), body: init.body, signal: init.signal,
@@ -139,6 +284,18 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
       if (connectorFinished !== undefined && await connectorFinished !== true) return false;
       if (socketClosed !== undefined && await socketClosed !== true) return false;
       if (bodyClosed !== undefined && await bodyClosed !== true) return false;
+      retireAcquisition?.();
+      retireAcquisition = undefined;
+      acquisition.refused = true;
+      acquisition.backings = undefined;
+      // Drop our own aliases only after physical closure. Escaped body/raw
+      // borrowers can still retain the Socket's input buffer: Model/SDK/Store
+      // holding settlement, not this IO ACK, decides their byte retirement.
+      client = undefined;
+      socketPush = undefined;
+      onread.buffer = undefined;
+      onread.callback = undefined;
+      nativeInput = undefined;
       retired = true;
       socket = undefined;
       socketClosed = undefined;
