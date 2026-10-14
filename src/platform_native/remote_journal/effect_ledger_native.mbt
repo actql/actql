@@ -44,6 +44,9 @@ pub fn Journal::claim_effect_ledger_dispatch(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let prepared = match
     @effect.issue_prepared_effect_ledger_entry(
       basis,
@@ -248,6 +251,9 @@ pub fn Journal::record_effect_ledger_response(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let use_cid = response.credential_use_cid
   if !effect_response_cid_valid(use_cid) ||
     response.status_code < 100 ||
@@ -341,6 +347,9 @@ pub fn Journal::effect_ledger_response(
 ) -> Result[NativeEffectSavedResponse?, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   (fn() -> Result[NativeEffectSavedResponse?, NativeRemoteJournalIssue] raise EffectLedgerStorageFailure {
     ledger_storage(self.require(request)) |> ignore

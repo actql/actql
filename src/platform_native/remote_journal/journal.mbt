@@ -2,6 +2,7 @@
 pub(all) enum NativeRemoteJournalIssue {
   UnsupportedTarget
   Closed
+  CleanupPending
   Physical(@sqlite.NativeSqliteIssue)
   Protocol(@remote.DispatchIssue)
   StaleSiteBinding
@@ -130,4 +131,12 @@ pub fn recovered_site_dispatch_file_custody(
   recovered : RecoveredSiteDispatch,
 ) -> NativeOutputFileCustody? {
   recovered.file_custody
+}
+
+///|
+/// The existing Site binding and SQLite Owner remain authoritative. Failure
+/// after physical entry retains the same rejected or initialized Database.
+pub(all) enum NativeRemoteJournalOpenError {
+  RefusedBeforeAcquisition(NativeRemoteJournalIssue)
+  CleanupRequired(NativeRemoteJournalOpenFailure)
 }

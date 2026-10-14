@@ -57,6 +57,8 @@ pub fn open_coordinator_journal(@sqlite.Library, String, Int64, @remote_site_pro
 
 pub fn open_journal(@sqlite.Library, String, Int64, @remote_site_protocol.SiteDispatchJournal) -> Result[Journal, NativeRemoteJournalIssue]
 
+pub fn open_journal_with_custody(@sqlite.Library, String, Int64, @remote_site_protocol.SiteDispatchJournal) -> Result[Journal, NativeRemoteJournalOpenError]
+
 pub fn prepare_native_output_file_custody(@remote_site_protocol.DispatchRequest, String, @filesystem.NativeFileGeneration, String, String, @physical_manifest.PhysicalManifest) -> Result[NativeOutputFileCustody, NativeRemoteJournalIssue]
 
 pub fn recovered_coordinator_dispatch_evidence(RecoveredCoordinatorDispatch) -> @remote_site_protocol.RemoteExecutionEvidence?
@@ -91,6 +93,7 @@ pub fn CoordinatorInitializationCleanup::retry(Self) -> Result[Unit, NativeRemot
 type CoordinatorJournal
 pub fn CoordinatorJournal::accept(Self, @remote_site_protocol.DispatchRequest) -> Result[(@remote_site_protocol.DispatchAcceptance, @remote_site_protocol.CoordinatorDispatchIntentRecord), NativeRemoteJournalIssue]
 pub fn CoordinatorJournal::close(Self) -> Bool
+pub fn CoordinatorJournal::close_checked(Self) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn CoordinatorJournal::commit_transition(Self, @remote_site_protocol.CoordinatorDispatchTransition, evidence? : @remote_site_protocol.RemoteExecutionEvidence?, subject? : @remote_site_protocol.RemoteManagedOutputSubject?, measurement? : @remote_site_protocol.RemoteManagedOutputMeasurement?) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn CoordinatorJournal::recover_after(Self, String) -> Result[RecoveredCoordinatorDispatch?, NativeRemoteJournalIssue]
 pub fn CoordinatorJournal::require(Self, @remote_site_protocol.DispatchRequest) -> Result[@remote_site_protocol.CoordinatorDispatchIntentRecord, NativeRemoteJournalIssue]
@@ -105,6 +108,7 @@ pub fn Journal::claim_initial_catalog_use(Self, @remote_site_protocol.DispatchRe
 pub fn Journal::claim_start(Self, @remote_site_protocol.DispatchTransition, String) -> Result[NativeRemoteStartClaim, NativeRemoteJournalIssue]
 pub fn Journal::cleanup_initial_catalog_use(Self, NativeInitialCatalogUseCustody) -> Result[Unit, NativeInitialCatalogUseIssue]
 pub fn Journal::close(Self) -> Bool
+pub fn Journal::close_checked(Self) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::commit_evidence_transition(Self, @remote_site_protocol.DispatchTransition, @remote_site_protocol.RemoteExecutionEvidence, @remote_site_protocol.RemoteManagedOutputSubject, @remote_site_protocol.RemoteManagedOutputMeasurement, source_observation? : @remote_site_protocol.RemoteSourceObservation?, file_custody? : NativeOutputFileCustody?) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::commit_transition(Self, @remote_site_protocol.DispatchTransition) -> Result[Unit, NativeRemoteJournalIssue]
 pub fn Journal::complete_output_intent(Self, String) -> Result[Unit, NativeRemoteJournalIssue]
@@ -178,6 +182,7 @@ type NativeOutputFileCustody
 pub(all) enum NativeRemoteJournalIssue {
   UnsupportedTarget
   Closed
+  CleanupPending
   Physical(@sqlite.NativeSqliteIssue)
   Protocol(@remote_site_protocol.DispatchIssue)
   StaleSiteBinding
@@ -185,6 +190,15 @@ pub(all) enum NativeRemoteJournalIssue {
   StateCollision
   InitializationCleanupPending(NativeRemoteJournalIssue?, NativeRemoteJournalIssue, CoordinatorInitializationCleanup)
 }
+
+pub(all) enum NativeRemoteJournalOpenError {
+  RefusedBeforeAcquisition(NativeRemoteJournalIssue)
+  CleanupRequired(NativeRemoteJournalOpenFailure)
+}
+
+type NativeRemoteJournalOpenFailure
+pub fn NativeRemoteJournalOpenFailure::issue(Self) -> NativeRemoteJournalIssue
+pub fn NativeRemoteJournalOpenFailure::retry_cleanup(Self) -> Result[Unit, NativeRemoteJournalIssue]
 
 pub(all) enum NativeRemoteStartClaim {
   Won
