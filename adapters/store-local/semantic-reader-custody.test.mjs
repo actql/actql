@@ -29,7 +29,7 @@ async function fixture(t, {closeFailures = 0, primary, pause = false, falseClose
   await probe.close();
   const entered = Promise.withResolvers(), proceed = Promise.withResolvers();
   if (!pause) proceed.resolve();
-  let original, nativeClose, attempts = 0, stats = 0, streams = 0;
+  let original, nativeClose, attempts = 0, stats = 0, streams = 0, streamCloses = 0;
   let allowClose = false, caught, passed = false;
   const closeFailure = Object.assign(new Error('OriginalSemanticClosePending'), {code: 'EIO'});
   prototype.stat = function(...args) {
@@ -42,6 +42,13 @@ async function fixture(t, {closeFailures = 0, primary, pause = false, falseClose
         return Reflect.apply(stream, this, [options]);
       };
       this.close = function(...closeArgs) {
+        // Node FileHandle's close event invokes ReadStream.close, whose
+        // FileHandleOperations.close calls the same handle.close again. That
+        // runtime notification is not a second product cleanup request.
+        if (new Error().stack.split('\n')[2]?.includes('node:internal/fs/streams:')) {
+          streamCloses++;
+          return Reflect.apply(nativeClose, this, closeArgs);
+        }
         attempts++;
         if (!allowClose && attempts <= closeFailures) {
           return falseClose ? Promise.resolve(false) : Promise.reject(closeFailure);
@@ -70,6 +77,7 @@ async function fixture(t, {closeFailures = 0, primary, pause = false, falseClose
   });
   return {store, contract, path, originalBytes, closeFailure, entered, proceed,
     counts: () => ({attempts, stats, streams}), fd: () => original?.fd,
+    streamCloses: () => streamCloses,
     async read() {
       try { return await store.readPublicationContract(stored.semanticCid, 'run_invocation'); }
       catch (error) { caught = error; throw error; }
@@ -96,6 +104,7 @@ test('semantic FD close failure blocks Store release until the same close-only r
   assert.equal(cleanup.status().pending, false);
   assert.equal(f.fd(), -1);
   assert.deepEqual(f.counts(), {...before, attempts: 3});
+  assert.equal(f.streamCloses(), 1, 'one original ReadStream receives its native close notification');
   await cleanup.retry();
   assert.equal(f.counts().attempts, 3, 'confirmed physical close is not repeated');
   assert.deepEqual(await readFile(f.path), f.originalBytes);
