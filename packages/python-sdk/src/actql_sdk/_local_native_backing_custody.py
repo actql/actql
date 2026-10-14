@@ -5,6 +5,8 @@ control assembly. No loader, raw lease transfer, provider close or Run Owner.
 """
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from ctypes import POINTER, byref, c_int, c_int32, c_void_p
 from typing import Any, NoReturn
 
@@ -33,7 +35,9 @@ class _OriginalBackingFunctions:
         self.borrow.restype = c_int
         self.current = library.actql_backing_current_into
         self.return_loan = library.actql_backing_return_into
-        for call in (self.current, self.return_loan):
+        self.enter_scope = library.actql_backing_enter_scope_into
+        self.leave_scope = library.actql_backing_leave_scope_into
+        for call in (self.current, self.return_loan, self.enter_scope, self.leave_scope):
             call.argtypes = [c_void_p, c_void_p, POINTER(c_void_p)]
             call.restype = c_int
         self.originals = library.actql_backing_originals_into
@@ -206,3 +210,42 @@ class _OriginalBackingCustody:
             raise self._mark_unknown() from error
         finally:
             self._owner._busy = False
+
+    def _change_physical_scope(self, operation: int) -> None:
+        if type(operation) is not int or operation not in (4, 5):
+            raise ValueError('Invalid original physical scope operation')
+        self._enter()
+        if self._closed or self._loan.value is None:
+            self._owner._busy = False
+            raise ValueError('Original backing loan is retired')
+        known: _OriginalBackingError | None = None
+        try:
+            self._drop()
+            call = self._functions.enter_scope if operation == 4 else self._functions.leave_scope
+            self._status(call(self._host, self._loan, byref(self._reply)))
+            fact = self._fact(operation)
+            self._drop()
+            if fact.issue_family != 0:
+                known = _OriginalBackingError(self, unknown=False, fact=fact)
+                raise known
+        except BaseException as error:
+            if error is self._unknown or error is known:
+                raise
+            raise self._mark_unknown() from error
+        finally:
+            self._owner._busy = False
+
+    @contextmanager
+    def _physical_scope(self) -> Iterator[None]:
+        """Same provider use only; Core, not Python counters, owns its depth."""
+        self._change_physical_scope(4)
+        try:
+            yield
+        except BaseException as primary:
+            try:
+                self._change_physical_scope(5)
+            except BaseException as cleanup:
+                raise cleanup from primary
+            raise
+        else:
+            self._change_physical_scope(5)

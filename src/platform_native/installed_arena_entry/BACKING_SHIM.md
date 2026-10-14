@@ -69,3 +69,16 @@ physical conformance must link this exact shim/header to that actual generated C
 and the single existing provider, inspect dependencies, and verify original
 RC/loan/close behavior. Python binding and installed-product integration follow;
 100M fuel, 12Mi transfer, 16Mi VM and unknown bootstrap domains are unchanged.
+# Same-provider physical scopes
+
+The trusted runtime caller enters and leaves the existing allocator through its
+same nominal backing loan. Core checks the original Host/loan before calling
+the one provider's TLS scope. A failed physical enter does not consume a scope;
+a failed leave retains the original use count. Nested successful enters require
+the same number of successful leaves. A live scope refuses logical loan return.
+Closing refuses new entry but preserves same-loan leave and cleanup return.
+
+Python carries typed enter/leave replies and retains Unknown on lost responses.
+It creates no allocator counter, raw lease transfer, VM grant or second provider.
+These ports are required before the selected runtime can use that backing; they
+do not themselves complete worker funding or the installed product factory.

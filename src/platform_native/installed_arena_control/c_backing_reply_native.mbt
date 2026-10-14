@@ -4,6 +4,8 @@ pub(all) enum InstalledArenaBackingOperation {
   BorrowBacking
   ObserveBacking
   ReturnBacking
+  EnterBackingScope
+  LeaveBackingScope
 } derive(Eq)
 
 ///|
@@ -78,6 +80,30 @@ pub fn return_installed_arena_backing_reply(
 }
 
 ///|
+pub fn enter_installed_arena_backing_scope_reply(
+  original : InstalledArenaHost,
+  borrow : InstalledArenaBackingBorrow,
+) -> InstalledArenaBackingReply {
+  backing_unit_reply(
+    EnterBackingScope,
+    borrow,
+    original.enter_backing_borrow_scope(borrow),
+  )
+}
+
+///|
+pub fn leave_installed_arena_backing_scope_reply(
+  original : InstalledArenaHost,
+  borrow : InstalledArenaBackingBorrow,
+) -> InstalledArenaBackingReply {
+  backing_unit_reply(
+    LeaveBackingScope,
+    borrow,
+    original.leave_backing_borrow_scope(borrow),
+  )
+}
+
+///|
 /// Typed accessors only; C must not read generated struct or option fields.
 pub fn InstalledArenaBackingReply::original_host(
   self : InstalledArenaBackingReply,
@@ -100,6 +126,8 @@ pub fn InstalledArenaBackingReply::operation_tag(
     BorrowBacking => 1
     ObserveBacking => 2
     ReturnBacking => 3
+    EnterBackingScope => 4
+    LeaveBackingScope => 5
   }
 }
 

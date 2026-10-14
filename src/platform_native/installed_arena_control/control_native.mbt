@@ -185,6 +185,33 @@ pub fn InstalledArenaHost::require_backing_borrow_current(
 }
 
 ///|
+pub fn InstalledArenaHost::enter_backing_borrow_scope(
+  self : InstalledArenaHost,
+  borrow : InstalledArenaBackingBorrow,
+) -> Result[Unit, @bootstrap.NativeBootstrapIssue] {
+  if !physical_equal(borrow.host, self) {
+    return Err(@bootstrap.ForeignOriginal)
+  }
+  let backing = match self.original_backing() {
+    Err(issue) => return Err(issue)
+    Ok(backing) => backing
+  }
+  backing.enter_borrow_scope(self, borrow.original)
+}
+
+///|
+pub fn InstalledArenaHost::leave_backing_borrow_scope(
+  self : InstalledArenaHost,
+  borrow : InstalledArenaBackingBorrow,
+) -> Result[Unit, @bootstrap.NativeBootstrapIssue] {
+  if !physical_equal(borrow.host, self) {
+    return Err(@bootstrap.ForeignOriginal)
+  }
+  guard self.backing is Some(backing) else { return Err(@bootstrap.Closing) }
+  backing.leave_borrow_scope(self, borrow.original)
+}
+
+///|
 /// The same physical borrower must have stopped. Closing permits this original
 /// return but no new borrow/current execution, transfer or cleanup inference.
 pub fn InstalledArenaHost::return_backing_borrow(

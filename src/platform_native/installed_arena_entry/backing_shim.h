@@ -25,6 +25,9 @@ void actql_native_control_register_backing_roots(
     actql_backing_loan_fn, actql_backing_tag_fn,
     actql_backing_tag_fn, actql_backing_description_fn);
 
+void actql_native_control_register_backing_scope_roots(
+    actql_backing_operation_fn, actql_backing_operation_fn);
+
 /* Empty persistent slots only. Call status is transport availability, never
  * the Owner's operation outcome. The typed reply remains owned on refusal. */
 int actql_backing_borrow_into(actql_control_host *, actql_backing_reply **);
@@ -32,6 +35,8 @@ int actql_backing_current_into(actql_control_host *, actql_backing_loan *, actql
 /* The trusted physical caller invokes return only after the same use stops.
  * No process stop, Host close, Run cancel or Store ACK is inferred here. */
 int actql_backing_return_into(actql_control_host *, actql_backing_loan *, actql_backing_reply **);
+int actql_backing_enter_scope_into(actql_control_host *, actql_backing_loan *, actql_backing_reply **);
+int actql_backing_leave_scope_into(actql_control_host *, actql_backing_loan *, actql_backing_reply **);
 int actql_backing_originals_into(actql_backing_reply *, actql_control_host **, actql_backing_loan **);
 int32_t actql_backing_operation(actql_backing_reply *);
 int32_t actql_backing_issue_family(actql_backing_reply *);
