@@ -31,8 +31,9 @@ pub fn admit_client_effect_review_checkpoint_binding(
     Ok(value) => value
     Err(issue) => return Err(Checkpoint(issue))
   }
-  validate_client_effect_review_checkpoint_subject(allowed, definition, artifact)
-  .map(_ => artifact)
+  validate_client_effect_review_checkpoint_subject(
+    allowed, definition, artifact,
+  ).map(_ => artifact)
 }
 
 ///|

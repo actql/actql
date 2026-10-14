@@ -10,7 +10,12 @@ fn checkpoint_nonfirst_unit_fixture() -> (
     #|{"version":"actql/0.1","id":"signing-second-unit","stages":[{"id":"producer","inputs":{},"steps":[{"values":{"schema":{"value":{"type":"number","nullable":false}},"rows":[{"value":1}]},"as":"seed"}],"results":{"rows":{"from":"seed","fields":["value"]}}},{"id":"apply","inputs":{"input":{"result":{"stage":"producer","result":"rows"}}},"steps":[{"filter":"value >= 1","as":"selected"}],"results":{"out":{"from":"selected","fields":["value"]}},"effects":{"save":{"create":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"out"}}}}}],"results":{"published":{"from":{"stage":"apply","result":"out"}}}}
   let (_, environment, effect_limits) = client_composed_effect_base_fixture()
   let prepared = prepare_client_effect_computation(
-    document, Json, environment, None, [], effect_limits,
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    effect_limits,
   ).unwrap()
   let limits = run_materials_limits()
   let compilation = issue_prepared_client_effect_compilation(
@@ -30,14 +35,14 @@ fn checkpoint_nonfirst_unit_fixture() -> (
     "2026-10-10T00:00:00.000Z",
   ).unwrap()
   let definition = issue_client_effect_run_definition(
-    allowed, "scope", "original-second-unit-run",
-    "2026-10-09T00:00:00.000Z", "2026-10-10T00:00:00.000Z",
+    allowed, "scope", "original-second-unit-run", "2026-10-09T00:00:00.000Z", "2026-10-10T00:00:00.000Z",
   ).unwrap()
   let body : @checkpoint.CheckpointRequest = {
     checkpoint_id: "original-second-unit-review",
     continuation_state_cid: "sha256:" + "1".repeat(64),
     subject: @checkpoint.RunUnit(
-      run_id="original-second-unit-run", unit_id="apply",
+      run_id="original-second-unit-run",
+      unit_id="apply",
       run_definition_cid=@publication.publication_contract_identity(definition),
     ),
     phase: @checkpoint.Commit,
@@ -57,7 +62,9 @@ fn checkpoint_nonfirst_unit_fixture() -> (
 test "Checkpoint signing unit uses the explicit second original unit rather than the first" {
   let (allowed, definition, body) = checkpoint_nonfirst_unit_fixture()
   let artifact = @checkpoint.seal_checkpoint(body, {
-    max_wire_bytes: 65536, max_nodes: 4096, max_depth: 64,
+    max_wire_bytes: 65536,
+    max_nodes: 4096,
+    max_depth: 64,
   }).unwrap()
   let original = @checked.effect_program_static_checked_computation(
     prepared_client_effect_computation_candidate(allowed.compilation.owner),
@@ -80,16 +87,23 @@ test "Checkpoint signing unit uses the explicit second original unit rather than
 ///|
 test "Checkpoint signing unit refuses the real producer coordinate without first-unit fallback" {
   let (allowed, definition, body) = checkpoint_nonfirst_unit_fixture()
-  let artifact = @checkpoint.seal_checkpoint({
-    ..body,
-    subject: @checkpoint.RunUnit(
-      run_id="original-second-unit-run", unit_id="producer",
-      run_definition_cid=@publication.publication_contract_identity(definition),
-    ),
-  }, { max_wire_bytes: 65536, max_nodes: 4096, max_depth: 64, }).unwrap()
+  let artifact = @checkpoint.seal_checkpoint(
+    {
+      ..body,
+      subject: @checkpoint.RunUnit(
+        run_id="original-second-unit-run",
+        unit_id="producer",
+        run_definition_cid=@publication.publication_contract_identity(
+          definition,
+        ),
+      ),
+    },
+    { max_wire_bytes: 65536, max_nodes: 4096, max_depth: 64, },
+  ).unwrap()
   assert_true(
     client_effect_review_checkpoint_unit_definition_cid(
       allowed, definition, artifact,
-    ) is Err(ForeignSubject),
+    )
+    is Err(ForeignSubject),
   )
 }

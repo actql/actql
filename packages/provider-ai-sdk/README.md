@@ -231,6 +231,19 @@ startup funding, original Store ACK, public capability or a live Jev Result.
 Formal packaging, external consumer, public Local/HTTPS, real model acceptance,
 four parallel calls, Decision and Cloud are unfinished M0–M5 work.
 
+The private native Host assembler now consumes the existing exclusive async
+registration shape and starts Common's bounded original Decision projection
+lazily. It keeps the emitted original request through the SDK/raw/Model decode
+lifetimes. Only the outer Model preflight cleanup, after the physical-call/raw
+child cleanup ordering, retires that separate view; inner SDK cleanup alone does
+not. Projection/emitter/view retirement failure keeps the same responsibility
+for retry without another child, Entry or SDK request. Missing original profile,
+probability, runtime or raw context refuses before preparation. This assembler
+is not a package export or an accepted native physical installation. Generation
+and the existing generic/native SDK mode remain unchanged. The extra outer
+cursor, borrowed view, inner cursor, callbacks and selected policy/SDK overlaps
+still require the original complete funding; codec limits are not that funding.
+
 ### Private native Decision request projection
 
 The Common `start_native_decision_projection` child projects an original

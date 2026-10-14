@@ -110,3 +110,30 @@ export function selectedPlatformPlacement(launcherRoot, platformRoot, platform) 
   assert.equal(platformRoot, join(launcherRoot, 'node_modules', '@actql', child));
   return {layout: 'nested', route: ['node_modules', '@actql', child]};
 }
+
+// Closed expected membership for the selected installed pair only. No file is
+// opened and no OriginalRoot/witness is constructed. In the nested layout the
+// dependency route is checked separately from the platform payload Root; it is
+// not an exemption for arbitrary node_modules content or another package.
+export function installedProductCensus(launcher, platform, launcherRoot, platformRoot) {
+  const launcherValue = JSON.parse(productMembersBody(launcher));
+  const platformValue = JSON.parse(productMembersBody(platform));
+  assert.equal(launcherValue.packageName, 'actql');
+  assert.equal(platformValue.packageName, `@actql/cli-${launcherValue.platform}`);
+  assert.equal(platformValue.platform, launcherValue.platform);
+  assert.equal(platformValue.sourceSha, launcherValue.sourceSha);
+  const placement = selectedPlatformPlacement(launcherRoot, platformRoot, launcherValue.platform);
+  const directories = productMembersCensus(launcherValue);
+  if (placement.layout === 'nested') {
+    const entries = directories[0].entries;
+    assert(!entries.some(entry => entry.name === 'node_modules'),
+      'Dependency placement cannot replace a declared payload member');
+    entries.push({name: 'node_modules', kind: 'directory'});
+    entries.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+    directories.push({path: 'node_modules', entries: [{name: '@actql', kind: 'directory'}]},
+      {path: 'node_modules/@actql', entries: [{name: `cli-${launcherValue.platform}`, kind: 'directory'}]});
+  }
+  return {layout: placement.layout,
+    launcher: {root: launcherRoot, directories},
+    platform: {root: platformRoot, directories: productMembersCensus(platformValue)}};
+}

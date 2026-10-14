@@ -265,7 +265,11 @@ static bool actql_census_frame_valid(
     const char *name = (const char *)(frame + offset + 1);
     const unsigned char *end = memchr(frame + offset + 1, 0,
       (size_t)(length - offset - 1));
-    if (end == NULL || !actql_valid_name(name, (size_t)(end - (frame + offset + 1))) ||
+    if (end == NULL) return false;
+    size_t name_length = (size_t)(end - (frame + offset + 1));
+    bool selected_scope_directory = frame[offset] == 'd' &&
+      name_length == 6 && memcmp(name, "@actql", 6) == 0;
+    if ((!actql_valid_name(name, name_length) && !selected_scope_directory) ||
         (previous != NULL && strcmp(previous, name) >= 0)) return false;
     previous = name;
     offset = (int32_t)(end - frame) + 1;

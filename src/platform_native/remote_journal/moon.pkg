@@ -57,6 +57,7 @@ options(
     "output_reports_native.mbt": [ "native" ],
     "output_reports_unsupported.mbt": [ "not", "native" ],
     "journal_native_wbtest.mbt": [ "native" ],
+    "open_close_custody_native_wbtest.mbt": [ "native" ],
     "output_reports_native_wbtest.mbt": [ "native" ],
     "output_reports_unsupported_wbtest.mbt": [ "not", "native" ],
     "journal_unsupported.mbt": [ "not", "native" ],

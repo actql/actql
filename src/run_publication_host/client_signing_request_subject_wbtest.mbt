@@ -23,7 +23,10 @@ test "Local signing request fields select original fingerprint and logical scope
   let scope = "sha256:4d08ebef01bc0df2fb984f06e1778fb88a13ea79ff8611c88911d9211c23ac6d"
   let intent = "sha256:a8a1fc7e0a89847817252aa407df0fae423e22cc079a8f6bd7f9a4197abf26ee"
   let original = signing_request_subject_fixture(
-    "caller-a", "sha256:" + "3".repeat(64), scope, intent,
+    "caller-a",
+    "sha256:" + "3".repeat(64),
+    scope,
+    intent,
   )
   assert_eq(client_request_intent_cid(original), intent)
   assert_eq(client_request_scope_cid(original), scope)
@@ -35,12 +38,16 @@ test "Local signing request fields select original fingerprint and logical scope
 test "equal signing intent in another logical scope remains a different original request" {
   let intent = "sha256:a8a1fc7e0a89847817252aa407df0fae423e22cc079a8f6bd7f9a4197abf26ee"
   let a = signing_request_subject_fixture(
-    "caller-a", "sha256:" + "3".repeat(64),
-    "sha256:4d08ebef01bc0df2fb984f06e1778fb88a13ea79ff8611c88911d9211c23ac6d", intent,
+    "caller-a",
+    "sha256:" + "3".repeat(64),
+    "sha256:4d08ebef01bc0df2fb984f06e1778fb88a13ea79ff8611c88911d9211c23ac6d",
+    intent,
   )
   let b = signing_request_subject_fixture(
-    "caller-b", "sha256:" + "3".repeat(64),
-    "sha256:2b0ea5ceefadf11edabee798eac47082bffd6370f31f2d1a9a1d41a7641e3cf8", intent,
+    "caller-b",
+    "sha256:" + "3".repeat(64),
+    "sha256:2b0ea5ceefadf11edabee798eac47082bffd6370f31f2d1a9a1d41a7641e3cf8",
+    intent,
   )
   assert_eq(client_request_intent_cid(a), client_request_intent_cid(b))
   assert_true(client_request_scope_cid(a) != client_request_scope_cid(b))
@@ -51,11 +58,15 @@ test "equal signing intent in another logical scope remains a different original
 test "changed signing intent under the same logical scope remains a conflict" {
   let scope = "sha256:4d08ebef01bc0df2fb984f06e1778fb88a13ea79ff8611c88911d9211c23ac6d"
   let a = signing_request_subject_fixture(
-    "caller-a", "sha256:" + "3".repeat(64), scope,
+    "caller-a",
+    "sha256:" + "3".repeat(64),
+    scope,
     "sha256:a8a1fc7e0a89847817252aa407df0fae423e22cc079a8f6bd7f9a4197abf26ee",
   )
   let b = signing_request_subject_fixture(
-    "caller-a", "sha256:" + "5".repeat(64), scope,
+    "caller-a",
+    "sha256:" + "5".repeat(64),
+    scope,
     "sha256:274ab3f8fc8006c7d2e54dcd29702da5814dfdfc588ac30c158fa7e1c34d35ff",
   )
   assert_eq(client_request_scope_cid(a), client_request_scope_cid(b))
