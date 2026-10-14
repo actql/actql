@@ -1326,21 +1326,27 @@ export async function openLocalPublicationStore(
 
   const verifyObject = async cid => {
     const path = objectPath(cid);
-    let state;
-    try { state = await lstat(path); }
-    catch (error) {
-      if (error?.code === 'ENOENT') fail('PublicationObjectMissing');
-      throw error;
-    }
-    if (!state.isFile() || !quantity(state.size) ||
-        state.size > configuration.maxObjectBytes) {
-      fail('InvalidPublicationStoreObject');
-    }
-    const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW |
-      constants.O_NONBLOCK);
-    const hash = createHash('sha256');
-    let bytes = 0;
+    active();
+    // Borrow the same Store's existing private reader-duty collection. The
+    // verifier owns its FD independently of an enclosing semantic/Result read.
+    const reader = {cleanup: undefined, failure: undefined};
+    activeSemanticReaders.add(reader);
+    let handle, readFailure, readFailed = false;
     try {
+      let state;
+      try { state = await lstat(path); }
+      catch (error) {
+        if (error?.code === 'ENOENT') fail('PublicationObjectMissing');
+        throw error;
+      }
+      if (!state.isFile() || !quantity(state.size) ||
+          state.size > configuration.maxObjectBytes) {
+        fail('InvalidPublicationStoreObject');
+      }
+      handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW |
+        constants.O_NONBLOCK);
+      const hash = createHash('sha256');
+      let bytes = 0;
       const before = await handle.stat();
       if (!before.isFile() || !quantity(before.size) ||
           before.size > configuration.maxObjectBytes ||
@@ -1372,8 +1378,59 @@ export async function openLocalPublicationStore(
         fail('PublicationObjectCorrupt');
       }
       return Object.freeze({cid, bytes});
+    } catch (error) {
+      readFailure = error;
+      readFailed = true;
+      throw error;
     } finally {
-      await handle.close();
+      if (handle === undefined) {
+        activeSemanticReaders.delete(reader); // No original FD was acquired.
+      } else {
+        try {
+          if (await handle.close() === false) fail('PublicationStoreCleanupPending');
+          activeSemanticReaders.delete(reader);
+        } catch (closeFailure) {
+          // Keep the original FD/primary inside this Store before decorating
+          // an outward failure. Retry only close; never verify or open again.
+          let original = handle, flight;
+          const status = () => Object.freeze({pending: original !== undefined});
+          const cleanup = Object.freeze({status, retry() {
+            if (flight !== undefined) return flight;
+            if (original === undefined) return Promise.resolve(status());
+            flight = Promise.resolve().then(async () => {
+              if (await original.close() === false) fail('PublicationStoreCleanupPending');
+              original = undefined;
+              activeSemanticReaders.delete(reader);
+              reader.cleanup = reader.failure = undefined;
+              return status();
+            }).finally(() => { flight = undefined; });
+            return flight;
+          }});
+          const primary = readFailed ? readFailure : closeFailure;
+          reader.cleanup = cleanup;
+          reader.failure = primary;
+          let failure;
+          try {
+            failure = primary !== null && typeof primary === 'object' &&
+              Object.isExtensible(primary) && primary.cleanupHandle === undefined &&
+              ['cleanupHandle', 'cleanupPending', 'cleanupError'].every(name => {
+                const field = Object.getOwnPropertyDescriptor(primary, name);
+                return field === undefined || field.writable === true;
+              })
+              ? primary : new Error('PublicationStoreCleanupPending', {cause: primary});
+            failure.cleanupHandle = cleanup;
+            failure.cleanupPending = true;
+            failure.cleanupError = closeFailure;
+          } catch {
+            failure = new Error('PublicationStoreCleanupPending', {cause: primary});
+            failure.cleanupHandle = cleanup;
+            failure.cleanupPending = true;
+            failure.cleanupError = closeFailure;
+          }
+          reader.failure = failure;
+          throw failure;
+        }
+      }
     }
   };
 
