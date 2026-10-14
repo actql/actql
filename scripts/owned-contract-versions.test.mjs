@@ -40,6 +40,32 @@ test('legacy inventory cannot authorize another file, context or duplicate', () 
     inventory).length, 1);
 });
 
+test('reviewed local verification pool admits only its exact script context once', () => {
+  const path = 'scripts/local-checks-guard.mjs';
+  const text = readFileSync(new URL('../' + path, import.meta.url), 'utf8');
+  const inventory = JSON.parse(readFileSync(new URL('./owned-contract-version-legacy.json', import.meta.url)));
+  const token = 'actql-local-heavy-pool/' + String(1);
+  const found = occurrences(text, path).filter(entry => entry.token === token);
+  assert.equal(found.length, 1);
+  const entries = inventory.entries.filter(entry => entry.token === token);
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].path, path);
+  assert.equal(entries[0].count, 1);
+  assert.equal(found[0].contextSha256, '82409bf7b4f8ca3f6653717eff83ab78dddb0c4a61b64114952296cbcdd6b60b');
+  assert.deepEqual(violations(found, inventory), []);
+  assert.equal(violations(occurrences(text, 'scripts/other-guard.mjs'), inventory).length, 1);
+  assert.equal(violations(occurrences(text.replace('const poolVersion =', 'const changedPoolVersion ='), path),
+    inventory).length, 1);
+  const offset = text.indexOf(token);
+  const context = text.slice(offset - 80, offset + token.length + 80);
+  const duplicated = occurrences(context + '\n'.repeat(160) + context, path);
+  assert.equal(duplicated.length, 2);
+  assert(duplicated.every(entry => entry.contextSha256 === found[0].contextSha256));
+  assert.equal(violations(duplicated, inventory).length, 1);
+  assert.equal(violations(occurrences(text.replace(token, 'actql-local-heavy-pool/' + String(2)), path),
+    inventory).length, 1);
+});
+
 test('repository scan catches a real tracked mutation and a new untracked writer', t => {
   const scratch = join(process.cwd(), '_build', 'version-gate-tests');
   mkdirSync(scratch, {recursive: true});
