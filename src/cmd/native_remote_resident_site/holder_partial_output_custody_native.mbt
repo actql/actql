@@ -27,13 +27,20 @@ priv enum HolderOutputSetupFailure {
 ///|
 fn new_holder_partial_output_resources() -> HolderPartialOutputResources {
   {
-    retained_root: None, failed_root: None,
-    control: None, control_library: None,
-    transfer: None, transfer_library: None,
-    failed_http_library: None, failed_http_client: None,
-    store: None, failed_store: None,
-    transfer_journal: None, failed_transfer_journal: None,
-    control_logical_close: None, transfer_logical_close: None,
+    retained_root: None,
+    failed_root: None,
+    control: None,
+    control_library: None,
+    transfer: None,
+    transfer_library: None,
+    failed_http_library: None,
+    failed_http_client: None,
+    store: None,
+    failed_store: None,
+    transfer_journal: None,
+    failed_transfer_journal: None,
+    control_logical_close: None,
+    transfer_logical_close: None,
   }
 }
 
@@ -54,18 +61,25 @@ fn holder_http_settings(
   matches : @argparse.Matches,
   prefix : String,
 ) -> HolderHttpSettings raise CommandStop {
-  let authentication : @http.NativeHttpAuthentication = match (
-    optional(matches, prefix + "-cert"), optional(matches, prefix + "-key"),
-    optional(matches, prefix + "-bearer-file"),
-  ) {
-    (Some(cert), Some(key), Some(bearer)) => MutualTlsAndBearer(cert, key, bearer)
+  let authentication : @http.NativeHttpAuthentication = match
+    (
+      optional(matches, prefix + "-cert"),
+      optional(matches, prefix + "-key"),
+      optional(matches, prefix + "-bearer-file"),
+    ) {
+    (Some(cert), Some(key), Some(bearer)) =>
+      MutualTlsAndBearer(cert, key, bearer)
     (Some(cert), Some(key), None) => MutualTls(cert, key)
     (None, None, Some(bearer)) => Bearer(bearer)
-    _ => stop(prefix + " authentication needs a bearer file or a certificate and key")
+    _ =>
+      stop(
+        prefix + " authentication needs a bearer file or a certificate and key",
+      )
   }
   {
     library_path: required(matches, "http-library"),
-    ca_path: required(matches, "ca"), authentication,
+    ca_path: required(matches, "ca"),
+    authentication,
     response_bytes: required_int64(matches, "max-response-bytes"),
     connect_ms: required_int(matches, "connect-timeout-ms"),
     total_ms: required_int(matches, "total-timeout-ms"),
@@ -80,12 +94,17 @@ fn open_holder_partial_http_client(
 ) -> Result[@http.Client, HolderOutputSetupFailure] {
   let library = match @http.load_library_with_custody(settings.library_path) {
     Ok(value) => value
-    Err(RefusedBeforeAcquisition(_)) => return Err(holder_output_setup_failure(
-      original, "HTTP library configuration refused",
-    ))
+    Err(RefusedBeforeAcquisition(_)) =>
+      return Err(
+        holder_output_setup_failure(
+          original, "HTTP library configuration refused",
+        ),
+      )
     Err(CleanupRequired(failure)) => {
       original.failed_http_library = Some(failure)
-      return Err(HolderOutputSetupPending(original, "HTTP library acquisition failed"))
+      return Err(
+        HolderOutputSetupPending(original, "HTTP library acquisition failed"),
+      )
     }
   }
   if control_role {
@@ -93,17 +112,28 @@ fn open_holder_partial_http_client(
   } else {
     original.transfer_library = Some(library)
   }
-  match library.create_authenticated_client_with_custody(
-    settings.ca_path, settings.authentication, settings.response_bytes,
-    settings.connect_ms, settings.total_ms,
-  ) {
+  match
+    library.create_authenticated_client_with_custody(
+      settings.ca_path,
+      settings.authentication,
+      settings.response_bytes,
+      settings.connect_ms,
+      settings.total_ms,
+    ) {
     Ok(value) => {
-      if control_role { original.control = Some(value) } else { original.transfer = Some(value) }
+      if control_role {
+        original.control = Some(value)
+      } else {
+        original.transfer = Some(value)
+      }
       Ok(value)
     }
-    Err(RefusedBeforeAcquisition(_)) => Err(HolderOutputSetupPending(
-      original, "HTTP Client configuration refused after Library acquisition",
-    ))
+    Err(RefusedBeforeAcquisition(_)) =>
+      Err(
+        HolderOutputSetupPending(
+          original, "HTTP Client configuration refused after Library acquisition",
+        ),
+      )
     Err(CleanupRequired(failure)) => {
       original.failed_http_client = Some(failure)
       Err(HolderOutputSetupPending(original, "HTTP Client acquisition failed"))
@@ -118,12 +148,18 @@ fn holder_output_setup_failure(
   original : HolderPartialOutputResources,
   issue : String,
 ) -> HolderOutputSetupFailure {
-  if original.retained_root is Some(_) || original.failed_root is Some(_) ||
-    original.control is Some(_) || original.control_library is Some(_) ||
-    original.transfer is Some(_) || original.transfer_library is Some(_) ||
-    original.failed_http_library is Some(_) || original.failed_http_client is Some(_) ||
-    original.store is Some(_) || original.failed_store is Some(_) ||
-    original.transfer_journal is Some(_) || original.failed_transfer_journal is Some(_) {
+  if original.retained_root is Some(_) ||
+    original.failed_root is Some(_) ||
+    original.control is Some(_) ||
+    original.control_library is Some(_) ||
+    original.transfer is Some(_) ||
+    original.transfer_library is Some(_) ||
+    original.failed_http_library is Some(_) ||
+    original.failed_http_client is Some(_) ||
+    original.store is Some(_) ||
+    original.failed_store is Some(_) ||
+    original.transfer_journal is Some(_) ||
+    original.failed_transfer_journal is Some(_) {
     HolderOutputSetupPending(original, issue)
   } else {
     HolderOutputSetupRefused(issue)
@@ -135,7 +171,9 @@ fn holder_output_setup_failure(
 /// Logical Client close is not metadata/global-Library retirement. Loaded
 /// Library/Client aliases stay here as residual custody until a formal Host
 /// lifetime supplier exists; that currently missing seam cannot become ACK.
-fn retry_partial_holder_output_resources(original : HolderPartialOutputResources) -> Bool {
+fn retry_partial_holder_output_resources(
+  original : HolderPartialOutputResources,
+) -> Bool {
   if original.failed_transfer_journal is Some(owner) {
     guard owner.retry_cleanup() is Ok(_) else { return false }
     original.failed_transfer_journal = None
@@ -157,8 +195,14 @@ fn retry_partial_holder_output_resources(original : HolderPartialOutputResources
       Ok(library) => library
       Err(_) => return false
     }
-    guard (original.control_library is Some(library) && physical_equal(residual, library)) ||
-      (original.transfer_library is Some(library) && physical_equal(residual, library)) else {
+    guard (
+        original.control_library is Some(library) &&
+        physical_equal(residual, library)
+      ) ||
+      (
+        original.transfer_library is Some(library) &&
+        physical_equal(residual, library)
+      ) else {
       return false
     }
     original.failed_http_client = None
@@ -175,8 +219,10 @@ fn retry_partial_holder_output_resources(original : HolderPartialOutputResources
   }
   // Logical Client close does not retire its metadata or runtime aliases.
   // Keep the outer retained Root as well while that responsibility remains.
-  if original.control is Some(_) || original.transfer is Some(_) ||
-    original.control_library is Some(_) || original.transfer_library is Some(_) {
+  if original.control is Some(_) ||
+    original.transfer is Some(_) ||
+    original.control_library is Some(_) ||
+    original.transfer_library is Some(_) {
     return false
   }
   if original.failed_root is Some(owner) {
@@ -210,36 +256,54 @@ fn retain_partial_holder_output_setup(
   failure : String,
 ) -> Unit {
   let original : HolderPartialSetupCleanup = {
-    resources, environment, slot, failure,
-    step: Ref(0), slot_close_unknown: false,
+    resources,
+    environment,
+    slot,
+    failure,
+    step: Ref(0),
+    slot_close_unknown: false,
   }
   install_partial_holder_cleanup_signal()
-  ignore(retain_holder_cleanup_lifetime(
-    original,
-    custody => advance_holder_cleanup_pass(custody, custody.step, 5, (owner, step) => {
-      match step {
-        0 => retry_partial_holder_output_resources(owner.resources)
-        1 => owner.environment.journal.close_checked() is Ok(_)
-        2 => owner.environment.bundles.release(owner.environment.process_hold_id) is Ok(true)
-        3 => owner.environment.bundles.close_checked() is Ok(_)
-        _ => {
-          if owner.slot_close_unknown { false } else {
-            let closed = owner.slot.close()
-            if !closed { owner.slot_close_unknown = true }
-            closed
+  ignore(
+    retain_holder_cleanup_lifetime(
+      original,
+      custody => {
+        advance_holder_cleanup_pass(custody, custody.step, 5, (owner, step) => {
+          match step {
+            0 => retry_partial_holder_output_resources(owner.resources)
+            1 => owner.environment.journal.close_checked() is Ok(_)
+            2 =>
+              owner.environment.bundles.release(
+                owner.environment.process_hold_id,
+              )
+              is Ok(true)
+            3 => owner.environment.bundles.close_checked() is Ok(_)
+            _ =>
+              if owner.slot_close_unknown {
+                false
+              } else {
+                let closed = owner.slot.close()
+                if !closed {
+                  owner.slot_close_unknown = true
+                }
+                closed
+              }
           }
-        }
-      }
-    }),
-    // Before installation, no caller operation covers a new input frame.
-    // Preserve the same custody using the existing signal wait, never free I/O.
-    () => CleanupInputEnded,
-    wait_holder_cleanup_lifetime_signal,
-    (owner, control_ended) => report("setup-cleanup-pending", [
-      ("reason", owner.failure), ("step", owner.step.val.to_string()),
-      ("control_ended", control_ended.to_string()),
-    ]),
-  ))
+        })
+      },
+      // Before installation, no caller operation covers a new input frame.
+      // Preserve the same custody using the existing signal wait, never free I/O.
+      () => CleanupInputEnded,
+      wait_holder_cleanup_lifetime_signal,
+      (owner, control_ended) => {
+        report("setup-cleanup-pending", [
+          ("reason", owner.failure),
+          ("step", owner.step.val.to_string()),
+          ("control_ended", control_ended.to_string()),
+        ])
+      },
+    ),
+  )
 }
 
 ///|
@@ -270,31 +334,45 @@ fn retain_partial_output_recovery_setup(
   failure : String,
 ) -> Unit {
   let original : PartialOutputRecoveryCleanup = {
-    resources, recovery, slot, failure,
-    step: Ref(0), slot_close_unknown: false,
+    resources,
+    recovery,
+    slot,
+    failure,
+    step: Ref(0),
+    slot_close_unknown: false,
   }
   install_partial_holder_cleanup_signal()
-  ignore(retain_holder_cleanup_lifetime(
-    original,
-    custody => advance_holder_cleanup_pass(custody, custody.step, 4, (owner, step) => {
-      match step {
-        0 => retry_partial_holder_output_resources(owner.resources)
-        1 => owner.recovery.journal.close_checked() is Ok(_)
-        2 => owner.recovery.bundles.close_checked() is Ok(_)
-        _ => {
-          if owner.slot_close_unknown { false } else {
-            let closed = owner.slot.close()
-            if !closed { owner.slot_close_unknown = true }
-            closed
+  ignore(
+    retain_holder_cleanup_lifetime(
+      original,
+      custody => {
+        advance_holder_cleanup_pass(custody, custody.step, 4, (owner, step) => {
+          match step {
+            0 => retry_partial_holder_output_resources(owner.resources)
+            1 => owner.recovery.journal.close_checked() is Ok(_)
+            2 => owner.recovery.bundles.close_checked() is Ok(_)
+            _ =>
+              if owner.slot_close_unknown {
+                false
+              } else {
+                let closed = owner.slot.close()
+                if !closed {
+                  owner.slot_close_unknown = true
+                }
+                closed
+              }
           }
-        }
-      }
-    }),
-    () => CleanupInputEnded,
-    wait_holder_cleanup_lifetime_signal,
-    (owner, control_ended) => report("output-recovery-setup-cleanup-pending", [
-      ("reason", owner.failure), ("step", owner.step.val.to_string()),
-      ("control_ended", control_ended.to_string()),
-    ]),
-  ))
+        })
+      },
+      () => CleanupInputEnded,
+      wait_holder_cleanup_lifetime_signal,
+      (owner, control_ended) => {
+        report("output-recovery-setup-cleanup-pending", [
+          ("reason", owner.failure),
+          ("step", owner.step.val.to_string()),
+          ("control_ended", control_ended.to_string()),
+        ])
+      },
+    ),
+  )
 }
