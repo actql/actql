@@ -76,7 +76,7 @@ test "Model shared tickets reject foreign installation admission Run slot and at
   let same_data_foreign = Ref(0)
   let shared = issue_model_io_admission(installation, 2, 2).unwrap()
   let foreign = issue_model_io_admission(installation, 2, 2).unwrap()
-  let (_, origin, reservation) = model_io_test_run()
+  let (ledger, origin, reservation) = model_io_test_run()
   let (_, other, other_reservation) = model_io_test_run()
   assert_true(
     claim_model_io_admission(shared, same_data_foreign, origin, reservation, 0, 1)
@@ -103,6 +103,25 @@ test "Model shared tickets reject foreign installation admission Run slot and at
     settle_model_io_after_owner_ack(shared, installation, origin, ticket, 0, 2)
     is Err(ForeignTicket),
   )
+  let copied : ModelIoTicket[Ref[Int]] = { ..ticket, }
+  assert_true(
+    settle_model_io_after_owner_ack(shared, installation, origin, copied, 0, 1)
+    is Err(ForeignTicket),
+  )
+  let inventory = ledger.original_inventory.unwrap()
+  ledger.original_inventory = Some({ ..inventory, identity: other, })
+  assert_true(
+    settle_model_io_after_owner_ack(shared, installation, origin, ticket, 0, 1)
+    is Err(ForeignTicket),
+  )
+  ledger.original_inventory = Some(inventory)
+  let another_attempt = reserve_attempt(ledger, 1L, 10L, 10L).unwrap()
+  ticket.reservation = Some(another_attempt)
+  assert_true(
+    settle_model_io_after_owner_ack(shared, installation, origin, ticket, 0, 1)
+    is Err(ForeignTicket),
+  )
+  ticket.reservation = Some(reservation)
   assert_eq(model_io_admission_counts(shared, installation), Some((1, 1)))
   settle_model_io_after_owner_ack(shared, installation, origin, ticket, 0, 1).unwrap()
   settle_model_holding_after_owner_ack(shared, installation, origin, ticket, 0, 1).unwrap()

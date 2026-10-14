@@ -164,9 +164,16 @@ fn check_model_io_ticket[T](
     ticket.reservation is Some(reservation) && ticket.census is Some(census) else {
     return Err(TicketRetired)
   }
+  guard origin.ledger.original_inventory is Some(inventory) &&
+    physical_equal(inventory.identity, origin) &&
+    physical_equal(inventory.bootstrap, origin.bootstrap) &&
+    capacity_reservation_open(origin.bootstrap) else {
+    return Err(ForeignTicket)
+  }
   if !physical_equal(owner, value) || !physical_equal(original, origin) ||
     ticket.slot != slot || ticket.attempt != attempt ||
     !physical_equal(reservation.owner, origin.ledger) ||
+    census.reservation_serial != reservation.serial ||
     !holding_available(origin.ledger, census) ||
     !value.duties.any(original => physical_equal(original, ticket)) {
     return Err(ForeignTicket)
