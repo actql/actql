@@ -1,5 +1,5 @@
 ///|
-fn run_command_fixture(json : Bool) -> @argparse.Matches {
+fn run_command_fixture(json : Bool) -> @argparse.Matches raise {
   let argv = [
     "--mode", "local", "run", "--program-file", "literal.sql", "--format", "sql",
     "--submission-ref-file", "original-submission.json", "--operation-attempt-id",
