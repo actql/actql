@@ -83,7 +83,7 @@ test "Calendar sequence retains original selected profile bound range and schema
   @lowering_relation.emit_sequence_steps(sequence, writer)
   assert_eq(
     @encode.finish(writer),
-    "[{\"id\":\"calendar_series_0\",\"in\":[],\"op\":\"TEA.calendar_series\",\"params\":{\"end\":\"2000-01-03T00:00:00.000Z\",\"profile\":{\"conversion_law\":\"actql-calendar-boundaries/0.1\",\"table_bytes_cid\":\"sha256:9f3724c9d9d160476ee7abf5d8eaa0701bbd5c17f900154496bb8615bf20f4ca\",\"tzdb_version\":\"test-fixture\"},\"start\":\"2000-01-01T00:00:00.000Z\",\"timezone\":\"UTC\",\"unit\":\"day\"}}]",
+    "[{\"id\":\"calendar_series_0\",\"in\":[],\"op\":\"TEA.calendar.series\",\"params\":{\"end\":\"2000-01-03T00:00:00.000Z\",\"profile\":{\"conversion_law\":\"actql-calendar-boundaries/0.1\",\"table_bytes_cid\":\"sha256:9f3724c9d9d160476ee7abf5d8eaa0701bbd5c17f900154496bb8615bf20f4ca\",\"tzdb_version\":\"test-fixture\"},\"start\":\"2000-01-01T00:00:00.000Z\",\"timezone\":\"UTC\",\"unit\":\"day\"}}]",
   )
 }
 
@@ -105,12 +105,53 @@ test "Calendar bucket remains one input and preserves original checked profile" 
     1,
   ).unwrap()
   assert_eq(@lowering_relation.input_ids(node), ["calendar_series_0"])
-  assert_eq(@lowering_relation.operation(node), "TEA.calendar_bucket")
+  assert_eq(@lowering_relation.operation(node), "TEA.calendar.bucket")
   assert_eq(
     @calendar_profile.cid(
       @calendar.profile(@lowering_relation.calendar_checked(prepared)),
     ),
     "sha256:9f3724c9d9d160476ee7abf5d8eaa0701bbd5c17f900154496bb8615bf20f4ca",
+  )
+}
+
+///|
+test "Calendar preparation retains empty range and cumulative output budgets" {
+  let empty = calendar_preparation_owner(
+    "[{\"calendar_series\":{\"start\":\"2000-01-01T00:00:00.000Z\",\"end\":\"2000-01-01T00:00:00.000Z\",\"unit\":\"day\",\"timezone\":\"UTC\"},\"as\":\"empty\"}]",
+  )
+  let no_rows = { ..sequence_limits(), max_rows: 0, max_cells: 0, }
+  let sequence = @lowering_relation.prepare_sequence(empty, no_rows).unwrap()
+  guard @lowering_relation.sequence_step(sequence, 0)
+    is Some(CalendarStep(prepared)) else {
+    fail("empty Calendar retains the same real generator")
+  }
+  assert_eq(@lowering_relation.calendar_row_bound(prepared), Some(0))
+  let two = calendar_preparation_owner(
+    "[{\"calendar_series\":{\"start\":\"2000-01-01T00:00:00.000Z\",\"end\":\"2000-01-03T00:00:00.000Z\",\"unit\":\"day\",\"timezone\":\"UTC\"},\"as\":\"first\"},{\"calendar_series\":{\"start\":\"2000-01-01T00:00:00.000Z\",\"end\":\"2000-01-03T00:00:00.000Z\",\"unit\":\"day\",\"timezone\":\"UTC\"},\"as\":\"second\"}]",
+  )
+  assert_true(
+    @lowering_relation.prepare_sequence(two, {
+      ..sequence_limits(),
+      max_rows: 8,
+      max_cells: 16,
+    })
+    is Ok(_),
+  )
+  assert_true(
+    @lowering_relation.prepare_sequence(two, {
+      ..sequence_limits(),
+      max_rows: 7,
+      max_cells: 16,
+    })
+    is Err(CalendarFailure(1, CalendarPreparationLimit)),
+  )
+  assert_true(
+    @lowering_relation.prepare_sequence(two, {
+      ..sequence_limits(),
+      max_rows: 8,
+      max_cells: 15,
+    })
+    is Err(CalendarFailure(1, CalendarPreparationLimit)),
   )
 }
 
@@ -179,7 +220,7 @@ test "selected original UTC Calendar series reaches normal lowering" {
   ).unwrap()
   let prepared = @lowering_relation.prepare(checked, limits()).unwrap()
   let node = @lowering_relation.node_at(prepared, 0).unwrap()
-  assert_eq(@lowering_relation.operation(node), "TEA.calendar_series")
+  assert_eq(@lowering_relation.operation(node), "TEA.calendar.series")
   assert_eq(@lowering_relation.input_ids(node), [])
   assert_eq(
     @decode.cursor_span(@lowering_relation.source(node)),

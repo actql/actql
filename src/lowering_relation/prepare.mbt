@@ -181,9 +181,9 @@ pub fn operation(value : PreparedNode) -> String {
     CalendarValue(value) =>
       if @calendar_options.operation(@calendar.options(value)) ==
         @calendar_options.Series {
-        "TEA.calendar_series"
+        "TEA.calendar.series"
       } else {
-        "TEA.calendar_bucket"
+        "TEA.calendar.bucket"
       }
     RowWindow(value) =>
       match
