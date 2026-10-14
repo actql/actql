@@ -1151,7 +1151,7 @@
     {
       "feature_id": "vector.nearest",
       "surface_forms": [
-        "NEAREST candidate AS c [QUERY KEY (...) VECTOR ...] [CANDIDATE KEY (...) VECTOR ...] METRIC ... K ... [KEEP (...)] AS result"
+        "NEAREST candidate [AS c] [USING query_vector | QUERY KEY (...) VECTOR ...] [CANDIDATE KEY (...) VECTOR ...] [METRIC ...] K ... [KEEP (...)] AS result"
       ],
       "canonical_lowering": "nearest",
       "preconditions": [

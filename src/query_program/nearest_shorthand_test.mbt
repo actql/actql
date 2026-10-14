@@ -14,7 +14,7 @@ test "short NEAREST uses the same Common proven keys and cosine as explicit role
   assert_true(body.contains("\"id\":\"request_id\""))
   assert_true(body.contains("\"id\":\"item_id\""))
   assert_true(body.contains("\"fields\":[\"request_id\",\"embedding\",\"note\",\"hit\"]"))
-  let program = with_demand_program(short)
+  let program = with_demand_program(Ok(short))
   match @check.check_parsed(program, check_environment(veca=true), None, check_limits()) {
     Checked(_) => ()
     Rejected(issue) => raise @check.diagnostic_cause(issue)
