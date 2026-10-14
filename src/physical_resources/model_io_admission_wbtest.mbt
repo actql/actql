@@ -19,10 +19,18 @@ fn model_io_test_run() -> (Ledger, OriginalLedgerIdentity, Reservation) {
 ///|
 test "Model shared availability uses the declared initial slot domain only" {
   let installation = Ref(0)
-  assert_true(issue_model_io_admission(installation, 0, 1) is Err(InvalidLimits))
-  assert_true(issue_model_io_admission(installation, 1, 0) is Err(InvalidLimits))
-  assert_true(issue_model_io_admission(installation, 5, 4) is Err(InvalidLimits))
-  assert_true(issue_model_io_admission(installation, 4, 5) is Err(InvalidLimits))
+  assert_true(
+    issue_model_io_admission(installation, 0, 1) is Err(InvalidLimits),
+  )
+  assert_true(
+    issue_model_io_admission(installation, 1, 0) is Err(InvalidLimits),
+  )
+  assert_true(
+    issue_model_io_admission(installation, 5, 4) is Err(InvalidLimits),
+  )
+  assert_true(
+    issue_model_io_admission(installation, 4, 5) is Err(InvalidLimits),
+  )
   let shared = issue_model_io_admission(installation, 4, 4).unwrap()
   assert_eq(model_io_admission_counts(shared, installation), Some((0, 0)))
   assert_true(close_model_io_admission(shared, installation).unwrap())
@@ -35,7 +43,9 @@ test "two original Runs share I/O and keep independent unsettled Store custody" 
   let shared = issue_model_io_admission(installation, 1, 2).unwrap()
   let (ledger_a, origin_a, attempt_a) = model_io_test_run()
   let (ledger_b, origin_b, attempt_b) = model_io_test_run()
-  let a = claim_model_io_admission(shared, installation, origin_a, attempt_a, 0, 1).unwrap()
+  let a = claim_model_io_admission(
+    shared, installation, origin_a, attempt_a, 0, 1,
+  ).unwrap()
   let b_before = ledger_usage(ledger_b)
   assert_true(
     claim_model_io_admission(shared, installation, origin_b, attempt_b, 0, 1)
@@ -47,7 +57,9 @@ test "two original Runs share I/O and keep independent unsettled Store custody" 
   settle_model_io_after_owner_ack(shared, installation, origin_a, a, 0, 1).unwrap()
   assert_eq(model_io_admission_counts(shared, installation), Some((0, 1)))
   assert_true(holding_available(ledger_a, a.census.unwrap()))
-  let b = claim_model_io_admission(shared, installation, origin_b, attempt_b, 0, 1).unwrap()
+  let b = claim_model_io_admission(
+    shared, installation, origin_b, attempt_b, 0, 1,
+  ).unwrap()
   assert_eq(model_io_admission_counts(shared, installation), Some((1, 2)))
   settle_model_io_after_owner_ack(shared, installation, origin_b, b, 0, 1).unwrap()
   assert_eq(model_io_admission_counts(shared, installation), Some((0, 2)))
@@ -61,10 +73,14 @@ test "two original Runs share I/O and keep independent unsettled Store custody" 
   // Original Store/Journal confirmation plus actual alias cleanup is separate.
   settle_model_holding_after_owner_ack(shared, installation, origin_b, b, 0, 1).unwrap()
   assert_eq(model_io_admission_counts(shared, installation), Some((0, 1)))
-  let next = claim_model_io_admission(shared, installation, origin_a, later, 1, 1).unwrap()
+  let next = claim_model_io_admission(
+    shared, installation, origin_a, later, 1, 1,
+  ).unwrap()
   assert_eq(model_io_admission_counts(shared, installation), Some((1, 2)))
   settle_model_io_after_owner_ack(shared, installation, origin_a, next, 1, 1).unwrap()
-  settle_model_holding_after_owner_ack(shared, installation, origin_a, next, 1, 1).unwrap()
+  settle_model_holding_after_owner_ack(
+    shared, installation, origin_a, next, 1, 1,
+  ).unwrap()
   settle_model_holding_after_owner_ack(shared, installation, origin_a, a, 0, 1).unwrap()
   assert_eq(model_io_admission_counts(shared, installation), Some((0, 0)))
   assert_true(close_model_io_admission(shared, installation).unwrap())
@@ -79,14 +95,20 @@ test "Model shared tickets reject foreign installation admission Run slot and at
   let (ledger, origin, reservation) = model_io_test_run()
   let (_, other, other_reservation) = model_io_test_run()
   assert_true(
-    claim_model_io_admission(shared, same_data_foreign, origin, reservation, 0, 1)
+    claim_model_io_admission(
+      shared, same_data_foreign, origin, reservation, 0, 1,
+    )
     is Err(ForeignInstallation),
   )
   assert_true(
-    claim_model_io_admission(shared, installation, origin, other_reservation, 0, 1)
+    claim_model_io_admission(
+      shared, installation, origin, other_reservation, 0, 1,
+    )
     is Err(ForeignTicket),
   )
-  let ticket = claim_model_io_admission(shared, installation, origin, reservation, 0, 1).unwrap()
+  let ticket = claim_model_io_admission(
+    shared, installation, origin, reservation, 0, 1,
+  ).unwrap()
   assert_true(
     settle_model_io_after_owner_ack(foreign, installation, origin, ticket, 0, 1)
     is Err(ForeignTicket),
@@ -124,7 +146,9 @@ test "Model shared tickets reject foreign installation admission Run slot and at
   ticket.reservation = Some(reservation)
   assert_eq(model_io_admission_counts(shared, installation), Some((1, 1)))
   settle_model_io_after_owner_ack(shared, installation, origin, ticket, 0, 1).unwrap()
-  settle_model_holding_after_owner_ack(shared, installation, origin, ticket, 0, 1).unwrap()
+  settle_model_holding_after_owner_ack(
+    shared, installation, origin, ticket, 0, 1,
+  ).unwrap()
 }
 
 ///|
@@ -137,7 +161,9 @@ test "Model shared tickets reject copied original identity duplicate attempt and
     claim_model_io_admission(shared, installation, copied, reservation, 0, 1)
     is Err(ForeignTicket),
   )
-  let ticket = claim_model_io_admission(shared, installation, origin, reservation, 0, 1).unwrap()
+  let ticket = claim_model_io_admission(
+    shared, installation, origin, reservation, 0, 1,
+  ).unwrap()
   assert_true(
     claim_model_io_admission(shared, installation, origin, reservation, 0, 1)
     is Err(DuplicateAttempt),
@@ -147,7 +173,9 @@ test "Model shared tickets reject copied original identity duplicate attempt and
     is Err(DuplicateAttempt),
   )
   assert_true(
-    settle_model_holding_after_owner_ack(shared, installation, origin, ticket, 0, 1)
+    settle_model_holding_after_owner_ack(
+      shared, installation, origin, ticket, 0, 1,
+    )
     is Err(CleanupPending),
   )
   settle_model_io_after_owner_ack(shared, installation, origin, ticket, 0, 1).unwrap()
@@ -155,9 +183,13 @@ test "Model shared tickets reject copied original identity duplicate attempt and
     settle_model_io_after_owner_ack(shared, installation, origin, ticket, 0, 1)
     is Err(IoAlreadyRetired),
   )
-  settle_model_holding_after_owner_ack(shared, installation, origin, ticket, 0, 1).unwrap()
+  settle_model_holding_after_owner_ack(
+    shared, installation, origin, ticket, 0, 1,
+  ).unwrap()
   assert_true(
-    settle_model_holding_after_owner_ack(shared, installation, origin, ticket, 0, 1)
+    settle_model_holding_after_owner_ack(
+      shared, installation, origin, ticket, 0, 1,
+    )
     is Err(TicketRetired),
   )
   assert_true(ticket.owner is None)
@@ -171,7 +203,9 @@ test "Model closing admission drains the same tickets without cancellation or ne
   let installation = Ref(0)
   let shared = issue_model_io_admission(installation, 2, 2).unwrap()
   let (_, origin, reservation) = model_io_test_run()
-  let ticket = claim_model_io_admission(shared, installation, origin, reservation, 0, 1).unwrap()
+  let ticket = claim_model_io_admission(
+    shared, installation, origin, reservation, 0, 1,
+  ).unwrap()
   assert_false(close_model_io_admission(shared, installation).unwrap())
   assert_true(ticket.active)
   assert_true(
@@ -180,7 +214,9 @@ test "Model closing admission drains the same tickets without cancellation or ne
   )
   settle_model_io_after_owner_ack(shared, installation, origin, ticket, 0, 1).unwrap()
   assert_false(close_model_io_admission(shared, installation).unwrap())
-  settle_model_holding_after_owner_ack(shared, installation, origin, ticket, 0, 1).unwrap()
+  settle_model_holding_after_owner_ack(
+    shared, installation, origin, ticket, 0, 1,
+  ).unwrap()
   assert_true(close_model_io_admission(shared, installation).unwrap())
 }
 
@@ -189,7 +225,9 @@ test "Model shared obligation stays in the original zero byte census until actua
   let installation = Ref(0)
   let shared = issue_model_io_admission(installation, 1, 1).unwrap()
   let (ledger, origin, reservation) = model_io_test_run()
-  let ticket = claim_model_io_admission(shared, installation, origin, reservation, 0, 1).unwrap()
+  let ticket = claim_model_io_admission(
+    shared, installation, origin, reservation, 0, 1,
+  ).unwrap()
   // The original attempt settles; response/Unknown holding is still owned.
   settle_reservation(ledger, reservation).unwrap()
   assert_eq(ledger_usage(ledger).held_bytes, 0L)
@@ -198,7 +236,9 @@ test "Model shared obligation stays in the original zero byte census until actua
   settle_model_io_after_owner_ack(shared, installation, origin, ticket, 0, 1).unwrap()
   assert_eq(model_io_admission_counts(shared, installation), Some((0, 1)))
   assert_false(finish_original_ledger_inventory(ledger, true).unwrap())
-  settle_model_holding_after_owner_ack(shared, installation, origin, ticket, 0, 1).unwrap()
+  settle_model_holding_after_owner_ack(
+    shared, installation, origin, ticket, 0, 1,
+  ).unwrap()
   assert_true(finish_original_ledger_inventory(ledger, true).unwrap())
   assert_false(original_ledger_inventory_live(origin))
 }
