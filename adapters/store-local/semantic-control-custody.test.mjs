@@ -21,7 +21,7 @@ const profile = {version: 'actql-client-host/0.1', mode: 'local', owner: 'local'
   durability: 'volatile', scopeRef: 'local-principal', capabilities: [], limits: {
     maxReadWireBytes: 4096, maxRowWireBytes: 1024, maxRowRetainedValueBytes: 1024,
     maxRetainedValueBytes: 4096, maxRows: 10, maxBatchRows: 10, maxBatchRetainedValueBytes: 2048}};
-const request = {connection: {mode: 'local', owner: 'local'}, ref, resultName: 'answer',
+const request = {connection: {mode: 'local', owner: 'local', consentRefs: [], runners: []}, ref, resultName: 'answer',
   format: 'jsonl', attemptId: 'metadata', maxWireBytes: 4096, maxNodes: 1000, maxDepth: 32};
 
 // Actual Store and OS FileHandles, existing public SDK/ingress and shutdown.
