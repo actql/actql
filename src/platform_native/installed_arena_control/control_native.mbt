@@ -55,6 +55,27 @@ pub fn prepare_installed_arena_host(
 pub fn InstalledArenaHost::acquire(
   self : InstalledArenaHost,
 ) -> Result[Unit, @bootstrap.NativeBootstrapIssue] {
+  self.acquire_original(None)
+}
+
+///|
+/// Trusted installed caller's borrowed FD only. Equal FD metadata is not
+/// installation authority; its separate lifetime/funding remains with caller.
+pub fn InstalledArenaHost::acquire_fd(
+  self : InstalledArenaHost,
+  fd : Int,
+) -> Result[Unit, @bootstrap.NativeBootstrapIssue] {
+  if fd < 0 {
+    return Err(@bootstrap.Unavailable)
+  }
+  self.acquire_original(Some(fd))
+}
+
+///|
+fn InstalledArenaHost::acquire_original(
+  self : InstalledArenaHost,
+  fd : Int?,
+) -> Result[Unit, @bootstrap.NativeBootstrapIssue] {
   if self.closing || self.closed {
     return Err(@bootstrap.Closing)
   }
@@ -65,7 +86,11 @@ pub fn InstalledArenaHost::acquire(
     return Err(@bootstrap.Unavailable)
   }
   self.acquisition_started = true
-  match supplier.acquire(self) {
+  let acquired = match fd {
+    None => supplier.acquire(self)
+    Some(fd) => supplier.acquire_fd(self, fd)
+  }
+  match acquired {
     Err(issue) => {
       self.acquisition_issue = Some(issue)
       Err(issue)
