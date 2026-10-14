@@ -400,6 +400,42 @@ int32_t actql_executor_slot_open_channel(void) {
   return (read_end << 16) | write_end;
 }
 
+// Whitebox reuse probe only: the target must already be closed. Install a new
+// pipe writer at that number and return its independent reader. This does not
+// inject a production close result or certify the original descriptor's ACK.
+int32_t actql_executor_slot_test_reuse_closed_descriptor(int32_t target) {
+  if (target < ACTQL_EXECUTOR_SLOT_FIRST_PRIVATE_FD) return -1;
+  errno = 0;
+  if (fcntl(target, F_GETFD) >= 0 || errno != EBADF) return -1;
+  int ends[2];
+  if (pipe(ends) != 0) return -1;
+  int reader = ends[0];
+  int writer = ends[1];
+  if (reader == target) {
+    reader = fcntl(ends[0], F_DUPFD_CLOEXEC,
+      ACTQL_EXECUTOR_SLOT_FIRST_PRIVATE_FD);
+    close(ends[0]);
+    if (reader < 0) {
+      close(writer);
+      return -1;
+    }
+  }
+  if (writer != target) {
+    if (dup2(writer, target) < 0) {
+      close(writer);
+      close(reader);
+      return -1;
+    }
+    close(writer);
+  }
+  if (fcntl(target, F_SETFD, FD_CLOEXEC) != 0) {
+    close(target);
+    close(reader);
+    return -1;
+  }
+  return reader;
+}
+
 // Append a suffix of one encoded frame, including its final newline.
 // Nonnegative means the exact number written; -2 means busy/unavailable, and
 // -1 means write failure. The caller retains any unfinished frame and offset.

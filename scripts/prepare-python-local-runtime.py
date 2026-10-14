@@ -14,7 +14,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts'))
 from python_release_cohort import read_cohort  # noqa: E402
 sys.path.insert(0, str(ROOT / 'packages/python-sdk/src'))
-from actql_sdk._local_distribution import LocalComponents, inspect_local_components  # noqa: E402
+from actql_sdk._local_distribution import LocalComponents, inspect_local_components, _read_file  # noqa: E402
 
 
 def library_target(path: Path) -> None:
@@ -83,6 +83,22 @@ def notice_originals() -> dict[str, Path]:
     }
 
 
+def image_recipe_original(root: Path, source: str) -> bytes:
+    """Bounded exact Git-original read; no unbounded git-show capture."""
+    relative = 'packages/python-local-runtime/selected-image-recipe.json'
+    try:
+        original = _read_file(root / relative, maximum=65536)
+        expected = subprocess.check_output(['git', 'rev-parse', '--verify',
+            source + ':' + relative], cwd=root).strip()
+        actual = subprocess.check_output(['git', 'hash-object', '--stdin'],
+            cwd=root, input=original).strip()
+        if actual != expected:
+            raise ValueError('Selected image recipe differs from its committed original')
+        return original
+    except (OSError, subprocess.CalledProcessError) as failure:
+        raise ValueError('Selected source-original image recipe is unavailable') from failure
+
+
 def verify_artifact(artifact: Path) -> LocalComponents:
     """Reuse the fixed-source, component, target and original-notice checks."""
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT):
@@ -95,6 +111,9 @@ def verify_artifact(artifact: Path) -> LocalComponents:
     with components.module.open('rb') as source:
         if source.read(8) != b'\0asm\x01\0\0\0':
             raise ValueError('Invalid installed Wasm module format')
+    recipe_bytes = image_recipe_original(ROOT, head)
+    if _read_file(components.engine_recipe, maximum=65536) != recipe_bytes:
+        raise ValueError('Staged image recipe differs from its source original')
     library_target(components.duckdb)
     # Require the official notice bytes, not merely a manifest agreeing with
     # missing or unrelated notices. Component source/hash receipts stay separate.
@@ -113,7 +132,8 @@ def prepare(artifact: Path, destination: Path) -> dict[str, object]:
     target = destination / 'src/actql_local_runtime'
     target.mkdir(parents=True)
     shutil.copyfile(runtime / 'src/actql_local_runtime/__init__.py', target / '__init__.py')
-    files = ('artifact.json', 'client_host_wasm.wasm', 'libduckdb.dylib', 'LICENSE',
+    files = ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
+             'client_host_wasm.wasm', 'libduckdb.dylib', 'LICENSE',
              'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE')
     for name in files:
         shutil.copyfile(artifact / name, target / name)
@@ -121,9 +141,11 @@ def prepare(artifact: Path, destination: Path) -> dict[str, object]:
             shutil.copyfile(artifact / name, destination / name)
     staged = inspect_local_components(target, package_version=components.package_version)
     if ((staged.source_sha, staged.package_version, staged.module_sha256,
-         staged.duckdb_sha256, staged.duckdb_version) !=
+         staged.duckdb_sha256, staged.duckdb_version, staged.image_sha256,
+         staged.image_bytes, staged.engine_recipe_sha256) !=
             (components.source_sha, components.package_version, components.module_sha256,
-             components.duckdb_sha256, components.duckdb_version)):
+             components.duckdb_sha256, components.duckdb_version, components.image_sha256,
+             components.image_bytes, components.engine_recipe_sha256)):
         raise ValueError('Python Local components changed during preparation')
     for name in ('LICENSE', 'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE'):
         if (target / name).read_bytes() != (destination / name).read_bytes():

@@ -192,10 +192,10 @@ test "append recursively rejects incompatible domains and never fills missing fi
     )
   }
   let left = row(
-    "{\"x\":{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"a\"}}",
+    "{\"x\":{\"type\":\"content_ref\",\"nullable\":false,\"media_type\":\"application/pdf\"}}",
   )
   let right = row(
-    "{\"x\":{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"b\"}}",
+    "{\"x\":{\"type\":\"content_ref\",\"nullable\":true,\"media_type\":\"text/plain\"}}",
   )
   let result = run(left, right)
   assert_true(

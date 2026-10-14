@@ -25,6 +25,7 @@ options(
     "retention_native.mbt": [ "native" ],
     "retention_native_wbtest.mbt": [ "native" ],
     "store_native_wbtest.mbt": [ "native" ],
+    "store_checked_close_native_wbtest.mbt": [ "native" ],
     "store_unsupported.mbt": [ "not", "native" ],
     "store_unsupported_wbtest.mbt": [ "not", "native" ],
   },

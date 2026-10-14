@@ -19,6 +19,8 @@ pub fn destination_reader_key(@remote_transfer.RemoteTransferRequest, String) ->
 
 pub fn open_journal(@sqlite.Library, String, Int64, Int, Int, Int64, max_destination_readers? : Int64) -> Result[Journal, NativeRemoteTransferJournalIssue]
 
+pub fn open_journal_with_custody(@sqlite.Library, String, Int64, Int, Int, Int64, max_destination_readers? : Int64) -> Result[Journal, NativeRemoteTransferJournalOpenError]
+
 pub fn recovered_remote_transfer_key(RecoveredRemoteTransfer) -> String
 
 pub fn recovered_remote_transfer_record(RecoveredRemoteTransfer) -> @remote_transfer.RemoteTransferRecord
@@ -34,6 +36,7 @@ pub fn Journal::begin_destination_allocation_reclaim(Self, NativeRemoteDestinati
 pub fn Journal::begin_destination_material_reclaim(Self, @remote_transfer.RemoteTransferRequest, @remote_transfer.RemoteTransferDestinationReceipt) -> Result[Bool, NativeRemoteTransferJournalIssue]
 pub fn Journal::bind_destination_use(Self, @remote_transfer.RemoteTransferRequest, String) -> Result[Bool, NativeRemoteTransferJournalIssue]
 pub fn Journal::close(Self) -> Bool
+pub fn Journal::close_checked(Self) -> Result[Unit, NativeRemoteTransferJournalIssue]
 pub fn Journal::commit_destination_receipt(Self, @remote_transfer.RemoteTransferDestinationReceipt, @remote_transfer.RemoteTransferRequest) -> Result[@remote_transfer.RemoteTransferDestinationReceipt, NativeRemoteTransferJournalIssue]
 pub fn Journal::commit_store_use_transition(Self, @remote_transfer.RemoteTransferStoreUseTransition) -> Result[Unit, NativeRemoteTransferJournalIssue]
 pub fn Journal::commit_transition(Self, @remote_transfer.RemoteTransferTransition) -> Result[Unit, NativeRemoteTransferJournalIssue]
@@ -88,12 +91,22 @@ pub(all) enum NativeRemoteTransferAdmission {
 pub(all) enum NativeRemoteTransferJournalIssue {
   UnsupportedTarget
   Closed
+  CleanupPending
   Physical(@sqlite.NativeSqliteIssue)
   Protocol(@remote_transfer.RemoteTransferIssue)
   StateCollision
   RecoveryRequired
   MaterialInUse
 }
+
+pub(all) enum NativeRemoteTransferJournalOpenError {
+  RefusedBeforeAcquisition(NativeRemoteTransferJournalIssue)
+  CleanupRequired(NativeRemoteTransferJournalOpenFailure)
+}
+
+type NativeRemoteTransferJournalOpenFailure
+pub fn NativeRemoteTransferJournalOpenFailure::issue(Self) -> NativeRemoteTransferJournalIssue
+pub fn NativeRemoteTransferJournalOpenFailure::retry_cleanup(Self) -> Result[Unit, NativeRemoteTransferJournalIssue]
 
 type RecoveredRemoteTransfer
 

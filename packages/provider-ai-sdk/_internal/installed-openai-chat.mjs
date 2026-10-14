@@ -1,5 +1,6 @@
 import {createAdmittedOpenAIChatPreflight} from './original-openai-chat.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
+import {createOriginalUndiciFetch} from './original-undici-transport.mjs';
 
 const issue = code => { throw Object.assign(new TypeError(code), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
@@ -29,14 +30,26 @@ const frozen = value => value!==null && typeof value==='object' && Object.isFroz
 // never rebuilt from their CIDs. The package exposes this assembler only;
 // complete numerical funding and public execution acceptance remain required.
 export function createInstalledOpenAIChatRegistration(config) {
+  return installedChatRegistration(config, false);
+}
+
+// Explicit selected transport, not an ambient fallback or an installed profile.
+// Reuse the same original Host selections, snapshots and common admission.
+export function createInstalledUndiciOpenAIChatRegistration(config) {
+  return installedChatRegistration(config, true);
+}
+
+function installedChatRegistration(config, originalUndici) {
   const keys='apiKey,baseURL,bindingOriginals,fetch,modelId,modelSelector,observeAt,observeEgress,originalReadInstallation,outputSchemaCid,projectionLimits,promptCid,promptPayloadWire,providerId,quantityCapacity,rawCaptureSelection,requestLimits,responseLimits,taskCid';
-  config=snapshotData(config,keys,'InvalidInstalledOpenAIChatConfiguration');
+  config=snapshotData(config,originalUndici ? keys.replace(',fetch', '') : keys,
+    'InvalidInstalledOpenAIChatConfiguration');
   const {providerId,modelSelector,modelId,baseURL,taskCid,promptCid,outputSchemaCid,
     promptPayloadWire,apiKey,fetch,observeAt,observeEgress}=config;
   if (![providerId,modelSelector,modelId,baseURL,apiKey].every(text) ||
       ![taskCid,promptCid,outputSchemaCid].every(cid) ||
       typeof promptPayloadWire!=='string' ||
-      ![fetch,observeAt,observeEgress].every(value=>typeof value==='function')) {
+      ![observeAt,observeEgress].every(value=>typeof value==='function') ||
+      !originalUndici && typeof fetch!=='function') {
     issue('InvalidInstalledOpenAIChatConfiguration');
   }
   let endpoint;
@@ -87,6 +100,11 @@ export function createInstalledOpenAIChatRegistration(config) {
         .every(name=>frozen(bindings[name]))) {
     issue('OpenAIOriginalInstallationUnavailable');
   }
+  // A missing/mismatched original selection above refuses before constructing
+  // even this physical selector. The per-call Client remains later original
+  // SDK preparation, after its existing same-Ledger funding and before Entry.
+  const physicalFetch=originalUndici ? createOriginalUndiciFetch({
+    endpoint:endpoint.href,requestLimits,responseLimits}) : fetch;
   return moon => {
     if (!['clientProgramStartOpenAIChatProjection','clientProgramAdvanceOpenAIChatProjection',
       'clientProgramRetireOpenAIChatProjection','clientProgramInstallAsyncModelProvider',
@@ -108,7 +126,7 @@ export function createInstalledOpenAIChatRegistration(config) {
             admittedProvider===undefined) issue('OpenAIOriginalPhysicalContextUnavailable');
         return createAdmittedOpenAIChatPreflight({moon,request,admittedProvider,
           taskCid,promptCid,outputSchemaCid,modelSelector,projectionLimits,
-          modelId,baseURL,apiKey,fetch,observeAt,notify:notification.notify,
+          modelId,baseURL,apiKey,fetch:physicalFetch,observeAt,notify:notification.notify,
           rawCaptureBinder:retainRawBinder,profile:raw.profile,installation,
           quantities:quantities.perAttempt,responseLimits,
           maxRequestBytes:requestLimits.maxBytes,

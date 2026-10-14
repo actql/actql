@@ -1,4 +1,31 @@
 ///|
+struct NativeRemoteTransferJournalOpenFailure {
+  original_issue : NativeRemoteTransferJournalIssue
+  mut database : @sqlite.NativeSqliteOpenFailure?
+}
+
+///|
+pub fn NativeRemoteTransferJournalOpenFailure::issue(
+  self : NativeRemoteTransferJournalOpenFailure,
+) -> NativeRemoteTransferJournalIssue {
+  self.original_issue
+}
+
+///|
+pub fn NativeRemoteTransferJournalOpenFailure::retry_cleanup(
+  self : NativeRemoteTransferJournalOpenFailure,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+  guard self.database is Some(original) else { return Ok(()) }
+  match original.retry_cleanup() {
+    Ok(_) => {
+      self.database = None
+      Ok(())
+    }
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 struct Journal {
   database : @sqlite.Database
   max_chunks : Int
@@ -6,6 +33,7 @@ struct Journal {
   max_referenced_bytes : Int64
   max_destination_readers : Int64
   mut closed : Bool
+  mut retiring : Bool
   mut destination_record_admission : DestinationRecordAdmission?
 }
 
@@ -245,6 +273,12 @@ fn Journal::replace_destination_allocation(
   current : NativeRemoteDestinationAllocation,
   phase : NativeRemoteDestinationAllocationPhase,
 ) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  if self.closed {
+    return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let body = destination_allocation_body(
     current.staging_name,
     current.final_name,
@@ -323,14 +357,45 @@ pub fn open_journal(
   max_referenced_bytes : Int64,
   max_destination_readers? : Int64 = 1024L,
 ) -> Result[Journal, NativeRemoteTransferJournalIssue] {
+  match
+    open_journal_with_custody(
+      library,
+      path,
+      max_record_bytes,
+      max_chunks,
+      max_manifest_bytes,
+      max_referenced_bytes,
+      max_destination_readers~,
+    ) {
+    Ok(value) => Ok(value)
+    Err(RefusedBeforeAcquisition(issue)) => Err(issue)
+    Err(CleanupRequired(failure)) => {
+      // Legacy issue-only API has no pending-custody return port. New bounded
+      // caller composition uses the explicit entrance; this is not funding.
+      ignore(failure.retry_cleanup())
+      Err(failure.issue())
+    }
+  }
+}
+
+///|
+pub fn open_journal_with_custody(
+  library : @sqlite.Library,
+  path : String,
+  max_record_bytes : Int64,
+  max_chunks : Int,
+  max_manifest_bytes : Int,
+  max_referenced_bytes : Int64,
+  max_destination_readers? : Int64 = 1024L,
+) -> Result[Journal, NativeRemoteTransferJournalOpenError] {
   if max_record_bytes < 0L ||
     max_chunks < 0 ||
     max_manifest_bytes < 0 ||
     max_referenced_bytes < 0L ||
     max_destination_readers < 1L {
-    return Err(Protocol(@transfer.InvalidTransfer))
+    return Err(RefusedBeforeAcquisition(Protocol(@transfer.InvalidTransfer)))
   }
-  match library.open_database(path, max_record_bytes) {
+  match library.open_database_with_custody(path, max_record_bytes) {
     Ok(database) =>
       Ok({
         database,
@@ -339,9 +404,16 @@ pub fn open_journal(
         max_referenced_bytes,
         max_destination_readers,
         closed: false,
+        retiring: false,
         destination_record_admission: None,
       })
-    Err(issue) => Err(Physical(issue))
+    Err(original) =>
+      Err(
+        CleanupRequired({
+          original_issue: Physical(original.issue()),
+          database: Some(original),
+        }),
+      )
   }
 }
 
@@ -426,6 +498,9 @@ pub fn Journal::accept(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let key = match @transfer.request_journal_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -491,6 +566,9 @@ pub fn Journal::require(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let key = match @transfer.request_journal_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -512,6 +590,9 @@ pub fn Journal::accept_store_use(
 ] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let store_use = match @transfer.prepare_store_use(request, use_id) {
     Ok(value) => value
@@ -583,6 +664,9 @@ pub fn Journal::require_store_use(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   match
     self.database.read(
       "remote_transfer_store_use",
@@ -603,6 +687,9 @@ pub fn Journal::bind_destination_use(
 ) -> Result[Bool, NativeRemoteTransferJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   match @transfer.prepare_store_use(request, use_id) {
     Ok(_) => ()
@@ -679,6 +766,9 @@ pub fn Journal::reserve_destination_holding(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let mut bytes = 0L
   let lengths = @transfer.request_chunk_byte_lengths(request)
   for length in lengths {
@@ -709,6 +799,9 @@ pub fn Journal::release_destination_holding(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let mut bytes = 0L
   let lengths = @transfer.request_chunk_byte_lengths(request)
   for length in lengths {
@@ -736,6 +829,9 @@ pub fn Journal::destination_capacity_usage(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   match self.database.capacity_usage("remote_transfer_destination") {
     Ok(value) => Ok(value)
     Err(issue) => Err(Physical(issue))
@@ -751,6 +847,9 @@ pub fn Journal::prepare_destination_allocation(
   staging_name : String,
   final_name : String,
 ) -> Result[NativeRemoteDestinationAllocation, NativeRemoteTransferJournalIssue] {
+  if self.retiring && !self.closed {
+    return Err(CleanupPending)
+  }
   if self.closed || staging_name.is_empty() || final_name.is_empty() {
     return if self.closed { Err(Closed) } else { Err(StateCollision) }
   }
@@ -808,6 +907,9 @@ pub fn Journal::inspect_destination_allocation(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let key = match destination_allocation_key(request, use_id, index) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -831,6 +933,9 @@ pub fn Journal::inspect_destination_allocation_if_present(
 ] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let key = match destination_allocation_key(request, use_id, index) {
     Ok(value) => value
@@ -964,6 +1069,9 @@ pub fn Journal::commit_destination_receipt(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let key = match @transfer.request_journal_identity(request) {
     Ok(value) => value
     Err(issue) => return Err(Protocol(issue))
@@ -1022,6 +1130,9 @@ pub fn Journal::inspect_destination_receipt(
 ] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let key = match @transfer.request_journal_identity(request) {
     Ok(value) => value
@@ -1198,6 +1309,9 @@ pub fn Journal::acquire_destination_reader(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let reader_key = match destination_reader_key(request, reader_id) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -1311,6 +1425,9 @@ pub fn Journal::validate_destination_reader(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let reader_key = match destination_reader_key(request, reader_id) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -1397,6 +1514,9 @@ pub fn Journal::release_destination_reader(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let reader_key = match destination_reader_key(request, reader_id) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -1470,6 +1590,9 @@ pub fn Journal::begin_destination_material_reclaim(
 ) -> Result[Bool, NativeRemoteTransferJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   match self.database.begin_immediate() {
     Ok(_) => ()
@@ -1571,6 +1694,9 @@ pub fn Journal::finish_destination_material_reclaim(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   if !physical_reclaimed {
     return Err(RecoveryRequired)
   }
@@ -1670,6 +1796,9 @@ pub fn Journal::commit_transition(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let key = match
     @transfer.remote_transfer_transition_journal_identity(transition) {
     Ok(value) => value
@@ -1733,6 +1862,9 @@ pub fn Journal::commit_store_use_transition(
 ) -> Result[Unit, NativeRemoteTransferJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let key = @transfer.remote_transfer_store_use_transition_journal_identity(
     transition,
@@ -1799,6 +1931,9 @@ pub fn Journal::recover_after(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   match self.database.scan_after("remote_transfer", after_key) {
     Ok(entry) => {
       let record = match
@@ -1815,11 +1950,25 @@ pub fn Journal::recover_after(
 
 ///|
 pub fn Journal::close(self : Journal) -> Bool {
+  self.close_checked() is Ok(_)
+}
+
+///|
+/// Same original Database retirement. Failed close retains the scalar cache
+/// and Journal, never marks Closed or admits new I/O during cleanup pending.
+pub fn Journal::close_checked(
+  self : Journal,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
   if self.closed {
-    return true
+    return Ok(())
   }
-  self.destination_record_admission = None
-  self.database.close()
-  self.closed = true
-  true
+  self.retiring = true
+  match self.database.close_checked() {
+    Ok(_) => {
+      self.destination_record_admission = None
+      self.closed = true
+      Ok(())
+    }
+    Err(issue) => Err(Physical(issue))
+  }
 }

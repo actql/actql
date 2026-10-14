@@ -11,6 +11,13 @@ the same-cohort Local runtime dependency. The standard facade delegates to this
 same SDK; it does not copy its execution or recovery implementation.
 The old Local extra is not the current installation entrance.
 
+The standard product's argumentless Local entry is `Client.open()` or
+`await AsyncClient.open()`. Calling it explicitly requires the matching Local
+runtime and adopted Host capacity originals; it performs no Remote connection
+or internal-path fallback. The current capacity supplier is unfinished and
+refuses before VM startup. `connect(endpoint, token)` remains the lightweight
+Remote entry. Importing this SDK alone does not import Wasmtime or DuckDB.
+
 Python 3.11 or newer is required. Both facades share wire validation, exact
 submitted JSON snapshots, operation identities, and bounded Result readers.
 

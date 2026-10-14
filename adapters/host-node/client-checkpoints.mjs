@@ -20,6 +20,7 @@ import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {canonicalJson, contentCid, createLocalAuthorizationGate} from
   './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
+import {BOUND_SOURCE_SUBMISSION, validBoundSourceOccurrence} from './ordinary-source-binding.mjs';
 import {createPrivateEvidenceKey, loadPrivateEvidenceKey,
   openContinuationEvidence} from './local-continuation-evidence.mjs';
 import {loadCheckpointRuntime, openSqliteCheckpointJournal} from
@@ -40,7 +41,7 @@ const PAGE = 100;
 const LOOKUP_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 const MULTI_SOURCE_SUBMISSION = 'actql-remote-multi-source-submission/0.1';
 const KEYED_SOURCE_SUBMISSION = 'actql-remote-keyed-source-submission/0.1';
-const pluralCapture = captured => [MULTI_SOURCE_SUBMISSION, KEYED_SOURCE_SUBMISSION]
+const pluralCapture = captured => [MULTI_SOURCE_SUBMISSION, KEYED_SOURCE_SUBMISSION, BOUND_SOURCE_SUBMISSION]
   .includes(captured.version);
 const MODEL_CHECKPOINT_STORAGE = 'actql-installed-model-checkpoint-storage/0.1';
 export const MAX_MODEL_INPUT_BYTES = 3 * 1024 * 1024;
@@ -78,7 +79,8 @@ function acquisitionsOf(captured) {
       !Array.isArray(captured.acquisitions) ||
       captured.acquisitions.length !== 2 ||
       captured.acquisitions.some((item, index) =>
-        !(captured.version === KEYED_SOURCE_SUBMISSION
+        !(captured.version === BOUND_SOURCE_SUBMISSION ? validBoundSourceOccurrence(item, index)
+          : captured.version === KEYED_SOURCE_SUBMISSION
           ? Number.isSafeInteger(item?.stage) && item.stage >= 0 &&
             Number.isSafeInteger(item.input) && item.input >= 0 &&
             (index === 0 ? item.task === 0 : item.task === 0 || item.task === 1) &&
@@ -626,6 +628,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
     checked_source: occurrence.checkedSource,
     read_tuple: occurrence.readTuple,
     physical_binding: occurrence.physicalBinding,
+    ...(captured.version === BOUND_SOURCE_SUBMISSION
+      ? {installation_binding: occurrence.installationBinding} : {}),
   });
 
   // The durable deferral of a request's source read (`read_access`,
@@ -2154,6 +2158,8 @@ export async function installRemoteCheckpoints({root, namespaceId,
             readTuple: admitted.readTuple,
             physicalBinding: admitted.acquisition?.physicalBinding,
             checkedSource: admitted.acquisition?.checkedSource,
+            ...(admitted.acquisition?.installationBinding === undefined ? {} :
+              {installationBinding: admitted.acquisition.installationBinding}),
             ...(admitted.acquisition?.stage === undefined ? {} :
               {occurrence: occurrenceIdentity(admitted.acquisition)}),
             principalId: admitted.principalId}) : current;

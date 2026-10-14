@@ -45,3 +45,25 @@ pub fn client_program_check_infer_original_parked_storage_origin(
     layout_artifact_cid, probability, storage,
   )
 }
+
+///|
+// DATA-only preliminary comparison with the existing checked Owner, before
+// Scope/Ledger construction. Successful comparison cannot authenticate Store
+// custody, Journal acknowledgement, atomic Resource admission or a send grant.
+#export_name("clientProgramCheckInferOriginalPreRestoreOrigin")
+pub fn client_program_check_infer_original_pre_restore_origin(
+  compiled : @publication_host.ClientCompiledRun,
+  definition : @publication.PublicationContract,
+  graph : @publication_host.ClientInferPlanGraph,
+  document : @publication.ModelOriginalResourceDocument,
+  layout : @publication_host.ClientNodeModelPreparationLayout?,
+  installation : @check_environment.ModelResponseProfileInstallation,
+  runtime_artifact_cid : String,
+  layout_artifact_cid : String,
+  probability : @check_environment.DecisionProbabilityProfile?,
+) -> Result[Unit, @publication_host.ClientModelOriginalOriginIssue] {
+  @publication_host.check_client_model_original_pre_restore_origin(
+    compiled, definition, graph, document, layout, installation, runtime_artifact_cid,
+    layout_artifact_cid, probability,
+  )
+}

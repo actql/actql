@@ -649,6 +649,33 @@ Compatibility never renews an old grant/expiry or authorizes a resend, new Run,
 Source/Model/Effect, signing use or automatic append. Initial/final current
 authorization and every retained read-row's original policy checks remain.
 
+## Physical directory census
+
+The existing filesystem Root can compare a finite set of immediate names and
+regular-file/directory kinds against the same opened directory. Expectations
+follow the formal inventory's ASCII ordering, not the Core String shortlex
+comparison. Each name uses the existing closed object-name grammar. The
+65,536-byte frame and 8,192-node-derived entry bounds are intake ceilings only,
+not workspace funding or an execution resource profile.
+
+The census reads one entry at a time, rejects unknown names, extra empty
+directories, missing/duplicate members and symbolic/non-regular file kinds, and
+retains only bounded completion state for expected members. It does not publish
+an arbitrary filename list. Enumeration uses a separate descriptor relative to
+the original Root and preserves the Root's own directory offset.
+
+An unconfirmed enumeration close remains the same Root's cleanup responsibility.
+A consumed descriptor/stream is not closed again through a possibly reused
+number or pointer. Closing the ordinary Root descriptor does not confirm that
+enumeration's retirement; a sticky cleanup refusal remains visible. Finalization
+does not provide a retirement ACK.
+
+This comparison is a physical observation of opened-directory membership,
+not an atomic snapshot, named-namespace restoration, file mode/content/hash
+verification, admitted complete package or authority. Those original/current
+facts remain separate requirements of the existing product and Account Owners.
+The private-state 0700/ACL contract is unchanged.
+
 ## Private complete-product member descriptors
 
 The private package-member descriptor projects the formal release inventory's
