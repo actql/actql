@@ -9,7 +9,7 @@ test "current event dedupe lowering reaches the independent common control" {
     with_carrier_program(source, { ..pair_context(), inputs: [], }) {
     Ok(program) => program
     Err(issue) =>
-      fail("current event dedupe lowering: " + @debug.to_string(issue))
+      fail("current event dedupe lowering: " + infer_defaults_issue_tag(issue))
   }
   let expected = event_dedupe_control(
     "[]", "[{\"field\":\"score\",\"dir\":\"desc\",\"nulls\":\"last\"},{\"field\":\"event_id\",\"dir\":\"asc\",\"nulls\":\"first\"}]",
