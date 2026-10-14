@@ -169,7 +169,7 @@ test "explicit earlier UPDATE expressions do not bind a renamed filtered tail" {
     prefix + private_update_tail("", "Name = changed + 1"),
   )
   for program in [explicit, implicit] {
-    assert_eq(@program.exports(program).map(export => export.0), [
+    assert_eq(@program.exports(program).map(entry => entry.0), [
       "early", "answer",
     ])
     assert_false(private_update_fields(program).contains("secret"))
@@ -341,16 +341,16 @@ test "computed UPDATE retains nested access and lazy CASE in the common expressi
   ignore(private_update_static(program))
   // The branch remains present. No frontend evaluation folds it or suppresses
   // a demanded error; execution of CASE laziness remains a separate check.
-  let lazy = private_update_program(
+  let lazy_program = private_update_program(
     "FROM updates_source" +
     private_update_tail(
       "", "Name = CASE WHEN value > 0 THEN value ELSE 1 / 0 END",
     ),
   )
   assert_true(
-    semantic(lazy).contains("\"div\":[{\"literal\":1},{\"literal\":0}]"),
+    semantic(lazy_program).contains("\"div\":[{\"literal\":1},{\"literal\":0}]"),
   )
-  ignore(private_update_static(lazy))
+  ignore(private_update_static(lazy_program))
 }
 
 ///|
@@ -417,7 +417,7 @@ test "earlier INFER Result is imported once and retains public tail behavior" {
       infer_member_context(environment),
       construction_limits(),
     ).unwrap()
-    assert_eq(@program.exports(program).map(export => export.0), [
+    assert_eq(@program.exports(program).map(entry => entry.0), [
       "early", "answer",
     ])
     assert_eq(@program.stage_count(program), 2)
@@ -510,8 +510,8 @@ test "JOIN set heads do not capture terminal UPDATE before the complete set" {
     let stage = @wire.open_object(@program.stage_body(stage)).unwrap()
     for step in @wire.elements(@wire.required(stage, "steps").unwrap()).unwrap() {
       let step = @wire.open_object(step).unwrap()
-      if @wire.lookup(step, "as") is Some(alias) &&
-        @wire.text(alias).unwrap().has_prefix("aql_update_capture_") {
+      if @wire.lookup(step, "as") is Some(binding_name) &&
+        @wire.text(binding_name).unwrap().has_prefix("aql_update_capture_") {
         capture_aliases += 1
       }
     }
