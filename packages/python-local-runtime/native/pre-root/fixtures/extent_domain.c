@@ -3,7 +3,16 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <sys/mman.h>
+static int fail_protection;
+static int domain_mprotect(void *address, size_t length, int protection) {
+    if (fail_protection) { --fail_protection; errno = EIO; return -1; }
+    return mprotect(address, length, protection);
+}
+#define mprotect domain_mprotect
 #include "../owned_capacity.c"
+#undef mprotect
 
 static int cases;
 static void require(int condition, const char *name) {
@@ -68,11 +77,21 @@ int main(void) {
             actql_native_owned_close_extent_domain(&view, &domain) == ACTQL_OWNED_BUSY && domain != NULL,
             "existing allocator stays inside payload and active scope keeps domain");
     require(actql_native_owned_leave(domain) == 0 &&
-            actql_native_owned_close_extent_domain(&view, &domain) == ACTQL_OWNED_BUSY && domain != NULL &&
-            actql_native_owned_retire(domain, value) == 0 &&
-            actql_native_owned_close_extent_domain(&view, &domain) == 0 && domain == NULL &&
-            actql_native_owned_close_extent_domain(&view, &domain) == 0,
-            "original extent retirement precedes idempotent domain close");
+            actql_native_owned_close_extent_domain(&view, &domain) == ACTQL_OWNED_BUSY && domain != NULL,
+            "unretired original allocation keeps the same closing domain");
+    actql_owned_capacity *same = domain;
+    fail_protection = 1;
+    require(actql_native_owned_retire(domain, value) == ACTQL_OWNED_PHYSICAL_FAILURE &&
+            domain == same && view.domain_live,
+            "injected physical retirement failure retains original domain and view");
+    fail_protection = 1;
+    require(actql_native_owned_close_extent_domain(&view, &domain) == ACTQL_OWNED_PHYSICAL_FAILURE &&
+            domain == same && view.domain_live &&
+            actql_native_owned_close_extent_view(&view) == ACTQL_OWNED_BUSY,
+            "failed cleanup preserves pointer and blocks outer unmap");
+    require(actql_native_owned_close_extent_domain(&view, &domain) == 0 && domain == NULL &&
+            actql_native_owned_close_extent_domain(&view, &domain) == 0 && !view.domain_live,
+            "same domain retry succeeds once without another allocation");
     require(actql_native_owned_acquire_extent_domain(&view, &duplicate) == ACTQL_OWNED_INVALID &&
             duplicate == NULL && actql_native_owned_close_extent_view(&view) == 0 &&
             actql_native_owned_return_extent(&loan) == 0 &&
@@ -81,5 +100,5 @@ int main(void) {
             fcntl(fd, F_GETFD) >= 0 && close(fd) == 0,
             "same view then parent loan retire without credits or implicit FD close");
     printf("{\"extent_domain_cases\":%d,\"passed\":%d,\"fixture_pages\":64,\"worker\":0,\"vm\":0,\"public_e2e\":0}\n", cases, cases);
-    return cases == 12 ? 0 : 3;
+    return cases == 15 ? 0 : 3;
 }
