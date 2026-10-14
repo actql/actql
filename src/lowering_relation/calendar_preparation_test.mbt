@@ -145,7 +145,7 @@ test "Calendar bound endpoints retain timestamp admission and reject year zero b
       _ => fail("independent timestamp fixture must bind")
     }
     let owner = calendar_preparation_owner(
-      "[{\"calendar_series\":{\"start\":{\"$param\":\"a\"},\"end\":{\"$param\":\"z\"},\"unit\":\"day\",\"timezone\":\"UTC\"}}]",
+      "[{\"calendar_series\":{\"start\":{\"$param\":\"a\"},\"end\":{\"$param\":\"z\"},\"unit\":\"day\",\"timezone\":\"UTC\"},\"as\":\"days\"}]",
       declarations=Some(declarations),
       bindings=Some(values),
     )
