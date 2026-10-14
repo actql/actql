@@ -13,7 +13,7 @@ fn nearest_complete_relation_roles(
 ) -> (Array[(String, String)], String) raise Abort {
   let target = @pipeline.lookup(pipeline, producer).unwrap()
   let carrier = @pipeline.carrier_at(pipeline, target).unwrap()
-  let supplied = match @pipeline.candidate_keys(pipeline, target) {
+  let supplied : @evidence.NearestSource = match @pipeline.candidate_keys(pipeline, target) {
     Some(keys) => @evidence.KeySource(keys)
     None => @evidence.CarrierSource(carrier)
   }
@@ -305,7 +305,10 @@ fn lower_nearest_steps(
   let candidate_reserved = candidate_columns.copy()
   let query_derived : Array[(String, @builder.Node)] = []
   let candidate_derived : Array[(String, @builder.Node)] = []
-  let query_expression = clause.query_vector.or_else(() => clause.query_roles.map(roles => roles.vector))
+  let query_expression = match clause.query_vector {
+    Some(expression) => Some(expression)
+    None => clause.query_roles.map(roles => roles.vector)
+  }
   let mut query_vector = match query_typed {
     Some((vectors, _)) => {
       let component = @schema.reference_name(@carrier.vector_components(vectors).name)
