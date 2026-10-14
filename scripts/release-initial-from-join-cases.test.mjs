@@ -115,3 +115,80 @@ test('legacy P15 setup retains three original tables and all seven Source profil
     'left_broad', 'right_broad', 'right_missing_broad']);
   assert.equal(observed.commands.filter(value => value.sql === 'CREATE TABLE records(id DOUBLE, amount DOUBLE)').length, 3);
 });
+
+test('retyped environment members and Catalog contracts retain their independent canonical orderings', () => {
+  const fixture = initialFromJoinFixture(vector, environments);
+  for (const environment of Object.values(fixture.environments)) {
+    const registryOrder = environment.contract_registry.map(value => cid(value));
+    assert.deepEqual(registryOrder, [...registryOrder].sort(),
+      'Environment registry uses full-member hashes, including each self-CID');
+    for (const catalog of environment.connector_catalogs) {
+      const contractOrder = catalog.contracts.map(value => value.cid);
+      assert.deepEqual(contractOrder, [...contractOrder].sort(),
+        'Catalog contracts use their self-CIDs');
+      for (const view of catalog.source_views) {
+        assert.equal(view.connector_id, catalog.connector_id);
+        assert.equal(view.connector_version, catalog.connector_version);
+        assert.ok(environment.source_views.some(value => canonical(value) === canonical(view)));
+      }
+    }
+  }
+});
+
+test('right schema has its own logical identity and only byte-identical shared contracts coalesce', () => {
+  const fixture = initialFromJoinFixture(vector, environments);
+  const right = fixture.environments.right;
+  const schema = right.contract_registry.find(value => value.kind === 'carrier_schema');
+  const expectedBody = {schema: 'actql.contract/0.1',
+    id: 'fixture-initial-join-right-carrier-schema', version: 'fixture', kind: 'carrier_schema',
+    body: {type: 'object', nullable: false, additional_properties: false,
+      fields: {id: {type: 'number', nullable: false}, tag: {type: 'string', nullable: false}}}};
+  assert.deepEqual(schema, {...expectedBody, cid: cid(expectedBody)});
+  assert.deepEqual(right.source_views[0].output.schema,
+    {id: expectedBody.id, version: expectedBody.version, cid: cid(expectedBody)});
+  const members = new Map();
+  for (const environment of Object.values(fixture.environments)) {
+    for (const contract of environment.contract_registry) {
+      const key = `${contract.id}\0${contract.version}`, body = canonical(contract);
+      assert.ok(!members.has(key) || members.get(key) === body,
+        'A repeated logical identity must retain the exact full contract body');
+      members.set(key, body);
+    }
+  }
+  assert.equal(members.size, 7); // Three exact shared contracts, two schemas and two data policies.
+  assert.equal(right.source_views[0].connector_id, 'crm/right');
+  assert.equal(right.connector_catalogs[0].connector_id, 'crm/right');
+  assert.equal(right.schema_snapshots[0].source_ref, 'connector://crm/right/r#v');
+});
+
+
+test('all three forms assert the same non-null key before sorting and hide it only after total order', () => {
+  for (const {text} of selectInitialFromJoinCases(vector)) {
+    assert.equal(text.split('COALESCE(amount, 0)').length - 1, 1);
+    const key = text.indexOf('EXTEND COALESCE(amount, 0) AS initial_join_amount_key');
+    const asserted = text.indexOf('ASSERT UNIQUE BY (initial_join_amount_key, tag)');
+    const sorted = text.indexOf('ORDER BY amount ASC NULLS FIRST, tag, initial_join_amount_key');
+    const projected = text.lastIndexOf('SELECT id, amount, tag');
+    assert.ok(key >= 0 && key < asserted && asserted < sorted && sorted < projected);
+    assert.doesNotMatch(text, /WHERE|DISTINCT|IS NOT NULL/);
+  }
+});
+
+test('independent rows require a nullable amount, keep every occurrence and provide distinct asserted helper tuples', () => {
+  const expected = [
+    {id: 1, amount: null, tag: 'x'}, {id: 1, amount: null, tag: 'y'},
+    {id: 1, amount: 10, tag: 'x'}, {id: 1, amount: 10, tag: 'y'},
+  ];
+  assert.deepEqual(vector.expected_rows, expected);
+  assert.equal(vector.left_rows.filter(row => row.amount === null).length, 1);
+  assert.equal(vector.left_rows.some(row => row.id === null), false);
+  assert.equal(vector.right_rows.some(row => row.id === null || row.tag === null), false);
+  const keys = expected.map(({amount, tag}) => [amount ?? 0, tag]);
+  assert.deepEqual(keys, [[0, 'x'], [0, 'y'], [10, 'x'], [10, 'y']]);
+  assert.equal(new Set(keys.map(JSON.stringify)).size, 4);
+  assert.equal(new Set(expected.map(({id, tag}) => JSON.stringify([id, tag]))).size, 2);
+  // This is an independent fixture property, not a product assertion ACK.
+  // If later Source values collide, the original assertion must refuse them.
+  const collision = [...keys, [0, 'x']];
+  assert.notEqual(new Set(collision.map(JSON.stringify)).size, collision.length);
+});

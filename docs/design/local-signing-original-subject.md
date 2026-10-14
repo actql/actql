@@ -14,6 +14,21 @@ the same original logical scope, with the authenticated Submission scope kept
 separately. The submitted-content identity belongs to a different nominal
 Owner and cannot be substituted because it also has CID spelling.
 
+The initial Client Local `submission_scope_cid` uses the original retained
+reference's existing Submission identity: `native_client_submission_request_id`.
+Its `actql-submission-identity/0.1` body binds epoch CID and caller nonce. Two
+nonces under one epoch and one nonce under different epochs therefore remain
+different submissions. The epoch CID or authority scope alone is too broad;
+the logical request scope has a different domain. No extra reference hash is
+needed. This selects the previously unspecified Signing field supplier rather
+than changing those existing identity laws or historical signed bytes.
+
+Read that reference through the authenticated retained Submission/Run-admission
+owner, not from an incoming CID assertion. Keep original request/Run/Checkpoint
+control revision and current Client/Reviewer/key checks around observation.
+Identity projection after epoch expiry does not renew the epoch or grant
+signing permission. Old Resume and Preparation field suppliers remain unchanged.
+
 The existing paired approval/capture custody retains the actual invocation,
 checked material owner, Preview and persisted Checkpoint. Its current-fenced
 projection supplies the invocation from that retained chain. The authored

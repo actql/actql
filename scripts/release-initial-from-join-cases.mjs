@@ -10,6 +10,7 @@ const leftFields = {id: {type: 'number', nullable: false}, amount: {type: 'numbe
 const rightFields = {id: {type: 'number', nullable: false}, tag: {type: 'string', nullable: false}};
 const cid = body => 'sha256:' + createHash('sha256').update(canonical(body)).digest('hex');
 const seal = (body, key) => ({...body, [key]: cid(body)});
+const compareIdentity = (a, b) => a < b ? -1 : a > b ? 1 : 0;
 
 export function selectInitialFromJoinCases(vector) {
   assert.deepEqual(vector.expected_fields, [
@@ -21,12 +22,17 @@ export function selectInitialFromJoinCases(vector) {
   assert.equal(vector.left_rows.length, 3); assert.equal(vector.right_rows.length, 3);
   const projection = 'l.id AS id, l.amount AS amount, r.tag AS tag';
   const join = 'JOIN right_records AS r ON l.id = r.id MAX_OUTPUT_ROWS 10';
-  const order = 'ORDER BY amount ASC NULLS FIRST, tag';
+  // The duplicate-producing JOIN has no provider-arrival order certificate.
+  // A non-null helper is asserted by the existing key Owner, never inferred
+  // from these expected values. Projection drops it only after total order.
+  const key = 'EXTEND COALESCE(amount, 0) AS initial_join_amount_key |> ASSERT UNIQUE BY (initial_join_amount_key, tag)';
+  const order = 'ORDER BY amount ASC NULLS FIRST, tag, initial_join_amount_key';
+  const finalProjection = 'SELECT id, amount, tag';
   const columns = vector.expected_fields.map(({name, type, nullable}) => ({name, contract: {type, nullable}}));
   const definitions = [
-    ['aql-text', `FROM left_records AS l ${join} |> SELECT ${projection} |> ${order}`],
-    ['sql', `SELECT ${projection} FROM left_records AS l ${join} ${order}`],
-    ['aql-text', `WITH joined AS (FROM left_records AS l ${join} |> SELECT ${projection}) FROM joined |> ${order} |> RESULT answer`],
+    ['aql-text', `FROM left_records AS l ${join} |> SELECT ${projection} |> ${key} |> ${order} |> ${finalProjection}`],
+    ['sql', `SELECT ${projection} FROM left_records AS l ${join} |> ${key} |> ${order} |> ${finalProjection}`],
+    ['aql-text', `WITH joined AS (FROM left_records AS l ${join} |> SELECT ${projection} |> ${key}) FROM joined |> ${order} |> ${finalProjection} |> RESULT answer`],
   ];
   return definitions.map(([format, text], index) => ({name: initialFromJoinNames[index], format, text,
     expected: vector.expected_rows, columns, sourceReadSessionCount: 2}));
@@ -42,19 +48,28 @@ export function initialFromJoinFixture(vector, environments) {
   assert.deepEqual(old[0].body.fields, leftFields);
   assert.deepEqual(left.contract_registry.find(value => value.kind === 'carrier_schema').body.fields, leftFields);
   const {cid: oldSchemaCid, ...schemaBody} = old[0];
-  const schema = seal({...schemaBody, body: {...schemaBody.body, fields: rightFields}}, 'cid');
+  const schema = seal({...schemaBody, id: 'fixture-initial-join-right-carrier-schema',
+    body: {...schemaBody.body, fields: rightFields}}, 'cid');
   const [oldView] = right.source_views; assert.equal(right.source_views.length, 1);
+  assert.equal(oldView.connector_id, 'crm/right');
+  assert.equal(oldView.output.schema.id, old[0].id);
+  assert.equal(oldView.output.schema.version, old[0].version);
   assert.equal(oldView.output.schema.cid, oldSchemaCid);
   const {contract_cid: oldViewCid, ...viewBody} = oldView;
   const view = seal({...viewBody, output: {...viewBody.output,
-    schema: {...viewBody.output.schema, cid: schema.cid}}}, 'contract_cid');
-  right.contract_registry = right.contract_registry.map(value => value.cid === oldSchemaCid ? schema : value);
+    schema: {id: schema.id, version: schema.version, cid: schema.cid}}}, 'contract_cid');
+  // Environment members are ordered by complete body hash; Catalog contracts
+  // below are ordered by their self-CIDs. Retyping changes both orderings.
+  right.contract_registry = right.contract_registry.map(value => value.cid === oldSchemaCid ? schema : value)
+    .sort((a, b) => compareIdentity(cid(a), cid(b)));
   right.source_views = [view];
   assert.equal(right.connector_catalogs.length, 1);
   const {catalog_cid, ...catalog} = right.connector_catalogs[0];
   assert.deepEqual(catalog.source_views, [oldView]);
+  assert.equal(catalog.connector_id, oldView.connector_id);
   right.connector_catalogs = [seal({...catalog,
-    contracts: catalog.contracts.map(value => value.cid === oldSchemaCid ? schema : value),
+    contracts: catalog.contracts.map(value => value.cid === oldSchemaCid ? schema : value)
+      .sort((a, b) => compareIdentity(a.cid, b.cid)),
     source_views: [view]}, 'catalog_cid')];
   for (const snapshot of right.schema_snapshots) {
     assert.equal(snapshot.source_contract_cid, oldViewCid);

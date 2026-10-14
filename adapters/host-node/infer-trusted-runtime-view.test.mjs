@@ -107,3 +107,53 @@ test('forgetting the view does not close native or module originals', () => {
   forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
   assert.equal(closes, 0);
 });
+
+test('recheck validates a late malformed descriptor before reporting an earlier changed original', () => {
+  const actual = original();
+  const view = issueInferTrustedRuntimeView(actual);
+  rejects(() => checkInferTrustedRuntimeView(view, {...actual, host: {}, target: ''}),
+    'InferTrustedRuntimeOriginalUnavailable');
+  let gets = 0;
+  const late = {...actual, host: {}};
+  Object.defineProperty(late, 'target', {enumerable: true,
+    get() { gets++; return actual.target; }});
+  rejects(() => checkInferTrustedRuntimeView(view, late),
+    'InferTrustedRuntimeOriginalUnavailable');
+  assert.equal(gets, 0);
+  assert.equal(checkInferTrustedRuntimeView(view, actual), undefined);
+});
+
+test('recheck observes each descriptor once without reading descriptor values through property getters', () => {
+  const actual = original();
+  const view = issueInferTrustedRuntimeView(actual);
+  const reads = [];
+  let gets = 0;
+  const selected = new Proxy({...actual}, {
+    get() { gets++; throw new Error('UnexpectedOriginalPropertyRead'); },
+    getOwnPropertyDescriptor(value, name) {
+      reads.push(name);
+      return Reflect.getOwnPropertyDescriptor(value, name);
+    },
+  });
+  assert.equal(checkInferTrustedRuntimeView(view, selected), undefined);
+  assert.deepEqual(reads, Object.keys(actual));
+  assert.equal(gets, 0);
+});
+
+test('recheck preserves the earlier descriptor observation when a later trap changes its carrier', () => {
+  const actual = original();
+  const view = issueInferTrustedRuntimeView(actual);
+  const carrier = {...actual};
+  const selected = new Proxy(carrier, {
+    getOwnPropertyDescriptor(value, name) {
+      const descriptor = Reflect.getOwnPropertyDescriptor(value, name);
+      if (name === 'target') value.host = {};
+      return descriptor;
+    },
+  });
+  // This diagnostic Proxy does not authenticate runtime coverage. It fixes
+  // the existing data-observation law without granting any physical action.
+  assert.equal(checkInferTrustedRuntimeView(view, selected), undefined);
+  rejects(() => checkInferTrustedRuntimeView(view, carrier),
+    'InferTrustedRuntimeOriginalChanged');
+});
