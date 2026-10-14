@@ -72,6 +72,9 @@ test "a nested candidate peer shadows the outer peer after a Carrier bridge" {
       Err(InvalidQuery) => "actual InvalidQuery"
       Err(UnsupportedNearest) => "actual UnsupportedNearest"
       Err(UnknownColumn) => "actual UnknownColumn"
+      Err(BindingPreparation(_)) => "actual BindingPreparation"
+      Err(BindingPreparationSource(_, _)) => "actual BindingPreparationSource"
+      Err(ExpressionTyping(_)) => "actual ExpressionTyping"
       Err(_) => "actual other typed refusal"
     },
   )
