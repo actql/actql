@@ -521,8 +521,13 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   let duplicate_reference = prepare_native_client_submission_reference(
     token, "duplicate-state-submit",
   ).unwrap()
+  let duplicate_preparation = submitted_prepare(intent).unwrap()
+  guard duplicate_preparation.preparation is Computation(duplicate_prepared) else {
+    reopened.close().unwrap() |> ignore
+    fail("duplicate fixture preparation: UnsupportedPreparation")
+  }
   let (duplicate_request, _, duplicate_compiled, duplicate_definition) = journal_test_prepared_run(
-    prepared,
+    duplicate_prepared,
     duplicate_reference.request_id,
     "values-state-original",
     scope~,
@@ -539,11 +544,10 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   )
   .unwrap()
   |> ignore
-  reopened_journal
-  .accept_submitted_run(
+  let duplicate_admission = reopened_journal.accept_submitted_run(
     reopened.epoch,
     duplicate_reference,
-    preparation,
+    duplicate_preparation,
     duplicate_request,
     duplicate_compiled,
     duplicate_definition,
@@ -551,8 +555,25 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     true,
     1004.0,
   )
-  .unwrap()
-  |> ignore
+  if duplicate_admission is Err(issue) {
+    let kind = match issue {
+      CustodyLost => "CustodyLost"
+      CapacityExceeded => "CapacityExceeded"
+      AuthorizationDenied => "AuthorizationDenied"
+      ChangedIntent => "ChangedIntent"
+      ForeignRun => "ForeignRun"
+      Fenced => "Fenced"
+      TransactionUnknown => "TransactionUnknown"
+      InvalidSubmission => "InvalidSubmission"
+      UnsupportedPreparation => "UnsupportedPreparation"
+      Start(_) => "Start"
+      Epoch(_) => "Epoch"
+      SubmissionEpochRejected(_) => "SubmissionEpochRejected"
+      _ => "OtherTypedIssue"
+    }
+    reopened.close().unwrap() |> ignore
+    fail("duplicate fixture accept_submitted_run: " + kind)
+  }
   assert_true(
     reopened.lookup_submitted_run_state_by_id(
       crypto, "operator", "cli", "values-state-original", 1004.0,
