@@ -89,6 +89,7 @@ fn advance_effect_checkpoint_replay(
 ///|
 fn replay_effect_checkpoint_reports(
   environment : ControlEnvironment,
+  retained : Ref[ControlReplayJournalCustody?],
   client : @http.Client,
   url : String,
   next : Ref[UInt64],
@@ -97,8 +98,8 @@ fn replay_effect_checkpoint_reports(
   delegation : @resident.ResidentSiteDelegation,
   checkpoint : (String) -> Unit,
 ) -> Unit {
-  if @env.now() < next.val { return }
-  guard fresh_journal(environment) is Some(journal) else {
+  if @env.now() < next.val || retained.val is Some(_) { return }
+  guard open_control_replay_journal(environment, retained) is Some(journal) else {
     report("effect-checkpoint-recovery-pending", [("reason", "journal-open")])
     return
   }
@@ -129,7 +130,7 @@ fn replay_effect_checkpoint_reports(
         ("reason", reason),
       ])
   }
-  if !journal.close() {
+  if !retry_control_replay_journal_cleanup(retained) {
     report("effect-checkpoint-recovery-pending", [("reason", "journal-close")])
   }
 }
