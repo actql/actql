@@ -13,6 +13,15 @@ extern "C" fn acquire_ffi(
 ) -> Backing = "actql_bootstrap_acquire"
 
 ///|
+#borrow(recipe)
+extern "C" fn acquire_fd_ffi(
+  fd : Int,
+  bytes : Int64,
+  generation : Int64,
+  recipe : Bytes,
+) -> Backing = "actql_bootstrap_acquire_fd"
+
+///|
 #borrow(backing)
 extern "C" fn status_ffi(backing : Backing) -> Int = "actql_bootstrap_status"
 
@@ -146,6 +155,30 @@ pub fn[T] NativeInstalledArenaSupplier::acquire(
   self : NativeInstalledArenaSupplier[T],
   original : T,
 ) -> Result[NativeBootstrapAcquisition[T], NativeBootstrapIssue] {
+  self.acquire_original(original, None)
+}
+
+///|
+/// Trusted supplier's borrowed physical FD, not a byte/identity grant. Its
+/// descriptor lifetime and overhead remain with that original physical caller;
+/// Host cleanup acknowledges this mapping only, never FD close or worker stop.
+pub fn[T] NativeInstalledArenaSupplier::acquire_fd(
+  self : NativeInstalledArenaSupplier[T],
+  original : T,
+  fd : Int,
+) -> Result[NativeBootstrapAcquisition[T], NativeBootstrapIssue] {
+  if fd < 0 {
+    return Err(Unavailable)
+  }
+  self.acquire_original(original, Some(fd))
+}
+
+///|
+fn[T] NativeInstalledArenaSupplier::acquire_original(
+  self : NativeInstalledArenaSupplier[T],
+  original : T,
+  fd : Int?,
+) -> Result[NativeBootstrapAcquisition[T], NativeBootstrapIssue] {
   if !physical_equal(original, self.original) {
     return Err(ForeignOriginal)
   }
@@ -161,7 +194,10 @@ pub fn[T] NativeInstalledArenaSupplier::acquire(
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }
-  let backing = acquire_ffi(self.bytes, self.generation, self.recipe)
+  let backing = match fd {
+    None => acquire_ffi(self.bytes, self.generation, self.recipe)
+    Some(fd) => acquire_fd_ffi(fd, self.bytes, self.generation, self.recipe)
+  }
   let host : NativeHostBootstrap[T] = {
     supplier: self,
     ledger,
