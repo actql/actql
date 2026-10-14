@@ -78,6 +78,8 @@ struct NativeBackedExecutionView[T, C] {
   loan : NativeBackedExecutionLoan[T, C]
   physical : PhysicalRegionView
   mut closed : Bool
+  mut domain : NativeBackedExecutionDomain[T, C]?
+  mut domain_attempted : Bool
 }
 
 ///|
@@ -234,6 +236,8 @@ pub fn[T, C] NativeHostBootstrap::map_backed_view(
     loan,
     physical,
     closed: false,
+    domain: None,
+    domain_attempted: false,
   }
   loan.view = Some(view)
   let status = view_status_ffi(physical)
@@ -254,12 +258,17 @@ pub fn[T, C] NativeHostBootstrap::close_backed_view(
 ) -> Result[Unit, NativeBackedExecutionIssue] {
   if !physical_equal(self.supplier.original, original) ||
     !physical_equal(view.loan.region.owner, self) ||
-    !physical_equal(view.loan.child, child) ||
-    !(view.loan.view is Some(selected) && physical_equal(selected, view)) {
+    !physical_equal(view.loan.child, child) {
     return Err(Bootstrap(ForeignOriginal))
   }
   if view.closed {
     return Ok(())
+  }
+  if !(view.loan.view is Some(selected) && physical_equal(selected, view)) {
+    return Err(Bootstrap(ForeignOriginal))
+  }
+  if view.domain is Some(domain) && !domain.closed {
+    return Err(Bootstrap(ReadersPending))
   }
   let status = close_region_view_ffi(
     self.backing,

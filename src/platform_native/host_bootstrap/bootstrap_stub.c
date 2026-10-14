@@ -268,3 +268,49 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_close_region_view(
         return ACTQL_OWNED_OK;
     return actql_native_owned_close_extent_view(&record->view);
 }
+
+/* The same external record retains the original interior slot across failure.
+ * Its lifetime belongs to the initial declared control envelope, not new bytes. */
+typedef struct {
+    actql_bootstrap_view *view;
+    actql_owned_capacity *lease;
+    int status;
+} actql_bootstrap_domain;
+
+MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire_domain(actql_bootstrap_view *view) {
+    actql_bootstrap_domain *record = moonbit_make_external_object(
+        keep_physical_custody, sizeof(*record));
+    record->view = view;
+    record->lease = NULL;
+    record->status = view->status == ACTQL_OWNED_OK
+        ? actql_native_owned_acquire_extent_domain(&view->view, &record->lease)
+        : view->status;
+    return record;
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_domain_status(actql_bootstrap_domain *record) {
+    return record->status;
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_transfer_domain(actql_bootstrap_domain *record) {
+    if (record->lease == NULL) return ACTQL_OWNED_INVALID;
+    return actql_native_owned_transfer(record->lease, record->lease->generation, record->lease->recipe);
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_enter_domain(actql_bootstrap_domain *record) {
+    return actql_native_owned_enter(record->lease);
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_leave_domain(actql_bootstrap_domain *record) {
+    return actql_native_owned_leave(record->lease);
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_close_domain(
+    actql_bootstrap_view *view, actql_bootstrap_domain *record) {
+    if (record->view != view) return ACTQL_OWNED_INVALID;
+    /* Pre-acquire refusal published no interior lease. Its same original
+     * outer view still requires separate Owner-confirmed cleanup. */
+    if (record->lease == NULL && record->status != ACTQL_OWNED_OK)
+        return ACTQL_OWNED_OK;
+    return actql_native_owned_close_extent_domain(&view->view, &record->lease);
+}
