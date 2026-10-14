@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {EventEmitter} from 'node:events';
 import {mkdtemp, open, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
@@ -48,7 +49,7 @@ async function fixture(t, {failures = 1, primary, holdClose = false} = {}) {
   const closeFailure = Object.assign(new Error(secret), {code: 'EIO'});
   prototype.stat = function (...args) {
     let record = native.get(this);
-    if (record === undefined && new Error().stack.includes('readSemanticBytes')) {
+    if (record === undefined && new Error().stack.split('\n')[2]?.includes('at readSemanticBytes')) {
       record = {handle: this, close: this.close, attempts: 0, stats: 0, streams: 0};
       records.push(record); native.set(this, record);
       const stream = this.createReadStream;
@@ -110,7 +111,7 @@ async function refused(f) {
   await assert.rejects(run.result('answer').describe(), error => {
     assert.equal(error.code, 'ClientHostFailure');
     assert.equal(error.cause, undefined); assert.equal(error.cleanupHandle, undefined);
-    assert.doesNotMatch(inspect(error, {showHidden: true, depth: 8}), new RegExp(f.secret));
+    assert.doesNotMatch(inspect(error, {showHidden: true, depth: 8}), /private-semantic-/u);
     return true;
   });
 }
@@ -169,8 +170,10 @@ test('HTTP code redaction leaves the original semantic close duty on the same St
   const f = await fixture(t);
   let status, body;
   const requestStream = Readable.from([Buffer.from(JSON.stringify(request))]);
-  Object.assign(requestStream, {method: 'POST', url: '/actql/client/0.1/result-describe'});
-  const response = {headersSent: false, writeHead(code) {status = code;}, end(value) {body = value;}};
+  Object.assign(requestStream, {method: 'POST', url: '/actql/client/0.1/result-describe',
+    headers: {'content-type': 'application/json'}});
+  const response = Object.assign(new EventEmitter(), {headersSent: false,
+    writeHead(code) {status = code;}, end(value) {body = value;}});
   await createClientHttpHandler(f.operations)(requestStream, response);
   assert.equal(status, 500); assert.deepEqual(JSON.parse(body), {code: 'ClientHostFailure'});
   assert.doesNotMatch(body, new RegExp(f.secret));
