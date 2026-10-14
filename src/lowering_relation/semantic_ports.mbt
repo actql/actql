@@ -244,6 +244,7 @@ pub fn node_supports_bounded_managed_prefix(
     | (RankingValue(_), Where(_))
     | (RankingValue(_), Derive(_))
     | (RankingValue(_), Select(_))
+    | (RankingValue(_), Sort(_))
     | (NearestValue(_), Where(_))
     | (NearestValue(_), Derive(_))
     | (NearestValue(_), Select(_))
