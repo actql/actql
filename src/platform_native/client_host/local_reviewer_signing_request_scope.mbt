@@ -7,13 +7,33 @@ fn NativeLocalReviewerProofMaterials::require_original_reviewer_signing_subject(
   self : NativeLocalReviewerProofMaterials,
   scope : @credential.LocalSigningCredentialScope,
 ) -> Result[Unit, NativeLocalReviewerProofMaterialsIssue] {
-  // This projection reads the authentic paired capture, original checked Unit
-  // and logical request, with current Client/Reviewer/key/control fences.
-  let (request, logical_scope, invocation, unit) = match
-    self.original_signing_subject() {
-    Ok(value) => value
+  // Keep the same opaque original references across every later Submission
+  // and current callback. An immediate metadata tuple cannot fence retirement
+  // caused by those callbacks, even when every CID still has equal bytes.
+  match self.require_current() {
+    Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  let reviewer = self.reviewer
+  let projected = reviewer.approval_scope.read_original_signing_subject_for(
+    reviewer.request,
+    reviewer.original.run_definition_cid,
+    self.original.artifact.checkpoint_cid,
+  )
+  match self.require_current() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  let read = match projected {
+    Ok(value) => value
+    Err(_) => return Err(ProofUnavailable)
+  }
+  let (invocation, unit) = match read.original_subject_after_current() {
+    Ok(value) => value
+    Err(_) => return Err(ProofUnavailable)
+  }
+  let request = @host.client_request_intent_cid(reviewer.request)
+  let logical_scope = @host.client_request_scope_cid(reviewer.request)
   let submission = match self.original_signing_submission_scope() {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -34,7 +54,16 @@ fn NativeLocalReviewerProofMaterials::require_original_reviewer_signing_subject(
   // including the mismatch path. A stale revision/current denial keeps priority;
   // no preparation, capture, unsigned proof, grant or use is reissued.
   match self.require_current() {
-    Err(issue) => Err(issue)
-    Ok(_) => if same_subject { Ok(()) } else { Err(ProofUnavailable) }
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // No callback follows this existing Owner's terminal reference/lifetime
+  // check, including on a subject mismatch. It neither recaptures originals
+  // nor acquires signing permission, a grant or a renewed reservation.
+  match read.original_subject_after_current() {
+    Ok((after_invocation, after_unit)) if same_subject &&
+      after_invocation == invocation &&
+      after_unit == unit => Ok(())
+    Ok(_) | Err(_) => Err(ProofUnavailable)
   }
 }
