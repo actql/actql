@@ -68,13 +68,12 @@ fn NativeClientRunJournal::retain_observed_run_state(
   self : NativeClientRunJournal,
   reference : NativeClientSubmissionReference,
   request : @host.ClientRequestIdentity,
-  observed : @native_publication.NativeObservedRunState,
-  store : @publication_store.Store,
-  namespace_id : String,
+  observed : NativeLocalObservedRunState,
   authority : NativeLocalPolicyAuthority,
 ) -> Result[NativeClientSavedRunState, NativeClientRunJournalIssue] {
   self.transaction(() => {
-    if !authority.current_for(self, request) {
+    if !authority.current_for(self, request) ||
+      !observed.publisher.current_in_owned_transaction() {
       return Err(AuthorizationDenied)
     }
     let (original, run) = match
@@ -87,13 +86,16 @@ fn NativeClientRunJournal::retain_observed_run_state(
       return Err(CustodyLost)
     }
     let definition = @publication.publication_contract_identity(run.definition)
-    if !observed.matches_original_store(
-        store,
-        namespace_id,
-        authority.scope,
-        definition,
-      ) {
+    if observed.definition_cid() != definition ||
+      @host.client_request_identity_relation(observed.request, request) !=
+      @host.SameRequest ||
+      !physical_equal(observed.host, authority.host) {
       return Err(ForeignRun)
+    }
+    let store = observed.publisher.store
+    let namespace_id = observed.publisher.namespace_id
+    if !observed.publisher.current_in_owned_transaction() {
+      return Err(AuthorizationDenied)
     }
     let publication = match
       install_native_client_cancellation_publication(
@@ -105,12 +107,16 @@ fn NativeClientRunJournal::retain_observed_run_state(
     if run.publication_binding != publication.binding {
       return Err(ForeignRun)
     }
-    let wire = observed.original_wire()
     let state = match
-      @host.restore_client_run_state_original(run.definition, wire) {
+      @host.prepare_client_run_state_original(
+        run.definition,
+        observed.original_manifest(),
+        observed.wire(),
+      ) {
       Ok(value) => value
       Err(_) => return Err(CustodyLost)
     }
+    let wire = state.wire()
     let body = match
       submitted_intent_body(
         original.reference,
@@ -121,7 +127,8 @@ fn NativeClientRunJournal::retain_observed_run_state(
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
-    if !authority.current_for(self, request) {
+    if !authority.current_for(self, request) ||
+      !observed.publisher.current_in_owned_transaction() {
       return Err(AuthorizationDenied)
     }
     match original.run_state_original {
@@ -141,7 +148,8 @@ fn NativeClientRunJournal::retain_observed_run_state(
     }
     // A metadata CAS never calls save(run), changes accepted revision, or
     // creates a second control CAS. Current is checked before commit as well.
-    if !authority.current_for(self, request) {
+    if !authority.current_for(self, request) ||
+      !observed.publisher.current_in_owned_transaction() {
       return Err(AuthorizationDenied)
     }
     let current_publication = match
@@ -168,11 +176,19 @@ pub fn NativeLocalHostConnection::retain_submitted_run_state(
   connection : String,
   reference : NativeClientSubmissionReference,
   request : @host.ClientRequestIdentity,
-  observed : @native_publication.NativeObservedRunState,
-  store : @publication_store.Store,
-  namespace_id : String,
+  observed : NativeLocalObservedRunState,
   now : Double,
 ) -> Result[NativeClientSavedRunState, NativeClientRunJournalIssue] {
+  if !physical_equal(observed.host, self) ||
+    @host.client_request_identity_relation(observed.request, request) !=
+    @host.SameRequest {
+    return Err(ForeignRun)
+  }
+  if observed.read_authority.principal != principal ||
+    observed.read_authority.connection != connection ||
+    !observed.require_current_for(self, request) {
+    return Err(AuthorizationDenied)
+  }
   let authority = match
     native_local_policy_authority_for(
       self,
@@ -198,7 +214,7 @@ pub fn NativeLocalHostConnection::retain_submitted_run_state(
     Err(issue) => return Err(issue)
   }
   self.journal.retain_observed_run_state(
-    reference, request, observed, store, namespace_id, authority,
+    reference, request, observed, authority,
   )
 }
 

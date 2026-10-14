@@ -18,7 +18,7 @@ pub fn install_native_run_publication_authority((NativeRunPublicationAuthorizati
 
 pub fn install_native_run_publication_context_authority((NativeRunPublicationAuthorization) -> Bool, (@actql/actql/run_publication.PublicationRequestContext, NativeRunPublicationAuthorization) -> Bool) -> NativeRunPublicationAuthority
 
-pub fn install_native_run_publication_service(@publication_store.Store, NativeRunPublicationAuthority, Int, Int, Int, commit_guard? : (() -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]) -> Result[NativeRunPublicationService, NativeRunPublicationIssue]
+pub fn install_native_run_publication_service(@publication_store.Store, NativeRunPublicationAuthority, Int, Int, Int, client_request? : @run_publication_host.ClientRequestIdentity?, commit_guard? : (() -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]) -> Result[NativeRunPublicationService, NativeRunPublicationIssue]
 
 pub fn persist_publication_output_native(@publication_store.Store, @run_publication_host.PublicationOutputExport, NativePublicationOutputContext, Int, Int, Int) -> Result[NativePublishedOutput, NativePublicationOutputIssue]
 
@@ -97,24 +97,10 @@ pub(all) struct NativeEffectFreeRunContext {
   authoring : @actql/actql/run_publication.RunEvidenceValue
 }
 
-type NativeObservedRunState
-pub fn NativeObservedRunState::definition_cid(Self) -> String
-pub fn NativeObservedRunState::matches_original_store(Self, @publication_store.Store, String, String, String) -> Bool
-pub fn NativeObservedRunState::original_wire(Self) -> String
-pub fn NativeObservedRunState::wire(Self) -> String
-
-pub(all) enum NativeObservedRunStateIssue {
-  Unavailable
-  InvalidLimits
-  ValidationLimit
-  Publication(NativeRunPublicationIssue)
-  State(@actql/actql/run_publication.ObservedPublicationRunStateIssue)
-}
-
 type NativePreparedCapturedRunPublication
 pub fn NativePreparedCapturedRunPublication::cancel(Self) -> Result[Bool, NativeCapturedRunPublicationCancellationIssue]
 pub fn NativePreparedCapturedRunPublication::commit(Self) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
-pub fn NativePreparedCapturedRunPublication::observe_run_state(Self, String, Int, Int, Int, () -> Bool) -> Result[NativeObservedRunState, NativeObservedRunStateIssue]
+pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(Self, String, Int, Int, Int) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue]
 
 pub(all) struct NativePublicationOutputContext {
   run_definition : @actql/actql/run_publication.PublicationContract
@@ -211,6 +197,22 @@ pub(all) struct NativeRunPublicationResult {
 }
 
 type NativeRunPublicationService
+
+type NativeRunStateCandidate
+pub fn NativeRunStateCandidate::matches_original_publisher(Self, @publication_store.Store, String, String, String, String, String) -> Bool
+pub fn NativeRunStateCandidate::original_client_request(Self) -> @run_publication_host.ClientRequestIdentity?
+pub fn NativeRunStateCandidate::original_metadata(Self) -> (@actql/actql/run_publication.PublicationContract, @actql/actql/run_publication.PublicationContract)
+pub fn NativeRunStateCandidate::projection_materials(Self) -> Result[(@actql/actql/run_publication.PublicationCommitPreparation, @actql/actql/run_publication.PublicationCommitReadView, String, Int, Int, Int), NativeRunStateCandidateIssue]
+pub fn NativeRunStateCandidate::release(Self) -> Result[Unit, NativeRunStateCandidateIssue]
+pub fn NativeRunStateCandidate::require_original_store_current(Self) -> Result[Unit, NativeRunStateCandidateIssue]
+
+pub(all) enum NativeRunStateCandidateIssue {
+  Unavailable
+  InvalidLimits
+  ValidationLimit
+  Publication(NativeRunPublicationIssue)
+  State(@actql/actql/run_publication.ObservedPublicationRunStateIssue)
+}
 
 // Type aliases
 
