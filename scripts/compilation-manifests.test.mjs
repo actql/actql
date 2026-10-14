@@ -103,22 +103,29 @@ test('query grammar and rules have independent manifest identity inputs', () => 
 });
 
 test('current query rules bind the manifest while prior rules retain their identity', () => {
-  // Independent SHA-256 expectations from the normative query-rules bytes
-  // and the complete canonical manifest preimage, not generator output.
+  // Independent Python SHA-256 of the normative bytes and sorted manifest
+  // preimage. Preserve the complete earlier body, including its old grammar.
+  const vector = read('scripts/fixtures/initial-from-join/independent-vector.json');
   const queryRules = readFileSync('docs/spec/query-text.md', 'utf8');
   assert.equal(sha(queryRules),
-    'sha256:d06e43b1b31cffcaef022d0568a81aab7c22ced4e25e7ae9c9e9aec9346b071a');
+    'sha256:6c1d6f446e65e47c1520db36ff393a8e4421f472b2cc43ef31a62aad4b0db541');
   const {grammar_manifest_cid: current, ...body} =
     read('spec/manifests/actql-grammar-0.1.json');
   assert.equal(body.query_text_rules_sha256, sha(queryRules).slice(7));
   assert.equal(sha(canonicalText(body)), current);
   assert.equal(current,
+    'sha256:df961faf7aadae3b4bd84bfaa33c2fd41ddeaa479bd59834b07e45168853b398');
+  const {grammar_manifest_cid: previous, ...before} = vector.before;
+  assert.equal(previous,
     'sha256:27d3b7110464cb168591ceebd54340aaafde66e46fc4f7b576ee6df7aec143ca');
-  const prior = {...body,
+  assert.equal(before.query_text_rules_sha256,
+    'd06e43b1b31cffcaef022d0568a81aab7c22ced4e25e7ae9c9e9aec9346b071a');
+  assert.equal(sha(canonicalText(before)), previous);
+  const prior = {...before,
     query_text_rules_sha256: '87b7d37c8bf5a739631dc7ecf187e8fe0c7a75564c58e26f8d11282b08a0b722'};
   assert.equal(sha(canonicalText(prior)),
     'sha256:2aa67a52bae3a27fec7397dfa40c0cdc63096cd988e7cfee480477386c53b2ec');
-  assert.notEqual(sha(canonicalText(prior)), current);
+  assert.notEqual(previous, current);
 });
 
 test('pinned manifests close over their source contracts and exact schemas', () => {
