@@ -219,6 +219,18 @@ class OriginalSDKDeliveryStore:
             finally:
                 self._active = False
 
+    def selected_original_payload(self, request: _Input, clock: _Input) -> OriginalReaderFacts:
+        """Route Core's original ordinals; no Python selection or read permit."""
+        def select(first: _Output, configuration: int) -> OriginalReaderFacts:
+            result = self._core.publication_sdk_payload_ordinal(first, configuration, field='result')
+            binding = self._core.publication_sdk_payload_ordinal(first, configuration, field='binding')
+            matches = [fact for fact in self._observation._facts
+                       if fact._result == result and fact._binding_index == binding]
+            if len(matches) != 1:
+                raise ValueError('Original SDK selected reader inventory is unavailable')
+            return matches[0]
+        return self._payload_observation(request, clock, select)
+
     def bind_original_payload(self, request: _Input, clock: _Input,
                               fact: OriginalReaderFacts) -> None:
         """Match the exact original fact/Sealed record through Core, not Python."""

@@ -466,6 +466,7 @@ pub fn LocalSDKPayloadEncoding::confirm_chunk(Self) -> Result[Int64, LocalSDKPay
 pub fn LocalSDKPayloadEncoding::confirm_finished(Self) -> Result[@run_publication.PublicationContract, LocalSDKPayloadEncodingIssue]
 pub fn LocalSDKPayloadEncoding::feed(Self, Bytes, Bool) -> Result[Bytes, LocalSDKPayloadEncodingIssue]
 pub fn LocalSDKPayloadEncoding::observe_empty_output(Self) -> Result[Int64, LocalSDKPayloadEncodingIssue]
+pub fn LocalSDKPayloadEncoding::original_payload_ordinals(Self, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, Array[LocalResultPublication], String, Int) -> Result[(Int, Int), LocalSDKPayloadSelectionIssue]
 pub fn LocalSDKPayloadEncoding::prepare_input(Self) -> Result[Unit, LocalSDKPayloadEncodingIssue]
 pub fn[E] LocalSDKPayloadEncoding::prepare_terminal_from_store(Self, LocalPublicationPreflight, @execution_authorization.AdmittedAccountConfiguration, @run_publication_host.ClientLocalRunPolicyOriginal, @run_publication.LocalSDKResultReadSelection, String, @run_publication.PublicationCommitPreparation, @run_publication.PublicationCommitReadView, String, String, String, String, Int, (String, String) -> Result[@run_publication_host.ClientJournalPhysicalRow?, E], () -> Result[Unit, E]) -> Result[LocalSDKDeliveryTerminal, LocalSDKDeliveryTerminalIssue[E]]
 
@@ -482,6 +483,13 @@ pub(all) enum LocalSDKPayloadEncodingIssue {
 pub(all) enum LocalSDKPayloadPreparationIssue[E] {
   Codecs(LocalSDKReadPayloadCodecIssue[E])
   Encoding(LocalSDKPayloadEncodingIssue)
+}
+
+pub(all) enum LocalSDKPayloadSelectionIssue {
+  Stored(@run_publication.ObservedResultReadIssue)
+  InvalidLimit
+  ChangedOriginal
+  MissingOriginal
 }
 
 pub(all) enum LocalSDKReadDeliveryIssue[E] {

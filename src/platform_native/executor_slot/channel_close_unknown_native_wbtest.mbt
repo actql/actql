@@ -2,15 +2,21 @@
 extern "C" fn channel_reuse_closed_descriptor(descriptor : Int) -> Int = "actql_executor_slot_test_reuse_closed_descriptor"
 
 ///|
-fn channel_close_custody_fixture(label : String) -> (NativeExecutorSlotChild, NativeHolderChannel) raise {
+fn channel_close_custody_fixture(
+  label : String,
+) -> (NativeExecutorSlotChild, NativeHolderChannel) raise {
   guard slot_test_root() is Some(root) else {
-    fail("selected Channel close cases require an owned isolated executor-slot Root")
+    fail(
+      "selected Channel close cases require an owned isolated executor-slot Root",
+    )
     abort("missing Channel close fixture")
   }
   let path = root + "/" + label + "-" + @env.now().to_string() + ".lock"
   let slot = open_native_executor_slot(path).unwrap()
   assert_true(slot.try_acquire().unwrap())
-  let original = slot.spawn_holder_with_channel("/bin/sh", ["-c", "exit 0"]).unwrap()
+  let original = slot
+    .spawn_holder_with_channel("/bin/sh", ["-c", "exit 0"])
+    .unwrap()
   assert_eq(original.0.wait(true).unwrap(), Some(Exited(0)))
   original
 }
@@ -18,9 +24,17 @@ fn channel_close_custody_fixture(label : String) -> (NativeExecutorSlotChild, Na
 ///|
 fn check_channel_close_unknown_reuse(inspection : Bool) -> Unit raise {
   let (child, channel) = channel_close_custody_fixture(
-    if inspection { "inspection-close-unknown" } else { "writer-close-unknown" },
+    if inspection {
+      "inspection-close-unknown"
+    } else {
+      "writer-close-unknown"
+    },
   )
-  let original = if inspection { channel.inspection_descriptor } else { channel.descriptor }
+  let original = if inspection {
+    channel.inspection_descriptor
+  } else {
+    channel.descriptor
+  }
   // Fixture consumption without its observation. The real Owner subsequently
   // receives EBADF; this is not an actual observed kernel EINTR/EIO failure.
   assert_eq(slot_close_ffi(original), 0)
@@ -35,7 +49,16 @@ fn check_channel_close_unknown_reuse(inspection : Bool) -> Unit raise {
   assert_false(channel.send("release"))
   let independent = @utf8.encode("independent-new-pipe\n")
   // Repeated original cleanup must not close the independent reused number.
-  assert_eq(channel_write_ffi(original, new_reader, independent, independent.length(), 0), independent.length())
+  assert_eq(
+    channel_write_ffi(
+      original,
+      new_reader,
+      independent,
+      independent.length(),
+      0,
+    ),
+    independent.length(),
+  )
   assert_eq(child.wait(false).unwrap(), Some(Exited(0)))
   assert_true(channel.close_unknown)
   assert_eq(slot_close_ffi(original), 0)
@@ -54,7 +77,9 @@ test "Channel inspection close Unknown never closes an independent reused descri
 
 ///|
 test "confirmed Channel descriptor close stays idempotent without changing child observation" {
-  let (child, channel) = channel_close_custody_fixture("confirmed-channel-close")
+  let (child, channel) = channel_close_custody_fixture(
+    "confirmed-channel-close",
+  )
   assert_true(channel.close())
   assert_true(channel.close())
   assert_false(channel.close_unknown)

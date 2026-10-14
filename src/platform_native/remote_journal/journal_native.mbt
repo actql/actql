@@ -1,4 +1,39 @@
 ///|
+struct NativeRemoteJournalOpenFailure {
+  original_issue : NativeRemoteJournalIssue
+  mut failed_open : @sqlite.NativeSqliteOpenFailure?
+  mut initialized_database : @sqlite.Database?
+}
+
+///|
+pub fn NativeRemoteJournalOpenFailure::issue(
+  self : NativeRemoteJournalOpenFailure,
+) -> NativeRemoteJournalIssue {
+  self.original_issue
+}
+
+///|
+/// Retire the same physical handles only. Durable dispatch/cancel/receipt/
+/// holding records and reservations are not deleted or settled by this ACK.
+pub fn NativeRemoteJournalOpenFailure::retry_cleanup(
+  self : NativeRemoteJournalOpenFailure,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  if self.failed_open is Some(original) {
+    match original.retry_cleanup() {
+      Ok(_) => self.failed_open = None
+      Err(issue) => return Err(Physical(issue))
+    }
+  }
+  if self.initialized_database is Some(original) {
+    match original.close_checked() {
+      Ok(_) => self.initialized_database = None
+      Err(issue) => return Err(Physical(issue))
+    }
+  }
+  Ok(())
+}
+
+///|
 struct Journal {
   database : @sqlite.Database
   control : @remote.SiteDispatchJournal
@@ -133,23 +168,35 @@ pub fn open_journal_with_custody(
     Ok(_) => ()
     Err(issue) => return Err(RefusedBeforeAcquisition(issue))
   }
-  let database = match library.open_database_with_custody(path, max_record_bytes) {
+  let database = match
+    library.open_database_with_custody(path, max_record_bytes) {
     Ok(value) => value
-    Err(original) => return Err(CleanupRequired({
-      original_issue: Physical(original.issue()),
-      failed_open: Some(original),
-      initialized_database: None,
-    }))
+    Err(original) =>
+      return Err(
+        CleanupRequired({
+          original_issue: Physical(original.issue()),
+          failed_open: Some(original),
+          initialized_database: None,
+        }),
+      )
   }
   match install_site_binding(database, control) {
-    Ok(_) => Ok({
-      database, control, max_record_bytes, closed: false, retiring: false,
-    })
-    Err(issue) => Err(CleanupRequired({
-      original_issue: issue,
-      failed_open: None,
-      initialized_database: Some(database),
-    }))
+    Ok(_) =>
+      Ok({
+        database,
+        control,
+        max_record_bytes,
+        closed: false,
+        retiring: false,
+      })
+    Err(issue) =>
+      Err(
+        CleanupRequired({
+          original_issue: issue,
+          failed_open: None,
+          initialized_database: Some(database),
+        }),
+      )
   }
 }
 
@@ -1546,13 +1593,18 @@ pub fn Journal::close(self : Journal) -> Bool {
 /// Retain this same Journal/control/Database until physical retirement. A
 /// close intent blocks new I/O; it neither deletes durable records nor returns
 /// reservations, and failure cannot become a Closed acknowledgement.
-pub fn Journal::close_checked(self : Journal) -> Result[Unit, NativeRemoteJournalIssue] {
+pub fn Journal::close_checked(
+  self : Journal,
+) -> Result[Unit, NativeRemoteJournalIssue] {
   if self.closed {
     return Ok(())
   }
   self.retiring = true
   match self.database.close_checked() {
-    Ok(_) => { self.closed = true; Ok(()) }
+    Ok(_) => {
+      self.closed = true
+      Ok(())
+    }
     Err(issue) => Err(Physical(issue))
   }
 }
@@ -1815,13 +1867,18 @@ pub fn CoordinatorJournal::close(self : CoordinatorJournal) -> Bool {
 /// Retain this same Journal/control/Database until physical retirement. A
 /// close intent blocks new I/O; it neither deletes durable records nor returns
 /// reservations, and failure cannot become a Closed acknowledgement.
-pub fn CoordinatorJournal::close_checked(self : CoordinatorJournal) -> Result[Unit, NativeRemoteJournalIssue] {
+pub fn CoordinatorJournal::close_checked(
+  self : CoordinatorJournal,
+) -> Result[Unit, NativeRemoteJournalIssue] {
   if self.closed {
     return Ok(())
   }
   self.retiring = true
   match self.database.close_checked() {
-    Ok(_) => { self.closed = true; Ok(()) }
+    Ok(_) => {
+      self.closed = true
+      Ok(())
+    }
     Err(issue) => Err(Physical(issue))
   }
 }

@@ -169,6 +169,28 @@ test('keyed row consumer failure keeps captured bytes and the exact media charge
   assert.equal(state.calls.length, 2, 'consumer failure cannot resend a read');
 });
 
+for (const missing of [undefined, null]) {
+  test(`missing capture receipt ${missing} publishes no keyed row and retains the media ticket`, async () => {
+    const {options, state} = fixture();
+    const capture = options.captureContent;
+    options.captureContent = async observed => {
+      await capture(observed);
+      return missing;
+    };
+    await assert.rejects(readGcsKeyedContent(options),
+      {code: 'GcsContentCaptureReceiptMissing'});
+    // This uses the actual transport/dispatcher with fixture credential and
+    // capture ports, not Core ContentRef admission or installed GCS evidence.
+    assert.equal(state.captures.length, 1);
+    assert.deepEqual(state.captures[0].bytes, payload);
+    assert.deepEqual(state.pages, [[]]);
+    assert.equal(state.pending, state.charges[1]);
+    assert.equal(state.charges.length, 2);
+    assert.equal(state.requests.length, 2);
+    assert.equal(state.calls.length, 2, 'missing capture receipt cannot reacquire content');
+  });
+}
+
 test('foreign Resource resolution refuses before any request or credential use', async () => {
   const {options, state} = fixture();
   options.resolveResource = async () => undefined;

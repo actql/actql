@@ -2661,44 +2661,75 @@ fn open_holder_output_resources(
         Ok(root) => original.retained_root = Some(root)
         Err(failure) => {
           original.failed_root = Some(failure)
-          return Err(HolderOutputSetupPending(original, "retained input Root unavailable"))
+          return Err(
+            HolderOutputSetupPending(
+              original, "retained input Root unavailable",
+            ),
+          )
         }
       }
-    _ => return Err(HolderOutputSetupRefused(
-      "retained input delegation and Root must be configured together",
-    ))
+    _ =>
+      return Err(
+        HolderOutputSetupRefused(
+          "retained input delegation and Root must be configured together",
+        ),
+      )
   }
-  let control = match open_holder_partial_http_client(original, control_settings, true) {
+  let control = match
+    open_holder_partial_http_client(original, control_settings, true) {
     Ok(value) => value
     Err(failure) => return Err(failure)
   }
-  let transfer = match open_holder_partial_http_client(original, transfer_settings, false) {
+  let transfer = match
+    open_holder_partial_http_client(original, transfer_settings, false) {
     Ok(value) => value
     Err(failure) => return Err(failure)
   }
-  let store = match @publication_store.open_store_with_custody(
-    sqlite_library, publication_root, publication_authority,
-    publication_capacity, max_transfers.to_int64(), max_record_bytes,
-  ) {
-    Ok(value) => { original.store = Some(value); value }
-    Err(RefusedBeforeAcquisition(_)) => return Err(HolderOutputSetupPending(
-      original, "publication Store configuration refused after prior acquisition",
-    ))
+  let store = match
+    @publication_store.open_store_with_custody(
+      sqlite_library,
+      publication_root,
+      publication_authority,
+      publication_capacity,
+      max_transfers.to_int64(),
+      max_record_bytes,
+    ) {
+    Ok(value) => {
+      original.store = Some(value)
+      value
+    }
+    Err(RefusedBeforeAcquisition(_)) =>
+      return Err(
+        HolderOutputSetupPending(
+          original, "publication Store configuration refused after prior acquisition",
+        ),
+      )
     Err(CleanupRequired(failure)) => {
       original.failed_store = Some(failure)
-      return Err(HolderOutputSetupPending(original, "publication Store open failed"))
+      return Err(
+        HolderOutputSetupPending(original, "publication Store open failed"),
+      )
     }
   }
-  let transfer_journal = match @transfer_journal.open_journal_with_custody(
-    sqlite_library, transfer_journal_path, max_record_bytes, 65536, 1048576, max_bytes,
-  ) {
-    Ok(value) => { original.transfer_journal = Some(value); value }
-    Err(RefusedBeforeAcquisition(_)) => return Err(HolderOutputSetupPending(
-      original, "Transfer Journal configuration refused after prior acquisition",
-    ))
+  let transfer_journal = match
+    @transfer_journal.open_journal_with_custody(
+      sqlite_library, transfer_journal_path, max_record_bytes, 65536, 1048576, max_bytes,
+    ) {
+    Ok(value) => {
+      original.transfer_journal = Some(value)
+      value
+    }
+    Err(RefusedBeforeAcquisition(_)) =>
+      return Err(
+        HolderOutputSetupPending(
+          original, "Transfer Journal configuration refused after prior acquisition",
+        ),
+      )
     Err(CleanupRequired(failure)) => {
       original.failed_transfer_journal = Some(failure)
-      return Err(HolderOutputSetupPending(original, "Transfer Journal open failed"))
+      return Err(
+        HolderOutputSetupPending(original, "Transfer Journal open failed"),
+      )
     }
   }
   Ok({
@@ -4248,7 +4279,10 @@ fn run_holder(
       // No output object was acquired, but the original environment/slot still
       // need their checked cleanup. Do not discard those existing Owners.
       retain_partial_holder_output_setup(
-        new_holder_partial_output_resources(), environment, slot, issue,
+        new_holder_partial_output_resources(),
+        environment,
+        slot,
+        issue,
       )
       return HolderCommandFailed(None, issue)
     }
@@ -4768,7 +4802,10 @@ fn recover_output_command(
   match resources {
     Err(HolderOutputSetupRefused(issue)) => {
       retain_partial_output_recovery_setup(
-        new_holder_partial_output_resources(), owner, slot, issue,
+        new_holder_partial_output_resources(),
+        owner,
+        slot,
+        issue,
       )
       stop(issue)
     }

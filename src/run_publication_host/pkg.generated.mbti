@@ -247,6 +247,8 @@ pub fn check_client_model_original_parked_origin(@physical_resources.OriginalRes
 
 pub fn check_client_model_original_parked_storage_origin(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @run_publication.ModelOriginalResourceDocument, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue) -> Result[Unit, ClientModelOriginalOriginIssue]
 
+pub fn check_client_model_original_pre_restore_origin(ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @run_publication.ModelOriginalResourceDocument, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[Unit, ClientModelOriginalOriginIssue]
+
 pub fn check_client_model_original_storage_origin(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @run_publication.ModelOriginalResourceDocument, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue) -> Result[Unit, ClientModelOriginalOriginIssue]
 
 pub fn check_client_model_raw_capture_current(ClientModelRawCaptureRegistration) -> Result[Unit, ClientModelRawCaptureIssue]
@@ -454,6 +456,8 @@ pub fn client_effect_result_import_observation_cid(ClientEffectResultImportObser
 pub fn client_effect_result_import_observation_json(ClientEffectResultImportObservation) -> String
 
 pub fn client_effect_review_checkpoint_members(ClientEffectAllowedRun, @run_publication.PublicationContract, String, @checkpoint_runtime.WireLimits, Int, Int) -> Result[Array[String], ClientEffectCheckpointMembersIssue]
+
+pub fn client_effect_review_checkpoint_unit_definition_cid(ClientEffectAllowedRun, @run_publication.PublicationContract, @checkpoint_runtime.SealedCheckpoint) -> Result[String, ClientEffectCheckpointBindingIssue]
 
 pub fn client_effect_run_materials_request_for_dispatch(ClientEffectRunMaterials, @remote_site_protocol.DispatchRequest) -> Result[ClientRequestIdentity?, ClientRequestIdentityIssue]
 

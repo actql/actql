@@ -9,6 +9,8 @@ import {
 // Values
 pub fn load_library(String, diagnostic_ceiling? : Int?) -> Result[Library, NativeHttpIssue]
 
+pub fn load_library_with_custody(String, diagnostic_ceiling? : Int?) -> Result[Library, NativeHttpLibraryLoadError]
+
 // Errors
 
 // Types and methods
@@ -24,7 +26,9 @@ pub fn Client::response_limit(Self) -> Result[Int64, NativeHttpIssue]
 
 type Library
 pub fn Library::create_authenticated_client(Self, String, NativeHttpAuthentication, Int64, Int, Int) -> Result[Client, NativeHttpIssue]
+pub fn Library::create_authenticated_client_with_custody(Self, String, NativeHttpAuthentication, Int64, Int, Int) -> Result[Client, NativeHttpClientCreateError]
 pub fn Library::create_client(Self, String, String, String, Int64, Int, Int) -> Result[Client, NativeHttpIssue]
+pub fn Library::create_client_with_custody(Self, String, String, String, Int64, Int, Int) -> Result[Client, NativeHttpClientCreateError]
 pub fn Library::version(Self) -> String
 
 pub(all) enum NativeHttpAuthentication {
@@ -32,6 +36,15 @@ pub(all) enum NativeHttpAuthentication {
   Bearer(String)
   MutualTlsAndBearer(String, String, String)
 }
+
+pub(all) enum NativeHttpClientCreateError {
+  RefusedBeforeAcquisition(NativeHttpIssue)
+  CleanupRequired(NativeHttpClientCreateFailure)
+}
+
+type NativeHttpClientCreateFailure
+pub fn NativeHttpClientCreateFailure::issue(Self) -> NativeHttpIssue
+pub fn NativeHttpClientCreateFailure::retry_cleanup(Self) -> Result[Library, NativeHttpIssue]
 
 pub(all) struct NativeHttpHeader {
   name : String
@@ -51,6 +64,15 @@ pub(all) enum NativeHttpIssue {
   CredentialUnavailable
   Transport(String)
 }
+
+pub(all) enum NativeHttpLibraryLoadError {
+  RefusedBeforeAcquisition(NativeHttpIssue)
+  CleanupRequired(NativeHttpLibraryLoadFailure)
+}
+
+type NativeHttpLibraryLoadFailure
+pub fn NativeHttpLibraryLoadFailure::issue(Self) -> NativeHttpIssue
+pub fn NativeHttpLibraryLoadFailure::retry_cleanup(Self) -> Result[Unit, NativeHttpIssue]
 
 pub(all) enum NativeHttpMethod {
   Get
