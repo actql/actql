@@ -128,3 +128,20 @@ FD, parent range or logical quota. Successful domain cleanup removes the
 view's backreference; successful parent settlement removes the loan's view
 backreference. Closed aliases are idempotent only after the original Host and
 child identity checks. No new Run/Recovery Owner or Python success inference.
+
+## Prepared original worker material
+
+`project_prepared_domain` checks the same current Host, region, original child,
+Core ticket, view and transferred domain. It delegates logical limits to the
+existing `backed_execution_delegation_description` and physical bounds to the
+existing `project_backed_extent`. The result contains only immutable extent and
+limits DATA. It does not expose a Ledger, nominal pointer, FD, permit or ACK.
+Untransferred, foreign, closing or retired originals cannot return material,
+including when an earlier extent projection was cached. Reading the material
+reserves nothing and does not mark the child started or free its original loan.
+
+The installed control forwards the same domain record rather than constructing
+limits from SDK fields. A future trusted worker bootstrap must still validate
+its durable original launch facts, complete independent pre-spawn funding and
+current authorization before mapping or runtime work. This projection alone
+cannot supply those missing facts or enable ordinary factory startup.

@@ -106,6 +106,7 @@ pub fn InstalledArenaHost::enter_domain(Self, InstalledArenaDomain) -> Result[Un
 pub fn InstalledArenaHost::leave_backing_borrow_scope(Self, InstalledArenaBackingBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::leave_domain(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_domain(Self, InstalledArenaBackingBorrow, Int, Int64, @physical_resources.LedgerLimits) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::project_prepared_domain(Self, InstalledArenaDomain) -> Result[@host_bootstrap.NativePreparedDomainTransport, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::report(Self, InstalledArenaDelegation, @physical_resources.LedgerUsage) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::require_backing_borrow_current(Self, InstalledArenaBackingBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::require_current(Self) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
