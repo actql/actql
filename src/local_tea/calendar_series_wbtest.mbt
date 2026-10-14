@@ -346,3 +346,60 @@ test "Calendar actual row quota remains distinct from conservative preparation b
     assert_false(calendar_series_cleanup_pending(active))
   }
 }
+
+///|
+test "Calendar selected policy quota retains exact occurrence and cannot widen" {
+  let generated = calendar_kernel_generated(
+    "2000-01-01T00:00:00.000Z", "2000-01-03T00:00:00.000Z",
+  )
+  assert_true(
+    @execution.constrain_generated_calendar_output(generated, 1, 2L)
+    is Err(InputSet),
+  )
+  assert_true(
+    @execution.constrain_generated_calendar_output(generated, 0, -1L)
+    is Err(InvalidLimits),
+  )
+  assert_eq(@execution.generated_calendar_output_ceiling(generated, 0), None)
+  let exact = @execution.constrain_generated_calendar_output(generated, 0, 2L).unwrap()
+  assert_eq(@execution.generated_calendar_output_ceiling(exact, 0), Some(2L))
+  let widened = @execution.constrain_generated_calendar_output(exact, 0, 1000L).unwrap()
+  assert_eq(@execution.generated_calendar_output_ceiling(widened, 0), Some(2L))
+  let selected = @execution.select_generated_sequence_step(widened, 0).unwrap()
+  assert_eq(@execution.generated_calendar_output_ceiling(selected, 0), Some(2L))
+  let short = @execution.constrain_generated_calendar_output(selected, 0, 1L).unwrap()
+  for (original, succeeds) in [(selected, true), (short, false)] {
+    let active = start_calendar_series(
+      @bounded.control(),
+      original,
+      0,
+      1000,
+      calendar_kernel_values(),
+      1000,
+      1000,
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if !terminal {
+        match advance_calendar_series(active, 7).unwrap() {
+          CalendarContinue(_) => ()
+          CalendarComplete(output, ..) => {
+            assert_true(succeeds)
+            assert_eq(@execution.completed_row_count(output), 2)
+            terminal = true
+          }
+          CalendarFailed(CalendarBoundary(SeriesRowLimit), ..) => {
+            assert_false(succeeds)
+            terminal = true
+          }
+          _ => fail("selected policy must retain the exact Calendar quota")
+        }
+      }
+    }
+    assert_true(terminal)
+    while !cleanup_calendar_series(active).unwrap() {
+
+    }
+    assert_false(calendar_series_cleanup_pending(active))
+  }
+}

@@ -333,6 +333,7 @@ pub fn starts_with_selected_local_generator(value : CheckedPipeline) -> Bool {
   .map(step => {
     match step.operation {
       Values(_) | TimeSeries(_) => true
+      Calendar(checked) => @calendar.cardinality(checked) is AtMost(_)
       _ => false
     }
   })

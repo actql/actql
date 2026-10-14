@@ -98,6 +98,8 @@ for (const [path, body] of [
     graphOrderLines.join('\n') + '\n'],
   ['src/local_tea/calendar_contracts_wbtest.mbt',
     calendarLines.join('\n') + '\n'],
+  ['src/local_tea_provider/calendar_contracts_wbtest.mbt',
+    calendarLines.join('\n') + '\n'],
   ['src/connectors/local/relation_chain_lifetime_contracts_wbtest.mbt',
     lifetimeLines.join('\n') + '\n'],
   ['src/execution_relation/registry_pins.generated.mbt', pins],
