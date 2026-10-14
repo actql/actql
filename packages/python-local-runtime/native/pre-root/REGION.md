@@ -133,3 +133,39 @@ The derived C domain carrier adds context/active/attempt/user/pending-scope
 fields, and the Native managed domain adds read-use/attempt/retirement fields.
 They need a new actual layout and holding inventory. Existing C9/F4 receipts or
 stock layout do not price this new source; normal profile remains `None`.
+
+### Selected bridge conformance
+
+The C-only getter has no arguments and returns an opaque borrowed
+`actql_read_context *`, or `NULL` outside the original active scope, on a stock
+build or after fork. A filesystem wrapper must reject `NULL` using its existing
+typed refusal before allocating/opening, then retain that same context before
+its original constructor. The pointer is never a MoonBit/public wire value.
+Same-context nested entry is supported; each successful entry needs its original
+leave. A getter is not current Account/Source permission or a cleanup ACK.
+
+`fixtures/backed_read_bridge.c` selects four independent C cases: actual managed
+Bytes aliases, a retained cleanup user, preparation exhaustion without a fresh
+claim, and balanced nested scope/early parent-close rejection. It includes the
+matching copied `bootstrap_stub.c` via `BOOTSTRAP_SOURCE`, and includes the copied
+provider exactly once via `ACTQL_SCOPED_READ_PROVIDER`. Compile it with the
+verified derived header/provider and `ACTQL_SCOPED_READ_ALLOCATOR`, C11/O0,
+`-fwrapv -fno-strict-aliasing`, the original allocator selection and selected SDK.
+Link only matching derived runtime objects and the pinned original runtime
+archives. Stock-header runtime objects or fixture objects containing another
+`main` are not interchangeable inputs.
+
+At source `0dc0be38e8b5ac6ce842fa1871b0179d0c67f04e`, `run-yGPPxw` compiled one
+fixture, linked once and passed **4/4** under non-Heavy outer60/TERM5 and cumulative
+child50/j1. It reused the separately verified five `run-IIAMdL` runtime objects;
+these were not rebuilt or relabeled. The original 64-page FD fixture and
+16-page payload remain fixture geometry, not a product profile. An extra C user
+stands in for a filesystem Owner in the cleanup case; an actual Root/Reader or
+positive managed Common-to-C read caller was not executed. The earlier
+`run-oYKTjR` fixture compile failure is preserved with zero cases executed.
+
+Workspace evidence is under
+`reviews/2026-10-10-python-client/native-backed-read-bridge`: immutable snapshots,
+plans, dependency/object/executable digests, complete outputs and release checks.
+Native strict/stock13 and source-mutation7 are separate checks. Engine, worker,
+installed wheel and public Python E2E remain **0**, with normal profile `None`.
