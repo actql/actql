@@ -39,7 +39,7 @@ async function exercise(t, {original = 'abcd', changed, maximum = 16384,
     if (passed) await rm(directory, {recursive: true, force: true});
     else t.diagnostic(`Preserved semantic read extent failure: ${directory}`);
   });
-  const read = runInNewContext(`(() => {let activeSemanticReaders = 0;
+  const read = runInNewContext(`(() => {const activeSemanticReaders = new Set();
     ${body} return readSemanticBytes;})()`, {
     Buffer, constants, configuration: {maxObjectBytes: maximum},
     active() {},

@@ -3,8 +3,10 @@ import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
 import {connectInProcess} from '../sdk/host-port.mjs';
+import {startExplorerGateway} from '../explorer/gateway.mjs';
+import {createExplorerBrowserSource} from '../explorer/browser-source.mjs';
 import {createReadEpoch, describeExistingResult, planReadModel,
-  readExistingRun, readStaticPlan} from './read-model.mjs';
+  readExistingRun, readExistingRunPlan, readStaticPlan} from './read-model.mjs';
 
 // Independent semantic fixture, not compiler output or public acceptance.
 const cid = unit => `sha256:${unit.repeat(64)}`;
@@ -186,6 +188,63 @@ test('scope switch during attach prevents any following inspect', async () => {
   assert.equal(inspections, 0);
 });
 
+test('saved Run Plan uses only exact original attach and Run.plan with frozen reference', async () => {
+  const original = ref(), expected = {...original}, calls = [], view = fixture();
+  const client = {attach(selected) {
+    calls.push(['attach', selected]); original.namespaceId = 'changed';
+    return {plan(limits) {calls.push(['run-plan', limits]);
+      return {version: 'actql-run-plan-view/0.1', run_ref: expected, plan_view: view};}};
+  }, plan() {assert.fail('no recompile fallback');}, start() {assert.fail('no Run');}};
+  const observed = await readExistingRunPlan(client, original, ticket());
+  assert.deepEqual(observed.runRef, expected);
+  assert(Object.isFrozen(observed.runRef));
+  assert.equal(observed.plan.compiledPlanCid, view.compiled_plan_cid);
+  assert.equal(observed.plan.logicalMapCid, view.logical_map.self_cid);
+  assert.equal(observed.plan.nodes[0].id, view.logical_map.steps[0].step_id);
+  assert.deepEqual(calls, [['attach', expected], ['run-plan', {
+    maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+});
+
+test('saved Run Plan refuses each foreign Run reference dimension and malformed envelope', async () => {
+  const expected = ref();
+  const good = {version: 'actql-run-plan-view/0.1', run_ref: expected, plan_view: fixture()};
+  for (const bad of [
+    {...good, run_ref: {...expected, namespaceId: 'foreign'}},
+    {...good, run_ref: {...expected, authorityScopeCid: cid('c')}},
+    {...good, run_ref: {...expected, runDefinitionCid: cid('c')}},
+    {...good, version: 'foreign'},
+    {...good, extra: true},
+    {...good, plan_view: {...good.plan_view, compiled_plan_cid: cid('c')}},
+  ]) {
+    await assert.rejects(readExistingRunPlan({attach() {return {plan() {return bad;}};}},
+      expected, ticket()), error => ['ExplorerInvalidRunPlan', 'ExplorerInvalidPlan'].includes(error.code));
+  }
+});
+
+test('old missing saved plan never recompiles or starts replacement business work', async () => {
+  let replans = 0;
+  const client = {attach() {return {};}, plan() {replans++;}};
+  await assert.rejects(readExistingRunPlan(client, ref(), ticket()),
+    {code: 'ExplorerCapabilityUnavailable'});
+  const unavailable = Object.assign(new Error('LegacyMissing'), {code: 'OriginalPlanUnavailable'});
+  client.attach = () => ({plan() {throw unavailable;}});
+  await assert.rejects(readExistingRunPlan(client, ref(), ticket()), error => error === unavailable);
+  assert.equal(replans, 0);
+});
+
+test('saved plan discards delayed old-scope success and denial', async () => {
+  for (const failed of [false, true]) {
+    const epoch = createReadEpoch(), original = epoch.capture();
+    const client = {attach() {return {async plan() {
+      epoch.invalidate();
+      if (failed) throw Object.assign(new Error('old scope'), {status: 401});
+      return {version: 'actql-run-plan-view/0.1', run_ref: ref(), plan_view: fixture()};
+    }};}};
+    await assert.rejects(readExistingRunPlan(client, ref(), original), {code: 'ExplorerStaleScope'});
+    epoch.capture().assertCurrent();
+  }
+});
+
 test('Named Result description uses no payload reader or grant/open operation', async () => {
   const calls = [], description = {marker: 'independent metadata fixture'};
   const client = {attach(original) {calls.push(['attach', original]);
@@ -224,6 +283,8 @@ test('public SDK facade admits original Plan and Run wire without submitting any
       if (operation === 'plan') return view;
       if (operation === 'attach') return {ref: reference, durability: 'volatile', revision: 1};
       if (operation === 'inspect-run') return runView;
+      if (operation === 'run-plan') return {version: 'actql-run-plan-view/0.1',
+        run_ref: reference, plan_view: view};
       assert.fail(`Unexpected business operation: ${operation}`);
     },
   });
@@ -232,7 +293,9 @@ test('public SDK facade admits original Plan and Run wire without submitting any
   assert.equal(model.logicalMapCid, view.logical_map.self_cid);
   assert.equal(model.providerIO, 0);
   assert.deepEqual(await readExistingRun(client, reference, ticket()), runView);
-  assert.deepEqual(calls, ['connect', 'plan', 'attach', 'inspect-run']);
+  const saved = await readExistingRunPlan(client, reference, ticket());
+  assert.equal(saved.plan.logicalMapCid, view.logical_map.self_cid);
+  assert.deepEqual(calls, ['connect', 'plan', 'attach', 'inspect-run', 'attach', 'run-plan']);
   for (const name of ['maxWireBytes', 'maxNodes', 'maxDepth']) {
     for (const value of ['4', NaN, Infinity, 1.5, -1, 0]) {
       await assert.rejects(readStaticPlan(client, 'SELECT 1 AS n',
@@ -242,5 +305,22 @@ test('public SDK facade admits original Plan and Run wire without submitting any
         : {code: 'InvalidClientPlanRequest'});
     }
   }
-  assert.deepEqual(calls, ['connect', 'plan', 'attach', 'inspect-run']);
+  assert.deepEqual(calls, ['connect', 'plan', 'attach', 'inspect-run', 'attach', 'run-plan']);
+  const gateway = await startExplorerGateway({client}); let cookie;
+  const browser = createExplorerBrowserSource({origin: gateway.origin,
+    async fetch(url, options) {
+      const response = await fetch(url, {...options, headers: {...options.headers,
+        Origin: gateway.origin, ...(cookie ? {Cookie: cookie} : {})}});
+      const installed = response.headers.get('set-cookie');
+      if (installed) cookie = installed.split(';')[0];
+      return response;
+    }});
+  try {
+    await browser.connect(gateway.issueBootstrap().bootstrap);
+    const throughGateway = await browser.runPlan(reference);
+    assert.deepEqual(throughGateway.runRef, reference);
+    assert.equal(throughGateway.plan.logicalMapCid, view.logical_map.self_cid);
+    assert.deepEqual(throughGateway.plan.edges, saved.plan.edges);
+    assert.deepEqual(calls.slice(6), ['attach', 'run-plan']);
+  } finally {browser.close(); await gateway.close();}
 });

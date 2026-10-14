@@ -25,5 +25,10 @@ export function readStaticPlan(client: Pick<Client, 'plan'>,
   ticket: ReadTicket): Promise<PlanReadModel>;
 export function readExistingRun(client: Pick<Client, 'attach'>,
   ref: RunReference, ticket: ReadTicket): Promise<WireRunView>;
+export type OriginalRunPlanReadModel = Readonly<{
+  runRef: RunReference; plan: PlanReadModel;
+}>;
+export function readExistingRunPlan(client: Pick<Client, 'attach'>,
+  ref: RunReference, ticket: ReadTicket): Promise<OriginalRunPlanReadModel>;
 export function describeExistingResult(client: Pick<Client, 'attach'>,
   ref: RunReference, name: string, ticket: ReadTicket): Promise<ResultDescription>;
