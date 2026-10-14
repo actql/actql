@@ -70,3 +70,25 @@ fn close_control_replay_journal(
     report("control-journal-cleanup-pending", [])
   }
 }
+
+///|
+/// Do not return even an admitted original envelope before this reader's
+/// checked retirement. The existing accepted queue and terminal lifetime keep
+/// the same attempt and original cleanup reference when this returns None.
+fn accepted_control_request(
+  environment : ControlEnvironment,
+  retained : Ref[ControlReplayJournalCustody?],
+  attempt : String,
+  failures : Array[Int],
+) -> @remote.DispatchRequest? {
+  if failures[0] > 0 {
+    failures[0] -= 1
+    return None
+  }
+  guard open_control_replay_journal(environment, retained) is Some(journal) else {
+    return None
+  }
+  let envelope = journal.dispatch_envelope(attempt)
+  guard retry_control_replay_journal_cleanup(retained) else { return None }
+  admit_accepted_request_envelope(envelope, attempt)
+}

@@ -1231,6 +1231,16 @@ fn accepted_request(
   guard fresh_journal(environment) is Some(journal) else { return None }
   let envelope = journal.dispatch_envelope(attempt)
   ignore(journal.close())
+  admit_accepted_request_envelope(envelope, attempt)
+}
+
+///|
+/// Existing wire admission and exact attempt check, shared by controller and
+/// the legacy one-shot recovery reader. This grants no start or cleanup ACK.
+fn admit_accepted_request_envelope(
+  envelope : Result[String?, @journal.NativeRemoteJournalIssue],
+  attempt : String,
+) -> @remote.DispatchRequest? {
   match envelope {
     Ok(Some(body)) =>
       match @remote.admit_remote_poll_dispatch_json(body) {
@@ -1794,7 +1804,9 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         Some(attempt) =>
           // The exact request is read and checked before a holder starts, so
           // nothing is left to fail between the spawn and its tracking.
-          match accepted_request(environment, attempt, envelope_read_failures) {
+          match accepted_control_request(
+            environment, replay_journal, attempt, envelope_read_failures,
+          ) {
             None => {
               report("holder-request-unavailable", [("attempt", attempt)])
               @slot.native_wait_milliseconds(min_backoff_ms)
@@ -1841,6 +1853,12 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           }
         None => ()
       }
+    }
+    if replay_journal.val is Some(_) {
+      // A pre-start envelope reader still owns cleanup. Its queued attempt
+      // remains reserved; neither a Bundle operation nor poll may bypass it.
+      @slot.native_wait_milliseconds(idle_wait_ms)
+      continue
     }
     // A delivered context cannot be dropped merely because a holder owns the
     // Store. Retain this one exact request until the original slot is free.

@@ -72,3 +72,29 @@ test "pre-acquisition replay refusal retains no physical custody" {
   assert_true(restored.recover_after("").unwrap() is None)
   assert_true(retry_control_replay_journal_cleanup(retained))
 }
+
+///|
+test "accepted envelope reader cannot replace original cleanup with a new physical open" {
+  let (library, original, request, _, _) = cleanup_test_open("accepted-envelope-original")
+  original.accept(request).unwrap() |> ignore
+  let retained : Ref[ControlReplayJournalCustody?] = Ref(Some(ReplayJournalHandle(original)))
+  let root_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let name = "accepted-envelope-replacement-" + @env.now().to_string() + ".sqlite3"
+  let directory = @filesystem.open_root_with_custody(root_path).unwrap()
+  assert_eq(directory.inspect_generation(name).unwrap(), None)
+  let attempt = @remote.dispatch_request_attempt_identity(request).unwrap()
+  assert_true(accepted_control_request(
+    replay_journal_test_environment(library, root_path + "/" + name),
+    retained, attempt, [0],
+  ) is None)
+  assert_eq(directory.inspect_generation(name).unwrap(), None)
+  assert_true(retained.val is Some(ReplayJournalHandle(value)) && physical_equal(value, original))
+  let record = original.require(request).unwrap()
+  assert_eq(@remote.dispatch_record_revision(record), 0)
+  assert_eq(@remote.dispatch_record_state_codes(record)[0], 0)
+  assert_false(original.cancellation_requested(request).unwrap())
+  // Deliberate retained-reader input, not an injected close failure or a
+  // fabricated status ACK. Only the real original close retires this handle.
+  assert_true(retry_control_replay_journal_cleanup(retained))
+  directory.close().unwrap()
+}
