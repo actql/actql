@@ -121,7 +121,7 @@ fn prepare_calendar_node(
   let mut names = 0
   let mut work = 1
   let (start, end, row_bound) = match @calendar_options.input(options) {
-    Field(_, _) => {
+    Field(..) => {
       if node.inputs.length() != 1 {
         return Err(InvalidCalendarWiring)
       }
@@ -221,11 +221,11 @@ fn emit_calendar_node(
   @encode.key(out, "params")
   @encode.begin_object(out)
   match @calendar_options.input(options) {
-    Range(_, _) => {
+    Range(..) => {
       @encode.key(out, "end")
       @encode.string_value(out, value.end.unwrap())
     }
-    Field(_, into~) => {
+    Field(into~, ..) => {
       @encode.key(out, "into")
       @encode.string_value(out, into)
     }
@@ -246,11 +246,11 @@ fn emit_calendar_node(
   )
   @encode.end_object(out)
   match @calendar_options.input(options) {
-    Range(_, _) => {
+    Range(..) => {
       @encode.key(out, "start")
       @encode.string_value(out, value.start.unwrap())
     }
-    Field(time~, _) => {
+    Field(time~, ..) => {
       @encode.key(out, "time")
       @encode.string_value(out, time)
     }
