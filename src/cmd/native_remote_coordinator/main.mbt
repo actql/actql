@@ -69,6 +69,7 @@ fn coordinator_issue(issue : @journal.NativeRemoteJournalIssue) -> String {
   match issue {
     @journal.UnsupportedTarget => "Coordinator journal is unsupported"
     @journal.Closed => "Coordinator journal is closed"
+    @journal.CleanupPending => "Coordinator journal cleanup is pending"
     @journal.MissingDispatch => "Coordinator dispatch is missing"
     @journal.StateCollision => "Coordinator journal state collided"
     @journal.StaleSiteBinding => "Coordinator Site binding is stale"

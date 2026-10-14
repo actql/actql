@@ -129,8 +129,13 @@ pub fn check_program_operation_ranges(
       if calendar {
         scalar_spend(b, 8)
       }
-      if calendar && (start.has_prefix("0000") || end.has_prefix("0000")) {
-        return Err(InvalidCalendarYear(i))
+      if calendar {
+        match @calendar_options.validate_range(start, end) {
+          Ok(_) => ()
+          Err(InvalidTimestamp) => return Err(InvalidCalendarYear(i))
+          Err(ReversedRange) => return Err(ReversedRange(i))
+          Err(_) => return Err(ForeignOwner(i))
+        }
       }
       // Both timestamps already have fixed-width canonical UTC spelling, so
       // lexicographic order is chronological, including millisecond precision.
