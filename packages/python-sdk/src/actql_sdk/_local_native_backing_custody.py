@@ -81,8 +81,8 @@ class _OriginalBackingCustody:
                 or type(functions) is not _OriginalBackingFunctions
                 or functions.library is not owner._functions.library):
             raise ValueError('Original backing component is unavailable')
-        # All metadata allocation precedes the first native call; no caller
-        # original reference or Core loan exists to lose on allocation failure.
+        # Carrier slots and sticky failure metadata precede the first call;
+        # failure here cannot lose a caller original or an issued Core loan.
         borrow = cls.__new__(cls)
         borrow._owner, borrow._functions = owner, functions
         borrow._host, borrow._loan, borrow._reply = _new_backing_slots()
