@@ -2277,13 +2277,24 @@ export async function openLocalPublicationStore(
           return flight;
         }});
         const primary = readFailed ? readFailure : closeFailure;
-        const failure = primary !== null && typeof primary === 'object' &&
-          Object.isExtensible(primary) && primary.cleanupHandle === undefined
-          ? primary : new Error('PublicationSemanticReaderCleanupPending', {cause: primary});
-        failure.cleanupHandle = cleanup;
-        failure.cleanupPending = true;
-        failure.cleanupError = closeFailure;
+        // Own the duty before inspecting/decorating the outward Error. An
+        // ordinary extensible Error can already have a readonly cleanup field.
         reader.cleanup = cleanup;
+        reader.failure = primary;
+        let failure;
+        try {
+          failure = primary !== null && typeof primary === 'object' &&
+            Object.isExtensible(primary) && primary.cleanupHandle === undefined
+            ? primary : new Error('PublicationSemanticReaderCleanupPending', {cause: primary});
+          failure.cleanupHandle = cleanup;
+          failure.cleanupPending = true;
+          failure.cleanupError = closeFailure;
+        } catch {
+          failure = new Error('PublicationSemanticReaderCleanupPending', {cause: primary});
+          failure.cleanupHandle = cleanup;
+          failure.cleanupPending = true;
+          failure.cleanupError = closeFailure;
+        }
         reader.failure = failure;
         throw failure;
       }

@@ -44,7 +44,7 @@ async function fixture(t, {failures = 1, primary, holdClose = false} = {}) {
   await probe.close();
   const records = [], native = new Map(), closeEntered = Promise.withResolvers(), proceed = Promise.withResolvers();
   if (!holdClose) proceed.resolve();
-  let passed = false, allowClose = false, reads = 0;
+  let passed = false, allowClose = false, reads = 0, failureFacts;
   const secret = 'private-semantic-close-secret';
   const closeFailure = Object.assign(new Error(secret), {code: 'EIO'});
   prototype.stat = function (...args) {
@@ -78,7 +78,16 @@ async function fixture(t, {failures = 1, primary, holdClose = false} = {}) {
     'manifestReadGrantAllowsBytes', 'manifestReadGrantValidAt'].map(name => [name, () => {}]));
   const serviceStore = {...store,
     async confirmCommittedIndex() { return {public_index_entry_cid: cid('2'), result_manifest_cid: cid('3')}; },
-    async readPublicationContract() { reads++; return store.readPublicationContract(stored.semanticCid, 'run_invocation'); }};
+    async readPublicationContract() {
+      reads++;
+      try { return await store.readPublicationContract(stored.semanticCid, 'run_invocation'); }
+      catch (error) {
+        // Observe booleans only; never retain an Error to rescue the caller.
+        failureFacts = {wrapped: error !== primary, originalCause: error.cause === primary,
+          hasCleanup: typeof error.cleanupHandle?.retry === 'function'};
+        throw error;
+      }
+    }};
   const authority = installResultAccessAuthority({authorizeResultReadRequest() {}, admitResultRead() {},
     authorizeResultRead() {}, authorizeResultDescription: () => true, admitResultDescription() {}});
   const resultService = installResultAccessService({store: serviceStore, control, authority,
@@ -103,7 +112,7 @@ async function fixture(t, {failures = 1, primary, holdClose = false} = {}) {
     else t.diagnostic(`Preserved control-read custody failure: ${directory}`);
   });
   return {store, client, ingress, operations, records, shutdown, closeEntered, proceed, path, originalBytes,
-    reads: () => reads, secret, pass() { passed = true; }};
+    reads: () => reads, failureFacts: () => failureFacts, secret, pass() { passed = true; }};
 }
 
 async function refused(f) {
@@ -180,4 +189,20 @@ test('HTTP code redaction leaves the original semantic close duty on the same St
   await f.shutdown.close();
   assert.equal(f.records[0].handle.fd, -1); assert.equal(f.records[0].attempts, 2);
   assert.equal(f.reads(), 1); f.pass();
+});
+
+// No Proxy/plugin defense: an ordinary extensible Error has one pre-existing
+// readonly field. Its private duty must be owned before outward decoration.
+test('readonly primary cleanup property cannot orphan the original control-read FD', async t => {
+  const primary = new Error('private-semantic-primary-secret');
+  const original = new Error('private-semantic-original-cleanup-secret');
+  Object.defineProperty(primary, 'cleanupError', {value: original, writable: false});
+  const f = await fixture(t, {primary});
+  await refused(f);
+  assert.equal(primary.cleanupError, original);
+  assert.deepEqual(f.failureFacts(), {wrapped: true, originalCause: true, hasCleanup: true});
+  await f.client.close();
+  assert.equal(f.records[0].handle.fd, -1); assert.equal(f.records[0].attempts, 2);
+  assert.equal(f.reads(), 1); assert.equal(f.store.status().closed, true);
+  f.pass();
 });
