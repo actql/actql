@@ -12,14 +12,18 @@ ENGINE = {'target': 'aarch64-apple-darwin', 'cpu_features': ['aarch64-baseline']
 # Header-only fixture, explicitly never compiled or deserialized.
 IMAGE = b'\x7fELF\x02\x01\x01' + b'\0' * 11 + b'\xb7\x00' + b'\0' * 44
 RUNTIME_HASH = hashlib.sha256(b'independent runtime library fixture').hexdigest()
+PROVIDER = b'independent original native provider fixture'
+PROVIDER_HASH = hashlib.sha256(PROVIDER).hexdigest()
 ORIGINAL = json.dumps({'wasmtime_version': '38.0.0', 'runtime_library_sha256': RUNTIME_HASH,
                       'runtime_library_bytes': len(b'independent runtime library fixture'),
+                      'provider_library_sha256': PROVIDER_HASH, 'provider_library_bytes': len(PROVIDER),
                       'engine_body': ENGINE, 'image_bytes_limit': 1024}, indent=2).encode()
 
 
 def descriptor(source, version, module_hash):
     return {'source_sha': source, 'package_version': version, 'module_sha256': module_hash,
         'core_abi': 73, 'wasmtime_version': '38.0.0', 'runtime_library_sha256': RUNTIME_HASH,
+        'provider_library_sha256': PROVIDER_HASH,
         'platform': 'darwin-arm64', 'engine_body': json.loads(json.dumps(ENGINE)),
         'engine_sha256': hashlib.sha256(json.dumps(ENGINE, sort_keys=True,
             separators=(',', ':')).encode()).hexdigest(), 'file': 'client_host_wasm.cwasm',
