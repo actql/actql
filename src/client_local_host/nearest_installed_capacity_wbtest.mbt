@@ -132,12 +132,13 @@ fn nearest_failed_offer_boundary(
   let choice = @strategy.prepare_strategy_choices(run,offers,registry,None).unwrap()
   let decision = @strategy.commit_strategy_choice(choice,None)
   let budget = @resources.ledger_admission_limits(@strategy.captured_dag_ledger(run))
-  println("NEAREST_STRATEGY budget_retained=\{budget.retained_bytes} budget_execution=\{budget.execution_bytes}")
+  println("NEAREST_STRATEGY budget_retained=\{budget.retained_bytes} budget_execution=\{budget.execution_bytes} budget_transfer=\{budget.transfer_bytes}")
   for index in 0..<@strategy.strategy_report_count(run) {
     let report = @strategy.strategy_report_at(run,index).unwrap()
     println("NEAREST_STRATEGY retained=\{report.retained_bytes} execution=\{report.execution_bytes} transfer=\{report.transfer_bytes}")
     if report.rejection is Some(@resources.RetentionLimit) { fail("original nearest strategy RetentionLimit") }
     if report.rejection is Some(@resources.ExecutionLimit) { fail("original nearest strategy ExecutionLimit") }
+    if report.rejection is Some(@resources.TransferLimit) { fail("original nearest strategy TransferLimit") }
     if report.rejection is Some(_) { fail("original nearest strategy another Ledger refusal") }
   }
   assert_true(decision is Ok(@strategy.Selected(_)))
