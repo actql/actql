@@ -6,6 +6,10 @@ fuel, buffer limit, Core ABI or currently selected Wasmtime library. It does not
 provide the complete preRoot supplier. Do not enable or build the proposed
 Wasmtime patch as an installed runtime recipe yet.
 
+[Derived same-provider read allocation](SCOPED_READ.md) records the separate
+copy-only source closure and its source-qualified nine-case C conformance. It
+does not select a normal profile, filesystem funding pair or installed runtime.
+
 ## Actual holding and allocation seam
 
 `owned_capacity.c` proposes one Darwin arm64 anonymous mapping acquired before

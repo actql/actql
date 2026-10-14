@@ -49,6 +49,7 @@ fn journal_issue_code(issue : @journal.NativeRemoteJournalIssue) -> String {
   match issue {
     @journal.UnsupportedTarget => "unsupported-target"
     @journal.Closed => "closed"
+    @journal.CleanupPending => "cleanup-pending"
     @journal.Physical(_) => "physical"
     @journal.Protocol(_) => "protocol"
     @journal.StaleSiteBinding => "stale-site-binding"

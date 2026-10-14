@@ -4,3 +4,14 @@ import {
   "actql/actql/platform_native/filesystem",
   "moonbitlang/core/encoding/utf8",
 }
+
+import {
+  "moonbitlang/core/env",
+} for "wbtest"
+
+options(
+  targets: {
+    "root_open_custody_native_wbtest.mbt": [ "native" ],
+    "root_open_custody_unsupported_wbtest.mbt": [ "not", "native" ],
+  },
+)
