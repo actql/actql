@@ -102,6 +102,15 @@ or acquiring Source data. AQL text uses `client.plan(text, {format: 'aql'})`;
 SQL uses `{format: 'sql'}`. The map describes original checked operations, not
 physical task numbers. An input-only Stage remains an input/output occurrence.
 
+A Host with the original Effect preparation/compiler installed may return the
+separate `actql-effectful-static-plan-view/0.1` alternative. Its
+`computation.plan_view` is the unchanged computation component, not a full
+physical Effect DAG. `effect_set` contains checked declared Mapping targets,
+Command Resource kinds and inputs. Current permission/gate/approval and actual
+target/value observations remain unknown; sealed Preview is unavailable. A
+contract minimum is not permission. This read neither installs an Effect
+executor nor enables Effect `run.plan()` recovery on an unsupported Host.
+
 `await run.inspect()` reads the currently authorized original Run. It does not
 recompile or execute the Program, acquire inputs, dispatch a Model or Effect,
 or change the Run's control revision. Views declare non-atomic, Owner-local
