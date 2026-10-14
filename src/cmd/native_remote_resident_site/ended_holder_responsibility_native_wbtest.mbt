@@ -86,10 +86,16 @@ test "unreadable original execution record never becomes startable from status A
 
 ///|
 test "ended holder observation reuses its original Journal before any replacement" {
-  let (holder, probe, _) = ended_holder_physical_fixture("ended-original-journal", "exit 0")
+  let (physical, probe, _) = ended_holder_physical_fixture("ended-original-journal", "exit 0")
+  let (library, journal, request, path, _) = cleanup_test_open("ended-original-journal")
+  // Use the request issued for this real Journal's Site, not the unrelated
+  // channel fixture's default request. No transport or status ACK is supplied.
+  let holder : RunningHolder = {
+    ..physical, request,
+    attempt: @remote.dispatch_request_attempt_identity(request).unwrap(),
+  }
   let original = retain_ended_holder(holder)
-  let (library, journal, _, path, _) = cleanup_test_open("ended-original-journal")
-  journal.accept(holder.request).unwrap() |> ignore
+  journal.accept(request).unwrap() |> ignore
   original.journal.val = Some(ReplayJournalHandle(journal))
   let foreign = replay_journal_test_environment(library, path + ".replacement")
   let observed = open_ended_holder_observation_journal(original, foreign).unwrap()
