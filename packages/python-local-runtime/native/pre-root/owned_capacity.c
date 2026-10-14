@@ -3,16 +3,22 @@
 #endif
 
 #include "owned_capacity.h"
+#include "owned_region.h"
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
 
 /* An extent is a physical allocator record, not a Run or capacity decision. */
 struct extent {
     size_t pages;
     bool retired;
+    bool sealed;
+    size_t external_readers;
+    bool external_writer;
 };
 
 struct actql_owned_capacity {
@@ -20,6 +26,10 @@ struct actql_owned_capacity {
     size_t page_size;
     size_t page_count;
     size_t control_pages;
+    uint64_t backing_device;
+    uint64_t backing_inode;
+    bool fd_backed;
+    bool extent_domain;
     uint64_t generation;
     unsigned char recipe[32];
     bool transferred;
@@ -71,6 +81,10 @@ int actql_native_owned_acquire(size_t capacity, uint64_t generation,
     lease->page_size = page;
     lease->page_count = count;
     lease->control_pages = control_pages;
+    lease->backing_device = 0;
+    lease->backing_inode = 0;
+    lease->fd_backed = false;
+    lease->extent_domain = false;
     lease->generation = generation;
     memcpy(lease->recipe, recipe, sizeof(lease->recipe));
     lease->transferred = false;
@@ -180,6 +194,19 @@ static bool allocation_start(actql_owned_capacity *lease, void *allocation,
            lease->extents[*start].pages != SIZE_MAX;
 }
 
+/* Parent-local physical guards cover every page in this original allocation.
+ * Interior page records retain their own external use counts. */
+static bool allocation_has_external_use(actql_owned_capacity *lease, size_t start,
+                                         bool writers_only) {
+    size_t pages = lease->extents[start].pages;
+    for (size_t i = 0; i < pages; i++) {
+        struct extent *page = &lease->extents[start + i];
+        if (page->external_writer || (!writers_only && page->external_readers != 0))
+            return true;
+    }
+    return false;
+}
+
 int actql_native_owned_capacity_bytes(actql_owned_capacity *lease, uint64_t *out) {
     if (lease == NULL || out == NULL || *out != 0) return ACTQL_OWNED_INVALID;
     lock_capacity(lease);
@@ -230,6 +257,11 @@ int actql_native_owned_protect(actql_owned_capacity *lease, void *allocation,
     size_t start;
     int status = ACTQL_OWNED_INVALID;
     if (allocation_start(lease, allocation, &start) && !lease->extents[start].retired) {
+        if (allocation_has_external_use(lease, start, false) ||
+            (lease->fd_backed && lease->extents[start].sealed && protection != PROT_READ)) {
+            unlock_capacity(lease);
+            return ACTQL_OWNED_BUSY;
+        }
         size_t bytes = lease->extents[start].pages * lease->page_size;
         if (offset <= bytes && length <= bytes - offset)
             status = mprotect((unsigned char *)allocation + offset, length, protection) == 0
@@ -254,9 +286,14 @@ int actql_native_owned_seal_readonly(actql_owned_capacity *lease, void *allocati
     size_t start;
     int status = ACTQL_OWNED_INVALID;
     if (allocation_start(lease, allocation, &start) && !lease->extents[start].retired) {
+        if (allocation_has_external_use(lease, start, true)) {
+            unlock_capacity(lease);
+            return ACTQL_OWNED_BUSY;
+        }
         size_t bytes = lease->extents[start].pages * lease->page_size;
         status = mprotect(allocation, bytes, PROT_READ) == 0
                      ? ACTQL_OWNED_OK : ACTQL_OWNED_PHYSICAL_FAILURE;
+        if (status == ACTQL_OWNED_OK) lease->extents[start].sealed = true;
     }
     unlock_capacity(lease);
     return status;
@@ -268,6 +305,10 @@ int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation) {
     size_t start;
     int status = ACTQL_OWNED_INVALID;
     if (allocation_start(lease, allocation, &start)) {
+        if (allocation_has_external_use(lease, start, false)) {
+            unlock_capacity(lease);
+            return ACTQL_OWNED_BUSY;
+        }
         lease->extents[start].retired = true;
         status = clean_retired(lease, start);
     }
@@ -275,28 +316,36 @@ int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation) {
     return status;
 }
 
-int actql_native_owned_try_close(actql_owned_capacity **slot) {
-    if (slot == NULL) return ACTQL_OWNED_INVALID;
-    actql_owned_capacity *lease = *slot;
-    if (lease == NULL) return ACTQL_OWNED_OK;
-    /* The original owner must exclude concurrent callers before final close. */
-    lock_capacity(lease);
+static int prepare_capacity_close_locked(actql_owned_capacity *lease) {
     if (lease->active_scopes != 0) {
-        unlock_capacity(lease);
         return ACTQL_OWNED_BUSY;
     }
     lease->closing = true;
     for (size_t i = lease->control_pages; i < lease->page_count; i++) {
         if (lease->extents[i].pages == 0) continue;
         if (lease->extents[i].pages == SIZE_MAX || !lease->extents[i].retired) {
-            unlock_capacity(lease);
             return ACTQL_OWNED_BUSY;
         }
         int status = clean_retired(lease, i);
         if (status != ACTQL_OWNED_OK) {
-            unlock_capacity(lease);
             return status;
         }
+    }
+    return ACTQL_OWNED_OK;
+}
+
+int actql_native_owned_try_close(actql_owned_capacity **slot) {
+    if (slot == NULL) return ACTQL_OWNED_INVALID;
+    actql_owned_capacity *lease = *slot;
+    if (lease == NULL) return ACTQL_OWNED_OK;
+    /* An interior domain is retired through its original view, never munmap. */
+    if (lease->extent_domain) return ACTQL_OWNED_INVALID;
+    /* The original owner must exclude concurrent callers before final close. */
+    lock_capacity(lease);
+    int prepared = prepare_capacity_close_locked(lease);
+    if (prepared != ACTQL_OWNED_OK) {
+        unlock_capacity(lease);
+        return prepared;
     }
     size_t length = lease->length;
     if (munmap(lease, length) != 0) {
@@ -306,3 +355,7 @@ int actql_native_owned_try_close(actql_owned_capacity **slot) {
     *slot = NULL;
     return ACTQL_OWNED_OK;
 }
+
+/* Included once in this provider. Child mappings never execute its allocator
+ * lock or mutate the original control table. */
+#include "owned_region.inc"

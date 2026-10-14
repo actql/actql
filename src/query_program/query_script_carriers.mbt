@@ -263,19 +263,22 @@ fn lower_script_carrier_calls(
       )
     }
   }
-  let mut carrier = script_prefix_carrier(
-    construction,
-    query,
-    context,
-    sources,
-    limits,
-    steps,
-    input.name,
-  )
-  // An installed producer can precede other lowered bindings. Its actual slot,
-  // rather than the last operation in the prefix, owns its declared Carrier.
-  if sources.carriers.get(input.name) is Some(known_carrier) {
-    carrier = known_carrier
+  // Reuse only this immutable producer's Common-checked Carrier. Every newly
+  // appended operation still checks the whole retained prefix below. Checking
+  // the unchanged input again before discarding that result double-charges
+  // the shared allowance without proving a new producer or scope.
+  let mut carrier = match sources.carriers.get(input.name) {
+    Some(known_carrier) => known_carrier
+    None =>
+      script_prefix_carrier(
+        construction,
+        query,
+        context,
+        sources,
+        limits,
+        steps,
+        input.name,
+      )
   }
   let query = if carrier is @carrier.Relation(_) {
     query
