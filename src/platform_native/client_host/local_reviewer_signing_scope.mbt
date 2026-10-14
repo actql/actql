@@ -47,7 +47,18 @@ pub fn NativeLocalReviewerProofMaterials::require_original_signing_scope(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  self.require_original_reviewer_signing_subject(scope)
+  match self.require_original_reviewer_signing_subject(scope) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // The subject reader's last clock/RunRead callback may replace the original
+  // key file. Export compares that same Root/file generation without invoking
+  // another caller callback; it cannot retire the already-fenced capture.
+  // This is original projection custody, not private/public-key correspondence.
+  match self.key.projection.export_original() {
+    Ok(original) if original == self.key.exported => Ok(())
+    Ok(_) | Err(_) => Err(ProofKey(SigningOriginalUnavailable))
+  }
 }
 
 ///|

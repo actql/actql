@@ -1,10 +1,29 @@
 ///|
+// The existing literal has the same two independent permissions but lists
+// original-client-read before independent-reviewer-resolve. The Account wire
+// Owner correctly refuses that noncanonical entry order; do not normalize it
+// inside product admission or weaken that refusal to enable this fixture.
+let reviewer_signing_scope_account : String =
+  #|{"version":"actql-execution-account-config/0.1","account_id":"operator","entries":[{"entry_id":"independent-reviewer-resolve","outcome":"allow","principal":{"any_of":["reviewer"]},"connection":{"any_of":["review-cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["resolve"]},"exclusions":[]},{"entry_id":"original-client-read","outcome":"allow","principal":{"any_of":["operator"]},"connection":{"any_of":["cli"]},"resource":{"any_of":["run"]},"operation":{"any_of":["read"]},"exclusions":[]}]}
+
+///|
+fn[T, E] reviewer_signing_scope_require(
+  value : Result[T, E],
+  phase : String,
+) -> T raise {
+  match value {
+    Ok(value) => value
+    Err(_) => fail("Reviewer scope fixture API=" + phase + " issue=Rejected")
+  }
+}
+
+///|
 // Real private Root, authenticated installation journal and public PEM original;
 // the descriptor contains no private key. This fixture covers the key side
 // only, not a fabricated paired capture or a successful signing operation.
 fn reviewer_signing_scope_key_fixture(
   name : String,
-) -> (NativeLocalHostConnection, NativeLocalSigningKeyOriginal) {
+) -> (NativeLocalHostConnection, NativeLocalSigningKeyOriginal) raise {
   let key_file = name + ".key.json"
   let descriptor = name + ".descriptor"
   let reviewer_file = name + ".reviewer.json"
@@ -28,13 +47,20 @@ fn reviewer_signing_scope_key_fixture(
       .replace_all(old="\"cli\"", new="\"review-cli\""),
     ),
   )
-  signing_original_write(account_file, @utf8.encode(local_reviewer_account))
-  let crypto = @crypto.load_library(
-    @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap(),
-    diagnostic_ceiling=Some(64),
-  ).unwrap()
+  signing_original_write(
+    account_file,
+    @utf8.encode(reviewer_signing_scope_account),
+  )
+  let crypto = reviewer_signing_scope_require(
+    @crypto.load_library(
+      @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap(),
+      diagnostic_ceiling=Some(64),
+    ),
+    "load_public_crypto_library",
+  )
   let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
-  let host = begin_native_local_host_adoption(
+  let adoption = reviewer_signing_scope_require(
+    begin_native_local_host_adoption(
       path,
       name + ".host",
       path,
@@ -42,23 +68,36 @@ fn reviewer_signing_scope_key_fixture(
       "operator",
       crypto,
       configuration_files=[key_file, reviewer_file],
-    )
-    .unwrap()
-    .open_journal(local_journal_test_library(), crypto, 100.0, 8, 8388608L)
-    .unwrap()
-  let reviewer = host
-    .install_effect_reviewer(configuration_file=Some(reviewer_file))
-    .unwrap()
-  let key = host
-    .acquire_signing_key_account(
+    ),
+    "begin_original_adoption",
+  )
+  let host = reviewer_signing_scope_require(
+    adoption.open_journal(
+      local_journal_test_library(),
+      crypto,
+      100.0,
+      8,
+      8388608L,
+    ),
+    "open_original_journal",
+  )
+  let reviewer = reviewer_signing_scope_require(
+    host.install_effect_reviewer(configuration_file=Some(reviewer_file)),
+    "select_independent_reviewer",
+  )
+  let account = reviewer_signing_scope_require(
+    host.acquire_signing_key_account(
       crypto,
       key_file,
       @checkpoint.EffectSet,
       reviewer=Some(reviewer),
-    )
-    .unwrap()
-    .capture_signing_key_original()
-    .unwrap()
+    ),
+    "acquire_original_key_account",
+  )
+  let key = reviewer_signing_scope_require(
+    account.capture_signing_key_original(),
+    "capture_original_key_metadata",
+  )
   (host, key)
 }
 
@@ -96,6 +135,16 @@ fn reviewer_signing_scope_key_candidate(
 
 ///|
 test "Reviewer scope key correspondence uses authenticated originals without issuing a grant" {
+  assert_true(
+    @authorization.admit_account_configuration_json(local_reviewer_account)
+    is Err(@authorization.NonCanonicalOrder("$.entries[1].entry_id")),
+  )
+  assert_true(
+    @authorization.admit_account_configuration_json(
+      reviewer_signing_scope_account,
+    )
+    is Ok(_),
+  )
   let (host, key) = reviewer_signing_scope_key_fixture("scope-key-original")
   let candidate = reviewer_signing_scope_key_candidate(key)
   assert_eq(key.account.account_id, "operator")
