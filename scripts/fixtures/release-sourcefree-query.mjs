@@ -14,7 +14,7 @@ assert.ok(['local', 'https'].includes(mode), 'Select one installed transport');
 const suite = process.argv[3] ?? 'in-unnest';
 const directory = resolve(`sourcefree-${mode}`);
 const authorization = await sourcefreeFixtureAuthorization(mode, suite);
-const cases = selectInstalledSourcefreeQuerySuite(suite), completed = [], completedRefusals = [];
+const cases = selectInstalledSourcefreeQuerySuite(suite), completed = [], completedRefusals = [], checkObservations = [];
 let host, server;
 let primary;
 const io = guardReleaseSourcefreeIo();
@@ -51,6 +51,26 @@ try {
         sourceIo: io.attemptedProviderIo(), sourceReads: 0, sourceReadSessions: 0};
     } finally {journal.close();}
   };
+  if (suite === 'aql-format') {
+    const checking = await connectClient(options);
+    try {
+      const {getCheckInput, resolveCheckLocation} = await import('@actql/sdk');
+      const verified = await checking.check('SELECT @p AS id', {kind: 'text', scope: 'bound_input',
+        format: 'aql', parameterDeclarations: {p: {type: 'number', nullable: false}}, parameters: {p: 1}});
+      assert.equal(verified.report.verdict, 'verified');
+      assert.deepEqual(verified.report.reasons, []);
+      assert.equal(getCheckInput(verified, 'source').text, 'SELECT @p AS id');
+      const invalid = await checking.check('SELECT ', {kind: 'text', scope: 'bound_input', format: 'aql'});
+      assert.equal(invalid.report.verdict, 'invalid');
+      const reason = invalid.report.reasons.find(value => value.code === 'query_syntax_invalid');
+      assert.ok(reason);
+      assert.equal(resolveCheckLocation(invalid, reason.location).input, getCheckInput(invalid, 'source'));
+      assert.equal(getCheckInput(invalid, 'source').text, 'SELECT ');
+      checkObservations.push({verdict: verified.report.verdict, reasons: verified.report.reasons},
+        {verdict: invalid.report.verdict, reasons: invalid.report.reasons});
+      assert.equal(observe().acceptedRuns, 0, 'Checking cannot accept a Run');
+    } finally {await checking.close();}
+  }
   await exercisePublicQueryInput(connectClient, options, {
     requestPrefix: suite === 'in-unnest' ? `release-${mode}` : `release-${suite}-${mode}`,
     observe, ...cases,
@@ -81,7 +101,7 @@ try {
     expectedSuccessNames: cases.successes.map(value => value.name),
     expectedRefusalNames: cases.refusals.map(value => value.name),
     successNames: completed.map(value => value.name), refusalNames: completedRefusals.map(value => value.name),
-    completed, completedRefusals, providerObservation,
+    completed, completedRefusals, checkObservations, providerObservation,
     observationScope: 'Empty Source inventory; process/fetch/secret guards and read-only durable Run admission. Store filesystem I/O is not Source I/O.'}, null, 2) + '\n', {flag: 'wx'});
 }
 if (primary !== undefined) throw primary;
