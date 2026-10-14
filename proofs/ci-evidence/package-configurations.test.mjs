@@ -127,12 +127,13 @@ test('Journal import, selector and unknown-option changes remain unresolved', ()
 
 const observationDirectory = 'src/platform_native/filesystem';
 const observationPath = `${observationDirectory}/moon.pkg`;
-const observationDigest = '765802bc29d68ff7e87d427d3e68555fb648387de56ad49b2052fdff412f376b';
+const observationDigest = 'bb816061434a3d23d1446366e137d3e64539cd0ef6ae191bea81f71f93400a86';
+const priorObservationDigest = '765802bc29d68ff7e87d427d3e68555fb648387de56ad49b2052fdff412f376b';
 const oldObservationDigest = '6968c40ed7d166f9d94e00af31d42654efd27afc8e7ceaca2f1aaead3a8f5e0f';
 const observationRequest = {path: observationPath, digest: observationDigest,
   target: 'js', toolchainDigest};
 
-test('package observation review binds six exact predicates and all original source members', () => {
+test('package observation review preserves six original predicates and binds four read-layout predicates', () => {
   const tree = treeAtHead(), current = tree.read(observationPath);
   const intro = '869310a0b34a7a704fbb61f2aec9af2f15b9ffa9';
   const original = '11b84334744819e4fb1bcc65382225bd8fc949d2';
@@ -145,7 +146,7 @@ test('package observation review binds six exact predicates and all original sou
     `d8422903caa55ce7a4a58382c8a46f9a9c4c27c0:${observationPath}`], {cwd: repository});
   const introduced = execFileSync('git', ['show', `${intro}:${observationPath}`],
     {cwd: repository});
-  let restored = current.toString();
+  let restored = introduced.toString();
   for (const [member, targets] of [
     ['file_observation_native.mbt', '[ "native" ]'],
     ['file_observation_unsupported.mbt', '[ "not", "native" ]'],
@@ -159,7 +160,30 @@ test('package observation review binds six exact predicates and all original sou
     restored = restored.replace(selector, '');
   }
   assert.equal(restored, before.toString());
-  assert.deepEqual(current, introduced);
+  assert.equal(hash(introduced), priorObservationDigest);
+  const layoutIntro = '93a7f22cc369e17b985436fbec3a3f9dddaa71fb';
+  const layoutParent = 'fa968102a08ad0bf183ba9f35afe4fe89390a599';
+  assert.equal(execFileSync('git', ['show', '-s', '--format=%P', layoutIntro],
+    {cwd: repository, encoding: 'utf8'}).trim(), layoutParent);
+  execFileSync('git', ['merge-base', '--is-ancestor', intro, layoutParent], {cwd: repository});
+  execFileSync('git', ['merge-base', '--is-ancestor', layoutIntro, 'HEAD'], {cwd: repository});
+  assert.deepEqual(execFileSync('git', ['show', `${layoutParent}:${observationPath}`],
+    {cwd: repository}), introduced);
+  assert.deepEqual(current, execFileSync('git', ['show', `${layoutIntro}:${observationPath}`],
+    {cwd: repository}));
+  restored = current.toString();
+  for (const [member, targets] of [
+    ['read_layout_native.mbt', '[ "native" ]'],
+    ['read_layout_native_wbtest.mbt', '[ "native" ]'],
+    ['read_layout_unsupported.mbt', '[ "not", "native" ]'],
+    ['read_layout_unsupported_wbtest.mbt', '[ "not", "native" ]'],
+  ]) {
+    const selector = `    "${member}": ${targets},\n`;
+    assert.equal(restored.split(selector).length, 2);
+    restored = restored.replace(selector, '');
+    assert(tree.entries.has(`${observationDirectory}/${member}`));
+  }
+  assert.equal(restored, introduced.toString());
   assert.equal(hash(before), oldObservationDigest);
   assert.equal(hash(current), observationDigest);
   assert.equal(hash(tree.read('toolchain.json')), toolchainDigest);
@@ -182,7 +206,8 @@ test('package observation review binds six exact predicates and all original sou
 test('package observation review refuses old bytes, foreign path, target and toolchain', () => {
   assert.equal(packageConfigurationReviewFor(observationRequest)?.rule,
     'literal-native-options-with-bound-source-membership');
-  for (const change of [{digest: oldObservationDigest}, {digest: '0'.repeat(64)},
+  for (const change of [{digest: oldObservationDigest}, {digest: priorObservationDigest},
+    {digest: '0'.repeat(64)},
     {path: './src/platform_native/filesystem/moon.pkg'},
     {path: 'src/unreviewed_filesystem/moon.pkg'}, {target: 'native'}, {target: 'wasm'},
     {toolchainDigest: '0'.repeat(64)}])
@@ -195,6 +220,8 @@ test('package observation import, predicate and unknown-option changes remain un
     original.replace('"moonbitlang/core/encoding/utf8"', '"moonbitlang/core/string"'),
     original.replace('"file_observation_native.mbt": [ "native" ]',
       '"file_observation_native.mbt": [ "js" ]'),
+    original.replace('"read_layout_native.mbt": [ "native" ]',
+      '"read_layout_native.mbt": [ "js" ]'),
     `${original}\noptions(unreviewed: true)\n`,
   ]) {
     assert.notEqual(changed, original);
