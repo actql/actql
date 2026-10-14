@@ -223,7 +223,7 @@ test('small actual verifier bounds acquisition including its one-byte overflow p
     assert.equal(f.fd(), -1);
   });
 
-test('growing actual verifier funds the sentinel without hashing overflow bytes',
+test('growing actual verifier bounds the sentinel without hashing overflow bytes',
   async t => {
     const f = await physicalVerifier(t, 'growth');
     const sizes = await originalReadAllocations(async () => {
