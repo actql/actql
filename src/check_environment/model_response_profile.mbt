@@ -527,6 +527,31 @@ pub fn model_response_profile_limits(
 }
 
 ///|
+// Match positive acquisition ceilings within this already admitted profile.
+// Tighter controls remain valid; matching is not capacity, permission or
+// completion. Do not expose a mutable copy of the original limit record.
+pub fn model_response_profile_transport_matches(
+  value : ModelResponseProfile,
+  request_bytes : Int,
+  response_bytes : Int,
+  chunk_bytes : Int,
+  chunks : Int,
+  header_bytes : Int,
+) -> Bool {
+  let original = value.limits
+  request_bytes > 0 &&
+  request_bytes <= original.request_bytes &&
+  response_bytes > 0 &&
+  response_bytes <= original.response_bytes &&
+  chunk_bytes > 0 &&
+  chunk_bytes <= original.chunk_bytes &&
+  chunks > 0 &&
+  chunks <= original.chunks &&
+  header_bytes > 0 &&
+  header_bytes <= original.header_bytes
+}
+
+///|
 pub fn model_response_profile_completion_basis(
   value : ModelResponseProfile,
 ) -> String {
