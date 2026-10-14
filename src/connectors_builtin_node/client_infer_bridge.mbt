@@ -125,7 +125,8 @@ pub fn client_program_bind_infer_physical_preflight_current(
       return Err(@model.Cancelled)
     }
     match prepare(request) {
-      Some(cursor) => Ok(@model.guard_model_request_preflight_current(cursor, current))
+      Some(cursor) =>
+        Ok(@model.guard_model_request_preflight_current(cursor, current))
       None => Err(@model.InvalidProvider)
     }
   })
@@ -1017,7 +1018,9 @@ pub fn client_program_infer_original_read_scope_live(
   definition : @publication.PublicationContract,
   graph : @publication_host.ClientInferPlanGraph,
 ) -> Bool {
-  @publication_host.client_model_read_scope_live(scope, compiled, definition, graph)
+  @publication_host.client_model_read_scope_live(
+    scope, compiled, definition, graph,
+  )
 }
 
 ///|
