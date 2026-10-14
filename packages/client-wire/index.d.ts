@@ -82,7 +82,7 @@ export type {WireCheckFixShape as WireCheckFix} from './client-host.generated.js
 export declare const checkReasonSchemaCid: string;
 export declare const checkOutcomeSchemaCid: string;
 export type ClientSourceFormat = 'json' | 'yaml' | 'aql-json' |
-  'aql-yaml' | 'aql-text' | 'sql';
+  'aql-yaml' | 'aql' | 'aql-text' | 'sql';
 export const clientSourceFormats: readonly ClientSourceFormat[];
 
 type WireBodyBase = Readonly<{connection: WireConnection}>;
@@ -115,7 +115,7 @@ export type WireClientBodyByOperation = Readonly<{
   check: WireBodyBase & (Readonly<{
     kind: 'text'; input: Readonly<{
       text: string;
-      format: 'aql-text' | 'sql';
+      format: 'aql' | 'aql-text' | 'sql';
       parameterDeclarations?: Record<string, unknown>;
     }>;
   }> | Readonly<{kind: 'program'; input: Record<string, unknown>}>) &

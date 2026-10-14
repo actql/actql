@@ -342,6 +342,7 @@ fn lower_script_keyed_graph_query(
   retained : Array[RetainedResult],
   known? : Array[Input] = [],
   current? : ScriptGraph? = None,
+  continuation? : (Context, ScriptSources)? = None,
 ) -> Input raise Abort {
   guard @query.graph_query(query) is Some(pattern_query) &&
     pattern_query.pattern is Some(pattern) else {
@@ -671,6 +672,22 @@ fn lower_script_keyed_graph_query(
     output,
     graph_bindings_only=true,
     retained=Some(retained),
+    prefix_steps=steps.copy(),
+    checked_infer_prefix=continuation.map(pair => {
+      (nodes, producer, visible, authored_aliases) => {
+        script_infer_prefix_check(
+          construction,
+          query,
+          pair.0,
+          pair.1,
+          nodes,
+          producer,
+          limits,
+          visible,
+          authored_aliases,
+        )
+      }
+    }),
   )
   steps.append(body)
   {

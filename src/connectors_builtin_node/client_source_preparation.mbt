@@ -46,6 +46,12 @@ fn client_source_preparation_issue_code(
             // submission projection must still establish audience disclosure.
             InvalidQuery
             | GraphExpected(_)
+            | InferKeyLabel(
+              EmptyOrAmbiguousLabel
+              | ReservedRole
+              | DuplicateLabel,
+              _
+            )
             | RangeAliasRequiresRelation
             | UnknownColumn
             | AmbiguousColumn
@@ -67,6 +73,10 @@ fn client_source_preparation_issue_code(
             | Expression(
               { issue: UnknownReference | InvalidArguments | InvalidNumber, .. }
             ) => "source_invalid_input"
+            // Incomplete internal correspondence is not an authored label
+            // conflict, even when the lowerer retains the INFER token origin.
+            InferKeyLabel(MissingCorrespondence | DuplicateSlot, _) =>
+              "source_rejected"
             _ => "source_rejected"
           }
         QuerySyntax({ issue: Limit(_), .. }) => "source_limit"

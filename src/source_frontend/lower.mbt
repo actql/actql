@@ -220,7 +220,7 @@ pub fn select_format(name : String) -> Result[Format, Issue] {
   match name {
     "json" | "aql-json" => Ok(Json)
     "yaml" | "aql-yaml" => Ok(Yaml)
-    "aql-text" => Ok(Text)
+    "aql" | "aql-text" => Ok(Text)
     "sql" => Ok(Sql)
     _ => Err(InvalidFormat)
   }

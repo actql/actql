@@ -29,6 +29,8 @@ test "typed NEAREST retains ordered composite identities without rebuilding vect
     generated: @origin.range(document, 0, 0, kind=Generated).unwrap(),
     model_tasks: None,
     parameter_names: None,
+    infer_labels: false,
+    infer_budget: { remaining_work: mapping_limits().max_expression_work, },
   }
   let visible = [("a", "a"), ("b", "b"), ("embedding", "embedding")]
   let candidate : Input = {
