@@ -68,12 +68,11 @@ test "short nearest projects original candidate body without flattening or refet
   assert_true(body.contains("\"cardinality\":\"many_to_one\""))
   match @check.check_parsed(program, check_environment(veca=true), None, check_limits()) {
     Checked(checked) => {
-      let pipeline = @check.unit_pipeline(checked, 0).unwrap()
-      let target = @pipeline.lookup(pipeline, "aql_final_rows").unwrap()
-      let rows = @pipeline.carrier_at(pipeline, target).unwrap()
-      guard rows is @carrier.Relation(records) else { fail("rows") }
-      assert_eq(@carrier.fields(records).map(field => @schema.reference_name(field.name)), ["body", "rank"])
-      assert_true(@contract.type_equal(@carrier.field_at(records, 0).unwrap().contract.unwrap(), @contract.primitive(@contract.StringType, nullable=false), 10000))
+      let stage = @stage_results.stage_at(@check.checked_stage_results(checked), 0).unwrap()
+      let result = @relation_results.lookup(stage, "rows").unwrap()
+      assert_eq(@relation_results.fields(result), ["body", "rank"])
+      let fields = @schema.fields(@relation_results.output_schema(result))
+      assert_true(@contract.type_equal(fields[0].contract, @contract.primitive(@contract.StringType, nullable=false), 10000))
     }
     Rejected(issue) => raise @check.diagnostic_cause(issue)
     NeedsInputs(_) => fail("original retained Values")
