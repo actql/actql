@@ -1,0 +1,45 @@
+import {selectReleaseNearestCarrierCases} from './release-nearest-carrier-query-cases.mjs';
+// Independent L3 expectations from the original q=[1,0], a=[1,0], b=[0,1].
+// No compiler/runtime output supplies expected values, types or identities.
+const scalar = (type, nullable=false) => ({type, nullable});
+const queryColumns = [
+  {name:'request_id',contract:scalar('string')},
+  {name:'embedding',contract:{type:'vector',dimensions:2,element_type:'f32',nullable:false}},
+  {name:'note',contract:scalar('string',true)},
+];
+const hit = withBody => ({type:'object',nullable:false,additional_properties:false,fields:{
+  query_key:{type:'object',nullable:false,additional_properties:false,fields:{request_id:scalar('string')}},
+  candidate_key:{type:'object',nullable:false,additional_properties:false,fields:{item_id:scalar('string')}},
+  score:scalar('number'),rank:scalar('number'),...(withBody?{body:scalar('string')}:{}),
+}});
+const hits = [{query_key:{request_id:'q1'},candidate_key:{item_id:'a'},score:1,rank:1},
+  {query_key:{request_id:'q1'},candidate_key:{item_id:'b'},score:0,rank:2}];
+const defaults = hits.map(value=>({request_id:'q1',embedding:[1,0],note:null,hit:value}));
+const withBodies = hits.map((value,i)=>({...value,body:i===0?'first':'second'}));
+const result = (rows,columns)=>({answer:{rows,columns,unordered:false}});
+const ordered = ' |> ORDER BY hit.rank';
+const base = 'FROM queries |> NEAREST candidates AS c ';
+const bodyPrefix = 'WITH corpus AS (FROM candidates |> SELECT item_id, embedding, label AS body) FROM queries |> NEAREST corpus ';
+export function selectReleaseNearestShorthandCases() {
+  const successes = [
+    ['default','aql',base+'USING embedding K 2 AS hit'+ordered,result(defaults,[...queryColumns,{name:'hit',contract:hit(false)}])],
+    ['explicit-default','sql',base+'QUERY KEY (request_id) VECTOR embedding CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC cosine K 2 KEEP (queries.*) AS hit'+ordered,result(defaults,[...queryColumns,{name:'hit',contract:hit(false)}])],
+    ['candidate-keep','aql-text',base+'USING embedding K 2 KEEP (c.label) AS hit'+ordered,result(hits.map((value,i)=>({label:i===0?'first':'second',hit:value})),[{name:'label',contract:scalar('string')},{name:'hit',contract:hit(false)}])],
+    ['body','aql',bodyPrefix+'USING (embedding) K 2 AS hit'+ordered,result(withBodies.map(value=>({request_id:'q1',embedding:[1,0],note:null,hit:value})),[...queryColumns,{name:'hit',contract:hit(true)}])],
+    ['rag-continuation','aql',bodyPrefix+'USING embedding K 2 AS hit |> WHERE hit.rank = 1 |> SELECT note, hit.body AS context',result([{note:null,context:'first'}],[queryColumns[2],{name:'context',contract:scalar('string')}])],
+    ['typed-vectors','aql','WITH qv AS (FROM queries |> to_vectors(id: request_id, vector: embedding)), cv AS (FROM candidates |> to_vectors(id: item_id, vector: embedding)) FROM qv |> NEAREST cv USING embedding K 2 AS hit'+ordered,result(defaults,[...queryColumns,{name:'hit',contract:hit(false)}])],
+  ].map(([name,format,text,results])=>({name:'nearest-short-'+name,format,text,results,sourceReadCount:2,sourceReadSessionCount:2}));
+  const refusals = [
+    ['wildcard-collision',base+'USING embedding K 2 KEEP (*) AS hit'],
+    ['result-collision','FROM queries |> SELECT request_id AS hit, embedding |> NEAREST candidates USING embedding K 2 AS hit'],
+    ['ambiguous-vector','WITH corpus AS (FROM candidates |> SELECT item_id, embedding, embedding AS alternate) FROM queries |> NEAREST corpus USING embedding K 2 AS hit'],
+    ['removed-query-scope',base+'USING embedding K 2 AS hit |> SELECT queries.note'],
+  ].map(([name,text])=>({name:'nearest-short-refusal-'+name,format:'aql',text,expectedCode:'ClientProgramInvalidInput'}));
+  return {successes,refusals};
+}
+
+export async function selectReleaseNearestShorthandMatrix(directory) {
+  const original = await selectReleaseNearestCarrierCases(directory);
+  const shorthand = selectReleaseNearestShorthandCases();
+  return {successes:[...original.successes,...shorthand.successes],refusals:[...original.refusals,...shorthand.refusals]};
+}

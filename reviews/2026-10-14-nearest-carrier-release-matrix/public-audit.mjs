@@ -15,12 +15,14 @@ const inventory = ['successes', 'refusals'].flatMap(kind =>
   ({successes, refusals})[kind].map((item, index) => JSON.stringify([
     'nearest-carrier', kind, index, item.name,
     createHash('sha256').update(encodeRetainedFixture(item)).digest('hex')])));
-export function auditNearestCarrierTransport(mode, report, receipt) {
+export function auditNearestCarrierTransport(mode, report, receipt, fixtures = {successes, refusals}) {
+  const {successes, refusals} = fixtures;
+  const inventory = ['successes', 'refusals'].flatMap(kind => fixtures[kind].map((item,index) => JSON.stringify(['nearest-carrier', kind, index, item.name, createHash('sha256').update(encodeRetainedFixture(item)).digest('hex')])));
   assert.ok(['local', 'remote'].includes(mode));
   assert.equal(report.mode, mode); assert.equal(report.complete, true);
   assert.deepEqual(report.expectedInventory, inventory);
   assert.deepEqual(report.completedInventory, inventory);
-  assert.equal(report.actualNormal, 10); assert.equal(report.actualRefusal, 5);
+  assert.equal(report.actualNormal, successes.length); assert.equal(report.actualRefusal, refusals.length);
   assert.equal(receipt.version, 'actql-nearest-carrier-acceptance/0.1');
   assert.equal(receipt.mode, mode); assert.equal(receipt.complete, true);
   assert.deepEqual(receipt.cases.map(item => item.name), successes.map(item => item.name));
@@ -51,13 +53,13 @@ export function auditNearestCarrierTransport(mode, report, receipt) {
     assert.deepEqual(actual.outcome.submissionRef, actual.submissionRef);
     assert.deepEqual(actual.afterRefusal, actual.beforeSubmit);
   }
-  const expectedObservations = {sourceIo: 20, sourceReads: 20, sourceReadSessions: 20,
-    acceptedPages: 20, issuedGrants: 20, closedSites: 1};
+  const expectedObservations = {sourceIo: successes.reduce((n,item)=>n+item.sourceReadCount,0), sourceReads: successes.reduce((n,item)=>n+item.sourceReadCount,0), sourceReadSessions: successes.reduce((n,item)=>n+item.sourceReadSessionCount,0),
+    acceptedPages: successes.reduce((n,item)=>n+item.sourceReadCount,0), issuedGrants: successes.reduce((n,item)=>n+item.sourceReadCount,0), closedSites: 1};
   for (const [key, expected] of Object.entries(expectedObservations)) {
     assert.equal(report.observations[key], expected, key);
   }
-  return {mode, complete: true, actualNormal: 10, actualRefusal: 5,
-    actualNamedResults: 10, actualRows,
+  return {mode, complete: true, actualNormal: successes.length, actualRefusal: refusals.length,
+    actualNamedResults: successes.length, actualRows,
     inventorySha256: createHash('sha256').update(JSON.stringify(inventory)).digest('hex')};
 }
 
