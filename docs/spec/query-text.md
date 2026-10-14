@@ -8,6 +8,47 @@ the common checker. The grammar alone does not promise every form is
 currently executable. The [frontend design mapping](../design/frontend-r1.md)
 records implemented boundaries and intentional differences.
 
+## SQL and explicit Pipe boundaries
+
+Begin with ordinary SQL or an initial `FROM` clause. Each subsequent operation
+consumes the preceding output through its own explicit `|>`. The initial
+`FROM source { JOIN ... }` includes its attached JOINs without a Pipe; the
+same source, alias, ON/USING, MAX_OUTPUT_ROWS, correlated UNNEST and range rules
+apply as in SELECT's FROM clause. A FROM-headed query does not include a bare
+WHERE, ORDER BY or LIMIT. After the first Pipe, every further JOIN or other
+operation requires another Pipe.
+
+For example:
+
+```sql
+FROM left_input AS l
+JOIN right_input AS r ON l.id = r.id MAX_OUTPUT_ROWS 10
+|> WHERE l.amount > 0
+|> SELECT l.id AS id;
+```
+
+Ordinary SELECT retains its SQL clauses without Pipes. Clause arguments and
+modifiers remain internal: AGGREGATE's GROUP BY, JOIN's ON/USING/bound,
+INFER's ITEM KEY/INPUT/KEEP/AS, NEAREST's roles and options, LIMIT's OFFSET,
+OVER's window specification and SERIALIZE's FORMAT/order/OPTIONS do not gain
+extra Pipes. Existing standalone `|> AS` and `|> ORDER BY` remain operations.
+There is no implicit continuation mode after INFER, WHERE or a Carrier call.
+Keywords in strings, comments and quoted names are not delimiters.
+
+Pipe denotes logical input/output composition, not a new Task, Stage,
+materialization, acquisition, checkpoint or authorization boundary. The
+existing planner/checker retains its observation, resource and Effect duties.
+JOIN still requires Relation inputs. A later Graph/Vectors/Events row bridge
+cannot repair a JOIN that already consumed a non-Relation; use the explicit
+bridge before joining. The Graph marker retains its original type expectation.
+FROM-only retains its existing row/value-table/range semantics and does not
+insert SELECT star, rename collisions or reset parsing budgets.
+
+WITH bodies, derived tables and pure set operands retain their Pure rules;
+CTAS retains its existing Compute and whole-wrapper rules. Top-level sql versus
+aql-text selection is unchanged. A semicolon-delimited explicit Result COMMAND
+postlude is a separate statement, not an implicit current-input Pipe.
+
 ## Content serialization
 
 `SERIALIZE FORMAT CSV` or `SERIALIZE FORMAT JSONL` consumes the current Relation
@@ -1509,6 +1550,15 @@ backticks can delimit a complete existing reference such as
 a newer version, or authorize model egress. An empty INPUT is checked against
 the resolved closed input contract, not treated as permission to omit fields.
 
+Each INPUT entry is either `name = expression` or a single same-name identifier:
+`INPUT (notes)` is equivalent to `INPUT (notes = notes)`. Explicit and shorthand
+entries may be mixed. Shorthand uses the ordinary binding identifier role, so
+reserved words require backticks; explicit assignment keys retain their closed
+ModelTask schema-key role. Dotted references and other expressions require an
+explicit assignment. Both forms keep the original expression source ranges and
+use the same closed input contract checks, including missing, extra, duplicate,
+ambiguous, unknown and wrong-type fields. Shorthand sends no additional field.
+
 KEEP accepts column references, optional output aliases, and known-schema
 `*` or range `.*`. Expansion retains visible declaration order, and explicit
 items retain authored order. Calculations belong in SELECT or EXTEND.
@@ -2227,8 +2277,17 @@ The terminal update spelling is:
 ```
 
 EFFECT is a declaration after the query's row operations, not another row
-operation. It must be terminal and is not admitted in WITH bodies. The
-explicit RESULT name resolves to its actual retained Stage Result port; a step
+operation. It must be terminal and is not admitted in WITH bodies. Its
+name may be omitted for this single terminal UPDATE: `EFFECT UPDATE`
+lowers with the fixed Program-local name `aql_update_effect`. An explicit name
+is preserved exactly and remains identity-bearing; an invalid empty name is
+not omission. The omitted form and explicit `aql_update_effect` form normalize
+identically under the same bindings and output contract, independently of
+whitespace or source offsets. Another terminal Effect or a mixed COMMAND
+postlude is rejected, including one using the same completed name. This does
+not introduce implicit naming for multiple Effects.
+
+The explicit RESULT name resolves to its actual retained Stage Result port; a step
 alias or undeclared Result is rejected. A preceding terminal RESULT stays
 terminal and does not gain an implicit default export. This first update surface
 requires one nonempty SET list. Values are direct Result fields or scalar

@@ -61,12 +61,12 @@ relational_sql = sql_operand, { set_part }, [ order_clause ], [ limit_clause ],
                  { "|>", cte_pipe_item } ;
 sql_operand   = select_core | "(", relational_body, ")" ;
 (* Declaration bodies exclude statement-level INFER, RESULT and EFFECT declarations. *)
-cte_pipe      = "FROM", carrier_source, { "|>", cte_pipe_item } ;
+cte_pipe      = "FROM", carrier_source, { join }, { "|>", cte_pipe_item } ;
 cte_pipe_item = relation_pipe_item | nearest_operator | named_sga_call | graph_match ;
 select_core   = "SELECT", [ "DISTINCT" ], select_list, [ "FROM", source, { join } ],
                 [ where_clause ], [ group_clause ],
                 [ having_clause ], [ qualify_clause ], [ window_clause ] ;
-pipe_query    = "FROM", carrier_source, { "|>", pipe_item } ;
+pipe_query    = "FROM", carrier_source, { join }, { "|>", pipe_item } ;
 carrier_source = source | "GRAPH", path, [ source_alias ] ;
 (* FROM preserves the resolved Carrier. GRAPH adds an explicit Graph type
    expectation; MATCH does not require the marker. An authored row alias
@@ -202,7 +202,7 @@ result_operator = "RESULT", identifier ;
 assertion_operator = "ASSERT", "UNIQUE", "BY", "(", path, { ",", path }, ")" ;
 terminal_effect = terminal_update | [ "EFFECT", identifier ], table_create ;
 table_create  = "CREATE", [ "OR", "REPLACE" ], "TABLE", path ;
-terminal_update = "EFFECT", identifier, "UPDATE", "TARGET", query_string,
+terminal_update = "EFFECT", [ identifier ], "UPDATE", "TARGET", query_string,
                   "MAPPING", identifier, "FROM", "RESULT", identifier,
                   "ID", identifier, "SET", "(", assignment, { ",", assignment }, ")" ;
 (* Pipe WHERE permits supported inline window calls in its predicate. *)
@@ -236,8 +236,11 @@ unpivot_column_set = identifier | "(", identifier, { ",", identifier }, ")" ;
 unpivot_input = unpivot_column_set, [ [ "AS" ], ( query_string | integer ) ] ;
 infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
                  path, { ",", path }, ")", "INPUT", "(",
-                 [ assignment, { ",", assignment } ], ")",
+                 [ infer_input, { ",", infer_input } ], ")",
                  [ keep_clause ], "AS", identifier ;
+(* Shorthand is one ordinary binding identifier, quoted when reserved. The
+   assignment key keeps its closed ModelTask schema-key role. *)
+infer_input = assignment | identifier ;
 (* Options are static scalar values, with bound Parameters only for row/byte
    guards. Common profile checking owns mandatory options, domains and defaults. *)
 serialize_operator = "SERIALIZE", "FORMAT", ( "CSV" | "JSONL" ),

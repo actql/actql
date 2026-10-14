@@ -1,6 +1,6 @@
 import {pollSdkPreparation, sdkPreparedRequest, prepareSdkTransport,
   startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
-  cancelSdkPreparation, cleanupSdkPreparation,
+  cancelSdkPreparation, cleanupSdkPreparation, progressSdkOriginalIoCleanup,
   retireSdkDecodedResult} from './intercepted-request.mjs';
 
 // Private source integration only: not an exported package installation API.
@@ -71,6 +71,13 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
     // Only the unused SDK projection is dropped. Saved/raw observations and
     // the same Store/Entry cleanup obligation remain owned independently.
     if (!retired && preparation !== undefined) retireSdkDecodedResult(preparation);
+    if (!retired && preparation !== undefined) {
+      // Normal EOF/rejection or original cancellation permits physical I/O
+      // cleanup progress without disposing a Store-pending raw/SDK holding.
+      // This private observation is not a Common ACK or Result permission.
+      try { progressSdkOriginalIoCleanup(preparation); }
+      catch { /* Keep the same original physical and holding responsibility. */ }
+    }
     if (response !== undefined && failure === undefined && !startUnknown) {
       try { return selectSaved(moon, response, checked); }
       catch (error) {
@@ -111,6 +118,10 @@ function createSdkPhysicalPreflight({moon, request, preparation, profile,
   const cleanup = () => {
     if (retired) return true;
     if (preparation !== undefined) retireSdkDecodedResult(preparation);
+    if (preparation !== undefined) {
+      try { progressSdkOriginalIoCleanup(preparation); }
+      catch { /* Full original cleanup must still settle this duty. */ }
+    }
     if (saving !== undefined || reconciliationPending) return false;
     // Every attempted raw save retains its original port until cleanup,
     // including a successful save's local aliases. This does not erase the

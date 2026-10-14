@@ -9,7 +9,8 @@
       "version": "0.0.0-development",
       "dependencies": {
         "@ai-sdk/openai": "4.0.91",
-        "@ai-sdk/typesafe-ai": "3.0.13"
+        "@ai-sdk/typesafe-ai": "3.0.13",
+        "undici": "7.30.0"
       },
       "engines": {
         "node": ">=22"
