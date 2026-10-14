@@ -2207,6 +2207,7 @@ fn compile_steps(
     InferInputLabels,
     Array[(String, String)],
   ) -> InferPrefixProjection raise Abort)? = None,
+  checked_nearest_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
   // Internal parenthesized bindings retain their positional export role.
   // This parser fact never grants anonymous exports to authored CTEs.
@@ -3107,6 +3108,16 @@ fn compile_steps(
             .filter(pair => pair.0 == matches[0].name)
             .get(0)
             .map(pair => pair.1),
+          completion_limits=Some(query_limits),
+          checked_prefix=checked_nearest_prefix.map(check => {
+            nodes => {
+              check(
+                prefix_steps +
+                step_entries.map(step => construction.object(step)) +
+                nodes,
+              )
+            }
+          }),
         )
         step_entries.append(steps)
         entries.clear()
@@ -7377,6 +7388,12 @@ pub fn compile_with_source(
       prefix_steps=seed_steps,
       prefix_context=Some(context),
       source_projection_capture~,
+      checked_nearest_prefix=Some(nodes => {
+        checked_query_prefix_pipeline(
+          construction, query, context, capture_stages, input_entries, nodes, limits,
+          infer_budget,
+        )
+      }),
       checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
         infer_prefix_check(
           construction, query, context, capture_stages, input_entries, nodes, producer,
@@ -7477,6 +7494,7 @@ fn compile_join_steps(
     InferInputLabels,
     Array[(String, String)],
   ) -> InferPrefixProjection raise Abort)? = None,
+  checked_nearest_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if @query.operation_count(query) < 1 ||
     limits.max_join_output_rows < 1L ||
@@ -7686,6 +7704,7 @@ fn compile_join_steps(
       prefix_steps~,
       reserved_bindings~,
       checked_infer_prefix~,
+      checked_nearest_prefix~,
     )
     return (steps, visible_names, final_from)
   }
@@ -7900,6 +7919,7 @@ fn compile_join_steps(
     prefix_steps~,
     reserved_bindings~,
     checked_infer_prefix~,
+    checked_nearest_prefix~,
   )
   (steps, output, from)
 }
@@ -9419,6 +9439,7 @@ fn append_join_order_steps(
     InferInputLabels,
     Array[(String, String)],
   ) -> InferPrefixProjection raise Abort)? = None,
+  checked_nearest_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
 ) -> String raise Abort {
   let mut result_from = initial_from
   if !order_fields.is_empty() {
@@ -9519,6 +9540,7 @@ fn append_join_order_steps(
       prefix_steps=prefix_steps + steps,
       reserved_bindings~,
       checked_infer_prefix~,
+      checked_nearest_prefix~,
     )
     if output != visible_names {
       // Caller output is shared so that the public Result definition follows

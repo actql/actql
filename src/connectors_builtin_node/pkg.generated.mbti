@@ -1397,6 +1397,8 @@ pub fn client_program_model_physical_call_for_request(@model_execution.ModelCall
 
 pub fn client_program_model_physical_evidence_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, String, String, () -> @model_execution.ModelResponse?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]
 
+pub fn client_program_model_physical_io_observation(@model_execution.ModelPhysicalCall, Bool, @model_execution.ModelPhysicalCallPoll) -> @model_execution.ModelPhysicalCallPoll
+
 pub fn client_program_model_physical_pending() -> @model_execution.ModelPhysicalCallPoll
 
 pub fn client_program_model_physical_request_plan(@model_execution.ModelRequest, Int64, Int64, Int64, Int64, () -> @model_execution.ModelResponse?) -> Result[@model_execution.ModelPhysicalRequestPlan, @model_execution.ModelExecutionIssue]

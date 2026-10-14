@@ -166,6 +166,8 @@ class NativeImageTests(unittest.TestCase):
         components = case.inspect()
         library = case.directory / '_wasmtime/darwin-aarch64/_libwasmtime.dylib'
         library.parent.mkdir(parents=True); library.write_bytes(b'independent runtime library fixture')
+        from image_fixture import PROVIDER
+        (library.parent / 'libactql_native_control.dylib').write_bytes(PROVIDER)
         with patch('actql_sdk._local_engine.metadata.version', return_value=components.package_version), \
                 patch('actql_sdk._local_engine.resources.files', return_value=case.directory), \
                 patch('actql_sdk._local_engine._load_selected_image', side_effect=AssertionError('Capture')):

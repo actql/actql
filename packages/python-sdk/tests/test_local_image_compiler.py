@@ -8,6 +8,8 @@ from unittest.mock import patch
 
 import test_local_artifact_producer as originals
 import test_local_installed_image as native
+from image_fixture import PROVIDER
+from actql_sdk._local_distribution import LocalInstallationError
 
 ROOT = Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location('prepared_image_compiler', ROOT / 'scripts/compile-python-local-image.py')
@@ -25,6 +27,8 @@ class ImageCompilerTests(unittest.TestCase):
         self.stack.enter_context(patch.object(compiler.resources, 'files', return_value=self.case.root))
         self.library = self.case.root / 'darwin-aarch64/_libwasmtime.dylib'
         self.library.parent.mkdir(); self.library.write_bytes(b'independent runtime library fixture')
+        self.provider = self.library.parent / 'libactql_native_control.dylib'
+        self.provider.write_bytes(PROVIDER)
         self.destination = self.case.root / 'compiled'
 
     def test_verify_only_does_not_import_native_runtime_or_issue_compiled_fact(self):
@@ -33,6 +37,16 @@ class ImageCompilerTests(unittest.TestCase):
         self.assertEqual(checked['source'], self.case.head)
         self.assertEqual(checked['module_sha256'], self.case.core['module_sha256'])
         self.assertEqual(checked['recipe'].source_sha, self.case.head)
+        self.assertFalse(self.destination.exists())
+
+    def test_missing_or_modified_provider_is_refused_before_engine_import(self):
+        self.provider.unlink()
+        with patch.object(compiler, 'import_module', side_effect=AssertionError('Native engine')):
+            with self.assertRaises(FileNotFoundError):
+                compiler.compile_image(self.case.core_file, self.case.head, self.destination)
+            self.provider.write_bytes(b'x' * len(PROVIDER))
+            with self.assertRaisesRegex(LocalInstallationError, 'digest mismatched'):
+                compiler.compile_image(self.case.core_file, self.case.head, self.destination)
         self.assertFalse(self.destination.exists())
 
     def test_foreign_source_and_changed_original_receipt_refuse_before_runtime(self):

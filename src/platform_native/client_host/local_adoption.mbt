@@ -416,6 +416,16 @@ pub fn NativeLocalAdoptionSession::stage_configuration(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  self.stage_configuration_after_original()
+}
+
+///|
+// Only the same synchronous Owner path may enter immediately after its actual
+// check_original. Public staging still checks that original itself. Keep the
+// final original check after account/custody I/O; no Allow or file fact is cached.
+fn NativeLocalAdoptionSession::stage_configuration_after_original(
+  self : NativeLocalAdoptionSession,
+) -> Result[Unit, NativeLocalAdoptionIssue] {
   let existing = match self.root.inspect_generation("account.json") {
     Ok(value) => value
     Err(issue) => return Err(Filesystem(issue))

@@ -416,6 +416,8 @@ pub(all) struct NamePart {
 pub(all) struct NearestClause {
   relation : Array[NamePart]
   candidate_alias : NamePart
+  candidate_alias_explicit : Bool
+  query_vector : Expression?
   query_roles : NearestRolePair?
   candidate_roles : NearestRolePair?
   metric : String

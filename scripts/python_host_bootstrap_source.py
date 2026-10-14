@@ -30,6 +30,7 @@ INPUTS = (
     'packages/python-local-runtime/native/pre-root/owned_region.inc',
     'packages/python-local-runtime/native/pre-root/owned_domain_borrow.h',
     'packages/python-local-runtime/native/pre-root/owned_domain_borrow.inc',
+    'packages/python-local-runtime/native/pre-root/owned_image.c',
 )
 MANIFEST = 'packages/python-local-runtime/native/pre-root/host-bootstrap-source.json'
 
