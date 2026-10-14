@@ -78,7 +78,12 @@ test('native input is a single exact dedicated backing fixed before invoke', asy
 
 test('plaintext excess refuses before any output copy or socket queue', async t => {
   const f = await fixture(t, {maxPlaintextBytes: 1});
-  assert.equal(f.emit(2), false);
+  const allocate = Buffer.allocUnsafeSlow;
+  let allocations = 0;
+  Buffer.allocUnsafeSlow = length => { allocations++; return allocate(length); };
+  try { assert.equal(f.emit(2), false); }
+  finally { Buffer.allocUnsafeSlow = allocate; }
+  assert.equal(allocations, 0);
   assert.equal(f.socket.readableLength, 0);
   await assert.rejects(f.pending, {code: 'UndiciOriginalAcquisitionPlaintextExceeded'});
   assert.equal(await f.call.cleanup(), true);
@@ -93,12 +98,47 @@ test('input plus dedicated output copy must fit the original backing declaration
   assert.equal(await f.call.cleanup(), true);
 });
 
-test('copied input view or foreign socket cannot feed the original callback', async t => {
+test('copied input view cannot feed the original callback', async t => {
   const f = await fixture(t);
   assert.equal(f.emit(1, Buffer.alloc(256)), false);
   assert.equal(f.socket.readableLength, 0);
   await assert.rejects(f.pending, {code: 'UndiciOriginalAcquisitionShapeRefused'});
   assert.equal(await f.call.cleanup(), true);
+});
+
+test('foreign socket cannot feed the original native callback', async t => {
+  const f = await fixture(t);
+  assert.equal(f.emit(1, f.buffer, {}), false);
+  assert.equal(f.socket.readableLength, 0);
+  await assert.rejects(f.pending, {code: 'UndiciOriginalAcquisitionShapeRefused'});
+  assert.equal(await f.call.cleanup(), true);
+});
+
+test('exact input plus output-copy extent preserves the full original response', async t => {
+  const length = Buffer.byteLength(wire);
+  const f = await fixture(t, {maxBorrowedBackingBytes: 256 + length});
+  f.buffer.write(wire);
+  assert.equal(f.emit(length), true);
+  const reader = (await f.pending).body.getReader();
+  assert.equal(Buffer.from((await reader.read()).value).toString(), 'A');
+  assert.equal((await reader.read()).done, true);
+  reader.releaseLock();
+  assert.equal(await f.call.cleanup(), true);
+});
+
+test('unknown physical close keeps the same input and cleanup Promise', async t => {
+  const f = await fixture(t);
+  const destroy = f.socket._destroy;
+  let finish;
+  f.socket._destroy = (error, callback) => { finish = () => Reflect.apply(destroy, f.socket, [error, callback]); };
+  const cleanup = f.call.cleanup();
+  assert.strictEqual(f.call.cleanup(), cleanup);
+  await turn();
+  assert.equal(f.closes(), 0);
+  assert.strictEqual(f.input.buffer, f.buffer);
+  finish();
+  assert.equal(await cleanup, true);
+  assert.equal(f.closes(), 1);
 });
 
 test('cancel close pending retains input until the same actual destroy completes', async t => {

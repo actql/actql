@@ -259,7 +259,7 @@ A refused chunk destroys that same socket and retains original cleanup duties.
 probes, before calling the captured read method; exhaustion does not perform
 another read. It is not the accepted body-chunk count or a native queue bound.
 
-These are **post-acquisition** checks. Selected Node/TLS emission, Readable
+Parser-facing checks are **post-acquisition**. Selected Node/TLS emission, Readable
 queue and concatenation can allocate before `socket.read()` returns. Their
 first managed allocator/burst/queue envelope remains unresolved; neither a
 clamp nor a successful private fixture proves pre-acquisition reservation.
@@ -268,6 +268,23 @@ per-read controls, parser/native scratch, raw/Store/SDK borrowers until their
 actual retirement. Normal installation therefore remains Unavailable without
 the complete original same-Ledger envelope. Selected trusted TLS/llhttp/VM
 coverage is not zero managed memory or a whole-RSS claim.
+
+The selected original connector now fixes one dedicated native input buffer
+at preparation, of extent `min(maxChunkBytes, maxBorrowedBackingBytes)`.
+It uses Node's existing `onread` buffer, not a generator or an ambient socket
+owner. The same Call callback checks its receiver/input identity, cumulative
+plaintext and input-plus-copy extent **before** allocating any dedicated
+copy or pushing it into the original socket queue. Native refill cannot change
+an escaped parser/body view. Missing complete original Model funding still
+refuses normal startup; declaration counters do not reserve this buffer.
+
+This closes the selected reusable input/copy primitive, not all acquisition
+memory. Socket queue controls and Readable concatenation (including any pooled
+backing), parser/header, SDK/raw/Store aliases and trusted TLS/VM duties are
+separate terms. Physical close drops only this Call's own aliases; escaped
+Socket/body/raw borrowers may retain the input backing after IO ACK and stay
+in the original Model/SDK/Store holding inventory. No immediate GC or full
+phase/RSS upper bound is asserted.
 
 Cleanup retains the same connector/returned socket and body. Client destroy
 fulfillment alone cannot retire a connection in progress: the original
