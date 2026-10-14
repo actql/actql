@@ -20,6 +20,25 @@ priv suberror DurableRecordStop {
 }
 
 ///|
+/// Only original decoded fields escape the outer parsing phase. This private
+/// projection admits neither a request nor a durable record and retains no
+/// Source Node, indexed Cursor/ObjectView or parsing callback. Its own record
+/// and Strings still need workspace while the inner request is admitted.
+priv struct DurableDispatchFields {
+  request_json : String
+  dispatch_request_cid : String
+  revision : Int
+  execution_code : Int
+  evidence_code : Int
+  cleanup_code : Int
+  material_available : Bool
+  quarantined_capacity : Bool
+  material_generation : String
+  holding_evidence_cid : String
+  execution_evidence_cid : String
+}
+
+///|
 fn[T] durable_decoded(
   value : Result[T, @decode.Issue],
 ) -> T raise DurableRecordStop {
@@ -289,53 +308,73 @@ pub fn dispatch_transition_attempt_identity(
 }
 
 ///|
+fn decode_durable_dispatch_fields(
+  bytes : Bytes,
+) -> DurableDispatchFields raise DurableRecordStop {
+  let node = match
+    @source.parse_json_bytes(bytes, {
+      max_input_bytes: 262144,
+      max_nodes: 32,
+      max_depth: 2,
+    }) {
+    Ok(value) => value
+    Err(_) => raise DurableRecordStop
+  }
+  let cursor = durable_decoded(
+    @decode.admit(node, {
+      max_nodes: 32,
+      max_depth: 2,
+      max_string_bytes: 65536,
+      max_total_string_bytes: 131072,
+    }),
+  )
+  let object = durable_decoded(
+    @decode.closed_object(cursor, [
+      "cleanup_state", "dispatch_request_cid", "evidence_state", "execution_evidence_cid",
+      "execution_state", "holding_evidence_cid", "material_available", "material_generation",
+      "quarantined_capacity", "request_json", "revision", "version",
+    ]),
+  )
+  if durable_text(object, "version") != "actql-remote-dispatch-record/0.1" {
+    raise DurableRecordStop
+  }
+  {
+    request_json: durable_text(object, "request_json"),
+    dispatch_request_cid: durable_text(object, "dispatch_request_cid"),
+    revision: durable_int(object, "revision"),
+    execution_code: durable_int(object, "execution_state"),
+    evidence_code: durable_int(object, "evidence_state"),
+    cleanup_code: durable_int(object, "cleanup_state"),
+    material_available: durable_bool(object, "material_available"),
+    quarantined_capacity: durable_bool(object, "quarantined_capacity"),
+    material_generation: durable_text(object, "material_generation"),
+    holding_evidence_cid: durable_text(object, "holding_evidence_cid"),
+    execution_evidence_cid: durable_text(object, "execution_evidence_cid"),
+  }
+}
+
+///|
 pub fn admit_durable_dispatch_record(
   bytes : Bytes,
 ) -> Result[DurableDispatchRecord, DispatchIssue] {
   try {
-    let node = match
-      @source.parse_json_bytes(bytes, {
-        max_input_bytes: 262144,
-        max_nodes: 32,
-        max_depth: 2,
-      }) {
-      Ok(value) => value
-      Err(_) => raise DurableRecordStop
-    }
-    let cursor = durable_decoded(
-      @decode.admit(node, {
-        max_nodes: 32,
-        max_depth: 2,
-        max_string_bytes: 65536,
-        max_total_string_bytes: 131072,
-      }),
-    )
-    let object = durable_decoded(
-      @decode.closed_object(cursor, [
-        "cleanup_state", "dispatch_request_cid", "evidence_state", "execution_evidence_cid",
-        "execution_state", "holding_evidence_cid", "material_available", "material_generation",
-        "quarantined_capacity", "request_json", "revision", "version",
-      ]),
-    )
-    if durable_text(object, "version") != "actql-remote-dispatch-record/0.1" {
+    // End outer tree/indexed-decoder ownership before parsing the embedded
+    // original request. Input bytes, projected Strings, this temporary record,
+    // inner admission and canonical re-encoding remain separately live.
+    let fields = decode_durable_dispatch_fields(bytes)
+    let request = admit_dispatch_request_body(fields.request_json)
+    if fields.dispatch_request_cid != request.dispatch_request_cid {
       raise DurableRecordStop
     }
-    let request = admit_dispatch_request_body(
-      durable_text(object, "request_json"),
-    )
-    if durable_text(object, "dispatch_request_cid") !=
-      request.dispatch_request_cid {
-      raise DurableRecordStop
-    }
-    let revision = durable_int(object, "revision")
-    let execution_code = durable_int(object, "execution_state")
-    let evidence_code = durable_int(object, "evidence_state")
-    let cleanup_code = durable_int(object, "cleanup_state")
-    let material_available = durable_bool(object, "material_available")
-    let quarantined_capacity = durable_bool(object, "quarantined_capacity")
-    let material_generation = durable_text(object, "material_generation")
-    let holding_evidence_cid = durable_text(object, "holding_evidence_cid")
-    let execution_evidence_cid = durable_text(object, "execution_evidence_cid")
+    let revision = fields.revision
+    let execution_code = fields.execution_code
+    let evidence_code = fields.evidence_code
+    let cleanup_code = fields.cleanup_code
+    let material_available = fields.material_available
+    let quarantined_capacity = fields.quarantined_capacity
+    let material_generation = fields.material_generation
+    let holding_evidence_cid = fields.holding_evidence_cid
+    let execution_evidence_cid = fields.execution_evidence_cid
     let body = @utf8.decode(bytes) catch { _ => raise DurableRecordStop }
     let canonical = match
       emit_durable_dispatch_record(
