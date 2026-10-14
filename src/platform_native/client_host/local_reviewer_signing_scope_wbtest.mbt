@@ -59,9 +59,20 @@ fn reviewer_signing_scope_key_fixture(
     "load_public_crypto_library",
   )
   let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  // Each simultaneously live Host owns its own exclusive adoption parent.
+  // Source files may share the private fixture root; adoption locks may not.
+  let source_root = reviewer_signing_scope_require(
+    @filesystem.open_private_root(path),
+    "open_fixture_source_root",
+  )
+  reviewer_signing_scope_require(
+    source_root.create_directory(name + ".parent"),
+    "create_exclusive_adoption_parent",
+  )
+  |> ignore
   let adoption = reviewer_signing_scope_require(
     begin_native_local_host_adoption(
-      path,
+      path + "/" + name + ".parent",
       name + ".host",
       path,
       account_file,
