@@ -1302,7 +1302,7 @@
       ],
       "canonical_lowering": "infer",
       "preconditions": [
-        "exact input mapping",
+        "exact input mapping; single same-name identifiers normalize to explicit assignments",
         "typed outcomes",
         "known fields of a nullable non-success value remain typed NULL",
         "KEEP and result STRUCT form a new output scope without old input aliases",
@@ -1347,7 +1347,7 @@
       "surface_forms": [
         "|> EFFECT name ...",
         "EFFECT name ...",
-        "|> EFFECT name UPDATE TARGET string MAPPING identifier FROM RESULT name ID field SET (assignments)"
+        "|> EFFECT [name] UPDATE TARGET string MAPPING identifier FROM RESULT name ID field SET (assignments)"
       ],
       "canonical_lowering": "stage effect map",
       "preconditions": [

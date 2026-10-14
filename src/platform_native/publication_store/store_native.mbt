@@ -15,10 +15,120 @@ struct Store {
   pending_allocations : Map[String, RecordedAllocation]
   active_readers : Map[String, Int]
   mut closed : Bool
+  // Existing close responsibility; no new I/O is admitted after retirement starts.
+  mut retiring : Bool
   // Acceptance evidence only: called at the steps of a payload allocation.
   mut allocation_observer : ((String) -> Unit)?
   // Whitebox fault injection at fallible allocation preparation boundaries.
   allocation_failure : Ref[((String) -> NativePublicationStoreIssue?)?]
+}
+
+///|
+/// Original failed preparation with the same existing physical Owners. No
+/// wire, persistence, reservation, authority or substitute Store is issued.
+struct NativePublicationStoreOpenFailure {
+  original_issue : NativePublicationStoreIssue
+  mut root : @filesystem.Root?
+  mut failed_root : @filesystem.NativeRootOpenFailure?
+  mut lock : @filesystem.Lock?
+  mut failed_lock : @filesystem.NativeLockOpenFailure?
+  mut database : @sqlite.Database?
+  mut failed_database : @sqlite.NativeSqliteOpenFailure?
+  // Missing original constructor custody remains pending. Its primary issue
+  // retains the original diagnostic; this marker cannot acknowledge cleanup.
+  cleanup_gap : Unit?
+}
+
+///|
+pub fn NativePublicationStoreOpenFailure::issue(
+  self : NativePublicationStoreOpenFailure,
+) -> NativePublicationStoreIssue {
+  self.original_issue
+}
+
+///|
+/// Re-observe only the original handles, in reverse preparation order. No
+/// reopen/schema repair and no capacity return are performed here. Missing
+/// opaque constructor custody remains pending, not a fabricated empty ACK.
+pub fn NativePublicationStoreOpenFailure::retry_cleanup(
+  self : NativePublicationStoreOpenFailure,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  if self.failed_database is Some(original) {
+    match original.retry_cleanup() {
+      Ok(_) => self.failed_database = None
+      Err(issue) => return Err(Database(issue))
+    }
+  }
+  if self.database is Some(original) {
+    match original.close_checked() {
+      Ok(_) => self.database = None
+      Err(issue) => return Err(Database(issue))
+    }
+  }
+  if self.failed_lock is Some(original) {
+    match original.retry_cleanup() {
+      Ok(_) => self.failed_lock = None
+      Err(issue) => return Err(Filesystem(issue))
+    }
+  }
+  if self.lock is Some(original) {
+    match original.close_checked() {
+      Ok(_) => self.lock = None
+      Err(issue) => return Err(Filesystem(issue))
+    }
+  }
+  if self.cleanup_gap is Some(_) {
+    return Err(CleanupPending)
+  }
+  if self.failed_root is Some(original) {
+    match original.retry_cleanup() {
+      Ok(_) => self.failed_root = None
+      Err(issue) => return Err(Filesystem(issue))
+    }
+  }
+  if self.root is Some(original) {
+    match original.close() {
+      Ok(_) => self.root = None
+      Err(issue) => return Err(Filesystem(issue))
+    }
+  }
+  Ok(())
+}
+
+///|
+fn store_open_failure(
+  original_issue : NativePublicationStoreIssue,
+  root? : @filesystem.Root? = None,
+  failed_root? : @filesystem.NativeRootOpenFailure? = None,
+  lock? : @filesystem.Lock? = None,
+  failed_lock? : @filesystem.NativeLockOpenFailure? = None,
+  database? : @sqlite.Database? = None,
+  failed_database? : @sqlite.NativeSqliteOpenFailure? = None,
+  cleanup_gap? : Unit? = None,
+) -> NativePublicationStoreOpenFailure {
+  {
+    original_issue,
+    root,
+    failed_root,
+    lock,
+    failed_lock,
+    database,
+    failed_database,
+    cleanup_gap,
+  }
+}
+
+///|
+fn require_store_open(
+  store : Store,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  if store.closed {
+    Err(Closed)
+  } else if store.retiring {
+    Err(CleanupPending)
+  } else {
+    Ok(())
+  }
 }
 
 ///|
@@ -49,8 +159,18 @@ fn[T] allocation_prepare(
   step : String,
   operation : () -> Result[T, NativePublicationStoreIssue],
 ) -> Result[T, NativePublicationStoreIssue] {
+  match require_store_open(store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if store.allocation_failure.val is Some(inject) && inject(step) is Some(issue) {
     return Err(issue)
+  }
+  // The existing observation seam can retire this same Store. Its callback
+  // grants no permission to start I/O after returning.
+  match require_store_open(store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   operation()
 }
@@ -675,6 +795,7 @@ fn open_store_owned_with_custody(
     pending_allocations: Map([]),
     active_readers: Map([]),
     closed: false,
+    retiring: false,
     allocation_observer: None,
     allocation_failure: Ref(None),
   })
@@ -1089,6 +1210,9 @@ pub fn Store::acquire_payload_cleanup(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   if @payload.publication_payload_request_store_authority(request) !=
     self.authority_cid {
     return Err(StateCollision)
@@ -1121,6 +1245,10 @@ pub fn PayloadCleanupOwner::retry(
   if self.complete {
     return Ok(false)
   }
+  match require_store_open(self.store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let key = record_key(self.request)
   if self.store.pending_writers.contains(key) {
     match retry_pending_writer(self.store, key) {
@@ -1148,6 +1276,9 @@ pub fn Store::begin_payload(
 ) -> Result[PayloadWriter, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   if @payload.publication_payload_request_store_authority(request) !=
     self.authority_cid {
@@ -1538,6 +1669,9 @@ pub fn Store::inspect_payload(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let record = match load_record(self, material_generation_cid) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -1564,6 +1698,9 @@ pub fn Store::reconcile_payload(
 ) -> Result[NativePublicationPayloadInfo?, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   if @payload.publication_payload_request_store_authority(request) !=
     self.authority_cid {
@@ -1599,6 +1736,10 @@ pub fn Store::open_payload_reader(
   self : Store,
   material_generation_cid : String,
 ) -> Result[PayloadReader, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let info = match self.inspect_payload(material_generation_cid) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -1783,6 +1924,9 @@ pub fn Store::read_publication_contract(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   load_publication_contract(self, name, identity)
 }
 
@@ -1831,6 +1975,9 @@ pub fn Store::read_result_schema(
 ) -> Result[String, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let stored = match self.database.read("result_schema", result_schema_cid) {
     Ok(value) => value
@@ -1882,6 +2029,9 @@ pub fn Store::observe_trusted_clock(
 ) -> Result[String, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   if !@publication.trusted_clock_not_before(None, observed_at) {
     return Err(ClockRegression)
@@ -1956,6 +2106,9 @@ pub fn Store::commit_publication(
 ) -> Result[NativePublicationCommit, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   if bindings.length() != binding_schema_wires.length() {
     return Err(InvalidConfiguration)
@@ -2100,6 +2253,9 @@ pub fn Store::inspect_committed_publication(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let key = match
     publication_commit_key(
       @publication.publication_index_scope_storage_key(
@@ -2152,6 +2308,10 @@ pub fn Store::resolve_committed_result(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[NativeCommittedResult?, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let index = match
     self.inspect_committed_publication(
       namespace_id, authority_scope_cid, run_definition_cid, max_wire_bytes, max_nodes,
@@ -2417,6 +2577,10 @@ pub fn Store::open_payload_delivery(
   max_depth : Int,
   max_delivery_bytes : Int64,
 ) -> Result[PayloadDelivery, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if input_chunk_bytes < 1 ||
     input_chunk_bytes > 16777216 ||
     max_row_bytes < 1 ||
@@ -2505,6 +2669,10 @@ pub fn Store::open_confirmed_payload_delivery(
   max_depth : Int,
   max_delivery_bytes : Int64,
 ) -> Result[ConfirmedPayloadDelivery, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let source = match
     self.open_payload_delivery(
       material_generation_cid, format, schema_wire, fields, input_chunk_bytes, max_row_bytes,
@@ -2814,6 +2982,10 @@ pub fn Store::begin_result_delivery(
   max_depth : Int,
   max_delivery_bytes : Int64,
 ) -> Result[ResultDelivery, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if self.closed || max_delivery_bytes < 0L || max_delivery_bytes > 2147483647L {
     return Err(InvalidConfiguration)
   }
@@ -3013,6 +3185,10 @@ pub fn ResultDelivery::confirm_sink_finished(
   if self.closed {
     return Err(Closed)
   }
+  match require_store_open(self.store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if !@publication.result_read_grant_valid_at(self.grant, observed_at) {
     return Err(DeliveryLimit)
   }
@@ -3151,6 +3327,10 @@ pub fn ResultDelivery::terminate(
 ) -> Result[NativeResultDeliveryFailure, NativePublicationStoreIssue] {
   if self.succeeded is Some(_) || self.closed {
     return Err(Closed)
+  }
+  match require_store_open(self.store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let confirmed = match self.failure_confirmed {
     Some(value) => value
@@ -3327,6 +3507,9 @@ pub fn Store::lookup_result_delivery(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let attempt = match read_result_delivery_attempt(self, scope.attempt_id) {
     Ok(Some(value)) => value
     Ok(None) => return Ok(None)
@@ -3368,6 +3551,9 @@ pub fn Store::inspect_result_delivery(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let attempt = match read_result_delivery_attempt(self, attempt_id) {
     Ok(Some(value)) => value
     Ok(None) => return Err(Database(@sqlite.NotFound))
@@ -3401,6 +3587,9 @@ pub fn Store::reclaim_payload(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let record = match load_record(self, material_generation_cid) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -3414,6 +3603,9 @@ pub fn Store::recover(
 ) -> Result[NativePublicationRecovery, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   if !self.active_writers.is_empty() || !self.active_readers.is_empty() {
     return Err(CleanupPending)
@@ -3493,6 +3685,9 @@ pub fn Store::capacity_usage(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   database(self.database.capacity_usage("publication_payload"))
 }
 
@@ -3504,13 +3699,26 @@ pub fn Store::close(self : Store) -> Result[Bool, NativePublicationStoreIssue] {
   if !self.active_writers.is_empty() || !self.active_readers.is_empty() {
     return Err(CleanupPending)
   }
-  match self.recover() {
-    Ok(_) => ()
-    Err(issue) => return Err(issue)
+  if !self.retiring {
+    match self.recover() {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    self.retiring = true
   }
-  self.database.close()
-  if !self.lock.close() {
-    return Err(CleanupPending)
+  // Each original Owner is idempotent after its own ACK. On a later failure,
+  // keep this Store and skip recovery/new I/O against an already closed DB.
+  match self.database.close_checked() {
+    Ok(_) => ()
+    Err(issue) => return Err(Database(issue))
+  }
+  match self.lock.close_checked() {
+    Ok(_) => ()
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  match self.root.close() {
+    Ok(_) => ()
+    Err(issue) => return Err(Filesystem(issue))
   }
   self.closed = true
   Ok(true)

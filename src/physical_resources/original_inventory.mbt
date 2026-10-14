@@ -127,6 +127,20 @@ pub fn original_ledger_inventory_available(
 }
 
 ///|
+// Read-only lifetime of the same original census/bootstrap. A parked Run may
+// retain its existing borrow while allocation and mutation remain fenced.
+// This neither unparks resources nor admits a read, Model start or send.
+pub fn original_ledger_inventory_live(
+  identity : OriginalLedgerIdentity,
+) -> Bool {
+  guard identity.ledger.original_inventory is Some(value) else { return false }
+  physical_equal(identity, value.identity) &&
+  physical_equal(identity.bootstrap, value.bootstrap) &&
+  !value.closing &&
+  original_read_bootstrap_available(identity.ledger, identity.bootstrap)
+}
+
+///|
 // Core-only prerequisite for the checked source-free prefix constructor.
 // Unlike the ordinary lifetime getter, this rejects descriptor/read issuance
 // and every spent child identity, including a zero-byte or settled attempt.

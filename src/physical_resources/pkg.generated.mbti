@@ -54,6 +54,8 @@ pub fn charge_planning(Ledger, Int) -> Result[Unit, LedgerIssue]
 
 pub fn charge_transfer(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
 
+pub fn check_original_current_state_document_configuration(OriginalCurrentStateDocument, LedgerLimits, QuantityAmounts?) -> Result[Unit, OriginalStateDocumentIssue]
+
 pub fn check_original_resources_mutable(Ledger) -> Result[Unit, LedgerIssue]
 
 pub fn check_original_state_write_preparation(OriginalLedgerIdentity) -> Result[Unit, OriginalStateWriteIssue]
@@ -139,6 +141,8 @@ pub fn original_keyed_serialization_preparation_available(OriginalLedgerIdentity
 pub fn original_ledger_captured_preparation_available(OriginalLedgerIdentity, prefix? : Reservation?) -> Bool
 
 pub fn original_ledger_inventory_available(OriginalLedgerIdentity) -> Bool
+
+pub fn original_ledger_inventory_live(OriginalLedgerIdentity) -> Bool
 
 pub fn original_ledger_prefix_available(OriginalLedgerIdentity) -> Bool
 

@@ -382,14 +382,19 @@ class InstalledImageTests(unittest.TestCase):
         for reply in ((0, False), (True, True), OSError('Unknown physical retirement')):
             with self.subTest(reply=reply):
                 self.setUp()
-                holding, _ = self._holding([reply, (0, True)])
+                holding, library = self._holding([reply, (0, True)])
                 core, calls = self._construct_with_baseline(holding=holding)
-                with self.assertRaises((NativeHoldingRetirementError, OSError)):
+                with self.assertRaises((NativeHoldingRetirementError, OSError)) as first:
                     core.close()
                 self.assertFalse(core._closed)
                 self.assertIsNone(core._store)
-                self.assertEqual(holding._pointer.value, 123)
-                self.assertTrue(core.close())
+                self.assertEqual(holding._pointer.value, None if reply == (True, True) else 123)
+                with self.assertRaises((NativeHoldingRetirementError, OSError)) as second:
+                    core.close()
+                self.assertIs(first.exception, second.exception)
+                self.assertIs(core._physical_holding, holding)
+                self.assertFalse(core._closed)
+                self.assertEqual(len(library.actql_owned_try_close.replies), 1)
                 self.assertEqual([name for name, _ in calls], ['open', 'close'])
 
     def test_optional_import_failure_retains_same_holding_when_retirement_fails(self):

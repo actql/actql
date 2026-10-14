@@ -53,7 +53,8 @@ class _NativeHoldingLease:
     """
 
     __slots__ = ('_pointer', '_try_close', '_library', '_core_identity',
-                 '_generation', '_recipe', '_transfer_attempted')
+                 '_generation', '_recipe', '_transfer_attempted',
+                 '_close_failure', '_close_inflight')
 
     def __init__(self, pointer: c_void_p, library: Any, *, generation: int, recipe: bytes) -> None:
         if type(pointer) is not c_void_p or pointer.value is None:
@@ -73,6 +74,8 @@ class _NativeHoldingLease:
         # from SDK input, a new random epoch, a current config or permission.
         self._generation, self._recipe = generation, recipe
         self._transfer_attempted = False
+        self._close_failure: BaseException | None = None
+        self._close_inflight = False
         # Move the trusted supplier's owning slot exactly once. A second wrapper
         # cannot consume that same slot. Arbitrary raw pointers are not trusted.
         pointer.value = None
@@ -84,12 +87,14 @@ class _NativeHoldingLease:
         raise TypeError('Original native holding cannot be copied')
 
     def _bind_core(self, identity: object) -> None:
+        self._require_confirmed_retirement_state()
         if self._core_identity is not None or self._pointer.value is None:
             raise ValueError('Original native holding was already transferred or retired')
         self._core_identity = identity
 
     def _transfer_to_core(self, identity: object) -> None:
         """Observe the original native transfer once, after Core takes custody."""
+        self._require_confirmed_retirement_state()
         if (identity is not self._core_identity or self._pointer.value is None
                 or self._transfer_attempted):
             raise ValueError('Original native holding transfer is unavailable')
@@ -107,6 +112,7 @@ class _NativeHoldingLease:
             raise ValueError('Native Local holding and runtime library differ')
 
     def _capacity_bytes(self) -> int:
+        self._require_confirmed_retirement_state()
         if self._pointer.value is None:
             raise ValueError('Original native holding is retired')
         inspect = self._library.actql_owned_capacity_bytes
@@ -134,6 +140,7 @@ class _NativeHoldingLease:
     @contextmanager
     def _scope(self) -> Iterator[None]:
         """Use native TLS ownership; do not infer or mirror native scope state."""
+        self._require_confirmed_retirement_state()
         if self._pointer.value is None:
             raise ValueError('Original native holding is retired')
         enter = self._library.actql_owned_enter
@@ -151,14 +158,35 @@ class _NativeHoldingLease:
             if type(code) is not int or code != 0:
                 raise NativeHoldingScopeError('leave', code if type(code) is int else None)
 
+    def _require_confirmed_retirement_state(self) -> None:
+        if self._close_failure is not None:
+            # Keep the original issue/cause, without retaining every previous
+            # observer's frames for the lifetime of this Unknown holding.
+            raise BaseException.with_traceback(self._close_failure, None)
+        if self._close_inflight:
+            raise NativeHoldingRetirementError(None)
+
     def close(self) -> None:
+        self._require_confirmed_retirement_state()
         if self._pointer.value is None:
             return
-        # The original slot is retained until both native success and the
-        # expected cleared slot are observed. Exceptions/negative status do not
-        # infer release, replace the holding or create a second native pointer.
-        observed = c_void_p(self._pointer.value)
-        code = self._try_close(byref(observed))
-        if type(code) is not int or code != 0 or observed.value is not None:
-            raise NativeHoldingRetirementError(code if type(code) is int else None)
-        self._pointer = observed
+        # Native close mutates this same retained slot. A lost return can leave
+        # it NULL without an ACK; neither that NULL nor the old address permits
+        # another physical close. A known nonzero reply with an unchanged slot
+        # remains retryable under the original native contract.
+        original = self._pointer.value
+        self._close_inflight = True
+        try:
+            try:
+                code = self._try_close(byref(self._pointer))
+            except BaseException as cause:
+                self._close_failure = cause
+                raise
+            if type(code) is int and code == 0 and self._pointer.value is None:
+                return
+            failure = NativeHoldingRetirementError(code if type(code) is int else None)
+            if type(code) is not int or code == 0 or self._pointer.value != original:
+                self._close_failure = failure
+            raise failure
+        finally:
+            self._close_inflight = False

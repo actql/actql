@@ -3,7 +3,7 @@
 // The polling variant is a deterministic ACK double, not real Store I/O.
 test "physical diagnostic callback cannot reuse a pre-callback send permission" {
   for polling in [false, true] {
-    for variant in ["cancel", "revoke", "egress", "expiry"] {
+    for variant in ["cancel", "revoke", "egress", "expiry", "original-current"] {
       let calls = Ref(0)
       let current = Ref(evidence_account(@authorization.Allow))
       let now = Ref("2026-10-02T00:00:00.000Z")
@@ -12,6 +12,7 @@ test "physical diagnostic callback cannot reuse a pre-callback send permission" 
         calls, current, now, egress,
       )
       let events : Array[String] = []
+      let original_current = Ref(true)
       assert_true(
         @model.bind_prepared_model_observation(prepared, observation => {
           let (_, _, event, _) = @model.model_physical_observation_facts(
@@ -28,8 +29,17 @@ test "physical diagnostic callback cannot reuse a pre-callback send permission" 
                   region: "changed-region",
                 })
               "expiry" => now.val = "2100-01-01T00:00:00.000Z"
+              "original-current" => {
+                // Installed original current predicate after diagnostics
+                // requests this SAME Owner's existing stop. Host graceful
+                // closing itself is not this current-loss observation.
+                original_current.val = false
+              }
               _ => abort("fixed mutation")
             }
+          }
+          if !original_current.val {
+            cancel(active) |> ignore
           }
         }),
       )
@@ -59,7 +69,7 @@ test "physical diagnostic callback cannot reuse a pre-callback send permission" 
       assert_eq(entries.val, 1)
       assert_eq(events, ["before_invoke"])
       match variant {
-        "cancel" => assert_true(result is Stopped(_))
+        "cancel" | "original-current" => assert_true(result is Stopped(_))
         "egress" => assert_true(result is Failed(Model(@model.Egress(_)), ..))
         _ => assert_true(result is Failed(Model(@model.Authorization(_)), ..))
       }
