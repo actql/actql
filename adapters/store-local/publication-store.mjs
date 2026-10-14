@@ -1345,7 +1345,11 @@ export async function openLocalPublicationStore(
           before.size !== state.size || before.mtimeMs !== state.mtimeMs) {
         fail('InvalidPublicationStoreObject');
       }
-      const stream = handle.createReadStream({autoClose: false});
+      // This same-FD verifier keeps one explicit overflow-probe byte so growth
+      // is still refused before hashing it. Fund W+1 acquisition separately;
+      // neither the accepted W nor a later clamp pays for that sentinel.
+      const stream = handle.createReadStream({autoClose: false,
+        end: before.size, highWaterMark: Math.min(65536, before.size + 1)});
       for await (const chunk of stream) {
         // Reject growth before charging this chunk to the hash/accepted byte
         // inventory. The received chunk and stream backing remain a separate
