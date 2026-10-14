@@ -50,7 +50,7 @@ class SourceClosureTests(unittest.TestCase):
 
     def test_source_closure_does_not_claim_physical_or_installed_success(self):
         result = self.check()
-        self.assertEqual(result['verified_inputs'], 11)
+        self.assertEqual(result['verified_inputs'], 12)
         self.assertEqual(result['native_execution'], 0)
         self.assertIs(result['installed_capability'], False)
 
