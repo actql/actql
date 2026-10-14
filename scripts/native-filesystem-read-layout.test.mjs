@@ -16,7 +16,6 @@ test('original filesystem layout projection performs no acquisition or allocatio
     '-I', join(process.env.MOON_HOME, 'include'),
     join(root, 'scripts/fixtures/native-filesystem-read-layout.c'),
     join(process.env.MOON_HOME, 'lib/runtime/runtime.c'),
-    join(process.env.MOON_HOME, 'lib/libmoonbitrun.o'),
     ...(process.platform === 'linux' ? ['-ldl', '-lm'] : []), '-o', executable],
   {cwd: root, encoding: 'utf8', timeout: 30_000});
   assert.equal(compile.status, 0, `${scratch}\n${compile.error ?? ''}\n${compile.stdout}\n${compile.stderr}`);

@@ -15,6 +15,10 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+// The standalone diagnostic does not link a generated MoonBit entrypoint.
+// Any unexpected runtime panic terminates the fixture; it cannot become PASS.
+_Noreturn void moonbit_panic(void) { abort(); }
+
 static unsigned heap_entries;
 static unsigned descriptor_entries;
 static void *layout_malloc(size_t bytes) {
