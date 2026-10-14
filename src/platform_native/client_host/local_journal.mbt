@@ -318,7 +318,10 @@ pub fn NativeLocalHostConnection::check_binding(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  match self.session.stage_configuration() {
+  // The immediately preceding actual original check is staging's entry fence.
+  // Staging keeps its original terminal check, and every Common/current caller
+  // still invokes this complete binding fence before and after its own work.
+  match self.session.stage_configuration_after_original() {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }

@@ -338,6 +338,11 @@ fn lower_script_relation_term(
     reserved_bindings=reserved,
     prefix_context=Some(context),
     positional_set_output~,
+    checked_nearest_prefix=Some(nodes => {
+      script_nearest_prefix_pipeline(
+        construction, query, context, sources, nodes, limits,
+      )
+    }),
     checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
       script_infer_prefix_check(
         construction, query, context, sources, nodes, producer, limits, visible,
