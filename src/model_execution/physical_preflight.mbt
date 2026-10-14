@@ -18,13 +18,7 @@ pub fn guard_model_request_preflight_current(
   current : () -> Bool,
 ) -> ModelRequestPreflight {
   {
-    advance: () => {
-      if !current() {
-        Err(Cancelled)
-      } else {
-        (cursor.advance)()
-      }
-    },
+    advance: () => if !current() { Err(Cancelled) } else { (cursor.advance)() },
     cleanup: cursor.cleanup,
   }
 }

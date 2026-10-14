@@ -7,6 +7,11 @@ test "control restart replays only the original pending Effect report and saves 
   // runs do not establish this delivery acceptance without that environment.
   guard @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_CHECKPOINT_URL")
     is Some(origin) else {
+    if @env.get_env_var("ACTQL_REQUIRE_NATIVE_EFFECT_REPLAY_TESTS") is Some("1") {
+      fail(
+        "selected Effect replay acceptance requires its authenticated HTTPS peer",
+      )
+    }
     return
   }
   let required = name => @env.get_env_var(name).unwrap()
@@ -46,7 +51,7 @@ test "control restart replays only the original pending Effect report and saves 
   .commit_transition(@remote.prepare_confirm_native_settled(record).unwrap())
   .unwrap()
   let cursor : Ref[String] = Ref("")
-  let next : Map[String, UInt64] = Map([])
+  let next : Ref[UInt64] = Ref(0UL)
   let delegation = completed_output_test_delegation(request)
   let advance = (current, route, instant, point) => {
     cursor.val = ""
@@ -118,6 +123,35 @@ test "control restart replays only the original pending Effect report and saves 
   // Retry is bounded by the same transient deadline. No HTTP request occurs
   // before it, even when a control pass revisits the original dispatch.
   assert_true(advance(journal, "/accepted", 99UL, fn(_) {  }) is Idle)
+  // The same class deadline also covers another original dispatch, without
+  // allocating a history key or reading/sending that dispatch before it is due.
+  let (_, sibling, sibling_request, _, _) = cleanup_test_open(
+    "effect-control-replay-sibling",
+  )
+  sibling.accept(sibling_request).unwrap() |> ignore
+  let sibling_cursor : Ref[String] = Ref("")
+  assert_true(
+    advance_effect_checkpoint_replay(
+      sibling,
+      client,
+      origin + "/accepted",
+      delegation,
+      4,
+      sibling_cursor,
+      next,
+      99UL,
+      100,
+      fn(_) {  },
+    )
+    is Idle,
+  )
+  assert_eq(sibling_cursor.val, "")
+  assert_eq(
+    @remote.dispatch_record_revision(sibling.require(sibling_request).unwrap()),
+    0,
+  )
+  assert_eq(sibling.start_claimant(sibling_request).unwrap(), None)
+  sibling.close_checked().unwrap()
   assert_true(
     advance(journal, "/lost", 100UL, fn(_) {  }) is Pending(_, "transport"),
   )
@@ -170,7 +204,7 @@ test "control restart replays only the original pending Effect report and saves 
       delegation,
       4,
       restart_cursor,
-      Map([]),
+      Ref(0UL),
       0UL,
       100,
       fn(_) {  },
@@ -213,7 +247,7 @@ test "control restart replays only the original pending Effect report and saves 
       delegation,
       4,
       Ref(""),
-      Map([]),
+      Ref(0UL),
       0UL,
       100,
       fn(_) {  },

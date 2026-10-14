@@ -11,6 +11,7 @@ import {readFile} from 'node:fs/promises';
 import {performance} from 'node:perf_hooks';
 import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
+import {validInstallationBinding} from './ordinary-source-binding.mjs';
 import {isAbsolute} from 'node:path';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -315,6 +316,23 @@ export async function createInstalledRowSource({moon, declaration,
   }
   const preparations = new WeakMap();
   const keyedPreparations = new WeakMap();
+  const installationBinding = Object.freeze({connectorId, connectorRegistration,
+    connectorRevision, bindingCid});
+  function ordinaryRecoveryBinding(prepared) {
+    const owner = preparations.get(prepared);
+    if (owner === undefined || !validInstallationBinding(installationBinding) ||
+        valueCid(prepared.physicalBinding) !== owner.physicalBindingCid) {
+      fail('InstalledSourcePreparationMismatch');
+    }
+    const [resource, ...fields] = checked(
+      moon.clientProgramRowSourceTarget(declaration, owner.requirement));
+    if (resource !== owner.resource || prepared.readTuple.connection !== site.connection ||
+        prepared.readTuple.resource !== resource || prepared.readTuple.operation !== 'read' ||
+        valueCid(physicalTarget(resource, fields)) !== owner.physicalBindingCid) {
+      fail('InstalledSourcePreparationMismatch');
+    }
+    return installationBinding;
+  }
   const sourceAccess = Object.freeze({authorization,
     connection: site.connection,
     ...(sourceRefs.size === 1 ? {sourceRef: [...sourceRefs][0]} : {})});
@@ -332,7 +350,9 @@ export async function createInstalledRowSource({moon, declaration,
         : valueCid({version: 'actql-keyed-source-selection-read/0.1',
           selectionCid: prepared.checkedSource.selectionCid, physicalBinding: prepared.physicalBinding})), signal});
   const currentRead = async (prepared, access, signal) => {
+    if (prepared.checkedSource?.selectionCid === undefined) ordinaryRecoveryBinding(prepared);
     const decision = await decideRead(prepared, access, signal);
+    if (prepared.checkedSource?.selectionCid === undefined) ordinaryRecoveryBinding(prepared);
     if (decision?.action !== 'dispatch') {
       throw Object.assign(new Error('ExecutionAuthorizationDenied'),
         {code: 'ExecutionAuthorizationDenied', decision});
@@ -345,6 +365,16 @@ export async function createInstalledRowSource({moon, declaration,
           valueCid(facts.physicalBinding) !== valueCid(prepared.physicalBinding) ||
           valueCid(facts.readTuple) !== valueCid(prepared.readTuple)) {
         fail('InstalledKeyedReadApprovalMismatch');
+      }
+    }
+    if (prepared.checkedSource?.selectionCid === undefined && decision.basis === 'resumed_approval') {
+      const facts = checkpointApprovalFacts(decision);
+      if (facts === undefined || valueCid(facts.checkedSource) !== valueCid(prepared.checkedSource) ||
+          valueCid(facts.readTuple) !== valueCid(prepared.readTuple) ||
+          valueCid(facts.physicalBinding) !== valueCid(prepared.physicalBinding) ||
+          (facts.installationBinding !== undefined &&
+            valueCid(facts.installationBinding) !== valueCid(installationBinding))) {
+        fail('InstalledSourceReadApprovalMismatch');
       }
     }
     return decision;
@@ -487,6 +517,7 @@ export async function createInstalledRowSource({moon, declaration,
       physicalBinding: physicalTarget(resource, fields),
       occurrence,
     });
+    const physicalBindingCid = valueCid(prepared.physicalBinding);
     const acquisition = checked(moon.clientProgramRowSourcePrepareAcquisition(
       declaration, requirement, queryContract, evidenceContract, listingPolicy));
     const decision = await decideRead(prepared, access);
@@ -498,7 +529,8 @@ export async function createInstalledRowSource({moon, declaration,
     }
     preparations.set(prepared, Object.freeze({checkedOwner, effectful,
       requirement, resource, access, acquisition,
-      occurrence}));
+      occurrence, physicalBindingCid}));
+    ordinaryRecoveryBinding(prepared);
     return prepared;
   }
 
@@ -1062,6 +1094,7 @@ export async function createInstalledRowSource({moon, declaration,
     sourceAccess,
     sourceReadAccesses,
     admitsSource: sourceRef => sourceRefs.has(sourceRef),
+    ordinaryRecoveryBinding,
     retainedCapture(prepared) {
       const owner = preparations.get(prepared);
       if (owner === undefined) fail('InstalledSourcePreparationMismatch');
