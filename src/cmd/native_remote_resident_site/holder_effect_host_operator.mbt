@@ -87,7 +87,7 @@ fn load_holder_effect_host_operator(
   matches : @argparse.Matches,
   resources : HolderOutputResources,
   environment : SiteEnvironment,
-  current_site : () -> Bool,
+  slot : @slot.NativeExecutorSlot,
   // Supplied only by the trusted Host installer after its representation and
   // baseline scope are established; no CLI value, wire or Account Allow can
   // construct this selection. Absence keeps the original refusal before I/O.
@@ -100,35 +100,36 @@ fn load_holder_effect_host_operator(
     Err(issue) => stop(issue)
   }
   guard selected is Some(root) else { return None }
-  // No selected I/O without reviewed setup quantity and real Site capacity.
-  // Project immutable binding facts before creating the closure. Capturing the
-  // resources object here would retain its Ref[scope] back through the scope's
-  // current predicate. Runtime/slot verifiers remain the existing Owners.
-  let bundles = environment.bundles
-  let active_runtime = environment.active_runtime
-  let binding = holder_effect_host_setup_binding(
-    environment.site,
-    resources.site_key,
-    resources.site_generation,
-    environment.runtime_bundle_cid,
-    current_site,
-    () => bundles.verify_active_component_binding(active_runtime) is Ok(_),
-  )
-  guard begin_holder_effect_host_setup_scope(
+  // Keep the same Site reservation in the existing output resources before
+  // constructing Slot/runtime callback contexts. Selection proves neither
+  // Account permission nor an installed Host baseline.
+  guard reserve_holder_effect_host_setup_scope(
       environment.site,
-      // The ordinary CLI leaves this None. A trusted installer can connect its
-      // already reviewed profile to the same operation/holding/cleanup Owners.
-      // This projection is neither a numeric supplier nor Account permission.
       setup_profile,
-      // Bound the current Bundle catalog read independently of Account bytes
-      // before this operation reserves or invokes the original Store verifier.
       environment.runtime_catalog_record_bytes,
-      binding,
     )
     is Some(scope) else {
     stop("Effect Host setup capacity unavailable")
   }
   resources.effect_host_setup.val = Some(scope)
+  // Capture immutable facts and the original verifier handles, not resources:
+  // capturing its Ref[scope] would create a scope/current-predicate cycle.
+  let bundles = environment.bundles
+  let active_runtime = environment.active_runtime
+  scope.current_binding = Some(
+    holder_effect_host_setup_binding(
+      environment.site,
+      resources.site_key,
+      resources.site_generation,
+      environment.runtime_bundle_cid,
+      () => slot.verify_current_hold() == Ok(()),
+      () => bundles.verify_active_component_binding(active_runtime) is Ok(_),
+    ),
+  )
+  if !holder_effect_host_read_scope_current(scope) {
+    ignore(leave_holder_effect_host_read_scope(scope))
+    stop("Effect Host setup current binding unavailable")
+  }
   let installed = prepare_holder_effect_host_operator(
     root,
     matches,
