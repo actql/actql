@@ -43,3 +43,11 @@ export type OpenAIChatRegistrationOptions = Readonly<{
 export declare function createInstalledOpenAIChatRegistration(
   options: OpenAIChatRegistrationOptions,
 ): ModelProviderRegistration;
+/** Explicit selected Node22.22/Undici7.30 physical route. Reuses the same
+ * original Host admissions; it is not ambient fetch, numerical funding,
+ * permission or accepted live/public capability. */
+export type UndiciOpenAIChatRegistrationOptions =
+  Omit<OpenAIChatRegistrationOptions, 'fetch'>;
+export declare function createInstalledUndiciOpenAIChatRegistration(
+  options: UndiciOpenAIChatRegistrationOptions,
+): ModelProviderRegistration;

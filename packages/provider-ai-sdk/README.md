@@ -1,8 +1,8 @@
 # Optional AI SDK Host installer (development)
 
-This unfinished development package exports only
-`createInstalledOpenAIChatRegistration`, the existing Host registration
-assembler. Its internal send, receipt, raw-response and native Decision
+This unfinished development package exports the existing Host registration
+assemblers `createInstalledOpenAIChatRegistration` and the explicit selected
+`createInstalledUndiciOpenAIChatRegistration`. Its internal send, receipt, raw-response and native Decision
 preparation functions are not package exports. The package remains private;
 the entry is not a published provider, installed profile, capacity or permission
 to send model requests.
@@ -24,6 +24,23 @@ const registerModelProviders = createInstalledOpenAIChatRegistration(trustedHost
 // Supply this callback through @actql/node's existing
 // installation.registerModelProviders alongside its admitted modelInstallation.
 ```
+
+The explicit Node HTTP selection uses the same original options except `fetch`:
+
+```js
+import {createInstalledUndiciOpenAIChatRegistration} from '@actql/provider-ai-sdk';
+// Separate trusted Host selection: do not pass a fetch override or derive these
+// original bodies/owners from Program values. This is not live-ready guidance.
+const registerModelProviders =
+  createInstalledUndiciOpenAIChatRegistration(trustedUndiciHostOptions);
+```
+
+This entry selects the fixed private Undici transport after the same existing
+Host snapshots/profile/original-selection checks. It reuses the existing
+exclusive async registration, physical preflight and original Call cleanup;
+it does not implement another executor or synthesize normal funding. The old
+explicit generic-fetch assembler is unchanged. An extra fetch in the selected
+Undici options is rejected, not used as a fallback or endpoint override.
 
 `npm-shrinkwrap.json` preserves the exact existing SDK dependency lock closure
 for an external installation. The package explicitly constrains its Zod peer to
