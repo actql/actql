@@ -26,7 +26,7 @@ const steps = mode === 'registration' ? [{
 ].map(file => ({name: `Read-only ${file}`, command: process.execPath,
   args: [`scripts/${file}`]})) : mode === 'lowering-api' ? ['js', 'wasm', 'native'].map(target => ({
   name: `Calendar lowering and affected consuming API (${target})`, command: 'moon',
-  args: ['info', '--target', target, '-j', '1', 'src/lowering_relation', 'src/calendar_options',
+  args: ['info', '--target', target, 'src/lowering_relation', 'src/calendar_options',
     'src/pipeline_check_context', 'src/execution_relation', 'src/connectors/local'],
 })) : mode === 'api' ? ['js', 'wasm', 'native'].map(target => ({
   name: `Calendar transition/profile consuming API (${target})`, command: 'moon',

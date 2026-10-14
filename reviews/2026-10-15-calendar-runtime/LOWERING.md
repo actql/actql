@@ -59,8 +59,12 @@ node reviews/2026-10-15-calendar-runtime/prepared-checks.mjs <SHA> lowering-api
 node reviews/2026-10-15-calendar-runtime/prepared-checks.mjs <SHA> freshness
 ```
 
-Moon tests/API use nonHeavy270/TERM5, child240 and j1. Node controls use
+Moon tests use nonHeavy270/TERM5, child240 and j1. Node controls use
 nonHeavy60/TERM5 and child30. API generation is ordinary `moon info` for the
-affected consumers on the three supported targets; compilation is not execution.
+affected consumers sequentially on the three supported targets under the same
+nonHeavy270/TERM5 envelope; compilation is not execution. The first API recipe
+incorrectly included test-only `-j1`, rejected before compilation (`run-fl086Q`).
+The pinned `moon info --help` confirms that this option is unsupported, so the
+corrected recipe uses the ordinary interface-generator arguments only.
 No full Core, Proof, packed producer/consumer, Provider, Hosted CI or formal
 release is included in this finite unit.
