@@ -8,9 +8,11 @@ import {setImmediate as turn} from 'node:timers/promises';
 import {gzipSync} from 'node:zlib';
 import {prepareOpenAIChatRequest} from './_internal/openai-chat.mjs';
 import {createOriginalUndiciFetch} from './_internal/original-undici-transport.mjs';
+import {createSdkModelPreflight} from './_internal/model-port.mjs';
 import {interceptSdkRequest, pollSdkPreparation, prepareSdkTransport,
   startSdkTransport, pollSdkTransport, sdkTransportRawObservation,
-  pollSdkDecode, cleanupSdkPreparation, cancelSdkPreparation} from './_internal/intercepted-request.mjs';
+  pollSdkDecode, cleanupSdkPreparation, cancelSdkPreparation,
+  progressSdkOriginalIoCleanup} from './_internal/intercepted-request.mjs';
 
 const requestLimits = {maxBytes: 256, maxHeaderBytes: 1024, maxHeaders: 8};
 const responseLimits = {maxBytes: 256, maxChunkBytes: 256, maxChunks: 8,
@@ -55,7 +57,7 @@ async function fixture(t, respond) {
       await new Promise(resolve => server.close(resolve));
     }
   });
-  function prepare() {
+  function prepare({transport = true} = {}) {
     const handle = interceptSdkRequest({endpoint, maxRequestBytes: requestLimits.maxBytes,
       maxHeaderBytes: requestLimits.maxHeaderBytes, maxHeaders: requestLimits.maxHeaders,
       notify() {}, async runSdk(intercepted, signal) {
@@ -66,12 +68,140 @@ async function fixture(t, respond) {
         assert.fail('Raw-only transport must not deliver an SDK response copy');
       }});
     assert.equal(pollSdkPreparation(handle).kind, 'ready');
-    prepareSdkTransport(handle, {fetch, responseLimits, responseMode: 'raw-only'});
+    if (transport) prepareSdkTransport(handle, {fetch, responseLimits, responseMode: 'raw-only'});
     preparations.push(handle);
     return handle;
   }
   return {endpoint, fetch, prepare, calls, sockets};
 }
+
+test('original IO retirement keeps raw backing and SDK holding until independent cleanup', {timeout: 5000}, async t => {
+  const f = await fixture(t, (request, response) => {
+    response.setHeader('content-type', 'application/json');
+    response.end('{"answer":"é\\n雪","usage":null}');
+  });
+  const handle = f.prepare();
+  assert.equal(progressSdkOriginalIoCleanup(handle), false, 'no original started Call');
+  assert.equal(f.calls.length, 0);
+  startSdkTransport(handle); // Common Entry is a fixture double, not admission.
+  await until(() => pollSdkTransport(handle), value => value.kind === 'response');
+  const raw = sdkTransportRawObservation(handle);
+  const backing = raw.body.buffer;
+  await until(() => progressSdkOriginalIoCleanup(handle), value => value === true);
+  assert.strictEqual(sdkTransportRawObservation(handle), raw);
+  assert.strictEqual(raw.body.buffer, backing);
+  assert.equal(raw.transportComplete, true);
+  assert.equal(pollSdkTransport(handle).kind, 'response', 'IO ACK does not retire SDK/raw view');
+  assert.equal(f.calls.length, 1);
+  assert.throws(() => startSdkTransport(handle), {code: 'SdkTransportStartRefused'});
+  await until(() => cleanupSdkPreparation(handle), value => value === true);
+  assert.equal(Buffer.from(raw.body).toString(), '{"answer":"é\\n雪","usage":null}');
+});
+
+test('original IO observation never stops an unfinished normal read', {timeout: 5000}, async t => {
+  let output;
+  const f = await fixture(t, (request, response) => { output = response; });
+  const handle = f.prepare();
+  startSdkTransport(handle);
+  await until(() => f.calls.length, value => value === 1);
+  for (let index = 0; index < 4; index++) {
+    assert.equal(progressSdkOriginalIoCleanup(handle), false);
+    assert.equal(pollSdkTransport(handle).kind, 'pending');
+    assert.equal(f.sockets.size, 1);
+    await turn();
+  }
+  output.setHeader('content-type', 'application/json');
+  output.end('{}');
+  await until(() => pollSdkTransport(handle), value => value.kind === 'response');
+  await until(() => progressSdkOriginalIoCleanup(handle), value => value === true);
+  assert.equal(f.calls.length, 1);
+  assert.equal(sdkTransportRawObservation(handle).transportComplete, true);
+});
+
+test('generic fetch default retirement is not an original physical IO observation', {timeout: 5000}, async () => {
+  const endpoint = 'https://fixture.invalid/chat/completions';
+  const handle = interceptSdkRequest({endpoint, maxRequestBytes: 256,
+    maxHeaderBytes: 1024, maxHeaders: 8, notify() {},
+    async runSdk(fetch, signal) {
+      await fetch(endpoint, {method: 'POST', body: originalBody, signal});
+      assert.fail('Raw-only SDK response copy is unavailable');
+    }});
+  prepareSdkTransport(handle, {fetch: () => new Response('{}',
+    {headers: {'content-type': 'application/json'}}), responseLimits, responseMode: 'raw-only'});
+  assert.equal(progressSdkOriginalIoCleanup(handle), undefined);
+  startSdkTransport(handle);
+  await until(() => pollSdkTransport(handle), value => value.kind === 'response');
+  assert.equal(progressSdkOriginalIoCleanup(handle), undefined);
+  await until(() => cleanupSdkPreparation(handle), value => value === true);
+  assert.equal(progressSdkOriginalIoCleanup(handle), undefined);
+});
+
+test('original IO observation rejects copied or foreign SDK preparations', () => {
+  for (const value of [{}, Object.freeze({}), undefined, null]) {
+    assert.throws(() => progressSdkOriginalIoCleanup(value), {code: 'ForeignSdkPreparation'});
+  }
+});
+
+test('original Model port drives IO close while the same raw Store save stays pending', {timeout: 5000}, async t => {
+  const f = await fixture(t, (request, response) => {
+    response.setHeader('content-type', 'application/json');
+    response.end('{"answer":"original"}');
+  });
+  const handle = f.prepare({transport: false});
+  const request = Object.freeze({original: Symbol('request double')});
+  const entry = Object.freeze({original: Symbol('Entry double')});
+  let heldRaw;
+  let completeSave;
+  let rawReleased = false;
+  let saves = 0;
+  const moon = {
+    clientProgramModelRequestPreflight: (advance, cleanup) => ({advance, cleanup}),
+    clientProgramModelAsyncPhysicalRequestPlan(actual, bytes, tokens, cost, duration,
+      profile, installation, start) {
+      assert.strictEqual(actual, request);
+      return {start};
+    },
+    clientProgramModelPhysicalCallForRequest(actual, original, poll, cancel, cleanup) {
+      assert.strictEqual(actual, entry);
+      assert.strictEqual(original, request);
+      return {poll, cancel, cleanup};
+    },
+    clientProgramModelPhysicalPending: () => ({kind: 'pending'}),
+    clientProgramModelPhysicalUnknown: () => ({kind: 'unknown'}),
+    clientProgramModelPhysicalSavedChat: response => ({kind: 'saved', response}),
+  };
+  const port = createSdkModelPreflight({moon, request, preparation: handle,
+    profile: {}, installation: {}, quantities: {tokens: 16n, costUnits: 0n, durationMs: 500n},
+    fetch: f.fetch, responseLimits, checked: value => value, notify() {},
+    observeAt: () => '2026-10-14T00:00:00.000Z',
+    persistRaw(call, raw) {
+      saves++;
+      heldRaw = raw;
+      return new Promise(resolve => { completeSave = resolve; });
+    }, cleanupRaw: () => rawReleased});
+  const {_1: plan} = await until(() => port.preflight.advance(), value => value._0);
+  const call = plan.start(entry);
+  await until(() => { call.poll(); return heldRaw; }, value => value !== undefined);
+  const backing = heldRaw.body.buffer;
+  // Real original Client/socket cleanup is driven by this existing port;
+  // Common Entry/receipt and Store persistence remain explicit doubles.
+  await until(() => { call.poll(); return progressSdkOriginalIoCleanup(handle); }, value => value === true);
+  assert.deepEqual(call.poll(), {kind: 'pending'});
+  assert.equal(call.cleanup(), false);
+  assert.strictEqual(heldRaw.body.buffer, backing);
+  assert.equal(Buffer.from(heldRaw.body).toString(), '{"answer":"original"}');
+  assert.equal(saves, 1);
+  assert.equal(f.calls.length, 1);
+  assert.equal(plan.start(entry), undefined);
+  completeSave({response: {original: heldRaw, nominal: Symbol('saved double')}});
+  await until(() => call.poll(), value => value.kind === 'saved');
+  assert.equal(call.cleanup(), false, 'actual raw alias cleanup remains independent');
+  rawReleased = true;
+  await until(() => call.cleanup(), value => value === true);
+  assert.equal(saves, 1);
+  assert.equal(f.calls.length, 1);
+  assert.strictEqual(heldRaw.body.buffer, backing, 'escaped immutable raw view not mutated');
+});
 
 test('per-call Client is prepared without IO and raw response/Unicode stay original', {timeout: 5000}, async t => {
   const f = await fixture(t, (request, response) => {
