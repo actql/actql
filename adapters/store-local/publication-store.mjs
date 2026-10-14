@@ -116,6 +116,71 @@ function encodePrivateEvidenceEnvelope(input, isWire, key, aad, maximum) {
   return envelope;
 }
 
+// Recovery facade of the SAME Store writer, not another cleanup/capacity
+// owner. A failed private preparation has no prepared object to return yet.
+// Keep its original reservation/FD/custody reachable, and expose only cleanup.
+function retainPrivateWriterCleanup(writer) {
+  let original = writer;
+  let flight;
+  const pending = () => {
+    if (original === undefined) return false;
+    const state = original.status();
+    return state.reservationHeld || state.custodyPending || state.cleanupPending;
+  };
+  const release = () => {
+    if (flight !== undefined) return flight;
+    if (!pending()) {
+      original = undefined;
+      return Promise.resolve(false);
+    }
+    const actual = original;
+    flight = Promise.resolve().then(() => actual.cancel()).then(result => {
+      if (pending()) fail('PublicationPrivateWriterCleanupPending');
+      // An escaped retired facade must not keep the original writer/Store
+      // graph after the actual same cleanup has settled its responsibilities.
+      original = undefined;
+      return result;
+    }).finally(() => { flight = undefined; });
+    return flight;
+  };
+  const cleanup = Object.freeze({
+    status: () => Object.freeze({pending: pending()}),
+    release,
+    async retry() { await release(); return cleanup.status(); },
+  });
+  return cleanup;
+}
+
+// A bounded view of the two original private-preparation duties: descriptor
+// writer cleanup and the already prepared content. The same child owners
+// perform retirement; this facade cannot write, commit or return their loans.
+function retainPrivateRawCleanup(descriptor, content) {
+  let originals = [descriptor, content];
+  let flight;
+  const pending = () => originals?.some(handle => handle.status().pending) === true;
+  const release = () => {
+    if (flight !== undefined) return flight;
+    if (originals === undefined) return Promise.resolve(false);
+    flight = Promise.resolve().then(async () => {
+      for (const handle of originals) {
+        if (handle.status().pending) await handle.release();
+      }
+      if (pending()) fail('PublicationPrivateWriterCleanupPending');
+      // Clear both references after their actual retirement, including on an
+      // escaped facade. A false or thrown child release keeps the same pair.
+      originals = undefined;
+      return true;
+    }).finally(() => { flight = undefined; });
+    return flight;
+  };
+  const cleanup = Object.freeze({
+    status: () => Object.freeze({pending: pending()}),
+    release,
+    async retry() { await release(); return cleanup.status(); },
+  });
+  return cleanup;
+}
+
 async function syncDirectoryPath(path) {
   const directory = await open(path, constants.O_RDONLY);
   try { await directory.sync(); }
@@ -2296,11 +2361,22 @@ export async function openLocalPublicationStore(
         bytes: stored.bytes, prepared: stored.prepared,
       });
     } catch (error) {
+      let cleanupFailure;
       try { await writer.cancel(); }
-      catch (cleanupError) {
-        error.cleanupFailure = cleanupError;
+      catch (cleanupError) { cleanupFailure = cleanupError; }
+      const state = writer.status();
+      const pending = state.reservationHeld || state.custodyPending || state.cleanupPending;
+      if (!pending && cleanupFailure === undefined) throw error;
+      const failure = error !== null && typeof error === 'object' &&
+        Object.isExtensible(error) ? error
+        : new PublicationStoreError(error?.code ??
+          'PublicationPrivateEvidencePreparationFailed', error);
+      if (cleanupFailure !== undefined) failure.cleanupFailure = cleanupFailure;
+      if (pending) {
+        failure.cleanupPending = true;
+        failure.cleanupHandle = retainPrivateWriterCleanup(writer);
       }
-      throw error;
+      throw failure;
     }
   };
   const preparePrivateEvidenceBytes = (name, bytes, semanticCid) =>
@@ -2353,6 +2429,7 @@ export async function openLocalPublicationStore(
       );
       return Object.freeze([descriptor, content]);
     } catch (error) {
+      const descriptorCleanup = error?.cleanupPending === true ? error.cleanupHandle : undefined;
       let cleanupFailure;
       let cleanupPending;
       try {
@@ -2371,9 +2448,17 @@ export async function openLocalPublicationStore(
         Object.isExtensible(error) ? error
         : new PublicationStoreError(error?.code ??
           'PublicationModelRawEvidencePreparationFailed', error);
-      if (cleanupFailure !== undefined) failure.cleanupFailure = cleanupFailure;
+      if (cleanupFailure !== undefined) {
+        if (failure.cleanupFailure === undefined) failure.cleanupFailure = cleanupFailure;
+        else failure.contentCleanupFailure = cleanupFailure;
+      }
       failure.cleanupPending = true;
-      failure.cleanupHandle = content.prepared;
+      // This error comes from the same closed private Store preparation, not
+      // a packet/caller-provided handle. Do not replace its still-owned
+      // descriptor writer with only the earlier content's cleanup reference.
+      failure.cleanupHandle = descriptorCleanup === undefined
+        ? content.prepared
+        : retainPrivateRawCleanup(descriptorCleanup, content.prepared);
       throw failure;
     }
   };
