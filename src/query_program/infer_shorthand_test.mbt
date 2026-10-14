@@ -73,6 +73,7 @@ test "same-name mixed and quoted INFER inputs normalize to the same checked Prog
     context,
     construction_limits(),
   ).unwrap()
+  let expected_checked = check_shorthand_identity_program(expanded, environment)
   // Expected ModelTask keys and source roles come from the independent fixture.
   assert_true(
     semantic(expanded).contains(
@@ -89,11 +90,8 @@ test "same-name mixed and quoted INFER inputs normalize to the same checked Prog
       construction_limits(),
     ).unwrap()
     assert_eq(semantic(actual), semantic(expanded), msg=input)
-    match @check.check_parsed(actual, environment, None, check_limits()) {
-      Checked(_) => ()
-      Rejected(error) => raise @check.diagnostic_cause(error)
-      NeedsInputs(_) => fail("closed Values and ModelTask control")
-    }
+    let checked = check_shorthand_identity_program(actual, environment)
+    assert_shorthand_checked_identity(checked, expected_checked)
   }
 }
 
