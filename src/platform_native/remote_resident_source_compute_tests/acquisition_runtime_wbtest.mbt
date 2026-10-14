@@ -193,7 +193,7 @@ fn acquisition_runtime_case(
     resident_provider_environment()
   } else {
     (
-      resident_effect_source_environment, "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+      resident_effect_source_environment, "sha256:c110639082170812464555ae57368f5fc5a8ffa2edb159b2433dd3fc36f56227",
       resident_native_effect_document,
     )
   }
