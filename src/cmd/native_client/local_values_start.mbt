@@ -187,6 +187,40 @@ fn local_execute_publish_values(
     if !published.committed {
       stop("LocalPublicationNeedsReconciliation")
     }
+    // The original actual Store observation, never start bool/index inference.
+    // Submit/publish do not imply RunRead: an initially denied reader leaves
+    // optional state unavailable without adding a new execution permission.
+    match
+      host.observe_publication_run_state(
+        publisher,
+        pending,
+        local_utc_now(),
+        limits.max_result_workspace_entries,
+        16,
+        1000,
+      ) {
+      Ok(observed) =>
+        match
+          host.retain_submitted_run_state(
+            crypto,
+            settings.principal,
+            settings.connection,
+            reference,
+            request,
+            observed,
+            @env.now().to_double(),
+          ) {
+          Ok(_) => ()
+          Err(_) => stop("LocalRunStateNeedsReconciliation")
+        }
+      Err(Journal(@local_host.AuthorizationDenied)) =>
+        // A missing read purpose cannot conceal loss of the original submit
+        // or publish purpose. Recheck their actual existing Owners here.
+        if !publisher.current() || !current() {
+          stop("LocalRunStateNeedsReconciliation")
+        }
+      Err(_) => stop("LocalRunStateNeedsReconciliation")
+    }
     local_run_publication_reply(
       definition, request, reference, run, compiled, published,
     )
