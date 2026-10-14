@@ -147,3 +147,48 @@ test('concurrent finite original Runs retain independent results and cancellatio
     released(completed);
   } finally { await runtime.dispose(); }
 });
+
+
+test('original serialized materials and live canonical export survive the same Node/workerd owner boundary', async () => {
+  await onBoth([
+    {restoreMaterials: true, exportMeasurement: true, rows: [{id: 7}, {id: null}, {id: 7}], nullable: true},
+    {restoreMaterials: true, exportMeasurement: true, rows: []},
+  ], value => {
+    assert.equal(value.status, 'completed', JSON.stringify(value));
+    assert.equal(value.materialsChecks.originalIdentity, value.materialsChecks.restoredIdentity);
+    assert.equal(value.materialsChecks.malformed, 'MoonBitHostFailure');
+    assert.equal(value.materialsChecks.wrongIdentity, 'MoonBitHostFailure');
+    assert.equal(value.materialsChecks.foreignPreparation, 'InvalidWorkersFiniteInstallation');
+    assert.equal(value.materialsChecks.duplicateAdmission, 'WorkersFiniteRunAlreadyOpened');
+    assert.deepEqual(value.exportRows, value.rows);
+    assert.equal(value.measurement.rowCount, value.rows.length);
+    assert.deepEqual(value.measurement.columnRows, [value.rows.length]);
+    assert.deepEqual(value.measurement.columnNullRows, [value.rows.filter(row => row.id === null).length]);
+    assert.equal(value.exportIdentity.rows, value.measurement.rowCount);
+    assert.equal(value.measurementFrozen, true);
+    assert.equal(value.measurementBeforeFinish, 'MoonBitHostFailure');
+    assert.equal(value.measurementAfterCancel, 'MoonBitHostFailure');
+    released(value);
+  });
+});
+
+
+test('durable Site JSON roundtrips and custody actions remain owned on Node and workerd', async () => {
+  await onBoth([{durableRecords: true}], value => {
+    for (const name of ['initialMatch', 'plannedMatch', 'unchangedAfterRefusal',
+      'initialIdentityMatches', 'originalWireMatches', 'restoredWireMatches', 'unchangedAfterStaleCommit']) {
+      assert.equal(value[name], true, name);
+    }
+    assert.equal(value.outputRequestMatches, true);
+    assert.deepEqual(value.outputProjection, value.outputIntentInput);
+    assert.match(value.managedExecutionProfileCid, /^sha256:[0-9a-f]{64}$/);
+    assert.equal(value.expectedRevision, 0);
+    assert.equal(value.initialRevision, 0);
+    assert.equal(value.restoredRevision, 5);
+    assert.deepEqual(value.actions, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    for (const name of ['refusedCommit', 'refusedAdmission', 'refusedStaleCommit',
+      'refusedConsumedCommit', 'collision', 'releasedCustody', 'malformed', 'unknownField']) {
+      assert.equal(value[name], 'MoonBitHostFailure', name);
+    }
+  });
+});

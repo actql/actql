@@ -7,6 +7,7 @@ import {fileURLToPath, pathToFileURL} from 'node:url';
 import test from 'node:test';
 import {buildSync} from 'esbuild';
 import {readHostBundles, generateInstallations} from './connector-node-bundles.mjs';
+import {finiteRuntimeModules} from '../adapters/workers/artifact.mjs';
 // Keep the deferred-initialization regressions in the ordinary cold-pack gate.
 import './deferred-function-runtime.test.mjs';
 
@@ -51,7 +52,8 @@ const expectedGates = {
 };
 const packages = {
   'run-host-core': {builder: 'build-run-host-core-package', args: ['--runtime-only'],
-    sources: ['client_values_host_abi', 'checkpoint_runtime_node'],
+    sources: ['client_values_host_abi', 'checkpoint_runtime_node',
+      'connectors_workers_bridge'],
     destination: 'packages/run-host-core/dist/client_values_host_abi.js',
     stale: 'StaleRunHostCorePackage'},
   'coordinator-core': {builder: 'build-remote-coordinator-package', args: [],
@@ -92,6 +94,13 @@ function run(t, requested, {fail, stalePayload, wrapper, version, additionalProv
     readFileSync(join(root, 'adapters/host-common/installed-connector-declaration.mjs')));
   put(directory, 'adapters/host-common/http-exchange.mjs',
     readFileSync(join(root, 'adapters/host-common/http-exchange.mjs'), 'utf8'));
+  // Copy the actual reviewed product JS closure. Only the compiler output
+  // below is synthetic; the producer still audits and bundles real adapters.
+  for (const path of [...finiteRuntimeModules.filter(path => !path.startsWith('_build/')),
+    'adapters/workers/build.mjs', 'adapters/workers/artifact.mjs',
+    'adapters/workers/moon-runtime.mjs']) {
+    put(directory, path, readFileSync(join(root, path)));
+  }
   for (const entry of readHostBundles(root)) {
     for (const path of [`src/connectors/${entry.name}/host-bundle.json`,
       ...(entry.providerBundle === undefined ? [] : [`src/${entry.providerBundle}/moon.pkg`]),
@@ -141,11 +150,26 @@ function run(t, requested, {fail, stalePayload, wrapper, version, additionalProv
   symlinkSync(join(root, 'node_modules'), join(directory, 'node_modules'), 'dir');
   for (const [name, item] of Object.entries(packages)) {
     for (const source of item.sources) {
+      if (source === 'connectors_workers_bridge') continue;
       put(directory, `_build/js/release/build/${source}/${source.split('/').at(-1)}.js`,
         `export function payload() { return ${JSON.stringify(version === name
           ? 'actql-fixture/' + ['0', '2'].join('.') : `fixture-${source}`)}; }\n`);
     }
   }
+  // Exact audited pinned builtin spelling, with an independent tiny ABI.
+  // This fixture tests producer scheduling, not execution conformance.
+  put(directory, '_build/js/release/build/connectors_workers_bridge/connectors_workers_bridge.js',
+    `const _M0FPB12random__seed = () => {
+  if (globalThis.crypto?.getRandomValues) {
+    const array = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(array);
+    return array[0] | 0; // Convert to signed 32
+  } else {
+    return Math.floor(Math.random() * 0x100000000) | 0; // Fallback to Math.random
+  }
+};
+function payload() { return 'fixture-connectors-workers-bridge'; }
+export {payload};\n`);
   const wrappers = {
     'result-access.mjs': ["export {value} from '../../packages/client-wire/index.mjs';\n",
       "export {value} from '@actql/client-wire';\n"],
@@ -435,6 +459,17 @@ test('run-host-core refuses a stale Checkpoint payload before subsequent work', 
   assert.deepEqual(calls, expectedCalls(['run-host-core', 'coordinator-core'], directory).slice(0, 3));
 });
 
+for (const file of ['workers_finite.js', 'workers_finite_payload.js']) {
+  test(`run-host-core refuses stale finite Worker ${file} before subsequent work`, t => {
+    const {result, calls, directory} = run(t, ['run-host-core', 'coordinator-core'], {
+      fail: 'run-host-core', stalePayload: `packages/run-host-core/dist/${file}`,
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /StaleRunHostWorkersFinitePackage/);
+    assert.deepEqual(calls, expectedCalls(['run-host-core', 'coordinator-core'], directory).slice(0, 3));
+  });
+}
+
 for (const name of Object.keys(packages)) {
   test(`${name} still rejects a generated nonbaseline contract version`, t => {
     const {result, calls} = run(t, [name], {version: name});
@@ -465,6 +500,8 @@ test('a new Host manifest drives both the actual build command and copied runtim
 
 test('the existing cold pack runner executes this regression and still packs all four packages', () => {
   const source = readFileSync(join(root, 'scripts/test-runtime-package-build.mjs'), 'utf8');
+  assert.match(source, /'dist\/workers_finite\.js'/);
+  assert.match(source, /'dist\/workers_finite_payload\.js'/);
   assert.match(source, /execFileSync\(process\.execPath, \['--test', 'scripts\/build-runtime-packages\.test\.mjs'\]/);
   assert.match(source, /for \(const \[name, paths\] of Object\.entries\(expected\)\)/);
   assert.match(source, /execFileSync\('npm', \['pack', '--json', '--pack-destination', destination\]/);
