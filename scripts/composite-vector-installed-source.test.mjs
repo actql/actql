@@ -14,8 +14,8 @@ const counts = () => ({sourceIo: 0, sourceReads: 0, sourceReadSessions: 0,
 const request = overrides => ({resource: 'queries', columns: ['a', 'b', 'embedding'],
   requestWire: '{}', operation: compositeVectorReadOperations.queries, ...overrides});
 test('composite declarations retain independent mixed schema and exact ordered key bytes', () => {
-  assert.equal(compositeVectorSchemaWire, '{"a":{"max_utf8_bytes":1,"nullable":false,"type":"string"},"b":{"nullable":false,"type":"number"},"embedding":{"dimensions":2,"nullable":false,"type":"vector"}}');
-  assert.equal(compositeVectorSchemaCid, 'sha256:a08bd3260a45f5089c6ab67175b8d99836cbe36a6a1c0716341e9eb506281cca');
+  assert.equal(compositeVectorSchemaWire, '{"a":{"max_utf8_bytes":1,"nullable":false,"type":"string"},"b":{"nullable":false,"type":"number"},"embedding":{"dimensions":2,"element_type":"f32","nullable":false,"type":"vector"}}');
+  assert.equal(compositeVectorSchemaCid, 'sha256:5a8be37ab2b6e29c46b4fffb85022ff8642f6152897b75a7eec858392ded4f3d');
   assert.equal(compositeVectorFactsWire, '{"relation_keys":{"candidate_keys":[["b","a"]]}}');
   assert.equal(compositeVectorFactsCid, 'sha256:60d02a4d17b31c7595b4f177b0330266610a8cb48c6e311a83d339d4718de985');
 });
