@@ -55,7 +55,7 @@
     {
       "source": "owned_build.rs",
       "target": "crates/c-api/artifact/actql_owned_build.rs",
-      "sha256": "51acb1a03bccbd2276b920eef51a92e1aa0069ace8b5deb741a2c420234f464b"
+      "sha256": "a3d1aca92300578d7875b3a621a86055e82c5fc5e8d80843591e0d6d4d43a2dd"
     }
   ],
   "upstream_minimum_rust_version": "1.88.0",
