@@ -63,7 +63,7 @@ function serializeProgram({kind, input, parameters}) {
       document = input.text;
       format = input.format;
       if (input.parameterDeclarations !== undefined) {
-        if (!['aql-text', 'sql'].includes(format)) {
+        if (!['aql', 'aql-text', 'sql'].includes(format)) {
           fail('ClientProgramInvalidInput');
         }
         declarations = JSON.stringify(input.parameterDeclarations);
@@ -122,7 +122,7 @@ export function installNodeClientProgramPreparation({moon, environment,
     const {document, format, supplied, declarations} =
       serializeProgram(request);
     let outcome;
-    const sourceFormat = ['aql-text', 'sql'].includes(format);
+    const sourceFormat = ['aql', 'aql-text', 'sql'].includes(format);
     if (sourceFormat) {
       const currentSourcePreparation = selectedEnvironment === environment
         ? (sourcePreparation ??= installNodePublicSourcePreparation({moon,
@@ -182,7 +182,7 @@ export function installNodeClientProgramPreparation({moon, environment,
     try { return prepare(request); }
     catch (error) {
       if ((error?.code !== 'ClientProgramRejected' && !sourceCheckFailures.has(error)) || request.kind !== 'aql' ||
-          !['aql-text', 'sql'].includes(request.input.format)) throw error;
+          !['aql', 'aql-text', 'sql'].includes(request.input.format)) throw error;
       // Preparation already refused. The same public check Owner may disclose
       // an independent input violation; it cannot admit or execute this input.
       // Its audience-visible publication hides absent and inaccessible Sources.

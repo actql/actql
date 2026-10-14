@@ -49,7 +49,11 @@ test('source preparation carries one published generation and separate values',
     assert.equal(prepare({kind: 'aql', input: {
       text: 'FROM records |> SELECT id', format: 'aql-text',
     }, parameters: null}), prepared);
-    assert.equal(calls.length, 2);
+    assert.equal(prepare({kind: 'aql', input: {
+      text: 'FROM records |> SELECT id', format: 'aql',
+      parameterDeclarations: {p: {type: 'number'}},
+    }, parameters: {p: 2}}), prepared);
+    assert.equal(calls.length, 3);
     assert.equal(calls[0].kind, 'source');
     assert.equal(calls[0].args[0],
       'SELECT id FROM records WHERE id = @p');
@@ -61,6 +65,9 @@ test('source preparation carries one published generation and separate values',
     assert.deepEqual(JSON.parse(calls[0].args[5]), {p: 2});
     assert.equal(calls[1].args[4], undefined);
     assert.equal(calls[1].args[5], undefined);
+    assert.equal(calls[2].args[1], 'aql');
+    assert.deepEqual(JSON.parse(calls[2].args[4]), {p: {type: 'number'}});
+    assert.deepEqual(JSON.parse(calls[2].args[5]), {p: 2});
     assert.equal(prepare.kindOf(prepared), 'effect_free');
   });
 

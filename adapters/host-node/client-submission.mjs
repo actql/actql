@@ -58,7 +58,7 @@ export function installNodeClientSubmission({journal, moon, authorizedScope,
     // Reuse original journal custody and the installed disclosure-aware checker
     // before showing a Source-dependent input classification to this audience.
     const intent = immutable(JSON.parse(retained.intentWire));
-    if (!(intent.kind === 'program' || intent.kind === 'aql' && ['sql', 'aql-text'].includes(intent.input.format))) return outcome;
+    if (!(intent.kind === 'program' || intent.kind === 'aql' && ['sql', 'aql', 'aql-text'].includes(intent.input.format))) return outcome;
     let disclosable = !projectsProblem;
     let checkObservation;
     try {
