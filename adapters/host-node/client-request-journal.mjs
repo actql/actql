@@ -13,6 +13,7 @@ import {openClientObservationStorage} from './client-observation-journal.mjs';
 import {isHostObservationProjection} from '../host-common/observation.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
+import {BOUND_SOURCE_INVENTORY, validBoundSourceOccurrence} from './ordinary-source-binding.mjs';
 import {valuesExecutionContextCid} from './local-values-capacity.mjs';
 import {sameSubmissionRef, validSubmissionRef, validSubmissionOutcome, validStoredSubmissionOutcome} from '../../packages/client-wire/index.mjs';
 
@@ -130,7 +131,7 @@ function retainedRunDefinition(row, control, maxBytes) {
 // A bounded Host-private physical inventory. Its immutable canonical string
 // stays in the existing Run admission row; it is not caller input identity,
 // a permission token, or a second execution journal.
-function validateSourceInventory(wire) {
+export function validateSourceInventory(wire) {
   if (typeof wire !== 'string' || Buffer.byteLength(wire) > 256 * 1024) {
     fail('InvalidClientSourceInventory');
   }
@@ -138,6 +139,15 @@ function validateSourceInventory(wire) {
   try { value = JSON.parse(wire); } catch (cause) { fail('InvalidClientSourceInventory', cause); }
   const keys = (object, expected) => object !== null && typeof object === 'object' &&
     !Array.isArray(object) && Object.keys(object).sort().join(',') === expected.split(',').sort().join(',');
+  if (value?.version === BOUND_SOURCE_INVENTORY) {
+    if (!keys(value, 'version,environmentCid,acquisitions') || !cid(value.environmentCid) ||
+        canonicalValueJson(value, {dataKeys: true}) !== wire ||
+        !Array.isArray(value.acquisitions) || value.acquisitions.length !== 2 ||
+        !value.acquisitions.every(validBoundSourceOccurrence) ||
+        value.acquisitions[0].checkedSource.requirementCid ===
+          value.acquisitions[1].checkedSource.requirementCid) fail('InvalidClientSourceInventory');
+    return wire;
+  }
   if (value?.version === 'actql-client-keyed-source-inventory/0.1') {
     // The installed Connector owns the target's physical schema. The journal
     // retains its exact data plus immutable installation binding, not another
