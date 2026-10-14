@@ -38,6 +38,7 @@ typedef struct actql_owned_extent_view {
     bool payload_bound;
     bool domain_attempted;
     bool domain_live;
+    bool domain_borrowed;
 } actql_owned_extent_view;
 
 /* Borrow a trusted, exclusively initialized, exact-sized private regular FD.
@@ -72,6 +73,18 @@ int actql_native_owned_acquire_extent_domain(actql_owned_extent_view *view,
                                             actql_owned_capacity **out);
 int actql_native_owned_close_extent_domain(actql_owned_extent_view *view,
                                           actql_owned_capacity **slot);
+/* Trusted original worker bootstrap only, AFTER nominal Core child/loan/current
+ * validation and independent process overhead funding. Bind the already
+ * initialized payload once; never reset it or issue a replacement capacity.
+ * This PID is physical exclusion, not a grant or durable process identity. */
+int actql_native_owned_borrow_extent_domain(actql_owned_extent_view *view,
+                                           actql_owned_capacity **out);
+/* Child-local retirement only. It requires scopes and allocations to retire,
+ * preserves the same slot on failure and never closes the parent domain/FD.
+ * Success still requires separate view unmap and Owner-confirmed stop before
+ * parent loan settlement. Unknown child death leaves the borrow outstanding. */
+int actql_native_owned_return_extent_domain_borrow(actql_owned_extent_view *view,
+                                                  actql_owned_capacity **slot);
 /* An unmap ACK is not a confirmed process stop or Common borrow return. */
 int actql_native_owned_close_extent_view(actql_owned_extent_view *view);
 /* Only the existing Owner's confirmed-stop/retirement path calls this port;

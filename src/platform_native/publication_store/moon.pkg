@@ -28,6 +28,8 @@ options(
   "native-stub": [ "store_format_stub.c" ],
   targets: {
     "store_native.mbt": [ "native" ],
+    "publication_observation_native.mbt": [ "native" ],
+    "publication_observation_unsupported.mbt": [ "not", "native" ],
     "original_checkpoint_continuation.mbt": [ "native" ],
     "original_checkpoint_continuation_wbtest.mbt": [ "native" ],
     "effect_source_custody_native.mbt": [ "native" ],

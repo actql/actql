@@ -853,8 +853,10 @@ fn command() -> @argparse.Command {
       @argparse.Command("attach", options=[
         @argparse.OptionArg("ref-file", required=true),
       ]),
-      @argparse.Command("status", options=[
-        @argparse.OptionArg("ref-file", required=true),
+      @argparse.Command("status", flags=[@argparse.FlagArg("json")], options=[
+        @argparse.OptionArg("ref-file"),
+        @argparse.OptionArg("submission-ref-file"),
+        @argparse.OptionArg("run-id"),
       ]),
       @argparse.Command("wait", options=[
         @argparse.OptionArg("ref-file", required=true),
@@ -914,6 +916,13 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
   }
   if optional(matches, "input-root") is Some(_) {
     stop("Local document root is unavailable in Remote mode")
+  }
+  if matches.subcommand is Some(("status", child)) &&
+    (
+      optional(child, "run-id") is Some(_) ||
+      optional(child, "submission-ref-file") is Some(_)
+    ) {
+    stop("Original Local status selection is unavailable in Remote mode")
   }
   if matches.subcommand is Some((operation, child)) &&
     (
