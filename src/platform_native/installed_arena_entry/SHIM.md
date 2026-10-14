@@ -52,3 +52,21 @@ is not added as an automatic native stub and is not a link-ready installed
 library or normal Python package. Initial control/loader/VM numerical domains
 remain unadopted, not zero. Compiler/link/init/Engine/VM/worker/wheel/public E2E
 for this shim are all zero.
+
+The later mutable-slot helpers retain returned original references and current
+reply data in the caller's persistent slots before returning status. They use
+the same eight Core callbacks; no additional Native callback prototype is
+assumed. `originals_into` returns two owned references to one nominal Host, not
+two leases. The private Python custody carrier moves the incoming reply before
+calling C and retains all three slots and its selected library on Unknown.
+It never reloads a component, transfers the backing or directly closes a
+physical provider. Known pending cleanup can retry the same Core Owner; an
+exception or malformed response is sticky and cannot retry or reuse a cleared
+slot. Data observations are immutable explanations, not execution permission.
+
+Actual ede/run-jIMt5h validates the earlier shim/regular C eight cases only.
+These new helpers and Python connection are source preparation, not that old
+artifact or an installed library. Source535's backing loan is still separate
+from physical scope/image lending and from this managed-reference transport.
+The installed supplier, exact library dependency binding, numerical envelope,
+worker, factory and packaged consumer remain required before public use.

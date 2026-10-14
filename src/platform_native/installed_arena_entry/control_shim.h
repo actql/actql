@@ -38,6 +38,12 @@ actql_control_host *actql_control_original(actql_control_reply *);
 int32_t actql_control_operation(actql_control_reply *);
 int32_t actql_control_issue_family(actql_control_reply *);
 moonbit_string_t actql_control_description(actql_control_reply *);
+/* Persistent out-slots let the trusted foreign caller retain newly returned
+ * references even when the call's response is lost. No slot may be overwritten.
+ * originals_into returns two owned references to the same nominal Host. */
+int actql_control_originals_into(actql_control_reply *,
+                                actql_control_host **, actql_control_host **);
+int actql_control_current_into(actql_control_host *, actql_control_reply **);
 
 /* These private transport statuses are not Run, permission or publication
  * outcomes. Pending retains the same original slot and exact typed reply. */

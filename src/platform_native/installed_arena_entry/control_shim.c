@@ -80,6 +80,30 @@ moonbit_string_t actql_control_description(actql_control_reply *reply) {
     return callbacks.description(reply);
 }
 
+int actql_control_originals_into(actql_control_reply *reply,
+                                actql_control_host **original_slot,
+                                actql_control_host **retained_slot) {
+    if (!reply || !original_slot || !retained_slot ||
+        original_slot == retained_slot || *original_slot || *retained_slot)
+        return ACTQL_CONTROL_INVALID_SLOT;
+    if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    actql_control_host *original = callbacks.original(reply);
+    if (!original) return ACTQL_CONTROL_UNAVAILABLE;
+    *original_slot = original;
+    moonbit_incref(original);
+    *retained_slot = original;
+    return ACTQL_CONTROL_OK;
+}
+
+int actql_control_current_into(actql_control_host *original,
+                              actql_control_reply **reply_slot) {
+    if (!original || !reply_slot || *reply_slot)
+        return ACTQL_CONTROL_INVALID_SLOT;
+    if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    *reply_slot = callbacks.current(original);
+    return *reply_slot ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
+}
+
 int actql_control_drop_reply(actql_control_reply **slot,
                              actql_control_host *retained_original) {
     if (!slot) return ACTQL_CONTROL_INVALID_SLOT;
