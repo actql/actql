@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn native_filesystem_read_layout() -> NativeFilesystemReadLayout?
+
 pub fn open_private_root(String, diagnostic_ceiling? : Int?) -> Result[Root, NativeFilesystemIssue]
 
 pub fn open_root(String, diagnostic_ceiling? : Int?) -> Result[Root, NativeFilesystemIssue]
@@ -74,6 +76,12 @@ pub(all) enum NativeFilesystemIssue {
   Seal(String)
   Cleanup(String)
 }
+
+pub(all) struct NativeFilesystemReadLayout {
+  root_payload_bytes : Int64
+  reader_payload_bytes : Int64
+  external_object_overhead_bytes : Int64
+} derive(Eq, @debug.Debug)
 
 type NativeLockOpenFailure
 pub fn NativeLockOpenFailure::issue(Self) -> NativeFilesystemIssue

@@ -38,3 +38,13 @@ cleanup; a lost response preserves the same Host, reply and FD responsibility
 without another acquire or close. A copied descriptor or closed/unknown-close
 carrier is rejected before the call. This port supplies only the original arena
 domain, not worker overhead, VM funding, Run admission or publication authority.
+
+The original domain callback set transports a closed operation tag, typed issue
+family and actual Host/partial domain handles. It reuses the same Host's original
+allocation/region/child/view/domain Owners. Preparing an error reply registers
+all published partial custody before C/Python can inspect it. Current observation
+uses the existing domain-current check; a nonempty handle is not success. The
+Host retains bounded records from its original control envelope until their same
+cleanup succeeds. Close callbacks require the existing caller's scoped-stop
+and independent borrower-retirement facts; they do not infer either from exit.
+Regular matching emission must establish the C ABI before linking this new set.
