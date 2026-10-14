@@ -60,6 +60,11 @@ fn check_script_graph_expectation(
   steps : Array[@builder.Node],
   reserved : Array[String],
 ) -> Unit raise Abort {
+  // A Graph source cannot bypass ordinary JOIN intake through a later row
+  // bridge. The initial JOIN consumes this source before any Pipe operation.
+  if @query.join_part_count(query) > 0 && graph is Some(_) {
+    raise Abort(UnsupportedJoin)
+  }
   if @query.graph_query(query) is None || graph is Some(_) {
     return
   }

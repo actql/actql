@@ -3,13 +3,16 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import * as sdk from '../packages/provider-ai-sdk/index.mjs';
 import * as http from '../packages/provider-http/index.mjs';
-import {createInstalledOpenAIChatRegistration} from '../packages/provider-ai-sdk/_internal/installed-openai-chat.mjs';
+import {createInstalledOpenAIChatRegistration, createInstalledUndiciOpenAIChatRegistration}
+  from '../packages/provider-ai-sdk/_internal/installed-openai-chat.mjs';
 import {createInstalledHttpChatRegistration} from '../packages/provider-http/_internal/installed-http-chat.mjs';
 
 test('optional entries expose the original Host assemblers only', () => {
-  assert.deepEqual(Object.keys(sdk), ['createInstalledOpenAIChatRegistration']);
+  assert.deepEqual(Object.keys(sdk),
+    ['createInstalledOpenAIChatRegistration', 'createInstalledUndiciOpenAIChatRegistration']);
   assert.deepEqual(Object.keys(http), ['createInstalledHttpChatRegistration']);
   assert.strictEqual(sdk.createInstalledOpenAIChatRegistration, createInstalledOpenAIChatRegistration);
+  assert.strictEqual(sdk.createInstalledUndiciOpenAIChatRegistration, createInstalledUndiciOpenAIChatRegistration);
   assert.strictEqual(http.createInstalledHttpChatRegistration, createInstalledHttpChatRegistration);
   for (const entry of [sdk, http]) {
     assert.equal(entry.startSdkTransport, undefined);
@@ -40,7 +43,10 @@ test('external SDK shrinkwrap preserves the exact original dependency bytes', ()
   const lock = JSON.parse(original);
   assert.equal(lock.packages['node_modules/@ai-sdk/openai'].version, '4.0.91');
   assert.equal(lock.packages['node_modules/@ai-sdk/typesafe-ai'].version, '3.0.13');
+  assert.equal(lock.packages['node_modules/undici'].version, '7.30.0');
+  assert.equal(lock.packages[''].dependencies.undici, '7.30.0');
   const manifest = JSON.parse(readFileSync(new URL('../packages/provider-ai-sdk/package.json', import.meta.url)));
+  assert.equal(manifest.dependencies.undici, '7.30.0');
   assert.deepEqual(manifest.peerDependencies, {zod: lock.packages['node_modules/zod'].version});
   for (const [name, entry] of Object.entries(lock.packages)) {
     if (name === '') continue;

@@ -7,6 +7,6 @@
   "engines": {"node": ">=22"},
   "exports": {".": {"types": "./index.d.ts", "default": "./index.mjs"}},
   "files": ["_internal", "index.mjs", "index.d.ts", "LICENSE", "npm-shrinkwrap.json", "README.md"],
-  "dependencies": {"@ai-sdk/openai": "4.0.91", "@ai-sdk/typesafe-ai": "3.0.13"},
+  "dependencies": {"@ai-sdk/openai": "4.0.91", "@ai-sdk/typesafe-ai": "3.0.13", "undici": "7.30.0"},
   "peerDependencies": {"zod": "4.6.5"}
 }

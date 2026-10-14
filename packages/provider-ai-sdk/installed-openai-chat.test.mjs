@@ -6,6 +6,9 @@ import {createInstalledOpenAIChatRegistration} from './_internal/installed-opena
 import {installModelProviders} from '../../adapters/host-node/installed-model.mjs';
 import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-binding-fixture.mjs';
 import {createInferIoNotification} from '../../adapters/host-node/infer-io-notification.mjs';
+import {createInstalledUndiciOpenAIChatRegistration} from './index.mjs';
+import {createServer} from 'node:http';
+import {once} from 'node:events';
 
 const corpus=JSON.parse(readFileSync(new URL('../../portability/corpus/openai-chat.json',import.meta.url)));
 const cid=c=>`sha256:${c.repeat(64)}`;
@@ -74,6 +77,89 @@ function runtime(config) {
   return {moon,request,provider,entry,counts};
 }
 async function until(read,predicate){for(let i=0;i<50;i++){const v=read();if(predicate(v))return v;await turn();}assert.fail('Finite private consumer did not settle');}
+
+test('explicit Undici facade reaches the existing SDK/async port and real loopback only after start',
+  {timeout:5000},async t=>{
+    const calls=[];
+    const server=createServer(async(request,response)=>{
+      const chunks=[];for await(const chunk of request)chunks.push(chunk);
+      calls.push({path:request.url,body:Buffer.concat(chunks).toString('utf8')});
+      response.setHeader('content-type','application/json');response.end('{}');
+    });
+    server.listen(0,'127.0.0.1');await once(server,'listening');
+    let preflight;
+    t.after(async()=>{
+      try{if(preflight!==undefined)await until(()=>preflight.cleanup(),Boolean);}
+      finally{server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}
+    });
+    const config=configuration();
+    config.baseURL=`http://127.0.0.1:${server.address().port}/v1`;
+    config.responseLimits={...config.responseLimits,maxHeaderBytes:1024};
+    config.rawCaptureSelection=Object.freeze({...config.rawCaptureSelection,
+      installation:Object.freeze({...config.rawCaptureSelection.installation,
+        endpoint:config.baseURL+'/chat/completions'})});
+    config.originalReadInstallation=Object.freeze({...config.originalReadInstallation,
+      nodeInstallation:Object.freeze({...config.originalReadInstallation.nodeInstallation,
+        installation:config.rawCaptureSelection.installation})});
+    const f=runtime(config); // Core/installation/nominal raw binding are doubles.
+    const {fetch:unused,...selected}=config;void unused;
+    const register=createInstalledUndiciOpenAIChatRegistration(selected);
+    const installed=installModelProviders(f.moon,register).get(config.providerId);
+    let bind;
+    preflight=installed.physicalPreflight(f.request,createInferIoNotification(),
+      callback=>{bind=callback;},f.provider);
+    const {_1:plan}=await until(()=>preflight.advance(),value=>value._0);
+    assert.ok(plan);assert.equal(calls.length,0);assert.equal(f.counts.fetch,0);
+    let savedRaw;
+    const persistence=async(call,raw)=>{savedRaw=raw;f.counts.saves++;return {response:{call,raw}};};
+    persistence.cleanup=()=>true;
+    bind({},persistence);
+    const call=plan.start(f.entry);
+    await until(()=>call.poll(),value=>value.kind==='saved');
+    await until(()=>preflight.cleanup(),Boolean);
+    assert.equal(calls.length,1);assert.equal(calls[0].path,'/v1/chat/completions');
+    const sent=JSON.parse(calls[0].body);
+    assert.equal(sent.model,'gpt-4.1-nano');
+    assert.equal(sent.messages[1].content,'{"decimal":"9007199254740993.00","text":"é\\r\\n"}');
+    assert.equal(savedRaw.transportComplete,true);
+    assert.equal(Buffer.from(savedRaw.body).toString(),'{}');
+    assert.equal(f.counts.fetch,0,'The separately supplied generic primitive was not used');
+    assert.equal(f.counts.saves,1);assert.equal(f.counts.generation,1);
+    assert.equal(plan.start(f.entry),undefined);
+    t.diagnostic('Actual public package entry/pinned SDK/loopback; Core/Store/funding doubles, public Run0');
+  });
+
+test('explicit selected route refuses an extra fetch rather than accepting fallback or override',()=>{
+  const config=configuration();
+  assert.throws(()=>createInstalledUndiciOpenAIChatRegistration(config),
+    {code:'InvalidInstalledOpenAIChatConfiguration'});
+  const {fetch:unused,...selected}=config;void unused;
+  assert.throws(()=>createInstalledOpenAIChatRegistration(selected),
+    {code:'InvalidInstalledOpenAIChatConfiguration'});
+});
+
+test('explicit physical route cannot replace a missing original installation or mismatched profile',()=>{
+  const {fetch:unused,...selected}=configuration();void unused;
+  assert.throws(()=>createInstalledUndiciOpenAIChatRegistration({...selected,
+    originalReadInstallation:undefined}),{code:'OpenAIOriginalInstallationUnavailable'});
+  assert.throws(()=>createInstalledUndiciOpenAIChatRegistration({...selected,
+    rawCaptureSelection:Object.freeze({...selected.rawCaptureSelection,profile:{}})}),
+    {code:'OpenAIOriginalInstallationMismatch'});
+});
+
+test('explicit route retains inspected original DATA without invoking Proxy get or secret accessors',()=>{
+  const config=configuration(),f=runtime(config);
+  const {fetch:unused,...selected}=config;void unused;
+  let gets=0;
+  const supplied=new Proxy(selected,{get(){gets++;throw Error('LateReadForbidden');}});
+  const entry=createInstalledUndiciOpenAIChatRegistration(supplied)(f.moon)[0];
+  assert.equal(entry.providerId,selected.providerId);assert.equal(gets,0);
+  const secret={...selected};Object.defineProperty(secret,'apiKey',{
+    enumerable:true,get(){gets++;return 'not-read';}});
+  assert.throws(()=>createInstalledUndiciOpenAIChatRegistration(secret),
+    {code:'InvalidInstalledOpenAIChatConfiguration'});
+  assert.equal(gets,0);assert.equal(f.counts.starts,0);assert.equal(f.counts.fetch,0);
+});
 
 test('private facade returns the existing exclusive async registration with zero construction I/O',()=>{
   const config=configuration(),f=runtime(config);
