@@ -277,8 +277,17 @@ test('connecting Client destroy cannot retire the original socket before its rea
   // no TCP connection. Hold _destroy's callback to witness the late close.
   const originalConnect = net.connect;
   const socket = new net.Socket();
+  const originalDestroy = socket._destroy;
   let finishClose, socketCloses = 0, connects = 0;
-  socket._destroy = (error, callback) => { finishClose = () => callback(error); };
+  // Socket disables generic stream emitClose. Only its original _destroy
+  // closes/emits the actual Socket event; calling callback alone is not that
+  // operation. Delay, then invoke that same original with exact arguments.
+  socket._destroy = (error, callback) => {
+    finishClose = () => {
+      finishClose = undefined;
+      Reflect.apply(originalDestroy, socket, [error, callback]);
+    };
+  };
   socket.on('error', () => {});
   socket.once('close', () => { socketCloses++; });
   net.connect = () => { connects++; return socket; };
