@@ -7,6 +7,80 @@ import {fixedInferResponseLimits} from './bounded-response.mjs';
 const installations = new WeakMap();
 const issue = code => Object.assign(new TypeError(code), {code});
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2_147_483_647;
+const acquisitionSnapshots = new WeakSet();
+
+// Private DATA membership only, never a capacity loan or currentness receipt.
+// Reuse our own snapshot across material admission/assembler preparation.
+export function fixedOriginalAcquisitionLimits(value) {
+  if (acquisitionSnapshots.has(value)) return value;
+  const names = ['maxBorrowedBackingBytes', 'maxPlaintextBytes', 'maxReads'];
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) {
+    throw issue('UndiciOriginalAcquisitionLimitsUnavailable');
+  }
+  const keys = Reflect.ownKeys(value);
+  if (keys.length !== names.length || keys.some(key => typeof key !== 'string') ||
+      keys.slice().sort().some((key, index) => key !== names[index])) {
+    throw issue('UndiciOriginalAcquisitionLimitsUnavailable');
+  }
+  const entries = names.map(name => {
+    const descriptor = Object.getOwnPropertyDescriptor(value, name);
+    if (descriptor === undefined || !descriptor.enumerable || !('value' in descriptor) ||
+        !positive(descriptor.value)) throw issue('UndiciOriginalAcquisitionLimitsUnavailable');
+    return [name, descriptor.value];
+  });
+  const snapshot = Object.freeze(Object.fromEntries(entries));
+  acquisitionSnapshots.add(snapshot);
+  return snapshot;
+}
+
+function bindAcquisitionRead(socket, limits) {
+  const read = socket.read;
+  const descriptor = Object.getOwnPropertyDescriptor(socket, 'read');
+  let plaintext = 0, backingBytes = 0, reads = 0, refused = false;
+  let backings = new WeakSet();
+  // Undici 7.30 Parser.readMore/resume calls this same socket.read before
+  // Parser.execute allocates/copies llhttp scratch or exposes body aliases.
+  // Node/TLS emission and Readable queue/concat precede this observation:
+  // these checks cannot fund or bound that first allocator. Ordinary adoption
+  // still requires its original Host coverage and same-Ledger phase envelope.
+  const boundedRead = function (...args) {
+    if (refused) return null;
+    const chunk = Reflect.apply(read, socket, args);
+    if (chunk === null || chunk.byteLength === 0) return chunk;
+    let code;
+    if (!Buffer.isBuffer(chunk)) code = 'UndiciOriginalAcquisitionShapeRefused';
+    else if (reads >= limits.maxReads) code = 'UndiciOriginalAcquisitionReadsExceeded';
+    else if (chunk.byteLength > limits.maxPlaintextBytes - plaintext) {
+      code = 'UndiciOriginalAcquisitionPlaintextExceeded';
+    } else if (!backings.has(chunk.buffer) &&
+        chunk.buffer.byteLength > limits.maxBorrowedBackingBytes - backingBytes) {
+      code = 'UndiciOriginalAcquisitionBackingExceeded';
+    }
+    if (code !== undefined) {
+      refused = true;
+      socket.destroy(issue(code));
+      return null; // Never forward the refused chunk into the HTTP parser.
+    }
+    reads++;
+    plaintext += chunk.byteLength;
+    // A conservative lifetime union, not an observed simultaneous peak. No
+    // refund at EOF/cancel/Promise completion; aliases may outlive the read.
+    // Weak membership adds no strong buffer alias; its controls need funding.
+    if (!backings.has(chunk.buffer)) {
+      backings.add(chunk.buffer);
+      backingBytes += chunk.buffer.byteLength;
+    }
+    return chunk;
+  };
+  Object.defineProperty(socket, 'read', {value: boundedRead, configurable: true, writable: true});
+  return () => {
+    if (socket.read === boundedRead) {
+      if (descriptor === undefined) delete socket.read;
+      else Object.defineProperty(socket, 'read', descriptor);
+    }
+    backings = undefined;
+  };
+}
 
 // Keep validation-only bindings out of the long-lived Call context shared by
 // invoke/connect/cleanup. The comparison remains synchronous and exact; this
@@ -26,7 +100,8 @@ function sameResponseLimits(limits, original) {
 // Private selected Host factory, not an arbitrary Run-provided dispatcher.
 // All descriptor/control/module and future Client/native holdings must already
 // be funded by the original installation/Call before physical preparation.
-export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimits}) {
+export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits}) {
+  const acquisition = fixedOriginalAcquisitionLimits(physicalAcquisitionLimits);
   let url;
   try { url = new URL(endpoint); } catch { throw issue('UndiciOriginalEndpointUnavailable'); }
   if (typeof endpoint !== 'string' || url.href !== endpoint ||
@@ -44,7 +119,7 @@ export function createOriginalUndiciFetch({endpoint, requestLimits, responseLimi
     throw issue('UndiciOriginalRequestNotPrepared');
   });
   installations.set(fetch, Object.freeze({endpoint, origin: url.origin,
-    path: url.pathname, maxBytes, maxHeaderBytes, maxHeaders, limits}));
+    path: url.pathname, maxBytes, maxHeaderBytes, maxHeaders, limits, acquisition}));
   return fetch;
 }
 
@@ -85,13 +160,24 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
   let socket;
   let socketClosed;
   let connectorFinished;
+  let retireAcquisition;
   const connect = (options, callback) => {
     if (connecting) { callback(issue('UndiciOriginalReconnectRefused')); return; }
     connecting = true;
     let finish;
     connectorFinished = new Promise(resolve => { finish = resolve; });
     socket = connector(options, (error, connected) => {
-      try { callback(error, connected); } finally { finish(true); }
+      try {
+        if (connected !== undefined && retireAcquisition === undefined) {
+          try { retireAcquisition = bindAcquisitionRead(connected, original.acquisition); }
+          catch (refusal) {
+            connected.destroy(refusal);
+            callback(refusal, null);
+            return;
+          }
+        }
+        callback(error, connected);
+      } finally { finish(true); }
     });
     socketClosed = socket.closed ? Promise.resolve(true)
       : new Promise(resolve => socket.once('close', () => resolve(true)));
@@ -139,6 +225,8 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
       if (connectorFinished !== undefined && await connectorFinished !== true) return false;
       if (socketClosed !== undefined && await socketClosed !== true) return false;
       if (bodyClosed !== undefined && await bodyClosed !== true) return false;
+      retireAcquisition?.();
+      retireAcquisition = undefined;
       retired = true;
       socket = undefined;
       socketClosed = undefined;

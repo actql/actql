@@ -240,6 +240,32 @@ body HWM nor the reader's acquired-chunk check is a socket/TLS/Buffer-backing
 physical upper bound. Full constructor/native/parser/header/queue/closure
 overlap remains an original Host/Resource funding requirement, not zero.
 
+The selected Undici options additionally require closed private
+`physicalAcquisitionLimits` DATA: `maxPlaintextBytes`,
+`maxBorrowedBackingBytes`, and `maxReads` (positive bounded integers). The
+original installation snapshots these once before preparation and the same
+Call borrows that snapshot. Missing/extra/accessor declarations refuse; no
+default or normal numerical profile is supplied. Generic/native fetch options
+do not acquire this role.
+
+The same original socket's parser-facing reads count all HTTP plaintext,
+including framing, and check whole distinct Buffer backing extents before
+Undici's parser receives the chunk. Backing accounting conservatively sums
+distinct allocations over the entire Call lifetime, not just simultaneous
+peaks; it never refunds at EOF/cancel/Promise settlement. Weak membership
+retains no additional strong buffer alias, but its controls still need funding.
+A refused chunk destroys that same socket and retains original cleanup duties.
+
+These are **post-acquisition** checks. Selected Node/TLS emission, Readable
+queue and concatenation can allocate before `socket.read()` returns. Their
+first managed allocator/burst/queue envelope remains unresolved; neither a
+clamp nor a successful private fixture proves pre-acquisition reservation.
+Original model/Host coverage must include those holdings and the new snapshot,
+per-read controls, parser/native scratch, raw/Store/SDK borrowers until their
+actual retirement. Normal installation therefore remains Unavailable without
+the complete original same-Ledger envelope. Selected trusted TLS/llhttp/VM
+coverage is not zero managed memory or a whole-RSS claim.
+
 Cleanup retains the same connector/returned socket and body. Client destroy
 fulfillment alone cannot retire a connection in progress: the original
 connector callback, actual socket close, request settlement and actual body

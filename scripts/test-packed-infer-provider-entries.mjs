@@ -86,6 +86,7 @@ test('missing original Host binding refuses before physical fetch',()=>{
     projectionLimits:{maxBytes:1000,maxNodes:100,maxDepth:10,maxFrames:20,maxWork:1000},
     requestLimits:{maxBytes:1000,maxHeaderBytes:128,maxHeaders:4},
     responseLimits:{maxBytes:1000,maxChunkBytes:128,maxChunks:10,maxHeaderBytes:128},
+    physicalAcquisitionLimits:{maxPlaintextBytes:65536,maxBorrowedBackingBytes:131072,maxReads:64},
     fetch(){sends++;throw Error('UnexpectedProviderIO');},observeAt:()=> '2026-10-14T00:00:00.000Z',observeEgress(){},
     ${directory === 'provider-http' ? "endpoint:'https://fixture.invalid/v1/chat/completions',headers:[]" : "baseURL:'https://fixture.invalid/v1',apiKey:'fixture-only'"}};
   assert.throws(()=>entry[${JSON.stringify(factory)}](config),
