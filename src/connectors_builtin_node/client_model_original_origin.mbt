@@ -63,7 +63,7 @@ pub fn client_program_check_infer_original_pre_restore_origin(
   probability : @check_environment.DecisionProbabilityProfile?,
 ) -> Result[Unit, @publication_host.ClientModelOriginalOriginIssue] {
   @publication_host.check_client_model_original_pre_restore_origin(
-    compiled, definition, graph, document, layout, installation,
-    runtime_artifact_cid, layout_artifact_cid, probability,
+    compiled, definition, graph, document, layout, installation, runtime_artifact_cid,
+    layout_artifact_cid, probability,
   )
 }
