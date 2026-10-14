@@ -84,3 +84,30 @@ test "unconfirmed census close stays with the same Root beyond its fd close" {
   // Another observation cannot reinterpret the old consumed descriptor as ACK.
   assert_true(root.close() is Err(Cleanup(_)))
 }
+
+///|
+test "census-only scope spelling does not weaken ordinary object names" {
+  assert_false(valid_object_name("@actql"))
+  assert_true(valid_census_member_name({ name: "@actql", kind: Directory, }))
+  assert_false(valid_census_member_name({ name: "@actql", kind: File, }))
+  for name in ["@other", "@ACTQL", "@actql/child", "../@actql", "@actql.", "@actql\u{0}"] {
+    assert_false(valid_census_member_name({ name, kind: Directory, }))
+  }
+}
+
+///|
+test "scope directory census retains exact kind membership and no-follow rejection" {
+  let expected : Array[NativeDirectoryMember] = [{ name: "@actql", kind: Directory, }]
+  let exact = open_root(census_fixture_path("scoped-exact")).unwrap()
+  exact.check_directory_members(expected).unwrap()
+  // Both the public boundary and raw borrowed frame reject file-kind spelling.
+  assert_true(exact.check_directory_members([{ name: "@actql", kind: File, }]) is Err(InvalidName))
+  assert_eq(directory_census_ffi(exact, b"f@actql\x00", 8, 1), 4)
+  assert_eq(directory_census_ffi(exact, b"d@other\x00", 8, 1), 4)
+  exact.close().unwrap()
+  for name in ["scoped-file", "scoped-other", "scoped-extra", "scoped-symlink"] {
+    let root = open_root(census_fixture_path(name)).unwrap()
+    assert_true(root.check_directory_members(expected) is Err(GenerationMismatch))
+    root.close().unwrap()
+  }
+}
