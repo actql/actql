@@ -1,0 +1,89 @@
+"""Actual File-backed stream with scalar Core/sink/terminal doubles; public0."""
+import copy
+from types import SimpleNamespace
+import unittest
+from unittest.mock import patch
+
+from actql_sdk._local_sdk_payload_reader import OriginalSDKPayloadReader
+from actql_sdk._local_sdk_response import OriginalLocalSDKResponseStream
+from actql_sdk._local_storage import LocalStorageCommitUnknown
+import test_local_reader_facts as files_fixture
+import test_local_sdk_payload_reader as payload_fixture
+
+
+class LocalSDKResponseTests(unittest.IsolatedAsyncioTestCase):
+    def bridge(self, root, final):
+        helper = payload_fixture.SDKPayloadReaderTests()
+        helper.addCleanup = self.addCleanup
+        holder, store, core, request, first, fact, initial_clock, state, calls = helper.bridge(root, final)
+        reader = OriginalSDKPayloadReader(holder, request, initial_clock, fact)
+        host = SimpleNamespace(_core=core, _inputs=[initial_clock], _response_streams=set(), _nominal=lambda: None)
+        def clock():
+            tick = core.reserve_input(b'{"observed_at":"2026-10-13T00:00:06.000Z"}',
+                cleanup=lambda: True, stopped=lambda _: True)
+            host._inputs.append(tick)
+            core.fill_input(tick, 0, tick.length)
+            core.seal_input(tick)
+            return tick
+        host._original_sdk_delivery_clock = clock
+        stream = OriginalLocalSDKResponseStream(host, reader)
+        return stream, host, reader, holder, store, core, request, first, state, calls
+
+    async def test_bytes_acceptance_precedes_terminal_and_eof_follows_saved_observation(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            stream, host, reader, holder, _, _, request, _, _, calls = self.bridge(root, final)
+            terminal = []
+            def saved(original, clock):
+                self.assertIs(original, request)
+                self.assertIsNone(reader._output)
+                self.assertIsNone(reader._input)
+                self.assertTrue(reader._reader.eof)
+                terminal.append(clock)
+            with patch.object(holder, 'persist_original_terminal', side_effect=saved):
+                chunks = [chunk async for chunk in stream]
+            self.assertEqual(chunks, [b'', b'', b'{"n":1}\n', b'\x1e'])
+            self.assertEqual(len(terminal), 1)
+            # Confirmation was handled by the underlying scalar fixture; EOF
+            # is qualified only by the explicit saved-observation test double.
+            self.assertIsNone(reader._output)
+            await stream.aclose()
+            self.assertNotIn(stream, host._response_streams)
+            self.assertTrue(holder.close())
+
+    async def test_commit_unknown_has_no_marker_and_no_automatic_retry(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            stream, host, _, holder, store, _, _, _, _, _ = self.bridge(root, final)
+            chunks = []
+            with patch.object(holder, 'persist_original_terminal', side_effect=LocalStorageCommitUnknown(store)) as commit:
+                with self.assertRaises(LocalStorageCommitUnknown):
+                    async for chunk in stream: chunks.append(chunk)
+                self.assertEqual(commit.call_count, 1)
+                self.assertNotIn(b'\x1e', chunks)
+                with self.assertRaises(RuntimeError): stream.__aiter__()
+                await stream.aclose()
+                self.assertEqual(commit.call_count, 1)
+            self.assertNotIn(stream, host._response_streams)
+            self.assertTrue(holder.close())
+
+    async def test_interrupted_yield_does_not_confirm_or_commit_and_close_retries_original(self):
+        files = files_fixture.ReaderFactsTests()
+        with files.file(b'[{"n":1}]') as (_, root, _, final):
+            stream, host, reader, holder, _, core, _, first, state, _ = self.bridge(root, final)
+            iterator = stream.__aiter__()
+            with patch.object(holder, 'confirm_original_chunk', side_effect=AssertionError('No sink acceptance')) as confirm, patch.object(holder, 'persist_original_terminal', side_effect=AssertionError('No terminal write')) as commit:
+                self.assertEqual(await iterator.__anext__(), b'')
+                child = reader._output
+                state['cleanup'] = False
+                with self.assertRaises(RuntimeError): await stream.aclose()
+                self.assertIs(core._loans[child.ticket], child)
+                self.assertIs(core._loans[first.ticket], first)
+                self.assertIn(stream, host._response_streams)
+                state['cleanup'] = True
+                await stream.aclose()
+                await stream.aclose()
+                self.assertEqual(confirm.call_count, 0)
+                self.assertEqual(commit.call_count, 0)
+            self.assertTrue(holder.close())
+            with self.assertRaises(ValueError): copy.copy(stream).__aiter__()

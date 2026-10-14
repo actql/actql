@@ -32,8 +32,18 @@ class _ExchangeFailure(ClientError):
         self.sent = sent
 
 
+class _LocalCoreCleanupPort:
+    """Forward only the same failed Core's physical cleanup; no operation port."""
+    def __init__(self, core):
+        self._core = core
+
+    async def aclose(self):
+        if not self._core.close():
+            raise ClientError('LocalCoreCleanupPending')
+
+
 class AsyncClient:
-    """Use connect() to negotiate an existing HTTPS Host, then explicitly close."""
+    """Use open() for installed Local or connect() for an existing HTTPS Host."""
     def __init__(self, endpoint, token, *, workspace_id=None, durability='durable',
                  verify=True, timeout=30.0, transport=None):
         parsed = urlsplit(endpoint)
@@ -69,6 +79,38 @@ class AsyncClient:
         return type(token) is str and bool(token) and re.search(r'[\x00-\x20\x7f]', token) is None
 
     @classmethod
+    async def open(cls):
+        """Open the selected installed Local product without Host/auth/path options.
+
+        The original runtime/profile supplier must be complete. An unavailable
+        capacity original fails before module capture or physical VM creation;
+        this method does not substitute a private fixture or inferred allowance.
+        """
+        from ._local_product import InstalledLocalHost, LocalProductCleanupPending
+        from ._local_core import LocalCoreInitializationError
+        from ._local_distribution import LocalInstallationError
+        from ._local_worker_funding import LocalWorkerFundingUnavailable
+        try:
+            host = InstalledLocalHost.installed()
+        except LocalProductCleanupPending as failure:
+            client = cls._from_local_host(failure.cleanup_host)
+            client._closed = True
+            raise ClientError('LocalClientInitializationCleanupPending',
+                              original_error=failure, cleanup_client=client) from None
+        except LocalCoreInitializationError as failure:
+            # Core has not returned a Host. Preserve its exact synchronous
+            # physical cleanup carrier; no new Host or reconnect is attempted.
+            client = cls._from_local_host(_LocalCoreCleanupPort(failure.cleanup_core))
+            client._closed = True
+            raise ClientError('LocalCoreInitializationCleanupPending',
+                              original_error=failure, cleanup_client=client) from None
+        except LocalInstallationError as failure:
+            raise ClientError('LocalInstallationUnavailable', original_error=failure) from None
+        except LocalWorkerFundingUnavailable as failure:
+            raise ClientError('LocalExecutionFundingUnavailable', original_error=failure) from None
+        return await cls._connect_local(host)
+
+    @classmethod
     async def connect(cls, endpoint, token, **options):
         client = cls(endpoint, token, **options)
         try:
@@ -89,13 +131,7 @@ class AsyncClient:
             raise
 
     @classmethod
-    async def _connect_local(cls, host):
-        """Bind only the installed Host's existing in-process operation port.
-
-        The public factory resolves its installed runtime and original Host
-        custody. This private port does not grant execution or create an HTTP
-        endpoint/token. All responses use the same closed wire validators.
-        """
+    def _from_local_host(cls, host):
         client = cls.__new__(cls)
         client._selected = freeze({'mode': 'local', 'owner': 'local',
                                    'durability': 'durable', 'consentRefs': [], 'runners': []})
@@ -108,6 +144,17 @@ class AsyncClient:
         client._profile = None
         client._closed = False
         client._readers = set()
+        return client
+
+    @classmethod
+    async def _connect_local(cls, host):
+        """Bind only the installed Host's existing in-process operation port.
+
+        The public factory resolves its installed runtime and original Host
+        custody. This private port does not grant execution or create an HTTP
+        endpoint/token. All responses use the same closed wire validators.
+        """
+        client = cls._from_local_host(host)
         try:
             profile = await client._request('connect', {})
             if not wire.negotiated(profile, 'profile', thaw(client._selected)):

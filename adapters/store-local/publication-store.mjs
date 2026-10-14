@@ -2259,15 +2259,30 @@ export async function openLocalPublicationStore(
     // output. Preserve the original concatenation for a nonempty final block.
     const ciphertext = final.byteLength === 0 ? encrypted
       : Buffer.concat([encrypted, final]);
-    const envelope = Buffer.from(JSON.stringify({
-      version: 'actql-private-publication-evidence/0.1',
-      nonce: nonce.toString('base64'),
-      tag: cipher.getAuthTag().toString('base64'),
-      ciphertext: ciphertext.toString('base64'),
-    }), 'utf8');
-    if (envelope.byteLength > configuration.maxObjectBytes) {
+    // Every variable segment is Base64 ASCII. Preserve the exact original
+    // JSON field order and bytes without retaining a second complete envelope
+    // String alongside its UTF-8 Buffer. The segments and ciphertext still
+    // have their own simultaneous lifetimes; this is not capacity admission.
+    const segments = [
+      '{"version":"actql-private-publication-evidence/0.1","nonce":"',
+      nonce.toString('base64'),
+      '","tag":"',
+      cipher.getAuthTag().toString('base64'),
+      '","ciphertext":"',
+      ciphertext.toString('base64'),
+      '"}',
+    ];
+    const envelopeBytes = segments.reduce((total, segment) => total + segment.length, 0);
+    if (!Number.isSafeInteger(envelopeBytes) ||
+        envelopeBytes > configuration.maxObjectBytes) {
       fail('PublicationObjectLimit');
     }
+    const envelope = Buffer.alloc(envelopeBytes);
+    let envelopeOffset = 0;
+    for (const segment of segments) {
+      envelopeOffset += envelope.write(segment, envelopeOffset, 'ascii');
+    }
+    if (envelopeOffset !== envelopeBytes) fail('PublicationPrivateEvidenceCorrupt');
     const writer = createPreparedObjectWriter(envelope.byteLength);
     try {
       await writer.append(envelope);

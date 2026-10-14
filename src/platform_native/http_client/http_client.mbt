@@ -54,3 +54,17 @@ pub(all) enum NativeHttpAuthentication {
   /// Client certificate, key and bearer credential file paths.
   MutualTlsAndBearer(String, String, String)
 }
+
+///|
+/// Refusal precedes the physical constructor. After entry, the actual rejected
+/// Library remains nominal custody, even when diagnostic text was omitted.
+pub(all) enum NativeHttpLibraryLoadError {
+  RefusedBeforeAcquisition(NativeHttpIssue)
+  CleanupRequired(NativeHttpLibraryLoadFailure)
+}
+
+///|
+pub(all) enum NativeHttpClientCreateError {
+  RefusedBeforeAcquisition(NativeHttpIssue)
+  CleanupRequired(NativeHttpClientCreateFailure)
+}
