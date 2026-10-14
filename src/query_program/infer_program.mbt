@@ -190,7 +190,7 @@ fn lower_infer_steps(
     let projection = check(
       steps.map(step => construction.object(step)),
       captured,
-      { key_labels: key_labels.copy(), },
+      { key_labels: key_labels.copy(), origin: clause.origin, },
       authored_aliases,
     )
     keys.append(projection.keys)

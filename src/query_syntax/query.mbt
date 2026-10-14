@@ -180,6 +180,8 @@ pub(all) struct InferClause {
   inputs : Array[(NamePart, Expression)]
   keep : Array[KeepItem]
   name : NamePart
+  // Diagnostic custody only; never part of the lowered Program identity.
+  origin : @origin.Origin?
 }
 
 ///|
@@ -3430,6 +3432,7 @@ fn QueryParser::symbol(
 fn QueryParser::infer_clause(
   self : QueryParser,
 ) -> InferClause raise QueryAbort {
+  let origin = token_origin(self.source, self.index)
   self.keyword("INFER")
   let contract = self.name()
   let keys = if self.has("ITEM") {
@@ -3498,7 +3501,7 @@ fn QueryParser::infer_clause(
     [{ path: [], wildcard: true, name: None, }]
   }
   self.keyword("AS")
-  { contract, keys, inputs, keep, name: self.name(), }
+  { contract, keys, inputs, keep, name: self.name(), origin, }
 }
 
 ///|

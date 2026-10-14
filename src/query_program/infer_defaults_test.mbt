@@ -264,15 +264,15 @@ test "omitted ITEM KEY retains its historical label after replacement and scope 
   for
     (prefix, name) in [
       (
-        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> AS current",
+        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> AS `current`",
         "id",
       ),
       (
-        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> RENAME id AS replacement_id |> AS current",
+        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> RENAME id AS replacement_id |> AS `current`",
         "id",
       ),
       (
-        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> RENAME id AS stable_id |> SET stable_id = 'same' |> RENAME stable_id AS replacement_id |> AS current",
+        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> RENAME id AS stable_id |> SET stable_id = 'same' |> RENAME stable_id AS replacement_id |> AS `current`",
         "stable_id",
       ),
     ] {
@@ -478,7 +478,7 @@ test "historical key labels take priority over older retained range spellings" {
 test "historical key adoption preserves the old type and freezes earlier output names" {
   let environment = infer_member_environment()
   let context = infer_member_context(environment)
-  let prefix = "SELECT 7 AS id |> EXTEND 'urgent' AS text |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> RENAME id AS replacement_id |> AS current"
+  let prefix = "SELECT 7 AS id |> EXTEND 'urgent' AS text |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> RENAME id AS replacement_id |> AS `current`"
   for script in [false, true] {
     for suffix in ["", " |> RENAME replacement_id AS renamed_again"] {
       let checked = check_shorthand_identity_program(
@@ -502,7 +502,7 @@ test "historical key adoption preserves the old type and freezes earlier output 
       assert_eq(@contract.field_at(fields, 0).unwrap().name, "id")
     }
     // Historical output labels do not create ordinary lookup names or ranges.
-    for hidden in ["id", "current.id"] {
+    for hidden in ["id", "`current`.id"] {
       assert_true(
         compile_infer_defaults(prefix + " |> SELECT " + hidden, context, script)
         is Err(_),
@@ -531,14 +531,14 @@ test "adopted historical key names are CID-bearing metadata" {
   for script in [false, true] {
     let original = check_shorthand_identity_program(
       compile_infer_defaults(
-        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> AS current |> INFER `model-task:risk-score.v1` INPUT (text) KEEP (text) AS assessment",
+        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> AS `current` |> INFER `model-task:risk-score.v1` INPUT (text) KEEP (text) AS assessment",
         context, script,
       ).unwrap(),
       environment,
     )
     let renamed = check_shorthand_identity_program(
       compile_infer_defaults(
-        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> RENAME id AS stable_id |> SET stable_id = 'same' |> AS current |> INFER `model-task:risk-score.v1` INPUT (text) KEEP (text) AS assessment",
+        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> RENAME id AS stable_id |> SET stable_id = 'same' |> AS `current` |> INFER `model-task:risk-score.v1` INPUT (text) KEEP (text) AS assessment",
         context, script,
       ).unwrap(),
       environment,
@@ -567,20 +567,26 @@ test "adopted historical key names are CID-bearing metadata" {
 }
 
 ///|
-test "historical key label collisions refuse without invented output names" {
+test "historical key label collisions retain the original INFER token diagnostic" {
   let environment = infer_member_environment()
   let context = infer_input_field_context(environment)
-  let prefix = "FROM tickets AS old |> SET id = secret |> ASSERT UNIQUE BY (old.id, id) |> SET id = 'same' |> AS current"
+  let prefix = "/*😀é*/\r\nFROM tickets AS old |> SET id = secret |> ASSERT UNIQUE BY (old.id, id) |> SET id = 'same' |> AS `current`"
   for script in [false, true] {
-    assert_true(
-      compile_infer_defaults(
+    guard compile_infer_defaults(
         prefix +
         " |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment",
         context,
         script,
+        source_path="key-label.sql",
       )
-      is Err(UnsupportedInfer),
-    )
+      is Err(InferKeyLabel(DuplicateLabel, Some(origin))) else {
+      fail("expected a located duplicate historical label refusal")
+    }
+    let span = @origin.span(origin)
+    assert_eq(span.source_path, "key-label.sql")
+    assert_eq(span.start_byte, 123)
+    assert_eq(span.end_byte, 128)
+    assert_eq(@origin.kind(origin), @origin.Authored)
   }
 }
 
@@ -595,18 +601,26 @@ test "inferred ITEM KEY retains case-insensitive VALUE and OUTCOME surface refus
       " |> ASSERT UNIQUE BY (" +
       quoted +
       ") |> INFER `model-task:risk-score.v1`"
-    for key in ["", " ITEM KEY (" + quoted + ")"] {
-      for script in [false, true] {
-        assert_true(
-          compile_infer_defaults(
-            prefix + key + " INPUT (text) AS assessment",
-            context,
-            script,
-          )
-          is Err(UnsupportedInfer),
-          msg=name + key,
+    for script in [false, true] {
+      assert_true(
+        compile_infer_defaults(
+          prefix + " INPUT (text) AS assessment",
+          context,
+          script,
         )
-      }
+        is Err(InferKeyLabel(ReservedRole, Some(_))),
+        msg=name,
+      )
+      // The explicit authored tuple retains its original refusal contract.
+      assert_true(
+        compile_infer_defaults(
+          prefix + " ITEM KEY (" + quoted + ") INPUT (text) AS assessment",
+          context,
+          script,
+        )
+        is Err(UnsupportedInfer),
+        msg=name,
+      )
     }
   }
 }

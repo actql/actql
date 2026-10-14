@@ -2,7 +2,7 @@
 test "omitted INFER key retains a scoped hidden rename through row watermark" {
   let environment = infer_member_environment()
   let context = infer_input_field_context(environment)
-  let prefix = "FROM tickets |> EXTEND 10 AS event_time |> SET id = secret |> ASSERT UNIQUE BY (id) |> RENAME id AS stable_id |> SET stable_id = 'same' |> RENAME stable_id AS replacement_id |> AS current |> watermark_rows(time: event_time, late_policy: 'mark', watermark_ms: 0)"
+  let prefix = "FROM tickets |> EXTEND 10 AS event_time |> SET id = secret |> ASSERT UNIQUE BY (id) |> RENAME id AS stable_id |> SET stable_id = 'same' |> RENAME stable_id AS replacement_id |> AS `current` |> watermark_rows(time: event_time, late_policy: 'mark', watermark_ms: 0)"
   let checked = check_shorthand_identity_program(
     compile_infer_defaults(
       prefix +
@@ -28,10 +28,10 @@ test "omitted INFER key retains a scoped hidden rename through row watermark" {
   // Carrying its identity label does not restore the retired row/range lookup.
   assert_true(
     compile_infer_defaults(
-      prefix + " |> SELECT current.stable_id",
+      prefix + " |> SELECT `current`.stable_id",
       context,
       true,
     )
-    is Err(_),
+    is Err(UnknownColumn),
   )
 }

@@ -10,6 +10,7 @@ priv struct InferPrefixBudget {
 // Chronological authored labels remain bound to a slot hidden by a later SET.
 priv struct InferInputLabels {
   key_labels : Array[(String, String)]
+  origin : @origin.Origin?
 }
 
 ///|
@@ -140,6 +141,57 @@ fn checked_query_prefix_pipeline(
 }
 
 ///|
+// Project only a slot already selected by Common. The parser-owned INFER
+// token locates a label refusal without inventing a checker cursor or blaming
+// an INPUT expression. Missing internal metadata is not an authored error.
+fn infer_prefix_key_label(
+  visible : InferInputLabels,
+  slot : String,
+  keys : Array[(String, String)],
+  budget : InferPrefixBudget,
+  generated : @origin.Origin,
+) -> String raise Abort {
+  // The label belongs to this exact surviving slot generation. A newer
+  // same-spelled column or an older range snapshot cannot rename its key.
+  let mut label : String? = None
+  for entry in visible.key_labels {
+    budget.spend(1, generated)
+    budget.spend_text(slot, generated)
+    budget.spend_text(entry.0, generated)
+    if entry.0 == slot {
+      label = Some(entry.1)
+      break
+    }
+  }
+  let name = match label {
+    Some(name) => name
+    None => raise Abort(InferKeyLabel(MissingCorrespondence, visible.origin))
+  }
+  budget.spend_text(name, generated)
+  let normalized_name = ascii_upper(name)
+  if name.is_empty() {
+    raise Abort(InferKeyLabel(EmptyOrAmbiguousLabel, visible.origin))
+  }
+  if ["OUTCOME", "VALUE"].contains(normalized_name) {
+    raise Abort(InferKeyLabel(ReservedRole, visible.origin))
+  }
+  for key in keys {
+    budget.spend(1, generated)
+    budget.spend_text(key.0, generated)
+    budget.spend_text(name, generated)
+    budget.spend_text(key.1, generated)
+    budget.spend_text(slot, generated)
+    if key.1 == slot {
+      raise Abort(InferKeyLabel(DuplicateSlot, visible.origin))
+    }
+    if ascii_upper(key.0) == normalized_name {
+      raise Abort(InferKeyLabel(DuplicateLabel, visible.origin))
+    }
+  }
+  name
+}
+
+///|
 // The unfinished Stage ends at INFER before join-back or result projection can
 // alter its evidence or slots. Key selection belongs only to Common.
 fn infer_prefix_check(
@@ -178,37 +230,13 @@ fn infer_prefix_check(
     let binding = @evidence.infer_key_at(infer, key_index).unwrap()
     let slot = @schema.reference_name(binding.field)
     budget.spend_text(slot, construction.generated)
-    // The label belongs to this exact surviving slot generation. A newer
-    // same-spelled column or an older range snapshot cannot rename its key.
-    let mut label : String? = None
-    for entry in visible.key_labels {
-      budget.spend(1, construction.generated)
-      budget.spend_text(slot, construction.generated)
-      budget.spend_text(entry.0, construction.generated)
-      if entry.0 == slot {
-        label = Some(entry.1)
-        break
-      }
-    }
-    let name = match label {
-      Some(name) => name
-      None => raise Abort(UnsupportedInfer)
-    }
-    budget.spend_text(name, construction.generated)
-    let normalized_name = ascii_upper(name)
-    if name.is_empty() || ["OUTCOME", "VALUE"].contains(normalized_name) {
-      raise Abort(UnsupportedInfer)
-    }
-    for key in keys {
-      budget.spend(1, construction.generated)
-      budget.spend_text(key.0, construction.generated)
-      budget.spend_text(name, construction.generated)
-      budget.spend_text(key.1, construction.generated)
-      budget.spend_text(slot, construction.generated)
-      if key.1 == slot || ascii_upper(key.0) == normalized_name {
-        raise Abort(UnsupportedInfer)
-      }
-    }
+    let name = infer_prefix_key_label(
+      visible,
+      slot,
+      keys,
+      budget,
+      construction.generated,
+    )
     keys.push((name, slot))
   }
   { checked: infer, keys, }

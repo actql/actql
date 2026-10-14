@@ -91,6 +91,7 @@ pub(all) enum Issue {
   UnsupportedCte
   UnsupportedGraph
   UnsupportedInfer
+  InferKeyLabel(InferKeyLabelIssue, @origin.Origin?)
   UnsupportedNearest
   FileListing(FileListingIssue)
   UnsupportedResult
@@ -107,6 +108,17 @@ pub(all) enum Issue {
   // snapshot is neither a completed Program nor checking/execution authority.
   BindingPreparationSource(BindingPreparationIssue, @builder.Source)
   Admission(@program.SyntaxError)
+}
+
+///|
+// Label projection follows Common's selected key. Missing compiler metadata
+// remains an implementation limit; authored label conflicts are input errors.
+pub(all) enum InferKeyLabelIssue {
+  MissingCorrespondence
+  EmptyOrAmbiguousLabel
+  ReservedRole
+  DuplicateLabel
+  DuplicateSlot
 }
 
 ///|
