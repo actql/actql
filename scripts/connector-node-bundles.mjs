@@ -449,6 +449,7 @@ export function checkRelaNodeAssembly(root, write = false) {
     throw new Error(`RelA Node bridge is stale: ${outputPath}`);
   }
   for (const file of ['client_table_write_publication.mbt', 'client_multi_source_bridge.mbt',
+    'client_row_listing_capacity.mbt',
     'client_request_value_policy.mbt',
     'client_multi_source_host_bridge.mbt',
     'client_source_capture_bridge.mbt',

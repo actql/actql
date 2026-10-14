@@ -288,9 +288,25 @@ export async function openRowSourceCredentialSite({profile, principalId,
 export async function createInstalledRowSource({moon, declaration,
   declared, environmentWire, connectorId, connectorRegistration,
   connectorRevision, site, authorization, readOperation, physicalTarget,
-  readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent}) {
+  readPages, bindingCid, limits, referenceIssuer, listingPolicy, captureContent,
+  listingReportCapacity}) {
   if (captureContent !== undefined && typeof captureContent !== 'function') {
     fail('InvalidInstalledContentCapture');
+  }
+  // Exact trusted installation declaration, not a packet value or a callback
+  // capable of choosing another capacity after acquisition. The installation
+  // must justify it for every listing selector admitted by this declaration,
+  // target and limits. Absence keeps the existing non-report profile; it does
+  // not manufacture the completed-report guarantees or a Model grant.
+  if (listingReportCapacity !== undefined &&
+      (listingReportCapacity === null || typeof listingReportCapacity !== 'object' ||
+        Array.isArray(listingReportCapacity))) {
+    fail('InvalidInstalledListingReportCapacity');
+  }
+  if (listingReportCapacity !== undefined &&
+      (typeof moon?.clientProgramInstalledListingRowCaptureCapacity !== 'function' ||
+        typeof moon?.clientProgramRowSourceStartListingAccounted !== 'function')) {
+    fail('InstalledListingSourceUnavailable');
   }
   const [queryContract, evidenceContract] = await Promise.all([
     'actql-query-acquisition.json', 'actql-query-process-evidence.json',
@@ -1024,9 +1040,16 @@ export async function createInstalledRowSource({moon, declaration,
       requirementCid: prepared.checkedSource.requirementCid, nonce});
     const dispatchRequestCid = cid({
       version: 'actql-row-source-acquisition-dispatch/0.1', runInvocationCid});
-    const session = startInstalledRowRun({moon, acquisition, nonce, ledger,
-      capacity: {transferBytes: maxTransferBytes,
-        executionBytes: BigInt(limits.maxPageBytes)}});
+    const capacity = {transferBytes: maxTransferBytes,
+      executionBytes: BigInt(limits.maxPageBytes)};
+    if (listingReportCapacity !== undefined &&
+        moon.clientProgramRowSourceIsListing(acquisition)) {
+      // Extra report/control backing is admitted by Core before page I/O and
+      // retained through original capture/evidence/cleanup, not settled by
+      // this JS caller when capture returns. Ordinary rows have no new field.
+      capacity.listingReport = listingReportCapacity;
+    }
+    const session = startInstalledRowRun({moon, acquisition, nonce, ledger, capacity});
     const {run} = session;
     const complete = async () => {
       const verifyRead = () => currentRead(prepared, access, signal);
@@ -1098,15 +1121,20 @@ export async function createInstalledRowSource({moon, declaration,
     retainedCapture(prepared) {
       const owner = preparations.get(prepared);
       if (owner === undefined) fail('InstalledSourcePreparationMismatch');
-      const capacity = moon.clientProgramInstalledRowCaptureCapacity(owner.acquisition);
+      const capacity = listingReportCapacity !== undefined &&
+          moon.clientProgramRowSourceIsListing(owner.acquisition)
+        ? moon.clientProgramInstalledListingRowCaptureCapacity(owner.acquisition, listingReportCapacity)
+        : moon.clientProgramInstalledRowCaptureCapacity(owner.acquisition);
       if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
       return Object.freeze({requirement: owner.requirement, capacity, referenceIssuer});
     },
     ledgerCapacity(prepared) {
       const owner = preparations.get(prepared);
       if (owner === undefined) fail('InstalledSourcePreparationMismatch');
-      const capacity = moon.clientProgramInstalledRowCaptureCapacity(
-        owner.acquisition);
+      const capacity = listingReportCapacity !== undefined &&
+          moon.clientProgramRowSourceIsListing(owner.acquisition)
+        ? moon.clientProgramInstalledListingRowCaptureCapacity(owner.acquisition, listingReportCapacity)
+        : moon.clientProgramInstalledRowCaptureCapacity(owner.acquisition);
       if (capacity === undefined) fail('InstalledSourceCapacityUnavailable');
       return Object.freeze({
         capacity,

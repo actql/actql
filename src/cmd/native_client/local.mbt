@@ -99,6 +99,17 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
   guard matches.subcommand is Some((operation, child)) else {
     stop("LocalOperationUnavailable")
   }
+  if operation == "run" {
+    // A public command spelling, not a new intent/admission/retry operation.
+    // Preserve the original AQL envelope and explicitly saved identities.
+    let original_operation = local_run_original_operation()
+    let reply = if optional(matches, "config-file") is None {
+      execute_native_local_product(matches, original_operation)
+    } else {
+      execute_native_local_adoption(matches, original_operation, child)
+    }
+    return local_run_reply(child, reply)
+  }
   if optional(matches, "config-file") is None {
     if !local_product_operation(operation) {
       stop("LocalOperationUnavailable")
@@ -111,6 +122,7 @@ fn execute_native_local(matches : @argparse.Matches) -> String raise ClientStop 
     operation == "lookup-policy-upgrade" ||
     operation == "new-submission" ||
     operation == "lookup-submission" ||
+    operation == "status" ||
     operation == "checkpoint-state" ||
     operation == "lookup-preparation-grant" ||
     operation == "lookup-preparation-raw" ||

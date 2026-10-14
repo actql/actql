@@ -262,6 +262,10 @@ export declare function createInstalledRowSource(options: Readonly<{
   readPages: (request: RowPageRequest) => Awaitable<unknown>;
   bindingCid: string;
   limits: RowSourceLimits;
+  /** Trusted target-bound ExecutionCapacity declaration from the selected
+   * Core runtime. Not a grant; the original Source Ledger must reserve it
+   * before additional report allocations or page I/O. No numeric default. */
+  listingReportCapacity?: ConnectorRuntimeHandle;
 }>): Promise<InstalledRowSource>;
 
 export type RowEffectKind = 'create' | 'update' | 'upsert';
