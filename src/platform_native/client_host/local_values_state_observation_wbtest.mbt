@@ -349,6 +349,32 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     assert_eq(restored.wire(), observed.wire())
     assert_eq(restored.control_revision(), run_before.revision)
   }
+  let selected = host
+    .lookup_submitted_run_state_by_id(
+      crypto, "operator", "cli", "values-state-original", 1003.0,
+    )
+    .unwrap()
+  assert_eq(selected.state().wire(), observed.wire())
+  assert_eq(
+    native_client_submission_reference_wire(selected.reference()),
+    reference.wire,
+  )
+  assert_eq(
+    @publication.publication_contract_identity(selected.definition()),
+    @publication.publication_contract_identity(definition),
+  )
+  assert_true(
+    host.lookup_submitted_run_state_by_id(
+      crypto, "operator", "cli", "never-admitted", 1003.0,
+    )
+    is Err(Unavailable),
+  )
+  assert_true(
+    host.lookup_submitted_run_state_by_id(
+      crypto, "foreign", "cli", "values-state-original", 1003.0,
+    )
+    is Err(Journal(AuthorizationDenied)),
+  )
   // Independent status/availability oracle; this is not a payload read grant.
   let source = @source.parse_json_bytes_preserving(
     @utf8.encode(observed.wire()),
@@ -480,6 +506,68 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     .unwrap()
   assert_eq(recovered.wire(), observed.wire())
   assert_eq(recovered.control_revision(), expected_reopen_revision)
+  let selected_after_restart = reopened
+    .lookup_submitted_run_state_by_id(
+      crypto, "operator", "cli", "values-state-original", 1004.0,
+    )
+    .unwrap()
+  assert_eq(selected_after_restart.state().wire(), observed.wire())
+  assert_eq(
+    selected_after_restart.state().control_revision(),
+    expected_reopen_revision,
+  )
+  // A Run ID is not a unique authorization key. Two authentic Submissions
+  // naming it must refuse instead of selecting the first retained row.
+  let duplicate_reference = prepare_native_client_submission_reference(
+    token, "duplicate-state-submit",
+  ).unwrap()
+  let (duplicate_request, _, duplicate_compiled, duplicate_definition) = journal_test_prepared_run(
+    prepared,
+    duplicate_reference.request_id,
+    "values-state-original",
+    scope~,
+  )
+  let reopened_journal = reopened.journal
+  reopened_journal
+  .record_submitted_intent(
+    reopened.epoch,
+    duplicate_reference,
+    intent,
+    scope,
+    true,
+    1004.0,
+  )
+  .unwrap()
+  |> ignore
+  reopened_journal
+  .accept_submitted_run(
+    reopened.epoch,
+    duplicate_reference,
+    preparation,
+    duplicate_request,
+    duplicate_compiled,
+    duplicate_definition,
+    scope,
+    true,
+    1004.0,
+  )
+  .unwrap()
+  |> ignore
+  assert_true(
+    reopened.lookup_submitted_run_state_by_id(
+      crypto, "operator", "cli", "values-state-original", 1004.0,
+    )
+    is Err(Journal(ForeignRun)),
+  )
+  assert_eq(
+    reopened
+    .lookup_submitted_run_state(
+      crypto, "operator", "cli", reference, request, 1004.0,
+    )
+    .unwrap()
+    .wire(),
+    observed.wire(),
+  )
   reopened.close().unwrap() |> ignore
 }
 
