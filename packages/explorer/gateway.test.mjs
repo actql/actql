@@ -84,6 +84,21 @@ test('unknown/read-control paths and foreign extra input never invoke business m
   assert.deepEqual(h.calls, []);
 });
 
+test('saved Run Plan has a closed read-only body and no static fallback for old Hosts', async () => {
+  const h = harness(), session = await h.connect();
+  for (const body of [{ref, program: 'SELECT 1'}, {ref, options: {}},
+    {ref: {...ref, authorityScopeCid: 'foreign'}}]) {
+    assert.equal((await h.read('run-plan', body, session)).status, 400);
+  }
+  assert.deepEqual(h.calls, []);
+  assert.equal((await h.read('run-plan', {ref}, session, {'X-Actql-CSRF': ''})).status, 403);
+  assert.deepEqual(h.calls, []);
+  const response = await h.read('run-plan', {ref}, session);
+  assert.equal(response.status, 409);
+  assert.deepEqual(await response.json(), {error: 'ExplorerCapabilityUnavailable'});
+  assert.deepEqual(h.calls, [['attach', ref]]);
+});
+
 test('bootstrap and established session expiry never silently renew', async () => {
   let time = 1000;
   const h = harness({now: () => time, sessionMs: 100, bootstrapMs: 50});
