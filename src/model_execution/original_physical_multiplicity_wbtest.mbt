@@ -9,18 +9,23 @@ fn original_physical_multiplicity_limits() -> ModelExecutionLimits {
 
 ///|
 test "original physical multiplicity keeps all rows but constructs only eligible cursors" {
-  for (mask, eligible) in [
-    ([false, false], 0),
-    ([true, false], 1),
-    ([false, true], 1),
-  ] {
+  for
+    (mask, eligible) in [
+      ([false, false], 0),
+      ([true, false], 1),
+      ([false, true], 1),
+    ] {
     let rows = prepared_capacity_test_rows()
     let limits = original_physical_multiplicity_limits()
     let quantities : ModelQuantityCapacity = {
       limits: { tokens: 128L, cost_units: 0L, duration_ms: 2L, },
       per_attempt: { tokens: 64L, cost_units: 0L, duration_ms: 1L, },
     }
-    let grant = original_startup_test_grant(rows, limits, Some(quantities.limits))
+    let grant = original_startup_test_grant(
+      rows,
+      limits,
+      Some(quantities.limits),
+    )
     let starts = Ref(0)
     let sends = Ref(0)
     let released = Ref(false)
@@ -68,7 +73,9 @@ test "original physical multiplicity keeps all rows but constructs only eligible
     assert_true(
       active.state.requests[1].request.key[0].value is @admitted.Text("b"),
     )
-    assert_true(active.state.requests[1].request.inputs[0].1.value is @admitted.Null)
+    assert_true(
+      active.state.requests[1].request.inputs[0].1.value is @admitted.Null,
+    )
     assert_eq(starts.val, eligible)
     assert_eq(active.state.physical_cursors.length(), eligible)
     assert_eq(@resources.ledger_usage(grant.ledger).attempts, eligible)
@@ -130,7 +137,8 @@ test "original physical multiplicity rejects two eligible rows before any physic
         refused = true
         break
       }
-      _ => abort("Expected the original attempt limit before physical preparation")
+      _ =>
+        abort("Expected the original attempt limit before physical preparation")
     }
   }
   assert_true(refused)
