@@ -241,6 +241,28 @@ test('handoff failure preserves both existing-owner charge tickets', async () =>
   assert.equal(state.charges.length, 2);
 });
 
+for (const missing of [undefined, null]) {
+  test(`missing capture receipt ${missing} cannot complete a versioned read`, async () => {
+    const {options, state} = fixture();
+    const capture = options.receiveContent;
+    options.receiveContent = async (...args) => {
+      await capture(...args);
+      return missing;
+    };
+    await assert.rejects(readGcsVersionedContent(options),
+      {code: 'GcsContentCaptureReceiptMissing'});
+    // Verified bytes may already be with the receiving owner. Neither the
+    // missing reply nor this refusal is cleanup proof or a retry permission.
+    assert.deepEqual(state.handoffs[0].bytes, body);
+    assert.equal(state.handoffs.length, 1);
+    assert.equal(state.charges.length, 2);
+    assert.equal(state.handoffs[0].observation.metadataCharge, state.charges[0]);
+    assert.equal(state.handoffs[0].observation.contentCharge, state.charges[1]);
+    assert.deepEqual(state.verificationBytes, [9]);
+    assert.equal(state.calls.length, 2);
+  });
+}
+
 test('matching optional MD5 retains the same byte CID', async () => {
   // MD5 hex: 25f9e794323b453885f5181f1b624d0b, independently encoded.
   const {options} = fixture({metadata: {md5Hash: 'JfnnlDI7RTiF9RgfG2JNCw=='}});
