@@ -4,6 +4,10 @@
 struct NativeObservedRunState {
   definition : @publication.PublicationContract
   wire : String
+  original : @publication_host.ClientRunStateOriginal
+  store : @store.Store
+  namespace_id : String
+  scope : String
 }
 
 ///|
@@ -25,6 +29,28 @@ pub fn NativeObservedRunState::definition_cid(
 ///|
 pub fn NativeObservedRunState::wire(self : NativeObservedRunState) -> String {
   self.wire
+}
+
+///|
+/// Same actual Store and original request/namespace, not a permission predicate.
+pub fn NativeObservedRunState::matches_original_store(
+  self : NativeObservedRunState,
+  store : @store.Store,
+  namespace_id : String,
+  scope : String,
+  definition_cid : String,
+) -> Bool {
+  physical_equal(self.store, store) &&
+  self.namespace_id == namespace_id &&
+  self.scope == scope &&
+  self.definition_cid() == definition_cid
+}
+
+///|
+pub fn NativeObservedRunState::original_wire(
+  self : NativeObservedRunState,
+) -> String {
+  self.original.wire()
 }
 
 ///|
@@ -297,5 +323,21 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
     Ok(value) => value
     Err(issue) => return Err(State(issue))
   }
-  Ok({ definition: self.evidence.run_definition, wire, })
+  let original = match
+    @publication_host.prepare_client_run_state_original(
+      self.evidence.run_definition,
+      self.evidence.manifest,
+      wire,
+    ) {
+    Ok(value) => value
+    Err(_) => return Err(Unavailable)
+  }
+  Ok({
+    definition: self.evidence.run_definition,
+    wire,
+    original,
+    store: self.service.store,
+    namespace_id: self.intent.namespace_id,
+    scope: self.intent.authority_scope_cid,
+  })
 }

@@ -99,6 +99,8 @@ pub(all) struct NativeEffectFreeRunContext {
 
 type NativeObservedRunState
 pub fn NativeObservedRunState::definition_cid(Self) -> String
+pub fn NativeObservedRunState::matches_original_store(Self, @publication_store.Store, String, String, String) -> Bool
+pub fn NativeObservedRunState::original_wire(Self) -> String
 pub fn NativeObservedRunState::wire(Self) -> String
 
 pub(all) enum NativeObservedRunStateIssue {

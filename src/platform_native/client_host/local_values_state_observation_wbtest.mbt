@@ -2,16 +2,37 @@
 // Real checked Values execution, publication outputs and Native Store. These
 // internal Host fixtures do not establish installed CLI or Account acceptance.
 test "actual Values publication supplies succeeded state with unknown Result availability" {
-  let (database, journal, epoch, reference) = submitted_test_setup(
-    "values-state-observation",
+  let host_name = "values-state-observation"
+  let host = policy_host_fixture(
+    host_name,
+    account_body=policy_reuse_account_original,
   )
-  let scope = "sha256:" + "a".repeat(64)
-  let (intent, preparation, request, original_compiled, definition) = submitted_run_test_input(
-    reference, "values-state-original",
-  )
+  let journal = host.journal
+  let crypto = epoch_test_crypto()
+  let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
+  let epoch = host.epoch
+  let token = epoch.issue_epoch(scope, true, 1000.0).unwrap()
+  let reference = prepare_native_client_submission_reference(
+    token, "original-state-submit",
+  ).unwrap()
+  let intent = @host.prepare_client_submitted_intent(
+    "{\"kind\":\"program\",\"input\":" +
+    preparation_values_document() +
+    ",\"parameters\":null}",
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let preparation = submitted_prepare(intent).unwrap()
   guard preparation.preparation is Computation(prepared) else {
     fail("expected actual original Values preparation")
   }
+  let (request, _, original_compiled, definition) = journal_test_prepared_run(
+    prepared,
+    reference.request_id,
+    "values-state-original",
+    scope~,
+  )
   let assets = @host.client_local_product_assets()
   let policy_cid = "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563"
   let compiled = @host.with_client_source_free_result_policy(
@@ -32,6 +53,12 @@ test "actual Values publication supplies succeeded state with unknown Result ava
   )
   .unwrap()
   |> ignore
+  assert_true(
+    host.lookup_submitted_run_state(
+      crypto, "operator", "cli", reference, request, 1001.0,
+    )
+    is Err(Unavailable),
+  )
   // Retain exact issued policy bytes before first start in this existing
   // journal. No Source policy or empty completion journal is fabricated.
   let policy_wire = run_policy_originals_wire(prepared, compiled~).unwrap()
@@ -186,6 +213,103 @@ test "actual Values publication supplies succeeded state with unknown Result ava
     observed.definition_cid(),
     @publication.publication_contract_identity(definition),
   )
+  let run_before = journal.retained(request).unwrap().unwrap()
+  let submitted_before = journal
+    .retained_submission(reference)
+    .unwrap()
+    .unwrap()
+  let saved = host
+    .retain_submitted_run_state(
+      crypto, "operator", "cli", reference, request, observed, store, "local-test",
+      1002.0,
+    )
+    .unwrap()
+  assert_eq(saved.wire(), observed.wire())
+  assert_eq(saved.control_revision(), run_before.revision)
+  let submitted_after = journal.retained_submission(reference).unwrap().unwrap()
+  assert_eq(submitted_after.revision, submitted_before.revision + 1L)
+  assert_eq(
+    submitted_after.run_admission.unwrap().revision,
+    submitted_before.run_admission.unwrap().revision,
+  )
+  assert_eq(
+    run_record_body(journal.retained(request).unwrap().unwrap()).unwrap(),
+    run_record_body(run_before).unwrap(),
+  )
+  assert_eq(
+    journal.retained(request).unwrap().unwrap().revision,
+    run_before.revision,
+  )
+  // Same original bytes reuse the saved row after lost-response reconciliation;
+  // another observation time cannot replace the immutable first observation.
+  host
+  .retain_submitted_run_state(
+    crypto, "operator", "cli", reference, request, observed, store, "local-test",
+    1003.0,
+  )
+  .unwrap()
+  |> ignore
+  assert_eq(
+    journal.retained_submission(reference).unwrap().unwrap().revision,
+    submitted_after.revision,
+  )
+  assert_true(
+    host.retain_submitted_run_state(
+      crypto, "operator", "cli", reference, request, observed, store, "foreign-namespace",
+      1003.0,
+    )
+    is Err(ForeignRun),
+  )
+  assert_true(
+    host.lookup_submitted_run_state(
+      crypto, "foreign", "cli", reference, request, 1003.0,
+    )
+    is Err(Journal(AuthorizationDenied)),
+  )
+  let changed = pending
+    .observe_run_state(
+      "2026-10-15T00:00:03.000Z",
+      limits.max_result_workspace_entries,
+      16,
+      1000,
+      () => true,
+    )
+    .unwrap()
+  assert_true(
+    host.retain_submitted_run_state(
+      crypto, "operator", "cli", reference, request, changed, store, "local-test",
+      1003.0,
+    )
+    is Err(ChangedIntent),
+  )
+  let cancellation_publication = install_native_client_cancellation_publication(
+    store, "local-test", 65536, 8192, 64,
+  ).unwrap()
+  let cancellation = journal
+    .cancel_operation(
+      request,
+      "local-test",
+      "same-control-revision-after-state",
+      run_before.revision.to_int(),
+      () => true,
+      cancellation_publication,
+    )
+    .unwrap()
+  assert_eq(cancellation.action, @host.AlreadyTerminal)
+  assert_eq(cancellation.expected_revision, run_before.revision.to_int())
+  assert_eq(
+    journal.retained(request).unwrap().unwrap().revision,
+    run_before.revision,
+  )
+  for _ in 0..<2 {
+    let restored = host
+      .lookup_submitted_run_state(
+        crypto, "operator", "cli", reference, request, 1003.0,
+      )
+      .unwrap()
+    assert_eq(restored.wire(), observed.wire())
+    assert_eq(restored.control_revision(), run_before.revision)
+  }
   // Independent status/availability oracle; this is not a payload read grant.
   let source = @source.parse_json_bytes_preserving(
     @utf8.encode(observed.wire()),
@@ -263,5 +387,30 @@ test "actual Values publication supplies succeeded state with unknown Result ava
     )
     is Err(_),
   )
-  database.close_checked().unwrap() |> ignore
+  // Withhold this read transaction's commit reply through the existing SQLite
+  // fault port. The committed original is neither missing nor a resend permit.
+  submitted_test_fail_commit_after(host.database, 0, true)
+  assert_true(
+    journal.transaction(() => {
+      match journal.saved_run_state_locked(reference, request) {
+        Ok((original, _)) => Ok(original.run_state_original)
+        Err(issue) => Err(issue)
+      }
+    })
+    is Err(TransactionUnknown),
+  )
+  host.close().unwrap()
+  let reopened = policy_host_fixture(
+    host_name,
+    existing=true,
+    account_body=policy_reuse_account_original,
+  )
+  let recovered = reopened
+    .lookup_submitted_run_state(
+      crypto, "operator", "cli", reference, request, 1004.0,
+    )
+    .unwrap()
+  assert_eq(recovered.wire(), observed.wire())
+  assert_eq(recovered.control_revision(), run_before.revision)
+  reopened.close().unwrap() |> ignore
 }
