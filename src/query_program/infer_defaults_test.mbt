@@ -30,7 +30,7 @@ fn infer_defaults_object_context(
   let source = @wire.admit(
     @source.parse_json(
       (
-        #|{"values":{"schema":{"id":{"type":"string","nullable":false},"secret":{"type":"string","nullable":false},"note_object":{"type":"object","nullable":false,"additional_properties":false,"fields":{"notes":{"type":"string","nullable":true}}}},"rows":[{"id":"a","secret":"private-a","note_object":{"notes":"urgent"}},{"id":"b","secret":"private-b","note_object":{"notes":null}}]},"as":"tickets"}
+        #|{"values":{"schema":{"id":{"type":"string","nullable":false},"secret":{"type":"string","nullable":false},"note_object":{"type":"object","nullable":false,"fields":{"notes":{"type":"string","nullable":true}}}},"rows":[{"id":"a","secret":"private-a","note_object":{"notes":"urgent"}},{"id":"b","secret":"private-b","note_object":{"notes":null}}]},"as":"tickets"}
       ),
       construction_limits().source.source,
     ).unwrap(),
