@@ -421,7 +421,9 @@ test "computed UPDATE retains nested access and lazy CASE in the common expressi
     ),
   )
   assert_true(
-    semantic(lazy_program).contains("\"divide\":[{\"literal\":1},{\"literal\":0}]"),
+    semantic(lazy_program).contains(
+      "\"divide\":[{\"literal\":1},{\"literal\":0}]",
+    ),
   )
   ignore(private_update_static(lazy_program))
 }
