@@ -37,6 +37,9 @@ fn prepare_private_effect_custody(
   if store.closed {
     return Err(Closed)
   }
+  if store.retiring {
+    return Err(CleanupPending)
+  }
   let owned_key = key[:].to_owned()
   let envelope = match
     crypto.seal_private_evidence(
@@ -99,6 +102,10 @@ pub fn Store::prepare_effect_capture_custody(
   crypto : @signature.Library,
   key : Bytes,
 ) -> Result[EffectCaptureCustody, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if self.closed {
     return Err(Closed)
   }
@@ -152,6 +159,10 @@ pub fn Store::restore_effect_capture_custody(
   crypto : @signature.Library,
   key : Bytes,
 ) -> Result[EffectCaptureCustody, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let custody = match
     self.prepare_effect_capture_custody(binding, crypto, key) {
     Ok(value) => value
@@ -206,6 +217,10 @@ pub fn Store::prepare_effect_preview_custody(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[EffectPreviewCustody, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if self.closed {
     return Err(Closed)
   }
@@ -263,6 +278,10 @@ pub fn Store::restore_effect_preview_custody(
   max_nodes : Int,
   max_depth : Int,
 ) -> Result[EffectPreviewCustody, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let custody = match
     self.prepare_effect_preview_custody(
       identity, wire, authoring_cid, store_authority, crypto, key, max_bytes, max_nodes,
@@ -326,6 +345,9 @@ fn PrivateEffectEvidenceCustody::read(
   if self.store.closed {
     return Err(Closed)
   }
+  if self.store.retiring {
+    return Err(CleanupPending)
+  }
   if self.transaction_uncertain {
     return Err(CleanupPending)
   }
@@ -375,6 +397,9 @@ fn PrivateEffectEvidenceCustody::persist(
 ) -> Result[Unit, NativePublicationStoreIssue] {
   if self.store.closed {
     return Err(Closed)
+  }
+  if self.store.retiring {
+    return Err(CleanupPending)
   }
   if self.transaction_uncertain {
     return Err(CleanupPending)
@@ -554,6 +579,10 @@ pub fn Store::prepare_effect_checkpoint_custody(
   crypto : @signature.Library,
   key : Bytes,
 ) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if self.closed {
     return Err(Closed)
   }
@@ -661,6 +690,10 @@ pub fn Store::restore_effect_checkpoint_custody(
   crypto : @signature.Library,
   key : Bytes,
 ) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let custody = match
     self.prepare_effect_checkpoint_custody(
       checkpoint, continuation_wire, store_authority, crypto, key,
@@ -691,6 +724,10 @@ pub fn Store::restore_confirmed_effect_checkpoint_custody(
   crypto : @signature.Library,
   key : Bytes,
 ) -> Result[EffectCheckpointCustody, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if self.closed {
     return Err(Closed)
   }

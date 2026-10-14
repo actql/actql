@@ -9,14 +9,15 @@
 // The current Native custody predicates are reviewed in
 // docs/reviews/2026-10-12-session-native-custody-configuration-review.md and
 // docs/reviews/2026-10-14-session-native-config-refresh-review.md and
-// docs/reviews/2026-10-14-session-native-constructor-config-review.md.
+// docs/reviews/2026-10-14-session-native-constructor-config-review.md and
+// docs/reviews/2026-10-14-session-native-store-failure-scope-review.md.
 // Changes to this table, the toolchain or any configuration force fresh work.
 // Unknown options and other targets require separate review; matching a digest
 // is configuration identity, not a proof of compiler or OS correctness.
 // A separate exact JS foreign-library review is recorded below; it does not
 // inherit the native-options rule or authorize arbitrary package kinds.
 export const packageConfigurationReview = Object.freeze({
-  revision: '4736480dd98542420d83fe205589fc33e2d038ba',
+  revision: '91c7cb60640b311d110181f0748d4a0fed3be4b8',
   target: 'js',
   toolchainDigest: '8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a',
   moonRevision: '94521db',
@@ -29,7 +30,7 @@ export const reviewedPackageConfigurations = Object.freeze({
   'src/platform_native/filesystem/moon.pkg': 'eef78cb8d41b54e003391bae5336ae10282debcce65f40f2f1be96e7f87bc837',
   'src/platform_native/http_client/moon.pkg': 'cc26506c7f246eaa061a9642b09d28e1317be7040338135bc0756b254182f443',
   'src/platform_native/https_server/moon.pkg': '880ad74137ab58e0f92f43465f9bc2bcd096eb2b29461b9f93d68883ed5d22bd',
-  'src/platform_native/publication_store/moon.pkg': 'b3f6489410a0807c2d0aafddc8b30be18658d6ff395c824e7f9b83bd5e172f8c',
+  'src/platform_native/publication_store/moon.pkg': 'da2ed748a2cee398537d8be64de7e695446009fcdce04a6cf09ec69f0d9f0fa0',
   'src/platform_native/result_access/moon.pkg': '0ed904ab54effb2f116b1eb3b7b285f20c94ec75ce099b93f47f4a08377a0d37',
   'src/platform_native/remote_client/moon.pkg': '4ab04b27d2c7be75c9d5521f3e2e0d53d8cc8d8d612cb6cbb13115b240eafb6e',
   'src/platform_native/remote_journal/moon.pkg': 'a16cc63e68918f4208620e6137d0d55fbb128c42b0d80723a43c6f0c86bf9602',
