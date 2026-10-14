@@ -10,5 +10,8 @@ import {
 } for "wbtest"
 
 options(
-  targets: { "root_open_custody_native_wbtest.mbt": [ "native" ] },
+  targets: {
+    "root_open_custody_native_wbtest.mbt": [ "native" ],
+    "root_open_custody_unsupported_wbtest.mbt": [ "not", "native" ],
+  },
 )
