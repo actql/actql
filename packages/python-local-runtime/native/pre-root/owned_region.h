@@ -31,6 +31,13 @@ typedef struct actql_owned_extent_view {
     struct actql_owned_extent_view *original;
     void *mapping;
     size_t length;
+    actql_owned_extent_reference extent;
+    size_t payload_offset;
+    size_t payload_length;
+    bool map_confirmed;
+    bool payload_bound;
+    bool domain_attempted;
+    bool domain_live;
 } actql_owned_extent_view;
 
 /* Borrow a trusted, exclusively initialized, exact-sized private regular FD.
@@ -52,6 +59,19 @@ int actql_native_owned_project_extent(actql_owned_extent_loan *loan,
  * before mapping. Equal FD or reference data is never that authorization. */
 int actql_native_owned_map_extent(int fd, const actql_owned_extent_reference *extent,
                                  actql_owned_extent_view *view);
+/* Trusted original supplier only: payload must be the Core-issued child
+ * bounds. These scalar bounds do not authenticate installation or delegation.
+ * Old mapping without that binding cannot acquire an allocator domain. */
+int actql_native_owned_map_extent_payload(int fd,
+    const actql_owned_extent_reference *extent, size_t payload_offset,
+    size_t payload_length, actql_owned_extent_view *view);
+/* Suballocate the SAME bound ExclusiveWrite view. Its control table consumes
+ * the original payload, with no mmap/FD/heap fallback or second capacity claim.
+ * Domain retirement precedes view retirement, which precedes parent return. */
+int actql_native_owned_acquire_extent_domain(actql_owned_extent_view *view,
+                                            actql_owned_capacity **out);
+int actql_native_owned_close_extent_domain(actql_owned_extent_view *view,
+                                          actql_owned_capacity **slot);
 /* An unmap ACK is not a confirmed process stop or Common borrow return. */
 int actql_native_owned_close_extent_view(actql_owned_extent_view *view);
 /* Only the existing Owner's confirmed-stop/retirement path calls this port;
