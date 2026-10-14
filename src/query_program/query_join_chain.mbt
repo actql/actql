@@ -293,7 +293,7 @@ fn compile_join_chain_steps(
   checked_infer_prefix? : ((
     Array[@builder.Node],
     String,
-    Array[(String, String)],
+    InferInputLabels,
     Array[(String, String)],
   ) -> InferPrefixProjection raise Abort)? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {

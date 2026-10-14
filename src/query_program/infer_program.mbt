@@ -15,7 +15,7 @@ fn lower_infer_steps(
   checked_prefix? : ((
     Array[@builder.Node],
     String,
-    Array[(String, String)],
+    InferInputLabels,
     Array[(String, String)],
   ) -> InferPrefixProjection raise Abort)? = None,
   authored_aliases? : Array[(String, String)] = [],
@@ -188,7 +188,7 @@ fn lower_infer_steps(
     let projection = check(
       steps.map(step => construction.object(step)),
       captured,
-      visible,
+      { visible, ranges, },
       authored_aliases,
     )
     keys.append(projection.keys)

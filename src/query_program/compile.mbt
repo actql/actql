@@ -2171,7 +2171,7 @@ fn compile_steps(
   checked_infer_prefix? : ((
     Array[@builder.Node],
     String,
-    Array[(String, String)],
+    InferInputLabels,
     Array[(String, String)],
   ) -> InferPrefixProjection raise Abort)? = None,
 ) -> (Array[@builder.Node], Array[String]) raise Abort {
@@ -7335,7 +7335,7 @@ fn compile_join_steps(
   checked_infer_prefix? : ((
     Array[@builder.Node],
     String,
-    Array[(String, String)],
+    InferInputLabels,
     Array[(String, String)],
   ) -> InferPrefixProjection raise Abort)? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
@@ -7544,6 +7544,8 @@ fn compile_join_steps(
       next,
       result_tail=join_continuation_context(query, limits, retained),
       step_bindings~,
+      prefix_steps~,
+      checked_infer_prefix~,
     )
     return (steps, visible_names, final_from)
   }
@@ -9272,7 +9274,7 @@ fn append_join_order_steps(
   checked_infer_prefix? : ((
     Array[@builder.Node],
     String,
-    Array[(String, String)],
+    InferInputLabels,
     Array[(String, String)],
   ) -> InferPrefixProjection raise Abort)? = None,
 ) -> String raise Abort {

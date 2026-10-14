@@ -6,6 +6,14 @@ priv struct InferPrefixBudget {
 }
 
 ///|
+// Names are projected only after Common proves the exact physical key tuple.
+// Retained range snapshots can still name a slot hidden by a later SET.
+priv struct InferInputLabels {
+  visible : Array[(String, String)]
+  ranges : Array[(@query.NamePart, Array[(String, String)])]
+}
+
+///|
 priv struct InferPrefixProjection {
   checked : @evidence.CheckedInfer
   keys : Array[(String, String)]
@@ -64,7 +72,7 @@ fn infer_prefix_check(
   producer : String,
   limits : Limits,
   budget : InferPrefixBudget,
-  visible : Array[(String, String)],
+  visible : InferInputLabels,
   authored_aliases : Array[(String, String)],
 ) -> InferPrefixProjection raise Abort {
   if budget.remaining_work <= 0 {
@@ -152,13 +160,30 @@ fn infer_prefix_check(
     let slot = @schema.reference_name(binding.field)
     budget.spend_text(slot, construction.generated)
     let mut display : String? = None
-    for entry in visible {
+    for entry in visible.visible {
       budget.spend(1, construction.generated)
       budget.spend_text(slot, construction.generated)
       budget.spend_text(entry.1, construction.generated)
       if entry.1 == slot {
         display = Some(entry.0)
         break
+      }
+    }
+    if display is None {
+      for range in visible.ranges {
+        budget.spend(1, construction.generated)
+        for entry in range.1 {
+          budget.spend(1, construction.generated)
+          budget.spend_text(slot, construction.generated)
+          budget.spend_text(entry.1, construction.generated)
+          if entry.1 == slot {
+            display = Some(entry.0)
+            break
+          }
+        }
+        if display is Some(_) {
+          break
+        }
       }
     }
     let name = match display {
@@ -175,9 +200,26 @@ fn infer_prefix_check(
         }
         name
       }
-      None => slot
+      // Common proved the tuple, but this frontend cannot name a key whose
+      // last authored scope was discarded. Do not expose a private slot or
+      // silently bind a newer same-name column as its input_key component.
+      None => raise Abort(UnsupportedInfer)
     }
     budget.spend_text(name, construction.generated)
+    let normalized_name = ascii_upper(name)
+    if ["OUTCOME", "VALUE"].contains(normalized_name) {
+      raise Abort(UnsupportedInfer)
+    }
+    for key in keys {
+      budget.spend(1, construction.generated)
+      budget.spend_text(key.0, construction.generated)
+      budget.spend_text(name, construction.generated)
+      budget.spend_text(key.1, construction.generated)
+      budget.spend_text(slot, construction.generated)
+      if key.1 == slot || ascii_upper(key.0) == normalized_name {
+        raise Abort(UnsupportedInfer)
+      }
+    }
     keys.push((name, slot))
   }
   { checked: infer, keys, }
@@ -194,7 +236,7 @@ fn script_infer_prefix_check(
   nodes : Array[@builder.Node],
   producer : String,
   limits : Limits,
-  visible : Array[(String, String)],
+  visible : InferInputLabels,
   authored_aliases : Array[(String, String)],
 ) -> InferPrefixProjection raise Abort {
   let budget : InferPrefixBudget = { remaining_work: sources.carrier_work, }
