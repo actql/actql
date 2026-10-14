@@ -209,12 +209,12 @@ fn infer_prefix_check(
     let name = match display {
       Some(display) => {
         let mut name = display
-        for alias in authored_aliases {
+        for authored in authored_aliases {
           budget.spend(1, construction.generated)
           budget.spend_text(display, construction.generated)
-          budget.spend_text(alias.0, construction.generated)
-          if alias.0 == display {
-            name = alias.1
+          budget.spend_text(authored.0, construction.generated)
+          if authored.0 == display {
+            name = authored.1
             break
           }
         }

@@ -727,7 +727,7 @@ fn compile_join_chain_stage_body(
     parameter_declarations=context.parameter_declarations,
     prefix_steps=seeds,
     prefix_context=Some(context),
-    checked_infer_prefix=Some(fn(nodes, producer, visible, authored_aliases) {
+    checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
       infer_prefix_check(
         construction, query, context, prior_stages, declarations, nodes, producer,
         limits, infer_budget, visible, authored_aliases,

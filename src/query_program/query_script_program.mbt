@@ -336,7 +336,7 @@ fn lower_script_relation_term(
     prefix_steps=steps.copy(),
     prefix_context=Some(context),
     positional_set_output~,
-    checked_infer_prefix=Some(fn(nodes, producer, visible, authored_aliases) {
+    checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
       script_infer_prefix_check(
         construction, query, context, sources, nodes, producer, limits, visible,
         authored_aliases,

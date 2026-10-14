@@ -191,6 +191,11 @@ fn lower_infer_steps(
       { visible, ranges, },
       authored_aliases,
     )
+    // The emitted tuple must remain the complete mapping of this exact
+    // retained Common proof, before ordinary join-back is constructed.
+    if projection.keys.length() != @evidence.infer_key_count(projection.checked) {
+      raise Abort(UnsupportedInfer)
+    }
     keys.append(projection.keys)
     // Emit the same explicit tuple after proof, before constructing join-back.
     // No placeholder key, source replay or second Model call is introduced.

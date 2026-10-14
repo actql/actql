@@ -674,7 +674,7 @@ fn lower_script_keyed_graph_query(
     retained=Some(retained),
     prefix_steps=steps.copy(),
     checked_infer_prefix=continuation.map(pair => {
-      fn(nodes, producer, visible, authored_aliases) {
+      (nodes, producer, visible, authored_aliases) => {
         script_infer_prefix_check(
           construction,
           query,

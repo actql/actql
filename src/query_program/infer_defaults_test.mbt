@@ -21,6 +21,37 @@ fn compile_infer_defaults(
 }
 
 ///|
+// Independently authored closed-object Values control for member rewriting.
+// This uses the admitted object schema; no unsupported STRUCT parser surface
+// or observed product output is used to create the fixture's expectation.
+fn infer_defaults_object_context(
+  environment : @check.CheckEnvironment,
+) -> Context {
+  let source = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true},"secret":{"type":"string","nullable":false},"note_object":{"type":"object","nullable":false,"additional_properties":false,"fields":{"notes":{"type":"string","nullable":true}}}},"rows":[{"id":"a","text":"urgent","secret":"private-a","note_object":{"notes":"urgent"}},{"id":"b","text":null,"secret":"private-b","note_object":{"notes":null}}]},"as":"tickets"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  {
+    ..infer_member_context(environment),
+    program_id: "fixture.infer_keep",
+    inputs: [
+      {
+        relation: [{ value: "tickets", quoted: false, }],
+        name: "tickets",
+        source: GeneratedValues(source),
+        visible_fields: ["id", "text", "secret", "note_object"],
+        graph_bindings: [],
+      },
+    ],
+  }
+}
+
+///|
 fn infer_defaults_prefix_refusal(
   result : Result[@program.Program, Issue],
 ) -> @pipeline.IssueKind raise {
@@ -195,7 +226,7 @@ test "computed two-input JOIN projections retain Common key inference" {
 test "unnameable proven ITEM KEY currently fails closed at the representation gap" {
   let environment = infer_member_environment()
   let context = infer_input_field_context(environment)
-  let text = "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> AS current |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment"
+  let text = "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> AS `current` |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment"
   // Temporary implementation gap: Common retains a valid proven physical key,
   // but AS after SET removes its last authored name for input_key emission.
   // This refusal is not a language restriction or completion evidence for #1840.
@@ -431,7 +462,7 @@ test "omitted keys retain exact Common no-key ambiguous and nullable refusals" {
 ///|
 test "deferred INFER input members preserve Common missing and ambiguous key refusals" {
   let environment = infer_member_environment()
-  let context = infer_input_field_context(environment)
+  let context = infer_defaults_object_context(environment)
   for
     (prefix, expected) in [
       ("FROM tickets", @evidence.CandidateKeyRequired),
@@ -444,7 +475,7 @@ test "deferred INFER input members preserve Common missing and ambiguous key ref
     // A refused terminal type-only probe must not mask Common's key diagnostic
     // by reserving all remaining work before the actual checked-prefix call.
     let text = prefix +
-      " |> EXTEND STRUCT(text AS notes) AS payload |> INFER `model-task:risk-score.v1` INPUT (text = payload.NOTES) AS assessment"
+      " |> EXTEND note_object AS payload |> INFER `model-task:risk-score.v1` INPUT (text = payload.NOTES) AS assessment"
     for script in [false, true] {
       assert_eq(
         infer_defaults_prefix_refusal(
@@ -460,8 +491,8 @@ test "deferred INFER input members preserve Common missing and ambiguous key ref
 ///|
 test "deferred INFER input members normalize with the sole original key proof" {
   let environment = infer_member_environment()
-  let context = infer_input_field_context(environment)
-  let expanded = "FROM tickets |> ASSERT UNIQUE BY (id) |> EXTEND STRUCT(text AS notes) AS payload |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = payload.NOTES) KEEP (*) AS assessment"
+  let context = infer_defaults_object_context(environment)
+  let expanded = "FROM tickets |> ASSERT UNIQUE BY (id) |> EXTEND note_object AS payload |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = payload.NOTES) KEEP (*) AS assessment"
   for script in [false, true] {
     let expected = compile_infer_defaults(expanded, context, script).unwrap()
     let actual = compile_infer_defaults(

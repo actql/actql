@@ -3112,7 +3112,7 @@ fn compile_steps(
           max_work,
           authored_aliases=positional_authored_aliases,
           checked_prefix=checked_infer_prefix.map(check => {
-            fn(nodes, producer, visible, authored_aliases) {
+            (nodes, producer, visible, authored_aliases) => {
               check(
                 prefix_steps +
                 step_entries.map(step => construction.object(step)) +
@@ -7239,7 +7239,7 @@ pub fn compile_with_source(
       prefix_steps=seed_steps,
       prefix_context=Some(context),
       source_projection_capture~,
-      checked_infer_prefix=Some(fn(nodes, producer, visible, authored_aliases) {
+      checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
         infer_prefix_check(
           construction, query, context, capture_stages, input_entries, nodes, producer,
           limits, infer_budget, visible, authored_aliases,
@@ -8050,7 +8050,7 @@ fn compile_set_stages(
       term_name,
       parameter_declarations=context.parameter_declarations,
       prefix_context=Some(context),
-      checked_infer_prefix=Some(fn(nodes, producer, visible, authored_aliases) {
+      checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
         infer_prefix_check(
           construction,
           term,
@@ -9471,12 +9471,12 @@ fn compile_join_query(
         left_from=left.name,
         right_from=right.name,
         capture_left=true,
-        checked_infer_prefix=Some(fn(
+        checked_infer_prefix=Some((
           nodes,
           producer,
           visible,
           authored_aliases,
-        ) {
+        ) => {
           infer_prefix_check(
             construction,
             query,
@@ -9681,7 +9681,7 @@ fn compile_join_query(
       next,
       result_tail=Some((limits, retained)),
       prefix_steps=initial,
-      checked_infer_prefix=Some(fn(nodes, producer, visible, authored_aliases) {
+      checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
         infer_prefix_check(
           construction, query, context, prior_stages, declarations, nodes, producer,
           limits, infer_budget, visible, authored_aliases,
