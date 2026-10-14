@@ -28,5 +28,13 @@
       "bytes": 29010092
     }
   ],
-  "basis": "Fixed upstream399f C-API macOS default CI: MSRV minor88 plus range2; explicit ActQL builder selection. Not a runtime capacity or semantic profile."
+  "basis": "Fixed upstream399f C-API macOS default CI: MSRV minor88 plus range2; explicit ActQL builder selection. Not a runtime capacity or semantic profile.",
+  "header_installer": {
+    "version": "3.31.6",
+    "filename": "cmake-3.31.6-py3-none-macosx_10_10_universal2.whl",
+    "url": "https://files.pythonhosted.org/packages/7f/09/516b0d709672bc430eb13278f0316acd34869269447744f5d136daeef689/cmake-3.31.6-py3-none-macosx_10_10_universal2.whl",
+    "sha256": "da9d4fd9abd571fd016ddb27da0428b10277010b23bb21e3678f8b9e96e1686e",
+    "bytes": 47224338,
+    "minimum_upstream_cmake": "3.12"
+  }
 }

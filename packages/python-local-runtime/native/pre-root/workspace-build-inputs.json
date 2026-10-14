@@ -61,7 +61,7 @@
   "upstream_minimum_rust_version": "1.88.0",
   "selected_rust_toolchain": {
     "file": "builder-toolchain.json",
-    "sha256": "d360c4402a46e9d6cf4c08f1738eef374893e0445990a659e772c1b2ec57edfe"
+    "sha256": "216e63ef2a39195f95ccd0c43778430cab8f34896851c256f88dcaf26b6bda77"
   },
   "selected_macos_sdk": null,
   "proposed_features": [
