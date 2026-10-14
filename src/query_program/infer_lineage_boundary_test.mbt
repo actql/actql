@@ -54,27 +54,32 @@ test "omitted key after flat row watermark agrees with the same explicit prefix"
 ///|
 test "WITH row watermark retains the actual surviving key label correspondence" {
   let (environment, context) = infer_lineage_watermark_context()
-  let prefix = "WITH original AS (FROM tickets |> RENAME id AS ticket), marked AS (FROM original |> watermark_rows(time: at, late_policy: 'mark', watermark_ms: 0)) FROM marked |> ASSERT UNIQUE BY (ticket)"
-  let explicit = compile_infer_defaults(
-    prefix +
-    " |> INFER `model-task:risk-score.v1` ITEM KEY (ticket) INPUT (text) KEEP (*) AS assessment",
-    context,
-    true,
-  ).unwrap()
-  let omitted = compile_infer_defaults(
-    prefix + " |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment",
-    context,
-    true,
-  ).unwrap()
-  assert_eq(semantic(omitted), semantic(explicit))
-  assert_shorthand_checked_identity(
-    check_shorthand_identity_program(omitted, environment),
-    check_shorthand_identity_program(explicit, environment),
-  )
-  let key = infer_defaults_checked_input_key(
-    check_shorthand_identity_program(omitted, environment),
-  )
-  assert_true(
-    infer_defaults_object_field(key, "ticket").shape is @contract.Number,
-  )
+  for
+    prefix in [
+      "FROM (FROM tickets |> RENAME id AS ticket) |> watermark_rows(time: at, late_policy: 'mark', watermark_ms: 0) |> ASSERT UNIQUE BY (ticket)",
+      "WITH marked AS (FROM (FROM tickets |> RENAME id AS ticket) |> watermark_rows(time: at, late_policy: 'mark', watermark_ms: 0)) FROM marked |> ASSERT UNIQUE BY (ticket)",
+    ] {
+    let explicit = compile_infer_defaults(
+      prefix +
+      " |> INFER `model-task:risk-score.v1` ITEM KEY (ticket) INPUT (text) KEEP (*) AS assessment",
+      context,
+      true,
+    ).unwrap()
+    let omitted = compile_infer_defaults(
+      prefix + " |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment",
+      context,
+      true,
+    ).unwrap()
+    assert_eq(semantic(omitted), semantic(explicit))
+    assert_shorthand_checked_identity(
+      check_shorthand_identity_program(omitted, environment),
+      check_shorthand_identity_program(explicit, environment),
+    )
+    let key = infer_defaults_checked_input_key(
+      check_shorthand_identity_program(omitted, environment),
+    )
+    assert_true(
+      infer_defaults_object_field(key, "ticket").shape is @contract.Number,
+    )
+  }
 }
