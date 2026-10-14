@@ -108,6 +108,7 @@ fn checked_query_prefix_pipeline(
     @query.query_document(query),
     context,
     { ..limits, max_expression_work: budget.remaining_work, },
+    defer_terminal_infer_output=true,
   )
   budget.spend(member_work, construction.generated)
   // Prefix envelope admission scans the retained source independently of the
@@ -156,13 +157,7 @@ fn infer_prefix_check(
   authored_aliases : Array[(String, String)],
 ) -> InferPrefixProjection raise Abort {
   let pipeline = checked_query_prefix_pipeline(
-    construction,
-    query,
-    context,
-    prior_stages,
-    declarations,
-    prefix_nodes,
-    limits,
+    construction, query, context, prior_stages, declarations, prefix_nodes, limits,
     budget,
   )
   let index = match @pipeline.lookup(pipeline, producer) {

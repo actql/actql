@@ -858,6 +858,7 @@ fn resolve_query_members_accounted(
   context : Context,
   limits : Limits,
   stage_schemas? : Map[(String, String), @schema.Schema?]? = None,
+  defer_terminal_infer_output? : Bool = false,
 ) -> (@builder.Source, Int) raise Abort {
   let resolution : MemberResolution = {
     source,
@@ -931,7 +932,8 @@ fn resolve_query_members_accounted(
       None
     }
     let prefix = []
-    for step in @wire.elements(member_lookup(stage, "steps").unwrap()).unwrap() {
+    let steps = @wire.elements(member_lookup(stage, "steps").unwrap()).unwrap()
+    for step_index, step in steps {
       if resolution.probe_refused {
         break
       }
@@ -952,6 +954,18 @@ fn resolve_query_members_accounted(
             current.bind(member_rows),
             context.parameter_declarations,
           )
+        }
+        // The authoritative checked-prefix pass immediately consumes this
+        // unfinished terminal INFER. No later member needs its output type.
+        // Preserve input rewrites above, but do not spend a second key proof's
+        // entire reservation merely to discard its semantic refusal.
+        if defer_terminal_infer_output &&
+          stage_index == stages.length() - 1 &&
+          step_index == steps.length() - 1 &&
+          tag == "infer" &&
+          @wire.object_length(member_lookup(stage, "results").unwrap()) ==
+          Some(0) {
+          continue
         }
         if context.source_catalog is Some(catalog) &&
           (

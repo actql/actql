@@ -57,9 +57,7 @@ test "INFER defaults normalize to explicit sole and composite proven tuples" {
   for
     (prefix, key) in [
       ("FROM tickets |> ASSERT UNIQUE BY (id)", "id"),
-      (
-        "FROM tickets |> ASSERT UNIQUE BY (id) |> RENAME id AS ticket", "ticket",
-      ),
+      ("FROM tickets |> ASSERT UNIQUE BY (id) |> RENAME id AS ticket", "ticket"),
       ("FROM tickets |> ASSERT UNIQUE BY (secret, id)", "secret, id"),
       ("FROM tickets |> ASSERT UNIQUE BY (id) |> ASSERT UNIQUE BY (id)", "id"),
       ("FROM tickets |> SELECT DISTINCT id |> EXTEND 'urgent' AS text", "id"),
@@ -160,10 +158,11 @@ test "computed two-input JOIN projections retain Common key inference" {
     ..infer_member_context(environment),
     inputs: join_order_context().inputs,
   }
-  for prefix in [
-    "SELECT t.x AS id, t.y + r.k AS amount FROM t JOIN r ON t.x = r.k MAX_OUTPUT_ROWS 2",
-    "FROM t |> JOIN r ON t.x = r.k MAX_OUTPUT_ROWS 2 |> SELECT t.x AS id, t.y + r.k AS amount",
-  ] {
+  for
+    prefix in [
+      "SELECT t.x AS id, t.y + r.k AS amount FROM t JOIN r ON t.x = r.k MAX_OUTPUT_ROWS 2",
+      "FROM t |> JOIN r ON t.x = r.k MAX_OUTPUT_ROWS 2 |> SELECT t.x AS id, t.y + r.k AS amount",
+    ] {
     // The original JOIN is retained and checked before this authored assertion.
     // The frontend does not infer uniqueness from the selected expression.
     let expanded = prefix +
@@ -180,7 +179,9 @@ test "computed two-input JOIN projections retain Common key inference" {
       assert_eq(semantic(actual), semantic(expected), msg=prefix)
       assert_true(semantic(actual).contains("\"add\":"))
       assert_true(
-        semantic(actual).contains("\"fields\":[\"id\",\"amount\",\"assessment\"]"),
+        semantic(actual).contains(
+          "\"fields\":[\"id\",\"amount\",\"assessment\"]",
+        ),
       )
       assert_shorthand_checked_identity(
         check_shorthand_identity_program(actual, environment),
@@ -206,7 +207,8 @@ test "unnameable proven ITEM KEY currently fails closed at the representation ga
         context,
         script,
         source_path="unnameable-key.sql",
-      ) is Err(UnsupportedInfer),
+      )
+      is Err(UnsupportedInfer),
     )
   }
 }
@@ -217,8 +219,11 @@ test "inferred ITEM KEY retains case-insensitive VALUE and OUTCOME surface refus
   let context = infer_input_field_context(environment)
   for name in ["VALUE", "OUTCOME", "VaLuE", "OuTcOmE"] {
     let quoted = "`" + name + "`"
-    let prefix = "FROM tickets |> RENAME id AS " + quoted +
-      " |> ASSERT UNIQUE BY (" + quoted + ") |> INFER `model-task:risk-score.v1`"
+    let prefix = "FROM tickets |> RENAME id AS " +
+      quoted +
+      " |> ASSERT UNIQUE BY (" +
+      quoted +
+      ") |> INFER `model-task:risk-score.v1`"
     for key in ["", " ITEM KEY (" + quoted + ")"] {
       for script in [false, true] {
         assert_true(
@@ -226,7 +231,8 @@ test "inferred ITEM KEY retains case-insensitive VALUE and OUTCOME surface refus
             prefix + key + " INPUT (text) AS assessment",
             context,
             script,
-          ) is Err(UnsupportedInfer),
+          )
+          is Err(UnsupportedInfer),
           msg=name + key,
         )
       }
@@ -423,6 +429,59 @@ test "omitted keys retain exact Common no-key ambiguous and nullable refusals" {
 }
 
 ///|
+test "deferred INFER input members preserve Common missing and ambiguous key refusals" {
+  let environment = infer_member_environment()
+  let context = infer_input_field_context(environment)
+  for
+    (prefix, expected) in [
+      ("FROM tickets", @evidence.CandidateKeyRequired),
+      (
+        "FROM tickets |> ASSERT UNIQUE BY (id) |> ASSERT UNIQUE BY (secret)",
+        @evidence.AmbiguousCandidateKey,
+      ),
+    ] {
+    // Uppercase NOTES requires member rewriting and its finish accounting.
+    // A refused terminal type-only probe must not mask Common's key diagnostic
+    // by reserving all remaining work before the actual checked-prefix call.
+    let text = prefix +
+      " |> EXTEND STRUCT(text AS notes) AS payload |> INFER `model-task:risk-score.v1` INPUT (text = payload.NOTES) AS assessment"
+    for script in [false, true] {
+      assert_eq(
+        infer_defaults_prefix_refusal(
+          compile_infer_defaults(text, context, script),
+        ),
+        @pipeline.Infer(expected),
+        msg=text,
+      )
+    }
+  }
+}
+
+///|
+test "deferred INFER input members normalize with the sole original key proof" {
+  let environment = infer_member_environment()
+  let context = infer_input_field_context(environment)
+  let expanded = "FROM tickets |> ASSERT UNIQUE BY (id) |> EXTEND STRUCT(text AS notes) AS payload |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = payload.NOTES) KEEP (*) AS assessment"
+  for script in [false, true] {
+    let expected = compile_infer_defaults(expanded, context, script).unwrap()
+    let actual = compile_infer_defaults(
+      expanded
+      .replace(old=" ITEM KEY (id)", new="")
+      .replace(old=" KEEP (*)", new=""),
+      context,
+      script,
+    ).unwrap()
+    assert_eq(semantic(actual), semantic(expected))
+    assert_true(semantic(actual).contains("\"name\":\"notes\""))
+    assert_false(semantic(actual).contains("\"name\":\"NOTES\""))
+    assert_shorthand_checked_identity(
+      check_shorthand_identity_program(actual, environment),
+      check_shorthand_identity_program(expected, environment),
+    )
+  }
+}
+
+///|
 test "a proven non-scalar resource identity is not an inferred scalar ITEM KEY" {
   let environment = infer_member_environment()
   // The existing local-input declaration API admits ResourceRef key evidence.
@@ -576,9 +635,9 @@ test "default ITEM KEY uses the admitted Source owner and preserves its Common r
     )
     guard compile_infer_defaults(
         "FROM objects |> INFER `model-task:risk-score.v1` INPUT (text = 'urgent') AS assessment",
-        context,
-        script,
-      ) is Err(BindingPreparation(SourceProgram(Program(Pipeline(_, issue))))) else {
+        context, script,
+      )
+      is Err(BindingPreparation(SourceProgram(Program(Pipeline(_, issue))))) else {
       fail("expected admitted Source's Common candidate-key refusal")
     }
     assert_eq(issue.kind, @pipeline.Infer(@evidence.CandidateKeyRequired))
