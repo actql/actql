@@ -39,7 +39,13 @@ test('chunk framing can retain larger original backing than accepted response by
   socket.once('close', () => { closes++; });
   const client = new Client('http://fixture.invalid', {allowH2: false,
     pipelining: 0, maxHeaderSize: 16384, maxResponseSize: 8192,
-    connect(_options, callback) { connections++; callback(null, socket); },
+    connect(_options, callback) {
+      connections++;
+      // A real connect completes asynchronously. A synchronous callback can
+      // re-enter Undici's active resume loop without scheduling dispatch.
+      queueMicrotask(() => callback(null, socket));
+      return socket;
+    },
   });
   t.after(async () => {
     await client.destroy();
