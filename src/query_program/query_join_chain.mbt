@@ -296,7 +296,8 @@ fn compile_join_chain_steps(
     String,
     InferInputLabels,
     Array[(String, String)],
-  ) -> InferPrefixProjection raise Abort)? = None,
+    checked_nearest_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
+) -> InferPrefixProjection raise Abort)? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if inputs.length() != @query.join_part_count(query) + 1 ||
     (
@@ -682,6 +683,7 @@ fn compile_join_chain_steps(
     nearest_vectors~,
     positional_set_output~,
     checked_infer_prefix~,
+    checked_nearest_prefix~,
   )
   steps.append(tail)
   (steps, output, if tail.is_empty() { from } else { final_from })
