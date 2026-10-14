@@ -70,6 +70,9 @@ fn prepare_effect_custody(
   if store.closed {
     return Err(Closed)
   }
+  if store.retiring {
+    return Err(CleanupPending)
+  }
   guard @publication.captured_effect_source_payload_facts(source, run)
     is Some((logical, schema, rows, _)) else {
     return Err(StateCollision)
@@ -114,6 +117,9 @@ fn EffectSourceCustody::record(
   if self.store.closed {
     return Err(Closed)
   }
+  if self.store.retiring {
+    return Err(CleanupPending)
+  }
   let value = match
     self.store.database.read("effect_source_custody", self.key) {
     Ok(value) => value
@@ -140,6 +146,10 @@ pub fn Store::prepare_effect_source_custody(
   physical_digest : String,
   physical_bytes : Int64,
 ) -> Result[EffectSourceCustody, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   prepare_effect_custody(
     self, run, source, request, physical_digest, physical_bytes,
   )
@@ -154,9 +164,15 @@ pub fn EffectSourceCustody::retain(
   if self.store.closed {
     return Err(Closed)
   }
+  if self.store.retiring {
+    return Err(CleanupPending)
+  }
   observe(self.store, "effect-custody-before-intent")
   if self.store.closed {
     return Err(Closed)
+  }
+  if self.store.retiring {
+    return Err(CleanupPending)
   }
   match
     allocation_prepare(self.store, "effect-custody-intent", () => {
@@ -192,6 +208,10 @@ pub fn Store::restore_effect_source_custody(
   physical_digest : String,
   physical_bytes : Int64,
 ) -> Result[EffectSourceCustody, NativePublicationStoreIssue] {
+  match require_store_open(self) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let custody = match
     prepare_effect_custody(
       self, run, source, request, physical_digest, physical_bytes,
@@ -289,6 +309,9 @@ pub fn EffectSourceCustody::retry_cleanup(
   observe(self.store, "effect-custody-before-terminal")
   if self.store.closed {
     return Err(Closed)
+  }
+  if self.store.retiring {
+    return Err(CleanupPending)
   }
   match
     allocation_prepare(self.store, "effect-custody-terminal", () => {
