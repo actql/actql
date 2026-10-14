@@ -13,7 +13,7 @@ test "selected nearest bridge retains original f32 string key and nullable paylo
   let source = direct_nearest_bind(
     @pipeline.check(
       input_cursor(
-        "[{\"values\":{\"schema\":{\"embedding\":{\"type\":\"vector\",\"element_type\":\"f32\",\"dimensions\":2,\"nullable\":false},\"note\":{\"type\":\"string\",\"nullable\":true},\"request_id\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"embedding\":[1,0],\"note\":null,\"request_id\":\"q1\"}]},\"as\":\"rows\"}]",
+        "[{\"values\":{\"schema\":{\"embedding\":{\"type\":\"vector\",\"dimensions\":2,\"nullable\":false},\"note\":{\"type\":\"string\",\"nullable\":true},\"request_id\":{\"type\":\"string\",\"nullable\":false}},\"rows\":[{\"embedding\":[1,0],\"note\":null,\"request_id\":\"q1\"}]},\"as\":\"rows\"}]",
       ),
       [], None, None, limits,
     ).unwrap(),
