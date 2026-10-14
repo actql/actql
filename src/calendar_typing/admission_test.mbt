@@ -108,7 +108,7 @@ test "Calendar bucket preserves conditional payload independently of NULL" {
       ),
       (
         Unqualified("payload"),
-        @contract.primitive(TextType, nullable=true),
+        @contract.primitive(StringType, nullable=true),
         Conditional,
       ),
     ],
