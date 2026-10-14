@@ -32,6 +32,8 @@ pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, In
 
 pub fn[T] begin_original_resource_invalidation(OriginalResourcePark[T], T) -> Result[OriginalResourceInvalidationRequest[T], OriginalReadIssue]
 
+pub fn[P, C] borrow_backed_execution_read_use(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C]) -> Result[BackedExecutionReadUse[P, C], BackedExecutionIssue]
+
 pub fn borrow_shared_capacity(SharedCapacity, SharedAllocation) -> Result[SharedBorrow, LedgerIssue]
 
 pub fn[T] cancel_original_current_state_comparison(OriginalCurrentStateComparison[T]) -> Unit
@@ -208,6 +210,8 @@ pub fn[P, C] report_backed_execution_delegation(BackedExecutionRegion[P, C], P, 
 
 pub fn report_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage) -> Result[Unit, LedgerIssue]
 
+pub fn[P, C] require_backed_execution_read_use_current(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], BackedExecutionReadUse[P, C]) -> Result[Unit, BackedExecutionIssue]
+
 pub fn reservation_open(Reservation) -> Bool
 
 pub fn reservation_pending(Reservation) -> Bool
@@ -235,6 +239,8 @@ pub fn[T] retire_original_resource_park(OriginalResourcePark[T]) -> Result[Unit,
 pub fn retire_original_state_document(OriginalStateDocument) -> Unit
 
 pub fn retire_shared_capacity(SharedAllocation) -> Result[Unit, LedgerIssue]
+
+pub fn[P, C] return_backed_execution_read_use_after_owner_ack(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], BackedExecutionReadUse[P, C]) -> Result[Unit, BackedExecutionIssue]
 
 pub fn return_shared_capacity(SharedBorrow) -> Result[Unit, LedgerIssue]
 
@@ -286,6 +292,8 @@ pub fn start_original_state_document_read(@decode_core.Cursor, Int, Int, Int, In
 
 pub fn start_original_state_document_read_in_owned_tree(@decode_core.Cursor, Int, Int, Int, Int, @decode_core.Limits) -> Result[OriginalStateDocumentRead, OriginalStateDocumentIssue]
 
+pub fn[P, C] stop_backed_execution_read_use(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], BackedExecutionReadUse[P, C]) -> Result[Unit, BackedExecutionIssue]
+
 pub fn[T] stop_funded_read(FundedReadClaim[T]) -> Result[Unit, OriginalReadIssue]
 
 pub fn[T] stop_funded_read_consumer(FundedReadConsumer[T]) -> Result[Unit, OriginalReadIssue]
@@ -308,6 +316,8 @@ pub struct BackedExecutionDelegation[P, C] {
   limits : LedgerLimits
   mut peak_retention : Int64
   mut final_usage : LedgerUsage?
+  mut read_use_issued : Bool
+  mut read_use : BackedExecutionReadUse[P, C]?
 }
 
 pub(all) struct BackedExecutionExtent {
@@ -326,8 +336,15 @@ pub(all) enum BackedExecutionIssue {
   Retired
   CleanupPending
   ChangedFinalUsage
+  ReadUseAlreadyIssued
   Resource(LedgerIssue)
 } derive(Eq, @debug.Debug)
+
+pub struct BackedExecutionReadUse[P, C] {
+  mut ticket : BackedExecutionDelegation[P, C]?
+  mut borrow : SharedBorrow?
+  mut closing : Bool
+}
 
 pub struct BackedExecutionRegion[P, C] {
   mut capacity : SharedCapacity?

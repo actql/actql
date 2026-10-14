@@ -329,6 +329,7 @@ fn prepare_kernel_measured(
     JsonPick(op) => op
     Values(_)
     | TimeSeriesValue(_)
+    | CalendarValue(_)
     | RowWindow(_)
     | InnerJoin(_)
     | IntervalJoinRows(_)
