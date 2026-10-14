@@ -9,13 +9,13 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_native.mbt",
-      "bytes": 17945,
-      "sha256": "e0ee5011cd26be515ec5990fce84b7476c18102eb914c6b338cd924a6bd59206"
+      "bytes": 18977,
+      "sha256": "d58a220339e71bff1a2d8e45045dd0d8e30eaac942010229419312451a4db054"
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
-      "bytes": 4454,
-      "sha256": "ca312ff2031d1cbe7c10c46cbc6cdb7b9fce5d9a3b9082352a9dc95d09ab94da"
+      "bytes": 5287,
+      "sha256": "13ca60db8c382b5a9db69554eabf68a6eb6e0212ebc4c69e09386236e218ea21"
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_wbtest.mbt",
@@ -23,9 +23,14 @@
       "sha256": "072839b446741db352288ba36fac239d340421bc4e33a078458ac582384a394c"
     },
     {
+      "path": "src/platform_native/host_bootstrap/fd_supplier_wbtest.mbt",
+      "bytes": 1876,
+      "sha256": "6e230a2f302b1f7b37b49272be7981e60c1ee8d281eafa6855fbe401b62beedb"
+    },
+    {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.c",
-      "bytes": 13028,
-      "sha256": "f49eff9630da4b2422171a93601a820d48284515925c83c8c9520d84167ed5ee"
+      "bytes": 13515,
+      "sha256": "75ad75312f41236a0f08f60473001c86480d69e562801d307c73916c8e3ef89a"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
@@ -34,13 +39,13 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_region.h",
-      "bytes": 2456,
-      "sha256": "80b3a0e9c0386013756402d2eb064cdb4402714eb3e79702487876b61eaf3c1e"
+      "bytes": 2863,
+      "sha256": "0ebfe06bf3311ae4c3690342916d727c88c68f06f5ea7ea1e17cc878de9ed445"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_region.inc",
-      "bytes": 8335,
-      "sha256": "1cf47baf7d8c2d5b675d2ed9b6742d14827dbbad51a183a17a0647bf01ac31b0"
+      "bytes": 9926,
+      "sha256": "57ae393f46b18aa2ad34cd7efde280db32288cb175cd1059fe172130c0914639"
     }
   ]
 }

@@ -22,6 +22,14 @@ Owner must additionally bind these physical facts to the original Ledger,
 SharedCapacity, Allocation/Borrow, child identity and extent and budget concurrent
 children. These C exclusions are physical guards, not that nominal accounting.
 
+`lend_extent_range` projects a page-aligned subrange of that same allocation.
+External physical uses are recorded on each page: disjoint writers can coexist,
+overlapping readers can share, and any overlapping writer is refused before any
+page's counter changes. The entire parent allocation remains unretirable until
+all page borrows return. The supplier must match the Core-issued relative extent
+to these exact physical bytes; it cannot round a smaller logical grant into a
+larger shared mapping. No sub-page writer is silently widened to a page.
+
 A transport reference contains device/inode, generation/recipe, original
 capacity, page-relative offset/length and access mode. It contains no process
 pointer. A trusted child supplier must validate its nominal original child,
