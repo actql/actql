@@ -132,3 +132,30 @@ test "Calendar artifact bridge cannot enable a capability or repair changed byte
     @program_check.checking_environment_calendar_profile(original) is None,
   )
 }
+
+///|
+test "Calendar selected series prepares through the ordinary source-free client entry" {
+  let selected = client_program_check_environment_with_calendar_artifact(
+    client_calendar_fixture(),
+    client_calendar_artifact(),
+    1000,
+    100,
+    8,
+    1,
+    0,
+    10000,
+  ).unwrap()
+  let document =
+    #|{"version":"actql/0.1","id":"fixture.calendar_series","stages":[{"id":"main","inputs":{},"steps":[{"calendar_series":{"start":"2000-01-01T00:00:00.000Z","end":"2000-01-03T00:00:00.000Z","unit":"day","timezone":"UTC"},"as":"days"},{"from":"days","sort":[{"field":"start","dir":"asc","nulls":"first"}]},{"select":["start","end"],"as":"out"}],"results":{"rows":{"from":"out","fields":["start","end"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  match
+    client_program_prepare_effect_free_with_parameters(
+      document,
+      "json",
+      selected,
+      None,
+    ) {
+    Prepared(_) => ()
+    Rejected(issue) =>
+      fail("original source-free Calendar series rejected: \(issue)")
+  }
+}
