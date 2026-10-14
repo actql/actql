@@ -25,9 +25,21 @@ arena availability after claim. It is not Run, VM, publisher or worker permissio
 Unrelated loader/VM/Python domains remain unknown; numeric profile adoption,
 ordinary SDK entry, runtime/wheel and product E2E remain incomplete.
 
-Five Native cases are prepared as type/conformance input. No API/info, compiler,
-new generated C, Native execution, worker or Engine was run for this Source unit.
-Before a private C shim is implemented, emit this non-test Host specialization
-with the pinned C backend and inspect its actual entry/lifetime signatures.
-The previous test-only generated C/binary remains separate evidence and cannot
-serve as an installed component. No raw Ledger or pointer is serialized on wire.
+The five Native cases passed at exact Source
+`67573de5536cda80a86578bc8815f6d78c0994eb`, run-L9cTwr, with the pinned C
+backend: jobs1, child50s, outer60s/TERM5, non-Heavy. Actual generated C contains
+the non-test InstalledArenaHost specialization and its prepare/acquire/current/
+close signatures. The ordinary compiler reported two warnings: unused control
+envelope and deprecated immutable Bytes.copy. Strict-warning success is not
+claimed. The selected execution contains a test driver, so its C/binary is
+signature/conformance evidence and cannot become an installed component.
+
+The private C preparation entry builds LedgerLimits from primitive arguments in
+MoonBit and delegates to the same typed original constructor. This avoids C
+manufacturing MoonBit object layouts. That additional entry remains uncompiled;
+the original Native5 result does not prove a later Source HEAD or C shim.
+Result ownership/projection, non-test emission and actual embedding remain to
+close. No raw Ledger or nominal pointer is serialized on wire. API/info, VM,
+Wasmtime, worker, runtime wheel and public product acceptance are not added by
+this entry. Production linkage must use one original C capacity/TLS provider;
+the Wasmtime artifact must not silently compile a second physical provider.
