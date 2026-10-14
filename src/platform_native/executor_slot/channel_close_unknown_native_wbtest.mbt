@@ -2,7 +2,7 @@
 extern "C" fn channel_reuse_closed_descriptor(descriptor : Int) -> Int = "actql_executor_slot_test_reuse_closed_descriptor"
 
 ///|
-fn channel_close_custody_fixture(label : String) -> (NativeExecutorSlotChild, NativeHolderChannel) {
+fn channel_close_custody_fixture(label : String) -> (NativeExecutorSlotChild, NativeHolderChannel) raise {
   guard slot_test_root() is Some(root) else {
     fail("selected Channel close cases require an owned isolated executor-slot Root")
     abort("missing Channel close fixture")
@@ -16,7 +16,7 @@ fn channel_close_custody_fixture(label : String) -> (NativeExecutorSlotChild, Na
 }
 
 ///|
-fn check_channel_close_unknown_reuse(inspection : Bool) -> Unit {
+fn check_channel_close_unknown_reuse(inspection : Bool) -> Unit raise {
   let (child, channel) = channel_close_custody_fixture(
     if inspection { "inspection-close-unknown" } else { "writer-close-unknown" },
   )
