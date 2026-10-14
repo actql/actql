@@ -14,6 +14,9 @@ typedef actql_control_reply *(*actql_control_prepare_fn)(
     moonbit_string_t, moonbit_bytes_t, int64_t, int64_t,
     int32_t, int32_t, int32_t, int64_t, int64_t, int64_t, int64_t);
 typedef actql_control_reply *(*actql_control_operation_fn)(actql_control_host *);
+/* Actual Sourcee534 C emission, sha256 50b286f7a51558c5df4060bf3a2109d
+ * ec8b5f9110331952e925bdee1210c7b19, borrows Host and passes FD by value. */
+typedef actql_control_reply *(*actql_control_fd_fn)(actql_control_host *, int32_t);
 typedef actql_control_host *(*actql_control_original_fn)(actql_control_reply *);
 typedef int32_t (*actql_control_tag_fn)(actql_control_reply *);
 typedef moonbit_string_t (*actql_control_description_fn)(actql_control_reply *);
@@ -23,6 +26,7 @@ void actql_native_control_register_original_roots(
     actql_control_operation_fn, actql_control_operation_fn,
     actql_control_original_fn, actql_control_tag_fn,
     actql_control_tag_fn, actql_control_description_fn);
+void actql_native_control_register_fd_root(actql_control_fd_fn);
 
 /* Trusted in-process installed caller only: no wire pointers or authorization.
  * This exact generated callback set borrows managed inputs. Results are
@@ -44,6 +48,8 @@ moonbit_string_t actql_control_description(actql_control_reply *);
 int actql_control_originals_into(actql_control_reply *,
                                 actql_control_host **, actql_control_host **);
 int actql_control_current_into(actql_control_host *, actql_control_reply **);
+int actql_control_acquire_fd_into(actql_control_host *, int32_t,
+                                  actql_control_reply **);
 
 /* These private transport statuses are not Run, permission or publication
  * outcomes. Pending retains the same original slot and exact typed reply. */

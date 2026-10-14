@@ -240,6 +240,56 @@ body HWM nor the reader's acquired-chunk check is a socket/TLS/Buffer-backing
 physical upper bound. Full constructor/native/parser/header/queue/closure
 overlap remains an original Host/Resource funding requirement, not zero.
 
+The selected Undici options additionally require closed private
+`physicalAcquisitionLimits` DATA: `maxPlaintextBytes`,
+`maxBorrowedBackingBytes`, and `maxReads` (positive bounded integers). The
+original installation snapshots these once before preparation and the same
+Call borrows that snapshot. Missing/extra/accessor declarations refuse; no
+default or normal numerical profile is supplied. Generic/native fetch options
+do not acquire this role.
+
+The same original socket's parser-facing reads count all HTTP plaintext,
+including framing, and check whole distinct Buffer backing extents before
+Undici's parser receives the chunk. Backing accounting conservatively sums
+distinct allocations over the entire Call lifetime, not just simultaneous
+peaks; it never refunds at EOF/cancel/Promise settlement. Weak membership
+retains no additional strong buffer alias, but its controls still need funding.
+A refused chunk destroys that same socket and retains original cleanup duties.
+`maxReads` counts every original socket read invocation, including null/empty
+probes, before calling the captured read method; exhaustion does not perform
+another read. It is not the accepted body-chunk count or a native queue bound.
+The new fixed-input listener also charges its native deliveries to that same
+finite read ceiling, rather than creating an unpriced second allowance. The
+backing union includes the original input, every dedicated copy and later
+parser-facing backings; aliases of an already counted allocation add no bytes.
+
+Parser-facing checks are **post-acquisition**. Selected Node/TLS emission, Readable
+queue and concatenation can allocate before `socket.read()` returns. Their
+first managed allocator/burst/queue envelope remains unresolved; neither a
+clamp nor a successful private fixture proves pre-acquisition reservation.
+Original model/Host coverage must include those holdings and the new snapshot,
+per-read controls, parser/native scratch, raw/Store/SDK borrowers until their
+actual retirement. Normal installation therefore remains Unavailable without
+the complete original same-Ledger envelope. Selected trusted TLS/llhttp/VM
+coverage is not zero managed memory or a whole-RSS claim.
+
+The selected original connector now fixes one dedicated native input buffer
+at preparation, of extent `min(maxChunkBytes, maxBorrowedBackingBytes)`.
+It uses Node's existing `onread` buffer, not a generator or an ambient socket
+owner. The same Call callback checks its receiver/input identity, cumulative
+plaintext and input-plus-copy extent **before** allocating any dedicated
+copy or pushing it into the original socket queue. Native refill cannot change
+an escaped parser/body view. Missing complete original Model funding still
+refuses normal startup; declaration counters do not reserve this buffer.
+
+This closes the selected reusable input/copy primitive, not all acquisition
+memory. Socket queue controls and Readable concatenation (including any pooled
+backing), parser/header, SDK/raw/Store aliases and trusted TLS/VM duties are
+separate terms. Physical close drops only this Call's own aliases; escaped
+Socket/body/raw borrowers may retain the input backing after IO ACK and stay
+in the original Model/SDK/Store holding inventory. No immediate GC or full
+phase/RSS upper bound is asserted.
+
 Cleanup retains the same connector/returned socket and body. Client destroy
 fulfillment alone cannot retire a connection in progress: the original
 connector callback, actual socket close, request settlement and actual body

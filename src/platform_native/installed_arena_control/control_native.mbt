@@ -12,6 +12,8 @@ struct InstalledArenaHost {
   mut acquisition_issue : @bootstrap.NativeBootstrapIssue?
   mut closing : Bool
   mut closed : Bool
+  domain_record_limit : Int
+  domains : Array[InstalledArenaDomain]
 }
 
 ///|
@@ -36,6 +38,8 @@ pub fn prepare_installed_arena_host(
     acquisition_issue: None,
     closing: false,
     closed: false,
+    domain_record_limit: limits.attempts,
+    domains: [],
   }
   match
     @bootstrap.prepare_installed_arena_supplier(
@@ -55,6 +59,27 @@ pub fn prepare_installed_arena_host(
 pub fn InstalledArenaHost::acquire(
   self : InstalledArenaHost,
 ) -> Result[Unit, @bootstrap.NativeBootstrapIssue] {
+  self.acquire_original(None)
+}
+
+///|
+/// Trusted installed caller's borrowed FD only. Equal FD metadata is not
+/// installation authority; its separate lifetime/funding remains with caller.
+pub fn InstalledArenaHost::acquire_fd(
+  self : InstalledArenaHost,
+  fd : Int,
+) -> Result[Unit, @bootstrap.NativeBootstrapIssue] {
+  if fd < 0 {
+    return Err(@bootstrap.Unavailable)
+  }
+  self.acquire_original(Some(fd))
+}
+
+///|
+fn InstalledArenaHost::acquire_original(
+  self : InstalledArenaHost,
+  fd : Int?,
+) -> Result[Unit, @bootstrap.NativeBootstrapIssue] {
   if self.closing || self.closed {
     return Err(@bootstrap.Closing)
   }
@@ -65,7 +90,11 @@ pub fn InstalledArenaHost::acquire(
     return Err(@bootstrap.Unavailable)
   }
   self.acquisition_started = true
-  match supplier.acquire(self) {
+  let acquired = match fd {
+    None => supplier.acquire(self)
+    Some(fd) => supplier.acquire_fd(self, fd)
+  }
+  match acquired {
     Err(issue) => {
       self.acquisition_issue = Some(issue)
       Err(issue)
@@ -317,6 +346,9 @@ pub fn InstalledArenaHost::try_close(
     return Ok(())
   }
   self.closing = true
+  if self.domains.any(domain => !domain.closed) {
+    return Err(@bootstrap.ReadersPending)
+  }
   if self.backing is Some(backing) {
     match backing.try_close(self) {
       Err(issue) => return Err(issue)
@@ -326,6 +358,7 @@ pub fn InstalledArenaHost::try_close(
   self.backing = None
   self.supplier = None
   self.closed = true
+  self.domains.clear()
   Ok(())
 }
 
