@@ -9,11 +9,17 @@ import {createSdkNativeDecisionPreflight} from './model-port.mjs';
 // Public exports and installed native execution remain unavailable.
 export function prepareTypeSafeDecisionRequest({modelId,baseURL,apiKey,options,
   maxRequestBytes,maxHeaderBytes,maxHeaders,signal,notify,verifyRequest}) {
+  // Compare the actual existing enumerable field vector. Joining names can
+  // mistake one comma-bearing own field for both required originals and then
+  // read their values from the prototype. This neither changes the accepted
+  // DATA/accessor/hidden/symbol rules nor issues native Task admission.
+  const optionKeys=options!==null&&typeof options==='object'&&!Array.isArray(options)
+    ? Object.keys(options).sort():undefined;
   if(typeof modelId!=='string'||modelId.length===0||
     typeof baseURL!=='string'||baseURL.endsWith('/')||
     typeof apiKey!=='string'||apiKey.length===0||
     options===null||typeof options!=='object'||Array.isArray(options)||
-    Object.keys(options).sort().join(',')!=='questions,state'||
+    optionKeys.length!==2||optionKeys[0]!=='questions'||optionKeys[1]!=='state'||
     Object.values(Object.getOwnPropertyDescriptors(options)).some(d=>!('value' in d))||
     options.questions===null||typeof options.questions!=='object'||Array.isArray(options.questions)) {
     throw new TypeError('InvalidTypeSafeSdkPreparation');
