@@ -76,6 +76,7 @@ struct NativeRuntimeBundleStore {
   max_record_bytes : Int
   active_installers : Map[String, Bool]
   mut closed : Bool
+  mut retiring : Bool
   mut retention_initialized : Bool
 }
 
@@ -1176,6 +1177,8 @@ fn require_open(
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
   if store.closed {
     Err(Closed)
+  } else if store.retiring {
+    Err(CleanupPending)
   } else {
     Ok(())
   }
@@ -1212,6 +1215,10 @@ fn persist_catalog(
   current : NativeRuntimeBundleCatalog,
   next : NativeRuntimeBundleCatalog,
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  match require_open(store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   let body = match catalog_bytes(next, store.max_record_bytes) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -1337,6 +1344,7 @@ fn open_runtime_bundle_store_with_authorities(
     max_record_bytes: max_record_bytes.to_int(),
     active_installers: Map([]),
     closed: false,
+    retiring: false,
     retention_initialized: false,
   }
   match database.read("runtime_bundle", "catalog") {
@@ -3308,26 +3316,53 @@ pub fn NativeRuntimeBundleStore::close(
   if self.closed {
     return Ok(false)
   }
+  match self.close_checked() {
+    Ok(_) => Ok(true)
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Retire these original handles in order, not the durable bundle holdings.
+/// After retirement starts, retry observes the same DB/Lock/Root and never
+/// reads a catalog through a database which may already have closed.
+pub fn NativeRuntimeBundleStore::close_checked(
+  self : NativeRuntimeBundleStore,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  if self.closed {
+    return Ok(())
+  }
   if !self.active_installers.is_empty() {
     return Err(CleanupPending)
   }
-  let catalog = match load_catalog(self) {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  if !catalog.staging.is_empty() {
-    return Err(CleanupPending)
-  }
-  for copy in catalog.component_copies {
-    match copy.phase {
-      Sealed(_) => ()
-      _ => return Err(CleanupPending)
+  if !self.retiring {
+    let catalog = match load_catalog(self) {
+      Ok(value) => value
+      Err(issue) => return Err(issue)
     }
+    if !catalog.staging.is_empty() {
+      return Err(CleanupPending)
+    }
+    for copy in catalog.component_copies {
+      match copy.phase {
+        Sealed(_) => ()
+        _ => return Err(CleanupPending)
+      }
+    }
+    self.retiring = true
   }
-  self.database.close()
-  if !self.lock.close() {
-    return Err(CleanupPending)
+  match self.database.close_checked() {
+    Ok(_) => ()
+    Err(issue) => return Err(Database(issue))
+  }
+  match self.lock.close_checked() {
+    Ok(_) => ()
+    Err(issue) => return Err(Filesystem(issue))
+  }
+  match self.root.close() {
+    Ok(_) => ()
+    Err(issue) => return Err(Filesystem(issue))
   }
   self.closed = true
-  Ok(true)
+  Ok(())
 }
