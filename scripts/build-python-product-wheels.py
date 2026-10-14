@@ -75,7 +75,7 @@ def wheel_metadata(path: Path, name: str, version: str) -> None:
             raise ValueError('Python facade/SDK wheel contains a native engine')
 
 
-def runtime_wheel_components(wheel: Path, artifact: Path) -> None:
+def runtime_wheel_components(wheel: Path, artifact: Path, stage: Path) -> None:
     """Match the shipped resource bytes to the same verified original artifact."""
     with zipfile.ZipFile(wheel) as archive:
         for name in ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
@@ -91,6 +91,28 @@ def runtime_wheel_components(wheel: Path, artifact: Path) -> None:
                     digest.update(block)
             if digest.hexdigest() != sha256(original):
                 raise ValueError('Python runtime wheel component digest mismatch')
+        package = stage / 'src/actql_local_runtime'
+        private = package / '_wasmtime'
+        if not private.is_dir() or private.is_symlink():
+            raise ValueError('Python runtime stage has no original private bindings')
+        expected = [package / 'WASMTIME-LICENSE'] + sorted(path for path in private.rglob('*') if path.is_file())
+        for original in expected:
+            if original.is_symlink():
+                raise ValueError('Python runtime stage contains a linked private input')
+            name = 'actql_local_runtime/' + original.relative_to(package).as_posix()
+            info = archive.getinfo(name)
+            if info.file_size != original.stat().st_size:
+                raise ValueError('Python runtime wheel private component length mismatch')
+            digest = hashlib.sha256()
+            with archive.open(info) as member:
+                for block in iter(lambda: member.read(65536), b''):
+                    digest.update(block)
+            if digest.hexdigest() != sha256(original):
+                raise ValueError('Python runtime wheel private component digest mismatch')
+        observed = {name for name in archive.namelist() if name.startswith('actql_local_runtime/_wasmtime/')}
+        if observed != {'actql_local_runtime/' + path.relative_to(package).as_posix() for path in expected
+                        if path != package / 'WASMTIME-LICENSE'}:
+            raise ValueError('Python runtime wheel private component inventory mismatch')
 
 
 def sdk_runtime_binding(wheel: Path, original: bytes) -> None:
@@ -119,7 +141,8 @@ def copy_source(source: str, original: Path, target: Path) -> None:
     target.write_bytes(expected)
 
 
-def build(artifact: Path, destination: Path) -> dict[str, object]:
+def build(artifact: Path, destination: Path, *, bindings_source: Path,
+          native_libraries: Path) -> dict[str, object]:
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT):
         raise ValueError('Build Python wheels from committed clean source')
     source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
@@ -137,7 +160,7 @@ def build(artifact: Path, destination: Path) -> dict[str, object]:
     stages = destination / 'stages'
     stages.mkdir()
     runtime = stages / 'python-local-runtime'
-    recipe.prepare(artifact, runtime)
+    recipe.prepare(artifact, runtime, bindings_source=bindings_source, native_libraries=native_libraries)
     for package in ('python-product', 'python-sdk'):
         stage = stages / package
         stage.mkdir()
@@ -177,7 +200,7 @@ def build(artifact: Path, destination: Path) -> dict[str, object]:
             sdk_runtime_binding(wheel, binding)
             sdk_host_capacity(wheel, capacity)
         if distribution == 'actql-local-runtime':
-            runtime_wheel_components(wheel, artifact)
+            runtime_wheel_components(wheel, artifact, runtime)
         records.append({'distribution': distribution, 'file': wheel.name,
                         'bytes': wheel.stat().st_size, 'sha256': sha256(wheel)})
     if (subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT)
@@ -204,5 +227,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--artifact-directory', type=Path, required=True)
     parser.add_argument('--destination', type=Path, required=True)
+    parser.add_argument('--bindings-source', type=Path, required=True)
+    parser.add_argument('--native-libraries', type=Path, required=True)
     arguments = parser.parse_args()
-    print(json.dumps(build(arguments.artifact_directory, arguments.destination)))
+    print(json.dumps(build(arguments.artifact_directory, arguments.destination,
+        bindings_source=arguments.bindings_source, native_libraries=arguments.native_libraries)))
