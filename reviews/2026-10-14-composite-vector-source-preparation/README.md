@@ -11,6 +11,17 @@ ordinary Check Environment admission, trusted published aliases and
 mixed Number/String/Vector schema and declared ordered `[b, a]` candidate key.
 No generated Vectors input, fake order, cast or different evaluator is injected.
 
+The first actual two-test attempt reached declaration generation and failed
+before either format was lowered. Its checked Vector schema omitted the
+normative fixed `element_type: "f32"`, which the existing checked contract reader
+requires. Keep that original schema/CID as an `InvalidContracts` control in the
+same first named test. The valid declaration and trusted supplier now include
+fixed f32 with independently calculated schema CID
+`sha256:5a8be37ab2b6e29c46b4fffb85022ff8642f6152897b75a7eec858392ded4f3d`.
+The original authored schema, five/two envelopes, Program, rows, result schema,
+fields, tuple order, dimensions, nullability and all limits are unchanged.
+No existing contract reader is relaxed and no old declaration is reinterpreted.
+
 Five original JSON/SQL/AQL envelopes must each prepare two acquisitions, one
 Named Result and the same independent full result schema. Two reordered role
 keys must fail specifically through `Frontend(QueryLowering(InvalidQuery))`.

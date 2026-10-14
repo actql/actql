@@ -1,19 +1,30 @@
 ///|
 // The two real declared Source views share the original independent schema and
 // [b, a] key facts. No Vectors carrier or publication order is invented here.
-fn composite_vector_source_preparation_context() -> (
-  @program_check.CheckEnvironment,
-  @local_input.LocalInputContext,
-) raise {
-  let declaration = @row_host.generate_relation_row_declaration(
+fn composite_vector_source_test_declaration(
+  checked : Bool,
+) -> Result[@row_host.RowDeclaration, @row_host.RowHostIssue] {
+  let schema_wire = if checked {
+    "{\"a\":{\"max_utf8_bytes\":1,\"nullable\":false,\"type\":\"string\"},\"b\":{\"nullable\":false,\"type\":\"number\"},\"embedding\":{\"dimensions\":2,\"element_type\":\"f32\",\"nullable\":false,\"type\":\"vector\"}}"
+  } else {
+    "{\"a\":{\"max_utf8_bytes\":1,\"nullable\":false,\"type\":\"string\"},\"b\":{\"nullable\":false,\"type\":\"number\"},\"embedding\":{\"dimensions\":2,\"nullable\":false,\"type\":\"vector\"}}"
+  }
+  let schema_cid = if checked {
+    // Independent SHA-256 of the exact checked map, including fixed f32.
+    "sha256:5a8be37ab2b6e29c46b4fffb85022ff8642f6152897b75a7eec858392ded4f3d"
+  } else {
+    // Retain the original incomplete declaration as a typed refusal control.
+    "sha256:a08bd3260a45f5089c6ab67175b8d99836cbe36a6a1c0716341e9eb506281cca"
+  }
+  @row_host.generate_relation_row_declaration(
     "composite_fixture",
     "composite_fixture",
     "composite_fixture/0.1",
     ["queries", "candidates"].map(resource => {
       resource,
       resource_kind: "table",
-      schema_wire: "{\"a\":{\"max_utf8_bytes\":1,\"nullable\":false,\"type\":\"string\"},\"b\":{\"nullable\":false,\"type\":\"number\"},\"embedding\":{\"dimensions\":2,\"nullable\":false,\"type\":\"vector\"}}",
-      schema_cid: "sha256:a08bd3260a45f5089c6ab67175b8d99836cbe36a6a1c0716341e9eb506281cca",
+      schema_wire,
+      schema_cid,
       facts_wire: Some("{\"relation_keys\":{\"candidate_keys\":[[\"b\",\"a\"]]}}"),
       request_schema_wire: None,
       acquisition_wire: None,
@@ -25,7 +36,15 @@ fn composite_vector_source_preparation_context() -> (
       max_views: 2,
       max_fields: 3,
     },
-  ).unwrap()
+  )
+}
+
+///|
+fn composite_vector_source_preparation_context() -> (
+  @program_check.CheckEnvironment,
+  @local_input.LocalInputContext,
+) raise {
+  let declaration = composite_vector_source_test_declaration(true).unwrap()
   let (schemas, capabilities) = @row_host.row_declaration_evidence_members(
     declaration,
   )
@@ -79,6 +98,7 @@ fn composite_vector_source_preparation_context() -> (
 
 ///|
 test "composite Vector Source original JSON SQL and AQL reach strict preparation" {
+  assert_true(composite_vector_source_test_declaration(false) is Err(InvalidContracts))
   let (environment, context) = composite_vector_source_preparation_context()
   let cases = composite_vector_source_preparation_normal_inputs()
   assert_eq(cases.length(), 5)
