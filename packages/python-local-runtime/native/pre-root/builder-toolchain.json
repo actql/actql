@@ -1,0 +1,32 @@
+{
+  "toolchain": "1.90.0-aarch64-apple-darwin",
+  "profile": "minimal",
+  "target": "aarch64-apple-darwin",
+  "minimum_upstream_rust": "1.88.0",
+  "rustc_commit": "1159e78c4747b02ef996e55082b704c09b970588",
+  "manifest": {
+    "url": "https://static.rust-lang.org/dist/channel-rust-1.90.0.toml",
+    "sha256": "489c19f20d331765ab2835661eb546de90f6446a107a8db83045e7371e45cae2"
+  },
+  "components": [
+    {
+      "component": "rustc",
+      "url": "https://static.rust-lang.org/dist/2025-09-18/rustc-1.90.0-aarch64-apple-darwin.tar.xz",
+      "sha256": "89551c0ba1cc6d0312aebc4a6cafe4497223217ea8e87c81f6afbe127dfaeeb6",
+      "bytes": 63724992
+    },
+    {
+      "component": "cargo",
+      "url": "https://static.rust-lang.org/dist/2025-09-18/cargo-1.90.0-aarch64-apple-darwin.tar.xz",
+      "sha256": "17a4410a27bf7dad4765f3809265c225f25f8b009da3d4b76cd0927acdae04b5",
+      "bytes": 8523620
+    },
+    {
+      "component": "rust-std",
+      "url": "https://static.rust-lang.org/dist/2025-09-18/rust-std-1.90.0-aarch64-apple-darwin.tar.xz",
+      "sha256": "c36777aec17d617f85f94b7cb87bdd4270eeca30ef38c6f686809d163c881609",
+      "bytes": 29010092
+    }
+  ],
+  "basis": "Fixed upstream399f C-API macOS default CI: MSRV minor88 plus range2; explicit ActQL builder selection. Not a runtime capacity or semantic profile."
+}
