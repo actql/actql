@@ -65,7 +65,10 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
   // Client.destroy() can acknowledge before an in-progress connector returns.
   // Keep the actual returned socket's close observation separately, including
   // DNS/TLS/connect failure. A request rejection is not its retirement ACK.
-  const connector = buildConnector({allowH2: false});
+  // This original Client never reconnects or reuses another Call's session.
+  // Do not register unused resumption tickets in Undici's session cache. Its
+  // empty cache/registry, listener and TLS/native lifetimes still need funding.
+  const connector = buildConnector({allowH2: false, maxCachedSessions: 0});
   let connecting = false;
   let socket;
   let socketClosed;
