@@ -65,6 +65,7 @@ fn lower_script_join_relation(
   let scoped = { ..context, inputs: known, }
   let selected = selected_input(query, scoped, limits)
   let initial_scope = script_input_scope(
+    construction,
     sources,
     selected.name,
     query_range_name(query),
@@ -75,6 +76,7 @@ fn lower_script_join_relation(
     let right = selected_relation(part.relation, scoped)
     right_scopes.push(
       script_input_scope(
+        construction,
         sources,
         right.name,
         part.source_alias.unwrap_or(part.relation.last().unwrap()),
@@ -139,6 +141,12 @@ fn lower_script_join_relation(
       nearest_inputs~,
       nearest_vectors~,
       positional_set_output~,
+      checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
+        script_infer_prefix_check(
+          construction, query, context, sources, nodes, producer, limits, visible,
+          authored_aliases,
+        )
+      }),
     )
     steps.append(body)
     return {
@@ -212,6 +220,13 @@ fn lower_script_join_relation(
     step_bindings=bindings,
     capture_left~,
     values_bound~,
+    prefix_steps=steps.copy(),
+    checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
+      script_infer_prefix_check(
+        construction, query, context, sources, nodes, producer, limits, visible,
+        authored_aliases,
+      )
+    }),
   )
   steps.append(body)
   {

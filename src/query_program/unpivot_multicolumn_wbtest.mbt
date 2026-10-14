@@ -48,6 +48,8 @@ test "tuple UNPIVOT has independent complete connection steps and visible slots"
     generated: @origin.range(document, 0, 0, kind=Generated).unwrap(),
     model_tasks: None,
     parameter_names: None,
+    infer_labels: false,
+    infer_budget: { remaining_work: mapping_limits().max_expression_work, },
   }
   let (steps, visible, physical) = lower_multi_column_unpivot(
     construction,

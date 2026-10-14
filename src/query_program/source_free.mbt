@@ -24,6 +24,8 @@ fn source_free_input(
     generated,
     model_tasks: None,
     parameter_names: None,
+    infer_labels: false,
+    infer_budget: { remaining_work: limits.max_expression_work, },
   }
   try {
     let field = "aql_source_free_unit"
