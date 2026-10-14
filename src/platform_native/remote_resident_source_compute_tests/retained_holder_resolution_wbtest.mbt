@@ -73,7 +73,7 @@ fn retained_holder_admit_resolution(
     Object(fields) => {
       fields.remove("proof") |> ignore
       fields.remove("resolution_cid") |> ignore
-      Json::Object(fields).stringify()
+      Json::object(fields).stringify()
     }
     _ => fail("Invalid original Resolution fixture body")
   }
