@@ -710,6 +710,13 @@ Path classification alone establishes neither physical containment nor support
 for every npm layout. Formal staging, Native physical census and installed
 consumer acceptance are separate from this pure descriptor connection.
 
+The Common runtime metadata Owner reads the same closed formal inventory as the
+Node producer: exact source/platform/package labels, ordered unique ASCII paths,
+integer byte counts/modes and digests, with only the descriptor's own exact root
+path excluded. It rejects alternate bytes and exposes bounded indexed members,
+not a mutable inventory array. These literal comparisons and intake checks do
+not issue a physical witness, compatibility, workspace funding or authority.
+
 ## Original package-file observations
 
 The filesystem Owner can capture an opaque transient observation of one regular
