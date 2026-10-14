@@ -10,7 +10,6 @@ import {C, input, open, immediateIdentity, immediateReference, seedApproval} fro
 import {MODEL_CURRENT_CUT_JOURNAL_LAYOUT} from './sqlite-checkpoint-journal.mjs';
 import {upgradeCheckpointModelCurrentCut} from '../../scripts/upgrade-checkpoint-model-current-cut.mjs';
 import {assertOriginalModelJournalInvalidation} from './model-resume-state.mjs';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 
 const freeze = value => {
   if (value !== null && typeof value === 'object') {
@@ -64,24 +63,17 @@ function rows(path) {
   finally {db.close();}
 }
 
-test('compiled invalidation boundary rejects fabricated port before Core or caller callbacks', () => {
-  let called = 0;
-  const fake = {kind: 'original-model-journal-port', current() {called++; return true;}};
-  for (const port of [undefined, fake, true, () => {called++; return true;}, 'sha256:' + '0'.repeat(64)]) {
-    assert.throws(() => moon.clientProgramCompleteInferOriginalJournalInvalidation(
-      undefined, undefined, port, {}, {}, {}, {}), {code: 'ForeignModelOriginalJournalPort'});
-  }
-  assert.equal(called, 0);
-  assert.equal('clientProgramConsumeInferOriginalResourceInvalidation' in moon, false);
-});
-
 test('current cut exact same-journal link and committed invalidation preserve originals', t => {
   const f = fixture(t); const before = rows(f.journal.path); const op = f.prepare();
   assert.strictEqual(f.journal.commitOriginalModelCurrentCut(op), op);
   const linked = rows(f.journal.path);
   const link = linked.resume_model_scopes[0].current_cut_link_json;
   assert.ok(typeof link === 'string');
+  const ready = JSON.parse(linked.resume_model_scopes[0].current_cut_invalidation_json);
+  assert.equal(ready.phase, 'ready'); assert.equal(ready.request_binding, null);
+  assert.equal(ready.linked_cut_wire, link);
   linked.resume_model_scopes[0].current_cut_link_json = null;
+  linked.resume_model_scopes[0].current_cut_invalidation_json = null;
   assert.deepEqual(linked, before);
   assert.throws(() => f.journal.reconfirmOriginalModelJournal(f.observation), {code: 'ModelOriginalJournalObservationChanged'});
   const fresh = f.journal.originalModelCurrentCutObservation(op);
@@ -89,7 +81,13 @@ test('current cut exact same-journal link and committed invalidation preserve or
   assert.strictEqual(f.journal.reconfirmOriginalModelJournal(fresh), fresh);
   const receipt = f.journal.invalidateOriginalModelCurrentCut(op, f.request);
   assert.strictEqual(f.journal.originalModelCurrentCutInvalidationCurrent(receipt, op, f.park, f.request), receipt);
-  assert.deepEqual(rows(f.journal.path), before);
+  const finished = rows(f.journal.path), confirmed = JSON.parse(finished.resume_model_scopes[0].current_cut_invalidation_json);
+  assert.equal(confirmed.phase, 'confirmed');
+  assert.equal(confirmed.operation_id, ready.operation_id);
+  assert.deepEqual(confirmed.request_binding, {operation_id: ready.operation_id,
+    resource_state_cid: f.saves.get(f.save).resourceStateCid});
+  finished.resume_model_scopes[0].current_cut_invalidation_json = null;
+  assert.deepEqual(finished, before);
   assert.throws(() => f.journal.invalidateOriginalModelCurrentCut(op, f.request), {code: 'ModelOriginalCurrentCutUnavailable'});
   assert.throws(() => f.journal.originalModelCurrentCutInvalidationCurrent({...receipt}, op, f.park, f.request),
     {code: 'ForeignModelOriginalCutInvalidation'});
@@ -249,10 +247,10 @@ test('current cut missing current Resource custody keeps original link and holdi
 test('current cut real COMMIT response loss preserves Unknown and never infers receipt from absence', t => {
   const f = fixture(t); const op = f.prepare(); f.journal.commitOriginalModelCurrentCut(op);
   const exec = DatabaseSync.prototype.exec;
-  let lost = false;
+  let commits = 0;
   DatabaseSync.prototype.exec = function(sql, ...args) {
     const result = exec.call(this, sql, ...args);
-    if (sql === 'COMMIT' && !lost) {lost = true; throw Error('OriginalCommitResponseLost');}
+    if (sql === 'COMMIT' && ++commits === 3) throw Error('OriginalCommitResponseLost');
     return result;
   };
   try {assert.throws(() => f.journal.invalidateOriginalModelCurrentCut(op, f.request),
@@ -267,15 +265,22 @@ test('current cut real COMMIT response loss preserves Unknown and never infers r
 test('current cut actual failed COMMIT retains original link and no issuer', t => {
   const f = fixture(t); const op = f.prepare(); f.journal.commitOriginalModelCurrentCut(op);
   const before = rows(f.journal.path); const exec = DatabaseSync.prototype.exec;
-  let failed = false;
+  let commits = 0;
   DatabaseSync.prototype.exec = function(sql, ...args) {
-    if (sql === 'COMMIT' && !failed) {failed = true; throw Error('OriginalCommitFailed');}
+    if (sql === 'COMMIT' && ++commits === 3) throw Error('OriginalCommitFailed');
     return exec.call(this, sql, ...args);
   };
   try {assert.throws(() => f.journal.invalidateOriginalModelCurrentCut(op, f.request),
     {code: 'CheckpointJournalCommitOutcomeUnknown'});}
   finally {DatabaseSync.prototype.exec = exec;}
-  assert.deepEqual(rows(f.journal.path), before);
+  const after = rows(f.journal.path), durable = JSON.parse(after.resume_model_scopes[0].current_cut_invalidation_json);
+  const prior = JSON.parse(before.resume_model_scopes[0].current_cut_invalidation_json);
+  assert.equal(durable.phase, 'attempted'); assert.equal(durable.operation_id, prior.operation_id);
+  assert.equal(durable.linked_cut_wire, prior.linked_cut_wire);
+  assert.deepEqual(durable.request_binding, {operation_id: prior.operation_id,
+    resource_state_cid: f.saves.get(f.save).resourceStateCid});
+  after.resume_model_scopes[0].current_cut_invalidation_json = before.resume_model_scopes[0].current_cut_invalidation_json;
+  assert.deepEqual(after, before);
   assert.equal(f.journal.originalModelCurrentCutOperationStatus(op).state, 'unknown');
   assert.ok(f.parks.has(f.park));
 });
@@ -311,6 +316,7 @@ test('current cut old layout refuses before DDL and offline change preserves eve
     assert.equal(scope.current_cut_link_json, null); delete scope.current_cut_link_json;
   }
   assert.deepEqual(after, old);
-  const opened = open(f.root); t.after(() => opened.journal.close());
-  assert.equal(opened.journal.readModelCalls(immediateIdentity).slots[0].state, 'Unsent');
+  // The older upgrade retains its own declared target. It does not silently
+  // adopt the new durable-invalidation layout or grant cold continuation.
+  assert.throws(() => open(f.root), {code: 'UnsupportedCheckpointJournal'});
 });

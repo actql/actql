@@ -1,11 +1,20 @@
-import {createInstalledOpenAIChatRegistration,
-  type OpenAIChatRegistrationOptions, type ModelProviderRegistration} from '@actql/provider-ai-sdk';
+import {createInstalledOpenAIChatRegistration, createInstalledUndiciOpenAIChatRegistration,
+  type OpenAIChatRegistrationOptions, type UndiciOpenAIChatRegistrationOptions,
+  type ModelProviderRegistration} from '@actql/provider-ai-sdk';
 import type {HostInstallation} from '../local-node/index.js';
 
 declare const options: OpenAIChatRegistrationOptions;
 const registration: ModelProviderRegistration = createInstalledOpenAIChatRegistration(options);
 const installed: HostInstallation['registerModelProviders'] = registration;
 void installed;
+declare const originalUndici: UndiciOpenAIChatRegistrationOptions;
+const undici: HostInstallation['registerModelProviders'] =
+  createInstalledUndiciOpenAIChatRegistration(originalUndici);
+void undici;
+// @ts-expect-error A different fetch is not part of the explicit selected route.
+createInstalledUndiciOpenAIChatRegistration({...originalUndici, fetch: globalThis.fetch});
+// @ts-expect-error Explicit transport does not supply missing original admissions.
+createInstalledUndiciOpenAIChatRegistration({providerId: 'models/unfunded'});
 
 // @ts-expect-error Original Host selections are required; defaults cannot fund a Run.
 createInstalledOpenAIChatRegistration({providerId: 'models/unfunded'});

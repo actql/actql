@@ -32,12 +32,25 @@ start another Host, provide a token for Local, or select component paths.
 Remote connections continue to use the existing explicit `connect(endpoint,
 token)` API.
 
-This candidate is not a completed or published Local release. The public Local
-factory, SELECT1 Result/reread, original Run recovery and external installed
-consumer remain under acceptance. Metadata, facade import, compiler and private
-component checks do not establish that acceptance. The copyable Local execution
-example will accompany the verified public factory; no unimplemented API is
-advertised here.
+The Local entry points are `Client.open()` and `await AsyncClient.open()`. They
+accept no endpoint, token, Wasm/library path, resources or allocator options.
+Both delegate to the same installed Host and existing Client model. The sync
+entry rejects an application event loop before I/O; use the async entry there.
+
+This candidate is not a completed or published Local release. Its selected
+Host/root/bootstrap capacity original is still unadopted, so ordinary `open()`
+currently rejects with `LocalInstallationUnavailable` before module capture or
+VM/Store construction. Private resource fixtures are never its fallback.
+The verified installed SELECT1/Result/reread/recovery examples will replace this
+status only after actual wheel consumption succeeds. Factory/caller doubles,
+metadata and compiler checks do not establish that acceptance.
+
+Failed initialization with pending physical cleanup retains
+`error.cleanup_client`. Retry `cleanup_client.close()` (sync) or
+`await cleanup_client.aclose()` (async) on that exact handle. The cleanup-only
+Client performs no profile negotiation, new Host, reconnect, Run cancellation
+or unknown write retry. It preserves the same unfinished Core/Host and, for
+sync, its original Runner until cleanup succeeds.
 
 The initial runtime recipe selects macOS11 or later on arm64; its platform
 wheel has the `py3-none-macosx_11_0_arm64` tag. Python 3.11 is the package minimum;
@@ -57,10 +70,32 @@ required independently of the producer manifest.
 For an unpublished fixed candidate, normal dependency resolution uses its complete
 wheelhouse, for example `uv pip install --no-index --find-links COHORT/wheels
 "actql==COHORT_VERSION"` in a new venv. This does not build source. The fixture
-`scripts/fixtures/python-product-installed.py --version COHORT_VERSION --mode
-local` requires the actual public Local factory, SELECT1, retained reread and
-original Run reattachment; it has no metadata-success fallback. Run `--mode
-sdk-only` in a separate SDK-only venv to reject any installed Local distribution.
-These fixtures are acceptance commands, not evidence that this candidate has
-passed them. Process termination/restart and async coverage remain additional
-original completion requirements.
+`scripts/fixtures/python-product-installed.py` requires the actual public Local
+factory, SELECT1, retained reread and original Run reattachment; it has no
+metadata-success fallback. Copy this exact fixed fixture to the external
+consumer. Run each of the following as a separate Python process in the same
+installed environment and user account:
+
+```sh
+python python-product-installed.py --version COHORT_VERSION --mode local --facade sync --phase initial --receipt sync-original.json
+python python-product-installed.py --version COHORT_VERSION --mode local --facade sync --phase resume --receipt sync-original.json
+python python-product-installed.py --version COHORT_VERSION --mode local --facade async --phase initial --receipt async-original.json
+python python-product-installed.py --version COHORT_VERSION --mode local --facade async --phase resume --receipt async-original.json
+```
+
+The private acceptance receipt contains only the original public Submission
+and Run references and its producer PID/cohort. It is not an internal Host,
+runtime, Store or credential configuration. Initial refuses an existing receipt;
+resume requires a different PID and only looks up/attaches the saved references.
+It never creates a Submission or resends a Program. Both phases read the exact
+expected integer row through the existing bounded `Result.all(max_rows=1)` and
+reread the same Named Result, then close through their usual context manager.
+A failed or unknown lookup is a refusal of this acceptance scenario, not
+permission to submit again. Missing components/capacity or cleanup errors fail
+the process rather than producing a success JSON.
+
+Run `--mode sdk-only` in a separate SDK-only venv to reject any installed Local
+distribution. These fixtures are acceptance commands, not evidence that this
+candidate has passed them. Actual engine termination across processes,
+original recovery, metered runtime and ordinary wheel execution remain the
+product gate; public-call spies and receipt-file tests only prepare that gate.

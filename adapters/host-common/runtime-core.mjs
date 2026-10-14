@@ -2938,6 +2938,24 @@ function publicationControl(moon) {
         value, token(definition), graph, park, original, layout, installation,
         runtimeArtifactCid, layoutArtifactCid, probability, evidenceToken(storage)));
     },
+    // DATA-only comparison before a Scope exists. The existing Common Owner
+    // reads expected origins from the checked Run/Plan, not this document.
+    // Storage custody, funding and atomic original admission remain separate.
+    checkCheckedClientInferOriginalPreRestoreOrigin(compiled, definition, graph, document, selected) {
+      const value = compiledRunTokens.get(compiled);
+      const original = modelOriginalDocumentTokens.get(document);
+      if (value === undefined || compiled.kind !== 'infer' || original === undefined) {
+        throw new TypeError('Foreign Client original Model document');
+      }
+      const originalDefinition = token(definition);
+      if (typeof moon.clientProgramCheckInferOriginalPreRestoreOrigin !== 'function') {
+        throw Object.assign(new Error('ClientOperationUnavailable'), {code: 'ClientOperationUnavailable'});
+      }
+      const {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability} = selected;
+      return checked(moon.clientProgramCheckInferOriginalPreRestoreOrigin(value,
+        originalDefinition, graph, original, layout, installation,
+        runtimeArtifactCid, layoutArtifactCid, probability));
+    },
     // Explicit alternative to the normal descriptor issuer, not a fallback.
     // Bootstrap must already cover the dedicated Writer and finish-text borrow.
     prepareCheckedClientInferNodeReadState(compiled, definition, graph, scope,

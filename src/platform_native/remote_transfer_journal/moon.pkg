@@ -18,6 +18,7 @@ options(
   targets: {
     "journal_native.mbt": [ "native" ],
     "destination_admission_native_wbtest.mbt": [ "native" ],
+    "open_close_custody_native_wbtest.mbt": [ "native" ],
     "journal_unsupported.mbt": [ "not", "native" ],
     "journal_unsupported_wbtest.mbt": [ "not", "native" ],
   },

@@ -228,6 +228,10 @@ export async function readGcsVersionedContent(options) {
       contentCharge: media.charge, observations: Object.freeze(observations)}), signal);
   // A cancelled or failed handoff remains the caller's cleanup responsibility.
   signal.throwIfAborted();
+  // Bytes may already have reached the same capture owner. A missing receipt
+  // cannot complete the read or become a keyed ContentRef row; preserve its
+  // original tickets and custody rather than retrying or discarding content.
+  if (receipt === undefined || receipt === null) fail('GcsContentCaptureReceiptMissing');
   return Object.freeze({receipt, metadata: meta, digests,
     observations: Object.freeze(observations)});
 }

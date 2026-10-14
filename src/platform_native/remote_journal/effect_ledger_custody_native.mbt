@@ -85,6 +85,9 @@ pub fn Journal::effect_ledger_custody(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   if limits.max_nodes < 1 {
     return Err(StateCollision)
   }
