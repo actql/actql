@@ -27,6 +27,7 @@ const admissions = new WeakMap();
 const definitions = new WeakMap();
 const publicationContracts = new WeakMap();
 const runEvidences = new WeakMap();
+const originalRunPlans = new WeakMap();
 const resultOccurrences = new WeakMap();
 const capturedSnapshots = new WeakMap();
 const materialHolds = new WeakMap();
@@ -925,6 +926,84 @@ export function privateRunDefinition(definition) {
     wire: owner.clientValuesHostRunDefinitionWire(value),
     cid: owner.clientValuesHostRunDefinitionCid(value),
   });
+}
+
+/** Capture once from the same checked compilation/admission used by the Host.
+ * The Host persists the two original wires in its first admission transaction. */
+export function captureOriginalRunPlan(prepared, compilation, admission, definition, limits) {
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  const task = taskCompilations.has(compilation);
+  const compiled = requireHandle(task ? taskCompilations : compilations, compilation);
+  const admitted = requireHandle(admissions, admission);
+  if (compiled.prepared !== prepared || admitted.prepared !== prepared) {
+    throw new TypeError('ForeignRunHostCompilation');
+  }
+  const fields = checked((task
+    ? owner.clientValuesHostCaptureOriginalTaskRunPlan
+    : owner.clientValuesHostCaptureOriginalValuesRunPlan)(
+    requireHandle(preparations, prepared), compiled.value, admitted.value,
+    requireHandle(definitions, definition), maxWireBytes, maxNodes, maxDepth),
+  'RunHostOriginalPlanRejected');
+  if (!Array.isArray(fields) || fields.length !== 5 ||
+      fields.some(value => typeof value !== 'string')) {
+    throw new Error('InvalidRunHostOriginalPlanProjection');
+  }
+  const original = Object.freeze({compiledPlanWire: fields[0], planViewWire: fields[1]});
+  readStoredRunPlanOriginal(original, definition, fields[2], limits);
+  return handle(originalRunPlans, Object.freeze({original,
+    definitionCid: privateRunDefinition(definition).cid,
+    programCid: fields[2], prepared: fields[3], authorization: fields[4]}),
+  'original-run-plan');
+}
+
+/** Only a genuine first-capture token can supply admission evidence. */
+export function originalRunPlanAdmissionEvidence(selection, definition, programCid, evidence) {
+  const retained = requireHandle(originalRunPlans, selection);
+  if (retained.definitionCid !== privateRunDefinition(definition).cid ||
+      retained.programCid !== programCid || retained.prepared !== evidence?.prepared ||
+      retained.authorization !== evidence?.authorization) {
+    throw new TypeError('ForeignRunHostOriginalPlanAdmission');
+  }
+  return retained.original;
+}
+
+/** Validate authenticated saved metadata without preparation, recompilation or
+ * reissuing capture custody. The Host separately checks current RunRead and its
+ * original Run/request/context join before and after durable lookup. */
+export function readStoredRunPlanOriginal(original, definition, programCid, limits) {
+  const {maxWireBytes, maxNodes, maxDepth} = publicationLimits(limits);
+  const run = privateRunDefinition(definition);
+  if (original === undefined) {
+    throw Object.assign(new Error('RunHostOriginalPlanUnavailable'),
+      {code: 'RunHostOriginalPlanUnavailable'});
+  }
+  if (original === null || typeof original !== 'object' || Array.isArray(original) ||
+      Object.keys(original).sort().join(',') !== 'compiledPlanWire,planViewWire') {
+    throw new TypeError('InvalidRunHostOriginalPlan');
+  }
+  // Snapshot data fields once; accessors cannot replace bytes between checks.
+  const descriptors = Object.getOwnPropertyDescriptors(original);
+  const compiledPlanWire = descriptors.compiledPlanWire?.value;
+  const planViewWire = descriptors.planViewWire?.value;
+  if (typeof programCid !== 'string' ||
+      [compiledPlanWire, planViewWire].some(wire => typeof wire !== 'string' ||
+        wire.length > maxWireBytes)) {
+    throw new TypeError('InvalidRunHostOriginalPlan');
+  }
+  const plan = admitPublicationContract('compiled_plan', compiledPlanWire, limits);
+  checked(owner.clientValuesHostCheckStoredPlanView(planViewWire,
+    maxWireBytes, maxNodes, maxDepth), 'RunHostOriginalPlanRejected');
+  const view = JSON.parse(planViewWire);
+  if (JSON.parse(run.wire).compiled_plan_cid !== plan.cid ||
+      view.compiled_plan_cid !== plan.cid ||
+      JSON.parse(plan.wire).program_definition_cid !== programCid) {
+    throw new TypeError('ForeignRunHostOriginalPlan');
+  }
+  const map = admitRunEvidenceValue('logical_map', JSON.stringify(view.logical_map), limits);
+  checked(owner.clientValuesHostCheckLogicalMapBinding(
+    requireHandle(runEvidences, map.token), publicationToken(plan),
+    maxWireBytes, maxNodes, maxDepth), 'RunHostOriginalMapRejected');
+  return planViewWire;
 }
 
 // The caller must retain the checked admission and the current physical
