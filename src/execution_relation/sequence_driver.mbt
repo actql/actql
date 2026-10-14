@@ -915,6 +915,7 @@ fn[T : RelationRows] run_sequence_steps(
     let result = match @lower.sequence_step(sequence, i).unwrap() {
       @lower.ValuesStep(_) => import_values(i)
       @lower.TimeSeriesStep(_) => return Err(InputSet)
+      @lower.CalendarStep(_) => return Err(InputSet)
       @lower.GraphEqualityStep(_) => return Err(InputSet)
       @lower.WindowStep(window) => {
         let route = store.wiring.routes[i]

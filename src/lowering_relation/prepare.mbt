@@ -34,6 +34,7 @@ pub enum Payload {
   Serialize(@pipeline.CheckedSerialization)
   Values(@values.CheckedValues)
   TimeSeriesValue(@series.CheckedSeries)
+  CalendarValue(@calendar.CheckedCalendar)
   RowWindow(@window.CheckedWindow)
   Derive(@relation.CheckedOperation)
   Where(@relation.CheckedOperation)
@@ -177,6 +178,13 @@ pub fn operation(value : PreparedNode) -> String {
     Serialize(_) => "Content.serialize"
     Values(_) => "REL.values"
     TimeSeriesValue(_) => "TEA.time_series"
+    CalendarValue(value) =>
+      if @calendar_options.operation(@calendar.options(value)) ==
+        @calendar_options.Series {
+        "TEA.calendar_series"
+      } else {
+        "TEA.calendar_bucket"
+      }
     RowWindow(value) =>
       match
         (
@@ -317,7 +325,7 @@ fn classify(op : @pipeline.CheckedOperation) -> Payload? {
     IntervalJoin(checked~, ..) => Some(IntervalJoinRows(checked))
     AsOfJoin(checked~, ..) => Some(AsOfJoinRows(checked))
     Sequence(value) => Some(SequenceRows(value))
-    Calendar(_) => None
+    Calendar(value) => Some(CalendarValue(value))
     Projection(value) => Some(CarrierProjection(value))
     GraphMatch(value) => Some(GraphMatchRows(value))
     GraphBounds(value) => Some(GraphBoundsRows(value))
@@ -420,6 +428,13 @@ pub fn prepare(
       Serialize(_) => ("serialize", 1)
       Values(_) => ("values", 0)
       TimeSeriesValue(_) => ("time_series", 0)
+      CalendarValue(value) =>
+        if @calendar_options.operation(@calendar.options(value)) ==
+          @calendar_options.Series {
+          ("calendar_series", 0)
+        } else {
+          ("calendar_bucket", 1)
+        }
       RowWindow(_) => ("window", 1)
       Derive(_) => ("derive", 1)
       Where(_) => ("where", 1)
@@ -690,6 +705,7 @@ pub fn prepare(
       }
       Values(_)
       | TimeSeriesValue(_)
+      | CalendarValue(_)
       | RowWindow(_)
       | Derive(_)
       | Where(_)

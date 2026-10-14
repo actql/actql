@@ -18,6 +18,10 @@ import {
   "actql/actql/order_key" @order,
   "actql/actql/relation_values" @values,
   "actql/actql/time_series" @series,
+  "actql/actql/calendar_typing" @calendar,
+  "actql/actql/calendar_options" @calendar_options,
+  "actql/actql/calendar_profile" @calendar_profile,
+  "actql/actql/calendar_transition" @calendar_transition,
   "actql/actql/temporal_window" @window,
   "actql/actql/decode_core" @decode,
   "actql/actql/decode_scalar" @scalar,
@@ -36,6 +40,5 @@ import {
 
 import {
   "actql/actql/source_value" @source,
-  "actql/actql/calendar_profile" @calendar_profile,
   "moonbitlang/core/debug",
 } for "test"

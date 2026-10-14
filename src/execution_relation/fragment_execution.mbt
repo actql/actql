@@ -43,6 +43,7 @@ fn attach_fragment_budgets(
       @lower.CompletedProducerBoundary(_) => ()
       @lower.ValuesStep(_) => ()
       @lower.TimeSeriesStep(_) => ()
+      @lower.CalendarStep(_) => ()
       @lower.WindowStep(_) => ()
       @lower.AppendStep(_) => ()
       @lower.SetStep(_) => ()
