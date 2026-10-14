@@ -44,9 +44,14 @@ test "child exit and adversarial report ACK do not prove inherited descendant st
     "ended-live-descendant",
     "(while [ ! -e \"$1\" ]; do sleep 0.01; done) >/dev/null 2>&1 & exit 0",
   )
-  let original = retain_ended_holder(holder)
-  original.report_evidence = OriginalStatusAcknowledged // Negative input only.
-  original.startability = Some(false)
+  // Retire the same real Channel before testing the independent slot fence.
+  assert_true(holder.channel.close())
+  let original : EndedHolderResponsibility = {
+    original: holder, channel: ChannelDescriptorsRetired,
+    report_evidence: OriginalStatusAcknowledged, // Negative input only.
+    startability: Some(false), journal: Ref(None),
+  }
+  assert_true(probe.try_acquire() == Ok(false))
   assert_false(ended_holder_can_leave_window(original, probe))
   // This test makes no cleanup ACK from waiting/termination or this status.
   assert_true(holder.child.wait(false).unwrap() is Some(_))
@@ -70,14 +75,23 @@ test "child exit and adversarial report ACK do not prove inherited descendant st
   }
   assert_true(stopped)
   assert_true(probe.verify_current_hold() is Ok(_))
+  assert_true(ended_holder_can_leave_window(original, probe))
   assert_true(probe.close())
 }
 
 ///|
 test "unreadable original execution record never becomes startable from status ACK alone" {
   let (holder, probe, _) = ended_holder_physical_fixture("ended-missing-record", "exit 0")
-  let original = retain_ended_holder(holder)
-  original.report_evidence = OriginalStatusAcknowledged // Negative input only.
+  // Close confirmation and a current acquired slot must not replace the
+  // missing original execution-record observation.
+  assert_true(holder.channel.close())
+  let original : EndedHolderResponsibility = {
+    original: holder, channel: ChannelDescriptorsRetired,
+    report_evidence: OriginalStatusAcknowledged, // Negative input only.
+    startability: None, journal: Ref(None),
+  }
+  assert_true(probe.try_acquire() == Ok(true))
+  assert_true(probe.verify_current_hold() is Ok(_))
   assert_true(original.startability is None)
   assert_false(ended_holder_can_leave_window(original, probe))
   assert_true(original.startability is None)
