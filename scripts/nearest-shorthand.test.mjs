@@ -29,6 +29,7 @@ test('L3 inventory fixes exact cosine, original payload, field order and declara
   assert.equal(successes.length,7);assert.equal(refusals.length,4);
   assert.deepEqual(successes[0].results,successes[1].results);
   assert.deepEqual(successes[0].results.answer.rows.map(row=>row.hit.score),[1,0]);
+  assert.match(successes[3].text,/FROM questions \|> NEAREST corpus USING \(query_vec\) K 3 AS hit/u);
   assert.deepEqual(successes[3].results.answer.rows.map(row=>row.hit.body),['first','second']);
   assert.deepEqual(successes[4].results.answer.rows,[{note:null,context:'first'}]);
   assert.deepEqual(successes[0].results.answer.columns.map(column=>column.name),['embedding','note','request_id','hit']);
