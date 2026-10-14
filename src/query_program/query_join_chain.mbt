@@ -678,6 +678,7 @@ fn compile_join_chain_steps(
     preserved_scope~,
     parameter_declarations~,
     prefix_steps=prefix_steps + steps,
+    reserved_bindings=reserved,
     prefix_context~,
     nearest_inputs~,
     nearest_vectors~,

@@ -2347,20 +2347,49 @@ whitespace or source offsets. Another terminal Effect or a mixed COMMAND
 postlude is rejected, including one using the same completed name. This does
 not introduce implicit naming for multiple Effects.
 
-The explicit RESULT name resolves to its actual retained Stage Result port; a step
-alias or undeclared Result is rejected. A preceding terminal RESULT stays
-terminal and does not gain an implicit default export. This first update surface
-requires one nonempty SET list. Values are direct Result fields or scalar
-literals; computed values must be produced by an earlier EXTEND or SELECT.
-Duplicate target fields are rejected. Literal strings retain their original
-Unicode and CR/LF values through the ordinary string decoder.
+`FROM RESULT name` may be omitted. Omission consumes the current checked
+Relation, after its authored row operations, through a closed stage-local private
+Result. The explicit form selects its actual retained producer, even when a
+later filter, rename, projection or Stage continuation has changed the current
+Relation. A step alias or undeclared Result is not an explicit Result selection.
+No Source or Model is acquired again to prepare either input.
 
-Lowering emits the existing Stage update Effect with the authored target,
-MappingRef, Result, ID field and SET values. Existing checker, Mapping, planner,
-preview, approval, capture and cleanup owners remain authoritative. No approval
-policy is authored in this surface, and syntax admission does not authorize
-execution. Complete Effect-language coverage remains a separate implementation
-obligation.
+SET requires one nonempty assignment list. Its values may use the existing pure
+typed SQL expressions. All assignments see the same selected input snapshot;
+a target assignment is not a binding for another assignment. Computed values
+lower through the ordinary Relation derive/select owners before the private
+Result is captured. The Effect receives only evaluated fields or literals,
+never an expression to evaluate at dispatch. Nested property access, successful
+INFER refinement, NULL and absence, CASE demand, numeric admission and work and
+capacity limits retain their existing meaning. Duplicate target fields,
+unresolved or ambiguous references and unavailable functions are rejected.
+Literal strings retain their original Unicode and CR/LF values through the
+ordinary string decoder. The existing explicit FROM RESULT form containing only
+direct fields or scalar literals keeps its original lowering and identity.
+
+A generated UPDATE Result contains only its selector and SET fields. It is not
+an exported Named Result, and its private helper columns do not widen an
+authored public Result. With no authored public RESULT, the Program-root
+`results` map is empty and no unused full-row default Stage Result is created.
+An authored terminal RESULT remains public without an additional default
+export. An authored nonterminal RESULT retains the existing public primary tail
+export as well as the authored Result, including across an INFER continuation.
+Public inventory, describe, read and inspect do not grant access to private
+capture payloads or helper columns. Plan/Debug projections keep their separate
+capabilities and current-authority rules. Effect-only completion is Run status
+and receipts with zero Named Results; no read result is fabricated.
+
+The private capture uses the existing Stage Result and `effect.update.from.result`
+contracts, never Table `table_inputs`. Its expanded private-output Program has
+the same identity as this normalized spelling; an explicitly public RESULT has
+different observables and identity. Existing checker, Mapping, planner, preview,
+approval, durable capture and cleanup owners remain authoritative. Preparation
+failure produces no partial Preview or write. Approval and restart consume the
+same sealed values without reevaluation or repeated acquisition, Model work or
+confirmed Effects. Syntax admission does not establish those runtime outcomes
+or authorize execution. TARGET and MAPPING remain the explicit static forms
+shown above. COMMAND, STORE, create and upsert do not gain implicit inputs or
+expression evaluation from this UPDATE spelling.
 
 ### COMMAND postludes
 

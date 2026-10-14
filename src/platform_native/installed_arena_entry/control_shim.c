@@ -10,6 +10,18 @@ static struct {
     actql_control_description_fn description;
 } callbacks;
 static int registered;
+static actql_control_fd_fn fd_callback;
+static int fd_registered;
+
+void actql_native_control_register_fd_root(actql_control_fd_fn acquire) {
+    if (fd_registered) return;
+    if (!acquire) {
+        fd_registered = -1;
+        return;
+    }
+    fd_callback = acquire;
+    fd_registered = 1;
+}
 
 void actql_native_control_register_original_roots(
     actql_control_prepare_fn prepare, actql_control_operation_fn acquire,
@@ -101,6 +113,18 @@ int actql_control_current_into(actql_control_host *original,
         return ACTQL_CONTROL_INVALID_SLOT;
     if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
     *reply_slot = callbacks.current(original);
+    return *reply_slot ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
+}
+
+int actql_control_acquire_fd_into(actql_control_host *original, int32_t fd,
+                                  actql_control_reply **reply_slot) {
+    if (!original || !reply_slot || *reply_slot || fd < 0)
+        return ACTQL_CONTROL_INVALID_SLOT;
+    if (registered != 1 || fd_registered != 1)
+        return ACTQL_CONTROL_UNAVAILABLE;
+    /* Persistent caller slot keeps the typed reply/partial Host even when
+     * the foreign caller loses the response. Never close or duplicate FD. */
+    *reply_slot = fd_callback(original, fd);
     return *reply_slot ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
 }
 

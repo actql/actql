@@ -29,3 +29,36 @@ Production links exactly one original C capacity/TLS provider. A later private
 Wasmtime component imports that provider instead of compiling a second copy.
 Registering callbacks does not adopt a runtime fork, grant VM capacity, authorize
 external I/O or acknowledge cleanup. This Source preparation executes nothing.
+
+The FD acquisition callback uses the matching emitted `Host*, int32_t` ABI.
+The private shim writes the owned typed reply into the caller's persistent slot
+before returning. It neither duplicates nor closes the borrowed descriptor.
+Python retains the original one-shot descriptor carrier through acquisition and
+cleanup; a lost response preserves the same Host, reply and FD responsibility
+without another acquire or close. A copied descriptor or closed/unknown-close
+carrier is rejected before the call. This port supplies only the original arena
+domain, not worker overhead, VM funding, Run admission or publication authority.
+
+The original domain callback set transports a closed operation tag, typed issue
+family and actual Host/partial domain handles. It reuses the same Host's original
+allocation/region/child/view/domain Owners. Preparing an error reply registers
+all published partial custody before C/Python can inspect it. Current observation
+uses the existing domain-current check; a nonempty handle is not success. The
+Host retains bounded records from its original control envelope until their same
+cleanup succeeds. Close callbacks require the existing caller's scoped-stop
+and independent borrower-retirement facts; they do not infer either from exit.
+Regular matching emission must establish the C ABI before linking this new set.
+
+The domain material registration adds the existing typed projection and bounded
+getters. Its exact private C copy accepts only ProjectDomain/Ok for the retained
+original Host/domain, forty lowercase source units, thirty-two recipe bytes and
+fifteen Int64 fields. The C header is derived from Sourceaf23's actual regular
+emission (a4d4095a...), not a generated struct layout. Returned String/Bytes
+references are released after copying; the original reply/domain stay owned by
+Python until the existing data-drop path succeeds. No FD or pointer is encoded.
+
+The Python material call rechecks the original domain after copying and returns
+only immutable DATA. Known Owner refusal returns no material; response loss,
+malformed data or a lost data-drop retains sticky Unknown with the same original
+slots and descriptor, without another request or cleanup attempt. Ordinary
+worker startup, complete funding, VM and installed wheel acceptance are separate.

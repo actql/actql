@@ -47,7 +47,14 @@ fn NativeClientRunJournal::validate_submitted_run_admission(
     Err(_) => return Err(CustodyLost)
   }
   match self.retained(admission.request) {
-    Ok(Some(run)) =>
+    Ok(Some(run)) => {
+      if record.run_state_original is Some(wire) {
+        if run.run_observation_originals is None ||
+          @host.restore_client_run_state_original(run.definition, wire)
+          is Err(_) {
+          return Err(CustodyLost)
+        }
+      }
       @host.validate_client_submitted_retained_run(
         reference,
         (admission.request, admission.run_definition_cid, admission.revision),
@@ -55,6 +62,7 @@ fn NativeClientRunJournal::validate_submitted_run_admission(
         run.definition,
         run.revision,
       ).map_err(_ => CustodyLost)
+    }
     Err(Physical(issue)) => Err(Physical(issue))
     _ => Err(CustodyLost)
   }

@@ -140,3 +140,19 @@ test "ambiguous implicit nearest vector is a Common input refusal" {
   let explicit = "WITH q AS (FROM queries |> ASSERT UNIQUE BY (request_id)), corpus AS (FROM candidates |> ASSERT UNIQUE BY (item_id) |> SELECT item_id, embedding, embedding AS alternate) FROM q |> NEAREST corpus AS c USING embedding CANDIDATE KEY (c.item_id) VECTOR c.embedding K 2 AS hit"
   assert_true(with_carrier_program(explicit, nearest_context()) is Ok(_))
 }
+
+///|
+test "short nearest rejects a selected scalar vector role as invalid input" {
+  let prefix = "WITH q AS (FROM queries |> ASSERT UNIQUE BY (request_id)), c AS (FROM candidates |> ASSERT UNIQUE BY (item_id)) FROM q |> NEAREST c "
+  assert_true(
+    with_carrier_program(prefix + "USING note K 2 AS hit", nearest_context())
+    is Err(InvalidQuery),
+  )
+  assert_true(
+    with_carrier_program(
+      prefix + "USING embedding K 2 AS hit",
+      nearest_context(),
+    )
+    is Ok(_),
+  )
+}

@@ -231,6 +231,7 @@ fn lower_script_join_relation(
         construction, query, context, sources, nodes, limits,
       )
     }),
+    reserved_bindings=reserved,
     checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
       script_infer_prefix_check(
         construction, query, context, sources, nodes, producer, limits, visible,

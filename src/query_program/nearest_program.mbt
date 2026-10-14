@@ -93,6 +93,9 @@ fn nearest_complete_relation_roles(
           UnsupportedNearest
         },
       )
+    // A selected role has a concrete Common type error. Do not mask it as
+    // an unavailable implementation or weaken the original identity proof.
+    Err({ kind: InvalidRole(_), .. }) => raise Abort(InvalidQuery)
     Err(_) => raise Abort(UnsupportedNearest)
   }
   budget.spend(

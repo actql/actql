@@ -194,6 +194,8 @@ priv struct RetainedResult {
   fields : Array[String]
   terminal : Bool
   carrier_complete : Bool
+  // Frontend construction metadata for a closed, unexported UPDATE input.
+  update : (String, Array[(String, @builder.Node)])?
 }
 
 ///|
@@ -209,10 +211,19 @@ fn retained_result_port(default_port : String, port : String) -> String {
 fn retained_result_exports(
   context : Context,
   retained : Array[RetainedResult],
+  keep_default? : Bool = false,
 ) -> Array[(String, String)]? raise Abort {
-  if retained.is_empty() {
-    return None
+  let public = retained.filter(result => result.update is None)
+  if public.is_empty() {
+    return if retained.is_empty() {
+      None
+    } else if keep_default {
+      Some([(context.result_name, context.stage_result)])
+    } else {
+      Some([])
+    }
   }
+  let retained = public
   let exports = retained.map(result => {
     (
       result.name,
@@ -240,8 +251,15 @@ fn retained_stage_results(
   default_port : String,
   final_result : @builder.Node,
   retained : Array[RetainedResult],
+  keep_default? : Bool = false,
 ) -> @builder.Node raise Abort {
-  let definitions = [(default_port, final_result)]
+  let definitions = if !keep_default &&
+    retained.any(result => result.update is Some(_)) &&
+    retained.all(result => result.update is Some(_)) {
+    []
+  } else {
+    [(default_port, final_result)]
+  }
   for result in retained {
     if !result.terminal {
       definitions.push(
@@ -2179,6 +2197,7 @@ fn compile_steps(
   value_table_scope? : Array[JoinChainScope]? = None,
   parameter_declarations? : @parameters.Declarations? = None,
   prefix_steps? : Array[@builder.Node] = [],
+  reserved_bindings? : Array[String] = [],
   prefix_context? : Context? = None,
   positional_set_output? : Bool = false,
   source_projection_capture? : SourceProjectionCapture? = None,
@@ -3062,6 +3081,7 @@ fn compile_steps(
           fields: pipe_visible.map(pair => pair.0),
           terminal: terminal_result,
           carrier_complete: !needs_view,
+          update: None,
         })
         if terminal_result {
           output = pipe_visible.map(pair => pair.0)
@@ -6910,6 +6930,55 @@ fn compile_steps(
       )
     }
   }
+  // An implicit UPDATE consumes this exact Relation scope, including its
+  // immutable range slots. Save a branch before the ordinary public projection
+  // can discard those slots; the Effect branch closes only its demanded fields.
+  let update_steps : Array[Array[(String, @builder.Node)]] = []
+  if @query.terminal_effect(query) is Some(clause) &&
+    clause.result is None &&
+    @query.set_part_count(query) == 0 &&
+    retained is Some(retained) {
+    let names = reserved_bindings +
+      nearest_inputs.map(input => input.name) +
+      [input.name, final_alias] +
+      retained.map(result => result.from)
+    let producer = pipe_physical_name(names, "aql_update_input_")
+    reserved_bindings.push(producer)
+    let checkpoint : Array[(String, @builder.Node)] = []
+    if first || terminal_result {
+      checkpoint.push(("from", construction.text(input_from)))
+    }
+    checkpoint.push(
+      (
+        "select",
+        construction.array(active_fields.map(field => construction.text(field))),
+      ),
+    )
+    checkpoint.push(("as", construction.text(producer)))
+    step_entries.push(checkpoint)
+    input_from = producer
+    first = true
+    let (capture, body) = lower_update_capture(
+      construction,
+      clause,
+      producer,
+      pipe_visible,
+      pipe_ranges,
+      active_fields,
+      max_work,
+      reserved_bindings~,
+      expression_columns=Some(
+        unnest_expression_columns(
+          pipe_visible, value_table_receivers, scalar_value_table_ranges, pipe_columns,
+        ),
+      ),
+      value_ranges=value_range_names(
+        value_table_receivers, scalar_value_table_ranges,
+      ),
+    )
+    retained.push(capture)
+    update_steps.append(body)
+  }
   let retained_scope = match preserved_scope {
     Some(scopes) => Some(scopes)
     None => if pipe_value_table { value_table_scope } else { None }
@@ -6979,6 +7048,7 @@ fn compile_steps(
       ("as", construction.text(final_alias)),
     )
   }
+  step_entries.append(update_steps)
   let emitted = match source_projection_capture {
     Some(capture) if capture.count > 0 => {
       let tail = Array::makei(step_entries.length() - capture.count, i => {
@@ -7417,6 +7487,7 @@ fn compile_join_steps(
   capture_left? : Bool = false,
   values_bound? : Int64? = None,
   prefix_steps? : Array[@builder.Node] = [],
+  reserved_bindings? : Array[String] = [],
   checked_infer_prefix? : ((
     Array[@builder.Node],
     String,
@@ -7631,6 +7702,7 @@ fn compile_join_steps(
       result_tail=join_continuation_context(query, limits, retained),
       step_bindings~,
       prefix_steps~,
+      reserved_bindings~,
       checked_infer_prefix~,
       checked_nearest_prefix~,
     )
@@ -7845,6 +7917,7 @@ fn compile_join_steps(
     result_tail=join_continuation_context(query, limits, retained),
     step_bindings~,
     prefix_steps~,
+    reserved_bindings~,
     checked_infer_prefix~,
     checked_nearest_prefix~,
   )
@@ -9359,6 +9432,7 @@ fn append_join_order_steps(
   result_tail? : (Limits, Array[RetainedResult])? = None,
   step_bindings? : Map[String, String] = Map([]),
   prefix_steps? : Array[@builder.Node] = [],
+  reserved_bindings? : Array[String] = [],
   checked_infer_prefix? : ((
     Array[@builder.Node],
     String,
@@ -9464,6 +9538,7 @@ fn append_join_order_steps(
       retained=Some(retained),
       projected_input=true,
       prefix_steps=prefix_steps + steps,
+      reserved_bindings~,
       checked_infer_prefix~,
       checked_nearest_prefix~,
     )

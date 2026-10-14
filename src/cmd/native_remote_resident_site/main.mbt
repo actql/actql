@@ -301,6 +301,8 @@ fn retained_transfer_code(
 /// options: runtime bundle Store, active runtime, Site and dispatch journal.
 priv struct SiteEnvironment {
   bundles : @bundle.NativeRuntimeBundleStore
+  // The exact immutable limit supplied to this Store, not a later CLI value.
+  runtime_catalog_record_bytes : Int64
   active_runtime : @bundle.NativeActiveRuntimeBinding
   process_hold_id : String
   site : @site.ExecutionSite
@@ -462,6 +464,7 @@ fn open_site_environment(
   }
   {
     bundles,
+    runtime_catalog_record_bytes: max_record_bytes,
     active_runtime,
     process_hold_id,
     site,

@@ -159,7 +159,7 @@ pub(all) struct UpdateEffectClause {
   name : NamePart?
   target : String
   mapping : NamePart
-  result : NamePart
+  result : NamePart?
   id : NamePart
   set : Array[(NamePart, Expression)]
 }
@@ -3821,9 +3821,13 @@ fn QueryParser::update_effect_clause(
   }
   self.keyword("MAPPING")
   let mapping = self.name()
-  self.keyword("FROM")
-  self.keyword("RESULT")
-  let result = self.name()
+  let result = if self.has("FROM") {
+    self.keyword("FROM")
+    self.keyword("RESULT")
+    Some(self.name())
+  } else {
+    None
+  }
   self.keyword("ID")
   let id = self.name()
   self.keyword("SET")
