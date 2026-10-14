@@ -386,6 +386,13 @@ function advanceOriginalPhysicalCleanup(state, transport) {
 // fetch's initial physicalRetired flag is NOT an original I/O acknowledgement.
 // Successful reading must finish before normal close; cancellation/Unknown
 // retains independent raw/reader/SDK/Store custody until their actual cleanup.
+// Port support DATA only. It neither progresses I/O nor issues an ACK.
+export function sdkOriginalIoObservationAvailable(handle) {
+  const state = preparations.get(handle);
+  if (state === undefined) throw issue('ForeignSdkPreparation');
+  return state.transport?.physicalCleanup !== undefined;
+}
+
 export function progressSdkOriginalIoCleanup(handle) {
   const state = preparations.get(handle);
   if (state === undefined) throw issue('ForeignSdkPreparation');
