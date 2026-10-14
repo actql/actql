@@ -161,12 +161,57 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
   // This original Client never reconnects or reuses another Call's session.
   // Do not register unused resumption tickets in Undici's session cache. Its
   // empty cache/registry, listener and TLS/native lifetimes still need funding.
-  const connector = buildConnector({allowH2: false, maxCachedSessions: 0});
   let connecting = false;
   let socket;
   let socketClosed;
   let connectorFinished;
   let retireAcquisition;
+  // The selected Node listener writes into one dedicated buffer fixed during
+  // this original preparation, never a new backing chosen after acquisition.
+  // Its extent and all controls must be covered by the existing Model envelope
+  // BEFORE entering this function. This selection does not issue that loan.
+  let nativeInput = Buffer.allocUnsafeSlow(Math.min(limits.maxChunkBytes,
+    original.acquisition.maxBorrowedBackingBytes));
+  const inputExtent = nativeInput.byteLength;
+  let emittedBytes = 0, copiedBytes = 0, inputRefused = false, socketPush;
+  const onread = {
+    buffer: nativeInput,
+    callback(length, buffer) {
+      if (inputRefused || socket?.destroyed) return false;
+      let code;
+      if (this !== socket || buffer !== nativeInput ||
+          !Number.isSafeInteger(length) || length <= 0 || length > inputExtent) {
+        code = 'UndiciOriginalAcquisitionShapeRefused';
+      } else if (length > original.acquisition.maxPlaintextBytes - emittedBytes) {
+        code = 'UndiciOriginalAcquisitionPlaintextExceeded';
+      } else if (length > original.acquisition.maxBorrowedBackingBytes - inputExtent - copiedBytes) {
+        code = 'UndiciOriginalAcquisitionBackingExceeded';
+      }
+      if (code !== undefined) {
+        inputRefused = true;
+        socket?.destroy(issue(code));
+        return false;
+      }
+      // Reserve from these fixed declaration bounds before allocating a copy.
+      // They are not capacity receipts. Native reuse must never overwrite an
+      // escaped parser/body view, so only an exact dedicated copy is queued.
+      emittedBytes += length;
+      copiedBytes += length;
+      try {
+        const copy = Buffer.allocUnsafeSlow(length);
+        nativeInput.copy(copy, 0, 0, length);
+        return Reflect.apply(socketPush, socket, [copy]);
+      } catch (error) {
+        inputRefused = true;
+        socket.destroy(error);
+        return false;
+      }
+    },
+  };
+  // No buffer generator, ambient dispatcher or independent stream owner.
+  // Node CustomBufferJSListener reuses this exact input backing for TCP/TLS;
+  // SSL/BIO/handshake native and queued/copy controls remain explicit holdings.
+  const connector = buildConnector({allowH2: false, maxCachedSessions: 0, onread});
   const connect = (options, callback) => {
     if (connecting) { callback(issue('UndiciOriginalReconnectRefused')); return; }
     connecting = true;
@@ -187,9 +232,10 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
     });
     socketClosed = socket.closed ? Promise.resolve(true)
       : new Promise(resolve => socket.once('close', () => resolve(true)));
+    socketPush = socket.push;
     return socket;
   };
-  const client = new Client(original.origin, {allowH2: false, pipelining: 0, connect,
+  let client = new Client(original.origin, {allowH2: false, pipelining: 0, connect,
     maxHeaderSize: limits.maxHeaderBytes, maxResponseSize: limits.maxBytes});
   const request = Object.freeze({path: original.path, method: 'POST',
     headers: Object.freeze(headers), body: init.body, signal: init.signal,
@@ -233,6 +279,14 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
       if (bodyClosed !== undefined && await bodyClosed !== true) return false;
       retireAcquisition?.();
       retireAcquisition = undefined;
+      // Drop our own aliases only after physical closure. Escaped body/raw
+      // borrowers can still retain the Socket's input buffer: Model/SDK/Store
+      // holding settlement, not this IO ACK, decides their byte retirement.
+      client = undefined;
+      socketPush = undefined;
+      onread.buffer = undefined;
+      onread.callback = undefined;
+      nativeInput = undefined;
       retired = true;
       socket = undefined;
       socketClosed = undefined;
