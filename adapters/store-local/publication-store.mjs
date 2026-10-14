@@ -2284,7 +2284,11 @@ export async function openLocalPublicationStore(
         let failure;
         try {
           failure = primary !== null && typeof primary === 'object' &&
-            Object.isExtensible(primary) && primary.cleanupHandle === undefined
+            Object.isExtensible(primary) && primary.cleanupHandle === undefined &&
+            ['cleanupHandle', 'cleanupPending', 'cleanupError'].every(name => {
+              const field = Object.getOwnPropertyDescriptor(primary, name);
+              return field === undefined || field.writable === true;
+            })
             ? primary : new Error('PublicationSemanticReaderCleanupPending', {cause: primary});
           failure.cleanupHandle = cleanup;
           failure.cleanupPending = true;

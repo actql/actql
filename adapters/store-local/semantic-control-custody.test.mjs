@@ -197,9 +197,11 @@ test('readonly primary cleanup property cannot orphan the original control-read 
   const primary = new Error('private-semantic-primary-secret');
   const original = new Error('private-semantic-original-cleanup-secret');
   Object.defineProperty(primary, 'cleanupError', {value: original, writable: false});
+  const keys = Reflect.ownKeys(primary);
   const f = await fixture(t, {primary});
   await refused(f);
   assert.equal(primary.cleanupError, original);
+  assert.deepEqual(Reflect.ownKeys(primary), keys);
   assert.deepEqual(f.failureFacts(), {wrapped: true, originalCause: true, hasCleanup: true});
   await f.client.close();
   assert.equal(f.records[0].handle.fd, -1); assert.equal(f.records[0].attempts, 2);
