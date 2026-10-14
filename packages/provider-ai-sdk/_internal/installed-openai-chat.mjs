@@ -1,6 +1,7 @@
 import {createAdmittedOpenAIChatPreflight} from './original-openai-chat.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
 import {createOriginalUndiciFetch} from './original-undici-transport.mjs';
+import {snapshotOpenAIOriginalMaterials,admitOpenAIOriginalMaterials} from './original-materials.mjs';
 
 const issue = code => { throw Object.assign(new TypeError(code), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
@@ -41,8 +42,34 @@ export function createInstalledUndiciOpenAIChatRegistration(config) {
 
 function installedChatRegistration(config, originalUndici) {
   const keys='apiKey,baseURL,bindingOriginals,fetch,modelId,modelSelector,observeAt,observeEgress,originalReadInstallation,outputSchemaCid,projectionLimits,promptCid,promptPayloadWire,providerId,quantityCapacity,rawCaptureSelection,requestLimits,responseLimits,taskCid';
-  config=snapshotData(config,originalUndici ? keys.replace(',fetch', '') : keys,
+  const materialMode = config!==null && typeof config==='object' && Object.hasOwn(config,'originalMaterials');
+  const selectedKeys = materialMode ? keys.replace(',originalReadInstallation',',originalMaterials')
+    .replace(',rawCaptureSelection','') : keys;
+  config=snapshotData(config,originalUndici ? selectedKeys.replace(',fetch', '') : selectedKeys,
     'InvalidInstalledOpenAIChatConfiguration');
+  if (materialMode) {
+    const materials=snapshotOpenAIOriginalMaterials(config.originalMaterials);
+    const {originalMaterials:unused,...source}=config;void unused;
+    const retained=Object.freeze({...source,
+      projectionLimits:snapshotData(source.projectionLimits,
+        'maxBytes,maxDepth,maxFrames,maxNodes,maxWork','InvalidInstalledOpenAIChatProjection'),
+      requestLimits:snapshotData(source.requestLimits,
+        'maxBytes,maxHeaderBytes,maxHeaders','InvalidInstalledOpenAIChatRequestLimits'),
+      responseLimits:fixedInferResponseLimits(source.responseLimits),
+    });
+    let installed = false;
+    // One registration callback belongs to one actual Host installation. The
+    // actual runtime is received here, never imported or reconstructed by a
+    // consumer. Refuse another installation even if it shares that module.
+    return moon => {
+      if (installed) issue('OpenAIOriginalInstallationReused');
+      const originals=admitOpenAIOriginalMaterials(moon,materials);
+      const register=installedChatRegistration({...retained,...originals},originalUndici);
+      const entries=register(moon);
+      installed=true;
+      return entries;
+    };
+  }
   const {providerId,modelSelector,modelId,baseURL,taskCid,promptCid,outputSchemaCid,
     promptPayloadWire,apiKey,fetch,observeAt,observeEgress}=config;
   if (![providerId,modelSelector,modelId,baseURL,apiKey].every(text) ||
