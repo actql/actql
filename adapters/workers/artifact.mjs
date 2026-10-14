@@ -150,3 +150,8 @@ export const hostModules = [
 // Same audited product closure with an independent source-free test Owner.
 export const finiteConformanceModules = [...conformanceModules,
   'adapters/workers/finite-runtime-fixture.mjs'];
+
+// Public finite package entry: the same reviewed product closure, with no
+// fixture, reference Connector or test-only original Run issuer.
+export const finiteRuntimeModules = [...hostModules,
+  'adapters/workers/finite-runtime.mjs'];

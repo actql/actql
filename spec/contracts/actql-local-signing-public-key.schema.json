@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:actql:local-signing-public-key:0.1",
+  "description": "Canonical algorithm/public-byte identity only. This is not authenticated issuer/key/Host custody, public/private correspondence or signing permission.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "algorithm",
+    "public_key",
+    "version"
+  ],
+  "properties": {
+    "algorithm": {
+      "const": "ed25519"
+    },
+    "public_key": {
+      "type": "string",
+      "minLength": 44,
+      "maxLength": 44,
+      "pattern": "^[A-Za-z0-9+/]{42}[AEIMQUYcgkosw048]=$"
+    },
+    "version": {
+      "const": "actql-local-signing-public-key/0.1"
+    }
+  }
+}

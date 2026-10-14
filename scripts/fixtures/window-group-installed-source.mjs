@@ -153,7 +153,7 @@ export async function installWindowGroupFixture({moon, helpers,
       }
     },
   };
-  const connectorTable = createInstalledConnectorTable([{name: connectorId,
+  const connectorTable = createInstalledConnectorTable([{name: registration,
     registration, revision, source: {profileVersion: version, load: async () => module}}]);
   return {connectorTable, sourceProfilePath, observations, prepareCase: value => rows.prepare(value)};
 }

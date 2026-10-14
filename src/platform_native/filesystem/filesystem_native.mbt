@@ -311,7 +311,11 @@ pub fn open_root_with_custody(
     return Err({ original_issue: InvalidLimit, root: None, })
   }
   let encoded = @utf8.encode(path)
-  let root = open_root_ffi(encoded, encoded.length(), diagnostic_ceiling.unwrap_or(0))
+  let root = open_root_ffi(
+    encoded,
+    encoded.length(),
+    diagnostic_ceiling.unwrap_or(0),
+  )
   if root_ready_ffi(root) {
     Ok(root)
   } else {

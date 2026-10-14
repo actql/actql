@@ -7,6 +7,7 @@ pub(all) suberror WorkersFiniteFailure {
   UnsupportedProfile
   Preparation(@publication_host.ClientProgramPreparationIssue)
   Compilation(@publication_host.ClientValuesCompilationIssue)
+  Materials(@publication_host.ClientValuesRunMaterialsIssue)
   Binding(@publication_host.ClientValuesRunBindingIssue)
   Sequence(@publication_host.ClientTaskSequenceIssue)
   Registry(@execution.RegistryIssue)
@@ -137,6 +138,67 @@ pub fn workers_finite_compile(
     ) {
     Ok(value) => value
     Err(issue) => raise Compilation(issue)
+  }
+}
+
+///|
+/// Reconstruct only the original serialized Run through its existing owner.
+/// This does not issue authorization, extend lifetime, or open execution.
+#export_name("workersFiniteAdmitMaterials")
+pub fn workers_finite_admit_materials(
+  body : String,
+  expected_run_definition_cid : String,
+  expressions : @context.ExpressionProfiles,
+  operations : @context.PureOperationProfiles,
+  manifests : @publication_host.ClientCompilationManifests,
+  sequence : @lower.SequenceLimits,
+  max_work : Int,
+  max_entries : Int,
+) -> (
+  @publication_host.PreparedClientProgram,
+  @publication_host.ClientValuesCompilation,
+  @publication.RunPublicationAdmission,
+  @publication.PublicationContract,
+) raise WorkersFiniteFailure {
+  let materials = match
+    @publication_host.admit_client_values_run_materials(
+      body,
+      expected_run_definition_cid,
+      expressions,
+      operations,
+      manifests,
+      {
+        preparation: @publication_host.client_standard_program_preparation_limits(),
+        sequence,
+        max_sequence_steps: max_entries,
+        max_sequence_work: max_work,
+        max_evidence_bytes: 100000,
+        max_evidence_nodes: 10000,
+        max_evidence_depth: 100,
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Materials(issue)
+  }
+  workers_finite_profile(materials.prepared)
+  (
+    materials.prepared,
+    materials.compilation,
+    materials.admission,
+    materials.run_definition,
+  )
+}
+
+///|
+/// Physical capacity comes only from the trusted installation. A new Ledger
+/// cannot turn an existing Run into a retry or restart authorization.
+#export_name("workersFiniteLedger")
+pub fn workers_finite_ledger(
+  limits : @resources.LedgerLimits,
+) -> @resources.Ledger raise WorkersFiniteFailure {
+  match @resources.create_ledger(limits) {
+    Ok(value) => value
+    Err(issue) => raise Ledger(issue)
   }
 }
 

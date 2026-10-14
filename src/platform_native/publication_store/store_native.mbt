@@ -24,7 +24,104 @@ struct Store {
 }
 
 ///|
-fn require_store_open(store : Store) -> Result[Unit, NativePublicationStoreIssue] {
+/// Original failed preparation with the same existing physical Owners. No
+/// wire, persistence, reservation, authority or substitute Store is issued.
+struct NativePublicationStoreOpenFailure {
+  original_issue : NativePublicationStoreIssue
+  mut root : @filesystem.Root?
+  mut failed_root : @filesystem.NativeRootOpenFailure?
+  mut lock : @filesystem.Lock?
+  mut failed_lock : @filesystem.NativeLockOpenFailure?
+  mut database : @sqlite.Database?
+  mut failed_database : @sqlite.NativeSqliteOpenFailure?
+  // Missing original constructor custody remains pending. Its primary issue
+  // retains the original diagnostic; this marker cannot acknowledge cleanup.
+  cleanup_gap : Unit?
+}
+
+///|
+pub fn NativePublicationStoreOpenFailure::issue(
+  self : NativePublicationStoreOpenFailure,
+) -> NativePublicationStoreIssue {
+  self.original_issue
+}
+
+///|
+/// Re-observe only the original handles, in reverse preparation order. No
+/// reopen/schema repair and no capacity return are performed here. Missing
+/// opaque constructor custody remains pending, not a fabricated empty ACK.
+pub fn NativePublicationStoreOpenFailure::retry_cleanup(
+  self : NativePublicationStoreOpenFailure,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  if self.failed_database is Some(original) {
+    match original.retry_cleanup() {
+      Ok(_) => self.failed_database = None
+      Err(issue) => return Err(Database(issue))
+    }
+  }
+  if self.database is Some(original) {
+    match original.close_checked() {
+      Ok(_) => self.database = None
+      Err(issue) => return Err(Database(issue))
+    }
+  }
+  if self.failed_lock is Some(original) {
+    match original.retry_cleanup() {
+      Ok(_) => self.failed_lock = None
+      Err(issue) => return Err(Filesystem(issue))
+    }
+  }
+  if self.lock is Some(original) {
+    match original.close_checked() {
+      Ok(_) => self.lock = None
+      Err(issue) => return Err(Filesystem(issue))
+    }
+  }
+  if self.cleanup_gap is Some(_) {
+    return Err(CleanupPending)
+  }
+  if self.failed_root is Some(original) {
+    match original.retry_cleanup() {
+      Ok(_) => self.failed_root = None
+      Err(issue) => return Err(Filesystem(issue))
+    }
+  }
+  if self.root is Some(original) {
+    match original.close() {
+      Ok(_) => self.root = None
+      Err(issue) => return Err(Filesystem(issue))
+    }
+  }
+  Ok(())
+}
+
+///|
+fn store_open_failure(
+  original_issue : NativePublicationStoreIssue,
+  root? : @filesystem.Root? = None,
+  failed_root? : @filesystem.NativeRootOpenFailure? = None,
+  lock? : @filesystem.Lock? = None,
+  failed_lock? : @filesystem.NativeLockOpenFailure? = None,
+  database? : @sqlite.Database? = None,
+  failed_database? : @sqlite.NativeSqliteOpenFailure? = None,
+  cleanup_gap? : Unit? = None,
+) -> NativePublicationStoreOpenFailure {
+  {
+    original_issue,
+    root,
+    failed_root,
+    lock,
+    failed_lock,
+    database,
+    failed_database,
+    cleanup_gap,
+  }
+}
+
+///|
+fn require_store_open(
+  store : Store,
+) -> Result[Unit, NativePublicationStoreIssue] {
   if store.closed {
     Err(Closed)
   } else if store.retiring {
@@ -62,8 +159,18 @@ fn[T] allocation_prepare(
   step : String,
   operation : () -> Result[T, NativePublicationStoreIssue],
 ) -> Result[T, NativePublicationStoreIssue] {
+  match require_store_open(store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if store.allocation_failure.val is Some(inject) && inject(step) is Some(issue) {
     return Err(issue)
+  }
+  // The existing observation seam can retire this same Store. Its callback
+  // grants no permission to start I/O after returning.
+  match require_store_open(store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   operation()
 }
@@ -541,7 +648,12 @@ pub fn open_store_with_custody(
   diagnostic_ceiling? : Int? = None,
 ) -> Result[Store, NativePublicationStoreOpenError] {
   open_store_owned_with_custody(
-    library, root_path, authority_cid, capacity_bytes, max_objects, max_record_bytes,
+    library,
+    root_path,
+    authority_cid,
+    capacity_bytes,
+    max_objects,
+    max_record_bytes,
     false,
     diagnostic_ceiling~,
   )
@@ -558,7 +670,12 @@ pub fn open_existing_store_with_custody(
   diagnostic_ceiling? : Int? = None,
 ) -> Result[Store, NativePublicationStoreOpenError] {
   open_store_owned_with_custody(
-    library, root_path, authority_cid, capacity_bytes, max_objects, max_record_bytes,
+    library,
+    root_path,
+    authority_cid,
+    capacity_bytes,
+    max_objects,
+    max_record_bytes,
     true,
     diagnostic_ceiling~,
   )
@@ -584,7 +701,8 @@ fn open_store_owned_with_custody(
   if diagnostic_ceiling is Some(value) && value <= 0 {
     return Err(RefusedBeforeAcquisition(Filesystem(@filesystem.InvalidLimit)))
   }
-  let root = match @filesystem.open_root_with_custody(root_path, diagnostic_ceiling~) {
+  let root = match
+    @filesystem.open_root_with_custody(root_path, diagnostic_ceiling~) {
     Ok(value) => value
     Err(failure) =>
       return Err(
@@ -616,11 +734,12 @@ fn open_store_owned_with_custody(
   }
   match admit_store_format(root_path, true, existing_only~) {
     Ok(_) => ()
-    Err(issue) => {
+    Err(issue) =>
       return Err(
-        CleanupRequired(store_open_failure(issue, root=Some(root), lock=Some(lock))),
+        CleanupRequired(
+          store_open_failure(issue, root=Some(root), lock=Some(lock)),
+        ),
       )
-    }
   }
   let journal_path = root_path + "/.actql-publication.sqlite3"
   let selected = if existing_only {
@@ -630,7 +749,7 @@ fn open_store_owned_with_custody(
   }
   let database = match selected {
     Ok(value) => value
-    Err(failure) => {
+    Err(failure) =>
       return Err(
         CleanupRequired(
           store_open_failure(
@@ -641,7 +760,6 @@ fn open_store_owned_with_custody(
           ),
         ),
       )
-    }
   }
   let journal_identity : @filesystem.NativeFileOwnership = match
     root.inspect_generation(".actql-publication.sqlite3") {
@@ -654,7 +772,10 @@ fn open_store_owned_with_custody(
       return Err(
         CleanupRequired(
           store_open_failure(
-            issue, root=Some(root), lock=Some(lock), database=Some(database),
+            issue,
+            root=Some(root),
+            lock=Some(lock),
+            database=Some(database),
           ),
         ),
       )
@@ -1123,6 +1244,10 @@ pub fn PayloadCleanupOwner::retry(
 ) -> Result[Bool, NativePublicationStoreIssue] {
   if self.complete {
     return Ok(false)
+  }
+  match require_store_open(self.store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let key = record_key(self.request)
   if self.store.pending_writers.contains(key) {
@@ -3060,6 +3185,10 @@ pub fn ResultDelivery::confirm_sink_finished(
   if self.closed {
     return Err(Closed)
   }
+  match require_store_open(self.store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
   if !@publication.result_read_grant_valid_at(self.grant, observed_at) {
     return Err(DeliveryLimit)
   }
@@ -3198,6 +3327,10 @@ pub fn ResultDelivery::terminate(
 ) -> Result[NativeResultDeliveryFailure, NativePublicationStoreIssue] {
   if self.succeeded is Some(_) || self.closed {
     return Err(Closed)
+  }
+  match require_store_open(self.store) {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
   }
   let confirmed = match self.failure_confirmed {
     Some(value) => value

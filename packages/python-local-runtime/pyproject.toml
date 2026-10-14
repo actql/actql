@@ -15,5 +15,6 @@ dependencies = ["wasmtime==38.0.0"]
 where = ["src"]
 
 [tool.setuptools.package-data]
-actql_local_runtime = ["artifact.json", "client_host_wasm.wasm", "libduckdb.dylib",
+actql_local_runtime = ["artifact.json", "engine-recipe.json", "client_host_wasm.cwasm",
+  "client_host_wasm.wasm", "libduckdb.dylib",
   "LICENSE", "DUCKDB-LICENSE", "MOONBIT-CORE-LICENSE", "MOONBIT-CORE-NOTICE"]

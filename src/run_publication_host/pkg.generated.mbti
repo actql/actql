@@ -247,6 +247,8 @@ pub fn check_client_model_original_parked_origin(@physical_resources.OriginalRes
 
 pub fn check_client_model_original_parked_storage_origin(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @run_publication.ModelOriginalResourceDocument, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue) -> Result[Unit, ClientModelOriginalOriginIssue]
 
+pub fn check_client_model_original_pre_restore_origin(ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @run_publication.ModelOriginalResourceDocument, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[Unit, ClientModelOriginalOriginIssue]
+
 pub fn check_client_model_original_storage_origin(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, @run_publication.ModelOriginalResourceDocument, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue) -> Result[Unit, ClientModelOriginalOriginIssue]
 
 pub fn check_client_model_raw_capture_current(ClientModelRawCaptureRegistration) -> Result[Unit, ClientModelRawCaptureIssue]
@@ -690,6 +692,14 @@ pub fn client_local_runtime_policy_upgrade_body(ClientLocalRuntimePolicyUpgrade)
 pub fn client_local_runtime_policy_upgrade_policy(ClientLocalRuntimePolicyUpgrade) -> ClientLocalRunPolicyUpgrade
 
 pub fn client_local_runtime_policy_upgrade_runtime(ClientLocalRuntimePolicyUpgrade) -> ClientNativeLocalScalarRuntimePair
+
+pub fn client_local_runtime_successor_metadata(String, String, String, String, String, String, String, String, String, String) -> Result[ClientLocalRuntimeSuccessorMetadata, ClientLocalRuntimeSuccessorIssue]
+
+pub fn client_local_runtime_successor_metadata_body(ClientLocalRuntimeSuccessorMetadata) -> Bytes
+
+pub fn client_local_runtime_successor_metadata_cid(ClientLocalRuntimeSuccessorMetadata) -> String
+
+pub fn client_local_runtime_successor_metadata_field(ClientLocalRuntimeSuccessorMetadata, String) -> String?
 
 pub fn client_model_current_state_match_current(@physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin], @physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> @physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin]?
 
@@ -1603,6 +1613,8 @@ pub fn prepared_client_publication_data_policy_cid(PreparedClientProgram) -> Str
 
 pub fn prepared_client_publication_policy_bodies(PreparedClientProgram, Int, Int, Int) -> Result[Array[(String, String, String)], @program_check.LocalDependencyBodyIssue]
 
+pub fn prepared_client_requires_task_compilation(PreparedClientProgram) -> Bool
+
 pub fn prepared_client_result_count(PreparedClientProgram) -> Int
 
 pub fn prepared_client_result_name(PreparedClientProgram, Int) -> String?
@@ -1624,6 +1636,8 @@ pub fn project_client_remote_task_run(ClientRemoteTaskProgress, String, Bool, Ar
 pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
 pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph, String, String, () -> Bool) -> Result[ClientInferSavedCallScope, ClientInferCallScopeIssue]
+
+pub fn read_client_local_runtime_successor_metadata(Bytes) -> Result[ClientLocalRuntimeSuccessorMetadata, ClientLocalRuntimeSuccessorIssue]
 
 pub fn[E] read_client_retained_run_journal(ClientRequestIdentity, (String, String) -> Result[ClientJournalPhysicalRow?, E], (ClientJournalPhysicalRow) -> Result[ClientRunJournalInspection, E], E) -> Result[ClientRetainedRunJournalRow?, ClientRunJournalAppendIssue[E]]
 
@@ -2667,6 +2681,14 @@ pub(all) enum ClientLocalRunPolicyProfileIssue {
 type ClientLocalRunPolicyUpgrade
 
 type ClientLocalRuntimePolicyUpgrade
+
+pub(all) enum ClientLocalRuntimeSuccessorIssue {
+  InvalidOriginal
+  CapacityExceeded
+  Encoding
+} derive(Eq, @debug.Debug)
+
+type ClientLocalRuntimeSuccessorMetadata
 
 pub(all) enum ClientModelInputCapacityIssue {
   ForeignCallScope
