@@ -3,6 +3,7 @@
 #endif
 
 #include "owned_capacity.h"
+#include "owned_region.h"
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <string.h>
@@ -28,6 +29,7 @@ struct actql_owned_capacity {
     uint64_t backing_device;
     uint64_t backing_inode;
     bool fd_backed;
+    bool extent_domain;
     uint64_t generation;
     unsigned char recipe[32];
     bool transferred;
@@ -82,6 +84,7 @@ int actql_native_owned_acquire(size_t capacity, uint64_t generation,
     lease->backing_device = 0;
     lease->backing_inode = 0;
     lease->fd_backed = false;
+    lease->extent_domain = false;
     lease->generation = generation;
     memcpy(lease->recipe, recipe, sizeof(lease->recipe));
     lease->transferred = false;
@@ -313,28 +316,36 @@ int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation) {
     return status;
 }
 
-int actql_native_owned_try_close(actql_owned_capacity **slot) {
-    if (slot == NULL) return ACTQL_OWNED_INVALID;
-    actql_owned_capacity *lease = *slot;
-    if (lease == NULL) return ACTQL_OWNED_OK;
-    /* The original owner must exclude concurrent callers before final close. */
-    lock_capacity(lease);
+static int prepare_capacity_close_locked(actql_owned_capacity *lease) {
     if (lease->active_scopes != 0) {
-        unlock_capacity(lease);
         return ACTQL_OWNED_BUSY;
     }
     lease->closing = true;
     for (size_t i = lease->control_pages; i < lease->page_count; i++) {
         if (lease->extents[i].pages == 0) continue;
         if (lease->extents[i].pages == SIZE_MAX || !lease->extents[i].retired) {
-            unlock_capacity(lease);
             return ACTQL_OWNED_BUSY;
         }
         int status = clean_retired(lease, i);
         if (status != ACTQL_OWNED_OK) {
-            unlock_capacity(lease);
             return status;
         }
+    }
+    return ACTQL_OWNED_OK;
+}
+
+int actql_native_owned_try_close(actql_owned_capacity **slot) {
+    if (slot == NULL) return ACTQL_OWNED_INVALID;
+    actql_owned_capacity *lease = *slot;
+    if (lease == NULL) return ACTQL_OWNED_OK;
+    /* An interior domain is retired through its original view, never munmap. */
+    if (lease->extent_domain) return ACTQL_OWNED_INVALID;
+    /* The original owner must exclude concurrent callers before final close. */
+    lock_capacity(lease);
+    int prepared = prepare_capacity_close_locked(lease);
+    if (prepared != ACTQL_OWNED_OK) {
+        unlock_capacity(lease);
+        return prepared;
     }
     size_t length = lease->length;
     if (munmap(lease, length) != 0) {

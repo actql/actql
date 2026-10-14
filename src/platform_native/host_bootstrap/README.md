@@ -55,9 +55,10 @@ acknowledges FD close, process stop or settlement of independent FD overhead.
 The initial control declaration does not fund an unadopted worker or VM.
 
 Only `physical_resources` makes accounting decisions. The wrapper forwards
-cumulative delegation reports and conservative unknown-final settlement. This
-first slice supports logical quotas in the same arena domain; a delegation with
-retained/execution byte envelopes is explicitly unavailable. It cannot fund a
+cumulative delegation reports and conservative unknown-final settlement. The original logical-only delegation entry
+continues to reject retained/execution byte envelopes. The backed-region entry
+uses the existing Common Owner to suballocate byte limits within the SAME
+rounded allocation; it does not reserve those backing bytes again. It cannot fund a
 separate MAP_PRIVATE worker, stock Wasmtime, Python heap, loader or unrelated
 Native Root/Reader allocation. Their quantities remain Unknown. There is no
 public raw Ledger/pointer export and no Boolean stop or durable-ACK API.
@@ -84,3 +85,46 @@ acceptance remain unverified; unknown domains remain None.
 Fault-injected physical retirement and process-parent-death acceptance remain
 separate pending boundaries. The existing original success/failure artifacts
 and numerical limits are unchanged.
+
+## Original FD-backed region adapter
+
+The private Native adapter binds the Common backed-region/delegation to the
+original Host, rounded allocation, child original and same-provider physical
+range loan. Logical reservation precedes physical lending. Post-reservation
+failure retains the same typed pending carrier, Common borrow and physical
+record. A caller must supply an entered original backing scope; the C provider
+checks the actual page window and FD backing independently of Core data.
+
+The existing trusted physical caller may return only after that child's scoped
+stop and mapped-view/FD-borrower cleanup. This API does not observe either fact
+and is not a worker startup port. Physical range return precedes original Common
+settlement; failure keeps the same loan for cleanup. Unknown final usage remains
+conservative. Region close returns the original accounting borrow only after
+children settle; allocation retirement and Host mapping close remain separate.
+Independent overhead requires a separately backed selected domain and is still
+unavailable in this arena-only supplier. No ordinary worker or numerical
+whole-VM profile is enabled.
+
+The bounded extent projection separates the actual FD identity, generation,
+recipe and absolute page window from the original Common payload offset/length.
+The immutable DATA does not carry child or loan custody. Each original loan
+captures at most one projection and attempts at most one view mapping. Physical
+failure preserves its same partial view; cleanup can retry that view and is
+idempotent after success. Pending mapped-view retirement prevents range return
+and Core settlement. Region closing refuses new mapping and cached projection
+reuse, while same-view cleanup remains available. No caller FD is closed here.
+
+The region conformance executable consumes one caller-owned private 64-page FD.
+It tests live range/view custody before worker dispatch. It does not execute a
+worker/VM or independently cover the mapping/FD/process/control overhead of an
+ordinary product profile. The original selected funding boundaries are unchanged.
+
+The domain custody port retains the same Native Host/child/view through physical
+acquisition, one-shot transfer, scoped use and original cleanup. A pending
+domain prevents outer-view cleanup even when acquisition failed; it first
+returns through its same typed cleanup carrier. Scope leave and cleanup remain
+available after parent closing. Closing the domain does not release the view,
+FD, parent range or logical quota. Successful domain cleanup removes the
+view's backreference; successful parent settlement removes the loan's view
+backreference. Closed aliases are idempotent only after the original Host and
+child identity checks. No new Run/Recovery Owner or Python success inference.

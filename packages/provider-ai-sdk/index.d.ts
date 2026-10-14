@@ -11,6 +11,12 @@ export type ResponseLimits = Readonly<{
   maxBytes: number; maxChunkBytes: number; maxChunks: number;
   maxHeaderBytes: number; observedHeaders?: readonly string[];
 }>;
+/** Private original Host/Call clamps, not pre-acquisition funding or a grant.
+ * Backing bytes conservatively bound distinct allocations over the Call's
+ * lifetime. Node/TLS queue/allocator coverage must be supplied separately. */
+export type PhysicalAcquisitionLimits = Readonly<{
+  maxPlaintextBytes: number; maxBorrowedBackingBytes: number; maxReads: number;
+}>;
 /** Borrowed existing Host selections. These DATA types issue no grants. */
 export type QuantityCapacity = Readonly<{
   limits: Readonly<{tokens: bigint; costUnits: bigint; durationMs: bigint}>;
@@ -97,12 +103,14 @@ export declare function createInstalledOpenAIChatRegistration(
  * original Host admissions; it is not ambient fetch, numerical funding,
  * permission or accepted live/public capability. */
 export type UndiciOpenAIChatRegistrationOptions =
-  Omit<OpenAIChatRegistrationOptions, 'fetch'>;
+  Omit<OpenAIChatRegistrationOptions, 'fetch'> &
+  Readonly<{physicalAcquisitionLimits: PhysicalAcquisitionLimits}>;
 export declare function createInstalledUndiciOpenAIChatRegistration(
   options: UndiciOpenAIChatRegistrationOptions,
 ): ModelProviderRegistration;
 export type UndiciOpenAIChatMaterialsRegistrationOptions =
-  Omit<OpenAIChatMaterialsRegistrationOptions, 'fetch'>;
+  Omit<OpenAIChatMaterialsRegistrationOptions, 'fetch'> &
+  Readonly<{physicalAcquisitionLimits: PhysicalAcquisitionLimits}>;
 export declare function createInstalledUndiciOpenAIChatRegistration(
   options: UndiciOpenAIChatMaterialsRegistrationOptions,
 ): ModelProviderRegistration;

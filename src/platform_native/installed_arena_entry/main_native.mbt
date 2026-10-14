@@ -56,6 +56,15 @@ extern "C" fn register_original_backing_scope_roots(
 ) -> Unit = "actql_native_control_register_backing_scope_roots"
 
 ///|
+/// Code registration only. The C declaration and managed-input ownership must
+/// be checked against this source's actual regular emission before linking.
+extern "C" fn register_original_fd_root(
+  acquire : FuncRef[
+    (@control.InstalledArenaHost, Int) -> @control.InstalledArenaReply,
+  ],
+) -> Unit = "actql_native_control_register_fd_root"
+
+///|
 fn original_host(
   reply : @control.InstalledArenaReply,
 ) -> @control.InstalledArenaHost? {
@@ -130,4 +139,7 @@ fn main {
       @control.leave_installed_arena_backing_scope_reply(original, loan)
     },
   )
+  register_original_fd_root(fn(original, fd) {
+    @control.acquire_installed_arena_fd_reply(original, fd)
+  })
 }

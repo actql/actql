@@ -15,6 +15,9 @@ import {interceptSdkRequest, pollSdkPreparation, prepareSdkTransport,
   progressSdkOriginalIoCleanup} from './_internal/intercepted-request.mjs';
 
 const requestLimits = {maxBytes: 256, maxHeaderBytes: 1024, maxHeaders: 8};
+// Explicit private fixture clamps, not an adopted numerical profile.
+const physicalAcquisitionLimits = {maxPlaintextBytes: 65536,
+  maxBorrowedBackingBytes: 131072, maxReads: 64};
 const responseLimits = {maxBytes: 256, maxChunkBytes: 256, maxChunks: 8,
   maxHeaderBytes: 1024, observedHeaders: ['content-type', 'content-encoding']};
 const originalBody = '{"model":"synthetic","messages":[{"role":"user","content":"é\\n雪"}]}';
@@ -44,7 +47,7 @@ async function fixture(t, respond) {
   server.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const endpoint = `http://127.0.0.1:${server.address().port}/chat/completions`;
-  const fetch = createOriginalUndiciFetch({endpoint, requestLimits, responseLimits});
+  const fetch = createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits});
   const preparations = [];
   t.after(async () => {
     try {
@@ -375,7 +378,7 @@ test('actual pinned OpenAI SDK resumes only into original loopback raw-only tran
   const localRequest = {maxBytes: 4096, maxHeaderBytes: 4096, maxHeaders: 16};
   const localResponse = {...responseLimits, maxBytes: 4096, maxChunkBytes: 512};
   const fetch = createOriginalUndiciFetch({endpoint: f.endpoint,
-    requestLimits: localRequest, responseLimits: localResponse});
+    requestLimits: localRequest, responseLimits: localResponse, physicalAcquisitionLimits});
   const handle = prepareOpenAIChatRequest({modelId: 'synthetic-model',
     baseURL: f.endpoint.slice(0, -'/chat/completions'.length), apiKey: 'synthetic-only',
     maxRequestBytes: localRequest.maxBytes, maxHeaderBytes: localRequest.maxHeaderBytes,
@@ -428,7 +431,7 @@ test('connecting Client destroy cannot retire the original socket before its rea
     if (handle !== undefined) await until(() => cleanupSdkPreparation(handle), value => value === true);
   });
   const endpoint = 'http://127.0.0.1:1/chat/completions';
-  const fetch = createOriginalUndiciFetch({endpoint, requestLimits, responseLimits});
+  const fetch = createOriginalUndiciFetch({endpoint, requestLimits, responseLimits, physicalAcquisitionLimits});
   handle = interceptSdkRequest({endpoint, maxRequestBytes: 256,
     maxHeaderBytes: 1024, maxHeaders: 8, notify() {}, async runSdk(intercepted, signal) {
       await intercepted(endpoint, {method: 'POST', body: '{}', signal});
