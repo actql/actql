@@ -22,23 +22,64 @@ test "composition assertion and Effect retain the existing named Result owner" {
 }
 
 ///|
-test "Effect accepts existing literal values and refuses computed or foreign Result inputs" {
+test "Effect evaluates pure SET values and refuses foreign Result inputs" {
   let prefix = "FROM pair |> RESULT updates |> EFFECT save UPDATE TARGET 'connector://c/T' MAPPING m FROM RESULT "
-  for
-    tail in [
-      "unknown ID x SET (Name = y)", "updates ID x SET (Name = y + 1)", "updates ID missing SET (Name = y)",
-      "updates ID x SET (Name = y, Name = x)",
-    ] {
-    assert_true(
-      compile(
-        @query.parse_query(prefix + tail, syntax_limits()).unwrap(),
-        pair_context(),
-        construction_limits(),
-      )
-      is Err(_),
-      msg=tail,
+  let refused = [
+    "unknown ID x SET (Name = y)",
+    "updates ID missing SET (Name = y)",
+    "updates ID x SET (Name = y, Name = x)",
+  ]
+  for index in 0..<refused.length() {
+    let result = compile(
+      @query.parse_query(prefix + refused[index], syntax_limits()).unwrap(),
+      pair_context(), construction_limits(),
     )
+    match (index, result) {
+      (0, Err(UnsupportedEffect)) | (1, Err(UnknownColumn)) |
+      (2, Err(DuplicateOutput)) => ()
+      _ => fail("wrong refusal for " + refused[index])
+    }
   }
+  // The adopted pure-SET contract evaluates against the selected Result in
+  // the ordinary Relation owner, then supplies a field to the closed Effect.
+  let computed = compile(
+    @query.parse_query(prefix + "updates ID x SET (Name = y + 1)", syntax_limits()).unwrap(),
+    pair_context(), construction_limits(),
+  ).unwrap()
+  assert_eq(@program.exports(computed), [("updates", "main", "rows")])
+  let stage = @wire.open_object(@program.stage_body(@program.stages(computed).last().unwrap())).unwrap()
+  let ports = @wire.open_object(@wire.required(stage, "results").unwrap()).unwrap()
+  let capture = @wire.open_object(@wire.required(ports, "aql_private_update").unwrap()).unwrap()
+  let fields = @wire.elements(@wire.required(capture, "fields").unwrap()).unwrap()
+    .map(field => @wire.text(field).unwrap())
+  assert_eq(fields.length(), 2)
+  assert_eq(fields[0], "x")
+  assert_true(fields[1] != "x" && fields[1] != "y")
+  let steps = @wire.elements(@wire.required(stage, "steps").unwrap()).unwrap()
+  let derives = steps.filter(step => {
+    let step = @wire.open_object(step).unwrap()
+    @wire.lookup(step, "derive").map(body => {
+      @wire.lookup(@wire.open_object(body).unwrap(), fields[1]) is Some(_)
+    }).unwrap_or(false)
+  })
+  assert_eq(derives.length(), 1)
+  let derive_step = @wire.open_object(derives[0]).unwrap()
+  let derive = @wire.open_object(@wire.required(derive_step, "derive").unwrap()).unwrap()
+  let expression = @wire.open_object(@wire.required(derive, fields[1]).unwrap()).unwrap()
+  let operands = @wire.elements(@wire.required(expression, "add").unwrap()).unwrap()
+  assert_eq(operands.length(), 2)
+  assert_eq(@wire.text(@wire.required(@wire.open_object(operands[0]).unwrap(), "field").unwrap()).unwrap(), "y")
+  assert_eq(@wire.number(@wire.required(@wire.open_object(operands[1]).unwrap(), "literal").unwrap()).unwrap(), 1.0)
+  let public = @wire.open_object(@wire.required(ports, "rows").unwrap()).unwrap()
+  assert_eq(@wire.text(@wire.required(derive_step, "from").unwrap()),
+    @wire.text(@wire.required(public, "from").unwrap()))
+  let effect = @wire.open_object(@wire.required(@wire.open_object(@wire.required(stage, "effects").unwrap()).unwrap(), "save").unwrap()).unwrap()
+  let update = @wire.open_object(@wire.required(effect, "update").unwrap()).unwrap()
+  assert_eq(@wire.text(@wire.required(@wire.open_object(@wire.required(update, "from").unwrap()).unwrap(), "result").unwrap()).unwrap(), "aql_private_update")
+  assert_eq(@wire.text(@wire.required(update, "id").unwrap()).unwrap(), "x")
+  let assignment = @wire.open_object(@wire.required(@wire.open_object(@wire.required(update, "set").unwrap()).unwrap(), "Name").unwrap()).unwrap()
+  assert_eq(@wire.text(@wire.required(assignment, "field").unwrap()).unwrap(), fields[1])
+  assert_eq(semantic(computed).split("\"values\":{").length(), 2)
   let actual = compile(
     @query.parse_query(
       prefix + "updates ID x SET (Name = 'é\\r\\n')",
