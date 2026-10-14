@@ -140,6 +140,73 @@ for (const empty of [true, false]) {
   });
 }
 
+test('actual installed report cleanup keeps the original reservation until all three reports retire', async t => {
+  const value = await fixture({paths: null, glob: '*.csv'});
+  t.after(() => moon.clientProgramRowSourceClose(value.run));
+  const reportCapacity = moon.clientProgramRowSourceListingReportCapacity(7n, 9n);
+  const ledger = checked(moon.clientProgramAcquisitionLedger(1, 1,
+    32768n, 100000000n, 100000000n, 0));
+  let reads = 0;
+  const rows = ['d', 'e', 'f'].map(ch => item(ch, `${ch}.csv`));
+  const adapter = await createInstalledRowSource({moon,
+    declaration: value.declaration, declared: value.declared,
+    environmentWire: value.environmentWire,
+    connectorId: 'fixture', connectorRegistration: 'fixture', connectorRevision: 'fixture/0.1',
+    referenceIssuer: value.issuer, bindingCid: token('c'), readOperation: 'read',
+    listingReportCapacity: reportCapacity,
+    site: {connection: 'fixture:files', issueReadGrant: () => ({}), close() {}},
+    authorization: {authorize: async () => ({action: 'dispatch'}),
+      accountConfiguration: '{}', context: {contextCid: token('b')}},
+    physicalTarget: (resource, fields) => ({resource, fields}),
+    limits: {maxPages: 4, maxPageBytes: 8192, maxPageRows: 9, maxCaptureRows: 3},
+    readPages: async ({listing, chargePage}) => {
+      reads++;
+      await listing.beginRequest(undefined);
+      const body = Buffer.from(JSON.stringify({items: rows,
+        request_token: null, next_token: null}));
+      assert.equal(await listing.consumePage(body, {charge: chargePage(body)}), 3);
+    }});
+  const options = {preparedProgram: value.prepared, registry: value.registry,
+    values: value.values, fragment: value.fragment, ordered: value.ordered};
+  const captured = await adapter.openCapture({...options, ledger});
+  // A later assertion failure must not leave this known finite Core cleanup
+  // unfinished. Each invocation advances the same RowRun, never reacquires it.
+  t.after(() => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try { captured.close(); return; }
+      catch (error) { if (error.code !== 'MoonBitHostFailure') throw error; }
+    }
+    assert.fail('original report cleanup did not settle');
+  });
+  const evidence = JSON.parse(await captured.issueSourceEvidence({
+    authorityScopeCid: token('b'),
+    effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid}));
+  assert.deepEqual(evidence.file_listing_reports, {row_count: 3,
+    rows: ['d', 'e', 'f'].map((ch, ordinal) => ({row_ordinal: ordinal,
+      resource_ref_cid: token(ch), version: '1',
+      reported_media_type: null, media_type: null}))});
+  const live = moon.clientProgramMultiCapturedLedgerUsage(ledger);
+  assert.ok(live[6] > 0n && live[7] > 0n);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    assert.throws(() => captured.close(), {code: 'MoonBitHostFailure'});
+    const pending = moon.clientProgramMultiCapturedLedgerUsage(ledger);
+    assert.equal(pending[5], live[5], 'original holding stays reserved');
+    assert.equal(pending[6], live[6], 'retention is not refunded by partial reclaim');
+    assert.equal(pending[7], live[7], 'encoding/cleanup workspace stays reserved');
+    await assert.rejects(captured.issueSourceEvidence({authorityScopeCid: token('b'),
+      effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid}),
+    {code: 'MoonBitHostFailure'});
+  }
+  captured.close();
+  const retired = moon.clientProgramMultiCapturedLedgerUsage(ledger);
+  assert.equal(retired[5], 0n);
+  assert.equal(retired[6], 0n);
+  assert.equal(retired[7], 0n);
+  captured.close();
+  assert.deepEqual(moon.clientProgramMultiCapturedLedgerUsage(ledger), retired);
+  assert.equal(reads, 1, 'cleanup retries never reacquire the Source');
+});
+
 test('SQL and Pipe LIST_FILES use the installed capture boundary without a caller-authored filter', async t => {
   for (const [text, format] of [
     ["SELECT name FROM LIST_FILES(docs.invoices, glob => '**/*.csv')", 'sql'],
