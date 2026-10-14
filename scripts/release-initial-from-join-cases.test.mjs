@@ -165,7 +165,7 @@ test('right schema has its own logical identity and only byte-identical shared c
 test('all three forms assert the same non-null key before sorting and hide it only after total order', () => {
   for (const {text} of selectInitialFromJoinCases(vector)) {
     assert.equal(text.split('COALESCE(amount, 0)').length - 1, 1);
-    const key = text.indexOf('SET initial_join_amount_key = COALESCE(amount, 0)');
+    const key = text.indexOf('EXTEND COALESCE(amount, 0) AS initial_join_amount_key');
     const asserted = text.indexOf('ASSERT UNIQUE BY (initial_join_amount_key, tag)');
     const sorted = text.indexOf('ORDER BY amount ASC NULLS FIRST, tag, initial_join_amount_key');
     const projected = text.lastIndexOf('SELECT id, amount, tag');

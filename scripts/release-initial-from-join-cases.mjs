@@ -25,7 +25,7 @@ export function selectInitialFromJoinCases(vector) {
   // The duplicate-producing JOIN has no provider-arrival order certificate.
   // A non-null helper is asserted by the existing key Owner, never inferred
   // from these expected values. Projection drops it only after total order.
-  const key = 'SET initial_join_amount_key = COALESCE(amount, 0) |> ASSERT UNIQUE BY (initial_join_amount_key, tag)';
+  const key = 'EXTEND COALESCE(amount, 0) AS initial_join_amount_key |> ASSERT UNIQUE BY (initial_join_amount_key, tag)';
   const order = 'ORDER BY amount ASC NULLS FIRST, tag, initial_join_amount_key';
   const finalProjection = 'SELECT id, amount, tag';
   const columns = vector.expected_fields.map(({name, type, nullable}) => ({name, contract: {type, nullable}}));
