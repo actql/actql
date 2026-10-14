@@ -1,4 +1,38 @@
 ///|
+type NativeHttpLibraryLoadFailure
+
+///|
+pub fn NativeHttpLibraryLoadFailure::issue(
+  _self : NativeHttpLibraryLoadFailure,
+) -> NativeHttpIssue {
+  UnsupportedTarget
+}
+
+///|
+pub fn NativeHttpLibraryLoadFailure::retry_cleanup(
+  _self : NativeHttpLibraryLoadFailure,
+) -> Result[Unit, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+type NativeHttpClientCreateFailure
+
+///|
+pub fn NativeHttpClientCreateFailure::issue(
+  _self : NativeHttpClientCreateFailure,
+) -> NativeHttpIssue {
+  UnsupportedTarget
+}
+
+///|
+pub fn NativeHttpClientCreateFailure::retry_cleanup(
+  _self : NativeHttpClientCreateFailure,
+) -> Result[Library, NativeHttpIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 type Library
 
 ///|
@@ -113,4 +147,40 @@ pub fn Client::response_limit(_self : Client) -> Result[Int64, NativeHttpIssue] 
 ///|
 pub fn Client::close(_self : Client) -> Bool {
   false
+}
+
+///|
+pub fn load_library_with_custody(
+  _path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Library, NativeHttpLibraryLoadError] {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(RefusedBeforeAcquisition(InvalidConfiguration))
+  }
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
+pub fn Library::create_client_with_custody(
+  _self : Library,
+  _ca_path : String,
+  _certificate_path : String,
+  _key_path : String,
+  _max_response_bytes : Int64,
+  _connect_timeout_ms : Int,
+  _operation_timeout_ms : Int,
+) -> Result[Client, NativeHttpClientCreateError] {
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
+pub fn Library::create_authenticated_client_with_custody(
+  _self : Library,
+  _ca_path : String,
+  _authentication : NativeHttpAuthentication,
+  _max_response_bytes : Int64,
+  _connect_timeout_ms : Int,
+  _operation_timeout_ms : Int,
+) -> Result[Client, NativeHttpClientCreateError] {
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
 }
