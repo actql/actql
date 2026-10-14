@@ -1,4 +1,31 @@
 ///|
+struct NativeRemoteTransferJournalOpenFailure {
+  original_issue : NativeRemoteTransferJournalIssue
+  mut database : @sqlite.NativeSqliteOpenFailure?
+}
+
+///|
+pub fn NativeRemoteTransferJournalOpenFailure::issue(
+  self : NativeRemoteTransferJournalOpenFailure,
+) -> NativeRemoteTransferJournalIssue {
+  self.original_issue
+}
+
+///|
+pub fn NativeRemoteTransferJournalOpenFailure::retry_cleanup(
+  self : NativeRemoteTransferJournalOpenFailure,
+) -> Result[Unit, NativeRemoteTransferJournalIssue] {
+  guard self.database is Some(original) else { return Ok(()) }
+  match original.retry_cleanup() {
+    Ok(_) => {
+      self.database = None
+      Ok(())
+    }
+    Err(issue) => Err(Physical(issue))
+  }
+}
+
+///|
 struct Journal {
   database : @sqlite.Database
   max_chunks : Int
