@@ -1755,6 +1755,14 @@
       "line": 139,
       "count": 1,
       "reason": "Reviewed October 12 existing merged #1659 decoder refusal fixture: forged version0.2 must yield CustodyLost; exact negative context only, not a production reader or adopted wire."
+    },
+    {
+      "path": "scripts/local-checks-guard.mjs",
+      "token": "actql-local-heavy-pool/1",
+      "contextSha256": "82409bf7b4f8ca3f6653717eff83ab78dddb0c4a61b64114952296cbcdd6b60b",
+      "line": 81,
+      "count": 1,
+      "reason": "Reviewed October 15 local verification disposition for the existing #2053 cooperative heavy pool protocol. This exact script context and count one preserve live-owner and legacy-lock compatibility; no product contract, Program, Wire, generated-runtime permission or initial 0.1 baseline changes."
     }
   ]
 }

@@ -26,6 +26,7 @@ pub(all) struct ClientRunJournalEncoding {
 pub fn client_run_journal_row_body(
   record : ClientRunJournalEncoding,
   local_run_policy_originals? : String? = None,
+  run_observation_originals? : String? = None,
 ) -> Result[Bytes, ClientJournalEncodingIssue] {
   let request = match client_request_identity_record_wire(record.request) {
     Ok(value) => value
@@ -75,6 +76,10 @@ pub fn client_run_journal_row_body(
       writer,
       @publication.publication_contract_json(record.definition),
     )
+    if run_observation_originals is Some(originals) {
+      @encode.key(writer, "run_observation_originals")
+      @encode.string_value(writer, originals)
+    }
     @encode.key(writer, "version")
     @encode.string_value(writer, "actql-native-client-run-row/0.1")
     @encode.end_object(writer)

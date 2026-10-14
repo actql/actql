@@ -45,6 +45,22 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_status(actql_bootstrap_backing *recor
     return record->status;
 }
 
+/* Same external carrier, reservation order and provider as anonymous acquire.
+ * The trusted original caller retains the borrowed FD; no implicit dup/close. */
+MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire_fd(int32_t fd, int64_t bytes,
+                                                  int64_t generation,
+                                                  const unsigned char *recipe) {
+    actql_bootstrap_backing *record = moonbit_make_external_object(
+        keep_physical_custody, sizeof(*record));
+    record->lease = NULL;
+    record->status = ACTQL_OWNED_INVALID;
+    if (fd >= 0 && bytes > 0 && (uint64_t)bytes <= SIZE_MAX && generation > 0) {
+        record->status = actql_native_owned_acquire_fd(fd, (size_t)bytes,
+                           (uint64_t)generation, recipe, &record->lease);
+    }
+    return record;
+}
+
 MOONBIT_FFI_EXPORT int64_t actql_bootstrap_control_bytes(actql_bootstrap_backing *record) {
     if (record->lease == NULL) return -1;
     return (int64_t)(record->lease->control_pages * record->lease->page_size);
