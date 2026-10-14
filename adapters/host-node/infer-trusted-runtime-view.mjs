@@ -13,30 +13,57 @@ const nominal = value => value !== null &&
 
 // Inspect and retain the same descriptor values, without invoking getters or
 // deep-copying original handles. Reflection does not isolate hostile code.
-function originals(value) {
+function checkOriginalShape(value) {
   if (!nominal(value) || Array.isArray(value)) {
     fail('InferTrustedRuntimeOriginalUnavailable');
   }
   const names = Reflect.ownKeys(value);
-  if (names.length !== fields.length ||
-      names.some(name => typeof name !== 'string' || !fields.includes(name))) {
+  if (names.length !== fields.length) {
     fail('InferTrustedRuntimeOriginalUnavailable');
   }
-  const retained = {};
-  for (const name of fields) {
-    const descriptor = Object.getOwnPropertyDescriptor(value, name);
-    if (descriptor === undefined || descriptor.enumerable !== true ||
-        !Object.hasOwn(descriptor, 'value')) {
+  for (let index = 0; index < names.length; index++) {
+    const name = names[index];
+    if (typeof name !== 'string' || !fields.includes(name)) {
       fail('InferTrustedRuntimeOriginalUnavailable');
     }
-    const original = descriptor.value;
-    if (name === 'target' ? typeof original !== 'string' || original.length === 0
-      : !nominal(original)) {
-      fail('InferTrustedRuntimeOriginalUnavailable');
-    }
-    retained[name] = original;
   }
+}
+
+// Issue and recheck use this SAME one-read validation. No getter or second
+// property read can replace the independently supplied original descriptor.
+function originalValue(value, name) {
+  const descriptor = Object.getOwnPropertyDescriptor(value, name);
+  if (descriptor === undefined || descriptor.enumerable !== true ||
+      !Object.hasOwn(descriptor, 'value')) {
+    fail('InferTrustedRuntimeOriginalUnavailable');
+  }
+  const original = descriptor.value;
+  if (name === 'target' ? typeof original !== 'string' || original.length === 0
+    : !nominal(original)) {
+    fail('InferTrustedRuntimeOriginalUnavailable');
+  }
+  return original;
+}
+
+function originals(value) {
+  checkOriginalShape(value);
+  const retained = {};
+  for (const name of fields) retained[name] = originalValue(value, name);
   return Object.freeze(retained);
+}
+
+// Recheck does not retain another eight-field snapshot or callback/context.
+// Still validate ALL descriptors before reporting Changed, preserving the
+// original malformed-input priority and each value's one-read observation.
+function checkOriginals(value, retained) {
+  checkOriginalShape(value);
+  let changed = false;
+  for (let index = 0; index < fields.length; index++) {
+    const name = fields[index];
+    const original = originalValue(value, name);
+    if (!changed && retained[name] !== original) changed = true;
+  }
+  if (changed) fail('InferTrustedRuntimeOriginalChanged');
 }
 
 class TrustedRuntimeView {
@@ -58,10 +85,7 @@ class TrustedRuntimeView {
 
   static check(view, actual) {
     const retained = TrustedRuntimeView.#binding(view);
-    const selected = originals(actual);
-    if (fields.some(name => retained[name] !== selected[name])) {
-      fail('InferTrustedRuntimeOriginalChanged');
-    }
+    checkOriginals(actual, retained);
   }
 
   static forget(view, host, generation) {
