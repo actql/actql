@@ -50,7 +50,9 @@ test "original inventory live allows parked borrow but cannot allocate or unpark
   )
   assert_eq(ledger_usage(ledger), usage)
   assert_eq(ledger.next_capacity_serial, serial)
-  assert_true(physical_equal(ledger.original_inventory.unwrap().park.unwrap(), fence))
+  assert_true(
+    physical_equal(ledger.original_inventory.unwrap().park.unwrap(), fence),
+  )
   assert_true(original_resource_park_current(park, origin) is Some(_))
   // Existing WB-only invalidation is not a journal COMMIT/admission receipt.
   resource_park_test_invalidate(park)
@@ -76,7 +78,10 @@ test "original inventory live rejects copied foreign and swapped bootstrap ident
   assert_true(original_ledger_inventory_live(foreign_identity))
   let inventory = ledger.original_inventory.unwrap()
   // A bad backend record cannot replace the actual bootstrap by matching data.
-  ledger.original_inventory = Some({ ..inventory, bootstrap: foreign_bootstrap, })
+  ledger.original_inventory = Some({
+    ..inventory,
+    bootstrap: foreign_bootstrap,
+  })
   assert_false(original_ledger_inventory_live(identity))
   ledger.original_inventory = Some(inventory)
   assert_true(original_ledger_inventory_live(identity))
@@ -111,9 +116,7 @@ test "original inventory live never resets spent serial or unknown quantities" {
   configure_quantities(ledger, amounts).unwrap()
   let bootstrap = reserve_capacity(ledger, 3L, 2L).unwrap()
   let identity = begin_original_ledger_inventory(ledger, bootstrap, 4, 0, 0).unwrap()
-  let dispatched = reserve_attempt(
-    ledger, 0L, 0L, 0L, quantities=Some(amounts),
-  ).unwrap()
+  let dispatched = reserve_attempt(ledger, 0L, 0L, 0L, quantities=Some(amounts)).unwrap()
   mark_quantities_uncertain(ledger, dispatched).unwrap()
   let spent = reserve_capacity(ledger, 0L, 0L).unwrap()
   settle_capacity(ledger, spent).unwrap()
