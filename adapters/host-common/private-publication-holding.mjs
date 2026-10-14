@@ -3,6 +3,11 @@
 const fail = code => {
   throw Object.assign(new Error(code), {code});
 };
+const pendingCleanup = owner => Object.assign(
+  new Error('PrivatePublicationHoldingCleanupPending'),
+  {code: 'PrivatePublicationHoldingCleanupPending',
+    cleanupPending: true, cleanupHandle: owner},
+);
 
 export function preparePrivatePublicationHolding(store, binding, rawBytes) {
   const raw = binding?.name === 'model_raw_response';
@@ -39,10 +44,15 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
   const releaseUnused = async () => {
     if (constructionCleanup !== undefined) {
       await constructionCleanup.release();
+      // False can mean an already retired handle OR a still-owned visible
+      // holding after an unknown commit. Only this same handle's status can
+      // distinguish them; pending custody must survive for exact retry.
+      if (constructionCleanup.status().pending !== false) throw pendingCleanup(owner);
       constructionCleanup = undefined;
     }
     for (const handle of prepared ?? []) {
       if (handle.status().pending === true) await handle.release();
+      if (handle.status().pending !== false) throw pendingCleanup(owner);
     }
   };
   const rawBinding = raw ? Object.freeze({semanticCid: owned.semanticCid,
@@ -80,8 +90,7 @@ export function preparePrivatePublicationHolding(store, binding, rawBytes) {
         }
         if (prepared === undefined) {
           if (constructionCleanup !== undefined) {
-            await constructionCleanup.release();
-            constructionCleanup = undefined;
+            await releaseUnused();
           }
           let encrypted;
           try {

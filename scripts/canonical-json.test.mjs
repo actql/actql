@@ -41,10 +41,14 @@ test('contract pointers resolve exact bodies including escaped member names', ()
   }
 });
 
-for (const name of ['check_reason', 'check_outcome']) {
+for (const [name, path, pointer] of [
+  ...['check_reason', 'check_outcome', 'source_evidence', 'run_receipt',
+    'captured_run'].map(name => [name,
+    'spec/contracts/actql-protocol-schemas.json', `/artifact_schemas/${name}`]),
+  ['local_signing_public_key',
+    'spec/contracts/actql-local-signing-public-key.schema.json', ''],
+]) {
   test(`current ${name} canonical vector matches its schema and pin`, () => {
-    const path = 'spec/contracts/actql-protocol-schemas.json';
-    const pointer = `/artifact_schemas/${name}`;
     const family = JSON.parse(readFileSync('spec/spec-family.json', 'utf8'));
     const refs = family.documents.flatMap(owner => owner.machine_contracts ?? [])
       .filter(ref => ref.path === path && ref.pointer === pointer);

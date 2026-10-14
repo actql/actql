@@ -15,6 +15,7 @@ import {canonicalJson, contentCid, createLocalAuthorizationGate} from
   './local-account-config.mjs';
 import {loadPrivateEvidenceKey, openContinuationEvidence} from
   './local-continuation-evidence.mjs';
+import {boundSourceInventoryFixture} from './fixtures/ordinary-source-binding.fixture.mjs';
 
 const moon = await import(new URL(
   '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js',
@@ -150,6 +151,81 @@ async function submit(checkpoints, captured) {
 
 async function baseAccess(configuration) {
   return {authorization: await createLocalAuthorizationGate(configuration)};
+}
+
+function boundSubmission() {
+  const captured = submission();
+  captured.version = 'actql-remote-bound-source-submission/0.1';
+  captured.acquisitions = boundSourceInventoryFixture().acquisitions;
+  captured.acquisitions.forEach((item, index) => {
+    item.checkedSource.sourceRef = source(index === 0 ? 'left' : 'right').sourceRef;
+  });
+  return captured;
+}
+
+test('ordinary bound approvals retain both original bindings through restart and physical admission', async t => {
+  const f = await fixture(t), captured = boundSubmission();
+  const first = await f.open();
+  assert.equal((await submit(first, captured)).kind, 'held');
+  const [left] = await f.list(first);
+  const stored = await f.capturedEvidence(first, left);
+  assert.deepEqual(stored.captured, captured);
+  assert.deepEqual(stored.intent.installation_binding, captured.acquisitions[0].installationBinding);
+  await f.answer(first, left);
+  const firstPort = f.port(first); await first.start(firstPort);
+  assert.equal(firstPort.state.starts, 0);
+  const [right] = await f.list(first);
+  const rightStored = await f.capturedEvidence(first, right);
+  assert.deepEqual(rightStored.captured, captured);
+  assert.deepEqual(rightStored.intent.installation_binding, captured.acquisitions[1].installationBinding);
+  await f.close(first);
+  const second = await f.open(); await f.answer(second, right);
+  const bases = await Promise.all([source('left'), source('right')].map(baseAccess));
+  t.after(() => bases.forEach(base => base.authorization.close()));
+  const port = f.port(second, {atStart: async ({captured: resumed}) => {
+    assert.deepEqual(resumed, captured);
+    for (const [index, occurrence] of resumed.acquisitions.entries()) {
+      const access = second.acquisitionAccess(captured.requestId, bases[index], occurrence);
+      const decision = await access.authorization.authorize('acquisition', occurrence.readTuple);
+      assert.equal(decision.action, 'dispatch');
+      const facts = checkpointApprovalFacts(decision);
+      assert.deepEqual(facts.installationBinding, occurrence.installationBinding);
+      assert.deepEqual(facts.physicalBinding, occurrence.physicalBinding);
+      assert.deepEqual(facts.checkedSource, occurrence.checkedSource);
+    }
+  }});
+  await second.start(port); assert.equal(port.state.starts, 1);
+  await second.sweep(); assert.equal(port.state.starts, 1);
+});
+
+for (const [name, mutate] of [
+  ['installation', item => {item.installationBinding.connectorId = 'foreign';}],
+  ['registration', item => {item.installationBinding.connectorRegistration = 'foreign';}],
+  ['revision', item => {item.installationBinding.connectorRevision = 'fixture/other';}],
+  ['binding CID', item => {item.installationBinding.bindingCid = cid('e');}],
+  ['target', item => {item.physicalBinding.resource = 'foreign';}],
+  ['extra target data', item => {item.physicalBinding.extra = true;}],
+]) {
+  test(`ordinary bound held request refuses changed original ${name}`, async t => {
+    const f = await fixture(t), checkpoints = await f.open(), captured = boundSubmission();
+    assert.equal((await submit(checkpoints, captured)).kind, 'held');
+    const changed = structuredClone(captured); mutate(changed.acquisitions[1]);
+    await assert.rejects(submit(checkpoints, changed), {code: 'HeldAcquisitionChanged'});
+    const [summary] = await f.list(checkpoints);
+    assert.deepEqual((await f.capturedEvidence(checkpoints, summary)).captured, captured);
+  });
+}
+
+for (const [name, mutate] of [
+  ['missing binding', item => {delete item.installationBinding;}],
+  ['extra binding field', item => {item.installationBinding.extra = true;}],
+]) {
+  test(`ordinary bound captured shape refuses ${name} before holding`, async t => {
+    const f = await fixture(t), checkpoints = await f.open(), captured = boundSubmission();
+    mutate(captured.acquisitions[1]);
+    await assert.rejects(submit(checkpoints, captured), {code: 'HeldAcquisitionChanged'});
+    assert.deepEqual(await f.list(checkpoints), []);
+  });
 }
 
 test('two source approvals hold the full inventory and survive restart', async t => {

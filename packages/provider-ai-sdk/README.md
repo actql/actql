@@ -1,8 +1,8 @@
 # Optional AI SDK Host installer (development)
 
-This unfinished development package exports only
-`createInstalledOpenAIChatRegistration`, the existing Host registration
-assembler. Its internal send, receipt, raw-response and native Decision
+This unfinished development package exports the existing Host registration
+assemblers `createInstalledOpenAIChatRegistration` and the explicit selected
+`createInstalledUndiciOpenAIChatRegistration`. Its internal send, receipt, raw-response and native Decision
 preparation functions are not package exports. The package remains private;
 the entry is not a published provider, installed profile, capacity or permission
 to send model requests.
@@ -25,11 +25,28 @@ const registerModelProviders = createInstalledOpenAIChatRegistration(trustedHost
 // installation.registerModelProviders alongside its admitted modelInstallation.
 ```
 
+The explicit Node HTTP selection uses the same original options except `fetch`:
+
+```js
+import {createInstalledUndiciOpenAIChatRegistration} from '@actql/provider-ai-sdk';
+// Separate trusted Host selection: do not pass a fetch override or derive these
+// original bodies/owners from Program values. This is not live-ready guidance.
+const registerModelProviders =
+  createInstalledUndiciOpenAIChatRegistration(trustedUndiciHostOptions);
+```
+
+This entry selects the fixed private Undici transport after the same existing
+Host snapshots/profile/original-selection checks. It reuses the existing
+exclusive async registration, physical preflight and original Call cleanup;
+it does not implement another executor or synthesize normal funding. The old
+explicit generic-fetch assembler is unchanged. An extra fetch in the selected
+Undici options is rejected, not used as a fallback or endpoint override.
+
 `npm-shrinkwrap.json` preserves the exact existing SDK dependency lock closure
 for an external installation. The package explicitly constrains its Zod peer to
 the original4.6.5; a newly resolved peer is not interchangeable with that lock.
-The original profile's lock artifact remains the
-unchanged `package-lock.json` bytes. No packages are fetched implicitly from a
+The original profile must select the exact current `package-lock.json` bytes;
+a changed direct dependency declaration is not the former lock Artifact. No packages are fetched implicitly from a
 Program/URI. Registry publication, supported numerical installation, public
 Local/HTTPS Named Result and real OpenAI acceptance remain unfinished.
 
@@ -159,6 +176,30 @@ intervening notification, await, request reconstruction or retry. A synchronous
 throw or lost response remains unknown responsibility, never proof of non-send.
 These private functions are not public capability or admission APIs.
 
+The private initial Node HTTP transport uses direct exact Undici7.30.0, not
+Node's embedded Undici or ambient/global fetch. `createOriginalUndiciFetch`
+is an internal installation selection only; it cannot be invoked directly.
+The existing SDK preparation retains each Call's original URL/init and creates
+its separate HTTP/1 Client and fixed request before Entry, with `allowH2:false`,
+`pipelining:0`, no redirect/retry/pool or automatic content decoding. The final
+SDK start invokes only that original Client request. A body view borrows the
+actual Undici Buffer for the existing bounded reader, without an unused SDK
+Response copy or `BodyReadable.body` conversion copy.
+
+The acquisition controls map response declarations to `maxHeaderSize`,
+`maxResponseSize` and body `highWaterMark`. The all-field/value parser ceiling
+is distinct from the existing observed-header subset limit. Neither the
+body HWM nor the reader's acquired-chunk check is a socket/TLS/Buffer-backing
+physical upper bound. Full constructor/native/parser/header/queue/closure
+overlap remains an original Host/Resource funding requirement, not zero.
+
+Cleanup retains the same connector/returned socket and body. Client destroy
+fulfillment alone cannot retire a connection in progress: the original
+connector callback, actual socket close, request settlement and actual body
+close must finish before the existing SDK cleanup can return true. Raw/Store
+pending custody remains independently owned. Private fixture results do not
+establish numerical admission, current-cut ACK, real model or Named Result.
+
 The response reader bounds bytes, individual chunks, chunk count and selected
 headers. Generic and Native SDK mode then feeds a separately funded `Response`
 copy to the original SDK; the installed Chat raw-only mode does not. Both preserve
@@ -230,6 +271,19 @@ startup funding, original Store ACK, public capability or a live Jev Result.
 
 Formal packaging, external consumer, public Local/HTTPS, real model acceptance,
 four parallel calls, Decision and Cloud are unfinished M0–M5 work.
+
+The private native Host assembler now consumes the existing exclusive async
+registration shape and starts Common's bounded original Decision projection
+lazily. It keeps the emitted original request through the SDK/raw/Model decode
+lifetimes. Only the outer Model preflight cleanup, after the physical-call/raw
+child cleanup ordering, retires that separate view; inner SDK cleanup alone does
+not. Projection/emitter/view retirement failure keeps the same responsibility
+for retry without another child, Entry or SDK request. Missing original profile,
+probability, runtime or raw context refuses before preparation. This assembler
+is not a package export or an accepted native physical installation. Generation
+and the existing generic/native SDK mode remain unchanged. The extra outer
+cursor, borrowed view, inner cursor, callbacks and selected policy/SDK overlaps
+still require the original complete funding; codec limits are not that funding.
 
 ### Private native Decision request projection
 

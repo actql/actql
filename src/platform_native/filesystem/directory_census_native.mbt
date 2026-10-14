@@ -8,6 +8,14 @@ extern "C" fn directory_census_ffi(
 ) -> Int = "actql_native_filesystem_directory_census"
 
 ///|
+// Census-only directory spelling required by the selected npm scope route.
+// It does not change Writer/Reader/Store object names or select a package.
+fn valid_census_member_name(entry : NativeDirectoryMember) -> Bool {
+  valid_object_name(entry.name) ||
+  (entry.kind == Directory && entry.name == "@actql")
+}
+
+///|
 /// Compare a bounded expected set against this same opened Root. Unknown names
 /// are not accumulated. This does not verify the Root's named namespace, file
 /// modes/bytes/hashes or provide a complete-product witness or permission.
@@ -23,7 +31,7 @@ pub fn Root::check_directory_members(
   }
   let mut size = 0
   for entry in expected {
-    if !valid_object_name(entry.name) {
+    if !valid_census_member_name(entry) {
       return Err(InvalidName)
     }
     if size > 65536 - entry.name.length() - 2 {

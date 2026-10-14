@@ -260,6 +260,9 @@ pub fn Journal::claim_initial_catalog_use(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   match self.begin_mutation(true) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -316,6 +319,9 @@ pub fn Journal::retain_initial_catalog_use(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   if !physical_equal(claim.journal, self) ||
     !catalog_use_matches_dispatch(claim.request, original_grant, original_use) {
     return Err(StateCollision)
@@ -349,6 +355,9 @@ pub fn Journal::cleanup_initial_catalog_use(
   }
   if self.closed {
     return Err(Journal(Closed))
+  }
+  if self.retiring {
+    return Err(Journal(CleanupPending))
   }
   match self.begin_mutation(true) {
     Ok(_) => ()

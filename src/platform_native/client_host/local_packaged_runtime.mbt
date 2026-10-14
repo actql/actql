@@ -299,6 +299,13 @@ pub fn NativeLocalPackagedRuntime::close(
     }
     ignore(self.roots.pop())
   }
+  // Drop transient observations/material only after every original physical
+  // close is acknowledged. Pending cleanup above keeps the same references.
+  self.witnesses.clear()
+  self.manifest = None
+  self.assets = None
+  self.sqlite = ""
+  self.crypto = ""
   self.closed = true
   Ok(())
 }
