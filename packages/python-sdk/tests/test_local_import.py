@@ -122,10 +122,10 @@ assert 'wasmtime' not in sys.modules and 'duckdb' not in sys.modules
         with self.assertRaises(OSError):
             core.close()
         self.assertIs(core._linker, linker)
-        self.assertIsNone(core._store)
+        self.assertIsNotNone(core._store)
         self.assertTrue(core.close())
         self.assertTrue(core.close())
-        self.assertEqual(calls, ['store', 'linker', 'linker', 'module', 'engine'])
+        self.assertEqual(calls, ['linker', 'linker', 'module', 'engine', 'store'])
 
 
 if __name__ == '__main__':

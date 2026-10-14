@@ -57,7 +57,7 @@ class PhysicalFixture:
         self.exports = self.instance.exports(self.store)
         envelope = 16 * 1024 * 1024 + capacity if execution_bytes is None else execution_bytes
         assert self.call('open', capacity, slots, 1048576, 100000, slots + 2, slots,
-                              32000000, retained_bytes, envelope) == 0
+                              32000000, retained_bytes, envelope, 0) == 0
 
     def call(self, name, *args):
         return self.exports['actql_buffer_' + name](self.store, self.nonce, *args)

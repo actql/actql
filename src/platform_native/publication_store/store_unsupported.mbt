@@ -1,4 +1,23 @@
 ///|
+// No failure value is acquired on unsupported targets. Keep the exported
+// nominal type opaque without fabricating Native Root/Lock/Database custody.
+type NativePublicationStoreOpenFailure
+
+///|
+pub fn NativePublicationStoreOpenFailure::issue(
+  _self : NativePublicationStoreOpenFailure,
+) -> NativePublicationStoreIssue {
+  UnsupportedTarget
+}
+
+///|
+pub fn NativePublicationStoreOpenFailure::retry_cleanup(
+  _self : NativePublicationStoreOpenFailure,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 type Store
 
 ///|

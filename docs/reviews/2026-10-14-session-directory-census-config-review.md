@@ -1,0 +1,13 @@
+# Exact bounded directory census package configuration review
+
+Reviewed immutable implementation Source: `136771364dcd39b642bfa3a2f69f5aa8288fc5b6`. The normal main parent is `35b919cbe3b4508108b3b49f124db17e7790847a`. This extends the existing `literal-native-options-with-bound-source-membership` review for pinned JS, Moon `94521db`, toolchain SHA256 `8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a`. The previous [Native Store failure scope review](2026-10-14-session-native-store-failure-scope-review.md) remains historical.
+
+| Manifest | SHA256 | Git blob, mode 100644 |
+| --- | --- | --- |
+| `src/platform_native/filesystem/moon.pkg` | `6968c40ed7d166f9d94e00af31d42654efd27afc8e7ceaca2f1aaead3a8f5e0f` | `31de1299fcd979e4b15b704f8f4f379594c85806` |
+
+The entire manifest delta is exactly three literal file predicates: Native `directory_census_native.mbt`, not-Native `directory_census_unsupported.mbt`, and Native `directory_census_native_wbtest.mbt`. Removing those three exact lines restores every byte at main `35b919cbe3b4508108b3b49f124db17e7790847a`. This is not solely a WB selector. Imports/aliases, supported targets, existing predicates, `filesystem_stub.c`, linker settings and absence of build hooks/external resolvers remain exact. The Native C implementation cannot be invoked by these predicates in pinned JS; the selected unsupported method returns UnsupportedTarget. No new target, package kind, source namespace or authority is inferred.
+
+Each new file is an immediate source member with actual Git bytes/mode. The unchanged parser/selector still binds every package member, C/header file and literal normal/WB import independently. This review does not whitelist unknown paths, options, changed digests, foreign libraries, toolchains or backend targets. Refresh only this one exact Native manifest identity and implementation review reference. Other sixteen Native hashes and the separate JS foreign-library review remain unchanged. No generic validator or fallback rule is edited. New configuration bytes force fresh input/staging identity.
+
+The implementation compares bounded immediate names/kinds using the same opened Root, preserves consumed-descriptor cleanup Unknown, and returns no complete-product witness or authorization. The new public types and generated method retain the same cross-target signature; unsupported backends acquire nothing. Native 5/5 at this Source (`run-7YJNCu`) is a separately recorded Darwin filesystem diagnostic; the injected EIO occurs after actual close and is not a kernel fault. This metadata refresh executes no Native/Provider/Host/packed/public acceptance, adopts no funded numerical profile and supplies no atomic namespace or member hash/generation proof.

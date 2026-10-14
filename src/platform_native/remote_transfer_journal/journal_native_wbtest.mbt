@@ -231,6 +231,7 @@ test "committed destination readers durably block reclaim" {
     Ok(value) => assert_true(value)
     Err(UnsupportedTarget) => fail("destination reader target unsupported")
     Err(Closed) => fail("destination reader journal closed")
+    Err(CleanupPending) => fail("destination reader journal cleanup pending")
     Err(Physical(_)) => fail("destination reader physical failure")
     Err(Protocol(_)) => fail("destination reader protocol failure")
     Err(StateCollision) => fail("destination reader state collision")
