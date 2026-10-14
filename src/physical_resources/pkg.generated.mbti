@@ -66,6 +66,8 @@ pub fn[T] claim_funded_read_preparation(FundedReadClaim[T], T, Int64, Int64) -> 
 
 pub fn[T] claim_model_io_admission(ModelIoAdmission[T], T, OriginalLedgerIdentity, Reservation, Int, Int) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue]
 
+pub fn[T] claim_model_io_for_owned_ledger(ModelIoAdmission[T], T, Ledger, Reservation, Int, Int) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue]
+
 pub fn[P, C] close_backed_execution_region(BackedExecutionRegion[P, C], P) -> Result[Bool, BackedExecutionIssue]
 
 pub fn[T] close_model_io_admission(ModelIoAdmission[T], T) -> Result[Bool, ModelIoAdmissionIssue]
@@ -246,7 +248,11 @@ pub fn[T] settle_funded_read_consumer(FundedReadConsumer[T], Bool) -> Result[Uni
 
 pub fn[T] settle_model_holding_after_owner_ack(ModelIoAdmission[T], T, OriginalLedgerIdentity, ModelIoTicket[T], Int, Int) -> Result[Unit, ModelIoAdmissionIssue]
 
+pub fn[T] settle_model_holding_for_owned_ledger_after_owner_ack(ModelIoAdmission[T], T, Ledger, ModelIoTicket[T], Int, Int) -> Result[Unit, ModelIoAdmissionIssue]
+
 pub fn[T] settle_model_io_after_owner_ack(ModelIoAdmission[T], T, OriginalLedgerIdentity, ModelIoTicket[T], Int, Int) -> Result[Unit, ModelIoAdmissionIssue]
+
+pub fn[T] settle_model_io_for_owned_ledger_after_owner_ack(ModelIoAdmission[T], T, Ledger, ModelIoTicket[T], Int, Int) -> Result[Unit, ModelIoAdmissionIssue]
 
 pub fn settle_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 

@@ -29,7 +29,8 @@ test "Model owned Ledger seam shares two Runs without projecting their census id
   assert_true(
     claim_model_io_for_owned_ledger(
       shared, installation, ledger_b, attempt_b, 0, 1,
-    ) is Err(ActiveExhausted),
+    )
+    is Err(ActiveExhausted),
   )
   assert_eq(ledger_usage(ledger_b), before)
   settle_model_io_for_owned_ledger_after_owner_ack(
@@ -42,7 +43,8 @@ test "Model owned Ledger seam shares two Runs without projecting their census id
   assert_true(
     settle_model_holding_for_owned_ledger_after_owner_ack(
       shared, installation, ledger_b, b, 0, 1,
-    ) is Err(CleanupPending),
+    )
+    is Err(CleanupPending),
   )
   settle_model_holding_for_owned_ledger_after_owner_ack(
     shared, installation, ledger_a, a, 0, 1,
@@ -68,12 +70,14 @@ test "Model owned Ledger seam refuses absent census and foreign reservation or r
   assert_true(
     claim_model_io_for_owned_ledger(
       shared, installation, ordinary, attempt_a, 0, 1,
-    ) is Err(ForeignTicket),
+    )
+    is Err(ForeignTicket),
   )
   assert_true(
     claim_model_io_for_owned_ledger(
       shared, installation, ledger_a, attempt_b, 0, 1,
-    ) is Err(ForeignTicket),
+    )
+    is Err(ForeignTicket),
   )
   let a = claim_model_io_for_owned_ledger(
     shared, installation, ledger_a, attempt_a, 0, 1,
@@ -81,7 +85,8 @@ test "Model owned Ledger seam refuses absent census and foreign reservation or r
   assert_true(
     settle_model_io_for_owned_ledger_after_owner_ack(
       shared, installation, ledger_b, a, 0, 1,
-    ) is Err(ForeignTicket),
+    )
+    is Err(ForeignTicket),
   )
   assert_eq(model_io_admission_counts(shared, installation), Some((1, 1)))
   settle_model_io_for_owned_ledger_after_owner_ack(
@@ -90,7 +95,8 @@ test "Model owned Ledger seam refuses absent census and foreign reservation or r
   assert_true(
     settle_model_holding_for_owned_ledger_after_owner_ack(
       shared, installation, ledger_b, a, 0, 1,
-    ) is Err(ForeignTicket),
+    )
+    is Err(ForeignTicket),
   )
   assert_eq(model_io_admission_counts(shared, installation), Some((0, 1)))
   settle_model_holding_for_owned_ledger_after_owner_ack(
@@ -99,12 +105,14 @@ test "Model owned Ledger seam refuses absent census and foreign reservation or r
   assert_true(
     settle_model_io_for_owned_ledger_after_owner_ack(
       shared, installation, ledger_a, a, 0, 1,
-    ) is Err(TicketRetired),
+    )
+    is Err(TicketRetired),
   )
   assert_true(
     settle_model_holding_for_owned_ledger_after_owner_ack(
       shared, installation, ledger_a, a, 0, 1,
-    ) is Err(TicketRetired),
+    )
+    is Err(TicketRetired),
   )
 }
 

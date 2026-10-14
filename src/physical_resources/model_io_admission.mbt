@@ -171,7 +171,12 @@ pub fn[T] claim_model_io_for_owned_ledger(
     return Err(ForeignTicket)
   }
   claim_model_io_admission(
-    value, installation, original.identity, reservation, slot, attempt,
+    value,
+    installation,
+    original.identity,
+    reservation,
+    slot,
+    attempt,
   )
 }
 
