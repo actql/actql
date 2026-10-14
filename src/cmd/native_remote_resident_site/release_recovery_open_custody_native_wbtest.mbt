@@ -21,6 +21,8 @@ fn recovery_open_test_matches(
     journal_path,
     "--runtime-root",
     path,
+    "--executor-slot",
+    path + "/original.slot",
     "--site-key",
     "cleanup-test-site",
     "--site-generation",
@@ -120,6 +122,14 @@ test "failed release preparation holds original Bundle Journal and Slot through 
     0,
   )
   current.close_checked().unwrap()
+  // The real controller caller must return pending after failed preparation,
+  // not throw out of the controller and discard its other responsibilities.
+  let retained : Ref[StoppedReleaseRecovery?] = Ref(None)
+  assert_false(recover_stopped_release(matches, request, retained, Ref(0)))
+  assert_true(retained.val is None)
+  let next = @slot.open_native_executor_slot(path + "/original.slot").unwrap()
+  assert_true(next.try_acquire().unwrap())
+  assert_true(next.close())
 }
 
 ///|

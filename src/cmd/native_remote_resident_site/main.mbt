@@ -1040,9 +1040,20 @@ fn recover_stopped_release(
         ignore(slot.close())
         return false
       }
-      // Failure to initialize terminates this control process; no cleanup
-      // transition is written and the durable claim remains for recovery.
-      let value = open_release_recovery(matches, slot, identity)
+      let value = match
+        open_release_recovery_with_custody(matches, slot, identity) {
+        Ok(owner) => owner
+        Err(original) => {
+          // Keep all other controller responsibilities on this same stack.
+          // Only checked retirement of this failed preparation permits return;
+          // it does not confirm the original Run's release or retry execution.
+          finish_failed_release_recovery_open(original)
+          report("release-recovery-preparation-failed", [
+            ("request_cid", identity),
+          ])
+          return false
+        }
+      }
       retained.val = Some(value)
       value
     }
