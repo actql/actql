@@ -255,6 +255,9 @@ distinct allocations over the entire Call lifetime, not just simultaneous
 peaks; it never refunds at EOF/cancel/Promise settlement. Weak membership
 retains no additional strong buffer alias, but its controls still need funding.
 A refused chunk destroys that same socket and retains original cleanup duties.
+`maxReads` counts every original socket read invocation, including null/empty
+probes, before calling the captured read method; exhaustion does not perform
+another read. It is not the accepted body-chunk count or a native queue bound.
 
 These are **post-acquisition** checks. Selected Node/TLS emission, Readable
 queue and concatenation can allocate before `socket.read()` returns. Their

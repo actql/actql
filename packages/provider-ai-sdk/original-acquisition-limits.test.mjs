@@ -138,16 +138,16 @@ test('framing-only large chunk exceeds acquisition while body remains one byte',
     {error: 'UndiciOriginalAcquisitionPlaintextExceeded'});
 });
 
-test('same backing across two reads is counted once but each read consumes its own bound', async t => {
+test('same backing across reads counts once while the intervening null probe consumes a read', async t => {
   const packet = exactBuffer(wire);
   const parts = [packet.subarray(0, packet.length - 1), packet.subarray(packet.length - 1)];
   assert.deepEqual(await exercise(t, {maxPlaintextBytes: packet.length,
-    maxBorrowedBackingBytes: packet.length, maxReads: 2}, parts), {body: 'A'});
+    maxBorrowedBackingBytes: packet.length, maxReads: 3}, parts), {body: 'A'});
 });
 
-test('second original read refuses when read count is exhausted without another connection', async t => {
+test('null probe exhausts original reads before another chunk without another connection', async t => {
   const packet = exactBuffer(wire);
-  assert.deepEqual(await exercise(t, {...limits, maxReads: 1},
+  assert.deepEqual(await exercise(t, {...limits, maxReads: 2},
     [packet.subarray(0, packet.length - 1), packet.subarray(packet.length - 1)]),
   {error: 'UndiciOriginalAcquisitionReadsExceeded'});
 });

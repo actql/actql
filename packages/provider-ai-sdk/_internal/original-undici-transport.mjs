@@ -45,11 +45,18 @@ function bindAcquisitionRead(socket, limits) {
   // still requires its original Host coverage and same-Ledger phase envelope.
   const boundedRead = function (...args) {
     if (refused) return null;
+    // Count every original read invocation, including null/empty probes.
+    // Refuse before another read; this still does not bound native emission.
+    if (reads >= limits.maxReads) {
+      refused = true;
+      socket.destroy(issue('UndiciOriginalAcquisitionReadsExceeded'));
+      return null;
+    }
+    reads++;
     const chunk = Reflect.apply(read, socket, args);
     if (chunk === null || chunk.byteLength === 0) return chunk;
     let code;
     if (!Buffer.isBuffer(chunk)) code = 'UndiciOriginalAcquisitionShapeRefused';
-    else if (reads >= limits.maxReads) code = 'UndiciOriginalAcquisitionReadsExceeded';
     else if (chunk.byteLength > limits.maxPlaintextBytes - plaintext) {
       code = 'UndiciOriginalAcquisitionPlaintextExceeded';
     } else if (!backings.has(chunk.buffer) &&
@@ -61,7 +68,6 @@ function bindAcquisitionRead(socket, limits) {
       socket.destroy(issue(code));
       return null; // Never forward the refused chunk into the HTTP parser.
     }
-    reads++;
     plaintext += chunk.byteLength;
     // A conservative lifetime union, not an observed simultaneous peak. No
     // refund at EOF/cancel/Promise completion; aliases may outlive the read.
