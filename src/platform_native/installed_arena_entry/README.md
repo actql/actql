@@ -62,3 +62,22 @@ only immutable DATA. Known Owner refusal returns no material; response loss,
 malformed data or a lost data-drop retains sticky Unknown with the same original
 slots and descriptor, without another request or cleanup attempt. Ordinary
 worker startup, complete funding, VM and installed wheel acceptance are separate.
+
+The derived read callback registration and `domain_read_shim` consume the
+matching regular Source7d6df1e6 C emission (SHA256
+`b50d84954b4085485e022c0c94bcbee406759c2f559d3c00e7ccdcd34b75931c`).
+Its six callbacks borrow the same Host/domain and return an owned immutable
+original reply. The shim stores that reply in the caller's persistent empty slot
+before returning. Existing typed getters/drop checks apply; transport zero is
+not read success or cleanup acknowledgment. Read-close never invokes the full
+CloseDomain data-drop helper. All runtime/header/provider objects must use the
+same derived allocator selection; stock objects are not a fallback.
+
+The private Python `_OriginalDomainReadFunctions` and existing domain custody
+project those same operations. Lost replies retain the same original slots and
+become sticky Unknown, without another prepare, close or direct C retirement.
+Whole managed scope exit uses original leave even when its body fails. No
+context pointer, new quota/Run/cleanup controller or public factory is added.
+`domain_read_conformance.c` is a private 64-page diagnostic helper, excluded from
+product linking; it is not a trusted installed supplier. Engine/worker/ordinary
+wheel and public Python acceptance remain separate.
