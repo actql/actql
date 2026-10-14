@@ -126,7 +126,7 @@ test('normal release delivery includes twelve modules and all four untouched ind
       pending.push(resolve(dirname(path), match[2]));
     }
   }
-  assert.equal(seen.size, 12); assert.equal(delivered.size, 15);
+  assert.equal(seen.size, 12); assert.equal(delivered.size, 16);
   const directory = await mkdtemp(join(tmpdir(), 'actql-nearest-originals-unit-'));
   try {
     for (const path of releaseNearestCarrierFixturePaths.filter(path => path.startsWith('spec/'))) {
