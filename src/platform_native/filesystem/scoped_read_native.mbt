@@ -48,11 +48,11 @@ extern "C" fn acquisition_has_original_ffi(
 
 ///|
 #borrow(result)
-extern "C" fn acquisition_root_ffi(result : ScopedReadAcquisition) -> Root = "actql_native_filesystem_acquisition_original"
+extern "C" fn acquisition_root_ffi(result : ScopedReadAcquisition) -> Root = "actql_native_filesystem_acquisition_root"
 
 ///|
 #borrow(result)
-extern "C" fn acquisition_reader_ffi(result : ScopedReadAcquisition) -> Reader = "actql_native_filesystem_acquisition_original"
+extern "C" fn acquisition_reader_ffi(result : ScopedReadAcquisition) -> Reader = "actql_native_filesystem_acquisition_reader"
 
 ///|
 fn scoped_read_refusal(

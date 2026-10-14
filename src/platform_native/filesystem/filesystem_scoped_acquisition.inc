@@ -98,12 +98,22 @@ MOONBIT_FFI_EXPORT int32_t actql_native_filesystem_acquisition_has_original(actq
   return result->original != NULL;
 }
 
-MOONBIT_FFI_EXPORT void *actql_native_filesystem_acquisition_original(actql_filesystem_scoped_acquisition *result) {
+static void *actql_filesystem_acquisition_original(actql_filesystem_scoped_acquisition *result) {
   // The private immutable result is checked by the typed caller before this
   // getter. No callback or await separates presence from the projection.
   if (result->original == NULL) abort();
   moonbit_incref(result->original);
   return result->original;
+}
+
+MOONBIT_FFI_EXPORT void *actql_native_filesystem_acquisition_root(actql_filesystem_scoped_acquisition *result) {
+  if (result->reader) abort();
+  return actql_filesystem_acquisition_original(result);
+}
+
+MOONBIT_FFI_EXPORT void *actql_native_filesystem_acquisition_reader(actql_filesystem_scoped_acquisition *result) {
+  if (!result->reader) abort();
+  return actql_filesystem_acquisition_original(result);
 }
 
 MOONBIT_FFI_EXPORT int32_t actql_native_filesystem_root_close_dispatch(actql_native_filesystem_root *root) {
