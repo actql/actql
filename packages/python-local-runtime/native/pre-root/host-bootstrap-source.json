@@ -24,8 +24,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_domain_native.mbt",
-      "bytes": 5872,
-      "sha256": "5eafd245e2f12f26c847ec25fe890bd6682bcf1108995ee4f9d8d6dad5e19743"
+      "bytes": 6385,
+      "sha256": "a5f98d3f2b8556338e6d092c6df9a5b6e46adb64e8d6fe20725ebeb73024c02e"
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_region_wbtest.mbt",

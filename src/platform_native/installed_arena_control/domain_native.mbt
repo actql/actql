@@ -1,0 +1,212 @@
+///|
+/// One original child identity and its existing Owner handles. Partial stages
+/// stay with this carrier; no parallel Run/Recovery/cleanup controller is added.
+struct InstalledArenaDomain {
+  host : InstalledArenaHost
+  backing : @bootstrap.NativeHostBootstrap[InstalledArenaHost]
+  mut allocation : @bootstrap.NativeBootstrapAllocation[InstalledArenaHost]?
+  mut region : @bootstrap.NativeBackedExecutionRegion[InstalledArenaHost, InstalledArenaDomain]?
+  mut loan : @bootstrap.NativeBackedExecutionLoan[InstalledArenaHost, InstalledArenaDomain]?
+  mut view : @bootstrap.NativeBackedExecutionView[InstalledArenaHost, InstalledArenaDomain]?
+  mut domain : @bootstrap.NativeBackedExecutionDomain[InstalledArenaHost, InstalledArenaDomain]?
+  mut closed : Bool
+}
+
+///|
+pub(all) enum InstalledArenaDomainAcquisition {
+  PreparedDomain(InstalledArenaDomain)
+  PendingDomain(InstalledArenaDomain, @bootstrap.NativeBackedExecutionIssue)
+}
+
+///|
+/// Trusted installed caller only. Its original scope and FD are borrowed;
+/// scalar limits are declarations, not complete process/VM funding or authority.
+/// Registration precedes any operation that can publish a partial Core loan.
+pub fn InstalledArenaHost::prepare_domain(
+  self : InstalledArenaHost,
+  scope : InstalledArenaBackingBorrow,
+  fd : Int,
+  bytes : Int64,
+  limits : @resources.LedgerLimits,
+) -> Result[InstalledArenaDomainAcquisition, @bootstrap.NativeBackedExecutionIssue] {
+  if bytes <= 0L || fd < 0 || self.domains.length() >= self.domain_record_limit {
+    return Err(@bootstrap.Bootstrap(@bootstrap.Unavailable))
+  }
+  match self.require_backing_borrow_current(scope) {
+    Err(issue) => return Err(@bootstrap.Bootstrap(issue))
+    Ok(_) => ()
+  }
+  let backing = match self.original_backing() {
+    Err(issue) => return Err(@bootstrap.Bootstrap(issue))
+    Ok(value) => value
+  }
+  let record : InstalledArenaDomain = {
+    host: self, backing, allocation: None, region: None, loan: None,
+    view: None, domain: None, closed: false,
+  }
+  self.domains.push(record)
+  match record.prepare_original(scope, fd, bytes, limits) {
+    Err(issue) => Ok(PendingDomain(record, issue))
+    Ok(_) => Ok(PreparedDomain(record))
+  }
+}
+
+///|
+fn InstalledArenaDomain::prepare_original(
+  self : InstalledArenaDomain,
+  scope : InstalledArenaBackingBorrow,
+  fd : Int,
+  bytes : Int64,
+  limits : @resources.LedgerLimits,
+) -> Result[Unit, @bootstrap.NativeBackedExecutionIssue] {
+  let allocation = match self.backing.allocate(self.host, bytes) {
+    Err(issue) => return Err(@bootstrap.Bootstrap(issue))
+    Ok(value) => value
+  }
+  self.allocation = Some(allocation)
+  let region = match self.backing.issue_backed_region(self.host, allocation) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  self.region = Some(region)
+  let extent : @resources.BackedExecutionExtent = {
+    offset: 0L, length: bytes, payload_offset: 0L, payload_length: bytes,
+  }
+  let loan = match self.backing.lend_backed_region(self.host, region, scope.original,
+    self, extent, @resources.ExclusiveWrite, limits, 0L, 0L) {
+    Err(issue) => return Err(issue)
+    Ok(@bootstrap.Pending(value, issue)) => {
+      self.loan = Some(value)
+      return Err(issue)
+    }
+    Ok(@bootstrap.Lent(value)) => value
+  }
+  self.loan = Some(loan)
+  let view = match self.backing.map_backed_view(self.host, loan, self, fd) {
+    Err(issue) => return Err(issue)
+    Ok(@bootstrap.PendingView(value, issue)) => {
+      self.view = Some(value)
+      return Err(issue)
+    }
+    Ok(@bootstrap.Mapped(value)) => value
+  }
+  self.view = Some(view)
+  let domain = match self.backing.acquire_backed_domain(self.host, view, self) {
+    Err(issue) => return Err(issue)
+    Ok(@bootstrap.DomainPending(value, issue)) => {
+      self.domain = Some(value)
+      return Err(issue)
+    }
+    Ok(@bootstrap.DomainReady(value)) => value
+  }
+  self.domain = Some(domain)
+  Ok(())
+}
+
+///|
+pub fn InstalledArenaHost::require_domain_current(
+  self : InstalledArenaHost,
+  record : InstalledArenaDomain,
+) -> Result[Unit, @bootstrap.NativeBackedExecutionIssue] {
+  if !physical_equal(record.host, self) || record.closed ||
+    !self.domains.any(original => physical_equal(original, record)) {
+    return Err(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))
+  }
+  match self.original_backing() {
+    Err(issue) => return Err(@bootstrap.Bootstrap(issue))
+    Ok(backing) => {
+      if !physical_equal(backing, record.backing) {
+        return Err(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))
+      }
+    }
+  }
+  guard record.domain is Some(domain) else {
+    return Err(@bootstrap.Bootstrap(@bootstrap.Unavailable))
+  }
+  record.backing.require_backed_domain_current(self, domain, record)
+}
+
+///|
+pub fn InstalledArenaHost::transfer_domain(
+  self : InstalledArenaHost,
+  record : InstalledArenaDomain,
+) -> Result[Unit, @bootstrap.NativeBackedExecutionIssue] {
+  match self.require_domain_current(record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  record.backing.transfer_backed_domain(self, record.domain.unwrap(), record)
+}
+
+///|
+pub fn InstalledArenaHost::enter_domain(
+  self : InstalledArenaHost,
+  record : InstalledArenaDomain,
+) -> Result[Unit, @bootstrap.NativeBackedExecutionIssue] {
+  match self.require_domain_current(record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  record.backing.enter_backed_domain(self, record.domain.unwrap(), record)
+}
+
+///|
+pub fn InstalledArenaHost::leave_domain(
+  self : InstalledArenaHost,
+  record : InstalledArenaDomain,
+) -> Result[Unit, @bootstrap.NativeBackedExecutionIssue] {
+  if !physical_equal(record.host, self) || record.closed {
+    return Err(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))
+  }
+  guard record.domain is Some(domain) else {
+    return Err(@bootstrap.Bootstrap(@bootstrap.Unavailable))
+  }
+  record.backing.leave_backed_domain(self, domain, record)
+}
+
+///|
+/// Existing physical borrower calls only AFTER original scoped stop and any
+/// independent FD/view uses retire. This method never supplies those facts.
+/// Unknown final usage remains conservative in the original Common Owner.
+pub fn InstalledArenaHost::close_domain_after_owner_ack(
+  self : InstalledArenaHost,
+  record : InstalledArenaDomain,
+) -> Result[Unit, @bootstrap.NativeBackedExecutionIssue] {
+  if !physical_equal(record.host, self) {
+    return Err(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))
+  }
+  if record.closed { return Ok(()) }
+  if record.domain is Some(domain) {
+    match record.backing.close_backed_domain(self, domain, record) {
+      Err(issue) => return Err(issue)
+      Ok(_) => record.domain = None
+    }
+  }
+  if record.view is Some(view) {
+    match record.backing.close_backed_view(self, view, record) {
+      Err(issue) => return Err(issue)
+      Ok(_) => record.view = None
+    }
+  }
+  if record.loan is Some(loan) {
+    match record.backing.settle_backed_region_after_owner_ack(self, loan, record, None) {
+      Err(issue) => return Err(issue)
+      Ok(_) => record.loan = None
+    }
+  }
+  if record.region is Some(region) {
+    match record.backing.close_backed_region(self, region) {
+      Err(issue) => return Err(issue)
+      Ok(false) => return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
+      Ok(true) => record.region = None
+    }
+  }
+  if record.allocation is Some(allocation) {
+    match record.backing.retire(self, allocation) {
+      Err(issue) => return Err(@bootstrap.Bootstrap(issue))
+      Ok(_) => record.allocation = None
+    }
+  }
+  record.closed = true
+  Ok(())
+}
