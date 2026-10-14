@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 520" width="1280" height="520" font-family='"Helvetica Neue", Arial, "Hiragino Sans", "Noto Sans JP", sans-serif'>
+<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#8a7f78"/></marker></defs>
+<rect x="0" y="0" width="1280" height="520" rx="14" fill="#faf8f5" stroke="#e6e0d8"/>
+<text x="40" y="54" font-size="17" font-weight="700" fill="#3a2e28">Where the churn-risk Program runs</text>
+<line x1="40" y1="66" x2="1240" y2="66" stroke="#3a2e28" stroke-width="1"/>
+<rect x="40" y="120" width="250" height="90" fill="#efeae3"/>
+<text x="165" y="152" font-size="15" font-weight="700" text-anchor="middle" fill="#3a2e28">Snowflake</text>
+<text x="165" y="176" font-size="11" font-weight="400" text-anchor="middle" fill="#6b625c">only the needed columns</text>
+<text x="165" y="193" font-size="11" font-weight="400" text-anchor="middle" fill="#6b625c">are fetched (pushdown)</text>
+<rect x="40" y="370" width="250" height="60" fill="#efeae3"/>
+<text x="165" y="406" font-size="15" font-weight="700" text-anchor="middle" fill="#3a2e28">Salesforce</text>
+<rect x="420" y="96" width="400" height="380" fill="#f3efe9"/>
+<rect x="420" y="96" width="400" height="380" fill="none" stroke="#3a2e28" stroke-width="1"/>
+<text x="620" y="124" font-size="15" font-weight="700" text-anchor="middle" fill="#3a2e28">ActQL engine (Host + Core)</text>
+<text x="620" y="143" font-size="11" font-weight="400" text-anchor="middle" fill="#6b625c">your machine, a server or ActQL Cloud</text>
+<rect x="440" y="168" width="360" height="44" fill="#efeae3"/>
+<circle cx="462" cy="190" r="11" fill="#3a2e28"/>
+<text x="462" y="194" font-size="12" font-weight="700" text-anchor="middle" fill="#faf8f5">1</text>
+<text x="482" y="195" font-size="13" font-weight="700" text-anchor="start" fill="#3a2e28">JOIN  —  in the engine, or DuckDB</text>
+<rect x="440" y="228" width="360" height="44" fill="#efeae3"/>
+<circle cx="462" cy="250" r="11" fill="#3a2e28"/>
+<text x="462" y="254" font-size="12" font-weight="700" text-anchor="middle" fill="#faf8f5">2</text>
+<text x="482" y="255" font-size="13" font-weight="700" text-anchor="start" fill="#3a2e28">INFER  —  one call per account</text>
+<rect x="440" y="288" width="360" height="44" fill="#efeae3"/>
+<circle cx="462" cy="310" r="11" fill="#3a2e28"/>
+<text x="462" y="314" font-size="12" font-weight="700" text-anchor="middle" fill="#faf8f5">3</text>
+<text x="482" y="315" font-size="13" font-weight="700" text-anchor="start" fill="#3a2e28">WHERE level = 'high'</text>
+<rect x="440" y="348" width="360" height="44" fill="#efeae3"/>
+<circle cx="462" cy="370" r="11" fill="#3a2e28"/>
+<text x="462" y="374" font-size="12" font-weight="700" text-anchor="middle" fill="#faf8f5">4</text>
+<text x="482" y="375" font-size="13" font-weight="700" text-anchor="start" fill="#3a2e28">Preview  →  Checkpoint (approval)</text>
+<rect x="440" y="408" width="360" height="44" fill="#efeae3"/>
+<circle cx="462" cy="430" r="11" fill="#3a2e28"/>
+<text x="462" y="434" font-size="12" font-weight="700" text-anchor="middle" fill="#faf8f5">5</text>
+<text x="482" y="435" font-size="13" font-weight="700" text-anchor="start" fill="#3a2e28">EFFECT UPDATE</text>
+<rect x="1000" y="220" width="240" height="60" fill="#efeae3"/>
+<text x="1120" y="256" font-size="13" font-weight="700" text-anchor="middle" fill="#3a2e28">LLM  ·  model-task:churn-risk.v1</text>
+<path d="M290 165 Q365.0 174.5 440 184" fill="none" stroke="#8a7f78" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="312" y="150" font-size="11" font-weight="400" text-anchor="start" fill="#6b625c">read usage</text>
+<path d="M255 370 Q327.3 263.8 440 202" fill="none" stroke="#8a7f78" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="300" y="300" font-size="11" font-weight="400" text-anchor="start" fill="#6b625c">read accounts</text>
+<path d="M800 242 Q900.0 228.0 1000 242" fill="none" stroke="#8a7f78" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="900" y="222" font-size="11" font-weight="400" text-anchor="middle" fill="#6b625c">only the INPUT columns</text>
+<path d="M1000 264 Q900.0 278.0 800 264" fill="none" stroke="#8a7f78" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="900" y="292" font-size="11" font-weight="400" text-anchor="middle" fill="#6b625c">typed answer</text>
+<path d="M440 430 Q365.0 417.0 290 404" fill="none" stroke="#8a7f78" stroke-width="1.5" marker-end="url(#a)"/>
+<text x="312" y="440" font-size="11" font-weight="400" text-anchor="start" fill="#6b625c">write back after approval</text>
+</svg>
