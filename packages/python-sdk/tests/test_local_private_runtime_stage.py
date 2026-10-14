@@ -113,6 +113,36 @@ class PrivateRuntimeStageTests(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     self.stage()
 
+    def test_input_metadata_swap_cannot_admit_invalid_staged_bytes(self):
+        source = self.native / '_libwasmtime.dylib'
+        invalid = library(b'@rpath/_libwasmtime.dylib',
+            b'@rpath/libactql_native_control.dylib', b'@loader_path', 26 << 16)
+        source.write_bytes(invalid)
+        self.selected = replace(self.selected, runtime_library_bytes=len(invalid),
+            runtime_library_sha256=hashlib.sha256(invalid).hexdigest())
+        checked = RECIPE.library_target
+        observations = []
+
+        def swap_around_input_metadata(path, **options):
+            observations.append(path)
+            if path == source:
+                # The first hash and later copy observe the selected invalid
+                # bytes, but the separate input metadata read sees valid bytes.
+                source.write_bytes(self.runtime)
+                try:
+                    checked(path, **options)
+                finally:
+                    source.write_bytes(invalid)
+            else:
+                checked(path, **options)
+
+        with patch.object(RECIPE, 'library_target', side_effect=swap_around_input_metadata):
+            with self.assertRaisesRegex(ValueError, 'macOS11'):
+                self.stage()
+        staged = self.target / '_wasmtime/darwin-aarch64/_libwasmtime.dylib'
+        self.assertEqual(staged.read_bytes(), invalid)
+        self.assertIn(staged, observations)
+
     def test_foreign_license_is_refused(self):
         self.license = b'Unrelated license bytes'
         with self.assertRaisesRegex(ValueError, 'license differs'):

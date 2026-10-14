@@ -144,6 +144,12 @@ def stage_private_runtime(components: LocalComponents, bindings_source: Path,
         raw = _read_file(native_libraries / name, maximum=size, expected=size, digest=digest, capture=True)
         (library_directory / name).write_bytes(raw)
         _read_file(library_directory / name, maximum=size, expected=size, digest=digest)
+    # Inspect the owned output after copying, not only the mutable input paths.
+    library_target(library_directory / '_libwasmtime.dylib',
+        identity=b'@rpath/_libwasmtime.dylib',
+        bundled=(b'@rpath/libactql_native_control.dylib',), rpaths=(b'@loader_path',))
+    library_target(library_directory / 'libactql_native_control.dylib',
+        identity=b'@rpath/libactql_native_control.dylib', rpaths=())
     return {'python_source_sha256': report['source_sha256'],
             'python_files': len(report['inputs']), 'libraries': [
                 {'file': name, 'bytes': size, 'sha256': digest} for name, size, digest in libraries],
