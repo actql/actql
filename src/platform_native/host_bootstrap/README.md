@@ -60,9 +60,16 @@ recipe consumes them. A selected build must additionally bind the exact
 MoonBit/clang/SDK/runtime inputs and generated artifact digest. The source
 manifest is not an installed runtime manifest or a fallback build recipe.
 
-The six Native tests use the actual C adapter and existing Resource Owner; they
-are prepared, not executed. No compiler, Native execution, worker, VM, Engine,
-wheel or public SELECT1 success is established by this source preparation.
+The six original Native tests passed 6/6 at exact source
+`341e7a3e8f985db9cafeedc47abb132bb2e583ec`, with Native body
+`920b9412ef3ab50f297c33a054103a5ee0d492ce`. The matching pinned C backend linked
+the actual canonical adapter: jobs1, child50s, outer60s/TERM5, non-Heavy.
+This source-qualified result is the arena/Resource leaf only. It is not execution
+evidence for a later documentation HEAD or a normal installed product profile.
+The ordinary compiler reported three warnings: unused control-envelope and
+fixture fields, and deprecated immutable Bytes.copy. Strict-warning success is
+not claimed. VM, loader funding, worker, Engine, wheel and public SELECT1
+acceptance remain unverified; unknown domains remain None.
 Fault-injected physical retirement and process-parent-death acceptance remain
 separate pending boundaries. The existing original success/failure artifacts
 and numerical limits are unchanged.
