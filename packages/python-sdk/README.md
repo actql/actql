@@ -74,7 +74,8 @@ this purpose. That handle is closed to further requests and can only release
 its remaining local resources.
 
 `check(input, kind="text" | "program", scope="template_only" | "bound_input", ...)`
-does not execute. Text calls also select `format="sql"` or `"aql-text"`.
+does not execute. Text calls also select `format="sql"` or `"aql"`. The existing `"aql-text"`
+spelling selects the same compiler and is preserved in retained requests.
 Template calls must omit `parameters` entirely. Changed inputs or bindings require
 a new check. `get_check_input()` and the location helpers use only the original
 SDK observation; a serialized or copied response has no original-input custody.

@@ -24,6 +24,11 @@ test('resident physical acquisition fixtures retain complete normative query dep
     ['resident_compute_query_evidence_contract', 'actql-query-process-evidence.json'],
     ['resident_compute_query_two_receipt_contract', 'actql-query-two-receipt.json'],
   ]) assert.deepEqual(fixtureBody(path, name), json('spec/contracts/' + contract));
+  const environment = fixtureBody(
+    'src/platform_native/remote_resident_source_compute_tests/source_fixture_wbtest.mbt',
+    'resident_effect_source_environment');
+  assert.deepEqual(environment.connector_capabilities[0].capability_contract_cids,
+    [cid(json('spec/contracts/actql-query-two-receipt.json'))]);
 });
 
 test('resident physical Source environments advertise their exact normative two-receipt capability', () => {

@@ -87,6 +87,7 @@ fn lower_script_relation(
         retained.unwrap_or([]),
         known~,
         current=Some(graph),
+        continuation=Some((context, sources)),
       )
     }
     if script_has_graph_rows(query) {
@@ -326,6 +327,7 @@ fn lower_script_relation_term(
     retained~,
     parameter_declarations=context.parameter_declarations,
     initial_scope=script_input_scope(
+      construction,
       sources,
       input.name,
       query_range_name(query),
@@ -335,6 +337,12 @@ fn lower_script_relation_term(
     prefix_steps=steps.copy(),
     prefix_context=Some(context),
     positional_set_output~,
+    checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
+      script_infer_prefix_check(
+        construction, query, context, sources, nodes, producer, limits, visible,
+        authored_aliases,
+      )
+    }),
   )
   steps.append(body)
   let name = if body.is_empty() && carry_ranges {
@@ -417,12 +425,15 @@ fn compile_query_script_with_source(
     generated,
     model_tasks: context.model_tasks,
     parameter_names,
+    infer_labels: query_has_omitted_infer(@query.script_query(script)),
+    infer_budget: { remaining_work: limits.max_expression_work, },
   }
   try {
     let steps : Array[@builder.Node] = []
     let sources : ScriptSources = {
       declarations: [],
       stages: [],
+      prior_stages: [],
       bound: Map([]),
       unshared: unshared_script_sources(script, context.inputs),
       ranges: Map([]),
@@ -518,6 +529,7 @@ fn compile_query_script_with_source(
           retained,
           known=stage_known,
           current=resolved_graph,
+          continuation=Some((stage_context, stage_sources)),
         )
       } else {
         lower_script_relation(
@@ -668,6 +680,7 @@ fn compile_query_script_with_source(
       stage_sources = {
         declarations: [(input_name, reference)],
         stages: sources.stages,
+        prior_stages: stages.copy(),
         bound: Map([]),
         unshared: [],
         ranges: Map([]),

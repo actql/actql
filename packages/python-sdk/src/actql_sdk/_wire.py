@@ -244,9 +244,9 @@ def valid_body(operation, body):
             return False
         if not valid(item['text'], {'type': 'string', 'minLength': 1, 'maxLength': 65536}) or '\0' in item['text']:
             return False
-        formats = ('aql-text', 'sql') if is_check else CONTRACT['source_formats']
+        formats = ('aql', 'aql-text', 'sql') if is_check else CONTRACT['source_formats']
         return (item['format'] in formats and ('parameterDeclarations' not in item or
-                item['format'] in ('aql-text', 'sql') and type(item['parameterDeclarations']) is dict))
+                item['format'] in ('aql', 'aql-text', 'sql') and type(item['parameterDeclarations']) is dict))
     if operation in ('lookup-request', 'cancel-request'):
         return bounded_text(body['requestId'])
     if operation == 'checkpoints':

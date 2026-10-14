@@ -2,10 +2,10 @@
 
 The former `AQL / PROGRAM / STAGE` structural text surface is withdrawn from
 the public language. `STEP` and `OP` are not public query productions. The
-`aql-text` format selects the implemented [query text profile](query-text.md),
-including SQL/Pipe and the admitted Graph pattern forms; it does not select a
-legacy parser. `sql` retains its explicit query-head rule. Neither format
-falls back to JSON, YAML or an internal fixture decoder after a rejection.
+`aql` and existing `aql-text` formats select the implemented [query text profile](query-text.md),
+including SQL/Pipe and the admitted Graph pattern forms; neither selects a
+legacy parser. `sql` retains its explicit query-head rule. None of these formats
+fall back to JSON, YAML or an internal fixture decoder after a rejection.
 
 Hosts reject a structural document as typed invalid input before durable Run
 acceptance, execution or provider I/O. The lightweight SDK and native CLI send
