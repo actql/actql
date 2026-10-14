@@ -60,8 +60,24 @@ int actql_native_owned_acquire_fd(int fd, size_t capacity, uint64_t generation,
 
 int actql_native_owned_lend_extent(actql_owned_capacity *owner, void *allocation,
                                   bool writable, actql_owned_extent_loan *loan) {
+    if (owner == NULL) return ACTQL_OWNED_INVALID;
+    /* The existing caller excludes concurrent original close/retirement. */
+    size_t start;
+    lock_capacity(owner);
+    bool original = allocation_start(owner, allocation, &start);
+    size_t length = original ? owner->extents[start].pages * owner->page_size : 0;
+    unlock_capacity(owner);
+    if (!original) return ACTQL_OWNED_INVALID;
+    return actql_native_owned_lend_extent_range(owner, allocation, 0, length, writable, loan);
+}
+
+int actql_native_owned_lend_extent_range(actql_owned_capacity *owner, void *allocation,
+                                        size_t offset, size_t length, bool writable,
+                                        actql_owned_extent_loan *loan) {
     if (owner == NULL || loan == NULL || loan->original != NULL ||
-        actql_native_owned_current() != owner) return ACTQL_OWNED_INVALID;
+        actql_native_owned_current() != owner || length == 0 ||
+        offset % owner->page_size != 0 || length % owner->page_size != 0)
+        return ACTQL_OWNED_INVALID;
     lock_capacity(owner);
     size_t start;
     int status = ACTQL_OWNED_INVALID;
@@ -69,11 +85,22 @@ int actql_native_owned_lend_extent(actql_owned_capacity *owner, void *allocation
         !allocation_start(owner, allocation, &start) || owner->extents[start].retired)
         goto done;
     struct extent *extent = &owner->extents[start];
-    if (extent->external_writer ||
-        (writable && (extent->external_readers != 0 || extent->sealed)) ||
-        (!writable && extent->external_readers == SIZE_MAX)) {
+    size_t allocation_bytes = extent->pages * owner->page_size;
+    if (offset > allocation_bytes || length > allocation_bytes - offset) goto done;
+    if (writable && extent->sealed) {
         status = ACTQL_OWNED_BUSY;
         goto done;
+    }
+    start += offset / owner->page_size;
+    size_t pages = length / owner->page_size;
+    for (size_t i = 0; i < pages; i++) {
+        struct extent *page = &owner->extents[start + i];
+        if (page->external_writer ||
+            (writable && page->external_readers != 0) ||
+            (!writable && page->external_readers == SIZE_MAX)) {
+            status = ACTQL_OWNED_BUSY;
+            goto done;
+        }
     }
     loan->original = loan;
     loan->owner = owner;
@@ -82,12 +109,15 @@ int actql_native_owned_lend_extent(actql_owned_capacity *owner, void *allocation
         .device = owner->backing_device, .inode = owner->backing_inode,
         .generation = owner->generation, .capacity = owner->length,
         .offset = start * owner->page_size,
-        .length = extent->pages * owner->page_size, .writable = writable
+        .length = length, .writable = writable
     };
     memcpy(loan->extent.recipe, owner->recipe, sizeof(owner->recipe));
     loan->returned = false;
-    if (writable) extent->external_writer = true;
-    else extent->external_readers++;
+    for (size_t i = 0; i < pages; i++) {
+        struct extent *page = &owner->extents[start + i];
+        if (writable) page->external_writer = true;
+        else page->external_readers++;
+    }
     status = ACTQL_OWNED_OK;
 done:
     unlock_capacity(owner);
@@ -161,14 +191,21 @@ int actql_native_owned_return_extent(actql_owned_extent_loan *loan) {
         return ACTQL_OWNED_INVALID;
     actql_owned_capacity *owner = loan->owner;
     lock_capacity(owner);
-    struct extent *extent = &owner->extents[loan->start];
+    size_t pages = loan->extent.length / owner->page_size;
     int status = ACTQL_OWNED_INVALID;
-    if (loan->extent.writable ? extent->external_writer : extent->external_readers != 0) {
-        if (loan->extent.writable) extent->external_writer = false;
-        else extent->external_readers--;
-        loan->returned = true;
-        status = ACTQL_OWNED_OK;
+    for (size_t i = 0; i < pages; i++) {
+        struct extent *page = &owner->extents[loan->start + i];
+        if (!(loan->extent.writable ? page->external_writer : page->external_readers != 0))
+            goto done;
     }
+    for (size_t i = 0; i < pages; i++) {
+        struct extent *page = &owner->extents[loan->start + i];
+        if (loan->extent.writable) page->external_writer = false;
+        else page->external_readers--;
+    }
+    loan->returned = true;
+    status = ACTQL_OWNED_OK;
+done:
     unlock_capacity(owner);
     return status;
 }

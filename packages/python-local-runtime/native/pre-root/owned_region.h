@@ -41,6 +41,11 @@ int actql_native_owned_acquire_fd(int fd, size_t capacity, uint64_t generation,
                                  actql_owned_capacity **out);
 int actql_native_owned_lend_extent(actql_owned_capacity *owner, void *allocation,
                                   bool writable, actql_owned_extent_loan *loan);
+/* The original Common extent must cover this exact page-aligned physical range.
+ * Sub-page writer ranges are not rounded into an overlapping shared mapping. */
+int actql_native_owned_lend_extent_range(actql_owned_capacity *owner, void *allocation,
+                                        size_t offset, size_t length, bool writable,
+                                        actql_owned_extent_loan *loan);
 int actql_native_owned_project_extent(actql_owned_extent_loan *loan,
                                      actql_owned_extent_reference *out);
 /* The original trusted child supplier validates nominal child/borrow/current
