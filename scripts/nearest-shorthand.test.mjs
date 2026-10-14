@@ -33,6 +33,11 @@ test('L3 inventory fixes exact cosine, original payload, field order and declara
   assert.deepEqual(successes[3].results.answer.rows.map(row=>row.hit.body),['first','second']);
   assert.deepEqual(successes[4].results.answer.rows,[{note:null,context:'first'}]);
   assert.deepEqual(successes[0].results.answer.columns.map(column=>column.name),['embedding','note','request_id','hit']);
+  const control=JSON.parse(successes[6].text);
+  for(const step of control.stages[0].steps.filter(step=>step.values)) {
+    assert.deepEqual(step.values.schema.embedding,{type:'vector',nullable:false,dimensions:2});
+  }
+  assert.equal(successes[6].results.answer.columns[1].contract.element_type,'f32');
   assert.match(refusals[0].text,/KEEP \(\*\)/u);
   assert.match(refusals[2].text,/embedding AS alternate/u);
   assert.equal(new Set([...successes,...refusals].map(item=>item.name)).size,11);

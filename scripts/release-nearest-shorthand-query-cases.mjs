@@ -24,9 +24,18 @@ const bodyPrefix = 'WITH questions AS (FROM queries |> SELECT request_id, embedd
 const bodyColumns=[queryColumns.find(column=>column.name==='request_id'),{name:'query_vec',contract:queryColumns.find(column=>column.name==='embedding').contract},queryColumns.find(column=>column.name==='note')];
 const bodyRows=withBodies.map(value=>({request_id:'q1',query_vec:[1,0],note:null,hit:value}));
 // Ordinary JSON Program control, authored independently of text lowering.
+// Values consumes author contracts: the fixed f32 element type is emitted by
+// the existing checker and is accepted only in checked schema wires.
+const authorSchema = wire => Object.fromEntries(Object.entries(JSON.parse(wire))
+  .map(([name,contract])=>{
+    if(contract.type !== 'vector') return [name,contract];
+    const {element_type,...authored}=contract;
+    if(element_type !== 'f32') throw new Error('Unexpected independent vector contract');
+    return [name,authored];
+  }));
 const jsonControl={version:'actql/0.1',id:'fixture.nearest_shorthand_control',stages:[{id:'main',inputs:{},steps:[
-  {values:{schema:JSON.parse(nearestCarrierSchemaWires.queries),rows:nearestCarrierSourceRows.queries},as:'q'},
-  {values:{schema:JSON.parse(nearestCarrierSchemaWires.candidates),rows:nearestCarrierSourceRows.candidates},as:'c'},
+  {values:{schema:authorSchema(nearestCarrierSchemaWires.queries),rows:nearestCarrierSourceRows.queries},as:'q'},
+  {values:{schema:authorSchema(nearestCarrierSchemaWires.candidates),rows:nearestCarrierSourceRows.candidates},as:'c'},
   {from:'q',to_vectors:{id:'request_id',vector:'embedding'},as:'qv'},
   {from:'c',to_vectors:{id:'item_id',vector:'embedding'},as:'cv'},
   {from:'cv',nearest:{queries:'qv',metric:'cosine',k:3}},
