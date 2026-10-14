@@ -1,17 +1,73 @@
 ///|
-// Real checked Values execution, publication outputs and Native Store. These
-// internal Host fixtures do not establish installed CLI or Account acceptance.
-test "actual Values publication supplies succeeded state with unknown Result availability" {
-  let (database, journal, epoch, reference) = submitted_test_setup(
-    "values-state-observation",
+let observed_state_account_original : Bytes = b"{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[{\"entry_id\":\"explicit-state-purposes\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"run\"]},\"operation\":{\"any_of\":[\"publish\",\"read\",\"submit\"]},\"exclusions\":[]}]}"
+
+///|
+// Fresh explicit file selection through the original installation Owner, not
+// an automatic grant or a product-default permission change.
+fn observed_state_host_fixture(
+  name : String,
+  read : Bool,
+) -> NativeLocalHostConnection raise {
+  let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
+  let root = @filesystem.open_private_root(path).unwrap()
+  let writer = root.create_writer(name + ".run.stage", 4096L).unwrap()
+  writer
+  .append(
+    @utf8.encode(
+      "{\"version\":\"actql-config/0.1\",\"native\":{\"run\":{\"namespace_id\":\"local-test\",\"store_authority_cid\":\"sha256:" +
+      "c".repeat(64) +
+      "\"}}}",
+    ),
   )
-  let scope = "sha256:" + "a".repeat(64)
-  let (intent, preparation, request, original_compiled, definition) = submitted_run_test_input(
-    reference, "values-state-original",
+  .unwrap()
+  writer.seal(name + ".run.json").unwrap() |> ignore
+  policy_host_fixture(
+    name,
+    files=[name + ".run.json"],
+    account_body=if read {
+      observed_state_account_original
+    } else {
+      @utf8.encode(
+        @utf8.decode(observed_state_account_original).replace(
+          old="\"read\",",
+          new="",
+        ),
+      )
+    },
   )
+}
+
+///|
+// Original real Values/SQLite/Store fixture. No old Run, fake Store or Provider.
+test "typed Local Host terminal fence accepts actual state and refuses purpose or original loss" {
+  let host_name = "values-state-observation"
+  let host = observed_state_host_fixture(host_name, true)
+  let journal = host.journal
+  let crypto = epoch_test_crypto()
+  let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
+  let epoch = host.epoch
+  let token = epoch.issue_epoch(scope, true, 1000.0).unwrap()
+  let reference = prepare_native_client_submission_reference(
+    token, "original-state-submit",
+  ).unwrap()
+  let intent = @host.prepare_client_submitted_intent(
+    "{\"kind\":\"program\",\"input\":" +
+    preparation_values_document() +
+    ",\"parameters\":null}",
+    65536,
+    8192,
+    64,
+  ).unwrap()
+  let preparation = submitted_prepare(intent).unwrap()
   guard preparation.preparation is Computation(prepared) else {
-    fail("expected actual original Values preparation")
+    fail("actual Values preparation missing")
   }
+  let (request, _, original_compiled, definition) = journal_test_prepared_run(
+    prepared,
+    reference.request_id,
+    "values-state-original",
+    scope~,
+  )
   let assets = @host.client_local_product_assets()
   let policy_cid = "sha256:470e10d347bfe887c4a91d9f616b01b3e1aba211a2fd2ba20ebf63d136543563"
   let compiled = @host.with_client_source_free_result_policy(
@@ -122,10 +178,21 @@ test "actual Values publication supplies succeeded state with unknown Result ava
       64,
     )
     .unwrap()
+  let publisher = host
+    .bind_run_publisher(
+      crypto,
+      "operator",
+      "cli",
+      request,
+      definition,
+      host_name + ".run.json",
+      store,
+    )
+    .unwrap()
   let publication_intent : @native_publication.NativeRunPublicationIntent = {
     namespace_id: "local-test",
     authority_scope_cid: scope,
-    publication_policy_cid: "sha256:" + "e".repeat(64),
+    publication_policy_cid: publisher.publication_policy_cid(),
     publication_target_cid: store_authority,
     requested_at: "2026-10-15T00:00:00.000Z",
   }
@@ -153,33 +220,25 @@ test "actual Values publication supplies succeeded state with unknown Result ava
     )
     .unwrap()
   assert_true(
-    pending.observe_run_state(
+    host.observe_publication_run_state(
+      publisher,
+      pending,
       "2026-10-15T00:00:02.000Z",
       limits.max_result_workspace_entries,
       16,
       1000,
-      () => true,
     )
-    is Err(Unavailable),
+    is Err(Candidate(Unavailable)),
   )
   pending.commit().unwrap() |> ignore
-  assert_true(
-    pending.observe_run_state(
+  let observed = host
+    .observe_publication_run_state(
+      publisher,
+      pending,
       "2026-10-15T00:00:02.000Z",
       limits.max_result_workspace_entries,
       16,
       1000,
-      () => false,
-    )
-    is Err(Publication(AccessDenied)),
-  )
-  let observed = pending
-    .observe_run_state(
-      "2026-10-15T00:00:02.000Z",
-      limits.max_result_workspace_entries,
-      16,
-      1000,
-      () => true,
     )
     .unwrap()
   assert_eq(
@@ -203,65 +262,152 @@ test "actual Values publication supplies succeeded state with unknown Result ava
   assert_true(observed.wire().contains("unknown"))
   assert_true(observed.wire().contains("verification_pending"))
   assert_true(
-    pending.observe_run_state("2026-10-15T00:00:02.000Z", 1, 16, 1000, () => {
-      true
+    host.observe_publication_run_state(
+      publisher, pending, "2026-10-15T00:00:02.000Z", 1, 16, 1000,
+    )
+    is Err(Candidate(_)),
+  )
+  assert_true(
+    host.observe_publication_run_state(
+      publisher,
+      pending,
+      "not-a-time",
+      limits.max_result_workspace_entries,
+      16,
+      1000,
+    )
+    is Err(Candidate(State(_))),
+  )
+  // Publisher-only invalidation after callback-based candidate preparation:
+  // the actual typed RunRead purpose remains current in the same real Host.
+  let candidate = pending
+    .prepare_run_state_candidate(
+      "2026-10-15T00:00:02.000Z",
+      limits.max_result_workspace_entries,
+      16,
+      1000,
+    )
+    .unwrap()
+  let read_authority = native_local_policy_authority_for(
+    host,
+    crypto,
+    "operator",
+    "cli",
+    request,
+    ReadRunMaterials,
+  ).unwrap()
+  let before = journal.retained(request).unwrap().unwrap()
+  journal
+  .transaction(() => {
+    journal.save({
+      ..before,
+      publication_binding: Some("foreign-current-binding"),
     })
-    is Err(_),
-  )
-  let read_calls = Ref(0)
+  })
+  .unwrap()
+  |> ignore
+  assert_true(read_authority.current_for(journal, request))
+  assert_false(publisher.current())
   assert_true(
-    pending.observe_run_state(
-      "2026-10-15T00:00:02.000Z",
-      limits.max_result_workspace_entries,
-      16,
-      1000,
-      () => {
-        read_calls.val += 1
-        read_calls.val < 3
-      },
+    host.finalize_observed_run_state_candidate(
+      publisher, read_authority, candidate,
     )
-    is Err(Publication(AccessDenied)),
+    is Err(AuthorizationDenied),
   )
-  assert_eq(read_calls.val, 3)
+  journal
+  .transaction(() => {
+    let row = journal.retained(request).unwrap().unwrap()
+    journal.save({ ..row, publication_binding: before.publication_binding, })
+  })
+  .unwrap()
+  |> ignore
+  assert_true(publisher.current())
+  let foreign = {
+    ..publisher,
+    request: journal_test_run(
+      "foreign-state-request",
+      "foreign-state-run",
+      scope~,
+    ).0,
+  }
   assert_true(
-    pending.observe_run_state(
-      "invalid-time",
-      limits.max_result_workspace_entries,
-      16,
-      1000,
-      () => true,
+    host.finalize_observed_run_state_candidate(
+      foreign, read_authority, candidate,
     )
-    is Err(State(_)),
+    is Err(ForeignOriginal),
   )
+  candidate.release().unwrap()
   assert_true(work.close())
-  let close_calls = Ref(0)
+  assert_true(store.close().unwrap())
   assert_true(
-    pending.observe_run_state(
+    host.observe_publication_run_state(
+      publisher,
+      pending,
       "2026-10-15T00:00:02.000Z",
       limits.max_result_workspace_entries,
       16,
       1000,
-      () => {
-        close_calls.val += 1
-        if close_calls.val == 3 {
-          store.close().unwrap() |> ignore
-        }
-        true
-      },
     )
-    is Err(Publication(Store(Closed))),
+    is Err(AuthorizationDenied),
   )
-  assert_eq(close_calls.val, 3)
-  store.close().unwrap() |> ignore
+  host.close().unwrap() |> ignore
+}
+
+///|
+test "typed Local Host requires independent RunRead even with current Publisher" {
+  let name = "state-publish-without-read"
+  let host = observed_state_host_fixture(name, false)
+  let crypto = epoch_test_crypto()
+  let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
+  let (request, prepared, compiled, definition) = journal_test_run(
+    name,
+    name + "-run",
+    scope~,
+  )
+  host.journal.bind_run(request, prepared, compiled, definition, true).unwrap()
+  |> ignore
+  let base = @env.get_env_var("ACTQL_TEST_NATIVE_STORE_ROOT").unwrap()
+  @filesystem.open_private_root(base).unwrap().create_directory(name).unwrap()
+  |> ignore
+  let store = @publication_store.open_store(
+    local_journal_test_library(),
+    base + "/" + name,
+    "sha256:" + "c".repeat(64),
+    65536L,
+    8L,
+    131072L,
+  ).unwrap()
+  let publication = install_native_client_cancellation_publication(
+    store, "local-test", 65536, 8192, 64,
+  ).unwrap()
+  host.journal
+  .bind_installed_publication(request, publication, () => true)
+  .unwrap()
+  |> ignore
+  let publisher = host
+    .bind_run_publisher(
+      crypto,
+      "operator",
+      "cli",
+      request,
+      definition,
+      name + ".run.json",
+      store,
+    )
+    .unwrap()
+  assert_true(publisher.current())
   assert_true(
-    pending.observe_run_state(
-      "2026-10-15T00:00:02.000Z",
-      limits.max_result_workspace_entries,
-      16,
-      1000,
-      () => true,
+    native_local_policy_authority_for(
+      host,
+      crypto,
+      "operator",
+      "cli",
+      request,
+      ReadRunMaterials,
     )
-    is Err(_),
+    is Err(AuthorizationDenied),
   )
-  database.close_checked().unwrap() |> ignore
+  assert_true(publisher.current())
+  assert_true(store.close().unwrap())
+  host.close().unwrap() |> ignore
 }

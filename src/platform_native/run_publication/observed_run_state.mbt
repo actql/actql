@@ -1,13 +1,21 @@
 ///|
-/// Read-only original execution observation, never an authority, Store ACK,
-/// cleanup receipt, Result availability fact or a resumable compilation.
-struct NativeObservedRunState {
+/// Unfinalized bounded physical metadata candidate. Only the concrete Local
+/// Host may accept it after both current Publisher and RunRead checks. It is
+/// never finalized authority, Store ACK, cleanup or current Result availability.
+struct NativeRunStateCandidate {
   definition : @publication.PublicationContract
-  wire : String
+  validation : @publication.PublicationCommitPreparation
+  view : @publication.PublicationCommitReadView
+  observed_at : String
+  mut released : Bool
+  pending : NativePreparedCapturedRunPublication
+  request : @publication.PublicationContract
+  attempt : @publication.PublicationContract
+  index : @publication.PublicationContract
 }
 
 ///|
-pub(all) enum NativeObservedRunStateIssue {
+pub(all) enum NativeRunStateCandidateIssue {
   Unavailable
   InvalidLimits
   ValidationLimit
@@ -16,15 +24,175 @@ pub(all) enum NativeObservedRunStateIssue {
 }
 
 ///|
-pub fn NativeObservedRunState::definition_cid(
-  self : NativeObservedRunState,
-) -> String {
-  @publication.publication_contract_identity(self.definition)
+/// Borrow only existing nominal Core inputs, never emit a RunState wire here.
+/// The typed Local Host performs terminal current before the existing Core
+/// projection. These inputs themselves contain no authorization permission.
+pub fn NativeRunStateCandidate::original_metadata(
+  self : NativeRunStateCandidate,
+) -> (@publication.PublicationContract, @publication.PublicationContract) {
+  (self.definition, self.pending.evidence.manifest)
 }
 
 ///|
-pub fn NativeObservedRunState::wire(self : NativeObservedRunState) -> String {
-  self.wire
+/// Existing bounded Core observation loan. Callers must release this candidate
+/// on every outcome. Exposing a Core proof does not issue current read authority.
+pub fn NativeRunStateCandidate::projection_materials(
+  self : NativeRunStateCandidate,
+) -> Result[
+  (
+    @publication.PublicationCommitPreparation,
+    @publication.PublicationCommitReadView,
+    String,
+    Int,
+    Int,
+    Int,
+  ),
+  NativeRunStateCandidateIssue,
+] {
+  if self.released {
+    return Err(Unavailable)
+  }
+  Ok(
+    (
+      self.validation,
+      self.view,
+      self.observed_at,
+      self.pending.service.max_wire_bytes,
+      self.pending.service.max_nodes,
+      self.pending.service.max_depth,
+    ),
+  )
+}
+
+///|
+/// Retire the same original Core child/view, without Store or work cleanup.
+pub fn NativeRunStateCandidate::release(
+  self : NativeRunStateCandidate,
+) -> Result[Unit, NativeRunStateCandidateIssue] {
+  if self.released {
+    return Err(Unavailable)
+  }
+  self.released = true
+  let child = self.validation.release_observed_commit(self.view)
+  let view = self.validation.release_view(self.view)
+  self.validation.cancel()
+  match child {
+    Ok(_) => ()
+    Err(issue) => return Err(Publication(Commit(issue)))
+  }
+  match view {
+    Ok(_) => Ok(())
+    Err(issue) => Err(Publication(Commit(issue)))
+  }
+}
+
+///|
+pub fn NativeRunStateCandidate::original_client_request(
+  self : NativeRunStateCandidate,
+) -> @publication_host.ClientRequestIdentity? {
+  self.pending.service.client_request
+}
+
+///|
+/// Exact original publication context, not an authorization outcome. A copied
+/// CID cannot select a foreign Store/request or replace the adopted publisher.
+pub fn NativeRunStateCandidate::matches_original_publisher(
+  self : NativeRunStateCandidate,
+  store : @store.Store,
+  namespace_id : String,
+  scope : String,
+  definition_cid : String,
+  policy_cid : String,
+  target_cid : String,
+) -> Bool {
+  let pending = self.pending
+  physical_equal(pending.service.store, store) &&
+  pending.intent.namespace_id == namespace_id &&
+  pending.intent.authority_scope_cid == scope &&
+  pending.intent.publication_policy_cid == policy_cid &&
+  pending.intent.publication_target_cid == target_cid &&
+  @publication.publication_contract_identity(self.definition) == definition_cid
+}
+
+///|
+/// Callback-free same-original Store/lifetime checks after the Host's actual
+/// current predicates. No grant or finalized authorization is issued here.
+pub fn NativeRunStateCandidate::require_original_store_current(
+  self : NativeRunStateCandidate,
+) -> Result[Unit, NativeRunStateCandidateIssue] {
+  let pending = self.pending
+  if self.released || pending.cancelled {
+    return Err(Unavailable)
+  }
+  match
+    pending.service.store.observe_publication_payload_facts(
+      pending.evidence.bindings,
+      pending.evidence.binding_schema_wires,
+      pending.service.max_wire_bytes,
+      pending.service.max_nodes,
+      pending.service.max_depth,
+    ) {
+    Ok(_) => ()
+    Err(issue) => return Err(Publication(Store(issue)))
+  }
+  let store = pending.service.store
+  match
+    store.inspect_committed_publication(
+      pending.intent.namespace_id,
+      pending.intent.authority_scope_cid,
+      @publication.publication_contract_identity(self.definition),
+      pending.service.max_wire_bytes,
+      pending.service.max_nodes,
+      pending.service.max_depth,
+    ) {
+    Ok(Some(current)) if @publication.publication_contract_identity(current) ==
+      @publication.publication_contract_identity(self.index) => ()
+    Ok(_) => return Err(Publication(CommitConflict))
+    Err(issue) => return Err(Publication(Store(issue)))
+  }
+  let check = (original : @publication.PublicationContract) => {
+    store
+    .read_publication_contract(
+      @publication.publication_contract_name(original),
+      @publication.publication_contract_identity(original),
+    )
+    .map(_ => ())
+    .map_err(issue => NativeRunStateCandidateIssue::Publication(Store(issue)))
+  }
+  // Borrow the original evidence arrays, without another view-array copy.
+  for
+    originals in [
+      pending.evidence.definitions,
+      pending.evidence.artifacts,
+      pending.evidence.derivations,
+      pending.evidence.orderings,
+      pending.evidence.retentions,
+      pending.evidence.bindings,
+    ] {
+    for original in originals {
+      match check(original) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    }
+  }
+  for
+    original in [
+      self.definition,
+      pending.evidence.invocation,
+      pending.evidence.manifest,
+      pending.evidence.receipt,
+      pending.evidence.captured_run,
+      self.request,
+      self.attempt,
+      self.index,
+    ] {
+    match check(original) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+  }
+  Ok(())
 }
 
 ///|
@@ -32,7 +200,7 @@ fn advance_native_state_validation(
   preparation : @publication.PublicationCommitPreparation,
   quantum : Int,
   max_rounds : Int,
-) -> Result[Unit, NativeObservedRunStateIssue] {
+) -> Result[Unit, NativeRunStateCandidateIssue] {
   for _ in 0..<max_rounds {
     match preparation.advance(quantum) {
       Ok((true, _)) => return Ok(())
@@ -49,7 +217,7 @@ fn advance_native_observed_state_validation(
   view : @publication.PublicationCommitReadView,
   quantum : Int,
   max_rounds : Int,
-) -> Result[Unit, NativeObservedRunStateIssue] {
+) -> Result[Unit, NativeRunStateCandidateIssue] {
   for _ in 0..<max_rounds {
     match preparation.advance_observed_commit(view, quantum) {
       Ok((true, _)) => return Ok(())
@@ -62,19 +230,18 @@ fn advance_native_observed_state_validation(
 
 ///|
 /// Use only this opaque pending Owner's original completed evidence and the
-/// actual same Store chain. Unknown commit response is not resend permission;
-/// this method only inspects existing stored contracts, never calls commit.
-/// The trusted Host supplies its actual current RunRead predicate separately
-/// from the existing Publisher. Neither an old Allow nor index existence is
-/// authorization. Caller work/loans stay within its original workspace profile.
-pub fn NativePreparedCapturedRunPublication::observe_run_state(
+/// actual same Store chain. Unknown commit response is not resend permission.
+/// Existing Publisher callbacks guard candidate preparation only; they cannot
+/// finalize both Publisher and RunRead authorization. There is no caller Bool
+/// RunRead port or finalized wire result. The concrete typed Local Host owns
+/// terminal acceptance after all callbacks. Original workspace limits remain.
+pub fn NativePreparedCapturedRunPublication::prepare_run_state_candidate(
   self : NativePreparedCapturedRunPublication,
   observed_at : String,
   max_workspace : Int,
   quantum : Int,
   max_rounds : Int,
-  current_run_read : () -> Bool,
-) -> Result[NativeObservedRunState, NativeObservedRunStateIssue] {
+) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue] {
   if max_workspace < 1 || quantum < 1 || max_rounds < 1 {
     return Err(InvalidLimits)
   }
@@ -83,9 +250,6 @@ pub fn NativePreparedCapturedRunPublication::observe_run_state(
   }
   let service = self.service
   let evidence = self.evidence
-  if !current_run_read() {
-    return Err(Publication(AccessDenied))
-  }
   match
     authorize(
       service,
@@ -98,7 +262,7 @@ pub fn NativePreparedCapturedRunPublication::observe_run_state(
     Ok(_) => ()
     Err(issue) => return Err(Publication(issue))
   }
-  if self.cancelled || !current_run_read() {
+  if self.cancelled {
     return Err(Publication(AccessDenied))
   }
   let index = match
@@ -190,24 +354,29 @@ pub fn NativePreparedCapturedRunPublication::observe_run_state(
     Err(issue) => Err(issue)
     Ok(_) =>
       self.finish_observed_run_state(
-        validation, view, index, observed_at, current_run_read,
+        validation, view, stored_request, stored_attempt, index, observed_at,
       )
   }
-  // These nominal metadata loans contain no payload stream. Retire the same
-  // child and view on every outcome; cancellation does not acknowledge Store
-  // or work cleanup, which remains with the original pending publication.
-  let child_release = validation.release_observed_commit(view)
-  let view_release = validation.release_view(view)
-  validation.cancel()
-  match child_release {
-    Ok(_) => ()
-    Err(issue) => return Err(Publication(Commit(issue)))
+  // On success transfer only the same bounded Core loan to the candidate;
+  // its typed Host consumer retires it on every outcome. No state wire exists
+  // yet. Failed preparation preserves the original release/cancel sequence.
+  match outcome {
+    Ok(candidate) => Ok(candidate)
+    Err(issue) => {
+      let child_release = validation.release_observed_commit(view)
+      let view_release = validation.release_view(view)
+      validation.cancel()
+      match child_release {
+        Ok(_) => ()
+        Err(issue) => return Err(Publication(Commit(issue)))
+      }
+      match view_release {
+        Ok(_) => ()
+        Err(issue) => return Err(Publication(Commit(issue)))
+      }
+      Err(issue)
+    }
   }
-  match view_release {
-    Ok(_) => ()
-    Err(issue) => return Err(Publication(Commit(issue)))
-  }
-  outcome
 }
 
 ///|
@@ -215,10 +384,11 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
   self : NativePreparedCapturedRunPublication,
   validation : @publication.PublicationCommitPreparation,
   view : @publication.PublicationCommitReadView,
+  stored_request : @publication.PublicationContract,
+  stored_attempt : @publication.PublicationContract,
   index : @publication.PublicationContract,
   observed_at : String,
-  current_run_read : () -> Bool,
-) -> Result[NativeObservedRunState, NativeObservedRunStateIssue] {
+) -> Result[NativeRunStateCandidate, NativeRunStateCandidateIssue] {
   match validation.finish_observed_commit(view) {
     Ok(_) => ()
     Err(issue) => return Err(Publication(Commit(issue)))
@@ -235,7 +405,7 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
     Ok(_) => ()
     Err(issue) => return Err(Publication(issue))
   }
-  if !current_run_read() || self.cancelled {
+  if self.cancelled {
     return Err(Publication(AccessDenied))
   }
   // After all user callbacks, use the actual non-callback Store generation/
@@ -286,16 +456,15 @@ fn NativePreparedCapturedRunPublication::finish_observed_run_state(
       Err(issue) => return Err(Publication(Store(issue)))
     }
   }
-  let wire = match
-    validation.observed_run_state_wire(
-      view,
-      observed_at,
-      self.service.max_wire_bytes,
-      self.service.max_nodes,
-      self.service.max_depth,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(State(issue))
-  }
-  Ok({ definition: self.evidence.run_definition, wire, })
+  Ok({
+    definition: self.evidence.run_definition,
+    validation,
+    view,
+    observed_at,
+    released: false,
+    pending: self,
+    request: stored_request,
+    attempt: stored_attempt,
+    index,
+  })
 }
