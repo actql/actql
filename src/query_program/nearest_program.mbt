@@ -240,6 +240,32 @@ fn nearest_vector_roles(
 }
 
 ///|
+// An immediately following pure hit-only SELECT cannot observe query payload.
+// Keep collision checking and Common's original input/role obligations, but do
+// not materialize a Vectors-to-rows round trip solely to discard those columns.
+fn nearest_hit_only_projection(
+  construction : Construction,
+  query : @query.Query,
+  index : Int,
+  name : @query.NamePart,
+) -> Bool raise Abort {
+  guard @query.operation_at(query, index + 1) is Some(Select(projections, false)) else { return false }
+  if projections.is_empty() { return false }
+  for projection in projections {
+    construction.infer_budget.spend(1, construction.generated)
+    if projection.aggregate is Some(_) || projection.analytic is Some(_) || projection.star is Some(_) || !projection.replacements.is_empty() { return false }
+    guard projection.expression is Some(expression) else { return false }
+    let mut node = @query.expression_node(expression, @query.expression_root(expression)).unwrap()
+    while node.kind is Parenthesized(child) {
+      construction.infer_budget.spend(1, construction.generated)
+      node = @query.expression_node(expression, child).unwrap()
+    }
+    guard node.kind is Reference(path) && !path.is_empty() && same_name(path[0], name) else { return false }
+  }
+  true
+}
+
+///|
 fn lower_nearest_steps(
   construction : Construction,
   clause : @query.NearestClause,
@@ -255,6 +281,7 @@ fn lower_nearest_steps(
   candidate_typed? : @carrier.Vectors? = None,
   checked_prefix? : ((Array[@builder.Node]) -> @pipeline.CheckedPipeline raise Abort)? = None,
   completion_limits? : Limits? = None,
+  hit_only_projection? : Bool = false,
 ) -> (Array[Array[(String, @builder.Node)]], Array[String]) raise Abort {
   if clause.candidate_alias_explicit && ranges.any(range => same_name(range.0, clause.candidate_alias)) {
     raise Abort(AmbiguousRelation)
@@ -325,6 +352,15 @@ fn lower_nearest_steps(
       }
       retained.push(entry)
     }
+  }
+  if clause.keep.is_empty() && hit_only_projection && query_typed is Some((vectors, _)) {
+    // Verify exact admitted fields before pruning; a caller cannot use demand
+    // to hide a malformed visible-field declaration.
+    for entry in retained {
+      construction.infer_budget.spend(1, construction.generated)
+      guard @carrier.lookup(@carrier.vector_records(vectors), @schema.Unqualified(entry.2)) is Present(_) else { raise Abort(UnknownColumn) }
+    }
+    retained.clear()
   }
   let names = input_names.copy()
   let producer = fn(role : String) {

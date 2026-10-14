@@ -25,7 +25,9 @@ const bodyPrefix = 'WITH corpus AS (FROM candidates |> SELECT item_id, embedding
 const jsonControl={version:'actql/0.1',id:'fixture.nearest_shorthand_control',stages:[{id:'main',inputs:{},steps:[
   {values:{schema:JSON.parse(nearestCarrierSchemaWires.queries),rows:nearestCarrierSourceRows.queries},as:'q'},
   {values:{schema:JSON.parse(nearestCarrierSchemaWires.candidates),rows:nearestCarrierSourceRows.candidates},as:'c'},
-  {from:'c',nearest:{queries:'q',query_id:'request_id',query_vector:'embedding',candidate_id:'item_id',candidate_vector:'embedding',metric:'cosine',k:2}},
+  {from:'q',to_vectors:{id:'request_id',vector:'embedding'},as:'qv'},
+  {from:'c',to_vectors:{id:'item_id',vector:'embedding'},as:'cv'},
+  {from:'cv',nearest:{queries:'qv',metric:'cosine',k:2}},
   {join:{with:'q',kind:'inner',cardinality:'many_to_one',on:[{left:'query_id',right:'request_id'}],select:{query_id:'left.query_id',candidate_id:'left.candidate_id',score:'left.score',rank:'left.rank',request_id:'right.request_id',embedding:'right.embedding',note:'right.note'}}},
   {join:{with:'c',kind:'inner',cardinality:'many_to_one',on:[{left:'candidate_id',right:'item_id'}],select:{query_id:'left.query_id',candidate_id:'left.candidate_id',score:'left.score',rank:'left.rank',request_id:'left.request_id',embedding:'left.embedding',note:'left.note',body:'right.label'}}},
   {derive:{hit:{object:{query_key:{object:{request_id:{field:'query_id'}}},candidate_key:{object:{item_id:{field:'candidate_id'}}},score:{field:'score'},rank:{field:'rank'},body:{field:'body'}}}}},
