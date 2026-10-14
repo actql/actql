@@ -127,7 +127,8 @@ test('Common refusal or missing opaque result never constructs a physical select
     const config=configuration(),f=runtime(config);
     f.moon.clientProgramReadModelResponseProfile=()=>result;
     const {fetch:unused,...selected}=config;void unused;
-    const register=createInstalledUndiciOpenAIChatRegistration(selected);
+    const register=createInstalledUndiciOpenAIChatRegistration({...selected,
+      physicalAcquisitionLimits:{maxPlaintextBytes:65536,maxBorrowedBackingBytes:131072,maxReads:64}});
     assert.throws(()=>register(f.moon),{code:'OpenAIOriginalMaterialsRefused'});
     assert.equal(f.calls.length,0);
     assert.throws(()=>register({...f.moon}),{code:'OpenAIOriginalInstallationReused'});
@@ -160,7 +161,10 @@ for(const [route,create] of [['generic',createInstalledOpenAIChatRegistration],
 test(`actual installed ${route} Host supplies its original runtime once; second installation refuses and closes`,async t=>{
   const {openInstalledRemoteHttpHost}=await import('../../adapters/host-node/embedded-local.mjs');
   const config=configuration();
-  if(route==='Undici')delete config.fetch;
+  if(route==='Undici'){
+    delete config.fetch;
+    config.physicalAcquisitionLimits={maxPlaintextBytes:65536,maxBorrowedBackingBytes:131072,maxReads:64};
+  }
   const register=create(config),moon=await realRuntime();
   const root=await mkdtemp(join(tmpdir(),'actql-original-materials-host-'));
   let host,callbacks=0;
