@@ -123,7 +123,18 @@ fn private_update_static(
                   "Computation.Source.Requests"
                 @check.SourceFailure::Declarations(_) =>
                   "Computation.Source.Declarations"
-                _ => "Computation.Source.Other"
+                @check.SourceFailure::DeclarationWorkLimit =>
+                  "Computation.Source.DeclarationWorkLimit"
+                @check.SourceFailure::CapacityMetadataBudget =>
+                  "Computation.Source.CapacityMetadataBudget"
+                @check.SourceFailure::UnsupportedBindings(_) =>
+                  "Computation.Source.UnsupportedBindings"
+                @check.SourceFailure::UnsupportedEffects(_) =>
+                  "Computation.Source.UnsupportedEffects"
+                @check.SourceFailure::RequestForm(_) =>
+                  "Computation.Source.RequestForm"
+                @check.SourceFailure::SourceView(_) =>
+                  "Computation.Source.SourceView"
               }
             @check.LocalConstructionFailure::Closure(_) => "Computation.Closure"
             @check.LocalConstructionFailure::Units(_) => "Computation.Units"
