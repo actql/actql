@@ -119,6 +119,7 @@ pub(all) enum IntervalIssue {
   InvalidWeekOrigin
   CalendarBoundaryDomain
   IntervalWorkLimit
+  IntervalResolution(LocalResolutionIssue)
   IntervalTerminal
 } derive(Eq, Debug)
 
@@ -216,7 +217,20 @@ pub fn advance_interval(
       let (work, resolved) = match poll {
         ResolutionContinue(work~) => (work, None)
         ResolutionReady(utc_ms~, work~) => (work, Some(utc_ms))
-        ResolutionFailed(_, work~) => (work, None)
+        ResolutionFailed(OutsideResolutionCoverage, work~) => (work, None)
+        ResolutionFailed(issue, work~) => {
+          cursor.terminal = true
+          return Ok(
+            IntervalFailed(
+              if issue == ResolutionWorkLimit {
+                IntervalWorkLimit
+              } else {
+                IntervalResolution(issue)
+              },
+              work=used + work,
+            ),
+          )
+        }
       }
       used += work
       cursor.remaining_work -= work

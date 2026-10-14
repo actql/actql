@@ -2,17 +2,30 @@
 package "actql/actql/calendar_transition"
 
 import {
+  "actql/actql/calendar_options",
   "moonbitlang/core/debug",
 }
 
 // Values
 pub fn admit(Int64, Int64, Int, Array[Transition], max_transitions~ : Int) -> Result[Table, Issue]
 
+pub fn advance_interval(IntervalCursor, Int) -> Result[IntervalPoll, IntervalIssue]
+
+pub fn advance_local_resolution(LocalResolution, Int) -> Result[LocalResolutionPoll, LocalResolutionIssue]
+
+pub fn advance_series(SeriesCursor, Int) -> Result[SeriesPoll, SeriesIssue]
+
 pub fn coverage(Table) -> (Int64, Int64)
 
 pub fn initial_offset(Table) -> Int
 
 pub fn offset_at(Table, Int64) -> Int?
+
+pub fn start_interval(Table, Int64, @calendar_options.CalendarUnit, week_start~ : @calendar_options.WeekStart?, max_work~ : Int) -> Result[IntervalCursor, IntervalIssue]
+
+pub fn start_local_resolution(Table, Int64, max_work~ : Int) -> Result[LocalResolution, LocalResolutionIssue]
+
+pub fn start_series(Table, Int64, Int64, @calendar_options.CalendarUnit, week_start~ : @calendar_options.WeekStart?, max_rows~ : Int, max_work~ : Int) -> Result[SeriesCursor, SeriesIssue]
 
 pub fn transition_at(Table, Int) -> Transition?
 
@@ -21,6 +34,22 @@ pub fn transition_count(Table) -> Int
 // Errors
 
 // Types and methods
+type IntervalCursor
+
+pub(all) enum IntervalIssue {
+  InvalidIntervalLimits
+  InvalidWeekOrigin
+  CalendarBoundaryDomain
+  IntervalWorkLimit
+  IntervalTerminal
+} derive(Eq, @debug.Debug)
+
+pub(all) enum IntervalPoll {
+  IntervalContinue(work~ : Int)
+  IntervalReady(start_ms~ : Int64, end_ms~ : Int64, work~ : Int)
+  IntervalFailed(IntervalIssue, work~ : Int)
+} derive(Eq, @debug.Debug)
+
 pub(all) enum Issue {
   InvalidLimit
   TransitionLimit
@@ -28,6 +57,40 @@ pub(all) enum Issue {
   InvalidOffset(Int)
   InvalidTransition(Int)
   RedundantTransition(Int)
+} derive(Eq, @debug.Debug)
+
+type LocalResolution
+
+pub(all) enum LocalResolutionIssue {
+  InvalidResolutionLimits
+  InvalidLocalInstant
+  ResolutionWorkLimit
+  OutsideResolutionCoverage
+  ResolutionTerminal
+} derive(Eq, @debug.Debug)
+
+pub(all) enum LocalResolutionPoll {
+  ResolutionContinue(work~ : Int)
+  ResolutionReady(utc_ms~ : Int64, work~ : Int)
+  ResolutionFailed(LocalResolutionIssue, work~ : Int)
+} derive(Eq, @debug.Debug)
+
+type SeriesCursor
+
+pub(all) enum SeriesIssue {
+  InvalidSeriesLimits
+  InvalidSeriesRange
+  SeriesRowLimit
+  SeriesWorkLimit
+  SeriesBoundary(IntervalIssue)
+  SeriesTerminal
+} derive(Eq, @debug.Debug)
+
+pub(all) enum SeriesPoll {
+  CalendarSeriesContinue(work~ : Int)
+  CalendarSeriesRow(start_ms~ : Int64, end_ms~ : Int64, work~ : Int)
+  CalendarSeriesComplete(work~ : Int)
+  CalendarSeriesFailed(SeriesIssue, work~ : Int)
 } derive(Eq, @debug.Debug)
 
 type Table
