@@ -81,8 +81,12 @@ pub fn[P, C] issue_backed_execution_region(
   // no callback/await can intervene or orphan the just-issued original loan.
   allocation.retiring = true
   Ok({
-    capacity: Some(capacity), allocation: Some(allocation), provider: Some(provider),
-    owner_borrow: Some(borrow), children: [], closing: false,
+    capacity: Some(capacity),
+    allocation: Some(allocation),
+    provider: Some(provider),
+    owner_borrow: Some(borrow),
+    children: [],
+    closing: false,
   })
 }
 
@@ -96,10 +100,15 @@ fn[P, C] backed_region_current(
   }
   guard region.capacity is Some(capacity) &&
     region.allocation is Some(allocation) &&
-    region.owner_borrow is Some(borrow) else { return Err(Retired) }
+    region.owner_borrow is Some(borrow) else {
+    return Err(Retired)
+  }
   if !physical_equal(capacity, allocation.owner) ||
-    !physical_equal(borrow.allocation, allocation) || borrow.returned ||
-    allocation.released || !allocation.retiring || !capacity.reservation.open {
+    !physical_equal(borrow.allocation, allocation) ||
+    borrow.returned ||
+    allocation.released ||
+    !allocation.retiring ||
+    !capacity.reservation.open {
     return Err(Retired)
   }
   match check_original_resources_mutable(capacity.ledger) {
@@ -110,9 +119,12 @@ fn[P, C] backed_region_current(
 
 ///|
 fn backed_extent_valid(extent : BackedExecutionExtent, bytes : Int64) -> Bool {
-  extent.offset >= 0L && extent.length > 0L &&
-  extent.offset <= bytes && extent.length <= bytes - extent.offset &&
-  extent.payload_offset >= 0L && extent.payload_length > 0L &&
+  extent.offset >= 0L &&
+  extent.length > 0L &&
+  extent.offset <= bytes &&
+  extent.length <= bytes - extent.offset &&
+  extent.payload_offset >= 0L &&
+  extent.payload_length > 0L &&
   extent.payload_offset <= extent.length &&
   extent.payload_length <= extent.length - extent.payload_offset
 }
@@ -136,9 +148,12 @@ pub fn[P, C] reserve_backed_execution_delegation(
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if region.closing || capacity.closing { return Err(RegionClosing) }
+  if region.closing || capacity.closing {
+    return Err(RegionClosing)
+  }
   if !backed_extent_valid(extent, allocation.bytes) ||
-    limits.retained_bytes < 0L || limits.execution_bytes < 0L ||
+    limits.retained_bytes < 0L ||
+    limits.execution_bytes < 0L ||
     limits.retained_bytes > extent.payload_length ||
     limits.execution_bytes > extent.payload_length - limits.retained_bytes {
     return Err(InvalidExtent)
@@ -153,11 +168,16 @@ pub fn[P, C] reserve_backed_execution_delegation(
       return Err(ExtentConflict)
     }
   }
-  if allocation.readers == 2147483647 { return Err(Resource(InvalidCharge)) }
-  let logical = match reserve_execution_delegation(
-    capacity.ledger, { ..limits, retained_bytes: 0L, execution_bytes: 0L, },
-    overhead_retained, overhead_execution,
-  ) {
+  if allocation.readers == 2147483647 {
+    return Err(Resource(InvalidCharge))
+  }
+  let logical = match
+    reserve_execution_delegation(
+      capacity.ledger,
+      { ..limits, retained_bytes: 0L, execution_bytes: 0L, },
+      overhead_retained,
+      overhead_execution,
+    ) {
     Ok(value) => value
     Err(issue) => return Err(Resource(issue))
   }
@@ -166,8 +186,15 @@ pub fn[P, C] reserve_backed_execution_delegation(
   allocation.readers += 1
   let borrow : SharedBorrow = { allocation, returned: false, }
   let ticket : BackedExecutionDelegation[P, C] = {
-    owner: Some(region), child: Some(child), borrow: Some(borrow), logical: Some(logical),
-    extent, access, limits, peak_retention: 0L, final_usage: None,
+    owner: Some(region),
+    child: Some(child),
+    borrow: Some(borrow),
+    logical: Some(logical),
+    extent,
+    access,
+    limits,
+    peak_retention: 0L,
+    final_usage: None,
   }
   region.children.push(ticket)
   Ok(ticket)
@@ -175,23 +202,33 @@ pub fn[P, C] reserve_backed_execution_delegation(
 
 ///|
 fn[P, C] backed_child_current(
-  region : BackedExecutionRegion[P, C], provider : P,
-  child : C, ticket : BackedExecutionDelegation[P, C],
-) -> Result[(SharedCapacity, SharedBorrow, ExecutionDelegation), BackedExecutionIssue] {
+  region : BackedExecutionRegion[P, C],
+  provider : P,
+  child : C,
+  ticket : BackedExecutionDelegation[P, C],
+) -> Result[
+  (SharedCapacity, SharedBorrow, ExecutionDelegation),
+  BackedExecutionIssue,
+] {
   let (capacity, allocation) = match backed_region_current(region, provider) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  guard ticket.owner is Some(owner) && physical_equal(owner, region) &&
-    ticket.child is Some(original) && physical_equal(original, child) &&
-    ticket.borrow is Some(borrow) && ticket.logical is Some(logical) else {
+  guard ticket.owner is Some(owner) &&
+    physical_equal(owner, region) &&
+    ticket.child is Some(original) &&
+    physical_equal(original, child) &&
+    ticket.borrow is Some(borrow) &&
+    ticket.logical is Some(logical) else {
     return Err(ForeignOriginal)
   }
   if !region.children.any(original => physical_equal(original, ticket)) {
     return Err(ForeignOriginal)
   }
-  if !physical_equal(borrow.allocation, allocation) || borrow.returned ||
-    !physical_equal(logical.owner, capacity.ledger) || allocation.readers < 2 {
+  if !physical_equal(borrow.allocation, allocation) ||
+    borrow.returned ||
+    !physical_equal(logical.owner, capacity.ledger) ||
+    allocation.readers < 2 {
     return Err(Retired)
   }
   Ok((capacity, borrow, logical))
@@ -200,9 +237,14 @@ fn[P, C] backed_child_current(
 ///|
 /// Pure original quota/extent DATA; not worker startup, physical ACK or a grant.
 pub fn[P, C] backed_execution_delegation_description(
-  region : BackedExecutionRegion[P, C], provider : P,
-  child : C, ticket : BackedExecutionDelegation[P, C],
-) -> Result[(BackedExecutionExtent, BackedExecutionAccess, LedgerLimits), BackedExecutionIssue] {
+  region : BackedExecutionRegion[P, C],
+  provider : P,
+  child : C,
+  ticket : BackedExecutionDelegation[P, C],
+) -> Result[
+  (BackedExecutionExtent, BackedExecutionAccess, LedgerLimits),
+  BackedExecutionIssue,
+] {
   match backed_child_current(region, provider, child, ticket) {
     Err(issue) => Err(issue)
     Ok(_) => Ok((ticket.extent, ticket.access, ticket.limits))
@@ -211,15 +253,18 @@ pub fn[P, C] backed_execution_delegation_description(
 
 ///|
 fn[P, C] backed_usage_valid(
-  ticket : BackedExecutionDelegation[P, C], usage : LedgerUsage,
+  ticket : BackedExecutionDelegation[P, C],
+  usage : LedgerUsage,
 ) -> Bool {
   let limits = ticket.limits
-  usage.held_bytes >= 0L && usage.held_bytes <= limits.retained_bytes &&
+  usage.held_bytes >= 0L &&
+  usage.held_bytes <= limits.retained_bytes &&
   usage.reserved_retention_bytes >= 0L &&
   usage.reserved_retention_bytes <= limits.retained_bytes - usage.held_bytes &&
   usage.reserved_execution_bytes >= 0L &&
   usage.reserved_execution_bytes <= limits.execution_bytes &&
-  usage.peak_retention_bytes >= usage.held_bytes + usage.reserved_retention_bytes &&
+  usage.peak_retention_bytes >=
+  usage.held_bytes + usage.reserved_retention_bytes &&
   usage.peak_retention_bytes >= ticket.peak_retention &&
   usage.peak_retention_bytes <= limits.retained_bytes
 }
@@ -229,24 +274,45 @@ fn backed_logical_usage(usage : LedgerUsage) -> LedgerUsage {
   // These byte facts were validated against the original shared extent; they
   // are not erased from the ticket's bounds/peak. The parent already reserves
   // that backing once, and independent overhead stays reserved separately.
-  { ..usage, held_bytes: 0L, reserved_retention_bytes: 0L,
-    reserved_execution_bytes: 0L, peak_retention_bytes: 0L, }
+  {
+    ..usage,
+    held_bytes: 0L,
+    reserved_retention_bytes: 0L,
+    reserved_execution_bytes: 0L,
+    peak_retention_bytes: 0L,
+  }
 }
 
 ///|
 pub fn[P, C] report_backed_execution_delegation(
-  region : BackedExecutionRegion[P, C], provider : P,
-  child : C, ticket : BackedExecutionDelegation[P, C], usage : LedgerUsage,
+  region : BackedExecutionRegion[P, C],
+  provider : P,
+  child : C,
+  ticket : BackedExecutionDelegation[P, C],
+  usage : LedgerUsage,
 ) -> Result[Unit, BackedExecutionIssue] {
-  let (capacity, _, logical) = match backed_child_current(region, provider, child, ticket) {
+  let (capacity, _, logical) = match
+    backed_child_current(region, provider, child, ticket) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  if !logical.reservation.open { return Err(Retired) }
-  if !backed_usage_valid(ticket, usage) { return Err(Resource(InvalidCharge)) }
-  match report_execution_delegation(capacity.ledger, logical, backed_logical_usage(usage)) {
+  if !logical.reservation.open {
+    return Err(Retired)
+  }
+  if !backed_usage_valid(ticket, usage) {
+    return Err(Resource(InvalidCharge))
+  }
+  match
+    report_execution_delegation(
+      capacity.ledger,
+      logical,
+      backed_logical_usage(usage),
+    ) {
     Err(issue) => Err(Resource(issue))
-    Ok(_) => { ticket.peak_retention = usage.peak_retention_bytes; Ok(()) }
+    Ok(_) => {
+      ticket.peak_retention = usage.peak_retention_bytes
+      Ok(())
+    }
   }
 }
 
@@ -255,11 +321,14 @@ fn backed_final_usage_equal(left : LedgerUsage?, right : LedgerUsage?) -> Bool {
   match (left, right) {
     (None, None) => true
     (Some(a), Some(b)) =>
-      a.planning_work == b.planning_work && a.attempts == b.attempts &&
-      a.holdings == b.holdings && a.transferred_bytes == b.transferred_bytes &&
+      a.planning_work == b.planning_work &&
+      a.attempts == b.attempts &&
+      a.holdings == b.holdings &&
+      a.transferred_bytes == b.transferred_bytes &&
       a.uncertain_transfer_bytes == b.uncertain_transfer_bytes &&
       a.reserved_transfer_bytes == b.reserved_transfer_bytes &&
-      a.held_bytes == b.held_bytes && a.reserved_retention_bytes == b.reserved_retention_bytes &&
+      a.held_bytes == b.held_bytes &&
+      a.reserved_retention_bytes == b.reserved_retention_bytes &&
       a.reserved_execution_bytes == b.reserved_execution_bytes &&
       a.peak_retention_bytes == b.peak_retention_bytes
     _ => false
@@ -273,33 +342,45 @@ fn backed_final_usage_equal(left : LedgerUsage?, right : LedgerUsage?) -> Bool {
 /// final usage consumes the original logical remainder conservatively. Keep
 /// overhead/borrow custody until this boundary; independent Store is separate.
 pub fn[P, C] settle_backed_execution_after_owner_ack(
-  region : BackedExecutionRegion[P, C], provider : P,
-  child : C, ticket : BackedExecutionDelegation[P, C], final_usage : LedgerUsage?,
+  region : BackedExecutionRegion[P, C],
+  provider : P,
+  child : C,
+  ticket : BackedExecutionDelegation[P, C],
+  final_usage : LedgerUsage?,
 ) -> Result[Unit, BackedExecutionIssue] {
-  let (capacity, borrow, logical) = match backed_child_current(region, provider, child, ticket) {
+  let (capacity, borrow, logical) = match
+    backed_child_current(region, provider, child, ticket) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   if logical.reservation.open {
-      if final_usage is Some(usage) && !backed_usage_valid(ticket, usage) {
-        return Err(Resource(InvalidCharge))
-      }
-      match settle_execution_delegation(capacity.ledger, logical,
-        final_usage.map(backed_logical_usage)) {
-        Err(issue) => return Err(Resource(issue))
-        Ok(_) => ticket.final_usage = final_usage
-      }
-  } else {
-    if !backed_final_usage_equal(ticket.final_usage, final_usage) { return Err(ChangedFinalUsage) }
+    if final_usage is Some(usage) && !backed_usage_valid(ticket, usage) {
+      return Err(Resource(InvalidCharge))
+    }
+    match
+      settle_execution_delegation(
+        capacity.ledger,
+        logical,
+        final_usage.map(backed_logical_usage),
+      ) {
+      Err(issue) => return Err(Resource(issue))
+      Ok(_) => ticket.final_usage = final_usage
+    }
+  } else if !backed_final_usage_equal(ticket.final_usage, final_usage) {
+    return Err(ChangedFinalUsage)
   }
   match return_shared_capacity(borrow) {
     Err(issue) => return Err(Resource(issue))
     Ok(_) => ()
   }
   let mut index = 0
-  while !physical_equal(region.children[index], ticket) { index += 1 }
+  while !physical_equal(region.children[index], ticket) {
+    index += 1
+  }
   let last = region.children.pop().unwrap()
-  if index < region.children.length() { region.children[index] = last }
+  if index < region.children.length() {
+    region.children[index] = last
+  }
   ticket.owner = None
   ticket.child = None
   ticket.borrow = None
@@ -314,14 +395,17 @@ pub fn[P, C] settle_backed_execution_after_owner_ack(
 /// already stopped/retired. The original physical allocation/capacity Owners
 /// still perform their own actual release and settlement afterwards.
 pub fn[P, C] close_backed_execution_region(
-  region : BackedExecutionRegion[P, C], provider : P,
+  region : BackedExecutionRegion[P, C],
+  provider : P,
 ) -> Result[Bool, BackedExecutionIssue] {
   let (_, _) = match backed_region_current(region, provider) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
   region.closing = true
-  if !region.children.is_empty() { return Ok(false) }
+  if !region.children.is_empty() {
+    return Ok(false)
+  }
   let borrow = region.owner_borrow.unwrap()
   match return_shared_capacity(borrow) {
     Err(issue) => return Err(Resource(issue))
