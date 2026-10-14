@@ -380,7 +380,7 @@ test "computed UPDATE retains nested access and lazy CASE in the common expressi
   let step = @wire.admit(
     @source.parse_json(
       (
-        #|{"values":{"schema":{"id":{"type":"string","nullable":false},"payload":{"type":"object","nullable":false,"additional_properties":false,"fields":{"score":{"type":"number","nullable":true}}}},"rows":[{"id":"original-id","payload":{"score":2}}]},"as":"nested"}
+        #|{"values":{"schema":{"id":{"type":"string","nullable":false},"payload":{"type":"object","nullable":false,"fields":{"score":{"type":"number","nullable":true}}}},"rows":[{"id":"original-id","payload":{"score":2}}]},"as":"nested"}
       ),
       construction_limits().source.source,
     ).unwrap(),
