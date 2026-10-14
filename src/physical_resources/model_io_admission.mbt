@@ -53,8 +53,10 @@ pub fn[T] issue_model_io_admission(
   active_slots : Int,
   unsettled_slots : Int,
 ) -> Result[ModelIoAdmission[T], ModelIoAdmissionIssue] {
-  if active_slots < 1 || active_slots > 4 ||
-    unsettled_slots < 1 || unsettled_slots > 4 {
+  if active_slots < 1 ||
+    active_slots > 4 ||
+    unsettled_slots < 1 ||
+    unsettled_slots > 4 {
     return Err(InvalidLimits)
   }
   Ok({
@@ -108,15 +110,19 @@ pub fn[T] claim_model_io_admission(
     return Err(InvalidAttempt)
   }
   if !original_ledger_inventory_available(origin) ||
-    !physical_equal(origin.ledger, reservation.owner) || !reservation.open {
+    !physical_equal(origin.ledger, reservation.owner) ||
+    !reservation.open {
     return Err(ForeignTicket)
   }
   for ticket in value.duties {
-    if ticket.reservation is Some(original) && physical_equal(original, reservation) {
+    if ticket.reservation is Some(original) &&
+      physical_equal(original, reservation) {
       return Err(DuplicateAttempt)
     }
-    if ticket.origin is Some(original) && physical_equal(original, origin) &&
-      ticket.slot == slot && ticket.attempt == attempt {
+    if ticket.origin is Some(original) &&
+      physical_equal(original, origin) &&
+      ticket.slot == slot &&
+      ticket.attempt == attempt {
       return Err(DuplicateAttempt)
     }
   }
@@ -160,8 +166,10 @@ fn[T] check_model_io_ticket(
   if !model_io_installation_matches(value, installation) {
     return Err(ForeignInstallation)
   }
-  guard ticket.owner is Some(owner) && ticket.origin is Some(original) &&
-    ticket.reservation is Some(reservation) && ticket.census is Some(census) else {
+  guard ticket.owner is Some(owner) &&
+    ticket.origin is Some(original) &&
+    ticket.reservation is Some(reservation) &&
+    ticket.census is Some(census) else {
     return Err(TicketRetired)
   }
   guard origin.ledger.original_inventory is Some(inventory) &&
@@ -170,8 +178,10 @@ fn[T] check_model_io_ticket(
     capacity_reservation_open(origin.bootstrap) else {
     return Err(ForeignTicket)
   }
-  if !physical_equal(owner, value) || !physical_equal(original, origin) ||
-    ticket.slot != slot || ticket.attempt != attempt ||
+  if !physical_equal(owner, value) ||
+    !physical_equal(original, origin) ||
+    ticket.slot != slot ||
+    ticket.attempt != attempt ||
     !physical_equal(reservation.owner, origin.ledger) ||
     census.reservation_serial != reservation.serial ||
     !holding_available(origin.ledger, census) ||
@@ -195,7 +205,8 @@ pub fn[T] settle_model_io_after_owner_ack(
   slot : Int,
   attempt : Int,
 ) -> Result[Unit, ModelIoAdmissionIssue] {
-  match check_model_io_ticket(value, installation, origin, ticket, slot, attempt) {
+  match
+    check_model_io_ticket(value, installation, origin, ticket, slot, attempt) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -220,7 +231,8 @@ pub fn[T] settle_model_holding_after_owner_ack(
   slot : Int,
   attempt : Int,
 ) -> Result[Unit, ModelIoAdmissionIssue] {
-  match check_model_io_ticket(value, installation, origin, ticket, slot, attempt) {
+  match
+    check_model_io_ticket(value, installation, origin, ticket, slot, attempt) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
