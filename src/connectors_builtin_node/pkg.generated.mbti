@@ -1427,6 +1427,8 @@ pub fn client_program_model_request_preflight(() -> (Bool, @model_execution.Mode
 
 pub fn client_program_model_response(@model_execution.ModelRequest, String, String, String, Int64, Int64, String) -> @model_execution.ModelResponse?
 
+pub fn client_program_model_response_profile_transport_matches(@check_environment.ModelResponseProfile, Int, Int, Int, Int, Int) -> Bool
+
 pub fn client_program_model_scoped_private_holding_cid(@run_publication.PublicationContract, String, String, String, String, Int, String, String) -> String?
 
 pub fn client_program_multi_captured_ledger_usage(@physical_resources.Ledger) -> Array[Int64]
