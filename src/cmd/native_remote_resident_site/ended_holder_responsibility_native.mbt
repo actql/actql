@@ -56,7 +56,7 @@ priv struct EndedHolderResponsibility {
   channel : EndedHolderChannelEvidence
   mut report_evidence : EndedHolderReportEvidence
   mut startability : Bool?
-  journal : Ref[@journal.Journal?]
+  journal : Ref[ControlReplayJournalCustody?]
 }
 
 ///|
@@ -75,6 +75,26 @@ fn retain_ended_holder(current : RunningHolder) -> EndedHolderResponsibility {
 }
 
 ///|
+/// Reuse the same physical reader or failed constructor before considering
+/// a new journal view. A report ACK is not constructor cleanup evidence.
+fn open_ended_holder_observation_journal(
+  original : EndedHolderResponsibility,
+  environment : ControlEnvironment,
+) -> @journal.Journal? {
+  match original.journal.val {
+    Some(ReplayJournalHandle(value)) => Some(value)
+    Some(ReplayJournalOpenFailure(_)) => None
+    None => {
+      if original.report_evidence is OriginalStatusAcknowledged {
+        None
+      } else {
+        open_control_replay_journal(environment, original.journal)
+      }
+    }
+  }
+}
+
+///|
 /// One original status/checked-close pass. A failed close keeps the same
 /// journal; no new journal is opened and no HTTP report is repeated after ACK.
 fn observe_ended_holder(
@@ -87,21 +107,18 @@ fn observe_ended_holder(
     original.report_evidence is OriginalStatusAcknowledged {
     return
   }
-  let journal = match original.journal.val {
+  let journal = match open_ended_holder_observation_journal(original, environment) {
     Some(value) => value
-    None =>
-      match fresh_journal(environment) {
-        Some(value) => {
-          original.journal.val = Some(value)
-          value
-        }
-        None => {
-          report("observation-pending", [
-            ("attempt", original.original.attempt), ("reason", "journal-open"),
-          ])
-          return
-        }
-      }
+    None => {
+      // A failed constructor still belongs to this ended holder. One checked
+      // cleanup pass may retire it, but never issues a status report or opens
+      // a replacement reader in this same pass.
+      ignore(retry_control_replay_journal_cleanup(original.journal))
+      report("observation-pending", [
+        ("attempt", original.original.attempt), ("reason", "journal-open"),
+      ])
+      return
+    }
   }
   if original.report_evidence is OriginalStatusPending {
     match journal.require(original.original.request) {
@@ -122,9 +139,8 @@ fn observe_ended_holder(
       ])
     }
   }
-  match journal.close_checked() {
-    Ok(_) => original.journal.val = None
-    Err(_) => report("observation-cleanup-pending", [
+  if !retry_control_replay_journal_cleanup(original.journal) {
+    report("observation-cleanup-pending", [
       ("attempt", original.original.attempt), ("reason", "original-journal-close"),
     ])
   }
