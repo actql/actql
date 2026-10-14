@@ -45,7 +45,7 @@
     {
       "source": "owned_capacity.c",
       "target": "crates/c-api/src/actql_owned_capacity.c",
-      "sha256": "6d71b37e7383cb8ed1676e20ae9bee3aa76c0903a95f542c10d10ce1a48fe1c9"
+      "sha256": "8a524b0f0d59131de32bd4539bac10ce02ac1b8e4f171a9a1d20ab4d298113cb"
     },
     {
       "source": "owned_capacity.h",
@@ -70,12 +70,22 @@
     {
       "source": "owned_region.h",
       "target": "crates/c-api/src/owned_region.h",
-      "sha256": "f9add7f86513bd7c7c6607dc8146dd2c4e5f3b274533687e248a90822c7d0fa6"
+      "sha256": "2f5e3d67c1a7beeb0cdc12254a2b25128d624d11653d23ee0ce01c0c9bfa0520"
     },
     {
       "source": "owned_region.inc",
       "target": "crates/c-api/src/owned_region.inc",
-      "sha256": "00b572a0492f707aec7422cbb02b7bdc296a8efef5d1eb808342d88621207b86"
+      "sha256": "56619bc5a2a5c3436eba4f09abd54fdeb8b02eef7b9081bfeecf07b42907ab9d"
+    },
+    {
+      "source": "owned_domain_borrow.h",
+      "target": "crates/c-api/src/owned_domain_borrow.h",
+      "sha256": "666b3739ee86a08203e84aaf23139a938ff0af8c29474648d6266af8f9c8cce0"
+    },
+    {
+      "source": "owned_domain_borrow.inc",
+      "target": "crates/c-api/src/owned_domain_borrow.inc",
+      "sha256": "928638b5cdbd8202800c2f6f0e7c2891829873010ba342c9a9479d1e4c11935b"
     }
   ],
   "upstream_minimum_rust_version": "1.88.0",

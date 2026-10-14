@@ -8,7 +8,10 @@ from __future__ import annotations
 from ctypes import byref, c_int, c_void_p, c_uint64, c_ubyte, c_size_t, POINTER
 from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ._local_native_domain_borrow import _OriginalDomainBorrow
 
 
 class NativeHoldingRetirementError(RuntimeError):
@@ -43,6 +46,13 @@ class NativeHoldingObservationError(RuntimeError):
         super().__init__(f'Original native holding {operation} is unavailable or unconfirmed')
 
 
+class NativeHoldingInitializationError(RuntimeError):
+    """Retain this same partially bound holding, not another domain claim."""
+    def __init__(self, holding: _NativeHoldingLease) -> None:
+        self.cleanup_holding = holding
+        super().__init__('Original native holding binding failed or is unconfirmed')
+
+
 class _NativeHoldingLease:
     """Private owner of a previously acquired opaque native holding pointer.
 
@@ -54,7 +64,9 @@ class _NativeHoldingLease:
 
     __slots__ = ('_pointer', '_try_close', '_library', '_core_identity',
                  '_generation', '_recipe', '_transfer_attempted',
-                 '_close_failure', '_close_inflight')
+                 '_close_failure', '_close_inflight', '_borrow')
+
+    _borrow: _OriginalDomainBorrow | None
 
     def __init__(self, pointer: c_void_p, library: Any, *, generation: int, recipe: bytes) -> None:
         if type(pointer) is not c_void_p or pointer.value is None:
@@ -76,9 +88,35 @@ class _NativeHoldingLease:
         self._transfer_attempted = False
         self._close_failure: BaseException | None = None
         self._close_inflight = False
+        self._borrow = None
         # Move the trusted supplier's owning slot exactly once. A second wrapper
         # cannot consume that same slot. Arbitrary raw pointers are not trusted.
         pointer.value = None
+
+    @classmethod
+    def _from_original_borrow(cls, borrow: _OriginalDomainBorrow) -> _NativeHoldingLease:
+        """Reuse one same-provider physical borrow. No acquire/profile/grant."""
+        from ._local_native_domain_borrow import _OriginalDomainBorrow
+        if type(borrow) is not _OriginalDomainBorrow or borrow._holding_consumer is not None:
+            raise ValueError('Original child domain borrow is unavailable')
+        holding = cls.__new__(cls)
+        holding._pointer, holding._library = c_void_p(), borrow._functions.library
+        holding._core_identity = None
+        holding._generation, holding._recipe = borrow._material.scalars[0], borrow._material.recipe
+        holding._transfer_attempted = False
+        holding._close_failure, holding._close_inflight = None, False
+        holding._borrow = borrow
+        holding._try_close = holding._close_borrowed_slot
+        failure = NativeHoldingInitializationError(holding)
+        try:
+            borrow._claim_holding(holding, holding._pointer)
+        except BaseException as error:
+            raise failure from error
+        return holding
+
+    def _close_borrowed_slot(self, slot: Any) -> int:
+        assert self._borrow is not None
+        return self._borrow._close_holding_slot(self, slot)
 
     def __copy__(self) -> _NativeHoldingLease:
         raise TypeError('Original native holding cannot be copied')
@@ -99,6 +137,9 @@ class _NativeHoldingLease:
                 or self._transfer_attempted):
             raise ValueError('Original native holding transfer is unavailable')
         self._transfer_attempted = True
+        if self._borrow is not None:
+            self._borrow._transfer_holding(self, self._pointer, self._generation, self._recipe)
+            return
         transfer = self._library.actql_owned_transfer
         transfer.argtypes = [c_void_p, c_uint64, POINTER(c_ubyte)]
         transfer.restype = c_int
@@ -115,6 +156,11 @@ class _NativeHoldingLease:
         self._require_confirmed_retirement_state()
         if self._pointer.value is None:
             raise ValueError('Original native holding is retired')
+        if self._borrow is not None:
+            value = self._borrow._holding_capacity(self)
+            if not 0 < value <= 2**63 - 1:
+                raise NativeHoldingObservationError('capacity', None)
+            return value
         inspect = self._library.actql_owned_capacity_bytes
         inspect.argtypes = [c_void_p, POINTER(c_uint64)]
         inspect.restype = c_int
@@ -129,6 +175,10 @@ class _NativeHoldingLease:
         if (type(address) is not c_void_p or address.value is None
                 or type(length) is not int or not 0 < length <= 2**63 - 1):
             raise ValueError('Invalid original native span observation')
+        if self._borrow is not None:
+            with self._scope():
+                self._borrow._holding_contains(self, address, length)
+            return
         contains = self._library.actql_owned_contains_live_span
         contains.argtypes = [c_void_p, c_void_p, c_size_t]
         contains.restype = c_int
@@ -143,6 +193,10 @@ class _NativeHoldingLease:
         self._require_confirmed_retirement_state()
         if self._pointer.value is None:
             raise ValueError('Original native holding is retired')
+        if self._borrow is not None:
+            with self._borrow._holding_scope(self):
+                yield
+            return
         enter = self._library.actql_owned_enter
         leave = self._library.actql_owned_leave
         for function in (enter, leave):
@@ -168,7 +222,7 @@ class _NativeHoldingLease:
 
     def close(self) -> None:
         self._require_confirmed_retirement_state()
-        if self._pointer.value is None:
+        if self._pointer.value is None and (self._borrow is None or self._borrow._closed):
             return
         # Native close mutates this same retained slot. A lost return can leave
         # it NULL without an ACK; neither that NULL nor the old address permits

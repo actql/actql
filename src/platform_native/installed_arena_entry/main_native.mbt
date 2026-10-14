@@ -65,6 +65,62 @@ extern "C" fn register_original_fd_root(
 ) -> Unit = "actql_native_control_register_fd_root"
 
 ///|
+/// Code registration only. Matching regular C emission must establish the
+/// exact prototypes/borrow ownership before any shim is linked or loaded.
+extern "C" fn register_original_domain_roots(
+  prepare : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaBackingBorrow,
+      Int,
+      Int64,
+      Int,
+      Int,
+      Int,
+      Int64,
+      Int64,
+      Int64,
+    ) -> @control.InstalledArenaDomainReply,
+  ],
+  current : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaDomain) -> @control.InstalledArenaDomainReply,
+  ],
+  transfer : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaDomain) -> @control.InstalledArenaDomainReply,
+  ],
+  enter : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaDomain) -> @control.InstalledArenaDomainReply,
+  ],
+  leave : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaDomain) -> @control.InstalledArenaDomainReply,
+  ],
+  close : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaDomain) -> @control.InstalledArenaDomainReply,
+  ],
+  original : FuncRef[
+    (@control.InstalledArenaDomainReply) -> @control.InstalledArenaHost,
+  ],
+  domain : FuncRef[
+    (@control.InstalledArenaDomainReply) -> @control.InstalledArenaDomain?,
+  ],
+  operation : FuncRef[(@control.InstalledArenaDomainReply) -> Int],
+  issue : FuncRef[(@control.InstalledArenaDomainReply) -> Int],
+  description : FuncRef[(@control.InstalledArenaDomainReply) -> String],
+) -> Unit = "actql_native_control_register_domain_roots"
+
+///|
+/// Data getters only. The matching actual regular C must determine signatures
+/// and managed ownership before linking the transport shim.
+extern "C" fn register_original_domain_material_roots(
+  project : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaDomain) -> @control.InstalledArenaDomainReply,
+  ],
+  scalar : FuncRef[(@control.InstalledArenaDomainReply, Int) -> Int64],
+  source : FuncRef[(@control.InstalledArenaDomainReply) -> String],
+  recipe : FuncRef[(@control.InstalledArenaDomainReply) -> Bytes],
+) -> Unit = "actql_native_control_register_domain_material_roots"
+
+///|
 fn original_host(
   reply : @control.InstalledArenaReply,
 ) -> @control.InstalledArenaHost? {
@@ -142,4 +198,50 @@ fn main {
   register_original_fd_root(fn(original, fd) {
     @control.acquire_installed_arena_fd_reply(original, fd)
   })
+  register_original_domain_roots(
+    fn(
+      host,
+      scope,
+      fd,
+      bytes,
+      work,
+      attempts,
+      holdings,
+      transfer,
+      retained,
+      execution,
+    ) {
+      @control.prepare_installed_arena_domain_reply(
+        host, scope, fd, bytes, work, attempts, holdings, transfer, retained, execution,
+      )
+    },
+    fn(host, domain) {
+      @control.current_installed_arena_domain_reply(host, domain)
+    },
+    fn(host, domain) {
+      @control.transfer_installed_arena_domain_reply(host, domain)
+    },
+    fn(host, domain) {
+      @control.enter_installed_arena_domain_reply(host, domain)
+    },
+    fn(host, domain) {
+      @control.leave_installed_arena_domain_reply(host, domain)
+    },
+    fn(host, domain) {
+      @control.close_installed_arena_domain_reply(host, domain)
+    },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_domain() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.issue_family() },
+    fn(reply) { reply.issue_description() },
+  )
+  register_original_domain_material_roots(
+    fn(host, domain) {
+      @control.project_installed_arena_domain_reply(host, domain)
+    },
+    fn(reply, ordinal) { reply.material_scalar(ordinal) },
+    fn(reply) { reply.material_source() },
+    fn(reply) { reply.material_recipe() },
+  )
 }

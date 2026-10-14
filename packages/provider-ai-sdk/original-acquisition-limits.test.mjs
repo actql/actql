@@ -154,7 +154,8 @@ test('empty emitted view cannot conceal a larger original backing', async t => {
   const empty = original.subarray(0, 0);
   assert.equal(empty.byteLength, 0);
   assert.equal(empty.buffer.byteLength, 8192);
-  assert.deepEqual(await exercise(t, {...limits, maxBorrowedBackingBytes: 8191},
+  assert.deepEqual(await exercise(t, {...limits,
+    maxBorrowedBackingBytes: responseLimits.maxChunkBytes + 8191},
     [exactBuffer(wire)], empty), {error: 'UndiciOriginalAcquisitionBackingExceeded'});
 });
 

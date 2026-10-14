@@ -30,6 +30,9 @@ struct actql_owned_capacity {
     uint64_t backing_inode;
     bool fd_backed;
     bool extent_domain;
+    pid_t domain_origin_pid;
+    atomic_int domain_borrower_pid;
+    bool domain_borrow_attempted;
     uint64_t generation;
     unsigned char recipe[32];
     bool transferred;
@@ -41,6 +44,13 @@ struct actql_owned_capacity {
 
 static _Thread_local actql_owned_capacity *current_capacity;
 static _Thread_local size_t current_depth;
+
+/* This physical exclusion is not child authorization. A trusted bootstrap
+ * validates the original Core loan before publishing the process borrow. */
+static bool foreign_domain_process(actql_owned_capacity *lease) {
+    int borrower = atomic_load_explicit(&lease->domain_borrower_pid, memory_order_acquire);
+    return lease->extent_domain && borrower != 0 && borrower != (int)getpid();
+}
 
 static void lock_capacity(actql_owned_capacity *lease) {
     while (atomic_flag_test_and_set_explicit(&lease->lock, memory_order_acquire)) {}
@@ -85,6 +95,7 @@ int actql_native_owned_acquire(size_t capacity, uint64_t generation,
     lease->backing_inode = 0;
     lease->fd_backed = false;
     lease->extent_domain = false;
+    atomic_init(&lease->domain_borrower_pid, 0);
     lease->generation = generation;
     memcpy(lease->recipe, recipe, sizeof(lease->recipe));
     lease->transferred = false;
@@ -99,9 +110,10 @@ int actql_native_owned_acquire(size_t capacity, uint64_t generation,
 int actql_native_owned_transfer(actql_owned_capacity *lease, uint64_t generation,
                          const unsigned char recipe[32]) {
     if (lease == NULL || recipe == NULL) return ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     lock_capacity(lease);
     int status = ACTQL_OWNED_INVALID;
-    if (!lease->transferred && !lease->closing && lease->generation == generation &&
+    if (!foreign_domain_process(lease) && !lease->transferred && !lease->closing && lease->generation == generation &&
         memcmp(lease->recipe, recipe, sizeof(lease->recipe)) == 0) {
         lease->transferred = true;
         status = ACTQL_OWNED_OK;
@@ -113,8 +125,9 @@ int actql_native_owned_transfer(actql_owned_capacity *lease, uint64_t generation
 int actql_native_owned_enter(actql_owned_capacity *lease) {
     if (lease == NULL || (current_capacity != NULL && current_capacity != lease))
         return ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     lock_capacity(lease);
-    if (lease->closing || lease->active_scopes == SIZE_MAX || current_depth == SIZE_MAX) {
+    if (foreign_domain_process(lease) || lease->closing || lease->active_scopes == SIZE_MAX || current_depth == SIZE_MAX) {
         unlock_capacity(lease);
         return ACTQL_OWNED_BUSY;
     }
@@ -145,8 +158,9 @@ int actql_native_owned_allocate(actql_owned_capacity *lease, size_t bytes,
         (alignment & (alignment - 1)) != 0) return ACTQL_OWNED_INVALID;
     size_t pages;
     if (!round_pages(bytes, lease->page_size, &pages)) return ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     lock_capacity(lease);
-    if (lease->closing) {
+    if (foreign_domain_process(lease) || lease->closing) {
         unlock_capacity(lease);
         return ACTQL_OWNED_BUSY;
     }
@@ -209,8 +223,13 @@ static bool allocation_has_external_use(actql_owned_capacity *lease, size_t star
 
 int actql_native_owned_capacity_bytes(actql_owned_capacity *lease, uint64_t *out) {
     if (lease == NULL || out == NULL || *out != 0) return ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     lock_capacity(lease);
     /* Closing is not released. A failed final unmap still owns the full region. */
+    if (foreign_domain_process(lease)) {
+        unlock_capacity(lease);
+        return ACTQL_OWNED_BUSY;
+    }
     *out = (uint64_t)lease->length;
     unlock_capacity(lease);
     return ACTQL_OWNED_OK;
@@ -220,11 +239,12 @@ int actql_native_owned_contains_live_span(actql_owned_capacity *lease,
                                          const void *address, size_t bytes) {
     if (lease == NULL || address == NULL || bytes == 0 ||
         actql_native_owned_current() != lease) return ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     lock_capacity(lease);
     int status = ACTQL_OWNED_INVALID;
     uintptr_t value = (uintptr_t)address;
     uintptr_t base = (uintptr_t)lease;
-    if (lease->closing || !lease->transferred) goto done;
+    if (foreign_domain_process(lease) || lease->closing || !lease->transferred) goto done;
     if (value < base || value - base >= lease->length) goto done;
     size_t offset = (size_t)(value - base);
     if (bytes > lease->length - offset) goto done;
@@ -253,10 +273,11 @@ int actql_native_owned_protect(actql_owned_capacity *lease, void *allocation,
         (protection != PROT_NONE && protection != PROT_READ &&
          protection != (PROT_READ | PROT_WRITE) &&
          protection != (PROT_READ | PROT_EXEC))) return ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     lock_capacity(lease);
     size_t start;
     int status = ACTQL_OWNED_INVALID;
-    if (allocation_start(lease, allocation, &start) && !lease->extents[start].retired) {
+    if (!foreign_domain_process(lease) && allocation_start(lease, allocation, &start) && !lease->extents[start].retired) {
         if (allocation_has_external_use(lease, start, false) ||
             (lease->fd_backed && lease->extents[start].sealed && protection != PROT_READ)) {
             unlock_capacity(lease);
@@ -282,10 +303,11 @@ static int clean_retired(actql_owned_capacity *lease, size_t start) {
 
 int actql_native_owned_seal_readonly(actql_owned_capacity *lease, void *allocation) {
     if (lease == NULL) return ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     lock_capacity(lease);
     size_t start;
     int status = ACTQL_OWNED_INVALID;
-    if (allocation_start(lease, allocation, &start) && !lease->extents[start].retired) {
+    if (!foreign_domain_process(lease) && allocation_start(lease, allocation, &start) && !lease->extents[start].retired) {
         if (allocation_has_external_use(lease, start, true)) {
             unlock_capacity(lease);
             return ACTQL_OWNED_BUSY;
@@ -301,10 +323,11 @@ int actql_native_owned_seal_readonly(actql_owned_capacity *lease, void *allocati
 
 int actql_native_owned_retire(actql_owned_capacity *lease, void *allocation) {
     if (lease == NULL) return ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
     lock_capacity(lease);
     size_t start;
     int status = ACTQL_OWNED_INVALID;
-    if (allocation_start(lease, allocation, &start)) {
+    if (!foreign_domain_process(lease) && allocation_start(lease, allocation, &start)) {
         if (allocation_has_external_use(lease, start, false)) {
             unlock_capacity(lease);
             return ACTQL_OWNED_BUSY;
@@ -356,6 +379,7 @@ int actql_native_owned_try_close(actql_owned_capacity **slot) {
     return ACTQL_OWNED_OK;
 }
 
-/* Included once in this provider. Child mappings never execute its allocator
- * lock or mutate the original control table. */
+/* Included once. Child views exclude the parent's control table; an adopted
+ * domain borrow uses only its original interior relative allocator records. */
 #include "owned_region.inc"
+#include "owned_domain_borrow.inc"
