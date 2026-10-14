@@ -34,8 +34,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
-      "bytes": 13619,
-      "sha256": "ad392ae8367c110f130ae7d29b97f9492b46c357fb1b4067ed28d4c97064cefa"
+      "bytes": 13699,
+      "sha256": "59a15de0e8049271e08109ec1a5bad319f15cff2bbb5b6fe541faec00166760a"
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_wbtest.mbt",
@@ -76,6 +76,11 @@
       "path": "packages/python-local-runtime/native/pre-root/owned_domain_borrow.inc",
       "bytes": 7546,
       "sha256": "928638b5cdbd8202800c2f6f0e7c2891829873010ba342c9a9479d1e4c11935b"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_image.c",
+      "bytes": 4172,
+      "sha256": "5dd1b8a7019f3a516ed881d0106c85bdccbbded3569b49dda6ec4280d21de979"
     }
   ]
 }
