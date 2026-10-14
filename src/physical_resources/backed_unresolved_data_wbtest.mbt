@@ -55,7 +55,7 @@ test "backed unresolved DATA projects same live quota overhead and unobserved fi
   assert_eq(
     ledger_usage(ledger),
     before,
-    "projection/admission cannot reserve or return credit",
+    msg="projection/admission cannot reserve or return credit",
   )
 }
 
@@ -245,5 +245,60 @@ test "backed unresolved DATA cannot project a retired original ticket" {
   assert_true(
     issue_backed_execution_original_data(region, provider, child, ticket)
     is Err(_),
+  )
+}
+
+///|
+test "backed unresolved known final DATA retains its exact nonzero observations" {
+  let (_, provider, child, region, ticket) = backed_data_fixture()
+  let issued = issue_backed_execution_original_data(
+    region, provider, child, ticket,
+  ).unwrap()
+  let usage = {
+    planning_work: 3,
+    attempts: 1,
+    holdings: 2,
+    transferred_bytes: 4L,
+    uncertain_transfer_bytes: 1L,
+    reserved_transfer_bytes: 0L,
+    held_bytes: 0L,
+    reserved_retention_bytes: 0L,
+    reserved_execution_bytes: 0L,
+    peak_retention_bytes: 12L,
+  }
+  let data = {
+    ..issued,
+    cumulative: {
+      planning_work: 3,
+      attempts: 1,
+      holdings: 2,
+      transferred_bytes: 4L,
+      uncertain_transfer_bytes: 1L,
+    },
+    peak_retention_bytes: 10L,
+    provision: {
+      transfer_bytes: 0L,
+      retained_bytes: 0L,
+      execution_bytes: 0L,
+      open: false,
+      cleanup_pending: false,
+    },
+    final_usage: Some(usage),
+  }
+  let observation = admit_unresolved_backed_execution_data(data).unwrap()
+  assert_eq(
+    unresolved_backed_execution_data(observation).final_usage,
+    Some(usage),
+  )
+  assert_true(
+    admit_unresolved_backed_execution_data({
+      ..data,
+      final_usage: Some({ ..usage, transferred_bytes: 3L, }),
+    })
+    is Err(InvalidData),
+  )
+  assert_eq(
+    issue_backed_execution_original_data(region, provider, child, ticket).unwrap(),
+    issued,
   )
 }
