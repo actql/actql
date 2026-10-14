@@ -191,6 +191,7 @@ struct NativeRunPublicationService {
   max_wire_bytes : Int
   max_nodes : Int
   max_depth : Int
+  client_request : @publication_host.ClientRequestIdentity?
   commit_guard : (
     () -> Result[NativeRunPublicationResult, NativeRunPublicationIssue],
   ) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue]
@@ -223,6 +224,7 @@ pub fn install_native_run_publication_service(
   max_wire_bytes : Int,
   max_nodes : Int,
   max_depth : Int,
+  client_request? : @publication_host.ClientRequestIdentity? = None,
   commit_guard? : (
     () -> Result[NativeRunPublicationResult, NativeRunPublicationIssue],
   ) -> Result[NativeRunPublicationResult, NativeRunPublicationIssue] = work => {
@@ -232,7 +234,15 @@ pub fn install_native_run_publication_service(
   if max_wire_bytes < 1 || max_nodes < 1 || max_depth < 1 {
     Err(InvalidConfiguration)
   } else {
-    Ok({ store, authority, max_wire_bytes, max_nodes, max_depth, commit_guard, })
+    Ok({
+      store,
+      authority,
+      max_wire_bytes,
+      max_nodes,
+      max_depth,
+      client_request,
+      commit_guard,
+    })
   }
 }
 
