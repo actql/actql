@@ -157,3 +157,25 @@ test('capture and restore preserve caller byte/node/depth bounds without coercio
       f.issued.admission, f.definition, bounds));
   }
 });
+
+test('saved Original Plan refuses a combined enumerable key hiding the two real fields', () => {
+  const f = fixture();
+  const disguised = {'compiledPlanWire,planViewWire': 'not an original field'};
+  for (const name of ['compiledPlanWire', 'planViewWire']) {
+    Object.defineProperty(disguised, name, {value: f.original[name]});
+  }
+  assert.throws(() => host.readStoredRunPlanOriginal(disguised,
+    f.definition, f.programCid, limits),
+  {name: 'TypeError', message: 'InvalidRunHostOriginalPlan'});
+});
+
+test('saved Original Plan refuses extra nonenumerable and Symbol own fields', () => {
+  const f = fixture();
+  for (const name of ['extra', Symbol('extra')]) {
+    const changed = {...f.original};
+    Object.defineProperty(changed, name, {value: 'not an original field'});
+    assert.throws(() => host.readStoredRunPlanOriginal(changed,
+      f.definition, f.programCid, limits),
+    {name: 'TypeError', message: 'InvalidRunHostOriginalPlan'});
+  }
+});
