@@ -6,6 +6,8 @@ import {setImmediate as turn} from 'node:timers/promises';
 
 // Actual pinned Undici parser, controlled original Duplex, no TCP/TLS/SDK.
 // This witnesses checks after Node acquisition, not a funded first allocator.
+// The controlled connector bypasses native delivery; its input backing still
+// exists at preparation and must be included in the same declared union.
 const require = createRequire(import.meta.url);
 const undici = require('undici');
 const buildConnector = undici.buildConnector;
@@ -128,7 +130,8 @@ test('private acquisition snapshot reads DATA descriptors once and ignores later
 test('exact plaintext and backing limits admit the original response and retire once', async t => {
   const packet = exactBuffer(wire);
   assert.deepEqual(await exercise(t, {maxPlaintextBytes: packet.length,
-    maxBorrowedBackingBytes: packet.length, maxReads: limits.maxReads}, [packet]), {body: 'A'});
+    maxBorrowedBackingBytes: responseLimits.maxChunkBytes + packet.length,
+    maxReads: limits.maxReads}, [packet]), {body: 'A'});
 });
 
 test('plaintext limit minus one refuses framing before parser and preserves physical cleanup', async t => {
@@ -156,7 +159,8 @@ test('same backing across reads counts once while the intervening null probe con
   const packet = exactBuffer(wire);
   const parts = [packet.subarray(0, packet.length - 1), packet.subarray(packet.length - 1)];
   assert.deepEqual(await exercise(t, {maxPlaintextBytes: packet.length,
-    maxBorrowedBackingBytes: packet.length, maxReads: limits.maxReads}, parts), {body: 'A'});
+    maxBorrowedBackingBytes: responseLimits.maxChunkBytes + packet.length,
+    maxReads: limits.maxReads}, parts), {body: 'A'});
 });
 
 test('null probe exhausts original reads before another chunk without another connection', async t => {
