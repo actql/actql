@@ -10,13 +10,15 @@ import {connect} from '@actql/node';
 import {openInstalledRemoteHttpHost} from '@actql/local-node/http-host';
 import {canonical, configuration} from './installed-infer-fixture.mjs';
 import {providerBindingOriginals} from './model-provider-binding-fixture.mjs';
-import {sourceCases, sourceRefusals} from './infer-source-expectation.mjs';
+import {sourceCases, sourceRefusals, sourceRuntimeRefusals}
+  from './infer-source-expectation.mjs';
 
 const [transport, phase, caseName = 'minimal'] = process.argv.slice(2);
 assert.ok(['local', 'remote'].includes(transport));
-assert.ok(['success', 'capture', 'replay', 'refusal'].includes(phase));
-const fixture = phase === 'refusal' ? undefined : sourceCases[caseName];
-const source = phase === 'refusal' ? sourceRefusals[caseName] : fixture?.source;
+assert.ok(['success', 'capture', 'replay', 'refusal', 'runtime-refusal'].includes(phase));
+const fixture = sourceCases[caseName];
+const source = phase === 'refusal' ? sourceRefusals[caseName] :
+  phase === 'runtime-refusal' ? sourceRuntimeRefusals[caseName] : fixture?.source;
 assert.equal(typeof source, 'string', 'select one explicitly authored input');
 const root = join(process.cwd(), `${transport}-${caseName}-${phase === 'replay' ? 'capture' : phase}`);
 const requestId = `packed-infer-source-${transport}-${caseName}-${phase === 'replay' ? 'capture' : phase}`;
@@ -78,6 +80,7 @@ const registerModelProviders = moon => [{providerId: 'models/packed',
         appendFileSync('source-provider-calls.jsonl',
           JSON.stringify({transport, phase, caseName, taskCid}) + '\n');
         assert.notEqual(phase, 'replay', 'retained capture must not redispatch');
+        assert.notEqual(phase, 'runtime-refusal', 'ASSERT UNIQUE must precede Model dispatch');
         assert.equal(moon.clientProgramModelRequestInput(request, 'text'), fixture.inputWire);
         // The registered provider's optional response contract reports an
         // absent response as provider_error; do not fabricate a typed response
@@ -138,6 +141,44 @@ try {
     assert.equal(journalCount(), before, 'refusal must not accept a Run');
     assert.deepEqual(await client.lookupSubmission(submissionRef), outcome);
     console.log(JSON.stringify({transport, phase, caseName, calls, admittedRuns: 0}));
+  } else if (phase === 'runtime-refusal') {
+    const assertFailedRun = state => {
+      assert.equal(state.status, 'failed', 'ordinary row assertion must fail the admitted Run');
+      // This is the existing public unpublished-Run code, not an invented
+      // projection of the private AssertionDuplicate/AssertionNullKey causes.
+      assert.equal(state.terminal_error.code, 'ACTQL_E_UNPUBLISHED_RUN');
+      assert.equal(state.result_available, false);
+      assert.equal(state.result_availability.answer.state, 'unavailable');
+      assert.equal(state.result_availability.answer.reason, 'not_published');
+      assert.deepEqual(state.next_action, {kind: 'none'});
+    };
+    const before = journalCount();
+    const run = await client.startSource(source, {format: 'aql-text', submissionRef});
+    const signal = AbortSignal.timeout(60_000);
+    const terminal = await run.wait({signal});
+    assertFailedRun(terminal);
+    assert.equal(calls, 0, 'failed assertions must not dispatch a Model');
+    assert.equal(journalCount(), before + 1, 'runtime refusal must retain one accepted Run');
+    assert.deepEqual((await client.checkpoints()).items, []);
+    await assert.rejects(run.result('answer').all({signal}), {code: 'ResultAccessDenied'});
+    await assert.rejects(run.result('answer').describe({signal}), {code: 'ResultAccessDenied'});
+    const lookup = await client.lookupSubmission(submissionRef);
+    assert.equal(lookup.kind, 'ready');
+    assert.deepEqual(lookup.submissionRef, submissionRef);
+    assert.deepEqual(lookup.admission.ref, run.ref);
+    const attached = await client.attach(run.ref);
+    assertFailedRun(await attached.wait({signal}));
+    await assert.rejects(attached.result('answer').all({signal}), {code: 'ResultAccessDenied'});
+    await assert.rejects(attached.result('answer').describe({signal}), {code: 'ResultAccessDenied'});
+    const resent = await client.startSource(source, {format: 'aql-text', submissionRef});
+    assert.deepEqual(resent.ref, run.ref);
+    assertFailedRun(await resent.wait({signal}));
+    assert.equal(journalCount(), before + 1, 'reread, attach and resend must not create another Run');
+    assert.equal(calls, 0);
+    assert.deepEqual((await client.checkpoints()).items, []);
+    console.log(JSON.stringify({transport, phase, caseName, status: terminal.status,
+      terminalError: terminal.terminal_error, calls, admittedRuns: 1, ref: run.ref,
+      checkpoints: 0}));
   } else {
     const run = await client.startSource(source, {format: 'aql-text', submissionRef});
     const signal = AbortSignal.timeout(60_000);
