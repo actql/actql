@@ -38,13 +38,19 @@ fn description(reply : @control.InstalledArenaReply) -> String {
 /// original arena acquisition, Root creation, Run admission or VM permission.
 fn main {
   register_original_control_roots(
-    @control.prepare_installed_arena_reply,
-    @control.acquire_installed_arena_reply,
-    @control.current_installed_arena_reply,
-    @control.close_installed_arena_reply,
-    original_host,
-    operation_tag,
-    issue_family,
-    description,
+    fn(source, recipe, generation, bytes, planning_work, attempts, holdings,
+       transfer_bytes, retained_bytes, execution_bytes, control_envelope_bytes) {
+      @control.prepare_installed_arena_reply(
+        source, recipe, generation, bytes, planning_work, attempts, holdings,
+        transfer_bytes, retained_bytes, execution_bytes, control_envelope_bytes,
+      )
+    },
+    fn(original) { @control.acquire_installed_arena_reply(original) },
+    fn(original) { @control.current_installed_arena_reply(original) },
+    fn(original) { @control.close_installed_arena_reply(original) },
+    fn(reply) { original_host(reply) },
+    fn(reply) { operation_tag(reply) },
+    fn(reply) { issue_family(reply) },
+    fn(reply) { description(reply) },
   )
 }
