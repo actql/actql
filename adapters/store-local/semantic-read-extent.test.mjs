@@ -25,6 +25,7 @@ async function exercise(t, {original = 'abcd', changed, maximum = 16384,
   const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW);
   const allocations = [];
   let stats = 0, streams = 0, verified = 0, closes = 0, hashed = 0, passed = false;
+  let allowClose = false;
   const slow = Buffer.allocUnsafeSlow;
   Buffer.allocUnsafeSlow = function(length) {
     const result = Reflect.apply(slow, Buffer, [length]);
@@ -38,8 +39,10 @@ async function exercise(t, {original = 'abcd', changed, maximum = 16384,
     if (passed) await rm(directory, {recursive: true, force: true});
     else t.diagnostic(`Preserved semantic read extent failure: ${directory}`);
   });
-  const read = runInNewContext(`(() => {${body} return readSemanticBytes;})()`, {
+  const read = runInNewContext(`(() => {const activeSemanticReaders = new Set();
+    ${body} return readSemanticBytes;})()`, {
     Buffer, constants, configuration: {maxObjectBytes: maximum},
+    active() {},
     quantity: value => Number.isSafeInteger(value) && value >= 0,
     fail(code) { throw Object.assign(new Error(code), {code}); },
     contractPath: () => path, objectPath: () => object, lstat,
@@ -57,7 +60,7 @@ async function exercise(t, {original = 'abcd', changed, maximum = 16384,
         },
         async close() {
           closes++;
-          if (closeFailure !== undefined) throw closeFailure;
+          if (closeFailure !== undefined && !allowClose) throw closeFailure;
           await handle.close();
         },
       };
@@ -85,6 +88,10 @@ async function exercise(t, {original = 'abcd', changed, maximum = 16384,
   return {result, failure, allocations,
     counts: () => ({stats, streams, verified, closes, hashed}),
     fd: () => handle.fd,
+    async retryClose() {
+      allowClose = true;
+      return failure.cleanupHandle.retry();
+    },
     pass() {
       passed = true;
     }};
@@ -153,7 +160,9 @@ test('semantic close failure remains failure rather than a completed read', asyn
   assert.equal(f.result, undefined);
   assert.notEqual(f.fd(), -1);
   assert.equal(f.counts().closes, 1);
-  // This existing reader has no retry carrier. Do not call a thrown close
-  // physical completion; fixture teardown closes the original actual FD.
+  assert.equal(failure.cleanupHandle.status().pending, true);
+  assert.equal((await f.retryClose()).pending, false);
+  assert.equal(f.fd(), -1);
+  assert.equal(f.counts().closes, 2);
   f.pass();
 });
