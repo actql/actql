@@ -12,9 +12,10 @@ priv struct LocalPackagedRuntime {
 ///|
 fn local_product_operation(operation : String) -> Bool {
   [
-    "adopt", "connect", "upgrade-policy", "lookup-policy-upgrade", "check", "new-submission",
-    "lookup-submission", "checkpoint-state", "lookup-preparation-grant", "lookup-preparation-raw",
-    "lookup-cancellation", "cancel", "delivery-attempt", "read", "start", "aql",
+    "adopt", "connect", "upgrade-policy", "lookup-policy-upgrade", "check", "explain",
+    "new-submission", "lookup-submission", "checkpoint-state", "lookup-preparation-grant",
+    "lookup-preparation-raw", "lookup-cancellation", "cancel", "delivery-attempt",
+    "read", "start", "aql",
   ].contains(operation)
 }
 
@@ -254,7 +255,7 @@ fn execute_native_local_packaged_operation(
     }
     matches.values["config-root"] = [configuration_root]
     matches.values["config-file"] = ["config.json"]
-    if operation == "check" {
+    if operation == "check" || operation == "explain" {
       execute_native_local(matches)
     } else {
       let (_, child) = matches.subcommand.unwrap()

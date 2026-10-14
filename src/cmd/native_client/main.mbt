@@ -782,6 +782,12 @@ fn command() -> @argparse.Command {
         @argparse.OptionArg("parameters-file"),
         @argparse.OptionArg("parameter-declarations-file"),
       ]),
+      @argparse.Command("explain", flags=[@argparse.FlagArg("json")], options=[
+        @argparse.OptionArg("program-file", required=true),
+        @argparse.OptionArg("format", required=true),
+        @argparse.OptionArg("parameters-file"),
+        @argparse.OptionArg("parameter-declarations-file"),
+      ]),
       @argparse.Command("adopt", flags=[@argparse.FlagArg("json")]),
       @argparse.Command("connect", flags=[@argparse.FlagArg("json")]),
       @argparse.Command("upgrade-policy", flags=[@argparse.FlagArg("json")], options=[
@@ -887,6 +893,7 @@ fn execute(matches : @argparse.Matches) -> String raise ClientStop {
     "local" => return execute_native_local(matches)
     "remote" =>
       if matches.subcommand is Some(("check", _)) ||
+        matches.subcommand is Some(("explain", _)) ||
         matches.subcommand is Some(("adopt", _)) ||
         matches.subcommand is Some(("checkpoint-state", _)) ||
         matches.subcommand is Some(("lookup-preparation-grant", _)) ||
