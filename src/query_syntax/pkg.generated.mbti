@@ -350,6 +350,7 @@ pub(all) struct InferClause {
   inputs : Array[(NamePart, Expression)]
   keep : Array[KeepItem]
   name : NamePart
+  origin : @frontend_source_map.Origin?
 }
 
 pub(all) enum Issue {
