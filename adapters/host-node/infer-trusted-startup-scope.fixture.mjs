@@ -16,13 +16,15 @@ import {providerBindingOriginals} from '../../scripts/fixtures/model-provider-bi
 // Actual Host/caller/Core scope, but deliberately refused original read layout.
 // Synthetic declarations exercise identity/cleanup only, not physical funding.
 // V8 coverage observes the unmodified production functions, not a new issuer.
-const selected = process.argv[2] === 'selected';
-assert.ok(['selected', 'absent'].includes(process.argv[2]));
+const lateCurrentLoss = process.argv[2] === 'late-current';
+const selected = process.argv[2] !== 'absent';
+assert.ok(['selected', 'absent', 'late-current'].includes(process.argv[2]));
 const root = await mkdtemp(join(tmpdir(), 'actql-a-original-startup-scope-'));
 const profileSource = await readFile(new URL(
   '../../src/run_publication_host/client_model_preparation_layout_wbtest.mbt', import.meta.url), 'utf8');
 const profileText = profileSource.match(/#\|(\{[^\n]+\})/u)[1];
 let host, server, completed = false, providerCalls = 0, preflights = 0;
+let invalidations = 0;
 const failures = [];
 const preparationFailures = [];
 const keys = generateKeyPairSync('ed25519');
@@ -43,6 +45,14 @@ try {
   const {installation, taskCid} = configuration(base);
   host = await openInstalledRemoteHttpHost({directory: root, workspaceId: 'scope', loopbackHttp: true,
     authenticate: () => userInfo().username, authorization, modelInstallation: installation,
+    faultInjection(name) {
+      if (lateCurrentLoss && name === 'physical_start_reserved') {
+        invalidations++;
+        // A real change after preparation/admission, not a mocked current
+        // predicate or replacement Scope. Do not restore it to fake history.
+        process.argv[1] = `${process.argv[1]}.changed-after-admission`;
+      }
+    },
     registerModelProviders(moon) {
       const control = runtimeCore(moon).publicationControl;
       const profileBody = JSON.parse(profileText); delete profileBody.self_cid;
@@ -96,6 +106,11 @@ try {
     const run = await client.start(program, {submissionRef});
     const terminal = await run.wait();
     assert.notEqual(terminal.status, 'succeeded');
+    if (lateCurrentLoss) {
+      assert.equal(terminal.status, 'failed', 'same custody must settle the admitted failure');
+      assert.equal(failures[0].code, 'InferTrustedStartupChanged');
+      assert.equal(invalidations, 1, 'never start a replacement dispatch');
+    }
     assert.equal(failures.length, 1);
     assert.equal(preparationFailures.length, 0);
   } else {
@@ -137,14 +152,15 @@ try {
       }
     }
   }
-  assert.equal(counts.beginCheckedClientInferOriginalReadScope ?? 0, selected ? 1 : 0);
-  assert.equal(counts.bindTrustedRuntimeScope ?? 0, selected ? 1 : 0);
-  assert.equal(counts.borrowScope ?? 0, selected ? 1 : 0);
-  assert.equal(counts.prepareCheckedClientInferNodeReadLayout ?? 0, selected ? 1 : 0);
-  assert.equal(counts.finishCheckedClientInferOriginalReadScope ?? 0, selected ? 1 : 0);
+  const scoped = selected && !lateCurrentLoss;
+  assert.equal(counts.beginCheckedClientInferOriginalReadScope ?? 0, scoped ? 1 : 0);
+  assert.equal(counts.bindTrustedRuntimeScope ?? 0, scoped ? 1 : 0);
+  assert.equal(counts.borrowScope ?? 0, scoped ? 1 : 0);
+  assert.equal(counts.prepareCheckedClientInferNodeReadLayout ?? 0, scoped ? 1 : 0);
+  assert.equal(counts.finishCheckedClientInferOriginalReadScope ?? 0, scoped ? 1 : 0);
   completed = true;
-  console.log(JSON.stringify({selected, counts, providerCalls, preflights,
-    actualHost: true, actualCoreScope: selected ? 1 : 0, normalNumericProfile: null, publicE2E: 0}));
+  console.log(JSON.stringify({selected, lateCurrentLoss, invalidations, counts, providerCalls, preflights,
+    actualHost: true, actualCoreScope: scoped ? 1 : 0, normalNumericProfile: null, publicE2E: 0}));
 } finally {
   if (server !== undefined) {
     server.closeAllConnections();
