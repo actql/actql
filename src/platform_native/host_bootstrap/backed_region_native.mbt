@@ -195,6 +195,7 @@ pub fn[T, C] NativeHostBootstrap::settle_backed_region_after_owner_ack(
     Err(issue) => Err(Accounting(issue))
     Ok(_) => {
       loan.settled = true
+      loan.view = None
       Ok(())
     }
   }
