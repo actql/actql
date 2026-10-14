@@ -473,8 +473,15 @@ fn acquisition_runtime_case(
           @resident.Host(@resident.Runtime(_)) => "runtime"
           @resident.Host(@resident.Source(_)) => "host-source"
           @resident.Host(_) => "host"
-          @resident.Compute(@resident.Source(@resident.Acquisition(_))) =>
-            "compute-source-acquisition"
+          @resident.Compute(@resident.Source(@resident.Acquisition(issue))) =>
+            match issue {
+              @local.InvalidSource => "compute-source-invalid-source"
+              @local.InvalidContracts => "compute-source-contracts"
+              @local.Preparation => "compute-source-sql-preparation"
+              @local.Registration => "compute-source-registration"
+              @local.Candidate => "compute-source-candidate"
+              @local.Selection => "compute-source-selection"
+            }
           @resident.Compute(@resident.Source(@resident.Query(_))) =>
             "compute-source-query"
           @resident.Compute(@resident.Source(@resident.Binding(_))) =>
