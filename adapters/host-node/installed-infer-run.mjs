@@ -268,10 +268,6 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       // phase basis. Presence or passing Common support checks is not proof.
       let scope;
       try {
-        // Retaining the issued Scope above precedes this fallible association;
-        // refusal therefore cannot lose its original cleanup responsibility.
-        runtimeBorrow = selected.bindTrustedRuntimeScope(scope, plan.compiled,
-          plan.runDefinition, selected.graph);
         assertOriginalRuntime();
         scope = control.beginCheckedClientInferOriginalReadScope(plan.compiled,
           plan.runDefinition, selected.graph,
@@ -299,6 +295,10 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           cleanup: () => operation === undefined ? true : operation.cleanup(),
           cleanupPending: () => operation?.cleanupPending() ?? false})};
       try {
+        // Retaining the issued Scope above precedes this fallible association;
+        // refusal therefore cannot lose its original cleanup responsibility.
+        runtimeBorrow = selected.bindTrustedRuntimeScope(scope, plan.compiled,
+          plan.runDefinition, selected.graph);
         assertOriginalRuntime();
         originalPreparation.read = control.prepareCheckedClientInferNodeReadLayout(
           plan.compiled, plan.runDefinition, selected.graph, scope,

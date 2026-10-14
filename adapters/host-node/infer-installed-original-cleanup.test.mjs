@@ -9,7 +9,7 @@ const {installNodeInferRun} = await import(process.env.ACTQL_ORIGINAL_CLEANUP_MO
 
 function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
   installation = false, readIssue, scopeIssue, waiting=false,
-  authorization='dispatch',cutIssue,afterAuthorize} = {}) {
+  authorization='dispatch',cutIssue,afterAuthorize,scopeBindingIssue} = {}) {
   const calls = [], active = {}, read = {}, scope = {}, compiled = {}, consumer = {};
   const preparedProgram = {}, graph = {};
   const runDefinition = {wire: '{"run_id":"original-cleanup"}'};
@@ -97,7 +97,8 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     },
     finishCheckedClientInferOriginalReadScope(...args) {
       exact(...args); assert.equal(args[3], scope); assert.equal(args[4], true);
-      assert.equal(settledRead || installation && readIssue !== undefined, true);
+      assert.equal(settledRead || installation &&
+        (readIssue !== undefined || scopeBindingIssue !== undefined), true);
       calls.push('scopeFinish');if(allowScope)scopeLive=false;return allowScope;
     },
   };
@@ -134,7 +135,9 @@ function fixture({startIssue, stopComplete = true, modelCleanupComplete = true,
     },
     bindTrustedRuntimeScope(actual,actualCompiled,definition,actualGraph){
       exact(actualCompiled,definition,actualGraph);assert.equal(actual,scope);
-      assert.equal(scopeLive,true);assert.notEqual(runtimeView,scopeView);return scopeView;
+      assert.equal(scopeLive,true);assert.notEqual(runtimeView,scopeView);
+      if(scopeBindingIssue!==undefined)throw scopeBindingIssue;
+      return scopeView;
     },
     assertTrustedRuntimeScope(actual,view,actualCompiled,definition,actualGraph){
       exact(actualCompiled,definition,actualGraph);assert.equal(actual,scope);
@@ -231,6 +234,21 @@ test('Host closing refuses a new original Scope without claiming an existing bor
   const f=fixture({installation:true});f.hostClosing(true);
   await assert.rejects(f.run(),{code:'ClientHostClosing'});
   assert.deepEqual(f.calls,[]);assert.equal(f.custody(),undefined);
+});
+
+test('fallible runtime binding happens after actual Scope issuance and retains same cleanup custody',async()=>{
+  const issue=Object.assign(new Error('InferTrustedRuntimeScopeUnavailable'),
+    {code:'InferTrustedRuntimeScopeUnavailable'});
+  const f=fixture({installation:true,scopeBindingIssue:issue});
+  await assert.rejects(f.run(),error=>error===issue);
+  assert.deepEqual(f.calls,['scopeBegin']);
+  assert.notEqual(f.custody(),undefined);
+  assert.equal(f.custody().cleanupPending(),true);
+  assert.equal(await f.custody().cleanup(),true);
+  assert.deepEqual(f.calls,['scopeBegin','scopeFinish']);
+  await f.custody().cleanup();
+  assert.equal(f.calls.filter(value=>value==='scopeBegin').length,1);
+  assert.equal(f.calls.filter(value=>value==='scopeFinish').length,1);
 });
 
 test('entered Run keeps its same Scope during graceful Host drain without cancellation',async()=>{
