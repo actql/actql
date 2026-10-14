@@ -139,6 +139,20 @@ pub fn InstalledArenaHost::transfer_domain(
 }
 
 ///|
+/// This checked DATA projection is not launch/Store/Run permission. The
+/// installed transport keeps this exact record and its original backing loan.
+pub fn InstalledArenaHost::project_prepared_domain(
+  self : InstalledArenaHost,
+  record : InstalledArenaDomain,
+) -> Result[@bootstrap.NativePreparedDomainTransport, @bootstrap.NativeBackedExecutionIssue] {
+  match self.require_domain_current(record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  record.backing.project_prepared_domain(self, record.domain.unwrap(), record)
+}
+
+///|
 pub fn InstalledArenaHost::enter_domain(
   self : InstalledArenaHost,
   record : InstalledArenaDomain,
