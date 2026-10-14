@@ -1065,13 +1065,13 @@ test('baseline preimages and changed normative pins independently determine the 
   // Literal expectations are independently rehashed from complete normative
   // preimages, without consulting a compiler or emitted runtime identity.
   assert.equal(current.template.bound_invocation_template_cid,
-    'sha256:3541773b0ce46c5a9a46971ffb1c53a39eef6b6611bd33e1a37e1e6613ae4e67');
+    'sha256:7f2ab4a9174e55ce04ce404ed65d29ea562f9de8211bd406eb8198aca37404a7');
   assert.equal(current.executable.executable_plan_cid,
-    'sha256:f3d7170289d35515d5334db57de099a1bfb608560a21524fc3515ee578744d3b');
+    'sha256:6b742e9894ddc7518e001bd9991273ecac0ed6f2d1e9d881e670d190a7535fd7');
   assert.equal(current.compiled.compiled_plan_cid,
-    'sha256:b19b598dba5fc1dafa067c3ac820f25ce743d99b581caddba6ccb22e6c362bc7');
+    'sha256:1940bf042a9725a0ebe357899d0caa3d102a603372e89c2767c82d888857f738');
   assert.equal(current.run.run_definition_cid,
-    'sha256:2bee16e2da950ecec9c38c61a1ddb863a7b8a20350c6d8e4a0b0818210bb88e9');
+    'sha256:0b22c13a51faf39e5fad5f66470a2a91d83cd8efb5f37e01cb158a912b3ea291');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1245,6 +1245,51 @@ test('prior query-rules retain exact Git role bodies and reject current-input su
   assert.notEqual(mixed.run.run_definition_cid, retained.run_preimages.run.run_definition_cid);
 });
 
+test('pre-INFER-label Run retains complete Git-qualified normative inputs', () => {
+  const revision = '72798dffd0155b728b7e20f8883eacf373445741';
+  const roots = JSON.parse(readFileSync(
+    'scripts/fixtures/pre-query-rules-repair-values-identities.json', 'utf8'));
+  const bodies = new Map();
+  const gitBody = path => {
+    if (!bodies.has(path)) bodies.set(path, JSON.parse(execFileSync('git',
+      ['show', `${revision}:${path}`], {encoding: 'utf8', maxBuffer: 8 * 1024 * 1024})));
+    return bodies.get(path);
+  };
+  const contractCids = Object.fromEntries(Object.keys(roots.contract_cids).map(role => {
+    const [originalPath, pointer] = role.split('#');
+    const path = originalPath === 'spec/dependencies/aoa-sga-identity-laws.json'
+      ? 'spec/dependencies/actql-graph-laws.json' : originalPath;
+    const body = pointer.split('/').slice(1).reduce((value, key) =>
+      value[key.replaceAll('~1', '/').replaceAll('~0', '~')], gitBody(path));
+    return [role, cid(body)];
+  }));
+  const grammar = gitBody('spec/manifests/actql-grammar-0.1.json');
+  const {grammar_manifest_cid: grammarCid, ...grammarBody} = grammar;
+  assert.equal(cid(grammarBody), grammarCid);
+  const rules = execFileSync('git', ['show', `${revision}:docs/spec/query-text.md`]);
+  assert.equal(createHash('sha256').update(rules).digest('hex'), grammar.query_text_rules_sha256);
+  const barrier = gitBody('spec/manifests/actql-barrier-contracts-0.1.json');
+  const {barrier_contract_manifest_cid: barrierCid, ...barrierBody} = barrier;
+  assert.equal(cid(barrierBody), barrierCid);
+  const prior = vector(grammarCid, cid(gitBody('spec/contracts/actql-aoa.json')),
+    valuesDependencyOracle({retainedContractCids: contractCids}), barrierCid,
+    valuesProgramOracle({retainedContractCids: contractCids}), {canonicalCandidates: true});
+  // Every old role comes from this revision; none falls back to current files.
+  assert.equal(prior.template.bound_invocation_template_cid,
+    'sha256:3541773b0ce46c5a9a46971ffb1c53a39eef6b6611bd33e1a37e1e6613ae4e67');
+  assert.equal(prior.executable.executable_plan_cid,
+    'sha256:f3d7170289d35515d5334db57de099a1bfb608560a21524fc3515ee578744d3b');
+  assert.equal(prior.compiled.compiled_plan_cid,
+    'sha256:b19b598dba5fc1dafa067c3ac820f25ce743d99b581caddba6ccb22e6c362bc7');
+  assert.equal(prior.run.run_definition_cid,
+    'sha256:2bee16e2da950ecec9c38c61a1ddb863a7b8a20350c6d8e4a0b0818210bb88e9');
+  assert.notEqual(prior.run.run_definition_cid,
+    vector(JSON.parse(readFileSync('spec/manifests/actql-grammar-0.1.json', 'utf8')).grammar_manifest_cid,
+      cid(gitBody('spec/contracts/actql-aoa.json')),
+      valuesDependencyOracle({retainedContractCids: contractCids}), barrierCid,
+      valuesProgramOracle({retainedContractCids: contractCids}), {canonicalCandidates: true}).run.run_definition_cid);
+});
+
 test('current contract inputs independently determine the Values Run and consuming fixtures', () => {
   const grammar = JSON.parse(readFileSync('spec/manifests/actql-grammar-0.1.json', 'utf8'));
   const aoa = JSON.parse(readFileSync('spec/contracts/actql-aoa.json', 'utf8'));
@@ -1299,13 +1344,13 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.notEqual(dependencies.unit, preStrpos.values_dependencies.unit);
   assert.notEqual(identity.programCid, preStrpos.program_identity.programCid);
   assert.equal(current.template.bound_invocation_template_cid,
-    "sha256:3541773b0ce46c5a9a46971ffb1c53a39eef6b6611bd33e1a37e1e6613ae4e67");
+    "sha256:7f2ab4a9174e55ce04ce404ed65d29ea562f9de8211bd406eb8198aca37404a7");
   assert.equal(current.executable.executable_plan_cid,
-    "sha256:f3d7170289d35515d5334db57de099a1bfb608560a21524fc3515ee578744d3b");
+    "sha256:6b742e9894ddc7518e001bd9991273ecac0ed6f2d1e9d881e670d190a7535fd7");
   assert.equal(current.compiled.compiled_plan_cid,
-    "sha256:b19b598dba5fc1dafa067c3ac820f25ce743d99b581caddba6ccb22e6c362bc7");
+    "sha256:1940bf042a9725a0ebe357899d0caa3d102a603372e89c2767c82d888857f738");
   assert.equal(current.run.run_definition_cid,
-    "sha256:2bee16e2da950ecec9c38c61a1ddb863a7b8a20350c6d8e4a0b0818210bb88e9");
+    "sha256:0b22c13a51faf39e5fad5f66470a2a91d83cd8efb5f37e01cb158a912b3ea291");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const consumingProgram = runSource.match(
