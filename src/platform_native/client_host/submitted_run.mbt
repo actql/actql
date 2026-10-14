@@ -94,6 +94,11 @@ pub fn NativeClientRunJournal::accept_submitted_run(
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  let observation = match
+    capture_native_run_observation_originals(compiled, definition) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
   self.accept_original_submitted_run(
     authority,
     reference,
@@ -102,6 +107,7 @@ pub fn NativeClientRunJournal::accept_submitted_run(
     definition,
     authority_scope_cid,
     current_authorization,
+    run_observation_originals=Some(observation),
   )
 }
 
@@ -202,8 +208,22 @@ fn NativeClientRunJournal::accept_original_submitted_run(
   current_authorization : Bool,
   effect_material_originals? : String? = None,
   local_run_policy_original? : @host.ClientLocalRunPolicyOriginal? = None,
+  run_observation_originals? : @host.ClientRunObservationOriginals? = None,
   current_fence? : (() -> Bool)? = None,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
+  let observation_wire = match run_observation_originals {
+    None => None
+    Some(value) =>
+      match native_run_observation_originals_wire(value) {
+        Ok(wire) => {
+          if read_native_run_observation_originals(wire, definition) is Err(_) {
+            return Err(ForeignRun)
+          }
+          Some(wire)
+        }
+        Err(issue) => return Err(issue)
+      }
+  }
   let local_run_policy_originals = match local_run_policy_original {
     None => None
     Some(original) => {
@@ -266,14 +286,16 @@ fn NativeClientRunJournal::accept_original_submitted_run(
     // an accepted or merely pre-existing Run after custody was lost.
     if (
         effect_material_originals is Some(_) ||
-        local_run_policy_originals is Some(_)
+        local_run_policy_originals is Some(_) ||
+        observation_wire is Some(_)
       ) &&
       original.run_admission is None {
       match self.retained(request) {
         Ok(None) => ()
         Ok(Some(_)) =>
           return Err(
-            if local_run_policy_originals is Some(_) {
+            if local_run_policy_originals is Some(_) ||
+              observation_wire is Some(_) {
               CustodyLost
             } else {
               MissingEffectMaterialOriginal
@@ -282,7 +304,16 @@ fn NativeClientRunJournal::accept_original_submitted_run(
         Err(issue) => return Err(issue)
       }
     }
-    let run = match self.bind_run_locked(request, definition) {
+    let run = match
+      self.bind_run_locked(
+        request,
+        definition,
+        run_observation_originals=if original.run_admission is None {
+          observation_wire
+        } else {
+          None
+        },
+      ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
     }
@@ -291,6 +322,13 @@ fn NativeClientRunJournal::accept_original_submitted_run(
         @host.SameRequest ||
         admission.run_definition_cid !=
         @publication.publication_contract_identity(definition) {
+        return Err(ChangedIntent)
+      }
+      // Old accepted rows without originals remain accepted history, never
+      // repaired by a newly supplied compilation. Status will be unavailable.
+      if run.run_observation_originals is Some(saved) &&
+        observation_wire is Some(candidate) &&
+        saved != candidate {
         return Err(ChangedIntent)
       }
       if effect_material_originals is Some(packet) {
