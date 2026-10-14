@@ -68,3 +68,31 @@ The pinned `moon info --help` confirms that this option is unsupported, so the
 corrected recipe uses the ordinary interface-generator arguments only.
 No full Core, Proof, packed producer/consumer, Provider, Hosted CI or formal
 release is included in this finite unit.
+
+## Original Runtime registry admission closure
+
+Read-only inspection of the next kernel boundary found that the Runtime still
+selected the exact pre-Calendar registry CID. The original generator had not
+been refreshed by the earlier metadata/canonical checks. An independently
+declared new-registry input failed the real `admit_relation_registry` boundary
+at `527fea21...` (`run-ts1EmX`, 0/1); the API/Node registration successes did not
+exercise this boundary and were insufficient to prove ordinary installation.
+The PR was returned to Draft while closing this product blocker.
+
+`scripts/lowering-registry-vectors.mjs --write` updates only the ordinary
+selector, complete consumer contract bodies and adopted DuckDB contract input.
+Original Program/Source/row/schema/limit bodies remain unchanged. An independent
+current-CID assertion is updated from the declared machine preimage. The exact
+pre-Calendar body/CID is retained and explicitly rejected by the same Owner;
+no compatibility fallback or pin-only body forgery is introduced. New and old
+body admission plus the three existing registry cases pass 5/5 at `79789330...`
+(`run-edZzAE`).
+
+The broader Node diagnostic `run-sdnoSy` remains 56/62 with six failures: one
+missing esbuild dependency in this fresh worktree and five unrelated boundary
+tests over unchanged Native/acquisition/Host/comparison inputs. Their original
+base/current Git blobs are identical, and no boundary check or expectation was
+weakened. The exact changed filesystem-free consumer-body assertion and the
+eleven registry controls are selected separately by the tracked recipe; that
+selected result is not the full 62-case result. The original generator is also
+checked read-only before review.
