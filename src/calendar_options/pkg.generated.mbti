@@ -24,6 +24,8 @@ pub fn unit(Options) -> CalendarUnit
 
 pub fn usage(Options) -> Usage
 
+pub fn validate_range(String, String) -> Result[Unit, IssueKind]
+
 pub fn week_start(Options) -> WeekStart?
 
 // Errors
