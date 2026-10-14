@@ -31,7 +31,7 @@ const now=()=> '2026-10-12T00:00:00.000Z';
 const bounds={maxWireBytes:10000,maxNodes:1000,maxDepth:30,maxMembers:1000,maxWork:100000};
 
 export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new AbortController().signal,
-  storeOriginals=true,beforeOriginalRead}={}) {
+  storeOriginals=true,beforeOriginalRead,modelId='gpt-4.1-nano'}={}) {
   const root=await mkdtemp(join(tmpdir(),'actql-original-sdk-common-'));
   t.diagnostic(`Original joined fixture custody retained at ${root}`);
   const control=runtimeCore(moon).publicationControl;
@@ -132,7 +132,7 @@ export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new A
       const port=createAdmittedOpenAIChatPreflight({moon,request,admittedProvider,
         taskCid:task.contract_cid,promptCid:prompt.cid,outputSchemaCid:task.output_schema_cid,
         modelSelector:task.authored_model_selector,projectionLimits:{maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:10000},
-        modelId:'gpt-4.1-nano',baseURL:'https://fixture.invalid/v1',apiKey:'fixture-only',signal,
+        modelId,baseURL:'https://fixture.invalid/v1',apiKey:'fixture-only',signal,
         maxRequestBytes:1000,maxHeaderBytes:4096,maxHeaders:16,checked,
         notify:notification.notify,rawCaptureBinder:retainRawBinder,profile,installation,
         quantities:quantities.perAttempt,responseLimits:{maxBytes:2048,maxChunkBytes:512,maxChunks:16,
