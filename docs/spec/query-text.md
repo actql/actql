@@ -1542,8 +1542,8 @@ prefix Result can require bounded retention and is not a cost-free alias.
 
 ## INFER KEEP source projection
 
-The adopted INFER Pipe form has mandatory `ITEM KEY`, `INPUT`, and result
-`AS` clauses, with optional `KEEP`. The contract name is carried unchanged
+The adopted INFER Pipe form requires `INPUT` and result `AS` clauses, with
+optional `ITEM KEY` and `KEEP`. The contract name is carried unchanged
 to ordinary `infer.contract` resolution in the same Check Environment;
 backticks can delimit a complete existing reference such as
 `model-task:risk-score.v1`. Parsing a name does not resolve a ModelTask, select
@@ -1562,18 +1562,59 @@ ambiguous, unknown and wrong-type fields. Shorthand sends no additional field.
 KEEP accepts column references, optional output aliases, and known-schema
 `*` or range `.*`. Expansion retains visible declaration order, and explicit
 items retain authored order. Calculations belong in SELECT or EXTEND.
-Duplicate output names, a collision with the result AS name, unresolved
-references, and repeated ITEM KEY value slots are rejected. The common checker
-still proves the complete non-null scalar candidate key; specifying ITEM KEY
-never supplies that proof. Only INPUT mappings are sent to the model.
+A collision with the result AS name, unresolved references, repeated explicit
+output names, and repeated ITEM KEY value slots are rejected. Admitted positional
+unnamed and duplicate-display occurrences retain their separate physical slots,
+original order, types and provenance. The common checker still proves the
+complete non-null scalar candidate key; specifying ITEM KEY never supplies that
+proof. Only INPUT mappings are sent to the model.
+
+When ITEM KEY is omitted, the original checked prefix must establish exactly
+one eligible non-null scalar tuple through the existing Common INFER checker.
+Its CheckedInfer witness and ordered bindings supply the completed key; aliases,
+composite tuples, foreign or stale witnesses, and multiple candidates keep the
+common checker's existing rules and refusals. No row samples, row numbers,
+implicit DISTINCT, or canonical-order choice establish a key. An explicit
+ITEM KEY retains exact tuple checking. ASSERT UNIQUE BY remains available and
+its runtime guard must succeed before Model dispatch.
+
+Omitted-key completion retains the last authored name bound to each selected
+physical value slot. A RENAME or same-slot alias names that same original key;
+SET binds its replacement to a different value slot and never retargets the
+earlier key's name, value or type. An older surviving range name cannot override
+a newer name authored for that original slot. Real projection/remapping follows
+the existing slot correspondence; a reused physical spelling is not an earlier
+slot generation. Retaining a hidden key label does not restore a column or range
+to SQL lookup or visibility.
+
+The original Common-proven values, types, ordered composite components and their
+selected names are fixed when INFER adopts the tuple. Later column edits do not
+rewrite that information; retention and recovery reuse the same emitted tuple
+and captured correspondence rather than resolving names again. Key names are
+identity-bearing parts of the ordinary Program and result-object projection,
+not cosmetic display metadata or a new capture format. Retaining the original
+Program preserves that projection with its existing capture correspondence.
+Identical normalized key metadata preserves
+explicit/default identity, while a different authored key name can change a CID.
+Conflicting or ambiguous output names, including the existing reserved result
+roles, cause the existing typed refusal; completion never invents a replacement
+name or chooses a different candidate key. Explicit ITEM KEY keeps its authored
+tuple and existing name semantics.
 
 The new visible scope consists of KEEP columns followed by one result object:
-`input_key` (named fields in the authored key tuple), `outcome`, and `value`.
-Omitted KEEP produces only that object. Prior range aliases cannot recover
-omitted input fields. KEEP is a checked one-to-one correspondence with the
+`input_key` (named fields in the completed or explicitly authored key tuple),
+`outcome`, and `value`.
+Omitted KEEP is exactly KEEP (*): all visible input columns retain their order
+and layout, followed by the result object. Explicit KEEP remains an authored
+subset; a later SELECT can retain only the result object. Prior range aliases
+cannot recover omitted input fields. KEEP is a checked one-to-one correspondence with the
 same retained input producer, not a new read or a row-position join. The common
 infer output remains flat keys, outcome and value. Ordinary join and object
 projection construct the surface shape without changing its capture format.
+The original producer is retained once, with no refetch or second Model
+invocation. Its simultaneous holding and join-back consume the existing budgets.
+The default applies only when compiling new text; stored Programs, signed
+identities and old Runs are not reinterpreted.
 
 Success value is the existing non-null closed ModelTask output object, retaining
 each field's nullability. Non-success value is typed NULL, and outcomes retain

@@ -2,12 +2,13 @@
 // Private parenthesized continuations already carry an AS-bound scope.
 // Authored producers carry only their output kind and receive a fresh range.
 fn script_input_scope(
+  construction : Construction,
   sources : ScriptSources,
   input : String,
   range : @query.NamePart,
-) -> JoinChainScope? {
+) -> JoinChainScope? raise Abort {
   match sources.value_tables.get(input) {
-    Some(scope) => Some(bind_value_table_scope(scope, range))
+    Some(scope) => Some(bind_value_table_scope(construction, scope, range))
     None => sources.ranges.get(input)
   }
 }
@@ -17,9 +18,10 @@ fn script_input_scope(
 // not. Bind the retained value slot to the consumer's range, without exporting
 // a CTE body's former receiver as an ordinary column or restoring its aliases.
 fn bind_value_table_scope(
+  construction : Construction,
   scope : JoinChainScope,
   name : @query.NamePart,
-) -> JoinChainScope {
+) -> JoinChainScope raise Abort {
   if !scope.value_table || scope.columns.length() != 1 {
     return scope
   }
@@ -43,6 +45,11 @@ fn bind_value_table_scope(
       [(name, slot)]
     } else {
       []
+    },
+    key_labels: if object_value {
+      seed_infer_key_labels(construction, scope.key_labels, [])
+    } else {
+      rename_infer_key_label(construction, scope.key_labels, slot, name.value)
     },
     scalar_ranges: if object_value {
       []

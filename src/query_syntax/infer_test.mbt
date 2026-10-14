@@ -8,8 +8,8 @@ test "INFER preserves explicit input, key, KEEP and result roles" {
     Some(Infer(clause)) => {
       assert_eq(clause.contract.value, "model-task:risk.v1")
       assert_true(clause.contract.quoted)
-      assert_eq(clause.keys.length(), 2)
-      assert_eq(clause.keys[0].map(part => part.value), ["t", "id"])
+      assert_eq(clause.keys.unwrap().length(), 2)
+      assert_eq(clause.keys.unwrap()[0].map(part => part.value), ["t", "id"])
       assert_eq(clause.inputs.length(), 2)
       assert_eq(clause.inputs[0].0.value, "text")
       assert_eq(clause.keep.length(), 3)
@@ -28,19 +28,21 @@ test "INFER preserves explicit input, key, KEEP and result roles" {
   match operation_at(empty, 0) {
     Some(Infer(clause)) => {
       assert_true(clause.inputs.is_empty())
-      assert_true(clause.keep.is_empty())
+      assert_eq(clause.keep.length(), 1)
+      assert_true(clause.keep[0].wildcard)
+      assert_true(clause.keep[0].path.is_empty())
     }
     _ => fail("empty closed input is checked against the ModelTask")
   }
 }
 
 ///|
-test "INFER clauses are mandatory and KEEP is reference-only" {
+test "INFER INPUT and AS remain mandatory and KEEP is reference-only" {
   for
     text in [
-      "FROM t |> INFER score INPUT (text = body) AS assessment", "FROM t |> INFER score ITEM KEY () INPUT () AS assessment",
-      "FROM t |> INFER score ITEM KEY (id) AS assessment", "FROM t |> INFER score ITEM KEY (id) INPUT ()",
-      "FROM t |> INFER score ITEM KEY (id) INPUT () KEEP () AS assessment", "FROM t |> INFER score ITEM KEY (id) INPUT () KEEP (id + 1 AS n) AS assessment",
+      "FROM t |> INFER score ITEM KEY () INPUT () AS assessment", "FROM t |> INFER score ITEM KEY (id) AS assessment",
+      "FROM t |> INFER score ITEM KEY (id) INPUT ()", "FROM t |> INFER score ITEM KEY (id) INPUT () KEEP () AS assessment",
+      "FROM t |> INFER score ITEM KEY (id) INPUT () KEEP (id + 1 AS n) AS assessment",
       "FROM t |> INFER score ITEM KEY (id) INPUT () KEEP (* AS all) AS assessment",
       "WITH c AS (SELECT id FROM t |> INFER score ITEM KEY (id) INPUT () AS a) SELECT id FROM c",
     ] {

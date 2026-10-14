@@ -37,6 +37,8 @@ priv enum CheckFinding {
   // An allowed construct or budget the checker could not close.
   Limit(String)
   ProgramLimit(String, String?)
+  // An implementation boundary with owned source location evidence only.
+  LocatedImplementationLimit((Int, Int)?)
   FunctionLimit((Int, Int)?)
 }
 
@@ -412,6 +414,8 @@ fn check_source_findings(
           | UnsupportedResult
           | UnsupportedEffect
         ) => findings.push(Limit("implementation_limit"))
+        QueryLowering(InferKeyLabel(_, _)) =>
+          findings.push(check_query_finding(issue))
         // Resolved against visible relations only: a disclosable fact.
         // Direct column selection retains a typed resolution failure but no
         // authored origin. Explain that failure without manufacturing a span.
@@ -1356,7 +1360,8 @@ fn write_check_report(
     match finding {
       Limit(code) => Some(code)
       ProgramLimit(code, _) => Some(code)
-      FunctionLimit(_) => Some("implementation_limit")
+      LocatedImplementationLimit(_) | FunctionLimit(_) =>
+        Some("implementation_limit")
       _ => None
     }
   })
@@ -1387,6 +1392,17 @@ fn write_check_report(
     }
     if code == "implementation_limit" {
       for finding in findings {
+        if finding is LocatedImplementationLimit(range) {
+          if range is Some((start, end)) {
+            write_check_text_location(
+              writer,
+              documents.source_revision,
+              start,
+              end,
+            )
+          }
+          break
+        }
         if finding is FunctionLimit(range) {
           @encode.key(writer, "facts")
           @encode.begin_object(writer)
@@ -2158,9 +2174,17 @@ fn check_authored_range(origin : @source_origin.Origin?) -> (Int, Int)? {
 }
 
 ///|
-/// Project existing typed expression issues and owned authored origins. No
+/// Project typed input issues and owned authored origins. No
 /// protected Source-resolution issue or generated origin acquires a location.
 fn check_query_finding(issue : @source_frontend.Issue) -> CheckFinding {
+  if issue is QueryLowering(InferKeyLabel(issue, origin)) {
+    let range = check_authored_range(origin)
+    return match issue {
+      MissingCorrespondence | DuplicateSlot => LocatedImplementationLimit(range)
+      EmptyOrAmbiguousLabel | ReservedRole | DuplicateLabel =>
+        ExpressionViolation("invalid_arguments", range)
+    }
+  }
   if issue is QueryLowering(Expression(diagnostic)) {
     let code = match diagnostic.issue {
       UnknownReference => Some("unknown_reference")

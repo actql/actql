@@ -9,6 +9,7 @@ fn MemberResolution::source_prefix_carrier(
   steps : Array[@wire.Cursor],
   catalog : @environment.SourceRequestContracts,
   model_tasks : @environment.ModelTasks?,
+  calendar_profile? : @environment.SelectedCalendarProfile? = None,
 ) -> @carrier.Carrier? raise Abort {
   if self.probe_refused {
     return None
@@ -148,7 +149,8 @@ fn MemberResolution::source_prefix_carrier(
           origin: @builder.origin(self.source, at),
         }),
       )
-    Err(issue) => raise Abort(BindingPreparation(Declarations(issue)))
+    Err(issue) =>
+      raise Abort(BindingPreparationSource(Declarations(issue), copy))
   }
   let declaration_usage = @parameters.declaration_usage(
     @stage_parameters.declarations(source),
@@ -170,7 +172,8 @@ fn MemberResolution::source_prefix_carrier(
       max_order_keys=self.work,
     ) {
     Ok(value) => value
-    Err(issue) => raise Abort(BindingPreparation(SourceRegistration(issue)))
+    Err(issue) =>
+      raise Abort(BindingPreparationSource(SourceRegistration(issue), copy))
   }
   // This owner's reported work includes registration and local-input prefixes;
   // bill that aggregate once, rather than discarding or double-billing it.
@@ -189,6 +192,7 @@ fn MemberResolution::source_prefix_carrier(
         max_depth: self.limits.source.tree.max_depth,
       },
       model_tasks~,
+      calendar=calendar_profile,
     ) {
     Ok(value) => value
     Err(@check_context.SourceViewProgramIssue::BudgetExceeded)
@@ -203,7 +207,8 @@ fn MemberResolution::source_prefix_carrier(
           origin: @builder.origin(self.source, at),
         }),
       )
-    Err(issue) => raise Abort(BindingPreparation(SourceProgram(issue)))
+    Err(issue) =>
+      raise Abort(BindingPreparationSource(SourceProgram(issue), copy))
   }
   self.spend(at, used.work)
   let topology = @check_context.sourceview_checked_topology(checked)
