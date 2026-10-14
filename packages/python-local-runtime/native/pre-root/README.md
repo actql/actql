@@ -338,3 +338,13 @@ provider. Dependent-symbol resolution must be independently exercised on the
 actual target; source linkage alone does not prove the final Rust artifact.
 No actual Rust toolchain, full dependency closure, runtime/profile/image recipe
 or public wheel is adopted by this preparation. Unknown domains stay unknown.
+
+`scripts/produce-python-native-provider.py` is a maintainer-only, guarded build
+entry for that component. It checks the selected MoonBit installation and exact
+clean source, emits the twelve selected packages and regular C link, then builds
+the provider and five runtime support sources with an explicit macOS11 target.
+It preserves the existing diagnostic omission of the optional debug package
+registry, records actual compiler dependencies, and reuses the existing Mach-O
+target/dependency inspector. No old runtime support objects are silently reused.
+The resulting library has no constructor; building and inspecting it does not
+initialize the control component, adopt a numerical profile or fund a VM.
