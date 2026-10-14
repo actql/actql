@@ -111,3 +111,21 @@ Engine/worker startup, installation and public Python execution remain separate.
 A following Wasmtime build must link this exact selected library and use a new
 provider digest in its recipe; it must not embed another provider/TLS copy or
 relabel a previous compiled image.
+
+Source-qualified producer acceptance at
+`cd8b37fe5fe67d08f694d42560df07d20d32967c` (`run-GPHg0C`) completed12 regular
+build-package tasks, one C emission, eleven fresh C compiles and one library
+link. No diagnostic helper was linked. The726944-byte library SHA256 is
+`bb94cd5635b82ac32a9d613ec339137139b0b1a8e9e954892c4cd43fd56f01e9`.
+All eleven actual compiler dependency sets select the copied header; exactly
+one translation unit consumes the copied provider C. The build's initialized
+code/Engine/worker counts are zero.
+
+The exact saved library was separately consumed by `run-MqlqRH`: an external
+test-only helper (compile1/link1, never another provider) drove the existing four
+Core/Common/Python read-custody cases. All4 passed and original Host/domain/FD
+cleanup completed. Explicit code-root initialization ran once in that consumer;
+the library's original mimalloc load initializer is separate. The old mixed
+Sourcefb6 diagnostic DLL and its receipt remain distinct. This new component
+still does not supply F Root/Reader, full bootstrap/VM funding, a normal numerical
+profile, Engine/worker startup or a public wheel E2E.
