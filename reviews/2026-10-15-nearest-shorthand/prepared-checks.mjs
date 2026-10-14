@@ -9,6 +9,7 @@ assert.equal(git('rev-parse', 'HEAD'), source);
 assert.equal(git('status', '--porcelain'), '');
 const selections = {
   syntax: ['src/query_syntax/nearest_shorthand_test.mbt', 'src/query_syntax/nearest_test.mbt', 'src/query_syntax/nearest_optional_roles_test.mbt'],
+  lowering: ['src/query_program/nearest_shorthand_test.mbt', 'src/query_program/nearest_test.mbt', 'src/query_program/nearest_carrier_roles_test.mbt'],
 };
 assert(Object.hasOwn(selections, selection));
 const runner = `import {runFocusedTests} from './scripts/test-execution.mjs';process.exitCode=runFocusedTests('moon',${JSON.stringify(['--target', 'js', '-j', '1', ...selections[selection]])},{cwd:process.cwd(),timeout:240000});`;
