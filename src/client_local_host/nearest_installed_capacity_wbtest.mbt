@@ -178,7 +178,7 @@ fn nearest_failed_capture_fixture(
     Err(_) => fail("original installed nearest other graph opening refusal")
   }
   assert_eq(@strategy.graph_task_count(graph), 15)
-  nearest_failed_offer_boundary(dag, prepared, historical_budget~)
+  nearest_failed_offer_boundary(dag, prepared, historical_budget)
   @strategy.stop_captured_dag(dag)
   @strategy.refresh_captured_retention(dag)
   for run in runs {
