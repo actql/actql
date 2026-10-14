@@ -9471,12 +9471,7 @@ fn compile_join_query(
         left_from=left.name,
         right_from=right.name,
         capture_left=true,
-        checked_infer_prefix=Some((
-          nodes,
-          producer,
-          visible,
-          authored_aliases,
-        ) => {
+        checked_infer_prefix=Some((nodes, producer, visible, authored_aliases) => {
           infer_prefix_check(
             construction,
             query,
