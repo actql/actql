@@ -15,6 +15,7 @@ function controls(mode) {
     const beforeSubmit = counters(); acceptedRuns++; reads += fixture.sourceReadSessionCount;
     const beforeRead = counters();
     return {name: fixture.name, mode, ref: {synthetic: index},
+      submissionRef: {syntheticSubmission: index},
       results: structuredClone(fixture.results), beforeSubmit, beforeRead, afterReplay: counters()};
   });
   const rejections = refusals.map(fixture => ({name: fixture.name, mode,
@@ -71,6 +72,7 @@ test('existing receipt collector retains verified replay/refusal snapshots witho
   await collector.complete();
   const saved = writes.at(-1).receipt;
   assert.equal(saved.complete, true);
+  assert.deepEqual(saved.cases[0].submissionRef, first.submissionRef);
   assert.deepEqual(saved.cases[0].afterReplay, first.afterReplay);
   assert.deepEqual(saved.refusals[0], receipt.refusals[0]);
 });
