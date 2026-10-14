@@ -57,9 +57,10 @@ fn infer_defaults_prefix_refusal(
 ) -> @pipeline.IssueKind raise {
   match result {
     Err(BindingPreparation(LocalProgram(Pipeline(_, issue)))) => issue.kind
-    Err(_) =>
+    Err(issue) =>
       fail(
-        "expected the original Common pipeline refusal in BindingPreparation",
+        "expected the original Common pipeline refusal in BindingPreparation: " +
+        @debug.to_string(issue),
       )
     Ok(_) => fail("unproved omitted ITEM KEY must not compile")
   }
@@ -136,7 +137,11 @@ test "sequential INFER defaults retain the original key through join-back and RE
       checkpoint +
       " |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text) KEEP (*) AS second_assessment"
     for script in [false, true] {
-      let expected = compile_infer_defaults(expanded, context, script).unwrap()
+      let expected = match compile_infer_defaults(expanded, context, script) {
+        Ok(program) => program
+        Err(issue) =>
+          fail("explicit member control: " + @debug.to_string(issue))
+      }
       let actual = compile_infer_defaults(
         expanded
         .replace(old=" ITEM KEY (id)", new="")
@@ -199,7 +204,11 @@ test "computed two-input JOIN projections retain Common key inference" {
     let expanded = prefix +
       " |> ASSERT UNIQUE BY (id) |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = 'urgent') KEEP (*) AS assessment"
     for script in [false, true] {
-      let expected = compile_infer_defaults(expanded, context, script).unwrap()
+      let expected = match compile_infer_defaults(expanded, context, script) {
+        Ok(program) => program
+        Err(issue) =>
+          fail("explicit member control: " + @debug.to_string(issue))
+      }
       let actual = compile_infer_defaults(
         expanded
         .replace(old=" ITEM KEY (id)", new="")
@@ -494,7 +503,10 @@ test "deferred INFER input members normalize with the sole original key proof" {
   let context = infer_defaults_object_context(environment)
   let expanded = "FROM tickets |> ASSERT UNIQUE BY (id) |> EXTEND note_object AS payload |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = payload.NOTES) KEEP (*) AS assessment"
   for script in [false, true] {
-    let expected = compile_infer_defaults(expanded, context, script).unwrap()
+    let expected = match compile_infer_defaults(expanded, context, script) {
+      Ok(program) => program
+      Err(issue) => fail("explicit member control: " + @debug.to_string(issue))
+    }
     let actual = compile_infer_defaults(
       expanded
       .replace(old=" ITEM KEY (id)", new="")
@@ -651,7 +663,10 @@ test "default ITEM KEY uses the admitted Source owner and preserves its Common r
   let context = source_infer_member_context(environment)
   for script in [false, true] {
     let expanded = "FROM objects |> SELECT DISTINCT id |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = 'urgent') KEEP (*) AS assessment"
-    let expected = compile_infer_defaults(expanded, context, script).unwrap()
+    let expected = match compile_infer_defaults(expanded, context, script) {
+      Ok(program) => program
+      Err(issue) => fail("explicit member control: " + @debug.to_string(issue))
+    }
     let actual = compile_infer_defaults(
       expanded
       .replace(old=" ITEM KEY (id)", new="")
