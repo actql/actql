@@ -915,6 +915,9 @@ export async function openLocalPublicationStore(
   let metadataRetentionBusy = Promise.resolve();
   const activeResultReaders = new Map();
   const activePhysicalHoldingReaders = new Map();
+  // Same Store lifetime only, not another capacity grant or semantic authority.
+  // Keep the original read/failed-close custody until that exact FD closes.
+  const activeSemanticReaders = new Set();
   const pendingResultDeletions = new Map();
   const pendingMetadataDeletions = new Map();
   const pendingPhysicalHoldingDeletions = new Map();
@@ -2199,12 +2202,19 @@ export async function openLocalPublicationStore(
 
   const readSemanticBytes = async cid => {
     const path = contractPath(cid);
+    active();
+    // This is the original read duty in the same Store lifetime. Keep its
+    // private failure reachable even when a public ingress redacts the Error.
+    const reader = {cleanup: undefined, failure: undefined};
+    activeSemanticReaders.add(reader);
     let handle;
     try { handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW); }
     catch (error) {
+      activeSemanticReaders.delete(reader); // No original FD was acquired.
       if (error?.code === 'ENOENT') fail('PublicationContractMissing');
       throw error;
     }
+    let readFailure, readFailed = false;
     try {
       const before = await handle.stat();
       if (!before.isFile() || !quantity(before.size) ||
@@ -2241,8 +2251,57 @@ export async function openLocalPublicationStore(
       }
       await verifyObject(physicalCid);
       return bytes;
+    } catch (error) {
+      readFailure = error;
+      readFailed = true;
+      throw error;
     } finally {
-      await handle.close();
+      try {
+        if (await handle.close() === false) fail('PublicationSemanticReaderCleanupPending');
+        activeSemanticReaders.delete(reader);
+      } catch (closeFailure) {
+        // Preserve this same original FD and primary failure. Cleanup retries
+        // close only: never reopen, reread, or release the Store on rejection.
+        let original = handle, flight;
+        const status = () => Object.freeze({pending: original !== undefined});
+        const cleanup = Object.freeze({status, retry() {
+          if (flight !== undefined) return flight;
+          if (original === undefined) return Promise.resolve(status());
+          flight = Promise.resolve().then(async () => {
+            if (await original.close() === false) fail('PublicationSemanticReaderCleanupPending');
+            original = undefined;
+            activeSemanticReaders.delete(reader);
+            reader.cleanup = reader.failure = undefined;
+            return status();
+          }).finally(() => { flight = undefined; });
+          return flight;
+        }});
+        const primary = readFailed ? readFailure : closeFailure;
+        // Own the duty before inspecting/decorating the outward Error. An
+        // ordinary extensible Error can already have a readonly cleanup field.
+        reader.cleanup = cleanup;
+        reader.failure = primary;
+        let failure;
+        try {
+          failure = primary !== null && typeof primary === 'object' &&
+            Object.isExtensible(primary) && primary.cleanupHandle === undefined &&
+            ['cleanupHandle', 'cleanupPending', 'cleanupError'].every(name => {
+              const field = Object.getOwnPropertyDescriptor(primary, name);
+              return field === undefined || field.writable === true;
+            })
+            ? primary : new Error('PublicationSemanticReaderCleanupPending', {cause: primary});
+          failure.cleanupHandle = cleanup;
+          failure.cleanupPending = true;
+          failure.cleanupError = closeFailure;
+        } catch {
+          failure = new Error('PublicationSemanticReaderCleanupPending', {cause: primary});
+          failure.cleanupHandle = cleanup;
+          failure.cleanupPending = true;
+          failure.cleanupError = closeFailure;
+        }
+        reader.failure = failure;
+        throw failure;
+      }
     }
   };
 
@@ -5940,11 +5999,27 @@ export async function openLocalPublicationStore(
           'PublicationStoreCleanupPending',
         ));
       }
+      // An unsettled read still owns its FD; close must not interrupt it.
+      for (const reader of activeSemanticReaders) {
+        if (reader.cleanup === undefined) {
+          return Promise.reject(new PublicationStoreError(
+            'PublicationStoreCleanupPending',
+          ));
+        }
+      }
       // Refuse new Store work once retirement starts, but do not report closed
       // or erase the original key until the SAME ownership confirms release.
-      // A failed/false release retains this Owner for close-only retry.
+      // A redacted control-read error cannot drive private cleanup. The same
+      // Store retains that original duty and drains close only, never read/send.
       closeRequested = true;
-      closeFlight = Promise.resolve().then(() => ownership.release()).then(released => {
+      closeFlight = Promise.resolve().then(async () => {
+        for (const reader of activeSemanticReaders) {
+          try { await reader.cleanup.retry(); }
+          catch { fail('PublicationStoreCleanupPending'); }
+        }
+        if (activeSemanticReaders.size !== 0) fail('PublicationStoreCleanupPending');
+        return ownership.release();
+      }).then(released => {
         if (released !== true) fail('PublicationStoreOwnershipLost');
         closed = true;
         configuration.privateEvidenceKey?.fill(0);

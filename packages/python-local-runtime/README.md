@@ -90,6 +90,8 @@ retained, stage the package from a clean checkout:
 ```sh
 python scripts/prepare-python-local-runtime.py \
   --artifact-directory FIXED_PRODUCER_DIRECTORY \
+  --bindings-source PINNED_WASMTIME_38_SDIST \
+  --native-libraries MATCHING_PRIVATE_LIBRARY_DIRECTORY \
   --destination NEW_PACKAGE_STAGE
 ```
 
@@ -102,6 +104,12 @@ The command only stages and verifies files. It does not compile, load a native
 library, execute Wasm, build a wheel, download dependencies, or publish. It
 refuses a different source, cohort, component digest, notice, ABI, architecture,
 or minimum OS, and refuses unbundled non-system library dependencies.
+The maintainer's library directory contains the selected `_libwasmtime.dylib`
+and its one `libactql_native_control.dylib` dependency. Their recipe digests,
+macOS11 metadata and installed identities must match. The pinned Python sdist
+is transformed into the private binding namespace and shipped with the original
+Wasmtime notice. The same two input options apply to
+`scripts/build-python-product-wheels.py`; users do not supply these paths.
 `preparation.json` lists staged file hashes and explicitly keeps
 runtime execution and public Local acceptance false.
 
