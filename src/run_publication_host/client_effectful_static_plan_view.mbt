@@ -24,12 +24,12 @@ fn emit_effectful_static_unknown(
 ///|
 fn emit_effectful_static_member(
   writer : @encode.Writer,
-  member : ClientEffectStaticMemberDeclaration,
+  entry : ClientEffectStaticMemberDeclaration,
 ) -> Unit raise @encode.EncodeFailure {
   @encode.begin_object(writer)
   @encode.key(writer, "contract")
   @encode.begin_object(writer)
-  match member.contract {
+  match entry.contract {
     MappingDeclaration(reference, cid, target) => {
       @encode.key(writer, "contract_cid")
       @encode.string_value(writer, cid)
@@ -53,15 +53,15 @@ fn emit_effectful_static_member(
   }
   @encode.end_object(writer)
   @encode.key(writer, "effect_id")
-  @encode.string_value(writer, member.effect_id)
+  @encode.string_value(writer, entry.effect_id)
   @encode.key(writer, "effect_kind")
-  @encode.string_value(writer, member.effect_kind)
+  @encode.string_value(writer, entry.effect_kind)
   @encode.key(writer, "failure_policy")
-  @encode.string_value(writer, member.failure_policy)
+  @encode.string_value(writer, entry.failure_policy)
   @encode.key(writer, "input")
   @encode.begin_object(writer)
   @encode.key(writer, "kind")
-  match member.input {
+  match entry.input {
     ResultDeclaration(name) => {
       @encode.string_value(writer, "result")
       @encode.key(writer, "result_name")
@@ -76,17 +76,17 @@ fn emit_effectful_static_member(
   }
   @encode.end_object(writer)
   @encode.key(writer, "member_ordinal")
-  @encode.number_value(writer, member.member_ordinal.to_double())
+  @encode.number_value(writer, entry.member_ordinal.to_double())
   @encode.key(writer, "minimum_approval")
   @encode.begin_object(writer)
   @encode.key(writer, "kind")
-  match member.minimum_approval {
+  match entry.minimum_approval {
     ContractMinimumNone | ContractMinimumRequired => {
       @encode.string_value(writer, "contract_minimum")
       @encode.key(writer, "value")
       @encode.string_value(
         writer,
-        if member.minimum_approval == ContractMinimumRequired {
+        if entry.minimum_approval == ContractMinimumRequired {
           "required"
         } else {
           "none"
@@ -98,7 +98,7 @@ fn emit_effectful_static_member(
   }
   @encode.end_object(writer)
   @encode.key(writer, "stage_ordinal")
-  @encode.number_value(writer, member.stage_ordinal.to_double())
+  @encode.number_value(writer, entry.stage_ordinal.to_double())
   @encode.end_object(writer)
 }
 
@@ -124,8 +124,8 @@ fn emit_effectful_static_plan_view(
   @encode.begin_object(writer)
   @encode.key(writer, "members")
   @encode.begin_array(writer)
-  for member in declarations.members {
-    emit_effectful_static_member(writer, member)
+  for entry in declarations.members {
+    emit_effectful_static_member(writer, entry)
   }
   @encode.end_array(writer)
   @encode.key(writer, "unit_id")

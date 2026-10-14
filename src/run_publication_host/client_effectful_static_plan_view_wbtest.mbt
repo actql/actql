@@ -6,6 +6,17 @@ fn effectful_static_value(wire : String) -> @canonical.CanonicalValue {
 }
 
 ///|
+fn effectful_static_string_field(
+  value : @canonical.CanonicalValue,
+  field : String,
+) -> String {
+  match @canonical.object_field(value, field) {
+    Some(@canonical.String(text)) => text
+    _ => fail("missing static string field")
+  }
+}
+
+///|
 test "Effectful static envelope keeps the original computation bytes and honest unknowns" {
   let (original, compiled) = effect_static_computation_fixture()
   let component = client_effect_static_computation_plan_view(
@@ -17,8 +28,8 @@ test "Effectful static envelope keeps the original computation bytes and honest 
   let value = effectful_static_value(wire)
   let computation = @canonical.object_field(value, "computation").unwrap()
   assert_eq(
-    @canonical.object_field(computation, "scope"),
-    Some(@canonical.String("computation_component")),
+    effectful_static_string_field(computation, "scope"),
+    "computation_component",
   )
   assert_eq(
     @canonical.stringify_value(
@@ -31,20 +42,16 @@ test "Effectful static envelope keeps the original computation bytes and honest 
   )
   let identity = prepared_client_effect_identity(original)
   assert_eq(
-    @canonical.object_field(value, "program_definition_cid"),
-    Some(@canonical.String(identity.program_definition_cid)),
+    effectful_static_string_field(value, "program_definition_cid"),
+    identity.program_definition_cid,
   )
   assert_eq(
-    @canonical.object_field(value, "parameter_values_cid"),
-    Some(@canonical.String(identity.parameter_values_cid)),
+    effectful_static_string_field(value, "parameter_values_cid"),
+    identity.parameter_values_cid,
   )
   assert_eq(
-    @canonical.object_field(value, "check_environment_cid"),
-    Some(
-      @canonical.String(
-        prepared_client_effect_computation_environment_cid(original),
-      ),
-    ),
+    effectful_static_string_field(value, "check_environment_cid"),
+    prepared_client_effect_computation_environment_cid(original),
   )
   let observations = @canonical.object_field(value, "observations").unwrap()
   for
@@ -52,10 +59,7 @@ test "Effectful static envelope keeps the original computation bytes and honest 
       "permission", "gate", "approval", "resolved_targets", "changed_values",
     ] {
     let observed = @canonical.object_field(observations, field).unwrap()
-    assert_eq(
-      @canonical.object_field(observed, "state"),
-      Some(@canonical.String("unknown")),
-    )
+    assert_eq(effectful_static_string_field(observed, "state"), "unknown")
   }
   assert_true(wire.contains("\"provider_io\":0"))
   assert_true(
@@ -76,10 +80,7 @@ test "Effectful static envelope retains checked member coordinates not invented 
     client_effectful_static_plan_view(original, compiled, 65536, 8192, 64).unwrap(),
   )
   let set = @canonical.object_field(value, "effect_set").unwrap()
-  assert_eq(
-    @canonical.object_field(set, "unit_id"),
-    Some(@canonical.String("source")),
-  )
+  assert_eq(effectful_static_string_field(set, "unit_id"), "source")
   let wire = @canonical.stringify_value(set, 65536, 8192, 64)
   // The Mapping CID is independent of this issuer, from the authored fixture.
   assert_true(
@@ -198,7 +199,7 @@ test "Effectful static binding refuses independently changed Program parameters 
     guard component_json is Object(fields) else {
       fail("missing component object")
     }
-    let foreign = @json.Json::string(
+    let foreign = Json::string(
       "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
     )
     if field == "compiled_plan_cid" {
