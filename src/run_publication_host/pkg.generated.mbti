@@ -755,6 +755,12 @@ pub fn client_native_local_scalar_values_profile_operation_at(ClientNativeLocalS
 
 pub fn client_native_local_scalar_values_profile_operation_count(ClientNativeLocalScalarValuesProfile) -> Int
 
+pub fn client_native_product_census(ClientNativeProductMembers, String) -> Result[ClientNativeProductCensus, ClientNativeLocalRuntimeIssue]
+
+pub fn client_native_product_census_at(ClientNativeProductCensus, Int) -> ClientNativeProductCensusMember?
+
+pub fn client_native_product_census_count(ClientNativeProductCensus) -> Int
+
 pub fn client_native_product_members_at(ClientNativeProductMembers, Int) -> ClientNativeProductMember?
 
 pub fn client_native_product_members_count(ClientNativeProductMembers) -> Int
@@ -2813,6 +2819,18 @@ pub(all) enum ClientNativeLocalScalarValuesProfileIssue {
   UnprovenExpression
   BudgetExceeded
   ForeignPreparation
+} derive(Eq, @debug.Debug)
+
+type ClientNativeProductCensus
+
+pub(all) enum ClientNativeProductCensusKind {
+  ProductFile
+  ProductDirectory
+} derive(Eq, @debug.Debug)
+
+pub(all) struct ClientNativeProductCensusMember {
+  name : String
+  kind : ClientNativeProductCensusKind
 } derive(Eq, @debug.Debug)
 
 pub(all) struct ClientNativeProductMember {

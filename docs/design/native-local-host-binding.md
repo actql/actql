@@ -765,3 +765,18 @@ product verification still separately checks every exact file observation,
 descriptor/digest and bounded member census before and after current authority.
 Path-walk scratch and simultaneous directory observations remain subject to the
 existing caller's workspace/lifetime accounting, not inferred from path bounds.
+
+## Descriptor-derived directory inputs
+
+The Common packaging metadata Owner projects one exact payload directory from
+the closed product descriptor. The root includes exactly one regular descriptor
+file, and every declared child directory must contain a declared file. A path
+cannot denote both a file and a directory. Immediate names use ASCII order,
+independently of full-path order or Core String ordering. Indexed read-only
+entries hide the retained array; construction still requires caller workspace.
+
+This is the expected set for the existing physical census, not an observation
+or funding claim. Unknown parents and unlisted empty directories are refused.
+Only the root descriptor path is self-hash-excluded; the same basename below
+a directory is an ordinary declared member. Exact selected npm dependency
+placement remains separate and does not exempt arbitrary node_modules content.

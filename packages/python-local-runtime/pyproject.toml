@@ -8,7 +8,7 @@ version = "0.0.0.dev0"
 description = "Installed Wasm and standalone DuckDB components for ActQL Python Local"
 requires-python = ">=3.11"
 license = "Apache-2.0"
-license-files = ["LICENSE", "DUCKDB-LICENSE", "MOONBIT-CORE-LICENSE", "MOONBIT-CORE-NOTICE"]
+license-files = ["LICENSE", "DUCKDB-LICENSE", "MOONBIT-CORE-LICENSE", "MOONBIT-CORE-NOTICE", "WASMTIME-LICENSE"]
 dependencies = ["wasmtime==38.0.0"]
 
 [tool.setuptools.packages.find]
@@ -17,4 +17,5 @@ where = ["src"]
 [tool.setuptools.package-data]
 actql_local_runtime = ["artifact.json", "engine-recipe.json", "client_host_wasm.cwasm",
   "client_host_wasm.wasm", "libduckdb.dylib",
-  "LICENSE", "DUCKDB-LICENSE", "MOONBIT-CORE-LICENSE", "MOONBIT-CORE-NOTICE"]
+  "LICENSE", "DUCKDB-LICENSE", "MOONBIT-CORE-LICENSE", "MOONBIT-CORE-NOTICE", "WASMTIME-LICENSE"]
+"actql_local_runtime._wasmtime" = ["binding-source.json", "darwin-aarch64/*.dylib"]
