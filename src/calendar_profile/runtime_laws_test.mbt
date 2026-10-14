@@ -32,19 +32,33 @@ fn runtime_law_resolution(
 
 ///|
 fn runtime_law_bucket(
-  table : @transition.Table, text : String, unit : @options.CalendarUnit,
-  week : @options.WeekStart?, quantum : Int,
+  table : @transition.Table,
+  text : String,
+  unit : @options.CalendarUnit,
+  week : @options.WeekStart?,
+  quantum : Int,
 ) -> (Result[(String, String), @transition.IntervalIssue], Int) raise {
-  let cursor = @transition.start_interval(table,
-    @value.timestamp_epoch_milliseconds(text).unwrap(), unit,
-    week_start=week, max_work=1000000).unwrap()
+  let cursor = @transition.start_interval(
+    table,
+    @value.timestamp_epoch_milliseconds(text).unwrap(),
+    unit,
+    week_start=week,
+    max_work=1000000,
+  ).unwrap()
   let mut work = 0
   for _ in 0..<1000000 {
     match @transition.advance_interval(cursor, quantum).unwrap() {
       IntervalContinue(work=used) => work += used
-      IntervalReady(start_ms~, end_ms~, work=used) => return
-        (Ok((@value.epoch_milliseconds_timestamp(start_ms).unwrap(),
-          @value.epoch_milliseconds_timestamp(end_ms).unwrap())), work + used)
+      IntervalReady(start_ms~, end_ms~, work=used) =>
+        return (
+          Ok(
+            (
+              @value.epoch_milliseconds_timestamp(start_ms).unwrap(),
+              @value.epoch_milliseconds_timestamp(end_ms).unwrap(),
+            ),
+          ),
+          work + used,
+        )
       IntervalFailed(issue, work=used) => return (Err(issue), work + used)
     }
   }
