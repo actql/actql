@@ -52,6 +52,15 @@ int main(void) {
         actql_native_domain_borrow_storage_alignment() == _Alignof(struct actql_domain_borrow_record) &&
         actql_native_domain_borrow_open(&record, sizeof(record), fd, recipe, material) == 0 &&
         actql_native_domain_borrow_status(&record) == 0, "same record owns original partial map and borrow");
+    actql_owned_capacity *holding = NULL, *duplicate = NULL;
+    require(actql_native_domain_borrow_claim_holding(&record, &holding) == 0 && holding == record.lease &&
+        actql_native_domain_borrow_claim_holding(&record, &duplicate) == ACTQL_OWNED_INVALID && duplicate == NULL &&
+        actql_native_domain_borrow_close(&record) == ACTQL_OWNED_INVALID,
+        "one original holding blocks second claim and anonymous close");
+    require(actql_native_domain_borrow_transfer_holding(&record, holding, 2, recipe) == ACTQL_OWNED_INVALID &&
+        actql_native_domain_borrow_transfer_holding(&record, holding, 1, recipe) == 0 &&
+        actql_native_domain_borrow_transfer_holding(&record, holding, 1, recipe) == ACTQL_OWNED_INVALID,
+        "same local holding transfer preserves original header and is one shot");
     struct actql_domain_borrow_record copied = record;
     require(actql_native_domain_borrow_close(&copied) == ACTQL_OWNED_INVALID &&
         actql_native_domain_borrow_open(&record, sizeof(record), fd, recipe, material) == ACTQL_OWNED_INVALID,
@@ -60,17 +69,17 @@ int main(void) {
     require(actql_native_domain_borrow_pointer(&record, &child) == 0 &&
         child == (void *)((unsigned char *)record.view.mapping + page) &&
         actql_native_domain_borrow_enter(&record) == 0 &&
-        actql_native_domain_borrow_close(&record) == ACTQL_OWNED_BUSY &&
+        actql_native_domain_borrow_close_holding(&record, &holding) == ACTQL_OWNED_BUSY &&
         !record.closed && record.lease == child && actql_native_domain_borrow_leave(&record) == 0,
         "active scope retains record and cleanup leave after closing");
     unmap_target = record.view.mapping; fail_unmap = 1;
-    require(actql_native_domain_borrow_close(&record) == ACTQL_OWNED_PHYSICAL_FAILURE &&
-        record.lease == NULL && record.view.mapping == unmap_target && !record.closed &&
+    require(actql_native_domain_borrow_close_holding(&record, &holding) == ACTQL_OWNED_PHYSICAL_FAILURE &&
+        record.lease == NULL && holding == child && record.view.mapping == unmap_target && !record.closed &&
         !record.view.domain_live && atomic_load(&domain->domain_borrower_pid) == 0,
         "failed unmap preserves same record after acknowledged borrow return");
     require(actql_native_domain_borrow_enter(&record) == ACTQL_OWNED_INVALID &&
-        actql_native_domain_borrow_close(&record) == 0 && record.closed && record.view.mapping == NULL &&
-        actql_native_domain_borrow_close(&record) == 0,
+        actql_native_domain_borrow_close_holding(&record, &holding) == 0 && record.closed && holding == NULL && record.view.mapping == NULL &&
+        actql_native_domain_borrow_close_holding(&record, &holding) == 0,
         "retry skips returned borrow and double close never reopens");
     selected_pid = 1;
     require(actql_native_owned_close_extent_domain(&view, &domain) == 0 && domain == NULL &&
@@ -83,5 +92,5 @@ int main(void) {
         actql_native_domain_borrow_close(&refused) == 0 && refused.closed && close(fd) == 0,
         "pre-map refusal only closes its original empty record");
     printf("{\"domain_record_cases\":%d,\"passed\":%d,\"fixture_pages\":64,\"pid_observation\":\"scalar\",\"unmap_failure\":\"injected\",\"worker\":0,\"vm\":0,\"public_e2e\":0}\n", count, count);
-    return count == 8 ? 0 : 3;
+    return count == 10 ? 0 : 3;
 }
