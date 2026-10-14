@@ -20,3 +20,21 @@ test "current event dedupe lowering reaches the independent common control" {
   )
   event_window_common_checked(actual)
 }
+
+///|
+test "current event dedupe still rejects a genuinely insufficient common prefix allowance" {
+  let source = event_dedupe_source("[]", "[{event_id: 'asc'}]")
+  let query = @query.parse_query_script(source, syntax_limits()).unwrap()
+  match
+    compile_query_script(query, { ..pair_context(), inputs: [], }, {
+      ..construction_limits(),
+      max_expression_work: 1,
+    }) {
+    Err(Expression({ issue: @expression.WorkLimit, .. })) => ()
+    Err(issue) =>
+      fail(
+        "expected original work refusal, got " + infer_defaults_issue_tag(issue),
+      )
+    Ok(_) => fail("cached Carrier cannot issue a fresh work allowance")
+  }
+}
