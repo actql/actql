@@ -8,141 +8,341 @@ let nearest_failed_document : String = "{\"id\":\"adhoc.query\",\"results\":{\"a
 ///|
 test "original installed nearest Host capacity is derived from its checked tasks" {
   let prepared = nearest_failed_prepared()
-  let sequences = prepare_client_local_sequences(prepared, source_query_original_registry, source_query_original_values, Some(source_query_original_fragment), None).unwrap()
-  let count = @strategy.graph_task_count(@publication_host.prepared_client_graph(prepared))
-  assert_eq(count,15)
-  let (_,execution,measurement) = client_local_execution_limits(max_rows=@publication_host.prepared_client_values_max_rows(prepared))
+  let sequences = prepare_client_local_sequences(
+    prepared,
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
+  let count = @strategy.graph_task_count(
+    @publication_host.prepared_client_graph(prepared),
+  )
+  assert_eq(count, 15)
+  let (_, execution, measurement) = client_local_execution_limits(
+    max_rows=@publication_host.prepared_client_values_max_rows(prepared),
+  )
   let compute = []
   let mut total = 0L
   for task in 2..<count {
     compute.push(sequences[task])
-    let capacity = @execution.generated_sequence_capacity(sequences[task],execution,measurement).unwrap()
+    let capacity = @execution.generated_sequence_capacity(
+      sequences[task],
+      execution,
+      measurement,
+    ).unwrap()
     let retained = @execution.execution_capacity_retained_bytes(capacity)
     let executing = @execution.execution_capacity_execution_bytes(capacity)
-    println("NEAREST_CAPACITY task=\{task} retained=\{retained} execution=\{executing}")
+    println(
+      "NEAREST_CAPACITY task=\{task} retained=\{retained} execution=\{executing}",
+    )
     total += retained
   }
   println("NEAREST_CAPACITY total_retained=\{total}")
-  assert_true(client_local_sequence_capacity(compute,count,max_rows=@publication_host.prepared_client_values_max_rows(prepared)) is Some(_))
+  assert_true(
+    client_local_sequence_capacity(
+      compute,
+      count,
+      max_rows=@publication_host.prepared_client_values_max_rows(prepared),
+    )
+    is Some(_),
+  )
 }
 
 ///|
 fn nearest_failed_prepared() -> @publication_host.PreparedClientProgram {
-  let environment = @publication_host.admit_client_check_environment(nearest_failed_environment, "sha256:39519da6217e4774ced5c39cc755770eec4385da59317c7c654804e2000b5a60", {text_time:false,veca:true}, {rela:true,sga:false,tea:false,calendar:false,text_rank:false}).unwrap()
-  let prepared = @publication_host.prepare_effect_free_client_program(nearest_failed_document, Json, environment, None, @publication_host.client_standard_program_preparation_limits()).unwrap()
+  let environment = @publication_host.admit_client_check_environment(
+    nearest_failed_environment,
+    "sha256:39519da6217e4774ced5c39cc755770eec4385da59317c7c654804e2000b5a60",
+    { text_time: false, veca: true, },
+    { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
+  ).unwrap()
+  let prepared = @publication_host.prepare_effect_free_client_program(
+    nearest_failed_document,
+    Json,
+    environment,
+    None,
+    @publication_host.client_standard_program_preparation_limits(),
+  ).unwrap()
   prepared
 }
 
 ///|
 test "original installed nearest captures retain their exact graph and Host owner" {
+  nearest_failed_capture_fixture()
+}
+
+///|
+test "original nearest task-only transfer allowance remains a typed refusal" {
+  nearest_failed_capture_fixture(historical_budget=true)
+}
+
+///|
+fn nearest_failed_capture_fixture(
+  historical_budget? : Bool = false,
+) -> Unit raise {
   let prepared = nearest_failed_prepared()
-  let declaration = @row_source_host.restore_relation_row_declaration("nearest_fixture","nearest_fixture","nearest_fixture/0.1","{\"views\":[{\"resource\":\"queries\",\"resource_kind\":\"table\",\"schema_wire\":\"{\\\"embedding\\\":{\\\"dimensions\\\":2,\\\"element_type\\\":\\\"f32\\\",\\\"nullable\\\":false,\\\"type\\\":\\\"vector\\\"},\\\"note\\\":{\\\"nullable\\\":true,\\\"type\\\":\\\"string\\\"},\\\"request_id\\\":{\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"}}\",\"schema_cid\":\"sha256:561dfd2407116f43ed07dbe940c571e4fea7779fa0e6dda1bf079d8f986c02a5\",\"facts_wire\":\"{\\\"relation_keys\\\":{\\\"candidate_keys\\\":[[\\\"request_id\\\"]]}}\"},{\"resource\":\"candidates\",\"resource_kind\":\"table\",\"schema_wire\":\"{\\\"embedding\\\":{\\\"dimensions\\\":2,\\\"element_type\\\":\\\"f32\\\",\\\"nullable\\\":false,\\\"type\\\":\\\"vector\\\"},\\\"item_id\\\":{\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"},\\\"label\\\":{\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"}}\",\"schema_cid\":\"sha256:c58169521c543e83af21aed505d1f304fef1496c5e427295f905f797d69a349b\",\"facts_wire\":\"{\\\"relation_keys\\\":{\\\"candidate_keys\\\":[[\\\"item_id\\\"]]}}\"}]}",None).unwrap()
-  let acquisitions = Array::makei(2,task => {
-    let requirement = prepare_local_query_requirement(prepared,task,0,source_query_original_registry,source_query_original_values,Some(source_query_original_fragment),None).unwrap()
-    @row_source_host.prepare_row_acquisition(declaration,requirement,original_row_query_contract_fixture,original_row_evidence_contract_fixture).unwrap()
+  let declaration = @row_source_host.restore_relation_row_declaration(
+    "nearest_fixture",
+    "nearest_fixture",
+    "nearest_fixture/0.1",
+    "{\"views\":[{\"resource\":\"queries\",\"resource_kind\":\"table\",\"schema_wire\":\"{\\\"embedding\\\":{\\\"dimensions\\\":2,\\\"element_type\\\":\\\"f32\\\",\\\"nullable\\\":false,\\\"type\\\":\\\"vector\\\"},\\\"note\\\":{\\\"nullable\\\":true,\\\"type\\\":\\\"string\\\"},\\\"request_id\\\":{\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"}}\",\"schema_cid\":\"sha256:561dfd2407116f43ed07dbe940c571e4fea7779fa0e6dda1bf079d8f986c02a5\",\"facts_wire\":\"{\\\"relation_keys\\\":{\\\"candidate_keys\\\":[[\\\"request_id\\\"]]}}\"},{\"resource\":\"candidates\",\"resource_kind\":\"table\",\"schema_wire\":\"{\\\"embedding\\\":{\\\"dimensions\\\":2,\\\"element_type\\\":\\\"f32\\\",\\\"nullable\\\":false,\\\"type\\\":\\\"vector\\\"},\\\"item_id\\\":{\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"},\\\"label\\\":{\\\"nullable\\\":false,\\\"type\\\":\\\"string\\\"}}\",\"schema_cid\":\"sha256:c58169521c543e83af21aed505d1f304fef1496c5e427295f905f797d69a349b\",\"facts_wire\":\"{\\\"relation_keys\\\":{\\\"candidate_keys\\\":[[\\\"item_id\\\"]]}}\"}]}",
+    None,
+  ).unwrap()
+  let acquisitions = Array::makei(2, task => {
+    let requirement = prepare_local_query_requirement(
+      prepared,
+      task,
+      0,
+      source_query_original_registry,
+      source_query_original_values,
+      Some(source_query_original_fragment),
+      None,
+    ).unwrap()
+    @row_source_host.prepare_row_acquisition(
+      declaration, requirement, original_row_query_contract_fixture, original_row_evidence_contract_fixture,
+    ).unwrap()
   })
-  let capacities = acquisitions.map(acquisition => installed_row_capture_capacity(acquisition).unwrap())
-  let ledger = prepare_multi_captured_local_installed_ledger(prepared,capacities,[4096L,4096L],[4096L,4096L],source_query_original_registry,source_query_original_values,Some(source_query_original_fragment),None).unwrap()
+  let capacities = acquisitions.map(acquisition => {
+    installed_row_capture_capacity(acquisition).unwrap()
+  })
+  let ledger = prepare_multi_captured_local_installed_ledger(
+    prepared,
+    capacities,
+    [4096L, 4096L],
+    [4096L, 4096L],
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
+  let ledger = if historical_budget {
+    // Preserve the original short allowance as a negative control. Only this
+    // test ledger is changed; the graph, offers, memory and execution limits
+    // are identical to the positive case.
+    @resources.create_ledger({
+      ..@resources.ledger_admission_limits(ledger),
+      transfer_bytes: 15008192L,
+    }).unwrap()
+  } else {
+    ledger
+  }
   // Sixteen declared receiving ports, each with the existing one-million-byte
   // wire envelope, plus the two original 4096-byte acquisition allowances.
-  assert_eq(@resources.ledger_admission_limits(ledger).transfer_bytes,16008192L)
-  let bodies = ["[{\"request_id\":\"q1\",\"embedding\":[1,0],\"note\":null}]","[{\"item_id\":\"b\",\"embedding\":[0,1],\"label\":\"second\"},{\"item_id\":\"a\",\"embedding\":[1,0],\"label\":\"first\"}]"]
+  assert_eq(
+    @resources.ledger_admission_limits(ledger).transfer_bytes,
+    if historical_budget {
+      15008192L
+    } else {
+      16008192L
+    },
+  )
+  let bodies = [
+    "[{\"request_id\":\"q1\",\"embedding\":[1,0],\"note\":null}]", "[{\"item_id\":\"b\",\"embedding\":[0,1],\"label\":\"second\"},{\"item_id\":\"a\",\"embedding\":[1,0],\"label\":\"first\"}]",
+  ]
   let runs = []
   let sources = []
   for task in 0..<2 {
-    let run = @row_source_host.start_accounted_row_acquisition(acquisitions[task],"nearest-component-\{task}",_ => true,ledger,4096L,4096L).unwrap()
+    let run = @row_source_host.start_accounted_row_acquisition(
+      acquisitions[task],
+      "nearest-component-\{task}",
+      _ => true,
+      ledger,
+      4096L,
+      4096L,
+    ).unwrap()
     runs.push(run)
-    @row_source_host.begin_row_run(run,4096,3,3).unwrap()
+    @row_source_host.begin_row_run(run, 4096, 3, 3).unwrap()
     let bytes = @utf8.encode(bodies[task])
-    let charge = @row_source_host.charge_row_run_page(run,bytes).unwrap()
-    @row_source_host.accept_charged_row_run_page(run,charge,bytes).unwrap() |> ignore
+    let charge = @row_source_host.charge_row_run_page(run, bytes).unwrap()
+    @row_source_host.accept_charged_row_run_page(run, charge, bytes).unwrap()
+    |> ignore
     @row_source_host.finish_row_run(run).unwrap()
     @row_source_host.begin_row_capture(run).unwrap()
     let mut complete = false
     for _ in 0..<10000 {
-      if @row_source_host.advance_row_capture(run,256).unwrap().0 { complete=true; break }
+      if @row_source_host.advance_row_capture(run, 256).unwrap().0 {
+        complete = true
+        break
+      }
     }
     assert_true(complete)
     let capture = @row_source_host.capture_row_run(run).unwrap()
-    sources.push((task,@row_source_host.row_capture_source(capture).unwrap()))
+    sources.push((task, @row_source_host.row_capture_source(capture).unwrap()))
   }
   let graph = @publication_host.prepared_client_graph(prepared)
-  let dag = match @strategy.open_multi_captured_dag(graph,sources,ledger) {
+  let dag = match @strategy.open_multi_captured_dag(graph, sources, ledger) {
     Ok(run) => run
     Err(ForeignCapture) => fail("original installed nearest ForeignCapture")
     Err(UnsupportedGraph) => fail("original installed nearest UnsupportedGraph")
     Err(_) => fail("original installed nearest other graph opening refusal")
   }
-  assert_eq(@strategy.graph_task_count(graph),15)
-  nearest_failed_offer_boundary(dag,prepared)
+  assert_eq(@strategy.graph_task_count(graph), 15)
+  nearest_failed_offer_boundary(dag, prepared, historical_budget~)
   @strategy.stop_captured_dag(dag)
   @strategy.refresh_captured_retention(dag)
-  for run in runs { @row_source_host.close_accounted_row_run(run).unwrap() }
+  for run in runs {
+    @row_source_host.close_accounted_row_run(run).unwrap()
+  }
 }
 
 ///|
 fn nearest_failed_offer_boundary(
   run : @strategy.CapturedDAG,
   prepared : @publication_host.PreparedClientProgram,
+  historical_budget : Bool,
 ) -> Unit raise {
-  let all = prepare_client_local_sequences(prepared,source_query_original_registry,source_query_original_values,Some(source_query_original_fragment),None).unwrap()
+  let all = prepare_client_local_sequences(
+    prepared,
+    source_query_original_registry,
+    source_query_original_values,
+    Some(source_query_original_fragment),
+    None,
+  ).unwrap()
   let compute = []
-  for task in 2..<all.length() { compute.push(all[task]) }
+  for task in 2..<all.length() {
+    compute.push(all[task])
+  }
   let max_rows = @publication_host.prepared_client_values_max_rows(prepared)
-  let (values,execution,measurement) = client_local_execution_limits(max_rows~)
-  let (_,retained,executing) = client_local_sequence_capacity(compute,all.length(),max_rows~).unwrap()
+  let (values, execution, measurement) = client_local_execution_limits(
+    max_rows~,
+  )
+  let (_, retained, executing) = client_local_sequence_capacity(
+    compute,
+    all.length(),
+    max_rows~,
+  ).unwrap()
   // Exact existing selected Node VecA profile, not a new implementation limit.
-  let provider = @nearest_provider.provider({
-    max_input_records:100,max_records:100,max_fields_per_record:100,
-    max_value_bytes:10000,max_total_value_bytes:100000,max_retained_value_bytes:100000,
-    max_value_nodes:10000,max_value_depth:100,max_contract_work:10000,
-    max_work:100000,max_workspace_slots:10000,
-  },100000L,@execution.execution_capacity(retained,executing).unwrap())
+  let provider = @nearest_provider.provider(
+    {
+      max_input_records: 100,
+      max_records: 100,
+      max_fields_per_record: 100,
+      max_value_bytes: 10000,
+      max_total_value_bytes: 100000,
+      max_retained_value_bytes: 100000,
+      max_value_nodes: 10000,
+      max_value_depth: 100,
+      max_contract_work: 10000,
+      max_work: 100000,
+      max_workspace_slots: 10000,
+    },
+    100000L,
+    @execution.execution_capacity(retained, executing).unwrap(),
+  )
   let capacity : @connector.FixedComputeCapacity = {
-    contract_cid:"sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
-    max_rows,max_value_bytes:10000,common_fragment:None,
+    contract_cid: "sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+    max_rows,
+    max_value_bytes: 10000,
+    common_fragment: None,
   }
   let configuration : @local_driver.LocalComputeConfiguration = {
-    sequences:compute,managed_providers:[provider],managed_capacity:capacity,
-    execution,measurement,max_work:100,
+    sequences: compute,
+    managed_providers: [provider],
+    managed_capacity: capacity,
+    execution,
+    measurement,
+    max_work: 100,
   }
-  let bundle : @connector.CapabilityBundle[Unit,@local_driver.LocalComputeConfiguration,Unit] = {
-    name:"local",acquisition:None,fixed_compute:Some((_,_)=>configuration),effect:None,
+  let bundle : @connector.CapabilityBundle[
+    Unit,
+    @local_driver.LocalComputeConfiguration,
+    Unit,
+  ] = {
+    name: "local",
+    acquisition: None,
+    fixed_compute: Some((_, _) => configuration),
+    effect: None,
   }
-  let bundles = @connector.install_bundles([bundle],1,100).unwrap()
+  let bundles = @connector.install_bundles([bundle], 1, 100).unwrap()
   let registry = @connector.installed_bundle_registry(bundles)
-  let registration = @connector.capability_registration_at(registry,0).unwrap()
-  let installed = @local_driver.configure_local_compute(@host_driver.open_dispatch_driver(run),registry,registration,configuration).unwrap()
-  @local_driver.configure_local_retained_inputs(installed,client_local_import_limits(capacity,values),Some(0L)).unwrap()
+  let registration = @connector.capability_registration_at(registry, 0).unwrap()
+  let installed = @local_driver.configure_local_compute(
+    @host_driver.open_dispatch_driver(run),
+    registry,
+    registration,
+    configuration,
+  ).unwrap()
+  @local_driver.configure_local_retained_inputs(
+    installed,
+    client_local_import_limits(capacity, values),
+    Some(0L),
+  ).unwrap()
   let slots = @local_driver.local_dispatch_work_slots()
-  let schedule = @cost.prepare_rate_schedule(slots,[{
-    work_slots:Array::makei(slots,i=>i),fixed_ms:Some(1L),per_row_ms:Some(0L),
-    per_wire_byte_ms:Some(0L),per_pair_ms:Some(0L),
-  }],100).unwrap()
-  let estimates = @local_driver.prepare_local_estimate_module(installed,Array::make(compute.length(),schedule),1000).unwrap()
-  @local_driver.install_local_dispatch_estimates(installed,estimates).unwrap()
+  let schedule = @cost.prepare_rate_schedule(
+    slots,
+    [
+      {
+        work_slots: Array::makei(slots, i => i),
+        fixed_ms: Some(1L),
+        per_row_ms: Some(0L),
+        per_wire_byte_ms: Some(0L),
+        per_pair_ms: Some(0L),
+      },
+    ],
+    100,
+  ).unwrap()
+  let estimates = @local_driver.prepare_local_estimate_module(
+    installed,
+    Array::make(compute.length(), schedule),
+    1000,
+  ).unwrap()
+  @local_driver.install_local_dispatch_estimates(installed, estimates).unwrap()
   let offers = []
   for task in 2..<all.length() {
-    let proposed = match @local_driver.estimate_local_installed_offers(installed,task,{rows:None,wire_bytes:None,pairs:None}) {
+    let proposed = match
+      @local_driver.estimate_local_installed_offers(installed, task, {
+        rows: None,
+        wire_bytes: None,
+        pairs: None,
+      }) {
       Ok(value) => value
       Err(_) => fail("original nearest offer estimation rejected task \{task}")
     }
     println("NEAREST_OFFERS task=\{task} count=\{proposed.length()}")
-    if proposed.is_empty() { fail("original nearest task \{task} has no installed offer") }
-    for offer in proposed { offers.push(offer) }
+    if proposed.is_empty() {
+      fail("original nearest task \{task} has no installed offer")
+    }
+    for offer in proposed {
+      offers.push(offer)
+    }
   }
-  @strategy.configure_strategy_search(run,{max_offers:100,max_strategies:100,max_work:10000,max_revisions:100}).unwrap()
-  let choice = @strategy.prepare_strategy_choices(run,offers,registry,None).unwrap()
-  let decision = @strategy.commit_strategy_choice(choice,None)
-  let budget = @resources.ledger_admission_limits(@strategy.captured_dag_ledger(run))
-  println("NEAREST_STRATEGY budget_retained=\{budget.retained_bytes} budget_execution=\{budget.execution_bytes} budget_transfer=\{budget.transfer_bytes}")
+  @strategy.configure_strategy_search(run, {
+    max_offers: 100,
+    max_strategies: 100,
+    max_work: 10000,
+    max_revisions: 100,
+  }).unwrap()
+  let choice = @strategy.prepare_strategy_choices(run, offers, registry, None).unwrap()
+  let decision = @strategy.commit_strategy_choice(choice, None)
+  let budget = @resources.ledger_admission_limits(
+    @strategy.captured_dag_ledger(run),
+  )
+  println(
+    "NEAREST_STRATEGY budget_retained=\{budget.retained_bytes} budget_execution=\{budget.execution_bytes} budget_transfer=\{budget.transfer_bytes}",
+  )
+  assert_eq(@strategy.strategy_report_count(run), 1)
   for index in 0..<@strategy.strategy_report_count(run) {
-    let report = @strategy.strategy_report_at(run,index).unwrap()
-    println("NEAREST_STRATEGY retained=\{report.retained_bytes} execution=\{report.execution_bytes} transfer=\{report.transfer_bytes}")
-    if report.rejection is Some(@resources.RetentionLimit) { fail("original nearest strategy RetentionLimit") }
-    if report.rejection is Some(@resources.ExecutionLimit) { fail("original nearest strategy ExecutionLimit") }
-    if report.rejection is Some(@resources.TransferLimit) { fail("original nearest strategy TransferLimit") }
-    if report.rejection is Some(_) { fail("original nearest strategy another Ledger refusal") }
+    let report = @strategy.strategy_report_at(run, index).unwrap()
+    println(
+      "NEAREST_STRATEGY retained=\{report.retained_bytes} execution=\{report.execution_bytes} transfer=\{report.transfer_bytes}",
+    )
+    if report.rejection is Some(@resources.RetentionLimit) {
+      fail("original nearest strategy RetentionLimit")
+    }
+    if report.rejection is Some(@resources.ExecutionLimit) {
+      fail("original nearest strategy ExecutionLimit")
+    }
+    assert_eq(report.transfer_bytes, 16000000L)
+    if historical_budget {
+      assert_true(report.rejection is Some(@resources.TransferLimit))
+    } else {
+      assert_true(report.rejection is None)
+    }
   }
-  assert_true(decision is Ok(@strategy.Selected(_)))
+  if historical_budget {
+    assert_true(decision is Ok(@strategy.NoFeasible))
+  } else {
+    assert_true(decision is Ok(@strategy.Selected(_)))
+  }
 }

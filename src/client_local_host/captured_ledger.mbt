@@ -511,13 +511,16 @@ fn prepare_multi_captured_capacity_ledger_owned(
   let mut input_ports = 0L
   for task in 2..<count {
     guard @strategy.graph_task_input_count(graph, task) is Some(inputs) &&
-      inputs >= 0 && inputs.to_int64() <= 9223372036854775807L - input_ports else {
+      inputs >= 0 &&
+      inputs.to_int64() <= 9223372036854775807L - input_ports else {
       return None
     }
     input_ports += inputs.to_int64()
   }
   let transfer_envelopes = Int64::max(count.to_int64(), input_ports)
-  if transfer_envelopes > 9223372036854775807L / 1000000L { return None }
+  if transfer_envelopes > 9223372036854775807L / 1000000L {
+    return None
+  }
   let mut transfer = transfer_envelopes * 1000000L
   let mut execution_capacity = 536870912L
   for index in 0..<2 {
