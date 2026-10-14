@@ -1,6 +1,6 @@
 ///|
 /// Private constructor projection, never authority or a serialized pointer.
-type ScopedReadAcquisition
+priv type ScopedReadAcquisition
 
 ///|
 extern "C" fn current_read_available_ffi() -> Bool = "actql_native_filesystem_current_read_available"
