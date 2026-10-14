@@ -4,7 +4,7 @@ import {runLocalCheck} from '../../scripts/local-checks-guard.mjs';
 const source=process.argv[2],mode=process.argv[3]??'presence';
 const git=(...a)=>execFileSync('git',a,{encoding:'utf8'}).trim();
 assert.match(source,/^[a-f0-9]{40}$/u);assert.equal(git('rev-parse','HEAD'),source);assert.equal(git('status','--porcelain'),'');
-const choices={presence:['src/calendar_typing/admission_test.mbt','Calendar bucket preserves conditional payload independently of NULL'],kernel:['src/local_tea/calendar_bucket_wbtest.mbt',null],typing:['src/calendar_typing/admission_test.mbt',null],provider:['src/local_tea_provider/calendar_bucket_wbtest.mbt',null]};
+const choices={presence:['src/calendar_typing/admission_test.mbt','Calendar bucket preserves conditional payload independently of NULL'],kernel:['src/local_tea/calendar_bucket_wbtest.mbt',null],reader:['src/execution_relation/producer_presence_calendar_wbtest.mbt',null],typing:['src/calendar_typing/admission_test.mbt',null],provider:['src/local_tea_provider/calendar_bucket_wbtest.mbt',null]};
 assert(Object.hasOwn(choices,mode));const [file,filter]=choices[mode];
 const args=['--target','js','-j','1',file];if(filter)args.push('--filter',filter);
 const code=`import {runFocusedTests} from './scripts/test-execution.mjs';process.exitCode=runFocusedTests('moon',${JSON.stringify(args)},{cwd:process.cwd(),timeout:240000});`;
