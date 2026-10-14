@@ -977,14 +977,24 @@ export function readStoredRunPlanOriginal(original, definition, programCid, limi
     throw Object.assign(new Error('RunHostOriginalPlanUnavailable'),
       {code: 'RunHostOriginalPlanUnavailable'});
   }
-  if (original === null || typeof original !== 'object' || Array.isArray(original) ||
-      Object.keys(original).sort().join(',') !== 'compiledPlanWire,planViewWire') {
+  if (original === null || typeof original !== 'object' || Array.isArray(original)) {
+    throw new TypeError('InvalidRunHostOriginalPlan');
+  }
+  const names = Reflect.ownKeys(original);
+  const expected = ['compiledPlanWire', 'planViewWire'];
+  if (names.length !== expected.length || names.some(name => typeof name !== 'string') ||
+      names.sort().some((name, index) => name !== expected[index])) {
     throw new TypeError('InvalidRunHostOriginalPlan');
   }
   // Snapshot data fields once; accessors cannot replace bytes between checks.
   const descriptors = Object.getOwnPropertyDescriptors(original);
-  const compiledPlanWire = descriptors.compiledPlanWire?.value;
-  const planViewWire = descriptors.planViewWire?.value;
+  if (Reflect.ownKeys(descriptors).length !== expected.length ||
+      expected.some(name => !descriptors[name]?.enumerable ||
+        !Object.hasOwn(descriptors[name], 'value'))) {
+    throw new TypeError('InvalidRunHostOriginalPlan');
+  }
+  const compiledPlanWire = descriptors.compiledPlanWire.value;
+  const planViewWire = descriptors.planViewWire.value;
   if (typeof programCid !== 'string' ||
       [compiledPlanWire, planViewWire].some(wire => typeof wire !== 'string' ||
         wire.length > maxWireBytes)) {
