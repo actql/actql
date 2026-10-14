@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {inspect} from 'node:util';
 import test from 'node:test';
-import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+// A finite source-matched diagnostic can use its own build directory without
+// overwriting a retained/borrowed default runtime. This is test plumbing only.
+const moon = await import(process.env.ACTQL_TEST_FILE_LISTING_RUNTIME ??
+  new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url));
 import {checked} from '../host-common/runtime-result.mjs';
 import {createInstalledRowSource} from './installed-row-source.mjs';
 import {rowListingCallbacks} from './installed-row-listing.mjs';
