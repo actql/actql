@@ -1,4 +1,21 @@
 ///|
+type NativeRemoteJournalOpenFailure
+
+///|
+pub fn NativeRemoteJournalOpenFailure::issue(
+  _self : NativeRemoteJournalOpenFailure,
+) -> NativeRemoteJournalIssue {
+  UnsupportedTarget
+}
+
+///|
+pub fn NativeRemoteJournalOpenFailure::retry_cleanup(
+  _self : NativeRemoteJournalOpenFailure,
+) -> Result[Unit, NativeRemoteJournalIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 type Journal
 
 ///|
