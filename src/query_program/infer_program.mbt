@@ -12,12 +12,19 @@ fn lower_infer_steps(
   index : Int,
   input_name : String,
   max_work : Int,
+  checked_prefix? : ((
+    Array[@builder.Node],
+    String,
+    Array[(String, String)],
+    Array[(String, String)],
+  ) -> InferPrefixProjection raise Abort)? = None,
+  authored_aliases? : Array[(String, String)] = [],
 ) -> (Array[Array[(String, @builder.Node)]], Array[String]) raise Abort {
   if clause.contract.value == "" || clause.name.value == "" {
     raise Abort(UnsupportedInfer)
   }
   let keys : Array[(String, String)] = []
-  for path in clause.keys {
+  for path in clause.keys.unwrap_or([]) {
     let slot = match pipe_slot(path, visible, ranges) {
       Some(slot) => slot
       None => raise Abort(UnknownColumn)
@@ -29,7 +36,7 @@ fn lower_infer_steps(
     }
     keys.push((name, slot))
   }
-  if keys.is_empty() {
+  if clause.keys is Some(_) && keys.is_empty() {
     raise Abort(UnsupportedInfer)
   }
   let retained : Array[(String, String)] = []
@@ -58,7 +65,14 @@ fn lower_infer_steps(
     }
     for entry in expanded {
       let name : @query.NamePart = { value: entry.0, quoted: false, }
-      if pipe_name_exists(retained, name) || same_name(name, clause.name) {
+      if pipe_name_exists(retained, name) ||
+        same_name(
+          {
+            value: positional_authored_column_name(entry.0, authored_aliases),
+            quoted: false,
+          },
+          clause.name,
+        ) {
         raise Abort(DuplicateOutput)
       }
       retained.push(entry)
@@ -144,25 +158,49 @@ fn lower_infer_steps(
   while captured == input_name || captured == snapshot {
     captured += "_"
   }
+  let infer_body = [
+    ("contract", construction.text(clause.contract.value)),
+    ("input", construction.object(mappings)),
+  ]
+  let emit_key = fn() -> @builder.Node raise Abort {
+    if keys.length() == 1 {
+      construction.text(keys[0].1)
+    } else {
+      construction.array(keys.map(key => construction.text(key.1)))
+    }
+  }
+  if clause.keys is Some(_) {
+    infer_body.push(("key", emit_key()))
+  }
+  let infer_step = steps.length()
   steps.push([
     ("from", construction.text(snapshot)),
-    (
-      "infer",
-      construction.object([
-        ("contract", construction.text(clause.contract.value)),
-        (
-          "key",
-          if keys.length() == 1 {
-            construction.text(keys[0].1)
-          } else {
-            construction.array(keys.map(key => construction.text(key.1)))
-          },
-        ),
-        ("input", construction.object(mappings)),
-      ]),
-    ),
+    ("infer", construction.object(infer_body)),
     ("as", construction.text(captured)),
   ])
+  if clause.keys is None {
+    // Check this actual prefix, including the original producer and the
+    // key-omitted machine INFER. Only Common may choose its sole proven tuple.
+    let check = match checked_prefix {
+      Some(check) => check
+      None => raise Abort(UnsupportedInfer)
+    }
+    let projection = check(
+      steps.map(step => construction.object(step)),
+      captured,
+      visible,
+      authored_aliases,
+    )
+    keys.append(projection.keys)
+    // Emit the same explicit tuple after proof, before constructing join-back.
+    // No placeholder key, source replay or second Model call is introduced.
+    infer_body.push(("key", emit_key()))
+    steps[infer_step] = [
+      ("from", construction.text(snapshot)),
+      ("infer", construction.object(infer_body)),
+      ("as", construction.text(captured)),
+    ]
+  }
   let key_fields : Array[(String, @builder.Node)] = []
   let role_slots : Array[String] = []
   if !retained.is_empty() {

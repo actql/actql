@@ -521,7 +521,7 @@
         {
           "path": "spec/manifests/actql-grammar-0.1.json",
           "pointer": "",
-          "cid": "sha256:468dd8010098fc24e4298f35e2d09bb5d36a217c8e426a4ed17381d97071457d",
+          "cid": "sha256:61791500c6578c947f9fb33cd12e696de91b8a0c90485708756125e5b6c9d8cf",
           "version": "actql-grammar-manifest/0.1"
         },
         {

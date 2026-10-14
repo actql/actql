@@ -290,6 +290,12 @@ fn compile_join_chain_steps(
   nearest_inputs? : Array[Input] = [],
   nearest_vectors? : Array[(String, @carrier.Vectors)] = [],
   positional_set_output? : Bool = false,
+  checked_infer_prefix? : ((
+    Array[@builder.Node],
+    String,
+    Array[(String, String)],
+    Array[(String, String)],
+  ) -> InferPrefixProjection raise Abort)? = None,
 ) -> (Array[@builder.Node], Array[String], String) raise Abort {
   if inputs.length() != @query.join_part_count(query) + 1 ||
     (
@@ -645,6 +651,7 @@ fn compile_join_chain_steps(
     nearest_inputs~,
     nearest_vectors~,
     positional_set_output~,
+    checked_infer_prefix~,
   )
   steps.append(tail)
   (steps, output, if tail.is_empty() { from } else { final_from })
@@ -658,6 +665,7 @@ fn compile_join_chain_stage_body(
   context : Context,
   limits : Limits,
   retained : Array[RetainedResult]?,
+  prior_stages : Array[@builder.Node],
 ) -> (
   Array[@builder.Node],
   Array[String],
@@ -706,6 +714,9 @@ fn compile_join_chain_stage_body(
     }
     inputs.push((input, name))
   }
+  let infer_budget : InferPrefixBudget = {
+    remaining_work: limits.max_expression_work,
+  }
   let (steps, output, from) = compile_join_chain_steps(
     construction,
     query,
@@ -716,6 +727,12 @@ fn compile_join_chain_stage_body(
     parameter_declarations=context.parameter_declarations,
     prefix_steps=seeds,
     prefix_context=Some(context),
+    checked_infer_prefix=Some(fn(nodes, producer, visible, authored_aliases) {
+      infer_prefix_check(
+        construction, query, context, prior_stages, declarations, nodes, producer,
+        limits, infer_budget, visible, authored_aliases,
+      )
+    }),
   )
   (seeds + steps, output, declarations, from)
 }
@@ -819,6 +836,7 @@ fn compile_join_chain_query(
       context,
       limits,
       Some(retained),
+      stages,
     )
     stages.push(
       construction.object([

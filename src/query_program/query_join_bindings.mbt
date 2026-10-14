@@ -139,6 +139,12 @@ fn lower_script_join_relation(
       nearest_inputs~,
       nearest_vectors~,
       positional_set_output~,
+      checked_infer_prefix=Some(fn(nodes, producer, visible, authored_aliases) {
+        script_infer_prefix_check(
+          construction, query, context, sources, nodes, producer, limits, visible,
+          authored_aliases,
+        )
+      }),
     )
     steps.append(body)
     return {
@@ -212,6 +218,13 @@ fn lower_script_join_relation(
     step_bindings=bindings,
     capture_left~,
     values_bound~,
+    prefix_steps=steps.copy(),
+    checked_infer_prefix=Some(fn(nodes, producer, visible, authored_aliases) {
+      script_infer_prefix_check(
+        construction, query, context, sources, nodes, producer, limits, visible,
+        authored_aliases,
+      )
+    }),
   )
   steps.append(body)
   {

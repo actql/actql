@@ -275,6 +275,7 @@ fn lower_script_bindings(
           [],
           known=body_inputs,
           current=Some(graph),
+          continuation=Some((context, sources)),
         )
       } else {
         lower_script_graph_rows(

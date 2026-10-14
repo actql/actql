@@ -840,6 +840,25 @@ fn resolve_query_members(
   limits : Limits,
   stage_schemas? : Map[(String, String), @schema.Schema?]? = None,
 ) -> @builder.Source raise Abort {
+  resolve_query_members_accounted(
+    source,
+    document,
+    context,
+    limits,
+    stage_schemas~,
+  ).0
+}
+
+///|
+// Enclosing prefix preparation must retain successful probe usage and the
+// reservation held by a refused probe, including the initial member scan.
+fn resolve_query_members_accounted(
+  source : @builder.Source,
+  document : @origin.Document,
+  context : Context,
+  limits : Limits,
+  stage_schemas? : Map[(String, String), @schema.Schema?]? = None,
+) -> (@builder.Source, Int) raise Abort {
   let resolution : MemberResolution = {
     source,
     document,
@@ -850,7 +869,7 @@ fn resolve_query_members(
     replacements: Map([]),
   }
   if stage_schemas is None && !resolution.has_authored_member() {
-    return source
+    return (source, limits.max_expression_work - resolution.work)
   }
   let root = @builder.cursor(source)
   let stages = member_lookup(root, "stages")
@@ -949,6 +968,7 @@ fn resolve_query_members(
             prefix,
             catalog,
             context.model_tasks,
+            calendar_profile=context.calendar_profile,
           )
         } else if tag == "infer" &&
           context.model_tasks is Some(_) &&
@@ -1000,7 +1020,8 @@ fn resolve_query_members(
       results[(stage_id, name)] = resolution.result_schema(body, rows)
     }
   }
-  resolution.finish()
+  let result = resolution.finish()
+  (result, limits.max_expression_work - resolution.work)
 }
 
 ///|
