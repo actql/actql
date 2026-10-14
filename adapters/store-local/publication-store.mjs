@@ -116,6 +116,41 @@ function encodePrivateEvidenceEnvelope(input, isWire, key, aad, maximum) {
   return envelope;
 }
 
+// Recovery facade of the SAME Store writer, not another cleanup/capacity
+// owner. A failed private preparation has no prepared object to return yet.
+// Keep its original reservation/FD/custody reachable, and expose only cleanup.
+function retainPrivateWriterCleanup(writer) {
+  let original = writer;
+  let flight;
+  const pending = () => {
+    if (original === undefined) return false;
+    const state = original.status();
+    return state.reservationHeld || state.custodyPending || state.cleanupPending;
+  };
+  const release = () => {
+    if (flight !== undefined) return flight;
+    if (!pending()) {
+      original = undefined;
+      return Promise.resolve(false);
+    }
+    const actual = original;
+    flight = Promise.resolve().then(() => actual.cancel()).then(result => {
+      if (pending()) fail('PublicationPrivateWriterCleanupPending');
+      // An escaped retired facade must not keep the original writer/Store
+      // graph after the actual same cleanup has settled its responsibilities.
+      original = undefined;
+      return result;
+    }).finally(() => { flight = undefined; });
+    return flight;
+  };
+  const cleanup = Object.freeze({
+    status: () => Object.freeze({pending: pending()}),
+    release,
+    async retry() { await release(); return cleanup.status(); },
+  });
+  return cleanup;
+}
+
 async function syncDirectoryPath(path) {
   const directory = await open(path, constants.O_RDONLY);
   try { await directory.sync(); }
@@ -2296,11 +2331,22 @@ export async function openLocalPublicationStore(
         bytes: stored.bytes, prepared: stored.prepared,
       });
     } catch (error) {
+      let cleanupFailure;
       try { await writer.cancel(); }
-      catch (cleanupError) {
-        error.cleanupFailure = cleanupError;
+      catch (cleanupError) { cleanupFailure = cleanupError; }
+      const state = writer.status();
+      const pending = state.reservationHeld || state.custodyPending || state.cleanupPending;
+      if (!pending && cleanupFailure === undefined) throw error;
+      const failure = error !== null && typeof error === 'object' &&
+        Object.isExtensible(error) ? error
+        : new PublicationStoreError(error?.code ??
+          'PublicationPrivateEvidencePreparationFailed', error);
+      if (cleanupFailure !== undefined) failure.cleanupFailure = cleanupFailure;
+      if (pending) {
+        failure.cleanupPending = true;
+        failure.cleanupHandle = retainPrivateWriterCleanup(writer);
       }
-      throw error;
+      throw failure;
     }
   };
   const preparePrivateEvidenceBytes = (name, bytes, semanticCid) =>

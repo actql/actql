@@ -92,6 +92,8 @@ function encoder(source, {splitFinal = false, failAppend = false, pauseAppend = 
         },
         async seal() { return {cid: cid(envelope), bytes: expected, prepared: {}}; },
         async cancel() { counts.cancel++; throw cleanup; },
+        status: () => ({reservationHeld: failAppend, custodyPending: false,
+          cleanupPending: failAppend}),
       };
     },
   });
