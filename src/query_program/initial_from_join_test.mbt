@@ -3,15 +3,13 @@ fn initial_from_compiled(
   text : String,
   context : Context,
 ) -> @program.Program raise {
-  match
+  with_demand_program(
     compile_query_script(
       @query.parse_query_script(text, syntax_limits()).unwrap(),
       context,
       construction_limits(),
-    ) {
-    Ok(program) => program
-    Err(cause) => fail(text + " => " + @debug.to_string(cause))
-  }
+    ),
+  )
 }
 
 ///|
@@ -142,7 +140,7 @@ test "three initial JOIN forms retain the same logical Values and nullable outpu
     match
       @check.check_parsed(program, check_environment(), None, check_limits()) {
       Checked(_) => ()
-      Rejected(error) => fail(@debug.to_string(@check.diagnostic_cause(error)))
+      Rejected(error) => graph_rows_rejected(error)
       NeedsInputs(_) => fail("initial JOIN controls have no external Source")
     }
     program
