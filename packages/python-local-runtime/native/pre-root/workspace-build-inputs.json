@@ -1,0 +1,132 @@
+{
+  "status": "uncompiled-unadopted-source-preparation",
+  "upstream_git_commit": "399f857f28ee8845d0cfd4ec71680912b5375831",
+  "parent": "5e6283d7d88bb1e8035bc415c49b3265fb3202ee",
+  "target": "aarch64-apple-darwin",
+  "deployment_target": "11.0",
+  "source_workspace_inputs": [
+    {
+      "path": "Cargo.lock",
+      "sha256": "c897852b79458131953e17cdfb53339fe3e10cb8d4c251171770d95c3ed38266",
+      "origin": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/399f857f28ee8845d0cfd4ec71680912b5375831/Cargo.lock"
+    },
+    {
+      "path": "Cargo.toml",
+      "sha256": "b6364ff33d0222bea54359e9d0930aacf63b9102e0e5696e4b38bdb2d0fe9eef",
+      "origin": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/399f857f28ee8845d0cfd4ec71680912b5375831/Cargo.toml"
+    },
+    {
+      "path": "crates/c-api/Cargo.toml",
+      "sha256": "3eb861db0050d8e8ca5d576119f381d8f5a4d65480601e549c80b95f9d8ec727",
+      "origin": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/399f857f28ee8845d0cfd4ec71680912b5375831/crates/c-api/Cargo.toml"
+    },
+    {
+      "path": "crates/c-api/artifact/Cargo.toml",
+      "sha256": "bf42afe2a1cd512c7457ca36c75adb3394182bc0c13a08bb6b2c6b4638c138e6",
+      "origin": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/399f857f28ee8845d0cfd4ec71680912b5375831/crates/c-api/artifact/Cargo.toml"
+    },
+    {
+      "path": "crates/c-api/artifact/src/lib.rs",
+      "sha256": "c97a46f05048b3e8d11324e0e31833bba794427d8a31cddfc3b829e1e5522390",
+      "origin": "https://raw.githubusercontent.com/bytecodealliance/wasmtime/399f857f28ee8845d0cfd4ec71680912b5375831/crates/c-api/artifact/src/lib.rs"
+    },
+    {
+      "path": "crates/c-api/build.rs",
+      "sha256": "ece7428f3c9ead342ed7bce13742af868190b3c5c30feae59b0fb48d39800975",
+      "origin": "pinned crate Cargo.toml.orig/build.rs"
+    },
+    {
+      "path": "crates/wasmtime/Cargo.toml",
+      "sha256": "5b38de736d5cc9d8f241b31561545bec34c8f129c0074480b5412d0d753b6c00",
+      "origin": "pinned crate Cargo.toml.orig/build.rs"
+    }
+  ],
+  "copy_before_patch": [
+    {
+      "source": "owned_capacity.c",
+      "target": "crates/c-api/src/actql_owned_capacity.c",
+      "sha256": "440ee75583689d4b87ebe607ac977ef5c857a2f4dbc86219df59bca0b03752ca"
+    },
+    {
+      "source": "owned_capacity.h",
+      "target": "crates/c-api/src/owned_capacity.h",
+      "sha256": "e57bce1f377b8e5a0172da263e59153c20fe97970fb8783cac5986eb78c9b448"
+    },
+    {
+      "source": "owned_heap.rs",
+      "target": "crates/c-api/artifact/src/actql_owned_heap.rs",
+      "sha256": "0cf569c5b81235d8e52e2f3bf6afbcbad0bcc67ef585b3921e26b11246d7db42"
+    },
+    {
+      "source": "owned_abi.rs",
+      "target": "crates/c-api/artifact/src/actql_owned_abi.rs",
+      "sha256": "151b086629977f782c042cdfe166b36d1e84ee50be4f60d4faa2d2ea22126fa6"
+    },
+    {
+      "source": "owned_image.c",
+      "target": "crates/c-api/src/actql_owned_image.c",
+      "sha256": "5dd1b8a7019f3a516ed881d0106c85bdccbbded3569b49dda6ec4280d21de979"
+    }
+  ],
+  "upstream_minimum_rust_version": "1.88.0",
+  "selected_rust_toolchain": null,
+  "selected_macos_sdk": null,
+  "proposed_features": [
+    "actql-owned-capacity"
+  ],
+  "default_features": true,
+  "feature_closure_accepted": false,
+  "native_library_artifact": null,
+  "image_recipe_accepted": false,
+  "runtime_build_executed": false,
+  "blocks_adoption": [
+    "infallible Rust allocation exhaustion is an abort, not typed capacity refusal",
+    "Engine::new config.build_compiler under cranelift remains an allocation domain",
+    "all foreign native allocations and OS registrations still require declared coverage",
+    "private Core original lease scope connection prepared; actual native calls and reentry unverified",
+    "image FD capture candidate uncompiled; private SDK pointer/deserializer connected only with FD/status doubles; installed supplier unadopted",
+    "actual capacity profile/toolchain/SDK/build closure unadopted",
+    "Original C API default feature proposal preserves source surface; actual export inventory and full native dependency allocation coverage unverified"
+  ],
+  "source_decision": "Preparation for the existing precompiled pooling backend, not adoption of a fork or alternate backend",
+  "source_archives": {
+    "actql-e-wasmtime38.crate": "fc0e75ee2cf54bb6be94eac3e90841ef0bb4f6d371398cb61a6e65c10574b149",
+    "actql-e-wasmtime-c-api-38.crate": "339734f4e6270e08bf19d5d423350a5effd063dab3963d26c36756858ddc36a3"
+  },
+  "patched_cargo_lock_generated": false,
+  "system_sdk_dependencies": [
+    "CommonCrypto/CommonDigest.h and CC_SHA256_Init/Update/Final",
+    "Darwin fstat/pread/fcntl, including same-FD nanosecond metadata fields"
+  ],
+  "scratch_coverage": "SHA256 context allocated from original lease; target compiler stack and CommonCrypto internal allocations remain unmeasured/unknown",
+  "python_binding_source": {
+    "version": "38.0.0",
+    "sdist_sha256": "75d38a075571756543266df782979fc2204cafd1fb7f3ebbb901e05df916dd34",
+    "namespace": "actql_local_runtime._wasmtime",
+    "required_dll_symbols": 529,
+    "staging_adopted": false
+  },
+  "original_c_api_default_features": [
+    "profiling",
+    "wat",
+    "wasi",
+    "cache",
+    "parallel-compilation",
+    "async",
+    "coredump",
+    "addr2line",
+    "demangle",
+    "threads",
+    "gc",
+    "gc-drc",
+    "gc-null",
+    "cranelift",
+    "winch",
+    "debug-builtins",
+    "pooling-allocator",
+    "component-model",
+    "pulley"
+  ],
+  "original_default_feature_source_sha256": "bf42afe2a1cd512c7457ca36c75adb3394182bc0c13a08bb6b2c6b4638c138e6",
+  "native_symbol_verification_executed": false
+}

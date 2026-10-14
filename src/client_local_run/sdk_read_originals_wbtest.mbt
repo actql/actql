@@ -6,6 +6,7 @@ priv struct SDKReadFixture {
   selection : @publication.LocalSDKResultReadSelection
   owner : @publication.PublicationCommitPreparation
   view : @publication.PublicationCommitReadView
+  result : LocalResultPublication
   cleanup : () -> Unit raise
 }
 
@@ -375,6 +376,7 @@ fn sdk_read_fixture() -> SDKReadFixture raise {
     selection: bootstrap.read,
     owner,
     view,
+    result,
     cleanup,
   }
 }

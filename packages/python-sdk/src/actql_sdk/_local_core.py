@@ -6,16 +6,23 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 import hashlib
 import json
+from ctypes import c_void_p, cast
 from importlib import import_module
 import secrets
 import sys
 from threading import RLock
-from typing import Any, Literal
+from typing import TYPE_CHECKING, Any, Literal
+
+if TYPE_CHECKING:
+    from ._local_engine import _InstalledImageInput, _InstalledImageFileInput
+    from ._local_native_image import _NativeImageHolding
+    from ._local_distribution import LocalComponents
 
 from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
+from ._local_native_holding import _NativeHoldingLease
 
-LOCAL_CORE_ABI = 71
+LOCAL_CORE_ABI = 73
 
 
 class LocalCoreError(RuntimeError):
@@ -181,7 +188,7 @@ class _Output:
 
 # This is the private in-process ABI, independent of Client wire versions.
 _BUFFER_SIGNATURES = {
-    'open': ('i64 i64 i32 i32 i32 i32 i32 i64 i64 i64', 'i32'),
+    'open': ('i64 i64 i32 i32 i32 i32 i32 i64 i64 i64 i64', 'i32'),
     'reserve': ('i64 i32 i32 i64', 'i32'),
     'fill': ('i64 i32 i32 i32', 'i32'),
     'seal': ('i64 i32', 'i32'),
@@ -316,6 +323,7 @@ _PUBLICATION_COMMIT_EXPORT_SIGNATURES = {
     'produce_sdk_delivery_lookup': ('i64 i32 i32 i32 i32', 'i32'),
     'retire_sdk_delivery_output': ('i64 i32', 'i32'),
     'prepare_sdk_payload_codecs': ('i64 i32 i32 i32', 'i32'),
+    'sdk_payload_ordinal': ('i64 i32 i32 i32', 'i32'),
     'bind_sdk_payload_record': ('i64 i32 i32 i32 i32 i32', 'i32'),
     'prepare_sdk_payload_input': ('i64 i32 i32 i32', 'i32'),
     'produce_sdk_payload_chunk': ('i64 i32 i32 i32 i32 i32 i32', 'i32'),
@@ -524,6 +532,100 @@ def _signature(value: Any) -> tuple[str, str]:
             ' '.join(str(item) for item in value.results))
 
 
+def _validate_core_module(wasmtime: Any, module: Any) -> None:
+    imports = module.imports
+    if (len(imports) != len(_IMPORT_SIGNATURES) or
+            {(item.module, item.name) for item in imports} !=
+            {('actql_host', name) for name in _IMPORT_SIGNATURES} or
+            any(not isinstance(item.type, wasmtime.FuncType) or
+                _signature(item.type) != _IMPORT_SIGNATURES[item.name]
+                for item in imports)):
+        raise ValueError('Unrecognized Local Core physical imports')
+    expected = {'actql_buffer_' + name: value
+                for name, value in _BUFFER_SIGNATURES.items()}
+    expected.update({'actql_program_' + name: value
+                     for name, value in _PROGRAM_SIGNATURES.items()})
+    expected.update({'actql_run_' + name: value
+                     for name, value in _RUN_SIGNATURES.items()})
+    expected.update({'actql_submission_' + name: value
+                     for name, value in _SUBMISSION_SIGNATURES.items()})
+    expected.update({'actql_bootstrap_' + name: value
+                     for name, value in _BOOTSTRAP_SIGNATURES.items()})
+    expected.update({'actql_source_publication_' + name: value
+                     for name, value in _SOURCE_PUBLICATION_SIGNATURES.items()})
+    expected.update({'actql_run_invocation_' + name: value
+                     for name, value in _RUN_INVOCATION_SIGNATURES.items()})
+    expected.update({'actql_material_' + name: value
+                     for name, value in _MATERIAL_SIGNATURES.items()})
+    expected.update({'actql_publication_' + name: value
+                     for name, value in _PUBLICATION_SIGNATURES.items()})
+    expected.update({'actql_publication_preflight_' + name: value
+                     for name, value in _PUBLICATION_PREFLIGHT_SIGNATURES.items()})
+    expected.update({'actql_publication_commit_export_' + name: value
+                     for name, value in _PUBLICATION_COMMIT_EXPORT_SIGNATURES.items()})
+    expected.update({'actql_payload_request_' + name: value
+                     for name, value in _PAYLOAD_REQUEST_SIGNATURES.items()})
+    expected.update({'actql_payload_chunk_' + name: value
+                     for name, value in _PAYLOAD_CHUNK_SIGNATURES.items()})
+    expected.update({'actql_payload_record_' + name: value
+                     for name, value in _PAYLOAD_RECORD_SIGNATURES.items()})
+    expected.update({'actql_payload_reservation_' + name: value
+                     for name, value in _PAYLOAD_RESERVATION_SIGNATURES.items()})
+    expected.update({'actql_payload_writing_' + name: value
+                     for name, value in _PAYLOAD_WRITING_SIGNATURES.items()})
+    expected.update({'actql_payload_allocation_' + name: value
+                     for name, value in _PAYLOAD_ALLOCATION_SIGNATURES.items()})
+    expected.update({'actql_payload_names_' + name: value
+                     for name, value in _PAYLOAD_NAMES_SIGNATURES.items()})
+    expected.update({'actql_payload_binding_' + name: value
+                     for name, value in _PAYLOAD_BINDING_SIGNATURES.items()})
+    expected.update({'actql_result_binding_' + name: value
+                     for name, value in _RESULT_BINDING_SIGNATURES.items()})
+    expected.update({'actql_source_' + name: value
+                     for name, value in _SOURCE_SIGNATURES.items()})
+    expected.update({'actql_workspace_' + name: value
+                     for name, value in _WORKSPACE_SIGNATURES.items()})
+    expected.update({'actql_compute_' + name: value
+                     for name, value in _COMPUTE_SIGNATURES.items()})
+    expected.update({'actql_task_' + name: value
+                     for name, value in _TASK_SIGNATURES.items()})
+    expected.update({'actql_result_' + name: value
+                     for name, value in _RESULT_SIGNATURES.items()})
+    expected.update({'actql_publisher_' + name: value
+                     for name, value in _PUBLISHER_SIGNATURES.items()})
+    expected.update({'actql_journal_' + name: value
+                     for name, value in _JOURNAL_SIGNATURES.items()})
+    expected.update({'actql_current_' + name: value
+                     for name, value in _CURRENT_SIGNATURES.items()})
+    expected.update({'actql_original_' + name: value
+                     for name, value in _ORIGINAL_SIGNATURES.items()})
+    expected['actql_host_abi_version'] = ('', 'i32')
+    exports = {item.name: item.type for item in module.exports}
+    if (any(name not in exports or
+            not isinstance(exports[name], wasmtime.FuncType) or
+            _signature(exports[name]) != signature
+            for name, signature in expected.items()) or
+            any(name.startswith('actql_') and name not in expected
+                for name in exports)):
+        raise ValueError('Unrecognized Local Core exports')
+    memory = exports.get('memory')
+    if (not isinstance(memory, wasmtime.MemoryType) or memory.is_64 or
+            memory.is_shared or memory.limits.max != 256 or
+            memory.limits.min > 256):
+        raise ValueError('Unbounded Local Core linear memory')
+
+
+def _valid_core_limits(transfer_capacity: int, slots: int, fuel: int,
+                       resources: LocalCoreResources, host_capacity_bytes: int = 0) -> bool:
+    return (type(transfer_capacity) is int and 0 < transfer_capacity <= 2**63 - 1
+            and type(slots) is int and 1 <= slots <= 1024
+            and type(fuel) is int and 0 < fuel <= 2**64 - 1
+            and type(resources) is LocalCoreResources and resources.valid()
+            and type(host_capacity_bytes) is int and 0 <= host_capacity_bytes <= 2**63 - 1
+            and transfer_capacity <= resources.execution_bytes - _MEMORY_LIMIT - host_capacity_bytes
+            and (host_capacity_bytes == 0 or resources.attempts >= 3))
+
+
 class LocalCore:
     """Serialize calls into one instance and preserve its physical custody.
 
@@ -532,21 +634,54 @@ class LocalCore:
     allowance and its other holdings in the existing shared capacity Owner.
     """
 
-    def __init__(self, module: bytes, *, digest: str, transfer_capacity: int, resources: LocalCoreResources,
-                 slots: int = 32, fuel: int = 100_000_000) -> None:
-        if (type(module) is not bytes or hashlib.sha256(module).hexdigest() != digest
-                or type(transfer_capacity) is not int
-                or not 0 < transfer_capacity <= 2**63 - 1
-                or type(slots) is not int or not 1 <= slots <= 1024
-                or type(fuel) is not int or not 0 < fuel <= 2**64 - 1
-                or type(resources) is not LocalCoreResources or not resources.valid()
-                or transfer_capacity > resources.execution_bytes - _MEMORY_LIMIT):
+    @classmethod
+    def _from_installed_image(cls, components: LocalComponents, *, resources: LocalCoreResources,
+                              transfer_capacity: int, slots: int = 64,
+                              _host_capacity_bytes: int = 0,
+                              _physical_holding: _NativeHoldingLease | None = None) -> LocalCore:
+        if not _valid_core_limits(transfer_capacity, slots, 100_000_000, resources,
+                                  _host_capacity_bytes):
             raise ValueError('Invalid installed Local Core artifact or capacity')
-        # Remote-only imports never import or initialize the optional engine.
-        try:
-            wasmtime = import_module('wasmtime')
-        except ImportError as error:
-            raise RuntimeError('Python Local requires the optional Wasmtime runtime') from error
+        from ._local_engine import _checked_installed_image, _checked_installed_image_file
+        image = (_checked_installed_image(components) if _physical_holding is None
+                 else _checked_installed_image_file(components))
+        return cls(None, digest=components.module_sha256, transfer_capacity=transfer_capacity,
+                   resources=resources, slots=slots, _compiled_image=image,
+                   _host_capacity_bytes=_host_capacity_bytes, _physical_holding=_physical_holding)
+
+    def __init__(self, module: bytes | None, *, digest: str, transfer_capacity: int, resources: LocalCoreResources,
+                 slots: int = 32, fuel: int = 100_000_000,
+                 _compiled_image: _InstalledImageInput | _InstalledImageFileInput | None = None,
+                 _host_capacity_bytes: int = 0,
+                 _physical_holding: _NativeHoldingLease | None = None) -> None:
+        from ._local_engine import _InstalledImageInput, _InstalledImageFileInput
+        from ._local_native_image import _NativeImageHolding
+        from ._local_image_recipe import _SelectedImageRecipe
+        if type(_compiled_image) is _InstalledImageFileInput:
+            original_valid = (module is None and type(_compiled_image.recipe) is _SelectedImageRecipe
+                and _compiled_image.recipe.module_sha256 == digest
+                and type(_compiled_image.length) is int
+                and 0 < _compiled_image.length <= _compiled_image.recipe.image_bytes_limit
+                and type(_compiled_image.sha256) is str and len(_compiled_image.sha256) == 64
+                and all(char in '0123456789abcdef' for char in _compiled_image.sha256)
+                and type(_physical_holding) is _NativeHoldingLease)
+        else:
+            original_valid = (type(module) is bytes and hashlib.sha256(module).hexdigest() == digest
+                if _compiled_image is None else type(_compiled_image) is _InstalledImageInput
+                    and module is None and type(_compiled_image.recipe) is _SelectedImageRecipe
+                    and _compiled_image.recipe.module_sha256 == digest
+                    and type(_compiled_image.encoded) is bytes
+                    and hashlib.sha256(_compiled_image.encoded).hexdigest() == _compiled_image.sha256)
+        if not original_valid or not _valid_core_limits(transfer_capacity, slots, fuel, resources,
+                                                       _host_capacity_bytes):
+            raise ValueError('Invalid installed Local Core artifact or capacity')
+        if _compiled_image is not None:
+            _compiled_image.recipe.validate()
+            if fuel != 100_000_000:
+                raise ValueError('Installed Local image requires the original instruction fuel')
+        if _physical_holding is not None and (type(_physical_holding) is not _NativeHoldingLease
+                                               or _compiled_image is None):
+            raise ValueError('Invalid original native holding')
         self._lock = RLock()
         self._identity = object()
         self._nonce = secrets.randbelow(2**63 - 1) + 1
@@ -564,130 +699,110 @@ class LocalCore:
         self._closing = False
         self._invoking = False
         self._engine: Any = None
+        self._engine_configuration: Any = None
+        self._pool_configuration: Any = None
+        self._pool_ffi: Any = None
         self._store: Any = None
         self._module: Any = None
         self._linker: Any = None
+        self._physical_vm_type: Any = None
+        self._physical_vm_span: tuple[int, int] | None = None
+        if _physical_holding is not None:
+            _physical_holding._bind_core(self._identity)
+        self._physical_holding = _physical_holding
+        self._physical_image: _NativeImageHolding | None = None
         try:
-            config = wasmtime.Config()
-            config.consume_fuel = True
-            self._engine = wasmtime.Engine(config)
-            self._store = wasmtime.Store(self._engine)
-            self._store.set_fuel(fuel)
-            self._store.set_limits(memory_size=_MEMORY_LIMIT, memories=1)
-            self._module = wasmtime.Module(self._engine, module)
-            imports = self._module.imports
-            if (len(imports) != len(_IMPORT_SIGNATURES) or
-                    {(item.module, item.name) for item in imports} !=
-                    {('actql_host', name) for name in _IMPORT_SIGNATURES} or
-                    any(not isinstance(item.type, wasmtime.FuncType) or
-                        _signature(item.type) != _IMPORT_SIGNATURES[item.name]
-                        for item in imports)):
-                raise ValueError('Unrecognized Local Core physical imports')
-            expected = {'actql_buffer_' + name: value
-                        for name, value in _BUFFER_SIGNATURES.items()}
-            expected.update({'actql_program_' + name: value
-                             for name, value in _PROGRAM_SIGNATURES.items()})
-            expected.update({'actql_run_' + name: value
-                             for name, value in _RUN_SIGNATURES.items()})
-            expected.update({'actql_submission_' + name: value
-                             for name, value in _SUBMISSION_SIGNATURES.items()})
-            expected.update({'actql_bootstrap_' + name: value
-                             for name, value in _BOOTSTRAP_SIGNATURES.items()})
-            expected.update({'actql_source_publication_' + name: value
-                             for name, value in _SOURCE_PUBLICATION_SIGNATURES.items()})
-            expected.update({'actql_run_invocation_' + name: value
-                             for name, value in _RUN_INVOCATION_SIGNATURES.items()})
-            expected.update({'actql_material_' + name: value
-                             for name, value in _MATERIAL_SIGNATURES.items()})
-            expected.update({'actql_publication_' + name: value
-                             for name, value in _PUBLICATION_SIGNATURES.items()})
-            expected.update({'actql_publication_preflight_' + name: value
-                             for name, value in _PUBLICATION_PREFLIGHT_SIGNATURES.items()})
-            expected.update({'actql_publication_commit_export_' + name: value
-                             for name, value in _PUBLICATION_COMMIT_EXPORT_SIGNATURES.items()})
-            expected.update({'actql_payload_request_' + name: value
-                             for name, value in _PAYLOAD_REQUEST_SIGNATURES.items()})
-            expected.update({'actql_payload_chunk_' + name: value
-                             for name, value in _PAYLOAD_CHUNK_SIGNATURES.items()})
-            expected.update({'actql_payload_record_' + name: value
-                             for name, value in _PAYLOAD_RECORD_SIGNATURES.items()})
-            expected.update({'actql_payload_reservation_' + name: value
-                             for name, value in _PAYLOAD_RESERVATION_SIGNATURES.items()})
-            expected.update({'actql_payload_writing_' + name: value
-                             for name, value in _PAYLOAD_WRITING_SIGNATURES.items()})
-            expected.update({'actql_payload_allocation_' + name: value
-                             for name, value in _PAYLOAD_ALLOCATION_SIGNATURES.items()})
-            expected.update({'actql_payload_names_' + name: value
-                             for name, value in _PAYLOAD_NAMES_SIGNATURES.items()})
-            expected.update({'actql_payload_binding_' + name: value
-                             for name, value in _PAYLOAD_BINDING_SIGNATURES.items()})
-            expected.update({'actql_result_binding_' + name: value
-                             for name, value in _RESULT_BINDING_SIGNATURES.items()})
-            expected.update({'actql_source_' + name: value
-                             for name, value in _SOURCE_SIGNATURES.items()})
-            expected.update({'actql_workspace_' + name: value
-                             for name, value in _WORKSPACE_SIGNATURES.items()})
-            expected.update({'actql_compute_' + name: value
-                             for name, value in _COMPUTE_SIGNATURES.items()})
-            expected.update({'actql_task_' + name: value
-                             for name, value in _TASK_SIGNATURES.items()})
-            expected.update({'actql_result_' + name: value
-                             for name, value in _RESULT_SIGNATURES.items()})
-            expected.update({'actql_publisher_' + name: value
-                             for name, value in _PUBLISHER_SIGNATURES.items()})
-            expected.update({'actql_journal_' + name: value
-                             for name, value in _JOURNAL_SIGNATURES.items()})
-            expected.update({'actql_current_' + name: value
-                             for name, value in _CURRENT_SIGNATURES.items()})
-            expected.update({'actql_original_' + name: value
-                             for name, value in _ORIGINAL_SIGNATURES.items()})
-            expected['actql_host_abi_version'] = ('', 'i32')
-            exports = {item.name: item.type for item in self._module.exports}
-            if (any(name not in exports or
-                    not isinstance(exports[name], wasmtime.FuncType) or
-                    _signature(exports[name]) != signature
-                    for name, signature in expected.items()) or
-                    any(name.startswith('actql_') and name not in expected
-                        for name in exports)):
-                raise ValueError('Unrecognized Local Core exports')
-            memory = exports.get('memory')
-            if (not isinstance(memory, wasmtime.MemoryType) or memory.is_64 or
-                    memory.is_shared or memory.limits.max != 256 or
-                    memory.limits.min > 256):
-                raise ValueError('Unbounded Local Core linear memory')
-            self._linker = wasmtime.Linker(self._engine)
-            for name, callback in [('input_byte', self._read),
-                                   ('input_cleanup', self._cleanup),
-                                   ('reader_stop', self._stopped),
-                                   ('native_settled', self._native_settled),
-                                   ('native_stopped', self._native_stopped),
-                                   ('native_cleaned', self._native_cleaned),
-                                   ('publisher_current', self._publisher_current),
-                                   ('publisher_begin', self._publisher_begin),
-                                   ('publisher_byte', self._publisher_byte),
-                                   ('publisher_finish', self._publisher_finish),
-                                   ('journal_current', self._journal_current),
-                                   ('journal_begin', self._journal_begin),
-                                   ('journal_query_byte', self._journal_query_byte),
-                                   ('journal_query', self._journal_query),
-                                   ('journal_length', self._journal_length),
-                                   ('journal_byte', self._journal_byte),
-                                   ('journal_revision', self._journal_revision),
-                                   ('journal_release', self._journal_release)]:
-                params = [wasmtime.ValType.i32()
-                          for _ in _IMPORT_SIGNATURES[name][0].split()]
-                self._linker.define_func('actql_host', name,
-                    wasmtime.FuncType(params, [wasmtime.ValType.i64() if
-                        _IMPORT_SIGNATURES[name][1] == 'i64' else wasmtime.ValType.i32()]), callback)
-            instance = self._linker.instantiate(self._store, self._module)
-            self._exports = instance.exports(self._store)
-            if self._exports['actql_host_abi_version'](self._store) != LOCAL_CORE_ABI:
-                raise ValueError('Unsupported Local Core ABI version')
-            self._check('open', self._call('buffer', 'open', transfer_capacity,
-                                        slots, 1_048_576, resources.planning_work,
-                                        resources.attempts, resources.holdings,
-                                        resources.transfer_bytes, resources.retained_bytes,
-                                        resources.execution_bytes))
+            if self._physical_holding is not None:
+                self._physical_holding._transfer_to_core(self._identity)
+            with self._native_scope():
+                # Keep an already supplied holding through optional import failure.
+                # Remote-only imports never initialize the optional engine.
+                runtime_name = ('actql_local_runtime._wasmtime'
+                                if self._physical_holding is not None else 'wasmtime')
+                try:
+                    wasmtime = import_module(runtime_name)
+                except ImportError as error:
+                    raise RuntimeError('Python Local requires the optional Wasmtime runtime') from error
+                if _compiled_image is not None:
+                    _compiled_image.recipe.validate()
+                    from ._local_engine import _configure_selected_engine, _verify_loaded_runtime
+                    ffi = import_module(runtime_name + '._ffi')
+                    _verify_loaded_runtime(_compiled_image, ffi)
+                    if self._physical_holding is not None:
+                        self._physical_holding._verify_library(ffi.dll)
+                self._engine_configuration = wasmtime.Config()
+                if _compiled_image is None:
+                    # Original raw-Wasm physical diagnostics remain separately
+                    # qualified. The installed product never selects this branch.
+                    self._engine_configuration.consume_fuel = True
+                else:
+                    self._pool_ffi = ffi
+                    self._pool_configuration = ffi.wasmtime_pooling_allocation_config_new()
+                    if not self._pool_configuration:
+                        raise RuntimeError('Selected Local pooling configuration is unavailable')
+                    _configure_selected_engine(self._engine_configuration, self._pool_configuration,
+                                               ffi, wasmtime, _compiled_image.recipe)
+                    # Pinned C API clones the pool settings; retire the temporary
+                    # configuration only after that copy succeeds.
+                    ffi.wasmtime_pooling_allocation_config_delete(self._pool_configuration)
+                    self._pool_configuration = None
+                self._engine = wasmtime.Engine(self._engine_configuration)
+                self._engine_configuration = None
+                self._store = wasmtime.Store(self._engine)
+                self._store.set_fuel(fuel)
+                self._store.set_limits(memory_size=_MEMORY_LIMIT, memories=1)
+                if type(_compiled_image) is _InstalledImageFileInput:
+                    assert self._physical_holding is not None
+                    self._physical_image = _NativeImageHolding(self._physical_holding, _compiled_image)
+                    self._physical_image.capture()
+                    # Retain the original high-level module before native output
+                    # can be produced, including scope-exit/exception failure.
+                    self._module = wasmtime.Module.__new__(wasmtime.Module)
+                    self._physical_image.deserialize_into(self._engine, self._module, wasmtime, ffi)
+                    self._physical_image.close()
+                    self._physical_image = None
+                elif _compiled_image is None:
+                    self._module = wasmtime.Module(self._engine, module)
+                else:
+                    assert type(_compiled_image) is _InstalledImageInput
+                    self._module = wasmtime.Module.deserialize(self._engine, _compiled_image.encoded)
+                _validate_core_module(wasmtime, self._module)
+                self._linker = wasmtime.Linker(self._engine)
+                for name, callback in [('input_byte', self._read),
+                                       ('input_cleanup', self._cleanup),
+                                       ('reader_stop', self._stopped),
+                                       ('native_settled', self._native_settled),
+                                       ('native_stopped', self._native_stopped),
+                                       ('native_cleaned', self._native_cleaned),
+                                       ('publisher_current', self._publisher_current),
+                                       ('publisher_begin', self._publisher_begin),
+                                       ('publisher_byte', self._publisher_byte),
+                                       ('publisher_finish', self._publisher_finish),
+                                       ('journal_current', self._journal_current),
+                                       ('journal_begin', self._journal_begin),
+                                       ('journal_query_byte', self._journal_query_byte),
+                                       ('journal_query', self._journal_query),
+                                       ('journal_length', self._journal_length),
+                                       ('journal_byte', self._journal_byte),
+                                       ('journal_revision', self._journal_revision),
+                                       ('journal_release', self._journal_release)]:
+                    params = [wasmtime.ValType.i32()
+                              for _ in _IMPORT_SIGNATURES[name][0].split()]
+                    self._linker.define_func('actql_host', name,
+                        wasmtime.FuncType(params, [wasmtime.ValType.i64() if
+                            _IMPORT_SIGNATURES[name][1] == 'i64' else wasmtime.ValType.i32()]), callback)
+                instance = self._linker.instantiate(self._store, self._module)
+                self._exports = instance.exports(self._store)
+                if self._exports['actql_host_abi_version'](self._store) != LOCAL_CORE_ABI:
+                    raise ValueError('Unsupported Local Core ABI version')
+                if self._physical_holding is not None:
+                    self._observe_original_vm_span(wasmtime)
+                    self._validate_original_native_projection(_host_capacity_bytes)
+                self._check('open', self._call('buffer', 'open', transfer_capacity,
+                                            slots, 1_048_576, resources.planning_work,
+                                            resources.attempts, resources.holdings,
+                                            resources.transfer_bytes, resources.retained_bytes,
+                                            resources.execution_bytes, _host_capacity_bytes))
         except BaseException as error:
             self._retired = True
             self._closing = True
@@ -697,6 +812,61 @@ class LocalCore:
                 raise LocalCoreInitializationError(self) from error
             raise
 
+    def _observe_original_vm_span(self, wasmtime: Any) -> None:
+        """Observe only this instance/Store's original reserved VM backing span.
+
+        This establishes physical membership, not capacity funding or permission.
+        Do not accept an address, memory, Store or size from a public caller.
+        """
+        holding = self._physical_holding
+        if (holding is None or self._store is None or self._physical_vm_span is not None
+                or self._closed or self._retired or self._closing):
+            raise ValueError('Original native VM observation is unavailable')
+        memory = self._exports.get('memory')
+        if not isinstance(memory, wasmtime.Memory):
+            raise ValueError('Original Local instance memory is unavailable')
+        self._physical_vm_type = memory.type(self._store)
+        limits = self._physical_vm_type.limits
+        if (self._physical_vm_type.is_64 or self._physical_vm_type.is_shared
+                or type(limits.max) is not int or limits.max != _MEMORY_LIMIT // 65536
+                or type(limits.min) is not int or not 0 <= limits.min <= limits.max):
+            raise ValueError('Original Local VM reservation differs from its selected contract')
+        address = cast(memory.data_ptr(self._store), c_void_p)
+        holding._require_live_span(address, _MEMORY_LIMIT)
+        if address.value is None:
+            raise ValueError('Original Local VM reservation has no physical address')
+        self._physical_vm_span = (address.value, _MEMORY_LIMIT)
+        self._physical_vm_type.close()
+        self._physical_vm_type = None
+
+    def _validate_original_native_projection(self, host_capacity_bytes: int) -> None:
+        """Refuse undercounting the original mapping before opening its Root.
+
+        VM membership is a prerequisite for subtracting its existing reserved
+        allowance. Child retirement does not release the outer mapping. This
+        necessary lower bound does not supply outside Python/SQLite funding or
+        adopt a numerical Host profile.
+        """
+        holding = self._physical_holding
+        if (holding is None or self._store is None or self._physical_vm_span is None
+                or self._physical_vm_span[1] != _MEMORY_LIMIT
+                or self._closed or self._retired or self._closing
+                or type(host_capacity_bytes) is not int
+                or not 0 < host_capacity_bytes <= 2**63 - 1):
+            raise ValueError('Original native capacity projection is unavailable')
+        capacity = holding._capacity_bytes()
+        if capacity < _MEMORY_LIMIT or capacity - _MEMORY_LIMIT > host_capacity_bytes:
+            raise ValueError('Original native holding exceeds its selected Host capacity')
+
+    @contextmanager
+    def _native_scope(self) -> Iterator[None]:
+        holding: _NativeHoldingLease | None = getattr(self, '_physical_holding', None)
+        if holding is None:
+            yield
+        else:
+            with holding._scope():
+                yield
+
     def _call(self, family: str, name: str, *arguments: int) -> int:
         if self._closed or self._retired:
             raise RuntimeError('Local Core is closed')
@@ -704,8 +874,9 @@ class LocalCore:
             raise RuntimeError('Local Core callbacks cannot reenter the instance')
         self._invoking = True
         try:
-            result = self._exports[f'actql_{family}_{name}'](
-                self._store, self._nonce, *arguments)
+            with self._native_scope():
+                result = self._exports[f'actql_{family}_{name}'](
+                    self._store, self._nonce, *arguments)
         except BaseException:
             # The Core may already own the original invocation/ticket. Block
             # new work while retaining this instance for explicit retirement.
@@ -2112,6 +2283,31 @@ class LocalCore:
                 raise RuntimeError('Invalid Local Core codec status')
             if code != 0:
                 raise LocalCoreError('prepare_sdk_payload_codecs', code)
+
+    def publication_sdk_payload_ordinal(self, first: _Output,
+                                        current_configuration: int, *,
+                                        field: Literal['result', 'binding']) -> int:
+        """Read a Core routing coordinate, never a read grant or Store ACK."""
+        with self._lock:
+            self._owned_output(first, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            if (type(current_configuration) is not int
+                    or not 0 < current_configuration < 2**31
+                    or type(field) is not str or field not in ('result', 'binding')):
+                raise ValueError('Invalid original SDK routing selector')
+            ordinal = self._call('publication_commit_export', 'sdk_payload_ordinal',
+                first.handle, current_configuration, 0 if field == 'result' else 1)
+            if type(ordinal) is not int:
+                raise RuntimeError('Invalid Local Core payload ordinal')
+            if ordinal < 0:
+                raise LocalCoreError('sdk_payload_ordinal', ordinal)
+            if ordinal >= 8:
+                raise RuntimeError('Invalid Local Core payload ordinal')
+            self._owned_output(first, 'publication_commit_export')
+            if self._closing:
+                raise RuntimeError('Local Core is closing')
+            return ordinal
 
     def bind_publication_sdk_payload_record(self, first: _Output, record: _Output,
                                            current_configuration: int,
@@ -3531,12 +3727,42 @@ class LocalCore:
             return True
 
     def _dispose(self) -> None:
-        for name in ('_store', '_linker', '_module', '_engine'):
-            value = getattr(self, name)
-            if value is not None:
-                value.close()
-                setattr(self, name, None)
+        # Pinned Wasmtime Store owns an Engine clone and the live instance.
+        # Keep the Store, and therefore the original Wasm Root, until every
+        # other native handle has retired. A failed child/Engine cleanup must
+        # not destroy that Root or drop its pending capacity first.
+        image: _NativeImageHolding | None = getattr(self, '_physical_image', None)
+        if image is not None:
+            image.close()
+            self._physical_image = None
+        if any(getattr(self, name, None) is not None for name in
+               ('_physical_vm_type', '_linker', '_module', '_engine', '_engine_configuration',
+                '_pool_configuration', '_store')):
+            with self._native_scope():
+                for name in ('_physical_vm_type', '_linker', '_module', '_engine', '_engine_configuration'):
+                    value = getattr(self, name, None)
+                    if value is not None:
+                        value.close()
+                        setattr(self, name, None)
+                if getattr(self, '_pool_configuration', None) is not None:
+                    self._pool_ffi.wasmtime_pooling_allocation_config_delete(self._pool_configuration)
+                    self._pool_configuration = None
+                if getattr(self, '_store', None) is not None:
+                    self._store.close()
+                    self._store = None
+                    # This VM reservation no longer exists after Store success,
+                    # even when the original outer holding still needs unmap.
+                    self._physical_vm_span = None
+        holding: _NativeHoldingLease | None = getattr(self, '_physical_holding', None)
+        if holding is not None:
+            # Store success retires the executable Wasm Root. A final native
+            # unmap failure retains only this same Core identity and original
+            # holding for physical retirement retry; never reopen that Root or
+            # repeat already retired Store/native handles.
+            holding.close()
+            self._physical_holding = None
         self._closed = True
+        self._physical_vm_span = None
         self._inputs.clear()
         self._loans.clear()
         self._released.clear()
