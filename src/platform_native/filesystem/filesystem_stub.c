@@ -50,6 +50,9 @@ typedef struct {
   int fd;
   char *error;
   bool ready;
+  // 0: not attempted, 1: retired, -1: consumed/unconfirmed; never reclose.
+  int32_t close_result;
+  char *close_error;
 } actql_native_filesystem_lock;
 
 typedef struct {
@@ -284,7 +287,11 @@ static bool actql_census_frame_valid(
     const char *name = (const char *)(frame + offset + 1);
     const unsigned char *end = memchr(frame + offset + 1, 0,
       (size_t)(length - offset - 1));
-    if (end == NULL || !actql_valid_name(name, (size_t)(end - (frame + offset + 1))) ||
+    if (end == NULL) return false;
+    size_t name_length = (size_t)(end - (frame + offset + 1));
+    bool selected_scope_directory = frame[offset] == 'd' &&
+      name_length == 6 && memcmp(name, "@actql", 6) == 0;
+    if ((!actql_valid_name(name, name_length) && !selected_scope_directory) ||
         (previous != NULL && strcmp(previous, name) >= 0)) return false;
     previous = name;
     offset = (int32_t)(end - frame) + 1;
@@ -580,7 +587,9 @@ static void actql_native_filesystem_lock_finalize(void *value) {
     lock->fd = -1;
   }
   free(lock->error);
+  free(lock->close_error);
   lock->error = NULL;
+  lock->close_error = NULL;
   if (lock->root != NULL) {
     moonbit_decref(lock->root);
     lock->root = NULL;
@@ -661,6 +670,9 @@ void *actql_native_filesystem_open_root_with_diagnostics(
   );
   memset(root, 0, sizeof(*root));
   root->fd = -1;
+  // This entrance has acquired no descriptor yet. Failed open/allocation
+  // retires no child and must not fabricate a close attempt.
+  root->close_result = 1;
   root->diagnostic_ceiling = diagnostic_ceiling;
   if (diagnostic_ceiling < 0) return root;
   char *path_text = actql_copy_text(path, length);
@@ -670,6 +682,7 @@ void *actql_native_filesystem_open_root_with_diagnostics(
   }
   root->fd = open(path_text, O_RDONLY | O_DIRECTORY | O_CLOEXEC);
   int open_error = errno;
+  if (root->fd >= 0) root->close_result = 0;
   if (length > 1 && length <= 4096 && path_text[0] == '/' &&
       (int32_t)strlen(path_text) == length) {
     root->custody_path = strdup(path_text);
@@ -1453,6 +1466,9 @@ moonbit_bytes_t actql_native_filesystem_root_error(
     root == NULL ? 0 : root->diagnostic_ceiling);
 }
 
+// Same opaque Lock close path for successful and rejected acquisition.
+int32_t actql_native_filesystem_lock_close_checked(actql_native_filesystem_lock *lock);
+
 void *actql_native_filesystem_acquire_lock(
   actql_native_filesystem_root *root,
   moonbit_bytes_t name,
@@ -1468,11 +1484,11 @@ void *actql_native_filesystem_acquire_lock(
   if (root != NULL) moonbit_incref(root);
   char *name_text = actql_copy_text(name, length);
   if (root == NULL || root->fd < 0) {
-    actql_replace_error(&lock->error, "Store root is unavailable");
+    actql_replace_bounded_error(&lock->error, root == NULL ? 0 : root->diagnostic_ceiling, "Store root is unavailable");
   } else if (name_text == NULL) {
-    actql_replace_error(&lock->error, "lock name allocation failed");
+    actql_replace_bounded_error(&lock->error, root == NULL ? 0 : root->diagnostic_ceiling, "lock name allocation failed");
   } else if (!actql_valid_name(name_text, (size_t)length)) {
-    actql_replace_error(&lock->error, "invalid lock name");
+    actql_replace_bounded_error(&lock->error, root == NULL ? 0 : root->diagnostic_ceiling, "invalid lock name");
   } else {
     lock->fd = openat(
       root->fd,
@@ -1481,28 +1497,27 @@ void *actql_native_filesystem_acquire_lock(
       0600
     );
     if (lock->fd < 0) {
-      actql_replace_errno_error(&lock->error, "open Store lock", errno);
+      actql_replace_bounded_errno_error(&lock->error, root->diagnostic_ceiling, "open Store lock", errno);
     } else {
       struct stat status;
       int inspect_result = fstat(lock->fd, &status);
       if (inspect_result != 0 || !S_ISREG(status.st_mode)) {
         int inspect_error = inspect_result == 0 ? 0 : errno;
-        close(lock->fd);
-        lock->fd = -1;
+        actql_native_filesystem_lock_close_checked(lock);
         if (inspect_error == 0) {
-          actql_replace_error(&lock->error, "Store lock is not regular");
+          actql_replace_bounded_error(&lock->error, root == NULL ? 0 : root->diagnostic_ceiling, "Store lock is not regular");
         } else {
-          actql_replace_errno_error(
+          actql_replace_bounded_errno_error(
             &lock->error,
+            root->diagnostic_ceiling,
             "inspect Store lock",
             inspect_error
           );
         }
       } else if (flock(lock->fd, LOCK_EX | LOCK_NB) != 0) {
         int lock_error = errno;
-        close(lock->fd);
-        lock->fd = -1;
-        actql_replace_errno_error(&lock->error, "acquire Store lock", lock_error);
+        actql_native_filesystem_lock_close_checked(lock);
+        actql_replace_bounded_errno_error(&lock->error, root->diagnostic_ceiling, "acquire Store lock", lock_error);
       } else {
         lock->ready = true;
       }
@@ -1521,18 +1536,63 @@ int32_t actql_native_filesystem_lock_ready(
 moonbit_bytes_t actql_native_filesystem_lock_error(
   actql_native_filesystem_lock *lock
 ) {
-  return actql_copy_bytes(lock == NULL ? "invalid Store lock" : lock->error);
+  return actql_copy_diagnostic(lock == NULL ? "invalid Store lock" : lock->error,
+    lock == NULL || lock->root == NULL ? 0 : lock->root->diagnostic_ceiling);
 }
 
-int32_t actql_native_filesystem_lock_close(
+int32_t actql_native_filesystem_lock_close_checked(
   actql_native_filesystem_lock *lock
 ) {
-  if (lock == NULL || lock->fd < 0) return 0;
+  if (lock == NULL) return 0;
+  if (lock->close_result != 0) return lock->close_result == 1;
+  if (lock->fd < 0) {
+    // No descriptor was acquired, or a constructor already observed its
+    // retirement through this same function. This says nothing about Root.
+    lock->close_result = 1;
+    return 1;
+  }
   int descriptor = lock->fd;
   lock->fd = -1;
   lock->ready = false;
+  lock->close_result = -1;
   flock(descriptor, LOCK_UN);
-  return close(descriptor) == 0;
+  if (close(descriptor) != 0) {
+    actql_replace_bounded_errno_error(&lock->close_error,
+      lock->root == NULL ? 0 : lock->root->diagnostic_ceiling,
+      "close Store lock", errno);
+    return 0;
+  }
+  lock->close_result = 1;
+  return 1;
+}
+
+moonbit_bytes_t actql_native_filesystem_lock_cleanup_error(
+  actql_native_filesystem_lock *lock
+) {
+  return actql_copy_diagnostic(lock == NULL ? "invalid Store lock" : lock->close_error,
+    lock == NULL || lock->root == NULL ? 0 : lock->root->diagnostic_ceiling);
+}
+
+// Retain the original Bool entrance's first-close/second-close behavior.
+int32_t actql_native_filesystem_lock_close(
+  actql_native_filesystem_lock *lock
+) {
+  if (lock == NULL || lock->fd < 0 || lock->close_result != 0) return 0;
+  return actql_native_filesystem_lock_close_checked(lock);
+}
+
+// Whitebox loss of the retirement observation, not an injected kernel errno.
+// The real descriptor is closed once; retry must never touch a reused FD.
+int32_t actql_native_filesystem_test_lock_consumed_unknown(
+  actql_native_filesystem_lock *lock
+) {
+  if (lock == NULL || lock->fd < 0 ||
+      !actql_native_filesystem_lock_close_checked(lock)) return 0;
+  lock->close_result = -1;
+  actql_replace_bounded_error(&lock->close_error,
+    lock->root == NULL ? 0 : lock->root->diagnostic_ceiling,
+    "lock retirement observation unavailable");
+  return 1;
 }
 
 void *actql_native_filesystem_create_writer(

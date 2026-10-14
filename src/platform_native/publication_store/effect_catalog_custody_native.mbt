@@ -25,6 +25,9 @@ pub fn Store::prepare_effect_catalog_custody(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   if !@catalog.catalog_observation_matches_binding(catalog, binding) {
     return Err(StateCollision)
   }
@@ -96,6 +99,9 @@ pub fn Store::restore_effect_catalog_custody(
 ) -> Result[EffectCatalogCustody, NativePublicationStoreIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let holding = match
     effect_catalog_holding(

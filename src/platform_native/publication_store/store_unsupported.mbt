@@ -1,4 +1,23 @@
 ///|
+// No failure value is acquired on unsupported targets. Keep the exported
+// nominal type opaque without fabricating Native Root/Lock/Database custody.
+type NativePublicationStoreOpenFailure
+
+///|
+pub fn NativePublicationStoreOpenFailure::issue(
+  _self : NativePublicationStoreOpenFailure,
+) -> NativePublicationStoreIssue {
+  UnsupportedTarget
+}
+
+///|
+pub fn NativePublicationStoreOpenFailure::retry_cleanup(
+  _self : NativePublicationStoreOpenFailure,
+) -> Result[Unit, NativePublicationStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 type Store
 
 ///|
@@ -41,6 +60,38 @@ pub fn open_existing_store(
   _max_record_bytes : Int64,
 ) -> Result[Store, NativePublicationStoreIssue] {
   Err(UnsupportedTarget)
+}
+
+///|
+pub fn open_store_with_custody(
+  _library : @sqlite.Library,
+  _root_path : String,
+  _authority_cid : String,
+  _capacity_bytes : Int64,
+  _max_objects : Int64,
+  _max_record_bytes : Int64,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Store, NativePublicationStoreOpenError] {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(RefusedBeforeAcquisition(Filesystem(@filesystem.InvalidLimit)))
+  }
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
+pub fn open_existing_store_with_custody(
+  _library : @sqlite.Library,
+  _root_path : String,
+  _authority_cid : String,
+  _capacity_bytes : Int64,
+  _max_objects : Int64,
+  _max_record_bytes : Int64,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Store, NativePublicationStoreOpenError] {
+  if diagnostic_ceiling is Some(value) && value <= 0 {
+    return Err(RefusedBeforeAcquisition(Filesystem(@filesystem.InvalidLimit)))
+  }
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
 }
 
 ///|

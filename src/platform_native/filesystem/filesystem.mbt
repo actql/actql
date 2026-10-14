@@ -90,3 +90,61 @@ fn reader_open_failure(
 ) -> NativeReaderOpenFailure {
   { original_issue: issue, reader: None, }
 }
+
+///|
+/// The same rejected directory object, distinct from read authority or an
+/// admitted Root. Successful cleanup retires only its original descriptor.
+struct NativeRootOpenFailure {
+  original_issue : NativeFilesystemIssue
+  mut root : Root?
+}
+
+///|
+pub fn NativeRootOpenFailure::issue(
+  self : NativeRootOpenFailure,
+) -> NativeFilesystemIssue {
+  self.original_issue
+}
+
+///|
+pub fn NativeRootOpenFailure::retry_cleanup(
+  self : NativeRootOpenFailure,
+) -> Result[Unit, NativeFilesystemIssue] {
+  guard self.root is Some(original) else { return Ok(()) }
+  match original.close() {
+    Ok(_) => {
+      self.root = None
+      Ok(())
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// A rejected Lock retains the actual constructor object and primary refusal.
+/// Unknown close stays with this same object; it never retries a raw FD.
+struct NativeLockOpenFailure {
+  original_issue : NativeFilesystemIssue
+  mut lock : Lock?
+}
+
+///|
+pub fn NativeLockOpenFailure::issue(
+  self : NativeLockOpenFailure,
+) -> NativeFilesystemIssue {
+  self.original_issue
+}
+
+///|
+pub fn NativeLockOpenFailure::retry_cleanup(
+  self : NativeLockOpenFailure,
+) -> Result[Unit, NativeFilesystemIssue] {
+  guard self.lock is Some(original) else { return Ok(()) }
+  match original.close_checked() {
+    Ok(_) => {
+      self.lock = None
+      Ok(())
+    }
+    Err(issue) => Err(issue)
+  }
+}

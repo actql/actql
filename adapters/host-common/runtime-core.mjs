@@ -403,6 +403,27 @@ function remoteSiteControl(moon) {
       ));
     },
     outputIntentIdentity: moon.strategyRemoteOutputIntentIdentity,
+    pollOutputRequest: moon.strategyRemotePollOutputRequest,
+    pollOutputIntent: moon.strategyRemotePollOutputIntent,
+    outputIntentProjection(intent) {
+      const projected = moon.strategyRemoteOutputIntentProjection(intent);
+      const value = projected._0;
+      return Object.freeze({storeAuthorityCid: value.store_authority_cid,
+        publicationAttemptCid: value.publication_attempt_cid,
+        resultDefinitionCid: value.result_definition_cid,
+        orderingEvidenceCid: value.ordering_evidence_cid,
+        coordinatorAuthority: value.coordinator_authority,
+        transferAttemptId: value.transfer_attempt,
+        transferRoute: projected._1,
+        destinationSite: value.destination_site_key,
+        destinationSiteGeneration: value.destination_site_generation,
+        transferMaxBytes: value.transfer_max_bytes,
+        transferExpiresAtMilliseconds: value.transfer_expires_unix_ms,
+        sourceGrantCid: value.source_grant_cid,
+        destinationGrantCid: value.destination_grant_cid,
+        routeCapabilityCid: value.route_capability_cid,
+        transferOrigin: value.transfer_origin});
+    },
     preparePublicationPayload(configuration) {
       if (configuration === null || typeof configuration !== 'object') {
         throw new TypeError('Invalid remote publication payload');
@@ -1061,6 +1082,17 @@ function remoteSiteControl(moon) {
       }
       return checked(moon.strategyRemoteRecordRestore(record, ...state));
     },
+    admitDurableRecordJson: body => checked(moon.strategyRemoteDurableRecordAdmitJson(body)),
+    restoreDurableRecord: (journal, durable) => checked(
+      moon.strategyRemoteDurableRecordRestore(journal, durable)),
+    recordDurableJson: record => checked(moon.strategyRemoteRecordDurableJson(record)),
+    admissionDurableJson: admission => checked(moon.strategyRemoteAdmissionDurableJson(admission)),
+    transitionDurableJson: transition => checked(moon.strategyRemoteTransitionDurableJson(transition)),
+    transitionExpectedRevision: moon.strategyRemoteTransitionExpectedRevision,
+    durableRecordJson: moon.strategyRemoteDurableRecordJson,
+    durableRecordRevision: moon.strategyRemoteDurableRecordRevision,
+    durableRecordKey: moon.strategyRemoteDurableRecordKey,
+    durableRecordIdentity: moon.strategyRemoteDurableRecordIdentity,
     restoreHistorical: (journal, request) => checked(
       moon.strategyRemoteHistoricalRestore(journal, request),
     ),
@@ -2905,6 +2937,24 @@ function publicationControl(moon) {
       return checked(moon.clientProgramCheckInferOriginalParkedStorageOrigin(scope,
         value, token(definition), graph, park, original, layout, installation,
         runtimeArtifactCid, layoutArtifactCid, probability, evidenceToken(storage)));
+    },
+    // DATA-only comparison before a Scope exists. The existing Common Owner
+    // reads expected origins from the checked Run/Plan, not this document.
+    // Storage custody, funding and atomic original admission remain separate.
+    checkCheckedClientInferOriginalPreRestoreOrigin(compiled, definition, graph, document, selected) {
+      const value = compiledRunTokens.get(compiled);
+      const original = modelOriginalDocumentTokens.get(document);
+      if (value === undefined || compiled.kind !== 'infer' || original === undefined) {
+        throw new TypeError('Foreign Client original Model document');
+      }
+      const originalDefinition = token(definition);
+      if (typeof moon.clientProgramCheckInferOriginalPreRestoreOrigin !== 'function') {
+        throw Object.assign(new Error('ClientOperationUnavailable'), {code: 'ClientOperationUnavailable'});
+      }
+      const {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability} = selected;
+      return checked(moon.clientProgramCheckInferOriginalPreRestoreOrigin(value,
+        originalDefinition, graph, original, layout, installation,
+        runtimeArtifactCid, layoutArtifactCid, probability));
     },
     // Explicit alternative to the normal descriptor issuer, not a fallback.
     // Bootstrap must already cover the dedicated Writer and finish-text borrow.
@@ -5231,6 +5281,19 @@ function outputExportControl(moon, publications) {
         work: progress._2, issue: progress._3});
     },
     finish: value => checked(moon.strategyHostOutputExportFinish(value)),
+    measurement(value) {
+      const measured = checked(moon.strategyHostOutputExportMeasurement(value));
+      return Object.freeze({rowCount: measured.row_count,
+        admissionNodes: measured.admission_nodes,
+        admissionTextBytes: measured.admission_text_bytes,
+        admissionWork: measured.admission_work,
+        columnRows: Object.freeze([...measured.column_rows]),
+        columnBytes: Object.freeze([...measured.column_bytes]),
+        columnNodes: Object.freeze([...measured.column_nodes]),
+        columnMaxValueBytes: Object.freeze([...measured.column_max_value_bytes]),
+        columnNullRows: Object.freeze([...measured.column_null_rows]),
+        columnAdmittedDepths: Object.freeze([...measured.column_admitted_depths])});
+    },
     identity(value) {
       return Object.freeze({
         orderedRowsCid: checked(moon.strategyHostOutputExportCid(value)),
@@ -5818,6 +5881,7 @@ export function runtimeCore(moon) {
   const publications = publicationControl(moon);
   return Object.freeze({
     siteControl: siteControl(moon),
+    managedExecutionProfileCid: moon.strategyHostManagedExecutionProfileCid,
     remoteSiteControl: remoteSiteControl(moon),
     remoteTransferControl: remoteTransferControl(moon),
     remoteStandardSourceControl: remoteStandardSourceControl(moon),

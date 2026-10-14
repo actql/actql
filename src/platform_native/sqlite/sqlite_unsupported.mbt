@@ -58,12 +58,30 @@ pub fn Library::open_database(
 }
 
 ///|
+pub fn Library::open_database_with_custody(
+  _self : Library,
+  _path : String,
+  _max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  Err({ original_issue: UnsupportedTarget, database: None, })
+}
+
+///|
 pub fn Library::open_existing_database(
   _self : Library,
   _path : String,
   _max_body_bytes : Int64,
 ) -> Result[Database, NativeSqliteIssue] {
   Err(UnsupportedTarget)
+}
+
+///|
+pub fn Library::open_existing_database_with_custody(
+  _self : Library,
+  _path : String,
+  _max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  Err({ original_issue: UnsupportedTarget, database: None, })
 }
 
 ///|

@@ -2210,7 +2210,13 @@ export async function openLocalPublicationStore(
         const decipher = createDecipheriv('aes-256-gcm', key, nonce);
         decipher.setAAD(privateEvidenceAad(name, semanticCid));
         decipher.setAuthTag(tag);
-        return Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+        const plaintext = decipher.update(ciphertext);
+        // Authentication must complete before any plaintext escapes. Reuse
+        // the owned block only after final succeeds with no additional bytes;
+        // otherwise preserve the complete authenticated concatenation.
+        const final = decipher.final();
+        return final.byteLength === 0 ? plaintext
+          : Buffer.concat([plaintext, final]);
       } catch (error) {
         if (error?.code === 'PublicationPrivateEvidenceCorrupt') throw error;
         fail('PublicationPrivateEvidenceCorrupt', error);
@@ -2253,15 +2259,30 @@ export async function openLocalPublicationStore(
     // output. Preserve the original concatenation for a nonempty final block.
     const ciphertext = final.byteLength === 0 ? encrypted
       : Buffer.concat([encrypted, final]);
-    const envelope = Buffer.from(JSON.stringify({
-      version: 'actql-private-publication-evidence/0.1',
-      nonce: nonce.toString('base64'),
-      tag: cipher.getAuthTag().toString('base64'),
-      ciphertext: ciphertext.toString('base64'),
-    }), 'utf8');
-    if (envelope.byteLength > configuration.maxObjectBytes) {
+    // Every variable segment is Base64 ASCII. Preserve the exact original
+    // JSON field order and bytes without retaining a second complete envelope
+    // String alongside its UTF-8 Buffer. The segments and ciphertext still
+    // have their own simultaneous lifetimes; this is not capacity admission.
+    const segments = [
+      '{"version":"actql-private-publication-evidence/0.1","nonce":"',
+      nonce.toString('base64'),
+      '","tag":"',
+      cipher.getAuthTag().toString('base64'),
+      '","ciphertext":"',
+      ciphertext.toString('base64'),
+      '"}',
+    ];
+    const envelopeBytes = segments.reduce((total, segment) => total + segment.length, 0);
+    if (!Number.isSafeInteger(envelopeBytes) ||
+        envelopeBytes > configuration.maxObjectBytes) {
       fail('PublicationObjectLimit');
     }
+    const envelope = Buffer.alloc(envelopeBytes);
+    let envelopeOffset = 0;
+    for (const segment of segments) {
+      envelopeOffset += envelope.write(segment, envelopeOffset, 'ascii');
+    }
+    if (envelopeOffset !== envelopeBytes) fail('PublicationPrivateEvidenceCorrupt');
     const writer = createPreparedObjectWriter(envelope.byteLength);
     try {
       await writer.append(envelope);
@@ -2328,15 +2349,28 @@ export async function openLocalPublicationStore(
       );
       return Object.freeze([descriptor, content]);
     } catch (error) {
-      try { await content.prepared.release(); }
-      catch (cleanupError) {
-        // Keep the existing retry owner rather than losing a prepared object
-        // when construction of the second original object fails.
-        error.cleanupFailure = cleanupError;
-        error.cleanupPending = true;
-        error.cleanupHandle = content.prepared;
+      let cleanupFailure;
+      let cleanupPending;
+      try {
+        await content.prepared.release();
+        cleanupPending = content.prepared.status().pending !== false;
       }
-      throw error;
+      catch (cleanupError) {
+        cleanupFailure = cleanupError;
+        cleanupPending = true;
+      }
+      if (!cleanupPending) throw error;
+      // False release can retain a visible-but-unconfirmed holding. Export
+      // that same retry handle, just as for a thrown cleanup failure. A frozen
+      // primary cannot accept fields, but its original cause must survive.
+      const failure = error !== null && typeof error === 'object' &&
+        Object.isExtensible(error) ? error
+        : new PublicationStoreError(error?.code ??
+          'PublicationModelRawEvidencePreparationFailed', error);
+      if (cleanupFailure !== undefined) failure.cleanupFailure = cleanupFailure;
+      failure.cleanupPending = true;
+      failure.cleanupHandle = content.prepared;
+      throw failure;
     }
   };
   const readModelRawEvidence = async binding => {

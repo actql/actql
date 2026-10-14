@@ -22,7 +22,7 @@ import httpx
 
 from . import _wire as wire
 from ._local_core import LocalCore, LocalCoreError, LocalCoreInitializationError, LocalCoreResources, _Input, _Output, _Workspace, _PublisherFact, _Task, _ResultExport, LocalTaskProgress, LocalResultProgress
-from ._local_distribution import installed_local_components, load_local_module
+from ._local_distribution import installed_local_components, LocalInstallationError, LocalComponents
 from ._local_files import (LocalFileRoot, _AllocationArea, _PayloadFile, _NameAdoption, _FileFinalization, _FileReader,
     LocalAreaAcquisitionError, LocalFileAcquisitionError, LocalReaderAcquisitionError)
 from ._local_installation import OriginalLocalInstallation, LocalInstallationCleanupPending, _object
@@ -35,6 +35,8 @@ from ._local_store_reconciliation import OriginalStoreReconciliation
 from ._local_sdk_read_storage import OriginalSDKReadEvidenceStore, SDKReadEvidenceCleanupPending
 from ._local_sdk_delivery_storage import OriginalSDKDeliveryStore, SDKDeliveryStorageCleanupPending
 from ._local_response import OriginalLocalResponseStream
+from ._local_sdk_response import OriginalLocalSDKResponseStream
+from ._local_sdk_payload_reader import OriginalSDKPayloadReader, SDKPayloadReaderCleanupPending
 from ._local_work import OriginalLocalWork
 from ._local_storage import ByteFence, ByteWrite, CapacityReservation, LocalStorageError, StoredBytes
 from ._values import content_cid, wire_bytes
@@ -168,7 +170,7 @@ class InstalledLocalHost:
         self._payload_capacity_attempts: set[int] = set()
         self._payload_transition_attempts: set[int] = set()
         self._inputs: list[_Input] = []
-        self._response_streams: set[OriginalLocalResponseStream] = set()
+        self._response_streams: set[OriginalLocalResponseStream | OriginalLocalSDKResponseStream] = set()
         self._projections: list[_Output] = []
         self._append_sources: dict[int, _Input] = {}
         self._uncertain_ticket: int | None = None
@@ -194,12 +196,21 @@ class InstalledLocalHost:
             raise LocalProductCleanupPending(self) from failure
 
     @classmethod
-    def installed(cls, *, resources: LocalCoreResources) -> InstalledLocalHost:
+    def installed(cls, *, resources: LocalCoreResources | None = None) -> InstalledLocalHost:
         """Resolve the selected cohort with no endpoint/token/internal paths."""
         components = installed_local_components()
-        # Product assembly supplies its reviewed finite Root profile. The old
-        # minimal buffer fixture has no allowance for initialization workspace.
-        core = LocalCore(load_local_module(components), digest=components.module_sha256,
+        if resources is None:
+            from ._local_capacity_original import _selected_capacity_original
+            from ._local_worker_funding import LocalWorkerFundingUnavailable
+            _selected_capacity_original(components)
+            # Release-bound numbers are necessary metadata, not original
+            # physical acquisition or execution-delegation custody. Ordinary
+            # Local must use the installed worker supplier when it is adopted;
+            # never fall through to a stock in-process Engine from numbers.
+            raise LocalWorkerFundingUnavailable('Original installed Local worker funding is unavailable')
+        # This explicit-resource route is a private diagnostic. It is not the
+        # ordinary product factory, pre-spawn funding or installed acceptance.
+        core = LocalCore._from_installed_image(components,
             transfer_capacity=12 * 1024 * 1024, slots=64,
             resources=resources)
         try:
@@ -268,6 +279,11 @@ class InstalledLocalHost:
                 run, _ = self._select_original_run(body['ref'])
                 projection = self._original_run_projection(run)
                 return self._original_run_response(run, projection)
+            elif operation == 'read':
+                run, _ = self._select_original_run(body['ref'])
+                projection = self._original_run_projection(run)
+                return self._original_sdk_read_response(run, projection,
+                    body['resultName'], body['format'], body['attemptId'])
             elif operation == 'delivery-attempt':
                 run, _ = self._select_original_run(body['ref'])
                 projection = self._original_run_projection(run)
@@ -381,6 +397,65 @@ class InstalledLocalHost:
             'content-encoding': 'identity'}, stream=stream)
         stream._attached = True
         return response
+
+    def _original_sdk_read_response(self, run: _Run,
+                                    projection: OriginalCommitProjection,
+                                    result_name: str, format: str,
+                                    attempt_id: str) -> httpx.Response:
+        """Connect the existing read/usage/codec/Store Owners to SDK transport.
+
+        Core chooses the original grant, attempt, Result/binding ordinals and
+        terminal evidence. No descriptor is selected from an SDK-supplied path,
+        JSON state or success boolean. First-write loss requires original lookup.
+        """
+        self._ensure_original_publication_observation(projection)
+        delivery = self._original_sdk_delivery_store(run, projection)
+        clock = self._original_sdk_delivery_clock()
+        # Reuse the physical clock projection only; its timestamp has no
+        # independent expiry or authorization meaning outside the Core Owner.
+        tick = _object(self._core._inputs[clock.ticket].payload, 256)
+        request = self._copy(wire_bytes({'result_name': result_name, 'format': format,  # type: ignore[no-untyped-call]
+            'attempt_id': attempt_id, 'observed_at': tick['observed_at']}))
+        streams: list[OriginalLocalSDKResponseStream] = []
+        try:
+            self._persist_original_sdk_read_evidence(run, projection, request)
+            delivery.persist(request, run.handle)
+            delivery.prepare_original_codecs(request, clock)
+            fact = delivery.selected_original_payload(request, clock)
+            try:
+                reader = OriginalSDKPayloadReader(delivery, request, clock, fact)
+            except SDKPayloadReaderCleanupPending as failure:
+                # Constructor custody precedes every fallible source callback.
+                # Keep it in the Host cleanup inventory before attempting close.
+                streams.append(OriginalLocalSDKResponseStream(self, failure.cleanup_reader))
+                raise
+            stream = OriginalLocalSDKResponseStream(self, reader)
+            streams.append(stream)
+            if not self._core.close_input(clock):
+                raise LocalProductCleanupPending(self)
+            self._inputs.remove(clock)
+        except BaseException:
+            for original in streams:
+                if not original._close():
+                    raise LocalProductCleanupPending(self) from None
+            # Unattached requests/first outputs remain under their original
+            # Host/Store custody; no new grant/write/reader is tried on failure.
+            raise
+        response = httpx.Response(200, headers={'content-type': 'application/x-ndjson',
+            'content-encoding': 'identity'}, stream=stream)
+        stream._attached = True
+        return response
+
+    def _original_sdk_delivery_clock(self) -> _Input:
+        """Reserve one physical clock input; this renews no grant or attempt."""
+        self._active()
+        now = self._now()
+        if type(now) is not int or not 0 <= now <= 253402300799999:
+            raise ValueError('Invalid Local physical observation time')
+        seconds, milliseconds = divmod(now, 1000)
+        observed_at = datetime.fromtimestamp(seconds, timezone.utc).replace(
+            microsecond=milliseconds * 1000).isoformat(timespec='milliseconds').replace('+00:00', 'Z')
+        return self._copy(wire_bytes({'observed_at': observed_at}))  # type: ignore[no-untyped-call]
 
     def _original_delivery_lookup_response(self, run: _Run,
                                             projection: OriginalCommitProjection,

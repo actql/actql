@@ -3336,6 +3336,14 @@ pub fn strategy_host_output_export_rows(
 }
 
 ///|
+#export_name("strategyHostOutputExportMeasurement")
+pub fn strategy_host_output_export_measurement(
+  value : StrategyHostOutputExport,
+) -> @execution.CompletedRelationExportMeasurement raise NodeHostFailure {
+  strategy_publication_output_result(value.core.measurement())
+}
+
+///|
 #export_name("strategyHostOutputExportLogicalRelationCid")
 pub fn strategy_host_output_export_logical_relation_cid(
   value : StrategyHostOutputExport,
@@ -4623,6 +4631,43 @@ pub fn strategy_remote_output_intent_prepare(
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
+}
+
+///|
+#export_name("strategyRemoteOutputIntentProjection")
+pub fn strategy_remote_output_intent_projection(
+  intent : @remote.RemoteOutputIntent,
+) -> (@remote.RemoteOutputIntentProjection, String) {
+  let value = @remote.remote_output_intent_projection(intent)
+  let route = match value.transfer_route {
+    @transfer.DirectStream => "direct"
+    @transfer.TransferStore => "store"
+  }
+  (value, route)
+}
+
+///|
+#export_name("strategyRemotePollOutputRequest")
+pub fn strategy_remote_poll_output_request(
+  output : @remote.RemotePollOutput,
+) -> @remote.DispatchRequest {
+  @remote.remote_poll_output_request(output)
+}
+
+///|
+#export_name("strategyRemotePollOutputIntent")
+pub fn strategy_remote_poll_output_intent(
+  output : @remote.RemotePollOutput,
+) -> @remote.RemoteOutputIntent {
+  @remote.remote_poll_output_intent(output)
+}
+
+///|
+#export_name("strategyHostManagedExecutionProfileCid")
+pub fn strategy_host_managed_execution_profile_cid() -> String {
+  @execution.managed_execution_profile_cid(
+    @execution.selected_managed_execution_profile(),
+  )
 }
 
 ///|
@@ -6772,6 +6817,102 @@ pub fn strategy_remote_historical_restore(
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
+}
+
+///|
+#export_name("strategyRemoteDurableRecordAdmitJson")
+pub fn strategy_remote_durable_record_admit_json(
+  body : String,
+) -> @remote.DurableDispatchRecord raise NodeHostFailure {
+  match @remote.admit_durable_dispatch_record(@utf8.encode(body)) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteDurableRecordRestore")
+pub fn strategy_remote_durable_record_restore(
+  journal : @remote.SiteDispatchJournal,
+  durable : @remote.DurableDispatchRecord,
+) -> @remote.DispatchRecord raise NodeHostFailure {
+  match @remote.restore_durable_dispatch_record(journal, durable) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteRecordDurableJson")
+pub fn strategy_remote_record_durable_json(
+  record : @remote.DispatchRecord,
+) -> String raise NodeHostFailure {
+  match @remote.dispatch_record_durable_json(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteAdmissionDurableJson")
+pub fn strategy_remote_admission_durable_json(
+  admission : @remote.DispatchAdmission,
+) -> String raise NodeHostFailure {
+  match @remote.dispatch_admission_durable_json(admission) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransitionDurableJson")
+pub fn strategy_remote_transition_durable_json(
+  transition : @remote.DispatchTransition,
+) -> String raise NodeHostFailure {
+  match @remote.dispatch_transition_durable_json(transition) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("strategyRemoteTransitionExpectedRevision")
+pub fn strategy_remote_transition_expected_revision(
+  transition : @remote.DispatchTransition,
+) -> Int {
+  @remote.dispatch_transition_expected_revision(transition)
+}
+
+///|
+#export_name("strategyRemoteDurableRecordJson")
+pub fn strategy_remote_durable_record_json(
+  record : @remote.DurableDispatchRecord,
+) -> String {
+  @remote.durable_dispatch_record_json(record)
+}
+
+///|
+#export_name("strategyRemoteDurableRecordRevision")
+pub fn strategy_remote_durable_record_revision(
+  record : @remote.DurableDispatchRecord,
+) -> Int {
+  @remote.durable_dispatch_record_revision(record)
+}
+
+///|
+#export_name("strategyRemoteDurableRecordKey")
+pub fn strategy_remote_durable_record_key(
+  record : @remote.DurableDispatchRecord,
+) -> Array[String] {
+  @remote.durable_dispatch_record_journal_key(record)
+}
+
+///|
+#export_name("strategyRemoteDurableRecordIdentity")
+pub fn strategy_remote_durable_record_identity(
+  record : @remote.DurableDispatchRecord,
+) -> String {
+  @remote.durable_dispatch_record_request_identity(record)
 }
 
 ///|
@@ -13247,6 +13388,14 @@ pub fn async_strategy_host_output_export_rows(
 }
 
 ///|
+#export_name("asyncStrategyHostOutputExportMeasurement")
+pub fn async_strategy_host_output_export_measurement(
+  value : AsyncStrategyHostOutputExport,
+) -> @execution.CompletedRelationExportMeasurement raise AsyncHostFailure {
+  async_strategy_publication_output_result(value.core.measurement())
+}
+
+///|
 #export_name("asyncStrategyHostOutputExportLogicalRelationCid")
 pub fn async_strategy_host_output_export_logical_relation_cid(
   value : AsyncStrategyHostOutputExport,
@@ -14538,6 +14687,43 @@ pub fn async_strategy_remote_output_intent_prepare(
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
+}
+
+///|
+#export_name("asyncStrategyRemoteOutputIntentProjection")
+pub fn async_strategy_remote_output_intent_projection(
+  intent : @remote.RemoteOutputIntent,
+) -> (@remote.RemoteOutputIntentProjection, String) {
+  let value = @remote.remote_output_intent_projection(intent)
+  let route = match value.transfer_route {
+    @transfer.DirectStream => "direct"
+    @transfer.TransferStore => "store"
+  }
+  (value, route)
+}
+
+///|
+#export_name("asyncStrategyRemotePollOutputRequest")
+pub fn async_strategy_remote_poll_output_request(
+  output : @remote.RemotePollOutput,
+) -> @remote.DispatchRequest {
+  @remote.remote_poll_output_request(output)
+}
+
+///|
+#export_name("asyncStrategyRemotePollOutputIntent")
+pub fn async_strategy_remote_poll_output_intent(
+  output : @remote.RemotePollOutput,
+) -> @remote.RemoteOutputIntent {
+  @remote.remote_poll_output_intent(output)
+}
+
+///|
+#export_name("asyncStrategyHostManagedExecutionProfileCid")
+pub fn async_strategy_host_managed_execution_profile_cid() -> String {
+  @execution.managed_execution_profile_cid(
+    @execution.selected_managed_execution_profile(),
+  )
 }
 
 ///|
@@ -16689,6 +16875,102 @@ pub fn async_strategy_remote_historical_restore(
     Ok(value) => value
     Err(issue) => raise RemoteDispatch(issue)
   }
+}
+
+///|
+#export_name("asyncStrategyRemoteDurableRecordAdmitJson")
+pub fn async_strategy_remote_durable_record_admit_json(
+  body : String,
+) -> @remote.DurableDispatchRecord raise AsyncHostFailure {
+  match @remote.admit_durable_dispatch_record(@utf8.encode(body)) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteDurableRecordRestore")
+pub fn async_strategy_remote_durable_record_restore(
+  journal : @remote.SiteDispatchJournal,
+  durable : @remote.DurableDispatchRecord,
+) -> @remote.DispatchRecord raise AsyncHostFailure {
+  match @remote.restore_durable_dispatch_record(journal, durable) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteRecordDurableJson")
+pub fn async_strategy_remote_record_durable_json(
+  record : @remote.DispatchRecord,
+) -> String raise AsyncHostFailure {
+  match @remote.dispatch_record_durable_json(record) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteAdmissionDurableJson")
+pub fn async_strategy_remote_admission_durable_json(
+  admission : @remote.DispatchAdmission,
+) -> String raise AsyncHostFailure {
+  match @remote.dispatch_admission_durable_json(admission) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteTransitionDurableJson")
+pub fn async_strategy_remote_transition_durable_json(
+  transition : @remote.DispatchTransition,
+) -> String raise AsyncHostFailure {
+  match @remote.dispatch_transition_durable_json(transition) {
+    Ok(value) => value
+    Err(issue) => raise RemoteDispatch(issue)
+  }
+}
+
+///|
+#export_name("asyncStrategyRemoteTransitionExpectedRevision")
+pub fn async_strategy_remote_transition_expected_revision(
+  transition : @remote.DispatchTransition,
+) -> Int {
+  @remote.dispatch_transition_expected_revision(transition)
+}
+
+///|
+#export_name("asyncStrategyRemoteDurableRecordJson")
+pub fn async_strategy_remote_durable_record_json(
+  record : @remote.DurableDispatchRecord,
+) -> String {
+  @remote.durable_dispatch_record_json(record)
+}
+
+///|
+#export_name("asyncStrategyRemoteDurableRecordRevision")
+pub fn async_strategy_remote_durable_record_revision(
+  record : @remote.DurableDispatchRecord,
+) -> Int {
+  @remote.durable_dispatch_record_revision(record)
+}
+
+///|
+#export_name("asyncStrategyRemoteDurableRecordKey")
+pub fn async_strategy_remote_durable_record_key(
+  record : @remote.DurableDispatchRecord,
+) -> Array[String] {
+  @remote.durable_dispatch_record_journal_key(record)
+}
+
+///|
+#export_name("asyncStrategyRemoteDurableRecordIdentity")
+pub fn async_strategy_remote_durable_record_identity(
+  record : @remote.DurableDispatchRecord,
+) -> String {
+  @remote.durable_dispatch_record_request_identity(record)
 }
 
 ///|
@@ -19839,6 +20121,7 @@ pub(all) suberror WorkersFiniteFailure {
   UnsupportedProfile
   Preparation(@publication_host.ClientProgramPreparationIssue)
   Compilation(@publication_host.ClientValuesCompilationIssue)
+  Materials(@publication_host.ClientValuesRunMaterialsIssue)
   Binding(@publication_host.ClientValuesRunBindingIssue)
   Sequence(@publication_host.ClientTaskSequenceIssue)
   Registry(@execution.RegistryIssue)
@@ -19969,6 +20252,67 @@ pub fn workers_finite_compile(
     ) {
     Ok(value) => value
     Err(issue) => raise Compilation(issue)
+  }
+}
+
+///|
+/// Reconstruct only the original serialized Run through its existing owner.
+/// This does not issue authorization, extend lifetime, or open execution.
+#export_name("workersFiniteAdmitMaterials")
+pub fn workers_finite_admit_materials(
+  body : String,
+  expected_run_definition_cid : String,
+  expressions : @context.ExpressionProfiles,
+  operations : @context.PureOperationProfiles,
+  manifests : @publication_host.ClientCompilationManifests,
+  sequence : @lower.SequenceLimits,
+  max_work : Int,
+  max_entries : Int,
+) -> (
+  @publication_host.PreparedClientProgram,
+  @publication_host.ClientValuesCompilation,
+  @publication.RunPublicationAdmission,
+  @publication.PublicationContract,
+) raise WorkersFiniteFailure {
+  let materials = match
+    @publication_host.admit_client_values_run_materials(
+      body,
+      expected_run_definition_cid,
+      expressions,
+      operations,
+      manifests,
+      {
+        preparation: @publication_host.client_standard_program_preparation_limits(),
+        sequence,
+        max_sequence_steps: max_entries,
+        max_sequence_work: max_work,
+        max_evidence_bytes: 100000,
+        max_evidence_nodes: 10000,
+        max_evidence_depth: 100,
+      },
+    ) {
+    Ok(value) => value
+    Err(issue) => raise Materials(issue)
+  }
+  workers_finite_profile(materials.prepared)
+  (
+    materials.prepared,
+    materials.compilation,
+    materials.admission,
+    materials.run_definition,
+  )
+}
+
+///|
+/// Physical capacity comes only from the trusted installation. A new Ledger
+/// cannot turn an existing Run into a retry or restart authorization.
+#export_name("workersFiniteLedger")
+pub fn workers_finite_ledger(
+  limits : @resources.LedgerLimits,
+) -> @resources.Ledger raise WorkersFiniteFailure {
+  match @resources.create_ledger(limits) {
+    Ok(value) => value
+    Err(issue) => raise Ledger(issue)
   }
 }
 

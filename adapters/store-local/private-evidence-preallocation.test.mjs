@@ -203,3 +203,107 @@ test('private evidence: completed AES-GCM block does not acquire a second '
   assert.equal(finalBytes, 0);
   assert.equal(ciphertextCopies, 0);
 });
+
+test('private evidence: authenticated AES-GCM read returns the original '
+    + 'plaintext backing without concat duplication', async t => {
+  const {store} = await fixture(t, 16384);
+  const wire = '{"p":null,"text":"e\u0301\\r\\n"}\r\n';
+  const semanticCid = digest(wire);
+  const holdingCid = digest('single plaintext backing');
+  const prepared = await store.preparePrivateEvidence(name, wire, semanticCid);
+  await store.commitPhysicalHolding({
+    version: 'actql-local-physical-holding/0.1',
+    namespace: 'publication-private', holding_cid: holdingCid,
+    manifest_cid: semanticCid,
+    objects: [{cid: prepared.physicalCid, byte_count: prepared.bytes}],
+  }, [prepared.prepared]);
+  const originalDecipher = crypto.createDecipheriv;
+  const originalConcat = Buffer.concat;
+  let plaintextBlock;
+  let authenticated = false;
+  let finalBytes;
+  let plaintextCopies = 0;
+  crypto.createDecipheriv = (...args) => {
+    const decipher = Reflect.apply(originalDecipher, crypto, args);
+    const update = decipher.update;
+    const final = decipher.final;
+    decipher.update = function(...updateArgs) {
+      plaintextBlock = Reflect.apply(update, this, updateArgs);
+      return plaintextBlock;
+    };
+    decipher.final = function(...finalArgs) {
+      const result = Reflect.apply(final, this, finalArgs);
+      authenticated = true;
+      finalBytes = result.byteLength;
+      return result;
+    };
+    return decipher;
+  };
+  Buffer.concat = function(chunks, ...args) {
+    if (plaintextBlock !== undefined && chunks.includes(plaintextBlock)) {
+      plaintextCopies++;
+    }
+    return Reflect.apply(originalConcat, Buffer, [chunks, ...args]);
+  };
+  syncBuiltinESMExports();
+  let read;
+  try {
+    read = await store.readPrivateEvidence(name, semanticCid, holdingCid);
+  } finally {
+    crypto.createDecipheriv = originalDecipher;
+    Buffer.concat = originalConcat;
+    syncBuiltinESMExports();
+  }
+  assert.equal(authenticated, true);
+  assert.equal(finalBytes, 0);
+  assert.deepEqual(read, Buffer.from(wire, 'utf8'));
+  assert.equal(read, plaintextBlock);
+  assert.equal(plaintextCopies, 0);
+});
+
+test('private evidence: plaintext produced before failed GCM authentication '
+    + 'never escapes the read', async t => {
+  const {store} = await fixture(t, 16384);
+  const wire = 'original authentication-bound bytes';
+  const semanticCid = digest(wire);
+  const holdingCid = digest('different AAD read');
+  const prepared = await store.preparePrivateEvidence(name, wire, semanticCid);
+  await store.commitPhysicalHolding({
+    version: 'actql-local-physical-holding/0.1',
+    namespace: 'publication-private', holding_cid: holdingCid,
+    manifest_cid: semanticCid,
+    objects: [{cid: prepared.physicalCid, byte_count: prepared.bytes}],
+  }, [prepared.prepared]);
+  const originalDecipher = crypto.createDecipheriv;
+  let plaintextBlock;
+  let authenticationCalls = 0;
+  let escaped;
+  crypto.createDecipheriv = (...args) => {
+    const decipher = Reflect.apply(originalDecipher, crypto, args);
+    const update = decipher.update;
+    const final = decipher.final;
+    decipher.update = function(...updateArgs) {
+      plaintextBlock = Reflect.apply(update, this, updateArgs);
+      return plaintextBlock;
+    };
+    decipher.final = function(...finalArgs) {
+      authenticationCalls++;
+      return Reflect.apply(final, this, finalArgs);
+    };
+    return decipher;
+  };
+  syncBuiltinESMExports();
+  try {
+    // The original file/holding/CID passes physical checks; changing only
+    // the valid private name reaches real AEAD authentication with wrong AAD.
+    await assert.rejects(store.readPrivateEvidence('model_capture_bundle',
+      semanticCid, holdingCid).then(value => { escaped = value; }),
+    {code: 'PublicationPrivateEvidenceCorrupt'});
+  } finally {
+    crypto.createDecipheriv = originalDecipher;
+    syncBuiltinESMExports();
+  }
+  assert.deepEqual(plaintextBlock, Buffer.from(wire, 'utf8'));
+  assert.equal(authenticationCalls, 1);
+  assert.equal(escaped, undefined);
+});
