@@ -49,6 +49,14 @@ async function exercise(t, declaration, packets) {
   }});
   socket.on('error', () => {});
   socket.once('close', () => { closes++; });
+  const originalRead = socket.read;
+  let originalReads = 0, nullProbes = 0;
+  socket.read = function (...args) {
+    originalReads++;
+    const chunk = Reflect.apply(originalRead, socket, args);
+    if (chunk === null) nullProbes++;
+    return chunk;
+  };
   selectedSocket = socket;
   const before = connections;
   const fetch = select(declaration);
@@ -76,6 +84,12 @@ async function exercise(t, declaration, packets) {
   assert.equal(await call.cleanup(), true);
   assert.equal(closes, 1);
   assert.equal(connections, before + 1);
+  if (result.error === 'UndiciOriginalAcquisitionReadsExceeded') {
+    assert.equal(originalReads, declaration.maxReads, 'no original read after exhaustion');
+    assert.ok(nullProbes > 0, 'null probes were charged, not free reads');
+  }
+  t.diagnostic(JSON.stringify({originalReads, nullProbes, socketCloses: closes,
+    qualification: 'Controlled original read calls, not native queue/allocator coverage.'}));
   assert.throws(() => call.invoke(), {code: 'UndiciOriginalTransportRetired'});
   return result;
 }
@@ -111,10 +125,10 @@ test('private acquisition snapshot reads DATA descriptors once and ignores later
   assert.deepEqual(reads, ['maxBorrowedBackingBytes', 'maxPlaintextBytes', 'maxReads']);
 });
 
-test('exact plaintext and backing limits admit the same original read and retire once', async t => {
+test('exact plaintext and backing limits admit the original response and retire once', async t => {
   const packet = exactBuffer(wire);
   assert.deepEqual(await exercise(t, {maxPlaintextBytes: packet.length,
-    maxBorrowedBackingBytes: packet.length, maxReads: 1}, [packet]), {body: 'A'});
+    maxBorrowedBackingBytes: packet.length, maxReads: limits.maxReads}, [packet]), {body: 'A'});
 });
 
 test('plaintext limit minus one refuses framing before parser and preserves physical cleanup', async t => {
@@ -142,7 +156,7 @@ test('same backing across reads counts once while the intervening null probe con
   const packet = exactBuffer(wire);
   const parts = [packet.subarray(0, packet.length - 1), packet.subarray(packet.length - 1)];
   assert.deepEqual(await exercise(t, {maxPlaintextBytes: packet.length,
-    maxBorrowedBackingBytes: packet.length, maxReads: 3}, parts), {body: 'A'});
+    maxBorrowedBackingBytes: packet.length, maxReads: limits.maxReads}, parts), {body: 'A'});
 });
 
 test('null probe exhausts original reads before another chunk without another connection', async t => {
