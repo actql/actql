@@ -45,7 +45,7 @@
     {
       "source": "owned_capacity.c",
       "target": "crates/c-api/src/actql_owned_capacity.c",
-      "sha256": "75ad75312f41236a0f08f60473001c86480d69e562801d307c73916c8e3ef89a"
+      "sha256": "6d71b37e7383cb8ed1676e20ae9bee3aa76c0903a95f542c10d10ce1a48fe1c9"
     },
     {
       "source": "owned_capacity.h",
@@ -70,12 +70,12 @@
     {
       "source": "owned_region.h",
       "target": "crates/c-api/src/owned_region.h",
-      "sha256": "0ebfe06bf3311ae4c3690342916d727c88c68f06f5ea7ea1e17cc878de9ed445"
+      "sha256": "f9add7f86513bd7c7c6607dc8146dd2c4e5f3b274533687e248a90822c7d0fa6"
     },
     {
       "source": "owned_region.inc",
       "target": "crates/c-api/src/owned_region.inc",
-      "sha256": "57ae393f46b18aa2ad34cd7efde280db32288cb175cd1059fe172130c0914639"
+      "sha256": "00b572a0492f707aec7422cbb02b7bdc296a8efef5d1eb808342d88621207b86"
     }
   ],
   "upstream_minimum_rust_version": "1.88.0",
