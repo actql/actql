@@ -138,7 +138,12 @@ fn lower_script_nearest_carrier(
     query_typed=query_vectors,
     candidate_typed=candidate_vectors,
     completion_limits=Some(limits),
-    hit_only_projection=nearest_hit_only_projection(construction, query, 0, clause.name),
+    hit_only_projection=nearest_hit_only_projection(
+      construction,
+      query,
+      0,
+      clause.name,
+    ),
     checked_prefix=Some(nodes => {
       script_nearest_prefix_pipeline(
         construction,

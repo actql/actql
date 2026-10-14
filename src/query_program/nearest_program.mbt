@@ -50,7 +50,13 @@ fn nearest_complete_relation_roles(
   let options = match
     @vector.read_nearest_options(@builder.cursor(source), bound) {
     Ok(options) => options
-    Err({ kind: BudgetExceeded, .. }) => raise Abort(Expression({ issue: @expression.WorkLimit, origin: Some(construction.generated), }))
+    Err({ kind: BudgetExceeded, .. }) =>
+      raise Abort(
+        Expression({
+          issue: @expression.WorkLimit,
+          origin: Some(construction.generated),
+        }),
+      )
     Err(_) => raise Abort(UnsupportedNearest)
   }
   budget.spend(
@@ -249,18 +255,35 @@ fn nearest_hit_only_projection(
   index : Int,
   name : @query.NamePart,
 ) -> Bool raise Abort {
-  guard @query.operation_at(query, index + 1) is Some(Select(projections, false)) else { return false }
-  if projections.is_empty() { return false }
+  guard @query.operation_at(query, index + 1)
+    is Some(Select(projections, false)) else {
+    return false
+  }
+  if projections.is_empty() {
+    return false
+  }
   for projection in projections {
     construction.infer_budget.spend(1, construction.generated)
-    if projection.aggregate is Some(_) || projection.analytic is Some(_) || projection.star is Some(_) || !projection.replacements.is_empty() { return false }
+    if projection.aggregate is Some(_) ||
+      projection.analytic is Some(_) ||
+      projection.star is Some(_) ||
+      !projection.replacements.is_empty() {
+      return false
+    }
     guard projection.expression is Some(expression) else { return false }
-    let mut node = @query.expression_node(expression, @query.expression_root(expression)).unwrap()
+    let mut node = @query.expression_node(
+      expression,
+      @query.expression_root(expression),
+    ).unwrap()
     while node.kind is Parenthesized(child) {
       construction.infer_budget.spend(1, construction.generated)
       node = @query.expression_node(expression, child).unwrap()
     }
-    guard node.kind is Reference(path) && !path.is_empty() && same_name(path[0], name) else { return false }
+    guard node.kind is Reference(path) &&
+      !path.is_empty() &&
+      same_name(path[0], name) else {
+      return false
+    }
   }
   true
 }
@@ -283,7 +306,8 @@ fn lower_nearest_steps(
   completion_limits? : Limits? = None,
   hit_only_projection? : Bool = false,
 ) -> (Array[Array[(String, @builder.Node)]], Array[String]) raise Abort {
-  if clause.candidate_alias_explicit && ranges.any(range => same_name(range.0, clause.candidate_alias)) {
+  if clause.candidate_alias_explicit &&
+    ranges.any(range => same_name(range.0, clause.candidate_alias)) {
     raise Abort(AmbiguousRelation)
   }
   let candidate_columns = columns(candidate)
@@ -311,7 +335,9 @@ fn lower_nearest_steps(
         )
       } else if item.path.length() == 1 &&
         same_name(item.path[0], clause.candidate_alias) {
-        if ranges.any(range => same_name(range.0, item.path[0])) { raise Abort(AmbiguousColumn) }
+        if ranges.any(range => same_name(range.0, item.path[0])) {
+          raise Abort(AmbiguousColumn)
+        }
         expanded.append(
           candidate_visible.map(entry => (entry.0, true, entry.1)),
         )
@@ -353,12 +379,20 @@ fn lower_nearest_steps(
       retained.push(entry)
     }
   }
-  if clause.keep.is_empty() && hit_only_projection && query_typed is Some((vectors, _)) {
+  if clause.keep.is_empty() &&
+    hit_only_projection &&
+    query_typed is Some((vectors, _)) {
     // Verify exact admitted fields before pruning; a caller cannot use demand
     // to hide a malformed visible-field declaration.
     for entry in retained {
       construction.infer_budget.spend(1, construction.generated)
-      guard @carrier.lookup(@carrier.vector_records(vectors), @schema.Unqualified(entry.2)) is Present(_) else { raise Abort(UnknownColumn) }
+      guard @carrier.lookup(
+          @carrier.vector_records(vectors),
+          @schema.Unqualified(entry.2),
+        )
+        is Present(_) else {
+        raise Abort(UnknownColumn)
+      }
     }
     retained.clear()
   }

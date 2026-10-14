@@ -64,7 +64,10 @@ test "typed NEAREST retains ordered composite identities without rebuilding vect
     let step = @wire.open_object(@wire.element_at(cursor, i).unwrap()).unwrap()
     assert_true(@wire.lookup(step, "to_vectors") is None)
     if @wire.lookup(step, "vectors") is Some(_) {
-      assert_eq(@wire.text(@wire.lookup(step, "from").unwrap()), Ok("query_vectors"))
+      assert_eq(
+        @wire.text(@wire.lookup(step, "from").unwrap()),
+        Ok("query_vectors"),
+      )
     }
   }
   let nearest_steps = @wire.elements(cursor)
