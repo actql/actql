@@ -2581,7 +2581,7 @@ priv struct HolderOutputResources {
 fn open_holder_output_resources(
   matches : @argparse.Matches,
   sqlite_library : @sqlite.Library,
-) -> Result[HolderOutputResources, String] {
+) -> Result[HolderOutputResources, HolderOutputSetupFailure] {
   let settings = (
     required(matches, "observation-url"),
     required(matches, "transfer-origin"),
@@ -2601,7 +2601,7 @@ fn open_holder_output_resources(
     required(matches, "publication-authority-cid"),
     required(matches, "transfer-journal"),
   ) catch {
-    CommandStop(issue) => return Err(issue)
+    CommandStop(issue) => return Err(HolderOutputSetupRefused(issue))
   }
   let (
     observation_url,
@@ -2623,32 +2623,50 @@ fn open_holder_output_resources(
     transfer_journal_path,
   ) = settings
   let retained_delegation = retained_input_delegation(matches) catch {
-    CommandStop(issue) => return Err(issue)
+    CommandStop(issue) => return Err(HolderOutputSetupRefused(issue))
   }
-  let retained_root = match
-    (retained_delegation, optional(matches, "retained-input-root")) {
-    (None, None) => None
+  // Parse both roles before any Root/Library acquisition. Values remain
+  // configuration; the actual HTTP Owner performs its existing admission.
+  let control_settings = holder_http_settings(matches, "control") catch {
+    CommandStop(issue) => return Err(HolderOutputSetupRefused(issue))
+  }
+  let transfer_settings = holder_http_settings(matches, "transfer") catch {
+    CommandStop(issue) => return Err(HolderOutputSetupRefused(issue))
+  }
+  let original = new_holder_partial_output_resources()
+  match (retained_delegation, optional(matches, "retained-input-root")) {
+    (None, None) => ()
     (Some(_), Some(path)) =>
-      match @filesystem.open_root(path) {
-        Ok(root) => Some(root)
-        Err(_) => return Err("retained input Root unavailable")
+      match @filesystem.open_root_with_custody(path) {
+        Ok(root) => original.retained_root = Some(root)
+        Err(failure) => {
+          original.failed_root = Some(failure)
+          return Err(
+            HolderOutputSetupPending(
+              original, "retained input Root unavailable",
+            ),
+          )
+        }
       }
     _ =>
       return Err(
-        "retained input delegation and Root must be configured together",
+        HolderOutputSetupRefused(
+          "retained input delegation and Root must be configured together",
+        ),
       )
   }
-  let control = authenticated_client(matches, "control") catch {
-    CommandStop(issue) => return Err(issue)
+  let control = match
+    open_holder_partial_http_client(original, control_settings, true) {
+    Ok(value) => value
+    Err(failure) => return Err(failure)
   }
-  let transfer = authenticated_client(matches, "transfer") catch {
-    CommandStop(issue) => {
-      ignore(control.close())
-      return Err(issue)
-    }
+  let transfer = match
+    open_holder_partial_http_client(original, transfer_settings, false) {
+    Ok(value) => value
+    Err(failure) => return Err(failure)
   }
   let store = match
-    @publication_store.open_store(
+    @publication_store.open_store_with_custody(
       sqlite_library,
       publication_root,
       publication_authority,
@@ -2656,23 +2674,42 @@ fn open_holder_output_resources(
       max_transfers.to_int64(),
       max_record_bytes,
     ) {
-    Ok(value) => value
-    Err(_) => {
-      ignore(transfer.close())
-      ignore(control.close())
-      return Err("publication Store open failed")
+    Ok(value) => {
+      original.store = Some(value)
+      value
+    }
+    Err(RefusedBeforeAcquisition(_)) =>
+      return Err(
+        HolderOutputSetupPending(
+          original, "publication Store configuration refused after prior acquisition",
+        ),
+      )
+    Err(CleanupRequired(failure)) => {
+      original.failed_store = Some(failure)
+      return Err(
+        HolderOutputSetupPending(original, "publication Store open failed"),
+      )
     }
   }
   let transfer_journal = match
-    @transfer_journal.open_journal(
+    @transfer_journal.open_journal_with_custody(
       sqlite_library, transfer_journal_path, max_record_bytes, 65536, 1048576, max_bytes,
     ) {
-    Ok(value) => value
-    Err(_) => {
-      ignore(store.close())
-      ignore(transfer.close())
-      ignore(control.close())
-      return Err("Transfer journal open failed")
+    Ok(value) => {
+      original.transfer_journal = Some(value)
+      value
+    }
+    Err(RefusedBeforeAcquisition(_)) =>
+      return Err(
+        HolderOutputSetupPending(
+          original, "Transfer Journal configuration refused after prior acquisition",
+        ),
+      )
+    Err(CleanupRequired(failure)) => {
+      original.failed_transfer_journal = Some(failure)
+      return Err(
+        HolderOutputSetupPending(original, "Transfer Journal open failed"),
+      )
     }
   }
   Ok({
@@ -2684,7 +2721,7 @@ fn open_holder_output_resources(
     effect_host_holding: Ref(None),
     effect_catalog_files: Ref(None),
     effect_host_cleanup: Ref(None),
-    retained_root,
+    retained_root: original.retained_root,
     retained_max_bytes: max_bytes,
     retained_max_objects: max_transfers.to_int64(),
     control,
@@ -4212,20 +4249,26 @@ fn run_holder(
       })
     None => None
   }
-  // Everything the output needs is opened before execution. A holder that
-  // cannot open it ends without claiming, so nothing is left to clean up and
-  // the attempt stays startable.
+  // Output setup precedes execution/claim, but an acquisition failure can
+  // still own physical cleanup. Return that exact responsibility to the
+  // existing holder lifetime; it never proves a start or release outcome.
   let resources = match
     open_holder_output_resources(matches, environment.sqlite_library) {
     Ok(value) => value
-    Err(issue) => {
-      report("setup-failed", [("reason", issue)])
-      // This constructor can already have opened ordinary resources. Until
-      // its own partial-failure custody is returned, it is not the unopened
-      // resources case handled by finish_unopened_holder_cleanup.
-      close_site_environment(environment)
-      ignore(slot.close())
-      stop("holder setup failed before claim")
+    Err(HolderOutputSetupRefused(issue)) => {
+      // No output object was acquired, but the original environment/slot still
+      // need their checked cleanup. Do not discard those existing Owners.
+      retain_partial_holder_output_setup(
+        new_holder_partial_output_resources(),
+        environment,
+        slot,
+        issue,
+      )
+      return HolderCommandFailed(None, issue)
+    }
+    Err(HolderOutputSetupPending(original, issue)) => {
+      retain_partial_holder_output_setup(original, environment, slot, issue)
+      return HolderCommandFailed(None, issue)
     }
   }
   // Read original journal state before installing new Host settings. A failed
@@ -4736,6 +4779,22 @@ fn recover_output_command(
     matches,
     environment.sqlite_library,
   )
+  match resources {
+    Err(HolderOutputSetupRefused(issue)) => {
+      retain_partial_output_recovery_setup(
+        new_holder_partial_output_resources(),
+        owner,
+        slot,
+        issue,
+      )
+      stop(issue)
+    }
+    Err(HolderOutputSetupPending(original, issue)) => {
+      retain_partial_output_recovery_setup(original, owner, slot, issue)
+      stop(issue)
+    }
+    Ok(_) => ()
+  }
   let primary : String? = match resources {
     Err(_) => Some("output-resources-unavailable")
     Ok(resources) =>
