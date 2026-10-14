@@ -156,7 +156,7 @@ pub(all) struct PivotClause {
 
 ///|
 pub(all) struct UpdateEffectClause {
-  name : NamePart
+  name : NamePart?
   target : String
   mapping : NamePart
   result : NamePart
@@ -3414,9 +3414,33 @@ fn QueryParser::infer_clause(
   if self.peek().value != Symbol(41) {
     while true {
       self.node()
-      let name = self.name()
-      self.symbol(61)
-      inputs.push((name, self.expression()))
+      if token_at(self.source, self.index + 1)
+        .map(token => token.value == Symbol(61))
+        .unwrap_or(false) {
+        // The left side is a closed ModelTask schema key, not a binding.
+        let name = self.name()
+        self.symbol(61)
+        inputs.push((name, self.expression()))
+      } else {
+        let token = self.peek()
+        if token.value is Word(value) && query_reserved_word(value) {
+          raise QueryAbort(
+            "Reserved identifier requires backticks",
+            token.start,
+          )
+        }
+        // Parse the original reference so its UTF-8 origin and expression
+        // limits are the same as an authored assignment's right side.
+        let expression = self.expression()
+        guard expression_node(expression, expression_root(expression)).unwrap().kind
+          is Reference([name]) else {
+          raise QueryAbort(
+            "INFER INPUT shorthand requires one identifier; use name = expression",
+            token.start,
+          )
+        }
+        inputs.push((name, expression))
+      }
       if self.peek().value != Symbol(44) {
         break
       }
@@ -3697,7 +3721,15 @@ fn QueryParser::update_effect_clause(
   self : QueryParser,
 ) -> UpdateEffectClause raise QueryAbort {
   self.keyword("EFFECT")
-  let name = self.name()
+  // UPDATE remains a valid explicit Effect name in EFFECT UPDATE UPDATE.
+  let name = if self.has("UPDATE") &&
+    !token_at(self.source, self.index + 1)
+    .map(token => keyword(token, "UPDATE"))
+    .unwrap_or(false) {
+    None
+  } else {
+    Some(self.name())
+  }
   self.keyword("UPDATE")
   self.keyword("TARGET")
   let target = self.expression()

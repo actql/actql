@@ -202,7 +202,7 @@ result_operator = "RESULT", identifier ;
 assertion_operator = "ASSERT", "UNIQUE", "BY", "(", path, { ",", path }, ")" ;
 terminal_effect = terminal_update | [ "EFFECT", identifier ], table_create ;
 table_create  = "CREATE", [ "OR", "REPLACE" ], "TABLE", path ;
-terminal_update = "EFFECT", identifier, "UPDATE", "TARGET", query_string,
+terminal_update = "EFFECT", [ identifier ], "UPDATE", "TARGET", query_string,
                   "MAPPING", identifier, "FROM", "RESULT", identifier,
                   "ID", identifier, "SET", "(", assignment, { ",", assignment }, ")" ;
 (* Pipe WHERE permits supported inline window calls in its predicate. *)
@@ -236,8 +236,11 @@ unpivot_column_set = identifier | "(", identifier, { ",", identifier }, ")" ;
 unpivot_input = unpivot_column_set, [ [ "AS" ], ( query_string | integer ) ] ;
 infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
                  path, { ",", path }, ")", "INPUT", "(",
-                 [ assignment, { ",", assignment } ], ")",
+                 [ infer_input, { ",", infer_input } ], ")",
                  [ keep_clause ], "AS", identifier ;
+(* Shorthand is one ordinary binding identifier, quoted when reserved. The
+   assignment key keeps its closed ModelTask schema-key role. *)
+infer_input = assignment | identifier ;
 (* Options are static scalar values, with bound Parameters only for row/byte
    guards. Common profile checking owns mandatory options, domains and defaults. *)
 serialize_operator = "SERIALIZE", "FORMAT", ( "CSV" | "JSONL" ),
