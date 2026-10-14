@@ -3,6 +3,9 @@
 /// admission or a capacity charge. Shared Nodes, Fields, spans and Strings are
 /// counted per occurrence. Source paths in both Node and key spans are included.
 /// Backing slots include spare capacity; JS capacity is not an engine heap size.
+/// Native unused slots can still retain removed values. Report those slots as
+/// uninspected: their payloads are not included in the reachable field counts
+/// and must not be assigned zero by a capacity caller. Do not release them here.
 /// The traversal's frame backing is scratch, separate from the observed tree.
 pub(all) struct SourceRepresentationExtent {
   nodes : Int64
@@ -14,6 +17,8 @@ pub(all) struct SourceRepresentationExtent {
   objects : Int64
   array_backing_slots : Int64
   object_backing_slots : Int64
+  uninspected_array_slots : Int64
+  uninspected_object_slots : Int64
   max_frame_slots : Int64
 } derive(Eq, Debug)
 
@@ -58,6 +63,8 @@ pub fn representation_extent(
     objects: 0L,
     array_backing_slots: 0L,
     object_backing_slots: 0L,
+    uninspected_array_slots: 0L,
+    uninspected_object_slots: 0L,
     max_frame_slots: pending.capacity().to_int64(),
   }
   while pending.pop() is Some(frame) {
@@ -101,6 +108,8 @@ pub fn representation_extent(
               arrays: extent.arrays + 1L,
               array_backing_slots: extent.array_backing_slots +
               items.capacity().to_int64(),
+              uninspected_array_slots: extent.uninspected_array_slots +
+              (items.capacity().to_int64() - items.length().to_int64()),
             }
             pending.push(ArrayNext(items, 0, depth + 1))
           }
@@ -113,6 +122,8 @@ pub fn representation_extent(
               objects: extent.objects + 1L,
               object_backing_slots: extent.object_backing_slots +
               fields.capacity().to_int64(),
+              uninspected_object_slots: extent.uninspected_object_slots +
+              (fields.capacity().to_int64() - fields.length().to_int64()),
             }
             pending.push(ObjectNext(fields, 0, depth + 1))
           }

@@ -23,10 +23,15 @@ test "Source extent includes original key and value spans without normalization"
   assert_eq(fields[0].key, "e\u0301")
   assert_true(items[0].value is String("😀"))
   assert_eq(extent.array_backing_slots, items.capacity().to_int64())
+  assert_eq(extent.uninspected_array_slots, items.capacity().to_int64() - 3L)
   guard fields[1].value.value is Object(empty) else { fail("expected object") }
   assert_eq(
     extent.object_backing_slots,
     fields.capacity().to_int64() + empty.capacity().to_int64(),
+  )
+  assert_eq(
+    extent.uninspected_object_slots,
+    fields.capacity().to_int64() + empty.capacity().to_int64() - 2L,
   )
 }
 
@@ -42,6 +47,9 @@ test "Source extent counts spare backing and repeated original occurrences" {
   assert_eq(extent.nodes, 3L)
   assert_eq(extent.spans, 3L)
   assert_eq(extent.array_backing_slots, items.capacity().to_int64())
+  // Native pop can retain removed payloads in spare slots. These are explicitly
+  // uninspected, not a zero-cost assertion or a reason to mutate original arrays.
+  assert_eq(extent.uninspected_array_slots, items.capacity().to_int64() - 2L)
   assert_true(extent.array_backing_slots >= 2L)
   assert_eq(items.length(), 2)
   assert_true(physical_equal(items[0], leaf))
