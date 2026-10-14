@@ -1313,12 +1313,15 @@ fn replay_output_reports(
   environment : ControlEnvironment,
   client : @http.Client,
   url : String,
-  next : Map[String, UInt64],
+  next : Ref[UInt64],
   backoff_ms : Int,
   cursor_owner : Ref[String],
   delegation : @resident.ResidentSiteDelegation,
   checkpoint : (String) -> Unit,
 ) -> Unit {
+  // A class-wide pacing hint has constant size. The original journal/cursor
+  // owns every report; a deadline never drops or reissues that responsibility.
+  if @env.now() < next.val { return }
   guard fresh_journal(environment) is Some(journal) else { return }
   let mut cursor = cursor_owner.val
   // One report per pass; rotate the cursor so retries cannot starve poll,
@@ -1331,17 +1334,14 @@ fn replay_output_reports(
         if state is Some(@remote.RemoteOutputReportReply::Accepted) {
           continue
         }
-        if next.get(key) is Some(deadline) && @env.now() < deadline {
-          continue
-        }
-        next.set(key, @env.now() + backoff_ms.to_uint64())
+        next.val = @env.now() + backoff_ms.to_uint64()
         let result = @remote.remote_output_report_custody_result(custody)
         if state is Some(@remote.RemoteOutputReportReply::Refused(reason)) {
           report("output-report-attention", [
             ("report_cid", @remote.remote_output_result_identity(result)),
             ("reason", reason),
           ])
-          continue
+          break
         }
         if state is Some(@remote.RemoteOutputReportReply::Retry(reason)) {
           report("output-report-retry", [
@@ -1386,7 +1386,7 @@ fn replay_output_reports(
                 ("reason", "scope-mismatch-encode"),
               ])
           }
-          continue
+          break
         }
         match
           @client.acknowledge_retained_output_report(
@@ -1440,12 +1440,13 @@ fn reconcile_saved_cancellation(
   client : @http.Client,
   url : String,
   cursor : Ref[String],
-  next : Map[String, UInt64],
+  next : Ref[UInt64],
   backoff_ms : Int,
   delegation : @resident.ResidentSiteDelegation,
   recovery : Ref[StoppedReleaseRecovery?],
   close_failures : Ref[Int],
 ) -> Unit raise CommandStop {
+  if @env.now() < next.val { return }
   guard fresh_journal(environment) is Some(journal) else { return }
   let recovered = journal.recover_after(cursor.val)
   match recovered {
@@ -1469,10 +1470,7 @@ fn reconcile_saved_cancellation(
         ])
         return
       }
-      if next.get(identity) is Some(deadline) && @env.now() < deadline {
-        return
-      }
-      next.set(identity, @env.now() + backoff_ms.to_uint64())
+      next.val = @env.now() + backoff_ms.to_uint64()
       if !already_released &&
         !recover_stopped_release(matches, request, recovery, close_failures) {
         report("cancel-cleanup-pending", [("request_cid", identity)])
@@ -1583,12 +1581,12 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     val: required_int(matches, "control-reclaim-failures"),
   }
   let cancel_cursor : Ref[String] = { val: "", }
-  let next_cancel_report : Map[String, UInt64] = Map([])
+  let next_cancel_report : Ref[UInt64] = Ref(0UL)
   let mut polls = 0
   let mut holders = 0
-  let next_output_report : Map[String, UInt64] = Map([])
+  let next_output_report : Ref[UInt64] = Ref(0UL)
   let report_cursor : Ref[String] = { val: "", }
-  let next_checkpoint_report : Map[String, UInt64] = Map([])
+  let next_checkpoint_report : Ref[UInt64] = Ref(0UL)
   let checkpoint_report_cursor : Ref[String] = { val: "", }
   let report_kill_at = required(matches, "control-report-kill-at")
   let report_checkpoint = fn(point : String) {
