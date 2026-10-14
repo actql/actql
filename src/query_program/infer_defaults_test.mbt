@@ -52,6 +52,30 @@ fn infer_defaults_object_context(
 }
 
 ///|
+// Closed typed failure projection for these controls; no raw source or opaque
+// reference is printed, and the original refusal is never converted to success.
+fn infer_defaults_issue_tag(issue : Issue) -> String {
+  match issue {
+    Expression(diagnostic) => "Expression/" + @debug.to_string(diagnostic.issue)
+    ExpressionTyping(issue) =>
+      "ExpressionTyping/" + @debug.to_string(issue.kind)
+    BindingPreparation(LocalProgram(Pipeline(_, issue)))
+    | BindingPreparationSource(LocalProgram(Pipeline(_, issue)), _) =>
+      "LocalPipeline/" + @debug.to_string(issue.kind)
+    BindingPreparation(_) => "BindingPreparation"
+    BindingPreparationSource(_, _) => "BindingPreparationSource"
+    Construction(_) => "Construction"
+    Admission(_) => "Admission"
+    UnknownColumn => "UnknownColumn"
+    AmbiguousColumn => "AmbiguousColumn"
+    UnsupportedInfer => "UnsupportedInfer"
+    InvalidContext => "InvalidContext"
+    DuplicateOutput => "DuplicateOutput"
+    _ => "other unchanged typed refusal"
+  }
+}
+
+///|
 fn infer_defaults_prefix_refusal(
   result : Result[@program.Program, Issue],
 ) -> @pipeline.IssueKind raise {
@@ -60,7 +84,7 @@ fn infer_defaults_prefix_refusal(
     Err(issue) =>
       fail(
         "expected the original Common pipeline refusal in BindingPreparation: " +
-        @debug.to_string(issue),
+        infer_defaults_issue_tag(issue),
       )
     Ok(_) => fail("unproved omitted ITEM KEY must not compile")
   }
@@ -140,7 +164,7 @@ test "sequential INFER defaults retain the original key through join-back and RE
       let expected = match compile_infer_defaults(expanded, context, script) {
         Ok(program) => program
         Err(issue) =>
-          fail("explicit member control: " + @debug.to_string(issue))
+          fail("explicit member control: " + infer_defaults_issue_tag(issue))
       }
       let actual = compile_infer_defaults(
         expanded
@@ -207,7 +231,7 @@ test "computed two-input JOIN projections retain Common key inference" {
       let expected = match compile_infer_defaults(expanded, context, script) {
         Ok(program) => program
         Err(issue) =>
-          fail("explicit member control: " + @debug.to_string(issue))
+          fail("explicit member control: " + infer_defaults_issue_tag(issue))
       }
       let actual = compile_infer_defaults(
         expanded
@@ -505,7 +529,8 @@ test "deferred INFER input members normalize with the sole original key proof" {
   for script in [false, true] {
     let expected = match compile_infer_defaults(expanded, context, script) {
       Ok(program) => program
-      Err(issue) => fail("explicit member control: " + @debug.to_string(issue))
+      Err(issue) =>
+        fail("explicit member control: " + infer_defaults_issue_tag(issue))
     }
     let actual = compile_infer_defaults(
       expanded
@@ -665,7 +690,8 @@ test "default ITEM KEY uses the admitted Source owner and preserves its Common r
     let expanded = "FROM objects |> SELECT DISTINCT id |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = 'urgent') KEEP (*) AS assessment"
     let expected = match compile_infer_defaults(expanded, context, script) {
       Ok(program) => program
-      Err(issue) => fail("explicit member control: " + @debug.to_string(issue))
+      Err(issue) =>
+        fail("explicit member control: " + infer_defaults_issue_tag(issue))
     }
     let actual = compile_infer_defaults(
       expanded
