@@ -18,8 +18,8 @@ fn nearest_continuation_checked(text : String) -> @program.Program raise {
     Rejected(issue) => {
       match @check.diagnostic_cause(issue) {
         Source(SourceView(Program(Program(Pipeline(stage, failure))))) => fail("nearest prefix pipeline stage \{stage}: " + @debug.to_string(failure.kind))
-        Source(SourceView(Program(Order(stage, PipelineOrder(failure))))) => fail("nearest prefix order stage \{stage}: " + @debug.to_string(failure.kind))
-        Source(SourceView(Program(Results(stage, failure)))) => fail("nearest Result stage \{stage}: " + @debug.to_string(failure.kind))
+        Source(SourceView(Program(Program(Order(stage, PipelineOrder(failure)))))) => fail("nearest prefix order stage \{stage}: " + @debug.to_string(failure.kind))
+        Source(SourceView(Program(Program(Results(stage, failure))))) => fail("nearest Result stage \{stage}: " + @debug.to_string(failure.kind))
         Source(Checks(BudgetExceeded)) => fail("nearest source checks budget")
         other => raise other
       }
