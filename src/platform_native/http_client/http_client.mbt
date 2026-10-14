@@ -64,67 +64,8 @@ pub(all) enum NativeHttpLibraryLoadError {
 }
 
 ///|
-struct NativeHttpLibraryLoadFailure {
-  original_issue : NativeHttpIssue
-  mut library : Library?
-}
-
-///|
-pub fn NativeHttpLibraryLoadFailure::issue(
-  self : NativeHttpLibraryLoadFailure,
-) -> NativeHttpIssue {
-  self.original_issue
-}
-
-///|
-/// A failed init or unconfirmed unload remains pending on the same Library.
-/// There is no load retry, replacement handle or successful-runtime close here.
-pub fn NativeHttpLibraryLoadFailure::retry_cleanup(
-  self : NativeHttpLibraryLoadFailure,
-) -> Result[Unit, NativeHttpIssue] {
-  guard self.library is Some(original) else { return Ok(()) }
-  match retire_failed_http_library(original) {
-    Ok(_) => { self.library = None; Ok(()) }
-    Err(issue) => Err(issue)
-  }
-}
-
-///|
 pub(all) enum NativeHttpClientCreateError {
   RefusedBeforeAcquisition(NativeHttpIssue)
   CleanupRequired(NativeHttpClientCreateFailure)
 }
 
-///|
-struct NativeHttpClientCreateFailure {
-  original_issue : NativeHttpIssue
-  original_library : Library
-  mut client : Client?
-}
-
-///|
-pub fn NativeHttpClientCreateFailure::issue(
-  self : NativeHttpClientCreateFailure,
-) -> NativeHttpIssue {
-  self.original_issue
-}
-
-///|
-/// Retire only the rejected Client's owned paths/response/diagnostic storage.
-/// The original Library reference remains in this carrier through its caller
-/// lifetime and is returned explicitly as residual custody, not a cleanup ACK
-/// for global libcurl or runtime retirement. No new Library is loaded.
-pub fn NativeHttpClientCreateFailure::retry_cleanup(
-  self : NativeHttpClientCreateFailure,
-) -> Result[Library, NativeHttpIssue] {
-  guard self.client is Some(original) else {
-    return Ok(self.original_library)
-  }
-  match retire_failed_http_client(self.original_library, original) {
-    Ok(_) => {
-      self.client = None
-      Ok(self.original_library)
-    }
-    Err(issue) => Err(issue)
-  }
-}
