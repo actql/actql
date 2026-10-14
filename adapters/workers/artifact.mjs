@@ -102,7 +102,6 @@ export const conformanceModules = [
   'adapters/workers/finite.mjs',
   'adapters/host-common/local-js-host.mjs',
   'adapters/host-common/scoped-strategy.mjs',
-  'adapters/workers/invocation.mjs',
   'adapters/workers/async-conformance.mjs',
   'adapters/workers/phase-audit.mjs',
   'adapters/workers/conformance.mjs',
