@@ -35,6 +35,37 @@ const registerModelProviders =
   createInstalledUndiciOpenAIChatRegistration(trustedUndiciHostOptions);
 ```
 
+Alternatively, replace **both** `originalReadInstallation` and
+`rawCaptureSelection` with the closed `originalMaterials` DATA option. It holds
+the original response-profile wire/CID, four policy originals, explicit reader
+limits, generation installation declaration, read declarations without an
+opaque profile, and raw selection times/callback. The exported
+`OpenAIOriginalMaterials` type lists every field. Missing policies, accessor
+fields, extra fields and mixed opaque/DATA options refuse; there is no fallback.
+
+```js
+const registerModelProviders = createInstalledUndiciOpenAIChatRegistration({
+  ...trustedOptionsWithoutOpaqueSelections,
+  originalMaterials: selectedOriginalMaterials,
+});
+```
+
+The constructor snapshots those descriptors once. Only the actual Host's
+registration callback admits canonical wires/CIDs through its own Common
+readers, then passes that same runtime's opaque profile/policies to the existing
+assembler. Applications need no internal runtime import. A material callback
+is single-installation: reuse (even with the same runtime module), null runtime
+or absent readers refuse before constructing a physical selector. Create a new
+callback for a new Host; DATA identity is not transferable custody. The older
+already-opaque overload retains its existing behavior.
+
+Material admission is not Task authorization, raw capture approval, actual
+Store availability, a loan, a numerical profile or an installed Run. The
+snapshot, captured originals, reader workspace and later opaque aliases must
+all be included in the original Host/Run simultaneous budget. Missing complete
+funding still returns the existing Unavailable; these reader limits cannot
+stand in for it. This remains a development installer, not live-ready guidance.
+
 This entry selects the fixed private Undici transport after the same existing
 Host snapshots/profile/original-selection checks. It reuses the existing
 exclusive async registration, physical preflight and original Call cleanup;
