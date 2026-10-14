@@ -2207,21 +2207,28 @@ export async function openLocalPublicationStore(
     }
     try {
       const before = await handle.stat();
-      if (!before.isFile() || before.size > configuration.maxObjectBytes) {
+      if (!before.isFile() || !quantity(before.size) ||
+          before.size > configuration.maxObjectBytes) {
         fail('InvalidPublicationContractObject');
       }
-      const chunks = [];
+      // The original FD extent bounds both acquisition and the private output
+      // before copying. A small contract must not acquire a default64KiB
+      // stream backing or return an unrelated pooled backing.
+      const bytes = Buffer.allocUnsafeSlow(before.size);
       const hash = createHash('sha256');
       let size = 0;
-      const stream = handle.createReadStream({autoClose: false});
-      for await (const chunk of stream) {
-        if (chunk.byteLength > before.size - size ||
-            chunk.byteLength > configuration.maxObjectBytes - size) {
-          fail('PublicationContractCorrupt');
+      if (before.size > 0) {
+        const stream = handle.createReadStream({autoClose: false,
+          end: before.size - 1, highWaterMark: Math.min(65536, before.size)});
+        for await (const chunk of stream) {
+          if (chunk.byteLength > before.size - size ||
+              chunk.byteLength > configuration.maxObjectBytes - size) {
+            fail('PublicationContractCorrupt');
+          }
+          chunk.copy(bytes, size);
+          hash.update(chunk);
+          size += chunk.byteLength;
         }
-        chunks.push(chunk);
-        hash.update(chunk);
-        size += chunk.byteLength;
       }
       const after = await handle.stat();
       const physicalCid = `sha256:${hash.digest('hex')}`;
@@ -2233,7 +2240,7 @@ export async function openLocalPublicationStore(
         fail('PublicationContractCorrupt');
       }
       await verifyObject(physicalCid);
-      return Buffer.concat(chunks, size);
+      return bytes;
     } finally {
       await handle.close();
     }
