@@ -25,6 +25,8 @@ import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
 import {withLocalExecutionPauseHandler} from '../local-node/retained-store.mjs';
 import {acquiredEffectContinuation} from './acquired-effect-continuation.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
+import {BOUND_SOURCE_INVENTORY, BOUND_SOURCE_SUBMISSION,
+  ordinarySourceDescriptors} from './ordinary-source-binding.mjs';
 import {capturedDuckDBConfiguration} from './captured-duckdb-source.mjs';
 import {recoverAdmittedEffectRun} from './effect-run-recovery.mjs';
 import {retireCompletedEffectfulCapture} from
@@ -1148,8 +1150,7 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   };
   const acquisitionDescriptor = prepared => ({checkedSource: prepared.checkedSource,
     readTuple: prepared.readTuple, physicalBinding: prepared.physicalBinding});
-  const sourceDescriptors = sources => sources.map(({occurrence, prepared}) =>
-    ({...occurrence, ...acquisitionDescriptor(prepared)}));
+  const sourceDescriptors = ordinarySourceDescriptors;
   const installationBinding = adapter => ({connectorId: adapter.connectorBindings[0].connectorId,
     connectorRegistration: adapter.connectorRegistration, connectorRevision: adapter.connectorRevision,
     bindingCid: adapter.connectorBindings[0].bindingCid});
@@ -1175,13 +1176,19 @@ async function openInstalledHost({root, mode = 'local', beforeDispatch, workspac
   const sourceInventory = (sources, preparedSource, keyedSource) => keyedSource !== undefined
     ? canonicalValueJson({version: 'actql-client-keyed-source-inventory/0.1', environmentCid: evidenceCid,
       acquisitions: keyedDescriptors(preparedSource, keyedSource)}, {dataKeys: true})
-    : sources?.length === 2 ? canonicalJson({
-    version: 'actql-client-source-inventory/0.1', environmentCid: evidenceCid,
-    acquisitions: sourceDescriptors(sources)}) : undefined;
+    : sources?.length === 2 ? (() => {
+      const acquisitions = sourceDescriptors(sources);
+      const bound = acquisitions.every(item => item.installationBinding !== undefined);
+      const value = {version: bound ? BOUND_SOURCE_INVENTORY
+        : 'actql-client-source-inventory/0.1', environmentCid: evidenceCid, acquisitions};
+      return bound ? canonicalValueJson(value, {dataKeys: true}) : canonicalJson(value);
+    })() : undefined;
   const captureSubmission = (submission, resultNames, preparedSource, preparedSources, keyedSource) => ({
     version: keyedSource !== undefined ? 'actql-remote-keyed-source-submission/0.1'
       : preparedSources?.length === 2
-      ? 'actql-remote-multi-source-submission/0.1' : 'actql-remote-captured-submission/0.1',
+      ? (sourceDescriptors(preparedSources).every(item => item.installationBinding !== undefined)
+        ? BOUND_SOURCE_SUBMISSION : 'actql-remote-multi-source-submission/0.1')
+      : 'actql-remote-captured-submission/0.1',
     requestId: submission.requestId, principalId: submission.principalId,
     connection: submission.connection, kind: submission.kind, input: submission.input,
     parameters: submission.parameters, resultNames,
