@@ -20,10 +20,14 @@ class BackingFixture:
         self.borrow_fault = self.capture_fault = self.return_fault = self.finish_fault = None
         self.current_issue = self.return_issue = self.borrow_issue = 0
         self.live = False
+        self.scopes = 0
+        self.scope_enter_fault = self.scope_leave_fault = None
+        self.scope_enter_issue = self.scope_leave_issue = 0
         self.reenter = None
         library = self.control.library
         calls = {'borrow_into':self.borrow, 'current_into':self.current,
                  'return_into':self.return_loan, 'originals_into':self.originals,
+                 'enter_scope_into':self.enter_scope, 'leave_scope_into':self.leave_scope,
                  'drop_reply':self.drop, 'finish_returned_data':self.finish,
                  'finish_refused_borrow':self.refused,
                  'operation':lambda p: self.facts[p.value][0],
@@ -64,12 +68,30 @@ class BackingFixture:
 
     def return_loan(self, host, loan, reply):
         self.events.append(('return', host.value, loan.value))
-        self.result(reply, 3, self.return_issue)
-        if self.return_issue == 0:
+        issue = 5 if self.scopes else self.return_issue
+        self.result(reply, 3, issue)
+        if issue == 0:
             self.live = False
             self.control.pending = False
         if self.return_fault: raise self.return_fault
         if self.reenter: self.reenter()
+        return 0
+
+    def enter_scope(self, host, loan, reply):
+        self.events.append(('enter_scope', host.value, loan.value))
+        self.result(reply, 4, self.scope_enter_issue)
+        if self.scope_enter_issue == 0:
+            self.scopes += 1
+        if self.scope_enter_fault: raise self.scope_enter_fault
+        return 0
+
+    def leave_scope(self, host, loan, reply):
+        self.events.append(('leave_scope', host.value, loan.value))
+        self.result(reply, 5, self.scope_leave_issue)
+        if self.scope_leave_issue == 0:
+            assert self.scopes > 0
+            self.scopes -= 1
+        if self.scope_leave_fault: raise self.scope_leave_fault
         return 0
 
     def finish(self, host, loan, reply):
@@ -219,6 +241,83 @@ class BackingCustodyTests(unittest.TestCase):
         f.return_issue = 0
         loan.return_after_stop()
         self.assertEqual(f.events.count(('return', 101, 201)), 2)
+
+    def test_nested_physical_scope_keeps_return_pending_until_every_leave(self):
+        f = BackingFixture(); loan = f.take()
+        with loan._physical_scope():
+            with loan._physical_scope():
+                self.assertEqual(f.scopes, 2)
+                with self.assertRaises(_OriginalBackingError) as observed:
+                    loan.return_after_stop()
+                self.assertEqual(observed.exception.fact.issue_family, 5)
+                self.assertFalse(loan._closed)
+            self.assertEqual(f.scopes, 1)
+        self.assertEqual(f.scopes, 0)
+        loan.return_after_stop()
+        self.assertTrue(loan._closed)
+        self.assertEqual(f.events.count(('enter_scope', 101, 201)), 2)
+        self.assertEqual(f.events.count(('leave_scope', 101, 201)), 2)
+
+    def test_scope_entry_refusal_does_not_enter_body_or_infer_cleanup(self):
+        f = BackingFixture(); loan = f.take(); f.scope_enter_issue = 6
+        with self.assertRaises(_OriginalBackingError) as observed:
+            with loan._physical_scope():
+                self.fail('Refused scope entered the physical caller')
+        self.assertFalse(observed.exception.unknown)
+        self.assertEqual(observed.exception.fact.operation, 4)
+        self.assertEqual(f.scopes, 0)
+        self.assertEqual(f.events.count(('leave_scope', 101, 201)), 0)
+        self.assertEqual(loan._loan.value, 201)
+        loan.return_after_stop()
+
+    def test_lost_scope_entry_keeps_original_loan_without_automatic_leave(self):
+        f = BackingFixture(); loan = f.take()
+        f.scope_enter_fault = OSError('lost original scope entry')
+        with self.assertRaises(_OriginalBackingError) as observed:
+            with loan._physical_scope():
+                self.fail('Unknown scope entered the physical caller')
+        self.assertTrue(observed.exception.unknown)
+        self.assertEqual(f.scopes, 1)
+        self.assertEqual(f.events.count(('leave_scope', 101, 201)), 0)
+        self.assertEqual(loan._loan.value, 201)
+        self.assert_sticky(loan, observed.exception, f)
+
+    def test_cleanup_refusal_preserves_primary_and_same_scope_for_explicit_retry(self):
+        f = BackingFixture(); loan = f.take(); primary = OSError('physical caller failed')
+        with self.assertRaises(_OriginalBackingError) as observed:
+            with loan._physical_scope():
+                f.scope_leave_issue = 6
+                raise primary
+        self.assertIs(observed.exception.__cause__, primary)
+        self.assertFalse(observed.exception.unknown)
+        self.assertEqual(observed.exception.fact.operation, 5)
+        self.assertEqual(f.scopes, 1)
+        self.assertEqual(f.events.count(('leave_scope', 101, 201)), 1)
+        self.assertFalse(loan._closed)
+        f.scope_leave_issue = 0
+        loan._change_physical_scope(5)
+        loan.return_after_stop()
+
+    def test_lost_scope_leave_is_sticky_even_when_native_slot_consumed(self):
+        f = BackingFixture(); loan = f.take()
+        with self.assertRaises(_OriginalBackingError) as observed:
+            with loan._physical_scope():
+                f.scope_leave_fault = OSError('lost original scope leave')
+        self.assertTrue(observed.exception.unknown)
+        self.assertEqual(f.scopes, 0)
+        self.assertEqual(f.events.count(('leave_scope', 101, 201)), 1)
+        self.assertEqual(loan._loan.value, 201)
+        self.assert_sticky(loan, observed.exception, f)
+
+    def test_invalid_or_retired_scope_is_rejected_before_native_calls(self):
+        f = BackingFixture(); loan = f.take(); before = list(f.events)
+        for invalid in (True, 0, 3, 6):
+            with self.assertRaises(ValueError): loan._change_physical_scope(invalid)
+        self.assertEqual(f.events, before)
+        loan.return_after_stop(); before = list(f.events)
+        with self.assertRaises(ValueError):
+            with loan._physical_scope(): self.fail('Retired scope entered')
+        self.assertEqual(f.events, before)
 
     def test_copy_foreign_component_reentry_and_boolean_fact_are_rejected(self):
         f = BackingFixture(); other = BackingFixture()

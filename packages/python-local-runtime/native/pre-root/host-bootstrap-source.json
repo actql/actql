@@ -9,13 +9,13 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_native.mbt",
-      "bytes": 16232,
-      "sha256": "d9083d560ac7b16677e3c584ec3ac748dbc59c229c8f6e30ddd1cef60a17ef69"
+      "bytes": 17945,
+      "sha256": "e0ee5011cd26be515ec5990fce84b7476c18102eb914c6b338cd924a6bd59206"
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
-      "bytes": 4010,
-      "sha256": "cc6355c821705cb953b1daeb33f79c1673ef339b225c2e75c36029a1be995a42"
+      "bytes": 4454,
+      "sha256": "ca312ff2031d1cbe7c10c46cbc6cdb7b9fce5d9a3b9082352a9dc95d09ab94da"
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_wbtest.mbt",
