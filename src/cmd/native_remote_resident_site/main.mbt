@@ -749,70 +749,6 @@ priv struct RunningHolder {
 }
 
 ///|
-/// Report the holder's durable record to the Coordinator after it ended. A
-/// lost report is retried on the next pass; the journal keeps the record.
-fn settle_holder(
-  holder : RunningHolder,
-  environment : ControlEnvironment,
-  client : @http.Client,
-  observation_url : String,
-) -> Bool {
-  guard fresh_journal(environment) is Some(journal) else {
-    report("observation-pending", [
-      ("attempt", holder.attempt),
-      ("reason", "journal-open"),
-    ])
-    return false
-  }
-  let observed = @client.acknowledge_status(
-    journal,
-    client,
-    observation_url,
-    holder.request,
-  )
-  ignore(journal.close())
-  match observed {
-    Ok(Some(record)) => {
-      report("holder-settled", [
-        ("attempt", holder.attempt),
-        ("request_cid", @remote.dispatch_request_identity(holder.request)),
-        ("revision", @remote.dispatch_record_revision(record).to_string()),
-      ])
-      true
-    }
-    Ok(None) => {
-      report("holder-settled", [("attempt", holder.attempt)])
-      true
-    }
-    Err(issue) => {
-      report("observation-pending", [
-        ("attempt", holder.attempt),
-        ("reason", client_code(issue)),
-      ])
-      false
-    }
-  }
-}
-
-///|
-/// Whether an ended holder left its attempt startable. A record that cannot
-/// be read counts as startable: starting again is safe, because a holder
-/// claims before it executes and a record that can no longer start is not
-/// claimed.
-fn holder_left_startable(
-  environment : ControlEnvironment,
-  request : @remote.DispatchRequest,
-) -> Bool {
-  guard fresh_journal(environment) is Some(journal) else { return true }
-  let record = journal.require(request)
-  ignore(journal.close())
-  match record {
-    Ok(value) => @remote.remote_runtime_record_startable(value)
-    Err(_) => true
-  }
-}
-
-///|
 /// Acceptance evidence only: while `failures` is positive, a reclaim pass is
 /// reported as skipped and the count goes down.
 fn skip_reclaim(failures : Ref[Int]) -> Bool {
@@ -974,6 +910,7 @@ priv struct StoppedReleaseRecovery {
   mut recorded_source : @publication.RecordedRunPublication?
   mut recorded_consumer : (String, String)?
   mut completed_input_producer : (String, String)?
+  mut terminal_close : StoppedRecoveryTerminalClose
 }
 
 ///|
@@ -1046,6 +983,7 @@ fn open_release_recovery(
     recorded_source: None,
     recorded_consumer: None,
     completed_input_producer: None,
+    terminal_close: RecoveryTerminalOpen,
   }
 }
 
@@ -1106,6 +1044,11 @@ fn recover_stopped_release(
   }
   if owner.request_identity != identity {
     return false
+  }
+  if !(owner.terminal_close is RecoveryTerminalOpen) {
+    // The common Owner already selected its terminal cleanup action. Retrying
+    // a partial close must not read through its retiring/closed journal.
+    return retry_stopped_recovery_terminal_close(owner, retained)
   }
   let record = match owner.journal.require(request) {
     Ok(value) => value
@@ -1248,14 +1191,8 @@ fn recover_stopped_release(
     }
     match @remote.remote_runtime_step_action_code(step) {
       4 => {
-        if !owner.journal.close() {
-          stop("release recovery journal close unconfirmed")
-        }
-        if !owner.slot.close() {
-          stop("release recovery slot close unconfirmed")
-        }
-        retained.val = None
-        return true
+        owner.terminal_close = RecoveryTerminalJournal
+        return retry_stopped_recovery_terminal_close(owner, retained)
       }
       1 | 2 => {
         // SettleThenPersist is valid here only because the exact physical
@@ -1628,10 +1565,10 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     val: required_int(matches, "release-recovery-close-failures"),
   }
   let mut holder : RunningHolder? = None
-  // Holder records not yet reported. They are kept and retried, never
-  // dropped, and do not hold back new work; a query answered from the
-  // journal for the same dispatch reports them too.
-  let unsettled : Array[RunningHolder] = []
+  // The original ended executor keeps its existing admission until report,
+  // Channel and descendant-stop facts are independently confirmed. No new
+  // holder starts while that responsibility is pending.
+  let unsettled : Array[EndedHolderResponsibility] = []
   let mut backoff_ms = 0
   let mut next_start_ms : UInt64 = 0
   // Output intents of holders that are gone are looked for at startup and
@@ -1674,24 +1611,15 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       Some(current) =>
         match current.child.wait(false) {
           Ok(Some(_)) => {
-            ignore(current.channel.close())
             holder = None
             // Physical child exit is separate from the Coordinator's ACK of
             // its durable status (which may be unavailable or already read).
             report("holder-exited", [("attempt", current.attempt)])
             // A holder that died may have left output intents behind.
             reclaim_due = true
-            // A holder that ended without claiming (its setup failed) left
-            // the attempt startable: it stays queued and starts again after
-            // the error backoff. Only a record that can no longer start is
-            // reported and leaves the queue.
-            if holder_left_startable(environment, current.request) {
-              report("holder-unclaimed", [("attempt", current.attempt)])
-              next_start_ms = @env.now() + max_backoff_ms.to_uint64()
-            } else {
-              ignore(queue.remove(current.attempt))
-              unsettled.push(current)
-            }
+            // Do not classify an unreadable journal as safe to start again,
+            // or discard physical custody merely because a status is reported.
+            unsettled.push(retain_ended_holder(current))
           }
           Ok(None) =>
             if @env.now() >= current.next_report_ms {
@@ -1745,18 +1673,27 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         }
       None => ()
     }
-    // Unreported records are retried with the error backoff, not on every
-    // pass.
+    // Back off status transport while preserving exact original journals on
+    // failed close. Report ACK and physical cleanup never substitute each other.
     let still_unsettled = unsettled.filter(current => {
-      if @env.now() < current.next_report_ms {
+      if @env.now() >= current.original.next_report_ms {
+        observe_ended_holder(current, environment, client, observation_url)
+        current.original.next_report_ms = @env.now() + max_backoff_ms.to_uint64()
+      }
+      if orphan_store is Some(_) || reclaim_due || orphan_reconciliation ||
+        recovery.val is Some(_) || pending_custody is Some(_) ||
+        !ended_holder_can_leave_window(current, slot) {
         return true
       }
-      if settle_holder(current, environment, client, observation_url) {
-        false
+      if current.startability is Some(true) {
+        // Same queued attempt, not a new Run/attempt. Its next start still goes
+        // through the existing current dispatch read and durable claim Owner.
+        report("holder-unclaimed", [("attempt", current.original.attempt)])
+        next_start_ms = @env.now() + max_backoff_ms.to_uint64()
       } else {
-        current.next_report_ms = @env.now() + max_backoff_ms.to_uint64()
-        true
+        ignore(queue.remove(current.original.attempt))
       }
+      false
     })
     unsettled.clear()
     unsettled.append(still_unsettled)
@@ -1807,10 +1744,9 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     }
     // No holder starts while this process still has the slot for a Store
     // it could not close yet.
-    if holder is None &&
-      orphan_store is None &&
-      recovery.val is None &&
-      pending_custody is None &&
+    if holder is None && unsettled.is_empty() &&
+      orphan_store is None && !reclaim_due && !orphan_reconciliation &&
+      recovery.val is None && pending_custody is None &&
       @env.now() >= next_start_ms {
       if !slot.is_open() {
         slot = match @slot.open_native_executor_slot(slot_path) {
@@ -2058,7 +1994,13 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
                   @slot.native_kill_self()
                 }
                 match @remote.dispatch_request_attempt_identity(request) {
-                  Ok(attempt) => ignore(queue.remove(attempt))
+                  Ok(attempt) => {
+                    // Cancellation intent does not retire an ended executor's
+                    // physical/channel responsibility or its admission.
+                    if !unsettled.any(value => value.original.attempt == attempt) {
+                      ignore(queue.remove(attempt))
+                    }
+                  }
                   Err(_) => ()
                 }
                 let codes = @remote.dispatch_record_state_codes(record)
@@ -2110,11 +2052,13 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
           @client.acknowledge_status(journal, client, observation_url, request) {
           Ok(Some(record)) => {
             let identity = @remote.dispatch_request_identity(request)
-            let remaining = unsettled.filter(current => {
-              @remote.dispatch_request_identity(current.request) != identity
-            })
-            unsettled.clear()
-            unsettled.append(remaining)
+            for current in unsettled {
+              if @remote.dispatch_request_identity(current.original.request) == identity {
+                current.report_evidence = OriginalStatusAcknowledged
+                current.startability = Some(@remote.remote_runtime_record_startable(record))
+              }
+            }
+            // A late Query report never removes physical/channel custody.
             report("query", [
               ("request_cid", identity),
               ("revision", @remote.dispatch_record_revision(record).to_string()),
@@ -2444,7 +2388,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   while holder is Some(current) && waited < shutdown_wait_ms {
     match current.child.wait(false) {
       Ok(Some(_)) => {
-        ignore(settle_holder(current, environment, client, observation_url))
+        unsettled.push(retain_ended_holder(current))
         holder = None
       }
       _ => {
@@ -2454,7 +2398,19 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     }
   }
   for current in unsettled {
-    ignore(settle_holder(current, environment, client, observation_url))
+    observe_ended_holder(current, environment, client, observation_url)
+  }
+  // Neither report ACK nor child exit discards physical responsibility at the
+  // terminal controller boundary. Keep it in the existing lifetime shell.
+  if !unsettled.is_empty() || holder is Some(_) || orphan_store is Some(_) ||
+    recovery.val is Some(_) || pending_custody is Some(_) {
+    slot = retain_control_ended_holder_lifetime(
+      unsettled, holder, environment, client, observation_url, slot, slot_path,
+      orphan_store, recovery, matches, recovery_close_failures, pending_custody,
+    )
+    holder = None
+    orphan_store = None
+    pending_custody = None
   }
   if holder is Some(current) {
     report("holder-still-running", [("attempt", current.attempt)])
