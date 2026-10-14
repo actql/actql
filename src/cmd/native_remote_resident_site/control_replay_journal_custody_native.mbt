@@ -59,3 +59,14 @@ fn open_control_replay_journal(
     }
   }
 }
+
+///|
+/// Caller diagnostics are separate from the existing Journal's checked ACK.
+/// The same reference remains available to control/terminal progress on error.
+fn close_control_replay_journal(
+  retained : Ref[ControlReplayJournalCustody?],
+) -> Unit {
+  if !retry_control_replay_journal_cleanup(retained) {
+    report("control-journal-cleanup-pending", [])
+  }
+}
