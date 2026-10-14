@@ -1157,8 +1157,11 @@ fn advance_model_execution_owned(
       if state.stop_requested {
         cancel_model_physical_call(call)
       }
-      if poll_model_physical_call(call) is Some(PhysicalPending) {
-        return Ok(AwaitIo(execution.progress, execution.work))
+      match poll_model_physical_call(call) {
+        Err(issue) => call.poll_issue = Some(issue)
+        Ok(Some(PhysicalPending) | None) =>
+          return Ok(AwaitIo(execution.progress, execution.work))
+        Ok(Some(_)) => ()
       }
     }
   }

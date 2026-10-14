@@ -10,6 +10,7 @@ pub struct ModelIoAdmission[T] {
   mut unsettled : Int
   duties : Array[ModelIoTicket[T]]
   mut closing : Bool
+  priv mut access_issued : Bool
 }
 
 ///|
@@ -36,6 +37,7 @@ pub(all) enum ModelIoAdmissionIssue {
   ActiveExhausted
   HoldingExhausted
   DuplicateAttempt
+  DuplicateAccess
   IoAlreadyRetired
   CleanupPending
   TicketRetired
@@ -67,6 +69,7 @@ pub fn[T] issue_model_io_admission(
     unsettled: 0,
     duties: [],
     closing: false,
+    access_issued: false,
   })
 }
 
