@@ -96,6 +96,7 @@ pub fn[T, C] NativeHostBootstrap::map_backed_view(Self[T], T, NativeBackedExecut
 pub fn[T, C] NativeHostBootstrap::project_backed_extent(Self[T], T, NativeBackedExecutionLoan[T, C], C) -> Result[NativeBackedExtentTransport, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::report(Self[T], T, NativeBootstrapDelegation[T], @physical_resources.LedgerUsage) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T, C] NativeHostBootstrap::report_backed_region(Self[T], T, NativeBackedExecutionLoan[T, C], C, @physical_resources.LedgerUsage) -> Result[Unit, NativeBackedExecutionIssue]
+pub fn[T, C] NativeHostBootstrap::require_backed_domain_current(Self[T], T, NativeBackedExecutionDomain[T, C], C) -> Result[Unit, NativeBackedExecutionIssue]
 pub fn[T] NativeHostBootstrap::require_borrow_current(Self[T], T, NativeBootstrapBorrow[T]) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::require_current(Self[T], T) -> Result[Unit, NativeBootstrapIssue]
 pub fn[T] NativeHostBootstrap::retire(Self[T], T, NativeBootstrapAllocation[T]) -> Result[Unit, NativeBootstrapIssue]
