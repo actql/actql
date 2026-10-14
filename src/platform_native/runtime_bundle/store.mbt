@@ -21,6 +21,21 @@ pub(all) enum NativeRuntimeBundleStoreIssue {
 }
 
 ///|
+/// Refusal before physical preparation is distinct from original acquired
+/// cleanup responsibility. Neither outcome proves a bundle hold release.
+pub(all) enum NativeRuntimeBundleStoreOpenError {
+  RefusedBeforeAcquisition(NativeRuntimeBundleStoreIssue)
+  CleanupRequired(NativeRuntimeBundleStoreOpenFailure)
+}
+
+///|
+/// Actual Owner stage, not an execution outcome or resend permission.
+pub(all) enum NativeRuntimeBundleProcessAcquireError {
+  RefusedBeforeHolding(NativeRuntimeBundleStoreIssue)
+  HoldingUnconfirmed(NativeRuntimeBundleStoreIssue)
+}
+
+///|
 pub struct NativeRuntimeBundleComponentDigest {
   hasher : @sha.Hasher
 }
