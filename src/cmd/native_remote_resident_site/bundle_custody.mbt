@@ -6,6 +6,8 @@
 priv enum PendingBundleCustody {
   Waiting(@remote.RemotePollBundleCustody)
   Responding(@agent.NativeBundleCustodyPendingReport)
+  Retiring(ControlBundleCustodyCleanup)
+  Unconfirmed(ControlBundleCustodyCleanup)
 }
 
 ///|
@@ -46,24 +48,36 @@ fn control_bundle_custody_response(
   environment : ControlEnvironment,
   delivery : @remote.RemotePollBundleCustody,
   configuration : @agent.NativeBundleCustodyConfiguration,
-) -> Result[@bundle_protocol.RemoteBundleCustodyResponse, String] raise CommandStop {
+  slot : @slot.NativeExecutorSlot,
+) -> ControlBundleCustodyCleanup raise CommandStop {
+  let authenticated_coordinator = required(matches, "coordinator-authority")
   let request = @remote.remote_poll_bundle_custody_request(delivery)
   // Refuse before opening the Store. The same current check is repeated at
   // the Store boundary, after configuration/signature setup.
   match
     @agent.native_bundle_custody_authorized(
       configuration,
-      required(matches, "coordinator-authority"),
+      authenticated_coordinator,
       request,
       !@slot.native_termination_requested(),
     ) {
-    Err(_) => return Err("authority-or-admission")
+    Err(_) =>
+      return control_bundle_custody_cleanup(
+        delivery,
+        slot,
+        BundleCustodyRejected("authority-or-admission"),
+      )
     Ok(_) => ()
   }
   let signature_library = match
     @signature.load_library(required(matches, "crypto-library")) {
     Ok(value) => value
-    Err(_) => return Err("signature-library")
+    Err(_) =>
+      return control_bundle_custody_cleanup(
+        delivery,
+        slot,
+        BundleCustodyRejected("signature-library"),
+      )
   }
   let public_key = load_text(
     required(matches, "bundle-public-key-root"),
@@ -71,7 +85,7 @@ fn control_bundle_custody_response(
     required_int64(matches, "max-file-bytes"),
   )
   let bundles = match
-    @bundle.open_runtime_bundle_store(
+    @bundle.open_runtime_bundle_store_with_custody(
       environment.sqlite_library,
       signature_library,
       required(matches, "runtime-root"),
@@ -89,25 +103,38 @@ fn control_bundle_custody_response(
       environment.max_record_bytes,
     ) {
     Ok(value) => value
-    Err(_) => return Err("store-open")
+    Err(RefusedBeforeAcquisition(_)) =>
+      return control_bundle_custody_cleanup(
+        delivery,
+        slot,
+        BundleCustodyRejected("store-open-refused"),
+      )
+    Err(CleanupRequired(original)) =>
+      return control_bundle_custody_cleanup(
+        delivery,
+        slot,
+        BundleCustodyRejected("store-open-failed"),
+        failed_store=Some(original),
+      )
   }
   let result = @agent.prepare_native_bundle_custody_response(
     bundles,
     delivery,
     configuration,
-    required(matches, "coordinator-authority"),
+    authenticated_coordinator,
     !@slot.native_termination_requested(),
   )
-  // No response escapes if Store cleanup is unconfirmed. Process termination
-  // leaves durable custody in the original catalog for operator recovery.
-  if !(bundles.close() is Ok(true)) {
-    stop("Bundle custody Store close unconfirmed")
+  let completion = match result {
+    Ok(response) => BundleCustodyPrepared(response)
+    Err(@agent.AuthorityRejected) => BundleCustodyRejected("authority")
+    Err(@agent.AdmissionClosed) => BundleCustodyRejected("admission-closed")
+    Err(@agent.RegistrationMismatch) => BundleCustodyRejected("registration")
+    Err(original) => BundleCustodyUncertain(original)
   }
-  match result {
-    Ok(response) => Ok(response)
-    Err(@agent.AuthorityRejected) => Err("authority")
-    Err(@agent.AdmissionClosed) => Err("admission-closed")
-    Err(@agent.RegistrationMismatch) => Err("registration")
-    Err(@agent.Store(_)) => Err("store")
-  }
+  control_bundle_custody_cleanup(
+    delivery,
+    slot,
+    completion,
+    store=Some(bundles),
+  )
 }
