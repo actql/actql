@@ -8,7 +8,9 @@ test "control restart replays only the original pending Effect report and saves 
   guard @env.get_env_var("ACTQL_TEST_NATIVE_EFFECT_CHECKPOINT_URL")
     is Some(origin) else {
     if @env.get_env_var("ACTQL_REQUIRE_NATIVE_EFFECT_REPLAY_TESTS") is Some("1") {
-      fail("selected Effect replay acceptance requires its authenticated HTTPS peer")
+      fail(
+        "selected Effect replay acceptance requires its authenticated HTTPS peer",
+      )
     }
     return
   }
@@ -128,12 +130,26 @@ test "control restart replays only the original pending Effect report and saves 
   )
   sibling.accept(sibling_request).unwrap() |> ignore
   let sibling_cursor : Ref[String] = Ref("")
-  assert_true(advance_effect_checkpoint_replay(
-    sibling, client, origin + "/accepted", delegation, 4,
-    sibling_cursor, next, 99UL, 100, fn(_) {  },
-  ) is Idle)
+  assert_true(
+    advance_effect_checkpoint_replay(
+      sibling,
+      client,
+      origin + "/accepted",
+      delegation,
+      4,
+      sibling_cursor,
+      next,
+      99UL,
+      100,
+      fn(_) {  },
+    )
+    is Idle,
+  )
   assert_eq(sibling_cursor.val, "")
-  assert_eq(@remote.dispatch_record_revision(sibling.require(sibling_request).unwrap()), 0)
+  assert_eq(
+    @remote.dispatch_record_revision(sibling.require(sibling_request).unwrap()),
+    0,
+  )
   assert_eq(sibling.start_claimant(sibling_request).unwrap(), None)
   sibling.close_checked().unwrap()
   assert_true(

@@ -156,7 +156,7 @@ pub(all) struct PivotClause {
 
 ///|
 pub(all) struct UpdateEffectClause {
-  name : NamePart
+  name : NamePart?
   target : String
   mapping : NamePart
   result : NamePart
@@ -2134,30 +2134,23 @@ fn QueryParser::correlated_unnest(
 }
 
 ///|
-fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
-  self.keyword("SELECT")
-  let distinct = self.has("DISTINCT")
-  if distinct {
-    self.keyword("DISTINCT")
-  } else if self.has("ALL") {
-    self.keyword("ALL")
-  }
-  let select_windows : Array[Projection] = []
-  let (projections, embedded) = self.projections(
-    aggregate_expressions=true,
-    windows=select_windows,
-    window_expressions=true,
-  )
-  let group_projections = projections +
-    embedded.map(pair => {
-      expression: None,
-      aggregate: Some(pair.1),
-      analytic: None,
-      name: Some(pair.0),
-      star: None,
-      except_columns: [],
-      replacements: [],
-    })
+// Read only the initial FROM source and its attached JOINs. SQL owns its later
+// clauses; FROM-headed queries pass this same state to the explicit Pipe tail.
+fn QueryParser::initial_from(
+  self : QueryParser,
+  allow_graph_marker? : Bool = false,
+) -> (
+  Array[NamePart],
+  NamePart?,
+  Array[QueryBinding],
+  Bool,
+  FileListSelector?,
+  GraphQuery?,
+  Array[JoinPart],
+  Array[QueryOperation],
+) raise QueryAbort {
+  self.keyword("FROM")
+  let mut graph : GraphQuery? = None
   let operations : Array[QueryOperation] = []
   let (
     initial_relation,
@@ -2165,16 +2158,29 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     initial_ctes,
     initial_implicit_alias,
     initial_file_listing,
-  ) = if self.has("FROM") {
-    self.keyword("FROM")
-    if self.has("UNNEST") {
-      operations.push(self.unnest_source())
-      ([], None, [], false, None)
-    } else {
-      self.query_source()
+  ) = if allow_graph_marker && self.has("GRAPH") {
+    self.keyword("GRAPH")
+    let start = self.peek().start
+    let relation = self.resolve_producer(self.path())
+    let end = self.source.tokens[self.index - 1].end
+    if self.has("LABELS") {
+      raise QueryAbort("Graph LABELS annotation is retired", self.peek().start)
     }
-  } else {
+    // Preserve authored row aliases for Carrier-specific static checking,
+    // just as marker-free FROM does. The marker grants no row scope.
+    let source_alias = self.optional_source_alias()
+    graph = Some({
+      pattern: None,
+      expectation: Some(
+        @origin.range(self.source.document, start, end).unwrap(),
+      ),
+    })
+    (relation, source_alias, [], false, None)
+  } else if self.has("UNNEST") {
+    operations.push(self.unnest_source())
     ([], None, [], false, None)
+  } else {
+    self.query_source()
   }
   let mut relation = initial_relation
   let mut source_alias = initial_alias
@@ -2202,7 +2208,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
           source_alias,
           bindings,
           file_listing,
-          graph: None,
+          graph,
           joins: joins.copy(),
           operations: operations.copy(),
           sets: [],
@@ -2219,6 +2225,7 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
       implicit_source_alias = expanded.implicit_source_alias
       bindings = expanded.bindings
       file_listing = expanded.file_listing
+      graph = expanded.graph
       joins.clear()
       operations.clear()
     }
@@ -2227,6 +2234,52 @@ fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
     for cte in join_ctes {
       bindings.push(cte)
     }
+  }
+
+  (
+    relation, source_alias, bindings, implicit_source_alias, file_listing, graph,
+    joins, operations,
+  )
+}
+
+///|
+fn QueryParser::sql_term(self : QueryParser) -> Query raise QueryAbort {
+  self.keyword("SELECT")
+  let distinct = self.has("DISTINCT")
+  if distinct {
+    self.keyword("DISTINCT")
+  } else if self.has("ALL") {
+    self.keyword("ALL")
+  }
+  let select_windows : Array[Projection] = []
+  let (projections, embedded) = self.projections(
+    aggregate_expressions=true,
+    windows=select_windows,
+    window_expressions=true,
+  )
+  let group_projections = projections +
+    embedded.map(pair => {
+      expression: None,
+      aggregate: Some(pair.1),
+      analytic: None,
+      name: Some(pair.0),
+      star: None,
+      except_columns: [],
+      replacements: [],
+    })
+  let (
+    relation,
+    source_alias,
+    bindings,
+    implicit_source_alias,
+    file_listing,
+    _,
+    joins,
+    operations,
+  ) = if self.has("FROM") {
+    self.initial_from()
+  } else {
+    ([], None, [], false, None, None, [], [])
   }
 
   if self.has("WHERE") {
@@ -2668,35 +2721,16 @@ fn QueryParser::pipe(
   self : QueryParser,
   context? : QueryContext = StatementQuery,
 ) -> Query raise QueryAbort {
-  self.keyword("FROM")
-  let mut graph : GraphQuery? = None
-  let operations : Array[QueryOperation] = []
-  let (relation, source_alias, bindings, implicit_source_alias, file_listing) = if self.has(
-      "GRAPH",
-    ) {
-    self.keyword("GRAPH")
-    let start = self.peek().start
-    let relation = self.resolve_producer(self.path())
-    let end = self.source.tokens[self.index - 1].end
-    if self.has("LABELS") {
-      raise QueryAbort("Graph LABELS annotation is retired", self.peek().start)
-    }
-    // Preserve authored row aliases for Carrier-specific static checking,
-    // just as marker-free FROM does. The marker grants no row scope.
-    let source_alias = self.optional_source_alias()
-    graph = Some({
-      pattern: None,
-      expectation: Some(
-        @origin.range(self.source.document, start, end).unwrap(),
-      ),
-    })
-    (relation, source_alias, [], false, None)
-  } else if self.has("UNNEST") {
-    operations.push(self.unnest_source())
-    ([], None, [], false, None)
-  } else {
-    self.query_source()
-  }
+  let (
+    relation,
+    source_alias,
+    bindings,
+    implicit_source_alias,
+    file_listing,
+    graph,
+    joins,
+    operations,
+  ) = self.initial_from(allow_graph_marker=true)
   self.pipe_tail(
     {
       source: self.source,
@@ -2709,7 +2743,7 @@ fn QueryParser::pipe(
       source_alias,
       file_listing,
       graph,
-      joins: [],
+      joins,
       operations,
       sets: [],
       final_operations: [],
@@ -2791,7 +2825,10 @@ fn QueryParser::pipe_tail(
     // checked producer continuation rather than sending a later GraphCall to
     // the ordinary Relation lowerer or discarding that prefix's operations.
     if carrier_call_head(next) &&
-      operations.any(operation => !(operation is GraphCall(_))) {
+      (
+        !joins.is_empty() ||
+        operations.any(operation => !(operation is GraphCall(_)))
+      ) {
       let producer : Query = {
         source: self.source,
         primary: input.primary,
@@ -3414,9 +3451,33 @@ fn QueryParser::infer_clause(
   if self.peek().value != Symbol(41) {
     while true {
       self.node()
-      let name = self.name()
-      self.symbol(61)
-      inputs.push((name, self.expression()))
+      if token_at(self.source, self.index + 1)
+        .map(token => token.value == Symbol(61))
+        .unwrap_or(false) {
+        // The left side is a closed ModelTask schema key, not a binding.
+        let name = self.name()
+        self.symbol(61)
+        inputs.push((name, self.expression()))
+      } else {
+        let token = self.peek()
+        if token.value is Word(value) && query_reserved_word(value) {
+          raise QueryAbort(
+            "Reserved identifier requires backticks",
+            token.start,
+          )
+        }
+        // Parse the original reference so its UTF-8 origin and expression
+        // limits are the same as an authored assignment's right side.
+        let expression = self.expression()
+        guard expression_node(expression, expression_root(expression)).unwrap().kind
+          is Reference([name]) else {
+          raise QueryAbort(
+            "INFER INPUT shorthand requires one identifier; use name = expression",
+            token.start,
+          )
+        }
+        inputs.push((name, expression))
+      }
       if self.peek().value != Symbol(44) {
         break
       }
@@ -3697,7 +3758,15 @@ fn QueryParser::update_effect_clause(
   self : QueryParser,
 ) -> UpdateEffectClause raise QueryAbort {
   self.keyword("EFFECT")
-  let name = self.name()
+  // UPDATE remains a valid explicit Effect name in EFFECT UPDATE UPDATE.
+  let name = if self.has("UPDATE") &&
+    !token_at(self.source, self.index + 1)
+    .map(token => keyword(token, "UPDATE"))
+    .unwrap_or(false) {
+    None
+  } else {
+    Some(self.name())
+  }
   self.keyword("UPDATE")
   self.keyword("TARGET")
   let target = self.expression()

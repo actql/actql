@@ -33,7 +33,9 @@ fn advance_effect_checkpoint_replay(
   }
   // Constant-size pacing for this report class. No request identity is kept
   // here; the original journal and cursor retain the durable responsibility.
-  if now < next.val { return Idle }
+  if now < next.val {
+    return Idle
+  }
   let (key, record) = match journal.recover_after(cursor.val) {
     Ok(Some(value)) => value
     Ok(None) => {
@@ -98,7 +100,9 @@ fn replay_effect_checkpoint_reports(
   delegation : @resident.ResidentSiteDelegation,
   checkpoint : (String) -> Unit,
 ) -> Unit {
-  if @env.now() < next.val || retained.val is Some(_) { return }
+  if @env.now() < next.val || retained.val is Some(_) {
+    return
+  }
   guard open_control_replay_journal(environment, retained) is Some(journal) else {
     report("effect-checkpoint-recovery-pending", [("reason", "journal-open")])
     return

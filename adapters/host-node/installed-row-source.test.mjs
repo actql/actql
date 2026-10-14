@@ -13,6 +13,62 @@ import {createInstalledRowSource, openRowSourceCredentialSite,
   './installed-row-source.mjs';
 import {installedSourceReadAccesses, installedSourceReadBindings} from
   './installed-source.mjs';
+import {verifyOrdinarySourceBinding} from './ordinary-source-binding.mjs';
+
+test('ordinary row binding is issued by the original preparation owner and rechecks its target', async () => {
+  const read = name => readFile(new URL(`../../${name}`, import.meta.url), 'utf8');
+  const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
+    'fixture', 'fixture', 'fixture/0.1', JSON.stringify({views: [{resource: 'records',
+      resource_kind: 'record', fields: [{name: 'id', type: 'number', nullable: false}]}]}), undefined));
+  const declared = JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration));
+  const environment = rowSourceCheckEnvironment(
+    (await read('spec/local-check-environment.json')).trimEnd(), declared);
+  const checkedEnvironment = moon.clientProgramCheckEnvironment(environment.wire, environment.evidenceCid,
+    false, false, true, false, false, false, false);
+  assert.ok(checkedEnvironment);
+  const preparationOutcome = moon.clientProgramPrepareEffectFreeWithParameters(
+    JSON.stringify({version: 'actql/0.1', id: 'bound-row-control', stages: [{id: 'scan',
+      inputs: {remote: {connector: 'fixture', resource: 'records'}},
+      steps: [{filter: 'true', as: 'all_rows'}, {select: ['id'], as: 'output'}],
+      results: {r: {from: 'output', fields: ['id']}}}],
+      results: {r: {from: {stage: 'scan', result: 'r'}}}}), 'json', checkedEnvironment, undefined);
+  const preparedProgram = moon.clientProgramPreparationReady(preparationOutcome);
+  assert.ok(preparedProgram, inspect(moon.clientProgramPreparationIssue(preparationOutcome), {depth: 12}));
+  const [registry, aoa] = await Promise.all([
+    read('spec/dependencies/aoa-pipeline-registry.json'), read('spec/contracts/actql-aoa.json').then(JSON.parse)]);
+  const expectedBinding = {connectorId: 'fixture', connectorRegistration: 'fixture',
+    connectorRevision: 'fixture/0.1', bindingCid: `sha256:${'a'.repeat(64)}`};
+  let generation = 1, reads = 0, grants = 0;
+  const options = {moon, declaration, declared, environmentWire: environment.wire, ...expectedBinding,
+    site: {connection: 'fixture:records', issueReadGrant() {grants++;}, close() {}},
+    authorization: {authorize: async () => ({action: 'dispatch'}),
+      accountConfiguration: '{}', context: {contextCid: 'context'}}, readOperation: 'read',
+    physicalTarget: (resource, fields) => ({resource, fields: [...fields], generation}),
+    readPages: async () => {reads++;},
+    limits: {maxPages: 1, maxPageBytes: 1024, maxPageRows: 10, maxCaptureRows: 10}};
+  const adapter = await createInstalledRowSource(options);
+  const preparation = {preparedProgram, registry,
+    values: JSON.stringify(aoa.execution_contracts['REL.values']),
+    fragment: JSON.stringify(aoa.execution_contracts['ACTQL.expression_fragment/0.1']),
+    ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
+  const prepared = await adapter.prepare(preparation);
+  assert.deepEqual(adapter.ordinaryRecoveryBinding(prepared), expectedBinding);
+  assert.equal(Object.isFrozen(adapter.ordinaryRecoveryBinding(prepared)), true);
+  assert.throws(() => adapter.ordinaryRecoveryBinding({...prepared}),
+    {code: 'InstalledSourcePreparationMismatch'});
+  const other = await createInstalledRowSource({...options, connectorRevision: 'fixture/other'});
+  assert.throws(() => other.ordinaryRecoveryBinding(prepared),
+    {code: 'InstalledSourcePreparationMismatch'});
+  const freshPrepared = await other.prepare(preparation);
+  assert.throws(() => verifyOrdinarySourceBinding(other, freshPrepared, expectedBinding),
+    {code: 'InstalledSourcePreparationMismatch'});
+  generation = 2;
+  assert.throws(() => adapter.ordinaryRecoveryBinding(prepared),
+    {code: 'InstalledSourcePreparationMismatch'});
+  await assert.rejects(adapter.openCapture({...preparation, preparedSource: prepared, ledger: {}}),
+    error => error.cause?.code === 'InstalledSourcePreparationMismatch');
+  assert.equal(reads, 0); assert.equal(grants, 0);
+});
 
 test('row source exposes exact read tuples for every declared view', async () => {
   const authorization = {authorize: async () => ({action: 'dispatch'}),
