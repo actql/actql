@@ -40,7 +40,10 @@ test "backing reply foreign refusal retains the true loan and original" {
     assert_true(physical_equal(same, first))
     assert_true(physical_equal(same_loan, loan))
   }
-  assert_eq(current_installed_arena_backing_reply(first, loan).issue_family(), 0)
+  assert_eq(
+    current_installed_arena_backing_reply(first, loan).issue_family(),
+    0,
+  )
   assert_eq(return_installed_arena_backing_reply(first, loan).issue_family(), 0)
   first.try_close().unwrap()
   second.try_close().unwrap()

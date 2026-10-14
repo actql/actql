@@ -6,7 +6,11 @@ priv type Extent
 
 ///|
 #borrow(recipe)
-extern "C" fn acquire_ffi(bytes : Int64, generation : Int64, recipe : Bytes) -> Backing = "actql_bootstrap_acquire"
+extern "C" fn acquire_ffi(
+  bytes : Int64,
+  generation : Int64,
+  recipe : Bytes,
+) -> Backing = "actql_bootstrap_acquire"
 
 ///|
 #borrow(backing)
@@ -22,7 +26,11 @@ extern "C" fn rounded_bytes_ffi(backing : Backing, bytes : Int64) -> Int64 = "ac
 
 ///|
 #borrow(backing, recipe)
-extern "C" fn claim_ffi(backing : Backing, generation : Int64, recipe : Bytes) -> Int = "actql_bootstrap_claim"
+extern "C" fn claim_ffi(
+  backing : Backing,
+  generation : Int64,
+  recipe : Bytes,
+) -> Int = "actql_bootstrap_claim"
 
 ///|
 #borrow(backing)
@@ -79,14 +87,26 @@ pub fn[T] prepare_installed_arena_supplier(
   limits : @resources.LedgerLimits,
   control_envelope_bytes : Int64,
 ) -> Result[NativeInstalledArenaSupplier[T], NativeBootstrapIssue] {
-  if source.length() != 40 || recipe.length() != 32 || generation <= 0L ||
-    bytes <= 0L || limits.execution_bytes != bytes ||
-    limits.retained_bytes != 0L || limits.attempts < 1 ||
+  if source.length() != 40 ||
+    recipe.length() != 32 ||
+    generation <= 0L ||
+    bytes <= 0L ||
+    limits.execution_bytes != bytes ||
+    limits.retained_bytes != 0L ||
+    limits.attempts < 1 ||
     control_envelope_bytes <= 0L {
     return Err(Unavailable)
   }
-  Ok({ original, source, recipe: recipe.copy(), generation, bytes, limits,
-    control_envelope_bytes, consumed: false, })
+  Ok({
+    original,
+    source,
+    recipe: recipe.copy(),
+    generation,
+    bytes,
+    limits,
+    control_envelope_bytes,
+    consumed: false,
+  })
 }
 
 ///|
@@ -135,9 +155,17 @@ pub fn[T] NativeInstalledArenaSupplier::acquire(
   }
   let backing = acquire_ffi(self.bytes, self.generation, self.recipe)
   let host : NativeHostBootstrap[T] = {
-    supplier: self, ledger, capacity, backing, control: None,
-    children: [], delegations: [], claimed: false, closing: false,
-    physical_closed: false, closed: false,
+    supplier: self,
+    ledger,
+    capacity,
+    backing,
+    control: None,
+    children: [],
+    delegations: [],
+    claimed: false,
+    closing: false,
+    physical_closed: false,
+    closed: false,
   }
   let status = status_ffi(backing)
   if status != 0 {
@@ -201,7 +229,8 @@ pub fn[T] NativeHostBootstrap::claim(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if source != self.supplier.source || recipe != self.supplier.recipe ||
+  if source != self.supplier.source ||
+    recipe != self.supplier.recipe ||
     generation != self.supplier.generation {
     return Err(ForeignOriginal)
   }
@@ -252,13 +281,18 @@ pub fn[T] NativeHostBootstrap::allocate(
   if rounded <= 0L {
     return Err(Unavailable)
   }
-  let allocation = match @resources.allocate_shared_capacity(self.capacity, rounded) {
+  let allocation = match
+    @resources.allocate_shared_capacity(self.capacity, rounded) {
     Err(issue) => return Err(Resource(issue))
     Ok(value) => value
   }
   let extent = allocate_ffi(self.backing, rounded)
   let child : NativeBootstrapAllocation[T] = {
-    owner: self, allocation, extent, physical_retired: false, released: false,
+    owner: self,
+    allocation,
+    extent,
+    physical_retired: false,
+    released: false,
   }
   self.children.push(child)
   let status = extent_status_ffi(extent)
@@ -329,9 +363,7 @@ pub fn[T] NativeHostBootstrap::borrow_backing(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  guard self.control is Some(control) else {
-    return Err(Unavailable)
-  }
+  guard self.control is Some(control) else { return Err(Unavailable) }
   match @resources.borrow_shared_capacity(self.capacity, control) {
     Err(issue) => Err(Resource(issue))
     Ok(borrow) => Ok({ owner: self, borrow, returned: false, })
@@ -415,13 +447,19 @@ pub fn[T] NativeHostBootstrap::delegate(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if !self.claimed || limits.retained_bytes != 0L || limits.execution_bytes != 0L {
+  if !self.claimed ||
+    limits.retained_bytes != 0L ||
+    limits.execution_bytes != 0L {
     return Err(Unavailable)
   }
   match @resources.reserve_execution_delegation(self.ledger, limits, 0L, 0L) {
     Err(issue) => Err(Resource(issue))
     Ok(delegation) => {
-      let child : NativeBootstrapDelegation[T] = { owner: self, delegation, settled: false, }
+      let child : NativeBootstrapDelegation[T] = {
+        owner: self,
+        delegation,
+        settled: false,
+      }
       self.delegations.push(child)
       Ok(child)
     }
@@ -442,7 +480,8 @@ pub fn[T] NativeHostBootstrap::report(
   if !physical_equal(child.owner, self) || child.settled {
     return Err(ForeignOriginal)
   }
-  match @resources.report_execution_delegation(self.ledger, child.delegation, usage) {
+  match
+    @resources.report_execution_delegation(self.ledger, child.delegation, usage) {
     Err(issue) => Err(Resource(issue))
     Ok(_) => Ok(())
   }
@@ -500,7 +539,12 @@ pub fn[T] NativeHostBootstrap::try_close(
   }
   for child in self.delegations {
     if !child.settled {
-      match @resources.settle_execution_delegation(self.ledger, child.delegation, None) {
+      match
+        @resources.settle_execution_delegation(
+          self.ledger,
+          child.delegation,
+          None,
+        ) {
         Err(issue) => return Err(Resource(issue))
         Ok(_) => child.settled = true
       }
@@ -516,11 +560,15 @@ pub fn[T] NativeHostBootstrap::try_close(
 }
 
 ///|
-pub fn[T] NativeHostBootstrap::usage(self : NativeHostBootstrap[T]) -> @resources.LedgerUsage {
+pub fn[T] NativeHostBootstrap::usage(
+  self : NativeHostBootstrap[T],
+) -> @resources.LedgerUsage {
   @resources.ledger_usage(self.ledger)
 }
 
 ///|
-pub fn[T] NativeHostBootstrap::capacity_usage(self : NativeHostBootstrap[T]) -> @resources.SharedCapacityUsage {
+pub fn[T] NativeHostBootstrap::capacity_usage(
+  self : NativeHostBootstrap[T],
+) -> @resources.SharedCapacityUsage {
   @resources.shared_capacity_usage(self.capacity)
 }

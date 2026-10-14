@@ -11,7 +11,9 @@ test "original backing loan prevents physical close and preserves cleanup return
   assert_true(host.try_close() is Err(@bootstrap.ReadersPending))
   assert_false(host.closed)
   assert_true(host.backing is Some(_))
-  assert_true(host.require_backing_borrow_current(loan) is Err(@bootstrap.Closing))
+  assert_true(
+    host.require_backing_borrow_current(loan) is Err(@bootstrap.Closing),
+  )
   assert_true(host.borrow_backing() is Err(@bootstrap.Closing))
   host.return_backing_borrow(loan).unwrap()
   // The original allocation was preserved by the pending backing reader.
@@ -28,8 +30,13 @@ test "equal metadata cannot return or observe another original backing loan" {
   first.acquire().unwrap()
   second.acquire().unwrap()
   let loan = first.borrow_backing().unwrap()
-  assert_true(second.require_backing_borrow_current(loan) is Err(@bootstrap.ForeignOriginal))
-  assert_true(second.return_backing_borrow(loan) is Err(@bootstrap.ForeignOriginal))
+  assert_true(
+    second.require_backing_borrow_current(loan)
+    is Err(@bootstrap.ForeignOriginal),
+  )
+  assert_true(
+    second.return_backing_borrow(loan) is Err(@bootstrap.ForeignOriginal),
+  )
   first.require_backing_borrow_current(loan).unwrap()
   first.return_backing_borrow(loan).unwrap()
   first.try_close().unwrap()
@@ -42,8 +49,12 @@ test "returned original backing loan cannot acquire another use" {
   host.acquire().unwrap()
   let loan = host.borrow_backing().unwrap()
   host.return_backing_borrow(loan).unwrap()
-  assert_true(host.require_backing_borrow_current(loan) is Err(@bootstrap.AlreadyConsumed))
-  assert_true(host.return_backing_borrow(loan) is Err(@bootstrap.AlreadyConsumed))
+  assert_true(
+    host.require_backing_borrow_current(loan) is Err(@bootstrap.AlreadyConsumed),
+  )
+  assert_true(
+    host.return_backing_borrow(loan) is Err(@bootstrap.AlreadyConsumed),
+  )
   host.try_close().unwrap()
 }
 

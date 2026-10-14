@@ -7,9 +7,17 @@ extern "C" fn page_bytes_ffi() -> Int64 = "actql_bootstrap_page_bytes"
 fn prepared_host(bytes : Int64) -> InstalledArenaHost {
   prepare_installed_arena_host(
     "0123456789012345678901234567890123456789",
-    Bytes::make(32, 17), 1L, bytes,
-    { planning_work: 20, attempts: 8, holdings: 4,
-      transfer_bytes: 30L, retained_bytes: 0L, execution_bytes: bytes, },
+    Bytes::make(32, 17),
+    1L,
+    bytes,
+    {
+      planning_work: 20,
+      attempts: 8,
+      holdings: 4,
+      transfer_bytes: 30L,
+      retained_bytes: 0L,
+      execution_bytes: bytes,
+    },
     65536L,
   ).unwrap()
 }
@@ -78,9 +86,16 @@ test "pending installed close retains original references until the same reader 
 test "installed arena does not manufacture an unrelated worker byte delegation" {
   let host = prepared_host(64L * page_bytes_ffi())
   host.acquire().unwrap()
-  assert_true(host.delegate(
-    { planning_work: 0, attempts: 0, holdings: 0, transfer_bytes: 0L,
-      retained_bytes: 0L, execution_bytes: 1L, },
-  ) is Err(@bootstrap.Unavailable))
+  assert_true(
+    host.delegate({
+      planning_work: 0,
+      attempts: 0,
+      holdings: 0,
+      transfer_bytes: 0L,
+      retained_bytes: 0L,
+      execution_bytes: 1L,
+    })
+    is Err(@bootstrap.Unavailable),
+  )
   host.try_close().unwrap()
 }

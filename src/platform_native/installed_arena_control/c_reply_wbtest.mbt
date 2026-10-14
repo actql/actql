@@ -4,8 +4,16 @@
 fn prepared_reply(retained_bytes : Int64) -> InstalledArenaReply {
   prepare_installed_arena_reply(
     "0123456789012345678901234567890123456789",
-    Bytes::make(32, 17), 1L, 1024L, 0, 1, 0, 0L,
-    retained_bytes, 1024L, 65536L,
+    Bytes::make(32, 17),
+    1L,
+    1024L,
+    0,
+    1,
+    0,
+    0L,
+    retained_bytes,
+    1024L,
+    65536L,
   )
 }
 
@@ -57,7 +65,9 @@ test "Resource failure remains distinct and retains the original Host" {
     abort("prepared original is missing")
   }
   let failed = original_unit_reply(
-    Acquire, original, Err(@bootstrap.Resource(@resources.ExecutionLimit)),
+    Acquire,
+    original,
+    Err(@bootstrap.Resource(@resources.ExecutionLimit)),
   )
   assert_eq(failed.operation_tag(), 2)
   assert_eq(failed.issue_family(), 7)

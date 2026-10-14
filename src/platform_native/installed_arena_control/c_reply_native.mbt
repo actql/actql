@@ -26,7 +26,7 @@ fn original_unit_reply(
     Ok(_) => None
     Err(value) => Some(value)
   }
-  { operation, original: Some(original), issue }
+  { operation, original: Some(original), issue, }
 }
 
 ///|
@@ -43,16 +43,14 @@ pub fn prepare_installed_arena_reply(
   execution_bytes : Int64,
   control_envelope_bytes : Int64,
 ) -> InstalledArenaReply {
-  match prepare_installed_arena_from_primitives(
-    source, recipe, generation, bytes, planning_work, attempts, holdings,
-    transfer_bytes, retained_bytes, execution_bytes, control_envelope_bytes,
-  ) {
-    Ok(original) => {
-      operation: Prepare, original: Some(original), issue: None,
-    }
-    Err(issue) => {
-      operation: Prepare, original: None, issue: Some(issue),
-    }
+  match
+    prepare_installed_arena_from_primitives(
+      source, recipe, generation, bytes, planning_work, attempts, holdings, transfer_bytes,
+      retained_bytes, execution_bytes, control_envelope_bytes,
+    ) {
+    Ok(original) =>
+      { operation: Prepare, original: Some(original), issue: None, }
+    Err(issue) => { operation: Prepare, original: None, issue: Some(issue), }
   }
 }
 

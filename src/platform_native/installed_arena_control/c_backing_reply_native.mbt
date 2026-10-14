@@ -34,16 +34,18 @@ pub fn borrow_installed_arena_backing_reply(
   original : InstalledArenaHost,
 ) -> InstalledArenaBackingReply {
   match original.borrow_backing() {
-    Ok(borrow) => {
-      operation: BorrowBacking,
-      original_result: original_unit_reply(Current, original, Ok(())),
-      original_borrow: Some(borrow),
-    }
-    Err(issue) => {
-      operation: BorrowBacking,
-      original_result: original_unit_reply(Current, original, Err(issue)),
-      original_borrow: None,
-    }
+    Ok(borrow) =>
+      {
+        operation: BorrowBacking,
+        original_result: original_unit_reply(Current, original, Ok(())),
+        original_borrow: Some(borrow),
+      }
+    Err(issue) =>
+      {
+        operation: BorrowBacking,
+        original_result: original_unit_reply(Current, original, Err(issue)),
+        original_borrow: None,
+      }
   }
 }
 
@@ -55,7 +57,9 @@ pub fn current_installed_arena_backing_reply(
   borrow : InstalledArenaBackingBorrow,
 ) -> InstalledArenaBackingReply {
   backing_unit_reply(
-    ObserveBacking, borrow, original.require_backing_borrow_current(borrow),
+    ObserveBacking,
+    borrow,
+    original.require_backing_borrow_current(borrow),
   )
 }
 
@@ -67,7 +71,9 @@ pub fn return_installed_arena_backing_reply(
   borrow : InstalledArenaBackingBorrow,
 ) -> InstalledArenaBackingReply {
   backing_unit_reply(
-    ReturnBacking, borrow, original.return_backing_borrow(borrow),
+    ReturnBacking,
+    borrow,
+    original.return_backing_borrow(borrow),
   )
 }
 

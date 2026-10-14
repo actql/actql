@@ -27,12 +27,20 @@ pub fn prepare_installed_arena_host(
   control_envelope_bytes : Int64,
 ) -> Result[InstalledArenaHost, @bootstrap.NativeBootstrapIssue] {
   let host : InstalledArenaHost = {
-    source, recipe, generation, supplier: None, backing: None,
-    acquisition_started: false, acquisition_issue: None, closing: false,
+    source,
+    recipe,
+    generation,
+    supplier: None,
+    backing: None,
+    acquisition_started: false,
+    acquisition_issue: None,
+    closing: false,
     closed: false,
   }
-  match @bootstrap.prepare_installed_arena_supplier(
-    host, source, recipe, generation, bytes, limits, control_envelope_bytes) {
+  match
+    @bootstrap.prepare_installed_arena_supplier(
+      host, source, recipe, generation, bytes, limits, control_envelope_bytes,
+    ) {
     Err(issue) => Err(issue)
     Ok(supplier) => {
       host.supplier = Some(supplier)
@@ -83,7 +91,10 @@ pub fn InstalledArenaHost::acquire(
 ///|
 fn InstalledArenaHost::original_backing(
   self : InstalledArenaHost,
-) -> Result[@bootstrap.NativeHostBootstrap[InstalledArenaHost], @bootstrap.NativeBootstrapIssue] {
+) -> Result[
+  @bootstrap.NativeHostBootstrap[InstalledArenaHost],
+  @bootstrap.NativeBootstrapIssue,
+] {
   if self.closing || self.closed {
     return Err(@bootstrap.Closing)
   }
@@ -183,9 +194,7 @@ pub fn InstalledArenaHost::return_backing_borrow(
   if !physical_equal(borrow.host, self) {
     return Err(@bootstrap.ForeignOriginal)
   }
-  guard self.backing is Some(backing) else {
-    return Err(@bootstrap.Closing)
-  }
+  guard self.backing is Some(backing) else { return Err(@bootstrap.Closing) }
   backing.return_borrow(self, borrow.original)
 }
 
@@ -217,9 +226,7 @@ pub fn InstalledArenaHost::return_borrow(
   if !physical_equal(borrow.host, self) {
     return Err(@bootstrap.ForeignOriginal)
   }
-  guard self.backing is Some(backing) else {
-    return Err(@bootstrap.Closing)
-  }
+  guard self.backing is Some(backing) else { return Err(@bootstrap.Closing) }
   backing.return_borrow(self, borrow.original)
 }
 
@@ -231,9 +238,7 @@ pub fn InstalledArenaHost::retire(
   if !physical_equal(allocation.host, self) {
     return Err(@bootstrap.ForeignOriginal)
   }
-  guard self.backing is Some(backing) else {
-    return Err(@bootstrap.Closing)
-  }
+  guard self.backing is Some(backing) else { return Err(@bootstrap.Closing) }
   backing.retire(self, allocation.original)
 }
 
