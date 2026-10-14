@@ -185,6 +185,8 @@ pub fn bind_client_local_run_policy_upgrade(ClientLocalRunPolicyProfile, String,
 
 pub fn bind_client_local_runtime_policy_upgrade(ClientLocalRunPolicyUpgrade, ClientNativeLocalScalarRuntimePair) -> Result[ClientLocalRuntimePolicyUpgrade, ClientLocalRunPolicyProfileIssue]
 
+pub fn[Store, E] bind_client_local_worker_run_journal_key(ClientLocalAdoptedHostMaterial[Store, E], Store, ClientRequestIdentity, ClientRetainedRunJournalRow, String, String) -> Result[ClientLocalWorkerRunJournalKey[Store, E], ClientLocalWorkerRunKeyIssue[E]]
+
 pub fn bind_client_model_invocation_scope(ClientCompiledRun, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue, Array[@run_publication.RunEvidenceValue], @run_publication.ModelInvocationBoundary) -> Result[@run_publication.BoundModelInvocationScope, @run_publication.RunEvidenceValueIssue]
 
 pub fn bind_client_model_raw_response(ClientModelRawCaptureRegistration, @run_publication.RunEvidenceValue, Int, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[@run_publication.BoundModelRawResponse, ClientModelRawCaptureIssue]
@@ -706,6 +708,8 @@ pub fn client_local_runtime_successor_metadata_body(ClientLocalRuntimeSuccessorM
 pub fn client_local_runtime_successor_metadata_cid(ClientLocalRuntimeSuccessorMetadata) -> String
 
 pub fn client_local_runtime_successor_metadata_field(ClientLocalRuntimeSuccessorMetadata, String) -> String?
+
+pub fn[Store, E] client_local_worker_run_journal_coordinates(ClientLocalWorkerRunJournalKey[Store, E], Store, ClientRetainedRunJournalRow) -> Result[(String, String), ClientLocalWorkerRunKeyIssue[E]]
 
 pub fn client_model_current_state_match_current(@physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin], @physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> @physical_resources.OriginalCurrentStateMatch[ClientModelReadOrigin]?
 
@@ -2723,6 +2727,22 @@ pub(all) enum ClientLocalRuntimeSuccessorIssue {
 } derive(Eq, @debug.Debug)
 
 type ClientLocalRuntimeSuccessorMetadata
+
+pub struct ClientLocalWorkerRunJournalKey[Store, E] {
+  material : ClientLocalAdoptedHostMaterial[Store, E]
+  store : Store
+  request : ClientRequestIdentity
+  definition_cid : String
+  principal : String
+  connection : String
+  key : String
+}
+
+pub(all) enum ClientLocalWorkerRunKeyIssue[E] {
+  Current(ClientLocalAdoptedCurrentIssue[E])
+  ForeignRun
+  InvalidOriginal
+}
 
 pub(all) enum ClientModelInputCapacityIssue {
   ForeignCallScope
