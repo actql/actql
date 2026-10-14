@@ -9,7 +9,7 @@ fn effectful_static_value(wire : String) -> @canonical.CanonicalValue {
 fn effectful_static_string_field(
   value : @canonical.CanonicalValue,
   field : String,
-) -> String {
+) -> String raise {
   match @canonical.object_field(value, field) {
     Some(@canonical.String(text)) => text
     _ => fail("missing static string field")
