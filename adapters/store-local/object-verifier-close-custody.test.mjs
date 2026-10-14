@@ -30,7 +30,7 @@ async function fixture(t, {failures = 2, primary, falseClose = false, pause = fa
   let allowClose = false, passed = false, caught;
   const closeFailure = Object.assign(new Error('OriginalVerifierClosePending'), {code: 'EIO'});
   prototype.stat = function(...args) {
-    if (original === undefined && new Error().stack.split('\n')[2]?.includes('at verifyObject')) {
+    if (original === undefined && new Error().stack.split('\n')[2]?.includes('verifyObject')) {
       original = this;
       nativeClose = this.close;
       const stream = this.createReadStream;
