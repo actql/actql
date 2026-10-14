@@ -48,9 +48,10 @@ function configuration() {
 
 function runtime(config) {
   const request={},provider={},entry={},cursor={};
+  let physicalCall;
   const transportBounds=[config.requestLimits.maxBytes,config.responseLimits.maxBytes,
     config.responseLimits.maxChunkBytes,config.responseLimits.maxChunks,config.responseLimits.maxHeaderBytes];
-  const counts={installs:0,starts:0,steps:0,retired:0,generation:0,fetch:0,saves:0};
+  const counts={installs:0,starts:0,steps:0,retired:0,generation:0,fetch:0,saves:0,ioData:0};
   const wire='{"decimal":"9007199254740993.00","text":"é\\r\\n"}';
   const moon={
     clientProgramInstallAsyncModelProvider(id){assert.equal(id,config.providerId);counts.installs++;return {};},
@@ -68,7 +69,14 @@ function runtime(config) {
       assert.equal(r,request);assert.equal(profile,config.rawCaptureSelection.profile);
       assert.equal(installation,config.rawCaptureSelection.installation);assert.ok(bytes>0n&&bytes<=4096n);
       assert.deepEqual([tokens,cost,duration],[16n,0n,500n]);return {$tag:1,_0:{start}};},
-    clientProgramModelPhysicalCallForRequest(e,r,poll,cancel,cleanup){assert.equal(e,entry);assert.equal(r,request);return {poll,cancel,cleanup};},
+    clientProgramModelPhysicalCallForRequest(e,r,poll,cancel,cleanup){assert.equal(e,entry);assert.equal(r,request);
+      physicalCall={poll,cancel,cleanup};return physicalCall;},
+    // Explicit Common carrier double only. The real physical port supplies
+    // DATA; this projection grants no IO lease or nominal Common ACK.
+    clientProgramModelPhysicalIoObservation(call,quiescent,inner){
+      assert.strictEqual(call,physicalCall);assert.equal(typeof quiescent,'boolean');
+      counts.ioData++;return inner;
+    },
     clientProgramModelPhysicalPending:()=>({kind:'pending'}),
     clientProgramModelPhysicalUnknown:()=>({kind:'unknown'}),
     clientProgramModelPhysicalSavedChat:response=>({kind:'saved',response}),
@@ -171,6 +179,7 @@ test('explicit Undici facade reaches the existing SDK/async port and real loopba
     assert.equal(Buffer.from(savedRaw.body).toString(),'{}');
     assert.equal(f.counts.fetch,0,'The separately supplied generic primitive was not used');
     assert.equal(f.counts.saves,1);assert.equal(f.counts.generation,1);
+    assert.ok(f.counts.ioData>0,'Same original Call reports physical DATA to the Common double');
     assert.equal(plan.start(f.entry),undefined);
     t.diagnostic('Actual public package entry/pinned SDK/loopback; Core/Store/funding doubles, public Run0');
   });
