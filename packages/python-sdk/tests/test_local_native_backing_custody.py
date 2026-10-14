@@ -90,6 +90,33 @@ class BackingFixture:
 
 
 class BackingCustodyTests(unittest.TestCase):
+    def test_lost_borrow_reply_keeps_same_loan_carrier_without_late_error_allocation(self):
+        f = BackingFixture()
+        primary = OSError('lost original borrow response')
+        f.borrow_fault = primary
+        original = f.functions.borrow.call
+        unavailable = patch('actql_sdk._local_native_backing_custody._OriginalBackingError',
+                            side_effect=MemoryError('late error metadata'))
+
+        def borrow_then_lose(*args):
+            unavailable.start()
+            return original(*args)
+
+        f.functions.borrow.call = borrow_then_lose
+        try:
+            with self.assertRaises(_OriginalBackingError) as observed: f.take()
+        finally:
+            unavailable.stop()
+        failure = observed.exception
+        loan = failure.cleanup_borrow
+        self.assertTrue(failure.unknown)
+        self.assertIs(failure.__cause__, primary)
+        self.assertIs(loan._owner, f.host)
+        self.assertIsNotNone(loan._reply.value)
+        self.assertTrue(f.live)
+        self.assertFalse(f.control.physically_closed)
+        self.assert_sticky(loan, failure, f)
+
     def assert_sticky(self, borrow, failure, fixture):
         before = list(fixture.events)
         for call in (borrow.current, borrow.return_after_stop):

@@ -79,6 +79,37 @@ class Fixture:
 
 
 class OriginalControlCustodyTests(unittest.TestCase):
+    def test_lost_original_reply_keeps_carrier_when_late_error_metadata_is_unavailable(self):
+        f = Fixture(); slot = c_void_p(11)
+        primary = OSError('lost original capture response')
+        f.capture_fault = primary
+        original = f.functions.originals.call
+        unavailable = patch('actql_sdk._local_native_control_custody._OriginalControlError',
+                            side_effect=MemoryError('late error metadata'))
+
+        def capture_then_lose(*args):
+            unavailable.start()
+            return original(*args)
+
+        f.functions.originals.call = capture_then_lose
+        try:
+            with self.assertRaises(_OriginalControlError) as observed:
+                _OriginalControlCustody._take_original_reply(f.functions, slot)
+        finally:
+            unavailable.stop()
+        failure = observed.exception
+        host = failure.cleanup_host
+        self.assertTrue(failure.unknown)
+        self.assertIs(failure.__cause__, primary)
+        self.assertIsNone(slot.value)
+        self.assertEqual((host._incoming.value, host._original.value, host._retained.value),
+                         (11, 101, 101))
+        self.assertFalse(host._closed)
+        before = list(f.events)
+        with self.assertRaises(_OriginalControlError) as retry: host.close()
+        self.assertIs(retry.exception, failure)
+        self.assertEqual(f.events, before)
+
     def test_slot_allocation_failure_keeps_caller_owned_input_without_native_calls(self):
         f = Fixture(); slot = c_void_p(11)
         primary = MemoryError('injected Python slot metadata allocation')
