@@ -71,7 +71,64 @@ test "original installed nearest captures retain their exact graph and Host owne
     Err(_) => fail("original installed nearest other graph opening refusal")
   }
   assert_eq(@strategy.graph_task_count(graph),15)
+  nearest_failed_offer_boundary(dag,prepared)
   @strategy.stop_captured_dag(dag)
   @strategy.refresh_captured_retention(dag)
   for run in runs { @row_source_host.close_accounted_row_run(run).unwrap() }
+}
+
+///|
+fn nearest_failed_offer_boundary(
+  run : @strategy.CapturedDAG,
+  prepared : @publication_host.PreparedClientProgram,
+) -> Unit raise {
+  let all = prepare_client_local_sequences(prepared,source_query_original_registry,source_query_original_values,Some(source_query_original_fragment),None).unwrap()
+  let compute = []
+  for task in 2..<all.length() { compute.push(all[task]) }
+  let max_rows = @publication_host.prepared_client_values_max_rows(prepared)
+  let (values,execution,measurement) = client_local_execution_limits(max_rows~)
+  let (_,retained,executing) = client_local_sequence_capacity(compute,all.length(),max_rows~).unwrap()
+  // Exact existing selected Node VecA profile, not a new implementation limit.
+  let provider = @nearest_provider.provider({
+    max_input_records:100,max_records:100,max_fields_per_record:100,
+    max_value_bytes:10000,max_total_value_bytes:100000,max_retained_value_bytes:100000,
+    max_value_nodes:10000,max_value_depth:100,max_contract_work:10000,
+    max_work:100000,max_workspace_slots:10000,
+  },100000L,@execution.execution_capacity(retained,executing).unwrap())
+  let capacity : @connector.FixedComputeCapacity = {
+    contract_cid:"sha256:7d59718b965451d8a19ccf7095b92777ba0cdd8c3bb71f437ab387801fe7271f",
+    max_rows,max_value_bytes:10000,common_fragment:None,
+  }
+  let configuration : @local_driver.LocalComputeConfiguration = {
+    sequences:compute,managed_providers:[provider],managed_capacity:capacity,
+    execution,measurement,max_work:100,
+  }
+  let bundle : @connector.CapabilityBundle[Unit,@local_driver.LocalComputeConfiguration,Unit] = {
+    name:"local",acquisition:None,fixed_compute:Some((_,_)=>configuration),effect:None,
+  }
+  let bundles = @connector.install_bundles([bundle],1,100).unwrap()
+  let registry = @connector.installed_bundle_registry(bundles)
+  let registration = @connector.capability_registration_at(registry,0).unwrap()
+  let installed = @local_driver.configure_local_compute(@host_driver.open_dispatch_driver(run),registry,registration,configuration).unwrap()
+  @local_driver.configure_local_retained_inputs(installed,client_local_import_limits(capacity,values),Some(0L)).unwrap()
+  let slots = @local_driver.local_dispatch_work_slots()
+  let schedule = @cost.prepare_rate_schedule(slots,[{
+    work_slots:Array::makei(slots,i=>i),fixed_ms:Some(1L),per_row_ms:Some(0L),
+    per_wire_byte_ms:Some(0L),per_pair_ms:Some(0L),
+  }],100).unwrap()
+  let estimates = @local_driver.prepare_local_estimate_module(installed,[schedule],100).unwrap()
+  @local_driver.install_local_dispatch_estimates(installed,estimates).unwrap()
+  let offers = []
+  for task in 2..<all.length() {
+    let proposed = match @local_driver.estimate_local_installed_offers(installed,task,{rows:None,wire_bytes:None,pairs:None}) {
+      Ok(value) => value
+      Err(_) => fail("original nearest offer estimation rejected task \{task}")
+    }
+    println("NEAREST_OFFERS task=\{task} count=\{proposed.length()}")
+    assert_false(proposed.is_empty(),msg="original nearest task \{task} has no installed offer")
+    for offer in proposed { offers.push(offer) }
+  }
+  @strategy.configure_strategy_search(run,{max_offers:100,max_strategies:100,max_work:10000,max_revisions:100}).unwrap()
+  let choice = @strategy.prepare_strategy_choices(run,offers,registry,None).unwrap()
+  assert_true(@strategy.commit_strategy_choice(choice,None) is Ok(@strategy.Selected(_)))
 }
