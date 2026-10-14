@@ -34,6 +34,25 @@ exception classifier. It never calls a raw provider close or reacquires a lease.
 The original Host remains responsible for full physical retirement and Resource
 settlement, including ReadersPending and failed cleanup.
 
+The thin Python borrower binds the same selected library as the original control
+Host and retains that Host plus three owning C out-slots. All Python metadata
+allocation happens before the first borrow call. Call scope and reentry reuse
+the existing control custody checks. No method reports a physical stop:
+`return_after_stop` is private and requires the trusted adapter to have stopped
+the same use already. Known refusal and sticky Unknown keep their original
+carrier; an Unknown return never invokes another return or acquires another loan.
+
+Two additional C data-only helpers release captured owning references after
+exact Return/Ok or Borrow/refusal-with-no-loan evidence. They do not perform
+logical return, Host close or physical-provider cleanup. Slots are cleared before
+their data decref. A lost response still reports Unknown in Python even if all
+data slots were cleared; it does not acknowledge Host retirement. The original
+Host and loaded component remain strongly retained by the same borrower.
+
+Ten independent scalar Python fault/call-counter tests are provided. They are
+not actual C/Core/physical conformance. The newly added data helpers have not
+been compiled or executed merely by passing those Python doubles.
+
 Four actual-Core C cases are prepared, not executed: pending Host close then
 same-loan return; foreign refusal retaining true original custody; returned alias
 refusing a second Owner return; occupied slots and live reply custody refusal.

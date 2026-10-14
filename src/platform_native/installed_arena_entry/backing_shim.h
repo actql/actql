@@ -46,4 +46,9 @@ int actql_backing_drop_reply(actql_backing_reply **, actql_control_host *, actql
  * The return reply stays owned by the caller until independently dropped. */
 int actql_backing_drop_returned_loan(actql_backing_loan **, actql_backing_reply *, actql_control_host *);
 
+/* Retire captured data slots only after exact Owner evidence. No logical
+ * return/close is performed by either helper. Failure preserves all slots. */
+int actql_backing_finish_returned_data(actql_control_host **, actql_backing_loan **, actql_backing_reply **);
+int actql_backing_finish_refused_borrow(actql_control_host **, actql_backing_reply **);
+
 #endif

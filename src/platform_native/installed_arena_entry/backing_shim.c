@@ -143,3 +143,55 @@ int actql_backing_drop_returned_loan(actql_backing_loan **loan_slot,
     moonbit_decref(owned);
     return ACTQL_CONTROL_OK;
 }
+
+int actql_backing_finish_returned_data(actql_control_host **host_slot,
+                                     actql_backing_loan **loan_slot,
+                                     actql_backing_reply **reply_slot) {
+    if (!host_slot || !loan_slot || !reply_slot || !*host_slot ||
+        !*loan_slot || !*reply_slot ||
+        (void *)host_slot == (void *)loan_slot ||
+        (void *)host_slot == (void *)reply_slot ||
+        (void *)loan_slot == (void *)reply_slot)
+        return ACTQL_CONTROL_INVALID_SLOT;
+    if (backing_registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    if (backing_callbacks.operation(*reply_slot) != 3 ||
+        backing_callbacks.issue_family(*reply_slot) != 0 ||
+        !same_backing_reply(*reply_slot, *host_slot, *loan_slot, 1))
+        return ACTQL_CONTROL_INVALID_SLOT;
+    /* Other original references stay alive while the result is dropped. Each
+     * consumed owning slot is cleared before its decref, including response loss. */
+    actql_backing_reply *reply = *reply_slot;
+    *reply_slot = NULL;
+    moonbit_decref(reply);
+    actql_backing_loan *loan = *loan_slot;
+    *loan_slot = NULL;
+    moonbit_decref(loan);
+    actql_control_host *host = *host_slot;
+    *host_slot = NULL;
+    moonbit_decref(host);
+    return ACTQL_CONTROL_OK;
+}
+
+int actql_backing_finish_refused_borrow(actql_control_host **host_slot,
+                                      actql_backing_reply **reply_slot) {
+    if (!host_slot || !reply_slot || !*host_slot || !*reply_slot ||
+        (void *)host_slot == (void *)reply_slot)
+        return ACTQL_CONTROL_INVALID_SLOT;
+    if (backing_registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    actql_backing_loan *loan = backing_callbacks.loan(*reply_slot);
+    if (loan) {
+        moonbit_decref(loan);
+        return ACTQL_CONTROL_INVALID_SLOT;
+    }
+    if (backing_callbacks.operation(*reply_slot) != 1 ||
+        backing_callbacks.issue_family(*reply_slot) == 0 ||
+        !same_backing_reply(*reply_slot, *host_slot, NULL, 0))
+        return ACTQL_CONTROL_INVALID_SLOT;
+    actql_backing_reply *reply = *reply_slot;
+    *reply_slot = NULL;
+    moonbit_decref(reply);
+    actql_control_host *host = *host_slot;
+    *host_slot = NULL;
+    moonbit_decref(host);
+    return ACTQL_CONTROL_OK;
+}
