@@ -35,6 +35,14 @@ const authorization = {
   accountConfiguration: canonical({version: 'actql-execution-account-config/0.1', account_id: 'scope-fixture',
     entries: [{entry_id: 'allow', outcome: 'allow', principal: {all: true}, connection: {all: true},
       resource: {all: true}, operation: {all: true}, exclusions: []}]}),
+  faultInjection(name) {
+    if (lateCurrentLoss && name === 'physical_start_reserved') {
+      invalidations++;
+      // The existing Host hook is on authorization, not an ignored extra
+      // open() option. Preserve a real change after preparation/admission.
+      process.argv[1] = `${process.argv[1]}.changed-after-admission`;
+    }
+  },
   observe(name, detail) {
     if (name === 'dispatch_failed') failures.push(detail);
     if (name === 'infer_preparation_rejected') preparationFailures.push(detail);
@@ -45,14 +53,6 @@ try {
   const {installation, taskCid} = configuration(base);
   host = await openInstalledRemoteHttpHost({directory: root, workspaceId: 'scope', loopbackHttp: true,
     authenticate: () => userInfo().username, authorization, modelInstallation: installation,
-    faultInjection(name) {
-      if (lateCurrentLoss && name === 'physical_start_reserved') {
-        invalidations++;
-        // A real change after preparation/admission, not a mocked current
-        // predicate or replacement Scope. Do not restore it to fake history.
-        process.argv[1] = `${process.argv[1]}.changed-after-admission`;
-      }
-    },
     registerModelProviders(moon) {
       const control = runtimeCore(moon).publicationControl;
       const profileBody = JSON.parse(profileText); delete profileBody.self_cid;
@@ -161,6 +161,13 @@ try {
   completed = true;
   console.log(JSON.stringify({selected, lateCurrentLoss, invalidations, counts, providerCalls, preflights,
     actualHost: true, actualCoreScope: scoped ? 1 : 0, normalNumericProfile: null, publicE2E: 0}));
+} catch (error) {
+  // Keep the original assertion/primary diagnostic even if the same Host's
+  // cleanup also refuses. This fixture contains no credentials/raw response.
+  console.error(JSON.stringify({fixturePrimary: error.code ?? error.name,
+    assertionActual: error.actual, assertionExpected: error.expected, invalidations,
+    dispatchCodes: failures.map(detail => detail.code)}));
+  throw error;
 } finally {
   if (server !== undefined) {
     server.closeAllConnections();
