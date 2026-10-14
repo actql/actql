@@ -155,6 +155,27 @@ pub fn[T] claim_model_io_admission(
 }
 
 ///|
+// The existing Model Owner already holds its original Ledger and attempt
+// reservation. Resolve the census identity inside Resource; do not require
+// an identity getter, a reconstructed origin or another caller-held token.
+// The original claim still checks bootstrap/currentness and both slot bounds.
+pub fn[T] claim_model_io_for_owned_ledger(
+  value : ModelIoAdmission[T],
+  installation : T,
+  ledger : Ledger,
+  reservation : Reservation,
+  slot : Int,
+  attempt : Int,
+) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue] {
+  guard ledger.original_inventory is Some(original) else {
+    return Err(ForeignTicket)
+  }
+  claim_model_io_admission(
+    value, installation, original.identity, reservation, slot, attempt,
+  )
+}
+
+///|
 fn[T] check_model_io_ticket(
   value : ModelIoAdmission[T],
   installation : T,
@@ -220,6 +241,27 @@ pub fn[T] settle_model_io_after_owner_ack(
 }
 
 ///|
+// Same Owner-only retirement boundary as settle_model_io_after_owner_ack.
+// The opaque ticket retains its actual origin; matching the Model's original
+// Ledger never issues an I/O ACK or accepts a cancellation/Promise as one.
+pub fn[T] settle_model_io_for_owned_ledger_after_owner_ack(
+  value : ModelIoAdmission[T],
+  installation : T,
+  ledger : Ledger,
+  ticket : ModelIoTicket[T],
+  slot : Int,
+  attempt : Int,
+) -> Result[Unit, ModelIoAdmissionIssue] {
+  guard ticket.origin is Some(original) else { return Err(TicketRetired) }
+  if !physical_equal(original.ledger, ledger) {
+    return Err(ForeignTicket)
+  }
+  settle_model_io_after_owner_ack(
+    value, installation, original, ticket, slot, attempt,
+  )
+}
+
+///|
 // Call only after original Store/Journal confirmation and actual owning
 // cleanup/alias retirement, not after merely observing a response. This is
 // not a persisted ACK or permission factory and must not be a Node export.
@@ -259,6 +301,28 @@ pub fn[T] settle_model_holding_after_owner_ack(
   ticket.reservation = None
   ticket.census = None
   Ok(())
+}
+
+///|
+// This only routes the same existing settlement through the owned Ledger.
+// Actual Store/Journal confirmation and last-alias cleanup remain required
+// at the Model consumer; no raw EOF, numeric declaration or send grant is
+// substituted. Retired ticket back-references are still cut by Resource.
+pub fn[T] settle_model_holding_for_owned_ledger_after_owner_ack(
+  value : ModelIoAdmission[T],
+  installation : T,
+  ledger : Ledger,
+  ticket : ModelIoTicket[T],
+  slot : Int,
+  attempt : Int,
+) -> Result[Unit, ModelIoAdmissionIssue] {
+  guard ticket.origin is Some(original) else { return Err(TicketRetired) }
+  if !physical_equal(original.ledger, ledger) {
+    return Err(ForeignTicket)
+  }
+  settle_model_holding_after_owner_ack(
+    value, installation, original, ticket, slot, attempt,
+  )
 }
 
 ///|
