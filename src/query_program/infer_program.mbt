@@ -186,10 +186,11 @@ fn lower_infer_steps(
       Some(check) => check
       None => raise Abort(UnsupportedInfer)
     }
+    construction.infer_budget.spend(key_labels.length(), construction.generated)
     let projection = check(
       steps.map(step => construction.object(step)),
       captured,
-      { visible, ranges, key_labels: key_labels.copy(), },
+      { key_labels: key_labels.copy(), },
       authored_aliases,
     )
     keys.append(projection.keys)

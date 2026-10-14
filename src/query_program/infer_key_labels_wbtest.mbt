@@ -90,6 +90,9 @@ test "INFER label chronology does not revive dropped aliases and resets reused g
   let aliases = [("id", "slot"), ("ticket", "slot")]
   let seeded = seed_infer_key_labels(construction, [], original)
   assert_eq(seeded, [("slot", "id")])
+  let rebound = rename_infer_key_label(construction, seeded, "slot", "consumer")
+  assert_eq(rebound, [("slot", "consumer")])
+  assert_eq(seeded, [("slot", "id")])
   let introduced = retain_infer_key_labels(
     construction,
     seeded,
@@ -158,6 +161,7 @@ test "explicit-only INFER disables all label work even with zero remaining allow
     [],
   )
   assert_eq(seed_infer_key_labels(shifted, labels, columns), [])
+  assert_eq(rename_infer_key_label(shifted, labels, "slot", "consumer"), [])
   assert_eq(
     remap_infer_key_labels(shifted, labels, Map([("slot", "joined")])),
     [],

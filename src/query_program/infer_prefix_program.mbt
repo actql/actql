@@ -9,8 +9,6 @@ priv struct InferPrefixBudget {
 // Names are projected only after Common proves the exact physical key tuple.
 // Chronological authored labels remain bound to a slot hidden by a later SET.
 priv struct InferInputLabels {
-  visible : Array[(String, String)]
-  ranges : Array[(@query.NamePart, Array[(String, String)])]
   key_labels : Array[(String, String)]
 }
 
