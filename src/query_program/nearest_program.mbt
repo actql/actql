@@ -51,7 +51,10 @@ fn nearest_complete_relation_roles(
   let vectors = @vector.nearest_input_vectors(checked).unwrap()
   let keys = @carrier.vector_identities(vectors).map(field => {
     let slot = @schema.reference_name(field.name)
-    let label = visible.filter(entry => entry.1 == slot).get(0).map(entry => entry.0).unwrap_or(slot)
+    let label = match visible.filter(entry => entry.1 == slot).get(0) {
+      Some(entry) => entry.0
+      None => raise Abort(UnsupportedNearest)
+    }
     (label, slot)
   })
   (keys, @schema.reference_name(@carrier.vector_components(vectors).name))
