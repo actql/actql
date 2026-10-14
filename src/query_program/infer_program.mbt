@@ -19,9 +19,11 @@ fn infer_argument_issue(
         @origin.start(input_origin).byte_offset {
         break
       }
-      if @query.token_at(source, index).unwrap().value is Word(word) &&
-        ascii_upper(word) == "INFER" {
-        at = Some(token_origin)
+      if @query.token_at(source, index).unwrap().value is Word(word) {
+        construction.infer_budget.spend_text(word, construction.generated)
+        if ascii_upper(word) == "INFER" {
+          at = Some(token_origin)
+        }
       }
     }
   }
