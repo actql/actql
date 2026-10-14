@@ -34,8 +34,8 @@ fn interval_fixture(
 }
 
 ///|
-fn full_utc_table() -> Table raise {
-  admit(calendar_domain_start, calendar_domain_end, 0, [], max_transitions=0).unwrap()
+fn full_utc_table() -> Table {
+  admit(-62135596800000L, 253402300800000L, 0, [], max_transitions=0).unwrap()
 }
 
 ///|
@@ -111,8 +111,8 @@ test "selected offset transitions make short and long civil days" {
   // Exact independently pinned New York transition instants for these two
   // boundary vectors. This small table is synthetic, not a provenance claim.
   let table = admit(
-    calendar_domain_start,
-    calendar_domain_end,
+    -62135596800000L,
+    253402300800000L,
     -18000,
     [
       { at_ms: 1710054000000L, offset_seconds: -14400, },
@@ -133,8 +133,8 @@ test "selected offset transitions make short and long civil days" {
 ///|
 test "skipped day coincident boundaries collapse into one adjacent interval" {
   let table = admit(
-    calendar_domain_start,
-    calendar_domain_end,
+    -62135596800000L,
+    253402300800000L,
     -36000,
     [{ at_ms: 1325239200000L, offset_seconds: 50400, }],
     max_transitions=1,
@@ -148,8 +148,8 @@ test "skipped day coincident boundaries collapse into one adjacent interval" {
 ///|
 test "nonmonotone local inverses still choose UTC adjacent boundaries" {
   let table = admit(
-    calendar_domain_start,
-    calendar_domain_end,
+    -62135596800000L,
+    253402300800000L,
     864000,
     [{ at_ms: 1728000000L, offset_seconds: -950400, }],
     max_transitions=1,
