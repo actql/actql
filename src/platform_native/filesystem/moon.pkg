@@ -12,6 +12,8 @@ options(
   "native-stub": [ "filesystem_stub.c" ],
   targets: {
     "filesystem_native.mbt": [ "native" ],
+    "scoped_read_native.mbt": [ "native" ],
+    "scoped_read_unsupported.mbt": [ "not", "native" ],
     "read_layout_native.mbt": [ "native" ],
     "read_layout_native_wbtest.mbt": [ "native" ],
     "read_layout_unsupported.mbt": [ "not", "native" ],
