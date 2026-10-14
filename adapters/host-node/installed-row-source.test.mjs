@@ -25,13 +25,15 @@ test('ordinary row binding is issued by the original preparation owner and reche
     (await read('spec/local-check-environment.json')).trimEnd(), declared);
   const checkedEnvironment = moon.clientProgramCheckEnvironment(environment.wire, environment.evidenceCid,
     false, false, true, false, false, false, false);
-  const preparedProgram = moon.clientProgramPrepareEffectFree(
+  assert.ok(checkedEnvironment);
+  const preparationOutcome = moon.clientProgramPrepareEffectFreeWithParameters(
     JSON.stringify({version: 'actql/0.1', id: 'bound-row-control', stages: [{id: 'scan',
       inputs: {remote: {connector: 'fixture', resource: 'records'}},
       steps: [{filter: 'true', as: 'all_rows'}, {select: ['id'], as: 'output'}],
       results: {r: {from: 'output', fields: ['id']}}}],
-      results: {r: {from: {stage: 'scan', result: 'r'}}}}), 'json', checkedEnvironment);
-  assert.ok(preparedProgram);
+      results: {r: {from: {stage: 'scan', result: 'r'}}}}), 'json', checkedEnvironment, undefined);
+  const preparedProgram = moon.clientProgramPreparationReady(preparationOutcome);
+  assert.ok(preparedProgram, inspect(moon.clientProgramPreparationIssue(preparationOutcome), {depth: 12}));
   const [registry, aoa] = await Promise.all([
     read('spec/dependencies/aoa-pipeline-registry.json'), read('spec/contracts/actql-aoa.json').then(JSON.parse)]);
   const expectedBinding = {connectorId: 'fixture', connectorRegistration: 'fixture',
