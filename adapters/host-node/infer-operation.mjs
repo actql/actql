@@ -289,6 +289,28 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       return false;
     }
   };
+  let runtimeObservedCallSet;
+  let runtimeDiagnostic;
+  function observeOriginalRuntime(value) {
+    runtimeCurrent();
+    try {
+      if (runtimeDiagnostic !== undefined) {
+        const facts = moon.clientProgramInferPhysicalObservationFacts(value);
+        runtimeDiagnostic({slot: facts._0, attemptCid: facts._1,
+          event: facts._2, outcome: facts._3});
+      }
+    } catch { /* Optional diagnostics cannot authorize or block cleanup. */ }
+    finally { runtimeCurrent(); }
+  }
+  function bindOriginalRuntimeObservation(preparedCallSet) {
+    if (runtimeObservedCallSet !== undefined) {
+      return runtimeObservedCallSet === preparedCallSet;
+    }
+    const installed = moon.clientProgramBindInferModelObservation(active,
+      preparedCallSet, observeOriginalRuntime);
+    if (installed === true) runtimeObservedCallSet = preparedCallSet;
+    return installed === true;
+  }
   signal?.addEventListener('abort', requestStop, {once: true});
   let flight;
   let closeFlight;
@@ -319,6 +341,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       metadataControl = undefined;
       metadataDefinition = undefined;
       rawCaptureBinder = undefined;
+      runtimeObservedCallSet = undefined;
+      runtimeDiagnostic = undefined;
+      assertRuntimeCurrent = undefined;
       io?.close();
       io = undefined;
     }
@@ -346,6 +371,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       if (kind === 'waiting') {
         const preparedCallSet = moon.clientProgramInferPreparedCallSet(active);
         if (preparedCallSet === undefined) throw new Error('InferPreparedOwnerUnavailable');
+        if (assertRuntimeCurrent !== undefined && !bindOriginalRuntimeObservation(preparedCallSet)) {
+          requestStop();
+          throw new TypeError('InferTrustedRuntimeObservationUnavailable');
+        }
         return Object.freeze({status: 'waiting', preparedCallSet});
       }
       if (kind === 'settling') {
@@ -772,19 +801,23 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
               slot: originals._0, callWire: originals._1,
               attemptWire: originals._2, authorityWire: originals._3}));
           }}),
-    bindModelObservation: (preparedCallSet, observe) =>
-      moon.clientProgramBindInferModelObservation(active, preparedCallSet, value => {
-        // This original current check runs BEFORE one-shot gate consumption.
-        // A diagnostic callback may revoke the original; recheck after it.
-        runtimeCurrent();
+    bindModelObservation: (preparedCallSet, observe) => {
+      if (assertRuntimeCurrent !== undefined) {
+        // Currentness is installed even when optional OTel is absent. Attach
+        // metadata delivery to that SAME once-bound observer, not another one.
+        if (!bindOriginalRuntimeObservation(preparedCallSet)) return false;
+        runtimeDiagnostic = observe;
+        return true;
+      }
+      return moon.clientProgramBindInferModelObservation(active, preparedCallSet, value => {
         // Only the installed metadata observer is called here. Its failure
         // must not escape into invoke, admission, accounting, or cleanup.
         try {
           const facts = moon.clientProgramInferPhysicalObservationFacts(value);
           observe({slot: facts._0, attemptCid: facts._1, event: facts._2, outcome: facts._3});
         } catch { /* Optional observation has no execution authority. */ }
-        finally { runtimeCurrent(); }
-      }),
+      });
+    },
     restoreCall: (preparedCallSet, slot, record, proof, bundle) => checked(
       moon.clientProgramRestoreInferPreparedCall(preparedCallSet, slot, record, proof, bundle)),
     restoreUnknown: (preparedCallSet, slot, attempt, authority) => checked(
