@@ -124,6 +124,12 @@ pub fn local_dispatch_rejection(
               local_task_slot(installed, task),
               requirement.site.step,
               @local.CalendarSeries,
+            ) &&
+            !@local.local_module_bounded_temporal_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.CalendarBucket,
             ) {
             return Some("unsupported_execution_obligation")
           }
