@@ -50,6 +50,7 @@ fn nearest_complete_relation_roles(
   let options = match
     @vector.read_nearest_options(@builder.cursor(source), bound) {
     Ok(options) => options
+    Err({ kind: BudgetExceeded, .. }) => raise Abort(Expression({ issue: @expression.WorkLimit, origin: Some(construction.generated), }))
     Err(_) => raise Abort(UnsupportedNearest)
   }
   budget.spend(

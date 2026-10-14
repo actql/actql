@@ -1390,7 +1390,7 @@ not a manifest.
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json# sha256:f2590f98dbf689c88515222bad6159cdb7f3f98a4d3b36c5b2a17c8d314749c8 -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/grammar_manifest sha256:73af863283cd7bda47fb5fe96b9def095def2fe4561ead3fa12cd6c37f535eec -->
 <!-- machine-import: ../../../spec/contracts/actql-compilation-manifests.json#/schemas/barrier_contract_manifest sha256:daba2ff5f44da16169d84f55da9156ea647bcbb88ed02a76286a6be40080e342 -->
-<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:07ae67705e63815f0c2ebbcea33a437de9d27c89c1fd87c4f7dba2b896fef701 -->
+<!-- machine-import: ../../../spec/manifests/actql-grammar-0.1.json# sha256:95d2543bc4ee3d04c21815e05ae58afe52931a2caec8902774582fd68e7b7144 -->
 <!-- machine-import: ../../../spec/manifests/actql-barrier-contracts-0.1.json# sha256:84f8c82ffb7476f57a3c4e1bef0e0dd8aa891e2ab0f1d79c203e907e91291b9b -->
 
 <a id="parameter-value-projection"></a>

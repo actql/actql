@@ -1671,7 +1671,7 @@ match produces no row. Query-key-only uniqueness is never inferred after KNN.
 
 Lowering retains each source producer once, uses the existing rows-to-Vectors
 bridges and nearest operation, then common many-to-one joins for KEEP and
-ordinary object projection. If the candidate declares an exact `body` column,
+ordinary object projection. If the candidate declares an unambiguously resolved `body` column,
 its actual value and type are projected as `hit.body` through that same retained
 candidate correspondence. It is neither the query row nor a flattened query
 column, and cannot replace query_key, candidate_key, score or rank. Other

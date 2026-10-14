@@ -10,9 +10,11 @@ assert.equal(git('status', '--porcelain'), '');
 const selections = {
   syntax: ['src/query_syntax/nearest_shorthand_test.mbt', 'src/query_syntax/nearest_test.mbt', 'src/query_syntax/nearest_optional_roles_test.mbt'],
   lowering: ['src/query_program/nearest_shorthand_test.mbt', 'src/query_program/nearest_test.mbt', 'src/query_program/nearest_carrier_roles_test.mbt'],
+  adjacent: ['src/query_program/nearest_member_test.mbt','src/query_program/nearest_script_test.mbt','src/query_program/nearest_expression_test.mbt','src/query_program/nearest_pipe_continuation_test.mbt','src/query_program/nearest_join_continuation_test.mbt','src/query_program/nearest_composite_roles_wbtest.mbt'],
+  node: ['scripts/nearest-shorthand.test.mjs','scripts/release-nearest-carrier-fixtures.test.mjs','scripts/compilation-manifests.test.mjs','scripts/frontend-profile.test.mjs'],
 };
 assert(Object.hasOwn(selections, selection));
-const runner = `import {runFocusedTests} from './scripts/test-execution.mjs';process.exitCode=runFocusedTests('moon',${JSON.stringify(['--target', 'js', '-j', '1', ...selections[selection]])},{cwd:process.cwd(),timeout:240000});`;
+const runner = `import {runFocusedTests} from './scripts/test-execution.mjs';process.exitCode=runFocusedTests(${JSON.stringify(selection === 'node' ? 'node' : 'moon')},${JSON.stringify(selection === 'node' ? selections.node : ['--target', 'js', '-j', '1', ...selections[selection]])},{cwd:process.cwd(),timeout:240000});`;
 process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false,
   timeoutSeconds: 270, graceSeconds: 5,
   steps: [{name: 'Short NEAREST and explicit-role parser counterexamples', command: process.execPath,
