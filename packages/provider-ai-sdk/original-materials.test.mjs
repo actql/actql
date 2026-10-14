@@ -162,6 +162,21 @@ test('actual Common readers preserve original policies and refuse changed wire/C
     const config=configuration();change(config);
     assert.throws(()=>createInstalledOpenAIChatRegistration(config)(moon),{code:'OpenAIOriginalMaterialsRefused'});
   }
+  // The real Common reader, not the runtime double above, binds the five
+  // acquisition ceilings to this original admitted profile before selection.
+  for(const [section,key] of [['requestLimits','maxBytes'],['responseLimits','maxBytes'],
+    ['responseLimits','maxChunkBytes'],['responseLimits','maxChunks'],['responseLimits','maxHeaderBytes']]) {
+    const config=configuration();config[section][key]++;
+    assert.throws(()=>createInstalledOpenAIChatRegistration(config)(moon),
+      {code:'OpenAIOriginalTransportLimitsMismatch'});
+  }
+  const tighter=configuration();tighter.requestLimits.maxBytes--;
+  tighter.responseLimits.maxBytes--;tighter.responseLimits.maxChunkBytes--;
+  tighter.responseLimits.maxChunks--;tighter.responseLimits.maxHeaderBytes--;
+  const tightened=installModelProviders(moon,createInstalledOpenAIChatRegistration(tighter))
+    .get('models/fixture');
+  assert.equal(tightened.rawCaptureSelection.profile,
+    tightened.originalReadInstallation.nodeInstallation.layout.response_profile);
 });
 
 for(const [route,create] of [['generic',createInstalledOpenAIChatRegistration],
