@@ -25,7 +25,7 @@ fn required_http_custody_library() -> Library {
 }
 
 ///|
-fn failed_http_constructor(library : Library) -> NativeHttpClientCreateFailure {
+fn failed_http_constructor(library : Library) -> NativeHttpClientCreateFailure raise {
   // Fail the second real path copy, after the actual CA allocation. This is
   // allocator fault injection, not an observed operating-system ENOMEM.
   fail_http_constructor_path(library, 2)
