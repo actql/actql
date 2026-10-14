@@ -9,6 +9,8 @@ import {checkoutState, CLIENT_PACKAGES} from './packed-client-packages.mjs';
 import {inventory, unpack, publicationPlan} from './package-release.mjs';
 import {publishPackageRelease} from './publish-package-release.mjs';
 import {admitInstalledLocalRuntime} from '../packages/native-cli/lib/local-runtime.mjs';
+import {PRODUCT_MEMBERS_FILE} from '../packages/native-cli/lib/product-members.mjs';
+import {stageProductMembers, verifyStagedProductMembers, launcherMemberPlatform} from './native-cli-product-members.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const hash = (bytes, algorithm = 'sha256', encoding = 'hex') => createHash(algorithm).update(bytes).digest(encoding);
@@ -49,13 +51,14 @@ export async function admitNativeArtifact(directory, sourceSha) {
   return record;
 }
 
-async function pack(directory, output) {
+async function pack(directory, output, productMembers) {
   const json = JSON.parse(execFileSync('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', output,
     '--cache', join(output, '.npm-cache')], {cwd: directory, encoding: 'utf8', timeout: 60_000}));
   const result = Array.isArray(json) ? json : Object.values(json); assert.equal(result.length, 1);
   const item = result[0], bytes = await readFile(join(output, item.filename));
   return {name: item.name, version: item.version, file: item.filename, bytes: bytes.length, sha256: hash(bytes),
-    integrity: `sha512-${hash(bytes, 'sha512', 'base64')}`, files: await inventory(directory)};
+    integrity: `sha512-${hash(bytes, 'sha512', 'base64')}`, files: await inventory(directory),
+    ...(productMembers ? {productMembers} : {})};
 }
 
 export async function prepareNativeCliRelease(destination, artifacts) {
@@ -82,7 +85,7 @@ export async function prepareNativeCliRelease(destination, artifacts) {
       const target = platforms[record.platform];
       const metadata = {name, version: cli.version, description: 'ActQL Native Remote transport executable',
         license: 'Apache-2.0', os: [target.os], cpu: [target.cpu], ...(target.libc ? {libc: [target.libc]} : {}),
-        files: ['bin', 'artifact.json', 'LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE',
+        files: ['bin', 'artifact.json', 'LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE', PRODUCT_MEMBERS_FILE,
           ...(record.localRuntime ? ['local-runtime.json', 'lib', 'data', 'licenses'] : [])],
         repository: {type: 'git', url: 'git+https://github.com/actql/actql.git'}, publishConfig: cli.publishConfig};
       await writeFile(join(directory, 'package.json'), `${JSON.stringify(metadata, null, 2)}\n`);
@@ -101,19 +104,25 @@ export async function prepareNativeCliRelease(destination, artifacts) {
         admitInstalledLocalRuntime({root: directory,
           expected: {sourceSha: record.sourceSha, platform: record.platform, localRuntimeSha256: record.localRuntime.sha256}, metadata: record.localRuntime});
       }
-      packages.push(await pack(directory, destination));
+      const productMembers = await stageProductMembers(directory, {
+        sourceSha: source.revision, platform: record.platform, packageName: name});
+      packages.push(await pack(directory, destination, productMembers));
       mapping[record.platform] = {package: name, sourceSha: record.sourceSha, binarySha256: record.binarySha256, binaryBytes: record.binaryBytes,
-        ...(record.localRuntime ? {localRuntimeSha256: record.localRuntime.sha256} : {})};
+        ...(record.localRuntime ? {localRuntimeSha256: record.localRuntime.sha256} : {}), productMembers};
     }
     const directory = join(scratch, 'cli'); await mkdir(join(directory, 'bin'), {recursive: true});
     cli.optionalDependencies = Object.fromEntries(Object.values(mapping).map(v => [v.package, cli.version]));
+    const memberPlatform = launcherMemberPlatform(records);
+    if (memberPlatform !== undefined) cli.files = [...new Set([...cli.files, PRODUCT_MEMBERS_FILE])];
     await mkdir(join(directory, 'lib'));
-    for (const path of ['README.md', 'bin/actql.mjs', 'lib/local-runtime.mjs']) await copyFile(join(repository, 'packages/native-cli', path), join(directory, path));
+    for (const path of ['README.md', 'bin/actql.mjs', 'lib/local-runtime.mjs', 'lib/product-members.mjs']) await copyFile(join(repository, 'packages/native-cli', path), join(directory, path));
     await chmod(join(directory, 'bin/actql.mjs'), 0o755);
     await copyFile(join(repository, 'LICENSE'), join(directory, 'LICENSE'));
     await writeFile(join(directory, 'package.json'), `${JSON.stringify(cli, null, 2)}\n`);
     await writeFile(join(directory, 'platforms.json'), `${JSON.stringify(mapping, null, 2)}\n`);
-    packages.push(await pack(directory, destination));
+    const productMembers = memberPlatform === undefined ? undefined : await stageProductMembers(directory, {
+      sourceSha: source.revision, platform: memberPlatform, packageName: 'actql'});
+    packages.push(await pack(directory, destination, productMembers));
     assert.deepEqual(checkoutState(repository), source);
     const manifest = {version: 'actql-native-cli-release/0.1', sourceSha: source.revision,
       preparedAt: new Date().toISOString(), recipeSha256: hash(await readFile(join(repository, 'scripts/native-cli-release.mjs'))),
@@ -147,6 +156,12 @@ export async function verifyNativeCliRelease(directory) {
       assert.equal(metadata.name, item.name); assert.equal(metadata.version, item.version); assert.equal(metadata.private, undefined);
       assert.equal(metadata.scripts, undefined); assert.equal(metadata.license, 'Apache-2.0');
       if (item.name === 'actql') {
+        if (item.productMembers !== undefined) {
+          const platform = launcherMemberPlatform(manifest.artifacts);
+          assert(platform !== undefined);
+          await verifyStagedProductMembers(payload, {
+            sourceSha: manifest.sourceSha, platform, packageName: item.name}, item.productMembers);
+        }
         assert.deepEqual(metadata.bin, {actql: 'bin/actql.mjs'});
         assert.deepEqual(metadata.optionalDependencies, Object.fromEntries(names.map(key => [`@actql/cli-${key}`, item.version])));
         assert.deepEqual(JSON.parse(await readFile(join(payload, 'platforms.json'), 'utf8')), manifest.platforms);
@@ -156,6 +171,8 @@ export async function verifyNativeCliRelease(directory) {
         assert.deepEqual(metadata.libc, target.libc ? [target.libc] : undefined);
         const record = JSON.parse(await readFile(join(payload, 'artifact.json'), 'utf8'));
         assert.deepEqual(record, manifest.artifacts.find(v => v.platform === key));
+        if (item.productMembers !== undefined) await verifyStagedProductMembers(payload, {
+          sourceSha: manifest.sourceSha, platform: key, packageName: item.name}, item.productMembers);
         // The artifact validator expects the binary at the producer path.
         await copyFile(join(payload, 'bin/actql-native-client'), join(payload, 'actql-native-client'));
         await admitNativeArtifact(payload, manifest.sourceSha);
@@ -163,7 +180,8 @@ export async function verifyNativeCliRelease(directory) {
         for (const [filename, digest] of Object.entries(record.notices)) assert.equal(digest, hash(await readFile(join(payload, filename))));
         assert.deepEqual(manifest.platforms[key], {package: item.name, sourceSha: record.sourceSha,
           binarySha256: record.binarySha256, binaryBytes: record.binaryBytes,
-          ...(record.localRuntime ? {localRuntimeSha256: record.localRuntime.sha256} : {})});
+          ...(record.localRuntime ? {localRuntimeSha256: record.localRuntime.sha256} : {}),
+          ...(item.productMembers ? {productMembers: item.productMembers} : {})});
       }
     }
   } finally {await rm(scratch, {recursive: true});}
