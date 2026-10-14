@@ -2,6 +2,38 @@
 type NativeRuntimeBundleStore
 
 ///|
+type NativeRuntimeBundleStoreOpenFailure
+
+///|
+pub fn NativeRuntimeBundleStoreOpenFailure::issue(
+  _self : NativeRuntimeBundleStoreOpenFailure,
+) -> NativeRuntimeBundleStoreIssue {
+  UnsupportedTarget
+}
+
+///|
+pub fn NativeRuntimeBundleStoreOpenFailure::retry_cleanup(
+  _self : NativeRuntimeBundleStoreOpenFailure,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn open_runtime_bundle_store_with_custody(
+  _sqlite_library : @sqlite.Library,
+  _signature_library : @signature.Library,
+  _root_path : String,
+  _authorities : Array[NativeRuntimeBundleAuthority],
+  _target_triple : String,
+  _capacity_bytes : Int64,
+  _max_bundles : Int,
+  _max_owners : Int,
+  _max_record_bytes : Int64,
+) -> Result[NativeRuntimeBundleStore, NativeRuntimeBundleStoreOpenError] {
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
 type NativeRuntimeBundleInstaller
 
 ///|
@@ -306,4 +338,14 @@ pub fn NativeRuntimeBundleStore::release_member(
   _binding : @bundle.RemoteBundleHoldBinding,
 ) -> Result[NativeRuntimeBundleHoldReceipt, NativeRuntimeBundleStoreIssue] {
   Err(UnsupportedTarget)
+}
+
+///|
+pub fn NativeRuntimeBundleStore::acquire_active_component_with_custody(
+  _self : NativeRuntimeBundleStore,
+  _observed_component_cid : String,
+  _observed_target_triple : String,
+  _process_hold_id : String,
+) -> Result[NativeActiveRuntimeBinding, NativeRuntimeBundleProcessAcquireError] {
+  Err(RefusedBeforeHolding(UnsupportedTarget))
 }

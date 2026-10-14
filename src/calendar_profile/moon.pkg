@@ -1,6 +1,6 @@
 supported_targets = "+js+wasm+native"
 
-formatter(ignore: [ "tzdb_fixture.generated_test.mbt" ])
+formatter(ignore: [ "tzdb_fixture.generated_test.mbt", "runtime_laws.generated_test.mbt" ])
 
 import {
   "actql/actql/calendar_transition" @transition,
@@ -13,4 +13,6 @@ import {
 
 import {
   "moonbitlang/core/encoding/utf8",
+  "actql/actql/calendar_options" @options,
+  "actql/actql/value_admission" @value,
 } for "test"
