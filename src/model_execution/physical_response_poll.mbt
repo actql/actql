@@ -189,7 +189,6 @@ fn poll_model_physical_call(
         state.reservations.get(entry.slot) is Some(reservation) &&
         physical_equal(reservation, binding.reservation) &&
         @resources.reservation_open(reservation) &&
-        entry.trace.attempt == 1 &&
         entry.send_started &&
         !state.reclaimed else {
         return Err(RequestIdentity)
