@@ -1,4 +1,65 @@
 ///|
+struct NativeHttpLibraryLoadFailure {
+  original_issue : NativeHttpIssue
+  mut library : Library?
+}
+
+///|
+pub fn NativeHttpLibraryLoadFailure::issue(
+  self : NativeHttpLibraryLoadFailure,
+) -> NativeHttpIssue {
+  self.original_issue
+}
+
+///|
+/// A failed init or unconfirmed unload remains pending on the same Library.
+/// There is no load retry, replacement handle or successful-runtime close here.
+pub fn NativeHttpLibraryLoadFailure::retry_cleanup(
+  self : NativeHttpLibraryLoadFailure,
+) -> Result[Unit, NativeHttpIssue] {
+  guard self.library is Some(original) else { return Ok(()) }
+  match retire_failed_http_library(original) {
+    Ok(_) => {
+      self.library = None
+      Ok(())
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+struct NativeHttpClientCreateFailure {
+  original_issue : NativeHttpIssue
+  original_library : Library
+  mut client : Client?
+}
+
+///|
+pub fn NativeHttpClientCreateFailure::issue(
+  self : NativeHttpClientCreateFailure,
+) -> NativeHttpIssue {
+  self.original_issue
+}
+
+///|
+/// Retire only the rejected Client's owned paths/response/diagnostic storage.
+/// The original Library reference remains in this carrier through its caller
+/// lifetime and is returned explicitly as residual custody, not a cleanup ACK
+/// for global libcurl or runtime retirement. No new Library is loaded.
+pub fn NativeHttpClientCreateFailure::retry_cleanup(
+  self : NativeHttpClientCreateFailure,
+) -> Result[Library, NativeHttpIssue] {
+  guard self.client is Some(original) else { return Ok(self.original_library) }
+  match retire_failed_http_client(self.original_library, original) {
+    Ok(_) => {
+      self.client = None
+      Ok(self.original_library)
+    }
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
 type Library
 
 ///|
@@ -11,6 +72,46 @@ extern "C" fn load_library_ffi(
   length : Int,
   diagnostic_ceiling : Int,
 ) -> Library = "actql_native_http_load_library"
+
+///|
+#borrow(path)
+extern "C" fn load_library_with_custody_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+) -> Library = "actql_native_http_load_library_with_custody"
+
+///|
+#borrow(library)
+extern "C" fn retire_failed_library_ffi(library : Library) -> Int = "actql_native_http_retire_failed_library"
+
+///|
+#borrow(library, client)
+extern "C" fn retire_failed_client_ffi(
+  library : Library,
+  client : Client,
+) -> Int = "actql_native_http_retire_failed_client"
+
+///|
+fn retire_failed_http_library(
+  library : Library,
+) -> Result[Unit, NativeHttpIssue] {
+  match retire_failed_library_ffi(library) {
+    0 => Ok(())
+    _ => Err(Transport("HTTP library retirement unconfirmed"))
+  }
+}
+
+///|
+fn retire_failed_http_client(
+  library : Library,
+  client : Client,
+) -> Result[Unit, NativeHttpIssue] {
+  match retire_failed_client_ffi(library, client) {
+    0 => Ok(())
+    _ => Err(Transport("HTTP constructor metadata retirement unconfirmed"))
+  }
+}
 
 ///|
 #borrow(library)
@@ -185,6 +286,54 @@ pub fn load_library(
 }
 
 ///|
+pub fn load_library_with_custody(
+  path : String,
+  diagnostic_ceiling? : Int? = None,
+) -> Result[Library, NativeHttpLibraryLoadError] {
+  if (diagnostic_ceiling is Some(value) && value <= 0) || !valid_path(path) {
+    return Err(RefusedBeforeAcquisition(InvalidConfiguration))
+  }
+  let encoded = @utf8.encode(path)
+  let library = load_library_with_custody_ffi(
+    encoded,
+    encoded.length(),
+    diagnostic_ceiling.unwrap_or(0),
+  )
+  if library_ready_ffi(library) {
+    Ok(library)
+  } else {
+    Err(
+      CleanupRequired({
+        original_issue: LibraryLoad(
+          decode_diagnostic(library_error_ffi(library)),
+        ),
+        library: Some(library),
+      }),
+    )
+  }
+}
+
+///|
+fn http_client_create_result_with_custody(
+  library : Library,
+  client : Client,
+) -> Result[Client, NativeHttpClientCreateError] {
+  if client_ready_ffi(client) {
+    Ok(client)
+  } else {
+    Err(
+      CleanupRequired({
+        original_issue: ClientCreate(
+          decode_diagnostic(client_error_ffi(client)),
+        ),
+        original_library: library,
+        client: Some(client),
+      }),
+    )
+  }
+}
+
+///|
 pub fn Library::version(self : Library) -> String {
   decode_message(library_version_ffi(self))
 }
@@ -199,6 +348,32 @@ pub fn Library::create_client(
   connect_timeout_ms : Int,
   operation_timeout_ms : Int,
 ) -> Result[Client, NativeHttpIssue] {
+  match
+    self.create_client_with_custody(
+      ca_path, certificate_path, key_path, max_response_bytes, connect_timeout_ms,
+      operation_timeout_ms,
+    ) {
+    Ok(client) => Ok(client)
+    Err(RefusedBeforeAcquisition(issue)) => Err(issue)
+    Err(CleanupRequired(failure)) => {
+      // Legacy issue-only caller cannot retain a pending constructor carrier.
+      // Its best-effort cleanup is not an upper-holder funding/retirement proof.
+      ignore(failure.retry_cleanup())
+      Err(failure.issue())
+    }
+  }
+}
+
+///|
+pub fn Library::create_client_with_custody(
+  self : Library,
+  ca_path : String,
+  certificate_path : String,
+  key_path : String,
+  max_response_bytes : Int64,
+  connect_timeout_ms : Int,
+  operation_timeout_ms : Int,
+) -> Result[Client, NativeHttpClientCreateError] {
   if !valid_path(ca_path) ||
     !valid_path(certificate_path) ||
     !valid_path(key_path) ||
@@ -207,7 +382,7 @@ pub fn Library::create_client(
     connect_timeout_ms <= 0 ||
     operation_timeout_ms <= 0 ||
     operation_timeout_ms < connect_timeout_ms {
-    return Err(InvalidConfiguration)
+    return Err(RefusedBeforeAcquisition(InvalidConfiguration))
   }
   let ca = @utf8.encode(ca_path)
   let certificate = @utf8.encode(certificate_path)
@@ -224,11 +399,7 @@ pub fn Library::create_client(
     connect_timeout_ms,
     operation_timeout_ms,
   )
-  if client_ready_ffi(client) {
-    Ok(client)
-  } else {
-    Err(ClientCreate(decode_diagnostic(client_error_ffi(client))))
-  }
+  http_client_create_result_with_custody(self, client)
 }
 
 ///|
@@ -242,6 +413,30 @@ pub fn Library::create_authenticated_client(
   connect_timeout_ms : Int,
   operation_timeout_ms : Int,
 ) -> Result[Client, NativeHttpIssue] {
+  match
+    self.create_authenticated_client_with_custody(
+      ca_path, authentication, max_response_bytes, connect_timeout_ms, operation_timeout_ms,
+    ) {
+    Ok(client) => Ok(client)
+    Err(RefusedBeforeAcquisition(issue)) => Err(issue)
+    Err(CleanupRequired(failure)) => {
+      // Legacy issue-only caller cannot retain a pending constructor carrier.
+      // Its best-effort cleanup is not an upper-holder funding/retirement proof.
+      ignore(failure.retry_cleanup())
+      Err(failure.issue())
+    }
+  }
+}
+
+///|
+pub fn Library::create_authenticated_client_with_custody(
+  self : Library,
+  ca_path : String,
+  authentication : NativeHttpAuthentication,
+  max_response_bytes : Int64,
+  connect_timeout_ms : Int,
+  operation_timeout_ms : Int,
+) -> Result[Client, NativeHttpClientCreateError] {
   let (certificate_path, key_path, bearer_path, configured) = match
     authentication {
     MutualTls(certificate, key) =>
@@ -262,7 +457,7 @@ pub fn Library::create_authenticated_client(
     connect_timeout_ms <= 0 ||
     operation_timeout_ms <= 0 ||
     operation_timeout_ms < connect_timeout_ms {
-    return Err(InvalidConfiguration)
+    return Err(RefusedBeforeAcquisition(InvalidConfiguration))
   }
   let ca = @utf8.encode(ca_path)
   let certificate = @utf8.encode(certificate_path)
@@ -282,11 +477,7 @@ pub fn Library::create_authenticated_client(
     connect_timeout_ms,
     operation_timeout_ms,
   )
-  if client_ready_ffi(client) {
-    Ok(client)
-  } else {
-    Err(ClientCreate(decode_diagnostic(client_error_ffi(client))))
-  }
+  http_client_create_result_with_custody(self, client)
 }
 
 ///|
