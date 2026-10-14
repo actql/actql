@@ -36,4 +36,16 @@ int actql_domain_drop_reply(actql_domain_reply **, actql_control_host *, actql_d
  * refusal. Slot clearing precedes decref, including lost responses. */
 int actql_domain_finish_closed_data(actql_control_host **, actql_domain **, actql_domain_reply **);
 int actql_domain_finish_refused_prepare(actql_control_host **, actql_domain_reply **);
+/* Actual Sourceaf23 regular C SHA256 a4d4095a89b4bc5ba2297c234aa88037
+ * 2db8aaa1bde172c62fe7c005d3a3c192. Getters borrow reply and own returned
+ * String/Bytes references. No generated object fields are inspected. */
+typedef int64_t (*actql_domain_scalar_fn)(actql_domain_reply *, int32_t);
+typedef moonbit_bytes_t (*actql_domain_recipe_fn)(actql_domain_reply *);
+void actql_native_control_register_domain_material_roots(
+    actql_domain_operation_fn, actql_domain_scalar_fn,
+    actql_domain_description_fn, actql_domain_recipe_fn);
+int actql_domain_project_into(actql_control_host *, actql_domain *, actql_domain_reply **);
+/* Exact fixed DATA only. Copying it transfers no original child/loan/permit. */
+int actql_domain_copy_material(actql_domain_reply *, actql_control_host *, actql_domain *,
+    unsigned char source[40], unsigned char recipe[32], int64_t scalars[15]);
 #endif

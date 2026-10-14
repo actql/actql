@@ -392,6 +392,8 @@ fn execute_native_local_adoption(
       local_checkpoint_metadata_lookup(
         host, settings, crypto, input_root, child,
       )
+    } else if operation == "status" {
+      local_saved_run_status(host, settings, crypto, input_root, child)
     } else if operation == "lookup-preparation-grant" {
       local_preparation_grant_lookup(host, settings, crypto, input_root, child)
     } else if operation == "lookup-preparation-raw" {

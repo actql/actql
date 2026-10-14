@@ -39,6 +39,8 @@ pub fn prepare_installed_arena_host(String, Bytes, Int64, Int64, @physical_resou
 
 pub fn prepare_installed_arena_reply(String, Bytes, Int64, Int64, Int, Int, Int, Int64, Int64, Int64, Int64) -> InstalledArenaReply
 
+pub fn project_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
+
 pub fn return_installed_arena_backing_reply(InstalledArenaHost, InstalledArenaBackingBorrow) -> InstalledArenaBackingReply
 
 pub fn transfer_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
@@ -83,11 +85,15 @@ pub(all) enum InstalledArenaDomainOperation {
   EnterDomain
   LeaveDomain
   CloseDomain
+  ProjectDomain
 } derive(Eq)
 
 type InstalledArenaDomainReply
 pub fn InstalledArenaDomainReply::issue_description(Self) -> String
 pub fn InstalledArenaDomainReply::issue_family(Self) -> Int
+pub fn InstalledArenaDomainReply::material_recipe(Self) -> Bytes
+pub fn InstalledArenaDomainReply::material_scalar(Self, Int) -> Int64
+pub fn InstalledArenaDomainReply::material_source(Self) -> String
 pub fn InstalledArenaDomainReply::operation_tag(Self) -> Int
 pub fn InstalledArenaDomainReply::original_domain(Self) -> InstalledArenaDomain?
 pub fn InstalledArenaDomainReply::original_host(Self) -> InstalledArenaHost
@@ -106,6 +112,7 @@ pub fn InstalledArenaHost::enter_domain(Self, InstalledArenaDomain) -> Result[Un
 pub fn InstalledArenaHost::leave_backing_borrow_scope(Self, InstalledArenaBackingBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::leave_domain(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_domain(Self, InstalledArenaBackingBorrow, Int, Int64, @physical_resources.LedgerLimits) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::project_prepared_domain(Self, InstalledArenaDomain) -> Result[@host_bootstrap.NativePreparedDomainTransport, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::report(Self, InstalledArenaDelegation, @physical_resources.LedgerUsage) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::require_backing_borrow_current(Self, InstalledArenaBackingBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::require_current(Self) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]

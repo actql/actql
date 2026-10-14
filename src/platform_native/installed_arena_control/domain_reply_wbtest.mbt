@@ -33,6 +33,13 @@ test "pending physical domain reply keeps original host record and rejects curre
   let domain = reply.original_domain().unwrap()
   assert_true(physical_equal(domain.host, host))
   assert_eq(current_installed_arena_domain_reply(host, domain).issue_family(), 1)
+  assert_true(host.project_prepared_domain(domain) is Err(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
+  let material = project_installed_arena_domain_reply(host, domain)
+  assert_eq(material.operation_tag(), 7)
+  assert_eq(material.issue_family(), 1)
+  assert_eq(material.material_scalar(0), -1L)
+  assert_eq(material.material_source(), "")
+  assert_eq(material.material_recipe().length(), 0)
   assert_true(host.try_close() is Err(@bootstrap.ReadersPending))
   host.leave_backing_borrow_scope(scope).unwrap()
   host.return_backing_borrow(scope).unwrap()
@@ -55,11 +62,44 @@ test "foreign target retains actual domain host and cannot release original clea
   assert_eq(denied.issue_family(), 2)
   assert_true(physical_equal(denied.original_host(), host))
   assert_false(domain.closed)
+  assert_true(other.project_prepared_domain(domain) is Err(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal)))
+  let material = project_installed_arena_domain_reply(other, domain)
+  assert_true(physical_equal(material.original_host(), host))
+  assert_true(material.original_domain() is Some(value) && physical_equal(value, domain))
+  assert_eq(material.issue_family(), 2)
+  assert_eq(material.material_scalar(0), -1L)
   host.leave_backing_borrow_scope(scope).unwrap()
   host.return_backing_borrow(scope).unwrap()
   assert_eq(close_installed_arena_domain_reply(host, domain).issue_family(), 0)
   host.try_close().unwrap()
   other.try_close().unwrap()
+}
+
+///|
+test "material getters preserve exact Int64 DATA and never infer empty material" {
+  let host = domain_test_host()
+  let reply : InstalledArenaDomainReply = {
+    operation: ProjectDomain, host, domain: None, issue: None,
+    material: Some({
+      extent: {
+        source: "0123456789012345678901234567890123456789", recipe: Bytes::make(32, 31),
+        generation: 9007199254740993L, device: 2L, inode: 3L, capacity: 4L,
+        mapping_offset: 5L, mapping_length: 6L, payload_offset: 7L, payload_length: 8L, writable: true,
+      },
+      limits: { planning_work: 9, attempts: 10, holdings: 11,
+        transfer_bytes: 12L, retained_bytes: 0L, execution_bytes: 14L },
+    }),
+  }
+  // Getter-only fixture, deliberately not a valid prepared loan or permit.
+  let expected = [9007199254740993L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 1L, 9L, 10L, 11L, 12L, 0L, 14L]
+  for index = 0; index < expected.length(); index = index + 1 {
+    assert_eq(reply.material_scalar(index), expected[index])
+  }
+  assert_eq(reply.material_scalar(-1), -1L)
+  assert_eq(reply.material_scalar(15), -1L)
+  assert_eq(reply.material_source(), "0123456789012345678901234567890123456789")
+  assert_eq(reply.material_recipe(), Bytes::make(32, 31))
+  host.try_close().unwrap()
 }
 
 ///|
