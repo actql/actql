@@ -127,7 +127,8 @@ class LocalArtifactProducerTests(unittest.TestCase):
 
     def test_foreign_or_incomplete_image_provenance_is_not_copied(self):
         for key, value in [('source_sha', '0' * 40), ('module_sha256', '0' * 64),
-                ('runtime_library_sha256', '0' * 64), ('engine_sha256', '0' * 64),
+                ('runtime_library_sha256', '0' * 64), ('provider_library_sha256', '0' * 64),
+                ('engine_sha256', '0' * 64),
                 ('compiled', 1), ('runtime_executed', True)]:
             original = self.image.copy(); self.image[key] = value; self.write_receipts()
             with self.assertRaisesRegex(ValueError, 'selected original recipe'): self.run_producer()
