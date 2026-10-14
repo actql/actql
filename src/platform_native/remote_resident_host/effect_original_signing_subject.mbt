@@ -18,7 +18,8 @@ pub fn ResidentOriginalEffectSigningSubjectRead::original_subject_after_current(
   self : ResidentOriginalEffectSigningSubjectRead,
 ) -> Result[(String, String), ResidentEffectReviewRetentionIssue] {
   let owner = self.scope.retention
-  guard !owner.retiring && !owner.retired &&
+  guard !owner.retiring &&
+    !owner.retired &&
     owner.capture_owner is Some(capture) &&
     physical_equal(capture, self.capture) &&
     !capture.released &&
@@ -30,10 +31,12 @@ pub fn ResidentOriginalEffectSigningSubjectRead::original_subject_after_current(
     physical_equal(evidence, self.evidence) else {
     return Err(Unavailable)
   }
-  Ok((
-    @publication.publication_contract_identity(self.evidence.invocation),
-    self.unit_definition_cid,
-  ))
+  Ok(
+    (
+      @publication.publication_contract_identity(self.evidence.invocation),
+      self.unit_definition_cid,
+    ),
+  )
 }
 
 ///|
@@ -44,7 +47,10 @@ pub fn ResidentOriginalEffectApprovalScope::read_original_signing_subject_for(
   request : @host.ClientRequestIdentity,
   run_definition_cid : String,
   checkpoint_cid : String,
-) -> Result[ResidentOriginalEffectSigningSubjectRead, ResidentEffectReviewRetentionIssue] {
+) -> Result[
+  ResidentOriginalEffectSigningSubjectRead,
+  ResidentEffectReviewRetentionIssue,
+] {
   guard self.current_for(request, run_definition_cid, checkpoint_cid)
     is Some(authority) else {
     return Err(Unavailable)
@@ -67,11 +73,12 @@ pub fn ResidentOriginalEffectApprovalScope::read_original_signing_subject_for(
     @publication.publication_contract_json(owner.invocation) {
     return Err(Unavailable)
   }
-  let unit = match @host.client_effect_review_checkpoint_unit_definition_cid(
-    owner.materials.allowed,
-    owner.materials.run_definition,
-    self.checkpoint.artifact,
-  ) {
+  let unit = match
+    @host.client_effect_review_checkpoint_unit_definition_cid(
+      owner.materials.allowed,
+      owner.materials.run_definition,
+      self.checkpoint.artifact,
+    ) {
     Ok(value) => value
     Err(_) => return Err(Unavailable)
   }
@@ -94,7 +101,11 @@ pub fn ResidentOriginalEffectApprovalScope::read_original_signing_subject_for(
     return Err(Unavailable)
   }
   let read : ResidentOriginalEffectSigningSubjectRead = {
-    scope: self, capture, funded, evidence: original, unit_definition_cid: unit,
+    scope: self,
+    capture,
+    funded,
+    evidence: original,
+    unit_definition_cid: unit,
   }
   read.original_subject_after_current().map(_ => read)
 }
@@ -109,6 +120,9 @@ pub fn ResidentOriginalEffectApprovalScope::original_signing_subject_for(
   run_definition_cid : String,
   checkpoint_cid : String,
 ) -> Result[(String, String), ResidentEffectReviewRetentionIssue] {
-  self.read_original_signing_subject_for(request, run_definition_cid, checkpoint_cid)
+  self
+  .read_original_signing_subject_for(
+    request, run_definition_cid, checkpoint_cid,
+  )
   .bind(read => read.original_subject_after_current())
 }

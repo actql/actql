@@ -12,7 +12,10 @@ pub fn client_effect_review_checkpoint_unit_definition_cid(
     Ok(_) => ()
     Err(issue) => return Err(Run(issue))
   }
-  match validate_client_effect_review_checkpoint_subject(allowed, definition, artifact) {
+  match
+    validate_client_effect_review_checkpoint_subject(
+      allowed, definition, artifact,
+    ) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
@@ -20,7 +23,9 @@ pub fn client_effect_review_checkpoint_unit_definition_cid(
     return Err(ForeignSubject)
   }
   let stages = @syntax.stages(prepared.source)
-  let program = @checked.effect_program_static_checked_computation(prepared.candidate)
+  let program = @checked.effect_program_static_checked_computation(
+    prepared.candidate,
+  )
   if @checked.unit_count(program) != stages.length() {
     return Err(UnsupportedReview)
   }

@@ -33,12 +33,14 @@ fn NativeLocalReviewerProofMaterials::original_signing_subject(
   // callback cannot retire the original and leave a stale CID tuple successful.
   match subject {
     Ok((invocation, unit)) =>
-      Ok((
-        @host.client_request_intent_cid(reviewer.request),
-        @host.client_request_scope_cid(reviewer.request),
-        invocation,
-        unit,
-      ))
+      Ok(
+        (
+          @host.client_request_intent_cid(reviewer.request),
+          @host.client_request_scope_cid(reviewer.request),
+          invocation,
+          unit,
+        ),
+      )
     Err(_) => Err(ProofUnavailable)
   }
 }
