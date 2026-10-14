@@ -3,7 +3,9 @@ priv type PhysicalExtentDomain
 
 ///|
 #borrow(view)
-extern "C" fn acquire_domain_ffi(view : PhysicalRegionView) -> PhysicalExtentDomain = "actql_bootstrap_acquire_domain"
+extern "C" fn acquire_domain_ffi(
+  view : PhysicalRegionView,
+) -> PhysicalExtentDomain = "actql_bootstrap_acquire_domain"
 
 ///|
 #borrow(domain)
@@ -23,7 +25,10 @@ extern "C" fn leave_domain_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bo
 
 ///|
 #borrow(view, domain)
-extern "C" fn close_domain_ffi(view : PhysicalRegionView, domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_close_domain"
+extern "C" fn close_domain_ffi(
+  view : PhysicalRegionView,
+  domain : PhysicalExtentDomain,
+) -> Int = "actql_bootstrap_close_domain"
 
 ///|
 /// Same original view/loan holding. No new Ledger, Root or physical reserve.
@@ -53,14 +58,19 @@ pub fn[T, C] NativeHostBootstrap::acquire_backed_domain(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if view.closed || view.domain_attempted ||
+  if view.closed ||
+    view.domain_attempted ||
     !(view.loan.view is Some(selected) && physical_equal(selected, view)) {
     return Err(Bootstrap(AlreadyConsumed))
   }
   view.domain_attempted = true
   let physical = acquire_domain_ffi(view.physical)
   let domain : NativeBackedExecutionDomain[T, C] = {
-    view, physical, transfer_attempted: false, transferred: false, closed: false,
+    view,
+    physical,
+    transfer_attempted: false,
+    transferred: false,
+    closed: false,
   }
   view.domain = Some(domain)
   let status = domain_status_ffi(physical)
@@ -81,7 +91,8 @@ fn[T, C] NativeHostBootstrap::require_domain_current(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
-  if domain.closed || domain.view.closed ||
+  if domain.closed ||
+    domain.view.closed ||
     !(domain.view.domain is Some(selected) && physical_equal(selected, domain)) {
     return Err(Bootstrap(ForeignOriginal))
   }
@@ -131,7 +142,11 @@ pub fn[T, C] NativeHostBootstrap::enter_backed_domain(
     return Err(Bootstrap(Unavailable))
   }
   let status = enter_domain_ffi(domain.physical)
-  if status != 0 { Err(Bootstrap(Physical(status))) } else { Ok(()) }
+  if status != 0 {
+    Err(Bootstrap(Physical(status)))
+  } else {
+    Ok(())
+  }
 }
 
 ///|
@@ -144,12 +159,17 @@ pub fn[T, C] NativeHostBootstrap::leave_backed_domain(
 ) -> Result[Unit, NativeBackedExecutionIssue] {
   if !physical_equal(self.supplier.original, original) ||
     !physical_equal(domain.view.loan.region.owner, self) ||
-    !physical_equal(domain.view.loan.child, child) || domain.closed ||
+    !physical_equal(domain.view.loan.child, child) ||
+    domain.closed ||
     !(domain.view.domain is Some(selected) && physical_equal(selected, domain)) {
     return Err(Bootstrap(ForeignOriginal))
   }
   let status = leave_domain_ffi(domain.physical)
-  if status != 0 { Err(Bootstrap(Physical(status))) } else { Ok(()) }
+  if status != 0 {
+    Err(Bootstrap(Physical(status)))
+  } else {
+    Ok(())
+  }
 }
 
 ///|
@@ -166,13 +186,29 @@ pub fn[T, C] NativeHostBootstrap::close_backed_domain(
     !physical_equal(domain.view.loan.child, child) {
     return Err(Bootstrap(ForeignOriginal))
   }
-  if domain.closed { return Ok(()) }
+  if domain.closed {
+    return Ok(())
+  }
   if !(domain.view.domain is Some(selected) && physical_equal(selected, domain)) {
     return Err(Bootstrap(ForeignOriginal))
   }
   let status = close_domain_ffi(domain.view.physical, domain.physical)
-  if status != 0 { return Err(Bootstrap(Physical(status))) }
+  if status != 0 {
+    return Err(Bootstrap(Physical(status)))
+  }
   domain.closed = true
   domain.view.domain = None
   Ok(())
+}
+
+///|
+/// Preserve the original domain's physical/current checks at foreign callers.
+/// Presence of a pending handle is never successful current observation.
+pub fn[T, C] NativeHostBootstrap::require_backed_domain_current(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  self.require_domain_current(original, domain, child)
 }
