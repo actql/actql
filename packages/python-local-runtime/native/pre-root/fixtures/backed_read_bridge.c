@@ -70,7 +70,7 @@ static void case_alias(void) {
     assert(actql_bootstrap_prepare_read_context(f.domain) == ACTQL_OWNED_INVALID);
     assert(actql_bootstrap_enter_read_context(f.domain) == 0);
     assert(actql_bootstrap_current_read_context() == f.domain->read_context);
-    moonbit_bytes_t bytes = moonbit_make_bytes_raw(16, 73);
+    moonbit_bytes_t bytes = moonbit_make_bytes(16, 73);
     moonbit_incref(bytes);
     assert(bytes[0] == 73);
     assert(actql_bootstrap_close_read_context(f.domain) == ACTQL_OWNED_BUSY);
@@ -96,7 +96,7 @@ static void case_retained_cleanup(void) {
     assert(actql_bootstrap_close_read_context(f.domain) == ACTQL_OWNED_BUSY);
     assert(!f.domain->read_user && f.domain->read_context == original);
     assert(actql_bootstrap_enter_read_context(f.domain) == 0);
-    moonbit_bytes_t diagnostic = moonbit_make_bytes_raw(3, 9);
+    moonbit_bytes_t diagnostic = moonbit_make_bytes(3, 9);
     assert(actql_bootstrap_current_read_context() == original);
     assert(actql_bootstrap_leave_read_context(f.domain) == 0);
     moonbit_decref(diagnostic);
