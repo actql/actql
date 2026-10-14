@@ -244,3 +244,15 @@ test('native installer validates all runtime hooks before creating the preflight
   assert.throws(() => register(f.moon), /RuntimeUnavailable/);
   assert.equal(f.counts.children, 0); assert.equal(f.counts.sends, 0);
 });
+
+test('native installer borrows the original opaque probability without JS freeze as authority', () => {
+  const f = fixture(), config = installedConfiguration(f), probability = {};
+  const raw = Object.freeze({...config.rawCaptureSelection, probability});
+  const original = Object.freeze({...config.originalReadInstallation,
+    nodeInstallation: Object.freeze({...config.originalReadInstallation.nodeInstallation, probability})});
+  assert.equal(Object.isFrozen(probability), false);
+  const selected = createInstalledTypeSafeDecisionRegistration({...config,
+    originalReadInstallation: original, rawCaptureSelection: raw})(f.moon)[0];
+  assert.equal(selected.rawCaptureSelection.probability, probability);
+  assert.equal(f.counts.children, 0); assert.equal(f.counts.sends, 0);
+});

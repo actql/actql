@@ -50,7 +50,10 @@ export function createInstalledTypeSafeDecisionRegistration(config) {
   const original = config.originalReadInstallation, raw = config.rawCaptureSelection;
   if (!frozen(original) || !frozen(original.bootstrap) || !frozen(original.nodeInstallation) ||
       !frozen(original.nodeInstallation.layout) || !frozen(raw) || !frozen(raw.installation) ||
-      !frozen(raw.installation.sdk) || !frozen(raw.probability)) issue('TypeSafeOriginalInstallationUnavailable');
+      !frozen(raw.installation.sdk) || raw.probability === null ||
+      typeof raw.probability !== 'object') issue('TypeSafeOriginalInstallationUnavailable');
+  // Common admits the opaque probability handle. JS freezing is not its
+  // provenance; preserve and compare the original reference below.
   const installation = raw.installation, sdk = installation.sdk, probability = raw.probability;
   if (original.nodeInstallation.layout.response_profile !== raw.profile ||
       original.nodeInstallation.probability !== probability ||
