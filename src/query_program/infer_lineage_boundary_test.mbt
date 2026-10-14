@@ -7,7 +7,14 @@ fn assert_infer_label_refusal_origin(
     is Err(
       Expression({ issue: @expression.InvalidArguments, origin: Some(at), })
     ) else {
-    fail("expected the existing located InvalidArguments diagnostic")
+    match result {
+      Err(issue) =>
+        fail(
+          "expected the existing located InvalidArguments diagnostic: " +
+          infer_defaults_issue_tag(issue),
+        )
+      Ok(_) => fail("expected refusal, not a completed Program")
+    }
   }
   assert_eq(@origin.start(at).byte_offset, offset)
   assert_eq(@origin.span(at).source_path, "defaults.sql")
@@ -18,7 +25,7 @@ fn assert_infer_label_refusal_origin(
 test "case-colliding historical labels refuse at their original INFER" {
   let environment = infer_member_environment()
   let context = infer_input_field_context(environment)
-  let prefix = "FROM tickets |> SET `ID` = secret |> ASSERT UNIQUE BY (id, `ID`)"
+  let prefix = "FROM tickets |> SET `ID` = secret |> ASSERT UNIQUE BY (`id`, `ID`)"
   for script in [false, true] {
     assert_infer_label_refusal_origin(
       compile_infer_defaults(
