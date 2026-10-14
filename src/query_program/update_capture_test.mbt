@@ -101,7 +101,21 @@ fn private_update_static(
         InvalidProgram(_) => "InvalidProgram"
         Headers(_) => "Headers"
         MissingEffects => "MissingEffects"
-        Computation(cause) => cause.to_string()
+        Computation(cause) =>
+          match cause {
+            @check.LocalConstructionFailure::InvalidLimits =>
+              "Computation.InvalidLimits"
+            @check.LocalConstructionFailure::Program(_) => "Computation.Program"
+            @check.LocalConstructionFailure::CapacityInputs(_) =>
+              "Computation.CapacityInputs"
+            @check.LocalConstructionFailure::Environment(_) =>
+              "Computation.Environment"
+            @check.LocalConstructionFailure::Source(_) => "Computation.Source"
+            @check.LocalConstructionFailure::Closure(_) => "Computation.Closure"
+            @check.LocalConstructionFailure::Units(_) => "Computation.Units"
+            @check.LocalConstructionFailure::Template(_, _) =>
+              "Computation.Template"
+          }
       }
       fail("UPDATE checker refused: " + reason)
     }
