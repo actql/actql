@@ -6,8 +6,7 @@ export function installClientStaticPlan({moon, control, prepare, authorize}) {
   if (typeof prepare !== 'function' || typeof prepare.assertOwned !== 'function' ||
       typeof prepare.kindOf !== 'function' || typeof authorize !== 'function' ||
       typeof control?.readCheckedClientStaticPlan !== 'function' ||
-      typeof moon?.clientProgramTaskCount !== 'function' ||
-      typeof moon?.clientProgramUsesGraphCarrier !== 'function') {
+      typeof moon?.clientProgramRequiresTaskCompilation !== 'function') {
     throw new TypeError('InvalidClientStaticPlanInstallation');
   }
   const denied = () => Object.assign(new Error('ClientConnectionDenied'),
@@ -21,8 +20,7 @@ export function installClientStaticPlan({moon, control, prepare, authorize}) {
       throw Object.assign(new Error('ClientOperationUnavailable'),
         {code: 'ClientOperationUnavailable'});
     }
-    const kind = moon.clientProgramTaskCount(prepared) > 1 ||
-      moon.clientProgramUsesGraphCarrier(prepared) ? 'tasks' : 'values';
+    const kind = moon.clientProgramRequiresTaskCompilation(prepared) ? 'tasks' : 'values';
     const wire = control.readCheckedClientStaticPlan(prepared, kind, request);
     if (typeof wire !== 'string' || Buffer.byteLength(wire, 'utf8') > request.maxWireBytes) {
       throw new TypeError('InvalidClientHostPlanView');

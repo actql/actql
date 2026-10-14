@@ -11,7 +11,8 @@ execFileSync(process.execPath, ['--test', 'scripts/build-runtime-packages.test.m
   {cwd: root, stdio: 'inherit'});
 const expected = {
   'run-host-core': ['dist/client_values_host_abi.js',
-    'dist/checkpoint_runtime_node.js'],
+    'dist/checkpoint_runtime_node.js', 'dist/workers_finite.js',
+    'dist/workers_finite_payload.js'],
   'coordinator-core': ['dist/remote_coordinator_abi.js'],
   'transfer-core': ['dist/remote_transfer_abi.js'],
   'local-node': localNodePackageInputs(root).runtimeFiles

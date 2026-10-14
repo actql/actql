@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:actql:local-runtime-successor:0.1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "account_configuration_cid",
+    "adoption_cid",
+    "authority_scope_cid",
+    "current_package_identity_wire",
+    "operation_id",
+    "original_upgrade_cid",
+    "original_upgrade_packet_sha256",
+    "prior_pair_sha256",
+    "prior_runtime_wire",
+    "successor_runtime_pair_wire",
+    "version"
+  ],
+  "properties": {
+    "account_configuration_cid": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "adoption_cid": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "authority_scope_cid": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "current_package_identity_wire": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "operation_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^\\u0000]+$"
+    },
+    "original_upgrade_cid": {
+      "type": "string",
+      "pattern": "^sha256:[a-f0-9]{64}$"
+    },
+    "original_upgrade_packet_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "prior_pair_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "prior_runtime_wire": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "successor_runtime_pair_wire": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "version": {
+      "const": "actql-local-runtime-successor/0.1"
+    }
+  }
+}

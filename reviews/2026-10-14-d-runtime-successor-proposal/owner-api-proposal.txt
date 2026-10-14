@@ -1,0 +1,130 @@
+Proposed private seams and execution ordering (pseudocode; no compile claim)
+
+Existing Common Owner is preserved:
+  admit_client_local_runtime_policy_upgrade(body, ..., runtime_pair)
+continues exact equality against the supplied independently restored original pair. Do not weaken fields[12], edit its old preimage or manufacture a current pair with an old source label.
+
+Additive dependency types, private constructors only:
+  AuthenticatedUpgradeDependency { old_packet_ref, old_body_cid, old_scope,
+      original_pair_ref, prior_manifest_ref }
+  VerifiedProductIdentity { source_ref, runtime_manifest_ref, native_image_ref,
+      platform_inventory_ref, launcher_inventory_ref, current_generations }
+  RuntimeSuccessorContext { authenticated_original, original_pair,
+      current_pair, verified_product, successor_packet_ref? }
+These are references to actual owned material, not Caller CIDs/Bools or permission. No public factory from a JSON body.
+
+Acquisition:
+  prepare_runtime_successor_context(host, current_packaged_runtime,
+      source_bound_prior_a3b_manifest)
+    -> Result[private context, NativeClientRunJournalIssue]
+  - current Account/scope/adoption fence first;
+  - bounded exact old row/revision and HMAC dependency read (not Policy Allow);
+  - prior manifest hash/source selected from the authenticated old pair;
+  - existing finite pair/library/assets/reachability validators;
+  - actual complete current product observation before/after;
+  - no recursive installation_custody invocation during dependency resolution.
+An append-preparation context may hold the checked historical manifest input. Read-committed mode takes it only from the authenticated successor packet; missing packet cannot be repaired from the compiled manifest.
+
+Whole-package seam gap:
+  NativeLocalPackagedRuntime currently covers local-runtime.json and its
+  library/asset/license members. It does not independently carry the Node
+  launcher's verified image/cohort inventory. A candidate additive method on
+  that existing physical Owner must compare bounded opened members with the
+  formal, source-bound package descriptors and retain their real generations.
+  No JS Boolean/environment hash becomes a trusted Native witness. Read through
+  the existing Root/Reader and same cleanup carriers; stream image hashing,
+  do not collect a whole executable or create a new budget/Owner. If existing
+  selection/workspace limits cannot cover the complete descriptor, refuse.
+
+Proposed management API:
+  NativeLocalHostConnection::accept_runtime_successor(
+      crypto, principal, connection, operation_id, verified_context)
+    -> Result[immutable successor receipt, existing journal/refusal issue]
+  NativeLocalHostConnection::lookup_runtime_successor(
+      crypto, principal, connection, operation_id)
+    -> Result[successor receipt?, NativeClientRunJournalIssue]
+  None retains unresolved history; it is not nonexecution or resend permission.
+  No attempt_id, new grant, renewal duration, new policy profile or clock input.
+
+Append transaction:
+  current append fence -> existing journal.transaction -> current append fence
+  -> full all-row installation_custody(validated dependency context)
+  -> exact existing successor lookup first
+  -> if retained, compare exact operation/intent/current target (no mutation)
+  -> count/relative-slot/pre-copy packet/workspace checks
+  -> reserve8192/1 against65536/8 with exact fixed role key
+  -> build existing split HMAC envelope after payload<=5632
+  -> current fence -> insert revision0 -> issued-count CAS
+  -> current fence -> validate saved packet and originals -> receipt
+  -> actual Owner close; unknown close/ACK retains same operation/carrier.
+
+Shared validation, not duplicated validators:
+  read_local_policy_upgrade_original_in_context(oldrow, prior_pair_ref)
+is private and obtains prior_pair_ref only from the validated successor or
+append-preparation context. Existing strict normal mode remains current-pair
+based where no successor is selected. installation_custody adds one explicitly
+closed role visitor, preserves every ordinary-file rule/count/counter/reservation
+and validates both linked rows. No global cache or new table.
+
+Expected old operation behavior:
+  lookup_run_policy_upgrade(old operation) under a validated successor
+  -> same original packet/body/CID/profile/legacy list (read-only).
+  wrong scope/current package/old packet/context/old operation
+  -> typed refusal, never a replacement old record.
+
+Affected files if adopted (not edited now):
+  src/run_publication_host/client_local_runtime_policy_upgrade.mbt
+    shared original decoder remains strict; an adjacent successor metadata file
+    may use the existing local original encoder, reader and identity utility.
+  src/platform_native/client_host/local_runtime_binding.mbt
+    context acquisition and separate prior/current pair references.
+  src/platform_native/client_host/local_packaged_runtime.mbt
+    complete product observation / missing typed full-package witness seam.
+  src/platform_native/client_host/local_run_policy_upgrade.mbt
+    private shared-reader context seam; original lookup never mutates.
+  src/platform_native/client_host/local_installation_original.mbt
+    one closed role visitor; same counters/limits/accounting.
+  adjacent local_runtime_successor.mbt and focused WB only after approval.
+  src/cmd/native_client/local_packaged_product.mbt, local_policy_upgrade.mbt,
+    main.mbt: explicit command/lookup routing, same original private state;
+    no implicit upgrade/adopt or user internal-config/library-path requirement.
+  packages/native-cli product descriptor/launcher verification boundary if
+    needed for the typed complete-product projection; no raw-env authority.
+  spec/schema/generator/pins would be coordinated only after adoption GO.
+
+No immediate changes to Source, Model, Effect, signing issuer or ReadPolicy
+meaning. The existing Local read history, same request, grant/use, expiration,
+retention and cleanup Owners remain the only authorities.
+
+Exact existing issue routing (proposal only):
+  Invalid operation (empty/>128 UTF16 units/NUL) -> InvalidSubmission before I/O.
+  Current scope/Account denial -> AuthorizationDenied at the existing fences.
+  Missing trusted whole-product capability or unsupported finite profile
+    -> UnsupportedPreparation, not a new Journal.Unavailable enum.
+  Broken HMAC/canonical body/CID/linked prior manifest/pair/reservation/counter
+    or unknown role -> CustodyLost. A caller-supplied raw context has no factory.
+  Fully authenticated retained original with another operation/exact intent
+    -> ChangedIntent; do not compare intent before complete original validation.
+  Exact payload/slot/relative-count/reservation ceiling shortage
+    -> CapacityExceeded; original closed codec failures retain Encoding on build
+    and CustodyLost on restore. Physical/epoch failure retains Physical/Epoch.
+  TransactionUnknown or lost reply preserves Unknown at the caller; never map
+    absence (Ok(None)) to retry authorization. Cleanup carries its original
+    physical failure/retry responsibility and is not inferred from receipt.
+
+Refusal priority to keep: valid operation -> initial current -> TX current ->
+all-row custody -> authentic linked original -> retained operation/intent ->
+capacity/append -> existing final current. Malformed saved record plus a wrong
+operation returns CustodyLost, not ChangedIntent. Initial current denial
+prevents disclosure even when a private malformed record exists. A denial at
+the final fence must not return an earlier receipt. These are unexecuted
+priority scenarios, not proof of changed common semantics.
+
+Existing current acquisition (base9ee, inspected only):
+  authority_scope_cid / authorize -> adopted_current_material ->
+  current_adoption_material -> check_binding. That fence checks closed/current
+  packaged physical generation/transaction fence/original selection and staging/
+  exact DB ownership/settings retention/adoption singleton. It does not directly
+  invoke installation_custody; preserve it unchanged before dependency reads.
+  The new visitor must still avoid indirect recursion; this static path is not
+  execution or a proof that the proposed context is constructible.
