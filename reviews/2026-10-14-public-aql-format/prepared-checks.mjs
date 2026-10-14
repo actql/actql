@@ -12,7 +12,7 @@ if (selection === 'validation') {
  process.exit(process.exitCode);
 }
 const choices={
- callers:['node',['--test','--test-name-pattern','^(?!short-query public types)','packages/client-wire/index.test.mjs','packages/client-wire/public-aql-format.test.mjs','packages/sdk/source-query.test.mjs','adapters/host-node/public-source-preparation.test.mjs','scripts/release-sourcefree-query-cases.test.mjs','scripts/generate-python-client-wire.test.mjs']],
+ callers:['node',['--test','--test-name-pattern','^(?!.*short-query public types)','packages/client-wire/index.test.mjs','packages/client-wire/public-aql-format.test.mjs','packages/sdk/source-query.test.mjs','adapters/host-node/public-source-preparation.test.mjs','scripts/release-sourcefree-query-cases.test.mjs','scripts/generate-python-client-wire.test.mjs']],
  source:['moon',['--target','js','-j','1','src/source_frontend/lower_test.mbt']],
  node:['node',['--test','--test-name-pattern','public aql','packages/client-wire/public-aql-format.test.mjs','packages/sdk/source-query.test.mjs']],
  moon:['moon',['--target','js','-j','1','src/source_frontend/lower_test.mbt','--filter','*public aql spelling*']],
