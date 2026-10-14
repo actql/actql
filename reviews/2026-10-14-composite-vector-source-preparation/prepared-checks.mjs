@@ -12,7 +12,7 @@ const runner = 'import {runFocusedTests} from "./scripts/test-execution.mjs";' +
   'process.exitCode=runFocusedTests(process.argv[1],process.argv.slice(2),{cwd:process.cwd(),timeout:30000});';
 const args = selection === 'snapshots'
   ? ['node', '--test', 'scripts/composite-vector-source-preparation.test.mjs']
-  : ['moon', '--target', 'js', '-j', '2',
+  : ['moon', '--target', 'js', '-j', '1',
     'src/query_integration/composite_vector_source_preparation_wbtest.mbt'];
 process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false,
   timeoutSeconds: 60, graceSeconds: 5, steps: [

@@ -31,7 +31,7 @@ node reviews/2026-10-14-composite-vector-source-preparation/prepared-checks.mjs 
 ```
 
 Each phase retains nonHeavy60/TERM5, nonzero discovery and a bounded child30.
-The MoonBit phase selects only the two named preparation tests on JS, with `-j2`;
+The MoonBit phase selects only the two named preparation tests on JS, with `-j1`;
 compilation dependencies are not executed tests. Await the coordinator's compiler
 window before starting it. No Native/Wasm, full Core, producer, consumer, Provider,
 Hosted CI or formal release is authorized by the recipe. Compilation, actual
