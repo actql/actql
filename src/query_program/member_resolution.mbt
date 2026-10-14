@@ -840,6 +840,26 @@ fn resolve_query_members(
   limits : Limits,
   stage_schemas? : Map[(String, String), @schema.Schema?]? = None,
 ) -> @builder.Source raise Abort {
+  resolve_query_members_accounted(
+    source,
+    document,
+    context,
+    limits,
+    stage_schemas~,
+  ).0
+}
+
+///|
+// Enclosing prefix preparation must retain successful probe usage and the
+// reservation held by a refused probe, including the initial member scan.
+fn resolve_query_members_accounted(
+  source : @builder.Source,
+  document : @origin.Document,
+  context : Context,
+  limits : Limits,
+  stage_schemas? : Map[(String, String), @schema.Schema?]? = None,
+  defer_terminal_infer_output? : Bool = false,
+) -> (@builder.Source, Int) raise Abort {
   let resolution : MemberResolution = {
     source,
     document,
@@ -850,7 +870,7 @@ fn resolve_query_members(
     replacements: Map([]),
   }
   if stage_schemas is None && !resolution.has_authored_member() {
-    return source
+    return (source, limits.max_expression_work - resolution.work)
   }
   let root = @builder.cursor(source)
   let stages = member_lookup(root, "stages")
@@ -912,7 +932,8 @@ fn resolve_query_members(
       None
     }
     let prefix = []
-    for step in @wire.elements(member_lookup(stage, "steps").unwrap()).unwrap() {
+    let steps = @wire.elements(member_lookup(stage, "steps").unwrap()).unwrap()
+    for step_index, step in steps {
       if resolution.probe_refused {
         break
       }
@@ -934,6 +955,18 @@ fn resolve_query_members(
             context.parameter_declarations,
           )
         }
+        // The authoritative checked-prefix pass immediately consumes this
+        // unfinished terminal INFER. No later member needs its output type.
+        // Preserve input rewrites above, but do not spend a second key proof's
+        // entire reservation merely to discard its semantic refusal.
+        if defer_terminal_infer_output &&
+          stage_index == stages.length() - 1 &&
+          step_index == steps.length() - 1 &&
+          tag == "infer" &&
+          @wire.object_length(member_lookup(stage, "results").unwrap()) ==
+          Some(0) {
+          continue
+        }
         if context.source_catalog is Some(catalog) &&
           (
             tag == "graph" ||
@@ -949,6 +982,7 @@ fn resolve_query_members(
             prefix,
             catalog,
             context.model_tasks,
+            calendar_profile=context.calendar_profile,
           )
         } else if tag == "infer" &&
           context.model_tasks is Some(_) &&
@@ -1000,7 +1034,8 @@ fn resolve_query_members(
       results[(stage_id, name)] = resolution.result_schema(body, rows)
     }
   }
-  resolution.finish()
+  let result = resolution.finish()
+  (result, limits.max_expression_work - resolution.work)
 }
 
 ///|
