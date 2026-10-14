@@ -61,17 +61,29 @@ fn composite_vector_source_preparation_context() -> (
     .replace(old=",\"evidence_bundle_cid\":\"" + original_cid + "\"", new="")
     .replace(
       old="\"connector_capabilities\":[]",
-      new="\"connector_capabilities\":[" + capabilities.join(",") + "]",
+      new="\"connector_capabilities\":" + by_body(capabilities),
     )
     .replace(
       old="\"schema_snapshots\":[]",
-      new="\"schema_snapshots\":[" + schemas.join(",") + "]",
+      new="\"schema_snapshots\":" + by_body(schemas),
     )
   let environment_cid = text_cid(body)
   let complete = body.replace(
     old="\"host_policy_profile\":",
     new="\"evidence_bundle_cid\":\"" + environment_cid + "\",\"host_policy_profile\":",
   )
+  // Preserve the first typed Catalog refusal instead of hiding it in the
+  // shared fixture's unwrap. The same strict reader and limits still apply.
+  match
+    @environment.read(
+      @utf8.encode(complete),
+      environment_cid,
+      declaration_limits_for_admission(),
+    ) {
+    Ok(_) => ()
+    Err(issue) =>
+      fail("composite Source Catalog read: " + @debug.to_string(issue))
+  }
   let catalog = query_catalog_from_wire(complete, expected=environment_cid)
   let environment = @program_check.checking_environment(
     @environment.member_environment(
@@ -83,7 +95,8 @@ fn composite_vector_source_preparation_context() -> (
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   )
   let aliases = ["queries", "candidates"].map(resource => {
-    let view = @row_host.row_declaration_view(declaration, resource).unwrap()
+    let source_ref = "connector://composite_fixture/" + resource + "#records"
+    let view = @row_host.row_declaration_view(declaration, source_ref).unwrap()
     "{\"name\":\"" + resource + "\",\"sourceRef\":\"" +
     view.source_ref + "\",\"sourceViewContractCid\":\"" + view.view_cid +
     "\",\"schemaContractCid\":\"" + view.carrier_schema_cid + "\"}"

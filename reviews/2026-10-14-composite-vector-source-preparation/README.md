@@ -22,6 +22,24 @@ The original authored schema, five/two envelopes, Program, rows, result schema,
 fields, tuple order, dimensions, nullability and all limits are unchanged.
 No existing contract reader is relaxed and no old declaration is reinterpreted.
 
+The corrected-declaration warm control subsequently reached both actual tests
+but failed in Check Environment read before either format was lowered. Its
+two-view context copied declaration view order into schema/capability evidence;
+the existing reader requires each section's full-body CID order. Use the existing
+`by_body` fixture helper, matching the installed Host's `byCid` assembly. Preserve
+the first typed read refusal in the test log without catching or accepting it.
+This is a test-context correction, not a new environment ordering policy. The
+old unwrap did not print its typed cause, so that failure is not retrospectively
+labelled `UnsortedEvidence`.
+
+The same context also passed a resource name to `row_declaration_view`, whose
+existing accessor accepts a complete SourceRef. Pass the original
+`connector://composite_fixture/<resource>#records` identity. This second defect
+was identified by source inspection; the failing read prevented its execution.
+Both corrections leave the original declarations, public supplier, envelopes,
+expected schema and the two named tests unchanged. Corrected-source Moon and
+public acceptance remain unexecuted until separately allocated and observed.
+
 Five original JSON/SQL/AQL envelopes must each prepare two acquisitions, one
 Named Result and the same independent full result schema. Two reordered role
 keys must fail specifically through `Frontend(QueryLowering(InvalidQuery))`.
