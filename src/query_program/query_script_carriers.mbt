@@ -10,6 +10,7 @@ fn script_prefix_carrier(
   limits : Limits,
   steps : Array[@builder.Node],
   producer : String,
+  preserved_slots? : Array[String]? = None,
 ) -> @carrier.Carrier raise Abort {
   let budget = construction.infer_budget
   if budget.remaining_work > sources.carrier_work {
@@ -33,6 +34,29 @@ fn script_prefix_carrier(
   let carrier = match @pipeline.carrier_at(pipeline, target) {
     Some(carrier) => carrier
     None => raise Abort(UnsupportedProjection)
+  }
+  // Read correspondence from this exact checked producer, never from matching
+  // output names. These unary owners retain every original input field and
+  // reject collisions before adding their new fields.
+  if construction.infer_labels &&
+    preserved_slots is Some(slots) &&
+    target is @pipeline.Step(index) &&
+    @pipeline.step_at(pipeline, index) is Some(step) &&
+    step.input is Some(input) &&
+    @pipeline.carrier_at(pipeline, input) is Some(@carrier.Relation(_)) &&
+    carrier is @carrier.Relation(_) &&
+    step.operation is @pipeline.Unary(op) &&
+    (
+      @relation.operation(op) is @relation.WatermarkRows ||
+      @relation.operation(op) is @relation.Lag
+    ) {
+    let original = @relation.input_schema(op)
+    for index in 0..<@schema.field_count(original) {
+      budget.spend(1, construction.generated)
+      let slot = @schema.field_reference_name_at(original, index).unwrap()
+      budget.spend_text(slot, construction.generated)
+      slots.push(slot)
+    }
   }
   sources.carrier_work = budget.remaining_work
   carrier
@@ -143,7 +167,13 @@ fn script_carrier_order(
       construction.object(
         fields.map(field => {
           (
-            script_carrier_field_name(construction, field.0, query, input, sources),
+            script_carrier_field_name(
+              construction,
+              field.0,
+              query,
+              input,
+              sources,
+            ),
             script_traversal_argument(construction, field.1, known, limits),
           )
         }),
@@ -169,11 +199,13 @@ fn script_carrier_order(
 // Preserve only current logical column names through the actual checked
 // Carrier. A typed boundary retires every former row/range receiver.
 fn retain_script_carrier_column_scope(
+  construction : Construction,
   sources : ScriptSources,
   previous : String,
   producer : String,
   carrier : @carrier.Carrier,
-) -> Unit {
+  preserved_slots : Array[String],
+) -> Unit raise Abort {
   guard sources.ranges.get(previous) is Some(scope) && !scope.value_table else {
     return
   }
@@ -182,6 +214,19 @@ fn retain_script_carrier_column_scope(
   let visible = scope.visible.filter(column => live.contains(column.1))
   let columns = scope.columns.filter(column => live.contains(column.1))
   let carried = Map(columns.map(column => (column.1, true)))
+  let preserved : Map[String, Bool] = Map([])
+  for slot in preserved_slots {
+    construction.infer_budget.spend(1, construction.generated)
+    construction.infer_budget.spend_text(slot, construction.generated)
+    preserved[slot] = true
+  }
+  let labels : Array[(String, String)] = []
+  for entry in scope.key_labels {
+    spend_infer_key_label_pair(construction, entry)
+    if preserved.contains(entry.0) && live.contains(entry.0) {
+      labels.push(entry)
+    }
+  }
   for field in fields {
     if !carried.contains(field) {
       visible.push((field, field))
@@ -196,7 +241,7 @@ fn retain_script_carrier_column_scope(
     ranges: [],
     star_ranges: [],
     receivers: [],
-    key_labels: [],
+    key_labels: labels,
     scalar_ranges: [],
   }
 }
@@ -430,10 +475,25 @@ fn lower_script_carrier_calls(
         ("as", construction.text(name)),
       ]),
     )
+    let preserved_slots : Array[String] = []
     carrier = script_prefix_carrier(
-      construction, query, context, sources, limits, steps, name,
+      construction,
+      query,
+      context,
+      sources,
+      limits,
+      steps,
+      name,
+      preserved_slots=Some(preserved_slots),
     )
-    retain_script_carrier_column_scope(sources, input.name, name, carrier)
+    retain_script_carrier_column_scope(
+      construction,
+      sources,
+      input.name,
+      name,
+      carrier,
+      preserved_slots,
+    )
     input = {
       ..input,
       name,

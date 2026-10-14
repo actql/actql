@@ -637,20 +637,17 @@ test "adopted historical key names are CID-bearing metadata" {
 }
 
 ///|
-test "historical key label collisions refuse without invented output names" {
+test "historical key label collisions refuse at the original INFER without invented names" {
   let environment = infer_member_environment()
   let context = infer_input_field_context(environment)
   let prefix = "FROM tickets AS old |> SET id = secret |> ASSERT UNIQUE BY (old.id, id) |> SET id = 'same' |> AS `current`"
   for script in [false, true] {
-    assert_true(
-      compile_infer_defaults(
-        prefix +
-        " |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment",
-        context,
-        script,
-      )
-      is Err(UnsupportedInfer),
+    let result = compile_infer_defaults(
+      prefix + " |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment",
+      context,
+      script,
     )
+    assert_infer_label_refusal_origin(result, prefix.length() + 4)
   }
 }
 
@@ -667,15 +664,17 @@ test "inferred ITEM KEY retains case-insensitive VALUE and OUTCOME surface refus
       ") |> INFER `model-task:risk-score.v1`"
     for key in ["", " ITEM KEY (" + quoted + ")"] {
       for script in [false, true] {
-        assert_true(
-          compile_infer_defaults(
-            prefix + key + " INPUT (text) AS assessment",
-            context,
-            script,
-          )
-          is Err(UnsupportedInfer),
-          msg=name + key,
+        let result = compile_infer_defaults(
+          prefix + key + " INPUT (text) AS assessment",
+          context,
+          script,
         )
+        let before_infer = "FROM tickets |> RENAME id AS " +
+          quoted +
+          " |> ASSERT UNIQUE BY (" +
+          quoted +
+          ") |> "
+        assert_infer_label_refusal_origin(result, before_infer.length())
       }
     }
   }

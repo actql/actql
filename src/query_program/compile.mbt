@@ -3129,6 +3129,7 @@ fn compile_steps(
       Infer(clause) => {
         let (steps, fields) = lower_infer_steps(
           construction,
+          query,
           clause,
           pipe_visible,
           pipe_ranges,

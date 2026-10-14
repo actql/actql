@@ -1,9 +1,40 @@
 ///|
+// Locate this clause through its original first INPUT expression and retained
+// lexer tokens. Strings/quoted names cannot masquerade as the INFER keyword.
+// This is a diagnostic projection only, not another semantic name lookup.
+fn infer_argument_issue(
+  construction : Construction,
+  query : @query.Query,
+  clause : @query.InferClause,
+) -> Issue raise Abort {
+  let mut at : @origin.Origin? = None
+  if clause.inputs.get(0) is Some((_, expression)) &&
+    @query.expression_origin(expression, @query.expression_root(expression))
+    is Some(input_origin) {
+    let source = @query.query_source(query)
+    for index in 0..<@query.token_count(source) {
+      construction.infer_budget.spend(1, construction.generated)
+      let token_origin = @query.token_origin(source, index).unwrap()
+      if @origin.start(token_origin).byte_offset >=
+        @origin.start(input_origin).byte_offset {
+        break
+      }
+      if @query.token_at(source, index).unwrap().value is Word(word) &&
+        ascii_upper(word) == "INFER" {
+        at = Some(token_origin)
+      }
+    }
+  }
+  Expression({ issue: @expression.InvalidArguments, origin: at, })
+}
+
+///|
 // A source projection, not a checked ModelTask or permission to call a model.
 // The shared checker must resolve the contract, prove the complete key tuple,
 // and bind captured outcomes and their provenance before executing this graph.
 fn lower_infer_steps(
   construction : Construction,
+  query : @query.Query,
   clause : @query.InferClause,
   visible : Array[(String, String)],
   ranges : Array[(@query.NamePart, Array[(String, String)])],
@@ -22,7 +53,7 @@ fn lower_infer_steps(
   key_labels? : Array[(String, String)] = [],
 ) -> (Array[Array[(String, @builder.Node)]], Array[String]) raise Abort {
   if clause.contract.value == "" || clause.name.value == "" {
-    raise Abort(UnsupportedInfer)
+    raise Abort(infer_argument_issue(construction, query, clause))
   }
   let keys : Array[(String, String)] = []
   for path in clause.keys.unwrap_or([]) {
@@ -33,12 +64,12 @@ fn lower_infer_steps(
     let name = path.last().unwrap().value
     if ["OUTCOME", "VALUE"].contains(ascii_upper(name)) ||
       keys.any(key => key.1 == slot || ascii_upper(key.0) == ascii_upper(name)) {
-      raise Abort(UnsupportedInfer)
+      raise Abort(infer_argument_issue(construction, query, clause))
     }
     keys.push((name, slot))
   }
   if clause.keys is Some(_) && keys.is_empty() {
-    raise Abort(UnsupportedInfer)
+    raise Abort(infer_argument_issue(construction, query, clause))
   }
   let retained : Array[(String, String)] = []
   for item in clause.keep {
@@ -184,18 +215,22 @@ fn lower_infer_steps(
     // key-omitted machine INFER. Only Common may choose its sole proven tuple.
     let check = match checked_prefix {
       Some(check) => check
-      None => raise Abort(UnsupportedInfer)
+      None => raise Abort(infer_argument_issue(construction, query, clause))
     }
     let projection = check(
       steps.map(step => construction.object(step)),
       captured,
-      { visible, ranges, key_labels: key_labels.copy(), },
+      { key_labels: key_labels.copy(), },
       authored_aliases,
-    )
+    ) catch {
+      Abort(UnsupportedInfer) =>
+        raise Abort(infer_argument_issue(construction, query, clause))
+      Abort(issue) => raise Abort(issue)
+    }
     // The emitted tuple must remain the complete mapping of this exact
     // retained Common proof, before ordinary join-back is constructed.
     if projection.keys.length() != @evidence.infer_key_count(projection.checked) {
-      raise Abort(UnsupportedInfer)
+      raise Abort(infer_argument_issue(construction, query, clause))
     }
     keys.append(projection.keys)
     // Emit the same explicit tuple after proof, before constructing join-back.

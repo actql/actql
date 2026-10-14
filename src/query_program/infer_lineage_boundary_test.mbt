@@ -1,4 +1,38 @@
 ///|
+fn assert_infer_label_refusal_origin(
+  result : Result[@program.Program, Issue],
+  offset : Int,
+) -> Unit raise {
+  guard result
+    is Err(
+      Expression({ issue: @expression.InvalidArguments, origin: Some(at), })
+    ) else {
+    fail("expected the existing located InvalidArguments diagnostic")
+  }
+  assert_eq(@origin.start(at).byte_offset, offset)
+  assert_eq(@origin.span(at).source_path, "defaults.sql")
+  assert_true(@origin.kind(at) is @origin.Authored)
+}
+
+///|
+test "case-colliding historical labels refuse at their original INFER" {
+  let environment = infer_member_environment()
+  let context = infer_input_field_context(environment)
+  let prefix = "FROM tickets |> SET `ID` = secret |> ASSERT UNIQUE BY (id, `ID`)"
+  for script in [false, true] {
+    assert_infer_label_refusal_origin(
+      compile_infer_defaults(
+        prefix +
+        " |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment",
+        context,
+        script,
+      ),
+      prefix.length() + 4,
+    )
+  }
+}
+
+///|
 // Authored Number identity and time fields; the Model and Common checker use
 // the existing task context. No physical Source or Model is executed.
 fn infer_lineage_watermark_context() -> (@check.CheckEnvironment, Context) {
