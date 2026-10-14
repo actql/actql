@@ -8,7 +8,8 @@ from __future__ import annotations
 
 from ctypes import POINTER, byref, c_int, c_int32, c_void_p
 from dataclasses import dataclass
-from threading import get_ident
+from os import getpid
+from threading import Thread, current_thread
 from typing import Any
 
 
@@ -61,7 +62,7 @@ class _OriginalControlCustody:
     """
 
     __slots__ = ('_functions', '_incoming', '_original', '_retained', '_reply',
-                 '_unknown', '_busy', '_thread', '_closed')
+                 '_unknown', '_busy', '_thread', '_process', '_closed')
     _functions: _OriginalControlFunctions
     _incoming: c_void_p
     _original: c_void_p
@@ -69,7 +70,8 @@ class _OriginalControlCustody:
     _reply: c_void_p
     _unknown: _OriginalControlError | None
     _busy: bool
-    _thread: int
+    _thread: Thread
+    _process: int
     _closed: bool
 
     @classmethod
@@ -84,7 +86,8 @@ class _OriginalControlCustody:
         owning_reply.value = None
         host._original, host._retained, host._reply = c_void_p(), c_void_p(), c_void_p()
         host._unknown = None
-        host._busy, host._closed, host._thread = False, False, get_ident()
+        host._busy, host._closed = False, False
+        host._thread, host._process = current_thread(), getpid()
         host._enter()
         try:
             code = functions.originals(host._incoming, byref(host._original), byref(host._retained))
@@ -110,7 +113,7 @@ class _OriginalControlCustody:
         raise TypeError('Original Native control custody cannot be serialized')
 
     def _enter(self) -> None:
-        if get_ident() != self._thread or self._busy:
+        if getpid() != self._process or current_thread() is not self._thread or self._busy:
             raise ValueError('Original Native control call scope is unavailable')
         if self._unknown is not None:
             raise self._unknown

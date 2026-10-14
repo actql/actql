@@ -4,6 +4,7 @@ from ctypes import c_void_p
 import pickle
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 from actql_sdk._local_native_control_custody import (
     _OriginalControlCustody, _OriginalControlError, _OriginalControlFunctions,
@@ -151,6 +152,10 @@ class OriginalControlCustodyTests(unittest.TestCase):
         f = Fixture(); host = f.take()
         for action in (copy.copy, copy.deepcopy, pickle.dumps):
             with self.assertRaises(TypeError): action(host)
+        before = list(f.events)
+        with patch('actql_sdk._local_native_control_custody.getpid', return_value=host._process + 1):
+            with self.assertRaises(ValueError): host.close()
+        self.assertEqual(f.events, before)
         def reenter():
             with self.assertRaises(ValueError): host.close()
         f.reenter = reenter
