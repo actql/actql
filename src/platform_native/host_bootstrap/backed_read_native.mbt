@@ -1,0 +1,248 @@
+///|
+extern "C" fn read_context_supported_ffi() -> Int = "actql_bootstrap_read_supported"
+
+///|
+#borrow(domain)
+extern "C" fn prepare_read_context_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_prepare_read_context"
+
+///|
+#borrow(domain)
+extern "C" fn read_context_status_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_read_context_status"
+
+///|
+#borrow(domain)
+extern "C" fn enter_read_context_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_enter_read_context"
+
+///|
+#borrow(domain)
+extern "C" fn leave_read_context_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_leave_read_context"
+
+///|
+#borrow(domain)
+extern "C" fn close_read_context_ffi(domain : PhysicalExtentDomain) -> Int = "actql_bootstrap_close_read_context"
+
+///|
+/// The existing domain is the original partial carrier; no new pointer, Root,
+/// Ledger or byte reserve is created here. Stock builds refuse before claiming.
+pub fn[T, C] NativeHostBootstrap::prepare_backed_read_context(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.require_domain_current(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !domain.transferred || read_context_supported_ffi() != 1 {
+    return Err(Bootstrap(Unavailable))
+  }
+  if domain.read_attempted {
+    return Err(Bootstrap(AlreadyConsumed))
+  }
+  let loan = domain.view.loan
+  let read_use = match
+    @resources.borrow_backed_execution_read_use(
+      loan.region.accounting,
+      self,
+      child,
+      loan.accounting,
+    ) {
+    Err(issue) => return Err(Accounting(issue))
+    Ok(value) => value
+  }
+  // Publish original custody BEFORE any physical context allocation. Failure
+  // keeps this same domain and use; caller must close, never acquire again.
+  domain.read_use = Some(read_use)
+  domain.read_attempted = true
+  let status = prepare_read_context_ffi(domain.physical)
+  if status != 0 {
+    return Err(Bootstrap(Physical(status)))
+  }
+  self.require_backed_read_context_current(original, domain, child)
+}
+
+///|
+pub fn[T, C] NativeHostBootstrap::require_backed_read_context_current(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.require_domain_current(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard domain.read_use is Some(read_use) &&
+    domain.read_attempted &&
+    !domain.read_retired else {
+    return Err(Bootstrap(Unavailable))
+  }
+  let loan = domain.view.loan
+  match
+    @resources.require_backed_execution_read_use_current(
+      loan.region.accounting,
+      self,
+      child,
+      loan.accounting,
+      read_use,
+    ) {
+    Err(issue) => return Err(Accounting(issue))
+    Ok(_) => ()
+  }
+  let status = read_context_status_ffi(domain.physical)
+  if status != 0 {
+    Err(Bootstrap(Physical(status)))
+  } else {
+    Ok(())
+  }
+}
+
+///|
+/// Bracket the WHOLE managed caller, including input encoding and returned
+/// values/failures. Escaped aliases retain original extents after leave. The
+/// same provider's active-TLS getter is a borrowed C-only filesystem seam.
+pub fn[T, C] NativeHostBootstrap::enter_backed_read_context(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.require_backed_read_context_current(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let status = enter_read_context_ffi(domain.physical)
+  if status != 0 {
+    Err(Bootstrap(Physical(status)))
+  } else {
+    Ok(())
+  }
+}
+
+///|
+fn[T, C] NativeHostBootstrap::original_read_carrier(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[
+  @resources.BackedExecutionReadUse[NativeHostBootstrap[T], C],
+  NativeBackedExecutionIssue,
+] {
+  if !physical_equal(self.supplier.original, original) ||
+    !physical_equal(domain.view.loan.region.owner, self) ||
+    !physical_equal(domain.view.loan.child, child) ||
+    domain.closed ||
+    domain.view.closed ||
+    !(domain.view.domain is Some(selected) && physical_equal(selected, domain)) {
+    return Err(Bootstrap(ForeignOriginal))
+  }
+  match domain.read_use {
+    Some(value) => Ok(value)
+    None => Err(Bootstrap(Unavailable))
+  }
+}
+
+///|
+/// Existing cleanup caller only. Logical closing forbids new work while the
+/// original Root/Reader Owner finishes its retained diagnostics/cleanup scope.
+/// This is not a fresh read permission or a replacement physical user.
+pub fn[T, C] NativeHostBootstrap::enter_backed_read_cleanup(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  let read_use = match self.original_read_carrier(original, domain, child) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let loan = domain.view.loan
+  match
+    @resources.stop_backed_execution_read_use(
+      loan.region.accounting,
+      self,
+      child,
+      loan.accounting,
+      read_use,
+    ) {
+    Err(issue) => return Err(Accounting(issue))
+    Ok(_) => ()
+  }
+  let status = enter_read_context_ffi(domain.physical)
+  if status != 0 {
+    Err(Bootstrap(Physical(status)))
+  } else {
+    Ok(())
+  }
+}
+
+///|
+/// Original leaves remain available after logical Host/region closing. A
+/// failed leave keeps the same physical active/scope record for original retry.
+pub fn[T, C] NativeHostBootstrap::leave_backed_read_context(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  match self.original_read_carrier(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  let status = leave_read_context_ffi(domain.physical)
+  if status != 0 {
+    Err(Bootstrap(Physical(status)))
+  } else {
+    Ok(())
+  }
+}
+
+///|
+/// Child-first original cleanup. The C context waits for active calls, users
+/// and last aliases; only its actual retirement permits Common borrow return.
+/// If Common return then fails, do not repeat physical retirement or replace
+/// the domain. Parent domain/view/FD/process cleanup remains separate.
+pub fn[T, C] NativeHostBootstrap::close_backed_read_context(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+) -> Result[Unit, NativeBackedExecutionIssue] {
+  let read_use = match self.original_read_carrier(original, domain, child) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let loan = domain.view.loan
+  match
+    @resources.stop_backed_execution_read_use(
+      loan.region.accounting,
+      self,
+      child,
+      loan.accounting,
+      read_use,
+    ) {
+    Err(issue) => return Err(Accounting(issue))
+    Ok(_) => ()
+  }
+  if !domain.read_retired {
+    let status = close_read_context_ffi(domain.physical)
+    if status != 0 {
+      return Err(Bootstrap(Physical(status)))
+    }
+    domain.read_retired = true
+  }
+  match
+    @resources.return_backed_execution_read_use_after_owner_ack(
+      loan.region.accounting,
+      self,
+      child,
+      loan.accounting,
+      read_use,
+    ) {
+    Err(issue) => return Err(Accounting(issue))
+    Ok(_) => domain.read_use = None
+  }
+  Ok(())
+}
