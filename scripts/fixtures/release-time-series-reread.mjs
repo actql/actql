@@ -6,12 +6,13 @@ import {createServer} from 'node:https';
 import {userInfo} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import {sourcefreeFixtureAuthorization} from './release-sourcefree-authorization.mjs';
-import {selectInstalledSourcefreeQuerySuite} from '../release-sourcefree-query-cases.mjs';
+import {selectInstalledSourcefreeQuerySuite, sourcefreeSuiteRequiresReread}
+  from '../release-sourcefree-query-cases.mjs';
 import {guardReleaseSourcefreeIo} from './release-sourcefree-io.mjs';
 const mode = process.argv[2];
 assert.ok(['local', 'https'].includes(mode));
 const suite = process.argv[3] ?? 'time-series';
-assert.ok(['time-series', 'temporal-join'].includes(suite));
+assert.equal(sourcefreeSuiteRequiresReread(suite), true);
 const saved = JSON.parse(await readFile(`sourcefree-${mode}.json`, 'utf8'));
 const cases = selectInstalledSourcefreeQuerySuite(suite);
 assert.equal(saved.suite, suite); assert.equal(saved.complete, true);
