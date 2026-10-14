@@ -82,6 +82,7 @@ fn[E] install_native_client_work_publication_service(
     max_wire_bytes,
     max_nodes,
     max_depth,
+    client_request=Some(request),
     commit_guard=commit => {
       journal.fence_publication(
         request, definition, binding, current_authorization, commit,

@@ -673,6 +673,7 @@ fn lower_script_keyed_graph_query(
     graph_bindings_only=true,
     retained=Some(retained),
     prefix_steps=steps.copy(),
+    reserved_bindings=reserved,
     checked_infer_prefix=continuation.map(pair => {
       (nodes, producer, visible, authored_aliases) => {
         script_infer_prefix_check(
