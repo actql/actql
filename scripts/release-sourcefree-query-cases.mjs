@@ -58,3 +58,9 @@ export function selectInstalledSourcefreeQuerySuite(suite = 'in-unnest') {
   if (suite === 'temporal-join') return selectReleaseTemporalJoinQueryCases();
   throw new TypeError('Unsupported installed source-free test suite');
 }
+
+// Only these existing cohorts retain synthetic custody for a second process.
+export function sourcefreeSuiteRequiresReread(suite = 'in-unnest') {
+  selectInstalledSourcefreeQuerySuite(suite);
+  return ['sequence', 'time-series', 'temporal-join'].includes(suite);
+}

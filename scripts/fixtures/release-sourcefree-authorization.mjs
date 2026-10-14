@@ -4,12 +4,13 @@ import {generateKeyPairSync} from 'node:crypto';
 import {readFile, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {userInfo} from 'node:os';
+import {sourcefreeSuiteRequiresReread} from '../release-sourcefree-query-cases.mjs';
 
 export async function sourcefreeFixtureAuthorization(mode, suite, {reopen = false,
   directory = process.cwd()} = {}) {
   assert.ok(['local', 'https'].includes(mode));
   assert.ok(['in-unnest', 'sequence', 'time-series', 'temporal-join'].includes(suite));
-  const retained = suite === 'time-series' || suite === 'temporal-join';
+  const retained = sourcefreeSuiteRequiresReread(suite);
   const path = join(directory, `sourcefree-${suite}-authorization-${mode}.json`);
   if (reopen) {
     assert.equal(retained, true);

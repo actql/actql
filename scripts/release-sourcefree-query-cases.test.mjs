@@ -7,7 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {inUnnestLiteralArraySuccesses as successes, inUnnestLiteralArrayRefusals as refusals}
   from './fixtures/in-unnest-literal-array-source-input.mjs';
 import {selectReleaseSourcefreeQueryCases, releaseSourcefreeSuccessNames, releaseSourcefreeRefusalNames,
-  selectInstalledSourcefreeQuerySuite, releaseSourcefreeFixturePaths}
+  selectInstalledSourcefreeQuerySuite, releaseSourcefreeFixturePaths, sourcefreeSuiteRequiresReread}
   from './release-sourcefree-query-cases.mjs';
 import {sequenceSourceSuccesses, sequenceSourceRefusals} from './fixtures/sequence-source-input.mjs';
 import {guardReleaseSourcefreeIo} from './fixtures/release-sourcefree-io.mjs';
@@ -18,6 +18,22 @@ test('closed installed suites retain the old default and the complete original S
     successes: sequenceSourceSuccesses, refusals: sequenceSourceRefusals});
   for (const suite of ['unknown', '--sequence-only', 'calendar', '']) {
     assert.throws(() => selectInstalledSourcefreeQuerySuite(suite), TypeError);
+  }
+});
+
+test('custody and both process entries share the closed reread selection', () => {
+  assert.equal(sourcefreeSuiteRequiresReread(), false);
+  assert.equal(sourcefreeSuiteRequiresReread('in-unnest'), false);
+  for (const suite of ['sequence', 'time-series', 'temporal-join']) {
+    assert.equal(sourcefreeSuiteRequiresReread(suite), true);
+  }
+  for (const suite of ['calendar', 'unknown', '--sequence-only', '']) {
+    assert.throws(() => sourcefreeSuiteRequiresReread(suite), TypeError);
+  }
+  const root = fileURLToPath(new URL('../', import.meta.url));
+  for (const path of ['scripts/fixtures/release-sourcefree-authorization.mjs',
+    'scripts/fixtures/release-time-series-reread.mjs', 'scripts/test-package-release-sourcefree-query.mjs']) {
+    assert.match(readFileSync(resolve(root, path), 'utf8'), /sourcefreeSuiteRequiresReread\(suite\)/u);
   }
 });
 
