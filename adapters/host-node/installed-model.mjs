@@ -142,12 +142,19 @@ function retainModelQuantityCapacity(capacity) {
 
 // Registration remains physical Host capability. The common admission owner
 // subsequently binds the selected callback to its exact Task and prompt.
-export function installModelProviders(moon, register) {
+export function installModelProviders(moon, register, assertHostRuntime, assertNewHostRuntime = assertHostRuntime) {
   if (register === undefined) return new Map();
   if (typeof register !== 'function') {
     throw new TypeError('InvalidInstalledModelProviderRegistration');
   }
+  if (assertHostRuntime !== undefined) {
+    if (typeof assertHostRuntime !== 'function') {
+      throw new TypeError('InferTrustedRuntimeViewUnavailable');
+    }
+    assertHostRuntime();
+  }
   const entries = register(moon);
+  assertHostRuntime?.();
   if (!Array.isArray(entries) || entries.length > 128) {
     throw new TypeError('InvalidInstalledModelProviderRegistration');
   }
@@ -205,7 +212,20 @@ export function installModelProviders(moon, register) {
     if (provider === undefined) {
       throw new TypeError('InvalidInstalledModelProviderRegistration');
     }
-    result.set(providerId, Object.freeze({provider, originalReadInstallation, rawCaptureSelection,
+    let retained;
+    const assertTrustedRuntime = assertHostRuntime === undefined ? undefined : () => {
+      assertHostRuntime();
+      if (result.get(providerId) !== retained || retained.provider !== provider) {
+        throw Object.assign(new Error('InferTrustedRuntimeOriginalChanged'),
+          {code: 'InferTrustedRuntimeOriginalChanged'});
+      }
+    };
+    const assertNewTrustedRuntime = assertNewHostRuntime === undefined ? undefined : () => {
+      assertNewHostRuntime();
+      assertTrustedRuntime();
+    };
+    retained = Object.freeze({provider, originalReadInstallation, rawCaptureSelection,
+      assertTrustedRuntime, assertNewTrustedRuntime,
       bindingOriginals,
       physicalPreflight,
       entryPersistence,
@@ -215,7 +235,8 @@ export function installModelProviders(moon, register) {
         try { return Reflect.apply(observeEgress, entry, []); }
         catch { return undefined; }
       },
-      validatePrompt: (...args) => validatePrompt(...args) === true}));
+      validatePrompt: (...args) => validatePrompt(...args) === true});
+    result.set(providerId, retained);
   }
   return result;
 }

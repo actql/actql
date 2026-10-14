@@ -6,6 +6,7 @@ import {CapturedRunPublicationError,
 import {acquiredTaskPublicationPlan, acquiredMultiTaskPublicationPlan,
   acquiredKeyedTaskPublicationPlan} from './local-values-plan.mjs';
 import {installedSourceFor} from './installed-source.mjs';
+import {ordinarySourceDescriptors, verifyOrdinarySourceBinding} from './ordinary-source-binding.mjs';
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {diagnosticObserver} from '../host-common/diagnostic-observer.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -559,15 +560,17 @@ export function installNodeClientDispatchOwner({moon, control, journal,
         // Read approvals retain their occurrence and physical target. Resolve
         // resumed access before selecting configurations and sizing the one
         // ledger; the exact preparations below also own the subsequent reads.
-        for (const source of held.preparedSources) {
+        const descriptors = ordinarySourceDescriptors(held.preparedSources);
+        for (const [index, source] of held.preparedSources.entries()) {
           entry.abort.signal.throwIfAborted();
-          const occurrence = {...source.occurrence,
-            checkedSource: source.prepared.checkedSource,
-            readTuple: source.prepared.readTuple, physicalBinding: source.prepared.physicalBinding};
+          const occurrence = descriptors[index];
           const access = checkpoints?.acquisitionAccess(submission.requestId,
             source.sourceAccess, occurrence) ?? source.sourceAccess;
           const preparedSource = access === source.sourceAccess ? source.prepared :
             await prepareAcquisition(preparedProgram, access, source.occurrence);
+          if (occurrence.installationBinding !== undefined) {
+            verifyOrdinarySourceBinding(source.adapter, preparedSource, occurrence.installationBinding);
+          }
           selectedSources.push({...source, access, preparedSource});
         }
         const capacities = selectedSources.map(source => {

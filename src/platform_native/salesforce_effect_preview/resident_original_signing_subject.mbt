@@ -6,11 +6,10 @@
 pub fn NativeResidentEffectReview::original_signing_subject(
   self : NativeResidentEffectReview,
   authorize_evidence_read : () -> Bool,
-) -> Result[
-  (String, String, String, String),
-  NativeResidentEffectReviewIssue,
-] {
-  if self.closed || self.retiring || !self.current() ||
+) -> Result[(String, String, String, String), NativeResidentEffectReviewIssue] {
+  if self.closed ||
+    self.retiring ||
+    !self.current() ||
     !authorize_evidence_read() {
     return Err(Unavailable)
   }

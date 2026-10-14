@@ -148,6 +148,11 @@ fn lower_script_relation(
     if input is Some(input) &&
       sources.carriers.get(input.name) is Some(carrier) &&
       !(carrier is @carrier.Relation(_)) {
+      // A typed producer-only continuation may retain this Carrier, but an
+      // initial JOIN must consume a Relation before any later row bridge.
+      if @query.join_part_count(query) > 0 {
+        raise Abort(UnsupportedJoin)
+      }
       let query = @query.graph_source_query(query)
       if @query.relation_alias(query) is Some(_) ||
         Array::makei(@query.operation_count(query), i => {

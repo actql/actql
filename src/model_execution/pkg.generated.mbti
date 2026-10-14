@@ -82,6 +82,8 @@ pub fn complete_model_output(ModelOutputPreparation) -> Result[@execution_relati
 
 pub fn finish_model_content_bytes(ModelContentByteCheck) -> Result[ModelContentAdmission, ModelContentIssue]
 
+pub fn guard_model_request_preflight_current(ModelRequestPreflight, () -> Bool) -> ModelRequestPreflight
+
 pub fn install_async_model_provider(String) -> Result[ModelProvider, ModelExecutionIssue]
 
 pub fn install_model_provider(String, (ModelRequest) -> Result[ModelResponse, ModelProviderFailure]) -> Result[ModelProvider, ModelExecutionIssue]

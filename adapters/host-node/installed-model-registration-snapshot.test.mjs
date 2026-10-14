@@ -142,3 +142,33 @@ test('binding wrapper rejects a combined own key with inherited originals',()=>{
     /InvalidInstalledModelProviderBindingOriginals/u);
   assert.deepEqual(calls,[]);
 });
+
+test('installed table checks the same Host before and after its registration callback',()=>{
+  const {entry,moon}=fixture();const events=[];
+  const installed=installModelProviders(moon,()=>{
+    events.push('register');return [entry];
+  },()=>events.push('host'));
+  assert.deepEqual(events,['host','register','host']);
+  installed.get('models/fixture').assertTrustedRuntime();
+  assert.deepEqual(events,['host','register','host','host']);
+});
+
+test('a registration callback cannot make a closing Host current',()=>{
+  const {entry,moon,calls}=fixture();let closing=false;
+  const stopped=Object.assign(new Error('ClientHostClosing'),{code:'ClientHostClosing'});
+  assert.throws(()=>installModelProviders(moon,()=>{closing=true;return [entry];},()=>{
+    if(closing)throw stopped;
+  }),error=>error===stopped);
+  assert.deepEqual(calls,[]);
+});
+
+test('a copied table member cannot borrow the original runtime association',()=>{
+  const {entry,moon}=fixture();let checks=0;
+  const installed=installModelProviders(moon,()=>[entry],()=>checks++);
+  const retained=installed.get('models/fixture');
+  retained.assertTrustedRuntime();
+  installed.set('models/fixture',{...retained});
+  assert.throws(()=>retained.assertTrustedRuntime(),
+    {code:'InferTrustedRuntimeOriginalChanged'});
+  assert.equal(checks,4);
+});

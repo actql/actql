@@ -3,6 +3,7 @@
 // Only its explicitly installed transport can perform network I/O. Neither
 // physical preparation nor transport can issue execution evidence.
 import {fixedInferResponseLimits, readBoundedInferResponse} from './bounded-response.mjs';
+import {prepareOriginalUndiciFetch} from './original-undici-transport.mjs';
 
 const preparations = new WeakMap();
 // Internal SDK consumer retirement, not Provider failure or a response fact.
@@ -193,7 +194,12 @@ export function prepareSdkTransport(handle, {fetch, responseLimits, observeAt,
   const original = state.request;
   const init = Object.freeze({method: original.method, body: original.body,
     headers: original.headers, redirect: 'error', signal: state.controller.signal});
-  state.transport = {invoke: () => fetch(original.url, init), limits, observeAt,
+  // Selected per-call Client/options are fixed in preparation before Entry.
+  // Generic/native transports retain their original fetch behavior.
+  const physical = prepareOriginalUndiciFetch(fetch, original.url, init, limits);
+  state.transport = {invoke: physical?.invoke ?? (() => fetch(original.url, init)),
+    physicalCleanup: physical?.cleanup, physicalRetired: physical === undefined,
+    physicalRetiring: false, limits, observeAt,
     observedAt: undefined, rawObservation: undefined, responseMode,
     started: false, settled: false, raw: undefined, failure: undefined,
     readerRetired: false, retiring: false, unreadResponse: undefined};
@@ -360,11 +366,47 @@ export function cancelSdkPreparation(handle) {
   state.abort();
 }
 
+// Advance only the SAME installed physical duty. This does not clear raw,
+// reader, SDK, request or Store aliases, and does not issue a Common receipt.
+function advanceOriginalPhysicalCleanup(state, transport) {
+  if (transport.physicalRetired) return true;
+  if (!transport.physicalRetiring) {
+    transport.physicalRetiring = true;
+    transport.physicalCleanup().then(retired => {
+      transport.physicalRetired = retired === true;
+    }, () => { /* Preserve the same original physical cleanup duty. */ }).finally(() => {
+      transport.physicalRetiring = false;
+      try { state.notify?.(); } catch { /* Physical wake is not Run release. */ }
+    });
+  }
+  return false;
+}
+
+// Private OriginalCall observation/progress, not a public ACK factory. Generic
+// fetch's initial physicalRetired flag is NOT an original I/O acknowledgement.
+// Successful reading must finish before normal close; cancellation/Unknown
+// retains independent raw/reader/SDK/Store custody until their actual cleanup.
+export function progressSdkOriginalIoCleanup(handle) {
+  const state = preparations.get(handle);
+  if (state === undefined) throw issue('ForeignSdkPreparation');
+  const transport = state.transport;
+  if (transport?.physicalCleanup === undefined) return undefined;
+  if (!transport.started) return false;
+  if (!transport.settled && !state.stopped) return false;
+  return advanceOriginalPhysicalCleanup(state, transport);
+}
+
 export function cleanupSdkPreparation(handle) {
   const state = preparations.get(handle);
   if (state === undefined) throw issue('ForeignSdkPreparation');
   if (state.retired) return true;
   const transport = state.transport;
+  if (transport?.physicalCleanup !== undefined && !transport.physicalRetired) {
+    advanceOriginalPhysicalCleanup(state, transport);
+    // Preserve request/Client/body/SDK/raw holdings until actual settlement.
+    state.abort();
+    return false;
+  }
   if (transport?.started) {
     if (!transport.settled) {
       state.abort();
