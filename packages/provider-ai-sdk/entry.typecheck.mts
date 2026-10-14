@@ -18,6 +18,12 @@ const materialRegistration: HostInstallation['registerModelProviders'] =
 void materialRegistration;
 declare const undiciMaterials: UndiciOpenAIChatMaterialsRegistrationOptions;
 createInstalledUndiciOpenAIChatRegistration(undiciMaterials);
+const {physicalAcquisitionLimits: removedAcquisition, ...missingAcquisition} = undiciMaterials;
+void removedAcquisition;
+// @ts-expect-error Selected Undici physical acquisition DATA has no default.
+createInstalledUndiciOpenAIChatRegistration(missingAcquisition);
+// @ts-expect-error Generic fetch does not accept the selected Undici role.
+createInstalledOpenAIChatRegistration({...materials,physicalAcquisitionLimits:{maxPlaintextBytes:1,maxBorrowedBackingBytes:1,maxReads:1}});
 // @ts-expect-error Mixed opaque and DATA selections are not an overload.
 createInstalledOpenAIChatRegistration({...materials,rawCaptureSelection:{}});
 // @ts-expect-error A different fetch is not part of the explicit selected route.

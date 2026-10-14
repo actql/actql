@@ -1,0 +1,10 @@
+supported_targets = "native"
+
+pkgtype(kind: "executable")
+
+import {
+  "actql/actql/platform_native/host_bootstrap" @bootstrap,
+  "actql/actql/physical_resources" @resources,
+}
+
+options("native-stub": [ "domain_probe_stub.c" ])
