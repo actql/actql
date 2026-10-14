@@ -40,10 +40,11 @@ fn local_signing_installation_fields(
 ) -> Result[LocalSigningInstallationFields, NativeLocalAdoptionIssue] {
   // Retain the exact historical six-field alternative. Missing public metadata
   // is represented, never synthesized from today's PEM, configuration or stat.
-  match local_adoption_fields(payload, [
-    "adoption_cid", "authority_scope_cid", "installation_configuration_cid", "projection",
-    "purpose", "version",
-  ]) {
+  match
+    local_adoption_fields(payload, [
+      "adoption_cid", "authority_scope_cid", "installation_configuration_cid", "projection",
+      "purpose", "version",
+    ]) {
     Ok(fields) =>
       Ok({
         adoption: fields[0],
@@ -55,16 +56,16 @@ fn local_signing_installation_fields(
         public_key: None,
       })
     Err(_) => {
-      let fields = match local_adoption_fields(payload, [
-        "adoption_cid", "authority_scope_cid", "installation_configuration_cid", "projection",
-        "public_key_cid", "public_key_original", "purpose", "version",
-      ]) {
+      let fields = match
+        local_adoption_fields(payload, [
+          "adoption_cid", "authority_scope_cid", "installation_configuration_cid",
+          "projection", "public_key_cid", "public_key_original", "purpose", "version",
+        ]) {
         Ok(value) => value
         Err(_) => return Err(CustodyLost)
       }
-      let original = match @credential.admit_local_signing_public_key_json(
-        fields[5], fields[4],
-      ) {
+      let original = match
+        @credential.admit_local_signing_public_key_json(fields[5], fields[4]) {
         Ok(value) => value
         Err(_) => return Err(CustodyLost)
       }

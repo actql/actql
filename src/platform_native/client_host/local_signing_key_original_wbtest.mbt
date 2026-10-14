@@ -509,7 +509,9 @@ test "Local signing and preparation cannot borrow the same original descriptor i
 test "legacy authenticated signing row remains immutable and cannot recapture public identity" {
   // Fresh disposable fixture only. Build the historical six-field original
   // through the existing HMAC/counter/capacity transaction, without signing.
-  let (host, file) = signing_original_host("signing-original-legacy-public-missing")
+  let (host, file) = signing_original_host(
+    "signing-original-legacy-public-missing",
+  )
   let binding = signing_original_binding(host, file)
   let (_, _, _, _, _, _, private_file, _) = @credential_resource.native_local_signing_key_selection_projection(
     binding.selection,
@@ -528,7 +530,8 @@ test "legacy authenticated signing row remains immutable and cannot recapture pu
     ("version", "actql-native-local-installation-original/0.1"),
   ]).unwrap()
   let packet = local_installation_packet(host, payload).unwrap()
-  host.journal.transaction(() => {
+  host.journal
+  .transaction(() => {
     try {
       let (count, revision) = local_signing_installation_value(
         host.installation_custody().map_err(_ => CustodyLost),
@@ -537,32 +540,53 @@ test "legacy authenticated signing row remains immutable and cannot recapture pu
         return Err(CustodyLost)
       }
       if !local_signing_installation_value(
-          host.database.reserve_capacity_in_transaction(
-            "client_local_settings", "installation:" + file,
-            8192L, 1L, 65536L, 8L,
-          ).map_err(issue => Physical(issue)),
+          host.database
+          .reserve_capacity_in_transaction(
+            "client_local_settings",
+            "installation:" + file,
+            8192L,
+            1L,
+            65536L,
+            8L,
+          )
+          .map_err(issue => Physical(issue)),
         ) {
         return Err(CustodyLost)
       }
       local_signing_installation_value(
-        host.database.insert("client_local_installation_originals", file, packet)
+        host.database
+        .insert("client_local_installation_originals", file, packet)
         .map_err(issue => Physical(issue)),
-      ) |> ignore
+      )
+      |> ignore
       local_signing_installation_value(
-        host.database.compare_exchange(
+        host.database
+        .compare_exchange(
           "client_local_installation_custody", "issued", revision, b"1",
-        ).map_err(issue => Physical(issue)),
-      ) |> ignore
+        )
+        .map_err(issue => Physical(issue)),
+      )
+      |> ignore
       Ok(())
     } catch {
       LocalInstallationJournalStop(issue) => Err(issue)
     }
-  }).unwrap()
+  })
+  .unwrap()
   assert_eq(host.installation_custody().unwrap().0, 1)
-  assert_eq(read_local_installation_projection(host, binding.file, packet).unwrap(), projection)
-  assert_true(binding.restore_signing_key_original() is Err(SigningOriginalUnavailable))
-  assert_true(binding.capture_signing_key_original() is Err(SigningOriginalUnavailable))
-  let retained = host.database.read("client_local_installation_originals", file).unwrap()
+  assert_eq(
+    read_local_installation_projection(host, binding.file, packet).unwrap(),
+    projection,
+  )
+  assert_true(
+    binding.restore_signing_key_original() is Err(SigningOriginalUnavailable),
+  )
+  assert_true(
+    binding.capture_signing_key_original() is Err(SigningOriginalUnavailable),
+  )
+  let retained = host.database
+    .read("client_local_installation_originals", file)
+    .unwrap()
   assert_eq(retained.revision, 0L)
   assert_eq(retained.body, packet)
   assert_eq(host.installation_custody().unwrap().0, 1)

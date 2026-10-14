@@ -81,7 +81,9 @@ fn read_local_signing_installation_projection(
   file : NativeLocalSelectedFile,
   payload : Bytes,
 ) -> Result[Bytes, NativeLocalAdoptionIssue] {
-  read_local_signing_installation_record(host, file, payload).map(record => record.0)
+  read_local_signing_installation_record(host, file, payload).map(record => {
+    record.0
+  })
 }
 
 ///|
@@ -89,7 +91,10 @@ fn read_local_signing_installation_record(
   host : NativeLocalHostConnection,
   file : NativeLocalSelectedFile,
   payload : Bytes,
-) -> Result[(Bytes, @credential.LocalSigningPublicKey?), NativeLocalAdoptionIssue] {
+) -> Result[
+  (Bytes, @credential.LocalSigningPublicKey?),
+  NativeLocalAdoptionIssue,
+] {
   let fields = match local_signing_installation_fields(payload) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
@@ -285,12 +290,17 @@ fn NativeLocalSigningAccountBinding::signing_key_original(
                 return Err(CustodyLost)
               }
               let payload = local_signing_installation_value(
-                read_local_installation_authenticated_payload(self.host, row.body)
-                .map_err(_ => CustodyLost),
+                read_local_installation_authenticated_payload(
+                  self.host,
+                  row.body,
+                ).map_err(_ => CustodyLost),
               )
               local_signing_installation_value(
-                read_local_signing_installation_record(self.host, self.file, payload)
-                .map_err(_ => CustodyLost),
+                read_local_signing_installation_record(
+                  self.host,
+                  self.file,
+                  payload,
+                ).map_err(_ => CustodyLost),
               )
             }
             Err(@sqlite.NotFound) => {
@@ -331,8 +341,9 @@ fn NativeLocalSigningAccountBinding::signing_key_original(
               )
               let payload = local_signing_installation_value(
                 local_signing_installation_payload(self, original, public_key).map_err(_ => {
-                  Encoding
-                }),
+                    Encoding
+                  },
+                ),
               )
               let packet = local_signing_installation_value(
                 local_installation_packet(self.host, payload).map_err(_ => {
