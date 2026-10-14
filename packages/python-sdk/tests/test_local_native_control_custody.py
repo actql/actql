@@ -79,6 +79,16 @@ class Fixture:
 
 
 class OriginalControlCustodyTests(unittest.TestCase):
+    def test_scope_capture_failure_keeps_caller_owned_input_before_native_calls(self):
+        f = Fixture(); slot = c_void_p(11)
+        primary = MemoryError('injected Python bootstrap scope allocation')
+        with patch('actql_sdk._local_native_control_custody.getpid', side_effect=primary):
+            with self.assertRaises(MemoryError) as observed:
+                _OriginalControlCustody._take_original_reply(f.functions, slot)
+        self.assertIs(observed.exception, primary)
+        self.assertEqual(slot.value, 11, 'Caller still owns the original reply on pre-move failure')
+        self.assertEqual(f.events, [])
+
     def test_same_original_references_close_via_core_without_transfer_or_provider_close(self):
         f = Fixture(); host = f.take()
         fact = host.current()
