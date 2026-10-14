@@ -115,6 +115,50 @@ test "initial Relation JOIN stays in the prefix before a typed Carrier call" {
   let body = semantic(actual)
   assert_eq(body.split("\"cross_join\":").length(), 2)
   assert_eq(body.split("\"to_vectors\":").length(), 2)
+  assert_true(body.contains("\"fields\":[\"id\"]"))
+  let prefix = text
+    .strip_suffix(" |> vectors() |> SELECT id")
+    .unwrap()
+    .to_owned()
+  let scored = initial_from_compiled(
+    prefix +
+    " |> score_vectors(query: [1, 0], metric: 'dot') |> vectors() |> SELECT id, score",
+    initial_from_vector_context(),
+  )
+  assert_true(semantic(scored).contains("\"fields\":[\"id\",\"score\"]"))
+  let pooled = prefix +
+    " |> pool_vectors(by: [tag], method: 'mean', output_id: 'pool_id') |> vectors()"
+  ignore(
+    initial_from_compiled(
+      pooled + " |> SELECT tag, pool_id, member_count",
+      initial_from_vector_context(),
+    ),
+  )
+  ignore(
+    initial_from_compiled(
+      prefix + " |> vectors() |> DROP id |> SELECT tag",
+      initial_from_vector_context(),
+    ),
+  )
+  for
+    invalid in [
+      prefix + " |> vectors() |> SELECT c.id",
+      prefix + " |> vectors() |> SELECT c.*",
+      pooled + " |> SELECT id",
+      prefix + " |> vectors() |> DROP id |> SELECT id",
+    ] {
+    let result = compile_query_script(
+      @query.parse_query_script(invalid, syntax_limits()).unwrap(),
+      initial_from_vector_context(),
+      construction_limits(),
+    )
+    assert_true(
+      result is Err(Expression(_)) ||
+      result is Err(UnknownColumn) ||
+      result is Err(UnsupportedProjection),
+      msg=invalid,
+    )
+  }
 }
 
 ///|
