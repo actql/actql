@@ -23,6 +23,7 @@ priv struct Instance {
   pool : @buffers.BufferPool
   root : @resources.Ledger
   wasm_capacity : @resources.SharedCapacity
+  host_capacity : @resources.SharedCapacity?
   workspaces : Map[Int, (Int, @buffers.WorkspaceLoan)]
   workspace_slots : Int
   mut runtime_closing : Bool
@@ -116,8 +117,12 @@ pub fn open(
   transfer_bytes : Int64,
   retained_bytes : Int64,
   execution_bytes : Int64,
+  host_capacity_bytes : Int64,
 ) -> Int {
-  if nonce <= 0L || instance.val is Some(_) || max_wire_bytes > 1048576 {
+  if nonce <= 0L ||
+    instance.val is Some(_) ||
+    max_wire_bytes > 1048576 ||
+    host_capacity_bytes < 0L {
     return -3
   }
   let root = match
@@ -139,6 +144,19 @@ pub fn open(
     Err(_) => return -4
     Ok(capacity) => capacity
   }
+  // The trusted physical supplier funds bootstrap before constructing the VM.
+  // Project its separately declared Host lifetime allowance onto this same
+  // Root; this reservation cannot retroactively fund an unknown bootstrap.
+  let host_capacity = if host_capacity_bytes == 0L {
+    // Raw buffer diagnostics cover their declared subset only. The installed
+    // product must supply its adopted baseline before physical initialization.
+    None
+  } else {
+    match @resources.reserve_shared_capacity(root, host_capacity_bytes) {
+      Err(_) => return -4
+      Ok(capacity) => Some(capacity)
+    }
+  }
   match
     @buffers.open_pool_on_ledger(root, total_bytes, max_slots, max_wire_bytes) {
     Err(issue) => issue_code(issue)
@@ -148,6 +166,7 @@ pub fn open(
         pool,
         root,
         wasm_capacity,
+        host_capacity,
         workspaces: {},
         workspace_slots: max_slots,
         runtime_closing: false,
@@ -386,6 +405,12 @@ pub fn close_pool(nonce : Int64) -> Int {
     return -9
   }
   if !value.runtime_closing {
+    if value.host_capacity is Some(capacity) {
+      match @resources.close_shared_capacity(capacity) {
+        Err(_) => return -10
+        Ok(_) => ()
+      }
+    }
     match @resources.close_shared_capacity(value.wasm_capacity) {
       Err(_) => return -10
       Ok(_) => value.runtime_closing = true

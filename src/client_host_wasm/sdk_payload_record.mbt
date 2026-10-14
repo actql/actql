@@ -119,3 +119,64 @@ pub fn bind_publication_sdk_payload_record(
   }
   sdk_payload_record_current(value, first, context, current_configuration)
 }
+
+///|
+/// Routing coordinates only, rechecked under the original Run/current Owner.
+/// The physical Host must bind the exact original record and current six facts
+/// before byte access. field=0 selects Result, field=1 its durable binding.
+#export_name("actql_publication_commit_export_sdk_payload_ordinal")
+pub fn publication_sdk_payload_ordinal(
+  nonce : Int64,
+  first_handle : Int,
+  current_configuration : Int,
+  field : Int,
+) -> Int {
+  guard selected(nonce) is Some(value) &&
+    value.commit_exports.get(first_handle) is Some(first) &&
+    first.sdk_payload_outcome is Some(Ok(encoding)) &&
+    first.projection is Some(SDKReadDeliveryStorage(_, run)) &&
+    value.publications.get(first.publication) is Some(parent) else {
+    return -2
+  }
+  if field != 0 && field != 1 {
+    return -3
+  }
+  if first.pending {
+    return -5
+  }
+  let context = match
+    original_sdk_read_context(value, first, run, current_configuration) {
+    Ok(context) => context
+    Err(code) => return code
+  }
+  first.pending = true
+  let before = (context.check_current)()
+  first.pending = false
+  match before {
+    Err(code) => return code
+    Ok(_) => ()
+  }
+  let (result, binding) = match
+    encoding.original_payload_ordinals(
+      context.owner,
+      context.view,
+      parent.publications,
+      context.result_name,
+      8,
+    ) {
+    Ok(ordinals) => ordinals
+    Err(_) => return -32
+  }
+  first.pending = true
+  let after = (context.check_current)()
+  first.pending = false
+  match after {
+    Err(code) => return code
+    Ok(_) => ()
+  }
+  if field == 0 {
+    result
+  } else {
+    binding
+  }
+}

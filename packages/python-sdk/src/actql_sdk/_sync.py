@@ -18,6 +18,22 @@ class Client:
         self._closed = False
 
     @classmethod
+    def open(cls):
+        """Use the same installed Local factory; never nest an application loop."""
+        _outside_loop()
+        runner = asyncio.Runner()
+        try:
+            client = runner.run(AsyncClient.open())
+        except BaseException as failure:
+            cleanup_client = getattr(failure, 'cleanup_client', None)
+            if isinstance(failure, ClientError) and isinstance(cleanup_client, AsyncClient):
+                failure.cleanup_client = cls(runner, cleanup_client)
+            else:
+                runner.close()
+            raise
+        return cls(runner, client)
+
+    @classmethod
     def connect(cls, endpoint, token, **options):
         _outside_loop()
         runner = asyncio.Runner()
