@@ -10,6 +10,7 @@ import * as moon from
 import {openClientRequestJournal} from './client-request-journal.mjs';
 import {canonicalJson} from './local-account-config.mjs';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
+import {boundSourceInventoryFixture} from './fixtures/ordinary-source-binding.fixture.mjs';
 import './client-two-source-checkpoints.test.mjs';
 import {installNodeClientRunStart} from './client-run-start.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
@@ -1415,6 +1416,44 @@ function readInventoryRow(path) {
   const database = new DatabaseSync(join(path, 'client-requests.sqlite3'));
   try { return database.prepare('SELECT * FROM client_requests').get(); }
   finally { database.close(); }
+}
+
+test('ordinary bound inventory retains original installation and target across restart', async t => {
+  const path = await directory(t);
+  let journal = openClientRequestJournal(path);
+  t.after(() => journal.close());
+  const wire = canonicalValueJson(boundSourceInventoryFixture(), {dataKeys: true});
+  const accepted = acceptInventory(journal, wire, 'bound-row-run');
+  const before = readInventoryRow(path);
+  journal.close(); journal = openClientRequestJournal(path);
+  assert.equal(journal.lookupRunDefinition(accepted.ref, moon, publicationControl)
+    .runAdmissionEvidence.sourceInventory, wire);
+  let issued = 0;
+  const repeated = await journal.admitOrLookupDefinition(identity(), {namespaceId: 'namespace-a',
+    lookupExpiresAt: expires, sourceInventory: wire,
+    issueDefinition() {issued++; throw new Error('UnexpectedIssuer');}}, moon, publicationControl);
+  assert.equal(issued, 0); assert.deepEqual(repeated.ref, accepted.ref);
+  assert.deepEqual(readInventoryRow(path), before);
+});
+for (const [label, mutate] of [
+  ...['connectorId', 'connectorRegistration', 'connectorRevision', 'bindingCid'].map(field =>
+    [field, item => {item.installationBinding[field] = field === 'bindingCid' ? cid('e') : 'foreign';}]),
+  ['physical target', item => {item.physicalBinding.catalog_cid = cid('e');}],
+  ['checked Source', item => {item.checkedSource.sourceRef = 'connector://foreign/records#rows';}],
+]) {
+  test(`ordinary bound same request refuses changed ${label} without issuing or rewriting`, async t => {
+    const path = await directory(t); const journal = openClientRequestJournal(path);
+    t.after(() => journal.close());
+    const value = boundSourceInventoryFixture();
+    acceptInventory(journal, canonicalValueJson(value, {dataKeys: true}));
+    const before = readInventoryRow(path); mutate(value.acquisitions[1]);
+    let issued = 0;
+    await assert.rejects(journal.admitOrLookupDefinition(identity(), {namespaceId: 'namespace-a',
+      lookupExpiresAt: expires, sourceInventory: canonicalValueJson(value, {dataKeys: true}),
+      issueDefinition() {issued++; throw new Error('UnexpectedIssuer');}}, moon, publicationControl),
+    {code: 'ClientRequestSourceInventoryMismatch'});
+    assert.equal(issued, 0); assert.deepEqual(readInventoryRow(path), before);
+  });
 }
 
 test('source inventory is retained atomically and byte-exactly across restart',
