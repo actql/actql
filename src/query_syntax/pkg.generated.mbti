@@ -611,7 +611,7 @@ pub(all) enum UnpivotRowLabel {
 } derive(Eq, @debug.Debug)
 
 pub(all) struct UpdateEffectClause {
-  name : NamePart
+  name : NamePart?
   target : String
   mapping : NamePart
   result : NamePart
