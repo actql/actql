@@ -43,6 +43,9 @@ test "original installed nearest captures retain their exact graph and Host owne
   })
   let capacities = acquisitions.map(acquisition => installed_row_capture_capacity(acquisition).unwrap())
   let ledger = prepare_multi_captured_local_installed_ledger(prepared,capacities,[4096L,4096L],[4096L,4096L],source_query_original_registry,source_query_original_values,Some(source_query_original_fragment),None).unwrap()
+  // Sixteen declared receiving ports, each with the existing one-million-byte
+  // wire envelope, plus the two original 4096-byte acquisition allowances.
+  assert_eq(@resources.ledger_admission_limits(ledger).transfer_bytes,16008192L)
   let bodies = ["[{\"request_id\":\"q1\",\"embedding\":[1,0],\"note\":null}]","[{\"item_id\":\"b\",\"embedding\":[0,1],\"label\":\"second\"},{\"item_id\":\"a\",\"embedding\":[1,0],\"label\":\"first\"}]"]
   let runs = []
   let sources = []
