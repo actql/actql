@@ -177,8 +177,8 @@ class _NativeHoldingLease:
         try:
             try:
                 code = self._try_close(byref(self._pointer))
-            except BaseException as failure:
-                self._close_failure = failure
+            except BaseException as cause:
+                self._close_failure = cause
                 raise
             if type(code) is int and code == 0 and self._pointer.value is None:
                 return
