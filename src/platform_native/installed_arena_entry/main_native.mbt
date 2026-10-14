@@ -14,6 +14,20 @@ extern "C" fn register_original_control_roots(
 ) -> Unit = "actql_native_control_register_original_roots"
 
 ///|
+/// Source declaration only until matching regular C emission confirms the
+/// callback prototypes and ownership. No guessed C header or stub is supplied.
+extern "C" fn register_original_backing_roots(
+  borrow : FuncRef[(@control.InstalledArenaHost) -> @control.InstalledArenaBackingReply],
+  current : FuncRef[(@control.InstalledArenaHost, @control.InstalledArenaBackingBorrow) -> @control.InstalledArenaBackingReply],
+  return_loan : FuncRef[(@control.InstalledArenaHost, @control.InstalledArenaBackingBorrow) -> @control.InstalledArenaBackingReply],
+  original : FuncRef[(@control.InstalledArenaBackingReply) -> @control.InstalledArenaHost?],
+  loan : FuncRef[(@control.InstalledArenaBackingReply) -> @control.InstalledArenaBackingBorrow?],
+  operation : FuncRef[(@control.InstalledArenaBackingReply) -> Int],
+  issue_family : FuncRef[(@control.InstalledArenaBackingReply) -> Int],
+  description : FuncRef[(@control.InstalledArenaBackingReply) -> String],
+) -> Unit = "actql_native_control_register_backing_roots"
+
+///|
 fn original_host(reply : @control.InstalledArenaReply) -> @control.InstalledArenaHost? {
   reply.original_host()
 }
@@ -52,5 +66,15 @@ fn main {
     fn(reply) { operation_tag(reply) },
     fn(reply) { issue_family(reply) },
     fn(reply) { description(reply) },
+  )
+  register_original_backing_roots(
+    fn(original) { @control.borrow_installed_arena_backing_reply(original) },
+    fn(original, loan) { @control.current_installed_arena_backing_reply(original, loan) },
+    fn(original, loan) { @control.return_installed_arena_backing_reply(original, loan) },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_loan() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.issue_family() },
+    fn(reply) { reply.issue_description() },
   )
 }

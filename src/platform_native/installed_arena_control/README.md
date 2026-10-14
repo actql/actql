@@ -53,3 +53,18 @@ permission, a re-execution token or cleanup authority. C callers must use the
 generated typed accessors rather than inspecting Result/option/struct layouts.
 Four metadata-only reply cases are prepared and unexecuted. The reply helpers
 and primitive entry are not covered by the earlier Source675 Native5 result.
+
+The private backing-loan reply surface delegates borrow, current and return to
+the existing Host/NativeBootstrap/SharedBorrow paths. Refusal during a foreign
+target call retains the actual loan and its true original Host. Returning that
+loan does not acknowledge physical stop, Host cleanup, Run cancellation or
+Store commit. Existing typed issue classification is reused; no message or
+Python boolean determines success. Three Native reply cases are prepared only.
+
+The new entry roots these functions and typed accessors as noncapturing FuncRef
+callbacks. Its C registration helper is intentionally not implemented from a
+guessed prototype. Matching regular C emission, ownership inspection and the
+subsequent thin C/Python borrower are still required before linking or using
+this new entry. The prior Source4650 mixed-DLL four-case result uses the older
+Sourcea312 regular C and Sourceede objects; it does not exercise these callbacks
+or establish backing-loan, VM, worker or installed-product acceptance.
