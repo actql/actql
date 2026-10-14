@@ -30,12 +30,6 @@ pub fn client_program_row_source_start_listing_accounted(
   @client_row_source_host.RowHostIssue,
 ] {
   @client_row_source_host.start_accounted_listing_row_acquisition(
-    acquisition,
-    declaration,
-    nonce,
-    verify,
-    ledger,
-    transfer_bytes,
-    execution_scratch,
+    acquisition, declaration, nonce, verify, ledger, transfer_bytes, execution_scratch,
   )
 }

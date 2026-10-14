@@ -9,13 +9,14 @@ test "listing installation declaration preserves exact amounts without resource 
 
 ///|
 test "listing installation rejects absent positive retention or short execution" {
-  for (retained, executing) in [
-    (0L, 0L),
-    (0L, 9L),
-    (-1L, 9L),
-    (7L, 6L),
-    (7L, -1L),
-  ] {
+  for
+    (retained, executing) in [
+      (0L, 0L),
+      (0L, 9L),
+      (-1L, 9L),
+      (7L, 6L),
+      (7L, -1L),
+    ] {
     assert_true(
       client_program_row_source_listing_report_capacity(retained, executing)
       is None,
