@@ -160,7 +160,9 @@ class _NativeHoldingLease:
 
     def _require_confirmed_retirement_state(self) -> None:
         if self._close_failure is not None:
-            raise self._close_failure
+            # Keep the original issue/cause, without retaining every previous
+            # observer's frames for the lifetime of this Unknown holding.
+            raise BaseException.with_traceback(self._close_failure, None)
         if self._close_inflight:
             raise NativeHoldingRetirementError(None)
 
