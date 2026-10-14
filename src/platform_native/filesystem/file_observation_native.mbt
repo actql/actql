@@ -1,5 +1,5 @@
 ///|
-type NativeObservedFileStat
+priv type NativeObservedFileStat
 
 ///|
 /// Actual current file facts owned by the same Root, never restored from a

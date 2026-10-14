@@ -90,11 +90,11 @@ test "selected scope directory retains its exact named and opened original" {
 test "selected scope namespace refuses a symlink and later directory replacement" {
   // The fixture contains a symlink at the @actql component. General root-open
   // is not the proof; the same Owner's full no-follow namespace read is.
-  let alias = open_root(
+  let aliased_root = open_root(
     directory_observation_fixture("scope-alias/node_modules/@actql"),
   ).unwrap()
-  assert_true(alias.observe_directory() is Err(GenerationMismatch))
-  alias.close().unwrap()
+  assert_true(aliased_root.observe_directory() is Err(GenerationMismatch))
+  aliased_root.close().unwrap()
   let root = open_root(
     directory_observation_fixture("scope-replacement/node_modules/@actql"),
   ).unwrap()

@@ -1,5 +1,5 @@
 ///|
-type NativeObservedDirectoryStat
+priv type NativeObservedDirectoryStat
 
 ///|
 /// Named namespace facts captured only through the existing opened Root.
