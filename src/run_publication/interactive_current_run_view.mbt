@@ -16,10 +16,16 @@ pub fn project_current_interactive_run_view(
   max_depth : Int,
   static_plan_installed? : Bool = false,
 ) -> Result[String, RunControlReadIssue] {
-  match validate_original_interactive_run_evidence(run, prepared, authorization) {
+  match
+    validate_original_interactive_run_evidence(run, prepared, authorization) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
+  // The validated original value is also displayed later in this projection.
+  let policy = contract_string_from_value(
+    authorization.value,
+    "host_policy_cid",
+  )
   let state = match
     parse_contract_wire(
       state_wire,
