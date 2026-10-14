@@ -11,59 +11,28 @@ fn script_prefix_carrier(
   steps : Array[@builder.Node],
   producer : String,
 ) -> @carrier.Carrier raise Abort {
-  let root = program_root(
+  let budget : InferPrefixBudget = { remaining_work: sources.carrier_work, }
+  sources.carrier_work = 0
+  let pipeline = checked_query_prefix_pipeline(
     construction,
+    query,
     context,
-    sources.stages +
-    [
-      construction.object([
-        ("id", construction.text(context.stage_id)),
-        ("inputs", construction.object(sources.declarations)),
-        ("steps", construction.array(steps)),
-        ("results", construction.object([])),
-      ]),
-    ],
-    staged_result_exports=Some([]),
+    sources.stages + sources.prior_stages,
+    sources.declarations,
+    steps,
+    limits,
+    budget,
   )
-  let source = match @builder.snapshot(construction.builder, root) {
-    Ok(source) => source
-    Err(issue) => raise Abort(Construction(issue))
+  let target = match @pipeline.lookup(pipeline, producer) {
+    Some(target) => target
+    None => raise Abort(InvalidContext)
   }
-  let source = resolve_query_members(
-    source,
-    @query.query_document(query),
-    context,
-    { ..limits, max_expression_work: sources.carrier_work, },
-  )
-  let prefix = match @program.admit_generated_prefix(source, limits.program) {
-    Ok(prefix) => prefix
-    Err(issue) => raise Abort(Admission(issue))
-  }
-  let checked = match
-    check_query_prefix(prefix, context, {
-      ..limits,
-      max_expression_work: sources.carrier_work,
-    }) {
-    Ok(checked) => checked
-    Err(issue) => raise Abort(BindingPreparationSource(issue, source))
-  }
-  let usage = @stage_results.topology_usage(checked.topology)
-  if usage.work < 0 || usage.work > sources.carrier_work {
-    raise Abort(BindingPreparation(Demand(WorkLimit)))
-  }
-  sources.carrier_work -= usage.work
-  let stage = @stage_results.topology_stage_at(
-    checked.topology,
-    sources.stages.length(),
-  ).unwrap()
-  let pipeline = @pipeline_parameters.pipeline(
-    @stage_parameters.collection(@stage_results.topology_stage_source(stage)),
-  )
-  let target = @pipeline.lookup(pipeline, producer).unwrap()
-  match @pipeline.carrier_at(pipeline, target) {
+  let carrier = match @pipeline.carrier_at(pipeline, target) {
     Some(carrier) => carrier
     None => raise Abort(UnsupportedProjection)
   }
+  sources.carrier_work = budget.remaining_work
+  carrier
 }
 
 ///|

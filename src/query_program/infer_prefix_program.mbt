@@ -60,21 +60,18 @@ fn InferPrefixBudget::spend_text(
 
 ///|
 // Retain the original producer stages, input declarations, parameters, Catalog
-// and selected environment owners. The unfinished Stage ends at INFER before
-// any join-back or result-object projection can alter its evidence or slots.
-fn infer_prefix_check(
+// and selected environment owners. Carrier probes and omitted-key INFER share
+// this owner and allowance rather than independently renewing checker work.
+fn checked_query_prefix_pipeline(
   construction : Construction,
   query : @query.Query,
   context : Context,
   prior_stages : Array[@builder.Node],
   declarations : Array[(String, @builder.Node)],
   prefix_nodes : Array[@builder.Node],
-  producer : String,
   limits : Limits,
   budget : InferPrefixBudget,
-  visible : InferInputLabels,
-  authored_aliases : Array[(String, String)],
-) -> InferPrefixProjection raise Abort {
+) -> @pipeline.CheckedPipeline raise Abort {
   if budget.remaining_work <= 0 {
     raise Abort(
       Expression({
@@ -137,8 +134,36 @@ fn infer_prefix_check(
     Some(stage) => stage
     None => raise Abort(InvalidContext)
   }
-  let pipeline = @pipeline_parameters.pipeline(
+  @pipeline_parameters.pipeline(
     @stage_parameters.collection(@stage_results.topology_stage_source(stage)),
+  )
+}
+
+///|
+// The unfinished Stage ends at INFER before join-back or result projection can
+// alter its evidence or slots. Key selection belongs only to Common.
+fn infer_prefix_check(
+  construction : Construction,
+  query : @query.Query,
+  context : Context,
+  prior_stages : Array[@builder.Node],
+  declarations : Array[(String, @builder.Node)],
+  prefix_nodes : Array[@builder.Node],
+  producer : String,
+  limits : Limits,
+  budget : InferPrefixBudget,
+  visible : InferInputLabels,
+  authored_aliases : Array[(String, String)],
+) -> InferPrefixProjection raise Abort {
+  let pipeline = checked_query_prefix_pipeline(
+    construction,
+    query,
+    context,
+    prior_stages,
+    declarations,
+    prefix_nodes,
+    limits,
+    budget,
   )
   let index = match @pipeline.lookup(pipeline, producer) {
     Some(@pipeline.Step(index)) => index

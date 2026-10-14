@@ -57,11 +57,18 @@ test "INFER defaults normalize to explicit sole and composite proven tuples" {
   for
     (prefix, key) in [
       ("FROM tickets |> ASSERT UNIQUE BY (id)", "id"),
+      (
+        "FROM tickets |> ASSERT UNIQUE BY (id) |> RENAME id AS ticket", "ticket",
+      ),
       ("FROM tickets |> ASSERT UNIQUE BY (secret, id)", "secret, id"),
       ("FROM tickets |> ASSERT UNIQUE BY (id) |> ASSERT UNIQUE BY (id)", "id"),
       ("FROM tickets |> SELECT DISTINCT id |> EXTEND 'urgent' AS text", "id"),
       (
         "FROM tickets AS old |> ASSERT UNIQUE BY (id) |> SET id = secret", "old.id",
+      ),
+      (
+        "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> AS snapshot |> SET id = 'same'",
+        "snapshot.id",
       ),
     ] {
     for script in [false, true] {
@@ -84,6 +91,143 @@ test "INFER defaults normalize to explicit sole and composite proven tuples" {
         assert_shorthand_checked_identity(
           check_shorthand_identity_program(program, environment),
           checked,
+        )
+      }
+    }
+  }
+}
+
+///|
+test "sequential INFER defaults retain the original key through join-back and RESULT" {
+  let environment = infer_member_environment()
+  let context = infer_input_field_context(environment)
+  for checkpoint in ["", " |> RESULT first_pass"] {
+    let expanded = "FROM tickets |> ASSERT UNIQUE BY (id) " +
+      "|> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text) KEEP (*) AS first_assessment" +
+      checkpoint +
+      " |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text) KEEP (*) AS second_assessment"
+    for script in [false, true] {
+      let expected = compile_infer_defaults(expanded, context, script).unwrap()
+      let actual = compile_infer_defaults(
+        expanded
+        .replace(old=" ITEM KEY (id)", new="")
+        .replace(old=" KEEP (*)", new=""),
+        context,
+        script,
+      ).unwrap()
+      assert_eq(semantic(actual), semantic(expected), msg=checkpoint)
+      let checked = check_shorthand_identity_program(actual, environment)
+      assert_shorthand_checked_identity(
+        checked,
+        check_shorthand_identity_program(expected, environment),
+      )
+      assert_true(
+        semantic(actual).contains(
+          "\"fields\":[\"id\",\"text\",\"secret\",\"first_assessment\",\"second_assessment\"]",
+        ),
+      )
+      let mut count = 0
+      for unit in 0..<@check.unit_count(checked) {
+        let pipeline = @check.unit_pipeline(checked, unit).unwrap()
+        for step in 0..<@pipeline.step_count(pipeline) {
+          if @pipeline.step_at(pipeline, step).unwrap().operation
+            is @pipeline.Infer(infer) {
+            count += 1
+            assert_eq(@evidence.infer_key_count(infer), 1)
+            assert_eq(
+              @schema.reference_name(
+                @evidence.infer_key_at(infer, 0).unwrap().field,
+              ),
+              "id",
+            )
+            assert_eq(@evidence.infer_input_binding_count(infer), 1)
+            assert_eq(
+              @evidence.infer_input_binding_at(infer, 0).unwrap().role,
+              "text",
+            )
+          }
+        }
+      }
+      assert_eq(count, 2)
+    }
+  }
+}
+
+///|
+test "computed two-input JOIN projections retain Common key inference" {
+  let environment = infer_member_environment()
+  let context = {
+    ..infer_member_context(environment),
+    inputs: join_order_context().inputs,
+  }
+  for prefix in [
+    "SELECT t.x AS id, t.y + r.k AS amount FROM t JOIN r ON t.x = r.k MAX_OUTPUT_ROWS 2",
+    "FROM t |> JOIN r ON t.x = r.k MAX_OUTPUT_ROWS 2 |> SELECT t.x AS id, t.y + r.k AS amount",
+  ] {
+    // The original JOIN is retained and checked before this authored assertion.
+    // The frontend does not infer uniqueness from the selected expression.
+    let expanded = prefix +
+      " |> ASSERT UNIQUE BY (id) |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = 'urgent') KEEP (*) AS assessment"
+    for script in [false, true] {
+      let expected = compile_infer_defaults(expanded, context, script).unwrap()
+      let actual = compile_infer_defaults(
+        expanded
+        .replace(old=" ITEM KEY (id)", new="")
+        .replace(old=" KEEP (*)", new=""),
+        context,
+        script,
+      ).unwrap()
+      assert_eq(semantic(actual), semantic(expected), msg=prefix)
+      assert_true(semantic(actual).contains("\"add\":"))
+      assert_true(
+        semantic(actual).contains("\"fields\":[\"id\",\"amount\",\"assessment\"]"),
+      )
+      assert_shorthand_checked_identity(
+        check_shorthand_identity_program(actual, environment),
+        check_shorthand_identity_program(expected, environment),
+      )
+    }
+  }
+}
+
+///|
+test "unnameable proven ITEM KEY currently fails closed at the representation gap" {
+  let environment = infer_member_environment()
+  let context = infer_input_field_context(environment)
+  let text = "FROM tickets |> SET id = secret |> ASSERT UNIQUE BY (id) |> SET id = 'same' |> AS current |> INFER `model-task:risk-score.v1` INPUT (text) AS assessment"
+  // Temporary implementation gap: Common retains a valid proven physical key,
+  // but AS after SET removes its last authored name for input_key emission.
+  // This refusal is not a language restriction or completion evidence for #1840.
+  // The current UnsupportedInfer variant carries no diagnostic source span.
+  for script in [false, true] {
+    assert_true(
+      compile_infer_defaults(
+        text,
+        context,
+        script,
+        source_path="unnameable-key.sql",
+      ) is Err(UnsupportedInfer),
+    )
+  }
+}
+
+///|
+test "inferred ITEM KEY retains case-insensitive VALUE and OUTCOME surface refusals" {
+  let environment = infer_member_environment()
+  let context = infer_input_field_context(environment)
+  for name in ["VALUE", "OUTCOME", "VaLuE", "OuTcOmE"] {
+    let quoted = "`" + name + "`"
+    let prefix = "FROM tickets |> RENAME id AS " + quoted +
+      " |> ASSERT UNIQUE BY (" + quoted + ") |> INFER `model-task:risk-score.v1`"
+    for key in ["", " ITEM KEY (" + quoted + ")"] {
+      for script in [false, true] {
+        assert_true(
+          compile_infer_defaults(
+            prefix + key + " INPUT (text) AS assessment",
+            context,
+            script,
+          ) is Err(UnsupportedInfer),
+          msg=name + key,
         )
       }
     }
@@ -408,6 +552,36 @@ test "INFER defaults normalize through WITH and source-free Script producers" {
         check_shorthand_identity_program(expected, environment),
       )
     }
+  }
+}
+
+///|
+test "default ITEM KEY uses the admitted Source owner and preserves its Common refusal" {
+  let environment = source_infer_member_environment()
+  let context = source_infer_member_context(environment)
+  for script in [false, true] {
+    let expanded = "FROM objects |> SELECT DISTINCT id |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (text = 'urgent') KEEP (*) AS assessment"
+    let expected = compile_infer_defaults(expanded, context, script).unwrap()
+    let actual = compile_infer_defaults(
+      expanded
+      .replace(old=" ITEM KEY (id)", new="")
+      .replace(old=" KEEP (*)", new=""),
+      context,
+      script,
+    ).unwrap()
+    assert_eq(semantic(actual), semantic(expected))
+    assert_shorthand_checked_identity(
+      check_shorthand_identity_program(actual, environment),
+      check_shorthand_identity_program(expected, environment),
+    )
+    guard compile_infer_defaults(
+        "FROM objects |> INFER `model-task:risk-score.v1` INPUT (text = 'urgent') AS assessment",
+        context,
+        script,
+      ) is Err(BindingPreparation(SourceProgram(Program(Pipeline(_, issue))))) else {
+      fail("expected admitted Source's Common candidate-key refusal")
+    }
+    assert_eq(issue.kind, @pipeline.Infer(@evidence.CandidateKeyRequired))
   }
 }
 
