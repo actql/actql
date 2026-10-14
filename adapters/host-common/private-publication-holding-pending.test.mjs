@@ -3,12 +3,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import {runInNewContext} from 'node:vm';
 import {mkdtemp, open, readFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {createPublicationContractControlFixture} from './publication-contract-control.fixture.mjs';
 import {preparePrivatePublicationHolding} from './private-publication-holding.mjs';
-import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import {openLocalPublicationStore, PublicationStoreError} from '../store-local/publication-store.mjs';
 
 const cid = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 
@@ -76,7 +78,7 @@ async function fixture(t, raw) {
     // Already adopted handles legitimately return false with pending=false.
     assert.equal(await object.prepared.release(), false);
   };
-  return {owner, object, counts, checkBytes, reconcile, constructionFailure};
+  return {owner, object, counts, checkBytes, reconcile, constructionFailure, binding};
 }
 
 const pending = owner => error => {
@@ -129,4 +131,62 @@ test('private holding: visible unknown prepared output keeps abort pending until
   assert.equal(await f.owner.abort(), true);
   assert.equal(f.owner.status().preparedPending, false);
   assert.deepEqual(f.counts, {prepare: 1, commit: 1});
+});
+
+// Execute the actual Store preparation/catch function against its real
+// prepared cleanup handle. Only descriptor construction is a boundary double;
+// this does not prove complete raw-cell persistence or genuine Core admission.
+function rawPreparation(f, primary) {
+  const source = readFileSync(new URL('../store-local/publication-store.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('  const validateModelRawBinding =');
+  const end = source.indexOf('  const readModelRawEvidence =', start);
+  assert.ok(start >= 0 && end > start);
+  return runInNewContext(source.slice(start, end) + '\nprepareModelRawEvidence;', {
+    Uint8Array, Buffer, createHash, PublicationStoreError,
+    configuration: {maxObjectBytes: 4096}, active() {},
+    quantity: value => Number.isSafeInteger(value) && value >= 0,
+    cidHex(value) { assert.match(value, /^sha256:[0-9a-f]{64}$/u); },
+    exactKeys: (value, keys) => Object.keys(value).sort().join(',') === keys.sort().join(','),
+    fail(code) { throw new PublicationStoreError(code); },
+    async preparePrivateEvidenceBytes(name, bytes, semanticCid) {
+      assert.equal(name, 'model_raw_content');
+      assert.equal(semanticCid, f.binding.semanticCid);
+      assert.deepEqual(bytes, Buffer.from('raw'));
+      return f.object;
+    },
+    async preparePrivateEvidence(name, wire, semanticCid) {
+      assert.equal(name, 'model_raw_descriptor');
+      assert.equal(semanticCid, f.binding.semanticCid);
+      assert.equal(wire, f.binding.wire);
+      throw primary;
+    },
+  });
+}
+
+test('private holding: actual raw preparation catch exports false-release cleanup custody', async t => {
+  const f = await fixture(t, true);
+  const primary = new PublicationStoreError('PublicationObjectLimit');
+  await assert.rejects(rawPreparation(f, primary)(f.binding, Buffer.from('raw')), error => {
+    assert.equal(error, primary);
+    assert.equal(error.code, 'PublicationObjectLimit');
+    assert.equal(error.cleanupPending, true);
+    assert.equal(error.cleanupHandle, f.object.prepared);
+    return true;
+  });
+  await f.checkBytes();
+  await f.reconcile();
+});
+
+test('private holding: frozen raw preparation primary retains cause and same cleanup custody', async t => {
+  const f = await fixture(t, true);
+  const primary = Object.freeze(new PublicationStoreError('PublicationObjectLimit'));
+  await assert.rejects(rawPreparation(f, primary)(f.binding, Buffer.from('raw')), error => {
+    assert.equal(error.code, 'PublicationObjectLimit');
+    assert.equal(error.cause, primary);
+    assert.equal(error.cleanupPending, true);
+    assert.equal(error.cleanupHandle, f.object.prepared);
+    return true;
+  });
+  await f.checkBytes();
+  await f.reconcile();
 });
