@@ -1,4 +1,21 @@
 ///|
+fn script_nearest_prefix_pipeline(
+  construction : Construction,
+  query : @query.Query,
+  context : Context,
+  sources : ScriptSources,
+  nodes : Array[@builder.Node],
+  limits : Limits,
+) -> @pipeline.CheckedPipeline raise Abort {
+  let budget = construction.infer_budget
+  if budget.remaining_work > sources.carrier_work { budget.remaining_work = sources.carrier_work }
+  sources.carrier_work = 0
+  let checked = checked_query_prefix_pipeline(construction, query, context, sources.stages + sources.prior_stages, sources.declarations, nodes, limits, budget)
+  sources.carrier_work = budget.remaining_work
+  checked
+}
+
+///|
 fn script_nearest_carrier(
   construction : Construction,
   query : @query.Query,
@@ -109,6 +126,10 @@ fn lower_script_nearest_carrier(
     limits.max_expression_work,
     query_typed=query_vectors,
     candidate_typed=candidate_vectors,
+    completion_limits=Some(limits),
+    checked_prefix=Some(nodes => {
+      script_nearest_prefix_pipeline(construction, query, context, sources, steps.copy() + nodes, limits)
+    }),
   )
   for members in body {
     steps.push(construction.object(members))
