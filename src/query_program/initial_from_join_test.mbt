@@ -127,7 +127,7 @@ test "initial Relation JOIN stays in the prefix before a typed Carrier call" {
   )
   assert_true(semantic(scored).contains("\"fields\":[\"id\",\"score\"]"))
   let pooled = prefix +
-    " |> pool_vectors(by: [tag], method: 'mean', output_id: 'pool_id') |> vectors()"
+    " |> pool_vectors(by: [tag], method: 'mean', output_id: pool_id) |> vectors()"
   ignore(
     initial_from_compiled(
       pooled + " |> SELECT tag, pool_id, member_count",
