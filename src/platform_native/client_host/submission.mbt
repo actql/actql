@@ -86,6 +86,7 @@ struct NativeClientSubmittedIntentRecord {
   intent : @host.ClientSubmittedIntent
   run_admission : NativeClientSubmittedRunAdmission?
   revision : Int64
+  run_state_original : String?
 }
 
 ///|
@@ -113,10 +114,12 @@ fn submitted_intent_body(
   reference : NativeClientSubmissionReference,
   intent : @host.ClientSubmittedIntent,
   run_admission? : NativeClientSubmittedRunAdmission? = None,
+  run_state_original? : String? = None,
 ) -> Result[Bytes, NativeClientRunJournalIssue] {
   @host.client_submitted_intent_journal_row_body(
     reference.wire,
     intent,
+    run_state_original~,
     run_admission=run_admission.map(admission => {
       (admission.request, admission.run_definition_cid, admission.revision)
     }),
@@ -184,6 +187,7 @@ fn NativeClientRunJournal::inspect_submitted_intent_row(
       revision: value.2,
     }),
     revision: row.revision,
+    run_state_original: original.run_state_original,
   }
   if record.reference.request_id != row.key {
     return Err(CustodyLost)
@@ -253,6 +257,7 @@ fn NativeClientRunJournal::retained_submission(
           revision: value.2,
         }),
         revision: @host.client_saved_submission_revision(snapshot),
+        run_state_original: decoded.run_state_original,
       }
     })
   })
@@ -334,6 +339,7 @@ pub fn NativeClientRunJournal::record_submitted_intent(
             revision: value.2,
           }),
           revision: @host.client_saved_submission_revision(snapshot),
+          run_state_original: original.run_state_original,
         })
       }
       Ok(@host.Append(plan)) => plan
@@ -358,7 +364,13 @@ pub fn NativeClientRunJournal::record_submitted_intent(
     }
     self.database
     .insert("client_submitted_intents", key, body)
-    .map(revision => { reference, intent, run_admission: None, revision, })
+    .map(revision => {
+      reference,
+      intent,
+      run_admission: None,
+      revision,
+      run_state_original: None,
+    })
     .map_err(issue => Physical(issue))
   })
 }
