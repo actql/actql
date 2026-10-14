@@ -1,0 +1,228 @@
+{
+  "status": "review-source-only",
+  "parent_source": "7cc1866bbea6ee1c3128a39cca5495a02901ffc1",
+  "target": "aarch64-apple-darwin",
+  "deployment_target": "11.0",
+  "moonbit": "0.10.12+1634b282e",
+  "required_defines": [
+    "MOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC",
+    "ACTQL_SCOPED_READ_ALLOCATOR"
+  ],
+  "patch": {
+    "path": "scoped-read-review.patch",
+    "bytes": 18093,
+    "sha256": "f85133840d3b8fe074a95a7f04d6cd4f50466b474a2257ebfe0df86ce7f41615"
+  },
+  "inputs": [
+    {
+      "root": "provider",
+      "path": "owned_capacity.c",
+      "output": "owned_capacity.c",
+      "bytes": 15358,
+      "sha256": "8a524b0f0d59131de32bd4539bac10ce02ac1b8e4f171a9a1d20ab4d298113cb"
+    },
+    {
+      "root": "provider",
+      "path": "owned_region.inc",
+      "output": "owned_region.inc",
+      "bytes": 19156,
+      "sha256": "56619bc5a2a5c3436eba4f09abd54fdeb8b02eef7b9081bfeecf07b42907ab9d"
+    },
+    {
+      "root": "provider",
+      "path": "owned_capacity.h",
+      "output": "owned_capacity.h",
+      "bytes": 2784,
+      "sha256": "e57bce1f377b8e5a0172da263e59153c20fe97970fb8783cac5986eb78c9b448"
+    },
+    {
+      "root": "provider",
+      "path": "owned_region.h",
+      "output": "owned_region.h",
+      "bytes": 4955,
+      "sha256": "2f5e3d67c1a7beeb0cdc12254a2b25128d624d11653d23ee0ce01c0c9bfa0520"
+    },
+    {
+      "root": "provider",
+      "path": "owned_domain_borrow.h",
+      "output": "owned_domain_borrow.h",
+      "bytes": 2197,
+      "sha256": "666b3739ee86a08203e84aaf23139a938ff0af8c29474648d6266af8f9c8cce0"
+    },
+    {
+      "root": "provider",
+      "path": "owned_domain_borrow.inc",
+      "output": "owned_domain_borrow.inc",
+      "bytes": 7546,
+      "sha256": "928638b5cdbd8202800c2f6f0e7c2891829873010ba342c9a9479d1e4c11935b"
+    },
+    {
+      "root": "moonbit",
+      "path": "include/moonbit_runtime.h",
+      "output": "moonbit_runtime.h",
+      "bytes": 14310,
+      "sha256": "965b08c86c2d1fe40cf5c6ec0f42a0d3897f19f5212c840cf63af52c71d5dffb"
+    },
+    {
+      "root": "moonbit",
+      "path": "include/moonbit.h",
+      "output": "moonbit.h",
+      "bytes": 9955,
+      "sha256": "c713a6a0f3f5f73508099bc5678ca3c1171ea988da01fb8463cfd98469a7fd8d"
+    },
+    {
+      "root": "moonbit",
+      "path": "include/moonbit-fundamental.h",
+      "output": "moonbit-fundamental.h",
+      "bytes": 1129,
+      "sha256": "afd2c5d1ecb6b5cabb6781207d87a1074d9e87b54dfd85367d91e8a45ebbd567"
+    },
+    {
+      "root": "moonbit",
+      "path": "include/moonbit_simd.h",
+      "output": "moonbit_simd.h",
+      "bytes": 78816,
+      "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
+    },
+    {
+      "root": "moonbit",
+      "path": "include/backtrace.h",
+      "output": "backtrace.h",
+      "bytes": 8782,
+      "sha256": "d2ac7d5c6910c011f860d04a04a4a6a6fbea2882f23878f1f5f6721831a28acd"
+    },
+    {
+      "root": "moonbit",
+      "path": "lib/runtime/backtrace.c",
+      "output": "backtrace.c",
+      "bytes": 30967,
+      "sha256": "cefacf238ba336912a37e20cfb550dea4c76d04dbfd7d0d939e178a04dd94c1d"
+    },
+    {
+      "root": "moonbit",
+      "path": "lib/runtime/env.c",
+      "output": "env.c",
+      "bytes": 19449,
+      "sha256": "30b236c56b4374bdaa87af5b380de71835e511eab701e52741ab90fb9c1e8dee"
+    },
+    {
+      "root": "moonbit",
+      "path": "lib/runtime/runtime.c",
+      "output": "runtime.c",
+      "bytes": 38961,
+      "sha256": "1f4e1bc297835605be01298370f1bff7d0f8ec2a23c86371bb20db89356e2369"
+    },
+    {
+      "root": "moonbit",
+      "path": "lib/runtime/sync_io.c",
+      "output": "sync_io.c",
+      "bytes": 6246,
+      "sha256": "9a94a6b8dd26ba5de7809f8dd913ac36295067bc0ebcdcf40344634a78b662d1"
+    },
+    {
+      "root": "moonbit",
+      "path": "lib/runtime/utf.c",
+      "output": "utf.c",
+      "bytes": 11366,
+      "sha256": "b5a564f1439c2d242188b4a84bbb1f97f47cb201b7dc2022fa5f067d2c1e3b50"
+    },
+    {
+      "root": "moonbit",
+      "path": "lib/libmoonbitrun.o",
+      "output": "libmoonbitrun.o",
+      "bytes": 188920,
+      "sha256": "d9db2413e755c00ab374901211a03a9551222fe779022bc3648235747ed2bd96"
+    },
+    {
+      "root": "moonbit",
+      "path": "lib/libbacktrace.a",
+      "output": "libbacktrace.a",
+      "bytes": 281872,
+      "sha256": "a0ed98ead4be023f2840063c0e1c016fe581895c936759e68fd6e0e23dfaf9b7"
+    }
+  ],
+  "outputs": {
+    "owned_capacity.c": {
+      "bytes": 15907,
+      "sha256": "79a9f6cba1ae66f6cedb06bbf272f9ae4299d90ac4c11737023e41a852fc4c8f"
+    },
+    "owned_region.inc": {
+      "bytes": 19198,
+      "sha256": "6be6a5eadba8e579f9af03ed5d6bd194b13f4264da3103b99bc28c168f3a93e0"
+    },
+    "owned_capacity.h": {
+      "bytes": 2784,
+      "sha256": "e57bce1f377b8e5a0172da263e59153c20fe97970fb8783cac5986eb78c9b448"
+    },
+    "owned_region.h": {
+      "bytes": 4955,
+      "sha256": "2f5e3d67c1a7beeb0cdc12254a2b25128d624d11653d23ee0ce01c0c9bfa0520"
+    },
+    "owned_domain_borrow.h": {
+      "bytes": 2197,
+      "sha256": "666b3739ee86a08203e84aaf23139a938ff0af8c29474648d6266af8f9c8cce0"
+    },
+    "owned_domain_borrow.inc": {
+      "bytes": 7546,
+      "sha256": "928638b5cdbd8202800c2f6f0e7c2891829873010ba342c9a9479d1e4c11935b"
+    },
+    "moonbit_runtime.h": {
+      "bytes": 14824,
+      "sha256": "a5545e79f443c04436989542ca20911be0c3488906b8a05eb1fc733ac2f637ac"
+    },
+    "moonbit.h": {
+      "bytes": 9955,
+      "sha256": "c713a6a0f3f5f73508099bc5678ca3c1171ea988da01fb8463cfd98469a7fd8d"
+    },
+    "moonbit-fundamental.h": {
+      "bytes": 1129,
+      "sha256": "afd2c5d1ecb6b5cabb6781207d87a1074d9e87b54dfd85367d91e8a45ebbd567"
+    },
+    "moonbit_simd.h": {
+      "bytes": 78816,
+      "sha256": "4995faa31ac633768430bad1b7ea28699ab601e216fb357739a092cbea455022"
+    },
+    "backtrace.h": {
+      "bytes": 8782,
+      "sha256": "d2ac7d5c6910c011f860d04a04a4a6a6fbea2882f23878f1f5f6721831a28acd"
+    },
+    "backtrace.c": {
+      "bytes": 30967,
+      "sha256": "cefacf238ba336912a37e20cfb550dea4c76d04dbfd7d0d939e178a04dd94c1d"
+    },
+    "env.c": {
+      "bytes": 19449,
+      "sha256": "30b236c56b4374bdaa87af5b380de71835e511eab701e52741ab90fb9c1e8dee"
+    },
+    "runtime.c": {
+      "bytes": 38961,
+      "sha256": "1f4e1bc297835605be01298370f1bff7d0f8ec2a23c86371bb20db89356e2369"
+    },
+    "sync_io.c": {
+      "bytes": 6246,
+      "sha256": "9a94a6b8dd26ba5de7809f8dd913ac36295067bc0ebcdcf40344634a78b662d1"
+    },
+    "utf.c": {
+      "bytes": 11366,
+      "sha256": "b5a564f1439c2d242188b4a84bbb1f97f47cb201b7dc2022fa5f067d2c1e3b50"
+    },
+    "libmoonbitrun.o": {
+      "bytes": 188920,
+      "sha256": "d9db2413e755c00ab374901211a03a9551222fe779022bc3648235747ed2bd96"
+    },
+    "libbacktrace.a": {
+      "bytes": 281872,
+      "sha256": "a0ed98ead4be023f2840063c0e1c016fe581895c936759e68fd6e0e23dfaf9b7"
+    },
+    "scoped_read.h": {
+      "bytes": 1101,
+      "sha256": "59fa430d04b5ae51de53d0ed81702705829c38ce6c5f77867242a8e2c6ad25ca"
+    },
+    "scoped_read.inc": {
+      "bytes": 13880,
+      "sha256": "9f5a857eefe0f04ba9046196334f160a47f81c6cd11b5f0ca13143808654391f"
+    }
+  },
+  "normal_profile": null,
+  "installed_supplier": false
+}
