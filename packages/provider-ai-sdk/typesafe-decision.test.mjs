@@ -133,6 +133,20 @@ test('native options reject a joined own-key collision before reading inherited 
   assert.equal(handle,undefined);
 });
 
+test('invalid native scalar inputs refuse before option inspection callbacks',()=>{
+  let inspections=0;
+  const options=new Proxy({state,questions},{ownKeys(target){
+    inspections++;return Reflect.ownKeys(target);
+  }});
+  for(const overrides of [{modelId:''},{baseURL:''},{apiKey:''}]) {
+    // Empty baseURL was not a scalar refusal in the original implementation;
+    // use its existing forbidden trailing-slash shape for this boundary.
+    if(overrides.baseURL==='')overrides.baseURL='https://fixture.invalid/v1/';
+    assert.throws(()=>prepare({...overrides,options}),/InvalidTypeSafeSdkPreparation/u);
+  }
+  assert.equal(inspections,0);
+});
+
 test('cancelled original native preparation cannot start and cleanup uses that same handle',async()=>{
   const handle=prepare();await until(()=>pollSdkPreparation(handle),'ready');
   let calls=0;
