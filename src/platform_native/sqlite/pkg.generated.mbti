@@ -35,7 +35,9 @@ pub fn Database::transaction_fenced(Self) -> Bool
 type Library
 pub fn Library::initialize_owned_database(Self, String, @filesystem.NativeFileOwnership, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::open_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
+pub fn Library::open_database_with_custody(Self, String, Int64) -> Result[Database, NativeSqliteOpenFailure]
 pub fn Library::open_existing_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]
+pub fn Library::open_existing_database_with_custody(Self, String, Int64) -> Result[Database, NativeSqliteOpenFailure]
 pub fn Library::open_inspection_database(Self, String, Int64) -> Database
 pub fn Library::version(Self) -> String
 
@@ -74,6 +76,10 @@ pub(all) enum NativeSqliteIssue {
   CapacityExceeded
   Physical(String)
 }
+
+type NativeSqliteOpenFailure
+pub fn NativeSqliteOpenFailure::issue(Self) -> NativeSqliteIssue
+pub fn NativeSqliteOpenFailure::retry_cleanup(Self) -> Result[Unit, NativeSqliteIssue]
 
 // Type aliases
 

@@ -22,9 +22,11 @@ const steps = mode === '--producer'
   ? [{name: 'Same-clean-source normal four-release-package producer', command: 'node',
     args: ['--input-type=module', '-e',
       "import {preparePackageRelease} from './scripts/package-release.mjs'; await preparePackageRelease({destination:process.argv[1]});", directory]}]
-  : [{name: 'Installed Sequence Local HTTPS original 18+9 matrix', command: 'node',
+  : [{name: 'Installed Sequence Local HTTPS original 18+9 and fresh-process reread', command: 'node',
     args: ['scripts/test-package-release-sourcefree-query.mjs', directory, receipt, '--sequence-only'],
-    env: {ACTQL_TEST_PRESERVE_SCRATCH: '1'}}];
+    env: {ACTQL_TEST_PRESERVE_SCRATCH: '1'}},
+    {name: 'Independent original Sequence values schemas refusals and reread audit', command: 'node',
+      args: ['reviews/2026-10-14-sequence-release-matrix/public-audit.mjs', receipt]}];
 process.exitCode = await runLocalCheck({root: process.cwd(), heavy: true,
   timeoutSeconds: 300, graceSeconds: 5, steps});
 assert.deepEqual(checkoutState(process.cwd()), before);

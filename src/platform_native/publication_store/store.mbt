@@ -35,6 +35,14 @@ pub(all) enum NativePublicationStoreIssue {
 }
 
 ///|
+/// Refusal before physical acquisition is distinct from an acquired or
+/// unconfirmed original cleanup responsibility. Neither case grants resend.
+pub(all) enum NativePublicationStoreOpenError {
+  RefusedBeforeAcquisition(NativePublicationStoreIssue)
+  CleanupRequired(NativePublicationStoreOpenFailure)
+}
+
+///|
 pub(all) struct NativePublicationPayloadInfo {
   material_generation_cid : String
   publication_attempt_cid : String

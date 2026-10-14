@@ -13,7 +13,7 @@ import {checkoutState} from './packed-client-packages.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 import {releaseVectorScalarEnvironment} from './release-vector-scalar-fixtures.mjs';
-import {selectInstalledSourcefreeQuerySuite, releaseSourcefreeFixturePaths}
+import {selectInstalledSourcefreeQuerySuite, releaseSourcefreeFixturePaths, sourcefreeSuiteRequiresReread}
   from './release-sourcefree-query-cases.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -23,7 +23,7 @@ assert(input && receiptPath && (extra.length === 0 ||
   'usage: test-package-release-sourcefree-query.mjs <fixed-RC> <new-absolute-receipt.json> [--sequence-only|--time-series-only|--temporal-join-only]');
 const suite = extra.length === 0 ? 'in-unnest' :
   {'--sequence-only': 'sequence', '--time-series-only': 'time-series', '--temporal-join-only': 'temporal-join'}[extra[0]];
-const freshProcessReread = suite === 'time-series' || suite === 'temporal-join';
+const freshProcessReread = sourcefreeSuiteRequiresReread(suite);
 const directory = resolve(input), manifest = await verifyPackageRelease(directory);
 assert.deepEqual(manifest.cohort.packages, ['client-wire', 'sdk', 'local-node', 'node']);
 assert.ok(!resolve(receiptPath).startsWith(directory + '/'), 'Keep the original RC unchanged');
