@@ -618,6 +618,8 @@ pub(all) enum ResidentLocalEffectCaptureIssue {
 
 type ResidentOriginalEffectApprovalScope
 pub fn ResidentOriginalEffectApprovalScope::current_for(Self, @run_publication_host.ClientRequestIdentity, String, String) -> String?
+pub fn ResidentOriginalEffectApprovalScope::original_signing_subject_for(Self, @run_publication_host.ClientRequestIdentity, String, String) -> Result[(String, String), ResidentEffectReviewRetentionIssue]
+pub fn ResidentOriginalEffectApprovalScope::read_original_signing_subject_for(Self, @run_publication_host.ClientRequestIdentity, String, String) -> Result[ResidentOriginalEffectSigningSubjectRead, ResidentEffectReviewRetentionIssue]
 
 pub struct ResidentOriginalEffectCompletionEvidence {
   checkpoint_cid : String
@@ -630,6 +632,9 @@ pub struct ResidentOriginalEffectCompletionEvidence {
   captured : @actql/actql/run_publication.PublicationContract
   preview : @actql/actql/run_publication.EffectPreviewIdentity
 }
+
+type ResidentOriginalEffectSigningSubjectRead
+pub fn ResidentOriginalEffectSigningSubjectRead::original_subject_after_current(Self) -> Result[(String, String), ResidentEffectReviewRetentionIssue]
 
 pub(all) enum ResidentOutputIssue {
   OutputForeign
