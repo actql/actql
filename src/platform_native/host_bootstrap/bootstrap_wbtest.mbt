@@ -33,6 +33,7 @@ fn test_host(original : BootstrapTestOriginal) -> NativeHostBootstrap[BootstrapT
 test "installed supplier refuses foreign original before consuming acquisition" {
   let original = { identity: 1 }
   let foreign = { identity: 1 }
+  assert_eq(original.identity, foreign.identity)
   let supplier = test_supplier(original, 64L * test_page_bytes_ffi())
   assert_true(supplier.acquire(foreign) is Err(ForeignOriginal))
   assert_false(supplier.consumed)
