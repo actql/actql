@@ -41,6 +41,7 @@ pub(all) enum IntervalIssue {
   InvalidWeekOrigin
   CalendarBoundaryDomain
   IntervalWorkLimit
+  IntervalResolution(LocalResolutionIssue)
   IntervalTerminal
 } derive(Eq, @debug.Debug)
 
