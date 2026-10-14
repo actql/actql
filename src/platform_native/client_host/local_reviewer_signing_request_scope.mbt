@@ -35,11 +35,6 @@ fn NativeLocalReviewerProofMaterials::require_original_reviewer_signing_subject(
   // no preparation, capture, unsigned proof, grant or use is reissued.
   match self.require_current() {
     Err(issue) => Err(issue)
-    Ok(_) =>
-      if same_subject {
-        Ok(())
-      } else {
-        Err(ProofUnavailable)
-      }
+    Ok(_) => if same_subject { Ok(()) } else { Err(ProofUnavailable) }
   }
 }

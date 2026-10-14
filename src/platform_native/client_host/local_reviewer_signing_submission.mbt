@@ -13,20 +13,26 @@ fn NativeLocalReviewerProofMaterials::original_signing_submission_scope(
   // Keep the large retained intent/admission inside this read phase; only its
   // existing Submission identity is returned to the final current fence.
   let read = fn() -> Result[String, NativeLocalReviewerProofMaterialsIssue] {
-    let authority = match native_local_policy_authority_for(
-      reviewer.host, reviewer.crypto, reviewer.principal,
-      reviewer.connection, reviewer.request, ReadRunMaterials,
-    ) {
+    let authority = match
+      native_local_policy_authority_for(
+        reviewer.host,
+        reviewer.crypto,
+        reviewer.principal,
+        reviewer.connection,
+        reviewer.request,
+        ReadRunMaterials,
+      ) {
       Ok(value) => value
       Err(issue) => return Err(ProofOriginal(issue))
     }
-    let original = match reviewer.host.journal.lookup_submitted_intent(
-      reviewer.host.epoch,
-      reviewer.reference,
-      authority.scope,
-      authority.current_for(reviewer.host.journal, reviewer.request),
-      (reviewer.now)(),
-    ) {
+    let original = match
+      reviewer.host.journal.lookup_submitted_intent(
+        reviewer.host.epoch,
+        reviewer.reference,
+        authority.scope,
+        authority.current_for(reviewer.host.journal, reviewer.request),
+        (reviewer.now)(),
+      ) {
       Ok(Submitted(value)) => value
       Ok(UnresolvedSubmissionHistory) => return Err(ProofUnavailable)
       Err(issue) => return Err(ProofOriginal(issue))
@@ -35,8 +41,10 @@ fn NativeLocalReviewerProofMaterials::original_signing_submission_scope(
       return Err(ProofUnavailable)
     }
     if @host.client_request_identity_relation(
-        admission.request, reviewer.request,
-      ) != @host.SameRequest ||
+        admission.request,
+        reviewer.request,
+      ) !=
+      @host.SameRequest ||
       admission.run_definition_cid != reviewer.original.run_definition_cid ||
       native_client_submission_reference_wire(original.reference) !=
       native_client_submission_reference_wire(reviewer.reference) ||
