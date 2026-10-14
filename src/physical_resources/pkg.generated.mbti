@@ -62,6 +62,10 @@ pub fn check_original_state_write_preparation(OriginalLedgerIdentity) -> Result[
 
 pub fn[T] claim_funded_read_preparation(FundedReadClaim[T], T, Int64, Int64) -> Result[FundedReadConsumer[T], OriginalReadIssue]
 
+pub fn[T] claim_model_io_admission(ModelIoAdmission[T], T, OriginalLedgerIdentity, Reservation, Int, Int) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue]
+
+pub fn[T] close_model_io_admission(ModelIoAdmission[T], T) -> Result[Bool, ModelIoAdmissionIssue]
+
 pub fn close_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
 
 pub fn configure_quantities(Ledger, QuantityAmounts) -> Result[Unit, LedgerIssue]
@@ -102,6 +106,8 @@ pub fn holding_belongs_to(Ledger, Holding) -> Bool
 
 pub fn holding_serial(Holding) -> Int
 
+pub fn[T] issue_model_io_admission(T, Int, Int) -> Result[ModelIoAdmission[T], ModelIoAdmissionIssue]
+
 pub fn[T] issue_recorded_original_ledger_descriptor(OriginalLedgerIdentity, T) -> Result[OriginalLedgerDescriptor[T], OriginalReadIssue]
 
 pub fn ledger_admission_limits(Ledger) -> LedgerLimits
@@ -115,6 +121,8 @@ pub fn mark_cleanup_pending(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 pub fn mark_quantities_uncertain(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
 pub fn mark_transfer_uncertain(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
+
+pub fn[T] model_io_admission_counts(ModelIoAdmission[T], T) -> (Int, Int)?
 
 pub fn observe_quantities(Ledger, Reservation, tokens? : Int64?, cost_units? : Int64?, duration_ms? : Int64?) -> Result[Unit, LedgerIssue]
 
@@ -224,6 +232,10 @@ pub fn[T] settle_funded_read(FundedReadClaim[T], Bool) -> Result[Unit, OriginalR
 
 pub fn[T] settle_funded_read_consumer(FundedReadConsumer[T], Bool) -> Result[Unit, OriginalReadIssue]
 
+pub fn[T] settle_model_holding_after_owner_ack(ModelIoAdmission[T], T, OriginalLedgerIdentity, ModelIoTicket[T], Int, Int) -> Result[Unit, ModelIoAdmissionIssue]
+
+pub fn[T] settle_model_io_after_owner_ack(ModelIoAdmission[T], T, OriginalLedgerIdentity, ModelIoTicket[T], Int, Int) -> Result[Unit, ModelIoAdmissionIssue]
+
 pub fn settle_reservation(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
 pub fn settle_shared_capacity(SharedCapacity) -> Result[Unit, LedgerIssue]
@@ -304,6 +316,41 @@ pub(all) struct LedgerUsage {
   reserved_execution_bytes : Int64
   peak_retention_bytes : Int64
 } derive(Eq, @debug.Debug)
+
+pub struct ModelIoAdmission[T] {
+  mut installation : T?
+  active_limit : Int
+  unsettled_limit : Int
+  mut active : Int
+  mut unsettled : Int
+  duties : Array[ModelIoTicket[T]]
+  mut closing : Bool
+}
+
+pub(all) enum ModelIoAdmissionIssue {
+  InvalidLimits
+  ForeignInstallation
+  ForeignTicket
+  InvalidAttempt
+  AdmissionClosing
+  ActiveExhausted
+  HoldingExhausted
+  DuplicateAttempt
+  IoAlreadyRetired
+  CleanupPending
+  TicketRetired
+  Resource(LedgerIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct ModelIoTicket[T] {
+  mut owner : ModelIoAdmission[T]?
+  mut origin : OriginalLedgerIdentity?
+  mut reservation : Reservation?
+  mut census : Holding?
+  slot : Int
+  attempt : Int
+  mut active : Bool
+}
 
 type OriginalCurrentStateComparison[T]
 
