@@ -216,10 +216,9 @@ test('reconciled reference cannot clear the existing mutation fence or issue a c
 for (const afterCommit of [false, true]) {
   test(`Unknown unlink ${afterCommit ? 'after' : 'before'} COMMIT remains unavailable after reopen`, t => {
     const f = fixture(t), exec = DatabaseSync.prototype.exec;
-    let attempted = false;
+    let commits = 0;
     DatabaseSync.prototype.exec = function(sql, ...args) {
-      if (sql === 'COMMIT' && !attempted) {
-        attempted = true;
+      if (sql === 'COMMIT' && ++commits === 3) {
         if (afterCommit) exec.call(this, sql, ...args);
         throw Error('OriginalCommitResponseUnknown');
       }

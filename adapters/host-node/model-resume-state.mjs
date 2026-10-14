@@ -2,6 +2,7 @@
 // admit identities and retry classifications; this helper never calls a provider,
 // schedules work, classifies a failure, or supplies authorization policy.
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
+import {randomUUID} from 'node:crypto';
 // Physical FFI authentication, not another journal or receipt issuer. Escaped
 // tags cannot retain the journal/Run graph: the source is held only weakly here.
 // Only the existing journal's own issuer below can register a nominal port.
@@ -92,6 +93,7 @@ export function createModelResumeTables(database) {
       checkpoint_inventory_json TEXT NOT NULL DEFAULT '',
       checkpoint_originals_json TEXT NOT NULL DEFAULT '',
       current_cut_link_json TEXT DEFAULT NULL,
+      current_cut_invalidation_json TEXT DEFAULT NULL,
       CHECK (registration_kind != 'deferred' OR checkpoint_cid IS NOT NULL),
       UNIQUE (run_id, task_index)
     ) STRICT;
@@ -182,9 +184,13 @@ export function createModelResumeState(database, {
   const q = {
     scope: database.prepare('SELECT * FROM resume_model_scopes WHERE checkpoint_cid = ?'),
     scopeByCid: database.prepare('SELECT * FROM resume_model_scopes WHERE scope_cid = ?'),
-    linkedScopes: database.prepare('SELECT * FROM resume_model_scopes WHERE current_cut_link_json IS NOT NULL ORDER BY run_id, task_index, scope_cid'),
-    linkCut: database.prepare('UPDATE resume_model_scopes SET current_cut_link_json = ? WHERE scope_cid = ? AND current_cut_link_json IS NULL'),
-    invalidateCut: database.prepare('UPDATE resume_model_scopes SET current_cut_link_json = NULL WHERE scope_cid = ? AND current_cut_link_json = ?'),
+    linkCut: database.prepare('UPDATE resume_model_scopes SET current_cut_link_json = ?, current_cut_invalidation_json = ? WHERE scope_cid = ? AND current_cut_link_json IS NULL AND current_cut_invalidation_json IS NULL'),
+    cutRecords: database.prepare(`SELECT * FROM resume_model_scopes
+      WHERE (current_cut_link_json IS NOT NULL OR current_cut_invalidation_json IS NOT NULL)
+        AND (? IS NULL OR (run_id, task_index, scope_cid) > (?, ?, ?))
+      ORDER BY run_id, task_index, scope_cid LIMIT 1`),
+    updateCutInvalidation: database.prepare('UPDATE resume_model_scopes SET current_cut_invalidation_json = ? WHERE scope_cid = ? AND current_cut_link_json = ? AND current_cut_invalidation_json = ?'),
+    invalidateCut: database.prepare('UPDATE resume_model_scopes SET current_cut_link_json = NULL, current_cut_invalidation_json = ? WHERE scope_cid = ? AND current_cut_link_json = ? AND current_cut_invalidation_json = ?'),
     slots: database.prepare('SELECT * FROM resume_model_slots WHERE scope_cid = ? ORDER BY ordinal'),
     attempts: database.prepare('SELECT * FROM resume_model_attempts WHERE scope_cid = ? ORDER BY ordinal, attempt_index'),
     cancelled: database.prepare('SELECT * FROM run_cancellation_fences WHERE run_id = ?'),
@@ -569,7 +575,8 @@ export function createModelResumeState(database, {
   // link cells only in this stored original-fact fence avoids a recursive copy
   // of its own metadata and does not turn an old observation into a new one.
   function originalCutFence(facts) {
-    return {...facts, scopes: facts.scopes.map(row => ({...row, current_cut_link_json: null}))};
+    return {...facts, scopes: facts.scopes.map(row => ({...row,
+      current_cut_link_json: null, current_cut_invalidation_json: null}))};
   }
   function cutOperation(reference) {
     alive();
@@ -602,6 +609,145 @@ export function createModelResumeState(database, {
     const token = Object.freeze({kind: 'original-model-journal-observation'});
     originalJournalObservations.set(token, facts);
     return token;
+  }
+  function cutInvalidationWire(record) {
+    const wire = JSON.stringify(record);
+    // Same bounded private envelope; duplicated link/history is not free.
+    if (Buffer.byteLength(wire) > 3 * 1024 * 1024) fail('ModelOriginalCurrentCutUnavailable');
+    return wire;
+  }
+  function cutInvalidationRecord(row) {
+    const wire = row.current_cut_invalidation_json;
+    // Historical absence never means ready/unattempted and issues no identity.
+    if (wire === null) return undefined;
+    let value;
+    const exactKeys = (object, keys) => fact(object) &&
+      Object.keys(object).length === keys.length && keys.every(key => Object.hasOwn(object, key));
+    try {
+      if (!text(wire) || Buffer.byteLength(wire) > 3 * 1024 * 1024) throw Error('InvalidPrivateEnvelope');
+      value = JSON.parse(wire);
+      if (!exactKeys(value, ['operation_id', 'identity', 'linked_cut_wire', 'request_binding', 'phase']) ||
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(value.operation_id) ||
+          !exactKeys(value.identity, scopeKeys) || !scopeValid(value.identity) ||
+          value.identity.scopeCid !== row.scope_cid || value.identity.runId !== row.run_id ||
+          !text(value.linked_cut_wire) ||
+          !['ready', 'prepared', 'attempted', 'confirmed'].includes(value.phase)) throw Error('InvalidPrivateRecord');
+      // Bind every original field to this row's already checked inventory,
+      // not just its Run/scope lookup keys. This comparison still grants nothing.
+      if (!same(value.identity, select(JSON.parse(row.inventory_json), scopeKeys))) {
+        throw Error('ForeignOriginalIdentity');
+      }
+      const linked = JSON.parse(value.linked_cut_wire);
+      if (!same(linked.identity, value.identity) || !cid(linked.resourceStateCid)) throw Error('InvalidOriginalBinding');
+      if (value.phase === 'ready') {
+        if (value.request_binding !== null) throw Error('UnexpectedRequestBinding');
+      } else if (!exactKeys(value.request_binding, ['operation_id', 'resource_state_cid']) ||
+          value.request_binding.operation_id !== value.operation_id ||
+          value.request_binding.resource_state_cid !== linked.resourceStateCid) {
+        throw Error('InvalidRequestBinding');
+      }
+      if (value.phase === 'confirmed' ? row.current_cut_link_json !== null :
+        row.current_cut_link_json !== value.linked_cut_wire) throw Error('ContradictoryOutcome');
+    } catch (error) {fail('ModelOriginalCurrentCutInvalidationCorrupt', error);}
+    return value;
+  }
+  function requireCutInvalidationLocked(operation, phase) {
+    const facts = requireCurrentCutFacts(operation, operation.after);
+    const row = q.scopeByCid.get(operation.identity.scopeCid);
+    const record = cutInvalidationRecord(row);
+    if (record === undefined || record.operation_id !== operation.operationId ||
+        record.phase !== phase || row.current_cut_invalidation_json !== operation.invalidationWire ||
+        record.linked_cut_wire !== operation.wire || !same(record.identity, operation.identity)) {
+      fail('ModelOriginalCurrentCutUnavailable');
+    }
+    return {facts, record};
+  }
+  function currentCutRequest(operation) {
+    exactCurrentCutPorts(operation);
+    const resource = verifier?.originalResourceCut;
+    if (operation.invalidationRequest === undefined || typeof resource?.invalidationCurrent !== 'function' ||
+        resource.invalidationCurrent(operation.invalidationRequest, operation.parkReceipt) !== operation.invalidationRequest) {
+      fail('ForeignModelOriginalCutInvalidationRequest');
+    }
+    // The current-request callback may have changed Resource/Store custody.
+    exactCurrentCutPorts(operation);
+  }
+  function prepareCutInvalidation(reference, invalidationRequest) {
+    const operation = cutOperation(reference);
+    if (operation.state !== 'linked') fail('ModelOriginalCurrentCutUnavailable');
+    exactCurrentCutPorts(operation);
+    const resource = verifier?.originalResourceCut;
+    if (operation.invalidationRequest !== undefined || invalidationRequest === undefined ||
+        typeof resource?.invalidationCurrent !== 'function' ||
+        resource.invalidationCurrent(invalidationRequest, operation.parkReceipt) !== invalidationRequest) {
+      fail('ForeignModelOriginalCutInvalidationRequest');
+    }
+    exactCurrentCutPorts(operation);
+    // Retain the exact accepted request before any fallible intent COMMIT.
+    // This nominal borrow is not serialized as a Resource grant or old ACK.
+    operation.invalidationRequest = invalidationRequest;
+    operation.state = 'preparing_invalidation';
+    try {
+      const result = transaction.run(() => {
+        const {record} = requireCutInvalidationLocked(operation, 'ready');
+        const wire = cutInvalidationWire({...record, request_binding: {
+          operation_id: operation.operationId, resource_state_cid: operation.savedFacts.resourceStateCid},
+        phase: 'prepared'});
+        changed(q.updateCutInvalidation.run(wire, operation.identity.scopeCid, operation.wire, operation.invalidationWire));
+        return {wire, facts: originalJournalFacts(operation.identity)};
+      });
+      operation.invalidationWire = result.wire; operation.after = result.facts;
+      operation.observation = issueOriginalObservation(result.facts);
+      operation.state = 'invalidation_prepared';
+      return reference;
+    } catch (error) {
+      operation.state = error.outcome === 'unknown' ? 'unknown' : 'failed'; throw error;
+    }
+  }
+  function markCutInvalidationAttempted(reference) {
+    const operation = cutOperation(reference);
+    if (operation.state !== 'invalidation_prepared') fail('ModelOriginalCurrentCutUnavailable');
+    currentCutRequest(operation);
+    operation.state = 'marking_invalidation';
+    try {
+      const result = transaction.run(() => {
+        const {record} = requireCutInvalidationLocked(operation, 'prepared');
+        const wire = cutInvalidationWire({...record, phase: 'attempted'});
+        changed(q.updateCutInvalidation.run(wire, operation.identity.scopeCid, operation.wire, operation.invalidationWire));
+        return {wire, facts: originalJournalFacts(operation.identity)};
+      });
+      operation.invalidationWire = result.wire; operation.after = result.facts;
+      operation.observation = issueOriginalObservation(result.facts);
+      operation.state = 'invalidation_attempted';
+      return reference;
+    } catch (error) {
+      operation.state = error.outcome === 'unknown' ? 'unknown' : 'failed'; throw error;
+    }
+  }
+  function commitCutInvalidation(reference) {
+    const operation = cutOperation(reference);
+    if (operation.state !== 'invalidation_attempted') fail('ModelOriginalCurrentCutUnavailable');
+    currentCutRequest(operation);
+    operation.state = 'invalidating';
+    try {
+      const result = transaction.run(() => {
+        const {record} = requireCutInvalidationLocked(operation, 'attempted');
+        const wire = cutInvalidationWire({...record, phase: 'confirmed'});
+        changed(q.invalidateCut.run(wire, operation.identity.scopeCid, operation.wire, operation.invalidationWire));
+        fault('invalidateOriginalModelCurrentCut');
+        return {wire, facts: originalJournalFacts(operation.identity)};
+      });
+      operation.invalidationWire = result.wire; operation.after = result.facts;
+      operation.state = 'invalidated';
+      const receipt = Object.freeze({kind: 'original-model-cut-invalidation'});
+      originalCutInvalidations.set(receipt, {operation: reference,
+        identity: operation.identity, parkReceipt: operation.parkReceipt,
+        invalidationRequest: operation.invalidationRequest, savedReceipt: operation.savedReceipt,
+        wire: operation.wire, after: result.facts});
+      return receipt;
+    } catch (error) {
+      operation.state = error.outcome === 'unknown' ? 'unknown' : 'failed'; throw error;
+    }
   }
   function currentCutCandidate(observation, {parkReceipt, savedReceipt} = {}) {
     const facts = originalJournalObservation(observation);
@@ -687,7 +833,22 @@ export function createModelResumeState(database, {
     },
   });
   function originalCutMutationFence() {
-    for (const row of q.linkedScopes.all()) {
+    // Preserve every durable record and its validation, but keep only one row
+    // in this transaction's working window. The exact keyset follows the same
+    // ordering; no persistent cursor, cleanup carrier or second queue is added.
+    let previous;
+    for (;;) {
+      const row = q.cutRecords.get(previous?.run_id ?? null,
+        previous?.run_id ?? null, previous?.task_index ?? 0, previous?.scope_cid ?? '');
+      if (row === undefined) break;
+      previous = {run_id: row.run_id, task_index: row.task_index, scope_cid: row.scope_cid};
+      // Confirmed outcome data remains, but no longer freezes legitimate
+      // subsequent Model/Run mutations. Null metadata remains legacy unknown.
+      const record = cutInvalidationRecord(row);
+      if (row.current_cut_link_json === null) {
+        if (record?.phase !== 'confirmed') fail('ModelOriginalCurrentCutInvalidationCorrupt');
+        continue;
+      }
       let link;
       try {link = JSON.parse(row.current_cut_link_json);}
       catch (error) {fail('ModelOriginalCurrentCutCorrupt', error);}
@@ -878,7 +1039,17 @@ export function createModelResumeState(database, {
         try {
           const after = transaction.run(() => {
             requireCurrentCutFacts(operation, operation.before);
-            changed(q.linkCut.run(operation.wire, operation.identity.scopeCid));
+            const row = q.scopeByCid.get(operation.identity.scopeCid);
+            if (row.current_cut_link_json !== null || row.current_cut_invalidation_json !== null) {
+              fail('ModelOriginalCurrentCutUnavailable');
+            }
+            // Mint once only for this original fresh link. A failed/Unknown
+            // transaction retains this identity; another attempt is refused.
+            operation.operationId = randomUUID();
+            operation.invalidationWire = cutInvalidationWire({operation_id: operation.operationId,
+              identity: operation.identity, linked_cut_wire: operation.wire,
+              request_binding: null, phase: 'ready'});
+            changed(q.linkCut.run(operation.wire, operation.invalidationWire, operation.identity.scopeCid));
             fault('linkOriginalModelCurrentCut');
             return originalJournalFacts(operation.identity);
           });
@@ -893,39 +1064,36 @@ export function createModelResumeState(database, {
       },
       originalModelCurrentCutObservation(reference) {
         const operation = cutOperation(reference);
-        if (operation.state !== 'linked' && operation.state !== 'reconciled') {
+        if (!['linked', 'reconciled', 'invalidation_prepared', 'invalidation_attempted'].includes(operation.state)) {
           fail('ModelOriginalCurrentCutUnavailable');
         }
         transaction.run(() => requireCurrentCutFacts(operation, operation.after));
         return operation.observation;
       },
       invalidateOriginalModelCurrentCut(reference, invalidationRequest) {
-        const operation = cutOperation(reference);
-        if (operation.state !== 'linked') fail('ModelOriginalCurrentCutUnavailable');
-        exactCurrentCutPorts(operation);
-        const resource = verifier?.originalResourceCut;
-        if (invalidationRequest === undefined || typeof resource?.invalidationCurrent !== 'function' ||
-            resource.invalidationCurrent(invalidationRequest, operation.parkReceipt) !== invalidationRequest) {
-          fail('ForeignModelOriginalCutInvalidationRequest');
-        }
-        operation.state = 'invalidating';
-        try {
-          const after = transaction.run(() => {
-            requireCurrentCutFacts(operation, operation.after);
-            changed(q.invalidateCut.run(operation.identity.scopeCid, operation.wire));
-            fault('invalidateOriginalModelCurrentCut');
-            return originalJournalFacts(operation.identity);
-          });
-          operation.state = 'invalidated';
-          const receipt = Object.freeze({kind: 'original-model-cut-invalidation'});
-          originalCutInvalidations.set(receipt, {operation: reference,
-            identity: operation.identity, parkReceipt: operation.parkReceipt,
-            invalidationRequest, savedReceipt: operation.savedReceipt, wire: operation.wire, after});
-          return receipt;
-        } catch (error) {
-          operation.state = error.outcome === 'unknown' ? 'unknown' : 'failed';
-          throw error;
-        }
+        // Compatibility entrance: each phase must actually confirm before
+        // the next. A throw/Unknown stops this original operation immediately.
+        prepareCutInvalidation(reference, invalidationRequest);
+        markCutInvalidationAttempted(reference);
+        return commitCutInvalidation(reference);
+      },
+      prepareOriginalModelCurrentCutInvalidation: prepareCutInvalidation,
+      markOriginalModelCurrentCutInvalidationAttempted: markCutInvalidationAttempted,
+      commitOriginalModelCurrentCutInvalidation: commitCutInvalidation,
+      originalModelCurrentCutOperationId(reference) {
+        return cutOperation(reference).operationId;
+      },
+      lookupOriginalModelCutInvalidation(observation, operationId) {
+        const facts = originalJournalObservation(observation);
+        return transaction.run(() => {
+          requireCurrentCutFacts({identity: facts.identity}, facts);
+          const record = cutInvalidationRecord(q.scopeByCid.get(facts.identity.scopeCid));
+          if (record === undefined) return Object.freeze({kind: 'legacy_unknown'});
+          if (record.operation_id !== operationId) fail('ModelOriginalCurrentCutOperationIdentityMismatch');
+          // Pure data only, including confirmed/null. No operation/ACK/Resource
+          // issuer is reconstructed and prepared/attempted never continues.
+          return freeze(copy({kind: 'observed', record}));
+        });
       },
       originalModelCurrentCutInvalidationCurrent(receipt, reference, parkReceipt, invalidationRequest) {
         return originalCutInvalidationCurrent(receipt, reference, parkReceipt, invalidationRequest);

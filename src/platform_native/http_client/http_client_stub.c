@@ -73,6 +73,10 @@ typedef struct {
   void *dynamic_library;
   char *error;
   int32_t diagnostic_ceiling;
+  bool load_failed;
+  bool init_attempted;
+  bool load_close_unknown;
+  int32_t test_path_copy_failure_at;
   actql_curl_global_init_fn global_init;
   actql_curl_version_fn version;
   actql_curl_easy_init_fn easy_init;
@@ -104,6 +108,10 @@ typedef struct {
   atomic_bool cancelled;
   bool closed;
   bool capacity_exceeded;
+  bool constructor_failed;
+  bool constructor_metadata_retired;
+  int32_t test_retire_failures;
+  int32_t test_retire_reply_losses;
 } actql_native_http_client;
 
 static bool actql_same_file_generation(
@@ -201,7 +209,10 @@ static bool actql_load_symbol(
 
 static void actql_native_http_library_finalize(void *value) {
   actql_native_http_library *library = value;
-  if (library->dynamic_library != NULL) {
+  if (library->dynamic_library != NULL && !library->load_close_unknown &&
+      !(library->load_failed && library->init_attempted)) {
+    // Failed-load custody never repeats an unconfirmed unload. A failed
+    // global init has no proven thread/runtime retirement port here.
     dlclose(library->dynamic_library);
     library->dynamic_library = NULL;
   }
@@ -313,10 +324,11 @@ static bool actql_option(
   return false;
 }
 
-void *actql_native_http_load_library(
+static void *actql_native_http_load_library_impl(
   moonbit_bytes_t path,
   int32_t length,
-  int32_t diagnostic_ceiling
+  int32_t diagnostic_ceiling,
+  bool retain_failed
 ) {
   actql_native_http_library *library = moonbit_make_external_object(
     actql_native_http_library_finalize,
@@ -324,6 +336,7 @@ void *actql_native_http_load_library(
   );
   memset(library, 0, sizeof(*library));
   library->diagnostic_ceiling = diagnostic_ceiling;
+  library->load_failed = true;
   char *path_text = actql_copy_text(path, length);
   if (path_text == NULL) {
     actql_replace_error(&library->error, library->diagnostic_ceiling, "HTTP library path is invalid");
@@ -345,23 +358,74 @@ void *actql_native_http_load_library(
       !ACTQL_LOAD(library, easy_strerror, "curl_easy_strerror") ||
       !ACTQL_LOAD(library, slist_append, "curl_slist_append") ||
       !ACTQL_LOAD(library, slist_free_all, "curl_slist_free_all")) {
-    dlclose(library->dynamic_library);
-    library->dynamic_library = NULL;
+    if (!retain_failed) {
+      // Legacy issue-only loader retains its original cleanup behavior.
+      dlclose(library->dynamic_library);
+      library->dynamic_library = NULL;
+    }
     return library;
   }
+  library->init_attempted = true;
   CURLcode code = library->global_init(ACTQL_CURL_GLOBAL_ALL);
   if (code != ACTQL_CURLE_OK) {
     actql_replace_error(&library->error, library->diagnostic_ceiling, library->easy_strerror(code));
-    dlclose(library->dynamic_library);
-    library->dynamic_library = NULL;
+    if (!retain_failed) {
+      dlclose(library->dynamic_library);
+      library->dynamic_library = NULL;
+    }
+  } else {
+    library->load_failed = false;
   }
   return library;
+}
+
+
+void *actql_native_http_load_library(
+  moonbit_bytes_t path, int32_t length, int32_t diagnostic_ceiling
+) {
+  return actql_native_http_load_library_impl(path, length, diagnostic_ceiling, false);
+}
+
+void *actql_native_http_load_library_with_custody(
+  moonbit_bytes_t path, int32_t length, int32_t diagnostic_ceiling
+) {
+  return actql_native_http_load_library_impl(path, length, diagnostic_ceiling, true);
+}
+
+// Only a rejected load, before successful runtime admission. This does not
+// close a usable Library or infer resolver-thread/global-init retirement.
+int32_t actql_native_http_retire_failed_library(actql_native_http_library *library) {
+  if (library == NULL || !library->load_failed) return -1;
+  if (library->load_close_unknown) return -2;
+  if (library->dynamic_library != NULL) {
+    if (library->init_attempted) return -2;
+    if (dlclose(library->dynamic_library) != 0) {
+      library->load_close_unknown = true;
+      return -2;
+    }
+    library->dynamic_library = NULL;
+  }
+  free(library->error);
+  library->error = NULL;
+  return 0;
+}
+
+// Independent fault setup: actual unload, missing observation. Future calls
+// must retain pending instead of reusing/reclosing the consumed handle.
+int32_t actql_native_http_test_lose_failed_library_close(
+  actql_native_http_library *library
+) {
+  if (library == NULL || !library->load_failed || library->init_attempted ||
+      library->dynamic_library == NULL || library->load_close_unknown) return -1;
+  if (dlclose(library->dynamic_library) != 0) return -1;
+  library->load_close_unknown = true;
+  return 0;
 }
 
 int32_t actql_native_http_library_ready(
   actql_native_http_library *library
 ) {
-  return library != NULL && library->dynamic_library != NULL;
+  return library != NULL && library->dynamic_library != NULL && !library->load_failed;
 }
 
 moonbit_bytes_t actql_native_http_library_error(actql_native_http_library *library) {
@@ -372,7 +436,7 @@ moonbit_bytes_t actql_native_http_library_error(actql_native_http_library *libra
 moonbit_bytes_t actql_native_http_library_version(
   actql_native_http_library *library
 ) {
-  if (library == NULL || library->dynamic_library == NULL) {
+  if (library == NULL || library->dynamic_library == NULL || library->load_failed) {
     return actql_copy_message("");
   }
   return actql_copy_message(library->version());
@@ -530,6 +594,27 @@ static void actql_forget_authorization(char *authorization, size_t length) {
   free(authorization);
 }
 
+static void actql_set_client_constructor_error(
+  actql_native_http_client *client, const char *message
+) {
+  client->constructor_failed = true;
+  actql_set_client_error(client, message);
+}
+
+static char *actql_copy_constructor_path(
+  actql_native_http_library *library, moonbit_bytes_t bytes, int32_t length
+) {
+  if (library != NULL && library->test_path_copy_failure_at > 0 &&
+      --library->test_path_copy_failure_at == 0) return NULL;
+  return actql_copy_text(bytes, length);
+}
+
+void actql_native_http_test_fail_constructor_path(
+  actql_native_http_library *library, int32_t occurrence
+) {
+  if (library != NULL) library->test_path_copy_failure_at = occurrence;
+}
+
 void *actql_native_http_create_client(
   actql_native_http_library *library,
   moonbit_bytes_t ca_path,
@@ -554,21 +639,21 @@ void *actql_native_http_create_client(
   client->max_response_bytes = max_response_bytes;
   client->connect_timeout_ms = connect_timeout_ms;
   client->operation_timeout_ms = operation_timeout_ms;
-  if (library == NULL || library->dynamic_library == NULL ||
+  if (library == NULL || library->dynamic_library == NULL || library->load_failed ||
       max_response_bytes < 0 || max_response_bytes > INT32_MAX ||
       connect_timeout_ms <= 0 || operation_timeout_ms < connect_timeout_ms) {
-    actql_set_client_error(client, "invalid HTTP client configuration");
+    actql_set_client_constructor_error(client, "invalid HTTP client configuration");
     return client;
   }
-  client->ca_path = actql_copy_text(ca_path, ca_path_length);
-  client->certificate_path = actql_copy_text(
-    certificate_path,
+  client->ca_path = actql_copy_constructor_path(library, ca_path, ca_path_length);
+  client->certificate_path = actql_copy_constructor_path(
+    library, certificate_path,
     certificate_path_length
   );
-  client->key_path = actql_copy_text(key_path, key_path_length);
+  client->key_path = actql_copy_constructor_path(library, key_path, key_path_length);
   if (client->ca_path == NULL || client->certificate_path == NULL ||
       client->key_path == NULL) {
-    actql_set_client_error(client, "HTTP credential path allocation failed");
+    actql_set_client_constructor_error(client, "HTTP credential path allocation failed");
   }
   return client;
 }
@@ -603,37 +688,38 @@ void *actql_native_http_create_authenticated_client(
   client->operation_timeout_ms = operation_timeout_ms;
   bool mutual = certificate_path_length > 0 || key_path_length > 0;
   bool bearer = bearer_path_length > 0;
-  if (library == NULL || library->dynamic_library == NULL ||
+  if (library == NULL || library->dynamic_library == NULL || library->load_failed ||
       max_response_bytes < 0 || max_response_bytes > INT32_MAX ||
       connect_timeout_ms <= 0 || operation_timeout_ms < connect_timeout_ms ||
       (!mutual && !bearer) ||
       (mutual && (certificate_path_length <= 0 || key_path_length <= 0))) {
-    actql_set_client_error(client, "invalid HTTP client configuration");
+    actql_set_client_constructor_error(client, "invalid HTTP client configuration");
     return client;
   }
-  client->ca_path = actql_copy_text(ca_path, ca_path_length);
+  client->ca_path = actql_copy_constructor_path(library, ca_path, ca_path_length);
   if (mutual) {
-    client->certificate_path = actql_copy_text(
-      certificate_path,
+    client->certificate_path = actql_copy_constructor_path(
+      library, certificate_path,
       certificate_path_length
     );
-    client->key_path = actql_copy_text(key_path, key_path_length);
+    client->key_path = actql_copy_constructor_path(library, key_path, key_path_length);
   }
   if (bearer) {
-    client->bearer_path = actql_copy_text(bearer_path, bearer_path_length);
+    client->bearer_path = actql_copy_constructor_path(library, bearer_path, bearer_path_length);
   }
   if (client->ca_path == NULL ||
       (mutual && (client->certificate_path == NULL ||
         client->key_path == NULL)) ||
       (bearer && client->bearer_path == NULL)) {
-    actql_set_client_error(client, "HTTP credential path allocation failed");
+    actql_set_client_constructor_error(client, "HTTP credential path allocation failed");
   }
   return client;
 }
 
 int32_t actql_native_http_client_ready(actql_native_http_client *client) {
   return client != NULL && client->library != NULL &&
-    client->library->dynamic_library != NULL && !client->error_present &&
+    client->library->dynamic_library != NULL && !client->library->load_failed &&
+    !client->error_present &&
     !client->closed;
 }
 
@@ -1116,4 +1202,57 @@ int32_t actql_native_http_client_close(actql_native_http_client *client) {
   atomic_store_explicit(&client->cancelled, true, memory_order_relaxed);
   actql_clear_response(client);
   return true;
+}
+
+
+// A rejected constructor cannot have started a request. Retire its actual
+// buffers on the same Client. Keep the Library reference through caller/alias
+// lifetime: this is not global libcurl or dynamic-module retirement evidence.
+int32_t actql_native_http_retire_failed_client(
+  actql_native_http_library *library, actql_native_http_client *client
+) {
+  if (client == NULL || client->library != library || !client->constructor_failed)
+    return -1;
+  client->closed = true;
+  atomic_store_explicit(&client->cancelled, true, memory_order_relaxed);
+  if (client->constructor_metadata_retired) return 0;
+  if (client->test_retire_failures > 0) {
+    client->test_retire_failures -= 1;
+    return -1;
+  }
+  free(client->ca_path);
+  free(client->certificate_path);
+  free(client->key_path);
+  free(client->bearer_path);
+  free(client->response);
+  free(client->error);
+  client->ca_path = NULL;
+  client->certificate_path = NULL;
+  client->key_path = NULL;
+  client->bearer_path = NULL;
+  client->response = NULL;
+  client->response_length = 0;
+  client->response_capacity = 0;
+  client->error = NULL;
+  client->constructor_metadata_retired = true;
+  if (client->test_retire_reply_losses > 0) {
+    client->test_retire_reply_losses -= 1;
+    return -2;
+  }
+  return 0;
+}
+
+void actql_native_http_test_fail_constructor_retirement(
+  actql_native_http_client *client, int32_t failures, int32_t reply_losses
+) {
+  if (client != NULL && client->constructor_failed) {
+    client->test_retire_failures = failures;
+    client->test_retire_reply_losses = reply_losses;
+  }
+}
+
+int32_t actql_native_http_test_constructor_path_count(actql_native_http_client *client) {
+  if (client == NULL) return -1;
+  return (client->ca_path != NULL) + (client->certificate_path != NULL) +
+    (client->key_path != NULL) + (client->bearer_path != NULL);
 }
