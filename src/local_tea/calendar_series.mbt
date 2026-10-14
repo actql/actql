@@ -15,6 +15,7 @@ priv struct CalendarSeriesState {
   port : @execution.TrustedOutputPort[Unit]
   start_contract : @contract.Contract
   end_contract : @contract.Contract
+  start_first : Bool
   mut control_work_remaining : Int
   mut phase : CalendarSeriesPhase
 }
@@ -113,8 +114,12 @@ fn calendar_series_step(
           state.output is Some(output) else {
           return @bounded.Failed(InvalidCalendarTimestamp, progress, used)
         }
-        match
-          @execution.append_admitted_output(output, [start_value, end_value]) {
+        let supplied = if state.start_first {
+          [start_value, end_value]
+        } else {
+          [end_value, start_value]
+        }
+        match @execution.append_admitted_output(output, supplied) {
           Err(issue) =>
             return @bounded.Failed(CalendarOutput(issue), progress, used)
           Ok(_) => {
@@ -201,10 +206,8 @@ pub fn start_calendar_series(
     )
     is Some(schema) &&
     @schema.field_count(schema) == 2 &&
-    @schema.field_at(schema, 0) is Some(start_field) &&
-    @schema.reference_name(start_field.name) == "start" &&
-    @schema.field_at(schema, 1) is Some(end_field) &&
-    @schema.reference_name(end_field.name) == "end" &&
+    @schema.lookup_reference(schema, "start") is Some(start_field) &&
+    @schema.lookup_reference(schema, "end") is Some(end_field) &&
     @lower.calendar_row_bound(series) is Some(row_bound) &&
     row_bound <= max_rows &&
     @lower.calendar_start(series) is Some(start_text) &&
@@ -271,6 +274,7 @@ pub fn start_calendar_series(
     port,
     start_contract: start_field.contract,
     end_contract: end_field.contract,
+    start_first: @schema.field_reference_name_at(schema, 0) == Some("start"),
     control_work_remaining: control_work_limit,
     phase: ResolveCalendarInterval,
   }

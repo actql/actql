@@ -126,12 +126,12 @@ test "Calendar bounded series preserves full intervals and logical work across q
     assert_eq(@execution.completed_row_count(output), 3)
     for row, (start, end) in expected {
       assert_true(
-        @execution.completed_cell(output, row, 0)
+        @execution.completed_cell(output, row, 1)
         is Some(Captured(@value.Timestamp(actual))) &&
         actual == start,
       )
       assert_true(
-        @execution.completed_cell(output, row, 1)
+        @execution.completed_cell(output, row, 0)
         is Some(Captured(@value.Timestamp(actual))) &&
         actual == end,
       )
