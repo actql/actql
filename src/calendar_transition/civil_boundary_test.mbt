@@ -150,9 +150,12 @@ test "nonmonotone local inverses still choose UTC adjacent boundaries" {
   let table = admit(
     -62135596800000L,
     253402300800000L,
-    864000,
-    [{ at_ms: 1728000000L, offset_seconds: -950400, }],
-    max_transitions=1,
+    0,
+    [
+      { at_ms: 0L, offset_seconds: 864000, },
+      { at_ms: 1728000000L, offset_seconds: -950400, },
+    ],
+    max_transitions=2,
   ).unwrap()
   // Civil day 9 resolves to UTC day 20; day 10 resolves to UTC day 0.
   // The latest boundary before UTC day 20.5 is day 20, not day 19.
