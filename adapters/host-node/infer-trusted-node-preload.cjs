@@ -7,7 +7,8 @@ const {Buffer} = require('node:buffer');
 const {Readable} = require('node:stream');
 const originalProcess = require('node:process');
 const associations = new WeakMap();
-let originalHost;
+const generations = new WeakSet();
+let originalSupplier;
 
 const unavailable = () => {
   throw Object.assign(new TypeError('InferTrustedStartupUnavailable'),
@@ -86,8 +87,7 @@ function current(view, host, generation) {
   currentStartup();
   const held = associations.get(view);
   if (held === undefined || held.retired || held.host !== host ||
-      held.generation !== generation || originalHost === undefined ||
-      originalHost.retired || held.original !== originalHost) unavailable();
+      held.generation !== generation || held.original.retired) unavailable();
 }
 
 module.exports = Object.freeze({
@@ -96,22 +96,27 @@ module.exports = Object.freeze({
     if (startup === undefined) return undefined;
     currentStartup();
     if (originals.runtime !== originalProcess || associations.has(view)) changed();
-    if (originalHost !== undefined) unavailable();
-    originalHost = {host: originals.host, generation: originals.generation,
+    if (originalSupplier !== undefined && originalSupplier !== originals.supplier) changed();
+    if (generations.has(originals.generation)) unavailable();
+    originalSupplier ??= originals.supplier;
+    const original = {host: originals.host, generation: originals.generation,
       supplier: originals.supplier, installation: originals.installation,
       retired: false};
+    generations.add(originals.generation);
     associations.set(view, {host: originals.host, generation: originals.generation,
-      original: originalHost, root: true, retired: false});
+      original, root: true, retired: false});
     return view;
   },
   borrowScope(originalView, scopeView, host, generation) {
     current(originalView, host, generation);
     if (associations.has(scopeView)) changed();
-    associations.set(scopeView, {host, generation, original: originalHost, retired: false});
+    const held = associations.get(originalView);
+    if (held.root !== true) unavailable();
+    associations.set(scopeView, {host, generation, original: held.original, retired: false});
   },
   check(view, originals) {
     current(view, originals.host, originals.generation);
-    if (originalHost.supplier !== originals.supplier ||
+    if (associations.get(view).original.supplier !== originals.supplier ||
         originals.runtime !== originalProcess) changed();
   },
   retire(view, host, generation) {
@@ -119,13 +124,12 @@ module.exports = Object.freeze({
     if (held === undefined || held.host !== host || held.generation !== generation) unavailable();
     held.retired = true;
     associations.delete(view);
-    if (held.original === originalHost && originalHost.host === host &&
-        originalHost.generation === generation && held.root === true) {
-      originalHost.retired = true;
-      originalHost.host = undefined;
-      originalHost.generation = undefined;
-      originalHost.supplier = undefined;
-      originalHost.installation = undefined;
+    if (held.root === true) {
+      held.original.retired = true;
+      held.original.host = undefined;
+      held.original.generation = undefined;
+      held.original.supplier = undefined;
+      held.original.installation = undefined;
     }
     // Only back-reference retirement; no native/process/physical-stop ACK.
   },

@@ -30,7 +30,7 @@ if (mode === 'absent') {
       'InferTrustedRuntimeOriginalChanged');
     const foreign = source();
     rejects(() => associateInferTrustedStartupView(issueInferTrustedRuntimeView(foreign), foreign),
-      'InferTrustedStartupUnavailable');
+      'InferTrustedStartupChanged');
     const scoped = {...actual, installation: {}, transport() {}};
     const borrow = issueInferTrustedRuntimeView(scoped);
     borrowInferTrustedStartupView(view, borrow, actual, scoped);
@@ -46,8 +46,16 @@ if (mode === 'absent') {
     forgetInferTrustedStartupView(view, actual.host, actual.generation);
     forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
     rejects(() => requireInferTrustedStartupView(view, actual), 'InferTrustedRuntimeViewRetired');
-    rejects(() => associateInferTrustedStartupView(issueInferTrustedRuntimeView(foreign), foreign),
+    rejects(() => associateInferTrustedStartupView(issueInferTrustedRuntimeView(actual), actual),
       'InferTrustedStartupUnavailable');
+    // The same managed process/module responsibility can cover a NEW actual
+    // Host generation. Forgetting an old view does not retire that baseline.
+    const next = {...actual, host: {}, generation: {}, installation: {}};
+    const nextView = issueInferTrustedRuntimeView(next);
+    associateInferTrustedStartupView(nextView, next);
+    requireInferTrustedStartupView(nextView, next);
+    forgetInferTrustedStartupView(nextView, next.host, next.generation);
+    forgetInferTrustedRuntimeView(nextView, next.host, next.generation);
   } else if (mode === 'mutation') {
     assert.throws(() => {Buffer.poolSize = 16384;}, TypeError);
     assert.throws(() => {Buffer.concat = () => Buffer.alloc(1);}, TypeError);
