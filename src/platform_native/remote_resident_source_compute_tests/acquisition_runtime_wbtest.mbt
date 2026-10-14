@@ -193,7 +193,7 @@ fn acquisition_runtime_case(
     resident_provider_environment()
   } else {
     (
-      resident_effect_source_environment, "sha256:feb4443bd80a5e95c14e195113219eeb2e24bdd12e424d1ba00c1295f5c53554",
+      resident_effect_source_environment, "sha256:c110639082170812464555ae57368f5fc5a8ffa2edb159b2433dd3fc36f56227",
       resident_native_effect_document,
     )
   }
@@ -459,7 +459,62 @@ fn acquisition_runtime_case(
       assert_true(bundles.close().unwrap())
       return
     }
-    let owned = outcome.unwrap()
+    let owned = match outcome {
+      Ok(value) => value
+      Err(failure) => {
+        // Preserve the original failure/custody classification in a failed
+        // fixture instead of aborting before the typed boundary is observable.
+        // This diagnostic neither retries the attempt nor confirms cleanup.
+        let boundary = match failure.issue {
+          @resident.Dispatch(@resident.Materials(_)) => "dispatch-materials"
+          @resident.Dispatch(@resident.Dispatch(_)) => "dispatch-binding"
+          @resident.Dispatch(@resident.Source(_)) => "dispatch-source"
+          @resident.Dispatch(@resident.Refused(_)) => "dispatch-refused"
+          @resident.Host(@resident.Runtime(_)) => "runtime"
+          @resident.Host(@resident.Source(_)) => "host-source"
+          @resident.Host(_) => "host"
+          @resident.Compute(@resident.Source(@resident.Acquisition(issue))) =>
+            match issue {
+              @local.InvalidSource => "compute-source-invalid-source"
+              @local.InvalidContracts => "compute-source-contracts"
+              @local.Preparation => "compute-source-sql-preparation"
+              @local.Registration => "compute-source-registration"
+              @local.Candidate => "compute-source-candidate"
+              @local.Selection => "compute-source-selection"
+            }
+          @resident.Compute(@resident.Source(@resident.Query(_))) =>
+            "compute-source-query"
+          @resident.Compute(@resident.Source(@resident.Binding(_))) =>
+            "compute-source-binding"
+          @resident.Compute(@resident.Source(@resident.ForeignInput)) =>
+            "compute-source-foreign-input"
+          @resident.Compute(@resident.Source(_)) => "compute-source"
+          @resident.Compute(@resident.UnsupportedGraph) => "compute-graph"
+          @resident.Compute(@resident.Capacity(_)) => "compute-capacity"
+          @resident.Compute(@resident.Acquisition(_)) => "compute-acquisition"
+          @resident.Compute(@resident.Execution(_)) => "compute-execution"
+          @resident.Compute(@resident.ForeignEffectMaterials) =>
+            "compute-original-materials"
+          @resident.Compute(@resident.EffectRun(_)) => "compute-effect-run"
+          @resident.Compute(@resident.EffectInput(_)) => "compute-effect-input"
+          @resident.Compute(_) => "compute-post-acquisition"
+          @resident.NotStartable(_) => "not-startable"
+        }
+        println(
+          "original-effect-producer-failure: " +
+          boundary +
+          "; pending-runtime=" +
+          (failure.pending_runtime is Some(_)).to_string() +
+          "; cleanup-issue=" +
+          (failure.cleanup_issue is Some(_)).to_string() +
+          "; acquisitions=" +
+          acquisitions.val.to_string() +
+          "; captures=" +
+          captures.val.to_string(),
+        )
+        fail("Original Effect producer failed at " + boundary)
+      }
+    }
     let capture_materials = owned.materials_for_capture(journal).unwrap()
     if completion_free {
       assert_eq(capture_materials.request, effect_pair.unwrap().0.request)
