@@ -85,9 +85,14 @@ fn nearest_complete_relation_roles(
     // Common could not complete a sole vector role. This is missing or
     // ambiguous authored input, not an unavailable execution implementation.
     // Keep the existing implicit numeric/composite identity gap separate.
-    Err({ kind: MissingNearestRole(role), .. })
-      if role == "candidate_vector" || role == "query_vector" =>
-      raise Abort(InvalidQuery)
+    Err({ kind: MissingNearestRole(role), .. }) =>
+      raise Abort(
+        if role == "candidate_vector" || role == "query_vector" {
+          InvalidQuery
+        } else {
+          UnsupportedNearest
+        },
+      )
     Err(_) => raise Abort(UnsupportedNearest)
   }
   budget.spend(
