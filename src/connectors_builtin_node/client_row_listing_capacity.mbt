@@ -14,6 +14,19 @@ pub fn client_program_row_source_listing_report_capacity(
 }
 
 ///|
+// Existing capture planners receive the same bound supplementary declaration,
+// not an old base-only amount which omits the selected report debt.
+#export_name("clientProgramInstalledListingRowCaptureCapacity")
+pub fn client_program_installed_listing_row_capture_capacity(
+  acquisition : @client_row_source_host.RowAcquisition,
+  declaration : @execution.ExecutionCapacity?,
+) -> @client_local_host.ClientInstalledCaptureCapacity? {
+  @client_local_host.installed_listing_row_capture_capacity(
+    acquisition, declaration,
+  )
+}
+
+///|
 // A selected Node installation forwards its original opaque acquisition and
 // declaration to the same RowRun/Source Ledger. No second allowance or Owner.
 #export_name("clientProgramRowSourceStartListingAccounted")

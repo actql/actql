@@ -1787,6 +1787,8 @@ pub fn client_program_row_source_issue_source_evidence(@client_row_source_host.R
 
 pub fn client_program_row_source_listing_complete(@client_row_source_host.RowRun) -> Bool
 
+pub fn client_program_row_source_listing_report_capacity(Int64, Int64) -> @execution_relation.ExecutionCapacity?
+
 pub fn client_program_row_source_original_read(@client_row_source_host.RowSourceCapture) -> @execution_relation.SuppliedRelationRead?
 
 pub fn client_program_row_source_prepare_acquisition(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement, String, String, @capacity_policy.Policy?) -> Result[@client_row_source_host.RowAcquisition, @client_row_source_host.RowHostIssue]
@@ -1804,6 +1806,8 @@ pub fn client_program_row_source_retain_captured_task(@client_row_source_host.Ro
 pub fn client_program_row_source_start(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_start_accounted(@client_row_source_host.RowAcquisition, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
+
+pub fn client_program_row_source_start_listing_accounted(@client_row_source_host.RowAcquisition, @execution_relation.ExecutionCapacity?, String, (@client_row_source_host.RowAttempt) -> Bool, @physical_resources.Ledger, Int64, Int64) -> Result[@client_row_source_host.RowRun, @client_row_source_host.RowHostIssue]
 
 pub fn client_program_row_source_target(@client_row_source_host.RowDeclaration, @query_planning.QueryRequirement) -> Result[Array[String], @client_row_source_host.RowHostIssue]
 

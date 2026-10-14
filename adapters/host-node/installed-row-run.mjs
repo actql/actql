@@ -13,6 +13,9 @@ export function startInstalledRowRun({moon, acquisition, nonce, ledger,
   if (reportCapacity !== undefined) {
     if (keyed) fail('InstalledListingSourceProgramMismatch');
     if (ledger === undefined) fail('InstalledListingSourceLedgerRequired');
+    if (typeof moon.clientProgramRowSourceStartListingAccounted !== 'function') {
+      fail('InstalledListingSourceUnavailable');
+    }
   }
   const settled = new Set();
   let transportStopped = false;

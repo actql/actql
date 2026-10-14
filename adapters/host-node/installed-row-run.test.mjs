@@ -212,6 +212,19 @@ test('listing report requires the original Ledger and does not enter the keyed o
   assert.equal(starts, 0);
 });
 
+test('selected listing refuses a runtime without the report consumer before starting any RowRun', () => {
+  let starts = 0;
+  const ordinary = () => { starts++; };
+  assert.throws(() => startInstalledRowRun({moon: {
+    clientProgramRowSourceStart: ordinary,
+    clientProgramRowSourceStartAccounted: ordinary},
+  acquisition: token('original-acquisition'), nonce: 'original', ledger: token('ledger'),
+  capacity: {transferBytes: 1n, executionBytes: 1n,
+    listingReport: token('original-report-declaration')}}),
+  {code: 'InstalledListingSourceUnavailable'});
+  assert.equal(starts, 0);
+});
+
 for (const accounted of [false, true]) {
   for (const effectful of [false, true]) {
     for (const task of [0, 1]) {
