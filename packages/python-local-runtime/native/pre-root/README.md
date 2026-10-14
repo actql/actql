@@ -326,6 +326,12 @@ source/build-input correspondence before and after Cargo, then package those
 same bytes next to the resulting Wasmtime cdylib. This directory is an internal
 producer input, never an installed user option or a runtime fallback.
 
+The owned-capacity cdylib uses `@rpath/_libwasmtime.dylib` as its Mach-O
+install name, matching the private binding's existing `darwin-aarch64` layout.
+The producer must inspect the actual linked identity; a build-directory path
+is not a portable installed identity. This does not establish a deployment
+target or funding for the provider's independent allocation domains.
+
 The original Native component contains the one C allocator/TLS plus image and
 child-record implementation. Rust exports `actql_owned_*` forwarders to that
 provider. Dependent-symbol resolution must be independently exercised on the
