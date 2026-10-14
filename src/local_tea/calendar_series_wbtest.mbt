@@ -124,6 +124,10 @@ test "Calendar bounded series preserves full intervals and logical work across q
     }
     let output = completed.unwrap()
     assert_eq(@execution.completed_row_count(output), 3)
+    // The shared physical Schema uses canonical name order. Authored Named
+    // Result order remains a separate existing projection, not these slots.
+    assert_eq(@execution.completed_column_name(output, 0), Some("end"))
+    assert_eq(@execution.completed_column_name(output, 1), Some("start"))
     for row, (start, end) in expected {
       assert_true(
         @execution.completed_cell(output, row, 1)
@@ -247,4 +251,53 @@ test "Calendar cancellation retains the original output handle for sliced reclam
     advance_calendar_series(active, 1)
     is Err(CalendarExecution(@bounded.Terminal)),
   )
+}
+
+///|
+test "Calendar bounded value admission retains exact and one short work limits" {
+  let generated = calendar_kernel_generated(
+    "2000-01-01T00:00:00.000Z", "2000-01-03T00:00:00.000Z",
+  )
+  // Original value-weight law: one row node, eight field-name UTF8 bytes and
+  // two timestamp values of one node plus 24 bytes each = 59 per row.
+  // This is independent of cursor/control work and is not a capacity estimate.
+  for work in [118, 117] {
+    let active = start_calendar_series(
+      @bounded.control(),
+      generated,
+      0,
+      4,
+      { ..calendar_kernel_values(), max_work: work, },
+      1000,
+      1000,
+      control_work_limit=Some(10000),
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if !terminal {
+        match advance_calendar_series(active, 7).unwrap() {
+          CalendarContinue(_) => ()
+          CalendarComplete(output, ..) => {
+            assert_eq(work, 118)
+            assert_eq(@execution.completed_row_count(output), 2)
+            terminal = true
+          }
+          CalendarFailed(CalendarOutput(CaptureLimit), ..) => {
+            assert_eq(work, 117)
+            terminal = true
+          }
+          _ => fail("the original value budget must classify the first failure")
+        }
+      }
+    }
+    assert_true(terminal)
+    let mut cleaned = false
+    for _ in 0..<10 {
+      if !cleaned {
+        cleaned = cleanup_calendar_series(active).unwrap()
+      }
+    }
+    assert_true(cleaned)
+    assert_false(calendar_series_cleanup_pending(active))
+  }
 }
