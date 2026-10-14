@@ -29,6 +29,9 @@ pub fn Journal::ensure_output_report_capacity(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let size = match
     @remote.remote_output_report_custody_preflight_bytes(
       output, payload, transfer,
@@ -52,6 +55,9 @@ pub fn Journal::retain_output_report(
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let request = @remote.remote_output_report_custody_dispatch(custody)
   match @remote.prepare_dispatch_acceptance(self.control, request) {
@@ -114,6 +120,9 @@ pub fn Journal::output_report(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   let custody = match self.report_custody(key) {
     Ok(value) => value
     Err(issue) => return Err(issue)
@@ -157,6 +166,9 @@ pub fn Journal::output_report_after(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   match self.database.scan_after("site_output_report", after) {
     Ok(entry) =>
       self
@@ -177,6 +189,9 @@ pub fn Journal::record_output_report_reply(
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   match self.begin_mutation(true) {
     Ok(_) => ()
@@ -262,6 +277,9 @@ pub fn Journal::retry_output_report(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   match self.begin_mutation(true) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -327,6 +345,9 @@ pub fn Journal::reserved_output(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   match @remote.prepare_dispatch_acceptance(self.control, request) {
     Ok(_) => ()
     Err(issue) => return Err(Protocol(issue))
@@ -372,6 +393,9 @@ pub fn Journal::reserve_output_report(
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let request = @remote.remote_poll_output_request(output)
   match @remote.prepare_dispatch_acceptance(self.control, request) {

@@ -12,6 +12,9 @@ pub fn Journal::effect_checkpoint_report(
   if self.closed {
     return Err(Closed)
   }
+  if self.retiring {
+    return Err(CleanupPending)
+  }
   match self.require(request) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
@@ -54,6 +57,9 @@ pub fn Journal::retain_effect_checkpoint_report(
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   let request = @remote.remote_effect_checkpoint_report_dispatch(report)
   match @remote.prepare_dispatch_acceptance(self.control, request) {
@@ -127,6 +133,9 @@ pub fn Journal::record_effect_checkpoint_reply(
 ) -> Result[Unit, NativeRemoteJournalIssue] {
   if self.closed {
     return Err(Closed)
+  }
+  if self.retiring {
+    return Err(CleanupPending)
   }
   match self.begin_mutation(true) {
     Ok(_) => ()

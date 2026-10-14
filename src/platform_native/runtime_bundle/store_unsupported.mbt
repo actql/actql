@@ -237,6 +237,13 @@ pub fn NativeRuntimeBundleStore::close(
 }
 
 ///|
+pub fn NativeRuntimeBundleStore::close_checked(
+  _self : NativeRuntimeBundleStore,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 #warnings("-unused_value")
 fn retain_native_store_imports() -> Unit {
   ignore(@sha.hasher())
