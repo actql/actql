@@ -9,7 +9,7 @@ import {sourcefreeSuiteRequiresReread} from '../release-sourcefree-query-cases.m
 export async function sourcefreeFixtureAuthorization(mode, suite, {reopen = false,
   directory = process.cwd()} = {}) {
   assert.ok(['local', 'https'].includes(mode));
-  assert.ok(['in-unnest', 'sequence', 'time-series', 'temporal-join'].includes(suite));
+  assert.ok(['in-unnest', 'sequence', 'time-series', 'temporal-join', 'aql-format'].includes(suite));
   const retained = sourcefreeSuiteRequiresReread(suite);
   const path = join(directory, `sourcefree-${suite}-authorization-${mode}.json`);
   if (reopen) {

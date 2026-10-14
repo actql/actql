@@ -281,9 +281,11 @@ process.on('message', async message => {
     directory = evidence.directory;
     summary = {...summary, worktree: config.root, heavy: config.heavy,
       timeoutSeconds: config.timeoutSeconds, graceSeconds: config.graceSeconds ?? 5};
-    locks = acquireLocalLocks({root: config.root, heavy: config.heavy, evidence: directory});
+    locks = acquireLocalLocks({root: config.root, heavy: config.heavy,
+      heavyResources: config.heavyResources, evidence: directory});
     summary.owner = locks.owner;
     summary.locks = locks.paths;
+    if (locks.heavyAdmission) summary.heavyAdmission = locks.heavyAdmission;
     summary.status = 'running';
     persist();
     diagnostic(`Local check budget: ${config.timeoutSeconds}s; TERM grace: ${config.graceSeconds ?? 5}s`);

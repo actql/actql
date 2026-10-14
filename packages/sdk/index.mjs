@@ -2354,7 +2354,7 @@ async function connectSelected(selected, port) {
         }
         if (outcome.checkObservation !== undefined) {
           checkObservation = outcome.checkObservation;
-          if (!(body.kind === 'program' || body.kind === 'aql' && ['sql', 'aql-text'].includes(body.input.format)) ||
+          if (!(body.kind === 'program' || body.kind === 'aql' && ['sql', 'aql', 'aql-text'].includes(body.input.format)) ||
               !bindCheckObservation(checkObservation, {kind: body.kind, input: body.input, parameters: body.parameters})) {
             fail('InvalidHostSubmissionCheckObservation');
           }
@@ -2415,7 +2415,7 @@ async function connectSelected(selected, port) {
       return Promise.reject(new ClientError('InvalidAqlDocument'));
     }
     if (options.parameterDeclarations !== undefined &&
-        !['aql-text', 'sql'].includes(options.format)) {
+        !['aql', 'aql-text', 'sql'].includes(options.format)) {
       return Promise.reject(new ClientError('InvalidAqlDocument'));
     }
     return submit('aql', {text, format: options.format,

@@ -17294,6 +17294,7 @@
     "yaml",
     "aql-json",
     "aql-yaml",
+    "aql",
     "aql-text",
     "sql"
   ],
