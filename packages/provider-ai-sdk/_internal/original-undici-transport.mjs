@@ -8,6 +8,21 @@ const installations = new WeakMap();
 const issue = code => Object.assign(new TypeError(code), {code});
 const positive = value => Number.isSafeInteger(value) && value > 0 && value <= 2_147_483_647;
 
+// Keep validation-only bindings out of the long-lived Call context shared by
+// invoke/connect/cleanup. The comparison remains synchronous and exact; this
+// neither releases physical duties nor changes the original capacity grant.
+function sameResponseLimits(limits, original) {
+  if (limits.maxBytes !== original.maxBytes ||
+      limits.maxChunkBytes !== original.maxChunkBytes ||
+      limits.maxChunks !== original.maxChunks ||
+      limits.maxHeaderBytes !== original.maxHeaderBytes ||
+      limits.observedHeaders.length !== original.observedHeaders.length) return false;
+  for (let index = 0; index < limits.observedHeaders.length; index++) {
+    if (limits.observedHeaders[index] !== original.observedHeaders[index]) return false;
+  }
+  return true;
+}
+
 // Private selected Host factory, not an arbitrary Run-provided dispatcher.
 // All descriptor/control/module and future Client/native holdings must already
 // be funded by the original installation/Call before physical preparation.
@@ -44,10 +59,7 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
       typeof init.body !== 'string' || Buffer.byteLength(init.body) > original.maxBytes ||
       init.redirect !== 'error' || !(init.signal instanceof AbortSignal) ||
       !Array.isArray(init.headers) || init.headers.length > original.maxHeaders ||
-      ['maxBytes', 'maxChunkBytes', 'maxChunks', 'maxHeaderBytes'].some(name =>
-        limits[name] !== original.limits[name]) ||
-      limits.observedHeaders.length !== original.limits.observedHeaders.length ||
-      limits.observedHeaders.some((name, index) => name !== original.limits.observedHeaders[index])) {
+      !sameResponseLimits(limits, original.limits)) {
     throw issue('UndiciOriginalRequestMismatch');
   }
   let headerBytes = 0;
