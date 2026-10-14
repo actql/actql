@@ -48,7 +48,7 @@ pub(all) enum ModelIoAdmissionIssue {
 // The trusted existing installer must supply this exact original binding
 // once and share the resulting admission across its Runs. No public Node
 // factory, profile/body admission or authority is issued by these functions.
-pub fn issue_model_io_admission[T](
+pub fn[T] issue_model_io_admission(
   installation : T,
   active_slots : Int,
   unsettled_slots : Int,
@@ -69,7 +69,7 @@ pub fn issue_model_io_admission[T](
 }
 
 ///|
-fn model_io_installation_matches[T](
+fn[T] model_io_installation_matches(
   value : ModelIoAdmission[T],
   installation : T,
 ) -> Bool {
@@ -78,7 +78,7 @@ fn model_io_installation_matches[T](
 
 ///|
 // This is current Owner-local count DATA, not available execution authority.
-pub fn model_io_admission_counts[T](
+pub fn[T] model_io_admission_counts(
   value : ModelIoAdmission[T],
   installation : T,
 ) -> (Int, Int)? {
@@ -90,7 +90,7 @@ pub fn model_io_admission_counts[T](
 }
 
 ///|
-pub fn claim_model_io_admission[T](
+pub fn[T] claim_model_io_admission(
   value : ModelIoAdmission[T],
   installation : T,
   origin : OriginalLedgerIdentity,
@@ -149,7 +149,7 @@ pub fn claim_model_io_admission[T](
 }
 
 ///|
-fn check_model_io_ticket[T](
+fn[T] check_model_io_ticket(
   value : ModelIoAdmission[T],
   installation : T,
   origin : OriginalLedgerIdentity,
@@ -187,7 +187,7 @@ fn check_model_io_ticket[T](
 // Resource retirement, NOT a physical ACK issuer. Only the existing Model
 // Owner may call after its original physical port actually acknowledged I/O
 // quiescence. Promise completion or cancellation acceptance is insufficient.
-pub fn settle_model_io_after_owner_ack[T](
+pub fn[T] settle_model_io_after_owner_ack(
   value : ModelIoAdmission[T],
   installation : T,
   origin : OriginalLedgerIdentity,
@@ -212,7 +212,7 @@ pub fn settle_model_io_after_owner_ack[T](
 // Call only after original Store/Journal confirmation and actual owning
 // cleanup/alias retirement, not after merely observing a response. This is
 // not a persisted ACK or permission factory and must not be a Node export.
-pub fn settle_model_holding_after_owner_ack[T](
+pub fn[T] settle_model_holding_after_owner_ack(
   value : ModelIoAdmission[T],
   installation : T,
   origin : OriginalLedgerIdentity,
@@ -252,7 +252,7 @@ pub fn settle_model_holding_after_owner_ack[T](
 ///|
 // Graceful close: no new borrowing, existing duties unchanged. Final view
 // detachment is not release of a process/module/native baseline.
-pub fn close_model_io_admission[T](
+pub fn[T] close_model_io_admission(
   value : ModelIoAdmission[T],
   installation : T,
 ) -> Result[Bool, ModelIoAdmissionIssue] {
