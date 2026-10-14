@@ -88,6 +88,12 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   )
   .unwrap()
   |> ignore
+  assert_true(
+    host.lookup_submitted_run_state(
+      crypto, "operator", "cli", reference, request, 1001.0,
+    )
+    is Err(Unavailable),
+  )
   // Retain exact issued policy bytes before first start in this existing
   // journal. No Source policy or empty completion journal is fabricated.
   let policy_wire = run_policy_originals_wire(prepared, compiled~).unwrap()
@@ -245,6 +251,104 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     observed.definition_cid(),
     @publication.publication_contract_identity(definition),
   )
+  let run_before = journal.retained(request).unwrap().unwrap()
+  let submitted_before = journal
+    .retained_submission(reference)
+    .unwrap()
+    .unwrap()
+  let saved = host
+    .retain_submitted_run_state(
+      crypto, "operator", "cli", reference, request, observed, 1002.0,
+    )
+    .unwrap()
+  assert_eq(saved.wire(), observed.wire())
+  assert_eq(saved.control_revision(), run_before.revision)
+  let submitted_after = journal.retained_submission(reference).unwrap().unwrap()
+  assert_eq(submitted_after.revision, submitted_before.revision + 1L)
+  assert_eq(
+    submitted_after.run_admission.unwrap().revision,
+    submitted_before.run_admission.unwrap().revision,
+  )
+  assert_eq(
+    run_record_body(journal.retained(request).unwrap().unwrap()).unwrap(),
+    run_record_body(run_before).unwrap(),
+  )
+  assert_eq(
+    journal.retained(request).unwrap().unwrap().revision,
+    run_before.revision,
+  )
+  // Same original bytes reuse the saved row after lost-response reconciliation;
+  // another observation time cannot replace the immutable first observation.
+  host
+  .retain_submitted_run_state(
+    crypto, "operator", "cli", reference, request, observed, 1003.0,
+  )
+  .unwrap()
+  |> ignore
+  assert_eq(
+    journal.retained_submission(reference).unwrap().unwrap().revision,
+    submitted_after.revision,
+  )
+  let foreign = {
+    ..observed,
+    request: journal_test_run("foreign-retain", "foreign-retain-run", scope~).0,
+  }
+  assert_true(
+    host.retain_submitted_run_state(
+      crypto, "operator", "cli", reference, request, foreign, 1003.0,
+    )
+    is Err(ForeignRun),
+  )
+  assert_true(
+    host.lookup_submitted_run_state(
+      crypto, "foreign", "cli", reference, request, 1003.0,
+    )
+    is Err(Journal(AuthorizationDenied)),
+  )
+  let changed = host
+    .observe_publication_run_state(
+      publisher,
+      pending,
+      "2026-10-15T00:00:03.000Z",
+      limits.max_result_workspace_entries,
+      16,
+      1000,
+    )
+    .unwrap()
+  assert_true(
+    host.retain_submitted_run_state(
+      crypto, "operator", "cli", reference, request, changed, 1003.0,
+    )
+    is Err(ChangedIntent),
+  )
+  let cancellation_publication = install_native_client_cancellation_publication(
+    store, "local-test", 65536, 8192, 64,
+  ).unwrap()
+  let cancellation = journal
+    .cancel_operation(
+      request,
+      "local-test",
+      "same-control-revision-after-state",
+      run_before.revision.to_int(),
+      () => true,
+      cancellation_publication,
+    )
+    .unwrap()
+  assert_eq(cancellation.action, @host.AlreadyTerminal)
+  assert_eq(cancellation.expected_revision, run_before.revision.to_int())
+  assert_eq(
+    journal.retained(request).unwrap().unwrap().revision,
+    run_before.revision,
+  )
+  for _ in 0..<2 {
+    let restored = host
+      .lookup_submitted_run_state(
+        crypto, "operator", "cli", reference, request, 1003.0,
+      )
+      .unwrap()
+    assert_eq(restored.wire(), observed.wire())
+    assert_eq(restored.control_revision(), run_before.revision)
+  }
   // Independent status/availability oracle; this is not a payload read grant.
   let source = @source.parse_json_bytes_preserving(
     @utf8.encode(observed.wire()),
@@ -309,6 +413,17 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
   assert_true(read_authority.current_for(journal, request))
   assert_false(publisher.current())
   assert_true(
+    host.retain_submitted_run_state(
+      crypto, "operator", "cli", reference, request, observed, 1003.0,
+    )
+    is Err(AuthorizationDenied),
+  )
+  assert_eq(
+    journal.retained_submission(reference).unwrap().unwrap().revision,
+    submitted_after.revision,
+  )
+
+  assert_true(
     host.finalize_observed_run_state_candidate(
       publisher, read_authority, candidate,
     )
@@ -350,7 +465,22 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     )
     is Err(Candidate(Publication(Store(@publication_store.Closed)))),
   )
+  let expected_reopen_revision = journal.retained(request).unwrap().unwrap().revision
   host.close().unwrap() |> ignore
+  let reopened = policy_host_fixture(
+    host_name,
+    existing=true,
+    files=[host_name + ".run.json"],
+    account_body=observed_state_account_original,
+  )
+  let recovered = reopened
+    .lookup_submitted_run_state(
+      crypto, "operator", "cli", reference, request, 1004.0,
+    )
+    .unwrap()
+  assert_eq(recovered.wire(), observed.wire())
+  assert_eq(recovered.control_revision(), expected_reopen_revision)
+  reopened.close().unwrap() |> ignore
 }
 
 ///|
