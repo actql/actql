@@ -60,3 +60,27 @@ delegation type through these ports. Worker transport, durable parent-death
 custody, complete pre-spawn funding, Wasmtime, runtime recipe adoption, wheels and
 public installed E2E remain unverified. `fixtures/region.c` tests physical guards
 and shared bytes using the original 64-page fixture, with no worker/VM startup.
+
+## Original child allocation domain
+
+The trusted child supplier can bind the original Core payload to an
+ExclusiveWrite view and suballocate its local physical control table inside
+that same payload. This reuses the one provider's allocator, protection, TLS
+and retirement functions. It performs no second mmap/reserve, creates no
+Ledger/Root, and cannot fund unrelated process/VM/FD/control overhead. The
+control bytes reduce the available original payload; no allowance is extended.
+
+A copied, readonly, unconfirmed or unbound view cannot acquire this domain.
+The address-bound view consumes this port once; initialized/dead-child payload
+control is never reset. The shared control header contains no process pointer.
+The caller-funded view holds its in-process identity and original physical
+loan separately. Independent simultaneous children keep disjoint writer ranges.
+
+Domain retirement requires all original allocations/scopes retired and leaves
+the outer mapping held. Ordinary whole-mapping close refuses an interior domain.
+View close refuses a live domain, and parent loan return still requires the
+existing Owner's scoped child-stop plus view/FD-borrower retirement facts. Lost
+responses or parent death do not create those acknowledgements or new credits.
+
+This source/private fixture is not adopted numerical funding, a compiled
+Wasmtime runtime, worker dispatch or installed Python product acceptance.

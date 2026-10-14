@@ -233,7 +233,7 @@ typedef struct {
 
 MOONBIT_FFI_EXPORT void *actql_bootstrap_map_region(
     actql_bootstrap_backing *owner, actql_bootstrap_extent *extent,
-    actql_bootstrap_region *loan, int32_t fd) {
+    actql_bootstrap_region *loan, int32_t fd, int64_t payload_offset, int64_t payload_length) {
     actql_bootstrap_view *record = moonbit_make_external_object(
         keep_physical_custody, sizeof(*record));
     memset(record, 0, sizeof(*record));
@@ -242,8 +242,13 @@ MOONBIT_FFI_EXPORT void *actql_bootstrap_map_region(
     if (loan->owner == owner && loan->extent == extent && extent->owner == owner) {
         actql_owned_extent_reference reference;
         record->status = actql_native_owned_project_extent(&loan->loan, &reference);
-        if (record->status == ACTQL_OWNED_OK)
-            record->status = actql_native_owned_map_extent(fd, &reference, &record->view);
+        if (record->status == ACTQL_OWNED_OK) {
+            if (payload_offset < 0 || payload_length <= 0 ||
+                (uint64_t)payload_offset > SIZE_MAX || (uint64_t)payload_length > SIZE_MAX)
+                record->status = ACTQL_OWNED_INVALID;
+            else record->status = actql_native_owned_map_extent_payload(
+                fd, &reference, (size_t)payload_offset, (size_t)payload_length, &record->view);
+        }
     }
     return record;
 }
