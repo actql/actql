@@ -81,3 +81,23 @@ context pointer, new quota/Run/cleanup controller or public factory is added.
 `domain_read_conformance.c` is a private 64-page diagnostic helper, excluded from
 product linking; it is not a trusted installed supplier. Engine/worker/ordinary
 wheel and public Python acceptance remain separate.
+
+Source-qualified private DLL acceptance at
+`fb6fab82a8c83716f817c5cf4a336425c08cb68b` passed **4/4** in
+`run-txsrNO` (non-Heavy outer60/TERM5/cumulative child50/j1): actual Common and
+Native preparation, active/escaped Bytes aliases, same-original cleanup after
+Host closing, foreign Host/component refusal, one-shot preparation and balanced
+nesting. Seven C sources were compiled and linked once with five verified derived
+runtime objects from `run-IIAMdL`; explicit code-root initialization ran once.
+The DLL's original mimalloc load initializer is separate. All original domains,
+Host references and independent fixture FDs completed their own cleanup.
+
+This is a private **64-page FD / 16-page payload** fixture, not numerical product
+funding. The C helper contributes real managed aliases but no F Root/Reader.
+Response-loss invariants are separately exercised by Python scalar counters;
+this DLL fixture does not claim an injected physical reply loss. The raw
+Source7d6 C emission, Sourcefb6 component/Python inputs, -MD dependencies,
+object/DLL digests, output and release checks are retained in workspace
+`reviews/2026-10-10-python-client/installed-domain-read-caller`. Public Python
+wheel/SELECT1, Source-backed execution, Engine, worker and full profile remain
+unaccepted; fuel100M/12MiB/16MiB are unchanged.
