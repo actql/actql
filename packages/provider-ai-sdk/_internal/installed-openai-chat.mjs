@@ -67,17 +67,19 @@ function installedChatRegistration(config, originalUndici) {
         'maxBytes,maxHeaderBytes,maxHeaders','InvalidInstalledOpenAIChatRequestLimits'),
       responseLimits:fixedInferResponseLimits(source.responseLimits),
     });
-    let installed = false;
+    let entered = false;
     // One registration callback belongs to one actual Host installation. The
     // actual runtime is received here, never imported or reconstructed by a
     // consumer. Refuse another installation even if it shares that module.
     return moon => {
-      if (installed) issue('OpenAIOriginalInstallationReused');
+      if (entered) issue('OpenAIOriginalInstallationReused');
       assertRuntime(moon);
+      // A failed admission is not a reason to move this original callback to
+      // another Host or allocate another set of reader results from it.
+      entered=true;
       const originals=admitOpenAIOriginalMaterials(moon,materials);
       const register=installedChatRegistration({...retained,...originals},originalUndici);
       const entries=register(moon);
-      installed=true;
       // Admission/assembler overlap remains funded until it ends here. The
       // Host retains the actual entries; this spent loader need not retain a
       // second snapshot of their original material wires or selector config.

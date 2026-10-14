@@ -130,6 +130,7 @@ test('Common refusal or missing opaque result never constructs a physical select
     const register=createInstalledUndiciOpenAIChatRegistration(selected);
     assert.throws(()=>register(f.moon),{code:'OpenAIOriginalMaterialsRefused'});
     assert.equal(f.calls.length,0);
+    assert.throws(()=>register({...f.moon}),{code:'OpenAIOriginalInstallationReused'});
   }
 });
 
