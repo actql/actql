@@ -55,6 +55,15 @@ default profile, new executor, scheduler, resource Owner or publication authorit
 is installed. Calendar Local/HTTPS E2E is still zero; the original six declared
 public controls and remaining Frontend goal stay unfinished.
 
+The next integration counter separated the conservative preparation bound
+(four for a declared two-day range) from the actual output quota. At `6da23a15`
+the unchanged kernel wrongly rejected quota two before execution (4/5,
+`run-7lQOrK`). Removing only that start-time comparison retains the original
+static bound for preparation/capacity and lets the original cursor and output
+Owner enforce actual rows. Quota two must emit exactly the two independently
+expected intervals; quota one must fail with `CalendarBoundary(SeriesRowLimit)`
+and keep cleanup custody. Neither the numeric limits nor expected rows change.
+
 ```sh
 node reviews/2026-10-15-calendar-runtime/prepared-calendar-kernel.mjs <SHA> kernel
 node reviews/2026-10-15-calendar-runtime/prepared-calendar-kernel.mjs <SHA> api

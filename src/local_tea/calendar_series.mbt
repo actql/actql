@@ -208,8 +208,7 @@ pub fn start_calendar_series(
     @schema.field_count(schema) == 2 &&
     @schema.lookup_reference(schema, "start") is Some(start_field) &&
     @schema.lookup_reference(schema, "end") is Some(end_field) &&
-    @lower.calendar_row_bound(series) is Some(row_bound) &&
-    row_bound <= max_rows &&
+    @lower.calendar_row_bound(series) is Some(_) &&
     @lower.calendar_start(series) is Some(start_text) &&
     @lower.calendar_end(series) is Some(end_text) &&
     @value.timestamp_epoch_milliseconds(start_text) is Some(start) &&
