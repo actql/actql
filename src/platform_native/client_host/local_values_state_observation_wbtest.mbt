@@ -526,12 +526,20 @@ test "typed Local Host terminal fence accepts actual state and refuses purpose o
     reopened.close().unwrap() |> ignore
     fail("duplicate fixture preparation: UnsupportedPreparation")
   }
-  let (duplicate_request, _, duplicate_compiled, duplicate_definition) = journal_test_prepared_run(
+  let (duplicate_request, _, duplicate_compilation, duplicate_definition) = journal_test_prepared_run(
     duplicate_prepared,
     duplicate_reference.request_id,
     "values-state-original",
     scope~,
   )
+  let duplicate_compiled = @host.with_client_source_free_result_policy(
+    duplicate_compilation,
+    policy_cid,
+    assets.result_policy,
+    65536,
+    8192,
+    64,
+  ).unwrap()
   let reopened_journal = reopened.journal
   reopened_journal
   .record_submitted_intent(
