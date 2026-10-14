@@ -14,7 +14,7 @@ fn initial_from_compiled(
 
 ///|
 fn initial_from_graph_inputs() -> String {
-  "WITH n AS (SELECT 1 AS id), r AS (SELECT 9 AS tag), g AS (GRAPH (NODE TABLES (n AS N KEY (id) LABEL Node NO PROPERTIES))) "
+  "WITH n AS (SELECT 1 AS node_key), r AS (SELECT 9 AS tag), g AS (GRAPH (NODE TABLES (n AS N KEY (node_key) LABEL Node NO PROPERTIES))) "
 }
 
 ///|
@@ -23,7 +23,7 @@ test "initial JOIN rejects Graph before a later explicit row bridge" {
     let source = initial_from_graph_inputs() +
       "FROM " +
       marker +
-      "g CROSS JOIN r MAX_OUTPUT_ROWS 10 |> node_rows() |> SELECT id"
+      "g CROSS JOIN r MAX_OUTPUT_ROWS 10 |> node_rows() |> SELECT node_key"
     let script = @query.parse_query_script(source, syntax_limits()).unwrap()
     assert_true(
       compile_query_script(
@@ -39,7 +39,7 @@ test "initial JOIN rejects Graph before a later explicit row bridge" {
   ignore(
     initial_from_compiled(
       initial_from_graph_inputs() +
-      "FROM g |> node_rows() |> AS nodes |> CROSS JOIN r MAX_OUTPUT_ROWS 10 |> SELECT nodes.id",
+      "FROM g |> node_rows() |> AS nodes |> CROSS JOIN r MAX_OUTPUT_ROWS 10 |> SELECT nodes.node_key",
       { ..fixture_context(), inputs: [], },
     ),
   )
@@ -48,7 +48,7 @@ test "initial JOIN rejects Graph before a later explicit row bridge" {
 ///|
 fn initial_from_vector_context() -> Context {
   let input =
-    #|{"values":{"schema":{"id":{"type":"number","nullable":false},"embedding":{"type":"vector","element_type":"f32","dimensions":2,"nullable":false}},"rows":[{"id":1,"embedding":[1,0]}]},"as":"candidates"}
+    #|{"values":{"schema":{"id":{"type":"number","nullable":false},"embedding":{"type":"vector","dimensions":2,"nullable":false}},"rows":[{"id":1,"embedding":[1,0]}]},"as":"candidates"}
   {
     ..fixture_context(),
     inputs: [
@@ -137,8 +137,25 @@ test "three initial JOIN forms retain the same logical Values and nullable outpu
       ..fixture_context(),
       inputs: [],
     })
+    let steps = @wire.elements(
+        @wire.required(
+          @wire.open_object(@program.stage_body(@program.stages(program)[0])).unwrap(),
+          "steps",
+        ).unwrap(),
+      )
+      .unwrap()
+      .length()
+    println("Initial JOIN control step count: " + steps.to_string())
+    // This expanded literal/UNION fixture uses the existing 64-step checking
+    // profile. The ordinary 20-step fixture and production limits are unchanged.
+    assert_true(steps <= 64)
     match
-      @check.check_parsed(program, check_environment(), None, check_limits()) {
+      @check.check_parsed(
+        program,
+        check_environment(),
+        None,
+        graph_rows_check_limits(),
+      ) {
       Checked(_) => ()
       Rejected(error) => graph_rows_rejected(error)
       NeedsInputs(_) => fail("initial JOIN controls have no external Source")
