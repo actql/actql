@@ -88,6 +88,7 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
     },
     plan(input, options) {return read('plan', {input, ...(options === undefined ? {} : {options})});},
     inspect(ref) {return read('run', {ref});},
+    runPlan(ref) {return read('run-plan', {ref});},
     describe(ref, name) {return read('result', {ref, name});},
     close: invalidate,
   });
