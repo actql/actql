@@ -52,3 +52,10 @@ Tests use nonHeavy270/TERM5, child240 and JS j1. API generation is ordinary,
 sequential moon info on affected consumers for JS/Wasm/Native; it does not run
 Native/Wasm. Freshness and the owned scan use nonHeavy60/TERM5. No broad Core,
 Proof, new package campaign, old Run/DB, Hosted CI or formal publication is used.
+
+Affected ordinary API generation/consuming type checks complete on JS/Wasm/Native
+at 2e81ec99 (run-z8geDI, 36 tasks each). The generated diff is exactly four
+execution-relation API declaration lines and one Local selector enum case.
+Native/Wasm execution remains unperformed. Earlier actual tests keep their
+original source qualifications; these interface-only lines do not regenerate
+independent rows or alter their tested runtime inputs.
