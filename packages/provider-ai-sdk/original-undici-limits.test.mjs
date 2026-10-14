@@ -23,7 +23,8 @@ const endpoint = 'https://fixture.invalid/v1/chat/completions';
 const responseLimits = {maxBytes: 2048, maxChunkBytes: 512, maxChunks: 16,
   maxHeaderBytes: 128, observedHeaders: ['content-type', 'x-fixture']};
 const create = () => physical.createOriginalUndiciFetch({endpoint,
-  requestLimits: {maxBytes: 1000, maxHeaderBytes: 4096, maxHeaders: 16}, responseLimits});
+  requestLimits: {maxBytes: 1000, maxHeaderBytes: 4096, maxHeaders: 16}, responseLimits,
+  physicalAcquisitionLimits: {maxPlaintextBytes: 65536, maxBorrowedBackingBytes: 131072, maxReads: 64}});
 const prepare = (fetch, limits) => physical.prepareOriginalUndiciFetch(fetch, endpoint,
   {method: 'POST', body: '{}', headers: [], redirect: 'error',
     signal: new AbortController().signal}, limits);
