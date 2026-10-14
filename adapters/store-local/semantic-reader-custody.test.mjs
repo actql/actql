@@ -86,7 +86,7 @@ async function fixture(t, {closeFailures = 0, primary, pause = false, falseClose
 }
 
 test('semantic FD close failure blocks Store release until the same close-only retry succeeds', async t => {
-  const f = await fixture(t, {closeFailures: 2});
+  const f = await fixture(t, {closeFailures: 4});
   let failure;
   await assert.rejects(f.read(), error => { failure = error; return error === f.closeFailure; });
   assert(f.fd() >= 0);
@@ -103,10 +103,10 @@ test('semantic FD close failure blocks Store release until the same close-only r
   await cleanup.retry();
   assert.equal(cleanup.status().pending, false);
   assert.equal(f.fd(), -1);
-  assert.deepEqual(f.counts(), {...before, attempts: 3});
+  assert.deepEqual(f.counts(), {...before, attempts: 5});
   assert.equal(f.streamCloses(), 1, 'one original ReadStream receives its native close notification');
   await cleanup.retry();
-  assert.equal(f.counts().attempts, 3, 'confirmed physical close is not repeated');
+  assert.equal(f.counts().attempts, 5, 'confirmed physical close is not repeated');
   assert.deepEqual(await readFile(f.path), f.originalBytes);
   assert.equal(await f.store.close(), true);
   f.pass();
@@ -116,7 +116,7 @@ for (const frozen of [false, true]) {
   test(`semantic read failure ${frozen ? 'frozen cause' : 'primary'} survives original FD close failure`, async t => {
     const primary = new Error('OriginalSemanticReadFailure');
     if (frozen) Object.freeze(primary);
-    const f = await fixture(t, {closeFailures: 1, primary});
+    const f = await fixture(t, {closeFailures: 2, primary});
     let failure;
     await assert.rejects(f.read(), error => {
       failure = error;
@@ -160,7 +160,7 @@ test('unacquired semantic FD leaves no reader custody and closed Store refuses n
 });
 
 test('false semantic close retains the original FD and Store custody', async t => {
-  const f = await fixture(t, {closeFailures: 1, falseClose: true});
+  const f = await fixture(t, {closeFailures: 2, falseClose: true});
   let failure;
   await assert.rejects(f.read(), error => {
     failure = error;
