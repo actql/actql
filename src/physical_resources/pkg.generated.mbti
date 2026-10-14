@@ -26,6 +26,8 @@ pub fn[T] advance_original_state_write(OriginalStateWrite[T], Int) -> OriginalSt
 
 pub fn allocate_shared_capacity(SharedCapacity, Int64) -> Result[SharedAllocation, LedgerIssue]
 
+pub fn[P, C] backed_execution_delegation_description(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C]) -> Result[(BackedExecutionExtent, BackedExecutionAccess, LedgerLimits), BackedExecutionIssue]
+
 pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]
 
 pub fn[T] begin_original_resource_invalidation(OriginalResourcePark[T], T) -> Result[OriginalResourceInvalidationRequest[T], OriginalReadIssue]
@@ -63,6 +65,8 @@ pub fn check_original_state_write_preparation(OriginalLedgerIdentity) -> Result[
 pub fn[T] claim_funded_read_preparation(FundedReadClaim[T], T, Int64, Int64) -> Result[FundedReadConsumer[T], OriginalReadIssue]
 
 pub fn[T] claim_model_io_admission(ModelIoAdmission[T], T, OriginalLedgerIdentity, Reservation, Int, Int) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue]
+
+pub fn[P, C] close_backed_execution_region(BackedExecutionRegion[P, C], P) -> Result[Bool, BackedExecutionIssue]
 
 pub fn[T] close_model_io_admission(ModelIoAdmission[T], T) -> Result[Bool, ModelIoAdmissionIssue]
 
@@ -105,6 +109,8 @@ pub fn holding_available(Ledger, Holding) -> Bool
 pub fn holding_belongs_to(Ledger, Holding) -> Bool
 
 pub fn holding_serial(Holding) -> Int
+
+pub fn[P, C] issue_backed_execution_region(SharedCapacity, SharedAllocation, P) -> Result[BackedExecutionRegion[P, C], BackedExecutionIssue]
 
 pub fn[T] issue_model_io_admission(T, Int, Int) -> Result[ModelIoAdmission[T], ModelIoAdmissionIssue]
 
@@ -190,6 +196,8 @@ pub fn release_allocation(Ledger, Holding) -> Result[Unit, LedgerIssue]
 
 pub fn release_shared_capacity(SharedAllocation) -> Result[Unit, LedgerIssue]
 
+pub fn[P, C] report_backed_execution_delegation(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], LedgerUsage) -> Result[Unit, BackedExecutionIssue]
+
 pub fn report_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage) -> Result[Unit, LedgerIssue]
 
 pub fn reservation_open(Reservation) -> Bool
@@ -199,6 +207,8 @@ pub fn reservation_pending(Reservation) -> Bool
 pub fn reservation_serial(Reservation) -> Int
 
 pub fn reserve_attempt(Ledger, Int64, Int64, Int64, quantities? : QuantityAmounts?) -> Result[Reservation, LedgerIssue]
+
+pub fn[P, C] reserve_backed_execution_delegation(BackedExecutionRegion[P, C], P, C, BackedExecutionExtent, BackedExecutionAccess, LedgerLimits, Int64, Int64) -> Result[BackedExecutionDelegation[P, C], BackedExecutionIssue]
 
 pub fn reserve_capacity(Ledger, Int64, Int64) -> Result[CapacityReservation, LedgerIssue]
 
@@ -219,6 +229,8 @@ pub fn retire_original_state_document(OriginalStateDocument) -> Unit
 pub fn retire_shared_capacity(SharedAllocation) -> Result[Unit, LedgerIssue]
 
 pub fn return_shared_capacity(SharedBorrow) -> Result[Unit, LedgerIssue]
+
+pub fn[P, C] settle_backed_execution_after_owner_ack(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], LedgerUsage?) -> Result[Unit, BackedExecutionIssue]
 
 pub fn settle_capacity(Ledger, CapacityReservation) -> Result[Unit, LedgerIssue]
 
@@ -265,6 +277,51 @@ pub fn[T] stop_funded_read_consumer(FundedReadConsumer[T]) -> Result[Unit, Origi
 // Errors
 
 // Types and methods
+pub(all) enum BackedExecutionAccess {
+  ReadOnly
+  ExclusiveWrite
+} derive(Eq, @debug.Debug)
+
+pub struct BackedExecutionDelegation[P, C] {
+  mut owner : BackedExecutionRegion[P, C]?
+  mut child : C?
+  mut borrow : SharedBorrow?
+  mut logical : ExecutionDelegation?
+  extent : BackedExecutionExtent
+  access : BackedExecutionAccess
+  limits : LedgerLimits
+  mut peak_retention : Int64
+  mut final_usage : LedgerUsage?
+}
+
+pub(all) struct BackedExecutionExtent {
+  offset : Int64
+  length : Int64
+  payload_offset : Int64
+  payload_length : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) enum BackedExecutionIssue {
+  ForeignOriginal
+  InvalidExtent
+  ExtentConflict
+  DuplicateChild
+  RegionClosing
+  Retired
+  CleanupPending
+  ChangedFinalUsage
+  Resource(LedgerIssue)
+} derive(Eq, @debug.Debug)
+
+pub struct BackedExecutionRegion[P, C] {
+  mut capacity : SharedCapacity?
+  mut allocation : SharedAllocation?
+  mut provider : P?
+  mut owner_borrow : SharedBorrow?
+  children : Array[BackedExecutionDelegation[P, C]]
+  mut closing : Bool
+}
+
 type CapacityReservation
 
 type ExecutionDelegation
