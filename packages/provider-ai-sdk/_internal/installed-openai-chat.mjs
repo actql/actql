@@ -1,6 +1,6 @@
 import {createAdmittedOpenAIChatPreflight} from './original-openai-chat.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
-import {createOriginalUndiciFetch} from './original-undici-transport.mjs';
+import {createOriginalUndiciFetch,fixedOriginalAcquisitionLimits} from './original-undici-transport.mjs';
 import {snapshotOpenAIOriginalMaterials,admitOpenAIOriginalMaterials} from './original-materials.mjs';
 
 const issue = code => { throw Object.assign(new TypeError(code), {code}); };
@@ -55,8 +55,11 @@ function installedChatRegistration(config, originalUndici) {
   const materialMode = config!==null && typeof config==='object' && Object.hasOwn(config,'originalMaterials');
   const selectedKeys = materialMode ? keys.replace(',originalReadInstallation',',originalMaterials')
     .replace(',rawCaptureSelection','') : keys;
-  config=snapshotData(config,originalUndici ? selectedKeys.replace(',fetch', '') : selectedKeys,
+  config=snapshotData(config,originalUndici ? selectedKeys.replace(',fetch', '')
+    .replace(',projectionLimits',',physicalAcquisitionLimits,projectionLimits') : selectedKeys,
     'InvalidInstalledOpenAIChatConfiguration');
+  if (originalUndici) config=Object.freeze({...config,
+    physicalAcquisitionLimits:fixedOriginalAcquisitionLimits(config.physicalAcquisitionLimits)});
   if (materialMode) {
     let materials=snapshotOpenAIOriginalMaterials(config.originalMaterials);
     const {originalMaterials:unused,...source}=config;void unused;
@@ -149,7 +152,8 @@ function installedChatRegistration(config, originalUndici) {
   // even this physical selector. The per-call Client remains later original
   // SDK preparation, after its existing same-Ledger funding and before Entry.
   const physicalFetch=originalUndici ? createOriginalUndiciFetch({
-    endpoint:endpoint.href,requestLimits,responseLimits}) : fetch;
+    endpoint:endpoint.href,requestLimits,responseLimits,
+    physicalAcquisitionLimits:config.physicalAcquisitionLimits}) : fetch;
   return moon => {
     assertRuntime(moon);
     return [Object.freeze({providerId,entryPersistence:'async',

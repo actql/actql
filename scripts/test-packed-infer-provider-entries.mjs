@@ -108,6 +108,7 @@ function materialsConfiguration() {
     projectionLimits:{maxBytes:1000,maxNodes:100,maxDepth:10,maxFrames:20,maxWork:1000},
     requestLimits:{maxBytes:1000,maxHeaderBytes:128,maxHeaders:4},
     responseLimits:{maxBytes:1000,maxChunkBytes:128,maxChunks:10,maxHeaderBytes:128},
+    physicalAcquisitionLimits:{maxPlaintextBytes:65536,maxBorrowedBackingBytes:131072,maxReads:64},
     observeAt:()=> '2026-10-14T00:00:00.000Z',observeEgress(){},
     originalMaterials:{responseProfile:original,policyOriginals:{retention:original,metadata:original,clock:original,data:original},
       readerLimits:{maxBytes:1000,maxNodes:100,maxDepth:10,maxMembers:100,maxWork:1000},
