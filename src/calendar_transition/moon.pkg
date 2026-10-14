@@ -1,1 +1,6 @@
 supported_targets = "+js+wasm+native"
+
+import {
+  "actql/actql/calendar_options" @options,
+  "actql/actql/value_admission" @value,
+}
