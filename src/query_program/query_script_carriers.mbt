@@ -73,6 +73,7 @@ fn script_carrier_columns(carrier : @carrier.Carrier) -> Array[String] {
 // Carrier fields use the same retained scope as ordinary FieldRef selectors.
 // A miss must never fall back to an input range removed by a projection.
 fn script_carrier_field_name(
+  construction : Construction,
   path : Array[@query.NamePart],
   query : @query.Query,
   input : Input,
@@ -104,7 +105,9 @@ fn script_carrier_field(
 ) -> @builder.Node raise Abort {
   match argument {
     FieldReference(path) =>
-      construction.text(script_carrier_field_name(path, query, input, sources))
+      construction.text(
+        script_carrier_field_name(construction, path, query, input, sources),
+      )
     ListValue(items) =>
       construction.array(
         items.map(item => {
@@ -140,7 +143,7 @@ fn script_carrier_order(
       construction.object(
         fields.map(field => {
           (
-            script_carrier_field_name(field.0, query, input, sources),
+            script_carrier_field_name(construction, field.0, query, input, sources),
             script_traversal_argument(construction, field.1, known, limits),
           )
         }),

@@ -7,7 +7,7 @@ priv struct InferPrefixBudget {
 
 ///|
 // Names are projected only after Common proves the exact physical key tuple.
-// Retained range snapshots can still name a slot hidden by a later SET.
+// Chronological authored labels remain bound to a slot hidden by a later SET.
 priv struct InferInputLabels {
   visible : Array[(String, String)]
   ranges : Array[(@query.NamePart, Array[(String, String)])]

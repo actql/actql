@@ -9,10 +9,11 @@ const vector = JSON.parse(readFileSync(
   'utf8',
 ));
 
-// Independently retained adoption pins. Neither expected identity is read from
+// Independently retained adoption pins. Expected identities are never read from
 // the current generated manifest, compiler output, or a generator implementation.
 const BEFORE_CID = 'sha256:20546214b1d002a50ae1ab3bda2d2bb76dacadbdcf79771acd3cf512fa4c504f';
 const AFTER_CID = 'sha256:23f43259aa29714c0bc2ecaf0d3a4060826066672f51eb6c0b2aa3678f8dee13';
+const LABEL_RULE_CID = 'sha256:577baba6e0eeda68b93a01f4bb0744be2c01fe6108fd16d889d4f4caaca8233b';
 const SELF_FIELD = 'grammar_manifest_cid';
 const MANIFEST_FIELDS = [
   'version',
@@ -90,15 +91,31 @@ test('INFER defaults change only query grammar, query rules, and the manifest se
   ].sort());
 });
 
-test('current normative query bytes and manifest match the independent after vector', () => {
+test('current normative query bytes and manifest match the independent label-rule vector', () => {
   const grammar = readFileSync(new URL('spec/grammar/actql-query-0.1.ebnf', root));
   const rules = readFileSync(new URL('docs/spec/query-text.md', root));
-  assert.equal(sha256(grammar), vector.after.query_text_grammar_sha256);
-  assert.equal(sha256(rules), vector.after.query_text_rules_sha256);
+  assert.equal(sha256(grammar), vector.label_rule.query_text_grammar_sha256);
+  assert.equal(sha256(rules), vector.label_rule.query_text_rules_sha256);
   const manifest = JSON.parse(readFileSync(
     new URL('spec/manifests/actql-grammar-0.1.json', root),
     'utf8',
   ));
-  assert.deepEqual(manifest, vector.after);
-  assert.equal(`sha256:${sha256(completeSelfFreePreimage(manifest))}`, AFTER_CID);
+  assert.deepEqual(manifest, vector.label_rule);
+  assert.equal(`sha256:${sha256(completeSelfFreePreimage(manifest))}`, LABEL_RULE_CID);
+});
+
+// The earlier default-adoption body is published history. The name rule is a
+// distinct successor derived from normative bytes, never compiler output.
+test('INFER label rule retains prior bodies and changes only rules and self identity', () => {
+  assert.equal(vector.label_rule_parent_source,
+    'd1a5307f93be82061fd13d363b95d3d032dd9109');
+  assert.equal(vector.label_rule[SELF_FIELD], LABEL_RULE_CID);
+  assert.equal(`sha256:${sha256(completeSelfFreePreimage(vector.label_rule))}`,
+    LABEL_RULE_CID);
+  assert.notEqual(LABEL_RULE_CID, AFTER_CID);
+  const changed = MANIFEST_FIELDS.filter(
+    field => sortedCompactJson(vector.after[field]) !==
+      sortedCompactJson(vector.label_rule[field]),
+  );
+  assert.deepEqual(changed, [SELF_FIELD, 'query_text_rules_sha256'].sort());
 });
