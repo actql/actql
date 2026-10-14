@@ -17,6 +17,15 @@ const fixtureBody = (path, name) => {
   return JSON.parse(match[1]);
 };
 
+test('resident physical acquisition fixtures retain complete normative query dependencies', () => {
+  const path = 'src/platform_native/remote_resident_source_compute_tests/source_compute_wbtest.mbt';
+  for (const [name, contract] of [
+    ['resident_compute_query_contract', 'actql-query-acquisition.json'],
+    ['resident_compute_query_evidence_contract', 'actql-query-process-evidence.json'],
+    ['resident_compute_query_two_receipt_contract', 'actql-query-two-receipt.json'],
+  ]) assert.deepEqual(fixtureBody(path, name), json('spec/contracts/' + contract));
+});
+
 test('current Catalog dependency fixtures pin the normative environment grammar', () => {
   const expected = cid(json('spec/contracts/actql-check-environment.json'));
   assert.equal(expected, 'sha256:b513c6a3f6746e20822c51f3fc7dab2327e5ecfe339549b50e98976c11d21804');
@@ -99,6 +108,7 @@ test('INSTR current caller binding refuses historical pins and cross-request sub
 
 for (const [path, prefix] of [
   ['src/platform_native/remote_resident_host/effect_source_fixture_wbtest.mbt', 'resident_effect_source'],
+  ['src/platform_native/remote_resident_source_compute_tests/source_fixture_wbtest.mbt', 'resident_effect_source'],
   ['src/platform_native/remote_standard_host/retained_task_source_wbtest.mbt', 'retained_source'],
   ['src/client_local_host/resident_source_query_regression_wbtest.mbt', 'source_query_original'],
 ]) test(prefix + ' uses the complete normative fragment and matching registered CID', () => {
