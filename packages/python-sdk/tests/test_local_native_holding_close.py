@@ -29,6 +29,74 @@ class NativeHoldingCloseTests(unittest.TestCase):
                                     generation=7, recipe=b'r' * 32)
         return lease, call
 
+    def test_reobserved_unknown_preserves_identity_without_accumulating_tracebacks(self):
+        original = OSError('Original close return lost')
+        def close(out):
+            cast(out, POINTER(c_void_p))[0] = None
+            raise original
+        lease, call = self.holding(close)
+        try:
+            lease.close()
+        except OSError as observed:
+            self.assertIs(observed, original)
+        else:
+            self.fail('Unconfirmed close was accepted')
+        frames = []
+        for _ in range(20):
+            try:
+                lease.close()
+            except OSError as observed:
+                self.assertIs(observed, original)
+                count, current = 0, observed.__traceback__
+                while current is not None:
+                    count += 1
+                    current = current.tb_next
+                frames.append(count)
+            else:
+                self.fail('NULL became a close ACK')
+        self.assertEqual([frames[i] for i in (0, 4, 19)], [frames[0]] * 3)
+        self.assertEqual(len(set(frames)), 1)
+        self.assertIsNone(original.__context__)
+        self.assertEqual(call.addresses, [123])
+        self.assertIsNone(lease._pointer.value)
+
+    def test_reobserved_unknown_context_and_original_cause_do_not_accumulate(self):
+        cause = RuntimeError('Original physical cause')
+        original = OSError('Original close return lost')
+        observer_context = RuntimeError('Current observer context')
+        def close(out):
+            cast(out, POINTER(c_void_p))[0] = None
+            raise original from cause
+        lease, call = self.holding(close)
+        try:
+            lease.close()
+        except OSError:
+            pass
+        else:
+            self.fail('Unconfirmed close was accepted')
+        frames = []
+        for _ in range(20):
+            try:
+                raise observer_context.with_traceback(None)
+            except RuntimeError:
+                try:
+                    lease.close()
+                except OSError as observed:
+                    self.assertIs(observed, original)
+                    self.assertIs(observed.__cause__, cause)
+                    self.assertIs(observed.__context__, observer_context)
+                    self.assertIsNone(observer_context.__context__)
+                    self.assertIsNone(cause.__context__)
+                    count, current = 0, observed.__traceback__
+                    while current is not None:
+                        count += 1
+                        current = current.tb_next
+                    frames.append(count)
+                else:
+                    self.fail('NULL became a close ACK')
+        self.assertEqual(len(set(frames)), 1)
+        self.assertEqual(call.addresses, [123])
+
     def test_lost_return_preserves_original_slot_and_unknown_without_native_retry(self):
         for cleared in (False, True):
             with self.subTest(cleared=cleared):
