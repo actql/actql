@@ -67,6 +67,22 @@ prompt/schema, credentials and physical-profile compatibility; this projection
 does not establish any of them. The actual fixture verifies this mapping only
 for its selected non-reasoning chat profile, not every OpenAI model.
 
+The first-service preparation candidate is the explicit snapshot
+`gpt-4.1-mini-2025-04-14`, not an automatic replacement for an authored
+selector. Its pinned-SDK test preserves the original strict schema, mapped
+text, temperature, top-p, token ceiling and seed before any transport exists.
+The tested `gpt-6-luna` default SDK rewrite is refused by the same original
+request check; no settings are silently dropped and no fallback request starts.
+These are request-preparation fixtures with a Common generation accessor
+double, not live service, normal funding, installed Run or Result acceptance.
+
+The historical `gpt-4.1-nano` fixture is unchanged. OpenAI's current
+[deprecation schedule](https://developers.openai.com/api/docs/deprecations)
+lists its shutdown on October 23, 2026, and GPT-4.1 mini on January 14, 2027.
+The candidate therefore does not establish a permanent default or an account's
+model access. A different service binding requires its own exact request and
+profile conformance; matching a model name is not a capability or send grant.
+
 The additional private admitted-request consumer reads the closed
 `actql.openai_chat_prompt/0.1` payload, mapped input wire and strict output
 schema from Common's original admitted Provider/Task. It binds the Task,
