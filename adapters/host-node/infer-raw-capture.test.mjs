@@ -8,6 +8,43 @@ import {createModelRawCaptureStorePort, createModelRawTransportPersistence}
 const digest = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 
 for (const boundary of ['originals', 'receipt', 'decode']) {
+test(`read-only raw ${boundary} failure preserves original error and same holding custody`, async t => {
+  const f = await fixture(t, {bytes: Buffer.from('{"original":"raw"}')});
+  const failure = Object.defineProperty(new Error(`ReadOnlyOriginalRaw:${boundary}`),
+    'rawPersistenceConfirmed', {value: 'original marker', writable: false});
+  assert.equal(Object.isExtensible(failure), true);
+  const originalAck = f.moon.clientProgramAcknowledgeSavedInferRawCapture;
+  const originalDecode = f.moon.clientProgramInferSavedRawChatResponse;
+  const physical = {...f.physical};
+  if (boundary === 'originals') physical.confirmModelRawCaptureOriginals = async () => { throw failure; };
+  if (boundary === 'receipt') f.moon.clientProgramAcknowledgeSavedInferRawCapture = () => { throw failure; };
+  if (boundary === 'decode') f.moon.clientProgramInferSavedRawChatResponse = () => { throw failure; };
+  const port = createModelRawCaptureStorePort(physical, f.moon, f.view, f.bytes);
+  try {
+    await assert.rejects(port.persistChat(undefined), error => {
+      assert.equal(error.cause, failure);
+      assert.equal(error.rawPersistenceConfirmed, boundary !== 'originals');
+      assert.equal(error.rawCustodyRetained, true);
+      assert.equal(error.cleanupHandle, port.holding);
+      assert.equal(error.rawReceipt, boundary === 'decode' ? f.receipt : undefined);
+      return true;
+    });
+    assert.equal(failure.rawPersistenceConfirmed, 'original marker');
+  } finally {
+    // Diagnostic reconciliation retires only this test's same saved holding;
+    // it sends no Model request and does not turn the failed assertion green.
+    physical.confirmModelRawCaptureOriginals = f.physical.confirmModelRawCaptureOriginals;
+    f.moon.clientProgramAcknowledgeSavedInferRawCapture = originalAck;
+    f.moon.clientProgramInferSavedRawChatResponse = originalDecode;
+    const saved = await port.persistChat(undefined);
+    assert.equal(saved.receipt, f.receipt);
+    assert.equal(f.state.writes, 1);
+    await f.store.retirePhysicalHolding(f.binding.holdingCid);
+  }
+});
+}
+
+for (const boundary of ['originals', 'receipt', 'decode']) {
 test(`frozen raw ${boundary} failure preserves original error and same holding custody`, async t => {
   const f = await fixture(t, {bytes: Buffer.from('{"original":"raw"}')});
   const failure = Object.freeze(new Error(`FrozenOriginalRaw:${boundary}`));
