@@ -15,6 +15,53 @@ const request = {path, digest, target: 'js', toolchainDigest};
 const treeAtHead = () => gitTree(repository,
   execFileSync('git', ['rev-parse', 'HEAD'], {cwd: repository, encoding: 'utf8'}).trim());
 
+const boundedDirectory = 'src/platform_native/bounded_files';
+const boundedPath = `${boundedDirectory}/moon.pkg`;
+const boundedDigest = 'd3226436c6183cae948253152b6f49c386881ae9f3653c7e970183d7d1b99f57';
+const boundedRequest = {path: boundedPath, digest: boundedDigest, target: 'js', toolchainDigest};
+
+test('bounded Root review binds the exact two test predicates and every source member', () => {
+  const tree = treeAtHead(), current = tree.read(boundedPath);
+  const author = 'f089341cd29c2989c1e462333ca2e382fc9c9e55';
+  execFileSync('git', ['merge-base', '--is-ancestor', author, 'HEAD'], {cwd: repository});
+  assert.deepEqual(current, execFileSync('git', ['show', `${author}:${boundedPath}`], {cwd: repository}));
+  assert.equal(hash(current), boundedDigest);
+  assert.equal(hash(tree.read('toolchain.json')), toolchainDigest);
+  for (const selector of [
+    '"root_open_custody_native_wbtest.mbt": [ "native" ]',
+    '"root_open_custody_unsupported_wbtest.mbt": [ "not", "native" ]',
+  ]) assert.equal(current.toString().split(selector).length, 2);
+  const selected = packageSourceInputs({tree, packages: [boundedDirectory], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  assert.equal(selected.packageConfigurations.find(entry => entry.path === boundedPath)?.review.rule,
+    'literal-native-options-with-bound-source-membership');
+  const members = [...tree.entries.keys()].filter(member => member.startsWith(`${boundedDirectory}/`) &&
+    !member.slice(boundedDirectory.length + 1).includes('/')).sort();
+  assert.deepEqual(selected.directories.find(entry => entry.path === `${boundedDirectory}/*`)?.members, members);
+  for (const member of members) {
+    assert(selected.paths.includes(member));
+    assert.equal(tree.entries.get(member).mode, '100644');
+    assert.equal(tree.entries.get(member).kind, 'blob');
+  }
+});
+
+test('bounded Root review refuses changed selectors, options, path, target and toolchain', () => {
+  assert.equal(packageConfigurationReviewFor(boundedRequest)?.rule,
+    'literal-native-options-with-bound-source-membership');
+  for (const change of [{digest: '0'.repeat(64)}, {path: './'+boundedPath},
+    {target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}]) {
+    assert.equal(packageConfigurationReviewFor({...boundedRequest, ...change}), null);
+  }
+  const tree = treeAtHead(), original = tree.read(boundedPath).toString();
+  for (const value of [original.replace('[ "native" ]', '[ "js" ]'),
+    original+'\noptions(extra_unknown: true)\n']) {
+    const changed = {...tree, read: member => member === boundedPath ? Buffer.from(value) : tree.read(member)};
+    const selected = packageSourceInputs({tree: changed, packages: [boundedDirectory], target: 'js'});
+    assert(selected.unresolved.includes(`Unreviewed package configuration: ${boundedPath}`));
+    assert(!selected.packageConfigurations.some(entry => entry.path === boundedPath));
+  }
+});
+
 test('Journal review binds the actual selector-only introduction and every source member', () => {
   const tree = treeAtHead(), current = tree.read(path);
   const intro = '01ce3a949932b5b6e55405c14dc04d69373626ae';
