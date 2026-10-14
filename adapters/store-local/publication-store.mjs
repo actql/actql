@@ -2282,9 +2282,11 @@ export async function openLocalPublicationStore(
     }
     cidHex(semanticCid);
     cidHex(holdingCid);
-    const originalKey = privateEvidenceKey();
-    const key = Buffer.allocUnsafeSlow(originalKey.byteLength);
-    key.set(originalKey);
+    // This private getter reads the same immutable Store configuration with
+    // no await/caller callback between size validation and copying. Do not add
+    // an original-key alias to the async reader frame; only its copy escapes.
+    const key = Buffer.allocUnsafeSlow(privateEvidenceKey().byteLength);
+    key.set(privateEvidenceKey());
     try {
       const holding = await inspectPhysicalHolding(holdingCid);
       if (!privateEvidenceHolding(holding, name) ||
