@@ -14,9 +14,11 @@ fn update_shorthand_program(name : String) -> @program.Program {
 
 ///|
 test "anonymous UPDATE has the independently specified stable Program-local name" {
+  // The adopted Script owner binds the original input as seed_1 (one reserved
+  // input) and emits its fixed private result; all values and public names stay.
   let expected = @program.parse(
     (
-      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":7,"y":9}]},"as":"pair"},{"from":"pair","select":["x","y"],"as":"aql_gen_0"}],"results":{"rows":{"from":"aql_gen_0","fields":["x","y"]}},"effects":{"aql_update_effect":{"update":{"target":"connector://c/T","mapping":"m","from":{"result":"rows"},"id":"x","set":{"Name":{"field":"y"}}}}}}],"results":{"updates":{"from":{"stage":"main","result":"rows"}}}}
+      #|{"version":"actql/0.1","id":"fixture.pipe_slots","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"x":{"type":"number","nullable":false},"y":{"type":"number","nullable":false}},"rows":[{"x":7,"y":9}]},"as":"aql_script_seed_1"},{"from":"aql_script_seed_1","select":["x","y"],"as":"aql_script_result"}],"results":{"rows":{"from":"aql_script_result","fields":["x","y"]}},"effects":{"aql_update_effect":{"update":{"target":"connector://c/T","mapping":"m","from":{"result":"rows"},"id":"x","set":{"Name":{"field":"y"}}}}}}],"results":{"updates":{"from":{"stage":"main","result":"rows"}}}}
     ),
     construction_limits().program,
     format=Json,
