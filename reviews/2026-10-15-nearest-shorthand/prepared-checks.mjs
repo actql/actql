@@ -8,6 +8,7 @@ const git = (...args) => execFileSync('git', args, {encoding: 'utf8'}).trim();
 assert.equal(git('rev-parse', 'HEAD'), source);
 assert.equal(git('status', '--porcelain'), '');
 const selections = {
+  public_form: ['src/source_frontend/nearest_shorthand_form_test.mbt'],
   capacity: ['src/client_local_host/nearest_installed_capacity_wbtest.mbt', 'src/client_local_host/retained_capacity_wbtest.mbt'],
   syntax: ['src/query_syntax/nearest_shorthand_test.mbt', 'src/query_syntax/nearest_test.mbt', 'src/query_syntax/nearest_optional_roles_test.mbt'],
   lowering: ['src/query_program/nearest_shorthand_test.mbt', 'src/query_program/nearest_test.mbt', 'src/query_program/nearest_carrier_roles_test.mbt'],

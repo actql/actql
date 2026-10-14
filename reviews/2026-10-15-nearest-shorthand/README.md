@@ -43,3 +43,16 @@ normative bytes have SHA-256 5d2f2432181664678b364fc97c3545d1740b004cd7b073c4bf0
 at main767 and this branch; main767's stored structural rules pin was stale.
 Ordinary manifest generation aligns that inherited pin without editing the document.
 The earlier initial-FROM vector is retained separately from main767's full preimage.
+
+The installed 4008 failure was isolated to the existing multi-captured Ledger:
+15 tasks have 16 receiving input ports. The existing one-million-byte transfer
+envelope is reserved for each real checked port, retaining the task-count floor
+and original Source allowances. Memory/execution ceilings and per-unit envelopes
+are unchanged. The old short allowance remains a typed TransferLimit control.
+
+At source 202063 the original ten Carrier cases and default shorthand passed
+both transports. The next fixture incorrectly submitted a bare FROM form as SQL.
+The established public SQL selector requires SELECT or WITH; bare FROM remains
+text. Only that authored fixture now starts with SELECT *, retaining its exact
+metric, roles, KEEP, ordering, input, independent rows, schemas and counts. The
+original failed cohort and its partial receipts remain separate evidence.

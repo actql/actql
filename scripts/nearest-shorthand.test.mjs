@@ -28,6 +28,9 @@ test('L3 inventory fixes exact cosine, original payload, field order and declara
   const {successes,refusals}=selectReleaseNearestShorthandCases();
   assert.equal(successes.length,7);assert.equal(refusals.length,4);
   assert.deepEqual(successes[0].results,successes[1].results);
+  // The public SQL selector requires SELECT or WITH; bare FROM belongs to text.
+  assert.match(successes[1].text,/^SELECT \* FROM queries \|> NEAREST candidates AS c /u);
+  assert.equal(successes[1].format,'sql');
   assert.deepEqual(successes[0].results.answer.rows.map(row=>row.hit.score),[1,0]);
   assert.match(successes[3].text,/FROM questions \|> NEAREST corpus USING \(query_vec\) K 3 AS hit/u);
   assert.deepEqual(successes[3].results.answer.rows.map(row=>row.hit.body),['first','second']);
