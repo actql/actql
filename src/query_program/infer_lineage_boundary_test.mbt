@@ -25,7 +25,7 @@ fn assert_infer_label_refusal_origin(
 test "case-colliding historical labels refuse at their original INFER" {
   let environment = infer_member_environment()
   let context = infer_input_field_context(environment)
-  let prefix = "FROM tickets |> SET `ID` = secret |> ASSERT UNIQUE BY (`id`, `ID`)"
+  let prefix = "FROM tickets AS old |> SET id = secret |> ASSERT UNIQUE BY (old.id, id) |> RENAME id AS `ID` |> SET `ID` = 'same' |> AS `current`"
   for script in [false, true] {
     assert_infer_label_refusal_origin(
       compile_infer_defaults(
