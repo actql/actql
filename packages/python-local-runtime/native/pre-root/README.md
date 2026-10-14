@@ -246,3 +246,34 @@ or executed by this preparation.
 Patch applicability and source digest checks are preparation evidence only.
 Native compilation, physical allocation tests, Engine cleanup, actual 100M fuel,
 ordinary wheel installation and public Python Local E2E remain unverified.
+
+## Original initialized domain borrow
+
+The private physical worker bootstrap may map the original Core-issued writer
+window and borrow its already initialized interior allocator. It must first
+validate the original child/ticket with the existing backed-delegation
+Owner and fund independent process, FD and control overhead. FD, generation,
+recipe and payload DATA do not perform that validation or issue a grant.
+
+`borrow_extent_domain` retains the existing relative allocator records and
+payload bytes. It creates no mapping, resets no header and reserves no capacity.
+A creator-process alias, copied view, untransferred/closing domain, active scope,
+foreign layout or second process borrow is refused. The original process PID
+is only a physical exclusion check, not durable worker identity or authority.
+Parent allocator entry/mutation and domain close are refused while that borrow
+is outstanding; they do not take a possibly abandoned child's allocator lock.
+
+`return_extent_domain_borrow` requires the child scopes and original allocations
+to retire. Failure retains the same slot and view. Success leaves closing and
+one-shot consumption sticky, and releases the physical exclusion only after
+unlocking. It does not unmap the child view, close an FD, observe process stop,
+settle Common usage or acknowledge a Provider/Store/Run outcome. The original
+Owner still requires independently confirmed stop and mapping/FD retirement
+before parent settlement. Child death or a lost response retains uncertainty;
+this physical slice adds no dead-child recovery or credit reset port.
+
+The sixteen parent/child counterexamples in `fixtures/domain_borrow.c` use a
+single 64-page temporary FD and a fork solely as a physical diagnostic launcher.
+The child drops its inherited parent mappings, maps only the issued window,
+and uses the same provider. This is not the installed worker startup, complete
+pre-spawn funding, Wasmtime execution or wheel/product acceptance.
