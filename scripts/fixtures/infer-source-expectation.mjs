@@ -186,6 +186,46 @@ export const sourceCases = {
     columns: [{name: 'outcome', contract: {type: 'string', nullable: false}},
       {name: 'risk', contract: {type: 'string', nullable: true}}],
     calls: 1, inputWire: '"urgent"', noResponse: true},
+  // Positive controls must execute before the matching runtime refusals. The
+  // UNION ALL control checks both occurrences before selecting one Model item.
+  // No DISTINCT repairs the input, and the existing one-attempt profile stays fixed.
+  // Filtering by a separate position removes the second occurrence even in the
+  // duplicate case: a skipped guard cannot pass by reaching an INFER duplicate.
+  'guard-distinct': {
+    source: 'FROM (SELECT 7 AS id, 0 AS position UNION ALL SELECT 8 AS id, 1 AS position) ' +
+      '|> ASSERT UNIQUE BY (id) |> WHERE position = 0 |> SELECT id ' +
+      "|> EXTEND 'urgent' AS text " +
+      omittedInfer,
+    rows: [
+      {id: 7, text: 'urgent', assessment: historicalOutcome},
+    ],
+    columns: [{name: 'id', contract: {type: 'number', nullable: false}},
+      retainedColumns[1], historicalColumn], calls: 1, inputWire: '"urgent"',
+  },
+  // Project away the separately asserted guard before adopting the sole id
+  // proof. A nullable guard is not itself an admissible inferred item key.
+  'guard-nonnull': {
+    source: 'SELECT 7 AS id, CAST(1 AS FLOAT64) AS guard ' +
+      '|> ASSERT UNIQUE BY (guard) |> SELECT id |> ASSERT UNIQUE BY (id) ' +
+      "|> EXTEND 'urgent' AS text |> INFER `model-task:packed-risk.v1` " +
+      'INPUT (text = text) KEEP (*) AS assessment',
+    rows: [{id: 7, text: 'urgent', assessment: historicalOutcome}],
+    columns: [{name: 'id', contract: {type: 'number', nullable: false}},
+      retainedColumns[1], historicalColumn], calls: 1, inputWire: '"urgent"',
+  },
+};
+
+// These are admitted Runs whose ordinary ASSERT UNIQUE guard must fail before
+// Model dispatch. They must never be counted as source/admission refusals.
+export const sourceRuntimeRefusals = {
+  'guard-duplicate': 'FROM (SELECT 7 AS id, 0 AS position UNION ALL SELECT 7 AS id, 1 AS position) ' +
+    '|> ASSERT UNIQUE BY (id) |> WHERE position = 0 |> SELECT id ' +
+    "|> EXTEND 'urgent' AS text " +
+    omittedInfer,
+  'guard-null': 'SELECT 7 AS id, CAST(NULL AS FLOAT64) AS guard ' +
+    '|> ASSERT UNIQUE BY (guard) |> SELECT id |> ASSERT UNIQUE BY (id) ' +
+    "|> EXTEND 'urgent' AS text |> INFER `model-task:packed-risk.v1` " +
+    'INPUT (text = text) KEEP (*) AS assessment',
 };
 
 export const sourceRefusals = {

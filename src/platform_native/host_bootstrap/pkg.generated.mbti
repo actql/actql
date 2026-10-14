@@ -52,6 +52,7 @@ pub fn[T] NativeHostBootstrap::usage(Self[T]) -> @physical_resources.LedgerUsage
 
 type NativeInstalledArenaSupplier[T]
 pub fn[T] NativeInstalledArenaSupplier::acquire(Self[T], T) -> Result[NativeBootstrapAcquisition[T], NativeBootstrapIssue]
+pub fn[T] NativeInstalledArenaSupplier::acquire_fd(Self[T], T, Int) -> Result[NativeBootstrapAcquisition[T], NativeBootstrapIssue]
 
 // Type aliases
 
