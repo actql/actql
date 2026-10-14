@@ -49,6 +49,7 @@ struct NativeClientRunRecord {
   publication_policy_originals : String?
   effect_material_originals : String?
   local_run_policy_originals : String?
+  run_observation_originals : String?
   revision : Int64
   checkpoint : NativeClientCheckpointRecord?
 }
@@ -99,6 +100,7 @@ fn run_record_body(
       checkpoint,
     },
     local_run_policy_originals=record.local_run_policy_originals,
+    run_observation_originals=record.run_observation_originals,
   ).map_err(issue => {
     match issue {
       Encoding => Encoding
@@ -136,8 +138,8 @@ fn read_run_record_in_mode(
   row : @sqlite.NativeJournalValue,
   mode : RunRecordPolicyValidation,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
-  let (decoded, local_run_policy_originals) = match
-    @host.decode_client_run_journal_row_with_local_policy(row.body) {
+  let (decoded, local_run_policy_originals, run_observation_originals) = match
+    @host.decode_client_run_journal_row_with_observation_originals(row.body) {
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
@@ -183,6 +185,7 @@ fn read_run_record_in_mode(
     publication_policy_originals: decoded.publication_policy_originals,
     effect_material_originals: decoded.effect_material_originals,
     local_run_policy_originals,
+    run_observation_originals,
     revision: row.revision,
     checkpoint,
   }
@@ -194,6 +197,10 @@ fn read_run_record_in_mode(
       @effect.effect_ledger_entry_scope_cid(entry) !=
       @host.client_request_scope_cid(request)
     }) {
+    return Err(CustodyLost)
+  }
+  if run_observation_originals is Some(wire) &&
+    read_native_run_observation_originals(wire, definition) is Err(_) {
     return Err(CustodyLost)
   }
   match run_record_body(record) {
@@ -508,6 +515,7 @@ fn NativeClientRunJournal::bind_run_locked(
   self : NativeClientRunJournal,
   request : @host.ClientRequestIdentity,
   definition : @publication.PublicationContract,
+  run_observation_originals? : String? = None,
 ) -> Result[NativeClientRunRecord, NativeClientRunJournalIssue] {
   match self.retained(request) {
     Err(issue) => return Err(issue)
@@ -556,6 +564,7 @@ fn NativeClientRunJournal::bind_run_locked(
     publication_policy_originals: None,
     effect_material_originals: None,
     local_run_policy_originals: None,
+    run_observation_originals,
     revision: 0L,
     checkpoint: None,
   }
