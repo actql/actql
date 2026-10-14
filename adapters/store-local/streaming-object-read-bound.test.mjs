@@ -193,3 +193,46 @@ test('raced-in FIFO refuses without blocking open or returning verified bytes',
     assert.equal(f.hashed(), 0);
     assert.equal(f.fd(), -1);
   });
+
+// Observe acquisition, not just returned chunk length: the selected Node
+// stream can allocate its default backing and then copy a smaller result.
+async function originalReadAllocations(action) {
+  const original = Buffer.allocUnsafeSlow;
+  const sizes = [];
+  Buffer.allocUnsafeSlow = function(length) {
+    const result = Reflect.apply(original, Buffer, [length]);
+    if (new Error().stack.includes('internal/fs/streams')) sizes.push(length);
+    return result;
+  };
+  try { await action(); }
+  finally { Buffer.allocUnsafeSlow = original; }
+  return sizes;
+}
+
+test('small actual verifier bounds acquisition including its one-byte overflow probe',
+  async t => {
+    const f = await physicalVerifier(t, 'unchanged');
+    const sizes = await originalReadAllocations(async () => {
+      assert.equal((await f.verify('original')).bytes, 4);
+    });
+    t.diagnostic(JSON.stringify({originalBytes: 4, readAllocations: sizes,
+      normalNumericProfile: null, publicE2E: 0}));
+    assert.ok(sizes.length > 0);
+    assert.ok(sizes.every(size => size <= 5));
+    assert.equal(f.hashed(), 4);
+    assert.equal(f.fd(), -1);
+  });
+
+test('growing actual verifier funds the sentinel without hashing overflow bytes',
+  async t => {
+    const f = await physicalVerifier(t, 'growth');
+    const sizes = await originalReadAllocations(async () => {
+      await assert.rejects(f.verify('original'), corrupt);
+    });
+    t.diagnostic(JSON.stringify({originalBytes: 4, readAllocations: sizes,
+      normalNumericProfile: null, publicE2E: 0}));
+    assert.ok(sizes.length > 0);
+    assert.ok(sizes.every(size => size <= 5));
+    assert.equal(f.hashed(), 0, 'the original growth law is unchanged');
+    assert.equal(f.fd(), -1);
+  });
