@@ -5,7 +5,18 @@
 #include "moonbit.h"
 #include <stdint.h>
 #include <string.h>
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+#ifndef ACTQL_SCOPED_READ_PROVIDER
+#error "A scoped read build requires its exact copied provider source"
+#endif
+#include ACTQL_SCOPED_READ_PROVIDER
+#else
+#ifdef ACTQL_SCOPED_READ_PROVIDER
+#error "A derived read provider requires the matching scoped runtime header"
+#endif
 #include "../../../packages/python-local-runtime/native/pre-root/owned_capacity.c"
+typedef struct actql_read_context actql_read_context;
+#endif
 #include "../../../packages/python-local-runtime/native/pre-root/owned_image.c"
 
 typedef struct {
@@ -276,6 +287,15 @@ typedef struct {
     actql_bootstrap_view *view;
     actql_owned_capacity *lease;
     int status;
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    /* Same domain carrier, not another external allocation or cleanup owner.
+     * This derived layout needs its own real control/holding inventory. */
+    actql_read_context *read_context;
+    size_t read_active;
+    bool read_attempted;
+    bool read_user;
+    bool read_prepare_scope;
+#endif
 } actql_bootstrap_domain;
 
 MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire_domain(actql_bootstrap_view *view) {
@@ -283,6 +303,13 @@ MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire_domain(actql_bootstrap_view *vi
         keep_physical_custody, sizeof(*record));
     record->view = view;
     record->lease = NULL;
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    record->read_context = NULL;
+    record->read_active = 0;
+    record->read_attempted = false;
+    record->read_user = false;
+    record->read_prepare_scope = false;
+#endif
     record->status = view->status == ACTQL_OWNED_OK
         ? actql_native_owned_acquire_extent_domain(&view->view, &record->lease)
         : view->status;
@@ -314,4 +341,124 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_close_domain(
     if (record->lease == NULL && record->status != ACTQL_OWNED_OK)
         return ACTQL_OWNED_OK;
     return actql_native_owned_close_extent_domain(&view->view, &record->lease);
+}
+
+/* Capability, not a grant: nominal backing/current and Common use must precede
+ * every physical read call. Stock builds refuse rather than silently fallback. */
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_supported(void) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_read_context_status(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record->read_prepare_scope) return ACTQL_OWNED_BUSY;
+    return record->read_context != NULL && record->read_user
+        ? ACTQL_OWNED_OK : ACTQL_OWNED_INVALID;
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_prepare_read_context(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record->read_attempted || record->lease == NULL) return ACTQL_OWNED_INVALID;
+    record->read_attempted = true;
+    int status = actql_native_owned_enter(record->lease);
+    if (status != ACTQL_OWNED_OK) return status;
+    record->read_prepare_scope = true;
+    status = actql_read_context_create(record->lease, &record->read_context);
+    if (status == ACTQL_OWNED_OK) {
+        status = actql_read_context_retain(record->read_context);
+        if (status == ACTQL_OWNED_OK) record->read_user = true;
+    }
+    int left = actql_native_owned_leave(record->lease);
+    if (left == ACTQL_OWNED_OK) record->read_prepare_scope = false;
+    /* The same record retains context/user/scope even on partial failure. */
+    return status == ACTQL_OWNED_OK ? left : status;
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_enter_read_context(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record->read_context == NULL || record->read_prepare_scope ||
+        record->read_active == SIZE_MAX) return ACTQL_OWNED_INVALID;
+    int status = actql_native_owned_enter(record->lease);
+    if (status != ACTQL_OWNED_OK) return status;
+    status = actql_read_context_enter(record->read_context);
+    if (status != ACTQL_OWNED_OK) {
+        int left = actql_native_owned_leave(record->lease);
+        if (left != ACTQL_OWNED_OK) record->read_prepare_scope = true;
+        return status;
+    }
+    record->read_active++;
+    return ACTQL_OWNED_OK;
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_leave_read_context(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record->read_active == 0) return ACTQL_OWNED_INVALID;
+    int status = actql_read_context_leave(record->read_context);
+    if (status != ACTQL_OWNED_OK) return status;
+    record->read_active--;
+    status = actql_native_owned_leave(record->lease);
+    if (status != ACTQL_OWNED_OK) record->read_prepare_scope = true;
+    return status;
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
+}
+
+/* Borrowed only while the existing Native caller holds its active scope. The
+ * filesystem constructor retains it before allocating/FD access. No new TLS,
+ * pointer transport, permission lookup or context adoption is introduced. */
+MOONBIT_FFI_EXPORT actql_read_context *actql_bootstrap_current_read_context(void) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (!lock_read_contexts()) return NULL;
+    actql_read_context *context = read_current;
+    bool current = known_read_context(context) && context->active != 0 &&
+        read_depth != 0 && actql_native_owned_current() == context->lease;
+    unlock_read_contexts();
+    return current ? context : NULL;
+#else
+    return NULL;
+#endif
+}
+
+MOONBIT_FFI_EXPORT int32_t actql_bootstrap_close_read_context(
+    actql_bootstrap_domain *record) {
+#if defined(ACTQL_SCOPED_READ_ALLOCATOR)
+    if (record->read_active != 0) return ACTQL_OWNED_BUSY;
+    if (record->read_prepare_scope) {
+        int left = actql_native_owned_leave(record->lease);
+        if (left != ACTQL_OWNED_OK) return left;
+        record->read_prepare_scope = false;
+    }
+    if (record->read_context == NULL) return ACTQL_OWNED_OK;
+    if (record->read_user) {
+        int status = actql_read_context_release_after_owner_ack(record->read_context);
+        if (status != ACTQL_OWNED_OK) return status;
+        record->read_user = false;
+    }
+    return actql_read_context_try_close(&record->read_context);
+#else
+    (void)record;
+    return ACTQL_OWNED_INVALID;
+#endif
 }
