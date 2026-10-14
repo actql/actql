@@ -81,8 +81,10 @@ fn product_census_root(
 }
 
 ///|
-// Retire the temporary root projection before building the selected child's
-// entries. Unknown/empty directories are never discovered from physical I/O.
+// Validate the parent with a bounded temporary root projection. This scope
+// proves neither physical retirement nor GC: caller workspace must cover the
+// temporary/root and child construction overlap. Unknown/empty directories are
+// never discovered from physical I/O.
 fn product_census_require_parent(
   value : ClientNativeProductMembers,
   parent : String,
