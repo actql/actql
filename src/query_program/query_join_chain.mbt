@@ -455,6 +455,7 @@ fn compile_join_chain_steps(
       }
     }
     let coalesced : Array[(String, @builder.Node)] = []
+    let coalesced_labels : Array[(String, String)] = []
     if !part.using_columns.is_empty() {
       // USING keys lead the visible row in authored order. Qualified ranges
       // retain both originals; RIGHT uses its preserved right key unqualified.
@@ -486,6 +487,10 @@ fn compile_join_chain_steps(
           }
           let merged_slot = pipe_physical_name(physical, "aql_chain_column_")
           physical.push(merged_slot)
+          if construction.infer_labels {
+            spend_infer_key_label_pair(construction, (display, merged_slot))
+            coalesced_labels.push((display, merged_slot))
+          }
           coalesced.push(
             (
               merged_slot,
@@ -594,7 +599,7 @@ fn compile_join_chain_steps(
           right_scope.key_labels,
           right_slots,
         ),
-        next_visible,
+        coalesced_labels,
       ),
       visible: next_visible,
       columns: next_columns,

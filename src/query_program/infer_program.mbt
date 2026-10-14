@@ -219,6 +219,7 @@ fn lower_infer_steps(
       Some(check) => check
       None => raise Abort(infer_argument_issue(construction, query, clause))
     }
+    construction.infer_budget.spend(key_labels.length(), construction.generated)
     let projection = check(
       steps.map(step => construction.object(step)),
       captured,
