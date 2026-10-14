@@ -1,0 +1,83 @@
+--- a/crates/wasmtime/src/runtime/vm/sys/unix/mmap.rs
++++ b/crates/wasmtime/src/runtime/vm/sys/unix/mmap.rs
+@@ -18,0 +19,2 @@
++    #[cfg(feature = "actql-owned-capacity")]
++    owned_lease: Option<usize>,
+@@ -41,0 +44,2 @@
++            #[cfg(feature = "actql-owned-capacity")]
++            owned_lease: None,
+@@ -45,0 +50,4 @@
++        #[cfg(feature = "actql-owned-capacity")]
++        return Self::new_owned(size, true);
++        #[cfg(not(feature = "actql-owned-capacity"))]
++        {
+@@ -56,0 +65 @@
++        }
+@@ -59,0 +69,4 @@
++        #[cfg(feature = "actql-owned-capacity")]
++        return Self::new_owned(size, false);
++        #[cfg(not(feature = "actql-owned-capacity"))]
++        {
+@@ -82,0 +96 @@
++        }
+@@ -86,0 +101,4 @@
++        #[cfg(feature = "actql-owned-capacity")]
++        bail!("file mapping is outside the selected owned-capacity path");
++        #[cfg(not(feature = "actql-owned-capacity"))]
++        {
+@@ -106,0 +125 @@
++        }
+@@ -210,0 +230,4 @@
++        #[cfg(feature = "actql-owned-capacity")]
++        if self.owned_lease.is_some() {
++            bail!("file-backed memory image is outside the selected owned-capacity path");
++        }
+@@ -234,0 +258,7 @@
++            #[cfg(feature = "actql-owned-capacity")]
++            if let Some(lease) = self.owned_lease {
++                // A failed retirement remains in the same native lease. Its
++                // final try_close retries physical cleanup; do not munmap here.
++                let _ = actql_owned_retire(lease as *mut core::ffi::c_void, ptr);
++                return;
++            }
+@@ -238,0 +269,40 @@
++
++// Review-only patch candidate. Rust heap/scratch routing is not implemented by
++// this mmap bridge; enabling the feature is not an adopted runtime recipe.
++#[cfg(feature = "actql-owned-capacity")]
++unsafe extern "C" {
++    fn actql_owned_current() -> *mut core::ffi::c_void;
++    fn actql_owned_allocate(lease: *mut core::ffi::c_void, bytes: usize,
++                            alignment: usize, out: *mut *mut core::ffi::c_void) -> i32;
++    fn actql_owned_retire(lease: *mut core::ffi::c_void,
++                          allocation: *mut core::ffi::c_void) -> i32;
++}
++
++#[cfg(feature = "actql-owned-capacity")]
++impl Mmap {
++    fn new_owned(size: HostAlignedByteCount, accessible: bool) -> Result<Self> {
++        let lease = unsafe { actql_owned_current() };
++        if lease.is_null() {
++            bail!("missing original native capacity lease");
++        }
++        let mut base = core::ptr::null_mut();
++        let status = unsafe {
++            actql_owned_allocate(lease, size.byte_count(),
++                                  crate::runtime::vm::host_page_size(), &mut base)
++        };
++        if status != 0 {
++            bail!("native capacity allocation failed: {status}");
++        }
++        let memory = std::ptr::slice_from_raw_parts_mut(base.cast(), size.byte_count());
++        let mapping = Self {
++            memory: SendSyncPtr::new(NonNull::new(memory).unwrap()),
++            owned_lease: Some(lease as usize),
++        };
++        if !accessible {
++            unsafe {
++                mprotect(base, size.byte_count(), MprotectFlags::empty())?;
++            }
++        }
++        Ok(mapping)
++    }
++}
