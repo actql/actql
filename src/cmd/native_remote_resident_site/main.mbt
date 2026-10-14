@@ -975,75 +975,20 @@ priv struct StoppedReleaseRecovery {
 
 ///|
 /// Cleanup never acquires an execution component or a new runtime holding.
-/// The saved Site binding and signed installed bundle remain authoritative;
-/// a newer maintenance executable is not authority to run the old component.
+/// The saved Site binding and signed installed bundle remain authoritative.
+/// A failure is rendered only after the existing lifetime has retired its
+/// original partial constructors and inherited Slot with checked ACKs.
 fn open_release_recovery(
   matches : @argparse.Matches,
   slot : @slot.NativeExecutorSlot,
   identity : String,
 ) -> StoppedReleaseRecovery raise CommandStop {
-  let environment = open_control_environment(matches)
-  guard fresh_journal(environment) is Some(journal) else {
-    stop("release recovery journal unavailable")
-  }
-  let signature_library = match
-    @signature.load_library(required(matches, "crypto-library")) {
-    Ok(value) => value
-    Err(_) => stop("signature library load failed")
-  }
-  let public_key = load_text(
-    required(matches, "bundle-public-key-root"),
-    required(matches, "bundle-public-key-file"),
-    required_int64(matches, "max-file-bytes"),
-  )
-  let bundles = match
-    @bundle.open_runtime_bundle_store(
-      environment.sqlite_library,
-      signature_library,
-      required(matches, "runtime-root"),
-      [
-        {
-          issuer_authority: required(matches, "bundle-issuer"),
-          key_id: required(matches, "bundle-key-id"),
-          public_key_pem: public_key,
-        },
-      ],
-      required(matches, "target-triple"),
-      environment.max_bytes,
-      64,
-      1024,
-      environment.max_record_bytes,
-    ) {
-    Ok(value) => value
-    Err(_) => stop("release recovery bundle Store unavailable")
-  }
-  match bundles.inspect(environment.runtime_bundle_cid) {
-    Ok(Some(_)) => ()
-    _ => {
-      ignore(journal.close())
-      ignore(bundles.close())
-      stop("release recovery saved bundle unavailable")
+  match open_release_recovery_with_custody(matches, slot, identity) {
+    Ok(owner) => owner
+    Err(original) => {
+      finish_failed_release_recovery_open(original)
+      stop(original.failure)
     }
-  }
-  {
-    slot,
-    environment,
-    bundles,
-    journal,
-    request_identity: identity,
-    bundle_closed: false,
-    transfer_journal: None,
-    physical_cleanup: None,
-    physical_cleanup_done: false,
-    release_failure_hook: {
-      remaining: required_int(matches, "holder-release-failures"),
-      attempts: 0,
-    },
-    retained_input: false,
-    recorded_source: None,
-    recorded_consumer: None,
-    completed_input_producer: None,
-    terminal_close: RecoveryTerminalOpen,
   }
 }
 
@@ -4886,12 +4831,7 @@ fn recover_output_command(
   }
   // Reuse the maintenance owner: it verifies saved custody without selecting
   // an executor or claiming that this tool is the original runtime component.
-  let owner = open_release_recovery(matches, slot, expected) catch {
-    CommandStop(issue) => {
-      ignore(slot.close())
-      stop(issue)
-    }
-  }
+  let owner = open_release_recovery(matches, slot, expected)
   let resources = open_holder_output_resources(
     matches,
     environment.sqlite_library,
