@@ -2,6 +2,7 @@
 priv struct ScriptSources {
   declarations : Array[(String, @builder.Node)]
   stages : Array[@builder.Node]
+  prior_stages : Array[@builder.Node]
   bound : Map[String, Input]
   unshared : Array[String]
   ranges : Map[String, JoinChainScope]

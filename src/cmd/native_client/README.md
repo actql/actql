@@ -48,6 +48,27 @@ above or complete approval and other recovery profiles. Run this through the
 existing heavy guard after preparing a clean-source Native CLI RC with the
 existing artifact/release producers.
 
+## Static Local explanation in current source
+
+The source-level `explain` command accepts the same `--program-file`, explicit
+`--format`, separate parameter values and declarations as Local `check`.
+It uses the same selected Check Environment and original prepared computation,
+then returns the existing compiler-owned PlanView. `--json` emits that closed
+PlanView directly; human output states that no Run was admitted.
+
+This first connection covers source-free computation. Source acquisition and
+Effect normalization profiles remain explicitly unavailable. The view reports
+static observation, zero Provider I/O and unknown quantities, with Inspect and
+durable controls unavailable. It neither runs the Program nor issues authority,
+opens a Result or creates a Submission. Remote mode refuses the command before
+opening connection or input files. The packaged route retains explicit trust
+adoption and the original selected configuration.
+
+These statements describe current Native source tests, not a new installed
+cohort. The accepted installed baseline above retains its original digest and
+does not gain `explain` until a matching formal artifact passes external
+installation acceptance.
+
 ## Explicit Local Host adoption
 
 `adopt`, `connect` and `new-submission` in explicit Local mode connect the

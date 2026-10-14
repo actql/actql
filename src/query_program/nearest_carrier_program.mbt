@@ -142,6 +142,7 @@ fn lower_script_nearest_carrier(
     value_table: false,
     value_columns: [],
     receivers: [],
+    key_labels: seed_infer_key_labels(construction, [], result_fields),
     scalar_ranges: [],
   }
   let tail = @query.after_first_query_operation(query).unwrap()

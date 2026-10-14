@@ -234,8 +234,8 @@ unpivot_operator = "UNPIVOT", [ ( "INCLUDE" | "EXCLUDE" ), "NULLS" ],
                    unpivot_input, { ",", unpivot_input }, ")", ")", [ source_alias ] ;
 unpivot_column_set = identifier | "(", identifier, { ",", identifier }, ")" ;
 unpivot_input = unpivot_column_set, [ [ "AS" ], ( query_string | integer ) ] ;
-infer_operator = "INFER", identifier, "ITEM", "KEY", "(",
-                 path, { ",", path }, ")", "INPUT", "(",
+infer_operator = "INFER", identifier, [ "ITEM", "KEY", "(",
+                 path, { ",", path }, ")" ], "INPUT", "(",
                  [ infer_input, { ",", infer_input } ], ")",
                  [ keep_clause ], "AS", identifier ;
 (* Shorthand is one ordinary binding identifier, quoted when reserved. The
