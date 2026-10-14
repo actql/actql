@@ -14,8 +14,13 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_region_native.mbt",
-      "bytes": 7023,
-      "sha256": "0e624d202c0e3e4d736577279f6ba7902d8c1059d1a3eafefb60a25f93b77940"
+      "bytes": 7348,
+      "sha256": "8f93cb86edc7acc2a2f41a8fc6a33ee5264a2545352ea354df2c779ab0b42301"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/backed_view_native.mbt",
+      "bytes": 7669,
+      "sha256": "ee9b1786f71e998e5d6174b3f9eb67cd7bb2b06b9eac30912aa97efa17fe9d46"
     },
     {
       "path": "src/platform_native/host_bootstrap/backed_region_wbtest.mbt",
@@ -24,8 +29,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
-      "bytes": 7158,
-      "sha256": "0485827bad574756ec79c58beeedf08f64cbab1b9189c1495ae97a8b3b6da524"
+      "bytes": 11723,
+      "sha256": "c508cce6d5784a31c213fb1f79127b591f83b4b722a0ca93539f7d39ae3a2619"
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_wbtest.mbt",
@@ -39,8 +44,8 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.c",
-      "bytes": 13515,
-      "sha256": "75ad75312f41236a0f08f60473001c86480d69e562801d307c73916c8e3ef89a"
+      "bytes": 13894,
+      "sha256": "6d71b37e7383cb8ed1676e20ae9bee3aa76c0903a95f542c10d10ce1a48fe1c9"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
@@ -49,13 +54,13 @@
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_region.h",
-      "bytes": 2863,
-      "sha256": "0ebfe06bf3311ae4c3690342916d727c88c68f06f5ea7ea1e17cc878de9ed445"
+      "bytes": 3996,
+      "sha256": "f9add7f86513bd7c7c6607dc8146dd2c4e5f3b274533687e248a90822c7d0fa6"
     },
     {
       "path": "packages/python-local-runtime/native/pre-root/owned_region.inc",
-      "bytes": 9926,
-      "sha256": "57ae393f46b18aa2ad34cd7efde280db32288cb175cd1059fe172130c0914639"
+      "bytes": 14325,
+      "sha256": "00b572a0492f707aec7422cbb02b7bdc296a8efef5d1eb808342d88621207b86"
     }
   ]
 }

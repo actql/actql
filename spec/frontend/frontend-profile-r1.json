@@ -1349,7 +1349,7 @@
       "surface_forms": [
         "|> EFFECT name ...",
         "EFFECT name ...",
-        "|> EFFECT [name] UPDATE TARGET string MAPPING identifier FROM RESULT name ID field SET (assignments)"
+        "|> EFFECT [name] UPDATE TARGET string MAPPING identifier [FROM RESULT name] ID field SET (assignments)"
       ],
       "canonical_lowering": "stage effect map",
       "preconditions": [
