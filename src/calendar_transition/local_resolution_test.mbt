@@ -50,8 +50,8 @@ test "gap advances and coincident local boundaries collapse" {
     [{ at_ms: 5000L, offset_seconds: 2, }],
     max_transitions=1,
   ).unwrap()
-  for local in [5000L, 6000L, 7000L] {
-    assert_eq(resolve_fixture(table, local, 1), (Ok(5000L), 3))
+  for coordinate in [5000L, 6000L, 7000L] {
+    assert_eq(resolve_fixture(table, coordinate, 1), (Ok(5000L), 3))
   }
   assert_eq(resolve_fixture(table, 8000L, 1), (Ok(6000L), 3))
 }
@@ -105,7 +105,7 @@ test "skipped civil day boundaries resolve to one UTC instant" {
 
 ///|
 test "original table custody and exact integer offsets survive polls" {
-  let transitions = [{ at_ms: 5000L, offset_seconds: 0, }]
+  let transitions : Array[Transition] = [{ at_ms: 5000L, offset_seconds: 0, }]
   let table = admit(0L, 10000L, 2, transitions, max_transitions=1).unwrap()
   let cursor = start_local_resolution(table, 6000L, max_work=3).unwrap()
   transitions[0] = { at_ms: 3000L, offset_seconds: 3, }
@@ -125,4 +125,24 @@ test "original table custody and exact integer offsets survive polls" {
     resolve_fixture(large, 9002147483647037L, 1),
     (Ok(9000000000000037L), 2),
   )
+}
+
+///|
+test "overlapping forward gaps use the earliest original transition" {
+  let table = admit(
+    0L,
+    20000L,
+    0,
+    [
+      { at_ms: 5000L, offset_seconds: 4, },
+      { at_ms: 6000L, offset_seconds: -3, },
+      { at_ms: 6500L, offset_seconds: 0, },
+    ],
+    max_transitions=3,
+  ).unwrap()
+  // Both forward jumps remove 5500 from local time. The earlier UTC jump
+  // wins, even though the later jump has a smaller resulting local value.
+  for quantum in [1, 2, 7] {
+    assert_eq(resolve_fixture(table, 5500L, quantum), (Ok(5000L), 5))
+  }
 }

@@ -6,10 +6,8 @@ struct LocalResolution {
   local_ms : Int64
   mut segment : Int
   mut remaining_work : Int
-  mut first_local : Int64?
-  mut last_local : Int64?
-  mut best_local : Int64?
-  mut best_utc : Int64?
+  mut exact_utc : Int64?
+  mut gap_utc : Int64?
   mut terminal : Bool
 }
 
@@ -49,10 +47,8 @@ pub fn start_local_resolution(
     local_ms,
     segment: 0,
     remaining_work: max_work,
-    first_local: None,
-    last_local: None,
-    best_local: None,
-    best_utc: None,
+    exact_utc: None,
+    gap_utc: None,
     terminal: false,
   })
 }
@@ -102,41 +98,36 @@ pub fn advance_local_resolution(
       let offset_ms = offset.to_int64() * 1000L
       let local_start = start + offset_ms
       let local_end = end + offset_ms
-      cursor.first_local = Some(
-        match cursor.first_local {
-          None => local_start
-          Some(value) => Int64::min(value, local_start)
-        },
-      )
-      cursor.last_local = Some(
-        match cursor.last_local {
-          None => local_end
-          Some(value) => Int64::max(value, local_end)
-        },
-      )
-      let candidate_local = Int64::max(cursor.local_ms, local_start)
-      if candidate_local < local_end {
-        let candidate_utc = candidate_local - offset_ms
-        let replace = match (cursor.best_local, cursor.best_utc) {
-          (Some(local), Some(utc)) =>
-            candidate_local < local ||
-            (candidate_local == local && candidate_utc < utc)
-          _ => true
-        }
-        if replace {
-          cursor.best_local = Some(candidate_local)
-          cursor.best_utc = Some(candidate_utc)
+      if cursor.local_ms >= local_start && cursor.local_ms < local_end {
+        let candidate = cursor.local_ms - offset_ms
+        cursor.exact_utc = Some(
+          match cursor.exact_utc {
+            None => candidate
+            Some(previous) => Int64::min(previous, candidate)
+          },
+        )
+      }
+      if index < count {
+        let next_offset = cursor.table.transitions[index].offset_seconds.to_int64() *
+          1000L
+        let next_local_start = end + next_offset
+        if cursor.local_ms >= local_end && cursor.local_ms < next_local_start {
+          // Match the selected conversion law: if no exact occurrence exists,
+          // a forward gap advances to its earliest original transition instant.
+          cursor.gap_utc = Some(
+            match cursor.gap_utc {
+              None => end
+              Some(previous) => Int64::min(previous, end)
+            },
+          )
         }
       }
       cursor.segment += 1
     } else {
       cursor.terminal = true
-      guard cursor.first_local is Some(first) &&
-        cursor.last_local is Some(last) &&
-        cursor.local_ms >= first &&
-        cursor.local_ms < last &&
-        cursor.best_utc is Some(utc) else {
-        return Ok(ResolutionFailed(OutsideResolutionCoverage, work=used))
+      let utc = match (cursor.exact_utc, cursor.gap_utc) {
+        (Some(value), _) | (None, Some(value)) => value
+        _ => return Ok(ResolutionFailed(OutsideResolutionCoverage, work=used))
       }
       return Ok(ResolutionReady(utc_ms=utc, work=used))
     }
