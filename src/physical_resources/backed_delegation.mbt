@@ -41,6 +41,9 @@ pub struct BackedExecutionDelegation[P, C] {
   // The original logical reservation's open flag is the settlement state.
   // None remains unknown final usage; it never means zero usage or unsent.
   mut final_usage : LedgerUsage?
+  // One original read/workspace lifetime, not another byte reservation.
+  mut read_use_issued : Bool
+  mut read_use : BackedExecutionReadUse[P, C]?
 }
 
 ///|
@@ -53,6 +56,7 @@ pub(all) enum BackedExecutionIssue {
   Retired
   CleanupPending
   ChangedFinalUsage
+  ReadUseAlreadyIssued
   Resource(LedgerIssue)
 } derive(Eq, Debug)
 
@@ -195,6 +199,8 @@ pub fn[P, C] reserve_backed_execution_delegation(
     limits,
     peak_retention: 0L,
     final_usage: None,
+    read_use_issued: false,
+    read_use: None,
   }
   region.children.push(ticket)
   Ok(ticket)
@@ -352,6 +358,11 @@ pub fn[P, C] settle_backed_execution_after_owner_ack(
     backed_child_current(region, provider, child, ticket) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  // Root/Reader aliases and pending physical context retirement still borrow
+  // this original child. Even a parent stop observation cannot erase them.
+  if ticket.read_use is Some(_) {
+    return Err(CleanupPending)
   }
   if logical.reservation.open {
     if final_usage is Some(usage) && !backed_usage_valid(ticket, usage) {
