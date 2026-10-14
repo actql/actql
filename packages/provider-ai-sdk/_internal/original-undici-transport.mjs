@@ -264,7 +264,10 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
       body.on('error', () => {});
       bodyClosed = body.closed ? Promise.resolve(true)
         : new Promise(resolve => body.once('close', () => resolve(true)));
-      return originalResponseView(response, body, () => bodyClosed);
+      // Escaped unread/reader views retain this SAME close observation after
+      // the transport drops its own references. Do not make their cancellation
+      // consult a mutable cell that physical cleanup can retire first.
+      return originalResponseView(response, body, bodyClosed);
     });
     // Cleanup and callers observe the same rejection, never an unhandled one.
     pending.catch(() => {});
@@ -333,7 +336,7 @@ function originalResponseView(response, body, closed) {
   let reading;
   const cancel = async () => {
     body.destroy();
-    if (await closed() !== true) throw issue('UndiciOriginalBodyCleanupPending');
+    if (await closed !== true) throw issue('UndiciOriginalBodyCleanupPending');
   };
   const stream = Object.freeze({getReader() {
     if (reader !== undefined) throw issue('UndiciOriginalBodyLocked');
