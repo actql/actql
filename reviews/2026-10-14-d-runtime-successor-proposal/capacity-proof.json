@@ -1,0 +1,99 @@
+{
+  "baseSource": "9ee10eecde17749a2ac4e8ba75babec96e7a0ad2",
+  "inputReferences": [
+    {
+      "path": "/private/tmp/actql-d-cli-controlled-migration-a3b1643fbedc5180db38b6e08459a188f05b1135-structural-v2/node_modules/@actql/cli-darwin-arm64/local-runtime.json",
+      "bytes": 2289,
+      "sha256": "585e5959c972a801335103217d2dede6cb12f72333a58f6b88bf88c85075fd85"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/reviews/2026-10-12-d-native-local-expiry-1701/clock-consumer-correction-a3b1643f-v2/upgrade-independent-confirmation.json",
+      "sha256": "9f500dc871103de4f4bc4a327bc83ce8cf618f3baf36eabcd18c2263e8b0b278"
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/reviews/2026-10-12-d-native-local-expiry-1701/clock-consumer-remaining-main-header-a3b1643f-v4/rows-before.json",
+      "sha256": "fb886e3885460f2ed6994e460f9fc785bd1ca95c1131f1e941d8ae76658e885d"
+    }
+  ],
+  "snapshotScope": "Historical retained snapshot only; current DB was not opened. The actual execution must recheck the authenticated counter, all rows and exact original reservations.",
+  "observedCounter": {
+    "issued": 1,
+    "revision": 1,
+    "originals": 1,
+    "expectedReservedBytesByExistingInvariant": 8192,
+    "expectedReservedObjectsByExistingInvariant": 1
+  },
+  "settings": {
+    "selectedFileRows": 7,
+    "ordinaryRowsIncludingManifest": 8,
+    "ordinaryBodyBytes": 51999
+  },
+  "proposalSizing": {
+    "payloadBytes": 4344,
+    "proposalBodySHA256": "e4a1b2d89f094acc5680f3f88fd04224022d8682b9b2dffbe7b4eda3d0e2616b",
+    "encodedBytes": 5792,
+    "headBytes": 4096,
+    "tailBytes": 1696,
+    "framedPacketBytesWithNonAuthenticatingTag": 5902,
+    "maxStringUTF8Bytes": 2289,
+    "rawBodyStringsBytes": 3746,
+    "payloadBound": 5632,
+    "packetReservationBytes": 8192,
+    "reservationAfterOneExistingPlusOneNew": 16384,
+    "recordsAfterOneExistingPlusOneNew": 2,
+    "settingsFiles": 7,
+    "settingsRelativeBound": 8,
+    "storageOnlyNotMemoryOrPermission": true,
+    "recordTreeNodes": 23,
+    "recordDepth": 2,
+    "readerAggregateStringBytesIncludingKeys": 3962
+  },
+  "distinctAccounting": "SQLite capacity_sum sums actql_capacity reservations; ordinary settings body bytes are NOT added to its65536 reservation limit. Their physical record/parse/workspace bounds remain separate.",
+  "insufficientCases": [
+    {
+      "name": "absolute slot saturation",
+      "count": 8,
+      "N": 7,
+      "after": 9,
+      "result": "CapacityExceeded; no reserve/insert/CAS"
+    },
+    {
+      "name": "relative bound saturation before absolute cap",
+      "count": 5,
+      "N": 4,
+      "after": 6,
+      "result": "CapacityExceeded; settings.files.length+1 remains5"
+    },
+    {
+      "name": "missing or mismatched reservation",
+      "result": "CustodyLost; no repair or new reservation during lookup"
+    },
+    {
+      "name": "payload5633",
+      "payloadBytes": 5633,
+      "result": "CapacityExceeded before HMAC/packet copy"
+    },
+    {
+      "name": "field4097",
+      "fieldBytes": 4097,
+      "result": "existing closed-record decoder/encoding refusal"
+    },
+    {
+      "name": "packet8193",
+      "packetBytes": 8193,
+      "result": "Existing codec/capacity refusal; no slot widening"
+    }
+  ],
+  "noCurrentCapacityAllow": true,
+  "newNative": 0,
+  "oldDBOperations": 0,
+  "maximumOperationSizing": {
+    "assumption": "Fixed eleven-field shape, exact prior2289-byte manifest, fixed-size digest/pair/package-identity strings, operation128 UTF16 units whose worst JSON escaping is6 ASCII bytes/unit. Invalid UTF16 still refuses.",
+    "payloadBytes": 5079,
+    "base64Bytes": 6772,
+    "packetBytesWithLengthOnlyTag": 6882,
+    "maxAllowedPayload": 5632,
+    "maxAllowedPacket": 8192,
+    "notPhysicalOrPermissionProof": true
+  }
+}

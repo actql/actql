@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {readFileSync} from 'node:fs';
+import {mkdtemp, readFile, rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
 import {dirname, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
@@ -10,12 +12,58 @@ import {releaseWindowGroupFixturePaths, selectReleaseWindowGroupCases}
 import {windowGroupSourceRows, windowGroupSourceSuccesses as successes,
   windowGroupSourceRefusals as refusals} from './fixtures/window-group-source-input.mjs';
 import {createWindowGroupRows, createWindowGroupPageDriver, windowGroupSchemaWire,
-  windowGroupSchemaCid, windowGroupViewSpecification, windowGroupReadOperations}
+  windowGroupSchemaCid, windowGroupViewSpecification, windowGroupReadOperations,
+  installWindowGroupFixture}
   from './fixtures/window-group-installed-source.mjs';
+import {createInstalledConnectorTable, installedConnectorForTable,
+  loadInstalledConnectorModule} from '../adapters/host-node/installed-connectors.mjs';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
 import {auditWindowGroupTransport} from '../reviews/2026-10-14-window-group-release-matrix/public-audit.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
+
+test('window installation keeps Host registration separate from the logical Source connector', async () => {
+  const directory = await mkdtemp(resolve(tmpdir(), 'actql-window-registration-'));
+  // Only the declaration is a test double. The connector table and module
+  // validation below use the real Host owner, without starting a runtime.
+  const declaration = {
+    views: [{resource: 'r', source_ref: 'connector://crm/main/r#records',
+      view_cid: 'fixture-view-cid'}],
+    view_bodies: [JSON.stringify({contract_cid: 'fixture-view-cid',
+      output: {schema: {cid: 'fixture-schema-cid'}}})],
+  };
+  let restoreCalls = 0;
+  const moon = {
+    clientProgramRowSourceRestoreRelationDeclaration(...args) {
+      assert.deepEqual(args, ['crm/main', 'window_fixture', 'window_fixture/0.1',
+        JSON.stringify(windowGroupViewSpecification), undefined]);
+      restoreCalls++;
+      return declaration;
+    },
+    clientProgramRowSourceDeclarationJson: value => JSON.stringify(value),
+  };
+  try {
+    const installed = await installWindowGroupFixture({moon,
+      helpers: {checked: value => value}, createInstalledConnectorTable, directory});
+    const profile = JSON.parse(await readFile(installed.sourceProfilePath, 'utf8'));
+    assert.equal(profile.connectorId, 'crm/main');
+    assert.deepEqual(profile.queryAliases, [{name: 'records',
+      sourceRef: 'connector://crm/main/r#records',
+      sourceViewContractCid: 'fixture-view-cid', schemaContractCid: 'fixture-schema-cid'}]);
+    const entry = installedConnectorForTable(installed.connectorTable, 'source', profile);
+    assert.equal(entry.name, 'window_fixture');
+    assert.equal(entry.registration, 'window_fixture');
+    assert.equal(entry.revision, 'window_fixture/0.1');
+    assert.equal(entry.source.profileVersion, 'actql-installed-window-fixture/0.1');
+    const module = await loadInstalledConnectorModule(entry);
+    const {queryAliases, ...providerProfile} = profile;
+    assert.equal(module.check(providerProfile), providerProfile);
+    assert.equal(restoreCalls, 1);
+    assert.deepEqual(installed.observations, {...observation(), issuedGrants: 0, closedSites: 0});
+  } finally {
+    await rm(directory, {recursive: true, force: true});
+  }
+});
 
 test('normal window selection retains all original nine normal and nine refusal cases', () => {
   const selected = selectReleaseWindowGroupCases();

@@ -20,6 +20,7 @@ export function createVerifiedCaseReceipts(mode, writeFile, {prefix, version}) {
   return {
     async record(item, caseMode = mode) {
       cases.push({mode: caseMode, name: item.name, ref: item.ref,
+        submissionRef: item.submissionRef,
         results: item.observedResults, beforeSubmit: item.beforeSubmit, beforeRead: item.beforeRead,
         ...(item.afterReplay === undefined ? {} : {afterReplay: item.afterReplay})});
       await persist(false);
