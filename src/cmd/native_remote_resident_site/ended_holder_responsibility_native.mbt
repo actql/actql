@@ -164,10 +164,14 @@ priv struct ControlEndedHolderLifetime {
   matches : @argparse.Matches
   recovery_close_failures : Ref[Int]
   mut pending_custody : PendingBundleCustody?
+  replay_journal : Ref[ControlReplayJournalCustody?]
 }
 
 ///|
 fn retry_control_ended_holder_lifetime(original : ControlEndedHolderLifetime) -> Bool {
+  guard retry_control_replay_journal_cleanup(original.replay_journal) else {
+    return false
+  }
   if original.live.val is Some(holder) {
     match holder.child.wait(false) {
       Ok(Some(_)) => {
@@ -264,11 +268,12 @@ fn retain_control_ended_holder_lifetime(
   matches : @argparse.Matches,
   recovery_close_failures : Ref[Int],
   pending_custody : PendingBundleCustody?,
+  replay_journal : Ref[ControlReplayJournalCustody?],
 ) -> @slot.NativeExecutorSlot {
   let original : ControlEndedHolderLifetime = {
     ended, live: Ref(live), environment, client, observation_url, slot, slot_path,
     orphan_store, recovery, recovery_cursor: Ref(""), matches,
-    recovery_close_failures, pending_custody,
+    recovery_close_failures, pending_custody, replay_journal,
   }
   install_partial_holder_cleanup_signal()
   ignore(retain_holder_cleanup_lifetime(

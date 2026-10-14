@@ -1311,6 +1311,7 @@ fn queue_completed_retained_holder(
 ///|
 fn replay_output_reports(
   environment : ControlEnvironment,
+  retained : Ref[ControlReplayJournalCustody?],
   client : @http.Client,
   url : String,
   next : Ref[UInt64],
@@ -1322,7 +1323,7 @@ fn replay_output_reports(
   // A class-wide pacing hint has constant size. The original journal/cursor
   // owns every report; a deadline never drops or reissues that responsibility.
   if @env.now() < next.val { return }
-  guard fresh_journal(environment) is Some(journal) else { return }
+  guard open_control_replay_journal(environment, retained) is Some(journal) else { return }
   let mut cursor = cursor_owner.val
   // One report per pass; rotate the cursor so retries cannot starve poll,
   // release, or another report even when requests outlast the backoff.
@@ -1424,7 +1425,7 @@ fn replay_output_reports(
       }
     }
   }
-  if !journal.close() {
+  if !retry_control_replay_journal_cleanup(retained) {
     report("output-report-recovery-pending", [("reason", "journal-close")])
   }
 }
@@ -1584,6 +1585,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   let next_cancel_report : Ref[UInt64] = Ref(0UL)
   let mut polls = 0
   let mut holders = 0
+  let replay_journal : Ref[ControlReplayJournalCustody?] = Ref(None)
   let next_output_report : Ref[UInt64] = Ref(0UL)
   let report_cursor : Ref[String] = { val: "", }
   let next_checkpoint_report : Ref[UInt64] = Ref(0UL)
@@ -1596,14 +1598,26 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     }
   }
   while !@slot.native_termination_requested() {
+    // A failed replay constructor/close owns this same original handle. Do not
+    // poll, dispatch, or open another journal until its checked cleanup ACK.
+    if !retry_control_replay_journal_cleanup(replay_journal) {
+      report("replay-journal-cleanup-pending", [])
+      @slot.native_wait_milliseconds(idle_wait_ms)
+      continue
+    }
     replay_output_reports(
-      environment, client, observation_url, next_output_report, max_backoff_ms, report_cursor,
+      environment, replay_journal, client, observation_url, next_output_report, max_backoff_ms, report_cursor,
       site_delegation, report_checkpoint,
     )
     replay_effect_checkpoint_reports(
-      environment, client, observation_url, next_checkpoint_report, max_backoff_ms,
+      environment, replay_journal, client, observation_url, next_checkpoint_report, max_backoff_ms,
       checkpoint_report_cursor, site_delegation, report_checkpoint,
     )
+    if replay_journal.val is Some(_) {
+      // The original remains reachable through terminal handoff if stopped.
+      @slot.native_wait_milliseconds(idle_wait_ms)
+      continue
+    }
     // A finished holder's durable record is reported before new work.
     match holder {
       Some(current) =>
@@ -2401,10 +2415,12 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
   // Neither report ACK nor child exit discards physical responsibility at the
   // terminal controller boundary. Keep it in the existing lifetime shell.
   if !unsettled.is_empty() || holder is Some(_) || orphan_store is Some(_) ||
-    recovery.val is Some(_) || pending_custody is Some(_) {
+    recovery.val is Some(_) || pending_custody is Some(_) ||
+    replay_journal.val is Some(_) {
     slot = retain_control_ended_holder_lifetime(
       unsettled, holder, environment, client, observation_url, slot, slot_path,
       orphan_store, recovery, matches, recovery_close_failures, pending_custody,
+      replay_journal,
     )
     holder = None
     orphan_store = None
