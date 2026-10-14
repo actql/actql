@@ -353,10 +353,15 @@ fn open_control_environment(
 fn open_site_environment(
   matches : @argparse.Matches,
   process_hold_id : String,
-) -> SiteEnvironment raise CommandStop {
+) -> Result[SiteEnvironment, SiteEnvironmentOpenCustody] raise CommandStop {
   let max_file_bytes = required_int64(matches, "max-file-bytes")
   let max_record_bytes = required_int64(matches, "max-record-bytes")
   let max_bytes = required_int64(matches, "max-bytes")
+  let site_key = required(matches, "site-key")
+  let site_generation = required_int(matches, "site-generation")
+  let max_operations = required_int(matches, "max-operations")
+  let max_transfers = required_int(matches, "max-transfers")
+  let journal_path = required(matches, "journal")
   let target = required(matches, "target-triple")
   let component_cid = required(matches, "component-cid")
   let loaded_component_cid = match
@@ -384,7 +389,7 @@ fn open_site_environment(
     max_file_bytes,
   )
   let bundles = match
-    @bundle.open_runtime_bundle_store(
+    @bundle.open_runtime_bundle_store_with_custody(
       sqlite_library,
       signature_library,
       required(matches, "runtime-root"),
@@ -402,67 +407,119 @@ fn open_site_environment(
       max_record_bytes,
     ) {
     Ok(value) => value
-    Err(issue) =>
-      stop("runtime bundle Store open failed: " + bundle_issue_code(issue))
+    Err(RefusedBeforeAcquisition(issue)) =>
+      return Err(
+        site_environment_open_custody(
+          "runtime bundle Store open refused: " + bundle_issue_code(issue),
+          process_hold_id,
+        ),
+      )
+    Err(CleanupRequired(original)) =>
+      return Err(
+        site_environment_open_custody(
+          "runtime bundle Store open failed: " +
+          bundle_issue_code(original.issue()),
+          process_hold_id,
+          failed_bundle=Some(original),
+        ),
+      )
   }
   let active = match bundles.active() {
     Ok(Some(value)) => value
-    _ => {
-      ignore(bundles.close())
-      stop("active runtime bundle is missing")
-    }
+    _ =>
+      return Err(
+        site_environment_open_custody(
+          "active runtime bundle is missing",
+          process_hold_id,
+          bundles=Some(bundles),
+        ),
+      )
   }
   let active_runtime = match
-    bundles.acquire_active_component(
+    bundles.acquire_active_component_with_custody(
       loaded_component_cid, target, process_hold_id,
     ) {
     Ok(value) => value
-    Err(_) => {
-      ignore(bundles.close())
-      stop("active runtime component verification failed")
-    }
+    Err(RefusedBeforeHolding(_)) =>
+      return Err(
+        site_environment_open_custody(
+          "active runtime component verification refused",
+          process_hold_id,
+          bundles=Some(bundles),
+        ),
+      )
+    Err(HoldingUnconfirmed(_)) =>
+      // Retain may have committed before its response was lost. Missing
+      // holding is not a release ACK for this original attempt.
+      return Err(
+        site_environment_open_custody(
+          "active runtime component verification failed",
+          process_hold_id,
+          bundles=Some(bundles),
+          release_required=true,
+        ),
+      )
   }
   let site = match
     @site.create_site(
-      required(matches, "site-key"),
-      required_int(matches, "site-generation"),
+      site_key,
+      site_generation,
       active.runtime_bundle_cid,
-      required_int(matches, "max-operations"),
-      required_int(matches, "max-transfers"),
+      max_operations,
+      max_transfers,
       max_bytes,
       max_bytes,
     ) {
     Some(value) => value
-    None => {
-      ignore(bundles.release(process_hold_id))
-      ignore(bundles.close())
-      stop("invalid execution Site")
-    }
+    None =>
+      return Err(
+        site_environment_open_custody(
+          "invalid execution Site",
+          process_hold_id,
+          bundles=Some(bundles),
+          release_required=true,
+        ),
+      )
   }
   let control = match
     @remote.create_site_dispatch_journal(site, "actql-remote-site/0.1") {
     Ok(value) => value
-    Err(_) => {
-      ignore(bundles.release(process_hold_id))
-      ignore(bundles.close())
-      stop("invalid dispatch journal binding")
-    }
+    Err(_) =>
+      return Err(
+        site_environment_open_custody(
+          "invalid dispatch journal binding",
+          process_hold_id,
+          bundles=Some(bundles),
+          release_required=true,
+        ),
+      )
   }
   let journal = match
-    @journal.open_journal(
-      sqlite_library,
-      required(matches, "journal"),
-      max_record_bytes,
-      control,
+    @journal.open_journal_with_custody(
+      sqlite_library, journal_path, max_record_bytes, control,
     ) {
     Ok(value) => value
-    Err(_) => {
-      ignore(bundles.release(process_hold_id))
-      ignore(bundles.close())
-      stop("dispatch journal open failed")
-    }
+    Err(RefusedBeforeAcquisition(_)) =>
+      return Err(
+        site_environment_open_custody(
+          "dispatch journal open refused",
+          process_hold_id,
+          bundles=Some(bundles),
+          release_required=true,
+        ),
+      )
+    Err(CleanupRequired(original)) =>
+      return Err(
+        site_environment_open_custody(
+          "dispatch journal open failed",
+          process_hold_id,
+          bundles=Some(bundles),
+          release_required=true,
+          failed_journal=Some(original),
+        ),
+      )
   }
-  {
+  Ok({
     bundles,
     runtime_catalog_record_bytes: max_record_bytes,
     active_runtime,
@@ -471,7 +528,7 @@ fn open_site_environment(
     journal,
     runtime_bundle_cid: active.runtime_bundle_cid,
     sqlite_library,
-  }
+  })
 }
 
 ///|
@@ -918,75 +975,20 @@ priv struct StoppedReleaseRecovery {
 
 ///|
 /// Cleanup never acquires an execution component or a new runtime holding.
-/// The saved Site binding and signed installed bundle remain authoritative;
-/// a newer maintenance executable is not authority to run the old component.
+/// The saved Site binding and signed installed bundle remain authoritative.
+/// A failure is rendered only after the existing lifetime has retired its
+/// original partial constructors and inherited Slot with checked ACKs.
 fn open_release_recovery(
   matches : @argparse.Matches,
   slot : @slot.NativeExecutorSlot,
   identity : String,
 ) -> StoppedReleaseRecovery raise CommandStop {
-  let environment = open_control_environment(matches)
-  guard fresh_journal(environment) is Some(journal) else {
-    stop("release recovery journal unavailable")
-  }
-  let signature_library = match
-    @signature.load_library(required(matches, "crypto-library")) {
-    Ok(value) => value
-    Err(_) => stop("signature library load failed")
-  }
-  let public_key = load_text(
-    required(matches, "bundle-public-key-root"),
-    required(matches, "bundle-public-key-file"),
-    required_int64(matches, "max-file-bytes"),
-  )
-  let bundles = match
-    @bundle.open_runtime_bundle_store(
-      environment.sqlite_library,
-      signature_library,
-      required(matches, "runtime-root"),
-      [
-        {
-          issuer_authority: required(matches, "bundle-issuer"),
-          key_id: required(matches, "bundle-key-id"),
-          public_key_pem: public_key,
-        },
-      ],
-      required(matches, "target-triple"),
-      environment.max_bytes,
-      64,
-      1024,
-      environment.max_record_bytes,
-    ) {
-    Ok(value) => value
-    Err(_) => stop("release recovery bundle Store unavailable")
-  }
-  match bundles.inspect(environment.runtime_bundle_cid) {
-    Ok(Some(_)) => ()
-    _ => {
-      ignore(journal.close())
-      ignore(bundles.close())
-      stop("release recovery saved bundle unavailable")
+  match open_release_recovery_with_custody(matches, slot, identity) {
+    Ok(owner) => owner
+    Err(original) => {
+      finish_failed_release_recovery_open(original)
+      stop(original.failure)
     }
-  }
-  {
-    slot,
-    environment,
-    bundles,
-    journal,
-    request_identity: identity,
-    bundle_closed: false,
-    transfer_journal: None,
-    physical_cleanup: None,
-    physical_cleanup_done: false,
-    release_failure_hook: {
-      remaining: required_int(matches, "holder-release-failures"),
-      attempts: 0,
-    },
-    retained_input: false,
-    recorded_source: None,
-    recorded_consumer: None,
-    completed_input_producer: None,
-    terminal_close: RecoveryTerminalOpen,
   }
 }
 
@@ -1038,9 +1040,20 @@ fn recover_stopped_release(
         ignore(slot.close())
         return false
       }
-      // Failure to initialize terminates this control process; no cleanup
-      // transition is written and the durable claim remains for recovery.
-      let value = open_release_recovery(matches, slot, identity)
+      let value = match
+        open_release_recovery_with_custody(matches, slot, identity) {
+        Ok(owner) => owner
+        Err(original) => {
+          // Keep all other controller responsibilities on this same stack.
+          // Only checked retirement of this failed preparation permits return;
+          // it does not confirm the original Run's release or retry execution.
+          finish_failed_release_recovery_open(original)
+          report("release-recovery-preparation-failed", [
+            ("request_cid", identity),
+          ])
+          return false
+        }
+      }
       retained.val = Some(value)
       value
     }
@@ -1636,6 +1649,22 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
     }
   }
   while !@slot.native_termination_requested() {
+    // Retiring owns the original Store/Slot. Neither another constructor nor
+    // a poll/start/reclaim may bypass it. The existing loop supplies pacing.
+    match pending_custody {
+      Some(Retiring(original)) => {
+        pending_custody = advance_control_bundle_custody_cleanup(original)
+        @slot.native_wait_milliseconds(max_backoff_ms)
+        continue
+      }
+      Some(Unconfirmed(_)) => {
+        // No Store action is retried from a generic failure. Preserve the
+        // original duty for terminal handoff/Owner reconciliation.
+        @slot.native_wait_milliseconds(max_backoff_ms)
+        continue
+      }
+      _ => ()
+    }
     // A failed replay constructor/close owns this same original handle. Do not
     // poll, dispatch, or open another journal until its checked cleanup ACK.
     if !retry_control_replay_journal_cleanup(replay_journal) {
@@ -1899,39 +1928,28 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
             }
           }
           if slot.try_acquire() == Ok(true) {
-            let result = try {
+            let original = try {
               match custody_configuration {
                 Some(configuration) =>
                   control_bundle_custody_response(
-                    matches, environment, delivery, configuration,
+                    matches, environment, delivery, configuration, slot,
                   )
-                None => Err("scope-not-configured")
+                None =>
+                  control_bundle_custody_cleanup(
+                    delivery,
+                    slot,
+                    BundleCustodyRejected("scope-not-configured"),
+                  )
               }
             } catch {
-              CommandStop(reason) => {
-                ignore(slot.close())
-                stop(reason)
-              }
+              CommandStop(reason) =>
+                control_bundle_custody_cleanup(
+                  delivery,
+                  slot,
+                  BundleCustodyRejected(reason),
+                )
             }
-            if !slot.close() {
-              stop("Bundle custody executor slot close unconfirmed")
-            }
-            match result {
-              Ok(response) => {
-                let pending = match
-                  @agent.prepare_native_bundle_custody_pending_report(
-                    delivery, response,
-                  ) {
-                  Ok(value) => value
-                  Err(_) => stop("Bundle custody response identity mismatch")
-                }
-                pending_custody = Some(Responding(pending))
-              }
-              Err(reason) => {
-                report("bundle-custody-unconfirmed", [("reason", reason)])
-                pending_custody = None
-              }
-            }
+            pending_custody = Some(Retiring(original))
           }
         }
         @slot.native_wait_milliseconds(max_backoff_ms)
@@ -1959,6 +1977,7 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
         }
         continue
       }
+      Some(Retiring(_)) | Some(Unconfirmed(_)) => continue
       None => ()
     }
     if max_polls > 0 && polls >= max_polls {
@@ -4169,13 +4188,17 @@ fn run_holder(
       stop("holder saved completion unavailable")
     }
   }
-  let environment = open_site_environment(
-    matches,
-    // The actual exclusive slot confirms the old process has stopped. The
-    // journal selects its exact holding; retain is idempotent and Runtime
-    // returns this holding only after its physical cleanup completes.
-     process_hold_identity,
-  )
+  let environment = match
+    open_site_environment(
+      matches,
+      // The actual exclusive slot confirms the old process has stopped. The
+      // journal selects its exact holding; retain is idempotent and Runtime
+      // returns this holding only after its physical cleanup completes.
+       process_hold_identity,
+    ) {
+    Ok(value) => value
+    Err(original) => return finish_failed_site_environment_open(original, slot)
+  }
   // The installed runtime must be the one the Site delegates.
   let (registration, revision, strategy) = @bundle.native_active_runtime_connector_scope(
     environment.active_runtime,
@@ -4819,12 +4842,7 @@ fn recover_output_command(
   }
   // Reuse the maintenance owner: it verifies saved custody without selecting
   // an executor or claiming that this tool is the original runtime component.
-  let owner = open_release_recovery(matches, slot, expected) catch {
-    CommandStop(issue) => {
-      ignore(slot.close())
-      stop(issue)
-    }
-  }
+  let owner = open_release_recovery(matches, slot, expected)
   let resources = open_holder_output_resources(
     matches,
     environment.sqlite_library,

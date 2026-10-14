@@ -326,9 +326,28 @@ source/build-input correspondence before and after Cargo, then package those
 same bytes next to the resulting Wasmtime cdylib. This directory is an internal
 producer input, never an installed user option or a runtime fallback.
 
+The owned-capacity cdylib uses `@rpath/_libwasmtime.dylib` as its Mach-O
+install name, matching the private binding's existing `darwin-aarch64` layout.
+The producer must inspect the actual linked identity; a build-directory path
+is not a portable installed identity. This does not establish a deployment
+target or funding for the provider's independent allocation domains.
+
 The original Native component contains the one C allocator/TLS plus image and
 child-record implementation. Rust exports `actql_owned_*` forwarders to that
 provider. Dependent-symbol resolution must be independently exercised on the
 actual target; source linkage alone does not prove the final Rust artifact.
 No actual Rust toolchain, full dependency closure, runtime/profile/image recipe
 or public wheel is adopted by this preparation. Unknown domains stay unknown.
+
+`scripts/produce-python-native-provider.py` is a maintainer-only, guarded build
+entry for that component. It checks the selected MoonBit installation and exact
+clean source, emits the twelve selected packages and regular C link, then builds
+the provider and five runtime support sources with an explicit macOS11 target.
+It preserves the existing diagnostic omission of the optional debug package
+registry, records actual compiler dependencies, and reuses the existing Mach-O
+target/dependency inspector. No old runtime support objects are silently reused.
+The producer does not load the library or invoke the control initializer.
+The linked toolchain runtime contains a mimalloc load-time initializer; its
+independent startup resources remain outside ordinary funding qualification.
+Building and inspecting this artifact does not adopt a numerical profile or
+fund a VM.
