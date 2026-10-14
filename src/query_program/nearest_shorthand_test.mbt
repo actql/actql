@@ -48,3 +48,34 @@ test "nearest query-only default differs from explicit two-scope wildcard" {
   )
   assert_true(collision is Err(DuplicateOutput))
 }
+
+///|
+test "short nearest defaults equal explicit cosine and query-only KEEP" {
+  let prefix = "WITH q AS (FROM queries |> ASSERT UNIQUE BY (request_id)), c AS (FROM candidates |> ASSERT UNIQUE BY (item_id)) FROM q |> NEAREST c AS c "
+  let explicit = with_carrier_program(prefix + "QUERY KEY (request_id) VECTOR embedding CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC cosine K 2 KEEP (q.*) AS hit", nearest_context()).unwrap()
+  assert_eq(semantic(nearest_short_program("").unwrap()), semantic(explicit))
+}
+
+///|
+test "short nearest projects original candidate body without flattening or refetch" {
+  let actual = with_carrier_program(
+    "WITH q AS (FROM queries |> ASSERT UNIQUE BY (request_id)), c AS (FROM candidates |> ASSERT UNIQUE BY (item_id) |> SELECT item_id, embedding, label AS body) FROM q |> NEAREST c USING embedding K 2 AS hit |> SELECT hit.body AS body, hit.rank AS rank",
+    nearest_context(),
+  )
+  let program = with_demand_program(actual)
+  let body = semantic(program)
+  assert_eq(body.split("\"values\":{").length(), 3)
+  assert_true(body.contains("\"cardinality\":\"many_to_one\""))
+  match @check.check_parsed(program, check_environment(veca=true), None, check_limits()) {
+    Checked(checked) => {
+      let pipeline = @check.unit_pipeline(checked, 0).unwrap()
+      let target = @pipeline.lookup(pipeline, "aql_final_rows").unwrap()
+      let rows = @pipeline.carrier_at(pipeline, target).unwrap()
+      guard rows is @carrier.Relation(records) else { fail("rows") }
+      assert_eq(@carrier.fields(records).map(field => @schema.reference_name(field.name)), ["body", "rank"])
+      assert_true(@contract.type_equal(@carrier.field_at(records, 0).unwrap().contract.unwrap(), @contract.primitive(@contract.StringType, nullable=false), 10000))
+    }
+    Rejected(issue) => raise @check.diagnostic_cause(issue)
+    NeedsInputs(_) => fail("original retained Values")
+  }
+}

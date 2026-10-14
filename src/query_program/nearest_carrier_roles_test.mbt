@@ -161,14 +161,14 @@ test "Vectors NEAREST permits exact role restatement and a normal output tail" {
 }
 
 ///|
-test "Relation roles cannot be omitted or inferred from candidate names" {
+test "Relation completion refuses missing original key evidence" {
   for
     text in [
       "WITH c AS (FROM candidates |> to_vectors(id: item_id, vector: embedding)) FROM queries |> NEAREST c AS corpus METRIC dot K 1 AS hit",
       "WITH q AS (FROM queries |> to_vectors(id: request_id, vector: embedding)) FROM q |> NEAREST candidates AS c METRIC dot K 1 AS hit",
     ] {
     assert_true(
-      with_carrier_program(text, nearest_context()) is Err(InvalidQuery),
+      with_carrier_program(text, nearest_context()) is Err(UnsupportedNearest),
     )
   }
 }
