@@ -4,6 +4,7 @@
 fn host_setup_test_profile() -> HolderEffectHostSetupProfile {
   {
     read_ceiling: 32,
+    catalog_read_ceiling: 1024L,
     diagnostic_ceiling: 8,
     setup_retained_bytes: 120L,
     current_retained_bytes: 30L,
@@ -16,6 +17,47 @@ fn host_setup_test_profile() -> HolderEffectHostSetupProfile {
     tuple_bytes: 2L,
     retained_controls_bytes: 10L,
   }
+}
+
+///|
+test "current catalog has its own original envelope independent of Account ceiling" {
+  let profile = host_setup_test_profile()
+  // The existing fixture's Account ceiling is 32, independently from 1024
+  // selected catalog bytes. Neither quantity is a production numeric profile.
+  assert_true(
+    holder_effect_host_catalog_representation_ready(Some(profile), 1024L),
+  )
+  assert_true(
+    holder_effect_host_catalog_representation_ready(Some(profile), 1023L),
+  )
+  assert_false(
+    holder_effect_host_catalog_representation_ready(Some(profile), 1025L),
+  )
+  for original in [0L, -1L, 9223372036854775807L] {
+    assert_false(
+      holder_effect_host_catalog_representation_ready(Some(profile), original),
+    )
+  }
+  assert_false(holder_effect_host_catalog_representation_ready(None, 1024L))
+  let invalid = { ..profile, catalog_read_ceiling: 0L, }
+  assert_false(
+    holder_effect_host_catalog_representation_ready(Some(invalid), 1L),
+  )
+}
+
+///|
+test "uncovered current catalog refuses before binding reads or reservation" {
+  let site = host_setup_test_site(1)
+  let profile = host_setup_test_profile()
+  let checks = Ref(0)
+  let before = @site.site_status(site)
+  let scope = begin_holder_effect_host_setup_scope(site, Some(profile), 1025L, () => {
+    checks.val += 1
+    true
+  })
+  assert_true(scope is None)
+  assert_eq(checks.val, 0)
+  assert_eq(@site.site_status(site), before)
 }
 
 ///|
@@ -95,7 +137,7 @@ test "original control text rejects insufficient setup budget" {
 test "snapshot cannot consume the original caller remainder" {
   let profile = { ..host_setup_test_profile(), setup_retained_bytes: 144L, }
   let site = host_setup_test_site(2)
-  let scope = begin_holder_effect_host_setup_scope(site, Some(profile), () => {
+  let scope = begin_holder_effect_host_setup_scope(site, Some(profile), 1024L, () => {
     true
   }).unwrap()
   let control_text_bytes = holder_effect_host_control_text_extent(
@@ -137,7 +179,7 @@ test "missing Host setup profile reserves nothing and never checks physical bind
   let site = host_setup_test_site(2)
   let checks = [0]
   assert_true(
-    begin_holder_effect_host_setup_scope(site, None, () => {
+    begin_holder_effect_host_setup_scope(site, None, 1024L, () => {
       checks[0] += 1
       true
     })
@@ -154,6 +196,7 @@ test "nested current check reuses original setup operation" {
   let scope = begin_holder_effect_host_setup_scope(
     site,
     Some(host_setup_test_profile()),
+    1024L,
     () => true,
   ).unwrap()
   let observed = [0L, 0L]
@@ -180,6 +223,7 @@ test "snapshot holding stays charged until actual caller retirement" {
   let scope = begin_holder_effect_host_setup_scope(
     site,
     Some(host_setup_test_profile()),
+    1024L,
     () => true,
   ).unwrap()
   let snapshot = [("n", "v")]
@@ -216,6 +260,7 @@ test "setup and dispatch use unchanged Site ceiling and operation slots" {
   let scope = begin_holder_effect_host_setup_scope(
     site,
     Some(host_setup_test_profile()),
+    1024L,
     () => true,
   ).unwrap()
   assert_true(@site.start_site_operation(site, 31L, 1L) is None)
@@ -235,6 +280,7 @@ test "binding revocation refuses current without retaining a cached Allow" {
   let scope = begin_holder_effect_host_setup_scope(
     site,
     Some(host_setup_test_profile()),
+    1024L,
     () => current.val,
   ).unwrap()
   assert_true(leave_holder_effect_host_read_scope(scope))
@@ -256,6 +302,7 @@ test "original failed read stays charged until same cleanup is observed" {
   let scope = begin_holder_effect_host_setup_scope(
     site,
     Some(host_setup_test_profile()),
+    1024L,
     () => true,
   ).unwrap()
   guard @bounded_files.read_bounded_text_file_with_custody(
@@ -286,6 +333,7 @@ test "one-pass retirement returns same pending scope without polling or duplicat
   let scope = begin_holder_effect_host_setup_scope(
     site,
     Some(host_setup_test_profile()),
+    1024L,
     () => true,
   ).unwrap()
   guard retire_holder_effect_host_scope(scope)
@@ -319,6 +367,7 @@ test "Site stop and revoke do not acknowledge setup cleanup or return its reserv
   let scope = begin_holder_effect_host_setup_scope(
     site,
     Some(host_setup_test_profile()),
+    1024L,
     () => true,
   ).unwrap()
   @site.begin_site_teardown(site)
@@ -416,7 +465,7 @@ test "caller partition refuses insufficient current overlap before binding or I/
       { ..profile, caller_retained_bytes: 120L, },
     ] {
     assert_true(
-      begin_holder_effect_host_setup_scope(site, Some(candidate), () => {
+      begin_holder_effect_host_setup_scope(site, Some(candidate), 1024L, () => {
         checks.val += 1
         true
       })
@@ -435,6 +484,7 @@ test "partition keeps initial slot and workspace until caller aliases retire" {
   let scope = begin_holder_effect_host_setup_scope(
     site,
     Some(host_setup_test_profile()),
+    1024L,
     () => true,
   ).unwrap()
   let original = scope.caller_operation.unwrap()
@@ -463,6 +513,7 @@ test "foreign read operation cannot consume the original caller reservation" {
   let scope = begin_holder_effect_host_setup_scope(
     site,
     Some(host_setup_test_profile()),
+    1024L,
     () => true,
   ).unwrap()
   let original = scope.caller_operation.unwrap()
@@ -491,6 +542,7 @@ test "caller handoff clears scope aliases and never replaces the original operat
   let scope = begin_holder_effect_host_setup_scope(
     site,
     Some(host_setup_test_profile()),
+    1024L,
     () => true,
   ).unwrap()
   let original = scope.caller_operation.unwrap()
@@ -522,7 +574,7 @@ test "selected setup requires independent positive diagnostic ceiling before res
     let site = host_setup_test_site(2)
     let checks = [0]
     assert_true(
-      begin_holder_effect_host_setup_scope(site, Some(profile), () => {
+      begin_holder_effect_host_setup_scope(site, Some(profile), 1024L, () => {
         checks[0] += 1
         true
       })
