@@ -803,6 +803,7 @@ pub fn generated_sequence_all_row_kernels(
       @lower.RowStep(kernel) => accepts(@lower.kernel_body(kernel))
       @lower.ValuesStep(_)
       | @lower.TimeSeriesStep(_)
+      | @lower.CalendarStep(_)
       | @lower.WindowStep(_)
       | @lower.JoinStep(_)
       | @lower.IntervalJoinStep(_)

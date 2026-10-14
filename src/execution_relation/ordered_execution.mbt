@@ -65,6 +65,7 @@ fn prepare_ordered_budgets(
     match @lower.sequence_step(sequence, i).unwrap() {
       @lower.ValuesStep(_)
       | @lower.TimeSeriesStep(_)
+      | @lower.CalendarStep(_)
       | @lower.WindowStep(_)
       | @lower.JoinStep(_)
       | @lower.IntervalJoinStep(_)

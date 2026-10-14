@@ -24,6 +24,7 @@ pub fn prepare_fragment_pipeline(
     | CompletedProducerBoundary(_)
     | ValuesStep(_)
     | TimeSeriesStep(_)
+    | CalendarStep(_)
     | WindowStep(_)
     | JoinStep(_)
     | IntervalJoinStep(_)
