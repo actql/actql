@@ -85,6 +85,23 @@ pub fn client_program_model_physical_pending() -> @model.ModelPhysicalCallPoll {
 }
 
 ///|
+// Physical DATA only, returned inside the original registered poll callback.
+// Common admits the binding and issues its internal nominal observation; this
+// function is not a bare ACK, Resource retirement or capability factory.
+#export_name("clientProgramModelPhysicalIoObservation")
+pub fn client_program_model_physical_io_observation(
+  original : @model.ModelPhysicalCall,
+  quiescent : Bool,
+  inner : @model.ModelPhysicalCallPoll,
+) -> @model.ModelPhysicalCallPoll {
+  if quiescent {
+    @model.PhysicalIoQuiescent(original, inner)
+  } else {
+    @model.PhysicalIoPending(original, inner)
+  }
+}
+
+///|
 /// Missing quantities remain unknown; reservation maxima are not actual usage.
 #export_name("clientProgramModelPhysicalUnknown")
 pub fn client_program_model_physical_unknown() -> @model.ModelPhysicalCallPoll {

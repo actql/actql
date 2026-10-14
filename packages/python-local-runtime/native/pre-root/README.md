@@ -69,11 +69,13 @@ A failed Mmap retirement stays in the native lease for final cleanup retry.
 The patch does not intercept Rust heap allocations or prove their absence.
 
 The separate `wasmtime-owned-artifact-review.patch` proposes the actual final
-cdylib allocator hook, an explicit non-default feature relay to Wasmtime, and
-compilation of the C holding source. `owned_abi.rs` supplies Rust-exported private
+cdylib allocator hook and an explicit non-default feature relay to Wasmtime.
+The artifact links the one separately produced Native control/provider dylib;
+it never compiles another C holding/TLS copy. The native control component
+includes the original image-capture implementation in that same provider. `owned_abi.rs` supplies Rust-exported private
 symbols, so the recipe does not assume that symbols from a linked C archive are
-automatically exported by a Rust cdylib. `workspace-build-inputs.json` binds seven
-upstream source inputs and five exact source copies. This is an additional
+automatically exported by a Rust cdylib. `workspace-build-inputs.json` binds seven upstream source inputs, three Rust
+source copies and the seven original physical-provider source files separately. This is an additional
 source candidate; no final native library has been built or adopted.
 
 The heap candidate places the original lease/extent and layout in an allocation
@@ -209,10 +211,10 @@ toolchain version or heap allocation hook is inferred from their names.
 
 The final artifact `src/lib.rs`, Cargo manifests and original workspace lock
 have now been captured from that same upstream commit. Its minimum Rust
-version is 1.88.0, which is not a selected build toolchain. The proposed new
-`cc` build-dependency edge still requires the ordinary Cargo lock generation
-and locked-input review; the retained original lock is not advertised as a
-finished patched lock. The full workspace dependency source inventory, exact
+version is 1.88.0, which is not a selected build toolchain. No new `cc` dependency or C compilation edge is introduced by the shared-provider
+recipe. The retained original Cargo.lock and complete dependency/toolchain
+closure still require actual build review; source applicability is not Cargo
+resolution or a finished patched artifact. The full workspace dependency source inventory, exact
 compiler/SDK, complete native feature closure and numeric profile remain
 unadopted. The missing upstream `rust-toolchain.toml` response is retained as
 a 404 lookup result, not replaced by an inferred compiler pin.
@@ -277,3 +279,56 @@ single 64-page temporary FD and a fork solely as a physical diagnostic launcher.
 The child drops its inherited parent mappings, maps only the issued window,
 and uses the same provider. This is not the installed worker startup, complete
 pre-spawn funding, Wasmtime execution or wheel/product acceptance.
+
+## Child physical borrow record
+
+`owned_domain_borrow` is included once in the same provider. A trusted child
+bootstrap supplies zero-initialized, stable, aligned caller-owned control
+storage and its independently owned inherited FD, after original Core and
+durable launch validation. Fixed material DATA alone is not that validation.
+The record retains any partial map and original borrowed domain before a
+failure, and refuses copying, reinitialization and cross-process use. It creates
+no Ledger, allocator, additional capacity claim or FD.
+
+Close first returns the original domain borrow, then unmaps the same view. A
+failed second stage retains the record and skips the completed first stage on
+retry. Active scopes may still leave after closing. Successful close does not
+close the FD or supply confirmed stop, Common settlement or Run/Store ACK.
+The private Python carrier retains its buffer, selected component, descriptor
+and partial result; lost returns are sticky Unknown, never an implicit retry.
+Its bounded control-copy storage does not adopt ordinary startup funding.
+
+`fixtures/domain_record.c` supplies eight independent syscall-fault/record
+cases. Its PID observations are explicit scalar counters; munmap failure is
+injected. Different-process validation belongs to the separately qualified
+real FD/DLL consumer. Neither fixture is installed worker or VM acceptance.
+
+A child borrow can move once into the existing `_NativeHoldingLease`, preserving
+that same record, provider and persistent pointer slot. Native checks the local
+one-shot holding transfer against the already transferred parent domain; it
+never resets the shared header or reserves another capacity. The moved borrow
+cannot independently close or provide another holding. Final close clears its
+holding slot only after domain-return and view-unmap succeed. An unmap failure
+after domain return retains the original slot and skips that completed stage
+on retry. The existing LocalCore cleanup keeps Store last and retries only the
+same retained holding after Store success. This connection does not instantiate
+Wasmtime, supply a numeric profile or enable ordinary unfunded startup.
+
+
+## Shared-provider artifact linkage
+
+`owned_build.rs` is a build-time recipe only. For the selected owned-capacity
+feature it requires an explicit source-qualified provider directory, rejects a
+relative or directive-injected path, missing/empty/symlink provider and foreign
+target, and links `libactql_native_control.dylib` with local `@loader_path`
+resolution. The ordinary producer must verify the exact provider digest and
+source/build-input correspondence before and after Cargo, then package those
+same bytes next to the resulting Wasmtime cdylib. This directory is an internal
+producer input, never an installed user option or a runtime fallback.
+
+The original Native component contains the one C allocator/TLS plus image and
+child-record implementation. Rust exports `actql_owned_*` forwarders to that
+provider. Dependent-symbol resolution must be independently exercised on the
+actual target; source linkage alone does not prove the final Rust artifact.
+No actual Rust toolchain, full dependency closure, runtime/profile/image recipe
+or public wheel is adopted by this preparation. Unknown domains stay unknown.

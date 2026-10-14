@@ -15,7 +15,10 @@ import * as helpers from '@actql/local-node/connector-installation';
 import {installNearestCarrierFixture} from './nearest-carrier-installed-source.mjs';
 import {nearestCarrierFixtureDirectory} from './nearest-carrier-source-data.mjs';
 import {selectReleaseNearestCarrierCases} from '../release-nearest-carrier-query-cases.mjs';
-const {successes, refusals} = await selectReleaseNearestCarrierCases(nearestCarrierFixtureDirectory);
+import {selectReleaseNearestShorthandMatrix} from '../release-nearest-shorthand-query-cases.mjs';
+const {successes, refusals} = process.env.ACTQL_TEST_NEAREST_SHORTHAND === '1'
+  ? await selectReleaseNearestShorthandMatrix(nearestCarrierFixtureDirectory)
+  : await selectReleaseNearestCarrierCases(nearestCarrierFixtureDirectory);
 import {exercisePublicQueryInput} from './public-query-input.mjs';
 import {createVerifiedCaseReceipts} from './cte-value-table-receipts.mjs';
 import {encodeRetainedFixture} from './retained-fixture-values.mjs';
@@ -70,11 +73,11 @@ try {
       completedInventory.push(inventoryKey('refusals', index, refusals[index]));
     },
   });
-  assert.equal(observe().acceptedRuns, 10);
-  assert.equal(observations.sourceReadSessions, 20);
-  assert.equal(observations.sourceReads, 20);
-  assert.equal(observations.acceptedPages, 20);
-  assert.equal(observations.issuedGrants, 20);
+  assert.equal(observe().acceptedRuns, successes.length);
+  assert.equal(observations.sourceReadSessions, successes.reduce((n,item)=>n+item.sourceReadSessionCount,0));
+  assert.equal(observations.sourceReads, successes.reduce((n,item)=>n+item.sourceReadCount,0));
+  assert.equal(observations.acceptedPages, successes.reduce((n,item)=>n+item.sourceReadCount,0));
+  assert.equal(observations.issuedGrants, successes.reduce((n,item)=>n+item.sourceReadCount,0));
   requireCompleteInventory(expectedInventory, completedInventory);
 } catch (error) {
   primary = error;
