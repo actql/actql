@@ -1,0 +1,36 @@
+{
+  "status": "source-preparation-only",
+  "target": "aarch64-apple-darwin",
+  "inputs": [
+    {
+      "path": "src/platform_native/host_bootstrap/moon.pkg",
+      "bytes": 141,
+      "sha256": "40817a9efefea106a6248bbb11eee2bdef60ad150e4950e3525dfcc6aea38d5a"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/bootstrap_native.mbt",
+      "bytes": 13765,
+      "sha256": "89147357fc31240ef06431b706937cdc810bbd29155791a9087a09711f290e8e"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/bootstrap_stub.c",
+      "bytes": 4010,
+      "sha256": "cc6355c821705cb953b1daeb33f79c1673ef339b225c2e75c36029a1be995a42"
+    },
+    {
+      "path": "src/platform_native/host_bootstrap/bootstrap_wbtest.mbt",
+      "bytes": 6762,
+      "sha256": "072839b446741db352288ba36fac239d340421bc4e33a078458ac582384a394c"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_capacity.c",
+      "bytes": 11897,
+      "sha256": "440ee75583689d4b87ebe607ac977ef5c857a2f4dbc86219df59bca0b03752ca"
+    },
+    {
+      "path": "packages/python-local-runtime/native/pre-root/owned_capacity.h",
+      "bytes": 2784,
+      "sha256": "e57bce1f377b8e5a0172da263e59153c20fe97970fb8783cac5986eb78c9b448"
+    }
+  ]
+}
