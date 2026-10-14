@@ -47,3 +47,30 @@ test "INFER INPUT field resolution is bounded and never chooses an ambiguous spe
   assert_true(ambiguous)
   assert_eq(infer_input_names(clause, None, 0), ["TEXT"])
 }
+
+///|
+test "same-name INFER input never resolves an ambiguous contract field" {
+  let query = @query.parse_query(
+    "FROM tickets |> INFER task ITEM KEY (id) INPUT (`TeXt`) KEEP (*) AS assessment",
+    mapping_syntax_limits(),
+  ).unwrap()
+  guard @query.operation_at(query, 0) is Some(Infer(clause)) else {
+    fail("INFER")
+  }
+  let text = @contract.primitive(@contract.StringType, nullable=true)
+  let collision = @contract.object_contract(
+    [("text", text), ("TEXT", text)],
+    nullable=false,
+    max_fields=10,
+    max_name_bytes=100,
+  ).unwrap()
+  guard collision.shape is @contract.Object(fields) else { fail("object") }
+  let ambiguous = try {
+    ignore(resolve_infer_input_names(clause, fields, 100))
+    false
+  } catch {
+    Abort(AmbiguousColumn) => true
+    _ => false
+  }
+  assert_true(ambiguous)
+}

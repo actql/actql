@@ -8,6 +8,10 @@ fn lower_update_effect(
   retained : Array[RetainedResult],
   max_work : Int,
 ) -> @builder.Node raise Abort {
+  // One terminal UPDATE has one stable Program-local identity. An authored
+  // empty name is invalid, rather than an instruction to choose the default.
+  let name = clause.name.map(part => part.value).unwrap_or("aql_update_effect")
+  guard name != "" else { raise Abort(UnsupportedEffect) }
   let results = retained.filter(result => {
     same_name({ value: result.name, quoted: false, }, clause.result)
   })
@@ -35,7 +39,7 @@ fn lower_update_effect(
   }
   construction.object([
     (
-      clause.name.value,
+      name,
       construction.object([
         (
           "update",
