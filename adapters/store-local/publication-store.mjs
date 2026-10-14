@@ -2243,10 +2243,15 @@ export async function openLocalPublicationStore(
     holding?.namespace === 'publication-private' ||
     (holding?.namespace === 'local-continuation-private' &&
       localContinuationEvidenceNames.includes(name));
-  const privateEvidenceAad = (name, semanticCid) => Buffer.from(
-    `actql-private-publication-evidence/0.1\0${name}\0${semanticCid}`,
-    'utf8',
-  );
+  const privateEvidenceAad = (name, semanticCid) => {
+    const text = `actql-private-publication-evidence/0.1\0${name}\0${semanticCid}`;
+    // Preserve the exact historical preimage without borrowing a larger pool
+    // slab through crypto/read/cleanup. String/control and crypto scratch are
+    // still separate original-envelope costs; exact extent is not a grant.
+    const bytes = Buffer.allocUnsafeSlow(Buffer.byteLength(text, 'utf8'));
+    bytes.write(text, 0, bytes.byteLength, 'utf8');
+    return bytes;
+  };
   const privateEvidenceKey = () => {
     if (configuration.privateEvidenceKey === undefined) {
       fail('PublicationPrivateEvidenceKeyUnavailable');
