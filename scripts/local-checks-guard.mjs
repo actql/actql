@@ -1,9 +1,9 @@
 // Cooperative local execution only: no installed hook, daemon or OS quota.
-import {fork} from 'node:child_process';
+import {execFileSync, fork} from 'node:child_process';
 import {createHash, randomUUID} from 'node:crypto';
 import {closeSync, constants, fstatSync, lstatSync, mkdirSync, openSync,
-  readSync, realpathSync, statfsSync, unlinkSync, writeFileSync} from 'node:fs';
-import {availableParallelism, freemem, homedir, hostname} from 'node:os';
+  readFileSync, readdirSync, readSync, realpathSync, statfsSync, unlinkSync, writeFileSync} from 'node:fs';
+import {availableParallelism, homedir, hostname, totalmem} from 'node:os';
 import {join} from 'node:path';
 
 const same = (a, b) => a.dev === b.dev && a.ino === b.ino;
@@ -115,10 +115,30 @@ export function heavyResourceAdmission(request, members, available) {
   limit: maximumHeavyJobs, request, reserved, required, available};
 }
 
+export function availableVerificationMemory(platform, text, total) {
+  if (platform === 'linux') {
+    const match = /^MemAvailable:\s+(\d+) kB$/mu.exec(text);
+    const bytes = match && Number(match[1]) * 1024;
+    if (Number.isSafeInteger(bytes) && bytes >= 0) return bytes;
+  } else if (platform === 'darwin') {
+    const match = /^System-wide memory free percentage: (\d+)%$/mu.exec(text);
+    const percentage = match && Number(match[1]);
+    if (match && percentage <= 100 && Number.isSafeInteger(total) && total > 0) {
+      return Math.floor(total * percentage / 100);
+    }
+  }
+  throw new Error('Available verification memory could not be measured');
+}
+
 function verificationHeadroom(root) {
   const disk = statfsSync(root, {bigint: true});
   const bytes = disk.bavail * disk.bsize;
-  return {memoryBytes: freemem(), cpuThreads: availableParallelism(),
+  const memory = process.platform === 'darwin'
+    ? execFileSync('/usr/bin/memory_pressure', ['-Q'], {encoding: 'utf8',
+      timeout: 1000, maxBuffer: 8192, env: {...process.env, LC_ALL: 'C'}})
+    : readFileSync('/proc/meminfo', 'utf8');
+  return {memoryBytes: availableVerificationMemory(process.platform, memory, totalmem()),
+    cpuThreads: availableParallelism(),
     diskBytes: Number(bytes > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : bytes)};
 }
 
@@ -179,6 +199,10 @@ function withPoolAdmission(directory, owner, use) {
 
 function poolMembers(directory, poolToken) {
   const members = [];
+  const known = new Set([1, 2, 3, 4].map(slot => `heavy-slot-${slot}.lock`));
+  for (const name of readdirSync(directory.path)) {
+    if (name.startsWith('heavy-slot-') && !known.has(name)) throw busyLock(join(directory.path, name));
+  }
   for (let slot = 1; slot <= maximumHeavyJobs; slot++) {
     const path = join(directory.path, `heavy-slot-${slot}.lock`);
     let member;
@@ -237,7 +261,11 @@ function acquireHeavyReservation(root, owner, directory, resources) {
       return {reservation, barrier, admission: {...admission, slot,
         barrier: path, members: members.map(member => member.owner.pid)}, release() {
         withPoolAdmission(directory, owner, () => {
-          checkedLock(barrier, barrier.owner.token, directory);
+          const current = checkedLock(barrier, barrier.owner.token, directory);
+          if (current.owner.heavyPool?.version !== poolVersion ||
+              current.owner.heavyPool.token !== pool.token) {
+            throw new Error('Refusing to remove a changed heavy compatibility barrier');
+          }
           checkedLock(reservation, owner.token, directory);
           const members = poolMembers(directory, pool.token);
           if (!members.some(member => same(member.stat, reservation.stat))) {

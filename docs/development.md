@@ -597,13 +597,16 @@ best-effort, not proof that arbitrary application output has no secrets.
 The canonical worktree path gets one exclusive lock for every routed
 execution. Classified-heavy work additionally reserves one of at most four
 shared slots across this user's worktrees on this host. Admission checks current
-free memory, disk space and available CPUs against still-held verification
+available memory, disk space and available CPUs against still-held verification
 reservations. The default estimate is 2 GiB memory, 2 GiB disk and two CPU threads
 per job, with 256 MiB memory and 128 MiB disk headroom. A `runLocalCheck` caller
 may supply positive integer `heavyResources: {memoryBytes, diskBytes, cpuThreads}`
 estimates for its actual workload; these do not alter product fuel, capacity or
 authorization and are not an OS quota or a cold-build peak guarantee. Preserve
 each recipe's additional preparation/runtime and minimum-free-space conditions.
+Memory availability is read from Linux `MemAvailable` or Darwin's read-only
+`memory_pressure -Q` percentage of physical memory; raw free pages alone omit
+reclaimable cache. Missing or malformed availability measurements refuse admission.
 If resources or all slots are occupied, report concrete queue/resource pressure
 and retry admission only after the relevant resource or Owner state changes.
 State is beneath the canonical home directory

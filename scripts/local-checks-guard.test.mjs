@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import {spawn, spawnSync} from 'node:child_process';
 import {chmodSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync,
   realpathSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
-import {tmpdir} from 'node:os';
+import {availableParallelism, hostname, tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
 import {acquireLocalLocks, checkBudget, durationSeconds, lockDirectory,
-  heavyResourceAdmission, heavyResourceRequest, lockOwnerStatus, runLocalCheck} from './local-checks-guard.mjs';
+  availableVerificationMemory, heavyResourceAdmission, heavyResourceRequest,
+  lockOwnerStatus, runLocalCheck} from './local-checks-guard.mjs';
 
 const tinyResources = {memoryBytes: 16 * 1024 * 1024, diskBytes: 1024 * 1024, cpuThreads: 1};
 const guard = new URL('./local-checks-guard.mjs', import.meta.url).href;
@@ -741,7 +742,24 @@ test('heavy admission refuses memory, disk, CPU pressure and more than four rese
   }
 });
 
+test('available memory uses OS availability rather than cache-depleted raw free pages', () => {
+  assert.equal(availableVerificationMemory('linux',
+    'MemTotal: 2048000 kB\nMemFree: 100 kB\nMemAvailable: 1024000 kB\n'), 1024000 * 1024);
+  assert.equal(availableVerificationMemory('darwin',
+    'The system has 34359738368.\nSystem-wide memory free percentage: 35%\n',
+    32 * 1024 ** 3), Math.floor(32 * 1024 ** 3 * 0.35));
+  for (const [platform, text] of [['linux', 'MemFree: 100 kB'],
+    ['darwin', 'System-wide memory free percentage: 101%'], ['darwin', 'unknown']]) {
+    assert.throws(() => availableVerificationMemory(platform, text, 32 * 1024 ** 3),
+      /could not be measured/u);
+  }
+});
+
 test('four real heavy supervisors coexist, refuse a fifth, and keep the legacy barrier until last release', async t => {
+  if (availableParallelism() < 4) {
+    t.skip('Four CPU reservations require four actual available CPUs; pure admission counters still run');
+    return;
+  }
   const f = fixture(t), directory = lockDirectory(f.home), runs = [], markers = [], releases = [];
   for (let index = 0; index < 4; index++) {
     const root = join(f.directory, `parallel-${index}`); mkdirSync(root);
@@ -784,7 +802,7 @@ test('a live legacy singleton and malformed pooled members are retained, not byp
   const f = fixture(t), directory = lockDirectory(f.home);
   const barrier = join(directory.path, 'heavy.lock');
   const legacy = {token: 'legacy-live-owner', pid: process.pid, uid: process.getuid(),
-    host: 'fixture', worktree: f.root};
+    host: hostname(), worktree: f.root};
   writeFileSync(barrier, JSON.stringify(legacy));
   assert.throws(() => acquireLocalLocks({root: f.root, heavy: true,
     heavyResources: tinyResources, directory}), /lock busy/u);
@@ -799,6 +817,24 @@ test('a live legacy singleton and malformed pooled members are retained, not byp
     heavyResources: tinyResources, directory}), /lock busy/u);
   assert.equal(readFileSync(slot, 'utf8'), JSON.stringify(malformed));
   writeFileSync(slot, original); lock.release();
+  assert.deepEqual(locks(f), []);
+});
+
+test('changed pooled epoch and out-of-range slots refuse admission without reclaiming custody', t => {
+  const f = fixture(t), directory = lockDirectory(f.home);
+  const lock = acquireLocalLocks({root: f.root, heavy: true, heavyResources: tinyResources, directory});
+  const barrier = join(directory.path, 'heavy.lock'), original = readFileSync(barrier, 'utf8');
+  const changed = JSON.parse(original); changed.heavyPool.token = 'changed-epoch';
+  writeFileSync(barrier, JSON.stringify(changed));
+  assert.throws(() => lock.release(), /changed heavy compatibility barrier/u);
+  assert.equal(locks(f).length, 3);
+  writeFileSync(barrier, original);
+  const unknown = join(directory.path, 'heavy-slot-5.lock'); writeFileSync(unknown, 'unreviewed-slot');
+  const other = join(f.directory, 'other'); mkdirSync(other);
+  assert.throws(() => acquireLocalLocks({root: other, heavy: true,
+    heavyResources: tinyResources, directory}), /lock busy/u);
+  assert.equal(readFileSync(unknown, 'utf8'), 'unreviewed-slot');
+  rmSync(unknown); lock.release();
   assert.deepEqual(locks(f), []);
 });
 
