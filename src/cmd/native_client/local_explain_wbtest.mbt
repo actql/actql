@@ -15,12 +15,18 @@ fn explain_fixture(
   document : String,
   format : @frontend.Format,
 ) -> @local_host.NativeClientPreparation {
+  let environment = explain_fixture_environment()
+  let context = @frontend.bind_query_context(
+    [],
+    @checked.checking_environment_cid(environment),
+    model_tasks=@checked.checking_environment_model_tasks(environment),
+  ).unwrap()
   @local_host.prepare_native_client_program(
     document,
     format,
-    explain_fixture_environment(),
+    environment,
     None,
-    None,
+    Some(context),
     [],
     @run_host.client_standard_effect_computation_limits(),
   ).unwrap()
