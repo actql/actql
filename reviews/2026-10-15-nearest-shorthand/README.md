@@ -53,6 +53,7 @@ are unchanged. The old short allowance remains a typed TransferLimit control.
 At source 202063 the original ten Carrier cases and default shorthand passed
 both transports. The next fixture incorrectly submitted a bare FROM form as SQL.
 The established public SQL selector requires SELECT or WITH; bare FROM remains
-text. Only that authored fixture now starts with SELECT *, retaining its exact
+text. Only that authored fixture now binds the original query Source with WITH q,
+using the same query-only KEEP (q.*). It retains its exact
 metric, roles, KEEP, ordering, input, independent rows, schemas and counts. The
 original failed cohort and its partial receipts remain separate evidence.

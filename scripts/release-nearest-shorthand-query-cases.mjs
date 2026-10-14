@@ -47,7 +47,7 @@ const jsonControl={version:'actql/0.1',id:'fixture.nearest_shorthand_control',st
 export function selectReleaseNearestShorthandCases() {
   const successes = [
     ['default','aql',base+'USING embedding K 2 AS hit'+ordered,result(defaults,[...queryColumns,{name:'hit',contract:hit(false)}])],
-    ['explicit-default','sql','SELECT * FROM queries |> NEAREST candidates AS c QUERY KEY (request_id) VECTOR embedding CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC cosine K 2 KEEP (queries.*) AS hit'+ordered,result(defaults,[...queryColumns,{name:'hit',contract:hit(false)}])],
+    ['explicit-default','sql','WITH q AS (FROM queries) FROM q |> NEAREST candidates AS c QUERY KEY (request_id) VECTOR embedding CANDIDATE KEY (c.item_id) VECTOR c.embedding METRIC cosine K 2 KEEP (q.*) AS hit'+ordered,result(defaults,[...queryColumns,{name:'hit',contract:hit(false)}])],
     ['candidate-keep','aql-text',base+'USING embedding K 2 KEEP (c.label) AS hit'+ordered,result(hits.map((value,i)=>({label:i===0?'first':'second',hit:value})),[{name:'label',contract:scalar('string')},{name:'hit',contract:hit(false)}])],
     ['body','aql',bodyPrefix+'USING (query_vec) K 3 AS hit'+ordered,result(bodyRows,[...bodyColumns,{name:'hit',contract:hit(true)}])],
     ['rag-continuation','aql',bodyPrefix+'USING (query_vec) K 3 AS hit |> WHERE hit.rank = 1 |> SELECT note, hit.body AS context',result([{note:null,context:'first'}],[queryColumns.find(column=>column.name==='note'),{name:'context',contract:scalar('string')}])],
