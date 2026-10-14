@@ -301,3 +301,48 @@ test "Calendar bounded value admission retains exact and one short work limits" 
     assert_false(calendar_series_cleanup_pending(active))
   }
 }
+
+///|
+test "Calendar actual row quota remains distinct from conservative preparation bound" {
+  let generated = calendar_kernel_generated(
+    "2000-01-01T00:00:00.000Z", "2000-01-03T00:00:00.000Z",
+  )
+  for limit in [2, 1] {
+    let active = start_calendar_series(
+      @bounded.control(),
+      generated,
+      0,
+      limit,
+      calendar_kernel_values(),
+      1000,
+      1000,
+    ).unwrap()
+    let mut terminal = false
+    for _ in 0..<1000 {
+      if !terminal {
+        match advance_calendar_series(active, 7).unwrap() {
+          CalendarContinue(_) => ()
+          CalendarComplete(output, ..) => {
+            assert_eq(limit, 2)
+            assert_eq(@execution.completed_row_count(output), 2)
+            terminal = true
+          }
+          CalendarFailed(CalendarBoundary(SeriesRowLimit), ..) => {
+            assert_eq(limit, 1)
+            terminal = true
+          }
+          _ => fail("actual row quota must be enforced by the original cursor")
+        }
+      }
+    }
+    assert_true(terminal)
+    let mut cleaned = false
+    for _ in 0..<10 {
+      if !cleaned {
+        cleaned = cleanup_calendar_series(active).unwrap()
+      }
+    }
+    assert_true(cleaned)
+    assert_false(calendar_series_cleanup_pending(active))
+  }
+}
