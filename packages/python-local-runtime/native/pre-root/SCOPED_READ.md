@@ -83,3 +83,31 @@ are structure sizes, not allocator charges, a complete retained inventory or
 accepted numerical profile. Common paired funding, F's caller, complete layout,
 DLL/Engine/worker, ordinary installed wheel/public Python execution remain
 separate and unaccepted. Fuel100M, transfer12MiB and VM16MiB are unchanged.
+
+## Non-test Native provider production
+
+The existing `scripts/produce-python-native-provider.py` has an explicit
+maintainer-only `--scoped-read` selection. It prepares the verified copied
+closure inside a fresh output directory, compiles every regular generated-C and
+runtime consumer against the derived header, and includes that same provider
+once through the bootstrap stub. The original toolchain and default stock
+selection remain unchanged. A missing/changed source or failed derived build
+never falls back to stock. Neither build selection nor a successful library
+build adopts installed authority, numerical funding or an ordinary Local profile.
+
+```sh
+python3 scripts/produce-python-native-provider.py \
+  --source <exact-clean-commit> --moon-home <selected-toolchain> \
+  --clang <selected-clang> --sdk <selected-sdk> \
+  --destination <new-output-directory> --seconds 300 --scoped-read
+```
+
+These paths are maintainer inputs, not Client options. Use the existing bounded
+verification guard. The receipt records the patch/recipe/derived output digests,
+actual compiler dependencies and library identity. The runtime sources are
+compiled from the copied closure; diagnostic conformance helpers are excluded
+from the library. Explicit code-root initialization, image/Wasmtime compilation,
+Engine/worker startup, installation and public Python execution remain separate.
+A following Wasmtime build must link this exact selected library and use a new
+provider digest in its recipe; it must not embed another provider/TLS copy or
+relabel a previous compiled image.
