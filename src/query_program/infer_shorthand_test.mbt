@@ -30,8 +30,33 @@ fn infer_shorthand_environment() -> @check.CheckEnvironment {
 }
 
 ///|
+fn infer_shorthand_context(environment : @check.CheckEnvironment) -> Context {
+  let source = @wire.admit(
+    @source.parse_json(
+      (
+        #|{"values":{"schema":{"id":{"type":"string","nullable":false},"text":{"type":"string","nullable":true},"n":{"type":"number","nullable":false},"SELECT":{"type":"string","nullable":false}},"rows":[{"id":"a","text":"urgent","n":1,"SELECT":"reserved"}]},"as":"tickets"}
+      ),
+      construction_limits().source.source,
+    ).unwrap(),
+    construction_limits().source.tree,
+  ).unwrap()
+  {
+    ..infer_member_context(environment),
+    inputs: [
+      {
+        relation: [{ value: "tickets", quoted: false, }],
+        name: "tickets",
+        source: GeneratedValues(source),
+        visible_fields: ["id", "text", "n", "SELECT"],
+        graph_bindings: [],
+      },
+    ],
+  }
+}
+
+///|
 fn infer_shorthand_source(input : String) -> String {
-  "SELECT DISTINCT 'a' AS id |> EXTEND 'urgent' AS text, 1 AS n, 'reserved' AS `SELECT` |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (" +
+  "FROM tickets |> ASSERT UNIQUE BY (id) |> INFER `model-task:risk-score.v1` ITEM KEY (id) INPUT (" +
   input +
   ") KEEP (*) AS assessment"
 }
@@ -39,7 +64,7 @@ fn infer_shorthand_source(input : String) -> String {
 ///|
 test "same-name mixed and quoted INFER inputs normalize to the same checked Program" {
   let environment = infer_shorthand_environment()
-  let context = infer_member_context(environment)
+  let context = infer_shorthand_context(environment)
   let expanded = compile_query_script(
     @query.parse_query_script(
       infer_shorthand_source("text = text, n = n, SELECT = `SELECT`"),
@@ -75,7 +100,7 @@ test "same-name mixed and quoted INFER inputs normalize to the same checked Prog
 ///|
 test "INFER shorthand retains closed input schema and typed field refusals" {
   let environment = infer_shorthand_environment()
-  let context = infer_member_context(environment)
+  let context = infer_shorthand_context(environment)
   for
     (input, expected) in [
       ("text, n", @evidence.MissingInputRole("SELECT")),
@@ -124,17 +149,18 @@ test "INFER shorthand retains closed input schema and typed field refusals" {
 ///|
 test "INFER shorthand wrong types are rejected by the existing ModelTask checker" {
   let environment = infer_shorthand_environment()
-  let text = infer_shorthand_source("text, n, `SELECT`").replace(
-    old="1 AS n",
-    new="'wrong' AS n",
-  )
+  let text = "/*😀é*/\r\n" +
+    infer_shorthand_source("text, n, `SELECT`").replace(
+      old="|> INFER",
+      new="|> SET n = text |> INFER",
+    )
   let actual = compile_query_script(
     @query.parse_query_script(
       text,
       syntax_limits(),
       source_path="wrong-type.sql",
     ).unwrap(),
-    infer_member_context(environment),
+    infer_shorthand_context(environment),
     construction_limits(),
   ).unwrap()
   guard @check.check_parsed(actual, environment, None, check_limits())
@@ -143,11 +169,15 @@ test "INFER shorthand wrong types are rejected by the existing ModelTask checker
   }
   assert_eq(@check.diagnostic_category(error), @check.InvalidInput)
   match @check.diagnostic_cause(error) {
-    Source(SourceView(Program(Program(Pipeline(_, issue))))) =>
+    Source(SourceView(Program(Program(Pipeline(_, issue))))) => {
       assert_eq(
         issue.kind,
         @pipeline.Infer(@evidence.Expression(@typing.TypeMismatch("number"))),
       )
+      assert_eq(issue.span.source_path, "wrong-type.sql")
+      assert_eq(issue.span.start_byte, 130)
+      assert_eq(issue.span.end_byte, 131)
+    }
     other => raise other
   }
 }

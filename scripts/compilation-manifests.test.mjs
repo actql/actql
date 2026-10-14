@@ -106,6 +106,8 @@ test('current query rules bind the manifest while prior rules retain their ident
   // Independent SHA-256 expectations from the normative query-rules bytes
   // and the complete canonical manifest preimage, not generator output.
   const queryRules = readFileSync('docs/spec/query-text.md', 'utf8');
+  assert.equal(sha(readFileSync('spec/grammar/actql-query-0.1.ebnf')),
+    'sha256:4e73edb82a9466e4506972ac1a5eef603e3ac82534318e9f92ad09812d2b8e67');
   assert.equal(sha(queryRules),
     'sha256:e1a3cf2899e9716a82f7707714c4dbfdf20208d48c00766d37d43f484a35747f');
   const {grammar_manifest_cid: current, ...body} =

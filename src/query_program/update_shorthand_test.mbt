@@ -30,12 +30,41 @@ test "anonymous UPDATE has the independently specified stable Program-local name
       msg=name,
     )
   }
-  for name in ["save ", "`Save.Exact` ", "UPDATE "] {
+  for
+    (name, exact) in [
+      ("save ", "save"),
+      ("`Save.Exact` ", "Save.Exact"),
+      ("UPDATE ", "UPDATE"),
+    ] {
     assert_false(
       semantic(update_shorthand_program(name)) == semantic(anonymous),
       msg=name,
     )
+    assert_true(
+      semantic(update_shorthand_program(name)).contains(
+        "\"effects\":{\"" + exact + "\":{\"update\":",
+      ),
+    )
   }
   // RESULT remains explicitly public; this finite shorthand does not change it.
   assert_eq(@program.export_count(anonymous), 1)
+}
+
+///|
+test "the anonymous UPDATE name does not collide across separate Result and Effect namespaces" {
+  let actual = compile(
+    @query.parse_query(
+      "FROM pair |> RESULT aql_update_effect |> EFFECT UPDATE TARGET 'connector://c/T' MAPPING m FROM RESULT aql_update_effect ID x SET (Name = y)",
+      syntax_limits(),
+    ).unwrap(),
+    pair_context(),
+    construction_limits(),
+  ).unwrap()
+  let body = semantic(actual)
+  assert_true(body.contains("\"effects\":{\"aql_update_effect\":{\"update\":"))
+  assert_true(
+    body.contains(
+      "\"results\":{\"aql_update_effect\":{\"from\":{\"result\":\"rows\",\"stage\":\"main\"}}}",
+    ),
+  )
 }
