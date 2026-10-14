@@ -11,6 +11,8 @@ const plan = await browser.plan('SELECT 1 AS n', {format: 'sql', maxNodes: 10});
 const noProviderIO: 0 = plan.providerIO;
 const view = await browser.inspect(ref);
 const notAtomic: 'non_atomic' = view.consistency;
+const original = await browser.runPlan(ref);
+const boundReference: RunReference = original.runRef;
 await browser.describe(ref, 'answer');
 // @ts-expect-error The launcher owns no Run cancellation operation.
 await server.cancel(ref);
@@ -19,3 +21,4 @@ await browser.rows(ref, 'answer');
 // @ts-expect-error No implicit public bind is allowed.
 await startExplorerGateway({client, hostname: '0.0.0.0'});
 void noProviderIO; void notAtomic;
+void boundReference;
