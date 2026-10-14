@@ -110,6 +110,14 @@ pub(all) enum GraphBindingKind {
   Path
 }
 
+pub(all) enum InferKeyLabelIssue {
+  MissingCorrespondence
+  EmptyOrAmbiguousLabel
+  ReservedRole
+  DuplicateLabel
+  DuplicateSlot
+}
+
 pub(all) struct Input {
   relation : Array[@query_syntax.NamePart]
   name : String
@@ -147,6 +155,7 @@ pub(all) enum Issue {
   UnsupportedCte
   UnsupportedGraph
   UnsupportedInfer
+  InferKeyLabel(InferKeyLabelIssue, @frontend_source_map.Origin?)
   UnsupportedNearest
   FileListing(FileListingIssue)
   UnsupportedResult

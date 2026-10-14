@@ -23,7 +23,12 @@ fn script_sequence_pattern(
             ("where", ExpressionValue(predicate)) => {
               let expression = @query.sga_predicate_expression(predicate)
               match
-                script_input_scope(sources, input.name, query_range_name(query)) {
+                script_input_scope(
+                  construction,
+                  sources,
+                  input.name,
+                  query_range_name(query),
+                ) {
                 Some(scope) =>
                   append_pipe_expression(
                     construction,

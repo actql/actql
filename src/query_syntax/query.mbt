@@ -176,10 +176,12 @@ pub(all) struct TableEffectClause {
 ///|
 pub(all) struct InferClause {
   contract : NamePart
-  keys : Array[Array[NamePart]]
+  keys : Array[Array[NamePart]]?
   inputs : Array[(NamePart, Expression)]
   keep : Array[KeepItem]
   name : NamePart
+  // Diagnostic custody only; never part of the lowered Program identity.
+  origin : @origin.Origin?
 }
 
 ///|
@@ -503,7 +505,7 @@ pub fn operation_at(query : Query, index : Int) -> QueryOperation? {
       Some(
         Infer({
           ..clause,
-          keys: clause.keys.map(path => path.copy()),
+          keys: clause.keys.map(keys => keys.map(path => path.copy())),
           inputs: clause.inputs.copy(),
           keep: clause.keep.map(item => { ..item, path: item.path.copy(), }),
         }),
@@ -3430,21 +3432,27 @@ fn QueryParser::symbol(
 fn QueryParser::infer_clause(
   self : QueryParser,
 ) -> InferClause raise QueryAbort {
+  let origin = token_origin(self.source, self.index)
   self.keyword("INFER")
   let contract = self.name()
-  self.keyword("ITEM")
-  self.keyword("KEY")
-  self.symbol(40)
-  let keys : Array[Array[NamePart]] = []
-  while true {
-    self.node()
-    keys.push(self.path())
-    if self.peek().value != Symbol(44) {
-      break
+  let keys = if self.has("ITEM") {
+    self.keyword("ITEM")
+    self.keyword("KEY")
+    self.symbol(40)
+    let keys : Array[Array[NamePart]] = []
+    while true {
+      self.node()
+      keys.push(self.path())
+      if self.peek().value != Symbol(44) {
+        break
+      }
+      ignore(self.advance())
     }
-    ignore(self.advance())
+    self.symbol(41)
+    Some(keys)
+  } else {
+    None
   }
-  self.symbol(41)
   self.keyword("INPUT")
   self.symbol(40)
   let inputs : Array[(NamePart, Expression)] = []
@@ -3485,9 +3493,15 @@ fn QueryParser::infer_clause(
     }
   }
   self.symbol(41)
-  let keep = self.keep_clause()
+  // The text default is exactly the existing wildcard projection. The machine
+  // infer body and stored Programs retain their independent output contract.
+  let keep = if self.has("KEEP") {
+    self.keep_clause()
+  } else {
+    [{ path: [], wildcard: true, name: None, }]
+  }
   self.keyword("AS")
-  { contract, keys, inputs, keep, name: self.name(), }
+  { contract, keys, inputs, keep, name: self.name(), origin, }
 }
 
 ///|
