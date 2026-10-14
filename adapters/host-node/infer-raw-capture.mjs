@@ -7,6 +7,18 @@ import {createHash} from 'node:crypto';
 // resource or grant Owner. A matching function/CID/copy is not this original.
 const originalTransportPorts = new WeakMap();
 
+// Preserve the same mutable primary error for existing consumers. An
+// immutable Store/decoder failure cannot receive custody annotations; retain
+// it as the cause of the existing raw-custody carrier instead of losing it to
+// an assignment TypeError. The carrier is not a receipt or cleanup authority.
+const retainedRawFailure = (error, facts) => {
+  if (error !== null && typeof error === 'object' && Object.isExtensible(error)) {
+    try { return Object.assign(error, facts); }
+    catch { /* A read-only field cannot replace the original failure/custody. */ }
+  }
+  return Object.assign(new Error('ModelRawCustodyPending', {cause: error}), facts);
+};
+
 export function originalModelRawTransportPersistenceMatches(port, operation, registration) {
   const original = originalTransportPorts.get(port);
   return original !== undefined && original.operation.deref() === operation &&
@@ -88,13 +100,15 @@ export function createModelRawCaptureStorePort(store, moon, view, bytes) {
         // Revocation after saving is not a proof of non-persistence. The
         // caller retains this original view and existing retry/cleanup handle;
         // neither reconciliation nor this failure authorizes another send.
-        error.rawPersistenceConfirmed = confirmed;
-        error.rawCustodyRetained = true;
-        error.cleanupHandle = holding;
+        const facts = {
+          rawPersistenceConfirmed: confirmed,
+          rawCustodyRetained: true,
+          cleanupHandle: holding,
+        };
         if (!holding.status().committed || holding.status().preparedPending) {
-          error.cleanupPending = true;
+          facts.cleanupPending = true;
         }
-        throw error;
+        throw retainedRawFailure(error, facts);
       }
   };
   return Object.freeze({
@@ -130,11 +144,12 @@ export function createModelRawCaptureStorePort(store, moon, view, bytes) {
       } catch (error) {
         // Invalid UTF-8 is not a successful response, and cannot erase the
         // original raw receipt or turn saved custody into an unsent attempt.
-        error.rawPersistenceConfirmed = true;
-        error.rawCustodyRetained = true;
-        error.rawReceipt = saved.receipt;
-        error.cleanupHandle = holding;
-        throw error;
+        throw retainedRawFailure(error, {
+          rawPersistenceConfirmed: true,
+          rawCustodyRetained: true,
+          rawReceipt: saved.receipt,
+          cleanupHandle: holding,
+        });
       }
     },
   });
@@ -189,12 +204,10 @@ export function createModelRawTransportPersistence({store, moon, registration,
       // Unknown response fields remain in the authenticated raw Artifact.
       return await port.persistChat(undefined);
     } catch (error) {
-      const retained = error !== null && typeof error === 'object' &&
-        Object.isExtensible(error) ? error
-        : new Error('ModelRawCustodyPending', {cause: error});
-      retained.rawCustodyRetained = true;
-      retained.cleanupHandle ??= port.holding;
-      throw retained;
+      throw retainedRawFailure(error, {
+        rawCustodyRetained: true,
+        cleanupHandle: error?.cleanupHandle ?? port.holding,
+      });
     }
   };
   // Called by this original Model physical cleanup port. It observes existing

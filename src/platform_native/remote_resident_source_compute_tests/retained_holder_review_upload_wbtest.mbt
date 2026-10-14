@@ -104,14 +104,18 @@ fn retained_holder_upload_original_review(
     is Err(HttpStatus(503)),
   )
   let reads = Ref(0)
+  // The live reader has four current checks per projection. The ACK fence
+  // is check 5 and the send fence is check 10; check 11 is the first read
+  // after the actual artifact save. Refusing at 9 would stop before send and
+  // silently cease testing preservation after a successful remote save.
   assert_true(
     work.upload_review_projection(client, report_url, url, () => {
       reads.val += 1
-      reads.val < 9
+      reads.val < 11
     })
     is Err(Review(_)),
   )
-  assert_eq(reads.val, 9)
+  assert_eq(reads.val, 11)
   let target_reads = Ref(0)
   let configured = {
     ..publication,
