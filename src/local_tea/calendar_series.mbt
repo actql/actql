@@ -236,7 +236,7 @@ pub fn start_calendar_series(
   }
   let output = match
     @execution.prepare_bounded_admitted_output(
-      generated,
+      owner,
       @pipeline.Step(step),
       max_rows,
       limits,
