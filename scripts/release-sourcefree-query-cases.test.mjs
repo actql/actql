@@ -58,7 +58,10 @@ test('normal source-free delivery contains its full relative import closure', ()
   };
   const complete = closure(releaseSourcefreeFixturePaths);
   assert.deepEqual(complete.missing, []);
-  assert.equal(complete.seen.size, 13);
+  assert.equal(complete.seen.size, 14);
+  assert.deepEqual(closure(releaseSourcefreeFixturePaths.filter(path =>
+    !path.endsWith("/release-public-aql-format-cases.mjs"))).missing,
+  [resolve(root, "scripts/release-public-aql-format-cases.mjs")]);
   const omitted = resolve(root, 'scripts/fixtures/sequence-source-input.mjs');
   assert.deepEqual(closure(releaseSourcefreeFixturePaths.filter(path =>
     !path.endsWith('/sequence-source-input.mjs'))).missing, [omitted]);
