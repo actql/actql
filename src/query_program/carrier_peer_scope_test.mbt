@@ -75,6 +75,17 @@ test "a nested candidate peer shadows the outer peer after a Carrier bridge" {
       Err(BindingPreparation(_)) => "actual BindingPreparation"
       Err(BindingPreparationSource(_, _)) => "actual BindingPreparationSource"
       Err(ExpressionTyping(_)) => "actual ExpressionTyping"
+      Err(Expression(diagnostic)) =>
+        "actual Expression " + @debug.to_string(diagnostic.issue)
+      Err(UnsupportedCte) => "actual UnsupportedCte"
+      Err(UnsupportedProjection) => "actual UnsupportedProjection"
+      Err(UnsupportedResult) => "actual UnsupportedResult"
+      Err(InvalidContext) => "actual InvalidContext"
+      Err(UnknownRelation) => "actual UnknownRelation"
+      Err(UnresolvedRelation(_)) => "actual UnresolvedRelation"
+      Err(AmbiguousColumn) => "actual AmbiguousColumn"
+      Err(Admission(_)) => "actual Admission"
+      Err(Construction(_)) => "actual Construction"
       Err(_) => "actual other typed refusal"
     },
   )
