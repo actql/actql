@@ -15,7 +15,11 @@ test('new grammar identity is independently bound to both authored surface input
   const old=read('reviews/2026-10-15-nearest-shorthand/preimages/grammar-manifest.json');
   const {grammar_manifest_cid:oldCid,...before}=old;
   assert.equal('sha256:'+hash(canonical(before)),oldCid);
-  const body={...before,query_text_grammar_sha256:hash(readFileSync('spec/grammar/actql-query-0.1.ebnf')),query_text_rules_sha256:hash(readFileSync('docs/spec/query-text.md'))};
+  // Inherited main767's structural doc is byte-identical; its old manifest
+  // pin was stale. Ordinary generation rebinds those existing normative bytes.
+  const structural='5d2f2432181664678b364fc97c3545d1740b004cd7b073c4bf0d8181c30dcaae';
+  assert.equal(hash(readFileSync('docs/spec/structural-text.md')),structural);
+  const body={...before,structural_text_rules_sha256:structural,query_text_grammar_sha256:hash(readFileSync('spec/grammar/actql-query-0.1.ebnf')),query_text_rules_sha256:hash(readFileSync('docs/spec/query-text.md'))};
   const next=read('spec/manifests/actql-grammar-0.1.json');
   assert.deepEqual(next,{...body,grammar_manifest_cid:'sha256:'+hash(canonical(body))});
   assert.notEqual(next.grammar_manifest_cid,oldCid);

@@ -107,16 +107,19 @@ test('current query rules bind the manifest while prior rules retain their ident
   // preimage. Preserve the complete earlier body, including its old grammar.
   const vector = read('scripts/fixtures/initial-from-join/independent-vector.json');
   const queryRules = readFileSync('docs/spec/query-text.md', 'utf8');
-  assert.equal(sha(readFileSync('spec/grammar/actql-query-0.1.ebnf')),
-    'sha256:db0eabfabb2001aae2b2354ea10ce117f0ec0e249fabf857b766dad293243279');
-  assert.equal(sha(queryRules),
-    'sha256:935fdeabfd1ae1f03ca42d21c012a66880081ce09d6bf4856bc3d66ee036a6a4');
+  assert.equal(vector.after.query_text_grammar_sha256,
+    'db0eabfabb2001aae2b2354ea10ce117f0ec0e249fabf857b766dad293243279');
+  assert.equal(vector.after.query_text_rules_sha256,
+    '935fdeabfd1ae1f03ca42d21c012a66880081ce09d6bf4856bc3d66ee036a6a4');
   const {grammar_manifest_cid: current, ...body} =
     read('spec/manifests/actql-grammar-0.1.json');
+  assert.equal(body.query_text_grammar_sha256, sha(readFileSync('spec/grammar/actql-query-0.1.ebnf')).slice(7));
   assert.equal(body.query_text_rules_sha256, sha(queryRules).slice(7));
   assert.equal(sha(canonicalText(body)), current);
-  assert.equal(current,
+  assert.equal(vector.after.grammar_manifest_cid,
     'sha256:577baba6e0eeda68b93a01f4bb0744be2c01fe6108fd16d889d4f4caaca8233b');
+  const {grammar_manifest_cid: adopted, ...adoptedBody} = vector.after;
+  assert.equal(sha(canonicalText(adoptedBody)), adopted);
   const {grammar_manifest_cid: previous, ...before} = vector.before;
   assert.equal(previous,
     'sha256:27d3b7110464cb168591ceebd54340aaafde66e46fc4f7b576ee6df7aec143ca');
