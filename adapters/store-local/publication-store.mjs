@@ -2429,6 +2429,7 @@ export async function openLocalPublicationStore(
       );
       return Object.freeze([descriptor, content]);
     } catch (error) {
+      const descriptorCleanup = error?.cleanupPending === true ? error.cleanupHandle : undefined;
       let cleanupFailure;
       let cleanupPending;
       try {
@@ -2455,7 +2456,6 @@ export async function openLocalPublicationStore(
       // This error comes from the same closed private Store preparation, not
       // a packet/caller-provided handle. Do not replace its still-owned
       // descriptor writer with only the earlier content's cleanup reference.
-      const descriptorCleanup = error.cleanupPending === true ? error.cleanupHandle : undefined;
       failure.cleanupHandle = descriptorCleanup === undefined
         ? content.prepared
         : retainPrivateRawCleanup(descriptorCleanup, content.prepared);
