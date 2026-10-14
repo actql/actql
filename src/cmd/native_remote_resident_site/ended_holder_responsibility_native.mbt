@@ -56,7 +56,7 @@ priv struct EndedHolderResponsibility {
   channel : EndedHolderChannelEvidence
   mut report_evidence : EndedHolderReportEvidence
   mut startability : Bool?
-  journal : Ref[@journal.Journal?]
+  journal : Ref[ControlReplayJournalCustody?]
 }
 
 ///|
@@ -75,6 +75,25 @@ fn retain_ended_holder(current : RunningHolder) -> EndedHolderResponsibility {
 }
 
 ///|
+/// Reuse the same physical reader or failed constructor before considering
+/// a new journal view. A report ACK is not constructor cleanup evidence.
+fn open_ended_holder_observation_journal(
+  original : EndedHolderResponsibility,
+  environment : ControlEnvironment,
+) -> @journal.Journal? {
+  match original.journal.val {
+    Some(ReplayJournalHandle(value)) => Some(value)
+    Some(ReplayJournalOpenFailure(_)) => None
+    None =>
+      if original.report_evidence is OriginalStatusAcknowledged {
+        None
+      } else {
+        open_control_replay_journal(environment, original.journal)
+      }
+  }
+}
+
+///|
 /// One original status/checked-close pass. A failed close keeps the same
 /// journal; no new journal is opened and no HTTP report is repeated after ACK.
 fn observe_ended_holder(
@@ -87,45 +106,54 @@ fn observe_ended_holder(
     original.report_evidence is OriginalStatusAcknowledged {
     return
   }
-  let journal = match original.journal.val {
+  let journal = match
+    open_ended_holder_observation_journal(original, environment) {
     Some(value) => value
-    None =>
-      match fresh_journal(environment) {
-        Some(value) => {
-          original.journal.val = Some(value)
-          value
-        }
-        None => {
-          report("observation-pending", [
-            ("attempt", original.original.attempt), ("reason", "journal-open"),
-          ])
-          return
-        }
-      }
+    None => {
+      // A failed constructor still belongs to this ended holder. One checked
+      // cleanup pass may retire it, but never issues a status report or opens
+      // a replacement reader in this same pass.
+      ignore(retry_control_replay_journal_cleanup(original.journal))
+      report("observation-pending", [
+        ("attempt", original.original.attempt),
+        ("reason", "journal-open"),
+      ])
+      return
+    }
   }
   if original.report_evidence is OriginalStatusPending {
     match journal.require(original.original.request) {
       Ok(record) =>
-        original.startability = Some(@remote.remote_runtime_record_startable(record))
+        original.startability = Some(
+          @remote.remote_runtime_record_startable(record),
+        )
       Err(_) => () // Unreadable is not proof that starting is safe.
     }
-    match @client.acknowledge_status(
-      journal, client, observation_url, original.original.request,
-    ) {
+    match
+      @client.acknowledge_status(
+        journal,
+        client,
+        observation_url,
+        original.original.request,
+      ) {
       Ok(Some(record)) => {
         original.report_evidence = OriginalStatusAcknowledged
-        original.startability = Some(@remote.remote_runtime_record_startable(record))
+        original.startability = Some(
+          @remote.remote_runtime_record_startable(record),
+        )
       }
       Ok(None) => original.report_evidence = OriginalStatusAcknowledged
-      Err(issue) => report("observation-pending", [
-        ("attempt", original.original.attempt), ("reason", client_code(issue)),
-      ])
+      Err(issue) =>
+        report("observation-pending", [
+          ("attempt", original.original.attempt),
+          ("reason", client_code(issue)),
+        ])
     }
   }
-  match journal.close_checked() {
-    Ok(_) => original.journal.val = None
-    Err(_) => report("observation-cleanup-pending", [
-      ("attempt", original.original.attempt), ("reason", "original-journal-close"),
+  if !retry_control_replay_journal_cleanup(original.journal) {
+    report("observation-cleanup-pending", [
+      ("attempt", original.original.attempt),
+      ("reason", "original-journal-close"),
     ])
   }
 }
@@ -140,7 +168,8 @@ fn ended_holder_can_leave_window(
 ) -> Bool {
   guard original.channel is ChannelDescriptorsRetired &&
     original.report_evidence is OriginalStatusAcknowledged &&
-    original.startability is Some(_) && original.journal.val is None else {
+    original.startability is Some(_) &&
+    original.journal.val is None else {
     return false
   }
   slot.try_acquire() == Ok(true) && slot.verify_current_hold() == Ok(())
@@ -164,10 +193,16 @@ priv struct ControlEndedHolderLifetime {
   matches : @argparse.Matches
   recovery_close_failures : Ref[Int]
   mut pending_custody : PendingBundleCustody?
+  replay_journal : Ref[ControlReplayJournalCustody?]
 }
 
 ///|
-fn retry_control_ended_holder_lifetime(original : ControlEndedHolderLifetime) -> Bool {
+fn retry_control_ended_holder_lifetime(
+  original : ControlEndedHolderLifetime,
+) -> Bool {
+  guard retry_control_replay_journal_cleanup(original.replay_journal) else {
+    return false
+  }
   if original.live.val is Some(holder) {
     match holder.child.wait(false) {
       Ok(Some(_)) => {
@@ -189,38 +224,47 @@ fn retry_control_ended_holder_lifetime(original : ControlEndedHolderLifetime) ->
         return false
       }
     } else {
-    // Select only from this existing Owner's original durable journal. Never
-    // reconstruct a request from a candidate wire/current Program or a hash.
-    let record = match owner.journal.recover_after(original.recovery_cursor.val) {
-      Ok(Some((key, record))) => {
-        original.recovery_cursor.val = key
-        record
+      // Select only from this existing Owner's original durable journal. Never
+      // reconstruct a request from a candidate wire/current Program or a hash.
+      let record = match
+        owner.journal.recover_after(original.recovery_cursor.val) {
+        Ok(Some((key, record))) => {
+          original.recovery_cursor.val = key
+          record
+        }
+        Ok(None) => {
+          original.recovery_cursor.val = ""
+          return false
+        }
+        Err(_) => return false
       }
-      Ok(None) => {
-        original.recovery_cursor.val = ""
+      let request = @remote.dispatch_record_request(record)
+      if @remote.dispatch_request_identity(request) != owner.request_identity {
         return false
       }
-      Err(_) => return false
-    }
-    let request = @remote.dispatch_record_request(record)
-    if @remote.dispatch_request_identity(request) != owner.request_identity {
-      return false
-    }
-    let completed = recover_stopped_release(
-      original.matches, request, original.recovery, original.recovery_close_failures,
-    ) catch {
-      CommandStop(_) => false // The same original Owner remains in recovery.
-    }
-    guard completed else { return false }
+      let completed = recover_stopped_release(
+        original.matches,
+        request,
+        original.recovery,
+        original.recovery_close_failures,
+      ) catch {
+        CommandStop(_) => false // The same original Owner remains in recovery.
+      }
+      guard completed else { return false }
     }
   }
   match original.pending_custody {
     Some(Responding(report)) => {
       let (remaining, _) = @agent.advance_native_bundle_custody_report(
         Some(report),
-        (delivery, response) => @client.report_bundle_custody(
-          original.client, original.observation_url, delivery, response,
-        ),
+        (delivery, response) => {
+          @client.report_bundle_custody(
+            original.client,
+            original.observation_url,
+            delivery,
+            response,
+          )
+        },
       )
       original.pending_custody = remaining.map(value => Responding(value))
       guard original.pending_custody is None else { return false }
@@ -241,7 +285,10 @@ fn retry_control_ended_holder_lifetime(original : ControlEndedHolderLifetime) ->
   }
   let remaining = original.ended.filter(ended => {
     observe_ended_holder(
-      ended, original.environment, original.client, original.observation_url,
+      ended,
+      original.environment,
+      original.client,
+      original.observation_url,
     )
     !ended_holder_can_leave_window(ended, original.slot)
   })
@@ -264,22 +311,38 @@ fn retain_control_ended_holder_lifetime(
   matches : @argparse.Matches,
   recovery_close_failures : Ref[Int],
   pending_custody : PendingBundleCustody?,
+  replay_journal : Ref[ControlReplayJournalCustody?],
 ) -> @slot.NativeExecutorSlot {
   let original : ControlEndedHolderLifetime = {
-    ended, live: Ref(live), environment, client, observation_url, slot, slot_path,
-    orphan_store, recovery, recovery_cursor: Ref(""), matches,
-    recovery_close_failures, pending_custody,
+    ended,
+    live: Ref(live),
+    environment,
+    client,
+    observation_url,
+    slot,
+    slot_path,
+    orphan_store,
+    recovery,
+    recovery_cursor: Ref(""),
+    matches,
+    recovery_close_failures,
+    pending_custody,
+    replay_journal,
   }
   install_partial_holder_cleanup_signal()
-  ignore(retain_holder_cleanup_lifetime(
-    original,
-    retry_control_ended_holder_lifetime,
-    () => CleanupInputEnded,
-    wait_holder_cleanup_lifetime_signal,
-    (custody, _) => report("control-cleanup-pending", [
-      ("ended", custody.ended.length().to_string()),
-      ("live", (custody.live.val is Some(_)).to_string()),
-    ]),
-  ))
+  ignore(
+    retain_holder_cleanup_lifetime(
+      original,
+      retry_control_ended_holder_lifetime,
+      () => CleanupInputEnded,
+      wait_holder_cleanup_lifetime_signal,
+      (custody, _) => {
+        report("control-cleanup-pending", [
+          ("ended", custody.ended.length().to_string()),
+          ("live", (custody.live.val is Some(_)).to_string()),
+        ])
+      },
+    ),
+  )
   original.slot
 }
