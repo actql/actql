@@ -963,7 +963,7 @@ pub fn client_submission_reference_record_wire(ClientSubmissionReferenceRecord) 
 
 pub fn client_submitted_intent_cid(ClientSubmittedIntent) -> String
 
-pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, run_admission? : (ClientRequestIdentity, String, Int64)?) -> Result[Bytes, ClientJournalEncodingIssue]
+pub fn client_submitted_intent_journal_row_body(String, ClientSubmittedIntent, run_admission? : (ClientRequestIdentity, String, Int64)?, run_state_original? : String?) -> Result[Bytes, ClientJournalEncodingIssue]
 
 pub fn client_submitted_intent_transition(String, String) -> Bool
 
@@ -1513,6 +1513,8 @@ pub fn prepare_client_run_pre_start_failure(ClientRequestIdentity, ClientRequest
 
 pub fn prepare_client_run_start(ClientRequestIdentity, ClientRequestIdentity, @run_publication.PublicationContract, String, Bool, Bool) -> Result[ClientRunStartAction, ClientRunStartIssue]
 
+pub fn prepare_client_run_state_original(@run_publication.PublicationContract, @run_publication.PublicationContract, String) -> Result[ClientRunStateOriginal, ClientJournalDecodingIssue]
+
 pub fn prepare_client_serialization(PreparedClientProgram, Int, Int, max_work~ : Int) -> Result[@lowering_relation.PreparedSerialization, ClientSerializationPreparationIssue]
 
 pub fn prepare_client_stored_run_captured_content(ClientCompiledRun, @run_publication.PublicationContract, ClientKeyedAcquisition, String, String, @value_admission.ReferenceLimits) -> Result[ClientCapturedContent, @run_publication.GeneratedContentReferenceIssue]
@@ -1690,6 +1692,8 @@ pub fn restore_client_native_local_scalar_runtime_pair(Bytes, ClientNativeLocalR
 pub fn restore_client_retained_task_input(@remote_site_protocol.RemoteInputBinding, ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, ClientRetainedInputCurrent, Int, Int, Int, Int64) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue]
 
 pub fn restore_client_run_observation_originals(@run_publication.PublicationContract, String, String, Int, Int, Int) -> Result[ClientRunObservationOriginals, ClientRunObservationOriginalsIssue]
+
+pub fn restore_client_run_state_original(@run_publication.PublicationContract, String) -> Result[ClientRunStateOriginal, ClientJournalDecodingIssue]
 
 pub fn restore_prepared_client_effect_normalization(PreparedClientEffectComputation, ClientEffectNormalization, String, String) -> Result[@run_publication.RunEvidenceValue, ClientEffectNormalizationIssue]
 
@@ -3297,6 +3301,10 @@ pub(all) enum ClientRunStartIssue {
   AuthorizationDenied
 } derive(Eq, @debug.Debug)
 
+type ClientRunStateOriginal
+pub fn ClientRunStateOriginal::state_wire(Self) -> String
+pub fn ClientRunStateOriginal::wire(Self) -> String
+
 pub struct ClientSavedSubmissionSnapshot {
   record : ClientSubmittedJournalEncoding
   submission : ClientJournalPhysicalRow
@@ -3474,6 +3482,7 @@ pub(all) struct ClientSubmittedJournalEncoding {
   reference : ClientSubmissionReferenceRecord
   intent : ClientSubmittedIntent
   run_admission : (ClientRequestIdentity, String, Int64)?
+  run_state_original : String?
 }
 
 pub(all) enum ClientSubmittedRunRecordIssue {

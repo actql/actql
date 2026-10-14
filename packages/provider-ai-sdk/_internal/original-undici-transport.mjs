@@ -53,7 +53,7 @@ function bindAcquisitionRead(socket, limits, acquisition) {
     }
     acquisition.reads++;
     const chunk = Reflect.apply(read, socket, args);
-    if (chunk === null || chunk.byteLength === 0) return chunk;
+    if (chunk === null) return chunk;
     let code;
     if (!Buffer.isBuffer(chunk)) code = 'UndiciOriginalAcquisitionShapeRefused';
     else if (chunk.byteLength > limits.maxPlaintextBytes - plaintext) {

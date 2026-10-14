@@ -6,6 +6,7 @@ pub(all) struct ClientSubmittedJournalEncoding {
   reference : ClientSubmissionReferenceRecord
   intent : ClientSubmittedIntent
   run_admission : (ClientRequestIdentity, String, Int64)?
+  run_state_original : String?
 }
 
 ///|
@@ -27,7 +28,7 @@ pub fn decode_client_submitted_journal_row(
     })
     is Ok(cursor) &&
     @decode.closed_object(cursor, [
-      "intent", "phase", "reference", "run_admission", "version",
+      "intent", "phase", "reference", "run_admission", "run_state_original", "version",
     ])
     is Ok(object) else {
     return Err(CustodyLost)
@@ -61,6 +62,14 @@ pub fn decode_client_submitted_journal_row(
       }
     }
   }
+  let run_state_original = match @decode.lookup(object, "run_state_original") {
+    None => None
+    Some(value) =>
+      match @decode.text(value) {
+        Ok(wire) if run_admission is Some(_) => Some(wire)
+        _ => return Err(CustodyLost)
+      }
+  }
   if phase != (if run_admission is Some(_) { "ready" } else { "preparing" }) ||
     !client_submitted_intent_transition(phase, phase) {
     return Err(CustodyLost)
@@ -70,9 +79,10 @@ pub fn decode_client_submitted_journal_row(
       client_submission_reference_record_wire(reference),
       intent,
       run_admission~,
+      run_state_original~,
     ) {
     Ok(original) if original == body =>
-      Ok({ reference, intent, run_admission, })
+      Ok({ reference, intent, run_admission, run_state_original, })
     _ => Err(CustodyLost)
   }
 }

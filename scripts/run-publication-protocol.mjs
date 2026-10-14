@@ -576,6 +576,10 @@ for (const name of ['model_journal_entry', 'model_journal_settlement']) {
   registerArtifactSchema(name, {schema: name, identity: 'self_cid'});
 }
 
+// The original value-only RunState has no CID/control envelope. Reuse its
+// closed pinned schema for persisted metadata without changing any wire/pin.
+roots.set('run_state:true', emitSchema(document.artifact_schemas.run_state));
+
 // Keep compiler text segments finite without concatenating temporary rule
 // arrays. Each helper borrows the same destination. Capacity uses the pinned
 // target's existing constructor semantics (a hint only on JS), not a new

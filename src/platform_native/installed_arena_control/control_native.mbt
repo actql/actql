@@ -12,6 +12,8 @@ struct InstalledArenaHost {
   mut acquisition_issue : @bootstrap.NativeBootstrapIssue?
   mut closing : Bool
   mut closed : Bool
+  domain_record_limit : Int
+  domains : Array[InstalledArenaDomain]
 }
 
 ///|
@@ -36,6 +38,8 @@ pub fn prepare_installed_arena_host(
     acquisition_issue: None,
     closing: false,
     closed: false,
+    domain_record_limit: limits.attempts,
+    domains: [],
   }
   match
     @bootstrap.prepare_installed_arena_supplier(
@@ -342,6 +346,9 @@ pub fn InstalledArenaHost::try_close(
     return Ok(())
   }
   self.closing = true
+  if self.domains.any(domain => !domain.closed) {
+    return Err(@bootstrap.ReadersPending)
+  }
   if self.backing is Some(backing) {
     match backing.try_close(self) {
       Err(issue) => return Err(issue)
@@ -351,6 +358,7 @@ pub fn InstalledArenaHost::try_close(
   self.backing = None
   self.supplier = None
   self.closed = true
+  self.domains.clear()
   Ok(())
 }
 

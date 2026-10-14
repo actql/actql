@@ -39,6 +39,7 @@ struct NativeBackedExecutionRegion[T, C] {
   accounting : @resources.BackedExecutionRegion[NativeHostBootstrap[T], C]
   loans : Array[NativeBackedExecutionLoan[T, C]]
   mut closed : Bool
+  mut closing : Bool
 }
 
 ///|
@@ -49,6 +50,9 @@ struct NativeBackedExecutionLoan[T, C] {
   physical : PhysicalRegionLoan
   mut physical_returned : Bool
   mut settled : Bool
+  mut view : NativeBackedExecutionView[T, C]?
+  mut map_attempted : Bool
+  mut transport : NativeBackedExtentTransport?
 }
 
 ///|
@@ -80,7 +84,7 @@ pub fn[T, C] NativeHostBootstrap::issue_backed_region(
     Err(issue) => return Err(Accounting(issue))
     Ok(value) => value
   }
-  Ok({ owner: self, allocation, accounting, loans: [], closed: false })
+  Ok({ owner: self, allocation, accounting, loans: [], closed: false, closing: false })
 }
 
 ///|
@@ -122,7 +126,7 @@ pub fn[T, C] NativeHostBootstrap::lend_backed_region(
     access == @resources.ExclusiveWrite,
   )
   let loan : NativeBackedExecutionLoan[T, C] = {
-    region, child, accounting, physical, physical_returned: false, settled: false,
+    region, child, accounting, physical, physical_returned: false, settled: false, view: None, map_attempted: false, transport: None,
   }
   region.loans.push(loan)
   let status = region_status_ffi(physical)
@@ -175,6 +179,9 @@ pub fn[T, C] NativeHostBootstrap::settle_backed_region_after_owner_ack(
   if loan.settled {
     return Err(Bootstrap(AlreadyConsumed))
   }
+  if loan.view is Some(view) && !view.closed {
+    return Err(Bootstrap(ReadersPending))
+  }
   if !loan.physical_returned {
     let status = return_region_ffi(self.backing, loan.region.allocation.extent, loan.physical)
     if status != 0 {
@@ -188,6 +195,7 @@ pub fn[T, C] NativeHostBootstrap::settle_backed_region_after_owner_ack(
     Err(issue) => Err(Accounting(issue))
     Ok(_) => {
       loan.settled = true
+      loan.view = None
       Ok(())
     }
   }
@@ -205,6 +213,7 @@ pub fn[T, C] NativeHostBootstrap::close_backed_region(
   if region.closed {
     return Ok(true)
   }
+  region.closing = true
   match @resources.close_backed_execution_region(region.accounting, self) {
     Err(issue) => Err(Accounting(issue))
     Ok(closed) => {
