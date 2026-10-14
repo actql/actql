@@ -264,7 +264,10 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
       body.on('error', () => {});
       bodyClosed = body.closed ? Promise.resolve(true)
         : new Promise(resolve => body.once('close', () => resolve(true)));
-      return originalResponseView(response, body, () => bodyClosed);
+      // Escaped unread/reader views retain this SAME close observation after
+      // the transport drops its own references. Do not make their cancellation
+      // consult a mutable cell that physical cleanup can retire first.
+      return originalResponseView(response, body, bodyClosed);
     });
     // Cleanup and callers observe the same rejection, never an unhandled one.
     pending.catch(() => {});
@@ -278,6 +281,11 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
     // path alone cannot acknowledge that physical lifetime before HTTP setup.
     // Supplying the error also settles buildConnector's original callback and
     // timeout path; a bare socket.destroy() need not emit that error callback.
+    // The original response can be refused before getReader (for example an
+    // observed-header limit). Drive that SAME unread body before awaiting its
+    // close. A destroy request is not its ACK: retain all original references
+    // until the existing Client/connector/Socket/body observations below agree.
+    body?.destroy();
     socket?.destroy(issue('UndiciOriginalTransportRetired'));
     destroying = client.destroy().then(async () => {
       if (pending !== undefined) await pending.catch(() => {});
@@ -310,19 +318,25 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
   return Object.freeze({invoke, cleanup});
 }
 
-function originalResponseView(response, body, closed) {
+function originalHeadersView(originalHeaders) {
   // Actual parsed HTTP headers, not SDK defaults or a JSON response parser.
-  // Do not copy the body through Response()/BodyReadable.body/toWeb/text/json.
-  const headers = Object.freeze({get(name) {
-    const value = response.headers[name.toLowerCase()];
+  // Borrow the SAME header map, not the entire response/statusText/trailers/
+  // context graph. Duplicate arrays and escaped header views stay borrowed.
+  return Object.freeze({get(name) {
+    const value = originalHeaders[name.toLowerCase()];
     return value === undefined ? null : Array.isArray(value) ? value.join(', ') : value;
   }});
+}
+
+function originalResponseView(response, body, closed) {
+  // Do not copy the body through Response()/BodyReadable.body/toWeb/text/json.
+  const headers = originalHeadersView(response.headers);
   let iterator;
   let reader;
   let reading;
   const cancel = async () => {
     body.destroy();
-    if (await closed() !== true) throw issue('UndiciOriginalBodyCleanupPending');
+    if (await closed !== true) throw issue('UndiciOriginalBodyCleanupPending');
   };
   const stream = Object.freeze({getReader() {
     if (reader !== undefined) throw issue('UndiciOriginalBodyLocked');
