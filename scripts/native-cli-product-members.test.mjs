@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
 import {PRODUCT_MEMBERS_FILE, productMembersBody, readProductMembers,
-  productMembersCensus, selectedPlatformPlacement} from '../packages/native-cli/lib/product-members.mjs';
+  productMembersCensus, selectedPlatformPlacement, installedProductCensus} from '../packages/native-cli/lib/product-members.mjs';
 
 const expected = {sourceSha: 'a'.repeat(40), platform: 'darwin-arm64', packageName: 'actql'};
 const record = {...expected, files: [
@@ -109,4 +109,67 @@ test('placement does not permit foreign packages, arbitrary node_modules or path
   }
   assert.throws(() => selectedPlatformPlacement('/consumer/node_modules/other',
     '/consumer/node_modules/@actql/cli-darwin-arm64', 'darwin-arm64'));
+});
+
+const platformRecord = {...record, packageName: '@actql/cli-darwin-arm64', files: [
+  record.files[0], {...record.files[1], path: 'bin/actql'},
+]};
+const launcherRoot = '/consumer/node_modules/actql';
+const platformRoot = '/consumer/node_modules/@actql/cli-darwin-arm64';
+
+test('installed hoisted pair keeps independent payload Roots without dependency census exemption', () => {
+  assert.deepEqual(installedProductCensus(record, platformRecord, launcherRoot, platformRoot), {
+    layout: 'hoisted',
+    launcher: {root: launcherRoot, directories: [
+      {path: '', entries: [{name: 'LICENSE', kind: 'file'}, {name: 'bin', kind: 'directory'},
+        {name: 'local-product-members.json', kind: 'file'}]},
+      {path: 'bin', entries: [{name: 'actql.mjs', kind: 'file'}]},
+    ]},
+    platform: {root: platformRoot, directories: [
+      {path: '', entries: [{name: 'LICENSE', kind: 'file'}, {name: 'bin', kind: 'directory'},
+        {name: 'local-product-members.json', kind: 'file'}]},
+      {path: 'bin', entries: [{name: 'actql', kind: 'file'}]},
+    ]},
+  });
+});
+
+test('installed nested pair closes each route directory around only the selected platform', () => {
+  const nested = `${launcherRoot}/node_modules/@actql/cli-darwin-arm64`;
+  const view = installedProductCensus(record, platformRecord, launcherRoot, nested);
+  assert.equal(view.layout, 'nested');
+  assert.equal(view.platform.root, nested);
+  assert.deepEqual(view.launcher.directories, [
+    {path: '', entries: [{name: 'LICENSE', kind: 'file'}, {name: 'bin', kind: 'directory'},
+      {name: 'local-product-members.json', kind: 'file'}, {name: 'node_modules', kind: 'directory'}]},
+    {path: 'bin', entries: [{name: 'actql.mjs', kind: 'file'}]},
+    {path: 'node_modules', entries: [{name: '@actql', kind: 'directory'}]},
+    {path: 'node_modules/@actql', entries: [{name: 'cli-darwin-arm64', kind: 'directory'}]},
+  ]);
+  assert.equal(view.platform.directories.some(value => value.path.startsWith('node_modules')), false);
+});
+
+test('installed pair rejects foreign source platform role route and conflicting payload membership', () => {
+  for (const platform of [{...platformRecord, sourceSha: 'b'.repeat(40)},
+    {...platformRecord, platform: 'linux-x64-gnu', packageName: '@actql/cli-linux-x64-gnu'},
+    {...platformRecord, packageName: 'actql'}]) {
+    assert.throws(() => installedProductCensus(record, platform, launcherRoot, platformRoot));
+  }
+  assert.throws(() => installedProductCensus(platformRecord, record, launcherRoot, platformRoot));
+  assert.throws(() => installedProductCensus(record, platformRecord, launcherRoot,
+    `${launcherRoot}/node_modules/@other/cli-darwin-arm64`));
+  const payload = {...record, files: [...record.files,
+    {...record.files[0], path: 'node_modules/declared'}]};
+  assert.throws(() => installedProductCensus(payload, platformRecord, launcherRoot,
+    `${launcherRoot}/node_modules/@actql/cli-darwin-arm64`), /declared payload member/u);
+});
+
+test('installed census does not rewrite descriptor bytes or mutate caller inventories', () => {
+  const launcherBefore = JSON.stringify(record), platformBefore = JSON.stringify(platformRecord);
+  installedProductCensus(record, platformRecord, launcherRoot,
+    `${launcherRoot}/node_modules/@actql/cli-darwin-arm64`);
+  assert.equal(JSON.stringify(record), launcherBefore);
+  assert.equal(JSON.stringify(platformRecord), platformBefore);
+  assert.equal(productMembersBody(record), literal);
+  assert.equal(createHash('sha256').update(literal).digest('hex'),
+    '4c31eaee350e3bc01a9804d0ef14a524df2dc6a629e48918da7c08e7b9538abc');
 });
