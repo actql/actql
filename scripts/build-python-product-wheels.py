@@ -16,6 +16,24 @@ from python_release_cohort import read_cohort
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def host_capacity_original(source: str, components: object) -> bytes:
+    """Stage only a selected clean Git original; missing capacity is not zero."""
+    from actql_sdk._local_capacity_original import _encode_installed_capacity
+    from actql_sdk._local_distribution import LocalComponents, _read_file
+    if type(components) is not LocalComponents:
+        raise ValueError('Unavailable original Python capacity context')
+    relative = 'packages/python-local-runtime/selected-host-capacity.json'
+    try:
+        original = _read_file(ROOT / relative, maximum=65536)
+        expected = subprocess.check_output(['git', 'rev-parse', '--verify', source + ':' + relative], cwd=ROOT).strip()
+        actual = subprocess.check_output(['git', 'hash-object', '--stdin'], cwd=ROOT, input=original).strip()
+        if actual != expected or components.source_sha != source:
+            raise ValueError('Python capacity differs from the committed source original')
+        return _encode_installed_capacity(original, components)
+    except (OSError, subprocess.CalledProcessError) as failure:
+        raise ValueError('Selected source-original Python Host capacity is unavailable') from failure
+
+
 def sha256(path: Path) -> str:
     value = hashlib.sha256()
     with path.open('rb') as source:
@@ -53,14 +71,15 @@ def wheel_metadata(path: Path, name: str, version: str) -> None:
             raise ValueError('Python cohort wheel target mismatch')
         if name == 'actql' and not {'actql/__init__.py', 'actql/__init__.pyi', 'actql/py.typed'} <= set(names):
             raise ValueError('Standard product wheel has no typed facade')
-        if name != 'actql-local-runtime' and any(value.endswith(('.wasm', '.dylib', '.so', '.dll')) for value in names):
+        if name != 'actql-local-runtime' and any(value.endswith(('.wasm', '.cwasm', '.dylib', '.so', '.dll')) for value in names):
             raise ValueError('Python facade/SDK wheel contains a native engine')
 
 
 def runtime_wheel_components(wheel: Path, artifact: Path) -> None:
     """Match the shipped resource bytes to the same verified original artifact."""
     with zipfile.ZipFile(wheel) as archive:
-        for name in ('artifact.json', 'client_host_wasm.wasm', 'libduckdb.dylib',
+        for name in ('artifact.json', 'engine-recipe.json', 'client_host_wasm.cwasm',
+                     'client_host_wasm.wasm', 'libduckdb.dylib',
                      'LICENSE', 'DUCKDB-LICENSE', 'MOONBIT-CORE-LICENSE', 'MOONBIT-CORE-NOTICE'):
             original = artifact / name
             info = archive.getinfo('actql_local_runtime/' + name)
@@ -72,6 +91,23 @@ def runtime_wheel_components(wheel: Path, artifact: Path) -> None:
                     digest.update(block)
             if digest.hexdigest() != sha256(original):
                 raise ValueError('Python runtime wheel component digest mismatch')
+
+
+def sdk_runtime_binding(wheel: Path, original: bytes) -> None:
+    """Check the SDK's generated same-source binding, not an execution grant."""
+    with zipfile.ZipFile(wheel) as archive:
+        name = 'actql_sdk/_local_release_binding.json'
+        item = archive.getinfo(name)
+        if not 0 < item.file_size <= 65536 or archive.read(item) != original:
+            raise ValueError('SDK wheel Local release binding mismatch')
+
+
+def sdk_host_capacity(wheel: Path, original: bytes) -> None:
+    """Verify the exact generated capacity member without adopting or loading it."""
+    with zipfile.ZipFile(wheel) as archive:
+        item = archive.getinfo('actql_sdk/_local_host_capacity.json')
+        if not 0 < item.file_size <= 131072 or archive.read(item) != original:
+            raise ValueError('SDK wheel Local Host capacity original mismatch')
 
 
 def copy_source(source: str, original: Path, target: Path) -> None:
@@ -96,6 +132,7 @@ def build(artifact: Path, destination: Path) -> dict[str, object]:
     components = recipe.verify_artifact(artifact)
     artifact_digest = sha256(artifact / 'artifact.json')
     artifact_body = json.loads((artifact / 'artifact.json').read_bytes())
+    capacity = host_capacity_original(source, components)
     destination.mkdir()
     stages = destination / 'stages'
     stages.mkdir()
@@ -116,6 +153,12 @@ def build(artifact: Path, destination: Path) -> dict[str, object]:
         for name in tracked:
             path = ROOT / name
             copy_source(source, path, stage / path.relative_to(original))
+    binding = (json.dumps({'source_sha': source, 'package_version': version,
+        'core_abi': artifact_body['core_abi'], 'artifact_sha256': artifact_digest,
+        'host_capacity_sha256': hashlib.sha256(capacity).hexdigest()},
+        sort_keys=True, indent=2) + '\n').encode('ascii')
+    (stages / 'python-sdk/src/actql_sdk/_local_release_binding.json').write_bytes(binding)
+    (stages / 'python-sdk/src/actql_sdk/_local_host_capacity.json').write_bytes(capacity)
     wheels = destination / 'wheels'
     wheels.mkdir()
     records = []
@@ -130,6 +173,9 @@ def build(artifact: Path, destination: Path) -> dict[str, object]:
             raise ValueError('Python cohort build did not create one wheel per package')
         wheel = created.pop()
         wheel_metadata(wheel, distribution, version)
+        if distribution == 'actql-sdk':
+            sdk_runtime_binding(wheel, binding)
+            sdk_host_capacity(wheel, capacity)
         if distribution == 'actql-local-runtime':
             runtime_wheel_components(wheel, artifact)
         records.append({'distribution': distribution, 'file': wheel.name,
@@ -146,6 +192,8 @@ def build(artifact: Path, destination: Path) -> dict[str, object]:
         'artifact_sha256': artifact_digest,
         'platform': artifact_body['platform'], 'core_abi': artifact_body['core_abi'],
         'module_sha256': components.module_sha256, 'duckdb_sha256': components.duckdb_sha256,
+        'image_sha256': components.image_sha256, 'engine_recipe_sha256': components.engine_recipe_sha256,
+        'host_capacity_sha256': hashlib.sha256(capacity).hexdigest(),
         'wheels': records, 'runtime_executed': False, 'public_local_accepted': False,
         'recovery_accepted': False, 'published': False}
     (destination / 'cohort.json').write_text(json.dumps(result, indent=2) + '\n')

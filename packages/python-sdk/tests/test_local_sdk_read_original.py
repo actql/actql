@@ -28,7 +28,7 @@ class SDKReadOriginalTests(unittest.TestCase):
 
     def test_closed_signature_and_exact_original_loans_are_forwarded(self):
         core, source, output, calls, _ = self.bridge()
-        self.assertEqual(LOCAL_CORE_ABI, 71)
+        self.assertEqual(LOCAL_CORE_ABI, 72)
         self.assertEqual(_PUBLICATION_COMMIT_EXPORT_SIGNATURES['produce_sdk_read_original'],
                          ('i64 i32 i32 i32 i32 i32 i32', 'i32'))
         for ordinal in range(3):

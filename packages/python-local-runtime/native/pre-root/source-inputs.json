@@ -1,0 +1,94 @@
+{
+  "status": "source-preparation-only",
+  "author_parent": "f433964dadc6f3a75ba9753b46590220d42b9365",
+  "upstream_git_commit": "399f857f28ee8845d0cfd4ec71680912b5375831",
+  "wasmtime_crate_sha256": "fc0e75ee2cf54bb6be94eac3e90841ef0bb4f6d371398cb61a6e65c10574b149",
+  "target": "aarch64-apple-darwin",
+  "deployment_target": "11.0",
+  "runtime_version": "38.0.0",
+  "fuel": 100000000,
+  "transfer_pool_bytes": 12582912,
+  "linear_memory_bytes": 16777216,
+  "numeric_owned_capacity": null,
+  "native_build_executed": false,
+  "engine_executed": false,
+  "source_inputs": [
+    {
+      "path": "crates/wasmtime/src/runtime/vm/sys/unix/mmap.rs",
+      "crate_member": "src/runtime/vm/sys/unix/mmap.rs",
+      "sha256": "849d3b8ca1743eacbf2a32013c1c3069c6a662d89ee65eda21f066b2c4ada36a"
+    },
+    {
+      "path": "crates/wasmtime/src/runtime/vm/mmap_vec.rs",
+      "crate_member": "src/runtime/vm/mmap_vec.rs",
+      "sha256": "cc60e3efc7a24468b5894fd81a0c0df7c3eadc1eef845b6c9f544ba82804dd33"
+    },
+    {
+      "path": "crates/wasmtime/src/runtime/vm/instance/allocator/pooling.rs",
+      "crate_member": "src/runtime/vm/instance/allocator/pooling.rs",
+      "sha256": "baa9cb50e5aa755daad445355b599623d2dbb93e3355183f1e3d4e7e09156deb"
+    },
+    {
+      "path": "crates/wasmtime/src/runtime/vm/instance/allocator/pooling/memory_pool.rs",
+      "crate_member": "src/runtime/vm/instance/allocator/pooling/memory_pool.rs",
+      "sha256": "e09d3b1535450b00db3082fd02796fd7185e390e486db83625dc5ccb7afb85f5"
+    },
+    {
+      "path": "crates/wasmtime/src/runtime/vm/instance/allocator/pooling/table_pool.rs",
+      "crate_member": "src/runtime/vm/instance/allocator/pooling/table_pool.rs",
+      "sha256": "96f7f6b41f325e4093c039494d5a0b8606877291e6230b6d01de52e98ac1d1b5"
+    },
+    {
+      "path": "crates/wasmtime/src/runtime/code_memory.rs",
+      "crate_member": "src/runtime/code_memory.rs",
+      "sha256": "1ffa1c6a1f41211f2c31240eb01521193b2fbc2fe5c3d2ba6a1cc0cdce8a992d"
+    },
+    {
+      "path": "crates/wasmtime/src/engine.rs",
+      "crate_member": "src/engine.rs",
+      "sha256": "78933615494082922baa4a85bfc7bc836e7e547b1c2865e23a18f0f2b7e3f0b9"
+    },
+    {
+      "path": "crates/wasmtime/src/runtime/module.rs",
+      "crate_member": "src/runtime/module.rs",
+      "sha256": "08037e371771c3575fe3a9b24dd2b57207c0ab3e9be309a21a688549b484843e"
+    },
+    {
+      "path": "crates/wasmtime/src/runtime/store.rs",
+      "crate_member": "src/runtime/store.rs",
+      "sha256": "9f3d91fd7af7595c9b02a33bde14f007c7de99a11cb692f737acd9acfbde41a2"
+    },
+    {
+      "path": "crates/wasmtime/Cargo.toml",
+      "crate_member": "Cargo.toml.orig",
+      "sha256": "5b38de736d5cc9d8f241b31561545bec34c8f129c0074480b5412d0d753b6c00"
+    }
+  ],
+  "unresolved_build_inputs": [
+    "complete upstream workspace and Cargo.lock hashes",
+    "final cdylib crate source and allocation entry coverage",
+    "exact Rust toolchain and target SDK hashes",
+    "adopted native heap/scratch allocator routing patch",
+    "audited C API feature closure",
+    "selected capacity original and complete phase envelope"
+  ],
+  "recipe_changes_required": [
+    "native library digest and patched source/build identity",
+    "physical allocator ABI and patch digest",
+    "same image compiler and consumer engine configuration",
+    "new compiled image digest and original raw module/source/cohort binding",
+    "installed component manifest and same-cohort wheels"
+  ],
+  "does_not_supply": [
+    "Rust Vec/Box/Arc and dependency scratch",
+    "Python bytes/ctypes image capture copies",
+    "Python/SQLite/loader baseline"
+  ],
+  "does_not_prove": [
+    "complete preRoot supplier",
+    "native compilation",
+    "actual Engine cleanup",
+    "wholeprocess profile",
+    "ordinary installed public E2E"
+  ]
+}
