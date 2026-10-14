@@ -13,10 +13,12 @@ const runner = 'import {runFocusedTests} from "./scripts/test-execution.mjs";' +
   '{cwd:process.cwd(),timeout:30000});';
 process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false,
   timeoutSeconds: 60, graceSeconds: 5, steps: [
-    {name: 'Closed Sequence inventory and normal release delivery', command: 'node',
+    {name: 'Closed Sequence restart and unchanged source-free cohorts', command: 'node',
       args: ['--input-type=module', '-e', runner, '--', '--test',
         'scripts/release-sequence-query-cases.test.mjs',
-        'scripts/release-sourcefree-query-cases.test.mjs']},
+        'scripts/release-sourcefree-query-cases.test.mjs',
+        'scripts/release-time-series-query-cases.test.mjs',
+        'scripts/release-temporal-join-query-cases.test.mjs']},
     {name: 'Whitespace', command: 'git', args: ['diff', '--check']},
   ]});
 assert.deepEqual(checkoutState(process.cwd()), before);

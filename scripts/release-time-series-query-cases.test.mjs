@@ -50,14 +50,15 @@ test('TimeSeries retains its synthetic authorization unchanged for a second proc
     await assert.rejects(sourcefreeFixtureAuthorization('local', 'unknown', {directory}));
   } finally {await rm(directory, {recursive: true});}
 });
-test('existing default and Sequence authorization do not write a retained credential', async () => {
+test('existing default authorization does not write a retained credential', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'actql-sourcefree-auth-unit-'));
   try {
-    for (const suite of ['in-unnest', 'sequence']) {
+    for (const suite of ['in-unnest']) {
       const authorization = await sourcefreeFixtureAuthorization('local', suite, {directory});
       assert.equal(authorization.reviewers.length, 1);
       assert.match(authorization.hostKey.privateKey, /BEGIN PRIVATE KEY/u);
-      await assert.rejects(readFile(join(directory, 'sourcefree-time-series-authorization-local.json')), {code: 'ENOENT'});
+      await assert.rejects(readFile(join(directory, `sourcefree-${suite}-authorization-local.json`)), {code: 'ENOENT'});
+      await assert.rejects(sourcefreeFixtureAuthorization('local', suite, {directory, reopen: true}));
     }
   } finally {await rm(directory, {recursive: true});}
 });
