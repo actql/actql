@@ -107,7 +107,7 @@ static void successful_root_reader(const char *path) {
     assert(actql_native_filesystem_scoped_reader_next(reader, 3, &physical) == 0 && physical == 0);
     moonbit_bytes_t alias = NULL;
     assert(actql_native_filesystem_scoped_reader_chunk(reader, &alias) == 0);
-    assert(moonbit_bytes_length(alias) == 3 && memcmp(alias, "abc", 3) == 0);
+    assert(Moonbit_array_length(alias) == 3 && memcmp(alias, "abc", 3) == 0);
     assert(actql_native_filesystem_scoped_reader_close(reader, true, &physical) == 0 && physical == 0);
     assert(actql_native_filesystem_scoped_root_close(root, &physical) == 0 && physical == 0);
     assert(!root->read_context_user && !reader->read_context_user);
