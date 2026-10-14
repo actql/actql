@@ -1438,6 +1438,7 @@ fn replay_output_reports(
 fn reconcile_saved_cancellation(
   matches : @argparse.Matches,
   environment : ControlEnvironment,
+  retained : Ref[ControlReplayJournalCustody?],
   client : @http.Client,
   url : String,
   cursor : Ref[String],
@@ -1448,7 +1449,7 @@ fn reconcile_saved_cancellation(
   close_failures : Ref[Int],
 ) -> Unit raise CommandStop {
   if @env.now() < next.val { return }
-  guard fresh_journal(environment) is Some(journal) else { return }
+  guard open_control_replay_journal(environment, retained) is Some(journal) else { return }
   let recovered = journal.recover_after(cursor.val)
   match recovered {
     Ok(Some((key, record))) => {
@@ -1456,7 +1457,13 @@ fn reconcile_saved_cancellation(
       let request = @remote.dispatch_record_request(record)
       let pending = journal.cancellation_requested(request)
       let already_released = @remote.remote_runtime_record_released(record)
-      ignore(journal.close())
+      // Cleanup the original reader before entering the existing stopped
+      // execution recovery. A failed close retains that reader and must not
+      // be replaced by a second journal or an inferred cleanup ACK.
+      guard retry_control_replay_journal_cleanup(retained) else {
+        report("cancel-recovery-pending", [("reason", "original-journal-close")])
+        return
+      }
       guard pending is Ok(true) else { return }
       let identity = @remote.dispatch_request_identity(request)
       if @resident.check_resident_dispatch_delegation(
@@ -1477,7 +1484,7 @@ fn reconcile_saved_cancellation(
         report("cancel-cleanup-pending", [("request_cid", identity)])
         return
       }
-      guard fresh_journal(environment) is Some(current) else { return }
+      guard open_control_replay_journal(environment, retained) is Some(current) else { return }
       match @client.acknowledge_status(current, client, url, request) {
         Ok(_) => report("cancel-reconciled", [("request_cid", identity)])
         Err(issue) =>
@@ -1486,14 +1493,20 @@ fn reconcile_saved_cancellation(
             ("reason", client_code(issue)),
           ])
       }
-      ignore(current.close())
+      if !retry_control_replay_journal_cleanup(retained) {
+        report("cancel-recovery-pending", [("reason", "original-report-journal-close")])
+      }
     }
     Ok(None) => {
       cursor.val = ""
-      ignore(journal.close())
+      if !retry_control_replay_journal_cleanup(retained) {
+        report("cancel-recovery-pending", [("reason", "original-journal-close")])
+      }
     }
     Err(_) => {
-      ignore(journal.close())
+      if !retry_control_replay_journal_cleanup(retained) {
+        report("cancel-recovery-pending", [("reason", "original-journal-close")])
+      }
       report("cancel-recovery-pending", [("reason", "journal-read")])
     }
   }
@@ -1750,9 +1763,15 @@ fn run_control(matches : @argparse.Matches) -> Unit raise CommandStop {
       !reclaim_due &&
       !orphan_reconciliation {
       reconcile_saved_cancellation(
-        matches, environment, client, observation_url, cancel_cursor, next_cancel_report,
+        matches, environment, replay_journal, client, observation_url, cancel_cursor, next_cancel_report,
         max_backoff_ms, site_delegation, recovery, recovery_close_failures,
       )
+    }
+    if replay_journal.val is Some(_) {
+      // Cancellation observation shares the same retained Journal lifetime.
+      // Do not accept/start another operation while its handle is unretired.
+      @slot.native_wait_milliseconds(idle_wait_ms)
+      continue
     }
     // No holder starts while this process still has the slot for a Store
     // it could not close yet.
