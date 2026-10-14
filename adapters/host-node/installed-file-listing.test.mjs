@@ -66,6 +66,69 @@ async function fixture(selector, text, format = 'sql', listingLimits) {
     ordered: JSON.stringify(aoa.execution_contracts['REL.derive.ordered'])};
 }
 
+for (const empty of [true, false]) {
+  test(`actual installed report supplier keeps ${empty ? 'empty' : 'duplicate and raw media'} correlation under the original Source owner`, async t => {
+    const value = await fixture({paths: empty ? [] : ['a.csv'], glob: null});
+    t.after(() => moon.clientProgramRowSourceClose(value.run));
+    // Independent DATA units exercise the existing Ledger path, not an
+    // adopted target allocation price or a normally installed public profile.
+    const reportCapacity = moon.clientProgramRowSourceListingReportCapacity(7n, 9n);
+    assert.notEqual(reportCapacity, undefined);
+    const ledger = checked(moon.clientProgramAcquisitionLedger(1, 1,
+      32768n, 100000000n, 100000000n, 0));
+    let reads = 0, grants = 0;
+    const rawMedia = 'Text/Plain;Label="e\u0301"';
+    const row = {...item('d', 'a.csv', '9007199254740993'), media_type: rawMedia};
+    const adapter = await createInstalledRowSource({moon,
+      declaration: value.declaration, declared: value.declared,
+      environmentWire: value.environmentWire,
+      connectorId: 'fixture', connectorRegistration: 'fixture', connectorRevision: 'fixture/0.1',
+      referenceIssuer: value.issuer, bindingCid: token('c'), readOperation: 'read',
+      listingReportCapacity: reportCapacity,
+      site: {connection: 'fixture:files', issueReadGrant() { grants++; return {}; }, close() {}},
+      authorization: {authorize: async () => ({action: 'dispatch'}),
+        accountConfiguration: '{}', context: {contextCid: token('b')}},
+      physicalTarget: (resource, fields) => ({resource, fields}),
+      limits: {maxPages: 4, maxPageBytes: 8192, maxPageRows: 9, maxCaptureRows: 3},
+      readPages: async ({listing, chargePage}) => {
+        reads++;
+        await listing.beginRequest(undefined);
+        const body = Buffer.from(JSON.stringify({items: [row, row],
+          request_token: null, next_token: null}));
+        assert.equal(await listing.consumePage(body, {charge: chargePage(body)}), 1);
+      }});
+    const options = {preparedProgram: value.prepared, registry: value.registry,
+      values: value.values, fragment: value.fragment, ordered: value.ordered};
+    const preparedSource = await adapter.prepare(options);
+    const capacity = adapter.ledgerCapacity(preparedSource);
+    assert.notEqual(capacity.capacity, undefined);
+    const captured = await adapter.openCapture({...options, preparedSource, ledger});
+    t.after(() => captured.close());
+    assert.equal(reads, empty ? 0 : 1);
+    assert.equal(grants, empty ? 0 : 1);
+    assert.equal(moon.clientProgramCapturedSourceRowCount(captured.identity), empty ? 0 : 1);
+    const evidence = JSON.parse(await captured.issueSourceEvidence({
+      authorityScopeCid: token('b'),
+      effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid}));
+    assert.deepEqual(evidence.file_listing_reports, {row_count: empty ? 0 : 1,
+      rows: empty ? [] : [{row_ordinal: 0, resource_ref_cid: token('d'),
+        version: '9007199254740993', reported_media_type: rawMedia,
+        media_type: 'text/plain;label="e\u0301"'}]});
+    const live = moon.clientProgramMultiCapturedLedgerUsage(ledger);
+    assert.equal(live[1], 1n);
+    assert.ok(live[6] > 0n && live[7] > 0n,
+      'report reservation remains live after capture and evidence encoding');
+    captured.close();
+    const retired = moon.clientProgramMultiCapturedLedgerUsage(ledger);
+    assert.equal(retired[5], 0n);
+    assert.equal(retired[6], 0n);
+    assert.equal(retired[7], 0n);
+    await assert.rejects(captured.issueSourceEvidence({authorityScopeCid: token('b'),
+      effectiveDataPolicyCid: captured.checkedSource.sourceDataPolicyCid}),
+    {code: 'MoonBitHostFailure'});
+  });
+}
+
 test('SQL and Pipe LIST_FILES use the installed capture boundary without a caller-authored filter', async t => {
   for (const [text, format] of [
     ["SELECT name FROM LIST_FILES(docs.invoices, glob => '**/*.csv')", 'sql'],
