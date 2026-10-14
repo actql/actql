@@ -102,3 +102,88 @@ test(`private ${bytesEntry ? 'raw bytes' : 'wire'} writer retains ${frozen ? 'fr
   passed = true;
 });
 }
+
+test('raw descriptor writer and earlier content cleanup retain both original duties', async t => {
+  const directory = await fs.mkdtemp(join(tmpdir(), 'actql-c-dual-private-writer-'));
+  const originalOpen = fs.open;
+  const primary = Object.freeze(Object.assign(new Error('OriginalDescriptorWriteFailed'),
+    {code: 'OriginalDescriptorWriteFailed'}));
+  const descriptorCloseFailure = new Error('OriginalDescriptorCloseFailed');
+  const contentCleanupFailure = new Error('OriginalContentDirectoryAckFailed');
+  let armContentCleanup = false, descriptorHandle, error, passed = false;
+  const state = {writers: 0, writes: 0, descriptorCloses: 0};
+  const store = await openLocalPublicationStore({directory,
+    storeAuthorityCid: cid('original dual writer authority'), privateEvidenceKey: Buffer.alloc(32, 7),
+    capacityBytes: 1048576, maxObjectBytes: 16384, maxObjects: 40,
+    maxContractNodes: 1000, maxContractDepth: 30},
+  createPublicationContractControlFixture(), {
+    async syncDirectory(path) {
+      if (armContentCleanup && path === join(directory, 'objects')) {
+        armContentCleanup = false;
+        throw contentCleanupFailure;
+      }
+      const handle = await Reflect.apply(originalOpen, fs, [path, 'r']);
+      try { await handle.sync(); } finally { await handle.close(); }
+    },
+  });
+  fs.open = async (...args) => {
+    const handle = await Reflect.apply(originalOpen, fs, args);
+    if (!String(args[0]).startsWith(join(directory, 'staging', 'object-'))) return handle;
+    const writerIndex = ++state.writers;
+    if (writerIndex === 2) descriptorHandle = handle;
+    return new Proxy(handle, {get(target, key) {
+      if (key === 'write') return async (...writeArgs) => {
+        state.writes++;
+        if (writerIndex === 2) {
+          armContentCleanup = true;
+          throw primary;
+        }
+        return Reflect.apply(target.write, target, writeArgs);
+      };
+      if (key === 'close' && writerIndex === 2) return async () => {
+        if (++state.descriptorCloses === 1) throw descriptorCloseFailure;
+        await target.close();
+      };
+      const value = Reflect.get(target, key, target);
+      return typeof value === 'function' ? value.bind(target) : value;
+    }});
+  };
+  syncBuiltinESMExports();
+  t.after(async () => {
+    fs.open = originalOpen;
+    syncBuiltinESMExports();
+    try { await error?.cleanupHandle?.release(); } catch { /* Keep same duty. */ }
+    if (!passed && state.descriptorCloses < 2) await descriptorHandle?.close(); // Diagnostic FD only.
+    try {
+      assert.equal(await store.close(), true);
+      if (passed) await fs.rm(directory, {recursive: true, force: true});
+      else t.diagnostic(`Retained failed dual writer: ${directory}`);
+    } catch { t.diagnostic(`Retained pending dual writer: ${directory}; ${JSON.stringify(store.status())}`); }
+  });
+  const bytes = Buffer.from('abc');
+  try {
+    await store.prepareModelRawEvidence({semanticCid: cid('original dual semantic'),
+      holdingCid: cid('original dual holding'), wire: 'abc',
+      byteCount: bytes.length, contentCid: cid(bytes)}, bytes);
+    assert.fail('Original descriptor write must fail');
+  } catch (observed) { error = observed; }
+  assert.equal(error.cause, primary);
+  assert.equal(error.cleanupPending, true);
+  assert.equal(store.status().reservedBytes, 132);
+  assert.equal(store.status().storedBytes, 132, 'content unlink ACK still pending');
+  assert.deepEqual(state, {writers: 2, writes: 2, descriptorCloses: 1});
+  await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
+  const cleanup = error.cleanupHandle;
+  assert.equal(cleanup.status().pending, true);
+  const first = cleanup.release(), second = cleanup.release();
+  assert.equal(first, second);
+  await first;
+  assert.equal(cleanup.status().pending, false);
+  assert.equal(store.status().reservedBytes, 0, 'same descriptor reservation retired');
+  assert.equal(store.status().storedBytes, 0, 'same content reclaim ACK confirmed');
+  assert.equal(store.status().reservedObjects, 0);
+  assert.deepEqual(state, {writers: 2, writes: 2, descriptorCloses: 2});
+  await cleanup.release();
+  assert.equal(state.descriptorCloses, 2);
+  passed = true;
+});
