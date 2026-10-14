@@ -1,4 +1,12 @@
 ///|
+// Independent DER/public-byte extraction and Python JSON/hashlib fixture only.
+let signing_original_public_a_body : String =
+  #|{"algorithm":"ed25519","public_key":"A6EHv/POEL4dcN0Y50vAmWfk1jCbpQ1fHdyGZBJVMbg=","version":"actql-local-signing-public-key/0.1"}
+
+///|
+let signing_original_public_a_cid : String = "sha256:e749b44f58f00aea7462fff44345be1406f64320d52984005ad478213afa4b74"
+
+///|
 // Matching Native definitions only until explicitly allocated. Files contain
 // synthetic descriptor text, not private PEMs; no grant, claim or signature.
 let signing_original_public_a : String =
@@ -118,13 +126,16 @@ test "Local signing missing restore never installs and replay reopen keep the sa
   }
   let fields = local_adoption_fields(payload, [
     "adoption_cid", "authority_scope_cid", "installation_configuration_cid", "projection",
-    "purpose", "version",
+    "public_key_cid", "public_key_original", "purpose", "version",
   ]).unwrap()
   assert_eq(fields[0], host.adoption_cid)
   assert_eq(fields[1], binding.scope)
   assert_eq(fields[2], binding.file.content_cid)
-  assert_eq(fields[4], "host_attestation")
-  assert_eq(fields[5], "actql-native-local-installation-original/0.1")
+  assert_eq(fields[4], signing_original_public_a_cid)
+  assert_eq(fields[5], signing_original_public_a_body)
+  assert_eq(fields[6], "host_attestation")
+  assert_eq(fields[7], "actql-native-local-installation-original/0.1")
+  assert_eq(original.public_key_cid(), signing_original_public_a_cid)
   host.close().unwrap()
   assert_true(original.require_current_key() is Err(_))
   let (restored, restored_file) = signing_original_host(name, existing=true)
@@ -132,6 +143,7 @@ test "Local signing missing restore never installs and replay reopen keep the sa
     .restore_signing_key_original()
     .unwrap()
   assert_eq(retained.exported, original.exported)
+  assert_eq(retained.public_key_cid(), signing_original_public_a_cid)
   assert_eq(
     restored.database.read("client_local_installation_originals", file).unwrap().body,
     row.body,
@@ -491,4 +503,71 @@ test "Local signing and preparation cannot borrow the same original descriptor i
     )
     host.close().unwrap()
   }
+}
+
+///|
+test "legacy authenticated signing row remains immutable and cannot recapture public identity" {
+  // Fresh disposable fixture only. Build the historical six-field original
+  // through the existing HMAC/counter/capacity transaction, without signing.
+  let (host, file) = signing_original_host("signing-original-legacy-public-missing")
+  let binding = signing_original_binding(host, file)
+  let (_, _, _, _, _, _, private_file, _) = @credential_resource.native_local_signing_key_selection_projection(
+    binding.selection,
+  )
+  let projection = host.session.source_root
+    .adopt_private_file_projection(private_file)
+    .unwrap()
+    .export_original()
+    .unwrap()
+  let payload = local_adoption_record([
+    ("adoption_cid", host.adoption_cid),
+    ("authority_scope_cid", binding.scope),
+    ("installation_configuration_cid", binding.file.content_cid),
+    ("projection", @base64.encode(projection)),
+    ("purpose", "host_attestation"),
+    ("version", "actql-native-local-installation-original/0.1"),
+  ]).unwrap()
+  let packet = local_installation_packet(host, payload).unwrap()
+  host.journal.transaction(() => {
+    try {
+      let (count, revision) = local_signing_installation_value(
+        host.installation_custody().map_err(_ => CustodyLost),
+      )
+      if count != 0 {
+        return Err(CustodyLost)
+      }
+      if !local_signing_installation_value(
+          host.database.reserve_capacity_in_transaction(
+            "client_local_settings", "installation:" + file,
+            8192L, 1L, 65536L, 8L,
+          ).map_err(issue => Physical(issue)),
+        ) {
+        return Err(CustodyLost)
+      }
+      local_signing_installation_value(
+        host.database.insert("client_local_installation_originals", file, packet)
+        .map_err(issue => Physical(issue)),
+      ) |> ignore
+      local_signing_installation_value(
+        host.database.compare_exchange(
+          "client_local_installation_custody", "issued", revision, b"1",
+        ).map_err(issue => Physical(issue)),
+      ) |> ignore
+      Ok(())
+    } catch {
+      LocalInstallationJournalStop(issue) => Err(issue)
+    }
+  }).unwrap()
+  assert_eq(host.installation_custody().unwrap().0, 1)
+  assert_eq(read_local_installation_projection(host, binding.file, packet).unwrap(), projection)
+  assert_true(binding.restore_signing_key_original() is Err(SigningOriginalUnavailable))
+  assert_true(binding.capture_signing_key_original() is Err(SigningOriginalUnavailable))
+  let retained = host.database.read("client_local_installation_originals", file).unwrap()
+  assert_eq(retained.revision, 0L)
+  assert_eq(retained.body, packet)
+  assert_eq(host.installation_custody().unwrap().0, 1)
+  let usage = host.database.capacity_usage("client_local_settings").unwrap()
+  assert_eq(usage.reserved_bytes, 8192L)
+  assert_eq(usage.reserved_objects, 1L)
+  host.close().unwrap()
 }
