@@ -300,6 +300,11 @@ export function acquireLocalLocks({root, heavy, heavyResources, directory = lock
   const held = [];
   let shared;
   const release = () => {
+    // Preserve the original worktree identity refusal before changing shared custody.
+    for (const item of held) {
+      try { checkedLock(item, owner.token, directory); }
+      catch (error) { if (error.code === 'ENOENT') throw busyLock(item.path); throw error; }
+    }
     if (shared) { shared.release(); shared = undefined; }
     for (const item of [...held].reverse()) {
       removeLock(item, owner.token, directory);

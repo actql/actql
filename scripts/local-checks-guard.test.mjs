@@ -852,7 +852,7 @@ test('pooled admission and release refuse a member whose worktree Owner token ch
   try {
     assert.throws(() => acquireLocalLocks({root: other, heavy: true,
       heavyResources: tinyResources, directory}), /lock busy/u);
-    assert.throws(() => lock.release(), /lock busy/u);
+    assert.throws(() => lock.release(), /changed local check lock/u);
     assert.equal(readFileSync(join(directory.path, 'heavy.lock'), 'utf8'), barrier);
     assert.equal(readFileSync(lock.paths[1], 'utf8'), member);
     assert.equal(readFileSync(worktree, 'utf8'), JSON.stringify(changed));
@@ -900,7 +900,7 @@ test('oversized heavy member metadata refuses admission and release while preser
   try {
     assert.throws(() => acquireLocalLocks({root: other, heavy: true,
       heavyResources: tinyResources, directory}), /lock busy/u);
-    assert.throws(() => lock.release(), /lock busy/u);
+    assert.throws(() => lock.release(), /metadata is ambiguous/u);
     assert.equal(readFileSync(slot, 'utf8'), oversized);
     assert.equal(readFileSync(join(directory.path, 'heavy.lock'), 'utf8'), barrier);
     assert.equal(locks(f).length, 3);
