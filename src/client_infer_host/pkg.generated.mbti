@@ -93,6 +93,8 @@ pub fn cancel_result_publication(ResultPublication) -> Bool
 
 pub fn capture(Execution) -> @model_execution.ModelCaptureBundle?
 
+pub fn check_original_model_current_configuration(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @physical_resources.OriginalCurrentStateDocument, @model_execution.ModelExecutionLimits, @model_execution.ModelQuantityCapacity?) -> Result[Unit, @physical_resources.OriginalCurrentStateReadIssue]
+
 pub fn cleanup(Execution) -> Result[Bool, Issue]
 
 pub fn cleanup_observation_issuance(ObservationIssuance) -> Result[Bool, Issue]
