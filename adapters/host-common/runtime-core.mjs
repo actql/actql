@@ -2904,6 +2904,17 @@ function publicationControl(moon) {
         token(definition), graph, inferQuantityCapacity(quantityCapacity), bootstrapRetainedBytes,
         bootstrapExecutionBytes, maxReservations, maxHoldings, maxDelegations));
     },
+    checkedClientInferOriginalReadScopeLive(compiled, definition, graph, scope) {
+      const value = compiledRunTokens.get(compiled);
+      if (value === undefined || compiled.kind !== 'infer' ||
+          typeof moon.clientProgramInferOriginalReadScopeLive !== 'function') {
+        throw new TypeError('InferTrustedRuntimeScopeUnavailable');
+      }
+      // This lifetime observation neither exposes a Ledger nor substitutes
+      // for allocation/current authority/egress or confirmed park invalidation.
+      return moon.clientProgramInferOriginalReadScopeLive(scope, value,
+        token(definition), graph) === true;
+    },
     prepareCheckedClientInferNodeReadLayout(compiled, definition, graph, scope,
       {layout, installation, runtimeArtifactCid, layoutArtifactCid, probability}) {
       const value = compiledRunTokens.get(compiled);

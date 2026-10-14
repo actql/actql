@@ -25,7 +25,25 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       throw new Error('InstalledInferSelectionMissing');
     }
     const originalInstallation = selected.originalReadInstallation;
+    let runtimeBorrow;
+    const assertOriginalRuntime = () => {
+      if (originalInstallation === undefined) return;
+      if (typeof selected.assertTrustedRuntime !== 'function' ||
+          typeof selected.currentProvider !== 'function' || !selected.currentProvider()) {
+        throw new TypeError('InferTrustedRuntimeViewUnavailable');
+      }
+      if (runtimeBorrow === undefined) {
+        if (typeof selected.assertNewTrustedRuntime !== 'function') {
+          throw new TypeError('InferTrustedRuntimeViewUnavailable');
+        }
+        selected.assertNewTrustedRuntime();
+      } else {
+        selected.assertTrustedRuntimeScope(originalPreparation.scope, runtimeBorrow,
+          plan.compiled, plan.runDefinition, selected.graph);
+      }
+    };
     if (originalInstallation!==undefined) {
+      assertOriginalRuntime();
       // Known missing selection refuses before creating the original child.
       // This finite DATA role supplies no normal numerical funding or grant.
       selectedInferOriginalCurrentStateCodec(originalInstallation,originalInstallation.nodeInstallation);
@@ -40,7 +58,11 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         ['beginCheckedClientInferOriginalReadScope', 'prepareCheckedClientInferNodeReadLayout',
           'claimCheckedClientInferNodePreparationLayout', 'startCheckedClientInferOriginalPreparation',
           'stopCheckedClientInferOriginalReadPreparation', 'settleCheckedClientInferOriginalReadPreparation',
-          'finishCheckedClientInferOriginalReadScope'].some(name => typeof control[name] !== 'function')) {
+          'finishCheckedClientInferOriginalReadScope',
+          'checkedClientInferOriginalReadScopeLive'].some(name => typeof control[name] !== 'function') ||
+        originalInstallation !== undefined && ['bindTrustedRuntimeScope',
+          'assertTrustedRuntimeScope','finishTrustedRuntimeScope']
+          .some(name=>typeof selected[name]!=='function')) {
       throw new TypeError('InstalledInferOriginalReadRuntimeUnavailable');
     }
     // Installation-only original custody. Public request data and restored
@@ -97,6 +119,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     const token = existingModel === undefined ? undefined : await modelController.prime(existingModel);
     let restoredInput, sources;
     try {
+      // The prime await cannot make a different installed provider/runtime
+      // current. Refusal releases its existing token via the same catch path.
+      assertOriginalRuntime();
       restoredInput = token === undefined ? undefined : {token, snapshot: token.snapshot,
         capturedContent: modelController.capturedContent(token, plan.runDefinition.identity),
         capturedContentBinding: modelController.capturedContentBinding(token, plan.runDefinition.identity),
@@ -201,10 +226,15 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
         // All actual children of this fresh single-component custody have
         // acknowledged cleanup. The original Core census still refuses any
         // other live child; read settlement alone cannot release bootstrap.
-        originalScopeReleased = control.finishCheckedClientInferOriginalReadScope(
-          plan.compiled, plan.runDefinition, selected.graph,
-          originalPreparation.scope, true) === true;
-        if (originalScopeReleased) originalPreparation = undefined;
+        originalScopeReleased = (runtimeBorrow === undefined
+          ? control.finishCheckedClientInferOriginalReadScope(plan.compiled,
+            plan.runDefinition, selected.graph, originalPreparation.scope, true)
+          : selected.finishTrustedRuntimeScope(originalPreparation.scope, runtimeBorrow,
+            plan.compiled, plan.runDefinition, selected.graph)) === true;
+        if (originalScopeReleased) {
+          runtimeBorrow = undefined;
+          originalPreparation = undefined;
+        }
       }
       return !cleanupPending();
     };
@@ -238,6 +268,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       // phase basis. Presence or passing Common support checks is not proof.
       let scope;
       try {
+        assertOriginalRuntime();
         scope = control.beginCheckedClientInferOriginalReadScope(plan.compiled,
           plan.runDefinition, selected.graph,
           {...originalInstallation.bootstrap, quantityCapacity: selected.quantityCapacity});
@@ -264,6 +295,11 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
           cleanup: () => operation === undefined ? true : operation.cleanup(),
           cleanupPending: () => operation?.cleanupPending() ?? false})};
       try {
+        // Retaining the issued Scope above precedes this fallible association;
+        // refusal therefore cannot lose its original cleanup responsibility.
+        runtimeBorrow = selected.bindTrustedRuntimeScope(scope, plan.compiled,
+          plan.runDefinition, selected.graph);
+        assertOriginalRuntime();
         originalPreparation.read = control.prepareCheckedClientInferNodeReadLayout(
           plan.compiled, plan.runDefinition, selected.graph, scope,
           originalInstallation.nodeInstallation);
@@ -328,6 +364,7 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       observeProgress: () => faultInjection?.('infer_execution_advanced', {}),
       provider: selected.provider, quantityCapacity: selected.quantityCapacity,
       physicalPreflight: selected.physicalPreflight, egressAdmission: selected.egressAdmission,
+      assertRuntimeCurrent: originalInstallation === undefined ? undefined : assertOriginalRuntime,
       originalPreparation,
       ioNotification: selected.entryPersistence === 'async' ? createInferIoNotification() : undefined,
       retainOperation(value) { operation = value; }});
@@ -350,7 +387,9 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     }
     try {
       for (;;) {
+        assertOriginalRuntime();
         const boundary = await operation.run();
+        assertOriginalRuntime();
         if (boundary?.status === 'waiting') {
           if (continuation === undefined) {
             continuation = await modelController.open({operation, preparedCallSet: boundary.preparedCallSet,
@@ -363,12 +402,14 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
             if (existingModel !== undefined) continue;
           }
           const decision = await continuation.authorize();
+          assertOriginalRuntime();
           if (decision.status === 'waiting_checkpoint') return decision;
           if (originalPreparation!==undefined) {
             // Same actual journal now has the original CallSet. Complete its
             // saved Resource cut and nominal fence removal before next advance
             // can create an Entry. Authorization and physical send stay separate.
             await continuation.prepareOriginalResourcesForDispatch();
+            assertOriginalRuntime();
           }
           continue;
         }

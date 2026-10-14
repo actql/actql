@@ -128,7 +128,11 @@ for (const phase of ['schema', 'prepare']) {
       await mkdir(root, {recursive: true});
       const directory = await mkdtemp(join(root, 'request-host-'));
       t.after(() => rm(directory, {recursive: true, force: true}));
-      const options = {directory, authenticate: () => 'owner'};
+      // Exercise the actual Host-issued runtime view through partial opening
+      // failure, pending cleanup and repeated retry. No Model/Provider runs.
+      let registrations=0;
+      const options = {directory, authenticate: () => 'owner',
+        registerModelProviders:()=>{registrations++;return [];}};
       const initial = await openInstalledRemoteHttpHost(options);
       await initial.close();
       // Both the constructor cleanup and the Host's initial drain fail.
@@ -155,6 +159,8 @@ for (const phase of ['schema', 'prepare']) {
       fault.restore();
       const reopened = await openInstalledRemoteHttpHost(options);
       await reopened.close();
+      await reopened.close();
+      assert.equal(registrations,3,'cleanup must not reopen the provider table');
     });
 }
 

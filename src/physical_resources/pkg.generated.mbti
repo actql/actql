@@ -140,6 +140,8 @@ pub fn original_ledger_captured_preparation_available(OriginalLedgerIdentity, pr
 
 pub fn original_ledger_inventory_available(OriginalLedgerIdentity) -> Bool
 
+pub fn original_ledger_inventory_live(OriginalLedgerIdentity) -> Bool
+
 pub fn original_ledger_prefix_available(OriginalLedgerIdentity) -> Bool
 
 pub fn original_ledger_preparation_available(OriginalLedgerIdentity) -> Bool
