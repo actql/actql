@@ -151,6 +151,36 @@ function retainPrivateWriterCleanup(writer) {
   return cleanup;
 }
 
+// A bounded view of the two original private-preparation duties: descriptor
+// writer cleanup and the already prepared content. The same child owners
+// perform retirement; this facade cannot write, commit or return their loans.
+function retainPrivateRawCleanup(descriptor, content) {
+  let originals = [descriptor, content];
+  let flight;
+  const pending = () => originals?.some(handle => handle.status().pending) === true;
+  const release = () => {
+    if (flight !== undefined) return flight;
+    if (originals === undefined) return Promise.resolve(false);
+    flight = Promise.resolve().then(async () => {
+      for (const handle of originals) {
+        if (handle.status().pending) await handle.release();
+      }
+      if (pending()) fail('PublicationPrivateWriterCleanupPending');
+      // Clear both references after their actual retirement, including on an
+      // escaped facade. A false or thrown child release keeps the same pair.
+      originals = undefined;
+      return true;
+    }).finally(() => { flight = undefined; });
+    return flight;
+  };
+  const cleanup = Object.freeze({
+    status: () => Object.freeze({pending: pending()}),
+    release,
+    async retry() { await release(); return cleanup.status(); },
+  });
+  return cleanup;
+}
+
 async function syncDirectoryPath(path) {
   const directory = await open(path, constants.O_RDONLY);
   try { await directory.sync(); }
@@ -2417,9 +2447,18 @@ export async function openLocalPublicationStore(
         Object.isExtensible(error) ? error
         : new PublicationStoreError(error?.code ??
           'PublicationModelRawEvidencePreparationFailed', error);
-      if (cleanupFailure !== undefined) failure.cleanupFailure = cleanupFailure;
+      if (cleanupFailure !== undefined) {
+        if (failure.cleanupFailure === undefined) failure.cleanupFailure = cleanupFailure;
+        else failure.contentCleanupFailure = cleanupFailure;
+      }
       failure.cleanupPending = true;
-      failure.cleanupHandle = content.prepared;
+      // This error comes from the same closed private Store preparation, not
+      // a packet/caller-provided handle. Do not replace its still-owned
+      // descriptor writer with only the earlier content's cleanup reference.
+      const descriptorCleanup = error.cleanupPending === true ? error.cleanupHandle : undefined;
+      failure.cleanupHandle = descriptorCleanup === undefined
+        ? content.prepared
+        : retainPrivateRawCleanup(descriptorCleanup, content.prepared);
       throw failure;
     }
   };

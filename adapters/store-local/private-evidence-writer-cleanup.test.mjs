@@ -169,6 +169,8 @@ test('raw descriptor writer and earlier content cleanup retain both original dut
   } catch (observed) { error = observed; }
   assert.equal(error.cause, primary);
   assert.equal(error.cleanupPending, true);
+  assert.equal(error.cleanupFailure, descriptorCloseFailure);
+  assert.equal(error.contentCleanupFailure, contentCleanupFailure);
   assert.equal(store.status().reservedBytes, 132);
   assert.equal(store.status().storedBytes, 132, 'content unlink ACK still pending');
   assert.deepEqual(state, {writers: 2, writes: 2, descriptorCloses: 1});
