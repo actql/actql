@@ -4372,7 +4372,7 @@ fn run_holder(
       if proven_unstarted ||
         (
           resources.effect_host_setup.val is Some(scope) &&
-          scope.read_domain is Some(_)
+          (scope.read_domain is Some(_) || scope.read_parent is Some(_))
         ) {
         // A failed installed read may still own an active context/aliases.
         // Return it through the existing cleanup lifetime before any restore

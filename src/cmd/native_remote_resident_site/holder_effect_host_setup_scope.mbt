@@ -31,6 +31,7 @@ priv struct HolderEffectHostSetupScope {
   profile : HolderEffectHostSetupProfile
   mut current_binding : (() -> Bool)?
   mut read_domain : HolderEffectHostReadDomain?
+  mut read_parent : HolderEffectHostReadParent?
   mut caller_operation : @site.SiteOperation?
   mut operation : @site.SiteOperation?
   mut holding : @site.SiteHolding?
@@ -126,6 +127,7 @@ fn reserve_holder_effect_host_setup_scope(
     profile: selected,
     current_binding: None,
     read_domain: None,
+    read_parent: None,
     caller_operation: Some(operation),
     operation: Some(operation),
     holding: None,
@@ -386,7 +388,8 @@ fn prepare_holder_effect_host_scope_retirement(
     return false
   }
   guard retry_holder_effect_host_read_failure(scope) &&
-    close_holder_effect_host_read_domain(scope) else {
+    close_holder_effect_host_read_domain(scope) &&
+    close_holder_effect_host_read_parent(scope) else {
     return false
   }
   if scope.operation is Some(operation) {
