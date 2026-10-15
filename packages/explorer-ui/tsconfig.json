@@ -1,35 +1,8 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "strict": true,
-    "noEmit": true,
-    "skipLibCheck": false,
-    "jsx": "react-jsx",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
-    "baseUrl": "../..",
-    "paths": {
-      "@actql/sdk": [
-        "packages/sdk/index.d.ts"
-      ]
-    }
-  },
-  "files": [
-    "plan-explorer.tsx",
-    "flow-model.d.mts",
-    "read-model.d.ts",
-    "read-model.typecheck.mts",
-    "plan-explorer.d.ts",
-    "run-inspector.tsx",
-    "run-inspector.d.ts",
-    "run-observation.d.ts",
-    "run-observation.typecheck.mts",
-    "checkpoint-review.d.ts",
-    "checkpoint-review.typecheck.mts"
-  ]
+  "compilerOptions": {"target": "ES2022", "module": "ESNext", "moduleResolution": "Bundler",
+    "strict": true, "noEmit": true, "skipLibCheck": false, "jsx": "react-jsx",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "baseUrl": "../..", "paths": {"@actql/sdk": ["packages/sdk/index.d.ts"]}},
+  "files": ["plan-explorer.tsx", "flow-model.d.mts", "read-model.d.ts", "read-model.typecheck.mts", "plan-explorer.d.ts",
+    "run-inspector.tsx", "run-inspector.d.ts", "run-observation.d.ts", "run-observation.typecheck.mts", "checkpoint-review.d.ts", "checkpoint-review.typecheck.mts"]
 }

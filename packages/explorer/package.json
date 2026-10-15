@@ -3,9 +3,7 @@
   "version": "0.0.0-development",
   "private": true,
   "type": "module",
-  "engines": {
-    "node": ">=22"
-  },
+  "engines": {"node": ">=22"},
   "dependencies": {
     "@actql/client-wire": "0.0.0-development",
     "@actql/explorer-ui": "0.0.0-development",
@@ -16,44 +14,12 @@
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },
-  "bin": {
-    "actql-explorer": "./cli.mjs"
-  },
+  "bin": {"actql-explorer": "./cli.mjs"},
   "exports": {
-    ".": {
-      "types": "./gateway.d.ts",
-      "default": "./gateway.mjs"
-    },
-    "./browser-source": {
-      "types": "./browser-source.d.ts",
-      "default": "./browser-source.mjs"
-    },
-    "./launcher": {
-      "types": "./launcher.d.ts",
-      "default": "./launcher.mjs"
-    }
+    ".": {"types": "./gateway.d.ts", "default": "./gateway.mjs"},
+    "./browser-source": {"types": "./browser-source.d.ts", "default": "./browser-source.mjs"},
+    "./launcher": {"types": "./launcher.d.ts", "default": "./launcher.mjs"}
   },
-  "files": [
-    "gateway.mjs",
-    "cancellation.mjs",
-    "gateway.d.ts",
-    "browser-source.mjs",
-    "browser-source.d.ts",
-    "launcher.mjs",
-    "launcher.d.ts",
-    "launch-input.mjs",
-    "cli-input.mjs",
-    "assets.mjs",
-    "cli.mjs",
-    "dist",
-    "README.md",
-    "THIRD_PARTY_NOTICES.md",
-    "ELKJS-LICENSE.md",
-    "checkpoint-read.mjs",
-    "checkpoint-read.d.ts"
-  ],
-  "scripts": {
-    "build": "npm run build --prefix ../explorer-ui && vite build --config vite.config.mts && node build-assets.mjs",
-    "prepack": "npm run build"
-  }
+  "files": ["gateway.mjs", "cancellation.mjs", "checkpoint-read.mjs", "checkpoint-read.d.ts", "gateway.d.ts", "browser-source.mjs", "browser-source.d.ts", "launcher.mjs", "launcher.d.ts", "launch-input.mjs", "cli-input.mjs", "assets.mjs", "cli.mjs", "dist", "README.md", "THIRD_PARTY_NOTICES.md", "ELKJS-LICENSE.md"],
+  "scripts": {"build": "npm run build --prefix ../explorer-ui && vite build --config vite.config.mts && node build-assets.mjs", "prepack": "npm run build"}
 }
