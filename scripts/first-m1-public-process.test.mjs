@@ -137,3 +137,13 @@ test('first M1 mismatched answer fails without disclosing raw expected or return
   assert.equal(result.stdout.includes('expected'), false);
   assert.equal(f.events().at(-1), 'close');
 });
+
+test('first M1 invalid selection does not advertise retained original evidence', t => {
+  const f = fixture(t); const result = f.child('invalid-phase');
+  assert.equal(result.status, 1);
+  assert.equal(result.value.error, 'M1ExplicitSelectionRequired');
+  assert.equal(result.value.evidence, 'not_established');
+  assert.equal(existsSync(f.evidence), false);
+  assert.equal(existsSync(f.state), false);
+  assert.deepEqual(f.events(), []);
+});

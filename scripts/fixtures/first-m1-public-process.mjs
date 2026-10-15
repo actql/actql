@@ -14,6 +14,7 @@ const report = value => process.stdout.write(`${JSON.stringify(value)}\n`);
 let client;
 let primary;
 let completed;
+let originalFilesObserved = false;
 try {
   if (!['run', 'read'].includes(phase) || !applicationPath ||
       !selectedState || !selectedEvidence || !/^[1-9][0-9]*$/u.test(milliseconds ?? '')) {
@@ -36,9 +37,11 @@ try {
     if (existsSync(evidence) || existsSync(stateDir)) throw failure('M1FreshStartRequired');
     mkdirSync(evidence, {mode: 0o700});
     save('selection', original);
+    originalFilesObserved = true;
   } else {
     assert.deepEqual(read('selection'), original, 'The original application/Store selection changed');
     if (!existsSync(stateDir)) throw failure('M1OriginalStateRequired');
+    originalFilesObserved = true;
   }
   const app = (await import(pathToFileURL(application).href)).default;
   if (!app || typeof app.installation !== 'object' || !app.program ||
@@ -110,7 +113,8 @@ try { await client?.close(); } catch (error) { cleanup = error; }
 if (primary || cleanup) {
   report({phase, outcome: 'failed', error: primary?.code ?? primary?.name ?? null,
     cleanupError: cleanup?.code ?? cleanup?.name ?? null,
-    evidenceRetained: true, automaticResubmit: false});
+    evidence: originalFilesObserved ? 'original_files_retained' : 'not_established',
+    automaticResubmit: false});
   process.exitCode = 1;
 } else {
   report({...completed, clientClose: 'completed', physicalDispatches: null,

@@ -79,6 +79,8 @@ cleanup retry and no deletion/reset. A lost submit/approval response must use
 the existing public lookup/reconciliation procedure, not a new `run` against a
 different state directory. A primary failure and a failed Client close are
 reported separately, without raw error messages or answer/credential bodies.
+An argument/selection failure before observing original files reports evidence
+as `not_established`, not a fictitious retained original.
 
 Output `physicalDispatches: null` and `physicalCleanup:
 'not_independently_measured'` are deliberate. The real acceptance still needs
