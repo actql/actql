@@ -92,7 +92,13 @@ legacy Library allocations keep their original malloc/free paths. There is no
 global allocator macro redirect. Managed result Bytes remain original-context
 aliases after native buffer/module retirement.
 
-This C acquisition has no MoonBit/public factory caller yet. A trusted installed
+The typed Native `load_current_component_with_custody` entry distinguishes
+refusal before any Library acquisition from the original partial Library that
+still requires cleanup. Its failure carrier only retries `Library.close_checked`;
+it cannot load/configure/adopt another component. Missing original selected scope
+refuses before path encoding. Native and unsupported-target APIs do not select a
+fallback. The ordinary installed/public factory still does not select this
+candidate. A trusted installed
 supplier must still verify and retain its owned staged module/source/recipe,
 Host/Store/epoch/current and nominal resource use before this physical entry.
 Legitimate callers retain every partial Library/Database until checked cleanup

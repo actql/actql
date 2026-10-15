@@ -42,6 +42,25 @@ pub fn load_library(
 }
 
 ///|
+pub fn load_current_component_with_custody(
+  _path : String,
+  heap_bytes : Int64,
+  diagnostic_ceiling : Int,
+) -> Result[Library, NativeSqliteLibraryLoadError] {
+  if heap_bytes < 4096L || heap_bytes > 2147483647L || diagnostic_ceiling <= 0 {
+    return Err(RefusedBeforeAcquisition(InvalidLimit))
+  }
+  Err(RefusedBeforeAcquisition(UnsupportedTarget))
+}
+
+///|
+pub fn Library::close_checked(
+  _self : Library,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Library::version(_self : Library) -> String {
   ""
 }
