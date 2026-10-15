@@ -29,6 +29,21 @@ evidence is a selection-change check only: it authenticates neither imported
 dependencies, runtime layout, authority nor original Store custody. Retain the
 actual installed artifact/lock manifests and original physical witnesses too.
 
+The source preparation `first-m1-selected-account.mjs` authors the initial
+Account DATA: exact Local principal `AnyOf`, the original Task's
+`models/fixture` connector label, a Task-specific delegated INFER entry and a
+separate Task-specific private raw-capture entry. The connector label is an
+application identifier, not a fake Provider implementation or an endpoint.
+Use the actual Task CID and original Local principal. The helper neither admits
+that Account nor authenticates a policy/Store/key/reviewer; the Host must still
+do so. It supplies no egress, Effect, Debug, raw disclosure, retry or numerical
+grant. The existing initial Account domain bounds admitted selector/entry and
+answering-authority names to512 UTF-16 units, not512 UTF-8 bytes. Exact principal
+membership is necessary to apply that domain to the actual dispatch principal;
+an `All` selector would not establish it. The Model approval path must produce
+the existing `HostPermit` with `invocation_scope_approved`, not an AccountAllow
+shortcut. Real OpenAI policy/material admission remains a separate unmet input.
+
 For the already selected pinned Node process, invoke the normal public preload
 before the entry. Use the separately reviewed eager recipe when required by
 the selected startup coverage; this script does not choose between recipes.
