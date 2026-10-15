@@ -62,7 +62,12 @@ test "range overwrite refuses missing or excess rows and cells instead of cleari
       is Err(InvalidRange),
     )
   }
-  for row in [[], ["only text"], ["text", 1, false, "extra"]] {
+  let bad_widths : Array[Array[Json]] = [
+    [],
+    ["only text"],
+    ["text", 1, false, "extra"],
+  ]
+  for row in bad_widths {
     assert_true(
       update_request(
         update_range(),
@@ -77,7 +82,13 @@ test "range overwrite refuses missing or excess rows and cells instead of cleari
 
 ///|
 test "range overwrite refuses null empty text wrong types and structured cells" {
-  for row in [[null, 1, false], ["", 1, false], [1, 1, false], [{}, 1, false]] {
+  let bad_text : Array[Array[Json]] = [
+    [null, 1, false],
+    ["", 1, false],
+    [1, 1, false],
+    [{}, 1, false],
+  ]
+  for row in bad_text {
     assert_true(
       update_request(
         update_range(),
@@ -89,7 +100,12 @@ test "range overwrite refuses null empty text wrong types and structured cells" 
     )
   }
   // Nullable read columns do not silently become clear operations on write.
-  for row in [["text", null, false], ["text", true, false], ["text", [], false]] {
+  let bad_number : Array[Array[Json]] = [
+    ["text", null, false],
+    ["text", true, false],
+    ["text", [], false],
+  ]
+  for row in bad_number {
     assert_true(
       update_request(
         update_range(),
@@ -100,7 +116,12 @@ test "range overwrite refuses null empty text wrong types and structured cells" 
       is Err(UnrepresentableWrite("number")),
     )
   }
-  for row in [["text", 1, null], ["text", 1, "false"], ["text", 1, 0]] {
+  let bad_flag : Array[Array[Json]] = [
+    ["text", 1, null],
+    ["text", 1, "false"],
+    ["text", 1, 0],
+  ]
+  for row in bad_flag {
     assert_true(
       update_request(
         update_range(),
