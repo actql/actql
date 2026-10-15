@@ -271,3 +271,58 @@ failed attempts, DB/WAL, keys and custody remain unchanged. Count one new SQL
 HTTPS entry and zero additional distinct business scenarios. This does not
 upgrade a later main or finish full Preview, seventeen-Connector Read/Write,
 Model funding, Hosted CI or formal publication.
+
+## Fresh documented optional dependencies outside the checkout
+
+The four entrance receipts above retain their original selection of an existing
+test Python environment. They establish their actual product/Connector paths,
+not dependency closure from those Node archives alone. The normal package
+already ships its optional Iceberg README, `requirements.in` and complete hashed
+`requirements.lock`. Its existing public Host profile explicitly selects the
+absolute Python interpreter. The shipped procedure was sufficient; no product
+dependency installer or runtime repair was needed for this acceptance.
+
+For this separate qualification, byte-identical README/requirements members
+were extracted from the unchanged normal475 archive into a new private
+`/private/tmp` directory. Python 3.12 created a fresh venv and `uv pip install
+--require-hashes` installed from that shipped lock, with an explicit public PyPI
+index and no ambient uv/pip/project configuration. No old venv or installed
+library tree was copied. `run-e63ljY` completed exit0 under preparation180/TERM5,
+with venv30/install120 bounds. G independently checked all 29 distributions
+(28 lock-pinned distributions plus ordinary venv ensurepip25.0.1), 3,073 wheel
+RECORD members, dependency paths, symlinks and absence of sitecustomize, `.pth`
+or egg-link injection. The package still does not bundle a system Python or
+automatically install these optional Host dependencies.
+
+The unchanged SQL HTTPS recipe then used that explicit external interpreter
+and the same normal475 manifest
+`5662bed70db34891807d78948ea931dd98b61c93351465cab6430a19cf3d5724`.
+`run-WD9EOC` passed 1/1, complete exit0 under original outer300/TERM5/child180.
+Source Git, SQL, independent row/schema, external read scope and archive bytes
+were unchanged. Selecting the fresh interpreter creates fresh installation
+profile/binding material; it is not attached to an old Run or substituted into
+an old signed receipt. PIDs 13021, 13132 and 13176 shared the same **new** Run
+and sealed Preview, committed one actual Iceberg write, and recovered the
+independent Named Result with no Source or Effect repetition.
+
+The installed application, product modules/assets, worker, explicit Python
+environment and normal base interpreter were outside every registered Git
+checkout. Actual observed product Node and Python process working directories
+were in that application. The bounded guard, archive verifier and esbuild
+remain checkout-based acceptance tooling; they are not product runtime paths.
+The test bootstrap forwards its explicit Python selection to the existing
+public `profile.python` field. Product loading uses only the normal installed
+module/asset resolution path. Transient process working directories that were
+not directly observed are not invented as observations.
+
+[The clean-dependency evidence record](accepted-475-clean-dependencies.json)
+binds the original hash-lock, normal preparation, dependency and route audits,
+319 installed member bytes/modes/SRI, 24 copied fixtures/28 source inputs,
+independent committed Parquet, nine actual raw records, four successful TLS
+closures and actual Owner/group/FD/original-token release. Original DB/WAL,
+keys, failures and all prior entrance qualifications remain retained.
+Count **one clean documented-dependency qualification**, zero new format or
+transport entrances and zero additional distinct business scenarios. This is
+normal Node archives **plus documented optional Host dependencies**, not
+npm-only dependency bundling, later-main pristine qualification, full Preview,
+all seventeen Connector profiles, numerical Model funding or formal publication.
