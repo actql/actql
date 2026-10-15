@@ -82,6 +82,9 @@ pub(all) enum NativeSqliteLibraryLoadError {
 }
 
 ///|
+// Only the Native implementation constructs physical acquisition failures.
+// Other targets retain this opaque API type and refuse before acquisition.
+#warnings("-struct_never_constructed")
 struct NativeSqliteLibraryLoadFailure {
   original_issue : NativeSqliteIssue
   mut library : Library?
