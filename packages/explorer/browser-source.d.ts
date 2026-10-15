@@ -1,6 +1,6 @@
-import type {CheckpointPageModel,ReviewObservation} from '@actql/explorer-ui/checkpoint-review';
+import type {CheckpointPageModel,ReviewObservation,ReviewReference} from '@actql/explorer-ui/checkpoint-review';
 import type {OriginalCancellation, CancellationObservation} from '@actql/explorer-ui/cancellation';
-import type {Client, RunReference, ResultDescription, CancellationReference,CheckpointSummary} from '@actql/sdk';
+import type {Client, RunReference, ResultDescription, CancellationReference} from '@actql/sdk';
 import type {WireCancellationLookup, WireRunView} from '@actql/client-wire';
 import type {RunObservationModel} from '@actql/explorer-ui/run-observation';
 import type {PlanReadModel, OriginalRunPlanReadModel} from '@actql/explorer-ui/read-model';
@@ -20,6 +20,6 @@ export function createExplorerBrowserSource(options: Readonly<{
   cancel(original: OriginalCancellation): Promise<CancellationObservation>;
   lookupCancellation(ref: CancellationReference): Promise<WireCancellationLookup>;
   checkpoints():Promise<CheckpointPageModel>;
-  reviewCheckpoint(checkpoint:CheckpointSummary):Promise<ReviewObservation>;
+  reviewCheckpoint(checkpoint:ReviewReference):Promise<ReviewObservation>;
   close(): void;
 }>;

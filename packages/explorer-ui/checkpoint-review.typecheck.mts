@@ -1,10 +1,12 @@
-import type {Client,CheckpointSummary} from '@actql/sdk';
-import {readWaitingCheckpoints,readCheckpointReview,reviewText} from './checkpoint-review.js';
+import type {Client} from '@actql/sdk';
+import type {ReviewReference,CheckpointEntry} from './checkpoint-review.js';
+import {reviewText} from './checkpoint-review.js';
+import {readWaitingCheckpoints,readCheckpointReview} from '../explorer/checkpoint-read.js';
 import {createReadEpoch} from './read-model.js';
-declare const client:Client;declare const checkpoint:CheckpointSummary;
+declare const client:Client;declare const checkpoint:ReviewReference;
 const ticket=createReadEpoch().capture();
 const page=await readWaitingCheckpoints(client,ticket);
-const same:CheckpointSummary|undefined=page.items[0];
+const same:CheckpointEntry|undefined=page.items[0];
 const read=await readCheckpointReview(client,checkpoint,ticket);
 const kind:'utf8'|'binary'=reviewText(read).kind;
 // @ts-expect-error A review projection does not supply a signature or approve callback.

@@ -1,4 +1,4 @@
-import {checkpointPageModel,captureCheckpoint,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';
+import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';
 import {validCancellationLookup} from '@actql/client-wire';
 import {captureCancellation, validCancellationObservation} from '@actql/explorer-ui/cancellation';
 import {createReadEpoch} from '@actql/explorer-ui/read-model';
@@ -124,7 +124,7 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
       return answer;
     },
     async checkpoints(){if(!session?.checkpointList)refused('ExplorerCapabilityUnavailable');return checkpointPageModel(await read('checkpoints',{}));},
-    async reviewCheckpoint(input){const checkpoint=captureCheckpoint(input);if(!session?.checkpointReview)refused('ExplorerCapabilityUnavailable');
+    async reviewCheckpoint(input){const checkpoint=captureReviewReference(input);if(!session?.checkpointReview)refused('ExplorerCapabilityUnavailable');
       const value=await read('checkpoint-review',{checkpoint});if(!validReviewObservation(value,checkpoint))refused('ExplorerInvalidReply');return value;},
     close: invalidate,
   });

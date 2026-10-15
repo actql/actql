@@ -1,4 +1,4 @@
-import {readWaitingCheckpoints,readCheckpointReview} from '@actql/explorer-ui/checkpoint-review';
+import {readWaitingCheckpoints,readCheckpointReview} from './checkpoint-read.mjs';
 import {randomBytes, timingSafeEqual} from 'node:crypto';
 import {Hono} from 'hono';
 import {serve} from '@hono/node-server';

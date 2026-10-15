@@ -1,5 +1,4 @@
-import type {CheckpointSummary} from '@actql/sdk';
-import type {CheckpointPageModel,ReviewObservation} from '@actql/explorer-ui/checkpoint-review';
+import type {CheckpointPageModel,ReviewObservation,ReviewReference} from '@actql/explorer-ui/checkpoint-review';
 import {useEffect, useMemo, useRef, useState, type FormEvent} from 'react';
 import {createRoot} from 'react-dom/client';
 import {PlanExplorer, RunInspector, CancellationPanel, CheckpointPanel} from '@actql/explorer-ui/plan-explorer';
@@ -134,7 +133,7 @@ function App() {
   const listCheckpoints=()=>{const selected=++reviewSelection.current,scope=epoch.current;setFollow(false);
     void perform(async()=>{showCheckpointPage(null);showReview(null);const value=await source.checkpoints();
       if(epoch.current===scope&&selected===reviewSelection.current)showCheckpointPage(value);});};
-  const readReview=(checkpoint:CheckpointSummary)=>{const selected=++reviewSelection.current,scope=epoch.current;setFollow(false);
+  const readReview=(checkpoint:ReviewReference)=>{const selected=++reviewSelection.current,scope=epoch.current;setFollow(false);
     void perform(async()=>{showReview(null);const value=await source.reviewCheckpoint(checkpoint);
       if(epoch.current===scope&&selected===reviewSelection.current)showReview(value);});};
   return <main><header><p>LOCAL PRESENTATION · EXPLICIT OWNER OPERATIONS</p><h1>ActQL Explorer</h1>
