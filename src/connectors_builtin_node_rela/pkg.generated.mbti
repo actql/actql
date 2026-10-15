@@ -567,6 +567,8 @@ pub fn client_program_issue_imported_effect_local_result_artifact(@run_publicati
 
 pub fn client_program_issue_imported_local_effect_invocation(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Array[@run_publication_host.ClientEffectResultImportObservation], Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalInvocationIssue]
 
+pub fn client_program_issue_imported_local_effect_table_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalTableDefinition, @run_publication_host.ClientEffectImportedEvidence, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
+
 pub fn client_program_issue_local_effect_result_definition(@run_publication_host.PreparedClientEffectComputation, Int, String, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultDefinition, @run_publication_host.ClientEffectLocalResultDefinitionIssue]
 
 pub fn client_program_issue_local_effect_result_manifest(@run_publication_host.PreparedClientEffectComputation, @run_publication_host.ClientEffectLocalInvocation, Array[@run_publication_host.ClientEffectLocalResultArtifact], Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalManifest, @run_publication_host.ClientEffectLocalManifestIssue]
@@ -750,6 +752,8 @@ pub fn client_program_prepare_local_query_requirement(@run_publication_host.Prep
 pub fn client_program_prepare_multi_captured_effect_acquisition_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@actql/actql/connectors/duckdb/host.CaptureConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_multi_captured_effect_capacity_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@client_local_host.ClientDuckDBCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
+
+pub fn client_program_prepare_multi_captured_effect_installed_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_multi_captured_effect_local_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 

@@ -3599,6 +3599,30 @@ function publicationControl(moon) {
           receipt, token(retention), ...localEffectContext(context),
           limits.maxWireBytes, limits.maxNodes, limits.maxDepth)));
     },
+    issueDependentLocalEffectTableArtifact(owner, inputs, memberIndex,
+      importing, dependency, definition, receipt, retention, context, limits) {
+      issuanceLimits(limits, 'dependent private Table semantic Artifact');
+      const owned = localEffectDependencyTokens.get(dependency);
+      if (owned === undefined || !Number.isSafeInteger(memberIndex) || memberIndex < 0) {
+        throw new TypeError('Foreign private Table dependency evidence');
+      }
+      const exactContext = localEffectContext(context);
+      const result = owned.kind === 'source_free'
+        ? moon.clientProgramIssueSourceFreeLocalEffectTableArtifact(
+          owner, inputs, memberIndex, importing, definition, owned.issued,
+          receipt, token(retention), ...exactContext,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+        : owned.kind === 'imported'
+        ? moon.clientProgramIssueImportedLocalEffectTableArtifact(
+          owner, inputs, memberIndex, importing, definition, owned.issued,
+          receipt, token(retention), ...exactContext,
+          limits.maxWireBytes, limits.maxNodes, limits.maxDepth)
+        : undefined;
+      if (result === undefined) {
+        throw new TypeError('UnavailableAcquiredPrivateTableEvidence');
+      }
+      return inspectLocalEffectArtifact(checked(result));
+    },
     issueLocalEffectResultManifest(owner, invocation, artifacts, limits) {
       issuanceLimits(limits, 'local Effect Result Manifest');
       if (!Array.isArray(artifacts) || artifacts.length === 0) {
