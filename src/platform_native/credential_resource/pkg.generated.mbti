@@ -46,6 +46,8 @@ pub fn native_local_signing_key_selection_allows_kind(NativeLocalSigningKeySelec
 
 pub fn native_local_signing_key_selection_projection(NativeLocalSigningKeySelection) -> (Bool, @remote_credential.LocalSigningPurpose, String, String, String, String, String, String)
 
+pub fn prepare_native_local_signing_history_candidate(@sqlite.Database, @remote_credential.LocalSigningCredentialGrant, String) -> Result[NativeLocalSigningHistoryCandidate, NativeCredentialResourceIssue]
+
 pub fn query_native_credential_use(NativeCredentialResourceService, @remote_credential.RemoteCredentialGrant, String, NativeCredentialScope) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue]
 
 pub fn query_native_local_credential_use(NativeCredentialResourceService, @remote_credential.LocalCredentialGrant, String, @remote_credential.LocalCredentialScope) -> Result[NativeCredentialUseStatus, NativeCredentialResourceIssue]
@@ -168,6 +170,18 @@ pub struct NativeLocalPreparationRawRecovery {
 }
 
 type NativeLocalPreparationRawStore
+
+type NativeLocalSigningHistoryCandidate
+pub fn NativeLocalSigningHistoryCandidate::grant_cid(Self) -> String
+pub fn NativeLocalSigningHistoryCandidate::observed_outcome(Self) -> NativeLocalSigningHistoryOutcome
+pub fn NativeLocalSigningHistoryCandidate::original_use(Self) -> @remote_credential.LocalSigningCredentialUse
+
+pub(all) enum NativeLocalSigningHistoryOutcome {
+  Claimed
+  Succeeded
+  Failed
+  Unknown
+} derive(Eq)
 
 type NativeLocalSigningKeySelection
 

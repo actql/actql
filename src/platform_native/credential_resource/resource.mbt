@@ -1009,6 +1009,17 @@ fn read_owned_credential_use_record(
     Ok(value) => value
     Err(issue) => return Err(Journal(issue))
   }
+  admit_owned_credential_use_record(grant, use_id, use_record)
+}
+
+///|
+// Shared exact decoder only; the surrounding operation supplies original-row
+// lifetime/current/claim checks. Existing HTTP readers retain their behavior.
+fn admit_owned_credential_use_record(
+  grant : NativeOwnedCredentialGrant,
+  use_id : String,
+  use_record : @sqlite.NativeJournalValue,
+) -> Result[NativeOwnedCredentialUse, NativeCredentialResourceIssue] {
   let use_record_text = @utf8.decode(use_record.body) catch {
     _ => return Err(Journal(@sqlite.Collision))
   }
