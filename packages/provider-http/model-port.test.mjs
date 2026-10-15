@@ -57,6 +57,26 @@ async function finish(f){f.allowCleanup();await until(()=>f.port.preflight.clean
 // Common/Entry/saved view are explicit boundary doubles. Node HTTP, bounded
 // reader, original raw buffers and physical cleanup execute for real; no
 // numerical grant, nominal Store receipt or public Named Result is established.
+test('direct HTTP physical preflight refuses admitted bound mismatch before projection plan or raw binder', async t => {
+  const f = fixture();
+  t.after(() => finish(f));
+  let matches = 0, projections = 0, bindings = 0;
+  const moon = {...f.args.moon,
+    clientProgramProjectHTTPChatRequest() { projections++; assert.fail('No projection before admission'); },
+    clientProgramModelResponseProfileTransportMatches(profile, ...limits) {
+      matches++;
+      assert.strictEqual(profile, f.args.profile);
+      assert.deepEqual(limits, [4096, 512, 512, 2, 64]);
+      return false;
+    },
+  };
+  assert.throws(() => createHttpChatPreflight({...f.args, moon,
+    persistRaw: undefined, cleanupRaw: undefined, rawCaptureBinder() { bindings++; }}),
+  {message: 'HTTPChatOriginalTransportLimitsMismatch'});
+  assert.deepEqual({matches, projections, bindings, sends: f.sends()},
+    {matches: 1, projections: 0, bindings: 0, sends: 0});
+});
+
 test('independent HTTP physical plan freezes request, starts once, saves same raw before release',async t=>{
   const f=fixture();t.after(()=>finish(f));
   const plan=f.port.preflight.advance()._1;

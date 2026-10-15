@@ -134,6 +134,23 @@ test('missing originals foreign profile or an external SDK refuse before provide
   }
 });
 
+test('HTTP facade refuses mismatched admitted transport bounds before provider or projection', () => {
+  for (const outcome of [false, undefined]) {
+    const config = configuration(), f = runtime(config);
+    let matches = 0;
+    f.moon.clientProgramModelResponseProfileTransportMatches = (profile, ...limits) => {
+      matches++;
+      assert.strictEqual(profile, config.rawCaptureSelection.profile);
+      assert.deepEqual(limits, [4096, 512, 512, 2, 64]);
+      return outcome;
+    };
+    const register = createInstalledHttpChatRegistration(config);
+    assert.throws(() => register(f.moon), {message: 'HTTPChatOriginalTransportLimitsMismatch'});
+    assert.equal(matches, 1);
+    assert.deepEqual(f.counts, {installs: 0, projections: 0, sends: 0});
+  }
+});
+
 test('missing Common runtime or original physical context refuses without projection or sending', () => {
   const config = configuration(), f = runtime(config);
   const register = createInstalledHttpChatRegistration(config);
