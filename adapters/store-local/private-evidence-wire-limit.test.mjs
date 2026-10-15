@@ -59,7 +59,7 @@ test('original wire ceiling uses UTF8 bytes, with exact encrypted fit and one by
   assert.equal(store.status().reservedObjects, 0);
 });
 
-test('closing Store does not reissue an export ceiling or retire an outstanding private preparation', async t => {
+test('refused close retains original preparation and ceiling DATA, successful close refuses further queries', async t => {
   const {store} = await fixture(t, 16384);
   const maximum = store.privateEvidenceWireLimit();
   const prepared = await store.preparePrivateEvidence('model_capture_bundle', 'original', cid('original'));
@@ -72,7 +72,10 @@ test('closing Store does not reissue an export ceiling or retire an outstanding 
     assert.equal(prepared.bytes, 140); // E(8)=128+4*ceil(8/3)
     assert.equal(store.status().storedBytes, 140);
     assert.equal(store.status().objectCount, 1);
-    assert.throws(() => store.privateEvidenceWireLimit(), {code: 'PublicationStoreClosed'});
+    // Existing close rejects its preparedObjects precondition BEFORE setting
+    // closeRequested. The Store is still active; a scalar recheck neither
+    // releases custody nor substitutes for permission to start an export.
+    assert.equal(store.privateEvidenceWireLimit(), 12192);
     assert.equal(maximum, 12192, 'prior scalar is only DATA, never continuing admission');
   } finally { assert.equal(await prepared.prepared.release(), true); }
   assert.equal(await store.close(), true);
