@@ -5829,7 +5829,7 @@ test('Effect source set shares exact owners and retains failed cleanup',
 // Python for the ordinary Host suite.
 export async function exerciseEffectSourceSet(t, {distinctResults = false,
   writeKind = 'store', empty = false, privateTableInput = false, sparseTableInput = false, onTablePreview, target,
-  mappingRef, minimumApproval, prepareCaptureResults = false, onCompletedTableRun} = {}) {
+  mappingRef, minimumApproval, prepareCaptureResults = false, onCompletedTableRun, transformDocument} = {}) {
         assert.ok(onTablePreview === undefined || onCompletedTableRun === undefined,
           'Select a captured Preview or an unpinned completed Run, not both');
         const fixture = await effectFixture({writeKind, target, mappingRef,
@@ -5871,6 +5871,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             document.stages[0].results.rows);
           document.stages[0].effects.second.update.from.result = 'other';
         }
+        transformDocument?.(document);
         const preparation = moon.clientProgramPrepareEffectComputationWithParameters(
           JSON.stringify(document), 'json', fixture.environment, undefined, []);
         const prepared = moon.clientProgramEffectPreparationReady(preparation);
