@@ -27,6 +27,10 @@ test('selected startup excludes pool/allocator replacement and retains invalidat
   child(['--require', preload], 'mutation'));
 test('selected TLS adapter originals cannot be replaced and its peer error keeps the original graph', () =>
   child(['--require', preload], 'tls-peer-originals'));
+test('selected startup retains the native Promise constructor, methods and species before SDK entry', () =>
+  child(['--require', preload], 'promise-originals'));
+test('ordinary embedded import does not freeze application Promise originals', () =>
+  child([], 'promise-unselected'));
 for (const mode of ['read-decoder-global', 'read-decoder-decode', 'read-buffer-subarray']) {
   test(`selected startup retains the actual strict READ original ${mode}`, () =>
     child(['--require', preload], mode));
