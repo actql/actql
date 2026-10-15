@@ -30,6 +30,7 @@ fn observe_and_close(
   host : @control.InstalledArenaHost,
   original : @control.InstalledArenaOriginalRead,
   slot : Ref[@local.NativeLocalPackagedRuntime?],
+  identity_slot : Ref[@local.NativeLocalVerifiedProductIdentity?],
   count : Ref[Int],
 ) -> Unit {
   let runtime = @local.open_native_local_packaged_runtime_in_original_read(
@@ -52,19 +53,35 @@ fn observe_and_close(
     128,
   )
   let expected = @env.get_env_var("ACTQL_D_PRODUCT_EXPECTED").unwrap()
-  if expected == "valid" {
+  if expected == "valid" || expected == "identity" {
     require(count, result is Ok(_), "closed two-package capture")
     require(
       count,
       runtime.check_product_current() is Ok(_),
       "same original census and members current",
     )
-    let assets = runtime.assets().unwrap()
-    require(
-      count,
-      assets.environment == "abc" && assets.result_policy == "abc",
-      "original runtime material remains unchanged",
-    )
+    if expected == "valid" {
+      let assets = runtime.assets().unwrap()
+      require(
+        count,
+        assets.environment == "abc" && assets.result_policy == "abc",
+        "original runtime material remains unchanged",
+      )
+      let identity = runtime.verified_product_identity().unwrap()
+      require(
+        count,
+        identity.wire().unwrap() ==
+        @env.get_env_var("ACTQL_D_PRODUCT_IDENTITY_WIRE").unwrap(),
+        "identity wire equals independent original file digests",
+      )
+      identity_slot.val = Some(identity)
+    } else {
+      require(
+        count,
+        runtime.verified_product_identity() is Err(InvalidManifest),
+        "generic census without formal executable images issues no identity",
+      )
+    }
   } else {
     require(
       count,
@@ -76,6 +93,11 @@ fn observe_and_close(
       runtime.check_current() is Err(_),
       "partial capture cannot fall back to runtime-only",
     )
+    require(
+      count,
+      runtime.verified_product_identity() is Err(_),
+      "partial capture issues no verified identity",
+    )
   }
   runtime.close().unwrap()
   runtime.close().unwrap()
@@ -84,6 +106,13 @@ fn observe_and_close(
     runtime.check_product_current() is Err(_),
     "inner close retires product current",
   )
+  if identity_slot.val is Some(identity) {
+    require(
+      count,
+      identity.wire() is Err(_),
+      "retained identity metadata is not retired Runtime permission",
+    )
+  }
   slot.val = Some(runtime)
 }
 
@@ -142,7 +171,10 @@ fn main {
     _ => abort("original read preparation unavailable")
   }
   let runtime_slot : Ref[@local.NativeLocalPackagedRuntime?] = Ref(None)
-  observe_and_close(host, original, runtime_slot, count)
+  let identity_slot : Ref[@local.NativeLocalVerifiedProductIdentity?] = Ref(
+    None,
+  )
+  observe_and_close(host, original, runtime_slot, identity_slot, count)
   require(
     count,
     host.close_domain_original_read(original)
@@ -150,6 +182,15 @@ fn main {
     "original Runtime alias retains final cleanup",
   )
   runtime_slot.val = None
+  if identity_slot.val is Some(_) {
+    require(
+      count,
+      host.close_domain_original_read(original)
+      is Err(Domain(@bootstrap.Bootstrap(Physical(_)))),
+      "identity alias alone retains the original carrier",
+    )
+  }
+  identity_slot.val = None
   host.close_domain_original_read(original).unwrap()
   host.close_domain_original_read(original).unwrap()
   require(
