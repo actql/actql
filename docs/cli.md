@@ -6,16 +6,21 @@ macOS arm64 and Linux x64/glibc; support depends on acceptance of the exact
 platform artifact. Installation alone does not adopt a Local Host or confer
 execution permission. See the [package guide](../packages/native-cli/README.md).
 
-Remote Client transport remains the default. A fixed Darwin arm64 cohort from
-source `109564ef9a4f8241096292843b875d4c81fbb6f3` also completed the
-source-free embedded Local baseline below in an empty external consumer.
-The tested minimum is macOS 26.0, using Node 22.22.0 for the npm launcher.
+Remote Client transport remains the default. The fixed Darwin arm64
+private-integration cohort from source
+`eb2f8b3b0a096e8dd86548bffbc6bafb6e79fc20` completed the source-free
+Local path below in an empty external consumer: seventeen CLI operations,
+including three expected refusals and no skips. This evidence belongs to that
+exact cohort, not the latest main. The tested minimum is macOS 26.0, using
+Node 22.22.0 for the npm launcher.
 This fixed-package acceptance does not publish npm packages or claim registry
 availability. Remote connection settings apply only to Remote mode.
 
 The [target CLI experience](design/cli-target-experience.md) preserves the
-adopted future workflow. Its `run`, `explain`, `approve`, `reject`, `result`,
-`op` and other command proposals are not current executable instructions.
+broader adopted workflow. Local `run`, source-free `explain` and saved `status`
+below have fixed-cohort acceptance. `approve`, `reject`, `result`, `op` and the
+other unconnected target commands are not current executable instructions.
+Remote has no `run` or `approve` command.
 
 ## Accepted source-free Local baseline
 
@@ -26,20 +31,26 @@ operation; neither installation nor `connect` grants adoption implicitly.
 The product defaults cover only source-free computation and the private Result
 Store. They do not install Sources, grant external I/O or authorize Effects.
 
-The following Native commands match the accepted eleven-case consumer:
+The following Native command grammar was exercised by that fixed consumer:
 
 ```sh
 actql --mode local adopt --json
 actql --mode local connect --json
 printf 'SELECT 1 AS n\n' > query.sql
 actql --mode local check --format sql --program-file query.sql --json
+actql --mode local explain --format sql --program-file query.sql --json
 actql --mode local new-submission --request-id installed-select-1 > submission.json
-actql --mode local aql --format sql --program-file query.sql \
+actql --mode local run --json --format sql --program-file query.sql \
   --submission-ref-file submission.json --request-id installed-select-1 \
   --operation-attempt-id original-submit > admission.json
 ```
 
-`check` returns `kind: prepared`. A successful publication reply has
+`check` returns `kind: prepared`, without Run admission. The accepted SQL
+`explain` returns the compiler-owned static `actql-plan-view/0.1`, with zero
+Provider I/O and no Run ID. It is not an execution permit. Local `run` delegates
+once to the existing `aql` intake with the same original Submission and explicit
+operation attempt; it does not allocate a replacement identity or retry.
+A successful publication reply has
 `kind: local_run_published` and an exact `ref` object. Save that object as
 `run.json`, rather than using the whole reply as a Run reference. The Node
 runtime already used by the launcher can save the returned JSON field:
@@ -51,10 +62,24 @@ node --input-type=module -e '
   writeFileSync("run.json", JSON.stringify(reply.ref) + "\n", {flag: "wx"});
 '
 actql --mode local lookup-submission --submission-ref-file submission.json
+actql --mode local status --ref-file run.json --submission-ref-file submission.json --json
 actql --mode local read --ref-file run.json --submission-ref-file submission.json \
   --result-name answer --purpose cli-read --format json \
   --max-output-bytes 65536 --attempt-id original-read
 ```
+
+`status` reads the saved original Run observation through current RunRead and
+original custody checks. `status --run-id <original-run-id> --json` selects the
+same retained original; use its real `state.run_id`, not a Program CID or Run
+Definition CID. Omitting `--json` gives the human label and the same original
+metadata. Missing old observations are Unavailable; status does not recompile
+or rerun them.
+
+Saved Run success is separate from Result availability. The accepted status
+kept `result_available: false` and `result_availability.answer` as
+`state: unknown`, `reason: verification_pending`, even after the independent
+Result read succeeded. Neither status nor control revision silently verifies
+or authorizes Result delivery.
 
 The read returns `[{"n":1}]`, with a JSON number and sole column `n`. Lookup
 uses the original immutable Submission and same Run, without needing the source
@@ -76,10 +101,13 @@ explicit new operation such as `--attempt-id explicit-new-read` can read the
 retained Result again after current authorization. A lost or incomplete reply
 does not authorize a new attempt or resubmission automatically.
 
-The fixed consumer completed all eleven cases, including absent-adoption and
-same-attempt refusal, with no skipped cases. Source/Effect/approval/cancel/Debug
-profiles, other Local platforms and their failure matrices remain unaccepted.
-This baseline does not certify all temporary holders or final Run deletion.
+The fixed consumer completed all seventeen CLI operations, including absent
+adoption, missing original Run and same-read-attempt refusals, with no skips.
+The earlier `109564ef9a4f8241096292843b875d4c81fbb6f3` cohort retains its
+original eleven-case `aql`/Result evidence; it does not gain the later commands
+by relabelling. Source/Model/Effect/approval/cancel/Debug profiles, other Local
+platforms and their failure matrices remain unaccepted. This baseline does not
+certify legacy-runtime migration, all temporary holders or final Run deletion.
 
 ## Remote prerequisites
 

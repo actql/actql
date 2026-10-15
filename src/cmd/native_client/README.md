@@ -4,12 +4,16 @@
 Client–Host HTTP protocol over mTLS. Remote operations use the existing bounded
 native HTTPS adapter; the selected Host owns Run admission and retry. The source
 also provides explicit embedded Local operation through the common checker and
-existing Native Host/journal/Store. The source-free Darwin arm64 cohort at
-`109564ef9a4f8241096292843b875d4c81fbb6f3` passed normal external installation
-and eleven Local cases on macOS 26.0 or newer: explicit adoption, SQL execution,
-same-Run fresh-process lookup, bounded Named Result delivery/release and retained
-reread. Source/Effect/approval/cancel/Debug profiles and other Local platforms
-remain unaccepted. Preparation alone does not admit a Run or establish authority.
+existing Native Host/journal/Store. The source-free Darwin arm64
+private-integration cohort at `eb2f8b3b0a096e8dd86548bffbc6bafb6e79fc20`
+passed external installation and seventeen Local CLI operations on macOS 26.0
+or newer: explicit adoption, SQL check/explain/run, same-Run fresh-process
+lookup/status by reference and ID in JSON/human form, bounded Named Result
+delivery/release and retained reread. Three refusals were expected; skip count
+was zero. This is not latest-main or complete Source/Model/Effect/approval/
+cancel/Debug and other-platform acceptance. The earlier `109564ef` cohort keeps
+its original eleven-case `aql`/Result evidence and binary identity. Preparation
+alone does not admit a Run or establish authority.
 
 For the installed source-free profile, use the product default configuration
 with `actql --mode local adopt --json`; no Host/token/mTLS, internal JSON or
@@ -48,7 +52,7 @@ above or complete approval and other recovery profiles. Run this through the
 existing heavy guard after preparing a clean-source Native CLI RC with the
 existing artifact/release producers.
 
-## Static Local explanation in current source
+## Static Local explanation
 
 The source-level `explain` command accepts the same `--program-file`, explicit
 `--format`, separate parameter values and declarations as Local `check`.
@@ -72,12 +76,12 @@ opening connection or input files. The packaged route retains explicit trust
 adoption and the original selected configuration, rechecking existing original
 custody and the current package after projection before returning metadata.
 
-These statements describe current Native source tests, not a new installed
-cohort. The accepted installed baseline above retains its original digest and
-does not gain `explain` until a matching formal artifact passes external
-installation acceptance.
+The source-free SQL explanation is covered by the fixed `eb2f8b3` installed
+cohort above. The Effect envelope and the broader input/profile combinations
+remain source-level evidence; they are not newly installed Effect acceptance.
+The earlier `109564ef` binary retains its original digest and evidence.
 
-## Original Local run entry in current source
+## Original Local run entry
 
 The source-level `run` command delegates once to the existing Local `aql`
 intake. It requires the same explicit format, original Submission reference
@@ -89,9 +93,27 @@ creates no substitute identity, automatic retry or new execution model.
 JSON output preserves the existing Owner response exactly. Human output labels
 it as the original Submission response; acceptance or exit status alone is not
 Run completion. Remote mode refuses this Local entry before reading connection
-or input files. The installed baseline keeps its original `aql` command until a
-matching formal artifact passes external installation acceptance; source tests
-for `run` do not extend that installed cohort's evidence.
+or input files. The fixed `eb2f8b3` installed cohort exercised this Local `run`
+entry. The earlier `109564ef` baseline keeps its original `aql` command and
+source-specific evidence.
+
+## Saved Local status
+
+`status --ref-file <run.json> --submission-ref-file <submission.json> --json`
+reads the original durable observation. `status --run-id <original-run-id>
+--json` locates that same authenticated original; omit `--json` for the human
+label and the same metadata. Use the actual `state.run_id`, not another CID.
+These forms were exercised in separate installed processes at `eb2f8b3`,
+including after Result read/release. Missing legacy originals are Unavailable,
+not reconstructed from current settings or a new execution.
+
+The closed reply has `kind: local_saved_run_state`, the original `ref` and
+`submissionRef`, `state: actql-run-state/0.1`, and the original control revision.
+Current RunRead and original bindings are checked independently of saved
+metadata. Run success is not Result availability: the accepted original kept
+`result_available: false` and `answer` availability `unknown` with reason
+`verification_pending`. The separate authorized Result delivery supplied its
+own payload and release evidence; status did not rewrite the saved observation.
 
 ## Explicit Local Host adoption
 
