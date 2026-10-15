@@ -17,7 +17,10 @@ function readOriginalSettlement(settlement) {
   const exporter=checked(moon.clientProgramStartInferCallSettlementExport(settlement,4096,10000));
   let complete=false,wire='';
   try {
-    for(let count=0;count<100&&!complete;count++) {
+    // The exporter executes one bounded kernel step per advance; quantum256
+    // is not a promise to execute256 emit steps in this callback. Use its
+    // original max_work, not a separate100-call fixture truncation.
+    for(let count=0;count<10000&&!complete;count++) {
       const progress=checked(moon.clientProgramAdvanceInferCaptureExport(exporter,256));
       wire+=progress._1;
       complete=progress._0;
@@ -25,7 +28,12 @@ function readOriginalSettlement(settlement) {
     assert.equal(complete,true,'same bounded original response export must finish');
     return JSON.parse(wire);
   } finally {
-    if(!complete) moon.clientProgramCancelInferCaptureExport(exporter);
+    if(!complete&&moon.clientProgramCancelInferCaptureExport(exporter)) {
+      // Cancellation acceptance is not a stopped session. Let the SAME owner
+      // observe it before requesting child retirement/output-use release.
+      const stopped=moon.clientProgramAdvanceInferCaptureExport(exporter,1);
+      assert.equal(stopped.$tag,0);
+    }
     let retired=false;
     for(let count=0;count<10&&!retired;count++) retired=checked(moon.clientProgramCleanupInferCaptureExport(exporter));
     assert.equal(retired,true,'diagnostic exporter must return its original output use');
