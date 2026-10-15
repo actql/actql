@@ -20,9 +20,12 @@ import {createInferIoNotification} from './infer-io-notification.mjs';
 import {installModelProviders,readInstalledModelDependencies,admitInstalledModelProvider,
   admitInstalledModelProviderBinding} from './installed-model.mjs';
 import {createAdmittedOpenAIChatPreflight} from '../../packages/provider-ai-sdk/_internal/original-openai-chat.mjs';
+import {createAdmittedTypeSafeDecisionPreflight} from '../../packages/provider-ai-sdk/_internal/native-decision-preflight.mjs';
 
 const source=readFileSync(new URL('../../src/client_infer_host/fixture.generated_wbtest.mbt',import.meta.url),'utf8');
 const input=name=>source.match(new RegExp(`let ${name} : String =\\n\\s+#\\|([^\\n]+)`,'u'))[1];
+const nativeSource=readFileSync(new URL('../../src/client_infer_host/native_original_call_fixture.generated_wbtest.mbt',import.meta.url),'utf8');
+const nativeInput=name=>nativeSource.match(new RegExp(`let ${name} : String =\\n\\s+#\\|([^\\n]+)`,'u'))[1];
 const hash=wire=>`sha256:${createHash('sha256').update(wire).digest('hex')}`;
 const cid=c=>`sha256:${c.repeat(64)}`;
 const seal=body=>{const wire=canonicalJson(body,{dataKeys:true}),identity=hash(wire);
@@ -31,15 +34,17 @@ const now=()=> '2026-10-12T00:00:00.000Z';
 const bounds={maxWireBytes:10000,maxNodes:1000,maxDepth:30,maxMembers:1000,maxWork:100000};
 
 export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new AbortController().signal,
-  storeOriginals=true,beforeOriginalRead,modelId='gpt-4.1-nano'}={}) {
+  storeOriginals=true,beforeOriginalRead,modelId='gpt-4.1-nano',nativeDecision=false}={}) {
   const root=await mkdtemp(join(tmpdir(),'actql-original-sdk-common-'));
   t.diagnostic(`Original joined fixture custody retained at ${root}`);
   const control=runtimeCore(moon).publicationControl;
-  const prompt=seal({version:'actql-model-prompt/0.1',payload:{
-    format:'actql.openai_chat_prompt/0.1',instructions:'Original é\r\n'}});
+  const nativePrompt=nativeDecision?JSON.parse(nativeInput('native_call_prompt')):undefined;
+  const prompt=nativeDecision ? {body:nativePrompt,wire:canonicalText(nativePrompt),cid:nativePrompt.self_cid} :
+    seal({version:'actql-model-prompt/0.1',payload:{
+      format:'actql.openai_chat_prompt/0.1',instructions:'Original é\r\n'}});
   const retry=seal({version:'actql-model-retry-policy/0.1',retryable_failures:[]});
   const backoff=seal({version:'actql-model-backoff/0.1',delays_ms:[]});
-  const environmentBody=JSON.parse(input('infer_fixture_environment'));
+  const environmentBody=JSON.parse(nativeDecision ? nativeInput('native_call_environment') : input('infer_fixture_environment'));
   const originalTask=environmentBody.model_task_contracts[0];
   const {contract_cid:ignored,...taskBody}=originalTask;
   taskBody.prompt_template_cid=prompt.cid;
@@ -49,8 +54,16 @@ export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new A
   const environmentCid=hash(canonicalText(environmentBody));
   const environmentWire=canonicalText({...environmentBody,evidence_bundle_cid:environmentCid});
   const env=moon.clientProgramCheckEnvironment(environmentWire,environmentCid,false,false,true,false,false,false,false);
+  let programWire=input('infer_fixture_program');
+  if(nativeDecision) {
+    // A separately selected one-row private native case. Preserve the original
+    // Task's checked all-row bound4, schema and key/input expression contract.
+    const program=JSON.parse(nativeInput('native_call_program'));
+    program.stages[0].steps[0].values.rows=[{id:'b'}];
+    programWire=JSON.stringify(program);
+  }
   const prepared=moon.clientProgramPreparationReady(moon.clientProgramPrepareEffectFreeWithParameters(
-    input('infer_fixture_program'),'json',env,undefined));
+    programWire,'json',env,undefined));
   assert.notEqual(prepared,undefined,'independent original Program must check');
   const step=moon.clientProgramSelectedInferStep(prepared);
   const executionBody={version:'actql-model-execution-contract/0.1',model_task_contract_cid:task.contract_cid,
@@ -70,8 +83,9 @@ export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new A
     resultDataPolicy:{kind:'data_policy',cid:dataCid,wire:dataWire}},graph);
   const runDefinition=control.defineCheckedClientCompiledRun(compiled,{namespaceId:'scope',runId:'original-sdk-common',
     createdAt:'2026-10-02T00:00:00.000Z',validUntil:'2099-01-01T00:00:00.000Z'});
-  const profileText=readFileSync(new URL('../../src/run_publication_host/client_model_preparation_layout_wbtest.mbt',import.meta.url),'utf8')
-    .match(/#\|(\{[^\n]+\})/u)[1];
+  const profileText=nativeDecision ? nativeInput('native_call_profile_wire') :
+    readFileSync(new URL('../../src/run_publication_host/client_model_preparation_layout_wbtest.mbt',import.meta.url),'utf8')
+      .match(/#\|(\{[^\n]+\})/u)[1];
   const profileBody=JSON.parse(profileText);delete profileBody.self_cid;
   profileBody.task.contract_cid=task.contract_cid;
   // The original independently declared Host request ceiling is1000. The
@@ -80,16 +94,17 @@ export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new A
   profileBody.limits.request_bytes=1000;
   // The exact SDK lock is a DATA reference; this explicitly synthetic fixture
   // does not authenticate these otherwise fixture builder/runtime declarations.
-  profileBody.adapter.sdk={package:'@ai-sdk/openai',version:'4.0.91',interface:'v4',
+  profileBody.adapter.sdk={package:nativeDecision?'@ai-sdk/typesafe-ai':'@ai-sdk/openai',
+    version:nativeDecision?'3.0.13':'4.0.91',interface:'v4',
     lock_artifact_cid:hash(readFileSync(new URL('../../packages/provider-ai-sdk/package-lock.json',import.meta.url)))};
   const profileOriginal=seal(profileBody);
   const profile=control.readInstalledModelResponseProfile(profileOriginal.wire,profileOriginal.cid,bounds);
   const installation={...profileBody.adapter,endpoint:profileBody.operation.endpoint,
-    sdk:{package_name:profileBody.adapter.sdk.package,version:'4.0.91',interface:'v4',
+    sdk:{package_name:profileBody.adapter.sdk.package,version:profileBody.adapter.sdk.version,interface:'v4',
       lock_artifact_cid:profileBody.adapter.sdk.lock_artifact_cid},
     http_method:profileBody.operation.method,streaming:false,
     validator_id:profileBody.completion.validator_id,validator_revision:profileBody.completion.validator_revision,
-    validator_artifact_cid:profileBody.completion.validator_artifact_cid,completion_basis:'generation_finish'};
+    validator_artifact_cid:profileBody.completion.validator_artifact_cid,completion_basis:profileBody.completion.basis};
   delete installation.port_abi;
   const physicalOriginals=[];
   const policyOriginals=['retention_contract','metadata_retention_policy','clock_contract'].map(kind=>{
@@ -99,15 +114,16 @@ export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new A
   });
   const data=checked(moon.clientProgramAdmitEffectDependencyBody('data_policy',dataCid,dataWire,10000,1000,30));
   physicalOriginals.push({kind:'data_policy',cid:dataCid,wire:dataWire});
-  const rawCaptureSelection={profile,installation,probability:undefined,
+  const probability=nativeDecision?control.selectInstalledInitialJevDecisionProfile():undefined;
+  const rawCaptureSelection={profile,installation,probability,
     retention:policyOriginals[0],metadata:policyOriginals[1],clock:policyOriginals[2],data,
     selectedAt:now(),availableUntil:'2026-10-13T00:00:00.000Z',deleteBy:'2026-10-14T00:00:00.000Z',
     extensionCeilingAt:'2026-10-14T00:00:00.000Z',metadataDeleteBy:'2026-10-15T00:00:00.000Z',selectionAvailable:()=>true};
   const template=JSON.parse(compiled.template.wire);
   const nodeInstallation={layout:{response_profile:profile,runtime_artifact_cid:cid('d'),layout_artifact_cid:cid('e'),
     program_definition_cid:template.program_definition_cid,parameter_values_cid:template.parameter_values_cid,
-    barrier_cid:moon.clientProgramInferPlanBoundary(graph)._3,prepared_rows:2n,retained_bytes:7000n,execution_bytes:3000n},
-    installation,runtimeArtifactCid:cid('d'),layoutArtifactCid:cid('e'),probability:undefined};
+    barrier_cid:moon.clientProgramInferPlanBoundary(graph)._3,prepared_rows:BigInt(task.max_items),retained_bytes:7000n,execution_bytes:3000n},
+    installation,runtimeArtifactCid:cid('d'),layoutArtifactCid:cid('e'),probability};
   const quantities={limits:{tokens:128n,costUnits:0n,durationMs:1000n},
     perAttempt:{tokens:128n,costUnits:0n,durationMs:1000n}};
   const originals=providerBindingOriginals('models/fixture',{selector:task.authored_model_selector,
@@ -129,10 +145,11 @@ export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new A
       metadataAcquisition:{metadata:{maxWireBytes:4096,maxLedgerEntries:4},directory:{maxWireBytes:1024,maxDirectoryEntries:8},
         retainedBytes:7000n,workspaceBytes:3000n}},
     physicalPreflight(request,notification,retainRawBinder,admittedProvider){
-      const port=createAdmittedOpenAIChatPreflight({moon,request,admittedProvider,
+      const port=(nativeDecision?createAdmittedTypeSafeDecisionPreflight:createAdmittedOpenAIChatPreflight)({moon,request,admittedProvider,
+        probability,
         taskCid:task.contract_cid,promptCid:prompt.cid,outputSchemaCid:task.output_schema_cid,
         modelSelector:task.authored_model_selector,projectionLimits:{maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:10000},
-        modelId,baseURL:'https://fixture.invalid/v1',apiKey:'fixture-only',signal,
+        modelId,baseURL:nativeDecision?'https://fixture.invalid':'https://fixture.invalid/v1',apiKey:'fixture-only',signal,
         maxRequestBytes:1000,maxHeaderBytes:4096,maxHeaders:16,checked,
         notify:notification.notify,rawCaptureBinder:retainRawBinder,profile,installation,
         quantities:quantities.perAttempt,responseLimits:{maxBytes:2048,maxChunkBytes:512,maxChunks:16,
@@ -203,7 +220,7 @@ export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new A
   const opened=await controller.open({operation,preparedCallSet:boundary.preparedCallSet,plan,
     selected:{step,graph,providerBinding,observeAccount:()=>account,currentProvider:()=>true,
       egressAdmission:checked(moon.clientProgramAdmitInferEgress(prepared,step,execution,
-        ()=>({_0:'public',_1:'fixture-region',_2:false,_3:false}))),
+        ()=>({_0:'public',_1:nativeDecision?'fixture':'fixture-region',_2:false,_3:false}))),
       entryPersistence:'async',rawCaptureSelection:registered.rawCaptureSelection},principalId:'owner',
     declaredResults:['answer'],submission:{fixture:'original-sdk-common'},signal,originalPreparation});
   return {root,operation,opened,controller,cp,store,control,plan,prepared,registered,
