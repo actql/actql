@@ -32,6 +32,7 @@ function fixture({views = [0, 0], extraResults = [], capacity = 20, failAppend, 
       localResults[result].view === inputs[member].view,
     clientProgramIssueLocalEffectResultDefinition: (_, __, name) => ok({view: Number(name)}),
     clientProgramEffectLocalManagedInputBegin: input => ok({input}),
+    clientProgramEffectLocalManagedExportOwner: (_, __, importing) => ok(importing),
     clientProgramEffectInputTask: input => input,
     clientProgramIssueCapturedEffectInputLocalResultDefinition: (_, __, index) =>
       ok({view: inputs[index].view}),
@@ -57,6 +58,7 @@ function fixture({views = [0, 0], extraResults = [], capacity = 20, failAppend, 
     clientProgramEffectInputExportRowCount: () => 0,
     clientProgramEffectInputExportReleaseReceipt() {},
     clientProgramEffectInputExportCancel() {},
+    clientProgramEffectInputExportCancelPreparation() {},
     clientProgramEffectManagedInputCancel() {},
   };
   const store = {
@@ -233,15 +235,19 @@ test('the existing grouping and member ceilings apply before any Store reservati
 
 test('source-free import validation and grouping spend the same existing work budget', async () => {
   const {options, events} = fixture();
-  const sources = await preparePinnedEffectSourceSet({...options, maxGroupingWork: 5,
+  // Two import checks + three live-view checks + one declared Result visit
+  // + one retained member match. The former five-work budget now refuses;
+  // neither the option nor the refusal ceiling is increased by the adapter.
+  const sources = await preparePinnedEffectSourceSet({...options, maxGroupingWork: 7,
     memberSourceBindings: vector(cidA, cidB)});
-  // Two import-count checks, two availability checks and one live-view comparison.
   assert.equal(events.comparisons, 3);
   for (const payload of sources.payloads) await payload.prepared.release();
-  const refusal = fixture();
-  await assert.rejects(preparePinnedEffectSourceSet({...refusal.options, maxGroupingWork: 4,
-    memberSourceBindings: vector(cidA, cidB)}), /EffectSourceGroupingLimit/);
-  assert.equal(refusal.events.writers.length, 0);
+  for (const maxGroupingWork of [4, 5]) {
+    const refusal = fixture();
+    await assert.rejects(preparePinnedEffectSourceSet({...refusal.options, maxGroupingWork,
+      memberSourceBindings: vector(cidA, cidB)}), /EffectSourceGroupingLimit/);
+    assert.equal(refusal.events.writers.length, 0);
+  }
 });
 
 test('different bindings charge separate Store capacity and release completed siblings on refusal', async () => {
