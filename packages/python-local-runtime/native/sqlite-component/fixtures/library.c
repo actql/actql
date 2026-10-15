@@ -60,11 +60,11 @@ int main(int argc, char **argv) {
     original value = fresh();
     if (!strcmp(name, "missing-current")) {
         assert(actql_native_sqlite_load_current_component((moonbit_bytes_t)path,
-            (int32_t)strlen(path), 128) == NULL);
+            (int32_t)strlen(path), 128, 32 * (int64_t)sysconf(_SC_PAGESIZE)) == NULL);
     }
     enter(value);
     actql_native_sqlite_library *library = actql_native_sqlite_load_current_component(
-        (moonbit_bytes_t)path, (int32_t)strlen(path), 128);
+        (moonbit_bytes_t)path, (int32_t)strlen(path), 128, 32 * (int64_t)sysconf(_SC_PAGESIZE));
     assert(library && actql_native_sqlite_library_ready(library));
     assert(library->selected_context == value.context && library->component_owned);
     assert(actql_native_owned_contains_live_span(value.lease, library, sizeof(*library)) == 0);
@@ -137,6 +137,22 @@ int main(int argc, char **argv) {
             assert(db->database && db->opened && !library->closing);
             assert(actql_native_sqlite_library_close_checked(library) == 0);
             assert(library->finalize(statement) == SQLITE_OK);
+        } else if (!strcmp(name, "adapter-heap-alias")) {
+            /* Distinct adapter buffers are interior to one MEMSYS5 extent, not
+             * one additional provider page per request. Keep the original table
+             * and DB custody until every buffer is actually returned. */
+            void *buffers[64] = {0};
+            for (size_t i = 0; i < 64; i++) {
+                buffers[i] = actql_adapter_allocate(library, 13);
+                assert(buffers[i] != NULL);
+                assert(actql_native_owned_contains_live_span(value.lease, buffers[i], 13) == 0);
+                memset(buffers[i], 23, 13);
+            }
+            assert(actql_native_sqlite_library_close_checked(library) == 0);
+            for (size_t i = 0; i < 64; i++) {
+                assert(((unsigned char *)buffers[i])[12] == 23);
+                actql_adapter_free(library, buffers[i]);
+            }
         } else if (!strcmp(name, "lost-commit-reply")) {
             original_exec = library->exec; library->exec = observed_exec;
             assert(actql_native_sqlite_database_begin_immediate(db) == 0);

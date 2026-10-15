@@ -138,7 +138,9 @@ static void *actql_adapter_allocate(actql_native_sqlite_library *library, size_t
   if (library == NULL || !library->selected_component) return malloc(bytes);
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
   if (library->closing || !actql_library_current(library)) return NULL;
-  return actql_native_file_scoped_allocate(bytes);
+  return library->selected_api != NULL
+    ? library->selected_api->allocate_memory(bytes)
+    : actql_native_file_scoped_allocate(bytes); /* Pre-bind loader text only. */
 #else
   return NULL;
 #endif
@@ -149,7 +151,8 @@ static void actql_adapter_free(actql_native_sqlite_library *library, void *point
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
   /* The provider routes the original allocation, not the current thread's heap.
    * Unconfirmed retirement stays in that SAME provider's existing extent table. */
-  actql_native_file_scoped_free(pointer);
+  if (library->selected_ready && library->component_owned) library->free_memory(pointer);
+  else actql_native_file_scoped_free(pointer);
 #endif
 }
 int32_t actql_native_sqlite_library_close_checked(actql_native_sqlite_library *);

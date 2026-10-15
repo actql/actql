@@ -5,11 +5,13 @@
 #define SQLITE_EXTERN
 #define SQLITE_OMIT_AUTOINIT 1
 #define SQLITE_ZERO_MALLOC 1
+#define SQLITE_ENABLE_MEMSYS5 1
 #define SQLITE_OMIT_LOAD_EXTENSION 1
 #define SQLITE_THREADSAFE 1
 #include "sqlite3.c"
 #include "component.h"
 #include "api.h"
+#include "owned_capacity.h"
 #include <dlfcn.h>
 #include <stdalign.h>
 #include <stdatomic.h>
@@ -23,11 +25,6 @@ extern int actql_read_context_release_after_owner_ack(actql_read_context *);
 extern void *actql_native_file_scoped_allocate(size_t);
 extern void actql_native_file_scoped_free(void *);
 
-typedef union {
-    max_align_t alignment;
-    struct { int size; } value;
-} actql_sqlite_allocation_header;
-
 /* One Library binding per component lifetime, never per Run or on reopen.
  * A nonblocking physical entry fence rejects competing/reentrant operations;
  * it does not schedule calls, retry requests or issue a new Library authority.
@@ -35,14 +32,17 @@ typedef union {
 static actql_read_context *component_context;
 static _Atomic(pid_t) component_process;
 static atomic_flag component_entry = ATOMIC_FLAG_INIT;
-static size_t component_allocations;
+static actql_owned_capacity *component_lease;
+static void *component_heap;
+static int component_shutdown_ack;
 static int component_attempted, component_ready, component_stopped;
 static int component_retained;
 static int component_api_borrowed;
 
 static int component_current(void) {
     return component_context != NULL && component_process == getpid() &&
-        actql_bootstrap_current_read_context() == component_context;
+        actql_bootstrap_current_read_context() == component_context &&
+        actql_native_owned_current() == component_lease;
 }
 
 static int component_provider_origin(void) {
@@ -51,7 +51,8 @@ static int component_provider_origin(void) {
     void *entries[] = {(void *)actql_read_context_retain,
         (void *)actql_read_context_release_after_owner_ack,
         (void *)actql_native_file_scoped_allocate,
-        (void *)actql_native_file_scoped_free};
+        (void *)actql_native_file_scoped_free,
+        (void *)actql_native_owned_current, (void *)actql_native_owned_retire};
     for (size_t i = 0; i < sizeof(entries) / sizeof(entries[0]); i++) {
         if (!dladdr(entries[i], &observed) ||
             observed.dli_fbase != original.dli_fbase) return 0;
@@ -59,61 +60,9 @@ static int component_provider_origin(void) {
     return 1;
 }
 
-static int component_roundup(int bytes) {
-    return bytes <= 0 || bytes > INT_MAX - 7 ? 0 : (bytes + 7) & ~7;
-}
-
-static void *component_malloc(int bytes) {
-    if (!component_current() || bytes <= 0 || component_allocations == SIZE_MAX)
-        return NULL;
-    actql_sqlite_allocation_header *header = actql_native_file_scoped_allocate(
-        sizeof(*header) + (size_t)bytes);
-    if (header == NULL) return NULL;
-    header->value.size = bytes;
-    component_allocations++;
-    return header + 1;
-}
-
-static void component_free(void *pointer) {
-    if (pointer == NULL) return;
-    /* Never inspect an inherited header, adopt its context or route it through
-     * the child's ambient allocator. The public private wrapper refuses first. */
-    if (component_process != getpid()) return;
-    actql_sqlite_allocation_header *header = pointer;
-    header--;
-    actql_native_file_scoped_free(header);
-    component_allocations--;
-    /* A failed mprotect retirement stays released in the SAME provider extent
-     * table. Logical free is not physical domain close or a capacity credit. */
-}
-
-static int component_size(void *pointer) {
-    actql_sqlite_allocation_header *header = pointer;
-    return pointer == NULL ? 0 : (header - 1)->value.size;
-}
-
-static void *component_realloc(void *pointer, int bytes) {
-    if (!component_current()) return NULL;
-    if (pointer == NULL) return component_malloc(bytes);
-    if (bytes <= 0) { component_free(pointer); return NULL; }
-    /* Both extents coexist in the original provider. On failure the old buffer
-     * remains intact; neither a stock realloc nor a released credit is used. */
-    void *next = component_malloc(bytes);
-    if (next == NULL) return NULL;
-    int previous = component_size(pointer);
-    memcpy(next, pointer, (size_t)(previous < bytes ? previous : bytes));
-    component_free(pointer);
-    return next;
-}
-
-static int component_init(void *original) {
-    return original == component_context && component_current()
-        ? SQLITE_OK : SQLITE_MISUSE;
-}
-static void component_shutdown(void *original) { (void)original; }
-
-static int component_bind_impl(actql_read_context *original) {
-    if (component_attempted || original == NULL ||
+static int component_bind_impl(actql_read_context *original, size_t heap_bytes) {
+    if (component_attempted || original == NULL || heap_bytes < 4096 ||
+        heap_bytes > INT_MAX || actql_native_owned_current() == NULL ||
         actql_bootstrap_current_read_context() != original ||
         !component_provider_origin()) return ACTQL_SQLITE_COMPONENT_INVALID;
     component_attempted = 1;
@@ -124,12 +73,16 @@ static int component_bind_impl(actql_read_context *original) {
     if (actql_read_context_retain(original) != 0)
         return ACTQL_SQLITE_COMPONENT_FAILED;
     component_context = original;
+    component_lease = actql_native_owned_current();
     component_process = getpid();
     component_retained = 1;
-    sqlite3_mem_methods methods = {component_malloc, component_free,
-        component_realloc, component_size, component_roundup,
-        component_init, component_shutdown, original};
-    if (sqlite3_config(SQLITE_CONFIG_MALLOC, &methods) != SQLITE_OK ||
+    /* Exactly one original provider extent. The explicit private selection is
+     * a partition of existing backing, never a capacity grant. Metadata,
+     * minimum-block rounding and fragmentation all live inside this same heap.
+     * A null heap MUST NOT reach CONFIG_HEAP: SQLite would restore defaults. */
+    component_heap = actql_native_file_scoped_allocate(heap_bytes);
+    if (component_heap == NULL) return ACTQL_SQLITE_COMPONENT_FAILED;
+    if (sqlite3_config(SQLITE_CONFIG_HEAP, component_heap, (int)heap_bytes, 16) != SQLITE_OK ||
         sqlite3_initialize() != SQLITE_OK) return ACTQL_SQLITE_COMPONENT_FAILED;
     component_ready = 1;
     return ACTQL_SQLITE_COMPONENT_OK;
@@ -167,11 +120,21 @@ static int component_close_impl(void) {
     if (component_api_borrowed) return ACTQL_SQLITE_COMPONENT_BUSY;
     /* Engine initialization may itself hold allocations. SQLite shutdown frees
      * those, but only after all caller buffers are gone (memory_used includes
-     * both). This slice exposes no DB/statement/VFS operations. */
+     * both). The API-table borrow separately retains DB/statement custody. */
     if (sqlite3_memory_used() != 0) return ACTQL_SQLITE_COMPONENT_BUSY;
     component_ready = 0;
-    if (sqlite3_shutdown() != SQLITE_OK || component_allocations != 0)
-        return ACTQL_SQLITE_COMPONENT_BUSY;
+    if (!component_shutdown_ack) {
+        if (sqlite3_shutdown() != SQLITE_OK) return ACTQL_SQLITE_COMPONENT_BUSY;
+        component_shutdown_ack = 1;
+    }
+    if (component_heap != NULL) {
+        /* Direct ACK from the SAME provider and original lease. Failed retire
+         * keeps the original pointer/user; retry only this cleanup, never bind,
+         * shutdown, allocate a replacement or claim an internal free credit. */
+        if (actql_native_owned_retire(component_lease, component_heap) != ACTQL_OWNED_OK)
+            return ACTQL_SQLITE_COMPONENT_FAILED;
+        component_heap = NULL;
+    }
     if (actql_read_context_release_after_owner_ack(component_context) != 0)
         return ACTQL_SQLITE_COMPONENT_FAILED;
     component_retained = 0;
@@ -212,7 +175,7 @@ static void component_leave_call(void) {
         component_leave_call(); \
         return result; \
     }
-COMPONENT_INT_ENTRY(bind, (actql_read_context *original), (original))
+COMPONENT_INT_ENTRY(bind, (actql_read_context *original, size_t heap_bytes), (original, heap_bytes))
 COMPONENT_INT_ENTRY(free, (void *original), (original))
 COMPONENT_INT_ENTRY(close, (void), ())
 COMPONENT_VALUE_ENTRY(allocate, void *, (size_t bytes), (bytes), NULL)
@@ -224,6 +187,7 @@ COMPONENT_VALUE_ENTRY(size, size_t, (void *original), (original), 0)
  * retains the same original DB until its own statements actually finalize. */
 static const actql_sqlite_component_api component_api = {
     ACTQL_SQLITE_COMPONENT_ABI, sizeof(actql_sqlite_component_api), &component_api,
+    component_allocate_impl,
     sqlite3_libversion, sqlite3_libversion_number, sqlite3_open_v2, sqlite3_close,
     sqlite3_errmsg, sqlite3_exec, sqlite3_free, sqlite3_prepare_v2,
     sqlite3_bind_text, sqlite3_bind_blob, sqlite3_bind_int64, sqlite3_step,

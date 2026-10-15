@@ -12,7 +12,7 @@ enum actql_sqlite_component_status {
     ACTQL_SQLITE_COMPONENT_BUSY = -2,
     ACTQL_SQLITE_COMPONENT_FAILED = -3
 };
-int actql_sqlite_component_bind(actql_read_context *original);
+int actql_sqlite_component_bind(actql_read_context *original, size_t heap_bytes);
 /* Adapter text/diagnostic/result buffers use these SAME engine memory methods.
  * They are private physical operations, not an installed allocation supplier. */
 void *actql_sqlite_component_allocate(size_t bytes);

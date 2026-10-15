@@ -57,7 +57,7 @@ static bool actql_component_api_original(const actql_sqlite_component_api *api,
       api->bytes != sizeof(*api) || api->instance != api ||
       !actql_component_origin(api, base)) return false;
   const void *entries[] = {
-    (void *)api->libversion, (void *)api->libversion_number,
+    (void *)api->allocate_memory, (void *)api->libversion, (void *)api->libversion_number,
     (void *)api->open_v2, (void *)api->close_v2, (void *)api->errmsg,
     (void *)api->exec, (void *)api->free_memory, (void *)api->prepare_v2,
     (void *)api->bind_text, (void *)api->bind_blob, (void *)api->bind_int64,
@@ -72,14 +72,14 @@ static bool actql_component_api_original(const actql_sqlite_component_api *api,
 #endif
 
 void *actql_native_sqlite_load_current_component(
-  moonbit_bytes_t path, int32_t length, int32_t diagnostic_ceiling
+  moonbit_bytes_t path, int32_t length, int32_t diagnostic_ceiling, int64_t heap_bytes
 ) {
 #ifndef ACTQL_SCOPED_READ_ALLOCATOR
-  (void)path; (void)length; (void)diagnostic_ceiling;
+  (void)path; (void)length; (void)diagnostic_ceiling; (void)heap_bytes;
   return NULL; /* No stock fallback or pre-adoption instance. */
 #else
   actql_read_context *context = actql_bootstrap_current_read_context();
-  if (context == NULL || diagnostic_ceiling <= 0 || length <= 0 || length > 4096 || path[0] != '/' ||
+  if (context == NULL || heap_bytes < 4096 || heap_bytes > INT_MAX || diagnostic_ceiling <= 0 || length <= 0 || length > 4096 || path[0] != '/' ||
       memchr(path, 0, (size_t)length) != NULL ||
       actql_read_context_retain(context) != 0) return NULL;
   actql_native_sqlite_library *library = moonbit_make_external_object(
@@ -98,7 +98,7 @@ void *actql_native_sqlite_load_current_component(
     actql_replace_error_for(library, &library->error, diagnostic_ceiling, dlerror());
     return library;
   }
-  int (*bind)(actql_read_context *) = NULL;
+  int (*bind)(actql_read_context *, size_t) = NULL;
   const char *(*source_id)(void) = NULL;
   const actql_sqlite_component_api *(*borrow_api)(void) = NULL;
   if (!actql_load_symbol(library, (void **)&bind, "actql_sqlite_component_bind") ||
@@ -114,7 +114,7 @@ void *actql_native_sqlite_load_current_component(
       !actql_component_origin((void *)source_id, origin.dli_fbase) ||
       !actql_component_origin((void *)borrow_api, origin.dli_fbase)) return library;
   if (strcmp(source_id(), ACTQL_SQLITE_COMPONENT_SOURCE_ID) != 0) return library;
-  int status = bind(context);
+  int status = bind(context, (size_t)heap_bytes);
   if (status == ACTQL_SQLITE_COMPONENT_INVALID || status == ACTQL_SQLITE_COMPONENT_BUSY)
     return library; /* Another original binding/entry cannot be cleaned up here. */
   library->component_owned = true; /* Includes our SAME failed initialization. */

@@ -12,6 +12,7 @@ struct actql_sqlite_component_api {
     uint32_t abi;
     uint32_t bytes;
     const void *instance;
+    void *(*allocate_memory)(size_t);
     const char *(*libversion)(void);
     int (*libversion_number)(void);
     int (*open_v2)(const char *, sqlite3 **, int, const char *);
@@ -32,7 +33,7 @@ struct actql_sqlite_component_api {
     int (*busy_timeout)(sqlite3 *, int);
     int (*get_autocommit)(sqlite3 *);
 };
-#define ACTQL_SQLITE_COMPONENT_ABI 1
+#define ACTQL_SQLITE_COMPONENT_ABI 2
 #define ACTQL_SQLITE_COMPONENT_SOURCE_ID \
     "2025-11-04 19:38:17 fb2c931ae597f8d00a37574ff67aeed3eced4e5547f9120744ae4bfa8e74527b"
 #endif

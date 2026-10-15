@@ -75,7 +75,7 @@ def prepare(archive: Path, destination: Path, *, source: Path = HERE) -> dict:
     record = {'status': recipe['status'], 'recipe_sha256': hashlib.sha256(recipe_raw).hexdigest(),
               'upstream': upstream, 'target': recipe['target'],
               'deployment_target': recipe['deployment_target'], 'defines': recipe['defines'],
-              'provider_inputs': recipe['provider_inputs'],
+              'provider_inputs': recipe['provider_inputs'], 'memory': recipe['memory'],
               'outputs': {name: {'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
                           for name, data in outputs.items()},
               'compiled': 0, 'loaded': 0, 'installed_supplier': False, 'normal_profile': None}
