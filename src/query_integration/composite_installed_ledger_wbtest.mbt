@@ -15,6 +15,30 @@ test "original composite Vector Sources prepare the installed multi-capture ledg
   let graph = @publication_host.prepared_client_graph(prepared)
   assert_eq(@strategy.graph_captured_prefix(graph), 2)
   let (registry, values, fragment, ordered) = acquired_serialization_contracts()
+  for count in 1..<=@strategy.graph_task_count(graph) {
+    let prefix = @client_local_host.prepare_client_local_sequences(
+      prepared,
+      registry,
+      values,
+      fragment,
+      ordered,
+      task_count=Some(count),
+    )
+    println("COMPOSITE_SEQUENCE prefix=\{count} ready=\{prefix is Some(_)}")
+    let owner = @strategy.graph_task_owner(graph, count - 1).unwrap()
+    match
+      @lower.prepare_sequence(
+        owner,
+        @publication_host.prepared_client_values_sequence_limits(prepared),
+      ) {
+      Ok(_) => ()
+      Err(issue) =>
+        println("COMPOSITE_LOWER task=\{count - 1} " + @debug.to_string(issue))
+    }
+    if prefix is None {
+      break
+    }
+  }
   let sequences = @client_local_host.prepare_client_local_sequences(
     prepared, registry, values, fragment, ordered,
   )
