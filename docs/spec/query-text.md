@@ -1529,6 +1529,12 @@ operator is `RESULT x`, the primary output references that same `x`; no second
 anonymous export is constructed. Otherwise the continuing Relation uses the
 existing configured primary export.
 
+A terminal `CREATE TABLE` or `CREATE OR REPLACE TABLE` is the explicit
+exception: only authored public Results are exported. Its final Relation feeds
+the existing private Table input, without another primary export. With no
+authored Result its public `results` map is empty. This exception does not change
+ordinary Relation queries or UPDATE's primary-tail rule.
+
 RESULT declarations belong at statement level (and adopted BRANCH bodies), not
 inside CTEs, derived queries or set operands. The separate adopted `RESULT(name)`
 source reference is not a declaration and has its own preceding-statement
@@ -2458,6 +2464,12 @@ Lowering uses the existing store Effect and private Table capture. It preserves
 absence, explicit NULL and actual values without creating an implicit public
 Relation. A save-only checked Effect Program has `results: {}` under the common
 Effect-only Program contract; ordinary Named Results remain all-Required.
+When an earlier `RESULT name` precedes further row operations, that Result keeps
+its original rows and schema, while the private Table input consumes the final
+Relation. CREATE and REPLACE export exactly the authored public Results; they do
+not add the configured primary export for that private consumer. A terminal
+authored Result still names its retained Relation. Ordinary SQL and UPDATE keep
+their existing primary-tail behavior.
 Initial support is Relation create and same-schema whole-table replace using
 the installed writer's admitted types. Syntax does not authorize a write.
 Append/upsert, schema evolution, automatic Catalog observation and other Carrier
