@@ -30,6 +30,17 @@ actql_owned_capacity *actql_native_owned_current(void);
 /* Physical observations only, never a Core capacity grant. The full original
  * region remains owned even after its child extents retire. */
 int actql_native_owned_capacity_bytes(actql_owned_capacity *lease, uint64_t *out);
+/* Opaque observations of the same provider, not capacity grants. Output slots
+ * must be empty. Rounding cannot exceed the original region's finite bounds. */
+int actql_native_owned_control_bytes(actql_owned_capacity *lease, uint64_t *out);
+int actql_native_owned_rounded_bytes(actql_owned_capacity *lease, size_t bytes,
+                                    uint64_t *out);
+/* Exact existing domain transfer, with its original immutable material kept
+ * inside this provider. Never applies to an anonymous parent or issues a loan. */
+int actql_native_owned_transfer_original_domain(actql_owned_capacity *lease);
+/* Raw same-origin TLS observation only; no admission, stop or cleanup ACK. */
+int actql_native_owned_control_scope_clear(void);
+
 /* Requires original current/transferred lease and one live backing extent.
  * It does not establish Guest VM identity or execution permission. */
 int actql_native_owned_contains_live_span(actql_owned_capacity *lease,

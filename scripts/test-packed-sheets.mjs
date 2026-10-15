@@ -47,6 +47,7 @@ const directory = await withPackedQueryEvidence({
   for (const path of [
     'adapters/site-node/https-exchange-fixture.mjs',
     ...['sheets-api.fixture.mjs', 'sheets-public-acceptance.fixture.mjs',
+      'sheets-range-program.fixture.mjs',
       'sheets-replay.fixture.mjs', 'sheets-replay-packed.fixture.mjs',
       'sheets-packed.fixture.mjs'].map(name => `adapters/connectors/sheets/test/${name}`),
   ]) {

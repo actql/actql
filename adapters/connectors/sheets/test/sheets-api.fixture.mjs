@@ -52,6 +52,19 @@ export function sheetsRoutes(state) {
     }},
     {method: 'POST', pathname: '/v4/spreadsheets/book:batchUpdate', handle(exchange) {
       const body = JSON.parse(exchange.body);
+      const update = body.requests?.[0]?.updateCells;
+      if (update !== undefined && state.rangeCommand) {
+        const range = update.range;
+        if (body.requests.length !== 1 || update.fields !== 'userEnteredValue' ||
+            range?.sheetId !== 7 || range.startRowIndex !== 2 || range.endRowIndex !== 4 ||
+            range.startColumnIndex !== 0 || range.endColumnIndex !== 3 ||
+            update.rows?.length !== 2 || update.rows.some(row => row.values?.length !== 3 ||
+              row.values.some(cell => cell.userEnteredValue?.formulaValue !== undefined))) {
+          return {status: 400, body: {}};
+        }
+        state.updated.push(update.rows.map(row => row.values.map(cell => cell.userEnteredValue)));
+        return {body: {spreadsheetId: 'book', replies: [{}]}};
+      }
       const append = body.requests?.[0]?.appendCells;
       if (body.requests?.length !== 1 || append?.sheetId !== 7 ||
           append.fields !== 'userEnteredValue' || append.rows?.length !== 1 ||
