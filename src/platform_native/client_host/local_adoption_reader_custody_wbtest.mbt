@@ -119,7 +119,8 @@ test "unknown Reader retirement keeps the original session lock and never retrie
     assert_true(
       session.read_cleanup is Some(ReadPending(retained, issue)) &&
       physical_equal(retained, reader) &&
-      issue == primary,
+      issue is @filesystem.Cleanup(message) &&
+      message == "Original reader retirement is unconfirmed",
     )
   }
   let refused = match
