@@ -49,7 +49,9 @@ fn original_io_consumer_fixture(
       let (ledger, read) = original_preparation_test_read(
         active,
         quantities=Some(active.quantity_capacity.unwrap().limits),
-        reservation_slots=slots.max(4),
+        // The original census keeps the read and Model capacity records as
+        // well as every original attempt. These are fixture counts, not bytes.
+        reservation_slots=slots + 2,
         holding_slots=slots,
         run_id~,
       )
