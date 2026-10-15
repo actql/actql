@@ -53,3 +53,16 @@ test "non-native metadata supplies neither original reservation nor database tot
   )
   assert_true(database.database_usage() is Err(UnsupportedTarget))
 }
+
+///|
+test "non-native snapshot cannot supply a row header or begin a transaction" {
+  let database : Database = { unsupported: (), }
+  assert_true(database.read_header("original", "one") is Err(UnsupportedTarget))
+  assert_true(database.begin_deferred() is Err(UnsupportedTarget))
+}
+
+///|
+test "fenced lookup snapshot refuses unsupported target without issuing a child" {
+  let database : Database = { unsupported: (), }
+  assert_true(database.prepare_lookup_read() is Err(UnsupportedTarget))
+}
