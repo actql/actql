@@ -4,4 +4,5 @@ pkgtype(kind: "executable")
 
 import {
   "actql/actql/platform_native/installed_arena_control" @control,
+  "actql/actql/platform_native/host_bootstrap" @bootstrap,
 }
