@@ -16,7 +16,7 @@ function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true
   const stored=new Map();
   const counters={stop:0,cleanup:0,acquire:0,ack:0,commit:0,usage:0,proof:0,limitReads:0,exports:[]};
   const flags={stopped:true,exportCleanup:true,modelCleanup:true,
-    usageRetired:false,usageRefusal:false};
+    usageRetired:false,usageRefusal:false,journalState:'SavedSuccess',ackFailure:undefined};
   let cleanupCallback, beforeCommit;
   const ok=_0=>({$tag:1,_0});
   const moon={
@@ -69,7 +69,10 @@ function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true
     issuedSlotCapture:()=>evidence,
     invocationEvidence:()=>evidence,
     invocationEvidenceView:()=>invocationView,
-    acknowledgeSettlement(){counters.ack++;},
+    acknowledgeSettlement(){
+      if(flags.ackFailure!==undefined)throw flags.ackFailure;
+      counters.ack++;
+    },
     installSettlementCleanup(value){cleanupCallback=value;},
     stoppedAttemptCount:()=>stoppedRaw ? 1 : 0,
   };
@@ -103,7 +106,7 @@ function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true
     plan:{runDefinition:{}},store,storeAuthorityCid:'original-store',
     captureOnly,durableCalls:true,
     publicationFor:captureOnly?undefined:()=>assert.fail('No publication before the selected exporter')});
-  owner.configureModelJournal({observe:async()=>({state:'SavedSuccess'}),entry:()=>entry});
+  owner.configureModelJournal({observe:async()=>({state:flags.journalState}),entry:()=>entry});
   return {owner,operation,flags,counters,stored,bundleWire,store,moon,invocationView,
     async complete(){
       await owner.persistSettlement(settlement,entry);
@@ -112,6 +115,77 @@ function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true
     async settling(){await cleanupCallback(settlement);},
     deferCommit(callback){beforeCommit=callback;}};
 }
+
+// White-box observation, not a production getter or an actually escaped client
+// handle. The temporary setter preserves normal own assignment semantics and
+// is restored before another test. No product source overlay or GC claim.
+async function withSettlementRecord(observe) {
+  assert.equal(Object.getOwnPropertyDescriptor(Object.prototype,'exporter'),undefined);
+  let record;
+  Object.defineProperty(Object.prototype,'exporter',{configurable:true,
+    get(){return undefined;},
+    set(value){
+      Object.defineProperty(this,'exporter',{value,writable:true,enumerable:true,configurable:true});
+      if(Object.hasOwn(this,'settlement')&&Object.hasOwn(this,'entry')&&Object.hasOwn(this,'wire')){
+        assert.equal(record,undefined,'Retry must reuse the original record/exporter');
+        record=this;
+      }
+    }});
+  try{return await observe(()=>record);}
+  finally{delete Object.prototype.exporter;}
+}
+
+test('settlement record drops only wire/exporter aliases after original cleanup and ACK',async()=>{
+  const f=fixture();
+  await withSettlementRecord(async read=>{
+    const ack=f.operation.acknowledgeSettlement;
+    f.operation.acknowledgeSettlement=()=>{
+      assert.equal(read().wire,f.bundleWire);
+      assert.ok(read().exporter,'The exporter remains borrowed until ACK succeeds');
+      ack();
+    };
+    await f.settling();
+    assert.equal(f.counters.ack,1);
+    assert.equal(read().wire,'');assert.equal(read().exporter,undefined);
+    assert.ok(f.stored.has('model_capture_bundle'),'Durable originals are not deleted');
+    f.owner.retainCompleted();await f.owner.persist();
+    assert.equal(f.owner.evaluationBundle().wire,f.bundleWire,'Terminal export is a separate wire');
+    assert.equal(await f.owner.custody.cleanup(),true);
+  });
+});
+
+test('settlement record keeps original aliases during incomplete exporter cleanup',async()=>{
+  const f=fixture();f.flags.exportCleanup=false;
+  await withSettlementRecord(async read=>{
+    await assert.rejects(f.settling(),{code:'ClientDispatchCleanupPending'});
+    const original=read(),exporter=original.exporter;
+    assert.equal(original.wire,f.bundleWire);assert.ok(exporter);
+    assert.equal(f.counters.ack,0);assert.equal(f.owner.custody.cleanupPending(),true);
+    f.flags.exportCleanup=true;await f.settling();
+    assert.strictEqual(read(),original);assert.equal(f.counters.exports.length,1);
+    assert.equal(original.wire,'');assert.equal(original.exporter,undefined);
+    assert.equal(f.counters.ack,1);assert.equal(await f.owner.custody.cleanup(),true);
+  });
+});
+
+test('settlement record preserves Unknown journal and ACK rejection until same-duty retry',async()=>{
+  for(const mode of ['journal','ack']){
+    const f=fixture(),failure=Object.freeze(new Error('OriginalAckRefused'));
+    if(mode==='journal')f.flags.journalState='EnteredUnknown';else f.flags.ackFailure=failure;
+    await withSettlementRecord(async read=>{
+      await assert.rejects(f.settling(),error=>mode==='ack'?error===failure:
+        error.message==='InferSettlementNotDurable');
+      const original=read(),exporter=original.exporter;
+      assert.equal(original.wire,f.bundleWire);assert.ok(exporter);
+      assert.equal(f.counters.ack,0);assert.equal(f.counters.cleanup,0);
+      f.flags.journalState='SavedSuccess';f.flags.ackFailure=undefined;
+      await f.settling();
+      assert.strictEqual(read(),original);assert.equal(f.counters.exports.length,1);
+      assert.equal(original.wire,'');assert.equal(original.exporter,undefined);
+      assert.equal(f.counters.ack,1);assert.equal(await f.owner.custody.cleanup(),true);
+    });
+  }
+});
 
 test('capture retains the same issued invocation view without wire readmission',async()=>{
   const f=fixture({rejectInvocationReadmit:true});

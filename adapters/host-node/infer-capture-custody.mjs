@@ -328,6 +328,11 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       scopeCid: current.entry.scopeCid, attemptCid: current.entry.attemptCid, state: observed.state});
     if (!checked(moon.clientProgramCleanupInferCaptureExport(current.exporter))) throw pending();
     operation.acknowledgeSettlement(current.settlement);
+    // Both original duties succeeded. Retire only this record's aliases even
+    // if its completed async frame remains reachable; Store/Core originals
+    // and a later terminal export retain their independent lifetimes.
+    current.exporter = undefined;
+    current.wire = '';
     settling = undefined;
     return observed;
   }
