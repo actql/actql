@@ -713,15 +713,24 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         if (originalDispatchCut!==undefined) return originalDispatchCut.flight;
         const codec=selectedInferOriginalCurrentStateCodec(originalPreparation?.metadataInstallation,
           originalPreparation?.nodeInstallation);
+        if (typeof operation.originalStoreBootstrapAcquisition !== 'function' ||
+            typeof cp.observeModelOriginalStorageBindingSelected !== 'function' ||
+            typeof cp.modelOriginalStorageBindingBootstrapSelected !== 'function') {
+          fail('InferOriginalMetadataAcquisitionUnavailable');
+        }
+        const acquisition=operation.originalStoreBootstrapAcquisition();
         // This same installed operation already owns all initialization and
         // Store/codec overlap. There is no request-supplied serializer/amount.
         const original=originalDispatchCut={park:undefined,flight:undefined,pending:true};
         original.flight=(async()=>{
           try {
-            const storageBinding=await cp.observeModelOriginalStorageBinding();
+            const storageBinding=await cp.observeModelOriginalStorageBindingSelected(
+              {runDefinition:plan.runDefinition},acquisition);
             if (!owner.available || checkpoints()!==cp) fail('ModelOriginalCurrentCutUnavailable');
-            const origin=await continuationView.originalResourceOrigin(storageBinding);
+            if (operation.originalStoreBootstrapAcquisition()!==acquisition) fail('ModelOriginalCurrentCutUnavailable');
+            const origin=await continuationView.originalResourceOrigin(storageBinding,acquisition);
             if (!owner.available || checkpoints()!==cp) fail('ModelOriginalCurrentCutUnavailable');
+            if (operation.originalStoreBootstrapAcquisition()!==acquisition) fail('ModelOriginalCurrentCutUnavailable');
             // Capture immutable origin DATA before park, and retain the actual
             // returned park immediately before any further fallible operation.
             const originWire=canonicalJson(origin);
@@ -914,7 +923,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         return document;
       },
       confirmOriginalResourceStateSaved,
-      async originalResourceOrigin(storageBinding) {
+      async originalResourceOrigin(storageBinding, acquisition) {
         const originalScope = operation.originalResourceScope?.();
         const installation = originalPreparation?.nodeInstallation;
         if (originalScope === undefined || originalScope !== originalPreparation?.scope ||
@@ -924,9 +933,18 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         }
         // This port reopens/rechecks its actual selected encrypted Store. The
         // returned evidence is data from that nominal binding, not a caller CID.
-        const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
+        if (acquisition !== undefined && operation.originalStoreBootstrapAcquisition() !== acquisition) {
+          fail('ModelOriginalResourceOriginUnavailable');
+        }
+        const storage = await (acquisition === undefined
+          ? cp.modelOriginalStorageBindingEvidence(storageBinding)
+          : cp.modelOriginalStorageBindingBootstrapSelected(
+            {storageBinding, runDefinition: plan.runDefinition}, acquisition));
         if (checkpoints() !== cp || operation.originalResourceScope?.() !== originalScope) {
           fail('ModelOriginalJournalInstallationChanged');
+        }
+        if (acquisition !== undefined && operation.originalStoreBootstrapAcquisition() !== acquisition) {
+          fail('ModelOriginalResourceOriginUnavailable');
         }
         // Select these immutable originals BEFORE Resource park. Do not infer
         // them from current census bytes, response data or saved document fields.
