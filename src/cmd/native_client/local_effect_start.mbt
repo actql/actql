@@ -138,7 +138,14 @@ fn local_effect_prepare_start(
   scope : String,
 ) -> LocalEffectStartPreparation raise ClientStop {
   local_effect_prepare_start_with_clocks(
-    host, settings, crypto, preparation, reference, run, scope, local_utc_now,
+    host,
+    settings,
+    crypto,
+    preparation,
+    reference,
+    run,
+    scope,
+    local_utc_now,
     () => @env.now().to_double(),
   )
 }
@@ -170,7 +177,11 @@ fn local_effect_prepare_start_with_clocks(
     Some(binding) =>
       match
         binding.prepare_submission_policy(
-          reference, preparation, request, observed_at, epoch_now(),
+          reference,
+          preparation,
+          request,
+          observed_at,
+          epoch_now(),
         ) {
         Ok(Accepted(_)) => {
           if !local_submit_allowed(host, settings, crypto, scope) {
@@ -210,14 +221,17 @@ fn local_effect_prepare_start_with_clocks(
         values.values_body,
         values.fragment_body,
         values.ordered_body,
-      ) is Some(_)
+      )
+      is Some(_)
     None => false
   }
   if original.request != request ||
-    (!values_supported &&
+    (
+      !values_supported &&
       !@source_owner.resident_effect_source_compute_shape_supported(
         original.bound,
-      )) {
+      )
+    ) {
     stop("LocalEffectSourceExecutionProfileNotSupported")
   }
   if !local_submit_allowed(host, settings, crypto, scope) {
