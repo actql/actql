@@ -1,4 +1,12 @@
 ///|
+// Select the existing registered precision DATA in this actual runtime.
+// This proves neither native provider conformance, funding nor send authority.
+#export_name("clientProgramInitialJevDecisionProfile")
+pub fn client_program_initial_jev_decision_profile() -> @check_environment.DecisionProbabilityProfile {
+  @check_environment.initial_jev_decision_profile()
+}
+
+///|
 // Private installed physical ports only. These bindings reuse the existing
 // Model Owner and do not advertise a funded public asynchronous capability.
 #export_name("clientProgramModelAsyncPhysicalRequestPlan")

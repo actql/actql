@@ -20,7 +20,8 @@ test('installed native probability selection preserves the same runtime original
 
 test('missing or absent native probability runtime refuses without manufacturing a profile', () => {
   for (const selected of [{}, {clientProgramInitialJevDecisionProfile: null},
-    {clientProgramInitialJevDecisionProfile: () => undefined}]) {
+    {clientProgramInitialJevDecisionProfile: () => undefined},
+    {clientProgramInitialJevDecisionProfile: () => null}]) {
     const moon = {strategyRemoteManagedOutputEvidenceKind: () => 'fixture metadata', ...selected};
     const control = runtimeCore(moon).publicationControl;
     assert.throws(() => control.selectInstalledInitialJevDecisionProfile(),

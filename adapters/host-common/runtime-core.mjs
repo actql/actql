@@ -3090,6 +3090,19 @@ function publicationControl(moon) {
     },
     // Private installed Node inputs only. Canonical/body admission does not
     // issue capture authority, funded capacity or public async support.
+    selectInstalledInitialJevDecisionProfile() {
+      // Preserve the original Common value from THIS installed runtime. This
+      // is the already registered physical precision selection, not a JS
+      // reconstruction, provider capability, numerical loan or dispatch grant.
+      if (typeof moon.clientProgramInitialJevDecisionProfile !== 'function') {
+        throw new TypeError('Installed native Decision probability profile unavailable');
+      }
+      const profile = moon.clientProgramInitialJevDecisionProfile();
+      if (profile === undefined || profile === null) {
+        throw new TypeError('Installed native Decision probability profile unavailable');
+      }
+      return profile;
+    },
     readInstalledModelResponseProfile(wire, expectedCid, limits) {
       issuanceLimits(limits, 'Model response profile');
       if (['maxWireBytes', 'maxNodes', 'maxDepth', 'maxMembers', 'maxWork']
