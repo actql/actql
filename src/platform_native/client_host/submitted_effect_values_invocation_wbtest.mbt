@@ -81,25 +81,45 @@ test "Native submitted Values Invocation uses the saved Policy and original comp
     "\",\"observation_set_cid\":\"" +
     expected_observation_cid +
     "\",\"version\":\"actql-run-invocation/0.1\"}"
+  let expected_observation_wire = expected.replace(
+    old=",\"replayability\"",
+    new=",\"observation_set_cid\":\"" +
+      expected_observation_cid +
+      "\",\"replayability\"",
+  )
+  let expected_invocation_cid = "sha256:" +
+    @sha.hex(@utf8.encode(expected_invocation))
+  let expected_invocation_wire = expected_invocation.replace(
+    old="{\"invocation_template_cid\"",
+    new="{\"invocation_cid\":\"" +
+      expected_invocation_cid +
+      "\",\"invocation_template_cid\"",
+  )
   let (observation, invocation) = effect_values_policy_test_ok(
     work.original_invocation(65536, 8192, 64),
     "invocation.original",
   )
-  assert_eq(@publication.run_evidence_value_json(observation), expected)
+  assert_eq(
+    @publication.run_evidence_value_json(observation),
+    expected_observation_wire,
+  )
   assert_eq(
     @publication.run_evidence_value_identity(observation),
     expected_observation_cid,
   )
   assert_eq(
     @publication.publication_contract_json(invocation),
-    expected_invocation,
+    expected_invocation_wire,
   )
   assert_eq(
     @publication.publication_contract_identity(invocation),
-    "sha256:" + @sha.hex(@utf8.encode(expected_invocation)),
+    expected_invocation_cid,
   )
   let (_, again) = work.original_invocation(65536, 8192, 64).unwrap()
-  assert_eq(@publication.publication_contract_json(again), expected_invocation)
+  assert_eq(
+    @publication.publication_contract_json(again),
+    expected_invocation_wire,
+  )
   assert_eq(
     run_record_body(host.journal.retained(request).unwrap().unwrap()).unwrap(),
     before,
