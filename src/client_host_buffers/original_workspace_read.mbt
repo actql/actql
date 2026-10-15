@@ -13,6 +13,11 @@ pub fn[T] issue_workspace_original_read(
   origin : T,
   loan : WorkspaceLoan,
 ) -> Result[OriginalWorkspaceRead[T], @resources.OriginalReadIssue] {
+  // This ordinary pair requires an independently funded read envelope. A
+  // borrowed arena view does not prove physical read/control placement.
+  if !(loan.backing is OwnedCapacity) {
+    return Err(@resources.IncompleteInventory)
+  }
   if loan.closing || loan.settled {
     return Err(@resources.CleanupPending)
   }
