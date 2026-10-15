@@ -39,6 +39,9 @@ struct NativeEffectHostAccountInstallation {
   selected : NativeEffectHostAccountFile
   read_ceiling : Int
   diagnostic_ceiling : Int?
+  // This stricter physical prerequisite creates no context, permission,
+  // funding profile or cleanup acknowledgment.
+  require_current_read_context : Bool
   on_read_failure : ((@bounded_files.NativeBoundedTextFailure) -> Unit)?
   read_scope_current : (() -> Bool)?
 }
@@ -122,6 +125,7 @@ fn install_host_account_with_read(
   read : (Int) -> Result[String, @bounded_files.NativeBoundedTextIssue],
   read_ceiling? : Int = 1000000,
   diagnostic_ceiling? : Int? = None,
+  require_current_read_context? : Bool = false,
   on_read_failure? : ((@bounded_files.NativeBoundedTextFailure) -> Unit)? = None,
   read_scope_current? : (() -> Bool)? = None,
 ) -> Result[
@@ -131,6 +135,7 @@ fn install_host_account_with_read(
   guard selection is Some(selected) else { return Ok(None) }
   if !host_account_read_ceiling_valid(read_ceiling) ||
     (diagnostic_ceiling is Some(value) && value <= 0) ||
+    (require_current_read_context && diagnostic_ceiling is None) ||
     selected.root.is_empty() ||
     selected.name.is_empty() ||
     selected.root.length() > 4096 ||
@@ -153,6 +158,7 @@ fn install_host_account_with_read(
           selected,
           read_ceiling,
           diagnostic_ceiling,
+          require_current_read_context,
           on_read_failure,
           read_scope_current,
         }),
@@ -169,10 +175,15 @@ fn install_host_account_with_read(
 /// diagnostic_ceiling is an independent immutable installer selection shared by
 /// initial/current/final reads. Omission is legacy, not funded evidence. Neither
 /// ceiling is an authorization decision or a resource funding profile.
+/// require_current_read_context selects the existing physical scoped reader for
+/// every initial/current/final read. Missing context refuses without a legacy
+/// fallback; a positive diagnostic ceiling is required. Omission preserves the
+/// legacy read port and is not evidence of physical funding.
 pub fn install_native_effect_host_account(
   selection : NativeEffectHostAccountFile?,
   read_ceiling? : Int = 1000000,
   diagnostic_ceiling? : Int? = None,
+  require_current_read_context? : Bool = false,
   on_read_failure? : ((@bounded_files.NativeBoundedTextFailure) -> Unit)? = None,
   read_scope_current? : (() -> Bool)? = None,
 ) -> Result[
@@ -190,10 +201,12 @@ pub fn install_native_effect_host_account(
         limit,
         on_read_failure,
         diagnostic_ceiling~,
+        require_current_read_context~,
       )
     },
     read_ceiling~,
     diagnostic_ceiling~,
+    require_current_read_context~,
     on_read_failure~,
     read_scope_current~,
   )
@@ -208,14 +221,27 @@ fn read_host_account_file_with_custody(
   limit : Int,
   on_failure : ((@bounded_files.NativeBoundedTextFailure) -> Unit)?,
   diagnostic_ceiling? : Int? = None,
+  require_current_read_context? : Bool = false,
 ) -> Result[String, @bounded_files.NativeBoundedTextIssue] {
-  match
+  let result = if require_current_read_context {
+    guard diagnostic_ceiling is Some(ceiling) && ceiling > 0 else {
+      return Err(@bounded_files.InvalidLimit)
+    }
+    @bounded_files.read_bounded_text_file_in_current_read_context_with_custody(
+      selected.root,
+      selected.name,
+      limit.to_int64(),
+      ceiling,
+    )
+  } else {
     @bounded_files.read_bounded_text_file_with_custody(
       selected.root,
       selected.name,
       limit.to_int64(),
       diagnostic_ceiling~,
-    ) {
+    )
+  }
+  match result {
     Ok(wire) => Ok(wire)
     Err(failure) => {
       if on_failure is Some(observe) {
@@ -246,6 +272,7 @@ pub fn NativeEffectHostAccountInstallation::read_current_configuration(
           limit,
           self.on_read_failure,
           diagnostic_ceiling=self.diagnostic_ceiling,
+          require_current_read_context=self.require_current_read_context,
         )
       },
       read_ceiling=self.read_ceiling,
@@ -344,6 +371,7 @@ pub fn NativeEffectHostAccountInstallation::current_permission(
         limit,
         self.on_read_failure,
         diagnostic_ceiling=self.diagnostic_ceiling,
+        require_current_read_context=self.require_current_read_context,
       )
     },
     read_ceiling=self.read_ceiling,
