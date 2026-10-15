@@ -820,7 +820,10 @@ memory limit. It does not release separately owned Store files.
 
 Backed live-child projection stays in this same Resource Owner. Its opaque
 parent access binds the original region, provider, child, delegation ticket,
-read-use and one trusted physical channel/VM/FD/domain carrier. Access issuance
+read-use and one trusted physical channel/VM/FD/domain carrier. One private sticky
+bit on the existing ticket records a successful nonzero report across all ten
+usage fields, including reservations. Later zero reports cannot erase that
+history; failed and zero-only reports do not start it. Access issuance
 and child admission are each one-shot; a lost reply cannot reissue either or
 start a zero-based accounting view after usage was already reported. Copied,
 foreign, closing and retired originals cannot begin work. The projection's
