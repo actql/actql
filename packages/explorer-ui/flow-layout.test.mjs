@@ -119,3 +119,14 @@ test('already aborted or empty input creates no Worker', async () => {
   await assert.rejects(requestFlowLayout(fixture(), {signal: c.signal, createWorker}), {code: 'ExplorerLayoutAborted'});
   assert.deepEqual(await requestFlowLayout({nodes: [], edges: []}, {createWorker}), []);
 });
+
+test('scope abort during construction retires the returned original Worker before posting', async () => {
+  const original = worker(), controller = new AbortController();
+  let constructions = 0;
+  const pending = requestFlowLayout(fixture(), {signal: controller.signal,
+    createWorker() {constructions++; controller.abort(); return original;}});
+  await assert.rejects(pending, {code: 'ExplorerLayoutAborted'});
+  assert.equal(constructions, 1);
+  assert.equal(original.terminations, 1);
+  assert.equal(original.message, undefined);
+});

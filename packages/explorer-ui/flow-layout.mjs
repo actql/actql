@@ -25,6 +25,8 @@ export function requestFlowLayout(flow, {signal, createWorker = browserWorker} =
     signal?.addEventListener('abort', abort, {once: true});
     try {
       worker = createWorker();
+      // A factory may deliver the scope abort before returning its Worker.
+      if (settled) { worker.terminate(); return; }
       // Use the upstream API/Worker pair. elk.bundled's in-process fake Worker
       // is intended for Window/Node, not for construction inside a Worker.
       const elk = new ELK({algorithms: ['layered'], workerFactory: () => worker});
