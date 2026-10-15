@@ -124,17 +124,17 @@ test "Table private capture lowers sparse Graph rows without public Results" {
 
 ///|
 test "Table terminal publishes only authored prefix Results and keeps its final input private" {
-  for
-    (statement, action) in [
-      ("CREATE TABLE", Create),
-      (
-        "CREATE OR REPLACE TABLE",
-        Replace(
-          "12345678-1234-1234-1234-123456789abc",
-          "sha256:" + "d".repeat(64),
-        ),
+  let cases : Array[(String, TableWriteAction)] = [
+    ("CREATE TABLE", Create),
+    (
+      "CREATE OR REPLACE TABLE",
+      Replace(
+        "12345678-1234-1234-1234-123456789abc",
+        "sha256:" + "d".repeat(64),
       ),
-    ] {
+    ),
+  ]
+  for (statement, action) in cases {
     let program = compile(
       @query.parse_query(
         statement +
@@ -158,7 +158,7 @@ test "Table terminal publishes only authored prefix Results and keeps its final 
     let inputs = @wire.open_object(
       @wire.required(stage, "table_inputs").unwrap(),
     ).unwrap()
-    let final = @wire.open_object(
+    let private_input = @wire.open_object(
       @wire.required(inputs, "aql_table_input").unwrap(),
     ).unwrap()
     assert_eq(
@@ -168,7 +168,7 @@ test "Table terminal publishes only authored prefix Results and keeps its final 
       ["id"],
     )
     assert_eq(
-      @wire.elements(@wire.required(final, "fields").unwrap())
+      @wire.elements(@wire.required(private_input, "fields").unwrap())
       .unwrap()
       .map(field => @wire.text(field).unwrap()),
       ["id"],
@@ -176,7 +176,7 @@ test "Table terminal publishes only authored prefix Results and keeps its final 
     // The earlier public producer must not be replaced by the filtered input.
     assert_false(
       @wire.text(@wire.required(original, "from").unwrap()) ==
-      @wire.text(@wire.required(final, "from").unwrap()),
+      @wire.text(@wire.required(private_input, "from").unwrap()),
     )
     let steps = @wire.elements(@wire.required(stage, "steps").unwrap()).unwrap()
     assert_true(
@@ -189,7 +189,7 @@ test "Table terminal publishes only authored prefix Results and keeps its final 
       @wire.text(
         @wire.required(@wire.open_object(steps.last().unwrap()).unwrap(), "as").unwrap(),
       ),
-      @wire.text(@wire.required(final, "from").unwrap()),
+      @wire.text(@wire.required(private_input, "from").unwrap()),
     )
   }
 }
