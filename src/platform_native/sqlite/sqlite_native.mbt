@@ -196,6 +196,17 @@ extern "C" fn database_claim_ordinal_ffi(
 
 ///|
 #borrow(database, scope, key)
+extern "C" fn database_claim_ordinal_in_transaction_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  key : Bytes,
+  key_length : Int,
+  max_claims : Int64,
+) -> Int = "actql_native_sqlite_database_claim_ordinal_in_transaction"
+
+///|
+#borrow(database, scope, key)
 extern "C" fn database_lookup_claim_ordinal_ffi(
   database : Database,
   scope : Bytes,
@@ -849,6 +860,31 @@ pub fn Database::claim_ordinal_action(
   key : String,
   max_claims : Int64,
 ) -> Result[NativeOrdinalClaim, NativeSqliteIssue] {
+  self.claim_ordinal_owned(scope, key, max_claims, false)
+}
+
+///|
+/// Assign or observe the same bounded ordinal inside the caller's active TX.
+/// Does not begin, commit or roll back that TX, including on refusal. The caller
+/// must atomically persist its original use and retain uncertain commit custody.
+/// No transaction/fenced handle refuses; this is storage, not use permission.
+pub fn Database::claim_ordinal_action_in_transaction(
+  self : Database,
+  scope : String,
+  key : String,
+  max_claims : Int64,
+) -> Result[NativeOrdinalClaim, NativeSqliteIssue] {
+  self.claim_ordinal_owned(scope, key, max_claims, true)
+}
+
+///|
+fn Database::claim_ordinal_owned(
+  self : Database,
+  scope : String,
+  key : String,
+  max_claims : Int64,
+  caller_transaction : Bool,
+) -> Result[NativeOrdinalClaim, NativeSqliteIssue] {
   let scope_bytes = @utf8.encode(scope)
   let key_bytes = @utf8.encode(key)
   if !valid_name(scope_bytes) || !valid_name(key_bytes) {
@@ -857,7 +893,16 @@ pub fn Database::claim_ordinal_action(
   if max_claims <= 0L {
     return Err(InvalidLimit)
   }
-  match
+  let code = if caller_transaction {
+    database_claim_ordinal_in_transaction_ffi(
+      self,
+      scope_bytes,
+      scope_bytes.length(),
+      key_bytes,
+      key_bytes.length(),
+      max_claims,
+    )
+  } else {
     database_claim_ordinal_ffi(
       self,
       scope_bytes,
@@ -865,7 +910,9 @@ pub fn Database::claim_ordinal_action(
       key_bytes,
       key_bytes.length(),
       max_claims,
-    ) {
+    )
+  }
+  match code {
     0 => {
       let ordinal = database_result_revision_ffi(self)
       if ordinal <= 0L {

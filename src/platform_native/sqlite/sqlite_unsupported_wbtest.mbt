@@ -13,3 +13,12 @@ test "non-native original claim lookup never supplies claim history" {
     database.lookup_claim_ordinal("grant", "original") is Err(UnsupportedTarget),
   )
 }
+
+///|
+test "non-native caller transaction claim cannot allocate or supply a retained use" {
+  let database : Database = { unsupported: (), }
+  assert_true(
+    database.claim_ordinal_action_in_transaction("grant", "use", 2L)
+    is Err(UnsupportedTarget),
+  )
+}
