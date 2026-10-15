@@ -175,6 +175,6 @@ int main(int argc, char **argv) {
     REQUIRE(actql_control_try_close_and_drop(&host, &control_reply) == 0 && !host && !control_reply);
     REQUIRE(actql_control_try_close_and_drop(&foreign, &control_reply) == 0 && !foreign && !control_reply);
     step(&count, "idempotent data retirement supplies no duplicate physical close");
-    printf("{\"success\":true,\"discovered\":10,\"executed\":%u,\"passed\":%u,\"failed\":0,\"initializer\":1,\"VM\":0,\"worker\":0,\"public_e2e\":0}\n", count, count);
+    printf("{\"success\":true,\"discovered\":12,\"executed\":%u,\"passed\":%u,\"failed\":0,\"initializer\":1,\"VM\":0,\"worker\":0,\"public_e2e\":0}\n", count, count);
     return count == 12 ? 0 : 1;
 }
