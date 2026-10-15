@@ -5,7 +5,7 @@ import {setImmediate as yieldEventLoop} from 'node:timers/promises';
 import {checked} from '../host-common/runtime-result.mjs';
 import {claimInferIoNotification} from './infer-io-notification.mjs';
 import {selectedInferOriginalMetadataLimits, selectedInferOriginalStoreBootstrapLimits,
-  selectedInferOriginalPublicationCapacity} from './infer-original-installation.mjs';
+  selectedInferOriginalPublicationCapacity, selectedInferOriginalCurrentStateCodec} from './infer-original-installation.mjs';
 import {originalModelRawTransportPersistenceMatches} from './infer-raw-capture.mjs';
 
 const pending = () => Object.assign(new Error('ClientDispatchCleanupPending'),
@@ -31,6 +31,14 @@ export function selectOriginalInferStoreBootstrapAcquisition(handle, ownerId, re
   const original = originalMetadataSources.get(handle)?.deref();
   if (original === undefined) metadataUnavailable();
   return original.current(ownerId, requestCid, 'store-bootstrap');
+}
+
+// Same original installation's existing Writer/decoder bound. Metadata wire
+// limits are a different role and cannot price or bound this resource body.
+export function selectOriginalInferResourceCodecAcquisition(handle, ownerId, requestCid) {
+  const original = originalMetadataSources.get(handle)?.deref();
+  if (original === undefined) metadataUnavailable();
+  return original.current(ownerId, requestCid, 'resource-state-codec');
 }
 
 // Validate the Node-to-Int boundary before entering the existing codec. These
@@ -685,6 +693,9 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
             requestCid !== undefined && requestCid !== metadataDefinition?.identity) metadataUnavailable();
         if (role === 'store-bootstrap') {
           return selectedInferOriginalStoreBootstrapLimits(metadataInstallation, metadataNodeInstallation);
+        }
+        if (role === 'resource-state-codec') {
+          return selectedInferOriginalCurrentStateCodec(metadataInstallation, metadataNodeInstallation);
         }
       };
       // Inspect the same token BEFORE allocating the retained record/handle or
