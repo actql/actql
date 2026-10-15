@@ -154,6 +154,8 @@ pub fn captured_effect_local_result_export_preparation(CapturedEffectLocalResult
 
 pub fn captured_effect_local_result_export_result(CapturedEffectLocalResultExport) -> CapturedEffectLocalResult
 
+pub fn captured_effect_local_result_export_retained(CapturedEffectInputs, CapturedEffectLocalResultExport) -> Bool
+
 pub fn captured_effect_local_result_matches_member(CapturedEffectInputs, Int, Int) -> Bool
 
 pub fn captured_effect_local_result_matches_source(CapturedEffectInputs, CapturedEffectLocalResult, @execution_query.CapturedSourceRelationIdentity) -> Bool
