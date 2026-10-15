@@ -26,6 +26,19 @@ byte limits. They do not fund acquiring the original strings, their later
 URL/header/copy/Promise overlap, or establish a normal numerical profile. The
 same Host supplier/installation and its current generation retain that duty.
 
+The Chat entry privately projects the actual builder's OpenAI and ProviderUtils
+module namespaces and its original `createOpenAI` function to the existing Host
+installation. The entry accepts no caller replacement for those originals.
+This is reference DATA, not coverage, a loan, a profile or permission. Only the
+selected trusted Host's original startup/module responsibility may cover the
+fixed, input-independent module graph. The module-default environment read,
+per-call factories, lazy initialization, mutable caches, inputs, copies and
+Promises remain separate duties. Host/Scope retirement does not prove ESM
+cache or module storage reclamation. The new direct ProviderUtils dependency
+selects the already locked5.0.58 bytes; the changed root lock has a new Artifact
+identity, not the former lock CID. Host coverage/caller integration and complete
+phase supply are still required before normal use.
+
 ```js
 import {createInstalledOpenAIChatRegistration} from '@actql/provider-ai-sdk';
 // Host integration skeleton, not a runnable live-provider example.

@@ -2,6 +2,7 @@ import {createAdmittedOpenAIChatPreflight} from './original-openai-chat.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
 import {createOriginalUndiciFetch,fixedOriginalAcquisitionLimits} from './original-undici-transport.mjs';
 import {snapshotOpenAIOriginalMaterials,admitOpenAIOriginalMaterials} from './original-materials.mjs';
+import {openAIChatStaticOriginals} from './openai-chat.mjs';
 
 const issue = code => { throw Object.assign(new TypeError(code), {code}); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
@@ -191,6 +192,7 @@ function installedChatRegistration(config, originalUndici) {
       endpoint:endpoint.href,requestLimits,responseLimits,
       physicalAcquisitionLimits:config.physicalAcquisitionLimits}) : fetch;
     return [Object.freeze({providerId,entryPersistence:'async',
+      sdkStaticOriginals:openAIChatStaticOriginals,
       bindingOriginals:bindings,originalReadInstallation:original,
       rawCaptureSelection:raw,quantityCapacity:quantities,observeEgress,
       // Common has already admitted the exact Task/prompt dependency. This
