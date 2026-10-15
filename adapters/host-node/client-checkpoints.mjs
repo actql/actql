@@ -32,7 +32,8 @@ import {EFFECT_TARGET_CONTINUATION, effectTargetReadScope} from
   './effect-target-read-inventory.mjs';
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';
-import {selectOriginalInferMetadataAcquisition} from './infer-operation.mjs';
+import {selectOriginalInferMetadataAcquisition,
+  selectOriginalInferResourceCodecAcquisition} from './infer-operation.mjs';
 
 const IDENTIFIER = /^[A-Za-z0-9._:-]{1,128}$/u;
 const MAX_REVIEW_BYTES = 256 * 1024;
@@ -914,6 +915,20 @@ export async function installRemoteCheckpoints({root, namespaceId,
     if (closed) fail('OriginalModelStateHostStopped');
     return selected;
   }
+  function originalModelDocumentLimits(acquisition, ownerId, requestCid) {
+    if (acquisition === undefined) {
+      return {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64};
+    }
+    const codec = selectOriginalInferResourceCodecAcquisition(acquisition, ownerId, requestCid);
+    const parse = codec.decode.parse;
+    // This is the original Writer/decoder ceiling, not new funding, a Store
+    // grant or a replacement for the complete simultaneous read envelope.
+    if (parse.max_input_bytes < 1 || parse.max_nodes < 1 || parse.max_depth < 1) {
+      fail('InferOriginalStateCodecUnavailable');
+    }
+    return {maxWireBytes: Math.min(MAX_MODEL_INPUT_BYTES, parse.max_input_bytes),
+      maxNodes: parse.max_nodes, maxDepth: parse.max_depth};
+  }
   async function retainOriginalModelStateBytes({runDefinition, storageBinding, bodyWire}, acquisition) {
     const runId = contractControl.runDefinitionRunId(runDefinition);
     if (!IDENTIFIER.test(runId)) fail('InvalidOriginalModelStateCustody');
@@ -926,6 +941,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
     };
     current();
+    const documentLimits = originalModelDocumentLimits(acquisition, ownerId, runDefinitionCid);
     if (acquisition !== undefined &&
         (typeof evidence.holdOriginalModelState !== 'function' ||
           typeof evidence.openOriginalModelState !== 'function')) {
@@ -933,8 +949,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     }
     const selected = await originalModelStorageEvidence(storageBinding);
     current();
-    const document = contractControl.readModelOriginalResourceDocument(bodyWire,
-      {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
+    const document = contractControl.readModelOriginalResourceDocument(bodyWire, documentLimits);
     if (contractControl.modelOriginalResourceOriginField(document, 'run_id') !== runId ||
         contractControl.modelOriginalResourceOriginField(document, 'run_definition_cid') !== runDefinitionCid ||
         contractControl.modelOriginalResourceOriginField(document, 'storage_binding_cid') !== selected.identity) {
@@ -954,7 +969,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     current();
     if (held.requestCid !== runDefinitionCid) fail('ModelContinuationRunMismatch');
     const saved = await held.bytes('original_model_state', cid,
-      {maxBytes: MAX_MODEL_INPUT_BYTES});
+      {maxBytes: Math.min(documentLimits.maxWireBytes, Buffer.byteLength(document.wire, 'utf8'))});
     current();
     if (!saved.equals(Buffer.from(document.wire, 'utf8'))) fail('OriginalModelStateBindingMismatch');
     await originalModelStorageEvidence(storageBinding);
@@ -972,6 +987,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       }
     };
     current();
+    const documentLimits = originalModelDocumentLimits(acquisition, ownerId, runDefinition.identity);
     // The selected path never silently delegates to the ordinary Evidence
     // reader. Its physical metadata/FD lifetime belongs to that same Owner.
     if (acquisition !== undefined && typeof evidence.openOriginalModelState !== 'function') {
@@ -989,11 +1005,10 @@ export async function installRemoteCheckpoints({root, namespaceId,
       : evidence.openOriginalModelState(ownerId, acquisition));
     current();
     if (held.requestCid !== runDefinition.identity) fail('ModelContinuationRunMismatch');
-    const bytes = await held.bytes('original_model_state', receipt.cid, {maxBytes: MAX_MODEL_INPUT_BYTES});
+    const bytes = await held.bytes('original_model_state', receipt.cid, {maxBytes: documentLimits.maxWireBytes});
     current();
     const wire = new TextDecoder('utf-8', {fatal: true}).decode(bytes);
-    const document = contractControl.readModelOriginalResourceDocument(wire,
-      {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
+    const document = contractControl.readModelOriginalResourceDocument(wire, documentLimits);
     if (contractControl.modelOriginalResourceOriginField(document, 'run_id') !== runId ||
         contractControl.modelOriginalResourceOriginField(document, 'run_definition_cid') !== runDefinition.identity ||
         contractControl.modelOriginalResourceOriginField(document, 'storage_binding_cid') !== selected.identity) {

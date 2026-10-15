@@ -27,7 +27,12 @@ const decoderLimits = {
 
 test('same original encrypted Store bytes pass actual parked origin and Resource census comparison', async t => {
   const root = await mkdtemp(join(tmpdir(), 'actql-current-resource-store-'));
-  const control = runtimeCore(moon).publicationControl;
+  const actualControl = runtimeCore(moon).publicationControl, parseBounds = [];
+  const control = Object.freeze({...actualControl,
+    readModelOriginalResourceDocument(wire, limits) {
+      parseBounds.push({...limits});
+      return Reflect.apply(actualControl.readModelOriginalResourceDocument, actualControl, [wire, limits]);
+    }});
   const keys = generateKeyPairSync('ed25519');
   const port = await installRemoteCheckpoints({root, namespaceId: 'scope',
     authorityScopeCid: cid('3'), ownerPrincipal: 'owner', siteKey: 'local',
@@ -44,7 +49,8 @@ test('same original encrypted Store bytes pass actual parked origin and Resource
   // Explicit synthetic Store opening selection: eighteen fixed root entries,
   // one original-state object and one holding. It is not numerical funding.
   const f = await currentResourceFixture(moon, control, 'current-store', {
-    storeBootstrap: {maxWireBytes: 4096, maxDirectoryEntries: 20}, metadataAcquisition: {
+    storeBootstrap: {maxWireBytes: 4096, maxDirectoryEntries: 20},
+    currentStateCodec: {quantum: 1, comparisonWork: 5, decode: decoderLimits}, metadataAcquisition: {
     metadata: {maxWireBytes: 2048, maxLedgerEntries: 3},
     directory: {maxWireBytes: 1024, maxDirectoryEntries: 8},
     retainedBytes: 7000n, workspaceBytes: 3000n}});
@@ -83,6 +89,8 @@ test('same original encrypted Store bytes pass actual parked origin and Resource
   const selectedLoaded = await port.readOriginalModelStateSelected({runDefinition: f.runDefinition,
     storageBinding: binding, receipt}, acquisition);
   assert.equal(selectedLoaded.wire, bodyWire);
+  assert.deepEqual(parseBounds.at(-1), {maxWireBytes: 10000, maxNodes: 1000, maxDepth: 20},
+    'selected saved-state reader must use the original codec, not the metadata or legacy3MiB ceiling');
   // The same real Store issues a historical saved-byte observation. These
   // cut-shaped data identities still confer no actual journal/restore grant.
   const identity = {runId: 'current-store', runDefinitionCid: f.runDefinition.identity,
