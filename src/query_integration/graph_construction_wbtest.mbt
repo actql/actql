@@ -1444,12 +1444,13 @@ test "existing selected Graph provider executes keyed TRAIL from one exact Carri
   assert_true(@local_connector.managed_provider_accepts(provider, generated))
   let input = @graphs.prepare_producer_read(owner, 0, graph_owner, graph).unwrap()
   let view = @graphs.producer_read_view(input).unwrap()
-  let run = @local_connector.start_managed_provider_with_inputs(
+  let run = @local_connector.start_managed_provider_with_inputs_and_execution(
     provider,
     generated,
     [@local_connector.managed_provider_carrier_input(view)],
     10,
     10000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut output = None
   for _ in 0..<100000 {
@@ -1528,16 +1529,17 @@ test "snapshot policy is installed and charged before constructor input access" 
     @local_connector.managed_provider_capacity(invalid, generated) is None,
   )
   assert_true(
-    @local_connector.start_managed_provider_with_inputs(
+    @local_connector.start_managed_provider_with_inputs_and_execution(
       invalid,
       generated,
       [],
       10,
       1000,
+      dispatch_test_limits().local_execution,
     )
     is Err(_),
   )
-  let active = @local_connector.start_managed_provider_with_inputs(
+  let active = @local_connector.start_managed_provider_with_inputs_and_execution(
     persistent,
     generated,
     keyed_bridge_inputs(owner, nodes, edges).map(
@@ -1545,6 +1547,7 @@ test "snapshot policy is installed and charged before constructor input access" 
     ),
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut material = None
   for _ in 0..<1000 {
@@ -1647,17 +1650,23 @@ test "fused keyed definitions reuse one exact pipeline input without duplicating
     )
     let inputs = [@local_connector.managed_provider_relation_input(input)]
     assert_true(
-      @local_connector.start_managed_provider_with_inputs(
+      @local_connector.start_managed_provider_with_inputs_and_execution(
         provider,
         generated,
         [..inputs, ..inputs],
         10,
         1000,
+        dispatch_test_limits().local_execution,
       )
       is Err(_),
     )
-    let active = @local_connector.start_managed_provider_with_inputs(
-      provider, generated, inputs, 10, 1000,
+    let active = @local_connector.start_managed_provider_with_inputs_and_execution(
+      provider,
+      generated,
+      inputs,
+      10,
+      1000,
+      dispatch_test_limits().local_execution,
     ).unwrap()
     let mut completed = false
     for _ in 0..<10000 {
@@ -1710,7 +1719,7 @@ test "existing Graph provider retains keyed constructor material and cleanup cus
     ).unwrap(),
   )
   assert_true(@local_connector.managed_provider_accepts(provider, generated))
-  let run = @local_connector.start_managed_provider_with_inputs(
+  let run = @local_connector.start_managed_provider_with_inputs_and_execution(
     provider,
     generated,
     keyed_bridge_inputs(owner, nodes, edges).map(
@@ -1718,6 +1727,7 @@ test "existing Graph provider retains keyed constructor material and cleanup cus
     ),
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut material = None
   for _ in 0..<1000 {
@@ -1833,13 +1843,23 @@ test "keyed constructor provider refuses surplus inputs and never completes part
     let surplus = supplied.copy()
     surplus.push(supplied[0])
     assert_true(
-      @local_connector.start_managed_provider_with_inputs(
-        provider, generated, surplus, 10, 1000,
+      @local_connector.start_managed_provider_with_inputs_and_execution(
+        provider,
+        generated,
+        surplus,
+        10,
+        1000,
+        dispatch_test_limits().local_execution,
       )
       is Err(_),
     )
-    let run = @local_connector.start_managed_provider_with_inputs(
-      provider, generated, supplied, 10, 1000,
+    let run = @local_connector.start_managed_provider_with_inputs_and_execution(
+      provider,
+      generated,
+      supplied,
+      10,
+      1000,
+      dispatch_test_limits().local_execution,
     ).unwrap()
     assert_true(
       @local_connector.advance_managed_provider(run, 1).unwrap()

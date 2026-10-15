@@ -7,18 +7,6 @@ fn option(matches : @argparse.Matches, name : String) -> Result[String, String] 
 }
 
 ///|
-fn optional_option(
-  matches : @argparse.Matches,
-  name : String,
-) -> Result[String?, String] {
-  match matches.values.get(name) {
-    None => Ok(None)
-    Some([value]) if !value.is_empty() => Ok(Some(value))
-    _ => Err("invalid or repeated option --" + name)
-  }
-}
-
-///|
 priv suberror TrustConfigurationStop {
   TrustConfigurationStop
 }
@@ -739,29 +727,15 @@ fn command() -> @argparse.Command {
         global=true,
       ),
       @argparse.OptionArg(
-        "issuer-authority",
-        about="Legacy single-key runtime bundle issuer authority",
-        global=true,
-      ),
-      @argparse.OptionArg(
-        "key-id",
-        about="Install signature key ID or legacy trusted key ID",
-        global=true,
-      ),
-      @argparse.OptionArg(
         "authority-root",
-        about="Root containing the trusted public key",
+        about="Root containing the trust configuration and public keys",
         required=true,
-        global=true,
-      ),
-      @argparse.OptionArg(
-        "public-key-name",
-        about="Legacy single-key public key below the authority root",
         global=true,
       ),
       @argparse.OptionArg(
         "trust-config-name",
         about="Versioned trust configuration below the authority root",
+        required=true,
         global=true,
       ),
       @argparse.OptionArg(
@@ -798,6 +772,7 @@ fn command() -> @argparse.Command {
           @argparse.OptionArg(
             "signature-key-id",
             about="Key ID declared by the signed bundle envelope",
+            required=true,
           ),
           @argparse.OptionArg("signature-version", default_values=[
             "actql-remote-runtime-bundle-signature/0.1",
@@ -901,59 +876,14 @@ fn execute(matches : @argparse.Matches) -> Result[String, String] {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let legacy_issuer = match optional_option(matches, "issuer-authority") {
+  let trust_configuration = match option(matches, "trust-config-name") {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
-  let legacy_key_id = match optional_option(matches, "key-id") {
+  let trust = match
+    load_trust_configuration(authority_root, trust_configuration) {
     Ok(value) => value
     Err(issue) => return Err(issue)
-  }
-  let legacy_public_key = match optional_option(matches, "public-key-name") {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let trust_configuration = match
-    optional_option(matches, "trust-config-name") {
-    Ok(value) => value
-    Err(issue) => return Err(issue)
-  }
-  let trust = match trust_configuration {
-    Some(name) => {
-      if legacy_issuer is Some(_) ||
-        legacy_key_id is Some(_) ||
-        legacy_public_key is Some(_) {
-        return Err(
-          "--trust-config-name cannot be combined with legacy trust options",
-        )
-      }
-      match load_trust_configuration(authority_root, name) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-    }
-    None => {
-      guard legacy_issuer is Some(issuer_authority) else {
-        return Err("missing option --issuer-authority")
-      }
-      guard legacy_key_id is Some(key_id) else {
-        return Err("missing option --key-id")
-      }
-      guard legacy_public_key is Some(public_key_name) else {
-        return Err("missing option --public-key-name")
-      }
-      let public_key = match
-        read_text_file(authority_root, public_key_name, 16384L) {
-        Ok(value) => value
-        Err(issue) => return Err(issue)
-      }
-      [
-        {
-          authority: { issuer_authority, key_id, public_key_pem: public_key, },
-          admit_new_bundles: true,
-        },
-      ]
-    }
   }
   let store = match
     @runtime_bundle.open_runtime_bundle_store_with_trust(
@@ -971,17 +901,8 @@ fn execute(matches : @argparse.Matches) -> Result[String, String] {
     }
   }
   let result : Result[String, String] = match operation {
-    ("install", child) => {
-      let signature_key_id = match optional_option(child, "signature-key-id") {
-        Ok(Some(value)) => Ok(value)
-        Ok(None) =>
-          match legacy_key_id {
-            Some(value) => Ok(value)
-            None => Err("missing option --signature-key-id")
-          }
-        Err(issue) => Err(issue)
-      }
-      match signature_key_id {
+    ("install", child) =>
+      match option(child, "signature-key-id") {
         Ok(value) =>
           match install_bundle(store, child, value) {
             Ok(snapshot) => snapshot_json(snapshot)
@@ -989,7 +910,6 @@ fn execute(matches : @argparse.Matches) -> Result[String, String] {
           }
         Err(issue) => Err(issue)
       }
-    }
     ("activate", child) =>
       match option(child, "bundle-cid") {
         Ok(cid) =>

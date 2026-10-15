@@ -16,7 +16,7 @@ import {clientHostOperations, clientWorkspaceMatches, validCheckpointPage, valid
   validCheckOutcome,
   validSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
-import {validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape} from '../../packages/client-wire/index.mjs';
+import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape} from '../../packages/client-wire/index.mjs';
 
 const operations = new Set(clientHostOperations);
 
@@ -315,7 +315,7 @@ export function createClientHttpHandler({
         const observer = observationAttempt(response);
         try {
           const view = await invoke(plan, observer.signal);
-          if (!validWirePlanViewShape(view)) invalid('InvalidClientHostPlanView');
+          if (!validWirePlanViewShape(view) && !validWireEffectfulStaticPlanViewShape(view)) invalid('InvalidClientHostPlanView');
           sendJson(view);
         } finally { observer.release(); }
       } else if (operation === 'run-plan') {
