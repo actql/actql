@@ -20,6 +20,7 @@ options(
     "selected_library_unsupported_wbtest.mbt": [ "not", "native" ],
     "readback_retirement_native_wbtest.mbt": [ "native" ],
     "bounded_read_native_wbtest.mbt": [ "native" ],
+    "capacity_release_transaction_native_wbtest.mbt": [ "native" ],
     "open_failure_custody_native_wbtest.mbt": [ "native" ],
     "exact_removal_native_wbtest.mbt": [ "native" ],
     "existing_database_wbtest.mbt": [ "native" ],

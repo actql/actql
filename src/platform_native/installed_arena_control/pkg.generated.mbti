@@ -65,6 +65,8 @@ pub fn leave_installed_arena_domain_read_reply(InstalledArenaHost, InstalledAren
 
 pub fn leave_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
+pub fn observe_installed_sqlite_capacity_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String) -> InstalledArenaSqliteDatabaseReply
+
 pub fn observe_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase) -> InstalledArenaSqliteDatabaseReply
 
 pub fn operate_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[InstalledArenaHost, InstalledArenaDomain], Int) -> InstalledArenaLiveChannelReply
@@ -87,11 +89,17 @@ pub fn project_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDo
 
 pub fn read_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String, String, Int64) -> InstalledArenaSqliteDatabaseReply
 
+pub fn release_installed_sqlite_capacity_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String, String, Int64, Int64) -> InstalledArenaSqliteDatabaseReply
+
 pub fn report_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[InstalledArenaHost, InstalledArenaDomain], Int, Int, Int, Int64, Int64, Int64, Int64, Int64, Int64, Int64) -> InstalledArenaLiveChannelReply
+
+pub fn reserve_installed_sqlite_capacity_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String, String, Int64, Int64, Int64, Int64) -> InstalledArenaSqliteDatabaseReply
 
 pub fn restore_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteLibrary, String, Int64) -> InstalledArenaSqliteDatabaseReply
 
 pub fn return_installed_arena_backing_reply(InstalledArenaHost, InstalledArenaBackingBorrow) -> InstalledArenaBackingReply
+
+pub fn scan_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String, String, Int64) -> InstalledArenaSqliteDatabaseReply
 
 pub fn transaction_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, Int) -> InstalledArenaSqliteDatabaseReply
 
@@ -253,13 +261,17 @@ type InstalledArenaSqliteDatabaseReply
 pub fn InstalledArenaSqliteDatabaseReply::after_issue_family(Self) -> Int
 pub fn InstalledArenaSqliteDatabaseReply::body(Self) -> Bytes
 pub fn InstalledArenaSqliteDatabaseReply::body_bound(Self) -> Int64
+pub fn InstalledArenaSqliteDatabaseReply::capacity_changed(Self) -> Int
 pub fn InstalledArenaSqliteDatabaseReply::has_row(Self) -> Int
 pub fn InstalledArenaSqliteDatabaseReply::issue_family(Self) -> Int
 pub fn InstalledArenaSqliteDatabaseReply::operation_tag(Self) -> Int
 pub fn InstalledArenaSqliteDatabaseReply::original_database(Self) -> InstalledArenaSqliteDatabase?
 pub fn InstalledArenaSqliteDatabaseReply::original_host(Self) -> InstalledArenaHost
 pub fn InstalledArenaSqliteDatabaseReply::original_library(Self) -> InstalledArenaSqliteLibrary
+pub fn InstalledArenaSqliteDatabaseReply::reserved_bytes(Self) -> Int64
+pub fn InstalledArenaSqliteDatabaseReply::reserved_objects(Self) -> Int64
 pub fn InstalledArenaSqliteDatabaseReply::revision(Self) -> Int64
+pub fn InstalledArenaSqliteDatabaseReply::row_key_bytes(Self) -> Bytes
 pub fn InstalledArenaSqliteDatabaseReply::stage_tag(Self) -> Int
 
 pub(all) enum InstalledArenaSqliteIssue {

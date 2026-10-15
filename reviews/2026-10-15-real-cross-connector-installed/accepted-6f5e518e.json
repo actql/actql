@@ -1,0 +1,253 @@
+{
+  "source": "6f5e518e1dbfb85b4c158fed43d300742eb6ecf2",
+  "tree": "37dad9e1c8ccc88ceeea961a15ef5113ceafeb96",
+  "sourceQualification": "Actual integrated2327 fixed cut; not later main/full-product qualification",
+  "run": "run-oaw2t5",
+  "complete": true,
+  "exitCode": 0,
+  "actualTests": {
+    "tests": 1,
+    "passed": 1,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "budget": {
+    "outerSeconds": 300,
+    "termGraceSeconds": 5,
+    "normalInstallSeconds": 90,
+    "childSeconds": 180,
+    "freshSubmissions": 1
+  },
+  "manifestSHA256": "5b89c703821e260d297b5cd25a1edb5328660a26a5168d70afa2a92cf4af4c39",
+  "directory": "/private/tmp/actql-g-node-rc-6f5e518e-20261016",
+  "packages": [
+    {
+      "name": "@actql/client-wire",
+      "file": "actql-client-wire-0.0.1.tgz",
+      "sha256": "226a4baf10634215875da7b38a8ac767ed9e666f478db56ef42f94d5fa0799d7",
+      "originalSha256": "2e33afceb219108ca72eec3b43f54abcc023e12c27482335179eeac627a11990",
+      "bytes": 89321
+    },
+    {
+      "name": "@actql/sdk",
+      "file": "actql-sdk-0.0.1.tgz",
+      "sha256": "5ca3ccb912eca9c1bbcc1f03918151e59bcbe46c9cd26aaa6e6804dbe55893fb",
+      "originalSha256": "3fa8112ae328864ac38f42b91378cbdb9c5872eeedda44038a162b039cf37fcb",
+      "bytes": 111246
+    },
+    {
+      "name": "@actql/local-node",
+      "file": "actql-local-node-0.0.1.tgz",
+      "sha256": "80ab844892783a78420f0e2182be9229ed21817bca5d6e0fddb588ff944ecdf7",
+      "originalSha256": "f7958de7b8d90ad3be9e2485285f01877efefb6fa8285d65465ea4738c755e56",
+      "bytes": 4689983
+    },
+    {
+      "name": "@actql/node",
+      "file": "actql-node-0.0.1.tgz",
+      "sha256": "9519076b871f57c994ae5f3270a5ef135cec1d33446249ea3957ce480aa69270",
+      "originalSha256": "1ccf261ae2ef62f6a4e88d5017abe50002c26b5415b7fe0aa352760ad18abd8b",
+      "bytes": 9006
+    }
+  ],
+  "expectedAndActualJoined": {
+    "name": "joined",
+    "rows": [
+      {
+        "id": 1,
+        "tag": "actql-content-test/a.csv"
+      }
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "tag",
+        "contract": {
+          "type": "string",
+          "nullable": false
+        }
+      }
+    ]
+  },
+  "primarySourceCounts": {
+    "gcs": {
+      "requests": 1,
+      "responses": 1,
+      "responseBytes": 1927
+    },
+    "duckdb": {
+      "sourceReadSessions": 1,
+      "sourceReadStatements": 1
+    }
+  },
+  "acceptedRuns": 1,
+  "submissions": 1,
+  "approvalChild": {
+    "pid": 51208,
+    "status": "succeeded",
+    "approval": "committed",
+    "sameRun": true,
+    "sameSealedPreview": true,
+    "sourceRequests": 0,
+    "newSubmissions": 0
+  },
+  "postCommitFreshProcess": {
+    "pid": 51276,
+    "status": "succeeded",
+    "sameRun": true,
+    "sourceRequests": 0,
+    "effectWorkerStarts": 0,
+    "newSubmissions": 0,
+    "actualJoinedRowsAndOrderedSchemaMatch": true
+  },
+  "initialProcessPid": 50980,
+  "catalogCommits": 1,
+  "actualTableRows": [
+    {
+      "id": 1.0,
+      "tag": "actql-content-test/a.csv"
+    }
+  ],
+  "preview": {
+    "availableFieldsComparedBeforeApproval": true,
+    "rowBody": "unavailable_in_existing_review_projection",
+    "earlyPublicResult": "unavailable"
+  },
+  "credential": {
+    "credentialResolutions": 1,
+    "reservedResponseBytes": 32768,
+    "tokenMints": 1,
+    "closed": true
+  },
+  "authInternalHttp": "unmeasured trusted implementation, separate from actual GCS counters",
+  "clientCloseResolved": true,
+  "physicalRequestCustodyClosed": true,
+  "cleanupPending": null,
+  "absentCleanupFieldIsNotAssumedAck": true,
+  "observedOwners": [
+    50790,
+    50980,
+    51208,
+    51276
+  ],
+  "actualRelatedProcesses": [],
+  "openFdCount": 0,
+  "locks": [
+    {
+      "path": "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/worktree-e8d315a529c70fc98abe7f4cd5a3df22c3d2900b3a1fb577fccb6212d20ecc0d.lock",
+      "absent": true
+    },
+    {
+      "path": "/Users/t14i/.cache/actql/local-checks/e2bd9c6236a519d4/heavy-slot-1.lock",
+      "absent": true
+    }
+  ],
+  "copiedFixtureCount": 23,
+  "all27SourceInputsUnchangedFromF775": true,
+  "raw": {
+    "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-6f5e518e-consumer.log": {
+      "bytes": 65996,
+      "sha256": "239c3c5befc85c4e2bc542e1e3b08537753dbc58859bcb13bb8cf16820362452"
+    },
+    "/Users/t14i/workspace/20260822/worktrees/actql-b-ctas-retained-result-20261015/_build/local-checks/attempts/run-oaw2t5/summary.json": {
+      "bytes": 2527,
+      "sha256": "f1bdd4aca4cdbd20a81750aadb198ea4a268f3f65bdad6476877906c90545b1d"
+    },
+    "/Users/t14i/workspace/20260822/worktrees/actql-b-ctas-retained-result-20261015/_build/local-checks/attempts/run-oaw2t5/output.log": {
+      "bytes": 65582,
+      "sha256": "adb96d44ddab616b58d6b63be87ee96409fe9e91403c1cbd846923e94072f40d"
+    },
+    "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-lw0e5A/receipt.json": {
+      "bytes": 82621,
+      "sha256": "3030e47d4a6f9ffee2d3d69a7fc91956db7c09a158fb4d403c3fe4cb73e2e486"
+    },
+    "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-lw0e5A/consumer.stdout.log": {
+      "bytes": 5608,
+      "sha256": "c37c2cfb8c73a1df27e878a244e8a0fe13332e3b08d3417d69eda65ccebde806"
+    },
+    "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-lw0e5A/consumer.stderr.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "oldRunOperations": 0,
+  "newDistinctRealInstalledE2E": 1,
+  "normalLocalTransportExecutions": 1,
+  "httpsRealRouteExecuted": false,
+  "wholeFrontendComplete": false,
+  "HostedCI": false,
+  "formalPublish": false,
+  "newProducerByB": false,
+  "overlay": false,
+  "privateCustodyRetained": true,
+  "privateCustodyFileCount": 139,
+  "fullPrivateHandoff": {
+    "path": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-6f5e518e-final-handoff.json",
+    "sha256": "682eddc5c50044974668a619eb7ffdf9495993cc4f70b40ef52bc24932771707"
+  },
+  "physicalTableReadAudit": {
+    "path": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-6f5e518e-physical-table-audit.json",
+    "qualification": "Read-only Parquet inspection after the installed bridge already compared the independent logical row"
+  },
+  "previousFailures": [
+    {
+      "source": "b6be461dfdb4654a78902397cf1c50837ba509c7",
+      "run": "run-9hHOUH",
+      "boundary": "token mint failure; no observed Source acquisition"
+    },
+    {
+      "source": "b6be461dfdb4654a78902397cf1c50837ba509c7",
+      "run": "run-tW0iJt",
+      "boundary": "IncompleteEffectDependencyMembers after both Sources"
+    },
+    {
+      "source": "f775f8a57013b22f6c78afa9f5c9a899e9e0e117",
+      "run": "run-KuCLbe",
+      "boundary": "InvalidEffectDependencyPayloadBindings after both Sources"
+    }
+  ],
+  "historicalQualification": "Previous failures, original DB/WAL/keys/Unknown and their normal release manifests remain unchanged. They are not passes on this source.",
+  "consumerCommand": [
+    "/Users/t14i/.local/share/mise/installs/node/22.22.0/bin/node",
+    "reviews/2026-10-15-real-cross-connector-installed/prepared-public.mjs",
+    "6f5e518e1dbfb85b4c158fed43d300742eb6ecf2",
+    "/private/tmp/actql-g-node-rc-6f5e518e-20261016",
+    "/Users/t14i/workspace/20260822/worktrees/actql-b-ctas-retained-result-20261015/_build/ctas-table-python312/bin/python",
+    "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-metadata-scope.json"
+  ],
+  "environmentQualification": {
+    "Node": "22.22.0",
+    "CLOUDSDK_PYTHON": "/Users/t14i/.local/share/uv/python/cpython-3.12.12-macos-aarch64-none/bin/python3.12",
+    "pythonSHA256": "386f2851d8e73ea266b232bf1d10b72b30b700f8a8b606e4c1ceed37f1570441",
+    "scopeSHA256": "101e953d562974e9e4028142aa7c1eb171b5f4683e01e2de861ad06b92b2ceca",
+    "authority": "Existing authorized identity/impersonation and exact metadata scope; no new GCP authority",
+    "authAndMetadataBounds": {
+      "existingIdentityAndImpersonationOnly": true,
+      "authSubprocesses": 1,
+      "authMilliseconds": 30000,
+      "authOutputBytes": 16384,
+      "authInternalHttp": "unmeasured trusted implementation",
+      "metadataHttp": 10,
+      "metadataResponseBytes": 1048576,
+      "totalAuthMetadataMilliseconds": 60000,
+      "costLimitUsd": 1
+    }
+  },
+  "producer": {
+    "owner": "G",
+    "run": "run-nrVlWO",
+    "complete": true,
+    "exitCode": 0,
+    "source": "6f5e518e1dbfb85b4c158fed43d300742eb6ecf2",
+    "binding": "/Users/t14i/workspace/20260822/reviews/2026-10-11-integration-owner/g-6f5e518e-shared-node-cohort-binding.json",
+    "qualification": "One shared normal-prepack/stage/verify cohort; same source/manifest, no B producer"
+  }
+}

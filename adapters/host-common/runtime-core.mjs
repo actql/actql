@@ -4145,7 +4145,8 @@ function publicationControl(moon) {
         throw new TypeError('InvalidEffectDependencyPayloadBindings');
       }
       const required = new Set(inventory.filter(entry =>
-        entry.kind === 'result_artifact').map(entry => entry.cid));
+        entry.kind === 'result_artifact' || entry.kind === 'table_input_artifact')
+        .map(entry => entry.cid));
       const seen = new Set();
       const owned = bindings.map(binding => {
         if (binding === null || typeof binding !== 'object' ||

@@ -58,7 +58,8 @@ class _OriginalSqliteCustody:
     cause a second prepare/close/drop. Known refusal retains original cleanup.
     """
     __slots__ = ('_domain', '_functions', '_host', '_native_domain',
-                 '_original', '_reply', '_unknown', '_unknown_carrier', '_closed')
+                 '_original', '_reply', '_unknown', '_unknown_carrier', '_closed',
+                 '_database_original')
     _domain: _OriginalDomainCustody
     _functions: _OriginalSqliteFunctions
     _host: c_void_p
@@ -68,6 +69,7 @@ class _OriginalSqliteCustody:
     _unknown: _OriginalSqliteError | None
     _unknown_carrier: _OriginalSqliteError
     _closed: bool
+    _database_original: object | None
 
     @classmethod
     def _prepare_original(cls, domain: _OriginalDomainCustody,
@@ -94,6 +96,7 @@ class _OriginalSqliteCustody:
         original._host, original._native_domain = c_void_p(), c_void_p()
         original._original, original._reply = c_void_p(), c_void_p()
         original._unknown, original._closed = None, False
+        original._database_original = None
         original._unknown_carrier = _OriginalSqliteError(original, unknown=True)
         # These argument wrappers can allocate. Prepare them before consuming
         # the original entry scope or registering a foreign-call responsibility.
@@ -226,4 +229,8 @@ class _OriginalSqliteCustody:
             self._domain._owner._enter()
             self._domain._owner._busy = False
             return
+        if self._database_original is not None:
+            from ._local_native_sqlite_database import _RETIRED_DATABASE_DATA
+            if self._database_original is not _RETIRED_DATABASE_DATA:
+                raise ValueError('Original Native SQLite Database cleanup remains pending')
         self._call(3)
