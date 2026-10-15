@@ -169,6 +169,7 @@ pub fn InstalledArenaReply::operation_tag(Self) -> Int
 pub fn InstalledArenaReply::original_host(Self) -> InstalledArenaHost?
 
 type InstalledArenaWorkerSelection
+pub fn InstalledArenaWorkerSelection::original_host(Self) -> InstalledArenaHost
 pub fn InstalledArenaWorkerSelection::project_domain_original(Self, InstalledArenaDomain) -> Result[(@host_bootstrap.NativePreparedDomainTransport, @physical_resources.BackedExecutionOriginalData), @host_bootstrap.NativeBackedExecutionIssue]
 
 type InstalledArenaWorkerSelectionReply

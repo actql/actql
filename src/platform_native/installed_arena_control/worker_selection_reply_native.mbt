@@ -79,3 +79,12 @@ pub fn InstalledArenaWorkerSelectionReply::operation_tag(
     Current => 2
   }
 }
+
+///|
+/// Owning reference projection for private in-process data retirement only.
+/// This reads no authority/current state and cannot close or refund the Host.
+pub fn InstalledArenaWorkerSelection::original_host(
+  self : InstalledArenaWorkerSelection,
+) -> InstalledArenaHost {
+  self.host
+}

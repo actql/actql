@@ -160,6 +160,9 @@ extern "C" fn register_original_worker_selection_roots(
   selection : FuncRef[
     (@control.InstalledArenaWorkerSelectionReply) -> @control.InstalledArenaWorkerSelection?,
   ],
+  selection_host : FuncRef[
+    (@control.InstalledArenaWorkerSelection) -> @control.InstalledArenaHost,
+  ],
   operation : FuncRef[(@control.InstalledArenaWorkerSelectionReply) -> Int],
   issue : FuncRef[(@control.InstalledArenaWorkerSelectionReply) -> Int],
 ) -> Unit = "actql_native_control_register_worker_selection_roots"
@@ -197,6 +200,7 @@ fn main {
     },
     fn(reply) { reply.original_host() },
     fn(reply) { reply.original_selection() },
+    fn(selection) { selection.original_host() },
     fn(reply) { reply.operation_tag() },
     fn(reply) { reply.issue_family() },
   )
