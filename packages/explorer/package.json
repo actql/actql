@@ -20,6 +20,6 @@
     "./browser-source": {"types": "./browser-source.d.ts", "default": "./browser-source.mjs"},
     "./launcher": {"types": "./launcher.d.ts", "default": "./launcher.mjs"}
   },
-  "files": ["gateway.mjs", "gateway.d.ts", "browser-source.mjs", "browser-source.d.ts", "launcher.mjs", "launcher.d.ts", "launch-input.mjs", "cli-input.mjs", "assets.mjs", "cli.mjs", "dist", "README.md", "THIRD_PARTY_NOTICES.md", "ELKJS-LICENSE.md"],
+  "files": ["gateway.mjs", "cancellation.mjs", "gateway.d.ts", "browser-source.mjs", "browser-source.d.ts", "launcher.mjs", "launcher.d.ts", "launch-input.mjs", "cli-input.mjs", "assets.mjs", "cli.mjs", "dist", "README.md", "THIRD_PARTY_NOTICES.md", "ELKJS-LICENSE.md"],
   "scripts": {"build": "npm run build --prefix ../explorer-ui && vite build --config vite.config.mts && node build-assets.mjs", "prepack": "npm run build"}
 }

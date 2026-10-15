@@ -24,11 +24,12 @@ test('the installed loader admits actual frozen SPA bytes inside the existing as
   assert([...assets.values()].reduce((n, a) => n + a.body.length, 0) < 2 * 1024 * 1024);
 });
 
-test('a built viewer closes its server without closing, cancelling or submitting on the borrowed Client', async () => {
+test('a built viewer closes its server without closing, cancelling or submitting on the borrowed Client', async t => {
   const calls = [];
   const gateway = await startExplorer({client: {attach() {calls.push('attach');},
     close() {assert.fail('borrowed Client close');}, cancel() {assert.fail('cancel');},
     start() {assert.fail('submit');}}});
+  t.after(() => gateway.close());
   const html = await fetch(gateway.origin);
   assert.equal(html.status, 200); assert.match(await html.text(), /ActQL Explorer/u);
   assert.equal(html.headers.get('cache-control'), 'no-store');
@@ -39,7 +40,7 @@ test('a built viewer closes its server without closing, cancelling or submitting
     body: JSON.stringify({bootstrap: bootstrap.bootstrap})});
   const admitted = await session.json(); assert.equal(session.status, 200);
   assert.deepEqual(admitted.capabilities, {plan: false, run: true, resultMetadata: true,
-    resultPayload: false, control: false, sample: false});
+    resultPayload: false, control: false, sample: false, cancellation: false});
   await gateway.close(); assert.deepEqual(calls, []);
   await assert.rejects(fetch(gateway.origin));
 });
