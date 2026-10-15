@@ -68,7 +68,8 @@ fn[P, C] backed_read_use_current(
 ) -> Result[Unit, BackedExecutionIssue] {
   // Current-only callers need no quota/extent projection or temporary tuple.
   // Reuse the same original child checks before inspecting this read borrow.
-  match check_backed_execution_delegation_current(region, provider, child, ticket) {
+  match
+    check_backed_execution_delegation_current(region, provider, child, ticket) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
@@ -148,9 +149,7 @@ pub fn[P, C] return_backed_execution_read_use_after_owner_ack(
   }
   // Only the actual return path needs this reference. No callback/await or
   // mutation separates it from the original identity/lifetime checks above.
-  guard read_use.borrow is Some(borrow) else {
-    return Err(ForeignOriginal)
-  }
+  guard read_use.borrow is Some(borrow) else { return Err(ForeignOriginal) }
   if read_use.live_access_pending {
     return Err(CleanupPending)
   }
