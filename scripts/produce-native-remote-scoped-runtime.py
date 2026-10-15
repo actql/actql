@@ -62,6 +62,12 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                 links += 1
                 if not parts[parts.index('-o') + 1].endswith('/cmd/native_remote_resident_site/native_remote_resident_site.c'):
                     raise ValueError('Foreign generated Core module')
+            # Pinned Moon dry-run does not materialize its optional package
+            # registry. Match the existing explicit provider builder: omit
+            # only that debug-registry argument, preserving -g/-O0 and types.
+            if '-all-pkgs' in parts:
+                index = parts.index('-all-pkgs')
+                del parts[index:index + 2]
             parts[0] = str(moon_home / 'bin/moonc')
         elif parts[0] == '/usr/bin/cc':
             sources = [p for p in parts[1:] if p.endswith('.c')]
@@ -172,6 +178,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     receipt: dict[str, object] = {
         'source': source, 'entry': ENTRY, 'target': 'darwin-arm64',
         'compiler_backend': 'pinned ordinary C (MOONBIT_NEW_NATIVE=0)',
+        'debug_package_registry': 'Optional -all-pkgs omitted; raw Moon dry-run retained',
         'selected_packages': packages, 'core_modules': 1, 'providers': 1,
         'allocator': selection, 'plan_only': plan_only, 'commands_completed': 0,
         'installed_supplier': False, 'normal_profile': None, 'runtime_cases': 0, 'public_e2e': 0,

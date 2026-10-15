@@ -48,6 +48,14 @@ class RemoteScopedComposition(unittest.TestCase):
         self.assertFalse(any(str(self.home / 'lib/runtime') in x for p in planned for x in p))
         self.assertEqual(planned[-1][-2:], [str(self.home / 'lib/libmoonbitrun.o'), '-lm'])
 
+    def test_only_unmaterialized_optional_debug_registry_is_omitted(self):
+        commands = [c.copy() for c in self.commands]
+        commands[0] += ['-g', '-O0', '-all-pkgs', str(self.emission / 'all_pkgs.json')]
+        planned = self.plan(commands)
+        self.assertNotIn('-all-pkgs', planned[0])
+        self.assertEqual(planned[0][-2:], ['-g', '-O0'])
+        self.assertEqual(planned[0][1:len(self.commands[0])], self.commands[0][1:])
+
     def test_second_core_cannot_split_owner_identity(self):
         with self.assertRaisesRegex(ValueError, 'composition'):
             self.plan(self.commands + [self.commands[1]])
