@@ -59,6 +59,7 @@ test "Native runtime package refuses missing observations and closes an empty pr
     manifest: None,
     assets: None,
     roots: [],
+    directories: [],
     witnesses: [],
     reader: None,
     reader_open_failure: None,
