@@ -1,4 +1,10 @@
 ///|
+// Same exact finite permission set as policy_account_original, explicitly in
+// the existing Account Owner's canonical selector order. Never normalize a
+// caller's invalid Account or weaken that Owner to make this fixture succeed.
+let checkpoint_lookup_account : Bytes = b"{\"version\":\"actql-execution-account-config/0.1\",\"account_id\":\"operator\",\"entries\":[{\"entry_id\":\"explicit-policy-operations\",\"outcome\":\"allow\",\"principal\":{\"any_of\":[\"operator\"]},\"connection\":{\"any_of\":[\"cli\"]},\"resource\":{\"any_of\":[\"result/answer\",\"run\"]},\"operation\":{\"any_of\":[\"read\",\"submit\"]},\"exclusions\":[]}]}"
+
+///|
 // Journal transaction fixture only: no Provider Preview, Effect execution or
 // physical CLI acceptance is represented by this sealed protocol artifact.
 fn local_checkpoint_lookup_fixture(
@@ -11,7 +17,7 @@ fn local_checkpoint_lookup_fixture(
   @host.ClientRequestIdentity,
   @checkpoint.SealedCheckpoint,
 ) raise {
-  let host = policy_host_fixture(name)
+  let host = policy_host_fixture(name, account_body=checkpoint_lookup_account)
   let crypto = epoch_test_crypto()
   let scope = host.authority_scope_cid("operator", "cli", crypto).unwrap()
   let epoch = host.epoch.issue_epoch(scope, true, 1000.0).unwrap()

@@ -270,3 +270,29 @@ test "Signing append lost commit ACK retains Unknown and never reissues" {
   // Closing owns cleanup; a future history reader must reconcile the original.
   host.close().unwrap()
 }
+
+///|
+test "Reviewer snapshot fixture retains invalid Account refusal and the same finite permission set" {
+  let original = @utf8.decode(policy_account_original) catch {
+    _ => fail("fixture original encoding")
+  }
+  let corrected = @utf8.decode(checkpoint_lookup_account) catch {
+    _ => fail("fixture corrected encoding")
+  }
+  assert_true(
+    @authorization.admit_account_configuration_json(original)
+    is Err(@authorization.NonCanonicalOrder("$.entries[0].resource.any_of[1]")),
+  )
+  assert_true(
+    @authorization.admit_account_configuration_json(corrected) is Ok(_),
+  )
+  // An independently selected opposite ordering remains invalid too.
+  let wrong_operation = corrected.replace_all(
+    old="[\"read\",\"submit\"]",
+    new="[\"submit\",\"read\"]",
+  )
+  assert_true(
+    @authorization.admit_account_configuration_json(wrong_operation)
+    is Err(@authorization.NonCanonicalOrder("$.entries[0].operation.any_of[1]")),
+  )
+}
