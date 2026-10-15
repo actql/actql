@@ -255,6 +255,16 @@ for (const [label, from, to] of [
   ['physical stop guard omitted', 'state.current is Some(active) && managed_provider_stopped(active)', 'state.current is Some(active)'],
   ['execution retained after successful cleanup', 'state.children = []\n      state.reclaiming = false', 'state.reclaiming = false'],
   ['parent cleanup pending custody lost', 'Ok(false) => return Ok(false)', 'Ok(false) => ()'],
+  ['prefix replaced by unconditional full eligibility', 'let cleanup_index = Ref(-1)\n  let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)', 'let cleanup_index = Ref(-1)\n  let reclaimed_prefix = count'],
+  ['last eligible intermediate child excluded', 'let reclaims_scratch = state.position <= reclaimed_prefix', 'let reclaims_scratch = state.position < reclaimed_prefix'],
+  ['family suffix admitted to retirement', 'let reclaims_scratch = state.position <= reclaimed_prefix', 'let reclaims_scratch = true'],
+  ['accepted output saved at the next position', 'state.completed[state.position] = Some(output)\n            state.position += 1', 'state.position += 1\n            state.completed[state.position] = Some(output)'],
+  ['completed child not marked pending', 'state.pending = true\n            let reclaims_scratch', 'state.pending = false\n            let reclaims_scratch'],
+  ['cleanup false permits successor admission', 'Ok(false) => return Ok(managed_provider_waiting(0L, 0L))', 'Ok(false) => ()'],
+  ['cleanup error permits successor admission', 'Err(issue) => {\n              terminal.val = true\n              return Ok(managed_provider_failed(issue, 0L, 0L))\n            }\n          }\n          if used.val', 'Err(_) => ()\n          }\n          if used.val'],
+  ['unconfirmed cleanup reports a successful ACK', 'result => result\n  }', 'result => Ok(true)\n  }'],
+  ['family suffix discards retained child executions', '} else {\n              state.current = None\n            }\n            if work >', '} else {\n              state.current = None\n              state.children = []\n            }\n            if work >'],
+  ['successor is not retained for parent cleanup', 'state.children.push(next)\n    state.current = Some(next)', 'state.current = Some(next)'],
 ]) test(`reviewed retirement source rejects ${label}`, () => {
   const requested = retirementBindings(), path = requested[0].provider;
   const source = readFileSync(root + path, 'utf8');
@@ -262,4 +272,24 @@ for (const [label, from, to] of [
   assert.throws(() => checkBindings(root, requested, {
     read: p => p === path ? source.replace(from, to) : readFileSync(root + p, 'utf8'),
   }), /guard|retirement|custody/);
+});
+
+for (const [label, from, to] of [
+  ['mixed chain relabeled as all eligible', 'assert_false(relation_chain_reclaims_completed_scratch(sequence))', 'assert_true(relation_chain_reclaims_completed_scratch(sequence))'],
+  ['audited prefix boundary ignored', 'assert_eq(relation_chain_reclaimed_prefix(sequence), 1)', 'assert_eq(relation_chain_reclaimed_prefix(sequence), 0)'],
+  ['conservative suffix execution dropped', 'assert_eq(state.children.length(), count - 1)', 'assert_eq(state.children.length(), 0)'],
+  ['parent cleanup success ACK omitted', 'assert_true(cleanup_managed_provider(active).unwrap())', 'assert_false(cleanup_managed_provider(active).unwrap())'],
+  ['original completed output lost after cleanup', 'assert_true(@execution.completed_output_available(source))', 'assert_false(@execution.completed_output_available(source))'],
+]) test(`retirement counterexample refuses ${label}`, () => {
+  const requested = retirementBindings(), path = retirementFixture;
+  const source = readFileSync(root + path, 'utf8');
+  const start = source.indexOf('test "audited prefix releases scratch before conservative child custody"');
+  const next = source.indexOf('\ntest "', start + 1);
+  const end = next < 0 ? source.length : next;
+  const original = source.slice(start, end);
+  assert(start >= 0 && original.split(from).length === 2, 'Missing uniquely reviewed counterexample');
+  const changed = source.slice(0, start) + original.replace(from, to) + source.slice(end);
+  assert.throws(() => checkBindings(root, requested, {
+    read: p => p === path ? changed : readFileSync(root + p, 'utf8'),
+  }), /conservative retirement scope/);
 });
