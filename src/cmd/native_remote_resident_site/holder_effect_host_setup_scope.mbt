@@ -29,6 +29,9 @@ priv struct HolderEffectHostSetupProfile {
 priv struct HolderEffectHostSetupScope {
   site : @site.ExecutionSite
   profile : HolderEffectHostSetupProfile
+  // Origin/capacity preparation only; never a Store/read authorization.
+  mut preparation_binding : (() -> Bool)?
+  // Production installs this only after entering the original read domain.
   mut current_binding : (() -> Bool)?
   mut read_domain : HolderEffectHostReadDomain?
   mut read_parent : HolderEffectHostReadParent?
@@ -39,6 +42,22 @@ priv struct HolderEffectHostSetupScope {
   mut pending : @bounded_files.NativeBoundedTextFailure?
   mut cleanup : @site.SiteCleanup?
   mut retiring : Bool
+}
+
+///|
+/// No Store read belongs to this predicate. The exact admitted Site selection
+/// and original Slot can establish only the scope in which domain preparation
+/// is attempted; runtime/current validation still follows inside that domain.
+fn holder_effect_host_setup_selection_current(
+  site : @site.ExecutionSite,
+  expected_key : String,
+  expected_generation : Int,
+  expected_runtime : String,
+  current_site : () -> Bool,
+) -> Bool {
+  current_site() &&
+  @site.site_key(site) == expected_key &&
+  @site.site_binding_current(site, expected_generation, expected_runtime)
 }
 
 ///|
@@ -54,9 +73,9 @@ fn holder_effect_host_setup_binding(
   current_runtime : () -> Bool,
 ) -> () -> Bool {
   () => {
-    current_site() &&
-    @site.site_key(site) == expected_key &&
-    @site.site_binding_current(site, expected_generation, expected_runtime) &&
+    holder_effect_host_setup_selection_current(
+      site, expected_key, expected_generation, expected_runtime, current_site,
+    ) &&
     current_runtime()
   }
 }
@@ -130,6 +149,7 @@ fn reserve_holder_effect_host_setup_scope(
   let scope : HolderEffectHostSetupScope = {
     site,
     profile: selected,
+    preparation_binding: None,
     current_binding: None,
     read_domain: None,
     read_parent: None,
@@ -161,23 +181,61 @@ fn holder_effect_host_read_scope_bound(
 }
 
 ///|
+/// Before domain installation, only the same live reservation and immutable
+/// origin selection are checked. Reentrant replacement/retirement is refusal,
+/// not a reason to acquire another operation or read the runtime Store.
+fn holder_effect_host_read_scope_prepared(
+  scope : HolderEffectHostSetupScope,
+) -> Bool {
+  guard holder_effect_host_read_scope_bound(scope) &&
+    scope.operation is Some(operation) &&
+    scope.preparation_binding is Some(prepared) &&
+    prepared() else {
+    return false
+  }
+  holder_effect_host_read_scope_bound(scope) &&
+  scope.operation is Some(actual_operation) &&
+  physical_equal(actual_operation, operation) &&
+  scope.preparation_binding is Some(actual) &&
+  physical_equal(actual, prepared)
+}
+
+///|
 fn holder_effect_host_read_scope_current(
   scope : HolderEffectHostSetupScope,
 ) -> Bool {
   guard holder_effect_host_read_scope_bound(scope) &&
     scope.current_binding is Some(current) &&
-    current() else {
+    scope.operation is Some(operation) else {
     return false
   }
-  // Current callbacks may retire the original scope reentrantly. Check its
-  // actual handles only after that callback, before any physical read.
-  holder_effect_host_read_scope_bound(scope) &&
-  scope.current_binding is Some(actual) &&
-  physical_equal(actual, current) &&
-  (match scope.read_domain {
-    Some(read) => holder_effect_host_read_domain_current(read)
-    None => true
-  })
+  let domain = scope.read_domain
+  if !current() {
+    // A stale/unknown runtime cannot be looked up again by leave/nested read.
+    // Only original cleanup proceeds; this is not a physical close ACK.
+    scope.retiring = true
+    return false
+  }
+  // Current callbacks may retire or replace an original handle reentrantly.
+  // A missing domain after a real read was entered is never a model fallback.
+  let valid = holder_effect_host_read_scope_bound(scope) &&
+    scope.operation is Some(actual_operation) &&
+    physical_equal(actual_operation, operation) &&
+    scope.current_binding is Some(actual) &&
+    physical_equal(actual, current) &&
+    (match (domain, scope.read_domain) {
+      (Some(before), Some(after)) =>
+        physical_equal(before, after) &&
+        holder_effect_host_read_domain_current(before)
+      // Arithmetic lifecycle fixtures install no physical read callback.
+      // Production only installs its guarded callback after domain entry.
+      (None, None) => true
+      _ => false
+    })
+  if !valid {
+    scope.retiring = true
+  }
+  valid
 }
 
 ///|
@@ -442,6 +500,7 @@ fn take_holder_effect_host_caller_reservation(
   let operation = scope.caller_operation
   let current = scope.current_binding
   scope.caller_operation = None
+  scope.preparation_binding = None
   scope.current_binding = None
   (operation, current)
 }

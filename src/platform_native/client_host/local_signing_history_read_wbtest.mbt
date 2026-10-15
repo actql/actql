@@ -6,6 +6,7 @@ fn signing_history_host_fixture(
   name : String,
   client_read? : Bool = true,
   retain_use? : Bool = true,
+  retained_use_id? : String = "history-use",
   expires_at? : String = "2099-01-01T00:00:00.000Z",
 ) -> (
   NativeLocalHostConnection,
@@ -228,7 +229,7 @@ fn signing_history_host_fixture(
     let ordinal = signing_grant_fixture_require(
       host.database.claim_ordinal(
         "native-credential-use:" + grant_cid,
-        "history-use",
+        retained_use_id,
         2L,
       ),
       "fixture_original_claim",
@@ -236,7 +237,7 @@ fn signing_history_host_fixture(
     let original_use = signing_grant_fixture_require(
       @credential.prepare_local_signing_credential_use(
         grant,
-        "history-use",
+        retained_use_id,
         1003L,
         ordinal.to_int() - 1,
         false,
@@ -247,7 +248,7 @@ fn signing_history_host_fixture(
     signing_grant_fixture_require(
       host.database.insert(
         "native-credential-use:" + grant_cid,
-        "history-use",
+        retained_use_id,
         @utf8.encode(
           @credential.local_signing_credential_use_cid(original_use) +
           "\n" +
@@ -260,7 +261,7 @@ fn signing_history_host_fixture(
     signing_grant_fixture_require(
       host.database.insert(
         "native-credential-outcome:" + grant_cid,
-        "history-use",
+        retained_use_id,
         b"unknown\n",
       ),
       "fixture_retain_outcome",
