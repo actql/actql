@@ -37,6 +37,7 @@ class OriginalWorkerPipe:
             raise ValueError('Foreign original worker pipe process')
         self._original = self
         self._native_channel_original: object | None = None
+        self._control_header_original: object | None = None
         self._funding, self._process = funding, process
         self._prepare_attempted = False
         self._prepared = False
