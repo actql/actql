@@ -216,6 +216,7 @@ What the configured Connectors and model tasks expose:
 ```text
 actql catalog list [--json]
 actql catalog show [<connector-id>] [--json]
+actql catalog refresh <connector-id> [--json]
 actql model-task list [--json]
 actql model-task show <model-task-id> [--json]
 actql discovery describe [--json]
@@ -223,8 +224,11 @@ actql discovery list --snapshot <cid> [--kind <kind>] [--selector <selector>] [-
 actql discovery read --snapshot <cid> --kind <kind> --selector <selector> --content-cid <cid> [--json]
 ```
 
-`catalog show salesforce` lists the resources and columns a Program can name
-as `salesforce.<resource>`, and the Effects the connection supports. It reads
+`catalog show salesforce` prints everything a Program can rely on for a
+connection: its sources with columns, types and keys, the Effects per
+resource with their preview strength, the operations with their inputs, the
+Capabilities, and the permissions each read and write needs
+([Connectors](connectors/README.md#what-catalog-show-tells-you)). It reads
 the Catalog the Host has stored; `catalog refresh <connector-id>` asks the
 external system for its current metadata.
 
