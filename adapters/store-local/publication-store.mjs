@@ -5981,6 +5981,23 @@ export async function openLocalPublicationStore(
       active();
       return privateEvidenceWireLimitForObject(configuration.maxObjectBytes);
     },
+    // Private Host DATA from this exact Store, not caller-supplied profile
+    // dimensions or authenticated storage evidence. The original installation
+    // must bind the receiver and fund this record, UTF-8 scan workspace and
+    // all derived paths/encodings before using it in an envelope. No path or
+    // key bytes escape, and no I/O, reservation, ACK or permission is issued.
+    originalModelStorageDimensions() {
+      active();
+      const key = privateEvidenceKey();
+      const namespace = 'local-continuation-private';
+      return Object.freeze({
+        directoryCodeUnits: configuration.directory.length,
+        directoryUtf8Bytes: Buffer.byteLength(configuration.directory, 'utf8'),
+        privateNamespaceCodeUnits: namespace.length,
+        privateNamespaceUtf8Bytes: Buffer.byteLength(namespace, 'utf8'),
+        privateKeyBytes: key.byteLength,
+      });
+    },
     confirmPrivateEvidence,
     prepareModelRawEvidence,
     readModelRawEvidence,
