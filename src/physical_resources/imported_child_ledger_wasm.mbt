@@ -33,28 +33,42 @@ fn imported_child_report(
 ///|
 fn imported_child_port(
   nonce : Int64,
-) -> Result[ImportedChildLedgerPort, ImportedChildLedgerIssue] {
-  Ok({
-    nonce,
-    admit: imported_child_admit,
-    current: imported_child_current,
-    limit: imported_child_limit,
-    capacity: imported_child_capacity,
-    report: (nonce, usage) => {
-      imported_child_report(
-        nonce,
-        usage.planning_work,
-        usage.attempts,
-        usage.holdings,
-        usage.transferred_bytes,
-        usage.uncertain_transfer_bytes,
-        usage.reserved_transfer_bytes,
-        usage.held_bytes,
-        usage.reserved_retention_bytes,
-        usage.reserved_execution_bytes,
-        usage.peak_retention_bytes,
-      )
-    },
-    stop: imported_child_stop,
-  })
+) -> Result[
+  (
+    (Int64) -> Int,
+    (Int64) -> Int,
+    (Int64, Int) -> Int64,
+    (Int64, Int) -> Int64,
+    (Int64, LedgerUsage) -> Int,
+    (Int64) -> Int,
+  ),
+  ImportedChildLedgerIssue,
+] {
+  if nonce <= 0L {
+    return Err(InvalidOriginal)
+  }
+  Ok(
+    (
+      imported_child_admit,
+      imported_child_current,
+      imported_child_limit,
+      imported_child_capacity,
+      (nonce, usage) => {
+        imported_child_report(
+          nonce,
+          usage.planning_work,
+          usage.attempts,
+          usage.holdings,
+          usage.transferred_bytes,
+          usage.uncertain_transfer_bytes,
+          usage.reserved_transfer_bytes,
+          usage.held_bytes,
+          usage.reserved_retention_bytes,
+          usage.reserved_execution_bytes,
+          usage.peak_retention_bytes,
+        )
+      },
+      imported_child_stop,
+    ),
+  )
 }

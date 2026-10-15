@@ -1,7 +1,8 @@
 ///|
-// Only the fixed target-specific installed import constructs this port in
+// Only the fixed target-specific installed import supplies these ports in
 // production. No public constructor accepts callbacks, DATA or a permission Bool.
-priv struct ImportedChildLedgerPort {
+// Unsupported targets construct no fake physical port.
+priv struct ImportedChildLedgerOrigin {
   nonce : Int64
   admit : (Int64) -> Int
   current : (Int64) -> Int
@@ -9,13 +10,7 @@ priv struct ImportedChildLedgerPort {
   capacity : (Int64, Int) -> Int64
   report : (Int64, LedgerUsage) -> Int
   stop : (Int64) -> Int
-}
-
-///|
-// Same delegated lifetime, not another physical Resource Owner. The Ledger
-// back-reference prevents a copied accounting record from sharing its quota.
-priv struct ImportedChildLedgerOrigin {
-  port : ImportedChildLedgerPort
+  // The back-reference rejects copies without another Resource Owner.
   mut ledger : Ledger?
   mut stopping : Bool
   mut unavailable : Bool
@@ -61,14 +56,31 @@ fn imported_child_status(code : Int) -> Result[Unit, ImportedChildLedgerIssue] {
 
 ///|
 fn prepare_imported_child_port(
-  port : ImportedChildLedgerPort,
+  nonce : Int64,
+  admit : (Int64) -> Int,
+  current : (Int64) -> Int,
+  limit : (Int64, Int) -> Int64,
+  capacity : (Int64, Int) -> Int64,
+  report : (Int64, LedgerUsage) -> Int,
+  stop : (Int64) -> Int,
 ) -> Result[ImportedChildLedger, ImportedChildLedgerIssue] {
-  if port.nonce <= 0L {
+  if nonce <= 0L {
     return Err(InvalidOriginal)
   }
   let value : ImportedChildLedger = {
     original: None,
-    origin: { port, ledger: None, stopping: false, unavailable: false, },
+    origin: {
+      nonce,
+      admit,
+      current,
+      limit,
+      capacity,
+      report,
+      stop,
+      ledger: None,
+      stopping: false,
+      unavailable: false,
+    },
     attempted: false,
     taken: false,
     ledger: None,
@@ -93,7 +105,10 @@ pub fn prepare_imported_child_ledger(
   }
   match imported_child_port(nonce) {
     Err(issue) => Err(issue)
-    Ok(port) => prepare_imported_child_port(port)
+    Ok((admit, current, limit, capacity, report, stop)) =>
+      prepare_imported_child_port(
+        nonce, admit, current, limit, capacity, report, stop,
+      )
   }
 }
 
@@ -117,7 +132,7 @@ fn check_imported_child_ledger(ledger : Ledger) -> Result[Unit, LedgerIssue] {
   if origin.unavailable {
     return Err(ChildFundingUnavailable)
   }
-  match (origin.port.current)(origin.port.nonce) {
+  match (origin.current)(origin.nonce) {
     0 => ()
     1 => origin.stopping = true
     _ => {
@@ -193,7 +208,7 @@ pub fn start_imported_child_ledger(
     return Err(AlreadyConsumed)
   }
   value.attempted = true
-  let port = value.origin.port
+  let port = value.origin
   match imported_child_status((port.admit)(port.nonce)) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -294,7 +309,7 @@ pub fn report_imported_child_ledger(
   guard value.ledger is Some(ledger) else { return Err(Unavailable) }
   let usage = ledger_usage(ledger)
   value.pending_report = Some(usage)
-  let port = value.origin.port
+  let port = value.origin
   match imported_child_status((port.report)(port.nonce, usage)) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -322,7 +337,7 @@ pub fn stop_imported_child_ledger(
   }
   value.origin.stopping = true
   value.stop_attempted = true
-  let port = value.origin.port
+  let port = value.origin
   match imported_child_status((port.stop)(port.nonce)) {
     Ok(_) => Ok(())
     Err(issue) => {

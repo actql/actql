@@ -11,22 +11,22 @@ fn imported_child_fixture(
   let admits = Ref(0)
   let reports = Ref(0)
   let observations : Array[LedgerUsage] = []
-  let value = prepare_imported_child_port({
-    nonce: 7L,
-    admit: nonce => {
+  let value = prepare_imported_child_port(
+    7L,
+    nonce => {
       if nonce != 7L {
         return -1
       }
       admits.val += 1
       admit_code
     },
-    current: nonce => {
+    nonce => {
       if nonce != 7L {
         return -1
       }
       current.val
     },
-    limit: (nonce, ordinal) => {
+    (nonce, ordinal) => {
       if nonce != 7L {
         return -1L
       }
@@ -40,7 +40,7 @@ fn imported_child_fixture(
         _ => -1L
       }
     },
-    capacity: (nonce, ordinal) => {
+    (nonce, ordinal) => {
       if nonce != 7L {
         return -1L
       }
@@ -50,7 +50,7 @@ fn imported_child_fixture(
         host_bytes
       }
     },
-    report: (nonce, usage) => {
+    (nonce, usage) => {
       if nonce != 7L {
         return -1
       }
@@ -58,13 +58,13 @@ fn imported_child_fixture(
       observations.push(usage)
       report_code
     },
-    stop: nonce => {
+    nonce => {
       if nonce != 7L {
         return -1
       }
       0
     },
-  }).unwrap()
+  ).unwrap()
   (value, current, admits, reports, observations)
 }
 

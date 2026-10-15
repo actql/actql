@@ -25,8 +25,8 @@ pub struct BackedExecutionLiveProjection[P, C, R] {
 ///|
 /// Original lifetime observation, not allocation/send/stop permission.
 pub(all) enum BackedExecutionLiveState {
-  Open
-  Closing
+  LiveOpen
+  LiveClosing
 } derive(Eq, Debug)
 
 ///|
@@ -187,9 +187,9 @@ pub fn[P, C, R] backed_execution_live_state(
     region.closing ||
     read_use.closing ||
     region.capacity.unwrap().closing {
-    Ok(Closing)
+    Ok(LiveClosing)
   } else {
-    Ok(Open)
+    Ok(LiveOpen)
   }
 }
 

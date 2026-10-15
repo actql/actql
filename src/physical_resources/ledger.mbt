@@ -41,7 +41,7 @@ struct Ledger {
   mut original_inventory : LedgerOriginalInventory?
   // Also resident on ordinary Ledgers. The existing installed envelope must
   // cover this reference and any live imported-child controls before use.
-  priv mut imported_child : ImportedChildLedgerOrigin?
+  mut imported_child : ImportedChildLedgerOrigin?
 }
 
 ///|
