@@ -39,6 +39,21 @@ selects the already locked5.0.58 bytes; the changed root lock has a new Artifact
 identity, not the former lock CID. Host coverage/caller integration and complete
 phase supply are still required before normal use.
 
+The opt-in selected startup is delivered as an empty, preload-only package
+entry. In an installation containing `@actql/node`, select it before application
+imports with `node --require @actql/node/selected-infer-startup app.mjs`, or use
+the distinct eager recipe
+`node --no-lazy --require @actql/node/selected-infer-startup app.mjs`.
+Direct Local Host installations can select `@actql/local-node/selected-infer-startup`
+instead. These entries expose no original/issuer or runtime factory. Only the
+actual fixed package loader chain on the selected Node22.22.0/Darwin arm64
+runtime qualifies; late imports, other preceding preloads and `NODE_OPTIONS`
+remain unavailable. Existing absolute private-preload recipes are unchanged.
+This selection is neither a supported normal numerical profile nor permission
+to send. Managed startup controls, all per-call holdings and the four original
+resource reservations still need their existing supplier; arbitrary embedded
+processes cannot acquire startup history by importing this entry later.
+
 ```js
 import {createInstalledOpenAIChatRegistration} from '@actql/provider-ai-sdk';
 // Host integration skeleton, not a runnable live-provider example.
