@@ -211,10 +211,16 @@ fn local_submission_start(
   ).unwrap_or_else(() => stop("LocalPreparationNotReady"))
   guard @local_host.native_client_submitted_preparation(preparation)
     is Computation(prepared) else {
-    local_effect_prepare_start(
-      host, settings, crypto, preparation, reference, run, scope,
-    )
-    |> ignore
+    match
+      local_effect_prepare_start(
+        host, settings, crypto, preparation, reference, run, scope,
+      ) {
+      None =>
+        return local_submission_lookup(
+          host, settings, crypto, input_root, child,
+        )
+      Some(_) => ()
+    }
     // No accepted Run or physical Source work is created until the selected
     // Local capture/reviewer supplier is connected. Compilation is not approval.
     stop("LocalEffectAuthoritySupplierUnavailable")
