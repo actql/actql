@@ -166,8 +166,10 @@ test "backed original child keeps a prepared frame unavailable after parent reti
   let frame = prepare_backed_original_child_ledger(projection, runtime).unwrap()
   let before = ledger_usage(parent)
   retire_backed_execution_live_child_after_owner_ack(access, runtime).unwrap()
-  assert_true(start_imported_child_ledger(frame) is Err(Unavailable))
-  assert_true(frame.attempted && frame.ledger is None)
+  // Existing start refuses a stopping original before admission. Retirement
+  // does not pretend this unstarted frame attempted another parent admission.
+  assert_true(start_imported_child_ledger(frame) is Err(AlreadyConsumed))
+  assert_true(!frame.attempted && frame.ledger is None && frame.origin.unavailable)
   assert_true(start_imported_child_ledger(frame) is Err(AlreadyConsumed))
   assert_true(take_imported_original_child_ledger(frame) is Err(Unavailable))
   assert_eq(ledger_usage(parent), before)
