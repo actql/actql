@@ -355,3 +355,33 @@ The linked toolchain runtime contains a mimalloc load-time initializer; its
 independent startup resources remain outside ordinary funding qualification.
 Building and inspecting this artifact does not adopt a numerical profile or
 fund a VM.
+
+
+## Explicit single-provider bootstrap imports
+
+`ACTQL_BOOTSTRAP_IMPORT_PROVIDER` selects a consumer-only compilation of the
+existing Native bootstrap stub. It requires the selected scoped header and
+rejects an embedded provider-source define. It includes no `owned_capacity.c`
+or `owned_image.c`. The existing physical provider supplies the opaque control
+and rounding observations, original domain transfer, current context and
+original view/child comparisons. Native Host, Common Ledger, loan and cleanup
+contracts are unchanged. The live channel still verifies its original local
+records, FD identities, extent and actual child; the C observations grant no
+capacity, process authority or credit. No private allocator/context layout is
+copied into the consumer.
+
+`actql_bootstrap_control_scope_clear()` returns1 only when the **same provider**
+confirms raw read pointer/depth and owned pointer/depth are all clear. It checks
+the existing read-index process fence; foreign/unknown observations return0.
+NULL from the valid-current-pointer getter alone is insufficient. One successful
+nested leave is neither this whole-frame observation nor physical retirement.
+This read-only fact is not Host/Account permission, stop, COMMIT or cleanup ACK.
+
+The derived source closure records these extra APIs independently. Existing
+installed toolchain and retained DLLs are never overwritten. Numerical profile
+and ordinary startup remain unadopted. The imported C fixture retains64-page
+Host/48-page domain and escaped alias cleanup; the existing domain-borrow
+fixture preserves its original16 assertions and adds3 opaque parent/child
+checks under the same64/24/16-page physical limits. Actual execution, linkage
+origin and object/source qualifications must be recorded separately from this
+source recipe.
