@@ -115,6 +115,7 @@ pub(all) enum ModelExecutionIssue {
   Cancelled
   Deadline
   Ledger(@resources.LedgerIssue)
+  IoAdmission(@resources.ModelIoAdmissionIssue)
   Session(@bounded.Issue)
   WorkLimit
   RequestLimit
@@ -224,6 +225,8 @@ struct ModelSlotProgress {
   mut call : ModelPhysicalCall?
   mut settlement : Int?
   mut observing_response : Bool
+  // Additional original-owner holding; no numerical fee is inferred here.
+  mut io_duty : ModelSlotIoDuty?
 }
 
 ///|
@@ -580,6 +583,10 @@ fn advance_model(
     state.reservations.get(state.progress.slot) is Some(reservation) else {
     return @bounded.Failed(CallEntryRefused, 1, 1)
   }
+  match claim_model_slot_io(state) {
+    Err(issue) => return @bounded.Failed(issue, 1, 1)
+    Ok(_) => ()
+  }
   let attempt = if state.progress.entry is Some(entry) {
     // Continue the retained entry, never construct another attempt after poll.
     Some(entry.trace)
@@ -653,6 +660,9 @@ fn advance_model(
           send_started: false,
         }
         state.progress.entry = Some(entry)
+        if state.progress.io_duty is Some(duty) {
+          duty.entry = Some(entry)
+        }
         if state.enter_persistence is Some(begin) {
           guard begin(entry) is Some(operation) &&
             entry.persistence is Some(original) &&
@@ -1110,6 +1120,7 @@ fn start_model_owned(
       call: None,
       settlement: None,
       observing_response: false,
+      io_duty: None,
     },
     work: 0,
     output_uses: 0,
@@ -1217,6 +1228,13 @@ fn advance_model_execution_owned(
   // stale pre-callback check or translate the restriction into a terminal.
   if check_model_original_resources_mutable(state) is Err(issue) {
     return Err(issue)
+  }
+  if !state.stop_requested && !@bounded.session_stopped(execution.session) {
+    match model_slot_io_available(state) {
+      Err(issue) => return Err(issue)
+      Ok(false) => return Ok(AwaitIo(execution.progress, execution.work))
+      Ok(true) => ()
+    }
   }
   match @bounded.advance(execution.session, execution.token, quantum) {
     Err(issue) => Err(Session(issue))

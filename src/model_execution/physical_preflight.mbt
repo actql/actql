@@ -320,7 +320,8 @@ fn cleanup_model_physical_preflight(state : ModelState) -> Bool {
     }
     state.physical_cleanup_index += 1
   }
-  state.physical_cleanup_index == state.physical_cursors.length()
+  state.physical_cleanup_index == state.physical_cursors.length() &&
+  retire_model_slot_io_never_entered(state)
 }
 
 ///|

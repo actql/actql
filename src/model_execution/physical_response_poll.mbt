@@ -206,6 +206,12 @@ fn poll_model_physical_call(
       if observed is PhysicalIoQuiescent(_, _) && call.io_observation is None {
         call.io_observation = Some(binding)
       }
+      if call.io_observation is Some(_) {
+        match retire_model_slot_io_after_call_observation(state, call) {
+          Err(issue) => return Err(issue)
+          Ok(_) => ()
+        }
+      }
       inner
     }
     original => original
@@ -274,6 +280,14 @@ fn cleanup_model_physical_call(state : ModelState) -> Bool {
     // Actual physical cleanup retires the original accounting child, retaining
     // any usage already scanned. It cannot turn Unknown into a response.
     retire_model_raw_usage_child(call) |> ignore
+    // Remember this original physical ACK even if later Resource retirement
+    // is fenced. Retry the same remaining duty, never re-clean the SDK child.
+    call.retired = true
+  }
+  if !retire_model_slot_io_holding(state, call) {
+    return false
+  }
+  if call.retired {
     call.cleanup = None
     call.cancel = None
     call.poll = None
@@ -285,7 +299,6 @@ fn cleanup_model_physical_call(state : ModelState) -> Bool {
     call.original_binding = None
     call.io_tracking = false
     call.poll_issue = None
-    call.retired = true
   }
   state.progress.call = None
   true

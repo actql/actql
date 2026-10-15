@@ -5,6 +5,8 @@
 pub struct ModelPreparedCallSet {
   owner : ModelExecution
   mut scope : @publication.BoundModelInvocationScope?
+  // One installed original admission, not a new Ledger or per-Run pool.
+  mut io_access : @resources.ModelIoAccess?
 }
 
 ///|
@@ -46,7 +48,7 @@ pub fn prepared_model_call_set(
   if check_model_original_resources_mutable(state) is Err(_) {
     return None
   }
-  let prepared = { owner: execution, scope: None, }
+  let prepared = { owner: execution, scope: None, io_access: None, }
   state.prepared_call_set = Some(prepared)
   Some(prepared)
 }
