@@ -789,6 +789,14 @@ pub fn client_native_product_members_source(ClientNativeProductMembers) -> Strin
 
 pub fn client_native_product_members_wire(ClientNativeProductMembers) -> String
 
+pub fn client_native_product_placement_census(ClientNativeProductPlacement, ClientNativeProductPart, String) -> Result[ClientNativeProductCensus, ClientNativeLocalRuntimeIssue]
+
+pub fn client_native_product_placement_parent_at(ClientNativeProductPlacement, ClientNativeProductPart, Int) -> String?
+
+pub fn client_native_product_placement_parent_count(ClientNativeProductPlacement, ClientNativeProductPart) -> Int
+
+pub fn client_native_product_placement_root(ClientNativeProductPlacement, ClientNativeProductPart) -> String
+
 pub fn client_node_model_state_read(ClientNodeModelStateWriter) -> Result[ClientModelReadPreparation, ClientNodeModelStateIssue]
 
 pub fn client_original_keyed_capture_available(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, PreparedClientProgram, ClientKeyedAcquisition) -> Bool
@@ -1506,6 +1514,8 @@ pub fn prepare_client_keyed_serialization_inputs(PreparedClientProgram, ClientKe
 pub fn prepare_client_model_read(ClientModelReadScope, Int64, Int64) -> Result[ClientModelReadPreparation, ClientModelReadPreparationIssue]
 
 pub fn prepare_client_model_read_state(ClientModelReadScope, @encode_core.Writer, Int64, Int64, binding_work? : Int) -> Result[ClientModelReadPreparation, @physical_resources.OriginalStateWriteIssue]
+
+pub fn prepare_client_native_product_placement(ClientNativeProductMembers, ClientNativeProductMembers, String, String) -> Result[ClientNativeProductPlacement, ClientNativeLocalRuntimeIssue]
 
 pub fn prepare_client_node_model_read_layout(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[ClientModelReadPreparation, ClientModelPreparationLayoutIssue]
 
@@ -2896,6 +2906,13 @@ pub(all) struct ClientNativeProductMember {
 } derive(Eq, @debug.Debug)
 
 type ClientNativeProductMembers
+
+pub(all) enum ClientNativeProductPart {
+  LauncherProduct
+  PlatformProduct
+} derive(Eq, @debug.Debug)
+
+type ClientNativeProductPlacement
 
 pub(all) struct ClientNodeModelPreparationLayout {
   response_profile : @check_environment.ModelResponseProfile
