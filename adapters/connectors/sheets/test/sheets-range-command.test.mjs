@@ -1,0 +1,159 @@
+import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
+import test from 'node:test';
+import * as provider from '../../../../_build/js/release/build/connectors/sheets/host_node/host_node.js';
+import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
+import {checked} from '../../../host-common/runtime-result.mjs';
+import {canonicalJson, contentCid} from '../../../host-node/local-account-config.mjs';
+import {rowSourceCheckEnvironment} from '../../../host-node/installed-row-source.mjs';
+import {checkInstalledSheetsSourceProfile, checkInstalledSheetsEffectProfile}
+  from '../host/installed-sheets.mjs';
+import {createSheetsRangeDriver, sheetsRangeCommand, sheetsRangeReference,
+  withSheetsRangeCommand} from '../host/sheets-range-command.mjs';
+
+const site = {apiOrigin: 'https://sheets.example.test', spreadsheetId: 'book',
+  gridRange: {sheetId: 7, startRow: 2, endRow: 4, startColumn: 1, endColumn: 3},
+  columns: [{name: 'text', type: 'string', nullable: false},
+    {name: 'flag', type: 'boolean', nullable: true}]};
+const token = character => `sha256:${character.repeat(64)}`;
+const profile = {siteProfilePath: '/fixture/site.json', publicationPath: '/fixture/publication.json',
+  connectorId: 'sheets-book', accountConfigurationWire: '{}'};
+const member = {resource: 'range_target', effectId: 'replace'};
+const value = {rows: [{text: '=e\u0301\r\n', flag: false}, {text: 'second', flag: true}]};
+function fixture() {
+  const range = sheetsRangeCommand(profile.connectorId, site);
+  const target = sheetsRangeReference({site, catalogCid: token('a'), bindingCid: token('b')});
+  let current = true;
+  const driver = createSheetsRangeDriver({moon: provider, site, command: range.installed,
+    target, bindingCid: token('b'), isCurrent: () => current});
+  const request = driver.prepareRequest({member, value, selector: target}).request;
+  const entry = driver.recoveryEntry({member});
+  const body = {effects: [{effect_id: 'replace', effect_kind: 'command',
+    resolved_command_contract_cid: range.installed.commandCid,
+    changes: [{intended_changes: {value}, target_row_identity: target}]}]};
+  const durable = {connectorRecovery: [{...entry, memberIndex: 0}]};
+  return {driver, target, request, range, body, durable, revoke: () => { current = false; }};
+}
+
+test('Sheets range opt-in is closed and leaves existing append profiles unchanged', () => {
+  const source = {...profile, version: 'actql-installed-sheets-source/0.1'};
+  const append = {...profile, version: 'actql-installed-sheets-effect/0.1',
+    sources: [{target: 'text', field: 'text', null_behavior: 'reject'}]};
+  assert.deepEqual(checkInstalledSheetsSourceProfile(source), source);
+  assert.deepEqual(checkInstalledSheetsEffectProfile(append), append);
+  assert.deepEqual(checkInstalledSheetsSourceProfile({...source, rangeCommand: true}),
+    {...source, rangeCommand: true});
+  const range = {...profile, version: append.version, rangeCommand: true};
+  assert.deepEqual(checkInstalledSheetsEffectProfile(range), range);
+  for (const invalid of [{...range, sources: append.sources}, {...range, rangeCommand: false},
+    {...range, rangeCommand: 'true'}, {...range, extra: true}]) {
+    assert.throws(() => checkInstalledSheetsEffectProfile(invalid), /InvalidInstalledEffectProfile/);
+  }
+});
+
+test('Sheets range Catalog and bounded Command input reach the existing common checker', () => {
+  const schema = {target: {type: 'resource_ref', resource_kind: 'sheet_range', nullable: false}};
+  const declaration = checked(common.clientProgramRowSourceRestoreRelationDeclaration(
+    profile.connectorId, 'sheets', 'sheets/0.1', JSON.stringify({views: [{
+      resource: 'range_target', resource_kind: 'sheet_range',
+      schema_wire: canonicalJson(schema), schema_cid: contentCid(schema)}]}), undefined));
+  const original = JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration));
+  const range = sheetsRangeCommand(profile.connectorId, site);
+  const declared = withSheetsRangeCommand(original, range);
+  assert.notEqual(declared.catalog_cid, original.catalog_cid);
+  assert.deepEqual(JSON.parse(original.catalog).commands, []);
+  assert.deepEqual(JSON.parse(declared.catalog).source_views, JSON.parse(original.catalog).source_views);
+  const base = readFileSync(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8');
+  const {evidence_bundle_cid: _, ...body} = JSON.parse(rowSourceCheckEnvironment(base, declared).wire);
+  body.command_contracts = [range.command];
+  const cid = contentCid(body);
+  const wire = canonicalJson({...body, evidence_bundle_cid: cid});
+  assert(common.clientProgramCheckEnvironment(wire, cid, false, false, true, false, false, false, false));
+  assert.deepEqual(range.command.input_contract.fields.rows.items.fields, {
+    text: {type: 'string', nullable: false}, flag: {type: 'boolean', nullable: false}});
+  assert.equal(range.command.input_contract.fields.rows.max_items, 2);
+  assert.equal(range.command.minimum_approval, 'required');
+  assert.equal(range.command.target.resource_kind, 'sheet_range');
+  assert.equal(range.command.idempotency.support, 'unsupported');
+});
+
+test('Sheets range request binds original literal values exact rectangle and original Ref', () => {
+  const {request, driver, target} = fixture();
+  assert.deepEqual(JSON.parse(request.body), {requests: [{updateCells: {
+    range: {sheetId: 7, startRowIndex: 2, endRowIndex: 4, startColumnIndex: 1, endColumnIndex: 3},
+    rows: [{values: [{userEnteredValue: {stringValue: '=e\u0301\r\n'}},
+      {userEnteredValue: {boolValue: false}}]},
+    {values: [{userEnteredValue: {stringValue: 'second'}}, {userEnteredValue: {boolValue: true}}]}],
+    fields: 'userEnteredValue'}}]});
+  assert.deepEqual(driver.requestFacts(request), {value, target});
+  assert.equal(driver.requestCid(request), request.requestCid);
+  assert.throws(() => { request.value.rows[0].text = 'replacement'; }, TypeError);
+  assert.throws(() => { request.target.identity_cid = token('c'); }, TypeError);
+  assert.throws(() => driver.recheckRequests({entries: [{request: {...request}}]}),
+    /ForeignSheetsRangeRequest/);
+});
+
+test('Sheets range refuses foreign current target installation and partial input before send', () => {
+  const {driver, target, revoke, request} = fixture();
+  for (const field of ['provider_namespace', 'resource_kind', 'provider_identity_cid',
+    'authority_scope_cid', 'boundary_cid', 'identity_cid']) {
+    assert.throws(() => driver.prepareRequest({member, value,
+      selector: {...target, [field]: field.endsWith('_cid') ? token('c') : 'other'}}),
+    /SheetsRangeReferenceUnavailable/);
+  }
+  for (const invalid of [{}, {...value, extra: 1}, {rows: value.rows.slice(0, 1)},
+    {rows: [{text: null, flag: true}, value.rows[1]]},
+    {rows: [{text: 'ok', flag: true, extra: 'ignored'}, value.rows[1]]}]) {
+    assert.throws(() => driver.prepareRequest({member, value: invalid, selector: target}));
+  }
+  revoke();
+  assert.throws(() => driver.recheckRequests({entries: [{request}]}), /SheetsRangeReferenceUnavailable/);
+});
+
+test('Sheets range recovery preserves original request bytes and never reacquires Source', () => {
+  const {driver, durable, body, request} = fixture();
+  const restored = driver.recoverRequests({durable, body}).requests[0][0];
+  assert.equal(restored.body, request.body);
+  assert.equal(driver.requestCid(restored), driver.requestCid(request));
+  assert.deepEqual(driver.requestFacts(restored), driver.requestFacts(request));
+  const changed = structuredClone(body);
+  changed.effects[0].changes[0].intended_changes.value.rows[0].text = '=é\n';
+  const different = driver.recoverRequests({durable, body: changed}).requests[0][0];
+  // The existing common recoveredEntries guard compares this exact CID and
+  // facts against the retained claim and sealed Preview; no equal-value lookup.
+  assert.notEqual(driver.requestCid(different), request.requestCid);
+});
+
+test('Sheets range recovery refuses missing duplicate foreign and noncanonical retained bindings', () => {
+  const {driver, durable, body} = fixture();
+  const original = durable.connectorRecovery[0];
+  for (const entries of [[], [original, original], [{...original, memberIndex: 1}],
+    [{...original, kind: 'another-provider'}], [{...original, wire: original.wire + '\n'}]]) {
+    assert.throws(() => driver.recoverRequests({body, durable: {connectorRecovery: entries}}),
+      /SheetsRangeRecoveryMismatch/);
+  }
+  for (const mutate of [value => { delete value.range; }, value => { value.extra = true; },
+    value => { value.range.sheetId = 8; }, value => { value.bindingCid = token('c'); },
+    value => { value.columns.reverse(); }, value => { value.effectId = 'foreign'; }]) {
+    const saved = JSON.parse(original.wire); mutate(saved);
+    const changed = {...original, wire: canonicalJson(saved), observationCid: contentCid(saved)};
+    assert.throws(() => driver.recoverRequests({body, durable: {connectorRecovery: [changed]}}),
+      /SheetsRangeRecoveryMismatch/);
+  }
+});
+
+test('Sheets range projection requires exact batch ACK and never settles an uncertain response', () => {
+  const {driver, request} = fixture();
+  const project = (statusCode, body) => driver.project({request,
+    observation: {statusCode, body: Buffer.from(body)}});
+  assert.deepEqual(project(200, '{"spreadsheetId":"book","replies":[{}]}'), {
+    kind: 'typed-success-response', outcome: {state: 'applied', result: {
+      spreadsheet_id: 'book', sheet_id: 7, acknowledged_rows: 2}}});
+  for (const status of [0, 400, 403, 409, 429, 500, 503]) {
+    assert.deepEqual(project(status, '{"spreadsheetId":"book","replies":[{}]}'), {kind: 'provider-response'});
+  }
+  for (const body of ['{}', '{"spreadsheetId":"other","replies":[{}]}',
+    '{"spreadsheetId":"book","replies":[]}', '{"spreadsheetId":"book","replies":[{},{}]}']) {
+    assert.deepEqual(project(200, body), {kind: 'provider-response'});
+  }
+});
