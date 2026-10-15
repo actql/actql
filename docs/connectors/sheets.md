@@ -142,13 +142,45 @@ and uses the same literal Text/Number/Boolean encoding and NULL/empty-Text
 refusals as append. Cell count, complete outgoing bytes, nodes and depth are
 bounded before a request can be returned.
 
-This is a pure provider primitive, not an installed range-write capability.
-The current Effect profile still exposes only append. Connecting a range
-write requires the existing Command/ResourceRef, approval, durable request
-and recovery Owners to retain the exact installed range and original input.
-Neither grid coordinates nor observed cell values establish stable row IDs.
-No new account permission, transport send, reconciliation rule or saved Run
-interpretation is introduced by this codec.
+The codec itself grants no write capability. Neither grid coordinates nor
+observed cell values establish stable row IDs, and existing append profiles
+retain their original Catalog and Mapping identities.
+
+### Opt-in range Command installation
+
+A separate installation can set `rangeCommand: true` in both its Source and
+Effect profiles. The Effect profile then omits `sources`; combining those
+closed alternatives is refused. This opt-in publishes the `range_target`
+Source and a `command:<connectorId>.sheets.update_range.v0` Command. It does
+not turn the append Mapping into an update Mapping or reinterpret saved Runs.
+Use a separate publication path when retaining an append installation.
+
+`range_target` exposes one `target` ResourceRef after the existing Source
+owner has charged and validated a metadata response for the declared grid.
+The current installation's reference issuer binds the exact spreadsheet,
+numeric rectangle, schema/Catalog, account context and Site generation. A
+Program captures that Ref and supplies Command input
+`{rows: [{...all declared columns...}, ...]}`. It cannot author a replacement
+Ref envelope. Every cell is required and nonnull in this write contract,
+including columns whose read contract is nullable. The current account must
+independently authorize `range_target` reads and its approved Effect;
+`sheets:cells:update` is the scoped physical write operation.
+
+The existing Command/Effect Owner produces the sealed Preview, requires Set
+approval, claims each request durably, captures its response and controls
+settlement/recovery. The driver retains original binding/range/schema data
+with that continuation, reconstructs requests from that data and the sealed
+Preview, and leaves exact request-CID/value/target comparison to the same
+Owner. A changed installation or foreign reference is refused; a possibly
+sent request without an exact acknowledgement remains unknown and is not
+resent. This is a coordinate-addressed overwrite, not a cell-version CAS or
+a promise that concurrent Google edits cannot change those cells.
+
+Working-source controls exercise the existing Local/HTTPS approval owners,
+the successful range write, and fresh-process success/unknown recovery without
+reacquisition or resend. They are distinct from normally installed release
+archives and authorized Google mutation, which remain unverified for range
+writes. Earlier append/read receipts do not establish those range boundaries.
 
 ## Ordinary Programs
 
