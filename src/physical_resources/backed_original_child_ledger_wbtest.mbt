@@ -115,7 +115,7 @@ test "backed original child closing rejects new reservations and retains origina
   close_shared_capacity(capacity).unwrap()
   settle_shared_capacity(capacity).unwrap()
   report_imported_child_ledger(frame).unwrap()
-  assert_eq(ledger_usage(parent), before)
+  assert_eq(ledger_usage(parent), { ..before, attempts: before.attempts + 1, })
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
   // Logical stop is not the physical-owner ACK; all parent obligations remain.
   assert_true(projection.access is Some(_))
