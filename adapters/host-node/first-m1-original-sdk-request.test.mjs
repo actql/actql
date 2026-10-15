@@ -116,7 +116,8 @@ test(`first M1 actual original Core request ${rejectProjection?'bounded refusal'
         taskCid:identity(task),promptCid:identity(prompt),outputSchemaCid:identity(output),modelSelector:'fixture-risk-model',
         projectionLimits:{maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:13},
         modelId:'gpt-4.1-mini-2025-04-14',baseURL:'https://fixture.invalid/v1',apiKey:'fixture-only',
-        maxRequestBytes:4096,maxHeaderBytes:4096,maxHeaders:16,notify(){}}),/OpenAIProjection:/u);
+        maxRequestBytes:4096,maxHeaderBytes:4096,maxHeaders:16,notify(){}}),
+        {message:'OpenAIProjection:limit'});
     }else{
       handle=prepareAdmittedOpenAIChatRequest({moon,request,admittedProvider:original.admitted,
         taskCid:identity(task),promptCid:identity(prompt),outputSchemaCid:identity(output),modelSelector:'fixture-risk-model',
@@ -137,11 +138,12 @@ test(`first M1 actual original Core request ${rejectProjection?'bounded refusal'
     assert.equal(moon.clientProgramInferExecutionPollKind(observed),'continue');
   }
   assert.ok(request,'Only the actual Common Model owner supplies this request');
+  if(!rejectProjection)assert.ok(handle,'The positive original request must create its SDK preparation');
   assert.equal(preflights,1);
   const generation=moon.clientProgramModelRequestGeneration(request);
   assert.equal(generation._0,'fixture-risk-model');
   assert.equal(BigInt.asIntN(64,generation._4),-7n);
-  if(handle){
+  if(!rejectProjection){
     for(let n=0;n<30&&pollSdkPreparation(handle).kind==='pending';n++)await turn();
     assert.equal(pollSdkPreparation(handle).kind,'ready');
     assert.deepEqual(JSON.parse(sdkPreparedRequest(handle).body),{
@@ -156,7 +158,7 @@ test(`first M1 actual original Core request ${rejectProjection?'bounded refusal'
   assert.equal(checked(moon.clientProgramCleanupInferExecution(original.active)),false);
   assert.equal(control.checkedClientInferOriginalReadScopeLive(original.compiled,original.definition,original.graph,original.scope),true);
   assert.ok(cleanupCalls>0);
-  if(handle){cancelSdkPreparation(handle);await sdkRetired(handle);}
+  if(!rejectProjection){cancelSdkPreparation(handle);await sdkRetired(handle);}
   cleanupAllowed=true;
   await finishOriginal(original);
   assert.equal(control.checkedClientInferOriginalReadScopeLive(original.compiled,original.definition,original.graph,original.scope),false);
