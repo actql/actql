@@ -121,3 +121,119 @@ test "Table private capture lowers sparse Graph rows without public Results" {
     semantic(program).contains("\"drop\":[\"id\",\"labels\",\"tenant_key\"]"),
   )
 }
+
+///|
+test "Table terminal publishes only authored prefix Results and keeps its final input private" {
+  for
+    (statement, action) in [
+      ("CREATE TABLE", Create),
+      (
+        "CREATE OR REPLACE TABLE",
+        Replace(
+          "12345678-1234-1234-1234-123456789abc",
+          "sha256:" + "d".repeat(64),
+        ),
+      ),
+    ] {
+    let program = compile(
+      @query.parse_query(
+        statement +
+        " analytics.report AS (SELECT 1 AS id |> RESULT before_write |> WHERE id = 2)",
+        syntax_limits(),
+      ).unwrap(),
+      { ..fixture_context(), inputs: [], },
+      construction_limits(),
+      table_writes=[table_write_fixture(action)],
+    ).unwrap()
+    let exports = @program.exports(program)
+    assert_eq(exports.map(entry => entry.0), ["before_write"])
+    let stage = @wire.open_object(
+      @program.stage_body(@program.stages(program)[0]),
+    ).unwrap()
+    let results = @wire.required(stage, "results").unwrap()
+    assert_eq(@wire.object_field_names(results).unwrap(), [exports[0].2])
+    let original = @wire.open_object(
+      @wire.required(@wire.open_object(results).unwrap(), exports[0].2).unwrap(),
+    ).unwrap()
+    let inputs = @wire.open_object(
+      @wire.required(stage, "table_inputs").unwrap(),
+    ).unwrap()
+    let final = @wire.open_object(
+      @wire.required(inputs, "aql_table_input").unwrap(),
+    ).unwrap()
+    assert_eq(
+      @wire.elements(@wire.required(original, "fields").unwrap())
+      .unwrap()
+      .map(field => @wire.text(field).unwrap()),
+      ["id"],
+    )
+    assert_eq(
+      @wire.elements(@wire.required(final, "fields").unwrap())
+      .unwrap()
+      .map(field => @wire.text(field).unwrap()),
+      ["id"],
+    )
+    // The earlier public producer must not be replaced by the filtered input.
+    assert_false(
+      @wire.text(@wire.required(original, "from").unwrap()) ==
+      @wire.text(@wire.required(final, "from").unwrap()),
+    )
+    let steps = @wire.elements(@wire.required(stage, "steps").unwrap()).unwrap()
+    assert_true(
+      steps.any(step => {
+        let body = @wire.open_object(step).unwrap()
+        @wire.lookup(body, "filter") is Some(_)
+      }),
+    )
+    assert_eq(
+      @wire.text(
+        @wire.required(@wire.open_object(steps.last().unwrap()).unwrap(), "as").unwrap(),
+      ),
+      @wire.text(@wire.required(final, "from").unwrap()),
+    )
+  }
+}
+
+///|
+test "Table terminal authored final Result stays public without a second primary export" {
+  let program = compile(
+    @query.parse_query(
+      "CREATE TABLE analytics.report AS (SELECT 1 AS id |> RESULT final)",
+      syntax_limits(),
+    ).unwrap(),
+    { ..fixture_context(), inputs: [], },
+    construction_limits(),
+    table_writes=[table_write_fixture(Create)],
+  ).unwrap()
+  assert_eq(@program.exports(program).map(entry => entry.0), ["final"])
+  let stage = @wire.open_object(
+    @program.stage_body(@program.stages(program)[0]),
+  ).unwrap()
+  let results = @wire.open_object(@wire.required(stage, "results").unwrap()).unwrap()
+  let result = @wire.open_object(
+    @wire.required(results, @program.exports(program)[0].2).unwrap(),
+  ).unwrap()
+  let inputs = @wire.open_object(@wire.required(stage, "table_inputs").unwrap()).unwrap()
+  let input = @wire.open_object(
+    @wire.required(inputs, "aql_table_input").unwrap(),
+  ).unwrap()
+  assert_eq(
+    @wire.text(@wire.required(result, "from").unwrap()),
+    @wire.text(@wire.required(input, "from").unwrap()),
+  )
+}
+
+///|
+test "ordinary nonterminal RESULT keeps its primary tail outside Table writes" {
+  let program = compile(
+    @query.parse_query(
+      "SELECT 1 AS id |> RESULT before_write |> WHERE id = 2",
+      syntax_limits(),
+    ).unwrap(),
+    { ..fixture_context(), inputs: [], },
+    construction_limits(),
+  ).unwrap()
+  assert_eq(@program.exports(program).map(entry => entry.0), [
+    "before_write", "answer",
+  ])
+}
