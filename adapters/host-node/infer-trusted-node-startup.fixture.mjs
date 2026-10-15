@@ -15,7 +15,8 @@ const actual = source();
 const view = issueInferTrustedRuntimeView(actual);
 const mode = process.argv[2];
 const rejects = (run, code) => assert.throws(run, error => error.code === code);
-if (mode === 'absent' || mode === 'promise-unselected' || mode === 'string-unselected') {
+if (mode === 'absent' || mode === 'promise-unselected' || mode === 'string-unselected' ||
+    mode === 'iterator-unselected') {
   assert.equal(associateInferTrustedStartupView(view, actual), undefined);
   rejects(() => requireInferTrustedStartupView(view, actual), 'InferTrustedStartupUnavailable');
   if (mode === 'promise-unselected') {
@@ -36,6 +37,23 @@ if (mode === 'absent' || mode === 'promise-unselected' || mode === 'string-unsel
       assert.notEqual(String.prototype.charCodeAt, original);
       assert.equal('雪'.charCodeAt(0), 0x96ea);
     } finally { String.prototype.charCodeAt = original; }
+  }
+  if (mode === 'iterator-unselected') {
+    const make = Readable.prototype[Symbol.asyncIterator];
+    const prototype = Object.getPrototypeOf(Object.getPrototypeOf((async function* () {})()));
+    const next = prototype.next;
+    assert.equal(Object.getOwnPropertyDescriptor(Readable.prototype, Symbol.asyncIterator).writable, true);
+    assert.equal(Object.getOwnPropertyDescriptor(prototype, 'next').writable, true);
+    try {
+      Readable.prototype[Symbol.asyncIterator] = function() { return make.call(this); };
+      prototype.next = function(value) { return next.call(this, value); };
+      const received = [];
+      for await (const chunk of Readable.from(['original'])) received.push(chunk);
+      assert.deepEqual(received, ['original']);
+    } finally {
+      Readable.prototype[Symbol.asyncIterator] = make;
+      prototype.next = next;
+    }
   }
 } else {
   assert.equal(associateInferTrustedStartupView(view, actual), view);
@@ -169,6 +187,29 @@ if (mode === 'absent' || mode === 'promise-unselected' || mode === 'string-unsel
     forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
     // Host retirement is not retirement of the process/module originals.
     assert.equal(Object.getOwnPropertyDescriptor(original.prototype, 'then').writable, false);
+  } else if (mode === 'read-body-iterator') {
+    const make = Readable.prototype[Symbol.asyncIterator];
+    const prototype = Object.getPrototypeOf(Object.getPrototypeOf((async function* () {})()));
+    const next = prototype.next;
+    for (const [owner, name] of [[Readable.prototype, Symbol.asyncIterator], [prototype, 'next']]) {
+      const descriptor = Object.getOwnPropertyDescriptor(owner, name);
+      assert.equal(descriptor.writable, false);
+      assert.equal(descriptor.configurable, false);
+      assert.throws(() => { owner[name] = () => undefined; }, TypeError);
+      assert.throws(() => Object.defineProperty(owner, name, {get: () => next}), TypeError);
+    }
+    const body = Readable.from(['original']);
+    assert.strictEqual(body[Symbol.asyncIterator], make);
+    const iterator = body[Symbol.asyncIterator]();
+    assert.strictEqual(iterator.next, next);
+    assert.deepEqual(await iterator.next(), {value: 'original', done: false});
+    assert.deepEqual(await iterator.next(), {value: undefined, done: true});
+    assert.equal(body.closed, true);
+    requireInferTrustedStartupView(view, actual);
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
+    assert.equal(Object.getOwnPropertyDescriptor(prototype, 'next').writable, false,
+      'Host-reference retirement is not generator/process retirement');
   } else if (mode === 'read-string-charcode') {
     // The actual emitted Common String.unsafe_char_at/UTF16 read uses this
     // intrinsic method. This is primitive identity, not a heap/GC bound or

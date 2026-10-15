@@ -39,6 +39,10 @@ test('selected READ preserves the original UTF16 character primitive', () =>
   child(['--require', preload], 'read-string-charcode'));
 test('ordinary embedded import preserves application String method selection', () =>
   child([], 'string-unselected'));
+test('selected BODY preserves its original Readable iterator and native next', () =>
+  child(['--require', preload], 'read-body-iterator'));
+test('ordinary embedded import preserves application iterator method selection', () =>
+  child([], 'iterator-unselected'));
 for (const mode of ['read-decoder-global', 'read-decoder-decode', 'read-buffer-subarray']) {
   test(`selected startup retains the actual strict READ original ${mode}`, () =>
     child(['--require', preload], mode));

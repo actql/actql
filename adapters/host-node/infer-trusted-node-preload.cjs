@@ -90,6 +90,11 @@ if (selected) {
   const tls = require('node:tls');
   const {TextDecoder} = require('node:util');
   const promise = globalThis.Promise;
+  // Same-realm native prototype, without starting a generator, Promise or
+  // physical stream. Actual Node Readable iteration uses this shared next.
+  // The temporary function/prototype lookup remains startup workspace, not a
+  // per-Call capacity grant or proof that a completed iterator was reclaimed.
+  const asyncGeneratorPrototype = Object.getPrototypeOf(async function* () {}).prototype;
   // Resolve Node's lazy global before inspecting its data descriptor. Both
   // module-cached Core decoders and per-read metadata decoders must use this
   // same original constructor, not a later application replacement.
@@ -102,6 +107,7 @@ if (selected) {
     [Buffer, 'from'], [Buffer, 'concat'],
     [Readable.prototype, 'read'], [Readable.prototype, 'push'],
     [Readable.prototype, 'unshift'], [Socket.prototype, 'read'],
+    [Readable.prototype, Symbol.asyncIterator], [asyncGeneratorPrototype, 'next'],
     [globalThis, 'TextDecoder'], [TextDecoder.prototype, 'decode'],
     [Buffer.prototype, 'subarray'],
     // The emitted Common UTF16/UTF8 and JSON scanners read primitive String
