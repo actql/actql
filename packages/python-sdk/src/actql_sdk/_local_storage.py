@@ -111,34 +111,19 @@ class LocalByteStore:
     must reserve SQLite/Python workspace separately from the payload limits.
     """
 
+    _physical: _PhysicalByteDatabase
+    _physical_path: Path
+    _physical_original: tuple[int, int] | None
+    _opening_descriptor: int | None
+    _native_file_root: LocalFileRoot | None
+
     def __init__(self, path: Path, *, max_records: int,
                  max_record_bytes: int, max_payload_bytes: int,
                  _new_file: tuple[LocalFileRoot, _PayloadFile] | None = None) -> None:
-        if (type(max_records) is not int or not 1 <= max_records <= 1024
-                or type(max_record_bytes) is not int
-                or not 1 <= max_record_bytes <= 1_048_576
-                or type(max_payload_bytes) is not int
-                or not max_record_bytes <= max_payload_bytes <= 16_777_216):
-            raise ValueError('Invalid Local physical storage limits')
-        self._lock = RLock()
-        self._closed = False
-        self._ready = False
-        self._created = False
-        self._creation_claimed = False
-        self._opening_descriptor: int | None = None
-        self._max_records = max_records
-        self._max_record_bytes = max_record_bytes
-        self._max_payload_bytes = max_payload_bytes
-        # The path is installed trusted Host configuration, never Program input.
-        path = path.absolute()
-        parent = path.parent.lstat()
-        if (not stat.S_ISDIR(parent.st_mode) or parent.st_mode & 0o077
-                or parent.st_uid != os.getuid()):
-            raise LocalStorageError('Local storage requires a private owned directory')
-        self._physical_path = path
-        self._physical_parent = (parent.st_dev, parent.st_ino)
-        self._physical_original: tuple[int, int] | None = None
-        self._physical_owner = self
+        self._prepare_physical_path(path, max_records=max_records,
+                                    max_record_bytes=max_record_bytes,
+                                    max_payload_bytes=max_payload_bytes)
+        path = self._physical_path
         if _new_file is not None:
             if (type(_new_file) is not tuple or len(_new_file) != 2
                     or type(_new_file[0]) is not LocalFileRoot
@@ -168,7 +153,7 @@ class LocalByteStore:
         self._connection = sqlite3.connect(path, isolation_level=None,
                                            timeout=1.0, check_same_thread=False)
         try:
-            self._physical: _PhysicalByteDatabase = _SQLiteByteDatabase(self._connection)
+            self._physical = _SQLiteByteDatabase(self._connection)
             self._observe_generation()
             self._connection.execute('BEGIN IMMEDIATE')
             try:
@@ -205,6 +190,37 @@ class LocalByteStore:
                 raise LocalStorageInitializationError(self) from original
             raise
 
+    def _prepare_physical_path(self, path: Path, *, max_records: int,
+                               max_record_bytes: int, max_payload_bytes: int) -> None:
+        # Shared physical metadata only. No file, SQL connection, adoption or
+        # fresh-file claim is acquired by this helper.
+        if (type(max_records) is not int or not 1 <= max_records <= 1024
+                or type(max_record_bytes) is not int
+                or not 1 <= max_record_bytes <= 1_048_576
+                or type(max_payload_bytes) is not int
+                or not max_record_bytes <= max_payload_bytes <= 16_777_216):
+            raise ValueError('Invalid Local physical storage limits')
+        self._lock = RLock()
+        self._closed = False
+        self._ready = False
+        self._created = False
+        self._creation_claimed = False
+        self._opening_descriptor = None
+        self._max_records = max_records
+        self._max_record_bytes = max_record_bytes
+        self._max_payload_bytes = max_payload_bytes
+        # The path is installed trusted Host configuration, never Program input.
+        path = path.absolute()
+        parent = path.parent.lstat()
+        if (not stat.S_ISDIR(parent.st_mode) or parent.st_mode & 0o077
+                or parent.st_uid != os.getuid()):
+            raise LocalStorageError('Local storage requires a private owned directory')
+        self._physical_path = path
+        self._physical_parent = (parent.st_dev, parent.st_ino)
+        self._physical_original = None
+        self._physical_owner = self
+        self._native_file_root = None
+
     @classmethod
     def initialize_owned_file(cls, path: Path, root: LocalFileRoot, original: _PayloadFile, *,
                               max_records: int, max_record_bytes: int,
@@ -235,6 +251,10 @@ class LocalByteStore:
     def _observe_generation(self) -> tuple[int, int]:
         if self._physical_owner is not self:
             raise ValueError('Copied or foreign Local physical Store generation')
+        if self._native_file_root is not None:
+            root = os.fstat(self._native_file_root._open())
+            if (root.st_dev, root.st_ino) != self._physical_parent:
+                raise LocalStorageError('Original Native Store file root changed')
         parent = self._physical_path.parent.lstat()
         if (not stat.S_ISDIR(parent.st_mode) or parent.st_mode & 0o077
                 or parent.st_uid != os.getuid()
@@ -279,6 +299,8 @@ class LocalByteStore:
     def _open(self) -> None:
         if self._closed or not self._ready:
             raise LocalStorageError('Local physical storage is closed')
+        if self._native_file_root is not None:
+            self._observe_generation()
         if self._physical.in_transaction:
             raise LocalStorageError('Local physical storage transaction cleanup is pending')
 
