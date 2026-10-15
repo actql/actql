@@ -8,6 +8,8 @@ import {
 }
 
 // Values
+pub fn[P, C, R] admit_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[BackedExecutionLiveProjection[P, C, R], BackedExecutionIssue]
+
 pub fn admit_unresolved_backed_execution_data(BackedExecutionOriginalData) -> Result[UnresolvedBackedExecutionOriginal, BackedExecutionDataIssue]
 
 pub fn[T] advance_funded_read_state_write(FundedReadClaim[T], T, Int) -> OriginalStateWritePoll
@@ -29,6 +31,8 @@ pub fn[T] advance_original_state_write(OriginalStateWrite[T], Int) -> OriginalSt
 pub fn allocate_shared_capacity(SharedCapacity, Int64) -> Result[SharedAllocation, LedgerIssue]
 
 pub fn[P, C] backed_execution_delegation_description(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C]) -> Result[(BackedExecutionExtent, BackedExecutionAccess, LedgerLimits), BackedExecutionIssue]
+
+pub fn[P, C, R] backed_execution_live_limits(BackedExecutionLiveProjection[P, C, R], R) -> Result[LedgerLimits, BackedExecutionIssue]
 
 pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]
 
@@ -121,6 +125,8 @@ pub fn holding_available(Ledger, Holding) -> Bool
 pub fn holding_belongs_to(Ledger, Holding) -> Bool
 
 pub fn holding_serial(Holding) -> Int
+
+pub fn[P, C, R] issue_backed_execution_live_access(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], BackedExecutionReadUse[P, C], R) -> Result[BackedExecutionLiveAccess[P, C, R], BackedExecutionIssue]
 
 pub fn[P, C] issue_backed_execution_original_data(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C]) -> Result[BackedExecutionOriginalData, BackedExecutionIssue]
 
@@ -218,6 +224,8 @@ pub fn release_shared_capacity(SharedAllocation) -> Result[Unit, LedgerIssue]
 
 pub fn[P, C] report_backed_execution_delegation(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], LedgerUsage) -> Result[Unit, BackedExecutionIssue]
 
+pub fn[P, C, R] report_backed_execution_live_child(BackedExecutionLiveProjection[P, C, R], R, LedgerUsage) -> Result[Unit, BackedExecutionIssue]
+
 pub fn report_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage) -> Result[Unit, LedgerIssue]
 
 pub fn[P, C] require_backed_execution_read_use_current(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], BackedExecutionReadUse[P, C]) -> Result[Unit, BackedExecutionIssue]
@@ -239,6 +247,8 @@ pub fn reserve_execution_delegation(Ledger, LedgerLimits, Int64, Int64) -> Resul
 pub fn reserve_shared_capacity(Ledger, Int64) -> Result[SharedCapacity, LedgerIssue]
 
 pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIssue]
+
+pub fn[P, C, R] retire_backed_execution_live_child_after_owner_ack(BackedExecutionLiveAccess[P, C, R], R) -> Result[Unit, BackedExecutionIssue]
 
 pub fn retire_original_current_state_document(OriginalCurrentStateDocument) -> Unit
 
@@ -304,6 +314,8 @@ pub fn start_original_state_document_read(@decode_core.Cursor, Int, Int, Int, In
 
 pub fn start_original_state_document_read_in_owned_tree(@decode_core.Cursor, Int, Int, Int, Int, @decode_core.Limits) -> Result[OriginalStateDocumentRead, OriginalStateDocumentIssue]
 
+pub fn[P, C, R] stop_backed_execution_live_child(BackedExecutionLiveAccess[P, C, R], R) -> Result[Unit, BackedExecutionIssue]
+
 pub fn[P, C] stop_backed_execution_read_use(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], BackedExecutionReadUse[P, C]) -> Result[Unit, BackedExecutionIssue]
 
 pub fn[T] stop_funded_read(FundedReadClaim[T]) -> Result[Unit, OriginalReadIssue]
@@ -344,6 +356,7 @@ pub struct BackedExecutionDelegation[P, C] {
   mut final_usage : LedgerUsage?
   mut read_use_issued : Bool
   mut read_use : BackedExecutionReadUse[P, C]?
+  // private fields
 }
 
 pub(all) struct BackedExecutionExtent {
@@ -363,8 +376,18 @@ pub(all) enum BackedExecutionIssue {
   CleanupPending
   ChangedFinalUsage
   ReadUseAlreadyIssued
+  LiveAccessAlreadyIssued
+  LiveChildAlreadyAdmitted
   Resource(LedgerIssue)
 } derive(Eq, @debug.Debug)
+
+pub struct BackedExecutionLiveAccess[P, C, R] {
+  // private fields
+}
+
+pub struct BackedExecutionLiveProjection[P, C, R] {
+  // private fields
+}
 
 pub(all) struct BackedExecutionOriginalData {
   allocation_bytes : Int64
@@ -391,6 +414,7 @@ pub struct BackedExecutionReadUse[P, C] {
   mut ticket : BackedExecutionDelegation[P, C]?
   mut borrow : SharedBorrow?
   mut closing : Bool
+  // private fields
 }
 
 pub(all) enum BackedExecutionReadUseData {

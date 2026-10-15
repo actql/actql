@@ -72,6 +72,40 @@ class RemoteScopedComposition(unittest.TestCase):
                                    self.clang, self.sdk, ar_driver=Path('/owned/bin/ar'))
         self.assertEqual(plan[-1], archive)
 
+    def release_archive_plan(self, archive):
+        output = '\n'.join(shlex.join(c) for c in self.commands + [archive])
+        return MODULE.commands_for(output, self.home, self.emission, self.stage,
+                                   self.clang, self.sdk, ar_driver=Path('/owned/bin/ar'))
+
+    def release_archive(self):
+        return ['/owned/bin/ar', '-r', '-c', '-s',
+                str(self.emission / 'native/release/build/libruntime-original.a'),
+                *[str(self.emission / ('runtime-' + name + '.o'))
+                  for name in sorted(MODULE.RUNTIME_NAMES)],
+                str(self.home / 'lib/moonbit_simdutf.o'), str(self.home / 'lib/simdutf.o')]
+
+    def test_release_runtime_keeps_the_original_pinned_utf_objects(self):
+        archive = self.release_archive()
+        self.assertEqual(self.release_archive_plan(archive)[-1], archive)
+
+    def test_release_runtime_refuses_a_foreign_utf_object(self):
+        archive = self.release_archive()
+        archive[-1] = '/foreign/simdutf.o'
+        with self.assertRaisesRegex(ValueError, 'Foreign archive input'):
+            self.release_archive_plan(archive)
+
+    def test_pinned_utf_objects_cannot_be_added_to_an_ffi_archive(self):
+        archive = self.release_archive()
+        archive[4] = str(self.emission / 'native/release/build/platform_native/sqlite/libsqlite.a')
+        with self.assertRaisesRegex(ValueError, 'Foreign archive input'):
+            self.release_archive_plan(archive)
+
+    def test_release_runtime_refuses_missing_or_duplicate_utf_objects(self):
+        original = self.release_archive()
+        for archive in (original[:-1], original + [original[-1]]):
+            with self.subTest(archive=archive), self.assertRaisesRegex(ValueError, 'Foreign archive input'):
+                self.release_archive_plan(archive)
+
     def test_only_observed_source_path_absolutization_is_equivalent(self):
         relative = ['./src/platform_native/filesystem/filesystem_stub.c', '-o', './src/result.o', '-O0']
         absolute = [str(MODULE.ROOT / relative[0]), *relative[1:]]

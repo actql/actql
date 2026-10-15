@@ -818,6 +818,28 @@ without one, the remaining quota is conservatively consumed rather than erased.
 This accounting contract is trusted Host wiring, not result evidence or an OS
 memory limit. It does not release separately owned Store files.
 
+Backed live-child projection stays in this same Resource Owner. Its opaque
+parent access binds the original region, provider, child, delegation ticket,
+read-use and one trusted physical channel/VM/FD/domain carrier. One private sticky
+bit on the existing ticket records a successful nonzero report across all ten
+usage fields, including reservations. Later zero reports cannot erase that
+history; failed and zero-only reports do not start it. Access issuance
+and child admission are each one-shot; a lost reply cannot reissue either or
+start a zero-based accounting view after usage was already reported. Copied,
+foreign, closing and retired originals cannot begin work. The projection's
+limits are DATA, while cumulative reports apply to the same parent ticket;
+neither is a launch, Source, Model or Store grant. No backing is reserved again.
+
+Cancellation and Unknown keep the same projection and read borrow. Entered
+cleanup can report known usage after logical closing. Only the trusted physical
+Owner's actual same-runtime retirement cuts the access/projection references;
+the separate read-use return and confirmed execution-domain stop settlement
+remain required. Cold unresolved DATA cannot supply live admission. A different
+runtime must bind its actual private channel and VM before bootstrap; scalar
+Wasm `open` and equal serialized limits do not establish inherited funding.
+Additional records, resident read-use flags, callbacks, transport/control and
+workspace overlap require the original envelope, not spare bytes or a default.
+
 The private process handshake carries a snapshot of the delegated limits.
 The installed strategy application constructs its real ledger from those limits
 and exposes read-only limits and cumulative usage; the standard managed worker

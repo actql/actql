@@ -1,4 +1,18 @@
 ///|
+test "sequence temporal diagnostics separate invalid bounds settings and work" {
+  let cases : Array[(@relation.IssueKind, DiagnosticCategory)] = [
+    (Temporal(InvalidMilliseconds), InvalidInput),
+    (Temporal(InvalidLimits), InvalidConfiguration),
+    (Temporal(BudgetExceeded), CompileLimit),
+    (Temporal(UnknownOutputFields), UnclassifiedFailure),
+    (Temporal(InvalidBody), UnclassifiedFailure),
+  ]
+  for (kind, expected) in cases {
+    assert_eq(relation_diagnostic_category(kind), expected)
+  }
+}
+
+///|
 test "declaration usage limits retain their meaning from the existing Owner" {
   let identity = local_identity_fixture()
   let inventory = @references.usage_inventory(
