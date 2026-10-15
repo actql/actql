@@ -12,6 +12,7 @@ import {fileURLToPath} from 'node:url';
 import {promisify} from 'node:util';
 import {blankGridRows, columns, errorGridRows, expectedRows, sheetsRoutes}
   from './sheets-api.fixture.mjs';
+import {rangeProgram} from './sheets-range-program.fixture.mjs';
 
 export async function registerSheetsAcceptance({connect, connectEmbeddedLocal,
   openInstalledRemoteHttpHost, publishInstalledSource, publishInstalledEffect,
@@ -240,25 +241,6 @@ async function approvedAppend(setup, rows) {
   return initial.execution;
 }
 const row = {text: '=literal e\u0301\r\n', number: 0, flag: false};
-
-function rangeProgram(contract, rows) {
-  const rowFields = {text: {type: 'string', nullable: false},
-    number: {type: 'number', nullable: false}, flag: {type: 'boolean', nullable: false}};
-  return JSON.stringify({version: 'actql/0.1', id: 'sheets-range-update', stages: [{
-    id: 'capture', inputs: {range: {connector: 'sheet-book', resource: 'range_target'}},
-    steps: [{filter: 'true', as: 'scanned'}, {select: ['target'], as: 'out'}],
-    results: {r: {from: 'out', fields: ['target']}},
-  }, {id: 'replace', inputs: {captured: {result: {stage: 'capture', result: 'r'}}},
-    steps: [{values: {schema: {rows: {type: 'array', nullable: false, max_items: 2,
-      items: {type: 'object', nullable: false, additional_properties: false, fields: rowFields}}},
-    rows: [{rows}]}, as: 'values'},
-    {from: 'values', cross_join: {with: 'captured', max_output_rows: 1,
-      select: {target: 'right.target', rows: 'left.rows'}}, as: 'out'}],
-    results: {r: {from: 'out', fields: ['target', 'rows']}, answer: {from: 'out', fields: ['rows']}},
-    effects: {replace: {command: {from: {result: 'r'}, target: {field: 'target'}, contract,
-      input: {rows: {field: 'rows'}}}}},
-  }], results: {answer: {from: {stage: 'replace', result: 'answer'}}}});
-}
 
 test('Sheets range Command uses the real Local and HTTPS approval owners and original saved request', async t => {
   const rows = [row, {...row, text: 'second', number: -2.5, flag: true}];

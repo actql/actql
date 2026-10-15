@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {inspect} from 'node:util';
 import * as provider from '../../../../_build/js/release/build/connectors/sheets/host_node/host_node.js';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -10,6 +11,7 @@ import {checkInstalledSheetsSourceProfile, checkInstalledSheetsEffectProfile}
   from '../host/installed-sheets.mjs';
 import {createSheetsRangeDriver, sheetsRangeCommand, sheetsRangeReference,
   withSheetsRangeCommand} from '../host/sheets-range-command.mjs';
+import {rangeProgram} from './sheets-range-program.fixture.mjs';
 
 const site = {apiOrigin: 'https://sheets.example.test', spreadsheetId: 'book',
   gridRange: {sheetId: 7, startRow: 2, endRow: 4, startColumn: 1, endColumn: 3},
@@ -75,6 +77,34 @@ test('Sheets range Catalog and bounded Command input reach the existing common c
   assert.equal(range.command.minimum_approval, 'required');
   assert.equal(range.command.target.resource_kind, 'sheet_range');
   assert.equal(range.command.idempotency.support, 'unsupported');
+});
+
+test('Sheets range authored Program reaches the existing effect preparation and compiler', () => {
+  const columns = [{name: 'text', type: 'string', nullable: false},
+    {name: 'number', type: 'number', nullable: true},
+    {name: 'flag', type: 'boolean', nullable: true}];
+  const range = sheetsRangeCommand(profile.connectorId, {...site,
+    gridRange: {...site.gridRange, endColumn: 4}, columns});
+  const schema = {target: {type: 'resource_ref', resource_kind: 'sheet_range', nullable: false}};
+  const declaration = checked(common.clientProgramRowSourceRestoreRelationDeclaration(
+    profile.connectorId, 'sheets', 'sheets/0.1', JSON.stringify({views: [{resource: 'range_target',
+      resource_kind: 'sheet_range', schema_wire: canonicalJson(schema), schema_cid: contentCid(schema)}]}), undefined));
+  const declared = withSheetsRangeCommand(
+    JSON.parse(common.clientProgramRowSourceDeclarationJson(declaration)), range);
+  const base = readFileSync(new URL('../../../../spec/local-check-environment.json', import.meta.url), 'utf8');
+  const {evidence_bundle_cid: _, ...body} = JSON.parse(rowSourceCheckEnvironment(base, declared).wire);
+  body.command_contracts = [range.command];
+  const cid = contentCid(body);
+  const environment = common.clientProgramCheckEnvironment(
+    canonicalJson({...body, evidence_bundle_cid: cid}), cid, false, false, true, false, false, false, false);
+  const rows = [{text: '=literal e\u0301\r\n', number: 0, flag: false},
+    {text: 'second', number: -2.5, flag: true}];
+  const outcome = common.clientProgramPrepareEffectComputationWithParameters(
+    rangeProgram(range.command.command_id, rows, profile.connectorId), 'json', environment, undefined, []);
+  const prepared = common.clientProgramEffectPreparationReady(outcome);
+  assert(prepared, inspect(common.clientProgramEffectPreparationIssue(outcome), {depth: 6}));
+  const compiled = checked(common.clientProgramCompileLocalEffects(prepared));
+  assert.deepEqual(common.clientProgramEffectCompilationResultNames(compiled), ['answer']);
 });
 
 test('Sheets range request binds original literal values exact rectangle and original Ref', () => {
