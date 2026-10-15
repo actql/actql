@@ -296,7 +296,8 @@ test "backed live child retirement separates reference read and confirmed stop a
   settle_backed_execution_after_owner_ack(region, provider, child, ticket, None).unwrap()
   assert_eq(shared_allocation_usage(allocation).readers, 1)
   assert_eq(ledger_usage(ledger).planning_work, 4)
-  assert_eq(ledger_usage(ledger).attempts, 3)
+  // Arena reservation1 + original child provisioning1 + unknown child quota2.
+  assert_eq(ledger_usage(ledger).attempts, 4)
   assert_eq(ledger_usage(ledger).transferred_bytes, 3L)
   assert_eq(ledger_usage(ledger).uncertain_transfer_bytes, 7L)
 }
