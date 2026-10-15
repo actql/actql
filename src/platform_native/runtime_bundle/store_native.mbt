@@ -953,30 +953,76 @@ fn decode_component_copy(
 }
 
 ///|
+// Caller-selected physical decode limits only narrow the original Store.
+// They are not catalog-entry semantics, authorization or a funding proof.
+fn positive_catalog_json_limits(limits : @decode.Limits) -> Bool {
+  limits.max_nodes > 0 &&
+  limits.max_depth > 0 &&
+  limits.max_string_bytes > 0 &&
+  limits.max_total_string_bytes > 0
+}
+
+///|
+fn catalog_json_limits(
+  store : NativeRuntimeBundleStore,
+  selected : @decode.Limits?,
+) -> Result[@decode.Limits, NativeRuntimeBundleStoreIssue] {
+  let original : @decode.Limits = {
+    max_nodes: store.max_record_bytes,
+    max_depth: 5,
+    max_string_bytes: store.max_record_bytes,
+    max_total_string_bytes: store.max_record_bytes,
+  }
+  guard selected is Some(caller) else { return Ok(original) }
+  guard positive_catalog_json_limits(caller) else {
+    return Err(InvalidConfiguration)
+  }
+  Ok({
+    max_nodes: Int::min(caller.max_nodes, original.max_nodes),
+    max_depth: Int::min(caller.max_depth, original.max_depth),
+    max_string_bytes: Int::min(
+      caller.max_string_bytes,
+      original.max_string_bytes,
+    ),
+    max_total_string_bytes: Int::min(
+      caller.max_total_string_bytes,
+      original.max_total_string_bytes,
+    ),
+  })
+}
+
+///|
 fn admit_catalog(
   store : NativeRuntimeBundleStore,
   revision : Int64,
   bytes : Bytes,
+  json_limits? : @decode.Limits? = None,
+  max_input_bytes? : Int? = None,
 ) -> Result[NativeRuntimeBundleCatalog, NativeRuntimeBundleStoreIssue] {
+  let limits = match catalog_json_limits(store, json_limits) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let byte_limit = match max_input_bytes {
+    Some(value) => Int::min(value, store.max_record_bytes)
+    None => store.max_record_bytes
+  }
+  // Reject before UTF8/String/Node materialization, not after a partial parse.
+  if bytes.length() > byte_limit {
+    return Err(StateCollision)
+  }
   try {
     let body = @utf8.decode(bytes) catch { _ => raise NativeBundleCatalogStop }
     let node = match
       @source.parse_json_bytes(bytes, {
-        max_input_bytes: store.max_record_bytes,
-        max_nodes: store.max_record_bytes,
-        max_depth: 5,
+        max_input_bytes: byte_limit,
+        max_nodes: limits.max_nodes,
+        max_depth: limits.max_depth,
       }) {
       Ok(value) => value
       Err(_) => raise NativeBundleCatalogStop
     }
-    let cursor = decoded(
-      @decode.admit(node, {
-        max_nodes: store.max_record_bytes,
-        max_depth: 5,
-        max_string_bytes: store.max_record_bytes,
-        max_total_string_bytes: store.max_record_bytes,
-      }),
-    )
+    let cursor = decoded(@decode.admit(node, limits))
     let open = decoded(@decode.open_object(cursor))
     let version = text(open, "version")
     if version != "actql-native-runtime-bundle-catalog/0.1" {
@@ -1139,8 +1185,11 @@ fn admit_store_catalog(
   store : NativeRuntimeBundleStore,
   revision : Int64,
   bytes : Bytes,
+  json_limits? : @decode.Limits? = None,
+  max_input_bytes? : Int? = None,
 ) -> Result[NativeRuntimeBundleCatalog, NativeRuntimeBundleStoreIssue] {
-  let catalog = match admit_catalog(store, revision, bytes) {
+  let catalog = match
+    admit_catalog(store, revision, bytes, json_limits~, max_input_bytes~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -1192,12 +1241,21 @@ fn require_open(
 fn load_catalog(
   store : NativeRuntimeBundleStore,
   max_body_bytes? : Int64? = None,
+  json_limits? : @decode.Limits? = None,
 ) -> Result[NativeRuntimeBundleCatalog, NativeRuntimeBundleStoreIssue] {
   match require_open(store) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let read = match max_body_bytes {
+  // Validate explicit limits before the original SQLite Owner performs I/O.
+  if json_limits is Some(limits) && !positive_catalog_json_limits(limits) {
+    return Err(InvalidConfiguration)
+  }
+  let body_limit = match max_body_bytes {
+    Some(limit) => Some(Int64::min(limit, store.max_record_bytes.to_int64()))
+    None => None
+  }
+  let read = match body_limit {
     Some(limit) =>
       store.database.read_with_body_limit("runtime_bundle", "catalog", limit)
     None => store.database.read("runtime_bundle", "catalog")
@@ -1206,7 +1264,14 @@ fn load_catalog(
     Ok(value) => value
     Err(issue) => return Err(Database(issue))
   }
-  let catalog = match admit_store_catalog(store, value.revision, value.body) {
+  let catalog = match
+    admit_store_catalog(
+      store,
+      value.revision,
+      value.body,
+      json_limits~,
+      max_input_bytes=body_limit.map(fn(limit) { limit.to_int() }),
+    ) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -2683,8 +2748,9 @@ fn NativeRuntimeBundleStore::active_entry_for_binding(
   self : NativeRuntimeBundleStore,
   binding : NativeActiveRuntimeBinding,
   max_body_bytes? : Int64? = None,
+  json_limits? : @decode.Limits? = None,
 ) -> Result[NativeRuntimeBundleEntry, NativeRuntimeBundleStoreIssue] {
-  let catalog = match load_catalog(self, max_body_bytes~) {
+  let catalog = match load_catalog(self, max_body_bytes~, json_limits~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -2772,14 +2838,21 @@ pub fn NativeRuntimeBundleStore::verify_active_component_binding(
 ///|
 /// Apply the caller's physical read ceiling before SQLite copies the catalog.
 /// The original database limit and every generation/component/process-hold
-/// check remain in force. A size refusal is not a missing or released bundle.
+/// check remain in force. Optional positive JSON limits narrow Source parsing
+/// and Decode admission together; omitted limits preserve the old caller.
+/// A refusal is not a missing or released bundle.
 pub fn NativeRuntimeBundleStore::verify_active_component_binding_with_body_limit(
   self : NativeRuntimeBundleStore,
   binding : NativeActiveRuntimeBinding,
   max_body_bytes : Int64,
+  json_limits? : @decode.Limits? = None,
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
   match
-    self.active_entry_for_binding(binding, max_body_bytes=Some(max_body_bytes)) {
+    self.active_entry_for_binding(
+      binding,
+      max_body_bytes=Some(max_body_bytes),
+      json_limits~,
+    ) {
     Ok(_) => Ok(())
     Err(issue) => Err(issue)
   }
