@@ -38,4 +38,3 @@ export async function lookupExistingCancellation(client, input, ticket) {
       answer.kind==='found' && !sameRun(answer.cancellation.ref,ref)) reject();
   return answer;
 }
-
