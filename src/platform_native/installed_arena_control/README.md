@@ -115,4 +115,3 @@ no worker or VM. Regular generated C must establish callback prototypes and
 managed reference ownership before a transport shim is linked. The complete
 pre-spawn supplier, numerical profile, actual VM and installed Python product
 acceptance remain separate; this entry does not bypass their refusals.
-
