@@ -6,6 +6,9 @@ fn original_io_consumer_fixture(
   ready : Ref[Bool],
   io_closed : Ref[Bool],
   release : Ref[Bool],
+  terminal? : @model.ModelPhysicalCallPoll = @model.PhysicalResponse(
+    async_response_observation(None),
+  ),
 ) -> (
   Execution,
   Int64,
@@ -16,12 +19,19 @@ fn original_io_consumer_fixture(
     (@resources.Ledger, @publication_host.ClientModelReadPreparation)?,
   ] = Ref(None)
   let call : Ref[@model.ModelPhysicalCall?] = Ref(None)
-  let response = @model.PhysicalResponse(async_response_observation(None))
+  let response = terminal
   let (active, work) = async_response_fixture(
-    calls, Ref(0), Ref(0), [], Ref(true), release, response,
+    calls,
+    Ref(0),
+    Ref(0),
+    [],
+    Ref(true),
+    release,
+    response,
     prepare_original=Some(active => {
       let (ledger, read) = original_preparation_test_read(
-        active, quantities=Some(active.quantity_capacity.unwrap().limits),
+        active,
+        quantities=Some(active.quantity_capacity.unwrap().limits),
       )
       bind_original_model_preparation(active, read, 100L, 5L).unwrap()
       original.val = Some((ledger, read))
@@ -38,6 +48,89 @@ fn original_io_consumer_fixture(
   )
   let (ledger, read) = original.val.unwrap()
   (active, work, ledger, read)
+}
+
+///|
+test "original Model IO binding refuses a fresh fixture Ledger and cancels before claim" {
+  let installation = Ref(0)
+  let admission = @resources.issue_model_io_admission(installation, 1, 1).unwrap()
+  let access = @resources.issue_model_io_access(admission, installation).unwrap()
+  let calls = Ref(0)
+  let (ordinary, _) = async_response_fixture(
+    calls,
+    Ref(0),
+    Ref(0),
+    [],
+    Ref(true),
+    Ref(true),
+    @model.PhysicalUnknown({ input_tokens: None, output_tokens: None, }),
+  )
+  assert_true(
+    @model.bind_prepared_model_io_access(
+      prepared_call_set(ordinary).unwrap(),
+      access,
+    )
+    is Err(_),
+  )
+  async_io_stop_and_cleanup(ordinary)
+  let (original, _, ledger, read) = original_io_consumer_fixture(
+    calls,
+    Ref(false),
+    Ref(false),
+    Ref(true),
+  )
+  @model.bind_prepared_model_io_access(
+    prepared_call_set(original).unwrap(),
+    access,
+  ).unwrap()
+  async_io_stop_and_cleanup(original)
+  assert_eq(calls.val, 0)
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 0)),
+  )
+  original_preparation_test_release(ledger, read)
+  assert_true(@resources.close_model_io_access(access).unwrap())
+}
+
+///|
+test "original Model Unknown IO close cannot issue holding settlement or repeat cleanup" {
+  let installation = Ref(0)
+  let admission = @resources.issue_model_io_admission(installation, 1, 1).unwrap()
+  let access = @resources.issue_model_io_access(admission, installation).unwrap()
+  let calls = Ref(0)
+  let (original, work, ledger, _) = original_io_consumer_fixture(
+    calls,
+    Ref(true),
+    Ref(true),
+    Ref(true),
+    terminal=@model.PhysicalUnknown({ input_tokens: None, output_tokens: None, }),
+  )
+  @model.bind_prepared_model_io_access(
+    prepared_call_set(original).unwrap(),
+    access,
+  ).unwrap()
+  assert_true(fixture_finish(original, initial_work=work) is Failed(_, ..))
+  assert_eq(calls.val, 1)
+  let before = @resources.ledger_usage(ledger)
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 1)),
+  )
+  // Physical cleanup alone is not the original Store/Journal settlement ACK.
+  // Preserve this intentionally unresolved in-memory double, not a live IO/DB.
+  assert_false(cleanup(original).unwrap())
+  assert_false(cleanup(original).unwrap())
+  assert_eq(calls.val, 1)
+  assert_eq(
+    @resources.ledger_usage(ledger).reserved_retention_bytes,
+    before.reserved_retention_bytes,
+  )
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 1)),
+  )
+  assert_false(@resources.close_model_io_access(access).unwrap())
 }
 
 ///|
@@ -63,20 +156,30 @@ test "original Model shared IO admission keeps two Run holding separate from IO 
   let first_set = prepared_call_set(first).unwrap()
   @model.bind_prepared_model_io_access(first_set, access).unwrap()
   assert_true(@model.bind_prepared_model_io_access(first_set, access) is Err(_))
-  @model.bind_prepared_model_io_access(prepared_call_set(second).unwrap(), access).unwrap()
+  @model.bind_prepared_model_io_access(
+    prepared_call_set(second).unwrap(),
+    access,
+  ).unwrap()
   guard fixture_finish(first, initial_work=first_work) is AwaitIo(work=waiting) else {
     abort("first original IO is pending")
   }
   assert_eq(first_calls.val, 1)
-  assert_eq(@resources.model_io_admission_counts(admission, installation), Some((1, 1)))
-  guard fixture_finish(second, initial_work=second_work) is AwaitIo(work=blocked) else {
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((1, 1)),
+  )
+  guard fixture_finish(second, initial_work=second_work)
+    is AwaitIo(work=blocked) else {
     abort("second Run must await shared capacity before Entry")
   }
   assert_eq(second_calls.val, 0)
   async_assert_wait(second, blocked)
   first_io.val = true
   async_assert_wait(first, waiting)
-  assert_eq(@resources.model_io_admission_counts(admission, installation), Some((0, 1)))
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 1)),
+  )
   // Quiescent inner Pending does not return Store/Journal/SDK holding.
   async_assert_wait(second, blocked)
   assert_eq(second_calls.val, 0)
@@ -84,27 +187,45 @@ test "original Model shared IO admission keeps two Run holding separate from IO 
   guard fixture_finish(first, initial_work=waiting) is Settling(0, work=settled) else {
     abort("original response awaits Store settlement")
   }
-  assert_eq(@resources.model_io_admission_counts(admission, installation), Some((0, 1)))
-  assert_true(@model.acknowledge_model_call_settlement(call_settlement(first).unwrap()))
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 1)),
+  )
+  assert_true(
+    @model.acknowledge_model_call_settlement(call_settlement(first).unwrap()),
+  )
   async_assert_wait(first, settled)
   async_assert_wait(second, blocked)
   assert_eq(second_calls.val, 0)
   // Even acknowledged persistence cannot return failed physical/SDK cleanup.
-  assert_eq(@resources.model_io_admission_counts(admission, installation), Some((0, 1)))
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 1)),
+  )
   first_release.val = true
   async_io_stop_and_cleanup(first)
-  assert_eq(@resources.model_io_admission_counts(admission, installation), Some((0, 0)))
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 0)),
+  )
   assert_eq(first_calls.val, 1)
   original_preparation_test_release(first_ledger, first_read)
   assert_true(fixture_finish(second, initial_work=blocked) is AwaitIo(..))
   assert_eq(second_calls.val, 1)
   second_io.val = true
   second_ready.val = true
-  assert_true(fixture_finish(second, initial_work=second.work) is Settling(0, ..))
-  assert_true(@model.acknowledge_model_call_settlement(call_settlement(second).unwrap()))
+  assert_true(
+    fixture_finish(second, initial_work=second.work) is Settling(0, ..),
+  )
+  assert_true(
+    @model.acknowledge_model_call_settlement(call_settlement(second).unwrap()),
+  )
   second_release.val = true
   async_io_stop_and_cleanup(second)
   original_preparation_test_release(second_ledger, second_read)
-  assert_eq(@resources.model_io_admission_counts(admission, installation), Some((0, 0)))
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 0)),
+  )
   assert_true(@resources.close_model_io_access(access).unwrap())
 }
