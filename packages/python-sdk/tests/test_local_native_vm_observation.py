@@ -5,7 +5,7 @@ import pickle
 from unittest.mock import patch
 import unittest
 
-from actql_sdk._local_native_holding import NativeHoldingRetirementError
+from actql_sdk._local_native_holding import NativeHoldingRetirementError, NativeHoldingScopeError
 from actql_sdk._local_native_vm import _OriginalVMObservation
 import test_local_installed_image as fixture
 
@@ -125,6 +125,15 @@ class NativeVMObservationTests(unittest.TestCase):
         self.assertEqual([name for name, _ in self.calls], ['open'])
         self.assertTrue(self.core._closing)
         self.assertIs(self.core._physical_vm_observation, self.observation)
+
+    def test_membership_scope_leave_failure_does_not_execute_guest(self):
+        self.library.scope.leave_replies = [-1]
+        with self.assertRaises(NativeHoldingScopeError): self.core._call('buffer', 'close_pool')
+        self.assertEqual([name for name, _ in self.calls], ['open'])
+        self.assertTrue(self.core._closing)
+        self.assertIs(self.core._physical_holding, self.holding)
+        self.assertIs(self.core._physical_vm_observation, self.observation)
+        self.assertFalse(any(event[0] == 'retire' for event in self.case.events))
 
     def test_store_failure_retains_observation_and_original_cleanup(self):
         self.core._store.failures = 1
