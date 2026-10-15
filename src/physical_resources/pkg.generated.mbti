@@ -381,19 +381,11 @@ pub(all) enum BackedExecutionIssue {
 } derive(Eq, @debug.Debug)
 
 pub struct BackedExecutionLiveAccess[P, C, R] {
-  mut original : BackedExecutionLiveAccess[P, C, R]?
-  mut region : BackedExecutionRegion[P, C]?
-  mut provider : P?
-  mut child : C?
-  mut ticket : BackedExecutionDelegation[P, C]?
-  mut read_use : BackedExecutionReadUse[P, C]?
-  mut runtime : R?
-  mut projection : BackedExecutionLiveProjection[P, C, R]?
-  mut closing : Bool
+  // private fields
 }
 
 pub struct BackedExecutionLiveProjection[P, C, R] {
-  mut access : BackedExecutionLiveAccess[P, C, R]?
+  // private fields
 }
 
 pub(all) struct BackedExecutionOriginalData {
@@ -421,8 +413,7 @@ pub struct BackedExecutionReadUse[P, C] {
   mut ticket : BackedExecutionDelegation[P, C]?
   mut borrow : SharedBorrow?
   mut closing : Bool
-  mut live_access_issued : Bool
-  mut live_access_pending : Bool
+  // private fields
 }
 
 pub(all) enum BackedExecutionReadUseData {
