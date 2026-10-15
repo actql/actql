@@ -94,6 +94,7 @@ fn load_holder_effect_host_operator(
   setup_profile? : HolderEffectHostSetupProfile? = None,
   preparation? : HolderEffectPreparationCapacity? = None,
   read_installation? : HolderEffectHostReadInstallation? = None,
+  read_parent? : HolderEffectHostReadParentInstallation? = None,
 ) -> HolderEffectHostOperatorInstallation? raise CommandStop {
   let selected = match
     holder_effect_host_root(matches.values.get("effect-host-account-root")) {
@@ -130,6 +131,15 @@ fn load_holder_effect_host_operator(
   if !holder_effect_host_read_scope_current(scope) {
     ignore(leave_holder_effect_host_read_scope(scope))
     stop("Effect Host setup current binding unavailable")
+  }
+  let read_installation = match (read_installation, read_parent) {
+    (Some(_), Some(_)) => {
+      ignore(leave_holder_effect_host_read_scope(scope))
+      stop("Effect Host original Native read installation ambiguous")
+    }
+    (None, Some(selected)) =>
+      prepare_holder_effect_host_read_parent(scope, slot, selected)
+    (value, None) => value
   }
   if !install_holder_effect_host_read_domain(scope, slot, read_installation) {
     ignore(leave_holder_effect_host_read_scope(scope))
