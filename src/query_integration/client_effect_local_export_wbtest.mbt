@@ -342,6 +342,7 @@ fn local_effect_open_run(
 fn local_effect_execute_managed_values(
   prepared : @publication_host.PreparedClientEffectComputation,
   run : @strategy.CapturedDAG,
+  generated? : @execution.GeneratedSequence? = None,
 ) -> (
   @local_driver.LocalManagedDispatchOperations[Int],
   @execution.ManagedCompletedOutput[Int],
@@ -349,7 +350,9 @@ fn local_effect_execute_managed_values(
 ) raise {
   let registry = search_registry()
   let dispatch = dispatch_test_limits()
-  let generated = @publication_host.prepare_client_effect_task_sequence(
+  let generated = match generated {
+    Some(sequence) => sequence
+    None => @publication_host.prepare_client_effect_task_sequence(
     prepared,
     0,
     registered_relation_contracts(),
@@ -370,7 +373,8 @@ fn local_effect_execute_managed_values(
     },
     100000,
     10000,
-  ).unwrap()
+    ).unwrap()
+  }
   let modules = @builtin.configure_compute_modules(
     @host_driver.open_dispatch_driver(run),
     registry,

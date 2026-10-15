@@ -10,9 +10,10 @@ const ok = value => ({$tag: 1, _0: value});
 const vector = (...cids) => Object.freeze(cids.map((sourceBindingCid, memberIndex) =>
   Object.freeze({memberIndex, sourceBindingCid})));
 
-function fixture({views = [0, 0], capacity = 20, failAppend, failRelease} = {}) {
+function fixture({views = [0, 0], extraResults = [], capacity = 20, failAppend, failRelease} = {}) {
   const events = {writers: [], bindings: [], manifests: [], comparisons: 0};
   const inputs = views.map((view, memberIndex) => ({view, memberIndex}));
+  const localResults = [...new Set([...views, ...extraResults])].map(view => ({view}));
   const moon = {
     clientProgramEffectInputCount: () => inputs.length,
     clientProgramEffectInputsShareView: (_, left, right) => {
@@ -22,6 +23,15 @@ function fixture({views = [0, 0], capacity = 20, failAppend, failRelease} = {}) 
     clientProgramEffectInputAt: (_, index) => inputs[index],
     clientProgramEffectInputStage: () => 0,
     clientProgramEffectResultImportCount: () => 0,
+    clientProgramEffectLocalResultCount: () => localResults.length,
+    clientProgramEffectLocalResultAt: (_, index) => localResults[index],
+    clientProgramEffectLocalResultStage: () => 0,
+    clientProgramEffectLocalResultTask: input => input,
+    clientProgramEffectLocalResultName: input => String(input.view),
+    clientProgramEffectLocalResultMatchesMember: (_, result, member) =>
+      localResults[result].view === inputs[member].view,
+    clientProgramIssueLocalEffectResultDefinition: (_, __, name) => ok({view: Number(name)}),
+    clientProgramEffectLocalManagedInputBegin: input => ok({input}),
     clientProgramEffectInputTask: input => input,
     clientProgramIssueCapturedEffectInputLocalResultDefinition: (_, __, index) =>
       ok({view: inputs[index].view}),
@@ -98,8 +108,14 @@ function fixture({views = [0, 0], capacity = 20, failAppend, failRelease} = {}) 
     issueSourceFreeLocalEffectResultArtifact(_, __, index) {
       return Object.freeze({identity: `result-${inputs[index].view}`, wire: '{}'});
     },
+    issueSourceFreeExportedLocalEffectResultArtifact(_, __, importing, definition) {
+      return Object.freeze({identity: `result-${definition.view}`, wire: '{}'});
+    },
     issueLocalEffectResultManifest(_, invocation, artifacts) {
       assert.equal(new Set(artifacts.map(value => value.identity)).size, artifacts.length);
+      assert.deepEqual(artifacts.map(value => value.identity).sort(),
+        localResults.map(value => `result-${value.view}`).sort(),
+        'A Unit Manifest includes declared Results that no Effect consumes');
       events.manifests.push(artifacts);
       return Object.freeze({identity: 'manifest', wire: '{}'});
     },
@@ -115,6 +131,18 @@ function fixture({views = [0, 0], capacity = 20, failAppend, failRelease} = {}) 
   };
   return {options, events};
 }
+
+test('ordinary-only Effects complete the Manifest with an earlier unconsumed Result', async () => {
+  const {options, events} = fixture({views: [1], extraResults: [0]});
+  const sources = await preparePinnedEffectSourceSet(options);
+  assert.equal(sources.members.length, 1);
+  assert.equal(sources.payloads.length, 1);
+  assert.deepEqual(events.manifests[0].map(value => value.identity), ['result-1', 'result-0']);
+  assert.deepEqual(events.writers.map(value => value.pending), [true, false],
+    'Only temporary Manifest export custody is released before returning the member');
+  await sources.payloads[0].prepared.release();
+  assert.deepEqual(events.writers.map(value => value.pending), [false, false]);
+});
 
 test('same live Result and different original bindings retain separate prepared owners', async () => {
   const {options, events} = fixture();
