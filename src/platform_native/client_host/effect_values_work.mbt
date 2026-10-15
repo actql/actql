@@ -23,7 +23,6 @@ pub(all) enum NativeClientEffectValuesWorkIssue {
   Journal(NativeClientRunJournalIssue)
   Start(NativeClientSourceWorkIssue)
   Normalization(@host.ClientEffectNormalizationIssue)
-  Binding(@host.ClientEffectCompiledRunIssue)
   Execution(@local.LocalValuesExecutionIssue)
 }
 
@@ -66,6 +65,7 @@ fn open_native_client_effect_values_work(
   journal : NativeClientRunJournal,
   request : @host.ClientRequestIdentity,
   materials : @host.ClientEffectRunMaterials,
+  bound : @host.PreparedClientEffectRun,
   captured : @strategy.CapturedEffectRunDAG,
   registry_body : String,
   values_body : String,
@@ -86,14 +86,25 @@ fn open_native_client_effect_values_work(
   if normalization is Err(issue) {
     return Err(effect_values_work_failure(Normalization(issue)))
   }
-  let bound = match
-    @host.bind_client_effect_compiled_run(
+  // The first opaque Run binding is a nominal original. Rebinding the same
+  // bytes makes a different Owner and cannot replace the captured binding.
+  let owner = @strategy.checked_effect_run_owner(
+    @host.prepared_client_effect_run_graph(bound),
+  )
+  if !physical_equal(
+      @host.prepared_client_effect_run_computation(bound),
       materials.prepared,
-      materials.allowed,
-      materials.run_definition,
-    ) {
-    Ok(value) => value
-    Err(issue) => return Err(effect_values_work_failure(Binding(issue)))
+    ) ||
+    !physical_equal(owner, @strategy.captured_effect_run_owner(captured)) ||
+    !physical_equal(
+      @checked.effect_program_run_admission(owner),
+      @host.client_effect_allowed_run_admission(materials.allowed),
+    ) ||
+    @publication.publication_contract_json(
+      @checked.effect_program_run_definition(owner),
+    ) !=
+    @publication.publication_contract_json(materials.run_definition) {
+    return Err(effect_values_work_failure(ForeignMaterials))
   }
   if finalization_quantum <= 0 || max_finalization_rounds <= 0 {
     return Err(effect_values_work_failure(Execution(InvalidLimits)))
@@ -140,14 +151,8 @@ fn open_native_client_effect_values_work(
     return Err(effect_values_work_failure(Configuration))
   }
   let run = @strategy.captured_effect_run_dag(captured)
-  let (_, start) = match
-    claim_native_client_effect_work_start(
-      journal,
-      request,
-      materials.allowed,
-      materials.run_definition,
-      current,
-    ) {
+  let start = match
+    claim_native_client_retained_work_first_start(journal, request, current) {
     Ok(value) => value
     Err(issue) => {
       stop_unstarted_values_setup(run)
@@ -183,6 +188,7 @@ fn open_native_client_effect_values_work(
   let work : NativeClientEffectValuesWork = {
     start,
     materials,
+    bound,
     captured,
     execution,
     current_time,
@@ -208,6 +214,7 @@ pub fn NativeLocalHostConnection::open_effect_values_work(
   connection : String,
   request : @host.ClientRequestIdentity,
   materials : @host.ClientEffectRunMaterials,
+  bound : @host.PreparedClientEffectRun,
   captured : @strategy.CapturedEffectRunDAG,
   registry_body : String,
   values_body : String,
@@ -233,6 +240,7 @@ pub fn NativeLocalHostConnection::open_effect_values_work(
     self.journal,
     request,
     materials,
+    bound,
     captured,
     registry_body,
     values_body,

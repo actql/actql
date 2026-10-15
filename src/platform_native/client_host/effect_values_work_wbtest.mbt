@@ -1,6 +1,9 @@
 ///|
 // Static phases only: no raw issue payload, row, wire, key or stack is emitted.
-fn[T, E] effect_values_work_test_ok(value : Result[T, E], phase : String) -> T raise {
+fn[T, E] effect_values_work_test_ok(
+  value : Result[T, E],
+  phase : String,
+) -> T raise {
   match value {
     Ok(value) => value
     Err(_) => fail("effect-values fixture: " + phase)
@@ -26,7 +29,6 @@ fn effect_values_work_test_opened(
         Journal(_) => "Journal"
         Start(_) => "Start"
         Normalization(_) => "Normalization"
-        Binding(_) => "Binding"
         Execution(_) => "Execution"
       }
       failure.close() |> ignore
@@ -51,7 +53,11 @@ fn effect_values_work_test_original(
   request : @host.ClientRequestIdentity,
   allowed : @host.ClientEffectAllowedRun,
   definition : @publication.PublicationContract,
-) -> (@host.ClientEffectRunMaterials, @strategy.CapturedEffectRunDAG) raise {
+) -> (
+  @host.ClientEffectRunMaterials,
+  @host.PreparedClientEffectRun,
+  @strategy.CapturedEffectRunDAG,
+) raise {
   let prepared = @host.client_effect_compilation_owner(allowed.compilation)
   let normalization = effect_values_work_test_ok(
     @host.issue_prepared_client_effect_normalization(prepared),
@@ -95,7 +101,7 @@ fn effect_values_work_test_original(
     @host.open_prepared_source_free_client_effect_run(bound, capacity),
     "original.run.open",
   )
-  (materials, captured)
+  (materials, bound, captured)
 }
 
 ///|
@@ -112,7 +118,7 @@ test "Native original source-free Effect Work claims and computes once on the sa
     "effect-values-original-once",
   )
   println("effect-values fixture: acceptance.complete")
-  let (materials, captured) = effect_values_work_test_original(
+  let (materials, bound, captured) = effect_values_work_test_original(
     request, allowed, definition,
   )
   let (registry, values, fragment) = effect_values_work_test_bodies()
@@ -120,6 +126,7 @@ test "Native original source-free Effect Work claims and computes once on the sa
       journal,
       request,
       materials,
+      bound,
       captured,
       registry,
       values,
@@ -152,6 +159,7 @@ test "Native original source-free Effect Work claims and computes once on the sa
     journal,
     request,
     materials,
+    bound,
     captured,
     registry,
     values,
@@ -186,7 +194,7 @@ test "Native Effect Values refuses missing normalization and expired original be
     let (database, journal, request, allowed, definition) = accepted_effect_work_fixture(
       "effect-values-original-refusal-" + missing.to_string(),
     )
-    let (original, captured) = effect_values_work_test_original(
+    let (original, bound, captured) = effect_values_work_test_original(
       request, allowed, definition,
     )
     let materials = if missing {
@@ -199,6 +207,7 @@ test "Native Effect Values refuses missing normalization and expired original be
       journal,
       request,
       materials,
+      bound,
       captured,
       registry,
       values,
@@ -243,10 +252,10 @@ test "Native Effect Values refuses foreign opaque Run without stopping or claimi
   let (second, other_journal, other_request, other_allowed, other_definition) = accepted_effect_work_fixture(
     "effect-values-foreign-second",
   )
-  let (materials, captured) = effect_values_work_test_original(
+  let (materials, bound, captured) = effect_values_work_test_original(
     request, allowed, definition,
   )
-  let (_, foreign) = effect_values_work_test_original(
+  let (_, _, foreign) = effect_values_work_test_original(
     other_request, other_allowed, other_definition,
   )
   let (registry, values, fragment) = effect_values_work_test_bodies()
@@ -254,6 +263,7 @@ test "Native Effect Values refuses foreign opaque Run without stopping or claimi
     journal,
     request,
     materials,
+    bound,
     foreign,
     registry,
     values,
@@ -265,7 +275,7 @@ test "Native Effect Values refuses foreign opaque Run without stopping or claimi
     () => true,
   ).unwrap_err()
   assert_true(
-    native_client_effect_values_work_failure_issue(failure) is Configuration,
+    native_client_effect_values_work_failure_issue(failure) is ForeignMaterials,
   )
   assert_true(failure.close())
   assert_false(
@@ -289,7 +299,7 @@ test "Native Effect Values rechecks cancellation admitted by its clock callback 
   let (database, journal, request, allowed, definition) = accepted_effect_work_fixture(
     "effect-values-clock-cancel",
   )
-  let (materials, captured) = effect_values_work_test_original(
+  let (materials, bound, captured) = effect_values_work_test_original(
     request, allowed, definition,
   )
   let (registry, values, fragment) = effect_values_work_test_bodies()
@@ -297,6 +307,7 @@ test "Native Effect Values rechecks cancellation admitted by its clock callback 
     journal,
     request,
     materials,
+    bound,
     captured,
     registry,
     values,
@@ -340,7 +351,7 @@ test "Native Effect Values uses adopted current Submit independently of Source r
       submit,
       false,
     )
-    let (materials, captured) = effect_values_work_test_original(
+    let (materials, bound, captured) = effect_values_work_test_original(
       request, allowed, definition,
     )
     let (registry, values, fragment) = effect_values_work_test_bodies()
@@ -350,6 +361,7 @@ test "Native Effect Values uses adopted current Submit independently of Source r
       "cli",
       request,
       materials,
+      bound,
       captured,
       registry,
       values,
@@ -383,7 +395,7 @@ test "Native Effect Values terminal capture fence observes cleanup performed ins
   let (database, journal, request, allowed, definition) = accepted_effect_work_fixture(
     "effect-values-terminal-lifetime",
   )
-  let (materials, captured) = effect_values_work_test_original(
+  let (materials, bound, captured) = effect_values_work_test_original(
     request, allowed, definition,
   )
   let (registry, values, fragment) = effect_values_work_test_bodies()
@@ -392,6 +404,7 @@ test "Native Effect Values terminal capture fence observes cleanup performed ins
       journal,
       request,
       materials,
+      bound,
       captured,
       registry,
       values,
