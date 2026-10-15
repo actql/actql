@@ -60,14 +60,36 @@ int main(int argc, char **argv) {
     assert(argc == 3);
     const char *name = argv[1], *path = argv[2];
     original value = fresh();
+    assert(!actql_native_sqlite_selected_current_scope());
+    assert(!actql_native_sqlite_library_acquired(NULL));
     if (!strcmp(name, "missing-current")) {
         assert(actql_native_sqlite_load_current_component((moonbit_bytes_t)path,
             (int32_t)strlen(path), 128, 32 * (int64_t)sysconf(_SC_PAGESIZE)) == NULL);
     }
     enter(value);
+    assert(actql_native_sqlite_selected_current_scope());
+    if (!strcmp(name, "missing-component")) {
+        const char *missing = "/actql/no-selected-component/library.dylib";
+        actql_native_sqlite_library *partial = actql_native_sqlite_load_current_component(
+            (moonbit_bytes_t)missing, (int32_t)strlen(missing), 128,
+            32 * (int64_t)sysconf(_SC_PAGESIZE));
+        assert(actql_native_sqlite_library_acquired(partial));
+        assert(!actql_native_sqlite_library_ready(partial));
+        assert(partial->selected_context == value.context && partial->selected_context_user);
+        /* The bounded diagnostic contract permits omission when the platform
+         * loader detail exceeds the original ceiling. Custody cannot depend
+         * on that optional detail being allocated or publicly available. */
+        assert(partial->dynamic_library == NULL);
+        assert(partial->error == NULL || strlen(partial->error) <= 128);
+        assert(actql_native_sqlite_library_close_checked(partial) == 1);
+        assert(actql_native_sqlite_library_close_checked(partial) == 1);
+        moonbit_decref(partial);
+        leave(value); finish(&value);
+        goto passed;
+    }
     actql_native_sqlite_library *library = actql_native_sqlite_load_current_component(
         (moonbit_bytes_t)path, (int32_t)strlen(path), 128, 32 * (int64_t)sysconf(_SC_PAGESIZE));
-    assert(library && actql_native_sqlite_library_ready(library));
+    assert(actql_native_sqlite_library_acquired(library) && actql_native_sqlite_library_ready(library));
     assert(library->selected_context == value.context && library->component_owned);
     assert(actql_native_owned_contains_live_span(value.lease, library, sizeof(*library)) == 0);
 
