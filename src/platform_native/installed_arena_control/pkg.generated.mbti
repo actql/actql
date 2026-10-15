@@ -26,9 +26,13 @@ pub fn capacity_usage_installed_sqlite_lookup_reply(InstalledArenaHost, Installe
 
 pub fn cleanup_installed_arena_domain_read_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
+pub fn cleanup_installed_arena_original_read_reply(InstalledArenaHost, InstalledArenaOriginalRead) -> InstalledArenaOriginalReadReply
+
 pub fn close_installed_arena_domain_read_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
 pub fn close_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
+
+pub fn close_installed_arena_original_read_reply(InstalledArenaHost, InstalledArenaOriginalRead) -> InstalledArenaOriginalReadReply
 
 pub fn close_installed_arena_reply(InstalledArenaHost) -> InstalledArenaReply
 
@@ -46,6 +50,8 @@ pub fn current_installed_arena_domain_read_reply(InstalledArenaHost, InstalledAr
 
 pub fn current_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
+pub fn current_installed_arena_original_read_reply(InstalledArenaHost, InstalledArenaOriginalRead) -> InstalledArenaOriginalReadReply
+
 pub fn current_installed_arena_reply(InstalledArenaHost) -> InstalledArenaReply
 
 pub fn current_installed_arena_sqlite_reply(InstalledArenaHost, InstalledArenaSqliteLibrary) -> InstalledArenaSqliteReply
@@ -59,6 +65,8 @@ pub fn enter_installed_arena_backing_scope_reply(InstalledArenaHost, InstalledAr
 pub fn enter_installed_arena_domain_read_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
 pub fn enter_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
+
+pub fn enter_installed_arena_original_read_reply(InstalledArenaHost, InstalledArenaOriginalRead) -> InstalledArenaOriginalReadReply
 
 pub fn fence_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase) -> InstalledArenaSqliteDatabaseReply
 
@@ -79,6 +87,8 @@ pub fn leave_installed_arena_backing_scope_reply(InstalledArenaHost, InstalledAr
 pub fn leave_installed_arena_domain_read_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
 pub fn leave_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
+
+pub fn leave_installed_arena_original_read_reply(InstalledArenaHost, InstalledArenaOriginalRead) -> InstalledArenaOriginalReadReply
 
 pub fn observe_installed_sqlite_capacity_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String) -> InstalledArenaSqliteDatabaseReply
 
@@ -101,6 +111,8 @@ pub fn prepare_installed_arena_from_primitives(String, Bytes, Int64, Int64, Int,
 pub fn prepare_installed_arena_host(String, Bytes, Int64, Int64, @physical_resources.LedgerLimits, Int64) -> Result[InstalledArenaHost, @host_bootstrap.NativeBootstrapIssue]
 
 pub fn prepare_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, Int, Int, Int, Int64) -> InstalledArenaLiveChannelReply
+
+pub fn prepare_installed_arena_original_read_reply(InstalledArenaHost, InstalledArenaDomain, Int64, Int64, Int64, Int64, Int64) -> InstalledArenaOriginalReadReply
 
 pub fn prepare_installed_arena_reply(String, Bytes, Int64, Int64, Int, Int, Int, Int64, Int64, Int64, Int64) -> InstalledArenaReply
 
@@ -294,6 +306,22 @@ pub(all) enum InstalledArenaOriginalReadIssue {
   Read(@physical_resources.OriginalReadIssue)
   Buffer(@client_host_buffers.BufferIssue)
 }
+
+pub(all) enum InstalledArenaOriginalReadOperation {
+  PrepareOriginalRead
+  ObserveOriginalRead
+  EnterOriginalRead
+  LeaveOriginalRead
+  CleanupOriginalRead
+  CloseOriginalRead
+} derive(Eq)
+
+type InstalledArenaOriginalReadReply
+pub fn InstalledArenaOriginalReadReply::issue_family(Self) -> Int
+pub fn InstalledArenaOriginalReadReply::operation_tag(Self) -> Int
+pub fn InstalledArenaOriginalReadReply::original_domain(Self) -> InstalledArenaDomain
+pub fn InstalledArenaOriginalReadReply::original_host(Self) -> InstalledArenaHost
+pub fn InstalledArenaOriginalReadReply::original_read(Self) -> InstalledArenaOriginalRead?
 
 type InstalledArenaReply
 pub fn InstalledArenaReply::issue_description(Self) -> String

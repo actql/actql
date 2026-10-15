@@ -518,6 +518,49 @@ extern "C" fn register_original_live_channel_roots(
 ) -> Unit = "actql_native_control_register_live_channel_roots"
 
 ///|
+/// Matching regular C emission determines the callback ABI before its private
+/// transport is declared or linked. Registration contains code references only.
+extern "C" fn register_original_parent_read_roots(
+  prepare : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaDomain,
+      Int64,
+      Int64,
+      Int64,
+      Int64,
+      Int64,
+    ) -> @control.InstalledArenaOriginalReadReply,
+  ],
+  current : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaOriginalRead) -> @control.InstalledArenaOriginalReadReply,
+  ],
+  enter : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaOriginalRead) -> @control.InstalledArenaOriginalReadReply,
+  ],
+  leave : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaOriginalRead) -> @control.InstalledArenaOriginalReadReply,
+  ],
+  cleanup : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaOriginalRead) -> @control.InstalledArenaOriginalReadReply,
+  ],
+  close : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaOriginalRead) -> @control.InstalledArenaOriginalReadReply,
+  ],
+  host : FuncRef[
+    (@control.InstalledArenaOriginalReadReply) -> @control.InstalledArenaHost,
+  ],
+  domain : FuncRef[
+    (@control.InstalledArenaOriginalReadReply) -> @control.InstalledArenaDomain,
+  ],
+  original : FuncRef[
+    (@control.InstalledArenaOriginalReadReply) -> @control.InstalledArenaOriginalRead?,
+  ],
+  operation : FuncRef[(@control.InstalledArenaOriginalReadReply) -> Int],
+  issue : FuncRef[(@control.InstalledArenaOriginalReadReply) -> Int],
+) -> Unit = "actql_native_control_register_parent_read_roots"
+
+///|
 fn operation_tag(reply : @control.InstalledArenaReply) -> Int {
   reply.operation_tag()
 }
@@ -878,5 +921,41 @@ fn main {
     fn(host, domain) {
       @control.close_installed_arena_domain_read_reply(host, domain)
     },
+  )
+  register_original_parent_read_roots(
+    fn(
+      host,
+      domain,
+      bootstrap_retained,
+      bootstrap_execution,
+      workspace_execution,
+      read_retained,
+      read_execution,
+    ) {
+      @control.prepare_installed_arena_original_read_reply(
+        host, domain, bootstrap_retained, bootstrap_execution, workspace_execution,
+        read_retained, read_execution,
+      )
+    },
+    fn(host, original) {
+      @control.current_installed_arena_original_read_reply(host, original)
+    },
+    fn(host, original) {
+      @control.enter_installed_arena_original_read_reply(host, original)
+    },
+    fn(host, original) {
+      @control.leave_installed_arena_original_read_reply(host, original)
+    },
+    fn(host, original) {
+      @control.cleanup_installed_arena_original_read_reply(host, original)
+    },
+    fn(host, original) {
+      @control.close_installed_arena_original_read_reply(host, original)
+    },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_domain() },
+    fn(reply) { reply.original_read() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.issue_family() },
   )
 }
