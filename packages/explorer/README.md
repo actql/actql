@@ -163,3 +163,19 @@ Cancellation acceptance is not physical stop, cleanup, Result release or a
 successful Run. The existing Run inspector observes those facts independently.
 Pause, step, resume and Sample payloads remain unavailable. This connection does
 not create a new controller, Host, scheduler, grant or durable operation store.
+
+## Checkpoint review reads
+
+The shared Checkpoint panel lists one authorized waiting Host page and explicitly
+reads the original Checkpoint's exact review projection through the public SDK.
+Listing, review reading and answering have separate current Host permissions.
+The list is independent of the selected Run; original subjects are displayed
+without a guessed Run/Logical Map join. A further cursor is retained only as an
+opaque indication and is not fetched automatically. A missing API is unavailable.
+
+Review bytes retain the Checkpoint CID and original review projection CID; the
+existing SDK verifies integrity. UTF-8 is escaped text, binary stays base64, and
+no parser invents a resolved target or Effect diff. Read refusal or scope change
+clears protected contents. This panel supplies no signer, answer, approval,
+execution, resume, new permission or durable state. It does not make the static
+Plan's unknown Preview an observed one.

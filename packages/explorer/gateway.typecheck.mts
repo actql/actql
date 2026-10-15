@@ -40,3 +40,8 @@ await browser.lookupCancellation(originalCancellation.cancelRef);
 await browser.cancel({...originalCancellation, cancelRef: {...originalCancellation.cancelRef, expectedRevision: '4'}});
 // @ts-expect-error No arbitrary Host authority or request-force field.
 await startExplorerGateway({client, allowCancellation: 'force'});
+
+// Read-only Checkpoint capabilities are separate optional SDK operations.
+declare const checkpointClient: import('@actql/sdk').Client;
+createExplorerGateway({origin:'http://127.0.0.1:43210',client:{attach:checkpointClient.attach,
+ checkpoints:checkpointClient.checkpoints,reviewCheckpoint:checkpointClient.reviewCheckpoint}});
