@@ -3,7 +3,7 @@ fn diagnostic_origin_store(
   name : String,
   database_ceiling : Int?,
   signature_ceiling : Int?,
-) -> NativeRuntimeBundleStore raise {
+) -> NativeRuntimeBundleStore {
   let parent = @env.get_env_var("ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT").unwrap()
   let root = @filesystem.open_root(parent).unwrap()
   root.create_directory(name).unwrap() |> ignore
