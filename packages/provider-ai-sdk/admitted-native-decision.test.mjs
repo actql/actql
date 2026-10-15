@@ -13,6 +13,7 @@ function fixture(change = {}) {
   const counts = {children: 0, steps: 0, emitterRetires: 0, viewRetires: 0, plans: 0, sends: 0, saves: 0};
   const body = '{"answers":{"q0000000000":{"type":"noul","noul":0.25}}}';
   const moon = {
+    clientProgramModelResponseProfileTransportMatches:()=>true,
     clientProgramStartNativeDecisionProjection(p, r, ...limits) {
       assert.equal(p, provider); assert.equal(r, request);
       assert.deepEqual(limits, [4096, 100, 10, 20, 1000]); counts.children++;
@@ -277,6 +278,7 @@ test('native installer checks exact physical ceilings against its original profi
 test('native admitted preflight refuses missing or nontrue profile support before projection or raw binder',()=>{
   for(const accepted of ['missing',false,undefined]){
     const f=fixture();let binds=0,checks=0;
+    if(accepted==='missing')delete f.moon.clientProgramModelResponseProfileTransportMatches;
     if(accepted!=='missing')f.moon.clientProgramModelResponseProfileTransportMatches=(profile,...limits)=>{
       checks++;assert.equal(profile,f.config.profile);
       assert.deepEqual(limits,[4096,512,512,4,64]);return accepted;

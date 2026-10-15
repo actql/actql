@@ -19,6 +19,7 @@ function fixture(change = {}) {
   let retired = false, plans = 0, starts = 0, saves = 0, wakes = 0, cleanupAllowed = false, raw;
   const response = Object.freeze({originalSavedView: true});
   const moon = {
+    clientProgramModelResponseProfileTransportMatches:()=>true,
     clientProgramNativeDecisionRequestMatches: (view, p, r) => !retired && view === projected && p === provider && r === request,
     clientProgramNativeDecisionRequestBinding: () => ({_0: 'task', _1: 'prompt', _2: 'schema', _3: 'native'}),
     clientProgramNativeDecisionRequestWires: () => ({_0: '"é\\r\\n"',
