@@ -17,7 +17,7 @@ import stat
 import subprocess
 import sys
 import time
-from typing import Any
+from typing import Any, cast
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'packages/python-local-runtime/native/sqlite-component'
@@ -154,7 +154,7 @@ def verify_bundle(directory: Path, *, source: str, provider_source: str,
     METADATA.library_target(directory / LIBRARY, identity=('@rpath/' + LIBRARY).encode(),
                             bundled=(('@rpath/' + PROVIDER).encode(),), rpaths=(b'@loader_path',))
     METADATA.library_target(directory / PROVIDER, identity=('@rpath/' + PROVIDER).encode(), rpaths=())
-    return body
+    return cast(dict[str, Any], body)
 
 
 def build(source: str, archive: Path, provider_receipt: Path, clang: Path, sdk: Path,
