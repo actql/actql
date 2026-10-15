@@ -50,3 +50,37 @@ COMMIT reply, uncommitted first write with retained intent, foreign epoch and
 generation, missing original records, and independent Account refusal. Runtime
 selection is metadata only: physical arena acquisition, Python Wasm Core, worker,
 Engine, ordinary installed wheel and public Python product execution remain 0.
+
+## Original live Resource observation
+
+The same child attempt can record one initial observation from the exact domain
+registered with its nominal installed selection. `record_resource_original`
+accepts an opaque domain, not caller-created DATA or an allow/commit Boolean.
+The existing provider/Resource Owner jointly projects its original FD window,
+child, loan and accounting values. Current Account, adoption/Store epoch and
+unchanged original child rows are checked before and inside the existing Store
+transaction, and current physical/account facts are checked after its commit.
+The same partial carrier retains the domain before the first Store write.
+
+The closed observation binds the full original provisioning body, selected
+source/recipe/provider generation, actual device/inode, capacity and relative
+mapping/payload extent/access, and Resource-owned bounded original DATA. The
+physical bounds and the existing Resource cross-field validator are both used.
+PID and FD numbers never become the backing identity. The immutable resource
+row uses `resource/<original-child-key>` in the existing provisioning namespace;
+it neither issues another operation nor mutates the original key selection.
+
+This snapshot is the initial saved observation, not a claim that later usage is
+unchanged or that final usage was observed. Cold read exposes only
+`UnresolvedRecorded` or `UnresolvedNotRecorded`. A lost COMMIT reply fences the
+same journal; reopening uses the same key lookup. A live write attempt cannot
+be repeated even if its row is absent. No nominal ticket/domain or write/start/
+stop/settlement permission is reconstructed. Complete current usage persistence
+and cold physical adoption/retirement remain separate unfinished connections.
+
+The body is bounded to 4096 bytes. Four raw byte slots are charged to the
+existing 65536-byte/8-entry settings metadata budget in the same transaction;
+those limits are unchanged. Decoded/control objects, loader/VM/FD overhead and
+physical bootstrap funding are not declared covered by that metadata entry.
+Actual domain cleanup remains with its original Host/child Owner and aliases;
+Store acknowledgment never releases a loan, closes an FD or confirms a worker.
