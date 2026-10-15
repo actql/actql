@@ -19,7 +19,7 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
     if (typeof adapter.prepare !== 'function' || typeof adapter.open !== 'function') {
       throw new TypeError('InvalidAcquiredEffectComputationPort');
     }
-    if (count === 2 && adapter.realizationKey !== 'duckdb-acquired') {
+    if (count === 2 && !['duckdb-acquired', 'row-source-acquired'].includes(adapter.realizationKey)) {
       throw new TypeError('UnsupportedEffectSourceRealization');
     }
     if (owners.has(adapter)) throw new TypeError('DuplicateEffectSourceOwner');
@@ -28,4 +28,35 @@ export function selectAcquiredEffectSources({moon, preparedEffect, sourceProfile
       occurrence: Object.freeze({stage: task, input: 0, task})}));
   }
   return Object.freeze(selected);
+}
+
+// Mixed installed Sources contribute their own opaque checked capture budgets.
+// No row-backed capacity can be passed to a nominal DuckDB configuration API.
+export function prepareInstalledAcquiredEffectLedger({moon, preparedEffect, sources,
+  registry, values, fragment, ordered}) {
+  if (!Array.isArray(sources) || sources.length !== 2 ||
+      typeof moon?.clientProgramPrepareMultiCapturedEffectInstalledLedger !== 'function') {
+    throw new TypeError('InstalledMultiSourceCapacityUnavailable');
+  }
+  const capacities = sources.map(({adapter, preparedSource, occurrence}, index) => {
+    if (!['duckdb-acquired', 'row-source-acquired'].includes(adapter?.realizationKey) ||
+        adapter.supportsRetainedRelationOutput !== true ||
+        typeof adapter.ledgerCapacity !== 'function' ||
+        occurrence?.stage !== index || occurrence.input !== 0 || occurrence.task !== index) {
+      throw new TypeError('InstalledMultiSourceCapacityUnavailable');
+    }
+    const capacity = adapter.ledgerCapacity(preparedSource);
+    if (capacity?.capacity === undefined || typeof capacity.transferBytes !== 'bigint' ||
+        typeof capacity.executionBytes !== 'bigint' || capacity.transferBytes < 0n ||
+        capacity.executionBytes < 0n) {
+      throw new TypeError('InstalledSourceCapacityUnavailable');
+    }
+    return capacity;
+  });
+  const ledger = moon.clientProgramPrepareMultiCapturedEffectInstalledLedger(
+    preparedEffect, capacities.map(value => value.capacity),
+    capacities.map(value => value.transferBytes),
+    capacities.map(value => value.executionBytes), registry, values, fragment, ordered);
+  if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');
+  return ledger;
 }

@@ -171,24 +171,21 @@ export async function preparePinnedEffectSourceSet({
   }
   const groups = [];
   const duplicateManifestMembers = new Set();
-  // A private source does not replace the ordinary Result namespace in its
-  // Unit Manifest. Keep the complete checked declarations, not a synthetic
-  // empty Result map or invented Effect member.
+  // Every source Unit Manifest covers all checked Result declarations, even
+  // when an ordinary Effect consumes only a subset. These extra exports use
+  // the retained capture; they are neither new Effect members nor source reads.
   const manifestResults = [];
-  if (Array.from({length: count}, (_, index) =>
-    moon.clientProgramEffectTableInputAt?.(inputs, index) !== undefined).some(Boolean)) {
-    const resultCount = moon.clientProgramEffectLocalResultCount(inputs);
-    if (!Number.isSafeInteger(resultCount) || resultCount < 0 || resultCount > 4096) {
-      throw new RangeError('EffectManifestResultLimit');
-    }
-    if (resultCount > remaining) throw new RangeError('EffectSourceGroupingLimit');
-    remaining -= resultCount;
-    for (let resultIndex = 0; resultIndex < resultCount; resultIndex++) {
-      const result = moon.clientProgramEffectLocalResultAt(inputs, resultIndex);
-      if (result === undefined) throw new TypeError('UnavailableEffectManifestResult');
-      manifestResults.push({resultIndex, result,
-        unitIndex: moon.clientProgramEffectLocalResultStage(result)});
-    }
+  const resultCount = moon.clientProgramEffectLocalResultCount(inputs);
+  if (!Number.isSafeInteger(resultCount) || resultCount < 0 || resultCount > 4096) {
+    throw new RangeError('EffectManifestResultLimit');
+  }
+  if (resultCount > remaining) throw new RangeError('EffectSourceGroupingLimit');
+  remaining -= resultCount;
+  for (let resultIndex = 0; resultIndex < resultCount; resultIndex++) {
+    const result = moon.clientProgramEffectLocalResultAt(inputs, resultIndex);
+    if (result === undefined) throw new TypeError('UnavailableEffectManifestResult');
+    manifestResults.push({resultIndex, result,
+      unitIndex: moon.clientProgramEffectLocalResultStage(result)});
   }
   const shares = (left, right) => {
     if (remaining === 0) throw new RangeError('EffectSourceGroupingLimit');

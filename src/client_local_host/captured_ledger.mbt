@@ -799,21 +799,76 @@ pub fn prepare_multi_captured_local_installed_ledger(
   fragment_body : String?,
   ordered_body : String?,
 ) -> @resources.Ledger? {
+  prepare_multi_captured_installed_ledger_owned(
+    Pure(prepared),
+    capacities,
+    transport_bytes,
+    transport_execution_bytes,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
+}
+
+///|
+/// Effect inputs retain the same installed capture capacity and exact checked
+/// occurrence as Pure inputs. This does not select or open either provider.
+pub fn prepare_multi_captured_effect_installed_ledger(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  capacities : Array[ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  prepare_multi_captured_installed_ledger_owned(
+    Effect(prepared),
+    capacities,
+    transport_bytes,
+    transport_execution_bytes,
+    registry_body,
+    values_body,
+    fragment_body,
+    ordered_body,
+  )
+}
+
+///|
+fn prepare_multi_captured_installed_ledger_owned(
+  owner : ClientLocalSequenceOwner,
+  capacities : Array[ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
   if capacities.length() != 2 {
     return None
   }
   for index in 0..<2 {
-    guard prepare_local_query_requirement(
-        prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
-      )
-      is Ok(requirement) &&
+    let requirement = match owner {
+      Pure(prepared) =>
+        prepare_local_query_requirement(
+          prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+        )
+      Effect(prepared) =>
+        prepare_effect_local_query_requirement(
+          prepared, index, 0, registry_body, values_body, fragment_body, ordered_body,
+        )
+    }
+    guard requirement is Ok(requirement) &&
       @planning.query_requirement_cid(requirement) ==
       @planning.query_requirement_cid(capacities[index].requirement) else {
       return None
     }
   }
   prepare_multi_captured_capacity_ledger_owned(
-    Pure(prepared),
+    owner,
     capacities.map(value => (value.retained_bytes, value.execution_bytes)),
     transport_bytes,
     transport_execution_bytes,
