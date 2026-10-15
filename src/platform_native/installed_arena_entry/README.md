@@ -229,3 +229,30 @@ wire, Python acceptance FSM or arbitrary SQL entry is introduced. Generic Core
 callers remain responsible for their existing
 operation/Unknown semantics. Normal funding/profile, installed assembly,
 Wasm/worker/wheel and public Python acceptance remain separate and unaccepted.
+
+### Original packaged Runtime transport
+
+The regular entry also retains the existing scoped `NativeLocalPackagedRuntime`
+constructor, current and close through eight typed callbacks. The immutable
+reply preserves the original Host/read/Runtime and existing issue. Missing
+supply never selects the legacy unscoped constructor. Inner Root/Reader cleanup
+and dropping Runtime data are separate from the original outer read retirement.
+The Python driver keeps persistent output slots and registers custody before
+FFI, preserves partial Runtime cleanup and sticky Unknown, and blocks outer
+read retirement until the inner data ACK. It does not reconstruct authority,
+accounting, Run state or a cleanup ACK after response loss.
+
+`packaged_runtime_shim.h` records the inspected regular C prototype and RC
+source. Input strings are bounded exact UTF-16; the existing Native Owner
+validates the original selection. Controller metadata and temporary input
+copies remain in the existing trusted control domain, not the child read grant.
+The selected ordinary entry closure now includes 161 packages and nine existing
+foreign stubs. Its original Moon package registry is preserved, with only exact
+check-to-build artifact relocation; transitive trait lookup cannot be replaced
+by omitting the registry. One bootstrap provider supplies the same allocator/TLS.
+
+The private `python-original-packaged-runtime.py` fixture exercises scoped
+capture/current/close, changed members, invalid input and partial construction.
+Its three-byte package members are capture/cleanup fixtures, never executable
+libraries or an installed product. Numerical profile, Engine, worker, ordinary
+wheel and public Python acceptance remain separate and unaccepted here.
