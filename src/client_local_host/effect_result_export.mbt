@@ -2,7 +2,7 @@
 /// The existing Values execution's managed bridge and exact Effect Result
 /// export. This facade owns only these private exports, never the caller's
 /// input pins, Compute, publication, approval or original physical funding.
-pub struct LocalValuesEffectResultExport {
+struct LocalValuesEffectResultExport {
   execution : LocalValuesExecution
   captured : @strategy.CapturedEffectRunDAG
   inputs : @strategy.CapturedEffectInputs
