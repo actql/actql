@@ -50,13 +50,13 @@ pub fn NativeBoundedTextFailure::retry_cleanup(
   if self.reader is Some(reader) {
     match reader.close() {
       Ok(_) => self.reader = None
-      Err(issue) => first_issue = Some(issue)
+      Err(issue) => return Err(issue)
     }
   }
   if self.rejected_reader is Some(rejected) {
     match rejected.retry_cleanup() {
       Ok(_) => self.rejected_reader = None
-      Err(issue) => if first_issue is None { first_issue = Some(issue) }
+      Err(issue) => return Err(issue)
     }
   }
   if self.root is Some(root) {
@@ -116,19 +116,24 @@ fn close_failed_bounded_reader(
   reader : @filesystem.Reader,
   issue : @filesystem.NativeFilesystemIssue,
 ) -> NativeBoundedTextFailure {
-  let failure = match reader.close() {
-    Ok(_) => bounded_text_failure(Filesystem(issue))
+  match reader.close() {
+    Ok(_) =>
+      close_bounded_root_after_failure(
+        root,
+        bounded_text_failure(Filesystem(issue)),
+      )
     Err(cleanup) =>
       {
+        // Keep the original parent until this Reader's own retirement is ACKed.
+        // Parent close does not prove child stop and cannot retire its references.
         original_issue: Cleanup(issue, cleanup),
         reader: Some(reader),
         rejected_reader: None,
-        root: None,
+        root: Some(root),
         rejected_root: None,
         original_root_cleanup_issue: None,
       }
   }
-  close_bounded_root_after_failure(root, failure)
 }
 
 ///|
@@ -178,11 +183,54 @@ pub fn read_bounded_text_file_with_custody(
   trim_newline? : Bool = false,
   diagnostic_ceiling? : Int? = None,
 ) -> Result[String, NativeBoundedTextFailure] {
+  read_bounded_text_file_selected(
+    root_path, name, max_bytes, trim_newline, diagnostic_ceiling, false,
+  )
+}
+
+///|
+/// Requires the caller's existing Native Domain scope around the whole call,
+/// including input encoding, buffers, UTF-8 and result/failure construction.
+/// Current Core/read permission is checked by that caller, not by this physical
+/// context. No context, grant, profile or fallback Root is issued here.
+pub fn read_bounded_text_file_in_current_read_context_with_custody(
+  root_path : String,
+  name : String,
+  max_bytes : Int64,
+  diagnostic_ceiling : Int,
+  trim_newline? : Bool = false,
+) -> Result[String, NativeBoundedTextFailure] {
+  read_bounded_text_file_selected(
+    root_path,
+    name,
+    max_bytes,
+    trim_newline,
+    Some(diagnostic_ceiling),
+    true,
+  )
+}
+
+///|
+fn read_bounded_text_file_selected(
+  root_path : String,
+  name : String,
+  max_bytes : Int64,
+  trim_newline : Bool,
+  diagnostic_ceiling : Int?,
+  scoped : Bool,
+) -> Result[String, NativeBoundedTextFailure] {
   if max_bytes <= 0L || (diagnostic_ceiling is Some(limit) && limit <= 0) {
     return Err(bounded_text_failure(InvalidLimit))
   }
   let root = match
-    @filesystem.open_root_with_custody(root_path, diagnostic_ceiling~) {
+    (if scoped {
+      @filesystem.open_root_in_current_read_context_with_custody(
+        root_path,
+        diagnostic_ceiling.unwrap_or(0),
+      )
+    } else {
+      @filesystem.open_root_with_custody(root_path, diagnostic_ceiling~)
+    }) {
     Ok(value) => value
     Err(rejected) => {
       let failure = bounded_text_failure(Filesystem(rejected.issue()))
@@ -222,11 +270,13 @@ pub fn read_bounded_text_file_with_custody(
         original_issue: Filesystem(rejected.issue()),
         reader: None,
         rejected_reader: Some(rejected),
-        root: None,
+        root: Some(root),
         rejected_root: None,
         original_root_cleanup_issue: None,
       }
-      return Err(close_bounded_root_after_failure(root, failure))
+      // The rejected Reader's original Owner decides its cleanup before any
+      // parent close. Even a failed constructor is not a child retirement ACK.
+      return Err(failure)
     }
   }
   let bytes : Array[Byte] = []
