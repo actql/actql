@@ -490,6 +490,14 @@ test "generated Content and Infer share checked Plan components without syntheti
     @relation.infer_completed_producer_input(owner, step, prefix_input) is None,
   )
   assert_true(
+    @relation.infer_completed_producer_input(owner, step, read)
+    is Some(original) &&
+    physical_equal(original, prefix_output),
+  )
+  assert_true(
+    @relation.infer_completed_producer_input(owner, step - 1, read) is None,
+  )
+  assert_true(
     start_generated_inputs(
       compiled,
       generation,
