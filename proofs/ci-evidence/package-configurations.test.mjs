@@ -294,7 +294,7 @@ test('package observation import, predicate and unknown-option changes remain un
 
 const sqliteDirectory = 'src/platform_native/sqlite';
 const sqlitePath = `${sqliteDirectory}/moon.pkg`;
-const sqlitePriorDigest = '92f1a01552e82ba65b56f680cf82e048505b83625c9c13c9cfb3f202c19d3996';
+const sqlitePriorDigest = 'b181b5bce06d908faef1642aaad1d417ab5403fed56af41c6c028fd6608ab1e2';
 const sqliteDigest = 'f05438392188f1d1f2c08a6872f25e07c782ec6fbc3b9769c09b155b564face5';
 const sqliteRequest = {path: sqlitePath, digest: sqliteDigest, target: 'js', toolchainDigest};
 
@@ -314,7 +314,10 @@ test('SQLite body-limit review binds the sole Native selector addition and every
   assert.deepEqual(packageImports(current.toString()).imports, packageImports(before.toString()).imports);
   assert.equal(hash(tree.read('toolchain.json')), toolchainDigest);
   const selected = packageSourceInputs({tree, packages: [sqliteDirectory], target: 'js'});
-  assert.deepEqual(selected.unresolved, []);
+  // Preserve unresolved dependency outcomes; this finite review admits only
+  // the SQLite manifest and cannot turn an unreviewed dependency into a pass.
+  const dependency = packageSourceInputs({tree, packages: ['src/platform_native/filesystem'], target: 'js'});
+  assert.deepEqual(selected.unresolved, dependency.unresolved);
   assert.equal(selected.packageConfigurations.find(entry => entry.path === sqlitePath)?.review.rule,
     'literal-native-options-with-bound-source-membership');
   const members = [...tree.entries.keys()].filter(member => member.startsWith(`${sqliteDirectory}/`) &&
@@ -331,7 +334,8 @@ test('SQLite body-limit review binds the sole Native selector addition and every
 test('SQLite body-limit review rejects changed bytes imports selectors targets and unknown options', () => {
   assert.equal(packageConfigurationReviewFor(sqliteRequest)?.rule,
     'literal-native-options-with-bound-source-membership');
-  for (const change of [{digest: sqlitePriorDigest}, {digest: '0'.repeat(64)},
+  for (const change of [{digest: sqlitePriorDigest},
+    {digest: '92f1a01552e82ba65b56f680cf82e048505b83625c9c13c9cfb3f202c19d3996'}, {digest: '0'.repeat(64)},
     {path: './' + sqlitePath}, {path: 'src/unreviewed_sqlite/moon.pkg'},
     {target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
     assert.equal(packageConfigurationReviewFor({...sqliteRequest, ...change}), null);
