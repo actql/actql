@@ -15,38 +15,28 @@ test "original composite Vector Sources prepare the installed multi-capture ledg
   let graph = @publication_host.prepared_client_graph(prepared)
   assert_eq(@strategy.graph_captured_prefix(graph), 2)
   let (registry, values, fragment, ordered) = acquired_serialization_contracts()
-  for count in 1..<=@strategy.graph_task_count(graph) {
-    let prefix = @client_local_host.prepare_client_local_sequences(
-      prepared,
-      registry,
-      values,
-      fragment,
-      ordered,
-      task_count=Some(count),
-    )
-    println("COMPOSITE_SEQUENCE prefix=\{count} ready=\{prefix is Some(_)}")
-    let owner = @strategy.graph_task_owner(graph, count - 1).unwrap()
-    match
-      @lower.prepare_sequence(
-        owner,
-        @publication_host.prepared_client_values_sequence_limits(prepared),
-      ) {
-      Ok(_) => ()
-      Err(VectorFailure(index, issue)) =>
-        println(
-          "COMPOSITE_LOWER task=\{count - 1} vector=\{index} " +
-          @debug.to_string(issue),
-        )
-      Err(KernelFailure(index, _)) =>
-        println("COMPOSITE_LOWER task=\{count - 1} kernel=\{index}")
-      Err(_) =>
-        println("COMPOSITE_LOWER task=\{count - 1} other_sequence_issue")
-    }
-    if prefix is None {
-      composite_installed_fragment_counter(prepared, count - 1)
-      break
+  let owner = @strategy.graph_task_owner(graph, 2).unwrap()
+  let sequence = @lower.prepare_sequence(
+    owner,
+    @publication_host.prepared_client_values_sequence_limits(prepared),
+  ).unwrap()
+  let mut found_sort = false
+  for step in 0..<@lower.sequence_count(sequence) {
+    if @lower.sequence_step(sequence, step) is Some(@lower.RowStep(kernel)) &&
+      @lower.kernel_body(kernel) is @lower.StableSort(_) {
+      found_sort = true
+      // Authored scalar terms stay scalar. Only the original two checked
+      // composite identities supply the compiler-appended canonical terms.
+      assert_eq(@lower.kernel_sort_term_count(kernel), 4)
+      assert_eq(@lower.kernel_sort_term_positional_count(kernel, 0), 0)
+      assert_eq(@lower.kernel_sort_term_positional_count(kernel, 1), 0)
+      assert_eq(@lower.kernel_sort_term_positional_count(kernel, 2), 2)
+      assert_eq(@lower.kernel_sort_term_positional_count(kernel, 3), 2)
+      assert_eq(@lower.kernel_sort_term_positional_count(kernel, -1), 0)
+      assert_eq(@lower.kernel_sort_term_positional_count(kernel, 4), 0)
     }
   }
+  assert_true(found_sort)
   let sequences = @client_local_host.prepare_client_local_sequences(
     prepared, registry, values, fragment, ordered,
   )
@@ -84,122 +74,4 @@ test "original composite Vector Sources prepare the installed multi-capture ledg
   assert_eq(usage.held_bytes, 0L)
   assert_eq(usage.reserved_transfer_bytes, 0L)
   assert_eq(usage.reserved_execution_bytes, 0L)
-}
-
-///|
-// Reproduce the existing Local context preparation with its original ceilings.
-// This diagnostic neither executes a task nor supplies a replacement context.
-fn composite_installed_fragment_counter(
-  prepared : @publication_host.PreparedClientProgram,
-  task : Int,
-) -> Unit raise {
-  let graph = @publication_host.prepared_client_graph(prepared)
-  let owner = @strategy.graph_task_owner(graph, task).unwrap()
-  let sequence = @lower.prepare_sequence(
-    owner,
-    @publication_host.prepared_client_values_sequence_limits(prepared),
-  ).unwrap()
-  let contexts = []
-  for step in 0..<@lower.sequence_count(sequence) {
-    guard @lower.sequence_step(sequence, step) is Some(@lower.RowStep(kernel)) else {
-      continue
-    }
-    let ordered = @lower.kernel_body(kernel) is @lower.OrderedBindings(_)
-    let required = match @lower.kernel_body(kernel) {
-      @lower.SnapshotMap(_)
-      | @lower.OrderedBindings(_)
-      | @lower.Filter(_)
-      | @lower.AssertAll(_) => true
-      _ => false
-    }
-    if !required {
-      continue
-    }
-    println("COMPOSITE_FRAGMENT step=\{step} start")
-    let fragment = @lower.prepare_fragment_pipeline(sequence, step, {
-      max_roots: 100,
-      max_pointer_bytes: 10000,
-      max_work: 100000,
-    }).unwrap()
-    println("COMPOSITE_FRAGMENT step=\{step} pipeline")
-    let logical : @lower.FragmentRowLimits = {
-      max_input_rows: 100L,
-      max_value_bytes: 10000L,
-      max_live_value_bytes: 100000L,
-      max_work: 10000000L,
-    }
-    let request = @lower.prepare_fragment_request(
-      fragment,
-      100L,
-      10000L,
-      row_limits=if ordered { Some(logical) } else { None },
-    ).unwrap()
-    println("COMPOSITE_FRAGMENT step=\{step} request")
-    let context = @execution.prepare_runtime_fragment(
-      request,
-      test_fragment_contract(),
-      {
-        max_roots: 100,
-        max_nodes: 10000,
-        max_work: 100000,
-        max_text_bytes: 10000,
-        max_links: 10000,
-      },
-      registry_limits(),
-      logical,
-      ordered=if ordered {
-        Some(
-          @execution.admit_ordered_contract(
-            registered_relation_contracts(),
-            registered_ordered(),
-            registry_limits(),
-          ).unwrap(),
-        )
-      } else {
-        None
-      },
-    )
-    match context {
-      Ok(value) => contexts.push(value)
-      Err(Material(_)) => println("COMPOSITE_FRAGMENT material_failure")
-      Err(Candidate(_)) => println("COMPOSITE_FRAGMENT candidate_failure")
-      Err(Admission(_)) => println("COMPOSITE_FRAGMENT admission_failure")
-      Err(Runtime(_)) => println("COMPOSITE_FRAGMENT runtime_failure")
-    }
-    assert_true(context is Ok(_), msg="original composite fragment context")
-  }
-  let generated = @publication_host.prepare_client_task_sequence(
-    prepared,
-    task,
-    registered_relation_contracts(),
-    contexts,
-    @publication_host.prepared_client_values_sequence_limits(prepared),
-    100000,
-    10000,
-    prepared_sequence=Some(sequence),
-  )
-  println("COMPOSITE_GENERATED task=\{task} ready=\{generated is Ok(_)}")
-  match generated {
-    Err(Generated(Wiring(InvalidReference))) =>
-      println("COMPOSITE_GENERATED wiring_reference")
-    Err(Generated(Wiring(UnknownRetainedTarget(_)))) =>
-      println("COMPOSITE_GENERATED wiring_target")
-    Err(Generated(Wiring(_))) => println("COMPOSITE_GENERATED wiring_limits")
-    Err(Generated(MissingFragmentContext(index))) =>
-      println("COMPOSITE_GENERATED missing_context=\{index}")
-    Err(Generated(FragmentContext(index, KernelMismatch))) =>
-      println("COMPOSITE_GENERATED foreign_context=\{index}")
-    Err(Generated(FragmentContext(index, _))) =>
-      println("COMPOSITE_GENERATED fragment_context=\{index}")
-    Err(Generated(InputLimit)) => println("COMPOSITE_GENERATED input_limit")
-    Err(Generated(UnsupportedRowComparison(index, field))) =>
-      println(
-        "COMPOSITE_GENERATED unsupported_comparison=\{index}/\{@schema.reference_name(field)}",
-      )
-    Err(Generated(_)) => println("COMPOSITE_GENERATED other_execution_issue")
-    Err(MissingTask) => println("COMPOSITE_GENERATED missing_task")
-    Err(EmptyTask) => println("COMPOSITE_GENERATED empty_task")
-    Err(Sequence(_)) => println("COMPOSITE_GENERATED sequence_issue")
-    Ok(_) => ()
-  }
 }
