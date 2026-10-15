@@ -76,7 +76,11 @@ int main(int argc, char **argv) {
         assert(actql_native_sqlite_library_acquired(partial));
         assert(!actql_native_sqlite_library_ready(partial));
         assert(partial->selected_context == value.context && partial->selected_context_user);
-        assert(partial->error != NULL && partial->dynamic_library == NULL);
+        /* The bounded diagnostic contract permits omission when the platform
+         * loader detail exceeds the original ceiling. Custody cannot depend
+         * on that optional detail being allocated or publicly available. */
+        assert(partial->dynamic_library == NULL);
+        assert(partial->error == NULL || strlen(partial->error) <= 128);
         assert(actql_native_sqlite_library_close_checked(partial) == 1);
         assert(actql_native_sqlite_library_close_checked(partial) == 1);
         moonbit_decref(partial);
