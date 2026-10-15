@@ -72,6 +72,15 @@ test "original async fixture keeps its preconfigured read Ledger through Unknown
     @model.model_execution_quantity_usage(active.model.unwrap()).consumed.tokens,
     0L,
   )
+  let evidence = @model.model_execution_attempt_evidence(
+    active.model.unwrap(),
+    0,
+  ).unwrap()
+  let accounting = @publication.run_evidence_value_json(
+    @model.model_attempt_accounting(evidence),
+  )
+  assert_true(accounting.contains("\"input_tokens\":null"))
+  assert_true(accounting.contains("\"output_tokens\":null"))
   // NULL observations stay unknown; zero consumed is not a fabricated usage
   // observation. Only the same physical cleanup acknowledgement retires it.
   release.val = true
