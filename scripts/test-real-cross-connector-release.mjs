@@ -13,10 +13,11 @@ import {checkoutState} from './packed-client-packages.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {assertTestExecution, nodeTestArguments} from './test-execution.mjs';
 import {checkGcsMetadataAcceptanceEnvironment} from './gcs-files-content-credential.mjs';
-import {realCrossConnectorFixturePaths, realCrossConnectorEnvironment} from './real-cross-connector-fixtures.mjs';
+import {realCrossConnectorFixturePaths, realCrossConnectorEnvironment, realCrossConnectorFormat} from './real-cross-connector-fixtures.mjs';
 import {openReleaseTestRegistry} from './release-test-registry.mjs';
 const [source, directory, python, scopeFile, ...extra] = process.argv.slice(2);
-assert.equal(extra.length, 0); assert.equal(process.version, 'v22.22.0');
+const format = realCrossConnectorFormat(extra);
+assert.equal(process.version, 'v22.22.0');
 assert([directory, python, scopeFile].every(isAbsolute));
 assert(!process.env.NODE_OPTIONS && !process.env.NODE_PATH, 'Unreviewed loader/runtime path');
 const repository = fileURLToPath(new URL('../', import.meta.url));
@@ -71,6 +72,7 @@ for (const path of realCrossConnectorFixturePaths) {
 const copiedScope = join(scratch.path, 'metadata-scope.json');
 await writeFile(copiedScope, scopeWire, {flag: 'wx', mode: 0o600});
 Object.assign(environment, {ACTQL_TEST_TABLE_PACKED_APPLICATION: application,
+  ACTQL_REAL_CONNECTOR_FORMAT: format,
   ACTQL_REAL_CONNECTOR_SCOPE: copiedScope, ACTQL_TABLE_PYTHON: python,
   ACTQL_TEST_PRESERVE_SCRATCH: '1'});
 const args = nodeTestArguments(['--test-concurrency=1',
@@ -84,7 +86,7 @@ process.stdout.write(result.stdout ?? ''); process.stderr.write(result.stderr ??
 const checked = assertTestExecution('node', process.execPath, args, result);
 assert.equal(checked.counts.passed, 1);
 await release.verifyUnchanged(); assert.deepEqual(checkoutState(repository), before);
-const receipt = {source, manifestSHA256: release.manifestSha256,
+const receipt = {source, format, manifestSHA256: release.manifestSha256,
   archives: release.manifest.packages, copied, actualTests: checked.counts,
   scopeSHA256: createHash('sha256').update(scopeWire).digest('hex'),
   application, complete: true, releaseGeneration: release.manifest.generation,

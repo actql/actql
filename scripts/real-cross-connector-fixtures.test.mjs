@@ -1,15 +1,69 @@
 import assert from 'node:assert/strict';
-import {execFileSync} from 'node:child_process';
+import {execFileSync, spawnSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
-import {realCrossConnectorFixturePaths, realCrossConnectorEnvironment} from './real-cross-connector-fixtures.mjs';
-import {realCrossConnectorControl as control} from './fixtures/real-cross-connector-control.mjs';
+import {realCrossConnectorFixturePaths, realCrossConnectorEnvironment, realCrossConnectorFormat} from './real-cross-connector-fixtures.mjs';
+import {realCrossConnectorControl as control, selectRealCrossConnectorControl} from './fixtures/real-cross-connector-control.mjs';
 import {checkRealRoutePreview} from './fixtures/real-cross-connector-preview.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const entries = ['adapters/host-node/real-cross-connector-installed.test.mjs',
   'scripts/fixtures/real-cross-connector-restart.mjs'];
+
+test('real route keeps the original SQL default and explicitly selects one public AQL entry', () => {
+  assert.equal(realCrossConnectorFormat([]), 'sql');
+  assert.equal(realCrossConnectorFormat(['--format', 'sql']), 'sql');
+  assert.equal(realCrossConnectorFormat(['--format', 'aql']), 'aql');
+  assert.equal(selectRealCrossConnectorControl(), control);
+  assert.equal(selectRealCrossConnectorControl('sql'), control);
+  const aql = selectRealCrossConnectorControl('aql');
+  assert.equal(aql.format, 'aql');
+  assert.equal(aql.name, 'real-duckdb-gcs-joined-table-restart-aql');
+  assert(Object.isFrozen(aql));
+  for (const key of ['document', 'duckdbDDL', 'duckdbRows', 'sourceSchema', 'expected']) {
+    assert.equal(aql[key], control[key], key);
+  }
+});
+
+test('real route refuses malformed or multiple format selections before any installation', () => {
+  for (const args of [['--format'], ['aql'], ['--format=aql'], ['--format', 'json'],
+    ['--format', 'aql-text'], ['--format', 'AQL'], ['--format', ''],
+    ['--format', 'aql', '--format', 'sql'], ['--format', 'aql', '--retry']]) {
+    assert.throws(() => realCrossConnectorFormat(args));
+  }
+  for (const format of ['', 'json', 'aql-text', 'AQL', null, {}, ['aql']]) {
+    assert.throws(() => selectRealCrossConnectorControl(format));
+  }
+});
+
+test('both public formats retain the independently authored SQL JOIN and post-Effect Result', () => {
+  const originalDocument = `CREATE TABLE analytics.report AS (
+ WITH objects AS (
+  SELECT name FROM LIST_FILES(docs.files, paths => ['actql-content-test/a.csv'])
+ )
+ SELECT r.id AS id, f.name AS tag
+ FROM records AS r JOIN objects AS f ON r.object_name = f.name
+ ORDER BY r.id
+ |> RESULT joined
+)`;
+  for (const format of ['sql', 'aql']) {
+    assert.equal(selectRealCrossConnectorControl(format).document, originalDocument);
+  }
+});
+
+test('both physical entrypoints reject extra format selection before opening absent source or scope inputs', () => {
+  for (const entry of ['scripts/test-real-cross-connector-release.mjs',
+    'reviews/2026-10-15-real-cross-connector-installed/prepared-public.mjs']) {
+    const result = spawnSync(process.execPath, [resolve(root, entry), 'not-a-source',
+      '/absent/rc', '/absent/python', '/absent/scope', '--format', 'json'],
+    {cwd: root, encoding: 'utf8', timeout: 10000});
+    assert.equal(result.error, undefined);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Use one optional --format sql\|aql/u);
+  }
+});
+
 function missing(paths) {
   const delivered = new Set(paths.map(path => resolve(root, path)));
   const pending = entries.map(path => resolve(root, path)), visited = new Set(), absent = [];
@@ -87,13 +141,14 @@ test('normal route entry and both processes parse without executing products or 
 
 test('real route isolates private npm configuration and checkout runtime variables without changing HOME', () => {
   const base = {HOME: '/original/home', NODE_PATH: '/checkout', NODE_OPTIONS: '--import=/overlay',
+    ACTQL_REAL_CONNECTOR_FORMAT: 'aql',
     ACTQL_LOCAL_SOURCE_PROFILE: '/old/source', MOON_HOME: '/compiler', npm_config_registry: 'https://foreign.invalid/',
     NPM_CONFIG_USERCONFIG: '/foreign/config'};
   const env = realCrossConnectorEnvironment(base, {root: '/private/tmp/new-app', node: '/pinned/node/bin/node'});
   assert.equal(env.HOME, base.HOME); assert.equal(env.npm_config_registry, 'https://registry.npmjs.org/');
   assert.equal(env.npm_config_userconfig, '/private/tmp/new-app/npmrc');
   assert.equal(env.npm_config_globalconfig, '/private/tmp/new-app/npmrc-global');
-  for (const key of ['NODE_PATH','NODE_OPTIONS','ACTQL_LOCAL_SOURCE_PROFILE','MOON_HOME','NPM_CONFIG_USERCONFIG']) {
+  for (const key of ['NODE_PATH','NODE_OPTIONS','ACTQL_LOCAL_SOURCE_PROFILE','ACTQL_REAL_CONNECTOR_FORMAT','MOON_HOME','NPM_CONFIG_USERCONFIG']) {
     assert.equal(Object.hasOwn(env, key), false);
   }
   assert.equal(base.NPM_CONFIG_USERCONFIG, '/foreign/config');

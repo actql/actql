@@ -14,7 +14,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
 import {tableTestModule} from './fixtures/table-test-modules.mjs';
-import {realCrossConnectorControl as control} from '../../scripts/fixtures/real-cross-connector-control.mjs';
+import {selectRealCrossConnectorControl} from '../../scripts/fixtures/real-cross-connector-control.mjs';
 import {checkRealRoutePreview} from '../../scripts/fixtures/real-cross-connector-preview.mjs';
 import {observeInstalledGcsMetadata, observeInstalledDuckDbReads}
   from '../../scripts/fixtures/real-cross-connector-observation.mjs';
@@ -22,6 +22,7 @@ import {checkGcsMetadataAcceptanceEnvironment, createGcsMetadataAcceptanceCreden
   from '../../scripts/gcs-files-content-credential.mjs';
 
 const application = process.env.ACTQL_TEST_TABLE_PACKED_APPLICATION;
+const control = selectRealCrossConnectorControl(process.env.ACTQL_REAL_CONNECTOR_FORMAT);
 assert(application, 'Normal installed application is required');
 const require = createRequire(join(application, 'package.json'));
 const {connect} = await import(require.resolve('@actql/node'));
@@ -78,7 +79,7 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     process.env.ACTQL_REAL_CONNECTOR_SCOPE, 'utf8')));
   const f = await tablePhysicalFixture(t, undefined, {preserve: true});
   const recordPath = join(f.root, 'real-cross-connector-observation.json');
-  const record = {name: control.name, pid: process.pid, root: f.root, completed: false,
+  const record = {name: control.name, format: control.format, pid: process.pid, root: f.root, completed: false,
     externalAuthInternalHttp: 'Unmeasured trusted auth; separate from actual GCS metadata transport',
     submissionCalls: 0, acceptedRunsObserved: 0, independentExpected: control.expected};
   const save = () => writeFile(recordPath, JSON.stringify(record, null, 2)+'\n', {mode: 0o600});
@@ -196,7 +197,7 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     await client.close(); client = undefined;
     network.assertClosed(); credential.close();
     const restartInput = join(f.root, 'restart-approve-input.json');
-    await writeFile(restartInput, JSON.stringify({phase: 'approve', application, options, ref: run.ref,
+    await writeFile(restartInput, JSON.stringify({phase: 'approve', format: control.format, application, options, ref: run.ref,
       principalId, manifest, approval: {checkpointCid: checkpoints[0].checkpointCid,
         previewExpected, originalPreview: record.originalPreview.identity,
         keyId: 'reviewer', reviewerId: 'reviewer', privateKey}}), {flag: 'wx', mode: 0o600});
@@ -206,13 +207,14 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     {timeout: 60000, maxBuffer: 1048576, env: {...process.env}});
     const restart = JSON.parse(await readFile(join(f.root, 'restart-observation.approve.json'), 'utf8'));
     assert.notEqual(restart.pid, process.pid); assert.deepEqual(restart.ref, run.ref);
+    assert.equal(restart.format, control.format);
     assert.deepEqual(restart.observedResult, control.expected);
     assert.deepEqual(restart.reviewedPreview, record.originalPreview);
     const committedBeforeTerminalChild = commits(f.catalog);
     assert.equal(committedBeforeTerminalChild.length, 1);
     assert.equal(committedBeforeTerminalChild[0].receipt.row_count, 1);
     const terminalInput = join(f.root, 'restart-terminal-input.json');
-    await writeFile(terminalInput, JSON.stringify({phase: 'terminal', application, options,
+    await writeFile(terminalInput, JSON.stringify({phase: 'terminal', format: control.format, application, options,
       ref: run.ref, principalId, manifest}), {flag: 'wx', mode: 0o600});
     record.phase = 'post_commit_terminal_child'; await save();
     await promisify(execFile)(process.execPath, [join(application,
@@ -221,6 +223,7 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     const terminalRestart = JSON.parse(await readFile(join(f.root, 'restart-observation.terminal.json'), 'utf8'));
     assert.notEqual(terminalRestart.pid, process.pid); assert.notEqual(terminalRestart.pid, restart.pid);
     assert.deepEqual(terminalRestart.ref, run.ref);
+    assert.equal(terminalRestart.format, control.format);
     assert.deepEqual(terminalRestart.observedResult, control.expected);
     assert.deepEqual(terminalRestart.physicalTable, {workerStarts: 0});
     record.phase = 'committed_table_read';
