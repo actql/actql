@@ -145,3 +145,39 @@ test('native cancellation after preparation retains original entered Unknown and
   assert.equal(plan.start(f.entry), undefined);
   assert.equal(f.counters().starts, 0); assert.equal(f.counters().saves, 0);
 });
+
+test('direct native physical preflight cannot bypass the original response-profile ceilings',()=>{
+  for(const accepted of ['missing',false,undefined]){
+    const f=fixture();let checks=0;
+    if(accepted==='missing')delete f.moon.clientProgramModelResponseProfileTransportMatches;
+    else f.moon.clientProgramModelResponseProfileTransportMatches=(profile,...limits)=>{
+      checks++;assert.equal(profile,f.config.profile);
+      assert.deepEqual(limits,[4096,512,512,4,64]);return accepted;
+    };
+    assert.throws(()=>createProjectedTypeSafeDecisionPreflight(f.config),
+      accepted==='missing'?{message:'TypeSafeOriginalTransportLimitsUnavailable'}:
+        {message:'TypeSafeOriginalTransportLimitsMismatch'});
+    assert.equal(checks,accepted==='missing'?0:1);
+    assert.deepEqual(f.counters(),{plans:0,starts:0,saves:0,wakes:0});
+  }
+});
+
+test('native physical preflight retains the same snapshotted reader limits checked before SDK preparation',async t=>{
+  const f=fixture(),seen=[];
+  f.moon.clientProgramModelResponseProfileTransportMatches=(profile,...limits)=>{
+    seen.push([profile,...limits]);return true;
+  };
+  const port=createProjectedTypeSafeDecisionPreflight(f.config);
+  t.after(()=>f.release(port));
+  f.config.responseLimits.maxBytes=1;
+  f.config.responseLimits.maxChunkBytes=1;
+  f.config.responseLimits.observedHeaders.push('x-late');
+  const plan=(await until(()=>port.preflight.advance(),value=>value._0===true))._1;
+  assert.notEqual(plan,undefined);
+  const call=plan.start(f.entry);
+  const saved=await until(()=>call.poll(),value=>value.kind==='saved');
+  assert.equal(saved.view,f.response);
+  assert.deepEqual(Buffer.from(f.raw().body),Buffer.from(wire));
+  assert.deepEqual(seen,[[f.config.profile,4096,512,512,4,64]]);
+  assert.equal(f.counters().starts,1);
+});
