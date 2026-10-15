@@ -2,6 +2,14 @@
 type NativeRuntimeBundleStore
 
 ///|
+pub fn NativeRuntimeBundleStore::current_sqlite_component_matches_heap(
+  _self : NativeRuntimeBundleStore,
+  _expected_heap_bytes : Int64,
+) -> Bool {
+  false
+}
+
+///|
 pub fn NativeRuntimeBundleStore::diagnostics_bounded_by(
   _self : NativeRuntimeBundleStore,
   _ceiling : Int,
