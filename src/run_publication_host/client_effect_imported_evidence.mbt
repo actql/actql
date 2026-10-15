@@ -132,21 +132,8 @@ pub fn issue_imported_client_effect_local_result_artifact(
   ClientEffectLocalResultArtifact,
   ClientEffectLocalResultArtifactIssue,
 ] {
-  if !physical_equal(imported.owner, owner) ||
-    !physical_equal(imported.inputs, inputs) ||
-    !@strategy.captured_effect_inputs_match_computation(inputs, owner.graph) {
+  if !client_effect_imported_evidence_matches_owner(imported, owner, inputs) {
     return Err(ForeignOwner)
-  }
-  // Recheck custody, without reissuing or hashing the Invocation.
-  for observed in imported.observations {
-    if !@strategy.captured_effect_result_import_matches(
-        observed.captured,
-        inputs,
-        imported.invocation.unit,
-        @strategy.captured_effect_result_import_producer(observed.captured),
-      ) {
-      return Err(ForeignOwner)
-    }
   }
   if !@strategy.captured_effect_local_result_export_matches_receipt(
       inputs, exported, receipt,
@@ -202,4 +189,25 @@ pub fn issue_imported_client_effect_local_result_artifact(
     max_depth,
     scope=Some(imported.scope),
   )
+}
+
+///|
+/// Both public Result and private Table exports retain the exact imported
+/// Invocation and its live producer observations, without reissuing either.
+fn client_effect_imported_evidence_matches_owner(
+  imported : ClientEffectImportedEvidence,
+  owner : PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+) -> Bool {
+  physical_equal(imported.owner, owner) &&
+  physical_equal(imported.inputs, inputs) &&
+  @strategy.captured_effect_inputs_match_computation(inputs, owner.graph) &&
+  imported.observations.all(observed => {
+    @strategy.captured_effect_result_import_matches(
+      observed.captured,
+      inputs,
+      imported.invocation.unit,
+      @strategy.captured_effect_result_import_producer(observed.captured),
+    )
+  })
 }

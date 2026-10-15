@@ -3451,6 +3451,54 @@ pub fn client_program_issue_source_free_local_effect_table_artifact(
 }
 
 ///|
+#export_name("clientProgramIssueImportedLocalEffectTableArtifact")
+pub fn client_program_issue_imported_local_effect_table_artifact(
+  owner : @publication_host.PreparedClientEffectComputation,
+  inputs : @strategy.CapturedEffectInputs,
+  member_index : Int,
+  importing : ClientEffectManagedInputImport,
+  definition : @publication_host.ClientEffectLocalTableDefinition,
+  imported : @publication_host.ClientEffectImportedEvidence,
+  receipt : @execution.CompletedRelationExportReceipt,
+  retention : @publication.PublicationContract,
+  admission : @publication.RunPublicationAdmission,
+  run_definition : @publication.PublicationContract,
+  run_invocation : @publication.PublicationContract,
+  observation : @publication.RunEvidenceValue,
+  max_wire_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication_host.ClientEffectLocalResultArtifact,
+  ClientEffectLocalArtifactBridgeIssue,
+] {
+  guard importing.table_preparation is Some(preparation) &&
+    importing.table_input is Some(input) else {
+    return Err(ForeignExport)
+  }
+  @publication_host.issue_imported_client_effect_local_table_artifact(
+    owner,
+    inputs,
+    member_index,
+    input,
+    importing.output,
+    importing.bridge,
+    preparation,
+    definition,
+    imported,
+    receipt,
+    retention,
+    admission,
+    run_definition,
+    run_invocation,
+    observation,
+    max_wire_bytes,
+    max_nodes,
+    max_depth,
+  ).map_err(issue => Issuance(issue))
+}
+
+///|
 #export_name("clientProgramIssueSourceFreeLocalEffectResultArtifact")
 pub fn client_program_issue_source_free_local_effect_result_artifact(
   owner : @publication_host.PreparedClientEffectComputation,
