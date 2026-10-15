@@ -2,6 +2,14 @@
 type NativeRuntimeBundleStore
 
 ///|
+pub fn NativeRuntimeBundleStore::diagnostics_bounded_by(
+  _self : NativeRuntimeBundleStore,
+  _ceiling : Int,
+) -> Bool {
+  false
+}
+
+///|
 type NativeRuntimeBundleStoreOpenFailure
 
 ///|

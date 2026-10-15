@@ -1,0 +1,62 @@
+{
+  "testedSource": "95919c4b2e6a3ea00d417053e668be34e24f5177",
+  "testedTree": "0f0bc3c0be848c270af039b9b28b5526fc25c9d2",
+  "base": "bea13413096fe5fc4436a5fdd2be671f49001501",
+  "commands": [
+    "node reviews/2026-10-16-private-table-payloads/prepared-checks.mjs 95919c4b2e6a3ea00d417053e668be34e24f5177 counter",
+    "node reviews/2026-10-16-private-table-payloads/prepared-checks.mjs 95919c4b2e6a3ea00d417053e668be34e24f5177 regression"
+  ],
+  "bounds": {
+    "outerSeconds": 60,
+    "termGraceSeconds": 5,
+    "childSeconds": 30,
+    "heavy": false
+  },
+  "results": [
+    {
+      "run": "run-ggu1Vc",
+      "summary": "/Users/t14i/workspace/20260822/worktrees/actql-b-ctas-retained-result-20261015/_build/local-checks/attempts/run-ggu1Vc/summary.json",
+      "summarySha256": "0cabfab9f3fcaa1daa6247ba2a3ea4a11e81401affc1b367a720fbc16aa16794",
+      "raw": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/private-table-payload-counter-fixed-reviewed.log",
+      "rawSha256": "613c49cf18230d4bfab61563855dfe9020851332d7cab589c4a9748f6f7bb658",
+      "actualTests": 1,
+      "exitCode": 0,
+      "owner": 40554,
+      "locksAbsent": true
+    },
+    {
+      "run": "run-VmGMcO",
+      "summary": "/Users/t14i/workspace/20260822/worktrees/actql-b-ctas-retained-result-20261015/_build/local-checks/attempts/run-VmGMcO/summary.json",
+      "summarySha256": "5ae84082ea49b0632b5092fc54282d33ff2f4ffd9f2f83eaafae08a5f8fd9d2d",
+      "raw": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/private-table-payload-retirement-fixed.log",
+      "rawSha256": "356203733fbd30e565a6a7f616b655200508fbb8921a459b3abf80e3dab464d6",
+      "actualTests": 4,
+      "exitCode": 0,
+      "owner": 40931,
+      "locksAbsent": true
+    }
+  ],
+  "inputs": {
+    "adapters/host-common/runtime-core.mjs": "bf606bce954866ab9ac42aa9a8fb5e51ad193a83615c584a3e04dfc19e5b1de1",
+    "adapters/host-common/publication-contract-control.test.mjs": "47ac2222d91386dedb2535d7421e3c0ec6afed3256ee73ef00c9af0e91e70d91",
+    "adapters/host-common/completed-effect-capture-retirement.test.mjs": "27f4a48f9e1d6bf7e49ae7fe019e5bf78a7ccadaf5fcad72f1f336c40e3d3c7d",
+    "reviews/2026-10-16-private-table-payloads/prepared-checks.mjs": "5754972fcdac06123ffcf898658281f51728750d5897d28fc855375f0d1313ce"
+  },
+  "baseline": {
+    "source": "a5ad364d0f4288046355c2dc1a4048e252b16426",
+    "run": "run-9A0J6J",
+    "actualTests": 1,
+    "failed": 1,
+    "cause": "InvalidEffectDependencyPayloadBindings",
+    "raw": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/private-table-payload-baseline.log"
+  },
+  "unexecuted": [
+    "normal packaged repaired-source installed route",
+    "fresh-process recovery",
+    "full Core",
+    "Native/Wasm execution",
+    "Hosted CI"
+  ],
+  "newPublicE2E": 0,
+  "qualification": "Adapter metadata control stubs only publication admission/inspection. Cleanup controls mock Store/control. Retained 05ca/f775 JS module is imported but changed Common APIs are not executed by this selection; no current-main Common execution qualification."
+}

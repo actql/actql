@@ -124,6 +124,7 @@ fn load_holder_effect_host_operator(
     setup_profile,
     environment.runtime_catalog_record_bytes,
   ).unwrap()
+  let catalog_diagnostic_ceiling = scope.profile.diagnostic_ceiling
   let site = environment.site
   let site_key = resources.site_key
   let site_generation = resources.site_generation
@@ -165,6 +166,7 @@ fn load_holder_effect_host_operator(
         runtime_bundle_cid,
         () => slot.verify_current_hold() == Ok(()),
         () => {
+          bundles.diagnostics_bounded_by(catalog_diagnostic_ceiling) &&
           bundles.verify_active_component_binding_with_body_limit(
             active_runtime, catalog_read_limit,
           )

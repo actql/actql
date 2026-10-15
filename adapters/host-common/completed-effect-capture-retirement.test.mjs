@@ -5,8 +5,9 @@ import {retireCompletedEffectfulCapture} from
 
 const cid = digit => `sha256:${digit.repeat(64)}`;
 
+for (const dependencyPayloads of [false, true]) {
 for (const publicResults of [false, true]) {
-test(`terminal capture retirement keeps its record until deletion succeeds (${publicResults ? 1 : 0} public Results)`,
+test(`terminal capture retirement keeps its record until deletion succeeds (${publicResults ? 1 : 0} public Results)${dependencyPayloads ? " with retained Table/Result dependencies" : ""}`,
   async () => {
     const run = {name: 'run_definition', identity: cid('a'), wire: 'run'};
     const recordCid = cid('b');
@@ -15,6 +16,11 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
     const previewCid = cid('e');
     const capturedCid = cid('f');
     const sourceArtifactCid = cid('1');
+    // Physical custody metadata is separate from the public Result count.
+    const dependencies = dependencyPayloads ? [
+      {artifact_cid: cid('4'), physical_cid: cid('5'), byte_count: 13},
+      {artifact_cid: cid('6'), physical_cid: cid('7'), byte_count: 21},
+    ] : [];
     const body = {version: 'actql-completed-effectful-capture/0.1',
       store_authority_cid: cid('0'), run_definition: run.wire,
       invocation: 'invocation', definitions: publicResults ? ['definition'] : [],
@@ -24,12 +30,13 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
       captured_run: 'captured', preview: 'preview',
       authoring_context: 'authoring',
       effect_source_artifacts: [{member_index: 0, artifact: 'source'}],
-      connector_recovery: [], effect_dependency_payloads: []};
+      connector_recovery: [], effect_dependency_payloads: dependencies};
     const holdings = new Map([
       [recordCid, {namespace: 'publication-private',
         manifest_cid: capturedCid, objects: [{}]}],
       [captureCid, {namespace: 'effect-capture',
-        manifest_cid: capturedCid, objects: []}],
+        manifest_cid: capturedCid, objects: dependencies.map(value => ({
+          cid: value.physical_cid, byte_count: value.byte_count}))}],
       [sourceCid, {namespace: 'effect-source',
         manifest_cid: sourceArtifactCid, objects: []}],
       [previewCid, {namespace: 'publication-private',
@@ -97,8 +104,8 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
       },
       capturedEffectSourceHoldingCid() { return sourceCid; },
       capturedEffectDependencyPayloadBindings(_captured, dependencies) {
-        assert.deepEqual(dependencies, []);
-        return [];
+        assert.deepEqual(dependencies, body.effect_dependency_payloads);
+        return dependencies;
       },
     };
     const options = {store, control, runDefinition: run,
@@ -116,4 +123,5 @@ test(`terminal capture retirement keeps its record until deletion succeeds (${pu
     assert.equal(captureCustody, false);
     assert.equal(await retireCompletedEffectfulCapture(options), false);
   });
+}
 }
