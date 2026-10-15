@@ -10,7 +10,7 @@ export type ExplorerLaunchInput = Readonly<{
   kind: 'program'; text: string; format: 'sql' | 'aql' | 'aql-text' | 'program';
 }> | Readonly<{kind: 'run'; ref: RunReference}>;
 export type ExplorerGatewayOptions = Readonly<{
-  client: Pick<Client, 'attach'> & Partial<Pick<Client, 'plan'>>;
+  client: Pick<Client, 'attach'> & Partial<Pick<Client, 'plan'|'checkpoints'|'reviewCheckpoint'>>;
   assets?: ReadonlyMap<string, ExplorerAsset>; now?: () => number;
   sessionMs?: number; bootstrapMs?: number; allowCancellation?: boolean;
   launchInput?: ExplorerLaunchInput | null;

@@ -50,3 +50,5 @@
 .actql-cancellation {border:1px solid var(--color-border, #bbc4ce);border-radius:.5rem;padding:1rem;margin-block:1rem;}
 .actql-cancellation pre {overflow-wrap:anywhere;white-space:pre-wrap;}
 .actql-cancellation button {margin:.25rem .5rem .25rem 0;}
+
+.actql-checkpoint-review article,.actql-checkpoint-review section{border:1px solid #d9e0e8;border-radius:.5rem;padding:1rem;margin-top:1rem}.actql-checkpoint-review dd,.actql-checkpoint-review pre{overflow-wrap:anywhere;white-space:pre-wrap}.actql-checkpoint-review dt{font-weight:600;margin-top:.5rem}

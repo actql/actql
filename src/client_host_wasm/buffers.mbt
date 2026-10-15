@@ -237,7 +237,9 @@ pub fn open_live(
   }
   live_initial_root.val = Some((root, wasm_capacity, host_capacity))
   match
-    @buffers.open_pool_on_ledger(root, total_bytes, max_slots, max_wire_bytes) {
+    @buffers.open_pool_on_imported_vm_capacity(
+      frame, root, wasm_capacity, total_bytes, max_slots, max_wire_bytes,
+    ) {
     Err(issue) => issue_code(issue)
     Ok(pool) =>
       install_buffer_instance(
