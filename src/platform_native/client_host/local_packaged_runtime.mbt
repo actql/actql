@@ -281,7 +281,7 @@ pub fn open_native_local_packaged_runtime_in_original_read(
         runtime, root, root_path, source_sha, platform, manifest_sha256,
       )
     Err(failure) => {
-      let issue = Physical(failure.issue())
+      let issue : NativeLocalPackagedRuntimeIssue = Physical(failure.issue())
       runtime.root_open_failure = Some(failure)
       Err(issue)
     }
