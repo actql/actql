@@ -28,6 +28,10 @@
     "./run-observation": {
       "types": "./run-observation.d.ts",
       "default": "./run-observation.mjs"
+    },
+    "./cancellation": {
+      "types": "./cancellation.d.ts",
+      "default": "./cancellation.mjs"
     }
   },
   "files": [
@@ -41,7 +45,11 @@
     "ELKJS-LICENSE.md",
     "run-observation.mjs",
     "run-observation.d.ts",
-    "run-inspector.d.ts"
+    "run-inspector.d.ts",
+    "cancellation-panel.d.ts",
+    "cancellation-types.d.ts",
+    "cancellation.mjs",
+    "cancellation.d.ts"
   ],
   "scripts": {
     "build": "vite build --config vite.config.mts",

@@ -1,3 +1,5 @@
+import {validCancellationLookup} from '@actql/client-wire';
+import {captureCancellation, validCancellationObservation} from '@actql/explorer-ui/cancellation';
 import {createReadEpoch} from '@actql/explorer-ui/read-model';
 
 const replyBytes = 262144;
@@ -55,12 +57,12 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
       return answer;
     } catch (error) {ticket.assertCurrent(); throw error;}
   };
-  const read = async (kind, body) => {
+  const read = async (kind, body, group='read') => {
     const original = session;
     if (!original || now() >= original.expiresAt) {
       invalidate(); refused('ExplorerSessionExpired');
     }
-    const answer = await request(`/api/read/${kind}`, body, original);
+    const answer = await request(`/api/${group}/${kind}`, body, original);
     if (original !== session || now() >= original.expiresAt) refused('ExplorerStaleScope');
     if (answer === null || typeof answer !== 'object' || Array.isArray(answer) ||
         Object.keys(answer).length !== 2 || !Object.hasOwn(answer, 'data') ||
@@ -78,12 +80,12 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
           !Number.isSafeInteger(answer.expiresAt) || answer.expiresAt <= now() ||
           answer.expiresAt > now() + 300000 ||
           capabilities === null || typeof capabilities !== 'object' ||
-          Object.keys(capabilities).length !== 6 || typeof capabilities.plan !== 'boolean' ||
+          Object.keys(capabilities).length !== 7 || typeof capabilities.plan !== 'boolean' ||
           capabilities.run !== true || capabilities.resultMetadata !== true ||
           capabilities.resultPayload !== false || capabilities.control !== false ||
-          capabilities.sample !== false) refused('ExplorerInvalidReply');
+          capabilities.sample !== false || typeof capabilities.cancellation !== 'boolean') refused('ExplorerInvalidReply');
       session = Object.freeze({csrf: answer.csrf, scopeEpoch: answer.scopeEpoch,
-        expiresAt: answer.expiresAt});
+        expiresAt: answer.expiresAt, cancellation: capabilities.cancellation});
       return answer.capabilities;
     },
     plan(input, options) {return read('plan', {input, ...(options === undefined ? {} : {options})});},
@@ -100,6 +102,26 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
     observe(ref) {return read('observation', {ref});},
     runPlan(ref) {return read('run-plan', {ref});},
     describe(ref, name) {return read('result', {ref, name});},
+    async cancel(original) {
+      const saved=captureCancellation(original.cancelRef,original.attemptRef);
+      if (!session?.cancellation) refused('ExplorerCapabilityUnavailable');
+      // Keep the same original references even when a Gateway response is lost.
+      let answer;
+      try {answer=await read('cancel',saved,'control');}
+      catch (error) {
+        if (error?.code==='ExplorerStaleScope' || error?.code==='ExplorerSessionExpired') throw error;
+        return {state:'unknown',original:saved};
+      }
+      return validCancellationObservation(answer,saved)
+        ? answer : {state:'unknown',original:saved};
+    },
+    async lookupCancellation(cancelRef) {
+      const saved=structuredClone(cancelRef);
+      if (!session?.cancellation) refused('ExplorerCapabilityUnavailable');
+      const answer=await read('lookup-cancellation',{cancelRef:saved},'control');
+      if (!validCancellationLookup(answer,saved)) refused('ExplorerInvalidReply');
+      return answer;
+    },
     close: invalidate,
   });
 }

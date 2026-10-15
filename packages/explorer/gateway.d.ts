@@ -12,7 +12,7 @@ export type ExplorerLaunchInput = Readonly<{
 export type ExplorerGatewayOptions = Readonly<{
   client: Pick<Client, 'attach'> & Partial<Pick<Client, 'plan'>>;
   assets?: ReadonlyMap<string, ExplorerAsset>; now?: () => number;
-  sessionMs?: number; bootstrapMs?: number;
+  sessionMs?: number; bootstrapMs?: number; allowCancellation?: boolean;
   launchInput?: ExplorerLaunchInput | null;
 }>;
 export type ExplorerBootstrap = Readonly<{origin: string; bootstrap: string; expiresAt: number}>;

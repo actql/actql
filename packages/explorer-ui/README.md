@@ -124,3 +124,10 @@ selection or session replies. Each refresh still passes the existing current
 SDK/Host and Gateway authorization. Cloud adapters can use this same component
 with their own authenticated reads.
 
+
+`CancellationPanel` renders Client-owned original cancellation references,
+separate invocation observations and original-operation history. Its explicit
+callbacks belong to the embedding adapter. The component has no Client,
+credentials, permission evaluator or retry loop. `./cancellation` supplies the
+pure reference/observation validation; Unknown is a presentation alternative,
+not a manufactured Client–Host cancellation-attempt wire or physical-stop ACK.

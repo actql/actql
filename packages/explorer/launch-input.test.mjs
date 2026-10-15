@@ -89,3 +89,10 @@ test('launch file intake rejects symlinks, directories, oversize, invalid UTF-8 
   await assert.rejects(explorerLaunchInput(explorerArguments(['--local', '--run', file])),
     {code: 'ExplorerInvalidLaunchInput'});
 });
+
+test('cancellation needs explicit launcher opt-in and does not turn Program input into execution',()=>{
+  assert.deepEqual(explorerArguments(['--local','--allow-cancel','--program','query.sql']),
+    {allowCancellation:true,local:{},program:'query.sql',format:'sql'});
+  assert.throws(()=>explorerArguments(['--local','--allow-cancel','--allow-cancel']),/ExplorerInvalidArguments/u);
+  assert.throws(()=>explorerArguments(['--allow-cancel']),/ExplorerExplicitHostRequired/u);
+});
