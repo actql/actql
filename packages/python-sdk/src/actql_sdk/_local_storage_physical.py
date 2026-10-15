@@ -22,6 +22,8 @@ class _PhysicalByteDatabase(Protocol):
     @property
     def in_transaction(self) -> bool: ...
     def begin_read(self) -> None: ...
+    def finish_read(self) -> None: ...
+    def cleanup_read(self) -> None: ...
     def begin_immediate(self) -> None: ...
     def commit(self) -> None: ...
     def rollback(self) -> None: ...
@@ -60,6 +62,15 @@ class _SQLiteByteDatabase:
 
     def begin_read(self) -> None:
         self._connection.execute('BEGIN')
+
+    def finish_read(self) -> None:
+        # The original read must stop before any complete observation escapes.
+        # This never acknowledges a previous write or issues another BEGIN.
+        self._connection.execute('ROLLBACK')
+
+    def cleanup_read(self) -> None:
+        if self._connection.in_transaction:
+            self._connection.execute('ROLLBACK')
 
     def begin_immediate(self) -> None:
         self._connection.execute('BEGIN IMMEDIATE')
