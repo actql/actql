@@ -46,6 +46,8 @@ pub fn[T] borrow_original_read_workspace_claim(OriginalReadWorkspaceBinding[T], 
 
 pub fn borrow_shared_capacity(SharedCapacity, SharedAllocation) -> Result[SharedBorrow, LedgerIssue]
 
+pub fn can_claim_model_io_access(ModelIoAccess, Ledger, Reservation, Int, Int) -> Result[Bool, ModelIoAdmissionIssue]
+
 pub fn[T] cancel_original_current_state_comparison(OriginalCurrentStateComparison[T]) -> Unit
 
 pub fn cancel_original_current_state_document_read(OriginalCurrentStateDocumentRead) -> Unit
@@ -155,6 +157,8 @@ pub fn mark_cleanup_pending(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 pub fn mark_quantities_uncertain(Ledger, Reservation) -> Result[Unit, LedgerIssue]
 
 pub fn mark_transfer_uncertain(Ledger, Reservation, Int64) -> Result[Unit, LedgerIssue]
+
+pub fn model_io_access_within_limits(ModelIoAccess, Int, Int) -> Bool
 
 pub fn[T] model_io_admission_counts(ModelIoAdmission[T], T) -> (Int, Int)?
 
