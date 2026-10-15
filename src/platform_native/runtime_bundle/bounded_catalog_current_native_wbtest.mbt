@@ -45,6 +45,8 @@ test "bounded current catalog exact bytes and refusal preserve original custody"
     store.verify_active_component_binding_with_body_limit(binding, 1048576L)
     is Err(MissingBundle),
   )
+  store.drain(adopted.runtime_bundle_cid).unwrap() |> ignore
+  store.reclaim(adopted.runtime_bundle_cid).unwrap() |> ignore
   assert_true(store.close().unwrap())
 }
 
@@ -53,7 +55,9 @@ test "bounded current catalog keeps original component hold and retirement fence
   let (store, generation, artifact, _, _) = native_bundle_fixture(
     "bounded-current-fences",
   ).unwrap()
-  let adopted = adopt_native_bundle(store, generation, artifact, "1")
+  // The fixture shares its owned Store root; retain a distinct signed identity
+  // from the first case, including after its proper reclaim/tombstone.
+  let adopted = adopt_native_bundle(store, generation, artifact, "2")
   store.activate(adopted.runtime_bundle_cid).unwrap() |> ignore
   let binding = store
     .acquire_active_component(
@@ -88,6 +92,9 @@ test "bounded current catalog keeps original component hold and retirement fence
   let after = store.database.read("runtime_bundle", "catalog").unwrap()
   assert_eq(after.revision, original.revision)
   assert_eq(after.body, original.body)
+  assert_true(store.release("runtime-process:bounded-fences").unwrap())
+  store.drain(adopted.runtime_bundle_cid).unwrap() |> ignore
+  store.reclaim(adopted.runtime_bundle_cid).unwrap() |> ignore
   assert_true(store.close().unwrap())
   assert_true(
     store.verify_active_component_binding_with_body_limit(binding, limit)
