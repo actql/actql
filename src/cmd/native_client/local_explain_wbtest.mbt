@@ -148,14 +148,32 @@ test "Native Effect explain keeps declared approval separate from current permis
     local_effect_prefix_fixture_preparation(),
   )
   let wire = local_static_plan_view(original)
-  assert_true(wire.contains("\"version\":\"actql-effectful-static-plan-view/0.1\""))
+  assert_true(
+    wire.contains("\"version\":\"actql-effectful-static-plan-view/0.1\""),
+  )
   assert_true(wire.contains("\"scope\":\"computation_component\""))
   assert_true(wire.contains("\"effect_id\":\"save\""))
   assert_true(wire.contains("\"effect_kind\":\"create\""))
-  assert_true(wire.contains("sha256:1be9426a9b8809a531aae1c2cac2bfe7bef35b4fccff982c52da4a4de350190b"))
-  assert_true(wire.contains("\"minimum_approval\":{\"kind\":\"contract_minimum\",\"value\":\"required\"}"))
-  assert_true(wire.contains("\"permission\":{\"reason\":\"not_observed\",\"state\":\"unknown\"}"))
-  assert_true(wire.contains("\"preview\":{\"reason\":\"not_sealed\",\"state\":\"unavailable\"}"))
+  assert_true(
+    wire.contains(
+      "sha256:1be9426a9b8809a531aae1c2cac2bfe7bef35b4fccff982c52da4a4de350190b",
+    ),
+  )
+  assert_true(
+    wire.contains(
+      "\"minimum_approval\":{\"kind\":\"contract_minimum\",\"value\":\"required\"}",
+    ),
+  )
+  assert_true(
+    wire.contains(
+      "\"permission\":{\"reason\":\"not_observed\",\"state\":\"unknown\"}",
+    ),
+  )
+  assert_true(
+    wire.contains(
+      "\"preview\":{\"reason\":\"not_sealed\",\"state\":\"unavailable\"}",
+    ),
+  )
   assert_true(!wire.contains("run_ref"))
   assert_true(!wire.contains("checkpoint_cid"))
   assert_true(!wire.contains("normalization_journal"))
@@ -179,7 +197,12 @@ fn explain_update_fixture() -> @local_host.NativeClientPreparation {
     { rela: true, sga: false, tea: false, calendar: false, text_rank: false, },
   ).unwrap()
   @local_host.prepare_native_client_program(
-    explain_update_document, Json, environment, None, None, [],
+    explain_update_document,
+    Json,
+    environment,
+    None,
+    None,
+    [],
     @run_host.client_standard_effect_computation_limits(),
   ).unwrap()
 }
@@ -205,11 +228,23 @@ test "Native update explain retains the original unit Program environment and de
     "sha256:dde2a4ab7160672ec8f2fc7fc49e1b9e0ebd7992b7a60851d57e5a9ea161694b",
   )
   assert_true(wire.contains("\"effect_kind\":\"update\""))
-  assert_true(wire.contains("sha256:ce8b7dc9c08beafcd15440c15026a857361f9e04a2c1d9dec4bc8c9ab9f40283"))
+  assert_true(
+    wire.contains(
+      "sha256:ce8b7dc9c08beafcd15440c15026a857361f9e04a2c1d9dec4bc8c9ab9f40283",
+    ),
+  )
   assert_true(wire.contains("\"unit_id\":\"source\""))
   assert_true(wire.contains("\"declared_target\":\"connector://crm/account\""))
-  assert_true(wire.contains("\"minimum_approval\":{\"kind\":\"contract_minimum\",\"value\":\"none\"}"))
-  assert_true(wire.contains("\"permission\":{\"reason\":\"not_observed\",\"state\":\"unknown\"}"))
+  assert_true(
+    wire.contains(
+      "\"minimum_approval\":{\"kind\":\"contract_minimum\",\"value\":\"none\"}",
+    ),
+  )
+  assert_true(
+    wire.contains(
+      "\"permission\":{\"reason\":\"not_observed\",\"state\":\"unknown\"}",
+    ),
+  )
   assert_true(wire.contains("\"provider_io\":0"))
   assert_true(!wire.contains("run_ref"))
   assert_true(!wire.contains("checkpoint_cid"))

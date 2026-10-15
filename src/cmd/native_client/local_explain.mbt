@@ -9,7 +9,8 @@ fn local_static_plan_view(
   max_depth? : Int = 64,
 ) -> String raise ClientStop {
   let acquisitions = match preparation {
-    Computation(prepared) => @run_host.prepared_client_acquisition_count(prepared)
+    Computation(prepared) =>
+      @run_host.prepared_client_acquisition_count(prepared)
     EffectComputation(prepared) =>
       @strategy.graph_captured_prefix(
         @strategy.checked_effect_computation_graph(
