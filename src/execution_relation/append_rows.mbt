@@ -41,21 +41,29 @@ fn[T : RelationRows] evaluate_append_rows(
   let left_columns : Array[Int] = []
   let right_columns : Array[Int] = []
   for index in 0..<width {
-    guard @lower.append_kernel_field_at(kernel, index) is Some((field, _, _)) else {
+    guard @lower.append_kernel_field_at(kernel, index) is Some((field, li, ri)) else {
       return Err(InputMismatch)
     }
     // Checked alignment ordinals index schemas, while a preceding SELECT keeps
     // its authored physical column order. Resolve the same checked field in
     // each row layout using the existing charged name lookup.
-    let li = match resolve_column(left_names, field, control) {
-      Ok(column) => column
-      Err(issue) => return Err(issue)
-    }
-    let ri = match resolve_column(right_names, field, control) {
-      Ok(column) => column
-      Err(issue) => return Err(issue)
-    }
     let name = @schema.reference_name(field)
+    let li = if left_names.get(li) == Some(name) {
+      li
+    } else {
+      match resolve_column(left_names, field, control) {
+        Ok(column) => column
+        Err(issue) => return Err(issue)
+      }
+    }
+    let ri = if right_names.get(ri) == Some(name) {
+      ri
+    } else {
+      match resolve_column(right_names, field, control) {
+        Ok(column) => column
+        Err(issue) => return Err(issue)
+      }
+    }
     if !spend_control(control, 1) ||
       !spend_control_text(control, name) ||
       !reserve_slots(workspace, 2) {
