@@ -250,6 +250,9 @@ fn holder_effect_host_read_scope_current(
 }
 
 ///|
+extern "C" fn holder_effect_host_control_scope_clear_ffi() -> Int = "actql_bootstrap_control_scope_clear"
+
+///|
 /// The existing Site Owner's holding/cleanup tokens outlive the read child.
 /// Allocate those controls in the original caller context, not in the child
 /// whose retirement waits for them. This is accounting, never read permission.
@@ -258,13 +261,28 @@ fn with_holder_effect_host_site_metadata(
   scope : HolderEffectHostSetupScope,
   update : () -> Bool,
 ) -> Bool {
-  guard scope.read_domain is Some(read) else { return update() }
+  guard scope.read_domain is Some(read) else {
+    guard holder_effect_host_control_scope_clear_ffi() == 1 else {
+      scope.retiring = true
+      return false
+    }
+    return update()
+  }
   guard scope.caller_operation is Some(operation) &&
     physical_equal(operation, read.operation) else {
     return false
   }
   let was_active = read.active
   if was_active && !leave_holder_effect_host_read_domain(read) {
+    scope.retiring = true
+    return false
+  }
+  // One leave ends one borrow, not every physical nesting. The original
+  // provider must observe the whole allocator scope clear before accounting.
+  if holder_effect_host_control_scope_clear_ffi() != 1 {
+    if was_active {
+      ignore(enter_holder_effect_host_read_domain(read))
+    }
     scope.retiring = true
     return false
   }
@@ -509,8 +527,16 @@ fn quiesce_holder_effect_host_setup_scope(
       physical_equal(operation, caller) else {
       return false
     }
-  } else if scope.operation is Some(_) {
-    return false
+  } else if scope.operation is Some(operation) {
+    // A failed read keeps this exact operation after its logical frame ends.
+    // A pending failure or still-active original leave is not a fresh borrow.
+    guard physical_equal(operation, caller) &&
+      (
+        scope.pending is Some(_) ||
+        (scope.read_domain is Some(read) && read.active)
+      ) else {
+      return false
+    }
   }
   if scope.read_domain is Some(read) && !physical_equal(read.operation, caller) {
     return false
@@ -546,11 +572,21 @@ fn prepare_holder_effect_host_scope_retirement(
   if scope.depth > 0 {
     return false
   }
-  if scope.read_domain is Some(read) &&
-    !leave_holder_effect_host_read_domain(read) {
-    return false
+  if scope.depth == 0 &&
+    scope.operation is None &&
+    scope.pending is None &&
+    scope.read_domain is None &&
+    scope.read_parent is None {
+    // Physical no-op remains idempotent after its original caller token was
+    // transferred. This acknowledges no snapshot holding or another Owner.
+    scope.preparation_binding = None
+    scope.current_binding = None
+    return true
   }
-  guard retry_holder_effect_host_read_failure(scope) &&
+  // Retained current closures can themselves belong to the child allocator.
+  // End those aliases before asking the same domain/parent for physical ACK.
+  guard quiesce_holder_effect_host_setup_scope(scope) &&
+    retry_holder_effect_host_read_failure(scope) &&
     close_holder_effect_host_read_domain(scope) &&
     close_holder_effect_host_read_parent(scope) else {
     return false

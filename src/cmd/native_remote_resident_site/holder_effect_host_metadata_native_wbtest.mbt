@@ -109,3 +109,43 @@ test "metadata commit survives refused reentry and uses the original cleanup" {
   assert_true(@site.settle_site_operation(operation))
   assert_true(slot.close())
 }
+
+///|
+test "one physical leave cannot authorize metadata under an outstanding nested borrow" {
+  let (site, scope, slot, host, installed) = host_metadata_test_scope(
+    "metadata-nested.slot",
+  )
+  let updates = Ref(0)
+  let operation = scope.caller_operation.unwrap()
+  assert_true(
+    install_holder_effect_host_read_domain(scope, slot, Some(installed)),
+  )
+  let read = scope.read_domain.unwrap()
+  // This is an independently owned physical nesting, outside the scope's
+  // ordinary depth counter. Its Owner must return its own borrow explicitly.
+  host.enter_backed_read_context(slot, read.domain, operation).unwrap()
+  assert_false(
+    with_holder_effect_host_site_metadata(scope, () => {
+      updates.val += 1
+      true
+    }),
+  )
+  assert_eq(updates.val, 0)
+  assert_true(scope.retiring)
+  assert_true(read.active)
+  host
+  .require_backed_read_context_current(slot, read.domain, operation)
+  .unwrap()
+  host.leave_backed_read_context(slot, read.domain, operation).unwrap()
+  assert_true(quiesce_holder_effect_host_setup_scope(scope))
+  assert_true(retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach)
+  assert_true(scope.read_domain is None)
+  assert_true(scope.read_parent is None)
+  assert_eq(host.usage().reserved_execution_bytes, 0L)
+  assert_true(scope.holding is None)
+  assert_true(scope.cleanup is None)
+  let (same_operation, _) = take_holder_effect_host_caller_reservation(scope)
+  assert_true(physical_equal(same_operation.unwrap(), operation))
+  assert_true(@site.settle_site_operation(operation))
+  assert_true(slot.close())
+}
