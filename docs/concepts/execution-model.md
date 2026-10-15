@@ -113,17 +113,12 @@ where each step runs:
 
 ![Salesforce accounts and aggregated Snowflake usage are read into the ActQL engine, which joins them, sends only the INPUT columns of each account to the LLM, filters on the typed answer, previews the update and, after approval, writes it back to Salesforce. Filtering and aggregation run inside Snowflake.](data-flow.svg)
 
-`explain` shows the same placement, still without reading anything:
-
-```text
-$ actql explain churn-risk.aql
-Plan
-  salesforce.accounts  → Salesforce   needed columns only
-  snowflake.usage_30d  → Snowflake    needed columns only
-  JOIN, WHERE          → DuckDB
-  INFER                → model
-  EFFECT               → Checkpoint   waits for approval
-```
+`explain` shows the same placement, still without reading anything. For each
+step it names the **Site** where the work runs (Salesforce, Snowflake, your
+machine) and the **Engine** that computes it there. Some choices are left to
+the Run on purpose: the engine for the join depends on how many rows arrive,
+so `explain` marks it as decided at run time rather than guessing.
+[Plans and pushdown](../guides/plans-and-pushdown.md) shows the output.
 
 - The planner may reorder, fuse or push computation down to a Connector, or
   run it elsewhere, only when results, ordering, failure behaviour, the scope of
@@ -162,8 +157,10 @@ Run run_…
   Effect      update  (Salesforce Account)
   Items       2
   Changes
-    Acme Corp     Churn_Risk__c  low    → high
-    Globex Inc    Churn_Risk__c  medium → high
+    Acme Corp     Churn_Risk__c   low     → high
+                  Risk_Reason__c  (empty) → falling usage and a competitor evaluation
+    Globex Inc    Churn_Risk__c   medium  → high
+                  Risk_Reason__c  (empty) → support tickets about pricing
 ```
 
 ### Durable execution and unknown outcomes
