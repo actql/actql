@@ -8,6 +8,8 @@ import {
 }
 
 // Values
+pub fn admit_unresolved_backed_execution_data(BackedExecutionOriginalData) -> Result[UnresolvedBackedExecutionOriginal, BackedExecutionDataIssue]
+
 pub fn[T] advance_funded_read_state_write(FundedReadClaim[T], T, Int) -> OriginalStateWritePoll
 
 pub fn[T] advance_original_current_state_comparison(OriginalCurrentStateComparison[T], Int) -> OriginalStateComparisonPoll
@@ -117,6 +119,8 @@ pub fn holding_available(Ledger, Holding) -> Bool
 pub fn holding_belongs_to(Ledger, Holding) -> Bool
 
 pub fn holding_serial(Holding) -> Int
+
+pub fn[P, C] issue_backed_execution_original_data(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C]) -> Result[BackedExecutionOriginalData, BackedExecutionIssue]
 
 pub fn[P, C] issue_backed_execution_region(SharedCapacity, SharedAllocation, P) -> Result[BackedExecutionRegion[P, C], BackedExecutionIssue]
 
@@ -298,12 +302,26 @@ pub fn[T] stop_funded_read(FundedReadClaim[T]) -> Result[Unit, OriginalReadIssue
 
 pub fn[T] stop_funded_read_consumer(FundedReadConsumer[T]) -> Result[Unit, OriginalReadIssue]
 
+pub fn unresolved_backed_execution_data(UnresolvedBackedExecutionOriginal) -> BackedExecutionOriginalData
+
 // Errors
 
 // Types and methods
 pub(all) enum BackedExecutionAccess {
   ReadOnly
   ExclusiveWrite
+} derive(Eq, @debug.Debug)
+
+pub(all) struct BackedExecutionCumulativeData {
+  planning_work : Int
+  attempts : Int
+  holdings : Int
+  transferred_bytes : Int64
+  uncertain_transfer_bytes : Int64
+} derive(Eq, @debug.Debug)
+
+pub(all) enum BackedExecutionDataIssue {
+  InvalidData
 } derive(Eq, @debug.Debug)
 
 pub struct BackedExecutionDelegation[P, C] {
@@ -340,11 +358,39 @@ pub(all) enum BackedExecutionIssue {
   Resource(LedgerIssue)
 } derive(Eq, @debug.Debug)
 
+pub(all) struct BackedExecutionOriginalData {
+  allocation_bytes : Int64
+  extent : BackedExecutionExtent
+  access : BackedExecutionAccess
+  limits : LedgerLimits
+  cumulative : BackedExecutionCumulativeData
+  peak_retention_bytes : Int64
+  provision : BackedExecutionProvisionData
+  region_closing : Bool
+  read_use : BackedExecutionReadUseData
+  final_usage : LedgerUsage?
+} derive(Eq, @debug.Debug)
+
+pub(all) struct BackedExecutionProvisionData {
+  transfer_bytes : Int64
+  retained_bytes : Int64
+  execution_bytes : Int64
+  open : Bool
+  cleanup_pending : Bool
+} derive(Eq, @debug.Debug)
+
 pub struct BackedExecutionReadUse[P, C] {
   mut ticket : BackedExecutionDelegation[P, C]?
   mut borrow : SharedBorrow?
   mut closing : Bool
 }
+
+pub(all) enum BackedExecutionReadUseData {
+  NotIssued
+  Pending
+  Closing
+  Retired
+} derive(Eq, @debug.Debug)
 
 pub struct BackedExecutionRegion[P, C] {
   mut capacity : SharedCapacity?
@@ -589,6 +635,10 @@ pub(all) struct SharedCapacityUsage {
   capacity : Int64
   allocated : Int64
   closing : Bool
+}
+
+pub struct UnresolvedBackedExecutionOriginal {
+  // private fields
 }
 
 // Type aliases

@@ -2251,16 +2251,18 @@ function publicationControl(moon) {
       'RunHostInspectRejected');
     },
     readCheckedClientStaticPlan(checkedProgram, kind, limits) {
-      if (!['values', 'tasks'].includes(kind) ||
+      if (!['values', 'tasks', 'effects'].includes(kind) ||
           !Number.isSafeInteger(limits?.maxWireBytes) || limits.maxWireBytes < 1 ||
           !Number.isSafeInteger(limits?.maxNodes) || limits.maxNodes < 1 ||
           !Number.isSafeInteger(limits?.maxDepth) || limits.maxDepth < 1) {
         throw new TypeError('InvalidClientStaticPlanRequest');
       }
-      const compile = kind === 'values' ? moon.clientProgramCompileLocalValues
-        : moon.clientProgramCompileLocalTasks;
-      const project = kind === 'values' ? moon.clientProgramValuesStaticPlanView
-        : moon.clientProgramTaskStaticPlanView;
+      const compile = kind === 'effects' ? moon.clientProgramCompileLocalEffects
+        : kind === 'values' ? moon.clientProgramCompileLocalValues
+          : moon.clientProgramCompileLocalTasks;
+      const project = kind === 'effects' ? moon.clientProgramEffectfulStaticPlanView
+        : kind === 'values' ? moon.clientProgramValuesStaticPlanView
+          : moon.clientProgramTaskStaticPlanView;
       if (typeof compile !== 'function' || typeof project !== 'function') {
         throw Object.assign(new Error('ClientOperationUnavailable'),
           {code: 'ClientOperationUnavailable'});
