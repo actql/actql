@@ -7,7 +7,7 @@ from pathlib import Path
 import sys
 import tempfile
 
-from actql_sdk._local_native_control_custody import _OriginalControlCustody, _OriginalControlFunctions
+from actql_sdk._local_native_control_custody import _OriginalControlCustody, _OriginalControlFunctions, _OriginalControlError
 from actql_sdk._local_native_backing_custody import _OriginalBackingCustody, _OriginalBackingFunctions
 from actql_sdk._local_native_domain_custody import _OriginalDomainCustody, _OriginalDomainFunctions, _OriginalDomainReadFunctions
 from actql_sdk._local_native_sqlite import _OriginalSqliteCustody, _OriginalSqliteFunctions, _OriginalSqliteError
@@ -231,6 +231,21 @@ try:
         query('sdk/原', 'unconfirmed', None, expected_issue=20)
         refused_write = write('replay', b'not sent')
         assert refused_write['issue'] == 20, refused_write
+    elif name == 'closing-copy-current':
+        assert opened['issue'] == 0
+        tx(7); assert write('retained', b'original')['issue'] == 0; tx(8)
+        s, sn = text('sdk/原'); k, kn = text('retained')
+        with domain._read_scope(read):
+            assert select(h, db, s, sn, k, kn, 4096, C.byref(r)) == 0
+            data = fact(4); assert data['issue'] == data['after'] == 0 and data['has_row'] == 1
+            try: host.close()
+            except _OriginalControlError as error:
+                assert not error.unknown and error.fact.issue_family == 5
+            else: raise AssertionError('Host closed with original row/Database custody')
+            raw = (C.c_ubyte * 4096)(); size = I64(-1)
+            assert copy_row(r, h, l, db, raw, 4096, C.byref(size)) != 0
+            assert size.value == -1 and bytes(raw[:8]) == bytes(8)
+            release_reply()
     else:
         raise AssertionError('Unknown selected case')
 finally:

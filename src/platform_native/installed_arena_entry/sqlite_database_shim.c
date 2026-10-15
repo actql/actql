@@ -214,6 +214,16 @@ int actql_sqlite_database_copy_row(actql_sqlite_database_reply *reply, actql_con
         (capacity && !output) || callbacks.operation(reply) != 4 || callbacks.stage(reply) != 2 ||
         callbacks.issue(reply) != 0 || callbacks.after(reply) != 0 || callbacks.has_row(reply) != 1 ||
         !same_reply(reply, host, library, original)) return ACTQL_CONTROL_INVALID_SLOT;
+    /* A saved row reply is not a perpetual current/scope grant. Reuse the
+     * SAME original Core validation immediately before the physical copy;
+     * reject a foreign active context or a Host that closed since the read. */
+    actql_sqlite_database_reply *current = callbacks.observe(host, original);
+    if (!current) return ACTQL_CONTROL_UNAVAILABLE;
+    int ready = callbacks.operation(current) == 3 && callbacks.stage(current) == 2 &&
+        callbacks.issue(current) == 0 && callbacks.after(current) == 0 &&
+        same_reply(current, host, library, original);
+    moonbit_decref(current);
+    if (!ready) return ACTQL_CONTROL_UNAVAILABLE;
     moonbit_bytes_t body = callbacks.body(reply);
     if (!body) return ACTQL_CONTROL_UNAVAILABLE;
     int64_t size = Moonbit_array_length(body);
