@@ -306,10 +306,15 @@ original Run. An unknown Effect is not permission to submit the work again.
 The distributed Native CLI currently provides `aql`/`start`, `wait`, and bounded
 `read` through Remote transport. It has no Remote `run` or `approve` command.
 The [CLI guide](docs/cli.md) gives the actual required arguments and saved
-Submission/Run/read-attempt identities. Native Local installation and approval
-remain separate unfinished acceptance units; the
-[target CLI experience](docs/design/cli-target-experience.md) records the
-adopted future design without presenting it as a current runnable quickstart.
+Submission/Run/read-attempt identities. A fixed Darwin arm64 Native Local
+cohort also passed external installation, explicit adoption, source-free SQL
+`check`/`explain`/`run`, saved `status` and original Result delivery/release.
+It needs no separate Host, token, mTLS, internal configuration or library path.
+See the guide for the exact private-integration Source and macOS 26.0 boundary;
+this does not claim latest-main, public npm availability or complete Local
+Source/Effect/approval/cancel/Debug acceptance. The
+[target CLI experience](docs/design/cli-target-experience.md) retains the
+broader adopted workflow without advertising unconnected commands.
 
 ## Beyond tables
 
