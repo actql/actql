@@ -124,6 +124,13 @@ class TrustedRuntimeView {
 // The owning installer supplies these independently from its actual originals,
 // not from packet fields, matching CIDs, a caller flag or this view's contents.
 // This module stays private: no SDK factory/plugin/wire issues runtime coverage.
+// The selected startup's TLS responsibility includes the adapter's own peer
+// graph, hostname-verification scratch and original TLS error referents, bound
+// to these SAME actual Host/supplier/installation/generation/runtime originals.
+// This is not HTTP-clamp coverage or an exemption for ActQL/SDK allocations.
+// Operation currentness, concurrency, physical close and the last actual
+// borrower remain the existing caller/cleanup Owner's obligations; this view
+// does not observe or acknowledge them, including when its links are retired.
 export function issueInferTrustedRuntimeView(actualOriginals) {
   return new TrustedRuntimeView(constructorKey, originals(actualOriginals));
 }

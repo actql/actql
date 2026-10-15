@@ -39,7 +39,7 @@ if (selected) {
   const {Socket} = require('node:net');
   require('node:http');
   require('node:https');
-  require('node:tls');
+  const tls = require('node:tls');
   const {TextDecoder} = require('node:util');
   // Resolve Node's lazy global before inspecting its data descriptor. Both
   // module-cached Core decoders and per-read metadata decoders must use this
@@ -55,6 +55,12 @@ if (selected) {
     [Readable.prototype, 'unshift'], [Socket.prototype, 'read'],
     [globalThis, 'TextDecoder'], [TextDecoder.prototype, 'decode'],
     [Buffer.prototype, 'subarray'],
+    // The selected TLS implementation owns its own peer-certificate graph,
+    // hostname-verification scratch and original TLS error referents. Keep
+    // the actual adapter functions, not a later application replacement.
+    // HTTP header/body clamps do not cover these pre-HTTP allocations.
+    [tls, 'connect'], [tls, 'checkServerIdentity'],
+    [tls.TLSSocket.prototype, 'getPeerCertificate'],
   ].map(([owner, name]) => {
     const descriptor = Object.getOwnPropertyDescriptor(owner, name);
     if (descriptor === undefined || !Object.hasOwn(descriptor, 'value')) unavailable();
@@ -68,6 +74,13 @@ if (selected) {
   }
   // The actual process/module/native responsibility stays with this startup.
   // These originals and the existing Host overlap still need funded coverage.
+  // In particular the three added descriptor records/array entries/references
+  // are managed startup controls, not part of the TLS adapter trust exemption.
+  // ActQL aliases, Promises, closures, copied diagnostics and exported peer or
+  // error data also remain on the original Ledger. Native trust is neither a
+  // zero-byte claim nor a lease. The same socket operation and last borrower
+  // retain their original responsibility until actual cleanup, not destroy(),
+  // rejection, Promise settlement or retirement of this association.
   startup = {process: originalProcess, module, entry: originalProcess.argv[1], originals,
     invalidated: false};
 }
