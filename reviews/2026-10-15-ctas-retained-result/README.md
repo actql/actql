@@ -26,8 +26,11 @@ limits are unchanged.
 `ACTQL_TABLE_NORMAL_RELEASE=/absolute/normal4-RC` selects the existing exact
 clean-source normal-release verifier before any Host or fixture creation. It
 never packs or falls back to development archives. All four final archives are
-installed normally outside the checkout and audited. The same source,
-manifest and archives must still verify after execution. The selected optional
+installed outside the checkout and audited using the existing `--offline`,
+`--ignore-scripts`, and `--omit=optional` fixture policy. Normal package lifecycle
+acceptance is separately qualified against the same manifest; this consumer
+alone does not establish it. The same source, manifest and archives must still
+verify after execution. The selected optional
 Table Python installation must match the existing hashed requirements lock;
 no checkout Python worker or adapter may replace installed package assets.
 Normal release source must match the submitted fixture source: an older RC is
