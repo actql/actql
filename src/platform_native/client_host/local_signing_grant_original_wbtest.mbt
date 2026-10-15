@@ -42,7 +42,15 @@ fn signing_grant_original_fixture(
     "parent_child",
   )
   |> ignore
-  let crypto = epoch_test_crypto()
+  // The raw32 public projection requires this existing bounded diagnostic
+  // selection, exactly as the original key-custody fixture. No secret is read.
+  let crypto = signing_grant_fixture_require(
+    @crypto.load_library(
+      @env.get_env_var("ACTQL_TEST_NATIVE_CRYPTO_LIBRARY").unwrap(),
+      diagnostic_ceiling=Some(64),
+    ),
+    "crypto_library",
+  )
   let session = signing_grant_fixture_require(
     begin_native_local_host_adoption(
       path + "/" + name + ".parent",
