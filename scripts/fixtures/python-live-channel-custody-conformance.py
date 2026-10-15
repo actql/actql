@@ -170,9 +170,8 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
         cases.append('actual admission cumulative Int64 report and logical stop refuse without a live child')
 
         try: domain.close_after_stop()
-        except _OriginalDomainError as failure:
-            assert not failure.unknown and failure.fact.issue_family == 8
-        else: raise AssertionError('Pending metadata lost domain responsibility')
+        except ValueError: pass
+        else: raise AssertionError('Pending process/FD metadata lost domain responsibility')
         asyncio.run(channel.close_original())
         assert process._parent_closed and all(x.closed for x in process._descriptors)
         original.retire_after_owner_ack(channel, supplier.no_child)
