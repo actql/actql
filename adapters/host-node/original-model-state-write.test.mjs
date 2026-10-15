@@ -2,7 +2,7 @@
 // are not a normal profile, complete funding, Provider send or public M1 PASS.
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {lstat, mkdir, mkdtemp, open, readFile, rm, writeFile} from 'node:fs/promises';
+import {lstat, mkdir, mkdtemp, open, opendir, readFile, rm, writeFile} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import test from 'node:test';
@@ -167,4 +167,71 @@ test('selected storage binding re-observation uses original Store clamp without 
   // Ordinary re-observation still works but is never a selected fallback.
   assert.ok(await g.evidence.originalModelStorageBindingEvidence(original));
   g.done();
+});
+
+test('selected initial storage binding observation uses the same original acquisition and nominal binding', async t => {
+  const f = await fixture(t);
+  // This physical-port test uses the existing parked Core acquisition. The
+  // separate caller/issuer test must establish pre-park currentness; this API
+  // does not derive phase permission from a matching wire or fixture amount.
+  const handle = await f.evidence.observeOriginalModelStorageBindingSelected(
+    'model-meta', f.runDefinition.identity, f.acquisition);
+  assert.strictEqual(await f.evidence.observeOriginalModelStorageBindingSelected(
+    'model-meta', f.runDefinition.identity, f.acquisition), handle);
+  const actual = await f.evidence.originalModelStorageBindingEvidenceSelected(handle,
+    'model-meta', f.runDefinition.identity, f.acquisition);
+  assert.equal(actual.identity, handle.identity);
+  assert.equal(actual.wire, handle.wire);
+  assert.equal(JSON.parse(actual.wire).key_generation_cid, sha(Buffer.alloc(32, 7)));
+  assert.deepEqual(await readFile(f.path), f.before);
+  f.done();
+});
+
+test('selected initial storage binding refuses foreign selection and original identities before opening', async t => {
+  const f = await fixture(t);
+  for (const acquisition of [undefined, true, {...f.acquisition}]) {
+    await assert.rejects(f.evidence.observeOriginalModelStorageBindingSelected(
+      'model-meta', f.runDefinition.identity, acquisition), unavailable);
+  }
+  for (const [ownerId, requestCid] of [
+    ['model-foreign', f.runDefinition.identity], ['model-meta', sha('foreign')],
+  ]) {
+    await assert.rejects(f.evidence.observeOriginalModelStorageBindingSelected(
+      ownerId, requestCid, f.acquisition), unavailable);
+  }
+  await assert.rejects(lstat(join(f.state, 'private-store')), {code: 'ENOENT'});
+  assert.deepEqual(await readFile(f.path), f.before);
+  f.done();
+});
+
+test('selected initial storage binding preserves the Store ceiling and rejects a Scope stopped during opening', async t => {
+  const f = await fixture(t, {maxWireBytes: 1024, maxLedgerEntries: 8},
+    {maxWireBytes: 4096, maxDirectoryEntries: 0});
+  await assert.rejects(f.evidence.observeOriginalModelStorageBindingSelected(
+    'model-meta', f.runDefinition.identity, f.acquisition), {code: 'PublicationStoreBootstrapEntriesLimit'});
+  // Ordinary observation is only a separate control, never selected fallback.
+  assert.ok(await f.evidence.observeOriginalModelStorageBinding());
+  f.done();
+
+  const g = await fixture(t), path = join(g.state, 'private-store');
+  await mkdir(path);
+  const probe = await opendir(path), prototype = Object.getPrototypeOf(probe);
+  const read = prototype.read;
+  await probe.close();
+  let closing, observations = 0;
+  prototype.read = function(...args) {
+    if (this.path === path && observations++ === 0) {
+      closing = g.operation.close().catch(error => error);
+    }
+    return Reflect.apply(read, this, args);
+  };
+  try {
+    await assert.rejects(g.evidence.observeOriginalModelStorageBindingSelected(
+      'model-meta', g.runDefinition.identity, g.acquisition), unavailable);
+    assert.ok(observations > 0, 'the original operation changes during actual directory acquisition');
+    await closing;
+    await assert.rejects(lstat(join(path, 'owner')), {code: 'ENOENT'});
+    assert.deepEqual(await readFile(g.path), g.before);
+    g.done();
+  } finally { prototype.read = read; }
 });

@@ -540,6 +540,15 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
   return Object.freeze({
     keyId,
     observeOriginalModelStorageBinding: observeOriginalModelBinding,
+    async observeOriginalModelStorageBindingSelected(ownerId, requestCid, acquisition) {
+      // The original operation issues the acquisition for its current phase.
+      // This physical port neither manufactures a park nor replaces a missing
+      // nominal selection with the ordinary installation opening path.
+      selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+      const handle = await observeOriginalModelBinding(acquisition, ownerId, requestCid);
+      selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+      return handle;
+    },
     async originalModelStorageBindingEvidence(handle) {
       if (originalModelBinding === undefined || handle !== originalModelBinding.handle) {
         fail('ForeignOriginalModelStorageBinding');
