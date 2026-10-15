@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import test from 'node:test';
-import {snapshotInstalledCalendar, installedCalendarIdentity,
+import {snapshotInstalledCalendar, installedCalendarIdentity, installedCalendarIdentityCid,
   installedCalendarSelection, admitInstalledCalendar} from './installed-calendar.mjs';
 import {calendarSourceArtifact, calendarSourceSelection, calendarSourceArtifactLimits}
   from '../../scripts/fixtures/calendar-source-input.mjs';
@@ -84,4 +84,14 @@ test('Calendar installation identity binds actual bytes and budgets without clai
   const narrowed = snapshotInstalledCalendar({...original(), maxSelectionWork: 1});
   assert.equal(narrowed.artifactBytesCid, first.artifactBytesCid);
   assert.notDeepEqual(installedCalendarIdentity(narrowed), installedCalendarIdentity(first));
+});
+
+test('Calendar semantic metadata identity keeps composed and decomposed values distinct', () => {
+  const first = original();first.selection.tzdb_version='e\u0301';
+  const second = original();second.selection.tzdb_version='é';
+  const a = snapshotInstalledCalendar(first), b = snapshotInstalledCalendar(second);
+  assert.equal(a.artifactBytesCid,b.artifactBytesCid);
+  assert.notEqual(installedCalendarIdentityCid(a),installedCalendarIdentityCid(b));
+  assert.equal(installedCalendarSelection(a).tzdb_version,'e\u0301');
+  assert.equal(installedCalendarSelection(b).tzdb_version,'é');
 });

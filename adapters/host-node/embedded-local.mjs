@@ -43,7 +43,7 @@ import {installNodeInferRun} from './installed-infer-run.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
-import {snapshotInstalledCalendar, installedCalendarIdentity,
+import {snapshotInstalledCalendar, installedCalendarIdentityCid,
   installedCalendarSelection, admitInstalledCalendar} from './installed-calendar.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {issueInstalledRunControlObservation, issueInstalledRunObservationKey,
@@ -164,7 +164,7 @@ async function embeddedInstallationIdentity(root, installation) {
     ...(installation?.modelInstallation === undefined ? {} : {
       modelEnvironment: installation.modelInstallation}),
     ...(installation?.calendarArtifact === undefined ? {} : {
-      calendarArtifact: installedCalendarIdentity(installation.calendarArtifact)}),
+      calendarArtifact: installedCalendarIdentityCid(installation.calendarArtifact)}),
     ...(installation?.resultDataPolicy === undefined ? {} : {
       resultDataPolicy: installation.resultDataPolicy}),
     ...(installation?.retainedRelationOutput === true ? {
@@ -389,8 +389,12 @@ async function openInstalledHost(originalInstallation) {
     if (hostCapacityPolicy !== undefined) {
       effectiveHostCapacityPolicyCid = contentCid(body.host_policy_profile.capacity);
     }
-    environmentWire = canonicalJson({...body,
-      evidence_bundle_cid: contentCid(body)});
+    // Semantic artifact metadata is exact value data, not NFC configuration
+    // text. Keep the original serialization path when no Calendar is selected.
+    environmentWire = calendarArtifact === undefined
+      ? canonicalJson({...body, evidence_bundle_cid: contentCid(body)})
+      : canonicalValueJson({...body,
+        evidence_bundle_cid: bytesCid(Buffer.from(canonicalValueJson(body), 'utf8'))});
     verifyInstalledConnectorBindings(sourceProfile,
       installedEffect ?? effectInstallation);
   } catch (cause) {

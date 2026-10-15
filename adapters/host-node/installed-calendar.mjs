@@ -1,6 +1,7 @@
 // Explicit semantic-artifact installation. Calendar parsing, canonical bytes,
 // identity and boundary laws remain with the existing MoonBit profile owner.
 import {createHash} from 'node:crypto';
+import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 
 const originals = new WeakMap();
 const keysEqual = (value, keys) => value !== null && typeof value === 'object' &&
@@ -35,6 +36,11 @@ export function installedCalendarIdentity(selected) {
   if (selected === undefined) return undefined;
   if (!originals.has(selected)) throw new TypeError('InvalidInstalledCalendar');
   return selected;
+}
+
+export function installedCalendarIdentityCid(selected) {
+  const identity = installedCalendarIdentity(selected);
+  return identity === undefined ? undefined : cid(Buffer.from(canonicalValueJson(identity), 'utf8'));
 }
 
 export function installedCalendarSelection(selected) {
