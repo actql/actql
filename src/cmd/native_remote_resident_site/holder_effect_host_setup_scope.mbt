@@ -577,10 +577,9 @@ fn prepare_holder_effect_host_scope_retirement(
     scope.pending is None &&
     scope.read_domain is None &&
     scope.read_parent is None {
-    // Physical no-op remains idempotent after its original caller token was
-    // transferred. This acknowledges no snapshot holding or another Owner.
-    scope.preparation_binding = None
-    scope.current_binding = None
+    // No child allocator owns these callbacks. Preserve the existing caller
+    // handoff until take moves them; a duplicate physical no-op remains safe
+    // after that move. This acknowledges neither holding nor another Owner.
     return true
   }
   // Retained current closures can themselves belong to the child allocator.
