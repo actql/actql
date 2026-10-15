@@ -1687,18 +1687,28 @@ int32_t actql_native_sqlite_database_lookup_claim_ordinal(
   return result;
 }
 
-int32_t actql_native_sqlite_database_claim_ordinal(
+static int32_t actql_claim_ordinal(
   actql_native_sqlite_database *database,
   moonbit_bytes_t namespace_bytes,
   int32_t namespace_length,
   moonbit_bytes_t key,
   int32_t key_length,
-  int64_t max_claims
+  int64_t max_claims,
+  bool caller_transaction
 ) {
   if (database == NULL || !database->opened) return 5;
   actql_clear_result(database);
   if (max_claims <= 0) return 6;
-  int32_t result = actql_capacity_begin(database);
+  // Caller mode never begins, commits or rolls back the owning journal TX.
+  // No autocommit fallback can split an ordinal from its original use row.
+  const bool owns_transaction = !caller_transaction;
+  if (caller_transaction && (database->transaction_fenced ||
+      database->library->get_autocommit(database->database) != 0)) {
+    actql_replace_error(&database->error, database->diagnostic_ceiling,
+                        "claim requires an active unfenced caller transaction");
+    return -1;
+  }
+  int32_t result = owns_transaction ? actql_capacity_begin(database) : 0;
   if (result != 0) return result;
   sqlite3_stmt *statement = NULL;
   int code = database->library->prepare_v2(
@@ -1711,7 +1721,7 @@ int32_t actql_native_sqlite_database_claim_ordinal(
   );
   if (code != SQLITE_OK) {
     actql_database_error(database, "prepare bounded claim read failed");
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return actql_operation_code(code);
   }
   result = actql_bind_key(
@@ -1740,7 +1750,11 @@ int32_t actql_native_sqlite_database_claim_ordinal(
   int finalize_code = database->library->finalize(statement);
   statement = NULL;
   if (result == 7) {
-    int32_t commit = actql_capacity_commit(database);
+    if (caller_transaction && finalize_code != SQLITE_OK) {
+      actql_database_error(database, "finalize retained caller claim failed");
+      return actql_operation_code(finalize_code);
+    }
+    int32_t commit = owns_transaction ? actql_capacity_commit(database) : 0;
     return commit == 0 ? 7 : commit;
   }
   if (result != 0 || finalize_code != SQLITE_OK) {
@@ -1748,7 +1762,7 @@ int32_t actql_native_sqlite_database_claim_ordinal(
       actql_database_error(database, "finalize bounded claim read failed");
       result = actql_operation_code(finalize_code);
     }
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return result;
   }
   code = database->library->prepare_v2(
@@ -1761,7 +1775,7 @@ int32_t actql_native_sqlite_database_claim_ordinal(
   );
   if (code != SQLITE_OK) {
     actql_database_error(database, "prepare bounded claim count failed");
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return actql_operation_code(code);
   }
   code = database->library->bind_text(
@@ -1786,11 +1800,11 @@ int32_t actql_native_sqlite_database_claim_ordinal(
     result = actql_operation_code(finalize_code);
   }
   if (result != 0) {
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return result;
   }
   if (prior < 0 || prior >= max_claims || prior == INT64_MAX) {
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return 6;
   }
   int64_t ordinal = prior + 1;
@@ -1804,7 +1818,7 @@ int32_t actql_native_sqlite_database_claim_ordinal(
   );
   if (code != SQLITE_OK) {
     actql_database_error(database, "prepare bounded claim insert failed");
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return actql_operation_code(code);
   }
   result = actql_bind_key(
@@ -1835,12 +1849,31 @@ int32_t actql_native_sqlite_database_claim_ordinal(
     result = actql_operation_code(finalize_code);
   }
   if (result != 0) {
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return result;
   }
-  result = actql_capacity_commit(database);
+  result = owns_transaction ? actql_capacity_commit(database) : 0;
   if (result == 0) database->result_revision = ordinal;
   return result;
+}
+
+// Existing self-owned ABI and transaction behavior are unchanged.
+int32_t actql_native_sqlite_database_claim_ordinal(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t key, int32_t key_length, int64_t max_claims
+) {
+  return actql_claim_ordinal(database, namespace_bytes, namespace_length,
+                            key, key_length, max_claims, false);
+}
+
+int32_t actql_native_sqlite_database_claim_ordinal_in_transaction(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t key, int32_t key_length, int64_t max_claims
+) {
+  return actql_claim_ordinal(database, namespace_bytes, namespace_length,
+                            key, key_length, max_claims, true);
 }
 
 int32_t actql_native_sqlite_database_capacity_usage(
