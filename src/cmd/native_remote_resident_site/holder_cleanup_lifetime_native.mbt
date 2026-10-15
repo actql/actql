@@ -23,7 +23,7 @@ fn wait_holder_cleanup_lifetime_signal() -> Unit {
 
 ///|
 priv struct HolderCleanupCustody {
-  resources : HolderOutputResources?
+  mut resources : HolderOutputResources?
   environment : SiteEnvironment
   slot : @slot.NativeExecutorSlot
   original_failure : String
@@ -54,7 +54,15 @@ fn close_holder_output_resources(
   }
   guard advance_holder_cleanup_pass(resources, original.step, 5, (same, step) => {
     match step {
-      0 => close_holder_effect_host_setup(same) is HostSetupClosed
+      0 =>
+        match close_holder_effect_host_setup(same) {
+          HostSetupClosed => true
+          HostSetupPending(pending) => {
+            // Keep the Owner's returned carrier across the next cleanup pass.
+            original.resources = Some(pending)
+            false
+          }
+        }
       1 => same.transfer_journal.close()
       2 => same.store.close() is Ok(_)
       3 => same.transfer.close()
@@ -134,7 +142,7 @@ fn retain_pending_holder_cleanup(
   environment : SiteEnvironment,
   slot : @slot.NativeExecutorSlot,
   original_failure : String,
-) -> Unit {
+) -> String {
   let original : HolderCleanupCustody = {
     resources,
     environment,
@@ -149,44 +157,45 @@ fn retain_pending_holder_cleanup(
     report("cleanup-pending", [("step", "holder-signal-install")])
     ignore(park_holder_cleanup_unconfirmed_ffi())
   }
-  ignore(
-    retain_holder_cleanup_lifetime(
-      original,
-      retry_holder_cleanup_custody,
-      () => {
-        // A missing profile/reservation is not a free read grant. Keep custody
-        // through signal observation instead of allocating another input frame.
-        guard resources is Some(opened) &&
-          holder_cleanup_caller_read_current(opened) else {
-          return CleanupInputEnded
-        }
-        match read_holder_lifetime_input() {
-          InputLine(line) =>
-            if !holder_cleanup_caller_read_current(opened) {
-              CleanupInputEnded
-            } else if holder_cleanup_progress_frame(line) {
-              CleanupProgress
-            } else {
-              // Cancel/recovery frames cannot restart Source or mint an ACK here.
-              CleanupOther
-            }
-          InputEnded | InputInvalid => CleanupInputEnded
-        }
-      },
-      wait_holder_cleanup_lifetime_signal,
-      (custody, control_ended) => {
-        report("cleanup-pending", [
-          ("step", "holder-lifetime"),
-          ("close_step", custody.step.val.to_string()),
-          ("control_ended", control_ended.to_string()),
-        ])
-      },
-    ),
+  let retired = retain_holder_cleanup_lifetime(
+    original,
+    retry_holder_cleanup_custody,
+    () => {
+      // A missing profile/reservation is not a free read grant. Keep custody
+      // through signal observation instead of allocating another input frame.
+      guard original.resources is Some(opened) &&
+        holder_cleanup_caller_read_current(opened) else {
+        return CleanupInputEnded
+      }
+      match read_holder_lifetime_input() {
+        InputLine(line) =>
+          if !holder_cleanup_caller_read_current(opened) {
+            CleanupInputEnded
+          } else if holder_cleanup_progress_frame(line) {
+            CleanupProgress
+          } else {
+            // Cancel/recovery frames cannot restart Source or mint an ACK here.
+            CleanupOther
+          }
+        InputEnded | InputInvalid => CleanupInputEnded
+      }
+    },
+    wait_holder_cleanup_lifetime_signal,
+    (custody, control_ended) => {
+      report("cleanup-pending", [
+        ("step", "holder-lifetime"),
+        ("close_step", custody.step.val.to_string()),
+        ("control_ended", control_ended.to_string()),
+      ])
+    },
   )
+  // Consume the original diagnosis only after this receiver has acknowledged
+  // its ordered cleanup. It remains the same failure, not a new close result.
+  retired.original_failure
 }
 
 ///|
-/// This helper returns only the original reservation. Its inner receiver has
+/// This helper returns the original reservation and diagnosis. Its receiver has
 /// ended: the new carrier/Ref and its callbacks/report frames cannot escape.
 /// The original run_holder frame must also end before the reservation returns.
 fn finish_holder_cleanup_lifetime(
@@ -194,8 +203,8 @@ fn finish_holder_cleanup_lifetime(
   environment : SiteEnvironment,
   slot : @slot.NativeExecutorSlot,
   original_failure : String,
-) -> @site.SiteOperation? {
-  retain_pending_holder_cleanup(
+) -> (@site.SiteOperation?, String) {
+  let failure = retain_pending_holder_cleanup(
     Some(resources),
     environment,
     slot,
@@ -204,7 +213,7 @@ fn finish_holder_cleanup_lifetime(
   resources.effect_host_caller_current = None
   let operation = resources.effect_host_caller_operation
   resources.effect_host_caller_operation = None
-  operation
+  (operation, failure)
 }
 
 ///|
@@ -216,10 +225,15 @@ fn finish_unopened_holder_cleanup(
   slot : @slot.NativeExecutorSlot,
   original_failure : String,
 ) -> HolderCommandClose {
-  retain_pending_holder_cleanup(None, environment, slot, original_failure)
+  let failure = retain_pending_holder_cleanup(
+    None,
+    environment,
+    slot,
+    original_failure,
+  )
   // No Host operation has been selected here. Bootstrap funding remains a
   // separate missing supplier; None is not a zero-cost capacity admission.
-  HolderCommandFailed(None, original_failure)
+  HolderCommandFailed(None, failure)
 }
 
 ///|
