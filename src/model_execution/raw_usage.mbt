@@ -296,7 +296,7 @@ fn advance_model_stopped_raw_usage_owned(
   quantum : Int,
 ) -> Result[(Bool, Int64, ModelExecutionIssue?), ModelExecutionIssue] {
   let state = execution.state
-  guard state.pending_response is Some(call) &&
+  guard state.progress.call is Some(call) &&
     call.entry is Some(entry) &&
     entry.slot == slot else {
     // A previous attempt has no pending raw child. This is zero additional
@@ -324,7 +324,7 @@ fn advance_model_stopped_raw_usage_owned(
     // A later answer/projection failure can leave the ordinary decode alias
     // retained even though envelope usage is already final. Retire that same
     // stopped child before proof persistence, without reopening its parser.
-    if state.phase is DecodePhysicalResponse(_, _, cursor) &&
+    if state.progress.phase is DecodePhysicalResponse(_, _, cursor) &&
       !(cursor.phase is DecodeReclaimed) {
       let response = match call.terminal {
         Some(PhysicalChatResponse(response)) => response
@@ -394,7 +394,7 @@ fn transfer_model_stopped_raw_usage_child(
   response : ModelPhysicalChatResponse,
   raw : ModelRawCaptureSave,
 ) -> Result[Unit, ModelExecutionIssue] {
-  guard state.phase is DecodePhysicalResponse(_, _, cursor) else {
+  guard state.progress.phase is DecodePhysicalResponse(_, _, cursor) else {
     return Ok(())
   }
   if cursor.phase is DecodeReclaimed {
