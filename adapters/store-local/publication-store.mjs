@@ -79,6 +79,17 @@ const exactKeys = (value, keys) => value !== null &&
   typeof value === 'object' && !Array.isArray(value) &&
   Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
 
+// Keep this comparison workspace synchronous and dedicated: a short wire
+// must not borrow an unrelated Buffer pool backing across the Store phase.
+// Compare encoded bytes, not decoded replacement text or normalized strings.
+const exactUtf8WireMatches = (bytes, wire) => {
+  const length = Buffer.byteLength(wire, 'utf8');
+  if (bytes.byteLength !== length) return false;
+  const expected = Buffer.allocUnsafeSlow(length);
+  expected.write(wire, 0, length, 'utf8');
+  return bytes.equals(expected);
+};
+
 // The existing Store's synchronous encoding phase. Only its complete envelope
 // crosses into writer/FD/ACK waits; crypto and Base64 segment temporaries do not
 // belong to that async frame. This retires references, not capacity, physical
@@ -2619,10 +2630,9 @@ export async function openLocalPublicationStore(
         record.manifest_cid !== binding.semanticCid || record.objects.length !== 2) {
       fail('PublicationPrivateEvidenceUnavailable');
     }
-    const descriptor = await readPrivateEvidenceObject(
+    if (!exactUtf8WireMatches(await readPrivateEvidenceObject(
       'model_raw_descriptor', binding.semanticCid, binding.holdingCid, 0, 2,
-    );
-    if (!descriptor.equals(Buffer.from(binding.wire, 'utf8'))) {
+    ), binding.wire)) {
       fail('PublicationPrivateEvidenceConflict');
     }
     const bytes = await readPrivateEvidenceObject(
@@ -2664,8 +2674,7 @@ export async function openLocalPublicationStore(
       return Object.freeze({...original});
     });
     for (const original of expected) {
-      const stored = await readSemanticBytes(original.cid);
-      if (!stored.equals(Buffer.from(original.wire, 'utf8'))) {
+      if (!exactUtf8WireMatches(await readSemanticBytes(original.cid), original.wire)) {
         fail('PublicationModelRawOriginalMismatch');
       }
     }

@@ -4369,7 +4369,14 @@ fn run_holder(
     load_holder_effect_host_operator(matches, resources, environment, slot),
   ) catch {
     CommandStop(issue) => {
-      if proven_unstarted {
+      if proven_unstarted ||
+        (
+          resources.effect_host_setup.val is Some(scope) &&
+          scope.read_domain is Some(_)
+        ) {
+        // A failed installed read may still own an active context/aliases.
+        // Return it through the existing cleanup lifetime before any restore
+        // or execution. Saved Run/Journal facts are not reclassified or erased.
         let (operation, failure) = finish_holder_cleanup_lifetime(
           resources, environment, slot, issue,
         )

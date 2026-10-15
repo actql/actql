@@ -145,6 +145,29 @@ extern "C" fn register_original_domain_read_roots(
 ) -> Unit = "actql_native_control_register_domain_read_roots"
 
 ///|
+/// Code registration only. Matching regular C emission must determine the
+/// exact managed ownership before the selection transport shim is linked.
+extern "C" fn register_original_worker_selection_roots(
+  select : FuncRef[
+    (@control.InstalledArenaHost) -> @control.InstalledArenaWorkerSelectionReply,
+  ],
+  current : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaWorkerSelection) -> @control.InstalledArenaWorkerSelectionReply,
+  ],
+  original : FuncRef[
+    (@control.InstalledArenaWorkerSelectionReply) -> @control.InstalledArenaHost,
+  ],
+  selection : FuncRef[
+    (@control.InstalledArenaWorkerSelectionReply) -> @control.InstalledArenaWorkerSelection?,
+  ],
+  selection_host : FuncRef[
+    (@control.InstalledArenaWorkerSelection) -> @control.InstalledArenaHost,
+  ],
+  operation : FuncRef[(@control.InstalledArenaWorkerSelectionReply) -> Int],
+  issue : FuncRef[(@control.InstalledArenaWorkerSelectionReply) -> Int],
+) -> Unit = "actql_native_control_register_worker_selection_roots"
+
+///|
 fn original_host(
   reply : @control.InstalledArenaReply,
 ) -> @control.InstalledArenaHost? {
@@ -170,6 +193,18 @@ fn description(reply : @control.InstalledArenaReply) -> String {
 /// This initializes code references only. Registration is not supplier adoption,
 /// original arena acquisition, Root creation, Run admission or VM permission.
 fn main {
+  register_original_worker_selection_roots(
+    fn(host) { @control.installed_arena_worker_selection_reply(host) },
+    fn(host, selection) {
+      @control.current_installed_arena_worker_selection_reply(host, selection)
+    },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_selection() },
+    fn(selection) { selection.original_host() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.issue_family() },
+  )
+
   register_original_control_roots(
     fn(
       source,

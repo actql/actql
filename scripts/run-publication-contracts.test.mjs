@@ -444,18 +444,52 @@ test('corrected schemas have independently fixed canonical identities', () => {
       result_manifest:
         'sha256:bd718c411677e83cdf33258176d09c6dd690789b3cc7bb897cbff2b629290e02',
       run_receipt:
-        'sha256:98d9a727e977009817027e7e88aa510127d1275a24a0f4baec866b7e5ebb7847',
+        'sha256:62f9011e9e702f3d620f70513eac6260a21b980687b7574c1bdce55984b1aba8',
       run_state:
         'sha256:70dc077a89465b8785fcc66fe471133e52004fc1dcc105df0efc7ac559c3fe30',
       captured_run:
-        'sha256:4d29468956029714f8d1cdab1f43f44ca682775f78b36ccda03b2b3fb908609a',
+        'sha256:a37894cfc6919e1562be6b44293871f349085e6b94e27281eec26b7af8d0514c',
     },
   );
+  // Independently hashed at 99130778 and its true parent: undo only its
+  // optional closed listing-report member before examining older evidence.
+  function withoutListingReports(receipt) {
+    const prior = structuredClone(receipt);
+    const evidence = prior.properties.source_evidence.items;
+    assert.equal(machineCid(evidence.properties.file_listing_reports),
+      'sha256:72aab33f04df6a895e4445202e48a76acd12a5669e71faae49d56403a2d88545');
+    assert.ok(!evidence.required.includes('file_listing_reports'));
+    delete evidence.properties.file_listing_reports;
+    return prior;
+  }
+  const priorListingReceipt = withoutListingReports(registry.artifact_schemas.run_receipt);
+  assert.equal(machineCid(priorListingReceipt),
+    'sha256:98d9a727e977009817027e7e88aa510127d1275a24a0f4baec866b7e5ebb7847');
+  const priorListingCapture = structuredClone(registry.artifact_schemas.captured_run);
+  priorListingCapture.properties.receipt = priorListingReceipt;
+  assert.equal(machineCid(priorListingCapture),
+    'sha256:b3e0df2dca997b53950a1035ac64d334f128ed36840302a535c1ff56f13a064b');
+  // 7d143f02 added this exact issuer restriction. Preserve the preceding
+  // ff6ee156 captured body, rather than treating its CID as today's schema.
+  const issuer = priorListingCapture.properties.effect_context.properties
+    .content_generations.items.properties.content_reference.properties
+    .metadata.properties.issuer_evidence;
+  assert.deepEqual(issuer.properties.reported_media_type,
+    {type: 'string', minLength: 1, maxLength: 256});
+  assert.deepEqual(issuer.allOf, [{
+    if: {properties: {issuer_kind: {const: 'connector_capture'}}, required: ['issuer_kind']},
+    then: {required: ['reported_media_type']},
+    else: {not: {required: ['reported_media_type']}},
+  }]);
+  delete issuer.properties.reported_media_type;
+  delete issuer.allOf;
+  assert.equal(machineCid(priorListingCapture),
+    'sha256:4d29468956029714f8d1cdab1f43f44ca682775f78b36ccda03b2b3fb908609a');
   // Content generation changes only the optional observation and capture
   // inventory. Reverse those exact reviewed additions and keep the original
   // identities below: unrelated schema drift cannot be hidden by repinning.
   function withoutContentObservation(receipt) {
-    const prior = structuredClone(receipt);
+    const prior = withoutListingReports(receipt);
     const observation = prior.properties.observation_set;
     assert.deepEqual(observation.properties.content_generation_cids, {
       type: 'array', uniqueItems: true,
