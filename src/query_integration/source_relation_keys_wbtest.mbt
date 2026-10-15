@@ -3,6 +3,7 @@
 fn source_relation_keys_declaration(
   drop_key? : Bool = false,
   scores? : Bool = false,
+  keys? : Bool = true,
 ) -> @row_host.RowDeclaration {
   let schema_wire = if drop_key {
     "{\"id\":{\"nullable\":false,\"type\":\"number\"},\"payload\":{\"nullable\":false,\"type\":\"number\"}}"
@@ -26,13 +27,19 @@ fn source_relation_keys_declaration(
         schema_wire,
         schema_cid,
         request_schema_wire: None,
-        facts_wire: Some(
-          if scores {
-            "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]},\"relation_scores\":{\"payload\":{\"domain\":\"Relevance\",\"normalization\":\"Identity\",\"range\":[0,1]}}}"
-          } else {
-            "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]}}"
-          },
-        ),
+        facts_wire: if !keys && !scores {
+          None
+        } else {
+          Some(
+            if scores && !keys {
+              "{\"relation_scores\":{\"payload\":{\"domain\":\"Relevance\",\"normalization\":\"Identity\",\"range\":[0,1]}}}"
+            } else if scores {
+              "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]},\"relation_scores\":{\"payload\":{\"domain\":\"Relevance\",\"normalization\":\"Identity\",\"range\":[0,1]}}}"
+            } else {
+              "{\"relation_keys\":{\"candidate_keys\":[[\"id\"]]}}"
+            },
+          )
+        },
         acquisition_wire: None,
       },
     ],
@@ -57,6 +64,7 @@ fn source_relation_keys_requirement(
   declaration : @row_host.RowDeclaration,
   drop_key? : Bool = false,
   scores? : Bool = false,
+  keys? : Bool = true,
 ) -> @planning.QueryRequirement raise {
   let (schemas, capabilities) = @row_host.row_declaration_evidence_members(
     declaration,
@@ -94,11 +102,14 @@ fn source_relation_keys_requirement(
     @query.query_sequence_owner(sequence),
   )
   // The original SourceView input and its pending key obligation survive.
-  assert_true(
-    @pipeline.input_contract_at(@lower.pipeline(preparation), 0)
-    is Some(@pipeline.SourceViewInput(_, _, _, _)),
-  )
-  assert_true(@lower.preparation_input_keys(preparation, 0) is Some(_))
+  assert_true(@lower.preparation_input_is_source_view(preparation, 0))
+  assert_false(@lower.preparation_input_is_source_view(preparation, -1))
+  assert_false(@lower.preparation_input_is_source_view(preparation, 1))
+  if keys {
+    assert_true(@lower.preparation_input_keys(preparation, 0) is Some(_))
+  } else {
+    assert_true(@lower.preparation_input_keys(preparation, 0) is None)
+  }
   if scores {
     let original = @lower.preparation_input_ranking(preparation, 0).unwrap()
     let declaration = @vector.ranking_score_at(
@@ -413,4 +424,31 @@ test "native filtered acquisition refuses pending SourceView key validation befo
     )
     is Err(UnsupportedShape),
   )
+}
+
+///|
+test "native filtered acquisition distinguishes SourceView ranking and absent obligations" {
+  for (keys, scores) in [(false, true), (true, true), (false, false)] {
+    let requirement = source_relation_keys_requirement(
+      source_relation_keys_declaration(drop_key=scores, scores~, keys~),
+      drop_key=scores,
+      scores~,
+      keys~,
+    )
+    let sequence = @planning.query_material_owner(
+      @planning.query_requirement_material(requirement),
+    )
+    let owner = @query.query_sequence_owner(sequence)
+    let compiled = @duckdb.compile_native_filter_select(
+      owner,
+      "main",
+      "records",
+      native_compile_limits(),
+    )
+    if scores {
+      assert_true(compiled is Err(UnsupportedShape))
+    } else {
+      assert_true(compiled is Ok(_))
+    }
+  }
 }
