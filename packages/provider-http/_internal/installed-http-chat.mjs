@@ -95,7 +95,7 @@ export function createInstalledHttpChatRegistration(value) {
   const raw = config.rawCaptureSelection;
   if (!frozen(original) || !frozen(original.bootstrap) ||
       !frozen(original.nodeInstallation) || !frozen(original.nodeInstallation.layout) ||
-      !frozen(raw) || !frozen(raw.installation)) fail('HTTPChatOriginalInstallationUnavailable');
+      !frozen(raw) || !frozen(raw.installation) || raw.profile == null) fail('HTTPChatOriginalInstallationUnavailable');
   const installation = raw.installation;
   if (original.nodeInstallation.layout.response_profile !== raw.profile ||
       original.nodeInstallation.probability !== undefined || raw.probability !== undefined ||
@@ -111,11 +111,17 @@ export function createInstalledHttpChatRegistration(value) {
       !frozen(bindings) || !['configuration', 'configurationContract', 'installationRevision']
         .every(name => frozen(bindings[name]))) fail('HTTPChatOriginalInstallationUnavailable');
   return moon => {
-    if (!['clientProgramProjectHTTPChatRequest', 'clientProgramInstallAsyncModelProvider',
+    if (!['clientProgramModelResponseProfileTransportMatches',
+      'clientProgramProjectHTTPChatRequest', 'clientProgramInstallAsyncModelProvider',
       'clientProgramModelRequestPreflight', 'clientProgramModelAsyncPhysicalRequestPlan',
       'clientProgramModelPhysicalCallForRequest', 'clientProgramModelPhysicalPending',
       'clientProgramModelPhysicalUnknown', 'clientProgramModelPhysicalSavedChat']
       .every(name => typeof moon?.[name] === 'function')) fail('HTTPChatOriginalRuntimeUnavailable');
+    if (moon.clientProgramModelResponseProfileTransportMatches(raw.profile,
+      requestLimits.maxBytes, responseLimits.maxBytes, responseLimits.maxChunkBytes,
+      responseLimits.maxChunks, responseLimits.maxHeaderBytes) !== true) {
+      fail('HTTPChatOriginalTransportLimitsMismatch');
+    }
     return [Object.freeze({providerId, entryPersistence: 'async',
       bindingOriginals: bindings, originalReadInstallation: original,
       rawCaptureSelection: raw, quantityCapacity: quantities, observeEgress,
