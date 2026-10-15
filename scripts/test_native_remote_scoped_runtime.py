@@ -2,6 +2,8 @@
 import importlib.util
 from pathlib import Path
 import shlex
+import json
+import tempfile
 import unittest
 
 SPEC = importlib.util.spec_from_file_location('remote_build', Path(__file__).with_name('produce-native-remote-scoped-runtime.py'))
@@ -48,13 +50,39 @@ class RemoteScopedComposition(unittest.TestCase):
         self.assertFalse(any(str(self.home / 'lib/runtime') in x for p in planned for x in p))
         self.assertEqual(planned[-1][-2:], [str(self.home / 'lib/libmoonbitrun.o'), '-lm'])
 
-    def test_only_unmaterialized_optional_debug_registry_is_omitted(self):
+    def test_original_debug_registry_and_compiler_arguments_are_preserved(self):
         commands = [c.copy() for c in self.commands]
         commands[0] += ['-g', '-O0', '-all-pkgs', str(self.emission / 'all_pkgs.json')]
         planned = self.plan(commands)
-        self.assertNotIn('-all-pkgs', planned[0])
-        self.assertEqual(planned[0][-2:], ['-g', '-O0'])
-        self.assertEqual(planned[0][1:len(self.commands[0])], self.commands[0][1:])
+        self.assertEqual(planned[0][1:], commands[0][1:])
+
+    def test_private_driver_selects_only_the_planned_c_boundary(self):
+        driver = Path('/owned/bin/cc')
+        commands = [[str(driver), *c[1:]] if c[0] == '/usr/bin/cc' else c for c in self.commands]
+        output = '\n'.join(shlex.join(c) for c in commands)
+        plan = MODULE.commands_for(output, self.home, self.emission, self.stage,
+                                   self.clang, self.sdk, cc_driver=driver)
+        self.assertEqual(plan, self.plan())
+
+    def test_private_c_port_rejects_unplanned_invocation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'plan.json'
+            path.write_text(json.dumps({'steps': []}))
+            with self.assertRaisesRegex(ValueError, 'Unplanned'):
+                MODULE.compile_selected_c(path, ['--arbitrary'])
+
+    def test_private_c_port_rechecks_allocator_before_compiler(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            header = root / 'header.h'
+            header.write_text('original')
+            expected = MODULE.original(header)
+            header.write_text('changed')
+            path = root / 'plan.json'
+            path.write_text(json.dumps({'steps': [{'original': ['expected']}],
+                                        'allocator_inputs': [expected]}))
+            with self.assertRaisesRegex(ValueError, 'changed'):
+                MODULE.compile_selected_c(path, ['expected'])
 
     def test_second_core_cannot_split_owner_identity(self):
         with self.assertRaisesRegex(ValueError, 'composition'):

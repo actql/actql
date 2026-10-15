@@ -14,6 +14,7 @@ from pathlib import Path
 import platform
 import shlex
 import subprocess
+import sys
 import time
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -33,7 +34,7 @@ def under(path: Path, root: Path) -> bool:
 
 
 def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
-                 clang: Path, sdk: Path) -> list[list[str]]:
+                 clang: Path, sdk: Path, *, cc_driver: Path | None = None) -> list[list[str]]:
     """Keep the actual pinned dry-run closure; reject other targets/entries."""
     commands: list[list[str]] = []
     links = finals = providers = 0
@@ -62,14 +63,8 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                 links += 1
                 if not parts[parts.index('-o') + 1].endswith('/cmd/native_remote_resident_site/native_remote_resident_site.c'):
                     raise ValueError('Foreign generated Core module')
-            # Pinned Moon dry-run does not materialize its optional package
-            # registry. Match the existing explicit provider builder: omit
-            # only that debug-registry argument, preserving -g/-O0 and types.
-            if '-all-pkgs' in parts:
-                index = parts.index('-all-pkgs')
-                del parts[index:index + 2]
             parts[0] = str(moon_home / 'bin/moonc')
-        elif parts[0] == '/usr/bin/cc':
+        elif parts[0] == str(cc_driver or Path('/usr/bin/cc')):
             sources = [p for p in parts[1:] if p.endswith('.c')]
             if len(sources) != 1:
                 raise ValueError('Each original C step must have one source')
@@ -112,6 +107,27 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
     return commands
 
 
+def compile_selected_c(plan_path: Path, arguments: list[str]) -> None:
+    """Private cc port: accept only an exact step from this Moon invocation."""
+    plan = json.loads(plan_path.read_text())
+    matches = [step for step in plan['steps'] if step['original'] == arguments]
+    if len(matches) != 1:
+        raise ValueError('Unplanned or ambiguous C compiler invocation')
+    step = matches[0]
+    for item in plan['allocator_inputs']:
+        if original(Path(item['path'])) != item:
+            raise ValueError('Derived allocator changed before C compilation')
+    result = subprocess.run(step['selected'], check=False)
+    output = Path(step['selected'][step['selected'].index('-o') + 1])
+    receipt = {'original': arguments, 'selected': step['selected'], 'exit': result.returncode}
+    if result.returncode == 0:
+        receipt['output'] = original(output)
+    # Distinct output names and j1 preserve one actual record per selected step.
+    Path(step['receipt']).write_text(json.dumps(receipt, indent=2) + '\n')
+    if result.returncode:
+        raise SystemExit(result.returncode)
+
+
 def build(source: str, moon_home: Path, clang: Path, sdk: Path,
           destination: Path, seconds: int, *, plan_only: bool) -> dict[str, object]:
     if type(seconds) is not int or seconds <= 0 or type(plan_only) is not bool:
@@ -151,17 +167,40 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     allocator = destination / 'derived-read-source'
     selection = module.prepare(moon_home, allocator)
     emission = destination / 'emission'
-    dry = run([str(moon_home / 'bin/moon'), 'build', '--target', 'native',
-               '--target-dir', str(emission), '--dry-run', '-j', '1', ENTRY], capture=True)
+    cc_driver = destination / 'bin/cc'
+    cc_driver.parent.mkdir()
+    cc_plan = destination / 'cc-plan.json'
+    # Only the C port is redirected. Ordinary Moon retains dependency/registry
+    # generation and all package compiler arguments, including -all-pkgs.
+    cc_driver.write_text('#!' + sys.executable + '\n'
+        + 'import importlib.util, sys\nfrom pathlib import Path\n'
+        + 's=importlib.util.spec_from_file_location("remote_cc",' + repr(str(Path(__file__).resolve())) + ')\n'
+        + 'm=importlib.util.module_from_spec(s); s.loader.exec_module(m)\n'
+        + 'm.compile_selected_c(Path(' + repr(str(cc_plan)) + '),sys.argv[1:])\n')
+    cc_driver.chmod(0o755)
+    environment['PATH'] = str(cc_driver.parent) + ':' + environment['PATH']
+    moon_arguments = [str(moon_home / 'bin/moon'), 'build', '--target', 'native',
+                      '--target-dir', str(emission), '-j', '1', ENTRY]
+    dry = run(moon_arguments + ['--dry-run'], capture=True)
     (destination / 'moon-dry-run.txt').write_text(dry)
-    commands = commands_for(dry, moon_home, emission, allocator, clang, sdk)
+    commands = commands_for(dry, moon_home, emission, allocator, clang, sdk, cc_driver=cc_driver)
     (destination / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
+    originals = [[p.replace('$MOON_HOME', str(moon_home)) for p in shlex.split(line)]
+                 for line in dry.splitlines() if line.strip()]
+    c_steps = [{'original': before[1:], 'selected': after,
+                'receipt': str(destination / ('cc-' + str(index) + '.json'))}
+               for index, (before, after) in enumerate(zip(originals, commands))
+               if before[0] == str(cc_driver)]
+    cc_plan.write_text(json.dumps({'steps': c_steps,
+        'allocator_inputs': [original(p) for p in sorted(allocator.iterdir()) if p.is_file()]}, indent=2) + '\n')
     # Preserve all selected package sources, the original pinned Core and FFI
     # include closure, and the exact allocator recipe. Source SHA alone cannot
     # stand in for the separately installed compiler/runtime/Core inputs.
     packages = [c[c.index('-pkg') + 1].removeprefix('actql/actql/')
                 for c in commands if c[0] == str(moon_home / 'bin/moonc') and c[1] == 'build-package']
     paths = {ROOT / 'toolchain.json', ROOT / 'moon.mod', Path(__file__), clang,
+             cc_driver, cc_plan, Path(sys.executable),
+             Path('/Library/Developer/CommandLineTools/usr/bin/libtool'),
              sdk / 'SDKSettings.json', moon_home / 'installed.json',
              moon_home / 'bin/moon', moon_home / 'bin/moonc',
              moon_home / 'lib/libmoonbitrun.o', moon_home / 'lib/libbacktrace.a'}
@@ -178,18 +217,28 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     receipt: dict[str, object] = {
         'source': source, 'entry': ENTRY, 'target': 'darwin-arm64',
         'compiler_backend': 'pinned ordinary C (MOONBIT_NEW_NATIVE=0)',
-        'debug_package_registry': 'Optional -all-pkgs omitted; raw Moon dry-run retained',
+        'debug_package_registry': 'Generated by ordinary pinned Moon; no compiler arguments omitted',
         'selected_packages': packages, 'core_modules': 1, 'providers': 1,
         'allocator': selection, 'plan_only': plan_only, 'commands_completed': 0,
         'installed_supplier': False, 'normal_profile': None, 'runtime_cases': 0, 'public_e2e': 0,
     }
     (destination / 'progress.json').write_text(json.dumps(receipt, indent=2) + '\n')
     if not plan_only:
-        for command in commands:
-            Path(command[command.index('-o') + 1]).parent.mkdir(parents=True, exist_ok=True)
-            run(command)
-            receipt['commands_completed'] = int(receipt['commands_completed']) + 1
-            (destination / 'progress.json').write_text(json.dumps(receipt, indent=2) + '\n')
+        build_command = moon_arguments + ['--verbose']
+        (destination / 'moon-build-command.json').write_text(json.dumps(build_command, indent=2) + '\n')
+        with (destination / 'moon-build.stdout').open('wb') as stdout, (destination / 'moon-build.stderr').open('wb') as stderr:
+            result = subprocess.run(build_command, cwd=ROOT, env=environment,
+                                    timeout=max(0.001, deadline - time.monotonic()),
+                                    stdout=stdout, stderr=stderr, check=False)
+        receipt['moon_build_exit'] = result.returncode
+        completed = [json.loads(Path(step['receipt']).read_text()) for step in c_steps if Path(step['receipt']).exists()]
+        receipt['completed_c_steps'] = len(completed)
+        (destination / 'progress.json').write_text(json.dumps(receipt, indent=2) + '\n')
+        if result.returncode:
+            raise RuntimeError('Ordinary Moon build failed; original stdout/stderr and C receipts retained')
+        if len(completed) != len(c_steps) or any(step['exit'] != 0 for step in completed):
+            raise ValueError('Not every selected C step has an actual successful receipt')
+        receipt['commands_completed'] = len(commands)
         executable = emission / 'native/debug/build/cmd/native_remote_resident_site/native_remote_resident_site.exe'
         receipt['executable'] = original(executable)
     for item in inputs:
