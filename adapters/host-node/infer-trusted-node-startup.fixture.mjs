@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {Buffer} from 'node:buffer';
 import {Readable} from 'node:stream';
 import {TextDecoder as NodeTextDecoder} from 'node:util';
+import tls from 'node:tls';
 import {issueInferTrustedRuntimeView, requireInferTrustedStartupView,
   associateInferTrustedStartupView, borrowInferTrustedStartupView,
   forgetInferTrustedStartupView, forgetInferTrustedRuntimeView} from './infer-trusted-runtime-view.mjs';
@@ -57,6 +58,33 @@ if (mode === 'absent') {
     requireInferTrustedStartupView(nextView, next);
     forgetInferTrustedStartupView(nextView, next.host, next.generation);
     forgetInferTrustedRuntimeView(nextView, next.host, next.generation);
+  } else if (mode === 'tls-peer-originals') {
+    // Selected builtin JS only, not a handshake or certificate-size bound.
+    // The TLS adapter's original error retains this SAME peer graph. ActQL
+    // aliases, copied diagnostics and pending controls still require funding.
+    const cert = {subject: {CN: 'other.invalid'},
+      subjectaltname: 'DNS:other.invalid', issuerCertificate: {subject: {CN: 'issuer'}}};
+    const error = tls.checkServerIdentity('expected.invalid', cert);
+    assert.equal(error.code, 'ERR_TLS_CERT_ALTNAME_INVALID');
+    assert.equal(error.cert, cert);
+    assert.equal(error.cert.issuerCertificate, cert.issuerCertificate);
+    assert.equal(error.host, 'expected.invalid');
+    for (const [owner, name] of [[tls, 'connect'], [tls, 'checkServerIdentity'],
+      [tls.TLSSocket.prototype, 'getPeerCertificate']]) {
+      const descriptor = Object.getOwnPropertyDescriptor(owner, name);
+      assert.equal(descriptor.writable, false, name);
+      assert.equal(descriptor.configurable, false, name);
+      assert.throws(() => { owner[name] = () => undefined; }, TypeError);
+    }
+    requireInferTrustedStartupView(view, actual);
+    rejects(() => requireInferTrustedStartupView(view, {...actual, transport() {}}),
+      'InferTrustedRuntimeOriginalChanged');
+    // Rechecking or retiring the view never acknowledges a TLS/socket close
+    // and cannot clear a still-borrowed original error or certificate graph.
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
+    assert.equal(error.cert, cert);
+    rejects(() => requireInferTrustedStartupView(view, actual), 'InferTrustedRuntimeViewRetired');
   } else if (['read-decoder-global', 'read-decoder-decode', 'read-buffer-subarray'].includes(mode)) {
     assert.equal(globalThis.TextDecoder, NodeTextDecoder);
     if (mode === 'read-decoder-global') {
