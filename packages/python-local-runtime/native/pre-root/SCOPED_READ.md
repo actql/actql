@@ -83,3 +83,49 @@ are structure sizes, not allocator charges, a complete retained inventory or
 accepted numerical profile. Common paired funding, F's caller, complete layout,
 DLL/Engine/worker, ordinary installed wheel/public Python execution remain
 separate and unaccepted. Fuel100M, transfer12MiB and VM16MiB are unchanged.
+
+## Non-test Native provider production
+
+The existing `scripts/produce-python-native-provider.py` has an explicit
+maintainer-only `--scoped-read` selection. It prepares the verified copied
+closure inside a fresh output directory, compiles every regular generated-C and
+runtime consumer against the derived header, and includes that same provider
+once through the bootstrap stub. The original toolchain and default stock
+selection remain unchanged. A missing/changed source or failed derived build
+never falls back to stock. Neither build selection nor a successful library
+build adopts installed authority, numerical funding or an ordinary Local profile.
+
+```sh
+python3 scripts/produce-python-native-provider.py \
+  --source <exact-clean-commit> --moon-home <selected-toolchain> \
+  --clang <selected-clang> --sdk <selected-sdk> \
+  --destination <new-output-directory> --seconds 300 --scoped-read
+```
+
+These paths are maintainer inputs, not Client options. Use the existing bounded
+verification guard. The receipt records the patch/recipe/derived output digests,
+actual compiler dependencies and library identity. The runtime sources are
+compiled from the copied closure; diagnostic conformance helpers are excluded
+from the library. Explicit code-root initialization, image/Wasmtime compilation,
+Engine/worker startup, installation and public Python execution remain separate.
+A following Wasmtime build must link this exact selected library and use a new
+provider digest in its recipe; it must not embed another provider/TLS copy or
+relabel a previous compiled image.
+
+Source-qualified producer acceptance at
+`cd8b37fe5fe67d08f694d42560df07d20d32967c` (`run-GPHg0C`) completed12 regular
+build-package tasks, one C emission, eleven fresh C compiles and one library
+link. No diagnostic helper was linked. The726944-byte library SHA256 is
+`bb94cd5635b82ac32a9d613ec339137139b0b1a8e9e954892c4cd43fd56f01e9`.
+All eleven actual compiler dependency sets select the copied header; exactly
+one translation unit consumes the copied provider C. The build's initialized
+code/Engine/worker counts are zero.
+
+The exact saved library was separately consumed by `run-MqlqRH`: an external
+test-only helper (compile1/link1, never another provider) drove the existing four
+Core/Common/Python read-custody cases. All4 passed and original Host/domain/FD
+cleanup completed. Explicit code-root initialization ran once in that consumer;
+the library's original mimalloc load initializer is separate. The old mixed
+Sourcefb6 diagnostic DLL and its receipt remain distinct. This new component
+still does not supply F Root/Reader, full bootstrap/VM funding, a normal numerical
+profile, Engine/worker startup or a public wheel E2E.

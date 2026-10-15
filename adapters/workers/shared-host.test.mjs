@@ -1,8 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {bindLocalJsHost} from '../host-common/local-js-host.mjs';
-import {withScopedStrategy} from '../host-common/scoped-strategy.mjs';
-import {withScopedStrategy as compatibilityEntry} from './invocation.mjs';
 import {finalizerCase} from '../host-node/finalizer-fixture.mjs';
 
 test('JS Host binding snapshots its runtime without installing contributions', () => {
@@ -20,8 +18,11 @@ test('JS Host binding snapshots its runtime without installing contributions', (
   assert.ok(Object.isFrozen(host));
 });
 
-test('Workers compatibility entry is the same scoped owner, not another engine', () => {
-  assert.equal(compatibilityEntry, withScopedStrategy);
+test('retired Workers invocation import is refused without a fallback', async () => {
+  const retired = new URL('./invocation.mjs', import.meta.url);
+  await assert.rejects(import(retired.href), {
+    code: 'ERR_MODULE_NOT_FOUND', url: retired.href,
+  });
 });
 
 test('shared JS scope preserves failed cleanup ownership and original causes', async () => {

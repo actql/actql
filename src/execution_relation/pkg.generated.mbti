@@ -555,6 +555,8 @@ pub fn constrain_generated_analytic_envelope(GeneratedSequence, Int, Int64, Int6
 
 pub fn constrain_generated_asof_search(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
+pub fn constrain_generated_calendar_output(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
+
 pub fn constrain_generated_expansion_output(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
 
 pub fn constrain_generated_interval_search(GeneratedSequence, Int, Int64) -> Result[GeneratedSequence, SequenceRunIssue]
@@ -698,6 +700,8 @@ pub fn fixed_relation_read_supplied(FixedRelationRead) -> SuppliedRelationRead?
 pub fn fixed_supplied_relation_read(SuppliedRelationRead) -> FixedRelationRead
 
 pub fn generated_asof_search_ceiling(GeneratedSequence, Int) -> Int64?
+
+pub fn generated_calendar_output_ceiling(GeneratedSequence, Int) -> Int64?
 
 pub fn generated_completion_preparation(GeneratedSequence) -> CompletionPreparation
 
@@ -987,6 +991,8 @@ pub fn prepare_admitted_output_stream(@lowering_relation.BoundPrepared, @pipelin
 
 pub fn prepare_bounded_admitted_input(@lowering_relation.BoundPrepared, Int, Int, ValueLimits) -> Result[AdmittedInput, CaptureIssue]
 
+pub fn prepare_bounded_admitted_output(@lowering_relation.BoundPrepared, @pipeline_typing.Target, Int, ValueLimits) -> Result[AdmittedOutput, CaptureIssue]
+
 pub fn[P] prepare_carrier_managed_completion_port(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> @managed_carrier_runtime.CompletionReference?, inputs? : Array[CarrierManagedProducerRead], obligations? : ManagedObligations, attempt? : ManagedExecutionAttempt) -> Result[CarrierManagedCompletionPort[P], TrustedOutputIssue]
 
 pub fn[P] prepare_carrier_managed_completion_port_with_inputs(ManagedExecutionProfile, CompletionPreparation, @pipeline_typing.Target, Int, Int, (P) -> @managed_carrier_runtime.CompletionReference?, inputs? : Array[ManagedInputBinding], obligations? : ManagedObligations, attempt? : ManagedExecutionAttempt) -> Result[CarrierManagedCompletionPort[P], TrustedOutputIssue]
@@ -1117,6 +1123,8 @@ pub fn producer_read_available(ProducerRead) -> Bool
 
 pub fn producer_read_cell(ProducerRead, Int, Int) -> Value?
 
+pub fn producer_read_cell_present(ProducerRead, Int, Int) -> Result[Bool, RelationPresenceIssue]
+
 pub fn producer_read_checked_cell(ProducerRead, Int, Int, @value_admission.Limits) -> @value_admission.CheckedValue?
 
 pub fn producer_read_has_cell_access(ProducerRead) -> Bool
@@ -1160,6 +1168,8 @@ pub fn[P] readmit_trusted_retained_output(TrustedRetainedReadmission[P], P) -> R
 pub fn rebind_producer_representation(ProducerRead, CompletedOutput) -> Result[ProducerRead, ProducerReadIssue]
 
 pub fn reclaim_admitted_input(AdmittedInput, Int) -> Bool
+
+pub fn reclaim_bounded_admitted_output(AdmittedOutput, Bool) -> Bool
 
 pub fn register_managed_identity_issuance_capability(ManagedIdentityDomain, ManagedIdentitySubject, ManagedResultOccurrence?, String) -> Result[ManagedIdentityIssuanceCapability, ManagedIdentityIssuanceIssue]
 

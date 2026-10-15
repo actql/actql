@@ -726,6 +726,7 @@ fn lower_expression_measured(
       }
       Values(_)
       | TimeSeriesValue(_)
+      | CalendarValue(_)
       | RowWindow(_)
       | Select(_)
       | Limit(_)

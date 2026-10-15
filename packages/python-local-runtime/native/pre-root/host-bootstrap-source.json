@@ -44,8 +44,8 @@
     },
     {
       "path": "src/platform_native/host_bootstrap/bootstrap_wbtest.mbt",
-      "bytes": 6811,
-      "sha256": "d25624e10e0c0008505b570656ac08135a9f921c4d229d6220b37cbc0ca852dd"
+      "bytes": 7058,
+      "sha256": "5b4dc59c89c557f4073ccc4ccd5a1d02ab7b38f310d0a942b1d20af45bacd83c"
     },
     {
       "path": "src/platform_native/host_bootstrap/fd_supplier_wbtest.mbt",
