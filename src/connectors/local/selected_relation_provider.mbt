@@ -319,9 +319,9 @@ fn drain_relation_chain_inputs(
 /// These bounded Relation kernels transfer an accepted completion independently
 /// of their execution scratch. Their existing cleanup preserves that output.
 /// Family providers retain their original conservative lifecycle and capacity.
-fn relation_chain_reclaims_completed_scratch(
+fn relation_chain_reclaimed_prefix(
   sequence : @execution.GeneratedSequence,
-) -> Bool {
+) -> Int {
   for index in 0..<@execution.generated_sequence_step_count(sequence) {
     match @execution.generated_sequence_step_at(sequence, index) {
       Some(@lower.JoinStep(_)) => ()
@@ -337,12 +337,12 @@ fn relation_chain_reclaims_completed_scratch(
           !(@lower.kernel_body(kernel) is @lower.AnalyticRows(_)) &&
           !(@lower.kernel_body(kernel) is @lower.Unpivot(_, _, _, _)) &&
           !(@lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _)) {
-          return false
+          return index
         }
-      _ => return false
+      _ => return index
     }
   }
-  true
+  @execution.generated_sequence_step_count(sequence)
 }
 
 ///|
@@ -363,9 +363,10 @@ fn bounded_relation_chain_capacity(
   if count < 2 {
     return Some(base)
   }
-  let reclaims_scratch = relation_chain_reclaims_completed_scratch(sequence)
+  let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)
   let mut retained_children = 0L
   let mut scratch = 0L
+  let mut prefix_peak = 0L
   for index in 0..<count {
     guard @execution.generated_sequence_step_index_at(sequence, index)
       is Some(step) &&
@@ -380,8 +381,8 @@ fn bounded_relation_chain_capacity(
       return None
     }
     retained_children += child.retained_bytes
-    if reclaims_scratch {
-      scratch = Int64::max(scratch, child.execution_bytes)
+    if index < reclaimed_prefix {
+      prefix_peak = Int64::max(prefix_peak, child.execution_bytes)
     } else {
       if scratch > 9223372036854775807L - child.execution_bytes {
         return None
@@ -389,6 +390,10 @@ fn bounded_relation_chain_capacity(
       scratch += child.execution_bytes
     }
   }
+  // Every audited prefix child confirms cleanup before the next child starts.
+  // Family/unaudited children retain their original conservative overlap from
+  // the first such child onward; accepted outputs remain retained throughout.
+  scratch = Int64::max(prefix_peak, scratch)
   if retained_children > 9223372036854775807L - scratch {
     return None
   }
@@ -524,7 +529,7 @@ fn bounded_relation_chain_execution_state(
   let terminal = Ref(false)
   let reclaimed = Ref(false)
   let cleanup_index = Ref(-1)
-  let reclaims_scratch = relation_chain_reclaims_completed_scratch(sequence)
+  let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)
   let start_next = fn(
     next_inputs : Array[ManagedProviderInput],
   ) -> Result[Unit, @connector.FixedComputeIssue] {
@@ -741,6 +746,7 @@ fn bounded_relation_chain_execution_state(
             state.completed[state.position] = Some(output)
             state.position += 1
             state.pending = true
+            let reclaims_scratch = state.position <= reclaimed_prefix
             if reclaims_scratch {
               state.reclaiming = true
               match reclaim_relation_chain_child(state) {

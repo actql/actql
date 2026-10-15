@@ -897,6 +897,7 @@ for (const action of ['retry', 'abort']) {
       );
       let releases = 0, preparations = 0;
       const pending = {
+        status() { return orphan.prepared.status(); },
         async release() {
           if (++releases === 1) throw Object.assign(
             new Error('partial cleanup unavailable'), {code: 'InjectedCleanup'});
