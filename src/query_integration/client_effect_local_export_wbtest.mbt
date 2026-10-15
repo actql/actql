@@ -342,7 +342,6 @@ fn local_effect_open_run(
 fn local_effect_execute_managed_values(
   prepared : @publication_host.PreparedClientEffectComputation,
   run : @strategy.CapturedDAG,
-  generated? : @execution.GeneratedSequence? = None,
 ) -> (
   @local_driver.LocalManagedDispatchOperations[Int],
   @execution.ManagedCompletedOutput[Int],
@@ -350,32 +349,28 @@ fn local_effect_execute_managed_values(
 ) raise {
   let registry = search_registry()
   let dispatch = dispatch_test_limits()
-  let generated = match generated {
-    Some(sequence) => sequence
-    None =>
-      @publication_host.prepare_client_effect_task_sequence(
-        prepared,
-        0,
-        registered_relation_contracts(),
-        [],
-        {
-          max_steps: 100,
-          max_rows: 100,
-          max_cells: 10000,
-          max_bindings: 100,
-          max_name_bytes: 10000,
-          expressions: {
-            max_nodes: 10000,
-            max_work: 100000,
-            max_depth: 100,
-            max_literal_nodes: 10000,
-            max_literal_text_bytes: 10000,
-          },
-        },
-        100000,
-        10000,
-      ).unwrap()
-  }
+  let generated = @publication_host.prepare_client_effect_task_sequence(
+    prepared,
+    0,
+    registered_relation_contracts(),
+    [],
+    {
+      max_steps: 100,
+      max_rows: 100,
+      max_cells: 10000,
+      max_bindings: 100,
+      max_name_bytes: 10000,
+      expressions: {
+        max_nodes: 10000,
+        max_work: 100000,
+        max_depth: 100,
+        max_literal_nodes: 10000,
+        max_literal_text_bytes: 10000,
+      },
+    },
+    100000,
+    10000,
+  ).unwrap()
   let modules = @builtin.configure_compute_modules(
     @host_driver.open_dispatch_driver(run),
     registry,
