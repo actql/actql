@@ -345,13 +345,60 @@ or public wheel is adopted by this preparation. Unknown domains stay unknown.
 
 `scripts/produce-python-native-provider.py` is a maintainer-only, guarded build
 entry for that component. It checks the selected MoonBit installation and exact
-clean source, emits the twelve selected packages and regular C link, then builds
+clean source, emits the selected161-package entry closure and regular C link, then builds
 the provider and five runtime support sources with an explicit macOS11 target.
-It preserves the existing diagnostic omission of the optional debug package
-registry, records actual compiler dependencies, and reuses the existing Mach-O
+It preserves the ordinary package registry needed by transitive trait
+implementations, records actual compiler dependencies, and reuses the existing Mach-O
 target/dependency inspector. No old runtime support objects are silently reused.
 The producer does not load the library or invoke the control initializer.
 The linked toolchain runtime contains a mimalloc load-time initializer; its
 independent startup resources remain outside ordinary funding qualification.
 Building and inspecting this artifact does not adopt a numerical profile or
 fund a VM.
+
+
+## Explicit single-provider bootstrap imports
+
+`ACTQL_BOOTSTRAP_IMPORT_PROVIDER` selects a consumer-only compilation of the
+existing Native bootstrap stub. It requires the selected scoped header and
+rejects an embedded provider-source define. It includes no `owned_capacity.c`
+or `owned_image.c`. The existing physical provider supplies the opaque control
+and rounding observations, original domain transfer, current context and
+original view/child comparisons. Native Host, Common Ledger, loan and cleanup
+contracts are unchanged. The live channel still verifies its original local
+records, FD identities, extent and actual child; the C observations grant no
+capacity, process authority or credit. No private allocator/context layout is
+copied into the consumer.
+
+`actql_bootstrap_control_scope_clear()` returns1 only when the **same provider**
+confirms raw read pointer/depth and owned pointer/depth are all clear. It checks
+the existing read-index process fence; foreign/unknown observations return0.
+NULL from the valid-current-pointer getter alone is insufficient. One successful
+nested leave is neither this whole-frame observation nor physical retirement.
+This read-only fact is not Host/Account permission, stop, COMMIT or cleanup ACK.
+
+The derived source closure records these extra APIs independently. Existing
+installed toolchain and retained DLLs are never overwritten. Numerical profile
+and ordinary startup remain unadopted. The imported C fixture retains64-page
+Host/48-page domain and escaped alias cleanup; the existing domain-borrow
+fixture preserves its original16 assertions and adds3 opaque parent/child
+checks under the same64/24/16-page physical limits. Actual execution, linkage
+origin and object/source qualifications must be recorded separately from this
+source recipe.
+
+The imported fixture is linked against exactly that selected provider DLL.
+Its consumer object must define no `actql_native_owned_*` or
+`actql_read_context_*` symbols; the ordinary linker must resolve those imports
+from the same DLL. The scoped header precedes the pinned supplemental header.
+No dynamic lookup, weak-provider fallback or second provider implementation is
+allowed. The fixture exercises nested raw-frame observations, foreign process
+refusal, original domain transfer and two escaped managed aliases before
+child-first retirement. It must enter the original parent scope before lending
+its extent; a scalar-only descriptor cannot replace that existing precondition.
+
+This finite imported-consumer check does not call the generated control
+initializer or instantiate an Engine, VM or worker. The selected library's
+existing load-time runtime constructor remains part of the independent startup
+responsibility described above. Actual source/DLL/consumer identities and raw
+results are separate evidence; neither this recipe nor a successful physical
+fixture supplies an ordinary installed funding profile.
