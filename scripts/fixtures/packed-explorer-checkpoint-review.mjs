@@ -35,7 +35,7 @@ await test('ordinary installed Explorer reads the real held Checkpoint before an
     receipt.browserVersion = browser.version();
     const result = await runInstalledEffectInventoryAcceptance({connect,
       openInstalledRemoteHttpHost, publishEffect, profile: 'checkpoint-review',
-      async observeWaitingCheckpoint({client, phase, original, expectedRows}) {
+      async observeWaitingCheckpoint({client, phase, original, expectedRows, expectedRunId}) {
         assert.deepEqual(expectedRows, [{node_id: 'I_ALPHA', comment: 'alpha forward'}]);
         const listed = await client.checkpoints({limit: 32});
         assert.equal(listed.items.length, 1);
@@ -43,9 +43,11 @@ await test('ordinary installed Explorer reads the real held Checkpoint before an
         assert.equal(checkpoint.kind, 'effect_set');
         assert.equal(checkpoint.phase, 'commit');
         assert.equal(checkpoint.subject.kind, 'run_unit');
+        assert.equal(checkpoint.subject.runId, expectedRunId);
         assert.equal(checkpoint.subject.runDefinitionCid, original.runRef.runDefinitionCid);
         const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 65536});
         const bytes = Buffer.from(review.bytes);
+        assert.equal(review.checkpointCid, checkpoint.checkpointCid);
         assert.equal(review.artifactCid, checkpoint.reviewProjectionCid);
         assert.equal(`sha256:${hash(bytes)}`, review.artifactCid);
         const text = new TextDecoder('utf-8', {fatal: true}).decode(bytes);

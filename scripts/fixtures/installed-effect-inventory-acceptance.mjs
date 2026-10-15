@@ -311,10 +311,14 @@ export async function runInstalledEffectInventoryAcceptance({connect,
           const execution = await original(await host.as(), saved);
           const state = await execution.status();
           assert.equal(state.status, 'waiting_checkpoint');
+          const dispatchBeforeReview = counts.dispatch;
           const result = await observeWaitingCheckpoint({
             client: await host.as('synthetic-reviewer-token'),
             phase, original: saved, expectedRows: expected.rows,
+            expectedRunId: state.run_id,
           });
+          assert.equal(counts.dispatch, dispatchBeforeReview,
+            'review reads cannot start another Run or redispatch the original');
           const after = await execution.status();
           assert.equal(after.status, 'waiting_checkpoint');
           assert.equal(after.run_id, state.run_id);
