@@ -10,6 +10,7 @@ import {
   "actql/actql/execution_site" @site,
   "actql/actql/platform_native/bounded_files",
   "actql/actql/platform_native/host_bootstrap" @bootstrap,
+  "actql/actql/physical_resources" @resources,
   "actql/actql/platform_native/executor_slot" @slot,
   "actql/actql/platform_native/http_client" @http,
   "actql/actql/platform_native/filesystem",
@@ -45,6 +46,5 @@ import {
 
 import {
   "actql/actql/physical_manifest" @output_manifest,
-  "actql/actql/physical_resources" @resources,
   "moonbitlang/core/encoding/utf8",
 } for "wbtest"
