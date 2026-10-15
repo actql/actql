@@ -104,6 +104,12 @@ if (selected) {
     [Readable.prototype, 'unshift'], [Socket.prototype, 'read'],
     [globalThis, 'TextDecoder'], [TextDecoder.prototype, 'decode'],
     [Buffer.prototype, 'subarray'],
+    // The emitted Common UTF16/UTF8 and JSON scanners read primitive String
+    // code units through this exact method. Preserve that selected native
+    // implementation, not an application replacement with different storage
+    // or scan behavior. This does not freeze all String methods or bound their
+    // heap/flatten/GC behavior. The extra descriptor/array slot stays managed.
+    [String.prototype, 'charCodeAt'],
     // Preserve the native chain whose concrete Promise/await allocations the
     // selected supplier inventories. Freezing these originals is not a byte
     // grant, a hook/debug bound or an exemption for application callbacks.
