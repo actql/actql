@@ -23,6 +23,10 @@ function child(args, mode, extra = {}) {
 test('late ordinary embedded import cannot issue stock-startup responsibility', () => child([], 'absent'));
 test('selected real Node preload retains exact Host and borrowed Scope reference originals', () =>
   child(['--require', preload], 'selected'));
+for (const args of [['--require', preload], ['--no-lazy', '--require', preload]]) {
+  test(`selected identity indices retain multiple Host/Scope lifetimes (${args[0]})`, () =>
+    child(args, 'identity-index-lifetime'));
+}
 test('selected startup excludes pool/allocator replacement and retains invalidation through restoration', () =>
   child(['--require', preload], 'mutation'));
 test('selected TLS adapter originals cannot be replaced and its peer error keeps the original graph', () =>
