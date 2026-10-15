@@ -84,3 +84,36 @@ those limits are unchanged. Decoded/control objects, loader/VM/FD overhead and
 physical bootstrap funding are not declared covered by that metadata entry.
 Actual domain cleanup remains with its original Host/child Owner and aliases;
 Store acknowledgment never releases a loan, closes an FD or confirms a worker.
+
+## Explicit Python worker first adoption
+
+`client_local_product_python_worker_bootstrap_originals` selects a distinct
+Account under the existing authorization Owner. The original `local-cli` /
+`local` Run and `result/answer` entries are retained; the only additional entry
+is `local-worker-provisioning`, with resource `worker` and exactly `provision`
+and `read`. It has no named bootstrap, Source, Model, Effect, launch, stop or
+settlement grant. The existing Host methods additionally bind the original
+private Host, adoption/Store epoch, child key and selected provider generation.
+An Account entry alone is neither a provisioning identity nor physical funding.
+
+The independent canonical Account CID is
+`sha256:3cc3f50ac60482bd2362dd7ce4325ffe268f41a379153b1cba05ec97b2e2cc8c`.
+The existing Native/SDK Account remains
+`sha256:fd6d54cc5bcc0a7af2a7919981b4e06604a3380897bcf9ceb51cf764ecdfb396`.
+The new Account is 746 bytes, 223 bytes above the original, within the unchanged
+65536-byte per-file bound. The selection remains Account plus eight originals.
+
+`begin_native_local_python_worker_configuration` explicitly selects and retains
+these nine exact bodies through the existing durable product-configuration
+session. Call `stage_configuration` and close the session before ordinary Host
+adoption; this session itself grants no protected operation. An existing intent
+must match the original complete selection, so this entry cannot upgrade a
+retained run-only Account. Reopening uses
+`restore_native_local_product_configuration`, authenticates the saved bodies and
+generations, and never invokes the fresh issuer. Missing/changed originals refuse;
+a removed Account cannot be regenerated to restore authority. The current Account
+is still checked at every existing provisioning/lookup boundary.
+
+This is first-adoption configuration and original-key lookup connectivity, not
+an installed Python worker, complete cold worker recovery, normal numerical
+profile or public wheel acceptance.
