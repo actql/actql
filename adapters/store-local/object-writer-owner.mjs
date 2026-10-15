@@ -52,7 +52,11 @@ class ObjectWriterOwner {
 
   async cleanupTemporary() {
     if (this.handle) {
-      await this.handle.close();
+      // Native FileHandle success is undefined; explicit false keeps this
+      // SAME FD/reservation owned and forbids unlink or capacity retirement.
+      if (await this.handle.close() === false) {
+        this.operations.fail('PublicationStoreCleanupPending');
+      }
       this.handle = undefined;
     }
     try { await this.operations.unlink(this.temporary); }
@@ -141,7 +145,11 @@ class ObjectWriterOwner {
         if (!state.isFile() || state.size !== this.bytes) {
           this.operations.fail('IncompletePublicationWrite');
         }
-        await this.handle.close();
+        // Do not publish a staging file whose original FD is still pending.
+        // The existing failure cleanup retries this handle, never the write.
+        if (await this.handle.close() === false) {
+          this.operations.fail('PublicationStoreCleanupPending');
+        }
         this.handle = undefined;
         const cid = `sha256:${this.hash.digest('hex')}`;
         if (expectedCid !== undefined && expectedCid !== cid) {
