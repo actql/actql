@@ -96,6 +96,49 @@ test('low-level transport cannot be imported through package exports',async()=>{
   await assert.rejects(import(${JSON.stringify(name + '/_internal/model-port.mjs')}),
     {code:'ERR_PACKAGE_PATH_NOT_EXPORTED'});
 });
+${directory === 'provider-http' ? `
+test('external HTTP installer binds its exact selected ceilings before any physical callback',()=>{
+  // Explicit Host/Common originals are doubles, not a profile or funding grant.
+  // Only the real externally installed assembler and its refusal execute here.
+  const cid='sha256:'+'0'.repeat(64),profile={};
+  const original=Object.freeze({cid,wire:'{}'});
+  const installation=Object.freeze({sdk:undefined,endpoint:'https://fixture.invalid/chat',
+    http_method:'POST',streaming:false,completion_basis:'generation_finish'});
+  let physical=0,matches=0;
+  const config={providerId:'models/fixture',modelSelector:'fixture',modelId:'fixture',
+    endpoint:installation.endpoint,headers:[],taskCid:cid,promptCid:cid,outputSchemaCid:cid,
+    promptPayloadWire:'{}',fetch(){physical++;assert.fail('No physical request');},
+    observeAt:()=> '2026-10-14T00:00:00.000Z',observeEgress(){},
+    originalReadInstallation:Object.freeze({bootstrap:Object.freeze({}),
+      nodeInstallation:Object.freeze({layout:Object.freeze({response_profile:profile})})}),
+    rawCaptureSelection:Object.freeze({profile,installation}),
+    bindingOriginals:Object.freeze({configuration:original,configurationContract:original,installationRevision:original}),
+    quantityCapacity:Object.freeze({limits:Object.freeze({}),perAttempt:Object.freeze({})}),
+    projectionLimits:{maxBytes:1000,maxNodes:100,maxDepth:10,maxFrames:20,maxWork:1000},
+    requestLimits:{maxBytes:1000,maxHeaderBytes:128,maxHeaders:4},
+    responseLimits:{maxBytes:1000,maxChunkBytes:128,maxChunks:10,maxHeaderBytes:128}};
+  const register=entry.createInstalledHttpChatRegistration(config);
+  const runtime=Object.fromEntries(['clientProgramProjectHTTPChatRequest','clientProgramInstallAsyncModelProvider',
+    'clientProgramModelRequestPreflight','clientProgramModelAsyncPhysicalRequestPlan',
+    'clientProgramModelPhysicalCallForRequest','clientProgramModelPhysicalPending',
+    'clientProgramModelPhysicalUnknown','clientProgramModelPhysicalSavedChat']
+    .map(name=>[name,()=>{physical++;assert.fail('No physical callback');}]));
+  assert.throws(()=>register(runtime),{message:'HTTPChatOriginalRuntimeUnavailable'});
+  for(const outcome of [false,undefined,true]){
+    runtime.clientProgramModelResponseProfileTransportMatches=(selected,...ceilings)=>{
+      matches++;assert.strictEqual(selected,profile);
+      assert.deepEqual(ceilings,[1000,1000,128,10,128]);return outcome;
+    };
+    if(outcome===true){
+      const [declaration]=register(runtime);
+      assert.equal(declaration.providerId,'models/fixture');
+      assert.strictEqual(declaration.rawCaptureSelection,config.rawCaptureSelection);
+      assert.equal(declaration.entryPersistence,'async');
+    }else assert.throws(()=>register(runtime),{message:'HTTPChatOriginalTransportLimitsMismatch'});
+  }
+  assert.equal(matches,3);assert.equal(physical,0);
+});
+` : ''}
 ${directory === 'provider-ai-sdk' ? `
 // Closed declaration DATA only. These fixtures do not issue a profile, grant,
 // complete funding or Common receipt. No internal runtime import is available.
@@ -160,7 +203,7 @@ test('installed DATA callback preserves Common refusal without physical work or 
   console.log(output.trim());
   const summary = output.split('\n').filter(line => line.startsWith('ACTQL_TEST_SUMMARY '))
     .map(line => JSON.parse(line.slice('ACTQL_TEST_SUMMARY '.length))).at(-1);
-  const tests = directory === 'provider-ai-sdk' ? 5 : 3;
+  const tests = directory === 'provider-ai-sdk' ? 5 : 4;
   assert.equal(summary.success, true); assert.equal(summary.counts.tests, tests); assert.equal(summary.counts.passed, tests);
   const declaration = `import {${factory},type ${directory === 'provider-http' ? 'HttpChatRegistrationOptions' : 'OpenAIChatRegistrationOptions'}} from ${JSON.stringify(name)};
 declare const original: ${directory === 'provider-http' ? 'HttpChatRegistrationOptions' : 'OpenAIChatRegistrationOptions'};
