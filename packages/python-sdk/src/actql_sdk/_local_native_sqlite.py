@@ -80,6 +80,7 @@ class _OriginalSqliteCustody:
                 or functions.library is not domain._functions.library
                 or domain._closed or domain._unknown is not None
                 or domain._sqlite_library_original is not None
+                or domain._parent_read_original is not None
                 or type(path) is not str or not 0 < len(path) <= 4096
                 or not path.startswith('/') or '\0' in path
                 or type(heap_bytes) is not int or not -(2**63) <= heap_bytes <= 2**63 - 1
@@ -108,7 +109,8 @@ class _OriginalSqliteCustody:
         domain._owner._enter()
         try:
             if (domain._closed or domain._unknown is not None
-                    or domain._sqlite_library_original is not None):
+                    or domain._sqlite_library_original is not None
+                    or domain._parent_read_original is not None):
                 raise ValueError('Original Native SQLite domain is unavailable')
             # Register only after entry, but before an actual foreign call can
             # publish a partial Library/reply. Keep it on every later failure.
