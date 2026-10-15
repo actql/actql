@@ -79,8 +79,11 @@ test "unregistered or substituted SQLite carrier cannot release original domain 
   assert_false(original.closed)
   assert_true(
     host.close_domain_read(domain)
-    is Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending)),
+    is Err(@bootstrap.Bootstrap(@bootstrap.Unavailable)),
   )
+  // This original acquisition is pending: no physical domain/read context
+  // exists. Preserve its earlier Unavailable classification; full domain
+  // retirement still refuses the registered unclosed Library carrier below.
   assert_true(
     host.close_domain_after_owner_ack(domain)
     is Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending)),
