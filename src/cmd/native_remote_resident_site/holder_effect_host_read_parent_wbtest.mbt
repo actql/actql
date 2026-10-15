@@ -229,3 +229,44 @@ test "parent Host close waits for the same outstanding borrow and retries once r
   assert_true(@site.settle_site_operation(operation.unwrap()))
   assert_true(original.close())
 }
+
+///|
+test "current callback cannot replace the retained original parent before acquisition" {
+  let original = host_read_domain_test_slot("parent-current-replacement.slot")
+  let (host, allocation) = host_read_parent_test_host(original)
+  let fd : Int = @string.from_str(
+    @env.get_env_var("ACTQL_TEST_HOST_READ_DOMAIN_FD").unwrap(),
+  )
+  let site = host_setup_test_site(1)
+  let scope = begin_holder_effect_host_setup_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+    () => true,
+  ).unwrap()
+  let installed = prepare_holder_effect_host_read_parent(
+    scope,
+    original,
+    host_read_parent_test_selection(host, allocation, fd),
+  ).unwrap()
+  let parent = scope.read_parent.unwrap()
+  let operation = scope.caller_operation.unwrap()
+  scope.current_binding = Some(() => {
+    scope.read_parent = None
+    true
+  })
+  assert_true((installed.select)(original, operation) is None)
+  assert_false(parent.attempted)
+  assert_true(parent.region is None)
+  host.require_current(original).unwrap()
+  // The fixture restores its captured original responsibility for cleanup;
+  // this is not a replacement supplier or a physical close acknowledgement.
+  scope.read_parent = Some(parent)
+  scope.current_binding = Some(() => true)
+  assert_true(leave_holder_effect_host_read_scope(scope))
+  assert_true(retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach)
+  assert_true(scope.read_parent is None)
+  let (operation, _) = take_holder_effect_host_caller_reservation(scope)
+  assert_true(@site.settle_site_operation(operation.unwrap()))
+  assert_true(original.close())
+}

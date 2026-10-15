@@ -47,8 +47,12 @@ fn holder_effect_host_read_parent_current(
   parent : HolderEffectHostReadParent,
 ) -> Bool {
   !parent.closing &&
+  scope.read_parent is Some(before) &&
+  physical_equal(before, parent) &&
   holder_effect_host_read_scope_current(scope) &&
   !parent.closing &&
+  scope.read_parent is Some(after) &&
+  physical_equal(after, parent) &&
   scope.caller_operation is Some(operation) &&
   physical_equal(operation, parent.operation) &&
   parent.selected.host.require_current(parent.original) is Ok(_)
