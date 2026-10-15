@@ -103,3 +103,22 @@ for (const mode of ['local', 'http-loopback']) {
     assert.equal(reads, 2); assert.equal(submits, 0);
   });
 }
+
+test('static Effect service rejects a component-only response and post-read current revocation', async () => {
+  const {effectfulStaticPlan} = await import('../../scripts/fixtures/effectful-static-plan-vectors.mjs');
+  const original = {}, prepare = Object.assign(() => original, {
+    kindOf: () => 'effectful', assertOwned: actual => assert.equal(actual, original),
+  });
+  let current = true, componentOnly = true;
+  const service = installClientStaticPlan({prepare, authorize: () => current,
+    moon: {clientProgramRequiresTaskCompilation() {assert.fail('wrong original type');}},
+    control: {readCheckedClientStaticPlan(actual, kind) {
+      assert.equal(actual, original); assert.equal(kind, 'effects');
+      if (componentOnly) return JSON.stringify(effectfulStaticPlan.computation.plan_view);
+      current = false;
+      return JSON.stringify(effectfulStaticPlan);
+    }}});
+  await assert.rejects(service(request), {message: 'InvalidClientHostPlanView'});
+  componentOnly = false;
+  await assert.rejects(service(request), {code: 'ClientConnectionDenied'});
+});

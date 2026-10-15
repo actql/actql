@@ -4,7 +4,7 @@ import {checked} from '../host-common/runtime-result.mjs';
 import {bindWorkersHost} from './host.mjs';
 import {runAsyncCase} from './async-conformance.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
-import {withScopedStrategy} from './invocation.mjs';
+import {withScopedStrategy} from '../host-common/scoped-strategy.mjs';
 import {installStrategyContributions} from '../connectors-workers/strategy.generated.mjs';
 
 // Exercise actual Local admission with cancellation at Host await boundaries.

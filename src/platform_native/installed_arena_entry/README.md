@@ -62,3 +62,42 @@ only immutable DATA. Known Owner refusal returns no material; response loss,
 malformed data or a lost data-drop retains sticky Unknown with the same original
 slots and descriptor, without another request or cleanup attempt. Ordinary
 worker startup, complete funding, VM and installed wheel acceptance are separate.
+
+The derived read callback registration and `domain_read_shim` consume the
+matching regular Source7d6df1e6 C emission (SHA256
+`b50d84954b4085485e022c0c94bcbee406759c2f559d3c00e7ccdcd34b75931c`).
+Its six callbacks borrow the same Host/domain and return an owned immutable
+original reply. The shim stores that reply in the caller's persistent empty slot
+before returning. Existing typed getters/drop checks apply; transport zero is
+not read success or cleanup acknowledgment. Read-close never invokes the full
+CloseDomain data-drop helper. All runtime/header/provider objects must use the
+same derived allocator selection; stock objects are not a fallback.
+
+The private Python `_OriginalDomainReadFunctions` and existing domain custody
+project those same operations. Lost replies retain the same original slots and
+become sticky Unknown, without another prepare, close or direct C retirement.
+Whole managed scope exit uses original leave even when its body fails. No
+context pointer, new quota/Run/cleanup controller or public factory is added.
+`domain_read_conformance.c` is a private 64-page diagnostic helper, excluded from
+product linking; it is not a trusted installed supplier. Engine/worker/ordinary
+wheel and public Python acceptance remain separate.
+
+Source-qualified private DLL acceptance at
+`fb6fab82a8c83716f817c5cf4a336425c08cb68b` passed **4/4** in
+`run-txsrNO` (non-Heavy outer60/TERM5/cumulative child50/j1): actual Common and
+Native preparation, active/escaped Bytes aliases, same-original cleanup after
+Host closing, foreign Host/component refusal, one-shot preparation and balanced
+nesting. Seven C sources were compiled and linked once with five verified derived
+runtime objects from `run-IIAMdL`; explicit code-root initialization ran once.
+The DLL's original mimalloc load initializer is separate. All original domains,
+Host references and independent fixture FDs completed their own cleanup.
+
+This is a private **64-page FD / 16-page payload** fixture, not numerical product
+funding. The C helper contributes real managed aliases but no F Root/Reader.
+Response-loss invariants are separately exercised by Python scalar counters;
+this DLL fixture does not claim an injected physical reply loss. The raw
+Source7d6 C emission, Sourcefb6 component/Python inputs, -MD dependencies,
+object/DLL digests, output and release checks are retained in workspace
+`reviews/2026-10-10-python-client/installed-domain-read-caller`. Public Python
+wheel/SELECT1, Source-backed execution, Engine, worker and full profile remain
+unaccepted; fuel100M/12MiB/16MiB are unchanged.

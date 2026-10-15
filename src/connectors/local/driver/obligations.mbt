@@ -118,6 +118,21 @@ pub fn local_dispatch_rejection(
             ) {
             return Some("unsupported_execution_obligation")
           }
+        CalendarExecution(_) =>
+          if !@local.local_module_bounded_temporal_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.CalendarSeries,
+            ) &&
+            !@local.local_module_bounded_temporal_relation_obligation(
+              installed.implementation,
+              local_task_slot(installed, task),
+              requirement.site.step,
+              @local.CalendarBucket,
+            ) {
+            return Some("unsupported_execution_obligation")
+          }
         SeriesExecution(_) =>
           if !@local.local_module_bounded_temporal_relation_obligation(
               installed.implementation,
@@ -597,4 +612,47 @@ fn local_task_analytic_envelopes(
     envelopes.push(envelope)
   }
   Some(envelopes)
+}
+
+///|
+/// Project the checked Calendar output policy at the same original pipeline
+/// occurrence. The conservative capacity bound and actual output quota differ.
+fn local_task_constrain_calendar(
+  run : @strategy.CapturedDAG,
+  task : Int,
+  sequence : @execution.GeneratedSequence,
+) -> @execution.GeneratedSequence? {
+  let graph = @strategy.captured_dag_graph(run)
+  guard @strategy.graph_task_operation_count(graph, task) is Some(count) else {
+    return None
+  }
+  let prepared = @lower.bound_preparation(
+    @execution.generated_sequence_owner(sequence),
+  )
+  let mut constrained = sequence
+  for index in 0..<count {
+    let requirement = @strategy.graph_task_operation_at(graph, task, index).unwrap()
+    if requirement.disposition is ExecutionCheck(CalendarExecution(check)) &&
+      check.rule == EnforceCalendarOutputEnvelope {
+      guard physical_equal(check.site.pipeline, @lower.pipeline(prepared)) &&
+        @lower.sequence_step(
+          @execution.generated_prepared_sequence(sequence),
+          requirement.site.step,
+        )
+        is Some(@lower.CalendarStep(calendar)) &&
+        physical_equal(check.operation, @lower.calendar_checked(calendar)) else {
+        return None
+      }
+      constrained = match
+        @execution.constrain_generated_calendar_output(
+          constrained,
+          requirement.site.step,
+          @policy.ceiling_value(check.ceiling),
+        ) {
+        Ok(value) => value
+        Err(_) => return None
+      }
+    }
+  }
+  Some(constrained)
 }

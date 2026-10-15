@@ -120,14 +120,14 @@ fn read_run_record(
 // Both modes share every row/local/Effect/Checkpoint/canonical check. Only the
 // private wire extractor may defer publication admission inside lookup work.
 // Ordinary readers and the initial all-row custody scan keep the original order.
-enum RunRecordPolicyValidation {
+priv enum RunRecordPolicyValidation {
   ValidatePublication
   DeferPublicationWire
 }
 
 ///|
 // A small deferred comparison result, never a permission or retained Record.
-enum RunPolicyRequestComparison {
+priv enum RunPolicyRequestComparison {
   OriginalRequest
   ChangedOriginalIntent
   ForeignOriginalRequest
