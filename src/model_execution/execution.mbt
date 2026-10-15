@@ -1482,7 +1482,8 @@ pub fn model_capture_bundle_json(
 
 ///|
 /// Replay validates the fixed request and slot identities, and returns the
-/// retained typed values without invoking a Provider.
+/// retained typed values without invoking a Provider. This DATA-only check
+/// neither authenticates a formal Run nor replaces verified capture replay.
 pub fn replay_model_capture(
   task : @environment.ModelTaskContract,
   fixed_request_cid : String,
@@ -1514,7 +1515,10 @@ pub fn replay_model_capture(
 ///|
 /// Replay for the exact admitted input: valid-looking CID strings alone do
 /// not prove that captures belong to these keys or call slots. No provider
-/// or dispatch operation is available through this path.
+/// or dispatch operation is available through this path. This legacy helper
+/// checks the unscoped array-key and fixed-request/index slot preimages. A
+/// scoped model_input_key/formal call-slot CID is a different domain and is
+/// refused; use the original Scope/VerifiedModelCapture replay path for it.
 pub fn replay_model_capture_rows(
   rows : @relation.PreparedInferRows,
   fixed_request_cid : String,

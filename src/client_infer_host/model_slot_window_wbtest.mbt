@@ -206,6 +206,63 @@ fn window_assert_output(
 }
 
 ///|
+fn window_assert_data_values(
+  values : Array[@admitted.CheckedValue],
+) -> Unit raise {
+  for slot, checked in values {
+    guard checked.value is @admitted.Object(fields) else {
+      abort("logical DATA replay must retain its typed object")
+    }
+    let mut reason = None
+    for index in 0..<@admitted.element_count(fields) {
+      let (name, value) = @admitted.element_at(fields, index).unwrap()
+      if name == "reason" && value is @admitted.Text(text) {
+        reason = Some(text)
+      }
+    }
+    assert_eq(reason, Some("slot-" + slot.to_string()))
+  }
+}
+
+///|
+// Exercise the actual nominal replay Owner on the original checked rows and
+// Scope. No provider argument, new physical call or data-only issuer exists.
+fn window_assert_nominal_replay(
+  active : Execution,
+  verified : @model.VerifiedModelCapture,
+) -> Unit raise {
+  let replay = @model.start_model_capture_replay(
+    active.rows.unwrap(),
+    active.call_scope.unwrap(),
+    verified,
+    active.limits.model,
+  ).unwrap()
+  let mut result = None
+  let mut previous_work = 0L
+  for _ in 0..<20000 {
+    match @model.advance_model_execution(replay, 1).unwrap() {
+      @model.Continue(_, work) => {
+        assert_eq(work, previous_work + 1L)
+        previous_work = work
+      }
+      @model.Completed(bundle, _, work) => {
+        assert_eq(work, previous_work + 1L)
+        result = Some(bundle)
+        break
+      }
+      _ => abort("original verified window must replay without a provider")
+    }
+  }
+  let bundle = result.unwrap()
+  assert_eq(bundle.captures.map(record => record.slot), [0, 1])
+  window_assert_data_values(bundle.captures.map(record => record.value))
+  let usage = @model.model_execution_resource_usage(replay)
+  assert_eq(usage.attempts, 0)
+  assert_eq(usage.transferred_bytes, 0L)
+  assert_true(@model.cleanup_model_execution(replay).unwrap())
+}
+
+///|
 // Original Common/Entry/read owners; physical completions, byte grants and
 // Store settlement are doubles. This is not an installed IO/Provider result.
 test "original Model window reverse response keeps Slot settlement and logical output order" {
@@ -288,8 +345,16 @@ test "original Model window reverse response keeps Slot settlement and logical o
   let bundle = capture(active).unwrap()
   let rows = active.rows.unwrap()
   let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
-  let data_replay = @model.replay_model_capture(task, active.fixed_request_cid, bundle)
-  let rows_replay = @model.replay_model_capture_rows(rows, active.fixed_request_cid, bundle)
+  let data_replay = @model.replay_model_capture(
+    task,
+    active.fixed_request_cid,
+    bundle,
+  )
+  let rows_replay = @model.replay_model_capture_rows(
+    rows,
+    active.fixed_request_cid,
+    bundle,
+  )
   assert_eq(
     @resources.model_io_admission_counts(admission, installation),
     Some((0, 0)),
@@ -297,6 +362,7 @@ test "original Model window reverse response keeps Slot settlement and logical o
   let verified = acquire_capture(active).unwrap()
   assert_eq(@model.verified_model_capture_outcome(verified, 0), Some("ok"))
   assert_eq(@model.verified_model_capture_outcome(verified, 1), Some("ok"))
+  window_assert_nominal_replay(active, verified)
   assert_false(cleanup(active).unwrap())
   assert_true(@model.release_verified_model_capture(verified))
   let mut retired = false
@@ -310,8 +376,16 @@ test "original Model window reverse response keeps Slot settlement and logical o
   original_preparation_test_release(ledger, read)
   assert_true(@resources.close_model_io_access(access).unwrap())
   assert_eq(calls.val, 2)
-  assert_true(data_replay is Ok(_), msg="self-issued complete bundle must DATA replay")
-  assert_true(rows_replay is Ok(_), msg="self-issued bundle must retain original row bindings")
+  assert_true(
+    data_replay is Ok(_),
+    msg="self-issued complete bundle must DATA replay",
+  )
+  window_assert_data_values(data_replay.unwrap())
+  assert_true(
+    rows_replay is Err(@model.OutputIdentity),
+    msg="formal CIDs are not legacy rows-only identities",
+  )
+  assert_eq(bundle.captures.map(record => record.slot), [0, 1])
 }
 
 ///|
@@ -421,20 +495,29 @@ test "original Model window four calls preserve logical output in all 24 arrival
     for slot in 0..<4 {
       window_assert_output(completed, slot, ["a", "b", "c", "d"][slot])
     }
-    assert_eq(
-      capture(active).unwrap().captures.map(record => record.slot),
-      [0, 1, 2, 3],
-    )
+    assert_eq(capture(active).unwrap().captures.map(record => record.slot), [
+      0, 1, 2, 3,
+    ])
     let bundle = capture(active).unwrap()
     let rows = active.rows.unwrap()
     let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
-    let data_replay = @model.replay_model_capture(task, active.fixed_request_cid, bundle)
-    let rows_replay = @model.replay_model_capture_rows(rows, active.fixed_request_cid, bundle)
+    let data_replay = @model.replay_model_capture(
+      task,
+      active.fixed_request_cid,
+      bundle,
+    )
+    let rows_replay = @model.replay_model_capture_rows(
+      rows,
+      active.fixed_request_cid,
+      bundle,
+    )
     window_cleanup_complete(active, ledger, read)
     assert_true(@resources.close_model_io_access(access).unwrap())
     assert_eq(calls.val, 4)
     assert_true(data_replay is Ok(_))
-    assert_true(rows_replay is Ok(_))
+    window_assert_data_values(data_replay.unwrap())
+    assert_true(rows_replay is Err(@model.OutputIdentity))
+    assert_eq(bundle.captures.map(record => record.slot), [0, 1, 2, 3])
   }
   assert_eq(distinct.length(), 24)
 }
