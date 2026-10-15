@@ -118,7 +118,7 @@ fn first_m1_original_request_check(projection_work : Int) -> Unit raise {
     starts.val += 1
     original_matches.val = request.slot == 0 &&
       request.key.length() == 1 &&
-      @admitted.canonical_scalar_text(request.key[0], 100) == Some("\"a\"") &&
+      @admitted.canonical_scalar_text(request.key[0], 100) == Some("a") &&
       request.inputs.length() == 1 &&
       request.inputs[0].0 == "text" &&
       @node_fixture.client_program_model_request_input(request, "text") ==
