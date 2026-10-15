@@ -99,7 +99,9 @@ export function nativeClientWire(schemas, rules, requestRules, checkPins, report
       }
     }
     if (schema.type === 'string') {
-      lines.push('guard value is String(text) else { return false }');
+      const needsText = ['minLength', 'maxLength', 'pattern'].some(key =>
+        schema[key] !== undefined);
+      lines.push(`guard value is String(${needsText ? 'text' : '_'}) else { return false }`);
       if (schema.minLength !== undefined) lines.push(`if text.iter().count() < ${schema.minLength} { return false }`);
       if (schema.maxLength !== undefined) lines.push(`if text.length() > ${schema.maxLength} { return false }`);
       if (schema.pattern === '^[^\\u0000-\\u001f\\u007f]+$') lines.push('if text.is_empty() { return false }', 'for character in text { if character.to_int() < 32 || character.to_int() == 127 { return false } }');
