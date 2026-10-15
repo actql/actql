@@ -39,6 +39,40 @@ class WorkerPipeTests(unittest.IsolatedAsyncioTestCase):
         self.pipe = OriginalWorkerPipe(self.funding, self.process)
     def assert_no_execution_ack(self): self.case.assert_no_execution_ack()
 
+    async def test_current_callback_cannot_replace_original_read_fd_before_syscall(self):
+        self.pipe.prepare()
+        original=self.funding._supplier.require_launch_originals
+        def changed(*args):
+            result=original(*args)
+            self.process._stdout[0].value=77
+            return result
+        with patch.object(self.funding._supplier,'require_launch_originals',side_effect=changed):
+            with self.assertRaises(ValueError):await self.pipe.read(3)
+        self.os_read.assert_not_called()
+        self.assert_no_execution_ack()
+
+    async def test_current_callback_cannot_replace_original_write_fd_or_child_identity(self):
+        self.pipe.prepare()
+        original=self.funding._supplier.require_launch_originals
+        def changed(*args):
+            result=original(*args)
+            self.process._stdin[1].value=78
+            self.process._pid+=1
+            return result
+        with patch.object(self.funding._supplier,'require_launch_originals',side_effect=changed):
+            with self.assertRaises(ValueError):await self.pipe.write(b'ab')
+        self.os_write.assert_not_called()
+        self.assert_no_execution_ack()
+
+    async def test_replaced_descriptor_number_never_closes_foreign_fd_or_erases_custody(self):
+        self.pipe.prepare()
+        self.process._stdout[0].value=77
+        before=self.case.case.os_close.call_count
+        with self.assertRaises(LocalWorkerPipePending) as caught:self.pipe.close_parent()
+        self.assertIs(caught.exception.cleanup_pipe,self.pipe)
+        self.assertEqual(self.case.case.os_close.call_count,before)
+        self.assertFalse(self.pipe._closed or self.process._parent_closed)
+
     async def test_missing_or_foreign_funding_refuses_without_pipe_io(self):
         with self.assertRaises(LocalWorkerFundingUnavailable): OriginalWorkerPipe(None, self.process)
         with self.assertRaises(ValueError): OriginalWorkerPipe(self.funding, object())
