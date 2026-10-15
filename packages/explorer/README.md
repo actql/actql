@@ -125,3 +125,18 @@ origins and the Cloud route adapter remain outside this finite distribution.
 No full E1, Full Explorer, Cloud, Native or live Provider acceptance follows
 from the read-only installed profile. The optional Explorer cohort is separate
 from the initial four-package Node release; formal publication needs its own GO.
+
+## Current observations
+
+Read Run and metadata now displays the shared current Run inspector and one
+bounded Owner-local history page, with original identity/revisions and explicit
+unknown/unavailable quantities and Result availability. This remains metadata:
+no sample/payload, checkpoint resolution, control mutation or business work is
+started. A cancellation acknowledgement does not become physical cleanup proof.
+
+Following is opt-in for the exact last-read Run and refreshes read-only evidence
+once per second until a terminal state, refusal, reference change or disconnect.
+It never calls execution wait/start/resume/reconcile. Every refresh uses the
+current SDK/Host permission and the same finite Gateway session; no long-lived
+Allow or durable bootstrap URL is retained. Independent observations remain
+non-atomic and are not overlaid onto logical steps without an original binding.
