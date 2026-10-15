@@ -126,7 +126,15 @@ test "installed product pair rejects foreign role source and platform" {
     is Err(InvalidIdentity),
   )
   let linux = admit_client_native_product_members(
-    product_inventory_fixture_1.replace(old="darwin-arm64", new="linux-x64-gnu"),
+    product_inventory_fixture_1
+    .replace(
+      old="\"packageName\":\"@actql/cli-darwin-arm64\"",
+      new="\"packageName\":\"@actql/cli-linux-x64-gnu\"",
+    )
+    .replace(
+      old="\"platform\":\"darwin-arm64\"",
+      new="\"platform\":\"linux-x64-gnu\"",
+    ),
     "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "linux-x64-gnu",
     "@actql/cli-linux-x64-gnu",
