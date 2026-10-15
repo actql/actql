@@ -218,7 +218,11 @@ test('selected initial storage binding preserves the Store ceiling and rejects a
   f.done();
 
   const g = await fixture(t), path = join(g.state, 'private-store', 'objects');
-  await mkdir(path, {recursive: true});
+  // Use the actual current Store initializer, not a hand-built old layout.
+  // Holding fixture bytes does not observe or issue its Model binding.
+  await g.evidence.hold('model-meta', g.runDefinition.identity,
+    [{name: 'invocation_request', wire: 'null'}]);
+  const before = await readFile(g.path);
   const probe = await opendir(path), prototype = Object.getPrototypeOf(probe);
   const read = prototype.read;
   await probe.close();
@@ -235,7 +239,7 @@ test('selected initial storage binding preserves the Store ceiling and rejects a
     assert.ok(observations > 0, 'the original operation changes during actual directory acquisition');
     await closing;
     await assert.rejects(lstat(join(g.state, 'private-store', 'owner')), {code: 'ENOENT'});
-    assert.deepEqual(await readFile(g.path), g.before);
+    assert.deepEqual(await readFile(g.path), before);
     g.done();
   } finally { prototype.read = read; }
 });
