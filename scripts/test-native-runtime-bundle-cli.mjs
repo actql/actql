@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {execFile, execFileSync} from 'node:child_process';
 import {createHash, generateKeyPairSync} from 'node:crypto';
 import {existsSync} from 'node:fs';
-import {mkdir, mkdtemp, rm, writeFile} from 'node:fs/promises';
+import {mkdir, mkdtemp, readFile, readdir, rm, writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
 import {promisify} from 'node:util';
@@ -177,24 +177,26 @@ try {
     '--max-owners', '4',
     '--max-record-bytes', '1048576',
   ];
-  const run = async (...operation) => {
+  const invoke = async arguments_ => {
     const namespaced = nativeSiteNamespace !== undefined;
     const command = namespaced ? 'sudo' : executable;
-    const arguments_ = namespaced
+    const commandArguments = namespaced
       ? [
           'ip', 'netns', 'exec', nativeSiteNamespace,
           'sudo', `--user=${nativeSiteUser}`, 'env',
           'PATH=/usr/bin:/bin', 'LANG=C',
-          executable, ...common, ...operation,
+          executable, ...arguments_,
         ]
-      : [...common, ...operation];
-    const result = await execute(command, arguments_, {
+      : arguments_;
+    return execute(command, commandArguments, {
       cwd: repositoryRoot,
       env: namespaced ? process.env : {PATH: '/usr/bin:/bin', LANG: 'C'},
       maxBuffer: 2 * 1024 * 1024,
     });
-    return JSON.parse(result.stdout);
   };
+  const run = async (...operation) => JSON.parse(
+    (await invoke([...common, ...operation])).stdout,
+  );
   const install = async (number, bundle) => run(
     'install',
     '--install-id', `native-cli-install-${number}`,
@@ -206,7 +208,74 @@ try {
     '--component-name', bundle.names.component,
   );
 
+  const snapshotStore = async directory => {
+    if (!existsSync(directory)) return null;
+    const snapshot = [];
+    const visit = async (path, prefix) => {
+      const entries = await readdir(path, {withFileTypes: true});
+      entries.sort((a, b) => a.name < b.name ? -1 : a.name > b.name ? 1 : 0);
+      for (const entry of entries) {
+        const name = `${prefix}${entry.name}`;
+        if (entry.isDirectory()) {
+          snapshot.push([`${name}/`, null]);
+          await visit(join(path, entry.name), `${name}/`);
+        } else {
+          assert.ok(entry.isFile(), `unexpected fixture entry: ${name}`);
+          snapshot.push([name, createHash('sha256')
+            .update(await readFile(join(path, entry.name))).digest('hex')]);
+        }
+      }
+    };
+    await visit(directory, '');
+    return snapshot;
+  };
+  const assertRefusalsBeforeStore = async directory => {
+    const before = await snapshotStore(directory);
+    const arguments_ = [...common];
+    arguments_[1] = directory;
+    // Parser refusal must precede even library loading, not merely fail later
+    // when opening the Store. This nonexistent path is never created.
+    arguments_[arguments_.indexOf('--sqlite-library') + 1] =
+      join(root, 'must-not-load.sqlite');
+    const refuse = async (selected, expected) => {
+      await assert.rejects(invoke(selected), error =>
+        `${error.stdout}\n${error.stderr}`.includes(expected));
+      assert.deepEqual(await snapshotStore(directory), before);
+    };
+    for (const retired of ['--issuer-authority', '--key-id', '--public-key-name']) {
+      const expected = `error: unexpected argument '${retired}' found`;
+      await refuse([...arguments_, retired, 'obsolete', 'list'], expected);
+      await refuse([...arguments_, 'list', retired, 'obsolete'], expected);
+    }
+    const trustAt = arguments_.indexOf('--trust-config-name');
+    const withoutTrust = [
+      ...arguments_.slice(0, trustAt), ...arguments_.slice(trustAt + 2),
+    ];
+    await refuse([...withoutTrust, '--issuer-authority', 'issuer-a',
+      '--key-id', 'key-a', '--public-key-name', 'public.pem', 'list'],
+      "error: unexpected argument '--issuer-authority' found");
+    await refuse([...withoutTrust, 'list'],
+      "error: the following required argument was not provided: 'trust-config-name'");
+    const withoutSignatureKey = [...arguments_, 'install',
+      '--install-id', 'missing-signature-key', '--bundle-cid', first.cid,
+      '--input-root', inputRoot, '--manifest-name', first.names.manifest,
+      '--signature-name', first.names.signature,
+      '--component-name', first.names.component];
+    await refuse(withoutSignatureKey,
+      "error: the following required argument was not provided: 'signature-key-id'");
+    await refuse([...withoutSignatureKey, '--key-id', 'key-a'],
+      "error: unexpected argument '--key-id' found");
+  };
+  const help = (await invoke(['--help'])).stdout;
+  assert.match(help, /--trust-config-name/u);
+  assert.doesNotMatch(help, /--(?:issuer-authority|key-id|public-key-name)\b/u);
+  const installHelp = (await invoke(['install', '--help'])).stdout;
+  assert.match(installHelp, /--signature-key-id/u);
+  assert.doesNotMatch(installHelp, /--(?:issuer-authority|key-id|public-key-name)\b/u);
+
+  await assertRefusalsBeforeStore(join(root, 'unopened-store'));
   assert.deepEqual((await install(1, first)).state, ['0', '0', '0']);
+  await assertRefusalsBeforeStore(storeRoot);
   assert.deepEqual(
     (await run('activate', '--bundle-cid', first.cid)).state,
     ['1', '1', '0'],
