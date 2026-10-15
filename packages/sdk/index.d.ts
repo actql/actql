@@ -10,7 +10,7 @@ import type {ClientSourceFormat, WireCancellationAttempt, WireCancellationRef, W
   WireDeliveryAttemptLookup, WireHeldRequest, WireRequestLookup,
   WireResolveItem, WireResolveResult, WireRunRef,
   WireRunState, WireResultDescription, WireCheckOutcome, WireCheckLocation, WireCheckFix,
-  WirePlanView, WireRunView, WireRunPlanView} from
+  WireEffectfulStaticPlanView, WirePlanView, WireRunView, WireRunPlanView} from
   '@actql/client-wire';
 
 export type Durability = 'volatile' | 'durable';
@@ -599,7 +599,7 @@ export interface Client {
     parameters?: QueryParameters;
     maxWireBytes?: number; maxNodes?: number; maxDepth?: number;
     signal?: AbortSignal;
-  }): Promise<WirePlanView>;
+  }): Promise<WirePlanView | WireEffectfulStaticPlanView>;
   start(program: Record<string, unknown>, options?: SubmissionOptions): Promise<Execution>;
   attach(ref: RunReference, options?: {signal?: AbortSignal}): Promise<Execution>;
   lookupRequest(requestId: string,
