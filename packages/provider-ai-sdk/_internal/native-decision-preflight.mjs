@@ -1,4 +1,5 @@
-import {createProjectedTypeSafeDecisionPreflight} from './typesafe-decision.mjs';
+import {createProjectedTypeSafeDecisionPreflight,requireTypeSafeOriginalTransportLimits} from './typesafe-decision.mjs';
+import {fixedInferResponseLimits} from './bounded-response.mjs';
 
 // Private installed adapter composition, not a Model executor or scheduler.
 // Common owns the bounded projection and original Plan/Entry/response meaning.
@@ -27,6 +28,8 @@ export function createAdmittedTypeSafeDecisionPreflight({moon, admittedProvider,
       admittedProvider === undefined || request === undefined || options.probability === undefined) {
     throw new TypeError('NativeDecisionProjectionRuntimeUnavailable');
   }
+  options.responseLimits=fixedInferResponseLimits(options.responseLimits);
+  requireTypeSafeOriginalTransportLimits(moon,options.profile,options.maxRequestBytes,options.responseLimits);
   let cursor, projected, physical;
   let refused = false, retired = false;
   const checked = value => {

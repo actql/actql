@@ -2,6 +2,23 @@ import {createTypeSafeAi} from '@ai-sdk/typesafe-ai';
 import {interceptSdkRequest} from './intercepted-request.mjs';
 import {isDeepStrictEqual} from 'node:util';
 import {createSdkNativeDecisionPreflight} from './model-port.mjs';
+import {fixedInferResponseLimits} from './bounded-response.mjs';
+
+// Consume the existing Common profile predicate, not another support table or
+// numerical policy. Callers retain immutable physical declarations through
+// their original preparation; matching is neither funding nor send authority.
+export function requireTypeSafeOriginalTransportLimits(moon,profile,requestBytes,responseLimits) {
+  if(typeof moon?.clientProgramModelResponseProfileTransportMatches!=='function'||
+      profile===undefined||profile===null) {
+    throw new TypeError('TypeSafeOriginalTransportLimitsUnavailable');
+  }
+  if(!Number.isSafeInteger(requestBytes)||requestBytes<1||requestBytes>2147483647||
+      moon.clientProgramModelResponseProfileTransportMatches(profile,requestBytes,
+        responseLimits.maxBytes,responseLimits.maxChunkBytes,responseLimits.maxChunks,
+        responseLimits.maxHeaderBytes)!==true) {
+    throw new TypeError('TypeSafeOriginalTransportLimitsMismatch');
+  }
+}
 
 // Private physical preparation, not Common Decision admission or a native
 // completion/profile issuer. The original caller supplies checked, bounded
@@ -91,6 +108,11 @@ export function createProjectedTypeSafeDecisionPreflight({moon, projected,
   if (!moon.clientProgramNativeDecisionRequestMatches?.(projected, admittedProvider, request)) {
     throw new TypeError('TypeSafeOriginalProjectionUnavailable');
   }
+  // Direct private callers do not bypass the installed profile check. Retain
+  // the same snapshotted reader limits that were compared, not mutable inputs
+  // that may change before later SDK preparation or physical acquisition.
+  port.responseLimits=fixedInferResponseLimits(port.responseLimits);
+  requireTypeSafeOriginalTransportLimits(moon,port.profile,maxRequestBytes,port.responseLimits);
   let terminal = false;
   const progress = {
     advance() {

@@ -13,6 +13,7 @@ function fixture(change = {}) {
   const counts = {children: 0, steps: 0, emitterRetires: 0, viewRetires: 0, plans: 0, sends: 0, saves: 0};
   const body = '{"answers":{"q0000000000":{"type":"noul","noul":0.25}}}';
   const moon = {
+    clientProgramModelResponseProfileTransportMatches:()=>true,
     clientProgramStartNativeDecisionProjection(p, r, ...limits) {
       assert.equal(p, provider); assert.equal(r, request);
       assert.deepEqual(limits, [4096, 100, 10, 20, 1000]); counts.children++;
@@ -255,4 +256,39 @@ test('native installer borrows the original opaque probability without JS freeze
     originalReadInstallation: original, rawCaptureSelection: raw})(f.moon)[0];
   assert.equal(selected.rawCaptureSelection.probability, probability);
   assert.equal(f.counts.children, 0); assert.equal(f.counts.sends, 0);
+});
+
+test('native installer checks exact physical ceilings against its original profile before returning a selector',()=>{
+  for(const accepted of [false,undefined,true]){
+    const f=fixture(),config=installedConfiguration(f),seen=[];
+    f.moon.clientProgramModelResponseProfileTransportMatches=function(profile,...limits){
+      assert.equal(this,f.moon);
+      seen.push([profile,...limits]);
+      return accepted;
+    };
+    const register=createInstalledTypeSafeDecisionRegistration(config);
+    if(accepted===true)assert.equal(register(f.moon).length,1);
+    else assert.throws(()=>register(f.moon),{message:'TypeSafeOriginalTransportLimitsMismatch'});
+    assert.deepEqual(seen,[[config.rawCaptureSelection.profile,4096,512,512,4,64]]);
+    assert.equal(f.counts.children,0);assert.equal(f.counts.plans,0);
+    assert.equal(f.counts.sends,0);assert.equal(f.counts.saves,0);
+  }
+});
+
+test('native admitted preflight refuses missing or nontrue profile support before projection or raw binder',()=>{
+  for(const accepted of ['missing',false,undefined]){
+    const f=fixture();let binds=0,checks=0;
+    if(accepted==='missing')delete f.moon.clientProgramModelResponseProfileTransportMatches;
+    if(accepted!=='missing')f.moon.clientProgramModelResponseProfileTransportMatches=(profile,...limits)=>{
+      checks++;assert.equal(profile,f.config.profile);
+      assert.deepEqual(limits,[4096,512,512,4,64]);return accepted;
+    };
+    assert.throws(()=>createAdmittedTypeSafeDecisionPreflight({...f.config,
+      persistRaw:undefined,cleanupRaw:undefined,rawCaptureBinder(){binds++;}}),
+    accepted==='missing'?{message:'TypeSafeOriginalTransportLimitsUnavailable'}:
+      {message:'TypeSafeOriginalTransportLimitsMismatch'});
+    assert.equal(checks,accepted==='missing'?0:1);
+    assert.equal(f.counts.children,0);assert.equal(binds,0);
+    assert.equal(f.counts.sends,0);
+  }
 });

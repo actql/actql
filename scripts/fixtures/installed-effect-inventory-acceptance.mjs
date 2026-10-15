@@ -31,6 +31,17 @@ async function waitFor(check) {
   throw new Error('InstalledEffectInventoryAcceptanceTimeout');
 }
 
+// Waiting is visible before its producer retires temporary resources. The
+// original stop receipt can legitimately advance the control revision. Read
+// acceptance compares revisions only after that existing Owner confirms stop.
+export async function waitForInstalledCheckpointPhysicalStop(execution) {
+  return waitFor(async () => {
+    const state = await execution.status();
+    assert.equal(state.status, 'waiting_checkpoint');
+    return state.control?.physical_stop === 'confirmed' ? state : undefined;
+  });
+}
+
 // These provider tables, input rows, and expected output rows/transcripts
 // are authored independently. No expected data comes from product output.
 const providers = [
@@ -309,7 +320,7 @@ export async function runInstalledEffectInventoryAcceptance({connect,
         const observations = [];
         const observe = async (host, phase) => {
           const execution = await original(await host.as(), saved);
-          const state = await execution.status();
+          const state = await waitForInstalledCheckpointPhysicalStop(execution);
           assert.equal(state.status, 'waiting_checkpoint');
           const dispatchBeforeReview = counts.dispatch;
           const result = await observeWaitingCheckpoint({
