@@ -857,7 +857,7 @@ async function preflightDispatchFixture(t, {blocked, unowned = false} = {}) {
     counts: () => ({stopCalls, stopped, closeCalls, closed, custodyTransfers, capacityChecks}),
     failure: () => originalFailure,
     cleanupOwner: () => retainedCleanupOwner,
-    reenter: () => runInstalledStrategy(setup, runtimeCore(runtime), []),
+    reenter: () => runInstalledStrategy({setup, runtime: {core: runtimeCore(runtime), contributions: []}}),
   };
 }
 
@@ -937,11 +937,21 @@ test('a rejected preflight custody handoff cannot stop or release its setup', as
   const core = {stop() { stops++; }, closeOutputs() { closes++; },
     usage: () => ({reservedTransferBytes: 0n, heldBytes: 0n,
       reservedRetentionBytes: 0n, reservedExecutionBytes: 0n})};
-  await assert.rejects(runInstalledStrategy(setup, core, [],
-    undefined, undefined, undefined, () => { throw primary; },
-    undefined, undefined, undefined, owner => {
-      handoffs++; rejectedOwner = owner; throw rejection;
-    }), error => {
+  await assert.rejects(runInstalledStrategy({
+    setup,
+    runtime: {
+      core,
+      contributions: [],
+    },
+    publication: {
+      beforeCompute: () => { throw primary; },
+    },
+    cleanup: {
+      retainPreflightCleanup: owner => {
+        handoffs++; rejectedOwner = owner; throw rejection;
+      },
+    },
+  }), error => {
       assert.equal(error.primaryFailure, primary);
       assert.equal(error.cause, primary);
       assert.deepEqual(error.cleanupErrors, [rejection]);
@@ -951,7 +961,7 @@ test('a rejected preflight custody handoff cannot stop or release its setup', as
     });
   assert.deepEqual({handoffs, stops, closes}, {handoffs: 1, stops: 0, closes: 0});
   assert.equal(rejectedOwner.status().pending, true);
-  await assert.rejects(runInstalledStrategy(setup, core, []), {code: 'StrategyAlreadyRunning'});
+  await assert.rejects(runInstalledStrategy({setup, runtime: {core, contributions: []}}), {code: 'StrategyAlreadyRunning'});
   assert.deepEqual({handoffs, stops, closes}, {handoffs: 1, stops: 0, closes: 0});
 });
 

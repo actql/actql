@@ -471,8 +471,16 @@ async function deltaHostCancellation(phase, diff = false, union = false, subtrac
   }});
   let execution;
   try {
-    execution = await runInstalledStrategy(setup, runtimeCore(moon),
-      [localStrategyContribution(observed, setup, checked)], abort.signal);
+    execution = await runInstalledStrategy({
+      setup,
+      runtime: {
+        core: runtimeCore(moon),
+        contributions: [localStrategyContribution(observed, setup, checked)],
+      },
+      control: {
+        signal: abort.signal,
+      },
+    });
     assert.equal(scheduled, true);
     assert.equal(delivered, true);
     assert(workAtDelivery > 0n, 'cancel is delivered only after actual Delta work');
@@ -6477,12 +6485,16 @@ async function exerciseStrategyGraph(
         checked,
         cancellationRetained?.configuration,
       );
-      cancellationExecution = await runInstalledStrategy(
+      cancellationExecution = await runInstalledStrategy({
         setup,
-        runtimeCore(hostRuntime),
-        [contribution],
-        graphCancellation.signal,
-      );
+        runtime: {
+          core: runtimeCore(hostRuntime),
+          contributions: [contribution],
+        },
+        control: {
+          signal: graphCancellation.signal,
+        },
+      });
       assert.equal(
         managedStarts,
         expectedManagedStarts,
@@ -9004,12 +9016,16 @@ async function exerciseStrategyGraph(
           };
         },
       });
-      crossJoinCancellationExecution = await runInstalledStrategy(
+      crossJoinCancellationExecution = await runInstalledStrategy({
         setup,
-        runtimeCore(hostRuntime),
-        [localStrategyContribution(observedRuntime, setup, checked, undefined)],
-        crossJoinCancellation.signal,
-      );
+        runtime: {
+          core: runtimeCore(hostRuntime),
+          contributions: [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+        },
+        control: {
+          signal: crossJoinCancellation.signal,
+        },
+      });
       assert.equal(crossJoinManagedStarts, 3);
       assert.equal(
         emptyRightAdmission
@@ -9136,9 +9152,16 @@ async function exerciseStrategyGraph(
     try {
       assert.equal(fixture.strategyFixtureOpen(retainedFixture, retainedCapture.source()), true);
       const setup = fixture.strategyFixtureRetainedLocalSubset(retainedFixture);
-      execution = await runInstalledStrategy(setup, runtimeCore(hostRuntime),
-        [localStrategyContribution(observedRuntime, setup, checked, configuration)],
-        controller.signal);
+      execution = await runInstalledStrategy({
+        setup,
+        runtime: {
+          core: runtimeCore(hostRuntime),
+          contributions: [localStrategyContribution(observedRuntime, setup, checked, configuration)],
+        },
+        control: {
+          signal: controller.signal,
+        },
+      });
       if (cancel) {
         assert.equal(execution.status, 'host-tasks-failed');
         assert.equal(execution.failure?.name, 'AbortError');
@@ -10770,13 +10793,17 @@ async function exerciseStrategyGraph(
           authorityScopeCid: plan.request.authorityScopeCid,
           runDefinitionCid: plan.runDefinition.identity,
         }, () => true), /PublicationLookupDenied/);
-      } else execution = await runInstalledStrategy(
+      } else execution = await runInstalledStrategy({
         setup,
-        runtimeCore(observedRuntime),
-        [localStrategyContribution(observedRuntime, setup, checked,
+        runtime: {
+          core: runtimeCore(observedRuntime),
+          contributions: [localStrategyContribution(observedRuntime, setup, checked,
           configuration)],
-        cancellation.signal,
-      );
+        },
+        control: {
+          signal: cancellation.signal,
+        },
+      });
       assert.equal(execution.status, 'host-tasks-failed', caseName);
       assert.deepEqual(execution.completed.map(item => item.task), priorTasks, caseName);
       const dispatchesAtFailure = dispatches;
@@ -10948,9 +10975,16 @@ async function exerciseStrategyGraph(
     try {
       assert.equal(fixture.strategyFixtureOpen(binaryFixture, capture.source()), true);
       const setup = fixture.strategyFixtureRetainedLocalLimits(binaryFixture, work, space);
-      execution = await runInstalledStrategy(setup, runtimeCore(observed),
-        [localStrategyContribution(observed, setup, checked, configuration)],
-        new AbortController().signal);
+      execution = await runInstalledStrategy({
+        setup,
+        runtime: {
+          core: runtimeCore(observed),
+          contributions: [localStrategyContribution(observed, setup, checked, configuration)],
+        },
+        control: {
+          signal: new AbortController().signal,
+        },
+      });
       assert.equal(execution.status, expected
         ? 'host-tasks-completed' : 'host-tasks-failed', name);
       if (expected) {
@@ -11303,13 +11337,17 @@ async function exerciseStrategyGraph(
     assert.equal(fixture.strategyFixtureOpen(
       cancelledValuesFixture, cancelledValuesCapture.source()), true);
     const setup = fixture.strategyFixtureRetainedLocalSubset(cancelledValuesFixture);
-    cancelledValuesExecution = await runInstalledStrategy(
+    cancelledValuesExecution = await runInstalledStrategy({
       setup,
-      runtimeCore(cancelRuntime),
-      [localStrategyContribution(cancelRuntime, setup, checked,
+      runtime: {
+        core: runtimeCore(cancelRuntime),
+        contributions: [localStrategyContribution(cancelRuntime, setup, checked,
         cancelledValuesConfiguration)],
-      valuesCancel.signal,
-    );
+      },
+      control: {
+        signal: valuesCancel.signal,
+      },
+    });
     assert.equal(valuesWorkObserved, true);
     assert.equal(valuesStopped, true);
     assert.equal(cancelledValuesExecution.status, 'host-tasks-failed');
@@ -11370,13 +11408,17 @@ async function exerciseStrategyGraph(
     assert.equal(fixture.strategyFixtureOpen(
       failedValuesFixture, failedValuesCapture.source()), true);
     const setup = fixture.strategyFixtureRetainedLocalSubset(failedValuesFixture);
-    failedValuesExecution = await runInstalledStrategy(
+    failedValuesExecution = await runInstalledStrategy({
       setup,
-      runtimeCore(hostRuntime),
-      [localStrategyContribution(hostRuntime, setup, checked,
+      runtime: {
+        core: runtimeCore(hostRuntime),
+        contributions: [localStrategyContribution(hostRuntime, setup, checked,
         failedValuesConfiguration)],
-      new AbortController().signal,
-    );
+      },
+      control: {
+        signal: new AbortController().signal,
+      },
+    });
     assert.equal(failedStoreLeases, 1);
     assert.equal(failedStoreAppends, 1);
     assert.equal(failedValuesExecution.status, 'host-tasks-failed');
@@ -11474,12 +11516,16 @@ async function exerciseStrategyGraph(
         };
       },
     });
-    copyCancellationExecution = await runInstalledStrategy(
+    copyCancellationExecution = await runInstalledStrategy({
       setup,
-      runtimeCore(hostRuntime),
-      [localStrategyContribution(observedRuntime, setup, checked, undefined)],
-      copyCancellation.signal,
-    );
+      runtime: {
+        core: runtimeCore(hostRuntime),
+        contributions: [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+      },
+      control: {
+        signal: copyCancellation.signal,
+      },
+    });
     assert(copyProgress > 0n,
       `${copyCancellationCase.name}: distinct work must start before cancel`);
     assert.equal(copyCancellation.signal.aborted, true);
@@ -11714,12 +11760,16 @@ async function exerciseStrategyGraph(
           };
         },
       });
-      execution = await runInstalledStrategy(
+      execution = await runInstalledStrategy({
         setup,
-        runtimeCore(hostRuntime),
-        [localStrategyContribution(observedRuntime, setup, checked, undefined)],
-        cancellation.signal,
-      );
+        runtime: {
+          core: runtimeCore(hostRuntime),
+          contributions: [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+        },
+        control: {
+          signal: cancellation.signal,
+        },
+      });
       assert.equal(managedStarts,
         hasPreliminary ? 3 : 2);
       assert(progressAfterStart > 0n,
@@ -11852,9 +11902,16 @@ async function exerciseStrategyGraph(
           };
         },
       });
-      execution = await runInstalledStrategy(setup, runtimeCore(hostRuntime),
-        [localStrategyContribution(observedRuntime, setup, checked, undefined)],
-        cancellation.signal);
+      execution = await runInstalledStrategy({
+        setup,
+        runtime: {
+          core: runtimeCore(hostRuntime),
+          contributions: [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+        },
+        control: {
+          signal: cancellation.signal,
+        },
+      });
       assert.equal(starts, 3, binaryCase.name);
       assert(workBeforeAbort >= 5n, `${binaryCase.name}: work precedes abort`);
       assert.equal(cancellation.signal.aborted, true);
@@ -12162,12 +12219,16 @@ async function exerciseStrategyGraph(
           };
         },
       });
-      valuesCancellationExecution = await runInstalledStrategy(
+      valuesCancellationExecution = await runInstalledStrategy({
         setup,
-        runtimeCore(hostRuntime),
-        [localStrategyContribution(observedRuntime, setup, checked, undefined)],
-        valuesCancellation.signal,
-      );
+        runtime: {
+          core: runtimeCore(hostRuntime),
+          contributions: [localStrategyContribution(observedRuntime, setup, checked, undefined)],
+        },
+        control: {
+          signal: valuesCancellation.signal,
+        },
+      });
       assert.equal(valuesManagedStarts, cancelAtStart,
         longSelectedTakeCancellation
           ? `${valuesCancellationCase.name}: ` +
@@ -14189,12 +14250,16 @@ async function exerciseStrategyGraph(
           : productContribution.runPrepared(prepared, signal);
       },
     });
-    const running = runInstalledStrategy(
-      delayedStopSetup,
-      runtimeCore(hostRuntime),
-      [contribution],
-      delayedStopCancellation.signal,
-    );
+    const running = runInstalledStrategy({
+      setup: delayedStopSetup,
+      runtime: {
+        core: runtimeCore(hostRuntime),
+        contributions: [contribution],
+      },
+      control: {
+        signal: delayedStopCancellation.signal,
+      },
+    });
     await delayedStopEntered;
     if (delayedStopMode === 'command-unsettled') {
       assert.equal(delayedStopControl.commandStarted, true);

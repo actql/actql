@@ -37,7 +37,7 @@ export async function finalizerCase(kind, scoped = false) {
       };
     }
   }
-  const result = await runInstalledStrategy(setup, core, entries);
+  const result = await runInstalledStrategy({setup, runtime: {core, contributions: entries}});
   const output = result.output(1);
   const cleanups = await Promise.all([result.cleanup(), result.cleanup()]);
   result.close(); result.close();

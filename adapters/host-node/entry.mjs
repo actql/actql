@@ -21,18 +21,14 @@ import {recoverAdmittedEffectRun as recoverAdmittedRun} from
 
 const runtimeUrl = new URL('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js', import.meta.url);
 
-async function runCapturedStrategyTarget(
+async function runCapturedStrategyTarget({
   setup,
   options,
-  signal,
-  observer,
-  publishCheckedResults,
-  publication,
-  loadRuntime,
-  install,
-  taskObservation,
-  retainPreflightCleanup,
-) {
+  composition: {loadRuntime, install},
+  control: {signal, observer, taskObservation} = {},
+  results: {publishCheckedResults, publication} = {},
+  cleanup: {retainPreflightCleanup} = {},
+}) {
   signal?.throwIfAborted();
   const observeCompletion = completionObserver(observer);
   const configurations = snapshotConfigurations(options);
@@ -66,26 +62,24 @@ async function runCapturedStrategyTarget(
   core.requireActivation(setup);
   const installed = await install(moon, setup, checked, configurations, signal);
   signal?.throwIfAborted();
-  return runInstalledStrategy(
+  return runInstalledStrategy({
     setup,
-    core,
-    installed,
-    signal,
-    observeCompletion,
-    configurations.executionSitePolicy,
-    publication === undefined
-      ? undefined
-      : facts => prepareCompletedEffectFreeRunPublication({
-        store: publication.store,
-        control: facts.publicationControl,
-        publicationInventory: facts.publicationInventory,
-        plan: publication.plan,
-      }),
-    authorization,
-    taskStartObserver(observer),
-    taskObservation,
-    retainPreflightCleanup,
-  );
+    runtime: {core, contributions: installed,
+      sitePolicy: configurations.executionSitePolicy, authorization},
+    control: {signal, observeCompletion,
+      observeTaskStart: taskStartObserver(observer), taskObservation},
+    publication: {
+      beforeCompute: publication === undefined
+        ? undefined
+        : facts => prepareCompletedEffectFreeRunPublication({
+          store: publication.store,
+          control: facts.publicationControl,
+          publicationInventory: facts.publicationInventory,
+          plan: publication.plan,
+        }),
+    },
+    cleanup: {retainPreflightCleanup},
+  });
 }
 
 // The standard entry executes the checked Program's named Result request.
@@ -106,17 +100,14 @@ export class CapturedRunPublicationError extends Error {
 // publication inputs and current Store capacity are admitted before any
 // Compute starts. The returned owner keeps internal completion and publication
 // cleanup explicit; publication failure never rewrites the Compute outcome.
-async function runPublishedCapturedStrategyTarget(
+async function runPublishedCapturedStrategyTarget({
   setup,
   publication,
   options,
-  signal,
-  observer,
-  loadRuntime,
-  install,
-  retainExecution,
-  taskObservation,
-) {
+  composition,
+  control: {signal, observer, taskObservation},
+  cleanup: {retainExecution},
+}) {
   if (retainExecution !== undefined && typeof retainExecution !== 'function') {
     throw new TypeError('InvalidExecutionOwnerReceiver');
   }
@@ -125,20 +116,16 @@ async function runPublishedCapturedStrategyTarget(
       Object.keys(publication).sort().join('\0') !== 'plan\0store') {
     throw new TypeError('InvalidCapturedRunPublication');
   }
-  const execution = await runCapturedStrategyTarget(
+  const execution = await runCapturedStrategyTarget({
     setup,
     options,
-    signal,
-    observer,
-    true,
-    publication,
-    loadRuntime,
-    install,
-    taskObservation,
+    composition,
+    control: {signal, observer, taskObservation},
+    results: {publishCheckedResults: true, publication},
     // Reuse the installed custody receiver for a setup cleanup owner only.
     // Preflight failure never constructs a Compute or publication result.
-    retainExecution,
-  );
+    cleanup: {retainPreflightCleanup: retainExecution},
+  });
   try {
     // Transfer cleanup responsibility before publication can fail. The
     // installed supervisor must not depend on an exception surviving wrappers.
@@ -164,10 +151,10 @@ async function runPublishedCapturedStrategyTarget(
 // Compute an admitted Effect Run through the installed Host without claiming
 // apply or publication success. The exact captured owner remains with the
 // caller for Result pins, Preview, and subsequent durable Effect progress.
-async function runCapturedEffectComputationTarget(
-  owner, options, signal, observer, loadRuntime, install,
-) {
-  const moon = await loadRuntime();
+async function runCapturedEffectComputationTarget({
+  owner, options, control, composition,
+}) {
+  const moon = await composition.loadRuntime();
   if (typeof moon.clientProgramLocalEffectHostRuntime !== 'function') {
     throw new TypeError('Effect computation Host is unavailable');
   }
@@ -177,8 +164,8 @@ async function runCapturedEffectComputationTarget(
   if (setup === undefined || !moon.strategyHostHasEffects(setup)) {
     throw new TypeError('InvalidCapturedEffectComputation');
   }
-  return runCapturedStrategyTarget(setup, options, signal, observer,
-    false, undefined, loadRuntime, install);
+  return runCapturedStrategyTarget({setup, options, control, composition,
+    results: {publishCheckedResults: false}});
 }
 
 // Build-time composition selects a concrete MoonBit artifact and its matching
@@ -186,22 +173,25 @@ async function runCapturedEffectComputationTarget(
 export function createNodeHostEntry(loadRuntime, install) {
   let runtime;
   const load = () => (runtime ??= loadRuntime());
+  // Constructed only by installed composition, never read from caller options.
+  const composition = Object.freeze({loadRuntime: load, install});
   return Object.freeze({
     recoverAdmittedEffectRun: options => recoverAdmittedRun(options, load),
     runCapturedStrategy: (setup, options = {}, signal, observer) =>
-      runCapturedStrategyTarget(setup, options, signal, observer, true,
-        undefined, load, install),
+      runCapturedStrategyTarget({setup, options, composition,
+        control: {signal, observer}, results: {publishCheckedResults: true}}),
     runCapturedInternalStrategy: (setup, options = {}, signal, observer) =>
-      runCapturedStrategyTarget(setup, options, signal, observer, false,
-        undefined, load, install),
+      runCapturedStrategyTarget({setup, options, composition,
+        control: {signal, observer}, results: {publishCheckedResults: false}}),
     runCapturedEffectComputation: (
       owner, options = {}, signal, observer,
-    ) => runCapturedEffectComputationTarget(owner, options, signal,
-      observer, load, install),
+    ) => runCapturedEffectComputationTarget({owner, options, composition,
+      control: {signal, observer}}),
     runPublishedCapturedStrategy: (
      setup, publication, options = {}, signal, observer, retainExecution, taskObservation,
-    ) => runPublishedCapturedStrategyTarget(setup, publication, options,
-      signal, observer, load, install, retainExecution, taskObservation),
+    ) => runPublishedCapturedStrategyTarget({setup, publication, options,
+      composition, control: {signal, observer, taskObservation},
+      cleanup: {retainExecution}}),
     completeCapturedEffectRun: async options => {
       const moon = await load();
       if (options?.apply?.moon !== moon) {
