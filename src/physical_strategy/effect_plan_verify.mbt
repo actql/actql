@@ -72,7 +72,7 @@ pub fn prepare_captured_effect_proposal_plan(
   if !inputs.live || !captured_any_result_borrow_available(input.borrow) {
     return Err(NotReady)
   }
-  let static_candidate = @checked.effect_program_run_static_candidate(
+  let static_candidate = @effect_binding.effect_program_run_static_candidate(
     inputs.run.checked.run,
   )
   let effects = @checked.effect_program_static_effects(static_candidate)
@@ -320,15 +320,17 @@ pub fn prepare_captured_effect_plan_verifier(
     Ok(value) => value
     Err(issue) => return Err(Plan(issue))
   }
-  let run = @checked.effect_program_run_preview_owner(
+  let run = @effect_binding.effect_program_run_preview_owner(
     captured_effect_preview_owner(preview),
   )
-  let static_candidate = @checked.effect_program_run_static_candidate(run)
+  let static_candidate = @effect_binding.effect_program_run_static_candidate(
+    run,
+  )
   let effects = @checked.effect_program_static_effects(static_candidate)
   // Mapping members keep their original preparation bound: unrelated Command
   // entries must not increase their required lookup budget.
   let command = if @publication.effect_preview_member_kind(
-      @checked.effect_program_run_preview_identity(
+      @effect_binding.effect_program_run_preview_identity(
         captured_effect_preview_owner(preview),
       ),
       preview_index,
@@ -455,7 +457,7 @@ pub fn check_captured_effect_plan_row(
     }
     (selector, changes)
   }
-  let identity = @checked.effect_program_run_preview_identity(
+  let identity = @effect_binding.effect_program_run_preview_identity(
     captured_effect_preview_owner(value.preview),
   )
   if @publication.effect_preview_row_correlation_wire(
@@ -487,7 +489,7 @@ pub fn finish_captured_effect_plan_verifier(
     return Err(NotReady)
   }
   value.live = false
-  let identity = @checked.effect_program_run_preview_identity(
+  let identity = @effect_binding.effect_program_run_preview_identity(
     captured_effect_preview_owner(value.preview),
   )
   if @publication.effect_preview_row_count(identity, value.preview_index) !=
@@ -530,7 +532,7 @@ pub fn check_captured_effect_plan_proofs(
   if max_members < 1 || max_work < 1 {
     return Err(InvalidLimits)
   }
-  let identity = @checked.effect_program_run_preview_identity(
+  let identity = @effect_binding.effect_program_run_preview_identity(
     captured_effect_preview_owner(preview),
   )
   let count = @publication.effect_preview_member_count(identity)

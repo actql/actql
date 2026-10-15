@@ -71,7 +71,7 @@ pub fn captured_effect_local_unit_inputs_run_definition_cid(
   }
   Some(
     @publication.publication_contract_identity(
-      @checked.effect_program_run_definition(inputs.run.checked.run),
+      @effect_binding.effect_program_run_definition(inputs.run.checked.run),
     ),
   )
 }

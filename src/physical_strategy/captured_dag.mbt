@@ -375,7 +375,7 @@ pub fn captured_effect_run_dag(value : CapturedEffectRunDAG) -> CapturedDAG {
 ///|
 pub fn captured_effect_run_owner(
   value : CapturedEffectRunDAG,
-) -> @checked.EffectProgramRunCandidate {
+) -> @effect_binding.EffectProgramRunCandidate {
   value.checked.run
 }
 

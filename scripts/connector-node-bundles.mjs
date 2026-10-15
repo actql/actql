@@ -302,6 +302,7 @@ if (existsSync(join(sourceRoot, bridgePackage,
   dependencies.set('actql/actql/check_environment', 'check_environment');
   dependencies.set('actql/actql/value_admission', 'admitted');
   dependencies.set('actql/actql/program_check', 'program_check');
+  dependencies.set('actql/actql/effect_program_binding', 'effect_binding');
   dependencies.set('actql/actql/stage_syntax', 'stage_syntax');
   dependencies.set('actql/actql/source_value', 'source');
   dependencies.set('actql/actql/decode_core', 'decode');

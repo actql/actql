@@ -13,7 +13,7 @@ pub(all) enum ClientCapturedEffectPreviewIssue {
   ForeignInput
   Identity(ClientEffectLocalIdentityIssue)
   Preview(@publication.EffectPreviewIdentityIssue)
-  Run(@checked.EffectProgramRunPreviewIssue)
+  Run(@effect_binding.EffectProgramRunPreviewIssue)
   Capture(@strategy.RunIssue)
 }
 
@@ -74,7 +74,7 @@ pub fn bind_captured_client_effect_preview(
     Err(issue) => return Err(Preview(issue))
   }
   let checked = match
-    @checked.bind_effect_program_run_preview(
+    @effect_binding.bind_effect_program_run_preview(
       @strategy.captured_effect_run_owner(run),
       invocation,
       stage,
