@@ -1,15 +1,16 @@
 ///|
-// Only the fixed target-specific installed import supplies these ports in
-// production. No public constructor accepts callbacks, DATA or a permission Bool.
-// Unsupported targets construct no fake physical port.
+// Production ports come from the fixed target-specific installed import or
+// the same Owner's nominal backed-child issuer. No public constructor accepts
+// callbacks, scalar quota or a permission Bool. Unsupported imports stay closed.
 priv struct ImportedChildLedgerOrigin {
   nonce : Int64
-  admit : (Int64) -> Int
-  current : (Int64) -> Int
-  limit : (Int64, Int) -> Int64
-  capacity : (Int64, Int) -> Int64
-  report : (Int64, LedgerUsage) -> Int
-  stop : (Int64) -> Int
+  mut admit : (Int64) -> Int
+  mut current : (Int64) -> Int
+  mut limit : (Int64, Int) -> Int64
+  mut capacity : (Int64, Int) -> Int64
+  mut report : (Int64, LedgerUsage) -> Int
+  mut stop : (Int64) -> Int
+  fixed_capacities : Bool
   // The back-reference rejects copies without another Resource Owner.
   mut ledger : Ledger?
   mut stopping : Bool
@@ -64,6 +65,7 @@ fn prepare_imported_child_port(
   capacity : (Int64, Int) -> Int64,
   report : (Int64, LedgerUsage) -> Int,
   stop : (Int64) -> Int,
+  fixed_capacities? : Bool = true,
 ) -> Result[ImportedChildLedger, ImportedChildLedgerIssue] {
   if nonce <= 0L {
     return Err(InvalidOriginal)
@@ -78,6 +80,7 @@ fn prepare_imported_child_port(
       capacity,
       report,
       stop,
+      fixed_capacities,
       ledger: None,
       stopping: false,
       unavailable: false,
@@ -166,7 +169,8 @@ fn imported_child_fixed_capacity(
   ledger : Ledger,
   reservation : Reservation,
 ) -> Bool {
-  ledger.imported_child is Some(_) &&
+  ledger.imported_child is Some(origin) &&
+  origin.fixed_capacities &&
   physical_equal(ledger, reservation.owner) &&
   (reservation.serial == -1 || reservation.serial == -2)
 }
@@ -225,8 +229,8 @@ pub fn start_imported_child_ledger(
   let transfer = (port.limit)(port.nonce, 3)
   let retained = (port.limit)(port.nonce, 4)
   let execution = (port.limit)(port.nonce, 5)
-  let wasm = (port.capacity)(port.nonce, 0)
-  let host = (port.capacity)(port.nonce, 1)
+  let wasm = if port.fixed_capacities { (port.capacity)(port.nonce, 0) } else { 0L }
+  let host = if port.fixed_capacities { (port.capacity)(port.nonce, 1) } else { 0L }
   // Negative import results are unavailable/unknown observations, never
   // negative quota or zero. The original private port owns the failed reply.
   if planning < 0L ||
@@ -259,9 +263,8 @@ pub fn start_imported_child_ledger(
     transfer < 0L ||
     retained < 0L ||
     execution < 0L ||
-    wasm <= 0L ||
+    (port.fixed_capacities && (wasm <= 0L || host <= 0L)) ||
     wasm > execution ||
-    host <= 0L ||
     host > execution - wasm {
     return Err(InvalidOriginal)
   }
@@ -284,10 +287,12 @@ pub fn start_imported_child_ledger(
   }
   ledger.imported_child = Some(value.origin)
   value.origin.ledger = Some(ledger)
-  ledger.usage = { ..ledger.usage, reserved_execution_bytes: wasm + host, }
-  ledger.next_capacity_serial = Some(-3)
-  value.wasm_capacity = Some(imported_child_seed_capacity(ledger, -1, wasm))
-  value.host_capacity = Some(imported_child_seed_capacity(ledger, -2, host))
+  if port.fixed_capacities {
+    ledger.usage = { ..ledger.usage, reserved_execution_bytes: wasm + host, }
+    ledger.next_capacity_serial = Some(-3)
+    value.wasm_capacity = Some(imported_child_seed_capacity(ledger, -1, wasm))
+    value.host_capacity = Some(imported_child_seed_capacity(ledger, -2, host))
+  }
   value.ledger = Some(ledger)
   Ok(())
 }
@@ -301,6 +306,9 @@ pub fn take_imported_child_ledger(
   match imported_child_original(value) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  if !value.origin.fixed_capacities {
+    return Err(Unavailable)
   }
   if value.taken || value.origin.stopping {
     return Err(AlreadyConsumed)
@@ -316,6 +324,32 @@ pub fn take_imported_child_ledger(
   }
   value.taken = true
   Ok((ledger, wasm, host))
+}
+
+///|
+/// Trusted same-parent physical assembly only. This branch seeds no VM/Host
+/// capacities: its first reservation must be the original funded bootstrap.
+/// It is not a fresh root, numerical profile, physical allocation or grant.
+pub fn take_imported_original_child_ledger(
+  value : ImportedChildLedger,
+) -> Result[Ledger, ImportedChildLedgerIssue] {
+  match imported_child_original(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if value.origin.fixed_capacities {
+    return Err(Unavailable)
+  }
+  if value.taken || value.origin.stopping {
+    return Err(AlreadyConsumed)
+  }
+  guard value.ledger is Some(ledger) else { return Err(Unavailable) }
+  match check_imported_child_admission(ledger) {
+    Err(issue) => return Err(Resource(issue))
+    Ok(_) => ()
+  }
+  value.taken = true
+  Ok(ledger)
 }
 
 ///|
