@@ -189,7 +189,8 @@ test "CLI Effect finite prefix uses a fresh next-day Policy without accepting or
     () => "2026-10-12T00:00:00.000Z",
     () => 1791763200002.0,
   )
-  guard prepared is Some(original) else { fail("expected new original") }
+  guard prepared is Some(start) else { fail("expected new original") }
+  let original = start.original
   let body = local_input_cursor(
     @publication.publication_contract_json(original.definition),
   )
@@ -238,9 +239,10 @@ test "CLI Effect finite prefix selects an accepted original before an invalid ca
       () => "2026-10-12T00:00:00.000Z",
       () => 1791763200002.0,
     )
-    is Some(original) else {
+    is Some(start) else {
     fail("first preparation")
   }
+  let original = start.original
   let binding = local_run_policy_binding(host, settings, crypto).unwrap()
   effect_finite_cli_ok(
     binding.accept_submitted_effect_values_run_policy(
@@ -303,9 +305,10 @@ test "CLI Effect finite prefix refuses an accepted legacy missing Policy instead
       () => "2026-10-12T00:00:00.000Z",
       () => 1791763200002.0,
     )
-    is Some(original) else {
+    is Some(start) else {
     fail("first preparation")
   }
+  let original = start.original
   effect_finite_cli_ok(
     host.accept_submitted_effect_material_original(
       crypto,
@@ -341,4 +344,239 @@ test "CLI Effect finite prefix refuses an accepted legacy missing Policy instead
   }
   assert_eq(refused, Some("LocalRunPolicyPreparationUnavailable"))
   effect_finite_cli_ok(host.close(), "host.close")
+}
+
+///|
+test "CLI Effect selected preparation accepts finite policy and ResultPolicy with the same original materials" {
+  let (host, settings, crypto, installed) = effect_finite_cli_host(
+    "cli-effect-selected-accept",
+  )
+  defer host.close() |> ignore
+  let (reference, preparation, scope) = effect_finite_cli_submission(
+    host, settings, crypto, "selected-accept",
+  )
+  guard local_effect_prepare_start_with_clocks(
+      host,
+      settings,
+      crypto,
+      preparation,
+      reference,
+      installed,
+      scope,
+      () => "2026-10-12T00:00:00.000Z",
+      () => 1791763200002.0,
+    )
+    is Some(start) else {
+    fail("selected.prepare")
+  }
+  assert_true(start.policy is Some(_))
+  assert_eq(start.issued_at, "2026-10-12T00:00:00.000Z")
+  assert_eq(
+    @publication.result_retention_interval_state(
+      start.run.retention,
+      "2026-10-12T00:00:00.000Z",
+    ),
+    Ok("available"),
+  )
+  assert_eq(
+    @publication.result_retention_interval_state(
+      installed.retention,
+      "2026-10-12T00:00:00.000Z",
+    ),
+    Ok("delete_due"),
+  )
+  let accepted = effect_finite_cli_ok(
+    local_effect_accept_prepared_start(
+      start, reference, preparation, 1791763200003.0,
+    ),
+    "selected.accept",
+  )
+  let original = start.original
+  let saved = effect_finite_cli_ok(
+    start.policy
+    .unwrap()
+    .lookup_submitted_run_policy(reference, original.request, 1791763200004.0),
+    "selected.policy",
+  )
+  assert_eq(
+    @run_host.client_local_run_policy_original_issued_at(saved),
+    "2026-10-12T00:00:00.000Z",
+  )
+  assert_eq(
+    @run_host.client_local_run_policy_original_read_expires_at(saved),
+    "2026-10-13T00:00:00.000Z",
+  )
+  assert_eq(
+    @publication.publication_contract_json(
+      @run_host.client_local_run_policy_original_retention(saved),
+    ),
+    @publication.publication_contract_json(start.run.retention),
+  )
+  let packet = effect_finite_cli_ok(
+    host.lookup_submitted_effect_material_original(
+      crypto,
+      settings.principal,
+      settings.connection,
+      reference,
+      original.request,
+      1791763200005.0,
+    ),
+    "selected.packet",
+  )
+  assert_eq(
+    @local_host.native_client_retained_effect_materials_cid(packet),
+    @run_host.client_effect_normalization_materials_cid(original.materials).unwrap(),
+  )
+  assert_eq(
+    @publication.publication_contract_identity(
+      @local_host.native_client_retained_effect_materials_run(packet),
+    ),
+    @publication.publication_contract_identity(original.definition),
+  )
+  let result_policy = effect_finite_cli_ok(
+    host.lookup_submitted_effect_values_policy_original(
+      crypto,
+      settings.principal,
+      settings.connection,
+      reference,
+      original.request,
+      1791763200006.0,
+    ),
+    "selected.result-policy",
+  )
+  let expected = installed.source_free.unwrap()
+  assert_eq(
+    @publication.captured_effect_dependency_body_cid(result_policy),
+    expected.result_policy_cid,
+  )
+  assert_eq(
+    @publication.captured_effect_dependency_body_json(result_policy),
+    expected.result_policy_wire,
+  )
+  assert_true(
+    @local_host.native_client_submitted_run_admission(accepted) is Some(_),
+  )
+  effect_finite_cli_ok(host.close(), "selected.host.close")
+}
+
+///|
+test "CLI Effect selected acceptance reconciles the same original across lost acknowledgement and reopen" {
+  let name = "cli-effect-selected-reopen"
+  let (host, settings, crypto, installed) = effect_finite_cli_host(name)
+  defer host.close() |> ignore
+  let (reference, preparation, scope) = effect_finite_cli_submission(
+    host, settings, crypto, "selected-reopen",
+  )
+  guard local_effect_prepare_start_with_clocks(
+      host,
+      settings,
+      crypto,
+      preparation,
+      reference,
+      installed,
+      scope,
+      () => "2026-10-12T00:00:00.000Z",
+      () => 1791763200002.0,
+    )
+    is Some(start) else {
+    fail("reopen.prepare")
+  }
+  // The acceptance response is deliberately withheld from the caller model.
+  // This is ACK-loss simulation, not a claim about a physical transport fault.
+  effect_finite_cli_ok(
+    local_effect_accept_prepared_start(
+      start, reference, preparation, 1791763200003.0,
+    ),
+    "reopen.accept",
+  )
+  |> ignore
+  let original = start.original
+  let binding = start.policy.unwrap()
+  let saved = effect_finite_cli_ok(
+    binding.lookup_submitted_run_policy(
+      reference,
+      original.request,
+      1791763200004.0,
+    ),
+    "reopen.lookup",
+  )
+  let body = @run_host.client_local_run_policy_original_body(saved)
+  let before = effect_finite_cli_ok(host.run_journal(), "reopen.journal")
+    .lookup(original.request, true)
+    .unwrap()
+  guard before is Retained(before_record) else { fail("reopen.before") }
+  // Accepted lookup must win before any replacement candidate time is parsed.
+  let stale_candidate = { ..start, issued_at: "not-a-time", }
+  effect_finite_cli_ok(
+    local_effect_accept_prepared_start(
+      stale_candidate, reference, preparation, 1791763200005.0,
+    ),
+    "reopen.same-accept",
+  )
+  |> ignore
+  assert_eq(
+    @run_host.client_local_run_policy_original_body(
+      binding
+      .lookup_submitted_run_policy(reference, original.request, 1791763200006.0)
+      .unwrap(),
+    ),
+    body,
+  )
+  let foreign_preparation = local_effect_prefix_fixture_preparation()
+  assert_true(
+    local_effect_accept_prepared_start(
+      start, reference, foreign_preparation, 1791763200007.0,
+    )
+    is Err(@local_host.ForeignPreparation),
+  )
+  effect_finite_cli_ok(host.close(), "reopen.host.close")
+  let sqlite = effect_finite_cli_ok(
+    @local_sqlite.load_library(
+      @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap(),
+    ),
+    "reopen.sqlite",
+  )
+  let reopened = effect_finite_cli_ok(
+    effect_finite_cli_ok(
+      @local_host.begin_native_local_host_adoption(
+        settings.state_parent,
+        settings.state_name,
+        settings.managed_root,
+        settings.account_file,
+        settings.account_id,
+        crypto,
+        existing_only=true,
+        configuration_files=settings.installation_files,
+      ),
+      "reopen.adoption",
+    ).open_journal(
+      sqlite,
+      crypto,
+      settings.ttl_ms,
+      settings.record_limit,
+      settings.snapshot_bytes,
+    ),
+    "reopen.open",
+  )
+  defer reopened.close() |> ignore
+  let restored = local_run_policy_binding(reopened, settings, crypto)
+    .unwrap()
+    .lookup_submitted_run_policy(reference, original.request, 1791763200008.0)
+    .unwrap()
+  assert_eq(@run_host.client_local_run_policy_original_body(restored), body)
+  guard reopened.run_journal().unwrap().lookup(original.request, true)
+    is Ok(Retained(after_record)) else {
+    fail("reopen.after")
+  }
+  assert_eq(
+    @local_host.native_client_run_record_revision(after_record),
+    @local_host.native_client_run_record_revision(before_record),
+  )
+  assert_eq(
+    @publication.publication_contract_identity(
+      @local_host.native_client_run_definition(after_record),
+    ),
+    @publication.publication_contract_identity(original.definition),
+  )
+  effect_finite_cli_ok(reopened.close(), "reopen.close")
 }
