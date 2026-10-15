@@ -44,6 +44,10 @@ pub fn allocate_shared_capacity(
   owner : SharedCapacity,
   bytes : Int64,
 ) -> Result[SharedAllocation, LedgerIssue] {
+  match check_imported_child_admission(owner.ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   match check_original_resources_mutable(owner.ledger) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -66,6 +70,10 @@ pub fn borrow_shared_capacity(
   owner : SharedCapacity,
   allocation : SharedAllocation,
 ) -> Result[SharedBorrow, LedgerIssue] {
+  match check_imported_child_admission(owner.ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   if !physical_equal(owner, allocation.owner) {
     return Err(ForeignOwner)
   }

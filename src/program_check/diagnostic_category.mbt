@@ -224,6 +224,11 @@ fn relation_diagnostic_category(
     FillValue(Decode(error)) => decode_diagnostic_category(error.kind)
     FillValue(ValueIssue(InvalidLimits, ..)) => InvalidConfiguration
     FillValue(ValueIssue(BudgetExceeded, ..)) => CompileLimit
+    // A checked temporal literal retains the owning reader's typed refusal.
+    // Settings and exhausted work do not become authored input violations.
+    Temporal(InvalidMilliseconds) => InvalidInput
+    Temporal(InvalidLimits) => InvalidConfiguration
+    Temporal(BudgetExceeded) => CompileLimit
     Temporal(_) => UnclassifiedFailure
     _ => InvalidInput
   }

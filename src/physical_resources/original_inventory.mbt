@@ -165,6 +165,10 @@ pub fn original_ledger_prefix_available(
 fn check_original_reservation_slot(
   ledger : Ledger,
 ) -> Result[Unit, LedgerIssue] {
+  match check_imported_child_admission(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   guard ledger.original_inventory is Some(value) else { return Ok(()) }
   match check_original_inventory_open(value) {
     Err(issue) => return Err(issue)
@@ -193,6 +197,10 @@ fn check_original_holding_slot(ledger : Ledger) -> Result[Unit, LedgerIssue] {
 
 ///|
 fn check_original_delegation_slot(ledger : Ledger) -> Result[Unit, LedgerIssue] {
+  match check_imported_child_admission(ledger) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
   guard ledger.original_inventory is Some(value) else { return Ok(()) }
   match check_original_inventory_open(value) {
     Err(issue) => return Err(issue)

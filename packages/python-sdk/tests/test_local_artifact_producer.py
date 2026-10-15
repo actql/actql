@@ -67,7 +67,7 @@ class LocalArtifactProducerTests(unittest.TestCase):
                        'public_local_acceptance': False, 'wheel_acceptance': False}
         self.image_path = self.root / 'original.cwasm'
         self.image_path.write_bytes(IMAGE)
-        self.image = {'source_sha': self.head, 'module_sha256': digest, 'core_abi': 73,
+        self.image = {'source_sha': self.head, 'module_sha256': digest, 'core_abi': 74,
             'wasmtime_version': '38.0.0', 'runtime_library_sha256': RUNTIME_HASH,
             'provider_library_sha256': json.loads(ORIGINAL)['provider_library_sha256'],
             'engine_sha256': descriptor(self.head, '0.0.0.dev0', digest)['engine_sha256'],
