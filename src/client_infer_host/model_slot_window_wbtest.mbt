@@ -502,3 +502,87 @@ test "original Model window Store backpressure blocks fifth start after IO close
   original_preparation_test_release(ledger, read)
   assert_true(@resources.close_model_io_access(access).unwrap())
 }
+
+///|
+test "original Model window cancelled sparse outcomes retain logical Slot and sibling duties" {
+  let calls = Ref(0)
+  let ready = Ref(false)
+  let cancelled = Ref(false)
+  let release = Ref(true)
+  let cleaned : Array[Bool] = []
+  let profile = window_sized_profile(4)
+  let (active, prefix, ledger, read) = original_io_consumer_fixture(
+    calls,
+    Ref(true),
+    Ref(true),
+    release,
+    slots=4,
+    capacity=fixture_quantity_capacity(132L, 2000L),
+    profile~,
+    cleanup_calls=cleaned,
+    start_original=Some(() => window_sized_start(calls, 4)),
+    per_slot=Some(slot => {
+      if slot == 3 && ready.val {
+        window_fixed_response(slot, profile~)
+      } else if cancelled.val {
+        @model.PhysicalUnknown({ input_tokens: None, output_tokens: None, })
+      } else {
+        @model.PhysicalPending
+      }
+    }),
+  )
+  let installation = Ref(0)
+  let admission = @resources.issue_model_io_admission(installation, 4, 4).unwrap()
+  let access = @resources.issue_model_io_access(admission, installation).unwrap()
+  @model.bind_prepared_model_io_access(
+    prepared_call_set(active).unwrap(),
+    access,
+  ).unwrap()
+  guard fixture_finish(active, initial_work=prefix) is AwaitIo(work~) else {
+    abort("four original calls wait before sparse adoption")
+  }
+  assert_eq(calls.val, 4)
+  ready.val = true
+  guard fixture_finish(active, initial_work=work) is Settling(3, work=settled) else {
+    abort("only original logical Slot three has a response")
+  }
+  assert_true(
+    @model.acknowledge_model_call_settlement(call_settlement(active).unwrap()),
+  )
+  guard fixture_finish(active, initial_work=settled) is AwaitIo(work=waiting) else {
+    abort("the other original calls remain pending")
+  }
+  release.val = false
+  cancel(active) |> ignore
+  cancelled.val = true
+  assert_true(fixture_finish(active, initial_work=waiting) is Stopped(_))
+  assert_true(acquire_output(active) is None)
+  assert_true(acquire_capture(active) is None)
+  let outcomes = acquire_outcomes(active).unwrap()
+  assert_false(@model.model_outcomes_accepted(outcomes))
+  assert_eq(@model.model_outcomes_count(outcomes), Some(1))
+  assert_eq(@model.model_outcomes_slot_at(outcomes, 0), Some(3))
+  assert_eq(@model.model_outcomes_slot_at(outcomes, -1), None)
+  assert_eq(@model.model_outcomes_slot_at(outcomes, 1), None)
+  assert_eq(@model.model_outcomes_outcome(outcomes, 3), Some("ok"))
+  assert_eq(@model.model_outcomes_outcome(outcomes, 0), None)
+  assert_true(@model.model_outcomes_invocation_evidence(outcomes, 3) is Some(_))
+  assert_false(cleanup(active).unwrap())
+  assert_true(@model.release_model_outcomes(outcomes))
+  assert_eq(@model.model_outcomes_slot_at(outcomes, 0), None)
+  let before = cleaned.length()
+  assert_false(cleanup(active).unwrap())
+  assert_eq(cleaned.length() - before, 3)
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 3)),
+  )
+  release.val = true
+  window_cleanup_complete(active, ledger, read)
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 0)),
+  )
+  assert_true(@resources.close_model_io_access(access).unwrap())
+  assert_eq(calls.val, 4)
+}
