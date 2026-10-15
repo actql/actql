@@ -14,7 +14,10 @@ Host stops normally at the actual approval checkpoint. A new Node process
 retains the exact original profiles, proof key and Host state, attaches to the
 same Run, approves via the existing signer API and reads the same Result.
 Physical Catalog verification requires one commit and the exact written row.
-A final original-Run attach must not acquire either Source or repeat the write.
+A second fresh Node process then performs terminal-only same-Run attachment,
+Result reread and zero input-I/O verification after the Effect has committed.
+The original process also attaches as a final control. None may reacquire a
+Source or repeat the write.
 
 ## External and local scope
 
@@ -72,3 +75,9 @@ Attempted submission calls and observed accepted Runs are separate counters.
 The original new submission reference is saved before calling startSource; an
 unknown response is never relabelled as unsent. Cleanup observations are saved
 even on failure, and completed is set only after final client closure resolves.
+
+Pre-approval public availability is recorded as observed. If the existing Owner
+has already made joined available, its full value/schema is checked; otherwise
+captured/declaration/Preview state is not falsely advertised as a public read.
+The existing Effect/publication rules are not changed to publish early. Both
+fresh processes require the exact independent public Result after approval.

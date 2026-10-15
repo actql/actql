@@ -22,27 +22,30 @@ try {
     resolveSourceSecret() { credentialResolutions++; throw new Error('UnexpectedSourceCredentialOnRestore'); }}});
   const run = await client.attach(input.ref);
   assert.deepEqual(run.ref, input.ref);
-  assert.equal((await run.status()).status, 'waiting_checkpoint');
-  const checkpoints = (await client.checkpoints()).items;
-  assert.equal(checkpoints.length, 1);
-  assert.equal(checkpoints[0].checkpointCid, input.approval.checkpointCid);
-  const preview = await client.reviewCheckpoint(checkpoints[0], {maxBytes: 1000000});
-  const value = JSON.parse(Buffer.from(preview.bytes).toString('utf8'));
-  assert.equal(value.effects.length, 1);
-  assert.equal(value.effects[0].approval, 'required');
-  const ref = checkpoints[0];
-  const answer = await client.resolveCheckpoints([{checkpoint: ref, decision: 'approved'}], {signer: {
-    keyId: input.approval.keyId, reviewerId: input.approval.reviewerId,
-    authorityScopeCid: input.ref.authorityScopeCid,
-    sign: bytes => sign(null, bytes, input.approval.privateKey),
-  }});
-  assert.deepEqual(answer.results.map(result => result.status), ['committed']);
-  const signal = AbortSignal.timeout(30000);
-  let state;
-  for (;;) {
-    signal.throwIfAborted(); state = await run.wait({signal});
-    if (!['running', 'resuming'].includes(state.status)) break;
-    await delay(20, undefined, {signal});
+  let state = await run.status();
+  assert(['approve', 'terminal'].includes(input.phase));
+  if (input.phase === 'approve') {
+    assert.equal(state.status, 'waiting_checkpoint');
+    const checkpoints = (await client.checkpoints()).items;
+    assert.equal(checkpoints.length, 1);
+    assert.equal(checkpoints[0].checkpointCid, input.approval.checkpointCid);
+    const preview = await client.reviewCheckpoint(checkpoints[0], {maxBytes: 1000000});
+    const value = JSON.parse(Buffer.from(preview.bytes).toString('utf8'));
+    assert.equal(value.effects.length, 1);
+    assert.equal(value.effects[0].approval, 'required');
+    const ref = checkpoints[0];
+    const answer = await client.resolveCheckpoints([{checkpoint: ref, decision: 'approved'}], {signer: {
+      keyId: input.approval.keyId, reviewerId: input.approval.reviewerId,
+      authorityScopeCid: input.ref.authorityScopeCid,
+      sign: bytes => sign(null, bytes, input.approval.privateKey),
+    }});
+    assert.deepEqual(answer.results.map(result => result.status), ['committed']);
+    const signal = AbortSignal.timeout(30000);
+    for (;;) {
+      signal.throwIfAborted(); state = await run.wait({signal});
+      if (!['running', 'resuming'].includes(state.status)) break;
+      await delay(20, undefined, {signal});
+    }
   }
   assert.equal(state.status, 'succeeded');
   assert.deepEqual(Object.keys(state.result_availability), ['joined']);
@@ -54,10 +57,10 @@ try {
   assert.deepEqual(reads.observation(), {sourceReadSessions: 0, sourceReadStatements: 0});
   await client.close(); client = undefined;
   completed = true;
-  await writeFile(join(dirname(process.argv[2]), 'restart-observation.json'), JSON.stringify({
-    pid: process.pid, ref: run.ref, status: state.status, observedResult: observed,
+  await writeFile(join(dirname(process.argv[2]), `restart-observation.${input.phase}.json`), JSON.stringify({
+    phase: input.phase, pid: process.pid, ref: run.ref, status: state.status, observedResult: observed,
     gcs: gcs.observation(), duckdb: reads.observation(), credentialResolutions,
-    submissionCount: 0, approval: 'committed',
+    submissionCount: 0, approval: input.phase === 'approve' ? 'committed' : 'previously_committed',
   }, null, 2)+'\n', {flag: 'wx', mode: 0o600});
 } finally {
   try { if (client) await client.close(); }
