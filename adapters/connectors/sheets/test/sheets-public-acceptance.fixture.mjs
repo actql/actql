@@ -46,7 +46,7 @@ const configuration = (connection, commit = 'delegate', rangeCommand = false) =>
       entry('range-effect', commit, connection, 'range_target', 'effect')] : []),
     {entry_id: 'run', outcome: 'allow', exclusions: [], principal: {all: true},
       connection: {all: true}, resource: {all: true}, operation: {any_of: ['write']}},
-  ]});
+  ].sort((a, b) => a.entry_id < b.entry_id ? -1 : a.entry_id > b.entry_id ? 1 : 0)});
 const authorization = (accountConfiguration, reviewerPrincipal = 'reviewer-principal') => ({accountConfiguration,
   reviewers: [{keyId: 'reviewer-key', reviewerId: 'reviewer',
     principalId: reviewerPrincipal, publicKey: pem(reviewerKeys.publicKey)}],
