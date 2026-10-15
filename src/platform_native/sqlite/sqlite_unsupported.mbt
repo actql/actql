@@ -372,3 +372,19 @@ pub fn Database::database_usage(
 ) -> Result[NativeDatabaseUsage, NativeSqliteIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn Database::read_header(
+  _self : Database,
+  _scope : String,
+  _key : String,
+) -> Result[NativeJournalHeader, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::begin_deferred(
+  _self : Database,
+) -> Result[Unit, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}

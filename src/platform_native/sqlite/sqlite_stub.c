@@ -93,6 +93,7 @@ typedef struct {
   unsigned char *result_key;
   int32_t result_key_length;
   int64_t result_revision;
+  int64_t result_header_body_bytes;
   int64_t result_capacity_bytes;
   int64_t result_capacity_objects;
   int64_t result_record_count;
@@ -107,6 +108,15 @@ typedef struct {
   int test_commit_reply_failures;
   int test_commit_skip;
   int transaction_fenced;
+  // The same Database retains its read child before BEGIN and after a lost
+  // response. This is not the earlier write's outcome or a second ledger.
+  pid_t process;
+  int64_t lookup_sequence, lookup_generation;
+  bool lookup_start_attempted, lookup_begin_attempted;
+  bool lookup_ready, lookup_stop_attempted;
+  int test_lookup_start_reply, test_lookup_stop_reply, test_lookup_stop_failure;
+  int test_lookup_current_failure, test_lookup_before_begin, test_lookup_poststop;
+  int test_lookup_begin_count, test_lookup_stop_count;
   int test_checked_close_count;
 } actql_native_sqlite_database;
 
@@ -226,6 +236,7 @@ static void actql_retire_result_storage(actql_native_sqlite_database *database) 
   database->result_body_length = 0;
   database->result_key_length = 0;
   database->result_revision = 0;
+  database->result_header_body_bytes = 0;
   database->result_capacity_bytes = 0;
   database->result_capacity_objects = 0;
   database->result_record_count = 0;
@@ -305,6 +316,7 @@ void *actql_native_sqlite_open_inspection_database(
   );
   memset(database, 0, sizeof(*database));
   database->library = library;
+  database->process = getpid();
   if (library != NULL) {
     moonbit_incref(library);
     library->database_children++;
@@ -335,6 +347,7 @@ int32_t actql_native_sqlite_close_checked(
 ) {
   if (database == NULL) return 1;
   if (!actql_library_current(database->library)) return 0;
+  if (database->lookup_generation != 0) return 0;
   if (database->database == NULL) {
     actql_retire_result_storage(database);
     return 1;
@@ -839,6 +852,7 @@ static void *actql_open_database(
   );
   memset(database, 0, sizeof(*database));
   database->library = library;
+  database->process = getpid();
   if (library != NULL) {
     moonbit_incref(library);
     library->database_children++;
@@ -1043,6 +1057,62 @@ static int32_t actql_database_read(
   return result;
 }
 
+// Header lookup does not call column_blob or allocate an adapter/Moon body
+// copy. The original database's body ceiling and row validation still apply.
+int32_t actql_native_sqlite_database_read_header(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t key, int32_t key_length
+) {
+  if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  actql_clear_result(database);
+  sqlite3_stmt *statement = NULL;
+  int code = database->library->prepare_v2(database->database,
+    "SELECT revision, length(body), typeof(body) = 'blob' FROM actql_records "
+    "WHERE namespace = ?1 AND record_key = ?2", -1, &statement, NULL);
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "prepare journal header failed");
+    return actql_operation_code(code);
+  }
+  int32_t result = actql_bind_key(database, statement, 1, namespace_bytes,
+    namespace_length, 2, key, key_length);
+  int64_t revision = 0, length = 0;
+  if (result == 0) {
+    code = database->library->step(statement);
+    if (code == SQLITE_DONE) result = 1;
+    else if (code != SQLITE_ROW) {
+      actql_database_error(database, "read journal header failed");
+      result = actql_operation_code(code);
+    } else {
+      revision = (int64_t)database->library->column_int64(statement, 0);
+      length = (int64_t)database->library->column_int64(statement, 1);
+      int64_t blob = (int64_t)database->library->column_int64(statement, 2);
+      if (revision < 0 || length < 0 || length > database->max_body_bytes ||
+          length > INT32_MAX || blob != 1) {
+        actql_replace_error_for(database->library, &database->error,
+          database->diagnostic_ceiling, "invalid stored journal header");
+        result = -1;
+      }
+    }
+  }
+  int finalized = database->library->finalize(statement);
+  if (finalized != SQLITE_OK) {
+    actql_database_error(database, "finalize journal header failed");
+    return actql_operation_code(finalized);
+  }
+  if (result == 0) {
+    database->result_revision = revision;
+    database->result_header_body_bytes = length;
+  }
+  return result;
+}
+
+int64_t actql_native_sqlite_database_result_header_body_bytes(
+  actql_native_sqlite_database *database
+) {
+  return database == NULL || !actql_library_current(database->library) ? 0 : database->result_header_body_bytes;
+}
+
 int32_t actql_native_sqlite_database_read(
   actql_native_sqlite_database *database,
   moonbit_bytes_t namespace_bytes,
@@ -1200,6 +1270,7 @@ int32_t actql_native_sqlite_database_insert(
   int32_t body_length
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  if (database->lookup_generation != 0) return -1;
   actql_clear_result(database);
   if (body_length < 0 || (int64_t)body_length > database->max_body_bytes) {
     return 4;
@@ -1270,6 +1341,7 @@ int32_t actql_native_sqlite_database_compare_exchange(
   int32_t body_length
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  if (database->lookup_generation != 0) return -1;
   actql_clear_result(database);
   if (body_length < 0 || (int64_t)body_length > database->max_body_bytes) {
     return 4;
@@ -1346,6 +1418,7 @@ int32_t actql_native_sqlite_database_remove_exact(
   int64_t expected_revision, moonbit_bytes_t body, int32_t body_length
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  if (database->lookup_generation != 0) return -1;
   actql_clear_result(database);
   if (database->transaction_fenced ||
       database->library->get_autocommit(database->database)) {
@@ -1411,10 +1484,23 @@ int32_t actql_native_sqlite_test_remove_journal_record(
   return removed && finalized == SQLITE_OK;
 }
 
+// A deferred physical snapshot, matching the existing byte-store BEGIN.
+// It neither writes nor commits a row and must retain its original stop ACK.
+int32_t actql_native_sqlite_database_begin_deferred(
+  actql_native_sqlite_database *database
+) {
+  if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  if (database->lookup_generation != 0) return -1;
+  actql_clear_result(database);
+  int code = actql_exec(database, "BEGIN");
+  return code == SQLITE_OK ? 0 : actql_operation_code(code);
+}
+
 int32_t actql_native_sqlite_database_begin_immediate(
   actql_native_sqlite_database *database
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  if (database->lookup_generation != 0) return -1;
   actql_clear_result(database);
   int code = actql_exec(database, "BEGIN IMMEDIATE");
   return code == SQLITE_OK ? 0 : actql_operation_code(code);
@@ -1447,6 +1533,7 @@ int32_t actql_native_sqlite_database_commit(
   actql_native_sqlite_database *database
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  if (database->lookup_generation != 0) return -1;
   actql_clear_result(database);
   if (database->test_commit_skip > 0) {
     database->test_commit_skip--;
@@ -1471,6 +1558,7 @@ int32_t actql_native_sqlite_database_rollback(
   actql_native_sqlite_database *database
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  if (database->lookup_generation != 0) return -1;
   actql_clear_result(database);
   int code = actql_exec(database, "ROLLBACK");
   return code == SQLITE_OK ? 0 : actql_operation_code(code);
@@ -1614,6 +1702,7 @@ int32_t actql_native_sqlite_database_reserve_capacity(
   int32_t caller_transaction
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  if (database->lookup_generation != 0) return -1;
   actql_clear_result(database);
   if (reserved_bytes < 0 || reserved_objects < 0 || max_bytes < 0 ||
       max_objects < 0 || reserved_bytes > max_bytes ||
@@ -1738,6 +1827,7 @@ static int32_t actql_database_release_capacity(
   bool caller_transaction
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  if (database->lookup_generation != 0) return -1;
   actql_clear_result(database);
   if (reserved_bytes < 0 || reserved_objects < 0) return 2;
   const bool owns_transaction = !caller_transaction;
@@ -1897,6 +1987,7 @@ static int32_t actql_claim_ordinal(
   bool caller_transaction
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  if (database->lookup_generation != 0) return -1;
   actql_clear_result(database);
   if (max_claims <= 0) return 6;
   // Caller mode never begins, commits or rolls back the owning journal TX.
@@ -2221,3 +2312,136 @@ void actql_native_sqlite_close_database(
 }
 
 #include "sqlite_selected_component.inc"
+
+// A generation is issued only after the original fenced connection has
+// physically established NoActive. No token is accepted from the wire.
+int64_t actql_native_sqlite_lookup_claim(actql_native_sqlite_database *database) {
+  if (database == NULL || !database->opened || database->process != getpid() ||
+      !actql_database_library_available(database->library) ||
+      !database->transaction_fenced || database->lookup_generation != 0 ||
+      database->lookup_sequence == INT64_MAX ||
+      !database->library->get_autocommit(database->database)) return 0;
+  database->lookup_generation = ++database->lookup_sequence;
+  database->lookup_start_attempted = false;
+  database->lookup_begin_attempted = false;
+  database->lookup_ready = false;
+  database->lookup_stop_attempted = false;
+  return database->lookup_generation;
+}
+
+static bool actql_lookup_original(actql_native_sqlite_database *database,
+                                 int64_t generation) {
+  return database != NULL && database->opened && database->process == getpid() &&
+    database->library != NULL && database->library->dynamic_library != NULL &&
+    actql_library_current(database->library) && generation > 0 &&
+    generation == database->lookup_generation && database->transaction_fenced;
+}
+
+int32_t actql_native_sqlite_lookup_current(actql_native_sqlite_database *database,
+                                         int64_t generation) {
+  return actql_lookup_original(database, generation) &&
+    actql_database_library_available(database->library) &&
+    !database->test_lookup_current_failure && database->lookup_ready &&
+    !database->lookup_stop_attempted &&
+    !database->library->get_autocommit(database->database);
+}
+
+int32_t actql_native_sqlite_lookup_start(actql_native_sqlite_database *database,
+                                       int64_t generation) {
+  if (!actql_lookup_original(database, generation) ||
+      !actql_database_library_available(database->library) ||
+      database->lookup_start_attempted ||
+      !database->library->get_autocommit(database->database)) return -1;
+  database->lookup_start_attempted = true;
+  // This connection is permanently fenced. query_only is never reset, and
+  // ordinary entry points cannot end/replace the read child's transaction.
+  int code = actql_exec(database, "PRAGMA query_only=ON");
+  if (code != SQLITE_OK) return actql_operation_code(code);
+  sqlite3_stmt *statement = NULL;
+  code = database->library->prepare_v2(database->database,
+    "PRAGMA query_only", -1, &statement, NULL);
+  if (code != SQLITE_OK) return actql_operation_code(code);
+  int stepped = database->library->step(statement);
+  bool enforced = stepped == SQLITE_ROW &&
+    database->library->column_int64(statement, 0) == 1;
+  int finalized = database->library->finalize(statement);
+  if (!enforced || finalized != SQLITE_OK) return -1;
+  if (database->test_lookup_before_begin > 0) {
+    database->test_lookup_before_begin--;
+    return -1;
+  }
+  database->lookup_begin_attempted = true;
+  database->test_lookup_begin_count++;
+  code = actql_exec(database, "BEGIN");
+  if (code != SQLITE_OK) return actql_operation_code(code);
+  // BEGIN alone does not pin an SQLite snapshot. Read the original database
+  // before reporting readiness; subsequent payload/metadata reads share it.
+  code = actql_exec(database, "SELECT count(*) FROM sqlite_schema");
+  if (code != SQLITE_OK) return actql_operation_code(code);
+  database->lookup_ready = true;
+  if (database->test_lookup_start_reply > 0) {
+    database->test_lookup_start_reply--;
+    return -1;
+  }
+  return 0;
+}
+
+int32_t actql_native_sqlite_lookup_stop(actql_native_sqlite_database *database,
+                                      int64_t generation) {
+  if (!actql_lookup_original(database, generation)) return -1;
+  // Current loss invalidates observations, but does not create another child
+  // or authorize SQL on a foreign process/context. Original cleanup retries
+  // inspect this same read attempt, never repeat BEGIN or a lost ROLLBACK.
+  bool was_stopped = database->lookup_stop_attempted;
+  database->lookup_stop_attempted = true;
+  database->lookup_ready = false;
+  if (!database->library->get_autocommit(database->database)) {
+    if (!database->lookup_begin_attempted || was_stopped) return -1;
+    if (database->test_lookup_stop_failure > 0) {
+      database->test_lookup_stop_failure--;
+      // A known pre-SQL refusal is not a lost physical attempt.
+      database->lookup_stop_attempted = false;
+      return -1;
+    }
+    database->test_lookup_stop_count++;
+    int code = actql_exec(database, "ROLLBACK");
+    if (code != SQLITE_OK) return actql_operation_code(code);
+    if (database->test_lookup_stop_reply > 0) {
+      database->test_lookup_stop_reply--;
+      return -1;
+    }
+  }
+  if (!database->library->get_autocommit(database->database)) return -1;
+  actql_clear_result(database);
+  database->lookup_generation = 0;
+  if (database->test_lookup_poststop > 0) {
+    database->test_lookup_poststop--;
+    database->test_lookup_current_failure = 1;
+  }
+  return 0;
+}
+
+// Whitebox faults/counters affect only a caller-owned diagnostic database.
+void actql_native_sqlite_test_lookup_fault(actql_native_sqlite_database *database,
+                                         int32_t kind) {
+  if (kind == 1) database->test_lookup_start_reply = 1;
+  if (kind == 2) database->test_lookup_stop_reply = 1;
+  if (kind == 3) database->test_lookup_stop_failure = 1;
+  if (kind == 4) database->test_lookup_current_failure = 1;
+  if (kind == 5) database->test_lookup_current_failure = 0;
+  if (kind == 6) database->test_lookup_before_begin = 1;
+  if (kind == 7) database->test_lookup_poststop = 1;
+}
+int32_t actql_native_sqlite_test_lookup_count(actql_native_sqlite_database *database,
+                                           int32_t kind) {
+  return kind == 1 ? database->test_lookup_begin_count : database->test_lookup_stop_count;
+}
+
+int32_t actql_native_sqlite_lookup_stopped_current(
+    actql_native_sqlite_database *database, int64_t generation) {
+  return database != NULL && database->opened && database->process == getpid() &&
+    actql_database_library_available(database->library) &&
+    !database->test_lookup_current_failure && generation > 0 &&
+    database->lookup_sequence == generation && database->lookup_generation == 0 &&
+    database->library->get_autocommit(database->database);
+}

@@ -118,6 +118,22 @@ extern "C" fn database_read_ffi(
 
 ///|
 #borrow(database, scope, key)
+extern "C" fn database_read_header_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  key : Bytes,
+  key_length : Int,
+) -> Int = "actql_native_sqlite_database_read_header"
+
+///|
+#borrow(database)
+extern "C" fn database_result_header_body_bytes_ffi(
+  database : Database,
+) -> Int64 = "actql_native_sqlite_database_result_header_body_bytes"
+
+///|
+#borrow(database, scope, key)
 extern "C" fn database_read_with_body_limit_ffi(
   database : Database,
   scope : Bytes,
@@ -185,6 +201,10 @@ extern "C" fn database_remove_exact_ffi(
   body : Bytes,
   body_length : Int,
 ) -> Int = "actql_native_sqlite_database_remove_exact"
+
+///|
+#borrow(database)
+extern "C" fn database_begin_deferred_ffi(database : Database) -> Int = "actql_native_sqlite_database_begin_deferred"
 
 ///|
 #borrow(database)
@@ -688,6 +708,36 @@ pub fn Database::read(
 }
 
 ///|
+/// Observe revision and byte length without allocating a copy of the body.
+/// Original row validation/bound remain; missing and SQL failure are distinct.
+pub fn Database::read_header(
+  self : Database,
+  scope : String,
+  key : String,
+) -> Result[NativeJournalHeader, NativeSqliteIssue] {
+  let scope_bytes = @utf8.encode(scope)
+  let key_bytes = @utf8.encode(key)
+  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+    return Err(InvalidName)
+  }
+  let code = database_read_header_ffi(
+    self,
+    scope_bytes,
+    scope_bytes.length(),
+    key_bytes,
+    key_bytes.length(),
+  )
+  if code == 0 {
+    Ok({
+      revision: database_result_revision_ffi(self),
+      body_bytes: database_result_header_body_bytes_ffi(self),
+    })
+  } else {
+    Err(operation_issue(self, code))
+  }
+}
+
+///|
 /// Apply an additional body ceiling before the C readback and MoonBytes copies.
 /// The database's original body bound and validation still apply. This neither
 /// reserves backing nor authorizes access; SQLite row/statement/cache backing
@@ -922,6 +972,20 @@ pub fn Database::remove_exact(
     expected_body,
     expected_body.length(),
   )
+  if code == 0 {
+    Ok(())
+  } else {
+    Err(operation_issue(self, code))
+  }
+}
+
+///|
+/// Start a deferred physical snapshot on this same connection, without a
+/// write or COMMIT. The caller must explicitly stop the original transaction.
+pub fn Database::begin_deferred(
+  self : Database,
+) -> Result[Unit, NativeSqliteIssue] {
+  let code = database_begin_deferred_ffi(self)
   if code == 0 {
     Ok(())
   } else {
