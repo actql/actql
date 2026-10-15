@@ -15,6 +15,30 @@ installation, raw capture policies, canonical binding originals and finite
 quantities. Missing originals/runtime refuse before sending. Matching CIDs,
 configuration copies or positive byte declarations are not original admission.
 
+The selected Chat installation also supplies required closed `originalStringLimits`:
+`maxApiKeyCodeUnits`, `maxBaseURLCodeUnits`, and `maxModelIdCodeUnits`. Each is
+an explicit positive finite integer ceiling in JavaScript UTF-16 code units.
+The constructor snapshots them and the original primitive strings once, and
+checks length before input-dependent concatenation, URL construction, SDK
+preparation or encoding. Missing or excessive inputs refuse; no value is
+truncated, normalized or logged. These are separate from encoded request/header
+byte limits. They do not fund acquiring the original strings, their later
+URL/header/copy/Promise overlap, or establish a normal numerical profile. The
+same Host supplier/installation and its current generation retain that duty.
+
+The Chat entry privately projects the actual builder's OpenAI and ProviderUtils
+module namespaces and its original `createOpenAI` function to the existing Host
+installation. The entry accepts no caller replacement for those originals.
+This is reference DATA, not coverage, a loan, a profile or permission. Only the
+selected trusted Host's original startup/module responsibility may cover the
+fixed, input-independent module graph. The module-default environment read,
+per-call factories, lazy initialization, mutable caches, inputs, copies and
+Promises remain separate duties. Host/Scope retirement does not prove ESM
+cache or module storage reclamation. The new direct ProviderUtils dependency
+selects the already locked5.0.58 bytes; the changed root lock has a new Artifact
+identity, not the former lock CID. Host coverage/caller integration and complete
+phase supply are still required before normal use.
+
 ```js
 import {createInstalledOpenAIChatRegistration} from '@actql/provider-ai-sdk';
 // Host integration skeleton, not a runnable live-provider example.
@@ -70,7 +94,8 @@ This entry selects the fixed private Undici transport after the same existing
 Host snapshots/profile/original-selection checks. It reuses the existing
 exclusive async registration, physical preflight and original Call cleanup;
 it does not implement another executor or synthesize normal funding. The old
-explicit generic-fetch assembler is unchanged. An extra fetch in the selected
+explicit generic-fetch transport behavior is unchanged; both Chat assemblers
+require the original-string declarations above. An extra fetch in the selected
 Undici options is rejected, not used as a fallback or endpoint override.
 
 `npm-shrinkwrap.json` preserves the exact existing SDK dependency lock closure

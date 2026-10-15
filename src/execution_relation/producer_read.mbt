@@ -131,8 +131,7 @@ pub fn infer_completed_producer_input(
   read : ProducerRead,
 ) -> CompletedOutput? {
   guard @lower.node_at(@lower.bound_preparation(owner), step) is Some(node) &&
-    @lower.payload(node) is @lower.Infer(_) &&
-    @lower.node_input_target(node, 0) is Some(target) &&
+    @lower.node_infer_input_target(node) is Some(target) &&
     producer_read_matches_operation_input(read, owner, step, 0) &&
     completed_output_matches_port(read.bound.output, owner, target) else {
     return None
