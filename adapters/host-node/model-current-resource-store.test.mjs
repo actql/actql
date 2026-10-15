@@ -41,7 +41,10 @@ test('same original encrypted Store bytes pass actual parked origin and Resource
   // diagnostic custody, instead of deleting it or claiming successful cleanup.
   t.after(() => port.close());
   t.diagnostic(`Original fixture Store retained at ${root}`);
-  const f = await currentResourceFixture(moon, control, 'current-store', {metadataAcquisition: {
+  // Explicit synthetic Store opening selection: eighteen fixed root entries,
+  // one original-state object and one holding. It is not numerical funding.
+  const f = await currentResourceFixture(moon, control, 'current-store', {
+    storeBootstrap: {maxWireBytes: 4096, maxDirectoryEntries: 20}, metadataAcquisition: {
     metadata: {maxWireBytes: 2048, maxLedgerEntries: 3},
     directory: {maxWireBytes: 1024, maxDirectoryEntries: 8},
     retainedBytes: 7000n, workspaceBytes: 3000n}});
