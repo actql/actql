@@ -67,7 +67,8 @@ for (const [directory, name, factory] of [
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}\n');
   // Explicit package installation. Scripts are disabled for consumers only;
   // no implicit package acquisition occurs during ActQL request execution.
-  run(process.execPath, [npm, 'install', '--ignore-scripts', '--no-audit', '--no-fund', tarball], consumer);
+  run(process.execPath, [npm, 'install', '--ignore-scripts', '--no-audit', '--no-fund',
+    ...(directory === 'provider-http' ? ['--offline'] : []), tarball], consumer);
   const installed = join(consumer, 'node_modules', name);
   assert.equal(await realpath(installed), installed, 'Consumer must not borrow a repository symlink');
   for (const path of paths) {
