@@ -1,6 +1,6 @@
 # Normally installed real cross-Connector acceptance
 
-This is one selected opt-in Local SQL or AQL scenario, not a mocked Connector or a general
+This is one selected opt-in SQL or AQL route over Local or HTTPS, not a mocked Connector or a general
 release certification. Its independent input is two rows in a new real DuckDB
 file, joined by object name with the real GCS Connector's metadata-only
 `LIST_FILES`. The authored public Result `joined` contains exactly one row,
@@ -78,13 +78,34 @@ never a loop over formats or a retry of an earlier Run. Existing inherited
 format environment values are cleared before the explicit selection is passed.
 No real AQL success is established by selector controls or the SQL evidence below.
 
+The optional `--transport https` selects the existing installed HTTP Host and
+public Remote Client; Local remains the default. One fresh TLS certificate and
+private loopback bearer are created in that invocation's private scratch before
+the Node test starts. The Client trusts only the explicitly selected extra test
+certificate; inherited extra-CA and format/transport overrides are cleared.
+The listener binds numeric loopback, and the installed Host authenticates the
+same original local principal. This is test setup, not a new GCP credential,
+grant, issuer, Source, evaluator or runtime overlay. Product modules still come
+only from the exact normal archives, and all original profile/authorization
+objects go to the same installed Host API.
+
+Each capture/approval/terminal process constructs and closes its own HTTPS Host
+over the original durable installation. Only the endpoint port changes: original
+profiles, signing key, Run, Preview and authority stay fixed. Both fresh children
+forbid input acquisition; the post-commit child also forbids Table-worker starts.
+Client, listener and Host closures are checked separately. Failed handles are
+retained in the test's same holder; absent, false or pending Host shutdown results
+cannot establish release. Unit controls use synthetic handles and are not TLS,
+real Host or product E2E evidence. The fixed-source HTTPS execution below is
+separate from those controls.
+
 Save manifest/archive and all copied-input digests, the private exact process
 output, independent actual Result/schema, physical Catalog rows/commit,
 original Run and restart PID, before/after Source/HTTP counters, cleanup and the
 outer guard's actual Owner/group/lease closure. Failures preserve the new
 scratch/DB/WAL/Unknown; no blind retry or old-Run replay is authorized. A failed
-cleanup is not a passing completed receipt. This scenario is unexecuted until
-those actual receipts exist. CTAS10 on df28 and its original failures remain
+cleanup is not a passing completed receipt. Each execution is qualified only by
+its own actual receipts. CTAS10 on df28 and its original failures remain
 separate immutable evidence; this harness does not rerun that cohort.
 
 Attempted submission calls and observed accepted Runs are separate counters.
@@ -181,3 +202,72 @@ exercised through SQL; no second distinct business scenario is added, and G/Root
 add no duplicate. The preceding 6f SQL proof retains its immutable source qualification.
 This is not a later-main pristine RC, real HTTPS, complete Preview row-value
 inspection or completion of all Frontend/Connector/product gates.
+
+## Executed fixed-source AQL HTTPS route
+
+The same business scenario passed its public AQL HTTPS entry at clean product
+and harness source `475eb446dc5dc0ce3f5c4237618b9fe3aa975f9b`, tree
+`9a902d912db22c7be67faea614bf1f3669ee52a2`, in `run-1J8u3n`: 1/1,
+complete exit0 under outer300/TERM5 and child180. G generated the one shared
+normal4 cohort in `run-wlgPdR` with ordinary prepack; manifest SHA256 is
+`5662bed70db34891807d78948ea931dd98b61c93351465cab6430a19cf3d5724`.
+There was no B producer, checkout runtime, adapter overlay or source response
+replacement. The 40 inert controls executed at earlier `70cd57c2` remain
+preparation evidence with matching inputs, not this installed execution.
+
+The public Remote Client reached the original installed HTTP Host through
+verified TLS on numeric loopback. Original Source profiles, authority, durable
+installation, signing key, independent row and complete ordered schema were
+retained. Actual acquisition was one real DuckDB session/statement and one real
+GCS metadata request/response of 1,927 bytes. The public Result and Preview row
+payload remained unavailable before approval. Processes 71585, 71895 and 72099
+performed the original capture, same-Run sealed approval and post-commit terminal
+Result read. The Effect committed once and wrote the independent one row.
+Both fresh processes performed zero Source requests, credential resolutions or
+new submissions; the terminal process also started zero Table workers.
+
+All four Client/listener/installed Host closures resolved with empty retention
+and false Store, authorization and diagnostic cleanup-pending fields. The exact
+Owner and observed child groups, original worktree/shared tokens and fixture
+open FDs were absent. All 319 installed member bytes/modes/SRI and 24 copied
+fixtures matched the exact normal cohort and 28 source inputs. The 139 original
+custody files, proof keys, DB/WAL and exact raw output remain privately retained.
+
+[The HTTPS evidence record](accepted-475eb446-aql-https.json) binds the actual
+commands, archive identities, Result/schema, raw hashes and independent audit.
+Count **one new HTTPS entry to the same business scenario** already exercised
+through SQL Local and AQL Local; additional distinct business scenarios and
+duplicate G/Root execution counts are zero. The old Local qualifications remain
+at their original Sources. This result is not later-main pristine acceptance,
+full Preview row-value inspection, seventeen-Connector completion, numerical
+funding, Hosted CI or formal publication.
+
+## Executed fixed-source SQL HTTPS route
+
+The original public SQL entry also passed over HTTPS at the same immutable
+`475eb446dc5dc0ce3f5c4237618b9fe3aa975f9b` product and harness source,
+using that exact normal4 cohort and manifest
+`5662bed70db34891807d78948ea931dd98b61c93351465cab6430a19cf3d5724`.
+`run-9ExQMQ` completed 1/1, exit0 under the unchanged outer300/TERM5 and
+child180 bounds. No new producer, changed fixture, replacement oracle, adapter
+overlay or old Run operation was needed: only the existing closed
+`--format sql --transport https` selection changed from the preceding AQL run.
+
+This was a separate fresh submission and disposable installation, with one
+real DuckDB session/statement and one real GCS metadata response of 1,927 bytes.
+The original sealed Preview, unavailable pre-approval row payload and Result,
+same-Run approval, single Iceberg commit and independent public joined row/full
+ordered schema were preserved. The approval and post-commit processes performed
+zero Source requests, credential resolutions or new submissions; terminal
+recovery started zero Table workers. All four Client/listener/Host close reports
+resolved without pending retention or cleanup. Original Owner/child groups,
+worktree/shared ownership tokens and application/custody open FDs were absent.
+
+[The SQL HTTPS evidence record](accepted-475eb446-sql-https.json) binds the exact
+four archives, 319 original member bytes/modes/SRI, 24 copied fixtures and
+28 source inputs, nine original raw records, original independent oracle and
+G's separate Parquet/receipt audit. The old AQL HTTPS and SQL/AQL Local records,
+failed attempts, DB/WAL, keys and custody remain unchanged. Count one new SQL
+HTTPS entry and zero additional distinct business scenarios. This does not
+upgrade a later main or finish full Preview, seventeen-Connector Read/Write,
+Model funding, Hosted CI or formal publication.

@@ -7,6 +7,8 @@ priv struct HolderEffectHostSetupProfile {
   // The reviewed current-read composition covers this caller ceiling. SQLite
   // also preserves the original Store limit; neither quantity is permission.
   catalog_read_ceiling : Int64
+  // Positive physical parse/admission bounds; not a catalog language limit.
+  catalog_json_limits : @decode.Limits
   // Exact original selected SQLite component heap, not a diagnostic/row bound.
   // This observation does not establish the simultaneous funding envelope.
   catalog_sqlite_heap_bytes : Int64
@@ -91,6 +93,10 @@ fn holder_effect_host_setup_profile_valid(
   profile.read_ceiling > 0 &&
   profile.read_ceiling <= 1000000 &&
   profile.catalog_read_ceiling > 0L &&
+  profile.catalog_json_limits.max_nodes > 0 &&
+  profile.catalog_json_limits.max_depth > 0 &&
+  profile.catalog_json_limits.max_string_bytes > 0 &&
+  profile.catalog_json_limits.max_total_string_bytes > 0 &&
   profile.catalog_sqlite_heap_bytes >= 4096L &&
   profile.catalog_sqlite_heap_bytes <= 2147483647L &&
   profile.setup_retained_bytes > 0L &&

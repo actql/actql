@@ -10,11 +10,15 @@ import {observeInstalledGcsMetadata, observeInstalledDuckDbReads, observeInstall
   from './real-cross-connector-observation.mjs';
 import {selectRealCrossConnectorControl} from './real-cross-connector-control.mjs';
 import {checkRealRoutePreview} from './real-cross-connector-preview.mjs';
+import {createServer} from 'node:https';
+import {connectRealRouteTransport, closeRealRouteTransport} from './real-cross-connector-transport.mjs';
 
 const input = JSON.parse(await readFile(process.argv[2], 'utf8'));
 const control = selectRealCrossConnectorControl(input.format);
 const require = createRequire(join(input.application, 'package.json'));
 const {connect} = await import(require.resolve('@actql/node'));
+const {openInstalledRemoteHttpHost} = await import(require.resolve('@actql/local-node/http-host'));
+const transport = input.transport ?? 'local';
 const duckdb = require('@duckdb/node-api');
 const gcs = observeInstalledGcsMetadata(input.manifest, {forbidden: true});
 const reads = observeInstalledDuckDbReads(duckdb, {forbidden: true});
@@ -22,9 +26,11 @@ const tableWorkers = input.phase === 'terminal' ? observeInstalledTableWorkers(
   join(dirname(require.resolve('@actql/local-node')), 'adapters/connectors/local/iceberg/process_worker.py'),
   {forbidden: true}) : undefined;
 let client, reviewedPreview, credentialResolutions = 0, completed = false;
+const held = {};
 try {
-  client = await connect({...input.options, installation: {...input.options.installation,
-    resolveSourceSecret() { credentialResolutions++; throw new Error('UnexpectedSourceCredentialOnRestore'); }}});
+  client = await connectRealRouteTransport(held, {connect, openInstalledRemoteHttpHost, createServer,
+    options: input.options, transport, https: input.https, principalId: input.principalId,
+    resolveSourceSecret() { credentialResolutions++; throw new Error('UnexpectedSourceCredentialOnRestore'); }});
   const run = await client.attach(input.ref);
   assert.deepEqual(run.ref, input.ref);
   let state = await run.status();
@@ -60,17 +66,17 @@ try {
   assert.deepEqual(gcs.observation(), {requests: 0, responses: 0, responseBytes: 0});
   assert.deepEqual(reads.observation(), {sourceReadSessions: 0, sourceReadStatements: 0});
   if (tableWorkers) assert.deepEqual(tableWorkers.observation(), {workerStarts: 0});
-  await client.close(); client = undefined;
+  const transportClose = await closeRealRouteTransport(held); client = undefined;
   completed = true;
   await writeFile(join(dirname(process.argv[2]), `restart-observation.${input.phase}.json`), JSON.stringify({
-    phase: input.phase, format: control.format, pid: process.pid, ref: run.ref, status: state.status, observedResult: observed,
+    phase: input.phase, format: control.format, transport, transportClose, pid: process.pid, ref: run.ref, status: state.status, observedResult: observed,
     ...(reviewedPreview === undefined ? {} : {reviewedPreview}),
     ...(tableWorkers === undefined ? {} : {physicalTable: tableWorkers.observation()}),
     gcs: gcs.observation(), duckdb: reads.observation(), credentialResolutions,
     submissionCount: 0, approval: input.phase === 'approve' ? 'committed' : 'previously_committed',
   }, null, 2)+'\n', {flag: 'wx', mode: 0o600});
 } finally {
-  try { if (client) await client.close(); }
+  try { await closeRealRouteTransport(held); }
   finally { try { tableWorkers?.close(); } finally { try { reads.close(); } finally { gcs.close(); } } }
 }
 assert(completed);
