@@ -192,6 +192,10 @@ fn composite_installed_fragment_counter(
     Err(Generated(FragmentContext(index, _))) =>
       println("COMPOSITE_GENERATED fragment_context=\{index}")
     Err(Generated(InputLimit)) => println("COMPOSITE_GENERATED input_limit")
+    Err(Generated(UnsupportedRowComparison(index, field))) =>
+      println(
+        "COMPOSITE_GENERATED unsupported_comparison=\{index}/\{@schema.reference_name(field)}",
+      )
     Err(Generated(_)) => println("COMPOSITE_GENERATED other_execution_issue")
     Err(MissingTask) => println("COMPOSITE_GENERATED missing_task")
     Err(EmptyTask) => println("COMPOSITE_GENERATED empty_task")
