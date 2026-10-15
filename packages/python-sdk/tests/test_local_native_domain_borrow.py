@@ -29,6 +29,7 @@ class BorrowFixture:
             'claim_holding': self.claim, 'transfer_holding': lambda p,h,g,r:self.event('transfer_holding'),
             'close_holding': self.close_holding, 'capacity':self.capacity,
             'contains_live_span':lambda p,a,n:self.event('contains'),
+            'span_offset':self.span_offset,
         }.items():
             setattr(self.library, 'actql_native_domain_borrow_' + name, Function(call))
         self.functions = _OriginalDomainBorrowFunctions(self.library)
@@ -67,6 +68,11 @@ class BorrowFixture:
 
     def capacity(self, pointer, out):
         out._obj.value = 16384
+        return 0
+
+    def span_offset(self, pointer, holding, address, length, out):
+        self.events.append(('span_offset', pointer.value, holding.value, address.value, length))
+        out._obj.value = 4096
         return 0
 
     def enter(self, pointer):

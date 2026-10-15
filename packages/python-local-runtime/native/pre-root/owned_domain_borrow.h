@@ -30,4 +30,9 @@ int actql_native_domain_borrow_transfer_holding(void *storage, actql_owned_capac
 int actql_native_domain_borrow_close_holding(void *storage, actql_owned_capacity **slot);
 int actql_native_domain_borrow_capacity(void *storage, uint64_t *out);
 int actql_native_domain_borrow_contains_live_span(void *storage, const void *address, size_t bytes);
+/* Same holding's already observed span, relative to its original payload.
+ * Requires the original transferred holding and active same-provider scope.
+ * This is physical DATA, not VM identity, funding, admission or retirement. */
+int actql_native_domain_borrow_span_offset(void *storage, actql_owned_capacity *holding,
+    const void *address, size_t bytes, uint64_t *out);
 #endif
