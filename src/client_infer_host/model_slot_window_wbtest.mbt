@@ -285,6 +285,11 @@ test "original Model window reverse response keeps Slot settlement and logical o
   window_assert_output(completed, 0, "a")
   window_assert_output(completed, 1, "b")
   assert_eq(capture(active).unwrap().captures.map(record => record.slot), [1, 0])
+  let bundle = capture(active).unwrap()
+  let rows = active.rows.unwrap()
+  let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
+  let data_replay = @model.replay_model_capture(task, active.fixed_request_cid, bundle)
+  let rows_replay = @model.replay_model_capture_rows(rows, active.fixed_request_cid, bundle)
   assert_eq(
     @resources.model_io_admission_counts(admission, installation),
     Some((0, 0)),
@@ -305,6 +310,8 @@ test "original Model window reverse response keeps Slot settlement and logical o
   original_preparation_test_release(ledger, read)
   assert_true(@resources.close_model_io_access(access).unwrap())
   assert_eq(calls.val, 2)
+  assert_true(data_replay is Ok(_), msg="self-issued complete bundle must DATA replay")
+  assert_true(rows_replay is Ok(_), msg="self-issued bundle must retain original row bindings")
 }
 
 ///|
