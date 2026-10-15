@@ -127,3 +127,21 @@ running a probe or issuing an executable Run. Unknown work remains unknown;
 stop, Sample, intermediate retention, cost and batch capabilities remain
 uninstalled. The SDK checks the returned map's self-CID and Plan binding; this
 read grants no execution authority and does not install runtime control.
+
+## Effectful static planning
+
+The separate `actql-effectful-static-plan-view/0.1` envelope implements the
+adopted X02 readonly connection. The original Effect preparation/compilation
+Owner supplies both the existing computation PlanView and a freshly read
+checked declaration set. Neither a copied mutable snapshot nor its CIDs can
+issue a replacement original. This preserves all existing PlanView/map bytes
+and makes no new execution, approval or recovery decision.
+
+The nested DAG is explicitly a computation component. Declared Mapping target
+references and Command Resource kinds remain authoring facts. Contract minimum
+none/required/not-represented stays separate from current permission, gates and
+approval; unknown physical targets/changed values and unavailable sealed Preview
+are not replaced with guessed values, synthetic Checkpoints or ordered edges.
+The same finite member/work and complete read/emit bounds apply. Host current
+readonly authorization and public installed acceptance remain independent
+requirements; a Core projection or schema registration alone installs no support.

@@ -1,7 +1,7 @@
 import type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,
   InstalledConnectorTable, HostInstallation} from '@actql/local-node';
 export type {HostCapacityPolicy, HostLookupExecutionPolicy, SourceProfilePaths, EffectProfilePaths,
-  InstalledConnectorTable} from '@actql/local-node';
+  InstalledConnectorTable, CalendarArtifactInstallation} from '@actql/local-node';
 import type {Client, ConnectionOptions, ConnectionStringOptions, Durability} from '@actql/sdk';
 
 export {ClientError, RequestHeld} from '@actql/sdk';
@@ -28,6 +28,7 @@ export type EmbeddedHostInstallation = Readonly<{
   resolveEffectSecret?: (...args: any[]) => any;
   authorization?: Readonly<Record<string, unknown>>;
   modelInstallation?: HostInstallation['modelInstallation'];
+  calendarArtifact?: HostInstallation['calendarArtifact'];
   registerModelProviders?: HostInstallation['registerModelProviders'];
   resultDataPolicy?: HostInstallation['resultDataPolicy'];
   inferEvidence?: HostInstallation['inferEvidence'];

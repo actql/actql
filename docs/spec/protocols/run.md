@@ -54,8 +54,9 @@ This document owns run-wire, checkpoint-wire, resolution-wire, preview-wire, app
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/resolved_control_profile sha256:6c2bb8de6b1f74fc37ecd43a3b3b667ff660e46e09c32846d34544dcace804f9 -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/control_operation_query sha256:411c0a6ceb270757a5ded2334285827387b9a67257e2b62bcc29fb28c4bd32ca -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/sample_selector sha256:345ec8f736c15213fc6c312f010cccf9146ec43c0033221d1f3b385a0f74f269 -->
-<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json# sha256:4f7abcf6ad43eab7eb89fe21f9459f1b13081711d14c278c932fdc6bad4ad3f8 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json# sha256:d79ac12e9ce9785353324da1a17a96af1c01b0692b56eb42692d15c598be781d -->
 <!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/run_plan_view sha256:bc7d46d0fead62582cde82f78ce9467814640a8ccd293541ee30e31efba6ed77 -->
+<!-- machine-import: ../../../spec/contracts/actql-interactive-run-control.json#/schemas/effectful_static_plan_view sha256:290df7e7a6ceeab8d5198bc7fd39ba4a65d213fa80f83e5a6381b94c6dbde645 -->
 <!-- page-contents:start -->
 ## On this page
 
@@ -1084,3 +1085,28 @@ before acquisition or allocation, refusing unavailable or unjustified supply
 rather than substituting object-byte limits, guessed coefficients or spare limits.
 
 <!-- machine-import: ../../../spec/contracts/actql-protocol-schemas.json#/artifact_schemas/model_original_resource_state sha256:6be8dc0eec799400cb68173ac39ee88c49d9af80cabc762a62a8bdceddf778df -->
+
+<a id="effectful-static-plan-view"></a>
+
+## Effectful static Plan projection
+
+<!-- requirement-block: effectful-static.original effectful-static.component effectful-static.unobserved -->
+An `actql-effectful-static-plan-view/0.1` issuer MUST read the same original
+checked Effect preparation and compilation, retaining the Program and parameter
+identities, Check Environment, computation Plan/map, unit and Effect occurrences
+without accepting a caller's detached declaration snapshot as original custody.
+
+The computation component MUST retain the existing PlanView and LogicalMap
+bytes and identities, with its declared Mapping targets, Command Resource kinds
+and Result/Table/no-row inputs remaining distinct from a full physical Effect
+plan, resolved target or executable Run.
+
+Actual target/value observations, current permission, gate and approval MUST
+remain unknown and sealed Preview unavailable until their existing Owners
+observe them; contract minimum none is not permission, required approval is
+not human-only, and a Command's not-represented minimum is not none.
+
+The envelope is static with provider I/O zero. Its projection does not start a
+Run, acquire a Source, invoke a Model or dispatch a write. Existing readonly
+disclosure authorization remains separate. Member/work and complete nested
+read/emit limits apply together; registration advertises no installed capability.
