@@ -94,7 +94,7 @@ fn advance_model_request_preparation(
   guard state.request is Some(request) else {
     if state.requests.length() ==
       @relation.prepared_infer_rows_count(state.rows) {
-      state.phase = if state.physical_preflight is Some(_) {
+      state.progress.phase = if state.physical_preflight is Some(_) {
         PreparePhysicalRequests
       } else {
         DispatchSlot
@@ -302,7 +302,7 @@ fn advance_model_request_preparation(
       state.request = None
       if state.requests.length() ==
         @relation.prepared_infer_rows_count(state.rows) {
-        state.phase = if state.physical_preflight is Some(_) {
+        state.progress.phase = if state.physical_preflight is Some(_) {
           PreparePhysicalRequests
         } else {
           DispatchSlot

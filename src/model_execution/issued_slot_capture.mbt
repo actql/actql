@@ -7,11 +7,14 @@ pub fn model_execution_issued_slot_capture(
   slot : Int,
 ) -> Result[@publication.RunEvidenceValue, ModelExecutionIssue] {
   let state = execution.state
-  guard (state.accepted || (state.durable_calls && slot < state.next_slot)) &&
+  guard (
+      state.accepted ||
+      (state.durable_calls && model_outcome_at(state, slot) is Some(_))
+    ) &&
     !state.reclaimed &&
     state.call_scope is Some(scope) &&
     state.requests.get(slot) is Some(prepared) &&
-    state.outcomes.get(slot) is Some(adopted) &&
+    model_outcome_at(state, slot) is Some(adopted) &&
     state.attempts.get(slot) is Some(trace) else {
     return Err(OutputIdentity)
   }

@@ -118,7 +118,13 @@ test('current query rules bind the manifest while prior rules retain their ident
   assert.equal(body.query_text_rules_sha256, sha(queryRules).slice(7));
   assert.equal(sha(canonicalText(body)), current);
   const integrated = read('scripts/fixtures/nearest-shorthand/manifest-identity.json');
-  assert.deepEqual({...body, grammar_manifest_cid: current}, integrated.manifest);
+  const tableRules = read('scripts/fixtures/terminal-table-query-rules/manifest-identities.json');
+  // Keep the authored nearest vector historical rather than rewriting it.
+  assert.deepEqual(integrated.manifest, tableRules.grammar);
+  assert.deepEqual({...body, grammar_manifest_cid: current}, tableRules.current_grammar);
+  assert.notDeepEqual(tableRules.grammar, tableRules.current_grammar);
+  const {grammar_manifest_cid: retainedNearest, ...nearestBody} = integrated.manifest;
+  assert.equal(sha(canonicalText(nearestBody)), retainedNearest);
   const update = read('scripts/fixtures/private-update-capture/manifest-identity.json');
   const {grammar_manifest_cid: priorUpdate, ...priorUpdateBody} = update.after;
   assert.equal(priorUpdate, 'sha256:913d9e69aa87096a497cbf163a2fb9bb019b13a765f28792b734fa5f1a367361');
