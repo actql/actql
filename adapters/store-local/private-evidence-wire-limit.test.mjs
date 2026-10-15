@@ -67,7 +67,11 @@ test('closing Store does not reissue an export ceiling or retire an outstanding 
     await assert.rejects(store.close(), {code: 'PublicationStoreCleanupPending'});
     assert.equal(store.status().closed, false);
     assert.equal(prepared.prepared.status().pending, true);
-    assert.ok(store.status().reservedBytes > 0);
+    // seal moved the original reservation into actual stored-object custody;
+    // it did not release that object or the still-pending prepared handle.
+    assert.equal(prepared.bytes, 140); // E(8)=128+4*ceil(8/3)
+    assert.equal(store.status().storedBytes, 140);
+    assert.equal(store.status().objectCount, 1);
     assert.throws(() => store.privateEvidenceWireLimit(), {code: 'PublicationStoreClosed'});
     assert.equal(maximum, 12192, 'prior scalar is only DATA, never continuing admission');
   } finally { assert.equal(await prepared.prepared.release(), true); }
