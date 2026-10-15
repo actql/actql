@@ -187,6 +187,40 @@ test('settlement record preserves Unknown journal and ACK rejection until same-d
   }
 });
 
+test('acknowledged settlement cleanup never reopens its stopped raw reader',async()=>{
+  const f=fixture();
+  f.operation.stoppedAttemptCount=()=>1;
+  f.operation.advanceStoppedAttemptUsage=()=>assert.fail('Already acknowledged original attempt');
+  await f.settling();
+  assert.equal(f.counters.ack,1);
+  f.flags.modelCleanup=false;
+  assert.equal(await f.owner.custody.cleanup(),false);
+  assert.equal(f.owner.custody.cleanupPending(),true);
+  f.flags.modelCleanup=true;
+  assert.equal(await f.owner.custody.cleanup(),true);
+  assert.equal(f.counters.usage,0);
+  assert.equal(f.counters.ack,1,'Cleanup cannot acknowledge another settlement');
+});
+
+test('unacknowledged settlement keeps its original stopped usage duty despite Store success',async()=>{
+  const f=fixture();
+  f.operation.stoppedAttemptCount=()=>1;
+  const failure=new Error('OriginalAckRefused');
+  f.flags.ackFailure=failure;
+  await assert.rejects(f.settling(),error=>error===failure);
+  assert.equal(f.flags.usageRetired,false);
+  const proof=f.operation.attemptEvidence;
+  f.operation.attemptEvidence=()=>{
+    assert.equal(f.flags.usageRetired,true,'Original reader precedes immutable stopped proof');
+    return proof();
+  };
+  await f.owner.persistStoppedAttempts();
+  assert.equal(f.counters.usage,3);
+  assert.equal(f.counters.ack,0);
+  assert.equal(f.counters.cleanup,0);
+  assert.equal(f.owner.custody.cleanupPending(),true);
+});
+
 test('capture retains the same issued invocation view without wire readmission',async()=>{
   const f=fixture({rejectInvocationReadmit:true});
   await f.complete();

@@ -34,7 +34,16 @@ const now=()=> '2026-10-12T00:00:00.000Z';
 const bounds={maxWireBytes:10000,maxNodes:1000,maxDepth:30,maxMembers:1000,maxWork:100000};
 
 export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new AbortController().signal,
-  storeOriginals=true,beforeOriginalRead,modelId='gpt-4.1-nano',nativeDecision=false}={}) {
+  storeOriginals=true,beforeOriginalRead,modelId='gpt-4.1-nano',nativeDecision=false,
+  physical}={}) {
+  // Optional exact loopback transport for the joined physical diagnostic.
+  // Preserve its function identity: wrapping it would lose the existing
+  // original-transport preparation/cleanup membership. No ambient fallback.
+  if (physical!==undefined) {
+    assert.equal(nativeDecision,false);
+    assert.equal(typeof physical.fetch,'function');
+    assert.match(physical.endpoint,/^http:\/\/127\.0\.0\.1:[1-9][0-9]*\/v1\/chat\/completions$/u);
+  }
   const root=await mkdtemp(join(tmpdir(),'actql-original-sdk-common-'));
   t.diagnostic(`Original joined fixture custody retained at ${root}`);
   const control=runtimeCore(moon).publicationControl;
@@ -88,6 +97,7 @@ export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new A
       .match(/#\|(\{[^\n]+\})/u)[1];
   const profileBody=JSON.parse(profileText);delete profileBody.self_cid;
   profileBody.task.contract_cid=task.contract_cid;
+  if (physical!==undefined) profileBody.operation.endpoint=physical.endpoint;
   // The original independently declared Host request ceiling is1000. The
   // former fixture1024 support declaration correctly failed preflight; tighten
   // the physical selection rather than widening the Host/language budget.
@@ -149,13 +159,14 @@ export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new A
         probability,
         taskCid:task.contract_cid,promptCid:prompt.cid,outputSchemaCid:task.output_schema_cid,
         modelSelector:task.authored_model_selector,projectionLimits:{maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:10000},
-        modelId,baseURL:nativeDecision?'https://fixture.invalid':'https://fixture.invalid/v1',apiKey:'fixture-only',signal,
+        modelId,baseURL:physical!==undefined ? physical.endpoint.slice(0,-'/chat/completions'.length)
+          : nativeDecision?'https://fixture.invalid':'https://fixture.invalid/v1',apiKey:'fixture-only',signal,
         maxRequestBytes:1000,maxHeaderBytes:4096,maxHeaders:16,checked,
         notify:notification.notify,rawCaptureBinder:retainRawBinder,profile,installation,
         quantities:quantities.perAttempt,responseLimits:{maxBytes:2048,maxChunkBytes:512,maxChunks:16,
           maxHeaderBytes:128,observedHeaders:['content-type']},observeAt:now,
-        fetch(url,init){sends++;requests.push({url,body:init.body});
-          return new Response(responseWire,{headers:{'content-type':'application/json'}});}});
+        fetch:physical?.fetch ?? ((url,init)=>{sends++;requests.push({url,body:init.body});
+          return new Response(responseWire,{headers:{'content-type':'application/json'}});})});
       ports.push(port);
       return port.preflight;
     }}]).get('models/fixture');
@@ -224,5 +235,9 @@ export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new A
       entryPersistence:'async',rawCaptureSelection:registered.rawCaptureSelection},principalId:'owner',
     declaredResults:['answer'],submission:{fixture:'original-sdk-common'},signal,originalPreparation});
   return {root,operation,opened,controller,cp,store,control,plan,prepared,registered,
-    sends:()=>sends,requests,ports,originalReads:()=>originalReads,profileWire:profileOriginal.wire};
+    originalPreparation,storeAuthorityCid,
+    // The physical variant uses its independent server witness, not this
+    // generic-fetch counter's uninstrumented zero.
+    sends:physical===undefined ? ()=>sends : undefined,
+    requests,ports,originalReads:()=>originalReads,profileWire:profileOriginal.wire};
 }
