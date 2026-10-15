@@ -1,7 +1,8 @@
 // One normal installed Local scenario. This is neither a producer nor a
 // development-package fallback; its external scope is supplied explicitly.
 import assert from 'node:assert/strict';
-import {spawnSync} from 'node:child_process';
+import {spawnSync, execFile} from 'node:child_process';
+import {promisify} from 'node:util';
 import {createHash} from 'node:crypto';
 import {copyFile, mkdir, readFile, writeFile, lstat} from 'node:fs/promises';
 import {dirname, isAbsolute, join} from 'node:path';
@@ -12,7 +13,8 @@ import {checkoutState} from './packed-client-packages.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {assertTestExecution, nodeTestArguments} from './test-execution.mjs';
 import {checkGcsMetadataAcceptanceEnvironment} from './gcs-files-content-credential.mjs';
-import {realCrossConnectorFixturePaths} from './real-cross-connector-fixtures.mjs';
+import {realCrossConnectorFixturePaths, realCrossConnectorEnvironment} from './real-cross-connector-fixtures.mjs';
+import {openReleaseTestRegistry} from './release-test-registry.mjs';
 const [source, directory, python, scopeFile, ...extra] = process.argv.slice(2);
 assert.equal(extra.length, 0); assert.equal(process.version, 'v22.22.0');
 assert([directory, python, scopeFile].every(isAbsolute));
@@ -31,17 +33,34 @@ const scratch = await createOwnedScratch({parent: join(repository, '..', '.codex
   prefix: 'real-cross-connector-', label: 'real cross-Connector installed acceptance'});
 const application = join(scratch.path, 'application'); await mkdir(application);
 await writeFile(join(application, 'package.json'), '{"private":true,"type":"module"}\n');
-const environment = {...process.env, npm_config_cache: join(scratch.path, 'npm-cache')};
-for (const key of Object.keys(environment)) {
-  if (key.startsWith('ACTQL_') || key.startsWith('MOON_') ||
-      ['MOON_HOME', 'NODE_OPTIONS', 'NODE_PATH', 'NODE_TEST_CONTEXT'].includes(key)) delete environment[key];
+const environment = realCrossConnectorEnvironment(process.env, {root: scratch.path, node: process.execPath});
+const registry = await openReleaseTestRegistry([{directory, manifest: release.manifest}]);
+let install;
+try {
+  await writeFile(environment.npm_config_userconfig,
+    `registry=https://registry.npmjs.org/\n@actql:registry=${registry.url}\n`, {mode: 0o600});
+  await writeFile(environment.npm_config_globalconfig, '', {mode: 0o600});
+  // The existing immutable registry serves only the selected ActQL artifacts.
+  // Third-party native packages use their normal registry/SRI and lifecycle.
+  install = await promisify(execFile)('npm', ['install', '--no-audit', '--no-fund', '--save-exact',
+    ...release.manifest.packages.map(item => `${item.name}@${item.version}`),
+    '@duckdb/node-api@1.5.5-r.4'], {cwd: application, env: environment,
+    timeout: 90000, maxBuffer: 8 * 1024 * 1024});
+} catch {
+  throw new Error('NormalRealConnectorInstallationFailedBeforeGcs');
+} finally { await registry.close(); }
+const lockWire = await readFile(join(application, 'package-lock.json'));
+const lock = JSON.parse(lockWire);
+const peer = lock.packages['node_modules/@duckdb/node-api'];
+assert.equal(peer.version, '1.5.5-r.4');
+assert.match(peer.resolved, /^https:\/\/registry\.npmjs\.org\//u);
+assert.match(peer.integrity, /^sha512-/u);
+for (const [path, item] of Object.entries(lock.packages)) {
+  if (path.startsWith('node_modules/@duckdb/')) {
+    assert.match(item.resolved, /^https:\/\/registry\.npmjs\.org\//u);
+    assert.match(item.integrity, /^sha512-/u);
+  }
 }
-// Normal lifecycle install. The selected optional DuckDB native peer is a real
-// package dependency, not a source supplier or checkout runtime link.
-const install = spawnSync('npm', ['install', '--no-audit', '--no-fund', '--no-save',
-  ...release.archives, '@duckdb/node-api@1.5.5-r.4'], {cwd: application,
-  env: environment, encoding: 'utf8', timeout: 90000, maxBuffer: 8 * 1024 * 1024});
-assert.ifError(install.error); assert.equal(install.status, 0, 'Normal installation failed; no GCS was started');
 auditPackedPackages(application, ['client-wire', 'sdk', 'local-node', 'node']);
 const copied = [];
 for (const path of realCrossConnectorFixturePaths) {
@@ -70,7 +89,11 @@ const receipt = {source, manifestSHA256: release.manifestSha256,
   archives: release.manifest.packages, copied, actualTests: checked.counts,
   scopeSHA256: createHash('sha256').update(scopeWire).digest('hex'),
   application, complete: true, releaseGeneration: release.manifest.generation,
-  lifecycleInstall: {ignoreScripts: false, optionalPeer: '@duckdb/node-api@1.5.5-r.4'}};
+  lifecycleInstall: {ignoreScripts: false, optionalPeer: '@duckdb/node-api@1.5.5-r.4',
+    registryRequests: registry.requested, thirdPartyRegistry: 'https://registry.npmjs.org/',
+    packageLockSHA256: createHash('sha256').update(lockWire).digest('hex'),
+    dependencyIntegrities: Object.fromEntries(Object.entries(lock.packages).filter(([path]) => path.startsWith('node_modules/'))
+      .map(([path, item]) => [path, {version: item.version, resolved: item.resolved, integrity: item.integrity}]))}};
 await writeFile(join(scratch.path, 'receipt.json'), JSON.stringify(receipt, null, 2)+'\n', {mode: 0o600});
 console.log('REAL_CROSS_CONNECTOR_PROVENANCE '+JSON.stringify(receipt));
 scratch.passed();

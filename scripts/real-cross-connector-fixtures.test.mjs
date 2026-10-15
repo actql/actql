@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
-import {realCrossConnectorFixturePaths} from './real-cross-connector-fixtures.mjs';
+import {realCrossConnectorFixturePaths, realCrossConnectorEnvironment} from './real-cross-connector-fixtures.mjs';
 import {realCrossConnectorControl as control} from './fixtures/real-cross-connector-control.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const entries = ['adapters/host-node/real-cross-connector-installed.test.mjs',
@@ -43,4 +43,18 @@ test('normal route entry and both processes parse without executing products or 
   for (const path of ['scripts/test-real-cross-connector-release.mjs', ...entries]) {
     execFileSync(process.execPath, ['--check', resolve(root, path)], {timeout: 10000});
   }
+});
+
+test('real route isolates private npm configuration and checkout runtime variables without changing HOME', () => {
+  const base = {HOME: '/original/home', NODE_PATH: '/checkout', NODE_OPTIONS: '--import=/overlay',
+    ACTQL_LOCAL_SOURCE_PROFILE: '/old/source', MOON_HOME: '/compiler', npm_config_registry: 'https://foreign.invalid/',
+    NPM_CONFIG_USERCONFIG: '/foreign/config'};
+  const env = realCrossConnectorEnvironment(base, {root: '/private/tmp/new-app', node: '/pinned/node/bin/node'});
+  assert.equal(env.HOME, base.HOME); assert.equal(env.npm_config_registry, 'https://registry.npmjs.org/');
+  assert.equal(env.npm_config_userconfig, '/private/tmp/new-app/npmrc');
+  assert.equal(env.npm_config_globalconfig, '/private/tmp/new-app/npmrc-global');
+  for (const key of ['NODE_PATH','NODE_OPTIONS','ACTQL_LOCAL_SOURCE_PROFILE','MOON_HOME','NPM_CONFIG_USERCONFIG']) {
+    assert.equal(Object.hasOwn(env, key), false);
+  }
+  assert.equal(base.NPM_CONFIG_USERCONFIG, '/foreign/config');
 });
