@@ -10,6 +10,9 @@ fn original_io_consumer_fixture(
     async_response_observation(None),
   ),
   cleanup_calls? : Array[Bool] = [],
+  current? : Ref[@authorization.AdmittedAccountConfiguration] = Ref(
+    evidence_account(@authorization.Allow),
+  ),
 ) -> (
   Execution,
   Int64,
@@ -29,6 +32,7 @@ fn original_io_consumer_fixture(
     Ref(true),
     release,
     response,
+    current~,
     prepare_original=Some(active => {
       let (ledger, read) = original_preparation_test_read(
         active,
@@ -86,6 +90,101 @@ test "original Model IO binding refuses a fresh fixture Ledger and cancels befor
   ).unwrap()
   async_io_stop_and_cleanup(original)
   assert_eq(calls.val, 0)
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 0)),
+  )
+  original_preparation_test_release(ledger, read)
+  assert_true(@resources.close_model_io_access(access).unwrap())
+}
+
+///|
+test "original Model IO claim before authority refusal retires only after cursor cleanup" {
+  let installation = Ref(0)
+  let admission = @resources.issue_model_io_admission(installation, 1, 1).unwrap()
+  let access = @resources.issue_model_io_access(admission, installation).unwrap()
+  let current = Ref(evidence_account(@authorization.Allow))
+  let calls = Ref(0)
+  let (original, work, ledger, read) = original_io_consumer_fixture(
+    calls,
+    Ref(false),
+    Ref(false),
+    Ref(true),
+    current~,
+  )
+  @model.bind_prepared_model_io_access(
+    prepared_call_set(original).unwrap(),
+    access,
+  ).unwrap()
+  current.val = evidence_account(@authorization.Deny)
+  assert_true(
+    fixture_finish(original, initial_work=work)
+    is Failed(Model(@model.Authorization(_)), ..),
+  )
+  assert_eq(calls.val, 0)
+  assert_eq(
+    @model.stopped_model_attempt_count(original.model.unwrap()),
+    Some(0),
+  )
+  // The claim precedes original attempt/Entry creation. Refusal is not itself
+  // a cursor retirement ACK; the same cleanup owner still owes that work.
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((1, 1)),
+  )
+  async_io_stop_and_cleanup(original)
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 0)),
+  )
+  assert_eq(calls.val, 0)
+  original_preparation_test_release(ledger, read)
+  assert_true(@resources.close_model_io_access(access).unwrap())
+}
+
+///|
+test "original Model IO response before close retains active and holding duties" {
+  let installation = Ref(0)
+  let admission = @resources.issue_model_io_admission(installation, 1, 1).unwrap()
+  let access = @resources.issue_model_io_access(admission, installation).unwrap()
+  let calls = Ref(0)
+  let io_closed = Ref(false)
+  let release = Ref(true)
+  let cleaned : Array[Bool] = []
+  let (original, work, ledger, read) = original_io_consumer_fixture(
+    calls,
+    Ref(true),
+    io_closed,
+    release,
+    cleanup_calls=cleaned,
+  )
+  @model.bind_prepared_model_io_access(
+    prepared_call_set(original).unwrap(),
+    access,
+  ).unwrap()
+  guard fixture_finish(original, initial_work=work) is Settling(_, work=settled) else {
+    abort("original response must reach its original settlement")
+  }
+  assert_eq(calls.val, 1)
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((1, 1)),
+  )
+  assert_true(
+    @model.acknowledge_model_call_settlement(call_settlement(original).unwrap()),
+  )
+  async_assert_wait(original, settled)
+  assert_eq(cleaned.length(), 0)
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((1, 1)),
+  )
+  // A ready response and Store ACK cannot substitute for the same port's
+  // quiescence. A later checked close releases only its own original duty.
+  io_closed.val = true
+  async_io_stop_and_cleanup(original)
+  assert_eq(calls.val, 1)
+  assert_eq(cleaned.length(), 1)
   assert_eq(
     @resources.model_io_admission_counts(admission, installation),
     Some((0, 0)),
