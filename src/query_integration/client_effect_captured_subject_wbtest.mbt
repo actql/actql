@@ -114,7 +114,7 @@ fn check_captured_subject_original(
   prepared : @publication_host.PreparedClientEffectComputation,
   preview : @strategy.CapturedEffectPreviewInputs,
   invocation : @publication.PublicationContract,
-) -> @publication_host.ClientCapturedEffectSubjectRead {
+) -> @publication_host.ClientCapturedEffectSubjectRead raise {
   let checkpoint = captured_subject_checkpoint(definition)
   let original_checked = @program_check.effect_program_static_checked_computation(
     @publication_host.prepared_client_effect_computation_candidate(prepared),
