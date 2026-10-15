@@ -179,4 +179,23 @@ fn composite_installed_fragment_counter(
     prepared_sequence=Some(sequence),
   )
   println("COMPOSITE_GENERATED task=\{task} ready=\{generated is Ok(_)}")
+  match generated {
+    Err(Generated(Wiring(InvalidReference))) =>
+      println("COMPOSITE_GENERATED wiring_reference")
+    Err(Generated(Wiring(UnknownRetainedTarget(_)))) =>
+      println("COMPOSITE_GENERATED wiring_target")
+    Err(Generated(Wiring(_))) => println("COMPOSITE_GENERATED wiring_limits")
+    Err(Generated(MissingFragmentContext(index))) =>
+      println("COMPOSITE_GENERATED missing_context=\{index}")
+    Err(Generated(FragmentContext(index, KernelMismatch))) =>
+      println("COMPOSITE_GENERATED foreign_context=\{index}")
+    Err(Generated(FragmentContext(index, _))) =>
+      println("COMPOSITE_GENERATED fragment_context=\{index}")
+    Err(Generated(InputLimit)) => println("COMPOSITE_GENERATED input_limit")
+    Err(Generated(_)) => println("COMPOSITE_GENERATED other_execution_issue")
+    Err(MissingTask) => println("COMPOSITE_GENERATED missing_task")
+    Err(EmptyTask) => println("COMPOSITE_GENERATED empty_task")
+    Err(Sequence(_)) => println("COMPOSITE_GENERATED sequence_issue")
+    Ok(_) => ()
+  }
 }
