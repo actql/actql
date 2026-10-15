@@ -22,14 +22,15 @@
 // docs/reviews/2026-10-15-scoped-filesystem-acquisition-configuration-review.md and
 // docs/reviews/2026-10-15-scoped-bounded-read-configuration-review.md and
 // docs/reviews/2026-10-15-sqlite-body-limit-configuration-review.md and
-// docs/reviews/2026-10-15-filesystem-child-custody-configuration-review.md.
+// docs/reviews/2026-10-15-filesystem-child-custody-configuration-review.md and
+// docs/reviews/2026-10-15-bounded-catalog-configuration-review.md.
 // Changes to this table, the toolchain or any configuration force fresh work.
 // Unknown options and other targets require separate review; matching a digest
 // is configuration identity, not a proof of compiler or OS correctness.
 // A separate exact JS foreign-library review is recorded below; it does not
 // inherit the native-options rule or authorize arbitrary package kinds.
 export const packageConfigurationReview = Object.freeze({
-  revision: '9531187a12e25ec1f23ba9df8a27e53932af5c72',
+  revision: '202aed1b7f33bb825d8b5c3e9c313a80f04d6f7f',
   target: 'js',
   toolchainDigest: '8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a',
   moonRevision: '94521db',
