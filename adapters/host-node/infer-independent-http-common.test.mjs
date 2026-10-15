@@ -10,6 +10,7 @@ import {setImmediate as turn} from 'node:timers/promises';
 import * as moon from '../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {originalHttpCommonFixture} from './infer-original-sdk-common.fixture.mjs';
 import {openNodeInferCaptureCustody} from './infer-capture-custody.mjs';
+import {checked} from '../host-common/runtime-result.mjs';
 
 const expectedRequest={model:'independent-fixture',n:1,stream:false,
   temperature:0,top_p:1,max_tokens:32,seed:-7,
@@ -26,6 +27,30 @@ async function until(read,accept) {
     await turn();
   }
   assert.fail('Independent original HTTP responsibility did not retire');
+}
+
+function readOriginalAnswer(settlement) {
+  // Existing bounded Common settlement serializer, not a JS answer decoder.
+  // Release this same temporary output use before normal persistence/ACK.
+  const exporter=checked(moon.clientProgramStartInferCallSettlementExport(settlement,4096,10000));
+  let complete=false,wire='';
+  try {
+    for(let count=0;count<10000&&!complete;count++){
+      const progress=checked(moon.clientProgramAdvanceInferCaptureExport(exporter,256));
+      wire+=progress._1;complete=progress._0;
+    }
+    assert.equal(complete,true);
+    const bundle=JSON.parse(wire);
+    assert.equal(bundle.captures.length,1);
+    return bundle.captures[0].structured_response;
+  } finally {
+    if(!complete&&moon.clientProgramCancelInferCaptureExport(exporter)) {
+      assert.equal(moon.clientProgramAdvanceInferCaptureExport(exporter,1).$tag,0);
+    }
+    let retired=false;
+    for(let count=0;count<10&&!retired;count++)retired=checked(moon.clientProgramCleanupInferCaptureExport(exporter));
+    assert.equal(retired,true,'The original exporter must return its temporary output use');
+  }
 }
 
 for(const variant of ['reported','unreported']) {
@@ -108,6 +133,7 @@ for(const variant of ['reported','unreported']) {
       assert.equal(f.originalReads(),2,'Same Store rechecks original policy after raw acquisition');
       const entry=f.opened.entry(0);assert.ok(entry);
       assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'EnteredUnknown');
+      assert.deepEqual(readOriginalAnswer(boundary.settlement),{reason:null,risk:'low'});
       const observation=JSON.parse(moon.strategyRunEvidenceJson(f.operation.invocationEvidence(0)));
       assert.equal(observation.provider_request_id,variant==='reported'?'independent-response':null);
       assert.equal(observation.provider_reported_model_id,variant==='reported'?'reported-model':null);
