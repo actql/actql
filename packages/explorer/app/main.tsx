@@ -11,10 +11,14 @@ function App() {
   const [connected, connect] = useState(false), [plan, showPlan] = useState<PlanReadModel>();
   const [run, showRun] = useState<unknown>(), [result, showResult] = useState<unknown>();
   const [originalPlan, showOriginalPlan] = useState<OriginalRunPlanReadModel>();
+  const [programText, setProgramText] = useState('SELECT 1 AS answer');
+  const [programFormat, setProgramFormat] = useState<'sql' | 'aql' | 'aql-text' | 'program'>('sql');
+  const [runReference, setRunReference] = useState('');
+  const [launcherProgram, showLauncherProgram] = useState(false);
   const [error, showError] = useState(''), [pending, busy] = useState(false);
   const epoch = useRef(0);
   const invalidate = () => {epoch.current++; source.close(); connect(false); busy(false);
-    showPlan(undefined); showRun(undefined); showResult(undefined); showOriginalPlan(undefined); showError('');};
+    showPlan(undefined); showRun(undefined); showResult(undefined); showOriginalPlan(undefined); showLauncherProgram(false); showError('');};
   const perform = async (action: () => Promise<void>) => {
     const original = epoch.current; busy(true); showError('');
     try {await action();}
@@ -25,14 +29,26 @@ function App() {
   const session = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const form = event.currentTarget;
     const token = String(new FormData(form).get('bootstrap')); form.reset(); invalidate();
-    void perform(async () => {await source.connect(token); connect(true);});
+    void perform(async () => {
+      const selected = epoch.current;
+      await source.connect(token);
+      connect(true);
+      const view = await source.launchView();
+      if (epoch.current !== selected) return;
+      if (view?.kind === 'program') {
+        showLauncherProgram(true); showPlan(view.plan);
+      } else if (view?.kind === 'run') {
+        setRunReference(JSON.stringify(view.originalPlan.runRef, null, 2));
+        showOriginalPlan(view.originalPlan);
+      }
+    });
   };
   const readPlan = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const data = new FormData(event.currentTarget);
     const text = String(data.get('program')), format = String(data.get('format'));
-    void perform(async () => {showPlan(undefined); showPlan(await source.plan(
+    void perform(async () => {showLauncherProgram(false); showPlan(undefined); showPlan(await source.plan(
       format === 'program' ? JSON.parse(text) : text,
-      format === 'program' ? {} : {format: format as 'sql' | 'aql-text'}));});
+      format === 'program' ? {} : {format: format as 'sql' | 'aql' | 'aql-text'}));});
   };
   const readRun = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const data = new FormData(event.currentTarget);
@@ -51,13 +67,15 @@ function App() {
       <button disabled={pending}>Connect</button><button type="button" onClick={invalidate}>Disconnect</button></form>
     <p role="status">{connected ? 'Connected. Session expires after at most five minutes; reconnect explicitly.' : 'Paste the bootstrap printed by the launcher. No Host token belongs in this page.'}</p>
     {error && <p role="alert">{error}</p>}
-    <section><h2>Static Plan</h2><form onSubmit={readPlan}>
-      <label>Format <select name="format"><option value="sql">SQL</option><option value="aql-text">AQL text</option><option value="program">Program JSON</option></select></label>
-      <label>Program <textarea name="program" defaultValue="SELECT 1 AS answer" maxLength={60000} required/></label>
+    <section><h2>Static Plan</h2>
+      {launcherProgram && <p>The launcher-selected Program is shown below. This editor requests a separate static Plan.</p>}
+      <form onSubmit={readPlan}>
+      <label>Format <select name="format" value={programFormat} onChange={event => setProgramFormat(event.target.value as typeof programFormat)}><option value="sql">SQL</option><option value="aql">AQL</option><option value="aql-text">AQL text alias</option><option value="program">Program JSON</option></select></label>
+      <label>Program <textarea name="program" value={programText} onChange={event => setProgramText(event.target.value)} maxLength={60000} required/></label>
       <button disabled={!connected || pending}>Read Plan</button></form>
       {plan && <PlanExplorer model={plan} scopeKey={String(epoch.current)}/>}</section>
     <section><h2>Existing Run</h2><form onSubmit={readRun}>
-      <label>Original Run reference JSON <textarea name="ref" maxLength={4096} required
+      <label>Original Run reference JSON <textarea name="ref" value={runReference} onChange={event => setRunReference(event.target.value)} maxLength={4096} required
         placeholder={'{"namespaceId":"...","authorityScopeCid":"sha256:...","runDefinitionCid":"sha256:..."}'}/></label>
       <label>Named Result (optional metadata) <input name="name" maxLength={1024}/></label>
       <button disabled={!connected || pending}>Read Run and metadata</button>

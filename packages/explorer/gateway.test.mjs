@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createExplorerGateway, gatewayLimits, startExplorerGateway} from './gateway.mjs';
 import {createExplorerBrowserSource} from './browser-source.mjs';
+import {gatewayLaunchPlanFixture} from './gateway-launch.fixture.mjs';
 
 const origin = 'http://127.0.0.1:43210';
 const ref = {namespaceId: 'original', authorityScopeCid: `sha256:${'a'.repeat(64)}`,
@@ -43,6 +44,96 @@ test('only exact loopback origins and finite TTLs can create a Gateway', () => {
   }
   for (const sessionMs of [0, -1, '5', Infinity, gatewayLimits.sessionMs + 1]) {
     assert.throws(() => harness({sessionMs}), {code: 'ExplorerInvalidGateway'});
+  }
+});
+
+test('direct Program launch uses only the existing static Plan Owner after session and CSRF', async () => {
+  const input = {kind: 'program', text: 'SELECT 1 AS n', format: 'sql'}, calls = [];
+  const view = gatewayLaunchPlanFixture();
+  const h = harness({launchInput: input, client: {
+    attach() {assert.fail('Program launch does not attach or start a Run');},
+    async plan(text, options) {calls.push([text, options]); return view;},
+    start() {assert.fail('no new Run');}, submit() {assert.fail('no submission');},
+  }}); input.text = 'changed';
+  assert.equal((await h.send('/api/read/launch', {})).status, 401);
+  const session = await h.connect();
+  assert.equal((await h.read('launch', {}, session, {'X-Actql-CSRF': ''})).status, 403);
+  assert.equal((await h.read('launch', {start: true}, session)).status, 400);
+  assert.deepEqual(calls, []);
+  const answer = await h.read('launch', {}, session);
+  assert.equal(answer.status, 200);
+  assert.equal(answer.headers.get('cache-control'), 'no-store');
+  const data = (await answer.json()).data;
+  assert.deepEqual(Object.keys(data), ['kind', 'plan']);
+  assert.equal(data.kind, 'program');
+  assert.equal(data.plan.compiledPlanCid, view.compiled_plan_cid);
+  assert.equal(data.plan.logicalMapCid, view.logical_map.self_cid);
+  assert.deepEqual(calls, [['SELECT 1 AS n', {format: 'sql', maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+  assert(!JSON.stringify(data).includes('SELECT 1 AS n'));
+  h.gateway.invalidateScope();
+  assert.equal((await h.read('launch', {}, session)).status, 401);
+  assert.equal(calls.length, 1);
+});
+
+test('direct AQL launch preserves canonical and legacy format through the existing Plan Owner', async () => {
+  for (const format of ['aql', 'aql-text']) {
+    const calls = [], view = gatewayLaunchPlanFixture();
+    const h = harness({launchInput: {kind: 'program', text: 'FROM rows', format}, client: {
+      attach() {assert.fail('no Run attach');},
+      async plan(text, options) {calls.push([text, options]); return view;},
+      submit() {assert.fail('no submit');}, start() {assert.fail('no start');},
+    }});
+    const session = await h.connect();
+    const reply = await h.read('launch', {}, session);
+    assert.equal(reply.status, 200);
+    assert.equal((await reply.json()).data.plan.compiledPlanCid, view.compiled_plan_cid);
+    assert.deepEqual(calls, [['FROM rows', {format, maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+  }
+});
+
+test('direct Run launch reads only the original saved map and never compiles a replacement', async () => {
+  const original = {...ref}, calls = [], view = gatewayLaunchPlanFixture();
+  const h = harness({launchInput: {kind: 'run', ref: original}, client: {
+    async attach(selected) {calls.push(['attach', selected]); return {
+      async plan() {calls.push(['run.plan']); return {
+        version: 'actql-run-plan-view/0.1', run_ref: {...ref}, plan_view: view};},
+    };}, plan() {assert.fail('no static replacement');}, start() {assert.fail('no new Run');},
+  }});
+  original.runDefinitionCid = `sha256:${'c'.repeat(64)}`;
+  const session = await h.connect();
+  const data = (await (await h.read('launch', {}, session)).json()).data;
+  assert.equal(data.kind, 'run'); assert.deepEqual(data.originalPlan.runRef, ref);
+  assert.equal(data.originalPlan.plan.logicalMapCid, view.logical_map.self_cid);
+  assert.deepEqual(calls, [['attach', ref], ['run.plan']]);
+  const empty = harness(), emptySession = await empty.connect();
+  assert.equal((await (await empty.read('launch', {}, emptySession)).json()).data, null);
+  assert.deepEqual(empty.calls, []);
+});
+
+test('launch refuses invalid authoring without disclosing the file text or Host diagnostic', async () => {
+  const secret = 'private-file-fixture-not-a-program'; let plans = 0;
+  const h = harness({launchInput: {kind: 'program', text: secret, format: 'program'}, client: {
+    attach() {assert.fail('no attach');}, plan() {plans++; assert.fail('invalid JSON is not admitted');},
+  }});
+  const session = await h.connect(), reply = await h.read('launch', {}, session);
+  assert.equal(reply.status, 502);
+  assert.deepEqual(await reply.json(), {error: 'ExplorerReadUnavailable'});
+  assert.equal(plans, 0);
+});
+
+test('launch keeps missing and foreign original Run maps unavailable with no compiler fallback', async () => {
+  for (const foreign of [false, true]) {
+    const calls = [], view = gatewayLaunchPlanFixture();
+    const h = harness({launchInput: {kind: 'run', ref}, client: {
+      async attach(selected) {calls.push(['attach', selected]); return foreign ? {
+        async plan() {calls.push(['run.plan']); return {version: 'actql-run-plan-view/0.1',
+          run_ref: {...ref, namespaceId: 'foreign'}, plan_view: view};},
+      } : {};}, plan() {assert.fail('old maps cannot be repaired');},
+    }});
+    const session = await h.connect(), reply = await h.read('launch', {}, session);
+    assert.equal(reply.status, 409);
+    assert.deepEqual(await reply.json(), {error: foreign ? 'ExplorerInvalidRunPlan' : 'ExplorerCapabilityUnavailable'});
+    assert.deepEqual(calls, foreign ? [['attach', ref], ['run.plan']] : [['attach', ref]]);
   }
 });
 
@@ -254,6 +345,38 @@ test('browser holds CSRF only in memory, discards old replies/401 and never retr
     await assert.rejects(source.inspect(ref), {code: 'ExplorerSessionExpired'});
     assert.equal(calls, 3);
   }
+});
+
+test('browser launch metadata validates shape and discards a delayed old-scope response', async () => {
+  let release, calls = 0;
+  const wait = new Promise(resolve => {release = resolve;});
+  const source = createExplorerBrowserSource({origin, now: () => 100,
+    async fetch(url) {
+      calls++;
+      if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
+        scopeEpoch: calls, expiresAt: 200, capabilities: {plan: false, run: true,
+          resultMetadata: true, resultPayload: false, control: false, sample: false}});
+      await wait; return Response.json({scopeEpoch: 1, data: {kind: 'run', ref}});
+    }});
+  await source.connect('bootstrap');
+  const pending = source.launchView(); await source.connect('next'); release();
+  await assert.rejects(pending, {code: 'ExplorerStaleScope'});
+  assert.equal(calls, 3); source.close();
+});
+
+test('browser refuses a forged launch response without using it or requesting a replacement', async () => {
+  let calls = 0;
+  const source = createExplorerBrowserSource({origin, now: () => 100,
+    async fetch(url) {
+      calls++;
+      if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
+        scopeEpoch: 1, expiresAt: 200, capabilities: {plan: false, run: true,
+          resultMetadata: true, resultPayload: false, control: false, sample: false}});
+      return Response.json({scopeEpoch: 1, data: {kind: 'run', ref, start: true}});
+    }});
+  await source.connect('bootstrap');
+  await assert.rejects(source.launchView(), {code: 'ExplorerInvalidReply'});
+  assert.equal(calls, 2); source.close();
 });
 
 test('presentation timeout retains each pending SDK slot until it actually settles', async t => {
