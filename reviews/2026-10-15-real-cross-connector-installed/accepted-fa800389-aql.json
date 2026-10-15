@@ -240,7 +240,6 @@
     "files": 139,
     "keysAndDatabasePreserved": true
   },
-  "newSharedRealAqlLocalScenario": 1,
   "oldSql6fCountedAgain": 0,
   "unverified": [
     "Real HTTPS route",
@@ -249,5 +248,8 @@
     "Whole Frontend/latest-main product acceptance",
     "Native/Python/Cloud acceptance",
     "Hosted CI and formal publication"
-  ]
+  ],
+  "newSharedRealAqlLocalEntry": 1,
+  "additionalDistinctBusinessScenarios": 0,
+  "sameBusinessScenarioWithSql6f": true
 }

@@ -176,7 +176,8 @@ authentication call, with product bounds and source unchanged.
 
 [The AQL evidence record](accepted-fa800389-aql.json) binds the commands,
 artifact identities, actual Result/schema, original raw hashes and G's separate
-audit. Count one shared new AQL Local scenario, with G adding no duplicate.
-The preceding 6f SQL proof remains its own immutable source qualification.
+audit. Count one newly accepted AQL Local entry to the same business scenario already
+exercised through SQL; no second distinct business scenario is added, and G/Root
+add no duplicate. The preceding 6f SQL proof retains its immutable source qualification.
 This is not a later-main pristine RC, real HTTPS, complete Preview row-value
 inspection or completion of all Frontend/Connector/product gates.
