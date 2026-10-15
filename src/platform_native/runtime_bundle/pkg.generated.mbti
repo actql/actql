@@ -133,7 +133,9 @@ pub fn NativeRuntimeBundleStore::begin_install(Self, String, String, String, Str
 pub fn NativeRuntimeBundleStore::capacity_usage(Self) -> Result[@sqlite.NativeCapacityUsage, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::close(Self) -> Result[Bool, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::close_checked(Self) -> Result[Unit, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::current_sqlite_component_matches_heap(Self, Int64) -> Bool
 pub fn NativeRuntimeBundleStore::custody(Self, @remote_bundle.RemoteBundleCustodyRequest) -> Result[@remote_bundle.RemoteBundleCustodyResponse, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::diagnostics_bounded_by(Self, Int) -> Bool
 pub fn NativeRuntimeBundleStore::drain(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::initialize_retention(Self) -> Result[String, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::inspect(Self, String) -> Result[NativeRuntimeBundleSnapshot?, NativeRuntimeBundleStoreIssue]

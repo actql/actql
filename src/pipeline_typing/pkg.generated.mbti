@@ -431,6 +431,8 @@ pub fn sort_completion_field(SortCompletion, Int) -> @relation_schema.FieldName?
 
 pub fn sort_completion_key(SortCompletion) -> @relation_evidence.KeyedRelation
 
+pub fn sort_completion_positional_count(SortCompletion, Int) -> Int
+
 pub fn sort_order(CheckedPipeline, Int) -> SortOrder?
 
 pub fn sort_order_consumer(SortOrder) -> CheckedStep

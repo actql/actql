@@ -52,3 +52,20 @@ test "packaged Local parent cleanup cannot turn pending original close into a re
   // This is the same pending original, never a replacement Root or a retry ACK.
   assert_true(parent.close() is Err(@local_filesystem.Cleanup(_)))
 }
+
+///|
+test "packaged Local failed parent cleanup outranks the original work refusal" {
+  let parent = local_product_test_parent()
+  local_product_test_fail_census_close(parent, 1)
+  assert_true(
+    parent.check_directory_members([]) is Err(@local_filesystem.Cleanup(_)),
+  )
+  let reason = local_product_with_owned_parent(parent, () => {
+    stop("OriginalWorkRefused")
+  }) catch {
+    ClientStop(message) => message
+  }
+  assert_eq(reason, "LocalProductCleanupPending")
+  // The same failed original remains pending; no close ACK is fabricated.
+  assert_true(parent.close() is Err(@local_filesystem.Cleanup(_)))
+}

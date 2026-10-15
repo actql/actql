@@ -100,10 +100,10 @@ pub fn[P, C] issue_backed_execution_region(
 }
 
 ///|
-fn[P, C] backed_region_current(
+fn[P, C] check_backed_region_current(
   region : BackedExecutionRegion[P, C],
   provider : P,
-) -> Result[(SharedCapacity, SharedAllocation), BackedExecutionIssue] {
+) -> Result[Unit, BackedExecutionIssue] {
   guard region.provider is Some(original) && physical_equal(original, provider) else {
     return Err(ForeignOriginal)
   }
@@ -122,8 +122,24 @@ fn[P, C] backed_region_current(
   }
   match check_original_resources_mutable(capacity.ledger) {
     Err(issue) => Err(Resource(issue))
-    Ok(_) => Ok((capacity, allocation))
+    Ok(_) => Ok(())
   }
+}
+
+///|
+fn[P, C] backed_region_current(
+  region : BackedExecutionRegion[P, C],
+  provider : P,
+) -> Result[(SharedCapacity, SharedAllocation), BackedExecutionIssue] {
+  match check_backed_region_current(region, provider) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard region.capacity is Some(capacity) &&
+    region.allocation is Some(allocation) else {
+    return Err(Retired)
+  }
+  Ok((capacity, allocation))
 }
 
 ///|
@@ -213,18 +229,22 @@ pub fn[P, C] reserve_backed_execution_delegation(
 }
 
 ///|
-fn[P, C] backed_child_current(
+/// Check the same original region, child and ticket without constructing a
+/// description or intermediate projection tuples. This is a current predicate,
+/// not a new reservation, physical stop acknowledgement or a launch grant.
+pub fn[P, C] check_backed_execution_delegation_current(
   region : BackedExecutionRegion[P, C],
   provider : P,
   child : C,
   ticket : BackedExecutionDelegation[P, C],
-) -> Result[
-  (SharedCapacity, SharedBorrow, ExecutionDelegation),
-  BackedExecutionIssue,
-] {
-  let (capacity, allocation) = match backed_region_current(region, provider) {
-    Ok(value) => value
+) -> Result[Unit, BackedExecutionIssue] {
+  match check_backed_region_current(region, provider) {
     Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard region.capacity is Some(capacity) &&
+    region.allocation is Some(allocation) else {
+    return Err(Retired)
   }
   guard ticket.owner is Some(owner) &&
     physical_equal(owner, region) &&
@@ -234,13 +254,44 @@ fn[P, C] backed_child_current(
     ticket.logical is Some(logical) else {
     return Err(ForeignOriginal)
   }
-  if !region.children.any(original => physical_equal(original, ticket)) {
+  // Avoid a new capturing callback merely to check this exact membership.
+  let mut found = false
+  for original in region.children {
+    if physical_equal(original, ticket) {
+      found = true
+      break
+    }
+  }
+  if !found {
     return Err(ForeignOriginal)
   }
   if !physical_equal(borrow.allocation, allocation) ||
     borrow.returned ||
     !physical_equal(logical.owner, capacity.ledger) ||
     allocation.readers < 2 {
+    return Err(Retired)
+  }
+  Ok(())
+}
+
+///|
+fn[P, C] backed_child_current(
+  region : BackedExecutionRegion[P, C],
+  provider : P,
+  child : C,
+  ticket : BackedExecutionDelegation[P, C],
+) -> Result[
+  (SharedCapacity, SharedBorrow, ExecutionDelegation),
+  BackedExecutionIssue,
+] {
+  match
+    check_backed_execution_delegation_current(region, provider, child, ticket) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard region.capacity is Some(capacity) &&
+    ticket.borrow is Some(borrow) &&
+    ticket.logical is Some(logical) else {
     return Err(Retired)
   }
   Ok((capacity, borrow, logical))
@@ -257,7 +308,8 @@ pub fn[P, C] backed_execution_delegation_description(
   (BackedExecutionExtent, BackedExecutionAccess, LedgerLimits),
   BackedExecutionIssue,
 ] {
-  match backed_child_current(region, provider, child, ticket) {
+  match
+    check_backed_execution_delegation_current(region, provider, child, ticket) {
     Err(issue) => Err(issue)
     Ok(_) => Ok((ticket.extent, ticket.access, ticket.limits))
   }
