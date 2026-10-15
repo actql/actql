@@ -796,6 +796,8 @@ pub fn preparation_input_count(Prepared) -> Int
 
 pub fn preparation_input_is_produced(Prepared, Int) -> Bool
 
+pub fn preparation_input_is_source_view(Prepared, Int) -> Bool
+
 pub fn preparation_input_keys(Prepared, Int) -> @relation_evidence.KeySet?
 
 pub fn preparation_input_projection(Prepared, Int) -> PreparedProjection?
