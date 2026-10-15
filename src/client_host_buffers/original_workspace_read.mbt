@@ -16,9 +16,11 @@ pub fn[T] issue_workspace_original_read(
   if loan.closing || loan.settled {
     return Err(@resources.CleanupPending)
   }
-  @resources.issue_original_read_workspace_binding(
-    claim, origin, loan.capacity,
-  ).map(binding => { binding: Some(binding), loan: Some(loan), })
+  @resources.issue_original_read_workspace_binding(claim, origin, loan.capacity).map(binding => {
+      binding: Some(binding),
+      loan: Some(loan),
+    },
+  )
 }
 
 ///|
@@ -35,7 +37,11 @@ pub fn[T] borrow_workspace_original_read(
   if !physical_equal(original, loan) || loan.closing || loan.settled {
     return None
   }
-  @resources.borrow_original_read_workspace_claim(binding, origin, loan.capacity)
+  @resources.borrow_original_read_workspace_claim(
+    binding,
+    origin,
+    loan.capacity,
+  )
 }
 
 ///|
@@ -67,7 +73,12 @@ pub fn[T] retire_workspace_original_read(
   if !loan.stopped || !loan.cleaned || !loan.settled {
     return Err(@resources.CleanupPending)
   }
-  match @resources.retire_original_read_workspace_binding(binding, origin, loan.capacity) {
+  match
+    @resources.retire_original_read_workspace_binding(
+      binding,
+      origin,
+      loan.capacity,
+    ) {
     Err(issue) => Err(issue)
     Ok(_) => {
       pair.binding = None

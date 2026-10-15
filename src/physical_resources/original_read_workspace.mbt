@@ -29,8 +29,8 @@ pub fn[T] issue_original_read_workspace_binding(
   // The workspace must precede descriptor/read issuance. The bootstrap or
   // an equal-sized foreign reservation is not this recorded workspace.
   if !claim.descriptor.reservations.any(pair => {
-    physical_equal(pair.0, capacity.reservation)
-  }) {
+      physical_equal(pair.0, capacity.reservation)
+    }) {
     return Err(IncompleteInventory)
   }
   Ok({ claim: Some(claim), capacity: Some(capacity), })
@@ -46,7 +46,8 @@ pub fn[T] original_read_workspace_binding_current(
     return false
   }
   physical_equal(original, capacity) &&
-  !capacity.closing && reservation_open(capacity.reservation) &&
+  !capacity.closing &&
+  reservation_open(capacity.reservation) &&
   funded_read_available(claim, origin)
 }
 
@@ -83,8 +84,10 @@ pub fn[T] retire_original_read_workspace_binding(
   if !physical_equal(original, capacity) {
     return Err(Resource(ForeignOwner))
   }
-  if !(claim.phase is Reclaimed) || !capacity.closing ||
-    reservation_open(capacity.reservation) || capacity.allocated != 0L {
+  if !(claim.phase is Reclaimed) ||
+    !capacity.closing ||
+    reservation_open(capacity.reservation) ||
+    capacity.allocated != 0L {
     return Err(CleanupPending)
   }
   binding.claim = None
