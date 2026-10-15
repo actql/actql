@@ -296,7 +296,7 @@ test "original Model window four calls preserve logical output in all 24 arrival
     [3, 2, 1, 0],
   ]
   assert_eq(orders.length(), 24)
-  let distinct : Map[String, Bool] = {}
+  let distinct : Map[String, Bool] = Map([])
   for order in orders {
     let code = order.map(value => value.to_string()).join("")
     assert_false(distinct.contains(code))
