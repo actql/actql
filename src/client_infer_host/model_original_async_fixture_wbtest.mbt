@@ -29,6 +29,7 @@ test "original async fixture keeps its preconfigured read Ledger through Unknown
   )
   let (ledger, read) = original.val.unwrap()
   let binding = active.run_binding.unwrap()
+  let preparation = active.original_preparation.unwrap()
   let prepared = prepared_call_set(active).unwrap()
   assert_true(@model.prepared_model_call_count(prepared) is Some(2))
   assert_true(
@@ -51,7 +52,9 @@ test "original async fixture keeps its preconfigured read Ledger through Unknown
   assert_false(cleanup(active).unwrap())
   assert_eq(calls.val, 1)
   assert_true(cleaned.length() > 0)
-  assert_true(
+  // Handoff consumes read availability without retiring its reservation.
+  // Retained custody must not be mistaken for another allocation/claim grant.
+  assert_false(
     @publication_host.client_model_read_available(
       read,
       binding.compiled,
@@ -59,6 +62,8 @@ test "original async fixture keeps its preconfigured read Ledger through Unknown
       active.plan.unwrap(),
     ),
   )
+  assert_true(physical_equal(active.original_preparation.unwrap(), preparation))
+  assert_true(preparation.read is Bound(same) && physical_equal(same, read))
   assert_eq(
     @resources.ledger_usage(ledger).reserved_retention_bytes,
     before.reserved_retention_bytes,
