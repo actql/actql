@@ -4,6 +4,8 @@
 #include "scoped_read.h"
 #include <assert.h>
 #include <limits.h>
+#include <pthread.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/wait.h>
@@ -37,6 +39,18 @@ static void finish(original *value) {
     assert(actql_native_owned_try_close(&value->lease) == 0 && value->lease == NULL);
 }
 
+typedef struct { original value; int status; } bind_argument;
+static atomic_int waiting, go;
+static void *competing_bind(void *raw) {
+    bind_argument *argument = raw;
+    enter(argument->value);
+    atomic_fetch_add(&waiting, 1);
+    while (!atomic_load(&go)) usleep(1000);
+    argument->status = actql_sqlite_component_bind(argument->value.context);
+    leave(argument->value);
+    return NULL;
+}
+
 int main(int argc, char **argv) {
     assert(argc == 2);
     const char *name = argv[1];
@@ -46,11 +60,23 @@ int main(int argc, char **argv) {
         assert(actql_sqlite_component_allocate(8) == NULL);
     }
     enter(value);
-    assert(actql_sqlite_component_bind(value.context) == 0);
+    if (!strcmp(name, "concurrent-binding")) {
+        pthread_t workers[2];
+        bind_argument arguments[2] = {{value, 99}, {value, 99}};
+        for (int i = 0; i < 2; i++)
+            assert(pthread_create(&workers[i], NULL, competing_bind, &arguments[i]) == 0);
+        while (atomic_load(&waiting) != 2) usleep(1000);
+        atomic_store(&go, 1);
+        for (int i = 0; i < 2; i++) assert(pthread_join(workers[i], NULL) == 0);
+        assert((arguments[0].status == 0) != (arguments[1].status == 0));
+        int refusal = arguments[0].status ? arguments[0].status : arguments[1].status;
+        assert(refusal == ACTQL_SQLITE_COMPONENT_BUSY || refusal == ACTQL_SQLITE_COMPONENT_INVALID);
+    } else assert(actql_sqlite_component_bind(value.context) == 0);
     assert(strcmp(actql_sqlite_component_source_id(),
         "2025-11-04 19:38:17 fb2c931ae597f8d00a37574ff67aeed3eced4e5547f9120744ae4bfa8e74527b") == 0);
 
-    if (!strcmp(name, "missing-current") || !strcmp(name, "one-binding")) {
+    if (!strcmp(name, "missing-current") || !strcmp(name, "one-binding") ||
+        !strcmp(name, "concurrent-binding")) {
         assert(actql_sqlite_component_bind(value.context) == ACTQL_SQLITE_COMPONENT_INVALID);
     } else if (!strcmp(name, "alias-close")) {
         void *bytes = actql_sqlite_component_allocate(9);

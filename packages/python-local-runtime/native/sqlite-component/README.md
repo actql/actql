@@ -29,7 +29,10 @@ No shared SQLite config/shutdown is called.
 The wrapper imports the existing scoped physical provider once. It checks actual
 loaded symbol origins, requires the original active read context, retains one
 original user before configuring memory methods, and permits one initialization
-attempt per component lifetime. A later Host/Run cannot replace that binding.
+attempt per component lifetime. A nonblocking physical entry fence rejects
+competing/reentrant calls, including initialization and close. Busy does not
+consume the original buffer or enqueue a retry. A later Host/Run cannot replace
+that binding.
 The original context physically binds its lease/backing and generation; this
 component does not reconstruct those from scalar metadata. The eventual selected
 Library caller must separately retain the nominal Host/Store/epoch/current and
@@ -56,8 +59,8 @@ stock text/diagnostic/result malloc paths are therefore **still unconnected**
 until that subsequent Library unit uses this port. Managed MoonBit Bytes and
 Root/Reader/FD/WAL/loader/control allocations remain separate responsibilities.
 
-The independent C fixture uses an original 64-host-page provider and tests eight
-cases: missing current, one binding, retained alias/close, resize failure,
+The independent C fixture uses an original 64-host-page provider and tests nine
+cases: missing current, one binding, concurrent binding, retained alias/close, resize failure,
 exhaustion, foreign current, fork refusal and integer boundaries. These establish
 only the component memory-method boundary when actually executed. Source-stage
 mutation tests establish no Native execution. No Engine/VM/worker/wheel/SELECT1

@@ -11,6 +11,7 @@
 #include "component.h"
 #include <dlfcn.h>
 #include <stdalign.h>
+#include <stdatomic.h>
 #include <unistd.h>
 
 /* Import the one original provider. Do not compile owned_capacity.c, construct
@@ -27,10 +28,12 @@ typedef union {
 } actql_sqlite_allocation_header;
 
 /* One Library binding per component lifetime, never per Run or on reopen.
- * Serial entry belongs to the existing Library Owner, not a new scheduler.
+ * A nonblocking physical entry fence rejects competing/reentrant operations;
+ * it does not schedule calls, retry requests or issue a new Library authority.
  * These fields do not reconstruct Host, Store, current authorization or grants. */
 static actql_read_context *component_context;
-static pid_t component_process;
+static _Atomic(pid_t) component_process;
+static atomic_flag component_entry = ATOMIC_FLAG_INIT;
 static size_t component_allocations;
 static int component_attempted, component_ready, component_stopped;
 static int component_retained;
@@ -107,8 +110,7 @@ static int component_init(void *original) {
 }
 static void component_shutdown(void *original) { (void)original; }
 
-__attribute__((visibility("default")))
-int actql_sqlite_component_bind(actql_read_context *original) {
+static int component_bind_impl(actql_read_context *original) {
     if (component_attempted || original == NULL ||
         actql_bootstrap_current_read_context() != original ||
         !component_provider_origin()) return ACTQL_SQLITE_COMPONENT_INVALID;
@@ -131,36 +133,31 @@ int actql_sqlite_component_bind(actql_read_context *original) {
     return ACTQL_SQLITE_COMPONENT_OK;
 }
 
-__attribute__((visibility("default")))
-void *actql_sqlite_component_allocate(size_t bytes) {
+static void *component_allocate_impl(size_t bytes) {
     if (!component_ready || !component_current() || bytes == 0 || bytes > INT_MAX)
         return NULL;
     return sqlite3_malloc((int)bytes);
 }
 
-__attribute__((visibility("default")))
-void *actql_sqlite_component_resize(void *original, size_t bytes) {
+static void *component_resize_impl(void *original, size_t bytes) {
     if (!component_ready || !component_current() || bytes > INT_MAX) return NULL;
     return sqlite3_realloc(original, (int)bytes);
 }
 
-__attribute__((visibility("default")))
-size_t actql_sqlite_component_size(void *original) {
+static size_t component_size_impl(void *original) {
     if (!component_ready || component_process != getpid() || original == NULL)
         return 0;
     return (size_t)sqlite3_msize(original);
 }
 
-__attribute__((visibility("default")))
-int actql_sqlite_component_free(void *original) {
+static int component_free_impl(void *original) {
     if (!component_retained || component_process != getpid())
         return ACTQL_SQLITE_COMPONENT_INVALID;
     sqlite3_free(original);
     return ACTQL_SQLITE_COMPONENT_OK;
 }
 
-__attribute__((visibility("default")))
-int actql_sqlite_component_close(void) {
+static int component_close_impl(void) {
     if (component_stopped) return component_process == getpid()
         ? ACTQL_SQLITE_COMPONENT_OK : ACTQL_SQLITE_COMPONENT_INVALID;
     if (!component_retained || !component_current())
@@ -181,3 +178,40 @@ int actql_sqlite_component_close(void) {
 
 __attribute__((visibility("default")))
 const char *actql_sqlite_component_source_id(void) { return SQLITE_SOURCE_ID; }
+
+/* The existing Library Owner still supplies authority and lifetime. This fence
+ * merely prevents two physical configure/close/allocator calls racing through
+ * that port. Busy leaves the original buffer and cleanup responsibility intact. */
+static int component_enter_call(void) {
+    if (component_process != 0 && component_process != getpid())
+        return ACTQL_SQLITE_COMPONENT_INVALID;
+    return atomic_flag_test_and_set_explicit(&component_entry, memory_order_acquire)
+        ? ACTQL_SQLITE_COMPONENT_BUSY : ACTQL_SQLITE_COMPONENT_OK;
+}
+static void component_leave_call(void) {
+    atomic_flag_clear_explicit(&component_entry, memory_order_release);
+}
+
+#define COMPONENT_INT_ENTRY(name, params, args) \
+    __attribute__((visibility("default"))) \
+    int actql_sqlite_component_##name params { \
+        int entered = component_enter_call(); \
+        if (entered != 0) return entered; \
+        int result = component_##name##_impl args; \
+        component_leave_call(); \
+        return result; \
+    }
+#define COMPONENT_VALUE_ENTRY(name, type, params, args, missing) \
+    __attribute__((visibility("default"))) \
+    type actql_sqlite_component_##name params { \
+        if (component_enter_call() != 0) return missing; \
+        type result = component_##name##_impl args; \
+        component_leave_call(); \
+        return result; \
+    }
+COMPONENT_INT_ENTRY(bind, (actql_read_context *original), (original))
+COMPONENT_INT_ENTRY(free, (void *original), (original))
+COMPONENT_INT_ENTRY(close, (void), ())
+COMPONENT_VALUE_ENTRY(allocate, void *, (size_t bytes), (bytes), NULL)
+COMPONENT_VALUE_ENTRY(resize, void *, (void *original, size_t bytes), (original, bytes), NULL)
+COMPONENT_VALUE_ENTRY(size, size_t, (void *original), (original), 0)
