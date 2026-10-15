@@ -184,6 +184,10 @@ extern "C" fn database_begin_immediate_ffi(database : Database) -> Int = "actql_
 
 ///|
 #borrow(database)
+extern "C" fn database_transaction_state_ffi(database : Database) -> Int = "actql_native_sqlite_database_transaction_state"
+
+///|
+#borrow(database)
 extern "C" fn database_commit_ffi(database : Database) -> Int = "actql_native_sqlite_database_commit"
 
 ///|
@@ -553,6 +557,32 @@ pub fn Library::initialize_owned_database(
 }
 
 ///|
+/// The same exclusive-file initialization with original failed-open custody.
+/// It neither creates a missing file nor repairs a retained schema. A caller
+/// must keep its original durable initialization intent and file Owner.
+pub fn Library::initialize_owned_database_with_custody(
+  self : Library,
+  path : String,
+  ownership : @filesystem.NativeFileOwnership,
+  max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  if max_body_bytes < 0L {
+    return Err({ original_issue: InvalidLimit, database: None, })
+  }
+  let encoded = @utf8.encode(path)
+  sqlite_open_result_with_custody(
+    initialize_owned_database_ffi(
+      self,
+      encoded,
+      encoded.length(),
+      ownership.device,
+      ownership.inode,
+      max_body_bytes,
+    ),
+  )
+}
+
+///|
 pub fn Database::read(
   self : Database,
   scope : String,
@@ -859,6 +889,17 @@ pub fn Database::fence_transactions(self : Database) -> Unit {
 ///|
 pub fn Database::transaction_fenced(self : Database) -> Bool {
   database_transaction_fenced_ffi(self)
+}
+
+///|
+pub fn Database::transaction_state(
+  self : Database,
+) -> Result[NativeSqliteTransactionState, NativeSqliteIssue] {
+  match database_transaction_state_ffi(self) {
+    0 => Ok(NoActiveSqliteTransaction)
+    1 => Ok(ActiveSqliteTransaction)
+    _ => Err(DatabaseClosed)
+  }
 }
 
 ///|
