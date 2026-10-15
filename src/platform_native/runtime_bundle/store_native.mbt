@@ -2743,6 +2743,19 @@ pub fn NativeRuntimeBundleStore::diagnostics_bounded_by(
 }
 
 ///|
+/// Read only the original Database's selected-component/current-context fact.
+/// The trusted installer supplies the exact original heap, independently of
+/// record/diagnostic bounds. This is neither funding nor permission, and never
+/// reads the catalog or acknowledges pending physical cleanup.
+pub fn NativeRuntimeBundleStore::current_sqlite_component_matches_heap(
+  self : NativeRuntimeBundleStore,
+  expected_heap_bytes : Int64,
+) -> Bool {
+  require_open(self) is Ok(_) &&
+  self.database.current_component_matches_heap(expected_heap_bytes)
+}
+
+///|
 /// Revalidate the active generation and exact process holding before a
 /// runtime can admit more work. The loaded component was digest-verified at
 /// runtime acquisition; dispatch does not hash it again.
