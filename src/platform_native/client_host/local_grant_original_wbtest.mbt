@@ -375,6 +375,7 @@ fn local_original_resume_grant_scope(
 ) -> @credential.LocalCredentialScope {
   match grant {
     ResumeGrant(value) => @credential.local_credential_grant_scope(value)
-    PreparationGrant(_) => abort("test expected an original Resume grant")
+    PreparationGrant(_) | SigningGrant(_) =>
+      abort("test expected an original Resume grant")
   }
 }
