@@ -212,6 +212,7 @@ fn retained_result_exports(
   context : Context,
   retained : Array[RetainedResult],
   keep_default? : Bool = false,
+  implicit_primary? : Bool = true,
 ) -> Array[(String, String)]? raise Abort {
   let public = retained.filter(result => result.update is None)
   if public.is_empty() {
@@ -234,7 +235,7 @@ fn retained_result_exports(
       },
     )
   })
-  if !retained[retained.length() - 1].terminal {
+  if implicit_primary && !retained[retained.length() - 1].terminal {
     if retained.any(result => {
         ascii_upper(result.name) == ascii_upper(context.result_name)
       }) {
@@ -252,10 +253,17 @@ fn retained_stage_results(
   final_result : @builder.Node,
   retained : Array[RetainedResult],
   keep_default? : Bool = false,
+  implicit_primary? : Bool = true,
 ) -> @builder.Node raise Abort {
-  let definitions = if !keep_default &&
-    retained.any(result => result.update is Some(_)) &&
-    retained.all(result => result.update is Some(_)) {
+  let definitions = if (
+      !implicit_primary &&
+      !retained.any(result => result.update is None && result.terminal)
+    ) ||
+    (
+      !keep_default &&
+      retained.any(result => result.update is Some(_)) &&
+      retained.all(result => result.update is Some(_))
+    ) {
     []
   } else {
     [(default_port, final_result)]
