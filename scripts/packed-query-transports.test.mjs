@@ -159,7 +159,8 @@ test('abrupt coordinator death stops its worker through the owned IPC connection
 test('the serial tail runs once after both terminal workers and its failure is retained', async t => {
   const directory = await fixture(t);
   for (const name of ['packed-query-transports.mjs', 'packed-query-transport-owner.mjs',
-    'packed-query-worker.mjs', 'retained-fixture-values.mjs']) {
+    'packed-query-worker.mjs', 'retained-fixture-values.mjs',
+    'graph-argument-check.mjs', 'graph-argument-origin-literals.json']) {
     await writeFile(join(directory, name), await readFile(new URL(`./fixtures/${name}`, import.meta.url)));
   }
   await writeFile(join(directory, 'acceptance.mjs'), `

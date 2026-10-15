@@ -75,6 +75,14 @@ package is imported. The scoped neutral design tokens follow the existing
 Console's Base UI/shadcn direction; global Tailwind preflight is not exported.
 The package exports built CSS, so consumers do not scan its Tailwind source.
 
+An SDK-admitted `actql-effectful-static-plan-view/0.1` retains the original
+computation ports and renders checked Effect declarations in a separate table.
+It does not create graph edges from declaration order. The view labels contract
+minima independently from unknown current permission, gates, approval, resolved
+targets and changed values; sealed Preview remains unavailable. Unsupported
+installed profiles still refuse rather than exposing a computation-only Plan
+as a complete Effectful static view.
+
 `npm run build --prefix packages/explorer-ui` produces the ESM component and
 CSS. The package's normal `prepack` performs this same build. This is a library,
 not a Vite server, a launcher or a second `actql` binary. TanStack adapter/query

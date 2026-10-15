@@ -1,4 +1,4 @@
-import {validRunRef, validWirePlanViewShape, validWireRunPlanViewShape} from '@actql/client-wire';
+import {validWireEffectfulStaticPlanViewShape, validRunRef, validWirePlanViewShape, validWireRunPlanViewShape} from '@actql/client-wire';
 
 import {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
 export {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
@@ -15,6 +15,20 @@ const freeze = value => {
 // Accept an SDK-admitted static view, not a compiler/preparation handle or a
 // permission. This model references original identities; it has no new self-CID.
 export function planReadModel(view) {
+  if (view?.version === 'actql-effectful-static-plan-view/0.1') {
+    if (!validWireEffectfulStaticPlanViewShape(view) ||
+        view.program_definition_cid !== view.computation.plan_view.logical_map.program_definition_cid) {
+      refuse('ExplorerInvalidPlan');
+    }
+    const computation = planReadModel(view.computation.plan_view);
+    // Declared Effects have no graph edges or resolved physical observations.
+    return freeze({...computation, effectful: {
+      scope: 'computation_component', parameterValuesCid: view.parameter_values_cid,
+      checkEnvironmentCid: view.check_environment_cid, unitId: view.effect_set.unit_id,
+      members: structuredClone(view.effect_set.members),
+      observations: structuredClone(view.observations),
+    }});
+  }
   const steps = view?.logical_map?.steps;
   if (!Array.isArray(steps) || steps.length > graphViewLimits.steps) {
     refuse('ExplorerMapLimit');

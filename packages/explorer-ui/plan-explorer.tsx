@@ -70,7 +70,7 @@ function BoundPlanExplorer({model}: {model: PlanReadModel}) {
   return <section className="actql-explorer" aria-label="ActQL static Plan">
     <header className="actql-explorer-header">
       <div><p className="actql-explorer-kind">STATIC PLAN · PROVIDER I/O 0</p>
-        <h2>Logical operations</h2>
+        <h2>{model.effectful ? 'Computation component' : 'Logical operations'}</h2>
         <p>Recorded ports. Layout does not indicate execution order.</p></div>
       <nav aria-label="Plan presentation">
         <Button aria-pressed={mode === 'list'} onClick={() => show('list')}><List aria-hidden/>List</Button>
@@ -81,6 +81,30 @@ function BoundPlanExplorer({model}: {model: PlanReadModel}) {
       <dt>Logical Map</dt><dd>{model.logicalMapCid}</dd></dl>
     <p className="actql-explorer-unavailable"><CircleHelp aria-hidden/>Source origins unavailable in this projection.
       Controls, Samples and physical observations are unavailable in this viewer.</p>
+    {model.effectful && <section aria-label="Declared Effects">
+      <h3>Declared Effects · unit {model.effectful.unitId}</h3>
+      <p>The graph shows the computation component. Effect declarations do not define physical execution edges.</p>
+      <dl className="actql-explorer-identities"><dt>Check Environment</dt><dd>{model.effectful.checkEnvironmentCid}</dd>
+        <dt>Parameters</dt><dd>{model.effectful.parameterValuesCid}</dd></dl>
+      <table className="actql-explorer-table"><caption>Original checked declarations</caption>
+        <thead><tr><th scope="col">Occurrence</th><th scope="col">Contract</th>
+          <th scope="col">Declared input</th><th scope="col">Contract minimum</th></tr></thead>
+        <tbody>{model.effectful.members.map(entry => <tr key={entry.member_ordinal}>
+          <td>Stage {entry.stage_ordinal} · {entry.effect_id} · {entry.effect_kind}</td>
+          <td>{entry.contract.reference} · {entry.contract.contract_cid}<br/>
+            {entry.contract.kind === 'mapping' ? `Declared target: ${entry.contract.declared_target}`
+              : `Command Resource kind: ${entry.contract.resource_kind}`}</td>
+          <td>{entry.input.kind === 'result' ? `Result: ${entry.input.result_name}`
+            : entry.input.kind === 'table' ? `Table: ${entry.input.table_name}` : 'No row input'}</td>
+          <td>{entry.minimum_approval.kind === 'contract_minimum'
+            ? entry.minimum_approval.value : 'Not represented'}</td>
+        </tr>)}</tbody>
+      </table>
+      <p>Contract minimum is not current permission. Required approval does not imply a human-only reviewer.
+        Not represented does not mean none.</p>
+      <p>Resolved targets: unknown. Changed values: unknown. Current permission: unknown.
+        Gate: unknown. Approval: unknown. Sealed Preview: unavailable.</p>
+    </section>}
     {mode === 'flow' ? currentLayout?.state === 'ready' ? <div className="actql-explorer-flow">
       <ReactFlow key={layoutKey} fitView nodes={placed} edges={flow.edges} nodeTypes={nodeTypes} edgeTypes={edgeTypes}
         nodesDraggable={false} nodesConnectable={false} edgesReconnectable={false}
