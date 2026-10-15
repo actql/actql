@@ -6,6 +6,7 @@ fn sqlite_test_empty_record(
     domain,
     library: None,
     failure: None,
+    database: None,
     failed: false,
     scope_open: false,
     closed: false,
