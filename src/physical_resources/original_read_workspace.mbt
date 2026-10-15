@@ -3,8 +3,8 @@
 // workspace. This is not another grant, reservation or execution Owner.
 // Both resident references, including None, need the installing envelope.
 struct OriginalReadWorkspaceBinding[T] {
-  priv mut claim : FundedReadClaim[T]?
-  priv mut capacity : SharedCapacity?
+  mut claim : FundedReadClaim[T]?
+  mut capacity : SharedCapacity?
 }
 
 ///|

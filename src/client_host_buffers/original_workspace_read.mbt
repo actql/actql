@@ -3,8 +3,8 @@
 // references and issuer/consumer overlap belong to its funded envelope.
 // This handle owns neither read settlement nor physical workspace cleanup.
 struct OriginalWorkspaceRead[T] {
-  priv mut binding : @resources.OriginalReadWorkspaceBinding[T]?
-  priv mut loan : WorkspaceLoan?
+  mut binding : @resources.OriginalReadWorkspaceBinding[T]?
+  mut loan : WorkspaceLoan?
 }
 
 ///|
