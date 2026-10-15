@@ -86,7 +86,7 @@ const settled = execution => until(async () => {
 });
 
 async function installation(t, {faults = [], commit = 'delegate', reviewerPrincipal,
-  rangeCommand = false} = {}) {
+  rangeCommand = false, resumeAfterAnswer = false} = {}) {
   const state = {appended: [], ...(rangeCommand ? {rangeCommand: true, updated: []} : {})};
   const observations = [];
   const api = await openHttpsExchangeFixture(t, {routes: sheetsRoutes(state), faults});
@@ -152,7 +152,7 @@ async function installation(t, {faults = [], commit = 'delegate', reviewerPrinci
       }
     };
     const options = {directory, ...(effect ? {effectProfilePath, resolveEffectSecret: secret}
-      : {sourceProfilePath, resolveSourceSecret: secret}), authorization: {...authorization(account, reviewerPrincipal),
+      : {sourceProfilePath, resolveSourceSecret: secret}), authorization: {...authorization(account, reviewerPrincipal), resumeAfterAnswer,
         observe(name, detail) {
           observations.push([name, detail]);
         }}, ...(effect && rangeCommand ? {sourceProfilePath, resolveSourceSecret: secret} : {})};
@@ -245,7 +245,7 @@ const row = {text: '=literal e\u0301\r\n', number: 0, flag: false};
 test('Sheets range Command uses the real Local and HTTPS approval owners and original saved request', async t => {
   const rows = [row, {...row, text: 'second', number: -2.5, flag: true}];
   for (const local of [true, false]) {
-    const setup = await installation(t, {rangeCommand: true,
+    const setup = await installation(t, {rangeCommand: true, resumeAfterAnswer: true,
       ...(local ? {reviewerPrincipal: owner} : {})});
     const [command] = (await setup.publish(true)).commands;
     assert.equal(command.resource, 'range_target');
@@ -366,12 +366,13 @@ test('Sheets partial success retains the successful prefix and stops after an un
 });
 
 test('Sheets Local append approves a complete Set and retains equal rows as separate sends', async t => {
-  const setup = await installation(t, {reviewerPrincipal: owner});
+  const setup = await installation(t, {reviewerPrincipal: owner, resumeAfterAnswer: true});
   const {first, execution, state} = await preparedAppend(setup, [row, row], {local: true});
   assert.equal(state.status, 'waiting_checkpoint', JSON.stringify(state));
   assert.equal(setup.state.appended.length, 0);
   await approve(first, execution);
-  // Explicit reconcile uses the original Run and the existing continuation owner.
+  // This executing Host resumes its committed answer through the existing Owner.
+  // reconcile observes the original Run; it does not start a disabled continuation.
   await execution.reconcile();
   const done = await settled(execution);
   assert.equal(done.status, 'succeeded', JSON.stringify(done));
