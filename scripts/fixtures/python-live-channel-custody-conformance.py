@@ -91,7 +91,7 @@ control, backing = _OriginalControlFunctions(lib), _OriginalBackingFunctions(lib
 domain_functions, live = _OriginalDomainFunctions(lib), _OriginalLiveChannelFunctions(lib)
 cases = ['actual dependent DLL resolves the same original provider addresses']
 loaded = []
-for name in ('_local_native_live_channel', '_local_native_domain_custody', '_local_worker_pipe'):
+for name in ('_local_native_live_channel', '_local_native_domain_custody', '_local_worker_pipe', '_local_worker_process'):
     path = Path(sys.modules['actql_sdk.' + name].__file__).resolve()
     assert path == (root / 'packages/python-sdk/src/actql_sdk' / (name + '.py')).resolve()
     loaded.append({'path': str(path), 'bytes': path.stat().st_size, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()})
@@ -125,10 +125,28 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
         channel = OriginalWorkerPipeChannel(funding, process, NeverStartedControl())
         # Actual owned pipes and descriptor closes. Only executable verification
         # and the spawn syscall are replaced; no interpreter or child is run.
+        inherited = {}
+        def no_child_spawn(*arguments, **options):
+            duplicate = process._native_duplicate
+            assert duplicate is not None and duplicate.value >= 10 and not duplicate.closed
+            original_status, duplicate_status = os.fstat(fd.value), os.fstat(duplicate.value)
+            assert (duplicate_status.st_dev, duplicate_status.st_ino, duplicate_status.st_size) == (
+                original_status.st_dev, original_status.st_ino, original_status.st_size)
+            actions = options['file_actions']
+            assert actions.count((os.POSIX_SPAWN_DUP2, duplicate.value, 4)) == 1
+            assert (os.POSIX_SPAWN_CLOSE, duplicate.value) in actions
+            inherited.update({'original_fd': fd.value, 'duplicate_fd': duplicate.value,
+                'child_destination': 4, 'device': duplicate_status.st_dev,
+                'inode': duplicate_status.st_ino, 'file_bytes': duplicate_status.st_size,
+                'actual_dup': True, 'file_actions_only': True, 'actual_spawn': 0})
+            return os.getpid()
         with patch.object(OriginalWorkerProcess, '_verify_executable'), \
-                patch('actql_sdk._local_worker_process.os.posix_spawn', return_value=os.getpid()) as spawn:
+                patch('actql_sdk._local_worker_process.os.posix_spawn', side_effect=no_child_spawn) as spawn:
             process.spawn()
             assert spawn.call_count == 1
+        assert process._native_duplicate.closed and not fd.closed
+        os.fstat(fd.value)
+        cases.append('actual same-inode duplicate closes once while original FD and planned child fd4 stay distinct')
         try:
             _OriginalLiveChannelCustody._capture_original(domain, process, channel._pipe, live, nonce=7)
         except _OriginalLiveChannelError as failure:
@@ -191,9 +209,9 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
     finally:
         funding_case.doCleanups()
 
-assert len(cases) == len(set(cases)) == 8
-result = {'success': True, 'discovered': 8, 'executed': 8, 'passed': 8, 'failed': 0,
+assert len(cases) == len(set(cases)) == 9
+result = {'success': True, 'discovered': 9, 'executed': 9, 'passed': 9, 'failed': 0,
           'cases': cases, 'loaded_modules': loaded, 'actual_ctypes_C': True,
-          'actual_pipe_FDs': True, 'funding_durable_spawn_doubles': True,
+          'actual_pipe_FDs': True, 'domain_inheritance': inherited, 'funding_durable_spawn_doubles': True,
           'actual_spawn': 0, 'actualVM': 0, 'wheel': 0, 'publicE2E': 0}
 print(json.dumps(result), flush=True)
