@@ -147,6 +147,7 @@ function materialsConfiguration() {
   const original={cid,wire:'{}'};
   return {providerId:'models/unavailable',modelSelector:'unavailable',modelId:'unavailable',
     baseURL:'https://fixture.invalid/v1',apiKey:'fixture-only',taskCid:cid,promptCid:cid,
+    originalStringLimits:{maxApiKeyCodeUnits:64,maxBaseURLCodeUnits:256,maxModelIdCodeUnits:64},
     outputSchemaCid:cid,promptPayloadWire:'{}',bindingOriginals:undefined,quantityCapacity:undefined,
     projectionLimits:{maxBytes:1000,maxNodes:100,maxDepth:10,maxFrames:20,maxWork:1000},
     requestLimits:{maxBytes:1000,maxHeaderBytes:128,maxHeaders:4},

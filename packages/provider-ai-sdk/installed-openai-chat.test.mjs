@@ -36,6 +36,7 @@ function configuration() {
     .map(([name,value])=>[name,Object.freeze(value)])));
   return {providerId:'models/fixture',modelSelector:'fixture-chat',modelId:'gpt-4.1-nano',
     baseURL:'https://fixture.invalid/v1',apiKey:'fixture-only',taskCid:corpus.task.contract_cid,
+    originalStringLimits:{maxApiKeyCodeUnits:64,maxBaseURLCodeUnits:256,maxModelIdCodeUnits:64},
     promptCid:corpus.prompt.self_cid,outputSchemaCid:corpus.task.output_schema_cid,
     promptPayloadWire:JSON.stringify(corpus.prompt.payload),originalReadInstallation,rawCaptureSelection,bindingOriginals,
     quantityCapacity:Object.freeze({limits:Object.freeze({tokens:16n,costUnits:0n,durationMs:500n}),
@@ -94,6 +95,80 @@ function runtime(config) {
   return {moon,request,provider,entry,counts};
 }
 async function until(read,predicate){for(let i=0;i<50;i++){const v=read();if(predicate(v))return v;await turn();}assert.fail('Finite private consumer did not settle');}
+
+for (const route of ['generic','original-undici']) {
+  test(`original String ceilings ${route} refuse before URL, encoding or SDK work`,()=>{
+    const config=configuration(),f=runtime(config);
+    config.originalStringLimits={maxApiKeyCodeUnits:12,maxBaseURLCodeUnits:26,maxModelIdCodeUnits:12};
+    const OriginalURL=globalThis.URL,originalByteLength=Buffer.byteLength;
+    let urls=0,encodings=0;
+    globalThis.URL=class extends OriginalURL {constructor(...args){urls++;super(...args);}};
+    Buffer.byteLength=(...args)=>{encodings++;return Reflect.apply(originalByteLength,Buffer,args);};
+    try {
+      const {originalStringLimits:removed,...missing}=config;void removed;
+      const {fetch:unused,...selectedMissing}=missing;void unused;
+      assert.throws(()=>route==='generic'?createInstalledOpenAIChatRegistration(missing):
+        createInstalledUndiciOpenAIChatRegistration({...selectedMissing,physicalAcquisitionLimits}),
+      {code:'OpenAIOriginalStringLimitsUnavailable'});
+      for(const [name,limit] of [['apiKey',12],['baseURL',26],['modelId',12]]) {
+        const candidate={...config,[name]:'x'.repeat(limit+1)};
+        const {fetch:unused,...selected}=candidate;void unused;
+        assert.throws(()=>route==='generic'?createInstalledOpenAIChatRegistration(candidate):
+          createInstalledUndiciOpenAIChatRegistration({...selected,physicalAcquisitionLimits}),
+        {code:'OpenAIOriginalStringLimitExceeded'});
+      }
+      assert.equal(urls,0);assert.equal(encodings,0);
+      assert.equal(f.counts.starts,0);assert.equal(f.counts.fetch,0);
+    } finally {globalThis.URL=OriginalURL;Buffer.byteLength=originalByteLength;}
+  });
+}
+
+test('original String ceilings use UTF16 units rather than UTF8 bytes or normalized text',()=>{
+  const config=configuration();
+  config.apiKey='e\u0301🔑';
+  assert.equal(config.apiKey.length,4);
+  assert.equal(Buffer.byteLength(config.apiKey),7);
+  config.originalStringLimits={maxApiKeyCodeUnits:4,maxBaseURLCodeUnits:26,maxModelIdCodeUnits:12};
+  assert.equal(typeof createInstalledOpenAIChatRegistration(config),'function');
+  config.originalStringLimits.maxApiKeyCodeUnits=3;
+  assert.throws(()=>createInstalledOpenAIChatRegistration(config),{code:'OpenAIOriginalStringLimitExceeded'});
+  config.apiKey=new String('a');
+  assert.throws(()=>createInstalledOpenAIChatRegistration(config),{code:'InvalidInstalledOpenAIChatConfiguration'});
+});
+
+test('original String ceilings reject non-DATA and nonfinite declarations without reading accessors',()=>{
+  const valid={maxApiKeyCodeUnits:64,maxBaseURLCodeUnits:256,maxModelIdCodeUnits:64};
+  const accessor={...valid};let reads=0;
+  Object.defineProperty(accessor,'maxApiKeyCodeUnits',{enumerable:true,get(){reads++;return 64;}});
+  const hidden={...valid};Object.defineProperty(hidden,'extra',{value:1});
+  const symbol={...valid,[Symbol('extra')]:1};
+  const combined=Object.assign(Object.create(valid),{'maxApiKeyCodeUnits,maxBaseURLCodeUnits,maxModelIdCodeUnits':1});
+  for(const declaration of [undefined,null,{},Object.create(valid),combined,accessor,hidden,symbol,
+    ...[0,-1,1.5,NaN,Infinity,2147483648,1n,'64'].map(value=>({...valid,maxApiKeyCodeUnits:value}))]) {
+    assert.throws(()=>createInstalledOpenAIChatRegistration({...configuration(),originalStringLimits:declaration}),
+      {code:'InvalidInstalledOpenAIChatOriginalStringLimits'});
+  }
+  assert.equal(reads,0);
+});
+
+test('original String ceiling snapshot retains same checked primitives through actual SDK preparation',async()=>{
+  const config=configuration(),f=runtime(config);let reads=0,descriptors=0;
+  const limits={maxApiKeyCodeUnits:12,maxBaseURLCodeUnits:26,maxModelIdCodeUnits:12};
+  config.originalStringLimits=new Proxy(limits,{get(){reads++;assert.fail('No post-check reads');},
+    getOwnPropertyDescriptor(target,name){descriptors++;return Reflect.getOwnPropertyDescriptor(target,name);}});
+  const register=createInstalledOpenAIChatRegistration(config);
+  assert.equal(descriptors,3);assert.equal(reads,0);
+  limits.maxApiKeyCodeUnits=1;limits.maxModelIdCodeUnits=1;
+  config.apiKey='replacement';config.modelId='replacement';config.baseURL='https://foreign.invalid';
+  const entry=register(f.moon)[0];
+  const preflight=entry.physicalPreflight(f.request,createInferIoNotification(),()=>{},f.provider);
+  try {
+    const plan=await until(()=>preflight.advance(),value=>value._0);
+    assert.ok(plan._1,'Same original preparation reaches its checked SDK Plan');
+    assert.equal(f.counts.fetch,0);assert.equal(reads,0);
+    assert.equal(f.counts.generation,1);assert.equal(descriptors,3);
+  } finally {await until(()=>preflight.cleanup(),Boolean);}
+});
 
 for (const route of ['generic','original-undici']) {
   test(`installed profile transport mismatch ${route} refuses before SDK preparation`,()=>{

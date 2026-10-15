@@ -52,15 +52,38 @@ export function createInstalledUndiciOpenAIChatRegistration(config) {
 }
 
 function installedChatRegistration(config, originalUndici) {
-  const keys='apiKey,baseURL,bindingOriginals,fetch,modelId,modelSelector,observeAt,observeEgress,originalReadInstallation,outputSchemaCid,projectionLimits,promptCid,promptPayloadWire,providerId,quantityCapacity,rawCaptureSelection,requestLimits,responseLimits,taskCid';
+  if (config!==null && typeof config==='object' && !Object.hasOwn(config,'originalStringLimits')) {
+    issue('OpenAIOriginalStringLimitsUnavailable');
+  }
+  const keys='apiKey,baseURL,bindingOriginals,fetch,modelId,modelSelector,observeAt,observeEgress,originalReadInstallation,originalStringLimits,outputSchemaCid,projectionLimits,promptCid,promptPayloadWire,providerId,quantityCapacity,rawCaptureSelection,requestLimits,responseLimits,taskCid';
   const materialMode = config!==null && typeof config==='object' && Object.hasOwn(config,'originalMaterials');
   const selectedKeys = materialMode ? keys.replace(',originalReadInstallation',',originalMaterials')
     .replace(',rawCaptureSelection','') : keys;
   config=snapshotData(config,originalUndici ? selectedKeys.replace(',fetch', '')
     .replace(',projectionLimits',',physicalAcquisitionLimits,projectionLimits') : selectedKeys,
     'InvalidInstalledOpenAIChatConfiguration');
-  if (originalUndici) config=Object.freeze({...config,
-    physicalAcquisitionLimits:fixedOriginalAcquisitionLimits(config.physicalAcquisitionLimits)});
+  // Original primitive UTF-16 code units, not encoded request/header bytes.
+  // Refuse before the first input-dependent concatenation, URL, SDK child or
+  // encoding. Host acquisition of the supplied originals remains separately
+  // owned; this declaration and its snapshot are not physical funding.
+  const originalStringLimits=snapshotData(config.originalStringLimits,
+    'maxApiKeyCodeUnits,maxBaseURLCodeUnits,maxModelIdCodeUnits',
+    'InvalidInstalledOpenAIChatOriginalStringLimits');
+  if (!Object.values(originalStringLimits).every(value=>int(value))) {
+    issue('InvalidInstalledOpenAIChatOriginalStringLimits');
+  }
+  if (![config.apiKey,config.baseURL,config.modelId].every(text)) {
+    issue('InvalidInstalledOpenAIChatConfiguration');
+  }
+  if (config.apiKey.length>originalStringLimits.maxApiKeyCodeUnits ||
+      config.baseURL.length>originalStringLimits.maxBaseURLCodeUnits ||
+      config.modelId.length>originalStringLimits.maxModelIdCodeUnits) {
+    issue('OpenAIOriginalStringLimitExceeded');
+  }
+  config=Object.freeze({...config,originalStringLimits,
+    ...(originalUndici ? {
+      physicalAcquisitionLimits:fixedOriginalAcquisitionLimits(config.physicalAcquisitionLimits),
+    } : {})});
   if (materialMode) {
     let materials=snapshotOpenAIOriginalMaterials(config.originalMaterials);
     const {originalMaterials:unused,...source}=config;void unused;

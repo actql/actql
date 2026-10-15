@@ -33,6 +33,7 @@ function configuration() {
     .map(([name,value])=>[name,Object.freeze(value)])));
   return {providerId:'models/fixture',modelSelector:'fixture-chat',modelId:'gpt-4.1-nano',
     baseURL:'https://fixture.invalid/v1',apiKey:'fixture-only',taskCid:p.task.contract_cid,promptCid:cid('b'),
+    originalStringLimits:{maxApiKeyCodeUnits:64,maxBaseURLCodeUnits:256,maxModelIdCodeUnits:64},
     outputSchemaCid:p.task.output_schema_cid,promptPayloadWire:'{}',bindingOriginals:bindings,
     quantityCapacity:Object.freeze({limits:Object.freeze({tokens:16n,costUnits:0n,durationMs:500n}),
       perAttempt:Object.freeze({tokens:16n,costUnits:0n,durationMs:500n})}),
@@ -91,6 +92,21 @@ test('material descriptors snapshot once before the actual Host callback and ret
   assert.equal(installed.rawCaptureSelection.retention.kind,'retention_contract');
   assert.notEqual(f.calls[0][1],'replacement');
   assert.throws(()=>register(f.moon),{code:'OpenAIOriginalInstallationReused'});
+  assert.throws(()=>register({...f.moon}),{code:'OpenAIOriginalInstallationReused'});
+});
+
+test('material original String ceilings reject before original readers and snapshot before callback',()=>{
+  const config=configuration(),f=runtime(config);
+  config.originalStringLimits={maxApiKeyCodeUnits:12,maxBaseURLCodeUnits:26,maxModelIdCodeUnits:12};
+  const oversized={...config,apiKey:'x'.repeat(13)};
+  assert.throws(()=>createInstalledOpenAIChatRegistration(oversized),{code:'OpenAIOriginalStringLimitExceeded'});
+  assert.equal(f.calls.length,0);
+  const register=createInstalledOpenAIChatRegistration(config);
+  config.originalStringLimits.maxApiKeyCodeUnits=1;
+  config.apiKey='replacement';config.baseURL='https://foreign.invalid';config.modelId='replacement';
+  const [entry]=register(f.moon);
+  assert.equal(entry.rawCaptureSelection.profile,f.profile);
+  assert.equal(f.calls.length,5);
   assert.throws(()=>register({...f.moon}),{code:'OpenAIOriginalInstallationReused'});
 });
 
