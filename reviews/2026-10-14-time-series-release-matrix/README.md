@@ -65,3 +65,23 @@ The standing autonomous verification policy supersedes this note's historical
 per-window permission wording. The original producer/consumer 300s/TERM5 and
 shared guard resource/Owner admission remain unchanged. Source and artifact
 identities are fixed separately from any later main integration.
+
+
+### Existing installed qualification, independently reconciled
+
+G's immutable source `b999fddb4ef6a54847dc557ee269103f74345d86`,
+manifest `47cf24d01e68e5d68f7d0e8017d93b8362b06516f700edaf4c8c52db0ac57de9`,
+completed the normal four-package cohort with Local/HTTPS each nine normal,
+seven pre-admission refusals, 21 rows and nine fresh-process rereads. The six
+actual child commands ended zero (`run-bpLJ1P`); Owner/group and locks were closed.
+The original receipt is workspace
+`reviews/2026-10-11-integration-owner/g-b999fddb-timeseries-consumer-receipt.json`
+(SHA256 `6e9113f1f704cd20b7bac81c7bafe044abaa98347c96e1f2ab9ab5eb8d8fd863`).
+
+This audit accepts that exact retained receipt and the unchanged independent
+fixture (`c5f43f34dc7ea62b13aff023cb8188a2a1cfa5dafedfa663c875e4fc92f6c900`).
+No original Run, DB, request or artifact is reopened/replayed/reinterpreted.
+It is a second read of existing evidence, not a new E2E scenario or a latest-main
+product PASS. Node 25/25 at `42dee1b480b1f6ebdf702a8046e9c863c1f33df8`
+(`run-5KFHSz`) covers the finite audit mutations and existing release selections;
+this section is the only subsequent documentation change.
