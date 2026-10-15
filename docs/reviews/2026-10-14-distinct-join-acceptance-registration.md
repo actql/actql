@@ -66,13 +66,11 @@ this static correction.
 ## Verification and next execution
 
 Static source review confirms the restored historical blob identity and the
-selected registration paths. No executable tests, syntax checker, compiler,
-runtime build, package producer or public consumer was run in this environment.
-The available task-environment list was empty and the canonical guard home was
-read-only. No guard relocation, alternate HOME, source overlay, timeout increase
-or direct unguarded test was used.
+selected registration paths. Executable tests: 0. Syntax checks: 0. Compiler
+and runtime builds: 0. Package producer and public consumer executions: 0.
+Static review and blob identity are not execution acceptance.
 
-On a usable executor, first read the repository verification skill and use the
+Before execution, read the repository verification skill and use the
 checked-in toolchain and dependency pins. Focused checks retain their existing
 60-second/TERM5 bounds:
 
