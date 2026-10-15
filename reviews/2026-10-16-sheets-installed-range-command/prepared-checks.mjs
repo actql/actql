@@ -8,7 +8,10 @@ assert.equal(process.version, 'v22.22.0');
 assert.equal(git('rev-parse', 'HEAD'), source);
 assert.equal(git('status', '--porcelain'), '');
 let steps;
-if (phase === 'prepare') {
+if (phase === 'generate') {
+  steps = [{name: 'Normal connector installation/import inventories',
+    command: process.execPath, args: ['scripts/connector-node-bundles.mjs', '--write']}];
+} else if (phase === 'prepare') {
   const bounded = 'import {spawnSync} from "node:child_process";' +
     'const r=spawnSync("moon",["build","--target","js","--release","-j","1",' +
     '"src/connectors_builtin_node","src/connectors/sheets/host_node"],' +
@@ -17,16 +20,18 @@ if (phase === 'prepare') {
   steps = [{name: 'Affected common and Sheets runtime modules only',
     command: process.execPath, args: ['--input-type=module', '-e', bounded]}];
 } else {
-  assert.equal(phase, 'node');
+  assert(['node', 'host'].includes(phase));
   const focused = 'import{runFocusedTests}from"./scripts/test-execution.mjs";' +
     'process.exitCode=runFocusedTests("node",process.argv.slice(1),' +
     '{cwd:process.cwd(),timeout:30000});';
   steps = [{name: 'Installed range declaration, exact request and recovery controls',
     command: process.execPath, args: ['--input-type=module', '-e', focused, '--',
-      'adapters/connectors/sheets/test/sheets-range-command.test.mjs']}];
+      ...(phase === 'host' ? ['--test-name-pattern=^Sheets range Command uses',
+        'adapters/connectors/sheets/test/sheets-standard-host.integration.test.mjs']
+        : ['adapters/connectors/sheets/test/sheets-range-command.test.mjs'])]}];
 }
 steps.push({name: 'Whitespace', command: 'git', args: ['diff', '--check']});
 process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false,
   timeoutSeconds: 60, graceSeconds: 5, steps});
 assert.equal(git('rev-parse', 'HEAD'), source);
-assert.equal(git('status', '--porcelain'), '');
+if (phase !== 'generate') assert.equal(git('status', '--porcelain'), '');
