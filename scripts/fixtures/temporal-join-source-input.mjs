@@ -20,7 +20,7 @@ function program(v) {
     {select:['id','value'],as:'out'}],results:{rows:{from:'out',fields:['id','value']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
 }
 function source(call) {
-  return `WITH l AS (${leftText}), r AS (${rightText}), matched AS (FROM l AS `current` |> ${call}) SELECT id, value FROM matched ORDER BY id`;
+  return `WITH l AS (${leftText}), r AS (${rightText}), matched AS (FROM l AS \`current\` |> ${call}) SELECT id, value FROM matched ORDER BY id`;
 }
 export const temporalJoinSourceSuccesses=variants.flatMap(v=>{
   const results={answer:{rows:v.rows,columns:[{name:'id',contract:number},{name:'value',contract:{type:'number',nullable:v.body.kind==='left'}}]}};
