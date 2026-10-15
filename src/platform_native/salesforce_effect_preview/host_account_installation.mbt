@@ -135,7 +135,14 @@ fn install_host_account_with_read(
   guard selection is Some(selected) else { return Ok(None) }
   if !host_account_read_ceiling_valid(read_ceiling) ||
     (diagnostic_ceiling is Some(value) && value <= 0) ||
-    (require_current_read_context && diagnostic_ceiling is None) ||
+    (
+      require_current_read_context &&
+      (
+        diagnostic_ceiling is None ||
+        on_read_failure is None ||
+        read_scope_current is None
+      )
+    ) ||
     selected.root.is_empty() ||
     selected.name.is_empty() ||
     selected.root.length() > 4096 ||
@@ -177,8 +184,11 @@ fn install_host_account_with_read(
 /// ceiling is an authorization decision or a resource funding profile.
 /// require_current_read_context selects the existing physical scoped reader for
 /// every initial/current/final read. Missing context refuses without a legacy
-/// fallback; a positive diagnostic ceiling is required. Omission preserves the
-/// legacy read port and is not evidence of physical funding.
+/// fallback. The trusted caller must supply a positive diagnostic ceiling,
+/// retain the same failure through on_read_failure, and recheck its original
+/// scope through read_scope_current. Presence of a callback is not an Owner
+/// proof, permission or cleanup ACK. Omission preserves the legacy read port
+/// and is not evidence of physical funding.
 pub fn install_native_effect_host_account(
   selection : NativeEffectHostAccountFile?,
   read_ceiling? : Int = 1000000,

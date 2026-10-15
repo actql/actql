@@ -26,6 +26,8 @@ test "strict Account physical selection requires a positive diagnostic bound bef
         },
         diagnostic_ceiling=diagnostic,
         require_current_read_context=true,
+        on_read_failure=Some(_ => ()),
+        read_scope_current=Some(() => true),
       )
       is Err(InvalidSelection),
     )
@@ -38,6 +40,7 @@ test "strict Account selection survives installation and never treats a true cal
   // The private seam's original checked bytes prove neither a physical read
   // nor the installer's capacity/current authority.
   let reads = Ref(0)
+  let failures : Array[@bounded_files.NativeBoundedTextFailure] = []
   let installed = install_host_account_with_read(
       Some(host_account_test_file()),
       _ => {
@@ -46,6 +49,7 @@ test "strict Account selection survives installation and never treats a true cal
       },
       diagnostic_ceiling=Some(16),
       require_current_read_context=true,
+      on_read_failure=Some(original => failures.push(original)),
       read_scope_current=Some(() => true),
     )
     .unwrap()
@@ -58,6 +62,16 @@ test "strict Account selection survives installation and never treats a true cal
   assert_true(installed.read_current_configuration() is None)
   assert_false(installed.current_permission("sha256:" + "a".repeat(64), false))
   assert_false(installed.current_permission("sha256:" + "a".repeat(64), true))
+  assert_eq(failures.length(), 3)
+  for original in failures {
+    match original.issue() {
+      @bounded_files.Filesystem(@files.UnsupportedTarget) => ()
+      @bounded_files.Filesystem(@files.RootOpen(detail)) =>
+        assert_eq(detail, "Current read scope was refused")
+      _ => fail("current read reached an unscoped physical port")
+    }
+    original.retry_cleanup().unwrap()
+  }
 }
 
 ///|
@@ -120,4 +134,42 @@ test "public strict Account installation refuses without actual context before l
     _ => fail("initial strict read reached the legacy port")
   }
   original.retry_cleanup().unwrap()
+}
+
+///|
+test "strict Account refuses missing failure retention hook before read" {
+  let reads = Ref(0)
+  assert_true(
+    install_host_account_with_read(
+      Some(host_account_test_file()),
+      _ => {
+        reads.val += 1
+        Ok(host_account_test_wire())
+      },
+      diagnostic_ceiling=Some(16),
+      require_current_read_context=true,
+      read_scope_current=Some(() => true),
+    )
+    is Err(InvalidSelection),
+  )
+  assert_eq(reads.val, 0)
+}
+
+///|
+test "strict Account refuses missing original current scope hook before read" {
+  let reads = Ref(0)
+  assert_true(
+    install_host_account_with_read(
+      Some(host_account_test_file()),
+      _ => {
+        reads.val += 1
+        Ok(host_account_test_wire())
+      },
+      diagnostic_ceiling=Some(16),
+      require_current_read_context=true,
+      on_read_failure=Some(_ => ()),
+    )
+    is Err(InvalidSelection),
+  )
+  assert_eq(reads.val, 0)
 }
