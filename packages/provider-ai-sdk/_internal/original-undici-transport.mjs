@@ -278,7 +278,7 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
     if (retired || destroying !== undefined) throw issue('UndiciOriginalTransportRetired');
     // The existing SDK start bit/Core gate owns one-shot admission. The fixed
     // original Client method/options are the actual first physical operation.
-    pending = Reflect.apply(method, client, [request]).then(response => {
+    const response = Reflect.apply(method, client, [request]).then(response => {
       body = response.body;
       // Register settlement immediately, including errors before getReader.
       // Error/destroy flags are not the later actual stream close event.
@@ -290,9 +290,12 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
       // consult a mutable cell that physical cleanup can retire first.
       return originalResponseView(response, body, bodyClosed);
     });
-    // Cleanup and callers observe the same rejection, never an unhandled one.
-    pending.catch(() => {});
-    return pending;
+    // Cleanup needs settlement of this SAME request, not another retained
+    // fulfilled response/header view. Callers keep the original value/error;
+    // the handled child carries Unit on either outcome, never an I/O ACK.
+    const settled = () => {};
+    pending = response.then(settled, settled);
+    return response;
   };
   const cleanup = () => {
     if (retired) return Promise.resolve(true);
@@ -309,7 +312,7 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
     body?.destroy();
     socket?.destroy(issue('UndiciOriginalTransportRetired'));
     destroying = client.destroy().then(async () => {
-      if (pending !== undefined) await pending.catch(() => {});
+      if (pending !== undefined) await pending;
       if (connectorFinished !== undefined && await connectorFinished !== true) return false;
       if (socketClosed !== undefined && await socketClosed !== true) return false;
       if (bodyClosed !== undefined && await bodyClosed !== true) return false;
