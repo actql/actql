@@ -1191,12 +1191,18 @@ fn require_open(
 ///|
 fn load_catalog(
   store : NativeRuntimeBundleStore,
+  max_body_bytes? : Int64? = None,
 ) -> Result[NativeRuntimeBundleCatalog, NativeRuntimeBundleStoreIssue] {
   match require_open(store) {
     Ok(_) => ()
     Err(issue) => return Err(issue)
   }
-  let value = match store.database.read("runtime_bundle", "catalog") {
+  let read = match max_body_bytes {
+    Some(limit) =>
+      store.database.read_with_body_limit("runtime_bundle", "catalog", limit)
+    None => store.database.read("runtime_bundle", "catalog")
+  }
+  let value = match read {
     Ok(value) => value
     Err(issue) => return Err(Database(issue))
   }
@@ -2676,8 +2682,9 @@ pub fn NativeRuntimeBundleStore::acquire_active_component_with_custody(
 fn NativeRuntimeBundleStore::active_entry_for_binding(
   self : NativeRuntimeBundleStore,
   binding : NativeActiveRuntimeBinding,
+  max_body_bytes? : Int64? = None,
 ) -> Result[NativeRuntimeBundleEntry, NativeRuntimeBundleStoreIssue] {
-  let catalog = match load_catalog(self) {
+  let catalog = match load_catalog(self, max_body_bytes~) {
     Ok(value) => value
     Err(issue) => return Err(issue)
   }
@@ -2720,6 +2727,22 @@ pub fn NativeRuntimeBundleStore::verify_active_component_binding(
   binding : NativeActiveRuntimeBinding,
 ) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
   match self.active_entry_for_binding(binding) {
+    Ok(_) => Ok(())
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
+/// Apply the caller's physical read ceiling before SQLite copies the catalog.
+/// The original database limit and every generation/component/process-hold
+/// check remain in force. A size refusal is not a missing or released bundle.
+pub fn NativeRuntimeBundleStore::verify_active_component_binding_with_body_limit(
+  self : NativeRuntimeBundleStore,
+  binding : NativeActiveRuntimeBinding,
+  max_body_bytes : Int64,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  match
+    self.active_entry_for_binding(binding, max_body_bytes=Some(max_body_bytes)) {
     Ok(_) => Ok(())
     Err(issue) => Err(issue)
   }

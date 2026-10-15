@@ -223,6 +223,15 @@ pub fn NativeRuntimeBundleStore::verify_active_component_binding(
 }
 
 ///|
+pub fn NativeRuntimeBundleStore::verify_active_component_binding_with_body_limit(
+  _self : NativeRuntimeBundleStore,
+  _binding : NativeActiveRuntimeBinding,
+  _max_body_bytes : Int64,
+) -> Result[Unit, NativeRuntimeBundleStoreIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn NativeRuntimeBundleStore::active_component_source(
   _self : NativeRuntimeBundleStore,
   _binding : NativeActiveRuntimeBinding,
