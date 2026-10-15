@@ -7,6 +7,10 @@
 // The installer selects runtime_file from this adoption. historical is only
 // manifest metadata: Common accepts exactly the retained old109/a3b proof,
 // never this caller's source label, a replacement asset body or permission.
+// This is exercised by fresh row-reader WBs. Keep it private until the
+// successor's complete transaction/selection supplier is installed; exporting
+// an ordinary history bypass merely to silence a warning would be incorrect.
+#warnings("-unused_value")
 fn read_local_historical_runtime_upgrade_original(
   host : NativeLocalHostConnection,
   row : @sqlite.NativeJournalValue,
