@@ -319,6 +319,28 @@ pub fn take_imported_child_ledger(
 }
 
 ///|
+/// Validate the already taken original VM capacity without returning another
+/// Ledger, reserving bytes, or issuing physical/read/launch authority.
+pub fn require_imported_child_vm_capacity(
+  value : ImportedChildLedger,
+  ledger : Ledger,
+  capacity : SharedCapacity,
+) -> Result[Unit, ImportedChildLedgerIssue] {
+  match imported_child_original(value) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !value.taken {
+    return Err(Unavailable)
+  }
+  guard value.ledger is Some(original) && physical_equal(original, ledger) &&
+    value.wasm_capacity is Some(vm) && physical_equal(vm, capacity) else {
+    return Err(ForeignOriginal)
+  }
+  check_imported_child_admission(ledger).map_err(issue => Resource(issue))
+}
+
+///|
 /// Report this original Ledger's actual snapshot, never caller-supplied usage.
 /// ACK loss retains the immutable snapshot and prevents blind report retries.
 pub fn report_imported_child_ledger(

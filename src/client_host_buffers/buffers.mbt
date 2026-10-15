@@ -1,9 +1,19 @@
 ///|
 /// Instance-private transfer storage. This is not a Run or recovery Owner.
 /// Capacity and borrower retirement belong to the existing physical Ledger.
+enum PoolBacking {
+  OwnedCapacity
+  ImportedVmCapacity
+}
+
+///|
 pub struct BufferPool {
   ledger : @resources.Ledger
   capacity : @resources.SharedCapacity
+  backing : PoolBacking
+  total_bytes : Int64
+  mut allocated_bytes : Int64
+  mut copy_reserved_bytes : Int64
   max_slots : Int
   max_wire_bytes : Int
   mut next_serial : Int
@@ -17,7 +27,10 @@ pub struct BufferPool {
 pub struct BufferSlot {
   owner : BufferPool
   serial : Int
-  allocation : @resources.SharedAllocation
+  mut allocation : @resources.SharedAllocation?
+  mut copy_capacity : @resources.SharedCapacity?
+  accounted_bytes : Int64
+  mut published : Bool
   wire_length : Int
   cleanup : () -> Bool
   mut output_only : Bool
@@ -104,6 +117,10 @@ pub fn open_pool_on_ledger(
   Ok({
     ledger,
     capacity,
+    backing: OwnedCapacity,
+    total_bytes,
+    allocated_bytes: 0L,
+    copy_reserved_bytes: 0L,
     max_slots,
     max_wire_bytes,
     next_serial: 1,
@@ -112,6 +129,60 @@ pub fn open_pool_on_ledger(
     closing: false,
     settled: false,
   })
+}
+
+///|
+// Private assembly after the Resource Owner has checked the SAME import.
+// Only wire backing uses its VM capacity. External copies still require an
+// independent actual reservation; the Host baseline is not a copy allowance.
+fn open_pool_on_vm_capacity(
+  ledger : @resources.Ledger,
+  capacity : @resources.SharedCapacity,
+  total_bytes : Int64,
+  max_slots : Int,
+  max_wire_bytes : Int,
+) -> Result[BufferPool, BufferIssue] {
+  if total_bytes <= 0L || max_slots < 1 || max_slots > 1024 || max_wire_bytes < 1 {
+    return Err(InvalidLimits)
+  }
+  if @resources.shared_capacity_usage(capacity).closing {
+    return Err(Closed)
+  }
+  Ok({
+    ledger,
+    capacity,
+    backing: ImportedVmCapacity,
+    total_bytes,
+    allocated_bytes: 0L,
+    copy_reserved_bytes: 0L,
+    max_slots,
+    max_wire_bytes,
+    next_serial: 1,
+    live_borrows: 0,
+    slots: [],
+    closing: false,
+    settled: false,
+  })
+}
+
+///|
+/// Reuse the original imported VM reservation, not another execution lease.
+/// Positive copy bytes are not placed in VM or Host baseline by this view.
+pub fn open_pool_on_imported_vm_capacity(
+  original : @resources.ImportedChildLedger,
+  ledger : @resources.Ledger,
+  capacity : @resources.SharedCapacity,
+  total_bytes : Int64,
+  max_slots : Int,
+  max_wire_bytes : Int,
+) -> Result[BufferPool, BufferIssue] {
+  match @resources.require_imported_child_vm_capacity(original, ledger, capacity) {
+    Ok(_) => ()
+    Err(@resources.Resource(issue)) => return Err(Resource(issue))
+    Err(@resources.ForeignOriginal) => return Err(ForeignOwner)
+    Err(_) => return Err(Resource(@resources.ChildFundingUnavailable))
+  }
+  open_pool_on_vm_capacity(ledger, capacity, total_bytes, max_slots, max_wire_bytes)
 }
 
 ///|
@@ -138,10 +209,19 @@ pub fn reserve_buffer(
     pool.next_serial == 2147483647 {
     return Err(Capacity)
   }
+  let charge = physical_copy_bytes + 2L * wire_bytes.to_int64()
+  if pool.backing is ImportedVmCapacity &&
+    charge > pool.total_bytes - pool.allocated_bytes {
+    return Err(Resource(@resources.RetentionLimit))
+  }
   let allocation = match
     @resources.allocate_shared_capacity(
       pool.capacity,
-      physical_copy_bytes + 2L * wire_bytes.to_int64(),
+      if pool.backing is ImportedVmCapacity {
+        2L * wire_bytes.to_int64()
+      } else {
+        charge
+      },
     ) {
     Ok(value) => value
     Err(issue) => return Err(Resource(issue))
@@ -149,7 +229,10 @@ pub fn reserve_buffer(
   let slot = {
     owner: pool,
     serial: pool.next_serial,
-    allocation,
+    allocation: Some(allocation),
+    copy_capacity: None,
+    accounted_bytes: charge,
+    published: false,
     wire_length: wire_bytes,
     cleanup,
     output_only: false,
@@ -164,7 +247,24 @@ pub fn reserve_buffer(
     cleaned: false,
   }
   pool.next_serial += 1
+  pool.allocated_bytes += charge
   pool.slots.push(slot)
+  if pool.backing is ImportedVmCapacity && physical_copy_bytes > 0L {
+    match @resources.reserve_shared_capacity(pool.ledger, physical_copy_bytes) {
+      Ok(capacity) => {
+        slot.copy_capacity = Some(capacity)
+        pool.copy_reserved_bytes += physical_copy_bytes
+      }
+      Err(issue) => {
+        // Custody precedes this fallible second reservation. No physical copy
+        // was exposed, so cleanup skips its callback. If currentness prevents
+        // rollback, the SAME unpublished slot remains with pool cleanup.
+        close_buffer(pool, slot) |> ignore
+        return Err(Resource(issue))
+      }
+    }
+  }
+  slot.published = true
   Ok(slot)
 }
 
@@ -203,7 +303,7 @@ pub fn supply_buffer_output(
   if !physical_equal(pool, slot.owner) {
     return Err(ForeignOwner)
   }
-  if pool.closing || slot.retired || slot.cleaned || slot.input_complete {
+  if !slot.published || pool.closing || slot.retired || slot.cleaned || slot.input_complete {
     return Err(Closed)
   }
   if !slot.output_only || wire.length() > slot.wire_length {
@@ -222,6 +322,7 @@ pub fn buffer_length(pool : BufferPool, slot : BufferSlot) -> Int? {
 ///|
 pub fn buffer_output_limit(pool : BufferPool, slot : BufferSlot) -> Int? {
   if !physical_equal(pool, slot.owner) ||
+    !slot.published ||
     pool.closing ||
     slot.retired ||
     slot.cleaned ||
@@ -235,7 +336,8 @@ pub fn buffer_output_limit(pool : BufferPool, slot : BufferSlot) -> Int? {
 
 ///|
 pub fn lookup_buffer(pool : BufferPool, serial : Int) -> BufferSlot? {
-  pool.slots.iter().find_first(slot => slot.serial == serial && !slot.cleaned)
+  pool.slots.iter().find_first(slot =>
+    slot.serial == serial && slot.published && !slot.cleaned)
 }
 
 ///|
@@ -251,7 +353,7 @@ pub fn fill_buffer(
   if !physical_equal(pool, slot.owner) {
     return Err(ForeignOwner)
   }
-  if pool.closing ||
+  if !slot.published || pool.closing ||
     slot.retired ||
     slot.cleaned ||
     slot.input_complete ||
@@ -287,7 +389,7 @@ pub fn seal_buffer(
   if !physical_equal(pool, slot.owner) {
     return Err(ForeignOwner)
   }
-  if pool.closing ||
+  if !slot.published || pool.closing ||
     slot.retired ||
     slot.cleaned ||
     slot.input_complete ||
@@ -320,6 +422,7 @@ pub fn seal_buffer(
 ///|
 pub fn buffer_source(pool : BufferPool, slot : BufferSlot) -> @source.Node? {
   if !physical_equal(pool, slot.owner) ||
+    !slot.published ||
     pool.closing ||
     slot.retired ||
     slot.cleaned ||
@@ -335,6 +438,7 @@ pub fn buffer_source(pool : BufferPool, slot : BufferSlot) -> @source.Node? {
 /// this view must hold its exact borrow until it has finished using the bytes.
 pub fn buffer_wire(pool : BufferPool, slot : BufferSlot) -> Bytes? {
   if !physical_equal(pool, slot.owner) ||
+    !slot.published ||
     pool.closing ||
     slot.retired ||
     slot.cleaned ||
@@ -348,6 +452,7 @@ pub fn buffer_wire(pool : BufferPool, slot : BufferSlot) -> Bytes? {
 ///|
 pub fn buffer_byte(pool : BufferPool, slot : BufferSlot, index : Int) -> Byte? {
   if !physical_equal(pool, slot.owner) ||
+    !slot.published ||
     slot.retired ||
     slot.cleaned ||
     !slot.input_complete ||
@@ -371,14 +476,14 @@ pub fn borrow_buffer(
   if !physical_equal(pool, slot.owner) {
     return Err(ForeignOwner)
   }
-  if pool.closing || slot.retired || slot.cleaned || !slot.input_complete {
+  if !slot.published || pool.closing || slot.retired || slot.cleaned || !slot.input_complete {
     return Err(Closed)
   }
   if pool.slots.length() + pool.live_borrows >= pool.max_slots {
     return Err(Capacity)
   }
   let borrow = match
-    @resources.borrow_shared_capacity(pool.capacity, slot.allocation) {
+    @resources.borrow_shared_capacity(pool.capacity, slot.allocation.unwrap()) {
     Ok(value) => value
     Err(issue) => return Err(Resource(issue))
   }
@@ -423,20 +528,36 @@ pub fn close_buffer(
     return Ok(())
   }
   if !slot.retired {
-    match @resources.retire_shared_capacity(slot.allocation) {
+    match @resources.retire_shared_capacity(slot.allocation.unwrap()) {
       Err(issue) => return Err(Resource(issue))
       Ok(_) => ()
     }
+    if slot.copy_capacity is Some(capacity) {
+      match @resources.close_shared_capacity(capacity) {
+        Err(issue) => return Err(Resource(issue))
+        Ok(_) => ()
+      }
+    }
     slot.retired = true
   }
-  if @resources.shared_allocation_usage(slot.allocation).readers != 0 ||
-    !(slot.cleanup)() {
+  if @resources.shared_allocation_usage(slot.allocation.unwrap()).readers != 0 ||
+    (slot.published && !(slot.cleanup)()) {
     return Err(CleanupPending)
   }
-  match @resources.release_shared_capacity(slot.allocation) {
+  if slot.copy_capacity is Some(capacity) {
+    match @resources.settle_shared_capacity(capacity) {
+      Err(issue) => return Err(Resource(issue))
+      Ok(_) => ()
+    }
+    pool.copy_reserved_bytes -= @resources.shared_capacity_usage(capacity).capacity
+    slot.copy_capacity = None
+  }
+  match @resources.release_shared_capacity(slot.allocation.unwrap()) {
     Ok(_) => ()
     Err(issue) => return Err(Resource(issue))
   }
+  slot.allocation = None
+  pool.allocated_bytes -= slot.accounted_bytes
   slot.bytes = []
   slot.wire = None
   slot.source = None
@@ -447,7 +568,11 @@ pub fn close_buffer(
 
 ///|
 pub fn buffer_pool_usage(pool : BufferPool) -> @resources.SharedCapacityUsage {
-  @resources.shared_capacity_usage(pool.capacity)
+  {
+    capacity: pool.total_bytes,
+    allocated: pool.allocated_bytes,
+    closing: pool.closing || @resources.shared_capacity_usage(pool.capacity).closing,
+  }
 }
 
 ///|
@@ -463,9 +588,11 @@ pub fn close_pool(pool : BufferPool) -> Result[Unit, BufferIssue] {
     return Ok(())
   }
   if !pool.closing {
-    match @resources.close_shared_capacity(pool.capacity) {
-      Ok(_) => ()
-      Err(issue) => return Err(Resource(issue))
+    if pool.backing is OwnedCapacity {
+      match @resources.close_shared_capacity(pool.capacity) {
+        Ok(_) => ()
+        Err(issue) => return Err(Resource(issue))
+      }
     }
     pool.closing = true
   }
@@ -478,9 +605,11 @@ pub fn close_pool(pool : BufferPool) -> Result[Unit, BufferIssue] {
   if pending {
     return Err(CleanupPending)
   }
-  match @resources.settle_shared_capacity(pool.capacity) {
-    Ok(_) => ()
-    Err(issue) => return Err(Resource(issue))
+  if pool.backing is OwnedCapacity {
+    match @resources.settle_shared_capacity(pool.capacity) {
+      Ok(_) => ()
+      Err(issue) => return Err(Resource(issue))
+    }
   }
   pool.settled = true
   Ok(())
@@ -491,6 +620,8 @@ pub fn close_pool(pool : BufferPool) -> Result[Unit, BufferIssue] {
 pub fn buffer_pool_reserved(pool : BufferPool) -> Int64 {
   if pool.settled {
     0L
+  } else if pool.backing is ImportedVmCapacity {
+    pool.copy_reserved_bytes
   } else {
     @resources.shared_capacity_usage(pool.capacity).capacity
   }
