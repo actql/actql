@@ -6,7 +6,7 @@ import {createRequire} from 'node:module';
 import {dirname, join} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {verifyPackageRelease} from '../../scripts/package-release.mjs';
-import {auditPackedPackages} from '../../scripts/packed-client-packages.mjs';
+import {auditPackedPackages} from '../../scripts/packed-package-boundaries.mjs';
 import {temporalJoinSourceSuccesses} from '../../scripts/fixtures/temporal-join-source-input.mjs';
 const [rc, installed, destination] = process.argv.slice(2);
 const manifest = await verifyPackageRelease(rc);
