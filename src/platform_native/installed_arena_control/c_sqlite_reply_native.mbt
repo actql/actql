@@ -107,7 +107,12 @@ pub fn InstalledArenaSqliteReply::operation_tag(
 pub fn InstalledArenaSqliteReply::issue_family(
   self : InstalledArenaSqliteReply,
 ) -> Int {
-  match self.issue {
+  sqlite_reply_issue_family(self.issue)
+}
+
+///|
+fn sqlite_reply_issue_family(issue : InstalledArenaSqliteIssue?) -> Int {
+  match issue {
     None => 0
     Some(Domain(@bootstrap.Bootstrap(issue))) =>
       installed_arena_issue_family(Some(issue))

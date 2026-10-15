@@ -1413,6 +1413,16 @@ int32_t actql_native_sqlite_database_transaction_fenced(
   return database == NULL || !actql_library_current(database->library) || database->transaction_fenced;
 }
 
+// Observe the same opened connection. A failed observation is never the
+// autocommit/no-active result, and this does not clear an uncertainty fence.
+int32_t actql_native_sqlite_database_transaction_state(
+  actql_native_sqlite_database *database
+) {
+  if (database == NULL || !database->opened || database->database == NULL ||
+      !actql_database_library_available(database->library)) return -1;
+  return database->library->get_autocommit(database->database) ? 0 : 1;
+}
+
 int32_t actql_native_sqlite_database_commit(
   actql_native_sqlite_database *database
 ) {
