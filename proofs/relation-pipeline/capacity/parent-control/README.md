@@ -72,6 +72,19 @@ The independent eleven-candidate construction component remains conditional
 2344 bytes; its original scientific records and source-review provenance are
 not altered merely to admit the current chain representation.
 
+The current construction recipe is `provider-construction-current.json`.
+Its separate source correspondence pins the complete selected, managed and
+generated blobs, then reverses only seventeen exact reviewed literal deltas
+to the retained Git preimages. The original recipe, historical review and
+historical checker remain unchanged and all their checks still run. Unknown,
+duplicate or incomplete deltas refuse admission. The eleven-candidate factory
+outside `accepts` and its three construction wrappers retain their original
+digests. Calendar selected-context storage, prefix execution capacity and the
+removal of compatibility start APIs are recorded source changes, not new
+constructor allocation or lifetime laws. This admission does not requalify
+historical Native observations as current measurements or establish physical
+parent capacity; the seven conditional propositions keep their original types.
+
 ## Cancellation and cleanup custody
 
 One existing long-name two-child chain reaches real input preparation and a
