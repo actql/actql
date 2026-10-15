@@ -137,3 +137,9 @@ pub fn NativeSqliteLibraryLoadFailure::retry_cleanup(
   }
   Ok(())
 }
+
+///|
+pub(all) enum NativeLookupReadAcquisition {
+  ReadyLookupRead(NativeLookupRead)
+  PendingLookupRead(NativeLookupRead, NativeSqliteIssue)
+}

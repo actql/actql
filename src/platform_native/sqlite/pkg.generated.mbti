@@ -30,6 +30,8 @@ pub fn Database::fence_transactions(Self) -> Unit
 pub fn Database::insert(Self, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::inspection_status(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::lookup_claim_ordinal(Self, String, String) -> Result[Int64?, NativeSqliteIssue]
+pub fn Database::owns_lookup_read(Self, NativeLookupRead) -> Bool
+pub fn Database::prepare_lookup_read(Self) -> Result[NativeLookupReadAcquisition, NativeSqliteIssue]
 pub fn Database::read(Self, String, String) -> Result[NativeJournalValue, NativeSqliteIssue]
 pub fn Database::read_capacity(Self, String, String) -> Result[NativeCapacityUsage, NativeSqliteIssue]
 pub fn Database::read_header(Self, String, String) -> Result[NativeJournalHeader, NativeSqliteIssue]
@@ -82,6 +84,22 @@ pub(all) struct NativeJournalHeader {
 pub(all) struct NativeJournalValue {
   revision : Int64
   body : Bytes
+}
+
+type NativeLookupRead
+pub fn NativeLookupRead::capacity_usage(Self, String) -> Result[NativeCapacityUsage, NativeSqliteIssue]
+pub fn NativeLookupRead::database_usage(Self) -> Result[NativeDatabaseUsage, NativeSqliteIssue]
+pub fn NativeLookupRead::finish(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn NativeLookupRead::read_capacity(Self, String, String) -> Result[NativeCapacityUsage, NativeSqliteIssue]
+pub fn NativeLookupRead::read_header(Self, String, String) -> Result[NativeJournalHeader, NativeSqliteIssue]
+pub fn NativeLookupRead::read_with_body_limit(Self, String, String, Int64) -> Result[NativeJournalValue, NativeSqliteIssue]
+pub fn NativeLookupRead::require_current(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn NativeLookupRead::retry_cleanup(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn NativeLookupRead::scan_after_with_body_limit(Self, String, String, Int64) -> Result[NativeJournalEntry, NativeSqliteIssue]
+
+pub(all) enum NativeLookupReadAcquisition {
+  ReadyLookupRead(NativeLookupRead)
+  PendingLookupRead(NativeLookupRead, NativeSqliteIssue)
 }
 
 pub(all) enum NativeOrdinalClaim {
