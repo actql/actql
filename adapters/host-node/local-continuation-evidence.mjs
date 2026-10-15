@@ -445,9 +445,12 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
   // Store open/close operations. Never keep a closed Store's graph alive in
   // an escaped view, or treat a copied wire/CID as this nominal custody.
   let originalModelBinding;
-  async function observeOriginalModelBinding() {
+  async function observeOriginalModelBinding(acquisition, ownerId, requestCid) {
     return withStore(async store => {
       const handle = await store.observeOriginalModelStorageBinding();
+      if (acquisition !== undefined) {
+        selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+      }
       const evidence = store.originalModelStorageBindingEvidence(handle);
       const body = JSON.parse(evidence.wire);
       if (body.key_generation_cid !== keyId || body.private_namespace !== NAMESPACE) {
@@ -461,7 +464,7 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
         fail('OriginalModelStorageBindingChanged');
       }
       return originalModelBinding.handle;
-    });
+    }, acquisition, ownerId, requestCid);
   }
 
   // Reuse the same Evidence Owner for both ordinary existing reads and the
@@ -544,6 +547,18 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       // This checks the actual selected Store after its admission await.
       // Nominal origin is required first; value equality is only a fence.
       await observeOriginalModelBinding();
+      return originalModelBinding.evidence;
+    },
+    async originalModelStorageBindingEvidenceSelected(handle, ownerId, requestCid, acquisition) {
+      // Re-observe only this already-issued nominal binding using the same
+      // parked original's Store opening envelope. This is not the initial
+      // pre-park installation observation and cannot issue a new binding.
+      selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+      if (originalModelBinding === undefined || handle !== originalModelBinding.handle) {
+        fail('ForeignOriginalModelStorageBinding');
+      }
+      await observeOriginalModelBinding(acquisition, ownerId, requestCid);
+      selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
       return originalModelBinding.evidence;
     },
 
