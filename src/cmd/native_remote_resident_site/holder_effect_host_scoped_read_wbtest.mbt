@@ -6,7 +6,10 @@ test "Host Account read does not substitute Site capacity for an original Native
   // physical entry. A missing path cannot make the scoped refusal pass.
   let readable = match
     @bounded_files.read_bounded_text_file_with_custody(
-      ".", "moon.mod", 4096L, diagnostic_ceiling=Some(8),
+      ".",
+      "moon.mod",
+      4096L,
+      diagnostic_ceiling=Some(8),
     ) {
     Ok(text) => text
     Err(failure) => {
