@@ -2,7 +2,7 @@
 import {openLocalExplorer} from './launcher.mjs';
 import {explorerArguments, explorerLaunchInput} from './cli-input.mjs';
 
-const help = `Usage: actql-explorer --local [--state-dir <directory>]\n       [--program <file> [--format sql|aql-text|program] | --run <reference.json>]\n\nOpens one existing ActQL Local Host and the built read-only Explorer.\nProgram input reads a static Plan only; it never starts a Run.\nRun input reads the saved original Run Plan, with no compile fallback.\nTo borrow an already connected Client, use @actql/explorer/launcher.\nPaste the printed one-use bootstrap into the page within 60 seconds.\nClosing the viewer does not cancel a Run. No Vite server is required.\n`;
+const help = `Usage: actql-explorer --local [--state-dir <directory>]\n       [--program <file> [--format sql|aql|aql-text|program] | --run <reference.json>]\n\nOpens one existing ActQL Local Host and the built read-only Explorer.\nProgram input reads a static Plan only; it never starts a Run.\nRun input reads the saved original Run Plan, with no compile fallback.\nTo borrow an already connected Client, use @actql/explorer/launcher.\nPaste the printed one-use bootstrap into the page within 60 seconds.\nClosing the viewer does not cancel a Run. No Vite server is required.\n`;
 const args = process.argv.slice(2);
 try {
   if (args.length === 1 && ['--help', '-h'].includes(args[0])) {

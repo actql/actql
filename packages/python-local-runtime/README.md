@@ -8,7 +8,7 @@ installation keeps its existing dependencies.
 This source directory is a recipe, not a shipped runtime. It contains no Wasm
 module or native library. A release producer must supply the exact committed
 source artifact and its independent build and execution receipts. The existing
-Core loader validates ABI73; an older module is not a fallback. Installed
+Core loader validates ABI74; an older module is not a fallback. Installed
 metadata must select standalone DuckDB `v1.4.3`; other library versions cannot
 enter this installed profile. The physical loader also checks the actual
 library version before use.
@@ -31,7 +31,7 @@ The supplied directory contains `artifact.json`, `engine-recipe.json`, `client_h
 - `source_sha`: the complete clean recipe/source commit.
 - `package_version`: the SDK/runtime release cohort version.
 - `platform`: `darwin-arm64`.
-- `core_abi`: the existing private Core ABI, currently 73.
+- `core_abi`: the existing private Core ABI, currently 74.
 - `wasmtime_version`: `38.0.0`.
 - `module` and `duckdb`: `{file, bytes, sha256}`, with the fixed filenames above.
 - `duckdb_version`: the actual library's `vMAJOR.MINOR.PATCH` string, independently
@@ -188,3 +188,12 @@ instance/Root custody. Failure retains the same Store, Core and pending Root;
 retry never reopens Core or repeats release of successful native handles. The
 Python handle counterexamples qualify this order only; actual Native/Wasmtime
 cleanup and outer bootstrap reservation remain separate physical evidence.
+
+Private ABI74 adds a separate live-child buffer constructor and explicit report
+and logical-stop exports. It obtains its bounded Ledger and prepaid VM/Host
+tokens only from the fixed installed Host imports. Failed initialization retains
+the original frame and blocks scalar-open fallback; logical close never returns
+those fixed tokens before parent physical retirement. The diagnostic Python
+host supplies typed Unavailable for these imports until its original physical
+channel/native issuer is connected. This addition does not adopt a numerical
+profile or establish actual VM, wheel, worker or public Local acceptance.

@@ -47,6 +47,11 @@ test('direct-open arguments keep Local explicit, formats explicit and program/ru
   assert.deepEqual(explorerArguments(['--local', '--state-dir', 'state', '--run', 'ref.json']),
     {local: {stateDir: 'state'}, run: 'ref.json'});
   assert.equal(explorerArguments(['--format', 'program', '--program', 'query.json', '--local']).format, 'program');
+  for (const format of ['aql', 'aql-text']) {
+    assert.equal(explorerArguments(['--local', '--program', 'query.aql', '--format', format]).format, format);
+    assert.deepEqual(copyExplorerLaunchInput({kind: 'program', text: 'FROM rows', format}),
+      {kind: 'program', text: 'FROM rows', format});
+  }
   assert.throws(() => explorerArguments(['--program', 'query.sql']), /ExplorerExplicitHostRequired/u);
   for (const args of [['--local', '--program', 'one', '--run', 'two'],
     ['--local', '--format', 'sql'], ['--local', '--program'],

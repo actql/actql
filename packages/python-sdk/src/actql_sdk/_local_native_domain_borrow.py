@@ -60,6 +60,9 @@ class _OriginalDomainBorrowFunctions:
         self.contains = library.actql_native_domain_borrow_contains_live_span
         self.contains.argtypes = [c_void_p, c_void_p, c_size_t]
         self.contains.restype = c_int
+        self.span_offset = library.actql_native_domain_borrow_span_offset
+        self.span_offset.argtypes = [c_void_p, c_void_p, c_void_p, c_size_t, POINTER(c_uint64)]
+        self.span_offset.restype = c_int
 
 
 class _OriginalDomainBorrow:
@@ -235,6 +238,31 @@ class _OriginalDomainBorrow:
     def _holding_identity(self, consumer: object) -> None:
         if self._holding_consumer is not consumer:
             raise ValueError('Foreign original child domain holding')
+
+    def _holding_span_offset(self, consumer: object, slot: c_void_p,
+                             address: c_void_p, length: int) -> int:
+        """Physical DATA from this same original; no caller supplies a VM fact."""
+        self._holding_identity(consumer)
+        if (self._closed or self._closing or type(slot) is not c_void_p
+                or slot.value is None or type(address) is not c_void_p or address.value is None
+                or type(length) is not int or not 0 < length <= 2**63 - 1):
+            raise ValueError('Original child span projection is unavailable')
+        self._begin()
+        try:
+            observed = c_uint64()
+            self._check_code(self._functions.span_offset(
+                self._pointer, slot, address, length, byref(observed)))
+            if (not 0 < observed.value <= 2**63 - 1
+                    or observed.value > self._material.scalars[7]
+                    or length > self._material.scalars[7] - observed.value):
+                raise self._mark_unknown()
+            return observed.value
+        except BaseException as error:
+            if isinstance(error, _OriginalDomainBorrowError):
+                raise
+            raise self._mark_unknown() from error
+        finally:
+            self._busy = False
 
     def _transfer_holding(self, consumer: object, slot: c_void_p, generation: int, recipe: bytes) -> None:
         self._holding_identity(consumer)

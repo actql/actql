@@ -20,8 +20,8 @@ npx actql-explorer --local --state-dir .actql
 
 To open a selected Program directly, use
 `npx actql-explorer --local --state-dir .actql --program query.sql`.
-SQL is the default; select `--format aql-text` or `--format program` for AQL
-text or Program JSON. This reads a static Plan after the explicit browser
+SQL is the default; select `--format aql` or `--format program` for AQL
+text or Program JSON. The existing `--format aql-text` alias remains accepted. This reads a static Plan after the explicit browser
 session is connected. It does not submit, start or execute the Program.
 To read an existing Run's saved original Plan directly, use
 `npx actql-explorer --local --state-dir .actql --run run-reference.json`.

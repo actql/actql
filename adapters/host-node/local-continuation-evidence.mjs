@@ -56,6 +56,62 @@ async function durableWrite(path, bytes, mode = 0o600) {
   try { await directory.sync(); } finally { await directory.close(); }
 }
 
+// A selected original save keeps the exact acquired FD on failed close. Its
+// existing queue/Store cleanup consumes this private carrier; retry is only
+// close, never another write/rename or a claim that the save did not commit.
+async function closeOriginalWriteHandle(handle, primary, failed) {
+  try {
+    if (await handle.close() === false) fail('ContinuationWriteCleanupPending');
+  } catch (closeFailure) {
+    let original = handle, flight;
+    const status = () => Object.freeze({pending: original !== undefined});
+    const cleanupHandle = Object.freeze({status, retry() {
+      if (flight !== undefined) return flight;
+      if (original === undefined) return Promise.resolve(status());
+      flight = Promise.resolve().then(() => original.close()).then(result => {
+        if (result === false) fail('ContinuationWriteCleanupPending');
+        original = undefined;
+        return status();
+      }).finally(() => { flight = undefined; });
+      return flight;
+    }});
+    const reason = failed ? primary : closeFailure;
+    const failure = reason !== null && typeof reason === 'object' &&
+      Object.isExtensible(reason) && reason.cleanupHandle === undefined
+      ? reason : new Error('ContinuationWriteCleanupPending', {cause: reason});
+    failure.cleanupHandle = cleanupHandle;
+    failure.cleanupPending = true;
+    failure.cleanupError = closeFailure;
+    throw failure;
+  }
+}
+
+async function durableOriginalWrite(path, bytes, current) {
+  current();
+  await mkdir(dirname(path), {recursive: true, mode: 0o700});
+  current();
+  const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
+  const handle = await openFile(temporary, 'wx', 0o600);
+  let primary, failed = false;
+  try {
+    current();
+    await handle.writeFile(bytes);
+    current();
+    await handle.sync();
+    current();
+  } catch (error) { primary = error; failed = true; throw error; }
+  finally { await closeOriginalWriteHandle(handle, primary, failed); }
+  current();
+  await rename(temporary, path);
+  current();
+  const directory = await openFile(dirname(path), 'r');
+  primary = undefined; failed = false;
+  try { current(); await directory.sync(); current(); }
+  catch (error) { primary = error; failed = true; throw error; }
+  finally { await closeOriginalWriteHandle(directory, primary, failed); }
+  current();
+}
+
 // Installation key setup (Host work): one random 32-byte key, owner-only.
 export async function createPrivateEvidenceKey(stateDirectory) {
   await mkdir(stateDirectory, {recursive: true, mode: 0o700});
@@ -210,6 +266,14 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
     return operation;
   }
 
+  async function readOriginalLedger(id, acquisition) {
+    const selected = selectOriginalInferMetadataAcquisition(acquisition, id);
+    const ledger = await readContinuationLedgerBounded(ledgerPath(id), id,
+      selected.metadata, undefined, contractControl);
+    selectOriginalInferMetadataAcquisition(acquisition, id, ledger.request_cid);
+    return ledger;
+  }
+
   async function readLedger(id, acquisition) {
     if (acquisition !== undefined) {
       // A's actual operation/installation issuer owns this nominal selection.
@@ -217,11 +281,7 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       selectOriginalInferMetadataAcquisition(acquisition, id);
       const operation = queue.then(async pending => {
         if (pending?.cleanupHandle?.status().pending) throw pending;
-        const selected = selectOriginalInferMetadataAcquisition(acquisition, id);
-        const ledger = await readContinuationLedgerBounded(ledgerPath(id), id,
-          selected.metadata, undefined, contractControl);
-        selectOriginalInferMetadataAcquisition(acquisition, id, ledger.request_cid);
-        return ledger;
+        return readOriginalLedger(id, acquisition);
       });
       // The existing queue retains the same failed physical handle, without
       // another Owner/map/reservation. Subsequent I/O waits for confirmed close.
@@ -304,6 +364,39 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
     return verify();
   }
 
+  // Original Model saves borrow the same Store lifecycle but not another
+  // continuation's metadata. No cross-Run scan or ordinary fallback here.
+  async function holdOneOriginalModelState(store, prepareAttemptId, entry, wire,
+    acquisition, retainCleanup) {
+    const current = () => selectOriginalInferStoreBootstrapAcquisition(acquisition,
+      prepareAttemptId);
+    const verify = async () => {
+      const stored = await store.readPrivateEvidence(entry.name,
+        entry.semantic_cid, entry.holding_cid);
+      current();
+      if (!stored.equals(Buffer.from(wire, 'utf8'))) fail('PrivateEvidenceConflict');
+    };
+    current();
+    const existing = await store.inspectPhysicalHolding(entry.holding_cid);
+    current();
+    if (existing !== undefined) return verify();
+    const prepared = await store.preparePrivateEvidence(entry.name, wire,
+      entry.semantic_cid);
+    retainCleanup(prepared.prepared);
+    try {
+      current();
+      await store.commitPhysicalHolding(Object.freeze({
+        version: 'actql-local-physical-holding/0.1', namespace: NAMESPACE,
+        holding_cid: entry.holding_cid, manifest_cid: entry.semantic_cid,
+        objects: [{cid: prepared.physicalCid, byte_count: prepared.bytes}],
+      }), [prepared.prepared]);
+      current();
+    } finally {
+      if (prepared.prepared.status().pending) await prepared.prepared.release();
+    }
+    return verify();
+  }
+
   async function listLedgers(acquisition) {
     if (acquisition !== undefined) {
       selectOriginalInferMetadataAcquisition(acquisition);
@@ -352,9 +445,12 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
   // Store open/close operations. Never keep a closed Store's graph alive in
   // an escaped view, or treat a copied wire/CID as this nominal custody.
   let originalModelBinding;
-  async function observeOriginalModelBinding() {
+  async function observeOriginalModelBinding(acquisition, ownerId, requestCid) {
     return withStore(async store => {
       const handle = await store.observeOriginalModelStorageBinding();
+      if (acquisition !== undefined) {
+        selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+      }
       const evidence = store.originalModelStorageBindingEvidence(handle);
       const body = JSON.parse(evidence.wire);
       if (body.key_generation_cid !== keyId || body.private_namespace !== NAMESPACE) {
@@ -368,7 +464,7 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
         fail('OriginalModelStorageBindingChanged');
       }
       return originalModelBinding.handle;
-    });
+    }, acquisition, ownerId, requestCid);
   }
 
   // Reuse the same Evidence Owner for both ordinary existing reads and the
@@ -453,6 +549,18 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       await observeOriginalModelBinding();
       return originalModelBinding.evidence;
     },
+    async originalModelStorageBindingEvidenceSelected(handle, ownerId, requestCid, acquisition) {
+      // Re-observe only this already-issued nominal binding using the same
+      // parked original's Store opening envelope. This is not the initial
+      // pre-park installation observation and cannot issue a new binding.
+      selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+      if (originalModelBinding === undefined || handle !== originalModelBinding.handle) {
+        fail('ForeignOriginalModelStorageBinding');
+      }
+      await observeOriginalModelBinding(acquisition, ownerId, requestCid);
+      selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+      return originalModelBinding.evidence;
+    },
 
     // The exact reference and holding of one evidence item of a continuation.
     reference,
@@ -481,6 +589,47 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
         }
       });
       return entries.map(entry => entry.semantic_cid);
+    },
+
+    // Same Evidence/Store owner and exact original acquisition. This closed
+    // save does not infer a fresh ledger from missing bytes and never falls
+    // back to ordinary metadata or another Run's sharing scan. Source/prime
+    // callers continue to use the separate existing ordinary hold API.
+    async holdOriginalModelState(prepareAttemptId, requestCid, wire, acquisition) {
+      const current = () => selectOriginalInferMetadataAcquisition(acquisition,
+        prepareAttemptId, requestCid);
+      current();
+      selectOriginalInferStoreBootstrapAcquisition(acquisition, prepareAttemptId, requestCid);
+      if (typeof wire !== 'string') fail('InvalidPrivateEvidence');
+      return withStore(async (store, retainCleanup) => {
+        current();
+        const ledger = await readOriginalLedger(prepareAttemptId, acquisition);
+        current();
+        sameKey(ledger);
+        if (ledger.request_cid !== requestCid) fail('ContinuationRequestMismatch');
+        const entry = {...reference(prepareAttemptId, 'original_model_state', wire), state: 'held'};
+        const existing = ledger.holdings.find(item => item.holding_cid === entry.holding_cid);
+        const selected = current();
+        if (existing === undefined) {
+          if (ledger.holdings.length >= selected.metadata.maxLedgerEntries) {
+            fail('ContinuationLedgerEntriesLimit');
+          }
+          ledger.holdings.push(entry);
+        } else if (existing.state !== 'held') fail('ContinuationEvidenceRetired');
+        const metadataWire = JSON.stringify(ledger);
+        if (Buffer.byteLength(metadataWire, 'utf8') > selected.metadata.maxWireBytes) {
+          fail('InvalidContinuationLedger');
+        }
+        current();
+        // Preserve write-ahead custody before physical publication. A failed
+        // or lost response never rewrites this as unsaved or retries the hold.
+        await durableOriginalWrite(ledgerPath(prepareAttemptId), Buffer.from(metadataWire, 'utf8'), current);
+        current();
+        await holdOneOriginalModelState(store, prepareAttemptId, entry, wire,
+          acquisition, retainCleanup);
+        current();
+        return entry.semantic_cid;
+      }, acquisition, prepareAttemptId, requestCid);
     },
 
     // Existing ordinary Evidence API is not relabelled as funded original I/O.
