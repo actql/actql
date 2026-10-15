@@ -34,7 +34,8 @@ def under(path: Path, root: Path) -> bool:
 
 
 def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
-                 clang: Path, sdk: Path, *, cc_driver: Path | None = None) -> list[list[str]]:
+                 clang: Path, sdk: Path, *, cc_driver: Path | None = None,
+                 ar_driver: Path | None = None) -> list[list[str]]:
     """Keep the actual pinned dry-run closure; reject other targets/entries."""
     commands: list[list[str]] = []
     links = finals = providers = 0
@@ -47,7 +48,15 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
         parts = [p.replace('$MOON_HOME', str(moon_home)) for p in parts]
         if any('$' in p for p in parts):
             raise ValueError('Unresolved build placeholder')
-        if '-o' not in parts or not under(Path(parts[parts.index('-o') + 1]), emission):
+        if ar_driver is not None and parts[0] == str(ar_driver):
+            if len(parts) < 4 or parts[1] not in ('rcs', 'crs', 'cq', 'qc'):
+                raise ValueError('Unexpected original archive operation')
+            output_path = Path(parts[2])
+        elif '-o' in parts:
+            output_path = Path(parts[parts.index('-o') + 1])
+        else:
+            raise ValueError('Missing selected build output')
+        if not under(output_path, emission):
             raise ValueError('Build output escapes selected artifact')
         if parts[0] == 'moonc':
             if len(parts) < 2 or parts[1] not in ('build-package', 'link-core'):
@@ -94,6 +103,9 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
             parts[0] = str(clang)
             parts[1:1] = ['-isysroot', str(sdk), '-mmacosx-version-min=11.0',
                           '-I' + str(allocator), '-DACTQL_SCOPED_READ_ALLOCATOR']
+        elif ar_driver is not None and parts[0] == str(ar_driver):
+            if not all(under(Path(p), emission) for p in parts[2:]):
+                raise ValueError('Foreign archive input')
         elif Path(parts[0]).name == 'libtool':
             if parts[0] != '/Library/Developer/CommandLineTools/usr/bin/libtool' or '-static' not in parts:
                 raise ValueError('Foreign archive tool')
@@ -176,6 +188,11 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     emission = destination / 'emission'
     cc_driver = destination / 'bin/cc'
     cc_driver.parent.mkdir()
+    ar_driver = cc_driver.parent / 'ar'
+    # Moon resolves this sibling for an explicitly selected compiler directory.
+    # Delegate the real selected archiver; no archive bytes are synthesized.
+    ar_driver.write_text('#!/bin/sh\nexec /Library/Developer/CommandLineTools/usr/bin/ar "$@"\n')
+    ar_driver.chmod(0o755)
     cc_plan = destination / 'cc-plan.json'
     # Only the C port is redirected. Ordinary Moon retains dependency/registry
     # generation and all package compiler arguments, including -all-pkgs.
@@ -192,7 +209,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                       '--target-dir', str(emission), '-j', '1', ENTRY]
     dry = run(moon_arguments + ['--dry-run'], capture=True)
     (destination / 'moon-dry-run.txt').write_text(dry)
-    commands = commands_for(dry, moon_home, emission, allocator, clang, sdk, cc_driver=cc_driver)
+    commands = commands_for(dry, moon_home, emission, allocator, clang, sdk, cc_driver=cc_driver, ar_driver=ar_driver)
     (destination / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
     originals = [[p.replace('$MOON_HOME', str(moon_home)) for p in shlex.split(line)]
                  for line in dry.splitlines() if line.strip()]
@@ -208,7 +225,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     packages = [c[c.index('-pkg') + 1].removeprefix('actql/actql/')
                 for c in commands if c[0] == str(moon_home / 'bin/moonc') and c[1] == 'build-package']
     paths = {ROOT / 'toolchain.json', ROOT / 'moon.mod', Path(__file__), clang,
-             cc_driver, cc_plan, Path(sys.executable),
+             cc_driver, ar_driver, cc_plan, Path(sys.executable),
+             Path('/Library/Developer/CommandLineTools/usr/bin/ar'),
              Path('/Library/Developer/CommandLineTools/usr/bin/libtool'),
              sdk / 'SDKSettings.json', moon_home / 'installed.json',
              moon_home / 'bin/moon', moon_home / 'bin/moonc',
