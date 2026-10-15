@@ -109,7 +109,7 @@ missing required arguments. The executable fixture checks refusal before even
 loading SQLite and compares both an absent Store and an installed Store's full
 file inventory and content hashes. Its existing lifecycle, rotation, historical
 verification and multi-component assertions remain unchanged. These are test
-obligations, not an execution claim for an unavailable Native environment.
+obligations; Native execution remains unverified.
 
 Single-key installations use one explicit authority in the same trust document.
 The document version, signed manifests, CIDs, catalog records and retained
