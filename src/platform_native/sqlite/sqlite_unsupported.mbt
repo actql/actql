@@ -232,6 +232,16 @@ pub fn Database::claim_ordinal_action(
 }
 
 ///|
+pub fn Database::claim_ordinal_action_in_transaction(
+  _self : Database,
+  _scope : String,
+  _key : String,
+  _max_claims : Int64,
+) -> Result[NativeOrdinalClaim, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::lookup_claim_ordinal(
   _self : Database,
   _scope : String,
