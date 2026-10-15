@@ -42,8 +42,14 @@ test "backed original child starts the bootstrap census before workspace without
   assert_eq(ledger_usage(parent), before)
   report_imported_child_ledger(frame).unwrap()
   assert_true(projection.access.unwrap().ticket.unwrap().live_usage_reported)
-  assert_eq(ledger_usage(parent).reserved_execution_bytes, before.reserved_execution_bytes)
-  assert_eq(ledger_usage(parent).reserved_retention_bytes, before.reserved_retention_bytes)
+  assert_eq(
+    ledger_usage(parent).reserved_execution_bytes,
+    before.reserved_execution_bytes,
+  )
+  assert_eq(
+    ledger_usage(parent).reserved_retention_bytes,
+    before.reserved_retention_bytes,
+  )
   // Neither the inherited view nor a successful report releases physical bytes.
   close_shared_capacity(workspace).unwrap()
   settle_shared_capacity(workspace).unwrap()
@@ -54,7 +60,10 @@ test "backed original child starts the bootstrap census before workspace without
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 0L)
   assert_eq(ledger_usage(ledger).reserved_retention_bytes, 0L)
   report_imported_child_ledger(frame).unwrap()
-  assert_eq(ledger_usage(parent).reserved_execution_bytes, before.reserved_execution_bytes)
+  assert_eq(
+    ledger_usage(parent).reserved_execution_bytes,
+    before.reserved_execution_bytes,
+  )
 }
 
 ///|
@@ -66,18 +75,24 @@ test "backed original child rejects copied projection frame foreign runtime and 
     is Err(ForeignOriginal),
   )
   assert_true(
-    prepare_backed_original_child_ledger(projection, Ref(3)) is Err(ForeignOriginal),
+    prepare_backed_original_child_ledger(projection, Ref(3))
+    is Err(ForeignOriginal),
   )
   let frame = prepare_backed_original_child_ledger(projection, runtime).unwrap()
   assert_true(
-    prepare_backed_original_child_ledger(projection, runtime) is Err(AlreadyConsumed),
+    prepare_backed_original_child_ledger(projection, runtime)
+    is Err(AlreadyConsumed),
   )
   assert_true(start_imported_child_ledger({ ..frame, }) is Err(ForeignOriginal))
   start_imported_child_ledger(frame).unwrap()
   assert_true(start_imported_child_ledger(frame) is Err(AlreadyConsumed))
-  assert_true(take_imported_original_child_ledger({ ..frame, }) is Err(ForeignOriginal))
+  assert_true(
+    take_imported_original_child_ledger({ ..frame, }) is Err(ForeignOriginal),
+  )
   take_imported_original_child_ledger(frame).unwrap() |> ignore
-  assert_true(take_imported_original_child_ledger(frame) is Err(AlreadyConsumed))
+  assert_true(
+    take_imported_original_child_ledger(frame) is Err(AlreadyConsumed),
+  )
   assert_eq(ledger_usage(parent), before)
 }
 
@@ -86,17 +101,17 @@ test "backed original child rechecks prior reserved usage after preparation with
   let (parent, _, projection, runtime) = backed_original_child_fixture()
   let frame = prepare_backed_original_child_ledger(projection, runtime).unwrap()
   let before = ledger_usage(parent)
-  report_backed_execution_live_child(
-    projection,
-    runtime,
-    { ..backed_live_test_zero_usage(), reserved_execution_bytes: 1L, },
-  ).unwrap()
+  report_backed_execution_live_child(projection, runtime, {
+    ..backed_live_test_zero_usage(),
+    reserved_execution_bytes: 1L,
+  }).unwrap()
   assert_true(start_imported_child_ledger(frame) is Err(Unavailable))
   assert_true(frame.attempted && frame.ledger is None)
   assert_true(start_imported_child_ledger(frame) is Err(AlreadyConsumed))
   assert_true(take_imported_original_child_ledger(frame) is Err(Unavailable))
   assert_true(
-    prepare_backed_original_child_ledger(projection, runtime) is Err(AlreadyConsumed),
+    prepare_backed_original_child_ledger(projection, runtime)
+    is Err(AlreadyConsumed),
   )
   assert_eq(ledger_usage(parent), before)
 }
@@ -110,7 +125,10 @@ test "backed original child closing rejects new reservations and retains origina
   let capacity = reserve_shared_capacity(ledger, 8L).unwrap()
   let before = ledger_usage(parent)
   stop_imported_child_ledger(frame).unwrap()
-  assert_eq(backed_execution_live_state(projection, runtime).unwrap(), LiveClosing)
+  assert_eq(
+    backed_execution_live_state(projection, runtime).unwrap(),
+    LiveClosing,
+  )
   assert_true(reserve_capacity(ledger, 1L, 1L) is Err(ClosedReservation))
   close_shared_capacity(capacity).unwrap()
   settle_shared_capacity(capacity).unwrap()

@@ -40,46 +40,53 @@ pub fn[P, C, R] prepare_backed_original_child_ledger(
     return Err(Unavailable)
   }
   projection.child_ledger_issued = true
-  let value = match prepare_imported_child_port(
-    1L,
-    _ => if backed_original_child_ready(projection, runtime) { 0 } else { -42 },
-    _ => {
-      match backed_execution_live_state(projection, runtime) {
-        Ok(LiveOpen) => 0
-        Ok(LiveClosing) => 1
-        Err(_) => -42
-      }
-    },
-    (_, ordinal) => {
-      match backed_execution_live_limits(projection, runtime) {
-        Err(_) => -42L
-        Ok(limits) =>
-          match ordinal {
-            0 => limits.planning_work.to_int64()
-            1 => limits.attempts.to_int64()
-            2 => limits.holdings.to_int64()
-            3 => limits.transfer_bytes
-            4 => limits.retained_bytes
-            5 => limits.execution_bytes
-            _ => -42L
-          }
-      }
-    },
-    (_, _) => -42L,
-    (_, usage) => {
-      match report_backed_execution_live_child(projection, runtime, usage) {
-        Ok(_) => 0
-        Err(_) => -42
-      }
-    },
-    _ => {
-      match stop_backed_execution_live_child(access, runtime) {
-        Ok(_) => 0
-        Err(_) => -42
-      }
-    },
-    fixed_capacities=false,
-  ) {
+  let value = match
+    prepare_imported_child_port(
+      1L,
+      _ => {
+        if backed_original_child_ready(projection, runtime) {
+          0
+        } else {
+          -42
+        }
+      },
+      _ => {
+        match backed_execution_live_state(projection, runtime) {
+          Ok(LiveOpen) => 0
+          Ok(LiveClosing) => 1
+          Err(_) => -42
+        }
+      },
+      (_, ordinal) => {
+        match backed_execution_live_limits(projection, runtime) {
+          Err(_) => -42L
+          Ok(limits) =>
+            match ordinal {
+              0 => limits.planning_work.to_int64()
+              1 => limits.attempts.to_int64()
+              2 => limits.holdings.to_int64()
+              3 => limits.transfer_bytes
+              4 => limits.retained_bytes
+              5 => limits.execution_bytes
+              _ => -42L
+            }
+        }
+      },
+      (_, _) => -42L,
+      (_, usage) => {
+        match report_backed_execution_live_child(projection, runtime, usage) {
+          Ok(_) => 0
+          Err(_) => -42
+        }
+      },
+      _ => {
+        match stop_backed_execution_live_child(access, runtime) {
+          Ok(_) => 0
+          Err(_) => -42
+        }
+      },
+      fixed_capacities=false,
+    ) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
@@ -91,7 +98,9 @@ pub fn[P, C, R] prepare_backed_original_child_ledger(
 // Called only by the SAME existing physical-owner ACK retirement. Retired
 // escaped frames retain their child debt, never the parent/runtime graph via
 // these former callbacks. No stop/credit/physical ACK is manufactured here.
-fn retire_backed_original_child_origin(origin : ImportedChildLedgerOrigin) -> Unit {
+fn retire_backed_original_child_origin(
+  origin : ImportedChildLedgerOrigin,
+) -> Unit {
   origin.stopping = true
   origin.unavailable = true
   origin.admit = retired_backed_original_child_status

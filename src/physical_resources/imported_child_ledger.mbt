@@ -229,8 +229,16 @@ pub fn start_imported_child_ledger(
   let transfer = (port.limit)(port.nonce, 3)
   let retained = (port.limit)(port.nonce, 4)
   let execution = (port.limit)(port.nonce, 5)
-  let wasm = if port.fixed_capacities { (port.capacity)(port.nonce, 0) } else { 0L }
-  let host = if port.fixed_capacities { (port.capacity)(port.nonce, 1) } else { 0L }
+  let wasm = if port.fixed_capacities {
+    (port.capacity)(port.nonce, 0)
+  } else {
+    0L
+  }
+  let host = if port.fixed_capacities {
+    (port.capacity)(port.nonce, 1)
+  } else {
+    0L
+  }
   // Negative import results are unavailable/unknown observations, never
   // negative quota or zero. The original private port owns the failed reply.
   if planning < 0L ||
