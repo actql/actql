@@ -124,6 +124,7 @@ fn load_holder_effect_host_operator(
     setup_profile,
     environment.runtime_catalog_record_bytes,
   ).unwrap()
+  let catalog_json_limits = scope.profile.catalog_json_limits
   let catalog_diagnostic_ceiling = scope.profile.diagnostic_ceiling
   let catalog_sqlite_heap_bytes = scope.profile.catalog_sqlite_heap_bytes
   let site = environment.site
@@ -172,7 +173,7 @@ fn load_holder_effect_host_operator(
           ) &&
           bundles.diagnostics_bounded_by(catalog_diagnostic_ceiling) &&
           bundles.verify_active_component_binding_with_body_limit(
-            active_runtime, catalog_read_limit,
+            active_runtime, catalog_read_limit, json_limits=Some(catalog_json_limits),
           )
           is Ok(_) &&
           bundles.current_sqlite_component_matches_heap(

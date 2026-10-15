@@ -26,6 +26,12 @@ fn host_setup_test_profile() -> HolderEffectHostSetupProfile {
   {
     read_ceiling: 32,
     catalog_read_ceiling: 1024L,
+    catalog_json_limits: {
+      max_nodes: 1024,
+      max_depth: 5,
+      max_string_bytes: 1024,
+      max_total_string_bytes: 1024,
+    },
     catalog_sqlite_heap_bytes: 4096L,
     diagnostic_ceiling: 8,
     setup_retained_bytes: 120L,
@@ -858,4 +864,26 @@ test "Store current refusal cannot perform another lookup during leave or nested
   let (retained, _) = take_holder_effect_host_caller_reservation(scope)
   assert_true(physical_equal(retained.unwrap(), original))
   assert_true(@site.settle_site_operation(original))
+}
+
+///|
+test "nonpositive catalog decode selection refuses before reservation or current I/O" {
+  let site = host_setup_test_site(1)
+  let profile = host_setup_test_profile()
+  let checks = Ref(0)
+  let before = @site.site_status(site)
+  for limits in [
+    { ..profile.catalog_json_limits, max_nodes: 0, },
+    { ..profile.catalog_json_limits, max_depth: -1, },
+    { ..profile.catalog_json_limits, max_string_bytes: 0, },
+    { ..profile.catalog_json_limits, max_total_string_bytes: -1, },
+  ] {
+    let invalid = { ..profile, catalog_json_limits: limits, }
+    assert_true(begin_holder_effect_host_setup_scope(site, Some(invalid), 1024L, () => {
+      checks.val += 1
+      true
+    }) is None)
+    assert_eq(checks.val, 0)
+    assert_eq(@site.site_status(site), before)
+  }
 }
