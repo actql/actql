@@ -31,3 +31,17 @@ node reviews/2026-10-15-sequence-temporal-diagnostics/prepared-checks.mjs <sha> 
 Each command preserves the existing nonzero wrapper and its focused
 270-second guard, 240-second child, TERM grace 5 and JS job count 1.
 These checks establish no installed-product E2E success.
+
+## Narrow repair
+
+The classifier now retains only these three existing typed distinctions:
+`InvalidMilliseconds` is invalid input, `InvalidLimits` is invalid configuration,
+and `BudgetExceeded` is a checking limit. Other temporal causes retain their
+previous unclassified category. The original checker still rejects the same
+Program; the original audience/disclosure checker remains responsible for
+showing a public input problem. No disclosure bypass is added.
+
+The test-only source `91563b4e275c4cf0f584f908fc51f2536deed5f9` reproduced
+both failures independently: the common category was `UnclassifiedFailure`,
+and the public bound-input report was `undetermined` with `check_unclassified`.
+The installed source and those two focused failures retain separate evidence.
