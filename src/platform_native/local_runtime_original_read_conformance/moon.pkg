@@ -1,0 +1,14 @@
+supported_targets = "native"
+
+pkgtype(kind: "executable")
+
+import {
+  "actql/actql/platform_native/installed_arena_control" @control,
+  "actql/actql/platform_native/host_bootstrap" @bootstrap,
+  "actql/actql/platform_native/client_host" @local,
+  "actql/actql/run_publication_host" @host,
+  "actql/actql/physical_resources" @resources,
+  "moonbitlang/core/env",
+}
+
+options(link: { "native": { "cc-flags": "-O0" } })
