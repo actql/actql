@@ -157,13 +157,9 @@ fn[T, C] NativeHostBootstrap::original_read_carrier(
   @resources.BackedExecutionReadUse[NativeHostBootstrap[T], C],
   NativeBackedExecutionIssue,
 ] {
-  if !physical_equal(self.supplier.original, original) ||
-    !physical_equal(domain.view.loan.region.owner, self) ||
-    !physical_equal(domain.view.loan.child, child) ||
-    domain.closed ||
-    domain.view.closed ||
-    !(domain.view.domain is Some(selected) && physical_equal(selected, domain)) {
-    return Err(Bootstrap(ForeignOriginal))
+  match self.original_domain_carrier(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   match domain.read_use {
     Some(value) => Ok(value)
