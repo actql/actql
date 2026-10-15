@@ -15,7 +15,7 @@ const actual = source();
 const view = issueInferTrustedRuntimeView(actual);
 const mode = process.argv[2];
 const rejects = (run, code) => assert.throws(run, error => error.code === code);
-if (mode === 'absent' || mode === 'promise-unselected') {
+if (mode === 'absent' || mode === 'promise-unselected' || mode === 'string-unselected') {
   assert.equal(associateInferTrustedStartupView(view, actual), undefined);
   rejects(() => requireInferTrustedStartupView(view, actual), 'InferTrustedStartupUnavailable');
   if (mode === 'promise-unselected') {
@@ -25,6 +25,17 @@ if (mode === 'absent' || mode === 'promise-unselected') {
     const original = Promise.prototype.then;
     try { Promise.prototype.then = () => undefined; }
     finally { Promise.prototype.then = original; }
+  }
+  if (mode === 'string-unselected') {
+    const original = String.prototype.charCodeAt;
+    const descriptor = Object.getOwnPropertyDescriptor(String.prototype, 'charCodeAt');
+    assert.equal(descriptor.writable, true);
+    assert.equal(descriptor.configurable, true);
+    try {
+      String.prototype.charCodeAt = function(index) { return original.call(this, index); };
+      assert.notEqual(String.prototype.charCodeAt, original);
+      assert.equal('雪'.charCodeAt(0), 0x96ea);
+    } finally { String.prototype.charCodeAt = original; }
   }
 } else {
   assert.equal(associateInferTrustedStartupView(view, actual), view);
@@ -158,6 +169,29 @@ if (mode === 'absent' || mode === 'promise-unselected') {
     forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
     // Host retirement is not retirement of the process/module originals.
     assert.equal(Object.getOwnPropertyDescriptor(original.prototype, 'then').writable, false);
+  } else if (mode === 'read-string-charcode') {
+    // The actual emitted Common String.unsafe_char_at/UTF16 read uses this
+    // intrinsic method. This is primitive identity, not a heap/GC bound or
+    // proof that every String operation is covered by the selected supplier.
+    const original = String.prototype.charCodeAt;
+    const descriptor = Object.getOwnPropertyDescriptor(String.prototype, 'charCodeAt');
+    assert.equal(descriptor.writable, false);
+    assert.equal(descriptor.configurable, false);
+    assert.throws(() => {
+      String.prototype.charCodeAt = function(index) { return original.call(this, index); };
+    }, TypeError);
+    assert.throws(() => Object.defineProperty(String.prototype, 'charCodeAt',
+      {get: () => original}), TypeError);
+    const text = 'e\u0301\r\n雪😀';
+    assert.deepEqual(Array.from({length: text.length}, (_, index) => text.charCodeAt(index)),
+      [0x65, 0x301, 0x0d, 0x0a, 0x96ea, 0xd83d, 0xde00]);
+    assert.equal(Number.isNaN(text.charCodeAt(text.length)), true);
+    assert.strictEqual(String.prototype.charCodeAt, original);
+    requireInferTrustedStartupView(view, actual);
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
+    assert.equal(Object.getOwnPropertyDescriptor(String.prototype, 'charCodeAt').writable, false,
+      'Host-reference retirement is not native/module retirement');
   } else if (['read-decoder-global', 'read-decoder-decode', 'read-buffer-subarray'].includes(mode)) {
     assert.equal(globalThis.TextDecoder, NodeTextDecoder);
     if (mode === 'read-decoder-global') {
