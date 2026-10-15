@@ -93,6 +93,7 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
   let metadataControl = originalPreparation?.control;
   let metadataDefinition = originalPreparation?.runDefinition;
   let originalMetadata;
+  let originalStoreBootstrap;
   let originalPublicationCapacity;
   if (originalPreparation !== undefined) {
     if (provider === undefined || acquiredInput !== undefined || composedInput !== undefined || keyedInput !== undefined ||
@@ -339,6 +340,8 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       originalPreparedCallSet = undefined;
       if (originalMetadata !== undefined) originalMetadataSources.delete(originalMetadata.handle);
       originalMetadata = undefined;
+      if (originalStoreBootstrap !== undefined) originalMetadataSources.delete(originalStoreBootstrap.handle);
+      originalStoreBootstrap = undefined;
       originalScope = undefined;
       // Escaped metadata methods must not keep the original installation/Run
       // after this same Core Owner acknowledges cleanup. Pending/failed
@@ -672,6 +675,35 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
       // supply the justified simultaneous envelope before any physical I/O.
       return moon.clientProgramInferOriginalParkedReadCapacityAvailable(
         active, originalScope, park, retainedBytes, executionBytes);
+    },
+    originalStoreBootstrapAcquisition() {
+      if (originalStoreBootstrap !== undefined) {
+        originalStoreBootstrap.current(undefined, undefined, 'store-bootstrap');
+        return originalStoreBootstrap.handle;
+      }
+      const selection = selectedInferOriginalMetadataLimits(metadataInstallation, metadataNodeInstallation);
+      const current = (ownerId, requestCid, role) => {
+        // This pre-park borrow is deliberately NOT a metadata/body/codec
+        // acquisition or a stable cut. Only the same original read reservation
+        // may cover the first Store observation while approval is pending.
+        if (role !== 'store-bootstrap' || reclaimed || closing || signal?.aborted ||
+            originalScope === undefined ||
+            typeof moon.clientProgramInferOriginalUnparkedReadCapacityAvailable !== 'function' ||
+            selectedInferOriginalMetadataLimits(metadataInstallation, metadataNodeInstallation) !== selection ||
+            !moon.clientProgramInferOriginalUnparkedReadCapacityAvailable(active, originalScope,
+              selection.retainedBytes, selection.workspaceBytes)) metadataUnavailable();
+        if (ownerId !== undefined && (typeof metadataControl?.runDefinitionRunId !== 'function' ||
+            ownerId !== `model-${metadataControl.runDefinitionRunId(metadataDefinition)}`) ||
+            requestCid !== undefined && requestCid !== metadataDefinition?.identity) metadataUnavailable();
+        return selectedInferOriginalStoreBootstrapLimits(metadataInstallation, metadataNodeInstallation);
+      };
+      // Same full envelope before allocating the extra record/handle. Physical
+      // clamps themselves neither reserve bytes nor issue permission.
+      current(undefined, undefined, 'store-bootstrap');
+      const handle = Object.freeze({kind: 'original-infer-store-bootstrap-acquisition'});
+      originalStoreBootstrap = {handle, current};
+      originalMetadataSources.set(handle, new WeakRef(originalStoreBootstrap));
+      return handle;
     },
     originalMetadataAcquisition(park) {
       if (originalMetadata !== undefined) {

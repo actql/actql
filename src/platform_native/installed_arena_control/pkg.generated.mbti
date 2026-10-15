@@ -11,6 +11,8 @@ pub fn acquire_installed_arena_fd_reply(InstalledArenaHost, Int) -> InstalledAre
 
 pub fn acquire_installed_arena_reply(InstalledArenaHost) -> InstalledArenaReply
 
+pub fn bind_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[InstalledArenaHost, InstalledArenaDomain], Int64, Int64, Int64) -> InstalledArenaLiveChannelReply
+
 pub fn borrow_installed_arena_backing_reply(InstalledArenaHost) -> InstalledArenaBackingReply
 
 pub fn cleanup_installed_arena_domain_read_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
@@ -47,6 +49,8 @@ pub fn leave_installed_arena_domain_read_reply(InstalledArenaHost, InstalledAren
 
 pub fn leave_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
+pub fn operate_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[InstalledArenaHost, InstalledArenaDomain], Int) -> InstalledArenaLiveChannelReply
+
 pub fn prepare_installed_arena_domain_read_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
 pub fn prepare_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaBackingBorrow, Int, Int64, Int, Int, Int, Int64, Int64, Int64) -> InstalledArenaDomainReply
@@ -55,9 +59,13 @@ pub fn prepare_installed_arena_from_primitives(String, Bytes, Int64, Int64, Int,
 
 pub fn prepare_installed_arena_host(String, Bytes, Int64, Int64, @physical_resources.LedgerLimits, Int64) -> Result[InstalledArenaHost, @host_bootstrap.NativeBootstrapIssue]
 
+pub fn prepare_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, Int, Int, Int, Int64) -> InstalledArenaLiveChannelReply
+
 pub fn prepare_installed_arena_reply(String, Bytes, Int64, Int64, Int, Int, Int, Int64, Int64, Int64, Int64) -> InstalledArenaReply
 
 pub fn project_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
+
+pub fn report_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[InstalledArenaHost, InstalledArenaDomain], Int, Int, Int, Int64, Int64, Int64, Int64, Int64, Int64, Int64) -> InstalledArenaLiveChannelReply
 
 pub fn return_installed_arena_backing_reply(InstalledArenaHost, InstalledArenaBackingBorrow) -> InstalledArenaBackingReply
 
@@ -126,7 +134,9 @@ type InstalledArenaHost
 pub fn InstalledArenaHost::acquire(Self) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::acquire_fd(Self, Int) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::acquisition_issue(Self) -> @host_bootstrap.NativeBootstrapIssue?
+pub fn InstalledArenaHost::admit_live_channel(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::allocate(Self, Int64) -> Result[InstalledArenaAllocation, @host_bootstrap.NativeBootstrapIssue]
+pub fn InstalledArenaHost::bind_live_channel_vm(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain], Int64, Int64, Int64) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::borrow(Self, InstalledArenaAllocation) -> Result[InstalledArenaBorrow, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::borrow_backing(Self) -> Result[InstalledArenaBackingBorrow, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::close_domain_after_owner_ack(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
@@ -139,21 +149,37 @@ pub fn InstalledArenaHost::enter_domain_read_cleanup(Self, InstalledArenaDomain)
 pub fn InstalledArenaHost::leave_backing_borrow_scope(Self, InstalledArenaBackingBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::leave_domain(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::leave_domain_read(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::live_channel_limits(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[@physical_resources.LedgerLimits, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::live_channel_state(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[@physical_resources.BackedExecutionLiveState, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_domain(Self, InstalledArenaBackingBorrow, Int, Int64, @physical_resources.LedgerLimits) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_domain_read(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::prepare_live_channel(Self, InstalledArenaDomain, Int, Int, Int, Int64) -> Result[@host_bootstrap.NativeBackedLiveChannelAcquisition[Self, InstalledArenaDomain], @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::project_domain_original(Self, InstalledArenaDomain) -> Result[(@host_bootstrap.NativePreparedDomainTransport, @physical_resources.BackedExecutionOriginalData), @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::project_prepared_domain(Self, InstalledArenaDomain) -> Result[@host_bootstrap.NativePreparedDomainTransport, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::report(Self, InstalledArenaDelegation, @physical_resources.LedgerUsage) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
+pub fn InstalledArenaHost::report_live_channel(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain], @physical_resources.LedgerUsage) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::require_backing_borrow_current(Self, InstalledArenaBackingBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::require_current(Self) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::require_domain_current(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::require_domain_read_current(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::retire(Self, InstalledArenaAllocation) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
+pub fn InstalledArenaHost::retire_live_channel_after_owner_ack(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::return_backing_borrow(Self, InstalledArenaBackingBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::return_borrow(Self, InstalledArenaBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
+pub fn InstalledArenaHost::stop_live_channel(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::transfer_domain(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::try_close(Self) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::worker_provisioning_selection(Self) -> Result[InstalledArenaWorkerSelection, @host_bootstrap.NativeBootstrapIssue]
+
+type InstalledArenaLiveChannelReply
+pub fn InstalledArenaLiveChannelReply::issue_description(Self) -> String
+pub fn InstalledArenaLiveChannelReply::issue_family(Self) -> Int
+pub fn InstalledArenaLiveChannelReply::limit(Self, Int) -> Int64
+pub fn InstalledArenaLiveChannelReply::operation_tag(Self) -> Int
+pub fn InstalledArenaLiveChannelReply::original_channel(Self) -> @host_bootstrap.NativeBackedLiveChannel[InstalledArenaHost, InstalledArenaDomain]?
+pub fn InstalledArenaLiveChannelReply::original_domain(Self) -> InstalledArenaDomain
+pub fn InstalledArenaLiveChannelReply::original_host(Self) -> InstalledArenaHost
+pub fn InstalledArenaLiveChannelReply::state_tag(Self) -> Int
 
 pub(all) enum InstalledArenaOperation {
   Prepare

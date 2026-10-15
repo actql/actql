@@ -110,6 +110,8 @@ pub fn[T] funded_read_available(FundedReadClaim[T], T) -> Bool
 
 pub fn[T] funded_read_consumer_available(FundedReadConsumer[T], T, Int64, Int64) -> Bool
 
+pub fn[T] funded_read_consumer_handed_off_capacity_covers(FundedReadConsumer[T], T, Int64, Int64) -> Bool
+
 pub fn[T] funded_read_consumer_handed_off_origin(FundedReadConsumer[T]) -> T?
 
 pub fn[T] funded_read_consumer_origin(FundedReadConsumer[T]) -> T?
