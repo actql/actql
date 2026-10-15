@@ -17,7 +17,7 @@ python3 packages/python-local-runtime/native/pre-root/prepare_scoped_read.py \
 These are developer preparation paths, not public Python Client options. The
 command never compiles, loads or installs a library. `scoped-read-source.json`
 pins 18 input files and 20 derived files. The exact patch SHA256 is
-`1345404da2f151fb517c8263ddc3b44481042ac71f15df848c38f499bf3c323c`.
+`aadd441a497af3b75857d1fdb1989df2828a00504e809472c859c674b0f5747e`.
 Changed inputs, patch, derived bytes, symlinks and existing destinations are
 refused. Only copied bytes are patched. Completion metadata is written last;
 partial output is not a usable stage. This is a source closure, not a receipt
@@ -139,3 +139,15 @@ does not permit a new entry without a user. Physical retirement still waits for
 all active frames and aliases. The independent `cleanup-result-after-last-user`
 C case fixes this boundary; its execution evidence is reported separately from
 the retained nine-case source and any whole Root/Reader caller.
+
+## Alias-only original cleanup entry
+
+After the last Root/Reader user acknowledges close, a pending managed alias can
+retain the same closing context. The existing Common stopped read-use may enter
+that original carrier for cleanup without creating another user. Normal entry,
+retain, fresh Root construction and the ordinary current-context projection stay
+closed. The active cleanup frame owns its result until its last alias retires.
+No new TLS, queue, Owner or allocator is introduced. The bootstrap C bridge
+selects cleanup only after its original read user has returned; Common still
+checks the nominal child/read-use before invoking it. Whole caller acceptance
+and numerical profile adoption remain separate from the finite C conformance.
