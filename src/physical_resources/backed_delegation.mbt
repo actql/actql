@@ -255,14 +255,14 @@ pub fn[P, C] check_backed_execution_delegation_current(
     return Err(ForeignOriginal)
   }
   // Avoid a new capturing callback merely to check this exact membership.
-  let mut member = false
+  let mut found = false
   for original in region.children {
     if physical_equal(original, ticket) {
-      member = true
+      found = true
       break
     }
   }
-  if !member {
+  if !found {
     return Err(ForeignOriginal)
   }
   if !physical_equal(borrow.allocation, allocation) ||

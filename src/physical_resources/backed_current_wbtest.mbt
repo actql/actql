@@ -67,10 +67,32 @@ test "backed current-only preserves entered cleanup during graceful closing and 
     Err(ForeignOriginal),
   )
   assert_true(close_backed_execution_region(region, provider).unwrap())
+  // Closing clears the original provider first; preserve that refusal class.
+  assert_eq(
+    check_backed_execution_delegation_current(region, provider, child, ticket),
+    Err(ForeignOriginal),
+  )
+}
+
+///|
+test "backed current-only rejects an already returned original borrow" {
+  let (ledger, _, allocation, provider, region) = backed_test_region()
+  let child = Ref(2)
+  let ticket = backed_read_test_ticket(region, provider, child)
+  let borrow = ticket.borrow.unwrap()
+  let before = ledger_usage(ledger)
+  // Private state counter only; no physical return/stop is manufactured.
+  borrow.returned = true
   assert_eq(
     check_backed_execution_delegation_current(region, provider, child, ticket),
     Err(Retired),
   )
+  assert_true(
+    backed_execution_delegation_description(region, provider, child, ticket)
+    is Err(Retired),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(shared_allocation_usage(allocation).readers, 2)
 }
 
 ///|
