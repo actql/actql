@@ -115,7 +115,7 @@ fn values_effect_export_test_close(
   captured : @strategy.CapturedEffectRunDAG,
   inputs : @strategy.CapturedEffectInputs,
   execution : @client_local_host.LocalValuesExecution,
-) raise {
+) -> Unit raise {
   @strategy.release_captured_effect_inputs(inputs) |> ignore
   assert_true(execution.close())
   let usage = @resources.ledger_usage(
