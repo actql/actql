@@ -9,6 +9,8 @@ fn[T, E] effect_finite_cli_ok(value : Result[T, E], phase : String) -> T raise {
 ///|
 // A real adopted Host/journal and the product's original finite selection.
 // This fixture never starts Compute, creates a grant or accesses an old DB.
+// load_library uses the existing legacy ARC finalizer. Library.close_checked
+// belongs only to selected components; the Host still requires its DB/session ACK.
 fn effect_finite_cli_host(
   name : String,
 ) -> (
@@ -16,7 +18,6 @@ fn effect_finite_cli_host(
   LocalHostSettings,
   @local_crypto.Library,
   LocalRunInstallation,
-  @local_sqlite.Library,
 ) raise {
   let base = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let root = base + "/" + name
@@ -103,7 +104,7 @@ fn effect_finite_cli_host(
   ) catch {
     _ => fail("run.utf8")
   }
-  (host, settings, crypto, local_run_installation(wire), sqlite)
+  (host, settings, crypto, local_run_installation(wire))
 }
 
 ///|
@@ -163,13 +164,10 @@ fn effect_finite_cli_submission(
 
 ///|
 test "CLI Effect finite prefix uses a fresh next-day Policy without accepting or starting a Run" {
-  let (host, settings, crypto, installed, sqlite) = effect_finite_cli_host(
+  let (host, settings, crypto, installed) = effect_finite_cli_host(
     "cli-effect-finite-fresh",
   )
-  defer {
-    host.close() |> ignore
-    sqlite.close_checked() |> ignore
-  }
+  defer host.close() |> ignore
   let (reference, preparation, scope) = effect_finite_cli_submission(
     host, settings, crypto, "fresh",
   )
@@ -218,18 +216,14 @@ test "CLI Effect finite prefix uses a fresh next-day Policy without accepting or
     Ok("delete_due"),
   )
   effect_finite_cli_ok(host.close(), "host.close")
-  effect_finite_cli_ok(sqlite.close_checked(), "sqlite.close")
 }
 
 ///|
 test "CLI Effect finite prefix selects an accepted original before an invalid candidate time" {
-  let (host, settings, crypto, installed, sqlite) = effect_finite_cli_host(
+  let (host, settings, crypto, installed) = effect_finite_cli_host(
     "cli-effect-finite-accepted",
   )
-  defer {
-    host.close() |> ignore
-    sqlite.close_checked() |> ignore
-  }
+  defer host.close() |> ignore
   let (reference, preparation, scope) = effect_finite_cli_submission(
     host, settings, crypto, "accepted",
   )
@@ -287,18 +281,14 @@ test "CLI Effect finite prefix selects an accepted original before an invalid ca
     @run_host.client_local_run_policy_original_body(before),
   )
   effect_finite_cli_ok(host.close(), "host.close")
-  effect_finite_cli_ok(sqlite.close_checked(), "sqlite.close")
 }
 
 ///|
 test "CLI Effect finite prefix refuses an accepted legacy missing Policy instead of recompiling it" {
-  let (host, settings, crypto, installed, sqlite) = effect_finite_cli_host(
+  let (host, settings, crypto, installed) = effect_finite_cli_host(
     "cli-effect-finite-missing",
   )
-  defer {
-    host.close() |> ignore
-    sqlite.close_checked() |> ignore
-  }
+  defer host.close() |> ignore
   let (reference, preparation, scope) = effect_finite_cli_submission(
     host, settings, crypto, "missing",
   )
@@ -351,5 +341,4 @@ test "CLI Effect finite prefix refuses an accepted legacy missing Policy instead
   }
   assert_eq(refused, Some("LocalRunPolicyPreparationUnavailable"))
   effect_finite_cli_ok(host.close(), "host.close")
-  effect_finite_cli_ok(sqlite.close_checked(), "sqlite.close")
 }
