@@ -176,10 +176,11 @@ sent request without an exact acknowledgement remains unknown and is not
 resent. This is a coordinate-addressed overwrite, not a cell-version CAS or
 a promise that concurrent Google edits cannot change those cells.
 
-The range declaration/request/recovery controls are distinct from normally
-installed Local/HTTPS acceptance and authorized Google mutation. Those public
-range-write acceptance boundaries remain unverified; the earlier append/read
-receipts do not establish them.
+Working-source controls exercise the existing Local/HTTPS approval owners,
+the successful range write, and fresh-process success/unknown recovery without
+reacquisition or resend. They are distinct from normally installed release
+archives and authorized Google mutation, which remain unverified for range
+writes. Earlier append/read receipts do not establish those range boundaries.
 
 ## Ordinary Programs
 
