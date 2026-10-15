@@ -20,6 +20,7 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY = 'src/cmd/native_remote_resident_site'
 RUNTIME_NAMES = frozenset(('runtime', 'env', 'utf', 'backtrace', 'sync_io'))
+RELEASE_UTF_OBJECTS = frozenset(('moonbit_simdutf.o', 'simdutf.o'))
 
 
 def original(path: Path) -> dict[str, object]:
@@ -109,8 +110,18 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
             parts[1:1] = ['-isysroot', str(sdk), '-mmacosx-version-min=11.0',
                           '-I' + str(allocator), '-DACTQL_SCOPED_READ_ALLOCATOR']
         elif ar_driver is not None and parts[0] == str(ar_driver):
-            if not all(under(Path(p), emission) for p in archive_files):
-                raise ValueError('Foreign archive input')
+            outside = [Path(p) for p in archive_files if not under(Path(p), emission)]
+            if outside:
+                # Ordinary pinned release Moon links these two UTF conversion
+                # objects into its runtime archive. Keep that exact command;
+                # neither an arbitrary external object nor an FFI archive may
+                # acquire this exception. Their bytes join the input receipt.
+                selected = {moon_home / 'lib' / name for name in RELEASE_UTF_OBJECTS}
+                if (output_path.parent != emission / 'native/release/build'
+                        or not output_path.name.startswith('libruntime-')
+                        or output_path.suffix != '.a'
+                        or len(outside) != len(selected) or set(outside) != selected):
+                    raise ValueError('Foreign archive input')
         elif Path(parts[0]).name == 'libtool':
             if parts[0] != '/Library/Developer/CommandLineTools/usr/bin/libtool' or '-static' not in parts:
                 raise ValueError('Foreign archive tool')
@@ -247,6 +258,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
              sdk / 'SDKSettings.json', moon_home / 'installed.json',
              moon_home / 'bin/moon', moon_home / 'bin/moonc',
              moon_home / 'lib/libmoonbitrun.o', moon_home / 'lib/libbacktrace.a'}
+    paths.update(moon_home / 'lib' / name for name in RELEASE_UTF_OBJECTS)
     for package in packages:
         paths.update(p for p in (ROOT / 'src' / package).iterdir()
                      if p.is_file() and p.suffix in ('.mbt', '.pkg', '.c', '.h', '.inc'))
