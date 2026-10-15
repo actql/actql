@@ -48,10 +48,15 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
         parts = [p.replace('$MOON_HOME', str(moon_home)) for p in parts]
         if any('$' in p for p in parts):
             raise ValueError('Unresolved build placeholder')
+        archive_files = None
         if ar_driver is not None and parts[0] == str(ar_driver):
-            if len(parts) < 4 or parts[1] not in ('rcs', 'crs', 'cq', 'qc'):
+            if parts[1:4] == ['-r', '-c', '-s']:
+                archive_files = parts[4:]
+            elif len(parts) >= 4 and parts[1] in ('rcs', 'crs', 'cq', 'qc'):
+                archive_files = parts[2:]
+            if archive_files is None or len(archive_files) < 2:
                 raise ValueError('Unexpected original archive operation')
-            output_path = Path(parts[2])
+            output_path = Path(archive_files[0])
         elif '-o' in parts:
             output_path = Path(parts[parts.index('-o') + 1])
         else:
@@ -104,7 +109,7 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
             parts[1:1] = ['-isysroot', str(sdk), '-mmacosx-version-min=11.0',
                           '-I' + str(allocator), '-DACTQL_SCOPED_READ_ALLOCATOR']
         elif ar_driver is not None and parts[0] == str(ar_driver):
-            if not all(under(Path(p), emission) for p in parts[2:]):
+            if not all(under(Path(p), emission) for p in archive_files):
                 raise ValueError('Foreign archive input')
         elif Path(parts[0]).name == 'libtool':
             if parts[0] != '/Library/Developer/CommandLineTools/usr/bin/libtool' or '-static' not in parts:

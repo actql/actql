@@ -64,6 +64,14 @@ class RemoteScopedComposition(unittest.TestCase):
                                    self.clang, self.sdk, cc_driver=driver)
         self.assertEqual(plan, self.plan())
 
+    def test_actual_moon_archive_flags_are_preserved(self):
+        archive = ['/owned/bin/ar', '-r', '-c', '-s',
+                   str(self.emission / 'liboriginal.a'), str(self.emission / 'original.o')]
+        output = '\n'.join(shlex.join(c) for c in self.commands + [archive])
+        plan = MODULE.commands_for(output, self.home, self.emission, self.stage,
+                                   self.clang, self.sdk, ar_driver=Path('/owned/bin/ar'))
+        self.assertEqual(plan[-1], archive)
+
     def test_private_c_port_rejects_unplanned_invocation(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'plan.json'
