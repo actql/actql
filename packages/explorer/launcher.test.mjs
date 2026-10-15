@@ -11,11 +11,16 @@ const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 
 test('the installed loader admits actual frozen SPA bytes inside the existing asset bound', async () => {
   const assets = await loadExplorerAssets();
-  assert.equal(assets.size, 3);
+  // HTML, application JS/CSS and the separately emitted same-origin ELK Worker.
+  assert.equal(assets.size, 4);
+  assert([...assets.keys()].some(path => /^\/assets\/flow-layout-worker-[a-zA-Z0-9_-]+\.js$/u.test(path)));
   assert.match(assets.get('/index.html').body.toString(), /ActQL Explorer/u);
-  const script = [...assets].find(([path]) => path.endsWith('.js'));
-  assert(script); assert.match(script[1].body.toString(), /Read Plan/u);
-  assert(!script[1].body.toString().includes('/@vite/client'));
+  const scripts = [...assets.get('/index.html').body.toString()
+    .matchAll(/<script[^>]+src="(\/assets\/[a-zA-Z0-9_-]+\.js)"/gu)];
+  assert.equal(scripts.length, 1);
+  const script = assets.get(scripts[0][1]);
+  assert(script); assert.match(script.body.toString(), /Read Plan/u);
+  assert(!script.body.toString().includes('/@vite/client'));
   assert([...assets.values()].reduce((n, a) => n + a.body.length, 0) < 2 * 1024 * 1024);
 });
 

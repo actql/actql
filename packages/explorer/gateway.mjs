@@ -182,9 +182,18 @@ export function createExplorerGateway({client, origin, assets = new Map(),
       switch (c.req.param('kind')) {
         case 'launch':
           if (!exact(body, [])) fail('ExplorerInvalidRequest');
-          // The same session/Origin/CSRF/epoch checks protect this bounded
-          // presentation input. Reading it opens no Host, Run or workspace file.
-          data = initialInput;
+          // Return only the existing Owner's admitted projection, not the
+          // file's authoring text or a path into the launcher's filesystem.
+          if (initialInput === null) data = null;
+          else if (initialInput.kind === 'program') {
+            const input = initialInput.format === 'program'
+              ? JSON.parse(initialInput.text) : initialInput.text;
+            const options = initialInput.format === 'program'
+              ? {} : {format: initialInput.format};
+            data = {kind: 'program', plan: await readStaticPlan(client, input, options, ticket)};
+          } else {
+            data = {kind: 'run', originalPlan: await readExistingRunPlan(client, initialInput.ref, ticket)};
+          }
           break;
         case 'plan':
           if (!exact(body, ['input'], ['options']) ||

@@ -33,9 +33,10 @@ Run. Program and Run input options are mutually exclusive.
 Input files are bounded UTF-8 regular files; the selected file itself cannot
 be a symlink. The complete presentation envelope must fit the same 65,536-byte
 Gateway request limit. File paths are never served to the browser. The bounded
-input is copied before opening the Host and is disclosed only through the same
-short-lived, Origin/Host/CSRF-protected session. It is presentation data and
-confers no Run or Source authority. Automatic browser opening is not provided;
+input is copied before opening the Host. The browser receives only the existing
+Owner's Plan projection, through the same short-lived, Origin/Host/CSRF-protected
+session; authoring file text stays with the launcher. Input confers no Run or
+Source authority. Automatic browser opening is not provided;
 open the printed loopback URL and paste the one-use bootstrap as below.
 
 The nonconflicting `actql-explorer` launcher explicitly uses `@actql/node.open`

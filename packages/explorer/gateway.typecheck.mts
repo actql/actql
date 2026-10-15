@@ -7,9 +7,9 @@ const gateway = createExplorerGateway({client, origin: 'http://127.0.0.1:43210'}
 const server = await startExplorerGateway({client});
 const browser = createExplorerBrowserSource({origin: server.origin});
 await browser.connect(gateway.issueBootstrap().bootstrap);
-const launch = await browser.launchInput();
-if (launch?.kind === 'run') {const original: RunReference = launch.ref; void original;}
-if (launch?.kind === 'program') {const authoredText: string = launch.text; void authoredText;}
+const launch = await browser.launchView();
+if (launch?.kind === 'run') {const original: RunReference = launch.originalPlan.runRef; void original;}
+if (launch?.kind === 'program') {const sourceIO: 0 = launch.plan.providerIO; void sourceIO;}
 const plan = await browser.plan('SELECT 1 AS n', {format: 'sql', maxNodes: 10});
 const noProviderIO: 0 = plan.providerIO;
 const view = await browser.inspect(ref);
