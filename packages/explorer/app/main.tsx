@@ -105,7 +105,7 @@ function App() {
         <p>Static original map; no live progress overlay. Missing old evidence stays unavailable.</p>
         <pre>{JSON.stringify(originalPlan.runRef, null, 2)}</pre>
         <PlanExplorer model={originalPlan.plan} scopeKey={`${epoch.current}:${JSON.stringify(originalPlan.runRef)}`}/></>}
-      {run !== undefined && <><label><input type="checkbox" checked={follow}
+      {run !== undefined && <><label className="actql-run-follow"><input type="checkbox" checked={follow}
         disabled={pending || run.run.terminal} onChange={event => setFollow(event.target.checked)}/>
         Follow this exact Run (one-second read interval)</label>
         <p>{run.run.terminal ? 'Following stopped: terminal Run state observed.'
