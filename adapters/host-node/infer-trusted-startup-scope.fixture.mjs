@@ -179,4 +179,3 @@ try {
     else console.error(`Original startup Scope fixture retained: ${root}`);
   }
 }
-
