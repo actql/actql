@@ -37,8 +37,11 @@ undici.Client = new Proxy(OriginalClient, {construct(target, args) {
   const request = client.request;
   client.request = function(options) {
     return Reflect.apply(request, this, [options]).then(response => {
-      observations.push({headers: new WeakRef(response.headers),
-        trailers: new WeakRef(response.trailers), body: new WeakRef(response.body)});
+      const observed = {headers: new WeakRef(response.headers),
+        trailers: new WeakRef(response.trailers), body: new WeakRef(response.body),
+        bodyCloses: 0};
+      response.body.once('close', () => { observed.bodyCloses++; });
+      observations.push(observed);
       return response;
     });
   };
@@ -126,11 +129,13 @@ test('raw-only SDK does not retain unused response maps after actual body close 
     const socket = f.socket(), observed = f.observation();
     assert.equal(intercepted.progressSdkOriginalIoCleanup(handle), false);
     await until(() => socket.finish, value => typeof value === 'function');
+    await until(() => observed.bodyCloses, value => value === 1);
     assert.equal(socket.closes, 0);
     assert.equal(intercepted.progressSdkOriginalIoCleanup(handle), false);
-    assert.equal(await collected(observed.headers), true, 'head Map has no unused SDK response root');
-    assert.equal(await collected(observed.body), true, 'confirmed closed body need not pin its completed handler');
-    assert.equal(await collected(observed.trailers), true, 'unused trailer Map is not another raw/Store holding');
+    const unreachable = {head: await collected(observed.headers),
+      body: await collected(observed.body), trailers: await collected(observed.trailers)};
+    assert.deepEqual(unreachable, {head: true, body: true, trailers: true},
+      'original body close may retire the unused alias, never the pending Socket duty');
     assert.deepEqual(raw.headers, [['content-type', 'application/json']]);
     assert.equal(Buffer.from(raw.body).toString('utf8'), wire);
     assert.equal(socket.closes, 0);
