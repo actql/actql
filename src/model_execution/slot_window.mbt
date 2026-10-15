@@ -108,33 +108,31 @@ fn select_model_window_progress(
   let first = window.scan
   for offset in 0..<4 {
     let index = (first + offset) % 4
-    match window.frames[index] {
-      Some(frame) => {
-        state.progress = frame.progress
-        if frame.progress.call is Some(call) {
-          if call.settlement_acknowledged {
-            if !cleanup_model_physical_call(state) {
-              continue
-            }
-          } else if frame.progress.phase is AwaitPhysicalResponse {
-            if state.stop_requested {
-              cancel_model_physical_call(call)
-            }
-            match poll_model_physical_call(call) {
-              Err(issue) => call.poll_issue = Some(issue)
-              Ok(Some(PhysicalPending) | None) => continue
-              Ok(Some(_)) => ()
-            }
+    if window.frames[index] is Some(frame) {
+      state.progress = frame.progress
+      if frame.progress.call is Some(call) {
+        if call.settlement_acknowledged {
+          if !cleanup_model_physical_call(state) {
+            continue
+          }
+        } else if frame.progress.phase is AwaitPhysicalResponse {
+          if state.stop_requested {
+            cancel_model_physical_call(call)
+          }
+          match poll_model_physical_call(call) {
+            Err(issue) => call.poll_issue = Some(issue)
+            Ok(Some(PhysicalPending) | None) => continue
+            Ok(Some(_)) => ()
           }
         }
-        if window.outcomes.contains(frame.slot) &&
-          frame.progress.call is None &&
-          frame.progress.entry is None &&
-          frame.progress.io_duty is None &&
-          frame.progress.settlement is None {
-          window.frames[index] = None
-          continue
-        }
+      }
+      if window.outcomes.contains(frame.slot) &&
+        frame.progress.call is None &&
+        frame.progress.entry is None &&
+        frame.progress.io_duty is None &&
+        frame.progress.settlement is None {
+        window.frames[index] = None
+      } else {
         if frame.progress.phase is DispatchSlot &&
           frame.progress.settlement is None &&
           !state.stop_requested {
@@ -147,11 +145,13 @@ fn select_model_window_progress(
         window.scan = (index + 1) % 4
         return Ok(true)
       }
-      None => {
-        if state.stop_requested || window.next_slot >= count {
-          continue
-        }
-        let slot = window.next_slot
+    }
+    if window.frames[index] is None {
+      if state.stop_requested || window.next_slot >= count {
+        continue
+      }
+      let slot = window.next_slot
+      if model_slot_send_eligible(state, slot) {
         guard state.reservations.get(slot) is Some(reservation) else {
           return Err(RequestIdentity)
         }
@@ -167,23 +167,25 @@ fn select_model_window_progress(
           Ok(false) => continue
           Ok(true) => ()
         }
-        // Readiness is not a claim. The existing bounded Dispatch step will
-        // recheck and claim before creating an Entry or starting the transport.
-        let progress : ModelSlotProgress = {
-          phase: DispatchSlot,
-          slot,
-          entry: None,
-          call: None,
-          settlement: None,
-          observing_response: false,
-          io_duty: None,
-        }
-        window.frames[index] = Some({ slot, progress, })
-        window.next_slot += 1
-        window.scan = (index + 1) % 4
-        state.progress = progress
-        return Ok(true)
       }
+      // A fully retired original frame may be reused during this same
+      // bounded scan. Returning AwaitIo first could lose the final wake.
+      // Readiness is not a claim. The existing bounded Dispatch step will
+      // recheck and claim before creating an Entry or starting the transport.
+      let progress : ModelSlotProgress = {
+        phase: DispatchSlot,
+        slot,
+        entry: None,
+        call: None,
+        settlement: None,
+        observing_response: false,
+        io_duty: None,
+      }
+      window.frames[index] = Some({ slot, progress, })
+      window.next_slot += 1
+      window.scan = (index + 1) % 4
+      state.progress = progress
+      return Ok(true)
     }
   }
   if window.next_slot == count &&
