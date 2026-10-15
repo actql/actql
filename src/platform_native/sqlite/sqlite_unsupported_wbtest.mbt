@@ -22,3 +22,16 @@ test "non-native caller transaction claim cannot allocate or supply a retained u
     is Err(UnsupportedTarget),
   )
 }
+
+///|
+test "non-native bounded readbacks cannot supply journal rows" {
+  let database : Database = { unsupported: (), }
+  assert_true(
+    database.read_with_body_limit("original", "input", 8L)
+    is Err(UnsupportedTarget),
+  )
+  assert_true(
+    database.scan_after_with_body_limit("original", "", 8L)
+    is Err(UnsupportedTarget),
+  )
+}
