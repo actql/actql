@@ -180,14 +180,33 @@ test('package observation review preserves historical predicates and binds scope
   execFileSync('git', ['merge-base', '--is-ancestor', scopedIntro, 'HEAD'], {cwd: repository});
   assert.deepEqual(execFileSync('git', ['show', `${scopedParent}:${observationPath}`],
     {cwd: repository}), layoutIntroduced);
-  assert.deepEqual(current, execFileSync('git', ['show', `${scopedIntro}:${observationPath}`],
+  const scopedIntroduced = execFileSync('git', ['show', `${scopedIntro}:${observationPath}`],
+    {cwd: repository});
+  const refusalIntro = '6db6f2ce88454b80c21dbb3f5fb0bb9e7127d003';
+  const refusalParent = '380473dc6794b09bd561946aa8c7d9c2bcd9d1b4';
+  assert.equal(execFileSync('git', ['show', '-s', '--format=%P', refusalIntro],
+    {cwd: repository, encoding: 'utf8'}).trim(), refusalParent);
+  execFileSync('git', ['merge-base', '--is-ancestor', scopedIntro, refusalParent], {cwd: repository});
+  execFileSync('git', ['merge-base', '--is-ancestor', refusalIntro, 'HEAD'], {cwd: repository});
+  assert.deepEqual(execFileSync('git', ['show', `${refusalParent}:${observationPath}`],
+    {cwd: repository}), scopedIntroduced);
+  assert.deepEqual(current, execFileSync('git', ['show', `${refusalIntro}:${observationPath}`],
     {cwd: repository}));
   restored = current.toString();
   for (const [member, targets] of [
-    ['scoped_read_native.mbt', '[ "native" ]'],
-    ['scoped_read_unsupported.mbt', '[ "not", "native" ]'],
     ['scoped_read_unselected_native_wbtest.mbt', '[ "native" ]'],
     ['scoped_read_unsupported_wbtest.mbt', '[ "not", "native" ]'],
+  ]) {
+    const selector = `    "${member}": ${targets},\n`;
+    assert.equal(restored.split(selector).length, 2);
+    restored = restored.replace(selector, '');
+    assert(tree.entries.has(`${observationDirectory}/${member}`));
+  }
+  assert.equal(restored, scopedIntroduced.toString());
+  restored = scopedIntroduced.toString();
+  for (const [member, targets] of [
+    ['scoped_read_native.mbt', '[ "native" ]'],
+    ['scoped_read_unsupported.mbt', '[ "not", "native" ]'],
   ]) {
     const selector = `    "${member}": ${targets},\n`;
     assert.equal(restored.split(selector).length, 2);

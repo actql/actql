@@ -1,9 +1,13 @@
 # Exact scoped filesystem acquisition configuration review
 
 Reviewed author Source: `e66017830a96128dbf1226661533b524baf8652d`.
-The manifest was introduced at `4a62dc0cfc30be562405d2fc31bdfa1556bfae9c`,
-whose sole genuine parent is `8d93c89d48e5991d9a890648db023a4336ff8979`.
-The final author has the same manifest bytes. Its exact Git blob is
+Two product selectors were introduced at
+`4a62dc0cfc30be562405d2fc31bdfa1556bfae9c`, whose sole genuine parent is
+`8d93c89d48e5991d9a890648db023a4336ff8979`. Two mandatory refusal-WB
+selectors followed at `6db6f2ce88454b80c21dbb3f5fb0bb9e7127d003`, whose sole
+parent is `380473dc6794b09bd561946aa8c7d9c2bcd9d1b4`. Each whole preimage is
+retained and stripped in that exact order. The final author has the same
+manifest bytes as 6db6. Its exact Git blob is
 `b8ca1dd7abff97fad56b57cea762d02b06c7725f` (mode100644), SHA256
 `98c10419328d72de804dd3e65aea84346db093880edce96cd679e6fbc55a6460`.
 
