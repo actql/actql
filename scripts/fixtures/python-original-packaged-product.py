@@ -179,6 +179,28 @@ else:
             assert error.cleanup_runtime is runtime
         else: raise AssertionError('Changed original image retained current metadata')
     else:
+        # Data validation/refusal cannot consume another original's reply or
+        # retire its Runtime. Keep the same persistent slot until matching ACK.
+        owner = domain._owner
+        owner._enter()
+        try:
+            out = C.byref(runtime._product_reply)
+            assert product.identity(runtime._runtime, out) == 0
+            before = runtime._product_reply.value
+            assert before is not None
+            assert product.validate(runtime._product_reply, C.c_void_p(1),
+                runtime._original_read, runtime._runtime) == -2
+            assert product.drop(out, C.c_void_p(1), runtime._original_read, runtime._runtime) == -2
+            assert runtime._product_reply.value == before
+            try: runtime.close()
+            except ValueError: pass
+            else: raise AssertionError('Pending product data allowed Runtime retirement')
+            assert product.validate(runtime._product_reply, runtime._host,
+                runtime._original_read, runtime._runtime) == 0
+            assert product.drop(out, runtime._host, runtime._original_read, runtime._runtime) == 0
+            assert runtime._product_reply.value is None
+        finally:
+            owner._busy = False
         # Metadata copies do not renew the one-shot observation/adoption.
         try: observe_selected()
         except _OriginalPackagedRuntimeError as error:
