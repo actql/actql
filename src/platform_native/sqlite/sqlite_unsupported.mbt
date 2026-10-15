@@ -356,3 +356,19 @@ pub fn Database::scan_after_with_body_limit(
 ) -> Result[NativeJournalEntry, NativeSqliteIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn Database::read_capacity(
+  _self : Database,
+  _scope : String,
+  _key : String,
+) -> Result[NativeCapacityUsage, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::database_usage(
+  _self : Database,
+) -> Result[NativeDatabaseUsage, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
