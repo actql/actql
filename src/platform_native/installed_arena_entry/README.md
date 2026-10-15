@@ -199,8 +199,8 @@ SQLite autocommit observation: a connection's visible uncommitted rows must not
 be offered as durable lookup. Autocommit alone proves no particular COMMIT,
 original content chain, authority, or permission to send again.
 
-`sqlite_database_shim` uses the actual regular C from Source105b181b (digest
-recorded in its header). Managed callback inputs are borrowed and getters own
+`sqlite_database_shim` uses the 52 callback prototypes observed in regular C
+from Source1c4d0dc7 (digest recorded in its header). Managed callback inputs are borrowed and getters own
 their returned references. Permanent Database acquisition runs outside the
 child managed scope; row marshalling runs inside the same original funded
 scope, after Core validates current and the original Database. A refused
@@ -210,6 +210,16 @@ Output copying retains empty-row presence and rejects a post-call fence error.
 Reply drop and Database/Library cleanup are separate; no row copy retires the
 adapter's existing result buffer. Close-data drops require the same original
 Database's successful Close(10)/stage3. Slots clear before decref.
+
+The fenced snapshot transport retains the original Core read child and reply
+in separate persistent out-slots, both filled by one C start call. Its closed
+read port supports bounded rows, headers, ordered scans, reservations and
+totals. Row copying revalidates that exact child rather than the ordinary
+Database read path. Python registers custody before start and retains it after
+response loss; cleanup drains the same reply and never repeats start or finish.
+Only the original Core stop/current observation permits successful completion.
+An absent out-slot or a lost alias-drop response is not a cleanup ACK. The old
+write Unknown and Database fence remain unchanged after read retirement.
 
 The private diagnostic fixture covers fresh owned initialization, committed
 restore, failed-open cleanup, original transaction fencing and child-first

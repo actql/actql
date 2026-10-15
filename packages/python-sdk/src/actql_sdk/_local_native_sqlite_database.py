@@ -8,10 +8,13 @@ from __future__ import annotations
 from ctypes import (POINTER, byref, c_char_p, c_int, c_int32, c_int64,
                     c_uint16, c_uint64, c_ubyte, c_void_p, cast)
 from dataclasses import dataclass
-from typing import Any, Callable, NoReturn
+from typing import TYPE_CHECKING, Any, Callable, NoReturn, Protocol
 
 from ._local_native_domain_custody import _OriginalDomainReadFunctions
 from ._local_native_sqlite import _OriginalSqliteCustody
+
+if TYPE_CHECKING:
+    from ._local_native_sqlite_lookup import _OriginalLookupCustody
 
 _RETIRED_DATABASE_DATA = object()
 
@@ -33,6 +36,8 @@ class _OriginalDatabaseFact:
     record_body_bytes: int | None = None
     reservation_count: int | None = None
     transaction_active: bool | None = None
+    has_header: bool = False
+    header_body_bytes: int | None = None
 
 
 class _OriginalDatabaseError(RuntimeError):
@@ -67,6 +72,12 @@ class _OriginalDatabaseFunctions:
             'capacity_read_utf16_into': ([p, p, text, c_int32, text, c_int32, pp], c_int),
             'database_usage_into': ([p, p, pp], c_int),
             'transaction_state_into': ([p, p, pp], c_int),
+            'header_utf16_into': ([p, p, text, c_int32, text, c_int32, pp], c_int),
+            'has_header': ([p], c_int32),
+            'header_body_bytes': ([p], c_int64),
+            'begin_read_into': ([p, p, pp], c_int),
+            'capacity_reserve_bounded_utf16_into': ([p, p, text, c_int32, text, c_int32,
+                c_int64, c_int64, c_int64, c_int64, c_int64, pp], c_int),
             'record_count': ([p], c_int64),
             'record_body_bytes': ([p], c_int64),
             'reservation_count': ([p], c_int64),
@@ -91,6 +102,93 @@ class _OriginalDatabaseFunctions:
             self.calls[name] = call
 
 
+class _OriginalReplyProjection(Protocol):
+    @property
+    def _functions(self) -> _OriginalDatabaseFunctions: ...
+    @property
+    def _reply(self) -> c_void_p: ...
+    @property
+    def _original(self) -> c_void_p: ...
+    @property
+    def _bound(self) -> int: ...
+    def _mark_unknown(self) -> RuntimeError: ...
+
+
+def _read_database_fact(self: _OriginalReplyProjection, operation: int, *,
+                        preflight: bool = False, preflight_operation: int = 3
+                        ) -> _OriginalDatabaseFact:
+    """Shared strict physical reply projection; it creates no authority/ACK."""
+    if self._reply.value is None:
+        raise self._mark_unknown()
+    values = [self._functions.calls[name](self._reply) for name in
+              ('operation', 'stage', 'issue_family', 'after_issue_family', 'has_row', 'revision', 'body_bound')]
+    if (any(type(n) is not int for n in values) or not 0 <= values[1] <= 3
+            or not 0 <= values[2] <= 20 or not 0 <= values[3] <= 20
+            or values[4] not in (0, 1) or not -1 <= values[5] <= 2**63 - 1
+            or not -1 <= values[6] <= 2**31 - 1):
+        raise self._mark_unknown()
+    actual, stage, issue, after, present, revision, bound = values
+    if actual != operation:
+        if not (preflight and actual == preflight_operation and (issue or after) and stage in (0, 2)):
+            raise self._mark_unknown()
+    if self._original.value is not None and bound != self._bound:
+        raise self._mark_unknown()
+    if present and (actual not in (4, 12, 24, 25) or stage != 2 or issue != 0 or revision < 0):
+        raise self._mark_unknown()
+    changed: bool | None = None
+    reserved_bytes: int | None = None
+    reserved_objects: int | None = None
+    if actual in (13, 14, 15, 16, 21, 27, 28):
+        capacity = [self._functions.calls[name](self._reply) for name in
+                    ('capacity_changed', 'reserved_bytes', 'reserved_objects')]
+        if (any(type(n) is not int for n in capacity) or capacity[0] not in (-1, 0, 1)
+                or any(not -1 <= n <= 2**63 - 1 for n in capacity[1:])):
+            raise self._mark_unknown()
+        flag, bytes_, objects = capacity
+        if actual in (13, 15, 21):
+            if bytes_ != -1 or objects != -1 or (not issue and stage == 2 and flag == -1):
+                raise self._mark_unknown()
+            changed = None if flag == -1 else bool(flag)
+        else:
+            if flag != -1 or (bytes_ == -1) != (objects == -1) or (not issue and stage == 2 and bytes_ == -1):
+                raise self._mark_unknown()
+            reserved_bytes = None if bytes_ == -1 else bytes_
+            reserved_objects = None if objects == -1 else objects
+    records: int | None = None
+    body_bytes: int | None = None
+    reservations: int | None = None
+    active: bool | None = None
+    if actual in (17, 29):
+        totals = [self._functions.calls[name](self._reply) for name in
+                  ('record_count', 'record_body_bytes', 'reservation_count')]
+        if (any(type(n) is not int or not -1 <= n <= 2**63 - 1 for n in totals)
+                or len({n == -1 for n in totals}) != 1
+                or (not issue and stage == 2 and totals[0] == -1)):
+            raise self._mark_unknown()
+        records, body_bytes, reservations = (None if n == -1 else n for n in totals)
+    if actual == 18:
+        state = self._functions.calls['transaction_active'](self._reply)
+        if type(state) is not int or state not in (-1, 0, 1) or (not issue and stage == 2 and state == -1):
+            raise self._mark_unknown()
+        active = None if state == -1 else bool(state)
+    header_present = False
+    header_bytes: int | None = None
+    if actual in (19, 26):
+        h = self._functions.calls['has_header'](self._reply)
+        n = self._functions.calls['header_body_bytes'](self._reply)
+        if (type(h) is not int or h not in (0, 1) or type(n) is not int
+                or not -1 <= n <= bound or (h == 0) != (n == -1)
+                or h == 1 and (present or revision < 0 or stage != 2 or issue != 0)
+                or not issue and stage == 2 and h == 0):
+            raise self._mark_unknown()
+        header_present, header_bytes = bool(h), None if n == -1 else n
+    return _OriginalDatabaseFact(actual, stage, issue, after, bool(present),
+                                 None if revision == -1 else revision, bound,
+                                 changed, reserved_bytes, reserved_objects,
+                                 records, body_bytes, reservations, active, header_present, header_bytes)
+
+
+
 def _text(value: str, *, path: bool = False, cursor: bool = False) -> tuple[Any, int]:
     if (type(value) is not str or not cursor and (not value or '\0' in value)
             or (path and not value.startswith('/'))):
@@ -113,7 +211,7 @@ class _OriginalDatabaseCustody:
     """
     __slots__ = ('_library', '_functions', '_read', '_host', '_native_library',
                  '_original', '_reply', '_bound', '_unknown', '_unknown_carrier',
-                 '_write_unknown', '_fenced_unknown', '_closed')
+                 '_write_unknown', '_fenced_unknown', '_closed', '_lookup_original')
     _library: _OriginalSqliteCustody
     _functions: _OriginalDatabaseFunctions
     _read: _OriginalDomainReadFunctions
@@ -127,6 +225,7 @@ class _OriginalDatabaseCustody:
     _write_unknown: _OriginalDatabaseError | None
     _fenced_unknown: bool
     _closed: bool
+    _lookup_original: _OriginalLookupCustody | None
 
     @classmethod
     def _open_original(cls, library: _OriginalSqliteCustody,
@@ -152,6 +251,7 @@ class _OriginalDatabaseCustody:
         original._original, original._reply = c_void_p(), c_void_p()
         original._bound, original._closed = max_body_bytes, False
         original._unknown = None
+        original._lookup_original = None
         original._unknown_carrier = _OriginalDatabaseError(original, unknown=True, operation=0)
         original._write_unknown, original._fenced_unknown = None, False
         out = byref(original._reply)
@@ -236,63 +336,7 @@ class _OriginalDatabaseCustody:
             raise self._mark_unknown()
 
     def _fact(self, operation: int, *, preflight: bool = False) -> _OriginalDatabaseFact:
-        if self._reply.value is None:
-            raise self._mark_unknown()
-        values = [self._functions.calls[name](self._reply) for name in
-                  ('operation', 'stage', 'issue_family', 'after_issue_family', 'has_row', 'revision', 'body_bound')]
-        if (any(type(n) is not int for n in values) or not 0 <= values[1] <= 3
-                or not 0 <= values[2] <= 20 or not 0 <= values[3] <= 20
-                or values[4] not in (0, 1) or not -1 <= values[5] <= 2**63 - 1
-                or not -1 <= values[6] <= 2**31 - 1):
-            raise self._mark_unknown()
-        actual, stage, issue, after, present, revision, bound = values
-        if actual != operation:
-            if not (preflight and actual == 3 and (issue or after) and stage in (0, 2)):
-                raise self._mark_unknown()
-        if self._original.value is not None and bound != self._bound:
-            raise self._mark_unknown()
-        if present and (actual not in (4, 12) or stage != 2 or issue != 0 or revision < 0):
-            raise self._mark_unknown()
-        changed: bool | None = None
-        reserved_bytes: int | None = None
-        reserved_objects: int | None = None
-        if actual in (13, 14, 15, 16):
-            capacity = [self._functions.calls[name](self._reply) for name in
-                        ('capacity_changed', 'reserved_bytes', 'reserved_objects')]
-            if (any(type(n) is not int for n in capacity) or capacity[0] not in (-1, 0, 1)
-                    or any(not -1 <= n <= 2**63 - 1 for n in capacity[1:])):
-                raise self._mark_unknown()
-            flag, bytes_, objects = capacity
-            if actual in (13, 15):
-                if bytes_ != -1 or objects != -1 or (not issue and stage == 2 and flag == -1):
-                    raise self._mark_unknown()
-                changed = None if flag == -1 else bool(flag)
-            else:
-                if flag != -1 or (bytes_ == -1) != (objects == -1) or (not issue and stage == 2 and bytes_ == -1):
-                    raise self._mark_unknown()
-                reserved_bytes = None if bytes_ == -1 else bytes_
-                reserved_objects = None if objects == -1 else objects
-        records: int | None = None
-        body_bytes: int | None = None
-        reservations: int | None = None
-        active: bool | None = None
-        if actual == 17:
-            totals = [self._functions.calls[name](self._reply) for name in
-                      ('record_count', 'record_body_bytes', 'reservation_count')]
-            if (any(type(n) is not int or not -1 <= n <= 2**63 - 1 for n in totals)
-                    or len({n == -1 for n in totals}) != 1
-                    or (not issue and stage == 2 and totals[0] == -1)):
-                raise self._mark_unknown()
-            records, body_bytes, reservations = (None if n == -1 else n for n in totals)
-        if actual == 18:
-            state = self._functions.calls['transaction_active'](self._reply)
-            if type(state) is not int or state not in (-1, 0, 1) or (not issue and stage == 2 and state == -1):
-                raise self._mark_unknown()
-            active = None if state == -1 else bool(state)
-        return _OriginalDatabaseFact(actual, stage, issue, after, bool(present),
-                                     None if revision == -1 else revision, bound,
-                                     changed, reserved_bytes, reserved_objects,
-                                     records, body_bytes, reservations, active)
+        return _read_database_fact(self, operation, preflight=preflight)
 
     def _drop(self) -> None:
         if self._reply.value is not None:
@@ -321,6 +365,8 @@ class _OriginalDatabaseCustody:
                  key_output: tuple[Any, int, c_int64, Any] | None = None
                  ) -> tuple[_OriginalDatabaseFact, int | None]:
         self._local(allow_unconfirmed=allow_unconfirmed)
+        if self._lookup_original is not None:
+            raise ValueError('Original Native Database has a retained read child')
         reply_out, size = byref(self._reply), c_int64(-1)
         size_out = byref(size)
         # Entry refusals are local Owner results and remain outside the foreign
@@ -340,14 +386,14 @@ class _OriginalDatabaseCustody:
                 try:
                     code = call(reply_out)
                 except BaseException as error:
-                    if operation in (5, 6, 7, 8, 9, 13, 15) and self._reply.value is not None:
+                    if operation in (5, 6, 7, 8, 9, 13, 15, 20, 21) and self._reply.value is not None:
                         # Preserve a published SAME original reply. Reconciliation
                         # may inspect/drop it and fence Core; never resend SQL.
                         self._write_unknown = _OriginalDatabaseError(self, unknown=True, operation=operation)
                         raise self._write_unknown from error
                     raise
                 self._status(code)
-                fact = self._fact(operation, preflight=operation in (4, 5, 6, 12, 13, 14, 15))
+                fact = self._fact(operation, preflight=operation in (4, 5, 6, 12, 13, 14, 15, 19, 21))
                 length: int | None = None
                 if not fact.issue_family and not fact.after_issue_family and fact.has_row:
                     self._status(self._functions.calls['copy_row'](self._reply, self._host,
@@ -374,6 +420,38 @@ class _OriginalDatabaseCustody:
                 raise self._mark_unknown() from error
             finally:
                 owner._busy = False
+
+    def read_header(self, scope: str, key: str) -> _OriginalDatabaseFact:
+        s, sn = _text(scope); k, kn = _text(key)
+        fact, _ = self._managed(19, lambda r: self._functions.calls['header_utf16_into'](
+            self._host, self._original, s, sn, k, kn, r))
+        return fact
+
+    def begin_read(self) -> _OriginalDatabaseFact:
+        fact, _ = self._managed(20, lambda r: self._functions.calls['begin_read_into'](
+            self._host, self._original, r))
+        return fact
+
+    def reserve_bounded_capacity(self, scope: str, key: str, reserved_bytes: int,
+                                 reserved_objects: int, max_bytes: int, max_objects: int,
+                                 max_reservations: int) -> _OriginalDatabaseFact:
+        s, sn = _text(scope); k, kn = _text(key)
+        if (any(type(n) is not int or not 0 <= n <= 2**63 - 1 for n in
+                (reserved_bytes, reserved_objects, max_bytes, max_objects))
+                or type(max_reservations) is not int or not 1 <= max_reservations <= 1024):
+            raise ValueError('Original Native Database capacity bounds are invalid')
+        fact, _ = self._managed(21, lambda r: self._functions.calls['capacity_reserve_bounded_utf16_into'](
+            self._host, self._original, s, sn, k, kn, reserved_bytes,
+            reserved_objects, max_bytes, max_objects, max_reservations, r))
+        return fact
+
+    def lookup_unconfirmed_snapshot(self) -> _OriginalLookupCustody:
+        from ._local_native_sqlite_lookup import _OriginalLookupCustody
+        self._local(allow_unconfirmed=True)
+        if self._lookup_original is not None:
+            raise ValueError('Original Native Database has a retained read child')
+        self._fence_unconfirmed_response()
+        return _OriginalLookupCustody._prepare(self)
 
     def read_into(self, scope: str, key: str, output: bytearray) -> tuple[_OriginalDatabaseFact, int | None]:
         """Copy into caller's already-owned bounded buffer; retain no view."""
@@ -596,6 +674,8 @@ class _OriginalDatabaseCustody:
     def close(self) -> None:
         if self._unknown is not None:
             raise self._unknown
+        if self._lookup_original is not None:
+            self._lookup_original.close()
         owner = self._library._domain._owner
         reply_out = byref(self._reply)
         owner._enter()
