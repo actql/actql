@@ -8,6 +8,7 @@ priv enum LiveChannelOperation {
   ReportLive
   StopLive
   RetireLive
+  CapacitiesLive
   InvalidLiveOperation
 }
 
@@ -25,6 +26,7 @@ struct InstalledArenaLiveChannelReply {
   issue : @bootstrap.NativeBackedExecutionIssue?
   state : @resources.BackedExecutionLiveState?
   limits : @resources.LedgerLimits?
+  capacities : (Int64, Int64)?
 }
 
 ///|
@@ -44,6 +46,7 @@ fn live_channel_unit_reply(
     operation,
     state: None,
     limits: None,
+    capacities: None,
     issue: match result {
       Ok(_) => None
       Err(issue) => Some(issue)
@@ -75,6 +78,7 @@ pub fn prepare_installed_arena_live_channel_reply(
     operation: PrepareLive,
     state: None,
     limits: None,
+    capacities: None,
   }
 }
 
@@ -131,6 +135,7 @@ pub fn operate_installed_arena_live_channel_reply(
         state,
         issue,
         limits: None,
+        capacities: None,
       }
     }
     5 => {
@@ -146,6 +151,24 @@ pub fn operate_installed_arena_live_channel_reply(
         state: None,
         issue,
         limits,
+        capacities: None,
+      }
+    }
+    9 => {
+      let (capacities, issue) = match
+        host.live_channel_capacities(domain, channel) {
+        Ok(value) => (Some(value), None)
+        Err(issue) => (None, Some(issue))
+      }
+      {
+        host: domain.host,
+        domain,
+        channel: Some(channel),
+        operation: CapacitiesLive,
+        state: None,
+        limits: None,
+        capacities,
+        issue,
       }
     }
     7 =>
@@ -247,6 +270,7 @@ pub fn InstalledArenaLiveChannelReply::operation_tag(
     ReportLive => 6
     StopLive => 7
     RetireLive => 8
+    CapacitiesLive => 9
     InvalidLiveOperation => -1
   }
 }
@@ -279,6 +303,16 @@ pub fn InstalledArenaLiveChannelReply::limit(
   self : InstalledArenaLiveChannelReply,
   ordinal : Int,
 ) -> Int64 {
+  // The existing exact i64 callback carries two additional closed ordinals
+  // only on its distinct typed baseline observation. No signature or pointer
+  // representation changes; C still checks operation and original identities.
+  if self.capacities is Some((vm, host)) {
+    return match ordinal {
+      6 => vm
+      7 => host
+      _ => -1L
+    }
+  }
   guard self.limits is Some(limits) else { return -1L }
   match ordinal {
     0 => limits.planning_work.to_int64()

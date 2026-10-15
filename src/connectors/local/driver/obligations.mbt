@@ -626,21 +626,22 @@ fn local_task_constrain_calendar(
   guard @strategy.graph_task_operation_count(graph, task) is Some(count) else {
     return None
   }
-  let prepared = @lower.bound_preparation(
-    @execution.generated_sequence_owner(sequence),
-  )
   let mut constrained = sequence
   for index in 0..<count {
     let requirement = @strategy.graph_task_operation_at(graph, task, index).unwrap()
     if requirement.disposition is ExecutionCheck(CalendarExecution(check)) &&
       check.rule == EnforceCalendarOutputEnvelope {
-      guard physical_equal(check.site.pipeline, @lower.pipeline(prepared)) &&
-        @lower.sequence_step(
+      guard @lower.sequence_step(
           @execution.generated_prepared_sequence(sequence),
           requirement.site.step,
         )
         is Some(@lower.CalendarStep(calendar)) &&
-        physical_equal(check.operation, @lower.calendar_checked(calendar)) else {
+        @lower.calendar_matches_occurrence(
+          calendar,
+          check.site.pipeline,
+          requirement.site.step,
+          check.operation,
+        ) else {
         return None
       }
       constrained = match

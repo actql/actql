@@ -3,6 +3,8 @@ import {readFileSync, readdirSync, existsSync} from 'node:fs';
 import test from 'node:test';
 import './connector-node-bundles.test.mjs';
 import './backend-semantic-boundary.test.mjs';
+import './source-dependency-closure.test.mjs';
+import {productionDependencyClosure} from './source-dependency-closure.mjs';
 
 const manifest = name => readFileSync(`src/${name}/moon.pkg`, 'utf8');
 const imports = name => [...manifest(name).matchAll(/"actql\/actql\/([^"]+)"/g)].map(m => m[1]);
@@ -309,17 +311,9 @@ test('DuckDB SQL and physical values belong to the connector package group', () 
   }
 });
 
-const dependencies = name => {
-  const seen = new Set();
-  const pending = imports(name);
-  while (pending.length) {
-    const dependency = pending.pop();
-    if (seen.has(dependency)) continue;
-    seen.add(dependency);
-    pending.push(...imports(dependency));
-  }
-  return [...seen];
-};
+// Production ownership excludes test composition. Direct manifest assertions
+// (including the engine's explicit test dependency prohibition) remain below.
+const dependencies = name => productionDependencyClosure(name, manifest);
 
 test('DuckDB acquisition Host does not depend on Compute composition or Local', () => {
   const closure = dependencies('connectors/duckdb/host');

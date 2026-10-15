@@ -124,3 +124,26 @@ selection or session replies. Each refresh still passes the existing current
 SDK/Host and Gateway authorization. Cloud adapters can use this same component
 with their own authenticated reads.
 
+
+`CancellationPanel` renders Client-owned original cancellation references,
+separate invocation observations and original-operation history. Its explicit
+callbacks belong to the embedding adapter. The component has no Client,
+credentials, permission evaluator or retry loop. `./cancellation` supplies the
+pure reference/observation validation; Unknown is a presentation alternative,
+not a manufactured Client–Host cancellation-attempt wire or physical-stop ACK.
+
+## Checkpoint review reads
+
+The shared Checkpoint panel lists one authorized waiting Host page and explicitly
+reads the original Checkpoint's exact review projection through the public SDK.
+Listing, review reading and answering have separate current Host permissions.
+The list is independent of the selected Run; original subjects are displayed
+without a guessed Run/Logical Map join. A further cursor is retained only as an
+opaque indication and is not fetched automatically. A missing API is unavailable.
+
+Review bytes retain the Checkpoint CID and original review projection CID; the
+existing SDK verifies integrity. UTF-8 is escaped text, binary stays base64, and
+no parser invents a resolved target or Effect diff. Read refusal or scope change
+clears protected contents. This panel supplies no signer, answer, approval,
+execution, resume, new permission or durable state. It does not make the static
+Plan's unknown Preview an observed one.

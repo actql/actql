@@ -140,3 +140,42 @@ It never calls execution wait/start/resume/reconcile. Every refresh uses the
 current SDK/Host permission and the same finite Gateway session; no long-lived
 Allow or durable bootstrap URL is retained. Independent observations remain
 non-atomic and are not overlaid onto logical steps without an original binding.
+
+## Explicit cancellation in the current Explorer
+
+The viewer remains read-only by default. `actql-explorer --local --allow-cancel`
+adds the existing Host cancellation request and original-operation lookup to the
+same authenticated loopback session. This flag enables a presentation route;
+it does not authorize the caller. The Host independently checks its current
+cancellation permission and original Run/control revision.
+
+Read the exact existing Run, prepare and save its cancellation reference, then
+explicitly request cancellation. The reference fixes the observed control
+revision, cancellation ID and invocation attempt. This view sends that request
+once. A lost or malformed reply stays Unknown: use **Look up original
+cancellation**, or load the saved JSON in a later viewer for lookup only. No new
+ID, revision, request or Run is generated as a recovery action. Closing or
+reconnecting the viewer does not resend the operation. Stale-scope replies and
+protected observations are discarded; the Client's original lookup reference
+is retained so its uncertainty is not silently forgotten.
+
+Cancellation acceptance is not physical stop, cleanup, Result release or a
+successful Run. The existing Run inspector observes those facts independently.
+Pause, step, resume and Sample payloads remain unavailable. This connection does
+not create a new controller, Host, scheduler, grant or durable operation store.
+
+## Checkpoint review reads
+
+The shared Checkpoint panel lists one authorized waiting Host page and explicitly
+reads the original Checkpoint's exact review projection through the public SDK.
+Listing, review reading and answering have separate current Host permissions.
+The list is independent of the selected Run; original subjects are displayed
+without a guessed Run/Logical Map join. A further cursor is retained only as an
+opaque indication and is not fetched automatically. A missing API is unavailable.
+
+Review bytes retain the Checkpoint CID and original review projection CID; the
+existing SDK verifies integrity. UTF-8 is escaped text, binary stays base64, and
+no parser invents a resolved target or Effect diff. Read refusal or scope change
+clears protected contents. This panel supplies no signer, answer, approval,
+execution, resume, new permission or durable state. It does not make the static
+Plan's unknown Preview an observed one.

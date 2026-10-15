@@ -1,0 +1,11 @@
+export type ReviewReference=Readonly<{checkpointCid:string;reviewProjectionCid:string}>;
+export type CheckpointEntry=Readonly<ReviewReference&{checkpointId:string;humanSummary:string;metadataJson:string}>;
+export type CheckpointPageModel=Readonly<{items:readonly CheckpointEntry[];hasNext:boolean}>;
+export type ReviewObservation=Readonly<{checkpointCid:string;artifactCid:string;byteLength:number;contentBase64:string}>;
+export const checkpointReadLimits:Readonly<{maxItems:32;maxReviewBytes:65536;maxWireBytes:65536;maxNodes:10000;maxDepth:64}>;
+export function checkpointPageModel(value:unknown):CheckpointPageModel;
+export function captureReviewReference(value:unknown):ReviewReference;
+export function validReviewObservation(value:unknown,reference:unknown):value is ReviewObservation;
+export function reviewText(value:ReviewObservation):Readonly<{kind:'utf8';text:string}|{kind:'binary';base64:string}>;
+export type CheckpointPanelProps=Readonly<{page:CheckpointPageModel|null;review:ReviewObservation|null;pending:boolean;
+ canList:boolean;canRead:boolean;onList:()=>void;onRead:(reference:ReviewReference)=>void}>;
