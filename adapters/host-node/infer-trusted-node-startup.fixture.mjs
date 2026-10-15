@@ -15,9 +15,17 @@ const actual = source();
 const view = issueInferTrustedRuntimeView(actual);
 const mode = process.argv[2];
 const rejects = (run, code) => assert.throws(run, error => error.code === code);
-if (mode === 'absent') {
+if (mode === 'absent' || mode === 'promise-unselected') {
   assert.equal(associateInferTrustedStartupView(view, actual), undefined);
   rejects(() => requireInferTrustedStartupView(view, actual), 'InferTrustedStartupUnavailable');
+  if (mode === 'promise-unselected') {
+    const descriptor = Object.getOwnPropertyDescriptor(Promise.prototype, 'then');
+    assert.equal(descriptor.writable, true);
+    assert.equal(descriptor.configurable, true);
+    const original = Promise.prototype.then;
+    try { Promise.prototype.then = () => undefined; }
+    finally { Promise.prototype.then = original; }
+  }
 } else {
   assert.equal(associateInferTrustedStartupView(view, actual), view);
   requireInferTrustedStartupView(view, actual);
@@ -85,6 +93,32 @@ if (mode === 'absent') {
     forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
     assert.equal(error.cert, cert);
     rejects(() => requireInferTrustedStartupView(view, actual), 'InferTrustedRuntimeViewRetired');
+  } else if (mode === 'promise-originals') {
+    const original = Promise;
+    for (const [owner, name] of [[globalThis, 'Promise'], [original, 'resolve'],
+      [original, 'reject'], [original.prototype, 'then'],
+      [original.prototype, 'catch'], [original.prototype, 'finally'],
+      [original.prototype, 'constructor']]) {
+      const descriptor = Object.getOwnPropertyDescriptor(owner, name);
+      assert.equal(descriptor.writable, false, name);
+      assert.equal(descriptor.configurable, false, name);
+      assert.throws(() => { owner[name] = () => undefined; }, TypeError);
+    }
+    const species = Object.getOwnPropertyDescriptor(original, Symbol.species);
+    assert.equal(typeof species.get, 'function');
+    assert.equal(species.set, undefined);
+    assert.equal(species.configurable, false);
+    assert.strictEqual(species.get.call(original), original);
+    assert.throws(() => Object.defineProperty(original, Symbol.species,
+      {get: () => class ForeignPromise extends original {}}), TypeError);
+    const value = Object.freeze({synthetic: 'same-original'});
+    const pending = original.resolve(value).then(result => result).finally(() => {});
+    assert.strictEqual(await pending, value);
+    requireInferTrustedStartupView(view, actual);
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
+    // Host retirement is not retirement of the process/module originals.
+    assert.equal(Object.getOwnPropertyDescriptor(original.prototype, 'then').writable, false);
   } else if (['read-decoder-global', 'read-decoder-decode', 'read-buffer-subarray'].includes(mode)) {
     assert.equal(globalThis.TextDecoder, NodeTextDecoder);
     if (mode === 'read-decoder-global') {
