@@ -48,6 +48,9 @@ test "original temporal JSON and SQL retain the installed Host reservation" {
       fragment_body=Some(
         @identity.stringify_value(registered_fragment(), 100000, 10000, 100),
       ),
+      ordered_body=Some(
+        @identity.stringify_value(registered_ordered(), 100000, 10000, 100),
+      ),
       provider_factory=capacity => {
         [
           @local_tea_provider.interval_join_provider(
