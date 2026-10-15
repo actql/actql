@@ -126,7 +126,8 @@ pub fn[P, C, R] admit_backed_execution_live_child(
   // First bootstrap only. Do not manufacture a new zero-based child view
   // after any usage/peak was already reported through this original ticket.
   let logical = ticket.logical.unwrap()
-  if logical.planning != 0 ||
+  if ticket.live_usage_reported ||
+    logical.planning != 0 ||
     logical.attempts != 0 ||
     logical.holdings != 0 ||
     logical.transferred != 0L ||

@@ -358,6 +358,43 @@ fn backed_live_test_zero_usage() -> LedgerUsage {
 
 ///|
 test "backed live child refuses reservation-only transfer history even after zero" {
+  // A failed nonzero report and a successful zero-only check must not
+  // consume first admission. This independent ticket is the positive control.
+  let (_, _, _, clean_provider, clean_region) = backed_test_region()
+  let clean_child = Ref(20)
+  let clean_ticket = backed_read_test_ticket(
+    clean_region, clean_provider, clean_child,
+  )
+  let clean_use = borrow_backed_execution_read_use(
+    clean_region, clean_provider, clean_child, clean_ticket,
+  ).unwrap()
+  let clean_runtime = Ref(30)
+  let clean_access = issue_backed_execution_live_access(
+    clean_region, clean_provider, clean_child, clean_ticket, clean_use, clean_runtime,
+  ).unwrap()
+  assert_true(
+    report_backed_execution_delegation(
+      clean_region,
+      clean_provider,
+      clean_child,
+      clean_ticket,
+      {
+        ..backed_live_test_zero_usage(),
+        reserved_transfer_bytes: backed_test_limits().transfer_bytes + 1L,
+      },
+    )
+    is Err(Resource(InvalidCharge)),
+  )
+  report_backed_execution_delegation(
+    clean_region,
+    clean_provider,
+    clean_child,
+    clean_ticket,
+    backed_live_test_zero_usage(),
+  ).unwrap()
+  assert_true(
+    admit_backed_execution_live_child(clean_access, clean_runtime) is Ok(_),
+  )
   let (ledger, _, allocation, provider, region) = backed_test_region()
   let child = Ref(2)
   let ticket = backed_read_test_ticket(region, provider, child)
@@ -395,6 +432,43 @@ test "backed live child refuses reservation-only transfer history even after zer
 
 ///|
 test "backed live child refuses reservation-only execution history even after zero" {
+  // A failed nonzero report and a successful zero-only check must not
+  // consume first admission. This independent ticket is the positive control.
+  let (_, _, _, clean_provider, clean_region) = backed_test_region()
+  let clean_child = Ref(20)
+  let clean_ticket = backed_read_test_ticket(
+    clean_region, clean_provider, clean_child,
+  )
+  let clean_use = borrow_backed_execution_read_use(
+    clean_region, clean_provider, clean_child, clean_ticket,
+  ).unwrap()
+  let clean_runtime = Ref(30)
+  let clean_access = issue_backed_execution_live_access(
+    clean_region, clean_provider, clean_child, clean_ticket, clean_use, clean_runtime,
+  ).unwrap()
+  assert_true(
+    report_backed_execution_delegation(
+      clean_region,
+      clean_provider,
+      clean_child,
+      clean_ticket,
+      {
+        ..backed_live_test_zero_usage(),
+        reserved_execution_bytes: backed_test_limits().execution_bytes + 1L,
+      },
+    )
+    is Err(Resource(InvalidCharge)),
+  )
+  report_backed_execution_delegation(
+    clean_region,
+    clean_provider,
+    clean_child,
+    clean_ticket,
+    backed_live_test_zero_usage(),
+  ).unwrap()
+  assert_true(
+    admit_backed_execution_live_child(clean_access, clean_runtime) is Ok(_),
+  )
   let (ledger, _, allocation, provider, region) = backed_test_region()
   let child = Ref(2)
   let ticket = backed_read_test_ticket(region, provider, child)

@@ -41,6 +41,9 @@ pub struct BackedExecutionDelegation[P, C] {
   // The original logical reservation's open flag is the settlement state.
   // None remains unknown final usage; it never means zero usage or unsent.
   mut final_usage : LedgerUsage?
+  // Sticky successful nonzero usage, including transient reservation-only reports.
+  // Admission must not erase that history when a later report returns to zero.
+  priv mut live_usage_reported : Bool
   // One original read/workspace lifetime, not another byte reservation.
   mut read_use_issued : Bool
   mut read_use : BackedExecutionReadUse[P, C]?
@@ -201,6 +204,7 @@ pub fn[P, C] reserve_backed_execution_delegation(
     limits,
     peak_retention: 0L,
     final_usage: None,
+    live_usage_reported: false,
     read_use_issued: false,
     read_use: None,
   }
@@ -319,6 +323,17 @@ pub fn[P, C] report_backed_execution_delegation(
     Err(issue) => Err(Resource(issue))
     Ok(_) => {
       ticket.peak_retention = usage.peak_retention_bytes
+      ticket.live_usage_reported = ticket.live_usage_reported ||
+        usage.planning_work != 0 ||
+        usage.attempts != 0 ||
+        usage.holdings != 0 ||
+        usage.transferred_bytes != 0L ||
+        usage.uncertain_transfer_bytes != 0L ||
+        usage.reserved_transfer_bytes != 0L ||
+        usage.held_bytes != 0L ||
+        usage.reserved_retention_bytes != 0L ||
+        usage.reserved_execution_bytes != 0L ||
+        usage.peak_retention_bytes != 0L
       Ok(())
     }
   }
