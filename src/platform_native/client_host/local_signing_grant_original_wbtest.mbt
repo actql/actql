@@ -1,4 +1,17 @@
 ///|
+// Keep fixture failures in the Native test summary. Never print original rows,
+// key material, configuration bodies or diagnostic stacks.
+fn[T, E] signing_grant_fixture_require(
+  value : Result[T, E],
+  phase : String,
+) -> T raise {
+  match value {
+    Ok(value) => value
+    Err(_) => fail("Signing fixture phase=" + phase + " issue=Refused")
+  }
+}
+
+///|
 // These are real private SQLite/Host metadata custody fixtures, never private
 // keys, an operational signing grant, paired capture or signature acceptance.
 fn signing_grant_original_fixture(
@@ -24,9 +37,14 @@ fn signing_grant_original_fixture(
   signing_original_write(account_file, @utf8.encode(account))
   let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap()
   let parent = @filesystem.open_private_root(path).unwrap()
-  parent.create_directory(name + ".parent").unwrap() |> ignore
+  signing_grant_fixture_require(
+    parent.create_directory(name + ".parent"),
+    "parent_child",
+  )
+  |> ignore
   let crypto = epoch_test_crypto()
-  let host = begin_native_local_host_adoption(
+  let session = signing_grant_fixture_require(
+    begin_native_local_host_adoption(
       path + "/" + name + ".parent",
       name + ".host",
       path,
@@ -34,29 +52,56 @@ fn signing_grant_original_fixture(
       "operator",
       crypto,
       configuration_files=[key_file, issuer_file],
-    )
-    .unwrap()
-    .open_journal(local_journal_test_library(), crypto, 100.0, 8, 8388608L)
-    .unwrap()
-  let key = signing_original_binding(host, key_file)
-    .capture_signing_key_original()
-    .unwrap()
-  let client_scope = host
-    .authority_scope_cid("operator", "cli", crypto)
-    .unwrap()
-  let epoch = host.epoch.issue_epoch(client_scope, true, 1000.0).unwrap()
-  let reference = prepare_native_client_submission_reference(
-    epoch, "original-signing-submission",
-  ).unwrap()
-  let intent = @host.prepare_client_submitted_intent(
-    "{\"kind\":\"program\",\"input\":" +
-    preparation_values_document() +
-    ",\"parameters\":null}",
-    65536,
-    8192,
-    64,
-  ).unwrap()
-  let preparation = submitted_prepare(intent).unwrap()
+    ),
+    "adoption",
+  )
+  let host = signing_grant_fixture_require(
+    session.open_journal(
+      local_journal_test_library(),
+      crypto,
+      100.0,
+      8,
+      8388608L,
+    ),
+    "journal",
+  )
+  let binding = signing_grant_fixture_require(
+    host.acquire_signing_key_account(crypto, key_file, @checkpoint.EffectSet),
+    "key_account",
+  )
+  let key = signing_grant_fixture_require(
+    binding.capture_signing_key_original(),
+    "key_original",
+  )
+  let client_scope = signing_grant_fixture_require(
+    host.authority_scope_cid("operator", "cli", crypto),
+    "client_scope",
+  )
+  let epoch = signing_grant_fixture_require(
+    host.epoch.issue_epoch(client_scope, true, 1000.0),
+    "epoch",
+  )
+  let reference = signing_grant_fixture_require(
+    prepare_native_client_submission_reference(
+      epoch, "original-signing-submission",
+    ),
+    "reference",
+  )
+  let intent = signing_grant_fixture_require(
+    @host.prepare_client_submitted_intent(
+      "{\"kind\":\"program\",\"input\":" +
+      preparation_values_document() +
+      ",\"parameters\":null}",
+      65536,
+      8192,
+      64,
+    ),
+    "intent",
+  )
+  let preparation = signing_grant_fixture_require(
+    submitted_prepare(intent),
+    "preparation",
+  )
   guard preparation.preparation is Computation(prepared) else {
     fail("expected original Values preparation")
   }
@@ -66,30 +111,32 @@ fn signing_grant_original_fixture(
     "original-signing-metadata-run",
     scope=client_scope,
   )
-  host.journal
-  .record_submitted_intent(
-    host.epoch,
-    reference,
-    intent,
-    client_scope,
-    true,
-    1001.0,
+  signing_grant_fixture_require(
+    host.journal.record_submitted_intent(
+      host.epoch,
+      reference,
+      intent,
+      client_scope,
+      true,
+      1001.0,
+    ),
+    "record_intent",
   )
-  .unwrap()
   |> ignore
-  host.journal
-  .accept_submitted_run(
-    host.epoch,
-    reference,
-    preparation,
-    request,
-    compiled,
-    definition,
-    client_scope,
-    true,
-    1002.0,
+  signing_grant_fixture_require(
+    host.journal.accept_submitted_run(
+      host.epoch,
+      reference,
+      preparation,
+      request,
+      compiled,
+      definition,
+      client_scope,
+      true,
+      1002.0,
+    ),
+    "accept_run",
   )
-  .unwrap()
   |> ignore
   let scope : @credential.LocalSigningCredentialScope = {
     account_configuration_cid: host.session.configuration.configuration_cid(),
@@ -114,23 +161,29 @@ fn signing_grant_original_fixture(
     unit_definition_cid: "sha256:" + "4".repeat(64),
     purpose: @credential.HostAttestation,
   }
-  let grant = @credential.prepare_local_signing_credential_grant(
-    "credential-authority-a",
-    scope,
-    @values.timestamp_epoch_milliseconds("2099-01-01T00:00:00.000Z").unwrap(),
-    2,
-  ).unwrap()
+  let grant = signing_grant_fixture_require(
+    @credential.prepare_local_signing_credential_grant(
+      "credential-authority-a",
+      scope,
+      @values.timestamp_epoch_milliseconds("2099-01-01T00:00:00.000Z").unwrap(),
+      2,
+    ),
+    "grant_metadata",
+  )
   let issuer = host.session.settings.files
     .iter()
     .find_first(file => file.name == issuer_file)
     .unwrap()
-  let original = local_owned_grant_original(
-    crypto,
-    "original-signing-operation",
-    request,
-    issuer.content_cid,
-    SigningGrant(grant),
-  ).unwrap()
+  let original = signing_grant_fixture_require(
+    local_owned_grant_original(
+      crypto,
+      "original-signing-operation",
+      request,
+      issuer.content_cid,
+      SigningGrant(grant),
+    ),
+    "grant_original",
+  )
   (host, key, original)
 }
 
@@ -156,7 +209,10 @@ test "Signing original packet preserves its own purpose and distinct Client sign
   let (host, _, original) = signing_grant_original_fixture(
     "signing-grant-packet",
   )
-  let restored = signing_grant_original_roundtrip(original).unwrap()
+  let restored = signing_grant_fixture_require(
+    signing_grant_original_roundtrip(original),
+    "packet_roundtrip",
+  )
   assert_eq(restored.intent, original.intent)
   assert_eq(
     local_grant_original_packet(restored).unwrap(),
