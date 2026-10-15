@@ -242,7 +242,10 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       // attempt. A completed Model refuses the stopped-only usage reader;
       // do not reopen it merely because publication was never acquired.
       // Other/unknown attempts still retire their original reader below.
-      if (entry !== undefined && durableSettlements.get(slot) === entry.attemptCid) continue;
+      if (entry !== undefined) {
+        const acknowledgedAttempt = durableSettlements.get(slot);
+        if (acknowledgedAttempt !== undefined && acknowledgedAttempt === entry.attemptCid) continue;
+      }
       if (typeof operation.advanceStoppedAttemptUsage !== 'function') {
         throw new Error('InstalledInferRawUsageUnavailable');
       }
