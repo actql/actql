@@ -105,7 +105,14 @@ pub fn InstalledArenaReply::operation_tag(self : InstalledArenaReply) -> Int {
 /// This identifies the existing typed issue family. The caller must retain
 /// operation and original identity; zero is not VM/Run/Store or worker success.
 pub fn InstalledArenaReply::issue_family(self : InstalledArenaReply) -> Int {
-  match self.issue {
+  installed_arena_issue_family(self.issue)
+}
+
+///|
+fn installed_arena_issue_family(
+  issue : @bootstrap.NativeBootstrapIssue?,
+) -> Int {
+  match issue {
     None => 0
     Some(@bootstrap.Unavailable) => 1
     Some(@bootstrap.ForeignOriginal) => 2

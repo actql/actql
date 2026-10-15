@@ -29,11 +29,15 @@ pub fn current_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDo
 
 pub fn current_installed_arena_reply(InstalledArenaHost) -> InstalledArenaReply
 
+pub fn current_installed_arena_worker_selection_reply(InstalledArenaHost, InstalledArenaWorkerSelection) -> InstalledArenaWorkerSelectionReply
+
 pub fn enter_installed_arena_backing_scope_reply(InstalledArenaHost, InstalledArenaBackingBorrow) -> InstalledArenaBackingReply
 
 pub fn enter_installed_arena_domain_read_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
 pub fn enter_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
+
+pub fn installed_arena_worker_selection_reply(InstalledArenaHost) -> InstalledArenaWorkerSelectionReply
 
 pub fn installed_worker_selection_data(InstalledArenaWorkerSelection) -> Result[(String, Bytes, Int64), @host_bootstrap.NativeBootstrapIssue]
 
@@ -165,6 +169,14 @@ pub fn InstalledArenaReply::operation_tag(Self) -> Int
 pub fn InstalledArenaReply::original_host(Self) -> InstalledArenaHost?
 
 type InstalledArenaWorkerSelection
+pub fn InstalledArenaWorkerSelection::original_host(Self) -> InstalledArenaHost
+pub fn InstalledArenaWorkerSelection::project_domain_original(Self, InstalledArenaDomain) -> Result[(@host_bootstrap.NativePreparedDomainTransport, @physical_resources.BackedExecutionOriginalData), @host_bootstrap.NativeBackedExecutionIssue]
+
+type InstalledArenaWorkerSelectionReply
+pub fn InstalledArenaWorkerSelectionReply::issue_family(Self) -> Int
+pub fn InstalledArenaWorkerSelectionReply::operation_tag(Self) -> Int
+pub fn InstalledArenaWorkerSelectionReply::original_host(Self) -> InstalledArenaHost
+pub fn InstalledArenaWorkerSelectionReply::original_selection(Self) -> InstalledArenaWorkerSelection?
 
 // Type aliases
 

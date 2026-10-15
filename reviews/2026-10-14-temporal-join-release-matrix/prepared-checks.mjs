@@ -15,6 +15,7 @@ process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false,
   timeoutSeconds: 60, graceSeconds: 5, steps: [
     {name: 'Closed temporal JOIN and retained source-free release cohorts', command: 'node',
       args: ['--input-type=module', '-e', runner, '--', '--test',
+        'scripts/temporal-join-source-input.test.mjs',
         'scripts/release-temporal-join-query-cases.test.mjs',
         'scripts/release-time-series-query-cases.test.mjs',
         'scripts/release-sequence-query-cases.test.mjs',

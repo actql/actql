@@ -90,6 +90,21 @@ MOONBIT_FFI_EXPORT void *actql_native_filesystem_acquire_scoped_reader(
   return result;
 }
 
+MOONBIT_FFI_EXPORT void *actql_native_filesystem_acquire_scoped_child_root(
+  actql_native_filesystem_root *parent, moonbit_bytes_t name, int32_t length
+) {
+  actql_filesystem_scoped_acquisition *result = actql_filesystem_new_acquisition(false);
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+  actql_native_filesystem_root *child = NULL;
+  result->status = actql_native_filesystem_scoped_open_child_root(
+    parent, name, length, &child);
+  result->original = child;
+#else
+  (void)parent; (void)name; (void)length;
+#endif
+  return result;
+}
+
 MOONBIT_FFI_EXPORT int32_t actql_native_filesystem_acquisition_status(actql_filesystem_scoped_acquisition *result) {
   return result->status;
 }

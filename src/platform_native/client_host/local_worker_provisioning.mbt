@@ -7,6 +7,7 @@ struct NativeLocalWorkerProvisioningAttempt {
   selection : @arena.InstalledArenaWorkerSelection
   body : Bytes
   key : String
+  mut resource : NativeLocalWorkerResourceOriginal?
 }
 
 ///|
@@ -14,6 +15,7 @@ pub(all) enum NativeLocalWorkerProvisioningIssue {
   Adoption(NativeLocalAdoptionIssue)
   Journal(NativeClientRunJournalIssue)
   Selection(@bootstrap.NativeBootstrapIssue)
+  PhysicalSelection(@bootstrap.NativeBackedExecutionIssue)
   AuthorizationDenied
   CustodyLost
 }
@@ -294,6 +296,7 @@ pub fn NativeLocalHostConnection::issue_worker_provisioning(
     selection,
     body,
     key,
+    resource: None,
   }
   // Same Host retains every partial original BEFORE file/SQL I/O. Nothing in
   // this record permits physical acquisition or supplies a worker continuation.
