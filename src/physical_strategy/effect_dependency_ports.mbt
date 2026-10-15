@@ -356,3 +356,22 @@ pub fn captured_effect_local_result_export_result(
 ) -> CapturedEffectLocalResult {
   value.result
 }
+
+///|
+/// Callback-free lifetime fence for this same Effect input/export pair after
+/// physical availability/current callbacks. This issues no availability,
+/// authorization or receipt, and does not acquire or copy a pin inventory.
+pub fn captured_effect_local_result_export_retained(
+  inputs : CapturedEffectInputs,
+  value : CapturedEffectLocalResultExport,
+) -> Bool {
+  match value.owner {
+    EffectInputs(owner) =>
+      physical_equal(owner, inputs) &&
+      inputs.live &&
+      inputs.pins.live &&
+      inputs.table_pins.live &&
+      captured_any_result_borrow_retained(value.result.borrow)
+    LocalUnit(_) => false
+  }
+}
