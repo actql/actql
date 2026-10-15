@@ -237,6 +237,65 @@ pub fn sheets_append_outcome_json(
 }
 
 ///|
+#export_name("sheetsUpdateRequestJson")
+pub fn sheets_update_request_json(
+  columns : String,
+  rows : String,
+  sheet_id : Int,
+  start_row : Int,
+  end_row : Int,
+  start_column : Int,
+  end_column : Int,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+  max_cells : Int,
+) -> String {
+  let limits : @catalog.Limits = { max_bytes, max_nodes, max_depth, max_cells, }
+  guard columns_of(columns, limits) is Some(columns) &&
+    parse_wire(rows, limits) is Some(root) &&
+    @decode.elements(root) is Ok(items) else {
+    return ({ "refused": issue_json(InvalidSchema) } : Json).stringify()
+  }
+  let values : Array[Array[Json]] = []
+  for item in items {
+    guard @decode.closed_object(item, columns.map(column => column.name))
+      is Ok(object) &&
+      @decode.object_length(item) == Some(columns.length()) else {
+      return ({ "refused": issue_json(InvalidSchema) } : Json).stringify()
+    }
+    let row = []
+    for column in columns {
+      guard @decode.lookup(object, column.name) is Some(value) else {
+        return ({ "refused": issue_json(InvalidSchema) } : Json).stringify()
+      }
+      let scalar : Json = match @decode.view(value) {
+        NullValue => Json::null()
+        TextValue(text) => text.to_json()
+        NumberValue(number) => number.to_json()
+        BoolValue(boolean) => boolean.to_json()
+        _ =>
+          return (
+            { "refused": issue_json(UnrepresentableWrite(column.name)) } : Json).stringify()
+      }
+      row.push(scalar)
+    }
+    values.push(row)
+  }
+  let result : Json = match
+    @catalog.update_request(
+      { sheet_id, start_row, end_row, start_column, end_column, },
+      columns,
+      values,
+      limits,
+    ) {
+    Ok(body) => { "body": body.to_json() }
+    Err(issue) => { "refused": issue_json(issue) }
+  }
+  result.stringify()
+}
+
+///|
 #export_name("sheetsTargetJson")
 pub fn sheets_target_json(
   body : Bytes,

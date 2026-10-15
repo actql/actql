@@ -130,6 +130,26 @@ nonexecution or settlement. Reconciliation and restart preserve that custody
 without repeating Source, Compute or append. Revoked authorization or a changed
 numeric target refuses an approved write before physical send.
 
+### Range-write codec boundary
+
+The provider's pure `update_request` codec and `sheetsUpdateRequestJson`
+bridge prepare a single `UpdateCells` request for an explicit numeric,
+zero-based, end-exclusive rectangle. Every row and declared column must be
+supplied. Google's [UpdateCellsRequest](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/request#UpdateCellsRequest)
+can clear masked cells when the supplied rows do not cover its range; this
+codec rejects partial rectangles instead. It masks only `userEnteredValue`
+and uses the same literal Text/Number/Boolean encoding and NULL/empty-Text
+refusals as append. Cell count, complete outgoing bytes, nodes and depth are
+bounded before a request can be returned.
+
+This is a pure provider primitive, not an installed range-write capability.
+The current Effect profile still exposes only append. Connecting a range
+write requires the existing Command/ResourceRef, approval, durable request
+and recovery Owners to retain the exact installed range and original input.
+Neither grid coordinates nor observed cell values establish stable row IDs.
+No new account permission, transport send, reconciliation rule or saved Run
+interpretation is introduced by this codec.
+
 ## Ordinary Programs
 
 For the installation above, set the Source profile's `connectorId` to
