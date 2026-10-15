@@ -28,6 +28,54 @@ priv struct HolderEffectHostReadDomain {
 }
 
 ///|
+/// Necessary compatibility check between the existing Site reservation and
+/// the original Host's independently admitted physical domain. This does not
+/// derive a workspace bound, an allocator layout, or a numeric profile. In
+/// particular, fitting raw record sizes does not prove page-charged demand.
+fn holder_effect_host_read_budget_fits(
+  profile : HolderEffectHostSetupProfile,
+  payload_bytes : Int64,
+  delegated_execution_bytes : Int64,
+) -> Bool {
+  guard holder_effect_host_setup_profile_valid(profile) &&
+    payload_bytes > 0L &&
+    delegated_execution_bytes > 0L &&
+    holder_effect_host_extent_add(
+      profile.setup_retained_bytes,
+      profile.execution_bytes,
+    )
+    is Some(required_bytes) else {
+    return false
+  }
+  required_bytes <= payload_bytes && required_bytes <= delegated_execution_bytes
+}
+
+///|
+/// Get quantities from the same nominal Owner/current domain, never from a
+/// candidate DATA descriptor. The small observation tuple leaves this frame
+/// before entering the read allocator or acquiring any Root/Reader.
+fn holder_effect_host_original_read_budget_fits(
+  scope : HolderEffectHostSetupScope,
+  original : @slot.NativeExecutorSlot,
+  host : @bootstrap.NativeHostBootstrap[@slot.NativeExecutorSlot],
+  domain : @bootstrap.NativeBackedExecutionDomain[
+    @slot.NativeExecutorSlot,
+    @site.SiteOperation,
+  ],
+  operation : @site.SiteOperation,
+) -> Bool {
+  guard host.backed_domain_capacity(original, domain, operation)
+    is Ok((payload_bytes, delegated_execution_bytes)) else {
+    return false
+  }
+  holder_effect_host_read_budget_fits(
+    scope.profile,
+    payload_bytes,
+    delegated_execution_bytes,
+  )
+}
+
+///|
 fn install_holder_effect_host_read_domain(
   scope : HolderEffectHostSetupScope,
   original : @slot.NativeExecutorSlot,
@@ -40,7 +88,10 @@ fn install_holder_effect_host_read_domain(
     scope.caller_operation is Some(operation) &&
     (installed.select)(original, operation) is Some((host, domain)) &&
     holder_effect_host_read_scope_current(scope) &&
-    host.require_backed_domain_current(original, domain, operation) is Ok(_) else {
+    host.require_backed_domain_current(original, domain, operation) is Ok(_) &&
+    holder_effect_host_original_read_budget_fits(
+      scope, original, host, domain, operation,
+    ) else {
     return false
   }
   let retained : HolderEffectHostReadDomain = {
