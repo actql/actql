@@ -84,7 +84,7 @@ fn first_m1_original_request_check(projection_work : Int) -> Unit raise {
       let label = match issue {
         @input.UnsupportedProgram => "UnsupportedProgram"
         @input.InvalidLimits => "InvalidLimits"
-        @input.Preparation(inner) => "Preparation: " + @debug.to_string(inner)
+        @input.Preparation(_) => "Preparation"
         @input.Local(_) => "Local"
         @input.Mapping(_) => "Mapping"
         @input.ProducerRead(_) => "ProducerRead"
