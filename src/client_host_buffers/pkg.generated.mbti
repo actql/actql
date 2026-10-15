@@ -10,6 +10,8 @@ import {
 // Values
 pub fn borrow_buffer(BufferPool, BufferSlot, () -> Bool) -> Result[BufferBorrow, BufferIssue]
 
+pub fn borrow_workspace(@physical_resources.SharedCapacity, @physical_resources.SharedAllocation, () -> Bool, () -> Bool) -> Result[WorkspaceLoan, BufferIssue]
+
 pub fn[T] borrow_workspace_original_read(OriginalWorkspaceRead[T], T, WorkspaceLoan) -> @physical_resources.FundedReadClaim[T]?
 
 pub fn buffer_byte(BufferPool, BufferSlot, Int) -> Byte?
@@ -116,6 +118,8 @@ pub struct BufferSlot {
 
 type OriginalWorkspaceRead[T]
 
+type WorkspaceBacking
+
 pub struct WorkspaceLoan {
   capacity : @physical_resources.SharedCapacity
   physical_stop : () -> Bool
@@ -124,6 +128,7 @@ pub struct WorkspaceLoan {
   mut stopped : Bool
   mut cleaned : Bool
   mut settled : Bool
+  // private fields
 }
 
 // Type aliases
