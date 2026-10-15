@@ -14,6 +14,25 @@ test('current aggregated state and both retained preparation cursors are indepen
   assert.throws(()=>checkChainCensus(p=>p==='src/connectors/local/selected_relation_provider.mbt'?
     source.replace('mut input_preparation : RelationChainInputPreparation?','mut input_preparation : Array[RelationChainInputPreparation]'):read(p)),/field or type/);
 });
+test('current selected context explicitly retains the adopted Calendar ceiling field',()=>{
+  const census=checkChainCensus(read);
+  const state=census.sourceFields.find(entry=>entry.struct==='GeneratedSequence');
+  assert.deepEqual(state.fields.find(field=>field.name==='calendar_output_ceilings'),
+    {name:'calendar_output_ceilings',type:'Array[(Int, Int64)]'});
+});
+for(const [name,replacement] of [
+  ['missing Calendar ceiling field',''],
+  ['changed Calendar ceiling type','  calendar_output_ceilings : Array[(Int, Int)]\n'],
+  ['additional Calendar owner','  calendar_output_ceilings : Array[(Int, Int64)]\n  extra_calendar_owner : Int\n'],
+]) test('typed source census rejects '+name,()=>{
+  const path='src/execution_relation/generated_sequence.mbt';
+  const original=read(path).toString();
+  const declaration='  calendar_output_ceilings : Array[(Int, Int64)]\n';
+  assert.equal(original.split(declaration).length,2,'Mutation must reach the unique adopted declaration');
+  const changed=original.replace(declaration,replacement);
+  assert.throws(()=>checkChainCensus(p=>p===path?changed:read(p)),
+    /Unreviewed parent\/edge field or type GeneratedSequence/);
+});
 test('source capture and cleanup admission reject lost or added responsibilities',()=>{
   checkChainSource(source);
   assert.throws(()=>checkChainSource(source.replace('fn() { terminal.val }','fn() { cancelled.val || terminal.val }')),/stopped source captures/);
