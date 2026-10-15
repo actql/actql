@@ -73,6 +73,7 @@ static void current_missing(void) {
     assert(actql_native_filesystem_scoped_open_current_root(
         (moonbit_bytes_t)"/not-acquired", 13, 16, &root) == ACTQL_OWNED_INVALID);
     assert(root == NULL);
+    assert(actql_native_filesystem_current_read_available() == 0);
 }
 
 static moonbit_bytes_t encoded_path(const char *path) {
@@ -89,9 +90,12 @@ static void successful_root_reader(const char *path) {
     assert(actql_bootstrap_enter_read_context(f.domain) == 0);
     actql_read_context *original = actql_bootstrap_current_read_context();
     moonbit_bytes_t path_bytes = encoded_path(path);
-    actql_native_filesystem_root *root = NULL;
-    assert(actql_native_filesystem_scoped_open_current_root(path_bytes,
-        (int32_t)strlen(path), 16, &root) == 0);
+    actql_filesystem_scoped_acquisition *result = actql_native_filesystem_acquire_current_root(
+        path_bytes, (int32_t)strlen(path), 16);
+    assert(actql_native_filesystem_acquisition_status(result) == 0);
+    assert(actql_native_filesystem_acquisition_has_original(result));
+    actql_native_filesystem_root *root = actql_native_filesystem_acquisition_root(result);
+    moonbit_decref(result);
     moonbit_decref(path_bytes);
     assert(root != NULL && actql_native_filesystem_root_ready(root));
     assert(root->read_context == original && root->read_context_user);
@@ -99,17 +103,19 @@ static void successful_root_reader(const char *path) {
     int32_t physical = -100;
     assert(actql_native_filesystem_scoped_inspect_generation(root,
         (moonbit_bytes_t)"value", 5, &physical) == 0 && physical == 0);
-    actql_native_filesystem_reader *reader = NULL;
-    assert(actql_native_filesystem_scoped_open_reader(root,
-        (moonbit_bytes_t)"value", 5, root->result_device, root->result_inode,
-        root->result_size, &reader) == 0);
+    result = actql_native_filesystem_acquire_scoped_reader(root,
+        (moonbit_bytes_t)"value", 5, root->result_device, root->result_inode, root->result_size);
+    assert(actql_native_filesystem_acquisition_status(result) == 0);
+    assert(actql_native_filesystem_acquisition_has_original(result));
+    actql_native_filesystem_reader *reader = actql_native_filesystem_acquisition_reader(result);
+    moonbit_decref(result);
     assert(reader != NULL && reader->read_context == original && reader->ready);
     assert(actql_native_filesystem_scoped_reader_next(reader, 3, &physical) == 0 && physical == 0);
     moonbit_bytes_t alias = NULL;
     assert(actql_native_filesystem_scoped_reader_chunk(reader, &alias) == 0);
     assert(Moonbit_array_length(alias) == 3 && memcmp(alias, "abc", 3) == 0);
-    assert(actql_native_filesystem_scoped_reader_close(reader, true, &physical) == 0 && physical == 0);
-    assert(actql_native_filesystem_scoped_root_close(root, &physical) == 0 && physical == 0);
+    assert(actql_native_filesystem_reader_finish_dispatch(reader) == 0);
+    assert(actql_native_filesystem_root_close_dispatch(root) == 0);
     assert(!root->read_context_user && !reader->read_context_user);
     assert(actql_bootstrap_leave_read_context(f.domain) == 0);
     assert(actql_bootstrap_current_read_context() == NULL);
@@ -130,9 +136,12 @@ static void failed_original_root(const char *path) {
     char missing[4096];
     assert(snprintf(missing, sizeof(missing), "%s/later", path) > 0);
     moonbit_bytes_t bytes = encoded_path(missing);
-    actql_native_filesystem_root *root = NULL;
-    assert(actql_native_filesystem_scoped_open_current_root(bytes,
-        (int32_t)strlen(missing), 16, &root) == 0);
+    actql_filesystem_scoped_acquisition *result = actql_native_filesystem_acquire_current_root(
+        bytes, (int32_t)strlen(missing), 16);
+    assert(actql_native_filesystem_acquisition_status(result) == 0);
+    assert(actql_native_filesystem_acquisition_has_original(result));
+    actql_native_filesystem_root *root = actql_native_filesystem_acquisition_root(result);
+    moonbit_decref(result);
     moonbit_decref(bytes);
     assert(root != NULL && !actql_native_filesystem_root_ready(root));
     assert(root->read_context == original && root->read_context_user);
@@ -141,8 +150,7 @@ static void failed_original_root(const char *path) {
     assert(actql_bootstrap_leave_read_context(f.domain) == 0);
     assert(actql_bootstrap_close_read_context(f.domain) == ACTQL_OWNED_BUSY);
     assert(actql_bootstrap_enter_read_context(f.domain) == 0);
-    int32_t physical = -100;
-    assert(actql_native_filesystem_scoped_root_close(root, &physical) == 0 && physical == 0);
+    assert(actql_native_filesystem_root_close_dispatch(root) == 0);
     assert(!root->read_context_user && !actql_native_filesystem_root_ready(root));
     assert(actql_bootstrap_leave_read_context(f.domain) == 0);
     assert(actql_bootstrap_close_read_context(f.domain) == ACTQL_OWNED_BUSY);

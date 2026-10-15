@@ -2425,6 +2425,19 @@ int32_t actql_native_filesystem_reader_close(
   return actql_native_filesystem_reader_close_once(reader);
 }
 
+// Whitebox loss after a real close, not an observed kernel failure. The same
+// Reader retains its sticky uncertainty; no retry closes a reused descriptor.
+int32_t actql_native_filesystem_test_reader_consumed_unknown(
+  actql_native_filesystem_reader *reader
+) {
+  if (reader == NULL || reader->fd < 0 ||
+      actql_native_filesystem_reader_close_once(reader) != 0) return 0;
+  reader->close_result = -1;
+  actql_replace_bounded_error(&reader->close_error, reader->diagnostic_ceiling,
+    "reader retirement observation unavailable");
+  return 1;
+}
+
 // Creates one directory exclusively below the root and reports its identity.
 // 0 with the identity in the root's result fields, 1 when the name exists,
 // -1 otherwise.
@@ -2655,3 +2668,5 @@ MOONBIT_FFI_EXPORT int32_t actql_native_filesystem_scoped_open_current_root(
   return -1; /* ACTQL_OWNED_INVALID; no active scoped provider was selected. */
 #endif
 }
+
+#include "filesystem_scoped_acquisition.inc"

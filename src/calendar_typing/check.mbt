@@ -88,6 +88,7 @@ pub fn check(
     let mut nodes = limits.max_nodes - used.nodes
     let timestamp = @contract.primitive(TimestampType, nullable=false)
     let fields : Array[(@row.FieldName, @contract.Contract?)] = []
+    let mut preserved_schema : @row.Schema? = None
     let mut cardinality = PreserveInput
     match @options.input(options) {
       Field(time~, into~) => {
@@ -141,6 +142,23 @@ pub fn check(
           max_name_bytes=8,
         ).unwrap()
         fields.push((Unqualified(into), Some(interval)))
+        if @carrier.complete_schema(rows) is Some(schema) {
+          let preserved = @row.fields(schema).map(field => {
+            (field.name, field.contract, field.presence)
+          })
+          preserved.push((Unqualified(into), interval, @row.Required))
+          preserved_schema = Some(
+            match
+              @row.from_presence_fields(
+                preserved,
+                max_fields=fields.length(),
+                max_name_bytes=limits.max_text_bytes,
+              ) {
+              Ok(schema) => schema
+              Err(_) => fail(source, BudgetExceeded)
+            },
+          )
+        }
       }
       Range(start~, end~) => {
         if input is Some(_) {
@@ -177,15 +195,19 @@ pub fn check(
         Err(_) => fail(source, BudgetExceeded)
       }
     }
-    let rows = match
-      @carrier.rows(
-        fields,
-        field_set=Closed,
-        max_fields=fields.length(),
-        max_name_bytes=limits.max_text_bytes,
-      ) {
-      Ok(r) => r
-      Err(_) => fail(source, BudgetExceeded)
+    let rows = if preserved_schema is Some(schema) {
+      @carrier.typed_rows(schema)
+    } else {
+      match
+        @carrier.rows(
+          fields,
+          field_set=Closed,
+          max_fields=fields.length(),
+          max_name_bytes=limits.max_text_bytes,
+        ) {
+        Ok(r) => r
+        Err(_) => fail(source, BudgetExceeded)
+      }
     }
     Ok({
       input,
