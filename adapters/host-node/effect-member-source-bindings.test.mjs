@@ -149,6 +149,14 @@ test('ordinary-only Effects complete the Manifest with an earlier unconsumed Res
   assert.deepEqual(events.writers.map(value => value.pending), [false, false]);
 });
 
+test('a Manifest-only export failure releases its original consumed sibling', async () => {
+  const {options, events} = fixture({views: [1], extraResults: [0], failAppend: 2});
+  await assert.rejects(preparePinnedEffectSourceSet(options), /FixtureAppendFailure/);
+  assert.deepEqual(events.writers.map(value => [value.released, value.cancelled, value.pending]),
+    [[1, 0, false], [0, 1, false]]);
+  assert.equal(events.manifests.length, 0);
+});
+
 test('same live Result and different original bindings retain separate prepared owners', async () => {
   const {options, events} = fixture();
   const sources = await preparePinnedEffectSourceSet({...options,
