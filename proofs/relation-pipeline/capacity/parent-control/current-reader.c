@@ -77,11 +77,11 @@ static void current_array(struct current_json *j,const char *name,void *a,int ou
 moonbit_string_t actql_proof_current_chain_start(void *parent,void *state,
   void *used,void *cancelled,void *terminal,void *reclaimed,void *cleanup_index,
   void *sequence,void *inputs,void *execution,void *measurement,void *numeric,void *family,
-  int32_t count,int32_t max_value_bytes,int32_t reclaims_scratch) {
+  int32_t count,int32_t max_value_bytes,int32_t reclaimed_prefix) {
   struct current_json j={.used=0};
   const char *names[12]={"state","used","cancelled","terminal","reclaimed","cleanupIndex","sequence","inputs","execution","measurement","numeric","family"};
   void *known[12]={state,used,cancelled,terminal,reclaimed,cleanup_index,sequence,inputs,execution,measurement,numeric,family};
-  current_add(&j,"ACTQL_CHAIN_NATIVE:{\"kind\":\"startup\",\"parent\":\"%" PRIu64 "\",\"count\":%d,\"maxValueBytes\":%d,\"reclaimsScratch\":%s,\"roots\":{",current_id(parent),count,max_value_bytes,reclaims_scratch?"true":"false");
+  current_add(&j,"ACTQL_CHAIN_NATIVE:{\"kind\":\"startup\",\"parent\":\"%" PRIu64 "\",\"count\":%d,\"maxValueBytes\":%d,\"reclaimsScratch\":%s,\"roots\":{",current_id(parent),count,max_value_bytes,reclaimed_prefix==count?"true":"false");
   for(int i=0;i<12;i++) {
     current_add(&j,"%s\"%s\":",i?",":"",names[i]);
     if(known[i])current_add(&j,"\"%" PRIu64 "\"",current_id(known[i]));else current_add(&j,"null");

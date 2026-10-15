@@ -40,6 +40,16 @@ test('source capture and cleanup admission reject lost or added responsibilities
   assert.throws(()=>checkChainSource(source.replace('Ok(false) => return Ok(false)','Ok(false) => state.children = []')),/succeed before dropping custody/);
   assert.throws(()=>checkChainSource(source.replace('cancelled.val = true\n        if state.current','cancelled.val = true\n        state.input_preparation = None\n        if state.current')),/drops pending input custody/);
 });
+test('advance captures the audited Int prefix, not its callback-local Boolean',()=>{
+  const checked=checkChainSource(source);
+  assert(checked.captureRoles.advance.includes('reclaimed_prefix'));
+  assert(!checked.captureRoles.advance.includes('reclaims_scratch'));
+  assert.throws(()=>checkChainSource(source.replace('state.position <= reclaimed_prefix',
+    'state.position <= count')),/Unreviewed advance source captures/);
+  assert.throws(()=>checkChainSource(source.replace(
+    'let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)',
+    'let reclaimed_prefix = count')),/Changed audited prefix capture/);
+});
 test('the observer remains outside original callbacks and uses real state return',()=>{
   const overlay=currentOverlay(read);
   const actual=overlay['src/connectors/local/selected_relation_provider.mbt'];
@@ -48,4 +58,12 @@ test('the observer remains outside original callbacks and uses real state return
   const constructor=source.slice(source.indexOf('fn bounded_relation_chain_execution_state('));
   const before=constructor.slice(constructor.indexOf('      quantum => {'),constructor.indexOf('    ),\n  ).map(active => (active, state))'));
   assert(actual.includes(before),'Observer must not add captures inside callbacks');
+  assert(actual.includes('max_value_bytes, reclaimed_prefix))'));
+  assert(!actual.includes('max_value_bytes, reclaims_scratch))'));
+  assert(overlay['src/connectors/local/current_chain_capacity_native.mbt']
+    .includes('reclaimed_prefix : Int'));
+  const reader=overlay['src/connectors/local/current_chain_capacity_stub.c'];
+  assert(reader.includes('int32_t reclaimed_prefix'));
+  assert(reader.includes('reclaimed_prefix==count?"true":"false"'),
+    'Legacy all-eligible metadata must not classify a partial prefix as full');
 });
