@@ -1,5 +1,6 @@
 import {createHttpChatPreflight} from './model-port.mjs';
 import {fixedInferResponseLimits} from './bounded-response.mjs';
+import {snapshotHTTPOriginalMaterials, admitHTTPOriginalMaterials} from './original-materials.mjs';
 
 const fail = code => { throw new TypeError(code); };
 const cid = value => typeof value === 'string' && /^sha256:[0-9a-f]{64}$/u.test(value);
@@ -49,11 +50,47 @@ function snapshotArray(value, maximum, code) {
 // The package exposes this assembler only; original funding and public
 // execution acceptance remain separate required boundaries.
 export function createInstalledHttpChatRegistration(value) {
-  const config = snapshot(value, ['providerId', 'modelSelector', 'modelId',
+  const materialsMode = value !== null && typeof value === 'object' &&
+    Object.hasOwn(value, 'originalMaterials');
+  const fields = ['providerId', 'modelSelector', 'modelId',
     'endpoint', 'headers', 'taskCid', 'promptCid', 'outputSchemaCid',
     'promptPayloadWire', 'originalReadInstallation', 'rawCaptureSelection',
     'bindingOriginals', 'quantityCapacity', 'projectionLimits', 'requestLimits',
-    'responseLimits', 'fetch', 'observeAt', 'observeEgress'], 'InvalidInstalledHTTPChatConfiguration');
+    'responseLimits', 'fetch', 'observeAt', 'observeEgress'];
+  let config = snapshot(value, materialsMode
+    ? fields.filter(name => !['originalReadInstallation', 'rawCaptureSelection'].includes(name))
+      .concat('originalMaterials') : fields, 'InvalidInstalledHTTPChatConfiguration');
+  value = undefined;
+  // DATA is captured before the Host calls this registration. Only that
+  // callback's actual Common runtime can admit the profile and four policies.
+  // The old opaque selection and this mode are mutually exclusive.
+  if (materialsMode) {
+    let materials = snapshotHTTPOriginalMaterials(config.originalMaterials);
+    const {originalMaterials: unused, ...source} = config;
+    void unused;
+    let retained = retainConfiguration(source);
+    config = undefined;
+    let entered = false;
+    return moon => {
+      if (entered) fail('HTTPOriginalInstallationReused');
+      assertRuntime(moon);
+      entered = true;
+      try {
+        const originals = admitHTTPOriginalMaterials(moon, materials);
+        return createInstalledHttpChatRegistration({...retained, ...originals})(moon);
+      } finally {
+        // A spent callback never retries admission or keeps unused snapshots.
+        // Returned entries retain their own original duties. This is neither
+        // physical retirement nor a Store ACK or capacity refund.
+        materials = undefined;
+        retained = undefined;
+      }
+    };
+  }
+  return installedOpaqueRegistration(retainConfiguration(config));
+}
+
+function retainConfiguration(config) {
   const {providerId, modelSelector, modelId, endpoint, taskCid, promptCid,
     outputSchemaCid, promptPayloadWire, fetch, observeAt, observeEgress} = config;
   if (![providerId, modelSelector, modelId, endpoint].every(text) ||
@@ -91,6 +128,22 @@ export function createInstalledHttpChatRegistration(value) {
     if (headerBytes > requestLimits.maxHeaderBytes) fail('InvalidInstalledHTTPChatHeaders');
     return Object.freeze([name, content]);
   }));
+  return Object.freeze({...config, projectionLimits, requestLimits, responseLimits, headers});
+}
+
+function assertRuntime(moon) {
+  if (!['clientProgramModelResponseProfileTransportMatches',
+    'clientProgramProjectHTTPChatRequest', 'clientProgramInstallAsyncModelProvider',
+    'clientProgramModelRequestPreflight', 'clientProgramModelAsyncPhysicalRequestPlan',
+    'clientProgramModelPhysicalCallForRequest', 'clientProgramModelPhysicalPending',
+    'clientProgramModelPhysicalUnknown', 'clientProgramModelPhysicalSavedChat']
+    .every(name => typeof moon?.[name] === 'function')) fail('HTTPChatOriginalRuntimeUnavailable');
+}
+
+function installedOpaqueRegistration(config) {
+  const {providerId, modelSelector, modelId, endpoint, taskCid, promptCid,
+    outputSchemaCid, promptPayloadWire, fetch, observeAt, observeEgress,
+    projectionLimits, requestLimits, responseLimits, headers} = config;
   const original = config.originalReadInstallation;
   const raw = config.rawCaptureSelection;
   if (!frozen(original) || !frozen(original.bootstrap) ||
@@ -111,12 +164,7 @@ export function createInstalledHttpChatRegistration(value) {
       !frozen(bindings) || !['configuration', 'configurationContract', 'installationRevision']
         .every(name => frozen(bindings[name]))) fail('HTTPChatOriginalInstallationUnavailable');
   return moon => {
-    if (!['clientProgramModelResponseProfileTransportMatches',
-      'clientProgramProjectHTTPChatRequest', 'clientProgramInstallAsyncModelProvider',
-      'clientProgramModelRequestPreflight', 'clientProgramModelAsyncPhysicalRequestPlan',
-      'clientProgramModelPhysicalCallForRequest', 'clientProgramModelPhysicalPending',
-      'clientProgramModelPhysicalUnknown', 'clientProgramModelPhysicalSavedChat']
-      .every(name => typeof moon?.[name] === 'function')) fail('HTTPChatOriginalRuntimeUnavailable');
+    assertRuntime(moon);
     if (moon.clientProgramModelResponseProfileTransportMatches(raw.profile,
       requestLimits.maxBytes, responseLimits.maxBytes, responseLimits.maxChunkBytes,
       responseLimits.maxChunks, responseLimits.maxHeaderBytes) !== true) {
