@@ -6,12 +6,12 @@ const {openNodeInferCaptureCustody}=await import(process.env.ACTQL_CAPTURE_CUSTO
 // Actual Node custody/holding code with explicit Core, Model and Store port
 // doubles. This does not prove actual Store ACK, heap funding or public INFER.
 function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true,
-  rejectInvocationReadmit = false} = {}) {
+  rejectInvocationReadmit = false, omitEntryAttempt = false} = {}) {
   const capture={}, output={}, exporter={};
   const evidence={wire:'{"raw":"é\\r\\n"}'};
   const invocationView=Object.freeze({name:'model_invocation_evidence',
     identity:'cid-model_invocation_evidence',wire:evidence.wire});
-  const settlement={}, entry={ordinal:0,attemptCid:'original-attempt'};
+  const settlement={}, entry=omitEntryAttempt ? {ordinal:0} : {ordinal:0,attemptCid:'original-attempt'};
   const bundleWire='{"capture":"original é\\r\\n"}';
   const stored=new Map();
   const counters={stop:0,cleanup:0,acquire:0,ack:0,commit:0,usage:0,proof:0,limitReads:0,exports:[]};
@@ -490,4 +490,15 @@ test('stopped raw usage missing Common observation port refuses before proof and
   assert.equal(f.counters.commit,0);
   assert.equal(f.counters.cleanup,0);
   assert.equal(f.owner.custody.cleanupPending(),true);
+});
+
+test('missing attempt identity cannot turn an absent settlement marker into an ACK',async()=>{
+  const f=fixture({omitEntryAttempt:true});
+  const original=new Error('OriginalStoppedReaderRequired');let reads=0;
+  f.operation.stoppedAttemptCount=()=>1;
+  f.operation.advanceStoppedAttemptUsage=()=>{reads++;throw original;};
+  await assert.rejects(f.owner.persistStoppedAttempts(),error=>error===original);
+  assert.equal(reads,1);
+  assert.equal(f.counters.ack,0);
+  assert.equal(f.counters.cleanup,0);
 });
