@@ -68,3 +68,22 @@ subsequent thin C/Python borrower are still required before linking or using
 this new entry. The prior Source4650 mixed-DLL four-case result uses the older
 Sourcea312 regular C and Sourceede objects; it does not exercise these callbacks
 or establish backing-loan, VM, worker or installed-product acceptance.
+
+## Original backed read caller
+
+The existing `InstalledArenaHost`/`InstalledArenaDomain` expose
+`prepare_domain_read`, `require_domain_read_current`, `enter_domain_read`,
+`leave_domain_read`, `enter_domain_read_cleanup` and `close_domain_read`.
+They delegate to the original Native bootstrap domain and its existing Common
+read-use borrow. There is no new wrapper, scalar funding decision or Root claim.
+Normal entry checks current Host/domain; original cleanup remains available
+after logical closing, without reopening or changing the original child.
+
+Private immutable domain replies add operation tags8 through13 in that order.
+The original Host/domain and typed issue stay in the reply; these tags are not
+success, read permission or an ACK. Cleanup returns the extra Common borrow only
+after the original C context/user/alias retirement. Whole domain close remains
+child-first. Matching generated C must establish callback prototypes and RC
+before adding these methods to the private C/Python transport; the existing
+registered callback ABI is unchanged by this source unit. Normal supplier/profile,
+F's actual caller and installed/public Python execution remain separate.

@@ -95,3 +95,53 @@ test('Calendar semantic metadata identity keeps composed and decomposed values d
   assert.equal(installedCalendarSelection(a).tzdb_version,'e\u0301');
   assert.equal(installedCalendarSelection(b).tzdb_version,'é');
 });
+
+test('Calendar DATA accessors refuse without reading a changing value', () => {
+  for (const [record, key] of [['installation', 'maxSelectionWork'],
+    ['selection', 'tzdb_version'], ['limits', 'max_nodes']]) {
+    const value = original();
+    const target = record === 'installation' ? value : value[record];
+    let reads = 0;
+    Object.defineProperty(target, key, {enumerable: true,
+      get() { return ++reads === 1 ? 1 : 2147483648; }});
+    Object.freeze(target);
+    assert.throws(() => snapshotInstalledCalendar(value),
+      {name: 'TypeError', message: 'InvalidInstalledCalendar'});
+    assert.equal(reads, 0, record);
+  }
+});
+
+test('Calendar closed DATA records reject symbol and nonenumerable extra properties', () => {
+  for (const record of ['installation', 'selection', 'limits']) {
+    for (const key of ['hidden', Symbol('extra')]) {
+      const value = original();
+      const target = record === 'installation' ? value : value[record];
+      Object.defineProperty(target, key, {value: true});
+      assert.throws(() => snapshotInstalledCalendar(value),
+        {name: 'TypeError', message: 'InvalidInstalledCalendar'});
+    }
+  }
+});
+
+test('Calendar bytes use their actual finite extent without invoking custom iteration', () => {
+  const value = original(), expected = Buffer.from(value.tableBytes);
+  let iterations = 0, lengthReads = 0;
+  Object.defineProperty(value.tableBytes, Symbol.iterator,
+    {value() { iterations++; throw new Error('UnexpectedCalendarIteration'); }});
+  Object.defineProperty(value.tableBytes, 'byteLength',
+    {get() { lengthReads++; return 0; }});
+  assert.throws(() => snapshotInstalledCalendar({...value,
+    limits: {...value.limits, max_bytes: expected.length - 1}}),
+  {name: 'TypeError', message: 'InvalidInstalledCalendar'});
+  const selected = snapshotInstalledCalendar(value);
+  value.tableBytes.fill(0);
+  let calls = 0;
+  admitInstalledCalendar({clientProgramCheckEnvironmentWithCalendarArtifact(environment, bytes) {
+    calls++;
+    assert.deepEqual(Buffer.from(bytes), expected);
+    return environment;
+  }}, {}, selected);
+  assert.equal(calls, 1);
+  assert.equal(iterations, 0);
+  assert.equal(lengthReads, 0);
+});

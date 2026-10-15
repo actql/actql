@@ -4,8 +4,23 @@ import {createHash} from 'node:crypto';
 import {canonicalJson as canonicalValueJson} from '../../packages/sdk/host-port.mjs';
 
 const originals = new WeakMap();
-const keysEqual = (value, keys) => value !== null && typeof value === 'object' &&
-  !Array.isArray(value) && Object.keys(value).sort().join('\0') === [...keys].sort().join('\0');
+const invalid = () => { throw new TypeError('InvalidInstalledCalendar'); };
+// Snapshot DATA descriptors once; never validate one read and retain another.
+// Reflection may run Proxy traps. Same-process implementation code is trusted;
+// this boundary does not sandbox code or reconstruct capability handles.
+function snapshotRecord(value, keys) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) invalid();
+  const descriptors = Object.getOwnPropertyDescriptors(value);
+  const names = Reflect.ownKeys(descriptors);
+  if (names.length !== keys.length || names.some(name => !keys.includes(name))) invalid();
+  return Object.freeze(Object.fromEntries(keys.map(key => {
+    const descriptor = descriptors[key];
+    if (descriptor?.enumerable !== true || !Object.hasOwn(descriptor, 'value')) invalid();
+    return [key, descriptor.value];
+  })));
+}
+const typedArrayByteLength = Object.getOwnPropertyDescriptor(
+  Object.getPrototypeOf(Uint8Array.prototype), 'byteLength').get;
 const integer = value => Number.isSafeInteger(value) && value >= 0 && value <= 2147483647;
 const cid = bytes => `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 const selectionKeys = ['version', 'tzdb_version', 'conversion_law', 'table_bytes_cid'];
@@ -13,19 +28,23 @@ const limitKeys = ['max_bytes', 'max_nodes', 'max_depth', 'max_zones', 'max_tran
 
 export function snapshotInstalledCalendar(value) {
   if (value === undefined) return undefined;
-  if (!keysEqual(value, ['selection', 'tableBytes', 'limits', 'maxSelectionWork']) ||
-      !keysEqual(value.selection, selectionKeys) ||
-      selectionKeys.some(key => typeof value.selection[key] !== 'string' ||
-        !value.selection[key] || !value.selection[key].isWellFormed()) ||
-      !/^sha256:[0-9a-f]{64}$/u.test(value.selection.table_bytes_cid) ||
-      !keysEqual(value.limits, limitKeys) || limitKeys.some(key => !integer(value.limits[key])) ||
-      !integer(value.maxSelectionWork) || !(value.tableBytes instanceof Uint8Array) ||
-      value.tableBytes.byteLength > value.limits.max_bytes) {
-    throw new TypeError('InvalidInstalledCalendar');
+  value = snapshotRecord(value, ['selection', 'tableBytes', 'limits', 'maxSelectionWork']);
+  const selection = snapshotRecord(value.selection, selectionKeys);
+  const limits = snapshotRecord(value.limits, limitKeys);
+  if (selectionKeys.some(key => typeof selection[key] !== 'string' ||
+        !selection[key] || !selection[key].isWellFormed()) ||
+      !/^sha256:[0-9a-f]{64}$/u.test(selection.table_bytes_cid) ||
+      limitKeys.some(key => !integer(limits[key])) ||
+      !integer(value.maxSelectionWork) || !(value.tableBytes instanceof Uint8Array)) {
+    invalid();
   }
-  const bytes = Uint8Array.from(value.tableBytes);
-  const selection = Object.freeze(Object.fromEntries(selectionKeys.map(key => [key, value.selection[key]])));
-  const limits = Object.freeze(Object.fromEntries(limitKeys.map(key => [key, value.limits[key]])));
+  let byteLength;
+  try { byteLength = typedArrayByteLength.call(value.tableBytes); }
+  catch { invalid(); }
+  if (byteLength > limits.max_bytes) invalid();
+  // Copy the actual typed-array extent without consulting its iterator or an
+  // overridden byteLength property. The owned bytes are hashed and admitted.
+  const bytes = new Uint8Array(value.tableBytes);
   const selected = Object.freeze({selection, limits, maxSelectionWork: value.maxSelectionWork,
     artifactBytesCid: cid(bytes)});
   originals.set(selected, bytes);

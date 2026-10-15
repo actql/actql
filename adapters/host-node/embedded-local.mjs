@@ -73,7 +73,9 @@ import {installNodeClientDispatchOwner, confirmNodeRunCancellation, cancelNodeRu
 import {retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
 import {issueInferTrustedRuntimeView, checkInferTrustedRuntimeView,
-  forgetInferTrustedRuntimeView} from './infer-trusted-runtime-view.mjs';
+  forgetInferTrustedRuntimeView, associateInferTrustedStartupView,
+  requireInferTrustedStartupView, borrowInferTrustedStartupView,
+  forgetInferTrustedStartupView} from './infer-trusted-runtime-view.mjs';
 import {composeInstalledCheckEnvironment,
   verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
@@ -233,6 +235,7 @@ async function openInstalledHost(originalInstallation) {
   const host = {};
   let modelRuntimeClosing = false;
   let modelRuntimeView;
+  let modelRuntimeStartupView;
   let modelProviders;
   // Nominal association in this SAME Host, not a capacity pool or Run Owner.
   // A key is an actual Common-issued Scope; its value is retired only after
@@ -245,6 +248,9 @@ async function openInstalledHost(originalInstallation) {
     moduleLifetime: import.meta, transport: registerModelProviders, target: runtimeTarget()});
   function assertModelRuntime() {
     checkInferTrustedRuntimeView(modelRuntimeView, runtimeOriginals());
+    if (modelRuntimeStartupView !== undefined) {
+      requireInferTrustedStartupView(modelRuntimeStartupView, runtimeOriginals());
+    }
   }
   function assertNewModelRuntime() {
     if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
@@ -252,8 +258,12 @@ async function openInstalledHost(originalInstallation) {
   }
   function retireModelRuntime() {
     if (modelRuntimeView !== undefined) {
+      if (modelRuntimeStartupView !== undefined) {
+        forgetInferTrustedStartupView(modelRuntimeStartupView, host, host);
+      }
       forgetInferTrustedRuntimeView(modelRuntimeView, host, host);
     }
+    modelRuntimeStartupView = undefined;
     modelRuntimeView = undefined;
     // Drop the installer's borrowed configuration/callback and table links
     // only at the same final cleanup boundary. This is NOT process/native ACK.
@@ -292,6 +302,9 @@ async function openInstalledHost(originalInstallation) {
     // Node installation only; module/native lifetime remains process-owned.
     // Managed JS/buffer/holding bounds still require the original Run Ledger.
     modelRuntimeView = issueInferTrustedRuntimeView(runtimeOriginals());
+    // Startup responsibility was retained by the real Node preload before
+    // entry imports. Ordinary embedded processes have no such original.
+    modelRuntimeStartupView = associateInferTrustedStartupView(modelRuntimeView, runtimeOriginals());
     assertNewModelRuntime();
   }
   const moon = await import(runtimeUrl.href);
@@ -979,6 +992,18 @@ async function openInstalledHost(originalInstallation) {
       }
       let admissionBoundary = 'compute_suffix';
       try {
+        // A known missing startup original must refuse before accepting a
+        // new Run/physical-start reservation. Keep dispatch's later checks:
+        // a current selection is not future authority or cleanup evidence.
+        if (physical.originalReadInstallation !== undefined) {
+          admissionBoundary = 'original_startup';
+          if (typeof physical.assertNewTrustedRuntime !== 'function') {
+            throw clientOperationError('InferTrustedRuntimeViewUnavailable');
+          }
+          physical.assertNewTrustedRuntime();
+          requireInferTrustedStartupView(modelRuntimeStartupView, runtimeOriginals());
+        }
+        admissionBoundary = 'compute_suffix';
         const durableModel = modelController !== undefined && checkpoints?.configured === true;
         const step = selectedStep;
         // Intermediate Content owns its physical prefix separately from the
@@ -1050,7 +1075,12 @@ async function openInstalledHost(originalInstallation) {
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
           currentProvider: () => modelProviders.get(providerId) === physical,
           assertTrustedRuntime: physical.assertTrustedRuntime,
-          assertNewTrustedRuntime: physical.assertNewTrustedRuntime,
+          assertNewTrustedRuntime() {
+            physical.assertNewTrustedRuntime?.();
+            // Original read/Model allocation requires this same startup
+            // prerequisite. Ordinary fixture/native binding alone is not it.
+            requireInferTrustedStartupView(modelRuntimeView, runtimeOriginals());
+          },
           bindTrustedRuntimeScope(scope, compiled, definition, graph) {
             physical.assertTrustedRuntime?.();
             if (modelRuntimeView === undefined || modelRuntimeScopes.has(scope) ||
@@ -1063,6 +1093,7 @@ async function openInstalledHost(originalInstallation) {
             const originals = {...runtimeOriginals(), installation: scope,
               transport: physical.provider};
             const view = issueInferTrustedRuntimeView(originals);
+            borrowInferTrustedStartupView(modelRuntimeView, view, runtimeOriginals(), originals);
             modelRuntimeScopes.set(scope, {view, compiled, definition, graph, physical});
             return view;
           },
@@ -1077,6 +1108,8 @@ async function openInstalledHost(originalInstallation) {
             // live/parked Run's existing borrow. Authority stays in Core.
             physical.assertTrustedRuntime();
             checkInferTrustedRuntimeView(view, {...runtimeOriginals(),
+              installation: scope, transport: physical.provider});
+            requireInferTrustedStartupView(view, {...runtimeOriginals(),
               installation: scope, transport: physical.provider});
             if (!control.checkedClientInferOriginalReadScopeLive(compiled, definition, graph, scope)) {
               throw clientOperationError('InferTrustedRuntimeScopeUnavailable');
@@ -1096,6 +1129,7 @@ async function openInstalledHost(originalInstallation) {
             const finished = control.finishCheckedClientInferOriginalReadScope(
               compiled, definition, graph, scope, true);
             if (finished !== true) return false;
+            forgetInferTrustedStartupView(view, host, host);
             forgetInferTrustedRuntimeView(view, host, host);
             modelRuntimeScopes.delete(scope);
             return true;
