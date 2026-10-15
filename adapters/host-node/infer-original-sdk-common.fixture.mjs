@@ -19,8 +19,6 @@ import {openNodeInferOperation} from './infer-operation.mjs';
 import {createInferIoNotification} from './infer-io-notification.mjs';
 import {installModelProviders,readInstalledModelDependencies,admitInstalledModelProvider,
   admitInstalledModelProviderBinding} from './installed-model.mjs';
-import {createAdmittedOpenAIChatPreflight} from '../../packages/provider-ai-sdk/_internal/original-openai-chat.mjs';
-import {createAdmittedTypeSafeDecisionPreflight} from '../../packages/provider-ai-sdk/_internal/native-decision-preflight.mjs';
 
 const source=readFileSync(new URL('../../src/client_infer_host/fixture.generated_wbtest.mbt',import.meta.url),'utf8');
 const input=name=>source.match(new RegExp(`let ${name} : String =\\n\\s+#\\|([^\\n]+)`,'u'))[1];
@@ -33,9 +31,28 @@ const seal=body=>{const wire=canonicalJson(body,{dataKeys:true}),identity=hash(w
 const now=()=> '2026-10-12T00:00:00.000Z';
 const bounds={maxWireBytes:10000,maxNodes:1000,maxDepth:30,maxMembers:1000,maxWork:100000};
 
-export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new AbortController().signal,
+export function originalSdkCommonFixture(t,moon,options) {
+  return originalCommonFixture(t,moon,options,false);
+}
+
+// Same actual Common/Store/journal fixture without importing either AI SDK
+// branch. SDK-free selection is not a numerical profile or physical ACK.
+export function originalHttpCommonFixture(t,moon,options) {
+  return originalCommonFixture(t,moon,options,true);
+}
+
+async function originalCommonFixture(t,moon,{responseWire,signal=new AbortController().signal,
   storeOriginals=true,beforeOriginalRead,modelId='gpt-4.1-nano',nativeDecision=false,
-  physical}={}) {
+  physical}={},independentHttp) {
+  if(independentHttp) {
+    assert.equal(nativeDecision,false);
+    assert.notEqual(physical,undefined,'Independent HTTP requires its explicit loopback transport');
+  }
+  const preparePhysical=independentHttp
+    ? (await import('../../packages/provider-http/_internal/model-port.mjs')).createHttpChatPreflight
+    : nativeDecision
+    ? (await import('../../packages/provider-ai-sdk/_internal/native-decision-preflight.mjs')).createAdmittedTypeSafeDecisionPreflight
+    : (await import('../../packages/provider-ai-sdk/_internal/original-openai-chat.mjs')).createAdmittedOpenAIChatPreflight;
   // Optional exact loopback transport for the joined physical diagnostic.
   // Preserve its function identity: wrapping it would lose the existing
   // original-transport preparation/cleanup membership. No ambient fallback.
@@ -104,13 +121,13 @@ export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new A
   profileBody.limits.request_bytes=1000;
   // The exact SDK lock is a DATA reference; this explicitly synthetic fixture
   // does not authenticate these otherwise fixture builder/runtime declarations.
-  profileBody.adapter.sdk={package:nativeDecision?'@ai-sdk/typesafe-ai':'@ai-sdk/openai',
+  profileBody.adapter.sdk=independentHttp?null:{package:nativeDecision?'@ai-sdk/typesafe-ai':'@ai-sdk/openai',
     version:nativeDecision?'3.0.13':'4.0.91',interface:'v4',
     lock_artifact_cid:hash(readFileSync(new URL('../../packages/provider-ai-sdk/package-lock.json',import.meta.url)))};
   const profileOriginal=seal(profileBody);
   const profile=control.readInstalledModelResponseProfile(profileOriginal.wire,profileOriginal.cid,bounds);
   const installation={...profileBody.adapter,endpoint:profileBody.operation.endpoint,
-    sdk:{package_name:profileBody.adapter.sdk.package,version:profileBody.adapter.sdk.version,interface:'v4',
+    sdk:independentHttp?undefined:{package_name:profileBody.adapter.sdk.package,version:profileBody.adapter.sdk.version,interface:'v4',
       lock_artifact_cid:profileBody.adapter.sdk.lock_artifact_cid},
     http_method:profileBody.operation.method,streaming:false,
     validator_id:profileBody.completion.validator_id,validator_revision:profileBody.completion.validator_revision,
@@ -155,18 +172,21 @@ export async function originalSdkCommonFixture(t,moon,{responseWire,signal=new A
       metadataAcquisition:{metadata:{maxWireBytes:4096,maxLedgerEntries:4},directory:{maxWireBytes:1024,maxDirectoryEntries:8},
         retainedBytes:7000n,workspaceBytes:3000n}},
     physicalPreflight(request,notification,retainRawBinder,admittedProvider){
-      const port=(nativeDecision?createAdmittedTypeSafeDecisionPreflight:createAdmittedOpenAIChatPreflight)({moon,request,admittedProvider,
+      const common={moon,request,admittedProvider,
         probability,
         taskCid:task.contract_cid,promptCid:prompt.cid,outputSchemaCid:task.output_schema_cid,
         modelSelector:task.authored_model_selector,projectionLimits:{maxBytes:10000,maxNodes:1000,maxDepth:40,maxFrames:100,maxWork:10000},
-        modelId,baseURL:physical!==undefined ? physical.endpoint.slice(0,-'/chat/completions'.length)
-          : nativeDecision?'https://fixture.invalid':'https://fixture.invalid/v1',apiKey:'fixture-only',signal,
+        modelId,signal,
         maxRequestBytes:1000,maxHeaderBytes:4096,maxHeaders:16,checked,
         notify:notification.notify,rawCaptureBinder:retainRawBinder,profile,installation,
         quantities:quantities.perAttempt,responseLimits:{maxBytes:2048,maxChunkBytes:512,maxChunks:16,
           maxHeaderBytes:128,observedHeaders:['content-type']},observeAt:now,
         fetch:physical?.fetch ?? ((url,init)=>{sends++;requests.push({url,body:init.body});
-          return new Response(responseWire,{headers:{'content-type':'application/json'}});})});
+          return new Response(responseWire,{headers:{'content-type':'application/json'}});})};
+      const port=independentHttp?preparePhysical({...common,endpoint:physical.endpoint,
+        headers:[['content-type','application/json']],requestLimits:{maxBytes:1000,maxHeaderBytes:4096,maxHeaders:16}})
+        : preparePhysical({...common,baseURL:physical!==undefined ? physical.endpoint.slice(0,-'/chat/completions'.length)
+          : nativeDecision?'https://fixture.invalid':'https://fixture.invalid/v1',apiKey:'fixture-only'});
       ports.push(port);
       return port.preflight;
     }}]).get('models/fixture');

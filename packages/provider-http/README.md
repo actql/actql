@@ -86,6 +86,15 @@ loopback HTTP and Store I/O, but Common request/Entry/grant/receipt remain expli
 doubles. They are not actual canonical admission, current-cut, original funding,
 public Named Result or fresh-process Run restoration.
 
+The additional `infer-independent-http-common` cases select this same private
+port through actual Common request/profile/Entry/response validation and the
+encrypted Store/SQLite continuation, rather than substituting Common receipt
+doubles. They use two separate no-credential loopback responses and an explicit
+test-only Node HTTP transport. The fixture does not import the A SDK branch;
+synthetic policy/layout/quantity declarations still are not normal funding,
+an installed public Client, physical shared-window conformance, a Named Result,
+live service or restart acceptance. Execution receipts remain source-specific.
+
 The initial profile needs explicit one-choice/no-stream/no-tools/no-retry
 conformance against two independent compatible fixtures and an authorized live
 public route. Unsupported settings or codec/endpoint capability must refuse
