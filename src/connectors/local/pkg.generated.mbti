@@ -224,6 +224,7 @@ pub(all) enum LocalBoundedRelationCheck {
 pub(all) enum LocalBoundedTemporalRelationCheck {
   TimeSeries
   CalendarSeries
+  CalendarBucket
   IntervalJoin
   AsOfJoin
   SequenceMatch

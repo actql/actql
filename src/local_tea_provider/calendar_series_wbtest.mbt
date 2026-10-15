@@ -37,6 +37,7 @@ fn calendar_kernel_profile() -> @calendar_profile.Profile {
 fn calendar_kernel_generated(
   start : String,
   end : String,
+  bucket? : Bool = false,
 ) -> @execution.GeneratedSequence raise {
   let checked = @pipeline.check(
     calendar_provider_cursor(
@@ -44,7 +45,13 @@ fn calendar_kernel_generated(
       start +
       "\",\"end\":\"" +
       end +
-      "\",\"unit\":\"day\",\"timezone\":\"UTC\"},\"as\":\"days\"}]",
+      "\",\"unit\":\"day\",\"timezone\":\"UTC\"},\"as\":\"days\"}" +
+      (if bucket {
+        ",{\"calendar_bucket\":{\"time\":\"start\",\"into\":\"month\",\"unit\":\"month\",\"timezone\":\"UTC\"},\"as\":\"bucketed\"}"
+      } else {
+        ""
+      }) +
+      "]",
     ),
     [],
     None,
@@ -93,7 +100,11 @@ fn calendar_kernel_generated(
     contracts,
     sequence,
     [],
-    ["calendar_series_0"],
+    if bucket {
+      ["calendar_series_0", "calendar_bucket_1"]
+    } else {
+      ["calendar_series_0"]
+    },
     100000,
     10000,
   ).unwrap()
