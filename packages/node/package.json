@@ -9,7 +9,8 @@
     "@actql/sdk": "0.0.0-development"
   },
   "exports": {
-    ".": {"types": "./index.d.ts", "default": "./index.mjs"}
+    ".": {"types": "./index.d.ts", "default": "./index.mjs"},
+    "./selected-infer-startup": "./selected-infer-startup.cjs"
   },
-  "files": ["index.mjs", "index.d.ts", "README.md"]
+  "files": ["index.mjs", "index.d.ts", "selected-infer-startup.cjs", "README.md"]
 }
