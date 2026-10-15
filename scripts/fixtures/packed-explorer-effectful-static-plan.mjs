@@ -10,6 +10,7 @@ import {join, sep} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {createServer} from 'node:https';
 import {DatabaseSync} from 'node:sqlite';
+import {userInfo} from 'node:os';
 import {open} from '@actql/node';
 import {publishEffect} from '@actql/local-node';
 import {startExplorer} from '@actql/explorer/launcher';
@@ -112,7 +113,22 @@ await test('ordinary installed Local Explorer shows checked update declarations 
     receipt.metadataPublication = {requests: [...sends], secretCalls, generationCid: published.generationCid,
       environmentCid: published.environmentCid, mappings: published.mappings};
     phase = 'ordinary embedded Local open';
-    client = await open({stateDir, installation: {effectProfilePath: effectPath, resolveEffectSecret}});
+    // The installed Effect Host requires its ordinary explicit registration
+    // even for a read-only viewer. These disposable keys are not invoked to
+    // sign an Approval. This Account has no Host Run write Allow.
+    const reviewer = generateKeyPairSync('ed25519'), host = generateKeyPairSync('ed25519');
+    const authorization = {
+      accountConfiguration: JSON.parse(await readFile(effectPath, 'utf8')).accountConfigurationWire,
+      reviewers: [{keyId: 'static-reviewer-key', reviewerId: 'static-reviewer',
+        principalId: userInfo().username, publicKey: reviewer.publicKey.export({type: 'spki', format: 'pem'})}],
+      reviewReaders: [userInfo().username],
+      hostKey: {keyId: 'static-host-key', privateKey: host.privateKey.export({type: 'pkcs8', format: 'pem'})},
+      leaseMs: 10000, resumeAfterAnswer: false,
+    };
+    const publicationSends = sends.length, publicationSecrets = secretCalls;
+    client = await open({stateDir, installation: {effectProfilePath: effectPath, resolveEffectSecret, authorization}});
+    assert.equal(sends.length, publicationSends, 'Restore does not republish metadata');
+    assert.equal(secretCalls, publicationSecrets, 'Restore does not reacquire a provider secret');
     const journal = join(stateDir, 'requests', 'client-requests.sqlite3');
     const before = journalCounts(journal), baselineSends = sends.length, baselineSecrets = secretCalls;
     assert.equal(before.client_requests, 0); assert.equal(before.client_submitted_intents, 0);
@@ -210,6 +226,11 @@ await test('ordinary installed Local Explorer shows checked update declarations 
     receipt.complete = true;
   } catch (error) {
     receipt.failure = {phase, kind: error.code ?? error.name};
+    if (error.primaryFailure) receipt.failure.primaryKind = error.primaryFailure.code ?? error.primaryFailure.name;
+    if (error.cleanupHandle?.status) {
+      const status = error.cleanupHandle.status();
+      receipt.initializationCleanup = {pending: status.pending, owners: status.owners};
+    }
     throw new Error(`Installed static Plan failed at ${phase}: ${receipt.failure.kind}`, {cause: error});
   }
   finally {
