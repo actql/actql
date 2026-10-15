@@ -169,9 +169,12 @@ test "backed original child keeps a prepared frame unavailable after parent reti
   // Existing start refuses a stopping original before admission. Retirement
   // does not pretend this unstarted frame attempted another parent admission.
   assert_true(start_imported_child_ledger(frame) is Err(AlreadyConsumed))
-  assert_true(!frame.attempted && frame.ledger is None && frame.origin.unavailable)
+  assert_true(
+    !frame.attempted && frame.ledger is None && frame.origin.unavailable,
+  )
   assert_true(start_imported_child_ledger(frame) is Err(AlreadyConsumed))
-  assert_true(take_imported_original_child_ledger(frame) is Err(Unavailable))
+  assert_true(take_imported_original_child_ledger(frame) is Err(AlreadyConsumed))
+  assert_true(!frame.taken)
   assert_eq(ledger_usage(parent), before)
 }
 
