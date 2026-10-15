@@ -9,6 +9,7 @@ import {fileURLToPath} from 'node:url';
 import test from 'node:test';
 import {runInNewContext} from 'node:vm';
 import './two-source-optional-effect.test.mjs';
+import './composition-release-input.test.mjs';
 import {parse} from 'yaml';
 import {optionalEffectCases} from './fixtures/two-source-optional-effect.mjs';
 import {compositionProgram, compositionTemplate, compositionExpectations, compositionText, compositionTextTemplate} from

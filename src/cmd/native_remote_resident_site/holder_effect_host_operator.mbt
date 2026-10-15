@@ -278,6 +278,7 @@ fn prepare_holder_effect_host_operator(
       // physical reads. The clamped value fits Int; candidate wire cannot raise it.
       read_ceiling=file_limit.to_int(),
       diagnostic_ceiling=Some(scope.profile.diagnostic_ceiling),
+      require_current_read_context=true,
       on_read_failure=Some(failure => {
         observe_holder_effect_host_read_failure(scope, failure)
       }),
