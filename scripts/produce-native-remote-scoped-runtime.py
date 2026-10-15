@@ -141,8 +141,15 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             raise TimeoutError('Selected build preparation budget exhausted')
-        result = subprocess.run(command, cwd=ROOT, env=environment, check=True,
-                                timeout=remaining, text=True, capture_output=capture)
+        try:
+            result = subprocess.run(command, cwd=ROOT, env=environment, check=True,
+                                    timeout=remaining, text=True, capture_output=capture)
+        except subprocess.CalledProcessError as error:
+            if capture and destination.exists():
+                (destination / 'tool-failure.stdout').write_text(error.stdout or '')
+                (destination / 'tool-failure.stderr').write_text(error.stderr or '')
+                (destination / 'tool-failure-command.json').write_text(json.dumps(command) + '\n')
+            raise
         return result.stdout if capture else ''
 
     if platform.system() != 'Darwin' or platform.machine() != 'arm64':
@@ -173,7 +180,9 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     # Only the C port is redirected. Ordinary Moon retains dependency/registry
     # generation and all package compiler arguments, including -all-pkgs.
     cc_driver.write_text('#!' + sys.executable + '\n'
-        + 'import importlib.util, sys\nfrom pathlib import Path\n'
+        + 'import importlib.util, sys, subprocess\nfrom pathlib import Path\n'
+        + 'if sys.argv[1:] in (["--version"], ["-v"]):\n'
+        + '    raise SystemExit(subprocess.run([' + repr(str(clang)) + ',*sys.argv[1:]]).returncode)\n'
         + 's=importlib.util.spec_from_file_location("remote_cc",' + repr(str(Path(__file__).resolve())) + ')\n'
         + 'm=importlib.util.module_from_spec(s); s.loader.exec_module(m)\n'
         + 'm.compile_selected_c(Path(' + repr(str(cc_plan)) + '),sys.argv[1:])\n')
