@@ -726,6 +726,8 @@ pub fn node_count(Prepared) -> Int
 
 pub fn node_id(PreparedNode) -> String
 
+pub fn node_infer_input_target(PreparedNode) -> @pipeline_typing.Target?
+
 pub fn node_input_count(PreparedNode) -> Int
 
 pub fn node_input_step(PreparedNode, Int) -> Int?
@@ -940,6 +942,8 @@ pub fn sequence_match_uses_timestamp(PreparedSequenceMatch) -> Bool
 
 pub fn sequence_match_within(PreparedSequenceMatch) -> Int64
 
+pub fn sequence_matches_serialization_sort(PreparedSequence, PreparedSerialization) -> Bool
+
 pub fn sequence_owner(PreparedSequence) -> BoundPrepared
 
 pub fn sequence_requirements_fragment_at(SequenceRequirements, Int) -> FragmentEnforcement?
@@ -964,11 +968,15 @@ pub fn serialization_author_guards(PreparedSerialization) -> (Int64?, Int64?)
 
 pub fn serialization_checked(PreparedSerialization) -> @pipeline_typing.CheckedSerialization
 
+pub fn serialization_matches_node(PreparedSerialization, PreparedNode) -> Bool
+
 pub fn serialization_order(PreparedSerialization) -> @pipeline_typing.SerializationOrder
 
 pub fn serialization_owner(PreparedSerialization) -> BoundPrepared
 
 pub fn serialization_preparation_work(PreparedSerialization) -> Int
+
+pub fn serialization_requires_sort(PreparedSerialization) -> Bool
 
 pub fn serialization_step(PreparedSerialization) -> Int
 

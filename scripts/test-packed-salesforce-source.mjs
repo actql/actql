@@ -25,8 +25,14 @@ import {graphCompositionExpectations, graphResultDataPolicy,
   computationCustodySince} from './fixtures/graph-infer-effect-input.mjs';
 import {optionalEffectCases, optionalEffectFixtureFiles, optionalEffectExpectations} from
   './fixtures/two-source-optional-effect.mjs';
+import {admitCompositionRelease, compositionReleaseDirectory} from './composition-release-input.mjs';
+import {auditPackedPackages} from './packed-package-boundaries.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
+const releaseDirectory = compositionReleaseDirectory(process.argv.slice(2));
+// Refuse a foreign, dirty or modified release before creating a Site or Run.
+const normalRelease = releaseDirectory === undefined ? undefined
+  : await admitCompositionRelease({repository, directory: releaseDirectory});
 const build = join(repository, '_build');
 await mkdir(build, {recursive: true});
 // Outside the checkout: nothing under it can fill in a missing file.
@@ -182,12 +188,18 @@ try {
   const sourceRevision = run('git', ['rev-parse', 'HEAD'], repository).trim();
   assert.match(sourceRevision, /^[0-9a-f]{40}$/u);
   console.log('packed source revision ' + sourceRevision);
-  const artifacts = [];
-  for (const name of ['client-wire', 'sdk', 'local-node', 'node']) {
-    await packedClientPackage({repository, name, destination: root,
-      pack: packageName => run('npm', ['pack', '--pack-destination', root,
-        '--json'], join(repository, 'packages', packageName))});
-    artifacts.push(join(root, `actql-${name}-0.0.0-development.tgz`));
+  const artifacts = normalRelease === undefined ? [] : normalRelease.archives;
+  if (normalRelease === undefined) {
+    for (const name of ['client-wire', 'sdk', 'local-node', 'node']) {
+      await packedClientPackage({repository, name, destination: root,
+        pack: packageName => run('npm', ['pack', '--pack-destination', root,
+          '--json'], join(repository, 'packages', packageName))});
+      artifacts.push(join(root, `actql-${name}-0.0.0-development.tgz`));
+    }
+  } else {
+    console.log('normal composition release ' + JSON.stringify({sourceSha: sourceRevision,
+      manifestSha256: normalRelease.manifestSha256,
+      packageVersion: normalRelease.manifest.cohort.packageVersion}));
   }
   console.log('packed package digests ' + JSON.stringify(
     await Promise.all(artifacts.map(async path => ({
@@ -199,6 +211,7 @@ try {
   run('npm', ['install', '--ignore-scripts', '--no-save', ...artifacts,
     await pinnedDuckDBPackage(repository)],
     root);
+  if (normalRelease !== undefined) auditPackedPackages(root, normalRelease.manifest.cohort.packages);
   assert((await readFile(join(root, 'node_modules/@actql/local-node',
     '_build/js/release/build/connectors/salesforce/host_node/host_node.js')))
     .byteLength > 0);
@@ -2002,6 +2015,10 @@ try {
     console.log('packed composed Host + execution process termination at durable capture and approval passed');
   }
   console.log('packed public Client Read→Compute→Effect passed');
+  if (normalRelease !== undefined) {
+    await normalRelease.verifyUnchanged();
+    auditPackedPackages(root, normalRelease.manifest.cohort.packages);
+  }
   passed = true;
 } finally {
   await server.close();

@@ -12,6 +12,9 @@ test('connectors and Local execution/preparation use resolved lowering contracts
 for (const path of [
   'src/connectors/duckdb/adapter/native_query.mbt',
   'src/connectors/local/driver/obligations.mbt',
+  'src/execution_relation/completion.mbt',
+  'src/execution_relation/serialization_completion.mbt',
+  'src/execution_relation/producer_read.mbt',
 ]) {
   test(`resolved original input and Calendar boundaries: ${path}`, () => {
     const aliases = new Map([

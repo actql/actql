@@ -194,20 +194,33 @@ fn NativeLocalWorkerProvisioningAttempt::require_worker_resource_current(
   principal : String,
   connection : String,
 ) -> Result[Unit, NativeLocalWorkerProvisioningIssue] {
-  if !physical_equal(original.attempt, self) ||
+  if !(self.host.worker_provisioning_attempt is Some(attempt) &&
+    physical_equal(attempt, self)) ||
+    !physical_equal(original.attempt, self) ||
     !(self.resource is Some(retained) && physical_equal(retained, original)) {
     return Err(CustodyLost)
+  }
+  match
+    self.host.worker_provisioning_current(principal, connection, "provision") {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   // This helper also runs inside the original journal transaction. Inspect
   // the same admitted rows directly; never nest another journal transaction.
   let saved = match
-    self.host.database.read("client_worker_provisioning", self.key) {
+    self.host.database.read_with_body_limit(
+      "client_worker_provisioning",
+      self.key,
+      2048L,
+    ) {
     Err(@sqlite.NotFound) => return Err(CustodyLost)
     Err(issue) => return Err(Adoption(Physical(issue)))
     Ok(value) => value
   }
   let selected = match
-    self.host.database.read("client_worker_provisioning_custody", "selected") {
+    self.host.database.read_with_body_limit(
+      "client_worker_provisioning_custody", "selected", 71L,
+    ) {
     Err(@sqlite.NotFound) => return Err(CustodyLost)
     Err(issue) => return Err(Adoption(Physical(issue)))
     Ok(value) => value
@@ -222,6 +235,13 @@ fn NativeLocalWorkerProvisioningAttempt::require_worker_resource_current(
     self.host.worker_provisioning_current(principal, connection, "provision") {
     Err(issue) => return Err(issue)
     Ok(_) => ()
+  }
+  // Reuse the original provisioning codec's current epoch/selection binding;
+  // a matching retained row alone cannot make a changed epoch current.
+  match self.host.worker_provisioning_body(self.selection, self.key) {
+    Ok(body) if body == self.body => ()
+    Err(issue) => return Err(issue)
+    Ok(_) => return Err(CustodyLost)
   }
   match self.selection.project_domain_original(original.domain) {
     Ok((physical, resource)) if physical == original.physical &&
