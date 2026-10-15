@@ -216,9 +216,9 @@ await test('ordinary installed Local Explorer shows checked update declarations 
       ui.lastAction = 'wait connected status';
       await page.getByText('Connected. Session expires after at most five minutes; reconnect explicitly.', {exact: true}).waitFor();
       ui.lastAction = 'select Program format';
-      await page.getByLabel('Format', {exact: true}).selectOption('program');
+      await page.getByRole('combobox', {name: /^Format(?:\s|$)/u}).selectOption('program');
       ui.lastAction = 'fill Program';
-      await page.getByLabel('Program', {exact: true}).fill(JSON.stringify(program));
+      await page.getByRole('textbox', {name: /^Program(?:\s|$)/u}).fill(JSON.stringify(program));
       ui.lastAction = 'read Plan';
       await page.getByRole('button', {name: 'Read Plan', exact: true}).click();
       const section = page.getByRole('region', {name: 'ActQL static Plan', exact: true});
@@ -269,7 +269,10 @@ await test('ordinary installed Local Explorer shows checked update declarations 
     const failures = [];
     receipt.providerRequests = sends;
     receipt.totalSecretCalls = secretCalls;
-    if (journalPath) receipt.journalBeforeClose = journalCounts(journalPath);
+    if (journalPath) {
+      try {receipt.journalBeforeClose = journalCounts(journalPath);}
+      catch (error) {receipt.complete = false; failures.push(error);}
+    }
     for (const [name, close] of [['Chromium', () => browser?.close()], ['Gateway', () => gateway?.close()],
       ['Local Client', () => client?.close()], ['metadata HTTPS fixture', async () => {
         if (server) {server.closeAllConnections(); await new Promise(resolve => server.close(resolve));}
