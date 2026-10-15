@@ -32,3 +32,17 @@
 .actql-explorer-table td, .actql-explorer-table th { text-align: left; padding: 8px 24px; border-bottom: 1px solid var(--actql-border); overflow-wrap: anywhere; }
 
 .actql-explorer-edge-label { font-size: 10px; fill: var(--actql-foreground); stroke: var(--actql-background); stroke-width: 3px; paint-order: stroke; pointer-events: none; }
+
+.actql-run-inspector { color: #172533; background: #fff; border: 1px solid #dce4ed;
+  border-radius: 12px; padding: 24px; margin-top: 16px; font: 14px/1.5 system-ui, sans-serif;
+  overflow-wrap: anywhere; }
+.actql-run-inspector header { margin-bottom: 24px; }
+.actql-run-inspector h2, .actql-run-inspector h3, .actql-run-inspector h4 { margin: 16px 0 8px; }
+.actql-run-inspector dl { display: grid; grid-template-columns: minmax(130px, 1fr) minmax(0, 3fr); gap: 8px 16px; }
+.actql-run-inspector dd { margin: 0; font-family: monospace; }
+.actql-run-inspector table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.actql-run-inspector td, .actql-run-inspector th { text-align: left; padding: 8px; border-bottom: 1px solid #dce4ed; vertical-align: top; }
+.actql-run-inspector article, .actql-run-inspector aside { border-top: 1px solid #dce4ed; padding: 8px 0; }
+@media (max-width: 640px) { .actql-run-inspector { padding: 16px; }
+  .actql-run-inspector dl { grid-template-columns: minmax(0, 1fr); }
+  .actql-run-inspector dd { margin-bottom: 8px; } }

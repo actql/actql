@@ -46,15 +46,15 @@
       "root": "provider",
       "path": "owned_domain_borrow.h",
       "output": "owned_domain_borrow.h",
-      "bytes": 2197,
-      "sha256": "666b3739ee86a08203e84aaf23139a938ff0af8c29474648d6266af8f9c8cce0"
+      "bytes": 2573,
+      "sha256": "51a183ccb9f9de945a608b5b9241ffa7ef3f62513e8ca8426e29188b29157480"
     },
     {
       "root": "provider",
       "path": "owned_domain_borrow.inc",
       "output": "owned_domain_borrow.inc",
-      "bytes": 7546,
-      "sha256": "928638b5cdbd8202800c2f6f0e7c2891829873010ba342c9a9479d1e4c11935b"
+      "bytes": 8662,
+      "sha256": "e3914075758a265d18c3a6b075053d2fe31a3f35ee8cc8aee0548493ab814373"
     },
     {
       "root": "moonbit",
@@ -159,12 +159,12 @@
       "sha256": "2f5e3d67c1a7beeb0cdc12254a2b25128d624d11653d23ee0ce01c0c9bfa0520"
     },
     "owned_domain_borrow.h": {
-      "bytes": 2197,
-      "sha256": "666b3739ee86a08203e84aaf23139a938ff0af8c29474648d6266af8f9c8cce0"
+      "bytes": 2573,
+      "sha256": "51a183ccb9f9de945a608b5b9241ffa7ef3f62513e8ca8426e29188b29157480"
     },
     "owned_domain_borrow.inc": {
-      "bytes": 7546,
-      "sha256": "928638b5cdbd8202800c2f6f0e7c2891829873010ba342c9a9479d1e4c11935b"
+      "bytes": 8662,
+      "sha256": "e3914075758a265d18c3a6b075053d2fe31a3f35ee8cc8aee0548493ab814373"
     },
     "moonbit_runtime.h": {
       "bytes": 14824,
