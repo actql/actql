@@ -2811,6 +2811,21 @@ function publicationControl(moon) {
       return checked(moon.clientProgramBindInferRun(execution,
         value, token(definition)));
     },
+    // Inspect only the original Core execution's issued value. Wire admission
+    // remains a separate path; this view does not issue Store or send authority.
+    inspectInferInvocationEvidence(originalMoon, execution, slot) {
+      if (originalMoon !== moon || !Number.isSafeInteger(slot) || slot < 0 ||
+          slot > 2147483647 ||
+          typeof moon.clientProgramInferInvocationEvidence !== 'function') {
+        throw new TypeError('Foreign Infer invocation evidence');
+      }
+      const evidence = moon.clientProgramInferInvocationEvidence(execution, slot);
+      if (evidence === undefined) return undefined;
+      if (moon.strategyRunEvidenceName(evidence) !== 'model_invocation_evidence') {
+        throw new TypeError('Foreign Infer invocation evidence');
+      }
+      return inspectEvidence(evidence);
+    },
     bindCheckedClientInferDispatch(compiled, execution, definition,
       {account, principalId, at, delegated, observeAccount, observeAt}) {
       const value = compiledRunTokens.get(compiled);

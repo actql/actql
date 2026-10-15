@@ -90,6 +90,7 @@ if (selected) {
   const tls = require('node:tls');
   const {TextDecoder} = require('node:util');
   const promise = globalThis.Promise;
+  const string = globalThis.String;
   // Same-realm native prototype, without starting a generator, Promise or
   // physical stream. Actual Node Readable iteration uses this shared next.
   // The temporary function/prototype lookup remains startup workspace, not a
@@ -115,7 +116,12 @@ if (selected) {
     // implementation, not an application replacement with different storage
     // or scan behavior. This does not freeze all String methods or bound their
     // heap/flatten/GC behavior. The extra descriptor/array slot stays managed.
-    [String.prototype, 'charCodeAt'],
+    [string.prototype, 'charCodeAt'],
+    // Common's emitted String builder calls the global constructor's same
+    // fromCodePoint. Keep both originals for the selected implementation;
+    // this is not a no-allocation claim for arbitrary Unicode/builders.
+    // Two added pairs/descriptor records and reflection remain managed.
+    [globalThis, 'String'], [string, 'fromCodePoint'],
     // Preserve the native chain whose concrete Promise/await allocations the
     // selected supplier inventories. Freezing these originals is not a byte
     // grant, a hook/debug bound or an exemption for application callbacks.

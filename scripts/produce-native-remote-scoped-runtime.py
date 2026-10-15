@@ -1,7 +1,10 @@
-"""Explicit maintainer build of one Remote CLI with the derived read allocator.
+"""Explicit maintainer build of one selected CLI with the derived read allocator.
 
 Run through the existing local-check guard. This prepares a distinct artifact;
 never installs it, executes it, changes the selected toolchain, or grants capacity.
+The default remains the Remote CLI. Select --entry src/cmd/native_client for
+the Local CLI's original release/no-strip recipe, with the same derived provider.
+Neither selection supplies an installed Host, read claim or numeric profile.
 """
 from __future__ import annotations
 
@@ -19,8 +22,24 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 ENTRY = 'src/cmd/native_remote_resident_site'
+LOCAL_ENTRY = 'src/cmd/native_client'
 RUNTIME_NAMES = frozenset(('runtime', 'env', 'utf', 'backtrace', 'sync_io'))
 RELEASE_UTF_OBJECTS = frozenset(('moonbit_simdutf.o', 'simdutf.o'))
+
+
+def selected_entry(entry: str) -> str:
+    if entry not in (ENTRY, LOCAL_ENTRY):
+        raise ValueError('Only the original Remote or Local CLI entry may be selected')
+    return entry.removeprefix('src/')
+
+
+def moon_build_arguments(moon_home: Path, emission: Path, entry: str) -> list[str]:
+    selected_entry(entry)
+    # The existing Remote recipe strips; the ordinary Local artifact recipe
+    # does not. Its native_client package remains the source of its O0 flags.
+    return [str(moon_home / 'bin/moon'), 'build', '--target', 'native', '--release',
+            *(['--strip'] if entry == ENTRY else []),
+            '--target-dir', str(emission), '-j', '1', entry]
 
 
 def original(path: Path) -> dict[str, object]:
@@ -36,8 +55,11 @@ def under(path: Path, root: Path) -> bool:
 
 def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                  clang: Path, sdk: Path, *, cc_driver: Path | None = None,
-                 ar_driver: Path | None = None) -> list[list[str]]:
+                 ar_driver: Path | None = None, entry: str = ENTRY) -> list[list[str]]:
     """Keep the actual pinned dry-run closure; reject other targets/entries."""
+    entry_package = selected_entry(entry)
+    core = emission / 'native/release/build' / entry_package / (Path(entry_package).name + '.c')
+    executable = core.with_suffix('.exe')
     commands: list[list[str]] = []
     links = finals = providers = 0
     runtime: set[str] = set()
@@ -76,7 +98,7 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
                 modules.add(package)
             else:
                 links += 1
-                if not parts[parts.index('-o') + 1].endswith('/cmd/native_remote_resident_site/native_remote_resident_site.c'):
+                if Path(parts[parts.index('-o') + 1]) != core:
                     raise ValueError('Foreign generated Core module')
             parts[0] = str(moon_home / 'bin/moonc')
         elif parts[0] == str(cc_driver or Path('/usr/bin/cc')):
@@ -87,9 +109,9 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
             final = '-c' not in parts
             if final:
                 finals += 1
-                if source != emission / 'native/release/build/cmd/native_remote_resident_site/native_remote_resident_site.c':
+                if source != core:
                     raise ValueError('Foreign final Core source')
-                if not parts[parts.index('-o') + 1].endswith('/cmd/native_remote_resident_site/native_remote_resident_site.exe'):
+                if Path(parts[parts.index('-o') + 1]) != executable:
                     raise ValueError('Foreign executable output')
             elif under(source, moon_home / 'lib/runtime'):
                 if source.stem not in RUNTIME_NAMES or source.stem in runtime:
@@ -130,8 +152,8 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
         commands.append(parts)
     if (links, finals, providers) != (1, 1, 1) or runtime != RUNTIME_NAMES:
         raise ValueError('Incomplete or duplicated Core/runtime/provider composition')
-    if 'actql/actql/cmd/native_remote_resident_site' not in modules:
-        raise ValueError('Selected Remote entry is missing')
+    if 'actql/actql/' + entry_package not in modules:
+        raise ValueError('Selected CLI entry is missing')
     return commands
 
 
@@ -167,7 +189,9 @@ def compile_selected_c(plan_path: Path, arguments: list[str]) -> None:
 
 
 def build(source: str, moon_home: Path, clang: Path, sdk: Path,
-          destination: Path, seconds: int, *, plan_only: bool) -> dict[str, object]:
+          destination: Path, seconds: int, *, plan_only: bool,
+          entry: str = ENTRY) -> dict[str, object]:
+    entry_package = selected_entry(entry)
     if type(seconds) is not int or seconds <= 0 or type(plan_only) is not bool:
         raise ValueError('Explicit positive preparation budget required')
     deadline = time.monotonic() + seconds
@@ -232,11 +256,11 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         + 'm.compile_selected_c(Path(' + repr(str(cc_plan)) + '),sys.argv[1:])\n')
     cc_driver.chmod(0o755)
     environment['PATH'] = str(cc_driver.parent) + ':' + environment['PATH']
-    moon_arguments = [str(moon_home / 'bin/moon'), 'build', '--target', 'native', '--release', '--strip',
-                      '--target-dir', str(emission), '-j', '1', ENTRY]
+    moon_arguments = moon_build_arguments(moon_home, emission, entry)
     dry = run(moon_arguments + ['--dry-run'], capture=True)
     (destination / 'moon-dry-run.txt').write_text(dry)
-    commands = commands_for(dry, moon_home, emission, allocator, clang, sdk, cc_driver=cc_driver, ar_driver=ar_driver)
+    commands = commands_for(dry, moon_home, emission, allocator, clang, sdk,
+                            cc_driver=cc_driver, ar_driver=ar_driver, entry=entry)
     (destination / 'commands.json').write_text(json.dumps(commands, indent=2) + '\n')
     originals = [[p.replace('$MOON_HOME', str(moon_home)) for p in shlex.split(line)]
                  for line in dry.splitlines() if line.strip()]
@@ -270,10 +294,10 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     inputs = [original(p) for p in sorted(paths)]
     (destination / 'inputs.json').write_text(json.dumps(inputs, indent=2) + '\n')
     receipt: dict[str, object] = {
-        'source': source, 'entry': ENTRY, 'target': 'darwin-arm64',
+        'source': source, 'entry': entry, 'target': 'darwin-arm64',
         'compiler_backend': 'pinned ordinary C (MOONBIT_NEW_NATIVE=0)',
         'package_registry': 'Generated by ordinary pinned Moon; no compiler arguments omitted',
-        'compiler_profile': 'ordinary Moon --release --strip',
+        'compiler_profile': 'ordinary Moon --release' + (' --strip' if entry == ENTRY else ''),
         'selected_packages': packages, 'core_modules': 1, 'providers': 1,
         'allocator': selection, 'plan_only': plan_only, 'commands_completed': 0,
         'installed_supplier': False, 'normal_profile': None, 'runtime_cases': 0, 'public_e2e': 0,
@@ -295,7 +319,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         if len(completed) != len(c_steps) or any(step['exit'] != 0 for step in completed):
             raise ValueError('Not every selected C step has an actual successful receipt')
         receipt['commands_completed'] = len(commands)
-        executable = emission / 'native/release/build/cmd/native_remote_resident_site/native_remote_resident_site.exe'
+        executable = emission / 'native/release/build' / entry_package / (Path(entry_package).name + '.exe')
         receipt['executable'] = original(executable)
     for item in inputs:
         if original(Path(str(item['path']))) != item:
@@ -318,7 +342,8 @@ if __name__ == '__main__':
     parser.add_argument('--destination', type=Path, required=True)
     parser.add_argument('--seconds', type=int, required=True)
     parser.add_argument('--plan-only', action='store_true')
+    parser.add_argument('--entry', choices=(ENTRY, LOCAL_ENTRY), default=ENTRY)
     args = parser.parse_args()
     print(json.dumps(build(args.source, args.moon_home.resolve(), args.clang,
                            args.sdk, args.destination.resolve(), args.seconds,
-                           plan_only=args.plan_only), sort_keys=True))
+                           plan_only=args.plan_only, entry=args.entry), sort_keys=True))

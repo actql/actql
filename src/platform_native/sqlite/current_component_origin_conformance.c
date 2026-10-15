@@ -114,6 +114,18 @@ int main(int argc, char **argv) {
   assert(actql_native_sqlite_close_checked(database));
   assert(!actql_native_sqlite_database_current_component_matches_heap(database, heap));
   assert(library->selected_heap_bytes == heap);
+  /* A DB close ACK retires SQLite I/O, not this managed child's alias. Keep
+   * the original module/context and reservation until that alias also ends. */
+  assert(database->database == NULL);
+  assert(library->database_children == 1);
+  void *original_module = library->dynamic_library;
+  assert(original_module != NULL);
+  assert(!actql_native_sqlite_library_close_checked(library));
+  assert(library->database_children == 1);
+  assert(library->dynamic_library == original_module);
+  assert(library->selected_heap_bytes == heap);
+  assert(actql_native_sqlite_library_current(library));
+  puts("{\"case\":\"closed-db-alias-retains-library\",\"pass\":true}");
   moonbit_decref(database);
   assert(library->database_children == 0);
   assert(actql_native_sqlite_library_close_checked(library));
@@ -122,6 +134,6 @@ int main(int argc, char **argv) {
   leave_domain(first);
   finish_domain(&first);
   puts("{\"case\":\"checked-retirement\",\"pass\":true}");
-  puts("{\"physicalCases\":6,\"pass\":true,\"moonTests\":0,\"normalProfile\":null,\"publicE2E\":0}");
+  puts("{\"physicalCases\":7,\"pass\":true,\"moonTests\":0,\"normalProfile\":null,\"publicE2E\":0}");
   return 0;
 }
