@@ -331,6 +331,42 @@ export function interactiveRunControlSchemas() {
     run_ref: {$ref: 'actql-client-host.json#/schemas/run_ref'},
     plan_view: ref('plan_view'),
   });
+  // Static declarations are not resolved targets, current permission, gates,
+  // approval or sealed Preview. Keep the existing computation Plan unchanged.
+  const declaredContract = {oneOf: [
+    object({kind: {const: 'mapping'}, reference: text, contract_cid: cid,
+      declared_target: text}),
+    object({kind: {const: 'command'}, reference: text, contract_cid: cid,
+      resource_kind: text}),
+  ]};
+  const declaredInput = {oneOf: [
+    object({kind: {const: 'result'}, result_name: text}),
+    object({kind: {const: 'table'}, table_name: text}),
+    object({kind: {const: 'none'}}),
+  ]};
+  const minimumApproval = {oneOf: [
+    object({kind: {const: 'contract_minimum'}, value: choice('none', 'required')}),
+    object({kind: {const: 'not_represented'}}),
+  ]};
+  const unobserved = object({state: {const: 'unknown'}, reason: {const: 'not_observed'}});
+  schemas.effectful_static_plan_view = envelope('effectful_static_plan_view', {
+    program_definition_cid: cid, parameter_values_cid: cid, check_environment_cid: cid,
+    computation: object({scope: {const: 'computation_component'}, plan_view: ref('plan_view')}),
+    effect_set: object({unit_id: text, members: {...list(object({
+      member_ordinal: integer, stage_ordinal: integer, effect_id: text,
+      effect_kind: choice('create', 'update', 'upsert', 'delete', 'store', 'command'),
+      contract: declaredContract, input: declaredInput, failure_policy: choice('halt', 'continue'),
+      minimum_approval: minimumApproval,
+    }, [], [when('effect_kind', 'command', {properties: {
+      contract: {properties: {kind: {const: 'command'}}},
+      minimum_approval: {properties: {kind: {const: 'not_represented'}}},
+    }}, {properties: {contract: {properties: {kind: {const: 'mapping'}}},
+      minimum_approval: {properties: {kind: {const: 'contract_minimum'}}}}})]), 1), maxItems: 64}}),
+    observation: {const: 'static'}, provider_io: {const: 0},
+    observations: object({resolved_targets: unobserved, changed_values: unobserved,
+      permission: unobserved, gate: unobserved, approval: unobserved,
+      preview: object({state: {const: 'unavailable'}, reason: {const: 'not_sealed'}})}),
+  });
   return schemas;
 }
 

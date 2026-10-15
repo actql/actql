@@ -43,7 +43,6 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       }
     };
     if (originalInstallation!==undefined) {
-      assertOriginalRuntime();
       // Known missing selection refuses before creating the original child.
       // This finite DATA role supplies no normal numerical funding or grant.
       selectedInferOriginalCurrentStateCodec(originalInstallation,originalInstallation.nodeInstallation);
@@ -119,9 +118,10 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
     const token = existingModel === undefined ? undefined : await modelController.prime(existingModel);
     let restoredInput, sources;
     try {
-      // The prime await cannot make a different installed provider/runtime
-      // current. Refusal releases its existing token via the same catch path.
-      assertOriginalRuntime();
+      // A fresh original installation cannot have a restored token. Its
+      // current check stays after custody transfer and before Scope issuance:
+      // late refusal must not strand an already admitted dispatch without
+      // the same cleanup Owner. Restored input owns its existing token here.
       restoredInput = token === undefined ? undefined : {token, snapshot: token.snapshot,
         capturedContent: modelController.capturedContent(token, plan.runDefinition.identity),
         capturedContentBinding: modelController.capturedContentBinding(token, plan.runDefinition.identity),
@@ -268,6 +268,10 @@ export function installNodeInferRun({moon, core, registry, values, fragment, ord
       // phase basis. Presence or passing Common support checks is not proof.
       let scope;
       try {
+        // Known absence was checked before Run admission. Repeat current
+        // validation here, with SAME custody retained, before any Scope/read
+        // or physical Model child exists. A late refusal releases none of
+        // another Run's duties and never turns an entered Call into unsent.
         assertOriginalRuntime();
         scope = control.beginCheckedClientInferOriginalReadScope(plan.compiled,
           plan.runDefinition, selected.graph,
