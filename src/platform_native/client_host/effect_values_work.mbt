@@ -188,7 +188,6 @@ fn open_native_client_effect_values_work(
   let work : NativeClientEffectValuesWork = {
     start,
     materials,
-    bound,
     captured,
     execution,
     current_time,

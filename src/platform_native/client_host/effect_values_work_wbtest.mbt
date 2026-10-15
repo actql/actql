@@ -259,25 +259,41 @@ test "Native Effect Values refuses foreign opaque Run without stopping or claimi
     other_request, other_allowed, other_definition,
   )
   let (registry, values, fragment) = effect_values_work_test_bodies()
-  let failure = open_native_client_effect_values_work(
-    journal,
-    request,
-    materials,
-    bound,
-    foreign,
-    registry,
-    values,
-    fragment,
-    None,
-    64,
-    1000,
-    () => "2026-10-15T00:00:00.000Z",
-    () => true,
-  ).unwrap_err()
-  assert_true(
-    native_client_effect_values_work_failure_issue(failure) is ForeignMaterials,
+  // Equal public Run bytes cannot replace the first nominal binding.
+  let rebound = effect_values_work_test_ok(
+    @host.bind_client_effect_compiled_run(
+      materials.prepared,
+      allowed,
+      definition,
+    ),
+    "same-bytes.rebound",
   )
-  assert_true(failure.close())
+  for
+    (selected_bound, selected_captured) in [
+      (bound, foreign),
+      (rebound, captured),
+    ] {
+    let failure = open_native_client_effect_values_work(
+      journal,
+      request,
+      materials,
+      selected_bound,
+      selected_captured,
+      registry,
+      values,
+      fragment,
+      None,
+      64,
+      1000,
+      () => "2026-10-15T00:00:00.000Z",
+      () => true,
+    ).unwrap_err()
+    assert_true(
+      native_client_effect_values_work_failure_issue(failure)
+      is ForeignMaterials,
+    )
+    assert_true(failure.close())
+  }
   assert_false(
     journal.retained(request).unwrap().unwrap().physical_start_claimed,
   )
