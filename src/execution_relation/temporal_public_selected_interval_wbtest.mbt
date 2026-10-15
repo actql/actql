@@ -19,7 +19,7 @@ test "original temporal operands complete through selected interval with exact s
     let contexts = []
     for index in 0..<@lower.sequence_count(sequence) {
       if @lower.sequence_step(sequence, index) is Some(@lower.RowStep(kernel)) &&
-        @lower.kernel_operation(kernel) is @lower.Derive(_) {
+        @lower.kernel_body(kernel) is @lower.SnapshotMap(_) {
         // Each original source-free SELECT maps its own one-row Values seed.
         // Supply the existing exact occurrence fragment; no permissive default.
         contexts.push(sequence_fragment_context(sequence, index, 1L))
