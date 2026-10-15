@@ -1,227 +1,179 @@
-# Sheets: finite typed read and approved append
+# Google Sheets
 
-The standard Node installation includes the Sheets Source and Effect adapter.
-Use `@actql/node` for Local execution, `@actql/sdk` for a remote HTTPS Host,
-and the public publication/HTTP-host exports of `@actql/local-node` when
-configuring that Host. No dynamic package download or provider factory is
-required. Hosted Cloud and Native Sheets execution are not included.
+The Google Sheets Connector reads a declared range of a spreadsheet as a typed
+table, appends, updates, upserts and deletes rows by a key column you declare,
+replaces a range with a result, creates sheets and clears ranges. Spreadsheets
+are where a lot of business data actually lives — lists people maintain by
+hand, exports, lookup tables — and a Program can read them like any other
+source and write results back where people will see them.
 
-## Installation and boundaries
+## Sources
 
-The installation consists of a Site JSON file, a Source or Effect profile,
-and the publication produced by `publishSource` or `publishEffect`. All paths
-in these files are explicit absolute installation paths, not Program inputs.
-The Site supplies these fields:
+Each sheet you declare in the connection is a source: `sheets.accounts`,
+`sheets.pricing`. A source is one rectangle of one sheet — a tab and a range —
+with a header row, typed columns and a **declared key column**. Row numbers
+are not identifiers: they change when someone sorts, inserts or deletes rows,
+so the Connector never uses them as a key. A sheet without a key column is
+readable and appendable, and cannot be the target of an update, upsert or
+delete.
+
+Blank rows inside the range are skipped; a cell error (`#REF!`, `#N/A`, …)
+in the range fails the read rather than becoming NULL. Formulas are read by
+their computed value.
+
+- `sheets.<sheet>` — the declared range, one row per spreadsheet row, with
+  the declared columns and types. Key: the declared key column.
+- `sheets.sheets` — the tabs of the spreadsheet: `id`, `title`, `index`,
+  `row_count`, `column_count`. Key `id`.
+
+## Types
+
+| Sheets | ActQL | Notes |
+| --- | --- | --- |
+| text (declared `string`) | `string` | Leading `'` and formatting are not part of the value. |
+| number (declared `number`) | `decimal` | Exact as entered; a formatted percentage is its underlying fraction. |
+| number (declared `integer`) | `int64` | A cell with a fraction fails `check`'s type test for that read. |
+| boolean | `bool` | |
+| date / datetime (declared `date`, `datetime`) | `date`, `datetime` | Serial values converted; the spreadsheet's time zone applies to `datetime`. |
+| formula | its computed value's type | Never the formula text. |
+| error cell | — | Fails the read. |
+
+Writes convert in the other direction with the same rules: numbers and dates
+are written as values, text is written as text — never as a formula, even
+when it begins with `=`.
+
+## Effects and operations
+
+Record Effects write by the declared key:
+
+- **insert** — `EFFECT INSERT sheets.<sheet> (col, …)` appends rows after the
+  last row of the declared range at the time of sending.
+- **update** — `EFFECT UPDATE sheets.<sheet> ID key SET (…)` sets cells of
+  the row whose key column holds `key`.
+- **upsert** — `EFFECT UPSERT sheets.<sheet> ID key SET (…)` updates that
+  row, or appends it when no row has the key.
+- **delete** — `EFFECT DELETE sheets.<sheet> ID key` removes the row.
+
+The Connector locates the row by key at apply time, not by the row number it
+had when the Preview was built; a key that matches several rows makes the
+item `failed`, never a change to the first match.
+
+Tables and content:
+
+- **replace** — `EFFECT STORE sheets.<sheet>` replaces the declared range
+  (below the header) with the current rows.
+- **new sheet** — `EFFECT STORE sheets.sheets SET (title = …)` creates a tab
+  with the current rows and a header row from their column names.
+
+Operations:
+
+- **clear_range** — `EFFECT COMMAND sheets.clear_range TARGET range ID key`
+  clears the cells of a range such as `'Review log'!A2:F`; values are
+  removed, formatting stays.
+
+## Setup
 
 ```json
-{
-  "version": "actql-installed-sheets-site/0.1",
-  "apiOrigin": "https://sheets.googleapis.com",
-  "spreadsheetId": "AUTHORIZED_TEST_SPREADSHEET",
-  "gridRange": {
-    "sheetId": 0, "startRow": 0, "endRow": 4,
-    "startColumn": 0, "endColumn": 3
+"sheets": {
+  "connector": "sheets",
+  "spreadsheet_id": "1AbC…",
+  "sheets": {
+    "accounts": {"tab": "Accounts", "range": "A1:G", "key": "id", "columns": {
+      "id": "string", "name": "string", "owner": "string", "notes": "string",
+      "plan": "string", "seats": "number", "active": "boolean"
+    }},
+    "review_log": {"tab": "Review log", "range": "A1:D", "key": "account", "columns": {
+      "account": "string", "level": "string", "reason": "string", "reviewed_at": "datetime"
+    }}
   },
-  "appendSheetId": 7,
-  "columns": [
-    {"name": "text", "type": "string", "nullable": false},
-    {"name": "number", "type": "number", "nullable": true},
-    {"name": "flag", "type": "boolean", "nullable": true}
-  ],
-  "namespaceId": "AUTHORIZED_NAMESPACE",
-  "environment": "test",
-  "siteKey": "sheets-site",
-  "siteGeneration": 1,
-  "credentialAuthorityId": "INSTALLED_AUTHORITY",
-  "credentialKeyId": "INSTALLED_KEY",
-  "credentialPrivateKeyPath": "/configured/credential-signing.key",
-  "journalRoot": "/configured/credential-journal",
-  "tokenEnvironment": "ACTQL_SHEETS_ACCESS_TOKEN"
+  "credentials": {"service_account": {"env": "GOOGLE_SERVICE_ACCOUNT_JSON"}}
 }
 ```
 
-The signing key is the existing credential-grant authority, not a Google key.
-Google access tokens are obtained through the Host's existing secret resolver
-or the named environment reference. No OAuth acquisition/refresh flow is
-implemented by this adapter. A test-only `caPath` may be supplied. Production
-egress and the account must explicitly authorize the selected origin,
-spreadsheet and operations; changing a URL is not authorization.
+Share the spreadsheet with the service account: viewer to read, editor to
+write. The account needs the `spreadsheets.readonly` scope for reading and
+`spreadsheets` for writing; `drive.file` is needed as well to read the
+spreadsheet's revision history for reconciliation. A sheet a Program writes
+to should be a tab people do not edit by hand while a Run is waiting for
+approval. On ActQL Cloud, hosted OAuth signs the account in without a service
+account; the same scopes are requested.
 
-Source profiles use version `actql-installed-sheets-source/0.1` and require
-`siteProfilePath`, `publicationPath`, `connectorId` and
-`accountConfigurationWire`. Effect profiles use
-`actql-installed-sheets-effect/0.1` and also require `sources`, for example
-`[{"target":"text","field":"text","null_behavior":"reject"}, ...]`.
-Every declared write column must be supplied. The explicit account read rule
-for the write collection authorizes target revalidation; the Effect rule does
-not implicitly grant that read.
+## Capabilities and pushdown
 
-Publication checks the exact spreadsheet and numeric sheet IDs. The generated
-create Mapping binds `spreadsheet_id` and `sheet_id` as the collection identity
-and declares `primary_identity: null`. Tab names, row coordinates and equal
-values are not row identifiers. Update, upsert, delete and ID selectors remain
-unsupported. Source row keys are not relaxed by this Mapping shape.
+| Operation | Pushed down when |
+| --- | --- |
+| Projection | Always; the Connector requests only the declared columns of the declared range. |
+| `WHERE` | Never; Sheets has no filter API, so every predicate runs on the Host. |
+| `ORDER BY`, `LIMIT` | Never; both run on the Host. |
+| `AGGREGATE`, `JOIN` | Never; both run on the Host. |
 
-```js
-import {open} from '@actql/node';
-import {publishSource, publishEffect} from '@actql/local-node';
+`explain` shows the read with Site `connector:sheets` and Engine `Sheets
+API`, and every later step on the Host.
 
-await publishSource({sourceProfilePath, directory: stateDir});
-const {mappings} = await publishEffect({effectProfilePath, directory: stateDir});
-const client = await open({stateDir, durability: 'durable', installation: {
-  effectProfilePath, authorization
-}});
-// Use mappings[0].target and mappings[0].mappingRef in the ordinary
-// create Effect. The Host's normal reviewer/Checkpoint API approves the Set.
+## Preview and reconciliation
+
+**Preview.** Updates, upserts of an existing row and deletes are `full_diff`:
+the Connector reads the row by key, records its current values and the
+spreadsheet's revision id, and the Preview shows current and new values. At
+apply time it reads the row by key again; a row whose values changed, that
+moved to another row number, or that no longer exists makes the item
+`failed` with `conflict`, and the Run produces a new Preview if asked to
+continue. Appends, upserts that append, range replacements and new sheets are
+`targeted`: the Preview lists every row that would be written and where. A
+sheet has no "current value" for a row that does not exist yet.
+
+**Reconciliation.** Every batch the Connector writes carries the request's
+marker as developer metadata on the written rows (Sheets keeps developer
+metadata with the row when rows are sorted or moved). A lost reply is
+reconciled by searching the spreadsheet's developer metadata for **that
+marker**; rows with the expected values but no marker are not evidence, and
+the spreadsheet's revision history is read to confirm that the write landed
+within the request's window. A clear is reconciled by the revision history
+alone. When none of this settles the outcome, the item stays `unknown` and
+the batch is never resent.
+
+## Limits and cost
+
+- A source range is bounded: the Connector reads at most the Program's row
+  limit, and a range larger than that fails rather than being cut short.
+- The Sheets API limits requests per minute per project and per user; the
+  Connector paces within them, and writes go in batches of rows so a large
+  Effect is a few requests, not one per row.
+- Concurrent edits by people are the main source of `conflict` outcomes; a
+  Run that waits for approval while people edit the same rows should expect
+  them.
+- A spreadsheet holds at most 10 million cells; a range replacement that
+  would exceed it fails before anything is written.
+
+## Example
+
+Accounts on a paid plan with no owner:
+
+```sql
+FROM sheets.accounts
+|> WHERE plan != 'free' AND owner IS NULL AND active
+|> SELECT id, name, plan, seats
+|> ORDER BY seats DESC;
 ```
 
-`authorization` is the standard account/reviewer/Host-key installation, not a
-Sheets approval mechanism. The authored
-[public acceptance](../../adapters/connectors/sheets/test/sheets-public-acceptance.fixture.mjs)
-contains complete Local and HTTPS examples with synthetic credentials and
-independent Programs. Do not copy its permissive test account to production.
+Keep a review log current, one row per account:
 
-## Read contract
-
-Read is a finite, zero-based, end-exclusive rectangle: at most 100 rows,
-64 declared columns, 6,400 cells and a 2,000,000-byte response. Grid indexes
-and sheet IDs must fit the provider bridge's nonnegative int32 domain. Cell
-types are explicit Text/Number/Boolean; no date, business key or formatted-string
-inference is performed. Evaluated `effectiveValue` is authoritative, including
-formula results. Cell errors and missing evaluated formula results refuse the
-read rather than becoming NULL. See Google's
-[CellData](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/cells#CellData)
-and [getByDataFilter](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/getByDataFilter).
-
-All API-blank rows are excluded as an explicit part of this Source contract.
-Only declared columns participate. An existing empty string, zero or false is
-not blank. Otherwise an absent nullable cell becomes NULL and an absent
-required cell refuses the read. Order and duplicates of retained rows are
-preserved. The adapter does not reconstruct distinctions the API has lost.
-
-The current common query-acquisition profile accepts a scan/filter/select
-capture stage followed by a separate Relation stage that publishes the Named
-Result. The example uses an explicit `filter: "true"`, not a hidden rewrite.
-Direct publication of the capture task is not claimed as supported: the
-common managed identity policy refuses it. Other arbitrary query-acquisition
-shapes are not added by this connector. That direct-publication refusal is
-currently discovered after acquisition, not a new pre-I/O guarantee.
-
-## Write contract
-
-Write appends one typed row per physical `AppendCells` request to the
-explicitly dedicated numeric tab. The existing common Preview and approval
-cover the complete Effect Set, not separate human approvals per row. Append
-position is after the last data row **at send time**, as defined by Google's
-[AppendCellsRequest](https://developers.google.com/workspace/sheets/api/reference/rest/v4/spreadsheets/request#AppendCellsRequest).
-No fixed coordinate or multirow atomicity is promised.
-
-Text is sent as `stringValue`, never `formulaValue`. NULL, empty Text, missing
-required fields, wrong scalar types and values outside the finite codec budget
-are refused before send. These restrictions concern this append profile,
-not the language's general value domain. Response bodies are bounded and a
-successful exact batch acknowledgement records the spreadsheet, sheet and
-one acknowledged row; it does not invent a provider row reference.
-
-Successful rows are retained and never resent. The first possibly-sent row
-without a trustworthy acknowledgement stays unknown and prevents subsequent
-unsent rows. HTTP errors, lost replies and same-valued readback do not prove
-nonexecution or settlement. Reconciliation and restart preserve that custody
-without repeating Source, Compute or append. Revoked authorization or a changed
-numeric target refuses an approved write before physical send.
-
-## Ordinary Programs
-
-For the installation above, set the Source profile's `connectorId` to
-`sheet-book`. This JSON Program is the supported read shape; the publishing
-stage consumes the already captured input without another provider read:
-
-```json
-{
-  "version": "actql/0.1",
-  "id": "sheets-read",
-  "stages": [
-    {
-      "id": "read",
-      "inputs": {"sheet": {"connector": "sheet-book", "resource": "rows"}},
-      "steps": [
-        {"filter": "true", "as": "scanned"},
-        {"select": ["text", "number", "flag"], "as": "out"}
-      ],
-      "results": {"rows": {"from": "out", "fields": ["text", "number", "flag"]}}
-    },
-    {
-      "id": "compute",
-      "inputs": {"captured": {"result": {"stage": "read", "result": "rows"}}},
-      "steps": [{"select": ["text", "number", "flag"], "as": "out"}],
-      "results": {"rows": {"from": "out", "fields": ["text", "number", "flag"]}}
-    }
-  ],
-  "results": {"answer": {"from": {"stage": "compute", "result": "rows"}}}
-}
+```sql
+SELECT a.name AS account, risk.value.level AS level, risk.value.reason AS reason
+FROM sheets.accounts AS a
+JOIN snowflake.usage_30d AS u ON a.id = u.account_id
+|> INFER `model-task:churn-risk.v1`
+     INPUT (notes = a.notes, active_users = u.active_users, trend = u.trend) AS risk
+|> WHERE risk.outcome = 'ok' AND risk.value.level = 'high'
+|> EXTEND CURRENT_DATETIME() AS reviewed_at
+|> EFFECT UPSERT sheets.review_log ID account SET (level = level, reason = reason, reviewed_at = reviewed_at);
 ```
 
-After opening the read installation, submit that document using the ordinary
-`client.startSource(readDocument, {format: 'json', submissionRef})`. Allocate
-and retain `submissionRef = client.newSubmission()` before submission. Observe
-the original execution rather than creating another submission after a lost
-reply. On success, read `execution.result('answer').all()`; an all-blank grid
-produces an empty array, while a cell error fails without publishing a Result.
+Fill in the owner of every account from the CRM:
 
-For append, use the real Mapping returned by `publishEffect`. The Program
-uses Values and a Result-referencing create, not an internal driver call:
-
-```js
-const [mapping] = mappings;
-const writeDocument = JSON.stringify({version: 'actql/0.1', id: 'sheets-append',
-  stages: [{id: 'write', inputs: {}, steps: [{values: {schema: {
-    text: {type: 'string', nullable: false},
-    number: {type: 'number', nullable: true},
-    flag: {type: 'boolean', nullable: true}
-  }, rows: [{text: '=literal', number: 0, flag: false}]}, as: 'out'}],
-  results: {rows: {from: 'out', fields: ['text', 'number', 'flag']}},
-  effects: {append: {create: {target: mapping.target, mapping: mapping.mappingRef,
-    from: {result: 'rows'}}}}
-  }], results: {answer: {from: {stage: 'write', result: 'rows'}}}});
-const submissionRef = client.newSubmission();
-const execution = await client.startSource(writeDocument,
-  {format: 'json', submissionRef});
-console.log(execution.ref, await execution.status());
+```sql
+FROM sheets.accounts AS s
+|> WHERE s.owner IS NULL
+|> JOIN salesforce.accounts AS a ON s.id = a.id
+|> EFFECT UPDATE sheets.accounts ID s.id SET (owner = a.owner_email);
 ```
-
-The authorized reviewer resolves the existing Effect Set Checkpoint. This
-example does not grant its own approval. Retain the original reference across
-restarts and use `client.attach(execution.ref)` and the advertised next action.
-On success, read the Named Result; unknown remains unavailable and reconciliation
-does not resend it. Closing a Client releases its lease, not the Run's custody.
-
-## Verification and remaining work
-
-The typed codec/bridge, normal Host tests and external packed acceptance are
-separate checks. Run the focused wrapper or the dedicated packed consumer:
-
-```sh
-node scripts/local-checks.mjs test moon -- --target js \
-  src/connectors/sheets/catalog src/connectors/sheets/host_node
-node scripts/local-checks.mjs test node -- \
-  adapters/connectors/sheets/test/sheets-standard-host.integration.test.mjs
-node scripts/test-packed-sheets.mjs
-```
-
-The packed command requires clean committed build inputs, uses the existing
-four-package release recipe with normal prepack, verifies the exact source SHA,
-frozen runtime bytes and tarball digests, and copies only test support to an
-external installation. It exercises the same authored cases through public exports,
-including separate-process saved-success and unknown reconstruction.
-
-Real Google read over Local/HTTPS and approved append over HTTPS passed on
-2026-10-10, using official RC packages installed outside the checkout. Saved
-Result replay in a fresh process added no credential uses. Controlled-service
-fault evidence remains separate from Google success evidence. No CI, deploy
-or npm publication is implied by a local receipt. See the
-[owner and acceptance map](../reviews/2026-10-09-sheets-public-connector.md).
-The [real-service checklist](sheets-real-service-acceptance.md) and
-[external installation example](../../examples/sheets/README.md) provide
-nonsecret configuration, independent read cells and the two-row permission
-boundary. The [fixed-artifact report](../reviews/2026-10-10-sheets-real-service-acceptance.md)
-identifies executed coverage and remaining limits.
