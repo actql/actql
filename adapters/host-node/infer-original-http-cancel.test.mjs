@@ -71,18 +71,30 @@ test('original HTTP cancellation preserves the entered Unknown without a respons
     abort.abort(reason);
     assert.equal(f.operation.cleanupPending(),true,'Cancel request alone cannot retire original custody');
     const stoppedError=(await stopped).error;
-    if(stoppedError!==reason){
-      const tag=value=>Number.isInteger(value?.$tag)?value.$tag:null;
-      t.diagnostic(`Original stop classification ${JSON.stringify({code:stoppedError?.code??null,
-        tags:[tag(stoppedError?.cause),tag(stoppedError?.cause?._0),tag(stoppedError?.cause?._0?._0)]})}`);
-      throw stoppedError ?? new Error('Original cancellation did not stop the Model');
-    }
+    // An entered request with no response is UnknownCalls, not proof that
+    // remote work was cancelled. Assert semantic original evidence below,
+    // rather than depending on private numeric enum tags or relabelling it
+    // as the AbortSignal's local reason.
+    assert.equal(stoppedError?.code,'MoonBitHostFailure');
+    assert.equal(f.operation.hasUnknownCalls(),true);
+    await capture.persistStoppedAttempts();
+    const proof=f.operation.attemptEvidence(0);
+    const outcome=JSON.parse(moon.strategyRunEvidenceJson(moon.clientProgramInferAttemptLeaf(proof,'outcome')));
+    const accountingWire=moon.strategyRunEvidenceJson(moon.clientProgramInferAttemptLeaf(proof,'accounting'));
+    const accounting=JSON.parse(accountingWire);
+    assert.equal(outcome.category,'result_unknown');
+    assert.equal(accounting.input_tokens,null);assert.equal(accounting.output_tokens,null);
+    assert.equal(accounting.cost_units,null);assert.equal(accounting.duration_ms,null);
+    assert.equal(accounting.reservation.tokens,128,'Reservation is not observed usage');
+    assert.ok(accounting.uncertain_wire_bytes>0);
     await until(()=>capture.custody.cleanup(),value=>value===true);
     await until(()=>f.opened.cleanup(),value=>value===true);
     await until(()=>sockets.size,value=>value===0);
     assert.deepEqual(entry,originalIdentity);
     assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'EnteredUnknown');
     assert.equal(f.controller.unresolved('original-sdk-common'),true);
+    assert.equal(moon.strategyRunEvidenceJson(moon.clientProgramInferAttemptLeaf(proof,'accounting')),accountingWire,
+      'Physical cleanup must not replace the immutable Unknown accounting');
     assert.equal(f.originalReads(),1,'No absent response can supply a second raw-save recheck');
     assert.equal(calls.length,1,'Cancellation/cleanup cannot recreate Entry or send again');
     const original=f.originalPreparation;
