@@ -13,7 +13,7 @@ struct InstalledArenaSqliteLibrary {
   domain : InstalledArenaDomain
   mut library : @sqlite.Library?
   mut failure : @sqlite.NativeSqliteLibraryLoadFailure?
-  mut original_issue : InstalledArenaSqliteIssue?
+  mut failed : Bool
   mut scope_open : Bool
   mut closed : Bool
 }
@@ -25,12 +25,13 @@ pub(all) enum InstalledArenaSqliteAcquisition {
 }
 
 ///|
-fn InstalledArenaSqliteLibrary::remember_issue(
-  self : InstalledArenaSqliteLibrary,
+fn first_sqlite_issue(
+  original : InstalledArenaSqliteIssue?,
   issue : InstalledArenaSqliteIssue,
-) -> Unit {
-  if self.original_issue is None {
-    self.original_issue = Some(issue)
+) -> InstalledArenaSqliteIssue? {
+  match original {
+    Some(_) => original
+    None => Some(issue)
   }
 }
 
@@ -70,13 +71,18 @@ pub fn InstalledArenaHost::prepare_sqlite_library(
     domain,
     library: None,
     failure: None,
-    original_issue: None,
+    failed: false,
     scope_open: false,
     closed: false,
   }
   domain.sqlite_library = Some(record)
+  // The actual first issue is returned unchanged, and a partial Library keeps
+  // its own original failure. Do not retain child-allocated diagnostic enums
+  // in this persistent controller after its Library cleanup is acknowledged.
+  let mut primary_issue : InstalledArenaSqliteIssue? = None
   match self.enter_domain_read(domain) {
-    Err(issue) => record.remember_issue(Domain(issue))
+    Err(issue) =>
+      primary_issue = first_sqlite_issue(primary_issue, Domain(issue))
     Ok(_) => {
       record.scope_open = true
       match
@@ -85,24 +91,30 @@ pub fn InstalledArenaHost::prepare_sqlite_library(
         ) {
         Ok(library) => record.library = Some(library)
         Err(@sqlite.RefusedBeforeAcquisition(issue)) =>
-          record.remember_issue(Library(issue))
+          primary_issue = first_sqlite_issue(primary_issue, Library(issue))
         Err(@sqlite.CleanupRequired(failure)) => {
           record.failure = Some(failure)
-          record.remember_issue(Library(failure.issue()))
+          primary_issue = first_sqlite_issue(
+            primary_issue,
+            Library(failure.issue()),
+          )
         }
       }
       // A successful foreign result cannot replace the original current fence.
       match self.require_domain_read_current(domain) {
-        Err(issue) => record.remember_issue(Domain(issue))
+        Err(issue) =>
+          primary_issue = first_sqlite_issue(primary_issue, Domain(issue))
         Ok(_) => ()
       }
       match self.leave_domain_read(domain) {
-        Err(issue) => record.remember_issue(Domain(issue))
+        Err(issue) =>
+          primary_issue = first_sqlite_issue(primary_issue, Domain(issue))
         Ok(_) => record.scope_open = false
       }
     }
   }
-  match record.original_issue {
+  record.failed = primary_issue is Some(_)
+  match primary_issue {
     Some(issue) => Ok(PendingSqlite(record, issue))
     None => Ok(ReadySqlite(record))
   }
@@ -123,7 +135,7 @@ pub fn InstalledArenaHost::current_sqlite_library(
     Err(issue) => return Err(Domain(issue))
     Ok(_) => ()
   }
-  if record.closed || record.scope_open || record.original_issue is Some(_) {
+  if record.closed || record.scope_open || record.failed {
     return Err(Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
   }
   match record.library {

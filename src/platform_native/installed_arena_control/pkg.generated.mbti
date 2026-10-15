@@ -24,6 +24,8 @@ pub fn close_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDoma
 
 pub fn close_installed_arena_reply(InstalledArenaHost) -> InstalledArenaReply
 
+pub fn close_installed_arena_sqlite_reply(InstalledArenaHost, InstalledArenaSqliteLibrary) -> InstalledArenaSqliteReply
+
 pub fn current_installed_arena_backing_reply(InstalledArenaHost, InstalledArenaBackingBorrow) -> InstalledArenaBackingReply
 
 pub fn current_installed_arena_domain_read_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
@@ -31,6 +33,8 @@ pub fn current_installed_arena_domain_read_reply(InstalledArenaHost, InstalledAr
 pub fn current_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
 pub fn current_installed_arena_reply(InstalledArenaHost) -> InstalledArenaReply
+
+pub fn current_installed_arena_sqlite_reply(InstalledArenaHost, InstalledArenaSqliteLibrary) -> InstalledArenaSqliteReply
 
 pub fn current_installed_arena_worker_selection_reply(InstalledArenaHost, InstalledArenaWorkerSelection) -> InstalledArenaWorkerSelectionReply
 
@@ -63,6 +67,8 @@ pub fn prepare_installed_arena_host(String, Bytes, Int64, Int64, @physical_resou
 pub fn prepare_installed_arena_live_channel_reply(InstalledArenaHost, InstalledArenaDomain, Int, Int, Int, Int64) -> InstalledArenaLiveChannelReply
 
 pub fn prepare_installed_arena_reply(String, Bytes, Int64, Int64, Int, Int, Int, Int64, Int64, Int64, Int64) -> InstalledArenaReply
+
+pub fn prepare_installed_arena_sqlite_reply(InstalledArenaHost, InstalledArenaDomain, String, Int64, Int) -> InstalledArenaSqliteReply
 
 pub fn project_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
 
@@ -210,6 +216,20 @@ pub(all) enum InstalledArenaSqliteIssue {
 }
 
 type InstalledArenaSqliteLibrary
+
+pub(all) enum InstalledArenaSqliteOperation {
+  PrepareSqlite
+  ObserveSqlite
+  CloseSqlite
+} derive(Eq)
+
+type InstalledArenaSqliteReply
+pub fn InstalledArenaSqliteReply::issue_description(Self) -> String
+pub fn InstalledArenaSqliteReply::issue_family(Self) -> Int
+pub fn InstalledArenaSqliteReply::operation_tag(Self) -> Int
+pub fn InstalledArenaSqliteReply::original_domain(Self) -> InstalledArenaDomain
+pub fn InstalledArenaSqliteReply::original_host(Self) -> InstalledArenaHost
+pub fn InstalledArenaSqliteReply::original_library(Self) -> InstalledArenaSqliteLibrary?
 
 type InstalledArenaWorkerSelection
 pub fn InstalledArenaWorkerSelection::original_host(Self) -> InstalledArenaHost
