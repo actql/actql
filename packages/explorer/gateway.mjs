@@ -175,6 +175,7 @@ export function createExplorerGateway({client, origin, assets = new Map(),
     let timedOut = false, timer;
     const ticket = {assertCurrent() {
       originalTicket.assertCurrent();
+      assertSession(selected);
       if (timedOut) fail('ExplorerReadTimeout', 504);
     }};
     const read = (async () => {try {
