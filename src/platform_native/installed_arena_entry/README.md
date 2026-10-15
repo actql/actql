@@ -199,9 +199,23 @@ SQLite autocommit observation: a connection's visible uncommitted rows must not
 be offered as durable lookup. Autocommit alone proves no particular COMMIT,
 original content chain, authority, or permission to send again.
 
-These Native code roots are preparation for the exact C/Python Store driver.
-Their signatures must be read from matching regular C before linking a shim;
-no guessed prototype, pointer wire, Python acceptance FSM or arbitrary SQL entry
-is introduced. Generic Core callers remain responsible for their existing
+`sqlite_database_shim` uses the actual regular C from Source105b181b (digest
+recorded in its header). Managed callback inputs are borrowed and getters own
+their returned references. Permanent Database acquisition runs outside the
+child managed scope; row marshalling runs inside the same original funded
+scope, after Core validates current and the original Database. A refused
+preflight or over-bound body returns Observe(3), never an Insert/Compare ACK.
+The caller must inspect operation, stage, primary issue and post-call issue.
+Output copying retains empty-row presence and rejects a post-call fence error.
+Reply drop and Database/Library cleanup are separate; no row copy retires the
+adapter's existing result buffer. Close-data drops require the same original
+Database's successful Close(10)/stage3. Slots clear before decref.
+
+The private diagnostic fixture covers fresh owned initialization, committed
+restore, failed-open cleanup, original transaction fencing and child-first
+retirement. It uses only fresh fixture files and the same provider/component;
+it is not an installed Python Store or public factory acceptance. No pointer
+wire, Python acceptance FSM or arbitrary SQL entry is introduced. Generic Core
+callers remain responsible for their existing
 operation/Unknown semantics. Normal funding/profile, installed assembly,
 Wasm/worker/wheel and public Python acceptance remain separate and unaccepted.
