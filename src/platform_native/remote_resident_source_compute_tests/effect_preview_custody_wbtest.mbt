@@ -221,14 +221,15 @@ fn retained_effect_preview_store(
   // not regenerated metadata. Existing physical Store/cleanup cases below
   // retain their original scope; these new assertions are matching Native only.
   let original_snapshot = @json.parse(prepared_checkpoint.continuation_wire)
-  let original_wire = original_snapshot
-    .value("provider")
-    .unwrap()
-    .value("original_computation_wire")
-    .unwrap()
-    .as_string()
-    .unwrap()
+  guard original_snapshot is Object(snapshot_fields) &&
+    snapshot_fields.get("provider") is Some(Object(provider)) &&
+    provider.get("original_computation_wire") is Some(String(original_wire)) else {
+    fail("Original computation wire must be a String in the provider snapshot")
+  }
   let original = @json.parse(original_wire)
+  guard original is Object(original_fields) else {
+    fail("Original computation must be an object")
+  }
   for
     (name, contract) in [
       ("run_definition_wire", materials.run_definition),
@@ -238,10 +239,10 @@ fn retained_effect_preview_store(
       ("result_manifest_wire", result.manifest),
       ("computation_receipt_wire", result.receipt),
     ] {
-    assert_eq(
-      original.value(name).unwrap().as_string().unwrap(),
-      @publication.publication_contract_json(contract),
-    )
+    guard original_fields.get(name) is Some(String(actual)) else {
+      fail("Original computation contract must be a String")
+    }
+    assert_eq(actual, @publication.publication_contract_json(contract))
   }
   let checkpoint = prepared_checkpoint.checkpoint
   assert_eq(checkpoint.checkpoint.required_artifact_cid, cid)
