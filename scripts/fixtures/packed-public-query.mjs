@@ -143,6 +143,8 @@ import {DatabaseSync} from 'node:sqlite';
 import {connect} from '@actql/node';
 import * as publicCheckSdk from '@actql/sdk';
 import {exerciseUnaliasedColumnOrigins} from './unaliased-column-origin.mjs';
+import {exerciseGraphArgumentChecks, graphArgumentCheckInventory, graphArgumentNoExecution,
+  requireGraphArgumentCheckReport} from './graph-argument-check.mjs';
 import {openInstalledRemoteHttpHost} from
   '@actql/local-node/http-host';
 const {createLocalRetainedStore} = await import(new URL(
@@ -259,6 +261,9 @@ const groupedInOnly = process.env.ACTQL_TEST_GROUPED_IN_ONLY === '1';
 const subgraphOnly = process.env.ACTQL_TEST_SUBGRAPH_ONLY === '1';
 const analyticOffsetOnly = process.env.ACTQL_TEST_ANALYTIC_OFFSET_ONLY === '1';
 const graphDiagnosticsOnly = process.env.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY === '1';
+const graphArgumentChecksSelected = graphDiagnosticsOnly ||
+  process.env.ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS === '1';
+const graphArgumentCheckModes = new Set();
 const matchWithProducerOnly = process.env.ACTQL_TEST_MATCH_WITH_PRODUCER_ONLY === '1';
 const graphMatchOnly = process.env.ACTQL_TEST_GRAPH_MATCH_ONLY === '1';
 const graphRelationJoinOnly = process.env.ACTQL_TEST_GRAPH_RELATION_JOIN_ONLY === '1';
@@ -1114,6 +1119,115 @@ const observe = directory => () => {
 // Current Graph acceptance runs in the driver's shared public Host regression:
 // constructor/MATCH/TRAIL, physical snapshot roundtrip and inventory-derived
 // pre-admission refusals. Retired SGA fixtures are not execution coverage.
+// Graph CHECK uses these same installed packages, transport ownership and Source
+// profile. Its absent/denied publications get independent immutable installations.
+async function exercisePackedGraphArgumentChecks(mode) {
+  assert.equal(profileName, 'standard');
+  assert.equal(graphArgumentCheckModes.has(mode), false, 'one Graph CHECK matrix per transport');
+  graphArgumentCheckModes.add(mode);
+  const reportPath = `graph-argument-check.${mode}.json`;
+  const report = {version: 'actql-graph-argument-check/0.1', mode,
+    expectedInventory: [...graphArgumentCheckInventory], completedInventory: [], cases: [],
+    noExecution: null, beforeDispatchCalls: mode === 'remote' ? 0 : null,
+    complete: false, primaryError: null};
+  const sourceProfile = JSON.parse(await readFile(sourceProfilePath, 'utf8'));
+  const directories = [], clients = {}, cleanup = [];
+  const before = {sourceIo, sourceReads, sourceReadSessions};
+  let sourceOpens = 0, primary;
+  const create = DuckDBInstance.create;
+  DuckDBInstance.create = async function(path, ...args) {
+    if (path === database) sourceOpens++;
+    return Reflect.apply(create, this, [path, ...args]);
+  };
+  const counts = () => {
+    const value = {runs: 0, dispatchReservations: 0, physicalReservations: 0,
+      sourceOpens, sourceIo: sourceIo - before.sourceIo, sourceReads: sourceReads - before.sourceReads,
+      sourceReadSessions: sourceReadSessions - before.sourceReadSessions};
+    for (const directory of directories) {
+      const journal = new DatabaseSync(resolve(directory, 'requests',
+        'client-requests.sqlite3'), {readOnly: true});
+      try {
+        const row = journal.prepare(`SELECT COUNT(*) AS runs,
+          COALESCE(SUM(dispatch_reserved), 0) AS dispatchReservations,
+          COALESCE(SUM(physical_start_reserved), 0) AS physicalReservations
+          FROM client_requests`).get();
+        for (const key of ['runs', 'dispatchReservations', 'physicalReservations']) value[key] += row[key];
+      } finally { journal.close(); }
+    }
+    return value;
+  };
+  const save = () => writeFile(reportPath, JSON.stringify(report, null, 2) + '\n');
+  try {
+    await save();
+    for (const name of ['denied', 'absent']) {
+      const directory = resolve(`graph-check-${mode}-${name}-state`);
+      const profile = resolve(`graph-check-${mode}-${name}-profile.json`);
+      const account = JSON.parse(sourceProfile.accountConfigurationWire);
+      for (const entry of account.entries) entry.outcome = 'deny';
+      await writeFile(profile, canonical({...sourceProfile,
+        queryAliases: name === 'absent' ? [] : sourceProfile.queryAliases,
+        accountConfigurationWire: canonical(account)}), {flag: 'wx'});
+      const installation = {directory, sourceProfilePath: profile, hostCapacityPolicy};
+      if (mode === 'local') {
+        clients[name] = await connect({mode: 'local', owner: 'local', durability: 'durable', installation});
+        cleanup.push(() => clients[name].close());
+      } else {
+        const host = await openInstalledRemoteHttpHost({...installation,
+          beforeDispatch() { report.beforeDispatchCalls++; throw new Error('UnexpectedGraphCheckDispatch'); },
+          authenticate: header => header === 'Bearer fixture-token' ? userInfo().username : undefined});
+        cleanup.push(() => host.close());
+        const server = createServer({key: await readFile('remote.key'),
+          cert: await readFile('remote.crt')}, host.handler);
+        await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+        cleanup.push(async () => {
+          server.closeAllConnections();
+          await new Promise(resolve => server.close(resolve));
+        });
+        clients[name] = await connect({mode: 'remote', durability: 'durable',
+          endpoint: `https://127.0.0.1:${server.address().port}/`, token: 'fixture-token'});
+        cleanup.push(() => clients[name].close());
+      }
+      directories.push(directory);
+    }
+    await exerciseGraphArgumentChecks(clients, publicCheckSdk, async id => {
+      worker?.check();
+      assert.equal(id, graphArgumentCheckInventory[report.completedInventory.length]);
+      const noExecution = counts();
+      assert.deepEqual(noExecution, graphArgumentNoExecution, id);
+      assert.equal(report.beforeDispatchCalls, mode === 'remote' ? 0 : null, id);
+      report.completedInventory.push(id);
+      report.cases.push({id, noExecution});
+      await save();
+    });
+    report.noExecution = counts();
+    report.complete = true;
+    requireGraphArgumentCheckReport(report, mode);
+  } catch (error) {
+    primary = error;
+  } finally {
+    try { report.noExecution = counts(); }
+    catch (error) {
+      if (primary === undefined) primary = error;
+      else primary.evidenceError = error;
+    }
+    for (const close of cleanup.reverse()) {
+      try { await close(); }
+      catch (error) {
+        (report.cleanupErrors ??= []).push(error.message);
+        primary ??= error;
+      }
+    }
+    DuckDBInstance.create = create;
+    report.complete = primary === undefined && report.complete;
+    report.primaryError = primary?.message ?? null;
+    try { await save(); }
+    catch (error) {
+      if (primary === undefined) primary = error;
+      else primary.evidenceError = error;
+    }
+  }
+  if (primary !== undefined) throw primary;
+}
 // Public check must also work from installed tarballs, without repository imports.
 async function exercisePublicCheck(options) {
   const client = await connect(options);
@@ -1147,6 +1261,9 @@ async function exercisePublicCheck(options) {
   assert.deepEqual(budget.report.coverage, {
     limits: [{code: 'analysis_budget_exhausted'}],
     unresolved: [{boundary: 'source_resolution', reason: 'unresolved_protected'}]});
+  if (graphArgumentChecksSelected && profileName === 'standard') {
+    await exercisePackedGraphArgumentChecks(options.mode);
+  }
   console.log(`packed public check ${options.mode} passed`);
   } finally { await client.close(); }
 }
@@ -1370,6 +1487,8 @@ if ((transport === undefined && retainedStrings.local && retainedStrings.remote)
 }
 }
 if (transport !== 'tail') {
+  if (graphArgumentChecksSelected) assert.deepEqual([...graphArgumentCheckModes],
+    transport === undefined ? ['local', 'remote'] : [transport]);
   requireCompleteInventory(expectedInventory, completedInventory);
   await timeSeriesPrimaryReceipts.complete();
   await carrierContinuationReceipts.complete();
