@@ -16712,6 +16712,39 @@
       }
     },
     {
+      "requirement_id": "actql.protocol.run/effectful-static.original",
+      "statement_sha256": "54de4dceb43a49ba5e02676213449ea1ee1eb0288f2c6ea71e8c0a69084be9a7",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the same-original readonly issuer and public installed boundary with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effectful-static-plan-view",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/effectful-static.component",
+      "statement_sha256": "9acdbf281fb568acdf96534f9e0a91d3d419d5cb620d23791e0eee94f062b7ce",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the same-original readonly issuer and public installed boundary with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effectful-static-plan-view",
+        "kind": "prose"
+      }
+    },
+    {
+      "requirement_id": "actql.protocol.run/effectful-static.unobserved",
+      "statement_sha256": "085291c0a71224a0e05fa83cfd60839fc84245c2eb503456710d3e968a8c8653",
+      "status": "pending",
+      "reason": "implementation_evidence_required",
+      "next_action": "Verify the same-original readonly issuer and public installed boundary with independent positive and negative evidence.",
+      "source": {
+        "anchor": "effectful-static-plan-view",
+        "kind": "prose"
+      }
+    },
+    {
       "requirement_id": "actql.protocol.discovery/exact-artifact-surface",
       "statement_sha256": "2808e9bed429a9e716df89549b1cd1c9add615cfb9f56c0451c0fdf851111ad0",
       "status": "pending",
