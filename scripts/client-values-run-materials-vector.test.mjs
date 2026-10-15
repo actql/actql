@@ -1067,11 +1067,11 @@ test('baseline preimages and changed normative pins independently determine the 
   assert.equal(current.template.bound_invocation_template_cid,
     'sha256:ae37cd76480c6d692c655942b61ebcfbe522e69d69d0b05714b905cc80e2e8c8');
   assert.equal(current.executable.executable_plan_cid,
-    'sha256:3b58d57b899ac818a18752f305f9e4a0a9bbd5a5001da902ec7dd1d2558aa58f');
+    'sha256:875c296e09169ed21e5de7ff9397ab41cf22a14967fbeb2be02829715877c770');
   assert.equal(current.compiled.compiled_plan_cid,
-    'sha256:92a97698004a397b22344ed1ba4c76adb853bd5299e07ea7042c8a1b3e153b2a');
+    'sha256:6df65de911d90de84d03eb154d37a9343442bb54f66feb6ac3be922c99d9dbbc');
   assert.equal(current.run.run_definition_cid,
-    'sha256:23da58c4900624f6674a7d52f732f9465d952a05f3dc7d945286590118ff01a4');
+    'sha256:62de30165c5e00e392f095813f12f1f08fb3f305b9f9953630436812a93af524');
 
   // Keep the published DATA MATCH closure separate from the integrated main grammar.
   const submittedMatch = JSON.parse(readFileSync('scripts/fixtures/submitted-match-data-producer-grammar.json', 'utf8'));
@@ -1346,11 +1346,11 @@ test('current contract inputs independently determine the Values Run and consumi
   assert.equal(current.template.bound_invocation_template_cid,
     "sha256:ae37cd76480c6d692c655942b61ebcfbe522e69d69d0b05714b905cc80e2e8c8");
   assert.equal(current.executable.executable_plan_cid,
-    "sha256:3b58d57b899ac818a18752f305f9e4a0a9bbd5a5001da902ec7dd1d2558aa58f");
+    "sha256:875c296e09169ed21e5de7ff9397ab41cf22a14967fbeb2be02829715877c770");
   assert.equal(current.compiled.compiled_plan_cid,
-    "sha256:92a97698004a397b22344ed1ba4c76adb853bd5299e07ea7042c8a1b3e153b2a");
+    "sha256:6df65de911d90de84d03eb154d37a9343442bb54f66feb6ac3be922c99d9dbbc");
   assert.equal(current.run.run_definition_cid,
-    "sha256:23da58c4900624f6674a7d52f732f9465d952a05f3dc7d945286590118ff01a4");
+    "sha256:62de30165c5e00e392f095813f12f1f08fb3f305b9f9953630436812a93af524");
   const runSource = readFileSync('src/run_publication_host/client_values_run_materials_wbtest.mbt', 'utf8');
   assert.ok(runSource.includes(current.run.run_definition_cid));
   const consumingProgram = runSource.match(
@@ -3203,5 +3203,60 @@ test('preceding current Values Run retains original Git roles and all four seale
   for (const [part, field] of Object.entries({template: 'bound_invocation_template_cid',
     executable: 'executable_plan_cid', compiled: 'compiled_plan_cid', run: 'run_definition_cid'})) {
     assert.notEqual(substituted[part][field], frozen.run_preimages[part][field]);
+  }
+});
+
+
+test('pre-Calendar AoA Values closure retains exact Git inputs and rejects current-root substitution', () => {
+  const frozen = JSON.parse(readFileSync(
+    'scripts/fixtures/pre-calendar-registration-values-identities.json', 'utf8'));
+  assert.equal(frozen.source_revision, '2254b96867a68c948b7f2658b3546eb4d468bbd1');
+  const originals = new Map();
+  const original = path => {
+    if (!originals.has(path)) originals.set(path, execFileSync('git',
+      ['show', `${frozen.source_revision}:${path}`], {maxBuffer: 8 * 1024 * 1024}));
+    return originals.get(path);
+  };
+  for (const input of [...frozen.source_inputs, ...frozen.role_inputs]) {
+    const metadata = execFileSync('git', ['ls-tree', frozen.source_revision, input.path],
+      {encoding: 'utf8'}).trim().split(/\s+/u);
+    assert.equal(metadata[0], input.git_mode, input.path);
+    assert.equal(metadata[2], input.git_blob, input.path);
+    assert.equal(createHash('sha256').update(original(input.path)).digest('hex'), input.raw_sha256);
+    if (input.role) {
+      const selected = input.role.split('#')[1].split('/').slice(1).reduce((value, key) =>
+        value[key.replaceAll('~1', '/').replaceAll('~0', '~')], JSON.parse(original(input.path)));
+      assert.equal(cid(selected), input.cid, input.role);
+      assert.equal(input.cid, frozen.contract_cids[input.role]);
+    }
+  }
+  assert.deepEqual(JSON.parse(original('spec/manifests/actql-grammar-0.1.json')), frozen.grammar);
+  assert.equal(cid(JSON.parse(original('spec/contracts/actql-aoa.json'))), frozen.aoa_contract_cid);
+  assert.equal(JSON.parse(original('spec/manifests/actql-barrier-contracts-0.1.json'))
+    .barrier_contract_manifest_cid, frozen.barrier_contract_manifest_cid);
+  const dependencies = valuesDependencyOracle({retainedContractCids: frozen.contract_cids});
+  const identity = valuesProgramOracle({retainedContractCids: frozen.contract_cids});
+  assert.deepEqual(dependencies, frozen.values_dependencies);
+  assert.deepEqual(identity, frozen.program_identity);
+  assert.deepEqual(vector(frozen.grammar.grammar_manifest_cid, frozen.aoa_contract_cid,
+    dependencies, frozen.barrier_contract_manifest_cid, identity, {canonicalCandidates: true}),
+  frozen.run_preimages);
+  assert.deepEqual(historicalGrammarVector(frozen), frozen.run_preimages);
+  assert.equal(frozen.run_preimages.template.bound_invocation_template_cid,
+    'sha256:ae37cd76480c6d692c655942b61ebcfbe522e69d69d0b05714b905cc80e2e8c8');
+  assert.equal(frozen.run_preimages.executable.executable_plan_cid,
+    'sha256:3b58d57b899ac818a18752f305f9e4a0a9bbd5a5001da902ec7dd1d2558aa58f');
+  assert.equal(frozen.run_preimages.compiled.compiled_plan_cid,
+    'sha256:92a97698004a397b22344ed1ba4c76adb853bd5299e07ea7042c8a1b3e153b2a');
+  assert.equal(frozen.run_preimages.run.run_definition_cid,
+    'sha256:23da58c4900624f6674a7d52f732f9465d952a05f3dc7d945286590118ff01a4');
+  const currentAoA = cid(JSON.parse(readFileSync('spec/contracts/actql-aoa.json', 'utf8')));
+  assert.notEqual(currentAoA, frozen.aoa_contract_cid);
+  const mixed = vector(frozen.grammar.grammar_manifest_cid, currentAoA, dependencies,
+    frozen.barrier_contract_manifest_cid, identity, {canonicalCandidates: true});
+  assert.deepEqual(mixed.template, frozen.run_preimages.template);
+  for (const [part, field] of Object.entries({executable: 'executable_plan_cid',
+    compiled: 'compiled_plan_cid', run: 'run_definition_cid'})) {
+    assert.notEqual(mixed[part][field], frozen.run_preimages[part][field]);
   }
 });
