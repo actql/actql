@@ -21,7 +21,7 @@ const cid = c => `sha256:${c.repeat(64)}`;
 const digest = wire => `sha256:${createHash('sha256').update(wire).digest('hex')}`;
 
 async function originalFixture(t, {unretained=false, retainState, observeBinding,
-  observeDocument, observeOriginGuard,
+  observeDocument, observeOriginGuard, observeSaved, beforeRetireSaved,
   storeBootstrap={maxWireBytes: 4096, maxDirectoryEntries: 22}, currentStateCodec=codec()}={}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-original-resource-'));
   const originalControl = runtimeCore(moon).publicationControl;
@@ -80,6 +80,15 @@ async function originalFixture(t, {unretained=false, retainState, observeBinding
       selectedRetains.push(acquisition);
       return retainState === undefined ? actualCp.retainOriginalModelStateSelected(args, acquisition)
         : retainState(args, actualCp, acquisition);
+    },
+    async confirmOriginalModelStateSavedSelected(...args) {
+      const saved = await Reflect.apply(actualCp.confirmOriginalModelStateSavedSelected, actualCp, args);
+      observeSaved?.(saved);
+      return saved;
+    },
+    retireOriginalModelStateSavedObservation(saved) {
+      beforeRetireSaved?.(saved);
+      return Reflect.apply(actualCp.retireOriginalModelStateSavedObservation, actualCp, [saved]);
     }});
   let closeFlight;
   const closeFixture = () => closeFlight ??= cp.close();
@@ -136,6 +145,38 @@ const codec = () => ({quantum: 1, comparisonWork: 5,
   decode: {maxWork: 20000,
     parse: {max_input_bytes: 10000, max_nodes: 1000, max_depth: 20},
     tree: {max_nodes: 1000, max_depth: 20, max_string_bytes: 10000, max_total_string_bytes: 10000}}});
+
+test('original saved observation retires after original children and before read settlement', async t=>{
+  let saved, retired=0;
+  const {cp,f,opened}=await originalFixture(t,{unretained:true,
+    observeSaved(value){saved=value;},
+    beforeRetireSaved(value){
+      assert.strictEqual(value,saved);
+      assert.equal(f.operation.cleanupPending(),false);
+      retired++;
+    }});
+  await opened.prepareOriginalResourcesForDispatch();
+  assert.ok(saved);
+  assert.strictEqual(cp.originalModelStateSavedObservationCurrent(saved),saved);
+  assert.equal(opened.close(),false,'Original Model child has not acknowledged cleanup');
+  assert.equal(retired,0);
+  assert.strictEqual(cp.originalModelStateSavedObservationCurrent(saved),saved);
+  await f.operation.close();
+  assert.equal(opened.cleanup(),true);
+  assert.equal(retired,1);
+  assert.throws(()=>cp.originalModelStateSavedFacts(saved),
+    {code:'OriginalModelStateSavedObservationRetired'});
+  assert.equal(opened.cleanup(),true);
+  assert.equal(retired,1,'Repeated original cleanup must not retire another observation');
+  const original=f.originalPreparation;
+  original.control.stopCheckedClientInferOriginalReadPreparation(f.compiled,
+    f.runDefinition,f.graph,f.scope,f.read);
+  original.control.settleCheckedClientInferOriginalReadPreparation(f.compiled,
+    f.runDefinition,f.graph,f.read,true);
+  assert.equal(original.control.finishCheckedClientInferOriginalReadScope(f.compiled,
+    f.runDefinition,f.graph,f.scope,true),true);
+  assert.equal(f.sends(),0);
+});
 
 test('original save caller retires transient origin document before saved-state await', async t=>{
   assert.equal(typeof global.gc,'function','The selected lifetime counter requires --expose-gc');
