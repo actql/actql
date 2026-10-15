@@ -36,7 +36,7 @@ test "original temporal JSON and SQL retain the installed Host reservation" {
       msg="original local sequences must prepare",
     )
     println("TEMPORAL_HOST tasks=" + generated.unwrap().length().to_string())
-    let setup = @client_local_host.open_source_free_local_retained_host(
+    let setup = @client_local_host.open_source_free_local_host(
       prepared,
       @identity.stringify_value(registered_body(), 100000, 10000, 100),
       @identity.stringify_value(registered_values(), 100000, 10000, 100),
