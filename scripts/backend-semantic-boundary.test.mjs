@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {mkdtempSync, mkdirSync, writeFileSync, rmSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {checkBackendSemanticBoundary, semanticBoundaryViolations} from './backend-semantic-boundary.mjs';
@@ -8,6 +8,19 @@ import {checkBackendSemanticBoundary, semanticBoundaryViolations} from './backen
 test('connectors and Local execution/preparation use resolved lowering contracts', () => {
   assert.ok(checkBackendSemanticBoundary() > 150);
 });
+
+for (const path of [
+  'src/connectors/duckdb/adapter/native_query.mbt',
+  'src/connectors/local/driver/obligations.mbt',
+]) {
+  test(`resolved original input and Calendar boundaries: ${path}`, () => {
+    const aliases = new Map([
+      ['lower', 'lowering_relation'], ['pipeline', 'pipeline_typing'],
+      ['relation', 'relation_typing'], ['join', 'relation_join_shape'],
+    ]);
+    assert.deepEqual(semanticBoundaryViolations(readFileSync(path, 'utf8'), aliases), []);
+  });
+}
 
 test('isolated Local evaluator and preparation violations fail the complete gate', () => {
   const root = mkdtempSync(join(tmpdir(), 'actql-local-semantic-boundary-'));
