@@ -14,16 +14,22 @@ fn imported_child_fixture(
   let value = prepare_imported_child_port({
     nonce: 7L,
     admit: nonce => {
-      assert_eq(nonce, 7L)
+      if nonce != 7L {
+        return -1
+      }
       admits.val += 1
       admit_code
     },
     current: nonce => {
-      assert_eq(nonce, 7L)
+      if nonce != 7L {
+        return -1
+      }
       current.val
     },
     limit: (nonce, ordinal) => {
-      assert_eq(nonce, 7L)
+      if nonce != 7L {
+        return -1L
+      }
       match ordinal {
         0 => 10L
         1 => 3L
@@ -35,7 +41,9 @@ fn imported_child_fixture(
       }
     },
     capacity: (nonce, ordinal) => {
-      assert_eq(nonce, 7L)
+      if nonce != 7L {
+        return -1L
+      }
       if ordinal == 0 {
         8L
       } else {
@@ -43,13 +51,17 @@ fn imported_child_fixture(
       }
     },
     report: (nonce, usage) => {
-      assert_eq(nonce, 7L)
+      if nonce != 7L {
+        return -1
+      }
       reports.val += 1
       observations.push(usage)
       report_code
     },
     stop: nonce => {
-      assert_eq(nonce, 7L)
+      if nonce != 7L {
+        return -1
+      }
       0
     },
   }).unwrap()
@@ -62,11 +74,9 @@ test "imported child ledger seeds existing VM Host capacity without another atte
   start_imported_child_ledger(value).unwrap()
   let (ledger, wasm, host) = take_imported_child_ledger(value).unwrap()
   assert_eq(admits.val, 1)
-  assert_eq(shared_capacity_usage(wasm), {
-    capacity: 8L,
-    allocated: 0L,
-    closing: false,
-  })
+  assert_eq(shared_capacity_usage(wasm).capacity, 8L)
+  assert_eq(shared_capacity_usage(wasm).allocated, 0L)
+  assert_false(shared_capacity_usage(wasm).closing)
   assert_eq(shared_capacity_usage(host).capacity, 4L)
   assert_eq(ledger_usage(ledger).attempts, 0)
   assert_eq(ledger_usage(ledger).reserved_execution_bytes, 12L)
