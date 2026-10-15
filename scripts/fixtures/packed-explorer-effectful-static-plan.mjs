@@ -26,7 +26,8 @@ const receipt = {profile: 'installed Local Effectful static Plan', complete: fal
   cases: [], cleanup: [], productImports: [], ProviderIOWhilePlanning: null,
   newRuns: null, newSubmissions: null, signedResolutions: 0};
 const root = process.cwd(), evidence = process.env.ACTQL_TEST_EVIDENCE_DIRECTORY;
-assert(evidence && process.env.ACTQL_TEST_PLAYWRIGHT_MODULE, 'Explicit evidence and browser tooling required');
+assert(evidence && process.env.ACTQL_TEST_PLAYWRIGHT_MODULE && process.env.ACTQL_TEST_BROWSER_EXECUTABLE,
+  'Explicit evidence and browser tooling required');
 const require = createRequire(import.meta.url);
 for (const name of ['@actql/node', '@actql/local-node', '@actql/explorer/launcher',
   '@actql/explorer/browser-source']) {
@@ -187,9 +188,12 @@ await test('ordinary installed Local Explorer shows checked update declarations 
       assert.equal(model.effectful.observations.preview.state, 'unavailable');
     } finally {source.close();}
     assert.deepEqual(paths, ['/api/session', '/api/read/plan']);
-    phase = 'installed built React in Chromium';
-    browser = await chromium.launch({headless: true, executablePath: chromium.executablePath()});
+    phase = 'Chromium launch';
+    // The consumer HOME is empty. Test tooling is explicit and independent
+    // of product installation; never search the developer's HOME implicitly.
+    browser = await chromium.launch({headless: true, executablePath: process.env.ACTQL_TEST_BROWSER_EXECUTABLE});
     receipt.browserVersion = browser.version();
+    phase = 'installed built React in Chromium';
     const page = await browser.newPage({viewport: {width: 1440, height: 1100}});
     page.setDefaultTimeout(10000);
     const browserPaths = [], errors = [], foreign = [];

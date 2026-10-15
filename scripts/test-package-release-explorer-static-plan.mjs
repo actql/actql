@@ -16,7 +16,8 @@ const [releaseInput, evidenceInput] = process.argv.slice(2);
 assert(releaseInput && evidenceInput && process.argv.length === 4,
   'usage: test-package-release-explorer-static-plan.mjs <release-directory> <new-evidence-directory>');
 assert.equal(process.version, 'v22.22.0');
-assert(process.env.ACTQL_TEST_PLAYWRIGHT_MODULE, 'Explicit test-only browser tooling required');
+assert(process.env.ACTQL_TEST_PLAYWRIGHT_MODULE && process.env.ACTQL_TEST_BROWSER_EXECUTABLE,
+  'Explicit test-only browser tooling required');
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const release = resolve(releaseInput), evidence = resolve(evidenceInput);
 await mkdir(evidence, {recursive: true});
@@ -38,6 +39,7 @@ const env = {PATH: `${dirname(process.execPath)}:/usr/bin:/bin:/usr/sbin:/sbin`,
   npm_config_cache: join(consumer, 'npm-cache'), npm_config_userconfig: join(consumer, 'npmrc'),
   npm_config_globalconfig: join(consumer, 'npmrc-global'), npm_config_update_notifier: 'false',
   ACTQL_TEST_PLAYWRIGHT_MODULE: process.env.ACTQL_TEST_PLAYWRIGHT_MODULE,
+  ACTQL_TEST_BROWSER_EXECUTABLE: process.env.ACTQL_TEST_BROWSER_EXECUTABLE,
   ACTQL_TEST_EVIDENCE_DIRECTORY: evidence};
 await mkdir(env.HOME); await mkdir(env.TMPDIR);
 await writeFile(env.npm_config_userconfig, `registry=https://registry.npmjs.org/\n@actql:registry=${registry.url}\n`);
