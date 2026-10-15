@@ -50,7 +50,7 @@ test "original interval JSON and SQL use the installed bounded Relation chain" {
       carrier_events_storage_limits(),
       capacity,
     )
-    let module = @local_connector.prepare_local_compute_module(
+    let implementation = @local_connector.prepare_local_compute_module(
       registry,
       @connector.capability_registration_at(registry, 0).unwrap(),
       [generated],
@@ -61,7 +61,7 @@ test "original interval JSON and SQL use the installed bounded Relation chain" {
       managed_providers=[family],
     ).unwrap()
     let provider = @local_connector.local_module_managed_provider(
-      module, generated,
+      implementation, generated,
     ).unwrap()
     let active = @local_connector.start_managed_provider_with_inputs_and_execution(
       provider,
@@ -76,7 +76,7 @@ test "original interval JSON and SQL use the installed bounded Relation chain" {
     for _ in 0..<100000 {
       if output is None && failure is None {
         match @local_connector.advance_managed_provider(active, 1).unwrap() {
-          Continue(..) | Waiting(..) | Settling(..) => ()
+          Continue(..) | Waiting(..) | Settling(_, ..) => ()
           Complete(result, ..) => output = Some(result)
           Failed(issue, ..) =>
             failure = Some(
