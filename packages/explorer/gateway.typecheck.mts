@@ -27,3 +27,16 @@ await startExplorerGateway({client, hostname: '0.0.0.0'});
 await startExplorerGateway({client, launchInput: {kind: 'program', text: 'SELECT 1', format: 'sql', start: true}});
 void noProviderIO; void notAtomic;
 void boundReference;
+const originalCancellation = {cancelRef: {...ref, cancelId: 'original', expectedRevision: 4},
+  attemptRef: {operation: 'cancel' as const, attemptId: 'explicit-original-invocation'}};
+const cancellation = await browser.cancel(originalCancellation);
+if (cancellation.state === 'observed') {const outcome: string = cancellation.outcome.kind; void outcome;}
+if (cancellation.state === 'unknown') {
+  // @ts-expect-error Unknown presentation is not an accepted Owner attempt.
+  cancellation.outcome;
+}
+await browser.lookupCancellation(originalCancellation.cancelRef);
+// @ts-expect-error Explicit original control revision cannot be replaced by a string.
+await browser.cancel({...originalCancellation, cancelRef: {...originalCancellation.cancelRef, expectedRevision: '4'}});
+// @ts-expect-error No arbitrary Host authority or request-force field.
+await startExplorerGateway({client, allowCancellation: 'force'});
