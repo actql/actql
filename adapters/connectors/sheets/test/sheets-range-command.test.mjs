@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
-import {inspect} from 'node:util';
 import * as provider from '../../../../_build/js/release/build/connectors/sheets/host_node/host_node.js';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -75,6 +74,7 @@ test('Sheets range Catalog and bounded Command input reach the existing common c
     text: {type: 'string', nullable: false}, flag: {type: 'boolean', nullable: false}});
   assert.equal(range.command.input_contract.fields.rows.max_items, 2);
   assert.equal(range.command.minimum_approval, 'required');
+  assert.equal(range.command.command_id, 'command:sheets-book.sheets.update_range.v0');
   assert.equal(range.command.target.resource_kind, 'sheet_range');
   assert.equal(range.command.idempotency.support, 'unsupported');
 });
@@ -102,7 +102,7 @@ test('Sheets range authored Program reaches the existing effect preparation and 
   const outcome = common.clientProgramPrepareEffectComputationWithParameters(
     rangeProgram(range.command.command_id, rows, profile.connectorId), 'json', environment, undefined, []);
   const prepared = common.clientProgramEffectPreparationReady(outcome);
-  assert(prepared, inspect(common.clientProgramEffectPreparationIssue(outcome), {depth: 6}));
+  assert(prepared, common.clientProgramEffectPreparationIssueCode(outcome));
   const compiled = checked(common.clientProgramCompileLocalEffects(prepared));
   assert.deepEqual(common.clientProgramEffectCompilationResultNames(compiled), ['answer']);
 });

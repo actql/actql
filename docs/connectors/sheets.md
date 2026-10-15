@@ -151,7 +151,7 @@ retain their original Catalog and Mapping identities.
 A separate installation can set `rangeCommand: true` in both its Source and
 Effect profiles. The Effect profile then omits `sources`; combining those
 closed alternatives is refused. This opt-in publishes the `range_target`
-Source and a `command:<connectorId>.sheets.update_range.v0.1` Command. It does
+Source and a `command:<connectorId>.sheets.update_range.v0` Command. It does
 not turn the append Mapping into an update Mapping or reinterpret saved Runs.
 Use a separate publication path when retaining an append installation.
 

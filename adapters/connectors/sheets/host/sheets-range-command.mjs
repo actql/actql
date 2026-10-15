@@ -29,7 +29,7 @@ export function sheetsRangeCommand(connectorId, site) {
     acknowledged_rows: {type: 'number', nullable: false}});
   const ref = value => ({id: value.id, version: value.version, cid: value.cid});
   const body = {schema: 'actql.command_contract/0.1',
-    command_id: `command:${connectorId}.sheets.update_range.v0.1`,
+    command_id: `command:${connectorId}.sheets.update_range.v0`,
     connector_id: connectorId, version: 'sheets/0.1',
     target: {resource_kind: 'sheet_range', cardinality: 'single'},
     input_schema: ref(input), output_schema: ref(output),
