@@ -10,7 +10,7 @@ import {calendarSourceSuccesses, calendarSourceSelection, calendarSourceArtifact
 
 test('Calendar release selection preserves all six independent Program text rows and ordered schemas', () => {
   const cases = selectReleaseCalendarQueryCases();
-  const original = JSON.parse(readFileSync('reviews/2026-10-13-frontend-calendar-source/expected.json','utf8'));
+  const original = JSON.parse(readFileSync('reviews/2026-10-15-calendar-host-installation/expected.json','utf8'));
   assert.equal(cases.successes.length,6);assert.deepEqual(cases.refusals,[]);
   for(const [index,value] of cases.successes.entries()) {
     assert.equal(value,calendarSourceSuccesses[index]);
