@@ -23,7 +23,7 @@ from ._local_journal_port import _JournalCallbacks
 from ._local_storage import _NamespaceReader, LocalByteStore
 from ._local_native_holding import _NativeHoldingLease
 
-LOCAL_CORE_ABI = 73
+LOCAL_CORE_ABI = 74
 
 
 class LocalCoreError(RuntimeError):
@@ -189,6 +189,9 @@ class _Output:
 
 # This is the private in-process ABI, independent of Client wire versions.
 _BUFFER_SIGNATURES = {
+    'open_live': ('i64 i64 i32 i32', 'i32'),
+    'report_live': ('i64', 'i32'),
+    'stop_live': ('i64', 'i32'),
     'open': ('i64 i64 i32 i32 i32 i32 i32 i64 i64 i64 i64', 'i32'),
     'reserve': ('i64 i32 i32 i64', 'i32'),
     'fill': ('i64 i32 i32 i32', 'i32'),
@@ -485,6 +488,12 @@ _PUBLISHER_SIGNATURES = {
     'close': ('i64 i32', 'i32'),
 }
 _IMPORT_SIGNATURES = {
+    'execution_child_admit': ('i64', 'i32'),
+    'execution_child_current': ('i64', 'i32'),
+    'execution_child_limit': ('i64 i32', 'i64'),
+    'execution_child_capacity': ('i64 i32', 'i64'),
+    'execution_child_report': ('i64 i32 i32 i32 i64 i64 i64 i64 i64 i64 i64', 'i32'),
+    'execution_child_stop': ('i64', 'i32'),
     'input_byte': ('i32 i32', 'i32'),
     'input_cleanup': ('i32', 'i32'),
     'reader_stop': ('i32 i32', 'i32'),
@@ -793,6 +802,16 @@ class LocalCore:
                     self._linker.define_func('actql_host', name,
                         wasmtime.FuncType(params, [wasmtime.ValType.i64() if
                             _IMPORT_SIGNATURES[name][1] == 'i64' else wasmtime.ValType.i32()]), callback)
+                for name in ('execution_child_admit', 'execution_child_current',
+                             'execution_child_limit', 'execution_child_capacity',
+                             'execution_child_report', 'execution_child_stop'):
+                    params = [wasmtime.ValType.i64() if item == 'i64' else wasmtime.ValType.i32()
+                              for item in _IMPORT_SIGNATURES[name][0].split()]
+                    result_type = (wasmtime.ValType.i64() if _IMPORT_SIGNATURES[name][1] == 'i64'
+                                   else wasmtime.ValType.i32())
+                    self._linker.define_func('actql_host', name,
+                        wasmtime.FuncType(params, [result_type]),
+                        self._unavailable_execution_child, access_caller=True)
                 instance = self._linker.instantiate(self._store, self._module)
                 self._exports = instance.exports(self._store)
                 if self._exports['actql_host_abi_version'](self._store) != LOCAL_CORE_ABI:
@@ -842,6 +861,19 @@ class LocalCore:
         self._physical_vm_span = (address.value, _MEMORY_LIMIT)
         self._physical_vm_type.close()
         self._physical_vm_type = None
+
+    def _unavailable_execution_child(self, caller: Any, nonce: int, *arguments: int) -> int:
+        """No scalar-open or diagnostic holding supplies parent live authority.
+
+        The installed physical issuer must replace this missing supplier with
+        its original channel/native access. A Caller observation is necessary
+        but never sufficient for admission, capacity, report or stop authority.
+        """
+        observation = self._physical_vm_observation
+        if observation is None:
+            return -42
+        observation._require_caller(caller, nonce)
+        return -42
 
     def _validate_original_native_projection(self, host_capacity_bytes: int) -> None:
         """Refuse undercounting the original mapping before opening its Root.

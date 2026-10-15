@@ -7,6 +7,8 @@ export function createExplorerBrowserSource(options: Readonly<{
   origin: string; fetch?: typeof fetch; now?: () => number;
 }>): Readonly<{
   connect(bootstrap: string): Promise<ExplorerCapabilities>;
+  launchView(): Promise<Readonly<{kind: 'program'; plan: PlanReadModel}> |
+    Readonly<{kind: 'run'; originalPlan: OriginalRunPlanReadModel}> | null>;
   plan(input: Parameters<Client['plan']>[0], options?: Parameters<Client['plan']>[1]): Promise<PlanReadModel>;
   inspect(ref: RunReference): Promise<WireRunView>;
   runPlan(ref: RunReference): Promise<OriginalRunPlanReadModel>;

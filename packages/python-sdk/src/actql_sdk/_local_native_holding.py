@@ -187,6 +187,14 @@ class _NativeHoldingLease:
         if type(code) is not int or code != 0:
             raise NativeHoldingObservationError('span', code if type(code) is int else None)
 
+    def _original_span_offset(self, address: c_void_p, length: int) -> int:
+        """Original borrowed payload only, never an address-based supplier."""
+        self._require_confirmed_retirement_state()
+        if self._borrow is None or not self._transfer_attempted or self._pointer.value is None:
+            raise ValueError('Original child domain span is unavailable')
+        with self._scope():
+            return self._borrow._holding_span_offset(self, self._pointer, address, length)
+
     @contextmanager
     def _scope(self) -> Iterator[None]:
         """Use native TLS ownership; do not infer or mirror native scope state."""

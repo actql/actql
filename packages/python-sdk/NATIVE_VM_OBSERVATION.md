@@ -17,6 +17,17 @@ The observation adds no thread ownership rule. Existing Core locking serializes
 Store use; the original provider scope enforces its own thread/TLS restrictions.
 In particular, a Core's original physical work thread is not another Store.
 
+For a genuine borrowed child holding, `_project_original_span` asks that same
+provider to validate the original transferred holding and active physical scope,
+then return the observed Memory's offset relative to its payload. The projection
+contains original source/recipe/material, nonce, offset and length only; no native
+pointer or Store object crosses the channel. The provider checks one live
+allocation and does not join adjacent extents. Invalid or lost replies retain
+the same borrow/holding; the Python adapter never retries an Unknown query.
+Raw diagnostic holdings cannot supply this child projection. The private
+installed channel must still bind it to its own original provisioning access;
+neither a copy nor equal metadata supplies admission or cleanup authority.
+
 Closing lifecycle remains observable for the original Owner's report/cleanup;
 it does not permit new work. Store retirement immediately fences execution.
 Failed Store or holding cleanup retains the same observation and original

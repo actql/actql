@@ -128,6 +128,37 @@ pub fn[T, C, R] NativeHostBootstrap::admit_backed_live_child(
 }
 
 ///|
+/// Observe the original lifecycle without treating a limits refusal as stop.
+/// Closing retains original report/cleanup; it is not physical retirement.
+pub fn[T, C, R] NativeHostBootstrap::backed_live_child_state(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChild[T, C, R],
+  runtime : R,
+) -> Result[@resources.BackedExecutionLiveState, NativeBackedExecutionIssue] {
+  match self.original_live_child(original, record, runtime) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard record.projection is Some(projection) else {
+    return Err(Bootstrap(Unavailable))
+  }
+  let state = match
+    @resources.backed_execution_live_state(projection, runtime) {
+    Err(issue) => return Err(Accounting(issue))
+    Ok(value) => value
+  }
+  match state {
+    LiveOpen =>
+      match self.require_domain_current(original, record.domain, record.child) {
+        Err(issue) => Err(issue)
+        Ok(_) => Ok(state)
+      }
+    LiveClosing => Ok(state)
+  }
+}
+
+///|
 /// DATA from the admitted same-parent allowance, never a scalar startup grant.
 pub fn[T, C, R] NativeHostBootstrap::backed_live_child_limits(
   self : NativeHostBootstrap[T],
