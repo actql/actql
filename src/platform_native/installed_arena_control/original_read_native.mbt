@@ -232,16 +232,10 @@ fn InstalledArenaHost::original_domain_read(
 ///|
 /// A bounded borrow from this joined carrier. Consumers retain this original
 /// through Root/Reader/returned Bytes and recheck after physical operations.
-pub fn InstalledArenaHost::borrow_domain_original_read(
+pub fn InstalledArenaHost::require_domain_original_read_current(
   self : InstalledArenaHost,
   record : InstalledArenaOriginalRead,
-) -> Result[
-  (
-    @buffers.OriginalWorkspaceRead[InstalledArenaOriginalRead],
-    @buffers.WorkspaceLoan,
-  ),
-  InstalledArenaOriginalReadIssue,
-] {
+) -> Result[Unit, InstalledArenaOriginalReadIssue] {
   match self.original_domain_read(record) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -261,7 +255,70 @@ pub fn InstalledArenaHost::borrow_domain_original_read(
   if !@buffers.workspace_original_read_matches(pair, claim, record, workspace) {
     return Err(Read(@resources.ChangedOriginalState))
   }
-  Ok((pair, workspace))
+  Ok(())
+}
+
+///|
+pub fn InstalledArenaHost::borrow_domain_original_read(
+  self : InstalledArenaHost,
+  record : InstalledArenaOriginalRead,
+) -> Result[
+  (
+    @buffers.OriginalWorkspaceRead[InstalledArenaOriginalRead],
+    @buffers.WorkspaceLoan,
+  ),
+  InstalledArenaOriginalReadIssue,
+] {
+  match self.require_domain_original_read_current(record) {
+    Err(issue) => Err(issue)
+    Ok(_) => Ok((record.pair.unwrap(), record.workspace.unwrap()))
+  }
+}
+
+///|
+/// The consumer supplies only the joined original, not another domain whose
+/// metadata resembles it. Bracket input construction and escaped outputs too.
+pub fn InstalledArenaHost::enter_domain_original_read(
+  self : InstalledArenaHost,
+  record : InstalledArenaOriginalRead,
+) -> Result[Unit, InstalledArenaOriginalReadIssue] {
+  match self.require_domain_original_read_current(record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.enter_domain_read(record.domain).map_err(issue => Domain(issue))
+}
+
+///|
+pub fn InstalledArenaHost::enter_domain_original_read_cleanup(
+  self : InstalledArenaHost,
+  record : InstalledArenaOriginalRead,
+) -> Result[Unit, InstalledArenaOriginalReadIssue] {
+  match self.original_domain_read(record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !record.owns_read || record.closed {
+    return Err(Read(@resources.CleanupPending))
+  }
+  record.closing = true
+  record.ready = false
+  self.enter_domain_read_cleanup(record.domain).map_err(issue => Domain(issue))
+}
+
+///|
+pub fn InstalledArenaHost::leave_domain_original_read(
+  self : InstalledArenaHost,
+  record : InstalledArenaOriginalRead,
+) -> Result[Unit, InstalledArenaOriginalReadIssue] {
+  match self.original_domain_read(record) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if !record.owns_read || record.closed {
+    return Err(Read(@resources.CleanupPending))
+  }
+  self.leave_domain_read(record.domain).map_err(issue => Domain(issue))
 }
 
 ///|

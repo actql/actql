@@ -13,12 +13,12 @@ fn require(count : Ref[Int], condition : Bool, name : String) -> Unit {
 ///|
 fn retain_scoped_alias(
   host : @control.InstalledArenaHost,
-  domain : @control.InstalledArenaDomain,
+  record : @control.InstalledArenaOriginalRead,
   slot : Ref[Bytes?],
 ) -> Unit {
-  host.enter_domain_read(domain).unwrap()
+  host.enter_domain_original_read(record).unwrap()
   slot.val = Some(Bytes::make(16, 73))
-  host.leave_domain_read(domain).unwrap()
+  host.leave_domain_original_read(record).unwrap()
 }
 
 ///|
@@ -99,7 +99,7 @@ fn main {
     "another SQLite purpose cannot consume the same original read domain",
   )
   let escaped : Ref[Bytes?] = Ref(None)
-  retain_scoped_alias(host, domain, escaped)
+  retain_scoped_alias(host, record, escaped)
   require(
     count,
     escaped.val is Some(value) && value[0] == 73,
