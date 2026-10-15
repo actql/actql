@@ -312,6 +312,6 @@ fn advance_partial_model_restore(
 pub fn model_execution_unknown_calls(execution : ModelExecution) -> Bool {
   !execution.state.unknown_calls.is_empty() ||
   execution.state.attempt_slots.any(slot => {
-    execution.state.outcomes.get(slot) is None
+    model_outcome_at(execution.state, slot) is None
   })
 }

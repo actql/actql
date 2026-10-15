@@ -10,6 +10,7 @@ fn original_io_consumer_fixture(
     async_response_observation(None),
   ),
   cleanup_calls? : Array[Bool] = [],
+  polls? : Ref[Int] = Ref(0),
   current? : Ref[@authorization.AdmittedAccountConfiguration] = Ref(
     evidence_account(@authorization.Allow),
   ),
@@ -22,11 +23,10 @@ fn original_io_consumer_fixture(
   let original : Ref[
     (@resources.Ledger, @publication_host.ClientModelReadPreparation)?,
   ] = Ref(None)
-  let call : Ref[@model.ModelPhysicalCall?] = Ref(None)
   let response = terminal
   let (active, work) = async_response_fixture(
     calls,
-    Ref(0),
+    polls,
     Ref(0),
     cleanup_calls,
     Ref(true),
@@ -41,13 +41,12 @@ fn original_io_consumer_fixture(
       bind_original_model_preparation(active, read, 100L, 5L).unwrap()
       original.val = Some((ledger, read))
     }),
-    observe_call=value => call.val = Some(value),
-    observe_response=Some(() => {
+    observe_response_call=Some((_, original) => {
       let inner = if ready.val { response } else { @model.PhysicalPending }
       if io_closed.val {
-        @model.PhysicalIoQuiescent(call.val.unwrap(), inner)
+        @model.PhysicalIoQuiescent(original, inner)
       } else {
-        @model.PhysicalIoPending(call.val.unwrap(), inner)
+        @model.PhysicalIoPending(original, inner)
       }
     }),
   )

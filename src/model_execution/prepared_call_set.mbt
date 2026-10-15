@@ -339,7 +339,7 @@ pub fn model_call_settlement(
   guard !state.reclaimed &&
     state.progress.settlement is Some(slot) &&
     slot < state.progress.slot &&
-    state.outcomes.get(slot) is Some(_) else {
+    model_outcome_at(state, slot) is Some(_) else {
     return None
   }
   Some({ owner: execution, progress: state.progress, slot, })

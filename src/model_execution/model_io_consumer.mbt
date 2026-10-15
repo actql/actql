@@ -57,6 +57,21 @@ pub fn bind_prepared_model_io_access(
     }
   }
   prepared.io_access = Some(access)
+  let frames : Array[ModelSlotFrame?] = [None, None, None, None]
+  if !state.requests.is_empty() {
+    frames[0] = Some({ slot: state.progress.slot, progress: state.progress, })
+  }
+  state.slot_window = Some({
+    frames,
+    outcomes: {},
+    adopted_slots: [],
+    next_slot: if state.requests.is_empty() {
+      0
+    } else {
+      state.progress.slot + 1
+    },
+    scan: 0,
+  })
   Ok(())
 }
 

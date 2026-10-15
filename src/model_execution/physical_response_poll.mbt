@@ -410,7 +410,7 @@ fn advance_model_physical_response(
       @bounded.Failed(RequestIdentity, 1, 1)
     PhysicalUnknown(_) => {
       state.progress.observing_response = false
-      state.outcomes.push(UnresolvedUnknown)
+      adopt_model_outcome(state, UnresolvedUnknown)
       @bounded.Failed(UnknownCalls, 1, 1)
     }
     PhysicalRejected(failure, _) => {

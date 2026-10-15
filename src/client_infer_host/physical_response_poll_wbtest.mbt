@@ -82,6 +82,7 @@ fn async_response_fixture(
   now? : Ref[String] = Ref("2026-10-02T00:00:00.000Z"),
   observe_call? : (@model.ModelPhysicalCall) -> Unit = _ => (),
   observe_response? : (() -> @model.ModelPhysicalCallPoll)? = None,
+  observe_response_call? : ((Int, @model.ModelPhysicalCall) -> @model.ModelPhysicalCallPoll)? = None,
   prepare_original? : ((Execution) -> Unit)? = None,
 ) -> (Execution, Int64) raise {
   let egress = Ref(Some(egress_fixture_observation()))
@@ -108,12 +109,16 @@ fn async_response_fixture(
               async_response_profile(),
               async_response_installation(),
               entry => {
+                let owned : Ref[@model.ModelPhysicalCall?] = Ref(None)
                 let call = @model.model_physical_call(
                   entry,
                   holder.val.unwrap(),
                   () => {
                     polls.val += 1
                     if ready.val {
+                      if observe_response_call is Some(read) {
+                        return read(request.slot, owned.val.unwrap())
+                      }
                       match observe_response {
                         Some(read) => read()
                         None => observed
@@ -128,6 +133,7 @@ fn async_response_fixture(
                     release.val
                   },
                 )
+                owned.val = call
                 if call is Some(original) {
                   calls.val += 1
                   observe_call(original)

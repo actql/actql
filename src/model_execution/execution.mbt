@@ -214,8 +214,8 @@ priv enum ModelSource {
 
 ///|
 // Progress belongs to the existing Model owner, not another execution/session.
-// This extraction still has one selected Slot. A later bounded window must
-// retain each original Entry/Call separately before it can select another Slot.
+// A bounded installed window retains each original Entry/Call separately.
+// The selected reference is only a scan/work cursor, never every Slot's state.
 // The new record/reference and constructor overlap require physical funding;
 // moving existing fields does not establish a free layout or concurrency.
 struct ModelSlotProgress {
@@ -274,7 +274,10 @@ struct ModelState {
   invocation_evidence : Array[@publication.RunEvidenceValue]
   mut restored_evidence : @publication.RunEvidenceValue?
   mut restored_binding : @publication.BoundModelSlotCapture?
-  progress : ModelSlotProgress
+  mut progress : ModelSlotProgress
+  // Additional managed reference, including None on legacy paths. The original
+  // installation must fund its complete window before using this connection.
+  mut slot_window : ModelSlotWindow?
   mut work : Int
   mut output_uses : Int
   mut accepted : Bool
@@ -559,7 +562,7 @@ fn advance_model(
     )
   }
   if state.durable_calls && state.unknown_calls.contains(state.progress.slot) {
-    state.outcomes.push(UnresolvedUnknown)
+    adopt_model_outcome(state, UnresolvedUnknown)
     state.progress.slot += 1
     if @infer.result_mode(@relation.prepared_infer_rows_owner(state.rows))
       is Fail {
@@ -1107,6 +1110,7 @@ fn start_model_owned(
     prepared_call_set: None,
     stop_requested: false,
     outcomes: [],
+    slot_window: None,
     request: None,
     captures: [],
     responses: [],
@@ -1172,6 +1176,13 @@ fn advance_model_execution_owned(
   quantum : Int,
 ) -> Result[ModelObservation, ModelExecutionIssue] {
   let state = execution.state
+  if !state.reclaimed && !@bounded.session_stopped(execution.session) {
+    match select_model_window_progress(state) {
+      Err(issue) => return Err(issue)
+      Ok(false) => return Ok(AwaitIo(execution.progress, execution.work))
+      Ok(true) => ()
+    }
+  }
   if !state.reclaimed &&
     !@bounded.session_stopped(execution.session) &&
     state.progress.call is Some(call) {
@@ -1349,22 +1360,18 @@ fn cleanup_model_execution_owned(
       if @bounded.cleanup_pending(execution.session) {
         return Ok(false)
       }
-      if execution.state.progress.phase is CheckResponse(_, _, _, cursor) {
-        @admitted.cancel_recheck_runtime_value(cursor)
-      }
-      if execution.state.progress.phase
-        is CheckPhysicalMetadata(_, _, cursor, writer) {
-        @canonical.cancel_emit(cursor)
-        @encode.cancel_writer(writer)
-      }
-      if execution.state.progress.phase is DecodePhysicalResponse(_, _, cursor) {
-        cancel_model_response_decode(cursor)
-      }
-      if execution.state.progress.phase is PrepareEvidence(value) {
-        cancel_model_evidence(value)
-      }
-      if execution.state.progress.phase is RestoreResponse(_, _, cursor) {
-        @admitted.cancel_canonical_conversion(cursor)
+      if execution.state.slot_window is Some(window) {
+        for frame in window.frames {
+          if frame is Some(frame) {
+            cancel_model_slot_phase(frame.progress)
+          }
+        }
+        window.outcomes.clear()
+        retire_model_owned_array(window.adopted_slots)
+        retire_model_owned_array(window.frames)
+        execution.state.slot_window = None
+      } else {
+        cancel_model_slot_phase(execution.state.progress)
       }
       if execution.state.request is Some(request) {
         cancel_model_request_preparation(request)

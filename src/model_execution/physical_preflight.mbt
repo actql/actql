@@ -301,7 +301,7 @@ let physical_preflight_metadata_bytes : Int64 = 256L
 
 ///|
 fn cleanup_model_physical_preflight(state : ModelState) -> Bool {
-  if !cleanup_model_physical_call(state) {
+  if !cleanup_model_window_calls(state) {
     return false
   }
   if state.progress.entry is Some(entry) {
@@ -321,7 +321,7 @@ fn cleanup_model_physical_preflight(state : ModelState) -> Bool {
     state.physical_cleanup_index += 1
   }
   state.physical_cleanup_index == state.physical_cursors.length() &&
-  retire_model_slot_io_never_entered(state)
+  cleanup_model_window_unentered(state)
 }
 
 ///|

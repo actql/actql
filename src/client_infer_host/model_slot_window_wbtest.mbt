@@ -7,17 +7,27 @@ test "two original async Slots enter before the first response settles" {
   let calls = Ref(0)
   let polls = Ref(0)
   let ready = Ref(false)
+  let io_closed = Ref(false)
   let released = Ref(false)
   let cleanup_calls : Array[Bool] = []
-  let (active, prefix) = async_response_fixture(
+  let (active, prefix, ledger, read) = original_io_consumer_fixture(
     calls,
-    polls,
-    Ref(0),
-    cleanup_calls,
     ready,
+    io_closed,
     released,
-    @model.PhysicalResponse(async_response_observation(None)),
+    polls~,
+    cleanup_calls~,
   )
+  // Strengthen the old counter with the same original read Ledger and an
+  // actual shared nominal admission. A plain fresh fixture Ledger is not a
+  // substitute for the installed window's original resource connection.
+  let installation = Ref(0)
+  let admission = @resources.issue_model_io_admission(installation, 2, 2).unwrap()
+  let access = @resources.issue_model_io_access(admission, installation).unwrap()
+  @model.bind_prepared_model_io_access(
+    prepared_call_set(active).unwrap(),
+    access,
+  ).unwrap()
   // This preparation-only accessor must be read before the physical phase;
   // the original handle is not reissued from a later in-flight state.
   assert_eq(
@@ -51,11 +61,22 @@ test "two original async Slots enter before the first response settles" {
   }
   let starts_before_first_response = calls.val
   assert_true(polls.val > 0)
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((2, 2)),
+  )
   // Drain the same original fixture before reporting the unmet window. These
   // doubles perform no network or persistence and retain no physical debt.
   ready.val = true
+  io_closed.val = true
   released.val = true
   async_io_stop_and_cleanup(active)
+  original_preparation_test_release(ledger, read)
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 0)),
+  )
+  assert_true(@resources.close_model_io_access(access).unwrap())
   assert_eq(calls.val, starts_before_first_response)
   assert_eq(
     starts_before_first_response,

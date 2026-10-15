@@ -24,7 +24,7 @@ fn begin_chat_model_response(
   }
   if !raw.transport_eof {
     state.progress.observing_response = false
-    state.outcomes.push(UnresolvedUnknown)
+    adopt_model_outcome(state, UnresolvedUnknown)
     return @bounded.Failed(UnknownCalls, 1, 1)
   }
   let limits = @environment.model_response_profile_limits(profile)

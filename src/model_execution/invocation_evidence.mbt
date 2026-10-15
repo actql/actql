@@ -301,7 +301,7 @@ fn accept_model_slot(
   checked : @admitted.CheckedValue,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
   state.progress.observing_response = false
-  state.outcomes.push(Success(state.captures.length()))
+  adopt_model_outcome(state, Success(state.captures.length()))
   if state.attempts.get(state.progress.slot) is Some(trace) {
     trace.category = "ok"
     trace.failure = None
@@ -350,12 +350,13 @@ pub fn model_execution_invocation_evidence(
 ) -> @publication.RunEvidenceValue? {
   if (
       !execution.state.accepted &&
-      !(execution.state.durable_calls && slot < execution.state.progress.slot)
+      !(execution.state.durable_calls &&
+      model_outcome_at(execution.state, slot) is Some(_))
     ) ||
     execution.state.reclaimed {
     None
   } else {
-    match execution.state.outcomes.get(slot) {
+    match model_outcome_at(execution.state, slot) {
       Some(Success(index)) => execution.state.invocation_evidence.get(index)
       _ => None
     }

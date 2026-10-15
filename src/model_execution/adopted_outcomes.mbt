@@ -31,7 +31,7 @@ fn accept_failed_model_slot(
   if model_failure_outcome(failure) is None {
     return @bounded.Failed(Provider(failure), 1, 1)
   }
-  state.outcomes.push(NoResponseFailure(failure))
+  adopt_model_outcome(state, NoResponseFailure(failure))
   if state.attempts.get(state.progress.slot) is Some(trace) {
     trace.category = "provider_failure"
     trace.failure = model_failure_outcome(failure).map(value => {
@@ -60,6 +60,9 @@ fn accept_failed_model_slot(
 fn complete_model_slots(
   state : ModelState,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
+  if order_model_window_outcomes(state) is Some(step) {
+    return step
+  }
   if state.durable_calls && state.progress.settlement is Some(_) {
     return @bounded.Continue(1, 1)
   }
@@ -96,6 +99,6 @@ pub fn verified_model_capture_outcome(
     capture.owner.state.reclaimed {
     None
   } else {
-    capture.owner.state.outcomes.get(slot).map(adopted_model_slot_outcome)
+    model_outcome_at(capture.owner.state, slot).map(adopted_model_slot_outcome)
   }
 }
