@@ -23,14 +23,25 @@ test "original temporal operands complete through selected interval with exact s
         )
       },
     )
-    let generated = prepare_generated_sequence(
-      registered_relation_contracts(),
-      prepared_sequence(owner),
-      [],
-      retained,
-      100000,
-      10000,
-    ).unwrap()
+    let generated = match
+      prepare_generated_sequence(
+        registered_relation_contracts(),
+        prepared_sequence(owner),
+        [],
+        retained,
+        100000,
+        10000,
+      ) {
+      Ok(value) => value
+      Err(MissingFragmentContext(index)) =>
+        fail("preparation missing_fragment_context at " + index.to_string())
+      Err(OrderedContext(index, _)) =>
+        fail("preparation ordered_context at " + index.to_string())
+      Err(FragmentContext(index, _)) =>
+        fail("preparation fragment_context at " + index.to_string())
+      Err(InputSet) => fail("preparation input_set")
+      Err(_) => fail("preparation other_typed_issue")
+    }
     let generated = constrain_generated_interval_search(generated, step, 6L).unwrap()
     let generated = constrain_generated_join_output(generated, step, 3L).unwrap()
     let completed = execute_generated_sequence(
