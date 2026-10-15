@@ -21,7 +21,8 @@
 // docs/reviews/2026-10-15-filesystem-read-layout-configuration-review.md and
 // docs/reviews/2026-10-15-scoped-filesystem-acquisition-configuration-review.md and
 // docs/reviews/2026-10-15-scoped-bounded-read-configuration-review.md and
-// docs/reviews/2026-10-15-sqlite-body-limit-configuration-review.md.
+// docs/reviews/2026-10-15-sqlite-body-limit-configuration-review.md and
+// docs/reviews/2026-10-15-filesystem-child-custody-configuration-review.md.
 // Changes to this table, the toolchain or any configuration force fresh work.
 // Unknown options and other targets require separate review; matching a digest
 // is configuration identity, not a proof of compiler or OS correctness.
@@ -39,7 +40,7 @@ export const reviewedPackageConfigurations = Object.freeze({
   'src/platform_native/bounded_files/moon.pkg': '383a532bbbee2be32d5c4c7ccab853fa392892667451095a7b553c495d5c578d',
   'src/native_values_integration/moon.pkg': '7e6c593d713e34a6c57ef95eae7e29f483b63a9f7f4ab2804e0d5106b1d009c5',
   'src/connectors/duckdb/adapters/native/moon.pkg': '7283cc7667b9293a7132672ce9edf375901ffb35eb02e25af9eb9eba55a1e89d',
-  'src/platform_native/filesystem/moon.pkg': '98c10419328d72de804dd3e65aea84346db093880edce96cd679e6fbc55a6460',
+  'src/platform_native/filesystem/moon.pkg': 'a39f92dff1dba87ca4d59dfdcc3fb81ea4167b4f3e48c36bba69b9f28bda44e9',
   'src/platform_native/http_client/moon.pkg': '3cdde0301c89f7a3a2c79aca654cfb4c48b49751847561c27a8e88232e099baf',
   'src/platform_native/https_server/moon.pkg': '880ad74137ab58e0f92f43465f9bc2bcd096eb2b29461b9f93d68883ed5d22bd',
   'src/platform_native/publication_store/moon.pkg': 'da2ed748a2cee398537d8be64de7e695446009fcdce04a6cf09ec69f0d9f0fa0',
