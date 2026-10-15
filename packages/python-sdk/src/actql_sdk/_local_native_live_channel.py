@@ -86,7 +86,7 @@ class _OriginalLiveChannelCustody:
                  '_read', '_write', '_read_value', '_write_value', '_child_pid',
                  '_host', '_native_domain', '_channel', '_reply', '_unknown',
                  '_unknown_carrier', '_closed', '_bind_attempted', '_admit_attempted',
-                 '_stop_attempted', '_stop_acknowledged')
+                 '_stop_attempted', '_stop_acknowledged', '_control_original')
     _original: _OriginalLiveChannelCustody
     _domain: _OriginalDomainCustody
     _owner: _OriginalControlCustody
@@ -113,6 +113,7 @@ class _OriginalLiveChannelCustody:
     _admit_attempted: bool
     _stop_attempted: bool
     _stop_acknowledged: bool
+    _control_original: object | None
 
     def __init__(self) -> None:
         raise TypeError('Original live-channel custody requires the installed physical caller')
@@ -157,6 +158,7 @@ class _OriginalLiveChannelCustody:
         channel._closed = False
         channel._bind_attempted = channel._admit_attempted = channel._stop_attempted = False
         channel._stop_acknowledged = False
+        channel._control_original = None
         # Same existing custody before current/physical capture can fail. Even
         # a lost return never allows a second capture on the same pipe/domain.
         domain._live_channel_original = pipe._native_channel_original = channel
