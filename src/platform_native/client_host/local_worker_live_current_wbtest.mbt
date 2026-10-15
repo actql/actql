@@ -53,7 +53,7 @@ test "recorded live worker current rejects foreign domain and current Account de
   assert_true(arena.try_close() is Err(@bootstrap.ReadersPending))
   assert_true(
     attempt.require_recorded_resource_current(domain, "operator", "local")
-    is Err(PhysicalSelection(_)),
+    is Err(Selection(@bootstrap.Closing)),
   )
   assert_true(attempt.resource is Some(original) && physical_equal(original.domain, domain))
   host.close().unwrap()
