@@ -1630,6 +1630,63 @@ int32_t actql_native_sqlite_database_release_capacity(
   return actql_capacity_commit(database);
 }
 
+// Original-claim observation only: no BEGIN/COMMIT, INSERT, reservation or
+// ordinal allocation. Finalize must acknowledge both presence and absence.
+int32_t actql_native_sqlite_database_lookup_claim_ordinal(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes,
+  int32_t namespace_length,
+  moonbit_bytes_t key,
+  int32_t key_length
+) {
+  if (database == NULL || !database->opened) return 5;
+  actql_clear_result(database);
+  sqlite3_stmt *statement = NULL;
+  int code = database->library->prepare_v2(
+    database->database,
+    "SELECT ordinal, typeof(ordinal) = 'integer' FROM actql_claims "
+    "WHERE namespace = ?1 AND claim_key = ?2",
+    -1,
+    &statement,
+    NULL
+  );
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "prepare original claim lookup failed");
+    if (statement != NULL) database->library->finalize(statement);
+    return actql_operation_code(code);
+  }
+  int32_t result = actql_bind_key(
+    database, statement, 1, namespace_bytes, namespace_length, 2, key, key_length
+  );
+  int64_t ordinal = 0;
+  if (result == 0) {
+    code = database->library->step(statement);
+    if (code == SQLITE_DONE) {
+      result = 1;
+    } else if (code != SQLITE_ROW) {
+      actql_database_error(database, "read original claim failed");
+      result = actql_operation_code(code);
+    } else {
+      ordinal = (int64_t)database->library->column_int64(statement, 0);
+      // Do not silently coerce a malformed TEXT/FLOAT original to an integer.
+      if (ordinal <= 0 || database->library->column_int64(statement, 1) != 1) {
+        actql_replace_error(&database->error, database->diagnostic_ceiling,
+                            "invalid original claim ordinal");
+        result = -1;
+      }
+    }
+  }
+  // SQLite destroys the statement even when finalize reports an error:
+  // https://www.sqlite.org/c3ref/finalize.html
+  int finalize_code = database->library->finalize(statement);
+  if ((result == 0 || result == 1) && finalize_code != SQLITE_OK) {
+    actql_database_error(database, "finalize original claim lookup failed");
+    return actql_operation_code(finalize_code);
+  }
+  if (result == 0) database->result_revision = ordinal;
+  return result;
+}
+
 int32_t actql_native_sqlite_database_claim_ordinal(
   actql_native_sqlite_database *database,
   moonbit_bytes_t namespace_bytes,
