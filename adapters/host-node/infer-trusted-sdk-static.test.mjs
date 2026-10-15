@@ -5,10 +5,13 @@ import {fileURLToPath} from 'node:url';
 
 const preload = fileURLToPath(new URL('./infer-trusted-node-preload.cjs', import.meta.url));
 const fixture = fileURLToPath(new URL('../../packages/provider-ai-sdk/sdk-static-startup.fixture.mjs', import.meta.url));
-for (const mode of ['current', 'foreign', 'registration', 'late', 'import-window']) {
+for (const mode of ['current', 'foreign', 'registration', 'late', 'import-window', 'unselected-sdk']) {
   test(`selected SDK static module responsibility: ${mode}`, () => {
     const result = spawnSync(process.execPath,
-      [...(mode === 'late' ? [] : ['--require', preload]), fixture, mode], {
+      [...(mode === 'late' ? [] : ['--require', preload]),
+        mode === 'unselected-sdk'
+          ? fileURLToPath(new URL('./infer-trusted-sdk-static.fixture.mjs', import.meta.url))
+          : fixture, mode], {
         env: {PATH: process.env.PATH}, encoding: 'utf8', timeout: 10000,
         maxBuffer: 1024 * 1024,
       });

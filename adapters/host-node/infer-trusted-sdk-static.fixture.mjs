@@ -22,7 +22,13 @@ if (mode === 'late') {
   rejects(() => bind(), 'InferTrustedStartupUnavailable');
 } else {
   runtime.associateInferTrustedStartupView(view, actual);
-  if (mode === 'import-window') {
+  if (mode === 'unselected-sdk') {
+    // The source-only Host entry has no installed optional SDK in its own
+    // resolution scope. A later relative import cannot invent early custody.
+    const require = createRequire(import.meta.url);
+    assert.throws(() => require.resolve('@actql/provider-ai-sdk'), {code: 'MODULE_NOT_FOUND'});
+    rejects(() => bind(), 'InferTrustedSdkStaticUnavailable');
+  } else if (mode === 'import-window') {
     bind();
     check();
   } else if (mode === 'current') {
