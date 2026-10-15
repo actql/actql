@@ -6,9 +6,7 @@ struct NativeLocalPackagedRuntime {
   mut assets : @host.ClientLocalProductAssets?
   roots : Array[@filesystem.Root]
   directories : Array[@filesystem.NativeDirectoryObservation]
-  witnesses : Array[
-    (@filesystem.Root, String, @filesystem.NativeFileGeneration),
-  ]
+  witnesses : Array[@filesystem.NativeFileObservation]
   mut reader : @filesystem.Reader?
   mut reader_open_failure : @filesystem.NativeReaderOpenFailure?
   mut sqlite : String
@@ -79,16 +77,17 @@ fn local_runtime_read_member(
   hash : String,
   collect : Bool,
 ) -> String raise LocalRuntimeStop {
-  let generation = local_runtime_result(
-    root.inspect_generation(name).map_err(issue => Physical(issue)),
-  ).unwrap_or_else(() => local_runtime_stop(Changed))
+  let original = root.observe_file(name).map_err(issue => Physical(issue))
+    |> local_runtime_result
+  let generation = original.generation().map_err(issue => Physical(issue))
+    |> local_runtime_result
   if bytes < 1L ||
     generation.size != bytes ||
     bytes > 67108864L ||
     (collect && bytes > 65536L) {
     local_runtime_stop(Limit)
   }
-  let reader = match root.open_reader_with_custody(name, generation) {
+  let reader = match original.open_reader_with_custody() {
     Ok(reader) => reader
     Err(failure) => {
       runtime.reader_open_failure = Some(failure)
@@ -112,13 +111,19 @@ fn local_runtime_read_member(
     }
     done = chunk.eof
   }
+  // Compare the real opened Reader with the same full original stat before
+  // acknowledging finish. On refusal runtime still retains this exact Reader.
+  original.check_reader(reader).map_err(issue => Physical(issue))
+  |> local_runtime_result
   reader.finish().map_err(issue => Physical(issue)) |> local_runtime_result
   runtime.reader = None
   let digest = @sha.finish_hex(hasher) catch { _ => local_runtime_stop(Limit) }
-  if digest != hash || !root.verify_generation(name, generation) {
+  if digest != hash {
     local_runtime_stop(Changed)
   }
-  runtime.witnesses.push((root, name, generation))
+  original.check_current().map_err(issue => Physical(issue))
+  |> local_runtime_result
+  runtime.witnesses.push(original)
   if collect {
     @utf8.decode(Bytes::from_array(retained)) catch {
       _ => local_runtime_stop(InvalidManifest)
@@ -253,8 +258,11 @@ pub fn NativeLocalPackagedRuntime::check_current(
       Ok(_) => ()
     }
   }
-  if !self.witnesses.all(w => w.0.verify_generation(w.1, w.2)) {
-    return Err(Changed)
+  for original in self.witnesses {
+    match original.check_current() {
+      Err(issue) => return Err(Physical(issue))
+      Ok(_) => ()
+    }
   }
   Ok(())
 }
