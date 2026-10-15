@@ -32,7 +32,10 @@ function fixture({views = [0, 0], extraResults = [], capacity = 20, failAppend, 
       localResults[result].view === inputs[member].view,
     clientProgramIssueLocalEffectResultDefinition: (_, __, name) => ok({view: Number(name)}),
     clientProgramEffectLocalManagedInputBegin: input => ok({input}),
-    clientProgramEffectLocalManagedExportOwner: (_, __, importing) => ok(importing),
+    clientProgramEffectLocalManagedExportOwner: (owner, resultIndex, importing) =>
+      ok({owner, resultIndex, importing}),
+    clientProgramEffectLocalResultExportMatchesReceipt: (owner, exported, receipt) =>
+      exported.owner === owner && exported.importing === receipt,
     clientProgramEffectInputTask: input => input,
     clientProgramIssueCapturedEffectInputLocalResultDefinition: (_, __, index) =>
       ok({view: inputs[index].view}),
