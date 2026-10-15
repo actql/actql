@@ -276,6 +276,10 @@ pub fn InstalledArenaHost::close_domain_after_owner_ack(
       Ok(_) => record.allocation = None
     }
   }
+  // The closed carrier keeps its original domain for nominal identity, so
+  // break the reverse registration only after the full domain retirement ACK.
+  // Until here it also prevents a second Library attempt in this live domain.
+  record.sqlite_library = None
   record.closed = true
   Ok(())
 }

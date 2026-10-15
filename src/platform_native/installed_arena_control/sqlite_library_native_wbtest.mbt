@@ -122,3 +122,67 @@ test "same empty partial carrier closes after logical Host closing without issui
   )
   other.try_close().unwrap()
 }
+
+///|
+test "full domain retirement breaks closed SQLite reverse registration and refuses retired handles" {
+  let host = domain_test_host()
+  let domain = sqlite_test_pending_domain(host)
+  let original = sqlite_test_empty_record(domain)
+  domain.sqlite_library = Some(original)
+  host.close_sqlite_library(original).unwrap()
+  host.close_sqlite_library(original).unwrap()
+  // A closed Library does not reset the live domain's acquisition history.
+  assert_true(
+    domain.sqlite_library is Some(value) && physical_equal(value, original),
+  )
+  assert_true(
+    host.prepare_sqlite_library(domain, "/candidate/other.dylib", 4096L, 128)
+    is Err(_),
+  )
+  assert_true(
+    domain.sqlite_library is Some(value) && physical_equal(value, original),
+  )
+  host.close_domain_after_owner_ack(domain).unwrap()
+  assert_true(domain.closed && original.closed)
+  assert_true(domain.sqlite_library is None)
+  assert_true(physical_equal(original.domain, domain))
+  assert_true(
+    host.current_sqlite_library(original)
+    is Err(Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))),
+  )
+  assert_true(
+    host.close_sqlite_library(original)
+    is Err(Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))),
+  )
+  host.close_domain_after_owner_ack(domain).unwrap()
+  host.try_close().unwrap()
+}
+
+///|
+test "unconfirmed SQLite cleanup keeps registration through refused parent retirement" {
+  let host = domain_test_host()
+  let domain = sqlite_test_pending_domain(host)
+  let original = sqlite_test_empty_record(domain)
+  original.original_issue = Some(
+    Library(@sqlite.Physical("original unconfirmed cleanup")),
+  )
+  domain.sqlite_library = Some(original)
+  assert_true(
+    host.close_domain_after_owner_ack(domain)
+    is Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending)),
+  )
+  assert_false(domain.closed || original.closed)
+  assert_true(
+    domain.sqlite_library is Some(value) && physical_equal(value, original),
+  )
+  assert_true(host.try_close() is Err(@bootstrap.ReadersPending))
+  // Empty partial fixture: cleanup acquires/rebinds no Library or read scope.
+  host.close_sqlite_library(original).unwrap()
+  assert_true(
+    domain.sqlite_library is Some(value) && physical_equal(value, original),
+  )
+  host.close_domain_after_owner_ack(domain).unwrap()
+  assert_true(domain.sqlite_library is None)
+  assert_true(original.original_issue is Some(Library(@sqlite.Physical(_))))
+  host.try_close().unwrap()
+}

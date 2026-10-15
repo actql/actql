@@ -133,6 +133,11 @@ but cannot switch Hosts/domains, reload or close a replacement Library. It
 retains the same references on failed cleanup and scope-leave; checked Library
 cleanup and all managed aliases precede read-context/domain/loan retirement.
 Even an empty pre-acquisition carrier must finish its own registered cleanup
-before the parent domain can retire. Normal supplier/profile, actual matching
+before the parent domain can retire. The domain retains that closed registration
+until full domain retirement acknowledges, preserving one acquisition per live
+domain and repeated original cleanup. Only then is the reverse registration
+cleared, breaking the retired Domain/carrier cycle. The retained carrier still
+identifies its original domain, but retired handles are refused. Normal
+supplier/profile, actual matching
 Native Library construction, installed Python/wheel and public E2E remain
 separate acceptance boundaries.
