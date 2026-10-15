@@ -76,7 +76,7 @@ test "original interval JSON and SQL use the installed bounded Relation chain" {
     for _ in 0..<100000 {
       if output is None && failure is None {
         match @local_connector.advance_managed_provider(active, 1).unwrap() {
-          Continue(..) => ()
+          Continue(..) | Waiting(..) | Settling(..) => ()
           Complete(result, ..) => output = Some(result)
           Failed(issue, ..) =>
             failure = Some(
