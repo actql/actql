@@ -209,9 +209,17 @@ test "worker provisioning foreign epoch or generation cannot adopt the original 
   let (_, now, revision) = read_epoch_custody(host.database).unwrap()
   let changed_epoch = epoch_custody_body(Bytes::make(32, 77), now).unwrap()
   host.database.begin_immediate().unwrap()
-  host.database.compare_exchange("client_submission_epoch", "authority", revision, changed_epoch).unwrap() |> ignore
+  host.database
+  .compare_exchange(
+    "client_submission_epoch", "authority", revision, changed_epoch,
+  )
+  .unwrap()
+  |> ignore
   host.database.commit().unwrap()
-  assert_true(host.lookup_worker_provisioning(selection, "operator", "local") is Err(CustodyLost))
+  assert_true(
+    host.lookup_worker_provisioning(selection, "operator", "local")
+    is Err(CustodyLost),
+  )
   host.close().unwrap()
   other.close().unwrap()
   arena.try_close().unwrap()
@@ -247,7 +255,9 @@ test "worker provisioning missing custody and mere selection close never authori
   let name = "worker-original-retirement"
   host.close().unwrap()
   let restored = worker_provisioning_reopen(name)
-  let (same_generation_arena, same_generation) = worker_provisioning_selection(1L)
+  let (same_generation_arena, same_generation) = worker_provisioning_selection(
+    1L,
+  )
   assert_true(
     restored.lookup_worker_provisioning(same_generation, "operator", "local")
     is Err(Journal(CustodyLost)),
