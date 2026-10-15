@@ -21,5 +21,6 @@ options(
     "remote_use_retention_native_wbtest.mbt": [ "native" ],
     "remote_initial_use_native_wbtest.mbt": [ "native" ],
     "local_signing_history_native_wbtest.mbt": [ "native" ],
+    "local_signing_claim_native_wbtest.mbt": [ "native" ],
   },
 )
