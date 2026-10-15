@@ -260,6 +260,8 @@ class InstalledImageTests(unittest.TestCase):
         self.wasmtime.FuncType = lambda *args: args
         if holding is not None:
             self.ffi.dll = holding._library
+            self.store._context = lambda: c_void_p(345)
+            self.wasmtime.Caller = type('Caller', (), {})
             memory_type = SimpleNamespace(is_64=False, is_shared=False,
                 limits=SimpleNamespace(min=1, max=256), close=lambda: None)
             class Memory:

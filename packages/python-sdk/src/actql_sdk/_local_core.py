@@ -16,6 +16,7 @@ from typing import TYPE_CHECKING, Any, Literal
 if TYPE_CHECKING:
     from ._local_engine import _InstalledImageInput, _InstalledImageFileInput
     from ._local_native_image import _NativeImageHolding
+    from ._local_native_vm import _OriginalVMObservation
     from ._local_distribution import LocalComponents
 
 from ._local_journal_port import _JournalCallbacks
@@ -707,6 +708,7 @@ class LocalCore:
         self._linker: Any = None
         self._physical_vm_type: Any = None
         self._physical_vm_span: tuple[int, int] | None = None
+        self._physical_vm_observation: _OriginalVMObservation | None = None
         if _physical_holding is not None:
             _physical_holding._bind_core(self._identity)
         self._physical_holding = _physical_holding
@@ -798,6 +800,8 @@ class LocalCore:
                 if self._physical_holding is not None:
                     self._observe_original_vm_span(wasmtime)
                     self._validate_original_native_projection(_host_capacity_bytes)
+                    from ._local_native_vm import _OriginalVMObservation
+                    _OriginalVMObservation._capture(self, wasmtime)
                 self._check('open', self._call('buffer', 'open', transfer_capacity,
                                             slots, 1_048_576, resources.planning_work,
                                             resources.attempts, resources.holdings,
@@ -875,6 +879,9 @@ class LocalCore:
         self._invoking = True
         try:
             with self._native_scope():
+                observation = getattr(self, '_physical_vm_observation', None)
+                if observation is not None:
+                    observation._require_core_current()
                 result = self._exports[f'actql_{family}_{name}'](
                     self._store, self._nonce, *arguments)
         except BaseException:
@@ -3761,6 +3768,10 @@ class LocalCore:
             # repeat already retired Store/native handles.
             holding.close()
             self._physical_holding = None
+        observation = getattr(self, '_physical_vm_observation', None)
+        if observation is not None:
+            observation._retire_metadata(self)
+            self._physical_vm_observation = None
         self._closed = True
         self._physical_vm_span = None
         self._inputs.clear()
