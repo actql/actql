@@ -40,6 +40,11 @@ if (selected) {
   require('node:http');
   require('node:https');
   require('node:tls');
+  const {TextDecoder} = require('node:util');
+  // Resolve Node's lazy global before inspecting its data descriptor. Both
+  // module-cached Core decoders and per-read metadata decoders must use this
+  // same original constructor, not a later application replacement.
+  if (globalThis.TextDecoder !== TextDecoder) unavailable();
   // This opt-in physical startup keeps the selected allocator/pool premise
   // invariant, rather than trying to infer historical slabs at Host.open().
   // It is not a language restriction or a default for existing processes.
@@ -48,6 +53,8 @@ if (selected) {
     [Buffer, 'from'], [Buffer, 'concat'],
     [Readable.prototype, 'read'], [Readable.prototype, 'push'],
     [Readable.prototype, 'unshift'], [Socket.prototype, 'read'],
+    [globalThis, 'TextDecoder'], [TextDecoder.prototype, 'decode'],
+    [Buffer.prototype, 'subarray'],
   ].map(([owner, name]) => {
     const descriptor = Object.getOwnPropertyDescriptor(owner, name);
     if (descriptor === undefined || !Object.hasOwn(descriptor, 'value')) unavailable();
