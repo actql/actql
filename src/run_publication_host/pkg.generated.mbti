@@ -723,6 +723,8 @@ pub fn client_model_current_state_match_current(@physical_resources.OriginalCurr
 
 pub fn client_model_current_state_read_bounds(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph) -> Result[@physical_resources.OriginalCurrentStateReadBounds, ClientModelReadPreparationIssue]
 
+pub fn client_model_handed_off_read_capacity_available(ClientModelReadScope, ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Bool
+
 pub fn client_model_original_origin_field(ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue, String) -> Result[String, ClientModelOriginalOriginIssue]
 
 pub fn client_model_parked_read_capacity_available(@physical_resources.OriginalResourcePark[ClientModelReadOrigin], ClientModelReadScope, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Bool

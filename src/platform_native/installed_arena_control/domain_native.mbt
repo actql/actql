@@ -5,10 +5,26 @@ struct InstalledArenaDomain {
   host : InstalledArenaHost
   backing : @bootstrap.NativeHostBootstrap[InstalledArenaHost]
   mut allocation : @bootstrap.NativeBootstrapAllocation[InstalledArenaHost]?
-  mut region : @bootstrap.NativeBackedExecutionRegion[InstalledArenaHost, InstalledArenaDomain]?
-  mut loan : @bootstrap.NativeBackedExecutionLoan[InstalledArenaHost, InstalledArenaDomain]?
-  mut view : @bootstrap.NativeBackedExecutionView[InstalledArenaHost, InstalledArenaDomain]?
-  mut domain : @bootstrap.NativeBackedExecutionDomain[InstalledArenaHost, InstalledArenaDomain]?
+  mut region : @bootstrap.NativeBackedExecutionRegion[
+    InstalledArenaHost,
+    InstalledArenaDomain,
+  ]?
+  mut loan : @bootstrap.NativeBackedExecutionLoan[
+    InstalledArenaHost,
+    InstalledArenaDomain,
+  ]?
+  mut view : @bootstrap.NativeBackedExecutionView[
+    InstalledArenaHost,
+    InstalledArenaDomain,
+  ]?
+  mut domain : @bootstrap.NativeBackedExecutionDomain[
+    InstalledArenaHost,
+    InstalledArenaDomain,
+  ]?
+  mut live_channel : @bootstrap.NativeBackedLiveChannel[
+    InstalledArenaHost,
+    InstalledArenaDomain,
+  ]?
   mut closed : Bool
 }
 
@@ -28,7 +44,10 @@ pub fn InstalledArenaHost::prepare_domain(
   fd : Int,
   bytes : Int64,
   limits : @resources.LedgerLimits,
-) -> Result[InstalledArenaDomainAcquisition, @bootstrap.NativeBackedExecutionIssue] {
+) -> Result[
+  InstalledArenaDomainAcquisition,
+  @bootstrap.NativeBackedExecutionIssue,
+] {
   if bytes <= 0L || fd < 0 || self.domains.length() >= self.domain_record_limit {
     return Err(@bootstrap.Bootstrap(@bootstrap.Unavailable))
   }
@@ -41,8 +60,15 @@ pub fn InstalledArenaHost::prepare_domain(
     Ok(value) => value
   }
   let record : InstalledArenaDomain = {
-    host: self, backing, allocation: None, region: None, loan: None,
-    view: None, domain: None, closed: false,
+    host: self,
+    backing,
+    allocation: None,
+    region: None,
+    loan: None,
+    view: None,
+    domain: None,
+    live_channel: None,
+    closed: false,
   }
   self.domains.push(record)
   match record.prepare_original(scope, fd, bytes, limits) {
@@ -70,10 +96,23 @@ fn InstalledArenaDomain::prepare_original(
   }
   self.region = Some(region)
   let extent : @resources.BackedExecutionExtent = {
-    offset: 0L, length: bytes, payload_offset: 0L, payload_length: bytes,
+    offset: 0L,
+    length: bytes,
+    payload_offset: 0L,
+    payload_length: bytes,
   }
-  let loan = match self.backing.lend_backed_region(self.host, region, scope.original,
-    self, extent, @resources.ExclusiveWrite, limits, 0L, 0L) {
+  let loan = match
+    self.backing.lend_backed_region(
+      self.host,
+      region,
+      scope.original,
+      self,
+      extent,
+      @resources.ExclusiveWrite,
+      limits,
+      0L,
+      0L,
+    ) {
     Err(issue) => return Err(issue)
     Ok(@bootstrap.Pending(value, issue)) => {
       self.loan = Some(value)
@@ -108,17 +147,17 @@ pub fn InstalledArenaHost::require_domain_current(
   self : InstalledArenaHost,
   record : InstalledArenaDomain,
 ) -> Result[Unit, @bootstrap.NativeBackedExecutionIssue] {
-  if !physical_equal(record.host, self) || record.closed ||
+  if !physical_equal(record.host, self) ||
+    record.closed ||
     !self.domains.any(original => physical_equal(original, record)) {
     return Err(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))
   }
   match self.original_backing() {
     Err(issue) => return Err(@bootstrap.Bootstrap(issue))
-    Ok(backing) => {
+    Ok(backing) =>
       if !physical_equal(backing, record.backing) {
         return Err(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))
       }
-    }
   }
   guard record.domain is Some(domain) else {
     return Err(@bootstrap.Bootstrap(@bootstrap.Unavailable))
@@ -144,7 +183,10 @@ pub fn InstalledArenaHost::transfer_domain(
 pub fn InstalledArenaHost::project_prepared_domain(
   self : InstalledArenaHost,
   record : InstalledArenaDomain,
-) -> Result[@bootstrap.NativePreparedDomainTransport, @bootstrap.NativeBackedExecutionIssue] {
+) -> Result[
+  @bootstrap.NativePreparedDomainTransport,
+  @bootstrap.NativeBackedExecutionIssue,
+] {
   match self.require_domain_current(record) {
     Err(issue) => return Err(issue)
     Ok(_) => ()
@@ -189,7 +231,9 @@ pub fn InstalledArenaHost::close_domain_after_owner_ack(
   if !physical_equal(record.host, self) {
     return Err(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal))
   }
-  if record.closed { return Ok(()) }
+  if record.closed {
+    return Ok(())
+  }
   if record.domain is Some(domain) {
     match record.backing.close_backed_domain(self, domain, record) {
       Err(issue) => return Err(issue)
@@ -203,7 +247,13 @@ pub fn InstalledArenaHost::close_domain_after_owner_ack(
     }
   }
   if record.loan is Some(loan) {
-    match record.backing.settle_backed_region_after_owner_ack(self, loan, record, None) {
+    match
+      record.backing.settle_backed_region_after_owner_ack(
+        self,
+        loan,
+        record,
+        None,
+      ) {
       Err(issue) => return Err(issue)
       Ok(_) => record.loan = None
     }
