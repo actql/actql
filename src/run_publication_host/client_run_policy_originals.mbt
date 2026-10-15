@@ -38,6 +38,15 @@ pub fn issue_client_run_policy_originals(
     Ok(value) => value
     Err(issue) => return Err(PublicationPolicy(issue))
   }
+  encode_client_run_policy_originals(bodies)
+}
+
+///|
+// Both callers use the same existing packet and bounds. Policy selection and
+// original Host/journal authenticity are separate from this pure encoding.
+fn encode_client_run_policy_originals(
+  bodies : Array[(String, String, String)],
+) -> Result[String, ClientRunPolicyOriginalsIssue] {
   guard bodies.length() > 0 && bodies.length() <= 64 else {
     return Err(CapacityExceeded)
   }

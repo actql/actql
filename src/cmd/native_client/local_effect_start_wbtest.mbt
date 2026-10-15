@@ -64,12 +64,94 @@ test "CLI first Effect compilation retains original create profile and exact nor
     ),
   )
   assert_eq(original.materials.request, Some(original.request))
+  assert_true(
+    physical_equal(
+      @run_host.prepared_client_effect_run_computation(original.bound),
+      prepared,
+    ),
+  )
   assert_eq(
     @publication.run_evidence_value_json(
       @run_host.restore_client_effect_run_normalization(original.materials).unwrap(),
     ),
     "{\"entries\":[],\"journal_cid\":\"sha256:849788c9eede8ad674223eb06775c2dba2cf0ed1d02ceb0a5de6ccfeec2cb087\",\"rule_catalog_cid\":\"sha256:ea21a2a2ab522cbf960c5e97120648e351db7c127768101502210ed7d8fcfb38\",\"version\":\"actql-normalization-journal/0.1\"}",
   )
+}
+
+///|
+// This executes the CLI's first compiled Run with the existing Core fixture
+// Ledger. It does not install normal funding, accept a journal Run or authorize
+// an Effect. Public contract bodies are fixed by the matching-target guard.
+test "CLI first Effect binding remains the nominal owner through Local Values Compute and capture" {
+  let original = local_effect_prefix_fixture_original(
+    local_effect_prefix_fixture_preparation(),
+  )
+  let registry = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_REGISTRY").unwrap()
+  let values = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_VALUES").unwrap()
+  let fragment = @env.get_env_var("ACTQL_TEST_LOCAL_EFFECT_FRAGMENT")
+  let capacity = @local_values.client_effect_local_ledger_limits(
+    original.materials.prepared,
+    registry,
+    values,
+    fragment,
+    None,
+  ).unwrap()
+  let captured = @run_host.open_prepared_source_free_client_effect_run(
+    original.bound,
+    capacity,
+  ).unwrap()
+  let dag = @strategy.captured_effect_run_dag(captured)
+  defer {
+    @strategy.stop_captured_dag(dag)
+    @strategy.close_captured_task_output(dag, 0)
+    @strategy.refresh_captured_retention(dag)
+  }
+  // Equal canonical inputs cannot replace this nominal first binding.
+  let replacement = @run_host.bind_client_effect_compiled_run(
+    original.materials.prepared,
+    original.allowed,
+    original.definition,
+  ).unwrap()
+  assert_true(
+    @local_values.configure_source_free_effect_local_retained_host(
+      replacement,
+      captured,
+      registry,
+      values,
+      fragment,
+      None,
+    )
+    is None,
+  )
+  assert_false(@strategy.captured_task_completed(dag, 0))
+  let setup = @local_values.configure_source_free_effect_local_retained_host(
+    original.bound,
+    captured,
+    registry,
+    values,
+    fragment,
+    None,
+  ).unwrap()
+  let execution = @local_values.execute_source_free_values_guarded(
+    setup,
+    64,
+    1000,
+    () => true,
+  ).unwrap()
+  defer execution.close() |> ignore
+  assert_eq(execution.rows().unwrap(), ["{\"value\":\"é\\r\\n\"}"])
+  assert_true(@strategy.captured_task_completed(dag, 0))
+  let inputs = @strategy.pin_captured_effect_sources(captured, 1).unwrap()
+  defer @strategy.release_captured_effect_inputs(inputs) |> ignore
+  assert_eq(@strategy.captured_effect_inputs_count(inputs), 1)
+  let input = @strategy.captured_effect_input_at(inputs, 0).unwrap()
+  assert_true(
+    @strategy.captured_any_result_borrow_matches_managed(
+      @strategy.captured_effect_input_borrow(input),
+      execution.completed_output(),
+    ),
+  )
+  assert_eq(original.materials.request, Some(original.request))
 }
 
 ///|
