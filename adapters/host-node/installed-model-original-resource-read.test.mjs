@@ -178,6 +178,41 @@ test('original saved observation retires after original children and before read
   assert.equal(f.sends(),0);
 });
 
+test('original saved observation retirement failure keeps the same cleanup responsibility', async t=>{
+  const issue=Object.assign(new Error('OriginalObservationRetirementUnavailable'),
+    {code:'OriginalObservationRetirementUnavailable'});
+  let saved, reject=true, attempts=0;
+  const {cp,f,opened}=await originalFixture(t,{unretained:true,
+    observeSaved(value){saved=value;},
+    beforeRetireSaved(value){
+      assert.strictEqual(value,saved);
+      assert.equal(f.operation.cleanupPending(),false);
+      attempts++;
+      if(reject)throw issue;
+    }});
+  await opened.prepareOriginalResourcesForDispatch();
+  await f.operation.close();
+  assert.throws(()=>opened.cleanup(),error=>error===issue);
+  assert.equal(opened.cleanupPending(),true);
+  assert.equal(opened.token.available,true);
+  assert.strictEqual(cp.originalModelStateSavedObservationCurrent(saved),saved);
+  reject=false;
+  assert.equal(opened.cleanup(),true);
+  assert.equal(attempts,2);
+  assert.equal(opened.cleanup(),true);
+  assert.equal(attempts,2);
+  assert.throws(()=>cp.originalModelStateSavedFacts(saved),
+    {code:'OriginalModelStateSavedObservationRetired'});
+  const original=f.originalPreparation;
+  original.control.stopCheckedClientInferOriginalReadPreparation(f.compiled,
+    f.runDefinition,f.graph,f.scope,f.read);
+  original.control.settleCheckedClientInferOriginalReadPreparation(f.compiled,
+    f.runDefinition,f.graph,f.read,true);
+  assert.equal(original.control.finishCheckedClientInferOriginalReadScope(f.compiled,
+    f.runDefinition,f.graph,f.scope,true),true);
+  assert.equal(f.sends(),0);
+});
+
 test('original save caller retires transient origin document before saved-state await', async t=>{
   assert.equal(typeof global.gc,'function','The selected lifetime counter requires --expose-gc');
   let observed,originChecks=0,saves=0;
@@ -274,7 +309,9 @@ test('original dispatch caller preserves exact opening refusal after real save w
 });
 
 test('original dispatch caller keeps actual invalidation COMMIT loss parked and never blindly repeats',async t=>{
-  const {cp,f,opened,retains}=await originalFixture(t,{unretained:true});
+  let saved, retired=0;
+  const {cp,f,opened,retains}=await originalFixture(t,{unretained:true,
+    observeSaved(value){saved=value;}, beforeRetireSaved(){retired++;}});
   const originalExec=DatabaseSync.prototype.exec;
   let linked=false,losses=0;
   DatabaseSync.prototype.exec=function(sql,...args){
@@ -297,6 +334,9 @@ test('original dispatch caller keeps actual invalidation COMMIT loss parked and 
   assert.equal(opened.close(),false);
   assert.equal(opened.cleanupPending(),true);
   assert.equal(opened.token.available,true);
+  assert.ok(saved);
+  assert.strictEqual(cp.originalModelStateSavedObservationCurrent(saved),saved);
+  assert.equal(retired,0,'Unknown COMMIT is not observation retirement');
   assert.equal(cp.journal.readModelCalls(opened.inventory).slots[0].state,'Unsent');
   assert.equal(f.sends(),0);
 });
