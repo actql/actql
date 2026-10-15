@@ -1729,7 +1729,12 @@ export async function openLocalPublicationStore(
           group.busy = operation.catch(() => {});
           materialRetentionBusy = group.busy;
           holder.releasing = operation.catch(error => {
-            errors.push(error);
+            // Private diagnostics retain the original first and latest
+            // failed release, not an unbounded retry log. Keep both roles
+            // even when the same Error is reused; status snapshots own their
+            // copied arrays. This never settles the original physical duty.
+            if (errors.length < 2) errors.push(error);
+            else errors[1] = error;
             throw error;
           }).finally(() => { holder.releasing = undefined; });
           return holder.releasing;
