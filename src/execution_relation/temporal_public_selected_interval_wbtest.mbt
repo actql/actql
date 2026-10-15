@@ -15,6 +15,16 @@ test "original temporal operands complete through selected interval with exact s
       ),
     ] {
     let owner = bound_pipeline(steps)
+    let sequence = prepared_sequence(owner)
+    let contexts = []
+    for index in 0..<@lower.sequence_count(sequence) {
+      if @lower.sequence_step(sequence, index) is Some(@lower.RowStep(kernel)) &&
+        @lower.kernel_operation(kernel) is @lower.Derive(_) {
+        // Each original source-free SELECT maps its own one-row Values seed.
+        // Supply the existing exact occurrence fragment; no permissive default.
+        contexts.push(sequence_fragment_context(sequence, index, 1L))
+      }
+    }
     let retained = Array::makei(
       @pipeline.step_count(@lower.pipeline(@lower.bound_preparation(owner))),
       fn(index) {
@@ -26,8 +36,8 @@ test "original temporal operands complete through selected interval with exact s
     let generated = match
       prepare_generated_sequence(
         registered_relation_contracts(),
-        prepared_sequence(owner),
-        [],
+        sequence,
+        contexts,
         retained,
         100000,
         10000,
