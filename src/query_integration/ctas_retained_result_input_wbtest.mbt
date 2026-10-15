@@ -6,7 +6,12 @@ test "ordinary Store captures its filtered Result separately from an earlier pub
   let document =
     #|{"version":"actql/0.1","id":"ctas-retained-input","stages":[{"id":"main","inputs":{},"steps":[{"values":{"schema":{"value":{"type":"number","nullable":false}},"rows":[{"value":1}]},"as":"original"},{"from":"original","filter":"value = 2","as":"filtered"}],"results":{"before_write":{"from":"original","fields":["value"]},"written":{"from":"filtered","fields":["value"]}},"effects":{"save":{"store":{"target":"connector://crm/account","mapping":"mapping:crm.account.v1","from":{"result":"written"}}}}}],"results":{"before_write":{"from":{"stage":"main","result":"before_write"}}}}
   let prepared = @publication_host.prepare_client_effect_computation(
-    document, Json, environment, None, [], limits,
+    document,
+    Json,
+    environment,
+    None,
+    [],
+    limits,
   ).unwrap()
   for name in ["before_write", "written"] {
     let definition = @publication_host.issue_client_effect_local_result_definition(
@@ -23,8 +28,14 @@ test "ordinary Store captures its filtered Result separately from an earlier pub
   ).unwrap()
   assert_true(
     @publication_host.issue_client_effect_local_manifest(
-      prepared, invocation, [], 4096, 64, 8,
-    ) is Err(@publication_host.IncompleteResults),
+      prepared,
+      invocation,
+      [],
+      4096,
+      64,
+      8,
+    )
+    is Err(@publication_host.IncompleteResults),
   )
   let (_, _, _, captured) = local_effect_open_run(prepared)
   let run = @strategy.captured_effect_run_dag(captured)
@@ -37,7 +48,9 @@ test "ordinary Store captures its filtered Result separately from an earlier pub
   ).unwrap()
   assert_eq(sequences.length(), 1)
   let (operations, completed, available) = local_effect_execute_managed_values(
-    prepared, run, generated=Some(sequences[0]),
+    prepared,
+    run,
+    generated=Some(sequences[0]),
   )
   let pins = @strategy.pin_captured_effect_sources(captured, 3).unwrap()
   assert_eq(@strategy.captured_effect_inputs_count(pins), 1)
@@ -60,15 +73,22 @@ test "ordinary Store captures its filtered Result separately from an earlier pub
     10000,
   ).unwrap()
   for row in local_managed_test_rows(operations) {
-    @execution.append_managed_publication_bridge_wire(bridge, row,
-      { max_bytes: 100, max_nodes: 20, max_depth: 4, max_text_bytes: 100, }).unwrap()
+    @execution.append_managed_publication_bridge_wire(bridge, row, {
+      max_bytes: 100,
+      max_nodes: 20,
+      max_depth: 4,
+      max_text_bytes: 100,
+    }).unwrap()
   }
   let output = @execution.finish_managed_publication_bridge(bridge).unwrap()
   let (preparation, receipt) = local_effect_export_receipt(
     output,
     @strategy.captured_effect_input_occurrence(input),
   )
-  assert_eq(@execution.completed_relation_export_measurement(receipt).row_count, 0)
+  assert_eq(
+    @execution.completed_relation_export_measurement(receipt).row_count,
+    0,
+  )
   @execution.cancel_completed_relation_export_receipt(receipt)
   preparation |> ignore
   assert_true(@strategy.release_captured_effect_inputs(pins))
