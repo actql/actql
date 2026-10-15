@@ -114,7 +114,7 @@ fn[T, C] NativeHostBootstrap::require_region_child(
     return Err(Bootstrap(Physical(status)))
   }
   match
-    @resources.backed_execution_delegation_description(
+    @resources.check_backed_execution_delegation_current(
       loan.region.accounting,
       self,
       child,
