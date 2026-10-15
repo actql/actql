@@ -278,21 +278,36 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
     if (retired || destroying !== undefined) throw issue('UndiciOriginalTransportRetired');
     // The existing SDK start bit/Core gate owns one-shot admission. The fixed
     // original Client method/options are the actual first physical operation.
-    pending = Reflect.apply(method, client, [request]).then(response => {
-      body = response.body;
+    const response = Reflect.apply(method, client, [request]).then(response => {
+      const responseBody = response.body;
+      body = responseBody;
       // Register settlement immediately, including errors before getReader.
       // Error/destroy flags are not the later actual stream close event.
-      body.on('error', () => {});
-      bodyClosed = body.closed ? Promise.resolve(true)
-        : new Promise(resolve => body.once('close', () => resolve(true)));
+      responseBody.on('error', () => {});
+      if (responseBody.closed) {
+        bodyClosed = Promise.resolve(true);
+        body = undefined;
+      } else {
+        bodyClosed = new Promise(resolve => responseBody.once('close', () => {
+          // Only this same body's actual close retires our unused alias.
+          // Its abort/handler/trailers need not remain pinned by a delayed
+          // Socket close. Escaped stream/raw borrowers keep their own roots;
+          // Client/connector/Socket/bodyClosed still form the original IO AND.
+          if (body === responseBody) body = undefined;
+          resolve(true);
+        }));
+      }
       // Escaped unread/reader views retain this SAME close observation after
       // the transport drops its own references. Do not make their cancellation
       // consult a mutable cell that physical cleanup can retire first.
-      return originalResponseView(response, body, bodyClosed);
+      return originalResponseView(response, responseBody, bodyClosed);
     });
-    // Cleanup and callers observe the same rejection, never an unhandled one.
-    pending.catch(() => {});
-    return pending;
+    // Cleanup needs settlement of this SAME request, not another retained
+    // fulfilled response/header view. Callers keep the original value/error;
+    // the handled child carries Unit on either outcome, never an I/O ACK.
+    const settled = () => {};
+    pending = response.then(settled, settled);
+    return response;
   };
   const cleanup = () => {
     if (retired) return Promise.resolve(true);
@@ -309,7 +324,7 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
     body?.destroy();
     socket?.destroy(issue('UndiciOriginalTransportRetired'));
     destroying = client.destroy().then(async () => {
-      if (pending !== undefined) await pending.catch(() => {});
+      if (pending !== undefined) await pending;
       if (connectorFinished !== undefined && await connectorFinished !== true) return false;
       if (socketClosed !== undefined && await socketClosed !== true) return false;
       if (bodyClosed !== undefined && await bodyClosed !== true) return false;
@@ -317,7 +332,7 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
       retireAcquisition = undefined;
       acquisition.refused = true;
       acquisition.backings = undefined;
-      // Drop our own aliases only after physical closure. Escaped body/raw
+      // Drop the remaining aliases only after physical closure. Escaped body/raw
       // borrowers can still retain the Socket's input buffer: Model/SDK/Store
       // holding settlement, not this IO ACK, decides their byte retirement.
       client = undefined;

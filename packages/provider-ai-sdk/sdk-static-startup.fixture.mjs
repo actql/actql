@@ -2,6 +2,8 @@
 // Not in the package files allowlist. No SDK/Provider call or secret read.
 if (process.argv[2] === 'entry-unreachable') {
   console.log('unexpected-entry-import');
+} else if (process.argv[2]?.startsWith('eager-')) {
+  await import('../../adapters/host-node/infer-trusted-sdk-eager.fixture.mjs');
 } else {
   if (process.argv[2] === 'import-window') {
     // An isolated synthetic child, never the operator's ambient environment.

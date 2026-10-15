@@ -4,15 +4,26 @@ import {canonicalJson} from '../../packages/sdk/host-port.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {recordCheckpointApproval} from '../host-common/checkpoint-approval.mjs';
 import {ExecutionAuthorizationError} from '../host-common/authorization-gate.mjs';
+import {validInstallationBinding} from './ordinary-source-binding.mjs';
 
 const VERSION = 'actql-acquired-effect-continuation/0.1';
+const BOUND_VERSION = 'actql-acquired-effect-bound-continuation/0.1';
 const CAPTURE = 'actql-host-source-capture/0.1';
 const ORIGINAL_INPUT = 'actql-host-source-original-input/0.1';
 const fail = code => { throw Object.assign(new Error(code), {code}); };
 const same = (left, right) => canonicalJson(left) === canonicalJson(right);
-const sourceScope = prepared => ({...prepared.occurrence,
-  checkedSource: prepared.checkedSource, readTuple: prepared.readTuple,
-  physicalBinding: prepared.physicalBinding, physicalPolicy: prepared.physicalPolicy});
+const sourceScope = source => {
+  const {preparedSource: prepared, adapter} = source;
+  const scope = {...prepared.occurrence, checkedSource: prepared.checkedSource,
+    readTuple: prepared.readTuple, physicalBinding: prepared.physicalBinding,
+    physicalPolicy: prepared.physicalPolicy};
+  if (typeof adapter.ordinaryRecoveryBinding === 'function') {
+    const binding = adapter.ordinaryRecoveryBinding(prepared);
+    if (!validInstallationBinding(binding)) fail('HeldAcquisitionChanged');
+    scope.installationBinding = binding;
+  }
+  return scope;
+};
 const bindingFor = (runDefinitionCid, scope, acquisition, sourceEvidenceWire) => canonicalJson({
   version: CAPTURE, run_definition_cid: runDefinitionCid, scope,
   acquisition: acquisition ?? null, source_evidence_wire: sourceEvidenceWire});
@@ -27,6 +38,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
   const states = new Map();
   const restorations = new Set();
   let pendingTask;
+  let continuationVersion = VERSION;
   let captureStartedAt;
   let captureCompletedAt;
   let live = true;
@@ -39,7 +51,7 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
     try { return checkpoints.journal.committedApprovalAt(checkpointCid).current === true; }
     catch { return false; }
   };
-  const continuationWire = () => canonicalJson({version: VERSION,
+  const continuationWire = () => canonicalJson({version: continuationVersion,
     run_definition_cid: runDefinitionCid, unit_id: unitId,
     submission, pending_task: pendingTask ?? null,
     capture_started_at: captureStartedAt ?? null,
@@ -139,13 +151,17 @@ export function acquiredEffectContinuation({checkpoints, moon, acquired,
     async prepared(sources) {
       for (const source of sources) {
         const state = states.get(source.occurrence.task);
-        state.scope = JSON.parse(canonicalJson(sourceScope(source.preparedSource)));
+        state.scope = JSON.parse(canonicalJson(sourceScope(source)));
         state.source = source;
       }
+      // A newly retained installed binding has a distinct closed form. Never
+      // promote an old binding-free scope using the current installation.
+      continuationVersion = [...states.values()].some(state =>
+        state.scope.installationBinding !== undefined) ? BOUND_VERSION : VERSION;
       const restoring = resume ?? restore;
       if (restoring === undefined) return;
       const saved = restoring.continuation;
-      if (saved?.version !== VERSION || saved.run_definition_cid !== runDefinitionCid ||
+      if (saved?.version !== continuationVersion || saved.run_definition_cid !== runDefinitionCid ||
           saved.unit_id !== unitId || !same(saved.submission, submission) ||
           !Array.isArray(saved.sources) || saved.sources.length !== states.size ||
           (restore === undefined ? !Number.isSafeInteger(saved.pending_task)

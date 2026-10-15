@@ -8,6 +8,12 @@ const {Readable} = require('node:stream');
 const {createRequire} = require('node:module');
 const {dirname, join} = require('node:path');
 const originalProcess = require('node:process');
+// Selected runtime implementation duty: ONLY the V8 internal backing of these
+// two identity indices stays with this actual startup/module and escaped-handle
+// lifetime. It is not fixed SDK storage or a numerical lease. Entry records,
+// keys/value references, borrow controls, closures and check workspace remain
+// managed Host/bootstrap/Run obligations. Weak/delete/GC is not a close ACK or
+// evidence of table shrink; no other growing cache inherits this scope.
 const associations = new WeakMap();
 const generations = new WeakSet();
 const sdkFields = Object.freeze(['openai', 'providerUtils', 'createOpenAI']);
@@ -22,12 +28,21 @@ const changed = () => {
     {code: 'InferTrustedStartupChanged'});
 };
 
-// Loader provenance plus a single selected startup recipe, not current
-// poolSize/version alone. Reject other prior preload/import/loader selections.
+// Distinct exact early recipes, not flags inspected later by a caller. The
+// original two-argument recipe keeps its original static-module meaning.
+// Only this preload's actual early eager recipe may extend that duty to fixed
+// input-independent bytecode/constant/source-position storage generated here.
+const eagerSdkStartup = module.isPreloading === true &&
+  originalProcess.execArgv.length === 3 &&
+  originalProcess.execArgv[0] === '--no-lazy' &&
+  originalProcess.execArgv[1] === '--require' &&
+  originalProcess.execArgv[2] === __filename;
+// Loader provenance, not current poolSize/version alone. Reject other prior
+// preload/import/loader selections, including merely equivalent flag orders.
 const selected = module.isPreloading === true &&
-  originalProcess.execArgv.length === 2 &&
+  (eagerSdkStartup || originalProcess.execArgv.length === 2 &&
   originalProcess.execArgv[0] === '--require' &&
-  originalProcess.execArgv[1] === __filename &&
+  originalProcess.execArgv[1] === __filename) &&
   originalProcess.env.NODE_OPTIONS === undefined &&
   originalProcess.version === 'v22.22.0' &&
   originalProcess.platform === 'darwin' && originalProcess.arch === 'arm64' &&
@@ -44,6 +59,7 @@ if (selected) {
   require('node:https');
   const tls = require('node:tls');
   const {TextDecoder} = require('node:util');
+  const promise = globalThis.Promise;
   // Resolve Node's lazy global before inspecting its data descriptor. Both
   // module-cached Core decoders and per-read metadata decoders must use this
   // same original constructor, not a later application replacement.
@@ -58,6 +74,12 @@ if (selected) {
     [Readable.prototype, 'unshift'], [Socket.prototype, 'read'],
     [globalThis, 'TextDecoder'], [TextDecoder.prototype, 'decode'],
     [Buffer.prototype, 'subarray'],
+    // Preserve the native chain whose concrete Promise/await allocations the
+    // selected supplier inventories. Freezing these originals is not a byte
+    // grant, a hook/debug bound or an exemption for application callbacks.
+    [globalThis, 'Promise'], [promise, 'resolve'], [promise, 'reject'],
+    [promise.prototype, 'then'], [promise.prototype, 'catch'],
+    [promise.prototype, 'finally'], [promise.prototype, 'constructor'],
     // The selected TLS implementation owns its own peer-certificate graph,
     // hostname-verification scratch and original TLS error referents. Keep
     // the actual adapter functions, not a later application replacement.
@@ -75,6 +97,15 @@ if (selected) {
   for (const {owner, name, value} of originals) {
     Object.defineProperty(owner, name, {value, writable: false, configurable: false});
   }
+  // Species is an accessor, not another data-valued method. Keep the SAME
+  // getter without invoking it or replacing it with a function-valued field.
+  const species = Object.getOwnPropertyDescriptor(promise, Symbol.species);
+  if (species === undefined || typeof species.get !== 'function' ||
+      species.set !== undefined || Object.hasOwn(species, 'value')) unavailable();
+  const promiseSpecies = Object.freeze({owner: promise, get: species.get});
+  Object.defineProperty(promise, Symbol.species, {
+    get: species.get, set: undefined, configurable: false,
+  });
   let sdkStaticModules;
   // Resolve the OPTIONAL selected package from this actual consumer entry,
   // including normal external installations, never a monorepo source path.
@@ -107,7 +138,7 @@ if (selected) {
   // retain their original responsibility until actual cleanup, not destroy(),
   // rejection, Promise settlement or retirement of this association.
   startup = {process: originalProcess, module, entry: originalProcess.argv[1], originals,
-    sdkStaticModules, invalidated: false};
+    promiseSpecies, sdkStaticModules, eagerSdkStartup, invalidated: false};
 }
 
 function currentStartup() {
@@ -125,6 +156,13 @@ function currentStartup() {
       startup.invalidated = true;
       changed();
     }
+  }
+  const species = Object.getOwnPropertyDescriptor(startup.promiseSpecies.owner, Symbol.species);
+  if (species === undefined || species.get !== startup.promiseSpecies.get ||
+      species.set !== undefined || species.configurable !== false ||
+      Object.hasOwn(species, 'value')) {
+    startup.invalidated = true;
+    changed();
   }
 }
 
@@ -178,6 +216,13 @@ function sdkOriginals(value, retained) {
   return Object.freeze({openai, providerUtils, createOpenAI});
 }
 
+function checkSdkModules(view, originals, modules) {
+  current(view, originals.host, originals.generation);
+  const retained = associations.get(view).original.sdkStaticModules;
+  if (retained === undefined || retained !== startup.sdkStaticModules) sdkUnavailable();
+  sdkOriginals(modules, retained);
+}
+
 module.exports = Object.freeze({
   associateHost(view, originals) {
     // Missing early startup is None, not native/module coverage or success.
@@ -218,10 +263,19 @@ module.exports = Object.freeze({
     held.original.sdkStaticModules = retained;
   },
   checkSdkStaticModules(view, originals, modules) {
-    current(view, originals.host, originals.generation);
-    const retained = associations.get(view).original.sdkStaticModules;
-    if (retained === undefined || retained !== startup.sdkStaticModules) sdkUnavailable();
-    sdkOriginals(modules, retained);
+    checkSdkModules(view, originals, modules);
+  },
+  checkSdkEagerModules(view, originals, modules) {
+    // First validate the SAME bound modules/current Host or borrowed Scope.
+    // No copied flag/hash or later execArgv observation supplies this history.
+    checkSdkModules(view, originals, modules);
+    if (!startup.eagerSdkStartup) {
+      throw Object.assign(new TypeError('InferTrustedSdkEagerUnavailable'),
+        {code: 'InferTrustedSdkEagerUnavailable'});
+    }
+    // This predicate issues no byte grant and says nothing about per-call
+    // closures/frames/feedback/cache, dynamic eval, tiering or hooks. Retiring
+    // a Host association also does not retire the actual ESM/bytecode graph.
   },
   retire(view, host, generation) {
     const held = associations.get(view);
@@ -236,8 +290,10 @@ module.exports = Object.freeze({
       held.original.installation = undefined;
       held.original.sdkStaticModules = undefined;
     }
-    // Only Host borrow retirement; startup.sdkStaticModules deliberately keeps
-    // the actual process/module graph. Last Host/Run close does not retire ESM.
+    // Only Host borrow retirement; the selected runtime still owns these two
+    // indices' internal backing, including weak membership of escaped retired
+    // generations. startup.sdkStaticModules keeps its separate fixed graph.
+    // Last Host/Run close does not retire either process/module responsibility.
     // No native/process/physical-stop ACK or numerical baseline is issued.
   },
 });

@@ -12,6 +12,38 @@ const fail = code => {
 const nominal = value => value !== null &&
   (typeof value === 'object' || typeof value === 'function');
 
+// Private DATA from the actual opened Store, not a caller's size declaration.
+// Preserve the issuer's one immutable record rather than copying its Strings
+// or repeatedly allocating a new projection at every current/Scope check.
+function originalStoreDimensions(store) {
+  const method = Object.getOwnPropertyDescriptor(store, 'originalModelStorageDimensions');
+  // Legacy/private Store associations remain usable without these observations.
+  // Their absent dimensions are Unavailable, never zero or inferred from caps.
+  if (method === undefined) return undefined;
+  if (!Object.hasOwn(method, 'value') || typeof method.value !== 'function') {
+    fail('InferTrustedStoreDimensionsUnavailable');
+  }
+  const value = Reflect.apply(method.value, store, []);
+  const fields = ['directoryCodeUnits', 'directoryUtf8Bytes',
+    'privateNamespaceCodeUnits', 'privateNamespaceUtf8Bytes', 'privateKeyBytes'];
+  if (!nominal(value) || Array.isArray(value) || !Object.isFrozen(value)) {
+    fail('InferTrustedStoreDimensionsUnavailable');
+  }
+  const names = Reflect.ownKeys(value);
+  if (names.length !== fields.length || names.some(name => !fields.includes(name))) {
+    fail('InferTrustedStoreDimensionsUnavailable');
+  }
+  for (const name of fields) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, name);
+    if (descriptor === undefined || descriptor.enumerable !== true ||
+        !Object.hasOwn(descriptor, 'value') ||
+        !Number.isSafeInteger(descriptor.value) || descriptor.value <= 0) {
+      fail('InferTrustedStoreDimensionsUnavailable');
+    }
+  }
+  return value;
+}
+
 // Inspect and retain the same descriptor values, without invoking getters or
 // deep-copying original handles. Reflection does not isolate hostile code.
 function checkOriginalShape(value) {
@@ -109,6 +141,19 @@ class TrustedRuntimeView {
     }
   }
 
+  static storeDimensions(view, actual, store, moduleLifetime) {
+    TrustedRuntimeView.checkStore(view, actual, store, moduleLifetime);
+    if (Object.hasOwn(view.#store, 'dimensions')) return view.#store.dimensions;
+    // Acquire only for this new observation role. Ordinary Store association
+    // does not require a Model private key or create a projected size record.
+    const value = originalStoreDimensions(store);
+    if (value === undefined) fail('InferTrustedStoreDimensionsUnavailable');
+    // A physical method must not replace/retire this Host during observation.
+    TrustedRuntimeView.checkStore(view, actual, store, moduleLifetime);
+    view.#store = Object.freeze({store, moduleLifetime, dimensions: value});
+    return value;
+  }
+
   static forget(view, host, generation) {
     const retained = TrustedRuntimeView.#binding(view);
     if (retained.host !== host || retained.generation !== generation) {
@@ -156,6 +201,14 @@ export function checkInferTrustedStore(view, actualOriginals, store, moduleLifet
   TrustedRuntimeView.checkStore(view, actualOriginals, store, moduleLifetime);
 }
 
+// The same Host selection borrows these immutable size observations. Neither
+// the record nor a matching copy authenticates a Store, observes availability,
+// funds paths/encodings/managed controls or grants read/restore/send. The owning
+// caller still performs its actual Store/Scope current checks at every use.
+export function selectedInferTrustedStoreDimensions(view, actualOriginals, store, moduleLifetime) {
+  return TrustedRuntimeView.storeDimensions(view, actualOriginals, store, moduleLifetime);
+}
+
 // Existing Host cleanup calls this only after its actual duties settle. There
 // is deliberately no success Bool/callback, lease release, reopen or reset API.
 // A failed/pending cleanup retains the same view and its original references.
@@ -165,6 +218,10 @@ export function forgetInferTrustedRuntimeView(view, actualHost, actualGeneration
 
 // Associate the actual early startup original with this existing eight-ref
 // view. A late embedded import returns None, never reconstructed coverage.
+// Its exact runtime duty includes only V8 internal backing of that startup's
+// associations/generations indices, through module/escaped-handle lifetime.
+// ActQL records/references/controls and workspace still need managed funding;
+// this is neither fixed SDK classification nor numerical/physical-close ACK.
 export function associateInferTrustedStartupView(view, actualOriginals) {
   TrustedRuntimeView.check(view, actualOriginals);
   return startup.associateHost(view, actualOriginals);
@@ -189,6 +246,16 @@ export function bindInferTrustedSdkStaticModules(view, actualOriginals, modules)
 export function checkInferTrustedSdkStaticModules(view, actualOriginals, modules) {
   requireInferTrustedStartupView(view, actualOriginals);
   startup.checkSdkStaticModules(view, actualOriginals, modules);
+}
+
+// Additional private responsibility of the distinct exact early eager recipe.
+// Requires the existing same-module binding, not a caller flag or new Owner.
+// Covers only fixed input-independent compilation storage actually produced at
+// that startup; lazy/per-call/feedback/cache/optimizer/hook state stays managed
+// or unavailable. The selector field and checks also need bootstrap coverage.
+export function checkInferTrustedSdkEagerModules(view, actualOriginals, modules) {
+  requireInferTrustedStartupView(view, actualOriginals);
+  startup.checkSdkEagerModules(view, actualOriginals, modules);
 }
 
 // Caller has checked the SAME actual Common scope before this association.

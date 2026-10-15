@@ -16,6 +16,8 @@ options(
     "sqlite_unsupported.mbt": [ "not", "native" ],
     "sqlite_wbtest.mbt": [ "native" ],
     "diagnostic_ceiling_native_wbtest.mbt": [ "native" ],
+    "selected_library_custody_native_wbtest.mbt": [ "native" ],
+    "selected_library_unsupported_wbtest.mbt": [ "not", "native" ],
     "readback_retirement_native_wbtest.mbt": [ "native" ],
     "bounded_read_native_wbtest.mbt": [ "native" ],
     "open_failure_custody_native_wbtest.mbt": [ "native" ],

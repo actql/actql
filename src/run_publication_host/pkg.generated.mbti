@@ -1159,6 +1159,8 @@ pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowe
 
 pub fn encode_client_local_read_preimage(Array[(String, ClientLocalReadEvidenceValue)]) -> Result[String, ClientLocalReadPreimageIssue]
 
+pub fn encode_client_source_free_policy_originals(@run_publication.CapturedEffectDependencyBody) -> Result[String, ClientRunPolicyOriginalsIssue]
+
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
 
 pub fn enter_client_model_read_consumer(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[Unit, ClientModelReadPreparationIssue]
@@ -1679,6 +1681,8 @@ pub fn prepared_client_values_sequence_limits(PreparedClientProgram) -> @lowerin
 
 pub fn project_client_remote_task_run(ClientRemoteTaskProgress, String, Bool, Array[String]) -> Result[ClientRemoteTaskRunProjection, ClientRemoteTaskRunProjectionIssue]
 
+pub fn read_client_captured_effect_subject(ClientEffectAllowedRun, @run_publication.PublicationContract, @physical_strategy.CapturedEffectPreviewInputs, @checkpoint_runtime.SealedCheckpoint) -> Result[ClientCapturedEffectSubjectRead, ClientEffectCheckpointBindingIssue]
+
 pub fn read_client_infer_occurrence_model_execution(ClientInferOccurrence, Bytes, String, @check_environment.Limits, Int) -> Result[@check_environment.ModelExecutionContract, ClientInferPlanGraphIssue]
 
 pub fn read_client_infer_saved_call_scope(ClientCompiledRun, @run_publication.PublicationContract, ClientInferOccurrence, ClientInferPlanGraph, String, String, () -> Bool) -> Result[ClientInferSavedCallScope, ClientInferCallScopeIssue]
@@ -1928,6 +1932,9 @@ pub(all) struct ClientCapturedEffectPreviewLimits {
   max_depth : Int
   plan : @stage_results.EffectPlanIdentityLimits
 }
+
+type ClientCapturedEffectSubjectRead
+pub fn ClientCapturedEffectSubjectRead::original_subject_after_current(Self) -> Result[(String, String), ClientEffectCheckpointBindingIssue]
 
 pub(all) enum ClientCapturedSourceLogicalIssue {
   ForeignPrepared

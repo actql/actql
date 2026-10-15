@@ -37,7 +37,7 @@ class SQLiteSourceTests(unittest.TestCase):
         for name, raw in [('sqlite3.c', b'pinned engine\n'), ('sqlite3.h', b'pinned header\n')]:
             self.recipe['upstream']['members'][name] = {
                 **identity(raw), 'sha3_256': hashlib.sha3_256(raw).hexdigest()}
-        for name in ('component.c', 'component.h', 'NOTICE'):
+        for name in ('component.c', 'component.h', 'api.h', 'NOTICE'):
             (self.source / name).write_bytes((SOURCE / name).read_bytes())
 
     def stage(self):
