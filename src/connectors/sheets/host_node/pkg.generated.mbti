@@ -12,6 +12,8 @@ pub fn sheets_grid_request_json(String, Int, Int, Int, Int, Int, Int, Int, Int, 
 
 pub fn sheets_target_json(Bytes, String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String
 
+pub fn sheets_update_request_json(String, String, Int, Int, Int, Int, Int, Int, Int, Int, Int) -> String
+
 // Errors
 
 // Types and methods
