@@ -3,13 +3,14 @@ import {checkoutState} from '../../scripts/packed-client-packages.mjs';
 import {runLocalCheck} from '../../scripts/local-checks-guard.mjs';
 const [source, phase] = process.argv.slice(2), root = process.cwd();
 const before = checkoutState(root); assert(before.clean); assert.equal(before.revision, source);
-assert(['prepare', 'counter', 'prepare-comparison', 'comparison', 'api'].includes(phase));
+assert(['prepare', 'counter', 'prepare-comparison', 'comparison', 'prepare-final', 'final', 'api'].includes(phase));
 const file = 'src/query_integration/composite_installed_ledger_wbtest.mbt';
 const comparisons = ['src/execution_relation/positional_identity_order_wbtest.mbt',
   'src/execution_relation/stable_order_wbtest.mbt',
   'src/execution_relation/bounded_distinct_tree_wbtest.mbt'];
 const preparing = phase.startsWith('prepare');
-const selected = phase.includes('comparison') ? comparisons : [file];
+const selected = phase.endsWith('final') ? [file, ...comparisons]
+  : phase.includes('comparison') ? comparisons : [file];
 const runner = 'import{runFocusedTests}from"./scripts/test-execution.mjs";process.exitCode=runFocusedTests("moon",process.argv.slice(1),{cwd:process.cwd(),timeout:30000});';
 process.exitCode = await runLocalCheck({root, heavy: preparing,
   timeoutSeconds: preparing ? 180 : 60, graceSeconds: 5,
