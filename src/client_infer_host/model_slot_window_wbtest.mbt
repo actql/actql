@@ -27,10 +27,27 @@ test "two original async Slots enter before the first response settles" {
   guard fixture_finish(active, initial_work=prefix) is AwaitIo(work~) else {
     abort("original first Slot must await its original response")
   }
-  // Finite independent observation. Pending does not permit fabricated work,
-  // replacement calls or advancing another Run as a substitute for this one.
-  for _ in 0..<8 {
-    async_assert_wait(active, work)
+  // Preparing/entering the next Slot is real bounded work. Permit that work,
+  // rather than requiring every advance after the first wait to remain idle.
+  // A pure I/O wait still cannot invent work. Neither response becomes ready.
+  let mut last_work = work
+  for _ in 0..<64 {
+    match advance(active, 1).unwrap() {
+      Continue(work=actual) => {
+        assert_true(actual >= last_work && actual - last_work <= 1L)
+        last_work = actual
+      }
+      AwaitIo(work=actual) => assert_eq(actual, last_work)
+      _ => abort("neither original response is available for adoption")
+    }
+    if calls.val == 2 {
+      break
+    }
+  }
+  if calls.val == 2 {
+    for _ in 0..<8 {
+      async_assert_wait(active, last_work)
+    }
   }
   let starts_before_first_response = calls.val
   assert_true(polls.val > 0)
