@@ -278,3 +278,50 @@ test "cleanup cannot detach a nested caller or invoke another Store current read
   assert_true(physical_equal(same_operation.unwrap(), operation))
   assert_true(@site.settle_site_operation(operation))
 }
+
+///|
+test "pre-I/O setup refusal forwards the same reservation through terminal diagnosis" {
+  let parent = @env.get_env_var("ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT").unwrap()
+  let slot_path = parent + "/site-terminal-reservation.slot"
+  let slot = @slot.open_native_executor_slot(slot_path).unwrap()
+  assert_true(slot.try_acquire().unwrap())
+  let site = host_setup_test_site(1)
+  let current_reads = Ref(0)
+  let scope = begin_holder_effect_host_preparation_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+    () => {
+      current_reads.val += 1
+      true
+    },
+  ).unwrap()
+  let operation = scope.caller_operation.unwrap()
+  let reserved = @site.site_status(site)
+  let original = site_environment_open_custody(
+    "original domain preparation refused",
+    "original-process",
+    original_setup_scope=Some(scope),
+  )
+  // No domain or I/O child was acquired. The actual failure receiver closes
+  // this Slot, but must not settle its caller reservation ahead of diagnosis.
+  let returned = finish_failed_site_environment_open(original, slot)
+  assert_true(original.original_setup_scope is None)
+  assert_true(scope.caller_operation is None)
+  assert_eq(current_reads.val, 0)
+  assert_eq(@site.site_status(site), reserved)
+  match finish_holder_command(returned) {
+    Some(terminal) => {
+      assert_true(physical_equal(terminal.operation, operation))
+      assert_eq(terminal.failure, "original domain preparation refused")
+      assert_eq(@site.site_status(site), reserved)
+      // Independent terminal consumer observes the diagnosis before returning
+      // its disposable fixture's same reservation; no replacement is issued.
+      assert_true(@site.settle_site_operation(terminal.operation))
+    }
+    None => fail("original failure/reservation was discarded")
+  }
+  let next = @slot.open_native_executor_slot(slot_path).unwrap()
+  assert_true(next.try_acquire().unwrap())
+  assert_true(next.close())
+}
