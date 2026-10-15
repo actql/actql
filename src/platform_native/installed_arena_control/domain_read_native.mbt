@@ -104,6 +104,11 @@ pub fn InstalledArenaHost::close_domain_read(
 ) -> Result[Unit, @bootstrap.NativeBackedExecutionIssue] {
   match self.original_read_domain(record) {
     Err(issue) => Err(issue)
-    Ok(domain) => record.backing.close_backed_read_context(self, domain, record)
+    Ok(domain) => {
+      if record.sqlite_library is Some(library) && !library.closed {
+        return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
+      }
+      record.backing.close_backed_read_context(self, domain, record)
+    }
   }
 }
