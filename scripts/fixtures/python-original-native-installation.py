@@ -1,7 +1,8 @@
 """Physical installed-original custody with scalar Core and real Native SQL; retained component mixed diagnostic.
 
-Fresh fixture files only. This proves neither ordinary Host funding nor a new
-runtime cohort. Faults are injected after actual published SQL replies.
+Fresh fixture files only. The scalar Core supplies opaque transport material,
+not Account/Policy/Run validation. This is not ordinary Host funding, an
+installed runtime cohort or same-Run recovery acceptance.
 """
 import ctypes as C
 import hashlib
