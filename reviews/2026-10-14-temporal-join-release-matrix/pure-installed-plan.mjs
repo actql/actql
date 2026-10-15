@@ -44,7 +44,9 @@ for (const name of ['temporal-json-interval-left', 'temporal-sql-interval-left']
   assert.equal(compiled.$tag, 1, 'original public task compilation');
   const view = moon.clientProgramTaskStaticPlanView(prepared, compiled._0, 1000000, 100000, 100);
   assert.equal(view.$tag, 1, 'original read-only static task view');
-  observations.push({name, plan: JSON.parse(view._0)});
+  observations.push({name, plan: JSON.parse(view._0),
+    executablePlan: JSON.parse(moon.clientProgramTaskCompilationPlanWire(compiled._0)),
+    compiledPlan: JSON.parse(moon.clientProgramTaskCompilationCompiledPlanWire(compiled._0))});
 }
 await writeFile(destination, JSON.stringify({artifactSource: manifest.sourceSha,
   compilerOnly: true, Host: 0, Run: 0, Source: 0, DB: 0, observations}, null, 2) + '\n', {flag: 'wx', mode: 0o600});
