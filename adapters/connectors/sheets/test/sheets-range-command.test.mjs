@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import test from 'node:test';
+import {inspect} from 'node:util';
 import * as provider from '../../../../_build/js/release/build/connectors/sheets/host_node/host_node.js';
 import * as common from '../../../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js';
 import {checked} from '../../../host-common/runtime-result.mjs';
@@ -102,7 +103,8 @@ test('Sheets range authored Program reaches the existing effect preparation and 
   const outcome = common.clientProgramPrepareEffectComputationWithParameters(
     rangeProgram(range.command.command_id, rows, profile.connectorId), 'json', environment, undefined, []);
   const prepared = common.clientProgramEffectPreparationReady(outcome);
-  assert(prepared, common.clientProgramEffectPreparationIssueCode(outcome));
+  assert(prepared, inspect(common.clientProgramEffectPreparationIssue(outcome),
+    {depth: 9, maxArrayLength: 0, maxStringLength: 100, customInspect: false, getters: false}));
   const compiled = checked(common.clientProgramCompileLocalEffects(prepared));
   assert.deepEqual(common.clientProgramEffectCompilationResultNames(compiled), ['answer']);
 });
