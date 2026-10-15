@@ -42,7 +42,9 @@ test "canonical positional identity compares numeric component order without adm
             found = true
             break
           }
-          Err(_) => fail("canonical positional identity order failed")
+          Err(InvalidInput) => fail("canonical positional identity invalid input")
+          Err(Limit) => fail("canonical positional identity resource limit")
+          Err(Scalar(_)) => fail("canonical positional identity scalar failure")
         }
       }
     }
