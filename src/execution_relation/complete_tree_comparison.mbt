@@ -20,7 +20,10 @@ priv enum CompleteTreeComparisonFrame {
   PositionalMembers(
     @admitted.FrozenArray[(String, @admitted.Value)],
     @admitted.FrozenArray[(String, @admitted.Value)],
-    Int, Int, Int, Int
+    Int,
+    Int,
+    Int,
+    Int
   )
   TextUnits(
     String,
@@ -59,20 +62,18 @@ fn start_complete_tree_comparison(
     return Err(Limit)
   }
   let first = if positional_count > 1 {
-    guard left is @admitted.Object(a) && right is @admitted.Object(b) &&
+    guard left is @admitted.Object(a) &&
+      right is @admitted.Object(b) &&
       @admitted.element_count(a) == positional_count &&
       @admitted.element_count(b) == positional_count else {
       release_slots(workspace, 2)
       return Err(InvalidInput)
     }
     PositionalMembers(a, b, 0, positional_count, 0, positional_count)
-  } else { CompareAdmitted(left, right) }
-  Ok({
-    workspace,
-    frames: [first],
-    outer_charge: true,
-    closed: false,
-  })
+  } else {
+    CompareAdmitted(left, right)
+  }
+  Ok({ workspace, frames: [first], outer_charge: true, closed: false, })
 }
 
 ///|
@@ -287,26 +288,52 @@ fn advance_complete_tree_comparison(
       let name = index.to_string()
       // Search the admitted canonical object one bounded probe per advance.
       // Numeric position, not lexical object-member order, is authoritative.
-      if low >= high { return Err(InvalidInput) }
+      if low >= high {
+        return Err(InvalidInput)
+      }
       let middle = low + (high - low) / 2
       let (ln, lv) = @admitted.element_at(left, middle).unwrap()
       let (rn, rv) = @admitted.element_at(right, middle).unwrap()
       // Positional member names are decimal Int positions, at most ten units.
-      if ln.length() > 10 || rn.length() > 10 { return Err(InvalidInput) }
+      if ln.length() > 10 || rn.length() > 10 {
+        return Err(InvalidInput)
+      }
       if !spend_control(control, 1 + name.length() + ln.length() + rn.length()) {
         return Err(Limit)
       }
-      if ln != rn { return Err(InvalidInput) }
+      if ln != rn {
+        return Err(InvalidInput)
+      }
       let comparison = @canonical.compare_utf16(ln, name)
       if comparison < 0 {
-        cursor.frames[top] = PositionalMembers(left, right, index, count, middle + 1, high)
+        cursor.frames[top] = PositionalMembers(
+          left,
+          right,
+          index,
+          count,
+          middle + 1,
+          high,
+        )
       } else if comparison > 0 {
-        cursor.frames[top] = PositionalMembers(left, right, index, count, low, middle)
+        cursor.frames[top] = PositionalMembers(
+          left, right, index, count, low, middle,
+        )
       } else {
-        if lv is @admitted.Null || rv is @admitted.Null { return Err(InvalidInput) }
+        if lv is @admitted.Null || rv is @admitted.Null {
+          return Err(InvalidInput)
+        }
         if cursor.frames.length() >= control.max_frames ||
-          !reserve_slots(cursor.workspace, 1) { return Err(Limit) }
-        cursor.frames[top] = PositionalMembers(left, right, index + 1, count, 0, count)
+          !reserve_slots(cursor.workspace, 1) {
+          return Err(Limit)
+        }
+        cursor.frames[top] = PositionalMembers(
+          left,
+          right,
+          index + 1,
+          count,
+          0,
+          count,
+        )
         cursor.frames.push(CompareAdmitted(lv, rv))
       }
       Ok(None)

@@ -95,7 +95,13 @@ fn[T : IndexedRows] stable_order_indices(
   workspace : RowWorkspace,
   positional_at? : (Int) -> Int = _ => 0,
 ) -> Result[Array[Int], OrderingIssue] {
-  let state = start_stable_order(table, order, control, workspace, positional_at~)
+  let state = start_stable_order(
+    table,
+    order,
+    control,
+    workspace,
+    positional_at~,
+  )
   while true {
     match advance_stable_order(state) {
       Ok(None) => ()

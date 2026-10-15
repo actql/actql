@@ -31,7 +31,8 @@ pub fn sort_completion_field(
 ///|
 /// Only a checked producer's canonical completion carries a positional domain.
 pub fn sort_completion_positional_count(c : SortCompletion, index : Int) -> Int {
-  c.appended.get(index)
+  c.appended
+  .get(index)
   .bind(field => field.positional_identity)
   .map(@carrier.vector_identity_count)
   .unwrap_or(0)
