@@ -29,35 +29,35 @@ fn main {
   let count = Ref(0)
   let page = page_bytes()
   let bytes = 64L * page
+  let host_limits : @resources.LedgerLimits = {
+    planning_work: 20,
+    attempts: 8,
+    holdings: 4,
+    transfer_bytes: 30L,
+    retained_bytes: 0L,
+    execution_bytes: bytes,
+  }
   let host = @control.prepare_installed_arena_host(
     "0123456789012345678901234567890123456789",
     Bytes::make(32, 17),
     1L,
     bytes,
-    {
-      planning_work: 20,
-      attempts: 8,
-      holdings: 4,
-      transfer_bytes: 30L,
-      retained_bytes: 0L,
-      execution_bytes: bytes,
-    },
+    host_limits,
     65536L,
   ).unwrap()
   host.acquire_fd(0).unwrap()
   let scope = host.borrow_backing().unwrap()
   host.enter_backing_borrow_scope(scope).unwrap()
+  let child_limits : @resources.LedgerLimits = {
+    planning_work: 2,
+    attempts: 2,
+    holdings: 1,
+    transfer_bytes: 3L,
+    retained_bytes: 2L * page,
+    execution_bytes: 16L * page,
+  }
   let domain = match
-    host
-    .prepare_domain(scope, 0, 48L * page, {
-      planning_work: 2,
-      attempts: 2,
-      holdings: 1,
-      transfer_bytes: 3L,
-      retained_bytes: 2L * page,
-      execution_bytes: 16L * page,
-    })
-    .unwrap() {
+    host.prepare_domain(scope, 0, 48L * page, child_limits).unwrap() {
     PreparedDomain(domain) => domain
     _ => abort("original FD domain unavailable")
   }
@@ -84,18 +84,18 @@ fn main {
   require(
     count,
     host.prepare_domain_original_read(domain, budget)
-    is Err(Domain(Bootstrap(AlreadyConsumed))),
+    is Err(Domain(@bootstrap.Bootstrap(AlreadyConsumed))),
     "same original context cannot issue another attempt",
   )
   require(
     count,
-    host.close_domain_read(domain) is Err(Bootstrap(ReadersPending)),
+    host.close_domain_read(domain) is Err(@bootstrap.Bootstrap(ReadersPending)),
     "generic context close cannot bypass original read custody",
   )
   require(
     count,
     host.prepare_sqlite_library(domain, "/not-loaded", page, 128)
-    is Err(Domain(Bootstrap(AlreadyConsumed))),
+    is Err(Domain(@bootstrap.Bootstrap(AlreadyConsumed))),
     "another SQLite purpose cannot consume the same original read domain",
   )
   let escaped : Ref[Bytes?] = Ref(None)
@@ -108,7 +108,7 @@ fn main {
   require(
     count,
     host.close_domain_original_read(record)
-    is Err(Domain(Bootstrap(Physical(_)))),
+    is Err(Domain(@bootstrap.Bootstrap(Physical(_)))),
     "escaped physical alias keeps original cleanup pending",
   )
   require(
