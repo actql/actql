@@ -24,7 +24,9 @@ class _OriginalPackagedProductFunctions:
         self.identity.argtypes = [c_void_p, POINTER(c_void_p)]
         self.drop = library.actql_packaged_product_drop_reply
         self.drop.argtypes = [POINTER(c_void_p), c_void_p, c_void_p, c_void_p]
-        for call in (self.observe, self.identity, self.drop):
+        self.validate = library.actql_packaged_product_validate_originals
+        self.validate.argtypes = [c_void_p, c_void_p, c_void_p, c_void_p]
+        for call in (self.observe, self.identity, self.drop, self.validate):
             call.restype = c_int
         self.operation = library.actql_packaged_product_operation
         self.issue = library.actql_packaged_product_issue_family
@@ -63,6 +65,10 @@ class _OriginalPackagedProductFunctions:
                 reply = original._product_reply
                 if reply.value is None:
                     raise original._mark_unknown()
+                # Same nominal originals must be checked by the C/Native
+                # projection before reading even local metadata or issue tags.
+                original._status(self.validate(reply, original._host,
+                    original._original_read, original._runtime))
                 op, issue = self.operation(reply), self.issue(reply)
                 if (type(op) is not int or op != operation
                         or type(issue) is not int or not 0 <= issue <= 9):

@@ -19,6 +19,8 @@ class ProductFixture(RuntimeFixture):
         self.product_length, self.product_unit = None, None
         self.product_fault = self.product_drop_fault = None
         self.product_drop_code = 0
+        self.product_validate_code = 0
+        self.product_reads = 0
         functions = {
             'observe_utf16_into': self.observe_product,
             'identity_into': lambda r, out: self.product_reply(5, r, out),
@@ -27,6 +29,7 @@ class ProductFixture(RuntimeFixture):
             'metadata_units': self.units,
             'metadata_unit_at': self.unit,
             'drop_reply': self.product_drop,
+            'validate_originals': lambda r, h, p, v: self.product_validate_code,
         }
         for name, fn in functions.items():
             setattr(self.host._functions.library, 'actql_packaged_product_' + name, Function(fn))
@@ -49,10 +52,12 @@ class ProductFixture(RuntimeFixture):
         return self.product_reply(4, runtime, out)
 
     def units(self, reply):
+        self.product_reads += 1
         return (len(self.product_wire.encode('utf-16-le')) // 2
                 if self.product_length is None else self.product_length)
 
     def unit(self, reply, index):
+        self.product_reads += 1
         if self.product_unit is not None: return self.product_unit
         raw = self.product_wire.encode('utf-16-le')
         return int.from_bytes(raw[2 * index:2 * index + 2], 'little')
@@ -134,6 +139,15 @@ class OriginalProductTests(unittest.TestCase):
                 f.product.identity_wire(f.original)
             self.assertIsNotNone(f.original._unknown)
             self.assertIsNotNone(f.original._product_reply.value)
+
+    def test_foreign_original_is_rejected_before_any_metadata_copy(self):
+        f = ProductFixture(); f.product_validate_code = -2
+        with self.assertRaises(_OriginalPackagedRuntimeError) as got:
+            f.product.identity_wire(f.original)
+        self.assertTrue(got.exception.unknown)
+        self.assertEqual(f.product_reads, 0)
+        self.assertIsNotNone(f.original._product_reply.value)
+        self.assertIs(f.read._runtime_original, f.original)
 
     def test_invalid_input_and_foreign_library_refuse_before_io_without_poison(self):
         f = ProductFixture()
