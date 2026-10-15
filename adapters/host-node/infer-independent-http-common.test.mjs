@@ -32,6 +32,13 @@ for(const variant of ['reported','unreported']) {
   test(`independent HTTP ${variant} joins actual Common raw custody and same journal settlement`,
     {timeout:15000},async t=>{
       const calls=[],sockets=new Set();
+      const began=performance.now();
+      let phase='prepare';
+      const mark=next=>{
+        phase=next;
+        t.diagnostic(`Independent phase ${phase}; elapsed_ms=${Math.round(performance.now()-began)}; requests=${calls.length}`);
+      };
+      t.after(()=>mark(`final:${phase}`));
       // Independently authored response, not copied from the product decoder.
       const responseWire=JSON.stringify({
         ...(variant==='reported'?{id:'independent-response',model:'reported-model',
@@ -76,19 +83,23 @@ for(const variant of ['reported','unreported']) {
       });
       const f=await originalHttpCommonFixture(t,moon,{modelId:'independent-fixture',
         physical:{endpoint,fetch:physicalFetch}});
+      mark('prepared');
       assert.equal(JSON.parse(f.profileWire).adapter.sdk,null);
       assert.equal(f.registered.rawCaptureSelection.installation.sdk,undefined);
       assert.equal(f.sends,undefined,'Only the actual server witnesses dispatch');
       assert.equal(calls.length,0);
       assert.deepEqual(await f.opened.authorize(),{status:'dispatch'});
+      mark('authorized');
       assert.equal(calls.length,0,'Authorization alone starts no physical request');
       await f.opened.prepareOriginalResourcesForDispatch();
+      mark('original-cut-confirmed');
       assert.equal(calls.length,0,'Original Store/Journal resource handoff is not send');
       const capture=openNodeInferCaptureCustody({moon,control:f.control,
         operation:f.operation,plan:f.plan,store:f.store,storeAuthorityCid:f.storeAuthorityCid,
         durableCalls:true,captureOnly:true});
       capture.configureModelJournal({observe:f.opened.observe,entry:f.opened.entry});
       const boundary=await f.operation.run();
+      mark('settling');
       assert.equal(boundary.status,'settling');
       assert.equal(calls.length,1);
       assert.equal(calls[0].method,'POST');
@@ -106,12 +117,16 @@ for(const variant of ['reported','unreported']) {
       assert.equal(observation.response_complete,true);
       assert.match(observation.raw_response_artifact_cid,/^sha256:[a-f0-9]{64}$/u);
       const saved=await capture.persistSettlement(boundary.settlement,entry);
+      mark('settlement-saved');
       assert.equal(saved.state,'SavedSuccess');
       await f.operation.run();
+      mark('completed');
       assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'SavedSuccess');
       assert.equal(f.operation.hasUnknownCalls(),false);
       await until(()=>capture.custody.cleanup(),value=>value===true);
+      mark('capture-cleaned');
       await until(()=>f.opened.cleanup(),value=>value===true);
+      mark('continuation-cleaned');
       const original=f.originalPreparation;
       f.control.stopCheckedClientInferOriginalReadPreparation(f.plan.compiled,
         f.plan.runDefinition,f.plan.inferGraph,original.scope,original.read);
@@ -119,7 +134,9 @@ for(const variant of ['reported','unreported']) {
         f.plan.runDefinition,f.plan.inferGraph,original.read,true);
       assert.equal(f.control.finishCheckedClientInferOriginalReadScope(f.plan.compiled,
         f.plan.runDefinition,f.plan.inferGraph,original.scope,true),true);
+      mark('scope-finished');
       await until(()=>sockets.size+clientSockets.size,value=>value===0);
+      mark('sockets-closed');
       assert.equal(calls.length,1,'Cleanup/settlement cannot send the original request again');
       t.diagnostic('Actual SDK-free HTTP/Common/Store/journal; explicit fixture transport/profile, public Model E2E0');
     });
