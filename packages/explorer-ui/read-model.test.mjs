@@ -324,3 +324,21 @@ test('public SDK facade admits original Plan and Run wire without submitting any
     assert.deepEqual(calls.slice(6), ['attach', 'run-plan']);
   } finally {browser.close(); await gateway.close();}
 });
+
+test('Effectful static declarations retain unknowns without adding computation edges', async () => {
+  const {effectfulStaticPlan, commandMember} = await import('../../scripts/fixtures/effectful-static-plan-vectors.mjs');
+  const {planReadModel} = await import('./read-model.mjs');
+  const model = planReadModel(effectfulStaticPlan);
+  assert.deepEqual(model.nodes, planReadModel(effectfulStaticPlan.computation.plan_view).nodes);
+  assert.deepEqual(model.edges, planReadModel(effectfulStaticPlan.computation.plan_view).edges);
+  assert.equal(model.effectful.scope, 'computation_component');
+  assert.equal(model.effectful.members[0].minimum_approval.value, 'required');
+  assert.equal(model.effectful.observations.permission.state, 'unknown');
+  assert.equal(model.effectful.observations.preview.state, 'unavailable');
+  const command = structuredClone(effectfulStaticPlan);
+  command.effect_set.members = [commandMember];
+  assert.equal(planReadModel(command).effectful.members[0].minimum_approval.kind, 'not_represented');
+  const foreign = structuredClone(effectfulStaticPlan);
+  foreign.program_definition_cid = 'sha256:' + 'f'.repeat(64);
+  assert.throws(() => planReadModel(foreign), {code: 'ExplorerInvalidPlan'});
+});

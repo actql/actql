@@ -1,5 +1,5 @@
 import type {Client, RunReference, ResultDescription} from '@actql/sdk';
-import type {WirePlanView, WireRunView} from '@actql/client-wire';
+import type {WireEffectfulStaticPlanView, WirePlanView, WireRunView} from '@actql/client-wire';
 
 export class ExplorerReadError extends Error { readonly code: string }
 export const graphViewLimits: Readonly<{steps: 256; ports: 1024}>;
@@ -7,6 +7,10 @@ type Step = WirePlanView['logical_map']['steps'][number];
 export type PlanReadModel = Readonly<{
   compiledPlanCid: string; logicalMapCid: string; programDefinitionCid: string;
   observation: 'static'; providerIO: 0;
+  effectful?: Readonly<{scope: 'computation_component'; parameterValuesCid: string;
+    checkEnvironmentCid: string; unitId: string;
+    members: WireEffectfulStaticPlanView['effect_set']['members'];
+    observations: WireEffectfulStaticPlanView['observations']}>;
   nodes: readonly Readonly<{id: string; key: Step['key'];
     names: readonly string[]; operator: Step['operator'];
     kind: Step['key']['occurrence']['kind']; ports: Step['ports']}>[];
@@ -17,7 +21,7 @@ export type PlanReadModel = Readonly<{
     locator: Extract<Step['ports'][number]['source'], {kind: 'stage_input'}>}>[];
   sourceOrigins: Readonly<{state: 'unavailable'; reason: 'not_in_projection'}>;
 }>;
-export function planReadModel(view: WirePlanView): PlanReadModel;
+export function planReadModel(view: WirePlanView | WireEffectfulStaticPlanView): PlanReadModel;
 export type ReadTicket = Readonly<{assertCurrent(): void}>;
 export function createReadEpoch(): Readonly<{invalidate(): void; capture(): ReadTicket}>;
 export function readStaticPlan(client: Pick<Client, 'plan'>,

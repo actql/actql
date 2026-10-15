@@ -85,6 +85,38 @@ the real conformance cases continue to use the same common owner. These are
 retained test obligations, not a claim that every suite ran for this removal.
 There is no wire, CID, retained-state, execution-authority or operational switch.
 
+## Native runtime bundle trust input retirement
+
+At main `76beb551606018298e637ed3512979ff3a74fb4e`, the bundle CLI still
+accepted `--issuer-authority`, `--key-id` and `--public-key-name`, constructed a
+single-key trust list with implicit new-admission permission, and used `--key-id`
+as an install-signature fallback. This was documented accepted syntax; its
+retirement is intentional, not a claim that the old arguments already failed.
+
+All located CLI callers already use `--trust-config-name` and explicit install
+`--signature-key-id`: the native bundle CLI, native HTTP and resident-site
+fixtures, plus `actql/actql-cloud/scripts/resident-site-runtime.mjs` at
+`9734c3e639f49e15b965de549fb8b87c804799cc`. Bounded searches found no caller of
+the removed `--public-key-name` path. Unknown external callers are not covered
+by this repository audit.
+
+The three option declarations, synthetic trust branch, signature-key fallback
+and unused optional-option helper are removed. The existing bounded
+`load_trust_configuration` reader and `open_runtime_bundle_store_with_trust`
+remain the only CLI path; the latter retains the same underlying Store owner.
+Argument-parser fixtures cover current syntax, retired-option refusal and
+missing required arguments. The executable fixture checks refusal before even
+loading SQLite and compares both an absent Store and an installed Store's full
+file inventory and content hashes. Its existing lifecycle, rotation, historical
+verification and multi-component assertions remain unchanged. These are test
+obligations; Native execution remains unverified.
+
+Single-key installations use one explicit authority in the same trust document.
+The document version, signed manifests, CIDs, catalog records and retained
+verification keys are unchanged. No live configuration or Store is rewritten.
+The separate credential command's `--key-id` and `--issuer-authority` are current
+inputs and are not part of this retirement.
+
 ## Retained paths and concrete follow-ups
 
 ### Current managed lifecycle retirement
@@ -139,7 +171,7 @@ refer to the originally inspected main.
 | `connectors/local.start_managed_provider` and `start_managed_provider_with_inputs` | The focused follow-up above removes both source definitions and their fabricated-zero helper after migrating the 52 remaining fixture calls to explicit-limit entries. Product dispatchers already supply admitted execution limits. | Preserve explicit zero-budget refusals and all original custody/budget assertions. Compiler-generated interface regeneration, retired-export refusal and focused fixture execution remain acceptance obligations. |
 | `capacity_sequence_limit.limit` | Retired by [#380](https://github.com/actql/actql/pull/380), merged 2026-10-04, with implementation commit [`aab269d549d542e7183da36abcd153fbe1e68f87`](https://github.com/actql/actql/commit/aab269d549d542e7183da36abcd153fbe1e68f87). Production and test callers now use `host_limit`; the generated interface and Sequence-capacity design were updated together. | Completed source alias retirement, reconfirmed on main `595102baa2c386a1985a9b981fc2fd2c4977016b`. `host_limit` retains the original Host-only claim; `effective_maximum` retains the authored-guard minimum. This row is an adoption correction, not another implementation removal or fresh execution claim. |
 | `platform_native/remote_client.poll` | Retired in the focused follow-up. The only remaining caller was the package-local Native HTTPS test; it now matches a typed `Dispatch` from `poll_operation`. All eight importing packages use the canonical operation API or other client methods. Cloud has no MoonBit package importing this helper. | The Native/unsupported helper and generated export are removed. `poll_operation` retains distinct operation variants; the migrated Native test rejects a foreign poll response before dispatch acknowledgement. Remote protocol, journal and other compatibility candidates are unchanged. |
-| Native runtime bundle single-key flags | `src/cmd/native_runtime_bundle/main.mbt:904–957` translates issuer/key/public-key flags to the current trust list; `:978` also supplies an install signature-key fallback. `--trust-config-name` is the explicit replacement. The CLI and resident-site suites exercise trust configuration, rotation and retained bundles. | Candidate requires a dedicated CLI argument/caller audit. The old `--key-id` role is also an install default, so deleting the trust branch alone is incomplete. Preserve retained bundle holds and reject conflicting/retired arguments before opening or changing a Store. |
+| Native runtime bundle single-key flags | Retired in the focused CLI follow-up above. All located OSS and Cloud CLI callers already supply the existing trust document and explicit install signature key. | Removed the three legacy flags, synthetic trust branch and install-key fallback together. Argument parsing rejects retired or missing inputs before Store access; retained verification and lifecycle ownership remain unchanged. |
 | `execution_relation.execute_selected_relation_step` | Called by `producer_read.mbt:329`. It drains the same bounded selected-row evaluator and preserves cumulative work plus cleanup on all terminal paths; managed Host progression advances that evaluator instead. `docs/design/query-residual-execution.md` still describes supported synchronous fixed-input execution. | Active synchronous API, not duplicate algorithm. A Host execution migration must prove its remaining synchronous callers replaced before deletion. |
 | `execution_site.ManagedCandidateLegacyAllowed` | `classify_managed_candidate_fallback` distinguishes tasks with no retained managed producers from tasks whose retained inputs prohibit reconstruction; `candidate_selection_wbtest.mbt` checks the explicit exclusion outcomes. | Legitimate current candidate fallback and custody protection. Not compatibility slated for deletion. Planner #211 is separate and not imported. |
 | `pipeline_typing.candidate_key` / `input_key`, detached obligation readers | The scalar readers return a witness only when exactly one remains; current tests use them. `docs/design/relation-evidence.md` distinguishes them from preferred-key selection. `docs/design/contextual-orders.md` explicitly retains detached arrays for callers needing ownership; indexed readers avoid unnecessary copies. | Public read projections with different result shapes, not obsolete wire parsers. Do not remove merely because collection/indexed alternatives exist. Establish a separate API retirement decision and caller migration first. |

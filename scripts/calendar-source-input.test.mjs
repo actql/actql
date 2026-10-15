@@ -7,7 +7,15 @@ import {calendarSourceSuccesses, calendarSourceArtifact, calendarSourceSelection
 
 test('prepared Calendar controls preserve the original independent UTC rows and ordered full schema', async () => {
   const expected = JSON.parse(await readFile(new URL(
+    '../reviews/2026-10-15-calendar-host-installation/expected.json', import.meta.url), 'utf8'));
+  const historical = JSON.parse(await readFile(new URL(
     '../reviews/2026-10-13-frontend-calendar-source/expected.json', import.meta.url), 'utf8'));
+  assert.deepEqual(expected.rows, historical.rows);
+  assert.deepEqual(expected.columns, historical.columns);
+  assert.deepEqual(expected.bucketed.rows, historical.bucketed.rows);
+  const priorContract = historical.bucketed.columns[2].contract;
+  assert.deepEqual(expected.bucketed.columns[2].contract,
+    {...priorContract, additional_properties: false});
   assert.equal(calendarSourceSuccesses.length, 6);
   for (const [index, item] of calendarSourceSuccesses.entries()) {
     const oracle = index < 3 ? expected : expected.bucketed;
