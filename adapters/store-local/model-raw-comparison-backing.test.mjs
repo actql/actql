@@ -71,7 +71,7 @@ test('raw descriptor comparison uses exact dedicated UTF8 bytes including empty 
       await commitRaw(f.store, binding, raw);
       const probe = observeComparison([wire]);
       try {
-        assert.deepEqual(await f.store.readModelRawEvidence(binding), raw);
+        assert.deepEqual(new Uint8Array(await f.store.readModelRawEvidence(binding)), raw);
         assert.equal(probe.comparisons.length, 1);
         exactOperand(probe.comparisons[0]);
       } finally { probe.restore(); }
