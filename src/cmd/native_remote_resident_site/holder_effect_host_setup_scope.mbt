@@ -158,17 +158,19 @@ fn holder_effect_host_read_scope_current(
   scope : HolderEffectHostSetupScope,
 ) -> Bool {
   guard holder_effect_host_read_scope_bound(scope) &&
-    scope.current_binding is Some(current) && current() else {
+    scope.current_binding is Some(current) &&
+    current() else {
     return false
   }
   // Current callbacks may retire the original scope reentrantly. Check its
   // actual handles only after that callback, before any physical read.
   holder_effect_host_read_scope_bound(scope) &&
-  scope.current_binding is Some(actual) && physical_equal(actual, current) &&
-  match scope.read_domain {
+  scope.current_binding is Some(actual) &&
+  physical_equal(actual, current) &&
+  (match scope.read_domain {
     Some(read) => holder_effect_host_read_domain_current(read)
     None => true
-  }
+  })
 }
 
 ///|

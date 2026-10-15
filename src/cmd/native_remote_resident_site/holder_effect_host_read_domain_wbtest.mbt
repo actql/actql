@@ -1,5 +1,5 @@
 ///|
-fn host_read_domain_test_slot(name : String) -> @slot.NativeExecutorSlot {
+fn host_read_domain_test_slot(name : String) -> @slot.NativeExecutorSlot raise {
   let root = @env.get_env_var("ACTQL_TEST_HOST_READ_DOMAIN_ROOT").unwrap()
   let slot = @slot.open_native_executor_slot(root + "/" + name).unwrap()
   assert_true(slot.try_acquire().unwrap())
@@ -18,11 +18,11 @@ fn host_read_domain_test_original(
     @slot.NativeExecutorSlot,
     @site.SiteOperation,
   ],
-  () -> Unit,
-) {
+  () -> Unit raise,
+) raise {
   let fd : Int = @string.from_str(
     @env.get_env_var("ACTQL_TEST_HOST_READ_DOMAIN_FD").unwrap(),
-  ).unwrap()
+  )
   let supplier = @bootstrap.prepare_installed_arena_supplier(
     original,
     "0123456789012345678901234567890123456789",
@@ -113,7 +113,9 @@ fn host_read_domain_test_original(
 }
 
 ///|
-fn host_read_domain_test_retire(scope : HolderEffectHostSetupScope) {
+fn host_read_domain_test_retire(
+  scope : HolderEffectHostSetupScope,
+) -> Unit raise {
   assert_false(leave_holder_effect_host_read_scope(scope))
   assert_true(retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach)
   let (retained, _) = take_holder_effect_host_caller_reservation(scope)
@@ -189,10 +191,13 @@ test "stock runtime read initialization failure keeps the exact installed domain
   let calls = Ref(0)
   let installation : HolderEffectHostReadInstallation = {
     select: (actual_slot, actual_operation) => {
-      assert_true(physical_equal(actual_slot, slot))
-      assert_true(physical_equal(actual_operation, operation))
-      calls.val += 1
-      Some((host, domain))
+      if physical_equal(actual_slot, slot) &&
+        physical_equal(actual_operation, operation) {
+        calls.val += 1
+        Some((host, domain))
+      } else {
+        None
+      }
     },
   }
   assert_false(
@@ -209,10 +214,13 @@ test "stock runtime read initialization failure keeps the exact installed domain
   )
   assert_eq(calls.val, 1)
   assert_eq(@site.site_status(site)[7], 120L)
-  host_read_domain_test_retire(scope)
+  assert_false(leave_holder_effect_host_read_scope(scope))
+  assert_true(retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach)
   assert_true(scope.read_domain is None)
   // Parent mapping/loan/Host/FD retirement is independent from domain ACK.
   close_parent()
+  let (retained, _) = take_holder_effect_host_caller_reservation(scope)
+  assert_true(@site.settle_site_operation(retained.unwrap()))
   assert_true(slot.close())
 }
 
