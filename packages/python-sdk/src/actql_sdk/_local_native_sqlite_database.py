@@ -26,6 +26,9 @@ class _OriginalDatabaseFact:
     has_row: bool
     revision: int | None
     body_bound: int
+    capacity_changed: bool | None = None
+    reserved_bytes: int | None = None
+    reserved_objects: int | None = None
 
 
 class _OriginalDatabaseError(RuntimeError):
@@ -50,14 +53,22 @@ class _OriginalDatabaseFunctions:
             'fence_into': ([p, p, pp], c_int),
             'close_into': ([p, p, pp], c_int),
             'read_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, pp], c_int),
+            'scan_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, pp], c_int),
             'insert_utf16_into': ([p, p, text, c_int32, text, c_int32, blob, c_int64, pp], c_int),
             'compare_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, blob, c_int64, pp], c_int),
             'transaction_into': ([p, p, c_int32, pp], c_int),
+            'capacity_reserve_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, c_int64, c_int64, c_int64, pp], c_int),
+            'capacity_usage_utf16_into': ([p, p, text, c_int32, pp], c_int),
+            'capacity_release_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, c_int64, pp], c_int),
+            'capacity_changed': ([p], c_int32),
+            'reserved_bytes': ([p], c_int64),
+            'reserved_objects': ([p], c_int64),
             'originals_into': ([p, pp, pp, pp], c_int),
             'drop_reply': ([pp, p, p, p], c_int),
             'finish_closed_data': ([pp, pp, pp, pp], c_int),
             'finish_refused_open': ([pp, pp, pp], c_int),
             'copy_row': ([p, p, p, p, blob, c_int64, POINTER(c_int64)], c_int),
+            'copy_key': ([p, p, p, p, blob, c_int64, POINTER(c_int64)], c_int),
             **{name: ([p], c_int32) for name in
                ('operation', 'stage', 'issue_family', 'after_issue_family', 'has_row')},
             'revision': ([p], c_int64), 'body_bound': ([p], c_int64),
@@ -69,8 +80,8 @@ class _OriginalDatabaseFunctions:
             self.calls[name] = call
 
 
-def _text(value: str, *, path: bool = False) -> tuple[Any, int]:
-    if (type(value) is not str or not value or '\0' in value
+def _text(value: str, *, path: bool = False, cursor: bool = False) -> tuple[Any, int]:
+    if (type(value) is not str or not cursor and (not value or '\0' in value)
             or (path and not value.startswith('/'))):
         raise ValueError('Original Native Database text is invalid')
     bound = 4096 if path else 512
@@ -229,10 +240,30 @@ class _OriginalDatabaseCustody:
                 raise self._mark_unknown()
         if self._original.value is not None and bound != self._bound:
             raise self._mark_unknown()
-        if present and (actual != 4 or stage != 2 or issue != 0 or revision < 0):
+        if present and (actual not in (4, 12) or stage != 2 or issue != 0 or revision < 0):
             raise self._mark_unknown()
+        changed: bool | None = None
+        reserved_bytes: int | None = None
+        reserved_objects: int | None = None
+        if actual in (13, 14, 15):
+            capacity = [self._functions.calls[name](self._reply) for name in
+                        ('capacity_changed', 'reserved_bytes', 'reserved_objects')]
+            if (any(type(n) is not int for n in capacity) or capacity[0] not in (-1, 0, 1)
+                    or any(not -1 <= n <= 2**63 - 1 for n in capacity[1:])):
+                raise self._mark_unknown()
+            flag, bytes_, objects = capacity
+            if actual in (13, 15):
+                if bytes_ != -1 or objects != -1 or (not issue and stage == 2 and flag == -1):
+                    raise self._mark_unknown()
+                changed = None if flag == -1 else bool(flag)
+            else:
+                if flag != -1 or (bytes_ == -1) != (objects == -1) or (not issue and stage == 2 and bytes_ == -1):
+                    raise self._mark_unknown()
+                reserved_bytes = None if bytes_ == -1 else bytes_
+                reserved_objects = None if objects == -1 else objects
         return _OriginalDatabaseFact(actual, stage, issue, after, bool(present),
-                                     None if revision == -1 else revision, bound)
+                                     None if revision == -1 else revision, bound,
+                                     changed, reserved_bytes, reserved_objects)
 
     def _drop(self) -> None:
         if self._reply.value is not None:
@@ -257,7 +288,8 @@ class _OriginalDatabaseCustody:
         self._drop()
 
     def _managed(self, operation: int, call: Callable[[Any], Any], *,
-                 output: Any = None, capacity: int = 0, allow_unconfirmed: bool = False
+                 output: Any = None, capacity: int = 0, allow_unconfirmed: bool = False,
+                 key_output: tuple[Any, int, c_int64, Any] | None = None
                  ) -> tuple[_OriginalDatabaseFact, int | None]:
         self._local(allow_unconfirmed=allow_unconfirmed)
         reply_out, size = byref(self._reply), c_int64(-1)
@@ -279,14 +311,14 @@ class _OriginalDatabaseCustody:
                 try:
                     code = call(reply_out)
                 except BaseException as error:
-                    if operation in (5, 6, 7, 8, 9) and self._reply.value is not None:
+                    if operation in (5, 6, 7, 8, 9, 13, 15) and self._reply.value is not None:
                         # Preserve a published SAME original reply. Reconciliation
                         # may inspect/drop it and fence Core; never resend SQL.
                         self._write_unknown = _OriginalDatabaseError(self, unknown=True, operation=operation)
                         raise self._write_unknown from error
                     raise
                 self._status(code)
-                fact = self._fact(operation, preflight=operation in (4, 5, 6))
+                fact = self._fact(operation, preflight=operation in (4, 5, 6, 12, 13, 14, 15))
                 length: int | None = None
                 if not fact.issue_family and not fact.after_issue_family and fact.has_row:
                     self._status(self._functions.calls['copy_row'](self._reply, self._host,
@@ -294,6 +326,12 @@ class _OriginalDatabaseCustody:
                     if not 0 <= size.value <= min(capacity, self._bound):
                         raise self._mark_unknown()
                     length = size.value
+                    if key_output is not None:
+                        key_buffer, key_capacity, key_size, key_size_out = key_output
+                        self._status(self._functions.calls['copy_key'](self._reply, self._host,
+                            self._native_library, self._original, key_buffer, key_capacity, key_size_out))
+                        if not 0 < key_size.value <= min(key_capacity, 512):
+                            raise self._mark_unknown()
                 self._drop()
                 if fact.issue_family or fact.after_issue_family:
                     known = _OriginalDatabaseError(self, unknown=False, operation=operation, fact=fact)
@@ -321,6 +359,29 @@ class _OriginalDatabaseCustody:
         return self._managed(4, lambda r: self._functions.calls['read_utf16_into'](
             self._host, self._original, s, sn, k, kn, len(output), r),
             output=buffer, capacity=len(output), allow_unconfirmed=unconfirmed)
+
+    def scan_after_into(self, scope: str, after_key: str, key_output: bytearray,
+                        body_output: bytearray) -> tuple[_OriginalDatabaseFact, int, int]:
+        """One original bounded row; exact UTF-8 key into caller-owned storage.
+
+        Empty cursor starts the existing SQLite order. NotFound remains that
+        query's typed refusal, never a complete namespace or inventory proof.
+        No cursor advancement, skipped large rows, or retained output alias.
+        """
+        s, sn = _text(scope); k, kn = _text(after_key, cursor=True)
+        if (type(key_output) is not bytearray or not 0 < len(key_output) <= 512
+                or type(body_output) is not bytearray or len(body_output) > self._bound
+                or key_output is body_output):
+            raise ValueError('Original Native Database scan output bounds are invalid')
+        body = (c_ubyte * len(body_output)).from_buffer(body_output)
+        key = (c_ubyte * len(key_output)).from_buffer(key_output)
+        size = c_int64(-1)
+        fact, length = self._managed(12, lambda r: self._functions.calls['scan_utf16_into'](
+            self._host, self._original, s, sn, k, kn, len(body_output), r),
+            output=body, capacity=len(body_output), key_output=(key, len(key_output), size, byref(size)))
+        if length is None:
+            raise self._mark_unknown()
+        return fact, size.value, length
 
     def _write(self, operation: int, scope: str, key: str, body: bytes,
                expected: int | None = None) -> _OriginalDatabaseFact:
@@ -350,6 +411,42 @@ class _OriginalDatabaseCustody:
     def compare_exchange(self, scope: str, key: str, expected: int, body: bytes) -> _OriginalDatabaseFact:
         return self._write(6, scope, key, body, expected)
 
+    @staticmethod
+    def _capacity_amounts(*amounts: int) -> None:
+        if any(type(n) is not int or not 0 <= n <= 2**63 - 1 for n in amounts):
+            raise ValueError('Original Native capacity amount is invalid')
+
+    def reserve_capacity_in_transaction(self, scope: str, key: str, reserved_bytes: int,
+                                        reserved_objects: int, max_bytes: int,
+                                        max_objects: int) -> _OriginalDatabaseFact:
+        """Existing Core formula in the SAME transaction; never a grant/ACK."""
+        s, sn = _text(scope); k, kn = _text(key)
+        self._capacity_amounts(reserved_bytes, reserved_objects, max_bytes, max_objects)
+        fact, _ = self._managed(13, lambda r: self._functions.calls['capacity_reserve_utf16_into'](
+            self._host, self._original, s, sn, k, kn, reserved_bytes, reserved_objects,
+            max_bytes, max_objects, r))
+        return fact
+
+    def capacity_usage(self, scope: str) -> _OriginalDatabaseFact:
+        """Original physical row observation; not accounting or available credit."""
+        s, sn = _text(scope)
+        fact, _ = self._managed(14, lambda r: self._functions.calls['capacity_usage_utf16_into'](
+            self._host, self._original, s, sn, r))
+        return fact
+
+    def release_capacity_in_transaction(self, scope: str, key: str, reserved_bytes: int,
+                                        reserved_objects: int) -> _OriginalDatabaseFact:
+        """Delete exact physical reservation only after the caller's Owner ACK.
+
+        This transport neither issues that independent cleanup ACK nor finishes
+        the caller's transaction. No implicit SQL retry or parent loan return.
+        """
+        s, sn = _text(scope); k, kn = _text(key)
+        self._capacity_amounts(reserved_bytes, reserved_objects)
+        fact, _ = self._managed(15, lambda r: self._functions.calls['capacity_release_utf16_into'](
+            self._host, self._original, s, sn, k, kn, reserved_bytes, reserved_objects, r))
+        return fact
+
     def transaction(self, operation: int) -> _OriginalDatabaseFact:
         if type(operation) is not int or operation not in (7, 8, 9):
             raise ValueError('Original Native Database transaction selector is invalid')
@@ -373,14 +470,42 @@ class _OriginalDatabaseCustody:
         _text(key)
         if type(output) is not bytearray or not 0 < len(output) <= self._bound:
             raise ValueError('Original Native Database output bound is invalid')
+        self._fence_unconfirmed_response()
+        return self._read_into(scope, key, output, unconfirmed=True)
+
+    def lookup_unconfirmed_capacity_usage(self, scope: str) -> _OriginalDatabaseFact:
+        """Original physical capacity rows after SQL response loss; no credit.
+
+        Same original fence/autocommit checks as row reconciliation. The
+        original operation remains Unknown and all mutation stays refused.
+        """
+        self._local(allow_unconfirmed=True)
+        if self._write_unknown is None:
+            raise ValueError('No original Native Database SQL response is unconfirmed')
+        s, sn = _text(scope)
+        self._fence_unconfirmed_response()
+        fact, _ = self._managed(14, lambda r: self._functions.calls['capacity_usage_utf16_into'](
+            self._host, self._original, s, sn, r), allow_unconfirmed=True)
+        return fact
+
+    def _fence_unconfirmed_response(self) -> None:
+        self._local(allow_unconfirmed=True)
+        if self._write_unknown is None:
+            raise ValueError('No original Native Database SQL response is unconfirmed')
         if not self._fenced_unknown:
+            reply_out = byref(self._reply)
             with self._library._domain._read_scope(self._read):
                 owner = self._library._domain._owner
                 owner._enter()
+                try:
+                    self._local(allow_unconfirmed=True)
+                except BaseException:
+                    owner._busy = False
+                    raise
                 known: _OriginalDatabaseError | None = None
                 try:
                     self._drain_original_response()
-                    self._status(self._functions.calls['fence_into'](self._host, self._original, byref(self._reply)))
+                    self._status(self._functions.calls['fence_into'](self._host, self._original, reply_out))
                     fact = self._fact(11)
                     self._drop()
                     if fact.issue_family or fact.after_issue_family:
@@ -395,7 +520,6 @@ class _OriginalDatabaseCustody:
                     raise self._mark_unknown() from error
                 finally:
                     owner._busy = False
-        return self._read_into(scope, key, output, unconfirmed=True)
 
     def close(self) -> None:
         if self._unknown is not None:

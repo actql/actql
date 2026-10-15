@@ -277,6 +277,50 @@ extern "C" fn register_original_sqlite_database_roots(
   revision : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Int64],
   body : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Bytes],
   bound : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Int64],
+  scan : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  key : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Bytes],
+  reserve_capacity : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+      Int64,
+      Int64,
+      Int64,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  capacity_usage : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteDatabase, String) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  release_capacity : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+      Int64,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  capacity_changed : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> Int,
+  ],
+  reserved_bytes : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> Int64,
+  ],
+  reserved_objects : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> Int64,
+  ],
 ) -> Unit = "actql_native_control_register_sqlite_database_roots"
 
 ///|
@@ -433,6 +477,28 @@ fn main {
     fn(reply) { reply.revision() },
     fn(reply) { reply.body() },
     fn(reply) { reply.body_bound() },
+    fn(host, original, scope, after_key, bound) {
+      @control.scan_installed_sqlite_database_reply(
+        host, original, scope, after_key, bound,
+      )
+    },
+    fn(reply) { reply.row_key_bytes() },
+    fn(host, original, scope, key, bytes, objects, max_bytes, max_objects) {
+      @control.reserve_installed_sqlite_capacity_reply(
+        host, original, scope, key, bytes, objects, max_bytes, max_objects,
+      )
+    },
+    fn(host, original, scope) {
+      @control.observe_installed_sqlite_capacity_reply(host, original, scope)
+    },
+    fn(host, original, scope, key, bytes, objects) {
+      @control.release_installed_sqlite_capacity_reply(
+        host, original, scope, key, bytes, objects,
+      )
+    },
+    fn(reply) { reply.capacity_changed() },
+    fn(reply) { reply.reserved_bytes() },
+    fn(reply) { reply.reserved_objects() },
   )
   register_original_sqlite_roots(
     fn(host, domain, path, heap, diagnostic) {

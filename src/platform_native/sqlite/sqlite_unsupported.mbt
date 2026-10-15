@@ -255,6 +255,17 @@ pub fn Database::release_capacity(
 }
 
 ///|
+pub fn Database::release_capacity_in_transaction(
+  _self : Database,
+  _scope : String,
+  _key : String,
+  _reserved_bytes : Int64,
+  _reserved_objects : Int64,
+) -> Result[Bool, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::claim_ordinal(
   _self : Database,
   scope : String,

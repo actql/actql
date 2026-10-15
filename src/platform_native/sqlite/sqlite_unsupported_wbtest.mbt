@@ -35,3 +35,12 @@ test "non-native bounded readbacks cannot supply journal rows" {
     is Err(UnsupportedTarget),
   )
 }
+
+///|
+test "non-native caller capacity release supplies no transaction or cleanup fact" {
+  let database : Database = { unsupported: (), }
+  assert_true(
+    database.release_capacity_in_transaction("original", "one", 8L, 1L)
+    is Err(UnsupportedTarget),
+  )
+}
