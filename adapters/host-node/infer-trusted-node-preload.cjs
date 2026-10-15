@@ -8,6 +8,12 @@ const {Readable} = require('node:stream');
 const {createRequire} = require('node:module');
 const {dirname, join} = require('node:path');
 const originalProcess = require('node:process');
+// Selected runtime implementation duty: ONLY the V8 internal backing of these
+// two identity indices stays with this actual startup/module and escaped-handle
+// lifetime. It is not fixed SDK storage or a numerical lease. Entry records,
+// keys/value references, borrow controls, closures and check workspace remain
+// managed Host/bootstrap/Run obligations. Weak/delete/GC is not a close ACK or
+// evidence of table shrink; no other growing cache inherits this scope.
 const associations = new WeakMap();
 const generations = new WeakSet();
 const sdkFields = Object.freeze(['openai', 'providerUtils', 'createOpenAI']);
@@ -284,8 +290,10 @@ module.exports = Object.freeze({
       held.original.installation = undefined;
       held.original.sdkStaticModules = undefined;
     }
-    // Only Host borrow retirement; startup.sdkStaticModules deliberately keeps
-    // the actual process/module graph. Last Host/Run close does not retire ESM.
+    // Only Host borrow retirement; the selected runtime still owns these two
+    // indices' internal backing, including weak membership of escaped retired
+    // generations. startup.sdkStaticModules keeps its separate fixed graph.
+    // Last Host/Run close does not retire either process/module responsibility.
     // No native/process/physical-stop ACK or numerical baseline is issued.
   },
 });
