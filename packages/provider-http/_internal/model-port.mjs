@@ -18,7 +18,8 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
       deferred && (typeof rawCaptureBinder !== 'function' || persistRaw !== undefined || cleanupRaw !== undefined) ||
       !deferred && (typeof persistRaw !== 'function' || typeof cleanupRaw !== 'function') ||
       signal !== undefined && !(signal instanceof AbortSignal)) fail('InvalidHTTPChatPhysicalPort');
-  if (!['clientProgramProjectHTTPChatRequest', 'clientProgramModelRequestPreflight',
+  if (!['clientProgramModelResponseProfileTransportMatches',
+    'clientProgramProjectHTTPChatRequest', 'clientProgramModelRequestPreflight',
     'clientProgramModelAsyncPhysicalRequestPlan', 'clientProgramModelPhysicalCallForRequest',
     'clientProgramModelPhysicalPending', 'clientProgramModelPhysicalUnknown',
     'clientProgramModelPhysicalSavedChat'].every(name => typeof moon?.[name] === 'function')) {
@@ -44,6 +45,13 @@ export function createHttpChatPreflight({moon, admittedProvider, request,
     return Object.freeze([pair[0], pair[1]]);
   }));
   responseLimits = fixedInferResponseLimits(responseLimits);
+  // Validate the selected physical ceilings against the original Common
+  // profile before allocating or registering a preparation. This is not a grant.
+  if (moon.clientProgramModelResponseProfileTransportMatches(profile,
+    maxRequestBytes, responseLimits.maxBytes, responseLimits.maxChunkBytes,
+    responseLimits.maxChunks, responseLimits.maxHeaderBytes) !== true) {
+    fail('HTTPChatOriginalTransportLimitsMismatch');
+  }
   let controller = new AbortController();
   let body;
   let init;
