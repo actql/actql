@@ -75,7 +75,8 @@ import {retainInstalledHostInitializationFailure} from
 import {issueInferTrustedRuntimeView, checkInferTrustedRuntimeView,
   forgetInferTrustedRuntimeView, associateInferTrustedStartupView,
   requireInferTrustedStartupView, borrowInferTrustedStartupView,
-  forgetInferTrustedStartupView} from './infer-trusted-runtime-view.mjs';
+  forgetInferTrustedStartupView, bindInferTrustedStore,
+  checkInferTrustedStore} from './infer-trusted-runtime-view.mjs';
 import {composeInstalledCheckEnvironment,
   verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
@@ -85,6 +86,7 @@ import {installRunStateAuthority, installRunStateService,
   inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import * as publicationStoreModule from '../store-local/publication-store.mjs';
 import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {installLocalRetainedStore, installLocalSnapshotStore} from
   '../local-node/retained-store.mjs';
@@ -237,6 +239,7 @@ async function openInstalledHost(originalInstallation) {
   let modelRuntimeView;
   let modelRuntimeStartupView;
   let modelProviders;
+  let store;
   // Nominal association in this SAME Host, not a capacity pool or Run Owner.
   // A key is an actual Common-issued Scope; its value is retired only after
   // that Scope's original Common cleanup succeeds.
@@ -250,6 +253,12 @@ async function openInstalledHost(originalInstallation) {
     checkInferTrustedRuntimeView(modelRuntimeView, runtimeOriginals());
     if (modelRuntimeStartupView !== undefined) {
       requireInferTrustedStartupView(modelRuntimeStartupView, runtimeOriginals());
+    }
+    if (store !== undefined) {
+      checkInferTrustedStore(modelRuntimeView, runtimeOriginals(), store, publicationStoreModule);
+      // This is the SAME Store's existing lifetime fact, not a caller flag or
+      // native release ACK. Pending close still retains the original duties.
+      if (store.status().closed) throw clientOperationError('InferTrustedStoreClosed');
     }
   }
   function assertNewModelRuntime() {
@@ -473,7 +482,6 @@ async function openInstalledHost(originalInstallation) {
   const journalDirectory = join(root, 'requests');
   let journal;
   let effectEvidenceKey;
-  let store;
   let checkpoints;
   let modelController;
   let dispatchOwner;
@@ -549,6 +557,7 @@ async function openInstalledHost(originalInstallation) {
         effectEvidenceKey = await loadPrivateEvidenceKey(keyDirectory);
       }
     }
+    if (modelRuntimeView !== undefined) assertNewModelRuntime();
     store = await openLocalPublicationStore({
       directory: join(root, 'publication'), storeAuthorityCid,
       capacityBytes: 512 * 1024 * 1024,
@@ -557,6 +566,14 @@ async function openInstalledHost(originalInstallation) {
       maxContractDepth: 64,
       privateEvidenceKey: effectInstallation?.privateEvidenceKey ?? effectEvidenceKey?.key,
     }, control);
+    if (modelRuntimeView !== undefined) {
+      // The real factory's result, not a lookup/configuration reconstruction.
+      // Keep the static module and this Store through failed/pending cleanup.
+      // Managed Host controls and original Run Promise/Buffer duties still need
+      // their own coverage; this is not a normal numeric profile or byte grant.
+      bindInferTrustedStore(modelRuntimeView, runtimeOriginals(), store, publicationStoreModule);
+      assertModelRuntime();
+    }
     effectEvidenceKey?.key.fill(0);
   const hostConnection = ({principalId: actual, connection, ref}) =>
     actual === principalId &&

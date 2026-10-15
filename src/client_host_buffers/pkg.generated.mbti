@@ -10,6 +10,8 @@ import {
 // Values
 pub fn borrow_buffer(BufferPool, BufferSlot, () -> Bool) -> Result[BufferBorrow, BufferIssue]
 
+pub fn[T] borrow_workspace_original_read(OriginalWorkspaceRead[T], T, WorkspaceLoan) -> @physical_resources.FundedReadClaim[T]?
+
 pub fn buffer_byte(BufferPool, BufferSlot, Int) -> Byte?
 
 pub fn buffer_length(BufferPool, BufferSlot) -> Int?
@@ -36,6 +38,8 @@ pub fn close_workspace(WorkspaceLoan) -> Result[Unit, BufferIssue]
 
 pub fn fill_buffer(BufferPool, BufferSlot, Int, Int, (Int) -> Byte?) -> Result[Unit, BufferIssue]
 
+pub fn[T] issue_workspace_original_read(@physical_resources.FundedReadClaim[T], T, WorkspaceLoan) -> Result[OriginalWorkspaceRead[T], @physical_resources.OriginalReadIssue]
+
 pub fn lookup_buffer(BufferPool, Int) -> BufferSlot?
 
 pub fn open_pool(Int64, Int, Int) -> Result[BufferPool, BufferIssue]
@@ -48,11 +52,15 @@ pub fn reserve_output_buffer(BufferPool, Int, Int64, () -> Bool) -> Result[Buffe
 
 pub fn reserve_workspace(@physical_resources.Ledger, Int64, () -> Bool, () -> Bool) -> Result[WorkspaceLoan, BufferIssue]
 
+pub fn[T] retire_workspace_original_read(OriginalWorkspaceRead[T], T, WorkspaceLoan) -> Result[Unit, @physical_resources.OriginalReadIssue]
+
 pub fn return_buffer_borrow(BufferPool, BufferBorrow) -> Result[Unit, BufferIssue]
 
 pub fn seal_buffer(BufferPool, BufferSlot, Int, Int) -> Result[Unit, BufferIssue]
 
 pub fn supply_buffer_output(BufferPool, BufferSlot, Bytes) -> Result[Unit, BufferIssue]
+
+pub fn[T] workspace_original_read_matches(OriginalWorkspaceRead[T], @physical_resources.FundedReadClaim[T], T, WorkspaceLoan) -> Bool
 
 // Errors
 
@@ -105,6 +113,8 @@ pub struct BufferSlot {
   mut retired : Bool
   mut cleaned : Bool
 }
+
+type OriginalWorkspaceRead[T]
 
 pub struct WorkspaceLoan {
   capacity : @physical_resources.SharedCapacity
