@@ -62,7 +62,9 @@ test "unfinished container owners survive the depth failure before a source tree
   assert_eq(parser.nodes, 3)
   assert_eq(document.frames.length(), 2)
   assert_true(document.completed is None)
-  for (index, name) in ["outer", "inner"].iter().enumerate() {
+  let names = ["outer", "inner"]
+  for index in 0..<2 {
+    let name = names[index]
     let frame = document.frames[index]
     guard frame.container is ObjectFields(fields, keys) else {
       fail("unfinished original container missing")
@@ -93,7 +95,7 @@ test "one-short resumed failure keeps its detached path after original parser cl
     transitions += 1
     match advance_json_parse(cursor, 1).unwrap() {
       JsonParseContinue(work~) => assert_eq(work, 1)
-      JsonParseComplete(..) => fail("one-short parser published a tree")
+      JsonParseComplete(_, ..) => fail("one-short parser published a tree")
       JsonParseFailed(error, work~) => {
         assert_eq(work, 1)
         failure = Some(error)
