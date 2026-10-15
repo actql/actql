@@ -109,6 +109,8 @@ fn bounded_family_relation_chain(
     | @lower.IntervalJoinRows(_)
     | @lower.AsOfJoinRows(_)
     | @lower.SequenceRows(_) => ()
+    @lower.CalendarValue(_) if @lower.operation(first) == "TEA.calendar.series" =>
+      ()
     @lower.EventValue(_) if @lower.operation(first) ==
       "TEA.window.session_assign" => ()
     _ => return false

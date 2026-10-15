@@ -20,6 +20,7 @@ INPUTS = (
     'src/platform_native/host_bootstrap/backed_region_native.mbt',
     'src/platform_native/host_bootstrap/backed_view_native.mbt',
     'src/platform_native/host_bootstrap/backed_domain_native.mbt',
+    'src/platform_native/host_bootstrap/backed_read_native.mbt',
     'src/platform_native/host_bootstrap/backed_region_wbtest.mbt',
     'src/platform_native/host_bootstrap/bootstrap_stub.c',
     'src/platform_native/host_bootstrap/bootstrap_wbtest.mbt',

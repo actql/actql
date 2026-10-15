@@ -4,6 +4,7 @@ import { mkdirSync, readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import {runRestoredMutation, requireMutationDetection} from '../bounded-session/mutation-command.mjs';
 import { snapshot, artifacts } from './evidence.mjs';
 import {retirementCases, selectCases, retirementWitness, requireRetirementDetection} from './mutation-retirement.mjs';
 import {createHash} from 'node:crypto';
@@ -90,23 +91,17 @@ for (const recipe of selected) {
   const witness = retirementCases.some(row => row[0] === id) ? retirementWitness(recipe, readFileSync(join(root, suite), 'utf8')) : null;
   const start = performance.now();
   const mutant = source.replace(original, changed);
-  let result, mutantSourceDigest;
-  try {
-    writeFileSync(file, mutant);
-    mutantSourceDigest = snapshot(root).digest;
-    result = spawnSync(join(home, 'bin/moon'), ['test', suite, '--target', 'js', '--deny-warn', '--filter', filter], {
-      cwd: root, env, encoding: 'utf8', maxBuffer: 4 * 1024 * 1024,
-    });
-  } finally {
-    writeFileSync(file, source);
-    if (hash(readFileSync(file)) !== hash(source)) throw new Error('Mutation source bytes were not restored');
-  }
+  let mutantSourceDigest;
+  const result = await runRestoredMutation(file, source, mutant, join(home, 'bin/moon'),
+    ['test', suite, '--target', 'js', '--deny-warn', '--filter', filter], {
+      cwd: root, env, maxBuffer: 4 * 1024 * 1024,
+    }, () => { mutantSourceDigest = snapshot(root).digest; });
+  if (hash(readFileSync(file)) !== hash(source)) throw new Error('Mutation source bytes were not restored');
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   writeFileSync(join(directory, `mutation-${id}.log`), output);
-  const count = Number(output.match(/Total tests: \d+, passed: \d+, failed: (\d+)/)?.[1] ?? 0);
-  if (result.error || result.status === 0 || count === 0 || /Error: \[\d+\]/.test(output)) {
-    throw result.error ?? new Error(`Mutation ${id} was not killed by a running assertion: ${output}`);
-  }
+  let count;
+  try { count = requireMutationDetection(result, output); }
+  catch (cause) { throw new Error(`Mutation ${id} was not killed by a running assertion: ${output}`, {cause}); }
   if (witness) requireRetirementDetection(result, output, witness);
   results.push({ id, path, suite, target: 'js', filter, killed: true, failureCount: count, witness,
     originalDigest: hash(source), mutantDigest: hash(mutant), restoredDigest: hash(readFileSync(file)),

@@ -30,6 +30,10 @@ try {
     assert.deepEqual(reports[0].expectedInventory, reports[1].expectedInventory,
       'both transports must execute the same complete authored corpus');
     assert.ok(reports[0].expectedInventory.length > 0, 'selected corpus must contain cases');
+    if (process.env.ACTQL_TEST_DISTINCT_JOIN_ORDER_ONLY === '1') {
+      const {requireDistinctJoinOrderReports} = await import('./distinct-join-order-inventory.mjs');
+      requireDistinctJoinOrderReports(reports);
+    }
     if (process.env.ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS === '1') {
       const registered = JSON.parse(await readFile('public-query-inventory.json', 'utf8'));
       assert.equal(registered.version, 'actql-public-query-fixture-inventory/0.1');

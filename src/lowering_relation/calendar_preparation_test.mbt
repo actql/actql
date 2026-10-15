@@ -231,4 +231,6 @@ test "selected original UTC Calendar series reaches normal lowering" {
     fail("exact checked Calendar owner must remain available")
   }
   assert_true(physical_equal(original, retained))
+  assert_true(@pipeline.starts_with_selected_local_generator(checked))
+  assert_true(@lowering_relation.node_supports_selected_managed_execution(node))
 }
