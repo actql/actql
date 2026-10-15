@@ -93,3 +93,21 @@ Preserve the 512 MiB execution budget and every original oracle. Retain both
 eleven-case transport inventories, actual command receipts and package/runtime
 identities. Failed, partial or old-source receipts remain separate. The original
 22-case fixed-source acceptance is still required before #640 can be closed.
+
+## Integration inventory repair
+
+The first focused integration run at `a2cff90e9ce174888a0fbb875b4d55d08dcc012c`
+executed60 cases:59 passed and the mandatory full-inventory test failed. The
+current authored registration contains35 additional binding-identifier cases
+from the already adopted `b91c5d93fe7c5127efc15de64bfe270a1fd4fb46` and
+`551cd1db1682ff01b11b92d8d61bb98d7759f18a` work.
+
+Independent fixture-only enumeration of the original `3b5e68efa59d4cb1b56eb88233d65101b51dc324`
+source reproduces the retained4181-case pin exactly. Inserting the authored19
+successes and16 refusals reconstructs the complete4216-case current inventory;
+none of the original4181 occurrence names or content digests changed, and no
+occurrences were removed. The three other profiles and both repeated-failure
+positions are unchanged. The pin and explicit preflight counts now include
+that exact ordered delta. Product output, query expectations, ceilings and
+the narrow eleven-case corpus are unchanged. This repairs registration
+freshness and does not establish current installed-product acceptance.
