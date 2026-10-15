@@ -1,6 +1,6 @@
 ///|
 // Static phases only: no raw issue payload, row, wire, key or stack is emitted.
-fn effect_values_work_test_ok[T, E](value : Result[T, E], phase : String) -> T raise {
+fn[T, E] effect_values_work_test_ok(value : Result[T, E], phase : String) -> T raise {
   match value {
     Ok(value) => value
     Err(_) => fail("effect-values fixture: " + phase)
