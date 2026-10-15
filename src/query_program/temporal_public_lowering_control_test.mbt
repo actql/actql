@@ -1,7 +1,7 @@
 // Original interval-left inputs; observations are diagnostic, never an oracle.
 
 ///|
-test "public temporal interval keeps original body and emits its checked input topology" {
+test "public temporal interval lowering preserves original arguments and input topology" {
   let control = @program.parse(
     "{\"version\":\"actql/0.1\",\"id\":\"fixture.temporal_interval-left\",\"stages\":[{\"id\":\"main\",\"inputs\":{},\"steps\":[{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"at\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":1,\"at\":10},{\"id\":2,\"at\":30},{\"id\":3,\"at\":50}]},\"as\":\"l\"},{\"values\":{\"schema\":{\"id\":{\"type\":\"number\",\"nullable\":false},\"begin\":{\"type\":\"number\",\"nullable\":false},\"finish\":{\"type\":\"number\",\"nullable\":false}},\"rows\":[{\"id\":7,\"begin\":5,\"finish\":15},{\"id\":8,\"begin\":20,\"finish\":25}]},\"as\":\"r\"},{\"from\":\"l\",\"interval_join\":{\"with\":\"r\",\"kind\":\"left\",\"mode\":\"point_in_interval\",\"on\":[],\"left\":{\"time\":\"at\"},\"right\":{\"start\":\"begin\",\"end\":\"finish\"},\"select\":{\"id\":\"left.id\",\"value\":\"right.id\"},\"max_output_rows\":3},\"as\":\"matched\"},{\"from\":\"matched\",\"sort\":[{\"field\":\"id\",\"dir\":\"asc\",\"nulls\":\"first\"}]},{\"select\":[\"id\",\"value\"],\"as\":\"out\"}],\"results\":{\"rows\":{\"from\":\"out\",\"fields\":[\"id\",\"value\"]}}}],\"results\":{\"answer\":{\"from\":{\"stage\":\"main\",\"result\":\"rows\"}}}}",
     construction_limits().program,
