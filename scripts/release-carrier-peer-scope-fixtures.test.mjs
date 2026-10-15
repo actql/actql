@@ -10,7 +10,7 @@ import {carrierPeerSuccesses as successes, carrierPeerRefusals as refusals,
   from './fixtures/carrier-peer-scope-public-input.mjs';
 import {selectReleaseCarrierPeerCases} from './release-carrier-peer-scope-query-cases.mjs';
 import {releaseCarrierPeerFixturePaths} from './release-carrier-peer-scope-fixtures.mjs';
-import {nearestCarrierSourceRows} from './fixtures/nearest-carrier-source-data.mjs';
+import {nearestCarrierSourceRows, nearestCarrierSourceSchemas} from './fixtures/nearest-carrier-source-data.mjs';
 import {createNearestCarrierPageDriver, nearestCarrierReadOperations}
   from './fixtures/nearest-carrier-installed-source.mjs';
 import {encodeRetainedFixture} from './fixtures/retained-fixture-values.mjs';
@@ -56,6 +56,31 @@ test('cosine JSON and independent rank/key values keep their original schema and
     query_key: {request_id: 'q1'}, candidate_key: {item_id: 'q1'}, score: 1, rank: 1}}]);
   assert.equal(shared.results.answer.columns[0].contract.max_utf8_bytes, 4);
   assert.ok(refusals.every(item => item.expectedCode === 'ClientProgramInvalidInput'));
+});
+
+test('omitted KEEP retains declared query fields while the explicit JSON control stays narrow', () => {
+  const specification = readFileSync(resolve(root, 'docs/spec/query-text.md'), 'utf8');
+  assert.ok(specification.includes('Omitted KEEP retains all visible query columns in their declaration order,'));
+  assert.equal(nearestCarrierSourceRows.queries.length, 1);
+  const columns = [
+    {name: 'embedding', contract: {type: 'vector', dimensions: 2, nullable: false, element_type: 'f32'}},
+    {name: 'note', contract: {type: 'string', nullable: true}},
+    {name: 'request_id', contract: {type: 'string', nullable: false}},
+    structuredClone(successes[0].results.answer.columns[0]),
+  ];
+  // Source publication reads fields from the declared canonical schema body.
+  assert.deepEqual(columns.slice(0, -1), Object.keys(nearestCarrierSourceSchemas.queries).sort()
+    .map(name => ({name, contract: nearestCarrierSourceSchemas.queries[name]})));
+  const rows = [{...nearestCarrierSourceRows.queries[0],
+    neighbor: carrierPeerOriginalExpectation.rows[0].neighbor}];
+  for (const format of ['sql', 'aql-text']) {
+    const item = successes.find(value => value.name === `carrier-peer-cosine-${format}`);
+    assert.equal(item.text.includes('KEEP'), false);
+    assert.deepEqual(item.results.answer.rows, rows);
+    assert.deepEqual(item.results.answer.columns, columns);
+  }
+  assert.deepEqual(successes[0].results.answer.rows, carrierPeerOriginalExpectation.rows);
+  assert.deepEqual(successes[0].results.answer.columns.map(value => value.name), ['neighbor']);
 });
 
 test('nested WHERE is residual while the original candidate Source still supplies both raw rows', async () => {
