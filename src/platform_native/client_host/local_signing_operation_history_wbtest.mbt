@@ -24,7 +24,7 @@ test "Signing operation history selects its original attempt without caller use 
   assert_eq(grant, local_original_grant_cid(original.grant))
   assert_eq(use_id, "original-signing-attempt")
   assert_eq(ordinal, 1)
-  assert_eq(read.observed_outcome(), @credential_resource.Unknown)
+  assert_true(read.observed_outcome() == @credential_resource.Unknown)
   assert_false(
     host.authorize({
       principal: "operator",

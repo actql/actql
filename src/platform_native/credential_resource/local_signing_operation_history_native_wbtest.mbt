@@ -37,14 +37,17 @@ test "original Signing operation reads its fixed use and terminal metadata witho
     let read = prepare_native_local_original_signing_history_candidate(
       database, grant,
     ).unwrap()
-    assert_eq(read.original_use(), original)
+    assert_eq(
+      @credential.local_signing_credential_use_cid(read.original_use()),
+      @credential.local_signing_credential_use_cid(original),
+    )
     let expected = match outcome {
       "claimed" => NativeLocalSigningHistoryOutcome::Claimed
       "unknown" => NativeLocalSigningHistoryOutcome::Unknown
       "failed" => NativeLocalSigningHistoryOutcome::Failed
       _ => NativeLocalSigningHistoryOutcome::Succeeded
     }
-    assert_eq(read.observed_outcome(), expected)
+    assert_true(read.observed_outcome() == expected)
     let after = database.read(use_scope(cid), scope.attempt_id).unwrap()
     assert_eq(after.revision, before.revision)
     assert_eq(after.body, before.body)
