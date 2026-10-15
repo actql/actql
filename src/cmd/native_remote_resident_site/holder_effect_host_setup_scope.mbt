@@ -413,8 +413,12 @@ fn detach_holder_effect_host_setup(resources : HolderOutputResources) -> Bool {
     None =>
       match resources.effect_host_setup.val {
         Some(scope) => {
-          guard retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach else {
-            return false
+          match retire_holder_effect_host_scope(scope) {
+            HostSetupReadyToDetach => ()
+            HostSetupScopePending(pending) => {
+              resources.effect_host_setup.val = Some(pending)
+              return false
+            }
           }
           Some(scope)
         }

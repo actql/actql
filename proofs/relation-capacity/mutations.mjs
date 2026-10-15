@@ -3,7 +3,7 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawnSync } from 'node:child_process';
+import {runRestoredMutation, requireMutationDetection} from '../bounded-session/mutation-command.mjs';
 import { snapshot, fixture, identityFixture } from './evidence.mjs';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const pin = JSON.parse(readFileSync(join(root, 'toolchain.json')));
@@ -47,17 +47,15 @@ for (const [id, path, replacements, suite, sites] of cases) {
     if (mutated.split(original).length !== sites + 1) throw new Error(`Review mutation sites: ${id}`);
     mutated = mutated.replaceAll(original, changed);
   }
-  let result;
-  try {
-    writeFileSync(file, mutated);
-    result = spawnSync(join(home, 'bin/moon'), ['test', suite, '--target', 'js', '--deny-warn'], {
-      cwd: root, env, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024,
+  const result = await runRestoredMutation(file, text, mutated, join(home, 'bin/moon'),
+    ['test', suite, '--target', 'js', '--deny-warn'], {
+      cwd: root, env, maxBuffer: 8 * 1024 * 1024,
     });
-  } finally { writeFileSync(file, text); }
   const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
   writeFileSync(join(directory, `mutation-${id}.log`), output);
-  const failureCount = Number(output.match(/Total tests: \d+, passed: \d+, failed: (\d+)/)?.[1] ?? 0);
-  if (result.error || result.status === 0 || !failureCount || /Error: \[\d+\]/.test(output)) throw result.error ?? new Error(`Not killed by assertions: ${id}\n${output}`);
+  let failureCount;
+  try { failureCount = requireMutationDetection(result, output); }
+  catch (cause) { throw new Error(`Not killed by assertions: ${id}\n${output}`, {cause}); }
   results.push({ id, path, suite, target: 'js', killed: true, failureCount });
   console.log(`${id}: detected by JS assertions`);
 }
