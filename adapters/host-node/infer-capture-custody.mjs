@@ -31,6 +31,26 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
   let cleanupFlight;
   let publicationCleanupFlight, publicationRetirementFlight;
   let publicationCleaned = false, publicationRetired = false;
+  let storedCaptureWireLimit;
+
+  // Same immutable original Store extent, before constructing its exporter.
+  // This scalar is not funding, persistence, currentness or a cleanup ACK.
+  // Cache a known zero as zero; absence/invalid DATA never defaults to1MiB.
+  function maximumStoredCaptureWire() {
+    if (storedCaptureWireLimit !== undefined) return storedCaptureWireLimit;
+    const select = store.privateEvidenceWireLimit;
+    if (typeof select !== 'function') {
+      throw Object.assign(new Error('InstalledInferCaptureStoreWireLimitUnavailable'),
+        {code: 'InstalledInferCaptureStoreWireLimitUnavailable'});
+    }
+    const limit = Reflect.apply(select, store, []);
+    if (!Number.isSafeInteger(limit) || limit < 0) {
+      throw Object.assign(new Error('InstalledInferCaptureStoreWireLimitUnavailable'),
+        {code: 'InstalledInferCaptureStoreWireLimitUnavailable'});
+    }
+    storedCaptureWireLimit = Math.min(1048576, limit);
+    return storedCaptureWireLimit;
+  }
 
   // Retire only this adapter's aliases after its existing physical/Core
   // cleanup succeeds. Durable Store originals and previously transferred
@@ -47,6 +67,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     sourceEvidence = undefined;
     publicationFor = undefined;
     faultInjection = undefined;
+    storedCaptureWireLimit = undefined;
     publicationRetired = true;
   }
   function retireAliases() {
@@ -285,7 +306,7 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
       await holdEvidence('model_invocation_evidence', slot, observation, current.entry);
     }
     current.exporter ??= checked(moon.clientProgramStartInferCallSettlementExport(
-      current.settlement, 1048576, 1000000));
+      current.settlement, maximumStoredCaptureWire(), 1000000));
     while (!current.complete) {
       const progress = checked(moon.clientProgramAdvanceInferCaptureExport(current.exporter, 256));
       current.wire += progress._1;
@@ -348,8 +369,10 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
           {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20}));
       }
     }
+    // captureOnly's whole bundle is not stored in this per-slot cell. Keep
+    // its existing bound; do not mistake a different Store's extent for it.
     exporter ??= checked(moon.clientProgramStartInferCaptureExport(capture,
-      1048576, 1000000));
+      captureOnly ? 1048576 : maximumStoredCaptureWire(), 1000000));
     while (!exportComplete) {
       const progress = checked(moon.clientProgramAdvanceInferCaptureExport(
         exporter, 256));

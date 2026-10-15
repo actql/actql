@@ -5,23 +5,32 @@ const {openNodeInferCaptureCustody}=await import(process.env.ACTQL_CAPTURE_CUSTO
 
 // Actual Node custody/holding code with explicit Core, Model and Store port
 // doubles. This does not prove actual Store ACK, heap funding or public INFER.
-function fixture({stoppedRaw = false} = {}) {
+function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true} = {}) {
   const capture={}, output={}, exporter={};
   const evidence={wire:'{"raw":"é\\r\\n"}'};
   const settlement={}, entry={ordinal:0,attemptCid:'original-attempt'};
   const bundleWire='{"capture":"original é\\r\\n"}';
   const stored=new Map();
-  const counters={stop:0,cleanup:0,acquire:0,ack:0,commit:0,usage:0,proof:0};
+  const counters={stop:0,cleanup:0,acquire:0,ack:0,commit:0,usage:0,proof:0,limitReads:0,exports:[]};
   const flags={stopped:true,exportCleanup:true,modelCleanup:true,
     usageRetired:false,usageRefusal:false};
   let cleanupCallback, beforeCommit;
   const ok=_0=>({$tag:1,_0});
   const moon={
     clientProgramInferCaptureCallCount:()=>1,
+    clientProgramBindInferSlotCapture:()=>ok(undefined),
     strategyRunEvidenceJson:value=>value.wire,
     strategyRunEvidenceIdentity:()=> 'original-slot-cid',
-    clientProgramStartInferCallSettlementExport:()=>ok(exporter),
-    clientProgramStartInferCaptureExport:()=>ok(exporter),
+    clientProgramStartInferCallSettlementExport:(original,maxBytes,maxWork)=>{
+      assert.strictEqual(original,settlement);
+      counters.exports=counters.exports.concat([['settlement',maxBytes,maxWork]]);
+      return maxBytes<Buffer.byteLength(bundleWire)?{$tag:0,_0:'FixtureCaptureLimit'}:ok(exporter);
+    },
+    clientProgramStartInferCaptureExport:(original,maxBytes,maxWork)=>{
+      assert.strictEqual(original,capture);
+      counters.exports=counters.exports.concat([['whole',maxBytes,maxWork]]);
+      return maxBytes<Buffer.byteLength(bundleWire)?{$tag:0,_0:'FixtureCaptureLimit'}:ok(exporter);
+    },
     clientProgramAdvanceInferCaptureExport:()=>ok({_0:true,_1:bundleWire}),
     clientProgramInferCaptureExportIdentity:()=> 'bundle-cid',
     clientProgramCancelInferCaptureExport:()=>false,
@@ -67,6 +76,11 @@ function fixture({stoppedRaw = false} = {}) {
     modelPrivateHoldingCid:(_run,_store,name)=>name,
   };
   const store={
+    privateEvidenceWireLimit(){
+      assert.strictEqual(this,store);
+      counters.limitReads++;
+      return storeWireLimit;
+    },
     confirmPrivateEvidence:async binding=>stored.get(binding.holdingCid),
     async preparePrivateEvidence(name,wire){
       return {physicalCid:`physical-${name}`,bytes:Buffer.byteLength(wire),
@@ -78,9 +92,10 @@ function fixture({stoppedRaw = false} = {}) {
   };
   const owner=openNodeInferCaptureCustody({moon,control,operation,
     plan:{runDefinition:{}},store,storeAuthorityCid:'original-store',
-    captureOnly:true,durableCalls:true});
+    captureOnly,durableCalls:true,
+    publicationFor:captureOnly?undefined:()=>assert.fail('No publication before the selected exporter')});
   owner.configureModelJournal({observe:async()=>({state:'SavedSuccess'}),entry:()=>entry});
-  return {owner,operation,flags,counters,stored,bundleWire,
+  return {owner,operation,flags,counters,stored,bundleWire,store,moon,
     async complete(){
       await owner.persistSettlement(settlement,entry);
       owner.retainCompleted();await owner.persist();
@@ -88,6 +103,49 @@ function fixture({stoppedRaw = false} = {}) {
     async settling(){await cleanupCallback(settlement);},
     deferCommit(callback){beforeCommit=callback;}};
 }
+
+test('settlement exporter selects the same Store wire ceiling before Common allocation',async()=>{
+  for(const limit of [12192,2*1048576]){
+    const f=fixture({storeWireLimit:limit});
+    await f.complete();
+    assert.deepEqual(f.counters.exports,[['settlement',Math.min(limit,1048576),1000000],
+      ['whole',1048576,1000000]],'captureOnly whole bundle is not held in the per-slot Store cell');
+    assert.equal(f.counters.limitReads,1);
+    assert.equal(await f.owner.custody.cleanup(),true);
+  }
+});
+
+test('missing or invalid original Store wire extent never defaults to the one-MiB exporter',async()=>{
+  for(const limit of [undefined,-1,NaN,Infinity,1.5,'12192']){
+    const f=fixture({storeWireLimit:limit});
+    if(limit===undefined)delete f.store.privateEvidenceWireLimit;
+    await assert.rejects(f.settling(),{code:'InstalledInferCaptureStoreWireLimitUnavailable'});
+    assert.deepEqual(f.counters.exports,[]);
+    assert.equal(f.counters.ack,0);assert.equal(f.counters.cleanup,0);
+    assert.equal(f.owner.custody.cleanupPending(),true,'original pending settlement responsibility remains');
+  }
+});
+
+test('known zero Store wire extent reaches the existing Common refusal without becoming unknown or free',async()=>{
+  const f=fixture({storeWireLimit:0});
+  await assert.rejects(f.settling());
+  assert.deepEqual(f.counters.exports,[['settlement',0,1000000]]);
+  assert.equal(f.counters.limitReads,1);assert.equal(f.counters.ack,0);
+  assert.equal(f.counters.cleanup,0);assert.equal(f.owner.custody.cleanupPending(),true);
+});
+
+test('whole capture uses the same extent only when its own bundle will be stored there',async()=>{
+  const f=fixture({captureOnly:false});
+  await f.settling();f.owner.retainCompleted();
+  const original=Object.assign(new Error('FixtureStopBeforeWholeExport'),{code:'FixtureStopBeforeWholeExport'});
+  f.moon.clientProgramStartInferCaptureExport=(_capture,maxBytes,maxWork)=>{
+    assert.equal(maxBytes,12192);assert.equal(maxWork,1000000);
+    throw original;
+  };
+  await assert.rejects(f.owner.persist(),error=>error===original);
+  assert.equal(f.counters.limitReads,1,'same immutable original is inspected once');
+  assert.equal(f.counters.cleanup,0);assert.equal(f.owner.custody.cleanupPending(),true);
+});
 
 test('capture retirement denies new owned views and preserves an escaped immutable original',async()=>{
   const f=fixture();await f.complete();
