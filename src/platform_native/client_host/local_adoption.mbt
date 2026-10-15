@@ -37,6 +37,7 @@ pub(all) enum NativeLocalAdoptionIssue {
   Encoding
   Crypto(@crypto.NativeSignatureIssue)
   Filesystem(@filesystem.NativeFilesystemIssue)
+  ReadAcquisitionFailure(@filesystem.NativeReaderOpenFailure)
   ReadPending(@filesystem.Reader, @filesystem.NativeFilesystemIssue)
   WritePending(@filesystem.Writer, @filesystem.NativeFilesystemIssue)
   Physical(@sqlite.NativeSqliteIssue)
@@ -101,9 +102,12 @@ fn local_adoption_read(
   if generation.size < 0L || generation.size > max_bytes {
     return Err(ConfigurationLimit)
   }
-  let reader = match root.open_reader(name, generation) {
+  let reader = match
+    local_adoption_reader_result(
+      root.open_reader_with_custody(name, generation),
+    ) {
     Ok(value) => value
-    Err(issue) => return Err(Filesystem(issue))
+    Err(issue) => return Err(issue)
   }
   // Reserve a finite destination from the admitted original size before copying.
   let body : FixedArray[Byte] = FixedArray::make(generation.size.to_int(), 0)
@@ -142,6 +146,16 @@ fn local_adoption_read(
     Some(issue) => Err(Filesystem(issue))
     None => Ok((Bytes::makei(body.length(), i => body[i]), generation))
   }
+}
+
+///|
+/// Preserve the filesystem Owner's same rejected constructor and primary
+/// reason. The caller retains this carrier even if no descriptor was acquired;
+/// only its original retry_cleanup can acknowledge pending Reader retirement.
+fn local_adoption_reader_result(
+  result : Result[@filesystem.Reader, @filesystem.NativeReaderOpenFailure],
+) -> Result[@filesystem.Reader, NativeLocalAdoptionIssue] {
+  result.map_err(failure => ReadAcquisitionFailure(failure))
 }
 
 ///|
