@@ -1,6 +1,7 @@
 """Selected producer command closure checks; no compiler or library loading."""
 import importlib.util
 from pathlib import Path
+import tempfile
 import unittest
 
 
@@ -51,6 +52,27 @@ class NativeProviderRecipeTests(unittest.TestCase):
     def test_unexpected_compiler_operation_is_refused(self):
         with self.assertRaisesRegex(ValueError, 'operation'):
             self.parse(self.lines + ['moonc run original.core'])
+
+    def test_sdk_alias_retains_requested_and_canonical_input(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            sdk = root / 'selected-sdk'; sdk.mkdir()
+            header = sdk / 'real.h'; header.write_bytes(b'original header\n')
+            alias = sdk / 'alias.h'; alias.symlink_to('real.h')
+            self.assertEqual(PRODUCER.original_dependency(alias, sdk),
+                             {'requested_path': str(alias), **PRODUCER.original(header)})
+            other = root / 'foreign.h'; other.write_bytes(b'foreign header\n')
+            alias.unlink(); alias.symlink_to(other)
+            with self.assertRaisesRegex(ValueError, 'escapes original SDK'):
+                PRODUCER.original_dependency(alias, sdk)
+
+    def test_non_sdk_source_alias_is_not_accepted(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory).resolve()
+            original = root / 'source.c'; original.write_bytes(b'original source\n')
+            alias = root / 'alias.c'; alias.symlink_to(original)
+            with self.assertRaisesRegex(ValueError, 'unavailable'):
+                PRODUCER.original_dependency(alias, root / 'selected-sdk')
 
 
 if __name__ == '__main__':
