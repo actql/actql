@@ -182,6 +182,8 @@ pub fn captured_effect_preview_input_at(CapturedEffectPreviewInputs, Int) -> Cap
 
 pub fn captured_effect_preview_inputs_available(CapturedEffectPreviewInputs) -> Bool
 
+pub fn captured_effect_preview_inputs_retained(CapturedEffectPreviewInputs) -> Bool
+
 pub fn captured_effect_preview_ledger_identity(CapturedEffectPreviewInputs) -> @run_publication.EffectPreviewIdentity
 
 pub fn captured_effect_preview_member_count(CapturedEffectPreviewInputs) -> Int?
