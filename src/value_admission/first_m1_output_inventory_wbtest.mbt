@@ -11,7 +11,7 @@ fn first_m1_answer_contract() -> @contract.Contract {
     ],
     nullable=false,
     max_fields=2,
-    max_name_bytes=6,
+    max_name_bytes=10,
   ).unwrap()
 }
 
