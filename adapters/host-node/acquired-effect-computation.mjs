@@ -3,7 +3,7 @@
 import {acquisitionEndHandoff} from '../host-common/acquisition-outcome.mjs';
 import {acquiredEffectPublicationPlan, acquiredMultiEffectPublicationPlan,
   acquiredInferEffectPublicationPlan, sourceFreeInferEffectPublicationPlan} from './local-values-plan.mjs';
-import {selectAcquiredEffectSources} from './acquired-effect-sources.mjs';
+import {selectAcquiredEffectSources, prepareInstalledAcquiredEffectLedger} from './acquired-effect-sources.mjs';
 import {capturedDuckDBConfiguration, capturedDuckDBPhysicalCapacity,
   capturedDuckDBPendingCapacity} from './captured-duckdb-source.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
@@ -259,16 +259,21 @@ export async function openAcquiredEffectComputation({moon, owner, acquired,
         component === undefined ? [] : [component.provider]);
     }
     if (multiple) {
-      const capacities = sources.map(value => capturedDuckDBPhysicalCapacity(value.preparedSource));
-      const pendingSelection = sources.some(value => value.preparedSource.selection === undefined);
-      ledger = (pendingSelection
-        ? moon.clientProgramPrepareMultiCapturedEffectCapacityLedger
-        : moon.clientProgramPrepareMultiCapturedEffectAcquisitionLedger)(acquired.prepared,
-        sources.map(value => (pendingSelection ? capturedDuckDBPendingCapacity
-          : capturedDuckDBConfiguration)(value.preparedSource)),
-        capacities.map(value => value.transferBytes),
-        capacities.map(value => value.executionBytes), registry, values, fragment, ordered);
-      if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');
+      if (sources.some(source => source.adapter.realizationKey !== 'duckdb-acquired')) {
+        ledger = prepareInstalledAcquiredEffectLedger({moon, preparedEffect: acquired.prepared,
+          sources, registry, values, fragment, ordered});
+      } else {
+        const capacities = sources.map(value => capturedDuckDBPhysicalCapacity(value.preparedSource));
+        const pendingSelection = sources.some(value => value.preparedSource.selection === undefined);
+        ledger = (pendingSelection
+          ? moon.clientProgramPrepareMultiCapturedEffectCapacityLedger
+          : moon.clientProgramPrepareMultiCapturedEffectAcquisitionLedger)(acquired.prepared,
+          sources.map(value => (pendingSelection ? capturedDuckDBPendingCapacity
+            : capturedDuckDBConfiguration)(value.preparedSource)),
+          capacities.map(value => value.transferBytes),
+          capacities.map(value => value.executionBytes), registry, values, fragment, ordered);
+        if (ledger === undefined) throw new Error('InstalledMultiSourceLedgerUnavailable');
+      }
     }
     for (const source of sources) {
       signal?.throwIfAborted();
