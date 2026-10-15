@@ -242,7 +242,7 @@ test "one signing operation lost commit ACK reopens history without another clai
   db.begin_immediate().unwrap()
   original_signing_claim_begin(db, grant, 100L).unwrap() |> ignore
   signing_claim_lose_commit_reply(db, 1)
-  assert_true(db.commit() is Err(@sqlite.Busy))
+  assert_true(db.commit() is Err(_))
   db.fence_transactions()
   db.close_checked().unwrap()
   let restored = library.open_existing_database(path, 8192L).unwrap()

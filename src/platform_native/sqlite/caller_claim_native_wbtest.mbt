@@ -2,7 +2,8 @@
 test "caller claim refuses autocommit without consuming the original ordinal" {
   let (_, db, _) = original_claim_lookup_database("caller-claim-autocommit")
   assert_true(
-    db.claim_ordinal_action_in_transaction("grant", "use", 3L) is Err(Busy),
+    db.claim_ordinal_action_in_transaction("grant", "use", 3L)
+    is Err(Physical("claim requires an active unfenced caller transaction")),
   )
   assert_eq(db.lookup_claim_ordinal("grant", "use").unwrap(), None)
   assert_true(db.claim_ordinal_action("grant", "use", 3L) is Ok(Fresh(1L)))
@@ -91,7 +92,8 @@ test "caller claim refuses fenced handles and retains original generic name and 
   db.begin_immediate().unwrap()
   db.fence_transactions()
   assert_true(
-    db.claim_ordinal_action_in_transaction("grant", "use", 1L) is Err(Busy),
+    db.claim_ordinal_action_in_transaction("grant", "use", 1L)
+    is Err(Physical("claim requires an active unfenced caller transaction")),
   )
   db.rollback().unwrap()
   assert_eq(db.lookup_claim_ordinal("grant", "use").unwrap(), None)

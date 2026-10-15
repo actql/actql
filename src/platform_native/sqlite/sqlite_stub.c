@@ -1703,7 +1703,11 @@ static int32_t actql_claim_ordinal(
   // No autocommit fallback can split an ordinal from its original use row.
   const bool owns_transaction = !caller_transaction;
   if (caller_transaction && (database->transaction_fenced ||
-      database->library->get_autocommit(database->database) != 0)) return 4;
+      database->library->get_autocommit(database->database) != 0)) {
+    actql_replace_error(&database->error, database->diagnostic_ceiling,
+                        "claim requires an active unfenced caller transaction");
+    return -1;
+  }
   int32_t result = owns_transaction ? actql_capacity_begin(database) : 0;
   if (result != 0) return result;
   sqlite3_stmt *statement = NULL;
