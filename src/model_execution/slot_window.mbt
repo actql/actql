@@ -12,6 +12,9 @@ priv struct ModelSlotWindow {
   frames : Array[ModelSlotFrame?]
   outcomes : Map[Int, AdoptedModelSlot]
   adopted_slots : Array[Int]
+  // Separate bounded DATA export; the original success/evidence arrays keep
+  // their arrival indices for nominal custody. Transfer this array once only.
+  mut export_captures : Array[ModelSlotCapture]?
   mut next_slot : Int
   mut scan : Int
 }
@@ -83,8 +86,20 @@ fn order_model_window_outcomes(
     return Some(@bounded.Continue(1, 1))
   }
   if state.outcomes.length() < count {
-    guard window.outcomes.get(state.outcomes.length()) is Some(outcome) else {
+    let slot = state.outcomes.length()
+    guard window.outcomes.get(slot) is Some(outcome) &&
+      window.export_captures is Some(exported) else {
       return Some(@bounded.Failed(OutputIdentity, 1, 1))
+    }
+    if outcome is Success(index) {
+      guard state.captures.get(index) is Some(capture) &&
+        state.requests.get(slot) is Some(prepared) &&
+        capture.slot == slot &&
+        capture.slot_cid == prepared.request.slot_cid &&
+        capture.input_key_cid == prepared.key_cid else {
+        return Some(@bounded.Failed(OutputIdentity, 1, 1))
+      }
+      exported.push(capture)
     }
     state.outcomes.push(outcome)
     return Some(@bounded.Continue(1, 1))

@@ -284,7 +284,7 @@ test "original Model window reverse response keeps Slot settlement and logical o
   assert_eq(@relation.completed_row_count(completed), 2)
   window_assert_output(completed, 0, "a")
   window_assert_output(completed, 1, "b")
-  assert_eq(capture(active).unwrap().captures.map(record => record.slot), [1, 0])
+  assert_eq(capture(active).unwrap().captures.map(record => record.slot), [0, 1])
   let bundle = capture(active).unwrap()
   let rows = active.rows.unwrap()
   let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
@@ -423,11 +423,18 @@ test "original Model window four calls preserve logical output in all 24 arrival
     }
     assert_eq(
       capture(active).unwrap().captures.map(record => record.slot),
-      order,
+      [0, 1, 2, 3],
     )
+    let bundle = capture(active).unwrap()
+    let rows = active.rows.unwrap()
+    let task = @infer.model_task(@relation.prepared_infer_rows_owner(rows))
+    let data_replay = @model.replay_model_capture(task, active.fixed_request_cid, bundle)
+    let rows_replay = @model.replay_model_capture_rows(rows, active.fixed_request_cid, bundle)
     window_cleanup_complete(active, ledger, read)
     assert_true(@resources.close_model_io_access(access).unwrap())
     assert_eq(calls.val, 4)
+    assert_true(data_replay is Ok(_))
+    assert_true(rows_replay is Ok(_))
   }
   assert_eq(distinct.length(), 24)
 }

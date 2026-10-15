@@ -76,11 +76,24 @@ fn complete_model_slots(
       return @bounded.Failed(OutputIdentity, 1, 1)
     }
   }
+  let captures = match state.slot_window {
+    Some(window) => {
+      guard window.export_captures is Some(exported) &&
+        exported.length() == state.captures.length() else {
+        return @bounded.Failed(OutputIdentity, 1, 1)
+      }
+      // This is the already built logical DATA projection, not a sort or a
+      // mutation of the original arrival-indexed nominal observations.
+      window.export_captures = None
+      exported
+    }
+    None => state.captures.copy()
+  }
   @bounded.Complete(
     {
       task_cid: @environment.model_task_identity(state.task).2,
       fixed_request_cid: state.fixed_request_cid,
-      captures: state.captures.copy(),
+      captures,
     },
     1,
     1,

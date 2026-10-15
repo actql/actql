@@ -1367,6 +1367,10 @@ fn cleanup_model_execution_owned(
           }
         }
         window.outcomes.clear()
+        if window.export_captures is Some(exported) {
+          retire_model_owned_array(exported)
+          window.export_captures = None
+        }
         retire_model_owned_array(window.adopted_slots)
         retire_model_owned_array(window.frames)
         execution.state.slot_window = None

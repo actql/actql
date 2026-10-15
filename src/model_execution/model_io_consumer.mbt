@@ -65,6 +65,7 @@ pub fn bind_prepared_model_io_access(
     frames,
     outcomes: {},
     adopted_slots: [],
+    export_captures: Some([]),
     next_slot: if state.requests.is_empty() {
       0
     } else {
