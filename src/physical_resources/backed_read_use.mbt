@@ -8,8 +8,8 @@ pub struct BackedExecutionReadUse[P, C] {
   mut closing : Bool
   // Resident flags and any live access/projection controls require the same
   // original envelope. They are not another byte reservation or ACK.
-  mut live_access_issued : Bool
-  mut live_access_pending : Bool
+  priv mut live_access_issued : Bool
+  priv mut live_access_pending : Bool
 }
 
 ///|

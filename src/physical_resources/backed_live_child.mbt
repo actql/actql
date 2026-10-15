@@ -3,15 +3,15 @@
 /// R is the trusted physical Owner's original channel/VM/FD/domain carrier.
 /// All records, resident flags and reference overlap need original funding.
 pub struct BackedExecutionLiveAccess[P, C, R] {
-  mut original : BackedExecutionLiveAccess[P, C, R]?
-  mut region : BackedExecutionRegion[P, C]?
-  mut provider : P?
-  mut child : C?
-  mut ticket : BackedExecutionDelegation[P, C]?
-  mut read_use : BackedExecutionReadUse[P, C]?
-  mut runtime : R?
-  mut projection : BackedExecutionLiveProjection[P, C, R]?
-  mut closing : Bool
+  priv mut original : BackedExecutionLiveAccess[P, C, R]?
+  priv mut region : BackedExecutionRegion[P, C]?
+  priv mut provider : P?
+  priv mut child : C?
+  priv mut ticket : BackedExecutionDelegation[P, C]?
+  priv mut read_use : BackedExecutionReadUse[P, C]?
+  priv mut runtime : R?
+  priv mut projection : BackedExecutionLiveProjection[P, C, R]?
+  priv mut closing : Bool
 }
 
 ///|
@@ -19,7 +19,7 @@ pub struct BackedExecutionLiveAccess[P, C, R] {
 /// Ledger, reservation or quota is created. Physical transport/adoption into
 /// a different runtime remains the trusted installed Owner's responsibility.
 pub struct BackedExecutionLiveProjection[P, C, R] {
-  mut access : BackedExecutionLiveAccess[P, C, R]?
+  priv mut access : BackedExecutionLiveAccess[P, C, R]?
 }
 
 ///|
