@@ -4370,10 +4370,10 @@ fn run_holder(
   ) catch {
     CommandStop(issue) => {
       if proven_unstarted {
-        let operation = finish_holder_cleanup_lifetime(
+        let (operation, failure) = finish_holder_cleanup_lifetime(
           resources, environment, slot, issue,
         )
-        return HolderCommandFailed(operation, issue)
+        return HolderCommandFailed(operation, failure)
       }
       // Deny evidence access while retaining the original journal and passing
       // existing work to its normal restoration/unknown/cleanup Owners. This
@@ -4575,7 +4575,7 @@ fn run_holder(
     }
   }
   let failure = "execute exited with " + code.to_string()
-  let operation = finish_holder_cleanup_lifetime(
+  let (operation, failure) = finish_holder_cleanup_lifetime(
     resources, environment, slot, failure,
   )
   if code != 0 {

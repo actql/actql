@@ -70,9 +70,17 @@ pub fn client_values_host_cancel_durable_result_row_frames(@run_publication.Dura
 
 pub fn client_values_host_cancellation_intent_cid(@run_publication_host.ClientCancellationIdentity) -> String
 
+pub fn client_values_host_capture_original_task_run_plan(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientTaskCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int, Int) -> Result[Array[String], ClientValuesHostOriginalPlanIssue]
+
+pub fn client_values_host_capture_original_values_run_plan(@run_publication_host.PreparedClientProgram, @run_publication_host.ClientValuesCompilation, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, Int, Int, Int) -> Result[Array[String], ClientValuesHostOriginalPlanIssue]
+
 pub fn client_values_host_charge_observation(@host_observation.ObservationBudget, @host_observation.ObservationScope, String, String?, Int) -> Result[Bool, @host_observation.ObservationIssue]
 
+pub fn client_values_host_check_logical_map_binding(@run_publication.RunEvidenceValue, @run_publication.PublicationContract, Int, Int, Int) -> Result[Unit, @run_publication.RunEvidenceValueIssue]
+
 pub fn client_values_host_check_run_binding(@run_publication_host.PreparedClientProgram, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract) -> Result[Unit, @run_publication.RunProgramBindingIssue]
+
+pub fn client_values_host_check_stored_plan_view(String, Int, Int, Int) -> Result[Unit, @run_publication.PublicationContractIssue]
 
 pub fn client_values_host_compile(@run_publication_host.PreparedClientProgram) -> Result[@run_publication_host.ClientValuesCompilation, ClientValuesHostCompilationIssue]
 
@@ -559,6 +567,12 @@ pub(all) enum ClientValuesHostEffectPreparationIssue {
 pub(all) enum ClientValuesHostEffectRestorationIssue {
   Manifests(@run_publication_host.ClientCompilationManifestIssue)
   Materials(@run_publication_host.ClientEffectRunMaterialsIssue)
+}
+
+pub(all) enum ClientValuesHostOriginalPlanIssue {
+  ValuesBinding(@run_publication_host.ClientValuesRunBindingIssue)
+  TaskBinding(@run_publication_host.ClientTaskRunBindingIssue)
+  Plan(@run_publication_host.ClientInteractivePlanIssue)
 }
 
 pub(all) enum ClientValuesHostPreparationIssue {
