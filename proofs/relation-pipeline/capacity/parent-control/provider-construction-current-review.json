@@ -1,0 +1,122 @@
+{
+  "kind": "Exact current constructor source correspondence to retained historical review",
+  "currentSourceRevision": "e50d0dd6e8d7b82033189a5e8772488172a198b6",
+  "historicalRecipeSha256": "0dbf82c532e3682e7cab313f0e5123e94039744e1ab4a7b684e2dcb7cbf38296",
+  "historicalReviewSha256": "412a839968c9632f5465151f87b40b82f94d1ff9172fdde344334a67a06c1e66",
+  "sources": [
+    {
+      "path": "src/connectors/local/selected_relation_provider.mbt",
+      "previousRevision": "db70188c9ccfa2201f7b636c67eb30fc8c6ae98a",
+      "previousSha256": "9c5251e962f4114801bc99c8deb3dc836a16773bd0eebef5aa2c4dcdefe17409",
+      "currentSha256": "b917b4a66a1a27b6513d12d9d842ab97df90dc0621b4cfcd8a303c2c46271274",
+      "adoptedChangeRevisions": [
+        "df3468c089521dc5d9d5cb36e545f3b23472cc6f",
+        "c61d82c6fcd9e3823f1b0cc963b8a8ada1de6bb5",
+        "091debb60866fd4fdecbce7281ecd8bf0dcb4745",
+        "98010afe9cd7288edace5d9daf8b71d5f16f541f",
+        "40f26ba68ea4f7d7ea4aba47639021ff51f7226a"
+      ],
+      "scope": "Calendar callback support and existing audited-prefix helper/capacity/advance execution. The selected candidate constructor outside accepts is unchanged.",
+      "hunks": [
+        {
+          "before": "    | Some(@lower.SequenceMatchStep(_))\n    | Some(@lower.InferBoundary(_))\n    | Some(@lower.SerializationBoundary(_)) => true\n    Some(@lower.EventStep(event)) =>\n      @carrier.kind(@lower.event_output_carrier(event)) == @carrier.RelationKind &&\n      @execution.generated_sequence_step_index_at(selected, 0)\n",
+          "after": "    | Some(@lower.SequenceMatchStep(_))\n    | Some(@lower.InferBoundary(_))\n    | Some(@lower.SerializationBoundary(_)) => true\n    Some(@lower.CalendarStep(_)) => true\n    Some(@lower.EventStep(event)) =>\n      @carrier.kind(@lower.event_output_carrier(event)) == @carrier.RelationKind &&\n      @execution.generated_sequence_step_index_at(selected, 0)\n"
+        },
+        {
+          "before": "/// These bounded Relation kernels transfer an accepted completion independently\n/// of their execution scratch. Their existing cleanup preserves that output.\n/// Family providers retain their original conservative lifecycle and capacity.\nfn relation_chain_reclaims_completed_scratch(\n  sequence : @execution.GeneratedSequence,\n) -> Bool {\n  for index in 0..<@execution.generated_sequence_step_count(sequence) {\n    match @execution.generated_sequence_step_at(sequence, index) {\n      Some(@lower.JoinStep(_)) => ()\n",
+          "after": "/// These bounded Relation kernels transfer an accepted completion independently\n/// of their execution scratch. Their existing cleanup preserves that output.\n/// Family providers retain their original conservative lifecycle and capacity.\nfn relation_chain_reclaimed_prefix(\n  sequence : @execution.GeneratedSequence,\n) -> Int {\n  for index in 0..<@execution.generated_sequence_step_count(sequence) {\n    match @execution.generated_sequence_step_at(sequence, index) {\n      Some(@lower.JoinStep(_)) => ()\n"
+        },
+        {
+          "before": "          !(@lower.kernel_body(kernel) is @lower.AnalyticRows(_)) &&\n          !(@lower.kernel_body(kernel) is @lower.Unpivot(_, _, _, _)) &&\n          !(@lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _)) {\n          return false\n        }\n      _ => return false\n    }\n  }\n  true\n}\n\n///|\n",
+          "after": "          !(@lower.kernel_body(kernel) is @lower.AnalyticRows(_)) &&\n          !(@lower.kernel_body(kernel) is @lower.Unpivot(_, _, _, _)) &&\n          !(@lower.kernel_body(kernel) is @lower.Unnest(_, _, _, _, _)) {\n          return index\n        }\n      _ => return index\n    }\n  }\n  @execution.generated_sequence_step_count(sequence)\n}\n\n///|\n"
+        },
+        {
+          "before": "  if count < 2 {\n    return Some(base)\n  }\n  let reclaims_scratch = relation_chain_reclaims_completed_scratch(sequence)\n  let mut retained_children = 0L\n  let mut scratch = 0L\n  for index in 0..<count {\n    guard @execution.generated_sequence_step_index_at(sequence, index)\n      is Some(step) &&\n",
+          "after": "  if count < 2 {\n    return Some(base)\n  }\n  let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)\n  let mut retained_children = 0L\n  let mut scratch = 0L\n  let mut prefix_peak = 0L\n  for index in 0..<count {\n    guard @execution.generated_sequence_step_index_at(sequence, index)\n      is Some(step) &&\n"
+        },
+        {
+          "before": "      return None\n    }\n    retained_children += child.retained_bytes\n    if reclaims_scratch {\n      scratch = Int64::max(scratch, child.execution_bytes)\n    } else {\n      if scratch > 9223372036854775807L - child.execution_bytes {\n        return None\n",
+          "after": "      return None\n    }\n    retained_children += child.retained_bytes\n    if index < reclaimed_prefix {\n      prefix_peak = Int64::max(prefix_peak, child.execution_bytes)\n    } else {\n      if scratch > 9223372036854775807L - child.execution_bytes {\n        return None\n"
+        },
+        {
+          "before": "      scratch += child.execution_bytes\n    }\n  }\n  if retained_children > 9223372036854775807L - scratch {\n    return None\n  }\n",
+          "after": "      scratch += child.execution_bytes\n    }\n  }\n  // Every audited prefix child confirms cleanup before the next child starts.\n  // Family/unaudited children retain their original conservative overlap from\n  // the first such child onward; accepted outputs remain retained throughout.\n  scratch = Int64::max(prefix_peak, scratch)\n  if retained_children > 9223372036854775807L - scratch {\n    return None\n  }\n"
+        },
+        {
+          "before": "  let terminal = Ref(false)\n  let reclaimed = Ref(false)\n  let cleanup_index = Ref(-1)\n  let reclaims_scratch = relation_chain_reclaims_completed_scratch(sequence)\n  let start_next = fn(\n    next_inputs : Array[ManagedProviderInput],\n  ) -> Result[Unit, @connector.FixedComputeIssue] {\n",
+          "after": "  let terminal = Ref(false)\n  let reclaimed = Ref(false)\n  let cleanup_index = Ref(-1)\n  let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)\n  let start_next = fn(\n    next_inputs : Array[ManagedProviderInput],\n  ) -> Result[Unit, @connector.FixedComputeIssue] {\n"
+        },
+        {
+          "before": "            state.completed[state.position] = Some(output)\n            state.position += 1\n            state.pending = true\n            if reclaims_scratch {\n              state.reclaiming = true\n              match reclaim_relation_chain_child(state) {\n",
+          "after": "            state.completed[state.position] = Some(output)\n            state.position += 1\n            state.pending = true\n            let reclaims_scratch = state.position <= reclaimed_prefix\n            if reclaims_scratch {\n              state.reclaiming = true\n              match reclaim_relation_chain_child(state) {\n"
+        }
+      ]
+    },
+    {
+      "path": "src/connectors/local/managed_provider.mbt",
+      "previousRevision": "db70188c9ccfa2201f7b636c67eb30fc8c6ae98a",
+      "previousSha256": "0a5978f614e7b01fd191395f2fe3cb4ce98c3c7548aec968033d10d0fa8964a3",
+      "currentSha256": "8fb17b1b340baeb343b1f9d9037f8db0e132fd5055fea5ce64d0cc271535aec4",
+      "adoptedChangeRevisions": [
+        "2cab445cb8ac7a9bd411d516fab3993052c75605"
+      ],
+      "scope": "Removal of the two compatibility start wrappers and their zero-limit helper; the three candidate construction wrappers are unchanged.",
+      "hunks": [
+        {
+          "before": "}\n\n///|\npub fn start_managed_provider(\n  provider : ManagedProvider,\n  sequence : @execution.GeneratedSequence,\n  inputs : Array[@execution.ProducerRead],\n  max_rows : Int,\n  max_value_bytes : Int,\n) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {\n  start_managed_provider_with_execution(\n    provider,\n    sequence,\n    inputs,\n    max_rows,\n    max_value_bytes,\n    unavailable_provider_execution_limits(max_rows),\n  )\n}\n\n///|\npub fn start_managed_provider_with_execution(\n  provider : ManagedProvider,\n  sequence : @execution.GeneratedSequence,\n",
+          "after": "}\n\n///|\npub fn start_managed_provider_with_execution(\n  provider : ManagedProvider,\n  sequence : @execution.GeneratedSequence,\n"
+        },
+        {
+          "before": "    max_rows,\n    max_value_bytes,\n    execution,\n  )\n}\n\n///|\n/// Start a provider with the exact ordered mixed-Carrier input set.\npub fn start_managed_provider_with_inputs(\n  provider : ManagedProvider,\n  sequence : @execution.GeneratedSequence,\n  inputs : Array[ManagedProviderInput],\n  max_rows : Int,\n  max_value_bytes : Int,\n) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {\n  start_managed_provider_with_inputs_and_execution(\n    provider,\n    sequence,\n    inputs,\n    max_rows,\n    max_value_bytes,\n    unavailable_provider_execution_limits(max_rows),\n  )\n}\n\n",
+          "after": "    max_rows,\n    max_value_bytes,\n    execution,\n  )\n}\n\n"
+        },
+        {
+          "before": "/// Whether the provider runs selected common numeric reductions itself.\npub fn managed_provider_runs_numeric(provider : ManagedProvider) -> Bool {\n  provider.start_numeric is Some(_)\n}\n\n///|\n/// Compatibility-only limits for callers of the pre-bounded start API. A\n/// provider that needs common execution limits must reject these zero\n/// ceilings; the standard driver always uses the explicit execution variant.\nfn unavailable_provider_execution_limits(\n  max_rows : Int,\n) -> @execution.SequenceExecutionLimits {\n  let values : @execution.ValueLimits = {\n    max_nodes: 0,\n    max_text_bytes: 0,\n    max_depth: 0,\n    max_work: 0,\n  }\n  {\n    rows: {\n      max_rows,\n      metadata_entries: 0,\n      retained_entries: 0,\n      operation_entries: 0,\n      input_values: values,\n      output_values: values,\n    },\n    max_work: 0,\n    max_frames: 0,\n  }\n}\n\n///|\n",
+          "after": "/// Whether the provider runs selected common numeric reductions itself.\npub fn managed_provider_runs_numeric(provider : ManagedProvider) -> Bool {\n  provider.start_numeric is Some(_)\n}\n\n///|\n"
+        }
+      ]
+    },
+    {
+      "path": "src/execution_relation/generated_sequence.mbt",
+      "previousRevision": "b98a50ff763d1367e344fdfa8aea380ec8749132",
+      "previousSha256": "7e71c827d4004e769a22891f97dba162e7854a87f45e081dcb9a5c50bbbc460a",
+      "currentSha256": "c6ee6afc5adcda37f708444eac28645cd19269b76e3377602da874f17c3ee673",
+      "adoptedChangeRevisions": [
+        "40f26ba68ea4f7d7ea4aba47639021ff51f7226a",
+        "28398f467e27dc2ddc8ea170896c4218059fb822",
+        "2bff752cb0eef171aa8f7ba614b301e052b7dff3",
+        "d0674f7341f1c0db855618a93edd27d76b6622aa",
+        "ff6ee1561a4aeda3d46bb9ede04cd2ac33041f13"
+      ],
+      "scope": "Calendar selected-context quota storage and support exclusion plus already-reviewed GraphMean and boundary exclusions. Selected configuration is borrowed by construction; its added storage has an unresolved separate lifetime obligation.",
+      "hunks": [
+        {
+          "before": "  join_ceilings : Array[(Int, Int64)]\n  expansion_ceilings : Array[(Int, Int64)]\n  session_output_ceilings : Array[(Int, Int64)]\n  traversal_ceilings : Array[(Int, Int64, Int64)]\n  interval_search_ceilings : Array[(Int, Int64)]\n  asof_search_ceilings : Array[(Int, Int64)]\n",
+          "after": "  join_ceilings : Array[(Int, Int64)]\n  expansion_ceilings : Array[(Int, Int64)]\n  session_output_ceilings : Array[(Int, Int64)]\n  calendar_output_ceilings : Array[(Int, Int64)]\n  traversal_ceilings : Array[(Int, Int64, Int64)]\n  interval_search_ceilings : Array[(Int, Int64)]\n  asof_search_ceilings : Array[(Int, Int64)]\n"
+        },
+        {
+          "before": "        join_ceilings: [],\n        expansion_ceilings: [],\n        session_output_ceilings: [],\n        traversal_ceilings: [],\n        interval_search_ceilings: [],\n        asof_search_ceilings: [],\n",
+          "after": "        join_ceilings: [],\n        expansion_ceilings: [],\n        session_output_ceilings: [],\n        calendar_output_ceilings: [],\n        traversal_ceilings: [],\n        interval_search_ceilings: [],\n        asof_search_ceilings: [],\n"
+        },
+        {
+          "before": "    generated.selected_prefix_end is Some(_) ||\n    !generated.sequence_match_ceilings.is_empty() ||\n    !generated.session_output_ceilings.is_empty() ||\n    !generated.traversal_ceilings.is_empty() {\n    return Err(InputSet)\n  }\n",
+          "after": "    generated.selected_prefix_end is Some(_) ||\n    !generated.sequence_match_ceilings.is_empty() ||\n    !generated.session_output_ceilings.is_empty() ||\n    !generated.calendar_output_ceilings.is_empty() ||\n    !generated.traversal_ceilings.is_empty() {\n    return Err(InputSet)\n  }\n"
+        },
+        {
+          "before": "  }\n  ceilings.push((step, ceiling))\n  Ok({ ..generated, expansion_ceilings: ceilings, })\n}\n\n///|\n",
+          "after": "  }\n  ceilings.push((step, ceiling))\n  Ok({ ..generated, expansion_ceilings: ceilings, })\n}\n\n///|\n/// Bind the selected output quota to one original Calendar occurrence. This\n/// does not replace its conservative preparation/capacity upper bound.\npub fn constrain_generated_calendar_output(\n  generated : GeneratedSequence,\n  step : Int,\n  ceiling : Int64,\n) -> Result[GeneratedSequence, SequenceRunIssue] {\n  if ceiling < 0L {\n    return Err(InvalidLimits)\n  }\n  guard @lower.sequence_step(generated.sequence, step)\n    is Some(@lower.CalendarStep(calendar)) &&\n    @lower.calendar_step(calendar) == step else {\n    return Err(InputSet)\n  }\n  let ceilings = generated.calendar_output_ceilings.copy()\n  for index, (prior_step, prior) in ceilings {\n    if prior_step == step {\n      ceilings[index] = (step, Int64::min(prior, ceiling))\n      return Ok({ ..generated, calendar_output_ceilings: ceilings, })\n    }\n  }\n  ceilings.push((step, ceiling))\n  Ok({ ..generated, calendar_output_ceilings: ceilings, })\n}\n\n///|\npub fn generated_calendar_output_ceiling(\n  generated : GeneratedSequence,\n  step : Int,\n) -> Int64? {\n  selected_step_ceiling(generated.calendar_output_ceilings, step)\n}\n\n///|\n"
+        },
+        {
+          "before": "      @lower.RowStep(kernel) => accepts(@lower.kernel_body(kernel))\n      @lower.ValuesStep(_)\n      | @lower.TimeSeriesStep(_)\n      | @lower.WindowStep(_)\n      | @lower.JoinStep(_)\n      | @lower.IntervalJoinStep(_)\n",
+          "after": "      @lower.RowStep(kernel) => accepts(@lower.kernel_body(kernel))\n      @lower.ValuesStep(_)\n      | @lower.TimeSeriesStep(_)\n      | @lower.CalendarStep(_)\n      | @lower.WindowStep(_)\n      | @lower.JoinStep(_)\n      | @lower.IntervalJoinStep(_)\n"
+        },
+        {
+          "before": "      | @lower.GraphNormalizeStep(_)\n      | @lower.GraphDeltaStep(_)\n      | @lower.GraphUnionStep(_)\n      | @lower.GraphSubtractionStep(_)\n      | @lower.GraphConstructionStep(_)\n      | @lower.VectorStep(_)\n      | @lower.EventStep(_)\n      | @lower.CarrierProjectionStep(_)\n      | @lower.InferBoundary(_) => false\n    }\n  })\n}\n",
+          "after": "      | @lower.GraphNormalizeStep(_)\n      | @lower.GraphDeltaStep(_)\n      | @lower.GraphUnionStep(_)\n      | @lower.GraphMeanStep(_)\n      | @lower.GraphSubtractionStep(_)\n      | @lower.GraphConstructionStep(_)\n      | @lower.VectorStep(_)\n      | @lower.EventStep(_)\n      | @lower.CarrierProjectionStep(_)\n      | @lower.InferBoundary(_)\n      | @lower.SerializationBoundary(_)\n      | @lower.CompletedProducerBoundary(_) => false\n    }\n  })\n}\n"
+        }
+      ]
+    }
+  ],
+  "constructionScope": "Eleven candidate records, four callbacks and the original limits/measurement/family captures only. Callback execution, selected-context arrays, prefix lifetime, physical extent and complete parent/pipeline bounds remain separate obligations.",
+  "currentRecipeSha256": "f5de17e3bfe81b7211e1816cbd99287a5ddb02424abef6e44897e64ea4279f64"
+}
