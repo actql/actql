@@ -33,6 +33,7 @@ import {EFFECT_TARGET_CONTINUATION, effectTargetReadScope} from
 import {MAX_INSTALLED_SOURCE_AUTHORITIES} from './installed-source-limits.mjs';
 import {MAX_INSTALLED_EFFECT_PROFILES} from './installed-effect-limits.mjs';
 import {selectOriginalInferMetadataAcquisition,
+  selectOriginalInferStoreBootstrapAcquisition,
   selectOriginalInferResourceCodecAcquisition} from './infer-operation.mjs';
 
 const IDENTIFIER = /^[A-Za-z0-9._:-]{1,128}$/u;
@@ -924,6 +925,18 @@ export async function installRemoteCheckpoints({root, namespaceId,
     if (acquisition !== undefined) selectOriginalInferMetadataAcquisition(acquisition, ownerId, requestCid);
     return selected;
   }
+  async function originalModelBootstrapEvidence(handle, acquisition, ownerId, requestCid) {
+    if (closed) fail('OriginalModelStateHostStopped');
+    selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+    if (typeof evidence.originalModelStorageBindingEvidenceSelected !== 'function') {
+      fail('InferOriginalMetadataAcquisitionUnavailable');
+    }
+    const selected = await evidence.originalModelStorageBindingEvidenceSelected(
+      handle, ownerId, requestCid, acquisition);
+    if (closed) fail('OriginalModelStateHostStopped');
+    selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+    return selected;
+  }
   function originalModelDocumentLimits(acquisition, ownerId, requestCid) {
     if (acquisition === undefined) {
       return {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64};
@@ -1470,6 +1483,29 @@ export async function installRemoteCheckpoints({root, namespaceId,
       const handle = await evidence.observeOriginalModelStorageBinding();
       if (closed) fail('OriginalModelStateHostStopped');
       return handle;
+    },
+    async observeModelOriginalStorageBindingSelected(args, acquisition) {
+      // Require the operation's original bootstrap role BEFORE reading DATA;
+      // omission never falls back to the ordinary unselected Store path.
+      selectOriginalInferStoreBootstrapAcquisition(acquisition);
+      const {runDefinition} = args;
+      const ownerId = `model-${contractControl.runDefinitionRunId(runDefinition)}`;
+      const requestCid = runDefinition.identity;
+      if (closed) fail('OriginalModelStateHostStopped');
+      selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+      if (typeof evidence.observeOriginalModelStorageBindingSelected !== 'function') {
+        fail('InferOriginalMetadataAcquisitionUnavailable');
+      }
+      const handle = await evidence.observeOriginalModelStorageBindingSelected(ownerId, requestCid, acquisition);
+      if (closed) fail('OriginalModelStateHostStopped');
+      selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+      return handle;
+    },
+    async modelOriginalStorageBindingBootstrapSelected(args, acquisition) {
+      selectOriginalInferStoreBootstrapAcquisition(acquisition);
+      const {storageBinding, runDefinition} = args;
+      const ownerId = `model-${contractControl.runDefinitionRunId(runDefinition)}`;
+      return originalModelBootstrapEvidence(storageBinding, acquisition, ownerId, runDefinition.identity);
     },
     modelOriginalStorageBindingEvidence(handle) {
       return originalModelStorageEvidence(handle);
