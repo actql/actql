@@ -52,7 +52,7 @@ export const reviewedPackageConfigurations = Object.freeze({
   'src/platform_native/remote_transfer_client/moon.pkg': 'b026d1ada91a1f113c33df63fae999c0a05e197b2b50b0d29d9e7258d830baeb',
   'src/platform_native/remote_transfer_journal/moon.pkg': '4af6a1f153011554ab829bb6b494cbd8a8cf32110ed39f66de7c7974993411b5',
   'src/platform_native/retained_task_file/moon.pkg': 'e3050859982bfa2a176e04f44c08dcf073be7405e42be6f0af81f51a680347de',
-  'src/platform_native/runtime_bundle/moon.pkg': 'e18d68c466e76cdc2fd81395df80fdfbdb86e13627c89110339d54503a6650fd',
+  'src/platform_native/runtime_bundle/moon.pkg': '4a6441d96a441ac67adf1f38d806ae59bf4936217faf2b8269310f2e500aac00',
   'src/platform_native/signature/moon.pkg': '7d5f82f21d707d93d0ad352324cbdc65b7b4eebe6c8456413430699ff084eab3',
   'src/platform_native/sqlite/moon.pkg': 'f05438392188f1d1f2c08a6872f25e07c782ec6fbc3b9769c09b155b564face5',
   'src/query_integration/moon.pkg': 'eeeb572afaf8f9b708362db6308b080cc715e65601d54f3ff53d8e1a01f65966',

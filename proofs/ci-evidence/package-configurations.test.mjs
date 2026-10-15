@@ -410,7 +410,8 @@ test('bounded catalog review binds the actual sole selector introduction and eve
 test('bounded catalog review refuses old bytes, changed imports, selectors, options, target and toolchain', () => {
   assert.equal(packageConfigurationReviewFor(catalogRequest)?.rule,
     'literal-native-options-with-bound-source-membership');
-  for (const change of [{digest: priorCatalogDigest}, {digest: '0'.repeat(64)},
+  for (const change of [{digest: priorCatalogDigest},
+    {digest: 'e18d68c466e76cdc2fd81395df80fdfbdb86e13627c89110339d54503a6650fd'}, {digest: '0'.repeat(64)},
     {path: './' + catalogPath}, {path: 'src/unreviewed_bundle/moon.pkg'},
     {target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
     assert.equal(packageConfigurationReviewFor({...catalogRequest, ...change}), null);
