@@ -76,12 +76,13 @@ pub fn subgraph_cancel_create(
     ).unwrap(),
   )
   assert_true(@local_connector.managed_provider_accepts(provider, generated))
-  let execution = @local_connector.start_managed_provider(
+  let execution = @local_connector.start_managed_provider_with_execution(
     provider,
     generated,
     [input],
     100,
     1000,
+    issued_execution_limits(100),
   ).unwrap()
   { execution, input, }
 }
