@@ -5,13 +5,22 @@ fn contract_capacity_start(
   wire_bytes : Int64,
   limits? : Limits = standard_limits(),
   asynchronous? : Bool = false,
+  rows? : String = "[{\"id\":\"a\",\"text\":\"hello\"},{\"id\":\"b\",\"text\":\"hello\"}]",
+  token_reservation? : Int64 = 128L,
+  duration_ms? : Int64 = 1000L,
 ) -> Execution {
   let source = infer_fixture_program.replace(
     old="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"}]",
-    new="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"},{\"id\":\"b\",\"text\":\"hello\"}]",
+    new="\"rows\":" + rows,
   )
   let prepared = fixture_prepared(source~)
-  let plan = call_identity_plan(prepared, attempts~, wire_bytes~)
+  let plan = call_identity_plan(
+    prepared,
+    attempts~,
+    wire_bytes~,
+    token_reservation~,
+    duration_ms~,
+  )
   let provider = if asynchronous {
     @model.install_async_model_provider("models/fixture").unwrap()
   } else {

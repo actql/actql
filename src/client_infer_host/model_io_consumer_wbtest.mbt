@@ -15,6 +15,12 @@ fn original_io_consumer_fixture(
   current? : Ref[@authorization.AdmittedAccountConfiguration] = Ref(
     evidence_account(@authorization.Allow),
   ),
+  slots? : Int = 2,
+  start_original? : (() -> Execution)? = None,
+  capacity? : @model.ModelQuantityCapacity = fixture_quantity_capacity(
+    66L, 1000L,
+  ),
+  run_id? : String = "infer-run",
 ) -> (
   Execution,
   Int64,
@@ -34,10 +40,16 @@ fn original_io_consumer_fixture(
     release,
     response,
     current~,
+    slots~,
+    start_original~,
+    capacity~,
     prepare_original=Some(active => {
       let (ledger, read) = original_preparation_test_read(
         active,
         quantities=Some(active.quantity_capacity.unwrap().limits),
+        reservation_slots=slots.max(4),
+        holding_slots=slots,
+        run_id~,
       )
       bind_original_model_preparation(active, read, 100L, 5L).unwrap()
       original.val = Some((ledger, read))
@@ -254,16 +266,32 @@ test "original Model shared IO admission keeps two Run holding separate from IO 
   let first_io = Ref(false)
   let first_release = Ref(false)
   let (first, first_work, first_ledger, first_read) = original_io_consumer_fixture(
-    first_calls, first_ready, first_io, first_release,
+    first_calls,
+    first_ready,
+    first_io,
+    first_release,
+    run_id="io-first-run",
   )
   let second_calls = Ref(0)
   let second_ready = Ref(false)
   let second_io = Ref(false)
   let second_release = Ref(false)
   let (second, second_work, second_ledger, second_read) = original_io_consumer_fixture(
-    second_calls, second_ready, second_io, second_release,
+    second_calls,
+    second_ready,
+    second_io,
+    second_release,
+    run_id="io-second-run",
   )
   assert_false(physical_equal(first_ledger, second_ledger))
+  assert_true(
+    @publication.publication_contract_identity(
+      first.run_binding.unwrap().definition,
+    ) !=
+    @publication.publication_contract_identity(
+      second.run_binding.unwrap().definition,
+    ),
+  )
   let first_set = prepared_call_set(first).unwrap()
   @model.bind_prepared_model_io_access(first_set, access).unwrap()
   assert_true(@model.bind_prepared_model_io_access(first_set, access) is Err(_))

@@ -97,6 +97,48 @@ fn window_fixed_response(slot : Int) -> @model.ModelPhysicalCallPoll {
 }
 
 ///|
+// Explicit bounded fixture contracts, not changed product/normal limits.
+// Reverse source rows also test that original typed-key order is independent
+// from input arrival and physical response order.
+fn window_sized_start(calls : Ref[Int], count : Int) -> Execution {
+  let keys = ["a", "b", "c", "d", "e"]
+  let rows = Json::array(
+    Array::makei(count, index => {
+      Json::object({
+        "id": Json::string(keys[count - index - 1]),
+        "text": Json::string("hello"),
+      })
+    }),
+  ).stringify()
+  contract_capacity_start(
+    calls,
+    count,
+    66536L * count.to_int64(),
+    asynchronous=true,
+    rows~,
+    token_reservation=33L * count.to_int64(),
+    duration_ms=500L * count.to_int64(),
+  )
+}
+
+///|
+fn window_cleanup_complete(
+  active : Execution,
+  ledger : @resources.Ledger,
+  read : @publication_host.ClientModelReadPreparation,
+) -> Unit raise {
+  let mut retired = false
+  for _ in 0..<10 {
+    if cleanup(active).unwrap() {
+      retired = true
+      break
+    }
+  }
+  assert_true(retired)
+  original_preparation_test_release(ledger, read)
+}
+
+///|
 fn window_assert_output(
   completed : @relation.CompletedOutput,
   slot : Int,
@@ -223,4 +265,196 @@ test "original Model window reverse response keeps Slot settlement and logical o
   original_preparation_test_release(ledger, read)
   assert_true(@resources.close_model_io_access(access).unwrap())
   assert_eq(calls.val, 2)
+}
+
+///|
+test "original Model window four calls preserve logical output in all 24 arrival orders" {
+  let orders = [
+    [0, 1, 2, 3],
+    [0, 1, 3, 2],
+    [0, 2, 1, 3],
+    [0, 2, 3, 1],
+    [0, 3, 1, 2],
+    [0, 3, 2, 1],
+    [1, 0, 2, 3],
+    [1, 0, 3, 2],
+    [1, 2, 0, 3],
+    [1, 2, 3, 0],
+    [1, 3, 0, 2],
+    [1, 3, 2, 0],
+    [2, 0, 1, 3],
+    [2, 0, 3, 1],
+    [2, 1, 0, 3],
+    [2, 1, 3, 0],
+    [2, 3, 0, 1],
+    [2, 3, 1, 0],
+    [3, 0, 1, 2],
+    [3, 0, 2, 1],
+    [3, 1, 0, 2],
+    [3, 1, 2, 0],
+    [3, 2, 0, 1],
+    [3, 2, 1, 0],
+  ]
+  assert_eq(orders.length(), 24)
+  let distinct : Map[String, Bool] = {}
+  for order in orders {
+    let code = order.map(value => value.to_string()).join("")
+    assert_false(distinct.contains(code))
+    distinct[code] = true
+    let calls = Ref(0)
+    let ready = [false, false, false, false]
+    let (active, prefix, ledger, read) = original_io_consumer_fixture(
+      calls,
+      Ref(true),
+      Ref(true),
+      Ref(true),
+      slots=4,
+      capacity=fixture_quantity_capacity(132L, 2000L),
+      start_original=Some(() => window_sized_start(calls, 4)),
+      run_id="window-order-" + code,
+      per_slot=Some(slot => {
+        if ready[slot] {
+          window_fixed_response(slot)
+        } else {
+          @model.PhysicalPending
+        }
+      }),
+    )
+    let installation = Ref(0)
+    let admission = @resources.issue_model_io_admission(installation, 4, 4).unwrap()
+    let access = @resources.issue_model_io_access(admission, installation).unwrap()
+    @model.bind_prepared_model_io_access(
+      prepared_call_set(active).unwrap(),
+      access,
+    ).unwrap()
+    guard fixture_finish(active, initial_work=prefix) is AwaitIo(work~) else {
+      abort("four original calls must enter before any response arrives")
+    }
+    assert_eq(calls.val, 4)
+    assert_eq(
+      @resources.model_io_admission_counts(admission, installation),
+      Some((0, 4)),
+    )
+    let mut previous_work = work
+    let mut completed : @relation.CompletedOutput? = None
+    for index in 0..<4 {
+      let slot = order[index]
+      ready[slot] = true
+      guard fixture_finish(active, initial_work=previous_work)
+        is Settling(actual, work=settling_work) else {
+        abort("each fixed observation must retain its own Slot settlement")
+      }
+      assert_eq(actual, slot)
+      let settlement = call_settlement(active).unwrap()
+      assert_eq(@model.model_call_settlement_slot(settlement), Some(slot))
+      let exported = async_settlement_wire(active)
+      assert_true(exported.contains("slot-" + slot.to_string()))
+      assert_true(@model.acknowledge_model_call_settlement(settlement))
+      match fixture_finish(active, initial_work=settling_work) {
+        AwaitIo(work=next_work) if index < 3 => {
+          previous_work = next_work
+          async_assert_wait(active, next_work)
+        }
+        Complete(output, work=next_work) if index == 3 => {
+          completed = Some(output)
+          previous_work = next_work
+        }
+        _ => abort("only the last original settlement completes this Model")
+      }
+      assert_eq(calls.val, 4)
+      assert_eq(
+        @resources.model_io_admission_counts(admission, installation),
+        Some((0, 3 - index)),
+      )
+    }
+    let completed = completed.unwrap()
+    assert_eq(@relation.completed_row_count(completed), 4)
+    for (slot, key) in ["a", "b", "c", "d"].enumerate() {
+      window_assert_output(completed, slot, key)
+    }
+    assert_eq(
+      capture(active).unwrap().captures.map(record => record.slot),
+      order,
+    )
+    window_cleanup_complete(active, ledger, read)
+    assert_true(@resources.close_model_io_access(access).unwrap())
+    assert_eq(calls.val, 4)
+  }
+  assert_eq(distinct.length(), 24)
+}
+
+///|
+test "original Model window Store backpressure blocks fifth start after IO close" {
+  let calls = Ref(0)
+  let ready = [false, false, false, false, false]
+  let release = Ref(false)
+  let (active, prefix, ledger, read) = original_io_consumer_fixture(
+    calls,
+    Ref(true),
+    Ref(true),
+    release,
+    slots=5,
+    capacity=fixture_quantity_capacity(165L, 2500L),
+    start_original=Some(() => window_sized_start(calls, 5)),
+    per_slot=Some(slot => {
+      if ready[slot] {
+        window_fixed_response(slot)
+      } else {
+        @model.PhysicalPending
+      }
+    }),
+  )
+  let installation = Ref(0)
+  let admission = @resources.issue_model_io_admission(installation, 4, 4).unwrap()
+  let access = @resources.issue_model_io_access(admission, installation).unwrap()
+  @model.bind_prepared_model_io_access(
+    prepared_call_set(active).unwrap(),
+    access,
+  ).unwrap()
+  guard fixture_finish(active, initial_work=prefix) is AwaitIo(work~) else {
+    abort("initial four calls must await, with the fifth unentered")
+  }
+  assert_eq(calls.val, 4)
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 4)),
+  )
+  for _ in 0..<8 {
+    async_assert_wait(active, work)
+  }
+  ready[0] = true
+  guard fixture_finish(active, initial_work=work)
+    is Settling(0, work=settling_work) else {
+    abort("first response waits for its original Store settlement")
+  }
+  let first = call_settlement(active).unwrap()
+  assert_eq(calls.val, 4)
+  assert_true(@model.acknowledge_model_call_settlement(first))
+  guard fixture_finish(active, initial_work=settling_work)
+    is AwaitIo(work=blocked_work) else {
+    abort("Store ACK cannot retire failed SDK cleanup or start a fifth call")
+  }
+  assert_eq(calls.val, 4)
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 4)),
+  )
+  release.val = true
+  guard fixture_finish(active, initial_work=blocked_work)
+    is AwaitIo(work=last_work) else {
+    abort("same original fifth call starts only after full holding retirement")
+  }
+  assert_eq(calls.val, 5)
+  for slot in 1..<5 {
+    ready[slot] = true
+  }
+  async_io_stop_and_cleanup(active)
+  assert_eq(calls.val, 5)
+  assert_eq(
+    @resources.model_io_admission_counts(admission, installation),
+    Some((0, 0)),
+  )
+  assert_true(last_work >= blocked_work)
+  original_preparation_test_release(ledger, read)
+  assert_true(@resources.close_model_io_access(access).unwrap())
 }

@@ -84,6 +84,11 @@ fn async_response_fixture(
   observe_response? : (() -> @model.ModelPhysicalCallPoll)? = None,
   observe_response_call? : ((Int, @model.ModelPhysicalCall) -> @model.ModelPhysicalCallPoll)? = None,
   prepare_original? : ((Execution) -> Unit)? = None,
+  slots? : Int = 2,
+  start_original? : (() -> Execution)? = None,
+  capacity? : @model.ModelQuantityCapacity = fixture_quantity_capacity(
+    66L, 1000L,
+  ),
 ) -> (Execution, Int64) raise {
   let egress = Ref(Some(egress_fixture_observation()))
   let holder : Ref[@model.ModelPreparedCallSet?] = Ref(None)
@@ -94,8 +99,10 @@ fn async_response_fixture(
     egress,
     limits~,
     asynchronous=true,
+    slots~,
+    start_original~,
     configure=active => {
-      bind_quantity_capacity(active, fixture_quantity_capacity(66L, 1000L)).unwrap()
+      bind_quantity_capacity(active, capacity).unwrap()
       if prepare_original is Some(prepare) {
         prepare(active)
       }
@@ -105,7 +112,7 @@ fn async_response_fixture(
             @model.model_async_physical_request_plan(
               request,
               1000L,
-              { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
+              capacity.per_attempt,
               async_response_profile(),
               async_response_installation(),
               entry => {
