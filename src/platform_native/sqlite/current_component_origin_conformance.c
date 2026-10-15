@@ -60,6 +60,7 @@ int main(int argc, char **argv) {
   assert(dladdr((void *)actql_native_sqlite_database_current_component_matches_heap,
                 &consumer));
   assert(consumer.dli_fbase != original.dli_fbase);
+  puts("{\"case\":\"single-provider\",\"pass\":true}");
   original_domain first = fresh_domain(), foreign = fresh_domain();
   enter_domain(first);
   const int64_t heap = 32 * (int64_t)sysconf(_SC_PAGESIZE);
@@ -71,6 +72,7 @@ int main(int argc, char **argv) {
     library, (moonbit_bytes_t)argv[2], (int32_t)strlen(argv[2]), 1024);
   assert(database != NULL && actql_native_sqlite_database_ready(database));
   assert(actql_native_sqlite_database_current_component_matches_heap(database, heap));
+  puts("{\"case\":\"original-current-heap\",\"pass\":true}");
   assert(actql_native_sqlite_database_insert(database,
     (moonbit_bytes_t)"origin", 6, (moonbit_bytes_t)"same", 4,
     (moonbit_bytes_t)"original", 8) == 1);
@@ -85,6 +87,7 @@ int main(int argc, char **argv) {
   assert(database->result_body == body && database->result_body_length == body_length);
   assert(database->result_revision == revision && body_length == 8);
   assert(memcmp(database->result_body, "original", 8) == 0);
+  puts("{\"case\":\"wrong-heap-preserves-readback\",\"pass\":true}");
   leave_domain(first);
   assert(!actql_native_sqlite_database_current_component_matches_heap(database, heap));
   enter_domain(foreign);
@@ -93,6 +96,7 @@ int main(int argc, char **argv) {
   finish_domain(&foreign);
   enter_domain(first);
   assert(actql_native_sqlite_database_current_component_matches_heap(database, heap));
+  puts("{\"case\":\"missing-and-foreign-context\",\"pass\":true}");
   pid_t child = fork();
   assert(child >= 0);
   if (child == 0) {
@@ -102,6 +106,7 @@ int main(int argc, char **argv) {
   }
   int status;
   assert(waitpid(child, &status, 0) == child && WIFEXITED(status) && WEXITSTATUS(status) == 0);
+  puts("{\"case\":\"inherited-process-refused\",\"pass\":true}");
   assert(actql_native_sqlite_close_checked(database));
   assert(!actql_native_sqlite_database_current_component_matches_heap(database, heap));
   assert(library->selected_heap_bytes == heap);
@@ -112,6 +117,7 @@ int main(int argc, char **argv) {
   moonbit_decref(library);
   leave_domain(first);
   finish_domain(&first);
+  puts("{\"case\":\"checked-retirement\",\"pass\":true}");
   puts("{\"physicalCases\":6,\"pass\":true,\"moonTests\":0,\"normalProfile\":null,\"publicE2E\":0}");
   return 0;
 }
