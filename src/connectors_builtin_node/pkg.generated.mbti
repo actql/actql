@@ -1103,6 +1103,8 @@ pub fn client_program_issue_imported_effect_local_result_artifact(@run_publicati
 
 pub fn client_program_issue_imported_local_effect_invocation(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Array[@run_publication_host.ClientEffectResultImportObservation], Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalInvocation, @run_publication_host.ClientEffectLocalInvocationIssue]
 
+pub fn client_program_issue_imported_local_effect_table_artifact(@run_publication_host.PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, ClientEffectManagedInputImport, @run_publication_host.ClientEffectLocalTableDefinition, @run_publication_host.ClientEffectImportedEvidence, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[@run_publication_host.ClientEffectLocalResultArtifact, ClientEffectLocalArtifactBridgeIssue]
+
 pub fn client_program_issue_infer_attachment_admission(@client_infer_host.Execution, Int) -> Result[@run_publication.RunEvidenceValue?, @model_execution.ModelExecutionIssue]
 
 pub fn client_program_issue_infer_dispatch_admission(@run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, AuthorizationAccount, String, String, AuthorizationDecision?, () -> AuthorizationAccount, () -> String) -> Result[@run_publication_host.ClientInferDispatchAdmission, @run_publication_host.ClientInferDispatchIssue]

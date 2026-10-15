@@ -92,6 +92,24 @@ pub fn client_program_prepare_serialization_captured_ledger(
 }
 
 ///|
+#export_name("clientProgramPrepareMultiCapturedEffectInstalledLedger")
+pub fn client_program_prepare_multi_captured_effect_installed_ledger(
+  prepared : @publication_host.PreparedClientEffectComputation,
+  capacities : Array[@client_local_host.ClientInstalledCaptureCapacity],
+  transport_bytes : Array[Int64],
+  transport_execution_bytes : Array[Int64],
+  registry_body : String,
+  values_body : String,
+  fragment_body : String?,
+  ordered_body : String?,
+) -> @resources.Ledger? {
+  @client_local_host.prepare_multi_captured_effect_installed_ledger(
+    prepared, capacities, transport_bytes, transport_execution_bytes, registry_body,
+    values_body, fragment_body, ordered_body,
+  )
+}
+
+///|
 /// Read the existing Run ledger for bounded installed-Host diagnostics.
 #export_name("clientProgramMultiCapturedLedgerUsage")
 pub fn client_program_multi_captured_ledger_usage(
