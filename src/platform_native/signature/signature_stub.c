@@ -377,6 +377,17 @@ bool actql_native_signature_library_ready(
   return library != NULL && library->dynamic_library != NULL;
 }
 
+// Configuration of the same ready Owner, never inferred from a caller limit.
+// No text scan/copy, symbol lookup, crypto operation or state change occurs.
+MOONBIT_FFI_EXPORT
+int32_t actql_native_signature_library_diagnostic_ceiling(
+  actql_native_signature_library *library
+) {
+  if (!actql_native_signature_library_ready(library) ||
+      library->diagnostic_ceiling <= 0) return 0;
+  return library->diagnostic_ceiling;
+}
+
 MOONBIT_FFI_EXPORT
 moonbit_bytes_t actql_native_signature_library_error(
   actql_native_signature_library *library
