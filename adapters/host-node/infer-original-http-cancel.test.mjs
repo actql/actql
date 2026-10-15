@@ -67,10 +67,16 @@ test('original HTTP cancellation preserves the entered Unknown without a respons
     const entry=f.opened.entry(0);assert.ok(entry);
     const originalIdentity={...entry};
     assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'EnteredUnknown');
-    const reason=new DOMException('Selected fixture cancellation','AbortError');
+    const reason=new Error('Selected fixture cancellation');
     abort.abort(reason);
     assert.equal(f.operation.cleanupPending(),true,'Cancel request alone cannot retire original custody');
-    assert.strictEqual((await stopped).error,reason);
+    const stoppedError=(await stopped).error;
+    if(stoppedError!==reason){
+      const tag=value=>Number.isInteger(value?.$tag)?value.$tag:null;
+      t.diagnostic(`Original stop classification ${JSON.stringify({code:stoppedError?.code??null,
+        tags:[tag(stoppedError?.cause),tag(stoppedError?.cause?._0),tag(stoppedError?.cause?._0?._0)]})}`);
+      throw stoppedError ?? new Error('Original cancellation did not stop the Model');
+    }
     await until(()=>capture.custody.cleanup(),value=>value===true);
     await until(()=>f.opened.cleanup(),value=>value===true);
     await until(()=>sockets.size,value=>value===0);
