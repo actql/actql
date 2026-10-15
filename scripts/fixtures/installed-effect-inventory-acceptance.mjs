@@ -100,11 +100,15 @@ function program(mappings, rows) {
 }
 
 export async function runInstalledEffectInventoryAcceptance({connect,
-  openInstalledRemoteHttpHost, publishEffect, profile = 'inventory'}) {
-  assert.ok(['inventory', 'observability'].includes(profile));
+  openInstalledRemoteHttpHost, publishEffect, profile = 'inventory',
+  observeWaitingCheckpoint}) {
+  assert.ok(['inventory', 'observability', 'checkpoint-review'].includes(profile));
+  if (profile === 'checkpoint-review') {
+    assert.equal(typeof observeWaitingCheckpoint, 'function');
+  } else assert.equal(observeWaitingCheckpoint, undefined);
   // Telemetry acceptance reuses the real lifecycle without repeating the
   // independent provider-position matrix or legacy installation control.
-  const selectedSuccesses = profile === 'observability' ? [successes[0]] : successes;
+  const selectedSuccesses = profile === 'inventory' ? successes : [successes[0]];
   for (const port of [connect, openInstalledRemoteHttpHost, publishEffect]) {
     assert.equal(typeof port, 'function');
   }
@@ -297,6 +301,44 @@ export async function runInstalledEffectInventoryAcceptance({connect,
       const path = await submit(first, expected.nonce, program([selected.mapping], expected.rows));
       assert.ok(counts.dispatch > dispatchBefore, 'the successful control reaches dispatch');
       assert.equal(commentSends(selected.api).length, sentBefore);
+      if (profile === 'checkpoint-review') {
+        // Observe a real waiting Set through the public Client and installed
+        // Explorer. No answer or resume is needed to read its original review.
+        const saved = JSON.parse(await readFile(path, 'utf8'));
+        const before = installations.map((_, index) => observation(index));
+        const observations = [];
+        const observe = async (host, phase) => {
+          const execution = await original(await host.as(), saved);
+          const state = await execution.status();
+          assert.equal(state.status, 'waiting_checkpoint');
+          const dispatchBeforeReview = counts.dispatch;
+          const result = await observeWaitingCheckpoint({
+            client: await host.as('synthetic-reviewer-token'),
+            phase, original: saved, expectedRows: expected.rows,
+            expectedRunId: state.run_id,
+          });
+          assert.equal(counts.dispatch, dispatchBeforeReview,
+            'review reads cannot start another Run or redispatch the original');
+          const after = await execution.status();
+          assert.equal(after.status, 'waiting_checkpoint');
+          assert.equal(after.run_id, state.run_id);
+          assert.equal(after.control.revision, state.control.revision);
+          assert.deepEqual(installations.map((_, index) => observation(index)), before,
+            'review reads cannot reacquire a provider, issue a credential or send an Effect');
+          observations.push(result);
+        };
+        await observe(first, 'original');
+        await first.close();
+        const reopened = await openHost([...expected.order].reverse());
+        await observe(reopened, 'restarted');
+        await reopened.close();
+        // Keep the original pending Set, captures and test installation for
+        // audit. Physical Hosts close; no cancel, resolution, replay or reset.
+        return {profile, retainedRoot: root, original: saved, observations,
+          waitingRuns: 1, answers: 0, resumes: 0,
+          callbackCounts: {dispatch: counts.dispatch, secrets: [...counts.secrets]},
+          providerSends: installations.map(item => commentSends(item.api).length)};
+      }
       await first.close();
       const reversed = [...expected.order].reverse();
       const review = await openHost(reversed);
@@ -442,11 +484,11 @@ export async function runInstalledEffectInventoryAcceptance({connect,
       try { await close(); } catch (error) { errors.push(error); }
     }
     setDefaultCACertificates(originalCAs);
-    if (failure === undefined && errors.length === 0) {
+    if (failure === undefined && errors.length === 0 && profile !== 'checkpoint-review') {
       try { await rm(root, {recursive: true, force: true}); }
       catch (error) { errors.push(error); }
     } else {
-      console.error(`Effect inventory fixture failed; state retained at ${root}`);
+      console.error(`Effect inventory fixture state retained at ${root}`);
     }
     if (errors.length) throw new AggregateError(failure === undefined ? errors : [failure, ...errors],
       'InstalledEffectInventoryAcceptanceCleanupFailed');
