@@ -4866,7 +4866,7 @@ export async function openLocalPublicationStore(
     const stored = await readPrivateEvidence(
       binding.name, binding.semanticCid, binding.holdingCid,
     );
-    if (!stored.equals(Buffer.from(binding.wire, 'utf8'))) {
+    if (!exactUtf8WireMatches(stored, binding.wire)) {
       fail('PublicationPrivateEvidenceConflict');
     }
     await commitPhysicalHolding(record, []);
