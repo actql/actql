@@ -191,9 +191,7 @@ test "CLI Effect finite prefix uses a fresh next-day Policy without accepting or
     () => "2026-10-12T00:00:00.000Z",
     () => 1791763200002.0,
   )
-  guard prepared is NewEffectCompilation(original) else {
-    fail("expected new original")
-  }
+  guard prepared is Some(original) else { fail("expected new original") }
   let body = local_input_cursor(
     @publication.publication_contract_json(original.definition),
   )
@@ -246,7 +244,7 @@ test "CLI Effect finite prefix selects an accepted original before an invalid ca
       () => "2026-10-12T00:00:00.000Z",
       () => 1791763200002.0,
     )
-    is NewEffectCompilation(original) else {
+    is Some(original) else {
     fail("first preparation")
   }
   let binding = local_run_policy_binding(host, settings, crypto).unwrap()
@@ -279,7 +277,7 @@ test "CLI Effect finite prefix selects an accepted original before an invalid ca
       () => "not-a-time",
       () => 1791763200005.0,
     )
-    is RetainedEffectSubmission,
+    is None,
   )
   let after = binding
     .lookup_submitted_run_policy(reference, original.request, 1791763200006.0)
@@ -315,7 +313,7 @@ test "CLI Effect finite prefix refuses an accepted legacy missing Policy instead
       () => "2026-10-12T00:00:00.000Z",
       () => 1791763200002.0,
     )
-    is NewEffectCompilation(original) else {
+    is Some(original) else {
     fail("first preparation")
   }
   effect_finite_cli_ok(

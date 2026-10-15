@@ -11,13 +11,6 @@ priv struct LocalEffectFirstCompilation {
 }
 
 ///|
-// A retained acceptance requires lookup, never another compilation or start.
-priv enum LocalEffectStartPreparation {
-  RetainedEffectSubmission
-  NewEffectCompilation(LocalEffectFirstCompilation)
-}
-
-///|
 fn local_effect_request_identity(
   preparation : @local_host.NativeClientSubmittedPreparation,
   scope : String,
@@ -126,6 +119,8 @@ fn local_effect_first_compilation(
 }
 
 ///|
+// None means only an authenticated retained acceptance requiring lookup. Every
+// unavailable/unsupported/refused condition raises; None is never a retry permit.
 // Called by the actual CLI Effect preparation branch. It has no journal accept,
 // physical Source open, approval, grant issuance or Provider side effect.
 fn local_effect_prepare_start(
@@ -136,7 +131,7 @@ fn local_effect_prepare_start(
   reference : @local_host.NativeClientSubmissionReference,
   run : LocalRunInstallation,
   scope : String,
-) -> LocalEffectStartPreparation raise ClientStop {
+) -> LocalEffectFirstCompilation? raise ClientStop {
   local_effect_prepare_start_with_clocks(
     host,
     settings,
@@ -163,7 +158,7 @@ fn local_effect_prepare_start_with_clocks(
   scope : String,
   utc_now : () -> String,
   epoch_now : () -> Double,
-) -> LocalEffectStartPreparation raise ClientStop {
+) -> LocalEffectFirstCompilation? raise ClientStop {
   if !local_submit_allowed(host, settings, crypto, scope) {
     stop("LocalSubmissionAuthorizationDenied")
   }
@@ -187,7 +182,7 @@ fn local_effect_prepare_start_with_clocks(
           if !local_submit_allowed(host, settings, crypto, scope) {
             stop("LocalSubmissionAuthorizationDenied")
           }
-          return RetainedEffectSubmission
+          return None
         }
         Ok(Pending(retention, issued_at)) =>
           ({ ..installed, retention, }, issued_at)
@@ -237,7 +232,7 @@ fn local_effect_prepare_start_with_clocks(
   if !local_submit_allowed(host, settings, crypto, scope) {
     stop("LocalSubmissionAuthorizationDenied")
   }
-  NewEffectCompilation(original)
+  Some(original)
 }
 
 ///|

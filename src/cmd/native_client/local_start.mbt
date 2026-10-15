@@ -215,11 +215,11 @@ fn local_submission_start(
       local_effect_prepare_start(
         host, settings, crypto, preparation, reference, run, scope,
       ) {
-      RetainedEffectSubmission =>
+      None =>
         return local_submission_lookup(
           host, settings, crypto, input_root, child,
         )
-      NewEffectCompilation(_) => ()
+      Some(_) => ()
     }
     // No accepted Run or physical Source work is created until the selected
     // Local capture/reviewer supplier is connected. Compilation is not approval.
