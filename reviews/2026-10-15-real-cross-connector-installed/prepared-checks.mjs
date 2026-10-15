@@ -11,6 +11,7 @@ process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false, timeo
   graceSeconds: 5, steps: [{name: 'Inert scope/observation/oracle/import-closure controls',
     command: process.execPath, args: ['--input-type=module', '-e', run, '--',
       'scripts/real-cross-connector-observation.test.mjs',
+      'scripts/real-cross-connector-transport.test.mjs',
       'scripts/real-cross-connector-fixtures.test.mjs']},
     {name: 'Whitespace', command: 'git', args: ['diff', '--check']} ]});
 assert.deepEqual(checkoutState(process.cwd()), before);
