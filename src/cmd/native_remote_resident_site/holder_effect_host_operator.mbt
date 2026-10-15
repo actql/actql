@@ -124,24 +124,22 @@ fn load_holder_effect_host_operator(
     setup_profile,
     environment.runtime_catalog_record_bytes,
   ).unwrap()
-  scope.current_binding = Some(
-    holder_effect_host_setup_binding(
-      environment.site,
-      resources.site_key,
-      resources.site_generation,
-      environment.runtime_bundle_cid,
+  let site = environment.site
+  let site_key = resources.site_key
+  let site_generation = resources.site_generation
+  let runtime_bundle_cid = environment.runtime_bundle_cid
+  scope.preparation_binding = Some(() => {
+    holder_effect_host_setup_selection_current(
+      site,
+      site_key,
+      site_generation,
+      runtime_bundle_cid,
       () => slot.verify_current_hold() == Ok(()),
-      () => {
-        bundles.verify_active_component_binding_with_body_limit(
-          active_runtime, catalog_read_limit,
-        )
-        is Ok(_)
-      },
-    ),
-  )
-  if !holder_effect_host_read_scope_current(scope) {
+    )
+  })
+  if !holder_effect_host_read_scope_prepared(scope) {
     ignore(leave_holder_effect_host_read_scope(scope))
-    stop("Effect Host setup current binding unavailable")
+    stop("Effect Host setup original selection unavailable")
   }
   let read_installation = match (read_installation, read_parent) {
     (Some(_), Some(_)) => {
@@ -155,6 +153,27 @@ fn load_holder_effect_host_operator(
   if !install_holder_effect_host_read_domain(scope, slot, read_installation) {
     ignore(leave_holder_effect_host_read_scope(scope))
     stop("Effect Host original Native read installation unavailable")
+  }
+  // Only the entered original domain may perform the first bounded Store
+  // revalidation. Its refusal may read that Store, but opens no Account/Provider.
+  if !install_holder_effect_host_store_current(
+      scope,
+      holder_effect_host_setup_binding(
+        site,
+        site_key,
+        site_generation,
+        runtime_bundle_cid,
+        () => slot.verify_current_hold() == Ok(()),
+        () => {
+          bundles.verify_active_component_binding_with_body_limit(
+            active_runtime, catalog_read_limit,
+          )
+          is Ok(_)
+        },
+      ),
+    ) {
+    ignore(leave_holder_effect_host_read_scope(scope))
+    stop("Effect Host setup current binding unavailable")
   }
   let installed = prepare_holder_effect_host_operator(
     root,
