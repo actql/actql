@@ -339,3 +339,93 @@ test "backed live child refuses closing and previously used tickets instead of r
   ).unwrap()
   settle_backed_execution_after_owner_ack(region, provider, child, ticket, None).unwrap()
 }
+
+///|
+fn backed_live_test_zero_usage() -> LedgerUsage {
+  {
+    planning_work: 0,
+    attempts: 0,
+    holdings: 0,
+    transferred_bytes: 0L,
+    uncertain_transfer_bytes: 0L,
+    reserved_transfer_bytes: 0L,
+    held_bytes: 0L,
+    reserved_retention_bytes: 0L,
+    reserved_execution_bytes: 0L,
+    peak_retention_bytes: 0L,
+  }
+}
+
+///|
+test "backed live child refuses reservation-only transfer history even after zero" {
+  let (ledger, _, allocation, provider, region) = backed_test_region()
+  let child = Ref(2)
+  let ticket = backed_read_test_ticket(region, provider, child)
+  let read_use = borrow_backed_execution_read_use(
+    region, provider, child, ticket,
+  ).unwrap()
+  let runtime = Ref(3)
+  let access = issue_backed_execution_live_access(
+    region, provider, child, ticket, read_use, runtime,
+  ).unwrap()
+  // Every other usage field, including retention peak, is independently zero.
+  report_backed_execution_delegation(region, provider, child, ticket, {
+    ..backed_live_test_zero_usage(),
+    reserved_transfer_bytes: 1L,
+  }).unwrap()
+  let before = ledger_usage(ledger)
+  assert_true(
+    admit_backed_execution_live_child(access, runtime)
+    is Err(Resource(InvalidCharge)),
+  )
+  report_backed_execution_delegation(
+    region,
+    provider,
+    child,
+    ticket,
+    backed_live_test_zero_usage(),
+  ).unwrap()
+  assert_true(
+    admit_backed_execution_live_child(access, runtime)
+    is Err(Resource(InvalidCharge)),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(shared_allocation_usage(allocation).readers, 3)
+}
+
+///|
+test "backed live child refuses reservation-only execution history even after zero" {
+  let (ledger, _, allocation, provider, region) = backed_test_region()
+  let child = Ref(2)
+  let ticket = backed_read_test_ticket(region, provider, child)
+  let read_use = borrow_backed_execution_read_use(
+    region, provider, child, ticket,
+  ).unwrap()
+  let runtime = Ref(3)
+  let access = issue_backed_execution_live_access(
+    region, provider, child, ticket, read_use, runtime,
+  ).unwrap()
+  // Every other usage field, including retention peak, is independently zero.
+  report_backed_execution_delegation(region, provider, child, ticket, {
+    ..backed_live_test_zero_usage(),
+    reserved_execution_bytes: 1L,
+  }).unwrap()
+  let before = ledger_usage(ledger)
+  assert_true(
+    admit_backed_execution_live_child(access, runtime)
+    is Err(Resource(InvalidCharge)),
+  )
+  report_backed_execution_delegation(
+    region,
+    provider,
+    child,
+    ticket,
+    backed_live_test_zero_usage(),
+  ).unwrap()
+  assert_true(
+    admit_backed_execution_live_child(access, runtime)
+    is Err(Resource(InvalidCharge)),
+  )
+  assert_eq(ledger_usage(ledger), before)
+  assert_eq(shared_allocation_usage(allocation).readers, 3)
+}
