@@ -840,6 +840,31 @@ Wasm `open` and equal serialized limits do not establish inherited funding.
 Additional records, resident read-use flags, callbacks, transport/control and
 workspace overlap require the original envelope, not spare bytes or a default.
 
+The child-side `ImportedChildLedger` is issued only by fixed installed Host
+imports on the selected Wasm target. It retains a partial original before the
+one-shot parent admission; unsupported targets have no scalar/callback fallback.
+Read all six original limits and the two actual funded VM/Host capacities, then
+recheck the same import before creating the bounded delegated accounting view.
+A nonce correlates that actual VM and is not authority. The original physical
+Host binds the channel, Store, VM memory, provider and FD/domain independently.
+
+The two prepaid capacities occupy disjoint negative capacity serials and do
+not consume another attempt or reserve parent backing again. They cannot be
+settled into spare child credit while that VM is still executing; their parent
+Owner retains actual retirement responsibility. Other child reservations remain
+bounded by the same delegated allowance. A single take transfers the Ledger and
+these exact capacities to the existing Root. An ordinary Ledger has no such
+import and retains its existing behavior, but its resident optional reference
+still belongs in the actual installed control envelope.
+
+Imported lifecycle observation distinguishes open from closing originals.
+Closing prevents new reservations/borrows but permits entered cleanup and
+accounting on the same lifetime. Negative or unknown currentness is sticky;
+restoring a visible scalar cannot reinstate the original. Reports contain the
+actual original Ledger snapshot, not caller-supplied usage. A lost report keeps
+that immutable snapshot and is not blindly resent. Logical stop is not VM,
+reader, FD, Socket or Store retirement; none of those debts are cleared here.
+
 The private process handshake carries a snapshot of the delegated limits.
 The installed strategy application constructs its real ledger from those limits
 and exposes read-only limits and cumulative usage; the standard managed worker

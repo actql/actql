@@ -195,8 +195,15 @@ test "backed live child closing preserves reports and rejects new work without r
     region, provider, child, ticket, read_use, runtime,
   ).unwrap()
   let projection = admit_backed_execution_live_child(access, runtime).unwrap()
+  let before_state = ledger_usage(ledger)
+  assert_eq(backed_execution_live_state(projection, runtime).unwrap(), Open)
+  assert_true(
+    backed_execution_live_state(projection, Ref(3)) is Err(ForeignOriginal),
+  )
+  assert_eq(ledger_usage(ledger), before_state)
   stop_backed_execution_live_child(access, runtime).unwrap()
   stop_backed_execution_live_child(access, runtime).unwrap()
+  assert_eq(backed_execution_live_state(projection, runtime).unwrap(), Closing)
   assert_true(
     backed_execution_live_limits(projection, runtime) is Err(RegionClosing),
   )

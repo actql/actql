@@ -23,6 +23,13 @@ pub struct BackedExecutionLiveProjection[P, C, R] {
 }
 
 ///|
+/// Original lifetime observation, not allocation/send/stop permission.
+pub(all) enum BackedExecutionLiveState {
+  Open
+  Closing
+} derive(Eq, Debug)
+
+///|
 /// Call before the same physical bootstrap. Equal DATA, IDs and wire cannot
 /// supply runtime identity. A lost reply keeps this same one-shot access.
 pub fn[P, C, R] issue_backed_execution_live_access(
@@ -158,6 +165,32 @@ fn[P, C, R] backed_live_projection_original(
     return Err(ForeignOriginal)
   }
   Ok(access)
+}
+
+///|
+/// Observe the same original without charging a report or substituting a
+/// failed limits read for currentness. Closing retains entered cleanup duty.
+pub fn[P, C, R] backed_execution_live_state(
+  projection : BackedExecutionLiveProjection[P, C, R],
+  runtime : R,
+) -> Result[BackedExecutionLiveState, BackedExecutionIssue] {
+  let access = match backed_live_projection_original(projection, runtime) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  let (region, _, _, _, read_use) = match
+    backed_live_original(access, runtime) {
+    Ok(value) => value
+    Err(issue) => return Err(issue)
+  }
+  if access.closing ||
+    region.closing ||
+    read_use.closing ||
+    region.capacity.unwrap().closing {
+    Ok(Closing)
+  } else {
+    Ok(Open)
+  }
 }
 
 ///|
