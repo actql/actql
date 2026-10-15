@@ -17,7 +17,7 @@ test('dependent private Table members retain their own occurrence beside an iden
       consumer.steps = [{from: 'rows', select: ['id'], as: 'selected'}];
       document.stages.unshift(producer);
     },
-    async onCompletedTableRun({moon, checkedHost, options, sourceControl}) {
+    async onCompletedTableRun({moon, checkedHost, options}) {
       const inputs = checked(moon.clientProgramPinEffectSources(checkedHost, 64));
       let sources;
       try {

@@ -14,6 +14,7 @@ const phases = {
   build: [step('Affected JS Node runtime', 'moon', ['build','--frozen','--target','js','--release','-j','1','src/connectors_builtin_node'])],
   regression: [step('Existing Result exports, exact producers and cleanup', process.execPath, ['--input-type=module','-e',focus,'--','--test-name-pattern=Effect source set shares exact owners|two Effect members hold|source-free Effect dependency retains|Effect sources retain exact physical producers|one acquired Effect Program captures','adapters/host-node/client-program-bridge.test.mjs'])],
   existing: [step('Existing captured Result lifetime and imported scope', process.execPath, ['--input-type=module','-e',focus,'--','--test-name-pattern=^(two Effect members hold|source-free Effect dependency retains|Effect sources retain exact physical producers)','adapters/host-node/client-program-bridge.test.mjs'])],
+  portable: [step('Affected Common Wasm API', 'moon', ['info','--target','wasm','src/run_publication_host']), step('Affected Common Native API', 'moon', ['info','--target','native','src/run_publication_host'])],
   freshness: [step('Existing Node and RelA assembly freshness', process.execPath, ['scripts/connector-node-bundles.mjs']), step('Whitespace', 'git', ['diff','--check'])],
   counter: [step('Private Table imported occurrence counter', process.execPath, ['--input-type=module','-e',focus,'--','--test-name-pattern=^(dependent private Table members retain|source-free private Table dependency control)','adapters/host-node/table-dependent-input.test.mjs'])],
 };
