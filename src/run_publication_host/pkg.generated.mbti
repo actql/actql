@@ -1749,6 +1749,8 @@ pub fn restore_client_infer_call_scope(ClientInferSavedCallScope, @execution_rel
 
 pub fn restore_client_infer_captured_input(ClientInferCapturedInput, @run_publication.RunEvidenceValue, @run_publication.RunEvidenceValue) -> Result[ClientInferCapturedInput, ClientInferCallScopeIssue]
 
+pub fn restore_client_native_local_historical_scalar_runtime_pair_metadata(Bytes, ClientNativeLocalRuntime, ClientNativeLocalRuntime) -> Result[ClientNativeLocalScalarRuntimePair, ClientNativeLocalScalarRuntimePairIssue]
+
 pub fn restore_client_native_local_scalar_runtime_pair(Bytes, ClientNativeLocalRuntime, ClientNativeLocalRuntime, ClientLocalProductAssets, ClientLocalProductAssets) -> Result[ClientNativeLocalScalarRuntimePair, ClientNativeLocalScalarRuntimePairIssue]
 
 pub fn restore_client_retained_task_input(@remote_site_protocol.RemoteInputBinding, ClientRetainedInputProducer, @remote_transfer.RemoteTransferRecord, @remote_transfer.RemoteTransferDestinationReceipt, ClientRetainedInputCurrent, Int, Int, Int, Int64) -> Result[ClientRetainedTaskInput, ClientRetainedTaskInputIssue]
