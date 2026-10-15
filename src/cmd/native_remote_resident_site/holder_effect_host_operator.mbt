@@ -93,6 +93,7 @@ fn load_holder_effect_host_operator(
   // construct this selection. Absence keeps the original refusal before I/O.
   setup_profile? : HolderEffectHostSetupProfile? = None,
   preparation? : HolderEffectPreparationCapacity? = None,
+  read_installation? : HolderEffectHostReadInstallation? = None,
 ) -> HolderEffectHostOperatorInstallation? raise CommandStop {
   let selected = match
     holder_effect_host_root(matches.values.get("effect-host-account-root")) {
@@ -129,6 +130,10 @@ fn load_holder_effect_host_operator(
   if !holder_effect_host_read_scope_current(scope) {
     ignore(leave_holder_effect_host_read_scope(scope))
     stop("Effect Host setup current binding unavailable")
+  }
+  if !install_holder_effect_host_read_domain(scope, slot, read_installation) {
+    ignore(leave_holder_effect_host_read_scope(scope))
+    stop("Effect Host original Native read installation unavailable")
   }
   let installed = prepare_holder_effect_host_operator(
     root,
