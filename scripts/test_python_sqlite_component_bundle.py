@@ -162,6 +162,24 @@ class SQLiteBundleTests(unittest.TestCase):
         with self.assertRaises(FileExistsError): P.checked_copy(source, source, expected, 1024)
         self.assertEqual(source.read_bytes(), b'original public domain notice\n')
 
+    def test_sdk_dependency_records_in_sdk_alias_only(self):
+        sdk = self.root / 'selected-sdk'; sdk.mkdir()
+        header = sdk / 'pthread'; header.mkdir()
+        actual = header / 'pthread.h'; actual.write_bytes(b'selected header\n')
+        alias = sdk / 'pthread.h'; alias.symlink_to('pthread/pthread.h')
+        observed = P.compiled_input(alias, sdk)
+        self.assertEqual(observed, {'resolved_path': str(actual),
+                                   **P.identity(actual, 1024)})
+        alias.unlink(); alias.symlink_to(self.root / P.NOTICE)
+        with self.assertRaisesRegex(ValueError, 'escapes selected SDK'):
+            P.compiled_input(alias, sdk)
+
+    def test_non_sdk_dependency_keeps_no_follow_rule(self):
+        alias = self.root / 'source.h'; alias.symlink_to(self.root / P.NOTICE)
+        sdk = self.root / 'other-sdk'; sdk.mkdir()
+        with self.assertRaises(OSError):
+            P.compiled_input(alias, sdk)
+
 
 if __name__ == '__main__':
     unittest.main()

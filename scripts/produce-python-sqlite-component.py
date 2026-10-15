@@ -78,6 +78,18 @@ def checked_copy(source: Path, target: Path, expected: dict[str, Any], maximum: 
     _read_file(target, maximum=maximum, expected=expected['bytes'], digest=expected['sha256'])
 
 
+def compiled_input(path: Path, sdk: Path) -> dict[str, Any]:
+    # Apple SDK headers include relative symlinks (e.g. pthread.h). Record
+    # both spellings, allowing resolution only inside the selected SDK. Source,
+    # provider and staged inputs retain the original no-follow requirement.
+    selected_sdk = sdk.resolve(strict=True)
+    if path.is_relative_to(sdk):
+        resolved = path.resolve(strict=True)
+        require(resolved.is_relative_to(selected_sdk), 'SDK dependency escapes selected SDK')
+        return {'resolved_path': str(resolved), **identity(resolved, 16 * 1024 * 1024)}
+    return {'resolved_path': str(path), **identity(path, 16 * 1024 * 1024)}
+
+
 def selected_provider(record: Any, source: str, retained_source: str | None) -> tuple[Path, dict[str, Any]]:
     require(type(record) is dict and _hex(source, 40), 'Invalid selected SQLite source')
     expected = source if retained_source is None else retained_source
@@ -215,7 +227,7 @@ def build(source: str, archive: Path, provider_receipt: Path, clang: Path, sdk: 
     verify_bundle(bundle, source=source, provider_source=provider_record['source'],
                   provider_sha256=provider_item['sha256'])
     dependencies = shlex.split((destination / 'component.d').read_text().replace('\\\n', ' ').split(':', 1)[1])
-    (destination / 'compiled-inputs.json').write_text(json.dumps({path: identity(Path(path), 16 * 1024 * 1024)
+    (destination / 'compiled-inputs.json').write_text(json.dumps({path: compiled_input(Path(path), sdk)
         for path in sorted(set(dependencies))}, indent=2) + '\n')
     for path, expected in inputs.items():
         require(identity(Path(path), 512 * 1024 * 1024) == expected, 'SQLite build input changed')
