@@ -76,7 +76,8 @@ import {issueInferTrustedRuntimeView, checkInferTrustedRuntimeView,
   forgetInferTrustedRuntimeView, associateInferTrustedStartupView,
   requireInferTrustedStartupView, borrowInferTrustedStartupView,
   forgetInferTrustedStartupView, bindInferTrustedStore,
-  checkInferTrustedStore} from './infer-trusted-runtime-view.mjs';
+  checkInferTrustedStore, bindInferTrustedSdkStaticModules,
+  checkInferTrustedSdkStaticModules} from './infer-trusted-runtime-view.mjs';
 import {composeInstalledCheckEnvironment,
   verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
@@ -265,6 +266,13 @@ async function openInstalledHost(originalInstallation) {
     if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
     assertModelRuntime();
   }
+  function bindModelSdkStaticOriginals(originals) {
+    // Existing borrow/current rechecks remain legal while cleanup is pending;
+    // this check is not new-allocation or send admission during Host closing.
+    assertModelRuntime();
+    bindInferTrustedSdkStaticModules(modelRuntimeView, runtimeOriginals(), originals);
+    checkInferTrustedSdkStaticModules(modelRuntimeView, runtimeOriginals(), originals);
+  }
   function retireModelRuntime() {
     if (modelRuntimeView !== undefined) {
       if (modelRuntimeStartupView !== undefined) {
@@ -324,7 +332,8 @@ async function openInstalledHost(originalInstallation) {
   const evidenceConfiguration = configureInferEvidence(inferEvidence);
   modelProviders = installModelProviders(moon, registerModelProviders,
     modelRuntimeView === undefined ? undefined : assertModelRuntime,
-    modelRuntimeView === undefined ? undefined : assertNewModelRuntime);
+    modelRuntimeView === undefined ? undefined : assertNewModelRuntime,
+    modelRuntimeStartupView === undefined ? undefined : bindModelSdkStaticOriginals);
   const inferSelections = new WeakMap();
   const effectSubmissions = new WeakMap();
   const effectSelections = new WeakMap();

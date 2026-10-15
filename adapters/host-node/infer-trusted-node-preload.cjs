@@ -32,6 +32,11 @@ const selected = module.isPreloading === true &&
 
 let startup;
 if (selected) {
+  // The selected SDK initializes a default provider at import time. Its
+  // OPENAI_BASE_URL-derived URL/string/error graph is NOT fixed module state.
+  // Refuse this unsupported input before ANY entry import; inspect presence
+  // only, never read/log its contents or rewrite the ambient environment.
+  if (Object.hasOwn(originalProcess.env, 'OPENAI_BASE_URL')) unavailable();
   // Stock subclass initialization must precede the base-method fence. In the
   // selected Node source, net installs Socket.prototype.read by assignment;
   // freezing the inherited Readable method first prevents Node's own setup.
@@ -82,14 +87,14 @@ if (selected) {
   // retain their original responsibility until actual cleanup, not destroy(),
   // rejection, Promise settlement or retirement of this association.
   startup = {process: originalProcess, module, entry: originalProcess.argv[1], originals,
-    invalidated: false};
+    sdkStaticModules: undefined, invalidated: false};
 }
 
 function currentStartup() {
   if (startup === undefined) unavailable();
   if (startup.invalidated) changed();
   if (startup.process !== originalProcess || startup.entry !== originalProcess.argv[1] ||
-      globalThis.Buffer !== Buffer) {
+      globalThis.Buffer !== Buffer || Object.hasOwn(originalProcess.env, 'OPENAI_BASE_URL')) {
     startup.invalidated = true;
     changed();
   }
@@ -110,6 +115,50 @@ function current(view, host, generation) {
       held.generation !== generation || held.original.retired) unavailable();
 }
 
+const sdkFields = Object.freeze(['openai', 'providerUtils', 'createOpenAI']);
+function sdkUnavailable() {
+  throw Object.assign(new TypeError('InferTrustedSdkStaticUnavailable'),
+    {code: 'InferTrustedSdkStaticUnavailable'});
+}
+function sdkValue(value, field) {
+  const descriptor = Object.getOwnPropertyDescriptor(value, field);
+  if (descriptor === undefined || descriptor.enumerable !== true ||
+      !Object.hasOwn(descriptor, 'value') || descriptor.writable !== false ||
+      descriptor.configurable !== false) sdkUnavailable();
+  return descriptor.value;
+}
+function moduleNamespace(value) {
+  if (value === null || typeof value !== 'object' ||
+      Object.getPrototypeOf(value) !== null || Object.isExtensible(value)) sdkUnavailable();
+  const tag = Object.getOwnPropertyDescriptor(value, Symbol.toStringTag);
+  if (tag === undefined || !Object.hasOwn(tag, 'value') || tag.value !== 'Module' ||
+      tag.writable !== false || tag.configurable !== false) sdkUnavailable();
+}
+function sdkOriginals(value, retained) {
+  if (value === null || typeof value !== 'object' || Array.isArray(value) ||
+      !Object.isFrozen(value)) sdkUnavailable();
+  const keys = Reflect.ownKeys(value);
+  if (keys.length !== sdkFields.length || keys.some(key => !sdkFields.includes(key))) {
+    sdkUnavailable();
+  }
+  const openai = sdkValue(value, 'openai'), providerUtils = sdkValue(value, 'providerUtils');
+  const createOpenAI = sdkValue(value, 'createOpenAI');
+  moduleNamespace(openai);
+  moduleNamespace(providerUtils);
+  const factory = Object.getOwnPropertyDescriptor(openai, 'createOpenAI');
+  if (typeof createOpenAI !== 'function' || factory === undefined ||
+      !Object.hasOwn(factory, 'value') || factory.value !== createOpenAI) sdkUnavailable();
+  if (retained !== undefined) {
+    if (retained.openai !== openai || retained.providerUtils !== providerUtils ||
+        retained.createOpenAI !== createOpenAI) {
+      throw Object.assign(new TypeError('InferTrustedSdkStaticChanged'),
+        {code: 'InferTrustedSdkStaticChanged'});
+    }
+    return retained;
+  }
+  return Object.freeze({openai, providerUtils, createOpenAI});
+}
+
 module.exports = Object.freeze({
   associateHost(view, originals) {
     // Missing early startup is None, not native/module coverage or success.
@@ -121,7 +170,7 @@ module.exports = Object.freeze({
     originalSupplier ??= originals.supplier;
     const original = {host: originals.host, generation: originals.generation,
       supplier: originals.supplier, installation: originals.installation,
-      retired: false};
+      sdkStaticModules: undefined, retired: false};
     generations.add(originals.generation);
     associations.set(view, {host: originals.host, generation: originals.generation,
       original, root: true, retired: false});
@@ -139,6 +188,23 @@ module.exports = Object.freeze({
     if (associations.get(view).original.supplier !== originals.supplier ||
         originals.runtime !== originalProcess) changed();
   },
+  bindSdkStaticModules(view, originals, modules) {
+    current(view, originals.host, originals.generation);
+    const held = associations.get(view);
+    if (held.root !== true) sdkUnavailable();
+    // The trusted installed builder supplies actual namespaces and its SAME
+    // factory. Selected package/lock identities remain that supplier's duty;
+    // module shape or matching hashes alone cannot authenticate a dependency.
+    const retained = sdkOriginals(modules, startup.sdkStaticModules);
+    startup.sdkStaticModules = retained;
+    held.original.sdkStaticModules = retained;
+  },
+  checkSdkStaticModules(view, originals, modules) {
+    current(view, originals.host, originals.generation);
+    const retained = associations.get(view).original.sdkStaticModules;
+    if (retained === undefined || retained !== startup.sdkStaticModules) sdkUnavailable();
+    sdkOriginals(modules, retained);
+  },
   retire(view, host, generation) {
     const held = associations.get(view);
     if (held === undefined || held.host !== host || held.generation !== generation) unavailable();
@@ -150,7 +216,10 @@ module.exports = Object.freeze({
       held.original.generation = undefined;
       held.original.supplier = undefined;
       held.original.installation = undefined;
+      held.original.sdkStaticModules = undefined;
     }
-    // Only back-reference retirement; no native/process/physical-stop ACK.
+    // Only Host borrow retirement; startup.sdkStaticModules deliberately keeps
+    // the actual process/module graph. Last Host/Run close does not retire ESM.
+    // No native/process/physical-stop ACK or numerical baseline is issued.
   },
 });

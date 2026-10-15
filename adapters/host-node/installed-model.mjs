@@ -142,7 +142,8 @@ function retainModelQuantityCapacity(capacity) {
 
 // Registration remains physical Host capability. The common admission owner
 // subsequently binds the selected callback to its exact Task and prompt.
-export function installModelProviders(moon, register, assertHostRuntime, assertNewHostRuntime = assertHostRuntime) {
+export function installModelProviders(moon, register, assertHostRuntime,
+  assertNewHostRuntime = assertHostRuntime, bindSdkStaticOriginals) {
   if (register === undefined) return new Map();
   if (typeof register !== 'function') {
     throw new TypeError('InvalidInstalledModelProviderRegistration');
@@ -164,7 +165,7 @@ export function installModelProviders(moon, register, assertHostRuntime, assertN
         Object.keys(entry).some(key => !['invoke', 'providerId', 'validatePrompt',
           'physicalPreflight', 'quantityCapacity', 'observeEgress',
           'bindingOriginals', 'reconcileResponse', 'entryPersistence',
-          'originalReadInstallation', 'rawCaptureSelection'].includes(key))) {
+          'originalReadInstallation', 'rawCaptureSelection', 'sdkStaticOriginals'].includes(key))) {
       throw new TypeError('InvalidInstalledModelProviderRegistration');
     }
     // Static registration values are read once before retention/Core calls.
@@ -180,6 +181,16 @@ export function installModelProviders(moon, register, assertHostRuntime, assertN
     const physicalPreflight = entry.physicalPreflight, observeEgress = entry.observeEgress;
     const originalReadSource = entry.originalReadInstallation, rawSource = entry.rawCaptureSelection;
     const bindingSource = entry.bindingOriginals, quantitySource = entry.quantityCapacity;
+    const sdkStaticOriginals = entry.sdkStaticOriginals;
+    // The Host supplies this private connection, not registration DATA or a
+    // packet flag. Missing selected startup is Unavailable, never coverage.
+    if (sdkStaticOriginals !== undefined) {
+      if (typeof bindSdkStaticOriginals !== 'function') {
+        throw Object.assign(new TypeError('InferTrustedSdkStaticUnavailable'),
+          {code: 'InferTrustedSdkStaticUnavailable'});
+      }
+      bindSdkStaticOriginals(sdkStaticOriginals);
+    }
     if (entryPersistence !== 'async' && typeof invoke !== 'function' ||
         typeof validatePrompt !== 'function' ||
         reconcileResponse !== undefined && typeof reconcileResponse !== 'function') {
@@ -215,6 +226,7 @@ export function installModelProviders(moon, register, assertHostRuntime, assertN
     let retained;
     const assertTrustedRuntime = assertHostRuntime === undefined ? undefined : () => {
       assertHostRuntime();
+      if (sdkStaticOriginals !== undefined) bindSdkStaticOriginals(sdkStaticOriginals);
       if (result.get(providerId) !== retained || retained.provider !== provider) {
         throw Object.assign(new Error('InferTrustedRuntimeOriginalChanged'),
           {code: 'InferTrustedRuntimeOriginalChanged'});

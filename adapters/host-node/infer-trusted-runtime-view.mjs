@@ -175,6 +175,22 @@ export function requireInferTrustedStartupView(view, actualOriginals) {
   startup.check(view, actualOriginals);
 }
 
+// Separate, explicitly selected SDK static-module duty, NOT a native/TLS kind.
+// Only the same installed Host builder's immutable actual module originals may
+// be attached. The existing startup owns their process/module lifetime; Scope
+// views borrow the existing original record without another private field.
+// Per-M factories, lazy/cache state, inputs, Promises and copies are excluded.
+// All added binding/borrow controls still need their original managed budget.
+export function bindInferTrustedSdkStaticModules(view, actualOriginals, modules) {
+  requireInferTrustedStartupView(view, actualOriginals);
+  startup.bindSdkStaticModules(view, actualOriginals, modules);
+}
+
+export function checkInferTrustedSdkStaticModules(view, actualOriginals, modules) {
+  requireInferTrustedStartupView(view, actualOriginals);
+  startup.checkSdkStaticModules(view, actualOriginals, modules);
+}
+
 // Caller has checked the SAME actual Common scope before this association.
 // No callback, caller Bool, CID or another startup can supply that original.
 export function borrowInferTrustedStartupView(hostView, scopeView, hostOriginals, scopeOriginals) {

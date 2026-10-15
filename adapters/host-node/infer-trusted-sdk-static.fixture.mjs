@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {pathToFileURL} from 'node:url';
 import * as runtime from './infer-trusted-runtime-view.mjs';
 import {installModelProviders} from './installed-model.mjs';
 import {openAIChatStaticOriginals as sdk} from
@@ -60,6 +62,17 @@ if (mode === 'late') {
       providerUtils: sdk.openai, createOpenAI: sdk.createOpenAI})),
     'InferTrustedSdkStaticUnavailable');
     rejects(() => check({...view}), 'InferTrustedRuntimeViewUnavailable');
+    // Reload exactly the same source pathname as an independent ESM instance.
+    // Equal source bytes do not merge its default factory/schema storage.
+    const require = createRequire(new URL('../../packages/provider-ai-sdk/package.json', import.meta.url));
+    const separateUrl = pathToFileURL(require.resolve('@ai-sdk/openai'));
+    separateUrl.search = '?independent-static-instance';
+    const separate = await import(separateUrl.href);
+    assert.notEqual(separate, sdk.openai);
+    assert.notEqual(separate.createOpenAI, sdk.createOpenAI);
+    const independent = Object.freeze({openai: separate, providerUtils: sdk.providerUtils,
+      createOpenAI: separate.createOpenAI});
+    rejects(() => bind(view, actual, independent), 'InferTrustedSdkStaticChanged');
     check();
   } else if (mode === 'registration') {
     let constructorCalls = 0;
