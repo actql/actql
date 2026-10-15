@@ -52,6 +52,7 @@ try {
   assert.equal(credentialResolutions, 0);
   assert.deepEqual(gcs.observation(), {requests: 0, responses: 0, responseBytes: 0});
   assert.deepEqual(reads.observation(), {sourceReadSessions: 0, sourceReadStatements: 0});
+  await client.close(); client = undefined;
   completed = true;
   await writeFile(join(dirname(process.argv[2]), 'restart-observation.json'), JSON.stringify({
     pid: process.pid, ref: run.ref, status: state.status, observedResult: observed,
@@ -60,7 +61,7 @@ try {
   }, null, 2)+'\n', {flag: 'wx', mode: 0o600});
 } finally {
   try { if (client) await client.close(); }
-  finally { reads.close(); gcs.close(); }
+  finally { try { reads.close(); } finally { gcs.close(); } }
 }
 assert(completed);
 process.stdout.write(JSON.stringify({completed: true, pid: process.pid, sourceRequests: 0})+'\n');
