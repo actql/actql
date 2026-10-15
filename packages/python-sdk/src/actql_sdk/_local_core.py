@@ -757,7 +757,7 @@ class LocalCore:
                     ffi = import_module(runtime_name + '._ffi')
                     _verify_loaded_runtime(_compiled_image, ffi)
                     if self._physical_holding is not None:
-                        self._physical_holding._verify_library(ffi.dll)
+                        self._physical_holding._verify_library(ffi.dll, _installed_image=_compiled_image)
                 self._engine_configuration = wasmtime.Config()
                 if _compiled_image is None:
                     # Original raw-Wasm physical diagnostics remain separately

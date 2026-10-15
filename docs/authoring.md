@@ -47,12 +47,13 @@ and Run `inspect()` are authorized reads where the Host exposes those
 capabilities; unavailable evidence must remain unknown. Submission accepts a
 Program/source, not a saved explanation or Plan, and performs its own checks.
 
-The current [Native CLI guide](cli.md) uses `aql`/`start`, explicit saved
-Submission/Run references, `wait` and bounded `read`. Its source Local `check`
-entry returns preparation metadata, not a public diagnostic report. The
-`check --connectors`, `explain`, `run`, `approve`, `result`, and `op` commands
-in the [target CLI design](design/cli-target-experience.md) are not current
-installed command instructions. Use the SDK's separately authorized Checkpoint
+The current [Native CLI guide](cli.md) distinguishes Remote `aql`/`start`,
+`wait` and bounded `read` from the fixed Darwin source-free Local cohort's
+`check`, `explain`, `run` and saved `status`. Local `check` returns preparation
+metadata, not a public diagnostic report. Both routes preserve explicit original
+Submission/Run references. `check --connectors`, `approve`, `result` and `op` in
+the [target CLI design](design/cli-target-experience.md) are not current installed
+command instructions. Use the SDK's separately authorized Checkpoint
 API for review and answers; retry Result delivery as an explicit read operation,
 not by rerunning successful Effects.
 

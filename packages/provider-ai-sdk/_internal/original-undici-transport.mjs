@@ -33,7 +33,7 @@ export function fixedOriginalAcquisitionLimits(value) {
   return snapshot;
 }
 
-function bindAcquisitionRead(socket, limits, acquisition) {
+function bindAcquisitionRead(socket, limits, acquisition, inputExtent) {
   const read = socket.read;
   const descriptor = Object.getOwnPropertyDescriptor(socket, 'read');
   let plaintext = 0;
@@ -43,13 +43,34 @@ function bindAcquisitionRead(socket, limits, acquisition) {
   // these checks cannot fund or bound that first allocator. Ordinary adoption
   // still requires its original Host coverage and same-Ledger phase envelope.
   const boundedRead = function (...args) {
-    if (acquisition.refused) return null;
+    // Node can still consume an already queued buffer after destroy(). Stop
+    // another parser read, but retain the SAME queue/socket/close duty until
+    // actual cleanup; this flag is never a physical retirement observation.
+    if (acquisition.refused || socket.destroyed) return null;
     // Count every original read invocation, including null/empty probes.
     // Refuse before another read; this still does not bound native emission.
     if (acquisition.reads >= limits.maxReads) {
       acquisition.refused = true;
       socket.destroy(issue('UndiciOriginalAcquisitionReadsExceeded'));
       return null;
+    }
+    // Undici's un-sized read otherwise lets Node fromList concatenate the
+    // entire queued payload BEFORE the acquisition checks below. Select from
+    // this same original queue before that allocation, using this Call's
+    // already fixed native input extent, not a new capacity or packet bound.
+    // read(0) drives an empty producer without accepting a synchronous _read
+    // burst as one unbounded chunk; an already queued short response uses its
+    // actual length and does not wait for an extent or EOF. Explicit reads
+    // retain their existing Node meaning. Emission/native backing still needs
+    // the original Host coverage and the whole-phase numerical envelope.
+    if (args.length === 0 || args[0] === undefined) {
+      const available = socket.readableLength;
+      if (!Number.isSafeInteger(available) || available < 0) {
+        acquisition.refused = true;
+        socket.destroy(issue('UndiciOriginalAcquisitionShapeRefused'));
+        return null;
+      }
+      args[0] = Math.min(available, inputExtent);
     }
     acquisition.reads++;
     const chunk = Reflect.apply(read, socket, args);
@@ -227,7 +248,7 @@ export function prepareOriginalUndiciFetch(fetch, input, init, responseLimits) {
     socket = connector(options, (error, connected) => {
       try {
         if (connected !== undefined && retireAcquisition === undefined) {
-          try { retireAcquisition = bindAcquisitionRead(connected, original.acquisition, acquisition); }
+          try { retireAcquisition = bindAcquisitionRead(connected, original.acquisition, acquisition, inputExtent); }
           catch (refusal) {
             connected.destroy(refusal);
             callback(refusal, null);

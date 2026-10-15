@@ -12,6 +12,7 @@ from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ._local_native_domain_borrow import _OriginalDomainBorrow
+    from ._local_engine import _InstalledImageFileInput, _InstalledImageInput
 
 
 class NativeHoldingRetirementError(RuntimeError):
@@ -148,9 +149,24 @@ class _NativeHoldingLease:
         if type(code) is not int or code != 0:
             raise NativeHoldingTransferError(code if type(code) is int else None)
 
-    def _verify_library(self, library: Any) -> None:
-        if library is not self._library:
+    def _verify_library(self, library: Any, *,
+                        _installed_image: _InstalledImageFileInput | _InstalledImageInput | None = None) -> None:
+        self._require_confirmed_retirement_state()
+        if library is self._library:
+            return
+        # Native control and Wasmtime are deliberately separate selected DLLs.
+        # Only an installed original image may use the same provider imported
+        # by that runtime. Raw diagnostics never obtain this from a name/Bool.
+        from ._local_engine import _InstalledImageFileInput, _verify_original_provider_link
+        if type(_installed_image) is not _InstalledImageFileInput:
             raise ValueError('Native Local holding and runtime library differ')
+        if self._pointer.value is None:
+            raise ValueError('Original native holding is retired')
+        original = self._library
+        _verify_original_provider_link(_installed_image, library, original)
+        self._require_confirmed_retirement_state()
+        if self._library is not original or self._pointer.value is None:
+            raise ValueError('Original native holding changed during provider verification')
 
     def _capacity_bytes(self) -> int:
         self._require_confirmed_retirement_state()
