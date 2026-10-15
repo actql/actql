@@ -69,5 +69,5 @@ export function selectInstalledSourcefreeQuerySuite(suite = 'in-unnest') {
 // Only these existing cohorts retain synthetic custody for a second process.
 export function sourcefreeSuiteRequiresReread(suite = 'in-unnest') {
   selectInstalledSourcefreeQuerySuite(suite);
-  return ['sequence', 'time-series', 'temporal-join'].includes(suite);
+  return ['sequence', 'time-series', 'temporal-join', 'calendar'].includes(suite);
 }
