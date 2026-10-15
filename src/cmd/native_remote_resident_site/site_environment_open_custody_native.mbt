@@ -234,6 +234,18 @@ fn finish_failed_site_environment_open(
     slot_close_unknown: false,
     slot_closed: false,
   }
+  finish_prepared_failed_site_environment_open(custody)
+}
+
+///|
+/// Selected installers prepare this same nominal carrier before entering the
+/// original child allocator. Constructing its controller inside that allocator
+/// would itself extend the domain's lifetime past its requested close ACK.
+/// The legacy wrapper above establishes no selected allocation or funding.
+fn finish_prepared_failed_site_environment_open(
+  custody : HolderSiteEnvironmentOpenCleanup,
+) -> HolderCommandClose {
+  let original = custody.original
   while !@slot.install_native_termination_request() {
     report("cleanup-pending", [("step", "site-open-signal-install")])
     ignore(park_holder_cleanup_unconfirmed_ffi())
