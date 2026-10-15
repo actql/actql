@@ -309,7 +309,10 @@ test "Native submitted Values capture refuses expiry and cancellation after expo
         "2026-10-10T00:00:01.000Z"
       },
     )
+    defer host.close() |> ignore
+    defer work.close() |> ignore
     let inputs = work.pin_original_capture_inputs(1).unwrap()
+    defer @strategy.release_captured_effect_inputs(inputs) |> ignore
     let index = submitted_values_capture_result(inputs)
     let (rows, limits) = submitted_values_capture_limits()
     original.val = Some((host, work))
