@@ -246,8 +246,8 @@ async function originalFixtureStoreInventory(root) {
 test('original save caller preserves lost Store response and never blindly saves or unpark retries', async t => {
   let historicalReceipt;
   const {cp, f, opened, storageBinding, origin, retains} = await originalFixture(t,
-    {unretained: true, async retainState(args, actual) {
-      historicalReceipt = await actual.retainOriginalModelState(args);
+    {unretained: true, async retainState(args, actual, acquisition) {
+      historicalReceipt = await actual.retainOriginalModelStateSelected(args, acquisition);
       throw Object.assign(Error('OriginalStoreResponseLost'), {code: 'OriginalStoreResponseLost'});
     }});
   const park = f.operation.parkOriginalResourcesForStateWrite();
@@ -298,10 +298,13 @@ test('original save caller holds pending Store responsibility across close and c
   t.after(async () => {proceed(); if (promise !== undefined) await promise.catch(() => {});});
   let savedReceipt;
   const {cp, f, opened, storageBinding, origin, retains, abort} = await originalFixture(t,
-    {unretained: true, async retainState(args, actual) {
+    {unretained: true, async retainState(args, actual, acquisition) {
+      // Block the response after the actual selected write/recheck. Blocking
+      // before write and then bypassing currentness with ordinary save would
+      // not exercise a historical saved result arriving after cancellation.
+      savedReceipt = await actual.retainOriginalModelStateSelected(args, acquisition);
       markEntered();
       await blocked;
-      savedReceipt = await actual.retainOriginalModelState(args);
       return savedReceipt;
     }});
   const park = f.operation.parkOriginalResourcesForStateWrite();
