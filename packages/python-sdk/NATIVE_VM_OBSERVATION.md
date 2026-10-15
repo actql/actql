@@ -10,8 +10,12 @@ Every subsequent physical Core call checks this original again before guest
 execution. The private callback check additionally requires a live selected
 Wasmtime `Caller`, its original Store context and the same Memory backing.
 A fresh wrapper for the same exported Memory is allowed; a copied nonce,
-different Store/instance, foreign process/thread, changed generation or Unknown
+different Store/instance, foreign process, changed generation or Unknown
 holding is refused. No nominal object or native pointer is serialized.
+
+The observation adds no thread ownership rule. Existing Core locking serializes
+Store use; the original provider scope enforces its own thread/TLS restrictions.
+In particular, a Core's original physical work thread is not another Store.
 
 Closing lifecycle remains observable for the original Owner's report/cleanup;
 it does not permit new work. Store retirement immediately fences execution.

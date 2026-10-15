@@ -2,6 +2,7 @@
 from copy import copy, deepcopy
 from ctypes import c_void_p
 import pickle
+from threading import Thread
 from unittest.mock import patch
 import unittest
 
@@ -107,7 +108,7 @@ class NativeVMObservationTests(unittest.TestCase):
         self.assertIs(failure.exception, unknown)
         self.assertIs(self.core._physical_vm_observation, self.observation)
 
-    def test_pid_thread_copy_and_serialization_do_not_create_an_original(self):
+    def test_pid_copy_and_serialization_do_not_create_an_original(self):
         for operation in (copy, deepcopy, pickle.dumps):
             with self.subTest(operation=operation), self.assertRaises(TypeError):
                 operation(self.observation)
@@ -116,8 +117,29 @@ class NativeVMObservationTests(unittest.TestCase):
         with self.assertRaises(ValueError): clone._require_core_current()
         with patch('actql_sdk._local_native_vm.getpid', return_value=-1):
             with self.assertRaises(ValueError): self.observation._require_core_current()
-        with patch('actql_sdk._local_native_vm.current_thread', return_value=object()):
-            with self.assertRaises(ValueError): self.observation._require_core_current()
+
+    def test_serialized_original_work_thread_uses_same_store_and_provider(self):
+        outcomes = []
+        def invoke():
+            try:
+                with self.core._lock:
+                    self.observation._require_caller(self.caller(), self.core._nonce)
+                    self.core._call('buffer', 'open')
+                outcomes.append(None)
+            except BaseException as error:
+                outcomes.append(error)
+        work = Thread(target=invoke)
+        work.start(); work.join(timeout=5)
+        self.assertFalse(work.is_alive())
+        self.assertEqual(outcomes, [None])
+        self.assertIs(self.core._physical_holding, self.holding)
+        self.assertEqual([name for name, _ in self.calls], ['open', 'open'])
+
+    def test_original_provider_scope_still_rejects_disallowed_work(self):
+        self.library.scope.enter_replies = [-3]
+        with self.assertRaises(NativeHoldingScopeError): self.core._call('buffer', 'open')
+        self.assertEqual([name for name, _ in self.calls], ['open'])
+        self.assertIs(self.core._physical_holding, self.holding)
 
     def test_original_core_calls_recheck_before_guest_execution(self):
         self.holding._generation += 1
