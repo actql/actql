@@ -116,16 +116,28 @@ test "explicit catalog decode limits bind Source and Decode without changing can
   let admitted = admit_catalog(store, 17L, bytes, json_limits=Some(exact)).unwrap()
   assert_eq(admitted.revision, 17L)
   assert_eq(catalog_bytes(admitted, store.max_record_bytes).unwrap(), bytes)
-  for limits in [
-    { ..exact, max_nodes: 5, },
-    { ..exact, max_depth: 1, },
-    { ..exact, max_string_bytes: 38, },
-    { ..exact, max_total_string_bytes: 92, },
-  ] {
-    assert_true(admit_catalog(store, 17L, bytes, json_limits=Some(limits)) is Err(StateCollision))
+  for
+    limits in [
+      { ..exact, max_nodes: 5, },
+      { ..exact, max_depth: 1, },
+      { ..exact, max_string_bytes: 38, },
+      { ..exact, max_total_string_bytes: 92, },
+    ] {
+    assert_true(
+      admit_catalog(store, 17L, bytes, json_limits=Some(limits))
+      is Err(StateCollision),
+    )
   }
-  assert_true(admit_catalog(store, 17L, bytes, json_limits=Some(exact),
-    max_input_bytes=Some(bytes.length() - 1)) is Err(StateCollision))
+  assert_true(
+    admit_catalog(
+      store,
+      17L,
+      bytes,
+      json_limits=Some(exact),
+      max_input_bytes=Some(bytes.length() - 1),
+    )
+    is Err(StateCollision),
+  )
   // A larger caller choice cannot raise any original Store structural bound.
   let wide : @decode.Limits = {
     max_nodes: 2147483647,
@@ -143,13 +155,17 @@ test "explicit catalog decode limits bind Source and Decode without changing can
 
 ///|
 test "explicit catalog decode refusal preserves the same active binding and original row" {
-  let (store, generation, artifact, _, _) = native_bundle_fixture("catalog-json-current").unwrap()
+  let (store, generation, artifact, _, _) = native_bundle_fixture(
+    "catalog-json-current",
+  ).unwrap()
   let adopted = adopt_native_bundle(store, generation, artifact, "3")
   store.activate(adopted.runtime_bundle_cid).unwrap() |> ignore
-  let binding = store.acquire_active_component(
-    "sha256:5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f",
-    "aarch64-apple-darwin", "runtime-process:catalog-json-current",
-  ).unwrap()
+  let binding = store
+    .acquire_active_component(
+      "sha256:5cbfccb321655cdc50146d4dad052ac646ba09180cefd34d8c48cd248166346f",
+      "aarch64-apple-darwin", "runtime-process:catalog-json-current",
+    )
+    .unwrap()
   let original = store.database.read("runtime_bundle", "catalog").unwrap()
   let byte_limit = original.body.length().to_int64()
   let enough : @decode.Limits = {
@@ -158,45 +174,95 @@ test "explicit catalog decode refusal preserves the same active binding and orig
     max_string_bytes: store.max_record_bytes,
     max_total_string_bytes: store.max_record_bytes,
   }
-  store.verify_active_component_binding_with_body_limit(binding, byte_limit, json_limits=Some(enough)).unwrap()
-  for limits in [
-    { ..enough, max_nodes: 1, },
-    { ..enough, max_depth: 1, },
-    { ..enough, max_string_bytes: 1, },
-    { ..enough, max_total_string_bytes: 1, },
-  ] {
-    assert_true(store.verify_active_component_binding_with_body_limit(binding, byte_limit,
-      json_limits=Some(limits)) is Err(StateCollision))
+  store
+  .verify_active_component_binding_with_body_limit(
+    binding,
+    byte_limit,
+    json_limits=Some(enough),
+  )
+  .unwrap()
+  for
+    limits in [
+      { ..enough, max_nodes: 1, },
+      { ..enough, max_depth: 1, },
+      { ..enough, max_string_bytes: 1, },
+      { ..enough, max_total_string_bytes: 1, },
+    ] {
+    assert_true(
+      store.verify_active_component_binding_with_body_limit(
+        binding,
+        byte_limit,
+        json_limits=Some(limits),
+      )
+      is Err(StateCollision),
+    )
   }
-  for limits in [
-    { ..enough, max_nodes: 0, },
-    { ..enough, max_depth: -1, },
-    { ..enough, max_string_bytes: 0, },
-    { ..enough, max_total_string_bytes: -1, },
-  ] {
-    assert_true(store.verify_active_component_binding_with_body_limit(binding, byte_limit,
-      json_limits=Some(limits)) is Err(InvalidConfiguration))
+  for
+    limits in [
+      { ..enough, max_nodes: 0, },
+      { ..enough, max_depth: -1, },
+      { ..enough, max_string_bytes: 0, },
+      { ..enough, max_total_string_bytes: -1, },
+    ] {
+    assert_true(
+      store.verify_active_component_binding_with_body_limit(
+        binding,
+        byte_limit,
+        json_limits=Some(limits),
+      )
+      is Err(InvalidConfiguration),
+    )
   }
-  assert_true(store.verify_active_component_binding_with_body_limit(binding, byte_limit - 1L,
-    json_limits=Some(enough)) is Err(Database(@sqlite.BodyTooLarge)))
+  assert_true(
+    store.verify_active_component_binding_with_body_limit(
+      binding,
+      byte_limit - 1L,
+      json_limits=Some(enough),
+    )
+    is Err(Database(@sqlite.BodyTooLarge)),
+  )
   assert_true(catalog_readback_empty(store.database))
   let after = store.database.read("runtime_bundle", "catalog").unwrap()
   assert_eq(after.revision, original.revision)
   assert_eq(after.body, original.body)
   // Refusal did not discard the original hold or substitute another Store.
   store.verify_active_component_binding(binding).unwrap()
-  store.verify_active_component_binding_with_body_limit(binding, byte_limit, json_limits=Some(enough)).unwrap()
+  store
+  .verify_active_component_binding_with_body_limit(
+    binding,
+    byte_limit,
+    json_limits=Some(enough),
+  )
+  .unwrap()
   let foreign = { ..binding, process_hold_id: "runtime-process:foreign-json", }
-  assert_true(store.verify_active_component_binding_with_body_limit(foreign, byte_limit,
-    json_limits=Some(enough)) is Err(MissingBundle))
+  assert_true(
+    store.verify_active_component_binding_with_body_limit(
+      foreign,
+      byte_limit,
+      json_limits=Some(enough),
+    )
+    is Err(MissingBundle),
+  )
   store.retiring = true
-  assert_true(store.verify_active_component_binding_with_body_limit(binding, byte_limit,
-    json_limits=Some(enough)) is Err(CleanupPending))
+  assert_true(
+    store.verify_active_component_binding_with_body_limit(
+      binding,
+      byte_limit,
+      json_limits=Some(enough),
+    )
+    is Err(CleanupPending),
+  )
   store.retiring = false
   assert_true(store.release("runtime-process:catalog-json-current").unwrap())
   store.drain(adopted.runtime_bundle_cid).unwrap() |> ignore
   store.reclaim(adopted.runtime_bundle_cid).unwrap() |> ignore
   store.close_checked().unwrap()
-  assert_true(store.verify_active_component_binding_with_body_limit(binding, byte_limit,
-    json_limits=Some(enough)) is Err(Closed))
+  assert_true(
+    store.verify_active_component_binding_with_body_limit(
+      binding,
+      byte_limit,
+      json_limits=Some(enough),
+    )
+    is Err(Closed),
+  )
 }

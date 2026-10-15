@@ -872,17 +872,21 @@ test "nonpositive catalog decode selection refuses before reservation or current
   let profile = host_setup_test_profile()
   let checks = Ref(0)
   let before = @site.site_status(site)
-  for limits in [
-    { ..profile.catalog_json_limits, max_nodes: 0, },
-    { ..profile.catalog_json_limits, max_depth: -1, },
-    { ..profile.catalog_json_limits, max_string_bytes: 0, },
-    { ..profile.catalog_json_limits, max_total_string_bytes: -1, },
-  ] {
+  for
+    limits in [
+      { ..profile.catalog_json_limits, max_nodes: 0, },
+      { ..profile.catalog_json_limits, max_depth: -1, },
+      { ..profile.catalog_json_limits, max_string_bytes: 0, },
+      { ..profile.catalog_json_limits, max_total_string_bytes: -1, },
+    ] {
     let invalid = { ..profile, catalog_json_limits: limits, }
-    assert_true(begin_holder_effect_host_setup_scope(site, Some(invalid), 1024L, () => {
-      checks.val += 1
-      true
-    }) is None)
+    assert_true(
+      begin_holder_effect_host_setup_scope(site, Some(invalid), 1024L, () => {
+        checks.val += 1
+        true
+      })
+      is None,
+    )
     assert_eq(checks.val, 0)
     assert_eq(@site.site_status(site), before)
   }
