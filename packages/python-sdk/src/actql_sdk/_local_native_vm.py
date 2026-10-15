@@ -8,7 +8,6 @@ from __future__ import annotations
 
 from ctypes import c_void_p, cast
 from os import getpid
-from threading import Thread, current_thread
 from typing import Any, NoReturn, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -42,7 +41,6 @@ class _OriginalVMObservation:
     _memory_class: type[Any]
     _caller_class: type[Any]
     _process: int
-    _thread: Thread
 
     def __init__(self) -> None:
         raise TypeError('Local VM observations require the original Core')
@@ -69,7 +67,7 @@ class _OriginalVMObservation:
         value._library = value._holding._library
         value._span = core._physical_vm_span
         value._memory_class, value._caller_class = runtime.Memory, runtime.Caller
-        value._process, value._thread = getpid(), current_thread()
+        value._process = getpid()
         # Publish the original before fallible physical validation. Core keeps
         # every same handle on initialization/cleanup failure.
         core._physical_vm_observation = value
@@ -87,8 +85,7 @@ class _OriginalVMObservation:
 
     def _require_core_current(self) -> None:
         core = self._core
-        if (self._original is not self or self._process != getpid()
-                or self._thread is not current_thread() or core is None
+        if (self._original is not self or self._process != getpid() or core is None
                 or core._physical_vm_observation is not self
                 or core._identity is not self._identity or core._nonce != self._nonce
                 or core._closed or core._retired or core._store is not self._store
