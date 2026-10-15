@@ -13,8 +13,9 @@ const phases = {
   api: [step('Affected JS API generation', 'moon', ['info','--target','js','src/run_publication_host','src/connectors_builtin_node','src/connectors_builtin_node_rela'])],
   build: [step('Affected JS Node runtime', 'moon', ['build','--frozen','--target','js','--release','-j','1','src/connectors_builtin_node'])],
   regression: [step('Existing Result exports, exact producers and cleanup', process.execPath, ['--input-type=module','-e',focus,'--','--test-name-pattern=Effect source set shares exact owners|two Effect members hold|source-free Effect dependency retains|Effect sources retain exact physical producers|one acquired Effect Program captures','adapters/host-node/client-program-bridge.test.mjs'])],
+  existing: [step('Existing captured Result lifetime and imported scope', process.execPath, ['--input-type=module','-e',focus,'--','--test-name-pattern=^(two Effect members hold|source-free Effect dependency retains|Effect sources retain exact physical producers)','adapters/host-node/client-program-bridge.test.mjs'])],
   freshness: [step('Existing Node and RelA assembly freshness', process.execPath, ['scripts/connector-node-bundles.mjs']), step('Whitespace', 'git', ['diff','--check'])],
-  counter: [step('Private Table imported occurrence counter', process.execPath, ['--input-type=module','-e',focus,'--','adapters/host-node/table-dependent-input.test.mjs'])],
+  counter: [step('Private Table imported occurrence counter', process.execPath, ['--input-type=module','-e',focus,'--','--test-name-pattern=^(dependent private Table members retain|source-free private Table dependency control)','adapters/host-node/table-dependent-input.test.mjs'])],
 };
 assert(Object.hasOwn(phases, phase));
 process.exitCode = await runLocalCheck({root, heavy:phase==='build', timeoutSeconds:phase==='build'?180:60, graceSeconds:5,
