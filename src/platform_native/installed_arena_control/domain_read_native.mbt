@@ -108,6 +108,9 @@ pub fn InstalledArenaHost::close_domain_read(
       if record.sqlite_library is Some(library) && !library.closed {
         return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
       }
+      if record.original_read is Some(read) && !read.closed {
+        return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
+      }
       record.backing.close_backed_read_context(self, domain, record)
     }
   }
