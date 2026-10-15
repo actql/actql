@@ -12,7 +12,7 @@ test('dependent private Table members retain their own occurrence beside an iden
       const consumer = document.stages[0], producer = structuredClone(consumer);
       producer.id = 'producer'; delete producer.effects; delete producer.table_inputs;
       consumer.inputs = {rows: {result: {stage: 'producer', result: 'rows'}}};
-      consumer.steps = [{from: 'rows', select: {id: 'id'}, as: 'selected'}];
+      consumer.steps = [{from: 'rows', select: ['id'], as: 'selected'}];
       document.stages.unshift(producer);
     },
     async onCompletedTableRun({moon, checkedHost, options, sourceControl}) {
