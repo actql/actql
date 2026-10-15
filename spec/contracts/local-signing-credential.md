@@ -106,3 +106,34 @@ return authorization. Lost claim/ACK remains unresolved until the existing
 journal establishes its original outcome; failed cleanup retains the same
 Owner, retry handle and reservation. This metadata contract introduces no
 parallel Grant issuer, Store, Ledger, Scheduler or Recovery Owner.
+
+
+## Native original history read
+
+The new Native Signing history-only path requires current original-Client
+RunRead and the purpose-specific current Reviewer resolve and original key
+custody. The retained operation, Client request intent, logical request scope,
+authenticated Submission identity, original Run, key configuration/generation
+and issuer installation originals must agree. The issuer may be a different
+principal from the Reviewer and original Client. Existing issuer configuration,
+generation and custody requirements remain current; an issuer `issue` decision
+is not read permission. This finite path adds no `credential/<issuer>:read`
+Account tuple and does not install HostAttestation authorization.
+
+History returns only an already saved original claim/outcome or exact signature.
+It cannot reread secret key bytes for signing, claim an ordinal, sign again,
+renew expiry, issue another grant or interpret missing/Unknown history as
+unsent. Read authority does not authorize using an expired grant or admitting a
+Resolution: those operations retain their independent current, expiry and
+Checkpoint checks. Require current before and after the read; missing,
+foreign, replaced or unverified original custody stays unavailable.
+
+The existing Native private grant journal may retain a Signing original as a
+closed `grant`/`intent`/`signing_purpose` alternative. The purpose must match the
+already admitted Signing grant. Resume and Preparation private packets and all
+public grant/use bytes and CIDs remain unchanged. The existing logical-request
+reservation bucket is separate from the Signing grant's public Submission
+identity; counters, per-request byte/object ceilings and original epoch/Run
+joins are not changed by this additional typed alternative. Packet parsing and
+custody inspection do not install an operational issuer, history authorization,
+claim, signature or use permission.

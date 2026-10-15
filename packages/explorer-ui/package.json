@@ -7,6 +7,7 @@
     "@actql/client-wire": "0.0.0-development",
     "@base-ui/react": "1.8.0",
     "@xyflow/react": "12.12.0",
+    "elkjs": "0.12.0",
     "lucide-react": "1.51.0"
   },
   "peerDependencies": {
@@ -30,7 +31,10 @@
     "read-model.d.ts",
     "README.md",
     "dist",
-    "plan-explorer.d.ts"
+    "plan-explorer.d.ts",
+    "presentation-limits.mjs",
+    "THIRD_PARTY_NOTICES.md",
+    "ELKJS-LICENSE.md"
   ],
   "scripts": {
     "build": "vite build --config vite.config.mts",

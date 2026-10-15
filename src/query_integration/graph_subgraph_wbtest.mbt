@@ -424,7 +424,7 @@ test "bounded keyed subgraph preserves independent edges and source Graph" {
     }),
   )
   assert_true(@local_connector.managed_provider_accepts(provider, generated))
-  let selected = @local_connector.start_managed_provider_with_inputs(
+  let selected = @local_connector.start_managed_provider_with_inputs_and_execution(
     provider,
     generated,
     [
@@ -434,6 +434,7 @@ test "bounded keyed subgraph preserves independent edges and source Graph" {
     ],
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut material = None
   for _ in 0..<1000 {

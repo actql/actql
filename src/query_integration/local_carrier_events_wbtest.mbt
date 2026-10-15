@@ -931,12 +931,13 @@ test "Events-view session checks combined output workspace" {
       dispatch_test_limits().guards,
     ).unwrap(),
   )
-  let producing = @local_connector.start_managed_provider(
+  let producing = @local_connector.start_managed_provider_with_execution(
     provider,
     generated,
     [external],
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut material = None
   while material is None {
@@ -1747,12 +1748,13 @@ test "registered Events provider advances and reclaims one typed pipeline" {
     ).unwrap(),
   )
   assert_true(@local_connector.managed_provider_accepts(provider, generated))
-  let execution = @local_connector.start_managed_provider(
+  let execution = @local_connector.start_managed_provider_with_execution(
     provider,
     generated,
     [external],
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut output = None
   while output is None {
@@ -1803,12 +1805,13 @@ test "registered Events provider returns retained Carrier material" {
       dispatch_test_limits().guards,
     ).unwrap(),
   )
-  let execution = @local_connector.start_managed_provider(
+  let execution = @local_connector.start_managed_provider_with_execution(
     provider,
     generated,
     [external],
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut material = None
   while material is None {
@@ -1861,12 +1864,13 @@ test "registered sequence provider consumes exact Events Carrier" {
       limits.guards,
     ).unwrap(),
   )
-  let events_execution = @local_connector.start_managed_provider(
+  let events_execution = @local_connector.start_managed_provider_with_execution(
     events_provider,
     events_generated,
     [external],
     10,
     1000,
+    limits.local_execution,
   ).unwrap()
   let mut material = None
   while material is None {
@@ -2043,12 +2047,13 @@ test "registered Events provider consumes exact Carrier in two sessions" {
       dispatch_test_limits().guards,
     ).unwrap(),
   )
-  let events_execution = @local_connector.start_managed_provider(
+  let events_execution = @local_connector.start_managed_provider_with_execution(
     events_provider,
     events_generated,
     [external],
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut source_material = None
   while source_material is None {
@@ -2104,19 +2109,21 @@ test "registered Events provider consumes exact Carrier in two sessions" {
   assert_true(
     @local_connector.managed_provider_accepts(second_provider, second_generated),
   )
-  let first = @local_connector.start_managed_provider_with_inputs(
+  let first = @local_connector.start_managed_provider_with_inputs_and_execution(
     first_provider,
     first_generated,
     [@local_connector.managed_provider_carrier_input(first_view)],
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
-  let second = @local_connector.start_managed_provider_with_inputs(
+  let second = @local_connector.start_managed_provider_with_inputs_and_execution(
     second_provider,
     second_generated,
     [@local_connector.managed_provider_carrier_input(second_view)],
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut first_output = None
   while first_output is None {
@@ -2191,12 +2198,13 @@ test "registered Events provider shares Carrier with Bridge consumer" {
       dispatch_test_limits().guards,
     ).unwrap(),
   )
-  let events_execution = @local_connector.start_managed_provider(
+  let events_execution = @local_connector.start_managed_provider_with_execution(
     events_provider,
     events_generated,
     [external],
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut source_material = None
   while source_material is None {
@@ -2246,19 +2254,21 @@ test "registered Events provider shares Carrier with Bridge consumer" {
       dispatch_test_limits().guards,
     ).unwrap(),
   )
-  let session = @local_connector.start_managed_provider_with_inputs(
+  let session = @local_connector.start_managed_provider_with_inputs_and_execution(
     session_provider,
     session_generated,
     [@local_connector.managed_provider_carrier_input(session_view)],
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
-  let projection = @local_connector.start_managed_provider_with_inputs(
+  let projection = @local_connector.start_managed_provider_with_inputs_and_execution(
     projection_provider,
     projection_generated,
     [@local_connector.managed_provider_carrier_input(projection_view)],
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut session_output = None
   while session_output is None {
@@ -2315,12 +2325,13 @@ test "registered Events provider shares Carrier with Bridge consumer" {
       dispatch_test_limits().guards,
     ).unwrap(),
   )
-  let cancel = @local_connector.start_managed_provider_with_inputs(
+  let cancel = @local_connector.start_managed_provider_with_inputs_and_execution(
     cancel_provider,
     cancel_generated,
     [@local_connector.managed_provider_carrier_input(cancel_view)],
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   assert_true(@local_connector.cancel_managed_provider(cancel))
   assert_true(
@@ -2357,12 +2368,13 @@ test "selected Events transforms retain original checked coordinates" {
     ).unwrap()
     let produce = @execution.select_generated_sequence_step(generated, 0).unwrap()
     assert_true(@local_connector.managed_provider_accepts(provider, produce))
-    let producing = @local_connector.start_managed_provider(
+    let producing = @local_connector.start_managed_provider_with_execution(
       provider,
       produce,
       [rows],
       10,
       1000,
+      dispatch_test_limits().local_execution,
     ).unwrap()
     let mut produced = None
     while produced is None {
@@ -2410,12 +2422,13 @@ test "selected Events transforms retain original checked coordinates" {
     assert_true(
       @local_connector.managed_provider_accepts(provider, session_sequence),
     )
-    let session = @local_connector.start_managed_provider_with_inputs(
+    let session = @local_connector.start_managed_provider_with_inputs_and_execution(
       provider,
       session_sequence,
       [@local_connector.managed_provider_carrier_input(session_view)],
       10,
       1000,
+      dispatch_test_limits().local_execution,
     ).unwrap()
     let mut session_output = None
     while session_output is None {
@@ -2438,12 +2451,13 @@ test "selected Events transforms retain original checked coordinates" {
     let cancel_view = @carrier_runtime.material_prepare_operation_view(
       produced, owner, 1, 0, owner,
     ).unwrap()
-    let cancelling = @local_connector.start_managed_provider_with_inputs(
+    let cancelling = @local_connector.start_managed_provider_with_inputs_and_execution(
       provider,
       session_sequence,
       [@local_connector.managed_provider_carrier_input(cancel_view)],
       10,
       1000,
+      dispatch_test_limits().local_execution,
     ).unwrap()
     match @local_connector.advance_managed_provider(cancelling, 1).unwrap() {
       @local_connector.Continue(work~, ..) => assert_true(work > 0L)
@@ -2469,12 +2483,13 @@ test "selected Events transforms retain original checked coordinates" {
     assert_true(
       @local_connector.managed_provider_accepts(provider, projection_sequence),
     )
-    let projection = @local_connector.start_managed_provider_with_inputs(
+    let projection = @local_connector.start_managed_provider_with_inputs_and_execution(
       provider,
       projection_sequence,
       [@local_connector.managed_provider_carrier_input(projection_view)],
       10,
       1000,
+      dispatch_test_limits().local_execution,
     ).unwrap()
     let mut output = None
     while output is None {
@@ -2525,12 +2540,13 @@ test "registered Events provider separates stop from cleanup" {
         dispatch_test_limits().guards,
       ).unwrap(),
     )
-    let execution = @local_connector.start_managed_provider(
+    let execution = @local_connector.start_managed_provider_with_execution(
       provider,
       generated,
       [external],
       10,
       1000,
+      dispatch_test_limits().local_execution,
     ).unwrap()
     assert_true(@local_connector.cancel_managed_provider(execution))
     assert_true(

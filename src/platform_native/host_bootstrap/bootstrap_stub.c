@@ -395,7 +395,11 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_enter_read_context(
         record->read_active == SIZE_MAX) return ACTQL_OWNED_INVALID;
     int status = actql_native_owned_enter(record->lease);
     if (status != ACTQL_OWNED_OK) return status;
-    status = actql_read_context_enter(record->read_context);
+    /* Normal Common entry already requires read_user/current. Once that
+     * original user has returned, only its existing stopped cleanup caller can
+     * reach this same carrier. Do not manufacture a replacement retained user. */
+    status = record->read_user ? actql_read_context_enter(record->read_context)
+                              : actql_read_context_enter_cleanup(record->read_context);
     if (status != ACTQL_OWNED_OK) {
         int left = actql_native_owned_leave(record->lease);
         if (left != ACTQL_OWNED_OK) record->read_prepare_scope = true;
