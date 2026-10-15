@@ -31,6 +31,10 @@ static struct {
     actql_database_release_fn release_capacity;
     actql_database_tag_fn capacity_changed;
     actql_database_scalar_fn reserved_bytes, reserved_objects;
+    actql_database_lookup_capacity_fn read_capacity;
+    actql_database_operation_fn database_usage, transaction_state;
+    actql_database_scalar_fn record_count, record_body_bytes, reservation_count;
+    actql_database_tag_fn transaction_active;
 } callbacks;
 static int registered;
 void actql_native_control_register_sqlite_database_roots(
@@ -47,13 +51,18 @@ void actql_native_control_register_sqlite_database_roots(
     actql_database_read_fn scan, actql_database_body_fn key,
     actql_database_reserve_fn reserve_capacity, actql_database_usage_fn capacity_usage,
     actql_database_release_fn release_capacity, actql_database_tag_fn capacity_changed,
-    actql_database_scalar_fn reserved_bytes, actql_database_scalar_fn reserved_objects) {
+    actql_database_scalar_fn reserved_bytes, actql_database_scalar_fn reserved_objects,
+    actql_database_lookup_capacity_fn read_capacity, actql_database_operation_fn database_usage,
+    actql_database_operation_fn transaction_state, actql_database_scalar_fn record_count,
+    actql_database_scalar_fn record_body_bytes, actql_database_scalar_fn reservation_count,
+    actql_database_tag_fn transaction_active) {
     if (registered) return;
     if (!restore || !initialize || !observe || !read || !insert || !compare ||
         !transaction || !close || !fence || !host || !library || !original ||
         !operation || !stage || !issue || !after || !has_row || !revision || !body || !bound || !scan || !key ||
         !reserve_capacity || !capacity_usage || !release_capacity || !capacity_changed ||
-        !reserved_bytes || !reserved_objects) {
+        !reserved_bytes || !reserved_objects || !read_capacity || !database_usage ||
+        !transaction_state || !record_count || !record_body_bytes || !reservation_count || !transaction_active) {
         registered = -1;
         return;
     }
@@ -69,6 +78,10 @@ void actql_native_control_register_sqlite_database_roots(
     callbacks.reserve_capacity = reserve_capacity; callbacks.capacity_usage = capacity_usage;
     callbacks.release_capacity = release_capacity; callbacks.capacity_changed = capacity_changed;
     callbacks.reserved_bytes = reserved_bytes; callbacks.reserved_objects = reserved_objects;
+    callbacks.read_capacity = read_capacity; callbacks.database_usage = database_usage;
+    callbacks.transaction_state = transaction_state; callbacks.record_count = record_count;
+    callbacks.record_body_bytes = record_body_bytes; callbacks.reservation_count = reservation_count;
+    callbacks.transaction_active = transaction_active;
     registered = 1;
 }
 static moonbit_string_t copy_text(const uint16_t *text, int32_t units) {
@@ -322,6 +335,38 @@ int64_t actql_sqlite_database_reserved_bytes(actql_sqlite_database_reply *reply)
 }
 int64_t actql_sqlite_database_reserved_objects(actql_sqlite_database_reply *reply) {
     return registered == 1 && reply ? callbacks.reserved_objects(reply) : -1;
+}
+int actql_sqlite_database_capacity_read_utf16_into(actql_control_host *host, actql_sqlite_database *original,
+    const uint16_t *scope, int32_t scope_units, const uint16_t *key, int32_t key_units,
+    actql_sqlite_database_reply **reply) {
+    if (!names_valid(scope, scope_units, key, key_units)) return ACTQL_CONTROL_INVALID_SLOT;
+    int code = preflight(host, original, reply);
+    if (code != ACTQL_CONTROL_OK) return code == 1 ? ACTQL_CONTROL_OK : code;
+    release_preflight(reply);
+    moonbit_string_t s = copy_text(scope, scope_units), k = copy_text(key, key_units);
+    *reply = callbacks.read_capacity(host, original, s, k);
+    moonbit_decref(k); moonbit_decref(s);
+    return *reply ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
+}
+int actql_sqlite_database_database_usage_into(actql_control_host *host, actql_sqlite_database *original,
+    actql_sqlite_database_reply **reply) {
+    return operate(callbacks.database_usage, host, original, reply, 1);
+}
+int actql_sqlite_database_transaction_state_into(actql_control_host *host, actql_sqlite_database *original,
+    actql_sqlite_database_reply **reply) {
+    return operate(callbacks.transaction_state, host, original, reply, 1);
+}
+int64_t actql_sqlite_database_record_count(actql_sqlite_database_reply *reply) {
+    return registered == 1 && reply ? callbacks.record_count(reply) : -1;
+}
+int64_t actql_sqlite_database_record_body_bytes(actql_sqlite_database_reply *reply) {
+    return registered == 1 && reply ? callbacks.record_body_bytes(reply) : -1;
+}
+int64_t actql_sqlite_database_reservation_count(actql_sqlite_database_reply *reply) {
+    return registered == 1 && reply ? callbacks.reservation_count(reply) : -1;
+}
+int32_t actql_sqlite_database_transaction_active(actql_sqlite_database_reply *reply) {
+    return registered == 1 && reply ? callbacks.transaction_active(reply) : -1;
 }
 int actql_sqlite_database_drop_reply(actql_sqlite_database_reply **reply, actql_control_host *host,
     actql_sqlite_original *library, actql_sqlite_database *original) {
