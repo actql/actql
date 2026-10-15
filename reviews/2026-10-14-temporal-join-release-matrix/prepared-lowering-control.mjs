@@ -13,9 +13,11 @@ const code = `import {runFocusedTests} from './scripts/test-execution.mjs';proce
 const planArgs = process.argv.slice(4);
 if (mode === 'plan') assert.equal(planArgs.length, 3);
 if (mode === 'plan') assert(planArgs.every(isAbsolute));
+const planCode = "import {spawnSync} from 'node:child_process';const result=spawnSync(process.execPath,process.argv.slice(1),{stdio:'inherit',timeout:30000,killSignal:'SIGTERM'});if(result.error)throw result.error;process.exitCode=result.status??1;";
 process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false,
   timeoutSeconds: mode === 'plan' ? 60 : 270, graceSeconds: 5, steps: [{name: 'Original interval-left independent Program and lowering control',
     command: process.execPath, args: mode === 'plan'
-      ? ['reviews/2026-10-14-temporal-join-release-matrix/pure-installed-plan.mjs', ...planArgs]
+      ? ['--input-type=module', '-e', planCode,
+        'reviews/2026-10-14-temporal-join-release-matrix/pure-installed-plan.mjs', ...planArgs]
       : ['--input-type=module', '-e', code]}]});
 assert.deepEqual(checkoutState(process.cwd()), before);
