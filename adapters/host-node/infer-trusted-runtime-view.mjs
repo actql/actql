@@ -124,6 +124,13 @@ class TrustedRuntimeView {
 // The owning installer supplies these independently from its actual originals,
 // not from packet fields, matching CIDs, a caller flag or this view's contents.
 // This module stays private: no SDK factory/plugin/wire issues runtime coverage.
+// The selected startup's TLS responsibility includes the adapter's own peer
+// graph, hostname-verification scratch and original TLS error referents, bound
+// to these SAME actual Host/supplier/installation/generation/runtime originals.
+// This is not HTTP-clamp coverage or an exemption for ActQL/SDK allocations.
+// Operation currentness, concurrency, physical close and the last actual
+// borrower remain the existing caller/cleanup Owner's obligations; this view
+// does not observe or acknowledge them, including when its links are retired.
 export function issueInferTrustedRuntimeView(actualOriginals) {
   return new TrustedRuntimeView(constructorKey, originals(actualOriginals));
 }
@@ -166,6 +173,22 @@ export function associateInferTrustedStartupView(view, actualOriginals) {
 export function requireInferTrustedStartupView(view, actualOriginals) {
   TrustedRuntimeView.check(view, actualOriginals);
   startup.check(view, actualOriginals);
+}
+
+// Separate, explicitly selected SDK static-module duty, NOT a native/TLS kind.
+// Only the same installed Host builder's immutable actual module originals may
+// be attached. The existing startup owns their process/module lifetime; Scope
+// views borrow the existing original record without another private field.
+// Per-M factories, lazy/cache state, inputs, Promises and copies are excluded.
+// All added binding/borrow controls still need their original managed budget.
+export function bindInferTrustedSdkStaticModules(view, actualOriginals, modules) {
+  requireInferTrustedStartupView(view, actualOriginals);
+  startup.bindSdkStaticModules(view, actualOriginals, modules);
+}
+
+export function checkInferTrustedSdkStaticModules(view, actualOriginals, modules) {
+  requireInferTrustedStartupView(view, actualOriginals);
+  startup.checkSdkStaticModules(view, actualOriginals, modules);
 }
 
 // Caller has checked the SAME actual Common scope before this association.

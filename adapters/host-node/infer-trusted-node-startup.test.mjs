@@ -25,6 +25,8 @@ test('selected real Node preload retains exact Host and borrowed Scope reference
   child(['--require', preload], 'selected'));
 test('selected startup excludes pool/allocator replacement and retains invalidation through restoration', () =>
   child(['--require', preload], 'mutation'));
+test('selected TLS adapter originals cannot be replaced and its peer error keeps the original graph', () =>
+  child(['--require', preload], 'tls-peer-originals'));
 for (const mode of ['read-decoder-global', 'read-decoder-decode', 'read-buffer-subarray']) {
   test(`selected startup retains the actual strict READ original ${mode}`, () =>
     child(['--require', preload], mode));
