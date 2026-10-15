@@ -103,3 +103,32 @@ The failed whole-prefix diagnostic setup remains under `preimages`; it is not
 used to generate independent expectations. Optional Calendar and other P2
 matrices remain separate. No all-Core, Native/Wasm execution, hosted CI,
 Provider service or publication is claimed.
+
+
+## Mixed-chain scratch lifetime
+
+The normal package campaign at `eee74e1f` completed Local seven normal cases
+(eighteen rows), then accepted the SQL interval-left request but failed before
+publication. HTTPS, remaining cases, refusals and fresh-process rereads were
+not executed. The original failure, Run and private diagnostic custody are kept.
+A private safe-tag observation established `LocalManagedStart -> Execution ->
+Physical`; the publication `StrategyNotComplete` was only a later symptom.
+The same original JSON and normalized SQL through the ordinary Common Host
+reproduced `Physical(ExecutionLimit)` at `1fea1dd59` (`run-lsjrfF`). A direct
+bounded provider control had succeeded because it did not reserve the Run ledger.
+
+A family step made the previous whole-chain eligibility test retain the scratch
+of every earlier built-in. The repair reclaims only the already-audited built-in
+prefix, confirming the same child's cleanup before advancing. The first family
+or unaudited step ends this prefix; its complete suffix keeps the previous
+conservative execution lifetime. All accepted intermediate outputs, exact input
+ports and metadata handles remain retained. Capacity is independently composed
+as retained children plus max(prefix scratch peak, conservative suffix scratch
+sum), with unchanged coefficients and 512 MiB ledger ceiling. No memory samples,
+forced cleanup, missing ACK, cap increase or operand change establishes admission.
+
+At `091debb60`, the original JSON/SQL Host control and eight existing lifetime,
+cleanup and cancellation controls passed 9/9 (`run-9pfkgS`). Earlier setup
+failures remain failures: adjacent control strings (`run-MG1yRV`) and a mismatch
+with the ordinary Host output mode (`run-cK9JTV`, `run-IX3e3p`, `run-Zr2Q9W`).
+This is component evidence, not a completed installed public matrix.

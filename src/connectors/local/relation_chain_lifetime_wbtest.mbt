@@ -821,3 +821,46 @@ test "cancellation after reclaimed Values does not start UNNEST or publish unfin
   assert_true(state.children.is_empty())
   assert_true(@execution.completed_output_available(accepted))
 }
+
+///|
+test "an unaudited first child keeps the complete conservative suffix" {
+  let (sequence, read, source) = chain_lifetime_fixture(
+    "[{\"from\":\"source\",\"intersect\":{\"with\":\"source\",\"duplicates\":\"all\"},\"as\":\"first\"},{\"from\":\"first\",\"select\":[\"id\"],\"as\":\"out\"}]",
+  )
+  assert_eq(relation_chain_reclaimed_prefix(sequence), 0)
+  let limits = chain_lifetime_limits()
+  let measure = chain_lifetime_measurement()
+  let count = @execution.generated_sequence_step_count(sequence)
+  let mut overlap = count.to_int64() * 256L + 512L
+  for index in 0..<count {
+    let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
+    let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
+    let child = @execution.generated_sequence_capacity(
+      selected, limits, measure,
+    ).unwrap()
+    overlap += child.retained_bytes + child.execution_bytes
+  }
+  let capacity = bounded_relation_chain_capacity(sequence, limits, measure, []).unwrap()
+  assert_eq(capacity.execution_bytes, overlap)
+  let (active, state) = chain_lifetime_start(sequence, read)
+  let mut output = None
+  for _ in 0..<100000 {
+    if output is Some(_) {
+      break
+    }
+    match advance_managed_provider(active, 1).unwrap() {
+      Continue(..) => ()
+      Complete(result, ..) => output = Some(result)
+      _ => fail("unaudited-first chain must complete")
+    }
+    if state.pending {
+      assert_eq(state.children.length(), state.position)
+      assert_false(state.reclaiming)
+    }
+  }
+  assert_eq(@execution.completed_row_count(output.unwrap()), 3)
+  assert_eq(state.children.length(), count)
+  assert_true(cleanup_managed_provider(active).unwrap())
+  assert_true(state.children.is_empty())
+  assert_true(@execution.completed_output_available(source))
+}

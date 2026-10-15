@@ -5,7 +5,7 @@ import {isAbsolute} from 'node:path';
 const before = checkoutState(process.cwd());
 assert.equal(before.clean, true); assert.equal(before.revision, process.argv[2]);
 const mode = process.argv[3] ?? 'lowering';
-assert(['lowering', 'selected', 'append', 'pipeline', 'chain', 'ledger', 'final', 'plan'].includes(mode));
+assert(['lowering', 'selected', 'append', 'pipeline', 'chain', 'ledger', 'closure', 'final', 'plan'].includes(mode));
 const args = ['--target', 'js', '-j', '1',
   mode === 'lowering' ? 'src/query_program/temporal_public_lowering_control_test.mbt'
     : mode === 'ledger' ? 'src/query_integration/temporal_public_ledger_wbtest.mbt'
@@ -13,15 +13,16 @@ const args = ['--target', 'js', '-j', '1',
       : mode === 'pipeline' ? 'src/execution_relation/temporal_public_pipeline_wbtest.mbt'
       : mode === 'append' ? 'src/execution_relation/temporal_append_projection_wbtest.mbt'
       : 'src/execution_relation/temporal_public_selected_interval_wbtest.mbt'];
-if (mode === 'final') args.splice(4, 1,
+if (mode === 'final' || mode === 'closure') args.splice(4, 1,
   'src/query_syntax/temporal_public_identifier_fixture_test.mbt',
   'src/query_program/temporal_public_lowering_control_test.mbt',
   'src/execution_relation/temporal_public_selected_interval_wbtest.mbt',
   'src/execution_relation/temporal_public_pipeline_wbtest.mbt');
-if (mode === 'pipeline' || mode === 'final') args.push(
+if (mode === 'pipeline' || mode === 'final' || mode === 'closure') args.push(
   'src/execution_relation/temporal_append_projection_wbtest.mbt',
   'src/execution_relation/append_rows_wbtest.mbt');
 if (mode === 'ledger') args.push('src/connectors/local/relation_chain_lifetime_wbtest.mbt');
+if (mode === 'closure') args.push('src/query_integration/temporal_public_ledger_wbtest.mbt', 'src/query_integration/temporal_public_bounded_chain_wbtest.mbt', 'src/connectors/local/relation_chain_lifetime_wbtest.mbt', 'src/connectors/local/relation_chain_analytic_lifetime_wbtest.mbt', 'src/connectors/local/relation_chain_unpivot_lifetime_wbtest.mbt');
 const code = `import {runFocusedTests} from './scripts/test-execution.mjs';process.exitCode=runFocusedTests('moon',${JSON.stringify(args)},{cwd:process.cwd(),timeout:240000});`;
 const planArgs = process.argv.slice(4);
 if (mode === 'plan') assert.equal(planArgs.length, 3);
