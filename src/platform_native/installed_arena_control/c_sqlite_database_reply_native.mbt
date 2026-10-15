@@ -154,6 +154,35 @@ pub fn read_installed_sqlite_database_reply(
 }
 
 ///|
+/// One bounded original row after the exact cursor. Neither NotFound nor this
+/// row proves namespace completeness or acknowledges an inventory/Run.
+pub fn scan_installed_sqlite_database_reply(
+  host : InstalledArenaHost,
+  original : InstalledArenaSqliteDatabase,
+  scope : String,
+  after_key : String,
+  max_body_bytes : Int64,
+) -> InstalledArenaSqliteDatabaseReply {
+  sqlite_database_call_reply(12, host, original, database => {
+    if database.transaction_fenced() {
+      match database.transaction_state() {
+        Ok(@sqlite.NoActiveSqliteTransaction) => ()
+        Ok(@sqlite.ActiveSqliteTransaction) =>
+          return Err(
+            @sqlite.Physical("original SQLite transaction remains unconfirmed"),
+          )
+        Err(issue) => return Err(issue)
+      }
+    }
+    match
+      database.scan_after_with_body_limit(scope, after_key, max_body_bytes) {
+      Ok(value) => Ok(DatabaseRow(value))
+      Err(issue) => Err(issue)
+    }
+  })
+}
+
+///|
 pub fn insert_installed_sqlite_database_reply(
   host : InstalledArenaHost,
   original : InstalledArenaSqliteDatabase,
@@ -363,5 +392,16 @@ pub fn InstalledArenaSqliteDatabaseReply::body_bound(
   match self.original {
     Some(original) => original.max_body_bytes
     None => -1L
+  }
+}
+
+///|
+/// Original row key DATA only. Copy and release inside the same managed scope.
+pub fn InstalledArenaSqliteDatabaseReply::row_key_bytes(
+  self : InstalledArenaSqliteDatabaseReply,
+) -> Bytes {
+  match self.value {
+    Some(DatabaseRow(value)) => @utf8.encode(value.key)
+    _ => b""
   }
 }
