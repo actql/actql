@@ -12,6 +12,9 @@ priv struct SiteEnvironmentOpenCustody {
   // Its installer keeps the same original read domain alive until this ACK.
   mut selected_sqlite_library : @sqlite.Library?
   mut failed_sqlite_library : @sqlite.NativeSqliteLibraryLoadFailure?
+  // The same admitted operation/domain remains until Library AND parent ACK.
+  // It is not a new allocator, grant or alternative cleanup Owner.
+  mut original_setup_scope : HolderEffectHostSetupScope?
 }
 
 ///|
@@ -24,6 +27,7 @@ fn site_environment_open_custody(
   release_required? : Bool = false,
   selected_sqlite_library? : @sqlite.Library? = None,
   failed_sqlite_library? : @sqlite.NativeSqliteLibraryLoadFailure? = None,
+  original_setup_scope? : HolderEffectHostSetupScope? = None,
 ) -> SiteEnvironmentOpenCustody {
   {
     original_failure,
@@ -34,6 +38,7 @@ fn site_environment_open_custody(
     release_required,
     selected_sqlite_library,
     failed_sqlite_library,
+    original_setup_scope,
   }
 }
 
@@ -86,14 +91,78 @@ fn retry_site_environment_open_libraries(
 }
 
 ///|
+/// Existing Owner cleanup only. The callbacks below are the two local checked
+/// close phases; their Bool never stands in for a caller's physical evidence.
+/// A selected Library cannot use the legacy no-domain path.
+fn retry_site_environment_open_in_cleanup_domain(
+  original : SiteEnvironmentOpenCustody,
+  close : (SiteEnvironmentOpenCustody) -> Bool,
+) -> Bool {
+  guard original.original_setup_scope is Some(scope) else {
+    return original.selected_sqlite_library is None &&
+      original.failed_sqlite_library is None &&
+      close(original)
+  }
+  guard scope.retiring && scope.depth == 0 && scope.operation is None else {
+    return false
+  }
+  guard scope.read_domain is Some(read) else {
+    // A refused domain may own partial parent cleanup but no I/O children.
+    return original.bundles is None &&
+      original.failed_bundle is None &&
+      original.failed_journal is None &&
+      original.selected_sqlite_library is None &&
+      original.failed_sqlite_library is None &&
+      close(original)
+  }
+  guard read.ready &&
+    !read.active &&
+    read.host.enter_backed_read_cleanup(
+      read.original,
+      read.domain,
+      read.operation,
+    )
+    is Ok(_) else {
+    return false
+  }
+  read.active = true
+  let closed = close(original)
+  let left = leave_holder_effect_host_read_domain(read)
+  closed && left
+}
+
+///|
 /// Do not fold these two helpers into a single frame: even a closed Database
 /// external object retains its Library child until that managed alias retires.
 /// This is an ordering boundary, not a GC/RSS or domain-retirement guarantee.
 fn retry_site_environment_open_custody(
   original : SiteEnvironmentOpenCustody,
 ) -> Bool {
-  retry_site_environment_open_objects(original) &&
-  retry_site_environment_open_libraries(original)
+  if original.original_setup_scope is Some(scope) {
+    // Account snapshots have their own detachment Owner; this early Site-open
+    // carrier cannot acknowledge or release somebody else's retained payload.
+    guard scope.holding is None && quiesce_holder_effect_host_setup_scope(scope) else {
+      return false
+    }
+  }
+  guard retry_site_environment_open_in_cleanup_domain(
+      original, retry_site_environment_open_objects,
+    ) &&
+    retry_site_environment_open_in_cleanup_domain(
+      original, retry_site_environment_open_libraries,
+    ) else {
+    return false
+  }
+  if original.original_setup_scope is Some(scope) {
+    guard retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach else {
+      return false
+    }
+    if scope.cleanup is Some(cleanup) {
+      guard @site.release_site_cleanup(cleanup) else { return false }
+      scope.cleanup = None
+    }
+  }
+  true
 }
 
 ///|
@@ -108,6 +177,17 @@ priv struct HolderSiteEnvironmentOpenCleanup {
 fn retry_holder_site_environment_open_cleanup(
   custody : HolderSiteEnvironmentOpenCleanup,
 ) -> Bool {
+  if custody.original.original_setup_scope is Some(scope) {
+    // No foreign Slot can retire this original Host/domain or inherit its ACK.
+    if scope.read_domain is Some(read) &&
+      !physical_equal(read.original, custody.slot) {
+      return false
+    }
+    if scope.read_parent is Some(parent) &&
+      !physical_equal(parent.original, custody.slot) {
+      return false
+    }
+  }
   guard retry_site_environment_open_custody(custody.original) &&
     !custody.slot_close_unknown else {
     return false
@@ -157,5 +237,16 @@ fn finish_failed_site_environment_open(
       },
     ),
   )
-  HolderCommandFailed(None, original.original_failure)
+  // This receiver has ended after physical Library/domain/parent and Slot
+  // ACKs. Only move the same caller operation; its control/diagnostic lifetime
+  // still extends through run_holder and the existing terminal consumer.
+  let operation = match original.original_setup_scope {
+    Some(scope) => {
+      let (operation, _) = take_holder_effect_host_caller_reservation(scope)
+      original.original_setup_scope = None
+      operation
+    }
+    None => None
+  }
+  HolderCommandFailed(operation, original.original_failure)
 }

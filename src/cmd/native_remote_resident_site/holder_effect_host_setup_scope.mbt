@@ -447,6 +447,40 @@ fn retain_holder_effect_host_snapshot(
 }
 
 ///|
+/// Stop new reads without invoking the Store-backed current callback. This is
+/// a cleanup transition of the same reservation, not successful current or a
+/// physical close ACK. A nested caller or failed leave retains this scope.
+fn quiesce_holder_effect_host_setup_scope(
+  scope : HolderEffectHostSetupScope,
+) -> Bool {
+  scope.retiring = true
+  if scope.depth < 0 || scope.depth > 1 {
+    return false
+  }
+  if scope.depth == 1 {
+    guard scope.operation is Some(operation) &&
+      scope.caller_operation is Some(caller) &&
+      physical_equal(operation, caller) else {
+      return false
+    }
+    if scope.read_domain is Some(read) &&
+      !leave_holder_effect_host_read_domain(read) {
+      return false
+    }
+    scope.depth = 0
+    scope.operation = None
+  } else if scope.operation is Some(_) {
+    return false
+  }
+  // The full current closure can itself retain a Store/Database. End those
+  // references before closing the original Library in a later frame. Original
+  // Host/domain cleanup validates its own handles; it needs no new Store read.
+  scope.preparation_binding = None
+  scope.current_binding = None
+  true
+}
+
+///|
 /// The caller first drops its payload/closures. This path only retries original
 /// physical cleanup. Unknown remains with the same opaque failure and Site
 /// cleanup token; this one pass neither polls nor releases the holding.
