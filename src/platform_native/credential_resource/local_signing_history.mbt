@@ -98,7 +98,9 @@ pub fn prepare_native_local_original_signing_history_candidate(
   }
   let candidate = match
     prepare_native_local_signing_history_candidate(
-      database, grant, scope.attempt_id,
+      database,
+      grant,
+      scope.attempt_id,
     ) {
     Ok(value) => value
     Err(issue) => return Err(issue)

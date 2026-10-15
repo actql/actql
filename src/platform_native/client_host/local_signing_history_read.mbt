@@ -113,11 +113,14 @@ fn NativeLocalSigningKeyOriginal::read_signing_history_locked(
   let candidate = match selection {
     SelectedUse(use_id) =>
       @credential_resource.prepare_native_local_signing_history_candidate(
-        host.database, grant, use_id,
+        host.database,
+        grant,
+        use_id,
       )
     OriginalOperation =>
       @credential_resource.prepare_native_local_original_signing_history_candidate(
-        host.database, grant,
+        host.database,
+        grant,
       )
   }
   match candidate {
@@ -148,7 +151,11 @@ pub fn NativeLocalSigningKeyOriginal::lookup_signing_history(
   NativeLocalSigningHistoryIssue,
 ] {
   self.read_signing_history_current(
-    principal, connection, request, operation_id, SelectedUse(use_id),
+    principal,
+    connection,
+    request,
+    operation_id,
+    SelectedUse(use_id),
   )
 }
 
@@ -167,7 +174,11 @@ pub fn NativeLocalSigningKeyOriginal::lookup_original_signing_operation(
   NativeLocalSigningHistoryIssue,
 ] {
   self.read_signing_history_current(
-    principal, connection, request, operation_id, OriginalOperation,
+    principal,
+    connection,
+    request,
+    operation_id,
+    OriginalOperation,
   )
 }
 
@@ -203,7 +214,9 @@ fn NativeLocalSigningKeyOriginal::read_signing_history_current(
   let mut read_issue : NativeLocalSigningHistoryIssue? = None
   let result = host.journal.transaction(() => {
     match
-      self.read_signing_history_locked(authority, request, operation_id, selection) {
+      self.read_signing_history_locked(
+        authority, request, operation_id, selection,
+      ) {
       Ok(value) => Ok(value)
       Err(issue) => {
         read_issue = Some(issue)
