@@ -8,10 +8,11 @@ import {dirname, join} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {observeInstalledGcsMetadata, observeInstalledDuckDbReads, observeInstalledTableWorkers}
   from './real-cross-connector-observation.mjs';
-import {realCrossConnectorControl as control} from './real-cross-connector-control.mjs';
+import {selectRealCrossConnectorControl} from './real-cross-connector-control.mjs';
 import {checkRealRoutePreview} from './real-cross-connector-preview.mjs';
 
 const input = JSON.parse(await readFile(process.argv[2], 'utf8'));
+const control = selectRealCrossConnectorControl(input.format);
 const require = createRequire(join(input.application, 'package.json'));
 const {connect} = await import(require.resolve('@actql/node'));
 const duckdb = require('@duckdb/node-api');
@@ -62,7 +63,7 @@ try {
   await client.close(); client = undefined;
   completed = true;
   await writeFile(join(dirname(process.argv[2]), `restart-observation.${input.phase}.json`), JSON.stringify({
-    phase: input.phase, pid: process.pid, ref: run.ref, status: state.status, observedResult: observed,
+    phase: input.phase, format: control.format, pid: process.pid, ref: run.ref, status: state.status, observedResult: observed,
     ...(reviewedPreview === undefined ? {} : {reviewedPreview}),
     ...(tableWorkers === undefined ? {} : {physicalTable: tableWorkers.observation()}),
     gcs: gcs.observation(), duckdb: reads.observation(), credentialResolutions,

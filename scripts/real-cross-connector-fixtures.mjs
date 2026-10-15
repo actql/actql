@@ -1,5 +1,6 @@
 // Authored harness/oracle closure only. Product modules and worker assets must
 // resolve from normal installed packages, never from these copied inputs.
+import assert from 'node:assert/strict';
 import {dirname, join} from 'node:path';
 import {tablePublicFixturePaths} from './table-public-acceptance-cases.mjs';
 export const realCrossConnectorFixturePaths = Object.freeze([
@@ -16,6 +17,13 @@ export const realCrossConnectorFixturePaths = Object.freeze([
   'scripts/gcs-files-content-credential.mjs',
   'scripts/gcs-files-content-environment.mjs',
 ]);
+
+export function realCrossConnectorFormat(args) {
+  if (args.length === 0) return 'sql';
+  assert(args.length === 2 && args[0] === '--format' && ['sql', 'aql'].includes(args[1]),
+    'Use one optional --format sql|aql; no extra physical scenarios');
+  return args[1];
+}
 
 export function realCrossConnectorEnvironment(base, {root, node}) {
   const env = {...base};

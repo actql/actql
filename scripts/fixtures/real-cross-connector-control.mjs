@@ -1,3 +1,5 @@
+import assert from 'node:assert/strict';
+
 // Independent real-system input and Result oracle. No compiler/runtime output
 // is used to produce the expected values, ordered schema, or source rows.
 export const realCrossConnectorControl = Object.freeze({
@@ -27,3 +29,12 @@ export const realCrossConnectorControl = Object.freeze({
     ]),
   }),
 });
+
+// Both public text formats use the exact authored JOIN and independent oracle.
+// A selection creates one fresh scenario, never a loop over physical reads.
+export function selectRealCrossConnectorControl(format = 'sql') {
+  assert(['sql', 'aql'].includes(format), 'Select only the reviewed SQL or AQL route');
+  return format === 'sql' ? realCrossConnectorControl : Object.freeze({
+    ...realCrossConnectorControl, name: `${realCrossConnectorControl.name}-aql`, format,
+  });
+}
