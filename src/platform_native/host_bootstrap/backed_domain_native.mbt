@@ -39,6 +39,11 @@ struct NativeBackedExecutionDomain[T, C] {
   mut transfer_attempted : Bool
   mut transferred : Bool
   mut closed : Bool
+  // Same domain/loan carrier even when read initialization or cleanup fails.
+  // Additional controls require their own reviewed physical holding inventory.
+  mut read_use : @resources.BackedExecutionReadUse[NativeHostBootstrap[T], C]?
+  mut read_attempted : Bool
+  mut read_retired : Bool
 }
 
 ///|
@@ -71,17 +76,22 @@ pub fn[T, C] NativeHostBootstrap::project_prepared_domain(
   if !domain.transferred {
     return Err(Bootstrap(Unavailable))
   }
-  let (_, _, limits) = match @resources.backed_execution_delegation_description(
-    domain.view.loan.region.accounting, self, child, domain.view.loan.accounting,
-  ) {
+  let (_, _, limits) = match
+    @resources.backed_execution_delegation_description(
+      domain.view.loan.region.accounting,
+      self,
+      child,
+      domain.view.loan.accounting,
+    ) {
     Err(issue) => return Err(Accounting(issue))
     Ok(value) => value
   }
-  let extent = match self.project_backed_extent(original, domain.view.loan, child) {
+  let extent = match
+    self.project_backed_extent(original, domain.view.loan, child) {
     Err(issue) => return Err(issue)
     Ok(value) => value
   }
-  Ok({ extent, limits })
+  Ok({ extent, limits, })
 }
 
 ///|
@@ -108,6 +118,9 @@ pub fn[T, C] NativeHostBootstrap::acquire_backed_domain(
     transfer_attempted: false,
     transferred: false,
     closed: false,
+    read_use: None,
+    read_attempted: false,
+    read_retired: false,
   }
   view.domain = Some(domain)
   let status = domain_status_ffi(physical)
@@ -228,6 +241,12 @@ pub fn[T, C] NativeHostBootstrap::close_backed_domain(
   }
   if !(domain.view.domain is Some(selected) && physical_equal(selected, domain)) {
     return Err(Bootstrap(ForeignOriginal))
+  }
+  if domain.read_use is Some(_) {
+    match self.close_backed_read_context(original, domain, child) {
+      Err(issue) => return Err(issue)
+      Ok(_) => ()
+    }
   }
   let status = close_domain_ffi(domain.view.physical, domain.physical)
   if status != 0 {

@@ -107,6 +107,9 @@ pub fn node_supports_selected_managed_execution(node : PreparedNode) -> Bool {
     // immutable Relation input. Selection still requires that actual provider;
     // this does not make generation a portable AoA Relation kernel.
     Serialize(_) => true
+    CalendarValue(checked) =>
+      operation(node) == "TEA.calendar.series" &&
+      @calendar_options.operation(@calendar.options(checked)) == Series
     Values(_) | InnerJoin(_) | CrossJoinRows(_) | AppendRows(_) | SetRows(_) =>
       true
     GraphConstructionValue(_) => operation(node) == "BRIDGE.rows.to_graph"
