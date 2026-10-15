@@ -18,6 +18,7 @@ test('historical manifest and complete build-time proof bind authentic old109 an
 });
 
 test('historical generated inputs reject unknown manifest bytes source platform and closure', () => {
+  assert(Buffer.from(JSON.stringify(inputs.historical, null, 2) + '\n').equals(inputs.historicalBytes));
   for (const mutate of [
     x => { x.sourceSha = 'b'.repeat(40); },
     x => { x.platform = 'linux-x64-gnu'; },
@@ -33,7 +34,7 @@ test('historical generated inputs reject unknown manifest bytes source platform 
   ]) {
     const changed = structuredClone(inputs.historical);
     mutate(changed);
-    assert.throws(() => verifyHistoricalScalarPairManifests(inputs.originalBytes, Buffer.from(JSON.stringify(changed))));
+    assert.throws(() => verifyHistoricalScalarPairManifests(inputs.originalBytes, Buffer.from(JSON.stringify(changed, null, 2) + '\n')));
   }
   assert.throws(() => verifyHistoricalScalarPairManifests(inputs.historicalBytes, inputs.originalBytes));
   assert.throws(() => verifyHistoricalScalarPairManifests(inputs.originalBytes, Buffer.concat([inputs.historicalBytes, Buffer.from('\n')])));
