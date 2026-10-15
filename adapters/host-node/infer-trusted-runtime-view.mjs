@@ -12,6 +12,38 @@ const fail = code => {
 const nominal = value => value !== null &&
   (typeof value === 'object' || typeof value === 'function');
 
+// Private DATA from the actual opened Store, not a caller's size declaration.
+// Preserve the issuer's one immutable record rather than copying its Strings
+// or repeatedly allocating a new projection at every current/Scope check.
+function originalStoreDimensions(store) {
+  const method = Object.getOwnPropertyDescriptor(store, 'originalModelStorageDimensions');
+  // Legacy/private Store associations remain usable without these observations.
+  // Their absent dimensions are Unavailable, never zero or inferred from caps.
+  if (method === undefined) return undefined;
+  if (!Object.hasOwn(method, 'value') || typeof method.value !== 'function') {
+    fail('InferTrustedStoreDimensionsUnavailable');
+  }
+  const value = Reflect.apply(method.value, store, []);
+  const fields = ['directoryCodeUnits', 'directoryUtf8Bytes',
+    'privateNamespaceCodeUnits', 'privateNamespaceUtf8Bytes', 'privateKeyBytes'];
+  if (!nominal(value) || Array.isArray(value) || !Object.isFrozen(value)) {
+    fail('InferTrustedStoreDimensionsUnavailable');
+  }
+  const names = Reflect.ownKeys(value);
+  if (names.length !== fields.length || names.some(name => !fields.includes(name))) {
+    fail('InferTrustedStoreDimensionsUnavailable');
+  }
+  for (const name of fields) {
+    const descriptor = Object.getOwnPropertyDescriptor(value, name);
+    if (descriptor === undefined || descriptor.enumerable !== true ||
+        !Object.hasOwn(descriptor, 'value') ||
+        !Number.isSafeInteger(descriptor.value) || descriptor.value <= 0) {
+      fail('InferTrustedStoreDimensionsUnavailable');
+    }
+  }
+  return value;
+}
+
 // Inspect and retain the same descriptor values, without invoking getters or
 // deep-copying original handles. Reflection does not isolate hostile code.
 function checkOriginalShape(value) {
@@ -109,6 +141,19 @@ class TrustedRuntimeView {
     }
   }
 
+  static storeDimensions(view, actual, store, moduleLifetime) {
+    TrustedRuntimeView.checkStore(view, actual, store, moduleLifetime);
+    if (Object.hasOwn(view.#store, 'dimensions')) return view.#store.dimensions;
+    // Acquire only for this new observation role. Ordinary Store association
+    // does not require a Model private key or create a projected size record.
+    const value = originalStoreDimensions(store);
+    if (value === undefined) fail('InferTrustedStoreDimensionsUnavailable');
+    // A physical method must not replace/retire this Host during observation.
+    TrustedRuntimeView.checkStore(view, actual, store, moduleLifetime);
+    view.#store = Object.freeze({store, moduleLifetime, dimensions: value});
+    return value;
+  }
+
   static forget(view, host, generation) {
     const retained = TrustedRuntimeView.#binding(view);
     if (retained.host !== host || retained.generation !== generation) {
@@ -154,6 +199,14 @@ export function bindInferTrustedStore(view, actualOriginals, store, moduleLifeti
 // Store close retains the same association; only final Host cleanup forgets it.
 export function checkInferTrustedStore(view, actualOriginals, store, moduleLifetime) {
   TrustedRuntimeView.checkStore(view, actualOriginals, store, moduleLifetime);
+}
+
+// The same Host selection borrows these immutable size observations. Neither
+// the record nor a matching copy authenticates a Store, observes availability,
+// funds paths/encodings/managed controls or grants read/restore/send. The owning
+// caller still performs its actual Store/Scope current checks at every use.
+export function selectedInferTrustedStoreDimensions(view, actualOriginals, store, moduleLifetime) {
+  return TrustedRuntimeView.storeDimensions(view, actualOriginals, store, moduleLifetime);
 }
 
 // Existing Host cleanup calls this only after its actual duties settle. There
