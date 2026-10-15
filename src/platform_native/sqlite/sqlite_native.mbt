@@ -13,6 +13,26 @@ extern "C" fn load_library_ffi(
 ) -> Library = "actql_native_sqlite_load_library"
 
 ///|
+extern "C" fn selected_current_scope_ffi() -> Bool = "actql_native_sqlite_selected_current_scope"
+
+///|
+#borrow(path)
+extern "C" fn load_current_component_ffi(
+  path : Bytes,
+  length : Int,
+  diagnostic_ceiling : Int,
+  heap_bytes : Int64,
+) -> Library = "actql_native_sqlite_load_current_component"
+
+///|
+#borrow(library)
+extern "C" fn library_acquired_ffi(library : Library) -> Bool = "actql_native_sqlite_library_acquired"
+
+///|
+#borrow(library)
+extern "C" fn library_close_checked_ffi(library : Library) -> Bool = "actql_native_sqlite_library_close_checked"
+
+///|
 #borrow(library)
 extern "C" fn library_ready_ffi(library : Library) -> Bool = "actql_native_sqlite_library_ready"
 
@@ -324,6 +344,77 @@ pub fn load_library(
     Ok(library)
   } else {
     Err(LibraryLoad(decode_diagnostic(library_error_ffi(library))))
+  }
+}
+
+///|
+/// Private physical entry for the trusted installed Library caller. The caller
+/// has already verified its owned component/source/recipe and nominal Host /
+/// Store / epoch / current plus the original funded read-domain scope. A path,
+/// heap size or successful load does not establish any of those conditions.
+/// Refuse a missing selected scope before allocating the UTF-8 path copy.
+pub fn load_current_component_with_custody(
+  path : String,
+  heap_bytes : Int64,
+  diagnostic_ceiling : Int,
+) -> Result[Library, NativeSqliteLibraryLoadError] {
+  if heap_bytes < 4096L || heap_bytes > 2147483647L || diagnostic_ceiling <= 0 {
+    return Err(RefusedBeforeAcquisition(InvalidLimit))
+  }
+  if path.is_empty() ||
+    path.length() > 4096 ||
+    !path.has_prefix("/") ||
+    path.contains("\u{0}") {
+    return Err(RefusedBeforeAcquisition(InvalidName))
+  }
+  if !selected_current_scope_ffi() {
+    return Err(
+      RefusedBeforeAcquisition(
+        Physical("original SQLite read domain unavailable"),
+      ),
+    )
+  }
+  let encoded = @utf8.encode(path)
+  if encoded.length() > 4096 {
+    return Err(RefusedBeforeAcquisition(InvalidName))
+  }
+  let library = load_current_component_ffi(
+    encoded,
+    encoded.length(),
+    diagnostic_ceiling,
+    heap_bytes,
+  )
+  if !library_acquired_ffi(library) {
+    return Err(
+      RefusedBeforeAcquisition(
+        Physical("original SQLite Library acquisition unavailable"),
+      ),
+    )
+  }
+  if library_ready_ffi(library) {
+    Ok(library)
+  } else {
+    Err(
+      CleanupRequired({
+        original_issue: LibraryLoad(
+          decode_diagnostic(library_error_ffi(library)),
+        ),
+        library: Some(library),
+      }),
+    )
+  }
+}
+
+///|
+/// Selected component only. Preserve the original current domain until this
+/// Library's own cleanup ACK; this does not close managed aliases or the domain.
+pub fn Library::close_checked(
+  self : Library,
+) -> Result[Unit, NativeSqliteIssue] {
+  if library_close_checked_ffi(self) {
+    Ok(())
+  } else {
+    Err(Physical("original SQLite Library cleanup pending"))
   }
 }
 

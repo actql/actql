@@ -1,5 +1,18 @@
-/* Private physical caller preparation. No MoonBit/public factory currently
- * exposes this acquisition. A trusted installed Library supplier must verify
+int32_t actql_native_sqlite_library_acquired(actql_native_sqlite_library *library) {
+  return library != NULL;
+}
+
+int32_t actql_native_sqlite_selected_current_scope(void) {
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+  return actql_bootstrap_current_read_context() != NULL &&
+    actql_native_owned_current() != NULL;
+#else
+  return 0;
+#endif
+}
+
+/* The typed Native Library caller preserves failed acquisition custody. No
+ * ordinary installed/public factory selects this candidate yet. A trusted installed Library supplier must verify
  * its owned staged component/source/recipe before loading it and keep the
  * original Host/current scope around the entire managed FFI operation. */
 

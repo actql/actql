@@ -108,6 +108,7 @@ typedef struct {
 } actql_native_sqlite_database;
 
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
+#include "../../../packages/python-local-runtime/native/pre-root/owned_capacity.h"
 extern actql_read_context *actql_bootstrap_current_read_context(void);
 extern void *actql_native_file_scoped_allocate(size_t);
 extern void actql_native_file_scoped_free(void *);
