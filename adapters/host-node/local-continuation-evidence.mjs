@@ -545,6 +545,9 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       // This physical port neither manufactures a park nor replaces a missing
       // nominal selection with the ordinary installation opening path.
       selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
+      if (typeof ownerId !== 'string' || typeof requestCid !== 'string') {
+        fail('InferOriginalMetadataAcquisitionUnavailable');
+      }
       const handle = await observeOriginalModelBinding(acquisition, ownerId, requestCid);
       selectOriginalInferStoreBootstrapAcquisition(acquisition, ownerId, requestCid);
       return handle;

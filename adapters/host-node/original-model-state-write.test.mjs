@@ -195,6 +195,7 @@ test('selected initial storage binding refuses foreign selection and original id
   }
   for (const [ownerId, requestCid] of [
     ['model-foreign', f.runDefinition.identity], ['model-meta', sha('foreign')],
+    [undefined, f.runDefinition.identity], ['model-meta', undefined],
   ]) {
     await assert.rejects(f.evidence.observeOriginalModelStorageBindingSelected(
       ownerId, requestCid, f.acquisition), unavailable);
