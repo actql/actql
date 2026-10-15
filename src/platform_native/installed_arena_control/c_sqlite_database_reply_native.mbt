@@ -7,6 +7,7 @@ priv enum SqliteDatabaseReplyValue {
   // Keep original row fields directly: an extra NativeJournalEntry wrapper
   // would remain live through the same funded post-call current check.
   DatabaseRow(String, Int64, Bytes)
+  DatabaseHeader(Int64, Int64)
   CapacityChanged(Bool)
   CapacityUsage(Int64, Int64)
   DatabaseUsage(Int64, Int64, Int64)
@@ -131,6 +132,23 @@ pub fn observe_installed_sqlite_database_reply(
 }
 
 ///|
+/// Keep the original uncertainty fence for all row/reservation observations.
+/// An active original transaction is not a committed snapshot or an ACK.
+fn sqlite_database_committed_observation(
+  database : @sqlite.Database,
+) -> Result[Unit, @sqlite.NativeSqliteIssue] {
+  if !database.transaction_fenced() {
+    return Ok(())
+  }
+  match database.transaction_state() {
+    Ok(@sqlite.NoActiveSqliteTransaction) => Ok(())
+    Ok(@sqlite.ActiveSqliteTransaction) =>
+      Err(@sqlite.Physical("original SQLite transaction remains unconfirmed"))
+    Err(issue) => Err(issue)
+  }
+}
+
+///|
 pub fn read_installed_sqlite_database_reply(
   host : InstalledArenaHost,
   original : InstalledArenaSqliteDatabase,
@@ -141,15 +159,9 @@ pub fn read_installed_sqlite_database_reply(
   sqlite_database_call_reply(4, host, original, database => {
     // A fenced connection may still expose its original committed rows, but
     // never an uncommitted transaction's private writes as durable lookup.
-    if database.transaction_fenced() {
-      match database.transaction_state() {
-        Ok(@sqlite.NoActiveSqliteTransaction) => ()
-        Ok(@sqlite.ActiveSqliteTransaction) =>
-          return Err(
-            @sqlite.Physical("original SQLite transaction remains unconfirmed"),
-          )
-        Err(issue) => return Err(issue)
-      }
+    match sqlite_database_committed_observation(database) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
     match database.read_with_body_limit(scope, key, max_body_bytes) {
       Ok(value) => Ok(DatabaseRow(key, value.revision, value.body))
@@ -169,15 +181,9 @@ pub fn scan_installed_sqlite_database_reply(
   max_body_bytes : Int64,
 ) -> InstalledArenaSqliteDatabaseReply {
   sqlite_database_call_reply(12, host, original, database => {
-    if database.transaction_fenced() {
-      match database.transaction_state() {
-        Ok(@sqlite.NoActiveSqliteTransaction) => ()
-        Ok(@sqlite.ActiveSqliteTransaction) =>
-          return Err(
-            @sqlite.Physical("original SQLite transaction remains unconfirmed"),
-          )
-        Err(issue) => return Err(issue)
-      }
+    match sqlite_database_committed_observation(database) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
     match
       database.scan_after_with_body_limit(scope, after_key, max_body_bytes) {
@@ -310,15 +316,9 @@ pub fn observe_installed_sqlite_capacity_reply(
   scope : String,
 ) -> InstalledArenaSqliteDatabaseReply {
   sqlite_database_call_reply(14, host, original, database => {
-    if database.transaction_fenced() {
-      match database.transaction_state() {
-        Ok(@sqlite.NoActiveSqliteTransaction) => ()
-        Ok(@sqlite.ActiveSqliteTransaction) =>
-          return Err(
-            @sqlite.Physical("original SQLite transaction remains unconfirmed"),
-          )
-        Err(issue) => return Err(issue)
-      }
+    match sqlite_database_committed_observation(database) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
     match database.capacity_usage(scope) {
       Ok(value) =>
@@ -362,15 +362,9 @@ pub fn read_installed_sqlite_capacity_reply(
   key : String,
 ) -> InstalledArenaSqliteDatabaseReply {
   sqlite_database_call_reply(16, host, original, database => {
-    if database.transaction_fenced() {
-      match database.transaction_state() {
-        Ok(@sqlite.NoActiveSqliteTransaction) => ()
-        Ok(@sqlite.ActiveSqliteTransaction) =>
-          return Err(
-            @sqlite.Physical("original SQLite transaction remains unconfirmed"),
-          )
-        Err(issue) => return Err(issue)
-      }
+    match sqlite_database_committed_observation(database) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
     match database.read_capacity(scope, key) {
       Ok(value) =>
@@ -387,15 +381,9 @@ pub fn observe_installed_sqlite_database_usage_reply(
   original : InstalledArenaSqliteDatabase,
 ) -> InstalledArenaSqliteDatabaseReply {
   sqlite_database_call_reply(17, host, original, database => {
-    if database.transaction_fenced() {
-      match database.transaction_state() {
-        Ok(@sqlite.NoActiveSqliteTransaction) => ()
-        Ok(@sqlite.ActiveSqliteTransaction) =>
-          return Err(
-            @sqlite.Physical("original SQLite transaction remains unconfirmed"),
-          )
-        Err(issue) => return Err(issue)
-      }
+    match sqlite_database_committed_observation(database) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
     }
     match database.database_usage() {
       Ok(value) =>
@@ -423,6 +411,101 @@ pub fn observe_installed_sqlite_transaction_state_reply(
       Ok(@sqlite.NoActiveSqliteTransaction) =>
         Ok(DatabaseTransactionState(false))
       Ok(@sqlite.ActiveSqliteTransaction) => Ok(DatabaseTransactionState(true))
+      Err(issue) => Err(issue)
+    }
+  })
+}
+
+///|
+/// Scalar original header, without a body-copy permission or borrowed payload.
+pub fn read_installed_sqlite_header_reply(
+  host : InstalledArenaHost,
+  original : InstalledArenaSqliteDatabase,
+  scope : String,
+  key : String,
+) -> InstalledArenaSqliteDatabaseReply {
+  sqlite_database_call_reply(19, host, original, database => {
+    match sqlite_database_committed_observation(database) {
+      Ok(_) => ()
+      Err(issue) => return Err(issue)
+    }
+    match database.read_header(scope, key) {
+      Ok(value) => Ok(DatabaseHeader(value.revision, value.body_bytes))
+      Err(issue) => Err(issue)
+    }
+  })
+}
+
+///|
+/// Normal, confirmed connection only. Unconfirmed read-snapshot adoption is
+/// deliberately not inferred from autocommit or an inactive DATA observation.
+pub fn begin_installed_sqlite_read_reply(
+  host : InstalledArenaHost,
+  original : InstalledArenaSqliteDatabase,
+) -> InstalledArenaSqliteDatabaseReply {
+  sqlite_database_call_reply(20, host, original, database => {
+    if database.transaction_fenced() {
+      return Err(
+        @sqlite.Physical("original SQLite transaction remains unconfirmed"),
+      )
+    }
+    match database.begin_deferred() {
+      Ok(_) => Ok(DatabaseUnit)
+      Err(issue) => Err(issue)
+    }
+  })
+}
+
+///|
+/// Existing byte-store record-count ceiling plus the original SQLite capacity
+/// formula, in the SAME active transaction. No reservation/credit is reissued.
+pub fn reserve_installed_sqlite_bounded_capacity_reply(
+  host : InstalledArenaHost,
+  original : InstalledArenaSqliteDatabase,
+  scope : String,
+  key : String,
+  bytes : Int64,
+  objects : Int64,
+  max_bytes : Int64,
+  max_objects : Int64,
+  max_reservations : Int64,
+) -> InstalledArenaSqliteDatabaseReply {
+  sqlite_database_call_reply(21, host, original, database => {
+    if max_reservations < 1L || max_reservations > 1024L {
+      return Err(@sqlite.InvalidLimit)
+    }
+    if database.transaction_fenced() {
+      return Err(
+        @sqlite.Physical("original SQLite transaction remains unconfirmed"),
+      )
+    }
+    match database.transaction_state() {
+      Ok(@sqlite.ActiveSqliteTransaction) => ()
+      Ok(@sqlite.NoActiveSqliteTransaction) =>
+        return Err(
+          @sqlite.Physical(
+            "capacity reservation requires an active transaction",
+          ),
+        )
+      Err(issue) => return Err(issue)
+    }
+    match database.read_capacity(scope, key) {
+      Ok(_) => ()
+      Err(@sqlite.NotFound) =>
+        match database.database_usage() {
+          Ok(usage) =>
+            if usage.reservation_count >= max_reservations {
+              return Err(@sqlite.CapacityExceeded)
+            }
+          Err(issue) => return Err(issue)
+        }
+      Err(issue) => return Err(issue)
+    }
+    match
+      database.reserve_capacity_in_transaction(
+        scope, key, bytes, objects, max_bytes, max_objects,
+      ) {
+      Ok(changed) => Ok(CapacityChanged(changed))
       Err(issue) => Err(issue)
     }
   })
@@ -530,6 +613,7 @@ pub fn InstalledArenaSqliteDatabaseReply::revision(
   match self.value {
     Some(DatabaseRevision(value)) => value
     Some(DatabaseRow(_, revision, _)) => revision
+    Some(DatabaseHeader(revision, _)) => revision
     _ => -1L
   }
 }
@@ -635,5 +719,26 @@ pub fn InstalledArenaSqliteDatabaseReply::transaction_active(
   match self.value {
     Some(DatabaseTransactionState(active)) => if active { 1 } else { 0 }
     _ => -1
+  }
+}
+
+///|
+pub fn InstalledArenaSqliteDatabaseReply::has_header(
+  self : InstalledArenaSqliteDatabaseReply,
+) -> Int {
+  if self.value is Some(DatabaseHeader(_, _)) {
+    1
+  } else {
+    0
+  }
+}
+
+///|
+pub fn InstalledArenaSqliteDatabaseReply::header_body_bytes(
+  self : InstalledArenaSqliteDatabaseReply,
+) -> Int64 {
+  match self.value {
+    Some(DatabaseHeader(_, length)) => length
+    _ => -1L
   }
 }

@@ -141,3 +141,32 @@ identifies its original domain, but retired handles are refused. Normal
 supplier/profile, actual matching
 Native Library construction, installed Python/wheel and public E2E remain
 separate acceptance boundaries.
+
+### Original fenced Database lookup child
+
+`prepare_sqlite_lookup` registers one persistent controller on the original
+Database before entering its funded Library/domain scope or starting a physical
+read. The native Database issues the inner nominal read only after physical
+NoActive; pending start and postcheck failure keep that same child registered.
+The ordinary `call_sqlite_database` port refuses while a live child exists.
+`call_sqlite_lookup` checks the original Host/Database registration and current
+Library/domain, and exposes only that original read child's closed, bounded
+observation methods. No Python Bool or active-transaction DATA creates this
+exception. Foreign, substituted, stale, failed and reentrant controllers cannot
+invoke the read callback.
+
+`finish_sqlite_lookup` requires both the original physical read stop and the
+Host's post-call current/scope checks. An observed stop with a failed postcheck
+is not a complete snapshot. `close_sqlite_lookup` retains the same native child
+and parent scope until stop/leave cleanup ACKs; cleanup is permitted through the
+existing original cleanup entry after logical closing/current loss. Database
+full close drains its original child before closing the database. Reverse
+registration is cut only after the full read-child retirement ACK. Repeated
+closed cleanup cannot clear a later child's registration or regain read access.
+
+Read completion/cleanup never clears the earlier transaction fence, repairs the
+unconfirmed COMMIT, or admits a Run/Store outcome. Original Store/adoption epoch
+and current authority remain the installed caller's separate preconditions.
+The closed C/Python transport and ordinary factory still need their matching
+physical/component acceptance; these typed methods do not provide that supplier
+or a normal numerical profile.
