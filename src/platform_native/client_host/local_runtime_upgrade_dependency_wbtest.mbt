@@ -58,7 +58,10 @@ test "runtime dependency seam preserves ordinary original bytes without consulti
 test "runtime dependency seam rejects revision and broken HMAC before dependency resolution" {
   let (host, row) = runtime_upgrade_dependency_fixture("dependency-auth")
   let calls = Ref(0)
-  let dependency = (_, _) => {
+  let dependency : (String, Bytes) -> Result[
+    @host.ClientNativeLocalScalarRuntimePair,
+    NativeClientRunJournalIssue,
+  ] = (_, _) => {
     calls.val += 1
     Err(CustodyLost)
   }
@@ -134,14 +137,14 @@ test "runtime dependency seam borrows only authenticated body and actual origina
     .authority_scope_cid("local-cli", "local", epoch_test_crypto())
     .unwrap()
   let calls = Ref(0)
+  let exact = Ref(false)
   assert_true(
     read_local_policy_upgrade_original_with_runtime_dependency(
       host,
       { body: packet, revision: 0L, },
       (actual_scope, authenticated) => {
         calls.val += 1
-        assert_eq(actual_scope, scope)
-        assert_eq(authenticated, body)
+        exact.val = actual_scope == scope && authenticated == body
         Err(UnsupportedPreparation)
       },
     )
