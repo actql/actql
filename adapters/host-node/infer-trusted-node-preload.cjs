@@ -5,9 +5,12 @@
 // Ordinary embedded processes importing it later retain no startup original.
 const {Buffer} = require('node:buffer');
 const {Readable} = require('node:stream');
+const {createRequire} = require('node:module');
+const {dirname, join} = require('node:path');
 const originalProcess = require('node:process');
 const associations = new WeakMap();
 const generations = new WeakSet();
+const sdkFields = Object.freeze(['openai', 'providerUtils', 'createOpenAI']);
 let originalSupplier;
 
 const unavailable = () => {
@@ -32,11 +35,6 @@ const selected = module.isPreloading === true &&
 
 let startup;
 if (selected) {
-  // The selected SDK initializes a default provider at import time. Its
-  // OPENAI_BASE_URL-derived URL/string/error graph is NOT fixed module state.
-  // Refuse this unsupported input before ANY entry import; inspect presence
-  // only, never read/log its contents or rewrite the ambient environment.
-  if (Object.hasOwn(originalProcess.env, 'OPENAI_BASE_URL')) unavailable();
   // Stock subclass initialization must precede the base-method fence. In the
   // selected Node source, net installs Socket.prototype.read by assignment;
   // freezing the inherited Readable method first prevents Node's own setup.
@@ -77,6 +75,28 @@ if (selected) {
   for (const {owner, name, value} of originals) {
     Object.defineProperty(owner, name, {value, writable: false, configurable: false});
   }
+  let sdkStaticModules;
+  // Resolve the OPTIONAL selected package from this actual consumer entry,
+  // including normal external installations, never a monorepo source path.
+  // No installed SDK means no SDK coverage, not a dependency for Pure Hosts.
+  const consumerRequire = createRequire(originalProcess.argv[1]);
+  let sdkEntry;
+  try { sdkEntry = consumerRequire.resolve('@actql/provider-ai-sdk'); }
+  catch (error) { if (error.code !== 'MODULE_NOT_FOUND') unavailable(); }
+  if (sdkEntry !== undefined) {
+    // A before/after absence check alone misses entry code that sets a value,
+    // dynamically imports the SDK and restores absence. Synchronous require
+    // of this selected ESM graph completes BEFORE entry code can run. Its
+    // default createOpenAI therefore sees this independently checked absence.
+    // Do not read/log the value or mutate the operator's environment. Explicit
+    // per-call assembler bounds cannot cover an earlier module-default read.
+    if (Object.hasOwn(originalProcess.env, 'OPENAI_BASE_URL')) unavailable();
+    try {
+      consumerRequire(sdkEntry);
+      sdkStaticModules = sdkOriginals(consumerRequire(
+        join(dirname(sdkEntry), '_internal', 'openai-chat.mjs')).openAIChatStaticOriginals);
+    } catch { unavailable(); }
+  }
   // The actual process/module/native responsibility stays with this startup.
   // These originals and the existing Host overlap still need funded coverage.
   // In particular the three added descriptor records/array entries/references
@@ -87,14 +107,14 @@ if (selected) {
   // retain their original responsibility until actual cleanup, not destroy(),
   // rejection, Promise settlement or retirement of this association.
   startup = {process: originalProcess, module, entry: originalProcess.argv[1], originals,
-    sdkStaticModules: undefined, invalidated: false};
+    sdkStaticModules, invalidated: false};
 }
 
 function currentStartup() {
   if (startup === undefined) unavailable();
   if (startup.invalidated) changed();
   if (startup.process !== originalProcess || startup.entry !== originalProcess.argv[1] ||
-      globalThis.Buffer !== Buffer || Object.hasOwn(originalProcess.env, 'OPENAI_BASE_URL')) {
+      globalThis.Buffer !== Buffer) {
     startup.invalidated = true;
     changed();
   }
@@ -115,7 +135,6 @@ function current(view, host, generation) {
       held.generation !== generation || held.original.retired) unavailable();
 }
 
-const sdkFields = Object.freeze(['openai', 'providerUtils', 'createOpenAI']);
 function sdkUnavailable() {
   throw Object.assign(new TypeError('InferTrustedSdkStaticUnavailable'),
     {code: 'InferTrustedSdkStaticUnavailable'});
@@ -191,12 +210,11 @@ module.exports = Object.freeze({
   bindSdkStaticModules(view, originals, modules) {
     current(view, originals.host, originals.generation);
     const held = associations.get(view);
-    if (held.root !== true) sdkUnavailable();
+    if (held.root !== true || startup.sdkStaticModules === undefined) sdkUnavailable();
     // The trusted installed builder supplies actual namespaces and its SAME
     // factory. Selected package/lock identities remain that supplier's duty;
     // module shape or matching hashes alone cannot authenticate a dependency.
     const retained = sdkOriginals(modules, startup.sdkStaticModules);
-    startup.sdkStaticModules = retained;
     held.original.sdkStaticModules = retained;
   },
   checkSdkStaticModules(view, originals, modules) {
