@@ -12,31 +12,23 @@ import {CLIENT_PACKAGES, checkoutState, packClientPackages, packedClientPackage,
   packedNpmCache} from './packed-client-packages.mjs';
 import {auditPackedPackages} from './packed-package-boundaries.mjs';
 import {assertTestExecution, nodeTestArguments} from './test-execution.mjs';
+import {admitCompositionRelease, compositionReleaseDirectory} from './composition-release-input.mjs';
+import {tablePublicTestGroups, tablePublicFixturePaths} from './table-public-acceptance-cases.mjs';
 
 const repository = fileURLToPath(new URL('../', import.meta.url));
-const fixtures = [
-  'adapters/host-node/table-public-commit.test.mjs',
-  'adapters/host-node/fixtures/table-physical-fixture.mjs',
-  'adapters/host-node/fixtures/table-test-modules.mjs',
-  'adapters/host-node/fixtures/table-text-restart.mjs',
-  'adapters/host-common/connector-manifest.fixture.mjs',
-  'adapters/host-common/publication-contract-control.fixture.mjs',
-  'adapters/connectors/local/iceberg/fixtures/presence-mapping.json',
-  'adapters/connectors/local/iceberg/fixtures/presence-schema.json',
-  'scripts/check-canonical-json.mjs', 'scripts/actql-spec-family.mjs',
-  'scripts/actql-requirement-extraction.mjs',
-  'scripts/fixtures/graph-presence.program.json',
-  'spec/local-check-environment.json',
-  'spec/contracts/actql-table-effect.json',
-  'spec/contracts/actql-run-publication.json',
-  'spec/contracts/actql-numeric-reduction.json',
-  'spec/dependencies/actql-graph-laws.json',
-];
+const fixtures = tablePublicFixturePaths;
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 
 test('packed Table commits preserve original operations and sparse inputs through public clients', async () => {
   const state = checkoutState(repository);
   assert.equal(state.clean, true, 'Packed acceptance requires committed build inputs');
+  const selection = tablePublicTestGroups(process.env.ACTQL_TABLE_CASE_GROUP ?? 'all');
+  const releaseDirectory = process.env.ACTQL_TABLE_NORMAL_RELEASE === undefined ? undefined
+    : compositionReleaseDirectory(['--release-dir', process.env.ACTQL_TABLE_NORMAL_RELEASE]);
+  // Reuse the normal4 verifier, exact clean source, immutable manifest and
+  // original/final archive checks already used by the composition consumer.
+  const normalRelease = releaseDirectory === undefined ? undefined
+    : await admitCompositionRelease({repository, directory: releaseDirectory});
   assert.ok(process.env.ACTQL_TABLE_PYTHON, 'Explicit optional Table Python installation required');
   const scratch = await createOwnedScratch({parent: join(repository, '..', '.codex-scratch'),
     prefix: 'packed-table-private-', label: 'packed private Table input',
@@ -63,18 +55,25 @@ test('packed Table commits preserve original operations and sparse inputs throug
   assert.equal(python.pyarrow, '21.0.0');
   const pack = name => run('npm', ['pack', '--json', '--pack-destination', scratch.path],
     join(repository, 'packages', name), 180000);
-  if (process.env.ACTQL_PACKED_CLIENT_PACKAGES) {
-    for (const name of CLIENT_PACKAGES) await packedClientPackage({repository, name,
-      destination: scratch.path, pack});
-  } else await packClientPackages({repository, destination: scratch.path, pack});
-  const packages = await Promise.all(CLIENT_PACKAGES.map(async name => {
-    const path = join(scratch.path, `actql-${name}-0.0.0-development.tgz`);
-    return {name, path, sha256: digest(await readFile(path))};
-  }));
+  // Normal mode never packs, rewrites metadata, or falls back to development.
+  if (normalRelease === undefined) {
+    if (process.env.ACTQL_PACKED_CLIENT_PACKAGES) {
+      for (const name of CLIENT_PACKAGES) await packedClientPackage({repository, name,
+        destination: scratch.path, pack});
+    } else await packClientPackages({repository, destination: scratch.path, pack});
+  }
+  const packageNames = normalRelease?.manifest.cohort.packages ?? CLIENT_PACKAGES;
+  const packages = normalRelease === undefined
+    ? await Promise.all(CLIENT_PACKAGES.map(async name => {
+      const path = join(scratch.path, `actql-${name}-0.0.0-development.tgz`);
+      return {name, path, sha256: digest(await readFile(path))};
+    }))
+    : await Promise.all(normalRelease.archives.map(async (path, index) => ({
+      name: packageNames[index], path, sha256: digest(await readFile(path))})));
   await writeFile(join(application, 'package.json'), '{"private":true,"type":"module"}\n');
   run('npm', ['install', '--offline', '--ignore-scripts', '--omit=optional',
     '--no-audit', '--no-fund', '--no-save', ...packages.map(value => value.path)], application);
-  auditPackedPackages(application, CLIENT_PACKAGES);
+  auditPackedPackages(application, packageNames);
   const copied = [];
   for (const path of fixtures) {
     const destination = join(application, path);
@@ -86,20 +85,7 @@ test('packed Table commits preserve original operations and sparse inputs throug
   // Reuse one exact package installation for disjoint case groups. Keep
   // the existing per-child budget/nonzero guard; do not omit slow recovery
   // cases or turn a timed-out partial run into acceptance.
-  const groups = [
-    {name: 'text Effect-only create and fresh-process recovery', expected: 4,
-      pattern: '^Table text Effect-only CTAS through (Local|HTTPS)'},
-    {name: 'conflict and uncertain commit', expected: 7,
-      pattern: '^Table public (concurrent replace|precommit crash|lost commit reply)'},
-    {name: 'sparse structured input', expected: 2,
-      pattern: '^Table sparse private input.*\\(json\\)'},
-    {name: 'sparse text input', expected: 2,
-      pattern: '^Table sparse private input.*\\(aql-text\\)'},
-    {name: 'text cleanup retry', expected: 2,
-      pattern: '^Table text Effect-only cleanup retry'},
-    {name: 'typed input and durable read', expected: 3,
-      pattern: '^Table (installed HTTP Host|public (nonempty create and replace|empty create))'},
-  ];
+  const groups = selection;
   const executed = [];
   for (const group of groups) {
     const args = nodeTestArguments(['--test-concurrency=1',
@@ -114,8 +100,8 @@ test('packed Table commits preserve original operations and sparse inputs throug
   }
   const counts = Object.fromEntries(Object.keys(executed[0].counts).map(field =>
     [field, executed.reduce((sum, group) => sum + group.counts[field], 0)]));
-  assert.equal(counts.passed, 20,
-    'All real create/replace, reply-loss, concurrent replace, cleanup retry, and sparse Local/HTTPS cases must execute');
+  assert.equal(counts.passed, groups.reduce((sum, group) => sum + group.expected, 0),
+    'Every case in the closed physical selection must execute');
   assert.deepEqual(checkoutState(repository), state, 'Source changed during packed acceptance');
   const local = join(application, 'node_modules/@actql/local-node');
   const artifacts = await Promise.all([
@@ -124,9 +110,12 @@ test('packed Table commits preserve original operations and sparse inputs throug
     'adapters/connectors/local/iceberg/physical.py', 'adapters/connectors/local/iceberg/requirements.lock',
   ].map(async path => ({path, sha256: digest(await readFile(join(local, path)))})));
   const provenance = {sourceRevision: state.revision, python,
+    ...(normalRelease === undefined ? {} : {normalRelease: {directory: normalRelease.directory,
+      sourceSha: normalRelease.manifest.sourceSha, manifestSha256: normalRelease.manifestSha256}}),
     packages: packages.map(({name, sha256}) => ({name, sha256})),
     installedArtifacts: artifacts, authoredFixtures: copied, counts, groups: executed};
   console.log('PACKED_TABLE_PRIVATE_INPUT', JSON.stringify(provenance));
+  if (normalRelease !== undefined) await normalRelease.verifyUnchanged();
   // Child tests await the real Host's cleanup, and spawnSync has reaped every
   // command before this owner permits removal of its disposable installation.
   scratch.passed();
