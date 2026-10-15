@@ -74,4 +74,3 @@ test('actual adapter import closure accepts extraction but rejects hidden Connec
     }
   } finally { rmSync(root, {recursive: true, force: true}); }
 });
-

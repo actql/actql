@@ -33,10 +33,10 @@ test('optional task observation receives frozen facts and cannot change executio
   const seen = [];
   const observer = installTaskObservation(value => {
     seen.push(value);
-    assert.ok(Object.isFrozen(value));
     throw new Error('observer failure');
   });
   projectTaskObservation(observer, 'completed', 7, 12);
   projectTaskObservation({...observer}, 'completed', 8, 13);
   assert.deepEqual(seen, [{event: 'completed', task: 7, durationMs: 12}]);
+  assert.ok(Object.isFrozen(seen[0]));
 });
