@@ -561,6 +561,40 @@ extern "C" fn register_original_parent_read_roots(
 ) -> Unit = "actql_native_control_register_parent_read_roots"
 
 ///|
+/// Code roots only. The matching generated C and ownership must be observed
+/// before a runtime shim can be linked; registration does not capture files.
+extern "C" fn register_original_packaged_runtime_roots(
+  capture : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaOriginalRead,
+      String,
+      String,
+      String,
+      String,
+      Int,
+    ) -> @runtime.NativeLocalPackagedRuntimeReply,
+  ],
+  current : FuncRef[
+    (@runtime.NativeLocalPackagedRuntime) -> @runtime.NativeLocalPackagedRuntimeReply,
+  ],
+  close : FuncRef[
+    (@runtime.NativeLocalPackagedRuntime) -> @runtime.NativeLocalPackagedRuntimeReply,
+  ],
+  host : FuncRef[
+    (@runtime.NativeLocalPackagedRuntimeReply) -> @control.InstalledArenaHost?,
+  ],
+  original : FuncRef[
+    (@runtime.NativeLocalPackagedRuntimeReply) -> @control.InstalledArenaOriginalRead?,
+  ],
+  runtime : FuncRef[
+    (@runtime.NativeLocalPackagedRuntimeReply) -> @runtime.NativeLocalPackagedRuntime?,
+  ],
+  operation : FuncRef[(@runtime.NativeLocalPackagedRuntimeReply) -> Int],
+  issue : FuncRef[(@runtime.NativeLocalPackagedRuntimeReply) -> Int],
+) -> Unit = "actql_native_control_register_packaged_runtime_roots"
+
+///|
 fn operation_tag(reply : @control.InstalledArenaReply) -> Int {
   reply.operation_tag()
 }
@@ -955,6 +989,27 @@ fn main {
     fn(reply) { reply.original_host() },
     fn(reply) { reply.original_domain() },
     fn(reply) { reply.original_read() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.issue_family() },
+  )
+  register_original_packaged_runtime_roots(
+    fn(host, original, root, source, platform, manifest, ceiling) {
+      @runtime.capture_native_local_packaged_runtime_reply(
+        Some((host, original)),
+        root,
+        source,
+        platform,
+        manifest,
+        ceiling,
+      )
+    },
+    fn(runtime) {
+      @runtime.current_native_local_packaged_runtime_reply(runtime)
+    },
+    fn(runtime) { @runtime.close_native_local_packaged_runtime_reply(runtime) },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_read() },
+    fn(reply) { reply.original_runtime() },
     fn(reply) { reply.operation_tag() },
     fn(reply) { reply.issue_family() },
   )
