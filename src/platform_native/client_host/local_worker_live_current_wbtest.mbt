@@ -11,7 +11,9 @@ test "recorded live worker current requires the retained attempt and committed r
   let key = worker_resource_record_key(attempt.key)
   let before = host.database.read("client_worker_provisioning", key).unwrap()
   for _ in 0..<2 {
-    attempt.require_recorded_resource_current(domain, "operator", "local").unwrap()
+    attempt
+    .require_recorded_resource_current(domain, "operator", "local")
+    .unwrap()
   }
   let after = host.database.read("client_worker_provisioning", key).unwrap()
   assert_eq(after.revision, before.revision)
@@ -49,13 +51,18 @@ test "recorded live worker current rejects foreign domain and current Account de
     is Err(AuthorizationDenied),
   )
   arena.require_domain_current(domain).unwrap()
-  attempt.require_recorded_resource_current(domain, "operator", "local").unwrap()
+  attempt
+  .require_recorded_resource_current(domain, "operator", "local")
+  .unwrap()
   assert_true(arena.try_close() is Err(@bootstrap.ReadersPending))
   assert_true(
     attempt.require_recorded_resource_current(domain, "operator", "local")
     is Err(Selection(@bootstrap.Closing)),
   )
-  assert_true(attempt.resource is Some(original) && physical_equal(original.domain, domain))
+  assert_true(
+    attempt.resource is Some(original) &&
+    physical_equal(original.domain, domain),
+  )
   host.close().unwrap()
   assert_true(
     attempt.require_recorded_resource_current(domain, "operator", "local")
@@ -63,7 +70,9 @@ test "recorded live worker current rejects foreign domain and current Account de
   )
   other_host.close().unwrap()
   worker_resource_fixture_retire(arena, scope, domain, fd)
-  worker_resource_fixture_retire(other_arena, other_scope, other_domain, other_fd)
+  worker_resource_fixture_retire(
+    other_arena, other_scope, other_domain, other_fd,
+  )
 }
 
 ///|
@@ -75,14 +84,25 @@ test "recorded live worker current rejects changed and oversized saved resource 
   let original = attempt.resource.unwrap()
   let key = worker_resource_record_key(attempt.key)
   host.database.begin_immediate().unwrap()
-  host.database.compare_exchange("client_worker_provisioning", key, 0L, b"changed").unwrap() |> ignore
+  host.database
+  .compare_exchange("client_worker_provisioning", key, 0L, b"changed")
+  .unwrap()
+  |> ignore
   host.database.commit().unwrap()
   assert_true(
     attempt.require_recorded_resource_current(domain, "operator", "local")
     is Err(Journal(CustodyLost)),
   )
   host.database.begin_immediate().unwrap()
-  host.database.compare_exchange("client_worker_provisioning", key, 1L, Bytes::make(4097, 65)).unwrap() |> ignore
+  host.database
+  .compare_exchange(
+    "client_worker_provisioning",
+    key,
+    1L,
+    Bytes::make(4097, 65),
+  )
+  .unwrap()
+  |> ignore
   host.database.commit().unwrap()
   assert_true(
     attempt.require_recorded_resource_current(domain, "operator", "local")
@@ -104,7 +124,10 @@ test "recorded live worker current rechecks the original epoch rather than accep
   let (_, now, revision) = read_epoch_custody(host.database).unwrap()
   let changed = epoch_custody_body(Bytes::make(32, 77), now).unwrap()
   host.database.begin_immediate().unwrap()
-  host.database.compare_exchange("client_submission_epoch", "authority", revision, changed).unwrap() |> ignore
+  host.database
+  .compare_exchange("client_submission_epoch", "authority", revision, changed)
+  .unwrap()
+  |> ignore
   host.database.commit().unwrap()
   assert_true(
     attempt.require_recorded_resource_current(domain, "operator", "local")
@@ -119,7 +142,9 @@ test "recorded live worker current rechecks the original epoch rather than accep
 ///|
 test "recorded live worker current preserves unknown resource COMMIT and cold lookup cannot adopt live custody" {
   let label = "worker-live-lost"
-  let (host, attempt, arena, selection, scope, domain, fd) = worker_resource_fixture(label)
+  let (host, attempt, arena, selection, scope, domain, fd) = worker_resource_fixture(
+    label,
+  )
   submitted_test_fail_commit_after(host.database, 1, true)
   assert_true(
     attempt.record_resource_original(domain, "operator", "local")

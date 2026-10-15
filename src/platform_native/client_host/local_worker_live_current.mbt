@@ -18,7 +18,8 @@ pub fn NativeLocalWorkerProvisioningAttempt::require_recorded_resource_current(
     Ok(_) => ()
   }
   let observed = self.host.journal.transaction(() => {
-    match self.require_worker_resource_current(original, principal, connection) {
+    match
+      self.require_worker_resource_current(original, principal, connection) {
       Err(issue) => return Err(worker_provisioning_journal_issue(issue))
       Ok(_) => ()
     }
@@ -35,7 +36,8 @@ pub fn NativeLocalWorkerProvisioningAttempt::require_recorded_resource_current(
     if row.revision != 0L || row.body != original.body {
       return Err(CustodyLost)
     }
-    self.require_worker_resource_current(original, principal, connection)
+    self
+    .require_worker_resource_current(original, principal, connection)
     .map_err(worker_provisioning_journal_issue)
   })
   match observed {
