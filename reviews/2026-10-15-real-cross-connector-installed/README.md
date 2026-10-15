@@ -1,6 +1,6 @@
 # Normally installed real cross-Connector acceptance
 
-This is one opt-in Local SQL scenario, not a mocked Connector or a general
+This is one selected opt-in Local SQL or AQL scenario, not a mocked Connector or a general
 release certification. Its independent input is two rows in a new real DuckDB
 file, joined by object name with the real GCS Connector's metadata-only
 `LIST_FILES`. The authored public Result `joined` contains exactly one row,
@@ -65,6 +65,18 @@ use the normal registry/SRI and isolated user/global npm configuration. Product 
 Python worker assets must come from the verified normal archives; only authored
 harness/oracle files are copied. No checkout runtime, NODE_PATH or adapter
 module overlay is allowed.
+
+The optional suffix `--format aql` selects the public `format: 'aql'` entry for
+one fresh scenario. Omission and `--format sql` retain the original SQL default.
+Both use the exact original authored document, source rows and independent
+Result/schema; AQL selection does not reconstruct a Program or alter the JOIN.
+Only these two closed selections are accepted, before any installation or live
+Source access. Each invocation still performs one submission, one acquisition
+per original Source and the same approval/post-commit recovery sequence. The
+selected format is recorded in the parent and both fresh child receipts. It is
+never a loop over formats or a retry of an earlier Run. Existing inherited
+format environment values are cleared before the explicit selection is passed.
+No real AQL success is established by selector controls or the SQL evidence below.
 
 Save manifest/archive and all copied-input digests, the private exact process
 output, independent actual Result/schema, physical Catalog rows/commit,
