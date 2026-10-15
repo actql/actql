@@ -135,20 +135,35 @@ async function installation(t, {faults = [], commit = 'delegate', reviewerPrinci
     }
   };
   async function open(effect, local = false) {
+    const openObserved = async action => {
+      try { return await action(); }
+      catch (error) {
+        const tag = value => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(value)
+          ? value : undefined;
+        const causes = [];
+        for (let cause = error, depth = 0; cause && depth < 4; cause = cause.cause, depth++) {
+          causes.push({code: tag(cause.code), messageTag: tag(cause.message),
+            primaryCode: tag(cause.primaryFailure?.code),
+            primaryTag: tag(cause.primaryFailure?.message), cleanupPending: cause.cleanupPending});
+        }
+        t.diagnostic(JSON.stringify({initialization: causes}));
+        throw error;
+      }
+    };
     const options = {directory, ...(effect ? {effectProfilePath, resolveEffectSecret: secret}
       : {sourceProfilePath, resolveSourceSecret: secret}), authorization: {...authorization(account, reviewerPrincipal),
         observe(name, detail) {
           observations.push([name, detail]);
         }}, ...(effect && rangeCommand ? {sourceProfilePath, resolveSourceSecret: secret} : {})};
     if (local) {
-      const client = await connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable',
-        installation: options});
+      const client = await openObserved(() => connectEmbeddedLocal({mode: 'local', owner: 'local', durability: 'durable',
+        installation: options}));
       closers.push(() => client.close());
       return {client};
     }
-    const host = await openInstalledRemoteHttpHost({...options,
+    const host = await openObserved(() => openInstalledRemoteHttpHost({...options,
       authenticate: header => new Map([['owner-token', owner], ['reviewer-token', 'reviewer-principal']])
-        .get(header?.replace(/^Bearer /u, ''))});
+        .get(header?.replace(/^Bearer /u, ''))}));
     const server = createServer({key: tls.key, cert: tls.cert}, host.handler);
     await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
     let closed = false;
