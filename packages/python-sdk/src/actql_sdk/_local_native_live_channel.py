@@ -60,8 +60,10 @@ class _OriginalLiveChannelFunctions:
         self.state.argtypes = [c_void_p] * 4 + [POINTER(c_int32)]
         self.limits = library.actql_live_channel_copy_limits
         self.limits.argtypes = [c_void_p] * 4 + [POINTER(c_int64)]
+        self.capacities = library.actql_live_channel_copy_capacities
+        self.capacities.argtypes = [c_void_p] * 4 + [POINTER(c_int64)]
         for call in (self.prepare, self.bind, self.operate, self.report, self.originals,
-                     self.drop, self.finish, self.refused, self.state, self.limits):
+                     self.drop, self.finish, self.refused, self.state, self.limits, self.capacities):
             call.restype = c_int
         self.operation = library.actql_live_channel_operation
         self.issue = library.actql_live_channel_issue_family
@@ -283,6 +285,7 @@ class _OriginalLiveChannelCustody:
                  read: str | None = None) -> tuple[_OriginalArenaFact, int | tuple[int, ...] | None]:
         # Allocate bounded outputs before the call can produce a native result.
         state, limits = c_int32(-1), (c_int64 * 6)(*([-1] * 6))
+        capacities = (c_int64 * 2)(-1, -1)
         known: _OriginalLiveChannelError | None = None
         result: int | tuple[int, ...] | None = None
         with self._process._lock:
@@ -307,6 +310,13 @@ class _OriginalLiveChannelCustody:
                                                            self._channel, limits))
                         result = tuple(limits)
                         if any(value < 0 for value in result):
+                            raise self._mark_unknown()
+                    elif read == 'capacities':
+                        self._status(self._functions.capacities(self._reply, self._host, self._native_domain,
+                                                               self._channel, capacities))
+                        result = tuple(capacities)
+                        if (result[0] != 16777216 or result[1] <= 0
+                                or result[1] > 2**63 - 1 - result[0]):
                             raise self._mark_unknown()
                 self._drop_reply()
             except BaseException as error:
@@ -375,6 +385,17 @@ class _OriginalLiveChannelCustody:
         _, value = self._perform(5, self._functions.operate, (5,), read='limits')
         assert isinstance(value, tuple)
         return value
+
+    def capacities(self) -> tuple[int, int]:
+        """Original VM/Native baseline coverage, never unused/external funding.
+
+        These are existing Owner-selected facts. Python neither subtracts from
+        a payload nor invents a Host allowance from resource limits. The Native
+        baseline includes its original controls and remains held until cleanup.
+        """
+        _, value = self._perform(9, self._functions.operate, (9,), read='capacities')
+        assert isinstance(value, tuple)
+        return value[0], value[1]
 
     def report(self, usage: tuple[int, ...]) -> None:
         if (type(usage) is not tuple or len(usage) != 10

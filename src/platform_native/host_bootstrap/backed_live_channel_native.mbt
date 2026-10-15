@@ -30,6 +30,13 @@ extern "C" fn live_vm_current_ffi(channel : PhysicalLiveChannel) -> Int = "actql
 
 ///|
 #borrow(channel)
+extern "C" fn live_baseline_bytes_ffi(
+  channel : PhysicalLiveChannel,
+  ordinal : Int,
+) -> Int64 = "actql_bootstrap_live_baseline_bytes"
+
+///|
+#borrow(channel)
 extern "C" fn retire_live_channel_metadata_ffi(
   channel : PhysicalLiveChannel,
 ) -> Int = "actql_bootstrap_retire_live_channel_metadata"
@@ -249,6 +256,42 @@ pub fn[T, C] NativeHostBootstrap::backed_live_channel_limits(
     Ok(@resources.LiveOpen) => ()
   }
   self.backed_live_child_limits(original, record.live.unwrap(), record)
+}
+
+///|
+/// Coverage of the same already funded holding, after admission. Host is the
+/// existing Native baseline (including its control prefix), not unused arena
+/// space or an allowance for unrelated Python/process/FD/Store domains. These
+/// fixed capacities stay retained until the original parent physical ACKs.
+pub fn[T, C] NativeHostBootstrap::backed_live_channel_capacities(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChannel[T, C],
+) -> Result[(Int64, Int64), NativeBackedExecutionIssue] {
+  let limits = match self.backed_live_channel_limits(original, record) {
+    Err(issue) => return Err(issue)
+    Ok(value) => value
+  }
+  guard record.physical is Some(physical) else {
+    return Err(Bootstrap(Unavailable))
+  }
+  let vm = live_baseline_bytes_ffi(physical, 0)
+  let host = live_baseline_bytes_ffi(physical, 1)
+  if vm != 16777216L ||
+    host <= 0L ||
+    vm > limits.execution_bytes ||
+    host > limits.execution_bytes - vm {
+    return Err(Bootstrap(Unavailable))
+  }
+  match self.backed_live_channel_limits(original, record) {
+    Err(issue) => Err(issue)
+    Ok(current) =>
+      if current == limits {
+        Ok((vm, host))
+      } else {
+        Err(Bootstrap(Unavailable))
+      }
+  }
 }
 
 ///|

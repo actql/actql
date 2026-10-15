@@ -131,6 +131,21 @@ MOONBIT_FFI_EXPORT int32_t actql_bootstrap_live_vm_current(
     return ACTQL_OWNED_OK;
 }
 
+/* Immutable coverage of this same bound holding, not unused allocator space.
+ * The Host component includes the original control prefix and every non-VM
+ * byte. It is baseline reservation DATA only, not a suballocation grant for
+ * another heap, process, descriptor or physical copy. */
+MOONBIT_FFI_EXPORT int64_t actql_bootstrap_live_baseline_bytes(
+    actql_bootstrap_live_channel *record, int32_t ordinal) {
+    if (actql_bootstrap_live_vm_current(record) != ACTQL_OWNED_OK ||
+        record->span_bytes > INT64_MAX || record->lease->length > INT64_MAX ||
+        record->span_bytes == 0 || record->span_bytes >= record->lease->length)
+        return -1;
+    if (ordinal == 0) return (int64_t)record->span_bytes;
+    if (ordinal == 1) return (int64_t)(record->lease->length - record->span_bytes);
+    return -1;
+}
+
 /* Metadata retirement AFTER the existing caller's separate physical ACKs.
  * This never closes a descriptor, stops a child or returns a resource loan. */
 MOONBIT_FFI_EXPORT int32_t actql_bootstrap_retire_live_channel_metadata(
