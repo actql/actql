@@ -152,3 +152,56 @@ test('dependent private Table members retain a complete typed inventory and reje
       }
     }});
 });
+
+
+test('dependent private Table members retain distinct equal-valued declarations and reject swapped exports', async t => {
+  await exerciseEffectSourceSet(t, {privateTableInput: true,
+    transformDocument(document) {
+      const consumer = document.stages[0], producer = structuredClone(consumer);
+      producer.id = 'producer'; delete producer.effects; delete producer.table_inputs;
+      consumer.inputs = {rows: {result: {stage: 'producer', result: 'rows'}}};
+      consumer.steps = [{from: 'rows', select: ['id'], as: 'selected'}];
+      consumer.table_inputs.other = structuredClone(consumer.table_inputs.rows);
+      consumer.effects.second.store.from = {table_input: 'other'};
+      document.stages.unshift(producer);
+    },
+    async onCompletedTableRun({moon, checkedHost, options, sourceControl}) {
+      const inputs = checked(moon.clientProgramPinEffectSources(checkedHost, 64));
+      let sources, first, exports = 0;
+      const control = Object.freeze({...sourceControl,
+        issueDependentLocalEffectTableArtifact(...args) {
+          if (first === undefined) first = args;
+          else {
+            // Both declarations project the exact same rows, but their
+            // original Table occurrence/borrow and live receipts are distinct.
+            const foreignDefinition = [...args]; foreignDefinition[5] = first[5];
+            assert.throws(() => sourceControl.issueDependentLocalEffectTableArtifact(...foreignDefinition),
+              {code: 'MoonBitHostFailure'});
+            const foreignExport = [...args]; foreignExport[3] = first[3];
+            assert.throws(() => sourceControl.issueDependentLocalEffectTableArtifact(...foreignExport),
+              {code: 'MoonBitHostFailure'});
+          }
+          exports++;
+          return sourceControl.issueDependentLocalEffectTableArtifact(...args);
+        }});
+      try {
+        assert.equal(moon.clientProgramEffectInputsShareView(inputs, 0, 1), false);
+        sources = await preparePinnedEffectSourceSet({...options, inputs, control,
+          maxGroupingWork: (2 + 64) * 2,
+          localEvidenceContext: {...options.localEvidenceContext,
+            sourceFreeDependencyClosure: true, retentionDependencies: []}});
+        assert.equal(exports, 2);
+        const left = sources.members[0].payload, right = sources.members[1].payload;
+        assert.notEqual(left, right);
+        assert.equal(left.summary.logicalCid, right.summary.logicalCid);
+        assert.notEqual(left.localResultDefinition.identity, right.localResultDefinition.identity);
+        assert.notEqual(left.localResultArtifact.identity, right.localResultArtifact.identity);
+        assert.equal(left.summary.rowCount, 2); assert.equal(right.summary.rowCount, 2);
+      } finally {
+        for (const payload of sources?.payloads ?? []) {
+          if (payload.prepared.status().pending) await payload.prepared.release();
+        }
+        assert.equal(moon.clientProgramReleaseEffectInputs(inputs), true);
+      }
+    }});
+});
