@@ -196,8 +196,15 @@ fn main {
     again.issue_family() == 2,
     "retired handle cannot acknowledge or retire the same metadata twice",
   )
-  host.close_domain_after_owner_ack(domain).unwrap()
+  let cleanup = host.close_domain_after_owner_ack(domain)
+  println("original_cleanup:" + @debug.to_string(cleanup))
+  require(
+    count,
+    cleanup is Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending)),
+    "original backing borrower still fences physical allocation retirement",
+  )
   host.return_backing_borrow(scope).unwrap()
+  host.close_domain_after_owner_ack(domain).unwrap()
   host.try_close().unwrap()
   other.try_close().unwrap()
   require(
@@ -206,6 +213,6 @@ fn main {
     "original domain loan and Host retire separately after channel metadata",
   )
   println(
-    "{\"success\":true,\"discovered\":13,\"executed\":13,\"passed\":13,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
+    "{\"success\":true,\"discovered\":14,\"executed\":14,\"passed\":14,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
   )
 }
