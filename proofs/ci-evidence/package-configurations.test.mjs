@@ -17,14 +17,28 @@ const treeAtHead = () => gitTree(repository,
 
 const boundedDirectory = 'src/platform_native/bounded_files';
 const boundedPath = `${boundedDirectory}/moon.pkg`;
-const boundedDigest = 'd3226436c6183cae948253152b6f49c386881ae9f3653c7e970183d7d1b99f57';
+const priorBoundedDigest = 'd3226436c6183cae948253152b6f49c386881ae9f3653c7e970183d7d1b99f57';
+const boundedDigest = '383a532bbbee2be32d5c4c7ccab853fa392892667451095a7b553c495d5c578d';
 const boundedRequest = {path: boundedPath, digest: boundedDigest, target: 'js', toolchainDigest};
 
-test('bounded Root review binds the exact two test predicates and every source member', () => {
+test('bounded Root review preserves prior bytes and binds the scoped cleanup predicate and every source member', () => {
   const tree = treeAtHead(), current = tree.read(boundedPath);
   const author = 'f089341cd29c2989c1e462333ca2e382fc9c9e55';
   execFileSync('git', ['merge-base', '--is-ancestor', author, 'HEAD'], {cwd: repository});
-  assert.deepEqual(current, execFileSync('git', ['show', `${author}:${boundedPath}`], {cwd: repository}));
+  const before = execFileSync('git', ['show', `${author}:${boundedPath}`], {cwd: repository});
+  assert.equal(hash(before), priorBoundedDigest);
+  const scoped = 'ea73884358631b4c6de7ef89d8db2515a9db6788';
+  const parent = '7b602b9152720cb1264a6209b7c130d14f7830eb';
+  assert.equal(execFileSync('git', ['show', '-s', '--format=%P', scoped],
+    {cwd: repository, encoding: 'utf8'}).trim(), parent);
+  execFileSync('git', ['merge-base', '--is-ancestor', scoped, 'HEAD'], {cwd: repository});
+  assert.deepEqual(before, execFileSync('git', ['show', `${parent}:${boundedPath}`], {cwd: repository}));
+  const introduced = execFileSync('git', ['show', `${scoped}:${boundedPath}`], {cwd: repository});
+  const selector = '    "scoped_cleanup_native_wbtest.mbt": [ "native" ],\n';
+  assert.equal(introduced.toString().split(selector).length, 2);
+  assert.equal(introduced.toString().replace(selector, ''), before.toString());
+  assert.deepEqual(current, introduced);
+  assert.deepEqual(packageImports(current.toString()).imports, packageImports(before.toString()).imports);
   assert.equal(hash(current), boundedDigest);
   assert.equal(hash(tree.read('toolchain.json')), toolchainDigest);
   for (const selector of [
@@ -48,7 +62,7 @@ test('bounded Root review binds the exact two test predicates and every source m
 test('bounded Root review refuses changed selectors, options, path, target and toolchain', () => {
   assert.equal(packageConfigurationReviewFor(boundedRequest)?.rule,
     'literal-native-options-with-bound-source-membership');
-  for (const change of [{digest: '0'.repeat(64)}, {path: './'+boundedPath},
+  for (const change of [{digest: priorBoundedDigest}, {digest: '0'.repeat(64)}, {path: './'+boundedPath},
     {target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}]) {
     assert.equal(packageConfigurationReviewFor({...boundedRequest, ...change}), null);
   }
