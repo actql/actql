@@ -5,9 +5,12 @@ const {openNodeInferCaptureCustody}=await import(process.env.ACTQL_CAPTURE_CUSTO
 
 // Actual Node custody/holding code with explicit Core, Model and Store port
 // doubles. This does not prove actual Store ACK, heap funding or public INFER.
-function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true} = {}) {
+function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true,
+  rejectInvocationReadmit = false} = {}) {
   const capture={}, output={}, exporter={};
   const evidence={wire:'{"raw":"é\\r\\n"}'};
+  const invocationView=Object.freeze({name:'model_invocation_evidence',
+    identity:'cid-model_invocation_evidence',wire:evidence.wire});
   const settlement={}, entry={ordinal:0,attemptCid:'original-attempt'};
   const bundleWire='{"capture":"original é\\r\\n"}';
   const stored=new Map();
@@ -65,13 +68,19 @@ function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true
     issuedAttachmentAdmission:()=>undefined,
     issuedSlotCapture:()=>evidence,
     invocationEvidence:()=>evidence,
+    invocationEvidenceView:()=>invocationView,
     acknowledgeSettlement(){counters.ack++;},
     installSettlementCleanup(value){cleanupCallback=value;},
     stoppedAttemptCount:()=>stoppedRaw ? 1 : 0,
   };
   moon.clientProgramInferAttemptLeaf=()=>evidence;
   const control={
-    admitRunEvidence:(name,wire)=>({name,wire,identity:`cid-${name}`}),
+    admitRunEvidence(name,wire){
+      if(rejectInvocationReadmit&&name==='model_invocation_evidence') {
+        assert.fail('Core-issued invocation evidence must not be parsed and issued again');
+      }
+      return {name,wire,identity:`cid-${name}`};
+    },
     modelScopedPrivateHoldingCid:(_run,_store,_entry,name)=>name,
     modelPrivateHoldingCid:(_run,_store,name)=>name,
   };
@@ -95,7 +104,7 @@ function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true
     captureOnly,durableCalls:true,
     publicationFor:captureOnly?undefined:()=>assert.fail('No publication before the selected exporter')});
   owner.configureModelJournal({observe:async()=>({state:'SavedSuccess'}),entry:()=>entry});
-  return {owner,operation,flags,counters,stored,bundleWire,store,moon,
+  return {owner,operation,flags,counters,stored,bundleWire,store,moon,invocationView,
     async complete(){
       await owner.persistSettlement(settlement,entry);
       owner.retainCompleted();await owner.persist();
@@ -103,6 +112,21 @@ function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true
     async settling(){await cleanupCallback(settlement);},
     deferCommit(callback){beforeCommit=callback;}};
 }
+
+test('capture retains the same issued invocation view without wire readmission',async()=>{
+  const f=fixture({rejectInvocationReadmit:true});
+  await f.complete();
+  assert.strictEqual(f.owner.modelEvidence()[0],f.invocationView);
+  assert.equal(f.stored.get('model_invocation_evidence').manifest_cid,
+    f.invocationView.identity);
+  f.flags.modelCleanup=false;
+  assert.equal(await f.owner.custody.cleanup(),false);
+  assert.strictEqual(f.owner.modelEvidence()[0],f.invocationView);
+  f.flags.modelCleanup=true;
+  assert.equal(await f.owner.custody.cleanup(),true);
+  assert.equal(f.owner.modelEvidence(),undefined);
+  assert.equal(f.invocationView.wire,'{"raw":"é\\r\\n"}');
+});
 
 test('settlement exporter selects the same Store wire ceiling before Common allocation',async()=>{
   for(const limit of [12192,2*1048576]){
