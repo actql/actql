@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
+// The ordinary chain proof-check imports this file. Keep real child/source
+// custody and interruption refusals beside the existing recipe observations.
+import '../bounded-session/mutation-command.test.mjs';
+import '../bounded-session/mutation-detection.test.mjs';
 import {retirementCases, selectCases, retirementWitness, requireRetirementDetection} from './mutation-retirement.mjs';
 const root = new URL('../../', import.meta.url);
 const read = path => readFileSync(new URL(path, root), 'utf8');

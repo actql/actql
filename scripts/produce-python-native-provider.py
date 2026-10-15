@@ -63,8 +63,31 @@ def emission_commands(output: str, moon_home: Path) -> list[list[str]]:
     return commands
 
 
+
+def prepare_allocator_source(moon_home: Path, destination: Path,
+                             scoped_read: bool) -> tuple[Path | None, dict[str, object]]:
+    """Choose source only; no compile/load/default adoption or allocation grant."""
+    if type(scoped_read) is not bool:
+        raise ValueError('Explicit Native allocator source selection is required')
+    if not scoped_read:
+        return None, {'kind': 'selected-stock', 'toolchain_unchanged': True}
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('scoped_allocator_source',
+        ROOT / 'packages/python-local-runtime/native/pre-root/prepare_scoped_read.py')
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    selected = destination / 'derived-read-source'
+    record = module.prepare(moon_home, selected)
+    return selected, {'kind': 'derived-scoped-read',
+        'patch_sha256': record['patch_sha256'], 'recipe_sha256': record['recipe_sha256'],
+        'outputs': record['outputs'], 'toolchain_unchanged': True,
+        'installed_supplier': False, 'normal_profile': None}
+
 def build(source: str, moon_home: Path, clang: Path, sdk: Path,
-          destination: Path, seconds: int) -> dict[str, object]:
+          destination: Path, seconds: int, *, scoped_read: bool = False) -> dict[str, object]:
+    if type(scoped_read) is not bool:
+        raise ValueError('Explicit Native allocator source selection is required')
     deadline = time.monotonic() + seconds
     environment = {**os.environ, 'MOON_HOME': str(moon_home), 'MOONBIT_NEW_NATIVE': '0',
                    'SDKROOT': str(sdk), 'MACOSX_DEPLOYMENT_TARGET': '11.0',
@@ -94,6 +117,9 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     if not sdk.is_dir() or sdk.is_symlink():
         raise ValueError('Selected Native provider SDK must be an original directory')
     destination.mkdir(parents=True, exist_ok=False)
+    # Maintainer-only, explicit derived build. This never modifies the selected
+    # toolchain/default source or supplies a trusted installed capacity grant.
+    allocator, allocator_record = prepare_allocator_source(moon_home, destination, scoped_read)
     generated = destination / 'emission'
     dry = run([str(moon_home / 'bin/moon'), 'build', '--target', 'native',
                '--target-dir', str(generated), '--dry-run', '-j', '1', ENTRY], capture=True)
@@ -114,6 +140,11 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                       ROOT / 'packages/python-local-runtime/native/pre-root', ROOT / ENTRY):
         inputs += [original(path) for path in sorted(directory.rglob('*'))
                    if path.is_file() and path.suffix in ('.c', '.h', '.inc')]
+    if allocator is not None:
+        inputs += [original(path) for path in sorted(allocator.iterdir()) if path.is_file()]
+        candidate = ROOT / 'packages/python-local-runtime/native/pre-root'
+        inputs += [original(candidate / name) for name in (
+            'scoped-read-source.json', 'scoped-read-review.patch', 'prepare_scoped_read.py')]
     inputs += [original(moon_home / name) for name in
                ('bin/moon', 'bin/moonc', 'lib/libmoonbitrun.o', 'lib/libbacktrace.a')]
     inputs += [original(path) for path in sorted((moon_home / 'lib/core/_build/native/release/bundle').rglob('*'))
@@ -128,20 +159,27 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     c_sources = [(emitted, 'original'),
                  (ROOT / 'src/platform_native/host_bootstrap/bootstrap_stub.c', 'bootstrap')]
     c_sources += [(ROOT / ENTRY / (name + '.c'), name)
-                  for name in ('control_shim', 'backing_shim', 'domain_shim')]
-    c_sources += [(moon_home / 'lib/runtime' / (name + '.c'), 'runtime-' + name)
+                  for name in ('control_shim', 'backing_shim', 'domain_shim', 'domain_read_shim')]
+    runtime_source = allocator if allocator is not None else moon_home / 'lib/runtime'
+    c_sources += [(runtime_source / (name + '.c'), 'runtime-' + name)
                   for name in ('backtrace', 'env', 'runtime', 'sync_io', 'utf')]
     objects = []
     compiler_inputs = []
     for path, name in c_sources:
         obj, deps = destination / (name + '.o'), destination / (name + '.d')
         common = [str(clang), '-isysroot', str(sdk), '-mmacosx-version-min=11.0',
-                  '-I' + str(moon_home / 'include'), '-I' + str(ROOT / ENTRY),
+                  '-I' + str(allocator if allocator is not None else moon_home / 'include'),
+                  '-I' + str(ROOT / ENTRY),
                   '-fwrapv', '-fno-strict-aliasing', '-fPIC', '-g', '-O0',
                   '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC']
+        if allocator is not None:
+            # The exact derived header precedes original supplemental headers.
+            common += ['-I' + str(moon_home / 'include'), '-DACTQL_SCOPED_READ_ALLOCATOR']
+            if name == 'bootstrap':
+                common += ['-DACTQL_SCOPED_READ_PROVIDER="' + str(allocator / 'owned_capacity.c') + '"']
         if name == 'original':
             common += ['-Wno-unused-value', '-Dmain=actql_original_control_initialize',
-                       '-include', str(ROOT / ENTRY / 'domain_shim.h')]
+                       '-include', str(ROOT / ENTRY / 'domain_read_shim.h')]
         elif name.startswith('runtime-'):
             common += ['-Wno-unused-value', '-DMOONBIT_ALLOW_STACKTRACE']
         else:
@@ -180,7 +218,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
               'c_compile': len(objects), 'c_link': 1, 'emitted_c': original(emitted),
               'library': original(library), 'objects': [original(path) for path in objects],
               'initializer_calls': 0, 'Engine': 0, 'VM': 0, 'worker': 0,
-              'wheel': 0, 'public_e2e': 0, 'normal_numeric_profile': None}
+              'wheel': 0, 'public_e2e': 0, 'normal_numeric_profile': None,
+              'allocator_source': allocator_record}
     (destination / 'provider-build.json').write_text(json.dumps(record, indent=2) + '\n')
     return record
 
@@ -193,6 +232,8 @@ if __name__ == '__main__':
     parser.add_argument('--sdk', required=True, type=Path)
     parser.add_argument('--destination', required=True, type=Path)
     parser.add_argument('--seconds', type=int, default=300)
+    parser.add_argument('--scoped-read', action='store_true',
+        help='Build exact copied scoped allocator sources; no default/toolchain/profile adoption')
     args = parser.parse_args()
     print(json.dumps(build(args.source, args.moon_home, args.clang, args.sdk,
-                           args.destination, args.seconds), sort_keys=True))
+                           args.destination, args.seconds, scoped_read=args.scoped_read), sort_keys=True))
