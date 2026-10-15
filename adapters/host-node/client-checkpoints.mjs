@@ -909,10 +909,19 @@ export async function installRemoteCheckpoints({root, namespaceId,
   let host;
   const originalStateSavedObservations = new WeakMap();
   const originalStateSavedByBinding = new WeakMap();
-  async function originalModelStorageEvidence(handle) {
+  async function originalModelStorageEvidence(handle, acquisition, ownerId, requestCid) {
     if (closed) fail('OriginalModelStateHostStopped');
-    const selected = await evidence.originalModelStorageBindingEvidence(handle);
+    if (acquisition !== undefined) {
+      selectOriginalInferMetadataAcquisition(acquisition, ownerId, requestCid);
+      if (typeof evidence.originalModelStorageBindingEvidenceSelected !== 'function') {
+        fail('InferOriginalMetadataAcquisitionUnavailable');
+      }
+    }
+    const selected = await (acquisition === undefined
+      ? evidence.originalModelStorageBindingEvidence(handle)
+      : evidence.originalModelStorageBindingEvidenceSelected(handle, ownerId, requestCid, acquisition));
     if (closed) fail('OriginalModelStateHostStopped');
+    if (acquisition !== undefined) selectOriginalInferMetadataAcquisition(acquisition, ownerId, requestCid);
     return selected;
   }
   function originalModelDocumentLimits(acquisition, ownerId, requestCid) {
@@ -947,7 +956,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
           typeof evidence.openOriginalModelState !== 'function')) {
       fail('InferOriginalMetadataAcquisitionUnavailable');
     }
-    const selected = await originalModelStorageEvidence(storageBinding);
+    const selected = await originalModelStorageEvidence(storageBinding, acquisition, ownerId, runDefinitionCid);
     current();
     const document = contractControl.readModelOriginalResourceDocument(bodyWire, documentLimits);
     if (contractControl.modelOriginalResourceOriginField(document, 'run_id') !== runId ||
@@ -962,7 +971,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // An unavailable original after write never rewrites that write as unsaved.
     // The same continuation keeps its park, Store and cleanup responsibilities.
     current();
-    await originalModelStorageEvidence(storageBinding);
+    await originalModelStorageEvidence(storageBinding, acquisition, ownerId, runDefinitionCid);
     current();
     const held = await (acquisition === undefined ? evidence.open(ownerId)
       : evidence.openOriginalModelState(ownerId, acquisition));
@@ -972,7 +981,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
       {maxBytes: Math.min(documentLimits.maxWireBytes, Buffer.byteLength(document.wire, 'utf8'))});
     current();
     if (!saved.equals(Buffer.from(document.wire, 'utf8'))) fail('OriginalModelStateBindingMismatch');
-    await originalModelStorageEvidence(storageBinding);
+    await originalModelStorageEvidence(storageBinding, acquisition, ownerId, runDefinitionCid);
     current();
     return Object.freeze({ownerId, cid, runId, runDefinitionCid,
       storageBindingCid: selected.identity});
@@ -993,7 +1002,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
     if (acquisition !== undefined && typeof evidence.openOriginalModelState !== 'function') {
       fail('InferOriginalMetadataAcquisitionUnavailable');
     }
-    const selected = await originalModelStorageEvidence(storageBinding);
+    const selected = await originalModelStorageEvidence(storageBinding, acquisition, ownerId, runDefinition.identity);
     current();
     if (receipt === null || typeof receipt !== 'object' || Array.isArray(receipt) ||
         Object.keys(receipt).sort().join(',') !== 'cid,ownerId,runDefinitionCid,runId,storageBindingCid' ||
@@ -1014,7 +1023,7 @@ export async function installRemoteCheckpoints({root, namespaceId,
         contractControl.modelOriginalResourceOriginField(document, 'storage_binding_cid') !== selected.identity) {
       fail('OriginalModelStateBindingMismatch');
     }
-    await originalModelStorageEvidence(storageBinding);
+    await originalModelStorageEvidence(storageBinding, acquisition, ownerId, runDefinition.identity);
     current();
     return {document, storage: selected};
   }
@@ -1464,6 +1473,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
     },
     modelOriginalStorageBindingEvidence(handle) {
       return originalModelStorageEvidence(handle);
+    },
+    async modelOriginalStorageBindingEvidenceSelected(args, acquisition) {
+      selectOriginalInferMetadataAcquisition(acquisition);
+      const {storageBinding, runDefinition} = args;
+      const ownerId = `model-${contractControl.runDefinitionRunId(runDefinition)}`;
+      return originalModelStorageEvidence(storageBinding, acquisition, ownerId, runDefinition.identity);
     },
     // A data-only Common document is saved under its dedicated private role.
     // This does not authenticate the other Origin fields, restore a current

@@ -499,6 +499,16 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       }
       return originalScope;
     }
+    async function selectedOriginalStorageEvidence(park, storageBinding, acquisition) {
+      originalResourceReadCurrent(park, acquisition);
+      if (typeof cp.modelOriginalStorageBindingEvidenceSelected !== 'function') {
+        fail('InferOriginalMetadataAcquisitionUnavailable');
+      }
+      const evidence = await cp.modelOriginalStorageBindingEvidenceSelected({
+        storageBinding, runDefinition: plan.runDefinition}, acquisition);
+      originalResourceReadCurrent(park, acquisition);
+      return evidence;
+    }
     async function confirmOriginalResourceStateSaved(park, storageBinding, receipt) {
       const originalScope = originalResourceReadCurrent(park);
       if (typeof cp.confirmOriginalModelStateSavedSelected !== 'function') {
@@ -512,7 +522,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
       const savedFacts = cp.originalModelStateSavedFacts(saved);
       const document = control.readModelOriginalResourceDocument(savedFacts.documentWire,
         {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
-      const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
+      const storage = await selectedOriginalStorageEvidence(park, storageBinding, acquisition);
       originalResourceReadCurrent(park, acquisition);
       control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
         plan.runDefinition, selected.graph, originalScope, park, document,
@@ -776,7 +786,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
               stateWire, cutWire, 'parked', envelope);
             stateWire = undefined;
             const document = control.readModelOriginalResourceDocument(bodyWire, envelope);
-            const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
+            const storage = await selectedOriginalStorageEvidence(park, storageBinding, acquisition);
             originalResourceReadCurrent(park, acquisition);
             control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
               plan.runDefinition, selected.graph, originalPreparation.scope, park,
@@ -895,7 +905,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         originalResourceReadCurrent(park, acquisition);
         // Actual Store custody is rechecked by CP. Match the twelve checked
         // originals separately; schema/CID equality alone cannot prove them.
-        const storage = await cp.modelOriginalStorageBindingEvidence(storageBinding);
+        const storage = await selectedOriginalStorageEvidence(park, storageBinding, acquisition);
         originalResourceReadCurrent(park, acquisition);
         control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
           plan.runDefinition, selected.graph, originalScope, park, document,
