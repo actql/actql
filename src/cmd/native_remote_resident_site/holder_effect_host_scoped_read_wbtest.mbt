@@ -35,7 +35,10 @@ test "Host Account read does not substitute Site capacity for an original Native
   assert_true(
     original.issue() is @bounded_files.Filesystem(@filesystem.RootOpen(_)),
   )
-  assert_eq(@site.site_status(site), reserved)
+  let pending_status = reserved.copy()
+  // One original cleanup token is retained in addition to unchanged capacity.
+  pending_status[5] += 1L
+  assert_eq(@site.site_status(site), pending_status)
   assert_true(physical_equal(scope.caller_operation.unwrap(), operation))
   let before_retry = checks.val
   assert_true(
