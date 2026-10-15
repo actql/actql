@@ -104,7 +104,7 @@ class _OriginalDomainCustody:
     scope remain separately caller-owned; closing this data never retires them.
     """
     __slots__ = ('_owner', '_scope', '_descriptor', '_functions', '_host', '_domain',
-                 '_reply', '_unknown', '_unknown_carrier', '_closed')
+                 '_reply', '_unknown', '_unknown_carrier', '_closed', '_live_channel_original')
     _owner: _OriginalControlCustody
     _scope: _OriginalBackingCustody
     _descriptor: _OriginalDescriptor
@@ -115,6 +115,7 @@ class _OriginalDomainCustody:
     _unknown: _OriginalDomainError | None
     _unknown_carrier: _OriginalDomainError
     _closed: bool
+    _live_channel_original: object | None
 
     @classmethod
     def _prepare_original(cls, owner: _OriginalControlCustody,
@@ -140,6 +141,7 @@ class _OriginalDomainCustody:
         domain._functions = functions
         domain._host, domain._domain, domain._reply = _new_domain_slots()
         domain._unknown, domain._closed = None, False
+        domain._live_channel_original = None
         domain._unknown_carrier = _OriginalDomainError(domain, unknown=True)
         owner._enter()
         if owner._closed or owner._original.value is None:
