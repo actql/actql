@@ -48,6 +48,11 @@ function runtime(config) {
   const request = {}, provider = {}, entry = {};
   const body = '{"model":"fixture","n":1,"stream":false,"messages":[{"role":"user","content":"é\\r\\n"}]}';
   const moon = {
+    clientProgramModelResponseProfileTransportMatches(profile, ...limits) {
+      assert.strictEqual(profile, config.rawCaptureSelection.profile);
+      assert.deepEqual(limits, [4096, 512, 512, 2, 64]);
+      return true;
+    },
     clientProgramInstallAsyncModelProvider(id) { assert.equal(id, config.providerId); counts.installs++; return {}; },
     clientProgramProjectHTTPChatRequest(p, r, model, ...limits) {
       assert.equal(p, provider); assert.equal(r, request); assert.equal(model, 'fixture');
@@ -125,6 +130,13 @@ test('installed HTTP preflight keeps original endpoint headers selectors and raw
 test('missing originals foreign profile or an external SDK refuse before provider installation', () => {
   for (const change of [config => { config.originalReadInstallation = undefined; },
     config => { config.rawCaptureSelection = undefined; },
+    ...[undefined, null].map(profile => config => {
+      config.rawCaptureSelection = Object.freeze({...config.rawCaptureSelection, profile});
+      const original = config.originalReadInstallation;
+      config.originalReadInstallation = Object.freeze({...original,
+        nodeInstallation: Object.freeze({...original.nodeInstallation,
+          layout: Object.freeze({...original.nodeInstallation.layout, response_profile: profile})})});
+    }),
     config => { config.rawCaptureSelection = Object.freeze({...config.rawCaptureSelection, profile: {}}); },
     config => { config.rawCaptureSelection = Object.freeze({...config.rawCaptureSelection,
       installation: Object.freeze({...config.rawCaptureSelection.installation, sdk: {package_name: 'foreign'}})}); }]) {
@@ -134,11 +146,29 @@ test('missing originals foreign profile or an external SDK refuse before provide
   }
 });
 
+test('HTTP facade refuses mismatched admitted transport bounds before provider or projection', () => {
+  for (const outcome of [false, undefined]) {
+    const config = configuration(), f = runtime(config);
+    let matches = 0;
+    f.moon.clientProgramModelResponseProfileTransportMatches = (profile, ...limits) => {
+      matches++;
+      assert.strictEqual(profile, config.rawCaptureSelection.profile);
+      assert.deepEqual(limits, [4096, 512, 512, 2, 64]);
+      return outcome;
+    };
+    const register = createInstalledHttpChatRegistration(config);
+    assert.throws(() => register(f.moon), {message: 'HTTPChatOriginalTransportLimitsMismatch'});
+    assert.equal(matches, 1);
+    assert.deepEqual(f.counts, {installs: 0, projections: 0, sends: 0});
+  }
+});
+
 test('missing Common runtime or original physical context refuses without projection or sending', () => {
   const config = configuration(), f = runtime(config);
   const register = createInstalledHttpChatRegistration(config);
-  const missing = {...f.moon, clientProgramProjectHTTPChatRequest: undefined};
-  assert.throws(() => register(missing), /HTTPChatOriginalRuntimeUnavailable/u);
+  for (const name of ['clientProgramProjectHTTPChatRequest', 'clientProgramModelResponseProfileTransportMatches']) {
+    assert.throws(() => register({...f.moon, [name]: undefined}), /HTTPChatOriginalRuntimeUnavailable/u);
+  }
   const installed = installModelProviders(f.moon, register).get(config.providerId);
   for (const args of [[f.request, {}, () => {}, f.provider],
     [f.request, createInferIoNotification(), undefined, f.provider],
