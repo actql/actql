@@ -272,3 +272,14 @@ test "missing private Catalog metadata cannot disclose a Source or erase indepen
     )
   }
 }
+
+///|
+test "public zero sequence window retains the common input rejection" {
+  let text = "WITH records AS (SELECT 1 AS id, 0 AS occurred_ms, 1 AS kind UNION ALL SELECT 2, 10, 2), matches AS (FROM records AS e |> sequence(by: [], id: e.id, time: e.occurred_ms, pattern: [{as: first, where: e.kind = 1}, {as: second, where: e.kind = 2}], within: 0, overlap: 'disallow', contiguity: 'adjacent', max_matches_per_key: 2, max_output_rows: 2)) SELECT first_id, first_time_ms, match_end_ms, match_start_ms, second_id, second_time_ms FROM matches ORDER BY first_id, second_id"
+  for format in ["sql", "aql-text"] {
+    let report = binding_check_report(text, format)
+    assert_true(report.contains("\"verdict\":\"invalid\""), msg=report)
+    assert_true(report.contains("\"code\":\"program_invalid\""), msg=report)
+    assert_true(!report.contains("\"check_unclassified\""), msg=report)
+  }
+}
