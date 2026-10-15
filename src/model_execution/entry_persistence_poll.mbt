@@ -125,9 +125,9 @@ fn retire_model_call_entry_persistence(entry : ModelCallEntry) -> Unit {
 
 ///|
 fn retire_model_entering(state : ModelState) -> Unit {
-  if state.entering is Some(entry) {
+  if state.progress.entry is Some(entry) {
     retire_model_call_entry_persistence(entry)
-    state.entering = None
+    state.progress.entry = None
   }
 }
 
@@ -146,7 +146,8 @@ fn retain_model_entry_attempt(
 // Adopt persistence responsibility before any final stop or current check.
 // The actual send gate still distinguishes an acknowledged save from permission.
 fn model_entry_persistence_issue(state : ModelState) -> ModelExecutionIssue? {
-  guard state.entering is Some(entry) && entry.persistence is Some(operation) else {
+  guard state.progress.entry is Some(entry) &&
+    entry.persistence is Some(operation) else {
     return None
   }
   match operation.terminal {

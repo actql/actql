@@ -2719,6 +2719,30 @@ fn NativeRuntimeBundleStore::active_entry_for_binding(
 }
 
 ///|
+/// Inspect the diagnostic configuration retained by this exact Store's
+/// Database and Signature Library before a funded current read. Omission is
+/// not bounded by a later profile. This performs no catalog read and proves
+/// neither current authority, allocator coverage nor cleanup acknowledgement.
+pub fn NativeRuntimeBundleStore::diagnostics_bounded_by(
+  self : NativeRuntimeBundleStore,
+  ceiling : Int,
+) -> Bool {
+  guard ceiling > 0 && !self.closed && !self.retiring else { return false }
+  match
+    (
+      self.database.diagnostic_ceiling(),
+      self.signature_library.diagnostic_ceiling(),
+    ) {
+    (Some(database), Some(signature)) =>
+      database > 0 &&
+      database <= ceiling &&
+      signature > 0 &&
+      signature <= ceiling
+    _ => false
+  }
+}
+
+///|
 /// Revalidate the active generation and exact process holding before a
 /// runtime can admit more work. The loaded component was digest-verified at
 /// runtime acquisition; dispatch does not hash it again.

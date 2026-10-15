@@ -5,6 +5,8 @@
 pub struct ModelPreparedCallSet {
   owner : ModelExecution
   mut scope : @publication.BoundModelInvocationScope?
+  // One installed original admission, not a new Ledger or per-Run pool.
+  mut io_access : @resources.ModelIoAccess?
 }
 
 ///|
@@ -13,6 +15,7 @@ pub struct ModelPreparedCallSet {
 /// readable separately and cannot recreate this token or grant a new send.
 pub struct ModelCallEntry {
   prepared : ModelPreparedCallSet
+  progress : ModelSlotProgress
   slot : Int
   trace : ModelAttemptTrace
   admission : @publication_host.ClientInferDispatchAdmission
@@ -30,7 +33,7 @@ pub fn prepared_model_call_set(
   if state.reclaimed ||
     state.stop_requested ||
     !state.durable_calls ||
-    !(state.phase is DispatchSlot) ||
+    !(state.progress.phase is DispatchSlot) ||
     state.call_scope is None ||
     state.requests.length() != @relation.prepared_infer_rows_count(state.rows) ||
     (
@@ -45,7 +48,7 @@ pub fn prepared_model_call_set(
   if check_model_original_resources_mutable(state) is Err(_) {
     return None
   }
-  let prepared = { owner: execution, scope: None, }
+  let prepared = { owner: execution, scope: None, io_access: None, }
   state.prepared_call_set = Some(prepared)
   Some(prepared)
 }
@@ -237,9 +240,9 @@ fn check_prepared_model_dispatch(
     return Err(issue)
   }
   guard prepared_model_current(value) &&
-    state.phase is DispatchSlot &&
-    state.entering is None &&
-    state.settlement_pending is None &&
+    state.progress.phase is DispatchSlot &&
+    state.progress.entry is None &&
+    state.progress.settlement is None &&
     value.scope is Some(scope) &&
     state.call_scope is Some(call_scope) &&
     @publication_host.client_infer_dispatch_matches_scope(admission, call_scope) &&
@@ -266,9 +269,10 @@ pub fn model_call_entry_current(
   let state = prepared.owner.state
   physical_equal(entry.prepared, prepared) &&
   prepared_model_current(prepared) &&
-  state.phase is DispatchSlot &&
-  state.next_slot == entry.slot &&
-  state.entering is Some(current) &&
+  model_slot_progress_owned(state, entry.progress) &&
+  entry.progress.phase is DispatchSlot &&
+  entry.progress.slot == entry.slot &&
+  entry.progress.entry is Some(current) &&
   physical_equal(current, entry) &&
   state.dispatch_admission is Some(admission) &&
   physical_equal(admission, entry.admission) &&
@@ -323,6 +327,7 @@ pub fn prepared_model_scope(
 /// not evidence that the entire INFER occurrence or its Result completed.
 pub struct ModelCallSettlement {
   owner : ModelExecution
+  progress : ModelSlotProgress
   slot : Int
 }
 
@@ -332,20 +337,20 @@ pub fn model_call_settlement(
 ) -> ModelCallSettlement? {
   let state = execution.state
   guard !state.reclaimed &&
-    state.settlement_pending is Some(slot) &&
-    slot < state.next_slot &&
-    state.outcomes.get(slot) is Some(_) else {
+    state.progress.settlement is Some(slot) &&
+    slot < state.progress.slot &&
+    model_outcome_at(state, slot) is Some(_) else {
     return None
   }
-  Some({ owner: execution, slot, })
+  Some({ owner: execution, progress: state.progress, slot, })
 }
 
 ///|
 pub fn model_call_settlement_slot(value : ModelCallSettlement) -> Int? {
   let state = value.owner.state
-  if !state.reclaimed &&
-    state.settlement_pending == Some(value.slot) &&
-    value.slot < state.next_slot {
+  if model_slot_progress_owned(state, value.progress) &&
+    value.progress.settlement == Some(value.slot) &&
+    value.slot < value.progress.slot {
     Some(value.slot)
   } else {
     None
@@ -362,7 +367,7 @@ pub fn acknowledge_model_call_settlement(value : ModelCallSettlement) -> Bool {
   if model_call_settlement_slot(value) is None {
     return false
   }
-  if value.owner.state.pending_response is Some(call) {
+  if value.progress.call is Some(call) {
     guard call.entry is Some(entry) && entry.slot == value.slot else {
       return false
     }
@@ -370,6 +375,6 @@ pub fn acknowledge_model_call_settlement(value : ModelCallSettlement) -> Bool {
     // callbacks run on a later advance, never inside settlement acknowledgement.
     call.settlement_acknowledged = true
   }
-  value.owner.state.settlement_pending = None
+  value.progress.settlement = None
   true
 }

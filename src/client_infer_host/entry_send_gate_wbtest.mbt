@@ -10,6 +10,7 @@ fn entry_gate_fixture(
   limits? : Limits = standard_limits(),
   asynchronous? : Bool = false,
   start_original? : (() -> Execution)? = None,
+  slots? : Int = 2,
 ) -> (
   Execution,
   @model.ModelPreparedCallSet,
@@ -32,13 +33,26 @@ fn entry_gate_fixture(
     () => egress.val,
   ).unwrap()
   bind_egress_admission(active, egress_admission).unwrap()
-  let (compiled, definition) = invocation_fixture_compiled(active)
+  let (compiled, definition) = match active.run_binding {
+    Some(original) => (original.compiled, original.definition)
+    None => invocation_fixture_compiled(active)
+  }
   let prefix_work = match fixture_finish(active) {
     Waiting(work~) => work
+    Failed(Model(issue), ..) => {
+      assert_eq(Some(issue), None)
+      abort("Model preparation refused before original entry binding")
+    }
+    Failed(Input(_), ..) => abort("input preparation refused")
+    Failed(Capacity(_), ..) => abort("Host capacity preparation refused")
+    Failed(IdentityExport(_), ..) => abort("input identity preparation refused")
+    Failed(CallScope(_), ..) => abort("original call scope preparation refused")
+    Failed(OriginalCapacity(_), ..) =>
+      abort("original read capacity preparation refused")
     _ => abort("ordinary preparation must wait for original entry binding")
   }
   let prepared = prepared_call_set(active).unwrap()
-  assert_eq(@model.prepared_model_call_count(prepared), Some(2))
+  assert_eq(@model.prepared_model_call_count(prepared), Some(slots))
   let artifact = @model.prepared_model_input_artifact(prepared).unwrap()
   let (_, task_cid, _) = @model.prepared_model_identities(prepared).unwrap()
   let root = "sha256:" + "a".repeat(64)
@@ -95,7 +109,7 @@ fn entry_gate_fixture(
           @publication.run_evidence_value_identity(artifact),
         ),
         "model_call_slot_cids": Json::array(
-          [0, 1].map(slot => {
+          Array::makei(slots, slot => {
             Json::string(
               @publication.run_evidence_value_identity(
                 @model.prepared_model_call_at(prepared, slot).unwrap(),
