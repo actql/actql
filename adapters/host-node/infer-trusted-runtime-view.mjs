@@ -69,6 +69,9 @@ function checkOriginals(value, retained) {
 
 class TrustedRuntimeView {
   #originals;
+  // Present only on the original Host view, not another Store/cleanup Owner.
+  // The field itself also exists on Scope views and needs managed coverage.
+  #store;
 
   constructor(key, bindings) {
     if (key !== constructorKey) fail('InferTrustedRuntimeViewUnavailable');
@@ -89,6 +92,23 @@ class TrustedRuntimeView {
     checkOriginals(actual, retained);
   }
 
+  static bindStore(view, actual, store, moduleLifetime) {
+    TrustedRuntimeView.check(view, actual);
+    if (!nominal(store) || !nominal(moduleLifetime)) {
+      fail('InferTrustedStoreUnavailable');
+    }
+    if (view.#store !== undefined) fail('InferTrustedStoreAlreadyBound');
+    view.#store = Object.freeze({store, moduleLifetime});
+  }
+
+  static checkStore(view, actual, store, moduleLifetime) {
+    TrustedRuntimeView.check(view, actual);
+    if (view.#store === undefined) fail('InferTrustedStoreUnavailable');
+    if (view.#store.store !== store || view.#store.moduleLifetime !== moduleLifetime) {
+      fail('InferTrustedStoreChanged');
+    }
+  }
+
   static forget(view, host, generation) {
     const retained = TrustedRuntimeView.#binding(view);
     if (retained.host !== host || retained.generation !== generation) {
@@ -96,6 +116,7 @@ class TrustedRuntimeView {
     }
     // Drop back-references only. Native/module/process responsibility remains
     // with the actual Host supplier, even after the last Call/Host closes.
+    view.#store = undefined;
     view.#originals = undefined;
   }
 }
@@ -112,6 +133,20 @@ export function issueInferTrustedRuntimeView(actualOriginals) {
 // substitute for those checks, original Ledger funding or the final send gate.
 export function checkInferTrustedRuntimeView(view, actualOriginals) {
   TrustedRuntimeView.check(view, actualOriginals);
+}
+
+// The existing installed Host supplies the actual opened Store and its static
+// module namespace. Neither a packet nor this reference check authenticates a
+// Store, funds managed allocations, issues a numeric profile or confirms close.
+// AES-GCM and FD/Dir native lifetime remains the selected Host responsibility.
+export function bindInferTrustedStore(view, actualOriginals, store, moduleLifetime) {
+  TrustedRuntimeView.bindStore(view, actualOriginals, store, moduleLifetime);
+}
+
+// Existing Model currentness checks use this exact Store association. A failed
+// Store close retains the same association; only final Host cleanup forgets it.
+export function checkInferTrustedStore(view, actualOriginals, store, moduleLifetime) {
+  TrustedRuntimeView.checkStore(view, actualOriginals, store, moduleLifetime);
 }
 
 // Existing Host cleanup calls this only after its actual duties settle. There
