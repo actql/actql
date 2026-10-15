@@ -118,7 +118,15 @@ pub fn NativeLocalPackagedRuntimeReply::operation_tag(
 pub fn NativeLocalPackagedRuntimeReply::issue_family(
   self : NativeLocalPackagedRuntimeReply,
 ) -> Int {
-  match self.issue {
+  local_packaged_runtime_issue_tag(self.issue)
+}
+
+///|
+// One closed transport projection for both original Runtime reply families.
+fn local_packaged_runtime_issue_tag(
+  issue : NativeLocalPackagedRuntimeIssue?,
+) -> Int {
+  match issue {
     None => 0
     Some(InvalidInput) => 1
     Some(InvalidManifest) => 2

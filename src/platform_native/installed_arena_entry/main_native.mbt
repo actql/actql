@@ -595,6 +595,29 @@ extern "C" fn register_original_packaged_runtime_roots(
 ) -> Unit = "actql_native_control_register_packaged_runtime_roots"
 
 ///|
+extern "C" fn register_original_packaged_product_roots(
+  observe : FuncRef[
+    (@runtime.NativeLocalPackagedRuntime, String, String, String, Int) -> @runtime.NativeLocalPackagedProductReply,
+  ],
+  identity : FuncRef[
+    (@runtime.NativeLocalPackagedRuntime) -> @runtime.NativeLocalPackagedProductReply,
+  ],
+  host : FuncRef[
+    (@runtime.NativeLocalPackagedProductReply) -> @control.InstalledArenaHost?,
+  ],
+  original : FuncRef[
+    (@runtime.NativeLocalPackagedProductReply) -> @control.InstalledArenaOriginalRead?,
+  ],
+  runtime : FuncRef[
+    (@runtime.NativeLocalPackagedProductReply) -> @runtime.NativeLocalPackagedRuntime,
+  ],
+  operation : FuncRef[(@runtime.NativeLocalPackagedProductReply) -> Int],
+  issue : FuncRef[(@runtime.NativeLocalPackagedProductReply) -> Int],
+  length : FuncRef[(@runtime.NativeLocalPackagedProductReply) -> Int],
+  unit_at : FuncRef[(@runtime.NativeLocalPackagedProductReply, Int) -> Int],
+) -> Unit = "actql_native_control_register_packaged_product_roots"
+
+///|
 fn operation_tag(reply : @control.InstalledArenaReply) -> Int {
   reply.operation_tag()
 }
@@ -1012,5 +1035,20 @@ fn main {
     fn(reply) { reply.original_runtime() },
     fn(reply) { reply.operation_tag() },
     fn(reply) { reply.issue_family() },
+  )
+  register_original_packaged_product_roots(
+    fn(runtime, root, launcher_hash, platform_hash, ceiling) {
+      @runtime.observe_native_local_packaged_product_reply(
+        runtime, root, launcher_hash, platform_hash, ceiling,
+      )
+    },
+    fn(runtime) { @runtime.read_native_local_packaged_product_reply(runtime) },
+    fn(reply) { reply.original_host() },
+    fn(reply) { reply.original_read() },
+    fn(reply) { reply.original_runtime() },
+    fn(reply) { reply.operation_tag() },
+    fn(reply) { reply.issue_family() },
+    fn(reply) { reply.metadata_units() },
+    fn(reply, index) { reply.metadata_unit_at(index) },
   )
 }
