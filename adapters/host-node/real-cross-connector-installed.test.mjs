@@ -141,7 +141,19 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
         kind: 'collection', resource_identity_scheme_cid: contentCid(tableContract), provider_namespace: 'table',
         provider_boundary_cid: f.catalog.catalogCid, resource_kind: 'Table', provider_object_identity_cids: []}}],
     limits: {reservation: {bytes: 1048576, files: 16}}}), {flag: 'wx', mode: 0o600});
+  const diagnostics = [];
   const authorization = {accountConfiguration: account(), reviewReaders: [principalId],
+    observe(category, detail) {
+      if (diagnostics.length >= 32 || typeof category !== 'string' ||
+          !['dispatch_failed', 'effect_start_failed', 'local_compute_failed'].includes(category) &&
+          !category.endsWith('_preparation_rejected')) return;
+      const item = {category};
+      for (const key of ['issueTag', 'nestedIssueTag', 'requirementTag', 'task']) {
+        if (Number.isSafeInteger(detail?.[key])) item[key] = detail[key];
+      }
+      if (typeof detail?.code === 'string' && /^[A-Za-z_]{1,96}$/u.test(detail.code)) item.code = detail.code;
+      diagnostics.push(item);
+    },
     reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
       publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
     hostKey: {keyId: 'host', privateKey}};
@@ -195,14 +207,14 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     assert.deepEqual(reads.observation(), capturedCounts.duckdb);
     assert.equal(commits(f.catalog).length, 1);
     record.operationCompleted = true; record.capturedCounts = capturedCounts;
-    record.credential = credential.observation(); record.restart = restart;
+    record.credential = credential.observation(); record.restart = restart; record.diagnostics = diagnostics;
     record.tableRowCount = 1; record.catalogCommits = 1; record.additionalSourceRequests = 0;
     await save();
   } catch (error) {
     const code = typeof error?.code === 'string' && /^[A-Za-z0-9_]{1,96}$/u.test(error.code)
       ? error.code : 'Unclassified';
     record.failure = {code}; record.gcs = network.observation(); record.duckdb = reads.observation();
-    record.credential = credential.observation(); await save();
+    record.credential = credential.observation(); record.diagnostics = diagnostics; await save();
     throw new Error(`RealCrossConnectorAcceptance:${code}`);
   } finally {
     try {
