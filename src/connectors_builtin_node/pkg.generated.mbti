@@ -1017,6 +1017,8 @@ pub fn client_program_infer_stopped_attempt_slot(@client_infer_host.Execution, I
 
 pub fn client_program_infer_target_name(@run_publication_host.PreparedClientProgram, Int) -> String?
 
+pub fn client_program_initial_jev_decision_profile() -> @check_environment.DecisionProbabilityProfile
+
 pub fn client_program_install_async_model_provider(String) -> @model_execution.ModelProvider?
 
 pub fn client_program_install_model_provider(String, (@model_execution.ModelRequest) -> @model_execution.ModelResponse?) -> @model_execution.ModelProvider?
