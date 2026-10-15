@@ -26,14 +26,14 @@ async function until(read,accept){
   for(let i=0;i<500;i++){const value=read();if(accept(value))return value;await turn();}
   assert.fail('Finite same original Socket observation unavailable');
 }
-function fixture(t,wire,{deferClose=false,headerBytes=4096}={}){
+function fixture(t,wire,{deferClose=false,headerBytes=4096,synchronousProducer=false}={}){
   const original=Buffer.allocUnsafeSlow(Buffer.byteLength(wire));original.write(wire);
   const packets=[];
   for(let offset=0;offset<original.length;offset+=extent)packets.push(original.subarray(offset,offset+extent));
   let queued=false,finishClose,closes=0;
-  const socket=new Duplex({read(){},write(_bytes,_encoding,callback){
-    callback();if(queued)return;queued=true;
-    queueMicrotask(()=>{for(const packet of packets)socket.push(packet);});
+  const enqueue=()=>{if(queued)return;queued=true;for(const packet of packets)socket.push(packet);};
+  const socket=new Duplex({read(){if(synchronousProducer)enqueue();},write(_bytes,_encoding,callback){
+    callback();if(!synchronousProducer)queueMicrotask(enqueue);
   },destroy(error,callback){
     const finish=()=>callback(error);
     if(deferClose)finishClose=finish;else finish();
@@ -97,4 +97,34 @@ test('original header refusal stops subsequent queued reads but retains delayed 
   assert.equal(retired,true);assert.equal(f.closes(),1);
   assert.equal(connections,before+1);
   assert.throws(()=>f.call.invoke(),{code:'UndiciOriginalTransportRetired'});
+});
+
+test('original empty read does not absorb a synchronous producer burst as one parser chunk',async t=>{
+  const payload='x'.repeat(1536);
+  const f=fixture(t,`HTTP/1.1 200 OK\r\nContent-Length: 1536\r\n\r\n${payload}`,{synchronousProducer:true});
+  const response=await f.call.invoke(),reader=response.body.getReader(),parts=[];
+  for(;;){const next=await reader.read();if(next.done)break;parts.push(next.value);}
+  reader.releaseLock();
+  assert.equal(Buffer.concat(parts).toString(),payload);
+  assert.ok(f.reads.some(value=>value.available===0&&value.size===0&&value.bytes===null),
+    'same original empty read must drive _read without accepting its synchronous burst');
+  assert.ok(f.reads.filter(value=>value.bytes!==null).every(value=>value.bytes<=extent));
+  assert.equal(await f.call.cleanup(),true);
+});
+
+test('original short response is read before physical EOF without waiting for a fixed extent',async t=>{
+  const f=fixture(t,'HTTP/1.1 200 OK\r\nContent-Length: 3\r\nConnection: keep-alive\r\n\r\nabc');
+  let response,error;
+  const pending=f.call.invoke().then(value=>{response=value;},cause=>{error=cause;});
+  await until(()=>response??error,value=>value!==undefined);
+  await pending;
+  assert.equal(error,undefined);
+  assert.notEqual(response,undefined);
+  assert.ok(f.reads.some(value=>value.available>0&&value.available<extent&&value.size===value.available));
+  assert.equal(f.socket.readableEnded,false,'fixture never sent EOF to complete a fixed-size read');
+  const reader=response.body.getReader(),first=await reader.read();
+  assert.equal(Buffer.from(first.value).toString(),'abc');
+  assert.equal((await reader.read()).done,true);
+  reader.releaseLock();
+  assert.equal(await f.call.cleanup(),true);
 });
