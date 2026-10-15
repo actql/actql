@@ -47,3 +47,15 @@ test('actual response bytes and full campaign deadline remain independent observ
   assert.throws(() => observer.assertBounds()); now = 60000;
   assert.throws(() => observer.request(options(), () => {}));
 });
+
+test('one global metadata deadline cancels only the original physical request and retains custody until close', () => {
+  const controller = new AbortController(), physical = new EventEmitter();
+  let destroyed = 0;
+  physical.destroy = error => {assert.equal(error.code, 'GcsTestWindowExpired'); destroyed++;};
+  const observer = gcsMetadataRequestObserver({manifest, signal: controller.signal, request: () => physical});
+  assert.equal(observer.request(options(), () => {}), physical);
+  assert.throws(() => observer.assertClosed()); controller.abort();
+  assert.equal(destroyed, 1); assert.throws(() => observer.assertClosed());
+  physical.emit('close'); observer.assertClosed();
+  assert.throws(() => observer.request(options(), () => {}));
+});

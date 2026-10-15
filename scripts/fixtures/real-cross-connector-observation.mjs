@@ -4,12 +4,14 @@ import assert from 'node:assert/strict';
 import https from 'node:https';
 import {syncBuiltinESMExports} from 'node:module';
 
-export function gcsMetadataRequestObserver({request, manifest, now = Date.now, forbidden = false}) {
+export function gcsMetadataRequestObserver({request, manifest, now = Date.now, forbidden = false, signal}) {
   let requests = 0, responses = 0, responseBytes = 0;
   const started = now();
+  const active = new Set();
   const observed = function(options, callback) {
     if (options?.hostname !== 'storage.googleapis.com') return Reflect.apply(request, this, arguments);
     assert(!forbidden, 'Restoration must not reopen GCS');
+    signal?.throwIfAborted();
     assert.equal(options.protocol, 'https:');
     assert.equal(options.method, 'GET');
     const target = new URL(options.path, 'https://storage.googleapis.com');
@@ -20,25 +22,38 @@ export function gcsMetadataRequestObserver({request, manifest, now = Date.now, f
     assert(now() - started < manifest.limits.maxDurationMs);
     assert(requests < manifest.limits.maxRequests);
     requests++;
-    return Reflect.apply(request, this, [options, function(response) {
+    const physical = Reflect.apply(request, this, [options, function(response) {
       responses++;
       response.on('data', chunk => { responseBytes += chunk.byteLength; });
       return Reflect.apply(callback, this, arguments);
     }]);
+    if (signal) {
+      // This is the explicit external test-window cancellation, separate from
+      // product fuel/capacity. The original Site observes this same error.
+      const abort = () => physical.destroy(Object.assign(new Error('GcsTestWindowExpired'),
+        {code: 'GcsTestWindowExpired'}));
+      active.add(physical);
+      physical.once('close', () => { active.delete(physical); signal.removeEventListener('abort', abort); });
+      signal.addEventListener('abort', abort, {once: true});
+      if (signal.aborted) abort();
+    }
+    return physical;
   };
   return Object.freeze({request: observed,
     observation: () => Object.freeze({requests, responses, responseBytes}),
+    assertClosed() { assert.equal(active.size, 0, 'Original GCS request custody remains active'); },
     assertBounds() { assert(requests <= manifest.limits.maxRequests);
       assert(responseBytes <= manifest.limits.maxResponseBytes); },
   });
 }
 
-export function observeInstalledGcsMetadata(manifest, {forbidden = false} = {}) {
+export function observeInstalledGcsMetadata(manifest, {forbidden = false, signal} = {}) {
   const original = https.request;
-  const observer = gcsMetadataRequestObserver({request: original, manifest, forbidden});
+  const observer = gcsMetadataRequestObserver({request: original, manifest, forbidden, signal});
   https.request = observer.request;
   syncBuiltinESMExports();
   return Object.freeze({...observer, close() {
+    observer.assertClosed();
     assert.equal(https.request, observer.request);
     https.request = original;
     syncBuiltinESMExports();
