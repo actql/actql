@@ -160,6 +160,39 @@ static bool cleanup_result_after_last_user(void) {
     moonbit_decref(result);
     finish(&lease,&context); return true;
 }
+/* The failed close has already returned the final user. Its diagnostic
+ * alias still owns the original context, so cleanup must not create a user. */
+static bool alias_only_cleanup(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    moonbit_bytes_t diagnostic=moonbit_make_bytes_raw(9);
+    memcpy(diagnostic,"original!",9);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY && context->closing);
+    assert(actql_native_owned_enter(lease)==0);
+    assert(actql_read_context_enter(context)==ACTQL_OWNED_INVALID);
+#ifdef ACTQL_ALIAS_CLEANUP_ENTRY
+    assert(actql_read_context_enter_cleanup(context)==0);
+#else
+    /* The original ABI used the normal entry for this SAME cleanup request. */
+    assert(actql_read_context_enter(context)==0);
+#endif
+    assert(context->users==0 && context->active==1 && context->closing);
+    assert(actql_read_context_retain(context)==ACTQL_OWNED_INVALID);
+    assert(actql_read_context_enter(context)==ACTQL_OWNED_INVALID);
+    moonbit_decref(diagnostic);
+    moonbit_bytes_t result=moonbit_make_bytes_raw(12);
+    memcpy(result,"cleanup-done",12);
+    assert(actql_native_owned_contains_live_span(lease,result,12)==0);
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+    context_leave(lease,context);
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+    moonbit_decref(result);
+    finish(&lease,&context); return true;
+}
 static bool nested_foreign_closing(void) {
     actql_owned_capacity *lease=lease_new();
     actql_read_context *a=context_new(lease),*b=context_new(lease);
@@ -322,9 +355,9 @@ int main(int argc,char **argv) {
         return ok?0:1;
     }
     assert(argc==2);
-    bool (*tests[])(void)={fork_stock,managed_alias,busy_cleanup,cleanup_result_after_last_user,nested_foreign_closing,
+    bool (*tests[])(void)={fork_stock,managed_alias,busy_cleanup,cleanup_result_after_last_user,alias_only_cleanup,nested_foreign_closing,
         exhausted_no_fallback,retire_retry,fork_arena,foreign_pid,context_retire_retry};
-    const char *names[]={"fork-stock","managed-alias","same-owner-cleanup","cleanup-result-after-last-user","nested-foreign-closing",
+    const char *names[]={"fork-stock","managed-alias","same-owner-cleanup","cleanup-result-after-last-user","alias-only-cleanup","nested-foreign-closing",
         "exhaustion-no-fallback","extent-retirement-retry","fork-arena-refusal","foreign-pid-refusal","context-retirement-retry"};
     unsigned executed=0;
     for(size_t i=0;i<sizeof(tests)/sizeof(tests[0]);i++) {

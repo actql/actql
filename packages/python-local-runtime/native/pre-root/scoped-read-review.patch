@@ -76,7 +76,7 @@
          unlock_capacity(lease);
 --- /dev/null
 +++ b/scoped_read.h
-@@ -0,0 +1,21 @@
+@@ -0,0 +1,23 @@
 +#ifndef ACTQL_PRIVATE_SCOPED_READ_H
 +#define ACTQL_PRIVATE_SCOPED_READ_H
 +#include <stddef.h>
@@ -88,6 +88,8 @@
 +int actql_read_context_retain(actql_read_context *);
 +int actql_read_context_release_after_owner_ack(actql_read_context *);
 +int actql_read_context_enter(actql_read_context *);
++/* Original stopped read-use only; no fresh user or read permission. */
++int actql_read_context_enter_cleanup(actql_read_context *);
 +int actql_read_context_leave(actql_read_context *);
 +int actql_read_context_try_close(actql_read_context **);
 +/* Existing managed allocations retain their original free route after leave.
@@ -100,7 +102,7 @@
 +#endif
 --- /dev/null
 +++ b/scoped_read.inc
-@@ -0,0 +1,312 @@
+@@ -0,0 +1,327 @@
 +/* DESIGN / EXACT-DIFF PREPARATION ONLY. Not compiled or selected by a producer.
 + * Included once by the ORIGINAL owned_capacity.c. This is physical provenance
 + * inside that provider, not a new quota, permission registry or cleanup Owner. */
@@ -225,11 +227,14 @@
 +    return status;
 +}
 +
-+int actql_read_context_enter(actql_read_context *context) {
++static int enter_read_context(actql_read_context *context, bool cleanup) {
 +    if (!lock_read_contexts()) return ACTQL_OWNED_INVALID;
 +    int status = ACTQL_OWNED_INVALID;
-+    if (known_read_context(context) && !context->closing &&
-+        context->users != 0 && context->active != SIZE_MAX &&
++    if (known_read_context(context) &&
++        ((!context->closing && context->users != 0) ||
++         (cleanup && context->closing && context->users == 0) ||
++         (cleanup && !context->closing && read_current == context && read_depth != 0)) &&
++        context->active != SIZE_MAX &&
 +        (read_current == NULL || read_current == context) && read_depth != SIZE_MAX &&
 +        actql_native_owned_current() == context->lease) {
 +        lock_capacity(context->lease);
@@ -245,6 +250,16 @@
 +    }
 +    unlock_read_contexts();
 +    return status;
++}
++
++int actql_read_context_enter(actql_read_context *context) {
++    return enter_read_context(context, false);
++}
++/* Only the existing nominal Owner's stopped read-use enters this path. It
++ * borrows the SAME context/lease while its last aliases or retirement retry
++ * retain custody. It issues no user and cannot reopen an ordinary read. */
++int actql_read_context_enter_cleanup(actql_read_context *context) {
++    return enter_read_context(context, true);
 +}
 +
 +int actql_read_context_leave(actql_read_context *context) {
@@ -264,7 +279,9 @@
 +    void *output = NULL;
 +    if (!lock_read_contexts()) return NULL;
 +    actql_read_context *context = read_current;
-+    if (known_read_context(context) && !context->closing && read_depth != 0 &&
++    /* Closing cannot begin during an active ordinary frame. A closing active
++     * frame can therefore only be the original cleanup entry above. */
++    if (known_read_context(context) && read_depth != 0 &&
 +        context->active != 0 && actql_native_owned_current() == context->lease &&
 +        actql_native_owned_allocate(context->lease, bytes ? bytes : 1,
 +                                    _Alignof(max_align_t), &output) == ACTQL_OWNED_OK) {
