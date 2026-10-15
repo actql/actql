@@ -1,8 +1,7 @@
 #include "packaged_runtime_shim.h"
 #include <string.h>
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
-#include "scoped_read.h"
-extern actql_read_context *actql_bootstrap_current_read_context(void);
+extern int32_t actql_bootstrap_control_scope_clear(void);
 #endif
 static struct {
     actql_runtime_capture_fn capture;
@@ -42,7 +41,7 @@ int actql_packaged_runtime_capture_utf16_into(actql_control_host *host, actql_pa
         !manifest || manifest_units != 64 || ceiling < 1) return ACTQL_CONTROL_INVALID_SLOT;
     if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
-    if (actql_bootstrap_current_read_context()) return ACTQL_CONTROL_UNAVAILABLE;
+    if (actql_bootstrap_control_scope_clear() != 1) return ACTQL_CONTROL_UNAVAILABLE;
 #endif
     moonbit_string_t r = exact_string(root, root_units);
     moonbit_string_t s = exact_string(source, source_units);
@@ -56,7 +55,7 @@ int actql_packaged_runtime_current_into(actql_packaged_runtime *runtime, actql_p
     if (!runtime || !reply || *reply) return ACTQL_CONTROL_INVALID_SLOT;
     if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
-    if (actql_bootstrap_current_read_context()) return ACTQL_CONTROL_UNAVAILABLE;
+    if (actql_bootstrap_control_scope_clear() != 1) return ACTQL_CONTROL_UNAVAILABLE;
 #endif
     *reply = callbacks.current(runtime);
     return *reply ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
@@ -65,7 +64,7 @@ int actql_packaged_runtime_close_into(actql_packaged_runtime *runtime, actql_pac
     if (!runtime || !reply || *reply) return ACTQL_CONTROL_INVALID_SLOT;
     if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
 #ifdef ACTQL_SCOPED_READ_ALLOCATOR
-    if (actql_bootstrap_current_read_context()) return ACTQL_CONTROL_UNAVAILABLE;
+    if (actql_bootstrap_control_scope_clear() != 1) return ACTQL_CONTROL_UNAVAILABLE;
 #endif
     *reply = callbacks.close(runtime);
     return *reply ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;

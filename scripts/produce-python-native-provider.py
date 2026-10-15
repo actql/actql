@@ -232,7 +232,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     c_sources += [(ROOT / ENTRY / (name + '.c'), name)
                   for name in ('control_shim', 'backing_shim', 'domain_shim', 'domain_read_shim',
                                'worker_selection_shim', 'live_channel_shim', 'sqlite_shim',
-                               'sqlite_database_shim', 'original_read_shim', 'packaged_runtime_shim')]
+                               'sqlite_database_shim', 'original_read_shim', 'packaged_runtime_shim',
+                               'packaged_product_shim')]
     runtime_source = allocator if allocator is not None else moon_home / 'lib/runtime'
     c_sources += [(runtime_source / (name + '.c'), 'runtime-' + name)
                   for name in ('backtrace', 'env', 'runtime', 'sync_io', 'utf')]
@@ -258,7 +259,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                        '-include', str(ROOT / ENTRY / 'sqlite_shim.h'),
                        '-include', str(ROOT / ENTRY / 'sqlite_database_shim.h'),
                        '-include', str(ROOT / ENTRY / 'original_read_shim.h'),
-                       '-include', str(ROOT / ENTRY / 'packaged_runtime_shim.h')]
+                       '-include', str(ROOT / ENTRY / 'packaged_runtime_shim.h'),
+                       '-include', str(ROOT / ENTRY / 'packaged_product_shim.h')]
         elif name.startswith('runtime-'):
             common += ['-Wno-unused-value', '-DMOONBIT_ALLOW_STACKTRACE']
         else:
