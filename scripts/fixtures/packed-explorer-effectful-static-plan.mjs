@@ -149,7 +149,11 @@ await test('ordinary installed Local Explorer shows checked update declarations 
     const direct = await client.plan(program);
     receipt.originalPlan = direct;
     assert.equal(direct.version, 'actql-effectful-static-plan-view/0.1');
-    assert.equal(direct.check_environment_cid, published.environmentCid);
+    // Publication identifies the connector Environment. The installed Host
+    // additionally binds its own capacity profile before preparing a Program.
+    // Keep those identities distinct; compare the checked Host's original
+    // projection through SDK, Gateway and UI, not against the pre-Host CID.
+    assert.match(direct.check_environment_cid, /^sha256:[0-9a-f]{64}$/u);
     assert.equal(direct.computation.scope, 'computation_component');
     assert.equal(direct.effect_set.unit_id, 'source');
     assert.deepEqual(direct.effect_set.members, [expectedMember]);
@@ -173,6 +177,9 @@ await test('ordinary installed Local Explorer shows checked update declarations 
       const model = await source.plan(program);
       assert.equal(model.compiledPlanCid, direct.computation.plan_view.compiled_plan_cid);
       assert.equal(model.logicalMapCid, direct.computation.plan_view.logical_map.self_cid);
+      assert.equal(model.effectful.checkEnvironmentCid, direct.check_environment_cid);
+      assert.equal(model.effectful.parameterValuesCid, direct.parameter_values_cid);
+      assert.equal(model.programDefinitionCid, direct.program_definition_cid);
       assert.deepEqual(model.effectful.members, [expectedMember]);
       assert.deepEqual(model.nodes.map(node => node.operator), ['values']); assert.deepEqual(model.edges, []);
       assert.deepEqual(model.nodes.map(node => [node.id, node.ports]), direct.computation.plan_view.logical_map.steps.map(step => [step.step_id, step.ports]));
@@ -205,6 +212,7 @@ await test('ordinary installed Local Explorer shows checked update declarations 
       await section.getByRole('heading', {name: 'Computation component', exact: true}).waitFor();
       const text = await section.getByRole('region', {name: 'Declared Effects', exact: true}).innerText();
       for (const expected of ['unit source', 'save', 'update', mapping.mappingRef, mapping.mappingCid,
+        direct.check_environment_cid, direct.parameter_values_cid,
         'Declared target: connector://crm-main/Test_Record__c', 'Result: rows', 'none',
         'Resolved targets: unknown.', 'Changed values: unknown.', 'Current permission: unknown.',
         'Gate: unknown.', 'Approval: unknown.', 'Sealed Preview: unavailable.']) assert(text.includes(expected), expected);
