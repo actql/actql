@@ -74,8 +74,18 @@ test "original temporal operands complete through selected interval with exact s
         match advance_bounded_interval_join(active, 1).unwrap() {
           BoundedIntervalJoinContinue(..) => ()
           BoundedIntervalJoinComplete(value, ..) => output = Some(value)
-          BoundedIntervalJoinFailed(issue, ..) =>
-            fail("typed interval failure: " + issue.to_string())
+          BoundedIntervalJoinFailed(issue, ..) => {
+            let category = match issue {
+              InvalidExecution => "invalid_execution"
+              Rows(RowLimit) => "rows.row_limit"
+              Rows(InvalidRowLimits) => "rows.invalid_limits"
+              Rows(_) => "rows"
+              Capture(_) => "capture"
+              Completion(_) => "completion"
+              Execution(_) => "execution"
+            }
+            fail("typed interval failure: " + category)
+          }
           BoundedIntervalJoinStopped(_, ..) => fail("unexpected interval stop")
         }
       }
