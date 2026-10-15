@@ -345,13 +345,6 @@ fn relation_chain_reclaimed_prefix(
   @execution.generated_sequence_step_count(sequence)
 }
 
-///|
-fn relation_chain_reclaims_completed_scratch(
-  sequence : @execution.GeneratedSequence,
-) -> Bool {
-  relation_chain_reclaimed_prefix(sequence) ==
-    @execution.generated_sequence_step_count(sequence)
-}
 
 ///|
 /// Completed output remains held for every exact downstream edge. An eligible

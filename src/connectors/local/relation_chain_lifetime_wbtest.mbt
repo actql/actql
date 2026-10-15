@@ -1,4 +1,12 @@
 ///|
+fn relation_chain_reclaims_completed_scratch(
+  sequence : @execution.GeneratedSequence,
+) -> Bool {
+  relation_chain_reclaimed_prefix(sequence) ==
+  @execution.generated_sequence_step_count(sequence)
+}
+
+///|
 fn chain_lifetime_cursor(text : String) -> @decode.Cursor {
   @decode.admit(
     @source.parse_json(
