@@ -1551,6 +1551,8 @@ pub fn client_program_prepare_multi_captured_effect_acquisition_ledger(@run_publ
 
 pub fn client_program_prepare_multi_captured_effect_capacity_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@client_local_host.ClientDuckDBCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
+pub fn client_program_prepare_multi_captured_effect_installed_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@client_local_host.ClientInstalledCaptureCapacity], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
+
 pub fn client_program_prepare_multi_captured_effect_local_ledger(@run_publication_host.PreparedClientEffectComputation, Array[@actql/actql/connectors/duckdb/host.NativeHostConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?
 
 pub fn client_program_prepare_multi_captured_local_acquisition_ledger(@run_publication_host.PreparedClientProgram, Array[@actql/actql/connectors/duckdb/host.CaptureConfiguration], Array[Int64], Array[Int64], String, String, String?, String?) -> @physical_resources.Ledger?

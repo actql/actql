@@ -47,6 +47,50 @@ fn local_run_policy_selected(
 }
 
 ///|
+// The existing bounded full-parse/metadata projection preserves the selected
+// Run original. No filename search, new parser or replacement policy is used.
+fn local_run_policy_run_fields(
+  run : Bytes,
+) -> @decode.ObjectView raise LocalReadPolicyStop {
+  let cursor = @host.client_local_run_policy_metadata_cursor(run).unwrap_or_else(() => {
+      raise LocalReadPolicyStop(InvalidOriginal)
+    },
+  )
+  let root = read_policy_decoded(
+    @decode.closed_object(cursor, ["native", "version"]),
+  )
+  if read_policy_text(root, "version", 32) != "actql-config/0.1" {
+    raise LocalReadPolicyStop(InvalidOriginal)
+  }
+  let native = read_policy_decoded(
+    @decode.closed_object(read_policy_field(root, "native"), ["run"]),
+  )
+  read_policy_decoded(
+    @decode.closed_object(read_policy_field(native, "run"), [
+      "namespace_id", "store_name", "store_authority_cid", "store_capacity_bytes",
+      "store_objects", "store_record_bytes", "result_payload_bytes", "retention_policy_wire",
+      "source_free",
+    ]),
+  )
+}
+
+///|
+fn local_run_policy_source_free_original(
+  fields : @decode.ObjectView,
+) -> @publication.CapturedEffectDependencyBody raise LocalReadPolicyStop {
+  let values = read_policy_decoded(
+    @decode.closed_object(read_policy_field(fields, "source_free"), [
+      "registry", "values", "fragment", "ordered", "result_policy_cid", "result_policy_wire",
+    ]),
+  )
+  let policy_wire = read_policy_text(values, "result_policy_wire", 8192)
+  let policy_cid = read_policy_text(values, "result_policy_cid", 71)
+  @host.admit_source_free_result_policy_body(
+    policy_cid, policy_wire, 8192, 512, 8,
+  ).unwrap_or_else(() => raise LocalReadPolicyStop(InvalidOriginal))
+}
+
+///|
 // Extract only actual selected originals. The old absolute retention body is
 // admitted as an original dependency, never interpreted as a rolling lifetime.
 fn local_run_policy_common_originals(
@@ -59,39 +103,8 @@ fn local_run_policy_common_originals(
   NativeClientRunJournalIssue,
 ] {
   try {
-    let cursor = @host.client_local_run_policy_metadata_cursor(run).unwrap_or_else(() => {
-        raise LocalReadPolicyStop(InvalidOriginal)
-      },
-    )
-    let root = read_policy_decoded(
-      @decode.closed_object(cursor, ["native", "version"]),
-    )
-    if read_policy_text(root, "version", 32) != "actql-config/0.1" {
-      return Err(CustodyLost)
-    }
-    let native = read_policy_decoded(
-      @decode.closed_object(read_policy_field(root, "native"), ["run"]),
-    )
-    let fields = read_policy_decoded(
-      @decode.closed_object(read_policy_field(native, "run"), [
-        "namespace_id", "store_name", "store_authority_cid", "store_capacity_bytes",
-        "store_objects", "store_record_bytes", "result_payload_bytes", "retention_policy_wire",
-        "source_free",
-      ]),
-    )
-    let values = read_policy_decoded(
-      @decode.closed_object(read_policy_field(fields, "source_free"), [
-        "registry", "values", "fragment", "ordered", "result_policy_cid", "result_policy_wire",
-      ]),
-    )
-    let policy_wire = read_policy_text(values, "result_policy_wire", 8192)
-    let policy_cid = read_policy_text(values, "result_policy_cid", 71)
-    if @host.admit_source_free_result_policy_body(
-        policy_cid, policy_wire, 8192, 512, 8,
-      )
-      is Err(_) {
-      return Err(CustodyLost)
-    }
+    let fields = local_run_policy_run_fields(run)
+    let policy = local_run_policy_source_free_original(fields)
     Ok({
       account,
       retention_dependencies: retention,
@@ -99,7 +112,9 @@ fn local_run_policy_common_originals(
         read_policy_text(fields, "retention_policy_wire", 8192),
       ),
       store,
-      result_policy: @utf8.encode(policy_wire),
+      result_policy: @utf8.encode(
+        @publication.captured_effect_dependency_body_json(policy),
+      ),
     })
   } catch {
     LocalReadPolicyStop(_) => Err(CustodyLost)

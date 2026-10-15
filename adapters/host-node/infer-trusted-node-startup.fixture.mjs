@@ -66,6 +66,45 @@ if (mode === 'absent' || mode === 'promise-unselected') {
     requireInferTrustedStartupView(nextView, next);
     forgetInferTrustedStartupView(nextView, next.host, next.generation);
     forgetInferTrustedRuntimeView(nextView, next.host, next.generation);
+  } else if (mode === 'identity-index-lifetime') {
+    // Actual selected startup/index implementation, nominal Host/Scope refs.
+    // This observes membership and retirement, never backing size/shrink/ACK.
+    const other = {...actual, host: {}, generation: {}, installation: {}};
+    const otherView = issueInferTrustedRuntimeView(other);
+    assert.equal(associateInferTrustedStartupView(otherView, other), otherView);
+    const escaped = {...actual, installation: {}, transport() {}};
+    const escapedView = issueInferTrustedRuntimeView(escaped);
+    borrowInferTrustedStartupView(view, escapedView, actual, escaped);
+    requireInferTrustedStartupView(escapedView, escaped);
+    // Repeated Runs on the SAME Host do not invent new Host generations.
+    for (let index = 0; index < 3; index++) {
+      const scoped = {...actual, installation: {}, transport() {}};
+      const scopedView = issueInferTrustedRuntimeView(scoped);
+      borrowInferTrustedStartupView(view, scopedView, actual, scoped);
+      requireInferTrustedStartupView(scopedView, scoped);
+      requireInferTrustedStartupView(otherView, other);
+      rejects(() => requireInferTrustedStartupView(scopedView,
+        {...scoped, generation: other.generation}), 'InferTrustedRuntimeOriginalChanged');
+      forgetInferTrustedStartupView(scopedView, actual.host, actual.generation);
+      forgetInferTrustedRuntimeView(scopedView, actual.host, actual.generation);
+      rejects(() => requireInferTrustedStartupView(scopedView, scoped),
+        'InferTrustedRuntimeViewRetired');
+    }
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
+    rejects(() => requireInferTrustedStartupView(escapedView, escaped),
+      'InferTrustedStartupUnavailable');
+    // Retaining the original Host key does not permit generation reuse after
+    // association deletion. Another live Host keeps its independent duty.
+    rejects(() => associateInferTrustedStartupView(issueInferTrustedRuntimeView(actual), actual),
+      'InferTrustedStartupUnavailable');
+    requireInferTrustedStartupView(otherView, other);
+    rejects(() => requireInferTrustedStartupView({...otherView}, other),
+      'InferTrustedRuntimeViewUnavailable');
+    forgetInferTrustedStartupView(escapedView, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(escapedView, actual.host, actual.generation);
+    forgetInferTrustedStartupView(otherView, other.host, other.generation);
+    forgetInferTrustedRuntimeView(otherView, other.host, other.generation);
   } else if (mode === 'tls-peer-originals') {
     // Selected builtin JS only, not a handshake or certificate-size bound.
     // The TLS adapter's original error retains this SAME peer graph. ActQL
