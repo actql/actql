@@ -50,21 +50,27 @@ fn local_capture_effect_original(
   settings : LocalHostSettings,
   crypto : @local_crypto.Library,
   reference : @local_host.NativeClientSubmissionReference,
-  request : @run_host.ClientRequestIdentity,
+  start : LocalEffectPreparedStart,
   work : @local_host.NativeClientEffectSourceWork,
-  run : LocalRunInstallation,
   configuration : @source_owner.ResidentSourceComputeConfiguration,
 ) -> Result[
   @source_owner.ResidentLocalEffectCaptureContext,
   LocalEffectOriginalCaptureIssue,
 ] {
+  if !physical_equal(start.host, host) ||
+    !physical_equal(start.crypto, crypto) ||
+    start.principal != settings.principal ||
+    start.connection != settings.connection {
+    return Err(Submission(@local_host.ForeignPreparation))
+  }
+  let run = start.run
   match
     host.check_submitted_effect_capture_work(
       crypto,
       settings.principal,
       settings.connection,
       reference,
-      request,
+      start.original.request,
       work,
       @env.now().to_double(),
     ) {

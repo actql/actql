@@ -1,0 +1,255 @@
+{
+  "source": "fa800389034469ce5a80c769457696125b987706",
+  "tree": "a172a9edc03cd0df68b9bc26bb421d63ceedccdd",
+  "format": "aql",
+  "sourceQualification": "Normally installed exact-fa800389 cohort; not the later proof child or latest-main qualification",
+  "run": "run-IPEIcv",
+  "complete": true,
+  "exitCode": 0,
+  "actualTests": {
+    "tests": 1,
+    "passed": 1,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0
+  },
+  "budget": {
+    "outerSeconds": 300,
+    "termGraceSeconds": 5,
+    "normalInstallSeconds": 90,
+    "childSeconds": 180,
+    "freshSubmissions": 1
+  },
+  "manifestSHA256": "07e04a7076c93667e68a4db3a4f523426b71d0109baeae7d52575667c1500b85",
+  "directory": "/private/tmp/actql-g-node-rc-fa800389-20261016",
+  "producer": {
+    "owner": "G",
+    "run": "run-IecEBP",
+    "outerSeconds": 1800,
+    "termGraceSeconds": 5,
+    "normalPrepack": true,
+    "buildTasks": 188,
+    "newProducerByB": 0
+  },
+  "packages": [
+    {
+      "name": "@actql/client-wire",
+      "file": "actql-client-wire-0.0.1.tgz",
+      "sha256": "226a4baf10634215875da7b38a8ac767ed9e666f478db56ef42f94d5fa0799d7",
+      "originalSha256": "2e33afceb219108ca72eec3b43f54abcc023e12c27482335179eeac627a11990",
+      "bytes": 89321,
+      "integrity": "sha512-plZvWCPxXaQWAng9fAiDR0c0x7bCi8hLAnbIIn2gpUODkM2ZPL5zirqzkrXBCzJIBWTqAB8q8FfxDKCr3TDPsg=="
+    },
+    {
+      "name": "@actql/sdk",
+      "file": "actql-sdk-0.0.1.tgz",
+      "sha256": "5ca3ccb912eca9c1bbcc1f03918151e59bcbe46c9cd26aaa6e6804dbe55893fb",
+      "originalSha256": "3fa8112ae328864ac38f42b91378cbdb9c5872eeedda44038a162b039cf37fcb",
+      "bytes": 111246,
+      "integrity": "sha512-2/jZzZ+0pPd/Xd76zzlOxM8/VyfFiCSOJXDHYcCKqIzlbQVIkjvkLYlxVtOlt1x3pgETQEeWc0mHJ77OJzZk1Q=="
+    },
+    {
+      "name": "@actql/local-node",
+      "file": "actql-local-node-0.0.1.tgz",
+      "sha256": "b3114cf592e92a9294a5461333d0e07a10cc06748fba78404739e01b6bc9752b",
+      "originalSha256": "c4d156e1e0017367d35d17d1d174b6f0199d788281e80ef8ffee568753cab540",
+      "bytes": 4696759,
+      "integrity": "sha512-iprHeZo/ZBIveUEu0q/zsnAY4ZAPa5//XXCm6fCLMYlP+eelQtgTdi2FWjv9LIagxVsGflfADCpi009nFCnclA=="
+    },
+    {
+      "name": "@actql/node",
+      "file": "actql-node-0.0.1.tgz",
+      "sha256": "0e892db9f465f5b575c255cf16c950ede0507a72afb2b95942714d5d6b825483",
+      "originalSha256": "85cb7328069c2fe1b068715989fa3b640770cd52f42667997e688571d673d2cd",
+      "bytes": 9179,
+      "integrity": "sha512-Uq3YQVnoV0I4ZAbdeiATUkOQPme74YmupGHvklU8YWsFYSNtx1MGIWQhlGATY6lfmSn0o3F1lREvN1/5IsAKFg=="
+    }
+  ],
+  "expectedAndActualJoined": {
+    "name": "joined",
+    "rows": [
+      {
+        "id": 1,
+        "tag": "actql-content-test/a.csv"
+      }
+    ],
+    "columns": [
+      {
+        "name": "id",
+        "contract": {
+          "type": "number",
+          "nullable": false
+        }
+      },
+      {
+        "name": "tag",
+        "contract": {
+          "type": "string",
+          "nullable": false
+        }
+      }
+    ]
+  },
+  "primarySourceCounts": {
+    "gcs": {
+      "requests": 1,
+      "responses": 1,
+      "responseBytes": 1927
+    },
+    "duckdb": {
+      "sourceReadSessions": 1,
+      "sourceReadStatements": 1
+    }
+  },
+  "acceptedRuns": 1,
+  "submissions": 1,
+  "initialProcessPid": 55734,
+  "approvalChild": {
+    "pid": 55953,
+    "status": "succeeded",
+    "format": "aql",
+    "approval": "committed",
+    "sameRun": true,
+    "sameSealedPreview": true,
+    "sourceRequests": 0,
+    "newSubmissions": 0
+  },
+  "postCommitFreshProcess": {
+    "pid": 55990,
+    "status": "succeeded",
+    "format": "aql",
+    "sameRun": true,
+    "sourceRequests": 0,
+    "credentialResolutions": 0,
+    "newSubmissions": 0,
+    "physicalTableWorkerStarts": 0
+  },
+  "actualTable": {
+    "catalogCommits": 1,
+    "rows": 1,
+    "independentParquetRead": {
+      "path": "/Users/t14i/workspace/20260822/reviews/2026-10-11-integration-owner/g-fa800389-independent-committed-parquet.json",
+      "sha256": "385e7ed90a546cef037d0bc8e7f116de313c10d030d3d9fa93124d5dc8590a80"
+    },
+    "physicalSchema": [
+      {
+        "name": "id",
+        "type": "double",
+        "nullable": false
+      },
+      {
+        "name": "tag",
+        "type": "string",
+        "nullable": false
+      }
+    ]
+  },
+  "preApprovalPublicResult": "unavailable",
+  "preApprovalPayload": "unavailable_in_existing_review_projection",
+  "cleanup": {
+    "clientCloseResolved": true,
+    "physicalRequestCustodyClosed": true,
+    "credentialClosed": true,
+    "actualObservedOwnerChildrenGroupsAbsent": true,
+    "originalWorktreeAndSharedOwnerTokensReturned": true,
+    "fixtureOpenFiles": 0,
+    "optionalMissingCleanupMetadataNotInvented": true
+  },
+  "installedMembersByteModeSRI": 319,
+  "fixtureCopies": 23,
+  "sourceInputs": 27,
+  "raw": [
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-e8KWzk/receipt.json",
+      "sha256": "7c3a3bc5aa0d9ad6290b4bc1c06c30ee24cca37ff331abc9e8f5bbb2962adc8f",
+      "bytes": 83046
+    },
+    {
+      "path": "/private/var/folders/sk/89cnymvx0t3fy94vwmqwrg4c0000gn/T/actql-table-process-Mum9vm/real-cross-connector-observation.json",
+      "sha256": "781126cc76b6a40906837d7da3656b509ea86f4e834baf639c1c32db2cacfd28",
+      "bytes": 8280
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/actql-b-ctas-retained-result-20261015/_build/local-checks/attempts/run-IPEIcv/summary.json",
+      "sha256": "226553b575cb5290124b4481e2bb6156343c98b88ff19942c915c211a03e4f4d",
+      "bytes": 2561
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-fa800389-aql-custody-inventory.json",
+      "sha256": "696f78f9dda37a47cb6cef6b9ed89ba8aeea29088ecea87c2a0639923868b88b",
+      "bytes": 31196
+    },
+    {
+      "path": "/private/var/folders/sk/89cnymvx0t3fy94vwmqwrg4c0000gn/T/actql-table-process-Mum9vm/restart-observation.approve.json",
+      "sha256": "be5e6db74d6007e3d18be4337e837fe220d889d25fa9a74df6b3a1942df44ffc",
+      "bytes": 2760
+    },
+    {
+      "path": "/private/var/folders/sk/89cnymvx0t3fy94vwmqwrg4c0000gn/T/actql-table-process-Mum9vm/restart-observation.terminal.json",
+      "sha256": "c96ee21b4909750ed6d1a96c24e0552a5105f32678d525d02c3abb245c5d2e42",
+      "bytes": 1046
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-fa800389-aql-consumer.log",
+      "sha256": "0920d0ed0a5f4cde0c2ad1e8544fa6dbe921155f0e4b938b7e9c6bac0413b13b",
+      "bytes": 66316
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-e8KWzk/consumer.stdout.log",
+      "sha256": "e7988be0ff4d23132fcee72ad28598afef415a7c15b4a5ee44ce63ea6be2a85c",
+      "bytes": 5639
+    },
+    {
+      "path": "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-e8KWzk/consumer.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  ],
+  "finalHandoff": {
+    "path": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-fa800389-aql-final-handoff.json",
+    "sha256": "1cb327b77629fb9038841fa33e49a4fe10415ba38c87df38a641c1d8dfd94543"
+  },
+  "independentAudit": {
+    "path": "/Users/t14i/workspace/20260822/reviews/2026-10-11-integration-owner/g-fa800389-B-aql-independent-acceptance.json",
+    "sha256": "3cfc09e2ac88d2a6bec93f24c0dc84a81bbc5000a3d34ca658b07cb823746e9a",
+    "additionalExternalOperations": 0
+  },
+  "externalScope": {
+    "gcsMetadataRequests": 10,
+    "gcsMetadataResponseBytes": 1048576,
+    "authAndMetadataTotalSeconds": 60,
+    "costUsd": 1,
+    "normalAuthorizedTokenSubprocess": 1,
+    "authSubprocessSeconds": 30,
+    "authOutputBytes": 16384,
+    "authInternalHttp": "Unmeasured trusted authentication, not zero or part of the measured GCS counter",
+    "contentRetrieval": false,
+    "externalWrite": false,
+    "newExternalCredentialOrGrant": false
+  },
+  "preflightPreparationFailure": {
+    "path": "/Users/t14i/workspace/20260822/reviews/2026-10-15-b-real-cross-connector-route/real-route-fa800389-aql-consumer-preflight.log",
+    "sha256": "dd650c0bfe68805b5c6ee14be95154a6b63ff0f962eed369ecdc0fe63e09150a",
+    "cause": "Git show default output buffer exhausted before Host/authentication; replaced by exact blob-ID and local hash-object comparison without increasing the buffer or product bounds",
+    "physicalCalls": 0
+  },
+  "retainedCustody": {
+    "application": "/Users/t14i/workspace/20260822/worktrees/.codex-scratch/real-cross-connector-e8KWzk/application",
+    "tableRoot": "/private/var/folders/sk/89cnymvx0t3fy94vwmqwrg4c0000gn/T/actql-table-process-Mum9vm",
+    "files": 139,
+    "keysAndDatabasePreserved": true
+  },
+  "oldSql6fCountedAgain": 0,
+  "unverified": [
+    "Real HTTPS route",
+    "Full Preview row-value inspection",
+    "All seventeen Connector Read/Write profiles",
+    "Whole Frontend/latest-main product acceptance",
+    "Native/Python/Cloud acceptance",
+    "Hosted CI and formal publication"
+  ],
+  "newSharedRealAqlLocalEntry": 1,
+  "additionalDistinctBusinessScenarios": 0,
+  "sameBusinessScenarioWithSql6f": true
+}

@@ -840,9 +840,10 @@ Wasm `open` and equal serialized limits do not establish inherited funding.
 Additional records, resident read-use flags, callbacks, transport/control and
 workspace overlap require the original envelope, not spare bytes or a default.
 
-The child-side `ImportedChildLedger` is issued only by fixed installed Host
-imports on the selected Wasm target. It retains a partial original before the
-one-shot parent admission; unsupported targets have no scalar/callback fallback.
+The child-side `ImportedChildLedger` has two exclusive installed entrances. The
+fixed Host-import entrance is supported on the selected Wasm target. It retains
+a partial original before the one-shot parent admission; unsupported targets
+have no scalar/callback fallback for that import.
 Read all six original limits and the two actual funded VM/Host capacities, then
 recheck the same import before creating the bounded delegated accounting view.
 A nonce correlates that actual VM and is not authority. The original physical
@@ -856,6 +857,29 @@ bounded by the same delegated allowance. A single take transfers the Ledger and
 these exact capacities to the existing Root. An ordinary Ledger has no such
 import and retains its existing behavior, but its resident optional reference
 still belongs in the actual installed control envelope.
+
+The direct original entrance instead requires the same Resource Owner's opaque
+`BackedExecutionLiveProjection` and actual runtime original. It issues one
+partial frame and rechecks first-use history at start, including successful
+nonzero reservation reports made after frame preparation. No caller limit DATA
+or callback creates this entrance. Its one-shot take returns the same bounded
+child Ledger without pre-seeding VM/Host capacities. The first child reservation
+can therefore be its separately funded bootstrap, followed by the original
+inventory, owned workspace, descriptor and read. The existing two-capacity take
+refuses this branch, and the original-only take refuses the Wasm branch. The
+child's accounting reservation is not another parent backing reservation;
+physical placement and a complete original envelope remain Host duties.
+
+Both entrances retain their original cumulative reporting, logical-stop and
+failed/Unknown partial-state behavior. A direct frame's callbacks close over
+the same nominal parent and runtime, not a second accounting authority. The
+existing physical-owner retirement cuts these captures and the child-to-parent
+backreference only after its actual same-runtime ACK; it does not return the
+read borrow or settle the parent ticket. An escaped retired frame still holds
+its child accounting/debt and cannot start, reissue or restore authority.
+Its resident mode/issued flags, access-to-origin reference, frame, callbacks,
+captures, census and read/workspace overlap need the original funded inventory.
+No numerical profile, Native supplier, memory layout or permission is implied.
 
 Imported lifecycle observation distinguishes open from closing originals.
 Closing prevents new reservations/borrows but permits entered cleanup and

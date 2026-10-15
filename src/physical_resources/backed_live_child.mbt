@@ -11,6 +11,9 @@ pub struct BackedExecutionLiveAccess[P, C, R] {
   priv mut read_use : BackedExecutionReadUse[P, C]?
   priv mut runtime : R?
   priv mut projection : BackedExecutionLiveProjection[P, C, R]?
+  // Direct original child accounting only. The physical Owner's final ACK
+  // clears its captured callbacks; this is not another cleanup Owner.
+  priv mut child_origin : ImportedChildLedgerOrigin?
   priv mut closing : Bool
 }
 
@@ -20,6 +23,7 @@ pub struct BackedExecutionLiveAccess[P, C, R] {
 /// a different runtime remains the trusted installed Owner's responsibility.
 pub struct BackedExecutionLiveProjection[P, C, R] {
   priv mut access : BackedExecutionLiveAccess[P, C, R]?
+  priv mut child_ledger_issued : Bool
 }
 
 ///|
@@ -59,6 +63,7 @@ pub fn[P, C, R] issue_backed_execution_live_access(
     read_use: Some(read_use),
     runtime: Some(runtime),
     projection: None,
+    child_origin: None,
     closing: false,
   }
   access.original = Some(access)
@@ -145,6 +150,7 @@ pub fn[P, C, R] admit_backed_execution_live_child(
   }
   let projection : BackedExecutionLiveProjection[P, C, R] = {
     access: Some(access),
+    child_ledger_issued: false,
   }
   access.projection = Some(projection)
   Ok(projection)
@@ -271,6 +277,10 @@ pub fn[P, C, R] retire_backed_execution_live_child_after_owner_ack(
   }
   if access.projection is Some(projection) {
     projection.access = None
+  }
+  if access.child_origin is Some(origin) {
+    retire_backed_original_child_origin(origin)
+    access.child_origin = None
   }
   read_use.live_access_pending = false
   access.closing = true
