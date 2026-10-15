@@ -73,11 +73,15 @@ int main(int argc, char **argv) {
   assert(database != NULL && actql_native_sqlite_database_ready(database));
   assert(actql_native_sqlite_database_current_component_matches_heap(database, heap));
   puts("{\"case\":\"original-current-heap\",\"pass\":true}");
-  assert(actql_native_sqlite_database_insert(database,
+  const int32_t insert_status = actql_native_sqlite_database_insert(database,
     (moonbit_bytes_t)"origin", 6, (moonbit_bytes_t)"same", 4,
-    (moonbit_bytes_t)"original", 8) == 1);
-  assert(actql_native_sqlite_database_read(database,
-    (moonbit_bytes_t)"origin", 6, (moonbit_bytes_t)"same", 4) == 1);
+    (moonbit_bytes_t)"original", 8);
+  fprintf(stderr, "original insert status=%d\n", insert_status);
+  assert(insert_status == 0);
+  const int32_t read_status = actql_native_sqlite_database_read(database,
+    (moonbit_bytes_t)"origin", 6, (moonbit_bytes_t)"same", 4);
+  fprintf(stderr, "original read status=%d\n", read_status);
+  assert(read_status == 0);
   unsigned char *body = database->result_body;
   const int32_t body_length = database->result_body_length;
   const int64_t revision = database->result_revision;
