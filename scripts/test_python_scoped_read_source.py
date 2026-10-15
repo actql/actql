@@ -19,6 +19,19 @@ def entry(data):
     return {'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
 
 
+class CurrentProviderClosureTests(unittest.TestCase):
+    def test_real_provider_inputs_and_unpatched_borrow_outputs_are_pinned(self):
+        manifest = json.loads((CANDIDATE / 'scoped-read-source.json').read_bytes())
+        for item in manifest['inputs']:
+            if item['root'] != 'provider':
+                continue
+            with self.subTest(path=item['path']):
+                data = PREPARE._read(CANDIDATE, item['path'], item)
+                if item['path'] in {'owned_domain_borrow.h', 'owned_domain_borrow.inc'}:
+                    # These original provider files are copied without patching.
+                    self.assertEqual(manifest['outputs'][item['output']], entry(data))
+
+
 class ScopedReadSourceTests(unittest.TestCase):
     def setUp(self):
         temporary = tempfile.TemporaryDirectory()
