@@ -130,49 +130,47 @@ pub fn InstalledArenaHost::prepare_sqlite_database(
 /// Run existing typed Database operations inside the original managed scope.
 /// Returned rows/diagnostics remain actual aliases until their caller releases
 /// them. No scope exit, read or physical SQL result acknowledges a Run/Store.
-fn[T] InstalledArenaHost::call_sqlite_database_owned(
+fn InstalledArenaHost::enter_sqlite_database_call(
   self : InstalledArenaHost,
   record : InstalledArenaSqliteDatabase,
   lookup : InstalledArenaSqliteLookup?,
-  call : (@sqlite.Database) -> Result[T, @sqlite.NativeSqliteIssue],
-) -> InstalledArenaSqliteDatabaseCall[T] {
+) -> Result[@sqlite.Database, InstalledArenaSqliteIssue] {
   match self.original_sqlite_database(record) {
-    Err(issue) => return RefusedDatabaseCall(issue)
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   match (record.lookup, lookup) {
     (None, None) => ()
     (Some(original), Some(expected)) =>
       if !physical_equal(original, expected) || expected.closed {
-        return RefusedDatabaseCall(
-          Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal)),
-        )
+        return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal)))
       }
-    _ =>
-      return RefusedDatabaseCall(
-        Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)),
-      )
+    _ => return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
   }
   match self.current_sqlite_library(record.library) {
-    Err(issue) => return RefusedDatabaseCall(issue)
+    Err(issue) => return Err(issue)
     Ok(_) => ()
   }
   if record.failed || record.closed || record.scope_open {
-    return RefusedDatabaseCall(
-      Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)),
-    )
+    return Err(Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
   }
   guard record.database is Some(database) else {
-    return RefusedDatabaseCall(
-      Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)),
-    )
+    return Err(Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)))
   }
   match self.enter_domain_read(record.library.domain) {
-    Err(issue) => return RefusedDatabaseCall(Domain(issue))
+    Err(issue) => return Err(Domain(issue))
     Ok(_) => record.scope_open = true
   }
   record.calling = true
-  let result = call(database)
+  Ok(database)
+}
+
+///|
+fn[T] InstalledArenaHost::finish_sqlite_database_call(
+  self : InstalledArenaHost,
+  record : InstalledArenaSqliteDatabase,
+  result : Result[T, @sqlite.NativeSqliteIssue],
+) -> InstalledArenaSqliteDatabaseCall[T] {
   record.calling = false
   let mut after : InstalledArenaSqliteIssue? = None
   match self.require_domain_read_current(record.library.domain) {
@@ -187,6 +185,20 @@ fn[T] InstalledArenaHost::call_sqlite_database_owned(
     record.failed = true
   }
   ObservedDatabaseCall(result, after)
+}
+
+///|
+fn[T] InstalledArenaHost::call_sqlite_database_owned(
+  self : InstalledArenaHost,
+  record : InstalledArenaSqliteDatabase,
+  lookup : InstalledArenaSqliteLookup?,
+  call : (@sqlite.Database) -> Result[T, @sqlite.NativeSqliteIssue],
+) -> InstalledArenaSqliteDatabaseCall[T] {
+  let database = match self.enter_sqlite_database_call(record, lookup) {
+    Err(issue) => return RefusedDatabaseCall(issue)
+    Ok(database) => database
+  }
+  self.finish_sqlite_database_call(record, call(database))
 }
 
 ///|
