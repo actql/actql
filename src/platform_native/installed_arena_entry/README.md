@@ -101,3 +101,34 @@ object/DLL digests, output and release checks are retained in workspace
 `reviews/2026-10-10-python-client/installed-domain-read-caller`. Public Python
 wheel/SELECT1, Source-backed execution, Engine, worker and full profile remain
 unaccepted; fuel100M/12MiB/16MiB are unchanged.
+
+### Same-original SQLite Library transport
+
+The SQLite roots project the existing Host/domain Library acquisition, current
+and cleanup as immutable typed replies. Exact regular C Source
+`3dfb3ea886b650b04fef456523b4444d2577722e` emitted 14 selected packages plus one
+link-core; its C SHA256 is
+`0ebf0609eac6ccfef7d576a7ecb9ce5e04d5887dc92bd946254445fc9a8db420`.
+The inspected callbacks borrow Host/domain/path/original inputs; getters return
+owned references. `sqlite_shim` uses those prototypes and opaque tags, not layout
+reads. It writes replies into persistent empty slots before releasing temporary
+path storage, and clears owned slots before decref only after typed data-drop
+conditions are verified. Original Library/partial cleanup stays in Core.
+
+The same-domain managed read scope surrounds UTF-16 conversion, callbacks,
+reply handling and data drops. The pre-conversion current-scope check is only a
+physical prerequisite; the Core still checks the original nominal Host/domain.
+Path/heap/source metadata never adopts an installer, Store epoch, profile or
+permission. The Python private custody shares the original domain/component,
+registers before a reply can be published, retains sticky Unknown without
+prepare/close/drop replay, and blocks parent retirement while its data cleanup
+is unconfirmed. A known data-drop ACK replaces the Python reverse link with a
+one-shot tombstone; full Native domain retirement separately clears its own
+registration. No second allocator/TLS copy or Python lifecycle Owner is added.
+
+The provider recipe explicitly includes the existing filesystem/SQLite package
+and C-stub closure with the same selected derived runtime and physical provider.
+This build/transport preparation does not adopt numerical funding or ordinary
+Local, Engine, worker, wheel or public Python acceptance. Actual matching DLL
+and consumer results, when executed, must retain their own exact source,
+component/provider identity and bounded fixture qualification.
