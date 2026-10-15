@@ -9,6 +9,7 @@
 #define SQLITE_THREADSAFE 1
 #include "sqlite3.c"
 #include "component.h"
+#include "api.h"
 #include <dlfcn.h>
 #include <stdalign.h>
 #include <stdatomic.h>
@@ -37,6 +38,7 @@ static atomic_flag component_entry = ATOMIC_FLAG_INIT;
 static size_t component_allocations;
 static int component_attempted, component_ready, component_stopped;
 static int component_retained;
+static int component_api_borrowed;
 
 static int component_current(void) {
     return component_context != NULL && component_process == getpid() &&
@@ -162,6 +164,7 @@ static int component_close_impl(void) {
         ? ACTQL_SQLITE_COMPONENT_OK : ACTQL_SQLITE_COMPONENT_INVALID;
     if (!component_retained || !component_current())
         return ACTQL_SQLITE_COMPONENT_INVALID;
+    if (component_api_borrowed) return ACTQL_SQLITE_COMPONENT_BUSY;
     /* Engine initialization may itself hold allocations. SQLite shutdown frees
      * those, but only after all caller buffers are gone (memory_used includes
      * both). This slice exposes no DB/statement/VFS operations. */
@@ -215,3 +218,40 @@ COMPONENT_INT_ENTRY(close, (void), ())
 COMPONENT_VALUE_ENTRY(allocate, void *, (size_t bytes), (bytes), NULL)
 COMPONENT_VALUE_ENTRY(resize, void *, (void *original, size_t bytes), (original, bytes), NULL)
 COMPONENT_VALUE_ENTRY(size, size_t, (void *original), (original), 0)
+
+/* close_v2 can leave a zombie connection whose statements still use the module.
+ * The selected physical-close port instead uses SQLite's checked close: BUSY
+ * retains the same original DB until its own statements actually finalize. */
+static const actql_sqlite_component_api component_api = {
+    ACTQL_SQLITE_COMPONENT_ABI, sizeof(actql_sqlite_component_api), &component_api,
+    sqlite3_libversion, sqlite3_libversion_number, sqlite3_open_v2, sqlite3_close,
+    sqlite3_errmsg, sqlite3_exec, sqlite3_free, sqlite3_prepare_v2,
+    sqlite3_bind_text, sqlite3_bind_blob, sqlite3_bind_int64, sqlite3_step,
+    sqlite3_column_int64, sqlite3_column_blob, sqlite3_column_bytes,
+    sqlite3_finalize, sqlite3_changes64, sqlite3_busy_timeout, sqlite3_get_autocommit
+};
+
+__attribute__((visibility("default")))
+const actql_sqlite_component_api *actql_sqlite_component_borrow_api(void) {
+    if (component_enter_call() != 0) return NULL;
+    const actql_sqlite_component_api *result = NULL;
+    if (component_ready && component_current() && !component_api_borrowed) {
+        component_api_borrowed = 1;
+        result = &component_api;
+    }
+    component_leave_call();
+    return result;
+}
+
+__attribute__((visibility("default")))
+int actql_sqlite_component_release_api(const actql_sqlite_component_api *original) {
+    int entered = component_enter_call();
+    if (entered != 0) return entered;
+    int result = ACTQL_SQLITE_COMPONENT_INVALID;
+    if (original == &component_api && component_api_borrowed && component_current()) {
+        component_api_borrowed = 0;
+        result = ACTQL_SQLITE_COMPONENT_OK;
+    }
+    component_leave_call();
+    return result;
+}

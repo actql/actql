@@ -70,7 +70,7 @@ def prepare(archive: Path, destination: Path, *, source: Path = HERE) -> dict:
                 raise ValueError('SQLite archive member digest mismatch')
             outputs[name] = data
     # Fixed literal output names. No path from a zip entry is extracted.
-    for name in ('component.c', 'component.h', 'NOTICE'):
+    for name in ('component.c', 'component.h', 'api.h', 'NOTICE'):
         outputs[name] = _read(source / name, recipe['local'][name])
     record = {'status': recipe['status'], 'recipe_sha256': hashlib.sha256(recipe_raw).hexdigest(),
               'upstream': upstream, 'target': recipe['target'],

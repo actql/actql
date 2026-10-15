@@ -5,6 +5,7 @@
 /* Source candidate only. The installed Library Owner must supply its original
  * current Host/domain; an address, recipe or successful call grants no authority. */
 typedef struct actql_read_context actql_read_context;
+typedef struct actql_sqlite_component_api actql_sqlite_component_api;
 enum actql_sqlite_component_status {
     ACTQL_SQLITE_COMPONENT_OK = 0,
     ACTQL_SQLITE_COMPONENT_INVALID = -1,
@@ -22,4 +23,8 @@ int actql_sqlite_component_free(void *original);
  * retained context user; the original domain Owner still confirms retirement. */
 int actql_sqlite_component_close(void);
 const char *actql_sqlite_component_source_id(void);
+/* One Library borrow, refused before initialization or after close. The table
+ * contains no Host permission and cannot be persisted/reconstructed on reopen. */
+const actql_sqlite_component_api *actql_sqlite_component_borrow_api(void);
+int actql_sqlite_component_release_api(const actql_sqlite_component_api *original);
 #endif
