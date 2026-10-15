@@ -263,7 +263,7 @@ await test('ordinary installed Local Explorer shows checked update declarations 
       const status = error.cleanupHandle.status();
       receipt.initializationCleanup = {pending: status.pending, owners: status.owners};
     }
-    throw new Error(`Installed static Plan failed at ${phase}: ${receipt.failure.kind}`, {cause: error});
+    throw new Error(`Installed static Plan failed at ${phase}: ${receipt.failure.kind}`);
   }
   finally {
     const failures = [];
