@@ -138,6 +138,8 @@ pub fn calendar_checked(PreparedCalendar) -> @calendar_typing.CheckedCalendar
 
 pub fn calendar_end(PreparedCalendar) -> String?
 
+pub fn calendar_matches_occurrence(PreparedCalendar, @pipeline_typing.CheckedPipeline, Int, @calendar_typing.CheckedCalendar) -> Bool
+
 pub fn calendar_owner(PreparedCalendar) -> BoundPrepared
 
 pub fn calendar_row_bound(PreparedCalendar) -> Int?
