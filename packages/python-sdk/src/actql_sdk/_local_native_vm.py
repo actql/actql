@@ -8,11 +8,12 @@ from __future__ import annotations
 
 from ctypes import c_void_p, cast
 from os import getpid
-from threading import current_thread
+from threading import Thread, current_thread
 from typing import Any, NoReturn, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ._local_core import LocalCore
+    from ._local_native_holding import _NativeHoldingLease
 
 
 def _context_address(value: Any) -> int:
@@ -24,6 +25,24 @@ def _context_address(value: Any) -> int:
 
 class _OriginalVMObservation:
     """Retain the original Core/Store/holding until physical cleanup succeeds."""
+
+    _original: _OriginalVMObservation
+    _core: LocalCore | None
+    _identity: object
+    _nonce: int
+    _store: Any
+    _exports: Any
+    _memory: Any
+    _context: int
+    _holding: _NativeHoldingLease
+    _generation: int
+    _recipe: bytes
+    _library: Any
+    _span: tuple[int, int]
+    _memory_class: type[Any]
+    _caller_class: type[Any]
+    _process: int
+    _thread: Thread
 
     def __init__(self) -> None:
         raise TypeError('Local VM observations require the original Core')
@@ -41,7 +60,7 @@ class _OriginalVMObservation:
             raise ValueError('Original Local memory is unavailable')
         value = cls.__new__(cls)
         value._original = value
-        value._core: LocalCore | None = core
+        value._core = core
         value._identity, value._nonce = core._identity, core._nonce
         value._store, value._exports, value._memory = core._store, core._exports, memory
         value._context = _context_address(core._store)
