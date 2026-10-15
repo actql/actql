@@ -165,3 +165,29 @@ test "backed original child cannot reinterpret the old imported VM Host capaciti
   assert_eq(shared_capacity_usage(vm).capacity, 8L)
   assert_eq(shared_capacity_usage(host).capacity, 4L)
 }
+
+///|
+test "backed original child enforces inherited bytes and reports actual attempts only once" {
+  let (parent, access, projection, runtime) = backed_original_child_fixture()
+  let frame = prepare_backed_original_child_ledger(projection, runtime).unwrap()
+  start_imported_child_ledger(frame).unwrap()
+  let ledger = take_imported_original_child_ledger(frame).unwrap()
+  let before = ledger_usage(parent)
+  assert_true(reserve_capacity(ledger, 13L, 0L) is Err(RetentionLimit))
+  assert_true(reserve_shared_capacity(ledger, 21L) is Err(ExecutionLimit))
+  assert_eq(ledger_usage(ledger).attempts, 0)
+  let reservation = reserve_attempt(ledger, 0L, 0L, 20L).unwrap()
+  assert_true(reserve_shared_capacity(ledger, 1L) is Err(ExecutionLimit))
+  assert_eq(ledger_usage(ledger).attempts, 1)
+  report_imported_child_ledger(frame).unwrap()
+  let reported = ledger_usage(parent)
+  assert_eq(reported, { ..before, attempts: before.attempts + 1, })
+  report_imported_child_ledger(frame).unwrap()
+  assert_eq(ledger_usage(parent), reported)
+  stop_imported_child_ledger(frame).unwrap()
+  settle_reservation(ledger, reservation).unwrap()
+  report_imported_child_ledger(frame).unwrap()
+  assert_eq(ledger_usage(parent), reported)
+  assert_true(access.read_use.unwrap().live_access_pending)
+  assert_true(access.ticket.unwrap().logical.unwrap().reservation.open)
+}
