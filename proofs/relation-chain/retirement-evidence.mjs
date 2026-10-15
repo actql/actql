@@ -62,10 +62,16 @@ export function checkRetirementConnection(read) {
   const route = compact(source.slice(end));
   assert(route.includes('ifcancelled.val&&state.pending{terminal.val=truereturnOk(managed_provider_stopped_poll(0L,0L))}'),
     'Missing scoped pending cancellation');
-  assert(route.includes('ifstate.pending{matchreclaim_relation_chain_child(state){Ok(true)=>()Ok(false)=>returnOk(managed_provider_waiting(0L,0L))Err(issue)=>{'),
-    'Missing pending reclamation before successor admission');
-  assert(route.includes('state.completed[state.position]=Some(output)state.position+=1state.pending=trueifreclaims_scratch{state.reclaiming=true'),
+  assert(route.includes('ifstate.pending{matchreclaim_relation_chain_child(state){Ok(true)=>()Ok(false)=>returnOk(managed_provider_waiting(0L,0L))Err(issue)=>{terminal.val=truereturnOk(managed_provider_failed(issue,0L,0L))}}'),
+    'Missing pending reclamation custody before successor admission');
+  assert(route.includes('letreclaimed_prefix=relation_chain_reclaimed_prefix(sequence)'),
+    'Missing reviewed retirement prefix selection');
+  // Keep the all-eligible model scope. The adopted prefix selector is local to
+  // the completed position; it does not admit conservative family suffixes.
+  assert(route.includes('state.completed[state.position]=Some(output)state.position+=1state.pending=trueletreclaims_scratch=state.position<=reclaimed_prefixifreclaims_scratch{state.reclaiming=truematchreclaim_relation_chain_child(state){Ok(_)=>()Err(issue)=>{terminal.val=truereturnOk(managed_provider_failed(issue,progress,work))}}}else{state.current=None}'),
     'Missing accepted output before intermediate retirement');
+  assert(route.includes('state.children.push(next)state.current=Some(next)state.pending=falsestate.input_preparation=None'),
+    'Missing conservative successor execution custody');
   assert(route.includes('Ok(false)=>returnOk(false)Err(issue)=>returnErr(issue)'),
     'Missing parent cleanup retry custody');
   const fixture = read(retirementFixture);

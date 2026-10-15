@@ -255,6 +255,16 @@ for (const [label, from, to] of [
   ['physical stop guard omitted', 'state.current is Some(active) && managed_provider_stopped(active)', 'state.current is Some(active)'],
   ['execution retained after successful cleanup', 'state.children = []\n      state.reclaiming = false', 'state.reclaiming = false'],
   ['parent cleanup pending custody lost', 'Ok(false) => return Ok(false)', 'Ok(false) => ()'],
+  ['prefix replaced by unconditional full eligibility', 'let cleanup_index = Ref(-1)\n  let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)', 'let cleanup_index = Ref(-1)\n  let reclaimed_prefix = count'],
+  ['last eligible intermediate child excluded', 'let reclaims_scratch = state.position <= reclaimed_prefix', 'let reclaims_scratch = state.position < reclaimed_prefix'],
+  ['family suffix admitted to retirement', 'let reclaims_scratch = state.position <= reclaimed_prefix', 'let reclaims_scratch = true'],
+  ['accepted output saved at the next position', 'state.completed[state.position] = Some(output)\n            state.position += 1', 'state.position += 1\n            state.completed[state.position] = Some(output)'],
+  ['completed child not marked pending', 'state.pending = true\n            let reclaims_scratch', 'state.pending = false\n            let reclaims_scratch'],
+  ['cleanup false permits successor admission', 'Ok(false) => return Ok(managed_provider_waiting(0L, 0L))', 'Ok(false) => ()'],
+  ['cleanup error permits successor admission', 'Err(issue) => {\n              terminal.val = true\n              return Ok(managed_provider_failed(issue, 0L, 0L))\n            }\n          }\n          if used.val', 'Err(_) => ()\n          }\n          if used.val'],
+  ['unconfirmed cleanup reports a successful ACK', 'result => result\n  }', 'result => Ok(true)\n  }'],
+  ['family suffix discards retained child executions', '} else {\n              state.current = None\n            }\n            if work >', '} else {\n              state.current = None\n              state.children = []\n            }\n            if work >'],
+  ['successor is not retained for parent cleanup', 'state.children.push(next)\n    state.current = Some(next)', 'state.current = Some(next)'],
 ]) test(`reviewed retirement source rejects ${label}`, () => {
   const requested = retirementBindings(), path = requested[0].provider;
   const source = readFileSync(root + path, 'utf8');
