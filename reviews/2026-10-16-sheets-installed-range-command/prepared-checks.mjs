@@ -14,10 +14,11 @@ if (phase === 'generate') {
 } else if (phase === 'prepare') {
   const bounded = 'import {spawnSync} from "node:child_process";' +
     'const r=spawnSync("moon",["build","--target","js","--release","-j","1",' +
-    '"src/connectors_builtin_node","src/connectors/sheets/host_node"],' +
+    '"src/connectors_builtin_node","src/connectors/sheets/host_node",' +
+    '"src/checkpoint_runtime_node"],' +
     '{stdio:"inherit",timeout:30000,killSignal:"SIGTERM"});' +
     'if(r.error)console.error(r.error.code);process.exitCode=r.status??1;';
-  steps = [{name: 'Affected common and Sheets runtime modules only',
+  steps = [{name: 'Affected common, Sheets and existing Checkpoint runtime modules only',
     command: process.execPath, args: ['--input-type=module', '-e', bounded]}];
 } else {
   assert(['node', 'host'].includes(phase));
