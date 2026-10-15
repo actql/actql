@@ -251,6 +251,59 @@ pub fn producer_read_checked_cell(
 }
 
 ///|
+/// Observe physical presence through the original receiving-column projection.
+/// Unavailability and invalid coordinates are never an absent cell or SQL NULL.
+pub fn producer_read_cell_present(
+  value : ProducerRead,
+  row : Int,
+  column : Int,
+) -> Result[Bool, RelationPresenceIssue] {
+  if !producer_read_available(value) {
+    return Err(Unavailable)
+  }
+  guard @schema.field_at(value.schema, column) is Some(field) &&
+    value.columns.get(column) is Some(source) else {
+    return Err(InvalidLayout)
+  }
+  if value.bound.output.table is Some(PresenceTable(_)) {
+    match completed_presence_cell(value.bound.output, row, source) {
+      Err(issue) => Err(issue)
+      Ok(Present(_)) => Ok(true)
+      Ok(Absent) =>
+        if field.presence == @schema.Required {
+          Err(RequiredFieldMissing(column))
+        } else {
+          Ok(false)
+        }
+    }
+  } else if completed_cell(value.bound.output, row, source) is Some(_) {
+    Ok(true)
+  } else {
+    Err(InvalidLayout)
+  }
+}
+
+///|
+fn producer_read_present_runtime_cell(
+  value : ProducerRead,
+  row : Int,
+  column : Int,
+) -> Value? {
+  guard producer_read_cell_present(value, row, column) is Ok(true) &&
+    value.columns.get(column) is Some(source) else {
+    return None
+  }
+  if value.bound.output.table is Some(PresenceTable(_)) {
+    match completed_presence_cell(value.bound.output, row, source) {
+      Ok(Present(cell)) => Some(Captured(cell))
+      _ => None
+    }
+  } else {
+    completed_cell(value.bound.output, row, source)
+  }
+}
+
+///|
 /// Stage receiving-column validation without scanning a cell during setup.
 /// The caller retains this read and checks availability before every advance;
 /// only a completed admission can be passed to the downstream contract.
@@ -261,7 +314,7 @@ pub fn start_producer_read_cell_recheck(
   limits : @admitted.Limits,
 ) -> @admitted.RecheckCursor? {
   guard @schema.field_at(value.schema, column) is Some(field) &&
-    producer_read_cell(value, row, column) is Some(cell) else {
+    producer_read_present_runtime_cell(value, row, column) is Some(cell) else {
     return None
   }
   start_ordered_output_value_recheck(cell, field.contract, limits)

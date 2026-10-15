@@ -68,6 +68,9 @@ fn local_grant_original_key(
 }
 
 ///|
+// Resume-original metadata is exercised by custody WBs; installed Preparation
+// uses local_owned_grant_original. Keep this private rather than invent a caller.
+#warnings("-unused_value")
 fn local_grant_original(
   crypto : @crypto.Library,
   operation_id : String,
@@ -392,6 +395,9 @@ fn NativeLocalHostConnection::local_grant_custody(
 // request and installation. It does not issue/use a grant or authorize I/O.
 // The current opaque resume claim is checked inside the same transaction as
 // immutable custody. Entered/unknown rows cannot receive a renewed grant here.
+// The original Resume claim/current/append path remains private until the
+// installed issuer supplies real custody. Unused does not authorize installation.
+#warnings("-unused_value")
 fn NativeLocalCredentialIssuerBinding::retain_grant_original(
   self : NativeLocalCredentialIssuerBinding,
   original : NativeLocalGrantOriginal,
