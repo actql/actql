@@ -24,6 +24,7 @@ from actql_sdk._local_native_live_channel import (
     _OriginalLiveChannelCustody, _OriginalLiveChannelFunctions, _OriginalLiveChannelError,
 )
 from actql_sdk._local_native_vm import _OriginalVMSpanData
+import actql_sdk._local_worker_control_frames as frames
 from actql_sdk._local_worker_funding import _WorkerFundingSupplier, OriginalWorkerFunding
 from actql_sdk._local_worker_slot import _OriginalDescriptor, OriginalWorkerSlot
 from actql_sdk._local_worker_process import OriginalWorkerProcess
@@ -91,7 +92,7 @@ control, backing = _OriginalControlFunctions(lib), _OriginalBackingFunctions(lib
 domain_functions, live = _OriginalDomainFunctions(lib), _OriginalLiveChannelFunctions(lib)
 cases = ['actual dependent DLL resolves the same original provider addresses']
 loaded = []
-for name in ('_local_native_live_channel', '_local_native_domain_custody', '_local_worker_pipe', '_local_worker_process'):
+for name in ('_local_native_live_channel', '_local_native_domain_custody', '_local_worker_pipe', '_local_worker_process', '_local_worker_control_frames'):
     path = Path(sys.modules['actql_sdk.' + name].__file__).resolve()
     assert path == (root / 'packages/python-sdk/src/actql_sdk' / (name + '.py')).resolve()
     loaded.append({'path': str(path), 'bytes': path.stat().st_size, 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()})
@@ -126,6 +127,7 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
         # Actual owned pipes and descriptor closes. Only executable verification
         # and the spawn syscall are replaced; no interpreter or child is run.
         inherited = {}
+        diagnostic_taps = []
         def no_child_spawn(*arguments, **options):
             duplicate = process._native_duplicate
             assert duplicate is not None and duplicate.value >= 10 and not duplicate.closed
@@ -139,6 +141,9 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
                 'child_destination': 4, 'device': duplicate_status.st_dev,
                 'inode': duplicate_status.st_ino, 'file_bytes': duplicate_status.st_size,
                 'actual_dup': True, 'file_actions_only': True, 'actual_spawn': 0})
+            # Diagnostic peers of the same physical pipes; no child startup.
+            diagnostic_taps.extend((_OriginalDescriptor(os.dup(process._stdin[0].value)),
+                                    _OriginalDescriptor(os.dup(process._stdout[1].value))))
             return os.getpid()
         with patch.object(OriginalWorkerProcess, '_verify_executable'), \
                 patch('actql_sdk._local_worker_process.os.posix_spawn', side_effect=no_child_spawn) as spawn:
@@ -156,6 +161,31 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
         assert original._channel.value is not None and domain._live_channel_original is original
         cases.append('actual C rejects self PID and Python retains the same pending native channel')
 
+        transport = frames._OriginalWorkerControlFrames(original)
+        channel._pipe.prepare()
+        control_events = []
+        for operation, payload, label in (
+                (frames._CURRENT, b'', 'current'),
+                (frames._LIMIT, frames._ORDINAL.pack(3), 'limit'),
+                (frames._CAPACITY, frames._ORDINAL.pack(0), 'capacity'),
+                (frames._REPORT, frames._USAGE.pack(0, 0, 0, 2**53 + 1, 0, 0, 0, 0, 0, 0), 'report')):
+            request = frames._request(operation, transport._serial, 7, payload)
+            assert os.write(diagnostic_taps[1].value, request) == len(request)
+            asyncio.run(transport.serve_once())
+            response = os.read(diagnostic_taps[0].value, frames._RESPONSE.size)
+            magic, actual_operation, serial, nonce, status = frames._RESPONSE.unpack(response)
+            assert (magic, actual_operation, serial, nonce, status) == (
+                b'ALC1', operation, transport._serial - 1, 7, -42)
+            assert transport._request_bytes == request and transport._response_bytes == response
+            assert not original._closed and original._unknown is None
+            assert not process._parent_closed and not domain._closed
+            control_events.append({'operation': label, 'serial': serial, 'nonce': nonce,
+                'status': status, 'request_bytes': len(request), 'response_bytes': len(response),
+                'actual_pipe_bytes': True, 'actual_ctypes_C': True})
+            cases.append('actual pipe control ' + label + ' preserves Native pending refusal without permission or cleanup')
+        for tap in diagnostic_taps:
+            tap.close()
+
         for operation in (original.state, original.limits):
             try: operation()
             except _OriginalLiveChannelError as failure:
@@ -165,7 +195,7 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
 
         try: original.capacities()
         except _OriginalLiveChannelError as failure:
-            assert not failure.unknown and failure.fact.operation == 9 and failure.fact.issue_family == 1
+            assert not failure.unknown and failure.fact.operation == 13 and failure.fact.issue_family == 1
             assert failure.cleanup_channel is original and not original._closed
         else: raise AssertionError('Pending capture gained native baseline coverage')
         cases.append('actual capacity callback refuses pending VM without quota-derived or zero fallback')
@@ -209,9 +239,9 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
     finally:
         funding_case.doCleanups()
 
-assert len(cases) == len(set(cases)) == 9
-result = {'success': True, 'discovered': 9, 'executed': 9, 'passed': 9, 'failed': 0,
+assert len(cases) == len(set(cases)) == 13
+result = {'success': True, 'discovered': 13, 'executed': 13, 'passed': 13, 'failed': 0,
           'cases': cases, 'loaded_modules': loaded, 'actual_ctypes_C': True,
-          'actual_pipe_FDs': True, 'domain_inheritance': inherited, 'funding_durable_spawn_doubles': True,
+          'actual_pipe_FDs': True, 'domain_inheritance': inherited, 'control_frames': control_events, 'funding_durable_spawn_doubles': True,
           'actual_spawn': 0, 'actualVM': 0, 'wheel': 0, 'publicE2E': 0}
 print(json.dumps(result), flush=True)
