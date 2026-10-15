@@ -4,7 +4,7 @@
 fn capture_site_selected_library_failure(
   original : SiteEnvironmentOpenCustody,
   path : String,
-) raise {
+) -> Unit raise {
   match @sqlite.load_current_component_with_custody(path, 4096L, 8) {
     Err(@sqlite.CleanupRequired(failure)) => {
       original.failed_sqlite_library = Some(failure)
