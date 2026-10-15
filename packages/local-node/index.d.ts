@@ -46,6 +46,17 @@ export type SourceProfilePaths = readonly [string, string, ...string[]];
  * their inventory; every complete Effect Set must select one installation. */
 export type EffectProfilePaths = readonly [string, string, ...string[]];
 
+/** Explicit immutable semantic artifact; no OS TZDB or default profile is selected. */
+export type CalendarArtifactInstallation = Readonly<{
+  selection: Readonly<{version: 'actql-calendar-selection/0.1'; tzdb_version: string;
+    conversion_law: 'actql-calendar-boundaries/0.1'; table_bytes_cid: string}>;
+  /** Exact canonical artifact body bytes, including no file-framing newline. */
+  tableBytes: Uint8Array;
+  limits: Readonly<{max_bytes: number; max_nodes: number; max_depth: number;
+    max_zones: number; max_transitions: number}>;
+  maxSelectionWork: number;
+}>;
+
 export type HostInstallation = Readonly<{
   directory?: string;
   connectorTable?: InstalledConnectorTable;
@@ -64,6 +75,7 @@ export type HostInstallation = Readonly<{
   resolveEffectSecret?: (...args: any[]) => any;
   authorization?: Readonly<Record<string, unknown>>;
   modelInstallation?: Readonly<Record<string, unknown>>;
+  calendarArtifact?: CalendarArtifactInstallation;
   registerModelProviders?: (...args: any[]) => any;
   verifyRequestValuePolicy?: HostRequestValuePolicyVerifier;
   resultDataPolicy?: Readonly<Record<string, unknown>>;

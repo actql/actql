@@ -232,6 +232,15 @@ pub fn Database::claim_ordinal_action(
 }
 
 ///|
+pub fn Database::lookup_claim_ordinal(
+  _self : Database,
+  _scope : String,
+  _key : String,
+) -> Result[Int64?, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
 pub fn Database::capacity_usage(
   _self : Database,
   _scope : String,

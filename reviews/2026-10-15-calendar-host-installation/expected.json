@@ -1,0 +1,82 @@
+{
+  "rows": [
+    {
+      "start": "2000-01-01T00:00:00.000Z",
+      "end": "2000-01-02T00:00:00.000Z"
+    },
+    {
+      "start": "2000-01-02T00:00:00.000Z",
+      "end": "2000-01-03T00:00:00.000Z"
+    }
+  ],
+  "columns": [
+    {
+      "name": "start",
+      "contract": {
+        "type": "timestamp",
+        "nullable": false
+      }
+    },
+    {
+      "name": "end",
+      "contract": {
+        "type": "timestamp",
+        "nullable": false
+      }
+    }
+  ],
+  "bucketed": {
+    "rows": [
+      {
+        "start": "2000-01-01T00:00:00.000Z",
+        "end": "2000-01-02T00:00:00.000Z",
+        "month": {
+          "start": "2000-01-01T00:00:00.000Z",
+          "end": "2000-02-01T00:00:00.000Z"
+        }
+      },
+      {
+        "start": "2000-01-02T00:00:00.000Z",
+        "end": "2000-01-03T00:00:00.000Z",
+        "month": {
+          "start": "2000-01-01T00:00:00.000Z",
+          "end": "2000-02-01T00:00:00.000Z"
+        }
+      }
+    ],
+    "columns": [
+      {
+        "name": "start",
+        "contract": {
+          "type": "timestamp",
+          "nullable": false
+        }
+      },
+      {
+        "name": "end",
+        "contract": {
+          "type": "timestamp",
+          "nullable": false
+        }
+      },
+      {
+        "name": "month",
+        "contract": {
+          "type": "object",
+          "nullable": false,
+          "fields": {
+            "start": {
+              "type": "timestamp",
+              "nullable": false
+            },
+            "end": {
+              "type": "timestamp",
+              "nullable": false
+            }
+          },
+          "additional_properties": false
+        }
+      }
+    ]
+  }
+}

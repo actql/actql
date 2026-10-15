@@ -13,6 +13,8 @@ import {
 }
 
 // Values
+pub fn advance_calendar_bucket(CalendarBucketExecution, Int) -> Result[CalendarBucketPoll, CalendarBucketExecutionIssue]
+
 pub fn advance_calendar_series(CalendarSeriesExecution, Int) -> Result[CalendarSeriesPoll, CalendarSeriesExecutionIssue]
 
 pub fn advance_dedupe(DedupeExecution, Int) -> Result[DedupePoll, DedupeIssue]
@@ -25,7 +27,11 @@ pub fn advance_time_series(TimeSeriesExecution, Int) -> Result[TimeSeriesPoll, T
 
 pub fn advance_watermark(WatermarkExecution, Int) -> Result[WatermarkPoll, WatermarkIssue]
 
+pub fn calendar_bucket_cleanup_pending(CalendarBucketExecution) -> Bool
+
 pub fn calendar_series_cleanup_pending(CalendarSeriesExecution) -> Bool
+
+pub fn cleanup_calendar_bucket(CalendarBucketExecution) -> Result[Bool, CalendarBucketExecutionIssue]
 
 pub fn cleanup_calendar_series(CalendarSeriesExecution) -> Result[Bool, CalendarSeriesExecutionIssue]
 
@@ -56,6 +62,8 @@ pub fn session_cleanup_pending(SessionExecution) -> Bool
 pub fn session_initialization_progress(SessionExecution) -> (Int, Int)
 
 pub fn session_max_noninterruptible_value_bytes(SessionExecution) -> Int
+
+pub fn start_calendar_bucket(@bounded_execution.Control, @execution_relation.GeneratedSequence, Int, @execution_relation.ProducerRead, Int, @execution_relation.ValueLimits, Int, Int, control_work_limit? : Int?) -> Result[CalendarBucketExecution, CalendarBucketExecutionIssue]
 
 pub fn start_calendar_series(@bounded_execution.Control, @execution_relation.GeneratedSequence, Int, Int, @execution_relation.ValueLimits, Int, Int, control_work_limit? : Int?) -> Result[CalendarSeriesExecution, CalendarSeriesExecutionIssue]
 
@@ -90,6 +98,27 @@ pub fn watermark_stopped(WatermarkExecution) -> Bool
 // Errors
 
 // Types and methods
+type CalendarBucketExecution
+
+pub(all) enum CalendarBucketExecutionIssue {
+  InvalidCalendarBucketKernel
+  InvalidCalendarBucketLimits
+  InvalidCalendarBucketInput
+  CalendarBucketWorkLimit
+  CalendarBucketBoundary(@calendar_transition.IntervalIssue)
+  CalendarBucketRow(@execution_relation.AdmittedOutputRowIssue)
+  CalendarBucketOutput(@execution_relation.CaptureIssue)
+  CalendarBucketCompletion(@execution_relation.TrustedOutputIssue)
+  CalendarBucketExecution(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum CalendarBucketPoll {
+  BucketContinue(progress~ : Int64, work~ : Int64)
+  BucketComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
+  BucketFailed(CalendarBucketExecutionIssue, progress~ : Int64, work~ : Int64)
+  BucketStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
 type CalendarSeriesExecution
 
 pub(all) enum CalendarSeriesExecutionIssue {
