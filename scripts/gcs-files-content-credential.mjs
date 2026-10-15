@@ -10,6 +10,35 @@ const execute = promisify(execFile);
 const fail = reason => { throw Object.assign(new Error(`GcsAcceptanceCredential:${reason}`),
   {code: 'GcsAcceptanceCredential', reason}); };
 
+// Classify only the existing subprocess result. Never read/retain message,
+// output, command, path or cause; even accessors are not diagnostic inputs.
+// Termination is not proof of timeout, IAM failure or physical cleanup.
+function mintFailureDetail(error) {
+  const ownData = name => {
+    if (error === null || !['object', 'function'].includes(typeof error)) return undefined;
+    const field = Object.getOwnPropertyDescriptor(error, name);
+    return field !== undefined && Object.hasOwn(field, 'value') ? field.value : undefined;
+  };
+  try {
+    const code = ownData('code');
+    if (code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER') return Object.freeze({kind: 'output_limit'});
+    if (code === 'ABORT_ERR') return Object.freeze({kind: 'aborted'});
+    if (['ENOENT', 'EACCES', 'EPERM', 'ENOEXEC', 'EAGAIN', 'ENOMEM'].includes(code)) {
+      return Object.freeze({kind: 'spawn_failed'});
+    }
+    if (ownData('killed') === true ||
+        ['SIGTERM', 'SIGKILL', 'SIGINT', 'SIGHUP'].includes(ownData('signal'))) {
+      return Object.freeze({kind: 'terminated'});
+    }
+    if (Number.isInteger(code) && code >= 1 && code <= 255) {
+      return Object.freeze({kind: 'nonzero_exit', exitCode: code});
+    }
+  } catch {
+    // A foreign/proxy exception supplies no trustworthy process classification.
+  }
+  return Object.freeze({kind: 'unclassified'});
+}
+
 const closed = (value, keys) => value !== null && typeof value === 'object' &&
   !Array.isArray(value) && Object.keys(value).sort().join('\0') === keys.slice().sort().join('\0');
 const text = (value, maximum) => typeof value === 'string' && value.length > 0 &&
@@ -74,6 +103,7 @@ function createCredential(configuration, operations, {
   const startedAt = now();
   if (!Number.isSafeInteger(startedAt) || startedAt < 0) fail('configuration');
   let calls = 0, reservedResponseBytes = 0, mints = 0, pending, closed = false, mintFailure;
+  let processFailure;
   const remaining = () => {
     const observed = now();
     if (!Number.isSafeInteger(observed) || observed < startedAt) fail('clock');
@@ -100,10 +130,11 @@ function createCredential(configuration, operations, {
         `--project=${configuration.project}`, '--quiet',
       ], {encoding: 'utf8', maxBuffer: 16384, env,
         timeout: Math.min(30000, remaining()), signal});
-    } catch {
+    } catch (error) {
       // execFile failures contain stdout/stderr. Neither these nor a raw
       // subprocess cause may enter retained acceptance evidence.
       mintFailure = 'mint_failed';
+      processFailure = mintFailureDetail(error);
       fail(mintFailure);
     }
     current(signal);
@@ -145,5 +176,5 @@ function createCredential(configuration, operations, {
     close() { closed = true; pending = undefined; },
     observation() { return Object.freeze({credentialResolutions: calls,
       reservedResponseBytes, tokenMints: mints, closed,
-      ...(mintFailure === undefined ? {} : {mintFailure})}); }});
+      ...(mintFailure === undefined ? {} : {mintFailure, mintFailureDetail: processFailure})}); }});
 }

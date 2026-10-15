@@ -6,7 +6,7 @@ fn sqlite_test_empty_record(
     domain,
     library: None,
     failure: None,
-    original_issue: None,
+    failed: false,
     scope_open: false,
     closed: false,
   }
@@ -24,6 +24,25 @@ fn sqlite_test_pending_domain(
   host.leave_backing_borrow_scope(scope).unwrap()
   host.return_backing_borrow(scope).unwrap()
   domain
+}
+
+///|
+test "SQLite primary failure survives later current and leave failures unchanged" {
+  let primary : InstalledArenaSqliteIssue = Library(
+    @sqlite.LibraryLoad("original loader failure"),
+  )
+  let selected = first_sqlite_issue(None, primary)
+  let after_current = first_sqlite_issue(
+    selected,
+    Domain(@bootstrap.Bootstrap(@bootstrap.Closing)),
+  )
+  let after_leave = first_sqlite_issue(
+    after_current,
+    Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)),
+  )
+  assert_true(
+    after_leave is Some(original) && physical_equal(original, primary),
+  )
 }
 
 ///|
@@ -101,7 +120,7 @@ test "same empty partial carrier closes after logical Host closing without issui
   let other = domain_test_host()
   let domain = sqlite_test_pending_domain(host)
   let record = sqlite_test_empty_record(domain)
-  record.original_issue = Some(Library(@sqlite.InvalidLimit))
+  record.failed = true
   domain.sqlite_library = Some(record)
   assert_true(host.try_close() is Err(@bootstrap.ReadersPending))
   assert_true(
@@ -112,7 +131,7 @@ test "same empty partial carrier closes after logical Host closing without issui
   host.close_sqlite_library(record).unwrap()
   host.close_sqlite_library(record).unwrap()
   assert_true(record.closed)
-  assert_true(record.original_issue is Some(Library(@sqlite.InvalidLimit)))
+  assert_true(record.failed)
   assert_true(host.current_sqlite_library(record) is Err(Domain(_)))
   host.close_domain_after_owner_ack(domain).unwrap()
   host.try_close().unwrap()
@@ -163,9 +182,7 @@ test "unconfirmed SQLite cleanup keeps registration through refused parent retir
   let host = domain_test_host()
   let domain = sqlite_test_pending_domain(host)
   let original = sqlite_test_empty_record(domain)
-  original.original_issue = Some(
-    Library(@sqlite.Physical("original unconfirmed cleanup")),
-  )
+  original.failed = true
   domain.sqlite_library = Some(original)
   assert_true(
     host.close_domain_after_owner_ack(domain)
@@ -183,6 +200,6 @@ test "unconfirmed SQLite cleanup keeps registration through refused parent retir
   )
   host.close_domain_after_owner_ack(domain).unwrap()
   assert_true(domain.sqlite_library is None)
-  assert_true(original.original_issue is Some(Library(@sqlite.Physical(_))))
+  assert_true(original.failed)
   host.try_close().unwrap()
 }
