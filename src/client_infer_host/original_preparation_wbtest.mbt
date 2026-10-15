@@ -6,9 +6,13 @@ fn original_preparation_test_read(
   ledger_limits? : @resources.LedgerLimits = active.limits.model.ledger,
   reservation_slots? : Int = 4,
   spent_planning? : Bool = false,
+  quantities? : @resources.QuantityAmounts? = None,
 ) -> (@resources.Ledger, @publication_host.ClientModelReadPreparation) {
   let (compiled, definition) = invocation_fixture_compiled(active)
   let ledger = @resources.create_ledger(ledger_limits).unwrap()
+  if quantities is Some(amounts) {
+    @resources.configure_quantities(ledger, amounts).unwrap()
+  }
   let bootstrap = @resources.reserve_capacity(ledger, 3L, 2L).unwrap()
   let scope = @publication_host.begin_client_model_read_scope(
     compiled,

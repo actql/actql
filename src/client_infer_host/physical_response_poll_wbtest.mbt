@@ -82,6 +82,7 @@ fn async_response_fixture(
   now? : Ref[String] = Ref("2026-10-02T00:00:00.000Z"),
   observe_call? : (@model.ModelPhysicalCall) -> Unit = _ => (),
   observe_response? : (() -> @model.ModelPhysicalCallPoll)? = None,
+  prepare_original? : ((Execution) -> Unit)? = None,
 ) -> (Execution, Int64) raise {
   let egress = Ref(Some(egress_fixture_observation()))
   let holder : Ref[@model.ModelPreparedCallSet?] = Ref(None)
@@ -94,6 +95,9 @@ fn async_response_fixture(
     asynchronous=true,
     configure=active => {
       bind_quantity_capacity(active, fixture_quantity_capacity(66L, 1000L)).unwrap()
+      if prepare_original is Some(prepare) {
+        prepare(active)
+      }
       bind_physical_preflight(active, request => {
         Ok({
           advance: () => {

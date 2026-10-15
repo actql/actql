@@ -32,7 +32,10 @@ fn entry_gate_fixture(
     () => egress.val,
   ).unwrap()
   bind_egress_admission(active, egress_admission).unwrap()
-  let (compiled, definition) = invocation_fixture_compiled(active)
+  let (compiled, definition) = match active.run_binding {
+    Some(original) => (original.compiled, original.definition)
+    None => invocation_fixture_compiled(active)
+  }
   let prefix_work = match fixture_finish(active) {
     Waiting(work~) => work
     _ => abort("ordinary preparation must wait for original entry binding")
