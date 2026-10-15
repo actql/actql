@@ -445,7 +445,8 @@ function releaseCompletedResultOwner(storedResults, control, retainCapture) {
       const released = new Error('CompletedRunResultSetReleased');
       try {
         await releasePreparedResults([...storedResults.results,
-          ...(owner.effectDependencyPayloads ?? [])], released, control);
+          ...(owner.effectDependencyPayloads ?? []),
+          ...(owner.effectDependencySchemas ?? [])], released, control);
       } catch (error) {
         if (error !== released) {
           if (error.cleanupPending === true) owner.cleanupFailure = error;
@@ -963,7 +964,8 @@ export async function recoverCompletedEffectfulComputation(options) {
         'effectComputationCaptureHoldingCid',
         'effectComputationRecordHoldingCid',
         'effectfulComputationEvidenceChainValid',
-        'capturedEffectSourceInventoryFromCaptureValid']
+        'capturedEffectSourceInventoryFromCaptureValid',
+        'capturedEffectDependencySchemas']
         .every(name => typeof control?.[name] === 'function')) {
     fail('InvalidCompletedEffectfulRecoveryOptions');
   }
@@ -1133,6 +1135,7 @@ export async function recoverCompletedEffectfulComputation(options) {
     fail('CompletedEffectfulCaptureRecordUnavailable');
   }
   const preparedSchemas = [];
+  const dependencySchemas = [];
   try {
     for (let index = 0; index < count; index++) {
       const schema = captured.result_schemas[index];
@@ -1145,11 +1148,17 @@ export async function recoverCompletedEffectfulComputation(options) {
         schema.wire, schema.cid, admittedRun.identity,
       ));
     }
-  } catch (error) {
-    for (const schema of preparedSchemas) {
-      try { await schema.prepared.release(); }
-      catch { /* The Store retains failed prepared-schema cleanup. */ }
+    // Private Effect inputs can have a different schema from every public
+    // Named Result. Their original bodies are already authenticated inside
+    // this CapturedRun's dependency inventory. Restore their Store custody
+    // before apply, without publishing the private Result or rerunning Compute.
+    for (const schema of control.capturedEffectDependencySchemas(capturedRun)) {
+      dependencySchemas.push(await store.putPreparedResultSchema(
+        schema.wire, schema.cid, admittedRun.identity,
+      ));
     }
+  } catch (error) {
+    await releasePreparedResults([...preparedSchemas, ...dependencySchemas], error, control);
     throw error;
   }
   const storedResults = Object.freeze({
@@ -1172,6 +1181,7 @@ export async function recoverCompletedEffectfulComputation(options) {
     retentions: Object.freeze(retentions),
     releaseComplete: false, releaseFlight: undefined,
     cleanupFailure: undefined, captureHolding, captureRecordOwner,
+    effectDependencySchemas: dependencySchemas,
     captureRecordWire: recordBinding.wire, capturePublished: false,
     effectSourceHoldingCids: Object.freeze(sourceHoldings.map(({source}) =>
       control.capturedEffectSourceHoldingCid(source))),

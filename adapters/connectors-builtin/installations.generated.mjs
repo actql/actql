@@ -118,6 +118,7 @@ export const installedConnectors = Object.freeze([
     revision: "sheets/0.1",
     implementationFiles: Object.freeze([
       Object.freeze({path: "adapters/connectors/sheets/host/installed-sheets.mjs", href: new URL("../connectors/sheets/host/installed-sheets.mjs", import.meta.url).href}),
+      Object.freeze({path: "adapters/connectors/sheets/host/sheets-range-command.mjs", href: new URL("../connectors/sheets/host/sheets-range-command.mjs", import.meta.url).href}),
       Object.freeze({path: "adapters/connectors/sheets/site/sheets-exchange.mjs", href: new URL("../connectors/sheets/site/sheets-exchange.mjs", import.meta.url).href}),
     ]),
     providerBundle: "connectors/sheets/host_node",
