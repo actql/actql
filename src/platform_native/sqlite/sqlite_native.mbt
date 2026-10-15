@@ -89,6 +89,17 @@ extern "C" fn database_read_ffi(
 ) -> Int = "actql_native_sqlite_database_read"
 
 ///|
+#borrow(database, scope, key)
+extern "C" fn database_read_with_body_limit_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  key : Bytes,
+  key_length : Int,
+  max_body_bytes : Int64,
+) -> Int = "actql_native_sqlite_database_read_with_body_limit"
+
+///|
 #borrow(database, scope, after_key)
 extern "C" fn database_scan_after_ffi(
   database : Database,
@@ -97,6 +108,17 @@ extern "C" fn database_scan_after_ffi(
   after_key : Bytes,
   after_key_length : Int,
 ) -> Int = "actql_native_sqlite_database_scan_after"
+
+///|
+#borrow(database, scope, after_key)
+extern "C" fn database_scan_after_with_body_limit_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  after_key : Bytes,
+  after_key_length : Int,
+  max_body_bytes : Int64,
+) -> Int = "actql_native_sqlite_database_scan_after_with_body_limit"
 
 ///|
 #borrow(database, scope, key, body)
@@ -468,6 +490,43 @@ pub fn Database::read(
 }
 
 ///|
+/// Apply an additional body ceiling before the C readback and MoonBytes copies.
+/// The database's original body bound and validation still apply. This neither
+/// reserves backing nor authorizes access; SQLite row/statement/cache backing
+/// must be accounted for independently by the caller's existing resource Owner.
+pub fn Database::read_with_body_limit(
+  self : Database,
+  scope : String,
+  key : String,
+  max_body_bytes : Int64,
+) -> Result[NativeJournalValue, NativeSqliteIssue] {
+  if max_body_bytes < 0L {
+    return Err(InvalidLimit)
+  }
+  let scope_bytes = @utf8.encode(scope)
+  let key_bytes = @utf8.encode(key)
+  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+    return Err(InvalidName)
+  }
+  let code = database_read_with_body_limit_ffi(
+    self,
+    scope_bytes,
+    scope_bytes.length(),
+    key_bytes,
+    key_bytes.length(),
+    max_body_bytes,
+  )
+  if code == 0 {
+    Ok({
+      revision: database_result_revision_ffi(self),
+      body: database_result_body_ffi(self),
+    })
+  } else {
+    Err(operation_issue(self, code))
+  }
+}
+
+///|
 /// Open only an isolated inspection copy. The caller always receives the
 /// cleanup owner, including when SQLite open failed; inspect status before use.
 pub fn Library::open_inspection_database(
@@ -522,6 +581,46 @@ pub fn Database::scan_after(
     scope_bytes.length(),
     after_key_bytes,
     after_key_bytes.length(),
+  )
+  if code != 0 {
+    return Err(operation_issue(self, code))
+  }
+  let key = @utf8.decode(database_result_key_ffi(self)) catch {
+    _ => return Err(Physical("invalid stored journal key"))
+  }
+  Ok({
+    key,
+    revision: database_result_revision_ffi(self),
+    body: database_result_body_ffi(self),
+  })
+}
+
+///|
+/// Apply an additional body ceiling before the C readback and MoonBytes copies.
+/// The database's original body bound and validation still apply. This neither
+/// reserves backing nor authorizes access; SQLite row/statement/cache backing
+/// must be accounted for independently by the caller's existing resource Owner.
+pub fn Database::scan_after_with_body_limit(
+  self : Database,
+  scope : String,
+  after_key : String,
+  max_body_bytes : Int64,
+) -> Result[NativeJournalEntry, NativeSqliteIssue] {
+  if max_body_bytes < 0L {
+    return Err(InvalidLimit)
+  }
+  let scope_bytes = @utf8.encode(scope)
+  let after_key_bytes = @utf8.encode(after_key)
+  if !valid_name(scope_bytes) || after_key_bytes.length() > 512 {
+    return Err(InvalidName)
+  }
+  let code = database_scan_after_with_body_limit_ffi(
+    self,
+    scope_bytes,
+    scope_bytes.length(),
+    after_key_bytes,
+    after_key_bytes.length(),
+    max_body_bytes,
   )
   if code != 0 {
     return Err(operation_issue(self, code))
