@@ -30,7 +30,7 @@ from actql_sdk._local_worker_process import OriginalWorkerProcess
 from actql_sdk._local_worker_channel import OriginalWorkerPipeChannel, _InstalledWorkerControl
 
 # Existing independent metadata fixture only; no installed product declaration.
-import test_local_distribution as distribution
+import test_local_worker_funding as funding_fixture
 
 
 class DiagnosticFunding(_WorkerFundingSupplier):
@@ -108,12 +108,15 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
             size=24 * page, work=2, attempts=1, holdings=1, transfer=3, retained=0, execution=24 * page)
     domain.transfer()
     metadata = domain._project_original_material(_OriginalDomainMaterialFunctions(lib))
-    distribution_case = distribution.LocalDistributionTests(); distribution_case.setUp()
+    funding_case = funding_fixture.WorkerFundingTests(); funding_case.setUp()
     try:
-        components = distribution_case.inspect()
+        components = funding_case.components
         supplier = DiagnosticFunding(domain)
+        # Existing independent interface fixture, not the Native domain's
+        # numerical allowance. Complete production funding is not supplied and
+        # no real child is spawned. Native 64/24-page limits remain unchanged.
         funding = OriginalWorkerFunding(components, supplier,
-            limits=LocalCoreResources(2, 1, 1, 3, 0, 24 * page), retained=0, execution=24 * page)
+            limits=funding_case.limits, retained=5, execution=6)
         slot = OriginalWorkerSlot(funding, Path(directory, 'slot'))
         slot.open(); assert slot.try_acquire()
         process = OriginalWorkerProcess(funding, slot, executable=Path(sys.executable).absolute(),
@@ -180,7 +183,7 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
         os.fstat(fd.value); fd.close()
         cases.append('actual original loan domain Host and caller FD retire independently in order')
     finally:
-        distribution_case.doCleanups()
+        funding_case.doCleanups()
 
 assert len(cases) == len(set(cases)) == 7
 result = {'success': True, 'discovered': 7, 'executed': 7, 'passed': 7, 'failed': 0,
