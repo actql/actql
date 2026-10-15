@@ -101,7 +101,7 @@ test "Signing append shares the original logical reservation and exact immutable
 ///|
 test "Signing append remains rejected by the unchanged HTTP operational entrypoint" {
   let (host, issuer, original) = signing_append_fixture("sign-append-not-http")
-  let called = Ref::new(0)
+  let called = Ref(0)
   assert_true(
     host.journal.transaction(() => {
       issuer.append_grant_original_locked(original, () => {
@@ -243,6 +243,7 @@ test "Signing append missing old reservation stays custody loss without repair" 
     1L,
   )
   .unwrap()
+  |> ignore
   assert_true(signing_append_storage_only(issuer, original) is Err(CustodyLost))
   assert_eq(
     host.database.capacity_usage("client_local_grant_originals").unwrap().reserved_bytes,

@@ -143,7 +143,10 @@ fn NativeLocalReviewerSigningGrantOperation::require_current_locked(
   let key = materials.key
   let host = key.account.host
   if !physical_equal(issuer.host, host) ||
-    issuer.file != self.issuer_file ||
+    issuer.file.name != self.issuer_file.name ||
+    issuer.file.body != self.issuer_file.body ||
+    issuer.file.content_cid != self.issuer_file.content_cid ||
+    issuer.file.generation != self.issuer_file.generation ||
     issuer.operation_cid != self.original.operation_cid ||
     !local_original_grant_matches_issuer(self.original.grant, issuer.selection) {
     return Err(ChangedIntent)
@@ -256,6 +259,8 @@ fn NativeLocalHostConnection::same_signing_operation_locked(
       }
     }
     cursor = row.key
+  } nobreak {
+    Err(CustodyLost)
   }
 }
 
