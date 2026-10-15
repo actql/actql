@@ -345,10 +345,10 @@ or public wheel is adopted by this preparation. Unknown domains stay unknown.
 
 `scripts/produce-python-native-provider.py` is a maintainer-only, guarded build
 entry for that component. It checks the selected MoonBit installation and exact
-clean source, emits the twelve selected packages and regular C link, then builds
+clean source, emits the selected161-package entry closure and regular C link, then builds
 the provider and five runtime support sources with an explicit macOS11 target.
-It preserves the existing diagnostic omission of the optional debug package
-registry, records actual compiler dependencies, and reuses the existing Mach-O
+It preserves the ordinary package registry needed by transitive trait
+implementations, records actual compiler dependencies, and reuses the existing Mach-O
 target/dependency inspector. No old runtime support objects are silently reused.
 The producer does not load the library or invoke the control initializer.
 The linked toolchain runtime contains a mimalloc load-time initializer; its
@@ -385,3 +385,20 @@ fixture preserves its original16 assertions and adds3 opaque parent/child
 checks under the same64/24/16-page physical limits. Actual execution, linkage
 origin and object/source qualifications must be recorded separately from this
 source recipe.
+
+The imported fixture is linked against exactly that selected provider DLL.
+Its consumer object must define no `actql_native_owned_*` or
+`actql_read_context_*` symbols; the ordinary linker must resolve those imports
+from the same DLL. The scoped header precedes the pinned supplemental header.
+No dynamic lookup, weak-provider fallback or second provider implementation is
+allowed. The fixture exercises nested raw-frame observations, foreign process
+refusal, original domain transfer and two escaped managed aliases before
+child-first retirement. It must enter the original parent scope before lending
+its extent; a scalar-only descriptor cannot replace that existing precondition.
+
+This finite imported-consumer check does not call the generated control
+initializer or instantiate an Engine, VM or worker. The selected library's
+existing load-time runtime constructor remains part of the independent startup
+responsibility described above. Actual source/DLL/consumer identities and raw
+results are separate evidence; neither this recipe nor a successful physical
+fixture supplies an ordinary installed funding profile.
