@@ -7,9 +7,11 @@ test "public temporal interval keeps original body and emits its checked input t
     construction_limits().program,
     format=Json,
   ).unwrap()
-  let actual = temporal_join_checked(
+  let actual = @frontend.lower(
     "WITH l AS (SELECT 1 AS id, 10 AS `at` UNION ALL SELECT 2, 30 UNION ALL SELECT 3, 50), r AS (SELECT 7 AS id, 5 AS begin, 15 AS finish UNION ALL SELECT 8, 20, 25), matched AS (FROM l AS `current` |> interval_join(with: r, kind: 'left', mode: 'point_in_interval', on: [], left: {time: current.at}, right: {start: r.begin, end: r.finish}, select: {id: left.id, value: right.id}, max_output_rows: 3)) SELECT id, value FROM matched ORDER BY id",
-  )
+    Sql,
+    Some({ ..pair_context(), inputs: [], }),
+  ).unwrap().program.unwrap()
   event_window_common_checked(control)
   let body = with_carrier_argument(actual, "interval_join")
   let physical = body.split("\"with\":\"").collect()[1].split("\"").collect()[0].to_owned()
