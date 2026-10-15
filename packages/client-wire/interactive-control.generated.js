@@ -12688,6 +12688,936 @@ const schemas = {
         }
       }
     }
+  },
+  "effectful_static_plan_view": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://smooth.dev/schemas/actql-effectful-static-plan-view-0.1.json",
+    "type": "object",
+    "additionalProperties": false,
+    "required": [
+      "version",
+      "program_definition_cid",
+      "parameter_values_cid",
+      "check_environment_cid",
+      "computation",
+      "effect_set",
+      "observation",
+      "provider_io",
+      "observations"
+    ],
+    "properties": {
+      "version": {
+        "const": "actql-effectful-static-plan-view/0.1"
+      },
+      "program_definition_cid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "parameter_values_cid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "check_environment_cid": {
+        "type": "string",
+        "pattern": "^sha256:[0-9a-f]{64}$"
+      },
+      "computation": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "scope",
+          "plan_view"
+        ],
+        "properties": {
+          "scope": {
+            "const": "computation_component"
+          },
+          "plan_view": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "$id": "https://smooth.dev/schemas/actql-plan-view-0.1.json",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "version",
+              "compiled_plan_cid",
+              "logical_map",
+              "observation",
+              "provider_io",
+              "quantities",
+              "capabilities"
+            ],
+            "properties": {
+              "version": {
+                "const": "actql-plan-view/0.1"
+              },
+              "compiled_plan_cid": {
+                "type": "string",
+                "pattern": "^sha256:[0-9a-f]{64}$"
+              },
+              "logical_map": {
+                "$schema": "https://json-schema.org/draft/2020-12/schema",
+                "$id": "https://smooth.dev/schemas/actql-logical-map-0.1.json",
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "version",
+                  "compiled_plan_cid",
+                  "program_definition_cid",
+                  "steps",
+                  "self_cid"
+                ],
+                "properties": {
+                  "version": {
+                    "const": "actql-logical-map/0.1"
+                  },
+                  "compiled_plan_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "program_definition_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  },
+                  "steps": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "step_id",
+                        "key",
+                        "names",
+                        "operator",
+                        "ports",
+                        "can_stop_before",
+                        "can_stop_after",
+                        "stop_reason"
+                      ],
+                      "properties": {
+                        "step_id": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "key": {
+                          "$schema": "https://json-schema.org/draft/2020-12/schema",
+                          "$id": "https://smooth.dev/schemas/actql-logical-step-key-0.1.json",
+                          "type": "object",
+                          "additionalProperties": false,
+                          "required": [
+                            "version",
+                            "compiled_plan_cid",
+                            "stage_ordinal",
+                            "occurrence",
+                            "self_cid"
+                          ],
+                          "properties": {
+                            "version": {
+                              "const": "actql-logical-step-key/0.1"
+                            },
+                            "compiled_plan_cid": {
+                              "type": "string",
+                              "pattern": "^sha256:[0-9a-f]{64}$"
+                            },
+                            "stage_ordinal": {
+                              "type": "integer",
+                              "minimum": 0,
+                              "maximum": 2147483647
+                            },
+                            "occurrence": {
+                              "oneOf": [
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "kind",
+                                    "operation_ordinal"
+                                  ],
+                                  "properties": {
+                                    "kind": {
+                                      "const": "operation"
+                                    },
+                                    "operation_ordinal": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 2147483647
+                                    }
+                                  }
+                                },
+                                {
+                                  "type": "object",
+                                  "additionalProperties": false,
+                                  "required": [
+                                    "kind",
+                                    "input_port_ordinal"
+                                  ],
+                                  "properties": {
+                                    "kind": {
+                                      "const": "input_output"
+                                    },
+                                    "input_port_ordinal": {
+                                      "type": "integer",
+                                      "minimum": 0,
+                                      "maximum": 2147483647
+                                    }
+                                  }
+                                }
+                              ]
+                            },
+                            "self_cid": {
+                              "type": "string",
+                              "pattern": "^sha256:[0-9a-f]{64}$"
+                            }
+                          }
+                        },
+                        "names": {
+                          "type": "array",
+                          "items": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "minItems": 0,
+                          "uniqueItems": true
+                        },
+                        "operator": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string",
+                              "enum": [
+                                "analytic",
+                                "append",
+                                "apply_graph_delta",
+                                "asof_join",
+                                "assert_rows",
+                                "calendar_bucket",
+                                "calendar_series",
+                                "components",
+                                "cross_join",
+                                "dedupe_events",
+                                "dedupe_rows",
+                                "degree",
+                                "derive",
+                                "distinct",
+                                "drop",
+                                "edge_rows",
+                                "events",
+                                "except",
+                                "filter",
+                                "graft_graph",
+                                "graph",
+                                "graph_bounds",
+                                "graph_diff",
+                                "graphs_equal",
+                                "group",
+                                "infer",
+                                "intersect",
+                                "interval_join",
+                                "join",
+                                "json_pick",
+                                "lag",
+                                "match_edges",
+                                "match_nodes",
+                                "mean_graphs",
+                                "merge_rankings",
+                                "nearest",
+                                "nest",
+                                "node_rows",
+                                "normalize_graph",
+                                "normalize_vectors",
+                                "pivot",
+                                "pool_vectors",
+                                "reach",
+                                "rename",
+                                "row_window",
+                                "score_vectors",
+                                "select",
+                                "sequence",
+                                "session",
+                                "shortest_path",
+                                "sort",
+                                "subgraph",
+                                "subtract_graphs",
+                                "take",
+                                "text_rank",
+                                "time_series",
+                                "to_events",
+                                "to_vectors",
+                                "top_k",
+                                "top_k_by",
+                                "traverse",
+                                "union_graphs",
+                                "unnest",
+                                "unpivot",
+                                "values",
+                                "vectors",
+                                "watermark_events",
+                                "watermark_rows",
+                                "window_events",
+                                "window_group"
+                              ]
+                            }
+                          ]
+                        },
+                        "ports": {
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "additionalProperties": false,
+                            "required": [
+                              "port_id",
+                              "role",
+                              "port_ordinal",
+                              "carrier",
+                              "carrier_contract_cid",
+                              "source",
+                              "can_sample",
+                              "sample_reason"
+                            ],
+                            "properties": {
+                              "port_id": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "role": {
+                                "type": "string",
+                                "enum": [
+                                  "input",
+                                  "output"
+                                ]
+                              },
+                              "port_ordinal": {
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 2147483647
+                              },
+                              "carrier": {
+                                "type": "string",
+                                "enum": [
+                                  "relation",
+                                  "graph",
+                                  "vectors",
+                                  "events"
+                                ]
+                              },
+                              "carrier_contract_cid": {
+                                "type": "string",
+                                "pattern": "^sha256:[0-9a-f]{64}$"
+                              },
+                              "source": {
+                                "oneOf": [
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "kind",
+                                      "stage_ordinal",
+                                      "input_port_ordinal"
+                                    ],
+                                    "properties": {
+                                      "kind": {
+                                        "const": "stage_input"
+                                      },
+                                      "stage_ordinal": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 2147483647
+                                      },
+                                      "input_port_ordinal": {
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 2147483647
+                                      }
+                                    }
+                                  },
+                                  {
+                                    "type": "object",
+                                    "additionalProperties": false,
+                                    "required": [
+                                      "kind",
+                                      "step_id",
+                                      "output_port_id"
+                                    ],
+                                    "properties": {
+                                      "kind": {
+                                        "const": "logical_output"
+                                      },
+                                      "step_id": {
+                                        "type": "string",
+                                        "pattern": "^sha256:[0-9a-f]{64}$"
+                                      },
+                                      "output_port_id": {
+                                        "type": "string",
+                                        "pattern": "^sha256:[0-9a-f]{64}$"
+                                      }
+                                    }
+                                  }
+                                ]
+                              },
+                              "can_sample": {
+                                "type": "boolean"
+                              },
+                              "sample_reason": {
+                                "oneOf": [
+                                  {
+                                    "type": "null"
+                                  },
+                                  {
+                                    "type": "string",
+                                    "minLength": 1
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "minItems": 1
+                        },
+                        "can_stop_before": {
+                          "type": "boolean"
+                        },
+                        "can_stop_after": {
+                          "type": "boolean"
+                        },
+                        "stop_reason": {
+                          "oneOf": [
+                            {
+                              "type": "null"
+                            },
+                            {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          ]
+                        }
+                      }
+                    },
+                    "minItems": 0
+                  },
+                  "self_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              },
+              "observation": {
+                "const": "static"
+              },
+              "provider_io": {
+                "const": 0
+              },
+              "quantities": {
+                "type": "array",
+                "items": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value",
+                        "unit",
+                        "scope_cid",
+                        "basis_cid"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "exact",
+                            "bound",
+                            "estimate"
+                          ]
+                        },
+                        "value": {
+                          "type": "string",
+                          "pattern": "^(0|[1-9][0-9]*)$(?![\\s\\S])"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "scope_cid": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "basis_cid": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "unit",
+                        "reason"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "unknown"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "reason": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    }
+                  ]
+                },
+                "minItems": 0
+              },
+              "capabilities": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "static_plan",
+                  "inspect",
+                  "durable_control",
+                  "sample_capture",
+                  "full_intermediate_retention",
+                  "cost_guard",
+                  "execution_batch",
+                  "policy_revision_cid"
+                ],
+                "properties": {
+                  "static_plan": {
+                    "type": "boolean"
+                  },
+                  "inspect": {
+                    "type": "boolean"
+                  },
+                  "durable_control": {
+                    "type": "boolean"
+                  },
+                  "sample_capture": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "relation",
+                        "graph",
+                        "vectors",
+                        "events"
+                      ]
+                    },
+                    "minItems": 0,
+                    "uniqueItems": true
+                  },
+                  "full_intermediate_retention": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "relation",
+                        "graph",
+                        "vectors",
+                        "events"
+                      ]
+                    },
+                    "minItems": 0,
+                    "uniqueItems": true
+                  },
+                  "cost_guard": {
+                    "type": "boolean"
+                  },
+                  "execution_batch": {
+                    "type": "boolean"
+                  },
+                  "policy_revision_cid": {
+                    "type": "string",
+                    "pattern": "^sha256:[0-9a-f]{64}$"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "effect_set": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "unit_id",
+          "members"
+        ],
+        "properties": {
+          "unit_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "member_ordinal",
+                "stage_ordinal",
+                "effect_id",
+                "effect_kind",
+                "contract",
+                "input",
+                "failure_policy",
+                "minimum_approval"
+              ],
+              "properties": {
+                "member_ordinal": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2147483647
+                },
+                "stage_ordinal": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 2147483647
+                },
+                "effect_id": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "effect_kind": {
+                  "type": "string",
+                  "enum": [
+                    "create",
+                    "update",
+                    "upsert",
+                    "delete",
+                    "store",
+                    "command"
+                  ]
+                },
+                "contract": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "reference",
+                        "contract_cid",
+                        "declared_target"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "mapping"
+                        },
+                        "reference": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "contract_cid": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "declared_target": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "reference",
+                        "contract_cid",
+                        "resource_kind"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "command"
+                        },
+                        "reference": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "contract_cid": {
+                          "type": "string",
+                          "pattern": "^sha256:[0-9a-f]{64}$"
+                        },
+                        "resource_kind": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    }
+                  ]
+                },
+                "input": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "result_name"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "result"
+                        },
+                        "result_name": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "table_name"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "table"
+                        },
+                        "table_name": {
+                          "type": "string",
+                          "minLength": 1
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "none"
+                        }
+                      }
+                    }
+                  ]
+                },
+                "failure_policy": {
+                  "type": "string",
+                  "enum": [
+                    "halt",
+                    "continue"
+                  ]
+                },
+                "minimum_approval": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind",
+                        "value"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "contract_minimum"
+                        },
+                        "value": {
+                          "type": "string",
+                          "enum": [
+                            "none",
+                            "required"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "kind"
+                      ],
+                      "properties": {
+                        "kind": {
+                          "const": "not_represented"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "effect_kind": {
+                        "const": "command"
+                      }
+                    },
+                    "required": [
+                      "effect_kind"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "contract": {
+                        "properties": {
+                          "kind": {
+                            "const": "command"
+                          }
+                        }
+                      },
+                      "minimum_approval": {
+                        "properties": {
+                          "kind": {
+                            "const": "not_represented"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "else": {
+                    "properties": {
+                      "contract": {
+                        "properties": {
+                          "kind": {
+                            "const": "mapping"
+                          }
+                        }
+                      },
+                      "minimum_approval": {
+                        "properties": {
+                          "kind": {
+                            "const": "contract_minimum"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "minItems": 1,
+            "maxItems": 64
+          }
+        }
+      },
+      "observation": {
+        "const": "static"
+      },
+      "provider_io": {
+        "const": 0
+      },
+      "observations": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "resolved_targets",
+          "changed_values",
+          "permission",
+          "gate",
+          "approval",
+          "preview"
+        ],
+        "properties": {
+          "resolved_targets": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "reason"
+            ],
+            "properties": {
+              "state": {
+                "const": "unknown"
+              },
+              "reason": {
+                "const": "not_observed"
+              }
+            }
+          },
+          "changed_values": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "reason"
+            ],
+            "properties": {
+              "state": {
+                "const": "unknown"
+              },
+              "reason": {
+                "const": "not_observed"
+              }
+            }
+          },
+          "permission": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "reason"
+            ],
+            "properties": {
+              "state": {
+                "const": "unknown"
+              },
+              "reason": {
+                "const": "not_observed"
+              }
+            }
+          },
+          "gate": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "reason"
+            ],
+            "properties": {
+              "state": {
+                "const": "unknown"
+              },
+              "reason": {
+                "const": "not_observed"
+              }
+            }
+          },
+          "approval": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "reason"
+            ],
+            "properties": {
+              "state": {
+                "const": "unknown"
+              },
+              "reason": {
+                "const": "not_observed"
+              }
+            }
+          },
+          "preview": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "reason"
+            ],
+            "properties": {
+              "state": {
+                "const": "unavailable"
+              },
+              "reason": {
+                "const": "not_sealed"
+              }
+            }
+          }
+        }
+      }
+    }
   }
 };
 function valid(value, schema) {
@@ -12742,7 +13672,7 @@ function valid(value, schema) {
   return true;
 }
 
-export const interactiveControlRegistryCid = "sha256:3b8830bc1720c02340cc9977a092dc16395cc3ec525927ba0755cfca7615c5b9";
+export const interactiveControlRegistryCid = "sha256:66f4f78ad46eb5ae1da3bf157a03f58827fb5adc2114015f306e7daba830ce09";
 export const interactiveControlErrors = Object.freeze(["RunControlCapabilityRequired","RunStateVersionUnsupported","RunNotPaused","CheckpointPending","ControlRevisionConflict","ControlOperationConflict","ControlRevisionExhausted","BreakpointUnresolved","BreakpointAmbiguous","BreakpointPlanMismatch","BreakpointUnsupported","BoundaryUnsupported","InitialPauseUnsupported","InspectionRetentionUnsupported","SampleCaptureRequiredFailed","GuardExceeded","GuardUnavailable","InvalidCostAmount","ExecutionProfileConflict","CLIOptionConflict","InteractiveTTYRequired"]);
 export const validWireControlQuantityShape = value => valid(value, schemas.control_quantity);
 export const validWireControlMoneyShape = value => valid(value, schemas.control_money);
@@ -12779,3 +13709,4 @@ export const validWireSampleEventsShape = value => valid(value, schemas.sample_e
 export const validWireRunSampleShape = value => valid(value, schemas.run_sample);
 export const validWireRunViewShape = value => valid(value, schemas.run_view);
 export const validWireRunPlanViewShape = value => valid(value, schemas.run_plan_view);
+export const validWireEffectfulStaticPlanViewShape = value => valid(value, schemas.effectful_static_plan_view);

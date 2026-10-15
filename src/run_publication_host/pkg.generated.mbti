@@ -239,6 +239,8 @@ pub fn charge_client_keyed_lookup_verification(ClientKeyedLookupInput, ClientKey
 
 pub fn check_client_compiled_run_definition(ClientCompiledRun, @run_publication.PublicationContract) -> Result[Unit, ClientCompiledRunIssue]
 
+pub fn check_client_effectful_static_plan_view_binding(PreparedClientEffectComputation, ClientEffectCompilation, String, Int, Int, Int) -> Result[Unit, ClientEffectfulStaticPlanIssue]
+
 pub fn check_client_infer_dispatch_current(ClientInferDispatchAdmission) -> Result[Unit, ClientInferDispatchIssue]
 
 pub fn check_client_infer_egress_current(ClientInferEgressAdmission) -> Result[Unit, ClientInferEgressIssue]
@@ -480,6 +482,8 @@ pub fn client_effect_static_computation_plan_view(PreparedClientEffectComputatio
 pub fn client_effect_static_declarations(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int) -> Result[ClientEffectStaticDeclarationSet, ClientEffectStaticDeclarationIssue]
 
 pub fn client_effect_table_write_binding(PreparedClientEffectComputation, Int, String, Int) -> Result[(String, String, String?, String?, String, String)?, ClientEffectMemberDescriptorIssue]
+
+pub fn client_effectful_static_plan_view(PreparedClientEffectComputation, ClientEffectCompilation, Int, Int, Int, max_members? : Int, max_work? : Int) -> Result[String, ClientEffectfulStaticPlanIssue]
 
 pub fn client_execution_material_template_cid(ClientExecutionMaterial) -> String
 
@@ -2312,6 +2316,16 @@ pub(all) enum ClientEffectTransferredArtifactIssue {
   ForeignExport
   Current(ClientRetainedTaskInputIssue)
 }
+
+pub(all) enum ClientEffectfulStaticPlanIssue {
+  ForeignCompilation
+  InvalidLimits
+  Computation(ClientInteractivePlanIssue)
+  Declarations(ClientEffectStaticDeclarationIssue)
+  Contract(@run_publication.PublicationContractIssue)
+  Encoding
+  ForeignProjection
+} derive(@debug.Debug)
 
 pub(all) enum ClientEmptyInvocationBindingsIssue {
   BindingsDeclared

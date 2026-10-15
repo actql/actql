@@ -7,6 +7,7 @@ import {fileURLToPath} from 'node:url';
 import {createTransportOwner, requireCompleteInventory, transportModes}
   from './packed-query-transport-owner.mjs';
 import {decodeRetainedFixture, encodeRetainedFixture} from './retained-fixture-values.mjs';
+import {requireGraphArgumentCheckReport} from './graph-argument-check.mjs';
 
 const deadline = Number(process.env.ACTQL_TEST_QUERY_DEADLINE);
 const owner = createTransportOwner({deadline});
@@ -41,6 +42,15 @@ try {
         assert.equal(createHash('sha256').update(JSON.stringify(report.completedInventory)).digest('hex'),
           registered.inventorySha256, 'full worker inventory must match the independent authored pin');
       }
+    }
+    if (process.env.ACTQL_TEST_GRAPH_DIAGNOSTICS_ONLY === '1' ||
+        process.env.ACTQL_TEST_QUERY_EXPECT_FULL_CORPUS === '1') {
+      const checks = await Promise.all(transportModes.map(async mode => {
+        const report = JSON.parse(await readFile(`graph-argument-check.${mode}.json`, 'utf8'));
+        requireGraphArgumentCheckReport(report, mode);
+        return report;
+      }));
+      assert.deepEqual(checks[0].completedInventory, checks[1].completedInventory);
     }
     assert.equal(reports[0].needsTail, reports[1].needsTail);
     inventories = reports.map(report => ({mode: report.mode,
