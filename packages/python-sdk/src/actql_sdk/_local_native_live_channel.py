@@ -86,7 +86,7 @@ class _OriginalLiveChannelCustody:
                  '_read', '_write', '_read_value', '_write_value', '_child_pid',
                  '_host', '_native_domain', '_channel', '_reply', '_unknown',
                  '_unknown_carrier', '_closed', '_bind_attempted', '_admit_attempted',
-                 '_stop_attempted', '_stop_acknowledged')
+                 '_stop_attempted', '_stop_acknowledged', '_control_original')
     _original: _OriginalLiveChannelCustody
     _domain: _OriginalDomainCustody
     _owner: _OriginalControlCustody
@@ -113,6 +113,7 @@ class _OriginalLiveChannelCustody:
     _admit_attempted: bool
     _stop_attempted: bool
     _stop_acknowledged: bool
+    _control_original: object | None
 
     def __init__(self) -> None:
         raise TypeError('Original live-channel custody requires the installed physical caller')
@@ -133,6 +134,9 @@ class _OriginalLiveChannelCustody:
         funding = process._funding
         if (type(funding) is not OriginalWorkerFunding or funding._physical is not domain
                 or funding._delegation is not domain or funding._ledger is not domain._owner
+                or process._native_domain is not domain or domain._worker_process_original is not process
+                or process._native_metadata_retired or process._native_dup_unknown
+                or process._native_duplicate is None or not process._native_duplicate.closed
                 or domain._live_channel_original is not None or pipe._native_channel_original is not None):
             raise ValueError('Original live-channel funding or one-shot domain is unavailable')
         if process._stdin is None or process._stdout is None:
@@ -154,6 +158,7 @@ class _OriginalLiveChannelCustody:
         channel._closed = False
         channel._bind_attempted = channel._admit_attempted = channel._stop_attempted = False
         channel._stop_acknowledged = False
+        channel._control_original = None
         # Same existing custody before current/physical capture can fail. Even
         # a lost return never allows a second capture on the same pipe/domain.
         domain._live_channel_original = pipe._native_channel_original = channel
@@ -449,6 +454,8 @@ class _OriginalLiveChannelCustody:
                     if any(x.value is not None for x in (self._host, self._native_domain, self._channel, self._reply)):
                         raise self._mark_unknown()
                     self._closed = True
+                    if self._process._native_domain is not None:
+                        self._process._retire_native_metadata(self)
                     self._detach_retired_data()
                 finally:
                     self._owner._busy = False

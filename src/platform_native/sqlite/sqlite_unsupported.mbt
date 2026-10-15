@@ -279,3 +279,23 @@ pub fn Database::remove_exact(
 ) -> Result[Unit, NativeSqliteIssue] {
   Err(UnsupportedTarget)
 }
+
+///|
+pub fn Database::read_with_body_limit(
+  _self : Database,
+  _scope : String,
+  _key : String,
+  _max_body_bytes : Int64,
+) -> Result[NativeJournalValue, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Database::scan_after_with_body_limit(
+  _self : Database,
+  _scope : String,
+  _after_key : String,
+  _max_body_bytes : Int64,
+) -> Result[NativeJournalEntry, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}

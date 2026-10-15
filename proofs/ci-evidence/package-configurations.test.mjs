@@ -142,7 +142,8 @@ test('Journal import, selector and unknown-option changes remain unresolved', ()
 const observationDirectory = 'src/platform_native/filesystem';
 const observationPath = `${observationDirectory}/moon.pkg`;
 const readLayoutDigest = 'bb816061434a3d23d1446366e137d3e64539cd0ef6ae191bea81f71f93400a86';
-const observationDigest = '98c10419328d72de804dd3e65aea84346db093880edce96cd679e6fbc55a6460';
+const priorChildCustodyDigest = '98c10419328d72de804dd3e65aea84346db093880edce96cd679e6fbc55a6460';
+const observationDigest = 'a39f92dff1dba87ca4d59dfdcc3fb81ea4167b4f3e48c36bba69b9f28bda44e9';
 const priorObservationDigest = '765802bc29d68ff7e87d427d3e68555fb648387de56ad49b2052fdff412f376b';
 const oldObservationDigest = '6968c40ed7d166f9d94e00af31d42654efd27afc8e7ceaca2f1aaead3a8f5e0f';
 const observationRequest = {path: observationPath, digest: observationDigest,
@@ -204,9 +205,24 @@ test('package observation review preserves historical predicates and binds scope
   execFileSync('git', ['merge-base', '--is-ancestor', refusalIntro, 'HEAD'], {cwd: repository});
   assert.deepEqual(execFileSync('git', ['show', `${refusalParent}:${observationPath}`],
     {cwd: repository}), scopedIntroduced);
-  assert.deepEqual(current, execFileSync('git', ['show', `${refusalIntro}:${observationPath}`],
-    {cwd: repository}));
-  restored = current.toString();
+  const refusalIntroduced = execFileSync('git', ['show', `${refusalIntro}:${observationPath}`],
+    {cwd: repository});
+  assert.equal(hash(refusalIntroduced), priorChildCustodyDigest);
+  const childIntro = '23296c2b738e3be7f7990ac3026fbbba7a6e86ef';
+  const childParent = '22ec7edcd3edcd4a9dd95780534feeded3f6f599';
+  assert.equal(execFileSync('git', ['show', '-s', '--format=%P', childIntro],
+    {cwd: repository, encoding: 'utf8'}).trim(), childParent);
+  execFileSync('git', ['merge-base', '--is-ancestor', childIntro, 'HEAD'], {cwd: repository});
+  assert.deepEqual(execFileSync('git', ['show', `${childParent}:${observationPath}`],
+    {cwd: repository}), refusalIntroduced);
+  const childIntroduced = execFileSync('git', ['show', `${childIntro}:${observationPath}`],
+    {cwd: repository});
+  const childSelector = '    "child_custody_native_wbtest.mbt": [ "native" ],\n';
+  assert.equal(childIntroduced.toString().split(childSelector).length, 2);
+  assert.equal(childIntroduced.toString().replace(childSelector, ''), refusalIntroduced.toString());
+  assert(tree.entries.has(`${observationDirectory}/child_custody_native_wbtest.mbt`));
+  assert.deepEqual(current, childIntroduced);
+  restored = refusalIntroduced.toString();
   for (const [member, targets] of [
     ['scoped_read_unselected_native_wbtest.mbt', '[ "native" ]'],
     ['scoped_read_unsupported_wbtest.mbt', '[ "not", "native" ]'],
@@ -264,7 +280,7 @@ test('package observation review refuses old bytes, foreign path, target and too
   assert.equal(packageConfigurationReviewFor(observationRequest)?.rule,
     'literal-native-options-with-bound-source-membership');
   for (const change of [{digest: oldObservationDigest}, {digest: priorObservationDigest},
-    {digest: readLayoutDigest},
+    {digest: readLayoutDigest}, {digest: priorChildCustodyDigest},
     {digest: '0'.repeat(64)},
     {path: './src/platform_native/filesystem/moon.pkg'},
     {path: 'src/unreviewed_filesystem/moon.pkg'}, {target: 'native'}, {target: 'wasm'},
@@ -289,5 +305,67 @@ test('package observation import, predicate and unknown-option changes remain un
     const selected = packageSourceInputs({tree: changedTree, packages: [observationDirectory], target: 'js'});
     assert(selected.unresolved.includes(`Unreviewed package configuration: ${observationPath}`));
     assert(!selected.packageConfigurations.some(entry => entry.path === observationPath));
+  }
+});
+
+const sqliteDirectory = 'src/platform_native/sqlite';
+const sqlitePath = `${sqliteDirectory}/moon.pkg`;
+const sqlitePriorDigest = 'b181b5bce06d908faef1642aaad1d417ab5403fed56af41c6c028fd6608ab1e2';
+const sqliteDigest = 'f05438392188f1d1f2c08a6872f25e07c782ec6fbc3b9769c09b155b564face5';
+const sqliteRequest = {path: sqlitePath, digest: sqliteDigest, target: 'js', toolchainDigest};
+
+test('SQLite body-limit review binds the sole Native selector addition and every source member', () => {
+  const author = '9531187a12e25ec1f23ba9df8a27e53932af5c72';
+  const base = 'b09bd6b0b40b84d1e72fffed0365bca316281bef';
+  execFileSync('git', ['merge-base', '--is-ancestor', author, 'HEAD'], {cwd: repository});
+  const before = execFileSync('git', ['show', `${base}:${sqlitePath}`], {cwd: repository});
+  const introduced = execFileSync('git', ['show', `${author}:${sqlitePath}`], {cwd: repository});
+  const selector = '    "bounded_read_native_wbtest.mbt": [ "native" ],\n';
+  assert.equal(introduced.toString().split(selector).length, 2);
+  assert.equal(introduced.toString().replace(selector, ''), before.toString());
+  assert.equal(hash(before), sqlitePriorDigest);
+  assert.equal(hash(introduced), sqliteDigest);
+  const tree = treeAtHead(), current = tree.read(sqlitePath);
+  assert.deepEqual(current, introduced);
+  assert.deepEqual(packageImports(current.toString()).imports, packageImports(before.toString()).imports);
+  assert.equal(hash(tree.read('toolchain.json')), toolchainDigest);
+  const selected = packageSourceInputs({tree, packages: [sqliteDirectory], target: 'js'});
+  // Preserve unresolved dependency outcomes; this finite review admits only
+  // the SQLite manifest and cannot turn an unreviewed dependency into a pass.
+  const dependency = packageSourceInputs({tree, packages: ['src/platform_native/filesystem'], target: 'js'});
+  assert.deepEqual(selected.unresolved, dependency.unresolved);
+  assert.equal(selected.packageConfigurations.find(entry => entry.path === sqlitePath)?.review.rule,
+    'literal-native-options-with-bound-source-membership');
+  const members = [...tree.entries.keys()].filter(member => member.startsWith(`${sqliteDirectory}/`) &&
+    !member.slice(sqliteDirectory.length + 1).includes('/')).sort();
+  assert(members.includes(`${sqliteDirectory}/bounded_read_native_wbtest.mbt`));
+  assert.deepEqual(selected.directories.find(entry => entry.path === `${sqliteDirectory}/*`)?.members, members);
+  for (const member of members) {
+    assert(selected.paths.includes(member));
+    assert.equal(tree.entries.get(member).mode, '100644');
+    assert.equal(tree.entries.get(member).kind, 'blob');
+  }
+});
+
+test('SQLite body-limit review rejects changed bytes imports selectors targets and unknown options', () => {
+  assert.equal(packageConfigurationReviewFor(sqliteRequest)?.rule,
+    'literal-native-options-with-bound-source-membership');
+  for (const change of [{digest: sqlitePriorDigest},
+    {digest: '92f1a01552e82ba65b56f680cf82e048505b83625c9c13c9cfb3f202c19d3996'}, {digest: '0'.repeat(64)},
+    {path: './' + sqlitePath}, {path: 'src/unreviewed_sqlite/moon.pkg'},
+    {target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
+    assert.equal(packageConfigurationReviewFor({...sqliteRequest, ...change}), null);
+  const tree = treeAtHead(), original = tree.read(sqlitePath).toString();
+  for (const value of [
+    original.replace('"actql/actql/platform_native/filesystem"', '"actql/actql/unreviewed_filesystem"'),
+    original.replace('"bounded_read_native_wbtest.mbt": [ "native" ]',
+      '"bounded_read_native_wbtest.mbt": [ "js" ]'),
+    original + '\noptions(unreviewed: true)\n',
+  ]) {
+    assert.notEqual(value, original);
+    const changed = {...tree, read: member => member === sqlitePath ? Buffer.from(value) : tree.read(member)};
+    const selected = packageSourceInputs({tree: changed, packages: [sqliteDirectory], target: 'js'});
+    assert(selected.unresolved.includes(`Unreviewed package configuration: ${sqlitePath}`));
+    assert(!selected.packageConfigurations.some(entry => entry.path === sqlitePath));
   }
 });
