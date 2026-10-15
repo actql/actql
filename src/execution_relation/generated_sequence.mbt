@@ -11,6 +11,7 @@ struct GeneratedSequence {
   join_ceilings : Array[(Int, Int64)]
   expansion_ceilings : Array[(Int, Int64)]
   session_output_ceilings : Array[(Int, Int64)]
+  calendar_output_ceilings : Array[(Int, Int64)]
   traversal_ceilings : Array[(Int, Int64, Int64)]
   interval_search_ceilings : Array[(Int, Int64)]
   asof_search_ceilings : Array[(Int, Int64)]
@@ -106,6 +107,7 @@ pub fn prepare_generated_sequence(
         join_ceilings: [],
         expansion_ceilings: [],
         session_output_ceilings: [],
+        calendar_output_ceilings: [],
         traversal_ceilings: [],
         interval_search_ceilings: [],
         asof_search_ceilings: [],
@@ -134,6 +136,7 @@ pub fn execute_generated_sequence(
     generated.selected_prefix_end is Some(_) ||
     !generated.sequence_match_ceilings.is_empty() ||
     !generated.session_output_ceilings.is_empty() ||
+    !generated.calendar_output_ceilings.is_empty() ||
     !generated.traversal_ceilings.is_empty() {
     return Err(InputSet)
   }
@@ -318,6 +321,41 @@ pub fn constrain_generated_expansion_output(
   }
   ceilings.push((step, ceiling))
   Ok({ ..generated, expansion_ceilings: ceilings, })
+}
+
+///|
+/// Bind the selected output quota to one original Calendar occurrence. This
+/// does not replace its conservative preparation/capacity upper bound.
+pub fn constrain_generated_calendar_output(
+  generated : GeneratedSequence,
+  step : Int,
+  ceiling : Int64,
+) -> Result[GeneratedSequence, SequenceRunIssue] {
+  if ceiling < 0L {
+    return Err(InvalidLimits)
+  }
+  guard @lower.sequence_step(generated.sequence, step)
+    is Some(@lower.CalendarStep(calendar)) &&
+    @lower.calendar_step(calendar) == step else {
+    return Err(InputSet)
+  }
+  let ceilings = generated.calendar_output_ceilings.copy()
+  for index, (prior_step, prior) in ceilings {
+    if prior_step == step {
+      ceilings[index] = (step, Int64::min(prior, ceiling))
+      return Ok({ ..generated, calendar_output_ceilings: ceilings, })
+    }
+  }
+  ceilings.push((step, ceiling))
+  Ok({ ..generated, calendar_output_ceilings: ceilings, })
+}
+
+///|
+pub fn generated_calendar_output_ceiling(
+  generated : GeneratedSequence,
+  step : Int,
+) -> Int64? {
+  selected_step_ceiling(generated.calendar_output_ceilings, step)
 }
 
 ///|

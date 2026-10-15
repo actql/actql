@@ -2,6 +2,7 @@
 // It binds the selected native/module responsibility; it is not a byte grant,
 // proof of RSS, current authority, physical ACK or permission to send.
 // The actual Host must cover this view/control allocation before issuance.
+import startup from './infer-trusted-node-preload.cjs';
 const fields = Object.freeze(['host', 'supplier', 'installation', 'generation',
   'runtime', 'moduleLifetime', 'transport', 'target']);
 const constructorKey = Symbol('InferTrustedRuntimeViewConstructor');
@@ -118,4 +119,36 @@ export function checkInferTrustedRuntimeView(view, actualOriginals) {
 // A failed/pending cleanup retains the same view and its original references.
 export function forgetInferTrustedRuntimeView(view, actualHost, actualGeneration) {
   TrustedRuntimeView.forget(view, actualHost, actualGeneration);
+}
+
+// Associate the actual early startup original with this existing eight-ref
+// view. A late embedded import returns None, never reconstructed coverage.
+export function associateInferTrustedStartupView(view, actualOriginals) {
+  TrustedRuntimeView.check(view, actualOriginals);
+  return startup.associateHost(view, actualOriginals);
+}
+
+export function requireInferTrustedStartupView(view, actualOriginals) {
+  TrustedRuntimeView.check(view, actualOriginals);
+  startup.check(view, actualOriginals);
+}
+
+// Caller has checked the SAME actual Common scope before this association.
+// No callback, caller Bool, CID or another startup can supply that original.
+export function borrowInferTrustedStartupView(hostView, scopeView, hostOriginals, scopeOriginals) {
+  requireInferTrustedStartupView(hostView, hostOriginals);
+  TrustedRuntimeView.check(scopeView, scopeOriginals);
+  if (hostOriginals.host !== scopeOriginals.host ||
+      hostOriginals.generation !== scopeOriginals.generation ||
+      hostOriginals.supplier !== scopeOriginals.supplier ||
+      hostOriginals.runtime !== scopeOriginals.runtime) {
+    fail('InferTrustedStartupChanged');
+  }
+  startup.borrowScope(hostView, scopeView, hostOriginals.host, hostOriginals.generation);
+}
+
+// Existing Host/Scope cleanup is the prerequisite. This cuts only this
+// association, not the startup's actual process/native/module responsibility.
+export function forgetInferTrustedStartupView(view, host, generation) {
+  startup.retire(view, host, generation);
 }
