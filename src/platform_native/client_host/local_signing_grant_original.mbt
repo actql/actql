@@ -123,8 +123,8 @@ fn NativeLocalHostConnection::check_signing_grant_original_locked(
   }
   guard public_key is Some(public_key) &&
     public_key.cid() == scope.key_public_key_cid &&
-    local_adoption_digest(self.epoch.crypto, projection) ==
-    Ok(scope.key_generation_cid) else {
+    local_adoption_digest(self.epoch.crypto, projection) is Ok(generation) &&
+    generation == scope.key_generation_cid else {
     return Err(CustodyLost)
   }
   // Only current projection metadata is read, never secret key bytes. Missing

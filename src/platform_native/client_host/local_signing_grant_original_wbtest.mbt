@@ -267,24 +267,29 @@ test "Signing custody uses the same original reservation and never acquires issu
     host.journal.retained(original.request).unwrap().unwrap(),
   ).unwrap()
   local_grant_test_store(host, original)
-  host.journal
-  .transaction(() => {
-    let (count, _, runs) = host
-      .local_grant_custody(epoch_test_crypto())
-      .unwrap()
-    assert_eq(count, 1)
-    assert_eq(runs.length(), 1)
-    assert_true(
-      runs.get(local_original_grant_reservation_scope(original)) is Some(_),
-    )
-    let saved = host
-      .lookup_local_grant_original_locked(epoch_test_crypto(), original)
-      .unwrap()
-      .unwrap()
-    assert_eq(saved.intent, original.intent)
-    Ok(())
-  })
-  .unwrap()
+  let facts = host.journal
+    .transaction(() => {
+      let (count, _, runs) = host
+        .local_grant_custody(epoch_test_crypto())
+        .unwrap()
+      let saved = host
+        .lookup_local_grant_original_locked(epoch_test_crypto(), original)
+        .unwrap()
+        .unwrap()
+      Ok(
+        (
+          count,
+          runs.length(),
+          runs.get(local_original_grant_reservation_scope(original)) is Some(_),
+          saved.intent,
+        ),
+      )
+    })
+    .unwrap()
+  assert_eq(facts.0, 1)
+  assert_eq(facts.1, 1)
+  assert_true(facts.2)
+  assert_eq(facts.3, original.intent)
   let issuer_file = host.session.settings.files
     .iter()
     .find_first(file => file.content_cid == original.issuer_selection_cid)
@@ -326,38 +331,41 @@ test "Signing custody refuses foreign Run or key generation despite a valid new 
   )
   guard original.grant is SigningGrant(grant) else { fail("expected Signing") }
   let scope = @credential.local_signing_credential_grant_scope(grant)
-  host.journal
-  .transaction(() => {
-    for
-      changed in [
-        { ..scope, run_definition_cid: "sha256:" + "5".repeat(64), },
-        { ..scope, key_generation_cid: "sha256:" + "6".repeat(64), },
-        { ..scope, key_public_key_cid: "sha256:" + "7".repeat(64), },
-        {
-          ..scope,
-          authority_scope_cid: @host.client_request_authority_scope_cid(
+  let refused = host.journal
+    .transaction(() => {
+      let observations = []
+      for
+        changed in [
+          { ..scope, run_definition_cid: "sha256:" + "5".repeat(64), },
+          { ..scope, key_generation_cid: "sha256:" + "6".repeat(64), },
+          { ..scope, key_public_key_cid: "sha256:" + "7".repeat(64), },
+          {
+            ..scope,
+            authority_scope_cid: @host.client_request_authority_scope_cid(
+              original.request,
+            ),
+          },
+        ] {
+        let grant = @credential.prepare_local_signing_credential_grant(
+          "credential-authority-a",
+          changed,
+          @values.timestamp_epoch_milliseconds("2099-01-01T00:00:00.000Z").unwrap(),
+          2,
+        ).unwrap()
+        observations.push(
+          host.check_signing_grant_original_locked(
+            grant,
             original.request,
-          ),
-        },
-      ] {
-      let grant = @credential.prepare_local_signing_credential_grant(
-        "credential-authority-a",
-        changed,
-        @values.timestamp_epoch_milliseconds("2099-01-01T00:00:00.000Z").unwrap(),
-        2,
-      ).unwrap()
-      assert_true(
-        host.check_signing_grant_original_locked(
-          grant,
-          original.request,
-          scope.run_definition_cid,
+            scope.run_definition_cid,
+          )
+          is Err(CustodyLost),
         )
-        is Err(CustodyLost),
-      )
-    }
-    Ok(())
-  })
-  .unwrap()
+      }
+      Ok(observations)
+    })
+    .unwrap()
+  assert_eq(refused.length(), 4)
+  assert_true(refused.all(value => value))
   host.close().unwrap()
 }
 
@@ -366,17 +374,14 @@ test "Signing history original absence is unresolved and lost reservation is nev
   let (host, _, original) = signing_grant_original_fixture(
     "signing-grant-missing",
   )
-  host.journal
-  .transaction(() => {
-    assert_true(
+  let missing = host.journal
+    .transaction(() => {
       host
       .lookup_local_grant_original_locked(epoch_test_crypto(), original)
-      .unwrap()
-      is None,
-    )
-    Ok(())
-  })
-  .unwrap()
+      .map(value => value is None)
+    })
+    .unwrap()
+  assert_true(missing)
   local_grant_test_store(host, original)
   host.database
   .release_capacity(
