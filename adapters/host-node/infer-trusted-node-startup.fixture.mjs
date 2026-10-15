@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {Buffer} from 'node:buffer';
 import {Readable} from 'node:stream';
+import {TextDecoder as NodeTextDecoder} from 'node:util';
 import {issueInferTrustedRuntimeView, requireInferTrustedStartupView,
   associateInferTrustedStartupView, borrowInferTrustedStartupView,
   forgetInferTrustedStartupView, forgetInferTrustedRuntimeView} from './infer-trusted-runtime-view.mjs';
@@ -56,6 +57,33 @@ if (mode === 'absent') {
     requireInferTrustedStartupView(nextView, next);
     forgetInferTrustedStartupView(nextView, next.host, next.generation);
     forgetInferTrustedRuntimeView(nextView, next.host, next.generation);
+  } else if (['read-decoder-global', 'read-decoder-decode', 'read-buffer-subarray'].includes(mode)) {
+    assert.equal(globalThis.TextDecoder, NodeTextDecoder);
+    if (mode === 'read-decoder-global') {
+      assert.throws(() => Object.defineProperty(globalThis, 'TextDecoder', {
+        value: class ReplacementDecoder {},
+      }), TypeError);
+    } else if (mode === 'read-decoder-decode') {
+      assert.throws(() => {NodeTextDecoder.prototype.decode = () => '';}, TypeError);
+    } else {
+      assert.throws(() => {Buffer.prototype.subarray = () => Buffer.alloc(0);}, TypeError);
+    }
+    // The selected READ uses Buffer receivers and two distinct strict decoders.
+    // Views retain the same dedicated backing, not another byte allocation.
+    const bytes = Buffer.allocUnsafeSlow(7);
+    bytes.set([0xef, 0xbb, 0xbf, 0x61, 0xc3, 0xa9, 0x0a]);
+    const slice = bytes.subarray(3);
+    assert.equal(Object.getPrototypeOf(slice), Buffer.prototype);
+    assert.equal(slice.buffer, bytes.buffer);
+    const first = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
+    const second = new TextDecoder('utf-8', {fatal: true, ignoreBOM: true});
+    assert.notEqual(first, second);
+    assert.equal(first.decode(bytes), '\ufeffa\u00e9\n');
+    assert.equal(second.decode(slice), 'a\u00e9\n');
+    assert.throws(() => first.decode(Buffer.from([0xff])), TypeError);
+    requireInferTrustedStartupView(view, actual);
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
   } else if (mode === 'mutation') {
     assert.throws(() => {Buffer.poolSize = 16384;}, TypeError);
     assert.throws(() => {Buffer.concat = () => Buffer.alloc(1);}, TypeError);
