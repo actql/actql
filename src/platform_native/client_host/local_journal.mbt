@@ -10,6 +10,7 @@ struct NativeLocalHostConnection {
   adoption_body : Bytes
   adoption_cid : String
   ownership : @filesystem.NativeFileOwnership
+  mut worker_provisioning_attempt : NativeLocalWorkerProvisioningAttempt?
   mut packaged_runtime : NativeLocalRuntimeBinding?
   mut closed : Bool
   mut database_closed : Bool
@@ -277,6 +278,7 @@ fn NativeLocalAdoptionSession::bind_journal(
     database_closed: false,
     session_closed: false,
     packaged_runtime: None,
+    worker_provisioning_attempt: None,
   }
   match connected.check_binding() {
     Ok(_) => Ok(connected)
