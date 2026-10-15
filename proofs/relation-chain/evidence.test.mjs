@@ -273,3 +273,23 @@ for (const [label, from, to] of [
     read: p => p === path ? source.replace(from, to) : readFileSync(root + p, 'utf8'),
   }), /guard|retirement|custody/);
 });
+
+for (const [label, from, to] of [
+  ['mixed chain relabeled as all eligible', 'assert_false(relation_chain_reclaims_completed_scratch(sequence))', 'assert_true(relation_chain_reclaims_completed_scratch(sequence))'],
+  ['audited prefix boundary ignored', 'assert_eq(relation_chain_reclaimed_prefix(sequence), 1)', 'assert_eq(relation_chain_reclaimed_prefix(sequence), 0)'],
+  ['conservative suffix execution dropped', 'assert_eq(state.children.length(), count - 1)', 'assert_eq(state.children.length(), 0)'],
+  ['parent cleanup success ACK omitted', 'assert_true(cleanup_managed_provider(active).unwrap())', 'assert_false(cleanup_managed_provider(active).unwrap())'],
+  ['original completed output lost after cleanup', 'assert_true(@execution.completed_output_available(source))', 'assert_false(@execution.completed_output_available(source))'],
+]) test(`retirement counterexample refuses ${label}`, () => {
+  const requested = retirementBindings(), path = retirementFixture;
+  const source = readFileSync(root + path, 'utf8');
+  const start = source.indexOf('test "audited prefix releases scratch before conservative child custody"');
+  const next = source.indexOf('\ntest "', start + 1);
+  const end = next < 0 ? source.length : next;
+  const original = source.slice(start, end);
+  assert(start >= 0 && original.split(from).length === 2, 'Missing uniquely reviewed counterexample');
+  const changed = source.slice(0, start) + original.replace(from, to) + source.slice(end);
+  assert.throws(() => checkBindings(root, requested, {
+    read: p => p === path ? changed : readFileSync(root + p, 'utf8'),
+  }), /conservative retirement scope/);
+});
