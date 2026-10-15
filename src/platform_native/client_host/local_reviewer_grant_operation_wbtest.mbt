@@ -255,3 +255,18 @@ test "Signing append missing old reservation stays custody loss without repair" 
   )
   host.close().unwrap()
 }
+
+///|
+test "Signing append lost commit ACK retains Unknown and never reissues" {
+  let (host, issuer, original) = signing_append_fixture(
+    "sign-append-unknown-ack",
+  )
+  client_test_fail_commit_reply(host.database, 1)
+  assert_true(
+    signing_append_storage_only(issuer, original) is Err(TransactionUnknown),
+  )
+  assert_true(host.journal.fenced)
+  // No follow-up original lookup or another append in this fenced instance.
+  // Closing owns cleanup; a future history reader must reconcile the original.
+  host.close().unwrap()
+}
