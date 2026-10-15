@@ -83,6 +83,9 @@ pub struct ModelPhysicalCall {
   mut polling : Bool
   mut cancel_requested : Bool
   mut retired : Bool
+  // Same child cleanup ACK cached through later Resource/holding retries.
+  // This is NOT retirement of this Call, raw receipt or escaped views.
+  priv mut cleanup_acknowledged : Bool
   mut settlement_acknowledged : Bool
   mut usage_result : Result[Unit, ModelExecutionIssue]?
   mut decoded_response : ModelPhysicalResponse?
@@ -138,6 +141,7 @@ pub fn model_physical_call(
     polling: false,
     cancel_requested: false,
     retired: false,
+    cleanup_acknowledged: false,
     settlement_acknowledged: false,
     usage_result: None,
     decoded_response: None,
@@ -236,7 +240,7 @@ fn poll_model_physical_call(
 
 ///|
 fn cancel_model_physical_call(call : ModelPhysicalCall) -> Unit {
-  if !call.retired && !call.cancel_requested {
+  if !call.retired && !call.cleanup_acknowledged && !call.cancel_requested {
     call.cancel_requested = true
     if call.cancel is Some(cancel) {
       cancel()
@@ -253,7 +257,7 @@ fn cleanup_model_physical_call(state : ModelState) -> Bool {
   if call.polling || (call.raw_capture is Some(raw) && raw.usage_advancing) {
     return false
   }
-  if !call.retired {
+  if !call.cleanup_acknowledged {
     if !call.settlement_acknowledged {
       cancel_model_physical_call(call)
     }
@@ -282,12 +286,12 @@ fn cleanup_model_physical_call(state : ModelState) -> Bool {
     retire_model_raw_usage_child(call) |> ignore
     // Remember this original physical ACK even if later Resource retirement
     // is fenced. Retry the same remaining duty, never re-clean the SDK child.
-    call.retired = true
+    call.cleanup_acknowledged = true
   }
   if !retire_model_slot_io_holding(state, call) {
     return false
   }
-  if call.retired {
+  if !call.retired {
     call.cleanup = None
     call.cancel = None
     call.poll = None
@@ -299,6 +303,7 @@ fn cleanup_model_physical_call(state : ModelState) -> Bool {
     call.original_binding = None
     call.io_tracking = false
     call.poll_issue = None
+    call.retired = true
   }
   state.progress.call = None
   true
