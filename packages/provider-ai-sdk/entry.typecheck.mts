@@ -18,6 +18,12 @@ const materialRegistration: HostInstallation['registerModelProviders'] =
 void materialRegistration;
 declare const undiciMaterials: UndiciOpenAIChatMaterialsRegistrationOptions;
 createInstalledUndiciOpenAIChatRegistration(undiciMaterials);
+const {originalStringLimits: removedStrings, ...missingStrings} = materials;
+void removedStrings;
+// @ts-expect-error Original UTF-16 code-unit ceilings have no default.
+createInstalledOpenAIChatRegistration(missingStrings);
+// @ts-expect-error The selected transport needs the same original ceilings.
+createInstalledUndiciOpenAIChatRegistration({...missingStrings,physicalAcquisitionLimits:{maxPlaintextBytes:1,maxBorrowedBackingBytes:1,maxReads:1}});
 const {physicalAcquisitionLimits: removedAcquisition, ...missingAcquisition} = undiciMaterials;
 void removedAcquisition;
 // @ts-expect-error Selected Undici physical acquisition DATA has no default.

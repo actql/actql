@@ -34,12 +34,30 @@ remain implementation limits; they must not be dropped or treated as invalid
 language. The shared Model component and execution owners are not replaced.
 
 The ordinary `scripts/test-packed-salesforce-source.mjs` consumer includes both
-inputs and reuses its existing approval/restart/failure/cleanup matrix. The
-`--composed-text` flag selects only text composition for local diagnosis. Pack
-from a clean fixed SHA with the ordinary package producer and use
-`ACTQL_PACKED_CLIENT_PACKAGES` to reuse those five tarballs. Keep artifacts when
-capturing evidence. The consumer installs outside the checkout and runs both
-Local and HTTPS without a MoonBit toolchain.
+inputs and reuses its existing approval/restart/failure/cleanup matrix. For a
+normal four-package release, use the clean producer's exact source checkout:
+
+```sh
+node scripts/test-packed-salesforce-source.mjs --release-dir /absolute/fixed-normal-RC \
+  --composed-infer --keep-artifacts
+```
+
+This verifies the original release manifest and every archive, installs the four
+normal release archives through npm outside the checkout, and audits their
+installed export/dependency closure. It does not run another prepack, rewrite
+the manifest or append operations to either input. A foreign source, dirty
+checkout, corrupt archive or malformed release option is refused before a Site
+or Run is created. The original manifest, artifacts and source are checked again
+after acceptance. The pinned DuckDB peer remains the same optional installed
+transport used by the original two Sources.
+
+`--composed-text` selects only the same authored-text case. Omitting
+`--release-dir` retains the existing development-package diagnostic; its
+evidence is separate from normal release acceptance. The consumer runs both
+Local and HTTPS without a MoonBit toolchain. Preparing this entry or passing its
+synthetic package tests does not establish an installed product E2E result;
+record the actual source, manifest, commands, rows, counters, restart boundaries
+and process/cleanup receipts when that physical campaign runs.
 
 The duplicate counterexample uses the normal full text and separate databases
 with two matching rows keyed by id 1. The NULL counterexample uses the complete
