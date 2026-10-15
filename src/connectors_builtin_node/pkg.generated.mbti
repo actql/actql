@@ -911,6 +911,8 @@ pub fn client_program_infer_original_read_scope_live(@run_publication_host.Clien
 
 pub fn client_program_infer_original_resource_origin_field(@run_publication_host.ClientModelReadScope, @run_publication_host.ClientCompiledRun, @run_publication.PublicationContract, @run_publication_host.ClientInferPlanGraph, @run_publication_host.ClientNodeModelPreparationLayout?, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?, @run_publication.RunEvidenceValue, String) -> Result[String, @run_publication_host.ClientModelOriginalOriginIssue]
 
+pub fn client_program_infer_original_unparked_read_capacity_available(@client_infer_host.Execution, @run_publication_host.ClientModelReadScope, Int64, Int64) -> Bool
+
 pub fn client_program_infer_outcomes_accepted(@model_execution.ModelOutcomeRead) -> Bool
 
 pub fn client_program_infer_outcomes_call(@model_execution.ModelOutcomeRead, Int) -> @run_publication.RunEvidenceValue?

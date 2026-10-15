@@ -92,3 +92,35 @@ The component tests exercise original-port refusals, bounded maps and actual
 React static rendering. They do not establish browser focus/Flow interaction,
 current-main Host end-to-end, Cloud installation or Full Explorer acceptance.
 
+## Current Run and Owner observations
+
+`@actql/explorer-ui/run-observation` exports `readRunObservation` and
+`runObservationModel`. They retain the exact original Run reference and use
+only existing `attach`, `Run.inspect` and one bounded `Run.observeOwners` page
+(32 entries per Owner, 65536 bytes per SDK reply). The existing Gateway reply
+ceiling still covers the combined presentation. A missing Owner API is
+unavailable; malformed, foreign and stale observations refuse. The Run view is
+copied into its smaller presentation before awaiting the separate Owner read.
+No sample payload, cursor value, new Run, wait, cancellation or Result read is
+issued by this projection.
+
+`RunInspector` is exported from the existing `plan-explorer` component entry.
+It shows current Run state, original identity, control revision, component
+provenance, exact/bound/estimate/unknown quantities and independent per-Result
+availability. Quantity values remain original decimal integer strings; there
+is no numeric rounding, currency conversion or inferred zero. Run cancellation
+acceptance, physical stop and cleanup pending stay separate. History preserves
+each Owner's returned ordering, snapshot CID and revision vector; it is not a
+global timeline and does not invent timestamps or complete-history coverage.
+
+The current backend has no additional logical-step quantities, INFER counters,
+elapsed/tokens/cost or sealed Preview projection. These remain unavailable;
+neither a physical unit nor a terminal Run paints every logical step complete.
+Null Plan bindings are not repaired from a separately read map or compilation.
+The component owns no polling, SDK connection, authentication or execution.
+The Local adapter offers explicit one-second read-only following of the same
+reference, stops on the first observed terminal state, and clears/discards old
+selection or session replies. Each refresh still passes the existing current
+SDK/Host and Gateway authorization. Cloud adapters can use this same component
+with their own authenticated reads.
+
