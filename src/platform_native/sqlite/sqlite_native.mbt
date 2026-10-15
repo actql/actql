@@ -45,6 +45,14 @@ extern "C" fn library_error_ffi(library : Library) -> Bytes = "actql_native_sqli
 extern "C" fn library_version_ffi(library : Library) -> Bytes = "actql_native_sqlite_library_version"
 
 ///|
+#borrow(library)
+extern "C" fn library_diagnostic_ceiling_ffi(library : Library) -> Int = "actql_native_sqlite_library_diagnostic_ceiling"
+
+///|
+#borrow(database)
+extern "C" fn database_diagnostic_ceiling_ffi(database : Database) -> Int = "actql_native_sqlite_database_diagnostic_ceiling"
+
+///|
 #borrow(library, path)
 extern "C" fn open_database_ffi(
   library : Library,
@@ -425,6 +433,33 @@ pub fn Library::close_checked(
 ///|
 pub fn Library::version(self : Library) -> String {
   decode_message(library_version_ffi(self))
+}
+
+///|
+/// Immutable metadata of this original physical Library, not a current,
+/// reservation or read grant. None preserves legacy unbounded/unavailable
+/// diagnostics; it must not be converted to a zero-byte funded bound. Closing
+/// does not reissue or change the original selection.
+pub fn Library::diagnostic_ceiling(self : Library) -> Int? {
+  let original = library_diagnostic_ceiling_ffi(self)
+  if original > 0 {
+    Some(original)
+  } else {
+    None
+  }
+}
+
+///|
+/// This Database retained its own original Library selection at creation.
+/// Projection performs no SQL, reconfiguration or current check; it issues no
+/// capacity. Callers still require the existing current and scoped read Owners.
+pub fn Database::diagnostic_ceiling(self : Database) -> Int? {
+  let original = database_diagnostic_ceiling_ffi(self)
+  if original > 0 {
+    Some(original)
+  } else {
+    None
+  }
 }
 
 ///|

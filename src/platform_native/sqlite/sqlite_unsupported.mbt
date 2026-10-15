@@ -66,6 +66,16 @@ pub fn Library::version(_self : Library) -> String {
 }
 
 ///|
+pub fn Library::diagnostic_ceiling(_self : Library) -> Int? {
+  None
+}
+
+///|
+pub fn Database::diagnostic_ceiling(_self : Database) -> Int? {
+  None
+}
+
+///|
 pub fn Library::open_database(
   _self : Library,
   path : String,

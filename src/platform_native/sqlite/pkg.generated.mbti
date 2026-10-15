@@ -23,6 +23,7 @@ pub fn Database::close(Self) -> Unit
 pub fn Database::close_checked(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::commit(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::compare_exchange(Self, String, String, Int64, Bytes) -> Result[Int64, NativeSqliteIssue]
+pub fn Database::diagnostic_ceiling(Self) -> Int?
 pub fn Database::fence_transactions(Self) -> Unit
 pub fn Database::insert(Self, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
 pub fn Database::inspection_status(Self) -> Result[Unit, NativeSqliteIssue]
@@ -41,6 +42,7 @@ pub fn Database::transaction_state(Self) -> Result[NativeSqliteTransactionState,
 
 type Library
 pub fn Library::close_checked(Self) -> Result[Unit, NativeSqliteIssue]
+pub fn Library::diagnostic_ceiling(Self) -> Int?
 pub fn Library::initialize_owned_database(Self, String, @filesystem.NativeFileOwnership, Int64) -> Result[Database, NativeSqliteIssue]
 pub fn Library::initialize_owned_database_with_custody(Self, String, @filesystem.NativeFileOwnership, Int64) -> Result[Database, NativeSqliteOpenFailure]
 pub fn Library::open_database(Self, String, Int64) -> Result[Database, NativeSqliteIssue]

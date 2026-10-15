@@ -753,6 +753,20 @@ int32_t actql_native_sqlite_library_ready(
   return actql_library_available(library);
 }
 
+/* Original immutable selection only, not current/funding/cleanup permission.
+ * Keep legacy zero observable as unavailable for a finite-bound projection. */
+int32_t actql_native_sqlite_library_diagnostic_ceiling(
+  actql_native_sqlite_library *library
+) {
+  return library == NULL ? 0 : library->diagnostic_ceiling;
+}
+
+int32_t actql_native_sqlite_database_diagnostic_ceiling(
+  actql_native_sqlite_database *database
+) {
+  return database == NULL ? 0 : database->diagnostic_ceiling;
+}
+
 static moonbit_bytes_t actql_copy_diagnostic(const char *text, int32_t ceiling) {
   size_t length;
   if (!actql_diagnostic_length(text, ceiling, &length) || length > INT32_MAX)
