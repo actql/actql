@@ -108,7 +108,7 @@ including after Result read/release. Missing legacy originals are Unavailable,
 not reconstructed from current settings or a new execution.
 
 The closed reply has `kind: local_saved_run_state`, the original `ref` and
-`submissionRef`, `state: actql-run-state/0.1`, and the original control revision.
+`submissionRef`, `state.version: actql-run-state/0.1`, and the original control revision.
 Current RunRead and original bindings are checked independently of saved
 metadata. Run success is not Result availability: the accepted original kept
 `result_available: false` and `answer` availability `unknown` with reason
