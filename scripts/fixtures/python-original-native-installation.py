@@ -95,7 +95,8 @@ if case == 'native-installation-fresh':
     saved.write_text(json.dumps(facts,sort_keys=True)+'\n')
     saved.chmod(0o600)
     Path(plan['saved_path_file']).write_text(str(path))
-    assert sum(family=='bootstrap_sdk' and name=='produce' for family,name,_ in calls)==1
+    assert sum(family=='bootstrap' and name=='produce_sdk' for family,name,_ in calls)==1
+    assert not any(family=='bootstrap' and name=='produce' for family,name,_ in calls)
 else:
     assert facts == json.loads(saved.read_text())
     assert not any(family.startswith('bootstrap') for family,_,_ in calls)
