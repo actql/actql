@@ -11,6 +11,7 @@ import os
 
 from ._local_worker_funding import OriginalWorkerFunding, LocalWorkerFundingUnavailable
 from ._local_worker_process import OriginalWorkerProcess, LocalWorkerProcessPending
+from ._local_worker_slot import _OriginalDescriptor
 
 
 class LocalWorkerPipePending(RuntimeError):
@@ -37,6 +38,9 @@ class OriginalWorkerPipe:
             raise ValueError('Foreign original worker pipe process')
         self._original = self
         self._native_channel_original: object | None = None
+        self._control_header_original: object | None = None
+        self._parent_ends: tuple[tuple[str, _OriginalDescriptor, int], ...] | None = None
+        self._parent_pid: int | None = None
         self._funding, self._process = funding, process
         self._prepare_attempted = False
         self._prepared = False
@@ -66,16 +70,54 @@ class OriginalWorkerPipe:
         if self._unknown is not None:
             raise LocalWorkerPipePending(self) from self._unknown
 
+    def _require_original_ends(self, *, allow_retired: bool = False) -> None:
+        if self._parent_ends is None:
+            return
+        if self._process._pid != self._parent_pid:
+            raise ValueError('Original worker child identity changed before pipe I/O')
+        for kind, original, number in self._parent_ends:
+            pair = getattr(self._process, '_' + kind)
+            actual = None if pair is None else pair[1 if kind == 'stdin' else 0]
+            if (actual is not original or original._original is not original
+                    or type(original.value) is not int or original.value != number
+                    or not any(d is original for d in self._process._descriptors)
+                    or not allow_retired and (original.closed or original.close_attempted)):
+                raise ValueError('Original worker parent descriptor changed')
+
+    def _freeze_original_ends(self) -> None:
+        if self._parent_ends is not None:
+            self._require_original_ends()
+            return
+        process = self._process
+        if type(process._pid) is not int or process._pid <= 0:
+            raise ValueError('Original worker child is unavailable')
+        ends = []
+        for kind in ('stdin', 'stdout', 'stderr'):
+            pair = getattr(process, '_' + kind)
+            value = None if pair is None else pair[1 if kind == 'stdin' else 0]
+            if (type(value) is not _OriginalDescriptor or value._original is not value
+                    or value.closed or value.close_attempted or type(value.value) is not int
+                    or not 0 <= value.value <= 2**31 - 1
+                    or not any(d is value for d in process._descriptors)):
+                raise ValueError('Original worker parent descriptor is unavailable')
+            ends.append((kind, value, value.value))
+        self._parent_pid, self._parent_ends = process._pid, tuple(ends)
+
     def _current(self) -> None:
         self._nominal()
         self._funding.require_launch()
         self._nominal()
+        # The trusted current callback may revoke or replace physical custody.
+        # Recheck the same pre-callback originals before a syscall, not after it.
+        self._require_original_ends()
 
     def prepare(self) -> None:
         """Select nonblocking flags once; partial failure keeps original FDs."""
-        self._current()
+        self._nominal()
         if self._prepare_attempted:
             raise RuntimeError('Original worker pipe preparation was already attempted')
+        self._freeze_original_ends()
+        self._current()
         self._prepare_attempted = True
         try:
             for kind in ('stdin', 'stdout', 'stderr'):
@@ -197,7 +239,10 @@ class OriginalWorkerPipe:
                 raise LocalWorkerPipePending(self) from self._readiness_failure
             self._readiness = None
         try:
+            # A changed raw number is not the original descriptor to close.
+            # Keep the same process/pipe responsibility instead of closing it.
+            self._require_original_ends(allow_retired=True)
             self._process.close_parent_descriptors()
-        except (LocalWorkerProcessPending, RuntimeError) as failure:
+        except (LocalWorkerProcessPending, RuntimeError, ValueError) as failure:
             raise LocalWorkerPipePending(self) from failure
         self._closed = True

@@ -39,38 +39,41 @@ fn host_setup_test_profile() -> HolderEffectHostSetupProfile {
 }
 
 ///|
-test "current catalog has its own original envelope independent of Account ceiling" {
+test "current catalog ceiling is independent and cannot raise the original Store bound" {
   let profile = host_setup_test_profile()
-  // The existing fixture's Account ceiling is 32, independently from 1024
-  // selected catalog bytes. Neither quantity is a production numeric profile.
-  assert_true(
-    holder_effect_host_catalog_representation_ready(Some(profile), 1024L),
+  assert_eq(
+    holder_effect_host_catalog_read_limit(Some(profile), 1024L),
+    Some(1024L),
   )
-  assert_true(
-    holder_effect_host_catalog_representation_ready(Some(profile), 1023L),
+  assert_eq(
+    holder_effect_host_catalog_read_limit(Some(profile), 1023L),
+    Some(1023L),
   )
-  assert_false(
-    holder_effect_host_catalog_representation_ready(Some(profile), 1025L),
+  assert_eq(
+    holder_effect_host_catalog_read_limit(Some(profile), 1025L),
+    Some(1024L),
   )
-  for original in [0L, -1L, 9223372036854775807L] {
-    assert_false(
-      holder_effect_host_catalog_representation_ready(Some(profile), original),
+  assert_eq(
+    holder_effect_host_catalog_read_limit(Some(profile), 9223372036854775807L),
+    Some(1024L),
+  )
+  for original in [0L, -1L] {
+    assert_true(
+      holder_effect_host_catalog_read_limit(Some(profile), original) is None,
     )
   }
-  assert_false(holder_effect_host_catalog_representation_ready(None, 1024L))
+  assert_true(holder_effect_host_catalog_read_limit(None, 1024L) is None)
   let invalid = { ..profile, catalog_read_ceiling: 0L, }
-  assert_false(
-    holder_effect_host_catalog_representation_ready(Some(invalid), 1L),
-  )
+  assert_true(holder_effect_host_catalog_read_limit(Some(invalid), 1L) is None)
 }
 
 ///|
-test "uncovered current catalog refuses before binding reads or reservation" {
+test "missing current catalog selection refuses before binding reads or reservation" {
   let site = host_setup_test_site(1)
   let profile = host_setup_test_profile()
   let checks = Ref(0)
   let before = @site.site_status(site)
-  let scope = begin_holder_effect_host_setup_scope(site, Some(profile), 1025L, () => {
+  let scope = begin_holder_effect_host_setup_scope(site, Some(profile), 0L, () => {
     checks.val += 1
     true
   })

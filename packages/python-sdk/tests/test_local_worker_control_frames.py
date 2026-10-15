@@ -229,6 +229,103 @@ class WorkerControlFrameTests(unittest.TestCase):
         self.assertEqual(self.control._request_bytes, request)
         self.assertEqual(self.f.events, before)
 
+    def first_header(self, chunks):
+        self.f = ChannelFixture(self)
+        with patch('actql_sdk._local_worker_pipe.os.set_blocking'):
+            self.f.pipe.prepare()
+        with patch.object(self.f.pipe, 'read', new=AsyncMock(side_effect=chunks)):
+            return asyncio.run(frames._OriginalFirstControlHeader._read_original(self.f.pipe))
+
+    def test_initial_header_is_held_before_native_capture_and_consumed_once_with_body(self):
+        header_bytes = frames._request(frames._BIND,1,7,b'x'*frames._SPAN.size)[:frames._HEADER.size]
+        header=self.first_header([header_bytes[:3],header_bytes[3:]])
+        self.assertEqual(self.f.events,[])
+        self.assertEqual(header.nonce_data(),7)
+        self.assertEqual(header._raw,header_bytes)
+        self.channel=self.f.take()
+        self.control=frames._OriginalWorkerControlFrames(self.channel,_initial_header=header)
+        payload=frames._span_payload(self.f.span())
+        reply=self.serve(payload)
+        self.assertEqual(reply,(b'ALC1',frames._BIND,1,7,0))
+        self.assertTrue(header._taken)
+        self.assertIs(header._consumer,self.control)
+        self.assertEqual(self.control._request_bytes,header_bytes+payload)
+        self.assertEqual(self.serve(self.request(frames._CURRENT))[-1],0)
+        self.assertEqual(sum(e[0]=='bind' for e in self.f.events),1)
+        self.assertFalse(self.f.process._parent_closed or self.f.domain._closed)
+
+    def test_invalid_first_header_never_captures_native_or_acquires_permission(self):
+        for raw in (frames._HEADER.pack(b'xxxx',frames._BIND,1,7),
+                    frames._HEADER.pack(b'ALC1',frames._CURRENT,1,7),
+                    frames._HEADER.pack(b'ALC1',frames._BIND,2,7),
+                    frames._HEADER.pack(b'ALC1',frames._BIND,1,0)):
+            with self.subTest(raw=raw):
+                with self.assertRaises(frames._OriginalFirstControlPending) as caught:self.first_header([raw])
+                original=caught.exception.cleanup_header
+                self.assertEqual(original._raw,raw)
+                self.assertIs(self.f.pipe._control_header_original,original)
+                self.assertEqual(self.f.events,[])
+                with self.assertRaises(frames._OriginalFirstControlPending):original.nonce_data()
+                with self.assertRaises(ValueError):asyncio.run(frames._OriginalFirstControlHeader._read_original(self.f.pipe))
+
+    def test_first_header_read_loss_preserves_partial_bytes_and_original_pipe_without_reread(self):
+        with self.assertRaises(frames._OriginalFirstControlPending) as caught:
+            self.first_header([b'AL',OSError('lost read return')])
+        original=caught.exception.cleanup_header
+        self.assertEqual(original._raw,b'AL')
+        self.assertIs(original._pipe,self.f.pipe)
+        self.assertFalse(self.f.process._parent_closed)
+        self.assertEqual(self.f.events,[])
+        with patch.object(self.f.pipe,'read',new=AsyncMock()) as read:
+            with self.assertRaises(ValueError):asyncio.run(frames._OriginalFirstControlHeader._read_original(self.f.pipe))
+            read.assert_not_called()
+
+    def test_header_copy_or_omission_cannot_adopt_already_read_prefix(self):
+        raw=frames._HEADER.pack(b'ALC1',frames._BIND,1,7)
+        header=self.first_header([raw]);self.channel=self.f.take()
+        for copy_method in (copy.copy,copy.deepcopy,pickle.dumps):
+            with self.assertRaises(TypeError):copy_method(header)
+        clone=object.__new__(frames._OriginalFirstControlHeader);clone.__dict__.update(header.__dict__)
+        with self.assertRaises(ValueError):frames._OriginalWorkerControlFrames(self.channel)
+        with self.assertRaises(ValueError):frames._OriginalWorkerControlFrames(self.channel,_initial_header=clone)
+        self.assertIsNone(self.channel._control_original)
+        self.control=frames._OriginalWorkerControlFrames(self.channel,_initial_header=header)
+        with self.assertRaises(ValueError):frames._OriginalWorkerControlFrames(self.channel,_initial_header=header)
+        self.assertIs(header._consumer,self.control)
+
+    def test_child_identity_changed_after_header_keeps_partial_control_and_never_repairs_binding(self):
+        raw=frames._HEADER.pack(b'ALC1',frames._BIND,1,7)
+        header=self.first_header([raw]);self.f.process._pid=5432;self.channel=self.f.take()
+        with self.assertRaises(frames._OriginalWorkerControlPending) as caught:
+            frames._OriginalWorkerControlFrames(self.channel,_initial_header=header)
+        original=caught.exception.cleanup_control
+        self.assertIs(self.channel._control_original,original)
+        self.assertIs(original._initial_header,header)
+        self.assertEqual(header._raw,raw)
+        self.assertFalse(self.channel._closed or self.f.domain._closed)
+        self.assertFalse(any(e[0]=='bind' for e in self.f.events))
+
+    def test_header_postread_revocation_keeps_bytes_and_does_not_infer_no_child(self):
+        self.f=ChannelFixture(self)
+        with patch('actql_sdk._local_worker_pipe.os.set_blocking'):self.f.pipe.prepare()
+        raw=frames._HEADER.pack(b'ALC1',frames._BIND,1,7)
+        async def changed(maximum):self.f.process._stdout[0].close_attempted=True;return raw
+        with patch.object(self.f.pipe,'read',side_effect=changed):
+            with self.assertRaises(frames._OriginalFirstControlPending) as caught:
+                asyncio.run(frames._OriginalFirstControlHeader._read_original(self.f.pipe))
+        original=caught.exception.cleanup_header
+        self.assertEqual(original._raw,raw)
+        self.assertIs(self.f.pipe._control_header_original,original)
+        self.assertIsNotNone(self.f.process._pid)
+        self.assertFalse(self.f.process._parent_closed)
+
+    def test_first_header_requires_existing_prepared_pipe_before_any_read(self):
+        self.f=ChannelFixture(self)
+        with patch.object(self.f.pipe,'read',new=AsyncMock()) as read:
+            with self.assertRaises(ValueError):asyncio.run(frames._OriginalFirstControlHeader._read_original(self.f.pipe))
+            read.assert_not_called()
+        self.assertIsNone(self.f.pipe._control_header_original)
+
     def test_frame_encoders_reject_boolean_fields_unknown_ops_and_nonfixed_lengths(self):
         for args in ((True, 1, 7), (7, 1, 7), (0, 1, 7), (1, True, 7), (1, 1, True),
                      (1, 0, 7), (1, 1, 0), (1, 1, 7, b'x')):
