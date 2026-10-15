@@ -68,7 +68,7 @@ function checkedControl(control) {
 function bindSiteControl(state, control) {
   if (state.control !== undefined) {
     if (state.control !== control) fail('ForeignExecutionSiteControl');
-    return;
+    return false;
   }
   const handle = control.create(Object.freeze({
     key: state.key,
@@ -82,8 +82,35 @@ function bindSiteControl(state, control) {
   if (handle === undefined || handle === null) fail('InvalidExecutionSite');
   state.control = control;
   state.handle = handle;
-  if (state.pendingRevocation) control.revoke(handle);
-  else if (state.pendingTeardown) control.beginTeardown(handle);
+  return true;
+}
+
+// A failed installation is not a rollback of the original Core handles. Keep
+// the bindings and retry only their existing teardown, never create them again.
+function installationCleanup(createdSites) {
+  const status = () => {
+    const statuses = Object.freeze(createdSites.map(executionSiteStatus));
+    return Object.freeze({
+      pending: statuses.some(value => !value.teardownComplete), sites: statuses,
+    });
+  };
+  const retry = () => {
+    let firstFailure;
+    let failed = false;
+    for (const site of createdSites) {
+      try {
+        const state = siteState(site);
+        if (state.pendingRevocation) revokeExecutionSite(site);
+        else beginExecutionSiteTeardown(site);
+      } catch (error) {
+        if (!failed) firstFailure = error;
+        failed = true;
+      }
+    }
+    if (failed) throw firstFailure;
+    return status();
+  };
+  return Object.freeze({status, retry});
 }
 
 function controlled(state) {
@@ -177,14 +204,15 @@ export function prepareExecutionSitePolicy({
   }
   const ownedPlacements = new Map();
   let placementCount = selectedDefaults.length;
+  if (placementCount > maxPlacements) fail('ExecutionSitePlacementLimit');
   for (const [key, values] of placements) {
     if (!text(key) || !Array.isArray(values) || values.length === 0 ||
         values.some(site => !siteSet.has(site)) ||
         new Set(values).size !== values.length) {
       fail('InvalidExecutionSitePolicy');
     }
+    if (values.length > maxPlacements - placementCount) fail('ExecutionSitePlacementLimit');
     placementCount += values.length;
-    if (placementCount > maxPlacements) fail('ExecutionSitePlacementLimit');
     ownedPlacements.set(key, Object.freeze([...values]));
   }
   const policy = Object.freeze({});
@@ -214,7 +242,6 @@ export function installExecutionSites(policy, contributions, suppliedControl) {
   if (!Array.isArray(contributions) || contributions.length === 0) {
     fail('InvalidExecutionSiteInstallation');
   }
-  for (const site of configured.sites) bindSiteControl(siteState(site), control);
   const placement = new Map();
   let total = 0;
   for (const contribution of contributions) {
@@ -223,9 +250,44 @@ export function installExecutionSites(policy, contributions, suppliedControl) {
     const selected = text(key)
       ? configured.placements.get(key) ?? configured.defaultSites
       : configured.defaultSites;
+    if (selected.length > configured.maxPlacements - total) fail('ExecutionSitePlacementLimit');
     total += selected.length;
-    if (total > configured.maxPlacements) fail('ExecutionSitePlacementLimit');
     placement.set(contribution, selected);
+  }
+  // Validate every existing binding after reading contribution properties, but
+  // before calling the first control.create. A later foreign Site must not
+  // partially bind earlier Sites on a statically invalid installation.
+  for (const site of configured.sites) {
+    const state = siteState(site);
+    if (state.control !== undefined && state.control !== control) {
+      fail('ForeignExecutionSiteControl');
+    }
+  }
+  const createdSites = [];
+  try {
+    for (const site of configured.sites) {
+      const state = siteState(site);
+      if (bindSiteControl(state, control)) {
+        createdSites.push(site);
+        // Track the original handle before applying a pending lifecycle action:
+        // that action can itself fail and must leave a reachable cleanup duty.
+        if (state.pendingRevocation) control.revoke(state.handle);
+        else if (state.pendingTeardown) control.beginTeardown(state.handle);
+      }
+    }
+  } catch (cause) {
+    if (createdSites.length === 0) throw cause;
+    const cleanupHandle = installationCleanup(Object.freeze(createdSites));
+    const code = typeof cause?.code === 'string'
+      ? cause.code : 'ExecutionSiteInstallationFailed';
+    const error = Object.assign(new Error(code, {cause}), {code, cleanupHandle});
+    try {
+      error.cleanupPending = cleanupHandle.retry().pending;
+    } catch (cleanupFailure) {
+      error.cleanupPending = true;
+      error.cleanupFailure = cleanupFailure;
+    }
+    throw error;
   }
   const installation = Object.freeze({});
   installations.set(installation, {policy: configured, placement, control});
