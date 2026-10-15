@@ -1,3 +1,4 @@
+export {CheckpointPanel} from './checkpoint-panel.js';
 export {CancellationPanel} from './cancellation-panel.js';
 export {RunInspector} from './run-inspector.js';
 import {useEffect, useMemo, useState} from 'react';
