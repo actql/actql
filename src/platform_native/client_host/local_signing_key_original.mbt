@@ -234,6 +234,9 @@ fn NativeLocalHostConnection::require_distinct_signing_key_locked(
 ///|
 // This private first-capture seam is for the trusted explicit installer only.
 // Restore and ordinary use never select it after missing/unknown history.
+// Trusted first-install capture is exercised with synthetic-descriptor WBs.
+// Restore/use must not install a production recapture path to silence a warning.
+#warnings("-unused_value")
 fn NativeLocalSigningAccountBinding::capture_signing_key_original(
   self : NativeLocalSigningAccountBinding,
 ) -> Result[NativeLocalSigningKeyOriginal, NativeLocalSigningOriginalIssue] {

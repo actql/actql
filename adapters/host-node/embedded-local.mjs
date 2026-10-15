@@ -43,6 +43,8 @@ import {installNodeInferRun} from './installed-infer-run.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
+import {snapshotInstalledCalendar, installedCalendarIdentityCid,
+  installedCalendarSelection, admitInstalledCalendar} from './installed-calendar.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {issueInstalledRunControlObservation, issueInstalledRunObservationKey,
   issueInstalledUnpublishedRunState} from
@@ -71,7 +73,9 @@ import {installNodeClientDispatchOwner, confirmNodeRunCancellation, cancelNodeRu
 import {retainInstalledHostInitializationFailure} from
   './installed-host-cleanup.mjs';
 import {issueInferTrustedRuntimeView, checkInferTrustedRuntimeView,
-  forgetInferTrustedRuntimeView} from './infer-trusted-runtime-view.mjs';
+  forgetInferTrustedRuntimeView, associateInferTrustedStartupView,
+  requireInferTrustedStartupView, borrowInferTrustedStartupView,
+  forgetInferTrustedStartupView} from './infer-trusted-runtime-view.mjs';
 import {composeInstalledCheckEnvironment,
   verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
@@ -161,6 +165,8 @@ async function embeddedInstallationIdentity(root, installation) {
       hostLookupExecutionPolicy: installation.hostLookupExecutionPolicy}),
     ...(installation?.modelInstallation === undefined ? {} : {
       modelEnvironment: installation.modelInstallation}),
+    ...(installation?.calendarArtifact === undefined ? {} : {
+      calendarArtifact: installedCalendarIdentityCid(installation.calendarArtifact)}),
     ...(installation?.resultDataPolicy === undefined ? {} : {
       resultDataPolicy: installation.resultDataPolicy}),
     ...(installation?.retainedRelationOutput === true ? {
@@ -220,7 +226,7 @@ async function openInstalledHost(originalInstallation) {
   let {root, mode = 'local', beforeDispatch, workspaceId,
   authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
   effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
-  modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence, hostCapacityPolicy,
+  modelInstallation, registerModelProviders, calendarArtifact, resultDataPolicy, inferEvidence, hostCapacityPolicy,
   hostLookupExecutionPolicy, verifyRequestValuePolicy,
   retainedRelationOutput = false, valuesMaxRows, observation: observationConnection} = originalInstallation;
   // This is the actual returned Host generation, not a CID/configuration
@@ -229,6 +235,7 @@ async function openInstalledHost(originalInstallation) {
   const host = {};
   let modelRuntimeClosing = false;
   let modelRuntimeView;
+  let modelRuntimeStartupView;
   let modelProviders;
   // Nominal association in this SAME Host, not a capacity pool or Run Owner.
   // A key is an actual Common-issued Scope; its value is retired only after
@@ -241,6 +248,9 @@ async function openInstalledHost(originalInstallation) {
     moduleLifetime: import.meta, transport: registerModelProviders, target: runtimeTarget()});
   function assertModelRuntime() {
     checkInferTrustedRuntimeView(modelRuntimeView, runtimeOriginals());
+    if (modelRuntimeStartupView !== undefined) {
+      requireInferTrustedStartupView(modelRuntimeStartupView, runtimeOriginals());
+    }
   }
   function assertNewModelRuntime() {
     if (modelRuntimeClosing) throw clientOperationError('ClientHostClosing');
@@ -248,8 +258,12 @@ async function openInstalledHost(originalInstallation) {
   }
   function retireModelRuntime() {
     if (modelRuntimeView !== undefined) {
+      if (modelRuntimeStartupView !== undefined) {
+        forgetInferTrustedStartupView(modelRuntimeStartupView, host, host);
+      }
       forgetInferTrustedRuntimeView(modelRuntimeView, host, host);
     }
+    modelRuntimeStartupView = undefined;
     modelRuntimeView = undefined;
     // Drop the installer's borrowed configuration/callback and table links
     // only at the same final cleanup boundary. This is NOT process/native ACK.
@@ -288,6 +302,9 @@ async function openInstalledHost(originalInstallation) {
     // Node installation only; module/native lifetime remains process-owned.
     // Managed JS/buffer/holding bounds still require the original Run Ledger.
     modelRuntimeView = issueInferTrustedRuntimeView(runtimeOriginals());
+    // Startup responsibility was retained by the real Node preload before
+    // entry imports. Ordinary embedded processes have no such original.
+    modelRuntimeStartupView = associateInferTrustedStartupView(modelRuntimeView, runtimeOriginals());
     assertNewModelRuntime();
   }
   const moon = await import(runtimeUrl.href);
@@ -379,11 +396,18 @@ async function openInstalledHost(originalInstallation) {
       capacity: {max_graph_construction_edges: 1000,
         max_graph_construction_input_rows: 1000,
         max_graph_construction_nodes: 1000, ...body.host_policy_profile.capacity}};
+    if (calendarArtifact !== undefined) {
+      body.host_policy_profile.calendar = installedCalendarSelection(calendarArtifact);
+    }
     if (hostCapacityPolicy !== undefined) {
       effectiveHostCapacityPolicyCid = contentCid(body.host_policy_profile.capacity);
     }
-    environmentWire = canonicalJson({...body,
-      evidence_bundle_cid: contentCid(body)});
+    // Semantic artifact metadata is exact value data, not NFC configuration
+    // text. Keep the original serialization path when no Calendar is selected.
+    environmentWire = calendarArtifact === undefined
+      ? canonicalJson({...body, evidence_bundle_cid: contentCid(body)})
+      : canonicalValueJson({...body,
+        evidence_bundle_cid: bytesCid(Buffer.from(canonicalValueJson(body), 'utf8'))});
     verifyInstalledConnectorBindings(sourceProfile,
       installedEffect ?? effectInstallation);
   } catch (cause) {
@@ -410,8 +434,11 @@ async function openInstalledHost(originalInstallation) {
     // These declarations admit checking for the installed family providers.
     // The exact task offer and execution obligations still select capability.
     environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
-      environmentWire, evidenceCid, false, true, true, true, true, false,
-      false, numericProfileCid, contentCid(graphLaw));
+      environmentWire, evidenceCid, false, true, true, true, true,
+      calendarArtifact !== undefined, false, numericProfileCid, contentCid(graphLaw));
+    if (environment !== undefined) {
+      environment = admitInstalledCalendar(moon, environment, calendarArtifact);
+    }
     if (environment !== undefined) {
       sourcePublication = sourceAliasPublication(moon, environment,
         sourceProfile?.queryAliases ?? [],
@@ -965,6 +992,18 @@ async function openInstalledHost(originalInstallation) {
       }
       let admissionBoundary = 'compute_suffix';
       try {
+        // A known missing startup original must refuse before accepting a
+        // new Run/physical-start reservation. Keep dispatch's later checks:
+        // a current selection is not future authority or cleanup evidence.
+        if (physical.originalReadInstallation !== undefined) {
+          admissionBoundary = 'original_startup';
+          if (typeof physical.assertNewTrustedRuntime !== 'function') {
+            throw clientOperationError('InferTrustedRuntimeViewUnavailable');
+          }
+          physical.assertNewTrustedRuntime();
+          requireInferTrustedStartupView(modelRuntimeStartupView, runtimeOriginals());
+        }
+        admissionBoundary = 'compute_suffix';
         const durableModel = modelController !== undefined && checkpoints?.configured === true;
         const step = selectedStep;
         // Intermediate Content owns its physical prefix separately from the
@@ -1036,7 +1075,12 @@ async function openInstalledHost(originalInstallation) {
           egressAdmission, egressFailure, account, observeAccount, providerBinding,
           currentProvider: () => modelProviders.get(providerId) === physical,
           assertTrustedRuntime: physical.assertTrustedRuntime,
-          assertNewTrustedRuntime: physical.assertNewTrustedRuntime,
+          assertNewTrustedRuntime() {
+            physical.assertNewTrustedRuntime?.();
+            // Original read/Model allocation requires this same startup
+            // prerequisite. Ordinary fixture/native binding alone is not it.
+            requireInferTrustedStartupView(modelRuntimeView, runtimeOriginals());
+          },
           bindTrustedRuntimeScope(scope, compiled, definition, graph) {
             physical.assertTrustedRuntime?.();
             if (modelRuntimeView === undefined || modelRuntimeScopes.has(scope) ||
@@ -1049,6 +1093,7 @@ async function openInstalledHost(originalInstallation) {
             const originals = {...runtimeOriginals(), installation: scope,
               transport: physical.provider};
             const view = issueInferTrustedRuntimeView(originals);
+            borrowInferTrustedStartupView(modelRuntimeView, view, runtimeOriginals(), originals);
             modelRuntimeScopes.set(scope, {view, compiled, definition, graph, physical});
             return view;
           },
@@ -1063,6 +1108,8 @@ async function openInstalledHost(originalInstallation) {
             // live/parked Run's existing borrow. Authority stays in Core.
             physical.assertTrustedRuntime();
             checkInferTrustedRuntimeView(view, {...runtimeOriginals(),
+              installation: scope, transport: physical.provider});
+            requireInferTrustedStartupView(view, {...runtimeOriginals(),
               installation: scope, transport: physical.provider});
             if (!control.checkedClientInferOriginalReadScopeLive(compiled, definition, graph, scope)) {
               throw clientOperationError('InferTrustedRuntimeScopeUnavailable');
@@ -1082,6 +1129,7 @@ async function openInstalledHost(originalInstallation) {
             const finished = control.finishCheckedClientInferOriginalReadScope(
               compiled, definition, graph, scope, true);
             if (finished !== true) return false;
+            forgetInferTrustedStartupView(view, host, host);
             forgetInferTrustedRuntimeView(view, host, host);
             modelRuntimeScopes.delete(scope);
             return true;
@@ -2933,9 +2981,10 @@ export async function openInstalledRemoteHttpHost({directory,
   sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace,
   loopbackHttp = false,
   resolveSourceSecret, effectProfilePath, effectProfilePaths, resolveEffectSecret,
-  effectInstallation, modelInstallation, registerModelProviders,
+  effectInstallation, modelInstallation, registerModelProviders, calendarArtifact,
   resultDataPolicy, inferEvidence, retainedRelationOutput, hostCapacityPolicy,
   hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation}) {
+  calendarArtifact = snapshotInstalledCalendar(calendarArtifact);
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
   if (typeof directory !== 'string' || !directory ||
@@ -2948,7 +2997,7 @@ export async function openInstalledRemoteHttpHost({directory,
     workspaceId,
     beforeDispatch, authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
     effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
-    modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence,
+    modelInstallation, registerModelProviders, calendarArtifact, resultDataPolicy, inferEvidence,
     retainedRelationOutput, hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536, loopbackHttp,
@@ -3045,11 +3094,12 @@ export async function connectEmbeddedLocal(options) {
   }
   if (installation !== undefined) {
     const {hostCapacityPolicy: selected, hostLookupExecutionPolicy: lookupSelected,
-      valuesMaxRows, ...rest} = installation;
+      calendarArtifact: suppliedCalendar, valuesMaxRows, ...rest} = installation;
     validateValuesMaxRows(valuesMaxRows);
     const hostCapacityPolicy = snapshotHostCapacityPolicy(selected);
     const hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(lookupSelected);
-    installation = {...rest, hostCapacityPolicy, hostLookupExecutionPolicy, valuesMaxRows};
+    const calendarArtifact = snapshotInstalledCalendar(suppliedCalendar);
+    installation = {...rest, hostCapacityPolicy, hostLookupExecutionPolicy, calendarArtifact, valuesMaxRows};
     if (installation.effectProfilePaths !== undefined) {
       installation.effectProfilePaths = installedEffectPaths(installation);
     }
@@ -3070,6 +3120,7 @@ export async function connectEmbeddedLocal(options) {
         effectProfilePaths: installation?.effectProfilePaths,
         resolveEffectSecret: installation?.resolveEffectSecret,
         modelInstallation: installation?.modelInstallation,
+        calendarArtifact: installation?.calendarArtifact,
         registerModelProviders: installation?.registerModelProviders,
         verifyRequestValuePolicy: installation?.verifyRequestValuePolicy,
         resultDataPolicy: installation?.resultDataPolicy,
