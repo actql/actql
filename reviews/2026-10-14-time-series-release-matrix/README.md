@@ -49,3 +49,19 @@ limits and expected rows/schema are not changed to fit the window.
 Installed 9+7 Local/HTTPS completion and fresh-process reread remain unverified;
 new public E2E is zero. Vector #1952's shared captured-suffix repair is owned by
 Root and is not duplicated here. Optional Calendar runtime remains unfinished.
+
+
+## Independent installed-result audit
+
+`public-audit.mjs` compares the actual saved Local/HTTPS observations with the
+unchanged original nine normal and seven refusal declarations. It requires
+21 rows and complete timestamp contracts per transport, including typed empty
+results, exact UTC parameters, original refusal codes with zero admission/I/O,
+same-request replay and a different process rereading all nine Named Results
+without another admission. Missing/incomplete observations are not success.
+Synthetic mutation controls exercise the audit but do not establish product E2E.
+
+The standing autonomous verification policy supersedes this note's historical
+per-window permission wording. The original producer/consumer 300s/TERM5 and
+shared guard resource/Owner admission remain unchanged. Source and artifact
+identities are fixed separately from any later main integration.

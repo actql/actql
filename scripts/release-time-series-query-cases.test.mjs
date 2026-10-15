@@ -70,3 +70,46 @@ test('separate-process reread and original bounded recipes parse without startin
     execFileSync(process.execPath, ['--check', resolve(root, path)], {timeout: 10000});
   }
 });
+
+
+// The audit consumes saved observations and the original independent fixture;
+// these synthetic mutations establish no product execution qualification.
+import {auditTimeSeriesTransport} from '../reviews/2026-10-14-time-series-release-matrix/public-audit.mjs';
+const counts = acceptedRuns => ({acceptedRuns, sourceIo: 0, sourceReads: 0, sourceReadSessions: 0});
+function auditControl() {
+  const providerObservation = {forbiddenProcesses: 0, forbiddenFetches: 0, sourceSecrets: 0};
+  const completed = successes.map((item, index) => ({name: item.name,
+    ref: {testRun: index}, submissionRef: {testSubmission: index},
+    observedResults: structuredClone(item.results), beforeSubmit: counts(index),
+    beforeRead: counts(index + 1), afterReplay: counts(index + 1)}));
+  return {mode: 'local', suite: 'time-series', complete: true,
+    actualNormal: 9, actualRefusal: 7,
+    expectedSuccessNames: successes.map(item => item.name), successNames: successes.map(item => item.name),
+    expectedRefusalNames: refusals.map(item => item.name), refusalNames: refusals.map(item => item.name),
+    completed, providerObservation,
+    completedRefusals: refusals.map((item, index) => ({name: item.name,
+      submissionRef: {testRefusal: index}, beforeSubmit: counts(9), afterRefusal: counts(9),
+      outcome: {kind: 'not_accepted', problem: {code: item.expectedCode}, submissionRef: {testRefusal: index}}})),
+    freshProcessReread: {mode: 'local', suite: 'time-series', phase: 'fresh-process-reread', complete: true,
+      providerObservation, completed: completed.map(item => ({name: item.name, ref: item.ref,
+        submissionRef: item.submissionRef, observedResults: structuredClone(item.observedResults),
+        beforeAcceptedRuns: 9, afterAcceptedRuns: 9}))}};
+}
+test('TimeSeries independent audit requires the complete original normal refusal and restart observations', () => {
+  assert.deepEqual(auditTimeSeriesTransport(auditControl()), {mode: 'local', actualNormal: 9,
+    actualRefusal: 7, actualNamedResults: 9, actualRows: 21, freshRereadNamedResults: 9, complete: true});
+});
+test('TimeSeries audit rejects changed values types Refusals source counters or restart identity', () => {
+  for (const mutate of [
+    value => value.completed[0].observedResults.answer.rows.reverse(),
+    value => { value.completed[0].observedResults.answer.columns[0].contract.nullable = true; },
+    value => { value.completed[0].beforeRead.sourceReads = 1; },
+    value => { value.completed[0].afterReplay.acceptedRuns = 10; },
+    value => { value.completedRefusals[0].outcome.problem.code = 'DifferentRefusal'; },
+    value => value.completedRefusals.pop(),
+    value => { value.freshProcessReread = undefined; },
+    value => { value.freshProcessReread.completed[0].ref = {testRun: 999}; },
+  ]) {
+    const report = auditControl(); mutate(report); assert.throws(() => auditTimeSeriesTransport(report));
+  }
+});
