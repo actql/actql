@@ -149,6 +149,7 @@ pub fn InstalledArenaHost::enter_domain_read_cleanup(Self, InstalledArenaDomain)
 pub fn InstalledArenaHost::leave_backing_borrow_scope(Self, InstalledArenaBackingBorrow) -> Result[Unit, @host_bootstrap.NativeBootstrapIssue]
 pub fn InstalledArenaHost::leave_domain(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::leave_domain_read(Self, InstalledArenaDomain) -> Result[Unit, @host_bootstrap.NativeBackedExecutionIssue]
+pub fn InstalledArenaHost::live_channel_capacities(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[(Int64, Int64), @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::live_channel_limits(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[@physical_resources.LedgerLimits, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::live_channel_state(Self, InstalledArenaDomain, @host_bootstrap.NativeBackedLiveChannel[Self, InstalledArenaDomain]) -> Result[@physical_resources.BackedExecutionLiveState, @host_bootstrap.NativeBackedExecutionIssue]
 pub fn InstalledArenaHost::prepare_domain(Self, InstalledArenaBackingBorrow, Int, Int64, @physical_resources.LedgerLimits) -> Result[InstalledArenaDomainAcquisition, @host_bootstrap.NativeBackedExecutionIssue]
