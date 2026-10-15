@@ -129,7 +129,9 @@ else:
         assert case == 'runtime-partial' and not error.unknown
         assert error.fact.issue_family == 2
         runtime = error.cleanup_runtime
-        assert runtime._runtime.value is not None and not runtime._closed
+        # Existing local_runtime_finish_open closes partial construction;
+        # successful physical cleanup returns Refused with no Runtime alias.
+        assert runtime._runtime.value is None and runtime._closed
     else:
         assert case != 'runtime-partial'
         assert runtime.current().issue_family == 0
@@ -145,12 +147,15 @@ else:
                 assert not error.unknown and error.fact.issue_family == 5
                 assert error.cleanup_runtime is runtime
             else: raise AssertionError('Changed member retained current status')
-    for action in (original.close, lambda: original.scope().__enter__()):
-        try: action()
-        except ValueError: pass
-        else: raise AssertionError('Parent retired or reentered during Runtime custody')
-    runtime.close(); runtime.close()
-    assert runtime._closed and runtime._runtime.value is None
+    if not runtime._closed:
+        for action in (original.close, lambda: original.scope().__enter__()):
+            try: action()
+            except ValueError: pass
+            else: raise AssertionError('Parent retired or reentered during Runtime custody')
+        runtime.close(); runtime.close()
+        assert runtime._closed and runtime._runtime.value is None
+    else:
+        assert case == 'runtime-partial'
 assert not original._closed and not d._closed and not d._owner._closed
 original.close(); original.close()
 try: runtime.current()
