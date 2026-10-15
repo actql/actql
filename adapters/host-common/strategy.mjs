@@ -292,7 +292,7 @@ function coreOutputSiteOwner(core, setup, siteInstallation) {
 // This owner exists only after immutable preflight refuses, before any
 // Compute contribution has entered. It owns this exact setup, not an execution
 // or a Result. Successful stop/output-close steps are never repeated.
-function preflightSetupCleanup(core, setup) {
+function preflightSetupCleanup({core, setup, siteCleanup}) {
   let stopped = false, outputsClosed = false, released = false;
   let closeAttempted = false, closeFailed = false, closeFailure;
   let cleanupFailure;
@@ -301,6 +301,14 @@ function preflightSetupCleanup(core, setup) {
     try {
       if (!stopped) { core.stop(setup); stopped = true; }
       if (!outputsClosed) { core.closeOutputs(setup); outputsClosed = true; }
+      if (siteCleanup !== undefined && siteCleanup.status()?.pending !== false) {
+        // Preserve the same partial-installation carrier. Setup retirement is
+        // insufficient while an already-created Site still owns cleanup.
+        siteCleanup.retry();
+        if (siteCleanup.status()?.pending !== false) {
+          throw new StrategyHostError('ExecutionSiteCleanupPending');
+        }
+      }
       const usage = core.usage(setup);
       if (['reservedTransferBytes', 'heldBytes', 'reservedRetentionBytes',
         'reservedExecutionBytes'].some(key => usage[key] !== 0n)) {
@@ -330,6 +338,53 @@ function preflightSetupCleanup(core, setup) {
     status,
     retry() { settle(); return status(); },
   });
+}
+
+// One installed receiver owns both the refused setup and any partial Site
+// installation. Exception wrappers are not the custody transport.
+function rejectSetupPreflight({primary, core, setup, retainPreflightCleanup, siteCleanup}) {
+  if (retainPreflightCleanup !== undefined) {
+    const owner = preflightSetupCleanup({core, setup, siteCleanup});
+    // The installed receiver consumes its pending setup synchronously, before
+    // this owner may stop it. A refused handoff grants no stop observation.
+    try { retainPreflightCleanup(owner); }
+    catch (handoffFailure) {
+      const failure = ownedStrategyFailure(primary, 'PublicationPreflightFailed');
+      failure.cleanupPending = true;
+      failure.cleanupErrors = Object.freeze([...failure.cleanupErrors, handoffFailure]);
+      throw failure;
+    }
+    try { owner.close(); }
+    catch (cleanupFailure) {
+      const failure = ownedStrategyFailure(primary, 'PublicationPreflightFailed');
+      failure.cleanupPending = true;
+      failure.cleanupErrors = Object.freeze([...failure.cleanupErrors, cleanupFailure]);
+      failure.cleanupHandle = owner;
+      throw failure;
+    }
+    throw primary;
+  }
+  let stopFailed = false;
+  let stopFailure;
+  try { core.stop(setup); }
+  catch (error) {
+    stopFailed = true;
+    stopFailure = error;
+  }
+  active.delete(setup);
+  if (!stopFailed) throw primary;
+  const failure = ownedStrategyFailure(
+    primary,
+    'PublicationPreflightFailed',
+  );
+  failure.cleanupPending = true;
+  failure.cleanupErrors = Object.freeze([
+    ...failure.cleanupErrors,
+    stopFailure,
+  ]);
+  const cleanupHandle = failureMember(stopFailure, 'cleanupHandle');
+  if (cleanupHandle !== undefined) failure.cleanupHandle = cleanupHandle;
+  throw failure;
 }
 
 // Trusted internal composition only. Public Node options are separately
@@ -406,48 +461,7 @@ export async function runInstalledStrategy({
       signal?.throwIfAborted();
     }
   } catch (primary) {
-    if (retainPreflightCleanup !== undefined) {
-      const owner = preflightSetupCleanup(core, setup);
-      // The installed receiver consumes its pending setup synchronously, before
-      // this owner may stop it. A refused handoff grants no stop observation.
-      try { retainPreflightCleanup(owner); }
-      catch (handoffFailure) {
-        const failure = ownedStrategyFailure(primary, 'PublicationPreflightFailed');
-        failure.cleanupPending = true;
-        failure.cleanupErrors = Object.freeze([...failure.cleanupErrors, handoffFailure]);
-        throw failure;
-      }
-      try { owner.close(); }
-      catch (cleanupFailure) {
-        const failure = ownedStrategyFailure(primary, 'PublicationPreflightFailed');
-        failure.cleanupPending = true;
-        failure.cleanupErrors = Object.freeze([...failure.cleanupErrors, cleanupFailure]);
-        failure.cleanupHandle = owner;
-        throw failure;
-      }
-      throw primary;
-    }
-    let stopFailed = false;
-    let stopFailure;
-    try { core.stop(setup); }
-    catch (error) {
-      stopFailed = true;
-      stopFailure = error;
-    }
-    active.delete(setup);
-    if (!stopFailed) throw primary;
-    const failure = ownedStrategyFailure(
-      primary,
-      'PublicationPreflightFailed',
-    );
-    failure.cleanupPending = true;
-    failure.cleanupErrors = Object.freeze([
-      ...failure.cleanupErrors,
-      stopFailure,
-    ]);
-    const cleanupHandle = failureMember(stopFailure, 'cleanupHandle');
-    if (cleanupHandle !== undefined) failure.cleanupHandle = cleanupHandle;
-    throw failure;
+    rejectSetupPreflight({primary, core, setup, retainPreflightCleanup});
   }
   // Snapshot the implementation set before invoking any implementation. Opaque
   // registration object identity, never a display name, selects the driver.
@@ -467,11 +481,20 @@ export async function runInstalledStrategy({
       finish: entry.finish,
     }));
   }
-  const siteInstallation = installExecutionSites(
-    sitePolicy ?? prepareSingleExecutionSitePolicy(),
-    [...installed.values()],
-    core.siteControl,
-  );
+  let siteInstallation;
+  try {
+    siteInstallation = installExecutionSites(
+      sitePolicy ?? prepareSingleExecutionSitePolicy(),
+      [...installed.values()],
+      core.siteControl,
+    );
+  } catch (primary) {
+    const siteCleanup = failureMember(primary, 'cleanupHandle');
+    if (retainPreflightCleanup === undefined ||
+        typeof failureMember(siteCleanup, 'status') !== 'function' ||
+        typeof failureMember(siteCleanup, 'retry') !== 'function') throw primary;
+    rejectSetupPreflight({primary, core, setup, retainPreflightCleanup, siteCleanup});
+  }
   const transfers = createManagedSiteTransferCoordinator(
     setup, core, siteInstallation, {
       authorization,
