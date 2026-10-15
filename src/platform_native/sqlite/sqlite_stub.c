@@ -860,12 +860,13 @@ moonbit_bytes_t actql_native_sqlite_database_error(
     actql_copy_diagnostic(database->error, database->diagnostic_ceiling);
 }
 
-int32_t actql_native_sqlite_database_read(
+static int32_t actql_database_read(
   actql_native_sqlite_database *database,
   moonbit_bytes_t namespace_bytes,
   int32_t namespace_length,
   moonbit_bytes_t key,
-  int32_t key_length
+  int32_t key_length,
+  int64_t caller_body_limit
 ) {
   if (database == NULL || !database->opened) return 5;
   actql_clear_result(database);
@@ -907,6 +908,8 @@ int32_t actql_native_sqlite_database_read(
           length > INT32_MAX) {
         actql_replace_error(&database->error, database->diagnostic_ceiling, "invalid stored journal record");
         result = -1;
+      } else if (caller_body_limit >= 0 && length > caller_body_limit) {
+        result = 4;
       } else {
         unsigned char *copy = length == 0 ? NULL : malloc((size_t)length);
         if (length > 0 && copy == NULL) {
@@ -929,12 +932,38 @@ int32_t actql_native_sqlite_database_read(
   return result;
 }
 
-int32_t actql_native_sqlite_database_scan_after(
+int32_t actql_native_sqlite_database_read(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes,
+  int32_t namespace_length,
+  moonbit_bytes_t key,
+  int32_t key_length
+) {
+  return actql_database_read(database, namespace_bytes, namespace_length,
+    key, key_length, -1);
+}
+
+// A caller ceiling is only a physical copy bound, never a reservation or permit.
+int32_t actql_native_sqlite_database_read_with_body_limit(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes,
+  int32_t namespace_length,
+  moonbit_bytes_t key,
+  int32_t key_length,
+  int64_t max_body_bytes
+) {
+  if (max_body_bytes < 0) return 4;
+  return actql_database_read(database, namespace_bytes, namespace_length,
+    key, key_length, max_body_bytes);
+}
+
+static int32_t actql_database_scan_after(
   actql_native_sqlite_database *database,
   moonbit_bytes_t namespace_bytes,
   int32_t namespace_length,
   moonbit_bytes_t after_key,
-  int32_t after_key_length
+  int32_t after_key_length,
+  int64_t caller_body_limit
 ) {
   if (database == NULL || !database->opened) return 5;
   actql_clear_result(database);
@@ -991,6 +1020,8 @@ int32_t actql_native_sqlite_database_scan_after(
           body_length > INT32_MAX) {
         actql_replace_error(&database->error, database->diagnostic_ceiling, "invalid stored journal record");
         result = -1;
+      } else if (caller_body_limit >= 0 && body_length > caller_body_limit) {
+        result = 4;
       } else {
         unsigned char *key_copy = malloc((size_t)key_length);
         unsigned char *body_copy = body_length == 0
@@ -1021,6 +1052,31 @@ int32_t actql_native_sqlite_database_scan_after(
     return actql_operation_code(finalize_code);
   }
   return result;
+}
+
+int32_t actql_native_sqlite_database_scan_after(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes,
+  int32_t namespace_length,
+  moonbit_bytes_t after_key,
+  int32_t after_key_length
+) {
+  return actql_database_scan_after(database, namespace_bytes, namespace_length,
+    after_key, after_key_length, -1);
+}
+
+// A caller ceiling is only a physical copy bound, never a reservation or permit.
+int32_t actql_native_sqlite_database_scan_after_with_body_limit(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes,
+  int32_t namespace_length,
+  moonbit_bytes_t after_key,
+  int32_t after_key_length,
+  int64_t max_body_bytes
+) {
+  if (max_body_bytes < 0) return 4;
+  return actql_database_scan_after(database, namespace_bytes, namespace_length,
+    after_key, after_key_length, max_body_bytes);
 }
 
 int32_t actql_native_sqlite_database_insert(

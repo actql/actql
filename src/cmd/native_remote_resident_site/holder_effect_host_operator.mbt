@@ -118,6 +118,12 @@ fn load_holder_effect_host_operator(
   // capturing its Ref[scope] would create a scope/current-predicate cycle.
   let bundles = environment.bundles
   let active_runtime = environment.active_runtime
+  // Use the same immutable selection admitted before reservation, and enforce
+  // it at the physical Store read on every current check, never just in a quote.
+  let catalog_read_limit = holder_effect_host_catalog_read_limit(
+    setup_profile,
+    environment.runtime_catalog_record_bytes,
+  ).unwrap()
   scope.current_binding = Some(
     holder_effect_host_setup_binding(
       environment.site,
@@ -125,7 +131,12 @@ fn load_holder_effect_host_operator(
       resources.site_generation,
       environment.runtime_bundle_cid,
       () => slot.verify_current_hold() == Ok(()),
-      () => bundles.verify_active_component_binding(active_runtime) is Ok(_),
+      () => {
+        bundles.verify_active_component_binding_with_body_limit(
+          active_runtime, catalog_read_limit,
+        )
+        is Ok(_)
+      },
     ),
   )
   if !holder_effect_host_read_scope_current(scope) {
