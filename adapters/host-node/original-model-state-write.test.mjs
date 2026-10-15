@@ -147,7 +147,7 @@ test('selected storage binding re-observation uses original Store clamp without 
   const f = await fixture(t);
   // The already-issued installation binding is deliberately obtained through
   // the ordinary pre-park/bootstrap path. This test does not fund that path.
-  const handle = await f.evidence.observeModelOriginalStorageBinding();
+  const handle = await f.evidence.observeOriginalModelStorageBinding();
   const expected = await f.evidence.originalModelStorageBindingEvidence(handle);
   assert.strictEqual(await f.evidence.originalModelStorageBindingEvidenceSelected(handle,
     'model-meta', f.runDefinition.identity, f.acquisition), expected);
@@ -160,7 +160,7 @@ test('selected storage binding re-observation uses original Store clamp without 
   f.done();
   const g = await fixture(t, {maxWireBytes: 1024, maxLedgerEntries: 8},
     {maxWireBytes: 4096, maxDirectoryEntries: 0});
-  const original = await g.evidence.observeModelOriginalStorageBinding();
+  const original = await g.evidence.observeOriginalModelStorageBinding();
   await assert.rejects(g.evidence.originalModelStorageBindingEvidenceSelected(original,
     'model-meta', g.runDefinition.identity, g.acquisition), {code: 'PublicationStoreBootstrapEntriesLimit'});
   // Ordinary re-observation still works but is never a selected fallback.
