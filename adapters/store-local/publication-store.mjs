@@ -132,6 +132,14 @@ function encodePrivateEvidenceEnvelope(input, isWire, key, aad, maximum) {
   return envelope;
 }
 
+// Exact extent of the SAME closed format, not memory funding or a lease.
+// Its 128 fixed ASCII bytes include the nonce/tag; ciphertext uses Base64.
+// Inverting before multiplication keeps the calculation safe at large limits.
+function privateEvidenceWireLimitForObject(maximum) {
+  if (maximum < 128) fail('PublicationObjectLimit');
+  return 3 * Math.floor((maximum - 128) / 4);
+}
+
 // Recovery facade of the SAME Store writer, not another cleanup/capacity
 // owner. A failed private preparation has no prepared object to return yet.
 // Keep its original reservation/FD/custody reachable, and expose only cleanup.
@@ -2500,13 +2508,10 @@ export async function openLocalPublicationStore(
     }
     cidHex(semanticCid);
     const key = privateEvidenceKey();
-    // This closed format has 128 fixed ASCII bytes, a 12-byte nonce and
-    // 16-byte tag already included, plus 4*ceil(plaintextBytes/3) ciphertext.
-    // Invert the bound to avoid overflowing safe-integer arithmetic. Refuse
-    // before UTF-8 copying, crypto or Base64/JSON envelope construction.
-    // This is an object extent check, not a complete memory reservation.
-    if (configuration.maxObjectBytes < 128 || byteLength >
-        3 * Math.floor((configuration.maxObjectBytes - 128) / 4)) {
+    // Share this exact original Store bound with upstream private exporters.
+    // Preserve validation/key priority, bytes/AAD and refusal before copying,
+    // crypto or Base64 construction. A clamp is not a memory reservation.
+    if (byteLength > privateEvidenceWireLimitForObject(configuration.maxObjectBytes)) {
       fail('PublicationObjectLimit');
     }
     const envelope = encodePrivateEvidenceEnvelope(input, isWire, key,
@@ -5968,6 +5973,14 @@ export async function openLocalPublicationStore(
     putBytes,
     putSemantic,
     preparePrivateEvidence,
+    // Read-only projection of this SAME immutable Store configuration. A
+    // caller must still fund export/tree/String/encoding workspace BEFORE
+    // allocation and retain its original reservation through actual ACK.
+    // No write, grant, reservation, persistence or cleanup is issued here.
+    privateEvidenceWireLimit() {
+      active();
+      return privateEvidenceWireLimitForObject(configuration.maxObjectBytes);
+    },
     confirmPrivateEvidence,
     prepareModelRawEvidence,
     readModelRawEvidence,
