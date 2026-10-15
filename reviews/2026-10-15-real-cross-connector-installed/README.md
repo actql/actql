@@ -144,3 +144,40 @@ G's ordinary consumer is a separate qualification and does not count it twice.
 HTTPS for this real route, full Preview row-value inspection, all seventeen
 Connector profiles, all Frontend work, Native/Python/Cloud gates, Hosted CI and
 formal publication are not established by this result.
+
+## Executed fixed-source AQL Local route
+
+The public `format: 'aql'` entry passed one fresh real-system Local scenario at
+clean source `fa800389034469ce5a80c769457696125b987706`, tree
+`a172a9edc03cd0df68b9bc26bb421d63ceedccdd`, in `run-IPEIcv`: 1/1,
+complete exit0 under the same outer300/TERM5 and child180. G generated the one
+shared normal4 cohort in `run-IecEBP` with ordinary prepack; manifest SHA256 is
+`07e04a7076c93667e68a4db3a4f523426b71d0109baeae7d52575667c1500b85`.
+B's 31 inert selector controls and Root's independent 31 controls are separate
+preparation evidence, not the installed run.
+
+The authored document, source rows, independent joined row and full ordered
+schema remain identical to the SQL control. Actual acquisition was one real
+DuckDB session/statement and one GCS metadata response of 1,927 bytes. The
+original Preview was checked before approval, with row payload and public Result
+still unavailable. Three distinct processes (55734, 55953, 55990) performed the
+initial capture, same-Run sealed approval and post-commit terminal Result read.
+The real Local Iceberg Effect committed once and wrote the independent one row.
+Both fresh processes performed zero Source requests, credential resolutions or
+new submissions; the terminal process also started zero Table workers.
+
+G independently verified all 319 installed original member bytes/modes/SRI,
+23 copied fixtures, 27 source inputs and the committed Parquet row/schema without
+external I/O. Owner/observed child groups, original worktree/shared ownership
+tokens and fixture open FDs were closed. All 139 custody files, proof keys,
+DB/WAL and raw receipts remain retained. A preflight-only Git output-buffer
+failure is preserved; exact blob-ID comparison resolved it before any Host or
+authentication call, with product bounds and source unchanged.
+
+[The AQL evidence record](accepted-fa800389-aql.json) binds the commands,
+artifact identities, actual Result/schema, original raw hashes and G's separate
+audit. Count one newly accepted AQL Local entry to the same business scenario already
+exercised through SQL; no second distinct business scenario is added, and G/Root
+add no duplicate. The preceding 6f SQL proof retains its immutable source qualification.
+This is not a later-main pristine RC, real HTTPS, complete Preview row-value
+inspection or completion of all Frontend/Connector/product gates.
