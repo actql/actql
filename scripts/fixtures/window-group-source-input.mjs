@@ -39,7 +39,8 @@ function control(v) {
   return {version: 'actql/0.1', id: 'fixture.window_group_' + v.name,
     stages: [
       {id: 'capture', inputs: {remote: {connector: 'crm/main', resource: 'r'}},
-        steps: [{from: 'remote', select: ['amount', 'id'], as: 'captured'}],
+        steps: [{from: 'remote', filter: {literal: true}, as: 'scanned'},
+          {from: 'scanned', select: ['amount', 'id'], as: 'captured'}],
         results: {source: {from: 'captured', fields: ['amount', 'id']}}},
       {id: 'main', inputs: {records: {result: {stage: 'capture', result: 'source'}}},
         steps: [{from: 'records', derive: {

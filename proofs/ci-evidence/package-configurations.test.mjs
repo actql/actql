@@ -142,7 +142,8 @@ test('Journal import, selector and unknown-option changes remain unresolved', ()
 const observationDirectory = 'src/platform_native/filesystem';
 const observationPath = `${observationDirectory}/moon.pkg`;
 const readLayoutDigest = 'bb816061434a3d23d1446366e137d3e64539cd0ef6ae191bea81f71f93400a86';
-const observationDigest = '98c10419328d72de804dd3e65aea84346db093880edce96cd679e6fbc55a6460';
+const priorChildCustodyDigest = '98c10419328d72de804dd3e65aea84346db093880edce96cd679e6fbc55a6460';
+const observationDigest = 'a39f92dff1dba87ca4d59dfdcc3fb81ea4167b4f3e48c36bba69b9f28bda44e9';
 const priorObservationDigest = '765802bc29d68ff7e87d427d3e68555fb648387de56ad49b2052fdff412f376b';
 const oldObservationDigest = '6968c40ed7d166f9d94e00af31d42654efd27afc8e7ceaca2f1aaead3a8f5e0f';
 const observationRequest = {path: observationPath, digest: observationDigest,
@@ -204,9 +205,24 @@ test('package observation review preserves historical predicates and binds scope
   execFileSync('git', ['merge-base', '--is-ancestor', refusalIntro, 'HEAD'], {cwd: repository});
   assert.deepEqual(execFileSync('git', ['show', `${refusalParent}:${observationPath}`],
     {cwd: repository}), scopedIntroduced);
-  assert.deepEqual(current, execFileSync('git', ['show', `${refusalIntro}:${observationPath}`],
-    {cwd: repository}));
-  restored = current.toString();
+  const refusalIntroduced = execFileSync('git', ['show', `${refusalIntro}:${observationPath}`],
+    {cwd: repository});
+  assert.equal(hash(refusalIntroduced), priorChildCustodyDigest);
+  const childIntro = '23296c2b738e3be7f7990ac3026fbbba7a6e86ef';
+  const childParent = '22ec7edcd3edcd4a9dd95780534feeded3f6f599';
+  assert.equal(execFileSync('git', ['show', '-s', '--format=%P', childIntro],
+    {cwd: repository, encoding: 'utf8'}).trim(), childParent);
+  execFileSync('git', ['merge-base', '--is-ancestor', childIntro, 'HEAD'], {cwd: repository});
+  assert.deepEqual(execFileSync('git', ['show', `${childParent}:${observationPath}`],
+    {cwd: repository}), refusalIntroduced);
+  const childIntroduced = execFileSync('git', ['show', `${childIntro}:${observationPath}`],
+    {cwd: repository});
+  const childSelector = '    "child_custody_native_wbtest.mbt": [ "native" ],\n';
+  assert.equal(childIntroduced.toString().split(childSelector).length, 2);
+  assert.equal(childIntroduced.toString().replace(childSelector, ''), refusalIntroduced.toString());
+  assert(tree.entries.has(`${observationDirectory}/child_custody_native_wbtest.mbt`));
+  assert.deepEqual(current, childIntroduced);
+  restored = refusalIntroduced.toString();
   for (const [member, targets] of [
     ['scoped_read_unselected_native_wbtest.mbt', '[ "native" ]'],
     ['scoped_read_unsupported_wbtest.mbt', '[ "not", "native" ]'],
@@ -264,7 +280,7 @@ test('package observation review refuses old bytes, foreign path, target and too
   assert.equal(packageConfigurationReviewFor(observationRequest)?.rule,
     'literal-native-options-with-bound-source-membership');
   for (const change of [{digest: oldObservationDigest}, {digest: priorObservationDigest},
-    {digest: readLayoutDigest},
+    {digest: readLayoutDigest}, {digest: priorChildCustodyDigest},
     {digest: '0'.repeat(64)},
     {path: './src/platform_native/filesystem/moon.pkg'},
     {path: 'src/unreviewed_filesystem/moon.pkg'}, {target: 'native'}, {target: 'wasm'},
@@ -351,5 +367,65 @@ test('SQLite body-limit review rejects changed bytes imports selectors targets a
     const selected = packageSourceInputs({tree: changed, packages: [sqliteDirectory], target: 'js'});
     assert(selected.unresolved.includes(`Unreviewed package configuration: ${sqlitePath}`));
     assert(!selected.packageConfigurations.some(entry => entry.path === sqlitePath));
+  }
+});
+
+const catalogDirectory = 'src/platform_native/runtime_bundle';
+const catalogPath = `${catalogDirectory}/moon.pkg`;
+const priorCatalogDigest = '3261be3fb00a789680d76f5304bf1bff98d3db4e7d904d45fd50a05205c955fe';
+const catalogDigest = '4a6441d96a441ac67adf1f38d806ae59bf4936217faf2b8269310f2e500aac00';
+const catalogRequest = {path: catalogPath, digest: catalogDigest, target: 'js', toolchainDigest};
+
+test('bounded catalog review binds the actual sole selector introduction and every source member', () => {
+  const intro = '202aed1b7f33bb825d8b5c3e9c313a80f04d6f7f', parent = 'c0834dc952fc3ffc11908b782331c0eeddb17dad';
+  assert.equal(execFileSync('git', ['show', '-s', '--format=%P', intro],
+    {cwd: repository, encoding: 'utf8'}).trim(), parent);
+  execFileSync('git', ['merge-base', '--is-ancestor', intro, 'HEAD'], {cwd: repository});
+  const before = execFileSync('git', ['show', `${parent}:${catalogPath}`], {cwd: repository});
+  const introduced = execFileSync('git', ['show', `${intro}:${catalogPath}`], {cwd: repository});
+  const selector = '    "bounded_catalog_current_native_wbtest.mbt": [ "native" ],\n';
+  assert.equal(introduced.toString().split(selector).length, 2);
+  assert.equal(introduced.toString().replace(selector, ''), before.toString());
+  assert.equal(hash(before), priorCatalogDigest);
+  assert.equal(hash(introduced), catalogDigest);
+  const tree = treeAtHead(), current = tree.read(catalogPath);
+  assert.deepEqual(current, introduced);
+  assert.equal(hash(tree.read('toolchain.json')), toolchainDigest);
+  assert.deepEqual(packageImports(current.toString()).imports, packageImports(before.toString()).imports);
+  const selected = packageSourceInputs({tree, packages: [catalogDirectory], target: 'js'});
+  assert.deepEqual(selected.unresolved, []);
+  assert.equal(selected.packageConfigurations.find(entry => entry.path === catalogPath)?.review.rule,
+    'literal-native-options-with-bound-source-membership');
+  const members = [...tree.entries.keys()].filter(member => member.startsWith(`${catalogDirectory}/`) &&
+    !member.slice(catalogDirectory.length + 1).includes('/')).sort();
+  assert(members.includes(`${catalogDirectory}/bounded_catalog_current_native_wbtest.mbt`));
+  assert.deepEqual(selected.directories.find(entry => entry.path === `${catalogDirectory}/*`)?.members, members);
+  for (const member of members) {
+    assert(selected.paths.includes(member));
+    assert.equal(tree.entries.get(member).mode, '100644');
+    assert.equal(tree.entries.get(member).kind, 'blob');
+  }
+});
+
+test('bounded catalog review refuses old bytes, changed imports, selectors, options, target and toolchain', () => {
+  assert.equal(packageConfigurationReviewFor(catalogRequest)?.rule,
+    'literal-native-options-with-bound-source-membership');
+  for (const change of [{digest: priorCatalogDigest},
+    {digest: 'e18d68c466e76cdc2fd81395df80fdfbdb86e13627c89110339d54503a6650fd'}, {digest: '0'.repeat(64)},
+    {path: './' + catalogPath}, {path: 'src/unreviewed_bundle/moon.pkg'},
+    {target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}])
+    assert.equal(packageConfigurationReviewFor({...catalogRequest, ...change}), null);
+  const tree = treeAtHead(), original = tree.read(catalogPath).toString();
+  for (const value of [
+    original.replace('"actql/actql/platform_native/sqlite"', '"actql/actql/unreviewed_sqlite"'),
+    original.replace('"bounded_catalog_current_native_wbtest.mbt": [ "native" ]',
+      '"bounded_catalog_current_native_wbtest.mbt": [ "js" ]'),
+    original + '\noptions(unreviewed: true)\n',
+  ]) {
+    assert.notEqual(value, original);
+    const changed = {...tree, read: member => member === catalogPath ? Buffer.from(value) : tree.read(member)};
+    const selected = packageSourceInputs({tree: changed, packages: [catalogDirectory], target: 'js'});
+    assert(selected.unresolved.includes(`Unreviewed package configuration: ${catalogPath}`));
+    assert(!selected.packageConfigurations.some(entry => entry.path === catalogPath));
   }
 });

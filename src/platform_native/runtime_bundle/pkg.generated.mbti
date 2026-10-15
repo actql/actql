@@ -152,6 +152,7 @@ pub fn NativeRuntimeBundleStore::retention_context(Self, String) -> Result[Nativ
 pub fn NativeRuntimeBundleStore::rollback(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::verify(Self, String) -> Result[NativeRuntimeBundleSnapshot, NativeRuntimeBundleStoreIssue]
 pub fn NativeRuntimeBundleStore::verify_active_component_binding(Self, NativeActiveRuntimeBinding) -> Result[Unit, NativeRuntimeBundleStoreIssue]
+pub fn NativeRuntimeBundleStore::verify_active_component_binding_with_body_limit(Self, NativeActiveRuntimeBinding, Int64) -> Result[Unit, NativeRuntimeBundleStoreIssue]
 
 pub(all) enum NativeRuntimeBundleStoreIssue {
   UnsupportedTarget

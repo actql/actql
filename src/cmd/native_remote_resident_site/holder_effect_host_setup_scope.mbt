@@ -4,8 +4,8 @@
 /// These are heap/control/backing charges; no stack/RSS/baseline claim is made.
 priv struct HolderEffectHostSetupProfile {
   read_ceiling : Int
-  // The reviewed current-read composition must cover this Store wire limit.
-  // It does not select a new Store limit, Account permission or a byte grant.
+  // The reviewed current-read composition covers this caller ceiling. SQLite
+  // also preserves the original Store limit; neither quantity is permission.
   catalog_read_ceiling : Int64
   // Independent physical diagnostic bound, not inferred from Account body size.
   diagnostic_ceiling : Int
@@ -83,21 +83,25 @@ fn holder_effect_host_setup_profile_valid(
 }
 
 ///|
-/// Bind the current catalog read to the original Store constructor's limit
-/// before reserving or invoking its signature/generation/holding verifier.
-/// The caller retains that same Store; no candidate/current row supplies this
-/// immutable quantity, and every existing current check still runs.
-fn holder_effect_host_catalog_representation_ready(
+/// Select a bound for the same Store's current read, before any I/O. The
+/// SQLite Owner enforces this bound before copying and keeps its original
+/// constructor limit. No row, Account permission or candidate selects it.
+fn holder_effect_host_catalog_read_limit(
   profile : HolderEffectHostSetupProfile?,
   original_record_limit : Int64,
-) -> Bool {
-  match profile {
-    Some(selected) =>
-      holder_effect_host_setup_profile_valid(selected) &&
-      original_record_limit > 0L &&
-      original_record_limit <= selected.catalog_read_ceiling
-    None => false
+) -> Int64? {
+  guard profile is Some(selected) &&
+    holder_effect_host_setup_profile_valid(selected) &&
+    original_record_limit > 0L else {
+    return None
   }
+  Some(
+    if original_record_limit < selected.catalog_read_ceiling {
+      original_record_limit
+    } else {
+      selected.catalog_read_ceiling
+    },
+  )
 }
 
 ///|
@@ -107,9 +111,10 @@ fn reserve_holder_effect_host_setup_scope(
   original_catalog_record_limit : Int64,
 ) -> HolderEffectHostSetupScope? {
   guard profile is Some(selected) &&
-    holder_effect_host_catalog_representation_ready(
+    holder_effect_host_catalog_read_limit(
       profile, original_catalog_record_limit,
-    ) else {
+    )
+    is Some(_) else {
     return None
   }
   // Reserve before the fallible physical binding checks. Selection of bytes
