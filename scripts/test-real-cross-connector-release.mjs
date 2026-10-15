@@ -20,6 +20,7 @@ const {format, transport} = realCrossConnectorSelection(extra);
 assert.equal(process.version, 'v22.22.0');
 assert([directory, python, scopeFile].every(isAbsolute));
 assert(!process.env.NODE_OPTIONS && !process.env.NODE_PATH, 'Unreviewed loader/runtime path');
+assert.equal(process.env.NODE_TLS_REJECT_UNAUTHORIZED, undefined, 'Unreviewed TLS override');
 const repository = fileURLToPath(new URL('../', import.meta.url));
 const before = checkoutState(repository);
 assert.equal(before.revision, source); assert(before.clean);

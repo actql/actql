@@ -74,6 +74,14 @@ test('both physical entrypoints reject extra format selection before opening abs
   }
 });
 
+test('real HTTPS entry refuses an inherited TLS-validation override before opening any scope input', () => {
+  const result = spawnSync(process.execPath, [resolve(root, 'scripts/test-real-cross-connector-release.mjs'),
+    'not-a-source', '/absent/rc', '/absent/python', '/absent/scope', '--transport', 'https'],
+  {cwd: root, env: {...process.env, NODE_TLS_REJECT_UNAUTHORIZED: '0'}, encoding: 'utf8', timeout: 10000});
+  assert.equal(result.error, undefined); assert.equal(result.status, 1);
+  assert.match(result.stderr, /Unreviewed TLS override/u);
+});
+
 function missing(paths) {
   const delivered = new Set(paths.map(path => resolve(root, path)));
   const pending = entries.map(path => resolve(root, path)), visited = new Set(), absent = [];
