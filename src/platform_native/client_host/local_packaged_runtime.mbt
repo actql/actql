@@ -11,6 +11,8 @@ struct NativeLocalPackagedRuntime {
   mut reader_open_failure : @filesystem.NativeReaderOpenFailure?
   mut root_open_failure : @filesystem.NativeRootOpenFailure?
   original_read : (@arena.InstalledArenaHost, @arena.InstalledArenaOriginalRead)?
+  mut selection : (String, String, String, String)?
+  mut product : NativeLocalPackagedProductObservation?
   mut read_scope_entered : Bool
   mut sqlite : String
   mut crypto : String
@@ -123,6 +125,8 @@ fn local_runtime_empty(
     reader_open_failure: None,
     root_open_failure: None,
     original_read,
+    selection: None,
+    product: None,
     read_scope_entered: false,
     sqlite: "",
     crypto: "",
@@ -162,16 +166,23 @@ fn local_runtime_read_member(
   bytes : Int64,
   hash : String,
   collect : Bool,
+  expected_mode? : Int? = None,
+  allow_empty? : Bool = false,
 ) -> String raise LocalRuntimeStop {
   let original = root.observe_file(name).map_err(issue => Physical(issue))
     |> local_runtime_result
   let generation = original.generation().map_err(issue => Physical(issue))
     |> local_runtime_result
-  if bytes < 1L ||
+  if bytes < (if allow_empty { 0L } else { 1L }) ||
     generation.size != bytes ||
     bytes > 67108864L ||
     (collect && bytes > 65536L) {
     local_runtime_stop(Limit)
+  }
+  if expected_mode is Some(mode) &&
+    (original.mode().map_err(issue => Physical(issue)) |> local_runtime_result) !=
+    mode {
+    local_runtime_stop(Changed)
   }
   let reader = match original.open_reader_with_custody() {
     Ok(reader) => reader
@@ -318,6 +329,7 @@ fn local_runtime_capture(
       ).map_err(_ => InvalidManifest)
       |> local_runtime_result
     runtime.manifest = Some(manifest)
+    runtime.selection = Some((root_path, source_sha, platform, manifest_sha256))
     let bodies : Map[String, String] = Map([])
     // The existing admitted member Owner emits licenses, libraries, then
     // assets. Retain each group's original parent once, not once per file.
@@ -438,6 +450,10 @@ fn NativeLocalPackagedRuntime::local_runtime_check_originals(
       Err(issue) => return Err(Physical(issue))
       Ok(_) => ()
     }
+  }
+  match self.local_runtime_product_current() {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
   }
   if self.original_read is Some((host, original)) {
     match host.require_domain_original_read_current(original) {
@@ -568,6 +584,8 @@ fn NativeLocalPackagedRuntime::local_runtime_close_originals(
   self.directories.clear()
   self.manifest = None
   self.assets = None
+  self.selection = None
+  self.product = None
   self.sqlite = ""
   self.crypto = ""
   Ok(())
