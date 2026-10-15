@@ -39,6 +39,12 @@ test('selected READ preserves the original UTF16 character primitive', () =>
   child(['--require', preload], 'read-string-charcode'));
 test('ordinary embedded import preserves application String method selection', () =>
   child([], 'string-unselected'));
+test('selected Common builder preserves original String constructor and code-point primitive', () =>
+  child(['--require', preload], 'builder-codepoint-originals'));
+test('selected eager Common builder retains the same original code-point primitive', () =>
+  child(['--no-lazy', '--require', preload], 'builder-codepoint-originals'));
+test('ordinary embedded import preserves application code-point and constructor selection', () =>
+  child([], 'codepoint-unselected'));
 test('selected BODY preserves its original Readable iterator and native next', () =>
   child(['--require', preload], 'read-body-iterator'));
 test('ordinary embedded import preserves application iterator method selection', () =>
