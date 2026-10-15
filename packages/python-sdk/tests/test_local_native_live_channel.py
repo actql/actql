@@ -6,6 +6,7 @@ from dataclasses import replace
 import os
 from pathlib import Path
 import pickle
+import stat
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -25,7 +26,7 @@ from test_local_worker_channel import Control
 
 
 class ChannelFixture:
-    def __init__(self, test):
+    def __init__(self, test, *, before_process=None, spawn=True):
         previous = getattr(test, '_live_channel_fixture', None)
         if previous is not None:
             previous._cleanup.close()
@@ -43,6 +44,7 @@ class ChannelFixture:
         self.supplier.ledger = self.host
         self.funding = case.prepare()
         self.slot = OriginalWorkerSlot(self.funding, Path('/installed/slot'))
+        if before_process is not None: before_process(self)
         self.process = OriginalWorkerProcess(self.funding, self.slot,
             executable=Path('/installed/python'), executable_image=Path('/installed/python'),
             executable_link=None, executable_bytes=8192, executable_sha256='a' * 64,
@@ -53,18 +55,20 @@ class ChannelFixture:
                 ('OriginalWorkerSlot.close', {}),
                 ('os.pipe', {'side_effect': [(11, 12), (13, 14), (15, 16)]}),
                 ('os.posix_spawn', {'return_value': 4321}),
-                ('fcntl.fcntl', {'side_effect': iter(range(21, 27))}),
+                ('fcntl.fcntl', {'side_effect': iter([30, *range(21, 27)])}),
+                ('os.fstat', {'return_value': SimpleNamespace(st_mode=stat.S_IFREG | 0o600, st_uid=os.geteuid(), st_size=65536, st_dev=2, st_ino=3)}),
                 ('os.close', {})):
             module = 'actql_sdk._local_worker_process.' if name.startswith(('OriginalWorkerProcess', 'os.')) else 'actql_sdk._local_worker_slot.'
             self._cleanup.enter_context(patch(module + name, **options))
         self.channel = OriginalWorkerPipeChannel(self.funding, self.process, Control())
         self.pipe = self.channel._pipe
-        self.process.spawn()
+        if spawn: self.process.spawn()
         self.events, self.facts = [], {}
         self.prepare_issue = 0
         self.issues = {}
         self.present = True
         self.native_state = 0
+        self.native_capacities = (16777216, 2**53 + 1)
         self.native_limits = (2, 1, 1, 2**53 + 1, 0, 16777216)
         self.prepare_fault = self.originals_fault = self.finish_fault = self.drop_fault = None
         self.wrong_operation = None
@@ -73,7 +77,7 @@ class ChannelFixture:
                  'operate_into': self.operate, 'report_into': self.report,
                  'originals_into': self.originals, 'drop_reply': self.drop,
                  'finish_retired_data': self.finish, 'finish_refused_prepare': self.refused,
-                 'copy_state': self.state, 'copy_limits': self.limits,
+                 'copy_state': self.state, 'copy_limits': self.limits, 'copy_capacities': self.capacities,
                  'operation': lambda p: self.facts[p.value][0],
                  'issue_family': lambda p: self.facts[p.value][1]}
         self.library = self.host._functions.library
@@ -152,6 +156,11 @@ class ChannelFixture:
     def close_host_pipe(self):
         asyncio.run(self.channel.close_original())
 
+
+    def capacities(self, reply, host, domain, channel, out):
+        self.events.append(('capacities', reply.value))
+        for i, value in enumerate(self.native_capacities): out[i] = value
+        return 0
 
 class OriginalLiveChannelTests(unittest.TestCase):
     def test_original_domain_funding_and_physical_descriptors_are_bound_once(self):
@@ -284,6 +293,47 @@ class OriginalLiveChannelTests(unittest.TestCase):
             with self.assertRaises(_OriginalLiveChannelError) as caught: c.state()
             self.assertTrue(caught.exception.unknown)
             self.assertIsNotNone(c._reply.value)
+
+    def test_same_owner_baseline_capacities_preserve_int64_without_deriving_quota(self):
+        f = ChannelFixture(self)
+        original = f.take()
+        before = [call for call in f.supplier.calls if call[0] != 'launch_current']
+        self.assertEqual(original.capacities(), (16777216, 2**53 + 1))
+        self.assertEqual([e for e in f.events if e[:2] == ('operate', 9)],
+                         [('operate', 9, 101, 301, 401)])
+        self.assertEqual([call for call in f.supplier.calls if call[0] != 'launch_current'], before)
+
+    def test_capacity_refusal_retains_same_original_without_zero_fallback(self):
+        f = ChannelFixture(self)
+        original = f.take()
+        f.issues[9] = 1
+        with self.assertRaises(_OriginalLiveChannelError) as caught: original.capacities()
+        self.assertFalse(caught.exception.unknown)
+        self.assertIs(caught.exception.cleanup_channel, original)
+        self.assertNotIn('capacities', [e[0] for e in f.events])
+        self.assertFalse(original._closed)
+        self.assertIs(f.pipe._native_channel_original, original)
+
+    def test_invalid_capacity_pair_is_unknown_and_never_reissued(self):
+        for pair in ((0, 3), (16777216, 0), (16777216, -1), (16777216, 2**63 - 1)):
+            with self.subTest(pair=pair):
+                f = ChannelFixture(self)
+                original = f.take()
+                f.native_capacities = pair
+                with self.assertRaises(_OriginalLiveChannelError) as caught: original.capacities()
+                self.assertTrue(caught.exception.unknown)
+                before = list(f.events)
+                with self.assertRaises(_OriginalLiveChannelError): original.capacities()
+                self.assertEqual(f.events, before)
+
+    def test_capacity_postcheck_revocation_keeps_observed_original_unknown(self):
+        f = ChannelFixture(self)
+        original = f.take()
+        f.hook = lambda: setattr(f.funding, '_closing', True)
+        with self.assertRaises(_OriginalLiveChannelError) as caught: original.capacities()
+        self.assertTrue(caught.exception.unknown)
+        self.assertIs(f.domain._live_channel_original, original)
+        self.assertNotEqual(original._channel.value, None)
 
     def test_complete_usage_is_forwarded_without_python_accounting(self):
         f = ChannelFixture(self); c = f.take(); usage = (1, 2, 3, 2**53 + 1, 5, 6, 7, 8, 9, 10)

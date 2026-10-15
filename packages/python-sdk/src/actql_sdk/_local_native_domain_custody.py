@@ -104,7 +104,7 @@ class _OriginalDomainCustody:
     scope remain separately caller-owned; closing this data never retires them.
     """
     __slots__ = ('_owner', '_scope', '_descriptor', '_functions', '_host', '_domain',
-                 '_reply', '_unknown', '_unknown_carrier', '_closed', '_live_channel_original')
+                 '_reply', '_unknown', '_unknown_carrier', '_closed', '_live_channel_original', '_worker_process_original')
     _owner: _OriginalControlCustody
     _scope: _OriginalBackingCustody
     _descriptor: _OriginalDescriptor
@@ -116,6 +116,7 @@ class _OriginalDomainCustody:
     _unknown_carrier: _OriginalDomainError
     _closed: bool
     _live_channel_original: object | None
+    _worker_process_original: object | None
 
     @classmethod
     def _prepare_original(cls, owner: _OriginalControlCustody,
@@ -142,6 +143,7 @@ class _OriginalDomainCustody:
         domain._host, domain._domain, domain._reply = _new_domain_slots()
         domain._unknown, domain._closed = None, False
         domain._live_channel_original = None
+        domain._worker_process_original = None
         domain._unknown_carrier = _OriginalDomainError(domain, unknown=True)
         owner._enter()
         if owner._closed or owner._original.value is None:
@@ -321,12 +323,20 @@ class _OriginalDomainCustody:
         """Trusted caller after same scoped stop/borrower retirement; no stop here."""
         if self._unknown is not None:
             raise self._unknown
+        process = self._worker_process_original
+        if process is not None:
+            from ._local_worker_process import OriginalWorkerProcess
+            if (type(process) is not OriginalWorkerProcess or process._native_domain is not self
+                    or not process._native_metadata_retired
+                    or process._native_retirement_unknown is not None):
+                raise ValueError('Original worker domain still has process or descriptor custody')
         if self._closed:
             # Keep same-process/thread/reentry rejection for a retired alias.
             self._owner._enter()
             self._owner._busy = False
             return
         self._call(6)
+        self._worker_process_original = None
 
 
     def _prepare_read_context(self, functions: _OriginalDomainReadFunctions) -> None:

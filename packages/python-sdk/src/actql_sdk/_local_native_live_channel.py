@@ -60,8 +60,10 @@ class _OriginalLiveChannelFunctions:
         self.state.argtypes = [c_void_p] * 4 + [POINTER(c_int32)]
         self.limits = library.actql_live_channel_copy_limits
         self.limits.argtypes = [c_void_p] * 4 + [POINTER(c_int64)]
+        self.capacities = library.actql_live_channel_copy_capacities
+        self.capacities.argtypes = [c_void_p] * 4 + [POINTER(c_int64)]
         for call in (self.prepare, self.bind, self.operate, self.report, self.originals,
-                     self.drop, self.finish, self.refused, self.state, self.limits):
+                     self.drop, self.finish, self.refused, self.state, self.limits, self.capacities):
             call.restype = c_int
         self.operation = library.actql_live_channel_operation
         self.issue = library.actql_live_channel_issue_family
@@ -131,6 +133,9 @@ class _OriginalLiveChannelCustody:
         funding = process._funding
         if (type(funding) is not OriginalWorkerFunding or funding._physical is not domain
                 or funding._delegation is not domain or funding._ledger is not domain._owner
+                or process._native_domain is not domain or domain._worker_process_original is not process
+                or process._native_metadata_retired or process._native_dup_unknown
+                or process._native_duplicate is None or not process._native_duplicate.closed
                 or domain._live_channel_original is not None or pipe._native_channel_original is not None):
             raise ValueError('Original live-channel funding or one-shot domain is unavailable')
         if process._stdin is None or process._stdout is None:
@@ -283,6 +288,7 @@ class _OriginalLiveChannelCustody:
                  read: str | None = None) -> tuple[_OriginalArenaFact, int | tuple[int, ...] | None]:
         # Allocate bounded outputs before the call can produce a native result.
         state, limits = c_int32(-1), (c_int64 * 6)(*([-1] * 6))
+        capacities = (c_int64 * 2)(-1, -1)
         known: _OriginalLiveChannelError | None = None
         result: int | tuple[int, ...] | None = None
         with self._process._lock:
@@ -307,6 +313,13 @@ class _OriginalLiveChannelCustody:
                                                            self._channel, limits))
                         result = tuple(limits)
                         if any(value < 0 for value in result):
+                            raise self._mark_unknown()
+                    elif read == 'capacities':
+                        self._status(self._functions.capacities(self._reply, self._host, self._native_domain,
+                                                               self._channel, capacities))
+                        result = tuple(capacities)
+                        if (result[0] != 16777216 or result[1] <= 0
+                                or result[1] > 2**63 - 1 - result[0]):
                             raise self._mark_unknown()
                 self._drop_reply()
             except BaseException as error:
@@ -376,6 +389,17 @@ class _OriginalLiveChannelCustody:
         assert isinstance(value, tuple)
         return value
 
+    def capacities(self) -> tuple[int, int]:
+        """Original VM/Native baseline coverage, never unused/external funding.
+
+        These are existing Owner-selected facts. Python neither subtracts from
+        a payload nor invents a Host allowance from resource limits. The Native
+        baseline includes its original controls and remains held until cleanup.
+        """
+        _, value = self._perform(9, self._functions.operate, (9,), read='capacities')
+        assert isinstance(value, tuple)
+        return value[0], value[1]
+
     def report(self, usage: tuple[int, ...]) -> None:
         if (type(usage) is not tuple or len(usage) != 10
                 or any(type(v) is not int or not -(2**31) <= v <= 2**31 - 1 for v in usage[:3])
@@ -428,6 +452,8 @@ class _OriginalLiveChannelCustody:
                     if any(x.value is not None for x in (self._host, self._native_domain, self._channel, self._reply)):
                         raise self._mark_unknown()
                     self._closed = True
+                    if self._process._native_domain is not None:
+                        self._process._retire_native_metadata(self)
                     self._detach_retired_data()
                 finally:
                     self._owner._busy = False

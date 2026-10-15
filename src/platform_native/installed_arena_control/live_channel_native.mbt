@@ -133,6 +133,24 @@ pub fn InstalledArenaHost::live_channel_limits(
 }
 
 ///|
+/// Same admitted channel's fixed VM/Native baseline. This issues no new
+/// reservation and funds no external copy or other independent domain.
+pub fn InstalledArenaHost::live_channel_capacities(
+  self : InstalledArenaHost,
+  domain : InstalledArenaDomain,
+  channel : @bootstrap.NativeBackedLiveChannel[
+    InstalledArenaHost,
+    InstalledArenaDomain,
+  ],
+) -> Result[(Int64, Int64), @bootstrap.NativeBackedExecutionIssue] {
+  match self.original_live_channel(domain, channel) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  domain.backing.backed_live_channel_capacities(self, channel)
+}
+
+///|
 pub fn InstalledArenaHost::report_live_channel(
   self : InstalledArenaHost,
   domain : InstalledArenaDomain,

@@ -33,3 +33,14 @@ once; it starts no worker or VM. It checks partial custody and reference returns
 including the existing backing-borrow fence before allocation retirement. It is
 not a complete pre-spawn supplier, numerical profile, Python worker or installed
 product acceptance.
+
+
+The distinct `operate(9)` observation projects only the same admitted Native
+holding's VM and non-VM baseline coverage. The existing i64 callback transports
+closed ordinals 6/7; the matching shim copies the pair only after checking that
+operation, success and all original references. It does not infer available
+allocator space from a quota, grant an external copy domain, or supply a normal
+numerical profile. The Native Owner rechecks live current and the original
+execution allowance around its physical bound-span observation. The original
+control prefix remains in the baseline. These lifetime reservations cannot be
+returned by a still-running child or mistaken for physical cleanup ACKs.
