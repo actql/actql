@@ -22,6 +22,7 @@ options(
     "existing_database_wbtest.mbt": [ "native" ],
     "owned_database_wbtest.mbt": [ "native" ],
     "original_claim_lookup_native_wbtest.mbt": [ "native" ],
+    "caller_claim_native_wbtest.mbt": [ "native" ],
     "sqlite_unsupported_wbtest.mbt": [ "not", "native" ],
   },
 )
