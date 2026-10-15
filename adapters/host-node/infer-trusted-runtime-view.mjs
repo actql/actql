@@ -130,11 +130,7 @@ class TrustedRuntimeView {
       fail('InferTrustedStoreUnavailable');
     }
     if (view.#store !== undefined) fail('InferTrustedStoreAlreadyBound');
-    const dimensions = originalStoreDimensions(store);
-    // The physical method cannot replace/retire this original Host while its
-    // result is being retained. No receipt or resource authority comes from it.
-    TrustedRuntimeView.check(view, actual);
-    view.#store = Object.freeze({store, moduleLifetime, dimensions});
+    view.#store = Object.freeze({store, moduleLifetime});
   }
 
   static checkStore(view, actual, store, moduleLifetime) {
@@ -147,8 +143,14 @@ class TrustedRuntimeView {
 
   static storeDimensions(view, actual, store, moduleLifetime) {
     TrustedRuntimeView.checkStore(view, actual, store, moduleLifetime);
-    const value = view.#store.dimensions;
+    if (Object.hasOwn(view.#store, 'dimensions')) return view.#store.dimensions;
+    // Acquire only for this new observation role. Ordinary Store association
+    // does not require a Model private key or create a projected size record.
+    const value = originalStoreDimensions(store);
     if (value === undefined) fail('InferTrustedStoreDimensionsUnavailable');
+    // A physical method must not replace/retire this Host during observation.
+    TrustedRuntimeView.checkStore(view, actual, store, moduleLifetime);
+    view.#store = Object.freeze({store, moduleLifetime, dimensions: value});
     return value;
   }
 

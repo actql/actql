@@ -57,6 +57,8 @@ test('dimension projection captures the original method receiver and immutable r
     return value;
   }};
   bindInferTrustedStore(view, actual, store, storeModule);
+  assert.equal(calls, 0, 'legacy association does not acquire this new role');
+  assert.equal(selectedInferTrustedStoreDimensions(view, actual, store, storeModule), value);
   assert.equal(calls, 1);
   store.originalModelStorageDimensions = () => { throw new Error('ReconstructedProjection'); };
   for (let index = 0; index < 5; index++) {
@@ -95,9 +97,11 @@ test('missing malformed and accessor dimensions refuse without guessing zero or 
     Object.freeze({...dimensions(), directoryCodeUnits: 0}),
     Object.freeze({...dimensions(), directoryUtf8Bytes: Number.MAX_SAFE_INTEGER + 1}),
     Object.freeze({...dimensions(), extra: 1}), accessor]) {
-    rejects(() => bindInferTrustedStore(issueInferTrustedRuntimeView(actual), actual,
-      {originalModelStorageDimensions: () => value}, storeModule),
-    'InferTrustedStoreDimensionsUnavailable');
+    const selected = issueInferTrustedRuntimeView(actual);
+    const store = {originalModelStorageDimensions: () => value};
+    bindInferTrustedStore(selected, actual, store, storeModule);
+    rejects(() => selectedInferTrustedStoreDimensions(selected, actual, store, storeModule),
+      'InferTrustedStoreDimensionsUnavailable');
   }
   assert.equal(gets, 0);
 });
