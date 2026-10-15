@@ -27,10 +27,12 @@ try {
   if (mode === 'local') {
     connectClient = open;
     options = {stateDir: directory, durability: 'durable', installation: {
-      authorization, resolveSourceSecret: io.resolveSourceSecret}};
+      authorization, resolveSourceSecret: io.resolveSourceSecret,
+      ...(cases.calendarArtifact === undefined ? {} : {calendarArtifact: cases.calendarArtifact})}};
   } else {
     const {openInstalledRemoteHttpHost} = await import('@actql/local-node/http-host');
     host = await openInstalledRemoteHttpHost({directory, authorization,
+      ...(cases.calendarArtifact === undefined ? {} : {calendarArtifact: cases.calendarArtifact}),
       resolveSourceSecret() {return io.resolveSourceSecret();},
       authenticate: header => header === 'Bearer sourcefree-test' ? userInfo().username : undefined});
     server = createServer({key: await readFile('remote.key'), cert: await readFile('remote.crt')}, host.handler);

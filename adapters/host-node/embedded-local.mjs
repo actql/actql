@@ -43,6 +43,8 @@ import {installNodeInferRun} from './installed-infer-run.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
+import {snapshotInstalledCalendar, installedCalendarIdentity,
+  installedCalendarSelection, admitInstalledCalendar} from './installed-calendar.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {issueInstalledRunControlObservation, issueInstalledRunObservationKey,
   issueInstalledUnpublishedRunState} from
@@ -161,6 +163,8 @@ async function embeddedInstallationIdentity(root, installation) {
       hostLookupExecutionPolicy: installation.hostLookupExecutionPolicy}),
     ...(installation?.modelInstallation === undefined ? {} : {
       modelEnvironment: installation.modelInstallation}),
+    ...(installation?.calendarArtifact === undefined ? {} : {
+      calendarArtifact: installedCalendarIdentity(installation.calendarArtifact)}),
     ...(installation?.resultDataPolicy === undefined ? {} : {
       resultDataPolicy: installation.resultDataPolicy}),
     ...(installation?.retainedRelationOutput === true ? {
@@ -220,7 +224,7 @@ async function openInstalledHost(originalInstallation) {
   let {root, mode = 'local', beforeDispatch, workspaceId,
   authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
   effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
-  modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence, hostCapacityPolicy,
+  modelInstallation, registerModelProviders, calendarArtifact, resultDataPolicy, inferEvidence, hostCapacityPolicy,
   hostLookupExecutionPolicy, verifyRequestValuePolicy,
   retainedRelationOutput = false, valuesMaxRows, observation: observationConnection} = originalInstallation;
   // This is the actual returned Host generation, not a CID/configuration
@@ -379,6 +383,9 @@ async function openInstalledHost(originalInstallation) {
       capacity: {max_graph_construction_edges: 1000,
         max_graph_construction_input_rows: 1000,
         max_graph_construction_nodes: 1000, ...body.host_policy_profile.capacity}};
+    if (calendarArtifact !== undefined) {
+      body.host_policy_profile.calendar = installedCalendarSelection(calendarArtifact);
+    }
     if (hostCapacityPolicy !== undefined) {
       effectiveHostCapacityPolicyCid = contentCid(body.host_policy_profile.capacity);
     }
@@ -410,8 +417,11 @@ async function openInstalledHost(originalInstallation) {
     // These declarations admit checking for the installed family providers.
     // The exact task offer and execution obligations still select capability.
     environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
-      environmentWire, evidenceCid, false, true, true, true, true, false,
-      false, numericProfileCid, contentCid(graphLaw));
+      environmentWire, evidenceCid, false, true, true, true, true,
+      calendarArtifact !== undefined, false, numericProfileCid, contentCid(graphLaw));
+    if (environment !== undefined) {
+      environment = admitInstalledCalendar(moon, environment, calendarArtifact);
+    }
     if (environment !== undefined) {
       sourcePublication = sourceAliasPublication(moon, environment,
         sourceProfile?.queryAliases ?? [],
@@ -2933,9 +2943,10 @@ export async function openInstalledRemoteHttpHost({directory,
   sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace,
   loopbackHttp = false,
   resolveSourceSecret, effectProfilePath, effectProfilePaths, resolveEffectSecret,
-  effectInstallation, modelInstallation, registerModelProviders,
+  effectInstallation, modelInstallation, registerModelProviders, calendarArtifact,
   resultDataPolicy, inferEvidence, retainedRelationOutput, hostCapacityPolicy,
   hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation}) {
+  calendarArtifact = snapshotInstalledCalendar(calendarArtifact);
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
   if (typeof directory !== 'string' || !directory ||
@@ -2948,7 +2959,7 @@ export async function openInstalledRemoteHttpHost({directory,
     workspaceId,
     beforeDispatch, authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
     effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
-    modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence,
+    modelInstallation, registerModelProviders, calendarArtifact, resultDataPolicy, inferEvidence,
     retainedRelationOutput, hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536, loopbackHttp,
@@ -3045,11 +3056,12 @@ export async function connectEmbeddedLocal(options) {
   }
   if (installation !== undefined) {
     const {hostCapacityPolicy: selected, hostLookupExecutionPolicy: lookupSelected,
-      valuesMaxRows, ...rest} = installation;
+      calendarArtifact: suppliedCalendar, valuesMaxRows, ...rest} = installation;
     validateValuesMaxRows(valuesMaxRows);
     const hostCapacityPolicy = snapshotHostCapacityPolicy(selected);
     const hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(lookupSelected);
-    installation = {...rest, hostCapacityPolicy, hostLookupExecutionPolicy, valuesMaxRows};
+    const calendarArtifact = snapshotInstalledCalendar(suppliedCalendar);
+    installation = {...rest, hostCapacityPolicy, hostLookupExecutionPolicy, calendarArtifact, valuesMaxRows};
     if (installation.effectProfilePaths !== undefined) {
       installation.effectProfilePaths = installedEffectPaths(installation);
     }
@@ -3070,6 +3082,7 @@ export async function connectEmbeddedLocal(options) {
         effectProfilePaths: installation?.effectProfilePaths,
         resolveEffectSecret: installation?.resolveEffectSecret,
         modelInstallation: installation?.modelInstallation,
+        calendarArtifact: installation?.calendarArtifact,
         registerModelProviders: installation?.registerModelProviders,
         verifyRequestValuePolicy: installation?.verifyRequestValuePolicy,
         resultDataPolicy: installation?.resultDataPolicy,
