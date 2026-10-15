@@ -9,9 +9,11 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import platform
 import shlex
+import stat
 import subprocess
 import sys
 import time
@@ -47,8 +49,21 @@ def require(condition: bool, message: str) -> None:
 
 
 def identity(path: Path, maximum: int) -> dict[str, Any]:
-    raw = _read_file(path, maximum=maximum, capture=True)
-    return {'bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()}
+    # The selected compiler is larger than a runtime member. Hash bounded
+    # blocks without retaining that executable in a second Python buffer.
+    with os.fdopen(os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK), 'rb') as source:
+        before = os.fstat(source.fileno())
+        require(stat.S_ISREG(before.st_mode) and 0 < before.st_size <= maximum,
+                'Invalid SQLite producer input size')
+        checksum, remaining = hashlib.sha256(), before.st_size
+        while remaining:
+            block = source.read(min(65536, remaining))
+            require(bool(block), 'Incomplete SQLite producer input')
+            checksum.update(block)
+            remaining -= len(block)
+        after = os.fstat(source.fileno())
+        require(not source.read(1) and before == after, 'SQLite producer input changed')
+        return {'bytes': before.st_size, 'sha256': checksum.hexdigest()}
 
 
 def checked_copy(source: Path, target: Path, expected: dict[str, Any], maximum: int) -> None:
@@ -151,7 +166,7 @@ def build(source: str, archive: Path, provider_receipt: Path, clang: Path, sdk: 
     notice = identity(stage / 'NOTICE', 1024 * 1024)
     checked_copy(stage / 'NOTICE', bundle / NOTICE, notice, 1024 * 1024)
     inputs = {str(path): identity(path, maximum) for path, maximum in (
-        (clang, 128 * 1024 * 1024), (sdk / 'SDKSettings.json', 1024 * 1024),
+        (clang, 512 * 1024 * 1024), (sdk / 'SDKSettings.json', 1024 * 1024),
         (provider_receipt, 65536), (SOURCE / 'source.json', 65536),
         (ROOT / 'scripts/produce-python-sqlite-component.py', 65536),
         (ROOT / 'scripts/prepare-python-local-runtime.py', 65536),
@@ -201,7 +216,7 @@ def build(source: str, archive: Path, provider_receipt: Path, clang: Path, sdk: 
     (destination / 'compiled-inputs.json').write_text(json.dumps({path: identity(Path(path), 16 * 1024 * 1024)
         for path in sorted(set(dependencies))}, indent=2) + '\n')
     for path, expected in inputs.items():
-        require(identity(Path(path), 128 * 1024 * 1024) == expected, 'SQLite build input changed')
+        require(identity(Path(path), 512 * 1024 * 1024) == expected, 'SQLite build input changed')
     require(subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip() == source
             and not subprocess.check_output(['git', 'status', '--porcelain'], cwd=ROOT),
             'SQLite build source changed')
