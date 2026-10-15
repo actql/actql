@@ -24,14 +24,14 @@ class NativeProviderRecipeTests(unittest.TestCase):
 
     def test_original_closure_and_one_placeholder_only(self):
         commands = self.parse()
-        self.assertEqual(len(commands), 13)
+        self.assertEqual(len(commands), 15)
         self.assertTrue(all(command[0] == '/selected/moon/bin/moonc' for command in commands))
         self.assertEqual(commands[0][commands[0].index('-std-path') + 1], '/selected/moon/lib/core')
         self.assertTrue(all('-all-pkgs' not in command for command in commands))
 
     def test_other_build_commands_are_not_executed(self):
         self.lines += ['/usr/bin/cc -c original.c', '/usr/bin/cc -o entry.exe original.c']
-        self.assertEqual(len(self.parse()), 13)
+        self.assertEqual(len(self.parse()), 15)
 
     def test_missing_duplicate_and_foreign_package_are_refused(self):
         for lines in (self.lines[:-2] + self.lines[-1:],

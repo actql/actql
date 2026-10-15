@@ -24,6 +24,7 @@ PACKAGES = frozenset('actql/actql/' + name for name in (
     'decode_core', 'sha256', 'encode_core', 'physical_resources',
     'platform_native/host_bootstrap', 'platform_native/installed_arena_control',
     'platform_native/installed_arena_entry',
+    'platform_native/filesystem', 'platform_native/sqlite',
 ))
 
 
@@ -55,7 +56,7 @@ def emission_commands(output: str, moon_home: Path) -> list[list[str]]:
             del parts[index:index + 2]
         parts[0] = str(moon_home / 'bin/moonc')
         commands.append(parts)
-    if (sum(c[1] == 'build-package' for c in commands) != 12
+    if (sum(c[1] == 'build-package' for c in commands) != 14
             or sum(c[1] == 'link-core' for c in commands) != 1):
         raise ValueError('Selected Native emission inventory changed')
     if {c[c.index('-pkg') + 1] for c in commands if c[1] == 'build-package'} != PACKAGES:
@@ -132,6 +133,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                                 'src/source_span', 'src/canonical_value', 'src/source_value',
                                 'src/decode_core', 'src/sha256', 'src/encode_core',
                                 'src/physical_resources', 'src/platform_native/host_bootstrap',
+                                'src/platform_native/filesystem', 'src/platform_native/sqlite',
                                 'src/platform_native/installed_arena_control', ENTRY))]
     inputs = source_inputs + [original(clang), original(sdk / 'SDKSettings.json'),
                               original(ROOT / 'toolchain.json'), original(ROOT / 'moon.mod'),
@@ -216,7 +218,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
             or run(['git', 'status', '--porcelain'], capture=True)):
         raise ValueError('Original Native provider source changed during build')
     record = {'source': source, 'target': 'aarch64-apple-darwin', 'deployment_target': '11.0',
-              'emission_build_packages': 12, 'emission_link_core': 1,
+              'emission_build_packages': 14, 'emission_link_core': 1,
               'diagnostic_debug_registry_omitted': True,
               'c_compile': len(objects), 'c_link': 1, 'emitted_c': original(emitted),
               'library': original(library), 'objects': [original(path) for path in objects],
