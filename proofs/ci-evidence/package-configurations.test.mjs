@@ -127,13 +127,14 @@ test('Journal import, selector and unknown-option changes remain unresolved', ()
 
 const observationDirectory = 'src/platform_native/filesystem';
 const observationPath = `${observationDirectory}/moon.pkg`;
-const observationDigest = 'bb816061434a3d23d1446366e137d3e64539cd0ef6ae191bea81f71f93400a86';
+const readLayoutDigest = 'bb816061434a3d23d1446366e137d3e64539cd0ef6ae191bea81f71f93400a86';
+const observationDigest = '98c10419328d72de804dd3e65aea84346db093880edce96cd679e6fbc55a6460';
 const priorObservationDigest = '765802bc29d68ff7e87d427d3e68555fb648387de56ad49b2052fdff412f376b';
 const oldObservationDigest = '6968c40ed7d166f9d94e00af31d42654efd27afc8e7ceaca2f1aaead3a8f5e0f';
 const observationRequest = {path: observationPath, digest: observationDigest,
   target: 'js', toolchainDigest};
 
-test('package observation review preserves six original predicates and binds four read-layout predicates', () => {
+test('package observation review preserves historical predicates and binds scoped acquisition selectors', () => {
   const tree = treeAtHead(), current = tree.read(observationPath);
   const intro = '869310a0b34a7a704fbb61f2aec9af2f15b9ffa9';
   const original = '11b84334744819e4fb1bcc65382225bd8fc949d2';
@@ -169,9 +170,32 @@ test('package observation review preserves six original predicates and binds fou
   execFileSync('git', ['merge-base', '--is-ancestor', layoutIntro, 'HEAD'], {cwd: repository});
   assert.deepEqual(execFileSync('git', ['show', `${layoutParent}:${observationPath}`],
     {cwd: repository}), introduced);
-  assert.deepEqual(current, execFileSync('git', ['show', `${layoutIntro}:${observationPath}`],
+  const layoutIntroduced = execFileSync('git', ['show', `${layoutIntro}:${observationPath}`],
+    {cwd: repository});
+  assert.equal(hash(layoutIntroduced), readLayoutDigest);
+  const scopedIntro = '4a62dc0cfc30be562405d2fc31bdfa1556bfae9c';
+  const scopedParent = '8d93c89d48e5991d9a890648db023a4336ff8979';
+  assert.equal(execFileSync('git', ['show', '-s', '--format=%P', scopedIntro],
+    {cwd: repository, encoding: 'utf8'}).trim(), scopedParent);
+  execFileSync('git', ['merge-base', '--is-ancestor', scopedIntro, 'HEAD'], {cwd: repository});
+  assert.deepEqual(execFileSync('git', ['show', `${scopedParent}:${observationPath}`],
+    {cwd: repository}), layoutIntroduced);
+  assert.deepEqual(current, execFileSync('git', ['show', `${scopedIntro}:${observationPath}`],
     {cwd: repository}));
   restored = current.toString();
+  for (const [member, targets] of [
+    ['scoped_read_native.mbt', '[ "native" ]'],
+    ['scoped_read_unsupported.mbt', '[ "not", "native" ]'],
+    ['scoped_read_unselected_native_wbtest.mbt', '[ "native" ]'],
+    ['scoped_read_unsupported_wbtest.mbt', '[ "not", "native" ]'],
+  ]) {
+    const selector = `    "${member}": ${targets},\n`;
+    assert.equal(restored.split(selector).length, 2);
+    restored = restored.replace(selector, '');
+    assert(tree.entries.has(`${observationDirectory}/${member}`));
+  }
+  assert.equal(restored, layoutIntroduced.toString());
+  restored = layoutIntroduced.toString();
   for (const [member, targets] of [
     ['read_layout_native.mbt', '[ "native" ]'],
     ['read_layout_native_wbtest.mbt', '[ "native" ]'],
@@ -207,6 +231,7 @@ test('package observation review refuses old bytes, foreign path, target and too
   assert.equal(packageConfigurationReviewFor(observationRequest)?.rule,
     'literal-native-options-with-bound-source-membership');
   for (const change of [{digest: oldObservationDigest}, {digest: priorObservationDigest},
+    {digest: readLayoutDigest},
     {digest: '0'.repeat(64)},
     {path: './src/platform_native/filesystem/moon.pkg'},
     {path: 'src/unreviewed_filesystem/moon.pkg'}, {target: 'native'}, {target: 'wasm'},
