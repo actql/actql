@@ -12,6 +12,8 @@ pub fn open_private_root(String, diagnostic_ceiling? : Int?) -> Result[Root, Nat
 
 pub fn open_root(String, diagnostic_ceiling? : Int?) -> Result[Root, NativeFilesystemIssue]
 
+pub fn open_root_in_current_read_context_with_custody(String, Int) -> Result[Root, NativeRootOpenFailure]
+
 pub fn open_root_with_custody(String, diagnostic_ceiling? : Int?) -> Result[Root, NativeRootOpenFailure]
 
 // Errors
