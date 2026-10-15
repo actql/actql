@@ -13,6 +13,8 @@ fn begin_holder_effect_host_setup_scope(
     is Some(scope) else {
     return None
   }
+  // Arithmetic/lifecycle model only, not an installed physical read context.
+  scope.preparation_binding = Some(current_binding)
   scope.current_binding = Some(current_binding)
   Some(scope)
 }
@@ -687,8 +689,150 @@ test "setup reservation refuses absent invalid or uncovered profile without bind
     )
     assert_eq(@site.site_status(site), before)
   }
+  // A larger Store bound is capped by the selected ceiling, as the independent
+  // ceiling test above requires. Exercise actual uncovered Site capacity here:
+  // the original Site admits 150 bytes, so a 151-byte reservation must refuse.
   assert_true(
-    reserve_holder_effect_host_setup_scope(site, Some(profile), 1025L) is None,
+    reserve_holder_effect_host_setup_scope(
+      site,
+      Some({ ..profile, setup_retained_bytes: 151L, }),
+      1024L,
+    )
+    is None,
   )
   assert_eq(@site.site_status(site), before)
+}
+
+///|
+test "setup preparation preserves original reservation without publishing current or reading Store" {
+  let site = host_setup_test_site(1)
+  let scope = reserve_holder_effect_host_setup_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+  ).unwrap()
+  let operation = scope.caller_operation.unwrap()
+  let before = @site.site_status(site)
+  let preparations = Ref(0)
+  scope.preparation_binding = Some(() => {
+    preparations.val += 1
+    holder_effect_host_setup_selection_current(site, "test", 1, "runtime", () => {
+      true
+    })
+  })
+  assert_true(holder_effect_host_read_scope_prepared(scope))
+  assert_eq(preparations.val, 1)
+  assert_true(scope.current_binding is None)
+  assert_false(holder_effect_host_read_scope_current(scope))
+  assert_eq(preparations.val, 1)
+  assert_true(scope.read_domain is None)
+  assert_eq(@site.site_status(site), before)
+  assert_false(leave_holder_effect_host_read_scope(scope))
+  assert_true(prepare_holder_effect_host_scope_retirement(scope))
+  let (retained, _) = take_holder_effect_host_caller_reservation(scope)
+  assert_true(physical_equal(retained.unwrap(), operation))
+  assert_true(scope.preparation_binding is None)
+  assert_true(@site.settle_site_operation(operation))
+  assert_false(@site.settle_site_operation(operation))
+}
+
+///|
+test "setup preparation rejects foreign selection without a Store callback" {
+  for
+    (key, generation, runtime) in [
+      ("foreign", 1, "runtime"),
+      ("test", 2, "runtime"),
+      ("test", 1, "foreign"),
+    ] {
+    let site = host_setup_test_site(1)
+    let scope = reserve_holder_effect_host_setup_scope(
+      site,
+      Some(host_setup_test_profile()),
+      1024L,
+    ).unwrap()
+    let stores = Ref(0)
+    scope.current_binding = Some(() => {
+      stores.val += 1
+      true
+    })
+    scope.preparation_binding = Some(() => {
+      holder_effect_host_setup_selection_current(
+        site,
+        key,
+        generation,
+        runtime,
+        () => true,
+      )
+    })
+    assert_false(holder_effect_host_read_scope_prepared(scope))
+    assert_eq(stores.val, 0)
+    assert_eq(@site.site_status(site)[7], 120L)
+  }
+}
+
+///|
+test "setup preparation rechecks reentrant retirement and original operation identity" {
+  let site = host_setup_test_site(2)
+  let scope = reserve_holder_effect_host_setup_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+  ).unwrap()
+  let original = scope.caller_operation.unwrap()
+  let replacement = @site.start_site_operation(site, 1L, 1L).unwrap()
+  scope.preparation_binding = Some(() => {
+    scope.operation = Some(replacement)
+    scope.caller_operation = Some(replacement)
+    true
+  })
+  assert_false(holder_effect_host_read_scope_prepared(scope))
+  // Restore fixture aliases only; neither operation has been acknowledged.
+  scope.operation = Some(original)
+  scope.caller_operation = Some(original)
+  scope.preparation_binding = Some(() => {
+    scope.retiring = true
+    true
+  })
+  assert_false(holder_effect_host_read_scope_prepared(scope))
+  assert_eq(@site.site_status(site)[7], 121L)
+  assert_true(@site.settle_site_operation(replacement))
+  assert_false(leave_holder_effect_host_read_scope(scope))
+  assert_true(prepare_holder_effect_host_scope_retirement(scope))
+  let (retained, _) = take_holder_effect_host_caller_reservation(scope)
+  assert_true(physical_equal(retained.unwrap(), original))
+  assert_true(@site.settle_site_operation(original))
+}
+
+///|
+test "Store current refusal cannot perform another lookup during leave or nested read" {
+  let site = host_setup_test_site(1)
+  let stores = Ref(0)
+  // Callback/lifecycle model only: no physical Store, domain or Account is used.
+  let scope = begin_holder_effect_host_setup_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+    () => {
+      stores.val += 1
+      false
+    },
+  ).unwrap()
+  let original = scope.caller_operation.unwrap()
+  assert_false(holder_effect_host_read_scope_current(scope))
+  assert_eq(stores.val, 1)
+  let accounts = Ref(0)
+  assert_false(
+    with_holder_effect_host_read_scope(scope, () => {
+      accounts.val += 1
+      true
+    }),
+  )
+  assert_false(leave_holder_effect_host_read_scope(scope))
+  assert_eq(stores.val, 1)
+  assert_eq(accounts.val, 0)
+  assert_eq(@site.site_status(site)[7], 120L)
+  assert_true(prepare_holder_effect_host_scope_retirement(scope))
+  let (retained, _) = take_holder_effect_host_caller_reservation(scope)
+  assert_true(physical_equal(retained.unwrap(), original))
+  assert_true(@site.settle_site_operation(original))
 }
