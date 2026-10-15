@@ -80,7 +80,17 @@ fn first_m1_original_request_check(projection_work : Int) -> Unit raise {
     Ok(value) => value
     Err(OriginalCapacity(issue)) =>
       abort("OriginalCapacity: " + @debug.to_string(issue))
-    Err(Input(issue)) => abort("Input: " + @debug.to_string(issue))
+    Err(Input(issue)) => abort("Input: " + match issue {
+      @input.UnsupportedProgram => "UnsupportedProgram"
+      @input.InvalidLimits => "InvalidLimits"
+      @input.Preparation(_) => "Preparation"
+      @input.Local(_) => "Local"
+      @input.Mapping(_) => "Mapping"
+      @input.ProducerRead(_) => "ProducerRead"
+      @input.ProducerBinding(_) => "ProducerBinding"
+      @input.Capture(_) => "Capture"
+      @input.RetainedInput(_) => "RetainedInput"
+    })
     Err(Model(issue)) => abort("Model: " + @debug.to_string(issue))
     Err(_) => abort("other original startup refusal")
   }
