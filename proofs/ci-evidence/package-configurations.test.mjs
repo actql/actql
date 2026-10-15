@@ -142,7 +142,8 @@ test('Journal import, selector and unknown-option changes remain unresolved', ()
 const observationDirectory = 'src/platform_native/filesystem';
 const observationPath = `${observationDirectory}/moon.pkg`;
 const readLayoutDigest = 'bb816061434a3d23d1446366e137d3e64539cd0ef6ae191bea81f71f93400a86';
-const observationDigest = '98c10419328d72de804dd3e65aea84346db093880edce96cd679e6fbc55a6460';
+const priorChildCustodyDigest = '98c10419328d72de804dd3e65aea84346db093880edce96cd679e6fbc55a6460';
+const observationDigest = 'a39f92dff1dba87ca4d59dfdcc3fb81ea4167b4f3e48c36bba69b9f28bda44e9';
 const priorObservationDigest = '765802bc29d68ff7e87d427d3e68555fb648387de56ad49b2052fdff412f376b';
 const oldObservationDigest = '6968c40ed7d166f9d94e00af31d42654efd27afc8e7ceaca2f1aaead3a8f5e0f';
 const observationRequest = {path: observationPath, digest: observationDigest,
@@ -204,9 +205,24 @@ test('package observation review preserves historical predicates and binds scope
   execFileSync('git', ['merge-base', '--is-ancestor', refusalIntro, 'HEAD'], {cwd: repository});
   assert.deepEqual(execFileSync('git', ['show', `${refusalParent}:${observationPath}`],
     {cwd: repository}), scopedIntroduced);
-  assert.deepEqual(current, execFileSync('git', ['show', `${refusalIntro}:${observationPath}`],
-    {cwd: repository}));
-  restored = current.toString();
+  const refusalIntroduced = execFileSync('git', ['show', `${refusalIntro}:${observationPath}`],
+    {cwd: repository});
+  assert.equal(hash(refusalIntroduced), priorChildCustodyDigest);
+  const childIntro = '23296c2b738e3be7f7990ac3026fbbba7a6e86ef';
+  const childParent = '22ec7edcd3edcd4a9dd95780534feeded3f6f599';
+  assert.equal(execFileSync('git', ['show', '-s', '--format=%P', childIntro],
+    {cwd: repository, encoding: 'utf8'}).trim(), childParent);
+  execFileSync('git', ['merge-base', '--is-ancestor', childIntro, 'HEAD'], {cwd: repository});
+  assert.deepEqual(execFileSync('git', ['show', `${childParent}:${observationPath}`],
+    {cwd: repository}), refusalIntroduced);
+  const childIntroduced = execFileSync('git', ['show', `${childIntro}:${observationPath}`],
+    {cwd: repository});
+  const childSelector = '    "child_custody_native_wbtest.mbt": [ "native" ],\n';
+  assert.equal(childIntroduced.toString().split(childSelector).length, 2);
+  assert.equal(childIntroduced.toString().replace(childSelector, ''), refusalIntroduced.toString());
+  assert(tree.entries.has(`${observationDirectory}/child_custody_native_wbtest.mbt`));
+  assert.deepEqual(current, childIntroduced);
+  restored = refusalIntroduced.toString();
   for (const [member, targets] of [
     ['scoped_read_unselected_native_wbtest.mbt', '[ "native" ]'],
     ['scoped_read_unsupported_wbtest.mbt', '[ "not", "native" ]'],
@@ -264,7 +280,7 @@ test('package observation review refuses old bytes, foreign path, target and too
   assert.equal(packageConfigurationReviewFor(observationRequest)?.rule,
     'literal-native-options-with-bound-source-membership');
   for (const change of [{digest: oldObservationDigest}, {digest: priorObservationDigest},
-    {digest: readLayoutDigest},
+    {digest: readLayoutDigest}, {digest: priorChildCustodyDigest},
     {digest: '0'.repeat(64)},
     {path: './src/platform_native/filesystem/moon.pkg'},
     {path: 'src/unreviewed_filesystem/moon.pkg'}, {target: 'native'}, {target: 'wasm'},
