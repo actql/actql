@@ -250,6 +250,40 @@ fn holder_effect_host_read_scope_current(
 }
 
 ///|
+/// The existing Site Owner's holding/cleanup tokens outlive the read child.
+/// Allocate those controls in the original caller context, not in the child
+/// whose retirement waits for them. This is accounting, never read permission.
+/// Keep a committed token even when restoration of the same context refuses.
+fn with_holder_effect_host_site_metadata(
+  scope : HolderEffectHostSetupScope,
+  update : () -> Bool,
+) -> Bool {
+  guard scope.read_domain is Some(read) else { return update() }
+  guard scope.caller_operation is Some(operation) &&
+    physical_equal(operation, read.operation) else {
+    return false
+  }
+  let was_active = read.active
+  if was_active && !leave_holder_effect_host_read_domain(read) {
+    scope.retiring = true
+    return false
+  }
+  let updated = update()
+  if !was_active {
+    return updated
+  }
+  guard scope.read_domain is Some(same) &&
+    physical_equal(same, read) &&
+    scope.caller_operation is Some(same_operation) &&
+    physical_equal(operation, same_operation) &&
+    enter_holder_effect_host_read_domain(read) else {
+    scope.retiring = true
+    return false
+  }
+  updated
+}
+
+///|
 fn observe_holder_effect_host_read_failure(
   scope : HolderEffectHostSetupScope,
   failure : @bounded_files.NativeBoundedTextFailure,
@@ -259,7 +293,14 @@ fn observe_holder_effect_host_read_failure(
   if scope.pending is None {
     scope.pending = Some(failure)
     if scope.cleanup is None {
-      scope.cleanup = Some(@site.retain_site_cleanup(scope.site))
+      // The original pending failure and caller reservation remain retained
+      // even if a failed physical leave postpones this accounting token.
+      ignore(
+        with_holder_effect_host_site_metadata(scope, () => {
+          scope.cleanup = Some(@site.retain_site_cleanup(scope.site))
+          true
+        }),
+      )
     }
   }
 }
@@ -438,12 +479,16 @@ fn retain_holder_effect_host_snapshot(
     is Some(bytes) &&
     holder_effect_host_extent_add(bytes, scope.profile.caller_retained_bytes)
     is Some(partition) &&
-    partition <= scope.profile.setup_retained_bytes &&
-    @site.retain_site_operation_holding(operation, bytes) is Some(holding) else {
+    partition <= scope.profile.setup_retained_bytes else {
     return false
   }
-  scope.holding = Some(holding)
-  true
+  with_holder_effect_host_site_metadata(scope, () => {
+    guard @site.retain_site_operation_holding(operation, bytes) is Some(holding) else {
+      return false
+    }
+    scope.holding = Some(holding)
+    true
+  })
 }
 
 ///|
@@ -537,7 +582,12 @@ fn retire_holder_effect_host_scope(
 ) -> HolderEffectHostScopeRetirement {
   guard prepare_holder_effect_host_scope_retirement(scope) else {
     if scope.cleanup is None {
-      scope.cleanup = Some(@site.retain_site_cleanup(scope.site))
+      ignore(
+        with_holder_effect_host_site_metadata(scope, () => {
+          scope.cleanup = Some(@site.retain_site_cleanup(scope.site))
+          true
+        }),
+      )
     }
     return HostSetupScopePending(scope)
   }
