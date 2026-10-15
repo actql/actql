@@ -4148,9 +4148,7 @@ function publicationControl(moon) {
       return Object.freeze({artifactCid: artifact.identity,
         physicalCid: binding._0, byteCount: binding._1});
     },
-    // Physical custody metadata from the authenticated private capture, not
-    // semantic identity or permission. Callers first validate the Captured
-    // Run chain. Issuance obtains these bindings from exact export receipts.
+    // Schema material from the authenticated capture, not current configuration.
     capturedEffectDependencySchemas(capturedRun) {
       const captured = inspect(token(capturedRun));
       const inventory = JSON.parse(captured.wire).effect_context?.effect_dependency_inventory;
@@ -4167,6 +4165,8 @@ function publicationControl(moon) {
         return Object.freeze({cid: entry.cid, wire: JSON.stringify(entry.body)});
       }));
     },
+    // Physical custody metadata is not semantic identity or permission.
+    // Callers first validate the Captured Run chain; issuance binds receipts.
     capturedEffectDependencyPayloadBindings(capturedRun, bindings) {
       const captured = inspect(token(capturedRun));
       const inventory = JSON.parse(captured.wire).effect_context

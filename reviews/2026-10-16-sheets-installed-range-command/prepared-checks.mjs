@@ -21,15 +21,23 @@ if (phase === 'generate') {
   steps = [{name: 'Affected common, Sheets and existing Checkpoint runtime modules only',
     command: process.execPath, args: ['--input-type=module', '-e', bounded]}];
 } else {
-  assert(['node', 'host'].includes(phase));
+  assert(['node', 'host', 'regression', 'freshness'].includes(phase));
   const focused = 'import{runFocusedTests}from"./scripts/test-execution.mjs";' +
     'process.exitCode=runFocusedTests("node",process.argv.slice(1),' +
     '{cwd:process.cwd(),timeout:30000});';
-  steps = [{name: 'Installed range declaration, exact request and recovery controls',
+  const selections = {
+    host: ['--test-name-pattern=^Sheets range Command',
+      'adapters/connectors/sheets/test/sheets-standard-host.integration.test.mjs'],
+    node: ['adapters/connectors/sheets/test/sheets-range-command.test.mjs',
+      'adapters/host-common/captured-effect-dependency-schemas.test.mjs'],
+    regression: ['--test-name-pattern=^Sheets Local append|^Sheets read uses',
+      'adapters/connectors/sheets/test/sheets-standard-host.integration.test.mjs'],
+  };
+  steps = phase === 'freshness' ? [{name: 'Read-only normal connector inventory freshness',
+    command: process.execPath, args: ['scripts/connector-node-bundles.mjs']}] : [
+    {name: 'Installed range declaration, exact request and recovery controls',
     command: process.execPath, args: ['--input-type=module', '-e', focused, '--',
-      ...(phase === 'host' ? ['--test-name-pattern=^Sheets range Command uses',
-        'adapters/connectors/sheets/test/sheets-standard-host.integration.test.mjs']
-        : ['adapters/connectors/sheets/test/sheets-range-command.test.mjs'])]}];
+      ...selections[phase]]}];
 }
 steps.push({name: 'Whitespace', command: 'git', args: ['diff', '--check']});
 process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false,

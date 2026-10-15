@@ -96,7 +96,7 @@ async function installation(t, {faults = [], commit = 'delegate', reviewerPrinci
     try { for (const close of closers.reverse()) await close(); }
     finally {
       if (!rangeCommand || state.acceptanceComplete) await rm(root, {recursive: true, force: true});
-      else t.diagnostic(`Retained incomplete range acceptance custody: ${root}`);
+      else t.diagnostic(`Retained range acceptance custody: ${root}`);
     }
   });
   const credential = generateKeyPairSync('ed25519');
@@ -282,6 +282,35 @@ test('Sheets range Command uses the real Local and HTTPS approval owners and ori
     assert.equal(setup.api.seen().length, before, 'restart does not reacquire or resend');
     setup.state.acceptanceComplete = true;
   }
+});
+
+test('Sheets range Command retains an unknown acknowledgement across process restart without resend', async t => {
+  const setup = await installation(t, {rangeCommand: true, reviewerPrincipal: owner,
+    faults: [{kind: 'apply-then-lose-reply', method: 'POST', pathname: '/v4/spreadsheets/book:batchUpdate'}]});
+  const [command] = (await setup.publish(true)).commands;
+  const first = await setup.open(true, true);
+  const client = first.client;
+  const rows = [row, {...row, text: 'second', number: -2.5, flag: true}];
+  const execution = await client.startSource(rangeProgram(command.commandRef, rows),
+    {format: 'json', submissionRef: client.newSubmission({nonce: 'range-unknown'})});
+  assert.equal((await settled(execution)).status, 'waiting_checkpoint');
+  assert.equal(setup.state.updated.length, 0);
+  await approve(first, execution);
+  await execution.reconcile();
+  const unknown = await until(async () => {
+    const value = await execution.status();
+    return value.status === 'needs_reconciliation' ? value : undefined;
+  });
+  assert.equal(unknown.result_available, false);
+  assert.equal(setup.state.updated.length, 1);
+  const before = setup.api.seen().length;
+  await client.close();
+  await setup.replayInNewProcess(execution.ref, 'needs_reconciliation');
+  assert.equal(setup.api.seen().length, before, 'the saved request is neither reacquired nor resent');
+  await writeFile(join(setup.root, 'range-unknown.json'), JSON.stringify({ref: execution.ref,
+    status: unknown.status, resultAvailable: false, appliedBatches: 1,
+    additionalRequestsAfterRestart: 0}), {mode: 0o600});
+  // Deliberately retain this original Unknown/DB/key custody after test closure.
 });
 
 test('Sheets rejects out-of-domain grid indexes before provider I/O', async t => {
