@@ -54,11 +54,30 @@ test "original temporal operands complete through selected interval with exact s
     }
     let generated = constrain_generated_interval_search(generated, step, 6L).unwrap()
     let generated = constrain_generated_join_output(generated, step, 3L).unwrap()
-    let completed = execute_generated_sequence(
-      generated,
-      [],
-      compute_test_limits(),
-    ).unwrap()
+    let completed = match
+      execute_generated_sequence(generated, [], compute_test_limits()) {
+      Ok(value) => value
+      Err(Rows(index, issue)) => {
+        let category = match issue {
+          InvalidRows => "invalid_rows"
+          RowLimit => "row_limit"
+          InvalidRowLimits => "invalid_limits"
+          MissingOrderedResourceContext => "missing_ordered_context"
+          Evaluation(_, _, _) => "evaluation"
+          Comparison(_) => "comparison"
+          _ => "other_row_issue"
+        }
+        fail(
+          "sequence case " +
+          step.to_string() +
+          " step " +
+          index.to_string() +
+          " " +
+          category,
+        )
+      }
+      Err(_) => fail("sequence other_typed_issue")
+    }
     let left_output = completed_output(completed, @pipeline.Step(left_step)).unwrap()
     let right_output = completed_output(completed, @pipeline.Step(right_step)).unwrap()
     assert_eq(completed_row_count(left_output), 3)
