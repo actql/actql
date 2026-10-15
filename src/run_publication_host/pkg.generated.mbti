@@ -405,6 +405,8 @@ pub fn client_effect_issued_normalization_materials_wire(ClientEffectIssuedNorma
 
 pub fn client_effect_local_artifact_definition_cid(ClientEffectLocalResultArtifact) -> String
 
+pub fn client_effect_local_artifact_dependency_root(ClientEffectLocalResultArtifact, Int, Int, Int) -> Result[@run_publication.CapturedEffectDependencyBody, @run_publication.CapturedEffectDependencyIssue]
+
 pub fn client_effect_local_artifact_invocation(ClientEffectLocalResultArtifact) -> ClientEffectLocalInvocation
 
 pub fn client_effect_local_artifact_invocation_cid(ClientEffectLocalResultArtifact) -> String
@@ -1306,6 +1308,8 @@ pub fn issue_client_values_source_free_invocation(ClientValuesCompilation, Strin
 pub fn issue_imported_client_effect_local_invocation(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, Array[ClientEffectResultImportObservation], Int, Int, Int) -> Result[ClientEffectLocalInvocation, ClientEffectLocalInvocationIssue]
 
 pub fn issue_imported_client_effect_local_result_artifact(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, @physical_strategy.CapturedEffectLocalResultExport, ClientEffectImportedEvidence, ClientEffectLocalResultDefinition, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
+
+pub fn issue_imported_client_effect_local_table_artifact(PreparedClientEffectComputation, @physical_strategy.CapturedEffectInputs, Int, @physical_strategy.CapturedEffectTableInput, @execution_relation.ManagedCompletedOutput[Int], @execution_relation.ManagedPublicationBridge[Int], @execution_relation.CompletedTableInputRelationExportPreparation, ClientEffectLocalTableDefinition, ClientEffectImportedEvidence, @execution_relation.CompletedRelationExportReceipt, @run_publication.PublicationContract, @run_publication.RunPublicationAdmission, @run_publication.PublicationContract, @run_publication.PublicationContract, @run_publication.RunEvidenceValue, Int, Int, Int) -> Result[ClientEffectLocalResultArtifact, ClientEffectLocalResultArtifactIssue]
 
 pub fn issue_installed_client_composed_infer_plan_graph(ClientInferOccurrence, @check_environment.ModelExecutionContract, @lowering_relation.SequenceLimits, Int, Int, Int) -> Result[ClientInferPlanGraph, ClientInferPlanGraphIssue]
 
