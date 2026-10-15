@@ -133,3 +133,31 @@ test('private confirmation preserves same holding reconciliation after lost repl
   assert.equal(reopened.status().storedBytes, 0);
   f.pass();
 });
+
+test('private confirmation rejects unequal wire length before allocating its comparison operand', async t => {
+  const f = await fixture(t);
+  const binding = {name: 'model_call_attempt', wire: 'a',
+    semanticCid: cid('length-first original'), holdingCid: cid('length-first holding')};
+  await commit(f.store, binding);
+  const unequalWire = 'x'.repeat(f.configuration.maxObjectBytes + 1);
+  const from = Buffer.from, allocate = Buffer.allocUnsafeSlow;
+  let comparisons = 0;
+  Buffer.from = function(value, ...args) {
+    if (value === unequalWire) comparisons++;
+    return Reflect.apply(from, this, [value, ...args]);
+  };
+  Buffer.allocUnsafeSlow = function(length) {
+    if (length === unequalWire.length) comparisons++;
+    return Reflect.apply(allocate, this, [length]);
+  };
+  try {
+    await assert.rejects(f.store.confirmPrivateEvidence({...binding, wire: unequalWire}),
+      {code: 'PublicationPrivateEvidenceConflict'});
+    assert.equal(comparisons, 0, 'length mismatch must not encode or allocate the proposed wire');
+  } finally {
+    Buffer.from = from;
+    Buffer.allocUnsafeSlow = allocate;
+  }
+  assert.equal((await f.store.confirmPrivateEvidence(binding)).holding_cid, binding.holdingCid);
+  f.pass();
+});
