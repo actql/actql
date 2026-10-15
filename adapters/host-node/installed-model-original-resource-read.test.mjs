@@ -277,9 +277,10 @@ test('original save caller preserves explicit eight and one-short21 Store refusa
     const promise = opened.retainOriginalResourceCurrentCut(park, storageBinding, originWire, selectedCodec);
     await assert.rejects(promise, {code: 'PublicationStoreBootstrapEntriesLimit'});
     assert.strictEqual(opened.retainOriginalResourceCurrentCut(park, storageBinding, originWire, selectedCodec), promise);
-    assert.equal(retains.length, 1, 'one selected save call; an opening refusal never retries it');
-    // With selected write acquisition, eight refuses the first Store opening
-    // before any new object. Twenty-one admits the original20, saves the new
+    assert.equal(retains.length, entries === 8 ? 0 : 1,
+      'the selected binding check refuses eight before save; a later refusal never retries the one save');
+    // With selected binding acquisition, eight refuses the first Store opening
+    // before entering the save API. Twenty-one admits the original20, saves the new
     // object/holding, then refuses the exact22 readback. Do not confuse the
     // different physical stages or widen either independent fixture ceiling.
     assert.deepEqual(await originalFixtureStoreInventory(root), entries === 8
