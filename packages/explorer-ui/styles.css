@@ -24,8 +24,11 @@
 .actql-explorer dd { margin: 0 0 8px; font-family: monospace; }
 .actql-explorer-unavailable { display: flex; gap: 8px; padding: 12px 24px; background: var(--actql-muted); }
 .actql-explorer-flow { height: 520px; width: 100%; }
-.actql-explorer-node { width: 210px; padding: 16px; border-radius: 10px; background: var(--actql-background); border: 1px solid var(--actql-border); overflow-wrap: anywhere; }
+.actql-explorer-node { box-sizing: border-box; padding: 16px; border-radius: 10px; background: var(--actql-background); border: 1px solid var(--actql-border); overflow-wrap: anywhere; }
+.actql-explorer-node strong { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .actql-explorer-node[data-selected=true] { outline: 2px solid #3468bd; }
 .actql-explorer-table { width: 100%; border-collapse: collapse; }
 .actql-explorer-table caption { text-align: left; padding: 8px 24px; }
 .actql-explorer-table td, .actql-explorer-table th { text-align: left; padding: 8px 24px; border-bottom: 1px solid var(--actql-border); overflow-wrap: anywhere; }
+
+.actql-explorer-edge-label { font-size: 10px; fill: var(--actql-foreground); stroke: var(--actql-background); stroke-width: 3px; paint-order: stroke; pointer-events: none; }

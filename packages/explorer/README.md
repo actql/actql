@@ -86,6 +86,10 @@ Only admitted built assets are served: at most 32 assets and 2 MiB in total.
 The launcher reads its own package-relative frozen inventory, checks every
 length and SHA-256, refuses symlinks/duplicate/traversing paths, and then lets
 the Gateway copy the finite Map at admission. No workspace path is served.
+The optional Flow view includes the pinned ELK.js layout Worker in this same
+inventory and serves it under the same-origin `worker-src 'self'` policy. List
+remains the default; a layout failure preserves List and does not start/retry a
+Run. See [third-party notices](THIRD_PARTY_NOTICES.md).
 Normal prepack builds the SPA and inventory; installation runs no compiler,
 Vite server, downloader or lifecycle hook.
 

@@ -153,6 +153,15 @@ fn local_grant_original_packet(
         ),
       )
     }
+    if original.grant is SigningGrant(value) {
+      @encode.key(writer, "signing_purpose")
+      @encode.string_value(
+        writer,
+        local_signing_installation_purpose(
+          @credential.local_signing_credential_grant_scope(value).purpose,
+        ),
+      )
+    }
     @encode.end_object(writer)
     Ok(@utf8.encode(@encode.finish(writer)))
   } catch {
@@ -207,6 +216,10 @@ fn read_local_grant_original(
       fence.client_request_scope_cid != @host.client_request_scope_cid(request) {
       return Err(CustodyLost)
     }
+  }
+  if grant is SigningGrant(value) &&
+    !local_signing_grant_matches_request(value, request) {
+    return Err(CustodyLost)
   }
   let original = match
     local_owned_grant_original(crypto, fields[3], request, fields[2], grant) {
@@ -271,15 +284,31 @@ fn NativeLocalHostConnection::local_grant_custody(
       Err(issue) => return Err(issue)
     }
     let scope = local_original_grant_facts(original.grant)
-    guard self.journal.retained(original.request) is Ok(Some(_)) &&
-      scope.host_adoption_cid == self.adoption_cid &&
+    let retained_run = match self.journal.retained(original.request) {
+      Ok(Some(value)) =>
+        @publication.publication_contract_identity(value.definition)
+      Ok(None) | Err(_) => return Err(CustodyLost)
+    }
+    guard scope.host_adoption_cid == self.adoption_cid &&
       scope.account_configuration_cid ==
       self.session.configuration.configuration_cid() &&
-      scope.account_id == self.session.configuration.account_id() &&
-      scope.submission_scope_cid ==
-      @host.client_request_scope_cid(original.request) &&
-      scope.authority_scope_cid ==
-      @host.client_request_authority_scope_cid(original.request) else {
+      scope.account_id == self.session.configuration.account_id() else {
+      return Err(CustodyLost)
+    }
+    if original.grant is SigningGrant(grant) {
+      match
+        self.check_signing_grant_original_locked(
+          grant,
+          original.request,
+          retained_run,
+        ) {
+        Ok(_) => ()
+        Err(issue) => return Err(issue)
+      }
+    } else if scope.submission_scope_cid !=
+      @host.client_request_scope_cid(original.request) ||
+      scope.authority_scope_cid !=
+      @host.client_request_authority_scope_cid(original.request) {
       return Err(CustodyLost)
     }
     guard self.session.settings.files
@@ -297,17 +326,19 @@ fn NativeLocalHostConnection::local_grant_custody(
       Ok(value) => value
       Err(_) => return Err(CustodyLost)
     }
-    if scope.principal != selection.principal ||
+    if (
+        !(original.grant is SigningGrant(_)) &&
+        scope.principal != selection.principal
+      ) ||
       !local_original_grant_matches_issuer(original.grant, selection) {
       return Err(CustodyLost)
     }
-    let (entries, bytes) = runs
-      .get(scope.submission_scope_cid)
-      .unwrap_or((0, 0))
+    let reservation = local_original_grant_reservation_scope(original)
+    let (entries, bytes) = runs.get(reservation).unwrap_or((0, 0))
     if entries >= 64 || row.body.length() > 65536 - bytes {
       return Err(CustodyLost)
     }
-    runs[scope.submission_scope_cid] = (entries + 1, bytes + row.body.length())
+    runs[reservation] = (entries + 1, bytes + row.body.length())
     if runs.length() > self.journal.max_records {
       return Err(CustodyLost)
     }
@@ -496,6 +527,9 @@ fn NativeLocalCredentialIssuerBinding::lookup_grant_original(
   self : NativeLocalCredentialIssuerBinding,
   reference : NativeLocalGrantOriginal,
 ) -> Result[NativeLocalGrantOriginal?, NativeClientRunJournalIssue] {
+  if reference.grant is SigningGrant(_) {
+    return Err(AuthorizationDenied)
+  }
   self.host.journal.transaction(() => {
     if self.require_current(self.host, self.operation_cid) is Err(_) {
       return Err(AuthorizationDenied)
@@ -577,6 +611,9 @@ fn NativeLocalCredentialIssuerBinding::append_grant_original_locked(
   current : () -> Result[Unit, NativeClientRunJournalIssue],
   target? : NativeLocalPreparationOriginalTarget? = None,
 ) -> Result[Unit, NativeClientRunJournalIssue] {
+  if original.grant is SigningGrant(_) {
+    return Err(AuthorizationDenied)
+  }
   if (original.grant is PreparationGrant(_)) != (target is Some(_)) {
     return Err(ChangedIntent)
   }
