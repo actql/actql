@@ -18,6 +18,26 @@ GO; a missing unpublished version is not proof of an installation defect.
 npx actql-explorer --local --state-dir .actql
 ```
 
+To open a selected Program directly, use
+`npx actql-explorer --local --state-dir .actql --program query.sql`.
+SQL is the default; select `--format aql-text` or `--format program` for AQL
+text or Program JSON. This reads a static Plan after the explicit browser
+session is connected. It does not submit, start or execute the Program.
+To read an existing Run's saved original Plan directly, use
+`npx actql-explorer --local --state-dir .actql --run run-reference.json`.
+The file contains the complete original `namespaceId`, `authorityScopeCid`
+and `runDefinitionCid` reference returned by the public Client. A bare ID,
+foreign reference or missing old map is not repaired by compilation or a new
+Run. Program and Run input options are mutually exclusive.
+
+Input files are bounded UTF-8 regular files; the selected file itself cannot
+be a symlink. The complete presentation envelope must fit the same 65,536-byte
+Gateway request limit. File paths are never served to the browser. The bounded
+input is copied before opening the Host and is disclosed only through the same
+short-lived, Origin/Host/CSRF-protected session. It is presentation data and
+confers no Run or Source authority. Automatic browser opening is not provided;
+open the printed loopback URL and paste the one-use bootstrap as below.
+
 The nonconflicting `actql-explorer` launcher explicitly uses `@actql/node.open`
 in the same process. Open the printed loopback URL and paste its one-use
 bootstrap into the page within 60 seconds. Press Enter in the terminal to issue

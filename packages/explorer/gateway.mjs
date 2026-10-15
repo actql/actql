@@ -4,6 +4,7 @@ import {serve} from '@hono/node-server';
 import {validRunRef} from '@actql/client-wire';
 import {createReadEpoch, describeExistingResult, readExistingRun, readExistingRunPlan,
   readStaticPlan} from '@actql/explorer-ui/read-model';
+import {copyExplorerLaunchInput} from './launch-input.mjs';
 
 // These are presentation/transport ceilings, not new execution reservations.
 export const gatewayLimits = Object.freeze({bodyBytes: 65536, replyBytes: 262144,
@@ -101,7 +102,7 @@ function safeReadError(error) {
 /** Attach a borrowed, already-connected public SDK Client. No Host is opened. */
 export function createExplorerGateway({client, origin, assets = new Map(),
   now = Date.now, sessionMs = gatewayLimits.sessionMs,
-  bootstrapMs = gatewayLimits.bootstrapMs}) {
+  bootstrapMs = gatewayLimits.bootstrapMs, launchInput = null}) {
   const address = new URL(origin);
   if (address.protocol !== 'http:' || address.hostname !== '127.0.0.1' ||
       !address.port || origin !== address.origin || address.username || address.password ||
@@ -111,6 +112,7 @@ export function createExplorerGateway({client, origin, assets = new Map(),
     fail('ExplorerInvalidGateway');
   }
   const staticAssets = copiedAssets(assets), epoch = createReadEpoch();
+  const initialInput = copyExplorerLaunchInput(launchInput, gatewayLimits.bodyBytes);
   let closed = false, scopeEpoch = 0, session, bootstrap, inFlight = 0;
   const invalidate = () => {epoch.invalidate(); scopeEpoch++; session = undefined; bootstrap = undefined;};
   const assertSession = selected => {
@@ -178,6 +180,12 @@ export function createExplorerGateway({client, origin, assets = new Map(),
       assertSession(selected); ticket.assertCurrent();
       let data;
       switch (c.req.param('kind')) {
+        case 'launch':
+          if (!exact(body, [])) fail('ExplorerInvalidRequest');
+          // The same session/Origin/CSRF/epoch checks protect this bounded
+          // presentation input. Reading it opens no Host, Run or workspace file.
+          data = initialInput;
+          break;
         case 'plan':
           if (!exact(body, ['input'], ['options']) ||
               !(typeof body.input === 'string' || body.input !== null &&

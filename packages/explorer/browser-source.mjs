@@ -1,4 +1,5 @@
 import {createReadEpoch} from '@actql/explorer-ui/read-model';
+import {copyExplorerLaunchInput} from './launch-input.mjs';
 
 const replyBytes = 262144;
 const refused = code => {throw Object.assign(new Error(code), {code});};
@@ -87,6 +88,7 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
       return answer.capabilities;
     },
     plan(input, options) {return read('plan', {input, ...(options === undefined ? {} : {options})});},
+    async launchInput() {return copyExplorerLaunchInput(await read('launch', {}));},
     inspect(ref) {return read('run', {ref});},
     runPlan(ref) {return read('run-plan', {ref});},
     describe(ref, name) {return read('result', {ref, name});},

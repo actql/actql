@@ -7,6 +7,9 @@ const gateway = createExplorerGateway({client, origin: 'http://127.0.0.1:43210'}
 const server = await startExplorerGateway({client});
 const browser = createExplorerBrowserSource({origin: server.origin});
 await browser.connect(gateway.issueBootstrap().bootstrap);
+const launch = await browser.launchInput();
+if (launch?.kind === 'run') {const original: RunReference = launch.ref; void original;}
+if (launch?.kind === 'program') {const authoredText: string = launch.text; void authoredText;}
 const plan = await browser.plan('SELECT 1 AS n', {format: 'sql', maxNodes: 10});
 const noProviderIO: 0 = plan.providerIO;
 const view = await browser.inspect(ref);
@@ -20,5 +23,7 @@ await server.cancel(ref);
 await browser.rows(ref, 'answer');
 // @ts-expect-error No implicit public bind is allowed.
 await startExplorerGateway({client, hostname: '0.0.0.0'});
+// @ts-expect-error Launch input is presentation only, with no start operation.
+await startExplorerGateway({client, launchInput: {kind: 'program', text: 'SELECT 1', format: 'sql', start: true}});
 void noProviderIO; void notAtomic;
 void boundReference;

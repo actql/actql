@@ -2,6 +2,7 @@ import type {Client} from '@actql/sdk';
 import {startExplorer, openLocalExplorer} from './launcher.js';
 declare const client: Client;
 const borrowed = await startExplorer({client});
+await startExplorer({client, launchInput: {kind: 'program', text: 'SELECT 1', format: 'sql'}});
 await borrowed.close();
 const owned = await openLocalExplorer({local: {stateDir: './state'}});
 const state: string = owned.local.stateDir;

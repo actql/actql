@@ -46,6 +46,35 @@ test('only exact loopback origins and finite TTLs can create a Gateway', () => {
   }
 });
 
+test('direct launch input stays behind the same session and CSRF without invoking the SDK', async () => {
+  const input = {kind: 'program', text: 'SELECT 1 AS n', format: 'sql'};
+  const h = harness({launchInput: input}); input.text = 'changed';
+  assert.equal((await h.send('/api/read/launch', {})).status, 401);
+  const session = await h.connect();
+  assert.equal((await h.read('launch', {}, session, {'X-Actql-CSRF': ''})).status, 403);
+  assert.equal((await h.read('launch', {start: true}, session)).status, 400);
+  const answer = await h.read('launch', {}, session);
+  assert.equal(answer.status, 200);
+  assert.equal(answer.headers.get('cache-control'), 'no-store');
+  assert.deepEqual((await answer.json()).data,
+    {kind: 'program', text: 'SELECT 1 AS n', format: 'sql'});
+  assert.deepEqual(h.calls, []);
+  h.gateway.invalidateScope();
+  assert.equal((await h.read('launch', {}, session)).status, 401);
+  assert.deepEqual(h.calls, []);
+});
+
+test('direct Run input preserves its original complete reference and never compiles a replacement', async () => {
+  const original = {...ref};
+  const h = harness({launchInput: {kind: 'run', ref: original}});
+  original.runDefinitionCid = `sha256:${'c'.repeat(64)}`;
+  const session = await h.connect();
+  assert.deepEqual((await (await h.read('launch', {}, session)).json()).data, {kind: 'run', ref});
+  assert.deepEqual(h.calls, []);
+  const empty = harness(), emptySession = await empty.connect();
+  assert.equal((await (await empty.read('launch', {}, emptySession)).json()).data, null);
+});
+
 test('one-use bootstrap becomes HttpOnly scoped cookie and current CSRF session', async () => {
   const h = harness(), session = await h.connect();
   const replay = await h.send('/api/session', {bootstrap: session.issued.bootstrap});
@@ -254,6 +283,38 @@ test('browser holds CSRF only in memory, discards old replies/401 and never retr
     await assert.rejects(source.inspect(ref), {code: 'ExplorerSessionExpired'});
     assert.equal(calls, 3);
   }
+});
+
+test('browser launch metadata validates shape and discards a delayed old-scope response', async () => {
+  let release, calls = 0;
+  const wait = new Promise(resolve => {release = resolve;});
+  const source = createExplorerBrowserSource({origin, now: () => 100,
+    async fetch(url) {
+      calls++;
+      if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
+        scopeEpoch: calls, expiresAt: 200, capabilities: {plan: false, run: true,
+          resultMetadata: true, resultPayload: false, control: false, sample: false}});
+      await wait; return Response.json({scopeEpoch: 1, data: {kind: 'run', ref}});
+    }});
+  await source.connect('bootstrap');
+  const pending = source.launchInput(); await source.connect('next'); release();
+  await assert.rejects(pending, {code: 'ExplorerStaleScope'});
+  assert.equal(calls, 3); source.close();
+});
+
+test('browser refuses a forged launch response without using it or requesting a replacement', async () => {
+  let calls = 0;
+  const source = createExplorerBrowserSource({origin, now: () => 100,
+    async fetch(url) {
+      calls++;
+      if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
+        scopeEpoch: 1, expiresAt: 200, capabilities: {plan: false, run: true,
+          resultMetadata: true, resultPayload: false, control: false, sample: false}});
+      return Response.json({scopeEpoch: 1, data: {kind: 'run', ref, start: true}});
+    }});
+  await source.connect('bootstrap');
+  await assert.rejects(source.launchInput(), {code: 'ExplorerInvalidLaunchInput'});
+  assert.equal(calls, 2); source.close();
 });
 
 test('presentation timeout retains each pending SDK slot until it actually settles', async t => {
