@@ -20,6 +20,7 @@ struct InstalledArenaSqliteDatabaseReply {
   host : InstalledArenaHost
   library : InstalledArenaSqliteLibrary
   original : InstalledArenaSqliteDatabase?
+  lookup : InstalledArenaSqliteLookup?
   // 0=before physical callback, 1=acquisition carrier, 2=callback observed,
   // 3=original close observation. This never describes a Run's outcome.
   stage : Int
@@ -49,6 +50,7 @@ fn sqlite_database_open_reply(
     host: library.domain.host,
     library,
     original,
+    lookup: None,
     stage,
     issue,
     after: None,
@@ -116,6 +118,7 @@ fn sqlite_database_call_reply(
     host: original.library.domain.host,
     library: original.library,
     original: Some(original),
+    lookup: None,
     stage,
     value,
     issue,
@@ -249,6 +252,7 @@ pub fn transaction_installed_sqlite_database_reply(
       host: original.library.domain.host,
       library: original.library,
       original: Some(original),
+      lookup: None,
       stage: 0,
       issue: Some(Library(@sqlite.InvalidName)),
       after: None,
@@ -525,6 +529,7 @@ pub fn close_installed_sqlite_database_reply(
     host: original.library.domain.host,
     library: original.library,
     original: Some(original),
+    lookup: None,
     stage: 3,
     issue,
     after: None,

@@ -345,6 +345,92 @@ extern "C" fn register_original_sqlite_database_roots(
   transaction_active : FuncRef[
     (@control.InstalledArenaSqliteDatabaseReply) -> Int,
   ],
+  header : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  has_header : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Int],
+  header_body_bytes : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> Int64,
+  ],
+  begin_read : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteDatabase) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  reserve_bounded : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+      Int64,
+      Int64,
+      Int64,
+      Int64,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_start : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteDatabase) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_observe : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteLookup) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_read : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteLookup,
+      String,
+      String,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_scan : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteLookup,
+      String,
+      String,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_header : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteLookup,
+      String,
+      String,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_capacity : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteLookup,
+      String,
+      String,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_capacity_usage : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteLookup, String) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_database_usage : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteLookup) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_finish : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteLookup) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  lookup_close : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaSqliteLookup) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  original_lookup : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> @control.InstalledArenaSqliteLookup?,
+  ],
+  revalidate_copy : FuncRef[
+    (@control.InstalledArenaSqliteDatabaseReply) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
 ) -> Unit = "actql_native_control_register_sqlite_database_roots"
 
 ///|
@@ -536,6 +622,69 @@ fn main {
     fn(reply) { reply.record_body_bytes() },
     fn(reply) { reply.reservation_count() },
     fn(reply) { reply.transaction_active() },
+    fn(host, original, scope, key) {
+      @control.read_installed_sqlite_header_reply(host, original, scope, key)
+    },
+    fn(reply) { reply.has_header() },
+    fn(reply) { reply.header_body_bytes() },
+    fn(host, original) {
+      @control.begin_installed_sqlite_read_reply(host, original)
+    },
+    fn(
+      host,
+      original,
+      scope,
+      key,
+      bytes,
+      objects,
+      max_bytes,
+      max_objects,
+      max_reservations,
+    ) {
+      @control.reserve_installed_sqlite_bounded_capacity_reply(
+        host, original, scope, key, bytes, objects, max_bytes, max_objects, max_reservations,
+      )
+    },
+    fn(host, original) {
+      @control.start_installed_sqlite_lookup_reply(host, original)
+    },
+    fn(host, original) {
+      @control.observe_installed_sqlite_lookup_reply(host, original)
+    },
+    fn(host, original, scope, key, bound) {
+      @control.read_installed_sqlite_lookup_reply(
+        host, original, scope, key, bound,
+      )
+    },
+    fn(host, original, scope, cursor, bound) {
+      @control.scan_installed_sqlite_lookup_reply(
+        host, original, scope, cursor, bound,
+      )
+    },
+    fn(host, original, scope, key) {
+      @control.header_installed_sqlite_lookup_reply(host, original, scope, key)
+    },
+    fn(host, original, scope, key) {
+      @control.capacity_installed_sqlite_lookup_reply(
+        host, original, scope, key,
+      )
+    },
+    fn(host, original, scope) {
+      @control.capacity_usage_installed_sqlite_lookup_reply(
+        host, original, scope,
+      )
+    },
+    fn(host, original) {
+      @control.database_usage_installed_sqlite_lookup_reply(host, original)
+    },
+    fn(host, original) {
+      @control.finish_installed_sqlite_lookup_reply(host, original)
+    },
+    fn(host, original) {
+      @control.close_installed_sqlite_lookup_reply(host, original)
+    },
+    fn(reply) { reply.original_lookup() },
+    fn(reply) { reply.revalidate_copy() },
   )
   register_original_sqlite_roots(
     fn(host, domain, path, heap, diagnostic) {
