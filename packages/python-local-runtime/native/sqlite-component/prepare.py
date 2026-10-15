@@ -1,0 +1,97 @@
+"""Stage a verified SQLite review candidate. Never compile, load or configure it."""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import io
+import json
+import os
+from pathlib import Path
+import stat
+import zipfile
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[3]
+
+
+def _read(path: Path, expected: dict, maximum: int = 12 * 1024 * 1024) -> bytes:
+    for ancestor in (path, *path.parents):
+        if ancestor.is_symlink():
+            raise ValueError('Symlink SQLite source input')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        before = os.fstat(fd)
+        if (not stat.S_ISREG(before.st_mode) or before.st_size != expected['bytes']
+                or not 0 < before.st_size <= maximum):
+            raise ValueError('SQLite source size mismatch')
+        raw = bytearray()
+        while len(raw) <= before.st_size:
+            part = os.read(fd, min(65536, before.st_size + 1 - len(raw)))
+            if not part:
+                break
+            raw.extend(part)
+        after = os.fstat(fd)
+        identity = lambda s: (s.st_dev, s.st_ino, s.st_size, s.st_mtime_ns, s.st_ctime_ns)
+        if (identity(before) != identity(after) or len(raw) != before.st_size
+                or hashlib.sha256(raw).hexdigest() != expected['sha256']):
+            raise ValueError('SQLite source digest mismatch')
+        return bytes(raw)
+    finally:
+        os.close(fd)
+
+
+def prepare(archive: Path, destination: Path, *, source: Path = HERE) -> dict:
+    # The recipe is a trusted repository input, not installer-supplied DATA or an
+    # authority document. The stage does not acquire any allocation/Host grant.
+    recipe_raw = (source / 'source.json').read_bytes()
+    recipe = json.loads(recipe_raw)
+    if (recipe['status'] != 'review-candidate-not-adopted'
+            or recipe['normal_profile'] is not None or recipe['installed_supplier'] is not False):
+        raise ValueError('SQLite candidate is not a review-only recipe')
+    if destination.exists() or destination.is_symlink():
+        raise ValueError('SQLite stage destination exists')
+    if destination.resolve().is_relative_to(source.resolve()):
+        raise ValueError('SQLite stage cannot overwrite its source')
+    upstream = recipe['upstream']
+    for name, expected in recipe['provider_inputs'].items():
+        _read(ROOT / name, expected)
+    raw = _read(archive, upstream, 5 * 1024 * 1024)
+    outputs = {}
+    with zipfile.ZipFile(io.BytesIO(raw)) as selected:
+        if len(selected.namelist()) != len(set(selected.namelist())):
+            raise ValueError('Duplicate SQLite archive member')
+        for name, expected in upstream['members'].items():
+            item = selected.getinfo(upstream['prefix'] + name)
+            if item.file_size != expected['bytes']:
+                raise ValueError('SQLite archive member size mismatch')
+            data = selected.read(item)
+            if (hashlib.sha256(data).hexdigest() != expected['sha256']
+                    or hashlib.sha3_256(data).hexdigest() != expected['sha3_256']):
+                raise ValueError('SQLite archive member digest mismatch')
+            outputs[name] = data
+    # Fixed literal output names. No path from a zip entry is extracted.
+    for name in ('component.c', 'component.h', 'NOTICE'):
+        outputs[name] = _read(source / name, recipe['local'][name])
+    record = {'status': recipe['status'], 'recipe_sha256': hashlib.sha256(recipe_raw).hexdigest(),
+              'upstream': upstream, 'target': recipe['target'],
+              'deployment_target': recipe['deployment_target'], 'defines': recipe['defines'],
+              'provider_inputs': recipe['provider_inputs'],
+              'outputs': {name: {'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+                          for name, data in outputs.items()},
+              'compiled': 0, 'loaded': 0, 'installed_supplier': False, 'normal_profile': None}
+    destination.mkdir(parents=True, exist_ok=False)
+    for name, data in outputs.items():
+        with (destination / name).open('xb') as output:
+            output.write(data)
+        _read(destination / name, record['outputs'][name])
+    with (destination / 'sqlite-stage.json').open('x') as output:
+        output.write(json.dumps(record, indent=2) + '\n')
+    return record
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--archive', type=Path, required=True)
+    parser.add_argument('--destination', type=Path, required=True)
+    args = parser.parse_args()
+    print(json.dumps(prepare(args.archive, args.destination)))
