@@ -32,8 +32,15 @@ test "original composite Vector Sources prepare the installed multi-capture ledg
         @publication_host.prepared_client_values_sequence_limits(prepared),
       ) {
       Ok(_) => ()
-      Err(issue) =>
-        println("COMPOSITE_LOWER task=\{count - 1} " + @debug.to_string(issue))
+      Err(VectorFailure(index, issue)) =>
+        println(
+          "COMPOSITE_LOWER task=\{count - 1} vector=\{index} " +
+          @debug.to_string(issue),
+        )
+      Err(KernelFailure(index, _)) =>
+        println("COMPOSITE_LOWER task=\{count - 1} kernel=\{index}")
+      Err(_) =>
+        println("COMPOSITE_LOWER task=\{count - 1} other_sequence_issue")
     }
     if prefix is None {
       break
