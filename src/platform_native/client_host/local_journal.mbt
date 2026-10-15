@@ -127,6 +127,29 @@ pub fn NativeLocalAdoptionSession::open_journal(
   max_records : Int,
   max_snapshot_bytes : Int64,
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
+  self.open_journal_selected(
+    library,
+    crypto,
+    ttl_ms,
+    max_records,
+    max_snapshot_bytes,
+    [],
+  )
+}
+
+///|
+// The optional installer selection is not a caller-provided "first" fact.
+// Only the original durable marker/DB inspection below decides capture versus
+// restore. The ordinary public wrapper always supplies an empty selection.
+fn NativeLocalAdoptionSession::open_journal_selected(
+  self : NativeLocalAdoptionSession,
+  library : @sqlite.Library,
+  crypto : @crypto.Library,
+  ttl_ms : Double,
+  max_records : Int,
+  max_snapshot_bytes : Int64,
+  signing : Array[NativeLocalSigningInstallationSelection],
+) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
   if !valid_epoch_clock(ttl_ms) ||
     ttl_ms < 1.0 ||
     ttl_ms > 86400000.0 ||
@@ -205,7 +228,7 @@ pub fn NativeLocalAdoptionSession::open_journal(
     Err(issue) => return Err(Physical(issue))
   }
   let connected = self.bind_journal(
-    database, crypto, ownership, adoption_body, first, ttl_ms, max_records,
+    database, crypto, ownership, adoption_body, first, ttl_ms, max_records, signing,
   )
   match connected {
     Ok(value) => Ok(value)
@@ -224,6 +247,7 @@ fn NativeLocalAdoptionSession::bind_journal(
   first : Bool,
   ttl_ms : Double,
   max_records : Int,
+  signing : Array[NativeLocalSigningInstallationSelection],
 ) -> Result[NativeLocalHostConnection, NativeLocalAdoptionIssue] {
   match self.check_original() {
     Ok(_) => ()
@@ -281,6 +305,10 @@ fn NativeLocalAdoptionSession::bind_journal(
     worker_provisioning_attempt: None,
   }
   match connected.check_binding() {
+    Ok(_) => ()
+    Err(issue) => return Err(issue)
+  }
+  match connected.bootstrap_signing_originals(crypto, signing, first) {
     Ok(_) => Ok(connected)
     Err(issue) => Err(issue)
   }

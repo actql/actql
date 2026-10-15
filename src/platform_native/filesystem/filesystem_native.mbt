@@ -862,6 +862,11 @@ pub fn Root::open_child(
   if !valid_object_name(name) {
     return Err(InvalidName)
   }
+  // The issue-only entrance cannot retain a failed scoped child. Its caller
+  // must use the original custody carrier instead of falling through to legacy.
+  if root_is_scoped_ffi(self) {
+    return Err(RootOpen("Scoped child acquisition requires original custody"))
+  }
   let encoded = @utf8.encode(name)
   let child = open_child_root_ffi(self, encoded, encoded.length())
   if root_ready_ffi(child) {

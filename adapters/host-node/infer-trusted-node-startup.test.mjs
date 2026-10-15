@@ -25,6 +25,10 @@ test('selected real Node preload retains exact Host and borrowed Scope reference
   child(['--require', preload], 'selected'));
 test('selected startup excludes pool/allocator replacement and retains invalidation through restoration', () =>
   child(['--require', preload], 'mutation'));
+for (const mode of ['read-decoder-global', 'read-decoder-decode', 'read-buffer-subarray']) {
+  test(`selected startup retains the actual strict READ original ${mode}`, () =>
+    child(['--require', preload], mode));
+}
 test('prior preload with a larger historical slab is refused despite restored visible poolSize', () =>
   child(['--require', preceding, '--require', preload], 'absent'));
 test('NODE_OPTIONS preload cannot supply the selected original startup', () =>

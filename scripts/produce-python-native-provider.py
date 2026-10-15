@@ -159,7 +159,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     c_sources = [(emitted, 'original'),
                  (ROOT / 'src/platform_native/host_bootstrap/bootstrap_stub.c', 'bootstrap')]
     c_sources += [(ROOT / ENTRY / (name + '.c'), name)
-                  for name in ('control_shim', 'backing_shim', 'domain_shim', 'domain_read_shim')]
+                  for name in ('control_shim', 'backing_shim', 'domain_shim', 'domain_read_shim', 'worker_selection_shim')]
     runtime_source = allocator if allocator is not None else moon_home / 'lib/runtime'
     c_sources += [(runtime_source / (name + '.c'), 'runtime-' + name)
                   for name in ('backtrace', 'env', 'runtime', 'sync_io', 'utf')]
@@ -179,7 +179,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                 common += ['-DACTQL_SCOPED_READ_PROVIDER="' + str(allocator / 'owned_capacity.c') + '"']
         if name == 'original':
             common += ['-Wno-unused-value', '-Dmain=actql_original_control_initialize',
-                       '-include', str(ROOT / ENTRY / 'domain_read_shim.h')]
+                       '-include', str(ROOT / ENTRY / 'domain_read_shim.h'),
+                       '-include', str(ROOT / ENTRY / 'worker_selection_shim.h')]
         elif name.startswith('runtime-'):
             common += ['-Wno-unused-value', '-DMOONBIT_ALLOW_STACKTRACE']
         else:
