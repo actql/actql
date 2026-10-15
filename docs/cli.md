@@ -1,203 +1,297 @@
-# ActQL CLI
+# CLI reference
 
-`npm install -g actql` installs the small npm launcher and its platform Native
-executable. Protocol operations run in Native. Current release candidates are
-macOS arm64 and Linux x64/glibc; support depends on acceptance of the exact
-platform artifact. Installation alone does not adopt a Local Host or confer
-execution permission. See the [package guide](../packages/native-cli/README.md).
-
-Remote Client transport remains the default. A fixed Darwin arm64 cohort from
-source `109564ef9a4f8241096292843b875d4c81fbb6f3` also completed the
-source-free embedded Local baseline below in an empty external consumer.
-The tested minimum is macOS 26.0, using Node 22.22.0 for the npm launcher.
-This fixed-package acceptance does not publish npm packages or claim registry
-availability. Remote connection settings apply only to Remote mode.
-
-The [target CLI experience](design/cli-target-experience.md) preserves the
-adopted future workflow. Its `run`, `explain`, `approve`, `reject`, `result`,
-`op` and other command proposals are not current executable instructions.
-
-## Accepted source-free Local baseline
-
-Use the installed `actql` command from the matching CLI/platform cohort.
-No source build, separate Host, token, mTLS, internal configuration JSON or
-absolute SQLite/crypto library path is required. Explicit adoption is a trust
-operation; neither installation nor `connect` grants adoption implicitly.
-The product defaults cover only source-free computation and the private Result
-Store. They do not install Sources, grant external I/O or authorize Effects.
-
-The following Native commands match the accepted eleven-case consumer:
+`actql` drives Programs from the command line: check them, see their plan, run
+them, approve what they want to write, and follow the Run until it ends. This
+page lists every command. For a guided first run, start with the
+[Quickstart](getting-started/quickstart.md).
 
 ```sh
-actql --mode local adopt --json
-actql --mode local connect --json
-printf 'SELECT 1 AS n\n' > query.sql
-actql --mode local check --format sql --program-file query.sql --json
-actql --mode local new-submission --request-id installed-select-1 > submission.json
-actql --mode local aql --format sql --program-file query.sql \
-  --submission-ref-file submission.json --request-id installed-select-1 \
-  --operation-attempt-id original-submit > admission.json
+npm install -g actql
+actql version
 ```
 
-`check` returns `kind: prepared`. A successful publication reply has
-`kind: local_run_published` and an exact `ref` object. Save that object as
-`run.json`, rather than using the whole reply as a Run reference. The Node
-runtime already used by the launcher can save the returned JSON field:
+## The golden path
 
 ```sh
-node --input-type=module -e '
-  import {readFileSync, writeFileSync} from "node:fs";
-  const reply = JSON.parse(readFileSync("admission.json", "utf8"));
-  writeFileSync("run.json", JSON.stringify(reply.ref) + "\n", {flag: "wx"});
-'
-actql --mode local lookup-submission --submission-ref-file submission.json
-actql --mode local read --ref-file run.json --submission-ref-file submission.json \
-  --result-name answer --purpose cli-read --format json \
-  --max-output-bytes 65536 --attempt-id original-read
+actql check churn-risk.aql        # static validation, reads nothing
+actql explain churn-risk.aql      # the plan, reads nothing
+actql run churn-risk.aql          # reads, computes, writes (or stops at a Checkpoint)
+actql status run_…                # where the Run is
 ```
 
-The read returns `[{"n":1}]`, with a JSON number and sole column `n`. Lookup
-uses the original immutable Submission and same Run, without needing the source
-document or recompiling it. A reference is not read authority: current Account,
-original Result Policy and the adopted stdout purpose are checked separately.
-
-Inspect the original delivery without reopening payloads:
+When policy defers a write, `run` prints the Run and Checkpoint references
+and exits with the Run in `waiting_checkpoint`. Decide with `approve` or
+`reject`, then follow it with `status`:
 
 ```sh
-actql --mode local delivery-attempt \
-  --ref-file run.json --submission-ref-file submission.json \
-  --result-name answer --purpose cli-read --attempt-id original-read
+actql approve ckpt_…
+actql status run_… --watch
 ```
 
-The accepted attempt has a durable succeeded record, the payload digest/byte
-count and a matching Host release receipt. Repeating `read` with
-`original-read` is refused with `LocalReadAttemptAlreadyStarted`. Only an
-explicit new operation such as `--attempt-id explicit-new-read` can read the
-retained Result again after current authorization. A lost or incomplete reply
-does not authorize a new attempt or resubmission automatically.
+`run` never prompts. It is safe to call from automation: it returns as soon as
+the Run reaches a stable state — waiting for a decision, waiting for
+reconciliation, or finished — and `--json` gives you that state as data.
 
-The fixed consumer completed all eleven cases, including absent-adoption and
-same-attempt refusal, with no skipped cases. Source/Effect/approval/cancel/Debug
-profiles, other Local platforms and their failure matrices remain unaccepted.
-This baseline does not certify all temporary holders or final Run deletion.
+Two flags look alike and mean different things: `--json` prints the
+**command's result** (a Run state, a check report, a plan) as JSON; `--format`
+chooses the encoding of **Result rows** (`table`, `json`, `jsonl`, `csv`) on
+`sql`, `aql` and `result`.
 
-## Remote prerequisites
+## Starting a project
 
-Use an installed Host that supports the submitted Program/frontend, a saved
-connection JSON, a scoped token file, and the Host's CA/mTLS credentials.
-Select the installed libcurl runtime for this transport profile. Tokens and
-private keys remain in files, outside command-line values.
+```text
+actql init [--template churn-risk-mock] [<directory>]
+```
 
-```sh
-actql_remote() {
-  actql --mode remote --endpoint "$ACTQL_ENDPOINT" \
-    --connection-root "$PWD" --connection-file connection.json \
-    --token-root "$PWD" --token-file token.txt \
-    --http-library "$ACTQL_HTTP_LIBRARY" \
-    --ca ca.crt --cert client.crt --key client.key "$@"
+`init` creates a project: `actql.config.json`, the connectors and model task
+files, a `.actql` Store with its local signing key, and — with a template —
+a complete Program with mock fixtures that runs without credentials. The
+[Quickstart](getting-started/quickstart.md) starts from
+`actql init --template churn-risk-mock`.
+
+## Quick queries
+
+```text
+actql sql <query> [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>]
+actql aql <query> [--params <file>] [--format <table|json|jsonl|csv>] [--output <file>]
+```
+
+```text
+$ actql sql "SELECT id, name FROM crm.accounts WHERE owner = 'kim' LIMIT 3"
+id    name
+----  -----------
+001…  Acme
+002…  Globex
+003…  Initech
+```
+
+**`sql`** takes an ordinary `SELECT`; **`aql`** takes Pipe syntax
+(`FROM … |> …`). Both read through the configured Connectors and print the rows
+(`table` by default). They are the command-line form of the libraries' `sql()`
+and `aql()`: read-only, no Effects, no Checkpoints. A query with an Effect is
+refused; put it in a Program file and use `run`.
+
+## Configuration
+
+The CLI looks for `actql.config.json` in the current directory and its
+parents. Paths in it are relative to the file:
+
+```json
+{
+  "version": "actql-config/0.1",
+  "connectors": "./connectors.json",
+  "model_tasks": "./model-tasks.json",
+  "lock": "./actql.lock.json",
+  "state_dir": "./.actql",
+  "profile": "mock"
 }
-actql_remote connect
 ```
 
-This is a command example for an already configured Remote Host, not an
-executed acceptance result or a replacement Local quickstart. Do not place
-credentials in URLs. See the [Native transport reference](../src/cmd/native_client/README.md#remote-transport)
-for the connection document and exact profile requirements.
+| Field | Meaning |
+| --- | --- |
+| `connectors` | Connections to external systems and their credentials references ([Connectors](connectors/README.md)) |
+| `model_tasks` | Path of the model task registry, `model-tasks.json` ([Models and INFER](guides/models.md)) |
+| `lock` | Lock file pinning the Connector and model task versions a Program was checked against |
+| `state_dir` | The Store: Runs, observations, Checkpoints, Results. Keep it out of version control |
+| `profile` | `mock` replaces every Connector and model with stand-ins that answer from the `mock` fixture files |
+| `mock` | The fixture files: records per Connector and answers per model task |
 
-## Submit and retain the original identities
+Who may do what, and who may approve — `account_config`, `effect_policy`,
+`signers` — is Host configuration, read from `~/.config/actql/host.json` or
+the file named with `--host-config`, never from a project file
+([Local and remote Hosts](guides/hosts.md#a-local-host-in-a-project)).
+Every command accepts `--config <file>` to use another project file. Command
+flags override the file. The full schema is in the
+[configuration reference](reference/configuration.md).
 
-Allocate a deliberate new Submission reference and save it before sending:
+## Core commands
 
-```sh
-actql_remote new-submission --request-id select-one-01 > submission.json
-actql_remote aql --program-file program.json --format aql-json \
-  --submission-ref-file submission.json --operation-attempt-id submit-01
+```text
+actql check <program> [--params <file>] [--bindings <file>] [--json]
+actql explain [<program>] [--params <file>] [--input <name=file>] [--stop-before <boundary>] [--verbose] [--json]
+actql explain --run <run> [--verbose] [--json]
+actql run <program> [--params <file>] [--input <name=file>] [--stop-before <boundary>]
+                    [--deliver <result=format:file>] [--output <file>] [--receipt <file>] [--json]
 ```
 
-`aql` accepts an explicit format (`json`, `yaml`, `aql-json`, `aql-yaml`,
-`aql-text`, or `sql`) without inferring it from a filename. The Host must have
-that frontend. `start` instead accepts a JSON Program object:
+**`check`** validates the Program against the definitions the Host publishes:
+names, types, model tasks, Effect targets and the permissions it would need.
+It reads no business data and calls no provider. It exits 0 for a valid
+Program and 1 for an invalid one, printing each reason with its code and line
+([check reasons](reference/check-reasons.md)). Valid does not mean runnable
+here and now: the report also says whether the Program is `runnable` and, if
+not, why — a parameter not yet bound, a Capability this Host lacks, a model
+task not registered. Read that field, not the exit code, to decide whether to
+`run`.
 
-```sh
-actql_remote start --program-file program.json \
-  --submission-ref-file submission.json --operation-attempt-id submit-01
+**`explain`** prints the plan: each operation with the Site and Engine it
+will use, what is pushed down to a source, where a model is called and where
+the Run may stop for approval. Choices that depend on data, such as the engine
+for a join, are shown as decided at run time. It creates no Run, reads no
+business data and calls no model. It takes the same inputs as `run`.
+`--verbose` adds the decision for each condition and the options for each
+deferred choice. `explain --run <run>` shows what a finished or waiting Run
+actually used, from its record. See [Plans and pushdown](guides/plans-and-pushdown.md).
+
+**`run`** checks the Program, then executes it as a durable Run. Options:
+
+| Option | Meaning |
+| --- | --- |
+| `--params <file>` | JSON values for `@name` parameters |
+| `--input <name=file>` | A local file bound as a table input |
+| `--stop-before commit` | Stop at a Checkpoint before the first Effect is applied, even if policy would allow it. Use it to see what would be written. `commit` is the boundary name; it is the only one in 0.1 |
+| `--deliver <result=format:file>` | Write a named Result to a file as `json`, `jsonl` or `csv` (repeatable) |
+| `--output <file>` | Write the sole Result to a file |
+| `--receipt <file>` | Save the Run receipt (reference and outcome) for later verification |
+| `--json` | Print the Run state as data instead of the human summary |
+
+`run` publishes Results and reports the Run state; it does not stream rows.
+Read them with `result` or deliver them to files.
+
+All three commands accept `--connectors`, `--model-tasks` and `--lock` to
+override the configured files, and `--bindings <file>` for pre-bound inputs.
+
+## Operations on a Run
+
+```text
+actql status <run> [--watch] [--timeout <duration>] [--json]
+actql approve <checkpoint> [--signer <id>] [--wait] [--json]
+actql reject <checkpoint> [--signer <id>] [--json]
+actql cancel <run> [--json]
+actql reconcile <run> [--effect <name>] [--json]
+actql result <run> [--result <name>] [--format <json|jsonl|csv>] [--output <file>]
+                   [--deliver <result=format:file>] [--receipt <file>] [--json]
 ```
 
-These are alternatives for one new operation; do not submit both to perform
-recovery. Parameters use `--parameters-file`. External declarations use
-`--parameter-declarations-file` only with `aql-text` or `sql`. The optional
-`--request-id` on submission asserts the nonce in the saved reference.
+**`status`** reads the Run's state once — its Checkpoint if it is waiting,
+the outcome of each Effect item once they exist — and sends nothing to any
+external system. `--watch` prints each change and returns at the next state
+that needs you: `waiting_checkpoint`, `needs_reconciliation` or a final state.
+`--watch --until final` keeps following through approvals; `--timeout` bounds
+either. A request that policy held before the Run started shows as `held`
+with its Checkpoint, and `approve` resolves it the same way.
 
-Save the exact Run reference from a valid admission as `run.json`; the whole
-admission reply is not a Run reference. Reconnection and lookup use the saved
-original documents. After a lost response:
+**`approve`** and **`reject`** answer a Checkpoint — one inside a Run, or
+one that held a request before the Run started. The answer is bound to the
+exact preview the Checkpoint holds. When `signers` are configured, it is
+signed with `--signer` (or the default signer); a Local Host with no signers
+signs with the local key `actql init` created, which identifies the machine's
+user, not a verified person. Approving continues the
+same Run without redoing finished work; `--wait` follows it. Rejecting ends
+the Run as `cancelled` with nothing sent (or `needs_reconciliation` if an
+earlier write's outcome is still unknown).
 
-```sh
-actql_remote lookup-submission --submission-ref-file submission.json
+**`cancel`** asks the Run to stop. It becomes `cancelled` once stopping is
+confirmed and no outcome is unknown; writes already applied stay applied.
+
+**`reconcile`** asks the Host to resolve an unknown Effect outcome by checking
+with the external system, through the Connector and contract recorded in the
+Run — there is no flag to point it at another connection. It never resends
+the write. If the outcome is still unknown, the Run stays in
+`needs_reconciliation` and the attempt is recorded.
+
+**`result`** reads a named Result of a finished Run — to stdout with
+`--format`, or to files with `--output` / `--deliver`. `--receipt` saves a
+delivery receipt for `verify output`.
+
+```text
+$ actql result run_… --result updates --format jsonl
+{"id":"001Acme","notes":"Evaluating a competitor; usage down since June.","active_users":4,"trend":"down","risk":{"outcome":"ok","value":{"level":"high","reason":"falling usage and a competitor evaluation"}}}
 ```
 
-Lookup observes the original operation. Missing or unresolved history is not
-permission to resubmit, replace the epoch or create another Run.
+## Individual operations
 
-## Observe, read, and cancel
+For an Effect whose outcome needs attention on its own:
 
-```sh
-actql_remote attach --ref-file run.json
-actql_remote status --ref-file run.json
-actql_remote wait --ref-file run.json
-actql_remote read --ref-file run.json --result-name answer --attempt-id read-01
-actql_remote delivery-attempt --ref-file run.json \
-  --result-name answer --attempt-id read-01
+```text
+actql operation status <operation> [--json]
+actql operation reconcile <receipt> [--effect <name>] [--output <file>]
+actql operation cancel <operation> [--json]
 ```
 
-Use the actual Named Result declared by the Program. `read` writes payload
-bytes only after a complete bounded JSONL response, including its terminator.
-The response bound is `--max-response-bytes` (default 1 MiB, maximum 16 MiB).
-It is not the SDK streaming reader. An interrupted/incomplete read is not
-Complete and does not cancel the Run. Inspect the original attempt; an explicit
-new attempt is a new read operation, not payload replay by lookup.
+## Discovery
 
-Cancel requires its own saved operation identity and the expected control
-revision observed for that Run:
+What the configured Connectors and model tasks expose:
 
-```sh
-actql_remote cancel --ref-file run.json --cancel-id cancel-01 \
-  --expected-revision 3 --operation-attempt-id cancel-invocation-01
-actql_remote lookup-cancellation --ref-file run.json \
-  --cancel-id cancel-01 --expected-revision 3
+```text
+actql catalog list [--json]
+actql catalog show [<connector-id>] [--json]
+actql model-task list [--json]
+actql model-task show <model-task-id> [--json]
+actql discovery describe [--json]
+actql discovery list --snapshot <cid> [--kind <kind>] [--selector <selector>] [--cursor <cursor>] [--page-size <count>] [--json]
+actql discovery read --snapshot <cid> --kind <kind> --selector <selector> --content-cid <cid> [--json]
 ```
 
-The revision above is illustrative; use the actual current revision.
-Cancel acceptance, physical stop, unresolved Effect responsibility and resource
-release are separate facts. Lookup never substitutes the current Run state for
-the original cancel outcome. `reconcile --ref-file run.json` uses the Host's
-existing original-operation reconciliation. Unknown results are not resent.
+`catalog show salesforce` lists the resources and columns a Program can name
+as `salesforce.<resource>`, and the Effects the connection supports. It reads
+the Catalog the Host has stored; `catalog refresh <connector-id>` asks the
+external system for its current metadata.
 
-## Checkpoints and Local boundaries
+The language itself:
 
-There is currently no Native Remote `run` or `approve` command. Use the
-[public SDK Checkpoint API](../packages/sdk/README.md#historical-held-requests-and-run-checkpoints):
-`checkpoints`, `reviewCheckpoint`, and `resolveCheckpoints` have independent
-current authorization; a signer supplies a proof for the exact Checkpoint.
-A stored answer alone does not certify resumed execution. Do not allocate a
-historical held request to replace an original new Submission.
+```text
+actql op list [--family <family>] [--output <carrier>] [--json]
+actql op show <operation> [--json]
+actql op search <words...> [--json]
+actql expr list [--category <category>] [--json]
+actql expr show <expression> [--json]
+actql expr search <words...> [--json]
+actql grammar [--json]
+actql schema
+```
 
-Current source Local mode explicitly selects adopted configuration and uses
-existing Host/journal/Store owners. Its `check --program-file <file> --format
-<format> --json` returns `kind: prepared`, not a public diagnostic report or
-Run admission. The Source execution/read/recovery connections and selected
-Reviewer registration remain separate from fixed-package acceptance.
-`checkpoint-state` reads metadata and is not approval. Source-free bootstrap,
-bundled dependencies, execution, original Run lookup and retained Result delivery
-are covered by the accepted Local baseline above. Source and Effect execution,
-approval, cancellation and Debug remain separate unaccepted profiles; an
-internal compiler or fixture pass does not establish their product acceptance.
+`op` covers the pipe operations, `expr` the functions, `grammar` the accepted
+syntax and `schema` the JSON schema of the Program model. Agents use these
+instead of guessing.
 
-## Failures and retained evidence
+## Integrity
 
-Transport failures exit nonzero. `SubmissionUnknown`, `CancellationUnknown`,
-and incomplete reads retain the original identity for lookup. Valid domain
-JSON still needs inspection: transport success does not certify Run success.
-Launcher failures use 64 for unsupported platform/libc, 65 for artifact identity
-mismatch, and 69 for missing package/start failure. No implicit download,
-alternate binary, new submission or automatic retry is performed.
+```text
+actql lock [--output <file>]
+actql verify lock <lock> [--json]
+actql verify output <receipt> <output> [--json]
+actql doctor [--connect] [--json]
+actql version
+```
+
+**`lock`** writes `actql.lock.json`, pinning the versions of every Connector
+and model task the project uses; `verify lock` confirms the installed ones
+still match. **`verify output`** checks a delivered Result file against its
+receipt. **`doctor`** reports the installation, the configuration it found
+and what is wrong with either, without contacting anything; `doctor --connect`
+also tries each configured connection and provider.
+
+## Profiles
+
+`--profile mock` (or `"profile": "mock"` in the configuration) runs the
+Program against mock Connectors and a mock model. The records and model
+answers come from the files named under `mock` in the configuration. Every
+mock Connector records writes without sending them anywhere, so a Program
+can be developed, tested in CI and demonstrated with no credentials. The Checkpoint, approval and status flow is the same as with
+real systems.
+
+## Output and exit codes
+
+Commands print a human summary by default and stable JSON with `--json`.
+Progress goes to stderr, results to stdout or the files you name.
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | The command completed. The Run may still be `waiting_checkpoint`, `needs_reconciliation` or `failed` — read the state, do not rely on the exit code for the Run's outcome |
+| `1` | The command itself failed (`check` found the Program invalid; `run` could not start; a transport failure) |
+| `2` | The command line is invalid |
+
+Errors carry a stable `ACTQL_E_*` code in both the human output and the JSON.
+Unknown commands, unknown options and extra arguments are errors; options may
+come before or after the Program path.
+
+## Next
+
+- [Writing Programs](authoring.md): the language.
+- [Effects and approvals](guides/effects-and-approvals.md): what a Checkpoint
+  holds and who answers it.
+- [Run lifecycle and recovery](guides/run-lifecycle.md): states, interruption,
+  unknown outcomes.
+- [Configuration reference](reference/configuration.md): every file the CLI
+  reads.
