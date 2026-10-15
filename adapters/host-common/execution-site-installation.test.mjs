@@ -7,6 +7,7 @@ import {
   executionSiteStatus,
   installExecutionSites,
   prepareExecutionSitePolicy,
+  revokeExecutionSite,
 } from './execution-sites.mjs';
 import {createExecutionSiteControlFixture} from './execution-site-control.fixture.mjs';
 
@@ -172,4 +173,66 @@ test('a teardown requested before installation still reaches the original create
   assert.equal(tracked.created.length, 1);
   assert.equal(executionSiteStatus(value).accepting, false);
   assert.equal(executionSiteStatus(value).teardownComplete, true);
+});
+
+test('distinct contributions with the same placement key remain distinct valid occurrences', () => {
+  const value = site('shared-key'), tracked = controlFixture();
+  const left = contribution('same'), right = contribution('same');
+  const installation = installExecutionSites(prepareExecutionSitePolicy({sites: [value]}),
+    [left, right], tracked.control);
+  assert.deepEqual(executionSitePlacements(installation, left), [value]);
+  assert.deepEqual(executionSitePlacements(installation, right), [value]);
+  assert.equal(tracked.created.length, 1);
+});
+
+test('a null create result tears down earlier handles without inventing a binding for the failed Site', () => {
+  const values = [site('null-before'), site('null-result')], tracked = controlFixture();
+  const control = Object.freeze({...tracked.control,
+    create: configuration => configuration.key === 'null-result' ? null : tracked.control.create(configuration),
+  });
+  let failure;
+  assert.throws(() => installExecutionSites(prepareExecutionSitePolicy({sites: values}),
+    [contribution('one')], control), error => { failure = error; return true; });
+  assert.equal(failure.code, 'InvalidExecutionSite');
+  assert.equal(failure.cause.code, 'InvalidExecutionSite');
+  assert.equal(failure.cleanupPending, false);
+  assert.equal(failure.cleanupHandle.status().pending, false);
+  assert.equal(tracked.created.length, 1);
+  assert.equal(executionSiteStatus(values[0]).teardownComplete, true);
+  const other = controlFixture();
+  installExecutionSites(prepareExecutionSitePolicy({sites: [values[1]]}), [contribution('other')], other.control);
+  assert.equal(other.created.length, 1);
+});
+
+test('pending revocation failure retains the created handle and retries the same revocation', () => {
+  const value = site('revocation-failure'), tracked = controlFixture();
+  revokeExecutionSite(value);
+  const primary = Object.freeze(new Error('Revocation failed'));
+  let reject = true, calls = 0;
+  const control = Object.freeze({...tracked.control, revoke(handle) {
+    calls++;
+    if (reject) throw primary;
+    return tracked.original.revoke(handle);
+  }});
+  let failure;
+  assert.throws(() => installExecutionSites(prepareExecutionSitePolicy({sites: [value]}),
+    [contribution('one')], control), error => { failure = error; return true; });
+  assert.equal(failure.cause, primary);
+  assert.equal(failure.cleanupFailure, primary);
+  assert.equal(failure.cleanupPending, true);
+  assert.equal(tracked.created.length, 1);
+  reject = false;
+  assert.equal(failure.cleanupHandle.retry().pending, false);
+  assert.equal(executionSiteStatus(value).revoked, true);
+  assert.equal(calls, 3);
+  assert.equal(tracked.created.length, 1);
+});
+
+test('failure before any handle is returned preserves the original error unchanged', () => {
+  const tracked = controlFixture(), primary = Object.freeze(new Error('First create failed'));
+  tracked.failCreate(() => primary);
+  assert.throws(() => installExecutionSites(prepareExecutionSitePolicy({sites: [site('first-failure')]}),
+    [contribution('one')], tracked.control), error => error === primary);
+  assert.equal(tracked.created.length, 0);
+  assert.equal(tracked.teardown.length, 0);
 });
