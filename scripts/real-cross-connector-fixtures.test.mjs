@@ -4,7 +4,7 @@ import {readFileSync} from 'node:fs';
 import {resolve, dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import test from 'node:test';
-import {realCrossConnectorFixturePaths, realCrossConnectorEnvironment, realCrossConnectorFormat} from './real-cross-connector-fixtures.mjs';
+import {realCrossConnectorFixturePaths, realCrossConnectorEnvironment, realCrossConnectorFormat, realCrossConnectorSelection} from './real-cross-connector-fixtures.mjs';
 import {realCrossConnectorControl as control, selectRealCrossConnectorControl} from './fixtures/real-cross-connector-control.mjs';
 import {checkRealRoutePreview} from './fixtures/real-cross-connector-preview.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -34,6 +34,16 @@ test('real route refuses malformed or multiple format selections before any inst
   }
   for (const format of ['', 'json', 'aql-text', 'AQL', null, {}, ['aql']]) {
     assert.throws(() => selectRealCrossConnectorControl(format));
+  }
+});
+
+test('real route selects one explicit HTTPS scenario and refuses duplicate or unreviewed transports', () => {
+  assert.deepEqual(realCrossConnectorSelection([]), {format: 'sql', transport: 'local'});
+  assert.deepEqual(realCrossConnectorSelection(['--format', 'aql', '--transport', 'https']), {format: 'aql', transport: 'https'});
+  assert.deepEqual(realCrossConnectorSelection(['--transport', 'https', '--format', 'sql']), {format: 'sql', transport: 'https'});
+  for (const args of [['--transport'], ['--transport', 'http'], ['--transport', 'remote'],
+    ['--transport', 'https', '--transport', 'local'], ['--transport=https'], ['__proto__', 'https']]) {
+    assert.throws(() => realCrossConnectorSelection(args));
   }
 });
 
@@ -86,6 +96,10 @@ for (const path of ['scripts/gcs-files-content-credential.mjs',
     assert(missing(realCrossConnectorFixturePaths.filter(item => item !== path)).includes(resolve(root, path)));
   });
 }
+test('real route refuses a missing HTTPS assembly helper in either main or restart closure', () => {
+  const path = 'scripts/fixtures/real-cross-connector-transport.mjs';
+  assert(missing(realCrossConnectorFixturePaths.filter(item => item !== path)).includes(resolve(root, path)));
+});
 test('independent real route fixes different read systems, original JOIN and one ordered Named Result', () => {
   assert.deepEqual(control.duckdbRows, [[1, 'actql-content-test/a.csv'], [2, 'not-selected.csv']]);
   assert.match(control.document, /r\.object_name = f\.name/u);
@@ -141,6 +155,7 @@ test('normal route entry and both processes parse without executing products or 
 
 test('real route isolates private npm configuration and checkout runtime variables without changing HOME', () => {
   const base = {HOME: '/original/home', NODE_PATH: '/checkout', NODE_OPTIONS: '--import=/overlay',
+    NODE_EXTRA_CA_CERTS: '/foreign/ca',
     ACTQL_REAL_CONNECTOR_FORMAT: 'aql',
     ACTQL_LOCAL_SOURCE_PROFILE: '/old/source', MOON_HOME: '/compiler', npm_config_registry: 'https://foreign.invalid/',
     NPM_CONFIG_USERCONFIG: '/foreign/config'};
@@ -148,7 +163,7 @@ test('real route isolates private npm configuration and checkout runtime variabl
   assert.equal(env.HOME, base.HOME); assert.equal(env.npm_config_registry, 'https://registry.npmjs.org/');
   assert.equal(env.npm_config_userconfig, '/private/tmp/new-app/npmrc');
   assert.equal(env.npm_config_globalconfig, '/private/tmp/new-app/npmrc-global');
-  for (const key of ['NODE_PATH','NODE_OPTIONS','ACTQL_LOCAL_SOURCE_PROFILE','ACTQL_REAL_CONNECTOR_FORMAT','MOON_HOME','NPM_CONFIG_USERCONFIG']) {
+  for (const key of ['NODE_PATH','NODE_OPTIONS','NODE_EXTRA_CA_CERTS','ACTQL_LOCAL_SOURCE_PROFILE','ACTQL_REAL_CONNECTOR_FORMAT','MOON_HOME','NPM_CONFIG_USERCONFIG']) {
     assert.equal(Object.hasOwn(env, key), false);
   }
   assert.equal(base.NPM_CONFIG_USERCONFIG, '/foreign/config');

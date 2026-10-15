@@ -14,15 +14,26 @@ export const realCrossConnectorFixturePaths = Object.freeze([
   'scripts/fixtures/real-cross-connector-observation.mjs',
   'scripts/fixtures/real-cross-connector-preview.mjs',
   'scripts/fixtures/real-cross-connector-restart.mjs',
+  'scripts/fixtures/real-cross-connector-transport.mjs',
   'scripts/gcs-files-content-credential.mjs',
   'scripts/gcs-files-content-environment.mjs',
 ]);
 
 export function realCrossConnectorFormat(args) {
-  if (args.length === 0) return 'sql';
-  assert(args.length === 2 && args[0] === '--format' && ['sql', 'aql'].includes(args[1]),
-    'Use one optional --format sql|aql; no extra physical scenarios');
-  return args[1];
+  return realCrossConnectorSelection(args).format;
+}
+
+export function realCrossConnectorSelection(args) {
+  const selection = {format: 'sql', transport: 'local'}, seen = new Set();
+  const choices = new Map([['--format', ['format', ['sql', 'aql']]],
+    ['--transport', ['transport', ['local', 'https']]]]);
+  for (let index = 0; index < args.length; index += 2) {
+    const [field, values] = choices.get(args[index]) ?? [];
+    assert(field && !seen.has(field) && values.includes(args[index + 1]),
+      'Use one optional --format sql|aql and --transport local|https; no extra physical scenarios');
+    seen.add(field); selection[field] = args[index + 1];
+  }
+  return Object.freeze(selection);
 }
 
 export function realCrossConnectorEnvironment(base, {root, node}) {
@@ -30,7 +41,7 @@ export function realCrossConnectorEnvironment(base, {root, node}) {
   for (const key of Object.keys(env)) {
     if (key.startsWith('ACTQL_') || key.startsWith('MOON_') ||
         key.toLowerCase().startsWith('npm_config_') ||
-        ['MOON_HOME', 'NODE_PATH', 'NODE_OPTIONS', 'NODE_TEST_CONTEXT'].includes(key)) delete env[key];
+        ['MOON_HOME', 'NODE_PATH', 'NODE_OPTIONS', 'NODE_EXTRA_CA_CERTS', 'NODE_TEST_CONTEXT'].includes(key)) delete env[key];
   }
   return {...env, PATH: `${dirname(node)}:/usr/bin:/bin:/usr/sbin:/sbin`,
     npm_config_registry: 'https://registry.npmjs.org/',

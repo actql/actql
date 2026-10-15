@@ -1,6 +1,6 @@
 # Normally installed real cross-Connector acceptance
 
-This is one selected opt-in Local SQL or AQL scenario, not a mocked Connector or a general
+This is one selected opt-in SQL or AQL route over Local or HTTPS, not a mocked Connector or a general
 release certification. Its independent input is two rows in a new real DuckDB
 file, joined by object name with the real GCS Connector's metadata-only
 `LIST_FILES`. The authored public Result `joined` contains exactly one row,
@@ -77,6 +77,26 @@ selected format is recorded in the parent and both fresh child receipts. It is
 never a loop over formats or a retry of an earlier Run. Existing inherited
 format environment values are cleared before the explicit selection is passed.
 No real AQL success is established by selector controls or the SQL evidence below.
+
+The optional `--transport https` selects the existing installed HTTP Host and
+public Remote Client; Local remains the default. One fresh TLS certificate and
+private loopback bearer are created in that invocation's private scratch before
+the Node test starts. The Client trusts only the explicitly selected extra test
+certificate; inherited extra-CA and format/transport overrides are cleared.
+The listener binds numeric loopback, and the installed Host authenticates the
+same original local principal. This is test setup, not a new GCP credential,
+grant, issuer, Source, evaluator or runtime overlay. Product modules still come
+only from the exact normal archives, and all original profile/authorization
+objects go to the same installed Host API.
+
+Each capture/approval/terminal process constructs and closes its own HTTPS Host
+over the original durable installation. Only the endpoint port changes: original
+profiles, signing key, Run, Preview and authority stay fixed. Both fresh children
+forbid input acquisition; the post-commit child also forbids Table-worker starts.
+Client, listener and Host closures are checked separately. Failed handles are
+retained in the test's same holder; absent, false or pending Host shutdown results
+cannot establish release. Unit controls use synthetic handles and are not TLS,
+real Host or product E2E evidence. HTTPS remains unverified until its actual run.
 
 Save manifest/archive and all copied-input digests, the private exact process
 output, independent actual Result/schema, physical Catalog rows/commit,
