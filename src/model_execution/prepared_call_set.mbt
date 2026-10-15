@@ -30,7 +30,7 @@ pub fn prepared_model_call_set(
   if state.reclaimed ||
     state.stop_requested ||
     !state.durable_calls ||
-    !(state.phase is DispatchSlot) ||
+    !(state.progress.phase is DispatchSlot) ||
     state.call_scope is None ||
     state.requests.length() != @relation.prepared_infer_rows_count(state.rows) ||
     (
@@ -237,9 +237,9 @@ fn check_prepared_model_dispatch(
     return Err(issue)
   }
   guard prepared_model_current(value) &&
-    state.phase is DispatchSlot &&
-    state.entering is None &&
-    state.settlement_pending is None &&
+    state.progress.phase is DispatchSlot &&
+    state.progress.entry is None &&
+    state.progress.settlement is None &&
     value.scope is Some(scope) &&
     state.call_scope is Some(call_scope) &&
     @publication_host.client_infer_dispatch_matches_scope(admission, call_scope) &&
@@ -266,9 +266,9 @@ pub fn model_call_entry_current(
   let state = prepared.owner.state
   physical_equal(entry.prepared, prepared) &&
   prepared_model_current(prepared) &&
-  state.phase is DispatchSlot &&
-  state.next_slot == entry.slot &&
-  state.entering is Some(current) &&
+  state.progress.phase is DispatchSlot &&
+  state.progress.slot == entry.slot &&
+  state.progress.entry is Some(current) &&
   physical_equal(current, entry) &&
   state.dispatch_admission is Some(admission) &&
   physical_equal(admission, entry.admission) &&
@@ -332,8 +332,8 @@ pub fn model_call_settlement(
 ) -> ModelCallSettlement? {
   let state = execution.state
   guard !state.reclaimed &&
-    state.settlement_pending is Some(slot) &&
-    slot < state.next_slot &&
+    state.progress.settlement is Some(slot) &&
+    slot < state.progress.slot &&
     state.outcomes.get(slot) is Some(_) else {
     return None
   }
@@ -344,8 +344,8 @@ pub fn model_call_settlement(
 pub fn model_call_settlement_slot(value : ModelCallSettlement) -> Int? {
   let state = value.owner.state
   if !state.reclaimed &&
-    state.settlement_pending == Some(value.slot) &&
-    value.slot < state.next_slot {
+    state.progress.settlement == Some(value.slot) &&
+    value.slot < state.progress.slot {
     Some(value.slot)
   } else {
     None
@@ -362,7 +362,7 @@ pub fn acknowledge_model_call_settlement(value : ModelCallSettlement) -> Bool {
   if model_call_settlement_slot(value) is None {
     return false
   }
-  if value.owner.state.pending_response is Some(call) {
+  if value.owner.state.progress.call is Some(call) {
     guard call.entry is Some(entry) && entry.slot == value.slot else {
       return false
     }
@@ -370,6 +370,6 @@ pub fn acknowledge_model_call_settlement(value : ModelCallSettlement) -> Bool {
     // callbacks run on a later advance, never inside settlement acknowledgement.
     call.settlement_acknowledged = true
   }
-  value.owner.state.settlement_pending = None
+  value.owner.state.progress.settlement = None
   true
 }

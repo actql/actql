@@ -304,7 +304,7 @@ fn cleanup_model_physical_preflight(state : ModelState) -> Bool {
   if !cleanup_model_physical_call(state) {
     return false
   }
-  if state.entering is Some(entry) {
+  if state.progress.entry is Some(entry) {
     if entry.persistence is Some(operation) && operation.terminal is None {
       return false
     }
@@ -334,7 +334,7 @@ fn advance_model_physical_preflight(
   }
   let index = state.physical_next_slot
   if index == state.requests.length() {
-    state.phase = DispatchSlot
+    state.progress.phase = DispatchSlot
     return @bounded.Continue(1, 1)
   }
   if !model_slot_send_eligible(state, index) {

@@ -25,8 +25,8 @@ pub fn restore_prepared_model_call(
 ) -> Result[Unit, ModelExecutionIssue] {
   let state = prepared.owner.state
   guard prepared_model_current(prepared) &&
-    state.phase is DispatchSlot &&
-    state.next_slot == 0 &&
+    state.progress.phase is DispatchSlot &&
+    state.progress.slot == 0 &&
     state.enter_call is None &&
     prepared.scope is Some(scope) &&
     !state.restored_calls.contains(slot) &&
@@ -111,8 +111,8 @@ pub fn restore_prepared_model_unknown(
 ) -> Result[Unit, ModelExecutionIssue] {
   let state = prepared.owner.state
   guard prepared_model_current(prepared) &&
-    state.phase is DispatchSlot &&
-    state.next_slot == 0 &&
+    state.progress.phase is DispatchSlot &&
+    state.progress.slot == 0 &&
     state.enter_call is None &&
     prepared.scope is Some(scope) &&
     !state.restored_calls.contains(slot) &&
@@ -150,8 +150,8 @@ pub fn prepare_model_response_reconciliation(
 ) -> Result[ModelResponseReconciliation, ModelExecutionIssue] {
   let state = prepared.owner.state
   guard prepared_model_current(prepared) &&
-    state.phase is DispatchSlot &&
-    state.next_slot == 0 &&
+    state.progress.phase is DispatchSlot &&
+    state.progress.slot == 0 &&
     state.enter_call is Some(_) &&
     prepared.scope is Some(scope) &&
     state.dispatch_admission is Some(admission) &&
@@ -224,8 +224,8 @@ pub fn adopt_reconciled_model_response(
   let state = prepared.owner.state
   guard !token.adopted &&
     prepared_model_current(prepared) &&
-    state.phase is DispatchSlot &&
-    state.next_slot == 0 &&
+    state.progress.phase is DispatchSlot &&
+    state.progress.slot == 0 &&
     state.dispatch_admission is Some(admission) &&
     state.response_reconciliations.get(token.slot) is Some(original) &&
     physical_equal(original, token) &&
@@ -273,7 +273,7 @@ fn advance_partial_model_restore(
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
   // Preserve the historical proofs exactly. New execution work cannot alter
   // the old accounting, timestamp, provider facts or adopted attempt identity.
-  state.attempts[state.next_slot] = {
+  state.attempts[state.progress.slot] = {
     attempt: saved.proof.attempt,
     call: prepared.call.unwrap(),
     authority: saved.proof.authority,
@@ -292,7 +292,7 @@ fn advance_partial_model_restore(
     response_issuer: None,
     evidence: Some(saved.proof),
   }
-  state.attempt_slots.push(state.next_slot)
+  state.attempt_slots.push(state.progress.slot)
   if saved.outcome != "ok" {
     return accept_failed_model_slot(
       state,

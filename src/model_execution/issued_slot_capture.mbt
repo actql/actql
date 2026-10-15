@@ -7,7 +7,7 @@ pub fn model_execution_issued_slot_capture(
   slot : Int,
 ) -> Result[@publication.RunEvidenceValue, ModelExecutionIssue] {
   let state = execution.state
-  guard (state.accepted || (state.durable_calls && slot < state.next_slot)) &&
+  guard (state.accepted || (state.durable_calls && slot < state.progress.slot)) &&
     !state.reclaimed &&
     state.call_scope is Some(scope) &&
     state.requests.get(slot) is Some(prepared) &&

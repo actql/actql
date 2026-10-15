@@ -10,7 +10,7 @@ fn begin_chat_model_response(
   if @bounded.stop_requested(reader) is Some(reason) {
     return @bounded.Stopped(reason, 1, 1)
   }
-  guard state.pending_response is Some(original_call) &&
+  guard state.progress.call is Some(original_call) &&
     model_chat_response_original(raw, original_call) &&
     state.physical_plans.get(prepared.request.slot) is Some(plan) &&
     plan.response_profile is Some(profile) &&
@@ -23,7 +23,7 @@ fn begin_chat_model_response(
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   if !raw.transport_eof {
-    state.observing_response = false
+    state.progress.observing_response = false
     state.outcomes.push(UnresolvedUnknown)
     return @bounded.Failed(UnknownCalls, 1, 1)
   }
@@ -50,7 +50,7 @@ fn begin_chat_model_response(
     provider_metadata: raw.provider_metadata,
     observed_at: raw.observed_at,
   }
-  state.phase = DecodePhysicalResponse(
+  state.progress.phase = DecodePhysicalResponse(
     prepared,
     {
       body: raw.body,
@@ -77,7 +77,7 @@ fn advance_chat_model_response(
   chat : ChatEnvelopeDecode,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
   guard cursor.raw_chat is Some(raw) &&
-    state.pending_response is Some(call) &&
+    state.progress.call is Some(call) &&
     call.terminal is Some(PhysicalChatResponse(original)) &&
     physical_equal(original, raw) else {
     return @bounded.Failed(RequestIdentity, 1, 1)
@@ -111,11 +111,11 @@ fn advance_chat_model_response(
       }
       retire_model_raw_usage_child(call) |> ignore
       if raw.status < 200 || raw.status >= 300 {
-        state.observing_response = false
+        state.progress.observing_response = false
         return accept_failed_model_slot(state, ProviderError)
       }
       if !chat_envelope_complete(facts) {
-        state.observing_response = false
+        state.progress.observing_response = false
         return accept_failed_model_slot(
           state,
           if facts.refused {
@@ -127,7 +127,7 @@ fn advance_chat_model_response(
           },
         )
       }
-      guard state.physical_plans.get(state.next_slot) is Some(plan) &&
+      guard state.physical_plans.get(state.progress.slot) is Some(plan) &&
         plan.response_profile is Some(profile) else {
         return @bounded.Failed(RequestIdentity, 1, 1)
       }

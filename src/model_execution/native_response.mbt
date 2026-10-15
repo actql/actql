@@ -67,7 +67,7 @@ fn begin_native_model_response(
   if @bounded.stop_requested(reader) is Some(reason) {
     return @bounded.Stopped(reason, 1, 1)
   }
-  guard state.pending_response is Some(call) &&
+  guard state.progress.call is Some(call) &&
     model_native_response_original(native, call) &&
     state.physical_plans.get(prepared.request.slot) is Some(plan) &&
     plan.response_profile is Some(profile) else {
@@ -75,7 +75,7 @@ fn begin_native_model_response(
   }
   let raw = native.raw
   if !raw.transport_eof {
-    state.observing_response = false
+    state.progress.observing_response = false
     state.outcomes.push(UnresolvedUnknown)
     return @bounded.Failed(UnknownCalls, 1, 1)
   }
@@ -102,7 +102,7 @@ fn begin_native_model_response(
     provider_metadata: raw.provider_metadata,
     observed_at: raw.observed_at,
   }
-  state.phase = DecodePhysicalResponse(
+  state.progress.phase = DecodePhysicalResponse(
     prepared,
     {
       body: raw.body,
@@ -129,7 +129,7 @@ fn advance_native_model_response(
   child : NativeEnvelopeDecode,
   native : ModelPhysicalNativeResponse,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
-  guard state.pending_response is Some(call) &&
+  guard state.progress.call is Some(call) &&
     call.terminal is Some(PhysicalNativeResponse(original)) &&
     physical_equal(original, native) &&
     model_native_response_original(native, call) else {
@@ -162,7 +162,7 @@ fn advance_native_model_response(
       retire_model_raw_usage_child(call) |> ignore
       if native.raw.status < 200 || native.raw.status >= 300 || facts.malformed {
         cancel_native_envelope_decode(child)
-        state.observing_response = false
+        state.progress.observing_response = false
         return accept_failed_model_slot(
           state,
           if facts.malformed {
@@ -190,7 +190,7 @@ fn advance_native_model_response(
         Err(_) => return @bounded.Failed(OutputValue, 1, 1)
       }
       cursor.remaining = child.remaining - work
-      guard state.physical_plans.get(state.next_slot) is Some(plan) &&
+      guard state.physical_plans.get(state.progress.slot) is Some(plan) &&
         plan.response_profile is Some(profile) else {
         return @bounded.Failed(RequestIdentity, 1, 1)
       }

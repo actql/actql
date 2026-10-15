@@ -212,6 +212,21 @@ priv enum ModelSource {
 }
 
 ///|
+// Progress belongs to the existing Model owner, not another execution/session.
+// This extraction still has one selected Slot. A later bounded window must
+// retain each original Entry/Call separately before it can select another Slot.
+// The new record/reference and constructor overlap require physical funding;
+// moving existing fields does not establish a free layout or concurrency.
+priv struct ModelSlotProgress {
+  mut phase : ModelPhase
+  mut slot : Int
+  mut entry : ModelCallEntry?
+  mut call : ModelPhysicalCall?
+  mut settlement : Int?
+  mut observing_response : Bool
+}
+
+///|
 struct ModelState {
   rows : @relation.PreparedInferRows
   input_use : @relation.InferRowsUse
@@ -242,17 +257,13 @@ struct ModelState {
   physical_plans : Map[Int, ModelPhysicalRequestPlan]
   mut physical_next_slot : Int
   mut physical_pending : ModelRequestPreflight?
-  mut pending_response : ModelPhysicalCall?
   mut physical_cleanup_index : Int
   durable_calls : Bool
   mut enter_call : ((ModelCallEntry) -> Bool)?
   mut enter_persistence : ((ModelCallEntry) -> ModelCallEntryPersistence?)?
   mut physical_observer : ((ModelPhysicalObservation) -> Unit)?
-  mut entering : ModelCallEntry?
   mut prepared_call_set : ModelPreparedCallSet?
-  mut settlement_pending : Int?
   mut stop_requested : Bool
-  mut observing_response : Bool
   outcomes : Array[AdoptedModelSlot]
   mut request : ModelRequestPreparation?
   captures : Array[ModelSlotCapture]
@@ -260,9 +271,8 @@ struct ModelState {
   invocation_evidence : Array[@publication.RunEvidenceValue]
   mut restored_evidence : @publication.RunEvidenceValue?
   mut restored_binding : @publication.BoundModelSlotCapture?
-  mut phase : ModelPhase
+  progress : ModelSlotProgress
   mut work : Int
-  mut next_slot : Int
   mut output_uses : Int
   mut accepted : Bool
   mut reclaimed : Bool
@@ -370,7 +380,7 @@ fn advance_model(
     retire_model_entering(state)
     return @bounded.Stopped(reason, 0, 0)
   }
-  if state.stop_requested && !state.observing_response {
+  if state.stop_requested && !state.progress.observing_response {
     retire_model_entering(state)
     return @bounded.Stopped(@bounded.Cancelled, 0, 0)
   }
@@ -381,13 +391,13 @@ fn advance_model(
     return @bounded.Failed(WorkLimit, 0, 0)
   }
   state.work += 1
-  if state.phase is ReserveSlots {
+  if state.progress.phase is ReserveSlots {
     // Replay owns a read of an already checked observation. It must neither
     // reserve another physical attempt nor re-enter a provider on failure.
     if state.source is Replay(_) ||
       state.source is Restored(_) ||
       state.source is RestoredSlots(_) {
-      state.phase = PrepareRequests
+      state.progress.phase = PrepareRequests
       return @bounded.Continue(1, 1)
     }
     if state.reservation_next_slot <
@@ -421,36 +431,38 @@ fn advance_model(
       state.reservation_next_slot += 1
       if state.reservation_next_slot ==
         @relation.prepared_infer_rows_count(state.rows) {
-        state.phase = PrepareRequests
+        state.progress.phase = PrepareRequests
       }
       return @bounded.Continue(1, 1)
     }
     // All reservations precede the first dispatch, including an empty input.
-    state.phase = PrepareRequests
+    state.progress.phase = PrepareRequests
   }
-  if state.phase is PrepareRequests {
+  if state.progress.phase is PrepareRequests {
     return advance_model_request_preparation(state)
   }
-  if state.phase is PreparePhysicalRequests {
+  if state.progress.phase is PreparePhysicalRequests {
     return advance_model_physical_preflight(state)
   }
-  if state.phase is AwaitPhysicalResponse {
+  if state.progress.phase is AwaitPhysicalResponse {
     return advance_model_physical_response(state, reader)
   }
-  if state.phase is DecodePhysicalResponse(prepared, physical, cursor) {
+  if state.progress.phase is DecodePhysicalResponse(prepared, physical, cursor) {
     return advance_encoded_model_response(
       state, prepared, physical, cursor, reader,
     )
   }
-  if state.phase is CheckPhysicalMetadata(prepared, response, cursor, writer) {
+  if state.progress.phase
+    is CheckPhysicalMetadata(prepared, response, cursor, writer) {
     return advance_reported_model_metadata(
       state, prepared, response, cursor, writer,
     )
   }
-  if state.next_slot >= @relation.prepared_infer_rows_count(state.rows) {
+  if state.progress.slot >= @relation.prepared_infer_rows_count(state.rows) {
     return complete_model_slots(state)
   }
-  if state.phase is CheckResponse(request, response, input_key_cid, cursor) {
+  if state.progress.phase
+    is CheckResponse(request, response, input_key_cid, cursor) {
     match @admitted.advance_recheck_runtime_value(cursor) {
       RecheckContinue => return @bounded.Continue(1, 1)
       RecheckFailed => return @bounded.Failed(OutputValue, 1, 1)
@@ -460,7 +472,7 @@ fn advance_model(
             start_model_evidence(
               state, request, response, input_key_cid, checked,
             ) {
-            Ok(value) => state.phase = PrepareEvidence(value)
+            Ok(value) => state.progress.phase = PrepareEvidence(value)
             Err(issue) => return @bounded.Failed(issue, 1, 1)
           }
           return @bounded.Continue(1, 1)
@@ -471,10 +483,10 @@ fn advance_model(
       }
     }
   }
-  if state.phase is RestoreResponse(prepared, record, cursor) {
+  if state.progress.phase is RestoreResponse(prepared, record, cursor) {
     return advance_restored_model_response(state, prepared, record, cursor)
   }
-  if state.phase is PrepareEvidence(preparation) {
+  if state.progress.phase is PrepareEvidence(preparation) {
     match advance_model_evidence(state, preparation) {
       Err(issue) => return @bounded.Failed(issue, 1, 1)
       Ok(None) => return @bounded.Continue(1, 1)
@@ -482,7 +494,7 @@ fn advance_model(
         if (
             state.source is Restored(_) ||
             state.source is RestoredSlots(_) ||
-            state.restored_calls.contains(state.next_slot)
+            state.restored_calls.contains(state.progress.slot)
           ) &&
           (
             state.restored_evidence is None ||
@@ -494,7 +506,7 @@ fn advance_model(
           return @bounded.Failed(OutputIdentity, 1, 1)
         }
         if state.source is RestoredSlots(_) ||
-          state.restored_calls.contains(state.next_slot) {
+          state.restored_calls.contains(state.progress.slot) {
           guard state.restored_binding is Some(binding) else {
             return @bounded.Failed(OutputIdentity, 1, 1)
           }
@@ -510,7 +522,7 @@ fn advance_model(
         }
         state.restored_evidence = None
         state.invocation_evidence.push(evidence)
-        if state.attempts.get(state.next_slot) is Some(trace) {
+        if state.attempts.get(state.progress.slot) is Some(trace) {
           trace.response_cid = preparation.response_cid
           trace.output_cid = preparation.output_cid
         }
@@ -524,28 +536,28 @@ fn advance_model(
       }
     }
   }
-  if !(state.phase is DispatchSlot) {
+  if !(state.progress.phase is DispatchSlot) {
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
-  guard state.requests.get(state.next_slot) is Some(prepared) else {
+  guard state.requests.get(state.progress.slot) is Some(prepared) else {
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
   let request = prepared.request
   if state.durable_calls &&
-    state.restored_calls.get(state.next_slot) is Some(saved) {
+    state.restored_calls.get(state.progress.slot) is Some(saved) {
     return advance_partial_model_restore(state, saved, prepared)
   }
   if state.durable_calls &&
-    state.reconciled_responses.get(state.next_slot) is Some(response) &&
-    state.reservations.get(state.next_slot) is Some(reservation) {
-    state.observing_response = true
+    state.reconciled_responses.get(state.progress.slot) is Some(response) &&
+    state.reservations.get(state.progress.slot) is Some(reservation) {
+    state.progress.observing_response = true
     return begin_observed_model_response(
       state, prepared, response, reservation, reader,
     )
   }
-  if state.durable_calls && state.unknown_calls.contains(state.next_slot) {
+  if state.durable_calls && state.unknown_calls.contains(state.progress.slot) {
     state.outcomes.push(UnresolvedUnknown)
-    state.next_slot += 1
+    state.progress.slot += 1
     if @infer.result_mode(@relation.prepared_infer_rows_owner(state.rows))
       is Fail {
       return @bounded.Failed(UnknownCalls, 1, 1)
@@ -564,11 +576,11 @@ fn advance_model(
   guard state.source is Provider(provider) else {
     return @bounded.Failed(OutputIdentity, 1, 1)
   }
-  guard model_slot_send_eligible(state, state.next_slot) &&
-    state.reservations.get(state.next_slot) is Some(reservation) else {
+  guard model_slot_send_eligible(state, state.progress.slot) &&
+    state.reservations.get(state.progress.slot) is Some(reservation) else {
     return @bounded.Failed(CallEntryRefused, 1, 1)
   }
-  let attempt = if state.entering is Some(entry) {
+  let attempt = if state.progress.entry is Some(entry) {
     // Continue the retained entry, never construct another attempt after poll.
     Some(entry.trace)
   } else if state.dispatch_admission is Some(admission) {
@@ -588,7 +600,7 @@ fn advance_model(
       Ok(_) => ()
     }
   }
-  if state.physical_plans.get(state.next_slot) is Some(plan) &&
+  if state.physical_plans.get(state.progress.slot) is Some(plan) &&
     !model_content_admissions_current(plan.attachments) {
     return @bounded.Failed(InputReferenceUnavailable, 1, 1)
   }
@@ -599,7 +611,7 @@ fn advance_model(
   // transport bytes. Retain the dispatched envelope as uncertain usage before
   // entering physical I/O: invalid metadata, rejected content or cancellation
   // must not make that request unused when cleanup settles its reservation.
-  if state.entering is None {
+  if state.progress.entry is None {
     match
       @resources.mark_transfer_uncertain(
         state.ledger,
@@ -626,12 +638,12 @@ fn advance_model(
       state.dispatch_admission is Some(admission) else {
       return @bounded.Failed(CallEntryRefused, 1, 1)
     }
-    let entry = match state.entering {
+    let entry = match state.progress.entry {
       Some(original) => original
       None => {
         let entry : ModelCallEntry = {
           prepared: prepared_set,
-          slot: state.next_slot,
+          slot: state.progress.slot,
           trace,
           admission,
           acknowledgement: None,
@@ -639,7 +651,7 @@ fn advance_model(
           gate_issued: false,
           send_started: false,
         }
-        state.entering = Some(entry)
+        state.progress.entry = Some(entry)
         if state.enter_persistence is Some(begin) {
           guard begin(entry) is Some(operation) &&
             entry.persistence is Some(original) &&
@@ -691,8 +703,8 @@ fn advance_model(
     }
   }
   if !state.durable_calls && attempt is Some(attempt) {
-    state.attempts[state.next_slot] = attempt
-    state.attempt_slots.push(state.next_slot)
+    state.attempts[state.progress.slot] = attempt
+    state.attempt_slots.push(state.progress.slot)
   }
   // A cancellation delivered by a synchronous entry observer cannot start I/O.
   // Once provider entry begins, however, returned response custody survives
@@ -702,15 +714,15 @@ fn advance_model(
   }
   // Entry observers may synchronously revoke the original Ref or physical
   // holding. Keep the entered attempt uncertain, but do not invoke its port.
-  if state.physical_plans.get(state.next_slot) is Some(plan) &&
+  if state.physical_plans.get(state.progress.slot) is Some(plan) &&
     !model_content_admissions_current(plan.attachments) {
     return @bounded.Failed(InputReferenceUnavailable, 1, 1)
   }
-  state.observing_response = state.durable_calls
+  state.progress.observing_response = state.durable_calls
   // This diagnostic callback is not a physical-start fact. It may revoke
   // authority or cancel, so the original one-shot gate is consumed afterwards.
   if state.physical_preflight is Some(_) &&
-    state.physical_plans.get(state.next_slot) is None {
+    state.physical_plans.get(state.progress.slot) is None {
     return @bounded.Failed(RequestIdentity, 1, 1)
   }
   observe_model_physical(state, BeforeInvoke)
@@ -721,7 +733,7 @@ fn advance_model(
   match started {
     Err(issue) => {
       retire_model_entering(state)
-      state.observing_response = false
+      state.progress.observing_response = false
       return match issue {
         Cancelled => @bounded.Stopped(@bounded.Cancelled, 1, 1)
         Deadline => @bounded.Stopped(@bounded.Deadline, 1, 1)
@@ -733,7 +745,7 @@ fn advance_model(
   // No callback, await or request construction separates final consumption
   // from the retained invocation. Entered responsibility already exists if
   // the installed foreign invocation loses its response or throws.
-  if state.physical_plans.get(state.next_slot) is Some(plan) &&
+  if state.physical_plans.get(state.progress.slot) is Some(plan) &&
     plan.invocation is Asynchronous(start) {
     guard send_gate is Some(gate) else {
       retire_model_entering(state)
@@ -744,13 +756,13 @@ fn advance_model(
     // original entered attempt. On a bad returned view, cleanup drains that
     // original operation but never admits a fabricated response or new send.
     let owned = started is Some(call) &&
-      state.pending_response is Some(original) &&
+      state.progress.call is Some(original) &&
       physical_equal(call, original)
     retire_model_entering(state)
     if !owned {
       return @bounded.Failed(CallEntryRefused, 1, 1)
     }
-    state.phase = AwaitPhysicalResponse
+    state.progress.phase = AwaitPhysicalResponse
     observe_model_physical(state, InvokeStarted)
     return @bounded.Continue(1, 1)
   }
@@ -762,7 +774,7 @@ fn advance_model(
       invoke(request)
     }
     Some(_) => {
-      guard state.physical_plans.get(state.next_slot) is Some(plan) else {
+      guard state.physical_plans.get(state.progress.slot) is Some(plan) else {
         return @bounded.Failed(RequestIdentity, 1, 1)
       }
       guard plan.invocation is Synchronous(invoke) else {
@@ -786,7 +798,7 @@ fn advance_model(
   let response = match invoked {
     Ok(value) => value
     Err(issue) => {
-      state.observing_response = false
+      state.progress.observing_response = false
       if @bounded.stop_requested(reader) is Some(reason) {
         return @bounded.Stopped(reason, 1, 1)
       }
@@ -810,7 +822,7 @@ fn begin_observed_model_response(
   reader : @bounded.Reader,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
   let request = prepared.request
-  if state.attempts.get(state.next_slot) is Some(trace) {
+  if state.attempts.get(state.progress.slot) is Some(trace) {
     trace.input_tokens = if response.input_tokens >= 0L {
       Some(response.input_tokens)
     } else {
@@ -861,7 +873,7 @@ fn begin_observed_model_response(
     Some(value) => value
     None => return @bounded.Failed(OutputValue, 1, 1)
   }
-  state.phase = CheckResponse(
+  state.progress.phase = CheckResponse(
     request,
     lift_historical_model_response(response),
     input_key_cid,
@@ -1076,17 +1088,13 @@ fn start_model_owned(
     physical_plans: Map([]),
     physical_next_slot: 0,
     physical_pending: None,
-    pending_response: None,
     physical_cleanup_index: 0,
     durable_calls,
     enter_call: None,
     enter_persistence: None,
     physical_observer: None,
-    entering: None,
     prepared_call_set: None,
-    settlement_pending: None,
     stop_requested: false,
-    observing_response: false,
     outcomes: [],
     request: None,
     captures: [],
@@ -1094,9 +1102,15 @@ fn start_model_owned(
     invocation_evidence: [],
     restored_evidence: None,
     restored_binding: None,
-    phase: ReserveSlots,
+    progress: {
+      phase: ReserveSlots,
+      slot: 0,
+      entry: None,
+      call: None,
+      settlement: None,
+      observing_response: false,
+    },
     work: 0,
-    next_slot: 0,
     output_uses: 0,
     accepted: false,
     reclaimed: false,
@@ -1148,12 +1162,12 @@ fn advance_model_execution_owned(
   let state = execution.state
   if !state.reclaimed &&
     !@bounded.session_stopped(execution.session) &&
-    state.pending_response is Some(call) {
+    state.progress.call is Some(call) {
     if call.settlement_acknowledged {
       if !cleanup_model_physical_call(state) {
         return Ok(AwaitIo(execution.progress, execution.work))
       }
-    } else if state.phase is AwaitPhysicalResponse {
+    } else if state.progress.phase is AwaitPhysicalResponse {
       if state.stop_requested {
         cancel_model_physical_call(call)
       }
@@ -1168,10 +1182,11 @@ fn advance_model_execution_owned(
   if state.durable_calls &&
     !state.reclaimed &&
     !@bounded.session_stopped(execution.session) {
-    if state.settlement_pending is Some(slot) {
+    if state.progress.settlement is Some(slot) {
       return Ok(Settling(slot, execution.progress, execution.work))
     }
-    if state.entering is Some(entry) && entry.persistence is Some(operation) {
+    if state.progress.entry is Some(entry) &&
+      entry.persistence is Some(operation) {
       match
         poll_model_call_entry_persistence(operation, entry, entry.prepared) {
         Ok(Pending) => return Ok(AwaitIo(execution.progress, execution.work))
@@ -1179,14 +1194,14 @@ fn advance_model_execution_owned(
       }
     }
     if !state.stop_requested &&
-      state.phase is DispatchSlot &&
+      state.progress.phase is DispatchSlot &&
       (
         state.prepared_call_set is None ||
         state.prepared_call_set.unwrap().scope is None ||
         (
-          state.next_slot < state.requests.length() &&
-          !state.restored_calls.contains(state.next_slot) &&
-          !state.unknown_calls.contains(state.next_slot) &&
+          state.progress.slot < state.requests.length() &&
+          !state.restored_calls.contains(state.progress.slot) &&
+          !state.unknown_calls.contains(state.progress.slot) &&
           (
             (state.enter_call is None && state.enter_persistence is None) ||
             state.dispatch_admission is None
@@ -1233,9 +1248,9 @@ pub fn request_model_cancel(execution : ModelExecution) -> Bool {
   execution.state.stop_requested = true
   if execution.state.durable_calls &&
     (
-      execution.state.observing_response ||
-      execution.state.entering is Some(_) ||
-      execution.state.settlement_pending is Some(_)
+      execution.state.progress.observing_response ||
+      execution.state.progress.entry is Some(_) ||
+      execution.state.progress.settlement is Some(_)
     ) {
     // Sending is fenced immediately; finishing an already-returned observation
     // is a bounded cleanup duty and does not authorize another provider call.
@@ -1266,8 +1281,8 @@ pub fn model_execution_preflighting(execution : ModelExecution) -> Bool {
   !execution.state.reclaimed &&
   !@bounded.session_stopped(execution.session) &&
   (
-    execution.state.phase is PrepareRequests ||
-    execution.state.phase is PreparePhysicalRequests
+    execution.state.progress.phase is PrepareRequests ||
+    execution.state.progress.phase is PreparePhysicalRequests
   )
 }
 
@@ -1315,27 +1330,28 @@ fn cleanup_model_execution_owned(
       if @bounded.cleanup_pending(execution.session) {
         return Ok(false)
       }
-      if execution.state.phase is CheckResponse(_, _, _, cursor) {
+      if execution.state.progress.phase is CheckResponse(_, _, _, cursor) {
         @admitted.cancel_recheck_runtime_value(cursor)
       }
-      if execution.state.phase is CheckPhysicalMetadata(_, _, cursor, writer) {
+      if execution.state.progress.phase
+        is CheckPhysicalMetadata(_, _, cursor, writer) {
         @canonical.cancel_emit(cursor)
         @encode.cancel_writer(writer)
       }
-      if execution.state.phase is DecodePhysicalResponse(_, _, cursor) {
+      if execution.state.progress.phase is DecodePhysicalResponse(_, _, cursor) {
         cancel_model_response_decode(cursor)
       }
-      if execution.state.phase is PrepareEvidence(value) {
+      if execution.state.progress.phase is PrepareEvidence(value) {
         cancel_model_evidence(value)
       }
-      if execution.state.phase is RestoreResponse(_, _, cursor) {
+      if execution.state.progress.phase is RestoreResponse(_, _, cursor) {
         @admitted.cancel_canonical_conversion(cursor)
       }
       if execution.state.request is Some(request) {
         cancel_model_request_preparation(request)
         execution.state.request = None
       }
-      execution.state.phase = Reclaimed
+      execution.state.progress.phase = Reclaimed
       for (_, reservation) in execution.state.reservations {
         if @resources.reservation_open(reservation) {
           @resources.settle_reservation(execution.state.ledger, reservation)
