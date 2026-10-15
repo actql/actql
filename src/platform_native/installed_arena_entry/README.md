@@ -136,3 +136,38 @@ This build/transport preparation does not adopt numerical funding or ordinary
 Local, Engine, worker, wheel or public Python acceptance. Actual matching DLL
 and consumer results, when executed, must retain their own exact source,
 component/provider identity and bounded fixture qualification.
+
+Source `2f0228721a5ad66db4d79c23610b2b702a90ed21` subsequently built the
+matching 14-package/one-link-core provider with sixteen C compilations and one
+link. Its emitted C SHA256 is
+`c7654a71917ba091acd7e9092ac3b452d47946b46ed62912175836a0f1541e2f`;
+its DLL SHA256 is
+`cf763dc8979339a0762179d474830829d7e2bc21d1d86a51ca4f28d37f6e4d68`.
+A source-matching private SQLite component and the existing read-alias helper
+passed **4/4 fresh-process cases** in `run-FdYyrO`: normal Library/escaped alias
+custody, failed loader cleanup, cleanup after logical Host closing, and foreign
+Host/active-scope/one-shot refusal. The case fixture is
+`scripts/fixtures/python-native-sqlite-custody.py`; it consumes a maintainer plan
+containing exact file hashes, bundle/helper paths, source root and output path.
+Run it through the existing local-check guard with that matching provider and
+component; it is not a public factory or arbitrary-library loader.
+
+The prior partial-loader case exposed a retained child-allocated error enum in
+the permanent controller. The controller now retains only a scalar failure
+marker; the unchanged primary issue remains in the returned typed reply and
+original partial failure until its own cleanup. Native tests also retain the
+original error identity across subsequent current/leave failures. Retaining an
+actual returned alias still prevents physical retirement.
+
+The raw same-domain reprepare test expects the existing **Accounting** refusal
+at the earlier current fence: `enter_backed_read_cleanup` stops the original
+Common read use, and current checks do not manufacture a fresh one. The old
+AlreadyConsumed fixture expectation and diagnostic trace remain as failures in
+workspace evidence. There is no fallback accepting an arbitrary failure.
+
+These are explicit **64-page parent/FD, 48-page SQLite payload, 32-page heap**
+private fixtures. They do not increase the old read-only 16-page fixture or
+adopt a normal product profile. Control/loader/Python/VM funding remains
+separate and unproven. Counter-based Python response-loss tests are distinct
+from the actual DLL cases, which inject no physical lost reply. Full product
+Store/Run, Engine, worker, wheel and public Python E2E remain unaccepted.
