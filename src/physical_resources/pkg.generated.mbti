@@ -34,6 +34,8 @@ pub fn[P, C] backed_execution_delegation_description(BackedExecutionRegion[P, C]
 
 pub fn[P, C, R] backed_execution_live_limits(BackedExecutionLiveProjection[P, C, R], R) -> Result[LedgerLimits, BackedExecutionIssue]
 
+pub fn[P, C, R] backed_execution_live_state(BackedExecutionLiveProjection[P, C, R], R) -> Result[BackedExecutionLiveState, BackedExecutionIssue]
+
 pub fn begin_original_ledger_inventory(Ledger, CapacityReservation, Int, Int, Int) -> Result[OriginalLedgerIdentity, OriginalReadIssue]
 
 pub fn[T] begin_original_resource_invalidation(OriginalResourcePark[T], T) -> Result[OriginalResourceInvalidationRequest[T], OriginalReadIssue]
@@ -212,6 +214,8 @@ pub fn[T] park_original_resource_consumer(FundedReadConsumer[T], T) -> Result[Or
 
 pub fn[T] park_original_resource_consumer_for_state_write(FundedReadConsumer[T], T) -> Result[OriginalResourcePark[T], OriginalReadIssue]
 
+pub fn prepare_imported_child_ledger(Int64) -> Result[ImportedChildLedger, ImportedChildLedgerIssue]
+
 pub fn[T] prepare_original_state_write(OriginalLedgerIdentity, T, @encode_core.Writer, Int64, Int64, binding_work? : Int) -> Result[(FundedReadClaim[T], OriginalStateWrite[T]), OriginalStateWriteIssue]
 
 pub fn quantity_configuration_matches(Ledger, QuantityAmounts?) -> Bool
@@ -227,6 +231,8 @@ pub fn[P, C] report_backed_execution_delegation(BackedExecutionRegion[P, C], P, 
 pub fn[P, C, R] report_backed_execution_live_child(BackedExecutionLiveProjection[P, C, R], R, LedgerUsage) -> Result[Unit, BackedExecutionIssue]
 
 pub fn report_execution_delegation(Ledger, ExecutionDelegation, LedgerUsage) -> Result[Unit, LedgerIssue]
+
+pub fn report_imported_child_ledger(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]
 
 pub fn[P, C] require_backed_execution_read_use_current(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C], BackedExecutionReadUse[P, C]) -> Result[Unit, BackedExecutionIssue]
 
@@ -300,6 +306,8 @@ pub fn shared_allocation_usage(SharedAllocation) -> SharedAllocationUsage
 
 pub fn shared_capacity_usage(SharedCapacity) -> SharedCapacityUsage
 
+pub fn start_imported_child_ledger(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]
+
 pub fn[T] start_original_current_state_comparison(OriginalResourcePark[T], T, OriginalCurrentStateDocument, Int) -> Result[OriginalCurrentStateComparison[T], OriginalStateComparisonIssue]
 
 pub fn start_original_current_state_document_read(@decode_core.Cursor, Int, Int, Int, Int, @decode_core.Limits) -> Result[OriginalCurrentStateDocumentRead, OriginalStateDocumentIssue]
@@ -321,6 +329,10 @@ pub fn[P, C] stop_backed_execution_read_use(BackedExecutionRegion[P, C], P, C, B
 pub fn[T] stop_funded_read(FundedReadClaim[T]) -> Result[Unit, OriginalReadIssue]
 
 pub fn[T] stop_funded_read_consumer(FundedReadConsumer[T]) -> Result[Unit, OriginalReadIssue]
+
+pub fn stop_imported_child_ledger(ImportedChildLedger) -> Result[Unit, ImportedChildLedgerIssue]
+
+pub fn take_imported_child_ledger(ImportedChildLedger) -> Result[(Ledger, SharedCapacity, SharedCapacity), ImportedChildLedgerIssue]
 
 pub fn unresolved_backed_execution_data(UnresolvedBackedExecutionOriginal) -> BackedExecutionOriginalData
 
@@ -389,6 +401,11 @@ pub struct BackedExecutionLiveProjection[P, C, R] {
   // private fields
 }
 
+pub(all) enum BackedExecutionLiveState {
+  LiveOpen
+  LiveClosing
+} derive(Eq, @debug.Debug)
+
 pub(all) struct BackedExecutionOriginalData {
   allocation_bytes : Int64
   extent : BackedExecutionExtent
@@ -443,6 +460,19 @@ type FundedReadConsumer[T]
 
 type Holding
 
+pub struct ImportedChildLedger {
+  // private fields
+}
+
+pub(all) enum ImportedChildLedgerIssue {
+  Unavailable
+  Unknown
+  ForeignOriginal
+  AlreadyConsumed
+  InvalidOriginal
+  Resource(LedgerIssue)
+} derive(Eq, @debug.Debug)
+
 type Ledger
 
 pub(all) enum LedgerIssue {
@@ -461,6 +491,7 @@ pub(all) enum LedgerIssue {
   CostLimit
   DurationLimit
   ResourceParked
+  ChildFundingUnavailable
 } derive(Eq, @debug.Debug)
 
 pub(all) struct LedgerLimits {

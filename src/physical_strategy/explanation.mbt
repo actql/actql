@@ -351,6 +351,7 @@ fn emit_strategy_assessment(
           ClosedReservation => "closed_reservation"
           ClosedHolding => "closed_holding"
           ResourceParked => "resource_parked"
+          ChildFundingUnavailable => "child_funding_unavailable"
           InvalidCharge => "invalid_charge"
         },
       )
