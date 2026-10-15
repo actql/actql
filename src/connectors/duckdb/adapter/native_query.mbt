@@ -133,8 +133,7 @@ fn compile_native_filter_select_base(
   // but does not yet validate SourceView key tuples across that scan. A filtered
   // result cannot discharge those obligations. Broad capture keeps the original
   // common input validator; no native provider execution is authorized here.
-  if @pipeline.input_contract_at(@lower.pipeline(preparation), 0)
-    is Some(@pipeline.SourceViewInput(_, _, _, _)) &&
+  if @lower.preparation_input_is_source_view(preparation, 0) &&
     (
       @lower.preparation_input_keys(preparation, 0) is Some(_) ||
       (
