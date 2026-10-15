@@ -260,6 +260,8 @@ class InstalledImageTests(unittest.TestCase):
         self.wasmtime.FuncType = lambda *args: args
         if holding is not None:
             self.ffi.dll = holding._library
+            self.store._context = lambda: c_void_p(345)
+            self.wasmtime.Caller = type('Caller', (), {})
             memory_type = SimpleNamespace(is_64=False, is_shared=False,
                 limits=SimpleNamespace(min=1, max=256), close=lambda: None)
             class Memory:
@@ -452,13 +454,17 @@ class InstalledImageTests(unittest.TestCase):
         self.store.close = lambda: self._observe_scope(state, close_store)
         core, _ = self._construct_with_baseline(holding=holding)
         self.assertEqual(state.depth, 0)
+        # Original span observation, nominal capture, and the first guest-call
+        # precheck each observe membership inside the same provider scope.
         self.assertEqual(state.events,
             [('enter', 123), ('enter', 123), ('leave', 123),
-             ('enter', 123), ('leave', 123), ('leave', 123)])
+             ('enter', 123), ('leave', 123), ('enter', 123),
+             ('enter', 123), ('leave', 123), ('leave', 123), ('leave', 123)])
         self.assertTrue(core.close())
         self.assertEqual(state.depth, 0)
-        self.assertEqual(state.events[-4:],
-            [('enter', 123), ('leave', 123), ('enter', 123), ('leave', 123)])
+        self.assertEqual(state.events[-6:],
+            [('enter', 123), ('enter', 123), ('leave', 123),
+             ('leave', 123), ('enter', 123), ('leave', 123)])
 
     def _observe_scope(self, state, action):
         self.assertGreater(state.depth, 0)
@@ -513,7 +519,9 @@ class InstalledImageTests(unittest.TestCase):
     def test_scope_leave_failure_never_returns_success_or_releases_original_holding(self):
         holding, library = self._holding([(-3, False)])
         core, calls = self._construct_with_baseline(holding=holding)
-        library.scope.leave_replies = [-1]
+        # Membership-precheck leave succeeds; the original guest-call scope's
+        # leave then fails after guest execution, as in the original counterexample.
+        library.scope.leave_replies = [0, -1]
         with self.assertRaises(NativeHoldingScopeError) as failure:
             core._call('buffer', 'close_pool')
         self.assertEqual((failure.exception.operation, failure.exception.code), ('leave', -1))
