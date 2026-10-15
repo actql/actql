@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
 import test from 'node:test';
-import {gcsMetadataRequestObserver} from './fixtures/real-cross-connector-observation.mjs';
+import {gcsMetadataRequestObserver, tableWorkerSpawnObserver} from './fixtures/real-cross-connector-observation.mjs';
 const manifest = {bucket: 'actql-content-test', prefix: 'actql-content-test/',
   limits: {maxRequests: 10, maxResponseBytes: 1048576, maxDurationMs: 60000}};
 const options = () => ({protocol: 'https:', hostname: 'storage.googleapis.com', method: 'GET',
@@ -58,4 +58,20 @@ test('one global metadata deadline cancels only the original physical request an
   assert.equal(destroyed, 1); assert.throws(() => observer.assertClosed());
   physical.emit('close'); observer.assertClosed();
   assert.throws(() => observer.request(options(), () => {}));
+});
+
+test('physical Table worker observation forwards the exact installed invocation without reading payload', () => {
+  const args = ['/installed/process_worker.py'], options = {}, child = {};
+  const observer = tableWorkerSpawnObserver({entry: args[0], spawn(executable, actual, settings) {
+    assert.equal(executable, '/python'); assert.equal(actual, args); assert.equal(settings, options); return child;
+  }});
+  assert.equal(observer.spawn('/python', args, options), child);
+  assert.deepEqual(observer.observation(), {workerStarts: 1});
+});
+test('terminal recovery refuses the installed physical Table worker before spawn', () => {
+  let calls = 0;
+  const observer = tableWorkerSpawnObserver({entry: '/installed/process_worker.py', forbidden: true,
+    spawn() { calls++; }});
+  assert.throws(() => observer.spawn('/python', ['/installed/process_worker.py']));
+  assert.equal(calls, 0); assert.deepEqual(observer.observation(), {workerStarts: 1});
 });

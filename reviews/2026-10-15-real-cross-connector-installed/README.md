@@ -13,6 +13,10 @@ and a separate new disposable Local Iceberg/Catalog Effect profile. Its first
 Host stops normally at the actual approval checkpoint. A new Node process
 retains the exact original profiles, proof key and Host state, attaches to the
 same Run, approves via the existing signer API and reads the same Result.
+Before approval, both processes check the original sealed Preview's target,
+action, Catalog, namespace, table, Mapping and bound artifact/schema references.
+The schema CID is independently derived from the expected recursive field map;
+the complete original review bytes and semantic CID must survive the restart.
 Physical Catalog verification requires one commit and the exact written row.
 A second fresh Node process then performs terminal-only same-Run attachment,
 Result reread and zero input-I/O verification after the Effect has committed.
@@ -76,8 +80,13 @@ The original new submission reference is saved before calling startSource; an
 unknown response is never relabelled as unsent. Cleanup observations are saved
 even on failure, and completed is set only after final client closure resolves.
 
-Pre-approval public availability is recorded as observed. If the existing Owner
-has already made joined available, its full value/schema is checked; otherwise
-captured/declaration/Preview state is not falsely advertised as a public read.
-The existing Effect/publication rules are not changed to publish early. Both
-fresh processes require the exact independent public Result after approval.
+Pre-approval public availability is recorded without reading the public Result.
+The existing sealed Table Preview exposes operation and artifact/schema bindings,
+not row payload text: `preApprovalPayload` explicitly records that unavailable
+boundary. Full change-value inspection in Preview/Explorer remains unimplemented
+and is not claimed by this narrow route. No arbitrary CID read, new read authority
+or early Result publication is added. After approval, the actual Table rows and
+public `joined` rows/ordered schema must match the independent oracle. The first
+child must finish successfully and the Catalog commit must be observed before
+the terminal-only child is started. The initial PID's later Host reopen is a
+separate control, never evidence of a fresh post-commit process.

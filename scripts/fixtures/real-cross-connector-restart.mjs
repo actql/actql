@@ -6,9 +6,10 @@ import {createRequire} from 'node:module';
 import {sign} from 'node:crypto';
 import {dirname, join} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
-import {observeInstalledGcsMetadata, observeInstalledDuckDbReads}
+import {observeInstalledGcsMetadata, observeInstalledDuckDbReads, observeInstalledTableWorkers}
   from './real-cross-connector-observation.mjs';
 import {realCrossConnectorControl as control} from './real-cross-connector-control.mjs';
+import {checkRealRoutePreview} from './real-cross-connector-preview.mjs';
 
 const input = JSON.parse(await readFile(process.argv[2], 'utf8'));
 const require = createRequire(join(input.application, 'package.json'));
@@ -16,7 +17,10 @@ const {connect} = await import(require.resolve('@actql/node'));
 const duckdb = require('@duckdb/node-api');
 const gcs = observeInstalledGcsMetadata(input.manifest, {forbidden: true});
 const reads = observeInstalledDuckDbReads(duckdb, {forbidden: true});
-let client, credentialResolutions = 0, completed = false;
+const tableWorkers = input.phase === 'terminal' ? observeInstalledTableWorkers(
+  join(dirname(require.resolve('@actql/local-node')), 'adapters/connectors/local/iceberg/process_worker.py'),
+  {forbidden: true}) : undefined;
+let client, reviewedPreview, credentialResolutions = 0, completed = false;
 try {
   client = await connect({...input.options, installation: {...input.options.installation,
     resolveSourceSecret() { credentialResolutions++; throw new Error('UnexpectedSourceCredentialOnRestore'); }}});
@@ -30,9 +34,8 @@ try {
     assert.equal(checkpoints.length, 1);
     assert.equal(checkpoints[0].checkpointCid, input.approval.checkpointCid);
     const preview = await client.reviewCheckpoint(checkpoints[0], {maxBytes: 1000000});
-    const value = JSON.parse(Buffer.from(preview.bytes).toString('utf8'));
-    assert.equal(value.effects.length, 1);
-    assert.equal(value.effects[0].approval, 'required');
+    reviewedPreview = checkRealRoutePreview(preview, {...input.approval.previewExpected,
+      original: input.approval.originalPreview});
     const ref = checkpoints[0];
     const answer = await client.resolveCheckpoints([{checkpoint: ref, decision: 'approved'}], {signer: {
       keyId: input.approval.keyId, reviewerId: input.approval.reviewerId,
@@ -55,16 +58,19 @@ try {
   assert.equal(credentialResolutions, 0);
   assert.deepEqual(gcs.observation(), {requests: 0, responses: 0, responseBytes: 0});
   assert.deepEqual(reads.observation(), {sourceReadSessions: 0, sourceReadStatements: 0});
+  if (tableWorkers) assert.deepEqual(tableWorkers.observation(), {workerStarts: 0});
   await client.close(); client = undefined;
   completed = true;
   await writeFile(join(dirname(process.argv[2]), `restart-observation.${input.phase}.json`), JSON.stringify({
     phase: input.phase, pid: process.pid, ref: run.ref, status: state.status, observedResult: observed,
+    ...(reviewedPreview === undefined ? {} : {reviewedPreview}),
+    ...(tableWorkers === undefined ? {} : {physicalTable: tableWorkers.observation()}),
     gcs: gcs.observation(), duckdb: reads.observation(), credentialResolutions,
     submissionCount: 0, approval: input.phase === 'approve' ? 'committed' : 'previously_committed',
   }, null, 2)+'\n', {flag: 'wx', mode: 0o600});
 } finally {
   try { if (client) await client.close(); }
-  finally { try { reads.close(); } finally { gcs.close(); } }
+  finally { try { tableWorkers?.close(); } finally { try { reads.close(); } finally { gcs.close(); } } }
 }
 assert(completed);
 process.stdout.write(JSON.stringify({completed: true, pid: process.pid, sourceRequests: 0})+'\n');

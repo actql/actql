@@ -11,6 +11,7 @@ export const realCrossConnectorFixturePaths = Object.freeze([
   'adapters/host-node/real-cross-connector-installed.test.mjs',
   'scripts/fixtures/real-cross-connector-control.mjs',
   'scripts/fixtures/real-cross-connector-observation.mjs',
+  'scripts/fixtures/real-cross-connector-preview.mjs',
   'scripts/fixtures/real-cross-connector-restart.mjs',
   'scripts/gcs-files-content-credential.mjs',
   'scripts/gcs-files-content-environment.mjs',

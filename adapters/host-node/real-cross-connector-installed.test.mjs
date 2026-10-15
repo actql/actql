@@ -15,6 +15,7 @@ import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mj
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
 import {tableTestModule} from './fixtures/table-test-modules.mjs';
 import {realCrossConnectorControl as control} from '../../scripts/fixtures/real-cross-connector-control.mjs';
+import {checkRealRoutePreview} from '../../scripts/fixtures/real-cross-connector-preview.mjs';
 import {observeInstalledGcsMetadata, observeInstalledDuckDbReads}
   from '../../scripts/fixtures/real-cross-connector-observation.mjs';
 import {checkGcsMetadataAcceptanceEnvironment, createGcsMetadataAcceptanceCredential}
@@ -174,16 +175,16 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     record.acceptedRunsObserved++; record.ref = run.ref; await save();
     const waitingState = await waitForApproval(run, signal);
     record.preApprovalAvailability = waitingState.result_availability;
-    if (waitingState.result_availability.joined?.state === 'available') {
-      const early = run.result('joined');
-      const value = {name: 'joined', rows: await early.all(), columns: (await early.describe()).columns};
-      assert.deepEqual(value, control.expected); record.preApprovalPublicResult = value;
-    }
     // Captured data and a declared Result are not a grant to publish before
     // the existing Effect/publication Owner completes. Record that boundary.
     await save();
     assert.deepEqual(commits(f.catalog), []);
     const checkpoints = (await client.checkpoints()).items; assert.equal(checkpoints.length, 1);
+    const preview = await client.reviewCheckpoint(checkpoints[0], {maxBytes: 1000000});
+    const previewExpected = {catalogCid: f.catalog.catalogCid, mappingCid: declared.mapping.mapping_contract_cid};
+    record.originalPreview = checkRealRoutePreview(preview, previewExpected);
+    assert.equal(preview.artifactCid, checkpoints[0].reviewProjectionCid);
+    await save();
     const capturedCounts = {gcs: network.observation(), duckdb: reads.observation()};
     assert.equal(capturedCounts.duckdb.sourceReadSessions, 1);
     assert(capturedCounts.gcs.requests >= 1); network.assertBounds();
@@ -192,6 +193,7 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     const restartInput = join(f.root, 'restart-approve-input.json');
     await writeFile(restartInput, JSON.stringify({phase: 'approve', application, options, ref: run.ref,
       principalId, manifest, approval: {checkpointCid: checkpoints[0].checkpointCid,
+        previewExpected, originalPreview: record.originalPreview.identity,
         keyId: 'reviewer', reviewerId: 'reviewer', privateKey}}), {flag: 'wx', mode: 0o600});
     await promisify(execFile)(process.execPath, [join(application,
       'scripts/fixtures/real-cross-connector-restart.mjs'), restartInput],
@@ -199,6 +201,10 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     const restart = JSON.parse(await readFile(join(f.root, 'restart-observation.approve.json'), 'utf8'));
     assert.notEqual(restart.pid, process.pid); assert.deepEqual(restart.ref, run.ref);
     assert.deepEqual(restart.observedResult, control.expected);
+    assert.deepEqual(restart.reviewedPreview, record.originalPreview);
+    const committedBeforeTerminalChild = commits(f.catalog);
+    assert.equal(committedBeforeTerminalChild.length, 1);
+    assert.equal(committedBeforeTerminalChild[0].receipt.row_count, 1);
     const terminalInput = join(f.root, 'restart-terminal-input.json');
     await writeFile(terminalInput, JSON.stringify({phase: 'terminal', application, options,
       ref: run.ref, principalId, manifest}), {flag: 'wx', mode: 0o600});
@@ -209,6 +215,7 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     assert.notEqual(terminalRestart.pid, process.pid); assert.notEqual(terminalRestart.pid, restart.pid);
     assert.deepEqual(terminalRestart.ref, run.ref);
     assert.deepEqual(terminalRestart.observedResult, control.expected);
+    assert.deepEqual(terminalRestart.physicalTable, {workerStarts: 0});
     const committed = commits(f.catalog); assert.equal(committed.length, 1);
     assert.equal(committed[0].receipt.row_count, 1);
     const receipt = committed[0].receipt;

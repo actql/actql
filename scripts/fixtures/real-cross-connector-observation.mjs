@@ -2,7 +2,31 @@
 // provides no data, token, credential, Source evidence or result replacement.
 import assert from 'node:assert/strict';
 import https from 'node:https';
+import childProcess from 'node:child_process';
 import {syncBuiltinESMExports} from 'node:module';
+
+export function tableWorkerSpawnObserver({spawn, entry, forbidden = false}) {
+  let workerStarts = 0;
+  return Object.freeze({spawn: function(executable, args) {
+    if (args?.[0] === entry) {
+      workerStarts++;
+      assert(!forbidden, 'Terminal attachment must not restart the physical Table worker');
+    }
+    return Reflect.apply(spawn, this, arguments);
+  }, observation: () => ({workerStarts})});
+}
+
+export function observeInstalledTableWorkers(entry, {forbidden = false} = {}) {
+  const original = childProcess.spawn;
+  const observer = tableWorkerSpawnObserver({spawn: original, entry, forbidden});
+  childProcess.spawn = observer.spawn;
+  syncBuiltinESMExports();
+  return {...observer, close() {
+    assert.equal(childProcess.spawn, observer.spawn);
+    childProcess.spawn = original;
+    syncBuiltinESMExports();
+  }};
+}
 
 export function gcsMetadataRequestObserver({request, manifest, now = Date.now, forbidden = false, signal}) {
   let requests = 0, responses = 0, responseBytes = 0;
