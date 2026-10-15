@@ -301,9 +301,10 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
     }
     await holdAttachments(slot, current.entry);
     await holdEvidence('model_slot_capture', slot, operation.issuedSlotCapture(slot), current.entry);
-    const observation = operation.invocationEvidence(slot);
+    const observation = operation.invocationEvidenceView(control, slot);
     if (observation !== undefined) {
-      await holdEvidence('model_invocation_evidence', slot, observation, current.entry);
+      await hold('model_invocation_evidence', slot, observation.wire,
+        observation.identity, current.entry);
     }
     current.exporter ??= checked(moon.clientProgramStartInferCallSettlementExport(
       current.settlement, maximumStoredCaptureWire(), 1000000));
@@ -362,11 +363,9 @@ export function openNodeInferCaptureCustody({moon, control, operation, plan,
         checked(moon.clientProgramBindInferSlotCapture(capture, slot, adopted));
         await holdEvidence('model_slot_capture', slot, adopted);
       }
-      const evidence = operation.invocationEvidence(slot);
+      const evidence = operation.invocationEvidenceView(control, slot);
       if (evidence !== undefined) {
-        modelEvidence.push(control.admitRunEvidence('model_invocation_evidence',
-          moon.strategyRunEvidenceJson(evidence),
-          {maxWireBytes: 16384, maxNodes: 1024, maxDepth: 20}));
+        modelEvidence.push(evidence);
       }
     }
     // captureOnly's whole bundle is not stored in this per-slot cell. Keep
