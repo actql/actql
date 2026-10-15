@@ -11,7 +11,7 @@ test "original temporal JSON and SQL retain the installed Host reservation" {
         #|{"version":"actql/0.1","id":"temporal-ledger-control","stages":[{"id":"main","inputs":{},"steps":[{"as":"aql_script_seed_2","values":{"rows":[{"aql_source_free_unit":true}],"schema":{"aql_source_free_unit":{"nullable":false,"type":"boolean"}}}},{"derive":{"aql_query_expr_0":{"literal":1},"aql_query_expr_1":{"literal":10}},"from":"aql_script_seed_2"},{"as":"aql_data_set_term_1","select":[{"id":"aql_query_expr_0"},{"at":"aql_query_expr_1"}]},{"as":"aql_script_seed_4","values":{"rows":[{"aql_source_free_unit":true}],"schema":{"aql_source_free_unit":{"nullable":false,"type":"boolean"}}}},{"derive":{"aql_query_expr_0":{"literal":2},"aql_query_expr_1":{"literal":30}},"from":"aql_script_seed_4"},{"as":"aql_data_set_term_3","select":[{"id":"aql_query_expr_0"},{"at":"aql_query_expr_1"}]},{"append":{"with":"aql_data_set_term_3"},"as":"aql_data_set_combined_5","from":"aql_data_set_term_1"},{"as":"aql_script_seed_7","values":{"rows":[{"aql_source_free_unit":true}],"schema":{"aql_source_free_unit":{"nullable":false,"type":"boolean"}}}},{"derive":{"aql_query_expr_0":{"literal":3},"aql_query_expr_1":{"literal":50}},"from":"aql_script_seed_7"},{"as":"aql_data_set_term_6","select":[{"id":"aql_query_expr_0"},{"at":"aql_query_expr_1"}]},{"append":{"with":"aql_data_set_term_6"},"as":"aql_script_cte_0","from":"aql_data_set_combined_5"},{"as":"aql_script_seed_11","values":{"rows":[{"aql_source_free_unit":true}],"schema":{"aql_source_free_unit":{"nullable":false,"type":"boolean"}}}},{"derive":{"aql_query_expr_0":{"literal":7},"aql_query_expr_1":{"literal":5},"aql_query_expr_2":{"literal":15}},"from":"aql_script_seed_11"},{"as":"aql_data_set_term_10","select":[{"id":"aql_query_expr_0"},{"begin":"aql_query_expr_1"},{"finish":"aql_query_expr_2"}]},{"as":"aql_script_seed_13","values":{"rows":[{"aql_source_free_unit":true}],"schema":{"aql_source_free_unit":{"nullable":false,"type":"boolean"}}}},{"derive":{"aql_query_expr_0":{"literal":8},"aql_query_expr_1":{"literal":20},"aql_query_expr_2":{"literal":25}},"from":"aql_script_seed_13"},{"as":"aql_data_set_term_12","select":[{"id":"aql_query_expr_0"},{"begin":"aql_query_expr_1"},{"finish":"aql_query_expr_2"}]},{"append":{"with":"aql_data_set_term_12"},"as":"aql_script_cte_9","from":"aql_data_set_term_10"},{"as":"aql_carrier_16","from":"aql_script_cte_0","interval_join":{"kind":"left","left":{"time":"at"},"max_output_rows":3,"mode":"point_in_interval","on":[],"right":{"end":"finish","start":"begin"},"select":{"id":"left.id","value":"right.id"},"with":"aql_script_cte_9"}},{"from":"aql_carrier_16","select":["id","value"]},{"as":"aql_script_result","sort":[{"dir":"asc","field":"id","nulls":"first"}]}],"results":{"rows":{"from":"aql_script_result","fields":["id","value"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
       ),
     ] {
-    let (_, original_environment, limits) = local_effect_export_fixture()
+    let (_, original_environment, _) = local_effect_export_fixture()
     let environment = @program_check.checking_environment(
       @program_check.checking_environment_wire(original_environment),
       { text_time: false, veca: false, },
@@ -22,21 +22,20 @@ test "original temporal JSON and SQL retain the installed Host reservation" {
       Json,
       environment,
       None,
-      {
-        ..limits.program,
-        max_tasks: 32,
-        checking: {
-          ..limits.program.checking,
-          compilation: {
-            ..limits.program.checking.compilation,
-            structure: {
-              ..limits.program.checking.compilation.structure,
-              steps: 100,
-            },
-          },
-        },
-      },
+      @publication_host.client_standard_program_preparation_limits(),
     ).unwrap()
+    let generated = @client_local_host.prepare_client_local_sequences(
+      prepared,
+      @identity.stringify_value(registered_body(), 100000, 10000, 100),
+      @identity.stringify_value(registered_values(), 100000, 10000, 100),
+      Some(@identity.stringify_value(registered_fragment(), 100000, 10000, 100)),
+      Some(@identity.stringify_value(registered_ordered(), 100000, 10000, 100)),
+    )
+    assert_true(
+      generated is Some(_),
+      msg="original local sequences must prepare",
+    )
+    println("TEMPORAL_HOST tasks=" + generated.unwrap().length().to_string())
     let setup = @client_local_host.open_source_free_local_retained_host(
       prepared,
       @identity.stringify_value(registered_body(), 100000, 10000, 100),
@@ -71,7 +70,9 @@ test "original temporal JSON and SQL retain the installed Host reservation" {
           ),
         ]
       },
-    ).unwrap()
+    )
+    assert_true(setup is Some(_), msg="original installed Host must prepare")
+    let setup = setup.unwrap()
     let run = @host_driver.dispatch_driver_run(
       @builtin.configured_host_driver(setup),
     )
