@@ -150,7 +150,25 @@ fn main {
     is Err(Bootstrap(ForeignOriginal)),
     "same-valued foreign runtime slot cannot admit",
   )
+  require(
+    count,
+    host.backed_live_child_state(original, live, runtime)
+    is Err(Bootstrap(Unavailable)),
+    "live preparation alone is not an admitted lifecycle observation",
+  )
   host.admit_backed_live_child(original, live, runtime).unwrap()
+  require(
+    count,
+    host.backed_live_child_state(original, live, runtime)
+    is Ok(@resources.LiveOpen),
+    "same original live state observes Open without changing usage",
+  )
+  require(
+    count,
+    host.backed_live_child_state(original, live, Ref(1))
+    is Err(Bootstrap(ForeignOriginal)),
+    "equal-valued foreign runtime cannot observe the original live lifecycle",
+  )
   require(
     count,
     host.backed_live_child_limits(original, live, runtime).unwrap() == limits,
@@ -213,6 +231,14 @@ fn main {
     "pending original domain cannot return its allocation",
   )
   host.stop_backed_live_child(original, live, runtime).unwrap()
+  let stopped_usage = host.usage()
+  require(
+    count,
+    host.backed_live_child_state(original, live, runtime)
+    is Ok(@resources.LiveClosing) &&
+    host.usage() == stopped_usage,
+    "same original Closing remains observable without report or settlement",
+  )
   require(
     count,
     host.backed_live_child_limits(original, live, runtime) is Err(_),
@@ -229,6 +255,12 @@ fn main {
   host
   .retire_backed_live_child_after_owner_ack(original, live, runtime)
   .unwrap()
+  require(
+    count,
+    host.backed_live_child_state(original, live, runtime)
+    is Err(Bootstrap(ForeignOriginal)),
+    "retired original runtime cannot regain its live lifecycle",
+  )
   require(
     count,
     host.usage() == reported,
@@ -264,6 +296,6 @@ fn main {
     "actual parent close finally returns its one backing reservation",
   )
   println(
-    "{\"success\":true,\"discovered\":21,\"executed\":21,\"passed\":21,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
+    "{\"success\":true,\"discovered\":26,\"executed\":26,\"passed\":26,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
   )
 }
