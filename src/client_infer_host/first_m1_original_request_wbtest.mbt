@@ -84,7 +84,7 @@ fn first_m1_original_request_check(projection_work : Int) -> Unit raise {
       let label = match issue {
         @input.UnsupportedProgram => "UnsupportedProgram"
         @input.InvalidLimits => "InvalidLimits"
-        @input.Preparation(_) => "Preparation"
+        @input.Preparation(inner) => "Preparation: " + @debug.to_string(inner)
         @input.Local(_) => "Local"
         @input.Mapping(_) => "Mapping"
         @input.ProducerRead(_) => "ProducerRead"
@@ -92,6 +92,7 @@ fn first_m1_original_request_check(projection_work : Int) -> Unit raise {
         @input.Capture(_) => "Capture"
         @input.RetainedInput(_) => "RetainedInput"
       }
+      println("M1_START_REFUSAL Input: " + label)
       abort("Input: " + label)
     }
     Err(Model(issue)) => abort("Model: " + @debug.to_string(issue))
