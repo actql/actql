@@ -726,6 +726,8 @@ pub fn node_count(Prepared) -> Int
 
 pub fn node_id(PreparedNode) -> String
 
+pub fn node_infer_input_target(PreparedNode) -> @pipeline_typing.Target?
+
 pub fn node_input_count(PreparedNode) -> Int
 
 pub fn node_input_step(PreparedNode, Int) -> Int?
