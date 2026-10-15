@@ -78,7 +78,7 @@ class SqliteFixture(ReadFixture):
 
     def sqlite(self, domain=None, **overrides):
         domain = self.take() if domain is None else domain
-        return _OriginalSqliteCustody._prepare_original(domain, self.sql_functions, self.read_functions,
+        return _OriginalSqliteCustody._prepare_original(domain, self.sql_functions,
             **({'path': '/private/é-😀/sqlite.dylib', 'heap_bytes': 524288,
                 'diagnostic_ceiling': 128} | overrides))
 
@@ -181,7 +181,7 @@ class OriginalSqliteCustodyTests(unittest.TestCase):
     def test_foreign_component_and_bad_inputs_refuse_before_native_or_registration(self):
         f = SqliteFixture(); d = f.take(); foreign = SqliteFixture()
         with self.assertRaises(ValueError):
-            _OriginalSqliteCustody._prepare_original(d, foreign.sql_functions, f.read_functions,
+            _OriginalSqliteCustody._prepare_original(d, foreign.sql_functions,
                 path='/candidate', heap_bytes=1, diagnostic_ceiling=128)
         for values in ({'path':'relative'}, {'path':'/nul\0name'}, {'path':'/'+'x'*4096},
                        {'heap_bytes':True}, {'diagnostic_ceiling':2**31}):
@@ -195,12 +195,13 @@ class OriginalSqliteCustodyTests(unittest.TestCase):
             with self.assertRaises(MemoryError): f.sqlite(d)
         self.assertIsNone(d._sqlite_library_original); self.assertEqual(f.sql_events, [])
 
-    def test_known_original_read_refusal_is_not_a_sqlite_unknown(self):
-        f = SqliteFixture(); d = f.take(); f.read_issue = 4
-        with self.assertRaises(_OriginalDomainError) as e: f.sqlite(d)
+    def test_native_current_refusal_stays_typed_without_a_read_scope_wrapper(self):
+        f = SqliteFixture(); d = f.take(); f.sql_issue = 4; f.sql_present = False
+        before = list(f.events)
+        with self.assertRaises(_OriginalSqliteError) as e: f.sqlite(d)
         self.assertFalse(e.exception.unknown)
-        self.assertEqual(f.sql_events, [])
-        f.read_issue = 0
+        self.assertEqual(e.exception.fact.issue_family, 4)
+        self.assertFalse(any(x[0] == 'read' for x in f.events[len(before):]))
         d.close_after_stop(); self.assertTrue(d._closed)
 
     def test_wrong_identity_or_operation_is_unknown_not_a_success(self):

@@ -16,8 +16,10 @@ typedef int32_t (*actql_sqlite_tag_fn)(actql_sqlite_reply *);
 void actql_native_control_register_sqlite_roots(actql_sqlite_prepare_fn,
     actql_sqlite_operation_fn, actql_sqlite_operation_fn, actql_sqlite_host_fn,
     actql_sqlite_domain_fn, actql_sqlite_original_fn, actql_sqlite_tag_fn, actql_sqlite_tag_fn);
-/* Trusted same-domain whole managed caller only: retain existing read scope
- * through path/reply/copy/drop. A raw UTF-16 path creates no installed trust. */
+/* Trusted installed control envelope only, outside a child managed read scope.
+ * Core enters its own funded inner scopes; persistent controller/reply records
+ * must not be allocated in the same child whose retirement they guard.
+ * The bounded path copy is control metadata, not a normal funding grant. */
 int actql_sqlite_prepare_utf16_into(actql_control_host *, actql_domain *,
     const uint16_t *, int32_t, int64_t, int32_t, actql_sqlite_reply **);
 int actql_sqlite_current_into(actql_control_host *, actql_sqlite_original *, actql_sqlite_reply **);

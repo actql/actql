@@ -1,6 +1,16 @@
 #include "sqlite_shim.h"
 #include <string.h>
-extern int32_t actql_native_sqlite_selected_current_scope(void);
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+#include "scoped_read.h"
+extern actql_read_context *actql_bootstrap_current_read_context(void);
+#endif
+static int inside_read_scope(void) {
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+    return actql_bootstrap_current_read_context() != NULL;
+#else
+    return 0;
+#endif
+}
 static struct {
     actql_sqlite_prepare_fn prepare;
     actql_sqlite_operation_fn current, close;
@@ -28,7 +38,7 @@ int actql_sqlite_prepare_utf16_into(actql_control_host *host, actql_domain *doma
     const uint16_t *path, int32_t units, int64_t heap, int32_t diagnostic, actql_sqlite_reply **reply) {
     if (!host || !domain || !path || units <= 0 || units > 4096 || !reply || *reply)
         return ACTQL_CONTROL_INVALID_SLOT;
-    if (registered != 1 || actql_native_sqlite_selected_current_scope() != 1)
+    if (registered != 1 || inside_read_scope())
         return ACTQL_CONTROL_UNAVAILABLE;
     moonbit_string_t managed_path = moonbit_make_string_raw(units);
     memcpy(managed_path, path, (size_t)units * sizeof(uint16_t));
@@ -41,7 +51,7 @@ int actql_sqlite_prepare_utf16_into(actql_control_host *host, actql_domain *doma
 static int operate(actql_sqlite_operation_fn operation, actql_control_host *host,
     actql_sqlite_original *original, actql_sqlite_reply **reply) {
     if (!host || !original || !reply || *reply) return ACTQL_CONTROL_INVALID_SLOT;
-    if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    if (registered != 1 || inside_read_scope()) return ACTQL_CONTROL_UNAVAILABLE;
     *reply = operation(host, original);
     return *reply ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
 }

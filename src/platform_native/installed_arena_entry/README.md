@@ -115,11 +115,15 @@ reads. It writes replies into persistent empty slots before releasing temporary
 path storage, and clears owned slots before decref only after typed data-drop
 conditions are verified. Original Library/partial cleanup stays in Core.
 
-The same-domain managed read scope surrounds UTF-16 conversion, callbacks,
-reply handling and data drops. The pre-conversion current-scope check is only a
-physical prerequisite; the Core still checks the original nominal Host/domain.
-Path/heap/source metadata never adopts an installer, Store epoch, profile or
-permission. The Python private custody shares the original domain/component,
+The controller transport is called outside any child managed read scope.
+Core enters its own original inner read/cleanup scopes. Persistent registration
+and reply metadata must not be allocated in the child whose physical retirement
+they guard: doing so would retain that same context through its own retirement.
+The shim therefore rejects an active read context before controller allocation.
+Its bounded UTF-16 control copy belongs to the existing trusted control envelope,
+not a claim against the child arena or complete VM funding. The Core still
+checks original nominal Host/domain/current. Path/heap/source metadata never
+adopts an installer, Store epoch, profile or permission. The Python private custody shares the original domain/component,
 registers before a reply can be published, retains sticky Unknown without
 prepare/close/drop replay, and blocks parent retirement while its data cleanup
 is unconfirmed. A known data-drop ACK replaces the Python reverse link with a

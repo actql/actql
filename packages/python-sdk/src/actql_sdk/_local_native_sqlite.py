@@ -9,7 +9,7 @@ from ctypes import POINTER, byref, c_int, c_int32, c_int64, c_uint16, c_void_p
 from typing import Any, NoReturn
 
 from ._local_native_control_custody import _OriginalArenaFact
-from ._local_native_domain_custody import _OriginalDomainCustody, _OriginalDomainReadFunctions, _OriginalDomainError
+from ._local_native_domain_custody import _OriginalDomainCustody
 
 _RETIRED_SQLITE_DATA = object()
 
@@ -57,11 +57,10 @@ class _OriginalSqliteCustody:
     All out-slots exist before a native call. Unknown is sticky and cannot
     cause a second prepare/close/drop. Known refusal retains original cleanup.
     """
-    __slots__ = ('_domain', '_functions', '_read', '_host', '_native_domain',
+    __slots__ = ('_domain', '_functions', '_host', '_native_domain',
                  '_original', '_reply', '_unknown', '_unknown_carrier', '_closed')
     _domain: _OriginalDomainCustody
     _functions: _OriginalSqliteFunctions
-    _read: _OriginalDomainReadFunctions
     _host: c_void_p
     _native_domain: c_void_p
     _original: c_void_p
@@ -72,13 +71,11 @@ class _OriginalSqliteCustody:
 
     @classmethod
     def _prepare_original(cls, domain: _OriginalDomainCustody,
-                          functions: _OriginalSqliteFunctions, read: _OriginalDomainReadFunctions,
+                          functions: _OriginalSqliteFunctions,
                           *, path: str, heap_bytes: int, diagnostic_ceiling: int) -> _OriginalSqliteCustody:
         if (type(domain) is not _OriginalDomainCustody
                 or type(functions) is not _OriginalSqliteFunctions
-                or type(read) is not _OriginalDomainReadFunctions
                 or functions.library is not domain._functions.library
-                or read.library is not functions.library
                 or domain._closed or domain._unknown is not None
                 or domain._sqlite_library_original is not None
                 or type(path) is not str or not 0 < len(path) <= 4096
@@ -93,7 +90,7 @@ class _OriginalSqliteCustody:
             raise ValueError('Original Native SQLite path exceeds its ABI bound')
         text = (c_uint16 * units).from_buffer_copy(raw)
         original = cls.__new__(cls)
-        original._domain, original._functions, original._read = domain, functions, read
+        original._domain, original._functions = domain, functions
         original._host, original._native_domain = c_void_p(), c_void_p()
         original._original, original._reply = c_void_p(), c_void_p()
         original._unknown, original._closed = None, False
@@ -102,40 +99,31 @@ class _OriginalSqliteCustody:
         # Failed preparations remain reachable from their original domain.
         domain._sqlite_library_original = original
         known: _OriginalSqliteError | None = None
-        started = False
         try:
-            with domain._read_scope(read):
-                domain._owner._enter()
-                try:
-                    started = True
-                    original._status(functions.prepare(domain._host, domain._domain, text, units,
-                        heap_bytes, diagnostic_ceiling, byref(original._reply)))
-                    original._status(functions.originals(original._reply, byref(original._host),
-                        byref(original._native_domain), byref(original._original)))
-                    if (original._host.value != domain._host.value
-                            or original._native_domain.value != domain._domain.value):
+            domain._owner._enter()
+            try:
+                original._status(functions.prepare(domain._host, domain._domain, text, units,
+                    heap_bytes, diagnostic_ceiling, byref(original._reply)))
+                original._status(functions.originals(original._reply, byref(original._host),
+                    byref(original._native_domain), byref(original._original)))
+                if (original._host.value != domain._host.value
+                        or original._native_domain.value != domain._domain.value):
+                    raise original._mark_unknown()
+                fact = original._fact(1)
+                if original._original.value is None:
+                    if fact.issue_family == 0:
                         raise original._mark_unknown()
-                    fact = original._fact(1)
-                    if original._original.value is None:
-                        if fact.issue_family == 0:
-                            raise original._mark_unknown()
-                        original._status(functions.refused(byref(original._host),
-                            byref(original._native_domain), byref(original._reply)))
-                        original._finish_data_ack()
-                    else:
-                        original._drop()
-                    if fact.issue_family != 0:
-                        known = _OriginalSqliteError(original, unknown=False, fact=fact)
-                        raise known
-                finally:
-                    domain._owner._busy = False
-        except BaseException as error:
-            if type(error) is _OriginalDomainError and not error.unknown:
-                if not started:
-                    # Known original read-scope refusal, before SQLite was
-                    # called: no Native Library/reply was ever acquired here.
+                    original._status(functions.refused(byref(original._host),
+                        byref(original._native_domain), byref(original._reply)))
                     original._finish_data_ack()
-                raise
+                else:
+                    original._drop()
+                if fact.issue_family != 0:
+                    known = _OriginalSqliteError(original, unknown=False, fact=fact)
+                    raise known
+            finally:
+                domain._owner._busy = False
+        except BaseException as error:
             if error is known or error is original._unknown:
                 raise
             raise original._mark_unknown() from error
@@ -194,27 +182,24 @@ class _OriginalSqliteCustody:
             raise ValueError('Original Native SQLite carrier is retired')
         known: _OriginalSqliteError | None = None
         try:
-            with domain._read_scope(self._read, cleanup=operation == 3):
-                domain._owner._enter()
-                try:
+            domain._owner._enter()
+            try:
+                self._drop()
+                call = self._functions.current if operation == 2 else self._functions.close
+                self._status(call(self._host, self._original, byref(self._reply)))
+                fact = self._fact(operation)
+                if operation == 3 and fact.issue_family == 0:
+                    self._status(self._functions.finish(byref(self._host), byref(self._native_domain),
+                        byref(self._original), byref(self._reply)))
+                    self._finish_data_ack()
+                else:
                     self._drop()
-                    call = self._functions.current if operation == 2 else self._functions.close
-                    self._status(call(self._host, self._original, byref(self._reply)))
-                    fact = self._fact(operation)
-                    if operation == 3 and fact.issue_family == 0:
-                        self._status(self._functions.finish(byref(self._host), byref(self._native_domain),
-                            byref(self._original), byref(self._reply)))
-                        self._finish_data_ack()
-                    else:
-                        self._drop()
-                    if fact.issue_family != 0:
-                        known = _OriginalSqliteError(self, unknown=False, fact=fact)
-                        raise known
-                finally:
-                    domain._owner._busy = False
+                if fact.issue_family != 0:
+                    known = _OriginalSqliteError(self, unknown=False, fact=fact)
+                    raise known
+            finally:
+                domain._owner._busy = False
         except BaseException as error:
-            if type(error) is _OriginalDomainError and not error.unknown:
-                raise
             if error is known or error is self._unknown:
                 raise
             raise self._mark_unknown() from error
