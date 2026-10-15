@@ -30,8 +30,9 @@ static bool original_live_pipe(int fd, int access, struct stat *out) {
 
 static int original_live_channel_current(actql_bootstrap_live_channel *record) {
     if (record == NULL || record->original != record || record->process != getpid() ||
-        record->retired || record->status != ACTQL_OWNED_OK ||
-        record->domain == NULL || record->lease == NULL ||
+        record->retired || record->status != ACTQL_OWNED_OK)
+        return ACTQL_OWNED_INVALID;
+    if (record->domain == NULL || record->lease == NULL ||
         record->domain->lease != record->lease || record->domain->status != ACTQL_OWNED_OK ||
         record->domain->view == NULL || !record->domain->view->view.domain_live ||
         !record->domain->view->view.map_confirmed ||
@@ -44,14 +45,18 @@ static int original_live_channel_current(actql_bootstrap_live_channel *record) {
         record->lease->backing_device != record->domain->view->view.extent.device ||
         record->lease->backing_inode != record->domain->view->view.extent.inode ||
         record->lease->length != record->domain->view->view.payload_length ||
-        memcmp(record->lease->recipe, record->domain->view->view.extent.recipe, 32) != 0)
+        memcmp(record->lease->recipe, record->domain->view->view.extent.recipe, 32) != 0) {
+        record->status = ACTQL_OWNED_INVALID;
         return ACTQL_OWNED_INVALID;
+    }
     struct stat left, right;
     if (!original_live_pipe(record->read_fd, O_RDONLY, &left) ||
         !original_live_pipe(record->write_fd, O_WRONLY, &right) ||
         left.st_dev != record->read_device || left.st_ino != record->read_inode ||
-        right.st_dev != record->write_device || right.st_ino != record->write_inode)
+        right.st_dev != record->write_device || right.st_ino != record->write_inode) {
+        record->status = ACTQL_OWNED_INVALID;
         return ACTQL_OWNED_INVALID;
+    }
     return ACTQL_OWNED_OK;
 }
 

@@ -43,3 +43,10 @@ capacity provider/TLS/arena layout and product fuel/VM/transfer limits are
 unchanged. Native negative-channel conformance uses invalid descriptors and
 the original64-page fixture, not a VM or worker launch. Actual VM, installed
 runtime/wheel and public Local acceptance remain separate.
+
+`channel_physical.c` separately exercises the actual borrowed private pipes and
+same-provider child mapping with a small C diagnostic child. Its span is a
+single physical page, explicitly not the Native API's selected16MiB VM. Its
+explicit fixture-owned descriptor copies test replacement and sticky refusal;
+capture itself still never duplicates a descriptor. It executes neither a Run
+nor a Wasmtime instance and cannot validate the installed channel caller yet.
