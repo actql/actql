@@ -16,6 +16,7 @@ import {getCACertificates, setDefaultCACertificates} from 'node:tls';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import {tablePhysicalFixture} from './fixtures/table-physical-fixture.mjs';
 import {tableTestModule} from './fixtures/table-test-modules.mjs';
+import {ctasResultControl, ctasRetainedResult} from './fixtures/table-ctas-result-control.mjs';
 
 const {connect, getSubmissionOutcome} = await tableTestModule(
   new URL('../../packages/sdk/index.mjs', import.meta.url), '@actql/sdk');
@@ -668,6 +669,94 @@ test(`Table text Effect-only CTAS through ${transport} (${empty ? 'empty' : 'non
     assert.deepEqual(await result.all(), empty ? [] : [{id: 1, tag: null, doubled: 2}]);
     assert.equal(commits(f.catalog).length, 1);
   } finally { await reader.close(); }
+});
+}
+}
+
+for (const transport of ['Local', 'HTTPS']) {
+for (const format of ['json', 'sql', 'aql']) {
+test(`Table retained Result before filtered CTAS through ${transport} (${format})`, async t => {
+  const f = await tablePhysicalFixture(t, undefined, {preserve: true}), declared = declaration();
+  const openClient = await sparseTableClientOpener(t, f.root, transport);
+  const keys = generateKeyPairSync('ed25519'), principalId = userInfo().username;
+  const observations = [];
+  const authorization = {accountConfiguration: account(), reviewReaders: [principalId],
+    observe: (name, detail) => observations.push({name, detail}),
+    reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId,
+      publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
+    hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}};
+  const effectProfilePath = join(f.root, 'ctas-result-effect.json');
+  const python = process.env.ACTQL_TABLE_PYTHON ?? fileURLToPath(new URL('../../.venv-table/bin/python', import.meta.url));
+  await writeFile(effectProfilePath, JSON.stringify({
+    version: 'actql-installed-local-table-effect/0.1', connectorId: 'table', connection,
+    python, catalog: f.catalog, accountConfigurationWire: account(), environmentWire: declared.wire,
+    targets: [{effectId: 'save', queryName: 'analytics.report', resource, targetRef, mappingRef,
+      mappingCid: declared.mapping.mapping_contract_cid, action: 'create',
+      catalogCid: f.catalog.catalogCid, namespace: ['test'], tableName: 'rows',
+      expectedTable: null, permissions: ['scope:store'], footprint: {
+        kind: 'collection', resource_identity_scheme_cid: contentCid(tableContract),
+        provider_namespace: 'table', provider_boundary_cid: f.catalog.catalogCid,
+        resource_kind: 'Table', provider_object_identity_cids: []}}],
+    limits: {reservation: {bytes: 1048576, files: 16}}}));
+  const options = {mode: 'local', owner: 'local', durability: 'durable',
+    installation: {directory: join(f.root, 'ctas-result-host'), effectProfilePath, authorization}};
+  const control = ctasResultControl(format, {targetRef, mappingRef});
+  let client = await openClient(options), observation;
+  try {
+    const submissionRef = client.newSubmission({nonce: 'ctas-before-filter-' + format});
+    const run = await client.startSource(control.document, {format, submissionRef});
+    await waiting(run, observations, t);
+    assert.deepEqual(commits(f.catalog), [], 'Neither the retained Result nor approval wait may write');
+    const checkpoints = (await client.checkpoints()).items;
+    assert.equal(checkpoints.length, 1);
+    const checkpoint = checkpoints[0];
+    const review = await client.reviewCheckpoint(checkpoint, {maxBytes: 1000000});
+    const preview = JSON.parse(Buffer.from(review.bytes).toString());
+    assert.equal(preview.effects.length, 1);
+    const operation = preview.effects[0].changes[0].intended_changes.value;
+    assert.equal(operation.action, 'create');
+    const ref = run.ref;
+    await client.close();
+    const {observe: _observe, ...restartAuthorization} = authorization;
+    const restartInput = join(f.root, 'ctas-result-restart.json');
+    await writeFile(restartInput, JSON.stringify({ref, transport,
+      retainedResult: ctasRetainedResult,
+      options: {...options, installation: {...options.installation, authorization: restartAuthorization}},
+      approval: {checkpointCid: checkpoint.checkpointCid, keyId: 'reviewer', reviewerId: 'reviewer',
+        privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}}), {mode: 0o600});
+    const resumed = await promisify(execFile)(process.execPath,
+      [fileURLToPath(new URL('./fixtures/table-text-restart.mjs', import.meta.url)), restartInput],
+      {timeout: 30000, killSignal: 'SIGKILL', maxBuffer: 1048576,
+        env: {...process.env, ...(transport === 'HTTPS'
+          ? {NODE_EXTRA_CA_CERTS: join(f.root, 'host.crt')} : {})}});
+    const fresh = JSON.parse(resumed.stdout);
+    assert.equal(fresh.status, 'succeeded');
+    assert.deepEqual(fresh.observedResult, ctasRetainedResult);
+    assert.equal(commits(f.catalog).length, 1);
+    client = await openClient(options);
+    const restored = await client.attach(ref);
+    assert.equal((await restored.status()).status, 'succeeded');
+    const result = restored.result('before_write');
+    const actual = {name: 'before_write', rows: await result.all(), columns: (await result.describe()).columns};
+    assert.deepEqual(actual, ctasRetainedResult);
+    const replayed = await client.startSource(control.document, {format, submissionRef});
+    assert.deepEqual(replayed.ref, ref);
+    assert.equal((await replayed.status()).status, 'succeeded');
+    assert.equal(commits(f.catalog).length, 1, 'Attach and identical request do not repeat the write');
+    const committed = commits(f.catalog)[0];
+    assert.deepEqual(committed.operation, operation);
+    assert.equal(committed.receipt.row_count, 0, 'WHERE filters the Table input, not the earlier Result');
+    const frozen = await f.bridge.resolveGeneration({catalog_identity_cid: f.catalog.catalogCid,
+      namespace: ['test'], table_name: 'rows', table_uuid: committed.receipt.table_uuid,
+      schema_cid: committed.receipt.schema_cid});
+    assert.equal(frozen.ok, true);
+    assert.deepEqual(plain((await f.bridge.read(frozen.result.receipt, frozen.result.mapping)).result), []);
+    observation = {format, transport, ref, submissionRef, observedResult: actual,
+      freshProcessResult: fresh.observedResult, tableRowCount: committed.receipt.row_count,
+      catalogCommits: 1, sameRequestSameRun: true, scratch: f.root};
+  } finally { await client.close(); }
+  await writeFile(join(f.root, 'ctas-result-observation.json'), JSON.stringify(observation), {mode: 0o600});
+  console.log('TABLE_CTAS_RETAINED_RESULT ' + JSON.stringify(observation));
 });
 }
 }
