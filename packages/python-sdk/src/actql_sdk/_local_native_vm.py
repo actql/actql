@@ -7,6 +7,7 @@ addresses, capacity DATA, a copied nonce, or a different Store's Caller.
 from __future__ import annotations
 
 from ctypes import c_void_p, cast
+from dataclasses import dataclass
 from os import getpid
 from typing import Any, NoReturn, TYPE_CHECKING
 
@@ -20,6 +21,18 @@ def _context_address(value: Any) -> int:
     if address is None:
         raise ValueError('Original Local Store context is unavailable')
     return address
+
+
+@dataclass(frozen=True, slots=True)
+class _OriginalVMSpanData:
+    """Private channel DATA; a copy has no admission, funding or stop authority."""
+
+    source: str
+    recipe: bytes
+    material: tuple[int, ...]
+    nonce: int
+    offset: int
+    length: int
 
 
 class _OriginalVMObservation:
@@ -119,6 +132,25 @@ class _OriginalVMObservation:
                 or cast(memory.data_ptr(caller), c_void_p).value != self._span[0]):
             raise ValueError('Foreign original Local callback memory')
         self._require_core_current()
+
+    def _project_original_span(self) -> _OriginalVMSpanData:
+        """Use the actual observed Memory, not a supplied address or VM size."""
+        self._require_core_current()
+        core = self._core
+        assert core is not None
+        borrow = self._holding._borrow
+        if (core._closing or borrow is None or borrow._functions.library is not self._library
+                or borrow._material.recipe != self._recipe
+                or borrow._material.scalars[0] != self._generation):
+            raise ValueError('Original live child VM projection is unavailable')
+        original = borrow._material
+        offset = self._holding._original_span_offset(c_void_p(self._span[0]), self._span[1])
+        self._require_core_current()
+        if (self._holding._borrow is not borrow or borrow._material is not original
+                or core._closing):
+            raise ValueError('Original child VM projection changed')
+        return _OriginalVMSpanData(original.source, original.recipe, original.scalars,
+                                   self._nonce, offset, self._span[1])
 
     def _retire_metadata(self, core: LocalCore) -> None:
         """Break references only after Core confirms Store-last and holding close."""
