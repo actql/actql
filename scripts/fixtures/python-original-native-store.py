@@ -23,7 +23,7 @@ from actql_sdk._local_storage import LocalByteStore, ByteWrite, ByteFence, Store
 
 plan = json.loads(Path(sys.argv[1]).read_bytes())
 case = sys.argv[2]
-assert case == 'native-store-values'
+assert case in ('native-store-values', 'native-store-restore')
 for item in plan['files']:
     raw = Path(item['path']).read_bytes()
     assert len(raw) == item['bytes'] and hashlib.sha256(raw).hexdigest() == item['sha256'], item['path']
@@ -55,56 +55,58 @@ with original_backing._physical_scope():
 domain.transfer(); domain._prepare_read_context(read)
 library = _OriginalSqliteCustody._prepare_original(domain, sqlite,
     path=str(Path(plan['bundle'])/'libactql_sqlite_component.dylib'), heap_bytes=32*page, diagnostic_ceiling=128)
-path = directory/'original.sqlite3'
-file_root = LocalFileRoot(directory, max_files=1, max_chunk_bytes=64)
-file = file_root.create_writer(path.name, 0)
+path = (Path(Path(plan['saved_path_file']).read_text())
+        if case == 'native-store-restore' else directory/'original.sqlite3')
+file_root = LocalFileRoot(path.parent, max_files=1, max_chunk_bytes=64)
+file = file_root.create_writer(path.name, 0) if case == 'native-store-values' else None
 original_stat = path.stat()
 store = _open_original_native_store(path, file_root, library=library,
     functions=database, read=read, max_records=4, max_record_bytes=4096,
     max_payload_bytes=8192, new_file=file)
-assert type(store) is LocalByteStore and store.claim_creation() is True
-assert store.claim_creation() is False and file.store_claimed
 key = store.namespaced_key('sdk/原', 'e\u0301/😀')
-assert store.compare_exchange(key, None, b'\0\xff\r\n') == 0
-assert store.read(key) == StoredBytes(0, b'\0\xff\r\n')
-assert store.compare_exchange(key, 9, b'wrong') is None
-assert store.compare_exchange('original-epoch', None, b'fixed-epoch') == 0
-fences = (ByteFence('original-epoch', 0, b'fixed-epoch'),)
-write = ByteWrite(key, 0, b'original-next')
-actual_transaction = database.calls['transaction_into']
 commits = []
-def lose_commit(host_slot, original, operation, reply):
-    code = actual_transaction(host_slot, original, operation, reply)
-    if operation == 8:
-        commits.append(1)
-        assert code == 0 and reply._obj.value is not None
-        raise OSError('Injected after original physical COMMIT')
-    return code
-database.calls['transaction_into'] = lose_commit
-try:
-    store.compare_exchange_many_fenced((write,), fences, current=lambda: None)
-except LocalStorageCommitUnknown as error:
-    assert error.cleanup_store is store
+if case == 'native-store-restore':
+    assert store.claim_creation() is False
+    assert store.read(key) == StoredBytes(1, b'original-next')
+    assert store.read('original-epoch') == StoredBytes(0, b'fixed-epoch')
 else:
-    raise AssertionError('Lost COMMIT ACK accepted')
-assert commits == [1]
-observed = store.read_exchange_many_fenced((write,), fences, current=lambda: None)
-assert observed == (StoredBytes(1, b'original-next'),)
-assert commits == [1] and store._physical._original._write_unknown is not None
-try:
-    store.compare_exchange(key, 1, b'no replay')
-except _OriginalDatabaseError as error:
-    assert error is store._physical._original._write_unknown
-else:
-    raise AssertionError('Snapshot cleared original write fence')
-store.close(); store.close()
-assert file_root.close_writer(file) is True
-restored = _open_original_native_store(path, file_root, library=library,
-    functions=database, read=read, max_records=4, max_record_bytes=4096,
-    max_payload_bytes=8192)
-assert restored.claim_creation() is False
-assert restored.read(key) == StoredBytes(1, b'original-next')
-restored.close(); library.close(); library.close()
+    assert type(store) is LocalByteStore and store.claim_creation() is True
+    assert store.claim_creation() is False and file.store_claimed
+    assert store.compare_exchange(key, None, b'\0\xff\r\n') == 0
+    assert store.read(key) == StoredBytes(0, b'\0\xff\r\n')
+    assert store.compare_exchange(key, 9, b'wrong') is None
+    assert store.compare_exchange('original-epoch', None, b'fixed-epoch') == 0
+    fences = (ByteFence('original-epoch', 0, b'fixed-epoch'),)
+    write = ByteWrite(key, 0, b'original-next')
+    actual_transaction = database.calls['transaction_into']
+    def lose_commit(host_slot, original, operation, reply):
+        code = actual_transaction(host_slot, original, operation, reply)
+        if operation == 8:
+            commits.append(1)
+            assert code == 0 and reply._obj.value is not None
+            raise OSError('Injected after original physical COMMIT')
+        return code
+    database.calls['transaction_into'] = lose_commit
+    try:
+        store.compare_exchange_many_fenced((write,), fences, current=lambda: None)
+    except LocalStorageCommitUnknown as error:
+        assert error.cleanup_store is store
+    else:
+        raise AssertionError('Lost COMMIT ACK accepted')
+    assert commits == [1]
+    observed = store.read_exchange_many_fenced((write,), fences, current=lambda: None)
+    assert observed == (StoredBytes(1, b'original-next'),)
+    assert commits == [1] and store._physical._original._write_unknown is not None
+    try:
+        store.compare_exchange(key, 1, b'no replay')
+    except _OriginalDatabaseError as error:
+        assert error is store._physical._original._write_unknown
+    else:
+        raise AssertionError('Snapshot cleared original write fence')
+    Path(plan['saved_path_file']).write_text(str(path))
+store.close(); store.close(); library.close(); library.close()
+if file is not None:
+    assert file_root.close_writer(file) is True
 assert file_root.close() is True
 domain._close_read_context(read)
 original_backing.return_after_stop(); domain.close_after_stop(); host.close()
@@ -112,7 +114,7 @@ assert host._closed and domain._closed and not descriptor.close_attempted
 os.fstat(descriptor.value); descriptor.close()
 assert path.stat().st_ino == original_stat.st_ino
 print(json.dumps({'case': case, 'pass': True, 'originals_closed': True,
-    'same_database': True, 'same_file_restore': True, 'lost_commit_calls': len(commits),
+    'same_database': True, 'same_file_restore': case == 'native-store-restore', 'lost_commit_calls': len(commits),
     'initializer_calls': 1, 'provider_source': plan['retained_provider_source'],
     'python_source': plan['python_source'],
     'component_helper_source': plan['retained_component_and_helper_source'],
