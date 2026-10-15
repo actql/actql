@@ -66,6 +66,16 @@ pub fn Library::version(_self : Library) -> String {
 }
 
 ///|
+pub fn Library::diagnostic_ceiling(_self : Library) -> Int? {
+  None
+}
+
+///|
+pub fn Database::diagnostic_ceiling(_self : Database) -> Int? {
+  None
+}
+
+///|
 pub fn Library::open_database(
   _self : Library,
   path : String,
@@ -110,6 +120,23 @@ pub fn Library::initialize_owned_database(
   _ownership : @filesystem.NativeFileOwnership,
   _max_body_bytes : Int64,
 ) -> Result[Database, NativeSqliteIssue] {
+  Err(UnsupportedTarget)
+}
+
+///|
+pub fn Library::initialize_owned_database_with_custody(
+  _self : Library,
+  _path : String,
+  _ownership : @filesystem.NativeFileOwnership,
+  _max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  Err({ original_issue: UnsupportedTarget, database: None, })
+}
+
+///|
+pub fn Database::transaction_state(
+  _self : Database,
+) -> Result[NativeSqliteTransactionState, NativeSqliteIssue] {
   Err(UnsupportedTarget)
 }
 

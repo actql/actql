@@ -43,6 +43,14 @@ pub(all) struct NativeJournalEntry {
 }
 
 ///|
+/// Physical connection state only. Autocommit is not a particular COMMIT ACK,
+/// durable content validation, Run outcome or permission to send another write.
+pub(all) enum NativeSqliteTransactionState {
+  NoActiveSqliteTransaction
+  ActiveSqliteTransaction
+} derive(Eq)
+
+///|
 /// The original failed open and its existing physical Database owner. This
 /// opaque carrier cannot reopen a database, issue a request or settle capacity.
 struct NativeSqliteOpenFailure {

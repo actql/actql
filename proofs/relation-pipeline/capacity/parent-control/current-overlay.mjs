@@ -17,7 +17,7 @@ export function currentOverlay(read) {
   const tail = '    ),\n  ).map(active => (active, state))\n}\n';
   assert.equal(body.split(open).length,2);assert(body.endsWith(tail));
   body = body.replace(open,'  let observed_parent = managed_provider_execution_with_child_work_issue(')
-    .slice(0,-tail.length) + '    )\n  println(current_chain_start_probe(observed_parent, state, used, cancelled, terminal, reclaimed, cleanup_index, sequence, inputs, execution, measurement, numeric, family, count, max_value_bytes, reclaims_scratch))\n  Ok((observed_parent, state))\n}\n';
+    .slice(0,-tail.length) + '    )\n  println(current_chain_start_probe(observed_parent, state, used, cancelled, terminal, reclaimed, cleanup_index, sequence, inputs, execution, measurement, numeric, family, count, max_value_bytes, reclaimed_prefix))\n  Ok((observed_parent, state))\n}\n';
   let observedSource=source.slice(0,start)+body+source.slice(end);
   const candidates=observedSource.match(/  for\n    provider in (\[[\s\S]*?\n    \]) \{/);
   assert(candidates && observedSource.split(candidates[0]).length===2,'Changed provider candidate construction');
