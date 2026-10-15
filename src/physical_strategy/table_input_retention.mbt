@@ -79,6 +79,16 @@ pub fn captured_table_input_borrow_available(
 }
 
 ///|
+fn captured_table_input_borrow_retained(
+  value : CapturedTableInputBorrow,
+) -> Bool {
+  match value.kind {
+    Cells(pin) => pin.live
+    Resident(pin) => pin.live
+  }
+}
+
+///|
 /// Semantic inventory may name a private input once, but every consumer still
 /// owns its own pin. Equal content or names cannot substitute another task,
 /// checked declaration, Run or retained generation.
