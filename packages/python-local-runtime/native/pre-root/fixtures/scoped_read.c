@@ -137,6 +137,29 @@ static bool busy_cleanup(void) {
     assert(actql_read_context_release_after_owner_ack(context)==0);
     finish(&lease,&context); return true;
 }
+/* The same active cleanup frame owns its result even after the final Root
+ * user acknowledges close. No new entry or retained user is issued. */
+static bool cleanup_result_after_last_user(void) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    assert(context->users==0 && context->active==1 && !context->closing);
+    moonbit_bytes_t result=moonbit_make_bytes_raw(12);
+    memcpy(result,"cleanup-done",12);
+    assert(actql_native_owned_contains_live_span(lease,result,12)==0);
+    /* Retirement cannot overtake this same active scope or its result alias. */
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY && !context->closing);
+    context_leave(lease,context);
+    assert(actql_native_owned_enter(lease)==0);
+    assert(actql_read_context_enter(context)==ACTQL_OWNED_INVALID);
+    assert(actql_native_owned_leave(lease)==0);
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY && context->closing);
+    assert(memcmp(result,"cleanup-done",12)==0);
+    moonbit_decref(result);
+    finish(&lease,&context); return true;
+}
 static bool nested_foreign_closing(void) {
     actql_owned_capacity *lease=lease_new();
     actql_read_context *a=context_new(lease),*b=context_new(lease);
@@ -299,9 +322,9 @@ int main(int argc,char **argv) {
         return ok?0:1;
     }
     assert(argc==2);
-    bool (*tests[])(void)={fork_stock,managed_alias,busy_cleanup,nested_foreign_closing,
+    bool (*tests[])(void)={fork_stock,managed_alias,busy_cleanup,cleanup_result_after_last_user,nested_foreign_closing,
         exhausted_no_fallback,retire_retry,fork_arena,foreign_pid,context_retire_retry};
-    const char *names[]={"fork-stock","managed-alias","same-owner-cleanup","nested-foreign-closing",
+    const char *names[]={"fork-stock","managed-alias","same-owner-cleanup","cleanup-result-after-last-user","nested-foreign-closing",
         "exhaustion-no-fallback","extent-retirement-retry","fork-arena-refusal","foreign-pid-refusal","context-retirement-retry"};
     unsigned executed=0;
     for(size_t i=0;i<sizeof(tests)/sizeof(tests[0]);i++) {
