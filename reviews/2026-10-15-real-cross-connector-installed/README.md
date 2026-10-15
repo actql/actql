@@ -241,3 +241,33 @@ duplicate G/Root execution counts are zero. The old Local qualifications remain
 at their original Sources. This result is not later-main pristine acceptance,
 full Preview row-value inspection, seventeen-Connector completion, numerical
 funding, Hosted CI or formal publication.
+
+## Executed fixed-source SQL HTTPS route
+
+The original public SQL entry also passed over HTTPS at the same immutable
+`475eb446dc5dc0ce3f5c4237618b9fe3aa975f9b` product and harness source,
+using that exact normal4 cohort and manifest
+`5662bed70db34891807d78948ea931dd98b61c93351465cab6430a19cf3d5724`.
+`run-9ExQMQ` completed 1/1, exit0 under the unchanged outer300/TERM5 and
+child180 bounds. No new producer, changed fixture, replacement oracle, adapter
+overlay or old Run operation was needed: only the existing closed
+`--format sql --transport https` selection changed from the preceding AQL run.
+
+This was a separate fresh submission and disposable installation, with one
+real DuckDB session/statement and one real GCS metadata response of 1,927 bytes.
+The original sealed Preview, unavailable pre-approval row payload and Result,
+same-Run approval, single Iceberg commit and independent public joined row/full
+ordered schema were preserved. The approval and post-commit processes performed
+zero Source requests, credential resolutions or new submissions; terminal
+recovery started zero Table workers. All four Client/listener/Host close reports
+resolved without pending retention or cleanup. Original Owner/child groups,
+worktree/shared ownership tokens and application/custody open FDs were absent.
+
+[The SQL HTTPS evidence record](accepted-475eb446-sql-https.json) binds the exact
+four archives, 319 original member bytes/modes/SRI, 24 copied fixtures and
+28 source inputs, nine original raw records, original independent oracle and
+G's separate Parquet/receipt audit. The old AQL HTTPS and SQL/AQL Local records,
+failed attempts, DB/WAL, keys and custody remain unchanged. Count one new SQL
+HTTPS entry and zero additional distinct business scenarios. This does not
+upgrade a later main or finish full Preview, seventeen-Connector Read/Write,
+Model funding, Hosted CI or formal publication.
