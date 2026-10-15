@@ -2,11 +2,17 @@
 // Structural lifetime evidence for the selected first-M1 two-field contract,
 // not a physical byte coefficient, normal profile or Provider authorization.
 fn first_m1_answer_contract() -> @contract.Contract {
-  typed_steps_contract(
-    (
-      #|{"additional_properties":false,"fields":{"reason":{"nullable":true,"type":"string"},"risk":{"nullable":false,"type":"string"}},"nullable":false,"type":"object"}
-    ),
-  )
+  // Model-task JSON's additional_properties flag is lowered to this existing
+  // closed Object contract; it is not a Value-contract authoring field.
+  @contract.object_contract(
+    [
+      ("reason", @contract.primitive(StringType, nullable=true)),
+      ("risk", @contract.primitive(StringType, nullable=false)),
+    ],
+    nullable=false,
+    max_fields=2,
+    max_name_bytes=6,
+  ).unwrap()
 }
 
 ///|
