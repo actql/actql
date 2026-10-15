@@ -45,6 +45,7 @@ function fixture(source = current, options = {}) {
   };
   const verify = runInNewContext(`(() => {${functionBody(source)} return verifyObject;})()`, {
     constants, quantity, fail,
+    active() {}, activeSemanticReaders: new Set(),
     configuration: {maxObjectBytes: options.maximum ?? 4},
     objectPath: () => 'original-object',
     async lstat() { return state(options.path); },
@@ -145,6 +146,7 @@ async function physicalVerifier(t, change) {
   t.after(async () => { if (handle !== undefined && handle.fd !== -1) await handle.close(); });
   const verify = runInNewContext(`(() => {${functionBody(current)} return verifyObject;})()`, {
     constants, quantity, fail, configuration: {maxObjectBytes: 4},
+    active() {}, activeSemanticReaders: new Set(),
     objectPath: () => path, lstat,
     async open(value, flags) {
       if (change === 'fifo') {

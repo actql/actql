@@ -249,6 +249,7 @@ pub fn local_module_bounded_values_obligation(
 ///|
 pub(all) enum LocalBoundedTemporalRelationCheck {
   TimeSeries
+  CalendarSeries
   IntervalJoin
   AsOfJoin
   SequenceMatch
@@ -284,6 +285,8 @@ pub fn local_module_bounded_temporal_relation_obligation(
       | (Some(@lower.IntervalJoinStep(_)), IntervalJoin)
       | (Some(@lower.AsOfJoinStep(_)), AsOfJoin)
       | (Some(@lower.SequenceMatchStep(_)), SequenceMatch) => true
+      (Some(@lower.CalendarStep(calendar)), CalendarSeries) =>
+        @lower.calendar_row_bound(calendar) is Some(_)
       _ => false
     }
   })
