@@ -1,4 +1,41 @@
 ///|
+// Static phases only: no raw issue payload, row, wire, key or stack is emitted.
+fn effect_values_work_test_ok[T, E](value : Result[T, E], phase : String) -> T raise {
+  match value {
+    Ok(value) => value
+    Err(_) => fail("effect-values fixture: " + phase)
+  }
+}
+
+///|
+fn effect_values_work_test_opened(
+  value : Result[
+    NativeClientEffectValuesWork,
+    NativeClientEffectValuesWorkFailure,
+  ],
+) -> NativeClientEffectValuesWork raise {
+  match value {
+    Ok(work) => work
+    Err(failure) => {
+      let kind = match failure.issue {
+        AuthorizationDenied => "AuthorizationDenied"
+        ForeignMaterials => "ForeignMaterials"
+        Configuration => "Configuration"
+        OriginalRunNotCurrent => "OriginalRunNotCurrent"
+        Unavailable => "Unavailable"
+        Journal(_) => "Journal"
+        Start(_) => "Start"
+        Normalization(_) => "Normalization"
+        Binding(_) => "Binding"
+        Execution(_) => "Execution"
+      }
+      failure.close() |> ignore
+      fail("effect-values Work: " + kind)
+    }
+  }
+}
+
+///|
 // Public pinned contract bodies supplied by the bounded matching-target guard.
 // These are test inputs, not an installation, authority or funding supplier.
 fn effect_values_work_test_bodies() -> (String, String, String?) {
@@ -14,35 +51,50 @@ fn effect_values_work_test_original(
   request : @host.ClientRequestIdentity,
   allowed : @host.ClientEffectAllowedRun,
   definition : @publication.PublicationContract,
-) -> (@host.ClientEffectRunMaterials, @strategy.CapturedEffectRunDAG) {
+) -> (@host.ClientEffectRunMaterials, @strategy.CapturedEffectRunDAG) raise {
   let prepared = @host.client_effect_compilation_owner(allowed.compilation)
-  let issued = @host.issue_prepared_client_effect_normalization_materials(
-    allowed,
-    definition,
-    @host.issue_prepared_client_effect_normalization(prepared).unwrap(),
-    request=Some(request),
-  ).unwrap()
-  let materials = @host.bind_prepared_client_effect_original_materials(
-    allowed,
-    definition,
-    issued,
-    request=Some(request),
-  ).unwrap()
-  let bound = @host.bind_client_effect_compiled_run(
-    prepared, allowed, definition,
-  ).unwrap()
+  let normalization = effect_values_work_test_ok(
+    @host.issue_prepared_client_effect_normalization(prepared),
+    "normalization.issue",
+  )
+  let issued = effect_values_work_test_ok(
+    @host.issue_prepared_client_effect_normalization_materials(
+      allowed,
+      definition,
+      normalization,
+      request=Some(request),
+    ),
+    "normalization.materials",
+  )
+  let materials = effect_values_work_test_ok(
+    @host.bind_prepared_client_effect_original_materials(
+      allowed,
+      definition,
+      issued,
+      request=Some(request),
+    ),
+    "materials.bind",
+  )
+  let bound = effect_values_work_test_ok(
+    @host.bind_client_effect_compiled_run(prepared, allowed, definition),
+    "compiled.bind",
+  )
   let (registry, values, fragment) = effect_values_work_test_bodies()
   // An explicit Core test Ledger for this fresh Run, not normal Host funding.
-  let capacity = @local.client_effect_local_ledger_limits(
-    prepared,
-    registry,
-    values,
-    fragment,
-    None,
-  ).unwrap()
-  let captured = @host.open_prepared_source_free_client_effect_run(
-    bound, capacity,
-  ).unwrap()
+  guard @local.client_effect_local_ledger_limits(
+      prepared,
+      registry,
+      values,
+      fragment,
+      None,
+    )
+    is Some(capacity) else {
+    fail("effect-values fixture: original capacity")
+  }
+  let captured = effect_values_work_test_ok(
+    @host.open_prepared_source_free_client_effect_run(bound, capacity),
+    "original.run.open",
+  )
   (materials, captured)
 }
 
@@ -55,27 +107,30 @@ fn effect_values_work_test_stop(
 
 ///|
 test "Native original source-free Effect Work claims and computes once on the same Run and retains capture custody" {
+  println("effect-values fixture: acceptance.begin")
   let (database, journal, request, allowed, definition) = accepted_effect_work_fixture(
     "effect-values-original-once",
   )
+  println("effect-values fixture: acceptance.complete")
   let (materials, captured) = effect_values_work_test_original(
     request, allowed, definition,
   )
   let (registry, values, fragment) = effect_values_work_test_bodies()
   let work = open_native_client_effect_values_work(
-    journal,
-    request,
-    materials,
-    captured,
-    registry,
-    values,
-    fragment,
-    None,
-    64,
-    1000,
-    () => "2026-10-15T00:00:00.000Z",
-    () => true,
-  ).unwrap()
+      journal,
+      request,
+      materials,
+      captured,
+      registry,
+      values,
+      fragment,
+      None,
+      64,
+      1000,
+      () => "2026-10-15T00:00:00.000Z",
+      () => true,
+    )
+    |> effect_values_work_test_opened
   assert_true(physical_equal(work.run_for_capture().unwrap(), captured))
   let dag = @strategy.captured_effect_run_dag(captured)
   assert_true(@strategy.captured_task_completed(dag, 0))
@@ -305,7 +360,7 @@ test "Native Effect Values uses adopted current Submit independently of Source r
       () => "2026-10-15T00:00:00.000Z",
     )
     if submit {
-      let work = opened.unwrap()
+      let work = effect_values_work_test_opened(opened)
       assert_true(physical_equal(work.run_for_capture().unwrap(), captured))
       host.close().unwrap()
       assert_true(work.run_for_capture() is Err(_))
@@ -334,24 +389,25 @@ test "Native Effect Values terminal capture fence observes cleanup performed ins
   let (registry, values, fragment) = effect_values_work_test_bodies()
   let retained : Ref[NativeClientEffectValuesWork?] = { val: None, }
   let work = open_native_client_effect_values_work(
-    journal,
-    request,
-    materials,
-    captured,
-    registry,
-    values,
-    fragment,
-    None,
-    64,
-    1000,
-    () => "2026-10-15T00:00:00.000Z",
-    () => {
-      if retained.val is Some(work) {
-        work.close() |> ignore
-      }
-      true
-    },
-  ).unwrap()
+      journal,
+      request,
+      materials,
+      captured,
+      registry,
+      values,
+      fragment,
+      None,
+      64,
+      1000,
+      () => "2026-10-15T00:00:00.000Z",
+      () => {
+        if retained.val is Some(work) {
+          work.close() |> ignore
+        }
+        true
+      },
+    )
+    |> effect_values_work_test_opened
   retained.val = Some(work)
   assert_true(work.run_for_capture() is Err(Unavailable))
   assert_true(work.close())
