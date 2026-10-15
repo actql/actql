@@ -40,43 +40,57 @@ fn local_reviewer_proof_snapshot(
   expected_checkpoint : String,
 ) -> Result[NativeLocalReviewerProofSnapshot, NativeClientRunJournalIssue] {
   journal.transaction(() => {
-    let record = match journal.retained(request) {
-      Ok(Some(value)) => value
-      Ok(None) => return Err(CustodyLost)
-      Err(issue) => return Err(issue)
-    }
-    if @host.client_request_identity_relation(record.request, request) !=
-      @host.SameRequest ||
-      @publication.publication_contract_identity(record.definition) !=
-      expected_run {
-      return Err(ForeignRun)
-    }
-    guard record.checkpoint is Some(checkpoint) else {
-      return Err(Checkpoint(NeedsOriginalContinuation))
-    }
-    guard @publication.run_definition_run_id(record.definition) is Ok(run_id) &&
-      checkpoint.artifact.checkpoint_cid == expected_checkpoint &&
-      checkpoint.artifact.checkpoint.kind == @checkpoint.EffectSet &&
-      checkpoint.artifact.checkpoint.run_id() == Some(run_id) &&
-      checkpoint.artifact.checkpoint.run_definition_cid() == Some(expected_run) &&
-      checkpoint.state.run_id == run_id &&
-      @checkpoint.admit_checkpoint_wire(
-        checkpoint.artifact.wire,
-        native_checkpoint_limits(),
-      ) ==
-      Ok(checkpoint.artifact) else {
-      return Err(ForeignRun)
-    }
-    // These are captured facts, not an eligibility decision. Unknown Effects,
-    // cancellation and settlement do not become a successful signing use.
-    Ok({
-      artifact: checkpoint.artifact,
-      revision: record.revision,
-      cancellation_requested: record.cancellation_requested,
-      state: checkpoint.state,
-      reported_unknown_effect_count: checkpoint.unknown_effects.length(),
-      settlement_only: checkpoint.settlement_only,
-    })
+    local_reviewer_proof_snapshot_locked(
+      journal, request, expected_run, expected_checkpoint,
+    )
+  })
+}
+
+///|
+// Same record validator under an already-owned journal TX. It emits only the
+// small immutable snapshot; no second codec, permission or transaction exists.
+fn local_reviewer_proof_snapshot_locked(
+  journal : NativeClientRunJournal,
+  request : @host.ClientRequestIdentity,
+  expected_run : String,
+  expected_checkpoint : String,
+) -> Result[NativeLocalReviewerProofSnapshot, NativeClientRunJournalIssue] {
+  let record = match journal.retained(request) {
+    Ok(Some(value)) => value
+    Ok(None) => return Err(CustodyLost)
+    Err(issue) => return Err(issue)
+  }
+  if @host.client_request_identity_relation(record.request, request) !=
+    @host.SameRequest ||
+    @publication.publication_contract_identity(record.definition) !=
+    expected_run {
+    return Err(ForeignRun)
+  }
+  guard record.checkpoint is Some(checkpoint) else {
+    return Err(Checkpoint(NeedsOriginalContinuation))
+  }
+  guard @publication.run_definition_run_id(record.definition) is Ok(run_id) &&
+    checkpoint.artifact.checkpoint_cid == expected_checkpoint &&
+    checkpoint.artifact.checkpoint.kind == @checkpoint.EffectSet &&
+    checkpoint.artifact.checkpoint.run_id() == Some(run_id) &&
+    checkpoint.artifact.checkpoint.run_definition_cid() == Some(expected_run) &&
+    checkpoint.state.run_id == run_id &&
+    @checkpoint.admit_checkpoint_wire(
+      checkpoint.artifact.wire,
+      native_checkpoint_limits(),
+    ) ==
+    Ok(checkpoint.artifact) else {
+    return Err(ForeignRun)
+  }
+  // These are captured facts, not an eligibility decision. Unknown Effects,
+  // cancellation and settlement do not become a successful signing use.
+  Ok({
+    artifact: checkpoint.artifact,
+    revision: record.revision,
+    cancellation_requested: record.cancellation_requested,
+    state: checkpoint.state,
+    reported_unknown_effect_count: checkpoint.unknown_effects.length(),
+    settlement_only: checkpoint.settlement_only,
   })
 }
 
