@@ -141,6 +141,22 @@ int actql_live_channel_copy_limits(actql_live_channel_reply *reply,
     return ACTQL_CONTROL_OK;
 }
 
+int actql_live_channel_copy_capacities(actql_live_channel_reply *reply,
+    actql_control_host *host, actql_domain *domain, actql_live_channel *channel,
+    int64_t out[2]) {
+    if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+    if (!reply || !host || !domain || !channel || !out ||
+        callbacks.operation(reply) != 9 || callbacks.issue(reply) != 0 ||
+        !same_reply(reply, host, domain, channel)) return ACTQL_CONTROL_INVALID_SLOT;
+    int64_t vm = callbacks.limit(reply, 6);
+    int64_t baseline = callbacks.limit(reply, 7);
+    if (vm != 16777216 || baseline <= 0 || baseline > INT64_MAX - vm)
+        return ACTQL_CONTROL_INVALID_SLOT;
+    out[0] = vm;
+    out[1] = baseline;
+    return ACTQL_CONTROL_OK;
+}
+
 int actql_live_channel_drop_reply(actql_live_channel_reply **slot,
     actql_control_host *host, actql_domain *domain, actql_live_channel *channel) {
     if (!slot) return ACTQL_CONTROL_INVALID_SLOT;

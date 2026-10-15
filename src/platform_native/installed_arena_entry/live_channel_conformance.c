@@ -107,6 +107,22 @@ int main(int argc, char **argv) {
     drop_live(&reply, retained_host, retained_domain, channel);
     step(&count, "refused state and limits never become zero DATA or retirement evidence");
 
+    int64_t capacities[2] = {81, 82};
+    REQUIRE(actql_live_channel_operate_into(host, domain, channel, 9, &reply) == 0);
+    REQUIRE(actql_live_channel_operation(reply) == 9 && actql_live_channel_issue_family(reply) == 1);
+    REQUIRE(actql_live_channel_copy_capacities(reply, host, domain, channel, capacities) == ACTQL_CONTROL_INVALID_SLOT);
+    REQUIRE(capacities[0] == 81 && capacities[1] == 82);
+    REQUIRE(actql_live_channel_copy_limits(reply, host, domain, channel, limits) == ACTQL_CONTROL_INVALID_SLOT);
+    for (int i = 0; i < 6; ++i) REQUIRE(limits[i] == 71 + i);
+    drop_live(&reply, retained_host, retained_domain, channel);
+    step(&count, "missing actual VM never produces baseline coverage or zero fallback");
+    REQUIRE(actql_live_channel_operate_into(foreign, domain, channel, 9, &reply) == 0);
+    REQUIRE(actql_live_channel_issue_family(reply) == 2);
+    REQUIRE(actql_live_channel_copy_capacities(reply, foreign, domain, channel, capacities) == ACTQL_CONTROL_INVALID_SLOT);
+    REQUIRE(capacities[0] == 81 && capacities[1] == 82);
+    drop_live(&reply, retained_host, retained_domain, channel);
+    step(&count, "foreign Host cannot copy original baseline coverage");
+
     REQUIRE(actql_live_channel_bind_into(host, domain, channel, 7, 0, 16777216, &reply) == 0);
     REQUIRE(actql_live_channel_operation(reply) == 2 && actql_live_channel_issue_family(reply) == 6);
     drop_live(&reply, retained_host, retained_domain, channel);
@@ -159,6 +175,6 @@ int main(int argc, char **argv) {
     REQUIRE(actql_control_try_close_and_drop(&host, &control_reply) == 0 && !host && !control_reply);
     REQUIRE(actql_control_try_close_and_drop(&foreign, &control_reply) == 0 && !foreign && !control_reply);
     step(&count, "idempotent data retirement supplies no duplicate physical close");
-    printf("{\"success\":true,\"discovered\":10,\"executed\":%u,\"passed\":%u,\"failed\":0,\"initializer\":1,\"VM\":0,\"worker\":0,\"public_e2e\":0}\n", count, count);
-    return count == 10 ? 0 : 1;
+    printf("{\"success\":true,\"discovered\":12,\"executed\":%u,\"passed\":%u,\"failed\":0,\"initializer\":1,\"VM\":0,\"worker\":0,\"public_e2e\":0}\n", count, count);
+    return count == 12 ? 0 : 1;
 }

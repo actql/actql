@@ -50,6 +50,10 @@ int actql_live_channel_copy_state(actql_live_channel_reply *, actql_control_host
     actql_domain *, actql_live_channel *, int32_t *);
 int actql_live_channel_copy_limits(actql_live_channel_reply *, actql_control_host *,
     actql_domain *, actql_live_channel *, int64_t[6]);
+/* Same holding baseline coverage only. No new allocation, external-copy
+ * allowance or physical retirement fact is issued by these two i64 values. */
+int actql_live_channel_copy_capacities(actql_live_channel_reply *, actql_control_host *,
+    actql_domain *, actql_live_channel *, int64_t[2]);
 int actql_live_channel_drop_reply(actql_live_channel_reply **,
     actql_control_host *, actql_domain *, actql_live_channel *);
 /* Drop extra aliases only after the exact same-original typed Retire/Ok, or

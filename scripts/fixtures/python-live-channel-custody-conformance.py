@@ -145,6 +145,13 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
             else: raise AssertionError('Pending capture projected admission state')
         cases.append('actual pending state and limits remain typed refusal rather than zero facts')
 
+        try: original.capacities()
+        except _OriginalLiveChannelError as failure:
+            assert not failure.unknown and failure.fact.operation == 9 and failure.fact.issue_family == 1
+            assert failure.cleanup_channel is original and not original._closed
+        else: raise AssertionError('Pending capture gained native baseline coverage')
+        cases.append('actual capacity callback refuses pending VM without quota-derived or zero fallback')
+
         span = _OriginalVMSpanData(metadata.source, metadata.recipe, metadata.scalars, 7, 0, 16777216)
         try: original.bind_original_vm(span)
         except _OriginalLiveChannelError as failure:
@@ -185,8 +192,8 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
     finally:
         funding_case.doCleanups()
 
-assert len(cases) == len(set(cases)) == 7
-result = {'success': True, 'discovered': 7, 'executed': 7, 'passed': 7, 'failed': 0,
+assert len(cases) == len(set(cases)) == 8
+result = {'success': True, 'discovered': 8, 'executed': 8, 'passed': 8, 'failed': 0,
           'cases': cases, 'loaded_modules': loaded, 'actual_ctypes_C': True,
           'actual_pipe_FDs': True, 'funding_durable_spawn_doubles': True,
           'actual_spawn': 0, 'actualVM': 0, 'wheel': 0, 'publicE2E': 0}

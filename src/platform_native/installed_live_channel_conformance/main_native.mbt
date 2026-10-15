@@ -123,6 +123,29 @@ fn main {
     limits.limit(6) == -1L,
     "pending channel projects neither an admitted state nor zero-valued limits",
   )
+  let capacities = @control.operate_installed_arena_live_channel_reply(
+    host, domain, channel, 9,
+  )
+  require(
+    count,
+    capacities.operation_tag() == 9 &&
+    capacities.issue_family() == 1 &&
+    capacities.limit(6) == -1L &&
+    capacities.limit(7) == -1L &&
+    capacities.limit(0) == -1L,
+    "pending channel cannot project a baseline or infer capacity from payload",
+  )
+  let foreign_capacity = @control.operate_installed_arena_live_channel_reply(
+    other, domain, channel, 9,
+  )
+  require(
+    count,
+    foreign_capacity.issue_family() == 2 &&
+    foreign_capacity.limit(6) == -1L &&
+    foreign_capacity.limit(7) == -1L &&
+    physical_equal(foreign_capacity.original_host(), host),
+    "foreign Host cannot acquire the original baseline coverage",
+  )
   let binding = @control.bind_installed_arena_live_channel_reply(
     host, domain, channel, 7L, 0L, 16777216L,
   )
@@ -213,6 +236,6 @@ fn main {
     "original domain loan and Host retire separately after channel metadata",
   )
   println(
-    "{\"success\":true,\"discovered\":14,\"executed\":14,\"passed\":14,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
+    "{\"success\":true,\"discovered\":16,\"executed\":16,\"passed\":16,\"failed\":0,\"VM\":0,\"public_e2e\":0}",
   )
 }
