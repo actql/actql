@@ -6,6 +6,22 @@ struct InstalledArenaWorkerSelection {
 }
 
 ///|
+/// Only this nominal installed selection can project one of its registered
+/// children. Matching source/recipe/generation DATA cannot substitute a Host.
+pub fn InstalledArenaWorkerSelection::project_domain_original(
+  self : InstalledArenaWorkerSelection,
+  domain : InstalledArenaDomain,
+) -> Result[
+  (
+    @bootstrap.NativePreparedDomainTransport,
+    @resources.BackedExecutionOriginalData,
+  ),
+  @bootstrap.NativeBackedExecutionIssue,
+] {
+  self.host.project_domain_original(domain)
+}
+
+///|
 pub fn InstalledArenaHost::worker_provisioning_selection(
   self : InstalledArenaHost,
 ) -> Result[InstalledArenaWorkerSelection, @bootstrap.NativeBootstrapIssue] {
