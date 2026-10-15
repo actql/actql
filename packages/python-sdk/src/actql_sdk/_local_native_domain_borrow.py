@@ -86,6 +86,7 @@ class _OriginalDomainBorrow:
     _unknown: _OriginalDomainBorrowError | None
     _unknown_carrier: _OriginalDomainBorrowError
     _holding_consumer: object | None
+    _child_control_original: object | None
 
     @classmethod
     def _map_original(cls, functions: _OriginalDomainBorrowFunctions,
@@ -114,6 +115,7 @@ class _OriginalDomainBorrow:
         borrow._busy, borrow._closed, borrow._closing = False, False, False
         borrow._unknown = None
         borrow._holding_consumer = None
+        borrow._child_control_original = None
         borrow._unknown_carrier = _OriginalDomainBorrowError(borrow, unknown=True)
         recipe, values = (c_ubyte * 32).from_buffer_copy(material.recipe), (c_int64 * 15)(*material.scalars)
         borrow._begin()
