@@ -722,12 +722,11 @@ class LocalByteStore:
                 if fences and not self._fences_match_locked(fences, writes):
                     result = None
             except BaseException:
-                if database.in_transaction:
-                    database.rollback()
+                database.cleanup_read()
                 raise
             else:
                 # Do not publish observations or repeat cleanup if this fails.
-                database.rollback()
+                database.finish_read()
                 return result
 
     def inspect_namespaces(self, fences: tuple[ByteFence, ...], *,
@@ -756,13 +755,12 @@ class LocalByteStore:
                 if not self._fences_match_locked(fences, ()):
                     raise LocalStorageError('Original Local namespace fences changed')
             except BaseException:
-                if database.in_transaction:
-                    database.rollback()
+                database.cleanup_read()
                 raise
             else:
                 # A failed physical stop keeps this same connection pending.
                 # No observation escapes and no cleanup is automatically repeated.
-                database.rollback()
+                database.finish_read()
 
     def inspect_capacity_inspected(
             self, namespace: str, key: str, fences: tuple[ByteFence, ...], *,
@@ -1116,13 +1114,12 @@ class LocalByteStore:
                 if fences and not self._fences_match_locked(fences, ()):
                     raise LocalStorageError('Original Local publication metadata changed')
             except BaseException:
-                if database.in_transaction:
-                    database.rollback()
+                database.cleanup_read()
                 raise
             else:
                 # Read-only transaction end, never a Store commit or durable ACK.
                 # Failure leaves this same connection pending; no automatic retry.
-                database.rollback()
+                database.finish_read()
             finally:
                 active = False
 
