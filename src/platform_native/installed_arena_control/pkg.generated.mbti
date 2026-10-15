@@ -93,6 +93,8 @@ pub fn restore_installed_sqlite_database_reply(InstalledArenaHost, InstalledAren
 
 pub fn return_installed_arena_backing_reply(InstalledArenaHost, InstalledArenaBackingBorrow) -> InstalledArenaBackingReply
 
+pub fn scan_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, String, String, Int64) -> InstalledArenaSqliteDatabaseReply
+
 pub fn transaction_installed_sqlite_database_reply(InstalledArenaHost, InstalledArenaSqliteDatabase, Int) -> InstalledArenaSqliteDatabaseReply
 
 pub fn transfer_installed_arena_domain_reply(InstalledArenaHost, InstalledArenaDomain) -> InstalledArenaDomainReply
@@ -260,6 +262,7 @@ pub fn InstalledArenaSqliteDatabaseReply::original_database(Self) -> InstalledAr
 pub fn InstalledArenaSqliteDatabaseReply::original_host(Self) -> InstalledArenaHost
 pub fn InstalledArenaSqliteDatabaseReply::original_library(Self) -> InstalledArenaSqliteLibrary
 pub fn InstalledArenaSqliteDatabaseReply::revision(Self) -> Int64
+pub fn InstalledArenaSqliteDatabaseReply::row_key_bytes(Self) -> Bytes
 pub fn InstalledArenaSqliteDatabaseReply::stage_tag(Self) -> Int
 
 pub(all) enum InstalledArenaSqliteIssue {

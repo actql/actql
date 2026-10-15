@@ -11,7 +11,7 @@ from pathlib import Path
 import sys
 import tempfile
 
-from actql_sdk._local_native_control_custody import _OriginalControlCustody, _OriginalControlFunctions
+from actql_sdk._local_native_control_custody import _OriginalControlCustody, _OriginalControlFunctions, _OriginalControlError
 from actql_sdk._local_native_backing_custody import _OriginalBackingCustody, _OriginalBackingFunctions
 from actql_sdk._local_native_domain_custody import _OriginalDomainCustody, _OriginalDomainFunctions, _OriginalDomainReadFunctions
 from actql_sdk._local_native_sqlite import _OriginalSqliteCustody, _OriginalSqliteFunctions
@@ -20,7 +20,7 @@ from actql_sdk._local_worker_slot import _OriginalDescriptor
 
 plan = json.loads(Path(sys.argv[1]).read_bytes())
 case = sys.argv[2]
-assert case in ('rows-and-cas', 'restore-same-file', 'lost-commit', 'lost-begin', 'partial-open')
+assert case in ('rows-and-cas', 'restore-same-file', 'lost-commit', 'lost-begin', 'partial-open', 'scan-order-and-bounds', 'scan-copy-current')
 for item in plan['files']:
     raw = Path(item['path']).read_bytes()
     assert len(raw) == item['bytes'] and hashlib.sha256(raw).hexdigest() == item['sha256'], item['path']
@@ -106,6 +106,49 @@ if case == 'rows-and-cas':
 elif case == 'restore-same-file':
     row('e\u0301/😀', b'updated'); row('empty', b'')
     assert transactions == []
+elif case in ('scan-order-and-bounds', 'scan-copy-current'):
+    db.transaction(7)
+    for key, body in [('A', b'large'), ('e\u0301/😀', b''), ('é', b'\0\xff')]:
+        assert db.insert('sdk/原', key, body).revision == 0
+    db.transaction(8)
+    key_output = bytearray(512)
+    try: db.scan_after_into('sdk/原', '', key_output, bytearray(4))
+    except _OriginalDatabaseError as error:
+        assert not error.unknown and error.fact.issue_family == 18
+        assert key_output == bytearray(512)
+    else: raise AssertionError('Scan skipped or copied oversized original row')
+    cursor = ''
+    for expected_key, expected_body in [('A', b'large'), ('e\u0301/😀', b''), ('é', b'\0\xff')]:
+        body_output = bytearray(len(expected_body))
+        fact, key_length, body_length = db.scan_after_into('sdk/原', cursor, key_output, body_output)
+        assert bytes(key_output[:key_length]) == expected_key.encode('utf-8')
+        assert bytes(body_output[:body_length]) == expected_body
+        assert fact.operation == 12 and fact.revision == 0
+        observations.append({'key_hex':bytes(key_output[:key_length]).hex(), 'bytes':body_length})
+        cursor = expected_key
+    try: db.scan_after_into('sdk/原', cursor, key_output, bytearray())
+    except _OriginalDatabaseError as error: assert not error.unknown and error.fact.issue_family == 15
+    else: raise AssertionError('End of original query was fabricated as a row')
+    if case == 'scan-copy-current':
+        scope_bytes = 'sdk/原'.encode('utf-16-le')
+        scope = (C.c_uint16*(len(scope_bytes)//2)).from_buffer_copy(scope_bytes)
+        with domain._read_scope(read):
+            assert database.calls['scan_utf16_into'](db._host, db._original, scope,
+                len(scope_bytes)//2, None, 0, 4096, C.byref(db._reply)) == 0
+            assert database.calls['operation'](db._reply) == 12
+        try: host.close()
+        except _OriginalControlError as error: assert not error.unknown and error.fact.issue_family == 5
+        else: raise AssertionError('Host closed with retained scan row')
+        with domain._read_scope(read, cleanup=True):
+            buffer = (C.c_ubyte*512)()
+            for name in ('copy_key', 'copy_row'):
+                size = C.c_int64(-1)
+                code = database.calls[name](db._reply, db._host, db._native_library,
+                    db._original, buffer, 512, C.byref(size))
+                assert code != 0 and size.value == -1 and bytes(buffer) == bytes(512)
+                observations.append({'closed_copy':name, 'status':code, 'length':size.value})
+            assert database.calls['drop_reply'](C.byref(db._reply), db._host,
+                db._native_library, db._original) == 0 and db._reply.value is None
 elif case in ('lost-commit', 'lost-begin'):
     loss = 8 if case == 'lost-commit' else 7
     if loss == 8:

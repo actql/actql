@@ -277,6 +277,16 @@ extern "C" fn register_original_sqlite_database_roots(
   revision : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Int64],
   body : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Bytes],
   bound : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Int64],
+  scan : FuncRef[
+    (
+      @control.InstalledArenaHost,
+      @control.InstalledArenaSqliteDatabase,
+      String,
+      String,
+      Int64,
+    ) -> @control.InstalledArenaSqliteDatabaseReply,
+  ],
+  key : FuncRef[(@control.InstalledArenaSqliteDatabaseReply) -> Bytes],
 ) -> Unit = "actql_native_control_register_sqlite_database_roots"
 
 ///|
@@ -433,6 +443,12 @@ fn main {
     fn(reply) { reply.revision() },
     fn(reply) { reply.body() },
     fn(reply) { reply.body_bound() },
+    fn(host, original, scope, after_key, bound) {
+      @control.scan_installed_sqlite_database_reply(
+        host, original, scope, after_key, bound,
+      )
+    },
+    fn(reply) { reply.row_key_bytes() },
   )
   register_original_sqlite_roots(
     fn(host, domain, path, heap, diagnostic) {

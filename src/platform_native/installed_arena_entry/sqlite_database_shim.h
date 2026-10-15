@@ -1,8 +1,8 @@
 #ifndef ACTQL_PRIVATE_SQLITE_DATABASE_SHIM_H
 #define ACTQL_PRIVATE_SQLITE_DATABASE_SHIM_H
 #include "sqlite_shim.h"
-/* Observed regular Source105b181b C SHA256
- * 3d6fdf9e1baebf54d2ab22540774dbc4dc11d806bbe39099c36c0d3b5b909528.
+/* Observed regular Source11293d1a C SHA256
+ * 61127fb9db0a95a925b77ca9c43301c5cc2d84a18e38a1cc961e07934c99b18c.
  * Code callbacks borrow inputs; reply/original/body getters return owned refs.
  * No generated object layout or independently linked provider is used. */
 typedef struct _M0TP45actql5actql16platform__native25installed__arena__control28InstalledArenaSqliteDatabase actql_sqlite_database;
@@ -26,7 +26,8 @@ void actql_native_control_register_sqlite_database_roots(
     actql_database_transaction_fn, actql_database_operation_fn, actql_database_operation_fn,
     actql_database_host_fn, actql_database_library_fn, actql_database_original_fn,
     actql_database_tag_fn, actql_database_tag_fn, actql_database_tag_fn, actql_database_tag_fn,
-    actql_database_tag_fn, actql_database_scalar_fn, actql_database_body_fn, actql_database_scalar_fn);
+    actql_database_tag_fn, actql_database_scalar_fn, actql_database_body_fn, actql_database_scalar_fn,
+    actql_database_read_fn, actql_database_body_fn);
 /* Acquire outside a managed child scope, as with the original Library. Path
  * is bounded trusted control metadata. Existing-only restore never creates.
  * Initialize requires the trusted adoption caller's original owned file facts;
@@ -41,6 +42,10 @@ int actql_sqlite_database_initialize_utf16_into(actql_control_host *, actql_sqli
  * original Observe(3) reply; verify the operation AND bound, never treat it as
  * a read/write ACK. No arbitrary SQL or retry is exposed. */
 int actql_sqlite_database_read_utf16_into(actql_control_host *, actql_sqlite_database *,
+    const uint16_t *, int32_t, const uint16_t *, int32_t, int64_t, actql_sqlite_database_reply **);
+/* Exact existing cursor; empty is the first row. NotFound is only the
+ * original query result, not a namespace completeness/admission fact. */
+int actql_sqlite_database_scan_utf16_into(actql_control_host *, actql_sqlite_database *,
     const uint16_t *, int32_t, const uint16_t *, int32_t, int64_t, actql_sqlite_database_reply **);
 int actql_sqlite_database_insert_utf16_into(actql_control_host *, actql_sqlite_database *,
     const uint16_t *, int32_t, const uint16_t *, int32_t, const unsigned char *, int64_t,
@@ -67,6 +72,10 @@ int64_t actql_sqlite_database_body_bound(actql_sqlite_database_reply *);
  * and reply. Empty present rows remain distinct from absent rows. Does not
  * retire SQLite's result_body, acknowledge COMMIT or grant Result read. */
 int actql_sqlite_database_copy_row(actql_sqlite_database_reply *, actql_control_host *,
+    actql_sqlite_original *, actql_sqlite_database *, unsigned char *, int64_t, int64_t *);
+/* Same original/current validation and managed lifetime as body copy. Key
+ * output is exact UTF-8, bounded by the existing 512-byte SQLite key contract. */
+int actql_sqlite_database_copy_key(actql_sqlite_database_reply *, actql_control_host *,
     actql_sqlite_original *, actql_sqlite_database *, unsigned char *, int64_t, int64_t *);
 int actql_sqlite_database_drop_reply(actql_sqlite_database_reply **, actql_control_host *,
     actql_sqlite_original *, actql_sqlite_database *);

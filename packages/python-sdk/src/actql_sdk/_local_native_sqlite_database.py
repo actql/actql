@@ -50,6 +50,7 @@ class _OriginalDatabaseFunctions:
             'fence_into': ([p, p, pp], c_int),
             'close_into': ([p, p, pp], c_int),
             'read_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, pp], c_int),
+            'scan_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, pp], c_int),
             'insert_utf16_into': ([p, p, text, c_int32, text, c_int32, blob, c_int64, pp], c_int),
             'compare_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, blob, c_int64, pp], c_int),
             'transaction_into': ([p, p, c_int32, pp], c_int),
@@ -58,6 +59,7 @@ class _OriginalDatabaseFunctions:
             'finish_closed_data': ([pp, pp, pp, pp], c_int),
             'finish_refused_open': ([pp, pp, pp], c_int),
             'copy_row': ([p, p, p, p, blob, c_int64, POINTER(c_int64)], c_int),
+            'copy_key': ([p, p, p, p, blob, c_int64, POINTER(c_int64)], c_int),
             **{name: ([p], c_int32) for name in
                ('operation', 'stage', 'issue_family', 'after_issue_family', 'has_row')},
             'revision': ([p], c_int64), 'body_bound': ([p], c_int64),
@@ -69,8 +71,8 @@ class _OriginalDatabaseFunctions:
             self.calls[name] = call
 
 
-def _text(value: str, *, path: bool = False) -> tuple[Any, int]:
-    if (type(value) is not str or not value or '\0' in value
+def _text(value: str, *, path: bool = False, cursor: bool = False) -> tuple[Any, int]:
+    if (type(value) is not str or not cursor and (not value or '\0' in value)
             or (path and not value.startswith('/'))):
         raise ValueError('Original Native Database text is invalid')
     bound = 4096 if path else 512
@@ -229,7 +231,7 @@ class _OriginalDatabaseCustody:
                 raise self._mark_unknown()
         if self._original.value is not None and bound != self._bound:
             raise self._mark_unknown()
-        if present and (actual != 4 or stage != 2 or issue != 0 or revision < 0):
+        if present and (actual not in (4, 12) or stage != 2 or issue != 0 or revision < 0):
             raise self._mark_unknown()
         return _OriginalDatabaseFact(actual, stage, issue, after, bool(present),
                                      None if revision == -1 else revision, bound)
@@ -257,7 +259,8 @@ class _OriginalDatabaseCustody:
         self._drop()
 
     def _managed(self, operation: int, call: Callable[[Any], Any], *,
-                 output: Any = None, capacity: int = 0, allow_unconfirmed: bool = False
+                 output: Any = None, capacity: int = 0, allow_unconfirmed: bool = False,
+                 key_output: tuple[Any, int, c_int64, Any] | None = None
                  ) -> tuple[_OriginalDatabaseFact, int | None]:
         self._local(allow_unconfirmed=allow_unconfirmed)
         reply_out, size = byref(self._reply), c_int64(-1)
@@ -286,7 +289,7 @@ class _OriginalDatabaseCustody:
                         raise self._write_unknown from error
                     raise
                 self._status(code)
-                fact = self._fact(operation, preflight=operation in (4, 5, 6))
+                fact = self._fact(operation, preflight=operation in (4, 5, 6, 12))
                 length: int | None = None
                 if not fact.issue_family and not fact.after_issue_family and fact.has_row:
                     self._status(self._functions.calls['copy_row'](self._reply, self._host,
@@ -294,6 +297,12 @@ class _OriginalDatabaseCustody:
                     if not 0 <= size.value <= min(capacity, self._bound):
                         raise self._mark_unknown()
                     length = size.value
+                    if key_output is not None:
+                        key_buffer, key_capacity, key_size, key_size_out = key_output
+                        self._status(self._functions.calls['copy_key'](self._reply, self._host,
+                            self._native_library, self._original, key_buffer, key_capacity, key_size_out))
+                        if not 0 < key_size.value <= min(key_capacity, 512):
+                            raise self._mark_unknown()
                 self._drop()
                 if fact.issue_family or fact.after_issue_family:
                     known = _OriginalDatabaseError(self, unknown=False, operation=operation, fact=fact)
@@ -321,6 +330,29 @@ class _OriginalDatabaseCustody:
         return self._managed(4, lambda r: self._functions.calls['read_utf16_into'](
             self._host, self._original, s, sn, k, kn, len(output), r),
             output=buffer, capacity=len(output), allow_unconfirmed=unconfirmed)
+
+    def scan_after_into(self, scope: str, after_key: str, key_output: bytearray,
+                        body_output: bytearray) -> tuple[_OriginalDatabaseFact, int, int]:
+        """One original bounded row; exact UTF-8 key into caller-owned storage.
+
+        Empty cursor starts the existing SQLite order. NotFound remains that
+        query's typed refusal, never a complete namespace or inventory proof.
+        No cursor advancement, skipped large rows, or retained output alias.
+        """
+        s, sn = _text(scope); k, kn = _text(after_key, cursor=True)
+        if (type(key_output) is not bytearray or not 0 < len(key_output) <= 512
+                or type(body_output) is not bytearray or len(body_output) > self._bound
+                or key_output is body_output):
+            raise ValueError('Original Native Database scan output bounds are invalid')
+        body = (c_ubyte * len(body_output)).from_buffer(body_output)
+        key = (c_ubyte * len(key_output)).from_buffer(key_output)
+        size = c_int64(-1)
+        fact, length = self._managed(12, lambda r: self._functions.calls['scan_utf16_into'](
+            self._host, self._original, s, sn, k, kn, len(body_output), r),
+            output=body, capacity=len(body_output), key_output=(key, len(key_output), size, byref(size)))
+        if length is None:
+            raise self._mark_unknown()
+        return fact, size.value, length
 
     def _write(self, operation: int, scope: str, key: str, body: bytes,
                expected: int | None = None) -> _OriginalDatabaseFact:
