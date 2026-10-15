@@ -24,11 +24,14 @@ pub fn NativeLocalHostConnection::close_owned_root_descriptors(
   }
   // Each open produced its own Root even when source and parent have the same
   // ownership DATA. Do not deduplicate by path, device/inode or serialized CID.
-  for root in [self.session.root, self.session.source_root, self.session.parent] {
-    match root.close() {
-      Err(issue) => return Err(Filesystem(issue))
-      Ok(_) => ()
-    }
+  // Avoid allocating a new collection on this cleanup path.
+  match self.session.root.close() {
+    Err(issue) => return Err(Filesystem(issue))
+    Ok(_) => ()
   }
-  Ok(())
+  match self.session.source_root.close() {
+    Err(issue) => return Err(Filesystem(issue))
+    Ok(_) => ()
+  }
+  self.session.parent.close().map_err(issue => Filesystem(issue))
 }
