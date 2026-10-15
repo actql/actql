@@ -79,6 +79,9 @@ Attempted submission calls and observed accepted Runs are separate counters.
 The original new submission reference is saved before calling startSource; an
 unknown response is never relabelled as unsent. Cleanup observations are saved
 even on failure, and completed is set only after final client closure resolves.
+The failure receipt retains its last fixed harness phase and both the original
+credential observation and the post-close observation. A pre-close `closed:false`
+is never retrospectively replaced by an inferred cleanup acknowledgement.
 
 Pre-approval public availability is recorded without reading the public Result.
 The existing sealed Table Preview exposes operation and artifact/schema bindings,

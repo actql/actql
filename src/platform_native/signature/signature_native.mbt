@@ -38,6 +38,23 @@ extern "C" fn library_ready_ffi(library : Library) -> Bool = "actql_native_signa
 
 ///|
 #borrow(library)
+extern "C" fn library_diagnostic_ceiling_ffi(library : Library) -> Int = "actql_native_signature_library_diagnostic_ceiling"
+
+///|
+/// Read the positive ceiling installed on this original ready Library.
+/// Legacy omission and unavailable handles return None. This immutable fact
+/// neither reserves memory nor grants signing/read permission or cleanup ACK.
+pub fn Library::diagnostic_ceiling(self : Library) -> Int? {
+  let ceiling = library_diagnostic_ceiling_ffi(self)
+  if ceiling > 0 {
+    Some(ceiling)
+  } else {
+    None
+  }
+}
+
+///|
+#borrow(library)
 extern "C" fn library_error_ffi(library : Library) -> Bytes = "actql_native_signature_library_error"
 
 ///|
