@@ -19,7 +19,7 @@ const create=route==='Undici'?createInstalledUndiciOpenAIChatRegistration:create
 const register=create(config);
 const moon=await import('../../_build/js/release/build/connectors_builtin_node/connectors_builtin_node.js');
 const root=await mkdtemp(join(tmpdir(),'actql-original-materials-static-host-'));
-let host,callbacks=0;
+let host,callbacks=0,completed=false;
 try{
   const options={directory:root,authenticate:()=> 'owner',registerModelProviders:actual=>{
     callbacks++;assert.strictEqual(actual,moon);return register(actual);
@@ -30,9 +30,11 @@ try{
   await assert.rejects(openInstalledRemoteHttpHost(options),error=>
     error.code==='OpenAIOriginalInstallationReused'||error.cause?.code==='OpenAIOriginalInstallationReused');
   assert.equal(callbacks,2);
+  completed=true;
 }finally{
   if(host!==undefined)await host.close();
-  await rm(root,{recursive:true,force:true});
+  if(completed)await rm(root,{recursive:true,force:true});
+  else console.error(`SDK Host failure namespace retained: ${root}`);
 }
 console.log(JSON.stringify({route,callbacks,hostClosed:true,providerCalls:0,coreScopes:0,
   normalNumericProfile:null,publicE2E:0}));
