@@ -221,7 +221,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
         + 'm.compile_selected_c(Path(' + repr(str(cc_plan)) + '),sys.argv[1:])\n')
     cc_driver.chmod(0o755)
     environment['PATH'] = str(cc_driver.parent) + ':' + environment['PATH']
-    moon_arguments = [str(moon_home / 'bin/moon'), 'build', '--target', 'native',
+    moon_arguments = [str(moon_home / 'bin/moon'), 'build', '--target', 'native', '--strip',
                       '--target-dir', str(emission), '-j', '1', ENTRY]
     dry = run(moon_arguments + ['--dry-run'], capture=True)
     (destination / 'moon-dry-run.txt').write_text(dry)
