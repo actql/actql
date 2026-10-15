@@ -44,6 +44,7 @@ struct NativeBackedExecutionDomain[T, C] {
   mut read_use : @resources.BackedExecutionReadUse[NativeHostBootstrap[T], C]?
   mut read_attempted : Bool
   mut read_retired : Bool
+  mut live_child_attempted : Bool
   // Same original physical channel carrier, registered before capture/admit.
   mut live_channel : NativeBackedLiveChannel[T, C]?
   mut live_channel_attempted : Bool
@@ -124,6 +125,7 @@ pub fn[T, C] NativeHostBootstrap::acquire_backed_domain(
     read_use: None,
     read_attempted: false,
     read_retired: false,
+    live_child_attempted: false,
     live_channel: None,
     live_channel_attempted: false,
   }
