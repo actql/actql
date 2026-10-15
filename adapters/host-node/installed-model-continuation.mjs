@@ -794,12 +794,16 @@ export async function installNodeModelContinuation({moon, control, store, storeA
             const bodyWire = control.encodeModelOriginalResourceDocument(originWire,
               stateWire, cutWire, 'parked', envelope);
             stateWire = undefined;
-            const document = control.readModelOriginalResourceDocument(bodyWire, envelope);
+            let document = control.readModelOriginalResourceDocument(bodyWire, envelope);
             const storage = await selectedOriginalStorageEvidence(park, storageBinding, acquisition);
             originalResourceReadCurrent(park, acquisition);
             control.checkCheckedClientInferOriginalParkedStorageOrigin(plan.compiled,
               plan.runDefinition, selected.graph, originalPreparation.scope, park,
               document, originalPreparation.nodeInstallation, storage);
+            // This temporary canonical view has served its origin guard. Keep
+            // the exact wire/park/custody, not this extra tree, across save.
+            // This drops one alias, not a GC, Store or Resource retirement ACK.
+            document = undefined;
             cp.journal.reconfirmOriginalModelJournal(observation);
             original.receipt = await cp.retainOriginalModelStateSelected({runDefinition: plan.runDefinition,
               storageBinding, bodyWire}, acquisition);
