@@ -24,7 +24,11 @@
       "types": "./plan-explorer.d.ts",
       "default": "./dist/plan-explorer.js"
     },
-    "./styles.css": "./dist/plan-explorer.css"
+    "./styles.css": "./dist/plan-explorer.css",
+    "./run-observation": {
+      "types": "./run-observation.d.ts",
+      "default": "./run-observation.mjs"
+    }
   },
   "files": [
     "read-model.mjs",
@@ -34,7 +38,10 @@
     "plan-explorer.d.ts",
     "presentation-limits.mjs",
     "THIRD_PARTY_NOTICES.md",
-    "ELKJS-LICENSE.md"
+    "ELKJS-LICENSE.md",
+    "run-observation.mjs",
+    "run-observation.d.ts",
+    "run-inspector.d.ts"
   ],
   "scripts": {
     "build": "vite build --config vite.config.mts",

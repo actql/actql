@@ -1,6 +1,7 @@
-import {useMemo, useRef, useState, type FormEvent} from 'react';
+import {useEffect, useMemo, useRef, useState, type FormEvent} from 'react';
 import {createRoot} from 'react-dom/client';
-import {PlanExplorer} from '@actql/explorer-ui/plan-explorer';
+import {PlanExplorer, RunInspector} from '@actql/explorer-ui/plan-explorer';
+import type {RunObservationModel} from '@actql/explorer-ui/run-observation';
 import type {PlanReadModel, OriginalRunPlanReadModel} from '@actql/explorer-ui/read-model';
 import {createExplorerBrowserSource} from '@actql/explorer/browser-source';
 import '@actql/explorer-ui/styles.css';
@@ -9,7 +10,8 @@ import './styles.css';
 function App() {
   const source = useMemo(() => createExplorerBrowserSource({origin: window.location.origin}), []);
   const [connected, connect] = useState(false), [plan, showPlan] = useState<PlanReadModel>();
-  const [run, showRun] = useState<unknown>(), [result, showResult] = useState<unknown>();
+  const [run, showRun] = useState<RunObservationModel>(), [result, showResult] = useState<unknown>();
+  const [follow, setFollow] = useState(false);
   const [originalPlan, showOriginalPlan] = useState<OriginalRunPlanReadModel>();
   const [programText, setProgramText] = useState('SELECT 1 AS answer');
   const [programFormat, setProgramFormat] = useState<'sql' | 'aql-text' | 'program'>('sql');
@@ -17,7 +19,8 @@ function App() {
   const [launcherProgram, showLauncherProgram] = useState(false);
   const [error, showError] = useState(''), [pending, busy] = useState(false);
   const epoch = useRef(0);
-  const invalidate = () => {epoch.current++; source.close(); connect(false); busy(false);
+  const runSelection = useRef(0);
+  const invalidate = () => {epoch.current++; runSelection.current++; setFollow(false); source.close(); connect(false); busy(false);
     showPlan(undefined); showRun(undefined); showResult(undefined); showOriginalPlan(undefined); showLauncherProgram(false); showError('');};
   const perform = async (action: () => Promise<void>) => {
     const original = epoch.current; busy(true); showError('');
@@ -26,6 +29,15 @@ function App() {
       showError('Read unavailable. Check the original reference and current Host access, or explicitly reconnect with a new bootstrap.');}}
     finally {if (original === epoch.current) busy(false);}
   };
+  useEffect(() => {
+    if (!follow || !run || run.run.terminal || pending || !connected) return;
+    const selected = runSelection.current, scope = epoch.current;
+    const timer = setTimeout(() => {void perform(async () => {
+      const next = await source.observe(run.runRef);
+      if (runSelection.current === selected && epoch.current === scope) showRun(next);
+    });}, 1000);
+    return () => clearTimeout(timer);
+  }, [follow, run, pending, connected, source]);
   const session = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); const form = event.currentTarget;
     const token = String(new FormData(form).get('bootstrap')); form.reset(); invalidate();
@@ -54,10 +66,17 @@ function App() {
     event.preventDefault(); const data = new FormData(event.currentTarget);
     const raw = String(data.get('ref')), name = String(data.get('name'));
     const savedPlan = (event.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'run-plan';
+    const selected = ++runSelection.current, scope = epoch.current; setFollow(false);
     void perform(async () => {showRun(undefined); showResult(undefined); showOriginalPlan(undefined);
       const ref = JSON.parse(raw);
-      if (savedPlan) showOriginalPlan(await source.runPlan(ref));
-      else {showRun(await source.inspect(ref)); if (name) showResult(await source.describe(ref, name));}});
+      if (savedPlan) {
+        const value = await source.runPlan(ref);
+        if (runSelection.current === selected && epoch.current === scope) showOriginalPlan(value);
+      } else {
+        const value = await source.observe(ref);
+        const metadata = name ? await source.describe(ref, name) : undefined;
+        if (runSelection.current === selected && epoch.current === scope) {showRun(value); showResult(metadata);}
+      }});
   };
   return <main><header><p>READ-ONLY · LOCAL PRESENTATION</p><h1>ActQL Explorer</h1>
     <p>Static Plan, existing Run observations and Named Result metadata.</p>
@@ -75,7 +94,9 @@ function App() {
       <button disabled={!connected || pending}>Read Plan</button></form>
       {plan && <PlanExplorer model={plan} scopeKey={String(epoch.current)}/>}</section>
     <section><h2>Existing Run</h2><form onSubmit={readRun}>
-      <label>Original Run reference JSON <textarea name="ref" value={runReference} onChange={event => setRunReference(event.target.value)} maxLength={4096} required
+      <label>Original Run reference JSON <textarea name="ref" value={runReference} onChange={event => {
+        runSelection.current++; setFollow(false); showRun(undefined); setRunReference(event.target.value);
+      }} maxLength={4096} required
         placeholder={'{"namespaceId":"...","authorityScopeCid":"sha256:...","runDefinitionCid":"sha256:..."}'}/></label>
       <label>Named Result (optional metadata) <input name="name" maxLength={1024}/></label>
       <button disabled={!connected || pending}>Read Run and metadata</button>
@@ -84,7 +105,12 @@ function App() {
         <p>Static original map; no live progress overlay. Missing old evidence stays unavailable.</p>
         <pre>{JSON.stringify(originalPlan.runRef, null, 2)}</pre>
         <PlanExplorer model={originalPlan.plan} scopeKey={`${epoch.current}:${JSON.stringify(originalPlan.runRef)}`}/></>}
-      {run !== undefined && <><h3>Original non-atomic Run observation</h3><pre>{JSON.stringify(run, null, 2)}</pre></>}
+      {run !== undefined && <><label><input type="checkbox" checked={follow}
+        disabled={pending || run.run.terminal} onChange={event => setFollow(event.target.checked)}/>
+        Follow this exact Run (one-second read interval)</label>
+        <p>{run.run.terminal ? 'Following stopped: terminal Run state observed.'
+          : follow ? 'Following authorized read-only observations; no execution is started.' : 'Showing the last explicit read.'}</p>
+        <RunInspector model={run}/></>}
       {result !== undefined && <><h3>Named Result metadata</h3><pre>{JSON.stringify(result, null, 2)}</pre></>}</section>
   </main>;
 }

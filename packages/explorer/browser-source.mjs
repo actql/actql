@@ -97,6 +97,7 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
       return view;
     },
     inspect(ref) {return read('run', {ref});},
+    observe(ref) {return read('observation', {ref});},
     runPlan(ref) {return read('run-plan', {ref});},
     describe(ref, name) {return read('result', {ref, name});},
     close: invalidate,
