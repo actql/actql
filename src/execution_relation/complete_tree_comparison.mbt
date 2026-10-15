@@ -297,9 +297,10 @@ fn advance_complete_tree_comparison(
         return Err(Limit)
       }
       if ln != rn { return Err(InvalidInput) }
-      if ln < name {
+      let comparison = @canonical.compare_utf16(ln, name)
+      if comparison < 0 {
         cursor.frames[top] = PositionalMembers(left, right, index, count, middle + 1, high)
-      } else if ln > name {
+      } else if comparison > 0 {
         cursor.frames[top] = PositionalMembers(left, right, index, count, low, middle)
       } else {
         if lv is @admitted.Null || rv is @admitted.Null { return Err(InvalidInput) }
