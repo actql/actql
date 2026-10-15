@@ -260,6 +260,18 @@ node scripts/local-checks.mjs test node -- \
 node scripts/test-packed-sheets.mjs
 ```
 
+To share an already prepared normal four-package cohort, supply
+`--release-dir /absolute/cohort`. Source SHA, normal prepack, complete archive
+inventory and digests must match the clean runner checkout; a foreign or
+modified cohort is refused before creating a Site or Run. This route does not
+start a producer. The default selection retains all fourteen original cases
+and both range Command cases. Adding `--range-command-only` selects only the
+two authored range cases (Local/HTTPS success and saved Unknown recovery) and
+requires `--release-dir`; it does not establish the omitted cases. The runner
+retains its external installation and diagnostics, including the deliberately
+uncertain range request's original private custody. Controlled-service range
+acceptance remains separate from real Google mutation.
+
 The packed command requires clean committed build inputs, uses the existing
 four-package release recipe with normal prepack, verifies the exact source SHA,
 frozen runtime bytes and tarball digests, and copies only test support to an
