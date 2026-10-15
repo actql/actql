@@ -260,7 +260,7 @@ pub fn report_live(nonce : Int64) -> Int {
     return -1
   }
   guard live_initialization.val is Some(frame) else { return -42 }
-  if live_initial_issue.val is Some(issue) {
+  if live_initial_root.val is None && live_initial_issue.val is Some(issue) {
     return imported_child_issue_code(issue)
   }
   match @resources.report_imported_child_ledger(frame) {
