@@ -195,7 +195,7 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
 
         try: original.capacities()
         except _OriginalLiveChannelError as failure:
-            assert not failure.unknown and failure.fact.operation == 13 and failure.fact.issue_family == 1
+            assert not failure.unknown and failure.fact.operation == 9 and failure.fact.issue_family == 1
             assert failure.cleanup_channel is original and not original._closed
         else: raise AssertionError('Pending capture gained native baseline coverage')
         cases.append('actual capacity callback refuses pending VM without quota-derived or zero fallback')
