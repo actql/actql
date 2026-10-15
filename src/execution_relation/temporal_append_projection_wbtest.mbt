@@ -11,7 +11,8 @@ test "temporal operands append projected fields without treating schema ordinals
     100000,
     10000,
   ).unwrap()
-  let completed = match execute_generated_sequence(generated, [], compute_test_limits()) {
+  let completed = match
+    execute_generated_sequence(generated, [], compute_test_limits()) {
     Ok(value) => value
     Err(Rows(step, InputMismatch)) =>
       fail("append input field mismatch at " + step.to_string())
