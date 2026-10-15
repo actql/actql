@@ -26,6 +26,11 @@ static struct {
     actql_database_tag_fn operation, stage, issue, after, has_row;
     actql_database_scalar_fn revision, bound;
     actql_database_body_fn body, key;
+    actql_database_reserve_fn reserve_capacity;
+    actql_database_usage_fn capacity_usage;
+    actql_database_release_fn release_capacity;
+    actql_database_tag_fn capacity_changed;
+    actql_database_scalar_fn reserved_bytes, reserved_objects;
 } callbacks;
 static int registered;
 void actql_native_control_register_sqlite_database_roots(
@@ -39,11 +44,16 @@ void actql_native_control_register_sqlite_database_roots(
     actql_database_tag_fn issue, actql_database_tag_fn after,
     actql_database_tag_fn has_row, actql_database_scalar_fn revision,
     actql_database_body_fn body, actql_database_scalar_fn bound,
-    actql_database_read_fn scan, actql_database_body_fn key) {
+    actql_database_read_fn scan, actql_database_body_fn key,
+    actql_database_reserve_fn reserve_capacity, actql_database_usage_fn capacity_usage,
+    actql_database_release_fn release_capacity, actql_database_tag_fn capacity_changed,
+    actql_database_scalar_fn reserved_bytes, actql_database_scalar_fn reserved_objects) {
     if (registered) return;
     if (!restore || !initialize || !observe || !read || !insert || !compare ||
         !transaction || !close || !fence || !host || !library || !original ||
-        !operation || !stage || !issue || !after || !has_row || !revision || !body || !bound || !scan || !key) {
+        !operation || !stage || !issue || !after || !has_row || !revision || !body || !bound || !scan || !key ||
+        !reserve_capacity || !capacity_usage || !release_capacity || !capacity_changed ||
+        !reserved_bytes || !reserved_objects) {
         registered = -1;
         return;
     }
@@ -56,6 +66,9 @@ void actql_native_control_register_sqlite_database_roots(
     callbacks.after = after; callbacks.has_row = has_row; callbacks.revision = revision;
     callbacks.body = body; callbacks.bound = bound;
     callbacks.scan = scan; callbacks.key = key;
+    callbacks.reserve_capacity = reserve_capacity; callbacks.capacity_usage = capacity_usage;
+    callbacks.release_capacity = release_capacity; callbacks.capacity_changed = capacity_changed;
+    callbacks.reserved_bytes = reserved_bytes; callbacks.reserved_objects = reserved_objects;
     registered = 1;
 }
 static moonbit_string_t copy_text(const uint16_t *text, int32_t units) {
@@ -262,6 +275,53 @@ int actql_sqlite_database_copy_key(actql_sqlite_database_reply *reply, actql_con
     actql_sqlite_original *library, actql_sqlite_database *original,
     unsigned char *output, int64_t capacity, int64_t *length) {
     return copy_row_part(reply, host, library, original, output, capacity, length, 1);
+}
+int actql_sqlite_database_capacity_reserve_utf16_into(actql_control_host *host, actql_sqlite_database *original,
+    const uint16_t *scope, int32_t scope_units, const uint16_t *key, int32_t key_units,
+    int64_t bytes, int64_t objects, int64_t max_bytes, int64_t max_objects,
+    actql_sqlite_database_reply **reply) {
+    if (!names_valid(scope, scope_units, key, key_units) || bytes < 0 || objects < 0 ||
+        max_bytes < 0 || max_objects < 0) return ACTQL_CONTROL_INVALID_SLOT;
+    int code = preflight(host, original, reply);
+    if (code != ACTQL_CONTROL_OK) return code == 1 ? ACTQL_CONTROL_OK : code;
+    release_preflight(reply);
+    moonbit_string_t s = copy_text(scope, scope_units), k = copy_text(key, key_units);
+    *reply = callbacks.reserve_capacity(host, original, s, k, bytes, objects, max_bytes, max_objects);
+    moonbit_decref(k); moonbit_decref(s);
+    return *reply ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
+}
+int actql_sqlite_database_capacity_usage_utf16_into(actql_control_host *host, actql_sqlite_database *original,
+    const uint16_t *scope, int32_t scope_units, actql_sqlite_database_reply **reply) {
+    if (!scope || scope_units <= 0 || scope_units > 512) return ACTQL_CONTROL_INVALID_SLOT;
+    int code = preflight(host, original, reply);
+    if (code != ACTQL_CONTROL_OK) return code == 1 ? ACTQL_CONTROL_OK : code;
+    release_preflight(reply);
+    moonbit_string_t s = copy_text(scope, scope_units);
+    *reply = callbacks.capacity_usage(host, original, s);
+    moonbit_decref(s);
+    return *reply ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
+}
+int actql_sqlite_database_capacity_release_utf16_into(actql_control_host *host, actql_sqlite_database *original,
+    const uint16_t *scope, int32_t scope_units, const uint16_t *key, int32_t key_units,
+    int64_t bytes, int64_t objects, actql_sqlite_database_reply **reply) {
+    if (!names_valid(scope, scope_units, key, key_units) || bytes < 0 || objects < 0)
+        return ACTQL_CONTROL_INVALID_SLOT;
+    int code = preflight(host, original, reply);
+    if (code != ACTQL_CONTROL_OK) return code == 1 ? ACTQL_CONTROL_OK : code;
+    release_preflight(reply);
+    moonbit_string_t s = copy_text(scope, scope_units), k = copy_text(key, key_units);
+    *reply = callbacks.release_capacity(host, original, s, k, bytes, objects);
+    moonbit_decref(k); moonbit_decref(s);
+    return *reply ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
+}
+int32_t actql_sqlite_database_capacity_changed(actql_sqlite_database_reply *reply) {
+    return registered == 1 && reply ? callbacks.capacity_changed(reply) : -1;
+}
+int64_t actql_sqlite_database_reserved_bytes(actql_sqlite_database_reply *reply) {
+    return registered == 1 && reply ? callbacks.reserved_bytes(reply) : -1;
+}
+int64_t actql_sqlite_database_reserved_objects(actql_sqlite_database_reply *reply) {
+    return registered == 1 && reply ? callbacks.reserved_objects(reply) : -1;
 }
 int actql_sqlite_database_drop_reply(actql_sqlite_database_reply **reply, actql_control_host *host,
     actql_sqlite_original *library, actql_sqlite_database *original) {
