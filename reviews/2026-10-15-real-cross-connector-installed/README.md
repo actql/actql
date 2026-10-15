@@ -52,7 +52,9 @@ After a shared immutable normal4 release is ready,
 uses the existing Heavy pool, outer300/TERM5. The normal lifecycle installation
 has a90-second bound; the one-case Node child has a180-second bound. There is
 no producer or development-package fallback. The real optional native peer is
-explicitly pinned to `@duckdb/node-api@1.5.5-r.4`. Product modules, Core JS and
+explicitly pinned to `@duckdb/node-api@1.5.5-r.4`. ActQL packages resolve only
+through the existing immutable scoped loopback registry; third-party dependencies
+use the normal registry/SRI and isolated user/global npm configuration. Product modules, Core JS and
 Python worker assets must come from the verified normal archives; only authored
 harness/oracle files are copied. No checkout runtime, NODE_PATH or adapter
 module overlay is allowed.
@@ -65,3 +67,8 @@ scratch/DB/WAL/Unknown; no blind retry or old-Run replay is authorized. A failed
 cleanup is not a passing completed receipt. This scenario is unexecuted until
 those actual receipts exist. CTAS10 on df28 and its original failures remain
 separate immutable evidence; this harness does not rerun that cohort.
+
+Attempted submission calls and observed accepted Runs are separate counters.
+The original new submission reference is saved before calling startSource; an
+unknown response is never relabelled as unsent. Cleanup observations are saved
+even on failure, and completed is set only after final client closure resolves.

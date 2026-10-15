@@ -79,7 +79,7 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
   const recordPath = join(f.root, 'real-cross-connector-observation.json');
   const record = {name: control.name, pid: process.pid, root: f.root, completed: false,
     externalAuthInternalHttp: 'Unmeasured trusted auth; separate from actual GCS metadata transport',
-    sourceSubmissions: 0, independentExpected: control.expected};
+    submissionCalls: 0, acceptedRunsObserved: 0, independentExpected: control.expected};
   const save = () => writeFile(recordPath, JSON.stringify(record, null, 2)+'\n', {mode: 0o600});
   await save();
   const database = join(f.root, 'source.duckdb');
@@ -169,8 +169,9 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     client = await connect({...options, installation: {...options.installation,
       resolveSourceSecret: credential.resolveSecret}});
     signal.throwIfAborted(); const submissionRef = client.newSubmission({nonce: control.name});
+    record.submissionRef = submissionRef; record.submissionCalls++; await save();
     const run = await client.startSource(control.document, {format: control.format, submissionRef});
-    record.sourceSubmissions++; record.ref = run.ref; await save();
+    record.acceptedRunsObserved++; record.ref = run.ref; await save();
     await waitForApproval(run, signal);
     assert.deepEqual(commits(f.catalog), []);
     const checkpoints = (await client.checkpoints()).items; assert.equal(checkpoints.length, 1);
@@ -217,14 +218,24 @@ test('normal installed real DuckDB and GCS metadata JOIN survives approved Icebe
     record.credential = credential.observation(); record.diagnostics = diagnostics; await save();
     throw new Error(`RealCrossConnectorAcceptance:${code}`);
   } finally {
+    let cleanupError;
     try {
       if (client) await client.close();
       record.clientCloseResolved = true;
+    } catch {
+      record.clientCloseResolved = false;
+      cleanupError = new Error('RealCrossConnectorClientCleanupPending');
     } finally {
       credential.close();
       try { reads.close(); }
-      finally { network.close(); }
+      catch { cleanupError ??= new Error('RealCrossConnectorReadObservationCleanupPending'); }
+      try { network.close(); record.physicalRequestCustodyClosed = true; }
+      catch { record.physicalRequestCustodyClosed = false;
+        cleanupError ??= new Error('RealCrossConnectorRequestCustodyPending'); }
+      if (cleanupError) record.cleanupPending = true;
+      await save();
     }
+    if (cleanupError) throw cleanupError;
   }
   record.completed = true; await save();
   console.log('REAL_CROSS_CONNECTOR_RESULT ' + JSON.stringify({root: f.root,

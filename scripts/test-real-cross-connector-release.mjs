@@ -35,14 +35,13 @@ const application = join(scratch.path, 'application'); await mkdir(application);
 await writeFile(join(application, 'package.json'), '{"private":true,"type":"module"}\n');
 const environment = realCrossConnectorEnvironment(process.env, {root: scratch.path, node: process.execPath});
 const registry = await openReleaseTestRegistry([{directory, manifest: release.manifest}]);
-let install;
 try {
   await writeFile(environment.npm_config_userconfig,
     `registry=https://registry.npmjs.org/\n@actql:registry=${registry.url}\n`, {mode: 0o600});
   await writeFile(environment.npm_config_globalconfig, '', {mode: 0o600});
   // The existing immutable registry serves only the selected ActQL artifacts.
   // Third-party native packages use their normal registry/SRI and lifecycle.
-  install = await promisify(execFile)('npm', ['install', '--no-audit', '--no-fund', '--save-exact',
+  await promisify(execFile)('npm', ['install', '--no-audit', '--no-fund', '--save-exact',
     ...release.manifest.packages.map(item => `${item.name}@${item.version}`),
     '@duckdb/node-api@1.5.5-r.4'], {cwd: application, env: environment,
     timeout: 90000, maxBuffer: 8 * 1024 * 1024});
