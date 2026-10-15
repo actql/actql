@@ -41,7 +41,9 @@ fn worker_provisioning_test_host(
 ///|
 fn worker_provisioning_reopen(name : String) -> NativeLocalHostConnection {
   let path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_ROOT").unwrap() +
-    "/" + name + ".fixture"
+    "/" +
+    name +
+    ".fixture"
   begin_native_local_host_adoption(
     path,
     name + ".host",
