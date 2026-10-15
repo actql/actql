@@ -39,6 +39,10 @@ fn entry_gate_fixture(
   }
   let prefix_work = match fixture_finish(active) {
     Waiting(work~) => work
+    Failed(issue, ..) => {
+      assert_eq(Some(issue), None)
+      abort("ordinary preparation refused before original entry binding")
+    }
     _ => abort("ordinary preparation must wait for original entry binding")
   }
   let prepared = prepared_call_set(active).unwrap()
