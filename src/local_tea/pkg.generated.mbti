@@ -3,6 +3,7 @@ package "actql/actql/local_tea"
 
 import {
   "actql/actql/bounded_execution",
+  "actql/actql/calendar_transition",
   "actql/actql/execution_relation",
   "actql/actql/lowering_relation",
   "actql/actql/managed_carrier_runtime",
@@ -12,6 +13,8 @@ import {
 }
 
 // Values
+pub fn advance_calendar_series(CalendarSeriesExecution, Int) -> Result[CalendarSeriesPoll, CalendarSeriesExecutionIssue]
+
 pub fn advance_dedupe(DedupeExecution, Int) -> Result[DedupePoll, DedupeIssue]
 
 pub fn advance_event_window(EventWindowExecution, Int) -> Result[EventWindowPoll, EventWindowIssue]
@@ -21,6 +24,10 @@ pub fn advance_session(SessionExecution, Int) -> Result[SessionPoll, SessionIssu
 pub fn advance_time_series(TimeSeriesExecution, Int) -> Result[TimeSeriesPoll, TimeSeriesExecutionIssue]
 
 pub fn advance_watermark(WatermarkExecution, Int) -> Result[WatermarkPoll, WatermarkIssue]
+
+pub fn calendar_series_cleanup_pending(CalendarSeriesExecution) -> Bool
+
+pub fn cleanup_calendar_series(CalendarSeriesExecution) -> Result[Bool, CalendarSeriesExecutionIssue]
 
 pub fn cleanup_dedupe(DedupeExecution) -> Result[Bool, DedupeIssue]
 
@@ -49,6 +56,8 @@ pub fn session_cleanup_pending(SessionExecution) -> Bool
 pub fn session_initialization_progress(SessionExecution) -> (Int, Int)
 
 pub fn session_max_noninterruptible_value_bytes(SessionExecution) -> Int
+
+pub fn start_calendar_series(@bounded_execution.Control, @execution_relation.GeneratedSequence, Int, Int, @execution_relation.ValueLimits, Int, Int, control_work_limit? : Int?) -> Result[CalendarSeriesExecution, CalendarSeriesExecutionIssue]
 
 pub fn start_dedupe(@bounded_execution.Control, @lowering_relation.PreparedSequence, Int, @managed_record_runtime.ProducerRead, @managed_record_storage.Limits, Int64, () -> Bool, control_work_limit? : Int?) -> Result[DedupeExecution, DedupeIssue]
 
@@ -81,6 +90,26 @@ pub fn watermark_stopped(WatermarkExecution) -> Bool
 // Errors
 
 // Types and methods
+type CalendarSeriesExecution
+
+pub(all) enum CalendarSeriesExecutionIssue {
+  InvalidCalendarKernel
+  InvalidCalendarExecutionLimits
+  CalendarControlWorkLimit
+  InvalidCalendarTimestamp
+  CalendarBoundary(@calendar_transition.SeriesIssue)
+  CalendarOutput(@execution_relation.CaptureIssue)
+  CalendarCompletion(@execution_relation.TrustedOutputIssue)
+  CalendarExecution(@bounded_execution.Issue)
+} derive(Eq, @debug.Debug)
+
+pub enum CalendarSeriesPoll {
+  CalendarContinue(progress~ : Int64, work~ : Int64)
+  CalendarComplete(@execution_relation.CompletedOutput, progress~ : Int64, work~ : Int64)
+  CalendarFailed(CalendarSeriesExecutionIssue, progress~ : Int64, work~ : Int64)
+  CalendarStopped(@bounded_execution.StopReason, progress~ : Int64, work~ : Int64)
+}
+
 type DedupeExecution
 
 pub(all) enum DedupeIssue {

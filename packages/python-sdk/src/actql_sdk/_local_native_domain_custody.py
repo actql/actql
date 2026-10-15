@@ -33,6 +33,21 @@ class _OriginalDomainMaterialFunctions:
         self.read.restype = c_int
 
 
+
+class _OriginalDomainReadFunctions:
+    """Matching selected code only; no loader, context pointer or permission."""
+    def __init__(self, library: Any) -> None:
+        self.library = library
+        self.prepare = library.actql_domain_read_prepare_into
+        self.current = library.actql_domain_read_current_into
+        self.enter = library.actql_domain_read_enter_into
+        self.leave = library.actql_domain_read_leave_into
+        self.cleanup = library.actql_domain_read_cleanup_into
+        self.close = library.actql_domain_read_close_into
+        for call in (self.prepare, self.current, self.enter, self.leave, self.cleanup, self.close):
+            call.argtypes = [c_void_p, c_void_p, POINTER(c_void_p)]
+            call.restype = c_int
+
 def _new_domain_slots() -> tuple[c_void_p, c_void_p, c_void_p]:
     return c_void_p(), c_void_p(), c_void_p()
 
@@ -192,7 +207,10 @@ class _OriginalDomainCustody:
         if self._reply.value is not None:
             raise self._mark_unknown()
 
-    def _call(self, expected: int) -> _OriginalArenaFact:
+    def _call(self, expected: int, read: _OriginalDomainReadFunctions | None = None) -> _OriginalArenaFact:
+        if read is not None and (type(read) is not _OriginalDomainReadFunctions
+                or read.library is not self._functions.library):
+            raise ValueError('Foreign original domain read component')
         if self._unknown is not None:
             raise self._unknown
         self._owner._enter()
@@ -202,8 +220,11 @@ class _OriginalDomainCustody:
         known: _OriginalDomainError | None = None
         try:
             self._drop()
-            call = {2:self._functions.current, 3:self._functions.transfer,
-                    4:self._functions.enter, 5:self._functions.leave, 6:self._functions.close}[expected]
+            call = ({2:self._functions.current, 3:self._functions.transfer,
+                     4:self._functions.enter, 5:self._functions.leave, 6:self._functions.close}[expected]
+                    if read is None else
+                    {8:read.prepare, 9:read.current, 10:read.enter,
+                     11:read.leave, 12:read.cleanup, 13:read.close}[expected])
             self._status(call(self._host, self._domain, byref(self._reply)))
             fact = self._fact(expected)
             if expected == 6 and fact.issue_family == 0:
@@ -304,3 +325,34 @@ class _OriginalDomainCustody:
             self._owner._busy = False
             return
         self._call(6)
+
+
+    def _prepare_read_context(self, functions: _OriginalDomainReadFunctions) -> None:
+        """Delegate one-shot preparation to the original Owner, never reacquire."""
+        self._call(8, functions)
+
+    def _require_read_current(self, functions: _OriginalDomainReadFunctions) -> None:
+        self._call(9, functions)
+
+    @contextmanager
+    def _read_scope(self, functions: _OriginalDomainReadFunctions, *, cleanup: bool = False) -> Iterator[None]:
+        """Whole managed caller, with original cleanup entry after logical stop.
+
+        The cleanup flag chooses an existing Owner operation, never an ACK,
+        authority, bypass of current for new reads or a replacement context.
+        """
+        self._call(12 if cleanup else 10, functions)
+        try:
+            yield
+        except BaseException as primary:
+            try:
+                self._call(11, functions)
+            except BaseException as cleanup_failure:
+                raise cleanup_failure from primary
+            raise
+        else:
+            self._call(11, functions)
+
+    def _close_read_context(self, functions: _OriginalDomainReadFunctions) -> None:
+        """Only read context/use; keep Host/domain/FD originals until full close."""
+        self._call(13, functions)
