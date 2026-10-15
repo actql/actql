@@ -101,8 +101,8 @@ No default loader or SDK fallback enables this candidate. Root/Reader, managed
 Bytes, FD/WAL/loader/control and OS-owned allocations retain their separate
 responsibilities and unverified funding; normal profile stays None.
 
-The independent C fixture uses an original 64-host-page provider and prepares twelve
-cases: null-heap refusal, original heap custody, missing current, one binding, concurrent binding, retained alias/close, resize failure,
+The independent C fixture uses an original 64-host-page provider and prepares thirteen
+cases: failed physical heap retirement/retry, null-heap refusal, original heap custody, missing current, one binding, concurrent binding, retained alias/close, resize failure,
 exhaustion, initialization exhaustion/partial cleanup, foreign current, fork
 refusal and integer boundaries. These establish
 only the component memory-method boundary when actually executed. Source-stage
@@ -112,12 +112,17 @@ or whole-process funding follows from either check. The existing 100M fuel,
 
 The separate `fixtures/library.c` consumes the actual Native adapter and selected
 candidate, including explicit adapter buffers and managed aliases. It prepares
-eight cases: missing current, buffer alias, partial open, original journal CAS,
+nine cases: failed physical retirement/same-Library retry, missing current, buffer alias, partial open, original journal CAS,
 foreign current, live-statement close, adapter heap aliases, and lost COMMIT reply/same-key lookup.
 The latter uses the existing test-only reply fault and an exec counter; it is
 not a real transport failure or durable filesystem/restart acceptance. All
 SQLite databases in this fixture are new in-memory databases, never old Runs or
-journals. Counts become evidence only after the actual bounded execution.
+journals. The fixture-only Mach-O interpose fails one original provider `mprotect(PROT_NONE)`
+for the selected 32-page heap. It checks the real physical-error return, retained
+same context/Library and exactly two retirement syscall attempts; no second
+shutdown, replacement allocation, module close or success ACK occurs on the
+failed attempt. This diagnostic is not a new provider or product fault hook.
+Counts become evidence only after the actual bounded execution.
 
 The original one-provider-page-per-allocation Source `462642464a8625a0077fb3e4d6792c185654072f`
 passed its component C10 and the first Library C3, then failed real schema

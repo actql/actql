@@ -7,6 +7,8 @@
 #include <string.h>
 #include "owned_capacity.h"
 #include "scoped_read.h"
+#include <unistd.h>
+#include "retirement_fault.h"
 #include "../../../../../src/platform_native/sqlite/sqlite_stub.c"
 
 typedef struct { actql_owned_capacity *lease; actql_read_context *context; } original;
@@ -92,6 +94,19 @@ int main(int argc, char **argv) {
         assert(actql_read_context_try_close(&value.context) == 0);
         assert(actql_native_owned_try_close(&value.lease) == 0);
         goto passed;
+    } else if (!strcmp(name, "retirement-retry")) {
+        actql_native_sqlite_database *db = database(library);
+        close_database(db);
+        retirement_fault_armed = 1;
+        assert(actql_native_sqlite_library_close_checked(library) == 0);
+        assert(retirement_calls == 1 && library->closing && library->component_owned);
+        assert(library->selected_api == NULL && library->selected_context_user);
+        assert(library->dynamic_library != NULL && library->module_close_result == 0);
+        assert(!actql_native_sqlite_library_ready(library));
+        assert(actql_adapter_allocate(library, 1) == NULL);
+        assert(actql_native_sqlite_library_close_checked(library) == 1);
+        assert(retirement_calls == 2 && !library->component_owned &&
+            !library->selected_context_user && library->dynamic_library == NULL);
     } else if (!strcmp(name, "partial-open")) {
         actql_native_sqlite_database *db = actql_native_sqlite_open_database(
             library, (moonbit_bytes_t)"/dev/null/actql-no-database", 27, 64);
