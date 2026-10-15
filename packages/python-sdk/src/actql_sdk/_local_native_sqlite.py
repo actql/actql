@@ -95,17 +95,26 @@ class _OriginalSqliteCustody:
         original._original, original._reply = c_void_p(), c_void_p()
         original._unknown, original._closed = None, False
         original._unknown_carrier = _OriginalSqliteError(original, unknown=True)
-        # Register before a foreign call can publish a partial Library/reply.
-        # Failed preparations remain reachable from their original domain.
-        domain._sqlite_library_original = original
+        # These argument wrappers can allocate. Prepare them before consuming
+        # the original entry scope or registering a foreign-call responsibility.
+        reply_out, host_out = byref(original._reply), byref(original._host)
+        domain_out, original_out = byref(original._native_domain), byref(original._original)
         known: _OriginalSqliteError | None = None
+        # Busy/reentry/thread/process and an existing parent Unknown are the
+        # original Owner's pre-call refusal, not an uncertain SQLite operation.
+        domain._owner._enter()
         try:
-            domain._owner._enter()
+            if (domain._closed or domain._unknown is not None
+                    or domain._sqlite_library_original is not None):
+                raise ValueError('Original Native SQLite domain is unavailable')
+            # Register only after entry, but before an actual foreign call can
+            # publish a partial Library/reply. Keep it on every later failure.
+            domain._sqlite_library_original = original
             try:
                 original._status(functions.prepare(domain._host, domain._domain, text, units,
-                    heap_bytes, diagnostic_ceiling, byref(original._reply)))
-                original._status(functions.originals(original._reply, byref(original._host),
-                    byref(original._native_domain), byref(original._original)))
+                    heap_bytes, diagnostic_ceiling, reply_out))
+                original._status(functions.originals(original._reply, host_out,
+                    domain_out, original_out))
                 if (original._host.value != domain._host.value
                         or original._native_domain.value != domain._domain.value):
                     raise original._mark_unknown()
@@ -121,12 +130,12 @@ class _OriginalSqliteCustody:
                 if fact.issue_family != 0:
                     known = _OriginalSqliteError(original, unknown=False, fact=fact)
                     raise known
-            finally:
-                domain._owner._busy = False
-        except BaseException as error:
-            if error is known or error is original._unknown:
-                raise
-            raise original._mark_unknown() from error
+            except BaseException as error:
+                if error is known or error is original._unknown:
+                    raise
+                raise original._mark_unknown() from error
+        finally:
+            domain._owner._busy = False
         return original
 
     def __copy__(self) -> _OriginalSqliteCustody:
@@ -181,28 +190,30 @@ class _OriginalSqliteCustody:
                 or domain._closed or self._original.value is None):
             raise ValueError('Original Native SQLite carrier is retired')
         known: _OriginalSqliteError | None = None
+        reply_out = byref(self._reply)
+        # Entry can refuse before any drop/current/close has started. Preserve
+        # that exact refusal and the original Library for later cleanup.
+        domain._owner._enter()
         try:
-            domain._owner._enter()
-            try:
+            self._drop()
+            call = self._functions.current if operation == 2 else self._functions.close
+            self._status(call(self._host, self._original, reply_out))
+            fact = self._fact(operation)
+            if operation == 3 and fact.issue_family == 0:
+                self._status(self._functions.finish(byref(self._host), byref(self._native_domain),
+                    byref(self._original), byref(self._reply)))
+                self._finish_data_ack()
+            else:
                 self._drop()
-                call = self._functions.current if operation == 2 else self._functions.close
-                self._status(call(self._host, self._original, byref(self._reply)))
-                fact = self._fact(operation)
-                if operation == 3 and fact.issue_family == 0:
-                    self._status(self._functions.finish(byref(self._host), byref(self._native_domain),
-                        byref(self._original), byref(self._reply)))
-                    self._finish_data_ack()
-                else:
-                    self._drop()
-                if fact.issue_family != 0:
-                    known = _OriginalSqliteError(self, unknown=False, fact=fact)
-                    raise known
-            finally:
-                domain._owner._busy = False
+            if fact.issue_family != 0:
+                known = _OriginalSqliteError(self, unknown=False, fact=fact)
+                raise known
         except BaseException as error:
             if error is known or error is self._unknown:
                 raise
             raise self._mark_unknown() from error
+        finally:
+            domain._owner._busy = False
         return fact
 
     def current(self) -> _OriginalArenaFact:
