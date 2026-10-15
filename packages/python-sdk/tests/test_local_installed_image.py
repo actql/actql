@@ -249,7 +249,7 @@ class InstalledImageTests(unittest.TestCase):
         calls = []
         self.engine.failures = failures
         linker = Handle('linker', self.events)
-        linker.define_func = lambda *args: None
+        linker.define_func = lambda *args, **kwargs: None
         linker.instantiate = lambda store, module: SimpleNamespace(exports=lambda store: {
             'memory': self.memory if holding is not None else None,
             'actql_host_abi_version': lambda store: LOCAL_CORE_ABI,
