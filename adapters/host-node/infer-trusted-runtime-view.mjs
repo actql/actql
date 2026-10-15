@@ -244,6 +244,16 @@ export function checkInferTrustedSdkStaticModules(view, actualOriginals, modules
   startup.checkSdkStaticModules(view, actualOriginals, modules);
 }
 
+// Additional private responsibility of the distinct exact early eager recipe.
+// Requires the existing same-module binding, not a caller flag or new Owner.
+// Covers only fixed input-independent compilation storage actually produced at
+// that startup; lazy/per-call/feedback/cache/optimizer/hook state stays managed
+// or unavailable. The selector field and checks also need bootstrap coverage.
+export function checkInferTrustedSdkEagerModules(view, actualOriginals, modules) {
+  requireInferTrustedStartupView(view, actualOriginals);
+  startup.checkSdkEagerModules(view, actualOriginals, modules);
+}
+
 // Caller has checked the SAME actual Common scope before this association.
 // No callback, caller Bool, CID or another startup can supply that original.
 export function borrowInferTrustedStartupView(hostView, scopeView, hostOriginals, scopeOriginals) {
