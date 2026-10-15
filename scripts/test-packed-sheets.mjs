@@ -47,6 +47,7 @@ const directory = await withPackedQueryEvidence({
   const archives = manifest.packages.map(item => join(producer, item.file));
   for (const archive of archives) recordTarball(archive);
   console.log('SHEETS_ARTIFACT_COHORT', JSON.stringify({sourceSha: manifest.sourceSha,
+    manifestSha256: normalRelease?.manifestSha256,
     cohort: manifest.cohort, toolchain: manifest.toolchain,
     recipeSha256: manifest.recipeSha256, cohortSha256: manifest.cohortSha256,
     generation: manifest.generation,
