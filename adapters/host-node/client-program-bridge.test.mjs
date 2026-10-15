@@ -5945,7 +5945,7 @@ export async function exerciseEffectSourceSet(t, {distinctResults = false,
             }});
           },
         });
-        const retention = control.seal('result_retention_policy',
+        const retention = control[dependencyPolicy === undefined ? 'seal' : 'admit']('result_retention_policy',
           dependencyPolicy?.retention.wire ?? JSON.stringify({version: 'actql-result-retention-policy/0.1',
             retention_contract_cid: cid('e'), effective_data_policy_cid: cid('d'),
             available_until: '2026-09-24T01:00:00.000Z',
