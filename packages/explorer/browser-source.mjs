@@ -1,3 +1,4 @@
+import {checkpointPageModel,captureReviewReference,validReviewObservation} from '@actql/explorer-ui/checkpoint-review';
 import {validCancellationLookup} from '@actql/client-wire';
 import {captureCancellation, validCancellationObservation} from '@actql/explorer-ui/cancellation';
 import {createReadEpoch} from '@actql/explorer-ui/read-model';
@@ -80,12 +81,12 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
           !Number.isSafeInteger(answer.expiresAt) || answer.expiresAt <= now() ||
           answer.expiresAt > now() + 300000 ||
           capabilities === null || typeof capabilities !== 'object' ||
-          Object.keys(capabilities).length !== 7 || typeof capabilities.plan !== 'boolean' ||
+          Object.keys(capabilities).length !== 9 || typeof capabilities.plan !== 'boolean' ||
           capabilities.run !== true || capabilities.resultMetadata !== true ||
           capabilities.resultPayload !== false || capabilities.control !== false ||
-          capabilities.sample !== false || typeof capabilities.cancellation !== 'boolean') refused('ExplorerInvalidReply');
+          capabilities.sample !== false || typeof capabilities.cancellation !== 'boolean'||typeof capabilities.checkpointList!=='boolean'||typeof capabilities.checkpointReview!=='boolean') refused('ExplorerInvalidReply');
       session = Object.freeze({csrf: answer.csrf, scopeEpoch: answer.scopeEpoch,
-        expiresAt: answer.expiresAt, cancellation: capabilities.cancellation});
+        expiresAt: answer.expiresAt, cancellation: capabilities.cancellation,checkpointList:capabilities.checkpointList,checkpointReview:capabilities.checkpointReview});
       return answer.capabilities;
     },
     plan(input, options) {return read('plan', {input, ...(options === undefined ? {} : {options})});},
@@ -122,6 +123,9 @@ export function createExplorerBrowserSource({origin, fetch: send = globalThis.fe
       if (!validCancellationLookup(answer,saved)) refused('ExplorerInvalidReply');
       return answer;
     },
+    async checkpoints(){if(!session?.checkpointList)refused('ExplorerCapabilityUnavailable');return checkpointPageModel(await read('checkpoints',{}));},
+    async reviewCheckpoint(input){const checkpoint=captureReviewReference(input);if(!session?.checkpointReview)refused('ExplorerCapabilityUnavailable');
+      const value=await read('checkpoint-review',{checkpoint});if(!validReviewObservation(value,checkpoint))refused('ExplorerInvalidReply');return value;},
     close: invalidate,
   });
 }

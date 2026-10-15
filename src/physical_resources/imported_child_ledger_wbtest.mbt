@@ -91,6 +91,62 @@ test "imported child ledger seeds existing VM Host capacity without another atte
 }
 
 ///|
+test "imported VM capacity projection requires the same taken original and current lifetime" {
+  let (value, current, _, _, _) = imported_child_fixture()
+  start_imported_child_ledger(value).unwrap()
+  let ledger = value.ledger.unwrap()
+  let vm = value.wasm_capacity.unwrap()
+  assert_true(
+    require_imported_child_vm_capacity(value, ledger, vm) is Err(Unavailable),
+  )
+  let (taken, capacity, host) = take_imported_child_ledger(value).unwrap()
+  let before = ledger_usage(taken)
+  require_imported_child_vm_capacity(value, taken, capacity).unwrap()
+  let copied = { ..value, }
+  let copied_ledger = { ..taken, }
+  let copied_capacity = { ..capacity, }
+  assert_true(
+    require_imported_child_vm_capacity(copied, taken, capacity)
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    require_imported_child_vm_capacity(value, copied_ledger, capacity)
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    require_imported_child_vm_capacity(value, taken, copied_capacity)
+    is Err(ForeignOriginal),
+  )
+  assert_true(
+    require_imported_child_vm_capacity(value, taken, host)
+    is Err(ForeignOriginal),
+  )
+  assert_eq(ledger_usage(taken), before)
+  let wire = allocate_shared_capacity(capacity, 2L).unwrap()
+  current.val = 1
+  assert_true(
+    require_imported_child_vm_capacity(value, taken, capacity)
+    is Err(Resource(ClosedReservation)),
+  )
+  retire_shared_capacity(wire).unwrap()
+  release_shared_capacity(wire).unwrap()
+  assert_eq(ledger_usage(taken), before)
+  let (unknown, unknown_current, _, _, _) = imported_child_fixture()
+  start_imported_child_ledger(unknown).unwrap()
+  let (root, wasm, _) = take_imported_child_ledger(unknown).unwrap()
+  unknown_current.val = -41
+  assert_true(
+    require_imported_child_vm_capacity(unknown, root, wasm)
+    is Err(Resource(ChildFundingUnavailable)),
+  )
+  unknown_current.val = 0
+  assert_true(
+    require_imported_child_vm_capacity(unknown, root, wasm)
+    is Err(Resource(ChildFundingUnavailable)),
+  )
+}
+
+///|
 test "imported child ledger original admission and take reject copies and reissue" {
   let (value, _, admits, _, _) = imported_child_fixture()
   let copied = { ..value, }
