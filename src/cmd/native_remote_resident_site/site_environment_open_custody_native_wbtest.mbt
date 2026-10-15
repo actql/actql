@@ -235,3 +235,46 @@ test "missing original domain retains Site operation Library and inherited Slot"
   assert_true(@site.settle_site_operation(operation))
   assert_true(slot.close())
 }
+
+///|
+test "cleanup cannot detach a nested caller or invoke another Store current read" {
+  let site = host_setup_test_site(1)
+  let current_reads = Ref(0)
+  let scope = begin_holder_effect_host_preparation_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+    () => true,
+  ).unwrap()
+  let current = () => {
+    current_reads.val += 1
+    true
+  }
+  scope.current_binding = Some(current)
+  let operation = scope.caller_operation.unwrap()
+  assert_true(enter_holder_effect_host_read_scope(scope))
+  assert_eq(scope.depth, 2)
+  let before_cleanup = current_reads.val
+  let reserved = @site.site_status(site)
+  assert_false(quiesce_holder_effect_host_setup_scope(scope))
+  assert_eq(scope.depth, 2)
+  assert_true(scope.operation is Some(same) && physical_equal(same, operation))
+  assert_true(
+    scope.current_binding is Some(same) && physical_equal(same, current),
+  )
+  assert_eq(current_reads.val, before_cleanup)
+  assert_eq(@site.site_status(site), reserved)
+  // The actual nested caller ends its own read; cleanup never forges this step.
+  assert_false(leave_holder_effect_host_read_scope(scope))
+  assert_eq(scope.depth, 1)
+  assert_true(quiesce_holder_effect_host_setup_scope(scope))
+  assert_true(quiesce_holder_effect_host_setup_scope(scope))
+  assert_eq(scope.depth, 0)
+  assert_true(scope.operation is None)
+  assert_true(scope.current_binding is None)
+  assert_eq(current_reads.val, before_cleanup)
+  assert_eq(@site.site_status(site), reserved)
+  let (same_operation, _) = take_holder_effect_host_caller_reservation(scope)
+  assert_true(physical_equal(same_operation.unwrap(), operation))
+  assert_true(@site.settle_site_operation(operation))
+}

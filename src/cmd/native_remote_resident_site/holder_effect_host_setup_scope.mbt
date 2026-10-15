@@ -454,24 +454,34 @@ fn quiesce_holder_effect_host_setup_scope(
   scope : HolderEffectHostSetupScope,
 ) -> Bool {
   scope.retiring = true
-  if scope.depth < 0 || scope.depth > 1 {
+  guard scope.caller_operation is Some(caller) &&
+    scope.depth >= 0 &&
+    scope.depth <= 1 else {
     return false
   }
   if scope.depth == 1 {
     guard scope.operation is Some(operation) &&
-      scope.caller_operation is Some(caller) &&
       physical_equal(operation, caller) else {
       return false
     }
-    if scope.read_domain is Some(read) &&
-      !leave_holder_effect_host_read_domain(read) {
-      return false
-    }
-    scope.depth = 0
-    scope.operation = None
   } else if scope.operation is Some(_) {
     return false
   }
+  if scope.read_domain is Some(read) && !physical_equal(read.operation, caller) {
+    return false
+  }
+  if scope.read_parent is Some(parent) &&
+    !physical_equal(parent.operation, caller) {
+    return false
+  }
+  // A previous cleanup pass can fail its leave at depth zero. Retry that SAME
+  // leave before another cleanup entry; do not look up Store current again.
+  if scope.read_domain is Some(read) &&
+    !leave_holder_effect_host_read_domain(read) {
+    return false
+  }
+  scope.depth = 0
+  scope.operation = None
   // The full current closure can itself retain a Store/Database. End those
   // references before closing the original Library in a later frame. Original
   // Host/domain cleanup validates its own handles; it needs no new Store read.

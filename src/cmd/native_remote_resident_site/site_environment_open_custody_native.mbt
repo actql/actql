@@ -145,12 +145,27 @@ fn retry_site_environment_open_custody(
       return false
     }
   }
-  guard retry_site_environment_open_in_cleanup_domain(
-      original, retry_site_environment_open_objects,
-    ) &&
+  // Empty phases own no I/O handle. After a physical context ACK, a later
+  // parent/Common ACK may still be pending; never try to re-enter that retired
+  // context just to invoke an empty phase. Unknown handles remain Some until
+  // their checked ACK, and an unconfirmed process holding still blocks here.
+  let objects_retired = if original.bundles is Some(_) ||
+    original.failed_bundle is Some(_) ||
+    original.failed_journal is Some(_) {
     retry_site_environment_open_in_cleanup_domain(
+      original, retry_site_environment_open_objects,
+    )
+  } else {
+    !original.release_required
+  }
+  guard objects_retired else { return false }
+  if (
+      original.selected_sqlite_library is Some(_) ||
+      original.failed_sqlite_library is Some(_)
+    ) &&
+    !retry_site_environment_open_in_cleanup_domain(
       original, retry_site_environment_open_libraries,
-    ) else {
+    ) {
     return false
   }
   if original.original_setup_scope is Some(scope) {
