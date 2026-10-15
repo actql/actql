@@ -142,9 +142,12 @@ await test('ordinary installed Local Explorer shows checked update declarations 
     const expectedMember = {member_ordinal: 0, stage_ordinal: 0, effect_id: 'save', effect_kind: 'update',
       failure_policy: 'halt', contract: {kind: 'mapping', reference: mapping.mappingRef,
         contract_cid: mapping.mappingCid, declared_target: 'connector://crm-main/Test_Record__c'},
-      input: {kind: 'result', result_name: 'rows'}, minimum_approval: {kind: 'contract_minimum', value: 'required'}};
+      // The Salesforce catalog Owner emits "none" for this Mapping. It is
+      // not current permission: the installed Account still delegates Effect.
+      input: {kind: 'result', result_name: 'rows'}, minimum_approval: {kind: 'contract_minimum', value: 'none'}};
     phase = 'installed SDK static Plan';
     const direct = await client.plan(program);
+    receipt.originalPlan = direct;
     assert.equal(direct.version, 'actql-effectful-static-plan-view/0.1');
     assert.equal(direct.check_environment_cid, published.environmentCid);
     assert.equal(direct.computation.scope, 'computation_component');
@@ -153,7 +156,6 @@ await test('ordinary installed Local Explorer shows checked update declarations 
     assert.equal(direct.program_definition_cid, direct.computation.plan_view.logical_map.program_definition_cid);
     assert.equal(direct.observations.permission.state, 'unknown');
     assert.equal(direct.observations.preview.state, 'unavailable');
-    receipt.originalPlan = direct;
     phase = 'installed Gateway browser source';
     gateway = await startExplorer({client});
     let cookie;
@@ -203,10 +205,11 @@ await test('ordinary installed Local Explorer shows checked update declarations 
       await section.getByRole('heading', {name: 'Computation component', exact: true}).waitFor();
       const text = await section.getByRole('region', {name: 'Declared Effects', exact: true}).innerText();
       for (const expected of ['unit source', 'save', 'update', mapping.mappingRef, mapping.mappingCid,
-        'Declared target: connector://crm-main/Test_Record__c', 'Result: rows', 'required',
+        'Declared target: connector://crm-main/Test_Record__c', 'Result: rows', 'none',
         'Resolved targets: unknown.', 'Changed values: unknown.', 'Current permission: unknown.',
         'Gate: unknown.', 'Approval: unknown.', 'Sealed Preview: unavailable.']) assert(text.includes(expected), expected);
       assert(text.includes('Required approval does not imply a human-only reviewer.'));
+      assert(text.includes('Contract minimum is not current permission.'));
       assert.equal(await section.getByRole('table', {name: 'Original logical occurrences'}).locator('tbody tr').count(), 1);
       assert.equal(await page.getByLabel('Original Run reference JSON').inputValue(), '');
       assert.equal(await page.getByLabel('One-use bootstrap').inputValue(), '');
