@@ -742,7 +742,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
             originalPreparation?.scope !== operation.originalResourceScope?.() ||
             typeof originWire !== 'string' ||
             typeof control.encodeModelOriginalResourceDocument !== 'function' ||
-            typeof cp.retainOriginalModelState !== 'function') fail('ModelOriginalCurrentCutUnavailable');
+            typeof cp.retainOriginalModelStateSelected !== 'function') fail('ModelOriginalCurrentCutUnavailable');
         // The original caller already retains this actual park. Refusing a
         // codec/envelope must not lose a freshly issued fence in a local only.
         originalResourceReadCurrent(park);
@@ -782,8 +782,8 @@ export async function installNodeModelContinuation({moon, control, store, storeA
               plan.runDefinition, selected.graph, originalPreparation.scope, park,
               document, originalPreparation.nodeInstallation, storage);
             cp.journal.reconfirmOriginalModelJournal(observation);
-            original.receipt = await cp.retainOriginalModelState({runDefinition: plan.runDefinition,
-              storageBinding, bodyWire});
+            original.receipt = await cp.retainOriginalModelStateSelected({runDefinition: plan.runDefinition,
+              storageBinding, bodyWire}, acquisition);
             // A late stop or lost Store response keeps the same park/custody;
             // it cannot be reclassified as unsaved or start another attempt.
             originalResourceReadCurrent(park, acquisition);

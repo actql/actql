@@ -914,6 +914,54 @@ export async function installRemoteCheckpoints({root, namespaceId,
     if (closed) fail('OriginalModelStateHostStopped');
     return selected;
   }
+  async function retainOriginalModelStateBytes({runDefinition, storageBinding, bodyWire}, acquisition) {
+    const runId = contractControl.runDefinitionRunId(runDefinition);
+    if (!IDENTIFIER.test(runId)) fail('InvalidOriginalModelStateCustody');
+    const ownerId = `model-${runId}`;
+    const runDefinitionCid = runDefinition.identity;
+    const current = () => {
+      if (closed) fail('OriginalModelStateHostStopped');
+      if (acquisition !== undefined) {
+        selectOriginalInferMetadataAcquisition(acquisition, ownerId, runDefinitionCid);
+      }
+    };
+    current();
+    if (acquisition !== undefined &&
+        (typeof evidence.holdOriginalModelState !== 'function' ||
+          typeof evidence.openOriginalModelState !== 'function')) {
+      fail('InferOriginalMetadataAcquisitionUnavailable');
+    }
+    const selected = await originalModelStorageEvidence(storageBinding);
+    current();
+    const document = contractControl.readModelOriginalResourceDocument(bodyWire,
+      {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
+    if (contractControl.modelOriginalResourceOriginField(document, 'run_id') !== runId ||
+        contractControl.modelOriginalResourceOriginField(document, 'run_definition_cid') !== runDefinitionCid ||
+        contractControl.modelOriginalResourceOriginField(document, 'storage_binding_cid') !== selected.identity) {
+      fail('OriginalModelStateBindingMismatch');
+    }
+    const cid = acquisition === undefined
+      ? (await evidence.hold(ownerId, runDefinitionCid,
+        [{name: 'original_model_state', wire: document.wire}]))[0]
+      : await evidence.holdOriginalModelState(ownerId, runDefinitionCid, document.wire, acquisition);
+    // An unavailable original after write never rewrites that write as unsaved.
+    // The same continuation keeps its park, Store and cleanup responsibilities.
+    current();
+    await originalModelStorageEvidence(storageBinding);
+    current();
+    const held = await (acquisition === undefined ? evidence.open(ownerId)
+      : evidence.openOriginalModelState(ownerId, acquisition));
+    current();
+    if (held.requestCid !== runDefinitionCid) fail('ModelContinuationRunMismatch');
+    const saved = await held.bytes('original_model_state', cid,
+      {maxBytes: MAX_MODEL_INPUT_BYTES});
+    current();
+    if (!saved.equals(Buffer.from(document.wire, 'utf8'))) fail('OriginalModelStateBindingMismatch');
+    await originalModelStorageEvidence(storageBinding);
+    current();
+    return Object.freeze({ownerId, cid, runId, runDefinitionCid,
+      storageBindingCid: selected.identity});
+  }
   async function readOriginalModelStateBytes({runDefinition, storageBinding, receipt}, acquisition) {
     const runId = contractControl.runDefinitionRunId(runDefinition);
     const ownerId = `model-${runId}`;
@@ -1405,32 +1453,12 @@ export async function installRemoteCheckpoints({root, namespaceId,
     // A data-only Common document is saved under its dedicated private role.
     // This does not authenticate the other Origin fields, restore a current
     // resource cut, acknowledge a Model Entry or grant startup/send authority.
-    async retainOriginalModelState({runDefinition, storageBinding, bodyWire}) {
-      const runId = contractControl.runDefinitionRunId(runDefinition);
-      if (!IDENTIFIER.test(runId)) fail('InvalidOriginalModelStateCustody');
-      const runDefinitionCid = runDefinition.identity;
-      const selected = await originalModelStorageEvidence(storageBinding);
-      const document = contractControl.readModelOriginalResourceDocument(bodyWire,
-        {maxWireBytes: MAX_MODEL_INPUT_BYTES, maxNodes: 10000, maxDepth: 64});
-      if (contractControl.modelOriginalResourceOriginField(document, 'run_id') !== runId ||
-          contractControl.modelOriginalResourceOriginField(document, 'run_definition_cid') !== runDefinitionCid ||
-          contractControl.modelOriginalResourceOriginField(document, 'storage_binding_cid') !== selected.identity) {
-        fail('OriginalModelStateBindingMismatch');
-      }
-      const ownerId = `model-${runId}`;
-      const [cid] = await evidence.hold(ownerId, runDefinitionCid,
-        [{name: 'original_model_state', wire: document.wire}]);
-      // A changed installation after a save leaves its original custody held;
-      // it never rewrites the saved state as unsaved or grants another send.
-      await originalModelStorageEvidence(storageBinding);
-      const held = await evidence.open(ownerId);
-      if (held.requestCid !== runDefinitionCid) fail('ModelContinuationRunMismatch');
-      const saved = await held.bytes('original_model_state', cid,
-        {maxBytes: MAX_MODEL_INPUT_BYTES});
-      if (!saved.equals(Buffer.from(document.wire, 'utf8'))) fail('OriginalModelStateBindingMismatch');
-      await originalModelStorageEvidence(storageBinding);
-      return Object.freeze({ownerId, cid, runId, runDefinitionCid,
-        storageBindingCid: selected.identity});
+    retainOriginalModelState: args => retainOriginalModelStateBytes(args, undefined),
+    async retainOriginalModelStateSelected(args, acquisition) {
+      // Check nominal membership before even inspecting caller DATA. Missing
+      // selected physical support must never fall back to the ordinary path.
+      selectOriginalInferMetadataAcquisition(acquisition);
+      return retainOriginalModelStateBytes(args, acquisition);
     },
     readOriginalModelState: async args => (await readOriginalModelStateBytes(args, undefined)).document,
     async readOriginalModelStateSelected(args, acquisition) {

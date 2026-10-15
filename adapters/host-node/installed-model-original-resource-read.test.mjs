@@ -43,7 +43,7 @@ async function originalFixture(t, {unretained=false, retainState,
       reviewers: [{keyId: 'reviewer', reviewerId: 'reviewer', principalId: 'reviewer',
         publicKey: keys.publicKey.export({type: 'spki', format: 'pem'})}],
       hostKey: {keyId: 'host', privateKey: keys.privateKey.export({type: 'pkcs8', format: 'pem'})}}});
-  const retains = [];
+  const retains = [], selectedRetains = [];
   // Physical instrumentation only: the same actual CP/Store still admits,
   // saves and verifies bytes. This wrapper issues no receipt of its own.
   const cp = selectedCp = Object.freeze({...actualCp,
@@ -51,6 +51,12 @@ async function originalFixture(t, {unretained=false, retainState,
       retains.push(args);
       return retainState === undefined ? actualCp.retainOriginalModelState(args)
         : retainState(args, actualCp);
+    },
+    async retainOriginalModelStateSelected(args, acquisition) {
+      retains.push(args);
+      selectedRetains.push(acquisition);
+      return retainState === undefined ? actualCp.retainOriginalModelStateSelected(args, acquisition)
+        : retainState(args, actualCp, acquisition);
     }});
   let closeFlight;
   const closeFixture = () => closeFlight ??= cp.close();
@@ -87,7 +93,7 @@ async function originalFixture(t, {unretained=false, retainState,
   const storageBinding = await cp.observeModelOriginalStorageBinding();
   const origin = await opened.originalResourceOrigin(storageBinding);
   if (unretained) return {root, cp, actualCp, closeFixture, selectedCp: value => {selectedCp = value;},
-    controller, f, opened, storageBinding, origin, observation, abort, retains};
+    controller, f, opened, storageBinding, origin, observation, abort, retains, selectedRetains};
   const park = f.operation.parkOriginalResourcesForStateWrite();
   const writer = f.operation.prepareOriginalCurrentStateWriter(park,
     {maxWireBytes: 10000, maxNodes: 1000, maxDepth: 20});
@@ -108,11 +114,13 @@ const codec = () => ({quantum: 1, comparisonWork: 5,
     tree: {max_nodes: 1000, max_depth: 20, max_string_bytes: 10000, max_total_string_bytes: 10000}}});
 
 test('original dispatch caller completes actual save COMMIT and fence consume once without a Model send grant', async t=>{
-  const {root,cp,f,opened,retains}=await originalFixture(t,{unretained:true});
+  const {root,cp,f,opened,retains,selectedRetains}=await originalFixture(t,{unretained:true});
   const first=opened.prepareOriginalResourcesForDispatch();
   assert.strictEqual(opened.prepareOriginalResourcesForDispatch(),first);
   await first;
   assert.equal(retains.length,1);
+  assert.equal(selectedRetains.length,1,'first dispatch must use selected save, not ordinary Evidence');
+  assert.equal(selectedRetains[0]?.kind,'original-infer-metadata-acquisition');
   assert.deepEqual(await originalFixtureStoreInventory(root),{root:18,objects:2,holdings:2,total:22});
   assert.deepEqual(JSON.parse(retains[0].bodyWire).cut.slots.map(slot=>slot.state),['Unsent']);
   assert.equal(cp.journal.readModelCalls(opened.inventory).slots[0].state,'Unsent');
@@ -123,7 +131,8 @@ test('original dispatch caller completes actual save COMMIT and fence consume on
 test('original dispatch caller retains failed physical save and does not repeat park or Store send', async t=>{
   const issue=Object.assign(new Error('OriginalStoreResponseLost'),{code:'OriginalStoreResponseLost'});
   const {root,cp,f,opened,retains}=await originalFixture(t,{unretained:true,
-    async retainState(args,actual){await actual.retainOriginalModelState(args);throw issue;}});
+    async retainState(args,actual,acquisition){
+      await actual.retainOriginalModelStateSelected(args,acquisition);throw issue;}});
   const first=opened.prepareOriginalResourcesForDispatch();
   await assert.rejects(first,error=>error===issue);
   assert.strictEqual(opened.prepareOriginalResourcesForDispatch(),first);

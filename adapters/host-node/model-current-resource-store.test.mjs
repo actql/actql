@@ -70,6 +70,8 @@ test('same original encrypted Store bytes pass actual parked origin and Resource
   let inspected = 0;
   const forbidden = {get runDefinition() {inspected++; throw Error('ArgsMustNotBeRead');}};
   for (const fake of [undefined, true, 'sha256:' + '0'.repeat(64), {kind: 'original-infer-metadata-acquisition'}]) {
+    await assert.rejects(port.retainOriginalModelStateSelected(forbidden, fake),
+      {code: 'InferOriginalMetadataAcquisitionUnavailable'});
     await assert.rejects(port.readOriginalModelStateSelected(forbidden, fake),
       {code: 'InferOriginalMetadataAcquisitionUnavailable'});
   }
