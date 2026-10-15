@@ -141,8 +141,13 @@ test('installed DATA callback preserves Common refusal without physical work or 
     'clientProgramRetireOpenAIChatProjection','clientProgramInstallAsyncModelProvider','clientProgramModelRequestGeneration',
     'clientProgramModelRequestPreflight','clientProgramModelAsyncPhysicalRequestPlan','clientProgramModelPhysicalCallForRequest',
     'clientProgramModelPhysicalPending','clientProgramModelPhysicalUnknown','clientProgramModelPhysicalSavedChat',
-    'clientProgramAdmitEffectDependencyBody'].map(name=>[name,()=>assert.fail('No physical work')]));
+    'clientProgramAdmitEffectDependencyBody','clientProgramModelResponseProfileTransportMatches']
+    .map(name=>[name,()=>assert.fail('No physical work')]));
   runtime.clientProgramReadModelResponseProfile=()=>{admissions++;return {$tag:0,_0:{}};};
+  const missingTransport={...runtime};delete missingTransport.clientProgramModelResponseProfileTransportMatches;
+  const incomplete=entry.createInstalledUndiciOpenAIChatRegistration(materialsConfiguration());
+  assert.throws(()=>incomplete(missingTransport),{code:'OpenAIOriginalRuntimeUnavailable'});
+  assert.equal(admissions,0,'Missing current port must refuse before Common material admission');
   assert.throws(()=>register(runtime),{code:'OpenAIOriginalMaterialsRefused'});assert.equal(admissions,1);
   assert.throws(()=>register({...runtime}),{code:'OpenAIOriginalInstallationReused'});assert.equal(admissions,1);
 });
