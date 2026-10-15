@@ -578,11 +578,22 @@ test "original Model window cancelled sparse outcomes retain logical Slot and si
     Some((0, 3)),
   )
   release.val = true
-  window_cleanup_complete(active, ledger, read)
+  let retained = @resources.ledger_usage(ledger).reserved_retention_bytes
+  assert_false(cleanup(active).unwrap())
+  assert_eq(cleaned.length() - before, 6)
+  // The three original Unknown calls have physical cleanup ACKs, but no
+  // original Store/Journal settlement ACK. Keep their reservation/read duty;
+  // neither cancellation nor cleanup may fabricate those missing receipts.
+  assert_false(cleanup(active).unwrap())
+  assert_eq(cleaned.length() - before, 6)
+  assert_eq(@resources.ledger_usage(ledger).reserved_retention_bytes, retained)
   assert_eq(
     @resources.model_io_admission_counts(admission, installation),
-    Some((0, 0)),
+    Some((0, 3)),
   )
-  assert_true(@resources.close_model_io_access(access).unwrap())
+  assert_false(@resources.close_model_io_access(access).unwrap())
+  // Intentionally unresolved in-memory doubles, not live I/O or a database.
+  assert_true(active.original_preparation is Some(_))
+  read |> ignore
   assert_eq(calls.val, 4)
 }
