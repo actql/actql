@@ -24,8 +24,8 @@ export async function readContinuationLedgerBounded(path, prepareAttemptId, supp
   if (typeof path !== 'string' || path.length === 0 ||
       typeof prepareAttemptId !== 'string' || !attempt.test(prepareAttemptId) ||
       !keys(supplied, ['maxWireBytes', 'maxLedgerEntries']) ||
-      !count(maxWireBytes) || maxWireBytes === 0 || maxWireBytes >= 2147483647 ||
-      !count(maxLedgerEntries) || maxLedgerEntries > 2147483647) {
+      !count(maxWireBytes) || maxWireBytes === 0 ||
+      !count(maxLedgerEntries)) {
     fail('InvalidContinuationMetadataBounds');
   }
   // A fixed data parser in the installed Core, not a caller-supplied grant or
@@ -50,7 +50,13 @@ export async function readContinuationLedgerBounded(path, prepareAttemptId, supp
   // Close confirmation is not cancellation confirmation or resource release.
   // In particular, cancellation during close must not start decode/parse.
   signal?.throwIfAborted();
-  const issue = shape(bytes, prepareAttemptId, maxWireBytes, maxLedgerEntries);
+  // Use the actual bounded FD length, not a potentially larger safe-integer
+  // Host ceiling, at the Int Core ABI. No valid entry can outnumber its input
+  // bytes. This preserves large ceilings for small actual records without
+  // narrowing, wrapping or treating an unknown count as zero.
+  if (bytes.byteLength >= 2147483647) fail('InvalidContinuationLedger');
+  const issue = shape(bytes, prepareAttemptId, bytes.byteLength,
+    Math.min(maxLedgerEntries, bytes.byteLength));
   if (issue !== '') {
     fail(issue === 'ContinuationLedgerEntriesLimit' ? issue : 'InvalidContinuationLedger');
   }

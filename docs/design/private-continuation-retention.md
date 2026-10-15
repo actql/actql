@@ -9,12 +9,16 @@ This explicitly tightens the previous private `JSON.parse` last-wins behavior.
 Public JSON and Program acceptance are unchanged. Normal owner-produced writer
 bytes, references and CIDs are unchanged; no canonicalization or rewrite occurs.
 
-The physical reader snapshots finite bounds before I/O. Its Core boundary uses
-positive `maxWireBytes < 2147483647` and nonnegative Int `maxLedgerEntries`;
-unrepresentable supplied bounds refuse before acquisition rather than wrapping.
+The physical reader snapshots the existing finite safe-integer bounds before
+I/O. After the same FD enforces that wire ceiling, the Core ABI receives the
+actual byte length and `min(maxLedgerEntries, actual byte length)`. An entry
+cannot outnumber its input bytes. Thus large safe-integer Host ceilings remain
+valid for small records without wrapping at the Core Int ABI; actual records
+of at least 2147483647 bytes refuse before Core parsing.
 Missing matching installed Core parsing is unavailable, never a native JSON
 fallback. Source parsing admits at most
-`min(maxWireBytes, 14 + 7 * maxLedgerEntries)` value nodes, container depth three,
+`min(actual byte length, 14 + 7 * min(maxLedgerEntries, actual byte length))`
+value nodes, container depth three,
 and bounded UTF-8 input. Seven nodes cover the full root; seven cover each full
 entry. One extra entry permits a distinct entries-limit diagnosis. Larger
 invalid trees may refuse as `InvalidContinuationLedger` before counting entries.

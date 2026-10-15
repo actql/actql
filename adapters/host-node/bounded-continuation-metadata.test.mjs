@@ -84,6 +84,13 @@ test('missing installed private parser refuses before I/O without a JSON fallbac
     {maxWireBytes: 273, maxLedgerEntries: 0}), {code: 'ContinuationMetadataUnavailable'});
 });
 
+test('Core Int derivation preserves large safe-integer Host ceilings for a small actual record', async t => {
+  const {path} = await fixture(t);
+  const value = await readContinuationLedgerBounded(path, 'original-run',
+    {maxWireBytes: Number.MAX_SAFE_INTEGER, maxLedgerEntries: Number.MAX_SAFE_INTEGER});
+  assert.deepEqual(value, JSON.parse(text));
+});
+
 test('bounded continuation metadata separates actual entry count from encrypted object limits', async t => {
   const body = {...JSON.parse(text), holdings: Array.from({length: 64}, () => ({...held}))};
   const {path} = await fixture(t, JSON.stringify(body));
