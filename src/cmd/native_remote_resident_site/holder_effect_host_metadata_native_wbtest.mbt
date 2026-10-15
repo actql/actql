@@ -112,7 +112,7 @@ test "metadata commit survives refused reentry and uses the original cleanup" {
 
 ///|
 test "one physical leave cannot authorize metadata under an outstanding nested borrow" {
-  let (site, scope, slot, host, installed) = host_metadata_test_scope(
+  let (_, scope, slot, host, installed) = host_metadata_test_scope(
     "metadata-nested.slot",
   )
   let updates = Ref(0)
