@@ -63,13 +63,14 @@ def _exact_utf16(value: str, maximum: int, *, exact: int | None = None) -> Any:
 class _OriginalPackagedRuntimeCustody:
     """Physical output-slot responsibility on the same Native read, not a FSM."""
     __slots__ = ('_read', '_functions', '_host', '_original_read', '_runtime',
-                 '_reply', '_unknown', '_unknown_carrier', '_closed')
+                 '_reply', '_product_reply', '_unknown', '_unknown_carrier', '_closed')
     _read: _OriginalParentReadCustody
     _functions: _OriginalPackagedRuntimeFunctions
     _host: c_void_p
     _original_read: c_void_p
     _runtime: c_void_p
     _reply: c_void_p
+    _product_reply: c_void_p
     _unknown: _OriginalPackagedRuntimeError | None
     _unknown_carrier: _OriginalPackagedRuntimeError
     _closed: bool
@@ -101,6 +102,7 @@ class _OriginalPackagedRuntimeCustody:
         original._read, original._functions = read, functions
         original._host, original._original_read = c_void_p(), c_void_p()
         original._runtime, original._reply = c_void_p(), c_void_p()
+        original._product_reply = c_void_p()
         original._unknown, original._closed = None, False
         original._unknown_carrier = _OriginalPackagedRuntimeError(original, unknown=True)
         out, host_out = byref(original._reply), byref(original._host)
@@ -207,7 +209,8 @@ class _OriginalPackagedRuntimeCustody:
             raise self._read._domain._unknown
         if (self._closed or self._read._closed or self._read._domain._closed
                 or self._runtime.value is None
-                or self._read._runtime_original is not self or self._read._scope_open):
+                or self._read._runtime_original is not self or self._read._scope_open
+                or self._product_reply.value is not None):
             raise ValueError('Original packaged Runtime is retired or unavailable')
 
     def _call(self, operation: int) -> _OriginalArenaFact:
