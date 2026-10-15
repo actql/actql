@@ -207,14 +207,18 @@ test('selected initial storage binding refuses foreign selection and original id
 test('selected initial storage binding preserves the Store ceiling and rejects a Scope stopped during opening', async t => {
   const f = await fixture(t, {maxWireBytes: 1024, maxLedgerEntries: 8},
     {maxWireBytes: 4096, maxDirectoryEntries: 0});
+  // An empty fresh Store has no acquired entries and legitimately fits zero.
+  // Seed one real held object, without observing or issuing a binding yet.
+  await f.evidence.hold('model-meta', f.runDefinition.identity,
+    [{name: 'invocation_request', wire: 'null'}]);
   await assert.rejects(f.evidence.observeOriginalModelStorageBindingSelected(
     'model-meta', f.runDefinition.identity, f.acquisition), {code: 'PublicationStoreBootstrapEntriesLimit'});
   // Ordinary observation is only a separate control, never selected fallback.
   assert.ok(await f.evidence.observeOriginalModelStorageBinding());
   f.done();
 
-  const g = await fixture(t), path = join(g.state, 'private-store');
-  await mkdir(path);
+  const g = await fixture(t), path = join(g.state, 'private-store', 'objects');
+  await mkdir(path, {recursive: true});
   const probe = await opendir(path), prototype = Object.getPrototypeOf(probe);
   const read = prototype.read;
   await probe.close();
@@ -230,7 +234,7 @@ test('selected initial storage binding preserves the Store ceiling and rejects a
       'model-meta', g.runDefinition.identity, g.acquisition), unavailable);
     assert.ok(observations > 0, 'the original operation changes during actual directory acquisition');
     await closing;
-    await assert.rejects(lstat(join(path, 'owner')), {code: 'ENOENT'});
+    await assert.rejects(lstat(join(g.state, 'private-store', 'owner')), {code: 'ENOENT'});
     assert.deepEqual(await readFile(g.path), g.before);
     g.done();
   } finally { prototype.read = read; }
