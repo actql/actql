@@ -67,7 +67,9 @@ fn verify_captured_private_table_input(
   assert_true(@strategy.checked_effect_source_at(computation, 1) is Some(_))
   assert_true(@strategy.checked_effect_table_input_at(computation, 1) is None)
   let (admission, run_definition, template, effect_run, subject_allowed) = if original_subject {
-    let (allowed, definition, template, run) = captured_subject_compiled_run(prepared)
+    let (allowed, definition, template, run) = captured_subject_compiled_run(
+      prepared,
+    )
     (
       @publication_host.client_effect_allowed_run_admission(allowed),
       definition,
@@ -861,9 +863,11 @@ fn verify_captured_private_table_input(
   let subject_read = match subject_allowed {
     None => None
     Some(allowed) =>
-      Some(check_captured_subject_original(
-        allowed, run_definition, prepared, captured_preview, run_invocation,
-      ))
+      Some(
+        check_captured_subject_original(
+          allowed, run_definition, prepared, captured_preview, run_invocation,
+        ),
+      )
   }
   assert_true(
     @strategy.captured_effect_preview_input_at(captured_preview, 0) is None,
@@ -949,7 +953,10 @@ fn verify_captured_private_table_input(
         @strategy.release_captured_table_input_borrow(borrow)
       }
       assert_true(last_current_callback())
-      assert_true(read.original_subject_after_current() is Err(@publication_host.OriginalLifetime))
+      assert_true(
+        read.original_subject_after_current()
+        is Err(@publication_host.OriginalLifetime),
+      )
     }
   }
   assert_false(
@@ -958,7 +965,10 @@ fn verify_captured_private_table_input(
   assert_true(@strategy.release_captured_effect_inputs(inputs))
   assert_false(@strategy.release_captured_effect_inputs(inputs))
   if subject_read is Some(read) {
-    assert_true(read.original_subject_after_current() is Err(@publication_host.OriginalLifetime))
+    assert_true(
+      read.original_subject_after_current()
+      is Err(@publication_host.OriginalLifetime),
+    )
   }
   assert_false(@strategy.captured_effect_inputs_share_view(inputs, 0, 0))
   assert_true(
