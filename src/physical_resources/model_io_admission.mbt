@@ -103,6 +103,46 @@ pub fn[T] claim_model_io_admission(
   slot : Int,
   attempt : Int,
 ) -> Result[ModelIoTicket[T], ModelIoAdmissionIssue] {
+  match
+    check_model_io_claim(
+      value, installation, origin, reservation, slot, attempt,
+    ) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // Keep this obligation visible in the ORIGINAL Run's existing census even
+  // when its response bytes are accounted by other original reservations.
+  // Failed admission changes neither the shared counts nor another Run.
+  let census = match retain_allocation(origin.ledger, reservation, 0L) {
+    Ok(value) => value
+    Err(issue) => return Err(Resource(issue))
+  }
+  let ticket : ModelIoTicket[T] = {
+    owner: Some(value),
+    origin: Some(origin),
+    reservation: Some(reservation),
+    census: Some(census),
+    slot,
+    attempt,
+    active: true,
+  }
+  value.duties.push(ticket)
+  value.active += 1
+  value.unsettled += 1
+  Ok(ticket)
+}
+
+///|
+// The same preclaim facts serve the non-mutating Model wait predicate and
+// the actual claim. The latter still performs its original allocation checks.
+fn[T] check_model_io_claim(
+  value : ModelIoAdmission[T],
+  installation : T,
+  origin : OriginalLedgerIdentity,
+  reservation : Reservation,
+  slot : Int,
+  attempt : Int,
+) -> Result[Unit, ModelIoAdmissionIssue] {
   if !model_io_installation_matches(value, installation) {
     return Err(ForeignInstallation)
   }
@@ -135,26 +175,7 @@ pub fn[T] claim_model_io_admission(
   if value.unsettled >= value.unsettled_limit {
     return Err(HoldingExhausted)
   }
-  // Keep this obligation visible in the ORIGINAL Run's existing census even
-  // when its response bytes are accounted by other original reservations.
-  // Failed admission changes neither the shared counts nor another Run.
-  let census = match retain_allocation(origin.ledger, reservation, 0L) {
-    Ok(value) => value
-    Err(issue) => return Err(Resource(issue))
-  }
-  let ticket : ModelIoTicket[T] = {
-    owner: Some(value),
-    origin: Some(origin),
-    reservation: Some(reservation),
-    census: Some(census),
-    slot,
-    attempt,
-    active: true,
-  }
-  value.duties.push(ticket)
-  value.active += 1
-  value.unsettled += 1
-  Ok(ticket)
+  Ok(())
 }
 
 ///|
