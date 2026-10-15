@@ -57,6 +57,8 @@ pub(all) enum BackedExecutionIssue {
   CleanupPending
   ChangedFinalUsage
   ReadUseAlreadyIssued
+  LiveAccessAlreadyIssued
+  LiveChildAlreadyAdmitted
   Resource(LedgerIssue)
 } derive(Eq, Debug)
 

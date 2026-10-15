@@ -6,6 +6,10 @@ pub struct BackedExecutionReadUse[P, C] {
   mut ticket : BackedExecutionDelegation[P, C]?
   mut borrow : SharedBorrow?
   mut closing : Bool
+  // Resident flags and any live access/projection controls require the same
+  // original envelope. They are not another byte reservation or ACK.
+  mut live_access_issued : Bool
+  mut live_access_pending : Bool
 }
 
 ///|
@@ -46,6 +50,8 @@ pub fn[P, C] borrow_backed_execution_read_use(
     ticket: Some(ticket),
     borrow: Some(borrow),
     closing: false,
+    live_access_issued: false,
+    live_access_pending: false,
   }
   ticket.read_use_issued = true
   ticket.read_use = Some(read_use)
@@ -136,6 +142,9 @@ pub fn[P, C] return_backed_execution_read_use_after_owner_ack(
     backed_read_use_current(region, provider, child, ticket, read_use) {
     Ok(value) => value
     Err(issue) => return Err(issue)
+  }
+  if read_use.live_access_pending {
+    return Err(CleanupPending)
   }
   read_use.closing = true
   match return_shared_capacity(borrow) {
