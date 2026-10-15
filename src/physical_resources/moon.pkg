@@ -8,3 +8,11 @@ import {
 import {
   "actql/actql/source_value" @source,
 } for "wbtest"
+
+options(
+  targets: {
+    "imported_child_ledger_wasm.mbt": [ "wasm" ],
+    "imported_child_ledger_unsupported.mbt": [ "not", "wasm" ],
+    "imported_child_ledger_unsupported_wbtest.mbt": [ "not", "wasm" ],
+  },
+)
