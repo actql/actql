@@ -96,6 +96,28 @@ function runtime(config) {
 async function until(read,predicate){for(let i=0;i<50;i++){const v=read();if(predicate(v))return v;await turn();}assert.fail('Finite private consumer did not settle');}
 
 for (const route of ['generic','original-undici']) {
+  test(`original String ceilings ${route} refuse before URL, encoding or SDK work`,()=>{
+    const config=configuration(),f=runtime(config);
+    config.originalStringLimits={maxApiKeyCodeUnits:12,maxBaseURLCodeUnits:26,maxModelIdCodeUnits:12};
+    const OriginalURL=globalThis.URL,originalByteLength=Buffer.byteLength;
+    let urls=0,encodings=0;
+    globalThis.URL=class extends OriginalURL {constructor(...args){urls++;super(...args);}};
+    Buffer.byteLength=(...args)=>{encodings++;return Reflect.apply(originalByteLength,Buffer,args);};
+    try {
+      for(const [name,limit] of [['apiKey',12],['baseURL',26],['modelId',12]]) {
+        const candidate={...config,[name]:'x'.repeat(limit+1)};
+        const {fetch:unused,...selected}=candidate;void unused;
+        assert.throws(()=>route==='generic'?createInstalledOpenAIChatRegistration(candidate):
+          createInstalledUndiciOpenAIChatRegistration({...selected,physicalAcquisitionLimits}),
+        {code:'OpenAIOriginalStringLimitExceeded'});
+      }
+      assert.equal(urls,0);assert.equal(encodings,0);
+      assert.equal(f.counts.starts,0);assert.equal(f.counts.fetch,0);
+    } finally {globalThis.URL=OriginalURL;Buffer.byteLength=originalByteLength;}
+  });
+}
+
+for (const route of ['generic','original-undici']) {
   test(`installed profile transport mismatch ${route} refuses before SDK preparation`,()=>{
     const config=configuration(),f=runtime(config);
     let comparisons=0;
