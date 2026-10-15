@@ -12,7 +12,7 @@ import {clientWorkspaceMatches, validCheckpointPage, validCheckpointReview, vali
   validRunState, validResultDescription, validCheckOutcome, validOwnerObservations,
   validSubmissionAttempt, validSubmissionLookup} from
   '../../packages/client-wire/index.mjs';
-import {validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape} from '../../packages/client-wire/index.mjs';
+import {validWireEffectfulStaticPlanViewShape, validWirePlanViewShape, validWireRunViewShape, validWireRunPlanViewShape} from '../../packages/client-wire/index.mjs';
 import {inspectAuthorizedRunState} from
   '../host-common/run-state-access.mjs';
 import {inspectAuthorizedDeliveryAttempt, describeAuthorizedResult} from './result-access.mjs';
@@ -172,7 +172,7 @@ export function createNodeInProcessClientHost({
       }
       if (operation === 'plan') {
         const view = await invoke(plan);
-        if (!validWirePlanViewShape(view)) fail('InvalidClientHostPlanView');
+        if (!validWirePlanViewShape(view) && !validWireEffectfulStaticPlanViewShape(view)) fail('InvalidClientHostPlanView');
         return view;
       }
       if (operation === 'run-plan') {

@@ -1,9 +1,10 @@
 ///|
-// Typed alternatives of the same grant custody Owner. Neither variant's
+// Typed alternatives of the same grant custody Owner. No variant's
 // public identity constitutes an operational Work/resume token.
 priv enum NativeLocalOriginalGrant {
   ResumeGrant(@credential.LocalCredentialGrant)
   PreparationGrant(@credential.LocalPreparationCredentialGrant)
+  SigningGrant(@credential.LocalSigningCredentialGrant)
 }
 
 ///|
@@ -43,6 +44,17 @@ fn local_original_grant_facts(
         submission_scope_cid: scope.submission_scope_cid,
       }
     }
+    SigningGrant(value) => {
+      let scope = @credential.local_signing_credential_grant_scope(value)
+      {
+        account_configuration_cid: scope.account_configuration_cid,
+        account_id: scope.account_id,
+        authority_scope_cid: scope.authority_scope_cid,
+        host_adoption_cid: scope.host_adoption_cid,
+        principal: scope.principal,
+        submission_scope_cid: scope.submission_scope_cid,
+      }
+    }
   }
 }
 
@@ -52,6 +64,7 @@ fn local_original_grant_cid(grant : NativeLocalOriginalGrant) -> String {
     ResumeGrant(value) => @credential.local_credential_grant_cid(value)
     PreparationGrant(value) =>
       @credential.local_preparation_credential_grant_cid(value)
+    SigningGrant(value) => @credential.local_signing_credential_grant_cid(value)
   }
 }
 
@@ -63,6 +76,8 @@ fn local_original_grant_json(
     ResumeGrant(value) => @credential.local_credential_grant_json(value)
     PreparationGrant(value) =>
       @credential.local_preparation_credential_grant_json(value)
+    SigningGrant(value) =>
+      @credential.local_signing_credential_grant_json(value)
   }
 }
 
@@ -74,6 +89,8 @@ fn local_original_grant_limits(
     ResumeGrant(value) => @credential.local_credential_grant_limits(value)
     PreparationGrant(value) =>
       @credential.local_preparation_credential_grant_limits(value)
+    SigningGrant(value) =>
+      @credential.local_signing_credential_grant_limits(value)
   }
 }
 
@@ -99,6 +116,13 @@ fn local_original_grant_matches_issuer(
         expiry,
         selection.max_uses,
       ).map(value => @credential.local_preparation_credential_grant_cid(value))
+    SigningGrant(value) =>
+      @credential.prepare_local_signing_credential_grant(
+        selection.issuer_authority,
+        @credential.local_signing_credential_grant_scope(value),
+        expiry,
+        selection.max_uses,
+      ).map(value => @credential.local_signing_credential_grant_cid(value))
   }
   expected == Ok(local_original_grant_cid(grant))
 }
@@ -133,9 +157,15 @@ fn local_grant_packet_object(
     Ok(value) => value
     Err(_) => return Err(CustodyLost)
   }
-  let names = match @decode.lookup(object, "preparation_fence") {
-    None => ["grant", "intent"]
-    _ => ["grant", "intent", "preparation_fence"]
+  let names = match
+    (
+      @decode.lookup(object, "preparation_fence"),
+      @decode.lookup(object, "signing_purpose"),
+    ) {
+    (None, None) => ["grant", "intent"]
+    (Some(_), None) => ["grant", "intent", "preparation_fence"]
+    (None, Some(_)) => ["grant", "intent", "signing_purpose"]
+    (Some(_), Some(_)) => return Err(CustodyLost)
   }
   local_read_evidence_object(body, names, 49152)
 }
@@ -147,6 +177,23 @@ fn local_original_grant_from_packet(
   wire : String,
   cid : String,
 ) -> Result[NativeLocalOriginalGrant, NativeClientRunJournalIssue] {
+  if @decode.lookup(packet, "signing_purpose") is Some(_) {
+    guard epoch_text(packet, "signing_purpose") is Some(purpose) else {
+      return Err(CustodyLost)
+    }
+    let grant = match
+      @credential.admit_local_signing_credential_grant_json(wire, cid) {
+      Ok(value) => value
+      Err(_) => return Err(CustodyLost)
+    }
+    if purpose !=
+      local_signing_installation_purpose(
+        @credential.local_signing_credential_grant_scope(grant).purpose,
+      ) {
+      return Err(CustodyLost)
+    }
+    return Ok(SigningGrant(grant))
+  }
   match @decode.lookup(packet, "preparation_fence") {
     None =>
       @credential.admit_local_credential_grant_json(wire, cid)

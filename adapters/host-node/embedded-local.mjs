@@ -43,6 +43,8 @@ import {installNodeInferRun} from './installed-infer-run.mjs';
 import {installNodeModelContinuation} from './installed-model-continuation.mjs';
 import {originalModelRunWire} from './installed-model-originals.mjs';
 import {installNodeClientCheck} from './client-check.mjs';
+import {snapshotInstalledCalendar, installedCalendarIdentityCid,
+  installedCalendarSelection, admitInstalledCalendar} from './installed-calendar.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 import {issueInstalledRunControlObservation, issueInstalledRunObservationKey,
   issueInstalledUnpublishedRunState} from
@@ -73,7 +75,8 @@ import {retainInstalledHostInitializationFailure} from
 import {issueInferTrustedRuntimeView, checkInferTrustedRuntimeView,
   forgetInferTrustedRuntimeView, associateInferTrustedStartupView,
   requireInferTrustedStartupView, borrowInferTrustedStartupView,
-  forgetInferTrustedStartupView} from './infer-trusted-runtime-view.mjs';
+  forgetInferTrustedStartupView, bindInferTrustedStore,
+  checkInferTrustedStore} from './infer-trusted-runtime-view.mjs';
 import {composeInstalledCheckEnvironment,
   verifyInstalledConnectorBindings} from
   './installed-check-environment.mjs';
@@ -83,6 +86,7 @@ import {installRunStateAuthority, installRunStateService,
   inspectAuthorizedRunState} from '../host-common/run-state-access.mjs';
 import {runtimeCore} from '../host-common/runtime-core.mjs';
 import {openLocalPublicationStore} from '../store-local/publication-store.mjs';
+import * as publicationStoreModule from '../store-local/publication-store.mjs';
 import {createLocalRetainedStore} from '../store-local/files.mjs';
 import {installLocalRetainedStore, installLocalSnapshotStore} from
   '../local-node/retained-store.mjs';
@@ -163,6 +167,8 @@ async function embeddedInstallationIdentity(root, installation) {
       hostLookupExecutionPolicy: installation.hostLookupExecutionPolicy}),
     ...(installation?.modelInstallation === undefined ? {} : {
       modelEnvironment: installation.modelInstallation}),
+    ...(installation?.calendarArtifact === undefined ? {} : {
+      calendarArtifact: installedCalendarIdentityCid(installation.calendarArtifact)}),
     ...(installation?.resultDataPolicy === undefined ? {} : {
       resultDataPolicy: installation.resultDataPolicy}),
     ...(installation?.retainedRelationOutput === true ? {
@@ -222,7 +228,7 @@ async function openInstalledHost(originalInstallation) {
   let {root, mode = 'local', beforeDispatch, workspaceId,
   authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
   effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
-  modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence, hostCapacityPolicy,
+  modelInstallation, registerModelProviders, calendarArtifact, resultDataPolicy, inferEvidence, hostCapacityPolicy,
   hostLookupExecutionPolicy, verifyRequestValuePolicy,
   retainedRelationOutput = false, valuesMaxRows, observation: observationConnection} = originalInstallation;
   // This is the actual returned Host generation, not a CID/configuration
@@ -233,6 +239,7 @@ async function openInstalledHost(originalInstallation) {
   let modelRuntimeView;
   let modelRuntimeStartupView;
   let modelProviders;
+  let store;
   // Nominal association in this SAME Host, not a capacity pool or Run Owner.
   // A key is an actual Common-issued Scope; its value is retired only after
   // that Scope's original Common cleanup succeeds.
@@ -246,6 +253,12 @@ async function openInstalledHost(originalInstallation) {
     checkInferTrustedRuntimeView(modelRuntimeView, runtimeOriginals());
     if (modelRuntimeStartupView !== undefined) {
       requireInferTrustedStartupView(modelRuntimeStartupView, runtimeOriginals());
+    }
+    if (store !== undefined) {
+      checkInferTrustedStore(modelRuntimeView, runtimeOriginals(), store, publicationStoreModule);
+      // This is the SAME Store's existing lifetime fact, not a caller flag or
+      // native release ACK. Pending close still retains the original duties.
+      if (store.status().closed) throw clientOperationError('InferTrustedStoreClosed');
     }
   }
   function assertNewModelRuntime() {
@@ -392,11 +405,18 @@ async function openInstalledHost(originalInstallation) {
       capacity: {max_graph_construction_edges: 1000,
         max_graph_construction_input_rows: 1000,
         max_graph_construction_nodes: 1000, ...body.host_policy_profile.capacity}};
+    if (calendarArtifact !== undefined) {
+      body.host_policy_profile.calendar = installedCalendarSelection(calendarArtifact);
+    }
     if (hostCapacityPolicy !== undefined) {
       effectiveHostCapacityPolicyCid = contentCid(body.host_policy_profile.capacity);
     }
-    environmentWire = canonicalJson({...body,
-      evidence_bundle_cid: contentCid(body)});
+    // Semantic artifact metadata is exact value data, not NFC configuration
+    // text. Keep the original serialization path when no Calendar is selected.
+    environmentWire = calendarArtifact === undefined
+      ? canonicalJson({...body, evidence_bundle_cid: contentCid(body)})
+      : canonicalValueJson({...body,
+        evidence_bundle_cid: bytesCid(Buffer.from(canonicalValueJson(body), 'utf8'))});
     verifyInstalledConnectorBindings(sourceProfile,
       installedEffect ?? effectInstallation);
   } catch (cause) {
@@ -423,8 +443,11 @@ async function openInstalledHost(originalInstallation) {
     // These declarations admit checking for the installed family providers.
     // The exact task offer and execution obligations still select capability.
     environment = moon.clientProgramCheckEnvironmentWithGraphProfile(
-      environmentWire, evidenceCid, false, true, true, true, true, false,
-      false, numericProfileCid, contentCid(graphLaw));
+      environmentWire, evidenceCid, false, true, true, true, true,
+      calendarArtifact !== undefined, false, numericProfileCid, contentCid(graphLaw));
+    if (environment !== undefined) {
+      environment = admitInstalledCalendar(moon, environment, calendarArtifact);
+    }
     if (environment !== undefined) {
       sourcePublication = sourceAliasPublication(moon, environment,
         sourceProfile?.queryAliases ?? [],
@@ -459,7 +482,6 @@ async function openInstalledHost(originalInstallation) {
   const journalDirectory = join(root, 'requests');
   let journal;
   let effectEvidenceKey;
-  let store;
   let checkpoints;
   let modelController;
   let dispatchOwner;
@@ -535,6 +557,7 @@ async function openInstalledHost(originalInstallation) {
         effectEvidenceKey = await loadPrivateEvidenceKey(keyDirectory);
       }
     }
+    if (modelRuntimeView !== undefined) assertNewModelRuntime();
     store = await openLocalPublicationStore({
       directory: join(root, 'publication'), storeAuthorityCid,
       capacityBytes: 512 * 1024 * 1024,
@@ -543,6 +566,14 @@ async function openInstalledHost(originalInstallation) {
       maxContractDepth: 64,
       privateEvidenceKey: effectInstallation?.privateEvidenceKey ?? effectEvidenceKey?.key,
     }, control);
+    if (modelRuntimeView !== undefined) {
+      // The real factory's result, not a lookup/configuration reconstruction.
+      // Keep the static module and this Store through failed/pending cleanup.
+      // Managed Host controls and original Run Promise/Buffer duties still need
+      // their own coverage; this is not a normal numeric profile or byte grant.
+      bindInferTrustedStore(modelRuntimeView, runtimeOriginals(), store, publicationStoreModule);
+      assertModelRuntime();
+    }
     effectEvidenceKey?.key.fill(0);
   const hostConnection = ({principalId: actual, connection, ref}) =>
     actual === principalId &&
@@ -2967,9 +2998,10 @@ export async function openInstalledRemoteHttpHost({directory,
   sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace,
   loopbackHttp = false,
   resolveSourceSecret, effectProfilePath, effectProfilePaths, resolveEffectSecret,
-  effectInstallation, modelInstallation, registerModelProviders,
+  effectInstallation, modelInstallation, registerModelProviders, calendarArtifact,
   resultDataPolicy, inferEvidence, retainedRelationOutput, hostCapacityPolicy,
   hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation}) {
+  calendarArtifact = snapshotInstalledCalendar(calendarArtifact);
   hostCapacityPolicy = snapshotHostCapacityPolicy(hostCapacityPolicy);
   hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(hostLookupExecutionPolicy);
   if (typeof directory !== 'string' || !directory ||
@@ -2982,7 +3014,7 @@ export async function openInstalledRemoteHttpHost({directory,
     workspaceId,
     beforeDispatch, authorization, connectorTable, sourceProfilePath, sourceProfilePaths, sourceNamespace, sourceSelectorNamespace, resolveSourceSecret,
     effectProfilePath, effectProfilePaths, resolveEffectSecret, effectInstallation,
-    modelInstallation, registerModelProviders, resultDataPolicy, inferEvidence,
+    modelInstallation, registerModelProviders, calendarArtifact, resultDataPolicy, inferEvidence,
     retainedRelationOutput, hostCapacityPolicy, hostLookupExecutionPolicy, verifyRequestValuePolicy, valuesMaxRows, observation});
   const handle = createClientHttpHandler({
     ...host.hostOperations, authenticate, maxRequestBytes: 65536, loopbackHttp,
@@ -3079,11 +3111,12 @@ export async function connectEmbeddedLocal(options) {
   }
   if (installation !== undefined) {
     const {hostCapacityPolicy: selected, hostLookupExecutionPolicy: lookupSelected,
-      valuesMaxRows, ...rest} = installation;
+      calendarArtifact: suppliedCalendar, valuesMaxRows, ...rest} = installation;
     validateValuesMaxRows(valuesMaxRows);
     const hostCapacityPolicy = snapshotHostCapacityPolicy(selected);
     const hostLookupExecutionPolicy = snapshotHostLookupExecutionPolicy(lookupSelected);
-    installation = {...rest, hostCapacityPolicy, hostLookupExecutionPolicy, valuesMaxRows};
+    const calendarArtifact = snapshotInstalledCalendar(suppliedCalendar);
+    installation = {...rest, hostCapacityPolicy, hostLookupExecutionPolicy, calendarArtifact, valuesMaxRows};
     if (installation.effectProfilePaths !== undefined) {
       installation.effectProfilePaths = installedEffectPaths(installation);
     }
@@ -3104,6 +3137,7 @@ export async function connectEmbeddedLocal(options) {
         effectProfilePaths: installation?.effectProfilePaths,
         resolveEffectSecret: installation?.resolveEffectSecret,
         modelInstallation: installation?.modelInstallation,
+        calendarArtifact: installation?.calendarArtifact,
         registerModelProviders: installation?.registerModelProviders,
         verifyRequestValuePolicy: installation?.verifyRequestValuePolicy,
         resultDataPolicy: installation?.resultDataPolicy,
