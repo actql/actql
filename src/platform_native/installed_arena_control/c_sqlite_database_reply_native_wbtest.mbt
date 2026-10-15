@@ -154,3 +154,87 @@ test "bounded scan row preserves exact decomposed key binary body and separate p
   host.close_domain_after_owner_ack(domain).unwrap()
   host.try_close().unwrap()
 }
+
+///|
+test "capacity callbacks preserve original refusal and never supply change or usage facts" {
+  let host = domain_test_host()
+  let other = domain_test_host()
+  let domain = sqlite_test_pending_domain(host)
+  let library = sqlite_test_empty_record(domain)
+  domain.sqlite_library = Some(library)
+  let database = sqlite_test_empty_database(library)
+  library.database = Some(database)
+  for caller in [host, other] {
+    for
+      reply in [
+        reserve_installed_sqlite_capacity_reply(
+          caller, database, "original", "one", 8L, 1L, 64L, 2L,
+        ),
+        observe_installed_sqlite_capacity_reply(caller, database, "original"),
+        release_installed_sqlite_capacity_reply(
+          caller, database, "original", "one", 8L, 1L,
+        ),
+      ] {
+      assert_true(reply.operation_tag() >= 13 && reply.operation_tag() <= 15)
+      assert_eq(reply.stage_tag(), 0)
+      assert_true(reply.issue_family() != 0)
+      assert_eq(reply.capacity_changed(), -1)
+      assert_eq(reply.reserved_bytes(), -1L)
+      assert_eq(reply.reserved_objects(), -1L)
+      assert_eq(reply.has_row(), 0)
+      assert_true(physical_equal(reply.original_host(), host))
+    }
+  }
+  host.close_sqlite_database(database).unwrap()
+  host.close_sqlite_library(library).unwrap()
+  host.close_domain_after_owner_ack(domain).unwrap()
+  host.try_close().unwrap()
+  other.try_close().unwrap()
+}
+
+///|
+test "capacity physical observations distinguish unchanged zero absent and postcheck refusal" {
+  let host = domain_test_host()
+  let domain = sqlite_test_pending_domain(host)
+  let library = sqlite_test_empty_record(domain)
+  domain.sqlite_library = Some(library)
+  let database = sqlite_test_empty_database(library)
+  library.database = Some(database)
+  for
+    value in [
+      CapacityChanged(false),
+      CapacityChanged(true),
+      CapacityUsage(0L, 0L),
+      CapacityUsage(8L, 1L),
+    ] {
+    let reply : InstalledArenaSqliteDatabaseReply = {
+      operation: 14,
+      host,
+      library,
+      original: Some(database),
+      stage: 2,
+      issue: None,
+      after: Some(Domain(@bootstrap.Bootstrap(@bootstrap.Closing))),
+      value: Some(value),
+    }
+    assert_eq(reply.stage_tag(), 2)
+    assert_eq(reply.after_issue_family(), 4)
+    assert_eq(reply.has_row(), 0)
+    match value {
+      CapacityChanged(changed) => {
+        assert_eq(reply.capacity_changed(), if changed { 1 } else { 0 })
+        assert_eq(reply.reserved_bytes(), -1L)
+      }
+      CapacityUsage(bytes, objects) => {
+        assert_eq(reply.capacity_changed(), -1)
+        assert_eq(reply.reserved_bytes(), bytes)
+        assert_eq(reply.reserved_objects(), objects)
+      }
+      _ => fail("unexpected independent capacity fixture")
+    }
+  }
+  host.close_sqlite_database(database).unwrap()
+  host.close_sqlite_library(library).unwrap()
+  host.close_domain_after_owner_ack(domain).unwrap()
+  host.try_close().unwrap()
+}

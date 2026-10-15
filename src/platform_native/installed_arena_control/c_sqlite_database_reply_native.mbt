@@ -7,6 +7,8 @@ priv enum SqliteDatabaseReplyValue {
   // Keep original row fields directly: an extra NativeJournalEntry wrapper
   // would remain live through the same funded post-call current check.
   DatabaseRow(String, Int64, Bytes)
+  CapacityChanged(Bool)
+  CapacityUsage(Int64, Int64)
 }
 
 ///|
@@ -271,6 +273,84 @@ pub fn transaction_installed_sqlite_database_reply(
 }
 
 ///|
+/// Only the original caller transaction changes physical reservation rows.
+/// These amounts are trusted Host DATA, not a Resource grant or commit ACK.
+pub fn reserve_installed_sqlite_capacity_reply(
+  host : InstalledArenaHost,
+  original : InstalledArenaSqliteDatabase,
+  scope : String,
+  key : String,
+  bytes : Int64,
+  objects : Int64,
+  max_bytes : Int64,
+  max_objects : Int64,
+) -> InstalledArenaSqliteDatabaseReply {
+  sqlite_database_call_reply(13, host, original, database => {
+    if database.transaction_fenced() {
+      return Err(
+        @sqlite.Physical("original SQLite transaction remains unconfirmed"),
+      )
+    }
+    match
+      database.reserve_capacity_in_transaction(
+        scope, key, bytes, objects, max_bytes, max_objects,
+      ) {
+      Ok(changed) => Ok(CapacityChanged(changed))
+      Err(issue) => Err(issue)
+    }
+  })
+}
+
+///|
+pub fn observe_installed_sqlite_capacity_reply(
+  host : InstalledArenaHost,
+  original : InstalledArenaSqliteDatabase,
+  scope : String,
+) -> InstalledArenaSqliteDatabaseReply {
+  sqlite_database_call_reply(14, host, original, database => {
+    if database.transaction_fenced() {
+      match database.transaction_state() {
+        Ok(@sqlite.NoActiveSqliteTransaction) => ()
+        Ok(@sqlite.ActiveSqliteTransaction) =>
+          return Err(
+            @sqlite.Physical("original SQLite transaction remains unconfirmed"),
+          )
+        Err(issue) => return Err(issue)
+      }
+    }
+    match database.capacity_usage(scope) {
+      Ok(value) =>
+        Ok(CapacityUsage(value.reserved_bytes, value.reserved_objects))
+      Err(issue) => Err(issue)
+    }
+  })
+}
+
+///|
+/// Physical row release only. The existing caller must already hold the
+/// independent original cleanup ACK; a successful SQL result supplies none.
+pub fn release_installed_sqlite_capacity_reply(
+  host : InstalledArenaHost,
+  original : InstalledArenaSqliteDatabase,
+  scope : String,
+  key : String,
+  bytes : Int64,
+  objects : Int64,
+) -> InstalledArenaSqliteDatabaseReply {
+  sqlite_database_call_reply(15, host, original, database => {
+    if database.transaction_fenced() {
+      return Err(
+        @sqlite.Physical("original SQLite transaction remains unconfirmed"),
+      )
+    }
+    match database.release_capacity_in_transaction(scope, key, bytes, objects) {
+      Ok(changed) => Ok(CapacityChanged(changed))
+      Err(issue) => Err(issue)
+    }
+  })
+}
+
+///|
 pub fn close_installed_sqlite_database_reply(
   host : InstalledArenaHost,
   original : InstalledArenaSqliteDatabase,
@@ -404,5 +484,37 @@ pub fn InstalledArenaSqliteDatabaseReply::row_key_bytes(
   match self.value {
     Some(DatabaseRow(key, _, _)) => @utf8.encode(key)
     _ => b""
+  }
+}
+
+///|
+/// -1 means this exact reply contains no reservation-change observation.
+pub fn InstalledArenaSqliteDatabaseReply::capacity_changed(
+  self : InstalledArenaSqliteDatabaseReply,
+) -> Int {
+  match self.value {
+    Some(CapacityChanged(true)) => 1
+    Some(CapacityChanged(false)) => 0
+    _ => -1
+  }
+}
+
+///|
+pub fn InstalledArenaSqliteDatabaseReply::reserved_bytes(
+  self : InstalledArenaSqliteDatabaseReply,
+) -> Int64 {
+  match self.value {
+    Some(CapacityUsage(bytes, _)) => bytes
+    _ => -1L
+  }
+}
+
+///|
+pub fn InstalledArenaSqliteDatabaseReply::reserved_objects(
+  self : InstalledArenaSqliteDatabaseReply,
+) -> Int64 {
+  match self.value {
+    Some(CapacityUsage(_, objects)) => objects
+    _ => -1L
   }
 }

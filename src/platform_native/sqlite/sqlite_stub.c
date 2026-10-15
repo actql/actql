@@ -1721,19 +1721,26 @@ int32_t actql_native_sqlite_database_reserve_capacity(
   return owns_transaction ? actql_capacity_commit(database) : 0;
 }
 
-int32_t actql_native_sqlite_database_release_capacity(
+static int32_t actql_database_release_capacity(
   actql_native_sqlite_database *database,
   moonbit_bytes_t namespace_bytes,
   int32_t namespace_length,
   moonbit_bytes_t key,
   int32_t key_length,
   int64_t reserved_bytes,
-  int64_t reserved_objects
+  int64_t reserved_objects,
+  bool caller_transaction
 ) {
   if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
   actql_clear_result(database);
   if (reserved_bytes < 0 || reserved_objects < 0) return 2;
-  int32_t result = actql_capacity_begin(database);
+  const bool owns_transaction = !caller_transaction;
+  if (caller_transaction && database->library->get_autocommit(database->database) != 0) {
+    actql_replace_error_for(database->library, &database->error, database->diagnostic_ceiling,
+      "capacity release requires an active transaction");
+    return -1;
+  }
+  int32_t result = owns_transaction ? actql_capacity_begin(database) : 0;
   if (result != 0) return result;
   int64_t existing_bytes = 0;
   int64_t existing_objects = 0;
@@ -1747,12 +1754,12 @@ int32_t actql_native_sqlite_database_release_capacity(
     &existing_objects
   );
   if (result == 1) {
-    result = actql_capacity_commit(database);
+    result = owns_transaction ? actql_capacity_commit(database) : 0;
     return result == 0 ? 7 : result;
   }
   if (result != 0 || existing_bytes != reserved_bytes ||
       existing_objects != reserved_objects) {
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return result == 0 ? 2 : result;
   }
   sqlite3_stmt *statement = NULL;
@@ -1766,7 +1773,7 @@ int32_t actql_native_sqlite_database_release_capacity(
   );
   if (code != SQLITE_OK) {
     actql_database_error(database, "prepare capacity release failed");
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return actql_operation_code(code);
   }
   result = actql_bind_key(
@@ -1795,10 +1802,26 @@ int32_t actql_native_sqlite_database_release_capacity(
     result = actql_operation_code(finalize_code);
   }
   if (result != 0) {
-    actql_capacity_rollback(database);
+    if (owns_transaction) actql_capacity_rollback(database);
     return result;
   }
-  return actql_capacity_commit(database);
+  return owns_transaction ? actql_capacity_commit(database) : 0;
+}
+
+int32_t actql_native_sqlite_database_release_capacity(
+  actql_native_sqlite_database *database, moonbit_bytes_t scope, int32_t scope_length,
+  moonbit_bytes_t key, int32_t key_length, int64_t bytes, int64_t objects
+) {
+  return actql_database_release_capacity(database, scope, scope_length, key, key_length,
+    bytes, objects, false);
+}
+
+int32_t actql_native_sqlite_database_release_capacity_in_transaction(
+  actql_native_sqlite_database *database, moonbit_bytes_t scope, int32_t scope_length,
+  moonbit_bytes_t key, int32_t key_length, int64_t bytes, int64_t objects
+) {
+  return actql_database_release_capacity(database, scope, scope_length, key, key_length,
+    bytes, objects, true);
 }
 
 // Original-claim observation only: no BEGIN/COMMIT, INSERT, reservation or

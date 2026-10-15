@@ -31,6 +31,7 @@ pub fn Database::lookup_claim_ordinal(Self, String, String) -> Result[Int64?, Na
 pub fn Database::read(Self, String, String) -> Result[NativeJournalValue, NativeSqliteIssue]
 pub fn Database::read_with_body_limit(Self, String, String, Int64) -> Result[NativeJournalValue, NativeSqliteIssue]
 pub fn Database::release_capacity(Self, String, String, Int64, Int64) -> Result[Bool, NativeSqliteIssue]
+pub fn Database::release_capacity_in_transaction(Self, String, String, Int64, Int64) -> Result[Bool, NativeSqliteIssue]
 pub fn Database::remove_exact(Self, String, String, Int64, Bytes) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::reserve_capacity(Self, String, String, Int64, Int64, Int64, Int64) -> Result[Bool, NativeSqliteIssue]
 pub fn Database::reserve_capacity_in_transaction(Self, String, String, Int64, Int64, Int64, Int64) -> Result[Bool, NativeSqliteIssue]

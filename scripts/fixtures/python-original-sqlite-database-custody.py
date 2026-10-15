@@ -20,7 +20,7 @@ from actql_sdk._local_worker_slot import _OriginalDescriptor
 
 plan = json.loads(Path(sys.argv[1]).read_bytes())
 case = sys.argv[2]
-assert case in ('rows-and-cas', 'restore-same-file', 'lost-commit', 'lost-begin', 'partial-open', 'scan-order-and-bounds', 'scan-copy-current')
+assert case in ('rows-and-cas', 'restore-same-file', 'lost-commit', 'lost-begin', 'partial-open', 'scan-order-and-bounds', 'scan-copy-current', 'capacity-same-transaction', 'capacity-lost-commit')
 for item in plan['files']:
     raw = Path(item['path']).read_bytes()
     assert len(raw) == item['bytes'] and hashlib.sha256(raw).hexdigest() == item['sha256'], item['path']
@@ -106,6 +106,64 @@ if case == 'rows-and-cas':
 elif case == 'restore-same-file':
     row('e\u0301/😀', b'updated'); row('empty', b'')
     assert transactions == []
+elif case in ('capacity-same-transaction', 'capacity-lost-commit'):
+    def usage(expected_bytes, expected_objects, *, unconfirmed=False):
+        fact=(db.lookup_unconfirmed_capacity_usage if unconfirmed else db.capacity_usage)('capacity/原')
+        assert (fact.reserved_bytes,fact.reserved_objects)==(expected_bytes,expected_objects),fact
+        observations.append({'reserved_bytes':fact.reserved_bytes,'reserved_objects':fact.reserved_objects})
+    def refuse(action, family):
+        try: action()
+        except _OriginalDatabaseError as error:
+            assert not error.unknown and error.fact.issue_family==family,error.fact
+        else: raise AssertionError('Original capacity refusal was lost')
+    usage(0,0)
+    refuse(lambda:db.reserve_capacity_in_transaction('capacity/原','e\u0301',8,1,64,2),20)
+    refuse(lambda:db.release_capacity_in_transaction('capacity/原','e\u0301',8,1),20)
+    db.transaction(7)
+    assert db.reserve_capacity_in_transaction('capacity/原','e\u0301',8,1,64,2).capacity_changed is True
+    assert db.reserve_capacity_in_transaction('capacity/原','e\u0301',8,1,64,2).capacity_changed is False
+    refuse(lambda:db.reserve_capacity_in_transaction('capacity/原','other',60,1,64,2),19)
+    db.insert('sdk/原','capacity-row',b'private')
+    usage(8,1)
+    db.transaction(9)
+    usage(0,0)
+    refuse(lambda:db.read_into('sdk/原','capacity-row',bytearray(4096)),15)
+    db.transaction(7)
+    assert db.reserve_capacity_in_transaction('capacity/原','e\u0301',8,1,64,2).capacity_changed is True
+    db.insert('sdk/原','capacity-row',b'committed')
+    if case=='capacity-lost-commit':
+        def lost_commit(host_slot, original, operation, reply):
+            code=transaction(host_slot,original,operation,reply)
+            assert operation==8 and code==0 and reply._obj.value is not None
+            raise OSError('Injected after original capacity+row COMMIT publication')
+        database.calls['transaction_into']=lost_commit
+        try:db.transaction(8)
+        except _OriginalDatabaseError as error:
+            original_error=error;assert error.unknown
+        else:raise AssertionError('Lost original capacity COMMIT accepted')
+        usage(8,1,unconfirmed=True)
+        row('capacity-row',b'committed',unconfirmed=True)
+        usage(8,1,unconfirmed=True)
+        for action in (lambda:db.transaction(8),lambda:db.reserve_capacity_in_transaction('capacity/原','other',1,0,64,2),lambda:db.release_capacity_in_transaction('capacity/原','e\u0301',8,1)):
+            try:action()
+            except _OriginalDatabaseError as error:assert error is original_error
+            else:raise AssertionError('Unknown capacity operation was replayed')
+        assert transactions.count(8)==1 and db._write_unknown is original_error
+    else:
+        db.transaction(8);usage(8,1)
+        db.transaction(7)
+        refuse(lambda:db.release_capacity_in_transaction('capacity/原','e\u0301',9,1),16)
+        assert db.release_capacity_in_transaction('capacity/原','e\u0301',8,1).capacity_changed is True
+        assert db.compare_exchange('sdk/原','capacity-row',0,b'private-retirement').revision==1
+        usage(0,0);db.transaction(9)
+        usage(8,1);row('capacity-row',b'committed')
+        db.transaction(7)
+        assert db.release_capacity_in_transaction('capacity/原','e\u0301',8,1).capacity_changed is True
+        assert db.compare_exchange('sdk/原','capacity-row',0,b'retired').revision==1
+        db.transaction(8);usage(0,0);row('capacity-row',b'retired')
+        db.transaction(7)
+        assert db.release_capacity_in_transaction('capacity/原','e\u0301',8,1).capacity_changed is False
+        db.transaction(9)
 elif case in ('scan-order-and-bounds', 'scan-copy-current'):
     db.transaction(7)
     for key, body in [('A', b'large'), ('e\u0301/😀', b''), ('é', b'\0\xff')]:
