@@ -55,7 +55,8 @@ export async function hostCompletionBoundary({runInstalledStrategy: run}) {
         'Host registration: equal names do not confer an opaque registration');
       assert.equal(result.status, 'host-tasks-failed');
       assert.equal(result.failure.code, kind === 'foreign-registration'
-        ? 'MissingStrategyImplementation' : 'TaskNotCompleted');
+        ? 'MissingStrategyImplementation' : 'TaskNotCompleted',
+      'Host completion: preserve the first typed ownership/completion refusal');
     } finally { await result.close(); }
   }
 }

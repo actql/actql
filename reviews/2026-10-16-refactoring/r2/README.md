@@ -50,6 +50,9 @@ failed COMMIT, bypassed Host authorization and an omitted preflight custody
 handoff each fail their intended assertion. Synthetic manifest/API/adapter
 mutations remain in the ordinary policy tests because they describe stable
 architectural edges rather than implementation patch locations.
+The opaque-registration probe checks equal names cannot dispatch. The Common
+completion probe checks the first typed refusal: a later output guard still
+rejects the mutated case, so it is not evidence that the mutation published.
 
 ## Reproduction
 

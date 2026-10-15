@@ -49,7 +49,7 @@ test('direct and hidden transitive forbidden dependencies fail the policy assert
 
 test('opaque API and provider leakage mutations fail their own assertions', () => {
   assertOpaqueHandles('type Ledger\n', ['Ledger']);
-  assert.throws(() => assertOpaqueHandles('type Ledger\npub(all) struct Ledger { value : Int }\n', ['Ledger']),
+  assert.throws(() => assertOpaqueHandles('pub(all) struct Ledger { value : Int }\n', ['Ledger']),
     intended(/Public representation: Ledger/u));
   assert.throws(() => assertPublicBoundary('common', 'pub fn sql() -> DuckDBQuery', /DuckDB/u),
     intended(/Public responsibility leak: common/u));

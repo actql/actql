@@ -22,10 +22,10 @@ export function assertProductionImports(name, source, forbidden) {
 
 export function assertOpaqueHandles(api, handles) {
   for (const handle of handles) {
-    assert.match(api, new RegExp(`^type ${handle}(?:\\[[^\\n]*\\])?$`, 'm'),
-      `Missing opaque handle: ${handle}`);
     assert.doesNotMatch(api, new RegExp(`(?:struct|enum) ${handle}\\b`),
       `Public representation: ${handle}`);
+    assert.match(api, new RegExp(`^type ${handle}(?:\\[[^\\n]*\\])?$`, 'm'),
+      `Missing opaque handle: ${handle}`);
   }
 }
 

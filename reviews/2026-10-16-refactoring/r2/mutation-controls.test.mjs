@@ -75,10 +75,10 @@ test('dropping the Host preflight custody handoff fails its unchanged boundary o
   await assert.rejects(hostPreflightCustodyBoundary(copy), intended(/preflight custody: transfer the exact/u));
 });
 
-test('accepting callback success without Common completion fails the unchanged publication oracle', async () => {
+test('bypassing the first Common completion guard fails the typed refusal oracle', async () => {
   const copy = await moduleCopy('../adapters/host-common/strategy.mjs', source => replace(source,
     'core.completed(setup, index)', 'true'));
-  await assert.rejects(hostCompletionBoundary(copy), intended(/Host completion: callback success/u));
+  await assert.rejects(hostCompletionBoundary(copy), intended(/Host completion: preserve the first typed/u));
 });
 
 test('choosing a registration by position fails the unchanged opaque identity oracle', async () => {
