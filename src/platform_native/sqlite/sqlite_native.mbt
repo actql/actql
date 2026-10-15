@@ -45,6 +45,14 @@ extern "C" fn library_error_ffi(library : Library) -> Bytes = "actql_native_sqli
 extern "C" fn library_version_ffi(library : Library) -> Bytes = "actql_native_sqlite_library_version"
 
 ///|
+#borrow(library)
+extern "C" fn library_diagnostic_ceiling_ffi(library : Library) -> Int = "actql_native_sqlite_library_diagnostic_ceiling"
+
+///|
+#borrow(database)
+extern "C" fn database_diagnostic_ceiling_ffi(database : Database) -> Int = "actql_native_sqlite_database_diagnostic_ceiling"
+
+///|
 #borrow(library, path)
 extern "C" fn open_database_ffi(
   library : Library,
@@ -181,6 +189,10 @@ extern "C" fn database_remove_exact_ffi(
 ///|
 #borrow(database)
 extern "C" fn database_begin_immediate_ffi(database : Database) -> Int = "actql_native_sqlite_database_begin_immediate"
+
+///|
+#borrow(database)
+extern "C" fn database_transaction_state_ffi(database : Database) -> Int = "actql_native_sqlite_database_transaction_state"
 
 ///|
 #borrow(database)
@@ -424,6 +436,33 @@ pub fn Library::version(self : Library) -> String {
 }
 
 ///|
+/// Immutable metadata of this original physical Library, not a current,
+/// reservation or read grant. None preserves legacy unbounded/unavailable
+/// diagnostics; it must not be converted to a zero-byte funded bound. Closing
+/// does not reissue or change the original selection.
+pub fn Library::diagnostic_ceiling(self : Library) -> Int? {
+  let original = library_diagnostic_ceiling_ffi(self)
+  if original > 0 {
+    Some(original)
+  } else {
+    None
+  }
+}
+
+///|
+/// This Database retained its own original Library selection at creation.
+/// Projection performs no SQL, reconfiguration or current check; it issues no
+/// capacity. Callers still require the existing current and scoped read Owners.
+pub fn Database::diagnostic_ceiling(self : Database) -> Int? {
+  let original = database_diagnostic_ceiling_ffi(self)
+  if original > 0 {
+    Some(original)
+  } else {
+    None
+  }
+}
+
+///|
 pub fn Library::open_database(
   self : Library,
   path : String,
@@ -550,6 +589,32 @@ pub fn Library::initialize_owned_database(
   } else {
     Err(DatabaseOpen(decode_diagnostic(database_error_ffi(database))))
   }
+}
+
+///|
+/// The same exclusive-file initialization with original failed-open custody.
+/// It neither creates a missing file nor repairs a retained schema. A caller
+/// must keep its original durable initialization intent and file Owner.
+pub fn Library::initialize_owned_database_with_custody(
+  self : Library,
+  path : String,
+  ownership : @filesystem.NativeFileOwnership,
+  max_body_bytes : Int64,
+) -> Result[Database, NativeSqliteOpenFailure] {
+  if max_body_bytes < 0L {
+    return Err({ original_issue: InvalidLimit, database: None, })
+  }
+  let encoded = @utf8.encode(path)
+  sqlite_open_result_with_custody(
+    initialize_owned_database_ffi(
+      self,
+      encoded,
+      encoded.length(),
+      ownership.device,
+      ownership.inode,
+      max_body_bytes,
+    ),
+  )
 }
 
 ///|
@@ -859,6 +924,17 @@ pub fn Database::fence_transactions(self : Database) -> Unit {
 ///|
 pub fn Database::transaction_fenced(self : Database) -> Bool {
   database_transaction_fenced_ffi(self)
+}
+
+///|
+pub fn Database::transaction_state(
+  self : Database,
+) -> Result[NativeSqliteTransactionState, NativeSqliteIssue] {
+  match database_transaction_state_ffi(self) {
+    0 => Ok(NoActiveSqliteTransaction)
+    1 => Ok(ActiveSqliteTransaction)
+    _ => Err(DatabaseClosed)
+  }
 }
 
 ///|

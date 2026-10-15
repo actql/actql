@@ -13,6 +13,7 @@ struct InstalledArenaSqliteLibrary {
   domain : InstalledArenaDomain
   mut library : @sqlite.Library?
   mut failure : @sqlite.NativeSqliteLibraryLoadFailure?
+  mut database : InstalledArenaSqliteDatabase?
   mut failed : Bool
   mut scope_open : Bool
   mut closed : Bool
@@ -71,6 +72,7 @@ pub fn InstalledArenaHost::prepare_sqlite_library(
     domain,
     library: None,
     failure: None,
+    database: None,
     failed: false,
     scope_open: false,
     closed: false,
@@ -158,6 +160,11 @@ pub fn InstalledArenaHost::close_sqlite_library(
   if record.closed {
     return Ok(())
   }
+  // A live or failed-open Database retains this exact Library. Do not stop
+  // its Common read use merely because a parent close was requested.
+  if record.database is Some(original) && !original.closed {
+    return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
+  }
   if record.scope_open {
     match self.leave_domain_read(record.domain) {
       Err(issue) => return Err(Domain(issue))
@@ -165,6 +172,7 @@ pub fn InstalledArenaHost::close_sqlite_library(
     }
   }
   if record.library is None && record.failure is None {
+    record.database = None
     record.closed = true
     return Ok(())
   }
@@ -205,6 +213,7 @@ pub fn InstalledArenaHost::close_sqlite_library(
   match leave {
     Err(issue) => Err(Domain(issue))
     Ok(_) => {
+      record.database = None
       record.closed = true
       Ok(())
     }
