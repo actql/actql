@@ -17,7 +17,7 @@ test "selected normalize_graph copies a keyed Graph in bounded steps and keeps i
       limits.guards,
     ).unwrap(),
   )
-  let construction = @local_connector.start_managed_provider_with_inputs(
+  let construction = @local_connector.start_managed_provider_with_inputs_and_execution(
     create,
     construction_step,
     keyed_bridge_inputs(owner, nodes, edges).map(
@@ -25,6 +25,7 @@ test "selected normalize_graph copies a keyed Graph in bounded steps and keeps i
     ),
     10,
     1000,
+    limits.local_execution,
   ).unwrap()
   let mut original = None
   for _ in 0..<1000 {
@@ -60,12 +61,13 @@ test "selected normalize_graph copies a keyed Graph in bounded steps and keeps i
   let view = @carrier_runtime.material_prepare_view(
     original, receiver, 0, owner,
   ).unwrap()
-  let run = @local_connector.start_managed_provider_with_inputs(
+  let run = @local_connector.start_managed_provider_with_inputs_and_execution(
     provider,
     selected,
     [@local_connector.managed_provider_carrier_input(view)],
     10,
     1000,
+    limits.local_execution,
   ).unwrap()
   let mut normalized = None
   let mut advances = 0
@@ -114,12 +116,13 @@ test "selected normalize_graph copies a keyed Graph in bounded steps and keeps i
   let cancel_view = @carrier_runtime.material_prepare_view(
     original, receiver, 0, owner,
   ).unwrap()
-  let cancelling = @local_connector.start_managed_provider_with_inputs(
+  let cancelling = @local_connector.start_managed_provider_with_inputs_and_execution(
     provider,
     selected,
     [@local_connector.managed_provider_carrier_input(cancel_view)],
     10,
     1000,
+    limits.local_execution,
   ).unwrap()
   let mut partial_output = false
   for _ in 0..<1000 {
@@ -319,7 +322,7 @@ test "current Graph material remains owned across two MATCH consumers cancellati
       dispatch_test_limits().guards,
     ).unwrap(),
   )
-  let construction = @local_connector.start_managed_provider_with_inputs(
+  let construction = @local_connector.start_managed_provider_with_inputs_and_execution(
     provider,
     generated,
     keyed_bridge_inputs(owner, nodes, edges).map(
@@ -327,6 +330,7 @@ test "current Graph material remains owned across two MATCH consumers cancellati
     ),
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut material = None
   for _ in 0..<1000 {
@@ -378,12 +382,13 @@ test "current Graph material remains owned across two MATCH consumers cancellati
     assert_true(
       @local_connector.managed_provider_accepts(selected_provider, selected),
     )
-    @local_connector.start_managed_provider_with_inputs(
+    @local_connector.start_managed_provider_with_inputs_and_execution(
       selected_provider,
       selected,
       [@local_connector.managed_provider_carrier_input(view)],
       10,
       1000,
+      dispatch_test_limits().local_execution,
     ).unwrap()
   }
   let first_run = start(first, first_view)
@@ -483,7 +488,7 @@ test "provider scratch cleanup preserves the transferred snapshot generation" {
       workspace_bytes: 1000000L,
     }),
   )
-  let construction = @local_connector.start_managed_provider_with_inputs(
+  let construction = @local_connector.start_managed_provider_with_inputs_and_execution(
     provider,
     generated,
     keyed_bridge_inputs(owner, nodes, edges).map(
@@ -491,6 +496,7 @@ test "provider scratch cleanup preserves the transferred snapshot generation" {
     ),
     10,
     1000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let mut material = None
   for _ in 0..<1000 {
