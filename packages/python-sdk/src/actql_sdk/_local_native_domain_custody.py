@@ -104,7 +104,7 @@ class _OriginalDomainCustody:
     scope remain separately caller-owned; closing this data never retires them.
     """
     __slots__ = ('_owner', '_scope', '_descriptor', '_functions', '_host', '_domain',
-                 '_reply', '_unknown', '_unknown_carrier', '_closed', '_live_channel_original', '_worker_process_original')
+                 '_reply', '_unknown', '_unknown_carrier', '_closed', '_live_channel_original', '_worker_process_original', '_sqlite_library_original')
     _owner: _OriginalControlCustody
     _scope: _OriginalBackingCustody
     _descriptor: _OriginalDescriptor
@@ -117,6 +117,7 @@ class _OriginalDomainCustody:
     _closed: bool
     _live_channel_original: object | None
     _worker_process_original: object | None
+    _sqlite_library_original: object | None
 
     @classmethod
     def _prepare_original(cls, owner: _OriginalControlCustody,
@@ -144,6 +145,7 @@ class _OriginalDomainCustody:
         domain._unknown, domain._closed = None, False
         domain._live_channel_original = None
         domain._worker_process_original = None
+        domain._sqlite_library_original = None
         domain._unknown_carrier = _OriginalDomainError(domain, unknown=True)
         owner._enter()
         if owner._closed or owner._original.value is None:
@@ -323,6 +325,10 @@ class _OriginalDomainCustody:
         """Trusted caller after same scoped stop/borrower retirement; no stop here."""
         if self._unknown is not None:
             raise self._unknown
+        if self._sqlite_library_original is not None:
+            from ._local_native_sqlite import _RETIRED_SQLITE_DATA
+            if self._sqlite_library_original is not _RETIRED_SQLITE_DATA:
+                raise ValueError('Original SQLite Library still has cleanup or reply custody')
         process = self._worker_process_original
         if process is not None:
             from ._local_worker_process import OriginalWorkerProcess
@@ -337,6 +343,7 @@ class _OriginalDomainCustody:
             return
         self._call(6)
         self._worker_process_original = None
+        self._sqlite_library_original = None
 
 
     def _prepare_read_context(self, functions: _OriginalDomainReadFunctions) -> None:

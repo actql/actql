@@ -187,10 +187,6 @@ static void actql_replace_error_for(
   *target = copy;
 }
 
-static inline void actql_replace_error(char **target, int32_t ceiling, const char *message) {
-  actql_replace_error_for(NULL, target, ceiling, message);
-}
-
 static char *actql_copy_text_for(actql_native_sqlite_library *library, moonbit_bytes_t bytes, int32_t length) {
   if (length < 0) return NULL;
   char *text = actql_adapter_allocate(library, (size_t)length + 1);
