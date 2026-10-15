@@ -556,7 +556,7 @@ test "cancelling pending intermediate cleanup preserves reclamation custody" {
 }
 
 ///|
-test "unaudited chain steps keep conservative capacity and child custody" {
+test "audited prefix releases scratch before conservative child custody" {
   let (sequence, read, source) = chain_lifetime_fixture(
     "[{\"from\":\"source\",\"select\":[\"id\"],\"as\":\"first\"},{\"from\":\"first\",\"intersect\":{\"with\":\"first\",\"duplicates\":\"all\"},\"as\":\"out\"}]",
   )
@@ -565,17 +565,21 @@ test "unaudited chain steps keep conservative capacity and child custody" {
   let measure = chain_lifetime_measurement()
   let capacity = bounded_relation_chain_capacity(sequence, limits, measure, []).unwrap()
   let count = @execution.generated_sequence_step_count(sequence)
-  // Existing parent handles plus the two fixed metadata preparation handles.
+  assert_eq(relation_chain_reclaimed_prefix(sequence), 1)
+  // The first SELECT is reclaimed before the unaudited Set starts. Both
+  // accepted outputs remain retained; only one execution scratch is live.
   let mut overlap = count.to_int64() * 256L + 512L
+  let mut peak = 0L
   for index in 0..<count {
     let step = @execution.generated_sequence_step_index_at(sequence, index).unwrap()
     let selected = @execution.select_generated_sequence_step(sequence, step).unwrap()
     let child = @execution.generated_sequence_capacity(
       selected, limits, measure,
     ).unwrap()
-    overlap += child.retained_bytes + child.execution_bytes
+    overlap += child.retained_bytes
+    peak = Int64::max(peak, child.execution_bytes)
   }
-  assert_eq(capacity.execution_bytes, overlap)
+  assert_eq(capacity.execution_bytes, overlap + peak)
   let (active, state) = chain_lifetime_start(sequence, read)
   let mut result = None
   for _ in 0..<100000 {
@@ -588,12 +592,12 @@ test "unaudited chain steps keep conservative capacity and child custody" {
       _ => fail("conservative set chain did not complete")
     }
     if state.pending {
-      assert_eq(state.children.length(), state.position)
+      assert_eq(state.children.length(), 0)
       assert_false(state.reclaiming)
     }
   }
   assert_eq(@execution.completed_row_count(result.unwrap()), 3)
-  assert_eq(state.children.length(), count)
+  assert_eq(state.children.length(), count - 1)
   assert_true(cleanup_managed_provider(active).unwrap())
   assert_true(state.children.is_empty())
   assert_true(@execution.completed_output_available(source))

@@ -21,6 +21,7 @@ if (mode === 'final') args.splice(4, 1,
 if (mode === 'pipeline' || mode === 'final') args.push(
   'src/execution_relation/temporal_append_projection_wbtest.mbt',
   'src/execution_relation/append_rows_wbtest.mbt');
+if (mode === 'ledger') args.push('src/connectors/local/relation_chain_lifetime_wbtest.mbt');
 const code = `import {runFocusedTests} from './scripts/test-execution.mjs';process.exitCode=runFocusedTests('moon',${JSON.stringify(args)},{cwd:process.cwd(),timeout:240000});`;
 const planArgs = process.argv.slice(4);
 if (mode === 'plan') assert.equal(planArgs.length, 3);
