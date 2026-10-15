@@ -16,6 +16,7 @@ const view = issueInferTrustedRuntimeView(actual);
 const mode = process.argv[2];
 const rejects = (run, code) => assert.throws(run, error => error.code === code);
 if (mode === 'absent' || mode === 'promise-unselected' || mode === 'string-unselected' ||
+    mode === 'codepoint-unselected' ||
     mode === 'iterator-unselected') {
   assert.equal(associateInferTrustedStartupView(view, actual), undefined);
   rejects(() => requireInferTrustedStartupView(view, actual), 'InferTrustedStartupUnavailable');
@@ -37,6 +38,22 @@ if (mode === 'absent' || mode === 'promise-unselected' || mode === 'string-unsel
       assert.notEqual(String.prototype.charCodeAt, original);
       assert.equal('雪'.charCodeAt(0), 0x96ea);
     } finally { String.prototype.charCodeAt = original; }
+  }
+  if (mode === 'codepoint-unselected') {
+    const constructor = globalThis.String;
+    const original = constructor.fromCodePoint;
+    assert.equal(Object.getOwnPropertyDescriptor(globalThis, 'String').writable, true);
+    assert.equal(Object.getOwnPropertyDescriptor(constructor, 'fromCodePoint').writable, true);
+    try {
+      constructor.fromCodePoint = (...points) => original(...points);
+      assert.notEqual(constructor.fromCodePoint, original);
+      assert.equal(constructor.fromCodePoint(0x96ea), '雪');
+      globalThis.String = function SelectedReplacement() {};
+      assert.notStrictEqual(globalThis.String, constructor);
+    } finally {
+      globalThis.String = constructor;
+      constructor.fromCodePoint = original;
+    }
   }
   if (mode === 'iterator-unselected') {
     const make = Readable.prototype[Symbol.asyncIterator];
@@ -210,6 +227,26 @@ if (mode === 'absent' || mode === 'promise-unselected' || mode === 'string-unsel
     forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
     assert.equal(Object.getOwnPropertyDescriptor(prototype, 'next').writable, false,
       'Host-reference retirement is not generator/process retirement');
+  } else if (mode === 'builder-codepoint-originals') {
+    const constructor = globalThis.String;
+    const original = constructor.fromCodePoint;
+    for (const [owner, name] of [[globalThis, 'String'], [constructor, 'fromCodePoint']]) {
+      const descriptor = Object.getOwnPropertyDescriptor(owner, name);
+      assert.equal(descriptor.writable, false);
+      assert.equal(descriptor.configurable, false);
+      assert.throws(() => { owner[name] = function ForeignPrimitive() {}; }, TypeError);
+      assert.throws(() => Object.defineProperty(owner, name, {get: () => original}), TypeError);
+    }
+    // Actual code-point semantics, not a heap/single-character-cache/GC proof.
+    assert.equal(constructor.fromCodePoint(0, 0x61, 0x301, 0x96ea, 0x1f600), '\0a\u0301雪😀');
+    assert.throws(() => constructor.fromCodePoint(0x110000), RangeError);
+    requireInferTrustedStartupView(view, actual);
+    forgetInferTrustedStartupView(view, actual.host, actual.generation);
+    forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
+    assert.strictEqual(globalThis.String, constructor);
+    assert.strictEqual(constructor.fromCodePoint, original);
+    assert.equal(Object.getOwnPropertyDescriptor(constructor, 'fromCodePoint').writable, false,
+      'Retiring a Host view does not retire the selected runtime originals');
   } else if (mode === 'read-string-charcode') {
     // The actual emitted Common String.unsafe_char_at/UTF16 read uses this
     // intrinsic method. This is primitive identity, not a heap/GC bound or
