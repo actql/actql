@@ -29,6 +29,10 @@ class _OriginalDatabaseFact:
     capacity_changed: bool | None = None
     reserved_bytes: int | None = None
     reserved_objects: int | None = None
+    record_count: int | None = None
+    record_body_bytes: int | None = None
+    reservation_count: int | None = None
+    transaction_active: bool | None = None
 
 
 class _OriginalDatabaseError(RuntimeError):
@@ -60,6 +64,13 @@ class _OriginalDatabaseFunctions:
             'capacity_reserve_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, c_int64, c_int64, c_int64, pp], c_int),
             'capacity_usage_utf16_into': ([p, p, text, c_int32, pp], c_int),
             'capacity_release_utf16_into': ([p, p, text, c_int32, text, c_int32, c_int64, c_int64, pp], c_int),
+            'capacity_read_utf16_into': ([p, p, text, c_int32, text, c_int32, pp], c_int),
+            'database_usage_into': ([p, p, pp], c_int),
+            'transaction_state_into': ([p, p, pp], c_int),
+            'record_count': ([p], c_int64),
+            'record_body_bytes': ([p], c_int64),
+            'reservation_count': ([p], c_int64),
+            'transaction_active': ([p], c_int32),
             'capacity_changed': ([p], c_int32),
             'reserved_bytes': ([p], c_int64),
             'reserved_objects': ([p], c_int64),
@@ -245,7 +256,7 @@ class _OriginalDatabaseCustody:
         changed: bool | None = None
         reserved_bytes: int | None = None
         reserved_objects: int | None = None
-        if actual in (13, 14, 15):
+        if actual in (13, 14, 15, 16):
             capacity = [self._functions.calls[name](self._reply) for name in
                         ('capacity_changed', 'reserved_bytes', 'reserved_objects')]
             if (any(type(n) is not int for n in capacity) or capacity[0] not in (-1, 0, 1)
@@ -261,9 +272,27 @@ class _OriginalDatabaseCustody:
                     raise self._mark_unknown()
                 reserved_bytes = None if bytes_ == -1 else bytes_
                 reserved_objects = None if objects == -1 else objects
+        records: int | None = None
+        body_bytes: int | None = None
+        reservations: int | None = None
+        active: bool | None = None
+        if actual == 17:
+            totals = [self._functions.calls[name](self._reply) for name in
+                      ('record_count', 'record_body_bytes', 'reservation_count')]
+            if (any(type(n) is not int or not -1 <= n <= 2**63 - 1 for n in totals)
+                    or len({n == -1 for n in totals}) != 1
+                    or (not issue and stage == 2 and totals[0] == -1)):
+                raise self._mark_unknown()
+            records, body_bytes, reservations = (None if n == -1 else n for n in totals)
+        if actual == 18:
+            state = self._functions.calls['transaction_active'](self._reply)
+            if type(state) is not int or state not in (-1, 0, 1) or (not issue and stage == 2 and state == -1):
+                raise self._mark_unknown()
+            active = None if state == -1 else bool(state)
         return _OriginalDatabaseFact(actual, stage, issue, after, bool(present),
                                      None if revision == -1 else revision, bound,
-                                     changed, reserved_bytes, reserved_objects)
+                                     changed, reserved_bytes, reserved_objects,
+                                     records, body_bytes, reservations, active)
 
     def _drop(self) -> None:
         if self._reply.value is not None:
@@ -434,6 +463,25 @@ class _OriginalDatabaseCustody:
             self._host, self._original, s, sn, r))
         return fact
 
+    def read_capacity(self, scope: str, key: str) -> _OriginalDatabaseFact:
+        """Exact original reservation DATA; NotFound is not permission to reserve."""
+        s, sn = _text(scope); k, kn = _text(key)
+        fact, _ = self._managed(16, lambda r: self._functions.calls['capacity_read_utf16_into'](
+            self._host, self._original, s, sn, k, kn, r))
+        return fact
+
+    def database_usage(self) -> _OriginalDatabaseFact:
+        """Same SQLite view's totals; private rows are not a committed inventory."""
+        fact, _ = self._managed(17, lambda r: self._functions.calls['database_usage_into'](
+            self._host, self._original, r))
+        return fact
+
+    def transaction_state(self) -> _OriginalDatabaseFact:
+        """Original physical state, never COMMIT acknowledgment or retry authority."""
+        fact, _ = self._managed(18, lambda r: self._functions.calls['transaction_state_into'](
+            self._host, self._original, r))
+        return fact
+
     def release_capacity_in_transaction(self, scope: str, key: str, reserved_bytes: int,
                                         reserved_objects: int) -> _OriginalDatabaseFact:
         """Delete exact physical reservation only after the caller's Owner ACK.
@@ -486,6 +534,30 @@ class _OriginalDatabaseCustody:
         self._fence_unconfirmed_response()
         fact, _ = self._managed(14, lambda r: self._functions.calls['capacity_usage_utf16_into'](
             self._host, self._original, s, sn, r), allow_unconfirmed=True)
+        return fact
+
+    def lookup_unconfirmed_capacity(self, scope: str, key: str) -> _OriginalDatabaseFact:
+        """Same original key lookup after SQL response loss; never reserve again."""
+        self._local(allow_unconfirmed=True)
+        s, sn = _text(scope); k, kn = _text(key)
+        self._fence_unconfirmed_response()
+        fact, _ = self._managed(16, lambda r: self._functions.calls['capacity_read_utf16_into'](
+            self._host, self._original, s, sn, k, kn, r), allow_unconfirmed=True)
+        return fact
+
+    def lookup_unconfirmed_database_usage(self) -> _OriginalDatabaseFact:
+        self._local(allow_unconfirmed=True)
+        self._fence_unconfirmed_response()
+        fact, _ = self._managed(17, lambda r: self._functions.calls['database_usage_into'](
+            self._host, self._original, r), allow_unconfirmed=True)
+        return fact
+
+    def lookup_unconfirmed_transaction_state(self) -> _OriginalDatabaseFact:
+        """Observe even a still-active original transaction; do not resolve Unknown."""
+        self._local(allow_unconfirmed=True)
+        self._fence_unconfirmed_response()
+        fact, _ = self._managed(18, lambda r: self._functions.calls['transaction_state_into'](
+            self._host, self._original, r), allow_unconfirmed=True)
         return fact
 
     def _fence_unconfirmed_response(self) -> None:

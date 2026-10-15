@@ -9,6 +9,8 @@ priv enum SqliteDatabaseReplyValue {
   DatabaseRow(String, Int64, Bytes)
   CapacityChanged(Bool)
   CapacityUsage(Int64, Int64)
+  DatabaseUsage(Int64, Int64, Int64)
+  DatabaseTransactionState(Bool)
 }
 
 ///|
@@ -351,6 +353,82 @@ pub fn release_installed_sqlite_capacity_reply(
 }
 
 ///|
+/// Original reservation lookup only. A fenced, still-active transaction must
+/// not provide its private reservation as reconciliation of committed storage.
+pub fn read_installed_sqlite_capacity_reply(
+  host : InstalledArenaHost,
+  original : InstalledArenaSqliteDatabase,
+  scope : String,
+  key : String,
+) -> InstalledArenaSqliteDatabaseReply {
+  sqlite_database_call_reply(16, host, original, database => {
+    if database.transaction_fenced() {
+      match database.transaction_state() {
+        Ok(@sqlite.NoActiveSqliteTransaction) => ()
+        Ok(@sqlite.ActiveSqliteTransaction) =>
+          return Err(
+            @sqlite.Physical("original SQLite transaction remains unconfirmed"),
+          )
+        Err(issue) => return Err(issue)
+      }
+    }
+    match database.read_capacity(scope, key) {
+      Ok(value) =>
+        Ok(CapacityUsage(value.reserved_bytes, value.reserved_objects))
+      Err(issue) => Err(issue)
+    }
+  })
+}
+
+///|
+/// Raw same-database totals, never an admitted inventory or resource credit.
+pub fn observe_installed_sqlite_database_usage_reply(
+  host : InstalledArenaHost,
+  original : InstalledArenaSqliteDatabase,
+) -> InstalledArenaSqliteDatabaseReply {
+  sqlite_database_call_reply(17, host, original, database => {
+    if database.transaction_fenced() {
+      match database.transaction_state() {
+        Ok(@sqlite.NoActiveSqliteTransaction) => ()
+        Ok(@sqlite.ActiveSqliteTransaction) =>
+          return Err(
+            @sqlite.Physical("original SQLite transaction remains unconfirmed"),
+          )
+        Err(issue) => return Err(issue)
+      }
+    }
+    match database.database_usage() {
+      Ok(value) =>
+        Ok(
+          DatabaseUsage(
+            value.record_count,
+            value.body_bytes,
+            value.reservation_count,
+          ),
+        )
+      Err(issue) => Err(issue)
+    }
+  })
+}
+
+///|
+/// The original SQLite connection's state only. In particular, autocommit is
+/// not the acknowledgment of any particular COMMIT or permission to retry.
+pub fn observe_installed_sqlite_transaction_state_reply(
+  host : InstalledArenaHost,
+  original : InstalledArenaSqliteDatabase,
+) -> InstalledArenaSqliteDatabaseReply {
+  sqlite_database_call_reply(18, host, original, database => {
+    match database.transaction_state() {
+      Ok(@sqlite.NoActiveSqliteTransaction) =>
+        Ok(DatabaseTransactionState(false))
+      Ok(@sqlite.ActiveSqliteTransaction) => Ok(DatabaseTransactionState(true))
+      Err(issue) => Err(issue)
+    }
+  })
+}
+
+///|
 pub fn close_installed_sqlite_database_reply(
   host : InstalledArenaHost,
   original : InstalledArenaSqliteDatabase,
@@ -516,5 +594,46 @@ pub fn InstalledArenaSqliteDatabaseReply::reserved_objects(
   match self.value {
     Some(CapacityUsage(_, objects)) => objects
     _ => -1L
+  }
+}
+
+///|
+pub fn InstalledArenaSqliteDatabaseReply::record_count(
+  self : InstalledArenaSqliteDatabaseReply,
+) -> Int64 {
+  match self.value {
+    Some(DatabaseUsage(records, _, _)) => records
+    _ => -1L
+  }
+}
+
+///|
+pub fn InstalledArenaSqliteDatabaseReply::record_body_bytes(
+  self : InstalledArenaSqliteDatabaseReply,
+) -> Int64 {
+  match self.value {
+    Some(DatabaseUsage(_, bytes, _)) => bytes
+    _ => -1L
+  }
+}
+
+///|
+pub fn InstalledArenaSqliteDatabaseReply::reservation_count(
+  self : InstalledArenaSqliteDatabaseReply,
+) -> Int64 {
+  match self.value {
+    Some(DatabaseUsage(_, _, reservations)) => reservations
+    _ => -1L
+  }
+}
+
+///|
+/// -1 means no physical state DATA, not inactive or safe to resend.
+pub fn InstalledArenaSqliteDatabaseReply::transaction_active(
+  self : InstalledArenaSqliteDatabaseReply,
+) -> Int {
+  match self.value {
+    Some(DatabaseTransactionState(active)) => if active { 1 } else { 0 }
+    _ => -1
   }
 }

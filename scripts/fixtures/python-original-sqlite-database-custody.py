@@ -20,7 +20,7 @@ from actql_sdk._local_worker_slot import _OriginalDescriptor
 
 plan = json.loads(Path(sys.argv[1]).read_bytes())
 case = sys.argv[2]
-assert case in ('rows-and-cas', 'restore-same-file', 'lost-commit', 'lost-begin', 'partial-open', 'scan-order-and-bounds', 'scan-copy-current', 'capacity-same-transaction', 'capacity-lost-commit')
+assert case in ('rows-and-cas', 'restore-same-file', 'lost-commit', 'lost-begin', 'partial-open', 'scan-order-and-bounds', 'scan-copy-current', 'capacity-same-transaction', 'capacity-lost-commit', 'metadata-same-view', 'metadata-lost-commit')
 for item in plan['files']:
     raw = Path(item['path']).read_bytes()
     assert len(raw) == item['bytes'] and hashlib.sha256(raw).hexdigest() == item['sha256'], item['path']
@@ -164,6 +164,57 @@ elif case in ('capacity-same-transaction', 'capacity-lost-commit'):
         db.transaction(7)
         assert db.release_capacity_in_transaction('capacity/原','e\u0301',8,1).capacity_changed is False
         db.transaction(9)
+elif case in ('metadata-same-view', 'metadata-lost-commit'):
+    def totals(expected, *, unconfirmed=False):
+        fact = (db.lookup_unconfirmed_database_usage if unconfirmed else db.database_usage)()
+        actual = (fact.record_count, fact.record_body_bytes, fact.reservation_count)
+        assert actual == expected, (actual, expected, fact)
+        observations.append({'metadata_totals':actual})
+    def exact(key, expected, *, unconfirmed=False):
+        fact = (db.lookup_unconfirmed_capacity if unconfirmed else db.read_capacity)('capacity/原', key)
+        assert (fact.reserved_bytes, fact.reserved_objects) == expected, fact
+        observations.append({'original_reservation':key, 'bytes':fact.reserved_bytes, 'objects':fact.reserved_objects})
+    totals((0,0,0))
+    assert db.transaction_state().transaction_active is False
+    try:db.read_capacity('capacity/原','absent')
+    except _OriginalDatabaseError as error:assert not error.unknown and error.fact.issue_family==15 and error.fact.reserved_bytes is None
+    else:raise AssertionError('Missing original reservation fabricated as zero')
+    db.transaction(7)
+    assert db.transaction_state().transaction_active is True
+    db.reserve_capacity_in_transaction('capacity/原','zero',0,0,64,2)
+    db.reserve_capacity_in_transaction('capacity/原','e\u0301',8,1,64,2)
+    db.insert('sdk/原','same',b'\xe9\x9b\xaa\0\n')
+    db.insert('other','same',b'abc')
+    db.insert('other','empty',b'')
+    totals((3,8,2));exact('zero',(0,0));exact('e\u0301',(8,1))
+    db.transaction(9)
+    totals((0,0,0))
+    assert db.transaction_state().transaction_active is False
+    db.transaction(7)
+    db.reserve_capacity_in_transaction('capacity/原','e\u0301',8,1,64,2)
+    db.insert('sdk/原','metadata-row',b'saved')
+    if case=='metadata-lost-commit':
+        def lost_metadata_commit(host_slot,original,operation,reply):
+            code=transaction(host_slot,original,operation,reply)
+            assert operation==8 and code==0 and reply._obj.value is not None
+            raise OSError('Injected after original metadata COMMIT publication')
+        database.calls['transaction_into']=lost_metadata_commit
+        try:db.transaction(8)
+        except _OriginalDatabaseError as error:original_error=error;assert error.unknown
+        else:raise AssertionError('Lost original COMMIT accepted')
+        assert db.lookup_unconfirmed_transaction_state().transaction_active is False
+        totals((1,5,1),unconfirmed=True);exact('e\u0301',(8,1),unconfirmed=True)
+        row('metadata-row',b'saved',unconfirmed=True)
+        assert db._write_unknown is original_error
+        for action in (db.database_usage,db.transaction_state,lambda:db.transaction(7)):
+            try:action()
+            except _OriginalDatabaseError as error:assert error is original_error
+            else:raise AssertionError('Original Unknown replaced or operation resent')
+    else:
+        db.transaction(8)
+        totals((1,5,1));exact('e\u0301',(8,1))
+        assert db.transaction_state().transaction_active is False
+        row('metadata-row',b'saved')
 elif case in ('scan-order-and-bounds', 'scan-copy-current'):
     db.transaction(7)
     for key, body in [('A', b'large'), ('e\u0301/😀', b''), ('é', b'\0\xff')]:
@@ -233,6 +284,11 @@ elif case in ('lost-commit', 'lost-begin'):
         except _OriginalDatabaseError as error:
             assert not error.unknown and error.fact.issue_family == 20
         else: raise AssertionError('Active transaction accepted as committed lookup')
+        assert db.lookup_unconfirmed_transaction_state().transaction_active is True
+        for action in (lambda:db.lookup_unconfirmed_capacity('capacity/原','absent'), db.lookup_unconfirmed_database_usage):
+            try:action()
+            except _OriginalDatabaseError as error:assert not error.unknown and error.fact.issue_family==20
+            else:raise AssertionError('Private metadata accepted as committed lookup')
     assert db._write_unknown is original_error and transactions.count(loss) == 1
 elif case != 'partial-open':
     raise AssertionError('Unselected case')

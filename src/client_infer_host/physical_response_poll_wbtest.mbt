@@ -1,12 +1,25 @@
 ///|
 // Independently authored canonical profile; fixture build identities are not
 // shipped SDK originals or proof that an installed public adapter is funded.
-fn async_response_profile() -> @environment.ModelResponseProfile {
+fn async_response_profile(
+  task_cid? : String = "sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560",
+  profile_cid? : String = "sha256:c5462911d6a06bf20e1cb2bc6467f4fbda535ae2ec557016e8c3a2ab315f0a5b",
+) -> @environment.ModelResponseProfile {
   let wire =
     #|{"adapter":{"build_artifact_cid":"sha256:12b1a34ce23743c38303cc50fb4eb040689c50f37c1a594b1382d754a4c578a2","builder_id":"fixture/http-builder","builder_revision":"1","codec_id":"fixture/chat-one","codec_revision":"1","port_abi":"model-physical-port/1","sdk":null},"completion":{"basis":"generation_finish","endpoint_envelope":true,"output_contract":true,"transport_eof":true,"validator_artifact_cid":"sha256:9dde7d7e6c108739d709824371c425f8d26afd8451d470d7477ef2ac8ecffacd","validator_id":"fixture/chat-envelope","validator_revision":"1"},"controls":{"cache":false,"fallback":false,"hedging":false,"media_fetch":false,"model_requests":1,"redirect":false,"repair":false,"retry":false,"sdk_telemetry":false,"tools":false,"workflow_restore":false},"limits":{"active_slots":4,"adapter_holding_bytes":4096,"adapter_workspace_bytes":2048,"chunk_bytes":512,"chunks":16,"header_bytes":256,"metadata_bytes":128,"metadata_depth":4,"metadata_nodes":16,"parse_depth":16,"parse_nodes":256,"parse_work":8192,"request_bytes":1000,"response_bytes":2048,"unsettled_slots":4},"observations":["provider_request_id","provider_reported_model_id","finish_reason","input_tokens","output_tokens","provider_metadata"],"operation":{"endpoint":"https://fixture.invalid/v1/chat/completions","method":"POST","streaming":false},"probability":null,"self_cid":"sha256:c5462911d6a06bf20e1cb2bc6467f4fbda535ae2ec557016e8c3a2ab315f0a5b","task":{"contract_cid":"sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560","input_schema_cid":"sha256:57887e29c270383ae1e005ba3476a81c8b0012a8b566db860c75abba9c786dd7","kind":"structured_generate","output_schema_cid":"sha256:d67003c78c0eb8b7ab0499bbed57bc8d5895c43ed0b3ce27755b656a65fd49f3"},"version":"actql-model-response-profile/0.1"}
   @environment.read_model_response_profile(
-    @utf8.encode(wire),
-    "sha256:c5462911d6a06bf20e1cb2bc6467f4fbda535ae2ec557016e8c3a2ab315f0a5b",
+    @utf8.encode(
+      wire
+      .replace(
+        old="sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560",
+        new=task_cid,
+      )
+      .replace(
+        old="sha256:c5462911d6a06bf20e1cb2bc6467f4fbda535ae2ec557016e8c3a2ab315f0a5b",
+        new=profile_cid,
+      ),
+    ),
+    profile_cid,
     { max_bytes: 10000, max_nodes: 1000, max_depth: 30, max_members: 1000, },
     100000,
   ).unwrap()
@@ -82,6 +95,14 @@ fn async_response_fixture(
   now? : Ref[String] = Ref("2026-10-02T00:00:00.000Z"),
   observe_call? : (@model.ModelPhysicalCall) -> Unit = _ => (),
   observe_response? : (() -> @model.ModelPhysicalCallPoll)? = None,
+  observe_response_call? : ((Int, @model.ModelPhysicalCall) -> @model.ModelPhysicalCallPoll)? = None,
+  prepare_original? : ((Execution) -> Unit)? = None,
+  slots? : Int = 2,
+  start_original? : (() -> Execution)? = None,
+  capacity? : @model.ModelQuantityCapacity = fixture_quantity_capacity(
+    66L, 1000L,
+  ),
+  profile? : @environment.ModelResponseProfile = async_response_profile(),
 ) -> (Execution, Int64) raise {
   let egress = Ref(Some(egress_fixture_observation()))
   let holder : Ref[@model.ModelPreparedCallSet?] = Ref(None)
@@ -92,24 +113,33 @@ fn async_response_fixture(
     egress,
     limits~,
     asynchronous=true,
+    slots~,
+    start_original~,
     configure=active => {
-      bind_quantity_capacity(active, fixture_quantity_capacity(66L, 1000L)).unwrap()
+      bind_quantity_capacity(active, capacity).unwrap()
+      if prepare_original is Some(prepare) {
+        prepare(active)
+      }
       bind_physical_preflight(active, request => {
         Ok({
           advance: () => {
             @model.model_async_physical_request_plan(
               request,
               1000L,
-              { tokens: 33L, cost_units: 0L, duration_ms: 500L, },
-              async_response_profile(),
+              capacity.per_attempt,
+              profile,
               async_response_installation(),
               entry => {
+                let owned : Ref[@model.ModelPhysicalCall?] = Ref(None)
                 let call = @model.model_physical_call(
                   entry,
                   holder.val.unwrap(),
                   () => {
                     polls.val += 1
                     if ready.val {
+                      if observe_response_call is Some(read) {
+                        return read(request.slot, owned.val.unwrap())
+                      }
                       match observe_response {
                         Some(read) => read()
                         None => observed
@@ -124,6 +154,7 @@ fn async_response_fixture(
                     release.val
                   },
                 )
+                owned.val = call
                 if call is Some(original) {
                   calls.val += 1
                   observe_call(original)

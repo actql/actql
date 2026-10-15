@@ -44,3 +44,12 @@ test "non-native caller capacity release supplies no transaction or cleanup fact
     is Err(UnsupportedTarget),
   )
 }
+
+///|
+test "non-native metadata supplies neither original reservation nor database totals" {
+  let database : Database = { unsupported: (), }
+  assert_true(
+    database.read_capacity("original", "one") is Err(UnsupportedTarget),
+  )
+  assert_true(database.database_usage() is Err(UnsupportedTarget))
+}

@@ -34,7 +34,7 @@ fn begin_restored_model_response(
   state : ModelState,
   capture : @publication.ModelCaptureBundleRead,
   prepared : PreparedModelRequest,
-  record_index? : Int = state.next_slot,
+  record_index? : Int = state.progress.slot,
 ) -> @bounded.KernelStep[ModelCaptureBundle, ModelExecutionIssue] {
   let record = match
     @publication.model_capture_bundle_record(capture, record_index) {
@@ -81,7 +81,7 @@ fn begin_restored_model_response(
   state.restored_evidence = Some(
     @publication.model_capture_record_evidence(record),
   )
-  state.phase = RestoreResponse(prepared, record, cursor)
+  state.progress.phase = RestoreResponse(prepared, record, cursor)
   @bounded.Continue(1, 1)
 }
 
@@ -110,7 +110,7 @@ fn advance_restored_model_response(
         return @bounded.Failed(OutputValue, 1, 1)
       }
       let response : ModelObservedResponse = { value, observation, }
-      state.phase = CheckResponse(
+      state.progress.phase = CheckResponse(
         prepared.request,
         response,
         prepared.key_cid,
@@ -129,5 +129,5 @@ fn advance_restored_model_response(
 pub fn model_execution_restoring(execution : ModelExecution) -> Bool {
   !execution.state.reclaimed &&
   !@bounded.session_stopped(execution.session) &&
-  execution.state.phase is RestoreResponse(_, _, _)
+  execution.state.progress.phase is RestoreResponse(_, _, _)
 }

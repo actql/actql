@@ -70,7 +70,7 @@ fn begin_restored_model_slot(
   let binding = match
     restored_slot_binding(
       read,
-      state.next_slot,
+      state.progress.slot,
       call,
       @environment.model_task_data_handling_cid(state.task),
     ) {

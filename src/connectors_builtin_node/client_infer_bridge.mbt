@@ -1389,6 +1389,15 @@ pub fn client_program_infer_outcomes_count(
 }
 
 ///|
+#export_name("clientProgramInferOutcomesSlotAt")
+pub fn client_program_infer_outcomes_slot_at(
+  read : @model.ModelOutcomeRead,
+  index : Int,
+) -> Int? {
+  @model.model_outcomes_slot_at(read, index)
+}
+
+///|
 #export_name("clientProgramInferOutcomesCall")
 pub fn client_program_infer_outcomes_call(
   read : @model.ModelOutcomeRead,
