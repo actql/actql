@@ -3,6 +3,42 @@ import test from 'node:test';
 import {createExplorerGateway, gatewayLimits, startExplorerGateway} from './gateway.mjs';
 import {createExplorerBrowserSource} from './browser-source.mjs';
 import {gatewayLaunchPlanFixture} from './gateway-launch.fixture.mjs';
+import {observationRef, runObservationFixture, ownerObservationFixture}
+  from '../explorer-ui/run-observation.fixture.mjs';
+
+test('current observation endpoint reads only the same original Run and one Owner-local page', async () => {
+  const calls=[], original=observationRef();
+  const h=harness({client:{async attach(ref){calls.push(['attach',ref]);return {
+    inspect(limits){calls.push(['inspect',limits]);return runObservationFixture();},
+    observeOwners(limits){calls.push(['owners',limits]);return ownerObservationFixture();},
+    wait(){assert.fail('no execution wait');},cancel(){assert.fail('no control');},
+    result(){assert.fail('no Result open');},
+  };},start(){assert.fail('no Run start');}}});
+  assert.equal((await h.send('/api/read/observation',{ref:original})).status,401);
+  const session=await h.connect();
+  assert.equal((await h.read('observation',{ref:original,permission:true},session)).status,400);
+  assert.deepEqual(calls,[]);
+  const answer=await h.read('observation',{ref:original},session);assert.equal(answer.status,200);
+  const model=(await answer.json()).data;
+  assert.equal(model.run.status,'running');assert.equal(model.run.controlRevision,7);
+  assert.equal(model.histories.owners[0].snapshot.revision,3);
+  assert.equal(model.histories.owners[0].history.entries[1].state,'unknown');
+  assert.equal(model.logicalProgress.state,'unavailable');
+  assert.deepEqual(calls,[['attach',original],['inspect',{maxWireBytes:65536,maxNodes:10000,maxDepth:64}],
+    ['owners',{maxEntries:32,maxWireBytes:65536}]]);
+});
+test('foreign and delayed Owner replies cannot escape current observation scope', async () => {
+  const original=observationRef();let release;
+  const pending=new Promise(resolve=>release=resolve);
+  const h=harness({client:{attach:async()=>({inspect:async()=>runObservationFixture(),
+    observeOwners:async()=>pending})}});
+  const session=await h.connect(),answer=h.read('observation',{ref:original},session);
+  await tick();h.gateway.invalidateScope();release(ownerObservationFixture());
+  assert.notEqual((await answer).status,200);
+  const foreign=ownerObservationFixture();foreign.ref.namespaceId='foreign';
+  const f=harness({client:{attach:async()=>({inspect:async()=>runObservationFixture(),observeOwners:async()=>foreign})}});
+  assert.notEqual((await f.read('observation',{ref:original},await f.connect())).status,200);
+});
 
 const origin = 'http://127.0.0.1:43210';
 const ref = {namespaceId: 'original', authorityScopeCid: `sha256:${'a'.repeat(64)}`,

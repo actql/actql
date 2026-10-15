@@ -5,6 +5,7 @@ import {validRunRef} from '@actql/client-wire';
 import {createReadEpoch, describeExistingResult, readExistingRun, readExistingRunPlan,
   readStaticPlan} from '@actql/explorer-ui/read-model';
 import {copyExplorerLaunchInput} from './launch-input.mjs';
+import {readRunObservation} from '@actql/explorer-ui/run-observation';
 
 // These are presentation/transport ceilings, not new execution reservations.
 export const gatewayLimits = Object.freeze({bodyBytes: 65536, replyBytes: 262144,
@@ -208,6 +209,10 @@ export function createExplorerGateway({client, origin, assets = new Map(),
         case 'run':
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
           data = await readExistingRun(client, body.ref, ticket);
+          break;
+        case 'observation':
+          if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
+          data = await readRunObservation(client, body.ref, ticket);
           break;
         case 'run-plan':
           if (!exact(body, ['ref']) || !validRunRef(body.ref)) fail('ExplorerInvalidRequest');
