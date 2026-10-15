@@ -86,9 +86,18 @@ test "two original async Slots enter before the first response settles" {
 }
 
 ///|
-fn window_fixed_response(slot : Int) -> @model.ModelPhysicalCallPoll {
+fn window_fixed_response(
+  slot : Int,
+  profile? : @environment.ModelResponseProfile = async_response_profile(),
+) -> @model.ModelPhysicalCallPoll {
   @model.PhysicalResponse({
     ..async_response_observation(None),
+    observation: {
+      ..async_response_observation(None).observation,
+      response_profile_cid: Some(
+        @environment.model_response_profile_identity(profile),
+      ),
+    },
     value: @admitted.object_value([
       ("reason", @admitted.text_value("slot-" + slot.to_string(), 100).unwrap()),
       ("risk", @admitted.text_value("high", 100).unwrap()),
@@ -118,7 +127,38 @@ fn window_sized_start(calls : Ref[Int], count : Int) -> Execution {
     rows~,
     token_reservation=33L * count.to_int64(),
     duration_ms=500L * count.to_int64(),
+    environment_wire=infer_fixture_environment
+      .replace(old="\"max_items\":2", new="\"max_items\":" + count.to_string())
+      .replace(
+        old="sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560",
+        new=window_sized_task_cid(count),
+      ),
   )
+}
+
+///|
+// Independently hashed canonical admission inputs (Node crypto), not expected
+// answers derived from product execution. The old two-item Task is unchanged.
+fn window_sized_task_cid(count : Int) -> String {
+  match count {
+    4 =>
+      "sha256:dfc1d8b7853961a861cc0df3c3433b677d3286f10cd442607d0eb1f4e4def953"
+    5 =>
+      "sha256:65925b20faf5aac4098f5f4d8b53e32893042e8d00b1a0f762ff0659cb0919a5"
+    _ => abort("this independent fixture selects four or five items only")
+  }
+}
+
+///|
+fn window_sized_profile(count : Int) -> @environment.ModelResponseProfile {
+  let profile_cid = match count {
+    4 =>
+      "sha256:1bd10cad38cb5dad9463cc27bd6c8b0b05a5b54573870cecafaaf118f8859681"
+    5 =>
+      "sha256:7fe1f5ebd535252976de21af8e3249d94baad47ce3364fa9f017f684d9fad0ef"
+    _ => abort("this independent fixture selects four or five items only")
+  }
+  async_response_profile(task_cid=window_sized_task_cid(count), profile_cid~)
 }
 
 ///|
@@ -303,6 +343,7 @@ test "original Model window four calls preserve logical output in all 24 arrival
     distinct[code] = true
     let calls = Ref(0)
     let ready = [false, false, false, false]
+    let profile = window_sized_profile(4)
     let (active, prefix, ledger, read) = original_io_consumer_fixture(
       calls,
       Ref(true),
@@ -310,11 +351,12 @@ test "original Model window four calls preserve logical output in all 24 arrival
       Ref(true),
       slots=4,
       capacity=fixture_quantity_capacity(132L, 2000L),
+      profile~,
       start_original=Some(() => window_sized_start(calls, 4)),
       run_id="window-order-" + code,
       per_slot=Some(slot => {
         if ready[slot] {
-          window_fixed_response(slot)
+          window_fixed_response(slot, profile~)
         } else {
           @model.PhysicalPending
         }
@@ -388,6 +430,7 @@ test "original Model window Store backpressure blocks fifth start after IO close
   let calls = Ref(0)
   let ready = [false, false, false, false, false]
   let release = Ref(false)
+  let profile = window_sized_profile(5)
   let (active, prefix, ledger, read) = original_io_consumer_fixture(
     calls,
     Ref(true),
@@ -395,10 +438,11 @@ test "original Model window Store backpressure blocks fifth start after IO close
     release,
     slots=5,
     capacity=fixture_quantity_capacity(165L, 2500L),
+    profile~,
     start_original=Some(() => window_sized_start(calls, 5)),
     per_slot=Some(slot => {
       if ready[slot] {
-        window_fixed_response(slot)
+        window_fixed_response(slot, profile~)
       } else {
         @model.PhysicalPending
       }

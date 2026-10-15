@@ -8,12 +8,13 @@ fn contract_capacity_start(
   rows? : String = "[{\"id\":\"a\",\"text\":\"hello\"},{\"id\":\"b\",\"text\":\"hello\"}]",
   token_reservation? : Int64 = 128L,
   duration_ms? : Int64 = 1000L,
+  environment_wire? : String = infer_fixture_environment,
 ) -> Execution {
   let source = infer_fixture_program.replace(
     old="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"}]",
     new="\"rows\":" + rows,
   )
-  let prepared = fixture_prepared(source~)
+  let prepared = fixture_prepared(source~, environment_wire~)
   let plan = call_identity_plan(
     prepared,
     attempts~,

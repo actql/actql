@@ -21,6 +21,7 @@ fn original_io_consumer_fixture(
     66L, 1000L,
   ),
   run_id? : String = "infer-run",
+  profile? : @environment.ModelResponseProfile = async_response_profile(),
 ) -> (
   Execution,
   Int64,
@@ -43,6 +44,7 @@ fn original_io_consumer_fixture(
     slots~,
     start_original~,
     capacity~,
+    profile~,
     prepare_original=Some(active => {
       let (ledger, read) = original_preparation_test_read(
         active,

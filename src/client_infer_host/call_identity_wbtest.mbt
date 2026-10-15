@@ -100,6 +100,10 @@ fn call_identity_plan(
   // The separate contract-reader vector retains its original 2048-byte cap.
   let unsigned = execution_wire
     .replace(
+      old="sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560",
+      new=@publication_host.prepared_client_infer_model_task_cid(prepared, 2).unwrap(),
+    )
+    .replace(
       old="\"self_cid\":\"sha256:564c77f8cde8da49fda0b61b072ddce8ee598116eada536c71d27457f1b478da\",",
       new="",
     )

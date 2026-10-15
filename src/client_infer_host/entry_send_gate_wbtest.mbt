@@ -47,7 +47,8 @@ fn entry_gate_fixture(
     Failed(Capacity(_), ..) => abort("Host capacity preparation refused")
     Failed(IdentityExport(_), ..) => abort("input identity preparation refused")
     Failed(CallScope(_), ..) => abort("original call scope preparation refused")
-    Failed(OriginalCapacity(_), ..) => abort("original read capacity preparation refused")
+    Failed(OriginalCapacity(_), ..) =>
+      abort("original read capacity preparation refused")
     _ => abort("ordinary preparation must wait for original entry binding")
   }
   let prepared = prepared_call_set(active).unwrap()
