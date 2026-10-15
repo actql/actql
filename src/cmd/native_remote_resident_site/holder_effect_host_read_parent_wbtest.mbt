@@ -163,6 +163,9 @@ test "failed read context closes domain and original parent before Site reservat
     1024L,
     () => true,
   ).unwrap()
+  // Full Store current is deliberately unavailable before actual context entry.
+  scope.current_binding = None
+  let stores = Ref(0)
   let installed = prepare_holder_effect_host_read_parent(
     scope,
     original,
@@ -171,6 +174,14 @@ test "failed read context closes domain and original parent before Site reservat
   assert_false(
     install_holder_effect_host_read_domain(scope, original, Some(installed)),
   )
+  assert_false(
+    install_holder_effect_host_store_current(scope, () => {
+      stores.val += 1
+      true
+    }),
+  )
+  assert_eq(stores.val, 0)
+  assert_true(scope.current_binding is None)
   let parent = scope.read_parent.unwrap()
   assert_false(parent.borrow_active)
   assert_true(parent.domain is Some(_))
@@ -251,7 +262,7 @@ test "current callback cannot replace the retained original parent before acquis
   ).unwrap()
   let parent = scope.read_parent.unwrap()
   let operation = scope.caller_operation.unwrap()
-  scope.current_binding = Some(() => {
+  scope.preparation_binding = Some(() => {
     scope.read_parent = None
     true
   })
@@ -262,7 +273,7 @@ test "current callback cannot replace the retained original parent before acquis
   // The fixture restores its captured original responsibility for cleanup;
   // this is not a replacement supplier or a physical close acknowledgement.
   scope.read_parent = Some(parent)
-  scope.current_binding = Some(() => true)
+  scope.preparation_binding = Some(() => true)
   assert_true(leave_holder_effect_host_read_scope(scope))
   assert_true(retire_holder_effect_host_scope(scope) is HostSetupReadyToDetach)
   assert_true(scope.read_parent is None)

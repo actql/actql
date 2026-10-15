@@ -49,7 +49,7 @@ fn holder_effect_host_read_parent_current(
   !parent.closing &&
   scope.read_parent is Some(before) &&
   physical_equal(before, parent) &&
-  holder_effect_host_read_scope_current(scope) &&
+  holder_effect_host_read_scope_prepared(scope) &&
   !parent.closing &&
   scope.read_parent is Some(after) &&
   physical_equal(after, parent) &&
@@ -178,7 +178,7 @@ fn prepare_holder_effect_host_read_parent(
   selected : HolderEffectHostReadParentInstallation,
 ) -> HolderEffectHostReadInstallation? {
   guard scope.read_parent is None &&
-    holder_effect_host_read_scope_current(scope) &&
+    holder_effect_host_read_scope_prepared(scope) &&
     scope.caller_operation is Some(operation) &&
     selected.fd >= 0 &&
     selected.host.require_current(original) is Ok(_) else {

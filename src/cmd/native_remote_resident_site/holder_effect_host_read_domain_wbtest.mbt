@@ -257,3 +257,27 @@ test "foreign original Slot cannot adopt or close another installed read domain"
   assert_true(foreign_slot.close())
   assert_true(original_slot.close())
 }
+
+///|
+test "missing physical domain does not install or invoke the full Store current callback" {
+  let site = host_setup_test_site(1)
+  let scope = reserve_holder_effect_host_setup_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+  ).unwrap()
+  scope.preparation_binding = Some(() => true)
+  let before = @site.site_status(site)
+  let stores = Ref(0)
+  assert_false(
+    install_holder_effect_host_store_current(scope, () => {
+      stores.val += 1
+      true
+    }),
+  )
+  assert_eq(stores.val, 0)
+  assert_true(scope.current_binding is None)
+  assert_false(holder_effect_host_read_scope_current(scope))
+  assert_eq(@site.site_status(site), before)
+  host_read_domain_test_retire(scope)
+}
