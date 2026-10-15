@@ -31,6 +31,17 @@ pub fn preparation_input_is_produced(prepared : Prepared, index : Int) -> Bool {
 }
 
 ///|
+/// Original checked input category only. This does not discharge pending
+/// SourceView keys/ranking, prove acquisition, or grant execution authority.
+pub fn preparation_input_is_source_view(
+  prepared : Prepared,
+  index : Int,
+) -> Bool {
+  @pipeline.input_contract_at(prepared.owner, index)
+  is Some(@pipeline.SourceViewInput(_, _, _, _))
+}
+
+///|
 pub fn preparation_input_keys(
   prepared : Prepared,
   index : Int,

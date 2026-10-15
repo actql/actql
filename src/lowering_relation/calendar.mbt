@@ -180,6 +180,20 @@ pub fn calendar_checked(value : PreparedCalendar) -> @calendar.CheckedCalendar {
 }
 
 ///|
+/// Match the original resolved requirement's checked site without exposing
+/// the preparation's pipeline to a backend. Identity is not execution authority.
+pub fn calendar_matches_occurrence(
+  value : PreparedCalendar,
+  pipeline : @pipeline.CheckedPipeline,
+  step : Int,
+  operation : @calendar.CheckedCalendar,
+) -> Bool {
+  physical_equal(value.owner.prepared.owner, pipeline) &&
+  value.step == step &&
+  physical_equal(value.checked, operation)
+}
+
+///|
 pub fn calendar_table(value : PreparedCalendar) -> @calendar_transition.Table {
   value.table
 }

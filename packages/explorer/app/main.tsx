@@ -1,6 +1,9 @@
 import {useEffect, useMemo, useRef, useState, type FormEvent} from 'react';
 import {createRoot} from 'react-dom/client';
-import {PlanExplorer, RunInspector} from '@actql/explorer-ui/plan-explorer';
+import {PlanExplorer, RunInspector, CancellationPanel} from '@actql/explorer-ui/plan-explorer';
+import type {OriginalCancellation, CancellationObservation} from '@actql/explorer-ui/plan-explorer';
+import {validCancellationRef, validOperationAttemptRef} from '@actql/client-wire';
+import type {WireCancellationLookup} from '@actql/client-wire';
 import type {RunObservationModel} from '@actql/explorer-ui/run-observation';
 import type {PlanReadModel, OriginalRunPlanReadModel} from '@actql/explorer-ui/read-model';
 import {createExplorerBrowserSource} from '@actql/explorer/browser-source';
@@ -18,14 +21,22 @@ function App() {
   const [runReference, setRunReference] = useState('');
   const [launcherProgram, showLauncherProgram] = useState(false);
   const [error, showError] = useState(''), [pending, busy] = useState(false);
+  const [cancellationEnabled, enableCancellation] = useState(false);
+  const [originalCancellation, keepCancellation] = useState<OriginalCancellation|null>(null);
+  const [cancellationObservation, showCancellation] = useState<CancellationObservation|null>(null);
+  const [cancellationHistory, showCancellationHistory] = useState<WireCancellationLookup|null>(null);
+  const [savedCancellation, confirmSavedCancellation] = useState(false);
+  const cancelSent = useRef(false);
   const epoch = useRef(0);
   const runSelection = useRef(0);
-  const invalidate = () => {epoch.current++; runSelection.current++; setFollow(false); source.close(); connect(false); busy(false);
-    showPlan(undefined); showRun(undefined); showResult(undefined); showOriginalPlan(undefined); showLauncherProgram(false); showError('');};
+  const invalidate = () => {epoch.current++; runSelection.current++; setFollow(false); source.close(); connect(false); enableCancellation(false); busy(false);
+    showPlan(undefined); showRun(undefined); showResult(undefined); showOriginalPlan(undefined); showLauncherProgram(false);
+    showCancellationHistory(null);showCancellation(originalCancellation && cancelSent.current
+      ? {state:'unknown',original:originalCancellation} : null);showError('');};
   const perform = async (action: () => Promise<void>) => {
     const original = epoch.current; busy(true); showError('');
     try {await action();}
-    catch {if (original === epoch.current) {showPlan(undefined); showRun(undefined); showResult(undefined); showOriginalPlan(undefined);
+    catch {if (original === epoch.current) {invalidate();
       showError('Read unavailable. Check the original reference and current Host access, or explicitly reconnect with a new bootstrap.');}}
     finally {if (original === epoch.current) busy(false);}
   };
@@ -43,8 +54,8 @@ function App() {
     const token = String(new FormData(form).get('bootstrap')); form.reset(); invalidate();
     void perform(async () => {
       const selected = epoch.current;
-      await source.connect(token);
-      connect(true);
+      const capabilities = await source.connect(token);
+      enableCancellation(capabilities.cancellation); connect(true);
       const view = await source.launchView();
       if (epoch.current !== selected) return;
       if (view?.kind === 'program') {
@@ -78,9 +89,43 @@ function App() {
         if (runSelection.current === selected && epoch.current === scope) {showRun(value); showResult(metadata);}
       }});
   };
-  return <main><header><p>READ-ONLY · LOCAL PRESENTATION</p><h1>ActQL Explorer</h1>
+  const prepareCancellation = () => {
+    if (!run || run.run.terminal || originalCancellation || !connected || !cancellationEnabled) return;
+    setFollow(false);
+    keepCancellation(Object.freeze({cancelRef:Object.freeze({...run.runRef,
+      cancelId:crypto.randomUUID(),expectedRevision:run.run.controlRevision}),
+      attemptRef:Object.freeze({operation:'cancel' as const,attemptId:crypto.randomUUID()})}));
+  };
+  const requestCancellation = () => {
+    if (!originalCancellation || !savedCancellation || cancelSent.current || !connected || !cancellationEnabled) return;
+    // Keep this exact explicit operation before transport and never dispatch it
+    // a second time from this view, including after ACK loss or scope changes.
+    cancelSent.current=true;setFollow(false);
+    const saved=originalCancellation,scope=epoch.current;
+    showCancellation({state:'unknown',original:saved});
+    void perform(async () => {const answer=await source.cancel(saved);
+      if (epoch.current===scope) showCancellation(answer);});
+  };
+  const lookupCancellation = () => {
+    if (!originalCancellation || !connected || !cancellationEnabled) return;
+    const saved=originalCancellation,scope=epoch.current;
+    void perform(async () => {const answer=await source.lookupCancellation(saved.cancelRef);
+      if (epoch.current===scope) showCancellationHistory(answer);});
+  };
+  const importCancellation = (event:FormEvent<HTMLFormElement>) => {
+    event.preventDefault();if(originalCancellation) return;
+    try {
+      const input=JSON.parse(String(new FormData(event.currentTarget).get('original')));
+      if (!input || Object.keys(input).length!==2 || !validCancellationRef(input.cancelRef) ||
+          !validOperationAttemptRef(input.attemptRef) || input.attemptRef.operation!=='cancel') throw new Error();
+      const saved=Object.freeze({cancelRef:Object.freeze(structuredClone(input.cancelRef)),
+        attemptRef:Object.freeze(structuredClone(input.attemptRef))});
+      keepCancellation(saved);cancelSent.current=true;showCancellation({state:'unknown',original:saved});
+    } catch {showError('Invalid original cancellation reference. No Host operation was requested.');}
+  };
+  return <main><header><p>LOCAL PRESENTATION · EXPLICIT OWNER OPERATIONS</p><h1>ActQL Explorer</h1>
     <p>Static Plan, existing Run observations and Named Result metadata.</p>
-    <p>Controls, Samples, Result payloads and physical/source-origin projections are unavailable.</p></header>
+    <p>Pause, step, resume, Samples, Result payloads and physical/source-origin projections are unavailable. Cancellation is available only with the launcher’s explicit opt-in and current Host permission.</p></header>
     <form onSubmit={session}><label>One-use bootstrap <input name="bootstrap" type="password"
       autoComplete="off" maxLength={43} required disabled={pending}/></label>
       <button disabled={pending}>Connect</button><button type="button" onClick={invalidate}>Disconnect</button></form>
@@ -112,6 +157,20 @@ function App() {
           : follow ? 'Following authorized read-only observations; no execution is started.' : 'Showing the last explicit read.'}</p>
         <RunInspector model={run}/></>}
       {result !== undefined && <><h3>Named Result metadata</h3><pre>{JSON.stringify(result, null, 2)}</pre></>}</section>
+    {(cancellationEnabled || originalCancellation) && <section>
+      {!originalCancellation && <form onSubmit={importCancellation}>
+        <label>Saved original cancellation JSON (lookup only)<textarea name="original" maxLength={8192} required/></label>
+        <button disabled={pending}>Load saved reference for lookup</button></form>}
+      {originalCancellation && !cancelSent.current && <label className="actql-run-follow">
+        <input type="checkbox" checked={savedCancellation} onChange={event=>confirmSavedCancellation(event.target.checked)} disabled={pending}/>
+        I saved this original cancellation reference.</label>}
+      <CancellationPanel original={originalCancellation} observation={cancellationObservation}
+        history={cancellationHistory} pending={pending}
+        canPrepare={connected && cancellationEnabled && !!run && !run.run.terminal && !originalCancellation}
+        canRequest={connected && cancellationEnabled && savedCancellation && !cancelSent.current}
+        canLookup={connected && cancellationEnabled && !!originalCancellation}
+        onPrepare={prepareCancellation} onRequest={requestCancellation} onLookup={lookupCancellation}/>
+    </section>}
   </main>;
 }
 createRoot(document.getElementById('root')!).render(<App/>);

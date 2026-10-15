@@ -73,6 +73,24 @@ function harness(options = {}) {
   return {gateway, send, connect, read, calls, client};
 }
 
+test('expired cancellation session cannot dispatch after original attach awaits', async () => {
+  let now = 1000, entered, release, cancellations = 0;
+  const attached = new Promise(resolve => {entered = resolve;});
+  const pendingAttach = new Promise(resolve => {release = resolve;});
+  const original = {cancelRef: {...ref, cancelId: 'expired-session-cancel', expectedRevision: 7},
+    attemptRef: {operation: 'cancel', attemptId: 'expired-session-attempt'}};
+  const h = harness({allowCancellation: true, now: () => now, sessionMs: 20,
+    client: {async attach(selected) {assert.deepEqual(selected, ref); entered(); return pendingAttach;}}});
+  const session = await h.connect();
+  const answer = h.send('/api/control/cancel', original,
+    {Cookie: session.cookie, 'X-Actql-CSRF': session.body.csrf});
+  await attached; now += 21;
+  release({async cancel() {cancellations++; return {kind: 'accepted', attemptRef: original.attemptRef,
+    cancellation: {kind: 'accepted', ref, cancelRef: original.cancelRef, revision: 8}};}});
+  assert.equal((await answer).status, 401);
+  assert.equal(cancellations, 0, 'Expired presentation session must refuse before Owner dispatch');
+});
+
 test('only exact loopback origins and finite TTLs can create a Gateway', () => {
   for (const rejected of ['http://localhost:43210', 'http://0.0.0.0:43210',
     'http://127.0.0.1:43210/', 'https://127.0.0.1:43210', 'http://user@127.0.0.1:43210']) {
@@ -366,7 +384,7 @@ test('browser holds CSRF only in memory, discards old replies/401 and never retr
         assert(!url.includes('secret')); assert(!Object.hasOwn(options.headers, 'Authorization'));
         if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
           scopeEpoch: calls, expiresAt: 200, capabilities: {plan: false, run: true,
-            resultMetadata: true, resultPayload: false, control: false, sample: false}});
+            resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: false}});
         await wait;
         return failed ? Response.json({error: 'old'}, {status: 401}) :
           Response.json({scopeEpoch: 1, data: {secret: 'old-scope'}});
@@ -391,7 +409,7 @@ test('browser launch metadata validates shape and discards a delayed old-scope r
       calls++;
       if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
         scopeEpoch: calls, expiresAt: 200, capabilities: {plan: false, run: true,
-          resultMetadata: true, resultPayload: false, control: false, sample: false}});
+          resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: false}});
       await wait; return Response.json({scopeEpoch: 1, data: {kind: 'run', ref}});
     }});
   await source.connect('bootstrap');
@@ -407,7 +425,7 @@ test('browser refuses a forged launch response without using it or requesting a 
       calls++;
       if (url.endsWith('/api/session')) return Response.json({csrf: 'a'.repeat(43),
         scopeEpoch: 1, expiresAt: 200, capabilities: {plan: false, run: true,
-          resultMetadata: true, resultPayload: false, control: false, sample: false}});
+          resultMetadata: true, resultPayload: false, control: false, sample: false, cancellation: false}});
       return Response.json({scopeEpoch: 1, data: {kind: 'run', ref, start: true}});
     }});
   await source.connect('bootstrap');
@@ -445,4 +463,50 @@ test('body timeout cannot promote a valid JSON prefix to a complete request', as
   await tick(); t.mock.timers.tick(gatewayLimits.requestMs);
   assert.equal((await pending).status, 504);
   assert.deepEqual(h.calls, []);
+});
+
+test('cancellation is opt-in and passes only the immutable original to the existing SDK Owner',async()=>{
+  const cancelRef={...ref,cancelId:'exact-cancel',expectedRevision:4},attemptRef={operation:'cancel',attemptId:'exact-attempt'};
+  let cancels=0,lookups=0;
+  const client={async attach(r){assert.deepEqual(r,ref);return{
+    async cancel(options){cancels++;assert.deepEqual(options,{cancelId:'exact-cancel',expectedRevision:4,attemptId:'exact-attempt'});
+      return{kind:'accepted',attemptRef,cancellation:{kind:'accepted',ref,cancelRef,revision:5}};},
+    async lookupCancellation(saved){lookups++;assert.deepEqual(saved,cancelRef);return{kind:'unknown',cancelRef};},
+    status(){assert.fail('no status-based retry');},
+  };}};
+  const h=harness({client}),s=await h.connect();
+  assert.equal(s.body.capabilities.cancellation,false);
+  const headers={Cookie:s.cookie,'X-Actql-CSRF':s.body.csrf};
+  assert.equal((await h.send('/api/control/cancel',{cancelRef,attemptRef},headers)).status,404);assert.equal(cancels,0);
+  const enabled=harness({client,allowCancellation:true}),session=await enabled.connect();
+  assert.equal(session.body.capabilities.cancellation,true);
+  const auth={Cookie:session.cookie,'X-Actql-CSRF':session.body.csrf};
+  assert.equal((await enabled.send('/api/control/cancel',{cancelRef,attemptRef})).status,403);
+  assert.equal((await enabled.send('/api/control/cancel',{cancelRef,attemptRef,force:true},auth)).status,400);
+  assert.equal(cancels,0);
+  const result=await enabled.send('/api/control/cancel',{cancelRef,attemptRef},auth);assert.equal(result.status,200);
+  assert.equal((await result.json()).data.outcome.kind,'accepted');assert.equal(cancels,1);
+  const lookup=await enabled.send('/api/control/lookup-cancellation',{cancelRef},auth);
+  assert.equal((await lookup.json()).data.kind,'unknown');assert.equal(lookups,1);assert.equal(cancels,1);
+});
+
+test('browser cancellation keeps the original through lost Gateway ACK and uses only lookup afterward',async()=>{
+  const cancelRef={...ref,cancelId:'lost-ack',expectedRevision:4},attemptRef={operation:'cancel',attemptId:'lost-invocation'};
+  let requested=0,lookups=0;
+  const h=harness({allowCancellation:true,client:{async attach(){return{
+    async cancel(){requested++;return{kind:'accepted',attemptRef,cancellation:{ref,cancelRef,kind:'accepted',revision:5}};},
+    async lookupCancellation(){lookups++;return{kind:'found',cancellation:{ref,cancelRef,kind:'accepted',revision:5}};},
+  };}}});
+  let cookie;
+  const source=createExplorerBrowserSource({origin,fetch:async(url,options)=>{
+    const headers={...options.headers,Host:'127.0.0.1:43210',Origin:origin,...(cookie?{Cookie:cookie}:{})};
+    const response=await h.gateway.fetch(new Request(url,{...options,headers}));
+    if(response.headers.get('set-cookie'))cookie=response.headers.get('set-cookie').split(';')[0];
+    if(new URL(url).pathname==='/api/control/cancel')throw new Error('lost ACK');
+    return response;
+  }});
+  await source.connect(h.gateway.issueBootstrap().bootstrap);
+  const observation=await source.cancel({cancelRef,attemptRef});
+  assert.deepEqual(observation,{state:'unknown',original:{cancelRef,attemptRef}});assert.equal(requested,1);
+  const history=await source.lookupCancellation(cancelRef);assert.equal(history.kind,'found');assert.equal(lookups,1);assert.equal(requested,1);
 });

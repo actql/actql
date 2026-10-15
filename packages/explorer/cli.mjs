@@ -2,7 +2,7 @@
 import {openLocalExplorer} from './launcher.mjs';
 import {explorerArguments, explorerLaunchInput} from './cli-input.mjs';
 
-const help = `Usage: actql-explorer --local [--state-dir <directory>]\n       [--program <file> [--format sql|aql|aql-text|program] | --run <reference.json>]\n\nOpens one existing ActQL Local Host and the built read-only Explorer.\nProgram input reads a static Plan only; it never starts a Run.\nRun input reads the saved original Run Plan, with no compile fallback.\nTo borrow an already connected Client, use @actql/explorer/launcher.\nPaste the printed one-use bootstrap into the page within 60 seconds.\nClosing the viewer does not cancel a Run. No Vite server is required.\n`;
+const help = `Usage: actql-explorer --local [--state-dir <directory>] [--allow-cancel]\n       [--program <file> [--format sql|aql|aql-text|program] | --run <reference.json>]\n\nOpens one existing ActQL Local Host and the built Explorer (read-only unless --allow-cancel).\nProgram input reads a static Plan only; it never starts a Run.\nRun input reads the saved original Run Plan, with no compile fallback.\nTo borrow an already connected Client, use @actql/explorer/launcher.\nPaste the printed one-use bootstrap into the page within 60 seconds.\nWith --allow-cancel, the page can explicitly request or look up one original cancellation.\nClosing the viewer does not cancel a Run. No Vite server is required.\n`;
 const args = process.argv.slice(2);
 try {
   if (args.length === 1 && ['--help', '-h'].includes(args[0])) {
@@ -10,7 +10,7 @@ try {
   } else {
     const selected = explorerArguments(args);
     const launchInput = await explorerLaunchInput(selected);
-    const gateway = await openLocalExplorer({local: selected.local, launchInput});
+    const gateway = await openLocalExplorer({local: selected.local, launchInput, allowCancellation: selected.allowCancellation ?? false});
     const issued = gateway.issueBootstrap();
     process.stdout.write(`Explorer: ${issued.origin}\nOne-use bootstrap: ${issued.bootstrap}\n`);
     // Explicit operator input can renew presentation; it never renews Host authority.
