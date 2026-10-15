@@ -98,8 +98,8 @@ test "original interval JSON and SQL use the installed bounded Relation chain" {
         }
       }
     }
-    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
     if failure is Some(reason) {
+      assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
       fail("original case " + case_index.to_string() + ": " + reason)
     }
     let result = output.unwrap()
@@ -115,5 +115,6 @@ test "original interval JSON and SQL use the installed bounded Relation chain" {
     assert_true(@execution.completed_cell(result, 0, 1) is Some(Number(7.0)))
     assert_true(@execution.completed_cell(result, 1, 1) is Some(Null))
     assert_true(@execution.completed_cell(result, 2, 1) is Some(Null))
+    assert_true(@local_connector.cleanup_managed_provider(active).unwrap())
   }
 }
