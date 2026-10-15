@@ -40,6 +40,8 @@ Moon version for metadata; it does not compile MoonBit.
   different destination bytes after a successful copy, without changing the
   expected shared digest or adding a product test hook.
 
+The ordinary `scripts/package-release.test.mjs` entry imports the shared-cohort
+cases so they remain attached to their producer owner beyond the focused recipe.
 The existing bounded Node wrapper runs the synthetic shared-cohort test and
 all packed-client source/copy controls, plus whitespace checking:
 
