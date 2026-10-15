@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {checkWorkersArtifact, conformanceModules, hostModules,
-  finiteRuntimeModules} from './artifact.mjs';
+  finiteConformanceModules, finiteRuntimeModules} from './artifact.mjs';
 import {build} from 'esbuild';
 import {mkdtempSync,mkdirSync,writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
@@ -18,6 +18,16 @@ function graph(dependency, options = {}) {
     outputs: {'bundle.mjs':{imports:[]}},
   };
 }
+
+test('retired Workers invocation entry is excluded from every module profile', () => {
+  const retired = 'adapters/workers/invocation.mjs';
+  for (const modules of [conformanceModules, hostModules,
+    finiteConformanceModules, finiteRuntimeModules]) {
+    assert.ok(!modules.includes(retired));
+    assert.throws(() => checkWorkersArtifact(graph(retired), 'export {};',
+      ['worker.mjs', ...modules]), /WorkersDependencyRejected/);
+  }
+});
 
 test('resolved Workers graph rejects Node dependencies even if generated output erases them', () => {
   for (const name of ['node:fs', 'fs', 'fs/promises', 'child_process',

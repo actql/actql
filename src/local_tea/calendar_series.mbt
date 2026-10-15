@@ -215,6 +215,11 @@ pub fn start_calendar_series(
     @value.timestamp_epoch_milliseconds(end_text) is Some(end) else {
     return Err(InvalidCalendarKernel)
   }
+  let max_rows = match
+    @execution.generated_calendar_output_ceiling(generated, step) {
+    Some(ceiling) if ceiling < max_rows.to_int64() => ceiling.to_int()
+    _ => max_rows
+  }
   let control_work_limit = control_work_limit.unwrap_or(limits.max_work)
   if control_work_limit < 0 {
     return Err(InvalidCalendarExecutionLimits)

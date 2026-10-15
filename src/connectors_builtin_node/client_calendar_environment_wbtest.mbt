@@ -27,7 +27,7 @@ fn client_calendar_artifact() -> Bytes {
 }
 
 ///|
-test "Calendar artifact bridge retains the original Host checker and missing runtime refusal" {
+test "Calendar artifact bridge retains the original Host checker and prepared operation owners" {
   let original = client_calendar_fixture()
   let selected = client_program_check_environment_with_calendar_artifact(
     original,
@@ -67,19 +67,16 @@ test "Calendar artifact bridge retains the original Host checker and missing run
   )
   let document =
     #|{"version":"actql/0.1","id":"fixture.calendar_source","stages":[{"id":"main","inputs":{},"steps":[{"calendar_series":{"start":"2000-01-01T00:00:00.000Z","end":"2000-01-03T00:00:00.000Z","unit":"day","timezone":"UTC"},"as":"days"},{"calendar_bucket":{"time":"start","into":"month","unit":"month","timezone":"UTC"},"as":"bucketed"},{"from":"bucketed","sort":[{"field":"start","dir":"asc","nulls":"first"}]},{"select":["start","end","month"],"as":"out"}],"results":{"rows":{"from":"out","fields":["start","end","month"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
-  assert_true(
-    client_program_prepare_effect_free_with_parameters(
-      document,
-      "json",
-      selected,
-      None,
-    )
-    is Rejected(
-      Preparation(
-        @publication_host.Lowering({ kind: @lower.OperationNotImplemented, .. })
-      )
-    ),
+  // Preparation preserves the checked series and bucket. Their selected
+  // provider/dispatch is a separate Runtime boundary, not a lowering refusal.
+  let outcome = client_program_prepare_effect_free_with_parameters(
+    document,
+    "json",
+    selected,
+    None,
   )
+  assert_eq(client_program_preparation_issue_code(outcome), None)
+  assert_true(outcome is Prepared(_))
   assert_true(
     @program_check.checking_environment_calendar_profile(original) is None,
   )
@@ -131,4 +128,28 @@ test "Calendar artifact bridge cannot enable a capability or repair changed byte
   assert_true(
     @program_check.checking_environment_calendar_profile(original) is None,
   )
+}
+
+///|
+test "Calendar selected series prepares through the ordinary source-free client entry" {
+  let selected = client_program_check_environment_with_calendar_artifact(
+    client_calendar_fixture(),
+    client_calendar_artifact(),
+    1000,
+    100,
+    8,
+    1,
+    0,
+    10000,
+  ).unwrap()
+  let document =
+    #|{"version":"actql/0.1","id":"fixture.calendar_series","stages":[{"id":"main","inputs":{},"steps":[{"calendar_series":{"start":"2000-01-01T00:00:00.000Z","end":"2000-01-03T00:00:00.000Z","unit":"day","timezone":"UTC"},"as":"days"},{"from":"days","sort":[{"field":"start","dir":"asc","nulls":"first"}]},{"select":["start","end"],"as":"out"}],"results":{"rows":{"from":"out","fields":["start","end"]}}}],"results":{"answer":{"from":{"stage":"main","result":"rows"}}}}
+  let outcome = client_program_prepare_effect_free_with_parameters(
+    document,
+    "json",
+    selected,
+    None,
+  )
+  assert_eq(client_program_preparation_issue_code(outcome), None)
+  assert_true(outcome is Prepared(_))
 }
