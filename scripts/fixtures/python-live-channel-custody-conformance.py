@@ -152,8 +152,17 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
         assert process._native_duplicate.closed and not fd.closed
         os.fstat(fd.value)
         cases.append('actual same-inode duplicate closes once while original FD and planned child fd4 stay distinct')
+        channel._pipe.prepare()
+        span = _OriginalVMSpanData(metadata.source, metadata.recipe, metadata.scalars, 7, 0, 16777216)
+        first_frame = frames._request(frames._BIND, 1, 7, frames._span_payload(span))
+        assert os.write(diagnostic_taps[1].value, first_frame) == len(first_frame)
+        first_header = asyncio.run(frames._OriginalFirstControlHeader._read_original(channel._pipe))
+        assert first_header.nonce_data() == 7 and first_header._raw == first_frame[:frames._HEADER.size]
+        assert domain._live_channel_original is None
+        cases.append('actual original pipe first bind header stays owned before Native capture without issuing permission')
         try:
-            _OriginalLiveChannelCustody._capture_original(domain, process, channel._pipe, live, nonce=7)
+            _OriginalLiveChannelCustody._capture_original(domain, process, channel._pipe, live,
+                                                        nonce=first_header.nonce_data())
         except _OriginalLiveChannelError as failure:
             original = failure.cleanup_channel
             assert not failure.unknown and failure.fact.issue_family == 6
@@ -161,9 +170,30 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
         assert original._channel.value is not None and domain._live_channel_original is original
         cases.append('actual C rejects self PID and Python retains the same pending native channel')
 
-        transport = frames._OriginalWorkerControlFrames(original)
-        channel._pipe.prepare()
-        control_events = []
+        transport = frames._OriginalWorkerControlFrames(original, _initial_header=first_header)
+        binding_facts = []
+        original_bind = _OriginalLiveChannelCustody.bind_original_vm
+        def observe_bind(owner, material):
+            try:
+                return original_bind(owner, material)
+            except _OriginalLiveChannelError as error:
+                binding_facts.append(error)
+                raise
+        # Read-only exception observation; keep the original Native call and
+        # independent issue-family oracle while exercising the framed port.
+        with patch.object(_OriginalLiveChannelCustody, 'bind_original_vm', observe_bind):
+            asyncio.run(transport.serve_once())
+        binding_reply = os.read(diagnostic_taps[0].value, frames._RESPONSE.size)
+        assert frames._RESPONSE.unpack(binding_reply) == (b'ALC1', frames._BIND, 1, 7, -42)
+        assert len(binding_facts) == 1 and not binding_facts[0].unknown
+        assert binding_facts[0].cleanup_channel is original
+        assert binding_facts[0].fact.operation == 2 and binding_facts[0].fact.issue_family == 6
+        assert first_header._taken and first_header._consumer is transport
+        assert transport._request_bytes == first_frame
+        control_events = [{'operation': 'bind', 'serial': 1, 'nonce': 7, 'status': -42,
+            'native_operation': 2, 'native_issue_family': 6,
+            'request_bytes': len(first_frame), 'response_bytes': len(binding_reply),
+            'actual_pipe_bytes': True, 'actual_ctypes_C': True}]
         for operation, payload, label in (
                 (frames._CURRENT, b'', 'current'),
                 (frames._LIMIT, frames._ORDINAL.pack(3), 'limit'),
@@ -200,14 +230,10 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
         else: raise AssertionError('Pending capture gained native baseline coverage')
         cases.append('actual capacity callback refuses pending VM without quota-derived or zero fallback')
 
-        span = _OriginalVMSpanData(metadata.source, metadata.recipe, metadata.scalars, 7, 0, 16777216)
-        try: original.bind_original_vm(span)
-        except _OriginalLiveChannelError as failure:
-            assert not failure.unknown and failure.fact.issue_family == 6
-        else: raise AssertionError('No child/VM binding became available')
-        try: original.bind_original_vm(span)
-        except ValueError: pass
-        else: raise AssertionError('Original failed binding repeated')
+        for _ in range(2):
+            try: original.bind_original_vm(span)
+            except ValueError: pass
+            else: raise AssertionError('Original framed failed binding repeated')
         cases.append('actual bind callback refuses absent VM and the same Python carrier never reissues it')
 
         for operation in (original.admit, lambda: original.report((0, 0, 0, 2**53 + 1, 0, 0, 0, 0, 0, 0)), original.stop):
@@ -239,8 +265,8 @@ with tempfile.TemporaryDirectory(prefix='actql-live-channel-') as directory:
     finally:
         funding_case.doCleanups()
 
-assert len(cases) == len(set(cases)) == 13
-result = {'success': True, 'discovered': 13, 'executed': 13, 'passed': 13, 'failed': 0,
+assert len(cases) == len(set(cases)) == 14
+result = {'success': True, 'discovered': 14, 'executed': 14, 'passed': 14, 'failed': 0,
           'cases': cases, 'loaded_modules': loaded, 'actual_ctypes_C': True,
           'actual_pipe_FDs': True, 'domain_inheritance': inherited, 'control_frames': control_events, 'funding_durable_spawn_doubles': True,
           'actual_spawn': 0, 'actualVM': 0, 'wheel': 0, 'publicE2E': 0}
