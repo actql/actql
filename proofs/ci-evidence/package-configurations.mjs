@@ -20,14 +20,15 @@
 // docs/reviews/2026-10-15-bounded-root-custody-configuration-review.md and
 // docs/reviews/2026-10-15-filesystem-read-layout-configuration-review.md and
 // docs/reviews/2026-10-15-scoped-filesystem-acquisition-configuration-review.md and
-// docs/reviews/2026-10-15-scoped-bounded-read-configuration-review.md.
+// docs/reviews/2026-10-15-scoped-bounded-read-configuration-review.md and
+// docs/reviews/2026-10-15-sqlite-body-limit-configuration-review.md.
 // Changes to this table, the toolchain or any configuration force fresh work.
 // Unknown options and other targets require separate review; matching a digest
 // is configuration identity, not a proof of compiler or OS correctness.
 // A separate exact JS foreign-library review is recorded below; it does not
 // inherit the native-options rule or authorize arbitrary package kinds.
 export const packageConfigurationReview = Object.freeze({
-  revision: '8c0870eb1ab4fdad1ad3e5c436f60dda71c49760',
+  revision: '9531187a12e25ec1f23ba9df8a27e53932af5c72',
   target: 'js',
   toolchainDigest: '8a3a1396f02ba4d5d780382960d1bcf95ccc8d6b97c3da446c0899b98874819a',
   moonRevision: '94521db',
@@ -51,7 +52,7 @@ export const reviewedPackageConfigurations = Object.freeze({
   'src/platform_native/retained_task_file/moon.pkg': 'e3050859982bfa2a176e04f44c08dcf073be7405e42be6f0af81f51a680347de',
   'src/platform_native/runtime_bundle/moon.pkg': 'e18d68c466e76cdc2fd81395df80fdfbdb86e13627c89110339d54503a6650fd',
   'src/platform_native/signature/moon.pkg': '7d5f82f21d707d93d0ad352324cbdc65b7b4eebe6c8456413430699ff084eab3',
-  'src/platform_native/sqlite/moon.pkg': '92f1a01552e82ba65b56f680cf82e048505b83625c9c13c9cfb3f202c19d3996',
+  'src/platform_native/sqlite/moon.pkg': 'f05438392188f1d1f2c08a6872f25e07c782ec6fbc3b9769c09b155b564face5',
   'src/query_integration/moon.pkg': 'eeeb572afaf8f9b708362db6308b080cc715e65601d54f3ff53d8e1a01f65966',
 });
 
