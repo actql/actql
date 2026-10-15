@@ -164,7 +164,7 @@ fn emit_capture_export_step(
 ) -> Unit raise @encode.EncodeFailure {
   let writer = state.writer
   let owner = state.owner.state
-  match state.progress.phase {
+  match state.phase {
     Begin => {
       @encode.begin_object(writer)
       @encode.key(writer, "barrier_receipts")
@@ -176,15 +176,15 @@ fn emit_capture_export_step(
       }
       @encode.key(writer, "captures")
       @encode.begin_array(writer)
-      state.progress.phase = SelectCapture
+      state.phase = SelectCapture
     }
     SelectCapture =>
       if state.index == state.end {
-        state.progress.phase = EndPass
+        state.phase = EndPass
       } else {
         @encode.begin_object(writer)
         @encode.key(writer, "evidence")
-        state.progress.phase = Evidence
+        state.phase = Evidence
       }
     Evidence => {
       // Invocation evidence is a flat admitted 16-KiB/1,024-node document.
@@ -206,18 +206,18 @@ fn emit_capture_export_step(
       @encode.key(writer, "semantic_request_cid")
       @encode.string_value(writer, slot.fixed_request_cid)
       @encode.key(writer, "structured_response")
-      state.progress.phase = Response(
+      state.phase = Response(
         @admitted.start_wire_emit(owner.responses[state.index], writer),
       )
     }
     Response(cursor) =>
       if @admitted.advance_wire_emit(cursor) {
-        state.progress.phase = EndCapture
+        state.phase = EndCapture
       }
     EndCapture => {
       @encode.end_object(writer)
       state.index += 1
-      state.progress.phase = SelectCapture
+      state.phase = SelectCapture
     }
     EndPass => {
       @encode.end_array(writer)
@@ -241,9 +241,9 @@ fn emit_capture_export_step(
         )
         state.pass = 1
         state.index = state.first
-        state.progress.phase = Begin
+        state.phase = Begin
       } else {
-        state.progress.phase = Done
+        state.phase = Done
       }
     }
     Done => ()
@@ -284,7 +284,7 @@ fn advance_capture_export(
       _ => return @bounded.Failed(OutputValue, 1, 1)
     }
   }
-  if state.progress.phase is Done {
+  if state.phase is Done {
     // The transported document includes its self field; its hash is not the
     // semantic bundle CID, which was established by the first pass.
     let _ = @encode.finish_hash(state.writer) catch {
@@ -339,7 +339,7 @@ pub fn model_capture_export_response_pending(
   !active.reclaimed &&
   !@bounded.session_stopped(active.session) &&
   active.state.pass == 0 &&
-  active.state.progress.phase is Response(_)
+  active.state.phase is Response(_)
 }
 
 ///|
@@ -373,11 +373,11 @@ pub fn cleanup_model_capture_export(
     Err(issue) => Err(Session(issue))
     Ok(false) => Ok(false)
     Ok(true) => {
-      if active.state.progress.phase is Response(cursor) {
+      if active.state.phase is Response(cursor) {
         @admitted.cancel_wire_emit(cursor)
       }
       @encode.cancel_writer(active.state.writer)
-      active.state.progress.phase = Done
+      active.state.phase = Done
       active.state.chunk = ""
       match active.state.capture {
         Some(capture) => release_verified_model_capture(capture) |> ignore

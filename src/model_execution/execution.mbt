@@ -217,7 +217,7 @@ priv enum ModelSource {
 // retain each original Entry/Call separately before it can select another Slot.
 // The new record/reference and constructor overlap require physical funding;
 // moving existing fields does not establish a free layout or concurrency.
-priv struct ModelSlotProgress {
+struct ModelSlotProgress {
   mut phase : ModelPhase
   mut slot : Int
   mut entry : ModelCallEntry?
