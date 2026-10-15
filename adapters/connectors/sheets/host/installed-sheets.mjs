@@ -13,7 +13,9 @@ import {createInstalledRowSource, installRowSourceAuthorization,
 import {createInstalledRowEffect} from '../../../host-node/installed-row-effect.mjs';
 import {checkSheetsGridConfiguration, checkSheetsTarget, prepareSheetsAppend,
   projectSheetsAppend, readSheetsGrid, sendSheetsAppend, SHEETS_APPEND_OPERATION,
-  SHEETS_READ_OPERATION, SHEETS_LIMITS} from '../site/sheets-exchange.mjs';
+  SHEETS_READ_OPERATION, SHEETS_LIMITS, readSheetsRangeTarget} from '../site/sheets-exchange.mjs';
+import {createSheetsRangeDriver, sheetsRangeCommand, sheetsRangeReference,
+  withSheetsRangeCommand} from './sheets-range-command.mjs';
 
 export const SHEETS_SITE_VERSION = 'actql-installed-sheets-site/0.1';
 export const SHEETS_SOURCE_VERSION = 'actql-installed-sheets-source/0.1';
@@ -35,13 +37,15 @@ const siteKeys = ['apiOrigin', 'spreadsheetId', 'gridRange', 'appendSheetId',
   'journalRoot', 'tokenEnvironment'];
 
 function checkProfile(profile, effect) {
-  if (!exact(profile, effect ? [...sourceKeys, 'sources'] : sourceKeys) ||
+  const rangeCommand = profile?.rangeCommand === true;
+  if (!exact(profile, rangeCommand ? [...sourceKeys, 'rangeCommand']
+    : effect ? [...sourceKeys, 'sources'] : sourceKeys) ||
       profile.version !== (effect ? SHEETS_EFFECT_VERSION : SHEETS_SOURCE_VERSION) ||
       !absolute(profile.siteProfilePath) || !absolute(profile.publicationPath) ||
       !text(profile.connectorId) || !text(profile.accountConfigurationWire)) {
     fail(effect ? 'InvalidInstalledEffectProfile' : 'InvalidInstalledSourceProfile');
   }
-  if (effect && (!Array.isArray(profile.sources) || profile.sources.length === 0 ||
+  if (effect && !rangeCommand && (!Array.isArray(profile.sources) || profile.sources.length === 0 ||
       profile.sources.length > 64 || profile.sources.some(source =>
         !exact(source, ['target', 'field', 'null_behavior']) ||
         !text(source.target) || !text(source.field) || source.null_behavior !== 'reject'))) {
@@ -80,6 +84,24 @@ async function readSite(path, providerMoon) {
 }
 
 function restore(moon, profile, site, expectedCatalogCid) {
+  if (profile.rangeCommand) {
+    const schema = Object.fromEntries(site.columns.map(({name, type, nullable}) =>
+      [name, {type, nullable}]));
+    const view = (resource, resource_kind, schema) => ({resource, resource_kind,
+      schema_wire: canonicalJson(schema), schema_cid: contentCid(schema)});
+    const views = {views: [view('rows', 'sheet_rows', schema),
+      view('range_target', 'sheet_range', {
+        target: {type: 'resource_ref', resource_kind: 'sheet_range', nullable: false}})]};
+    const declaration = checked(moon.clientProgramRowSourceRestoreRelationDeclaration(
+      profile.connectorId, registration, revision, JSON.stringify(views), undefined));
+    const rangeCommand = sheetsRangeCommand(profile.connectorId, site);
+    const declared = withSheetsRangeCommand(
+      JSON.parse(moon.clientProgramRowSourceDeclarationJson(declaration)), rangeCommand);
+    if (expectedCatalogCid !== undefined && expectedCatalogCid !== declared.catalog_cid) {
+      fail('SheetsPublicationBindingChanged');
+    }
+    return {declaration, declared, rangeCommand};
+  }
   const views = JSON.stringify({views: [{resource: 'rows', resource_kind: 'sheet_rows',
     fields: site.columns}]});
   const declaration = checked(moon.clientProgramRowSourceRestoreDeclaration(
@@ -136,10 +158,12 @@ async function openSite(profile, site, options, publication) {
       if (!text(token)) fail('RemoteCredentialSecretUnavailable');
       return token;
     }),
-    admitsApprovalTarget: (binding, resource) => publication !== undefined && resource === 'rows' &&
+    admitsApprovalTarget: (binding, resource) => publication !== undefined &&
+      (resource === 'rows' || (profile.rangeCommand && resource === 'range_target' && binding.resource === resource)) &&
       binding?.version === targetVersion && binding.catalog_cid === publication.catalogCid &&
       canonicalJson(binding.binding) === canonicalJson(bindingFacts(site)) &&
-      Array.isArray(binding.fields) && binding.fields.every(field => site.columns.some(column => column.name === field))});
+      Array.isArray(binding.fields) && binding.fields.every(field => resource === 'range_target'
+        ? field === 'target' : site.columns.some(column => column.name === field))});
   const bindingCid = contentCid({version: 'actql-installed-sheets-binding/0.1',
     context_cid: authorization.context.contextCid, binding: bindingFacts(site),
     site_key: site.siteKey, site_generation: site.siteGeneration,
@@ -150,22 +174,24 @@ async function openSite(profile, site, options, publication) {
 
 async function publish(profile, options) {
   const site = await readSite(profile.siteProfilePath, options.providerMoon);
-  const {declaration, declared} = restore(options.moon, profile, site);
+  const {declaration, declared, rangeCommand} = restore(options.moon, profile, site);
   // Validate all Mapping declarations before any provider I/O.
   const mapping = profile.sources === undefined ? undefined
     : mappingOf(options.moon, profile, site, declaration);
   const opened = await openSite(profile, site, options);
   let temporary;
   try {
+    const resource = profile.rangeCommand ? 'range_target' : 'rows';
     const decision = await opened.authorization.authorize('acquisition',
-      {connection: opened.connection, resource: 'rows', operation: 'read'},
+      {connection: opened.connection, resource, operation: 'read'},
       {subjectCid: contentCid(bindingFacts(site)), signal: options.signal});
     if (decision?.action !== 'dispatch') fail('ExecutionAuthorizationDenied');
     const nonce = randomUUID(), invocation = contentCid({version: 'actql-sheets-publication-read/0.1', nonce});
     const grant = opened.site.issueReadGrant({operation: SHEETS_READ_OPERATION, decision,
-      resource: 'rows', runInvocationCid: invocation, dispatchRequestCid: invocation, maxUses: 1});
+      resource, runInvocationCid: invocation, dispatchRequestCid: invocation, maxUses: 1});
     await checkSheetsTarget({moon: options.providerMoon, spreadsheetId: site.spreadsheetId,
-      columns: site.columns, range: site.gridRange, appendSheetId: site.appendSheetId,
+      columns: site.columns, range: site.gridRange,
+      appendSheetId: profile.rangeCommand ? site.gridRange.sheetId : site.appendSheetId,
       authorization: {...grant, useId: `${nonce}-metadata`}, credential: opened.site.credential,
       callResource: opened.site.callResource, signal: options.signal});
     const body = {version: publicationVersion, connectorId: profile.connectorId,
@@ -176,7 +202,9 @@ async function publish(profile, options) {
     await writeFile(temporary, canonicalJson(publication), {mode: 0o600});
     await rename(temporary, profile.publicationPath);
     temporary = undefined;
-    const result = Object.freeze({...publication, ...(mapping === undefined ? {} : {mappings: [{
+    const result = Object.freeze({...publication,
+      ...(rangeCommand === undefined ? {} : {commands: [rangeCommand.installed]}),
+      ...(mapping === undefined ? {} : {mappings: [{
       resource: 'append_rows', kind: 'create', target: mapping.target,
       mappingRef: mapping.mappingRef, mappingCid: mapping.mappingCid}]})});
     // Closure failure retains the same Site/journal owner; publication is not
@@ -204,30 +232,64 @@ export const publishInstalledSheetsEffect = (profile, options) =>
 async function load(profile, options, effect) {
   const {moon, providerMoon, baseEnvironmentWire} = options;
   const site = await readSite(profile.siteProfilePath, providerMoon);
-  const {declaration, declared} = restore(moon, profile, site);
+  const {declaration, declared, rangeCommand} = restore(moon, profile, site);
   const publication = await readPublication(profile, site, declared);
-  const mapping = effect ? mappingOf(moon, profile, site, declaration) : undefined;
-  const environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared,
+  const mapping = effect && rangeCommand === undefined ? mappingOf(moon, profile, site, declaration) : undefined;
+  let environment = rowSourceCheckEnvironment(baseEnvironmentWire, declared,
     mapping === undefined ? [] : [mapping.body]);
+  if (rangeCommand !== undefined) {
+    const {evidence_bundle_cid: _, ...body} = JSON.parse(environment.wire);
+    if (!Array.isArray(body.command_contracts) || body.command_contracts.length !== 0) {
+      fail('InvalidRowSourceCheckEnvironmentBase');
+    }
+    const value = {...body, command_contracts: [rangeCommand.command]};
+    environment = {wire: canonicalJson({...value, evidence_bundle_cid: contentCid(value)})};
+  }
   const opened = await openSite(profile, site, options, publication);
+  let closed = false;
+  const target = rangeCommand === undefined ? undefined : sheetsRangeReference({site,
+    catalogCid: declared.catalog_cid, bindingCid: opened.bindingCid});
   try {
-    if (!effect) return await createInstalledRowSource({moon, declaration, declared,
+    if (!effect) {
+      const adapter = await createInstalledRowSource({moon, declaration, declared,
       environmentWire: environment.wire, connectorId: profile.connectorId,
       connectorRegistration: registration, connectorRevision: revision,
       site: opened.site, authorization: opened.authorization, readOperation: SHEETS_READ_OPERATION,
       bindingCid: opened.bindingCid, physicalTarget: (resource, fields) => {
-        if (resource !== 'rows') fail('UndeclaredSheetsResource');
+        if (resource !== 'rows' && !(profile.rangeCommand && resource === 'range_target')) fail('UndeclaredSheetsResource');
         return Object.freeze({version: targetVersion, catalog_cid: publication.catalogCid,
-          binding: bindingFacts(site), fields: Object.freeze([...fields])});
+          binding: bindingFacts(site), fields: Object.freeze([...fields]),
+          ...(profile.rangeCommand ? {resource} : {})});
       },
+      ...(target === undefined ? {} : {referenceIssuer: moon.clientProgramResourceReferenceIssuer(
+        (kind, wire) => !closed && kind === 'sheet_range' && wire === canonicalJson(target),
+        () => !closed)}),
       limits: {maxPages: 1, maxPageBytes: SHEETS_LIMITS.maxResponseBytes,
         maxPageRows: SHEETS_LIMITS.maxRows, maxCaptureRows: SHEETS_LIMITS.maxRows},
       readPages: options => {
+        if (profile.rangeCommand && options.resource === 'range_target') {
+          return readSheetsRangeTarget({...options, moon: providerMoon,
+            spreadsheetId: site.spreadsheetId, columns: site.columns, range: site.gridRange,
+            target, credential: opened.site.credential, callResource: opened.site.callResource});
+        }
         if (options.resource !== 'rows') fail('UndeclaredSheetsResource');
         return readSheetsGrid({...options, moon: providerMoon,
           spreadsheetId: site.spreadsheetId, columns: site.columns, range: site.gridRange,
           credential: opened.site.credential, callResource: opened.site.callResource});
       }});
+      return rangeCommand === undefined ? adapter : Object.freeze({...adapter,
+        close() { closed = true; return adapter.close(); }});
+    }
+    if (rangeCommand !== undefined) return await createInstalledRowEffect({moon,
+      commands: [rangeCommand.installed], environmentWire: environment.wire,
+      connectorId: profile.connectorId, connectorRegistration: registration, connectorRevision: revision,
+      connection: opened.connection, site: {...opened.site,
+        close() { closed = true; return opened.site.close(); }}, authorization: opened.authorization,
+      runtimeBundleCid: options.runtimeBundleCid, bindingCid: opened.bindingCid,
+      ledgerRoot: options.ledgerRoot, installation: options.installation,
+      driver: createSheetsRangeDriver({moon: providerMoon, site,
+        command: rangeCommand.installed, bindingCid: opened.bindingCid, target,
+        isCurrent: () => !closed})});
     const boundaryCid = contentCid({version: 'actql-sheets-append-boundary/0.1',
       api_origin: site.apiOrigin, spreadsheet_id: site.spreadsheetId, sheet_id: site.appendSheetId});
     return await createInstalledRowEffect({moon,
@@ -253,6 +315,7 @@ async function load(profile, options, effect) {
         project: options => projectSheetsAppend({...options, moon: providerMoon}),
         footprint: () => ({providerNamespace: registration, resourceKind: 'sheet_collection', boundaryCid})}});
   } catch (cause) {
+    closed = true;
     throw await retainInstalledHostInitializationFailure(cause,
       effect ? {installedEffect: opened.site} : {sourceProfile: opened.site});
   }

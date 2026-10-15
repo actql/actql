@@ -4148,9 +4148,25 @@ function publicationControl(moon) {
       return Object.freeze({artifactCid: artifact.identity,
         physicalCid: binding._0, byteCount: binding._1});
     },
-    // Physical custody metadata from the authenticated private capture, not
-    // semantic identity or permission. Callers first validate the Captured
-    // Run chain. Issuance obtains these bindings from exact export receipts.
+    // Schema material from the authenticated capture, not current configuration.
+    capturedEffectDependencySchemas(capturedRun) {
+      const captured = inspect(token(capturedRun));
+      const inventory = JSON.parse(captured.wire).effect_context?.effect_dependency_inventory;
+      if (captured.name !== 'captured_run' || !Array.isArray(inventory) || inventory.length > 4096) {
+        throw new TypeError('InvalidEffectDependencySchemas');
+      }
+      // Original canonical bodies admitted by the CapturedRun/dependency Owner,
+      // never reconstructed from current Catalogs or observed row values.
+      return Object.freeze(inventory.filter(entry => entry.kind === 'relation_schema').map(entry => {
+        if (typeof entry.cid !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(entry.cid) ||
+            entry.body === null || typeof entry.body !== 'object' || Array.isArray(entry.body)) {
+          throw new TypeError('InvalidEffectDependencySchemas');
+        }
+        return Object.freeze({cid: entry.cid, wire: JSON.stringify(entry.body)});
+      }));
+    },
+    // Physical custody metadata is not semantic identity or permission.
+    // Callers first validate the Captured Run chain; issuance binds receipts.
     capturedEffectDependencyPayloadBindings(capturedRun, bindings) {
       const captured = inspect(token(capturedRun));
       const inventory = JSON.parse(captured.wire).effect_context
