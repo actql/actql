@@ -72,6 +72,10 @@ fn[T] close_stable_order(state : StableOrderExecution[T]) -> Unit {
   if state.closed {
     return
   }
+  if state.comparison.tree is Some(tree) {
+    close_complete_tree_comparison(tree)
+    state.comparison.tree = None
+  }
   state.source = []
   state.target = []
   release_slots(state.workspace, state.workspace.live - state.baseline)
