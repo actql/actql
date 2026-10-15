@@ -71,3 +71,43 @@ pub fn NativeSqliteOpenFailure::retry_cleanup(
   }
   Ok(())
 }
+
+///|
+/// Physical acquisition refused before a Library exists, or the SAME rejected
+/// Library whose cleanup still belongs to its installed caller. Neither case
+/// issues Host authority, a capacity grant or permission to acquire again.
+pub(all) enum NativeSqliteLibraryLoadError {
+  RefusedBeforeAcquisition(NativeSqliteIssue)
+  CleanupRequired(NativeSqliteLibraryLoadFailure)
+}
+
+///|
+// Only the Native implementation constructs physical acquisition failures.
+// Other targets retain this opaque API type and refuse before acquisition.
+#warnings("-struct_never_constructed")
+struct NativeSqliteLibraryLoadFailure {
+  original_issue : NativeSqliteIssue
+  mut library : Library?
+}
+
+///|
+pub fn NativeSqliteLibraryLoadFailure::issue(
+  self : NativeSqliteLibraryLoadFailure,
+) -> NativeSqliteIssue {
+  self.original_issue
+}
+
+///|
+/// Only retry original cleanup. Retain the same partial Library until its own
+/// checked close ACK; this cannot load, configure, adopt or repair a runtime.
+pub fn NativeSqliteLibraryLoadFailure::retry_cleanup(
+  self : NativeSqliteLibraryLoadFailure,
+) -> Result[Unit, NativeSqliteIssue] {
+  if self.library is Some(original) {
+    match original.close_checked() {
+      Ok(_) => self.library = None
+      Err(issue) => return Err(issue)
+    }
+  }
+  Ok(())
+}
