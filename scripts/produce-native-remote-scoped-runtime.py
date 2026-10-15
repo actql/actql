@@ -124,10 +124,20 @@ def commands_for(output: str, moon_home: Path, emission: Path, allocator: Path,
     return commands
 
 
+def canonical_c_arguments(arguments: list[str]) -> list[str]:
+    # The pinned dry-run prints ./src paths while actual Moon execution makes
+    # those same source paths absolute. No flags, outputs or foreign paths are
+    # normalized; they must still match the exact selected command.
+    return [str((ROOT / p).resolve()) if p.startswith('./src/') and p.endswith('.c')
+            else p for p in arguments]
+
+
 def compile_selected_c(plan_path: Path, arguments: list[str]) -> None:
     """Private cc port: accept only an exact step from this Moon invocation."""
     plan = json.loads(plan_path.read_text())
-    matches = [step for step in plan['steps'] if step['original'] == arguments]
+    actual = canonical_c_arguments(arguments)
+    matches = [step for step in plan['steps']
+               if canonical_c_arguments(step['original']) == actual]
     if len(matches) != 1:
         raise ValueError('Unplanned or ambiguous C compiler invocation')
     step = matches[0]

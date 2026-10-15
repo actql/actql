@@ -72,6 +72,14 @@ class RemoteScopedComposition(unittest.TestCase):
                                    self.clang, self.sdk, ar_driver=Path('/owned/bin/ar'))
         self.assertEqual(plan[-1], archive)
 
+    def test_only_observed_source_path_absolutization_is_equivalent(self):
+        relative = ['./src/platform_native/filesystem/filesystem_stub.c', '-o', './src/result.o', '-O0']
+        absolute = [str(MODULE.ROOT / relative[0]), *relative[1:]]
+        self.assertEqual(MODULE.canonical_c_arguments(relative), absolute)
+        self.assertEqual(MODULE.canonical_c_arguments(['/foreign/input.c', '-O2']), ['/foreign/input.c', '-O2'])
+        self.assertNotEqual(MODULE.canonical_c_arguments(relative),
+                            MODULE.canonical_c_arguments([relative[0], '-o', './src/result.o', '-O2']))
+
     def test_private_c_port_rejects_unplanned_invocation(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / 'plan.json'
