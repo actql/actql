@@ -3,7 +3,8 @@ import {checkedSigner, reviewBytesMatchCid, signedAnswer} from '../checkpoints.m
 import {positive} from './data.mjs';
 import {ClientError, fail} from './errors.mjs';
 import {reviewEnvelopeBytes} from './transport-response.mjs';
-import {checkpointLimits, validCheckpointPage, validCheckpointReview, validResolveItem, validResolveResults} from '@actql/client-wire';
+import {checkpointLimits, validCheckpointPage, validCheckpointReview, validResolveItem,
+  validResolveResults} from '@actql/client-wire';
 
 export function createCheckpointOperations(connection, exchange, responseValue) {
   const selected = {wire: connection};

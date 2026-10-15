@@ -1,6 +1,9 @@
 // Original Submission/Request inputs, invocation outcomes and lookup custody.
 // Transport dispatch facts and Host certificates remain separate.
-import {projectRequestCancellationExplanation, projectRequestLookupExplanation, projectRequestLookupFailure, projectSubmissionAttemptExplanation, projectSubmissionExplanation, projectSubmissionLookupFailure, projectSubmissionNotSent, submissionLookupExplanation, localizeOperation} from '../operation-presentation.mjs';
+import {projectRequestCancellationExplanation, projectRequestLookupExplanation,
+  projectRequestLookupFailure, projectSubmissionAttemptExplanation, projectSubmissionExplanation,
+  projectSubmissionLookupFailure, projectSubmissionNotSent, submissionLookupExplanation,
+  localizeOperation} from '../operation-presentation.mjs';
 import {bytesCid, canonicalJson} from '../checkpoints.mjs';
 import {sourceQuery} from '../source-query.mjs';
 import {bindCheckObservation} from './check-observation.mjs';
@@ -8,7 +11,9 @@ import {captureResponse, detachResponse, freezeInput, structuralKey} from './dat
 import {ClientError, fail, requestCancellationCause} from './errors.mjs';
 import {copyRunObservationFailure} from './run-observation.mjs';
 import {controlValue} from './transport-response.mjs';
-import {clientSourceFormats, snapshotClientRequest, validClientAdmission, validOperationAttemptRef, validRequestCancellation, validRequestLookup, validRunRef, validSubmissionAttempt, validSubmissionLookup, validSubmissionRef, validSubmissionRestart} from '@actql/client-wire';
+import {clientSourceFormats, snapshotClientRequest, validClientAdmission, validOperationAttemptRef,
+  validRequestCancellation, validRequestLookup, validRunRef, validSubmissionAttempt,
+  validSubmissionLookup, validSubmissionRef, validSubmissionRestart} from '@actql/client-wire';
 
 // Original request data is available only through explicit SDK access, never
 // by serializing an error or Run handle. It does not establish acceptance.

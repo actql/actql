@@ -2,7 +2,8 @@
 import {contentCid} from '../checkpoints.mjs';
 import {captureResponse, detachResponse, freezeInput} from './data.mjs';
 import {fail} from './errors.mjs';
-import {snapshotClientRequest, validClientBody, validWireEffectfulStaticPlanViewShape, validWirePlanViewShape} from '@actql/client-wire';
+import {snapshotClientRequest, validClientBody, validWireEffectfulStaticPlanViewShape,
+  validWirePlanViewShape} from '@actql/client-wire';
 
 export function createPlan(connection, exchange, responseValue) {
   const selected = {wire: connection};

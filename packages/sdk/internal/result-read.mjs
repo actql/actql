@@ -1,11 +1,13 @@
 // Result readers and their local progress, validation and cleanup custody.
 // Opening or stopping a reader neither cancels nor resubmits its Run.
-import {projectDeliveryExplanation, projectDeliveryLookupFailure, projectReadExplanation, localizeOperation} from '../operation-presentation.mjs';
+import {projectDeliveryExplanation, projectDeliveryLookupFailure, projectReadExplanation,
+  localizeOperation} from '../operation-presentation.mjs';
 import {contentCid} from '../checkpoints.mjs';
 import {jsonValueWireContractCid} from '../json-value-wire.generated.mjs';
 import {awaitValidation, captureResultRead, validationOutcome} from '../result-schema.mjs';
 import {captureResponse, freezeInput, positive, structuralKey} from './data.mjs';
-import {ClientError, fail, ownedClientFailure, markOwnedFailure, ownedFailureCode, requestCancellationCause} from './errors.mjs';
+import {ClientError, fail, ownedClientFailure, markOwnedFailure, ownedFailureCode,
+  requestCancellationCause} from './errors.mjs';
 import {resultDescriptionLimits, validDeliveryAttemptLookup, validResultDescription} from '@actql/client-wire';
 
 const readExplanations = new WeakMap();

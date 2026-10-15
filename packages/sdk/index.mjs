@@ -1,8 +1,10 @@
 import {connectSelected} from './internal/client.mjs';
-import {connectionFailure, connectionObjectExample, connectionOptions, connectionStringExample, connectionStringOptions, inProcessOptions} from './internal/connection-options.mjs';
+import {connectionFailure, connectionObjectExample, connectionOptions, connectionStringExample,
+  connectionStringOptions, inProcessOptions} from './internal/connection-options.mjs';
 import {fail, isOwnedClientFailure} from './internal/errors.mjs';
 import {explainDeliveryAttempt, explainReadFailure} from './internal/result-read.mjs';
-import {explainCancellation, explainEffectUncertainty, explainOwnerObservations, explainRunObservationFailure} from './internal/run-observation.mjs';
+import {explainCancellation, explainEffectUncertainty, explainOwnerObservations,
+  explainRunObservationFailure} from './internal/run-observation.mjs';
 import {explainRequestCancellation, explainRequestLookup, explainSubmission} from './internal/submission-observation.mjs';
 import {formatOperationExplanation} from './operation-formats.mjs';
 

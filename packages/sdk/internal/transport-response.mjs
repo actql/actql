@@ -52,4 +52,3 @@ export async function boundedHostJson(response,
 
 export const controlValue = (response, maxWireBytes) => response instanceof Response
   ? boundedHostJson(response, maxWireBytes) : response;
-
