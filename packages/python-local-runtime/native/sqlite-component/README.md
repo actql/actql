@@ -139,3 +139,31 @@ initialization with OOM. Its module, raw failure and subsequent unchanged legacy
 callback C26 remain separate evidence. They do not establish this MEMSYS5
 candidate's schema/CAS or cleanup behavior. New counts require execution at the
 new source and artifact identity.
+
+## Relocatable private bundle producer
+
+`scripts/produce-python-sqlite-component.py` is a maintainer recipe used through
+the existing bounded local-check guard. It stages the pinned archive/source,
+links one component against a verified original scoped-provider receipt, and
+copies that provider and SQLite notice into a fresh `bundle` directory. It
+compiles no second provider or TLS copy and never loads or initializes a library.
+The component install ID is `@rpath/libactql_sqlite_component.dylib`; its only
+bundled dependency is `@rpath/libactql_native_control.dylib`, found through exactly
+`@loader_path`. The copied output's metadata and hashes are checked again. No
+absolute build/review/Homebrew search path is permitted in the bundle.
+
+The provider receipt must normally belong to the same clean source. An explicit
+`--diagnostic-retained-provider-source` names an older reviewed provider for a
+mixed-source diagnostic only; the manifest records both sources and marks that
+bundle `cohort_compatible=false`. It cannot become a matching release cohort by
+renaming/copying the file or editing its descriptor. The default producer does
+not silently fall back to a retained provider. A partial output is retained and
+never overwritten on retry.
+
+The manifest is private artifact correspondence, not an installed trust anchor,
+funding/adoption fact or a Library permission. A later normal runtime producer
+must bind the same-source provider/component digests into the original SDK
+release cohort and keep its earliest physical funding/current checks. This
+recipe neither adopts a SQLite version/normal numerical profile nor connects an
+ordinary Client, worker, VM or wheel. Relocated C consumers, when run, establish
+only their exact component/provider boundary, not installed Python SELECT1.
