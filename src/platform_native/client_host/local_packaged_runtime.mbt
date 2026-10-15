@@ -189,11 +189,19 @@ pub fn open_native_local_packaged_runtime(
       |> local_runtime_result
     runtime.manifest = Some(manifest)
     let bodies : Map[String, String] = Map([])
+    // The existing admitted member Owner emits licenses, libraries, then
+    // assets. Retain each group's original parent once, not once per file.
+    // This is capture-local Root reuse, never a cached current/Allow result.
+    let mut parent_name = ""
+    let mut parent = root
     for entry in @host.client_native_local_runtime_members(manifest) {
       let parts = entry.path.split("/").map(part => part.to_owned()).to_array()
-      let parent = root.open_child(parts[0]).map_err(issue => Physical(issue))
-        |> local_runtime_result
-      local_runtime_retain_root(runtime, parent)
+      if parts[0] != parent_name {
+        parent = root.open_child(parts[0]).map_err(issue => Physical(issue))
+          |> local_runtime_result
+        local_runtime_retain_root(runtime, parent)
+        parent_name = parts[0]
+      }
       let collect = parts[0] == "data"
       let body = local_runtime_read_member(
         runtime,
