@@ -1,0 +1,8 @@
+{
+  "base": "34da525d76ec00ef8e60a9ddbc49589aadc6ce96",
+  "productInputs": {
+    "adapters/host-common/authorization-gate.mjs": "af37a995b4ad04965c56f6dde2e0948d638c9d531af206e26716df27db3f41f8",
+    "adapters/host-common/sqlite-transaction.mjs": "5c672cb06df0724c92dceb2958fc48b2a2cc06f11749bc987636f8d74800d7d0",
+    "adapters/host-common/strategy.mjs": "ad125d09600abfcf88e8b81d3ebca96b7e0b2d36b0fdbc5abf6bf9a6c9803ea8"
+  }
+}
