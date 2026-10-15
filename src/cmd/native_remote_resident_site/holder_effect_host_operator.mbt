@@ -174,7 +174,10 @@ fn load_holder_effect_host_operator(
           bundles.verify_active_component_binding_with_body_limit(
             active_runtime, catalog_read_limit,
           )
-          is Ok(_)
+          is Ok(_) &&
+          bundles.current_sqlite_component_matches_heap(
+            catalog_sqlite_heap_bytes,
+          )
         },
       ),
     ) {
