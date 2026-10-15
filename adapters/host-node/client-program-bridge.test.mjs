@@ -1,3 +1,4 @@
+import {registerPrivateTableDependencyTests} from './table-dependent-input.fixture.mjs';
 import {withFixtureConnector} from '../host-common/connector-manifest.fixture.mjs';
 import assert from 'node:assert/strict';import {createHash, generateKeyPairSync, sign, verify} from 'node:crypto';
 import {mkdir, mkdtemp, open, readFile, readdir, rm} from 'node:fs/promises';
@@ -6785,3 +6786,5 @@ test('checked INFER barrier compiles within the original Effect Run', async () =
   assert.throws(() => checked(moon.clientProgramCompileLocalEffectsWithInfer(
     foreign, graph)), {code: 'MoonBitHostFailure'});
 });
+
+registerPrivateTableDependencyTests(exerciseEffectSourceSet);

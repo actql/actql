@@ -4,10 +4,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {createHash} from 'node:crypto';
 import {canonicalText} from '../../scripts/check-canonical-json.mjs';
-import {exerciseEffectSourceSet} from './client-program-bridge.test.mjs';
 import {preparePinnedEffectSourceSet, preparePinnedEffectDependencyInventory} from './effect-input-export.mjs';
 import {checked} from '../host-common/runtime-result.mjs';
 
+// Register through the existing normal Host suite; importing a test helper
+// must not discover a second copy of every unrelated Host scenario.
+export function registerPrivateTableDependencyTests(exerciseEffectSourceSet) {
 test('dependent private Table members retain their own occurrence beside an identical public Result', async t => {
   await exerciseEffectSourceSet(t, {privateTableInput: true,
     transformDocument(document) {
@@ -233,3 +235,4 @@ test('source-free private Table dependency control preserves the original no-imp
       }
     }});
 });
+}

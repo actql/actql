@@ -16,7 +16,7 @@ const phases = {
   existing: [step('Existing captured Result lifetime and imported scope', process.execPath, ['--input-type=module','-e',focus,'--','--test-name-pattern=^(two Effect members hold|source-free Effect dependency retains|Effect sources retain exact physical producers)','adapters/host-node/client-program-bridge.test.mjs'])],
   portable: [step('Affected Common Wasm API', 'moon', ['info','--target','wasm','src/run_publication_host']), step('Affected Common Native API', 'moon', ['info','--target','native','src/run_publication_host'])],
   freshness: [step('Existing Node and RelA assembly freshness', process.execPath, ['scripts/connector-node-bundles.mjs']), step('Whitespace', 'git', ['diff','--check'])],
-  counter: [step('Private Table imported occurrence counter', process.execPath, ['--input-type=module','-e',focus,'--','--test-name-pattern=^(dependent private Table members retain|source-free private Table dependency control)','adapters/host-node/table-dependent-input.test.mjs'])],
+  counter: [step('Private Table imported occurrence counter', process.execPath, ['--input-type=module','-e',focus,'--','--test-name-pattern=^(dependent private Table members retain|source-free private Table dependency control)','adapters/host-node/client-program-bridge.test.mjs'])],
 };
 assert(Object.hasOwn(phases, phase));
 process.exitCode = await runLocalCheck({root, heavy:phase==='build', timeoutSeconds:phase==='build'?180:60, graceSeconds:5,
