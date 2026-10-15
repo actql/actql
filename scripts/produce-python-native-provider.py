@@ -128,7 +128,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     c_sources = [(emitted, 'original'),
                  (ROOT / 'src/platform_native/host_bootstrap/bootstrap_stub.c', 'bootstrap')]
     c_sources += [(ROOT / ENTRY / (name + '.c'), name)
-                  for name in ('control_shim', 'backing_shim', 'domain_shim')]
+                  for name in ('control_shim', 'backing_shim', 'domain_shim', 'domain_read_shim')]
     c_sources += [(moon_home / 'lib/runtime' / (name + '.c'), 'runtime-' + name)
                   for name in ('backtrace', 'env', 'runtime', 'sync_io', 'utf')]
     objects = []
@@ -141,7 +141,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
                   '-DMOONBIT_ALLOCATOR=MOONBIT_ALLOCATOR_MIMALLOC']
         if name == 'original':
             common += ['-Wno-unused-value', '-Dmain=actql_original_control_initialize',
-                       '-include', str(ROOT / ENTRY / 'domain_shim.h')]
+                       '-include', str(ROOT / ENTRY / 'domain_read_shim.h')]
         elif name.startswith('runtime-'):
             common += ['-Wno-unused-value', '-DMOONBIT_ALLOW_STACKTRACE']
         else:
