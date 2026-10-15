@@ -62,8 +62,8 @@ fn main {
     _ => abort("original FD domain unavailable")
   }
   host.transfer_domain(domain).unwrap()
-  host.prepare_domain_read(domain).unwrap()
   host.leave_backing_borrow_scope(scope).unwrap()
+  host.prepare_domain_read(domain).unwrap()
   let budget : @control.InstalledArenaOriginalReadBudget = {
     bootstrap_retained: page,
     bootstrap_execution: page,
