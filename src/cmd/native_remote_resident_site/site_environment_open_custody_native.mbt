@@ -8,6 +8,10 @@ priv struct SiteEnvironmentOpenCustody {
   mut failed_bundle : @bundle.NativeRuntimeBundleStoreOpenFailure?
   mut failed_journal : @journal.NativeRemoteJournalOpenFailure?
   mut release_required : Bool
+  // Selected Library custody outlives every Store/Journal Database alias.
+  // Its installer keeps the same original read domain alive until this ACK.
+  mut selected_sqlite_library : @sqlite.Library?
+  mut failed_sqlite_library : @sqlite.NativeSqliteLibraryLoadFailure?
 }
 
 ///|
@@ -18,6 +22,8 @@ fn site_environment_open_custody(
   failed_bundle? : @bundle.NativeRuntimeBundleStoreOpenFailure? = None,
   failed_journal? : @journal.NativeRemoteJournalOpenFailure? = None,
   release_required? : Bool = false,
+  selected_sqlite_library? : @sqlite.Library? = None,
+  failed_sqlite_library? : @sqlite.NativeSqliteLibraryLoadFailure? = None,
 ) -> SiteEnvironmentOpenCustody {
   {
     original_failure,
@@ -26,13 +32,17 @@ fn site_environment_open_custody(
     failed_bundle,
     failed_journal,
     release_required,
+    selected_sqlite_library,
+    failed_sqlite_library,
   }
 }
 
 ///|
 /// Journal physical cleanup precedes process-hold release; Bundle close
 /// follows its release ACK. Missing/unknown release is not returned custody.
-fn retry_site_environment_open_custody(
+/// This frame ends before the Library close: its temporary Store/Database
+/// aliases must not keep that original Library alive across the next phase.
+fn retry_site_environment_open_objects(
   original : SiteEnvironmentOpenCustody,
 ) -> Bool {
   if original.failed_journal is Some(same) {
@@ -54,6 +64,36 @@ fn retry_site_environment_open_custody(
     original.failed_bundle = None
   }
   !original.release_required
+}
+
+///|
+/// Only the existing Library Owner can acknowledge retirement. Missing or
+/// foreign context, legacy Library and unknown close remain pending. No reload
+/// or context replacement occurs here. A failed leave/domain/Host still belongs
+/// to the same outer installer after this Library's own ACK.
+fn retry_site_environment_open_libraries(
+  original : SiteEnvironmentOpenCustody,
+) -> Bool {
+  if original.selected_sqlite_library is Some(same) {
+    guard same.close_checked() is Ok(_) else { return false }
+    original.selected_sqlite_library = None
+  }
+  if original.failed_sqlite_library is Some(same) {
+    guard same.retry_cleanup() is Ok(_) else { return false }
+    original.failed_sqlite_library = None
+  }
+  true
+}
+
+///|
+/// Do not fold these two helpers into a single frame: even a closed Database
+/// external object retains its Library child until that managed alias retires.
+/// This is an ordering boundary, not a GC/RSS or domain-retirement guarantee.
+fn retry_site_environment_open_custody(
+  original : SiteEnvironmentOpenCustody,
+) -> Bool {
+  retry_site_environment_open_objects(original) &&
+  retry_site_environment_open_libraries(original)
 }
 
 ///|

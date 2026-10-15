@@ -125,3 +125,45 @@ test "issued active binding cannot replace the original configured Site selectio
   bundles.reclaim(runtime).unwrap() |> ignore
   bundles.close_checked().unwrap()
 }
+
+///|
+test "original Site failure cannot treat an unscoped Library as a close ACK" {
+  let parent = @env.get_env_var("ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT").unwrap()
+  let library_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap()
+  let slot = @slot.open_native_executor_slot(
+    parent + "/site-library-pending.slot",
+  ).unwrap()
+  assert_true(slot.try_acquire().unwrap())
+  // A real legacy handle cannot stand in for the selected installer's original
+  // context. Keep it as pending responsibility; do not translate its refusal
+  // into a physical retirement or a new Library load.
+  let library = @sqlite.load_library(library_path).unwrap()
+  let original = site_environment_open_custody(
+    "original selected Library context unavailable",
+    "original-process",
+    selected_sqlite_library=Some(library),
+  )
+  let custody : HolderSiteEnvironmentOpenCleanup = {
+    original,
+    slot,
+    slot_close_unknown: false,
+    slot_closed: false,
+  }
+  for _ in 0..<2 {
+    assert_false(retry_holder_site_environment_open_cleanup(custody))
+    assert_true(
+      original.selected_sqlite_library is Some(same) &&
+      physical_equal(same, library),
+    )
+    assert_eq(slot.verify_current_hold(), Ok(()))
+    assert_false(custody.slot_closed)
+    assert_false(custody.slot_close_unknown)
+    assert_eq(
+      original.original_failure,
+      "original selected Library context unavailable",
+    )
+  }
+  // Independent fixture retirement only. Production never converts the absent
+  // original context into a Library or Slot close acknowledgement.
+  assert_true(slot.close())
+}
