@@ -2,6 +2,23 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {readFileSync} from 'node:fs';
 import {temporalJoinSourceSuccesses as normal,temporalJoinSourceRefusals as refused} from './fixtures/temporal-join-source-input.mjs';
+import {temporalJoinSourceSuccesses as originalNormal,temporalJoinSourceRefusals as originalRefused}
+  from '../reviews/2026-10-14-temporal-join-release-matrix/preimages/original-temporal-source-input.mjs';
+test('temporal current text quotes only reserved ordinary aliases and keeps original independent controls',()=>{
+  assert.equal(normal.length,originalNormal.length); assert.equal(refused.length,originalRefused.length);
+  const quote = text=>text.replace('10 AS at UNION','10 AS `at` UNION')
+    .replace('FROM l AS current |>','FROM l AS `current` |>');
+  for(const [index,item] of normal.entries()) {
+    const original=originalNormal[index];
+    assert.deepEqual({...item,text:original.text},original);
+    assert.equal(item.text,item.format==='json'?original.text:quote(original.text));
+  }
+  for(const [index,item] of refused.entries()) {
+    const original=originalRefused[index];
+    assert.deepEqual({...item,text:original.text},original);
+    assert.equal(item.text,quote(original.text));
+  }
+});
 test('temporal controls retain independent left/inner values, full schema, limits and zero acquisition',()=>{
   assert.equal(normal.length,12); assert.equal(refused.length,9);
   for(const suffix of ['asof-left','asof-inner','interval-left','interval-inner']) {
