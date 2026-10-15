@@ -14,25 +14,27 @@ import {openContinuationEvidence} from './local-continuation-evidence.mjs';
 const version = 'actql-local-continuation-retention/0.1';
 const unavailable = {code: 'InferOriginalMetadataAcquisitionUnavailable'};
 const sha = wire => `sha256:${createHash('sha256').update(wire).digest('hex')}`;
-async function fixture(t, metadata = {maxWireBytes: 1024, maxLedgerEntries: 8}) {
+async function fixture(t, metadata = {maxWireBytes: 1024, maxLedgerEntries: 8},
+  storeBootstrap = {maxWireBytes: 4096, maxDirectoryEntries: 128}) {
   const state = await mkdtemp(join(tmpdir(), 'actql-c-original-state-save-'));
   await mkdir(join(state, 'attempts'));
   const control = runtimeCore(moon).publicationControl;
   const original = await currentResourceFixture(moon, control, 'meta', {
-    storeBootstrap: {maxWireBytes: 4096, maxDirectoryEntries: 128},
+    storeBootstrap,
     metadataAcquisition: {metadata, directory: {maxWireBytes: 1024, maxDirectoryEntries: 8},
       retainedBytes: 7000n, workspaceBytes: 3000n},
   });
   const park = original.operation.parkOriginalResources();
   const acquisition = original.operation.originalMetadataAcquisition(park);
-  const keyId = `sha256:${'2'.repeat(64)}`;
+  const key = Buffer.alloc(32, 7);
+  const keyId = sha(key);
   const ledger = {version, prepare_attempt_id: 'model-meta',
     request_cid: original.runDefinition.identity, key_id: keyId, holdings: []};
   const path = join(state, 'attempts', 'model-meta.json');
   const before = Buffer.from(JSON.stringify(ledger));
   await writeFile(path, before);
   const evidence = openContinuationEvidence({stateDirectory: state,
-    key: Buffer.alloc(32, 7), keyId, contractControl: control,
+    key, keyId, contractControl: control,
     preparation: () => ({status: 'run_created', runStatus: 'needs_reconciliation'}),
     isTerminalRunOutcome: () => false});
   let successful = false;
@@ -140,4 +142,29 @@ test('selected metadata write keeps same failed FD and retries close only', asyn
     if (failure?.cleanupHandle.status().pending) await failure.cleanupHandle.retry();
     else if (original?.fd >= 0) await Reflect.apply(close, original, []);
   }
+});
+
+test('selected storage binding re-observation uses original Store clamp without issuing new custody', async t => {
+  const f = await fixture(t);
+  // The already-issued installation binding is deliberately obtained through
+  // the ordinary pre-park/bootstrap path. This test does not fund that path.
+  const handle = await f.evidence.observeOriginalModelStorageBinding();
+  const expected = await f.evidence.originalModelStorageBindingEvidence(handle);
+  assert.strictEqual(await f.evidence.originalModelStorageBindingEvidenceSelected(handle,
+    'model-meta', f.runDefinition.identity, f.acquisition), expected);
+  for (const foreign of [undefined, true, {...f.acquisition}]) {
+    await assert.rejects(f.evidence.originalModelStorageBindingEvidenceSelected(handle,
+      'model-meta', f.runDefinition.identity, foreign), unavailable);
+  }
+  await assert.rejects(f.evidence.originalModelStorageBindingEvidenceSelected({...handle},
+    'model-meta', f.runDefinition.identity, f.acquisition), {code: 'ForeignOriginalModelStorageBinding'});
+  f.done();
+  const g = await fixture(t, {maxWireBytes: 1024, maxLedgerEntries: 8},
+    {maxWireBytes: 4096, maxDirectoryEntries: 0});
+  const original = await g.evidence.observeOriginalModelStorageBinding();
+  await assert.rejects(g.evidence.originalModelStorageBindingEvidenceSelected(original,
+    'model-meta', g.runDefinition.identity, g.acquisition), {code: 'PublicationStoreBootstrapEntriesLimit'});
+  // Ordinary re-observation still works but is never a selected fallback.
+  assert.ok(await g.evidence.originalModelStorageBindingEvidence(original));
+  g.done();
 });
