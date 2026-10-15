@@ -23,6 +23,7 @@ pub fn Database::close(Self) -> Unit
 pub fn Database::close_checked(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::commit(Self) -> Result[Unit, NativeSqliteIssue]
 pub fn Database::compare_exchange(Self, String, String, Int64, Bytes) -> Result[Int64, NativeSqliteIssue]
+pub fn Database::current_component_matches_heap(Self, Int64) -> Bool
 pub fn Database::diagnostic_ceiling(Self) -> Int?
 pub fn Database::fence_transactions(Self) -> Unit
 pub fn Database::insert(Self, String, String, Bytes) -> Result[Int64, NativeSqliteIssue]
