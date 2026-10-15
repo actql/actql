@@ -67,7 +67,10 @@ async function fixture(t, {primary} = {}) {
       assert.equal(await store.close(), true);
       if (passed) await fs.rm(directory, {recursive: true});
       else t.diagnostic(`Preserved false-close failure: ${directory}`);
-    } catch { t.diagnostic(`Preserved pending false-close Store: ${directory}`); }
+    } catch (error) {
+      t.diagnostic(`Preserved pending false-close Store: ${directory}`);
+      if (passed) throw error;
+    }
   });
   return {store, counts: () => ({opens, writes, stats, closes}), fd: () => handle?.fd,
     path: () => path, allowClose() { blocked = false; },
