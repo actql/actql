@@ -1,6 +1,10 @@
 """Actual same-provider scoped packaged Runtime transport; not ordinary installed funding.
 
-Fresh disposable FDs only. The plan is maintainer diagnostic input, never
+Fresh disposable FDs only. The complete diagnostic allocation profile is
+reused from accepted D Source0df87e9d6ff6ba9b9500fe1468363b631f6ff867,
+installed_product_observation_conformance. This is a distinct profile from the
+old 64/48-page capture that exhausted on a 24-byte scoped allocation. It does
+not enlarge or rescue that original failed backing/attempt. The plan is maintainer diagnostic input, never
 public Client configuration or an alternative to the missing normal supplier.
 """
 import ctypes as C
@@ -45,17 +49,13 @@ control, backing = _OriginalControlFunctions(lib), _OriginalBackingFunctions(lib
 domains, read = _OriginalDomainFunctions(lib), _OriginalDomainReadFunctions(lib)
 parent = _OriginalParentReadFunctions(lib)
 runtime_functions = _OriginalPackagedRuntimeFunctions(lib)
-prepare = helper.actql_fixture_read_preparation_into
+prepare = helper.actql_fixture_runtime_preparation_into
 prepare.argtypes = [C.POINTER(C.c_void_p)]; prepare.restype = C.c_int
-aliases = helper.actql_fixture_read_aliases
-aliases.argtypes = []; aliases.restype = C.c_void_p
-release = helper.actql_fixture_read_release_alias
-release.argtypes = [C.c_void_p]; release.restype = None
 page = os.sysconf('SC_PAGE_SIZE')
 directory = Path(tempfile.mkdtemp(prefix='actql-' + case + '-', dir='/private/tmp'))
 Path(plan['output'], case + '-start.json').write_text(json.dumps({
-    'pid': os.getpid(), 'directory': str(directory), 'host_pages': 64,
-    'domain_pages': 48, 'normal_profile': None, 'loaded': loaded}) + '\n')
+    'pid': os.getpid(), 'directory': str(directory), 'host_pages': 8192,
+    'domain_pages': 7168, 'normal_profile': None, 'loaded': loaded}) + '\n')
 originals = []
 
 
@@ -64,12 +64,12 @@ def domain():
     host = _OriginalControlCustody._take_original_reply(control, reply)
     fd = _OriginalDescriptor(os.open(directory / str(len(originals)),
         os.O_RDWR | os.O_CREAT | os.O_EXCL, 0o600))
-    os.ftruncate(fd.value, 64 * page); host.acquire_fd(fd)
+    os.ftruncate(fd.value, 8192 * page); host.acquire_fd(fd)
     scope = _OriginalBackingCustody._borrow_original(host, backing)
     with scope._physical_scope():
         d = _OriginalDomainCustody._prepare_original(host, scope, fd, domains,
-            size=48 * page, work=2, attempts=2, holdings=1, transfer=3,
-            retained=2 * page, execution=16 * page)
+            size=7168 * page, work=2, attempts=2, holdings=1, transfer=3,
+            retained=32 * page, execution=6144 * page)
     d.transfer(); d._prepare_read_context(read)
     originals.append((host, fd, scope, d))
     return d
@@ -77,8 +77,8 @@ def domain():
 
 def acquire(d, **kw):
     return _OriginalParentReadCustody._prepare_original(d, parent,
-        **({'bootstrap_retained':page, 'bootstrap_execution':page,
-            'workspace_execution':8*page, 'read_retained':page, 'read_execution':4*page} | kw))
+        **({'bootstrap_retained':16*page, 'bootstrap_execution':16*page,
+            'workspace_execution':4096*page, 'read_retained':16*page, 'read_execution':1024*page} | kw))
 
 
 def finish():
@@ -110,7 +110,7 @@ if case == 'runtime-partial': manifest = b'{}'
 (root / 'local-runtime.json').write_bytes(manifest)
 selection = {'root_path': str(root), 'source_sha': 'a' * 40,
     'platform': 'darwin-arm64', 'manifest_sha256': hashlib.sha256(manifest).hexdigest(),
-    'diagnostic_ceiling': 65536}
+    'diagnostic_ceiling': 128}
 d = domain(); original = acquire(d)
 if case == 'runtime-invalid':
     try:

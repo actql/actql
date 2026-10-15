@@ -55,12 +55,18 @@ int actql_packaged_runtime_capture_utf16_into(actql_control_host *host, actql_pa
 int actql_packaged_runtime_current_into(actql_packaged_runtime *runtime, actql_packaged_runtime_reply **reply) {
     if (!runtime || !reply || *reply) return ACTQL_CONTROL_INVALID_SLOT;
     if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+    if (actql_bootstrap_current_read_context()) return ACTQL_CONTROL_UNAVAILABLE;
+#endif
     *reply = callbacks.current(runtime);
     return *reply ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
 }
 int actql_packaged_runtime_close_into(actql_packaged_runtime *runtime, actql_packaged_runtime_reply **reply) {
     if (!runtime || !reply || *reply) return ACTQL_CONTROL_INVALID_SLOT;
     if (registered != 1) return ACTQL_CONTROL_UNAVAILABLE;
+#ifdef ACTQL_SCOPED_READ_ALLOCATOR
+    if (actql_bootstrap_current_read_context()) return ACTQL_CONTROL_UNAVAILABLE;
+#endif
     *reply = callbacks.close(runtime);
     return *reply ? ACTQL_CONTROL_OK : ACTQL_CONTROL_UNAVAILABLE;
 }

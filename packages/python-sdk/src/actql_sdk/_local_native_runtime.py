@@ -205,7 +205,8 @@ class _OriginalPackagedRuntimeCustody:
             raise self._read._unknown
         if self._read._domain._unknown is not None:
             raise self._read._domain._unknown
-        if (self._closed or self._read._closed or self._runtime.value is None
+        if (self._closed or self._read._closed or self._read._domain._closed
+                or self._runtime.value is None
                 or self._read._runtime_original is not self or self._read._scope_open):
             raise ValueError('Original packaged Runtime is retired or unavailable')
 

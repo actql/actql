@@ -239,6 +239,10 @@ class OriginalRuntimeTests(unittest.TestCase):
         with self.assertRaises(type(original)) as caught: r.current()
         self.assertIs(caught.exception, original)
         self.assertEqual(f.runtime_events, before); self.assertIsNone(r._unknown)
+        g = RuntimeFixture(); other = g.capture(); g.read._domain._closed = True
+        before = list(g.runtime_events)
+        with self.assertRaises(ValueError): other.current()
+        self.assertEqual(g.runtime_events, before); self.assertIsNone(other._unknown)
 
     def test_exact_unicode_input_invalid_scalar_copy_and_foreign_selection(self):
         f = RuntimeFixture()
