@@ -18,7 +18,7 @@ class RemoteScopedComposition(unittest.TestCase):
         self.stage = Path('/owned/derived-read-source')
         self.clang = Path('/selected/clang')
         self.sdk = Path('/selected/sdk')
-        self.core = self.emission / 'native/debug/build/cmd/native_remote_resident_site/native_remote_resident_site.c'
+        self.core = self.emission / 'native/release/build/cmd/native_remote_resident_site/native_remote_resident_site.c'
         self.exe = self.core.with_suffix('.exe')
         self.commands = [
             ['moonc', 'build-package', '-target', 'native', '-pkg',
