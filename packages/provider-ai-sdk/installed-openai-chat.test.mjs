@@ -96,6 +96,32 @@ function runtime(config) {
 }
 async function until(read,predicate){for(let i=0;i<50;i++){const v=read();if(predicate(v))return v;await turn();}assert.fail('Finite private consumer did not settle');}
 
+test('selected Chat entries retain actual SDK static module originals, not caller declarations',async()=>{
+  const openai=await import('@ai-sdk/openai');
+  const providerUtils=await import('@ai-sdk/provider-utils');
+  let original;
+  for(const undici of [false,true]) {
+    const config=configuration(),f=runtime(config);
+    const create=undici?createInstalledUndiciOpenAIChatRegistration:createInstalledOpenAIChatRegistration;
+    if(undici){delete config.fetch;config.physicalAcquisitionLimits=physicalAcquisitionLimits;}
+    const [entry]=create(config)(f.moon);
+    const actual=entry.sdkStaticOriginals;
+    assert.ok(actual,'The real builder must supply its module originals');
+    assert.ok(Object.isFrozen(actual));
+    assert.deepEqual(Reflect.ownKeys(actual).sort(),['createOpenAI','openai','providerUtils']);
+    assert.strictEqual(actual.openai,openai);
+    assert.strictEqual(actual.providerUtils,providerUtils);
+    assert.strictEqual(actual.createOpenAI,openai.createOpenAI);
+    if(original!==undefined)assert.strictEqual(actual,original,'One actual module graph, separate Host bindings');
+    original=actual;
+    assert.equal(Reflect.set(actual,'createOpenAI',()=>assert.fail('No replacement factory')),false);
+    assert.equal(Reflect.set(actual.openai,'createOpenAI',()=>assert.fail('No namespace replacement')),false);
+    assert.equal(f.counts.generation,0);assert.equal(f.counts.starts,0);assert.equal(f.counts.fetch,0);
+    assert.throws(()=>create({...config,sdkStaticOriginals:{...actual}}),
+      {code:'InvalidInstalledOpenAIChatConfiguration'});
+  }
+});
+
 for (const route of ['generic','original-undici']) {
   test(`original String ceilings ${route} refuse before URL, encoding or SDK work`,()=>{
     const config=configuration(),f=runtime(config);
