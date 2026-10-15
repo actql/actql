@@ -47,6 +47,16 @@ static int observed_mprotect(void *p,size_t n,int prot) {
 #undef free
 #undef mprotect
 #ifdef ACTQL_F_CALLER_CASES
+/* Test-only projection of this translation unit's same provider/TLS. It does
+ * not adopt a Common pair, installed Host, resource profile or worker. */
+actql_read_context *actql_bootstrap_current_read_context(void) {
+    if(!lock_read_contexts()) return NULL;
+    actql_read_context *context=read_current;
+    bool current=known_read_context(context) && context->active!=0 &&
+        read_depth!=0 && actql_native_owned_current()==context->lease;
+    unlock_read_contexts();
+    return current ? context : NULL;
+}
 #include FILESYSTEM_SOURCE
 #endif
 
@@ -345,6 +355,85 @@ static bool real_failed_root(const char *directory) {
     assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
     moonbit_decref(error); finish(&lease,&context); return true;
 }
+
+static bool real_child_root(const char *directory, bool missing) {
+    actql_owned_capacity *lease=lease_new();
+    actql_read_context *context=context_new(lease);
+    assert(actql_read_context_retain(context)==0);
+    context_enter(lease,context);
+    size_t length=strlen(directory);
+    moonbit_bytes_t path=moonbit_make_bytes_raw((int32_t)length);
+    memcpy(path,directory,length);
+    actql_native_filesystem_root *parent=NULL,*child=NULL;
+    assert(actql_native_filesystem_scoped_open_root(context,path,(int32_t)length,256,&parent)==0);
+    moonbit_decref(path); assert(parent && parent->fd>=0);
+    const char *component=missing?"absent":"child";
+    int32_t count=(int32_t)strlen(component);
+    moonbit_bytes_t name=moonbit_make_bytes_raw(count); memcpy(name,component,(size_t)count);
+    assert(actql_native_filesystem_scoped_open_child_root(parent,name,count,&child)==0);
+    moonbit_decref(name);
+    assert(child && child->read_context==context && child->read_context_user);
+    assert(context->users==3 && (missing ? child->fd<0 : child->fd>=0));
+    int32_t physical=-99;
+    assert(actql_native_filesystem_scoped_root_close(parent,&physical)==0 && physical==0);
+    assert(context->users==2); // Parent ACK does not retire its child's use.
+    moonbit_decref(parent);
+    moonbit_bytes_t retained=NULL;
+    if(missing) {
+        assert(actql_native_filesystem_scoped_root_error(child,&retained)==0);
+        assert(Moonbit_array_length(retained)>0);
+    } else {
+        struct stat actual; assert(fstatat(child->fd,"sample",&actual,AT_SYMLINK_NOFOLLOW)==0);
+        name=moonbit_make_bytes_raw(6); memcpy(name,"sample",6);
+        actql_native_filesystem_reader *reader=NULL;
+        assert(actql_native_filesystem_scoped_open_reader(child,name,6,actual.st_dev,actual.st_ino,actual.st_size,&reader)==0);
+        moonbit_decref(name);
+        assert(reader->read_context==context && reader->read_context_user && reader->ready);
+        assert(actql_native_filesystem_scoped_reader_next(reader,32,&physical)==0 && physical==1);
+        assert(actql_native_filesystem_scoped_reader_chunk(reader,&retained)==0);
+        assert(Moonbit_array_length(retained)==11 && memcmp(retained,"alpha\nbeta\n",11)==0);
+        assert(actql_native_filesystem_scoped_reader_close(reader,false,&physical)==0 && physical==0);
+        moonbit_decref(reader);
+    }
+    assert(actql_native_filesystem_scoped_root_close(child,&physical)==0 && physical==0);
+    assert(context->users==1);
+    assert(actql_native_filesystem_scoped_root_close(child,&physical)==0 && physical==0);
+    assert(context->users==1); // Repeated ACK does not return another use.
+    moonbit_decref(child);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    assert(actql_read_context_try_close(&context)==ACTQL_OWNED_BUSY);
+    moonbit_decref(retained); finish(&lease,&context); return true;
+}
+
+static bool refused_child_root(const char *directory) {
+    actql_owned_capacity *lease=lease_new(),*foreign=lease_new();
+    actql_read_context *context=context_new(lease),*other=context_new(foreign);
+    assert(actql_read_context_retain(context)==0);
+    assert(actql_read_context_retain(other)==0);
+    context_enter(lease,context);
+    size_t length=strlen(directory);
+    moonbit_bytes_t path=moonbit_make_bytes_raw((int32_t)length); memcpy(path,directory,length);
+    moonbit_bytes_t name=moonbit_make_bytes_raw(5); memcpy(name,"child",5);
+    actql_native_filesystem_root *parent=NULL,*output=NULL;
+    assert(actql_native_filesystem_scoped_open_root(context,path,(int32_t)length,256,&parent)==0);
+    moonbit_decref(path);
+    context_leave(lease,context);
+    context_enter(foreign,other);
+    assert(actql_native_filesystem_scoped_open_child_root(parent,name,5,&output)==ACTQL_OWNED_INVALID);
+    assert(output==NULL && context->users==2 && other->users==1);
+    context_leave(foreign,other);
+    context_enter(lease,context);
+    int32_t physical=-99;
+    assert(actql_native_filesystem_scoped_root_close(parent,&physical)==0 && physical==0);
+    assert(actql_native_filesystem_scoped_open_child_root(parent,name,5,&output)==ACTQL_OWNED_INVALID);
+    assert(output==NULL && context->users==1);
+    moonbit_decref(name); moonbit_decref(parent);
+    context_leave(lease,context);
+    assert(actql_read_context_release_after_owner_ack(context)==0);
+    assert(actql_read_context_release_after_owner_ack(other)==0);
+    finish(&lease,&context); finish(&foreign,&other); return true;
+}
 #endif
 int main(int argc,char **argv) {
     struct rlimit core={0,0}; assert(setrlimit(RLIMIT_CORE,&core)==0);
@@ -368,6 +457,9 @@ int main(int argc,char **argv) {
 #ifdef ACTQL_F_CALLER_CASES
     assert(real_reader(argv[1])); executed++; puts("{\"case\":\"actual-F-reader-alias\",\"ok\":true}");
     assert(real_failed_root(argv[1])); executed++; puts("{\"case\":\"actual-F-failed-root-diagnostic\",\"ok\":true}");
+    assert(real_child_root(argv[1],false)); executed++; puts("{\"case\":\"child-retains-context-reader-and-alias\",\"ok\":true}");
+    assert(real_child_root(argv[1],true)); executed++; puts("{\"case\":\"failed-child-retains-original-custody\",\"ok\":true}");
+    assert(refused_child_root(argv[1])); executed++; puts("{\"case\":\"child-refuses-foreign-and-closed-parent\",\"ok\":true}");
 #endif
     printf("{\"success\":true,\"discovered\":%u,\"executed\":%u,\"passed\":%u,\"failed\":0,\"public_e2e\":0}\n",executed,executed,executed);
     return 0;
