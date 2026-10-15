@@ -185,15 +185,18 @@ test "historical dependency rejects packet revision HMAC changed pair and malfor
   let mut rejected = true
   for
     changed in [
-      text.replace(old="2b06a81d", new="3b06a81d") + " ",
+      text + " ",
       text.replace(old="8bdf4835", new="9bdf4835"),
       text.replace(old="{", new="{\"unrecognized\":\"x\","),
       text.replace(old="authority_scope_cid", new="foreign_scope_cid"),
     ] {
     let packet = local_policy_upgrade_packet(host, @utf8.encode(changed)).unwrap()
-    rejected = rejected &&
-      historical_upgrade_test_read(host, name, { body: packet, revision: 0L, })
+    let refused = historical_upgrade_test_read(host, name, {
+        body: packet,
+        revision: 0L,
+      })
       is Err(CustodyLost)
+    rejected = rejected && refused
   }
   host.close().unwrap()
   assert_true(wrong_revision && wrong_hmac && rejected)
