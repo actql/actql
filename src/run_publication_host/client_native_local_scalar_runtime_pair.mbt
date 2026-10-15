@@ -107,6 +107,19 @@ pub fn inspect_client_native_local_scalar_runtime_pair(
     Err(issue) => return Err(issue)
     Ok(_) => ()
   }
+  scalar_pair_metadata(original, current)
+}
+
+///|
+// Shared canonical emitter only. Both callers establish their distinct input
+// premises first; neither a body/CID nor this constructor issues custody.
+fn scalar_pair_metadata(
+  original : ClientNativeLocalRuntime,
+  current : ClientNativeLocalRuntime,
+) -> Result[
+  ClientNativeLocalScalarRuntimePair,
+  ClientNativeLocalScalarRuntimePairIssue,
+] {
   let body = match
     client_local_original_record_body([
       ("current_manifest_sha256", @sha.hex(@utf8.encode(current.wire))),
