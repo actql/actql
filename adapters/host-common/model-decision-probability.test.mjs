@@ -7,7 +7,8 @@ import {runtimeCore} from './runtime-core.mjs';
 test('installed native probability selection preserves the same runtime original without copying', () => {
   const original = Object.freeze({fixtureOpaqueProbability: true});
   let selections = 0;
-  const moon = {clientProgramInitialJevDecisionProfile() {
+  const moon = {strategyRemoteManagedOutputEvidenceKind: () => 'fixture metadata',
+    clientProgramInitialJevDecisionProfile() {
     assert.equal(this, moon);
     selections++;
     return original;
@@ -18,8 +19,9 @@ test('installed native probability selection preserves the same runtime original
 });
 
 test('missing or absent native probability runtime refuses without manufacturing a profile', () => {
-  for (const moon of [{}, {clientProgramInitialJevDecisionProfile: null},
+  for (const selected of [{}, {clientProgramInitialJevDecisionProfile: null},
     {clientProgramInitialJevDecisionProfile: () => undefined}]) {
+    const moon = {strategyRemoteManagedOutputEvidenceKind: () => 'fixture metadata', ...selected};
     const control = runtimeCore(moon).publicationControl;
     assert.throws(() => control.selectInstalledInitialJevDecisionProfile(),
       {message: 'Installed native Decision probability profile unavailable'});
