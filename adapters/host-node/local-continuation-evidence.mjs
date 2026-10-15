@@ -218,7 +218,8 @@ export function openContinuationEvidence({stateDirectory, key, keyId,
       const operation = queue.then(async pending => {
         if (pending?.cleanupHandle?.status().pending) throw pending;
         const selected = selectOriginalInferMetadataAcquisition(acquisition, id);
-        const ledger = await readContinuationLedgerBounded(ledgerPath(id), id, selected.metadata);
+        const ledger = await readContinuationLedgerBounded(ledgerPath(id), id,
+          selected.metadata, undefined, contractControl);
         selectOriginalInferMetadataAcquisition(acquisition, id, ledger.request_cid);
         return ledger;
       });
