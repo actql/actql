@@ -76,7 +76,7 @@ import {issueInferTrustedRuntimeView, checkInferTrustedRuntimeView,
   forgetInferTrustedRuntimeView, associateInferTrustedStartupView,
   requireInferTrustedStartupView, borrowInferTrustedStartupView,
   forgetInferTrustedStartupView, bindInferTrustedStore,
-  checkInferTrustedStore, bindInferTrustedSdkStaticModules,
+  checkInferTrustedStore, selectedInferTrustedStoreDimensions, bindInferTrustedSdkStaticModules,
   checkInferTrustedSdkStaticModules} from './infer-trusted-runtime-view.mjs';
 import {composeInstalledCheckEnvironment,
   verifyInstalledConnectorBindings} from
@@ -1169,6 +1169,12 @@ async function openInstalledHost(originalInstallation) {
                 rawCaptureBinder, admittedProvider);
             },
           originalReadInstallation: physical.originalReadInstallation,
+          // DATA from the actual opened Store already bound by this Host,
+          // never a dimension packet from the Provider or public request.
+          // The normal supplier/current resource admission is still separate.
+          originalStorageDimensions: physical.originalReadInstallation === undefined
+            ? undefined : selectedInferTrustedStoreDimensions(modelRuntimeView,
+              runtimeOriginals(), store, publicationStoreModule),
           rawCaptureSelection: physical.rawCaptureSelection,
           entryPersistence: physical.entryPersistence,
           reconcileResponse: physical.reconcileResponse,
