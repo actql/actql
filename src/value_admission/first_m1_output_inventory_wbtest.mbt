@@ -151,7 +151,9 @@ test "first M1 typed refusal never constructs nested answers or exposes partial 
       ("[]", "type"),
       ("{}", "missing"),
       ("{\"reason\":null,\"risk\":null}", "null"),
-      ("{\"reason\":null,\"risk\":" + deep + "}", "type"),
+      ("{\"reason\":null,\"risk\":false}", "type"),
+      // The existing container-depth check precedes scalar-kind admission.
+      ("{\"reason\":null,\"risk\":" + deep + "}", "depth"),
       (
         "{\"reason\":null,\"risk\":\"low\",\"unexpected\":" + deep + "}",
         "unknown",
@@ -191,7 +193,8 @@ test "first M1 typed refusal never constructs nested answers or exposes partial 
       Decode({ kind: @decode.MissingField, .. }) => "missing"
       Decode({ kind: @decode.UnknownField, .. }) => "unknown"
       ValueIssue(UnexpectedNull, ..) => "null"
-      _ => abort("preserve the independent typed refusal")
+      ValueIssue(BudgetExceeded, ..) => "depth"
+      _ => abort("preserve the independent typed refusal for " + input)
     }
     assert_eq(kind, expected_issue)
     if object is Some(value) {
