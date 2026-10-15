@@ -32,17 +32,47 @@ const changed = () => {
 // original two-argument recipe keeps its original static-module meaning.
 // Only this preload's actual early eager recipe may extend that duty to fixed
 // input-independent bytecode/constant/source-position storage generated here.
+// Public delivery must be the actual fixed package wrapper chain loaded by
+// Node's preload loader. A matching argv label, application import, other
+// installation or intermediary application wrapper supplies no startup.
+function publicPreloadOriginals() {
+  if (module.isPreloading !== true) return undefined;
+  const args = originalProcess.execArgv;
+  const offset = args.length === 3 && args[0] === '--no-lazy' ? 1 : 0;
+  if (args.length !== offset + 2 || args[offset] !== '--require') return undefined;
+  const name = args[offset + 1];
+  if (name !== '@actql/node/selected-infer-startup' &&
+      name !== '@actql/local-node/selected-infer-startup') return undefined;
+  const local = module.parent;
+  if (local?.filename !== join(__dirname, '..', '..', 'selected-infer-startup.cjs') ||
+      require.cache[local.filename] !== local) return undefined;
+  const entry = name === '@actql/node/selected-infer-startup' ? local.parent : local;
+  const loader = entry?.parent;
+  if (loader?.id !== 'internal/preload') return undefined;
+  try {
+    const consumerRequire = createRequire(originalProcess.argv[1]);
+    if (consumerRequire.resolve(name) !== entry.filename ||
+        require.cache[entry.filename] !== entry ||
+        entry !== local && createRequire(entry.filename).resolve('@actql/local-node/selected-infer-startup') !==
+          local.filename) return undefined;
+  } catch { return undefined; }
+  // Original module records/paths and these controls remain managed startup
+  // holdings. They are not fixed SDK storage, a byte lease or physical ACK.
+  return Object.freeze({local, entry, loader, localFilename: local.filename,
+    entryFilename: entry.filename});
+}
+const publicPreload = publicPreloadOriginals();
 const eagerSdkStartup = module.isPreloading === true &&
   originalProcess.execArgv.length === 3 &&
   originalProcess.execArgv[0] === '--no-lazy' &&
   originalProcess.execArgv[1] === '--require' &&
-  originalProcess.execArgv[2] === __filename;
+  (originalProcess.execArgv[2] === __filename || publicPreload !== undefined);
 // Loader provenance, not current poolSize/version alone. Reject other prior
 // preload/import/loader selections, including merely equivalent flag orders.
 const selected = module.isPreloading === true &&
   (eagerSdkStartup || originalProcess.execArgv.length === 2 &&
   originalProcess.execArgv[0] === '--require' &&
-  originalProcess.execArgv[1] === __filename) &&
+  originalProcess.execArgv[1] === __filename || publicPreload !== undefined) &&
   originalProcess.env.NODE_OPTIONS === undefined &&
   originalProcess.version === 'v22.22.0' &&
   originalProcess.platform === 'darwin' && originalProcess.arch === 'arm64' &&
@@ -137,7 +167,7 @@ if (selected) {
   // zero-byte claim nor a lease. The same socket operation and last borrower
   // retain their original responsibility until actual cleanup, not destroy(),
   // rejection, Promise settlement or retirement of this association.
-  startup = {process: originalProcess, module, entry: originalProcess.argv[1], originals,
+  startup = {process: originalProcess, module, entry: originalProcess.argv[1], originals, publicPreload,
     promiseSpecies, sdkStaticModules, eagerSdkStartup, invalidated: false};
 }
 
@@ -146,6 +176,17 @@ function currentStartup() {
   if (startup.invalidated) changed();
   if (startup.process !== originalProcess || startup.entry !== originalProcess.argv[1] ||
       globalThis.Buffer !== Buffer) {
+    startup.invalidated = true;
+    changed();
+  }
+  const loaded = startup.publicPreload;
+  if (loaded !== undefined && (module.parent !== loaded.local ||
+      loaded.local.filename !== loaded.localFilename ||
+      loaded.entry.filename !== loaded.entryFilename ||
+      loaded.entry.parent !== loaded.loader ||
+      loaded.local !== loaded.entry && loaded.local.parent !== loaded.entry ||
+      require.cache[loaded.localFilename] !== loaded.local ||
+      require.cache[loaded.entryFilename] !== loaded.entry)) {
     startup.invalidated = true;
     changed();
   }

@@ -87,7 +87,7 @@ fn begin_encoded_model_response(
     Ok(parse) => parse
     Err(_) => return @bounded.Failed(OutputValue, 1, 1)
   }
-  state.phase = DecodePhysicalResponse(prepared, physical, {
+  state.progress.phase = DecodePhysicalResponse(prepared, physical, {
     phase: ParseAnswer(parse),
     limits,
     remaining: limits.parse_work,
@@ -116,7 +116,7 @@ fn advance_encoded_model_response(
   match cursor.phase {
     ParseNativeAnswer(_, original, probability)
     | AdmitNativeAnswer(_, original, probability) => {
-      guard state.pending_response is Some(call) &&
+      guard state.progress.call is Some(call) &&
         call.terminal is Some(PhysicalNativeResponse(native)) &&
         physical_equal(original, native.original) &&
         physical_equal(probability, native.probability) &&
@@ -135,7 +135,7 @@ fn advance_encoded_model_response(
     Err(issue) => @bounded.Failed(issue, 1, 1)
     Ok(None) => @bounded.Continue(1, 1)
     Ok(Some(checked)) => {
-      guard state.pending_response is Some(call) else {
+      guard state.progress.call is Some(call) else {
         return @bounded.Failed(RequestIdentity, 1, 1)
       }
       let observation = match (call.terminal, cursor.raw_chat) {

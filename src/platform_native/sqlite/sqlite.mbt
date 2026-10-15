@@ -21,6 +21,16 @@ pub(all) struct NativeCapacityUsage {
 }
 
 ///|
+/// Physical totals in this one database, across its record namespaces. These
+/// values do not establish an admitted inventory, available credit, a COMMIT
+/// acknowledgment or the completeness of any external Source namespace.
+pub(all) struct NativeDatabaseUsage {
+  record_count : Int64
+  body_bytes : Int64
+  reservation_count : Int64
+}
+
+///|
 /// The existing bounded claim transaction distinguishes a newly committed
 /// claim from its retained original. Neither variant proves Provider sending
 /// or the presence of a separately saved use/outcome record.
@@ -40,6 +50,14 @@ pub(all) struct NativeJournalEntry {
   key : String
   revision : Int64
   body : Bytes
+}
+
+///|
+/// Original row metadata only. No payload is copied; a header does not prove
+/// body equality, inventory completeness, publication or a durable COMMIT.
+pub(all) struct NativeJournalHeader {
+  revision : Int64
+  body_bytes : Int64
 }
 
 ///|
@@ -118,4 +136,10 @@ pub fn NativeSqliteLibraryLoadFailure::retry_cleanup(
     }
   }
   Ok(())
+}
+
+///|
+pub(all) enum NativeLookupReadAcquisition {
+  ReadyLookupRead(NativeLookupRead)
+  PendingLookupRead(NativeLookupRead, NativeSqliteIssue)
 }

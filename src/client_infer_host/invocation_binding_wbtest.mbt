@@ -12,6 +12,7 @@ fn invocation_fixture_policy_cid() -> String {
 fn invocation_fixture_compiled(
   active : Execution,
   alternate_plan? : Bool = false,
+  run_id? : String = "infer-run",
 ) -> (@publication_host.ClientCompiledRun, @publication.PublicationContract) {
   let manifests = @publication_host.admit_client_compilation_manifests(
     @environment.compiler_grammar_manifest_wire(),
@@ -50,7 +51,7 @@ fn invocation_fixture_compiled(
     compiled, policy_cid, policy_wire, 16384, 1024, 20,
   ).unwrap()
   let definition = @publication_host.issue_client_compiled_run_definition(
-    compiled, "infer-scope", "infer-run", "2026-10-02T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
+    compiled, "infer-scope", run_id, "2026-10-02T00:00:00.000Z", "2099-01-01T00:00:00.000Z",
   ).unwrap()
   if !alternate_plan && active.phase is Input && active.work == 0L {
     bind_run(active, compiled, definition).unwrap()
