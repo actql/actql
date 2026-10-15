@@ -1,3 +1,4 @@
+export {RunInspector} from './run-inspector.js';
 import {useEffect, useMemo, useState} from 'react';
 import {ReactFlow, Handle, Position, BaseEdge, getBezierPath, type EdgeProps, type NodeProps, type Node, type Edge} from '@xyflow/react';
 import {Button} from '@base-ui/react/button';
