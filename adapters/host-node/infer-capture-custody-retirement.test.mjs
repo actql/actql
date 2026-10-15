@@ -6,12 +6,12 @@ const {openNodeInferCaptureCustody}=await import(process.env.ACTQL_CAPTURE_CUSTO
 // Actual Node custody/holding code with explicit Core, Model and Store port
 // doubles. This does not prove actual Store ACK, heap funding or public INFER.
 function fixture({stoppedRaw = false, storeWireLimit = 12192, captureOnly = true,
-  rejectInvocationReadmit = false} = {}) {
+  rejectInvocationReadmit = false, omitEntryAttempt = false} = {}) {
   const capture={}, output={}, exporter={};
   const evidence={wire:'{"raw":"é\\r\\n"}'};
   const invocationView=Object.freeze({name:'model_invocation_evidence',
     identity:'cid-model_invocation_evidence',wire:evidence.wire});
-  const settlement={}, entry={ordinal:0,attemptCid:'original-attempt'};
+  const settlement={}, entry=omitEntryAttempt ? {ordinal:0} : {ordinal:0,attemptCid:'original-attempt'};
   const bundleWire='{"capture":"original é\\r\\n"}';
   const stored=new Map();
   const counters={stop:0,cleanup:0,acquire:0,ack:0,commit:0,usage:0,proof:0,limitReads:0,exports:[]};
@@ -185,6 +185,40 @@ test('settlement record preserves Unknown journal and ACK rejection until same-d
       assert.equal(f.counters.ack,1);assert.equal(await f.owner.custody.cleanup(),true);
     });
   }
+});
+
+test('acknowledged settlement cleanup never reopens its stopped raw reader',async()=>{
+  const f=fixture();
+  f.operation.stoppedAttemptCount=()=>1;
+  f.operation.advanceStoppedAttemptUsage=()=>assert.fail('Already acknowledged original attempt');
+  await f.settling();
+  assert.equal(f.counters.ack,1);
+  f.flags.modelCleanup=false;
+  assert.equal(await f.owner.custody.cleanup(),false);
+  assert.equal(f.owner.custody.cleanupPending(),true);
+  f.flags.modelCleanup=true;
+  assert.equal(await f.owner.custody.cleanup(),true);
+  assert.equal(f.counters.usage,0);
+  assert.equal(f.counters.ack,1,'Cleanup cannot acknowledge another settlement');
+});
+
+test('unacknowledged settlement keeps its original stopped usage duty despite Store success',async()=>{
+  const f=fixture();
+  f.operation.stoppedAttemptCount=()=>1;
+  const failure=new Error('OriginalAckRefused');
+  f.flags.ackFailure=failure;
+  await assert.rejects(f.settling(),error=>error===failure);
+  assert.equal(f.flags.usageRetired,false);
+  const proof=f.operation.attemptEvidence;
+  f.operation.attemptEvidence=()=>{
+    assert.equal(f.flags.usageRetired,true,'Original reader precedes immutable stopped proof');
+    return proof();
+  };
+  await f.owner.persistStoppedAttempts();
+  assert.equal(f.counters.usage,3);
+  assert.equal(f.counters.ack,0);
+  assert.equal(f.counters.cleanup,0);
+  assert.equal(f.owner.custody.cleanupPending(),true);
 });
 
 test('capture retains the same issued invocation view without wire readmission',async()=>{
@@ -456,4 +490,15 @@ test('stopped raw usage missing Common observation port refuses before proof and
   assert.equal(f.counters.commit,0);
   assert.equal(f.counters.cleanup,0);
   assert.equal(f.owner.custody.cleanupPending(),true);
+});
+
+test('missing attempt identity cannot turn an absent settlement marker into an ACK',async()=>{
+  const f=fixture({omitEntryAttempt:true});
+  const original=new Error('OriginalStoppedReaderRequired');let reads=0;
+  f.operation.stoppedAttemptCount=()=>1;
+  f.operation.advanceStoppedAttemptUsage=()=>{reads++;throw original;};
+  await assert.rejects(f.owner.persistStoppedAttempts(),error=>error===original);
+  assert.equal(reads,1);
+  assert.equal(f.counters.ack,0);
+  assert.equal(f.counters.cleanup,0);
 });
