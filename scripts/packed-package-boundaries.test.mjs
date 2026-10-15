@@ -109,6 +109,54 @@ test('installed graph refuses undeclared dependencies even when separately insta
   } finally { await rm(root, {recursive: true, force: true}); }
 });
 
+async function commonJSFixture(t, code, {esmEntry = false} = {}) {
+  const root = await mkdtemp(join(tmpdir(), 'packed-package-cjs-'));
+  t.after(() => rm(root, {recursive: true, force: true}));
+  const entry = join(root, 'node_modules/@actql/entry');
+  await mkdir(entry, {recursive: true});
+  await writeFile(join(entry, 'package.json'), JSON.stringify({name: '@actql/entry',
+    type: 'module', exports: esmEntry ? './index.mjs' : './index.cjs'}));
+  await writeFile(join(entry, 'index.cjs'), code);
+  if (esmEntry) await writeFile(join(entry, 'index.mjs'),
+    "import original from './index.cjs'; export default original;\n");
+  return root;
+}
+
+test('installed graph classifies the compiler helper for a CommonJS require property', async t => {
+  const root = await commonJSFixture(t, 'module.exports = {cache: require.cache};\n');
+  auditPackedPackages(root, ['entry']);
+});
+
+test('installed graph classifies a CommonJS compiler helper reached through an ESM export', async t => {
+  const root = await commonJSFixture(t, 'module.exports = {cache: require.cache};\n', {esmEntry: true});
+  auditPackedPackages(root, ['entry']);
+});
+
+for (const [label, code] of [
+  ['static import', "import '<runtime>'; module.exports = {};\n"],
+  ['static import alongside a generated helper',
+    "import '<runtime>'; module.exports = {cache: require.cache};\n"],
+  ['named re-export', "export {value} from '<runtime>'; module.exports = {};\n"],
+  ['wildcard re-export', "export * from '<runtime>'; module.exports = {};\n"],
+  ['CommonJS require', "require('<runtime>'); module.exports = {};\n"],
+  ['dynamic import', "import('<runtime>'); module.exports = {};\n"],
+]) test(`installed graph refuses an authored runtime-marker ${label}`, async t => {
+  const root = await commonJSFixture(t, code);
+  assert.throws(() => auditPackedPackages(root, ['entry']), /Undeclared dependency/u);
+});
+
+test('installed graph still refuses an undeclared dependency beside the compiler helper', async t => {
+  const root = await commonJSFixture(t,
+    "module.exports = {cache: require.cache, hidden: require('@fixture/hidden')};\n");
+  assert.throws(() => auditPackedPackages(root, ['entry']), /Undeclared dependency/u);
+});
+
+test('installed graph does not mistake comments or data for authored runtime-marker imports', async t => {
+  const root = await commonJSFixture(t,
+    "// import '<runtime>';\nmodule.exports = {cache: require.cache, text: '<runtime>'};\n");
+  auditPackedPackages(root, ['entry']);
+});
+
 test('normal SDK tarball resolves every shipped relative module outside the checkout', async () => {
   const root = await mkdtemp(join(tmpdir(), 'actql-sdk-package-closure-'));
   const repository = fileURLToPath(new URL('../', import.meta.url));
