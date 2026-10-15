@@ -19,6 +19,7 @@ struct NativeBoundedTextFailure {
   mut reader : @filesystem.Reader?
   mut rejected_reader : @filesystem.NativeReaderOpenFailure?
   mut root : @filesystem.Root?
+  mut rejected_root : @filesystem.NativeRootOpenFailure?
   original_root_cleanup_issue : @filesystem.NativeFilesystemIssue?
 }
 
@@ -64,6 +65,12 @@ pub fn NativeBoundedTextFailure::retry_cleanup(
       Err(issue) => if first_issue is None { first_issue = Some(issue) }
     }
   }
+  if self.rejected_root is Some(rejected) {
+    match rejected.retry_cleanup() {
+      Ok(_) => self.rejected_root = None
+      Err(issue) => if first_issue is None { first_issue = Some(issue) }
+    }
+  }
   match first_issue {
     Some(issue) => Err(issue)
     None => Ok(())
@@ -79,6 +86,7 @@ fn bounded_text_failure(
     reader: None,
     rejected_reader: None,
     root: None,
+    rejected_root: None,
     original_root_cleanup_issue: None,
   }
 }
@@ -96,6 +104,7 @@ fn close_bounded_root_after_failure(
         reader: failure.reader,
         rejected_reader: failure.rejected_reader,
         root: Some(root),
+        rejected_root: failure.rejected_root,
         original_root_cleanup_issue: Some(issue),
       }
   }
@@ -115,6 +124,7 @@ fn close_failed_bounded_reader(
         reader: Some(reader),
         rejected_reader: None,
         root: None,
+        rejected_root: None,
         original_root_cleanup_issue: None,
       }
   }
@@ -171,9 +181,17 @@ pub fn read_bounded_text_file_with_custody(
   if max_bytes <= 0L || (diagnostic_ceiling is Some(limit) && limit <= 0) {
     return Err(bounded_text_failure(InvalidLimit))
   }
-  let root = match @filesystem.open_root(root_path, diagnostic_ceiling~) {
+  let root = match
+    @filesystem.open_root_with_custody(root_path, diagnostic_ceiling~) {
     Ok(value) => value
-    Err(issue) => return Err(bounded_text_failure(Filesystem(issue)))
+    Err(rejected) => {
+      let failure = bounded_text_failure(Filesystem(rejected.issue()))
+      // Keep the original constructor object until that same Owner observes
+      // its cleanup. An unready Root may still retain physical allocation
+      // context; a failed open is not acknowledgement of its retirement.
+      failure.rejected_root = Some(rejected)
+      return Err(failure)
+    }
   }
   let generation = match root.inspect_generation(name) {
     Ok(Some(value)) => value
@@ -205,6 +223,7 @@ pub fn read_bounded_text_file_with_custody(
         reader: None,
         rejected_reader: Some(rejected),
         root: None,
+        rejected_root: None,
         original_root_cleanup_issue: None,
       }
       return Err(close_bounded_root_after_failure(root, failure))
@@ -234,6 +253,7 @@ pub fn read_bounded_text_file_with_custody(
         reader: None,
         rejected_reader: None,
         root: Some(root),
+        rejected_root: None,
         original_root_cleanup_issue: Some(issue),
       })
   }

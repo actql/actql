@@ -121,6 +121,30 @@ extern "C" fn register_original_domain_material_roots(
 ) -> Unit = "actql_native_control_register_domain_material_roots"
 
 ///|
+/// Typed code registration only; the matching regular C emission must be read
+/// before declaring or linking the derived read callback ABI in a C shim.
+extern "C" fn register_original_domain_read_roots(
+  prepare : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaDomain) -> @control.InstalledArenaDomainReply,
+  ],
+  current : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaDomain) -> @control.InstalledArenaDomainReply,
+  ],
+  enter : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaDomain) -> @control.InstalledArenaDomainReply,
+  ],
+  leave : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaDomain) -> @control.InstalledArenaDomainReply,
+  ],
+  cleanup : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaDomain) -> @control.InstalledArenaDomainReply,
+  ],
+  close : FuncRef[
+    (@control.InstalledArenaHost, @control.InstalledArenaDomain) -> @control.InstalledArenaDomainReply,
+  ],
+) -> Unit = "actql_native_control_register_domain_read_roots"
+
+///|
 fn original_host(
   reply : @control.InstalledArenaReply,
 ) -> @control.InstalledArenaHost? {
@@ -243,5 +267,25 @@ fn main {
     fn(reply, ordinal) { reply.material_scalar(ordinal) },
     fn(reply) { reply.material_source() },
     fn(reply) { reply.material_recipe() },
+  )
+  register_original_domain_read_roots(
+    fn(host, domain) {
+      @control.prepare_installed_arena_domain_read_reply(host, domain)
+    },
+    fn(host, domain) {
+      @control.current_installed_arena_domain_read_reply(host, domain)
+    },
+    fn(host, domain) {
+      @control.enter_installed_arena_domain_read_reply(host, domain)
+    },
+    fn(host, domain) {
+      @control.leave_installed_arena_domain_read_reply(host, domain)
+    },
+    fn(host, domain) {
+      @control.cleanup_installed_arena_domain_read_reply(host, domain)
+    },
+    fn(host, domain) {
+      @control.close_installed_arena_domain_read_reply(host, domain)
+    },
   )
 }
