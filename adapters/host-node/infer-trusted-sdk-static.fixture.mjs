@@ -22,7 +22,10 @@ if (mode === 'late') {
   rejects(() => bind(), 'InferTrustedStartupUnavailable');
 } else {
   runtime.associateInferTrustedStartupView(view, actual);
-  if (mode === 'current') {
+  if (mode === 'import-window') {
+    bind();
+    check();
+  } else if (mode === 'current') {
     rejects(() => check(), 'InferTrustedSdkStaticUnavailable');
     bind();
     check();
