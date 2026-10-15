@@ -345,7 +345,6 @@ fn relation_chain_reclaimed_prefix(
   @execution.generated_sequence_step_count(sequence)
 }
 
-
 ///|
 /// Completed output remains held for every exact downstream edge. An eligible
 /// built-in-only chain confirms child cleanup and drops its execution before
