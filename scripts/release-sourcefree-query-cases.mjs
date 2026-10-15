@@ -5,6 +5,7 @@ import {inUnnestLiteralArraySuccesses, inUnnestLiteralArrayRefusals}
 import {selectReleaseSequenceQueryCases} from './release-sequence-query-cases.mjs';
 import {selectReleaseTimeSeriesQueryCases} from './release-time-series-query-cases.mjs';
 import {selectReleaseTemporalJoinQueryCases} from './release-temporal-join-query-cases.mjs';
+import {selectReleaseCalendarQueryCases} from './release-calendar-query-cases.mjs';
 
 export const releaseSourcefreeSuccessNames = Object.freeze([
   'general-element', 'array-field', 'conditional-array', 'lazy-array-branch',
@@ -16,6 +17,8 @@ export const releaseSourcefreeRefusalNames = Object.freeze([
 
 export const releaseSourcefreeFixturePaths = Object.freeze([
   'scripts/release-sourcefree-query-cases.mjs',
+  'scripts/release-calendar-query-cases.mjs',
+  'scripts/fixtures/calendar-source-input.mjs',
   'scripts/release-public-aql-format-cases.mjs',
   'scripts/release-sequence-query-cases.mjs',
   'scripts/release-time-series-query-cases.mjs',
@@ -54,6 +57,7 @@ export function selectReleaseSourcefreeQueryCases({
 
 // Closed test cohorts only; the original default and its inventory are stable.
 export function selectInstalledSourcefreeQuerySuite(suite = 'in-unnest') {
+  if (suite === 'calendar') return selectReleaseCalendarQueryCases();
   if (suite === 'aql-format') return publicAqlFormatCases;
   if (suite === 'in-unnest') return selectReleaseSourcefreeQueryCases();
   if (suite === 'sequence') return selectReleaseSequenceQueryCases();
