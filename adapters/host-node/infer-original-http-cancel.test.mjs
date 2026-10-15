@@ -76,6 +76,8 @@ test('original HTTP cancellation preserves the entered Unknown without a respons
     // rather than depending on private numeric enum tags or relabelling it
     // as the AbortSignal's local reason.
     assert.equal(stoppedError?.code,'MoonBitHostFailure');
+    assert.equal(f.operation.hasUnknownCalls(),true,
+      'Adopting result_unknown cannot make the live original observation false');
     await capture.persistStoppedAttempts();
     const proof=f.operation.attemptEvidence(0);
     const outcome=JSON.parse(moon.strategyRunEvidenceJson(moon.clientProgramInferAttemptLeaf(proof,'outcome')));
