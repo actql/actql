@@ -46,9 +46,14 @@ test('advance captures the audited Int prefix, not its callback-local Boolean',(
   assert(!checked.captureRoles.advance.includes('reclaims_scratch'));
   assert.throws(()=>checkChainSource(source.replace('state.position <= reclaimed_prefix',
     'state.position <= count')),/Unreviewed advance source captures/);
-  assert.throws(()=>checkChainSource(source.replace(
-    'let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)',
-    'let reclaimed_prefix = count')),/Changed audited prefix capture/);
+  const start=source.indexOf('fn bounded_relation_chain_execution_state(');
+  assert(start>=0);
+  const constructor=source.slice(start);
+  const declaration='let reclaimed_prefix = relation_chain_reclaimed_prefix(sequence)';
+  assert.equal(constructor.split(declaration).length,2,
+    'Prefix mutation must reach the unique parent initializer, not the capacity function');
+  const changed=source.slice(0,start)+constructor.replace(declaration,'let reclaimed_prefix = count');
+  assert.throws(()=>checkChainSource(changed),/Changed audited prefix capture/);
 });
 test('the observer remains outside original callbacks and uses real state return',()=>{
   const overlay=currentOverlay(read);
