@@ -4,7 +4,7 @@ import {execFileSync} from 'node:child_process';
 import {mkdtemp, mkdir, readFile, writeFile, copyFile, rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {preparePackageRelease, verifyPackageRelease} from './package-release.mjs';
+import {preparePackageRelease, verifyPackageRelease, releasePackageMetadata} from './package-release.mjs';
 
 const four = JSON.parse(await readFile(new URL('../release/client-cohort.json', import.meta.url)));
 const six = JSON.parse(await readFile(new URL('../release/explorer-cohort.json', import.meta.url)));
@@ -87,4 +87,15 @@ test('normal six-package prepack supplies an independently verified exact four-p
   assert.deepEqual((await readFile(join(repository, 'prepack.calls'), 'utf8')).trim().split('\n'), six.packages);
   assert.deepEqual(await readFile(join(explorerDirectory, 'release.json')), originalManifest);
   assert.equal(git(repository, 'status', '--porcelain'), '');
+});
+
+test('common release metadata equality requires the same selected package version', () => {
+  assert.equal(four.packageVersion, six.packageVersion);
+  assert.equal(four.tag, six.tag);
+  const original = {name: '@actql/node', version: '0.0.0-development', private: true,
+    dependencies: {'@actql/local-node': '0.0.0-development'}};
+  assert.deepEqual(releasePackageMetadata(original, 'node', four),
+    releasePackageMetadata(original, 'node', six));
+  assert.notDeepEqual(releasePackageMetadata(original, 'node', four),
+    releasePackageMetadata(original, 'node', {...six, packageVersion: '0.0.2'}));
 });

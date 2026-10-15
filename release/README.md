@@ -198,3 +198,26 @@ work, exposes no controls/Samples/payloads and grants no new authority. Empty
 consumer acceptance must verify actual built asset delivery, original refs/ports,
 unavailable capability states and closure without cancelling borrowed work.
 It does not complete the Cloud adapter, Full Explorer or formal npm publication.
+
+## Sharing one normal prepack across exact cohorts
+
+A normal Explorer six-package cohort and a normal Node four-package cohort
+retain their separate exact manifests. After verifying the six-package source,
+normal-prepack receipt and complete `verifyPackageRelease` result, a producer
+may set `ACTQL_PACKED_CLIENT_PACKAGES` to that cohort's `development` directory
+and invoke ordinary `package-release.mjs prepare` for the four-package cohort
+in a fresh directory at the same clean HEAD. The existing shared-pack owner
+checks the source revision and both the original and copied archive digests.
+A missing package, changed archive or different/dirty source is a refusal;
+it never silently repacks a rejected shared input.
+
+This uses the original normal prepack once and then ordinary metadata/license
+staging. It creates new four-package development and release manifests; it
+does not edit the six-package manifest or relabel a former RC. Both complete
+manifests must verify. Shared final release archives additionally require the
+same chosen package version and metadata inputs; different release versions
+are not identical archives even when their development payload is shared.
+For the checked-in Node/Explorer cohorts, independently compare every common
+`originalSha256`, final `sha256`/integrity and payload byte/mode inventory.
+Normal consumers keep their exact cohort and source checks. This mechanism
+is not formal registry publication or evidence of an installed E2E result.
