@@ -1,10 +1,11 @@
 #ifndef ACTQL_PRIVATE_SQLITE_DATABASE_SHIM_H
 #define ACTQL_PRIVATE_SQLITE_DATABASE_SHIM_H
 #include "sqlite_shim.h"
-/* Observed regular Source812f3ab6 C SHA256
- * 9a05670f08559799a78af8caa9fb58ea76983eadb13e62b1e1768ec8b918e9ea.
- * Code callbacks borrow inputs; reply/original/body getters return owned refs.
- * No generated object layout or independently linked provider is used. */
+/* Observed regular Source1c4d0dc7 C SHA256
+ * 0f1adca4cfaf73cd97509d642a9743d58af2c5d33354990d78876c9f1b9836c7.
+ * All 52 callback parameters use actual emitted prototypes. Inputs borrow;
+ * reply/original/lookup/body getters return owned refs (nullable lookup).
+ * No managed struct layout or independently linked provider is used. */
 typedef struct _M0TP45actql5actql16platform__native25installed__arena__control28InstalledArenaSqliteDatabase actql_sqlite_database;
 typedef struct _M0TP45actql5actql16platform__native25installed__arena__control33InstalledArenaSqliteDatabaseReply actql_sqlite_database_reply;
 typedef actql_sqlite_database_reply *(*actql_database_restore_fn)(actql_control_host *, actql_sqlite_original *, moonbit_string_t, int64_t);
@@ -24,6 +25,14 @@ typedef actql_sqlite_database_reply *(*actql_database_reserve_fn)(actql_control_
 typedef actql_sqlite_database_reply *(*actql_database_usage_fn)(actql_control_host *, actql_sqlite_database *, moonbit_string_t);
 typedef actql_sqlite_database_reply *(*actql_database_release_fn)(actql_control_host *, actql_sqlite_database *, moonbit_string_t, moonbit_string_t, int64_t, int64_t);
 typedef actql_sqlite_database_reply *(*actql_database_lookup_capacity_fn)(actql_control_host *, actql_sqlite_database *, moonbit_string_t, moonbit_string_t);
+typedef struct _M0TP45actql5actql16platform__native25installed__arena__control26InstalledArenaSqliteLookup actql_sqlite_lookup;
+typedef actql_sqlite_database_reply *(*actql_database_reserve_bounded_fn)(actql_control_host *, actql_sqlite_database *, moonbit_string_t, moonbit_string_t, int64_t, int64_t, int64_t, int64_t, int64_t);
+typedef actql_sqlite_database_reply *(*actql_lookup_operation_fn)(actql_control_host *, actql_sqlite_lookup *);
+typedef actql_sqlite_database_reply *(*actql_lookup_read_fn)(actql_control_host *, actql_sqlite_lookup *, moonbit_string_t, moonbit_string_t, int64_t);
+typedef actql_sqlite_database_reply *(*actql_lookup_key_fn)(actql_control_host *, actql_sqlite_lookup *, moonbit_string_t, moonbit_string_t);
+typedef actql_sqlite_database_reply *(*actql_lookup_usage_fn)(actql_control_host *, actql_sqlite_lookup *, moonbit_string_t);
+typedef actql_sqlite_lookup *(*actql_database_lookup_fn)(actql_sqlite_database_reply *);
+typedef actql_sqlite_database_reply *(*actql_database_revalidate_fn)(actql_sqlite_database_reply *);
 void actql_native_control_register_sqlite_database_roots(
     actql_database_restore_fn, actql_database_initialize_fn, actql_database_operation_fn,
     actql_database_read_fn, actql_database_insert_fn, actql_database_compare_fn,
@@ -35,7 +44,13 @@ void actql_native_control_register_sqlite_database_roots(
     actql_database_reserve_fn, actql_database_usage_fn, actql_database_release_fn,
     actql_database_tag_fn, actql_database_scalar_fn, actql_database_scalar_fn,
     actql_database_lookup_capacity_fn, actql_database_operation_fn, actql_database_operation_fn,
-    actql_database_scalar_fn, actql_database_scalar_fn, actql_database_scalar_fn, actql_database_tag_fn);
+    actql_database_scalar_fn, actql_database_scalar_fn, actql_database_scalar_fn, actql_database_tag_fn,
+    actql_database_lookup_capacity_fn, actql_database_tag_fn, actql_database_scalar_fn,
+    actql_database_operation_fn, actql_database_reserve_bounded_fn,
+    actql_database_operation_fn, actql_lookup_operation_fn,
+    actql_lookup_read_fn, actql_lookup_read_fn, actql_lookup_key_fn, actql_lookup_key_fn,
+    actql_lookup_usage_fn, actql_lookup_operation_fn, actql_lookup_operation_fn,
+    actql_lookup_operation_fn, actql_database_lookup_fn, actql_database_revalidate_fn);
 /* Acquire outside a managed child scope, as with the original Library. Path
  * is bounded trusted control metadata. Existing-only restore never creates.
  * Initialize requires the trusted adoption caller's original owned file facts;
@@ -116,4 +131,40 @@ int actql_sqlite_database_finish_closed_data(actql_control_host **, actql_sqlite
     actql_sqlite_database **, actql_sqlite_database_reply **);
 int actql_sqlite_database_finish_refused_open(actql_control_host **, actql_sqlite_original **,
     actql_sqlite_database_reply **);
+
+/* Ordinary confirmed byte-store metadata/read-TX operations. These preserve
+ * the original fence; they are not the active-fenced lookup exception. */
+int actql_sqlite_database_header_utf16_into(actql_control_host *, actql_sqlite_database *,
+    const uint16_t *, int32_t, const uint16_t *, int32_t, actql_sqlite_database_reply **);
+int32_t actql_sqlite_database_has_header(actql_sqlite_database_reply *);
+int64_t actql_sqlite_database_header_body_bytes(actql_sqlite_database_reply *);
+int actql_sqlite_database_begin_read_into(actql_control_host *, actql_sqlite_database *, actql_sqlite_database_reply **);
+int actql_sqlite_database_capacity_reserve_bounded_utf16_into(actql_control_host *, actql_sqlite_database *,
+    const uint16_t *, int32_t, const uint16_t *, int32_t, int64_t, int64_t,
+    int64_t, int64_t, int64_t, actql_sqlite_database_reply **);
+/* Start/cleanup outside the caller's managed scope, like Database custody.
+ * All read/finish calls stay inside that SAME original funded scope. A new
+ * child is available only from Core's retained start reply, never a scalar. */
+/* Both persistent out-slots are populated inside the same foreign call;
+ * a lost Python response must not lose the pending original child. */
+int actql_sqlite_lookup_start_into(actql_control_host *, actql_sqlite_database *,
+    actql_sqlite_lookup **, actql_sqlite_database_reply **);
+int actql_sqlite_database_lookup_into(actql_sqlite_database_reply *, actql_sqlite_lookup **);
+int actql_sqlite_lookup_observe_into(actql_control_host *, actql_sqlite_lookup *, actql_sqlite_database_reply **);
+int actql_sqlite_lookup_read_utf16_into(actql_control_host *, actql_sqlite_lookup *, const uint16_t *, int32_t,
+    const uint16_t *, int32_t, int64_t, actql_sqlite_database_reply **);
+int actql_sqlite_lookup_scan_utf16_into(actql_control_host *, actql_sqlite_lookup *, const uint16_t *, int32_t,
+    const uint16_t *, int32_t, int64_t, actql_sqlite_database_reply **);
+int actql_sqlite_lookup_header_utf16_into(actql_control_host *, actql_sqlite_lookup *, const uint16_t *, int32_t,
+    const uint16_t *, int32_t, actql_sqlite_database_reply **);
+int actql_sqlite_lookup_capacity_utf16_into(actql_control_host *, actql_sqlite_lookup *, const uint16_t *, int32_t,
+    const uint16_t *, int32_t, actql_sqlite_database_reply **);
+int actql_sqlite_lookup_capacity_usage_utf16_into(actql_control_host *, actql_sqlite_lookup *, const uint16_t *, int32_t,
+    actql_sqlite_database_reply **);
+int actql_sqlite_lookup_database_usage_into(actql_control_host *, actql_sqlite_lookup *, actql_sqlite_database_reply **);
+int actql_sqlite_lookup_finish_into(actql_control_host *, actql_sqlite_lookup *, actql_sqlite_database_reply **);
+int actql_sqlite_lookup_close_into(actql_control_host *, actql_sqlite_lookup *, actql_sqlite_database_reply **);
+/* Release this C alias only. The Database retains unretired child custody;
+ * dropping an alias is never a read-stop or old COMMIT ACK. */
+int actql_sqlite_lookup_drop(actql_sqlite_lookup **);
 #endif

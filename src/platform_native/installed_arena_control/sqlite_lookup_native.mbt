@@ -114,21 +114,29 @@ pub fn[T] InstalledArenaHost::call_sqlite_lookup(
       Domain(@bootstrap.Bootstrap(@bootstrap.Unavailable)),
     )
   }
-  let result = self.call_sqlite_database_owned(record.database, Some(record), physical => {
-    if !physical.owns_lookup_read(original) {
-      return Err(@sqlite.Physical("foreign original SQLite read child"))
-    }
+  // Reuse the SAME entry/postcheck Owner without retaining another captured
+  // trampoline throughout the physical read. Its allocations use the original
+  // finite arena too; there is no additional capacity or allocator fallback.
+  let physical = match
+    self.enter_sqlite_database_call(record.database, Some(record)) {
+    Err(issue) => return RefusedDatabaseCall(issue)
+    Ok(physical) => physical
+  }
+  let value = if !physical.owns_lookup_read(original) {
+    Err(@sqlite.Physical("foreign original SQLite read child"))
+  } else {
     match original.require_current() {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
+      Err(issue) => Err(issue)
+      Ok(_) => {
+        let value = call(original)
+        match original.require_current() {
+          Err(issue) => Err(issue)
+          Ok(_) => value
+        }
+      }
     }
-    let value = call(original)
-    match original.require_current() {
-      Err(issue) => return Err(issue)
-      Ok(_) => ()
-    }
-    value
-  })
+  }
+  let result = self.finish_sqlite_database_call(record.database, value)
   if result is ObservedDatabaseCall(_, Some(_)) {
     record.failed = true
   }
