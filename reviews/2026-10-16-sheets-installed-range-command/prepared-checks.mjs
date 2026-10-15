@@ -21,7 +21,7 @@ if (phase === 'generate') {
   steps = [{name: 'Affected common, Sheets and existing Checkpoint runtime modules only',
     command: process.execPath, args: ['--input-type=module', '-e', bounded]}];
 } else {
-  assert(['node', 'host', 'regression', 'freshness'].includes(phase));
+  assert(['node', 'host', 'aggregate', 'regression', 'freshness'].includes(phase));
   const focused = 'import{runFocusedTests}from"./scripts/test-execution.mjs";' +
     'process.exitCode=runFocusedTests("node",process.argv.slice(1),' +
     '{cwd:process.cwd(),timeout:30000});';
@@ -30,6 +30,8 @@ if (phase === 'generate') {
       'adapters/connectors/sheets/test/sheets-standard-host.integration.test.mjs'],
     node: ['adapters/connectors/sheets/test/sheets-range-command.test.mjs',
       'adapters/host-common/captured-effect-dependency-schemas.test.mjs'],
+    aggregate: ['--test-name-pattern=^(captured Effect|Sheets range (?!Command))',
+      'adapters/connectors/sheets/test/sheets-standard-host.integration.test.mjs'],
     regression: ['--test-name-pattern=^Sheets Local append|^Sheets read uses',
       'adapters/connectors/sheets/test/sheets-standard-host.integration.test.mjs'],
   };
