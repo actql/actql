@@ -6,7 +6,10 @@ pub fn InstalledArenaHost::project_domain_original(
   self : InstalledArenaHost,
   record : InstalledArenaDomain,
 ) -> Result[
-  (@bootstrap.NativePreparedDomainTransport, @resources.BackedExecutionOriginalData),
+  (
+    @bootstrap.NativePreparedDomainTransport,
+    @resources.BackedExecutionOriginalData,
+  ),
   @bootstrap.NativeBackedExecutionIssue,
 ] {
   match self.require_domain_current(record) {
@@ -14,6 +17,8 @@ pub fn InstalledArenaHost::project_domain_original(
     Ok(_) => ()
   }
   record.backing.project_prepared_domain_original(
-    self, record.domain.unwrap(), record,
+    self,
+    record.domain.unwrap(),
+    record,
   )
 }
