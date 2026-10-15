@@ -322,3 +322,39 @@ test "Native Effect Values uses adopted current Submit independently of Source r
     }
   }
 }
+
+///|
+test "Native Effect Values terminal capture fence observes cleanup performed inside current callback" {
+  let (database, journal, request, allowed, definition) = accepted_effect_work_fixture(
+    "effect-values-terminal-lifetime",
+  )
+  let (materials, captured) = effect_values_work_test_original(
+    request, allowed, definition,
+  )
+  let (registry, values, fragment) = effect_values_work_test_bodies()
+  let retained : Ref[NativeClientEffectValuesWork?] = { val: None, }
+  let work = open_native_client_effect_values_work(
+    journal,
+    request,
+    materials,
+    captured,
+    registry,
+    values,
+    fragment,
+    None,
+    64,
+    1000,
+    () => "2026-10-15T00:00:00.000Z",
+    () => {
+      if retained.val is Some(work) {
+        work.close() |> ignore
+      }
+      true
+    },
+  ).unwrap()
+  retained.val = Some(work)
+  assert_true(work.run_for_capture() is Err(Unavailable))
+  assert_true(work.close())
+  retained.val = None
+  database.close_checked().unwrap()
+}
