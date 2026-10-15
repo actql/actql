@@ -5,9 +5,7 @@ fn pending_funding_document_failure(
   document : JsonDocument,
 ) -> ParseError raise {
   for _ in 0..<512 {
-    let completed = document.step() catch {
-      ParseAbort(error) => return error
-    }
+    let completed = document.step() catch { ParseAbort(error) => return error }
     assert_true(completed is None)
   }
   fail("bounded pending-key fixture did not fail")
@@ -94,9 +92,7 @@ test "one-short resumed failure keeps its detached path after original parser cl
   for _ in 0..<512 {
     transitions += 1
     match advance_json_parse(cursor, 1).unwrap() {
-      JsonParseContinue(work~) => {
-        assert_eq(work, 1)
-      }
+      JsonParseContinue(work~) => assert_eq(work, 1)
       JsonParseComplete(..) => fail("one-short parser published a tree")
       JsonParseFailed(error, work~) => {
         assert_eq(work, 1)
