@@ -185,7 +185,10 @@ test('only finite preloaded assets are served; paths cannot read the workspace',
   const home = await h.send('/', undefined, {}, 'GET');
   assert.equal(await home.text(), '<html>built asset fixture</html>');
   assert.equal(home.headers.get('cache-control'), 'no-store');
-  assert(home.headers.get('content-security-policy').includes("frame-ancestors 'none'"));
+  const csp = home.headers.get('content-security-policy');
+  assert(csp.includes("frame-ancestors 'none'"));
+  assert(csp.includes("worker-src 'self'"));
+  assert(!csp.includes('blob:') && !csp.includes('unsafe-eval'));
   for (const path of ['/package.json', '/src/code.mbt', '/assets/../../README.md', '/missing.js']) {
     assert.equal((await h.send(path, undefined, {}, 'GET')).status, 404);
   }

@@ -1,4 +1,4 @@
-import {graphViewLimits, ExplorerReadError} from './read-model.mjs';
+import {graphViewLimits, ExplorerReadError} from './presentation-limits.mjs';
 
 // Presentation dimensions and a Worker deadline, never execution/Host budgets.
 export const flowLayoutDeadlineMs = 5000;
@@ -14,12 +14,12 @@ export function layoutInput(flow) {
   const ids = new Set(), ports = new Map();
   let count = 0;
   const nodes = flow.nodes.map(node => {
-    if (typeof node.id !== 'string' || node.id.length > 256 || ids.has(node.id) ||
+    if (typeof node.id !== 'string' || node.id.length < 1 || node.id.length > 256 || ids.has(node.id) ||
         !Array.isArray(node.data?.original?.ports) ||
         (count += node.data.original.ports.length) > graphViewLimits.ports) refuse();
     ids.add(node.id);
     return {id: node.id, ports: node.data.original.ports.map(port => {
-      if (typeof port.port_id !== 'string' || port.port_id.length > 256 ||
+      if (typeof port.port_id !== 'string' || port.port_id.length < 1 || port.port_id.length > 256 ||
           ports.has(port.port_id) || !['input', 'output'].includes(port.role)) refuse();
       ports.set(port.port_id, {node: node.id, role: port.role});
       return {id: port.port_id, role: port.role};
@@ -27,7 +27,7 @@ export function layoutInput(flow) {
   });
   const edgeIds = new Set();
   const edges = flow.edges.map(edge => {
-    if (typeof edge.id !== 'string' || edge.id.length > 256 || edgeIds.has(edge.id) ||
+    if (typeof edge.id !== 'string' || edge.id.length < 1 || edge.id.length > 256 || edgeIds.has(edge.id) ||
         ports.get(edge.sourceHandle)?.node !== edge.source ||
         ports.get(edge.sourceHandle)?.role !== 'output' ||
         ports.get(edge.targetHandle)?.node !== edge.target ||
@@ -46,11 +46,11 @@ export function elkGraph(input) {
   let count = 0;
   const ids = new Set(), ports = new Map();
   const children = input.nodes.map(node => {
-    if (typeof node.id !== 'string' || node.id.length > 256 || ids.has(node.id) ||
+    if (typeof node.id !== 'string' || node.id.length < 1 || node.id.length > 256 || ids.has(node.id) ||
         !Array.isArray(node.ports) || (count += node.ports.length) > graphViewLimits.ports) refuse();
     ids.add(node.id);
     const declared = node.ports.map((port, index) => {
-      if (typeof port.id !== 'string' || port.id.length > 256 || ports.has(port.id) ||
+      if (typeof port.id !== 'string' || port.id.length < 1 || port.id.length > 256 || ports.has(port.id) ||
           !['input', 'output'].includes(port.role)) refuse();
       ports.set(port.id, port.role);
       return {id: `port:${port.id}`, width: 0, height: 0,
@@ -62,7 +62,7 @@ export function elkGraph(input) {
   });
   const edgeIds = new Set();
   const edges = input.edges.map(edge => {
-    if (typeof edge.id !== 'string' || edge.id.length > 256 || edgeIds.has(edge.id) ||
+    if (typeof edge.id !== 'string' || edge.id.length < 1 || edge.id.length > 256 || edgeIds.has(edge.id) ||
         ports.get(edge.source) !== 'output' || ports.get(edge.target) !== 'input') refuse();
     edgeIds.add(edge.id);
     return {id: `edge:${edge.id}`, sources: [`port:${edge.source}`], targets: [`port:${edge.target}`]};

@@ -1,8 +1,8 @@
-import {ExplorerReadError} from './read-model.mjs';
-import {layoutInput, layoutPositions, flowLayoutDeadlineMs} from './flow-layout-engine.mjs';
-export {flowNodeWidth, flowNodeHeight, flowLayoutDeadlineMs} from './flow-layout-engine.mjs';
+import ELK from 'elkjs/lib/elk-api.js';
+import {ExplorerReadError} from './presentation-limits.mjs';
+import {layoutInput, elkGraph, layoutPositions, flowLayoutDeadlineMs} from './flow-layout-engine.mjs';
+export {layoutInput, flowNodeWidth, flowNodeHeight, flowLayoutDeadlineMs} from './flow-layout-engine.mjs';
 
-let nextRequest = 0;
 const browserWorker = () => new Worker(new URL('./flow-layout-worker.mjs', import.meta.url), {type: 'module'});
 
 /** One disposable Worker per layout. Leaving a scope/Plan or the Flow view
@@ -11,8 +11,6 @@ export function requestFlowLayout(flow, {signal, createWorker = browserWorker} =
   const input = layoutInput(flow);
   if (signal?.aborted) return Promise.reject(new ExplorerReadError('ExplorerLayoutAborted'));
   if (input.nodes.length === 0) return Promise.resolve([]);
-  if (nextRequest >= Number.MAX_SAFE_INTEGER) refuse();
-  const requestId = ++nextRequest;
   return new Promise((resolve, reject) => {
     let worker, timer, settled = false;
     const finish = (error, positions) => {
@@ -27,23 +25,17 @@ export function requestFlowLayout(flow, {signal, createWorker = browserWorker} =
     signal?.addEventListener('abort', abort, {once: true});
     try {
       worker = createWorker();
-      worker.onmessage = event => {
-        if (event.data?.requestId !== requestId) return;
-        if (event.data?.kind !== 'layout') {
-          finish(new ExplorerReadError('ExplorerLayoutUnavailable')); return;
-        }
-        try {
-          const positions = event.data.positions;
-          // The same complete original node set is required on both sides.
-          const checked = layoutPositions(input, {children: Array.isArray(positions)
-            ? positions.map(point => ({...point, id: `node:${point.id}`})) : undefined});
-          finish(undefined, checked);
-        } catch { finish(new ExplorerReadError('ExplorerInvalidLayout')); }
-      };
+      // Use the upstream API/Worker pair. elk.bundled's in-process fake Worker
+      // is intended for Window/Node, not for construction inside a Worker.
+      const elk = new ELK({algorithms: ['layered'], workerFactory: () => worker});
       worker.onerror = () => finish(new ExplorerReadError('ExplorerLayoutUnavailable'));
       timer = setTimeout(() => finish(new ExplorerReadError('ExplorerLayoutUnavailable')), flowLayoutDeadlineMs);
       if (signal?.aborted) { abort(); return; }
-      worker.postMessage({requestId, input});
+      elk.layout(elkGraph(input)).then(result => {
+        if (settled) return;
+        try { finish(undefined, layoutPositions(input, result)); }
+        catch { finish(new ExplorerReadError('ExplorerInvalidLayout')); }
+      }, () => finish(new ExplorerReadError('ExplorerLayoutUnavailable')));
     } catch { finish(new ExplorerReadError('ExplorerLayoutUnavailable')); }
   });
 }

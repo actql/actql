@@ -31,7 +31,10 @@
     "read-model.d.ts",
     "README.md",
     "dist",
-    "plan-explorer.d.ts"
+    "plan-explorer.d.ts",
+    "presentation-limits.mjs",
+    "THIRD_PARTY_NOTICES.md",
+    "ELKJS-LICENSE.md"
   ],
   "scripts": {
     "build": "vite build --config vite.config.mts",

@@ -1,8 +1,7 @@
 import {validRunRef, validWirePlanViewShape, validWireRunPlanViewShape} from '@actql/client-wire';
 
-export class ExplorerReadError extends Error {
-  constructor(code) { super(code); this.code = code; }
-}
+import {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
+export {ExplorerReadError, graphViewLimits} from './presentation-limits.mjs';
 
 const refuse = code => { throw new ExplorerReadError(code); };
 const freeze = value => {
@@ -12,10 +11,6 @@ const freeze = value => {
   }
   return value;
 };
-
-// Presentation limits refuse a complete view; they never silently page/truncate
-// a map while preserving its complete identity. Public reads retain Host limits.
-export const graphViewLimits = Object.freeze({steps: 256, ports: 1024});
 
 // Accept an SDK-admitted static view, not a compiler/preparation handle or a
 // permission. This model references original identities; it has no new self-CID.
