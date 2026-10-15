@@ -14,7 +14,6 @@ test "mixed installed Effect capacities retain both original requirements and re
       ..original.program,
       max_tasks: 8,
       checking: {
-        ..original.program.checking,
         input: { ..original.program.checking.input, max_stages: 3, },
         compilation: {
           ..original.program.checking.compilation,
@@ -39,6 +38,9 @@ test "mixed installed Effect capacities retain both original requirements and re
     limits,
   ).unwrap()
   let (registry, values, fragment, ordered) = acquired_serialization_contracts()
+  let (query, evidence) = query_evidence_test_bodies()
+  let query_wire = @identity.stringify_value(query, 100000, 10000, 100)
+  let evidence_wire = @identity.stringify_value(evidence, 100000, 10000, 100)
   let capacities = Array::makei(2, task => {
     let declaration = @row_host.restore_relation_row_declaration(
       if task == 0 {
@@ -55,7 +57,7 @@ test "mixed installed Effect capacities retain both original requirements and re
       prepared, task, 0, registry, values, fragment, ordered,
     ).unwrap()
     let acquisition = @row_host.prepare_row_acquisition(
-      declaration, requirement, original_row_query_contract_fixture, original_row_evidence_contract_fixture,
+      declaration, requirement, query_wire, evidence_wire,
     ).unwrap()
     @client_local_host.installed_row_capture_capacity(acquisition).unwrap()
   })
