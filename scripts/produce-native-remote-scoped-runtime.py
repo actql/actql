@@ -201,7 +201,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     cc_plan = destination / 'cc-plan.json'
     # Only the C port is redirected. Ordinary Moon retains dependency/registry
     # generation and all package compiler arguments, including -all-pkgs.
-    cc_driver.write_text('#!' + sys.executable + '\n'
+    python = Path(sys.executable).resolve()
+    cc_driver.write_text('#!' + str(python) + '\n'
         + 'import importlib.util, sys, subprocess\nfrom pathlib import Path\n'
         + 'if sys.argv[1:] in (["--version"], ["-v"]):\n'
         + '    raise SystemExit(subprocess.run([' + repr(str(clang)) + ',*sys.argv[1:]]).returncode)\n'
@@ -230,7 +231,7 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     packages = [c[c.index('-pkg') + 1].removeprefix('actql/actql/')
                 for c in commands if c[0] == str(moon_home / 'bin/moonc') and c[1] == 'build-package']
     paths = {ROOT / 'toolchain.json', ROOT / 'moon.mod', Path(__file__), clang,
-             cc_driver, ar_driver, cc_plan, Path(sys.executable),
+             cc_driver, ar_driver, cc_plan, python,
              Path('/Library/Developer/CommandLineTools/usr/bin/ar'),
              Path('/Library/Developer/CommandLineTools/usr/bin/libtool'),
              sdk / 'SDKSettings.json', moon_home / 'installed.json',
