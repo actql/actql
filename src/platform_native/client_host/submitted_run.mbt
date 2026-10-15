@@ -215,10 +215,19 @@ fn NativeClientRunJournal::accept_original_submitted_run(
   authority_scope_cid : String,
   current_authorization : Bool,
   effect_material_originals? : String? = None,
+  publication_policy_originals? : String? = None,
   local_run_policy_original? : @host.ClientLocalRunPolicyOriginal? = None,
   run_observation_originals? : @host.ClientRunObservationOriginals? = None,
   current_fence? : (() -> Bool)? = None,
 ) -> Result[NativeClientSubmittedIntentRecord, NativeClientRunJournalIssue] {
+  if publication_policy_originals is Some(wire) {
+    if current_fence is None {
+      return Err(AuthorizationDenied)
+    }
+    if read_run_policy_originals(wire) is Err(_) {
+      return Err(CustodyLost)
+    }
+  }
   let observation_wire = match run_observation_originals {
     None => None
     Some(value) =>
@@ -294,6 +303,7 @@ fn NativeClientRunJournal::accept_original_submitted_run(
     // an accepted or merely pre-existing Run after custody was lost.
     if (
         effect_material_originals is Some(_) ||
+        publication_policy_originals is Some(_) ||
         local_run_policy_originals is Some(_) ||
         observation_wire is Some(_)
       ) &&
@@ -303,6 +313,7 @@ fn NativeClientRunJournal::accept_original_submitted_run(
         Ok(Some(_)) =>
           return Err(
             if local_run_policy_originals is Some(_) ||
+              publication_policy_originals is Some(_) ||
               observation_wire is Some(_) {
               CustodyLost
             } else {
@@ -351,6 +362,12 @@ fn NativeClientRunJournal::accept_original_submitted_run(
         run.local_run_policy_originals != Some(packet) {
         return Err(CustodyLost)
       }
+      if publication_policy_originals is Some(packet) &&
+        run.publication_policy_originals != Some(packet) {
+        // Missing accepted custody is not an unstarted Run or permission to
+        // add a policy selected from the current installation after the fact.
+        return Err(CustodyLost)
+      }
       if current_fence is Some(current) && !current() {
         return Err(AuthorizationDenied)
       }
@@ -375,6 +392,19 @@ fn NativeClientRunJournal::accept_original_submitted_run(
           return Err(AuthorizationDenied)
         }
         match self.save({ ..run, local_run_policy_originals: Some(packet), }) {
+          Ok(value) => value
+          Err(issue) => return Err(issue)
+        }
+      }
+    }
+    let run = match publication_policy_originals {
+      None => run
+      Some(packet) => {
+        if current_fence is Some(current) && !current() {
+          return Err(AuthorizationDenied)
+        }
+        match
+          self.save({ ..run, publication_policy_originals: Some(packet), }) {
           Ok(value) => value
           Err(issue) => return Err(issue)
         }
