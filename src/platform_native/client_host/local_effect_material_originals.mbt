@@ -242,10 +242,10 @@ pub fn NativeLocalHostConnection::accept_submitted_effect_material_original(
   }
   let current = () => {
     authority.current_for(self.journal, request) &&
-    match policy_selection {
+    (match policy_selection {
       None => true
       Some(selection) => selection.current()
-    }
+    })
   }
   self.journal
   .accept_original_submitted_run(
