@@ -265,7 +265,7 @@
 +    if (!lock_read_contexts()) return NULL;
 +    actql_read_context *context = read_current;
 +    if (known_read_context(context) && !context->closing && read_depth != 0 &&
-+        context->users != 0 && actql_native_owned_current() == context->lease &&
++        context->active != 0 && actql_native_owned_current() == context->lease &&
 +        actql_native_owned_allocate(context->lease, bytes ? bytes : 1,
 +                                    _Alignof(max_align_t), &output) == ACTQL_OWNED_OK) {
 +        lock_capacity(context->lease);
