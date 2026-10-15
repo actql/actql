@@ -486,6 +486,19 @@ pub(all) enum ClientSourceCaptureIssue {
   Original(@client_row_source_host.RowOriginalCaptureIssue)
 }
 
+type LocalValuesEffectResultExport
+pub fn LocalValuesEffectResultExport::captured_export(Self) -> @physical_strategy.CapturedEffectLocalResultExport?
+pub fn LocalValuesEffectResultExport::close(Self) -> Unit
+
+pub(all) enum LocalValuesEffectResultExportIssue {
+  MissingOutput
+  ForeignInput
+  MissingResult
+  Bridge(@execution_relation.ManagedProducerBridgeIssue)
+  Export(@execution_relation.CompletedExportIssue)
+  Binding(@physical_strategy.CapturedEffectLocalResultExportIssue)
+}
+
 pub struct LocalValuesExecution {
   run : @physical_strategy.CapturedDAG
   operations : @driver.LocalManagedDispatchOperations[Int]
@@ -495,6 +508,7 @@ pub struct LocalValuesExecution {
 pub fn LocalValuesExecution::close(Self) -> Bool
 pub fn LocalValuesExecution::completed_output(Self) -> @execution_relation.ManagedCompletedOutput[Int]
 pub fn LocalValuesExecution::material(Self) -> @execution_relation.ManagedRetainedOutput[Int]?
+pub fn LocalValuesExecution::prepare_effect_result_export(Self, @physical_strategy.CapturedEffectRunDAG, @physical_strategy.CapturedEffectInputs, Int, @execution_relation.RetainedRowDecodeLimits, Int, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[LocalValuesEffectResultExport, LocalValuesEffectResultExportIssue]
 pub fn LocalValuesExecution::prepare_result_export(Self, Int, @execution_relation.RetainedRowDecodeLimits, Int, Int, @run_publication_host.PublicationOutputExportLimits) -> Result[LocalValuesResultExport, LocalValuesResultExportIssue]
 pub fn LocalValuesExecution::rows(Self) -> Result[Array[String], LocalValuesExecutionIssue]
 
