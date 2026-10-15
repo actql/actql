@@ -93,3 +93,42 @@ public `joined` rows/ordered schema must match the independent oracle. The first
 child must finish successfully and the Catalog commit must be observed before
 the terminal-only child is started. The initial PID's later Host reopen is a
 separate control, never evidence of a fresh post-commit process.
+
+## Executed fixed-source Local route
+
+Clean integrated source `6f5e518e1dbfb85b4c158fed43d300742eb6ecf2`
+(tree `37dad9e1c8ccc88ceeea961a15ef5113ceafeb96`) passed the original
+one-case normally installed Local route in `run-oaw2t5`: 1/1, complete exit0,
+outer300/TERM5 and child180. G generated the single shared normal4 cohort in
+`run-nrVlWO`; manifest SHA256 is
+`5b89c703821e260d297b5cd25a1edb5328660a26a5168d70afa2a92cf4af4c39`.
+The original 27 source-input hashes and 23 copied fixtures were unchanged from
+the preceding failed f775 attempt. Product code came from the normal archives;
+no adapter overlay, checkout runtime or replacement source response was used.
+
+Actual acquisition was one DuckDB session/statement and one GCS metadata
+request/response (1,927 bytes), with one credential resolution/token mint.
+Before approval the public `joined` Result and Preview row payload remained
+unavailable. The original sealed operation/target/Mapping/artifact/schema
+projection was checked, the first Host closed, and a different process attached
+to the same Run, rechecked that exact Preview and committed its approval.
+The Effect produced one real Local Iceberg Catalog commit and the independent
+row `{id: 1, tag: "actql-content-test/a.csv"}`. Public `joined` matched that row
+and its complete ordered number/string nonnullable schema.
+
+After observing the Catalog commit, a second new process attached to the same
+terminal Run and read the same Result/schema, with zero Source requests,
+credential resolutions, new submissions or Table-worker starts. All three
+process PIDs differ. Client/request/credential close observations were true;
+Owner/group, own/shared leases and fixture open FDs were absent. Missing
+optional cleanup metadata is not invented as an acknowledgement. Original
+custody, DB/WAL, proof keys and exact raw output remain privately retained.
+
+[The fixed evidence record](accepted-6f5e518e.json) identifies the exact commands,
+archive hashes, actual observations and raw-receipt digests. The b6 token failure,
+b6 dependency-member failure and f775 payload-binding failure remain separate
+immutable failures. Count this as **one new real installed Local scenario**;
+G's ordinary consumer is a separate qualification and does not count it twice.
+HTTPS for this real route, full Preview row-value inspection, all seventeen
+Connector profiles, all Frontend work, Native/Python/Cloud gates, Hosted CI and
+formal publication are not established by this result.
