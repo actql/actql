@@ -5,4 +5,5 @@ import {
   "actql/actql/platform_native/host_bootstrap" @bootstrap,
   "actql/actql/physical_resources" @resources,
   "actql/actql/platform_native/sqlite" @sqlite,
+  "actql/actql/platform_native/filesystem" @filesystem,
 }
