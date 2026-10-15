@@ -65,11 +65,15 @@ fn[P, C] backed_read_use_current(
   child : C,
   ticket : BackedExecutionDelegation[P, C],
   read_use : BackedExecutionReadUse[P, C],
-) -> Result[SharedBorrow, BackedExecutionIssue] {
-  let (_, original_borrow, _) = match
-    backed_child_current(region, provider, child, ticket) {
-    Ok(value) => value
+) -> Result[Unit, BackedExecutionIssue] {
+  // Current-only callers need no quota/extent projection or temporary tuple.
+  // Reuse the same original child checks before inspecting this read borrow.
+  match check_backed_execution_delegation_current(region, provider, child, ticket) {
     Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  guard ticket.borrow is Some(original_borrow) else {
+    return Err(ForeignOriginal)
   }
   let allocation = original_borrow.allocation
   guard read_use.ticket is Some(original) &&
@@ -84,7 +88,7 @@ fn[P, C] backed_read_use_current(
     allocation.readers < 3 {
     return Err(Retired)
   }
-  Ok(borrow)
+  Ok(())
 }
 
 ///|
@@ -138,10 +142,14 @@ pub fn[P, C] return_backed_execution_read_use_after_owner_ack(
   ticket : BackedExecutionDelegation[P, C],
   read_use : BackedExecutionReadUse[P, C],
 ) -> Result[Unit, BackedExecutionIssue] {
-  let borrow = match
-    backed_read_use_current(region, provider, child, ticket, read_use) {
-    Ok(value) => value
+  match backed_read_use_current(region, provider, child, ticket, read_use) {
     Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  // Only the actual return path needs this reference. No callback/await or
+  // mutation separates it from the original identity/lifetime checks above.
+  guard read_use.borrow is Some(borrow) else {
+    return Err(ForeignOriginal)
   }
   if read_use.live_access_pending {
     return Err(CleanupPending)
