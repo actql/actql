@@ -114,7 +114,8 @@ fn window_assert_output(
     abort("original logical Slot must have its checked object")
   }
   let mut reason = None
-  for (name, value) in fields {
+  for index in 0..<@admitted.element_count(fields) {
+    let (name, value) = @admitted.element_at(fields, index).unwrap()
     if name == "reason" && value is @admitted.Text(text) {
       reason = Some(text)
     }
