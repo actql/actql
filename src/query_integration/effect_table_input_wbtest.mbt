@@ -917,8 +917,8 @@ fn verify_captured_private_table_input(
       plan_limits,
     )
     is Err(
-      @program_check.Static(
-        @program_check.Inventory(
+      @effect_binding.Static(
+        @effect_binding.Inventory(
           @stage_results.Inventory(@stage_results.SourceMismatch("save"))
         )
       )
