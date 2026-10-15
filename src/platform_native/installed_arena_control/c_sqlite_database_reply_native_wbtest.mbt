@@ -238,3 +238,88 @@ test "capacity physical observations distinguish unchanged zero absent and postc
   host.close_domain_after_owner_ack(domain).unwrap()
   host.try_close().unwrap()
 }
+
+///|
+test "metadata refuses unavailable and foreign originals without supplying zero or inactive" {
+  let host = domain_test_host()
+  let other = domain_test_host()
+  let domain = sqlite_test_pending_domain(host)
+  let library = sqlite_test_empty_record(domain)
+  domain.sqlite_library = Some(library)
+  let database = sqlite_test_empty_database(library)
+  library.database = Some(database)
+  for caller in [host, other] {
+    for
+      reply in [
+        read_installed_sqlite_capacity_reply(
+          caller, database, "original", "one",
+        ),
+        observe_installed_sqlite_database_usage_reply(caller, database),
+        observe_installed_sqlite_transaction_state_reply(caller, database),
+      ] {
+      assert_true(reply.operation_tag() >= 16 && reply.operation_tag() <= 18)
+      assert_eq(reply.stage_tag(), 0)
+      assert_true(reply.issue_family() != 0)
+      assert_eq(reply.reserved_bytes(), -1L)
+      assert_eq(reply.record_count(), -1L)
+      assert_eq(reply.record_body_bytes(), -1L)
+      assert_eq(reply.reservation_count(), -1L)
+      assert_eq(reply.transaction_active(), -1)
+      assert_true(physical_equal(reply.original_host(), host))
+    }
+  }
+  host.close_sqlite_database(database).unwrap()
+  host.close_sqlite_library(library).unwrap()
+  host.close_domain_after_owner_ack(domain).unwrap()
+  host.try_close().unwrap()
+  other.try_close().unwrap()
+}
+
+///|
+test "metadata zero and inactive are data with a separate original postcheck refusal" {
+  let host = domain_test_host()
+  let domain = sqlite_test_pending_domain(host)
+  let library = sqlite_test_empty_record(domain)
+  domain.sqlite_library = Some(library)
+  let database = sqlite_test_empty_database(library)
+  library.database = Some(database)
+  for
+    value in [
+      DatabaseUsage(0L, 0L, 0L),
+      DatabaseUsage(3L, 8L, 2L),
+      DatabaseTransactionState(false),
+      DatabaseTransactionState(true),
+    ] {
+    let reply : InstalledArenaSqliteDatabaseReply = {
+      operation: 17,
+      host,
+      library,
+      original: Some(database),
+      stage: 2,
+      issue: None,
+      after: Some(Domain(@bootstrap.Bootstrap(@bootstrap.Closing))),
+      value: Some(value),
+    }
+    assert_eq(reply.stage_tag(), 2)
+    assert_eq(reply.after_issue_family(), 4)
+    assert_eq(reply.has_row(), 0)
+    assert_eq(reply.reserved_bytes(), -1L)
+    match value {
+      DatabaseUsage(records, bytes, reservations) => {
+        assert_eq(reply.record_count(), records)
+        assert_eq(reply.record_body_bytes(), bytes)
+        assert_eq(reply.reservation_count(), reservations)
+        assert_eq(reply.transaction_active(), -1)
+      }
+      DatabaseTransactionState(active) => {
+        assert_eq(reply.transaction_active(), if active { 1 } else { 0 })
+        assert_eq(reply.record_count(), -1L)
+      }
+      _ => fail("unexpected independent metadata fixture")
+    }
+  }
+  host.close_sqlite_database(database).unwrap()
+  host.close_sqlite_library(library).unwrap()
+  host.close_domain_after_owner_ack(domain).unwrap()
+  host.try_close().unwrap()
+}

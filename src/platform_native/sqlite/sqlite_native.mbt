@@ -282,6 +282,36 @@ extern "C" fn database_lookup_claim_ordinal_ffi(
 ) -> Int = "actql_native_sqlite_database_lookup_claim_ordinal"
 
 ///|
+#borrow(database, scope, key)
+extern "C" fn database_read_capacity_ffi(
+  database : Database,
+  scope : Bytes,
+  scope_length : Int,
+  key : Bytes,
+  key_length : Int,
+) -> Int = "actql_native_sqlite_database_read_capacity"
+
+///|
+#borrow(database)
+extern "C" fn database_usage_ffi(database : Database) -> Int = "actql_native_sqlite_database_usage"
+
+///|
+#borrow(database)
+extern "C" fn database_result_record_count_ffi(database : Database) -> Int64 = "actql_native_sqlite_database_result_record_count"
+
+///|
+#borrow(database)
+extern "C" fn database_result_record_body_bytes_ffi(
+  database : Database,
+) -> Int64 = "actql_native_sqlite_database_result_record_body_bytes"
+
+///|
+#borrow(database)
+extern "C" fn database_result_reservation_count_ffi(
+  database : Database,
+) -> Int64 = "actql_native_sqlite_database_result_reservation_count"
+
+///|
 #borrow(database, scope)
 extern "C" fn database_capacity_usage_ffi(
   database : Database,
@@ -1242,6 +1272,55 @@ fn Database::claim_ordinal_owned(
       }
     }
     code => Err(operation_issue(self, code))
+  }
+}
+
+///|
+/// Lookup only: neither a missing reservation nor its retained amounts permit
+/// another reserve, physical launch, release or mutation.
+pub fn Database::read_capacity(
+  self : Database,
+  scope : String,
+  key : String,
+) -> Result[NativeCapacityUsage, NativeSqliteIssue] {
+  let scope_bytes = @utf8.encode(scope)
+  let key_bytes = @utf8.encode(key)
+  if !valid_name(scope_bytes) || !valid_name(key_bytes) {
+    return Err(InvalidName)
+  }
+  let code = database_read_capacity_ffi(
+    self,
+    scope_bytes,
+    scope_bytes.length(),
+    key_bytes,
+    key_bytes.length(),
+  )
+  if code == 0 {
+    Ok({
+      reserved_bytes: database_result_capacity_bytes_ffi(self),
+      reserved_objects: database_result_capacity_objects_ffi(self),
+    })
+  } else {
+    Err(operation_issue(self, code))
+  }
+}
+
+///|
+/// Physical totals only, in the same connection's current SQLite view. A
+/// caller-owned transaction may include uncommitted rows; this is no durable
+/// publication fact and never completes the caller's transaction.
+pub fn Database::database_usage(
+  self : Database,
+) -> Result[NativeDatabaseUsage, NativeSqliteIssue] {
+  let code = database_usage_ffi(self)
+  if code == 0 {
+    Ok({
+      record_count: database_result_record_count_ffi(self),
+      body_bytes: database_result_record_body_bytes_ffi(self),
+      reservation_count: database_result_reservation_count_ffi(self),
+    })
+  } else {
+    Err(operation_issue(self, code))
   }
 }
 

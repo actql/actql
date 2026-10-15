@@ -99,7 +99,7 @@ fn finish_model_attempt_failure(
   state : ModelState,
   issue : ModelExecutionIssue,
 ) -> Unit {
-  guard state.attempts.get(state.next_slot) is Some(trace) else { return }
+  guard state.attempts.get(state.progress.slot) is Some(trace) else { return }
   trace.work = state.work
   match issue {
     OutputIdentity => {
@@ -123,7 +123,7 @@ fn finish_model_attempt_stop(
   state : ModelState,
   reason : @bounded.StopReason,
 ) -> Unit {
-  guard state.attempts.get(state.next_slot) is Some(trace) else { return }
+  guard state.attempts.get(state.progress.slot) is Some(trace) else { return }
   trace.work = state.work
   trace.category = "cancelled"
   trace.failure = Some(
@@ -164,7 +164,10 @@ pub fn model_execution_attempt_evidence(
 ) -> Result[ModelAttemptEvidence, ModelExecutionIssue] {
   guard (
       @bounded.session_stopped(execution.session) ||
-      (execution.state.durable_calls && slot < execution.state.next_slot)
+      (
+        execution.state.durable_calls &&
+        model_outcome_at(execution.state, slot) is Some(_)
+      )
     ) &&
     execution.state.attempts.get(slot) is Some(trace) else {
     return Err(OutputIdentity)
@@ -172,7 +175,7 @@ pub fn model_execution_attempt_evidence(
   // A stopped kernel does not imply that an entered physical call has stopped
   // reporting usage. Do not freeze NULL accounting before that original poll
   // has reached a terminal observation; cleanup retains and drains it instead.
-  if execution.state.pending_response is Some(call) &&
+  if model_physical_call_at(execution.state, slot) is Some(call) &&
     call.entry is Some(entry) &&
     entry.slot == slot &&
     (

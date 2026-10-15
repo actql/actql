@@ -1,8 +1,8 @@
 #ifndef ACTQL_PRIVATE_SQLITE_DATABASE_SHIM_H
 #define ACTQL_PRIVATE_SQLITE_DATABASE_SHIM_H
 #include "sqlite_shim.h"
-/* Observed regular Source382463ce C SHA256
- * 816df22f97d7e3bdff5439a1542c76604171bc344245fb6bc8e297100c017c87.
+/* Observed regular Source812f3ab6 C SHA256
+ * 9a05670f08559799a78af8caa9fb58ea76983eadb13e62b1e1768ec8b918e9ea.
  * Code callbacks borrow inputs; reply/original/body getters return owned refs.
  * No generated object layout or independently linked provider is used. */
 typedef struct _M0TP45actql5actql16platform__native25installed__arena__control28InstalledArenaSqliteDatabase actql_sqlite_database;
@@ -23,6 +23,7 @@ typedef moonbit_bytes_t (*actql_database_body_fn)(actql_sqlite_database_reply *)
 typedef actql_sqlite_database_reply *(*actql_database_reserve_fn)(actql_control_host *, actql_sqlite_database *, moonbit_string_t, moonbit_string_t, int64_t, int64_t, int64_t, int64_t);
 typedef actql_sqlite_database_reply *(*actql_database_usage_fn)(actql_control_host *, actql_sqlite_database *, moonbit_string_t);
 typedef actql_sqlite_database_reply *(*actql_database_release_fn)(actql_control_host *, actql_sqlite_database *, moonbit_string_t, moonbit_string_t, int64_t, int64_t);
+typedef actql_sqlite_database_reply *(*actql_database_lookup_capacity_fn)(actql_control_host *, actql_sqlite_database *, moonbit_string_t, moonbit_string_t);
 void actql_native_control_register_sqlite_database_roots(
     actql_database_restore_fn, actql_database_initialize_fn, actql_database_operation_fn,
     actql_database_read_fn, actql_database_insert_fn, actql_database_compare_fn,
@@ -32,7 +33,9 @@ void actql_native_control_register_sqlite_database_roots(
     actql_database_tag_fn, actql_database_scalar_fn, actql_database_body_fn, actql_database_scalar_fn,
     actql_database_read_fn, actql_database_body_fn,
     actql_database_reserve_fn, actql_database_usage_fn, actql_database_release_fn,
-    actql_database_tag_fn, actql_database_scalar_fn, actql_database_scalar_fn);
+    actql_database_tag_fn, actql_database_scalar_fn, actql_database_scalar_fn,
+    actql_database_lookup_capacity_fn, actql_database_operation_fn, actql_database_operation_fn,
+    actql_database_scalar_fn, actql_database_scalar_fn, actql_database_scalar_fn, actql_database_tag_fn);
 /* Acquire outside a managed child scope, as with the original Library. Path
  * is bounded trusted control metadata. Existing-only restore never creates.
  * Initialize requires the trusted adoption caller's original owned file facts;
@@ -96,6 +99,17 @@ int actql_sqlite_database_capacity_release_utf16_into(actql_control_host *, actq
 int32_t actql_sqlite_database_capacity_changed(actql_sqlite_database_reply *);
 int64_t actql_sqlite_database_reserved_bytes(actql_sqlite_database_reply *);
 int64_t actql_sqlite_database_reserved_objects(actql_sqlite_database_reply *);
+/* Read-only physical DATA in the same original connection. Totals span this
+ * database's namespaces; they are not an admitted inventory or free credit.
+ * Transaction state is not COMMIT/rollback/cleanup acknowledgment. */
+int actql_sqlite_database_capacity_read_utf16_into(actql_control_host *, actql_sqlite_database *,
+    const uint16_t *, int32_t, const uint16_t *, int32_t, actql_sqlite_database_reply **);
+int actql_sqlite_database_database_usage_into(actql_control_host *, actql_sqlite_database *, actql_sqlite_database_reply **);
+int actql_sqlite_database_transaction_state_into(actql_control_host *, actql_sqlite_database *, actql_sqlite_database_reply **);
+int64_t actql_sqlite_database_record_count(actql_sqlite_database_reply *);
+int64_t actql_sqlite_database_record_body_bytes(actql_sqlite_database_reply *);
+int64_t actql_sqlite_database_reservation_count(actql_sqlite_database_reply *);
+int32_t actql_sqlite_database_transaction_active(actql_sqlite_database_reply *);
 int actql_sqlite_database_drop_reply(actql_sqlite_database_reply **, actql_control_host *,
     actql_sqlite_original *, actql_sqlite_database *);
 int actql_sqlite_database_finish_closed_data(actql_control_host **, actql_sqlite_original **,
