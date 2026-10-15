@@ -1,4 +1,11 @@
 ///|
+// Restrictive adapter selection only, never permission or grant-use eligibility.
+priv enum LocalSigningHistoryReadSelection {
+  SelectedUse(String)
+  OriginalOperation
+}
+
+///|
 pub(all) enum NativeLocalSigningHistoryIssue {
   HistoryUnavailable
   HistoryOriginal(NativeClientRunJournalIssue)
@@ -50,7 +57,7 @@ fn NativeLocalSigningKeyOriginal::read_signing_history_locked(
   authority : NativeLocalPolicyAuthority,
   request : @host.ClientRequestIdentity,
   operation_id : String,
-  use_id : String,
+  selection : LocalSigningHistoryReadSelection,
 ) -> Result[
   @credential_resource.NativeLocalSigningHistoryCandidate,
   NativeLocalSigningHistoryIssue,
@@ -103,12 +110,17 @@ fn NativeLocalSigningKeyOriginal::read_signing_history_locked(
     scope.checkpoint_kind != self.account.kind {
     return Err(HistoryUnavailable)
   }
-  match
-    @credential_resource.prepare_native_local_signing_history_candidate(
-      host.database,
-      grant,
-      use_id,
-    ) {
+  let candidate = match selection {
+    SelectedUse(use_id) =>
+      @credential_resource.prepare_native_local_signing_history_candidate(
+        host.database, grant, use_id,
+      )
+    OriginalOperation =>
+      @credential_resource.prepare_native_local_original_signing_history_candidate(
+        host.database, grant,
+      )
+  }
+  match candidate {
     Ok(value) => Ok(value)
     Err(issue) => Err(HistoryCredential(issue))
   }
@@ -135,6 +147,42 @@ pub fn NativeLocalSigningKeyOriginal::lookup_signing_history(
   @credential_resource.NativeLocalSigningHistoryCandidate,
   NativeLocalSigningHistoryIssue,
 ] {
+  self.read_signing_history_current(
+    principal, connection, request, operation_id, SelectedUse(use_id),
+  )
+}
+
+///|
+/// Read the same original operation's fixed attempt only. Missing, foreign or
+/// multiply-used history refuses; no key read, claim, signature or repair is
+/// attempted. Expired grant use and Resolution admission remain separate gates.
+pub fn NativeLocalSigningKeyOriginal::lookup_original_signing_operation(
+  self : NativeLocalSigningKeyOriginal,
+  principal : String,
+  connection : String,
+  request : @host.ClientRequestIdentity,
+  operation_id : String,
+) -> Result[
+  @credential_resource.NativeLocalSigningHistoryCandidate,
+  NativeLocalSigningHistoryIssue,
+] {
+  self.read_signing_history_current(
+    principal, connection, request, operation_id, OriginalOperation,
+  )
+}
+
+///|
+fn NativeLocalSigningKeyOriginal::read_signing_history_current(
+  self : NativeLocalSigningKeyOriginal,
+  principal : String,
+  connection : String,
+  request : @host.ClientRequestIdentity,
+  operation_id : String,
+  selection : LocalSigningHistoryReadSelection,
+) -> Result[
+  @credential_resource.NativeLocalSigningHistoryCandidate,
+  NativeLocalSigningHistoryIssue,
+] {
   let host = self.account.host
   let authority = match
     native_local_policy_authority_for(
@@ -155,7 +203,7 @@ pub fn NativeLocalSigningKeyOriginal::lookup_signing_history(
   let mut read_issue : NativeLocalSigningHistoryIssue? = None
   let result = host.journal.transaction(() => {
     match
-      self.read_signing_history_locked(authority, request, operation_id, use_id) {
+      self.read_signing_history_locked(authority, request, operation_id, selection) {
       Ok(value) => Ok(value)
       Err(issue) => {
         read_issue = Some(issue)
