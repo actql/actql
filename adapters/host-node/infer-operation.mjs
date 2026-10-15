@@ -515,6 +515,10 @@ export function openNodeInferOperation({moon, preparedProgram, step, graph,
     acquireOutcomes: () => moon.clientProgramAcquireInferOutcomes(active),
     invocationEvidence: slot => moon.clientProgramInferInvocationEvidence(active,
       slot),
+    invocationEvidenceView: (control, slot) => {
+      if (reclaimed) return undefined;
+      return control.inspectInferInvocationEvidence(moon, active, slot);
+    },
     evaluationRequest: slot => {
       if (reclaimed) return undefined;
       const physical = moon.clientProgramInferEvaluationRequest(active, slot);
