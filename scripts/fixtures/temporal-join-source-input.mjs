@@ -2,7 +2,7 @@
 const number={type:'number',nullable:false};
 const left=[{id:1,at:10},{id:2,at:30},{id:3,at:50}];
 const right=[{id:7,begin:5,finish:15},{id:8,begin:20,finish:25}];
-const leftText='SELECT 1 AS id, 10 AS at UNION ALL SELECT 2, 30 UNION ALL SELECT 3, 50';
+const leftText='SELECT 1 AS id, 10 AS `at` UNION ALL SELECT 2, 30 UNION ALL SELECT 3, 50';
 const rightText='SELECT 7 AS id, 5 AS begin, 15 AS finish UNION ALL SELECT 8, 20, 25';
 const projection={id:'left.id',value:'right.id'};
 const variants=[
@@ -20,7 +20,7 @@ function program(v) {
     {select:['id','value'],as:'out'}],results:{rows:{from:'out',fields:['id','value']}}}],results:{answer:{from:{stage:'main',result:'rows'}}}};
 }
 function source(call) {
-  return `WITH l AS (${leftText}), r AS (${rightText}), matched AS (FROM l AS current |> ${call}) SELECT id, value FROM matched ORDER BY id`;
+  return `WITH l AS (${leftText}), r AS (${rightText}), matched AS (FROM l AS `current` |> ${call}) SELECT id, value FROM matched ORDER BY id`;
 }
 export const temporalJoinSourceSuccesses=variants.flatMap(v=>{
   const results={answer:{rows:v.rows,columns:[{name:'id',contract:number},{name:'value',contract:{type:'number',nullable:v.body.kind==='left'}}]}};
