@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
-import {mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
+import {mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {dirname, join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -32,6 +32,7 @@ function installation(t) {
   const entry = join(directory, 'entry.mjs');
   put(entry, `import assert from 'node:assert/strict';
 import {createRequire} from 'node:module';
+import {pathToFileURL} from 'node:url';
 const require = createRequire(import.meta.url);
 const path = require.resolve('@actql/node/selected-infer-startup');
 const local = createRequire(path).resolve('@actql/local-node/selected-infer-startup');
@@ -40,7 +41,7 @@ const entry = require('@actql/node/selected-infer-startup');
 assert.deepEqual(Reflect.ownKeys(entry), []);
 assert.ok(Object.isFrozen(entry));
 const viewModule = await import(new URL('./adapters/host-node/infer-trusted-runtime-view.mjs',
-  'file://' + local));
+  pathToFileURL(local)));
 const {issueInferTrustedRuntimeView: issue, associateInferTrustedStartupView: associate,
   requireInferTrustedStartupView: check, borrowInferTrustedStartupView: borrow,
   forgetInferTrustedStartupView: retire, forgetInferTrustedRuntimeView: forget} = viewModule;
@@ -54,6 +55,16 @@ if (mode === 'absent') {
 } else {
   assert.equal(associate(view, original), view);
   check(view, original);
+  if (mode === 'sdk-eager') {
+    const sdk = require.resolve('@actql/provider-ai-sdk');
+    const {openAIChatStaticOriginals} = await import(new URL('./_internal/openai-chat.mjs',
+      pathToFileURL(sdk)));
+    viewModule.bindInferTrustedSdkStaticModules(view, original, openAIChatStaticOriginals);
+    viewModule.checkInferTrustedSdkEagerModules(view, original, openAIChatStaticOriginals);
+    assert.throws(() => viewModule.checkInferTrustedSdkEagerModules(view, original,
+      {...openAIChatStaticOriginals, createOpenAI() {}}),
+      {code: 'InferTrustedSdkStaticUnavailable'});
+  }
   const scoped = {...original, installation: {}, transport() {}};
   const scopedView = issue(scoped);
   borrow(view, scopedView, original, scoped);
@@ -125,3 +136,21 @@ test('public startup rejects NODE_OPTIONS even without another preload', t =>
     'absent', {NODE_OPTIONS: ''}));
 test('public startup retains its actual wrapper identity and sticky invalidation', t =>
   child(installation(t), ['--require', '@actql/node/selected-infer-startup'], 'changed-loader'));
+test('public recipe label cannot adopt another installation through an application reexport', t => {
+  const fixture = installation(t);
+  const foreign = join(fixture.directory, 'foreign/selected-infer-startup.cjs');
+  fixture.put(foreign, readFileSync(join(fixture.node, 'selected-infer-startup.cjs'))
+    .toString().replace("'@actql/local-node/selected-infer-startup'",
+      JSON.stringify(join(fixture.local, 'selected-infer-startup.cjs'))));
+  fixture.put(join(fixture.node, 'selected-infer-startup.cjs'),
+    `require(${JSON.stringify(foreign)}); module.exports = Object.freeze({});\n`);
+  child(fixture, ['--require', '@actql/node/selected-infer-startup'], 'absent');
+});
+test('public eager startup binds the actual optional SDK modules without exporting an issuer', t => {
+  const fixture = installation(t);
+  // Existing pinned dependency installation, not an npm install, SDK send or
+  // packed acceptance. The same package is resolved before this entry runs.
+  symlinkSync(join(root, 'packages/provider-ai-sdk'),
+    join(fixture.directory, 'node_modules/@actql/provider-ai-sdk'), 'dir');
+  child(fixture, ['--no-lazy', '--require', '@actql/node/selected-infer-startup'], 'sdk-eager');
+});
