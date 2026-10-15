@@ -356,6 +356,7 @@ pub struct BackedExecutionDelegation[P, C] {
   mut final_usage : LedgerUsage?
   mut read_use_issued : Bool
   mut read_use : BackedExecutionReadUse[P, C]?
+  // private fields
 }
 
 pub(all) struct BackedExecutionExtent {
