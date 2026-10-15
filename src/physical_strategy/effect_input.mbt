@@ -498,6 +498,31 @@ pub fn captured_effect_preview_inputs_available(
 }
 
 ///|
+/// Callback-free final fence for the same captured consumer holdings. This
+/// detects explicit capture/set/pin release after a caller's current checks;
+/// it does not replace physical availability, current authority or approval.
+/// The inventory is the existing bounded pin set, without new handles/copies.
+pub fn captured_effect_preview_inputs_retained(
+  value : CapturedEffectPreviewInputs,
+) -> Bool {
+  let inputs = value.inputs
+  if !inputs.live || !inputs.pins.live || !inputs.table_pins.live {
+    return false
+  }
+  for borrow in inputs.pins.borrows {
+    if !captured_any_result_borrow_retained(borrow) {
+      return false
+    }
+  }
+  for borrow in inputs.table_pins.borrows {
+    if !captured_table_input_borrow_retained(borrow) {
+      return false
+    }
+  }
+  true
+}
+
+///|
 /// Compare all currently observed source, resolved Contract, capability, and
 /// authority bindings against the same private Preview and captured input.
 /// The Site must establish current observations under authenticated authority;
