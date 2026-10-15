@@ -11,6 +11,7 @@ fn original_io_consumer_fixture(
   ),
   cleanup_calls? : Array[Bool] = [],
   polls? : Ref[Int] = Ref(0),
+  per_slot? : ((Int) -> @model.ModelPhysicalCallPoll)? = None,
   current? : Ref[@authorization.AdmittedAccountConfiguration] = Ref(
     evidence_account(@authorization.Allow),
   ),
@@ -41,8 +42,15 @@ fn original_io_consumer_fixture(
       bind_original_model_preparation(active, read, 100L, 5L).unwrap()
       original.val = Some((ledger, read))
     }),
-    observe_response_call=Some((_, original) => {
-      let inner = if ready.val { response } else { @model.PhysicalPending }
+    observe_response_call=Some((slot, original) => {
+      let inner = if ready.val {
+        match per_slot {
+          Some(read) => read(slot)
+          None => response
+        }
+      } else {
+        @model.PhysicalPending
+      }
       if io_closed.val {
         @model.PhysicalIoQuiescent(original, inner)
       } else {
