@@ -107,12 +107,13 @@ pub fn model_physical_call(
   guard physical_equal(entry.prepared, prepared) &&
     state.prepared_call_set is Some(original) &&
     physical_equal(original, prepared) &&
-    state.progress.entry is Some(original) &&
+    model_slot_progress_owned(state, entry.progress) &&
+    entry.progress.entry is Some(original) &&
     physical_equal(original, entry) &&
     !state.reclaimed &&
     entry.send_started &&
-    state.progress.phase is DispatchSlot &&
-    state.progress.slot == entry.slot &&
+    entry.progress.phase is DispatchSlot &&
+    entry.progress.slot == entry.slot &&
     state.attempts.get(entry.slot) is Some(trace) &&
     physical_equal(trace, entry.trace) &&
     state.physical_plans.get(entry.slot) is Some(plan) &&
@@ -121,7 +122,7 @@ pub fn model_physical_call(
     @resources.reservation_open(reservation) else {
     return None
   }
-  if state.progress.call is Some(original) {
+  if entry.progress.call is Some(original) {
     return if original.entry is Some(owner) && physical_equal(owner, entry) {
       Some(original)
     } else {
@@ -146,7 +147,7 @@ pub fn model_physical_call(
     io_observation: None,
     poll_issue: None,
   }
-  state.progress.call = Some(call)
+  entry.progress.call = Some(call)
   Some(call)
 }
 
@@ -177,7 +178,8 @@ fn poll_model_physical_call(
         return Err(RequestIdentity)
       }
       let state = entry.prepared.owner.state
-      guard state.progress.call is Some(current) &&
+      guard model_slot_progress_owned(state, entry.progress) &&
+        entry.progress.call is Some(current) &&
         physical_equal(current, call) &&
         state.prepared_call_set is Some(prepared) &&
         physical_equal(prepared, entry.prepared) &&

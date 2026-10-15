@@ -38,11 +38,12 @@ fn model_raw_capture_call_owned(call : ModelPhysicalCall) -> Bool {
   }
   let state = entry.prepared.owner.state
   guard !state.reclaimed &&
-    state.progress.call is Some(original) &&
+    model_slot_progress_owned(state, entry.progress) &&
+    entry.progress.call is Some(original) &&
     physical_equal(original, call) &&
     state.prepared_call_set is Some(prepared) &&
     physical_equal(prepared, entry.prepared) &&
-    state.progress.slot == entry.slot &&
+    entry.progress.slot == entry.slot &&
     state.attempts.get(entry.slot) is Some(trace) &&
     physical_equal(trace, entry.trace) &&
     state.reservations.get(entry.slot) is Some(reservation) &&

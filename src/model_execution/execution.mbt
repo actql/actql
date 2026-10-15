@@ -643,6 +643,7 @@ fn advance_model(
       None => {
         let entry : ModelCallEntry = {
           prepared: prepared_set,
+          progress: state.progress,
           slot: state.progress.slot,
           trace,
           admission,

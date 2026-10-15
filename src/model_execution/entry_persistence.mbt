@@ -12,9 +12,10 @@ fn model_call_entry_persistence_owned(
     physical_equal(entry.prepared, prepared) &&
     state.prepared_call_set is Some(original) &&
     physical_equal(original, prepared) &&
-    state.progress.phase is DispatchSlot &&
-    state.progress.slot == entry.slot &&
-    state.progress.entry is Some(current) &&
+    model_slot_progress_owned(state, entry.progress) &&
+    entry.progress.phase is DispatchSlot &&
+    entry.progress.slot == entry.slot &&
+    entry.progress.entry is Some(current) &&
     physical_equal(current, entry) &&
     state.dispatch_admission is Some(admission) &&
     physical_equal(admission, entry.admission) &&
