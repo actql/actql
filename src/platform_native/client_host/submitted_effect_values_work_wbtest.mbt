@@ -308,3 +308,23 @@ test "Native submitted Effect Values capture checks the original cleanup lifetim
   original.val = None
   host.close().unwrap()
 }
+
+///|
+// This pure priority check is not a successful current Host observation.
+test "Native submitted Effect Values preserves original custody refusal while denying terminal Submit loss" {
+  assert_true(
+    submitted_effect_values_current_result(Err(Journal(CustodyLost)), false)
+    is Err(Original(Journal(CustodyLost))),
+  )
+  assert_true(
+    submitted_effect_values_current_result(
+      Err(Journal(MissingEffectMaterialOriginal)),
+      true,
+    )
+    is Err(Original(Journal(MissingEffectMaterialOriginal))),
+  )
+  assert_true(
+    submitted_effect_values_current_result(Ok(()), false)
+    is Err(Work(AuthorizationDenied)),
+  )
+}

@@ -84,16 +84,29 @@ fn NativeSubmittedEffectValuesBinding::require_current(
       self.materials.run_definition,
       now,
     )
-    // A failed original read cannot hide terminal Submit revocation.
-    if !self.authority.current_for(host.journal, self.request) {
-      return Err(Work(AuthorizationDenied))
-    }
-    original.map_err(issue => Original(issue))
+    // Always observe terminal Submit, including after an original refusal.
+    // Preserve the original reader's refusal priority; neither branch may
+    // produce a successful result after terminal Submit revocation.
+    let submit_current = self.authority.current_for(host.journal, self.request)
+    submitted_effect_values_current_result(original, submit_current)
   })()
   if result is Err(issue) {
     self.last_issue.val = Some(issue)
   }
   result
+}
+
+///|
+// Pure refusal combination only, never a public authority or permission port.
+fn submitted_effect_values_current_result(
+  original : Result[Unit, NativeClientSubmittedEffectMaterialsIssue],
+  submit_current : Bool,
+) -> Result[Unit, NativeClientSubmittedEffectValuesWorkIssue] {
+  match original {
+    Err(issue) => Err(Original(issue))
+    Ok(_) if !submit_current => Err(Work(AuthorizationDenied))
+    Ok(_) => Ok(())
+  }
 }
 
 ///|
