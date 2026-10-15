@@ -158,6 +158,21 @@ fn execute_native_local_packaged_operation(
   let parent = @local_filesystem.open_root(home).unwrap_or_else(() => {
     stop("LocalProductHomeUnavailable")
   })
+  local_product_with_owned_parent(parent, () => {
+    execute_native_local_packaged_with_parent(
+      matches, operation, runtime, home, parent,
+    )
+  })
+}
+
+///|
+fn execute_native_local_packaged_with_parent(
+  matches : @argparse.Matches,
+  operation : String,
+  runtime : LocalPackagedRuntime,
+  home : String,
+  parent : @local_filesystem.Root,
+) -> String raise ClientStop {
   ignore(
     parent
     .bootstrap_parent_ownership()
@@ -282,6 +297,29 @@ fn execute_native_local_packaged_operation(
     }
   }
   if !session.close() {
+    stop("LocalProductCleanupPending")
+  }
+  reply
+}
+
+///|
+// The HOME descriptor was opened by this CLI operation, independently of the
+// adoption session's Roots. Its own ACK is required after the original work
+// and session cleanup, including early refusal. This does not settle a read
+// claim, a WorkspaceLoan, child descriptor or another same-path Root.
+fn local_product_with_owned_parent(
+  parent : @local_filesystem.Root,
+  operation : () -> String raise ClientStop,
+) -> String raise ClientStop {
+  let reply = operation() catch {
+    error => {
+      if parent.close() is Err(_) {
+        stop("LocalProductCleanupPending")
+      }
+      raise error
+    }
+  }
+  if parent.close() is Err(_) {
     stop("LocalProductCleanupPending")
   }
   reply
