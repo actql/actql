@@ -11,6 +11,9 @@ const args = ['--target', 'js', '-j', '1',
     : mode === 'pipeline' ? 'src/execution_relation/temporal_public_pipeline_wbtest.mbt'
       : mode === 'append' ? 'src/execution_relation/temporal_append_projection_wbtest.mbt'
       : 'src/execution_relation/temporal_public_selected_interval_wbtest.mbt'];
+if (mode === 'pipeline') args.push(
+  'src/execution_relation/temporal_append_projection_wbtest.mbt',
+  'src/execution_relation/append_rows_wbtest.mbt');
 const code = `import {runFocusedTests} from './scripts/test-execution.mjs';process.exitCode=runFocusedTests('moon',${JSON.stringify(args)},{cwd:process.cwd(),timeout:240000});`;
 const planArgs = process.argv.slice(4);
 if (mode === 'plan') assert.equal(planArgs.length, 3);
