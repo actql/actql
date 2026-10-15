@@ -6,6 +6,7 @@ struct InstalledArenaSqliteDatabase {
   max_body_bytes : Int64
   mut database : @sqlite.Database?
   mut failure : @sqlite.NativeSqliteOpenFailure?
+  mut lookup : InstalledArenaSqliteLookup?
   mut failed : Bool
   mut scope_open : Bool
   mut calling : Bool
@@ -75,6 +76,7 @@ pub fn InstalledArenaHost::prepare_sqlite_database(
     max_body_bytes,
     database: None,
     failure: None,
+    lookup: None,
     failed: false,
     scope_open: false,
     calling: false,
@@ -128,14 +130,28 @@ pub fn InstalledArenaHost::prepare_sqlite_database(
 /// Run existing typed Database operations inside the original managed scope.
 /// Returned rows/diagnostics remain actual aliases until their caller releases
 /// them. No scope exit, read or physical SQL result acknowledges a Run/Store.
-pub fn[T] InstalledArenaHost::call_sqlite_database(
+fn[T] InstalledArenaHost::call_sqlite_database_owned(
   self : InstalledArenaHost,
   record : InstalledArenaSqliteDatabase,
+  lookup : InstalledArenaSqliteLookup?,
   call : (@sqlite.Database) -> Result[T, @sqlite.NativeSqliteIssue],
 ) -> InstalledArenaSqliteDatabaseCall[T] {
   match self.original_sqlite_database(record) {
     Err(issue) => return RefusedDatabaseCall(issue)
     Ok(_) => ()
+  }
+  match (record.lookup, lookup) {
+    (None, None) => ()
+    (Some(original), Some(expected)) =>
+      if !physical_equal(original, expected) || expected.closed {
+        return RefusedDatabaseCall(
+          Domain(@bootstrap.Bootstrap(@bootstrap.ForeignOriginal)),
+        )
+      }
+    _ =>
+      return RefusedDatabaseCall(
+        Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)),
+      )
   }
   match self.current_sqlite_library(record.library) {
     Err(issue) => return RefusedDatabaseCall(issue)
@@ -174,6 +190,15 @@ pub fn[T] InstalledArenaHost::call_sqlite_database(
 }
 
 ///|
+pub fn[T] InstalledArenaHost::call_sqlite_database(
+  self : InstalledArenaHost,
+  record : InstalledArenaSqliteDatabase,
+  call : (@sqlite.Database) -> Result[T, @sqlite.NativeSqliteIssue],
+) -> InstalledArenaSqliteDatabaseCall[T] {
+  self.call_sqlite_database_owned(record, None, call)
+}
+
+///|
 /// Retire the SAME Database or failed-open carrier before its Library. A
 /// failed cleanup/leave retains the same child and original parent custody.
 pub fn InstalledArenaHost::close_sqlite_database(
@@ -186,6 +211,12 @@ pub fn InstalledArenaHost::close_sqlite_database(
   }
   if record.calling {
     return Err(Domain(@bootstrap.Bootstrap(@bootstrap.ReadersPending)))
+  }
+  if record.lookup is Some(child) {
+    match self.close_sqlite_lookup(child) {
+      Err(issue) => return Err(issue)
+      Ok(_) => record.lookup = None
+    }
   }
   if record.closed {
     return Ok(())

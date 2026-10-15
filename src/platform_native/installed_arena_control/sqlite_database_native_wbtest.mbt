@@ -7,6 +7,7 @@ fn sqlite_test_empty_database(
     max_body_bytes: 1024L,
     database: None,
     failure: None,
+    lookup: None,
     failed: false,
     scope_open: false,
     calling: false,
