@@ -13,7 +13,7 @@ export function copyExplorerLaunchInput(value, maxBytes = 65536) {
   let copy;
   if (exact(value, ['kind', 'text', 'format']) && value.kind === 'program' &&
       typeof value.text === 'string' && value.text.length > 0 &&
-      value.text.length <= maxBytes && ['sql', 'aql-text', 'program'].includes(value.format)) {
+      value.text.length <= maxBytes && ['sql', 'aql', 'aql-text', 'program'].includes(value.format)) {
     copy = {kind: 'program', text: value.text, format: value.format};
   } else if (exact(value, ['kind', 'ref']) && value.kind === 'run' && validRunRef(value.ref)) {
     copy = {kind: 'run', ref: Object.freeze({...value.ref})};

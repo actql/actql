@@ -20,7 +20,7 @@ export function explorerArguments(args) {
   }
   if (!local) throw new Error('ExplorerExplicitHostRequired');
   if (program !== undefined && run !== undefined ||
-      format !== undefined && (program === undefined || !['sql', 'aql-text', 'program'].includes(format))) invalid();
+      format !== undefined && (program === undefined || !['sql', 'aql', 'aql-text', 'program'].includes(format))) invalid();
   return Object.freeze({local: stateDir === undefined ? {} : {stateDir},
     ...(program === undefined ? {} : {program, format: format ?? 'sql'}),
     ...(run === undefined ? {} : {run})});

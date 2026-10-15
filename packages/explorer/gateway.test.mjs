@@ -75,6 +75,22 @@ test('direct Program launch uses only the existing static Plan Owner after sessi
   assert.equal(calls.length, 1);
 });
 
+test('direct AQL launch preserves canonical and legacy format through the existing Plan Owner', async () => {
+  for (const format of ['aql', 'aql-text']) {
+    const calls = [], view = gatewayLaunchPlanFixture();
+    const h = harness({launchInput: {kind: 'program', text: 'FROM rows', format}, client: {
+      attach() {assert.fail('no Run attach');},
+      async plan(text, options) {calls.push([text, options]); return view;},
+      submit() {assert.fail('no submit');}, start() {assert.fail('no start');},
+    }});
+    const session = await h.connect();
+    const reply = await h.read('launch', {}, session);
+    assert.equal(reply.status, 200);
+    assert.equal((await reply.json()).data.plan.compiledPlanCid, view.compiled_plan_cid);
+    assert.deepEqual(calls, [['FROM rows', {format, maxWireBytes: 65536, maxNodes: 10000, maxDepth: 64}]]);
+  }
+});
+
 test('direct Run launch reads only the original saved map and never compiles a replacement', async () => {
   const original = {...ref}, calls = [], view = gatewayLaunchPlanFixture();
   const h = harness({launchInput: {kind: 'run', ref: original}, client: {

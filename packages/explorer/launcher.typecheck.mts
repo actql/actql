@@ -3,6 +3,8 @@ import {startExplorer, openLocalExplorer} from './launcher.js';
 declare const client: Client;
 const borrowed = await startExplorer({client});
 await startExplorer({client, launchInput: {kind: 'program', text: 'SELECT 1', format: 'sql'}});
+await startExplorer({client, launchInput: {kind: 'program', text: 'FROM rows', format: 'aql'}});
+await startExplorer({client, launchInput: {kind: 'program', text: 'FROM rows', format: 'aql-text'}});
 await borrowed.close();
 const owned = await openLocalExplorer({local: {stateDir: './state'}});
 const state: string = owned.local.stateDir;

@@ -7,7 +7,7 @@ export type ExplorerAsset = Readonly<{body: Uint8Array; contentType:
   'text/css; charset=utf-8' | 'image/svg+xml'}>;
 /** Bounded presentation input; neither a submission nor an authority. */
 export type ExplorerLaunchInput = Readonly<{
-  kind: 'program'; text: string; format: 'sql' | 'aql-text' | 'program';
+  kind: 'program'; text: string; format: 'sql' | 'aql' | 'aql-text' | 'program';
 }> | Readonly<{kind: 'run'; ref: RunReference}>;
 export type ExplorerGatewayOptions = Readonly<{
   client: Pick<Client, 'attach'> & Partial<Pick<Client, 'plan'>>;
