@@ -298,6 +298,8 @@ typedef struct {
 #endif
 } actql_bootstrap_domain;
 
+#include "live_channel.inc"
+
 MOONBIT_FFI_EXPORT void *actql_bootstrap_acquire_domain(actql_bootstrap_view *view) {
     actql_bootstrap_domain *record = moonbit_make_external_object(
         keep_physical_custody, sizeof(*record));
