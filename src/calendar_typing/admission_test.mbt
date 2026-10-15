@@ -96,3 +96,41 @@ test "profile lookup and clock failures keep the selector location" {
     }
   }
 }
+
+///|
+test "Calendar bucket preserves conditional payload independently of NULL" {
+  let schema = @row.from_presence_fields(
+    [
+      (
+        Unqualified("time"),
+        @contract.primitive(TimestampType, nullable=false),
+        Required,
+      ),
+      (
+        Unqualified("payload"),
+        @contract.primitive(StringType, nullable=true),
+        Conditional,
+      ),
+    ],
+    max_fields=2,
+    max_name_bytes=100,
+  ).unwrap()
+  let checked = @calendar_typing.check(
+    Bucket,
+    cursor(
+      "{\"time\":\"time\",\"into\":\"bucket\",\"unit\":\"month\",\"timezone\":\"UTC\"}",
+    ),
+    Some(@carrier.relation(@carrier.typed_rows(schema))),
+    None,
+    Some(profile()),
+    limits(),
+  ).unwrap()
+  let output = @carrier.complete_schema(
+    @carrier.relation_rows(@calendar_typing.output(checked)).unwrap(),
+  ).unwrap()
+  let payload = @row.lookup_reference(output, "payload").unwrap()
+  assert_eq(payload.presence, Conditional)
+  assert_true(payload.contract.nullable)
+  assert_eq(@row.lookup_reference(output, "time").unwrap().presence, Required)
+  assert_eq(@row.lookup_reference(output, "bucket").unwrap().presence, Required)
+}

@@ -236,15 +236,15 @@ extern "C" fn reader_eof_ffi(reader : Reader) -> Bool = "actql_native_filesystem
 
 ///|
 #borrow(reader)
-extern "C" fn reader_finish_ffi(reader : Reader) -> Int = "actql_native_filesystem_reader_finish"
+extern "C" fn reader_finish_ffi(reader : Reader) -> Int = "actql_native_filesystem_reader_finish_dispatch"
 
 ///|
 #borrow(reader)
-extern "C" fn reader_close_ffi(reader : Reader) -> Int = "actql_native_filesystem_reader_close"
+extern "C" fn reader_close_ffi(reader : Reader) -> Int = "actql_native_filesystem_reader_close_dispatch"
 
 ///|
 #borrow(root)
-extern "C" fn root_close_ffi(root : Root) -> Int = "actql_native_filesystem_root_close"
+extern "C" fn root_close_ffi(root : Root) -> Int = "actql_native_filesystem_root_close_dispatch"
 
 ///|
 /// Acknowledges this directory descriptor's close, not retirement of children.
@@ -589,6 +589,9 @@ pub fn Root::inspect_generation(
   if !valid_object_name(name) {
     return Err(InvalidName)
   }
+  if !root_read_available_ffi(self) {
+    return Err(Read("Current read scope was refused"))
+  }
   let encoded = @utf8.encode(name)
   match inspect_generation_ffi(self, encoded, encoded.length()) {
     0 =>
@@ -672,7 +675,13 @@ pub fn Root::open_reader_with_custody(
   if generation.size < 0L {
     return Err(reader_open_failure(GenerationMismatch))
   }
+  if !root_read_available_ffi(self) {
+    return Err(reader_open_failure(Read("Current read scope was refused")))
+  }
   let encoded = @utf8.encode(name)
+  if root_is_scoped_ffi(self) {
+    return open_scoped_reader_with_custody(self, encoded, generation)
+  }
   let reader = open_reader_ffi(
     self,
     encoded,
@@ -704,6 +713,9 @@ pub fn Reader::next(
 ) -> Result[NativeFileChunk, NativeFilesystemIssue] {
   if max_bytes <= 0 || max_bytes > 1048576 {
     return Err(InvalidReadSize)
+  }
+  if !reader_read_available_ffi(self) {
+    return Err(Read("Current read scope was refused"))
   }
   match reader_next_ffi(self, max_bytes) {
     0 => Ok({ bytes: reader_chunk_ffi(self), eof: reader_eof_ffi(self), })
