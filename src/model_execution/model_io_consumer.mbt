@@ -2,7 +2,7 @@
 // Same Model/Entry/attempt duty under Resource's original shared admission.
 // All seven fields, the Slot reference and constructor overlap need original
 // managed coverage. This private record is not a numerical profile or ACK.
-struct ModelSlotIoDuty {
+priv struct ModelSlotIoDuty {
   access : @resources.ModelIoAccess
   lease : @resources.ModelIoLease
   reservation : @resources.Reservation
