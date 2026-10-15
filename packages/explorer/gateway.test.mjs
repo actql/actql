@@ -73,6 +73,24 @@ function harness(options = {}) {
   return {gateway, send, connect, read, calls, client};
 }
 
+test('expired cancellation session cannot dispatch after original attach awaits', async () => {
+  let now = 1000, entered, release, cancellations = 0;
+  const attached = new Promise(resolve => {entered = resolve;});
+  const pendingAttach = new Promise(resolve => {release = resolve;});
+  const original = {cancelRef: {...ref, cancelId: 'expired-session-cancel', expectedRevision: 7},
+    attemptRef: {operation: 'cancel', attemptId: 'expired-session-attempt'}};
+  const h = harness({allowCancellation: true, now: () => now, sessionMs: 20,
+    client: {async attach(selected) {assert.deepEqual(selected, ref); entered(); return pendingAttach;}}});
+  const session = await h.connect();
+  const answer = h.send('/api/control/cancel', original,
+    {Cookie: session.cookie, 'X-Actql-CSRF': session.body.csrf});
+  await attached; now += 21;
+  release({async cancel() {cancellations++; return {kind: 'accepted', attemptRef: original.attemptRef,
+    cancellation: {kind: 'accepted', ref, cancelRef: original.cancelRef, revision: 8}};}});
+  assert.equal((await answer).status, 401);
+  assert.equal(cancellations, 0, 'Expired presentation session must refuse before Owner dispatch');
+});
+
 test('only exact loopback origins and finite TTLs can create a Gateway', () => {
   for (const rejected of ['http://localhost:43210', 'http://0.0.0.0:43210',
     'http://127.0.0.1:43210/', 'https://127.0.0.1:43210', 'http://user@127.0.0.1:43210']) {
