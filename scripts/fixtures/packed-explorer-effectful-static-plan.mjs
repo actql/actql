@@ -51,7 +51,7 @@ function journalCounts(path) {
 }
 
 await test('ordinary installed Local Explorer shows checked update declarations without executing a Run', async () => {
-  let client, gateway, browser, server, phase = 'metadata fixture';
+  let client, gateway, browser, server, journalPath, phase = 'metadata fixture';
   const sends = [], unexpected = [];
   let secretCalls = 0;
   const secret = 'synthetic-static-plan-provider-token';
@@ -131,7 +131,9 @@ await test('ordinary installed Local Explorer shows checked update declarations 
     assert.equal(sends.length, publicationSends, 'Restore does not republish metadata');
     assert.equal(secretCalls, publicationSecrets, 'Restore does not reacquire a provider secret');
     const journal = join(stateDir, 'requests', 'client-requests.sqlite3');
+    journalPath = journal;
     const before = journalCounts(journal), baselineSends = sends.length, baselineSecrets = secretCalls;
+    receipt.journalBefore = before;
     assert.equal(before.client_requests, 0); assert.equal(before.client_submitted_intents, 0);
     const program = {version: 'actql/0.1', id: 'installed-static-update', stages: [{id: 'source', inputs: {},
       steps: [{values: {schema: {id: {type: 'string', nullable: false}, next_name: {type: 'string', nullable: false}},
@@ -197,6 +199,7 @@ await test('ordinary installed Local Explorer shows checked update declarations 
     const page = await browser.newPage({viewport: {width: 1440, height: 1100}});
     page.setDefaultTimeout(10000);
     const browserPaths = [], errors = [], foreign = [];
+    const ui = receipt.browser = {paths: browserPaths, errors, foreign, lastAction: 'open page'};
     page.on('pageerror', error => errors.push(error.name));
     page.on('request', request => {const url = new URL(request.url());
       if (url.pathname.startsWith('/api/')) browserPaths.push(url.pathname);});
@@ -206,14 +209,22 @@ await test('ordinary installed Local Explorer shows checked update declarations 
     });
     try {
       await page.goto(gateway.origin, {waitUntil: 'networkidle'});
+      ui.lastAction = 'fill bootstrap';
       await page.getByLabel('One-use bootstrap').fill(gateway.issueBootstrap().bootstrap);
+      ui.lastAction = 'connect';
       await page.getByRole('button', {name: 'Connect', exact: true}).click();
+      ui.lastAction = 'wait connected status';
       await page.getByText('Connected. Session expires after at most five minutes; reconnect explicitly.', {exact: true}).waitFor();
+      ui.lastAction = 'select Program format';
       await page.getByLabel('Format', {exact: true}).selectOption('program');
+      ui.lastAction = 'fill Program';
       await page.getByLabel('Program', {exact: true}).fill(JSON.stringify(program));
+      ui.lastAction = 'read Plan';
       await page.getByRole('button', {name: 'Read Plan', exact: true}).click();
       const section = page.getByRole('region', {name: 'ActQL static Plan', exact: true});
+      ui.lastAction = 'wait computation component';
       await section.getByRole('heading', {name: 'Computation component', exact: true}).waitFor();
+      ui.lastAction = 'verify original declared Effects';
       const text = await section.getByRole('region', {name: 'Declared Effects', exact: true}).innerText();
       for (const expected of ['unit source', 'save', 'update', mapping.mappingRef, mapping.mappingCid,
         direct.check_environment_cid, direct.parameter_values_cid,
@@ -233,6 +244,12 @@ await test('ordinary installed Local Explorer shows checked update declarations 
       receipt.cases.push({name: 'installed Local SDK/Gateway/built React checked update Plan', passed: true,
         paths, browserPaths, member: expectedMember, sourceFreeValues: true, executionEdges: 0,
         permission: 'unknown', gate: 'unknown', approval: 'unknown', preview: 'unavailable'});
+    } catch (error) {
+      // innerText excludes password values and in-memory Gateway credentials.
+      // Never record Playwright's raw call log, which can contain fill values.
+      ui.visibleText = (await page.locator('body').innerText({timeout: 1000})).slice(0, 16384);
+      await page.screenshot({path: join(evidence, 'failed-effectful-static-plan.png'), fullPage: true});
+      throw error;
     } finally {await page.close();}
     const after = journalCounts(journal);
     assert.deepEqual(after, before); assert.equal(sends.length, baselineSends); assert.equal(secretCalls, baselineSecrets);
@@ -250,6 +267,9 @@ await test('ordinary installed Local Explorer shows checked update declarations 
   }
   finally {
     const failures = [];
+    receipt.providerRequests = sends;
+    receipt.totalSecretCalls = secretCalls;
+    if (journalPath) receipt.journalBeforeClose = journalCounts(journalPath);
     for (const [name, close] of [['Chromium', () => browser?.close()], ['Gateway', () => gateway?.close()],
       ['Local Client', () => client?.close()], ['metadata HTTPS fixture', async () => {
         if (server) {server.closeAllConnections(); await new Promise(resolve => server.close(resolve));}
