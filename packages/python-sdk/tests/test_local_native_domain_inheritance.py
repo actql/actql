@@ -159,9 +159,10 @@ class NativeDomainInheritanceTests(unittest.TestCase):
         for observed in (True, None, 4321):
             with self.assertRaises(ValueError): f.process._retire_unstarted_native_after_owner_ack(observed)
         f.supplier.deny_stop = True
-        with self.assertRaises(ValueError): f.process._retire_unstarted_native_after_owner_ack(f.supplier.stop)
+        with self.assertRaises(LocalWorkerProcessPending): f.process._retire_unstarted_native_after_owner_ack(f.supplier.stop)
         self.assertFalse(f.process._native_metadata_retired)
-        f.supplier.deny_stop = False
+        f = ChannelFixture(self, spawn=False)
+        f.process.close_parent_descriptors()
         f.process._retire_unstarted_native_after_owner_ack(f.supplier.stop)
         self.assertTrue(f.process._native_metadata_retired)
         self.assertEqual(sum(c[0] == 'reserve' for c in f.supplier.calls), 1)
@@ -238,6 +239,41 @@ class NativeDomainInheritanceTests(unittest.TestCase):
         for name in original.__slots__: setattr(clone, name, getattr(original, name))
         clone._closed = True
         with self.assertRaises(ValueError): f.process._retire_native_metadata(clone)
+        self.assertFalse(f.process._native_metadata_retired)
+        with self.assertRaises(ValueError): f.domain.close_after_stop()
+
+    def test_lost_unstarted_owner_ack_is_sticky_without_second_callback(self):
+        f = ChannelFixture(self, spawn=False)
+        f.process.close_parent_descriptors()
+        callback = f.supplier.require_scoped_stop
+        def lost(*args):
+            callback(*args)
+            raise OSError('original cleanup adoption response lost')
+        f.supplier.require_scoped_stop = lost
+        with self.assertRaises(LocalWorkerProcessPending) as caught:
+            f.process._retire_unstarted_native_after_owner_ack(f.supplier.stop)
+        self.assertIs(caught.exception.cleanup_process, f.process)
+        f.supplier.require_scoped_stop = callback
+        with self.assertRaises(LocalWorkerProcessPending):
+            f.process._retire_unstarted_native_after_owner_ack(f.supplier.stop)
+        self.assertEqual(sum(c[0] == 'stop_scope' for c in f.supplier.calls), 1)
+        with self.assertRaises(ValueError): f.domain.close_after_stop()
+        self.assertFalse(f.process._native_metadata_retired)
+
+    def test_reentrant_unstarted_owner_ack_cannot_repeat_adoption(self):
+        f = ChannelFixture(self, spawn=False)
+        f.process.close_parent_descriptors()
+        calls = []
+        def reenter(*args):
+            calls.append(args)
+            f.process._retire_unstarted_native_after_owner_ack(f.supplier.stop)
+        f.supplier.require_scoped_stop = reenter
+        with self.assertRaises(LocalWorkerProcessPending):
+            f.process._retire_unstarted_native_after_owner_ack(f.supplier.stop)
+        with self.assertRaises(LocalWorkerProcessPending):
+            f.process._retire_unstarted_native_after_owner_ack(f.supplier.stop)
+        self.assertEqual(len(calls), 1)
+        self.assertFalse(f.process._native_retirement_inflight)
         self.assertFalse(f.process._native_metadata_retired)
         with self.assertRaises(ValueError): f.domain.close_after_stop()
 

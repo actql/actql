@@ -100,6 +100,8 @@ class OriginalWorkerProcess:
         self._native_duplicate_value: int | None = None
         self._native_dup_unknown = False
         self._native_metadata_retired = False
+        self._native_retirement_inflight = False
+        self._native_retirement_unknown: BaseException | None = None
         self._spawn_syscall_attempted = False
         self._spawn_attempted = False
         self._pid: int | None = None
@@ -285,19 +287,32 @@ class OriginalWorkerProcess:
     def _retire_unstarted_native_after_owner_ack(self, observation: object) -> None:
         with self._lock:
             self._nominal()
+            if self._native_retirement_unknown is not None:
+                raise LocalWorkerProcessPending(self) from self._native_retirement_unknown
+            if self._native_retirement_inflight:
+                raise RuntimeError('Original Native unstarted cleanup cannot reenter')
             if (self._spawn_syscall_attempted or not self._parent_closed
                     or self._native_dup_unknown or not self._funding._opaque(observation)):
                 raise ValueError('Original Native unstarted cleanup is unconfirmed')
             self._require_native_identity()
             self._funding._nominal()
             assert self._native_funding_originals is not None
-            self._funding._ack(self._funding._supplier.require_scoped_stop(
-                *self._native_funding_originals, observation))
-            self._nominal()
-            self._require_native_identity()
-            if self._spawn_syscall_attempted or not self._parent_closed or self._native_dup_unknown:
-                raise ValueError('Original Native cleanup observation changed')
-            self._finish_native_metadata()
+            self._native_retirement_inflight = True
+            try:
+                self._funding._ack(self._funding._supplier.require_scoped_stop(
+                    *self._native_funding_originals, observation))
+                self._nominal()
+                self._require_native_identity()
+                if self._spawn_syscall_attempted or not self._parent_closed or self._native_dup_unknown:
+                    raise ValueError('Original Native cleanup observation changed')
+                self._finish_native_metadata()
+            except BaseException as failure:
+                # A lost/invalid Owner reply does not permit another adoption
+                # attempt or release this same original domain/FD responsibility.
+                self._native_retirement_unknown = failure
+                raise LocalWorkerProcessPending(self) from failure
+            finally:
+                self._native_retirement_inflight = False
 
     def _finish_native_metadata(self) -> None:
         # This is metadata retirement after the existing Owner's separate ACKs,

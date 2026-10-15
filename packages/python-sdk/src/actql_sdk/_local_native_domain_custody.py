@@ -327,7 +327,8 @@ class _OriginalDomainCustody:
         if process is not None:
             from ._local_worker_process import OriginalWorkerProcess
             if (type(process) is not OriginalWorkerProcess or process._native_domain is not self
-                    or not process._native_metadata_retired):
+                    or not process._native_metadata_retired
+                    or process._native_retirement_unknown is not None):
                 raise ValueError('Original worker domain still has process or descriptor custody')
         if self._closed:
             # Keep same-process/thread/reentry rejection for a retired alias.
