@@ -95,6 +95,9 @@ typedef struct {
   int64_t result_revision;
   int64_t result_capacity_bytes;
   int64_t result_capacity_objects;
+  int64_t result_record_count;
+  int64_t result_record_body_bytes;
+  int64_t result_reservation_count;
   int64_t max_body_bytes;
   int32_t diagnostic_ceiling;
   bool opened;
@@ -225,6 +228,9 @@ static void actql_retire_result_storage(actql_native_sqlite_database *database) 
   database->result_revision = 0;
   database->result_capacity_bytes = 0;
   database->result_capacity_objects = 0;
+  database->result_record_count = 0;
+  database->result_record_body_bytes = 0;
+  database->result_reservation_count = 0;
 }
 
 static void actql_clear_result(actql_native_sqlite_database *database) {
@@ -2068,6 +2074,89 @@ int32_t actql_native_sqlite_database_claim_ordinal_in_transaction(
 ) {
   return actql_claim_ordinal(database, namespace_bytes, namespace_length,
                             key, key_length, max_claims, true);
+}
+
+// Read an existing reservation without acquiring, refreshing or releasing it.
+// Absence and SQL/finalize failure retain their distinct existing result codes.
+int32_t actql_native_sqlite_database_read_capacity(
+  actql_native_sqlite_database *database,
+  moonbit_bytes_t namespace_bytes, int32_t namespace_length,
+  moonbit_bytes_t key, int32_t key_length
+) {
+  if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  actql_clear_result(database);
+  int64_t bytes = 0, objects = 0;
+  int32_t result = actql_capacity_existing(database, namespace_bytes,
+    namespace_length, key, key_length, &bytes, &objects);
+  if (result == 0) {
+    database->result_capacity_bytes = bytes;
+    database->result_capacity_objects = objects;
+  }
+  return result;
+}
+
+// One SQLite statement observes this database's physical totals, including
+// private rows when the same connection has a caller-owned transaction. It
+// copies no row body and never begins, commits or rolls back that transaction.
+int32_t actql_native_sqlite_database_usage(
+  actql_native_sqlite_database *database
+) {
+  if (database == NULL || !database->opened || !actql_database_library_available(database->library)) return 5;
+  actql_clear_result(database);
+  sqlite3_stmt *statement = NULL;
+  int code = database->library->prepare_v2(database->database,
+    "SELECT COUNT(*), COALESCE(SUM(length(body)), 0), "
+    "(SELECT COUNT(*) FROM actql_capacity) FROM actql_records",
+    -1, &statement, NULL);
+  if (code != SQLITE_OK) {
+    actql_database_error(database, "prepare database usage failed");
+    return actql_operation_code(code);
+  }
+  int32_t result = 0;
+  int64_t records = 0, bytes = 0, reservations = 0;
+  code = database->library->step(statement);
+  if (code == SQLITE_ROW) {
+    records = (int64_t)database->library->column_int64(statement, 0);
+    bytes = (int64_t)database->library->column_int64(statement, 1);
+    reservations = (int64_t)database->library->column_int64(statement, 2);
+    if (records < 0 || bytes < 0 || reservations < 0) {
+      actql_replace_error_for(database->library, &database->error,
+        database->diagnostic_ceiling, "invalid database usage totals");
+      result = -1;
+    }
+  } else {
+    actql_database_error(database, "read database usage failed");
+    result = actql_operation_code(code);
+  }
+  int finalized = database->library->finalize(statement);
+  if (finalized != SQLITE_OK) {
+    actql_database_error(database, "finalize database usage failed");
+    return actql_operation_code(finalized);
+  }
+  if (result == 0) {
+    database->result_record_count = records;
+    database->result_record_body_bytes = bytes;
+    database->result_reservation_count = reservations;
+  }
+  return result;
+}
+
+int64_t actql_native_sqlite_database_result_record_count(
+  actql_native_sqlite_database *database
+) {
+  return database == NULL || !actql_library_current(database->library) ? 0 : database->result_record_count;
+}
+
+int64_t actql_native_sqlite_database_result_record_body_bytes(
+  actql_native_sqlite_database *database
+) {
+  return database == NULL || !actql_library_current(database->library) ? 0 : database->result_record_body_bytes;
+}
+
+int64_t actql_native_sqlite_database_result_reservation_count(
+  actql_native_sqlite_database *database
+) {
+  return database == NULL || !actql_library_current(database->library) ? 0 : database->result_reservation_count;
 }
 
 int32_t actql_native_sqlite_database_capacity_usage(

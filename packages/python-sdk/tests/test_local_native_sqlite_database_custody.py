@@ -44,11 +44,15 @@ class DatabaseFixture(SqliteFixture):
             'capacity_reserve_utf16_into': lambda h,o,s,sn,k,kn,b,ob,mb,mo,r: self.database_call(13,h,o,r,self.text(s,sn),self.text(k,kn),b,ob,mb,mo),
             'capacity_usage_utf16_into': lambda h,o,s,sn,r: self.database_call(14,h,o,r,self.text(s,sn)),
             'capacity_release_utf16_into': lambda h,o,s,sn,k,kn,b,ob,r: self.database_call(15,h,o,r,self.text(s,sn),self.text(k,kn),b,ob),
+            'capacity_read_utf16_into': lambda h,o,s,sn,k,kn,r: self.database_call(16,h,o,r,self.text(s,sn),self.text(k,kn)),
+            'database_usage_into': lambda h,o,r: self.database_call(17,h,o,r),
+            'transaction_state_into': lambda h,o,r: self.database_call(18,h,o,r),
             'copy_row': self.copy_row,
             'copy_key': self.copy_key,
             'scan_utf16_into': lambda h, o, s, sn, k, kn, n, r: self.database_call(12, h, o, r, self.text(s, sn), self.text(k, kn), n),
         }
-        for name in ('operation', 'stage', 'issue_family', 'after_issue_family', 'has_row', 'revision', 'body_bound', 'capacity_changed', 'reserved_bytes', 'reserved_objects'):
+        for name in ('operation', 'stage', 'issue_family', 'after_issue_family', 'has_row', 'revision', 'body_bound', 'capacity_changed', 'reserved_bytes', 'reserved_objects',
+                     'record_count', 'record_body_bytes', 'reservation_count', 'transaction_active'):
             calls[name] = lambda r, key=name: self.database_facts[r.value][key]
         for name, call in calls.items():
             setattr(self.host._functions.library, 'actql_sqlite_database_' + name, Function(call))
@@ -66,8 +70,12 @@ class DatabaseFixture(SqliteFixture):
             revision=self.row_revision if present else 0 if operation in (5, 6) and not issue else -1,
             body_bound=self.bound if self.original_present else -1,
             capacity_changed=1 if operation in (13,15) and not issue else -1,
-            reserved_bytes=8 if operation==14 and not issue else -1,
-            reserved_objects=1 if operation==14 and not issue else -1) | self.override
+            reserved_bytes=8 if operation in (14,16) and not issue else -1,
+            reserved_objects=1 if operation in (14,16) and not issue else -1,
+            record_count=3 if operation==17 and not issue else -1,
+            record_body_bytes=8 if operation==17 and not issue else -1,
+            reservation_count=2 if operation==17 and not issue else -1,
+            transaction_active=0 if operation==18 and not issue else -1) | self.override
         out._obj.value = key
 
     def open(self, operation, host, library, path, units, bound, reply, ownership=None):
