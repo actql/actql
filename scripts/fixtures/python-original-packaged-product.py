@@ -132,6 +132,28 @@ runtime = _OriginalPackagedRuntimeCustody._capture_original(original, runtime_fu
     manifest_sha256=manifest_hash, diagnostic_ceiling=128)
 selection = {'launcher_root': str(launcher), 'launcher_descriptor_sha256': inventories[0],
              'platform_descriptor_sha256': inventories[1], 'diagnostic_ceiling': 128}
+def audited(label, action):
+    try:
+        return action()
+    except BaseException as error:
+        fact = getattr(error, 'fact', None)
+        print(json.dumps({'observation': label, 'exception': type(error).__name__,
+            'unknown': getattr(error, 'unknown', None),
+            'operation': getattr(fact, 'operation', None),
+            'issue_family': getattr(fact, 'issue_family', None),
+            'runtime_present': runtime._runtime.value is not None,
+            'product_reply_present': runtime._product_reply.value is not None}), flush=True)
+        raise
+
+
+def observe_selected():
+    return audited('observe-product', lambda: product.observe_members(runtime, **selection))
+
+
+def identity_selected():
+    return audited('read-product-identity', lambda: product.identity_wire(runtime))
+
+
 if case == 'product-invalid':
     # Independently bind the modified descriptor's bytes; do not manufacture a
     # hash failure instead of exercising the existing closed-body validator.
@@ -139,32 +161,32 @@ if case == 'product-invalid':
     body = json.loads(path.read_bytes()); body['unknown'] = True
     raw = wire(body); path.write_bytes(raw)
     selection['launcher_descriptor_sha256'] = digest(raw)
-    try: product.observe_members(runtime, **selection)
+    try: observe_selected()
     except _OriginalPackagedRuntimeError as error:
         assert not error.unknown and error.fact.issue_family == 2
         assert error.cleanup_runtime is runtime
     else: raise AssertionError('Unknown metadata field was accepted')
 else:
-    assert product.observe_members(runtime, **selection).issue_family == 0
-    actual = product.identity_wire(runtime)
+    assert observe_selected().issue_family == 0
+    actual = identity_selected()
     assert actual == expected
-    assert product.identity_wire(runtime) == expected
+    assert identity_selected() == expected
     if case == 'product-changed':
         (launcher / 'bin/actql.mjs').write_bytes(b'bad')
-        try: product.identity_wire(runtime)
+        try: identity_selected()
         except _OriginalPackagedRuntimeError as error:
             assert not error.unknown and error.fact.issue_family == 5
             assert error.cleanup_runtime is runtime
         else: raise AssertionError('Changed original image retained current metadata')
     else:
         # Metadata copies do not renew the one-shot observation/adoption.
-        try: product.observe_members(runtime, **selection)
+        try: observe_selected()
         except _OriginalPackagedRuntimeError as error:
             assert not error.unknown and error.fact.issue_family == 3
         else: raise AssertionError('Original product observation was reissued')
 runtime.close(); runtime.close()
 assert runtime._closed and runtime._product_reply.value is None and not original._closed
-try: product.identity_wire(runtime)
+try: identity_selected()
 except ValueError: pass
 else: raise AssertionError('Retired Runtime still issued metadata')
 original.close(); scope.return_after_stop(); domain.close_after_stop(); host.close()
