@@ -353,12 +353,29 @@ pub fn NativeLocalRunPolicyBinding::prepare_submission_policy(
     Ok(UnresolvedSubmissionHistory) => return Err(CustodyLost)
     Err(issue) => return Err(issue)
   }
-  guard preparation.preparation is Computation(prepared) else {
-    return Err(UnsupportedPreparation)
+  let identity = match preparation.preparation {
+    Computation(prepared) => {
+      if @host.prepared_client_acquisition_count(prepared) != 0 {
+        return Err(ChangedIntent)
+      }
+      @host.prepared_client_identity(prepared)
+    }
+    EffectComputation(prepared) => {
+      let graph = @strategy.checked_effect_computation_graph(
+        @host.prepared_client_effect_computation_graph(prepared),
+      )
+      if !@strategy.graph_source_free_inputs_complete(graph) ||
+        @strategy.graph_captured_prefix(graph) != 0 ||
+        @strategy.graph_task_count(graph) != 1 ||
+        @strategy.graph_task_input_count(graph, 0) != Some(0) ||
+        @host.prepared_client_effect_infer_occurrence(prepared) is Some(_) {
+        return Err(UnsupportedPreparation)
+      }
+      @host.prepared_client_effect_identity(prepared)
+    }
   }
-  let identity = @host.prepared_client_identity(prepared)
-  if @host.prepared_client_acquisition_count(prepared) != 0 ||
-    identity.program_definition_cid != @host.client_request_program_cid(request) ||
+  if identity.program_definition_cid !=
+    @host.client_request_program_cid(request) ||
     identity.parameter_values_cid !=
     @host.client_request_parameters_cid(request) {
     return Err(ChangedIntent)
