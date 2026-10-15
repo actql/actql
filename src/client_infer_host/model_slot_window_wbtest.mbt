@@ -260,6 +260,41 @@ fn window_assert_nominal_replay(
   assert_eq(usage.attempts, 0)
   assert_eq(usage.transferred_bytes, 0L)
   assert_true(@model.cleanup_model_execution(replay).unwrap())
+  let original_source = infer_fixture_program.replace(
+    old="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"}]",
+    new="\"rows\":[{\"id\":\"a\",\"text\":\"hello\"},{\"id\":\"b\",\"text\":\"hello\"}]",
+  )
+  for variant in ["key", "input", "slot_count", "task"] {
+    let source = match variant {
+      "key" => original_source.replace(old="\"id\":\"a\"", new="\"id\":\"x\"")
+      "input" => original_source.replace(old="hello", new="changed")
+      "slot_count" => infer_fixture_program
+      _ => original_source
+    }
+    let environment_wire = if variant == "task" {
+      infer_fixture_environment
+      .replace(old="\"max_items\":2", new="\"max_items\":4")
+      .replace(
+        old="sha256:cfb4c49389dd5ecbcd97d4b60276549dcf6fd2ce62584707b5c661d94dce4560",
+        new=window_sized_task_cid(4),
+      )
+    } else {
+      infer_fixture_environment
+    }
+    let prepared = fixture_prepared(source~, environment_wire~)
+    let (input, rows, scope, _) = call_identity_fixture(prepared)
+    assert_true(
+      @model.start_model_capture_replay(
+        rows,
+        scope,
+        verified,
+        active.limits.model,
+      )
+      is Err(@model.OutputIdentity),
+      msg=variant,
+    )
+    assert_true(@input.cleanup_client_infer_input(input).unwrap())
+  }
 }
 
 ///|
