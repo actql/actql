@@ -2084,6 +2084,8 @@ function publicationControl(moon) {
         limits.maxDepth,
       )));
     },
+    // Data-only private retention parser; no resource/custody/current grant.
+    privateContinuationRetentionShape: moon.clientProgramPrivateContinuationRetentionShape,
     admit(name, completeWire, limits) {
       return inspect(checked(moon.strategyPublicationAdmit(
         name,

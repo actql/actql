@@ -18,7 +18,7 @@ const fail = (code, cause) => { throw Object.assign(new Error(code, {cause}), {c
 // The existing physical reader closes the same original FD before returning;
 // failed close retains that FD in the original error.cleanupHandle. Do not
 // settle the caller's whole decode reservation merely because the FD closed.
-export async function readContinuationLedgerBounded(path, prepareAttemptId, supplied, signal) {
+export async function readContinuationLedgerBounded(path, prepareAttemptId, supplied, signal, control) {
   const maxWireBytes = supplied?.maxWireBytes;
   const maxLedgerEntries = supplied?.maxLedgerEntries;
   if (typeof path !== 'string' || path.length === 0 ||
@@ -28,6 +28,13 @@ export async function readContinuationLedgerBounded(path, prepareAttemptId, supp
       !count(maxLedgerEntries)) {
     fail('InvalidContinuationMetadataBounds');
   }
+  // A fixed data parser in the installed Core, not a caller-supplied grant or
+  // an unbounded JSON fallback. Its complete temporary lifetime belongs to the
+  // same READ envelope as the original bytes and the returned metadata.
+  if (typeof control?.privateContinuationRetentionShape !== 'function') {
+    fail('ContinuationMetadataUnavailable');
+  }
+  const shape = control.privateContinuationRetentionShape;
   // Capture before the first await, so caller mutation cannot widen a read.
   let bytes;
   try { bytes = await readBoundedLocalMetadata(path, maxWireBytes, undefined, signal); }
@@ -43,6 +50,16 @@ export async function readContinuationLedgerBounded(path, prepareAttemptId, supp
   // Close confirmation is not cancellation confirmation or resource release.
   // In particular, cancellation during close must not start decode/parse.
   signal?.throwIfAborted();
+  // Use the actual bounded FD length, not a potentially larger safe-integer
+  // Host ceiling, at the Int Core ABI. No valid entry can outnumber its input
+  // bytes. This preserves large ceilings for small actual records without
+  // narrowing, wrapping or treating an unknown count as zero.
+  if (bytes.byteLength >= 2147483647) fail('InvalidContinuationLedger');
+  const issue = shape(bytes, prepareAttemptId, bytes.byteLength,
+    Math.min(maxLedgerEntries, bytes.byteLength));
+  if (issue !== '') {
+    fail(issue === 'ContinuationLedgerEntriesLimit' ? issue : 'InvalidContinuationLedger');
+  }
   let value;
   try {
     value = JSON.parse(new TextDecoder('utf-8', {fatal: true, ignoreBOM: true}).decode(bytes));

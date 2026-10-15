@@ -263,6 +263,8 @@ pub fn check_client_model_raw_capture_current(ClientModelRawCaptureRegistration)
 
 pub fn check_client_node_model_preparation_layout(ClientNodeModelPreparationLayout?, ClientInferPlanGraph, @check_environment.ModelResponseProfileInstallation, String, String, @check_environment.DecisionProbabilityProfile?) -> Result[Unit, ClientModelPreparationLayoutIssue]
 
+pub fn check_client_private_continuation_retention(Bytes, String, Int, Int) -> Result[Unit, ClientPrivateContinuationRetentionIssue]
+
 pub fn check_plan_fact_manifest_identity(String, String, Int, Int, Int) -> Result[String, PlanFactManifestIdentityIssue]
 
 pub fn check_recovered_client_table_schema_wire(RecoveredClientTablePreview, String, Int, Int, Int) -> Result[Unit, ClientTableInputIssue]
@@ -2902,6 +2904,11 @@ pub(all) enum ClientNodeModelStateIssue {
 type ClientNodeModelStateWriter
 
 type ClientOriginalKeyedPrefixLookup
+
+pub(all) enum ClientPrivateContinuationRetentionIssue {
+  InvalidLedger
+  EntriesLimit
+}
 
 pub(all) struct ClientProgramIdentity {
   program_definition_cid : String
