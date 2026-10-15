@@ -49,6 +49,18 @@ discard delayed/unauthorized responses before passing a model into the view.
 
 The default keyboard-accessible list and optional React Flow view preserve
 original logical IDs, ports, both Join roles and unresolved Stage locators.
+Flow uses ELK.js 0.12.0 in a disposable same-origin browser Worker. Only the
+bounded original node/port IDs, port roles and real edges cross that Worker;
+labels, Program/parameter text and session information do not. The Worker may
+return finite coordinates for the complete original node set only. A five-second
+presentation deadline, malformed response or Worker failure leaves Flow
+unavailable; List remains available without changing any Host/Run state.
+Leaving Flow or changing scope/Plan terminates the original Worker and discards
+late replies. Unchanged topology retains placement and the user's viewport.
+The embedding app's bundler emits the literal module Worker URL; its CSP must
+permit same-origin workers. No blob, external Worker, runtime downloader or
+eval exception is required. See [third-party notices](THIRD_PARTY_NOTICES.md).
+
 Positions are presentation only. Static Plan does not have a fabricated Run,
 physical timing, source origin or approval/control capability. The component
 accepts no Client, endpoint or mutation hooks. Scope/Plan/map changes remount
