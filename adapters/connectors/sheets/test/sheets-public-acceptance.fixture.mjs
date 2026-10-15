@@ -258,8 +258,18 @@ test('Sheets range Command uses the real Local and HTTPS approval owners and ori
     assert.equal(setup.state.updated.length, 0, 'metadata admission is not a write grant');
     await approve(first, execution);
     await execution.reconcile();
-    const done = await settled(execution);
-    assert.equal(done.status, 'succeeded', JSON.stringify(done));
+    const done = await until(async () => {
+      const current = await execution.status();
+      return terminal.has(current.status) || current.status === 'needs_reconciliation'
+        ? current : undefined;
+    });
+    const safeTag = value => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(value)
+      ? value : undefined;
+    assert.equal(done.status, 'succeeded', JSON.stringify({status: done.status,
+      nextAction: done.next_action?.kind, updates: setup.state.updated.length,
+      observations: setup.observations.map(([name, detail]) => ({name,
+        code: safeTag(detail?.code), cause: safeTag(detail?.cause?.code),
+        error: safeTag(detail?.error?.code), reason: safeTag(detail?.reason)}))}));
     assert.deepEqual(await execution.result('answer').all(), [{rows}]);
     assert.deepEqual(setup.state.updated, [[
       [{stringValue: '=literal e\u0301\r\n'}, {numberValue: 0}, {boolValue: false}],
