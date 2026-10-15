@@ -273,9 +273,12 @@ test('retained fixture transport rejects hooks without invoking them', () => {
 test('full corpus pins every authored occurrence independently of worker selection', async () => {
   const pin = JSON.parse(await readFile(new URL('./fixtures/public-query-inventory.json', import.meta.url), 'utf8'));
   assert.equal(pin.sourceBaseline, '76916b2b57ca8e06d9e74099349b17c263ccb411');
-  assert.equal(pin.totalCases, 4178);
-  assert.deepEqual(pin.counts, {"successes":2612,"executionFailures":53,"refusals":1513});
-  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2558,"executionFailures":51,"refusals":1474}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
+  // #1808 added four ARRAY successes and removed one refusal. The later
+  // binding-identifier corpus added nineteen successes and sixteen refusals;
+  // all original occurrences and the other profiles remain unchanged.
+  assert.equal(pin.totalCases, 4216);
+  assert.deepEqual(pin.counts, {"successes":2635,"executionFailures":53,"refusals":1528});
+  assert.deepEqual(pin.profiles.map(profile => [profile.name, profile.counts]), [["standard",{"successes":2581,"executionFailures":51,"refusals":1489}],["analytic-offset",{"successes":6,"executionFailures":0,"refusals":13}],["analytic-property",{"successes":13,"executionFailures":0,"refusals":7}],["analytic-order",{"successes":35,"executionFailures":2,"refusals":19}]]);
   assert.deepEqual(pin.repeatedFailures, [
     {name: 'graph-subtraction-null-is-not-zero', positions: [28, 49]},
     {name: 'graph-subtraction-conflict-needs-policy', positions: [29, 50]},

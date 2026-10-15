@@ -195,8 +195,7 @@ fn bounded_relation_step_provider(
     | Some(@lower.SequenceMatchStep(_))
     | Some(@lower.InferBoundary(_))
     | Some(@lower.SerializationBoundary(_)) => true
-    Some(@lower.CalendarStep(calendar)) =>
-      @lower.calendar_row_bound(calendar) is Some(_)
+    Some(@lower.CalendarStep(_)) => true
     Some(@lower.EventStep(event)) =>
       @carrier.kind(@lower.event_output_carrier(event)) == @carrier.RelationKind &&
       @execution.generated_sequence_step_index_at(selected, 0)

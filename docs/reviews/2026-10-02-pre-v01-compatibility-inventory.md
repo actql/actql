@@ -85,6 +85,38 @@ the real conformance cases continue to use the same common owner. These are
 retained test obligations, not a claim that every suite ran for this removal.
 There is no wire, CID, retained-state, execution-authority or operational switch.
 
+## Native runtime bundle trust input retirement
+
+At main `76beb551606018298e637ed3512979ff3a74fb4e`, the bundle CLI still
+accepted `--issuer-authority`, `--key-id` and `--public-key-name`, constructed a
+single-key trust list with implicit new-admission permission, and used `--key-id`
+as an install-signature fallback. This was documented accepted syntax; its
+retirement is intentional, not a claim that the old arguments already failed.
+
+All located CLI callers already use `--trust-config-name` and explicit install
+`--signature-key-id`: the native bundle CLI, native HTTP and resident-site
+fixtures, plus `actql/actql-cloud/scripts/resident-site-runtime.mjs` at
+`9734c3e639f49e15b965de549fb8b87c804799cc`. Bounded searches found no caller of
+the removed `--public-key-name` path. Unknown external callers are not covered
+by this repository audit.
+
+The three option declarations, synthetic trust branch, signature-key fallback
+and unused optional-option helper are removed. The existing bounded
+`load_trust_configuration` reader and `open_runtime_bundle_store_with_trust`
+remain the only CLI path; the latter retains the same underlying Store owner.
+Argument-parser fixtures cover current syntax, retired-option refusal and
+missing required arguments. The executable fixture checks refusal before even
+loading SQLite and compares both an absent Store and an installed Store's full
+file inventory and content hashes. Its existing lifecycle, rotation, historical
+verification and multi-component assertions remain unchanged. These are test
+obligations; Native execution remains unverified.
+
+Single-key installations use one explicit authority in the same trust document.
+The document version, signed manifests, CIDs, catalog records and retained
+verification keys are unchanged. No live configuration or Store is rewritten.
+The separate credential command's `--key-id` and `--issuer-authority` are current
+inputs and are not part of this retirement.
+
 ## Retained paths and concrete follow-ups
 
 ### Current managed lifecycle retirement
@@ -103,28 +135,54 @@ current verified retained-input path to installed bounded execution. Its input
 admission and output custody cannot be deleted merely because earlier reports
 called the path "old".
 
-Paths and line numbers below refer to the inspected main. These are not removals
-in this change.
+### Local provider explicit-limit entry retirement
+
+At main `5a978344d58e4b527a83e9b6134bec7ca6ae942c`,
+`start_managed_provider` and `start_managed_provider_with_inputs` forwarded to
+the explicit-limit entries after fabricating zero common execution ceilings.
+The standard managed driver and materializing path already supplied their
+admitted execution limits. The remaining 52 calls were in nine integration and
+conformance fixture files, not product dispatchers.
+
+The two forwarding definitions and `unavailable_provider_execution_limits`
+helper are removed. Those fixture calls now name
+`start_managed_provider_with_execution` or
+`start_managed_provider_with_inputs_and_execution` explicitly. Graph, Events
+and Vectors fixtures retain their original provider-owned capacity, storage,
+row, value and work bounds. They reuse the execution limits already authored
+for the same fixture capacity. The time-series and VecA missing-budget controls
+instead supply explicit zero ceilings with the original row bound; no common
+default-limit adapter replaces the removed helper. Existing exact/one-short
+work, result, cancellation, input-affinity and cleanup assertions remain.
+
+Acceptance still requires compiler-generated Local interface regeneration,
+retired-export compilation refusal and focused execution of the affected
+fixtures. These are verification obligations, not completed test claims.
+The explicit entry implementations and common lifecycle, completion and
+cleanup owners are unchanged; no stored state or operational custody is moved.
+
+Unless superseded by a focused follow-up above, paths and line numbers below
+refer to the originally inspected main.
 
 | Candidate | Actual callers, replacement and evidence | Disposition / next step |
 | --- | --- | --- |
 | `scripts/connector-node-bundles.mjs:35` flat `legacyModule` path allowance | `src/connectors/local/node-bundle.json` actively selects `adapters/local-node/strategy-bundle.mjs`; `reference_compute/node-bundle.json` selects `adapters/reference-compute-node/strategy-bundle.mjs`. Only DuckDB uses the newer connector-owned directory shape. `scripts/connector-node-bundles.test.mjs` exercises selected Local installation; `docs/connector-bundles.md` documents manifests. | Not superseded. A separate layout move must update both manifests, actual modules, imports, generated assemblies, package assets and isolated connector-addition fixtures before narrowing the validator. No provider is removed here. |
-| `connector_sdk.ManagedExecutionOperations` and `managed_execution_lifecycle` | `prepared_managed_execution.mbt` still uses this type in stored `prepare`, bind and start signatures. Local, DuckDB and reference-compute managed drivers construct it; `physical_strategy/task_execution.mbt:309` converts to common lifecycle hooks. `ExecutionLifecycleOperations` is the replacement type, but callers have not migrated. | Coordinate with common lifecycle/custody owners. PR #193 directly edits this type, Local driver and task execution. Preserve reserve/settle/release/cleanup semantics; no independent deletion. |
-| `connectors/local.start_managed_provider` and `start_managed_provider_with_inputs` | `managed_provider.mbt:253,290` synthesize zero execution ceilings via `unavailable_provider_execution_limits`; the explicit replacement is `start_managed_provider_with_inputs_and_execution`. Graph, Events, time-series and Vectors integration fixtures still call the older forms. | Active API, not fully replaced. Migrate only with the Local Carrier/Graph owners, preserving failures on missing required limits and all custody positives. Do not substitute permissive default ceilings. |
+| `connector_sdk.ManagedExecutionOperations` and `managed_execution_lifecycle` | Retired by [#846](https://github.com/actql/actql/pull/846), merged as `3c9ce71f912a7cdc5461d8fb02e8d0b552431b2b`. At main `5a978344d58e4b527a83e9b6134bec7ca6ae942c`, preparation and all three drivers use `ExecutionLifecycleOperations`, and task execution adopts those hooks directly. | Completed source API retirement. This corrects the stale original row; it is not a new implementation removal or fresh test claim. |
+| `connectors/local.start_managed_provider` and `start_managed_provider_with_inputs` | The focused follow-up above removes both source definitions and their fabricated-zero helper after migrating the 52 remaining fixture calls to explicit-limit entries. Product dispatchers already supply admitted execution limits. | Preserve explicit zero-budget refusals and all original custody/budget assertions. Compiler-generated interface regeneration, retired-export refusal and focused fixture execution remain acceptance obligations. |
 | `capacity_sequence_limit.limit` | Retired by [#380](https://github.com/actql/actql/pull/380), merged 2026-10-04, with implementation commit [`aab269d549d542e7183da36abcd153fbe1e68f87`](https://github.com/actql/actql/commit/aab269d549d542e7183da36abcd153fbe1e68f87). Production and test callers now use `host_limit`; the generated interface and Sequence-capacity design were updated together. | Completed source alias retirement, reconfirmed on main `595102baa2c386a1985a9b981fc2fd2c4977016b`. `host_limit` retains the original Host-only claim; `effective_maximum` retains the authored-guard minimum. This row is an adoption correction, not another implementation removal or fresh execution claim. |
 | `platform_native/remote_client.poll` | Retired in the focused follow-up. The only remaining caller was the package-local Native HTTPS test; it now matches a typed `Dispatch` from `poll_operation`. All eight importing packages use the canonical operation API or other client methods. Cloud has no MoonBit package importing this helper. | The Native/unsupported helper and generated export are removed. `poll_operation` retains distinct operation variants; the migrated Native test rejects a foreign poll response before dispatch acknowledgement. Remote protocol, journal and other compatibility candidates are unchanged. |
-| Native runtime bundle single-key flags | `src/cmd/native_runtime_bundle/main.mbt:904–957` translates issuer/key/public-key flags to the current trust list; `:978` also supplies an install signature-key fallback. `--trust-config-name` is the explicit replacement. The CLI and resident-site suites exercise trust configuration, rotation and retained bundles. | Candidate requires a dedicated CLI argument/caller audit. The old `--key-id` role is also an install default, so deleting the trust branch alone is incomplete. Preserve retained bundle holds and reject conflicting/retired arguments before opening or changing a Store. |
+| Native runtime bundle single-key flags | Retired in the focused CLI follow-up above. All located OSS and Cloud CLI callers already supply the existing trust document and explicit install signature key. | Removed the three legacy flags, synthetic trust branch and install-key fallback together. Argument parsing rejects retired or missing inputs before Store access; retained verification and lifecycle ownership remain unchanged. |
 | `execution_relation.execute_selected_relation_step` | Called by `producer_read.mbt:329`. It drains the same bounded selected-row evaluator and preserves cumulative work plus cleanup on all terminal paths; managed Host progression advances that evaluator instead. `docs/design/query-residual-execution.md` still describes supported synchronous fixed-input execution. | Active synchronous API, not duplicate algorithm. A Host execution migration must prove its remaining synchronous callers replaced before deletion. |
 | `execution_site.ManagedCandidateLegacyAllowed` | `classify_managed_candidate_fallback` distinguishes tasks with no retained managed producers from tasks whose retained inputs prohibit reconstruction; `candidate_selection_wbtest.mbt` checks the explicit exclusion outcomes. | Legitimate current candidate fallback and custody protection. Not compatibility slated for deletion. Planner #211 is separate and not imported. |
 | `pipeline_typing.candidate_key` / `input_key`, detached obligation readers | The scalar readers return a witness only when exactly one remains; current tests use them. `docs/design/relation-evidence.md` distinguishes them from preferred-key selection. `docs/design/contextual-orders.md` explicitly retains detached arrays for callers needing ownership; indexed readers avoid unnecessary copies. | Public read projections with different result shapes, not obsolete wire parsers. Do not remove merely because collection/indexed alternatives exist. Establish a separate API retirement decision and caller migration first. |
 | Native `LegacyStoreFormat` refusal | `platform_native/publication_store/store_native.mbt:340–351` rejects, rather than reads or migrates, an old physical Store. `store_native_wbtest.mbt` asserts refusal. `docs/design/versioning.md` requires unsupported catalogs not be treated as empty Stores. | Keep the refusal and tests. Removing them would weaken physical custody, not remove compatibility. Never erase a live catalog to make a new format appear acceptable. |
 
-The completion-storage design still mentions an exported legacy finish surface.
-Current `prepared_execution.mbt` instead exposes lifecycle-only
-`bind_prepared_materializing_execution`, and the typed task completion APIs feed
-a single private commit. This prose is not evidence that an old export still
-exists. Reconcile it with the common completion owner before a separate doc/API
-cleanup; do not invent a removal from stale terminology.
+At main `5a978344d58e4b527a83e9b6134bec7ca6ae942c`, the completion-storage
+design already describes lifecycle-only preparation and one task-output commit.
+`prepared_execution.mbt` exposes `bind_prepared_materializing_execution`; typed
+materialized and managed completion feed the same private `commit_task_output`
+owner. The original inventory's claimed exported legacy finish surface was
+stale. This is a documentation adoption correction, not another code removal.
 
 ## Explicit exclusions and coordination
 

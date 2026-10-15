@@ -120,6 +120,7 @@ fn installed_client_family_providers(
     @local_tea_provider.provider(records, 100000L, capacity),
     @local_tea_provider.time_series_provider(records, capacity),
     @local_tea_provider.calendar_series_provider(records, capacity),
+    @local_tea_provider.calendar_bucket_provider(records, capacity),
     @local_tea_provider.interval_join_provider(records, capacity),
     @local_tea_provider.asof_join_provider(records, capacity),
     @local_tea_provider.sequence_match_provider(records, capacity),

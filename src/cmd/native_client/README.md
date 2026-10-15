@@ -53,16 +53,24 @@ existing artifact/release producers.
 The source-level `explain` command accepts the same `--program-file`, explicit
 `--format`, separate parameter values and declarations as Local `check`.
 It uses the same selected Check Environment and original prepared computation,
-then returns the existing compiler-owned PlanView. `--json` emits that closed
-PlanView directly; human output states that no Run was admitted.
+then returns the existing compiler-owned PlanView for effect-free input or the
+separate closed `actql-effectful-static-plan-view/0.1` for checked Effect input.
+`--json` emits that closed value directly; human output states that no Run was
+admitted.
 
-This first connection covers source-free computation. Source acquisition and
-Effect normalization profiles remain explicitly unavailable. The view reports
-static observation, zero Provider I/O and unknown quantities, with Inspect and
-durable controls unavailable. It neither runs the Program nor issues authority,
+This connection covers source-free computation. The Effect envelope retains the
+original computation Plan/map and declared unit/member facts; that component is
+not a full physical Effect DAG. Mapping targets, Command Resource kinds and
+Result/Table inputs remain declarations. Actual targets/values and current
+permission/gates/approval stay unknown; sealed Preview is unavailable. Contract
+minimum none/required/not-represented is distinct from current permission.
+Source acquisition and executable Effect normalization remain unavailable here.
+The view reports static observation, zero Provider I/O and unknown quantities,
+with Inspect and durable controls unavailable. It neither runs the Program nor issues authority,
 opens a Result or creates a Submission. Remote mode refuses the command before
 opening connection or input files. The packaged route retains explicit trust
-adoption and the original selected configuration.
+adoption and the original selected configuration, rechecking existing original
+custody and the current package after projection before returning metadata.
 
 These statements describe current Native source tests, not a new installed
 cohort. The accepted installed baseline above retains its original digest and
