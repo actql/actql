@@ -137,7 +137,12 @@ else:
             (root / 'data/values.json').write_bytes(b'bad')
             try: runtime.current()
             except _OriginalPackagedRuntimeError as error:
-                assert not error.unknown and error.fact.issue_family == 3
+                # The existing file witness Owner reports GenerationMismatch;
+                # Runtime maps that original issue to Physical, not Changed.
+                print(json.dumps({'observation': 'changed-member-current',
+                    'operation': error.fact.operation,
+                    'issue_family': error.fact.issue_family}), flush=True)
+                assert not error.unknown and error.fact.issue_family == 5
                 assert error.cleanup_runtime is runtime
             else: raise AssertionError('Changed member retained current status')
     for action in (original.close, lambda: original.scope().__enter__()):
