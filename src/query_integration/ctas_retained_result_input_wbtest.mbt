@@ -56,8 +56,8 @@ test "ordinary Store captures its filtered Result separately from an earlier pub
   preparation |> ignore
   assert_true(@strategy.release_captured_effect_inputs(pins))
   available.val = false
-  operations.close()
-  operations.cleanup_refresh()
+  (operations.close)()
+  (operations.cleanup_refresh)()
   @strategy.stop_captured_dag(run)
   @strategy.refresh_captured_retention(run)
   let usage = @resources.ledger_usage(@strategy.captured_dag_ledger(run))
