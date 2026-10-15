@@ -369,8 +369,8 @@ test "original Model window four calls preserve logical output in all 24 arrival
     }
     let completed = completed.unwrap()
     assert_eq(@relation.completed_row_count(completed), 4)
-    for (slot, key) in ["a", "b", "c", "d"].enumerate() {
-      window_assert_output(completed, slot, key)
+    for slot in 0..<4 {
+      window_assert_output(completed, slot, ["a", "b", "c", "d"][slot])
     }
     assert_eq(
       capture(active).unwrap().captures.map(record => record.slot),
