@@ -25,6 +25,7 @@ struct InstalledArenaDomain {
     InstalledArenaHost,
     InstalledArenaDomain,
   ]?
+  mut sqlite_library : InstalledArenaSqliteLibrary?
   mut closed : Bool
 }
 
@@ -68,6 +69,7 @@ pub fn InstalledArenaHost::prepare_domain(
     view: None,
     domain: None,
     live_channel: None,
+    sqlite_library: None,
     closed: false,
   }
   self.domains.push(record)
@@ -233,6 +235,9 @@ pub fn InstalledArenaHost::close_domain_after_owner_ack(
   }
   if record.closed {
     return Ok(())
+  }
+  if record.sqlite_library is Some(library) && !library.closed {
+    return Err(@bootstrap.Bootstrap(@bootstrap.ReadersPending))
   }
   if record.domain is Some(domain) {
     match record.backing.close_backed_domain(self, domain, record) {

@@ -115,3 +115,24 @@ no worker or VM. Regular generated C must establish callback prototypes and
 managed reference ownership before a transport shim is linked. The complete
 pre-spawn supplier, numerical profile, actual VM and installed Python product
 acceptance remain separate; this entry does not bypass their refusals.
+
+### Original selected SQLite Library custody
+
+The private `prepare_sqlite_library` caller binds the existing original
+Host/domain read scope to `@sqlite.load_current_component_with_custody`.
+The trusted installer must already verify the component/cohort and original
+Host/Store epoch; path/heap/current-domain success does not perform that adoption
+or provide absent whole-process funding. The domain registers its one Library
+attempt before the foreign call and retains successful or partial references,
+including failures of the post-call current/leave checks. A second attempt in
+the same domain never reloads or rebinds a component.
+
+`current_sqlite_library` checks the same nominal registration/current again.
+`close_sqlite_library` may perform original cleanup after logical Host closing,
+but cannot switch Hosts/domains, reload or close a replacement Library. It
+retains the same references on failed cleanup and scope-leave; checked Library
+cleanup and all managed aliases precede read-context/domain/loan retirement.
+Even an empty pre-acquisition carrier must finish its own registered cleanup
+before the parent domain can retire. Normal supplier/profile, actual matching
+Native Library construction, installed Python/wheel and public E2E remain
+separate acceptance boundaries.
