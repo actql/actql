@@ -118,7 +118,7 @@ observations; they are not a globally synchronized snapshot or control grant.
 Unobserved pending flags are omitted, not `false`.
 
 Both reads accept finite `maxWireBytes`, `maxNodes` and `maxDepth` options.
-This initial slice supports static planning and Inspect for source-free Values
+Run Inspect in this initial slice supports source-free Values
 Runs with retained original policy evidence. Records without that evidence and
 resuming states without the required original continuation/fence observation
 refuse Inspect; ordinary legacy status reads remain available. Durable pause,
