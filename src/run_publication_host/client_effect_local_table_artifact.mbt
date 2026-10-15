@@ -215,3 +215,28 @@ fn issue_client_effect_local_table_artifact(
     scope=imported_scope,
   )
 }
+
+///|
+/// Classify an issued artifact by its original occurrence namespace. Equal
+/// Relation content never changes a private Table root into a public Result.
+pub fn client_effect_local_artifact_dependency_root(
+  artifact : ClientEffectLocalResultArtifact,
+  max_bytes : Int,
+  max_nodes : Int,
+  max_depth : Int,
+) -> Result[
+  @publication.CapturedEffectDependencyBody,
+  @publication.CapturedEffectDependencyIssue,
+] {
+  let kind = match artifact.source {
+    ResultSource(_, _) => "result_artifact"
+    TableSource(_, _) => "table_input_artifact"
+  }
+  @publication.admit_publication_effect_dependency_body(
+    kind,
+    client_effect_local_result_artifact_json(artifact),
+    max_bytes,
+    max_nodes,
+    max_depth,
+  )
+}

@@ -4080,12 +4080,8 @@ pub fn client_program_issue_effect_dependency_inventory(
   let roots : Array[@publication.CapturedEffectDependencyBody] = []
   for artifact in artifacts {
     let root = match
-      @publication.admit_publication_effect_dependency_body(
-        "result_artifact",
-        @publication_host.client_effect_local_result_artifact_json(artifact),
-        max_bytes,
-        max_nodes,
-        max_depth,
+      @publication_host.client_effect_local_artifact_dependency_root(
+        artifact, max_bytes, max_nodes, max_depth,
       ) {
       Ok(value) => value
       Err(issue) => return Err(issue)
