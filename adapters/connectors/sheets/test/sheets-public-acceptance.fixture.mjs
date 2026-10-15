@@ -260,7 +260,8 @@ test('Sheets range Command uses the real Local and HTTPS approval owners and ori
     await execution.reconcile();
     const done = await until(async () => {
       const current = await execution.status();
-      return terminal.has(current.status) || current.status === 'needs_reconciliation'
+      return terminal.has(current.status) || current.status === 'needs_reconciliation' ||
+        setup.observations.some(([name]) => name === 'effect_resume_failed')
         ? current : undefined;
     });
     const safeTag = value => typeof value === 'string' && /^[A-Za-z][A-Za-z0-9_]{0,100}$/u.test(value)
