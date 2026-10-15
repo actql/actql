@@ -689,8 +689,14 @@ test "setup reservation refuses absent invalid or uncovered profile without bind
     )
     assert_eq(@site.site_status(site), before)
   }
+  // A larger Store bound is capped by the selected ceiling, as the independent
+  // ceiling test above requires. Exercise actual uncovered Site capacity here:
+  // the original Site admits 150 bytes, so a 151-byte reservation must refuse.
   assert_true(
-    reserve_holder_effect_host_setup_scope(site, Some(profile), 1025L) is None,
+    reserve_holder_effect_host_setup_scope(
+      site, Some({ ..profile, setup_retained_bytes: 151L, }), 1024L,
+    )
+    is None,
   )
   assert_eq(@site.site_status(site), before)
 }
