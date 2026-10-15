@@ -256,3 +256,19 @@ capture/current/close, changed members, invalid input and partial construction.
 Its three-byte package members are capture/cleanup fixtures, never executable
 libraries or an installed product. Numerical profile, Engine, worker, ordinary
 wheel and public Python acceptance remain separate and unaccepted here.
+
+The Runtime fixture uses the complete already-executed D private diagnostic
+profile from Source `0df87e9d6ff6ba9b9500fe1468363b631f6ff867`,
+`installed_product_observation_conformance/main_native.mbt`: Host8192 pages,
+domain7168, child retained32/execution6144, bootstrap retained16/execution16,
+workspace4096, read retained16/execution1024. Host Ledger work20/attempts8/
+holdings4/transfer30/retained0/execution8192pages, child work2/attempts2/holdings1/
+transfer3 and maximum holding65536 remain exact. Runtime diagnostics are128.
+This is a distinct finite diagnostic, not an enlarged version of the older
+64/48-page parent-read fixture. That fixture's 24-byte scoped allocation
+exhaustion/SIGABRT remains a failed capture, never a same-capacity pass. These
+physical limits do not adopt a normal profile or alter fuel100M/12MiB/16MiB.
+Malformed manifest capture also tests the existing constructor's automatic
+cleanup: an ACK returns Refused with no Runtime; only failed cleanup would
+retain Pending. Lost physical responses and cleanup failure are separately
+covered by Python slot counters, not asserted as injected DLL successes here.

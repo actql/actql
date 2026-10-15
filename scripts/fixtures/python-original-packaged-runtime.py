@@ -112,6 +112,15 @@ selection = {'root_path': str(root), 'source_sha': 'a' * 40,
     'platform': 'darwin-arm64', 'manifest_sha256': hashlib.sha256(manifest).hexdigest(),
     'diagnostic_ceiling': 128}
 d = domain(); original = acquire(d)
+if case == 'runtime-close':
+    # Controller reply allocation cannot occur in the child it may retire.
+    # A deliberately invalid nominal receiver must not be dereferenced here:
+    # the existing physical scope guard refuses before either callback.
+    with original.scope():
+        for call in (runtime_functions.current, runtime_functions.close):
+            untouched = C.c_void_p()
+            assert call(C.c_void_p(1), C.byref(untouched)) == -1
+            assert untouched.value is None
 if case == 'runtime-invalid':
     try:
         _OriginalPackagedRuntimeCustody._capture_original(original, runtime_functions,
