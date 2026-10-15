@@ -34,6 +34,37 @@ test('Native observation-only guards remain tested without adding a CLI operatio
   assert.equal(buildClientHostWire(changed, protocol).native, output.native);
 });
 
+test('Native string predicates discard only payloads without text constraints', () => {
+  const probeRule = output => {
+    const name = /fields\.get\("generator_probe"\) is Some\(item\) \{\s+if !(wire_rule_\d+)\(item\)/u
+      .exec(output.nativeTests)?.[1];
+    assert.ok(name, 'the selected property must invoke its generated predicate');
+    return output.nativeTests.split(`fn ${name}(value : Json) -> Bool {`)[1]
+      .split('\n///|')[0];
+  };
+  const changed = structuredClone(registry);
+  changed.schemas.owner_ref.properties.generator_probe = {type: 'string'};
+  const bare = buildClientHostWire(changed, protocol);
+  assert.equal(probeRule(bare),
+    '\n  guard value is String(_) else { return false }\n  true\n}\n');
+  changed.schemas.owner_ref.properties.generator_probe = {
+    type: 'string', minLength: 137, maxLength: 139,
+  };
+  const bounded = buildClientHostWire(changed, protocol);
+  assert.match(probeRule(bounded),
+    /guard value is String\(text\) else \{ return false \}\n  if text\.iter\(\)\.count\(\) < 137 \{ return false \}\n  if text\.length\(\) > 139 \{ return false \}/u);
+  assert.equal(bare.native, bounded.native,
+    'an observation-only string rule cannot alter production guards');
+  // Literal equality remains an independent check even when the redundant
+  // string-kind guard does not need to retain the payload a second time.
+  changed.schemas.owner_ref.properties.generator_probe = {
+    type: 'string', const: 'independent-probe',
+  };
+  const literal = buildClientHostWire(changed, protocol);
+  assert.match(probeRule(literal), /text == "independent-probe"/u);
+  assert.match(probeRule(literal), /guard value is String\(_\)/u);
+});
+
 test('Native cancellation shapes retain each registered operation boundary', () => {
   const original = buildClientHostWire(registry, protocol).native;
   for (const name of ['cancellation_ref', 'cancellation', 'cancellation_lookup']) {

@@ -2526,7 +2526,7 @@ fn wire_rule_1164(value : Json) -> Bool {
     text == "window_group") {
     return false
   }
-  guard value is String(text) else { return false }
+  guard value is String(_) else { return false }
   true
 }
 
@@ -2547,7 +2547,7 @@ fn wire_rule_1168(value : Json) -> Bool {
   if !(text == "input" || text == "output") {
     return false
   }
-  guard value is String(text) else { return false }
+  guard value is String(_) else { return false }
   true
 }
 
@@ -2560,7 +2560,7 @@ fn wire_rule_1170(value : Json) -> Bool {
     text == "events") {
     return false
   }
-  guard value is String(text) else { return false }
+  guard value is String(_) else { return false }
   true
 }
 
@@ -2953,7 +2953,7 @@ fn wire_rule_1194(value : Json) -> Bool {
   if !(text == "exact" || text == "bound" || text == "estimate") {
     return false
   }
-  guard value is String(text) else { return false }
+  guard value is String(_) else { return false }
   true
 }
 
