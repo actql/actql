@@ -2,7 +2,7 @@
 import {runInstalledStrategy} from '../host-common/strategy.mjs';
 import {createExecutionSiteControlFixture} from
   '../host-common/execution-site-control.fixture.mjs';
-import {withScopedStrategy} from '../workers/invocation.mjs';
+import {withScopedStrategy} from '../host-common/scoped-strategy.mjs';
 
 const siteControl = createExecutionSiteControlFixture();
 export async function finalizerCase(kind, scoped = false) {

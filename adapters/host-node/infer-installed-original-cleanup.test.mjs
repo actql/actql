@@ -221,19 +221,28 @@ test('missing Host runtime association refuses before scope read or Entry creati
   const f=fixture({installation:true});
   delete f.selected.assertTrustedRuntime;
   await assert.rejects(f.run(),/InferTrustedRuntimeViewUnavailable/u);
-  assert.deepEqual(f.calls,[]);assert.equal(f.custody(),undefined);
+  assert.deepEqual(f.calls,[]);
+  assert.notEqual(f.custody(),undefined, 'admitted dispatch retains the same original cleanup');
+  assert.equal(await f.custody().cleanup(),true);
+  assert.deepEqual(f.calls,[], 'no synthetic Scope/physical cleanup is invented');
 });
 
 test('foreign installed provider refuses before original child allocation',async()=>{
   const f=fixture({installation:true});f.selected.currentProvider=()=>false;
   await assert.rejects(f.run(),/InferTrustedRuntimeViewUnavailable/u);
-  assert.deepEqual(f.calls,[]);assert.equal(f.custody(),undefined);
+  assert.deepEqual(f.calls,[]);
+  assert.notEqual(f.custody(),undefined);
+  assert.equal(await f.custody().cleanup(),true);
+  assert.deepEqual(f.calls,[]);
 });
 
 test('Host closing refuses a new original Scope without claiming an existing borrow',async()=>{
   const f=fixture({installation:true});f.hostClosing(true);
   await assert.rejects(f.run(),{code:'ClientHostClosing'});
-  assert.deepEqual(f.calls,[]);assert.equal(f.custody(),undefined);
+  assert.deepEqual(f.calls,[]);
+  assert.notEqual(f.custody(),undefined);
+  assert.equal(await f.custody().cleanup(),true);
+  assert.deepEqual(f.calls,[]);
 });
 
 test('fallible runtime binding happens after actual Scope issuance and retains same cleanup custody',async()=>{
