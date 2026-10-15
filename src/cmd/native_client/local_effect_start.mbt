@@ -7,6 +7,7 @@ priv struct LocalEffectFirstCompilation {
   definition : @publication.PublicationContract
   issued : @run_host.ClientEffectIssuedNormalizationMaterials
   materials : @run_host.ClientEffectRunMaterials
+  bound : @run_host.PreparedClientEffectRun
 }
 
 ///|
@@ -96,7 +97,12 @@ fn local_effect_first_compilation(
     issued,
     request=Some(request),
   ).unwrap_or_else(() => stop("LocalEffectOriginalMaterialsUnavailable"))
-  { request, allowed, definition, issued, materials, }
+  // Retain the first nominal binding for the later dispatcher/capture join.
+  // Rebinding equal contract bytes would create another checked Run owner.
+  let bound = @run_host.bind_client_effect_compiled_run(
+    prepared, allowed, definition,
+  ).unwrap_or_else(() => stop("LocalEffectRunNotReady"))
+  { request, allowed, definition, issued, materials, bound, }
 }
 
 ///|
@@ -132,12 +138,9 @@ fn local_effect_prepare_start(
     now,
     run_text(retention, "available_until"),
   )
-  let checked = @run_host.bind_client_effect_compiled_run(
-    @run_host.client_effect_compilation_owner(original.allowed.compilation),
-    original.allowed,
-    original.definition,
-  ).unwrap_or_else(() => stop("LocalEffectRunNotReady"))
-  if !@source_owner.resident_effect_source_compute_shape_supported(checked) {
+  if !@source_owner.resident_effect_source_compute_shape_supported(
+      original.bound,
+    ) {
     stop("LocalEffectSourceExecutionProfileNotSupported")
   }
   if !local_submit_allowed(host, settings, crypto, scope) {

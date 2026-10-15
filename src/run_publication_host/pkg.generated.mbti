@@ -1159,6 +1159,8 @@ pub fn emit_prepared_client_values_unit_source(PreparedClientProgram, Int, @lowe
 
 pub fn encode_client_local_read_preimage(Array[(String, ClientLocalReadEvidenceValue)]) -> Result[String, ClientLocalReadPreimageIssue]
 
+pub fn encode_client_source_free_policy_originals(@run_publication.CapturedEffectDependencyBody) -> Result[String, ClientRunPolicyOriginalsIssue]
+
 pub fn encode_plan_fact_manifest_identity(String, Int, Int, Int) -> Result[PlanFactManifestIdentity, PlanFactManifestIdentityIssue]
 
 pub fn enter_client_model_read_consumer(ClientModelReadConsumer, ClientCompiledRun, @run_publication.PublicationContract, ClientInferPlanGraph, Int64, Int64) -> Result[Unit, ClientModelReadPreparationIssue]

@@ -21,9 +21,22 @@ const cid = c => `sha256:${c.repeat(64)}`;
 const digest = wire => `sha256:${createHash('sha256').update(wire).digest('hex')}`;
 
 async function originalFixture(t, {unretained=false, retainState, observeBinding,
+  observeDocument, observeOriginGuard,
   storeBootstrap={maxWireBytes: 4096, maxDirectoryEntries: 22}, currentStateCodec=codec()}={}) {
   const root = await mkdtemp(join(tmpdir(), 'actql-installed-original-resource-'));
-  const control = runtimeCore(moon).publicationControl;
+  const originalControl = runtimeCore(moon).publicationControl;
+  const control = observeDocument===undefined && observeOriginGuard===undefined ? originalControl
+    : Object.freeze({...originalControl,
+      readModelOriginalResourceDocument(...args) {
+        const document=Reflect.apply(originalControl.readModelOriginalResourceDocument,originalControl,args);
+        observeDocument?.(document);
+        return document;
+      },
+      checkCheckedClientInferOriginalParkedStorageOrigin(...args) {
+        const result=Reflect.apply(originalControl.checkCheckedClientInferOriginalParkedStorageOrigin,originalControl,args);
+        observeOriginGuard?.(args[5]);
+        return result;
+      }});
   const keys = generateKeyPairSync('ed25519');
   const account = moon.executionAuthorizationAdmit(canonicalText({
     version: 'actql-execution-account-config/0.1', account_id: 'local',
@@ -123,6 +136,38 @@ const codec = () => ({quantum: 1, comparisonWork: 5,
   decode: {maxWork: 20000,
     parse: {max_input_bytes: 10000, max_nodes: 1000, max_depth: 20},
     tree: {max_nodes: 1000, max_depth: 20, max_string_bytes: 10000, max_total_string_bytes: 10000}}});
+
+test('original save caller retires transient origin document before saved-state await', async t=>{
+  assert.equal(typeof global.gc,'function','The selected lifetime counter requires --expose-gc');
+  let observed,originChecks=0,saves=0;
+  const f=await originalFixture(t,{unretained:true,
+    observeDocument(document){observed=new WeakRef(document);},
+    observeOriginGuard(document){
+      assert.strictEqual(observed.deref(),document,'The same live document must pass the actual original guard');
+      originChecks++;
+    },
+    async retainState(args,actual,acquisition){
+      saves++;
+      assert.equal(originChecks,1);
+      assert.ok(observed instanceof WeakRef);
+      // Let the previous task's temporary WeakRef dereference expire. This
+      // observes reachability of this one unused canonical tree, not bytes,
+      // immediate GC, Store cleanup or original reservation retirement.
+      for(let i=0;i<8;i++){
+        await new Promise(resolve=>setImmediate(resolve));
+        global.gc();
+      }
+      assert.equal(typeof observed.deref(),'undefined','Transient origin document remains rooted across Store save');
+      return actual.retainOriginalModelStateSelected(args,acquisition);
+    }});
+  const first=f.opened.prepareOriginalResourcesForDispatch();
+  assert.strictEqual(f.opened.prepareOriginalResourcesForDispatch(),first);
+  await first;
+  assert.equal(saves,1);
+  assert.equal(f.retains.length,1);
+  assert.equal(f.f.sends(),0);
+  assert.equal(f.cp.journal.readModelCalls(f.opened.inventory).slots[0].state,'Unsent');
+});
 
 test('original dispatch caller completes actual save COMMIT and fence consume once without a Model send grant', async t=>{
   const {root,cp,f,opened,retains,selectedRetains,selectedObservations,selectedBootstrapChecks}=
