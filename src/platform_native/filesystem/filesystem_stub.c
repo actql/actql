@@ -2655,3 +2655,5 @@ MOONBIT_FFI_EXPORT int32_t actql_native_filesystem_scoped_open_current_root(
   return -1; /* ACTQL_OWNED_INVALID; no active scoped provider was selected. */
 #endif
 }
+
+#include "filesystem_scoped_acquisition.inc"
