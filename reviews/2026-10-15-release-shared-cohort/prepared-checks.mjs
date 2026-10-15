@@ -9,8 +9,11 @@ const runner = 'import{runFocusedTests}from"./scripts/test-execution.mjs";' +
   'process.exitCode=runFocusedTests("node",process.argv.slice(1),{cwd:process.cwd(),timeout:30000});';
 process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false,
   timeoutSeconds: 60, graceSeconds: 5, steps: [
-    {name: 'Normal6-to-exact4 shared prepack counterexample', command: process.execPath,
-      args: ['--input-type=module', '-e', runner, '--', '--test', 'scripts/package-release-shared-cohort.test.mjs', 'scripts/packed-client-packages.test.mjs']},
+    {name: 'Ordinary release-owner shared-cohort controls', command: process.execPath,
+      args: ['--input-type=module', '-e', runner, '--', '--test',
+        '--test-name-pattern=^(normal six-package|common release metadata)', 'scripts/package-release.test.mjs']},
+    {name: 'Existing shared source and exact-copy refusals', command: process.execPath,
+      args: ['--input-type=module', '-e', runner, '--', '--test', 'scripts/packed-client-packages.test.mjs']},
     {name: 'Whitespace', command: 'git', args: ['diff', '--check']},
   ]});
 assert.deepEqual(checkoutState(process.cwd()), before);
