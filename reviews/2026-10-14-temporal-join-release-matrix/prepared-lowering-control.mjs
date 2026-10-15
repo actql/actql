@@ -5,9 +5,10 @@ import {isAbsolute} from 'node:path';
 const before = checkoutState(process.cwd());
 assert.equal(before.clean, true); assert.equal(before.revision, process.argv[2]);
 const mode = process.argv[3] ?? 'lowering';
-assert(['lowering', 'selected', 'append', 'pipeline', 'chain', 'final', 'plan'].includes(mode));
+assert(['lowering', 'selected', 'append', 'pipeline', 'chain', 'ledger', 'final', 'plan'].includes(mode));
 const args = ['--target', 'js', '-j', '1',
   mode === 'lowering' ? 'src/query_program/temporal_public_lowering_control_test.mbt'
+    : mode === 'ledger' ? 'src/query_integration/temporal_public_ledger_wbtest.mbt'
     : mode === 'chain' ? 'src/query_integration/temporal_public_bounded_chain_wbtest.mbt'
       : mode === 'pipeline' ? 'src/execution_relation/temporal_public_pipeline_wbtest.mbt'
       : mode === 'append' ? 'src/execution_relation/temporal_append_projection_wbtest.mbt'
