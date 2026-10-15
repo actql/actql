@@ -484,5 +484,25 @@
       "pointer": "/execution_contracts/ACTQL.expression_fragment~10.1",
       "cid": "sha256:6f134824290c260bd59a3f770aa1201cc6705491e24fc122bc3ad17807951b99"
     }
+  },
+  "TEA.calendar.bucket": {
+    "inputs": [
+      "relation"
+    ],
+    "output": "relation",
+    "execution_contract": {
+      "file": "spec/contracts/actql-aoa.json",
+      "pointer": "/execution_contracts/TEA.calendar.bucket",
+      "cid": "sha256:8cbb70e4edcd1dd29deee777b44b3f09b9cee337b5495944ca895fa3065b6227"
+    }
+  },
+  "TEA.calendar.series": {
+    "inputs": [],
+    "output": "relation",
+    "execution_contract": {
+      "file": "spec/contracts/actql-aoa.json",
+      "pointer": "/execution_contracts/TEA.calendar.series",
+      "cid": "sha256:040129c2ff63394a6b4804daf3a7c0641e2bdae4b524389d3c8c362e7e4dc13f"
+    }
   }
 }

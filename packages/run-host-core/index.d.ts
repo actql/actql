@@ -15,6 +15,7 @@ declare const publicationBrand: unique symbol;
 declare const deliveryContractBrand: unique symbol;
 declare const resultOccurrenceBrand: unique symbol;
 declare const runEvidenceBrand: unique symbol;
+declare const originalRunPlanBrand: unique symbol;
 declare const capturedSnapshotBrand: unique symbol;
 declare const materialHoldsBrand: unique symbol;
 declare const retainedInputEdgeBrand: unique symbol;
@@ -47,6 +48,28 @@ export interface CheckEnvironment {
 export interface PreparedProgram {
   readonly [preparedBrand]: true;
 }
+
+/** In-process first-capture provenance; saved metadata cannot recreate it. */
+export interface OriginalRunPlan {
+  readonly [originalRunPlanBrand]: true;
+}
+
+export interface StoredRunPlanOriginal {
+  readonly compiledPlanWire: string;
+  readonly planViewWire: string;
+}
+
+/** No new Run, preparation or execution. Persist in the first admission CAS. */
+export function captureOriginalRunPlan(prepared: PreparedProgram,
+  compilation: ValuesCompilation | TaskCompilation, admission: RunAdmission,
+  definition: RunDefinition, limits: PublicationLimits): OriginalRunPlan;
+export function originalRunPlanAdmissionEvidence(selection: OriginalRunPlan,
+  definition: RunDefinition, programCid: string,
+  evidence: Readonly<{prepared: string; authorization: string}>): StoredRunPlanOriginal;
+/** Metadata only; current RunRead and the saved Run/request/context join remain
+ * with the Host. Missing legacy originals are unavailable, never recompiled. */
+export function readStoredRunPlanOriginal(original: StoredRunPlanOriginal | undefined,
+  definition: RunDefinition, programCid: string, limits: PublicationLimits): string;
 
 export interface ValuesCompilation {
   readonly [compilationBrand]: true;

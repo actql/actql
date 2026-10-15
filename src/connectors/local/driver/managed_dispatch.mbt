@@ -1220,6 +1220,15 @@ pub fn[T] start_local_managed_dispatch(
               execution_finished.val = true
               return Err(Configuration(InputUnavailable))
             }
+            guard local_task_constrain_calendar(
+                setup.run,
+                setup.task,
+                constrained,
+              )
+              is Some(constrained) else {
+              execution_finished.val = true
+              return Err(Configuration(InputUnavailable))
+            }
             let started = match
               @local.start_managed_provider_with_inputs_and_execution(
                 provider,

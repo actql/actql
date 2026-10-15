@@ -253,6 +253,7 @@ pub fn local_managed_sequence_supported(
     match step {
       @lower.ValuesStep(_) => true
       @lower.TimeSeriesStep(_) => false
+      @lower.CalendarStep(_) => false
       @lower.WindowStep(_) => true
       @lower.RowStep(kernel) =>
         if @lower.kernel_json_pick(kernel) is Some(_) ||

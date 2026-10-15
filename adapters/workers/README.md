@@ -63,10 +63,11 @@ Generic JS composition lives in `adapters/host-common/local-js-host.mjs`;
 invocation-scoped consumption, cancellation and cleanup ownership live in
 `adapters/host-common/scoped-strategy.mjs`. Both reuse the existing common
 runtime/strategy owner. `host.mjs` supplies the generated runtime and selected
-contributions; `invocation.mjs` re-exports the same scoped function for existing
-imports. Neither contains a second lifecycle implementation.
+contributions. Product and conformance callers import the scoped helper directly
+from the common module; the Workers-specific `invocation.mjs` forwarding entry
+has been removed. Old imports fail rather than selecting another lifecycle.
 
-The public Workers entry names and historical diagnostic messages are preserved.
+The public Workers Host entry names and historical diagnostic messages are preserved.
 Workerd compatibility flags, Miniflare, transport/audit fixtures and environment
 verification remain here. This extraction does not establish support for any
 additional environment: Node/workerd evidence below is limited to the tested
