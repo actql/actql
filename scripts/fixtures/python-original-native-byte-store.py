@@ -72,8 +72,8 @@ else:
         assert db._original.value is not None and path.read_bytes() == b'original nonempty file'
 
 port = _NativeByteDatabase(db)
-key = 'namespace:6:原/😀:e\u0301'
-empty = 'namespace:6:原/😀:empty'
+key = 'namespace:8:原/😀:e\u0301'
+empty = 'namespace:8:原/😀:empty'
 port.begin_immediate()
 assert port.reserve_capacity_in_transaction('capacity/原', 'held', 8, 1, 64, 2, 2) is True
 assert port.write_record(key, None, b'\0\xff\r\n') == 0
@@ -86,7 +86,7 @@ assert port.read_header(key) == (0, 4)
 assert port.read_capacity('capacity/原', 'held') == (8, 1)
 assert port.capacity_usage('capacity/原') == (8, 1)
 assert port.record_usage() == (2, 4) and port.reservation_count() == 1
-prefix = 'namespace:6:原/😀:'
+prefix = 'namespace:8:原/😀:'
 assert port.scan_range(prefix, prefix[:-1]+';', 4, inclusive=True, exact=False) == (
     empty, 0, b'', 'blob', 0)
 assert port.scan_range(empty, prefix[:-1]+';', 4, inclusive=False, exact=False) == (
