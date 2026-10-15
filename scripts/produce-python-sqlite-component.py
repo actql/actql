@@ -62,7 +62,9 @@ def identity(path: Path, maximum: int) -> dict[str, Any]:
             checksum.update(block)
             remaining -= len(block)
         after = os.fstat(source.fileno())
-        require(not source.read(1) and before == after, 'SQLite producer input changed')
+        fields = ('st_dev', 'st_ino', 'st_size', 'st_mtime_ns', 'st_ctime_ns')
+        require(not source.read(1) and all(getattr(before, field) == getattr(after, field)
+                for field in fields), 'SQLite producer input changed')
         return {'bytes': before.st_size, 'sha256': checksum.hexdigest()}
 
 
