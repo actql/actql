@@ -53,7 +53,9 @@ export async function listContinuationLedgerNamesBounded(path, supplied, signal)
     return names;
   } catch (cause) { primary = cause; failed = true; throw cause; }
   finally {
-    try { await directory.close(); }
+    try {
+      if (await directory.close() === false) fail('ContinuationDirectoryCleanupPending');
+    }
     catch (closeFailure) {
       // Keep this same physical Dir and its original reservation/custody. A
       // retry is close-only; it never reopens or repeats directory acquisition.
@@ -62,7 +64,8 @@ export async function listContinuationLedgerNamesBounded(path, supplied, signal)
       const cleanup = Object.freeze({status, retry() {
         if (flight !== undefined) return flight;
         if (original === undefined) return Promise.resolve(status());
-        flight = Promise.resolve().then(() => original.close()).then(() => {
+        flight = Promise.resolve().then(() => original.close()).then(result => {
+          if (result === false) fail('ContinuationDirectoryCleanupPending');
           original = undefined;
           return status();
         }).finally(() => { flight = undefined; });
