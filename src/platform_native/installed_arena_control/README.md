@@ -87,3 +87,31 @@ child-first. Matching generated C must establish callback prototypes and RC
 before adding these methods to the private C/Python transport; the existing
 registered callback ABI is unchanged by this source unit. Normal supplier/profile,
 F's actual caller and installed/public Python execution remain separate.
+# Original live-child channel transport
+
+The private installed entry registers typed callbacks for the same Host,
+domain and `NativeBackedLiveChannel`. Preparation retains both successful and
+pending channel carriers in the original domain. Immutable replies retain the
+actual original Host, domain and channel even when a foreign target or a later
+operation is refused. They project existing Owner results, never reconstruct
+funding or permission from PID, FD, nonce, relative extent or scalar limits.
+
+VM binding, admission, current state, limits, cumulative usage, logical stop
+and metadata retirement delegate to the existing bootstrap/resource Owners.
+Tags are closed: report has its own typed callback, and unknown operation tags
+are refused. Missing state/limits have explicit negative sentinels. A failed
+capture or binding is not retried as a new channel. Closing permits original
+cleanup without admitting new work.
+
+The trusted physical caller must retain and validate its original process,
+private pipes and child Memory observation around these callbacks. Metadata
+retirement requires that caller's separate physical acknowledgements; it does
+not acknowledge process stop, Store cleanup, descriptor close or loan return.
+The domain retains its original backing until its independent cleanup succeeds.
+
+`installed_live_channel_conformance` consumes a disposable 64-page FD and tests
+invalid-pipe partial custody through the installed public Native API. It launches
+no worker or VM. Regular generated C must establish callback prototypes and
+managed reference ownership before a transport shim is linked. The complete
+pre-spawn supplier, numerical profile, actual VM and installed Python product
+acceptance remain separate; this entry does not bypass their refusals.
