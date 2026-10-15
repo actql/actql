@@ -10,7 +10,7 @@ const runner = 'import{runFocusedTests}from"./scripts/test-execution.mjs";' +
 process.exitCode = await runLocalCheck({root: process.cwd(), heavy: false,
   timeoutSeconds: 60, graceSeconds: 5, steps: [
     {name: 'Normal6-to-exact4 shared prepack counterexample', command: process.execPath,
-      args: ['--input-type=module', '-e', runner, '--', '--test', 'scripts/package-release-shared-cohort.test.mjs']},
+      args: ['--input-type=module', '-e', runner, '--', '--test', 'scripts/package-release-shared-cohort.test.mjs', 'scripts/packed-client-packages.test.mjs']},
     {name: 'Whitespace', command: 'git', args: ['diff', '--check']},
   ]});
 assert.deepEqual(checkoutState(process.cwd()), before);
