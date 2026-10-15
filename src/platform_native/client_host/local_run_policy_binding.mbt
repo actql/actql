@@ -373,7 +373,6 @@ pub fn NativeLocalRunPolicyBinding::prepare_submission_policy(
       }
       @host.prepared_client_effect_identity(prepared)
     }
-    _ => return Err(UnsupportedPreparation)
   }
   if identity.program_definition_cid !=
     @host.client_request_program_cid(request) ||

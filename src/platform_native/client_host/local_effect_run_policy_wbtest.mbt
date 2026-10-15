@@ -164,7 +164,7 @@ test "Native Effect next-day fresh request keeps the old finite original and sep
   let host = effect_finite_policy_host("effect-finite-policy-nextday")
   defer host.close() |> ignore
   let policy = effect_finite_policy_binding(host)
-  let saved : Array[(@host.ClientRequestIdentity, String)] = []
+  let saved : Array[(@host.ClientRequestIdentity, Bytes)] = []
   for
     (nonce, issued_at, available, deletion, metadata) in [
       (
