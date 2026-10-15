@@ -31,7 +31,7 @@ extern "C" fn current_chain_start_probe(
   family : Array[ManagedProvider],
   count : Int,
   max_value_bytes : Int,
-  reclaims_scratch : Bool,
+  reclaimed_prefix : Int,
 ) -> String = "actql_proof_current_chain_start"
 
 ///|

@@ -171,3 +171,51 @@ adopt a normal product profile. Control/loader/Python/VM funding remains
 separate and unproven. Counter-based Python response-loss tests are distinct
 from the actual DLL cases, which inject no physical lost reply. Full product
 Store/Run, Engine, worker, wheel and public Python E2E remain unaccepted.
+
+### Original Database and physical transaction observations
+
+The installed private Store uses one original Database carrier under the same
+Library/domain. Its registration precedes open. Fresh initialization delegates
+to the existing exclusive-file initializer with the original file ownership;
+restoration delegates to existing-only open and cannot create or repair a
+schema. Neither ownership scalars nor a pathname supplies a durable adoption
+intent. The trusted Host/Root caller must retain that original intent and epoch.
+
+A failed open retains the existing `NativeSqliteOpenFailure` and its original
+primary diagnosis until its own cleanup ACK. A permanent carrier retains only
+scalar failure state. An active callback cannot be mistaken for a pending scope
+leave: parent Library close and reentrant Database close refuse while its
+original callback is active. DB cleanup then Library cleanup stops the existing
+Common read use; it does not issue a replacement read permission.
+
+`InstalledArenaSqliteDatabaseCall` distinguishes refusal before the physical
+callback from its observed SQL result plus a separate post-call current/leave
+issue. A COMMIT result is not Run admission or publication ACK. The closed
+transaction selector delegates begin/commit/rollback to the existing Database.
+COMMIT/rollback errors fence that same physical handle, with no reset or replay.
+A separate same-original fence entry supports an unconfirmed transport response.
+Writes on a fenced handle refuse. A read on it additionally requires an actual
+SQLite autocommit observation: a connection's visible uncommitted rows must not
+be offered as durable lookup. Autocommit alone proves no particular COMMIT,
+original content chain, authority, or permission to send again.
+
+`sqlite_database_shim` uses the actual regular C from Source105b181b (digest
+recorded in its header). Managed callback inputs are borrowed and getters own
+their returned references. Permanent Database acquisition runs outside the
+child managed scope; row marshalling runs inside the same original funded
+scope, after Core validates current and the original Database. A refused
+preflight or over-bound body returns Observe(3), never an Insert/Compare ACK.
+The caller must inspect operation, stage, primary issue and post-call issue.
+Output copying retains empty-row presence and rejects a post-call fence error.
+Reply drop and Database/Library cleanup are separate; no row copy retires the
+adapter's existing result buffer. Close-data drops require the same original
+Database's successful Close(10)/stage3. Slots clear before decref.
+
+The private diagnostic fixture covers fresh owned initialization, committed
+restore, failed-open cleanup, original transaction fencing and child-first
+retirement. It uses only fresh fixture files and the same provider/component;
+it is not an installed Python Store or public factory acceptance. No pointer
+wire, Python acceptance FSM or arbitrary SQL entry is introduced. Generic Core
+callers remain responsible for their existing
+operation/Unknown semantics. Normal funding/profile, installed assembly,
+Wasm/worker/wheel and public Python acceptance remain separate and unaccepted.
