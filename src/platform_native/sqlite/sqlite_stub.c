@@ -82,6 +82,8 @@ typedef struct {
   actql_sqlite_changes64_fn changes64;
   actql_sqlite_busy_timeout_fn busy_timeout;
   actql_sqlite_get_autocommit_fn get_autocommit;
+  /* Immutable successful selection, not available capacity or permission. */
+  int64_t selected_heap_bytes;
 } actql_native_sqlite_library;
 
 typedef struct {
@@ -784,6 +786,21 @@ int32_t actql_native_sqlite_database_diagnostic_ceiling(
   actql_native_sqlite_database *database
 ) {
   return database == NULL ? 0 : database->diagnostic_ceiling;
+}
+
+/* Observe this exact Database's original selected Library inside its current
+ * context. Legacy malloc and diagnostic ceilings cannot prove this origin.
+ * No SQL, allocation, configuration, cleanup or authorization is performed. */
+int32_t actql_native_sqlite_database_current_component_matches_heap(
+  actql_native_sqlite_database *database, int64_t expected_heap_bytes
+) {
+  if (database == NULL || !database->opened || database->database == NULL ||
+      expected_heap_bytes < 4096 || expected_heap_bytes > INT_MAX) return 0;
+  actql_native_sqlite_library *library = database->library;
+  return library != NULL && library->selected_component &&
+    library->selected_heap_bytes == expected_heap_bytes &&
+    library->component_owned && library->selected_context_user &&
+    library->selected_api != NULL && actql_library_available(library);
 }
 
 static moonbit_bytes_t actql_copy_diagnostic(const char *text, int32_t ceiling) {
