@@ -240,7 +240,7 @@ test "CLI Source prefix caller preserves typed Work failure including cleanup cu
     @local_crypto.Library,
     @local_host.NativeClientSubmissionReference,
     @local_host.NativeClientSubmittedPreparation,
-    LocalEffectFirstCompilation,
+    LocalEffectPreparedStart,
     @source_owner.ResidentSourceComputeConfiguration,
     String,
   ) -> Result[

@@ -11,6 +11,22 @@ priv struct LocalEffectFirstCompilation {
 }
 
 ///|
+// Private first-preparation assembly only. These are the same adopted Host,
+// selected finite binding, first clock and Retention used for compilation.
+// They are not an accepted Run, Allow cache or a physical work supplier.
+priv struct LocalEffectPreparedStart {
+  original : LocalEffectFirstCompilation
+  host : @local_host.NativeLocalHostConnection
+  crypto : @local_crypto.Library
+  principal : String
+  connection : String
+  run_file : String?
+  run : LocalRunInstallation
+  policy : @local_host.NativeLocalRunPolicyBinding?
+  issued_at : String
+}
+
+///|
 fn local_effect_request_identity(
   preparation : @local_host.NativeClientSubmittedPreparation,
   scope : String,
@@ -131,7 +147,7 @@ fn local_effect_prepare_start(
   reference : @local_host.NativeClientSubmissionReference,
   run : LocalRunInstallation,
   scope : String,
-) -> LocalEffectFirstCompilation? raise ClientStop {
+) -> LocalEffectPreparedStart? raise ClientStop {
   local_effect_prepare_start_with_clocks(
     host,
     settings,
@@ -158,7 +174,7 @@ fn local_effect_prepare_start_with_clocks(
   scope : String,
   utc_now : () -> String,
   epoch_now : () -> Double,
-) -> LocalEffectFirstCompilation? raise ClientStop {
+) -> LocalEffectPreparedStart? raise ClientStop {
   if !local_submit_allowed(host, settings, crypto, scope) {
     stop("LocalSubmissionAuthorizationDenied")
   }
@@ -167,7 +183,8 @@ fn local_effect_prepare_start_with_clocks(
   let observed_at = utc_now()
   // The existing Owner looks up this exact request before issuing a Policy.
   // A concurrent accepted request selects its saved original, not this clock.
-  let (run, now) = match local_run_policy_binding(host, settings, crypto) {
+  let policy = local_run_policy_binding(host, settings, crypto)
+  let (run, now) = match policy {
     None => (installed, observed_at)
     Some(binding) =>
       match
@@ -232,7 +249,81 @@ fn local_effect_prepare_start_with_clocks(
   if !local_submit_allowed(host, settings, crypto, scope) {
     stop("LocalSubmissionAuthorizationDenied")
   }
-  Some(original)
+  Some({
+    original,
+    host,
+    crypto,
+    principal: settings.principal,
+    connection: settings.connection,
+    run_file: settings.run_file,
+    run,
+    policy,
+    issued_at: now,
+  })
+}
+
+///|
+// First acceptance delegates to the same selected finite Owner. An accepted
+// request is reconciled there before any candidate Policy/time is considered.
+// The caller must retain Unknown and never substitute another attempt.
+fn local_effect_accept_prepared_start(
+  start : LocalEffectPreparedStart,
+  reference : @local_host.NativeClientSubmissionReference,
+  preparation : @local_host.NativeClientSubmittedPreparation,
+  now : Double,
+) -> Result[
+  @local_host.NativeClientSubmittedIntentRecord,
+  @local_host.NativeClientSubmittedEffectMaterialsIssue,
+] {
+  let original = start.original
+  match start.policy {
+    Some(binding) =>
+      binding.accept_submitted_effect_values_run_policy(
+        reference,
+        preparation,
+        original.request,
+        original.allowed,
+        original.definition,
+        original.issued,
+        start.issued_at,
+        now,
+      )
+    None => {
+      // Select the existing original ResultPolicy only for the source-free
+      // shape. The accepting Owner repeats its own exact structural/current
+      // checks; this metadata selection issues no funding or permission.
+      let graph = @strategy.checked_effect_computation_graph(
+        @run_host.prepared_client_effect_computation_graph(
+          original.materials.prepared,
+        ),
+      )
+      let run_file = if @strategy.graph_source_free_inputs_complete(graph) &&
+        @strategy.graph_captured_prefix(graph) == 0 &&
+        @strategy.graph_task_count(graph) == 1 &&
+        @strategy.graph_task_input_count(graph, 0) == Some(0) &&
+        @run_host.prepared_client_effect_infer_occurrence(
+          original.materials.prepared,
+        )
+        is None {
+        start.run_file
+      } else {
+        None
+      }
+      start.host.accept_submitted_effect_material_original(
+        start.crypto,
+        start.principal,
+        start.connection,
+        reference,
+        preparation,
+        original.request,
+        original.allowed,
+        original.definition,
+        original.issued,
+        now,
+        source_free_run_file=run_file,
+      )
+    }
+  }
 }
 
 ///|
@@ -246,14 +337,19 @@ fn local_effect_source_prefix(
   crypto : @local_crypto.Library,
   reference : @local_host.NativeClientSubmissionReference,
   preparation : @local_host.NativeClientSubmittedPreparation,
-  original : LocalEffectFirstCompilation,
+  start : LocalEffectPreparedStart,
   configuration : @source_owner.ResidentSourceComputeConfiguration,
   occurrence : String,
 ) -> Result[
   @local_host.NativeClientEffectSourceWork,
   LocalEffectSourcePrefixIssue,
 ] {
-  guard @local_host.native_client_submitted_preparation(preparation)
+  let original = start.original
+  guard physical_equal(start.host, host) &&
+    physical_equal(start.crypto, crypto) &&
+    start.principal == settings.principal &&
+    start.connection == settings.connection &&
+    @local_host.native_client_submitted_preparation(preparation)
     is EffectComputation(prepared) &&
     physical_equal(
       prepared,
@@ -262,16 +358,10 @@ fn local_effect_source_prefix(
     return Err(ForeignPreparation)
   }
   match
-    host.accept_submitted_effect_material_original(
-      crypto,
-      settings.principal,
-      settings.connection,
+    local_effect_accept_prepared_start(
+      start,
       reference,
       preparation,
-      original.request,
-      original.allowed,
-      original.definition,
-      original.issued,
       @env.now().to_double(),
     ) {
     Ok(_) => ()
