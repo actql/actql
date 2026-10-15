@@ -37,7 +37,7 @@ fn begin_reported_model_response(
     ) catch {
       _ => return @bounded.Failed(OutputIdentity, 1, 1)
     }
-    state.phase = CheckPhysicalMetadata(
+    state.progress.phase = CheckPhysicalMetadata(
       prepared,
       response,
       @canonical.start_emit(metadata, writer),
@@ -120,7 +120,7 @@ fn begin_reported_model_value(
     Some(cursor) => cursor
     None => return @bounded.Failed(OutputValue, 1, 1)
   }
-  state.phase = CheckResponse(
+  state.progress.phase = CheckResponse(
     prepared.request,
     response,
     prepared.key_cid,
@@ -137,7 +137,7 @@ fn model_reported_response_owned(
   request : ModelRequest,
   response : ModelObservedResponse,
 ) -> Bool {
-  guard state.pending_response is Some(call) &&
+  guard state.progress.call is Some(call) &&
     call.entry is Some(entry) &&
     entry.slot == request.slot &&
     state.requests.get(entry.slot) is Some(prepared) &&
