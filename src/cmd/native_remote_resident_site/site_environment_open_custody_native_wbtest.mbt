@@ -125,3 +125,203 @@ test "issued active binding cannot replace the original configured Site selectio
   bundles.reclaim(runtime).unwrap() |> ignore
   bundles.close_checked().unwrap()
 }
+
+///|
+test "original Site failure cannot treat an unscoped Library as a close ACK" {
+  let parent = @env.get_env_var("ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT").unwrap()
+  let library_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap()
+  let slot = @slot.open_native_executor_slot(
+    parent + "/site-library-pending.slot",
+  ).unwrap()
+  assert_true(slot.try_acquire().unwrap())
+  // A real legacy handle cannot stand in for the selected installer's original
+  // context. Keep it as pending responsibility; do not translate its refusal
+  // into a physical retirement or a new Library load.
+  let library = @sqlite.load_library(library_path).unwrap()
+  let original = site_environment_open_custody(
+    "original selected Library context unavailable",
+    "original-process",
+    selected_sqlite_library=Some(library),
+  )
+  let custody : HolderSiteEnvironmentOpenCleanup = {
+    original,
+    slot,
+    slot_close_unknown: false,
+    slot_closed: false,
+  }
+  for _ in 0..<2 {
+    assert_false(retry_holder_site_environment_open_cleanup(custody))
+    assert_true(
+      original.selected_sqlite_library is Some(same) &&
+      physical_equal(same, library),
+    )
+    assert_eq(slot.verify_current_hold(), Ok(()))
+    assert_false(custody.slot_closed)
+    assert_false(custody.slot_close_unknown)
+    assert_eq(
+      original.original_failure,
+      "original selected Library context unavailable",
+    )
+  }
+  // Independent fixture retirement only. Production never converts the absent
+  // original context into a Library or Slot close acknowledgement.
+  assert_true(slot.close())
+}
+
+///|
+test "missing original domain retains Site operation Library and inherited Slot" {
+  let parent = @env.get_env_var("ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT").unwrap()
+  let library_path = @env.get_env_var("ACTQL_TEST_NATIVE_SQLITE_LIBRARY").unwrap()
+  let slot = @slot.open_native_executor_slot(
+    parent + "/site-domain-pending.slot",
+  ).unwrap()
+  assert_true(slot.try_acquire().unwrap())
+  let site = host_setup_test_site(1)
+  let current_reads = Ref(0)
+  let scope = begin_holder_effect_host_preparation_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+    () => {
+      current_reads.val += 1
+      true
+    },
+  ).unwrap()
+  scope.current_binding = Some(() => {
+    current_reads.val += 1
+    true
+  })
+  let operation = scope.caller_operation.unwrap()
+  let reserved = @site.site_status(site)
+  let library = @sqlite.load_library(library_path).unwrap()
+  let original = site_environment_open_custody(
+    "original domain unavailable",
+    "original-process",
+    selected_sqlite_library=Some(library),
+    original_setup_scope=Some(scope),
+  )
+  let custody : HolderSiteEnvironmentOpenCleanup = {
+    original,
+    slot,
+    slot_close_unknown: false,
+    slot_closed: false,
+  }
+  for _ in 0..<2 {
+    assert_false(retry_holder_site_environment_open_cleanup(custody))
+    assert_true(
+      original.selected_sqlite_library is Some(same) &&
+      physical_equal(same, library),
+    )
+    assert_true(
+      original.original_setup_scope is Some(same) && physical_equal(same, scope),
+    )
+    assert_true(
+      scope.caller_operation is Some(same) && physical_equal(same, operation),
+    )
+    assert_eq(@site.site_status(site), reserved)
+    assert_eq(current_reads.val, 0)
+    assert_true(scope.retiring)
+    assert_eq(scope.depth, 0)
+    assert_true(scope.operation is None)
+    assert_true(scope.current_binding is None)
+    assert_true(scope.preparation_binding is None)
+    assert_eq(slot.verify_current_hold(), Ok(()))
+    assert_false(custody.slot_closed)
+  }
+  // Independent disposable fixture end, never product proof that a missing
+  // domain closed the selected Library or that its reservation was returned.
+  let (same_operation, _) = take_holder_effect_host_caller_reservation(scope)
+  assert_true(physical_equal(same_operation.unwrap(), operation))
+  assert_true(@site.settle_site_operation(operation))
+  assert_true(slot.close())
+}
+
+///|
+test "cleanup cannot detach a nested caller or invoke another Store current read" {
+  let site = host_setup_test_site(1)
+  let current_reads = Ref(0)
+  let scope = begin_holder_effect_host_preparation_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+    () => true,
+  ).unwrap()
+  let current = () => {
+    current_reads.val += 1
+    true
+  }
+  scope.current_binding = Some(current)
+  let operation = scope.caller_operation.unwrap()
+  assert_true(enter_holder_effect_host_read_scope(scope))
+  assert_eq(scope.depth, 2)
+  let before_cleanup = current_reads.val
+  let reserved = @site.site_status(site)
+  assert_false(quiesce_holder_effect_host_setup_scope(scope))
+  assert_eq(scope.depth, 2)
+  assert_true(scope.operation is Some(same) && physical_equal(same, operation))
+  assert_true(
+    scope.current_binding is Some(same) && physical_equal(same, current),
+  )
+  assert_eq(current_reads.val, before_cleanup)
+  assert_eq(@site.site_status(site), reserved)
+  // The actual nested caller ends its own read; cleanup never forges this step.
+  assert_false(leave_holder_effect_host_read_scope(scope))
+  assert_eq(scope.depth, 1)
+  assert_true(quiesce_holder_effect_host_setup_scope(scope))
+  assert_true(quiesce_holder_effect_host_setup_scope(scope))
+  assert_eq(scope.depth, 0)
+  assert_true(scope.operation is None)
+  assert_true(scope.current_binding is None)
+  assert_eq(current_reads.val, before_cleanup)
+  assert_eq(@site.site_status(site), reserved)
+  let (same_operation, _) = take_holder_effect_host_caller_reservation(scope)
+  assert_true(physical_equal(same_operation.unwrap(), operation))
+  assert_true(@site.settle_site_operation(operation))
+}
+
+///|
+test "pre-I/O setup refusal forwards the same reservation through terminal diagnosis" {
+  let parent = @env.get_env_var("ACTQL_TEST_NATIVE_RUNTIME_BUNDLE_ROOT").unwrap()
+  let slot_path = parent + "/site-terminal-reservation.slot"
+  let slot = @slot.open_native_executor_slot(slot_path).unwrap()
+  assert_true(slot.try_acquire().unwrap())
+  let site = host_setup_test_site(1)
+  let current_reads = Ref(0)
+  let scope = begin_holder_effect_host_preparation_scope(
+    site,
+    Some(host_setup_test_profile()),
+    1024L,
+    () => {
+      current_reads.val += 1
+      true
+    },
+  ).unwrap()
+  let operation = scope.caller_operation.unwrap()
+  let reserved = @site.site_status(site)
+  let original = site_environment_open_custody(
+    "original domain preparation refused",
+    "original-process",
+    original_setup_scope=Some(scope),
+  )
+  // No domain or I/O child was acquired. The actual failure receiver closes
+  // this Slot, but must not settle its caller reservation ahead of diagnosis.
+  let returned = finish_failed_site_environment_open(original, slot)
+  assert_true(original.original_setup_scope is None)
+  assert_true(scope.caller_operation is None)
+  assert_eq(current_reads.val, 0)
+  assert_eq(@site.site_status(site), reserved)
+  match finish_holder_command(returned) {
+    Some(terminal) => {
+      assert_true(physical_equal(terminal.operation, operation))
+      assert_eq(terminal.failure, "original domain preparation refused")
+      assert_eq(@site.site_status(site), reserved)
+      // Independent terminal consumer observes the diagnosis before returning
+      // its disposable fixture's same reservation; no replacement is issued.
+      assert_true(@site.settle_site_operation(terminal.operation))
+    }
+    None => fail("original failure/reservation was discarded")
+  }
+  let next = @slot.open_native_executor_slot(slot_path).unwrap()
+  assert_true(next.try_acquire().unwrap())
+  assert_true(next.close())
+}
