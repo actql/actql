@@ -34,6 +34,8 @@ pub fn[T] begin_original_resource_invalidation(OriginalResourcePark[T], T) -> Re
 
 pub fn[P, C] borrow_backed_execution_read_use(BackedExecutionRegion[P, C], P, C, BackedExecutionDelegation[P, C]) -> Result[BackedExecutionReadUse[P, C], BackedExecutionIssue]
 
+pub fn[T] borrow_original_read_workspace_claim(OriginalReadWorkspaceBinding[T], T, SharedCapacity) -> FundedReadClaim[T]?
+
 pub fn borrow_shared_capacity(SharedCapacity, SharedAllocation) -> Result[SharedBorrow, LedgerIssue]
 
 pub fn[T] cancel_original_current_state_comparison(OriginalCurrentStateComparison[T]) -> Unit
@@ -124,6 +126,8 @@ pub fn[T] issue_model_io_access(ModelIoAdmission[T], T) -> Result[ModelIoAccess,
 
 pub fn[T] issue_model_io_admission(T, Int, Int) -> Result[ModelIoAdmission[T], ModelIoAdmissionIssue]
 
+pub fn[T] issue_original_read_workspace_binding(FundedReadClaim[T], T, SharedCapacity) -> Result[OriginalReadWorkspaceBinding[T], OriginalReadIssue]
+
 pub fn[T] issue_recorded_original_ledger_descriptor(OriginalLedgerIdentity, T) -> Result[OriginalLedgerDescriptor[T], OriginalReadIssue]
 
 pub fn ledger_admission_limits(Ledger) -> LedgerLimits
@@ -173,6 +177,8 @@ pub fn original_ledger_prefix_available(OriginalLedgerIdentity) -> Bool
 pub fn original_ledger_preparation_available(OriginalLedgerIdentity) -> Bool
 
 pub fn original_read_bootstrap_available(Ledger, CapacityReservation) -> Bool
+
+pub fn[T] original_read_workspace_binding_current(OriginalReadWorkspaceBinding[T], T, SharedCapacity) -> Bool
 
 pub fn[T] original_resource_invalidation_current(OriginalResourceInvalidationRequest[T], OriginalResourcePark[T], T) -> OriginalResourceInvalidationRequest[T]?
 
@@ -233,6 +239,8 @@ pub fn retain_allocation(Ledger, Reservation, Int64) -> Result[Holding, LedgerIs
 pub fn retire_original_current_state_document(OriginalCurrentStateDocument) -> Unit
 
 pub fn[T] retire_original_current_state_match(OriginalCurrentStateMatch[T]) -> Unit
+
+pub fn[T] retire_original_read_workspace_binding(OriginalReadWorkspaceBinding[T], T, SharedCapacity) -> Result[Unit, OriginalReadIssue]
 
 pub fn[T] retire_original_resource_park(OriginalResourcePark[T]) -> Result[Unit, OriginalReadIssue]
 
@@ -502,6 +510,8 @@ pub(all) enum OriginalReadIssue {
   CleanupPending
   Resource(LedgerIssue)
 } derive(Eq, @debug.Debug)
+
+type OriginalReadWorkspaceBinding[T]
 
 type OriginalResourceInvalidationRequest[T]
 
