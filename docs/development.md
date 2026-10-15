@@ -228,6 +228,223 @@ belongs in separate reports tied to case IDs and the implementation revision.
 YAML parsing does not establish ActQL semantic validity. The MoonBit checker and
 runtime must verify these same fixtures as implementation becomes available.
 
+## Quickstart
+
+This checkout provides source-built `@actql/*` development packages
+(`0.0.0-development`). The commands below test those artifacts; they do not
+install an npm release or require an `actql` CLI. Use Node.js 22.22.0 (the CI
+version), Git, and the pinned MoonBit toolchain from
+[MoonBit](#moonbit). Consumers of the packed artifacts
+need only Node.js; MoonBit is needed to build them.
+
+From a clean checkout, prepare one package set:
+
+```bash
+npm ci
+npm ci --prefix adapters/connectors/duckdb/node --ignore-scripts
+node scripts/packed-client-packages.mjs "$PWD/_build/client-packages"
+export ACTQL_PACKED_CLIENT_PACKAGES="$PWD/_build/client-packages"
+```
+
+Create a new empty directory outside the checkout, switch to it, and install
+the package set:
+
+```bash
+npm init -y >/dev/null
+npm install --ignore-scripts --no-save "$ACTQL_PACKED_CLIENT_PACKAGES"/*.tgz
+```
+
+### Run a query
+
+Save this program as `query.aql`. Its three orders are explicit Values, so
+this example needs no Connector account or external input registration:
+
+```yaml
+version: actql/0.1
+id: customer.open_orders
+stages:
+  - id: main
+    inputs: {}
+    steps:
+      - values:
+          schema:
+            id: { type: string, nullable: false }
+            customer_id: { type: string, nullable: false }
+            status: { type: string, nullable: false }
+            amount: { type: number, nullable: false }
+          rows:
+            - { id: o1, customer_id: c1, status: open, amount: 120 }
+            - { id: o2, customer_id: c1, status: closed, amount: 30 }
+            - { id: o3, customer_id: c2, status: open, amount: 80 }
+        as: orders
+      - filter: "status = 'open'"
+      - group:
+          by: [ customer_id ]
+          aggregates:
+            order_count: { fn: count }
+            total_amount: { fn: sum, field: amount }
+        as: customer_totals
+    results:
+      main:
+        from: customer_totals
+        fields: [ customer_id, order_count, total_amount ]
+        order_by: [ { total_amount: desc }, { customer_id: asc } ]
+results:
+  main:
+    from: { stage: main, result: main }
+```
+
+Save this Client as `quickstart.mjs`:
+
+```js
+import {readFile, writeFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {connect} from '@actql/node';
+
+const client = await connect({mode: 'local', owner: 'local',
+  durability: 'durable', installation: {directory: resolve('actql-state')}});
+try {
+  const submissionRef = client.newSubmission({nonce: 'customer-open-orders'});
+  await writeFile('submission.json', JSON.stringify(submissionRef) + '\n');
+  const execution = await client.startSource(await readFile('query.aql', 'utf8'),
+    {format: 'yaml', submissionRef});
+  const state = await execution.wait({signal: AbortSignal.timeout(60_000)});
+  if (state.status !== 'succeeded') throw new Error(JSON.stringify(state));
+  const rows = await execution.result('main').all();
+  await writeFile('answer.jsonl', rows.map(row => JSON.stringify(row)).join('\n') + '\n');
+  await writeFile('run.json', JSON.stringify(execution.ref) + '\n');
+} finally {
+  await client.close();
+}
+```
+
+Run it:
+
+```bash
+node quickstart.mjs
+cat answer.jsonl
+```
+
+`answer.jsonl` contains, in this order:
+
+```jsonl
+{"customer_id":"c1","order_count":1,"total_amount":120}
+{"customer_id":"c2","order_count":1,"total_amount":80}
+```
+
+Submission checks the Program; `wait()` follows it to termination and
+`result('main').all()` reads the named Result. `run.json` saves the Run
+reference for `client.attach()`. Reusing the same request ID and Program
+returns that Run rather than executing it again. Keep `actql-state` while
+using its retained Results. The consumer directory belongs to this
+example and can be removed when you no longer need its files or Results.
+
+For two independently bound local databases, run the executable
+[two-source DuckDB JOIN example](../examples/two-source-join/README.md).
+It uses one JSON Program and returns a Named Result through the same public Client.
+
+## Program model examples
+
+The canonical Program model (YAML or JSON) for the operations beyond tables.
+The Graph excerpt is checked against an independent fixture.
+
+Event sequences, graph traversal, vector search, and model tasks return
+relations, so `filter`, `join`, and Effects work on their results like any other
+step. Examples:
+
+**Event sequences.** Detect an alert followed by a remediation, per incident,
+within two hours:
+
+```yaml
+  - sequence:
+      by: [incident_id]
+      time: occurred_at
+      id: event_id
+      pattern:
+        - as: opened
+          where: {eq: [{field: kind}, {literal: alert_opened}]}
+        - as: remediation
+          where: {eq: [{field: kind}, {literal: remediation_started}]}
+      within: 2h
+      contiguity: subsequence
+      overlap: disallow
+    as: detected_sequences
+```
+
+**Graph.** Build definition-keyed nodes and edges, then select edge
+properties. Distinct edge keys preserve parallel edges with the same endpoints:
+
+```yaml
+  - graph:
+      version: actql-graph-constructor/0.1
+      nodes:
+        - name: N
+          from: nodes
+          key: [tenant, id]
+          labels:
+            - {name: Node, properties: {mode: all_columns}}
+            - {name: Person, properties: {mode: no_properties}}
+      edges:
+        - name: E
+          from: edges
+          key: [tenant, key]
+          source: {definition: N, key: [tenant, src]}
+          target: {definition: N, key: [tenant, dst]}
+          labels:
+            - {name: R, properties: {mode: all_columns}}
+            - {name: Link, properties: {mode: no_properties}}
+    as: g
+
+  - match_edges:
+      definition: E
+      label: R
+      where: key > 0
+      fields: [key]
+    as: matched
+```
+
+The [complete Program](../scripts/fixtures/graph-parallel.program.json)
+declares the `nodes` and `edges` Relations. Submit it with the public Client
+above using `format: 'json'`; its `answer` Result contains `{key: 10}` and
+`{key: 11}`. The retired `graph` constructor is refused. Other Graph consumers
+without a current keyed implementation are also refused before Run acceptance;
+see the [current Graph contract](design/graph-contract.md#definition-keyed-graph-profile).
+
+**Vector search.** Rank active runbooks against the original alert embedding:
+
+```yaml
+  - from: active_runbooks
+    nearest:
+      queries: incident_queries
+      query_id: alert_event_id
+      query_vector: embedding
+      candidate_id: runbook_id
+      candidate_vector: embedding
+      metric: cosine
+      k: 3
+    as: runbook_rankings
+```
+
+All three return relations, so they join together in one program: which
+incidents went from alert to remediation, what those services touch downstream,
+and which runbook fits the original alert.
+
+**LLM structuring.** Turn ticket text into typed rows under a versioned
+model-task contract:
+
+```yaml
+  - infer:
+      contract: model-task:ticket-triage.v1
+      input:
+        subject: {field: subject}
+        body: {field: body}
+    as: ticket_triage
+```
+
+The contract fixes the prompt, model selector, input and output schemas, and
+data-handling policy. Its result is a separate relation keyed by the input
+identity, so source fields return only through an explicit join.
+
 ## Local verification
 
 The default is the affected MoonBit core packages on the JS backend, plus

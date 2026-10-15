@@ -42,7 +42,7 @@ for (const name of packages) {
       join(repository, 'packages', name))});
   recordTarball(join(root, `actql-${name}-0.0.0-development.tgz`));
 }
-const quickstart = readmeQuickstart(await readFile(join(repository, 'README.md'), 'utf8'));
+const quickstart = readmeQuickstart(await readFile(join(repository, 'docs', 'development.md'), 'utf8'));
 run('bash', ['-eu', '-c', quickstart.install], root,
   {...environment, ACTQL_PACKED_CLIENT_PACKAGES: root});
 for (const [source, destination] of [

@@ -3,7 +3,7 @@ import {readFile} from 'node:fs/promises';
 import test from 'node:test';
 import {readmeQuickstart} from './readme-quickstart.mjs';
 
-const markdown = await readFile(new URL('../README.md', import.meta.url), 'utf8');
+const markdown = await readFile(new URL('../docs/development.md', import.meta.url), 'utf8');
 test('README has one executable Program, Client, expected output and command set', () => {
   const value = readmeQuickstart(markdown);
   assert.match(value.program, /id: customer.open_orders/u);
