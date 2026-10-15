@@ -238,10 +238,13 @@ try:
         with domain._read_scope(read):
             assert select(h, db, s, sn, k, kn, 4096, C.byref(r)) == 0
             data = fact(4); assert data['issue'] == data['after'] == 0 and data['has_row'] == 1
-            try: host.close()
-            except _OriginalControlError as error:
-                assert not error.unknown and error.fact.issue_family == 5
-            else: raise AssertionError('Host closed with original row/Database custody')
+        # Keep the actual row alias, but allocate a permanent control reply
+        # outside its child scope. Cleanup entry is not a fresh read grant.
+        try: host.close()
+        except _OriginalControlError as error:
+            assert not error.unknown and error.fact.issue_family == 5
+        else: raise AssertionError('Host closed with original row/Database custody')
+        with domain._read_scope(read, cleanup=True):
             raw = (C.c_ubyte * 4096)(); size = I64(-1)
             status = copy_row(r, h, l, db, raw, 4096, C.byref(size))
             Path(plan['output'], 'copy-current-observation.json').write_text(json.dumps({
