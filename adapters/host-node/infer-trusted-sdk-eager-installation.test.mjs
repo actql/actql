@@ -27,3 +27,12 @@ test('generic registration has no fabricated eager startup predicate', () => {
     () => [entry]).get('fixture');
   assert.equal(installed.requireEagerSdkStartup, undefined);
 });
+test('a binder result without the original Host current connection is not eager adoption', () => {
+  const entry = {providerId: 'fixture', invoke() { assert.fail('No Provider'); },
+    validatePrompt() { return true; }, sdkStaticOriginals: Object.freeze({})};
+  let checks = 0;
+  const installed = installModelProviders({clientProgramInstallModelProvider() { return {}; }},
+    () => [entry], undefined, undefined, () => () => checks++).get('fixture');
+  assert.equal(installed.requireEagerSdkStartup, undefined);
+  assert.equal(checks, 0);
+});

@@ -240,7 +240,8 @@ export function installModelProviders(moon, register, assertHostRuntime,
     };
     // The existing Host binder supplies this same-original check, not entry
     // fields or a caller-authored Bool/CID. Preserve static-only registrations.
-    const requireEagerSdkStartup = requireOriginalEagerStartup === undefined ? undefined : () => {
+    const requireEagerSdkStartup = requireOriginalEagerStartup === undefined ||
+      assertTrustedRuntime === undefined ? undefined : () => {
       assertTrustedRuntime();
       requireOriginalEagerStartup();
       assertTrustedRuntime();
