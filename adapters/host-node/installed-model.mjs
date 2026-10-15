@@ -182,6 +182,7 @@ export function installModelProviders(moon, register, assertHostRuntime,
     const originalReadSource = entry.originalReadInstallation, rawSource = entry.rawCaptureSelection;
     const bindingSource = entry.bindingOriginals, quantitySource = entry.quantityCapacity;
     const sdkStaticOriginals = entry.sdkStaticOriginals;
+    let requireOriginalEagerStartup;
     // The Host supplies this private connection, not registration DATA or a
     // packet flag. Missing selected startup is Unavailable, never coverage.
     if (sdkStaticOriginals !== undefined) {
@@ -189,7 +190,8 @@ export function installModelProviders(moon, register, assertHostRuntime,
         throw Object.assign(new TypeError('InferTrustedSdkStaticUnavailable'),
           {code: 'InferTrustedSdkStaticUnavailable'});
       }
-      bindSdkStaticOriginals(sdkStaticOriginals);
+      const requireEager = bindSdkStaticOriginals(sdkStaticOriginals);
+      if (typeof requireEager === 'function') requireOriginalEagerStartup = requireEager;
     }
     if (entryPersistence !== 'async' && typeof invoke !== 'function' ||
         typeof validatePrompt !== 'function' ||
@@ -236,8 +238,16 @@ export function installModelProviders(moon, register, assertHostRuntime,
       assertNewHostRuntime();
       assertTrustedRuntime();
     };
+    // The existing Host binder supplies this same-original check, not entry
+    // fields or a caller-authored Bool/CID. Preserve static-only registrations.
+    const requireEagerSdkStartup = requireOriginalEagerStartup === undefined ||
+      assertTrustedRuntime === undefined ? undefined : () => {
+      assertTrustedRuntime();
+      requireOriginalEagerStartup();
+      assertTrustedRuntime();
+    };
     retained = Object.freeze({provider, originalReadInstallation, rawCaptureSelection,
-      assertTrustedRuntime, assertNewTrustedRuntime,
+      assertTrustedRuntime, assertNewTrustedRuntime, requireEagerSdkStartup,
       bindingOriginals,
       physicalPreflight,
       entryPersistence,
