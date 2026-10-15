@@ -85,7 +85,8 @@ fn local_execute_publish_values(
       stop("LocalOriginalValuesWorkUnavailable")
     }
   }
-  let reply = try {
+  let reply = {
+    errdefer (if !work.close() { stop("LocalValuesCleanupPending") })
     let (_, _) = work
       .publication_invocation(65536, 8192, 64)
       .unwrap_or_else(() => stop("LocalValuesPublicationEvidenceUnavailable"))
@@ -224,13 +225,6 @@ fn local_execute_publish_values(
     local_run_publication_reply(
       definition, request, reference, run, compiled, published,
     )
-  } catch {
-    issue => {
-      if !work.close() {
-        stop("LocalValuesCleanupPending")
-      }
-      raise issue
-    }
   }
   if !work.close() {
     stop("LocalValuesCleanupPending")

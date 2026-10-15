@@ -453,7 +453,10 @@ fn local_submission_start(
     run.store_objects,
     run.store_record_bytes,
   ).unwrap_or_else(() => stop("LocalResultStoreUnavailable"))
-  let reply = try {
+  let reply = {
+    errdefer (if !(store.close() is Ok(true)) {
+      stop("LocalResultStoreCleanupPending")
+    })
     let binding = @local_host.install_native_client_cancellation_publication(
       store,
       run.namespace_id,
@@ -501,7 +504,8 @@ fn local_submission_start(
           local_utc_now,
         )
         .unwrap_or_else(() => stop("LocalOriginalSourceWorkUnavailable"))
-      let result = try {
+      let result = {
+        errdefer (if !work.close() { stop("LocalSourceCleanupPending") })
         for
           task in 1..<@strategy.graph_task_count(
             @run_host.prepared_client_graph(prepared),
@@ -514,25 +518,11 @@ fn local_submission_start(
           work, host, settings, run, configuration, compiled, definition, request,
           reference, attempt, crypto, store,
         )
-      } catch {
-        issue => {
-          if !work.close() {
-            stop("LocalSourceCleanupPending")
-          }
-          raise issue
-        }
       }
       if !work.close() {
         stop("LocalSourceCleanupPending")
       }
       result
-    }
-  } catch {
-    issue => {
-      if !(store.close() is Ok(true)) {
-        stop("LocalResultStoreCleanupPending")
-      }
-      raise issue
     }
   }
   if !(store.close() is Ok(true)) {
