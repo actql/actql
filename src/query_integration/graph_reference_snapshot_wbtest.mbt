@@ -325,12 +325,13 @@ fn reference_snapshot_provider_case(
     1000,
     10000,
   ).unwrap()
-  let constructing = @local_connector.start_managed_provider_with_inputs(
+  let constructing = @local_connector.start_managed_provider_with_inputs_and_execution(
     reference_snapshot_provider(generated, installed),
     generated,
     [@local_connector.managed_provider_relation_input(input)],
     10,
     10000,
+    dispatch_test_limits().local_execution,
   ).unwrap()
   let constructed = reference_snapshot_complete(constructing)
   let (owner, material, normalizing) = if normalized {
@@ -345,12 +346,13 @@ fn reference_snapshot_provider_case(
     let view = @carrier_runtime.material_prepare_view(
       constructed, receiver, 0, graph_owner,
     ).unwrap()
-    let active = @local_connector.start_managed_provider_with_inputs(
+    let active = @local_connector.start_managed_provider_with_inputs_and_execution(
       reference_snapshot_provider(selected, installed),
       selected,
       [@local_connector.managed_provider_carrier_input(view)],
       10,
       10000,
+      dispatch_test_limits().local_execution,
     ).unwrap()
     (receiver, reference_snapshot_complete(active), Some(active))
   } else {

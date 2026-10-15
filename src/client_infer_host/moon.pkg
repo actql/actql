@@ -29,5 +29,6 @@ import {
   "actql/actql/canonical_json" @canonical,
   "actql/actql/physical_resources" @resources,
   "moonbitlang/core/json",
+  "moonbitlang/core/debug",
   "moonbitlang/core/encoding/utf8",
 } for "wbtest"

@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {issueInferTrustedRuntimeView, checkInferTrustedRuntimeView,
-  forgetInferTrustedRuntimeView} from './infer-trusted-runtime-view.mjs';
+  forgetInferTrustedRuntimeView, bindInferTrustedStore,
+  checkInferTrustedStore} from './infer-trusted-runtime-view.mjs';
 
 // Nominal-reference doubles only. No real Host/bootstrap, Resource admission,
 // runtime coverage, physical cleanup or normal numeric profile is exercised.
@@ -156,4 +157,48 @@ test('recheck preserves the earlier descriptor observation when a later trap cha
   assert.equal(checkInferTrustedRuntimeView(view, selected), undefined);
   rejects(() => checkInferTrustedRuntimeView(view, carrier),
     'InferTrustedRuntimeOriginalChanged');
+});
+
+test('Store association is absent until the original Host binds its actual result once', () => {
+  const actual = original();
+  const view = issueInferTrustedRuntimeView(actual);
+  const store = {}, moduleLifetime = {};
+  rejects(() => checkInferTrustedStore(view, actual, store, moduleLifetime),
+    'InferTrustedStoreUnavailable');
+  rejects(() => bindInferTrustedStore(view, actual, undefined, moduleLifetime),
+    'InferTrustedStoreUnavailable');
+  bindInferTrustedStore(view, actual, store, moduleLifetime);
+  checkInferTrustedStore(view, actual, store, moduleLifetime);
+  rejects(() => bindInferTrustedStore(view, actual, store, moduleLifetime),
+    'InferTrustedStoreAlreadyBound');
+  assert.deepEqual(Reflect.ownKeys(view), []);
+});
+
+test('foreign Store module Host or generation cannot replace the same association', () => {
+  const actual = original();
+  const view = issueInferTrustedRuntimeView(actual);
+  const store = {}, moduleLifetime = {};
+  bindInferTrustedStore(view, actual, store, moduleLifetime);
+  for (const [selected, selectedStore, selectedModule, code] of [
+    [actual, {}, moduleLifetime, 'InferTrustedStoreChanged'],
+    [actual, store, {}, 'InferTrustedStoreChanged'],
+    [{...actual, host: {}}, store, moduleLifetime, 'InferTrustedRuntimeOriginalChanged'],
+    [{...actual, generation: {}}, store, moduleLifetime, 'InferTrustedRuntimeOriginalChanged'],
+  ]) {
+    rejects(() => checkInferTrustedStore(view, selected, selectedStore, selectedModule), code);
+  }
+  checkInferTrustedStore(view, actual, store, moduleLifetime);
+});
+
+test('retired view cuts Store references without issuing native or physical cleanup', () => {
+  const actual = original();
+  const view = issueInferTrustedRuntimeView(actual);
+  let closes = 0;
+  const store = {close() { closes++; }};
+  const moduleLifetime = {close() { closes++; }};
+  bindInferTrustedStore(view, actual, store, moduleLifetime);
+  forgetInferTrustedRuntimeView(view, actual.host, actual.generation);
+  rejects(() => checkInferTrustedStore(view, actual, store, moduleLifetime),
+    'InferTrustedRuntimeViewRetired');
+  assert.equal(closes, 0);
 });

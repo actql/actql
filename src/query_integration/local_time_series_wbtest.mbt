@@ -218,7 +218,35 @@ test "time-series control work admits exact and one-short limits" {
   let provider = local_time_series_provider(generated)
   let limits = dispatch_test_limits().local_execution
   assert_true(
-    @local_connector.start_managed_provider(provider, generated, [], 3, 1000)
+    @local_connector.start_managed_provider_with_execution(
+      provider,
+      generated,
+      [],
+      3,
+      1000,
+      {
+        rows: {
+          max_rows: 3,
+          metadata_entries: 0,
+          retained_entries: 0,
+          operation_entries: 0,
+          input_values: {
+            max_nodes: 0,
+            max_text_bytes: 0,
+            max_depth: 0,
+            max_work: 0,
+          },
+          output_values: {
+            max_nodes: 0,
+            max_text_bytes: 0,
+            max_depth: 0,
+            max_work: 0,
+          },
+        },
+        max_work: 0,
+        max_frames: 0,
+      },
+    )
     is Err(_),
   )
   assert_true(
