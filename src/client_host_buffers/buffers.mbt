@@ -142,7 +142,10 @@ fn open_pool_on_vm_capacity(
   max_slots : Int,
   max_wire_bytes : Int,
 ) -> Result[BufferPool, BufferIssue] {
-  if total_bytes <= 0L || max_slots < 1 || max_slots > 1024 || max_wire_bytes < 1 {
+  if total_bytes <= 0L ||
+    max_slots < 1 ||
+    max_slots > 1024 ||
+    max_wire_bytes < 1 {
     return Err(InvalidLimits)
   }
   if @resources.shared_capacity_usage(capacity).closing {
@@ -176,13 +179,16 @@ pub fn open_pool_on_imported_vm_capacity(
   max_slots : Int,
   max_wire_bytes : Int,
 ) -> Result[BufferPool, BufferIssue] {
-  match @resources.require_imported_child_vm_capacity(original, ledger, capacity) {
+  match
+    @resources.require_imported_child_vm_capacity(original, ledger, capacity) {
     Ok(_) => ()
     Err(@resources.Resource(issue)) => return Err(Resource(issue))
     Err(@resources.ForeignOriginal) => return Err(ForeignOwner)
     Err(_) => return Err(Resource(@resources.ChildFundingUnavailable))
   }
-  open_pool_on_vm_capacity(ledger, capacity, total_bytes, max_slots, max_wire_bytes)
+  open_pool_on_vm_capacity(
+    ledger, capacity, total_bytes, max_slots, max_wire_bytes,
+  )
 }
 
 ///|
@@ -303,7 +309,11 @@ pub fn supply_buffer_output(
   if !physical_equal(pool, slot.owner) {
     return Err(ForeignOwner)
   }
-  if !slot.published || pool.closing || slot.retired || slot.cleaned || slot.input_complete {
+  if !slot.published ||
+    pool.closing ||
+    slot.retired ||
+    slot.cleaned ||
+    slot.input_complete {
     return Err(Closed)
   }
   if !slot.output_only || wire.length() > slot.wire_length {
@@ -336,8 +346,9 @@ pub fn buffer_output_limit(pool : BufferPool, slot : BufferSlot) -> Int? {
 
 ///|
 pub fn lookup_buffer(pool : BufferPool, serial : Int) -> BufferSlot? {
-  pool.slots.iter().find_first(slot =>
-    slot.serial == serial && slot.published && !slot.cleaned)
+  pool.slots
+  .iter()
+  .find_first(slot => slot.serial == serial && slot.published && !slot.cleaned)
 }
 
 ///|
@@ -353,7 +364,8 @@ pub fn fill_buffer(
   if !physical_equal(pool, slot.owner) {
     return Err(ForeignOwner)
   }
-  if !slot.published || pool.closing ||
+  if !slot.published ||
+    pool.closing ||
     slot.retired ||
     slot.cleaned ||
     slot.input_complete ||
@@ -389,7 +401,8 @@ pub fn seal_buffer(
   if !physical_equal(pool, slot.owner) {
     return Err(ForeignOwner)
   }
-  if !slot.published || pool.closing ||
+  if !slot.published ||
+    pool.closing ||
     slot.retired ||
     slot.cleaned ||
     slot.input_complete ||
@@ -476,7 +489,11 @@ pub fn borrow_buffer(
   if !physical_equal(pool, slot.owner) {
     return Err(ForeignOwner)
   }
-  if !slot.published || pool.closing || slot.retired || slot.cleaned || !slot.input_complete {
+  if !slot.published ||
+    pool.closing ||
+    slot.retired ||
+    slot.cleaned ||
+    !slot.input_complete {
     return Err(Closed)
   }
   if pool.slots.length() + pool.live_borrows >= pool.max_slots {
@@ -571,7 +588,8 @@ pub fn buffer_pool_usage(pool : BufferPool) -> @resources.SharedCapacityUsage {
   {
     capacity: pool.total_bytes,
     allocated: pool.allocated_bytes,
-    closing: pool.closing || @resources.shared_capacity_usage(pool.capacity).closing,
+    closing: pool.closing ||
+    @resources.shared_capacity_usage(pool.capacity).closing,
   }
 }
 

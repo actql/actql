@@ -29,18 +29,25 @@ test "imported VM pool does not reserve the same fixed memory twice" {
 ///|
 test "imported VM pool rejects unfunded external copy before publishing it" {
   let ledger = @resources.create_ledger({
-    planning_work: 0, attempts: 4, holdings: 0,
-    transfer_bytes: 0L, retained_bytes: 0L, execution_bytes: 32L,
+    planning_work: 0,
+    attempts: 4,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: 0L,
+    execution_bytes: 32L,
   }).unwrap()
   let vm = @resources.reserve_shared_capacity(ledger, 16L).unwrap()
   let host = @resources.reserve_shared_capacity(ledger, 16L).unwrap()
   let pool = open_pool_on_vm_capacity(ledger, vm, 12L, 4, 6).unwrap()
   let cleanups = Ref(0)
   let before = @resources.ledger_usage(ledger)
-  assert_true(reserve_buffer(pool, 4, 1L, () => {
-    cleanups.val += 1
-    true
-  }) is Err(Resource(_)))
+  assert_true(
+    reserve_buffer(pool, 4, 1L, () => {
+      cleanups.val += 1
+      true
+    })
+    is Err(Resource(_)),
+  )
   assert_eq(cleanups.val, 0)
   assert_eq(buffer_pool_usage(pool).allocated, 0L)
   assert_eq(@resources.shared_capacity_usage(vm).allocated, 0L)
@@ -54,8 +61,12 @@ test "imported VM pool rejects unfunded external copy before publishing it" {
 ///|
 test "imported VM pool external copy retains independent capacity until physical cleanup" {
   let ledger = @resources.create_ledger({
-    planning_work: 0, attempts: 4, holdings: 0,
-    transfer_bytes: 0L, retained_bytes: 0L, execution_bytes: 36L,
+    planning_work: 0,
+    attempts: 4,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: 0L,
+    execution_bytes: 36L,
   }).unwrap()
   let vm = @resources.reserve_shared_capacity(ledger, 16L).unwrap()
   let host = @resources.reserve_shared_capacity(ledger, 16L).unwrap()
@@ -96,8 +107,12 @@ test "imported VM pool external copy retains independent capacity until physical
 ///|
 test "imported VM pools share original backing but close only their own suballocations" {
   let ledger = @resources.create_ledger({
-    planning_work: 0, attempts: 2, holdings: 0,
-    transfer_bytes: 0L, retained_bytes: 0L, execution_bytes: 24L,
+    planning_work: 0,
+    attempts: 2,
+    holdings: 0,
+    transfer_bytes: 0L,
+    retained_bytes: 0L,
+    execution_bytes: 24L,
   }).unwrap()
   let vm = @resources.reserve_shared_capacity(ledger, 16L).unwrap()
   let host = @resources.reserve_shared_capacity(ledger, 8L).unwrap()

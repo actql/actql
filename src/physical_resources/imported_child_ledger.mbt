@@ -333,8 +333,10 @@ pub fn require_imported_child_vm_capacity(
   if !value.taken {
     return Err(Unavailable)
   }
-  guard value.ledger is Some(original) && physical_equal(original, ledger) &&
-    value.wasm_capacity is Some(vm) && physical_equal(vm, capacity) else {
+  guard value.ledger is Some(original) &&
+    physical_equal(original, ledger) &&
+    value.wasm_capacity is Some(vm) &&
+    physical_equal(vm, capacity) else {
     return Err(ForeignOriginal)
   }
   check_imported_child_admission(ledger).map_err(issue => Resource(issue))
