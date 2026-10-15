@@ -243,7 +243,10 @@ try:
                 assert not error.unknown and error.fact.issue_family == 5
             else: raise AssertionError('Host closed with original row/Database custody')
             raw = (C.c_ubyte * 4096)(); size = I64(-1)
-            assert copy_row(r, h, l, db, raw, 4096, C.byref(size)) != 0
+            status = copy_row(r, h, l, db, raw, 4096, C.byref(size))
+            Path(plan['output'], 'copy-current-observation.json').write_text(json.dumps({
+                'status': status, 'length': size.value, 'prefix_hex': bytes(raw[:8]).hex()}) + '\n')
+            assert status != 0, {'copy_status': status, 'length': size.value}
             assert size.value == -1 and bytes(raw[:8]) == bytes(8)
             release_reply()
     else:
