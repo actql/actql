@@ -260,6 +260,7 @@ test "original async call polls without work and retains nullable response until
       release,
       @model.PhysicalResponse(async_response_observation(metadata)),
     )
+    assert_true(!unknown_calls(active))
     guard fixture_finish(active, initial_work=prefix) is AwaitIo(work~) else {
       abort("pending original")
     }
@@ -273,6 +274,7 @@ test "original async call polls without work and retains nullable response until
     guard fixture_finish(active, initial_work=work) is Settling(0, work=settled) else {
       abort("original response settlement")
     }
+    assert_true(!unknown_calls(active))
     let wire = async_settlement_wire(active)
     assert_true(
       wire.contains("\"version\":\"actql-model-invocation-evidence/0.2\""),
@@ -344,6 +346,9 @@ test "async unknown keeps partial usage and original cleanup retry without anoth
     fixture_finish(active, initial_work=work)
     is Failed(Model(@model.UnknownCalls), ..),
   )
+  // Adoption records the actual Unknown; it must not make the original
+  // observation false while its physical cleanup remains outstanding.
+  assert_true(unknown_calls(active))
   let model = active.model.unwrap()
   assert_eq(@model.stopped_model_attempt_count(model), Some(1))
   let before = @model.model_execution_resource_usage(model)
@@ -356,6 +361,7 @@ test "async unknown keeps partial usage and original cleanup retry without anoth
   assert_true(before.reserved_retention_bytes > 0L)
   assert_true(!cleanup(active).unwrap())
   assert_eq(cleaned, [false])
+  assert_true(unknown_calls(active))
   assert_true(acquire_output(active) is None)
   assert_true(acquire_capture(active) is None)
   release.val = true

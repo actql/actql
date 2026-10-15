@@ -122,6 +122,13 @@ int actql_native_owned_transfer(actql_owned_capacity *lease, uint64_t generation
     return status;
 }
 
+int actql_native_owned_transfer_original_domain(actql_owned_capacity *lease) {
+    if (lease == NULL || !lease->extent_domain) return ACTQL_OWNED_INVALID;
+    /* Immutable fields of this exact original. The Native caller already
+     * validated its nominal domain/borrow/current through the existing Owner. */
+    return actql_native_owned_transfer(lease, lease->generation, lease->recipe);
+}
+
 int actql_native_owned_enter(actql_owned_capacity *lease) {
     if (lease == NULL || (current_capacity != NULL && current_capacity != lease))
         return ACTQL_OWNED_INVALID;
@@ -150,6 +157,68 @@ int actql_native_owned_leave(actql_owned_capacity *lease) {
 
 actql_owned_capacity *actql_native_owned_current(void) {
     return current_capacity;
+}
+
+int actql_native_owned_control_scope_clear(void) {
+    return current_capacity == NULL && current_depth == 0 ? 1 : 0;
+}
+
+int actql_native_owned_control_bytes(actql_owned_capacity *lease, uint64_t *out) {
+    if (lease == NULL || out == NULL || *out != 0) return ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
+    lock_capacity(lease);
+    if (foreign_domain_process(lease)) {
+        unlock_capacity(lease);
+        return ACTQL_OWNED_BUSY;
+    }
+    *out = (uint64_t)(lease->control_pages * lease->page_size);
+    unlock_capacity(lease);
+    return ACTQL_OWNED_OK;
+}
+
+int actql_native_owned_rounded_bytes(actql_owned_capacity *lease, size_t bytes,
+                                    uint64_t *out) {
+    if (lease == NULL || out == NULL || *out != 0) return ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(lease)) return ACTQL_OWNED_BUSY;
+    lock_capacity(lease);
+    size_t pages = 0;
+    int status = ACTQL_OWNED_INVALID;
+    if (foreign_domain_process(lease)) {
+        status = ACTQL_OWNED_BUSY;
+    } else if (round_pages(bytes, lease->page_size, &pages) && pages <= lease->page_count) {
+        *out = (uint64_t)(pages * lease->page_size);
+        status = ACTQL_OWNED_OK;
+    }
+    unlock_capacity(lease);
+    return status;
+}
+
+int actql_native_owned_domain_matches_view(actql_owned_capacity *lease,
+    const actql_owned_extent_view *view, int64_t original_process) {
+    if (lease == NULL || view == NULL || original_process != (int64_t)getpid() ||
+        !view->domain_live || !view->map_confirmed || view->mapping == NULL ||
+        lease != (void *)((unsigned char *)view->mapping + view->payload_offset) ||
+        !lease->extent_domain || !lease->fd_backed ||
+        lease->domain_origin_pid != original_process ||
+        lease->generation != view->extent.generation ||
+        lease->backing_device != view->extent.device ||
+        lease->backing_inode != view->extent.inode ||
+        lease->length != view->payload_length ||
+        memcmp(lease->recipe, view->extent.recipe, 32) != 0)
+        return ACTQL_OWNED_INVALID;
+    return ACTQL_OWNED_OK;
+}
+
+int actql_native_owned_domain_has_child(actql_owned_capacity *lease,
+    int64_t original_process, int64_t child_process) {
+    if (lease == NULL || original_process != (int64_t)getpid() ||
+        child_process <= 0 || child_process > INT32_MAX ||
+        !lease->extent_domain || !lease->transferred ||
+        lease->domain_origin_pid != original_process ||
+        atomic_load_explicit(&lease->domain_borrower_pid, memory_order_acquire) != (int)child_process)
+        return ACTQL_OWNED_INVALID;
+    /* Do not take a child's possibly abandoned allocator lock here. */
+    return ACTQL_OWNED_OK;
 }
 
 int actql_native_owned_allocate(actql_owned_capacity *lease, size_t bytes,
