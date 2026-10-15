@@ -79,12 +79,13 @@ fn events_asof_material(
       limits.guards,
     ).unwrap(),
   )
-  let construction = @local_connector.start_managed_provider(
+  let construction = @local_connector.start_managed_provider_with_execution(
     events_provider,
     events_generated,
     [external],
     10,
     1000,
+    limits.local_execution,
   ).unwrap()
   let mut material = None
   for _ in 0..<1000 {
