@@ -5,6 +5,7 @@ struct NativeLocalPackagedRuntime {
   mut manifest : @host.ClientNativeLocalRuntime?
   mut assets : @host.ClientLocalProductAssets?
   roots : Array[@filesystem.Root]
+  directories : Array[@filesystem.NativeDirectoryObservation]
   witnesses : Array[
     (@filesystem.Root, String, @filesystem.NativeFileGeneration),
   ]
@@ -54,6 +55,19 @@ fn[T] local_runtime_result(
     Ok(value) => value
     Err(issue) => local_runtime_stop(issue)
   }
+}
+
+///|
+// Retain the acquired Root before observing its namespace so that even a
+// failed temporary namespace close stays with the original cleanup carrier.
+fn local_runtime_retain_root(
+  runtime : NativeLocalPackagedRuntime,
+  root : @filesystem.Root,
+) -> Unit raise LocalRuntimeStop {
+  runtime.roots.push(root)
+  let original = root.observe_directory().map_err(issue => Physical(issue))
+    |> local_runtime_result
+  runtime.directories.push(original)
 }
 
 ///|
@@ -139,7 +153,8 @@ pub fn open_native_local_packaged_runtime(
   let runtime : NativeLocalPackagedRuntime = {
     manifest: None,
     assets: None,
-    roots: [root],
+    roots: [],
+    directories: [],
     witnesses: [],
     reader: None,
     reader_open_failure: None,
@@ -149,6 +164,7 @@ pub fn open_native_local_packaged_runtime(
     closed: false,
   }
   let result = try {
+    local_runtime_retain_root(runtime, root)
     let generation = local_runtime_result(
       root
       .inspect_generation("local-runtime.json")
@@ -172,7 +188,7 @@ pub fn open_native_local_packaged_runtime(
       let parts = entry.path.split("/").map(part => part.to_owned()).to_array()
       let parent = root.open_child(parts[0]).map_err(issue => Physical(issue))
         |> local_runtime_result
-      runtime.roots.push(parent)
+      local_runtime_retain_root(runtime, parent)
       let collect = parts[0] == "data"
       let body = local_runtime_read_member(
         runtime,
@@ -220,19 +236,27 @@ pub fn open_native_local_packaged_runtime(
 }
 
 ///|
-/// Verify the original opened file witnesses, never fresh-stat replacement.
+/// Verify both original named directories and opened file witnesses. An open
+/// fd in a renamed package is not the package currently at its original path.
 pub fn NativeLocalPackagedRuntime::check_current(
   self : NativeLocalPackagedRuntime,
 ) -> Result[Unit, NativeLocalPackagedRuntimeIssue] {
   if !self.ready ||
     self.closed ||
     self.reader is Some(_) ||
-    self.reader_open_failure is Some(_) ||
-    !self.witnesses.all(w => w.0.verify_generation(w.1, w.2)) {
-    Err(Changed)
-  } else {
-    Ok(())
+    self.reader_open_failure is Some(_) {
+    return Err(Changed)
   }
+  for directory in self.directories {
+    match directory.check_current() {
+      Err(issue) => return Err(Physical(issue))
+      Ok(_) => ()
+    }
+  }
+  if !self.witnesses.all(w => w.0.verify_generation(w.1, w.2)) {
+    return Err(Changed)
+  }
+  Ok(())
 }
 
 ///|
@@ -302,6 +326,7 @@ pub fn NativeLocalPackagedRuntime::close(
   // Drop transient observations/material only after every original physical
   // close is acknowledged. Pending cleanup above keeps the same references.
   self.witnesses.clear()
+  self.directories.clear()
   self.manifest = None
   self.assets = None
   self.sqlite = ""
