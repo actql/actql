@@ -4,7 +4,7 @@ import {spawn} from 'node:child_process';
 import {mkdtempSync, readFileSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
-import {runRestoredMutation} from './mutation-command.mjs';
+import {runRestoredMutation, requireMutationDetection} from './mutation-command.mjs';
 
 const helper = new URL('./mutation-command.mjs', import.meta.url).href;
 const source = Buffer.from('original\r\n\u0065\u0301\n');
@@ -17,6 +17,42 @@ function fixture(t) {
   return {directory, file, mode: statSync(file).mode};
 }
 const options = {maxBuffer: 4 * 1024 * 1024};
+
+test('mutation snapshot observer sees actual changed bytes before the child starts', async t => {
+  const {file, mode} = fixture(t);
+  let observed = false;
+  const result = await runRestoredMutation(file, source, mutant, process.execPath,
+    ['-e', 'process.exit(1)'], options, () => {
+      assert.deepEqual(readFileSync(file), mutant);
+      observed = true;
+    });
+  assert.equal(observed, true);
+  assert.equal(result.status, 1);
+  assert.deepEqual(readFileSync(file), source);
+  assert.equal(statSync(file).mode, mode);
+});
+
+test('snapshot observer failure restores bytes without starting the child', async t => {
+  const {file, directory, mode} = fixture(t);
+  const started = join(directory, 'child-started');
+  const failure = new Error('SnapshotFailed');
+  await assert.rejects(runRestoredMutation(file, source, mutant, process.execPath,
+    ['-e', `require('node:fs').writeFileSync(${JSON.stringify(started)},'started');`], options,
+    () => { throw failure; }), error => error === failure);
+  assert.throws(() => readFileSync(started), {code: 'ENOENT'});
+  assert.deepEqual(readFileSync(file), source);
+  assert.equal(statSync(file).mode, mode);
+});
+
+test('snapshot observer cannot cause foreign bytes to be compiled or overwritten', async t => {
+  const {file, directory} = fixture(t);
+  const started = join(directory, 'child-started');
+  await assert.rejects(runRestoredMutation(file, source, mutant, process.execPath,
+    ['-e', `require('node:fs').writeFileSync(${JSON.stringify(started)},'started');`], options,
+    () => { writeFileSync(file, 'foreign'); }), /changed externally/);
+  assert.throws(() => readFileSync(started), {code: 'ENOENT'});
+  assert.equal(readFileSync(file, 'utf8'), 'foreign');
+});
 
 for (const code of [0, 1, 7]) test(`mutation child exit ${code} restores exact bytes and mode`, async t => {
   const {file, mode} = fixture(t);
@@ -99,6 +135,7 @@ process.exitCode=result.interrupted||result.signal||result.error?1:0;`;
     const result = JSON.parse(stdout.trim());
     assert.equal(result.interrupted, signal);
     assert.match(result.output, /Total tests: 1, passed: 0, failed: 1/);
+    assert.throws(() => requireMutationDetection(result, result.output), /Process failure/);
     assert.equal(readFileSync(closed, 'utf8'), 'closed');
     assert.deepEqual(readFileSync(file), source);
     assert.equal(statSync(file).mode, mode);

@@ -17,14 +17,28 @@ const treeAtHead = () => gitTree(repository,
 
 const boundedDirectory = 'src/platform_native/bounded_files';
 const boundedPath = `${boundedDirectory}/moon.pkg`;
-const boundedDigest = 'd3226436c6183cae948253152b6f49c386881ae9f3653c7e970183d7d1b99f57';
+const priorBoundedDigest = 'd3226436c6183cae948253152b6f49c386881ae9f3653c7e970183d7d1b99f57';
+const boundedDigest = '383a532bbbee2be32d5c4c7ccab853fa392892667451095a7b553c495d5c578d';
 const boundedRequest = {path: boundedPath, digest: boundedDigest, target: 'js', toolchainDigest};
 
-test('bounded Root review binds the exact two test predicates and every source member', () => {
+test('bounded Root review preserves prior bytes and binds the scoped cleanup predicate and every source member', () => {
   const tree = treeAtHead(), current = tree.read(boundedPath);
   const author = 'f089341cd29c2989c1e462333ca2e382fc9c9e55';
   execFileSync('git', ['merge-base', '--is-ancestor', author, 'HEAD'], {cwd: repository});
-  assert.deepEqual(current, execFileSync('git', ['show', `${author}:${boundedPath}`], {cwd: repository}));
+  const before = execFileSync('git', ['show', `${author}:${boundedPath}`], {cwd: repository});
+  assert.equal(hash(before), priorBoundedDigest);
+  const scoped = 'ea73884358631b4c6de7ef89d8db2515a9db6788';
+  const parent = '7b602b9152720cb1264a6209b7c130d14f7830eb';
+  assert.equal(execFileSync('git', ['show', '-s', '--format=%P', scoped],
+    {cwd: repository, encoding: 'utf8'}).trim(), parent);
+  execFileSync('git', ['merge-base', '--is-ancestor', scoped, 'HEAD'], {cwd: repository});
+  assert.deepEqual(before, execFileSync('git', ['show', `${parent}:${boundedPath}`], {cwd: repository}));
+  const introduced = execFileSync('git', ['show', `${scoped}:${boundedPath}`], {cwd: repository});
+  const selector = '    "scoped_cleanup_native_wbtest.mbt": [ "native" ],\n';
+  assert.equal(introduced.toString().split(selector).length, 2);
+  assert.equal(introduced.toString().replace(selector, ''), before.toString());
+  assert.deepEqual(current, introduced);
+  assert.deepEqual(packageImports(current.toString()).imports, packageImports(before.toString()).imports);
   assert.equal(hash(current), boundedDigest);
   assert.equal(hash(tree.read('toolchain.json')), toolchainDigest);
   for (const selector of [
@@ -48,7 +62,7 @@ test('bounded Root review binds the exact two test predicates and every source m
 test('bounded Root review refuses changed selectors, options, path, target and toolchain', () => {
   assert.equal(packageConfigurationReviewFor(boundedRequest)?.rule,
     'literal-native-options-with-bound-source-membership');
-  for (const change of [{digest: '0'.repeat(64)}, {path: './'+boundedPath},
+  for (const change of [{digest: priorBoundedDigest}, {digest: '0'.repeat(64)}, {path: './'+boundedPath},
     {target: 'native'}, {target: 'wasm'}, {toolchainDigest: '0'.repeat(64)}]) {
     assert.equal(packageConfigurationReviewFor({...boundedRequest, ...change}), null);
   }
@@ -127,13 +141,14 @@ test('Journal import, selector and unknown-option changes remain unresolved', ()
 
 const observationDirectory = 'src/platform_native/filesystem';
 const observationPath = `${observationDirectory}/moon.pkg`;
-const observationDigest = 'bb816061434a3d23d1446366e137d3e64539cd0ef6ae191bea81f71f93400a86';
+const readLayoutDigest = 'bb816061434a3d23d1446366e137d3e64539cd0ef6ae191bea81f71f93400a86';
+const observationDigest = '98c10419328d72de804dd3e65aea84346db093880edce96cd679e6fbc55a6460';
 const priorObservationDigest = '765802bc29d68ff7e87d427d3e68555fb648387de56ad49b2052fdff412f376b';
 const oldObservationDigest = '6968c40ed7d166f9d94e00af31d42654efd27afc8e7ceaca2f1aaead3a8f5e0f';
 const observationRequest = {path: observationPath, digest: observationDigest,
   target: 'js', toolchainDigest};
 
-test('package observation review preserves six original predicates and binds four read-layout predicates', () => {
+test('package observation review preserves historical predicates and binds scoped acquisition selectors', () => {
   const tree = treeAtHead(), current = tree.read(observationPath);
   const intro = '869310a0b34a7a704fbb61f2aec9af2f15b9ffa9';
   const original = '11b84334744819e4fb1bcc65382225bd8fc949d2';
@@ -169,9 +184,51 @@ test('package observation review preserves six original predicates and binds fou
   execFileSync('git', ['merge-base', '--is-ancestor', layoutIntro, 'HEAD'], {cwd: repository});
   assert.deepEqual(execFileSync('git', ['show', `${layoutParent}:${observationPath}`],
     {cwd: repository}), introduced);
-  assert.deepEqual(current, execFileSync('git', ['show', `${layoutIntro}:${observationPath}`],
+  const layoutIntroduced = execFileSync('git', ['show', `${layoutIntro}:${observationPath}`],
+    {cwd: repository});
+  assert.equal(hash(layoutIntroduced), readLayoutDigest);
+  const scopedIntro = '4a62dc0cfc30be562405d2fc31bdfa1556bfae9c';
+  const scopedParent = '8d93c89d48e5991d9a890648db023a4336ff8979';
+  assert.equal(execFileSync('git', ['show', '-s', '--format=%P', scopedIntro],
+    {cwd: repository, encoding: 'utf8'}).trim(), scopedParent);
+  execFileSync('git', ['merge-base', '--is-ancestor', scopedIntro, 'HEAD'], {cwd: repository});
+  assert.deepEqual(execFileSync('git', ['show', `${scopedParent}:${observationPath}`],
+    {cwd: repository}), layoutIntroduced);
+  const scopedIntroduced = execFileSync('git', ['show', `${scopedIntro}:${observationPath}`],
+    {cwd: repository});
+  const refusalIntro = '6db6f2ce88454b80c21dbb3f5fb0bb9e7127d003';
+  const refusalParent = '380473dc6794b09bd561946aa8c7d9c2bcd9d1b4';
+  assert.equal(execFileSync('git', ['show', '-s', '--format=%P', refusalIntro],
+    {cwd: repository, encoding: 'utf8'}).trim(), refusalParent);
+  execFileSync('git', ['merge-base', '--is-ancestor', scopedIntro, refusalParent], {cwd: repository});
+  execFileSync('git', ['merge-base', '--is-ancestor', refusalIntro, 'HEAD'], {cwd: repository});
+  assert.deepEqual(execFileSync('git', ['show', `${refusalParent}:${observationPath}`],
+    {cwd: repository}), scopedIntroduced);
+  assert.deepEqual(current, execFileSync('git', ['show', `${refusalIntro}:${observationPath}`],
     {cwd: repository}));
   restored = current.toString();
+  for (const [member, targets] of [
+    ['scoped_read_unselected_native_wbtest.mbt', '[ "native" ]'],
+    ['scoped_read_unsupported_wbtest.mbt', '[ "not", "native" ]'],
+  ]) {
+    const selector = `    "${member}": ${targets},\n`;
+    assert.equal(restored.split(selector).length, 2);
+    restored = restored.replace(selector, '');
+    assert(tree.entries.has(`${observationDirectory}/${member}`));
+  }
+  assert.equal(restored, scopedIntroduced.toString());
+  restored = scopedIntroduced.toString();
+  for (const [member, targets] of [
+    ['scoped_read_native.mbt', '[ "native" ]'],
+    ['scoped_read_unsupported.mbt', '[ "not", "native" ]'],
+  ]) {
+    const selector = `    "${member}": ${targets},\n`;
+    assert.equal(restored.split(selector).length, 2);
+    restored = restored.replace(selector, '');
+    assert(tree.entries.has(`${observationDirectory}/${member}`));
+  }
+  assert.equal(restored, layoutIntroduced.toString());
+  restored = layoutIntroduced.toString();
   for (const [member, targets] of [
     ['read_layout_native.mbt', '[ "native" ]'],
     ['read_layout_native_wbtest.mbt', '[ "native" ]'],
@@ -207,6 +264,7 @@ test('package observation review refuses old bytes, foreign path, target and too
   assert.equal(packageConfigurationReviewFor(observationRequest)?.rule,
     'literal-native-options-with-bound-source-membership');
   for (const change of [{digest: oldObservationDigest}, {digest: priorObservationDigest},
+    {digest: readLayoutDigest},
     {digest: '0'.repeat(64)},
     {path: './src/platform_native/filesystem/moon.pkg'},
     {path: 'src/unreviewed_filesystem/moon.pkg'}, {target: 'native'}, {target: 'wasm'},
