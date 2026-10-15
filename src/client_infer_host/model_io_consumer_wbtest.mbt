@@ -9,6 +9,7 @@ fn original_io_consumer_fixture(
   terminal? : @model.ModelPhysicalCallPoll = @model.PhysicalResponse(
     async_response_observation(None),
   ),
+  cleanup_calls? : Array[Bool] = [],
 ) -> (
   Execution,
   Int64,
@@ -24,7 +25,7 @@ fn original_io_consumer_fixture(
     calls,
     Ref(0),
     Ref(0),
-    [],
+    cleanup_calls,
     Ref(true),
     release,
     response,
@@ -99,12 +100,14 @@ test "original Model Unknown IO close cannot issue holding settlement or repeat 
   let admission = @resources.issue_model_io_admission(installation, 1, 1).unwrap()
   let access = @resources.issue_model_io_access(admission, installation).unwrap()
   let calls = Ref(0)
+  let cleanup_calls : Array[Bool] = []
   let (original, work, ledger, _) = original_io_consumer_fixture(
     calls,
     Ref(true),
     Ref(true),
     Ref(true),
     terminal=@model.PhysicalUnknown({ input_tokens: None, output_tokens: None, }),
+    cleanup_calls~,
   )
   @model.bind_prepared_model_io_access(
     prepared_call_set(original).unwrap(),
@@ -120,7 +123,9 @@ test "original Model Unknown IO close cannot issue holding settlement or repeat 
   // Physical cleanup alone is not the original Store/Journal settlement ACK.
   // Preserve this intentionally unresolved in-memory double, not a live IO/DB.
   assert_false(cleanup(original).unwrap())
+  assert_eq(cleanup_calls.length(), 1)
   assert_false(cleanup(original).unwrap())
+  assert_eq(cleanup_calls.length(), 1)
   assert_eq(calls.val, 1)
   assert_eq(
     @resources.ledger_usage(ledger).reserved_retention_bytes,
