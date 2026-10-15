@@ -272,24 +272,6 @@ pub fn managed_provider_capacity(
 }
 
 ///|
-pub fn start_managed_provider(
-  provider : ManagedProvider,
-  sequence : @execution.GeneratedSequence,
-  inputs : Array[@execution.ProducerRead],
-  max_rows : Int,
-  max_value_bytes : Int,
-) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
-  start_managed_provider_with_execution(
-    provider,
-    sequence,
-    inputs,
-    max_rows,
-    max_value_bytes,
-    unavailable_provider_execution_limits(max_rows),
-  )
-}
-
-///|
 pub fn start_managed_provider_with_execution(
   provider : ManagedProvider,
   sequence : @execution.GeneratedSequence,
@@ -304,25 +286,6 @@ pub fn start_managed_provider_with_execution(
     max_rows,
     max_value_bytes,
     execution,
-  )
-}
-
-///|
-/// Start a provider with the exact ordered mixed-Carrier input set.
-pub fn start_managed_provider_with_inputs(
-  provider : ManagedProvider,
-  sequence : @execution.GeneratedSequence,
-  inputs : Array[ManagedProviderInput],
-  max_rows : Int,
-  max_value_bytes : Int,
-) -> Result[ManagedProviderExecution, @connector.FixedComputeIssue] {
-  start_managed_provider_with_inputs_and_execution(
-    provider,
-    sequence,
-    inputs,
-    max_rows,
-    max_value_bytes,
-    unavailable_provider_execution_limits(max_rows),
   )
 }
 
@@ -348,33 +311,6 @@ pub fn start_managed_provider_with_inputs_and_execution(
 /// Whether the provider runs selected common numeric reductions itself.
 pub fn managed_provider_runs_numeric(provider : ManagedProvider) -> Bool {
   provider.start_numeric is Some(_)
-}
-
-///|
-/// Compatibility-only limits for callers of the pre-bounded start API. A
-/// provider that needs common execution limits must reject these zero
-/// ceilings; the standard driver always uses the explicit execution variant.
-fn unavailable_provider_execution_limits(
-  max_rows : Int,
-) -> @execution.SequenceExecutionLimits {
-  let values : @execution.ValueLimits = {
-    max_nodes: 0,
-    max_text_bytes: 0,
-    max_depth: 0,
-    max_work: 0,
-  }
-  {
-    rows: {
-      max_rows,
-      metadata_entries: 0,
-      retained_entries: 0,
-      operation_entries: 0,
-      input_values: values,
-      output_values: values,
-    },
-    max_work: 0,
-    max_frames: 0,
-  }
 }
 
 ///|
