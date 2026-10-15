@@ -48,6 +48,53 @@ pub fn[T, C, R] NativeHostBootstrap::prepare_backed_live_child(
   if domain.read_attempted {
     return Err(Bootstrap(AlreadyConsumed))
   }
+  match self.borrow_backed_domain_read_use(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.issue_backed_live_child_from_read(original, domain, child, runtime)
+}
+
+///|
+/// Parent Root/Reader assembly only. Reuse the SAME already prepared physical
+/// read context and Common use; do not borrow again or weaken the separate
+/// worker entry's exclusion of a parent context in a lent child payload.
+pub fn[T, C, R] NativeHostBootstrap::prepare_backed_read_live_child(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+  runtime : R,
+) -> Result[
+  NativeBackedLiveChildAcquisition[T, C, R],
+  NativeBackedExecutionIssue,
+] {
+  match self.require_backed_read_context_current(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  self.issue_backed_live_child_from_read(original, domain, child, runtime)
+}
+
+///|
+fn[T, C, R] NativeHostBootstrap::issue_backed_live_child_from_read(
+  self : NativeHostBootstrap[T],
+  original : T,
+  domain : NativeBackedExecutionDomain[T, C],
+  child : C,
+  runtime : R,
+) -> Result[
+  NativeBackedLiveChildAcquisition[T, C, R],
+  NativeBackedExecutionIssue,
+] {
+  match self.original_read_carrier(original, domain, child) {
+    Err(issue) => return Err(issue)
+    Ok(_) => ()
+  }
+  if domain.live_child_attempted {
+    return Err(Bootstrap(AlreadyConsumed))
+  }
+  domain.live_child_attempted = true
   let record : NativeBackedLiveChild[T, C, R] = {
     original: None,
     owner: self,
@@ -57,10 +104,6 @@ pub fn[T, C, R] NativeHostBootstrap::prepare_backed_live_child(
     access: None,
     projection: None,
     retired: false,
-  }
-  match self.borrow_backed_domain_read_use(original, domain, child) {
-    Err(issue) => return Err(issue)
-    Ok(_) => ()
   }
   record.original = Some(record)
   let loan = domain.view.loan
@@ -79,6 +122,42 @@ pub fn[T, C, R] NativeHostBootstrap::prepare_backed_live_child(
       Ok(LiveChildReady(record))
     }
   }
+}
+
+///|
+/// The same parent read issuer keeps the returned frame private. No limits,
+/// callback, Ledger or Boolean enters this original child preparation.
+pub fn[T, C, R] NativeHostBootstrap::prepare_backed_original_read_ledger(
+  self : NativeHostBootstrap[T],
+  original : T,
+  record : NativeBackedLiveChild[T, C, R],
+  runtime : R,
+) -> Result[@resources.ImportedChildLedger, NativeBackedOriginalReadIssue] {
+  match self.original_live_child(original, record, runtime) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  match
+    self.require_backed_read_context_current(
+      original,
+      record.domain,
+      record.child,
+    ) {
+    Err(issue) => return Err(Domain(issue))
+    Ok(_) => ()
+  }
+  guard record.projection is Some(projection) else {
+    return Err(Domain(Bootstrap(Unavailable)))
+  }
+  @resources.prepare_backed_original_child_ledger(projection, runtime).map_err(issue => {
+    Child(issue)
+  })
+}
+
+///|
+pub(all) enum NativeBackedOriginalReadIssue {
+  Domain(NativeBackedExecutionIssue)
+  Child(@resources.ImportedChildLedgerIssue)
 }
 
 ///|
