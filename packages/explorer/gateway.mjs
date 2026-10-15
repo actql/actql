@@ -124,7 +124,7 @@ export function createExplorerGateway({client, origin, assets = new Map(),
     c.header('Cache-Control', 'no-store');
     c.header('X-Content-Type-Options', 'nosniff');
     c.header('Referrer-Policy', 'no-referrer');
-    c.header('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
+    c.header('Content-Security-Policy', "default-src 'none'; script-src 'self'; worker-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'");
     if (closed) return c.json({error: 'ExplorerClosed'}, 503);
     // Host is checked independently from the URL parsed by the Node adapter.
     if (c.req.header('host') !== address.host || c.req.url.length > 1024 ||
