@@ -89,6 +89,14 @@ test "serialization sort runs inside the existing generated sequence" {
   }).unwrap()
   let output = completed_output(result, Step(1)).unwrap()
   assert_true(completed_output_matches_serialization_sort(output, barrier))
+  let foreign = sort_seed(
+    ",{\"serialize\":{\"format\":\"jsonl\",\"fields\":[\"id\"],\"order_by\":[{\"id\":\"asc\"}],\"name\":\"out.jsonl\"}}",
+  )
+  let foreign_barrier = @lower.prepare_serialization(foreign, 1, max_work=3).unwrap()
+  assert_false(
+    completed_output_matches_serialization_sort(output, foreign_barrier),
+  )
+  assert_true(prepare_serialization_completion(output, foreign_barrier) is None)
   assert_false(completed_output_matches_port(output, owner, Step(1)))
   assert_false(completed_output_matches_port(output, owner, Step(0)))
   let exported = completed_output_export_rows(output)
