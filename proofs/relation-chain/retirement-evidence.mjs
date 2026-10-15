@@ -39,7 +39,7 @@ const names = Object.freeze([
   'chain cancellation between reclaimed children does not start the next child',
   'intermediate cleanup false and error preserve child custody until parent retry',
   'cancelling pending intermediate cleanup preserves reclamation custody',
-  'unaudited chain steps keep conservative capacity and child custody',
+  'audited prefix releases scratch before conservative child custody',
   'Values and UNNEST chains reclaim scratch and preserve accepted output generations',
   'Values and UNNEST cleanup failures retain child custody and retry exactly once',
   'cancellation after reclaimed Values does not start UNNEST or publish unfinished output',
@@ -62,12 +62,29 @@ export function checkRetirementConnection(read) {
   const route = compact(source.slice(end));
   assert(route.includes('ifcancelled.val&&state.pending{terminal.val=truereturnOk(managed_provider_stopped_poll(0L,0L))}'),
     'Missing scoped pending cancellation');
-  assert(route.includes('ifstate.pending{matchreclaim_relation_chain_child(state){Ok(true)=>()Ok(false)=>returnOk(managed_provider_waiting(0L,0L))Err(issue)=>{'),
-    'Missing pending reclamation before successor admission');
-  assert(route.includes('state.completed[state.position]=Some(output)state.position+=1state.pending=trueifreclaims_scratch{state.reclaiming=true'),
+  assert(route.includes('ifstate.pending{matchreclaim_relation_chain_child(state){Ok(true)=>()Ok(false)=>returnOk(managed_provider_waiting(0L,0L))Err(issue)=>{terminal.val=truereturnOk(managed_provider_failed(issue,0L,0L))}}'),
+    'Missing pending reclamation custody before successor admission');
+  assert(route.includes('letreclaimed_prefix=relation_chain_reclaimed_prefix(sequence)'),
+    'Missing reviewed retirement prefix selection');
+  // Keep the all-eligible model scope. The adopted prefix selector is local to
+  // the completed position; it does not admit conservative family suffixes.
+  assert(route.includes('state.completed[state.position]=Some(output)state.position+=1state.pending=trueletreclaims_scratch=state.position<=reclaimed_prefixifreclaims_scratch{state.reclaiming=truematchreclaim_relation_chain_child(state){Ok(_)=>()Err(issue)=>{terminal.val=truereturnOk(managed_provider_failed(issue,progress,work))}}}else{state.current=None}'),
     'Missing accepted output before intermediate retirement');
+  assert(route.includes('state.children.push(next)state.current=Some(next)state.pending=falsestate.input_preparation=None'),
+    'Missing conservative successor execution custody');
   assert(route.includes('Ok(false)=>returnOk(false)Err(issue)=>returnErr(issue)'),
     'Missing parent cleanup retry custody');
   const fixture = read(retirementFixture);
   for (const name of names) assert(fixture.includes(`test "${name}"`), 'Missing independently reviewed retirement case');
+  // This current mixed-chain counterexample does not satisfy the model's
+  // all-eligible premise. Its adopted prefix optimization must still leave
+  // the conservative suffix owned until the original parent cleanup ACK.
+  const mixedStart = fixture.indexOf(`test "${names[4]}"`);
+  const mixedEnd = fixture.indexOf('\ntest "', mixedStart + 1);
+  const mixed = compact(fixture.slice(mixedStart, mixedEnd < 0 ? undefined : mixedEnd));
+  assert(mixed.includes('assert_false(relation_chain_reclaims_completed_scratch(sequence))') &&
+    mixed.includes('assert_eq(relation_chain_reclaimed_prefix(sequence),1)') &&
+    mixed.includes('ifstate.pending{assert_eq(state.children.length(),0)assert_false(state.reclaiming)}') &&
+    mixed.includes('assert_eq(state.children.length(),count-1)assert_true(cleanup_managed_provider(active).unwrap())assert_true(state.children.is_empty())assert_true(@execution.completed_output_available(source))'),
+  'Missing conservative retirement scope and suffix custody counterexample');
 }
