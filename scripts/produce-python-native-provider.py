@@ -75,7 +75,7 @@ def emission_commands(output: str, moon_home: Path) -> list[list[str]]:
             raise ValueError('Foreign selected Native emission target')
         # Transitive trait implementations require the original package
         # registry. The broader Runtime closure must not drop this argument.
-        if '-all-pkgs' not in parts:
+        if parts[1] == 'build-package' and '-all-pkgs' not in parts:
             raise ValueError('Selected Native package registry is missing')
         parts[0] = str(moon_home / 'bin/moonc')
         commands.append(parts)
@@ -190,7 +190,8 @@ def build(source: str, moon_home: Path, clang: Path, sdk: Path,
     registry.parent.mkdir(parents=True, exist_ok=True)
     registry.write_bytes(relocated_registry(registry_source.read_bytes(), check_root,
                                           registry.parent, moon_home))
-    if any(Path(c[c.index('-all-pkgs') + 1]) != registry for c in commands):
+    if any(Path(c[c.index('-all-pkgs') + 1]) != registry
+           for c in commands if '-all-pkgs' in c):
         raise ValueError('Selected Native compiler registry binding changed')
     source_roots = [ROOT / 'src' / name.removeprefix('actql/actql/') for name in PACKAGES]
     source_inputs = [original(path) for directory in sorted(source_roots)

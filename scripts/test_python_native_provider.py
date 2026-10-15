@@ -61,6 +61,15 @@ class NativeProviderRecipeTests(unittest.TestCase):
             self.parse([line.replace(' -all-pkgs absent-debug-registry.json', '')
                         for line in self.lines])
 
+    def test_actual_link_core_without_package_registry_is_preserved(self):
+        lines = self.lines[:-1] + [self.lines[-1].replace(
+            ' -all-pkgs absent-debug-registry.json', '')]
+        commands = self.parse(lines)
+        self.assertEqual(len(commands), 162)
+        self.assertEqual(commands[-1][1], 'link-core')
+        self.assertNotIn('-all-pkgs', commands[-1])
+        self.assertTrue(all('-all-pkgs' in c for c in commands[:-1]))
+
     def registry(self):
         entries = []
         for package in sorted(PRODUCER.PACKAGES):
