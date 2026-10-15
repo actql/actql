@@ -122,10 +122,13 @@ test "imported child ledger Unknown admission keeps the same partial without ret
 ///|
 test "imported child ledger rejects missing Host overlarge capacities and foreign lifetime" {
   let (missing, _, missing_calls, _, _) = imported_child_fixture(host_bytes=-1L)
-  assert_true(start_imported_child_ledger(missing) is Err(InvalidOriginal))
+  assert_true(start_imported_child_ledger(missing) is Err(Unavailable))
   assert_true(missing.ledger is None && missing.wasm_capacity is None)
   assert_true(start_imported_child_ledger(missing) is Err(AlreadyConsumed))
   assert_eq(missing_calls.val, 1)
+  let (unknown, _, _, _, _) = imported_child_fixture(host_bytes=-41L)
+  assert_true(start_imported_child_ledger(unknown) is Err(Unknown))
+  assert_true(unknown.ledger is None)
   let (short, _, _, _, _) = imported_child_fixture(execution_bytes=11L)
   assert_true(start_imported_child_ledger(short) is Err(InvalidOriginal))
   let (foreign, current, _, _, _) = imported_child_fixture()
@@ -193,4 +196,11 @@ test "imported child ledger lost report retains original snapshot without anothe
   assert_eq(reports.val, 1)
   assert_eq(observations[0].planning_work, 2)
   assert_eq(ledger_usage(ledger).planning_work, 3)
+  let (refused, _, _, refused_reports, _) = imported_child_fixture(
+    report_code=-1,
+  )
+  start_imported_child_ledger(refused).unwrap()
+  assert_true(report_imported_child_ledger(refused) is Err(Unavailable))
+  assert_true(report_imported_child_ledger(refused) is Err(Unavailable))
+  assert_eq(refused_reports.val, 1)
 }

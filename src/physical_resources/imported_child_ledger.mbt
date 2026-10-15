@@ -29,6 +29,7 @@ pub struct ImportedChildLedger {
   priv mut wasm_capacity : SharedCapacity?
   priv mut host_capacity : SharedCapacity?
   priv mut pending_report : LedgerUsage?
+  priv mut pending_report_issue : ImportedChildLedgerIssue?
   priv mut stop_attempted : Bool
   priv mut stop_outcome : ImportedChildLedgerIssue?
 }
@@ -87,6 +88,7 @@ fn prepare_imported_child_port(
     wasm_capacity: None,
     host_capacity: None,
     pending_report: None,
+    pending_report_issue: None,
     stop_attempted: false,
     stop_outcome: None,
   }
@@ -225,6 +227,29 @@ pub fn start_imported_child_ledger(
   let execution = (port.limit)(port.nonce, 5)
   let wasm = (port.capacity)(port.nonce, 0)
   let host = (port.capacity)(port.nonce, 1)
+  // Negative import results are unavailable/unknown observations, never
+  // negative quota or zero. The original private port owns the failed reply.
+  if planning < 0L ||
+    attempts < 0L ||
+    holdings < 0L ||
+    transfer < 0L ||
+    retained < 0L ||
+    execution < 0L ||
+    wasm < 0L ||
+    host < 0L {
+    return if planning == -41L ||
+      attempts == -41L ||
+      holdings == -41L ||
+      transfer == -41L ||
+      retained == -41L ||
+      execution == -41L ||
+      wasm == -41L ||
+      host == -41L {
+      Err(Unknown)
+    } else {
+      Err(Unavailable)
+    }
+  }
   if planning < 0L ||
     planning > 2147483647L ||
     attempts < 0L ||
@@ -304,17 +329,24 @@ pub fn report_imported_child_ledger(
     Ok(_) => ()
   }
   if value.pending_report is Some(_) {
-    return Err(Unknown)
+    return match value.pending_report_issue {
+      Some(issue) => Err(issue)
+      None => Err(Unknown)
+    }
   }
   guard value.ledger is Some(ledger) else { return Err(Unavailable) }
   let usage = ledger_usage(ledger)
   value.pending_report = Some(usage)
   let port = value.origin
   match imported_child_status((port.report)(port.nonce, usage)) {
-    Err(issue) => return Err(issue)
+    Err(issue) => {
+      value.pending_report_issue = Some(issue)
+      return Err(issue)
+    }
     Ok(_) => ()
   }
   value.pending_report = None
+  value.pending_report_issue = None
   Ok(())
 }
 
