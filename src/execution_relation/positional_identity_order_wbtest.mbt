@@ -35,6 +35,13 @@ test "canonical positional identity compares numeric component order without adm
         break
       }
       for _ in 0..<quantum {
+        if state.comparison.tree is Some(tree) && !tree.frames.is_empty() {
+          match tree.frames[tree.frames.length() - 1] {
+            PositionalMembers(_, _, index, count, low, high) =>
+              println("POSITIONAL_TRACE index=\{index} count=\{count} low=\{low} high=\{high}")
+            _ => ()
+          }
+        }
         match advance_stable_order(state) {
           Ok(None) => ()
           Ok(Some(rows)) => {
