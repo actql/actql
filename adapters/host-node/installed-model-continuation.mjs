@@ -511,13 +511,21 @@ export async function installNodeModelContinuation({moon, control, store, storeA
     }
     async function confirmOriginalResourceStateSaved(park, storageBinding, receipt) {
       const originalScope = originalResourceReadCurrent(park);
-      if (typeof cp.confirmOriginalModelStateSavedSelected !== 'function') {
+      if (typeof cp.confirmOriginalModelStateSavedSelected !== 'function' ||
+          typeof cp.retireOriginalModelStateSavedObservation !== 'function') {
         fail('InferOriginalMetadataAcquisitionUnavailable');
       }
       const acquisition = operation.originalMetadataAcquisition(park);
+      const original = originalCut;
       const saved = await cp.confirmOriginalModelStateSavedSelected({
         runDefinition: plan.runDefinition, storageBinding, receipt,
         identity: select(inventory, scopeKeys)}, acquisition);
+      // Retain the actual issuer's observation before any fallible current or
+      // origin recheck. Its original READ duty survives a late failure/stop.
+      if (original !== undefined && original.park === park &&
+          original.storageBinding === storageBinding && original.receipt === receipt) {
+        original.saved = saved;
+      }
       originalResourceReadCurrent(park, acquisition);
       const savedFacts = cp.originalModelStateSavedFacts(saved);
       const document = control.readModelOriginalResourceDocument(savedFacts.documentWire,
@@ -671,6 +679,16 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         gateReleased = result !== false && gate.cleanupPending() === false;
       }
       if (gate !== undefined && !gateReleased || operation.cleanupPending()) return false;
+      if (originalCut?.saved !== undefined) {
+        // Child cleanup alone cannot retire unresolved cut users. Successful
+        // original invalidation already retires these two Common borrows.
+        if (originalInvalidation !== undefined || originalCut.matched !== undefined ||
+            originalCut.document !== undefined) return false;
+        // installed-infer-run awaits THIS cleanup before settling the original
+        // READ. Failure keeps the same observation/token for cleanup retry.
+        cp.retireOriginalModelStateSavedObservation(originalCut.saved);
+        originalCut.saved = undefined;
+      }
       if (live.get(preparedCallSet) === owner) live.delete(preparedCallSet);
       if (originalCut !== undefined) {
         originalResourceCuts.delete(originalCut.park);
@@ -844,7 +862,7 @@ export async function installNodeModelContinuation({moon, control, store, storeA
         // journal state machine. Fund this record, Promise/frames and BOTH
         // Common trees through the original installation before using it.
         const limits = originalCurrentCodecLimits(codec);
-        const original = originalCut = {park, storageBinding, receipt, codec: new WeakRef(codec),
+        const original = originalCut = {park, storageBinding, receipt, saved: undefined, codec: new WeakRef(codec),
           promise: undefined, document: undefined, matched: undefined, facts: undefined,
           current() {
             return original.matched !== undefined && original.document !== undefined &&
